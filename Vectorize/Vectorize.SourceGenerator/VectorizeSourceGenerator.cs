@@ -1,7 +1,6 @@
 using System;
 using System.Threading;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using SGF;
 using Vectorize.Rewriters;
@@ -26,9 +25,7 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 					using System;
 					
 					[AttributeUsage(AttributeTargets.Method, Inherited = false)]
-					public class VectorizeAttribute : Attribute
-					{
-					}
+					public class VectorizeAttribute : Attribute;
 					""");
 		});
 	}
@@ -41,8 +38,9 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 		}
 		
 		var rewriter = new VectorizeRewriter(context.SemanticModel, token);
+		var result = rewriter.Visit(methodDeclaration.Body).NormalizeWhitespace("\t", true);
 		
-		var result = rewriter.Visit(methodDeclaration.Body);
+		var resultString = result.ToFullString();
 
 		return String.Empty;
 	}
