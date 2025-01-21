@@ -11,7 +11,7 @@ public class Test
 		
 		foreach (var item in data)
 		{
-			sum += item;
+			sum += item == 0f ? 0f : item;
 		}
 		
 		return sum;
