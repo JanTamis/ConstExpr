@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Formatting;
 using SGF;
 using Vectorize.Rewriters;
 
@@ -38,7 +39,9 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 		}
 		
 		var rewriter = new VectorizeRewriter(context.SemanticModel, token);
-		var result = rewriter.Visit(methodDeclaration.Body).NormalizeWhitespace("\t", true);
+		var result = rewriter.Visit(methodDeclaration.Body).NormalizeWhitespace("\t", false);
+		
+		// Formatter.Format(result, context.SemanticModel., context.SemanticModel.SyntaxTree.Options);
 		
 		var resultString = result.ToFullString();
 
