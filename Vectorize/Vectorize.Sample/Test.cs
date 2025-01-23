@@ -11,7 +11,7 @@ public class Test
 		
 		foreach (var item in data)
 		{
-			sum += item == 0f ? 0f : item;
+			sum += MathF.Sqrt(item);
 		}
 		
 		return sum;

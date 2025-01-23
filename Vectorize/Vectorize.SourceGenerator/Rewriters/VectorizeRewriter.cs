@@ -76,7 +76,7 @@ namespace Vectorize.Rewriters ;
 				var variable = LocalDeclarationStatement(
 					VariableDeclaration(
 						GetVarIdentifier(),
-						SeparatedList([VariableDeclarator(node.Identifier.Text).WithInitializer(EqualsValueClause(temp))])));
+						SeparatedList([VariableDeclarator($"{node.Identifier.Text}Vector").WithInitializer(EqualsValueClause(temp))])));
 				
 				block = (BlockSyntax) VisitBlock(block);
 
@@ -236,6 +236,40 @@ namespace Vectorize.Rewriters ;
 			// return AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, node.Expression, InvocationExpression(GetMemberAccessExpression("Vector.Sum"), ArgumentList(SeparatedList([ Argument((ExpressionSyntax)Visit(node.Expression)) ]))));
 
 			return base.VisitReturnStatement(node);
+		}
+
+		public override SyntaxNode? VisitMemberAccessExpression(MemberAccessExpressionSyntax node)
+		{
+			if (node.Expression is not SimpleNameSyntax { Identifier: { ValueText: "MathF" or "Math" } })
+			{
+				return base.VisitMemberAccessExpression(node);
+			}
+			
+			var methodName = node.Name.Identifier.ValueText;
+
+			methodName = methodName switch 
+			{
+				"Abs" => "Abs",
+				"Ceiling" => "Ceiling",
+				"Cos" => "Cos",
+				"Exp" => "Exp",
+				"Floor" => "Floor",
+				"FusedMultiplyAdd" => "FusedMultiplyAdd",
+				"Log" => "Log",
+				"Log2" => "Log2",
+				"Max" => "Max",
+				"MaxMagnitude" => "MaxMagnitude",
+				"Min" => "Min",
+				"MinMagnitude" => "MinMagnitude",
+				"Round" => "Round",
+				"Sin" => "Sin",
+				"SinCos" => "SinCos",
+				"Sqrt" => "SquareRoot",
+				"Truncate" => "Truncate",
+				_ => methodName,
+			};
+			
+			return GetMemberAccessExpression($"Vector.{methodName}");
 		}
 
 		private IdentifierNameSyntax GetVarIdentifier()
