@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Vectorize.Sample")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1817a651e3236c385bd30f7a372b63fde4040870")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+47cb04518855b6c1b6a9a7dca5a651f731802e75")]
 [assembly: System.Reflection.AssemblyProductAttribute("Vectorize.Sample")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Vectorize.Sample")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

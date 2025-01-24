@@ -28,6 +28,13 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 					[AttributeUsage(AttributeTargets.Method, Inherited = false)]
 					public class VectorizeAttribute : Attribute;
 					""");
+
+			x.AddSource("OptimizeAttribute.g", """
+					using System;
+					
+					[AttributeUsage(AttributeTargets.Method, Inherited = false)]
+					public class OptimizeAttribute : Attribute;
+					""");
 		});
 	}
 
@@ -38,12 +45,14 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 			return null;
 		}
 		
-		var rewriter = new VectorizeRewriter(context.SemanticModel, token);
-		var result = rewriter.Visit(methodDeclaration.Body).NormalizeWhitespace("\t", false);
+		var optimizer = new OptimizeRewriter(context.SemanticModel, methodDeclaration, token);
+		var rewriter = new VectorizeRewriter(context.SemanticModel, methodDeclaration, token);
 		
-		// Formatter.Format(result, context.SemanticModel., context.SemanticModel.SyntaxTree.Options);
-		
-		var resultString = result.ToFullString();
+		var optimized = optimizer.Visit(methodDeclaration.Body);
+		var result = rewriter.Visit(optimized);
+
+		var optimizedString = optimized.NormalizeWhitespace("\t", false).ToFullString();
+		var resultString = result.NormalizeWhitespace("\t", false).ToFullString();
 
 		return String.Empty;
 	}

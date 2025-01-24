@@ -4,14 +4,17 @@ namespace Vectorize.Sample;
 
 public class Test
 {
-	[Vectorize]
+	[Optimize, Vectorize]
 	public float TestMethod(ReadOnlySpan<float> data)
 	{
 		var sum = 0f;
 		
 		foreach (var item in data)
 		{
-			sum += MathF.Sqrt(item);
+			if (false)
+			{
+				sum += MathF.Sqrt(item);
+			}
 		}
 		
 		return sum;

@@ -9,7 +9,7 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Vectorize.Rewriters ;
 
-	public class VectorizeRewriter(SemanticModel semanticModel, CancellationToken token) : CSharpSyntaxRewriter
+	public class VectorizeRewriter(SemanticModel semanticModel, MethodDeclarationSyntax method, CancellationToken token) : CSharpSyntaxRewriter
 	{
 		public override SyntaxNode? VisitVariableDeclarator(VariableDeclaratorSyntax node)
 		{
@@ -17,7 +17,7 @@ namespace Vectorize.Rewriters ;
 
 			if (value is LiteralExpressionSyntax { Token.Value: var tokenValue })
 			{
-				var type = semanticModel.GetTypeInfo(value).Type.ToDisplayString();
+				var type = GetFriendlyName(tokenValue.GetType());
 
 				if (tokenValue.Equals(0) || tokenValue.Equals(0f) || tokenValue.Equals(0d))
 				{
@@ -49,19 +49,19 @@ namespace Vectorize.Rewriters ;
 
 		public override SyntaxNode? VisitForEachStatement(ForEachStatementSyntax node)
 		{
-			var type = GetElementType(GetType(semanticModel.GetOperation(node.Expression, token)));
+			var data = semanticModel.GetForEachStatementInfo(node);
 
 			// i < array.Length - Vector<T>.Length
 			var condition = BinaryExpression(SyntaxKind.LessThanExpression,
 				IdentifierName("i"),
 				BinaryExpression(SyntaxKind.SubtractExpression,
 					MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, node.Expression, IdentifierName("Length")),
-					GetMemberAccessExpression($"Vector<{type}>.Count")));
+					GetMemberAccessExpression($"Vector<{data.ElementType}>.Count")));
 
 			// i += Vector<T>.Length
 			var incrementor = AssignmentExpression(SyntaxKind.AddAssignmentExpression,
 				IdentifierName("i"),
-				GetMemberAccessExpression($"Vector<{type}>.Count"));
+				GetMemberAccessExpression($"Vector<{data.ElementType}>.Count"));
 
 			if (node.Statement is BlockSyntax block)
 			{
