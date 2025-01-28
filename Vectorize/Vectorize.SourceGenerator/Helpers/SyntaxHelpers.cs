@@ -8,7 +8,7 @@ namespace Vectorize.Helpers;
 
 public static class SyntaxHelpers
 {
-	public static SyntaxKind GetSyntaxKind(object value)
+	public static SyntaxKind GetSyntaxKind(object? value)
 	{
 		return value switch
 		{
