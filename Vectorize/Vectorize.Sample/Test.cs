@@ -11,12 +11,9 @@ public class Test
 		
 		foreach (var item in data)
 		{
-			if (item > 0f)
-			{
-				sum += item;
-			}
+			sum += item;
 		}
 		
-		return sum;
+		return sum / data.Length;
 	}
 }

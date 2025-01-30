@@ -25,14 +25,57 @@ public static class SyntaxHelpers
 		};
 	}
 
-	public static object? GetVariableValue(SyntaxNode expression, Dictionary<string, object?> variables)
+	public static object? GetVariableValue(SyntaxNode? expression, Dictionary<string, object?> variables)
 	{
 		return expression switch
 		{
-			LiteralExpressionSyntax literal => literal.Token.Value,
+			LiteralExpressionSyntax literal => literal.Kind() switch
+			{
+				SyntaxKind.StringLiteralExpression => literal.Token.Value,
+				SyntaxKind.CharacterLiteralExpression => literal.Token.Value,
+				SyntaxKind.TrueLiteralExpression => true,
+				SyntaxKind.FalseLiteralExpression => false,
+				SyntaxKind.NullLiteralExpression => null,
+				_ => literal.Token.Value,
+			},
 			IdentifierNameSyntax identifier => variables[identifier.Identifier.Text],
+			MemberAccessExpressionSyntax simple => GetVariableValue(simple.Expression, variables),
 			_ => null
 		};
+	}
+
+	public static bool TryGetVariableValue(SyntaxNode? expression, Dictionary<string, object?> variables, out object? value)
+	{
+		switch (expression)
+		{
+			case LiteralExpressionSyntax literal:
+				switch (literal.Kind())
+				{
+					case SyntaxKind.StringLiteralExpression:
+					case SyntaxKind.CharacterLiteralExpression:
+						value = literal.Token.Value;
+						return true;
+					case SyntaxKind.TrueLiteralExpression:
+						value = true;
+						return true;
+					case SyntaxKind.FalseLiteralExpression:
+						value = false;
+						return true;
+					case SyntaxKind.NullLiteralExpression:
+						value = null;
+						return true;
+					default:
+						value = literal.Token.Value;
+						return true;
+				}
+			case IdentifierNameSyntax identifier:
+				return variables.TryGetValue(identifier.Identifier.Text, out value);
+			case MemberAccessExpressionSyntax simple:
+				return TryGetVariableValue(simple.Expression, variables, out value);
+			default:
+				value = null;
+				return true;
+		}
 	}
 
 	public static string? GetVariableName(SyntaxNode expression)
@@ -42,6 +85,33 @@ public static class SyntaxHelpers
 			IdentifierNameSyntax identifier => identifier.Identifier.Text,
 			_ => null
 		};
+	}
+	
+	public static LiteralExpressionSyntax NumberLiteral(int value)
+	{
+		return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralToken, SyntaxFactory.Literal(value));
+	}
+
+	public static LiteralExpressionSyntax NumberLiteral(float value)
+	{
+		return SyntaxFactory.LiteralExpression(GetSyntaxKind(value), SyntaxFactory.Literal(value));
+	}
+
+	public static LiteralExpressionSyntax NumberLiteral(double value)
+	{
+		return SyntaxFactory.LiteralExpression(GetSyntaxKind(value), SyntaxFactory.Literal(value));
+	}
+
+	public static LiteralExpressionSyntax StringLiteral(string value)
+	{
+		return SyntaxFactory.LiteralExpression(GetSyntaxKind(value), SyntaxFactory.Literal(value));
+	}
+
+	public static LiteralExpressionSyntax BoolLiteral(bool value)
+	{
+		return SyntaxFactory.LiteralExpression(value 
+			? SyntaxKind.TrueLiteralExpression 
+			: SyntaxKind.FalseLiteralExpression);
 	}
 
 	public static object? Add(object left, object right)
