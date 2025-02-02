@@ -87,31 +87,21 @@ public static class SyntaxHelpers
 		};
 	}
 	
-	public static LiteralExpressionSyntax NumberLiteral(int value)
+	public static LiteralExpressionSyntax CreateLiteral<T>(T? value)
 	{
-		return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralToken, SyntaxFactory.Literal(value));
-	}
-
-	public static LiteralExpressionSyntax NumberLiteral(float value)
-	{
-		return SyntaxFactory.LiteralExpression(GetSyntaxKind(value), SyntaxFactory.Literal(value));
-	}
-
-	public static LiteralExpressionSyntax NumberLiteral(double value)
-	{
-		return SyntaxFactory.LiteralExpression(GetSyntaxKind(value), SyntaxFactory.Literal(value));
-	}
-
-	public static LiteralExpressionSyntax StringLiteral(string value)
-	{
-		return SyntaxFactory.LiteralExpression(GetSyntaxKind(value), SyntaxFactory.Literal(value));
-	}
-
-	public static LiteralExpressionSyntax BoolLiteral(bool value)
-	{
-		return SyntaxFactory.LiteralExpression(value 
-			? SyntaxKind.TrueLiteralExpression 
-			: SyntaxKind.FalseLiteralExpression);
+		return value switch
+		{
+			int i => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(i)),
+			float f => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(f)),
+			double d => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(d)),
+			long l => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(l)),
+			decimal dec => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(dec)),
+			string s => SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(s)),
+			char c => SyntaxFactory.LiteralExpression(SyntaxKind.CharacterLiteralExpression, SyntaxFactory.Literal(c)),
+			bool b => SyntaxFactory.LiteralExpression(b ? SyntaxKind.TrueLiteralExpression : SyntaxKind.FalseLiteralExpression),
+			null => SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression),
+			_ => throw new ArgumentOutOfRangeException()
+		};
 	}
 
 	public static object? Add(object left, object right)

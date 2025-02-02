@@ -8,10 +8,10 @@ public class Test
 	public float TestMethod(ReadOnlySpan<float> data)
 	{
 		var sum = 0f;
-		
-		foreach (var item in data)
+
+		for (var i = 0; i < data.Length; i++)
 		{
-			sum += item;
+			sum += data[i];
 		}
 		
 		return sum / data.Length;

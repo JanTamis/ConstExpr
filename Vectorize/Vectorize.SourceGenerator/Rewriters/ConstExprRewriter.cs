@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading;
 using Microsoft.CodeAnalysis;
@@ -39,18 +40,21 @@ public class ConstExprRewriter(SemanticModel semanticModel, MethodDeclarationSyn
 		var left = GetVariableValue(Visit(node.Left), variables);
 		var right = GetVariableValue(Visit(node.Right), variables);
 
-		var result = Comparer.Default.Compare(left, right);
 		var kind = node.Kind();
 
 		return kind switch
 		{
-			SyntaxKind.EqualsExpression when result is 0 => BoolLiteral(true),
-			SyntaxKind.NotEqualsExpression when result is not 0 => BoolLiteral(true),
-			SyntaxKind.GreaterThanExpression when result > 0 => BoolLiteral(true),
-			SyntaxKind.GreaterThanOrEqualExpression when result >= 0 => BoolLiteral(true),
-			SyntaxKind.LessThanExpression when result < 0 => BoolLiteral(true),
-			SyntaxKind.LessThanOrEqualExpression when result <= 0 => BoolLiteral(true),
-			_ => BoolLiteral(false),
+			SyntaxKind.AddExpression => CreateLiteral(Add(left, right)),
+			SyntaxKind.SubtractExpression => CreateLiteral(Subtract(left, right)),
+			SyntaxKind.MultiplyExpression => CreateLiteral(Multiply(left, right)),
+			SyntaxKind.DivideExpression => CreateLiteral(Divide(left, right)),
+			SyntaxKind.EqualsExpression when Comparer.Default.Compare(left, right) is 0 => CreateLiteral(true),
+			SyntaxKind.NotEqualsExpression when Comparer.Default.Compare(left, right) is not 0 => CreateLiteral(true),
+			SyntaxKind.GreaterThanExpression when Comparer.Default.Compare(left, right) > 0 => CreateLiteral(true),
+			SyntaxKind.GreaterThanOrEqualExpression when Comparer.Default.Compare(left, right) >= 0 => CreateLiteral(true),
+			SyntaxKind.LessThanExpression when Comparer.Default.Compare(left, right) < 0 => CreateLiteral(true),
+			SyntaxKind.LessThanOrEqualExpression when Comparer.Default.Compare(left, right) <= 0 => CreateLiteral(true),
+			_ => CreateLiteral(false),
 		};
 	}
 
@@ -105,7 +109,7 @@ public class ConstExprRewriter(SemanticModel semanticModel, MethodDeclarationSyn
 		{
 			Visit(node.Statement);
 		} while (GetVariableValue(Visit(node.Condition), variables) is true);
-		
+
 		return node;
 	}
 
@@ -115,7 +119,7 @@ public class ConstExprRewriter(SemanticModel semanticModel, MethodDeclarationSyn
 		{
 			Visit(node.Statement);
 		}
-		
+
 		return node;
 	}
 
@@ -133,17 +137,17 @@ public class ConstExprRewriter(SemanticModel semanticModel, MethodDeclarationSyn
 
 				Visit(node.Statement);
 			}
-			
+
 			variables.Remove(tempVariable);
 		}
 
 		return node;
 	}
-	
+
 	public override SyntaxNode? VisitIfStatement(IfStatementSyntax node)
 	{
 		var condition = GetVariableValue(Visit(node.Condition), variables);
-		
+
 		if (condition is true)
 		{
 			Visit(node.Statement);
@@ -159,33 +163,33 @@ public class ConstExprRewriter(SemanticModel semanticModel, MethodDeclarationSyn
 	public override SyntaxNode? VisitInterpolatedStringExpression(InterpolatedStringExpressionSyntax node)
 	{
 		var builder = new StringBuilder();
-		
+
 		foreach (var content in node.Contents)
 		{
 			builder.Append(GetVariableValue(Visit(content), variables));
 		}
-		
-		return StringLiteral(builder.ToString());
+
+		return CreateLiteral(builder.ToString());
 	}
 
 	public override SyntaxNode? VisitInterpolation(InterpolationSyntax node)
 	{
 		var value = GetVariableValue(node.Expression, variables);
 		var format = node.FormatClause?.FormatStringToken.ValueText;
-		
+
 		if (format is not null && value is IFormattable formattable)
 		{
-			return StringLiteral(formattable.ToString(format, null));
+			return CreateLiteral(formattable.ToString(format, null));
 		}
-		
-		return StringLiteral(value.ToString());
+
+		return CreateLiteral(value.ToString());
 	}
 
 	public override SyntaxNode? VisitInterpolatedStringText(InterpolatedStringTextSyntax node)
 	{
 		var text = node.TextToken.ValueText;
-		
-		return StringLiteral(text);
+
+		return CreateLiteral(text);
 	}
 
 	public override SyntaxNode? VisitReturnStatement(ReturnStatementSyntax node)
@@ -207,21 +211,21 @@ public class ConstExprRewriter(SemanticModel semanticModel, MethodDeclarationSyn
 
 		return node;
 	}
-	
+
 	public override SyntaxNode? VisitWhileStatement(WhileStatementSyntax node)
 	{
 		while (GetVariableValue(Visit(node.Condition), variables) is true)
 		{
 			Visit(node.Statement);
 		}
-		
+
 		return node;
 	}
 
 	public override SyntaxNode? VisitInvocationExpression(InvocationExpressionSyntax node)
 	{
 		var expression = Visit(node.Expression);
-		
+
 		if (expression is MemberAccessExpressionSyntax memberAccess)
 		{
 			var name = memberAccess.Name.Identifier.Text;
@@ -229,126 +233,211 @@ public class ConstExprRewriter(SemanticModel semanticModel, MethodDeclarationSyn
 
 			if (TryGetVariableValue(memberAccess.Expression, variables, out var value))
 			{
-				// switch (name)
-				// {
-				// 	case "GetHashCode":
-				// 		return NumberLiteral(value.GetHashCode());
-				// 	case "ToString()":
-				// 		return StringLiteral(value.ToString());
-				// }
-				
 				var type = value.GetType();
 				var method = type.GetMethod(name);
-				
+
 				if (method is not null)
 				{
 					var arguments = node.ArgumentList.Arguments
 						.Select(argument => GetVariableValue(Visit(argument.Expression), variables))
 						.ToArray();
-					
+
 					var result = method.Invoke(value, arguments);
-					
+
 					return LiteralExpression(GetSyntaxKind(result), Literal(result.ToString()));
 				}
 			}
-			
+
 			if (memberName is nameof(MathF))
 			{
 				var arguments = node.ArgumentList.Arguments
-					.Select(argument => (float)GetVariableValue(Visit(argument.Expression), variables))
+					.Select(argument => (float) GetVariableValue(Visit(argument.Expression), variables))
 					.ToArray();
-				
+
 				return name switch
 				{
-					nameof(MathF.Abs) => NumberLiteral(MathF.Abs(arguments[0])),
-					nameof(MathF.Acos) => NumberLiteral(MathF.Acos(arguments[0])),
-					// nameof(MathF.Acosh) => NumberLiteral(MathF.Acosh((float) arguments[0])),
-					nameof(MathF.Asin) => NumberLiteral(MathF.Asin(arguments[0])),
-					// nameof(MathF.Asinh) => NumberLiteral(MathF.Asinh((float) arguments[0])),
-					nameof(MathF.Atan) => NumberLiteral(MathF.Atan(arguments[0])),
-					nameof(MathF.Atan2) => NumberLiteral(MathF.Atan2(arguments[0], arguments[1])),
-					// nameof(MathF.Atanh) => NumberLiteral(MathF.Atanh((float) arguments[0])),
-					"Cbrt" => NumberLiteral(MathF.Pow(arguments[0], 1f / 3f)),
-					nameof(MathF.Ceiling) => NumberLiteral(MathF.Ceiling(arguments[0])),
-					"Clamp" => NumberLiteral(MathF.Min(MathF.Max(arguments[0], arguments[1]), arguments[2])),
-					nameof(MathF.Cos) => NumberLiteral(MathF.Cos(arguments[0])),
-					nameof(MathF.Cosh) => NumberLiteral(MathF.Cosh(arguments[0])),
-					nameof(MathF.Exp) => NumberLiteral(MathF.Exp(arguments[0])),
-					nameof(MathF.Floor) => NumberLiteral(MathF.Floor(arguments[0])),
-					// nameof(MathF.FusedMultiplyAdd) => NumberLiteral(MathF.FusedMultiplyAdd((float) arguments[0], (float) arguments[1], (float) arguments[2])),
-					nameof(MathF.IEEERemainder) => NumberLiteral(MathF.IEEERemainder(arguments[0], arguments[1])),
-					nameof(MathF.Log) => NumberLiteral(MathF.Log(arguments[0])),
-					nameof(MathF.Log10) => NumberLiteral(MathF.Log10(arguments[0])),
-					// nameof(MathF.Log2) => NumberLiteral(MathF.Log2((float) arguments[0])),
-					nameof(MathF.Max) => NumberLiteral(MathF.Max(arguments[0], arguments[1])),
-					nameof(MathF.Min) => NumberLiteral(MathF.Min(arguments[0], arguments[1])),
-					nameof(MathF.Pow) => NumberLiteral(MathF.Pow(arguments[0], arguments[1])),
-					nameof(MathF.Round) => NumberLiteral(MathF.Round(arguments[0])),
-					nameof(MathF.Sign) => NumberLiteral(MathF.Sign(arguments[0])),
-					nameof(MathF.Sin) => NumberLiteral(MathF.Sin(arguments[0])),
-					nameof(MathF.Sinh) => NumberLiteral(MathF.Sinh(arguments[0])),
-					nameof(MathF.Sqrt) => NumberLiteral(MathF.Sqrt(arguments[0])),
-					nameof(MathF.Tan) => NumberLiteral(MathF.Tan(arguments[0])),
-					nameof(MathF.Tanh) => NumberLiteral(MathF.Tanh(arguments[0])),
-					nameof(MathF.Truncate) => NumberLiteral(MathF.Truncate(arguments[0])),
+					nameof(MathF.Abs) => CreateLiteral(MathF.Abs(arguments[0])),
+					nameof(MathF.Acos) => CreateLiteral(MathF.Acos(arguments[0])),
+					// nameof(MathF.Acosh) => CreateLiteral(MathF.Acosh((float) arguments[0])),
+					nameof(MathF.Asin) => CreateLiteral(MathF.Asin(arguments[0])),
+					// nameof(MathF.Asinh) => CreateLiteral(MathF.Asinh((float) arguments[0])),
+					nameof(MathF.Atan) => CreateLiteral(MathF.Atan(arguments[0])),
+					nameof(MathF.Atan2) => CreateLiteral(MathF.Atan2(arguments[0], arguments[1])),
+					// nameof(MathF.Atanh) => CreateLiteral(MathF.Atanh((float) arguments[0])),
+					"Cbrt" => CreateLiteral(MathF.Pow(arguments[0], 1f / 3f)),
+					nameof(MathF.Ceiling) => CreateLiteral(MathF.Ceiling(arguments[0])),
+					"Clamp" => CreateLiteral(MathF.Min(MathF.Max(arguments[0], arguments[1]), arguments[2])),
+					nameof(MathF.Cos) => CreateLiteral(MathF.Cos(arguments[0])),
+					nameof(MathF.Cosh) => CreateLiteral(MathF.Cosh(arguments[0])),
+					nameof(MathF.Exp) => CreateLiteral(MathF.Exp(arguments[0])),
+					nameof(MathF.Floor) => CreateLiteral(MathF.Floor(arguments[0])),
+					// nameof(MathF.FusedMultiplyAdd) => CreateLiteral(MathF.FusedMultiplyAdd((float) arguments[0], (float) arguments[1], (float) arguments[2])),
+					nameof(MathF.IEEERemainder) => CreateLiteral(MathF.IEEERemainder(arguments[0], arguments[1])),
+					nameof(MathF.Log) => CreateLiteral(MathF.Log(arguments[0])),
+					nameof(MathF.Log10) => CreateLiteral(MathF.Log10(arguments[0])),
+					// nameof(MathF.Log2) => CreateLiteral(MathF.Log2((float) arguments[0])),
+					nameof(MathF.Max) => CreateLiteral(MathF.Max(arguments[0], arguments[1])),
+					nameof(MathF.Min) => CreateLiteral(MathF.Min(arguments[0], arguments[1])),
+					nameof(MathF.Pow) => CreateLiteral(MathF.Pow(arguments[0], arguments[1])),
+					nameof(MathF.Round) => CreateLiteral(MathF.Round(arguments[0])),
+					nameof(MathF.Sign) => CreateLiteral(MathF.Sign(arguments[0])),
+					nameof(MathF.Sin) => CreateLiteral(MathF.Sin(arguments[0])),
+					nameof(MathF.Sinh) => CreateLiteral(MathF.Sinh(arguments[0])),
+					nameof(MathF.Sqrt) => CreateLiteral(MathF.Sqrt(arguments[0])),
+					nameof(MathF.Tan) => CreateLiteral(MathF.Tan(arguments[0])),
+					nameof(MathF.Tanh) => CreateLiteral(MathF.Tanh(arguments[0])),
+					nameof(MathF.Truncate) => CreateLiteral(MathF.Truncate(arguments[0])),
 					_ => node
 				};
 			}
-			
+
 			if (memberName is nameof(Math))
 			{
 				var arguments = node.ArgumentList.Arguments
-					.Select(argument => (double)GetVariableValue(Visit(argument.Expression), variables))
+					.Select(argument => (double) GetVariableValue(Visit(argument.Expression), variables))
 					.ToArray();
-				
+
 				return name switch
 				{
-					nameof(Math.Abs) => NumberLiteral(Math.Abs(arguments[0])),
-					nameof(Math.Acos) => NumberLiteral(Math.Acos(arguments[0])),
-					// nameof(Math.Acosh) => NumberLiteral(Math.Acosh((double) arguments[0])),
-					nameof(Math.Asin) => NumberLiteral(Math.Asin(arguments[0])),
-					// nameof(Math.Asinh) => NumberLiteral(Math.Asinh((double) arguments[0])),
-					nameof(Math.Atan) => NumberLiteral(Math.Atan(arguments[0])),
-					nameof(Math.Atan2) => NumberLiteral(Math.Atan2(arguments[0], arguments[1])),
-					// nameof(Math.Atanh) => NumberLiteral(Math.Atanh((double) arguments[0])),
-					"Cbrt" => NumberLiteral(Math.Pow(arguments[0], 1d / 3d)),
-					nameof(Math.Ceiling) => NumberLiteral(Math.Ceiling(arguments[0])),
-					"Clamp" => NumberLiteral(Math.Min(Math.Max(arguments[0], arguments[1]), arguments[2])),
-					nameof(Math.Cos) => NumberLiteral(Math.Cos(arguments[0])),
-					nameof(Math.Cosh) => NumberLiteral(Math.Cosh(arguments[0])),
-					nameof(Math.Exp) => NumberLiteral(Math.Exp(arguments[0])),
-					nameof(Math.Floor) => NumberLiteral(Math.Floor(arguments[0])),
-					// nameof(Math.FusedMultiplyAdd) => NumberLiteral(Math.FusedMultiplyAdd((double) arguments[0], (double) arguments[1], (double) arguments[2])),
-					nameof(Math.IEEERemainder) => NumberLiteral(Math.IEEERemainder(arguments[0], arguments[1])),
-					nameof(Math.Log) => NumberLiteral(Math.Log(arguments[0])),
-					nameof(Math.Log10) => NumberLiteral(Math.Log10(arguments[0])),
-					// nameof(Math.Log2) => NumberLiteral(Math.Log2((double) arguments[0])),
-					nameof(Math.Max) => NumberLiteral(Math.Max(arguments[0], arguments[1])),
-					nameof(Math.Min) => NumberLiteral(Math.Min(arguments[0], arguments[1])),
-					nameof(Math.Pow) => NumberLiteral(Math.Pow(arguments[0], arguments[1])),
-					nameof(Math.Round) => NumberLiteral(Math.Round(arguments[0])),
-					nameof(Math.Sign) => NumberLiteral(Math.Sign(arguments[0])),
-					nameof(Math.Sin) => NumberLiteral(Math.Sin(arguments[0])),
-					nameof(Math.Sinh) => NumberLiteral(Math.Sinh(arguments[0])),
-					nameof(Math.Sqrt) => NumberLiteral(Math.Sqrt(arguments[0])),
-					nameof(Math.Tan) => NumberLiteral(Math.Tan(arguments[0])),
-					nameof(Math.Tanh) => NumberLiteral(Math.Tanh(arguments[0])),
-					nameof(Math.Truncate) => NumberLiteral(Math.Truncate(arguments[0])),
+					nameof(Math.Abs) => CreateLiteral(Math.Abs(arguments[0])),
+					nameof(Math.Acos) => CreateLiteral(Math.Acos(arguments[0])),
+					// nameof(Math.Acosh) => CreateLiteral(Math.Acosh((double) arguments[0])),
+					nameof(Math.Asin) => CreateLiteral(Math.Asin(arguments[0])),
+					// nameof(Math.Asinh) => CreateLiteral(Math.Asinh((double) arguments[0])),
+					nameof(Math.Atan) => CreateLiteral(Math.Atan(arguments[0])),
+					nameof(Math.Atan2) => CreateLiteral(Math.Atan2(arguments[0], arguments[1])),
+					// nameof(Math.Atanh) => CreateLiteral(Math.Atanh((double) arguments[0])),
+					"Cbrt" => CreateLiteral(Math.Pow(arguments[0], 1d / 3d)),
+					nameof(Math.Ceiling) => CreateLiteral(Math.Ceiling(arguments[0])),
+					"Clamp" => CreateLiteral(Math.Min(Math.Max(arguments[0], arguments[1]), arguments[2])),
+					nameof(Math.Cos) => CreateLiteral(Math.Cos(arguments[0])),
+					nameof(Math.Cosh) => CreateLiteral(Math.Cosh(arguments[0])),
+					nameof(Math.Exp) => CreateLiteral(Math.Exp(arguments[0])),
+					nameof(Math.Floor) => CreateLiteral(Math.Floor(arguments[0])),
+					// nameof(Math.FusedMultiplyAdd) => CreateLiteral(Math.FusedMultiplyAdd((double) arguments[0], (double) arguments[1], (double) arguments[2])),
+					nameof(Math.IEEERemainder) => CreateLiteral(Math.IEEERemainder(arguments[0], arguments[1])),
+					nameof(Math.Log) => CreateLiteral(Math.Log(arguments[0])),
+					nameof(Math.Log10) => CreateLiteral(Math.Log10(arguments[0])),
+					// nameof(Math.Log2) => CreateLiteral(Math.Log2((double) arguments[0])),
+					nameof(Math.Max) => CreateLiteral(Math.Max(arguments[0], arguments[1])),
+					nameof(Math.Min) => CreateLiteral(Math.Min(arguments[0], arguments[1])),
+					nameof(Math.Pow) => CreateLiteral(Math.Pow(arguments[0], arguments[1])),
+					nameof(Math.Round) => CreateLiteral(Math.Round(arguments[0])),
+					nameof(Math.Sign) => CreateLiteral(Math.Sign(arguments[0])),
+					nameof(Math.Sin) => CreateLiteral(Math.Sin(arguments[0])),
+					nameof(Math.Sinh) => CreateLiteral(Math.Sinh(arguments[0])),
+					nameof(Math.Sqrt) => CreateLiteral(Math.Sqrt(arguments[0])),
+					nameof(Math.Tan) => CreateLiteral(Math.Tan(arguments[0])),
+					nameof(Math.Tanh) => CreateLiteral(Math.Tanh(arguments[0])),
+					nameof(Math.Truncate) => CreateLiteral(Math.Truncate(arguments[0])),
 					_ => node
 				};
 			}
 		}
-		
+
 		return base.VisitInvocationExpression(node);
 	}
 
 	public override SyntaxNode? VisitMemberAccessExpression(MemberAccessExpressionSyntax node)
 	{
-		return base.VisitMemberAccessExpression(node);
+		var value = GetVariableValue(node.Expression, variables);
+		var name = node.Name.Identifier.Text;
+
+		if (value is not null)
+		{
+			var type = value.GetType();
+			var property = type.GetProperty(name);
+			var field = type.GetField(name);
+
+			if (property is not null)
+			{
+				return CreateLiteral(property.GetValue(value));
+			}
+
+			if (field is not null)
+			{
+				return CreateLiteral(field.GetValue(value));
+			}
+		}
+
+		return node;
+	}
+
+	public override SyntaxNode? VisitPostfixUnaryExpression(PostfixUnaryExpressionSyntax node)
+	{
+		var name = GetVariableName(Visit(node.Operand));
+		var value = GetVariableValue(Visit(node.Operand), variables);
+
+		var kind = node.Kind();
+
+		variables[name] = kind switch
+		{
+			SyntaxKind.PostIncrementExpression => Add(value, 1),
+			SyntaxKind.PostDecrementExpression => Subtract(value, 1),
+			_ => variables[name]
+		};
+
+		return node;
+	}
+
+	public override SyntaxNode? VisitPrefixUnaryExpression(PrefixUnaryExpressionSyntax node)
+	{
+		var name = GetVariableName(Visit(node.Operand));
+		var value = GetVariableValue(Visit(node.Operand), variables);
+
+		var kind = node.Kind();
+
+		variables[name] = kind switch
+		{
+			SyntaxKind.PreIncrementExpression => Add(value, 1),
+			SyntaxKind.PreDecrementExpression => Subtract(value, 1),
+			SyntaxKind.UnaryPlusExpression => value,
+			SyntaxKind.UnaryMinusExpression => Subtract(0, value),
+			// SyntaxKind.BitwiseNotExpression => ~value,
+			// SyntaxKind.LogicalNotExpression => !value,
+			_ => variables[name]
+		};
+
+		return node;
+	}
+
+	public override SyntaxNode? VisitElementAccessExpression(ElementAccessExpressionSyntax node)
+	{
+		var value = GetVariableValue(node.Expression, variables);
+		var arguments = node.ArgumentList.Arguments
+			.Select(s => GetVariableValue(Visit(s.Expression), variables))
+			.ToArray();
+
+		var type = value.GetType();
+		var indexerProperty = type.GetRuntimeProperties()
+			.Concat(type.BaseType.GetRuntimeProperties())
+			.FirstOrDefault(p => p.GetIndexParameters().Length > 0);
+
+		if (indexerProperty != null)
+		{
+			return CreateLiteral(indexerProperty.GetValue(value, arguments));
+		}
+
+		return node;
 	}
 
 	public override SyntaxNode? VisitSwitchStatement(SwitchStatementSyntax node)
 	{
-		return base.VisitSwitchStatement(node);
+		var value = GetVariableValue(Visit(node.Expression), variables);
+
+		foreach (var section in node.Sections)
+		{
+			if (section.Labels.OfType<CaseSwitchLabelSyntax>().Any(label => GetVariableValue(Visit(label.Value), variables) is int caseValue && caseValue == (int) value))
+			{
+				foreach (var statement in section.Statements)
+				{
+					Visit(statement);
+				}
+
+				break;
+			}
+		}
+
+		return node;
 	}
 }
