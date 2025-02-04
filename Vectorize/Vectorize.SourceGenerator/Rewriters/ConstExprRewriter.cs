@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using Microsoft.CodeAnalysis;
@@ -29,10 +30,18 @@ public class ConstExprRewriter(SemanticModel semanticModel, MethodDeclarationSyn
 			SyntaxKind.SubtractAssignmentExpression => Subtract(variables[name], value),
 			SyntaxKind.MultiplyAssignmentExpression => Multiply(variables[name], value),
 			SyntaxKind.DivideAssignmentExpression => Divide(variables[name], value),
+			SyntaxKind.ModuloAssignmentExpression => Modulo(variables[name], value),
+			SyntaxKind.AndAssignmentExpression => BitwiseAnd(variables[name], value),
+			SyntaxKind.ExclusiveOrAssignmentExpression => ExclusiveOr(variables[name], value),
+			SyntaxKind.OrAssignmentExpression => BitwiseOr(variables[name], value),
+			SyntaxKind.LeftShiftAssignmentExpression => LeftShift(variables[name], value),
+			SyntaxKind.RightShiftAssignmentExpression => RightShift(variables[name], value),
+			SyntaxKind.UnsignedRightShiftAssignmentExpression => UnsignedRightShift(variables[name], value),
+			// SyntaxKind.CoalesceAssignmentExpression => Coalesce(variables[name], value),
 			_ => variables[name]
 		};
 
-		return node;
+		return null;
 	}
 
 	public override SyntaxNode? VisitBinaryExpression(BinaryExpressionSyntax node)
@@ -41,6 +50,7 @@ public class ConstExprRewriter(SemanticModel semanticModel, MethodDeclarationSyn
 		var right = GetVariableValue(Visit(node.Right), variables);
 
 		var kind = node.Kind();
+		var method = left.GetType().GetRuntimeMethods().Where(w => w.IsPublic && w.IsStatic);
 
 		return kind switch
 		{
@@ -48,12 +58,22 @@ public class ConstExprRewriter(SemanticModel semanticModel, MethodDeclarationSyn
 			SyntaxKind.SubtractExpression => CreateLiteral(Subtract(left, right)),
 			SyntaxKind.MultiplyExpression => CreateLiteral(Multiply(left, right)),
 			SyntaxKind.DivideExpression => CreateLiteral(Divide(left, right)),
+			SyntaxKind.ModuloExpression => CreateLiteral(Modulo(left, right)),
+			SyntaxKind.LeftShiftExpression => CreateLiteral(LeftShift(left, right)),
+			SyntaxKind.RightShiftExpression => CreateLiteral(RightShift(left, right)),
+			SyntaxKind.UnsignedRightShiftExpression => CreateLiteral(UnsignedRightShift(left, right)),
+			SyntaxKind.LogicalOrExpression => CreateLiteral(left is true || right is true),
+			SyntaxKind.LogicalAndExpression => CreateLiteral(left is true && right is true),
+			SyntaxKind.BitwiseOrExpression => CreateLiteral(BitwiseOr(left, right)),
+			SyntaxKind.BitwiseAndExpression => CreateLiteral(BitwiseAnd(left, right)),
+			SyntaxKind.ExclusiveOrExpression => CreateLiteral(ExclusiveOr(left, right)),
 			SyntaxKind.EqualsExpression when Comparer.Default.Compare(left, right) is 0 => CreateLiteral(true),
 			SyntaxKind.NotEqualsExpression when Comparer.Default.Compare(left, right) is not 0 => CreateLiteral(true),
-			SyntaxKind.GreaterThanExpression when Comparer.Default.Compare(left, right) > 0 => CreateLiteral(true),
-			SyntaxKind.GreaterThanOrEqualExpression when Comparer.Default.Compare(left, right) >= 0 => CreateLiteral(true),
 			SyntaxKind.LessThanExpression when Comparer.Default.Compare(left, right) < 0 => CreateLiteral(true),
 			SyntaxKind.LessThanOrEqualExpression when Comparer.Default.Compare(left, right) <= 0 => CreateLiteral(true),
+			SyntaxKind.GreaterThanExpression when Comparer.Default.Compare(left, right) > 0 => CreateLiteral(true),
+			SyntaxKind.GreaterThanOrEqualExpression when Comparer.Default.Compare(left, right) >= 0 => CreateLiteral(true),
+			// SyntaxKind.CoalesceExpression => CreateLiteral(Coalesce(left, right)),
 			_ => CreateLiteral(false),
 		};
 	}
@@ -110,7 +130,7 @@ public class ConstExprRewriter(SemanticModel semanticModel, MethodDeclarationSyn
 			Visit(node.Statement);
 		} while (GetVariableValue(Visit(node.Condition), variables) is true);
 
-		return node;
+		return null;
 	}
 
 	public override SyntaxNode? VisitForStatement(ForStatementSyntax node)
@@ -120,7 +140,7 @@ public class ConstExprRewriter(SemanticModel semanticModel, MethodDeclarationSyn
 			Visit(node.Statement);
 		}
 
-		return node;
+		return null;
 	}
 
 	public override SyntaxNode? VisitForEachStatement(ForEachStatementSyntax node)
@@ -141,7 +161,7 @@ public class ConstExprRewriter(SemanticModel semanticModel, MethodDeclarationSyn
 			variables.Remove(tempVariable);
 		}
 
-		return node;
+		return null;
 	}
 
 	public override SyntaxNode? VisitIfStatement(IfStatementSyntax node)
@@ -157,7 +177,7 @@ public class ConstExprRewriter(SemanticModel semanticModel, MethodDeclarationSyn
 			Visit(node.Else.Statement);
 		}
 
-		return node;
+		return null;
 	}
 
 	public override SyntaxNode? VisitInterpolatedStringExpression(InterpolatedStringExpressionSyntax node)
@@ -196,7 +216,7 @@ public class ConstExprRewriter(SemanticModel semanticModel, MethodDeclarationSyn
 	{
 		var value = GetVariableValue(Visit(node.Expression), variables);
 
-		return node.WithExpression(LiteralExpression(GetSyntaxKind(value), Literal(value.ToString())));
+		return node.WithExpression(CreateLiteral(value));
 	}
 
 	public override SyntaxNode? VisitVariableDeclarator(VariableDeclaratorSyntax node)
@@ -209,7 +229,14 @@ public class ConstExprRewriter(SemanticModel semanticModel, MethodDeclarationSyn
 			variables[name] = literal.Token.Value;
 		}
 
-		return node;
+		return null;
+	}
+	
+	public override SyntaxNode? VisitLocalDeclarationStatement(LocalDeclarationStatementSyntax node)
+	{
+		Visit(node.Declaration);
+
+		return null;
 	}
 
 	public override SyntaxNode? VisitWhileStatement(WhileStatementSyntax node)
@@ -219,7 +246,7 @@ public class ConstExprRewriter(SemanticModel semanticModel, MethodDeclarationSyn
 			Visit(node.Statement);
 		}
 
-		return node;
+		return null;
 	}
 
 	public override SyntaxNode? VisitInvocationExpression(InvocationExpressionSyntax node)
@@ -330,7 +357,7 @@ public class ConstExprRewriter(SemanticModel semanticModel, MethodDeclarationSyn
 					nameof(Math.Tan) => CreateLiteral(Math.Tan(arguments[0])),
 					nameof(Math.Tanh) => CreateLiteral(Math.Tanh(arguments[0])),
 					nameof(Math.Truncate) => CreateLiteral(Math.Truncate(arguments[0])),
-					_ => node
+					_ => null,
 				};
 			}
 		}
@@ -360,7 +387,7 @@ public class ConstExprRewriter(SemanticModel semanticModel, MethodDeclarationSyn
 			}
 		}
 
-		return node;
+		return null;
 	}
 
 	public override SyntaxNode? VisitPostfixUnaryExpression(PostfixUnaryExpressionSyntax node)
@@ -377,7 +404,7 @@ public class ConstExprRewriter(SemanticModel semanticModel, MethodDeclarationSyn
 			_ => variables[name]
 		};
 
-		return node;
+		return null;
 	}
 
 	public override SyntaxNode? VisitPrefixUnaryExpression(PrefixUnaryExpressionSyntax node)
@@ -389,16 +416,16 @@ public class ConstExprRewriter(SemanticModel semanticModel, MethodDeclarationSyn
 
 		variables[name] = kind switch
 		{
-			SyntaxKind.PreIncrementExpression => Add(value, 1),
-			SyntaxKind.PreDecrementExpression => Subtract(value, 1),
 			SyntaxKind.UnaryPlusExpression => value,
 			SyntaxKind.UnaryMinusExpression => Subtract(0, value),
-			// SyntaxKind.BitwiseNotExpression => ~value,
-			// SyntaxKind.LogicalNotExpression => !value,
+			SyntaxKind.BitwiseNotExpression => BitwiseNot(value),
+			SyntaxKind.LogicalNotExpression => LogicalNot(value),
+			SyntaxKind.PreIncrementExpression => Add(value, 1),
+			SyntaxKind.PreDecrementExpression => Subtract(value, 1),
 			_ => variables[name]
 		};
 
-		return node;
+		return null;
 	}
 
 	public override SyntaxNode? VisitElementAccessExpression(ElementAccessExpressionSyntax node)
@@ -418,26 +445,73 @@ public class ConstExprRewriter(SemanticModel semanticModel, MethodDeclarationSyn
 			return CreateLiteral(indexerProperty.GetValue(value, arguments));
 		}
 
-		return node;
+		return null;
 	}
 
-	public override SyntaxNode? VisitSwitchStatement(SwitchStatementSyntax node)
+	public override SyntaxNode? VisitSizeOfExpression(SizeOfExpressionSyntax node)
 	{
-		var value = GetVariableValue(Visit(node.Expression), variables);
-
-		foreach (var section in node.Sections)
+		var type = node.Type;
+		var size = type switch
 		{
-			if (section.Labels.OfType<CaseSwitchLabelSyntax>().Any(label => GetVariableValue(Visit(label.Value), variables) is int caseValue && caseValue == (int) value))
+			PredefinedTypeSyntax predefinedType => predefinedType.Keyword.Kind() switch
 			{
-				foreach (var statement in section.Statements)
-				{
-					Visit(statement);
-				}
+				SyntaxKind.BoolKeyword => Unsafe.SizeOf<bool>(),
+				SyntaxKind.ByteKeyword => Unsafe.SizeOf<byte>(),
+				SyntaxKind.SByteKeyword => Unsafe.SizeOf<sbyte>(),
+				SyntaxKind.ShortKeyword => Unsafe.SizeOf<short>(),
+				SyntaxKind.UShortKeyword => Unsafe.SizeOf<ushort>(),
+				SyntaxKind.IntKeyword => Unsafe.SizeOf<int>(),
+				SyntaxKind.UIntKeyword => Unsafe.SizeOf<uint>(),
+				SyntaxKind.LongKeyword => Unsafe.SizeOf<long>(),
+				SyntaxKind.ULongKeyword => Unsafe.SizeOf<ulong>(),
+				SyntaxKind.FloatKeyword => Unsafe.SizeOf<float>(),
+				SyntaxKind.DoubleKeyword => Unsafe.SizeOf<double>(),
+				SyntaxKind.DecimalKeyword => Unsafe.SizeOf<decimal>(),
+				SyntaxKind.CharKeyword => Unsafe.SizeOf<char>(),
+				_ => throw new NotSupportedException($"Unsupported type: {predefinedType.Keyword.Kind()}")
+			},
+			_ => throw new NotSupportedException($"Unsupported type: {type.GetType().Name}")
+		};
 
-				break;
-			}
+		return CreateLiteral(size);
+	}
+
+	// public override SyntaxList<TNode> VisitList<TNode>(SyntaxList<TNode> list)
+	// {
+	// 	return base.VisitList(list);
+	// }
+	//
+	// public override TNode? VisitListElement<TNode>(TNode? node) where TNode : class
+	// {
+	// 	var result = Visit(node);
+	// 	
+	// 	if (result is TNode newResult)
+	// 	{
+	// 		return newResult;
+	// 	}
+	//
+	// 	return null;
+	// }
+
+	public override SyntaxNode? VisitExpressionStatement(ExpressionStatementSyntax node)
+	{
+		var result = Visit(node.Expression);
+		
+		if (result is null)
+		{
+			return null;
 		}
+		
+		return node.WithExpression((ExpressionSyntax) result);
+	}
 
-		return node;
+	public override SyntaxNode? VisitEmptyStatement(EmptyStatementSyntax node)
+	{
+		return null;
+	}
+
+	public override SyntaxNode? VisitAttributeList(AttributeListSyntax node)
+	{
+		return null;
 	}
 }

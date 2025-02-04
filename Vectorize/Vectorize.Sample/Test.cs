@@ -2,18 +2,31 @@ using System;
 
 namespace Vectorize.Sample;
 
-public class Test
+public static class Test
 {
 	[ConstExpr]
-	public float TestMethod(ReadOnlySpan<float> data)
+	public static float Sum(ReadOnlySpan<float> data)
 	{
 		var sum = 0f;
-
-		for (var i = 0; i < data.Length; i++)
-		{
-			sum += data[i];
-		}
 		
+		foreach (var item in data)
+		{
+			sum += item;
+		}
+
+		return sum;
+	}
+	
+	[ConstExpr]
+	public static float Average(ReadOnlySpan<float> data)
+	{
+		var sum = 0f;
+		
+		foreach (var item in data)
+		{
+			sum += item;
+		}
+
 		return sum / data.Length;
 	}
 }

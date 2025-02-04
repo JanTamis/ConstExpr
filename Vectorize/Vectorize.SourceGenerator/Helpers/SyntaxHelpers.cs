@@ -104,7 +104,7 @@ public static class SyntaxHelpers
 		};
 	}
 
-	public static object? Add(object left, object right)
+	public static object? Add(object? left, object? right)
 	{
 		return left switch
 		{
@@ -137,7 +137,7 @@ public static class SyntaxHelpers
 		};
 	}
 
-	public static object? Subtract(object left, object right)
+	public static object? Subtract(object? left, object? right)
 	{
 		return left switch
 		{
@@ -170,7 +170,7 @@ public static class SyntaxHelpers
 		};
 	}
 
-	public static object? Multiply(object left, object right)
+	public static object? Multiply(object? left, object? right)
 	{
 		return left switch
 		{
@@ -203,7 +203,7 @@ public static class SyntaxHelpers
 		};
 	}
 
-	public static object? Divide(object left, object right)
+	public static object? Divide(object? left, object? right)
 	{
 		return left switch
 		{
@@ -233,6 +233,118 @@ public static class SyntaxHelpers
 			decimal dec when right is long rl => dec / rl,
 			decimal dec when right is decimal rdec => dec / rdec,
 			_ => null
+		};
+	}
+
+	public static object? Modulo(object? left, object? right)
+	{
+		return left switch
+		{
+			int i when right is int ri => i % ri,
+			int i when right is float rf => i % rf,
+			int i when right is double rd => i % rd,
+			int i when right is long rl => i % rl,
+			int i when right is decimal rdec => i % rdec,
+			float f when right is int ri => f % ri,
+			float f when right is float rf => f % rf,
+			float f when right is double rd => f % rd,
+			float f when right is long rl => f % rl,
+			float f when right is decimal rdec => f % (float) rdec,
+			double d when right is int ri => d % ri,
+			double d when right is float rf => d % rf,
+			double d when right is double rd => d % rd,
+			double d when right is long rl => d % rl,
+			double d when right is decimal rdec => d % (double) rdec,
+			long l when right is int ri => l % ri,
+			long l when right is float rf => l % rf,
+			long l when right is double rd => l % rd,
+			long l when right is long rl => l % rl,
+			long l when right is decimal rdec => l % rdec,
+			decimal dec when right is int ri => dec % ri,
+			decimal dec when right is float rf => dec % (decimal) rf,
+			decimal dec when right is double rd => dec % (decimal) rd,
+			decimal dec when right is long rl => dec % rl,
+			decimal dec when right is decimal rdec => dec % rdec,
+			_ => null
+		};
+	}
+
+	public static object? LeftShift(object? left, object? right)
+	{
+		return left switch
+		{
+			int i when right is int ri => i << ri,
+			long l when right is int ri => l << ri,
+			_ => null
+		};
+	}
+
+	public static object? RightShift(object? left, object? right)
+	{
+		return left switch
+		{
+			int i when right is int ri => i >> ri,
+			long l when right is int ri => l >> ri,
+			_ => null
+		};
+	}
+
+	public static object? UnsignedRightShift(object? left, object? right)
+	{
+		return left switch
+		{
+			int i when right is int ri => i >>> ri,
+			long l when right is int ri => l >>> ri,
+			_ => null
+		};
+	}
+
+	public static object? BitwiseOr(object? left, object? right)
+	{
+		return left switch
+		{
+			int i when right is int ri => i | ri,
+			long l when right is long rl => l | rl,
+			_ => null
+		};
+	}
+
+	public static object? BitwiseAnd(object? left, object? right)
+	{
+		return left switch
+		{
+			int i when right is int ri => i & ri,
+			long l when right is long rl => l & rl,
+			_ => null
+		};
+	}
+
+	public static object? ExclusiveOr(object? left, object? right)
+	{
+		return left switch
+		{
+			int i when right is int ri => i ^ ri,
+			long l when right is long rl => l ^ rl,
+			_ => null
+		};
+	}
+
+	public static object? BitwiseNot(object? value)
+	{
+		return value switch
+		{
+			int i => ~i,
+			long l => ~l,
+			_ => null
+		};
+	}
+
+	public static object? LogicalNot(object? value)
+	{
+		return value switch
+		{
+			bool b => !b,
+			_ => value,
 		};
 	}
 }

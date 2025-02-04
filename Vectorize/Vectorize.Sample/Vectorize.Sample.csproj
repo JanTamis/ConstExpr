@@ -5,6 +5,7 @@
 		<Nullable>enable</Nullable>
 		<RootNamespace>Vectorize.Sample</RootNamespace>
 		<OutputType>Exe</OutputType>
+		<InterceptorsNamespaces>$(InterceptorsNamespaces);ConstantExpression.Generated</InterceptorsNamespaces>
 	</PropertyGroup>
 
 	<ItemGroup>
