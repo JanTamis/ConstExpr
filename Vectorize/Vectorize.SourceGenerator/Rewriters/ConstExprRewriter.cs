@@ -476,22 +476,78 @@ public class ConstExprRewriter(SemanticModel semanticModel, MethodDeclarationSyn
 		return CreateLiteral(size);
 	}
 
-	// public override SyntaxList<TNode> VisitList<TNode>(SyntaxList<TNode> list)
-	// {
-	// 	return base.VisitList(list);
-	// }
-	//
-	// public override TNode? VisitListElement<TNode>(TNode? node) where TNode : class
-	// {
-	// 	var result = Visit(node);
-	// 	
-	// 	if (result is TNode newResult)
-	// 	{
-	// 		return newResult;
-	// 	}
-	//
-	// 	return null;
-	// }
+	public override SyntaxNode? VisitSwitchStatement(SwitchStatementSyntax node)
+	{
+		var switchValue = GetVariableValue(Visit(node.Expression), variables);
+
+		foreach (var section in node.Sections)
+		{
+			foreach (var label in section.Labels)
+			{
+				if (label is CaseSwitchLabelSyntax caseLabel)
+				{
+					var caseValue = GetVariableValue(Visit(caseLabel.Value), variables);
+
+					if (Equals(switchValue, caseValue))
+					{
+						foreach (var statement in section.Statements)
+						{
+							Visit(statement);
+						}
+
+						return null;
+					}
+				}
+				else if (label is DefaultSwitchLabelSyntax)
+				{
+					foreach (var statement in section.Statements)
+					{
+						Visit(statement);
+					}
+
+					return null;
+				}
+			}
+		}
+
+		return null;
+	}
+
+	public override SyntaxNode? VisitTryStatement(TryStatementSyntax node)
+	{
+		try
+		{
+			Visit(node.Block);
+		}
+		catch (Exception ex)
+		{
+			foreach (var catchClause in node.Catches)
+			{
+				if (catchClause.Declaration is not null)
+				{
+					var exceptionType = semanticModel.GetTypeInfo(catchClause.Declaration.Type).Type;
+
+					if (exceptionType is not null && ex.GetType().IsAssignableTo(exceptionType))
+					{
+						variables[catchClause.Declaration.Identifier.Text] = ex;
+						Visit(catchClause.Block);
+						variables.Remove(catchClause.Declaration.Identifier.Text);
+					}
+				}
+				else
+				{
+					Visit(catchClause.Block);
+				}
+			}
+		}
+
+		if (node.Finally is not null)
+		{
+			Visit(node.Finally.Block);
+		}
+
+		return null;
+	}
 
 	public override SyntaxNode? VisitExpressionStatement(ExpressionStatementSyntax node)
 	{
