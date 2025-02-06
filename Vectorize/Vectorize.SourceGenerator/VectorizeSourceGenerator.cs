@@ -28,9 +28,8 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 
 			context.RegisterSourceOutput(method.Collect(), static (spc, source) =>
 			{
-				var groups = source.GroupBy(g => g.Method, x => x, new MethodDeclarationComparer());
+				var groups = source.GroupBy(g => g.Method, x => x, SyntaxNodeComparer<MethodDeclarationSyntax>.Instance);
 				
-
 				foreach (var group in groups)
 				{
 					var builder = new StringBuilder();
@@ -166,6 +165,11 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 
 	private object? GetConstantValue(SemanticModel semanticModel, ExpressionSyntax expression, CancellationToken token)
 	{
+		if (semanticModel.GetConstantValue(expression, token) is { HasValue: true, Value: var value })
+		{
+			return value;
+		}
+		
 		return expression switch
 		{
 			LiteralExpressionSyntax literal => literal.Token.Value,
@@ -191,6 +195,7 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 		{
 			usings.Add($"using {methodSymbol.ContainingNamespace};");
 		}
+		
 		var syntaxTree = methodSymbol.DeclaringSyntaxReferences.FirstOrDefault()?.SyntaxTree;
 
 		if (syntaxTree != null)
@@ -205,19 +210,6 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 		}
 
 		return usings;
-	}
-}
-
-public class MethodDeclarationComparer : IEqualityComparer<MethodDeclarationSyntax>
-{
-	public bool Equals(MethodDeclarationSyntax x, MethodDeclarationSyntax y)
-	{
-		return SyntaxFactory.AreEquivalent(x, y);
-	}
-
-	public int GetHashCode(MethodDeclarationSyntax obj)
-	{
-		return obj.ToFullString().GetHashCode();
 	}
 }
 

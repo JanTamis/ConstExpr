@@ -37,7 +37,7 @@ public class ConstExprRewriter(SemanticModel semanticModel, MethodDeclarationSyn
 			SyntaxKind.LeftShiftAssignmentExpression => LeftShift(variables[name], value),
 			SyntaxKind.RightShiftAssignmentExpression => RightShift(variables[name], value),
 			SyntaxKind.UnsignedRightShiftAssignmentExpression => UnsignedRightShift(variables[name], value),
-			// SyntaxKind.CoalesceAssignmentExpression => Coalesce(variables[name], value),
+			SyntaxKind.CoalesceAssignmentExpression => variables[name] is null ? value : variables[name],
 			_ => variables[name]
 		};
 
@@ -50,7 +50,7 @@ public class ConstExprRewriter(SemanticModel semanticModel, MethodDeclarationSyn
 		var right = GetVariableValue(Visit(node.Right), variables);
 
 		var kind = node.Kind();
-		var method = left.GetType().GetRuntimeMethods().Where(w => w.IsPublic && w.IsStatic);
+		// var method = left.GetType().GetRuntimeMethods().Where(w => w.IsPublic && w.IsStatic);
 
 		return kind switch
 		{
@@ -73,7 +73,7 @@ public class ConstExprRewriter(SemanticModel semanticModel, MethodDeclarationSyn
 			SyntaxKind.LessThanOrEqualExpression when Comparer.Default.Compare(left, right) <= 0 => CreateLiteral(true),
 			SyntaxKind.GreaterThanExpression when Comparer.Default.Compare(left, right) > 0 => CreateLiteral(true),
 			SyntaxKind.GreaterThanOrEqualExpression when Comparer.Default.Compare(left, right) >= 0 => CreateLiteral(true),
-			// SyntaxKind.CoalesceExpression => CreateLiteral(Coalesce(left, right)),
+			SyntaxKind.CoalesceExpression => CreateLiteral(left ?? right),
 			_ => CreateLiteral(false),
 		};
 	}
@@ -484,11 +484,24 @@ public class ConstExprRewriter(SemanticModel semanticModel, MethodDeclarationSyn
 		{
 			foreach (var label in section.Labels)
 			{
-				if (label is CaseSwitchLabelSyntax caseLabel)
+				switch (label)
 				{
-					var caseValue = GetVariableValue(Visit(caseLabel.Value), variables);
+					case CaseSwitchLabelSyntax caseLabel:
+					{
+						var caseValue = GetVariableValue(Visit(caseLabel.Value), variables);
 
-					if (Equals(switchValue, caseValue))
+						if (Equals(switchValue, caseValue))
+						{
+							foreach (var statement in section.Statements)
+							{
+								Visit(statement);
+							}
+
+							return null;
+						}
+						break;
+					}
+					case DefaultSwitchLabelSyntax:
 					{
 						foreach (var statement in section.Statements)
 						{
@@ -498,52 +511,7 @@ public class ConstExprRewriter(SemanticModel semanticModel, MethodDeclarationSyn
 						return null;
 					}
 				}
-				else if (label is DefaultSwitchLabelSyntax)
-				{
-					foreach (var statement in section.Statements)
-					{
-						Visit(statement);
-					}
-
-					return null;
-				}
 			}
-		}
-
-		return null;
-	}
-
-	public override SyntaxNode? VisitTryStatement(TryStatementSyntax node)
-	{
-		try
-		{
-			Visit(node.Block);
-		}
-		catch (Exception ex)
-		{
-			foreach (var catchClause in node.Catches)
-			{
-				if (catchClause.Declaration is not null)
-				{
-					var exceptionType = semanticModel.GetTypeInfo(catchClause.Declaration.Type).Type;
-
-					if (exceptionType is not null && ex.GetType().IsAssignableTo(exceptionType))
-					{
-						variables[catchClause.Declaration.Identifier.Text] = ex;
-						Visit(catchClause.Block);
-						variables.Remove(catchClause.Declaration.Identifier.Text);
-					}
-				}
-				else
-				{
-					Visit(catchClause.Block);
-				}
-			}
-		}
-
-		if (node.Finally is not null)
-		{
-			Visit(node.Finally.Block);
 		}
 
 		return null;
