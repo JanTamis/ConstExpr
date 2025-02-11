@@ -219,7 +219,6 @@ public partial class OperationVisitor
 	public virtual object? VisitCollectionExpression(ICollectionExpressionOperation operation)
 	{
 		return operation.Elements
-			.Select(Visit)
-			.ToArray();
+			.Select(Visit);
 	}
 }
