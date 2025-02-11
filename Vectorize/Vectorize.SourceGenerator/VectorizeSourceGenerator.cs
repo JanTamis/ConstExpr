@@ -7,6 +7,8 @@ using SGF;
 using Vectorize.Rewriters;
 using System.Linq;
 using System.Text;
+using Microsoft.CodeAnalysis.Operations;
+using static Vectorize.Helpers.SyntaxHelpers;
 
 namespace Vectorize;
 
@@ -59,6 +61,7 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 						builder.AppendLine();
 
 						builder.AppendLine($"\t\t[InterceptsLocation({item.Location.Version}, \"{item.Location.Data}\")]");
+						builder.AppendLine("\t\t[MethodImpl(MethodImplOptions.AggressiveInlining)]");
 						builder.AppendLine(item.Node
 							.WithIdentifier(SyntaxFactory.Identifier($"{item.Node.Identifier}{index++}"))
 							.ToString()
@@ -89,16 +92,11 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 					spc.AddSource($"{group.Key.Identifier}.g.cs", builder.ToString());
 				}
 			});
-
-			x.AddSource("VectorizeAttribute.g", """
-				using System;
-
-				[AttributeUsage(AttributeTargets.Method, Inherited = false)]
-				public sealed class VectorizeAttribute : Attribute;
-				""");
-
+			
 			x.AddSource("ConstExprAttribute.g", """
 				using System;
+				
+				namespace ConstantExpression;
 
 				[AttributeUsage(AttributeTargets.Method, Inherited = false)]
 				public sealed class ConstExprAttribute : Attribute;
@@ -113,20 +111,23 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 			return null;
 		}
 
+		if (context.SemanticModel.GetOperation(invocation) is IInvocationOperation operation)
+		{
+			
+		}
+
 		foreach (var item in method.GetAttributes())
 		{
-			var name = item.AttributeClass.Name;
-
-			if (name == "ConstExprAttribute")
+			if (IsConstExprAttribute(item))
 			{
-				return GenerateExpression(context.SemanticModel, invocation, method, token);
+				return GenerateExpression(context.SemanticModel.Compilation, invocation, method, token);
 			}
 		}
 
 		return null;
 	}
 
-	private InvocationModel? GenerateExpression(SemanticModel semanticModel, InvocationExpressionSyntax invocation, IMethodSymbol methodDeclaration, CancellationToken token)
+	private InvocationModel? GenerateExpression(Compilation compilation, InvocationExpressionSyntax invocation, IMethodSymbol methodDeclaration, CancellationToken token)
 	{
 		var methodSyntaxNode = GetMethodSyntaxNode(methodDeclaration);
 		var variables = new Dictionary<string, object?>();
@@ -136,12 +137,17 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 			var parameter = invocation.ArgumentList.Arguments[i];
 			var parameterName = methodDeclaration.Parameters[i].Name;
 
-			variables.Add(parameterName, GetConstantValue(semanticModel, parameter.Expression, token));
+			if (!TryGetConstantValue(compilation, parameter.Expression, token, out var value))
+			{
+				return null;
+			}
+
+			variables.Add(parameterName, GetConstantValue(compilation, parameter.Expression, token));
 		}
 
-		var location = semanticModel.GetInterceptableLocation(invocation, token);
+		var location = GetSemanticModel(compilation, invocation).GetInterceptableLocation(invocation, token);
 
-		var constExprRewriter = new ConstExprRewriter(semanticModel, methodSyntaxNode, variables, token);
+		var constExprRewriter = new ConstExprRewriter(compilation, variables, token);
 		var result = constExprRewriter
 			.VisitMethodDeclaration(methodSyntaxNode)
 			.NormalizeWhitespace("\t");
@@ -161,24 +167,6 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 		var syntaxNode = syntaxReference?.GetSyntax() as MethodDeclarationSyntax;
 
 		return syntaxNode;
-	}
-
-	private object? GetConstantValue(SemanticModel semanticModel, ExpressionSyntax expression, CancellationToken token)
-	{
-		if (semanticModel.GetConstantValue(expression, token) is { HasValue: true, Value: var value })
-		{
-			return value;
-		}
-		
-		return expression switch
-		{
-			LiteralExpressionSyntax literal => literal.Token.Value,
-			CollectionExpressionSyntax collection => collection.Elements
-				.OfType<ExpressionElementSyntax>()
-				.Select(x => GetConstantValue(semanticModel, x.Expression, token))
-				.ToArray(),
-			_ => null,
-		};
 	}
 
 	public static HashSet<string> GetUsings(IMethodSymbol methodSymbol)
