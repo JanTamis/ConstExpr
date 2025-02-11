@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis.Operations;
 
 namespace Vectorize.Visitors;
 
-public partial class OperationVisitor
+public partial class ConstExprOperationVisitor
 {
 	private object? ExecuteBinaryOperation(BinaryOperatorKind operatorKind, object? left, object? right)
 	{
