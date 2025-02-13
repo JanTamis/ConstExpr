@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Immutable;
+using System.Data;
 using ConstantExpression;
 
 namespace Vectorize.Sample;
@@ -13,7 +14,7 @@ public static class Test
 
 		foreach (var item in data)
 		{
-			sum += sizeof(float);
+			sum += item;
 		}
 
 		return sum;

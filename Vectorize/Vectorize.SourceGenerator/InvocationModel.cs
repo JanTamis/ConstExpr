@@ -13,8 +13,11 @@ public class InvocationModel : IEquatable<InvocationModel>
 	public InterceptableLocation? Location { get; set; }
 #pragma warning restore RSEXPERIMENTAL002
 
-	public MethodDeclarationSyntax? Node { get; set; }
 	public MethodDeclarationSyntax Method { get; set; }
+	
+	public InvocationExpressionSyntax Invocation { get; set; }
+	
+	public object? Value { get; set; }	
 	public HashSet<string> Usings { get; set; }
 
 	public bool Equals(InvocationModel? other)
@@ -29,7 +32,7 @@ public class InvocationModel : IEquatable<InvocationModel>
 			return true;
 		}
 
-		return Equals(Location, other.Location) && Equals(Node, other.Node) && Method.IsEquivalentTo(other.Method);
+		return Equals(Location, other.Location) && Method.IsEquivalentTo(other.Method);
 	}
 
 	public override bool Equals(object? obj)
@@ -57,7 +60,6 @@ public class InvocationModel : IEquatable<InvocationModel>
 		unchecked
 		{
 			var hashCode = (Location != null ? Location.GetHashCode() : 0);
-			hashCode = (hashCode * 397) ^ (Node != null ? Node.GetHashCode() : 0);
 			hashCode = (hashCode * 397) ^ Method.GetHashCode();
 			return hashCode;
 		}

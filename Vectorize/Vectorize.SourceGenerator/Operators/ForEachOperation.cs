@@ -8,10 +8,11 @@ public partial class OperatorHelper
 	private object? GetForEachValue(IForEachLoopOperation forEachLoopOperation)
 	{
 		var collection = GetConstantValue(forEachLoopOperation.Collection);
+		var variableName = GetVariableName(forEachLoopOperation.LoopControlVariable);
 		
 		foreach (var element in (System.Collections.IEnumerable)collection)
 		{
-			variables[GetVariableName(forEachLoopOperation.LoopControlVariable)] = element;
+			variables[variableName] = element;
 
 			GetConstantValue(forEachLoopOperation.Body);
 		}

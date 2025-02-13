@@ -262,6 +262,8 @@ public static class SyntaxHelpers
 	{
 		return value switch
 		{
+			byte b => ~b,
+			short s => ~s,
 			int i => ~i,
 			long l => ~l,
 			_ => null
@@ -273,7 +275,7 @@ public static class SyntaxHelpers
 		return value switch
 		{
 			bool b => !b,
-			_ => value,
+			_ => false,
 		};
 	}
 
@@ -295,7 +297,10 @@ public static class SyntaxHelpers
 			// Verkrijg de type van de methode
 			var type = Type.GetType(methodSymbol.ContainingType.ToDisplayString());
 
-			return type?.GetMethod(methodSymbol.Name, arguments.Where(w => w is not null).Select(s => s.GetType()).Where(w => w is not null).ToArray());
+			return type?.GetMethod(methodSymbol.Name, arguments
+				.Where(w => w is not null)
+				.Select(s => s!.GetType())
+				.ToArray());
 		}
 	}
 

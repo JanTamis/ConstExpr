@@ -8,6 +8,7 @@ using Vectorize.Rewriters;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis.Operations;
+using Vectorize.Visitors;
 using static Vectorize.Helpers.SyntaxHelpers;
 
 namespace Vectorize;
@@ -31,11 +32,11 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 			context.RegisterSourceOutput(method.Collect(), static (spc, source) =>
 			{
 				var groups = source.GroupBy(g => g.Method, x => x, SyntaxNodeComparer<MethodDeclarationSyntax>.Instance);
-				
+
 				foreach (var group in groups)
 				{
 					var builder = new StringBuilder();
-					
+
 					var usings = group
 						.Where(w => w.Usings.Any())
 						.SelectMany(s => s.Usings)
@@ -62,8 +63,12 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 
 						builder.AppendLine($"\t\t[InterceptsLocation({item.Location.Version}, \"{item.Location.Data}\")]");
 						builder.AppendLine("\t\t[MethodImpl(MethodImplOptions.AggressiveInlining)]");
-						builder.AppendLine(item.Node
-							.WithIdentifier(SyntaxFactory.Identifier($"{item.Node.Identifier}{index++}"))
+						builder.AppendLine(item.Method
+							.WithIdentifier(SyntaxFactory.Identifier($"{item.Method.Identifier}_{item.Invocation.GetHashCode()}"))
+							.WithAttributeLists(SyntaxFactory.List<AttributeListSyntax>())
+							.WithExpressionBody(SyntaxFactory.ArrowExpressionClause(CreateLiteral(item.Value))).WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
+							.WithBody(null)
+							.NormalizeWhitespace("\t")
 							.ToString()
 							.Replace("\n", "\n\t\t")
 							.Insert(0, "\t\t"));
@@ -73,7 +78,7 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 					builder.AppendLine("}");
 
 					builder.AppendLine("""
-						
+
 						namespace System.Runtime.CompilerServices
 						{
 							[Conditional("DEBUG")]
@@ -92,10 +97,10 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 					spc.AddSource($"{group.Key.Identifier}.g.cs", builder.ToString());
 				}
 			});
-			
+
 			x.AddSource("ConstExprAttribute.g", """
 				using System;
-				
+
 				namespace ConstantExpression;
 
 				[AttributeUsage(AttributeTargets.Method, Inherited = false)]
@@ -109,11 +114,6 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 		if (context.Node is not InvocationExpressionSyntax invocation || context.SemanticModel.GetSymbolInfo(invocation, token).Symbol is not IMethodSymbol { IsStatic: true } method)
 		{
 			return null;
-		}
-
-		if (context.SemanticModel.GetOperation(invocation) is IInvocationOperation operation)
-		{
-			
 		}
 
 		foreach (var item in method.GetAttributes())
@@ -145,20 +145,22 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 			variables.Add(parameterName, GetConstantValue(compilation, parameter.Expression, token));
 		}
 
-		var location = GetSemanticModel(compilation, invocation).GetInterceptableLocation(invocation, token);
-
-		var constExprRewriter = new ConstExprRewriter(compilation, variables, token);
-		var result = constExprRewriter
-			.VisitMethodDeclaration(methodSyntaxNode)
-			.NormalizeWhitespace("\t");
-
-		return new InvocationModel
+		if (TryGetSemanticModel(compilation, methodSyntaxNode, out var semanticModel) && semanticModel.GetOperation(methodSyntaxNode) is IMethodBodyOperation blockOperation)
 		{
-			Usings = GetUsings(methodDeclaration),
-			Method = methodSyntaxNode,
-			Location = location,
-			Node = result as MethodDeclarationSyntax,
-		};
+			var visitor = new ConstExprOperationVisitor();
+			visitor.VisitBlock(blockOperation.BlockBody, variables);
+
+			return new InvocationModel
+			{
+				Usings = GetUsings(methodDeclaration),
+				Method = methodSyntaxNode,
+				Invocation = invocation,
+				Value = variables[ConstExprOperationVisitor.ReturnVariableName],
+				Location = GetSemanticModel(compilation, invocation).GetInterceptableLocation(invocation, token),
+			};
+		}
+
+		return null;
 	}
 
 	public MethodDeclarationSyntax? GetMethodSyntaxNode(IMethodSymbol methodSymbol)
@@ -183,7 +185,7 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 		{
 			usings.Add($"using {methodSymbol.ContainingNamespace};");
 		}
-		
+
 		var syntaxTree = methodSymbol.DeclaringSyntaxReferences.FirstOrDefault()?.SyntaxTree;
 
 		if (syntaxTree != null)
