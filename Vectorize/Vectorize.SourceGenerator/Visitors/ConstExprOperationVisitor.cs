@@ -362,6 +362,65 @@ public partial class ConstExprOperationVisitor : OperationVisitor<Dictionary<str
 			.ToArray();
 	}
 
+	public override object? VisitUnaryOperator(IUnaryOperation operation, Dictionary<string, object?> argument)
+	{
+		var operand = Visit(operation.Operand, argument);
+
+		return operation.OperatorKind switch
+		{
+			UnaryOperatorKind.UnaryPlus => operand,
+			UnaryOperatorKind.UnaryMinus => Subtract(0, operand),
+			UnaryOperatorKind.BitwiseNegation => SyntaxHelpers.BitwiseNot(operand),
+			UnaryOperatorKind.Not => SyntaxHelpers.LogicalNot(operand),
+			_ => operand,
+		};
+	}
+
+	public override object? VisitIncrementOrDecrement(IIncrementOrDecrementOperation operation, Dictionary<string, object?> argument)
+	{
+		var target = Visit(operation.Target, argument);
+		var incrementValue = operation.IsDecrement ? -1 : 1;
+
+		return Add(target, incrementValue);
+	}
+
+	public override object? VisitParenthesized(IParenthesizedOperation operation, Dictionary<string, object?> argument)
+	{
+		return Visit(operation.Operand, argument);
+	}
+
+	public override object? VisitObjectCreation(IObjectCreationOperation operation, Dictionary<string, object?> argument)
+	{
+		var arguments = operation.Arguments
+			.Select(s => Visit(s.Value, argument))
+			.ToArray();
+
+		return Activator.CreateInstance(operation.Type.ToDisplayString(), arguments);
+	}
+
+	public override object? VisitAnonymousObjectCreation(IAnonymousObjectCreationOperation operation, Dictionary<string, object?> argument)
+	{
+		var arguments = operation.Initializers
+			.Select(s => Visit(s, argument))
+			.ToArray();
+
+		return Activator.CreateInstance(operation.Type.ToDisplayString(), arguments);
+	}
+
+	public override object? VisitTypeParameterObjectCreation(ITypeParameterObjectCreationOperation operation, Dictionary<string, object?> argument)
+	{
+		var arguments = operation.Arguments
+			.Select(s => Visit(s.Value, argument))
+			.ToArray();
+
+		return Activator.CreateInstance(operation.Type.ToDisplayString(), arguments);
+	}
+
+	public override object? VisitInstanceReference(IInstanceReferenceOperation operation, Dictionary<string, object?> argument)
+	{
+		return argument["this"];
+	}
+
 	private string GetVariableName(IOperation operation)
 	{
 		return operation switch
