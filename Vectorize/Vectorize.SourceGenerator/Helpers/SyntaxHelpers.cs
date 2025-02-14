@@ -116,9 +116,10 @@ public static class SyntaxHelpers
 		return expression switch
 		{
 			LiteralExpressionSyntax literal => literal.Token.Value,
-			CollectionExpressionSyntax collection => ImmutableArray.CreateRange(collection.Elements
+			CollectionExpressionSyntax collection => (IReadOnlyList<object?>)collection.Elements
 				.OfType<ExpressionElementSyntax>()
-				.Select(x => GetConstantValue(compilation, x.Expression, token))),
+				.Select(x => GetConstantValue(compilation, x.Expression, token))
+				.ToImmutableList(),
 			_ => null,
 		};
 	}
@@ -137,9 +138,10 @@ public static class SyntaxHelpers
 				value = literal.Token.Value;
 				return true;
 			case CollectionExpressionSyntax collection:
-				value = ImmutableArray.CreateRange(collection.Elements
+				value = (IReadOnlyList<object?>)collection.Elements
 					.OfType<ExpressionElementSyntax>()
-					.Select(x => GetConstantValue(compilation, x.Expression, token)));
+					.Select(x => GetConstantValue(compilation, x.Expression, token))
+					.ToImmutableList();
 				return true;
 			default:
 				value = null;
@@ -184,7 +186,7 @@ public static class SyntaxHelpers
 
 	public static bool IsImmutableArrayOfNumbers(ITypeSymbol type)	
 	{
-		if (type is INamedTypeSymbol { Name: "ImmutableArray", TypeArguments.Length: 1 } namedType && namedType.ContainingNamespace.ToString() == "System.Collections.Immutable")
+		if (type is INamedTypeSymbol { Name: "IReadOnlyList", TypeArguments.Length: 1 } namedType && namedType.ContainingNamespace.ToString() == "System.Collections.Generic")
 		{
 			return IsNumericType(namedType.TypeArguments[0]);
 		}

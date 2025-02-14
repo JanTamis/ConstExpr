@@ -4,7 +4,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using SGF;
-using Vectorize.Rewriters;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis.Operations;
@@ -48,8 +47,6 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 					}
 
 					builder.AppendLine();
-
-					var index = 1;
 
 					builder.AppendLine("namespace ConstantExpression.Generated");
 					builder.AppendLine("{");

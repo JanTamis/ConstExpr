@@ -21,13 +21,13 @@ public abstract class BaseAnalyzer<TNode, TSymbol> : DiagnosticAnalyzer
 		SupportedDiagnostics =
 		[
 			new DiagnosticDescriptor(
-			diagnosticId,
-			resourceManager.GetString($"{diagnosticId}_Title"),
-			resourceManager.GetString($"{diagnosticId}_MessageFormat"),
-			resourceManager.GetString($"{diagnosticId}_Category"),
-			severity,
-			isEnabledByDefault: true,
-			resourceManager.GetString($"{diagnosticId}_Description"))
+				diagnosticId,
+				resourceManager.GetString($"{diagnosticId}_Title"),
+				resourceManager.GetString($"{diagnosticId}_MessageFormat"),
+				resourceManager.GetString($"{diagnosticId}_Category"),
+				severity,
+				isEnabledByDefault: true,
+				resourceManager.GetString($"{diagnosticId}_Description"))
 		];
 	}
 	
