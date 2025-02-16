@@ -1,32 +1,38 @@
 using System.Linq;
+using System.Threading;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Vectorize.Attributes;
+using Vectorize.Helpers;
 using static Vectorize.Helpers.SyntaxHelpers;
 
 namespace Vectorize.Analyzers;
 
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
-public class ParameterInvalidAnalyzer() : BaseAnalyzer<MethodDeclarationSyntax, IMethodSymbol>("CEA003", DiagnosticSeverity.Warning)
+[DiagnosticSeverity(DiagnosticSeverity.Warning)]
+[DiagnosticId("CEA003")]
+[DiagnosticTitle("Parameter is not valid")]
+[DiagnosticMessageFormat("'{0}' should be a number of a IReadOnlyList of numbers")]
+[DiagnosticDescription("parameter should be numeric or a IReadOnlyList of number")]
+[DiagnosticCategory("Usage")]
+public class ParameterInvalidAnalyzer : BaseAnalyzer<MethodDeclarationSyntax, IMethodSymbol>
 {
-	public override SyntaxKind SyntaxKind => SyntaxKind.MethodDeclaration;
-
-	protected override bool ValidateSymbol(SyntaxNodeAnalysisContext context, IMethodSymbol symbol)
+	protected override bool ValidateSymbol(SyntaxNodeAnalysisContext context, IMethodSymbol symbol, CancellationToken token)
 	{
 		return symbol.GetAttributes().Any(IsConstExprAttribute);
 	}
 
-	protected override void AnalyzeSyntax(SyntaxNodeAnalysisContext context, MethodDeclarationSyntax node, IMethodSymbol symbol)
+	protected override void AnalyzeSyntax(SyntaxNodeAnalysisContext context, MethodDeclarationSyntax node, IMethodSymbol symbol, CancellationToken token)
 	{
-		for (var i = 0; i < node.ParameterList.Parameters.Count; i++)
-		{
-			var type = symbol.Parameters[i].Type;
-		
-			if (!IsNumericType(type) && !IsImmutableArrayOfNumbers(type))
-			{
-				ReportDiagnostic(context, node.ParameterList.Parameters[i].Type, symbol.Parameters[i].Name);
-			}
-		}
+		// for (var i = 0; i < node.ParameterList.Parameters.Count; i++)
+		// {
+		// 	var type = symbol.Parameters[i].Type;
+		//
+		// 	if (SyntaxHelpers.TryGetConstantValue(context.Compilation, node.pa, token, out _))
+		// 	{
+		// 		ReportDiagnostic(context, node.ParameterList.Parameters[i].Type, symbol.Parameters[i].Name);
+		// 	}
+		// }
 	}
 }

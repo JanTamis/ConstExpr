@@ -1,4 +1,7 @@
+using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 
 namespace Vectorize.Visitors;
@@ -30,6 +33,27 @@ public partial class ConstExprOperationVisitor
 			BinaryOperatorKind.GreaterThanOrEqual => Comparer<object?>.Default.Compare(left, right) >= 0,
 			_ => null,
 		};
+	}
+
+	private string GetVariableName(IOperation operation)
+	{
+		return operation switch
+		{
+			ILocalReferenceOperation localReferenceOperation => localReferenceOperation.Local.Name,
+			IParameterReferenceOperation parameterReferenceOperation => parameterReferenceOperation.Parameter.Name,
+			IPropertyReferenceOperation propertyReferenceOperation => propertyReferenceOperation.Property.Name,
+			IFieldReferenceOperation fieldReferenceOperation => fieldReferenceOperation.Field.Name,
+			IVariableDeclaratorOperation variableDeclaratorOperation => variableDeclaratorOperation.Symbol.Name,
+			_ => String.Empty,
+		};
+	}
+
+	private void VisitList(ImmutableArray<IOperation> operations, Dictionary<string, object?> argument)
+	{
+		foreach (var operation in operations)
+		{
+			Visit(operation, argument);
+		}
 	}
 	
 	private object? Add(object? left, object? right)
@@ -189,6 +213,27 @@ public partial class ConstExprOperationVisitor
 		{
 			bool leftBool when right is bool rightBool => leftBool || rightBool,
 			_ => null
+		};
+	}
+
+	private object? BitwiseNot(object? value)
+	{
+		return value switch
+		{
+			byte b => ~b,
+			short s => ~s,
+			int i => ~i,
+			long l => ~l,
+			_ => null
+		};
+	}
+
+	private object? LogicalNot(object? value)
+	{
+		return value switch
+		{
+			bool b => !b,
+			_ => false,
 		};
 	}
 }

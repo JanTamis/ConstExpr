@@ -20,23 +20,7 @@
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" />
-		<PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" Version="4.12.0" />
 		<PackageReference Include="SourceGenerator.Foundations" Version="2.0.13" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <EmbeddedResource Update="Resources\AnalyzerResources.resx">
-	    <Generator>ResXFileCodeGenerator</Generator>
-	    <LastGenOutput>AnalyzerResources.Designer.cs</LastGenOutput>
-	  </EmbeddedResource>
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Compile Update="Resources\AnalyzerResources.Designer.cs">
-	    <DesignTime>True</DesignTime>
-	    <AutoGen>True</AutoGen>
-	    <DependentUpon>AnalyzerResources.resx</DependentUpon>
-	  </Compile>
 	</ItemGroup>
 
 

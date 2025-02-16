@@ -21,8 +21,6 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 	{
 		context.RegisterPostInitializationOutput(x =>
 		{
-			//var method = context.SyntaxProvider.ForAttributeWithMetadataName("VectorizeAttribute", (node, token) => !token.IsCancellationRequested, GenerateSource);
-
 			var method = context.SyntaxProvider
 				.CreateSyntaxProvider((node, token) => !token.IsCancellationRequested && node is InvocationExpressionSyntax, GenerateSource)
 				.WithComparer(EqualityComparer<InvocationModel?>.Default)
@@ -91,7 +89,11 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 						}
 						""");
 
-					spc.AddSource($"{group.Key.Identifier}.g.cs", builder.ToString());
+					if (group.Key.Parent is TypeDeclarationSyntax type)
+					{
+						spc.AddSource($"{type.Identifier}_{group.Key.Identifier}.g.cs", builder.ToString());
+					}
+					
 				}
 			});
 
@@ -139,7 +141,7 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 				return null;
 			}
 
-			variables.Add(parameterName, GetConstantValue(compilation, parameter.Expression, token));
+			variables.Add(parameterName, value);
 		}
 
 		if (TryGetSemanticModel(compilation, methodSyntaxNode, out var semanticModel) && semanticModel.GetOperation(methodSyntaxNode) is IMethodBodyOperation blockOperation)

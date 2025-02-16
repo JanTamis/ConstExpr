@@ -1,8 +1,12 @@
+using System;
 using System.Collections.Immutable;
+using System.Linq;
+using System.Reflection;
+using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
-using Vectorize.Resources;
+using Vectorize.Attributes;
 
 namespace Vectorize.Analyzers;
 
@@ -12,22 +16,18 @@ public abstract class BaseAnalyzer<TNode, TSymbol> : DiagnosticAnalyzer
 {
 	public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; }
 
-	public abstract SyntaxKind SyntaxKind { get; }
-
-	public BaseAnalyzer(string diagnosticId, DiagnosticSeverity severity)
+	protected BaseAnalyzer()
 	{
-		var resourceManager = AnalyzerResources.ResourceManager;
-		
 		SupportedDiagnostics =
 		[
 			new DiagnosticDescriptor(
-				diagnosticId,
-				resourceManager.GetString($"{diagnosticId}_Title"),
-				resourceManager.GetString($"{diagnosticId}_MessageFormat"),
-				resourceManager.GetString($"{diagnosticId}_Category"),
-				severity,
+				GetAttribute<DiagnosticIdAttribute>().Id,
+				GetAttribute<DiagnosticTitleAttribute>().Title,
+				GetAttribute<DiagnosticMessageFormatAttribute>().Message,
+				GetAttribute<DiagnosticCategoryAttribute>().Category,
+				GetAttribute<DiagnosticSeverityAttribute>().Severity,
 				isEnabledByDefault: true,
-				resourceManager.GetString($"{diagnosticId}_Description"))
+				GetAttribute<DiagnosticDescriptionAttribute>().Description),
 		];
 	}
 	
@@ -37,35 +37,35 @@ public abstract class BaseAnalyzer<TNode, TSymbol> : DiagnosticAnalyzer
 		context.EnableConcurrentExecution();
 		context.RegisterSyntaxNodeAction(ctx =>
 		{
-			if (ctx.Node is not TNode node || !ValidateSyntax(ctx, node))
+			if (ctx.Node is not TNode node || !ValidateSyntax(ctx, node, ctx.CancellationToken))
 			{
 				return;
 			}
 
 			if (ctx.SemanticModel.GetSymbolInfo(node, ctx.CancellationToken).Symbol is TSymbol symbol)
 			{
-				if (ValidateSymbol(ctx, symbol))
+				if (ValidateSymbol(ctx, symbol, ctx.CancellationToken))
 				{
-					AnalyzeSyntax(ctx, node, symbol);
+					AnalyzeSyntax(ctx, node, symbol, ctx.CancellationToken);
 					return;
 				}
 			}
 
 			if (ctx.SemanticModel.GetDeclaredSymbol(node, ctx.CancellationToken) is TSymbol declaredSymbol)
 			{
-				if (ValidateSymbol(ctx, declaredSymbol))
+				if (ValidateSymbol(ctx, declaredSymbol, ctx.CancellationToken))
 				{
-					AnalyzeSyntax(ctx, node, declaredSymbol);
+					AnalyzeSyntax(ctx, node, declaredSymbol, ctx.CancellationToken);
 				}
 			}
-		}, SyntaxKind);
+		}, GetSyntaxKind());
 	}
 	
-	protected abstract void AnalyzeSyntax(SyntaxNodeAnalysisContext context, TNode node, TSymbol symbol);
+	protected abstract void AnalyzeSyntax(SyntaxNodeAnalysisContext context, TNode node, TSymbol symbol, CancellationToken token);
 
-	protected virtual bool ValidateSyntax(SyntaxNodeAnalysisContext context, TNode node) => true;
+	protected virtual bool ValidateSyntax(SyntaxNodeAnalysisContext context, TNode node, CancellationToken token) => true;
 
-	protected virtual bool ValidateSymbol(SyntaxNodeAnalysisContext context, TSymbol symbol) => true;
+	protected virtual bool ValidateSymbol(SyntaxNodeAnalysisContext context, TSymbol symbol, CancellationToken token) => true;
 	
 	protected void ReportDiagnostic(SyntaxNodeAnalysisContext context, CSharpSyntaxNode node, params object?[]? messageArgs)
 	{
@@ -75,5 +75,22 @@ public abstract class BaseAnalyzer<TNode, TSymbol> : DiagnosticAnalyzer
 	protected void ReportDiagnostic(SyntaxNodeAnalysisContext context, SyntaxToken node, params object?[]? messageArgs)
 	{
 		context.ReportDiagnostic(Diagnostic.Create(SupportedDiagnostics[0], node.GetLocation(), messageArgs));
+	}
+	
+	private T GetAttribute<T>() where T : Attribute
+	{
+		return GetType().GetCustomAttributes<T>().First();
+	}
+	
+	private SyntaxKind GetSyntaxKind()
+	{
+		var name = typeof(TNode).Name;
+
+		if (!Enum.TryParse(name.Substring(0, name.Length - 6), out SyntaxKind kind))
+		{
+			throw new InvalidOperationException($"Unable to parse SyntaxKind from {name}");
+		}
+
+		return kind;
 	}
 }

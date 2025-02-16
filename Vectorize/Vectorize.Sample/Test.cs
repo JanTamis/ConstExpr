@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Data;
+using System.Text;
 using ConstantExpression;
 
 namespace Vectorize.Sample;
@@ -34,7 +33,7 @@ public static class Test
 		return sum / data.Count;
 	}
 
-	// [ConstExpr]
+	[ConstExpr]
 	public static float StdDev(IReadOnlyList<float> data)
 	{
 		var sum = 0f;
@@ -50,5 +49,17 @@ public static class Test
 		var variance = sumOfSquares / data.Count - mean * mean;
 
 		return MathF.Sqrt(variance);
+	}
+	
+	[ConstExpr]
+	public static int StringLength(string value, Encoding encoding)
+	{
+		return encoding.GetByteCount(value);
+	}
+	
+	[ConstExpr]
+	public static string Base64Encode(string value)
+	{
+		return Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
 	}
 }

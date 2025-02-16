@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Vectorize;
 
-[DebuggerDisplay("{Node.ToString()}")]
+[DebuggerDisplay("{Method.ToString()}")]
 public class InvocationModel : IEquatable<InvocationModel>
 {
 #pragma warning disable RSEXPERIMENTAL002

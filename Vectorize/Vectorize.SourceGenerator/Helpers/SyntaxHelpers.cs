@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -7,6 +8,7 @@ using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Operations;
 
 namespace Vectorize.Helpers;
 
@@ -36,7 +38,7 @@ public static class SyntaxHelpers
 		{
 			value = null;
 		}
-		
+
 		return value;
 	}
 
@@ -47,7 +49,7 @@ public static class SyntaxHelpers
 			value = temp;
 			return true;
 		}
-		
+
 		switch (expression)
 		{
 			case LiteralExpressionSyntax literal:
@@ -88,22 +90,42 @@ public static class SyntaxHelpers
 			_ => null
 		};
 	}
-	
-	public static LiteralExpressionSyntax CreateLiteral<T>(T? value)
+
+	public static ExpressionSyntax CreateLiteral<T>(T? value)
 	{
-		return value switch
+		switch (value)
 		{
-			int i => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(i)),
-			float f => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(f)),
-			double d => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(d)),
-			long l => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(l)),
-			decimal dec => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(dec)),
-			string s => SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(s)),
-			char c => SyntaxFactory.LiteralExpression(SyntaxKind.CharacterLiteralExpression, SyntaxFactory.Literal(c)),
-			bool b => SyntaxFactory.LiteralExpression(b ? SyntaxKind.TrueLiteralExpression : SyntaxKind.FalseLiteralExpression),
-			null => SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression),
-			_ => throw new ArgumentOutOfRangeException()
-		};
+			case byte bb:
+				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(bb));
+			case int i:
+				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(i));
+			case float f:
+				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(f));
+			case double d:
+				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(d));
+			case long l:
+				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(l));
+			case decimal dec:
+				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(dec));
+			case string s1:
+				return SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(s1));
+			case char c:
+				return SyntaxFactory.LiteralExpression(SyntaxKind.CharacterLiteralExpression, SyntaxFactory.Literal(c));
+			case bool b:
+				return SyntaxFactory.LiteralExpression(b ? SyntaxKind.TrueLiteralExpression : SyntaxKind.FalseLiteralExpression);
+			case null:
+				return SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression);	
+		}
+
+		if (value is IEnumerable enumerable)
+		{
+			return SyntaxFactory.CollectionExpression(SyntaxFactory.SeparatedList<CollectionElementSyntax>(
+			    enumerable
+				    .Cast<object?>()
+				    .Select(s => SyntaxFactory.ExpressionElement(CreateLiteral(s)))));
+		}
+		
+		throw new ArgumentOutOfRangeException();
 	}
 
 	public static object? GetConstantValue(Compilation compilation, ExpressionSyntax expression, CancellationToken token)
@@ -116,7 +138,7 @@ public static class SyntaxHelpers
 		return expression switch
 		{
 			LiteralExpressionSyntax literal => literal.Token.Value,
-			CollectionExpressionSyntax collection => (IReadOnlyList<object?>)collection.Elements
+			CollectionExpressionSyntax collection => (IReadOnlyList<object?>) collection.Elements
 				.OfType<ExpressionElementSyntax>()
 				.Select(x => GetConstantValue(compilation, x.Expression, token))
 				.ToImmutableList(),
@@ -131,18 +153,51 @@ public static class SyntaxHelpers
 			value = temp;
 			return true;
 		}
-		
+
 		switch (expression)
 		{
 			case LiteralExpressionSyntax literal:
 				value = literal.Token.Value;
 				return true;
 			case CollectionExpressionSyntax collection:
-				value = (IReadOnlyList<object?>)collection.Elements
+				value = collection.Elements
 					.OfType<ExpressionElementSyntax>()
 					.Select(x => GetConstantValue(compilation, x.Expression, token))
 					.ToImmutableList();
 				return true;
+			case MemberAccessExpressionSyntax memberAccess when semanticModel.GetOperation(memberAccess) is IPropertyReferenceOperation propertyOperation:
+				if (propertyOperation.Property.IsStatic)
+				{
+					value = GetPropertyValue(propertyOperation.Property, null);
+					return true;
+				}
+				
+				if (TryGetConstantValue(compilation, memberAccess.Expression, token, out var instance))
+				{
+					value = GetPropertyValue(propertyOperation.Property, instance);
+					return true;
+				}
+				
+				value = null;
+				return false;
+			case InvocationExpressionSyntax invocation when semanticModel.GetOperation(invocation) is IInvocationOperation operation:
+				if (operation.TargetMethod.IsStatic && operation.Arguments.All(x => x.Value.ConstantValue.HasValue))
+				{
+					var parameters = operation.Arguments.Select(x => x.Value.ConstantValue.Value).ToArray();
+					value = ExecuteMethod(operation.TargetMethod, null, parameters);
+					return true;
+				}
+				value = null;
+				return false;
+			case ObjectCreationExpressionSyntax creation when semanticModel.GetOperation(creation) is IObjectCreationOperation operation:
+				if (operation.Arguments.All(x => x.Value.ConstantValue.HasValue))
+				{
+					var parameters = operation.Arguments.Select(x => x.Value.ConstantValue.Value).ToArray();
+					value = ExecuteMethod(operation.Constructor, null, parameters);
+					return true;
+				}
+				value = null;
+				return false;
 			default:
 				value = null;
 				return false;
@@ -163,7 +218,7 @@ public static class SyntaxHelpers
 			_ => false
 		};
 	}
-	
+
 	public static bool IsConstExprAttribute(AttributeData? attribute)
 	{
 		return attribute?.AttributeClass is { Name: "ConstExprAttribute", ContainingNamespace.Name: "ConstantExpression" };
@@ -171,189 +226,185 @@ public static class SyntaxHelpers
 
 	public static bool IsNumericType(ITypeSymbol type)
 	{
-		return type.SpecialType is SpecialType.System_Byte 
-			or SpecialType.System_SByte 
+		return type.SpecialType is SpecialType.System_Byte
+			or SpecialType.System_SByte
 			or SpecialType.System_Int16
-			or SpecialType.System_UInt16 
-			or SpecialType.System_Int32 
-			or SpecialType.System_UInt32 
-			or SpecialType.System_Int64 
-			or SpecialType.System_UInt64 
-			or SpecialType.System_Single 
-			or SpecialType.System_Double 
+			or SpecialType.System_UInt16
+			or SpecialType.System_Int32
+			or SpecialType.System_UInt32
+			or SpecialType.System_Int64
+			or SpecialType.System_UInt64
+			or SpecialType.System_Single
+			or SpecialType.System_Double
 			or SpecialType.System_Decimal;
 	}
 
-	public static bool IsImmutableArrayOfNumbers(ITypeSymbol type)	
+	public static bool IsImmutableArrayOfNumbers(ITypeSymbol type)
 	{
 		if (type is INamedTypeSymbol { Name: "IReadOnlyList", TypeArguments.Length: 1 } namedType && namedType.ContainingNamespace.ToString() == "System.Collections.Generic")
 		{
 			return IsNumericType(namedType.TypeArguments[0]);
 		}
-		
+
 		return false;
 	}
 
-	public static object? Add(object? left, object? right)
-	{
-		return left switch
-		{
-			int i when right is int ri => i + ri,
-			int i when right is float rf => i + rf,
-			int i when right is double rd => i + rd,
-			int i when right is long rl => i + rl,
-			int i when right is decimal rdec => i + rdec,
-			float f when right is int ri => f + ri,
-			float f when right is float rf => f + rf,
-			float f when right is double rd => f + rd,
-			float f when right is long rl => f + rl,
-			float f when right is decimal rdec => f + (float) rdec,
-			double d when right is int ri => d + ri,
-			double d when right is float rf => d + rf,
-			double d when right is double rd => d + rd,
-			double d when right is long rl => d + rl,
-			double d when right is decimal rdec => d + (double) rdec,
-			long l when right is int ri => l + ri,
-			long l when right is float rf => l + rf,
-			long l when right is double rd => l + rd,
-			long l when right is long rl => l + rl,
-			long l when right is decimal rdec => l + rdec,
-			decimal dec when right is int ri => dec + ri,
-			decimal dec when right is float rf => dec + (decimal) rf,
-			decimal dec when right is double rd => dec + (decimal) rd,
-			decimal dec when right is long rl => dec + rl,
-			decimal dec when right is decimal rdec => dec + rdec,
-			_ => null
-		};
-	}
+	
 
-	public static object? Subtract(object? left, object? right)
+	public static object? ExecuteMethod(IMethodSymbol methodSymbol, object? instance, params object?[]? parameters)
 	{
-		return left switch
-		{
-			int i when right is int ri => i - ri,
-			int i when right is float rf => i - rf,
-			int i when right is double rd => i - rd,
-			int i when right is long rl => i - rl,
-			int i when right is decimal rdec => i - rdec,
-			float f when right is int ri => f - ri,
-			float f when right is float rf => f - rf,
-			float f when right is double rd => f - rd,
-			float f when right is long rl => f - rl,
-			float f when right is decimal rdec => f - (float) rdec,
-			double d when right is int ri => d - ri,
-			double d when right is float rf => d - rf,
-			double d when right is double rd => d - rd,
-			double d when right is long rl => d - rl,
-			double d when right is decimal rdec => d - (double) rdec,
-			long l when right is int ri => l - ri,
-			long l when right is float rf => l - rf,
-			long l when right is double rd => l - rd,
-			long l when right is long rl => l - rl,
-			long l when right is decimal rdec => l - rdec,
-			decimal dec when right is int ri => dec - ri,
-			decimal dec when right is float rf => dec - (decimal) rf,
-			decimal dec when right is double rd => dec - (decimal) rd,
-			decimal dec when right is long rl => dec - rl,
-			decimal dec when right is decimal rdec => dec - rdec,
-			_ => null
-		};
-	}
+		var fullyQualifiedName = methodSymbol.ContainingType.ToDisplayString();
+		var methodName = methodSymbol.Name;
 
-	public static object? BitwiseNot(object? value)
-	{
-		return value switch
-		{
-			byte b => ~b,
-			short s => ~s,
-			int i => ~i,
-			long l => ~l,
-			_ => null
-		};
-	}
+#pragma warning disable RS1035
+		var assembly = Assembly.Load(methodSymbol.ContainingAssembly.Name);
+#pragma warning restore RS1035
 
-	public static object? LogicalNot(object? value)
-	{
-		return value switch
-		{
-			bool b => !b,
-			_ => false,
-		};
-	}
+		var type = instance?.GetType() ?? assembly.GetType(fullyQualifiedName);
 
-	public static object? ExecuteMethod(IMethodSymbol methodSymbol, object? instance, params object?[] arguments)
-	{
-		// Verkrijg de MethodInfo van de IMethodSymbol
-		var methodInfo = GetMethodInfo(methodSymbol, arguments);
+		if (type == null)
+		{
+			throw new InvalidOperationException($"Type '{fullyQualifiedName}' niet gevonden in assembly '{assembly.FullName}'.");
+		}
+
+		var methodInfo = type
+			.GetMethods( methodSymbol.IsStatic 
+				? BindingFlags.Public | BindingFlags.Static 
+				: BindingFlags.Public | BindingFlags.Instance)
+			.FirstOrDefault(f =>
+			{
+				if (f.Name != methodName)
+				{
+					return false;
+				}
+				
+				var parameters = f.GetParameters();
+				
+				if (parameters.Length != methodSymbol.Parameters.Length)
+				{
+					return false;
+				}
+				
+				
+				// TODO: improve parameter matching
+				for (var i = 0; i < parameters.Length; i++)
+				{
+					var parameterTypeFullName = parameters[i].ParameterType.FullName;
+					var methodParameterType = methodSymbol.Parameters[i].Type;
+					var methodParameterTypeFullName = $"{GetFullNamespace(methodParameterType.ContainingNamespace)}.{methodParameterType.ToDisplayString()}";
+					var methodParameterTypeName = $"{GetFullNamespace(methodParameterType.ContainingNamespace)}.{methodParameterType.Name}";
+
+					if (parameterTypeFullName != methodParameterTypeFullName && parameterTypeFullName != methodParameterTypeName)
+					{
+						return false;
+					}
+				}
+
+				return true;
+			});
 
 		if (methodInfo == null)
 		{
-			throw new InvalidOperationException("MethodInfo could not be retrieved.");
+			throw new InvalidOperationException($"Methode '{methodName}' niet gevonden in type '{fullyQualifiedName}'.");
 		}
 
-		// Roep de methode aan
-		return methodInfo.Invoke(instance, arguments);
-
-		MethodInfo? GetMethodInfo(IMethodSymbol methodSymbol, object?[] arguments)
+		if (methodInfo.IsStatic)
 		{
-			// Verkrijg de type van de methode
-			var type = Type.GetType(methodSymbol.ContainingType.ToDisplayString());
-
-			return type?.GetMethod(methodSymbol.Name, arguments
-				.Where(w => w is not null)
-				.Select(s => s!.GetType())
-				.ToArray());
+			return methodInfo.Invoke(null, parameters);
 		}
+
+		if (instance == null)
+		{
+			throw new InvalidOperationException($"Kan geen instantie creëren van type '{fullyQualifiedName}'.");
+		}
+
+		return methodInfo.Invoke(instance, parameters);
 	}
 
 	public static object? GetPropertyValue(IPropertySymbol propertySymbol, object? instance)
 	{
-		if (propertySymbol == null)
+		var fullyQualifiedTypeName = $"{GetFullNamespace(propertySymbol.ContainingType.ContainingNamespace)}.{propertySymbol.ContainingType.MetadataName}";
+
+#pragma warning disable RS1035
+		var assembly = Assembly.Load(propertySymbol.ContainingAssembly.Name);
+#pragma warning restore RS1035
+
+		var type = assembly.GetType(fullyQualifiedTypeName);
+
+		if (type == null)
 		{
-			throw new InvalidOperationException("Property symbol could not be retrieved.");
+			throw new InvalidOperationException($"Type '{fullyQualifiedTypeName}' niet gevonden in assembly '{assembly.FullName}'.");
 		}
 
-		// Gebruik reflectie om de waarde van de eigenschap op te halen
-		var propertyName = propertySymbol.Name;
-		
-		var propertyInfo = propertySymbol.IsStatic
-			? propertySymbol.ContainingType.ToDisplayString().GetType().GetProperty(propertyName, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
-			: instance.GetType().GetProperty(propertyName);
+		var propertyInfo = type.GetProperty(propertySymbol.Name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance);
 
 		if (propertyInfo == null)
 		{
-			throw new InvalidOperationException("Property info could not be retrieved.");
+			throw new InvalidOperationException($"Eigenschap '{propertySymbol.Name}' niet gevonden in type '{fullyQualifiedTypeName}'.");
 		}
 
-		return propertyInfo.GetValue(propertySymbol.IsStatic ? null : instance);
+		if (propertyInfo.GetMethod?.IsStatic == true)
+		{
+			return propertyInfo.GetValue(null);
+		}
+
+		if (instance == null)
+		{
+			throw new ArgumentNullException(nameof(instance), $"Een instantie van '{fullyQualifiedTypeName}' is vereist om de eigenschap '{propertySymbol.Name}' op te halen.");
+		}
+
+		if (!type.IsInstanceOfType(instance))
+		{
+			throw new ArgumentException($"De opgegeven instantie is geen type van '{fullyQualifiedTypeName}'.", nameof(instance));
+		}
+
+		return propertyInfo.GetValue(instance);
 	}
 
 	public static object? GetFieldValue(IFieldSymbol fieldSymbol, object? instance)
 	{
-		if (fieldSymbol == null)
+		var fullyQualifiedTypeName = fieldSymbol.ContainingType.ToDisplayString();
+
+#pragma warning disable RS1035
+		var assembly = Assembly.Load(fieldSymbol.ContainingAssembly.Name);
+#pragma warning restore RS1035
+
+		var type = assembly.GetType(fullyQualifiedTypeName);
+
+		if (type == null)
 		{
-			throw new InvalidOperationException("Property symbol could not be retrieved.");
+			throw new InvalidOperationException($"Type '{fullyQualifiedTypeName}' niet gevonden in assembly '{assembly.FullName}'.");
 		}
 
-		// Gebruik reflectie om de waarde van de eigenschap op te halen
-		var propertyName = fieldSymbol.Name;
+		var fieldInfo = type.GetField(fieldSymbol.Name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance);
 
-		var propertyInfo = fieldSymbol.IsStatic
-			? fieldSymbol.ContainingType.ToDisplayString().GetType().GetField(propertyName, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
-			: instance.GetType().GetField(propertyName);
-
-		if (propertyInfo == null)
+		if (fieldInfo == null)
 		{
-			throw new InvalidOperationException("Property info could not be retrieved.");
+			throw new InvalidOperationException($"Veld '{fieldSymbol.Name}' niet gevonden in type '{fullyQualifiedTypeName}'.");
 		}
 
-		return propertyInfo.GetValue(fieldSymbol.IsStatic ? null : instance);
+		if (fieldInfo.IsStatic)
+		{
+			return fieldInfo.GetValue(null);
+		}
+
+		if (instance == null)
+		{
+			throw new ArgumentNullException(nameof(instance), $"Een instantie van '{fullyQualifiedTypeName}' is vereist om het veld '{fieldSymbol.Name}' op te halen.");
+		}
+
+		if (!type.IsInstanceOfType(instance))
+		{
+			throw new ArgumentException($"De opgegeven instantie is geen type van '{fullyQualifiedTypeName}'.", nameof(instance));
+		}
+
+		return fieldInfo.GetValue(instance);
 	}
-	
+
 	public static bool TryGetSemanticModel(Compilation compilation, SyntaxNode? node, out SemanticModel semanticModel)
 	{
 		var tree = node?.SyntaxTree;
-		
+
 		if (compilation.SyntaxTrees.Contains(tree))
 		{
 			semanticModel = compilation.GetSemanticModel(tree);
@@ -363,11 +414,32 @@ public static class SyntaxHelpers
 		semanticModel = null!;
 		return false;
 	}
-	
+
 	public static SemanticModel GetSemanticModel(Compilation compilation, SyntaxNode node)
 	{
-		return TryGetSemanticModel(compilation, node, out var semanticModel) 
-			? semanticModel 
+		return TryGetSemanticModel(compilation, node, out var semanticModel)
+			? semanticModel
 			: throw new InvalidOperationException("SemanticModel could not be retrieved.");
+	}
+
+	public static string GetFullNamespace(INamespaceSymbol? namespaceSymbol)
+	{
+		if (namespaceSymbol is null || namespaceSymbol.IsGlobalNamespace)
+		{
+			return string.Empty;
+		}
+
+		var parts = new List<string>();
+		var current = namespaceSymbol;
+
+		while (current is { IsGlobalNamespace: false })
+		{
+			parts.Add(current.Name);
+			parts.Add(".");
+			current = current.ContainingNamespace;
+		}
+
+		parts.Reverse();
+		return string.Concat(parts);
 	}
 }

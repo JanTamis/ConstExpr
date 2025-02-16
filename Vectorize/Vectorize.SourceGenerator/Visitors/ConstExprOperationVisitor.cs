@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Globalization;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
@@ -312,8 +311,9 @@ public partial class ConstExprOperationVisitor : OperationVisitor<Dictionary<str
 	{
 		var itemName = GetVariableName(operation.LoopControlVariable);
 		var names = argument.Keys;
+		var collection = Visit(operation.Collection, argument);
 		
-		foreach (var item in Visit(operation.Collection, argument) as IEnumerable)
+		foreach (var item in collection as IEnumerable)
 		{
 			argument[itemName] = item;
 			Visit(operation.Body, argument);
@@ -393,8 +393,8 @@ public partial class ConstExprOperationVisitor : OperationVisitor<Dictionary<str
 		{
 			UnaryOperatorKind.Plus => operand,
 			UnaryOperatorKind.Minus => Subtract(0, operand),
-			UnaryOperatorKind.BitwiseNegation => SyntaxHelpers.BitwiseNot(operand),
-			UnaryOperatorKind.Not => SyntaxHelpers.LogicalNot(operand),
+			UnaryOperatorKind.BitwiseNegation => BitwiseNot(operand),
+			UnaryOperatorKind.Not => LogicalNot(operand),
 			_ => operand,
 		};
 	}
@@ -495,7 +495,7 @@ public partial class ConstExprOperationVisitor : OperationVisitor<Dictionary<str
 		var propertyName = operation.Property.Name;
 
 		var propertyInfo = operation.Property.IsStatic
-			? operation.Property.ContainingType.ToDisplayString().GetType().GetProperty(propertyName, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
+			? Type.GetType(operation.Property.ContainingType.ToDisplayString()).GetProperty(propertyName, BindingFlags.Static | BindingFlags.Public)
 			: instance.GetType().GetProperty(propertyName);
 
 		if (propertyInfo == null)
@@ -509,26 +509,5 @@ public partial class ConstExprOperationVisitor : OperationVisitor<Dictionary<str
 	public override object? VisitExpressionStatement(IExpressionStatementOperation operation, Dictionary<string, object?> argument)
 	{
 		return Visit(operation.Operation, argument);
-	}
-
-	private string GetVariableName(IOperation operation)
-	{
-		return operation switch
-		{
-			ILocalReferenceOperation localReferenceOperation => localReferenceOperation.Local.Name,
-			IParameterReferenceOperation parameterReferenceOperation => parameterReferenceOperation.Parameter.Name,
-			IPropertyReferenceOperation propertyReferenceOperation => propertyReferenceOperation.Property.Name,
-			IFieldReferenceOperation fieldReferenceOperation => fieldReferenceOperation.Field.Name,
-			IVariableDeclaratorOperation variableDeclaratorOperation => variableDeclaratorOperation.Symbol.Name,
-			_ => String.Empty,
-		};
-	}
-	
-	private void VisitList(ImmutableArray<IOperation> operations, Dictionary<string, object?> argument)
-	{
-		foreach (var operation in operations)
-		{
-			Visit(operation, argument);
-		}
 	}
 }
