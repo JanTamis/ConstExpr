@@ -279,6 +279,7 @@ public static class SyntaxHelpers
 					.Select<ParameterInfo, ITypeSymbol?>(s =>
 					{
 						var type = s.ParameterType;
+
 						if (type.IsArray)
 						{
 							var elementType = type.GetElementType();
@@ -444,9 +445,58 @@ public static class SyntaxHelpers
 
 	public static Assembly GetAssemblyByType(Compilation compilation, ITypeSymbol type)
 	{
+		var references = compilation.References;
 		return AppDomain.CurrentDomain
 			.GetAssemblies()
 				.FirstOrDefault(a => a.DefinedTypes
 					.Any(a => SymbolEqualityComparer.Default.Equals(compilation.GetTypeByMetadataName(a.FullName), type)));
 	}
+
+	//public static Assembly? GetAssemblyByType(Compilation compilation, ITypeSymbol typeSymbol)
+	//{
+	//var path = compilation.References
+	//	.OfType<PortableExecutableReference>()
+	//	.Where(r => compilation.GetAssemblyOrModuleSymbol(r)?.Equals(typeSymbol.ContainingAssembly) ?? false)
+	//	.Select(s => s.FilePath)
+	//	.FirstOrDefault();
+
+	//return Assembly.LoadFrom(path);
+
+
+	//// Verkrijg het assembly-symbool dat dit type bevat
+	//IAssemblySymbol? assemblySymbol = typeSymbol.ContainingAssembly;
+
+	//if (assemblySymbol == null)
+	//{
+	//	return null;
+	//}
+
+	//// assemblySymbol.Identity bevat de naam, versie, enz.
+	//// Nu zoeken we in de referenties van de compilatie naar een MetadataReference 
+	//// waarvan de FilePath overeenkomt met deze assembly.
+	//foreach (var reference in compilation.References.OfType<PortableExecutableReference>())
+	//{
+	//	if (String.IsNullOrEmpty(reference.FilePath))
+	//	{
+	//		continue;
+	//	}
+
+	//	try
+	//	{
+	//		var loadedAssembly = Assembly.ReflectionOnlyLoadFrom(reference.FilePath);
+
+	//		// Vergelijk de assemblynaam
+	//		if (String.Equals(loadedAssembly.GetName().Name, assemblySymbol.Identity.Name, StringComparison.OrdinalIgnoreCase))
+	//		{
+	//			return loadedAssembly;
+	//		}
+	//	}
+	//	catch (Exception e)
+	//	{
+	//		// Als het laden mislukt, gaan we verder
+	//	}
+	//}
+
+	//return null;
+	// }
 }

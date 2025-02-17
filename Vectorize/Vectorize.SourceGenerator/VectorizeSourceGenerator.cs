@@ -93,7 +93,6 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 					{
 						spc.AddSource($"{type.Identifier}_{group.Key.Identifier}.g.cs", builder.ToString());
 					}
-
 				}
 			});
 
@@ -160,14 +159,14 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 		}
 
 		return null;
-	}
 
-	public MethodDeclarationSyntax? GetMethodSyntaxNode(IMethodSymbol methodSymbol)
-	{
-		var syntaxReference = methodSymbol.DeclaringSyntaxReferences.FirstOrDefault();
-		var syntaxNode = syntaxReference?.GetSyntax() as MethodDeclarationSyntax;
+		MethodDeclarationSyntax? GetMethodSyntaxNode(IMethodSymbol methodSymbol)
+		{
+			var syntaxReference = methodSymbol.DeclaringSyntaxReferences.FirstOrDefault();
+			var syntaxNode = syntaxReference?.GetSyntax() as MethodDeclarationSyntax;
 
-		return syntaxNode;
+			return syntaxNode;
+		}
 	}
 
 	public static HashSet<string> GetUsings(IMethodSymbol methodSymbol)
