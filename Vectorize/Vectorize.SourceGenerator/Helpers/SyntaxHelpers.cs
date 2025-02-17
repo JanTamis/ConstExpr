@@ -1,3 +1,7 @@
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Operations;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -5,10 +9,6 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Operations;
 
 namespace Vectorize.Helpers;
 
@@ -114,17 +114,17 @@ public static class SyntaxHelpers
 			case bool b:
 				return SyntaxFactory.LiteralExpression(b ? SyntaxKind.TrueLiteralExpression : SyntaxKind.FalseLiteralExpression);
 			case null:
-				return SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression);	
+				return SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression);
 		}
 
 		if (value is IEnumerable enumerable)
 		{
 			return SyntaxFactory.CollectionExpression(SyntaxFactory.SeparatedList<CollectionElementSyntax>(
-			    enumerable
-				    .Cast<object?>()
-				    .Select(s => SyntaxFactory.ExpressionElement(CreateLiteral(s)))));
+					enumerable
+						.Cast<object?>()
+						.Select(s => SyntaxFactory.ExpressionElement(CreateLiteral(s)))));
 		}
-		
+
 		throw new ArgumentOutOfRangeException();
 	}
 
@@ -138,7 +138,7 @@ public static class SyntaxHelpers
 		return expression switch
 		{
 			LiteralExpressionSyntax literal => literal.Token.Value,
-			CollectionExpressionSyntax collection => (IReadOnlyList<object?>) collection.Elements
+			CollectionExpressionSyntax collection => (IReadOnlyList<object?>)collection.Elements
 				.OfType<ExpressionElementSyntax>()
 				.Select(x => GetConstantValue(compilation, x.Expression, token))
 				.ToImmutableList(),
@@ -168,23 +168,23 @@ public static class SyntaxHelpers
 			case MemberAccessExpressionSyntax memberAccess when semanticModel.GetOperation(memberAccess) is IPropertyReferenceOperation propertyOperation:
 				if (propertyOperation.Property.IsStatic)
 				{
-					value = GetPropertyValue(propertyOperation.Property, null);
+					value = GetPropertyValue(compilation, propertyOperation.Property, null);
 					return true;
 				}
-				
+
 				if (TryGetConstantValue(compilation, memberAccess.Expression, token, out var instance))
 				{
-					value = GetPropertyValue(propertyOperation.Property, instance);
+					value = GetPropertyValue(compilation, propertyOperation.Property, instance);
 					return true;
 				}
-				
+
 				value = null;
 				return false;
 			case InvocationExpressionSyntax invocation when semanticModel.GetOperation(invocation) is IInvocationOperation operation:
 				if (operation.TargetMethod.IsStatic && operation.Arguments.All(x => x.Value.ConstantValue.HasValue))
 				{
 					var parameters = operation.Arguments.Select(x => x.Value.ConstantValue.Value).ToArray();
-					value = ExecuteMethod(operation.TargetMethod, null, parameters);
+					value = ExecuteMethod(compilation, operation.TargetMethod, null, parameters);
 					return true;
 				}
 				value = null;
@@ -193,7 +193,7 @@ public static class SyntaxHelpers
 				if (operation.Arguments.All(x => x.Value.ConstantValue.HasValue))
 				{
 					var parameters = operation.Arguments.Select(x => x.Value.ConstantValue.Value).ToArray();
-					value = ExecuteMethod(operation.Constructor, null, parameters);
+					value = ExecuteMethod(compilation, operation.Constructor, null, parameters);
 					return true;
 				}
 				value = null;
@@ -249,16 +249,12 @@ public static class SyntaxHelpers
 		return false;
 	}
 
-	
-
-	public static object? ExecuteMethod(IMethodSymbol methodSymbol, object? instance, params object?[]? parameters)
+	public static object? ExecuteMethod(Compilation compilation, IMethodSymbol methodSymbol, object? instance, params object?[]? parameters)
 	{
 		var fullyQualifiedName = methodSymbol.ContainingType.ToDisplayString();
 		var methodName = methodSymbol.Name;
 
-#pragma warning disable RS1035
-		var assembly = Assembly.Load(methodSymbol.ContainingAssembly.Name);
-#pragma warning restore RS1035
+		var assembly = GetAssemblyByType(compilation, methodSymbol.ContainingType);
 
 		var type = instance?.GetType() ?? assembly.GetType(fullyQualifiedName);
 
@@ -268,8 +264,8 @@ public static class SyntaxHelpers
 		}
 
 		var methodInfo = type
-			.GetMethods( methodSymbol.IsStatic 
-				? BindingFlags.Public | BindingFlags.Static 
+			.GetMethods(methodSymbol.IsStatic
+				? BindingFlags.Public | BindingFlags.Static
 				: BindingFlags.Public | BindingFlags.Instance)
 			.FirstOrDefault(f =>
 			{
@@ -277,24 +273,31 @@ public static class SyntaxHelpers
 				{
 					return false;
 				}
-				
-				var parameters = f.GetParameters();
-				
-				if (parameters.Length != methodSymbol.Parameters.Length)
+
+				var parameters = f
+					.GetParameters()
+					.Select<ParameterInfo, ITypeSymbol?>(s =>
+					{
+						var type = s.ParameterType;
+						if (type.IsArray)
+						{
+							var elementType = type.GetElementType();
+							return compilation.CreateArrayTypeSymbol(compilation.GetTypeByMetadataName(elementType.FullName));
+						}
+
+						return compilation.GetTypeByMetadataName(type.FullName);
+					})
+					.ToList();
+
+				if (parameters.Count != methodSymbol.Parameters.Length)
 				{
 					return false;
 				}
-				
-				
-				// TODO: improve parameter matching
-				for (var i = 0; i < parameters.Length; i++)
-				{
-					var parameterTypeFullName = parameters[i].ParameterType.FullName;
-					var methodParameterType = methodSymbol.Parameters[i].Type;
-					var methodParameterTypeFullName = $"{GetFullNamespace(methodParameterType.ContainingNamespace)}.{methodParameterType.ToDisplayString()}";
-					var methodParameterTypeName = $"{GetFullNamespace(methodParameterType.ContainingNamespace)}.{methodParameterType.Name}";
 
-					if (parameterTypeFullName != methodParameterTypeFullName && parameterTypeFullName != methodParameterTypeName)
+				// TODO: improve parameter matching
+				for (var i = 0; i < parameters.Count; i++)
+				{
+					if (!SymbolEqualityComparer.Default.Equals(parameters[i], methodSymbol.Parameters[i].Type))
 					{
 						return false;
 					}
@@ -321,13 +324,11 @@ public static class SyntaxHelpers
 		return methodInfo.Invoke(instance, parameters);
 	}
 
-	public static object? GetPropertyValue(IPropertySymbol propertySymbol, object? instance)
+	public static object? GetPropertyValue(Compilation compilation, IPropertySymbol propertySymbol, object? instance)
 	{
 		var fullyQualifiedTypeName = $"{GetFullNamespace(propertySymbol.ContainingType.ContainingNamespace)}.{propertySymbol.ContainingType.MetadataName}";
 
-#pragma warning disable RS1035
-		var assembly = Assembly.Load(propertySymbol.ContainingAssembly.Name);
-#pragma warning restore RS1035
+		var assembly = GetAssemblyByType(compilation, propertySymbol.ContainingType);
 
 		var type = assembly.GetType(fullyQualifiedTypeName);
 
@@ -361,13 +362,11 @@ public static class SyntaxHelpers
 		return propertyInfo.GetValue(instance);
 	}
 
-	public static object? GetFieldValue(IFieldSymbol fieldSymbol, object? instance)
+	public static object? GetFieldValue(Compilation compilation, IFieldSymbol fieldSymbol, object? instance)
 	{
 		var fullyQualifiedTypeName = fieldSymbol.ContainingType.ToDisplayString();
 
-#pragma warning disable RS1035
-		var assembly = Assembly.Load(fieldSymbol.ContainingAssembly.Name);
-#pragma warning restore RS1035
+		var assembly = GetAssemblyByType(compilation, fieldSymbol.ContainingType);
 
 		var type = assembly.GetType(fullyQualifiedTypeName);
 
@@ -441,5 +440,13 @@ public static class SyntaxHelpers
 
 		parts.Reverse();
 		return string.Concat(parts);
+	}
+
+	public static Assembly GetAssemblyByType(Compilation compilation, ITypeSymbol type)
+	{
+		return AppDomain.CurrentDomain
+			.GetAssemblies()
+				.FirstOrDefault(a => a.DefinedTypes
+					.Any(a => SymbolEqualityComparer.Default.Equals(compilation.GetTypeByMetadataName(a.FullName), type)));
 	}
 }

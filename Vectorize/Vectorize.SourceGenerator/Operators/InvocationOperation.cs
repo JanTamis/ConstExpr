@@ -1,21 +1,21 @@
-using System;
-using System.Linq;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
+using System.Linq;
 using static Vectorize.Helpers.SyntaxHelpers;
 
 namespace Vectorize.Operators;
 
 public partial class OperatorHelper
 {
-	private object? GetInvocationValue(IInvocationOperation invocationOperation)
+	private object? GetInvocationValue(Compilation compilation, IInvocationOperation invocationOperation)
 	{
 		var targetMethod = invocationOperation?.TargetMethod;
-		var instance = GetConstantValue(invocationOperation.Instance);
+		var instance = GetConstantValue(compilation, invocationOperation.Instance);
 
 		var arguments = invocationOperation.Arguments
-			.Select(argument => GetConstantValue(argument.Value))
+			.Select(argument => GetConstantValue(compilation, argument.Value))
 			.ToArray();
 
-		return ExecuteMethod(targetMethod, instance, arguments);
+		return ExecuteMethod(compilation, targetMethod, instance, arguments);
 	}
 }

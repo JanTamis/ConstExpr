@@ -1,45 +1,45 @@
-using System;
-using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
+using System;
+using System.Collections.Generic;
 
 namespace Vectorize.Operators;
 
 public partial class OperatorHelper(Dictionary<string, object?> variables)
 {
-	public object? GetConstantValue(IOperation? operation)
+	public object? GetConstantValue(Compilation compilation, IOperation? operation)
 	{
 		if (operation is null)
 		{
 			return null;
 		}
-		
+
 		if (operation.ConstantValue is { HasValue: true, Value: var value })
 		{
 			return value;
 		}
-		
+
 		return operation switch
 		{
-			ICompoundAssignmentOperation compoundAssignmentOperation => GetCompoundAssignmentValue(compoundAssignmentOperation),
-			IAssignmentOperation assignmentOperation => GetAssignmentValue(assignmentOperation),
+			ICompoundAssignmentOperation compoundAssignmentOperation => GetCompoundAssignmentValue(compilation, compoundAssignmentOperation),
+			IAssignmentOperation assignmentOperation => GetAssignmentValue(compilation, assignmentOperation),
 			ILocalReferenceOperation localReferenceOperation => GetLocalValue(localReferenceOperation),
-			IPropertyReferenceOperation propertyReferenceOperation => GetPropertyReferenceValue(propertyReferenceOperation),
-			IFieldReferenceOperation fieldReferenceOperation => GetFieldReferenceValue(fieldReferenceOperation),
+			IPropertyReferenceOperation propertyReferenceOperation => GetPropertyReferenceValue(compilation, propertyReferenceOperation),
+			IFieldReferenceOperation fieldReferenceOperation => GetFieldReferenceValue(compilation, fieldReferenceOperation),
 			IParameterReferenceOperation parameterReferenceOperation => GetParameterValue(parameterReferenceOperation),
 			ILiteralOperation literalOperation => GetLiteralValue(literalOperation),
-			IConversionOperation conversionOperation => GetConversionValue(conversionOperation),
-			IBinaryOperation binaryOperation => GetBinaryValue(binaryOperation),
-			IForEachLoopOperation forEachLoopOperation => GetForEachValue(forEachLoopOperation),
-			IBlockOperation blockOperation => GetBlockValue(blockOperation),
-			IConditionalOperation conditionalOperation => GetConditionalValue(conditionalOperation),
-			IInvocationOperation invocationOperation => GetInvocationValue(invocationOperation),
-			IExpressionStatementOperation expressionStatementOperation => GetConstantValue(expressionStatementOperation.Operation),
-			IVariableDeclaratorOperation variableDeclaratorOperation => GetVariableDeclaratorValue(variableDeclaratorOperation),
+			IConversionOperation conversionOperation => GetConversionValue(compilation, conversionOperation),
+			IBinaryOperation binaryOperation => GetBinaryValue(compilation, binaryOperation),
+			IForEachLoopOperation forEachLoopOperation => GetForEachValue(compilation, forEachLoopOperation),
+			IBlockOperation blockOperation => GetBlockValue(compilation, blockOperation),
+			IConditionalOperation conditionalOperation => GetConditionalValue(compilation, conditionalOperation),
+			IInvocationOperation invocationOperation => GetInvocationValue(compilation, invocationOperation),
+			IExpressionStatementOperation expressionStatementOperation => GetConstantValue(compilation, expressionStatementOperation.Operation),
+			IVariableDeclaratorOperation variableDeclaratorOperation => GetVariableDeclaratorValue(compilation, variableDeclaratorOperation),
 			_ => null,
 		};
 	}
-	
+
 	private object? ExecuteBinaryOperation(BinaryOperatorKind operatorKind, object? left, object? right)
 	{
 		return operatorKind switch
@@ -66,7 +66,7 @@ public partial class OperatorHelper(Dictionary<string, object?> variables)
 			_ => null,
 		};
 	}
-	
+
 	private string GetVariableName(IOperation operation)
 	{
 		return operation switch
@@ -77,7 +77,7 @@ public partial class OperatorHelper(Dictionary<string, object?> variables)
 			_ => String.Empty,
 		};
 	}
-	
+
 	private object? Add(object? left, object? right)
 	{
 		return left switch
@@ -123,7 +123,7 @@ public partial class OperatorHelper(Dictionary<string, object?> variables)
 			_ => null
 		};
 	}
-	
+
 	private object? Divide(object? left, object? right)
 	{
 		return left switch
@@ -138,7 +138,7 @@ public partial class OperatorHelper(Dictionary<string, object?> variables)
 			_ => null
 		};
 	}
-	
+
 	private object? Modulo(object? left, object? right)
 	{
 		return left switch
@@ -153,7 +153,7 @@ public partial class OperatorHelper(Dictionary<string, object?> variables)
 			_ => null
 		};
 	}
-	
+
 	private object? LeftShift(object? left, object? right)
 	{
 		return left switch
@@ -164,7 +164,7 @@ public partial class OperatorHelper(Dictionary<string, object?> variables)
 			_ => null
 		};
 	}
-	
+
 	private object? RightShift(object? left, object? right)
 	{
 		return left switch
@@ -175,7 +175,7 @@ public partial class OperatorHelper(Dictionary<string, object?> variables)
 			_ => null
 		};
 	}
-	
+
 	private object? UnsignedRightShift(object? left, object? right)
 	{
 		return left switch
@@ -186,7 +186,7 @@ public partial class OperatorHelper(Dictionary<string, object?> variables)
 			_ => null
 		};
 	}
-	
+
 	private object? And(object? left, object? right)
 	{
 		return left switch
@@ -197,7 +197,7 @@ public partial class OperatorHelper(Dictionary<string, object?> variables)
 			_ => null
 		};
 	}
-	
+
 	private object? Or(object? left, object? right)
 	{
 		return left switch
@@ -208,7 +208,7 @@ public partial class OperatorHelper(Dictionary<string, object?> variables)
 			_ => null
 		};
 	}
-	
+
 	private object? ExclusiveOr(object? left, object? right)
 	{
 		return left switch
@@ -219,7 +219,7 @@ public partial class OperatorHelper(Dictionary<string, object?> variables)
 			_ => null
 		};
 	}
-	
+
 	private object? ConditionalAnd(object? left, object? right)
 	{
 		return left switch
@@ -228,7 +228,7 @@ public partial class OperatorHelper(Dictionary<string, object?> variables)
 			_ => null
 		};
 	}
-	
+
 	private object? ConditionalOr(object? left, object? right)
 	{
 		return left switch

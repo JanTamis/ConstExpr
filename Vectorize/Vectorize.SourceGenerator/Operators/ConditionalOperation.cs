@@ -1,22 +1,22 @@
-using System;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 
 namespace Vectorize.Operators;
 
 public partial class OperatorHelper
 {
-	private object? GetConditionalValue(IConditionalOperation conditionalOperation)
+	private object? GetConditionalValue(Compilation compilation, IConditionalOperation conditionalOperation)
 	{
-		var condition = GetConstantValue(conditionalOperation.Condition);
-		
+		var condition = GetConstantValue(compilation, conditionalOperation.Condition);
+
 		if (condition is true)
 		{
-			return GetConstantValue(conditionalOperation.WhenTrue);
+			return GetConstantValue(compilation, conditionalOperation.WhenTrue);
 		}
 
 		if (conditionalOperation.WhenFalse is not null)
 		{
-			return GetConstantValue(conditionalOperation.WhenFalse);
+			return GetConstantValue(compilation, conditionalOperation.WhenFalse);
 		}
 
 		return null;

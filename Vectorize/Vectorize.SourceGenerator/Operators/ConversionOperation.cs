@@ -1,18 +1,17 @@
-using System;
-using System.Collections;
-using System.Reflection.Emit;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
+using System;
+using System.Collections;
 
 namespace Vectorize.Operators;
 
 public partial class OperatorHelper
 {
-	private object? GetConversionValue(IConversionOperation conversionOperation)
+	private object? GetConversionValue(Compilation compilation, IConversionOperation conversionOperation)
 	{
-		var operand = GetConstantValue(conversionOperation.Operand);
+		var operand = GetConstantValue(compilation, conversionOperation.Operand);
 		var conversion = conversionOperation.Type;
-		
+
 		return conversion.SpecialType switch
 		{
 			SpecialType.System_Boolean => Convert.ToBoolean(operand),

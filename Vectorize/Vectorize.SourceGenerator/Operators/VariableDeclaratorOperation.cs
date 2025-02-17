@@ -1,17 +1,17 @@
-using System;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 
 namespace Vectorize.Operators;
 
 public partial class OperatorHelper
 {
-	private object? GetVariableDeclaratorValue(IVariableDeclaratorOperation assignmentOperation)
+	private object? GetVariableDeclaratorValue(Compilation compilation, IVariableDeclaratorOperation assignmentOperation)
 	{
 		var name = assignmentOperation.Symbol.Name;
-		var value = GetConstantValue(assignmentOperation.Initializer.Value);
+		var value = GetConstantValue(compilation, assignmentOperation.Initializer.Value);
 
 		variables.Add(name, value);
-		
+
 		return value;
 	}
 }

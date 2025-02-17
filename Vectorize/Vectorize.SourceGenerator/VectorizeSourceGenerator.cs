@@ -1,12 +1,12 @@
-using System.Collections.Generic;
-using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Operations;
 using SGF;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Microsoft.CodeAnalysis.Operations;
+using System.Threading;
 using Vectorize.Visitors;
 using static Vectorize.Helpers.SyntaxHelpers;
 
@@ -93,7 +93,7 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 					{
 						spc.AddSource($"{type.Identifier}_{group.Key.Identifier}.g.cs", builder.ToString());
 					}
-					
+
 				}
 			});
 
@@ -146,7 +146,7 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 
 		if (TryGetSemanticModel(compilation, methodSyntaxNode, out var semanticModel) && semanticModel.GetOperation(methodSyntaxNode) is IMethodBodyOperation blockOperation)
 		{
-			var visitor = new ConstExprOperationVisitor();
+			var visitor = new ConstExprOperationVisitor(compilation);
 			visitor.VisitBlock(blockOperation.BlockBody, variables);
 
 			return new InvocationModel
