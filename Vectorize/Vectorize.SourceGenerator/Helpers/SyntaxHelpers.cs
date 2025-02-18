@@ -139,66 +139,74 @@ public static class SyntaxHelpers
 
 	public static bool TryGetConstantValue(Compilation compilation, SyntaxNode expression, CancellationToken token, out object? value)
 	{
-		if (TryGetSemanticModel(compilation, expression, out var semanticModel) && semanticModel.GetConstantValue(expression, token) is { HasValue: true, Value: var temp })
+		try
 		{
-			value = temp;
-			return true;
-		}
+			if (TryGetSemanticModel(compilation, expression, out var semanticModel) && semanticModel.GetConstantValue(expression, token) is { HasValue: true, Value: var temp })
+			{
+				value = temp;
+				return true;
+			}
 
-		switch (expression)
-		{
-			case LiteralExpressionSyntax literal:
-				value = literal.Token.Value;
-				return true;
-			case ImplicitArrayCreationExpressionSyntax array:
-				value = array.Initializer.Expressions
-					.Select(x => GetConstantValue(compilation, x, token))
-					.ToArray();
-				return true;
-			case CollectionExpressionSyntax collection:
-				value = collection.Elements
-					.Select(x => GetConstantValue(compilation, x, token))
-					.ToArray();
-				return true;
-			case MemberAccessExpressionSyntax memberAccess when semanticModel.GetOperation(memberAccess) is IPropertyReferenceOperation propertyOperation:
-				if (propertyOperation.Property.IsStatic)
-				{
-					value = GetPropertyValue(compilation, propertyOperation.Property, null);
+			switch (expression)
+			{
+				case LiteralExpressionSyntax literal:
+					value = literal.Token.Value;
 					return true;
-				}
-
-				if (TryGetConstantValue(compilation, memberAccess.Expression, token, out var instance))
-				{
-					value = GetPropertyValue(compilation, propertyOperation.Property, instance);
-					return true;
-				}
-
-				value = null;
-				return false;
-			case InvocationExpressionSyntax invocation when semanticModel.GetOperation(invocation) is IInvocationOperation operation:
-				if (operation.TargetMethod.IsStatic) //  && operation.Arguments.All(x => x.Value.ConstantValue.HasValue))
-				{
-					var parameters = invocation.ArgumentList.Arguments
-						.Select(s => GetConstantValue(compilation, s.Expression, token))
+				case ImplicitArrayCreationExpressionSyntax array:
+					value = array.Initializer.Expressions
+						.Select(x => GetConstantValue(compilation, x, token))
 						.ToArray();
+					return true;
+				case CollectionExpressionSyntax collection:
+					value = collection.Elements
+						.Select(x => GetConstantValue(compilation, x, token))
+						.ToArray();
+					return true;
+				case MemberAccessExpressionSyntax memberAccess when semanticModel.GetOperation(memberAccess) is IPropertyReferenceOperation propertyOperation:
+					if (propertyOperation.Property.IsStatic)
+					{
+						value = GetPropertyValue(compilation, propertyOperation.Property, null);
+						return true;
+					}
+
+					if (TryGetConstantValue(compilation, memberAccess.Expression, token, out var instance))
+					{
+						value = GetPropertyValue(compilation, propertyOperation.Property, instance);
+						return true;
+					}
+
+					value = null;
+					return false;
+				case InvocationExpressionSyntax invocation when semanticModel.GetOperation(invocation) is IInvocationOperation operation:
+					if (operation.TargetMethod.IsStatic) //  && operation.Arguments.All(x => x.Value.ConstantValue.HasValue))
+					{
+						var parameters = invocation.ArgumentList.Arguments
+							.Select(s => GetConstantValue(compilation, s.Expression, token))
+							.ToArray();
 					
-					value = ExecuteMethod(compilation, operation.TargetMethod, null, parameters);
-					return true;
-				}
-				value = null;
-				return false;
-			case ObjectCreationExpressionSyntax creation when semanticModel.GetOperation(creation) is IObjectCreationOperation operation:
-				if (operation.Arguments.All(x => x.Value.ConstantValue.HasValue))
-				{
-					var parameters = operation.Arguments.Select(x => x.Value.ConstantValue.Value).ToArray();
-					value = ExecuteMethod(compilation, operation.Constructor, null, parameters);
-					return true;
-				}
-				value = null;
-				return false;
-			default:
-				value = null;
-				return false;
+						value = ExecuteMethod(compilation, operation.TargetMethod, null, parameters);
+						return true;
+					}
+					value = null;
+					return false;
+				case ObjectCreationExpressionSyntax creation when semanticModel.GetOperation(creation) is IObjectCreationOperation operation:
+					if (operation.Arguments.All(x => x.Value.ConstantValue.HasValue))
+					{
+						var parameters = operation.Arguments.Select(x => x.Value.ConstantValue.Value).ToArray();
+						value = ExecuteMethod(compilation, operation.Constructor, null, parameters);
+						return true;
+					}
+					value = null;
+					return false;
+				default:
+					value = null;
+					return false;
+			}
+		}
+		catch (Exception e)
+		{
+			value = null;
+			return false;
 		}
 	}
 
