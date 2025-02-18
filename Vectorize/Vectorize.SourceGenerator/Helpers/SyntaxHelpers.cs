@@ -327,12 +327,29 @@ public static class SyntaxHelpers
 			throw new InvalidOperationException($"Kan geen instantie creëren van type '{fullyQualifiedName}'.");
 		}
 
+		// Handle params parameters
+		var methodParameters = methodInfo.GetParameters();
+		if (methodParameters.Length > 0 && methodParameters.Last().GetCustomAttribute<ParamArrayAttribute>() != null)
+		{
+			var fixedParameters = methodParameters.Take(methodParameters.Length - 1).ToArray();
+			var paramsParameter = methodParameters.Last();
+
+			var fixedArguments = parameters.Take(fixedParameters.Length).ToArray();
+			var paramsArguments = parameters.Skip(fixedParameters.Length).ToArray();
+
+			var finalArguments = new object?[fixedArguments.Length + 1];
+			Array.Copy(fixedArguments, finalArguments, fixedArguments.Length);
+			finalArguments[fixedArguments.Length] = paramsArguments;
+
+			return methodInfo.Invoke(instance, finalArguments);
+		}
+
 		return methodInfo.Invoke(instance, parameters);
 	}
 
 	public static object? GetPropertyValue(Compilation compilation, IPropertySymbol propertySymbol, object? instance)
 	{
-		var fullyQualifiedTypeName = $"{GetFullNamespace(propertySymbol.ContainingType.ContainingNamespace)}.{propertySymbol.ContainingType.MetadataName}";
+		var fullyQualifiedTypeName = $"{GetFullNamespace(propertySymbol.ContainingNamespace)}.{propertySymbol.ContainingType.MetadataName}";
 		var assembly = GetAssemblyByType(compilation, propertySymbol.ContainingType);
 
 		var type = assembly.GetType(fullyQualifiedTypeName);
