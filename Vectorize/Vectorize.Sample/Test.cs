@@ -8,7 +8,7 @@ namespace Vectorize.Sample;
 public static class Test
 {
 	[ConstExpr]
-	public static float Sum(IReadOnlyList<float> data)
+	public static float Sum(IEnumerable<float> data)
 	{
 		var sum = 0f;
 
@@ -23,14 +23,7 @@ public static class Test
 	[ConstExpr]
 	public static float Average(IReadOnlyList<float> data)
 	{
-		var sum = 0f;
-
-		foreach (var item in data)
-		{
-			sum += item;
-		}
-
-		return sum / data.Count;
+		return Sum(data) / data.Count;
 	}
 
 	[ConstExpr]

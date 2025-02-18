@@ -7,7 +7,9 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Vectorize.Helpers;
 
 namespace Vectorize.Visitors;
@@ -213,6 +215,24 @@ public partial class ConstExprOperationVisitor(Compilation compilation) : Operat
 		var arguments = operation.Arguments
 			.Select(s => Visit(s.Value, argument))
 			.ToArray();
+
+		if (targetMethod.GetAttributes().Any(SyntaxHelpers.IsConstExprAttribute) && SyntaxHelpers.TryGetOperation<IMethodBodyOperation>(compilation, targetMethod, out var methodOperation))
+		{
+			var syntax = (MethodDeclarationSyntax)targetMethod.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax();
+			var variables = new Dictionary<string, object?>();
+
+			for (var i = 0; i < syntax.ParameterList.Parameters.Count; i++)
+			{
+				var parameterName = syntax.ParameterList.Parameters[i].Identifier.Text;
+			
+				variables.Add(parameterName, arguments[i]);
+			}
+
+			var visitor = new ConstExprOperationVisitor(compilation);
+			visitor.VisitBlock(methodOperation.BlockBody, variables);
+
+			return variables[ReturnVariableName];
+		}
 
 		return SyntaxHelpers.ExecuteMethod(compilation, targetMethod, instance, arguments);
 	}
@@ -492,18 +512,18 @@ public partial class ConstExprOperationVisitor(Compilation compilation) : Operat
 	public override object? VisitPropertyReference(IPropertyReferenceOperation operation, Dictionary<string, object?> argument)
 	{
 		var instance = Visit(operation.Instance, argument);
-		var propertyName = operation.Property.Name;
+		var type = SyntaxHelpers.GetTypeByType(compilation, operation.Property.ContainingType);
 
-		var propertyInfo = operation.Property.IsStatic
-			? Type.GetType(operation.Property.ContainingType.ToDisplayString()).GetProperty(propertyName, BindingFlags.Static | BindingFlags.Public)
-			: instance.GetType().GetProperty(propertyName);
+		var propertyInfo = type
+			.GetProperties()
+			.FirstOrDefault(f => f.Name == operation.Property.Name && f.GetMethod.IsStatic == operation.Property.IsStatic);
 
 		if (propertyInfo == null)
 		{
 			throw new InvalidOperationException("Property info could not be retrieved.");
 		}
 
-		return propertyInfo.GetValue(operation.Property.IsStatic ? null : instance);
+		return propertyInfo.GetValue(operation.Property.IsStatic ? null : Convert.ChangeType(instance, type));
 	}
 
 	public override object? VisitExpressionStatement(IExpressionStatementOperation operation, Dictionary<string, object?> argument)
