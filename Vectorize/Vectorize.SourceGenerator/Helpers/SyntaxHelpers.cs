@@ -370,10 +370,8 @@ public static class SyntaxHelpers
 	public static object? GetFieldValue(Compilation compilation, IFieldSymbol fieldSymbol, object? instance)
 	{
 		var fullyQualifiedTypeName = fieldSymbol.ContainingType.ToDisplayString();
-
 		var assembly = GetAssemblyByType(compilation, fieldSymbol.ContainingType);
-
-		var type = assembly.GetType(fullyQualifiedTypeName);
+		var type = assembly?.GetType(fullyQualifiedTypeName);
 
 		if (type == null)
 		{
