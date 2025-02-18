@@ -180,11 +180,26 @@ public static class SyntaxHelpers
 				case InvocationExpressionSyntax invocation when semanticModel.GetOperation(invocation) is IInvocationOperation operation:
 					if (operation.TargetMethod.IsStatic) //  && operation.Arguments.All(x => x.Value.ConstantValue.HasValue))
 					{
-						var parameters = invocation.ArgumentList.Arguments
-							.Select(s => GetConstantValue(compilation, s.Expression, token))
-							.ToArray();
-					
-						value = ExecuteMethod(compilation, operation.TargetMethod, null, parameters);
+						var methodParameters = operation.TargetMethod.Parameters;
+						var arguments = invocation.ArgumentList.Arguments
+								.Select(s => GetConstantValue(compilation, s.Expression, token))
+								.ToArray();
+
+						if (methodParameters.Length > 0 && methodParameters.Last().IsParams)
+						{
+							var fixedArguments = arguments.Take(methodParameters.Length - 1).ToArray();
+							var paramsArguments = arguments.Skip(methodParameters.Length - 1).ToArray();
+
+							var finalArguments = new object?[fixedArguments.Length + 1];
+							Array.Copy(fixedArguments, finalArguments, fixedArguments.Length);
+							finalArguments[fixedArguments.Length] = paramsArguments;
+
+							value = ExecuteMethod(compilation, operation.TargetMethod, null, finalArguments);
+						}
+						else
+						{
+							value = ExecuteMethod(compilation, operation.TargetMethod, null, arguments);
+						}
 						return true;
 					}
 					value = null;
@@ -325,23 +340,6 @@ public static class SyntaxHelpers
 		if (instance == null)
 		{
 			throw new InvalidOperationException($"Kan geen instantie creëren van type '{fullyQualifiedName}'.");
-		}
-
-		// Handle params parameters
-		var methodParameters = methodInfo.GetParameters();
-		if (methodParameters.Length > 0 && methodParameters.Last().GetCustomAttribute<ParamArrayAttribute>() != null)
-		{
-			var fixedParameters = methodParameters.Take(methodParameters.Length - 1).ToArray();
-			var paramsParameter = methodParameters.Last();
-
-			var fixedArguments = parameters.Take(fixedParameters.Length).ToArray();
-			var paramsArguments = parameters.Skip(fixedParameters.Length).ToArray();
-
-			var finalArguments = new object?[fixedArguments.Length + 1];
-			Array.Copy(fixedArguments, finalArguments, fixedArguments.Length);
-			finalArguments[fixedArguments.Length] = paramsArguments;
-
-			return methodInfo.Invoke(instance, finalArguments);
 		}
 
 		return methodInfo.Invoke(instance, parameters);
