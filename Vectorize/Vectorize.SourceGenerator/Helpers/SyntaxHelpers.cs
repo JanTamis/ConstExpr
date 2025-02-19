@@ -5,7 +5,6 @@ using Microsoft.CodeAnalysis.Operations;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -120,87 +119,109 @@ public static class SyntaxHelpers
 		if (value is IEnumerable enumerable)
 		{
 			return SyntaxFactory.CollectionExpression(SyntaxFactory.SeparatedList<CollectionElementSyntax>(
-					enumerable
-						.Cast<object?>()
-						.Select(s => SyntaxFactory.ExpressionElement(CreateLiteral(s)))));
+				enumerable
+					.Cast<object?>()
+					.Select(s => SyntaxFactory.ExpressionElement(CreateLiteral(s)))));
 		}
 
 		throw new ArgumentOutOfRangeException();
 	}
 
-	public static object? GetConstantValue(Compilation compilation, ExpressionSyntax expression, CancellationToken token)
+	public static object? GetConstantValue(Compilation compilation, SyntaxNode expression, CancellationToken token)
 	{
-		if (TryGetSemanticModel(compilation, expression, out var semanticModel) && semanticModel.GetConstantValue(expression, token) is { HasValue: true, Value: var value })
+		if (TryGetConstantValue(compilation, expression, token, out var value))
 		{
 			return value;
 		}
 
-		return expression switch
-		{
-			LiteralExpressionSyntax literal => literal.Token.Value,
-			CollectionExpressionSyntax collection => (IReadOnlyList<object?>)collection.Elements
-				.OfType<ExpressionElementSyntax>()
-				.Select(x => GetConstantValue(compilation, x.Expression, token))
-				.ToImmutableList(),
-			_ => null,
-		};
+		return null;
 	}
 
-	public static bool TryGetConstantValue(Compilation compilation, ExpressionSyntax expression, CancellationToken token, out object? value)
+	public static bool TryGetConstantValue(Compilation compilation, SyntaxNode expression, CancellationToken token, out object? value)
 	{
-		if (TryGetSemanticModel(compilation, expression, out var semanticModel) && semanticModel.GetConstantValue(expression, token) is { HasValue: true, Value: var temp })
+		try
 		{
-			value = temp;
-			return true;
+			if (TryGetSemanticModel(compilation, expression, out var semanticModel) && semanticModel.GetConstantValue(expression, token) is { HasValue: true, Value: var temp })
+			{
+				value = temp;
+				return true;
+			}
+
+			switch (expression)
+			{
+				case LiteralExpressionSyntax literal:
+					value = literal.Token.Value;
+					return true;
+				case ImplicitArrayCreationExpressionSyntax array:
+					value = array.Initializer.Expressions
+						.Select(x => GetConstantValue(compilation, x, token))
+						.ToArray();
+					return true;
+				case CollectionExpressionSyntax collection:
+					value = collection.Elements
+						.Select(x => GetConstantValue(compilation, x, token))
+						.ToArray();
+					return true;
+				case MemberAccessExpressionSyntax memberAccess when semanticModel.GetOperation(memberAccess) is IPropertyReferenceOperation propertyOperation:
+					if (propertyOperation.Property.IsStatic)
+					{
+						value = GetPropertyValue(compilation, propertyOperation.Property, null);
+						return true;
+					}
+
+					if (TryGetConstantValue(compilation, memberAccess.Expression, token, out var instance))
+					{
+						value = GetPropertyValue(compilation, propertyOperation.Property, instance);
+						return true;
+					}
+
+					value = null;
+					return false;
+				case InvocationExpressionSyntax invocation when semanticModel.GetOperation(invocation) is IInvocationOperation operation:
+					if (operation.TargetMethod.IsStatic) //  && operation.Arguments.All(x => x.Value.ConstantValue.HasValue))
+					{
+						var methodParameters = operation.TargetMethod.Parameters;
+						var arguments = invocation.ArgumentList.Arguments
+								.Select(s => GetConstantValue(compilation, s.Expression, token))
+								.ToArray();
+
+						if (methodParameters.Length > 0 && methodParameters.Last().IsParams)
+						{
+							var fixedArguments = arguments.Take(methodParameters.Length - 1).ToArray();
+							var paramsArguments = arguments.Skip(methodParameters.Length - 1).ToArray();
+
+							var finalArguments = new object?[fixedArguments.Length + 1];
+							Array.Copy(fixedArguments, finalArguments, fixedArguments.Length);
+							finalArguments[fixedArguments.Length] = paramsArguments;
+
+							value = ExecuteMethod(compilation, operation.TargetMethod, null, finalArguments);
+						}
+						else
+						{
+							value = ExecuteMethod(compilation, operation.TargetMethod, null, arguments);
+						}
+						return true;
+					}
+					value = null;
+					return false;
+				case ObjectCreationExpressionSyntax creation when semanticModel.GetOperation(creation) is IObjectCreationOperation operation:
+					if (operation.Arguments.All(x => x.Value.ConstantValue.HasValue))
+					{
+						var parameters = operation.Arguments.Select(x => x.Value.ConstantValue.Value).ToArray();
+						value = ExecuteMethod(compilation, operation.Constructor, null, parameters);
+						return true;
+					}
+					value = null;
+					return false;
+				default:
+					value = null;
+					return false;
+			}
 		}
-
-		switch (expression)
+		catch (Exception e)
 		{
-			case LiteralExpressionSyntax literal:
-				value = literal.Token.Value;
-				return true;
-			case CollectionExpressionSyntax collection:
-				value = collection.Elements
-					.OfType<ExpressionElementSyntax>()
-					.Select(x => GetConstantValue(compilation, x.Expression, token))
-					.ToImmutableList();
-				return true;
-			case MemberAccessExpressionSyntax memberAccess when semanticModel.GetOperation(memberAccess) is IPropertyReferenceOperation propertyOperation:
-				if (propertyOperation.Property.IsStatic)
-				{
-					value = GetPropertyValue(compilation, propertyOperation.Property, null);
-					return true;
-				}
-
-				if (TryGetConstantValue(compilation, memberAccess.Expression, token, out var instance))
-				{
-					value = GetPropertyValue(compilation, propertyOperation.Property, instance);
-					return true;
-				}
-
-				value = null;
-				return false;
-			case InvocationExpressionSyntax invocation when semanticModel.GetOperation(invocation) is IInvocationOperation operation:
-				if (operation.TargetMethod.IsStatic && operation.Arguments.All(x => x.Value.ConstantValue.HasValue))
-				{
-					var parameters = operation.Arguments.Select(x => x.Value.ConstantValue.Value).ToArray();
-					value = ExecuteMethod(compilation, operation.TargetMethod, null, parameters);
-					return true;
-				}
-				value = null;
-				return false;
-			case ObjectCreationExpressionSyntax creation when semanticModel.GetOperation(creation) is IObjectCreationOperation operation:
-				if (operation.Arguments.All(x => x.Value.ConstantValue.HasValue))
-				{
-					var parameters = operation.Arguments.Select(x => x.Value.ConstantValue.Value).ToArray();
-					value = ExecuteMethod(compilation, operation.Constructor, null, parameters);
-					return true;
-				}
-				value = null;
-				return false;
-			default:
-				value = null;
-				return false;
+			value = null;
+			return false;
 		}
 	}
 
@@ -295,7 +316,6 @@ public static class SyntaxHelpers
 					return false;
 				}
 
-				// TODO: improve parameter matching
 				for (var i = 0; i < parameters.Count; i++)
 				{
 					if (!SymbolEqualityComparer.Default.Equals(parameters[i], methodSymbol.Parameters[i].Type))
@@ -327,8 +347,7 @@ public static class SyntaxHelpers
 
 	public static object? GetPropertyValue(Compilation compilation, IPropertySymbol propertySymbol, object? instance)
 	{
-		var fullyQualifiedTypeName = $"{GetFullNamespace(propertySymbol.ContainingType.ContainingNamespace)}.{propertySymbol.ContainingType.MetadataName}";
-
+		var fullyQualifiedTypeName = $"{GetFullNamespace(propertySymbol.ContainingNamespace)}.{propertySymbol.ContainingType.MetadataName}";
 		var assembly = GetAssemblyByType(compilation, propertySymbol.ContainingType);
 
 		var type = assembly.GetType(fullyQualifiedTypeName);
@@ -366,10 +385,8 @@ public static class SyntaxHelpers
 	public static object? GetFieldValue(Compilation compilation, IFieldSymbol fieldSymbol, object? instance)
 	{
 		var fullyQualifiedTypeName = fieldSymbol.ContainingType.ToDisplayString();
-
 		var assembly = GetAssemblyByType(compilation, fieldSymbol.ContainingType);
-
-		var type = assembly.GetType(fullyQualifiedTypeName);
+		var type = assembly?.GetType(fullyQualifiedTypeName);
 
 		if (type == null)
 		{
@@ -435,68 +452,111 @@ public static class SyntaxHelpers
 		while (current is { IsGlobalNamespace: false })
 		{
 			parts.Add(current.Name);
-			parts.Add(".");
 			current = current.ContainingNamespace;
 		}
 
 		parts.Reverse();
-		return string.Concat(parts);
+		return String.Join(".", parts);
 	}
 
-	public static Assembly GetAssemblyByType(Compilation compilation, ITypeSymbol type)
+	public static bool TryGetOperation<TOperation>(Compilation compilation, ISymbol symbol, out TOperation operation) where TOperation : IOperation
 	{
-		var references = compilation.References;
+		if (TryGetSemanticModel(compilation, symbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(), out var semanticModel) 
+		    && semanticModel.GetOperation(symbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax()) is IOperation op)
+		{
+			operation = (TOperation)op;
+			return true;
+		}
+
+		operation = default!;
+		return false;
+	}
+
+	public static Assembly? GetAssemblyByType(Compilation compilation, ITypeSymbol typeSymbol)
+	{
+		// // Verkrijg het assembly-symbool dat dit type bevat
+		// IAssemblySymbol? assemblySymbol = typeSymbol.ContainingAssembly;
+		//
+		// if (assemblySymbol == null)
+		// {
+		// 	return null;
+		// }
+		//
+		// // assemblySymbol.Identity bevat de naam, versie, enz.
+		// // Nu zoeken we in de referenties van de compilatie naar een MetadataReference 
+		// // waarvan de FilePath overeenkomt met deze assembly.
+		// foreach (var reference in compilation.References.OfType<PortableExecutableReference>())
+		// {
+		// 	if (String.IsNullOrEmpty(reference.FilePath))
+		// 	{
+		// 		continue;
+		// 	}
+		//
+		// 	try
+		// 	{
+		// 		var loadedAssembly = Assembly.UnsafeLoadFrom(reference.FilePath);
+		//
+		// 		// Vergelijk de assemblynaam
+		// 		if (String.Equals(loadedAssembly.GetName().Name, assemblySymbol.Identity.Name, StringComparison.OrdinalIgnoreCase))
+		// 		{
+		// 			return loadedAssembly;
+		// 		}
+		// 	}
+		// 	catch (Exception e)
+		// 	{
+		// 		// Als het laden mislukt, gaan we verder
+		// 	}
+		// }
+
 		return AppDomain.CurrentDomain
 			.GetAssemblies()
-				.FirstOrDefault(a => a.DefinedTypes
-					.Any(a => SymbolEqualityComparer.Default.Equals(compilation.GetTypeByMetadataName(a.FullName), type)));
+			.FirstOrDefault(a => a.DefinedTypes
+				.Any(a => SymbolEqualityComparer.Default.Equals(compilation.GetTypeByMetadataName(a.FullName), typeSymbol)));
 	}
 
-	//public static Assembly? GetAssemblyByType(Compilation compilation, ITypeSymbol typeSymbol)
-	//{
-	//var path = compilation.References
-	//	.OfType<PortableExecutableReference>()
-	//	.Where(r => compilation.GetAssemblyOrModuleSymbol(r)?.Equals(typeSymbol.ContainingAssembly) ?? false)
-	//	.Select(s => s.FilePath)
-	//	.FirstOrDefault();
+	public static IEnumerable<Type> GetTypesByType(Compilation compilation, ITypeSymbol typeSymbol)
+	{
+		if (typeSymbol is INamedTypeSymbol namedTypeSymbol && typeSymbol != namedTypeSymbol.OriginalDefinition)
+		{
+			return GetTypesByType(compilation, namedTypeSymbol.OriginalDefinition)
+				.Select(s =>
+				{
+					if (s.IsGenericTypeDefinition)
+					{
+						var arguments = namedTypeSymbol.TypeArguments
+							.Select(s => GetTypeByType(compilation, s))
+							.ToArray();
 
-	//return Assembly.LoadFrom(path);
+						return s.MakeGenericType(arguments);
+					}
+					
+					return s;
+				});
+		}
+		
+		return GetTypes(compilation)
+			.Where(w => SymbolEqualityComparer.Default.Equals(compilation.GetTypeByMetadataName(w.FullName), typeSymbol));
+	}
 
-
-	//// Verkrijg het assembly-symbool dat dit type bevat
-	//IAssemblySymbol? assemblySymbol = typeSymbol.ContainingAssembly;
-
-	//if (assemblySymbol == null)
-	//{
-	//	return null;
-	//}
-
-	//// assemblySymbol.Identity bevat de naam, versie, enz.
-	//// Nu zoeken we in de referenties van de compilatie naar een MetadataReference 
-	//// waarvan de FilePath overeenkomt met deze assembly.
-	//foreach (var reference in compilation.References.OfType<PortableExecutableReference>())
-	//{
-	//	if (String.IsNullOrEmpty(reference.FilePath))
-	//	{
-	//		continue;
-	//	}
-
-	//	try
-	//	{
-	//		var loadedAssembly = Assembly.ReflectionOnlyLoadFrom(reference.FilePath);
-
-	//		// Vergelijk de assemblynaam
-	//		if (String.Equals(loadedAssembly.GetName().Name, assemblySymbol.Identity.Name, StringComparison.OrdinalIgnoreCase))
-	//		{
-	//			return loadedAssembly;
-	//		}
-	//	}
-	//	catch (Exception e)
-	//	{
-	//		// Als het laden mislukt, gaan we verder
-	//	}
-	//}
-
-	//return null;
-	// }
+	public static Type? GetTypeByType(Compilation compilation, ITypeSymbol typeSymbol)
+	{
+		return GetTypesByType(compilation, typeSymbol).FirstOrDefault();
+	}
+	
+	public static IEnumerable<Type> GetTypes(Compilation compilation)
+	{
+		return AppDomain.CurrentDomain
+			.GetAssemblies()
+			.SelectMany(s =>
+			{
+				try
+				{
+					return s.DefinedTypes;
+				}
+				catch
+				{
+					return Enumerable.Empty<Type>();
+				}
+			});
+	}
 }

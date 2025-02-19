@@ -1,21 +1,26 @@
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.Operations;
 using Vectorize.Attributes;
+using Vectorize.Helpers;
+using Vectorize.Visitors;
 using static Vectorize.Helpers.SyntaxHelpers;
 
 namespace Vectorize.Analyzers;
 
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 [DiagnosticSeverity(DiagnosticSeverity.Warning)]
-[DiagnosticId("CEA001")]
+[DiagnosticId("CEA004")]
 [DiagnosticTitle("Parameter is not constant")]
-[DiagnosticMessageFormat("Parameter '{0}' cannot be used in a ConstExpr method")]
+[DiagnosticMessageFormat("'{0}' cannot be used in a ConstExpr method")]
 [DiagnosticDescription("Parameters marked with the ConstExpr attribute should be constant")]
 [DiagnosticCategory("Usage")]
-public class ConstantParametersAnalyzer : BaseAnalyzer<InvocationExpressionSyntax, IMethodSymbol>
+public class UsageAnalyzer : BaseAnalyzer<InvocationExpressionSyntax, IMethodSymbol>
 {
 	protected override bool ValidateSymbol(SyntaxNodeAnalysisContext context, IMethodSymbol symbol, CancellationToken token)
 	{
@@ -24,14 +29,17 @@ public class ConstantParametersAnalyzer : BaseAnalyzer<InvocationExpressionSynta
 
 	protected override void AnalyzeSyntax(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax node, IMethodSymbol symbol, CancellationToken token)
 	{
-		for (var i = 0; i < node.ArgumentList.Arguments.Count; i++)
+		var variables = new Dictionary<string, Type?>();
+		var visitor = new ConstExprAnalyzerVisitor<InvocationExpressionSyntax, IMethodSymbol>(this, context, variables);
+
+		foreach (var parameter in symbol.Parameters)
 		{
-			var parameter = node.ArgumentList.Arguments[i];
-		
-			if (!TryGetConstantValue(context.SemanticModel.Compilation, parameter.Expression, context.CancellationToken, out _))
-			{
-				ReportDiagnostic(context, parameter, symbol.Parameters[i].Name);
-			}
+			variables.Add(parameter.Name, GetTypeByType(context.Compilation, parameter.Type));
+		}
+
+		if (TryGetOperation<IMethodBodyOperation>(context.Compilation, symbol, out var operation))
+		{
+			visitor.VisitBlock(operation.BlockBody);
 		}
 	}
 }

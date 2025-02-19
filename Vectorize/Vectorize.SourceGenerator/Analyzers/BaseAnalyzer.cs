@@ -67,14 +67,19 @@ public abstract class BaseAnalyzer<TNode, TSymbol> : DiagnosticAnalyzer
 
 	protected virtual bool ValidateSymbol(SyntaxNodeAnalysisContext context, TSymbol symbol, CancellationToken token) => true;
 	
-	protected void ReportDiagnostic(SyntaxNodeAnalysisContext context, CSharpSyntaxNode node, params object?[]? messageArgs)
+	public void ReportDiagnostic(SyntaxNodeAnalysisContext context, CSharpSyntaxNode node, params object?[]? messageArgs)
 	{
-		context.ReportDiagnostic(Diagnostic.Create(SupportedDiagnostics[0], node.GetLocation(), messageArgs));
+		ReportDiagnostic(context, node.GetLocation(), messageArgs);
 	}
 
-	protected void ReportDiagnostic(SyntaxNodeAnalysisContext context, SyntaxToken node, params object?[]? messageArgs)
+	public void ReportDiagnostic(SyntaxNodeAnalysisContext context, SyntaxToken node, params object?[]? messageArgs)
 	{
-		context.ReportDiagnostic(Diagnostic.Create(SupportedDiagnostics[0], node.GetLocation(), messageArgs));
+		ReportDiagnostic(context, node.GetLocation(), messageArgs);
+	}
+
+	public void ReportDiagnostic(SyntaxNodeAnalysisContext context, Location location, params object?[]? messageArgs)
+	{
+		context.ReportDiagnostic(Diagnostic.Create(SupportedDiagnostics[0], location, messageArgs));
 	}
 	
 	private T GetAttribute<T>() where T : Attribute

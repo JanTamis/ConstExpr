@@ -1,3 +1,4 @@
+using System;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -35,7 +36,6 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 					var builder = new StringBuilder();
 
 					var usings = group
-						.Where(w => w.Usings.Any())
 						.SelectMany(s => s.Usings)
 						.Distinct();
 
@@ -52,16 +52,22 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 					builder.AppendLine("\tfile static class GeneratedMethods");
 					builder.Append("\t{");
 
-					foreach (var item in group)
+					foreach (var values in group.GroupBy(g => g.Value))
 					{
 						builder.AppendLine();
+						
+						foreach (var item in values)
+						{
+							builder.AppendLine($"\t\t[InterceptsLocation({item.Location.Version}, \"{item.Location.Data}\")]");
+						}
+						
+						var value = values.First();
 
-						builder.AppendLine($"\t\t[InterceptsLocation({item.Location.Version}, \"{item.Location.Data}\")]");
 						builder.AppendLine("\t\t[MethodImpl(MethodImplOptions.AggressiveInlining)]");
-						builder.AppendLine(item.Method
-							.WithIdentifier(SyntaxFactory.Identifier($"{item.Method.Identifier}_{item.Invocation.GetHashCode()}"))
+						builder.AppendLine(value.Method
+							.WithIdentifier(SyntaxFactory.Identifier($"{value.Method.Identifier}_{value.Invocation.GetHashCode()}"))
 							.WithAttributeLists(SyntaxFactory.List<AttributeListSyntax>())
-							.WithExpressionBody(SyntaxFactory.ArrowExpressionClause(CreateLiteral(item.Value))).WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
+							.WithExpressionBody(SyntaxFactory.ArrowExpressionClause(CreateLiteral(value.Value))).WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
 							.WithBody(null)
 							.NormalizeWhitespace("\t")
 							.ToString()
@@ -145,17 +151,25 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 
 		if (TryGetSemanticModel(compilation, methodSyntaxNode, out var semanticModel) && semanticModel.GetOperation(methodSyntaxNode) is IMethodBodyOperation blockOperation)
 		{
-			var visitor = new ConstExprOperationVisitor(compilation);
-			visitor.VisitBlock(blockOperation.BlockBody, variables);
-
-			return new InvocationModel
+			try
 			{
-				Usings = GetUsings(methodDeclaration),
-				Method = methodSyntaxNode,
-				Invocation = invocation,
-				Value = variables[ConstExprOperationVisitor.ReturnVariableName],
-				Location = GetSemanticModel(compilation, invocation).GetInterceptableLocation(invocation, token),
-			};
+				var visitor = new ConstExprOperationVisitor(compilation);
+				visitor.VisitBlock(blockOperation.BlockBody, variables);
+
+				return new InvocationModel
+				{
+					Usings = GetUsings(methodDeclaration),
+					Method = methodSyntaxNode,
+					Invocation = invocation,
+					Value = variables[ConstExprOperationVisitor.ReturnVariableName],
+					Location = GetSemanticModel(compilation, invocation).GetInterceptableLocation(invocation, token),
+				};
+			}
+			catch (Exception e)
+			{
+				return null;
+			}
+			
 		}
 
 		return null;
