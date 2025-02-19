@@ -275,13 +275,11 @@ public static class SyntaxHelpers
 		var fullyQualifiedName = methodSymbol.ContainingType.ToDisplayString();
 		var methodName = methodSymbol.Name;
 
-		var assembly = GetAssemblyByType(compilation, methodSymbol.ContainingType);
-
-		var type = instance?.GetType() ?? assembly.GetType(fullyQualifiedName);
+		var type = instance?.GetType() ?? GetTypes(compilation).FirstOrDefault(f => f.FullName == fullyQualifiedName);
 
 		if (type == null)
 		{
-			throw new InvalidOperationException($"Type '{fullyQualifiedName}' niet gevonden in assembly '{assembly.FullName}'.");
+			throw new InvalidOperationException($"Type '{fullyQualifiedName}' not found");
 		}
 
 		var methodInfo = type
@@ -295,7 +293,7 @@ public static class SyntaxHelpers
 					return false;
 				}
 
-				var parameters = f
+				var methodParameters = f
 					.GetParameters()
 					.Select<ParameterInfo, ITypeSymbol?>(s =>
 					{
@@ -311,14 +309,14 @@ public static class SyntaxHelpers
 					})
 					.ToList();
 
-				if (parameters.Count != methodSymbol.Parameters.Length)
+				if (methodParameters.Count != methodSymbol.Parameters.Length)
 				{
 					return false;
 				}
 
-				for (var i = 0; i < parameters.Count; i++)
+				for (var i = 0; i < methodParameters.Count; i++)
 				{
-					if (!SymbolEqualityComparer.Default.Equals(parameters[i], methodSymbol.Parameters[i].Type))
+					if (!SymbolEqualityComparer.Default.Equals(methodParameters[i], methodSymbol.Parameters[i].Type))
 					{
 						return false;
 					}
@@ -461,8 +459,8 @@ public static class SyntaxHelpers
 
 	public static bool TryGetOperation<TOperation>(Compilation compilation, ISymbol symbol, out TOperation operation) where TOperation : IOperation
 	{
-		if (TryGetSemanticModel(compilation, symbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(), out var semanticModel) 
-		    && semanticModel.GetOperation(symbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax()) is IOperation op)
+		if (TryGetSemanticModel(compilation, symbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(), out var semanticModel)
+				&& semanticModel.GetOperation(symbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax()) is IOperation op)
 		{
 			operation = (TOperation)op;
 			return true;
@@ -474,39 +472,39 @@ public static class SyntaxHelpers
 
 	public static Assembly? GetAssemblyByType(Compilation compilation, ITypeSymbol typeSymbol)
 	{
-		// // Verkrijg het assembly-symbool dat dit type bevat
-		// IAssemblySymbol? assemblySymbol = typeSymbol.ContainingAssembly;
-		//
-		// if (assemblySymbol == null)
-		// {
-		// 	return null;
-		// }
-		//
-		// // assemblySymbol.Identity bevat de naam, versie, enz.
-		// // Nu zoeken we in de referenties van de compilatie naar een MetadataReference 
-		// // waarvan de FilePath overeenkomt met deze assembly.
-		// foreach (var reference in compilation.References.OfType<PortableExecutableReference>())
-		// {
-		// 	if (String.IsNullOrEmpty(reference.FilePath))
-		// 	{
-		// 		continue;
-		// 	}
-		//
-		// 	try
-		// 	{
-		// 		var loadedAssembly = Assembly.UnsafeLoadFrom(reference.FilePath);
-		//
-		// 		// Vergelijk de assemblynaam
-		// 		if (String.Equals(loadedAssembly.GetName().Name, assemblySymbol.Identity.Name, StringComparison.OrdinalIgnoreCase))
-		// 		{
-		// 			return loadedAssembly;
-		// 		}
-		// 	}
-		// 	catch (Exception e)
-		// 	{
-		// 		// Als het laden mislukt, gaan we verder
-		// 	}
-		// }
+		// Verkrijg het assembly-symbool dat dit type bevat
+		IAssemblySymbol? assemblySymbol = typeSymbol.ContainingAssembly;
+
+		if (assemblySymbol == null)
+		{
+			return null;
+		}
+
+		// assemblySymbol.Identity bevat de naam, versie, enz.
+		// Nu zoeken we in de referenties van de compilatie naar een MetadataReference 
+		// waarvan de FilePath overeenkomt met deze assembly.
+		foreach (var reference in compilation.References.OfType<PortableExecutableReference>())
+		{
+			if (String.IsNullOrEmpty(reference.FilePath))
+			{
+				continue;
+			}
+
+			try
+			{
+				var loadedAssembly = Assembly.UnsafeLoadFrom(reference.FilePath);
+
+				// Vergelijk de assemblynaam
+				if (String.Equals(loadedAssembly.GetName().Name, assemblySymbol.Identity.Name, StringComparison.OrdinalIgnoreCase))
+				{
+					return loadedAssembly;
+				}
+			}
+			catch (Exception e)
+			{
+				// Als het laden mislukt, gaan we verder
+			}
+		}
 
 		return AppDomain.CurrentDomain
 			.GetAssemblies()
@@ -529,11 +527,11 @@ public static class SyntaxHelpers
 
 						return s.MakeGenericType(arguments);
 					}
-					
+
 					return s;
 				});
 		}
-		
+
 		return GetTypes(compilation)
 			.Where(w => SymbolEqualityComparer.Default.Equals(compilation.GetTypeByMetadataName(w.FullName), typeSymbol));
 	}
@@ -542,21 +540,42 @@ public static class SyntaxHelpers
 	{
 		return GetTypesByType(compilation, typeSymbol).FirstOrDefault();
 	}
-	
+
 	public static IEnumerable<Type> GetTypes(Compilation compilation)
 	{
-		return AppDomain.CurrentDomain
-			.GetAssemblies()
+		return compilation.References
+			.OfType<PortableExecutableReference>()
 			.SelectMany(s =>
 			{
+				if (String.IsNullOrEmpty(s.FilePath))
+				{
+					return [];
+				}
+
 				try
 				{
-					return s.DefinedTypes;
+					var loadedAssembly = Assembly.UnsafeLoadFrom(s.FilePath);
+
+					return loadedAssembly.ExportedTypes.Concat(loadedAssembly.DefinedTypes);
 				}
-				catch
+				catch (Exception e)
 				{
-					return Enumerable.Empty<Type>();
+					return [];
 				}
-			});
+			})
+			.Concat(AppDomain.CurrentDomain
+				.GetAssemblies()
+				.SelectMany(s =>
+				{
+					try
+					{
+						return s.DefinedTypes;
+					}
+					catch
+					{
+						return Enumerable.Empty<Type>();
+					}
+				}))
+			.Distinct();
 	}
 }
