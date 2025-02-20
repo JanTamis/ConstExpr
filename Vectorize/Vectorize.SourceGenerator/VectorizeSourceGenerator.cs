@@ -1,9 +1,9 @@
-using System;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 using SGF;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -55,12 +55,12 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 					foreach (var values in group.GroupBy(g => g.Value))
 					{
 						builder.AppendLine();
-						
+
 						foreach (var item in values)
 						{
 							builder.AppendLine($"\t\t[InterceptsLocation({item.Location.Version}, \"{item.Location.Data}\")]");
 						}
-						
+
 						var value = values.First();
 
 						builder.AppendLine("\t\t[MethodImpl(MethodImplOptions.AggressiveInlining)]");
@@ -115,7 +115,8 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 
 	private InvocationModel? GenerateSource(GeneratorSyntaxContext context, CancellationToken token)
 	{
-		if (context.Node is not InvocationExpressionSyntax invocation || context.SemanticModel.GetSymbolInfo(invocation, token).Symbol is not IMethodSymbol { IsStatic: true } method)
+		if (context.Node is not InvocationExpressionSyntax invocation
+			|| context.SemanticModel.GetSymbolInfo(invocation, token).Symbol is not IMethodSymbol { IsStatic: true } method)
 		{
 			return null;
 		}
@@ -133,23 +134,49 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 
 	private InvocationModel? GenerateExpression(Compilation compilation, InvocationExpressionSyntax invocation, IMethodSymbol methodDeclaration, CancellationToken token)
 	{
+		if (IsInConstExprBody(invocation))
+		{
+			return null;
+		}
+
 		var methodSyntaxNode = GetMethodSyntaxNode(methodDeclaration);
 		var variables = new Dictionary<string, object?>();
 
 		for (var i = 0; i < invocation.ArgumentList.Arguments.Count; i++)
 		{
-			var parameter = invocation.ArgumentList.Arguments[i];
 			var parameterName = methodDeclaration.Parameters[i].Name;
 
-			if (!TryGetConstantValue(compilation, parameter.Expression, token, out var value))
+			if (methodDeclaration.Parameters[i].IsParams)
 			{
-				return null;
-			}
+				var query = invocation.ArgumentList.Arguments
+					.Skip(i)
+					.Select(s => GetConstantValue(compilation, s.Expression, token));
 
-			variables.Add(parameterName, value);
+				if (methodDeclaration.Parameters[i].IsParamsArray)
+				{
+					variables.Add(parameterName, query.ToArray());
+				}
+				else if (methodDeclaration.Parameters[i].IsParamsCollection)
+				{
+					variables.Add(parameterName, query.ToList());
+				}
+
+				break;
+			}
+			else
+			{
+				var parameter = invocation.ArgumentList.Arguments[i];
+
+				if (!TryGetConstantValue(compilation, parameter.Expression, token, out var value))
+				{
+					return null;
+				}
+
+				variables.Add(parameterName, value);
+			}
 		}
 
-		if (TryGetSemanticModel(compilation, methodSyntaxNode, out var semanticModel) && semanticModel.GetOperation(methodSyntaxNode) is IMethodBodyOperation blockOperation)
+		if (TryGetOperation<IMethodBodyOperation>(compilation, methodSyntaxNode, out var blockOperation))
 		{
 			try
 			{
@@ -169,7 +196,7 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 			{
 				return null;
 			}
-			
+
 		}
 
 		return null;

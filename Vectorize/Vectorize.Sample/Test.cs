@@ -1,14 +1,14 @@
+using ConstantExpression;
 using System;
 using System.Collections.Generic;
 using System.Text;
-using ConstantExpression;
 
 namespace Vectorize.Sample;
 
 public static class Test
 {
 	[ConstExpr]
-	public static float Sum(IEnumerable<float> data)
+	public static float Sum(params IEnumerable<float> data)
 	{
 		var sum = 0f;
 
@@ -21,13 +21,13 @@ public static class Test
 	}
 
 	[ConstExpr]
-	public static float Average(IReadOnlyList<float> data)
+	public static float Average(params IReadOnlyList<float> data)
 	{
 		return Sum(data) / data.Count;
 	}
 
 	[ConstExpr]
-	public static float StdDev(IReadOnlyList<float> data)
+	public static float StdDev(params IReadOnlyList<float> data)
 	{
 		var sum = 0f;
 		var sumOfSquares = 0f;
@@ -43,13 +43,13 @@ public static class Test
 
 		return MathF.Sqrt(variance);
 	}
-	
+
 	[ConstExpr]
 	public static int StringLength(string value, Encoding encoding)
 	{
 		return encoding.GetByteCount(value);
 	}
-	
+
 	[ConstExpr]
 	public static string Base64Encode(string value)
 	{

@@ -1,4 +1,5 @@
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.FlowAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 using System;
@@ -6,10 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Vectorize.Helpers;
 
 namespace Vectorize.Visitors;
@@ -224,7 +222,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation) : Operat
 			for (var i = 0; i < syntax.ParameterList.Parameters.Count; i++)
 			{
 				var parameterName = syntax.ParameterList.Parameters[i].Identifier.Text;
-			
+
 				variables.Add(parameterName, arguments[i]);
 			}
 
@@ -330,7 +328,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation) : Operat
 	public override object? VisitForEachLoop(IForEachLoopOperation operation, Dictionary<string, object?> argument)
 	{
 		var itemName = GetVariableName(operation.LoopControlVariable);
-		var names = argument.Keys;
+		var names = argument.Keys.ToArray();
 		var collection = Visit(operation.Collection, argument);
 
 		foreach (var item in collection as IEnumerable)
@@ -339,10 +337,10 @@ public partial class ConstExprOperationVisitor(Compilation compilation) : Operat
 			Visit(operation.Body, argument);
 		}
 
-		foreach (var name in argument.Keys.Except(names))
-		{
-			argument.Remove(name);
-		}
+		//foreach (var name in argument.Keys.Except(names))
+		//{
+		//	argument.Remove(name);
+		//}
 
 		return null;
 	}
@@ -523,6 +521,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation) : Operat
 			throw new InvalidOperationException("Property info could not be retrieved.");
 		}
 
+		// TODO: improve conversion from instance to type
 		return propertyInfo.GetValue(operation.Property.IsStatic ? null : Convert.ChangeType(instance, type));
 	}
 

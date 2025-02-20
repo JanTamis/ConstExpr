@@ -470,6 +470,20 @@ public static class SyntaxHelpers
 		return false;
 	}
 
+	public static bool TryGetOperation<TOperation>(Compilation compilation, SyntaxNode? node, out TOperation operation) where TOperation : IOperation
+	{
+		if (node is not null
+			&& TryGetSemanticModel(compilation, node, out var semanticModel)
+			&& semanticModel.GetOperation(node) is IOperation op)
+		{
+			operation = (TOperation)op;
+			return true;
+		}
+
+		operation = default!;
+		return false;
+	}
+
 	public static Assembly? GetAssemblyByType(Compilation compilation, ITypeSymbol typeSymbol)
 	{
 		// Verkrijg het assembly-symbool dat dit type bevat
@@ -577,5 +591,22 @@ public static class SyntaxHelpers
 					}
 				}))
 			.Distinct();
+	}
+
+	public static bool IsInConstExprBody(SyntaxNode node)
+	{
+		if (node is MethodDeclarationSyntax method)
+		{
+			return method.AttributeLists
+				.SelectMany(s => s.Attributes)
+				.Any(a => a.Name.ToString() == "ConstExpr");
+		}
+
+		if (node.Parent is null)
+		{
+			return false;
+		}
+
+		return IsInConstExprBody(node.Parent);
 	}
 }
