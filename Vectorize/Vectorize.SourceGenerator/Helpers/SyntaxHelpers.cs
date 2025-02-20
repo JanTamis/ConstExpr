@@ -274,13 +274,10 @@ public static class SyntaxHelpers
 	{
 		var fullyQualifiedName = methodSymbol.ContainingType.ToDisplayString();
 		var methodName = methodSymbol.Name;
-
-		var type = instance?.GetType() ?? GetTypes(compilation).FirstOrDefault(f => f.FullName == fullyQualifiedName);
-
-		if (type == null)
-		{
-			throw new InvalidOperationException($"Type '{fullyQualifiedName}' not found");
-		}
+		
+		var type = instance?.GetType() 
+			?? GetTypes(compilation).FirstOrDefault(f => f.FullName == fullyQualifiedName)
+			?? throw new InvalidOperationException($"Type '{fullyQualifiedName}' not found");
 
 		var methodInfo = type
 			.GetMethods(methodSymbol.IsStatic
@@ -293,30 +290,61 @@ public static class SyntaxHelpers
 					return false;
 				}
 
-				var methodParameters = f
-					.GetParameters()
-					.Select<ParameterInfo, ITypeSymbol?>(s =>
-					{
-						var type = s.ParameterType;
-
-						if (type.IsArray)
-						{
-							var elementType = type.GetElementType();
-							return compilation.CreateArrayTypeSymbol(compilation.GetTypeByMetadataName(elementType.FullName));
-						}
-
-						return compilation.GetTypeByMetadataName(type.FullName);
-					})
-					.ToList();
-
-				if (methodParameters.Count != methodSymbol.Parameters.Length)
+				var methodParameters = f.GetParameters();
+					// .GetParameters()
+					// .Select<ParameterInfo, ITypeSymbol?>(s =>
+					// {
+					// 	try
+					// 	{
+					// 		var type = s.ParameterType;
+					//
+					// 		if (type.IsGenericParameter)
+					// 		{
+					// 			
+					// 		}
+					// 	
+					// 		if (type.IsArray)
+					// 		{
+					// 			var elementType = type.GetElementType();
+					// 			return compilation.CreateArrayTypeSymbol(compilation.GetTypeByMetadataName(elementType.FullName));
+					// 		}
+					//
+					// 		return compilation.GetTypeByMetadataName(type.FullName);
+					// 	}
+					// 	catch (Exception e)
+					// 	{
+					// 		return null;
+					// 	}
+					// })
+					// .Where(w => w is not null)
+					// .ToList();
+				
+				// if (methodParameters.Count != methodSymbol.Parameters.Length)
+				// {
+				// 	return false;
+				// }
+				//
+				// for (var i = 0; i < methodParameters.Count; i++)
+				// {
+				// 	if (!SymbolEqualityComparer.Default.Equals(methodParameters[i], methodSymbol.Parameters[i].Type))
+				// 	{
+				// 		return false;
+				// 	}
+				// }
+				
+				if (methodParameters.Length != parameters.Length)
 				{
 					return false;
 				}
-
-				for (var i = 0; i < methodParameters.Count; i++)
+				
+				for (var i = 0; i < methodParameters.Length; i++)
 				{
-					if (!SymbolEqualityComparer.Default.Equals(methodParameters[i], methodSymbol.Parameters[i].Type))
+					if (parameters[i] is null || methodParameters[i].ParameterType.IsGenericParameter)
+					{
+						return false;
+					}
+
+					if (!methodParameters[i].ParameterType.IsInstanceOfType(parameters[i]))
 					{
 						return false;
 					}

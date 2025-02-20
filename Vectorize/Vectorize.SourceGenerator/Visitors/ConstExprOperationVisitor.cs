@@ -456,6 +456,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation) : Operat
 
 	public override object? VisitInstanceReference(IInstanceReferenceOperation operation, Dictionary<string, object?> argument)
 	{
+		
 		return operation.ReferenceKind switch
 		{
 			InstanceReferenceKind.ContainingTypeInstance => argument["this"],
@@ -522,7 +523,12 @@ public partial class ConstExprOperationVisitor(Compilation compilation) : Operat
 		}
 
 		// TODO: improve conversion from instance to type
-		return propertyInfo.GetValue(operation.Property.IsStatic ? null : Convert.ChangeType(instance, type));
+		if (instance is IConvertible && !propertyInfo.PropertyType.IsInstanceOfType(instance))
+		{
+			instance = Convert.ChangeType(instance, propertyInfo.PropertyType);
+		}
+		
+		return propertyInfo.GetValue(instance);
 	}
 
 	public override object? VisitExpressionStatement(IExpressionStatementOperation operation, Dictionary<string, object?> argument)

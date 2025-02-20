@@ -51,6 +51,12 @@ public static class Test
 	}
 
 	[ConstExpr]
+	public static ReadOnlySpan<byte> StringBytes(string value, Encoding encoding)
+	{
+		return encoding.GetBytes(value);
+	}
+
+	[ConstExpr]
 	public static string Base64Encode(string value)
 	{
 		return Convert.ToBase64String(Encoding.UTF8.GetBytes(value));

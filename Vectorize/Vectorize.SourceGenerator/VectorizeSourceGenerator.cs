@@ -1,245 +1,266 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Operations;
-using SGF;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using Microsoft.CodeAnalysis.Operations;
 using Vectorize.Visitors;
+using SGF;
 using static Vectorize.Helpers.SyntaxHelpers;
 
-namespace Vectorize;
-
-#pragma warning disable RSEXPERIMENTAL002
-
-[IncrementalGenerator]
-public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
+namespace Vectorize
 {
-	public override void OnInitialize(SgfInitializationContext context)
+#pragma warning disable RSEXPERIMENTAL002
+	[IncrementalGenerator]
+	public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 	{
-		context.RegisterPostInitializationOutput(x =>
+		public override void OnInitialize(SgfInitializationContext context)
 		{
-			var method = context.SyntaxProvider
-				.CreateSyntaxProvider((node, token) => !token.IsCancellationRequested && node is InvocationExpressionSyntax, GenerateSource)
-				.WithComparer(EqualityComparer<InvocationModel?>.Default)
-				.Where(w => w is not null);
-
-			context.RegisterSourceOutput(method.Collect(), static (spc, source) =>
+			context.RegisterPostInitializationOutput(spc =>
 			{
-				var groups = source.GroupBy(g => g.Method, x => x, SyntaxNodeComparer<MethodDeclarationSyntax>.Instance);
+				var invocations = context.SyntaxProvider
+					.CreateSyntaxProvider(
+						(node, token) => node is InvocationExpressionSyntax,
+						GenerateSource)
+					.Where(result => result != null);
 
-				foreach (var group in groups)
+				context.RegisterSourceOutput(invocations.Collect(), (spc, models) =>
 				{
-					var builder = new StringBuilder();
+					var groups = models.GroupBy(model => model.Method, SyntaxNodeComparer<MethodDeclarationSyntax>.Instance);
 
-					var usings = group
-						.SelectMany(s => s.Usings)
-						.Distinct();
-
-					foreach (var item in usings.OrderBy(o => o))
+					foreach (var group in groups)
 					{
-						builder.AppendLine(item);
-					}
+						var code = new StringBuilder();
+						var usings = group.SelectMany(item => item.Usings).Distinct().OrderBy(s => s);
 
-					builder.AppendLine();
-
-					builder.AppendLine("namespace ConstantExpression.Generated");
-					builder.AppendLine("{");
-
-					builder.AppendLine("\tfile static class GeneratedMethods");
-					builder.Append("\t{");
-
-					foreach (var values in group.GroupBy(g => g.Value))
-					{
-						builder.AppendLine();
-
-						foreach (var item in values)
+						foreach (var u in usings)
 						{
-							builder.AppendLine($"\t\t[InterceptsLocation({item.Location.Version}, \"{item.Location.Data}\")]");
+							code.AppendLine(u);
+						}
+						
+						code.AppendLine();
+						code.AppendLine("namespace ConstantExpression.Generated");
+						code.AppendLine("{");
+						code.AppendLine("\tfile static class GeneratedMethods");
+						code.AppendLine("\t{");
+
+						foreach (var valueGroup in group.GroupBy(m => m.Value))
+						{
+							foreach (var item in valueGroup)
+							{
+								code.AppendLine($"\t\t[InterceptsLocation({item.Location.Version}, \"{item.Location.Data}\")]");
+							}
+
+							var first = valueGroup.First();
+
+							var methodCode = first.Method
+								.WithIdentifier(SyntaxFactory.Identifier($"{first.Method.Identifier}_{first.Invocation.GetHashCode()}"))
+								.WithAttributeLists(SyntaxFactory.List<AttributeListSyntax>())
+								.WithExpressionBody(SyntaxFactory.ArrowExpressionClause(CreateLiteral(first.Value)))
+								.WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
+								.WithBody(null)
+								.NormalizeWhitespace("\t")
+								.ToString()
+								.Replace("\n", "\n\t\t");
+
+							code.AppendLine("\t\t[MethodImpl(MethodImplOptions.AggressiveInlining)]");
+							code.AppendLine(methodCode.Insert(0, "\t\t"));
 						}
 
-						var value = values.First();
-
-						builder.AppendLine("\t\t[MethodImpl(MethodImplOptions.AggressiveInlining)]");
-						builder.AppendLine(value.Method
-							.WithIdentifier(SyntaxFactory.Identifier($"{value.Method.Identifier}_{value.Invocation.GetHashCode()}"))
-							.WithAttributeLists(SyntaxFactory.List<AttributeListSyntax>())
-							.WithExpressionBody(SyntaxFactory.ArrowExpressionClause(CreateLiteral(value.Value))).WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-							.WithBody(null)
-							.NormalizeWhitespace("\t")
-							.ToString()
-							.Replace("\n", "\n\t\t")
-							.Insert(0, "\t\t"));
-					}
-
-					builder.AppendLine("\t}");
-					builder.AppendLine("}");
-
-					builder.AppendLine("""
-
-						namespace System.Runtime.CompilerServices
-						{
-							[Conditional("DEBUG")]
-							[AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
-							file sealed class InterceptsLocationAttribute : Attribute
+						code.AppendLine("\t}");
+						code.AppendLine("}");
+						code.AppendLine();
+						code.AppendLine("""
+							namespace System.Runtime.CompilerServices
 							{
-								public InterceptsLocationAttribute(int version, string data)
+								[Conditional("DEBUG")]
+								[AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
+								file sealed class InterceptsLocationAttribute : Attribute
 								{
-									_ = version;
-									_ = data;
+									public InterceptsLocationAttribute(int version, string data)
+									{
+										_ = version;
+										_ = data;
+									}
 								}
 							}
+							""");
+
+						if (group.Key.Parent is TypeDeclarationSyntax type)
+						{
+							spc.AddSource($"{type.Identifier}_{group.Key.Identifier}.g.cs", code.ToString());
 						}
-						""");
-
-					if (group.Key.Parent is TypeDeclarationSyntax type)
-					{
-						spc.AddSource($"{type.Identifier}_{group.Key.Identifier}.g.cs", builder.ToString());
 					}
-				}
+				});
+
+				spc.AddSource("ConstExprAttribute.g", """
+					using System;
+
+					namespace ConstantExpression
+					{
+						[AttributeUsage(AttributeTargets.Method, Inherited = false)]
+						public sealed class ConstExprAttribute : Attribute
+						{
+						}
+					}
+					""");
 			});
-
-			x.AddSource("ConstExprAttribute.g", """
-				using System;
-
-				namespace ConstantExpression;
-
-				[AttributeUsage(AttributeTargets.Method, Inherited = false)]
-				public sealed class ConstExprAttribute : Attribute;
-				""");
-		});
-	}
-
-	private InvocationModel? GenerateSource(GeneratorSyntaxContext context, CancellationToken token)
-	{
-		if (context.Node is not InvocationExpressionSyntax invocation
-			|| context.SemanticModel.GetSymbolInfo(invocation, token).Symbol is not IMethodSymbol { IsStatic: true } method)
-		{
-			return null;
 		}
 
-		foreach (var item in method.GetAttributes())
+		private InvocationModel? GenerateSource(GeneratorSyntaxContext context, CancellationToken token)
 		{
-			if (IsConstExprAttribute(item))
-			{
-				return GenerateExpression(context.SemanticModel.Compilation, invocation, method, token);
-			}
-		}
-
-		return null;
-	}
-
-	private InvocationModel? GenerateExpression(Compilation compilation, InvocationExpressionSyntax invocation, IMethodSymbol methodDeclaration, CancellationToken token)
-	{
-		if (IsInConstExprBody(invocation))
-		{
-			return null;
-		}
-
-		var methodSyntaxNode = GetMethodSyntaxNode(methodDeclaration);
-		var variables = new Dictionary<string, object?>();
-
-		for (var i = 0; i < invocation.ArgumentList.Arguments.Count; i++)
-		{
-			var parameterName = methodDeclaration.Parameters[i].Name;
-
-			if (methodDeclaration.Parameters[i].IsParams)
-			{
-				var query = invocation.ArgumentList.Arguments
-					.Skip(i)
-					.Select(s => GetConstantValue(compilation, s.Expression, token));
-
-				if (methodDeclaration.Parameters[i].IsParamsArray)
-				{
-					variables.Add(parameterName, query.ToArray());
-				}
-				else if (methodDeclaration.Parameters[i].IsParamsCollection)
-				{
-					variables.Add(parameterName, query.ToList());
-				}
-
-				break;
-			}
-			else
-			{
-				var parameter = invocation.ArgumentList.Arguments[i];
-
-				if (!TryGetConstantValue(compilation, parameter.Expression, token, out var value))
-				{
-					return null;
-				}
-
-				variables.Add(parameterName, value);
-			}
-		}
-
-		if (TryGetOperation<IMethodBodyOperation>(compilation, methodSyntaxNode, out var blockOperation))
-		{
-			try
-			{
-				var visitor = new ConstExprOperationVisitor(compilation);
-				visitor.VisitBlock(blockOperation.BlockBody, variables);
-
-				return new InvocationModel
-				{
-					Usings = GetUsings(methodDeclaration),
-					Method = methodSyntaxNode,
-					Invocation = invocation,
-					Value = variables[ConstExprOperationVisitor.ReturnVariableName],
-					Location = GetSemanticModel(compilation, invocation).GetInterceptableLocation(invocation, token),
-				};
-			}
-			catch (Exception e)
+			if (context.Node is not InvocationExpressionSyntax invocation 
+			    || context.SemanticModel.GetSymbolInfo(invocation, token).Symbol is not IMethodSymbol { IsStatic: true } method)
 			{
 				return null;
 			}
 
-		}
-
-		return null;
-
-		MethodDeclarationSyntax? GetMethodSyntaxNode(IMethodSymbol methodSymbol)
-		{
-			var syntaxReference = methodSymbol.DeclaringSyntaxReferences.FirstOrDefault();
-			var syntaxNode = syntaxReference?.GetSyntax() as MethodDeclarationSyntax;
-
-			return syntaxNode;
-		}
-	}
-
-	public static HashSet<string> GetUsings(IMethodSymbol methodSymbol)
-	{
-		var usings = new HashSet<string>
-		{
-			"using System.Diagnostics;",
-			"using System;",
-			"using System.Runtime.CompilerServices;",
-		};
-
-		// Add the containing namespace
-		if (methodSymbol.ContainingNamespace != null)
-		{
-			usings.Add($"using {methodSymbol.ContainingNamespace};");
-		}
-
-		var syntaxTree = methodSymbol.DeclaringSyntaxReferences.FirstOrDefault()?.SyntaxTree;
-
-		if (syntaxTree != null)
-		{
-			var root = syntaxTree.GetRoot();
-			var usingDirectives = root.DescendantNodes().OfType<UsingDirectiveSyntax>();
-
-			foreach (var usingDirective in usingDirectives)
+			foreach (var attr in method.GetAttributes())
 			{
-				usings.Add(usingDirective.ToString());
+				if (IsConstExprAttribute(attr))
+				{
+					return GenerateExpression(context.SemanticModel.Compilation, invocation, method, token);
+				}
 			}
+
+			return null;
 		}
 
-		return usings;
-	}
-}
+		private InvocationModel? GenerateExpression(Compilation compilation,
+		                                            InvocationExpressionSyntax invocation,
+		                                            IMethodSymbol methodSymbol,
+		                                            CancellationToken token)
+		{
+			if (IsInConstExprBody(invocation))
+			{
+				return null;
+			}
 
-#pragma warning restore RSEXPERIMENTAL002
+			var methodDecl = GetMethodSyntaxNode(methodSymbol);
+
+			if (methodDecl == null)
+			{
+				return null;
+			}
+
+			var variables = new Dictionary<string, object?>();
+
+			for (var i = 0; i < invocation.ArgumentList.Arguments.Count; i++)
+			{
+				var paramName = methodSymbol.Parameters[i].Name;
+
+				if (methodSymbol.Parameters[i].IsParams)
+				{
+					var values = invocation.ArgumentList.Arguments
+						.Skip(i)
+						.Select(arg => GetConstantValue(compilation, arg.Expression, token))
+						.ToArray();
+					
+					if (methodSymbol.Parameters[i].IsParamsArray)
+					{
+						var array = Array.CreateInstance(values[0].GetType(), values.Length);
+
+						for (var j = 0; j < values.Length; j++)
+						{
+							array.SetValue(values[i], j);
+						}
+						
+						variables[paramName] = array;
+					}
+					else
+					{
+						var listType = typeof(List<>).MakeGenericType(values[0].GetType());
+						var list = Activator.CreateInstance(listType);
+
+						if (list is IList listInstance)
+						{
+							foreach (var item in values)
+							{
+								listInstance.Add(item);
+							}
+						}
+						
+						variables[paramName] = list;
+					}
+					
+					break;
+				}
+
+				var arg = invocation.ArgumentList.Arguments[i];
+
+				if (!TryGetConstantValue(compilation, arg.Expression, token, out var value))
+				{
+					return null;
+				}
+
+				variables[paramName] = value;
+			}
+
+			if (TryGetOperation<IMethodBodyOperation>(compilation, methodDecl, out var blockOperation))
+			{
+				try
+				{
+					var visitor = new ConstExprOperationVisitor(compilation);
+					visitor.VisitBlock(blockOperation.BlockBody, variables);
+					
+					return new InvocationModel
+					{
+						Usings = GetUsings(methodSymbol),
+						Method = methodDecl,
+						Invocation = invocation,
+						Value = variables[ConstExprOperationVisitor.ReturnVariableName],
+						Location = GetSemanticModel(compilation, invocation).GetInterceptableLocation(invocation, token)
+					};
+				}
+				catch (Exception)
+				{
+					return null;
+				}
+			}
+
+			return null;
+		}
+
+		private MethodDeclarationSyntax? GetMethodSyntaxNode(IMethodSymbol methodSymbol)
+		{
+			return methodSymbol.DeclaringSyntaxReferences
+				.Select(s => s.GetSyntax())
+				.OfType<MethodDeclarationSyntax>()
+				.FirstOrDefault();
+		}
+
+		public static HashSet<string> GetUsings(IMethodSymbol methodSymbol)
+		{
+			var usings = new HashSet<string>
+			{
+				"using System.Diagnostics;",
+				"using System;",
+				"using System.Runtime.CompilerServices;"
+			};
+
+			if (methodSymbol.ContainingNamespace != null)
+			{
+				usings.Add($"using {methodSymbol.ContainingNamespace};");
+			}
+
+			var tree = methodSymbol.DeclaringSyntaxReferences.FirstOrDefault()?.SyntaxTree;
+
+			if (tree != null)
+			{
+				var root = tree.GetRoot();
+				
+				foreach (var u in root.DescendantNodes().OfType<UsingDirectiveSyntax>())
+				{
+					usings.Add(u.ToString());
+				}
+			}
+
+			return usings;
+		}
+	}
+#pragma warning restore RSEXPERIMENTAL00"2
+}

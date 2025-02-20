@@ -30,11 +30,6 @@ public class ConstExprAnalyzerVisitor<TNode, TSymbol>(BaseAnalyzer<TNode, TSymbo
 			Visit(statement);
 		}
 	}
-
-	// public override void VisitVariableDeclarator(IVariableDeclaratorOperation operation)
-	// {
-	// 	// variables.Add(operation.Symbol.Name, SyntaxHelpers.GetTypeByType(operation.));
-	// }
 	
 	public override void VisitVariableDeclaration(IVariableDeclarationOperation operation)
 	{
