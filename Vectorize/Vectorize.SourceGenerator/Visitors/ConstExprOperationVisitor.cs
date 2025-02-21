@@ -2,9 +2,11 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.FlowAnalysis;
 using Microsoft.CodeAnalysis.Operations;
+using SGF.Diagnostics;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Text;
@@ -12,7 +14,7 @@ using Vectorize.Helpers;
 
 namespace Vectorize.Visitors;
 
-public partial class ConstExprOperationVisitor(Compilation compilation) : OperationVisitor<Dictionary<string, object?>, object?>
+public partial class ConstExprOperationVisitor(Compilation compilation, ILogger logger) : OperationVisitor<Dictionary<string, object?>, object?>
 {
 	public const string ReturnVariableName = "$return$";
 
@@ -226,7 +228,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation) : Operat
 				variables.Add(parameterName, arguments[i]);
 			}
 
-			var visitor = new ConstExprOperationVisitor(compilation);
+			var visitor = new ConstExprOperationVisitor(compilation, logger);
 			visitor.VisitBlock(methodOperation.BlockBody, variables);
 
 			return variables[ReturnVariableName];
@@ -510,6 +512,8 @@ public partial class ConstExprOperationVisitor(Compilation compilation) : Operat
 
 	public override object? VisitPropertyReference(IPropertyReferenceOperation operation, Dictionary<string, object?> argument)
 	{
+		var timer = Stopwatch.StartNew();
+
 		var instance = Visit(operation.Instance, argument);
 		var type = SyntaxHelpers.GetTypeByType(compilation, operation.Property.ContainingType);
 

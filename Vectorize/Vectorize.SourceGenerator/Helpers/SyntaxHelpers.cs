@@ -585,40 +585,53 @@ public static class SyntaxHelpers
 
 	public static IEnumerable<Type> GetTypes(Compilation compilation)
 	{
-		return compilation.References
-			.OfType<PortableExecutableReference>()
+		return AppDomain.CurrentDomain
+			.GetAssemblies()
 			.SelectMany(s =>
 			{
-				if (String.IsNullOrEmpty(s.FilePath))
-				{
-					return [];
-				}
-
 				try
 				{
-					var loadedAssembly = Assembly.UnsafeLoadFrom(s.FilePath);
+					return s.DefinedTypes;
+				}
+				catch
+				{
+					return Enumerable.Empty<Type>();
+				}
+			});
+		//return compilation.References
+		//	.OfType<PortableExecutableReference>()
+		//	.SelectMany(s =>
+		//	{
+		//		if (String.IsNullOrEmpty(s.FilePath))
+		//		{
+		//			return [];
+		//		}
 
-					return loadedAssembly.ExportedTypes.Concat(loadedAssembly.DefinedTypes);
-				}
-				catch (Exception e)
-				{
-					return [];
-				}
-			})
-			.Concat(AppDomain.CurrentDomain
-				.GetAssemblies()
-				.SelectMany(s =>
-				{
-					try
-					{
-						return s.DefinedTypes;
-					}
-					catch
-					{
-						return Enumerable.Empty<Type>();
-					}
-				}))
-			.Distinct();
+		//		try
+		//		{
+		//			var loadedAssembly = Assembly.UnsafeLoadFrom(s.FilePath);
+
+		//			return loadedAssembly.ExportedTypes.Concat(loadedAssembly.DefinedTypes);
+		//		}
+		//		catch (Exception e)
+		//		{
+		//			return [];
+		//		}
+		//	})
+		//	.Concat(AppDomain.CurrentDomain
+		//		.GetAssemblies()
+		//		.SelectMany(s =>
+		//		{
+		//			try
+		//			{
+		//				return s.DefinedTypes;
+		//			}
+		//			catch
+		//			{
+		//				return Enumerable.Empty<Type>();
+		//			}
+		//		}))
+		//	.Distinct();
 	}
 
 	public static bool IsInConstExprBody(SyntaxNode node)

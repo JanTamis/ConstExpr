@@ -11,6 +11,7 @@ using Microsoft.CodeAnalysis.Operations;
 using Vectorize.Visitors;
 using SGF;
 using static Vectorize.Helpers.SyntaxHelpers;
+using System.Diagnostics;
 
 namespace Vectorize
 {
@@ -204,9 +205,14 @@ namespace Vectorize
 			{
 				try
 				{
-					var visitor = new ConstExprOperationVisitor(compilation);
-					visitor.VisitBlock(blockOperation.BlockBody, variables);
-					
+					var timer = Stopwatch.StartNew();
+
+					var visitor = new ConstExprOperationVisitor(compilation, Logger);
+					visitor.VisitBlock(blockOperation.BlockBody!, variables);
+
+					timer.Stop();
+					Logger.Information($"{timer.Elapsed}: {invocation}");
+										
 					return new InvocationModel
 					{
 						Usings = GetUsings(methodSymbol),
