@@ -178,12 +178,12 @@ public static class SyntaxHelpers
 					value = null;
 					return false;
 				case InvocationExpressionSyntax invocation when semanticModel.GetOperation(invocation) is IInvocationOperation operation:
-					if (operation.TargetMethod.IsStatic) //  && operation.Arguments.All(x => x.Value.ConstantValue.HasValue))
+					if (operation.TargetMethod.IsStatic)
 					{
 						var methodParameters = operation.TargetMethod.Parameters;
 						var arguments = invocation.ArgumentList.Arguments
-								.Select(s => GetConstantValue(compilation, s.Expression, token))
-								.ToArray();
+							.Select(s => GetConstantValue(compilation, s.Expression, token))
+							.ToArray();
 
 						if (methodParameters.Length > 0 && methodParameters.Last().IsParams)
 						{
@@ -225,58 +225,17 @@ public static class SyntaxHelpers
 		}
 	}
 
-	public static bool IsConstantValue(SemanticModel semanticModel, ExpressionSyntax expression, CancellationToken token)
-	{
-		if (semanticModel.GetConstantValue(expression, token) is { HasValue: true })
-		{
-			return true;
-		}
-
-		return expression switch
-		{
-			LiteralExpressionSyntax => true,
-			CollectionExpressionSyntax => true,
-			_ => false
-		};
-	}
-
 	public static bool IsConstExprAttribute(AttributeData? attribute)
 	{
 		return attribute?.AttributeClass is { Name: "ConstExprAttribute", ContainingNamespace.Name: "ConstantExpression" };
-	}
-
-	public static bool IsNumericType(ITypeSymbol type)
-	{
-		return type.SpecialType is SpecialType.System_Byte
-			or SpecialType.System_SByte
-			or SpecialType.System_Int16
-			or SpecialType.System_UInt16
-			or SpecialType.System_Int32
-			or SpecialType.System_UInt32
-			or SpecialType.System_Int64
-			or SpecialType.System_UInt64
-			or SpecialType.System_Single
-			or SpecialType.System_Double
-			or SpecialType.System_Decimal;
-	}
-
-	public static bool IsImmutableArrayOfNumbers(ITypeSymbol type)
-	{
-		if (type is INamedTypeSymbol { Name: "IReadOnlyList", TypeArguments.Length: 1 } namedType && namedType.ContainingNamespace.ToString() == "System.Collections.Generic")
-		{
-			return IsNumericType(namedType.TypeArguments[0]);
-		}
-
-		return false;
 	}
 
 	public static object? ExecuteMethod(Compilation compilation, IMethodSymbol methodSymbol, object? instance, params object?[]? parameters)
 	{
 		var fullyQualifiedName = methodSymbol.ContainingType.ToDisplayString();
 		var methodName = methodSymbol.Name;
-		
-		var type = instance?.GetType() 
-			?? GetTypes(compilation).FirstOrDefault(f => f.FullName == fullyQualifiedName)
+
+		var type = GetTypes(compilation).FirstOrDefault(f => f.FullName == fullyQualifiedName) 
 			?? throw new InvalidOperationException($"Type '{fullyQualifiedName}' not found");
 
 		var methodInfo = type
@@ -291,60 +250,40 @@ public static class SyntaxHelpers
 				}
 
 				var methodParameters = f.GetParameters();
-					// .GetParameters()
-					// .Select<ParameterInfo, ITypeSymbol?>(s =>
-					// {
-					// 	try
-					// 	{
-					// 		var type = s.ParameterType;
-					//
-					// 		if (type.IsGenericParameter)
-					// 		{
-					// 			
-					// 		}
-					// 	
-					// 		if (type.IsArray)
-					// 		{
-					// 			var elementType = type.GetElementType();
-					// 			return compilation.CreateArrayTypeSymbol(compilation.GetTypeByMetadataName(elementType.FullName));
-					// 		}
-					//
-					// 		return compilation.GetTypeByMetadataName(type.FullName);
-					// 	}
-					// 	catch (Exception e)
-					// 	{
-					// 		return null;
-					// 	}
-					// })
-					// .Where(w => w is not null)
-					// .ToList();
-				
-				// if (methodParameters.Count != methodSymbol.Parameters.Length)
-				// {
-				// 	return false;
-				// }
-				//
-				// for (var i = 0; i < methodParameters.Count; i++)
-				// {
-				// 	if (!SymbolEqualityComparer.Default.Equals(methodParameters[i], methodSymbol.Parameters[i].Type))
-				// 	{
-				// 		return false;
-				// 	}
-				// }
 				
 				if (methodParameters.Length != parameters.Length)
 				{
 					return false;
 				}
-				
+
 				for (var i = 0; i < methodParameters.Length; i++)
 				{
-					if (parameters[i] is null || methodParameters[i].ParameterType.IsGenericParameter)
+					var paramType = methodParameters[i].ParameterType;
+					var argVal = parameters[i];
+
+					// Allow null for reference types and nullable value types.
+					if (argVal is null)
 					{
-						return false;
+						if (paramType.IsValueType && Nullable.GetUnderlyingType(paramType) is null)
+						{
+							return false;
+						}
+						continue;
 					}
 
-					if (!methodParameters[i].ParameterType.IsInstanceOfType(parameters[i]))
+					if (paramType.IsGenericParameter)
+					{
+						var constraints = paramType.GetGenericParameterConstraints();
+
+						foreach (var constraint in constraints)
+						{
+							if (!constraint.IsInstanceOfType(argVal))
+							{
+								return false;
+							}
+						}
+					}
+					else if (!paramType.ReflectedType.IsInstanceOfType(argVal))
 					{
 						return false;
 					}
@@ -458,13 +397,6 @@ public static class SyntaxHelpers
 		return false;
 	}
 
-	public static SemanticModel GetSemanticModel(Compilation compilation, SyntaxNode node)
-	{
-		return TryGetSemanticModel(compilation, node, out var semanticModel)
-			? semanticModel
-			: throw new InvalidOperationException("SemanticModel could not be retrieved.");
-	}
-
 	public static string GetFullNamespace(INamespaceSymbol? namespaceSymbol)
 	{
 		if (namespaceSymbol is null || namespaceSymbol.IsGlobalNamespace)
@@ -488,9 +420,9 @@ public static class SyntaxHelpers
 	public static bool TryGetOperation<TOperation>(Compilation compilation, ISymbol symbol, out TOperation operation) where TOperation : IOperation
 	{
 		if (TryGetSemanticModel(compilation, symbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(), out var semanticModel)
-				&& semanticModel.GetOperation(symbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax()) is IOperation op)
+		    && semanticModel.GetOperation(symbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax()) is IOperation op)
 		{
-			operation = (TOperation)op;
+			operation = (TOperation) op;
 			return true;
 		}
 
@@ -501,10 +433,10 @@ public static class SyntaxHelpers
 	public static bool TryGetOperation<TOperation>(Compilation compilation, SyntaxNode? node, out TOperation operation) where TOperation : IOperation
 	{
 		if (node is not null
-			&& TryGetSemanticModel(compilation, node, out var semanticModel)
-			&& semanticModel.GetOperation(node) is IOperation op)
+		    && TryGetSemanticModel(compilation, node, out var semanticModel)
+		    && semanticModel.GetOperation(node) is IOperation op)
 		{
-			operation = (TOperation)op;
+			operation = (TOperation) op;
 			return true;
 		}
 
@@ -556,7 +488,7 @@ public static class SyntaxHelpers
 
 	public static IEnumerable<Type> GetTypesByType(Compilation compilation, ITypeSymbol typeSymbol)
 	{
-		if (typeSymbol is INamedTypeSymbol namedTypeSymbol && typeSymbol != namedTypeSymbol.OriginalDefinition)
+		if (typeSymbol is INamedTypeSymbol namedTypeSymbol && !SymbolEqualityComparer.Default.Equals(typeSymbol, namedTypeSymbol.OriginalDefinition))
 		{
 			return GetTypesByType(compilation, namedTypeSymbol.OriginalDefinition)
 				.Select(s =>
@@ -598,49 +530,28 @@ public static class SyntaxHelpers
 					return Enumerable.Empty<Type>();
 				}
 			});
-		//return compilation.References
-		//	.OfType<PortableExecutableReference>()
-		//	.SelectMany(s =>
-		//	{
-		//		if (String.IsNullOrEmpty(s.FilePath))
-		//		{
-		//			return [];
-		//		}
-
-		//		try
-		//		{
-		//			var loadedAssembly = Assembly.UnsafeLoadFrom(s.FilePath);
-
-		//			return loadedAssembly.ExportedTypes.Concat(loadedAssembly.DefinedTypes);
-		//		}
-		//		catch (Exception e)
-		//		{
-		//			return [];
-		//		}
-		//	})
-		//	.Concat(AppDomain.CurrentDomain
-		//		.GetAssemblies()
-		//		.SelectMany(s =>
-		//		{
-		//			try
-		//			{
-		//				return s.DefinedTypes;
-		//			}
-		//			catch
-		//			{
-		//				return Enumerable.Empty<Type>();
-		//			}
-		//		}))
-		//	.Distinct();
 	}
 
 	public static bool IsInConstExprBody(SyntaxNode node)
 	{
-		if (node is MethodDeclarationSyntax method)
+		switch (node)
 		{
-			return method.AttributeLists
-				.SelectMany(s => s.Attributes)
-				.Any(a => a.Name.ToString() == "ConstExpr");
+			case MethodDeclarationSyntax method:
+				if (method.AttributeLists
+				    .SelectMany(s => s.Attributes)
+				    .Any(a => a.Name.ToString() == "ConstExpr"))
+				{
+					return true;
+				}
+				break;
+			case TypeDeclarationSyntax type:
+				if (type.AttributeLists
+				    .SelectMany(s => s.Attributes)
+				    .Any(a => a.Name.ToString() == "ConstExpr"))
+				{
+					return true;
+				}
+				break;
 		}
 
 		if (node.Parent is null)
@@ -649,5 +560,20 @@ public static class SyntaxHelpers
 		}
 
 		return IsInConstExprBody(node.Parent);
+	}
+
+	public static bool IsInConstExprBody(ISymbol node)
+	{
+		if (node.GetAttributes().Any(IsConstExprAttribute))
+		{
+			return true;
+		}
+
+		if (node.ContainingSymbol is null)
+		{
+			return false;
+		}
+
+		return IsInConstExprBody(node.ContainingSymbol);
 	}
 }

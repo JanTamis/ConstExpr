@@ -2,19 +2,22 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.FlowAnalysis;
 using Microsoft.CodeAnalysis.Operations;
-using SGF.Diagnostics;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.Linq.Expressions;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using Vectorize.Helpers;
 
 namespace Vectorize.Visitors;
 
-public partial class ConstExprOperationVisitor(Compilation compilation, ILogger logger) : OperationVisitor<Dictionary<string, object?>, object?>
+public partial class ConstExprOperationVisitor(Compilation compilation, CancellationToken token) : OperationVisitor<Dictionary<string, object?>, object?>
 {
 	public const string ReturnVariableName = "$return$";
 
@@ -31,6 +34,13 @@ public partial class ConstExprOperationVisitor(Compilation compilation, ILogger 
 		}
 
 		return null;
+	}
+
+	public override object? Visit(IOperation? operation, Dictionary<string, object?> argument)
+	{
+		token.ThrowIfCancellationRequested();
+
+		return base.Visit(operation, argument);
 	}
 
 	public override object? VisitIsNull(IIsNullOperation operation, Dictionary<string, object?> argument)
@@ -202,7 +212,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, ILogger 
 			SpecialType.System_UInt32 => Convert.ToUInt32(operand),
 			SpecialType.System_UInt64 => Convert.ToUInt64(operand),
 			SpecialType.System_Object => operand,
-			SpecialType.System_Collections_IEnumerable => (IEnumerable)operand,
+			SpecialType.System_Collections_IEnumerable => (IEnumerable) operand,
 			_ => operand,
 		};
 	}
@@ -216,9 +226,14 @@ public partial class ConstExprOperationVisitor(Compilation compilation, ILogger 
 			.Select(s => Visit(s.Value, argument))
 			.ToArray();
 
-		if (targetMethod.GetAttributes().Any(SyntaxHelpers.IsConstExprAttribute) && SyntaxHelpers.TryGetOperation<IMethodBodyOperation>(compilation, targetMethod, out var methodOperation))
+		if (SyntaxHelpers.IsInConstExprBody(targetMethod)
+		    && SyntaxHelpers.TryGetOperation<IMethodBodyOperation>(compilation, targetMethod, out var methodOperation))
 		{
-			var syntax = (MethodDeclarationSyntax)targetMethod.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax();
+			var syntax = targetMethod.DeclaringSyntaxReferences
+				.Select(s => s.GetSyntax(token))
+				.OfType<MethodDeclarationSyntax>()
+				.FirstOrDefault();
+
 			var variables = new Dictionary<string, object?>();
 
 			for (var i = 0; i < syntax.ParameterList.Parameters.Count; i++)
@@ -228,7 +243,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, ILogger 
 				variables.Add(parameterName, arguments[i]);
 			}
 
-			var visitor = new ConstExprOperationVisitor(compilation, logger);
+			var visitor = new ConstExprOperationVisitor(compilation, token);
 			visitor.VisitBlock(methodOperation.BlockBody, variables);
 
 			return variables[ReturnVariableName];
@@ -244,9 +259,9 @@ public partial class ConstExprOperationVisitor(Compilation compilation, ILogger 
 		foreach (var caseClause in operation.Cases)
 		{
 			if (caseClause.Clauses
-					.Where(w => w.CaseKind != CaseKind.Default)
-					.Select(s => Visit(s, argument))
-					.Contains(value))
+			    .Where(w => w.CaseKind != CaseKind.Default)
+			    .Select(s => Visit(s, argument))
+			    .Contains(value))
 			{
 				VisitList(caseClause.Body, argument);
 
@@ -257,9 +272,9 @@ public partial class ConstExprOperationVisitor(Compilation compilation, ILogger 
 		foreach (var caseClause in operation.Cases)
 		{
 			if (caseClause.Clauses
-					.Where(w => w.CaseKind == CaseKind.Default)
-					.Select(s => Visit(s, argument))
-					.Contains(value))
+			    .Where(w => w.CaseKind == CaseKind.Default)
+			    .Select(s => Visit(s, argument))
+			    .Contains(value))
 			{
 				VisitList(caseClause.Body, argument);
 			}
@@ -458,7 +473,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, ILogger 
 
 	public override object? VisitInstanceReference(IInstanceReferenceOperation operation, Dictionary<string, object?> argument)
 	{
-		
+
 		return operation.ReferenceKind switch
 		{
 			InstanceReferenceKind.ContainingTypeInstance => argument["this"],
@@ -512,8 +527,6 @@ public partial class ConstExprOperationVisitor(Compilation compilation, ILogger 
 
 	public override object? VisitPropertyReference(IPropertyReferenceOperation operation, Dictionary<string, object?> argument)
 	{
-		var timer = Stopwatch.StartNew();
-
 		var instance = Visit(operation.Instance, argument);
 		var type = SyntaxHelpers.GetTypeByType(compilation, operation.Property.ContainingType);
 
@@ -531,12 +544,85 @@ public partial class ConstExprOperationVisitor(Compilation compilation, ILogger 
 		{
 			instance = Convert.ChangeType(instance, propertyInfo.PropertyType);
 		}
-		
+
 		return propertyInfo.GetValue(instance);
 	}
 
-	public override object? VisitExpressionStatement(IExpressionStatementOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitAwait(IAwaitOperation operation, Dictionary<string, object?> argument)
 	{
-		return Visit(operation.Operation, argument);
+		var value = Visit(operation.Operation, argument);
+
+		if (value is null)
+		{
+			return null;
+		}
+
+		var task = value.GetType();
+
+		// Use reflection to call GetAwaiter() and GetResult()
+		var getAwaiterMethod = task.GetMethod(nameof(Task.GetAwaiter));
+		var awaiter = getAwaiterMethod?.Invoke(value, null);
+
+		var getResultMethod = awaiter?.GetType().GetMethod(nameof(TaskAwaiter.GetResult));
+		var result = getResultMethod?.Invoke(awaiter, null);
+
+		return result;
+	}
+
+	public override object? VisitUsing(IUsingOperation operation, Dictionary<string, object?> argument)
+	{
+		var names = argument.Keys.ToArray();
+
+		Visit(operation.Resources, argument);
+		Visit(operation.Body, argument);
+
+		foreach (var name in argument.Keys.Except(names))
+		{
+			var item = argument[name];
+
+			if (item is IDisposable disposable)
+			{
+				disposable.Dispose();
+			}
+			else
+			{
+				item.GetType().GetMethod("Dispose")?.Invoke(item, null);
+			}
+		}
+
+		return null;
+	}
+
+	public override object? VisitNameOf(INameOfOperation operation, Dictionary<string, object?> argument)
+	{
+		return operation.ConstantValue.Value;
+	}
+
+	public override object? VisitLock(ILockOperation operation, Dictionary<string, object?> argument)
+	{
+		lock (Visit(operation.LockedValue, argument))
+		{
+			Visit(operation.Body, argument);
+		}
+
+		return null;
+	}
+
+	public override object? VisitDelegateCreation(IDelegateCreationOperation operation, Dictionary<string, object?> argument)
+	{
+		return Visit(operation.Target, argument);
+	}
+
+	public override object? VisitAnonymousFunction(IAnonymousFunctionOperation operation, Dictionary<string, object?> argument)
+	{
+		var parameters = operation.Symbol.Parameters
+			.Select(p => Expression.Parameter(SyntaxHelpers.GetTypeByType(compilation, p.Type), p.Name))
+			.ToArray();
+
+		var body = new ExpressionVisitor(compilation, parameters).VisitBlock(operation.Body, argument);
+		var lambda = Expression.Lambda(body, parameters);
+
+		// Compileer de lambda en retourneer de gedelegeerde
+		return lambda.Compile();
 	}
 }
