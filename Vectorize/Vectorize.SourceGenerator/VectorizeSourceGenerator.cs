@@ -1,17 +1,17 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Operations;
+using SGF;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using Microsoft.CodeAnalysis.Operations;
 using Vectorize.Visitors;
-using SGF;
 using static Vectorize.Helpers.SyntaxHelpers;
-using System.Diagnostics;
 
 namespace Vectorize;
 
@@ -43,7 +43,7 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 					{
 						code.AppendLine(u);
 					}
-						
+
 					code.AppendLine();
 					code.AppendLine("namespace ConstantExpression.Generated");
 					code.AppendLine("{");
@@ -115,8 +115,8 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 
 	private InvocationModel? GenerateSource(GeneratorSyntaxContext context, CancellationToken token)
 	{
-		if (context.Node is not InvocationExpressionSyntax invocation 
-		    || context.SemanticModel.GetSymbolInfo(invocation, token).Symbol is not IMethodSymbol { IsStatic: true } method)
+		if (context.Node is not InvocationExpressionSyntax invocation
+				|| context.SemanticModel.GetSymbolInfo(invocation, token).Symbol is not IMethodSymbol { IsStatic: true } method)
 		{
 			return null;
 		}
@@ -163,7 +163,7 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 					.Skip(i)
 					.Select(arg => GetConstantValue(compilation, arg.Expression, token))
 					.ToArray();
-					
+
 				if (methodSymbol.Parameters[i].IsParamsArray)
 				{
 					var array = Array.CreateInstance(values[0].GetType(), values.Length);
@@ -172,7 +172,7 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 					{
 						array.SetValue(values[i], j);
 					}
-						
+
 					variables[paramName] = array;
 				}
 				else
@@ -187,10 +187,10 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 							listInstance.Add(item);
 						}
 					}
-						
+
 					variables[paramName] = list;
 				}
-					
+
 				break;
 			}
 
@@ -215,7 +215,7 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 
 				timer.Stop();
 				Logger.Information($"{timer.Elapsed}: {invocation}");
-										
+
 				return new InvocationModel
 				{
 					Usings = GetUsings(methodSymbol),
@@ -225,7 +225,7 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 					Location = model.GetInterceptableLocation(invocation, token)
 				};
 			}
-			catch (Exception)
+			catch (Exception e)
 			{
 				return null;
 			}
@@ -261,7 +261,7 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 		if (tree != null)
 		{
 			var root = tree.GetRoot();
-				
+
 			foreach (var u in root.DescendantNodes().OfType<UsingDirectiveSyntax>())
 			{
 				usings.Add(u.ToString());

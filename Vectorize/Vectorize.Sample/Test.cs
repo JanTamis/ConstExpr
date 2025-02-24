@@ -13,7 +13,7 @@ public static class Test
 	public static float Sum(params IEnumerable<float> data)
 	{
 		return data
-			.Where(w => w % 0 == 0)
+			// .Where(w => w % 0 == 0)
 			.Sum();
 	}
 

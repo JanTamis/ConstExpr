@@ -235,14 +235,14 @@ public static class SyntaxHelpers
 		var fullyQualifiedName = methodSymbol.ContainingType.ToDisplayString();
 		var methodName = methodSymbol.Name;
 
-		var type = GetTypes(compilation).FirstOrDefault(f => f.FullName == fullyQualifiedName) 
+		var type = GetTypes(compilation).FirstOrDefault(f => f.FullName == fullyQualifiedName)
 			?? throw new InvalidOperationException($"Type '{fullyQualifiedName}' not found");
 
-		var methodInfo = type
+		var methodInfos = type
 			.GetMethods(methodSymbol.IsStatic
 				? BindingFlags.Public | BindingFlags.Static
 				: BindingFlags.Public | BindingFlags.Instance)
-			.FirstOrDefault(f =>
+			.Where(f =>
 			{
 				if (f.Name != methodName)
 				{
@@ -250,8 +250,8 @@ public static class SyntaxHelpers
 				}
 
 				var methodParameters = f.GetParameters();
-				
-				if (methodParameters.Length != parameters.Length)
+
+				if (methodParameters.Length != methodSymbol.Parameters.Length)
 				{
 					return false;
 				}
@@ -259,31 +259,14 @@ public static class SyntaxHelpers
 				for (var i = 0; i < methodParameters.Length; i++)
 				{
 					var paramType = methodParameters[i].ParameterType;
-					var argVal = parameters[i];
+					var methodParamType = GetTypeByType(compilation, methodSymbol.Parameters[i].Type);
 
-					// Allow null for reference types and nullable value types.
-					if (argVal is null)
+					if (paramType.IsGenericType)
 					{
-						if (paramType.IsValueType && Nullable.GetUnderlyingType(paramType) is null)
-						{
-							return false;
-						}
 						continue;
 					}
 
-					if (paramType.IsGenericParameter)
-					{
-						var constraints = paramType.GetGenericParameterConstraints();
-
-						foreach (var constraint in constraints)
-						{
-							if (!constraint.IsInstanceOfType(argVal))
-							{
-								return false;
-							}
-						}
-					}
-					else if (!paramType.ReflectedType.IsInstanceOfType(argVal))
+					if (paramType.Namespace != methodParamType.Namespace || paramType.Name != methodParamType.Name)
 					{
 						return false;
 					}
@@ -292,22 +275,49 @@ public static class SyntaxHelpers
 				return true;
 			});
 
-		if (methodInfo == null)
+		foreach (var info in methodInfos)
 		{
-			throw new InvalidOperationException($"Methode '{methodName}' niet gevonden in type '{fullyQualifiedName}'.");
+			var methodInfo = info;
+
+			if (methodInfo.IsGenericMethod)
+			{
+				var types = methodSymbol.TypeArguments
+					.Select(s => GetTypeByType(compilation, s))
+					.ToArray();
+
+				methodInfo = methodInfo.MakeGenericMethod(types);
+			}
+
+			var methodParams = methodInfo.GetParameters();
+
+			for (var i = 0; i < methodParams.Length; i++)
+			{
+				if (!methodParams[i].ParameterType.IsAssignableFrom(GetTypeByType(compilation, methodSymbol.Parameters[i].Type)))
+				{
+					methodInfo = null;
+					break;
+				}
+			}
+
+			if (methodInfo is null)
+			{
+				continue;
+			}
+
+			if (methodInfo.IsStatic)
+			{
+				return methodInfo.Invoke(null, parameters);
+			}
+
+			if (instance == null)
+			{
+				throw new InvalidOperationException($"Kan geen instantie creëren van type '{fullyQualifiedName}'.");
+			}
+
+			return methodInfo.Invoke(instance, parameters);
 		}
 
-		if (methodInfo.IsStatic)
-		{
-			return methodInfo.Invoke(null, parameters);
-		}
-
-		if (instance == null)
-		{
-			throw new InvalidOperationException($"Kan geen instantie creëren van type '{fullyQualifiedName}'.");
-		}
-
-		return methodInfo.Invoke(instance, parameters);
+		throw new InvalidOperationException($"Methode '{methodName}' niet gevonden in type '{fullyQualifiedName}'.");
 	}
 
 	public static object? GetPropertyValue(Compilation compilation, IPropertySymbol propertySymbol, object? instance)
@@ -420,9 +430,9 @@ public static class SyntaxHelpers
 	public static bool TryGetOperation<TOperation>(Compilation compilation, ISymbol symbol, out TOperation operation) where TOperation : IOperation
 	{
 		if (TryGetSemanticModel(compilation, symbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(), out var semanticModel)
-		    && semanticModel.GetOperation(symbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax()) is IOperation op)
+				&& semanticModel.GetOperation(symbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax()) is IOperation op)
 		{
-			operation = (TOperation) op;
+			operation = (TOperation)op;
 			return true;
 		}
 
@@ -433,10 +443,10 @@ public static class SyntaxHelpers
 	public static bool TryGetOperation<TOperation>(Compilation compilation, SyntaxNode? node, out TOperation operation) where TOperation : IOperation
 	{
 		if (node is not null
-		    && TryGetSemanticModel(compilation, node, out var semanticModel)
-		    && semanticModel.GetOperation(node) is IOperation op)
+				&& TryGetSemanticModel(compilation, node, out var semanticModel)
+				&& semanticModel.GetOperation(node) is IOperation op)
 		{
-			operation = (TOperation) op;
+			operation = (TOperation)op;
 			return true;
 		}
 
@@ -538,16 +548,16 @@ public static class SyntaxHelpers
 		{
 			case MethodDeclarationSyntax method:
 				if (method.AttributeLists
-				    .SelectMany(s => s.Attributes)
-				    .Any(a => a.Name.ToString() == "ConstExpr"))
+						.SelectMany(s => s.Attributes)
+						.Any(a => a.Name.ToString() == "ConstExpr"))
 				{
 					return true;
 				}
 				break;
 			case TypeDeclarationSyntax type:
 				if (type.AttributeLists
-				    .SelectMany(s => s.Attributes)
-				    .Any(a => a.Name.ToString() == "ConstExpr"))
+						.SelectMany(s => s.Attributes)
+						.Any(a => a.Name.ToString() == "ConstExpr"))
 				{
 					return true;
 				}
