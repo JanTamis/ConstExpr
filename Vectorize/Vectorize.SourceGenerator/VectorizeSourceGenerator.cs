@@ -247,26 +247,33 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 		var usings = new HashSet<string>
 		{
 			"using System.Diagnostics;",
-			"using System;",
+			// "using System;",
 			"using System.Runtime.CompilerServices;"
 		};
 
-		if (methodSymbol.ContainingNamespace != null)
+		// if (methodSymbol.ContainingNamespace != null)
+		// {
+		// 	usings.Add($"using {methodSymbol.ContainingNamespace};");
+		// }
+
+		usings.Add($"using {methodSymbol.ReturnType.ContainingNamespace};");
+		
+		foreach (var p in methodSymbol.Parameters)
 		{
-			usings.Add($"using {methodSymbol.ContainingNamespace};");
+			usings.Add($"using {p.Type.ContainingNamespace};");
 		}
 
-		var tree = methodSymbol.DeclaringSyntaxReferences.FirstOrDefault()?.SyntaxTree;
-
-		if (tree != null)
-		{
-			var root = tree.GetRoot();
-
-			foreach (var u in root.DescendantNodes().OfType<UsingDirectiveSyntax>())
-			{
-				usings.Add(u.ToString());
-			}
-		}
+		// var tree = methodSymbol.DeclaringSyntaxReferences.FirstOrDefault()?.SyntaxTree;
+		//
+		// if (tree != null)
+		// {
+		// 	var root = tree.GetRoot();
+		//
+		// 	foreach (var u in root.DescendantNodes().OfType<UsingDirectiveSyntax>())
+		// 	{
+		// 		usings.Add(u.ToString());
+		// 	}
+		// }
 
 		return usings;
 	}

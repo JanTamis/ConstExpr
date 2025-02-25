@@ -9,9 +9,9 @@ using Vectorize.Helpers;
 namespace Vectorize.Visitors;
 
 // TODO: Add support for more operationsS
-public class ExpressionVisitor(Compilation compilation, IEnumerable<ParameterExpression> parameters) : OperationVisitor<Dictionary<string, object?>, Expression?>
+public class ExpressionVisitor(Compilation compilation, IEnumerable<ParameterExpression> parameters) : OperationVisitor<Dictionary<string, object?>, Expression>
 {
-	public override Expression? DefaultVisit(IOperation operation, Dictionary<string, object?> argument)
+	public override Expression DefaultVisit(IOperation operation, Dictionary<string, object?> argument)
 	{
 		if (operation.ConstantValue is { HasValue: true, Value: var value })
 		{
@@ -23,32 +23,40 @@ public class ExpressionVisitor(Compilation compilation, IEnumerable<ParameterExp
 			Visit(currentOperation, argument);
 		}
 
-		return null;
+		return Expression.Empty();
 	}
 
-	public override Expression? VisitBlock(IBlockOperation operation, Dictionary<string, object?> argument)
+	public override Expression VisitBlock(IBlockOperation operation, Dictionary<string, object?> argument)
 	{
 		var items = operation.Operations
 			.Select(item => Visit(item, argument))
 			.SelectMany<Expression, Expression>(s => s is BlockExpression blockExpression ? blockExpression.Expressions : [s])
 			.ToArray();
 
+		if (items.Length == 1)
+		{
+			return items[0];
+		}
+
 		return Expression.Block(parameters, items);
 	}
 
-	public override Expression? VisitReturn(IReturnOperation operation, Dictionary<string, object?> argument)
+	public override Expression VisitReturn(IReturnOperation operation, Dictionary<string, object?> argument)
 	{
-		var returnType = SyntaxHelpers.GetTypeByType(compilation, operation.ReturnedValue.Type);
-		var returnLabel = Expression.Label(returnType);
-		var returnValue = Visit(operation.ReturnedValue, argument);
+		return Visit(operation.ReturnedValue, argument);
 
-		return Expression.Block(
-			Expression.Return(returnLabel, returnValue, returnType),
-			Expression.Label(returnLabel, Expression.Default(returnType))
-		);
+		// var returnType = SyntaxHelpers.GetTypeByType(compilation, operation.ReturnedValue.Type);
+		// var returnLabel = Expression.Label(returnType);
+		// var returnValue = Visit(operation.ReturnedValue, argument);
+		//
+		// // Build a block statement that performs the return
+		// return Expression.Block(
+		// 	Expression.Return(returnLabel, returnValue, returnType),
+		// 	Expression.Label(returnLabel, Expression.Default(returnType))
+		// );
 	}
 
-	public override Expression? VisitBinaryOperator(IBinaryOperation operation, Dictionary<string, object?> argument)
+	public override Expression VisitBinaryOperator(IBinaryOperation operation, Dictionary<string, object?> argument)
 	{
 		var kind = operation.OperatorKind switch
 		{
@@ -72,8 +80,8 @@ public class ExpressionVisitor(Compilation compilation, IEnumerable<ParameterExp
 		return Expression.MakeBinary(kind, left, right);
 	}
 
-	public override Expression? VisitParameterReference(IParameterReferenceOperation operation, Dictionary<string, object?> argument)
+	public override Expression VisitParameterReference(IParameterReferenceOperation operation, Dictionary<string, object?> argument)
 	{
-		return parameters.FirstOrDefault(x => x.Name == operation.Parameter.Name);
+		return parameters.First(x => x.Name == operation.Parameter.Name);
 	}
 }

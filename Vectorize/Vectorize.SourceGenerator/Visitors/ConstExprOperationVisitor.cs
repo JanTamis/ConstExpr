@@ -345,7 +345,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Cancella
 	public override object? VisitForEachLoop(IForEachLoopOperation operation, Dictionary<string, object?> argument)
 	{
 		var itemName = GetVariableName(operation.LoopControlVariable);
-		var names = argument.Keys.ToArray();
+		// var names = argument.Keys.ToArray();
 		var collection = Visit(operation.Collection, argument);
 
 		foreach (var item in collection as IEnumerable)

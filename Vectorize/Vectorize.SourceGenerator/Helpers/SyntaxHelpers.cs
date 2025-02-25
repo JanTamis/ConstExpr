@@ -111,7 +111,9 @@ public static class SyntaxHelpers
 			case char c:
 				return SyntaxFactory.LiteralExpression(SyntaxKind.CharacterLiteralExpression, SyntaxFactory.Literal(c));
 			case bool b:
-				return SyntaxFactory.LiteralExpression(b ? SyntaxKind.TrueLiteralExpression : SyntaxKind.FalseLiteralExpression);
+				return SyntaxFactory.LiteralExpression(b 
+					? SyntaxKind.TrueLiteralExpression 
+					: SyntaxKind.FalseLiteralExpression);
 			case null:
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression);
 		}
@@ -520,9 +522,9 @@ public static class SyntaxHelpers
 			.Where(w => SymbolEqualityComparer.Default.Equals(compilation.GetTypeByMetadataName(w.FullName), typeSymbol));
 	}
 
-	public static Type? GetTypeByType(Compilation compilation, ITypeSymbol typeSymbol)
+	public static Type GetTypeByType(Compilation compilation, ITypeSymbol typeSymbol)
 	{
-		return GetTypesByType(compilation, typeSymbol).FirstOrDefault();
+		return GetTypesByType(compilation, typeSymbol).First();
 	}
 
 	public static IEnumerable<Type> GetTypes(Compilation compilation)
