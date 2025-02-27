@@ -18,7 +18,7 @@ public static class Test
 
 	public static float Average(params IReadOnlyList<float> data)
 	{
-		return data.Average();
+		return IsOdd(data).Average();
 	}
 	
 	public static float StdDev(params IReadOnlyList<float> data)
@@ -55,8 +55,17 @@ public static class Test
 	
 	public async static Task<string> Waiting()
 	{
-		await Task.Delay(5000);
+		await Task.Delay(1000);
 		
 		return nameof(Test);
 	}
+	
+	public static IEnumerable<int> Range(int start, int count)
+	{
+		return Enumerable
+			.Range(start, count)
+			.OrderBy(o => Guid.NewGuid());
+	}
+	
+	
 }

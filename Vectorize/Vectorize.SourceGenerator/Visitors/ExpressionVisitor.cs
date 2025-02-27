@@ -30,7 +30,7 @@ public class ExpressionVisitor(Compilation compilation, IEnumerable<ParameterExp
 	{
 		var items = operation.Operations
 			.Select(item => Visit(item, argument))
-			.SelectMany<Expression, Expression>(s => s is BlockExpression blockExpression ? blockExpression.Expressions : [s])
+			.SelectMany<Expression, Expression>(s => s is BlockExpression blockExpression ? blockExpression.Expressions : [ s ])
 			.ToArray();
 
 		if (items.Length == 1)
@@ -73,15 +73,334 @@ public class ExpressionVisitor(Compilation compilation, IEnumerable<ParameterExp
 			BinaryOperatorKind.GreaterThanOrEqual => ExpressionType.GreaterThanOrEqual,
 			_ => throw new NotImplementedException(),
 		};
-		
+
 		var left = Visit(operation.LeftOperand, argument);
 		var right = Visit(operation.RightOperand, argument);
-		
+
 		return Expression.MakeBinary(kind, left, right);
 	}
 
 	public override Expression VisitParameterReference(IParameterReferenceOperation operation, Dictionary<string, object?> argument)
 	{
 		return parameters.First(x => x.Name == operation.Parameter.Name);
+	}
+
+	public override Expression? VisitInvocation(IInvocationOperation operation, Dictionary<string, object?> argument)
+	{
+		// Get method arguments as expressions
+		var arguments = operation.Arguments.Select(arg => Visit(arg.Value, argument)).ToArray();
+
+		// If this is a delegate invocation
+		if (operation.TargetMethod == null)
+		{
+			var target = Visit(operation.Instance, argument);
+			return Expression.Invoke(target, arguments);
+		}
+
+		// For method calls
+		var containingType = SyntaxHelpers.GetTypeByType(compilation, operation.TargetMethod.ContainingType);
+		var methodName = operation.TargetMethod.Name;
+
+		// Find the method (simplified - may need enhancement for complex overloads)
+		var methodInfo = containingType.GetMethod(methodName);
+
+		if (methodInfo == null)
+		{
+			throw new InvalidOperationException($"Method {methodName} not found in {containingType.FullName}");
+		}
+
+		// For static methods
+		if (operation.TargetMethod.IsStatic)
+		{
+			return Expression.Call(methodInfo, arguments);
+		}
+
+		// For instance methods
+		var instance = Visit(operation.Instance, argument);
+		return Expression.Call(instance, methodInfo, arguments);
+	}
+
+	public override Expression VisitLiteral(ILiteralOperation operation, Dictionary<string, object?> argument)
+	{
+		return Expression.Constant(operation.ConstantValue.Value,
+			SyntaxHelpers.GetTypeByType(compilation, operation.Type));
+	}
+
+	public override Expression VisitUnaryOperator(IUnaryOperation operation, Dictionary<string, object?> argument)
+	{
+		var operand = Visit(operation.Operand, argument);
+
+		return operation.OperatorKind switch
+		{
+			UnaryOperatorKind.Plus => operand,
+			UnaryOperatorKind.Minus => Expression.Negate(operand),
+			UnaryOperatorKind.BitwiseNegation => Expression.OnesComplement(operand),
+			UnaryOperatorKind.Not => Expression.Not(operand),
+			_ => operand,
+		};
+	}
+
+	public override Expression VisitIncrementOrDecrement(IIncrementOrDecrementOperation operation, Dictionary<string, object?> argument)
+	{
+		var target = Visit(operation.Target, argument);
+		var one = Expression.Constant(1);
+
+		return operation.Kind switch
+		{
+			OperationKind.Increment => Expression.AddAssign(target, one),
+			OperationKind.Decrement => Expression.SubtractAssign(target, one),
+			_ => target,
+		};
+	}
+
+	public override Expression VisitParenthesized(IParenthesizedOperation operation, Dictionary<string, object?> argument)
+	{
+		return Visit(operation.Operand, argument);
+	}
+
+	public override Expression VisitFieldReference(IFieldReferenceOperation operation, Dictionary<string, object?> argument)
+	{
+		var instance = operation.Instance != null ? Visit(operation.Instance, argument) : null;
+
+		var containingType = SyntaxHelpers.GetTypeByType(compilation, operation.Field.ContainingType);
+		var fieldInfo = containingType.GetField(operation.Field.Name);
+
+		return operation.Field.IsStatic
+			? Expression.Field(null, fieldInfo)
+			: Expression.Field(instance, fieldInfo);
+	}
+
+	public override Expression VisitPropertyReference(IPropertyReferenceOperation operation, Dictionary<string, object?> argument)
+	{
+		var instance = operation.Instance != null ? Visit(operation.Instance, argument) : null;
+
+		var containingType = SyntaxHelpers.GetTypeByType(compilation, operation.Property.ContainingType);
+		var propertyInfo = containingType.GetProperty(operation.Property.Name);
+
+		return operation.Property.IsStatic
+			? Expression.Property(null, propertyInfo)
+			: Expression.Property(instance, propertyInfo);
+	}
+
+	public override Expression VisitLocalReference(ILocalReferenceOperation operation, Dictionary<string, object?> argument)
+	{
+		// For local variables, we need to find or create a parameter expression
+		string localName = operation.Local.Name;
+
+		// Check if we already have this parameter
+		var existingParam = parameters.FirstOrDefault(p => p.Name == localName);
+
+		if (existingParam != null)
+		{
+			return existingParam;
+		}
+
+		// Otherwise, we might need to create a new parameter or handle differently
+		var localType = SyntaxHelpers.GetTypeByType(compilation, operation.Local.Type);
+		return Expression.Parameter(localType, localName);
+	}
+
+	public override Expression VisitDefaultValue(IDefaultValueOperation operation, Dictionary<string, object?> argument)
+	{
+		var type = SyntaxHelpers.GetTypeByType(compilation, operation.Type);
+		return Expression.Default(type);
+	}
+
+	public override Expression VisitObjectCreation(IObjectCreationOperation operation, Dictionary<string, object?> argument)
+	{
+		var type = SyntaxHelpers.GetTypeByType(compilation, operation.Type);
+
+		var arguments = operation.Arguments
+			.Select(arg => Visit(arg.Value, argument))
+			.ToArray();
+
+		var constructor = type.GetConstructors()
+			.FirstOrDefault(c => c.GetParameters().Length == arguments.Length);
+
+		if (constructor == null)
+			throw new InvalidOperationException($"Constructor with {arguments.Length} parameters not found for type {type.FullName}");
+
+		return Expression.New(constructor, arguments);
+	}
+
+	public override Expression VisitInstanceReference(IInstanceReferenceOperation operation, Dictionary<string, object?> argument)
+	{
+		// In an expression tree context, 'this' is typically represented by a parameter
+		var thisParameter = parameters.FirstOrDefault(p => p.Name == "this");
+
+		if (thisParameter != null)
+			return thisParameter;
+
+		// If no 'this' parameter exists, throw an exception or handle appropriately
+		throw new InvalidOperationException("No 'this' parameter available in the current context.");
+	}
+
+	public override Expression VisitNameOf(INameOfOperation operation, Dictionary<string, object?> argument)
+	{
+		return Expression.Constant(operation.ConstantValue.Value, typeof(string));
+	}
+
+	public override Expression VisitConditional(IConditionalOperation operation, Dictionary<string, object?> argument)
+	{
+		var condition = Visit(operation.Condition, argument);
+		var whenTrue = Visit(operation.WhenTrue, argument);
+		var whenFalse = Visit(operation.WhenFalse, argument);
+
+		return Expression.Condition(condition, whenTrue, whenFalse);
+	}
+
+	public override Expression VisitUtf8String(IUtf8StringOperation operation, Dictionary<string, object?> argument)
+	{
+		return Expression.Constant(System.Text.Encoding.UTF8.GetBytes(operation.Value));
+	}
+
+	public override Expression VisitAwait(IAwaitOperation operation, Dictionary<string, object?> argument)
+	{
+		var operand = Visit(operation.Operation, argument);
+		return Expression.Call(
+			operand,
+			operand.Type.GetMethod("GetAwaiter"),
+			Array.Empty<Expression>());
+	}
+
+	public override Expression VisitUsing(IUsingOperation operation, Dictionary<string, object?> argument)
+	{
+		var resource = Visit(operation.Resources, argument);
+		var body = Visit(operation.Body, argument);
+
+		// Create a using block
+		return Expression.TryFinally(
+			body,
+			Expression.Call(resource, typeof(IDisposable).GetMethod("Dispose"))
+		);
+	}
+
+	public override Expression VisitLock(ILockOperation operation, Dictionary<string, object?> argument)
+	{
+		var lockObj = Visit(operation.LockedValue, argument);
+		var body = Visit(operation.Body, argument);
+
+		// Create a lock statement using Monitor.Enter/Exit
+		var monitorVar = Expression.Variable(typeof(bool), "lockTaken");
+
+		return Expression.Block(
+			[ monitorVar ],
+			Expression.Assign(monitorVar, Expression.Constant(false)),
+			Expression.TryFinally(
+				Expression.Block(
+					Expression.Call(typeof(System.Threading.Monitor), "Enter", null, lockObj, monitorVar),
+					body
+				),
+				Expression.IfThen(
+					monitorVar,
+					Expression.Call(typeof(System.Threading.Monitor), "Exit", null, lockObj)
+				)
+			)
+		);
+	}
+
+	public override Expression VisitDelegateCreation(IDelegateCreationOperation operation, Dictionary<string, object?> argument)
+	{
+		return Visit(operation.Target, argument);
+	}
+
+	public override Expression VisitAnonymousFunction(IAnonymousFunctionOperation operation, Dictionary<string, object?> argument)
+	{
+		// Create parameters for the lambda
+		var lambdaParams = operation.Symbol.Parameters
+			.Select(p => Expression.Parameter(
+				SyntaxHelpers.GetTypeByType(compilation, p.Type),
+				p.Name))
+			.ToArray();
+
+		// Create a new visitor with the lambda parameters included
+		var allParams = parameters.Concat(lambdaParams);
+		var lambdaVisitor = new ExpressionVisitor(compilation, allParams);
+
+		// Visit the body with the new visitor
+		var body = lambdaVisitor.VisitBlock(operation.Body, argument);
+
+		// Create the lambda expression
+		return Expression.Lambda(body, lambdaParams);
+	}
+
+	public override Expression VisitAnonymousObjectCreation(IAnonymousObjectCreationOperation operation, Dictionary<string, object?> argument)
+	{
+		var type = SyntaxHelpers.GetTypeByType(compilation, operation.Type);
+
+		var initializers = operation.Initializers
+			.Select(init => Visit(init, argument))
+			.ToArray();
+
+		// Use MemberInit to create and initialize the anonymous object
+		var newExpression = Expression.New(type);
+
+		var bindings = operation.Initializers
+			.Select((init, i) =>
+			{
+				var property = type.GetProperties()[i];
+				return Expression.Bind(property, initializers[i]);
+			})
+			.ToArray();
+
+		return Expression.MemberInit(newExpression, bindings);
+	}
+
+	public override Expression VisitTry(ITryOperation operation, Dictionary<string, object?> argument)
+	{
+		var tryBlock = Visit(operation.Body, argument);
+		var finallyBlock = operation.Finally != null
+			? Visit(operation.Finally, argument)
+			: null;
+
+		if (operation.Catches.IsEmpty)
+		{
+			return Expression.TryFinally(tryBlock, finallyBlock);
+		}
+
+		// Handle catch blocks
+		var catchBlocks = operation.Catches
+			.Select(c =>
+			{
+				var exType = SyntaxHelpers.GetTypeByType(compilation, c.ExceptionType);
+				var exVar = c.ExceptionDeclarationOrExpression != null
+					? Expression.Parameter(exType, c.ExceptionDeclarationOrExpression.ToString())
+					: Expression.Parameter(exType);
+
+				return Expression.Catch(exVar, Visit(c.Handler, argument));
+			})
+			.ToArray();
+
+		if (finallyBlock != null)
+		{
+			return Expression.TryCatchFinally(tryBlock, finallyBlock, catchBlocks);
+		}
+
+		return Expression.TryCatch(tryBlock, catchBlocks);
+	}
+
+	public override Expression VisitThrow(IThrowOperation operation, Dictionary<string, object?> argument)
+	{
+		var exception = Visit(operation.Exception, argument);
+		return Expression.Throw(exception);
+	}
+
+	public override Expression VisitConditionalAccess(IConditionalAccessOperation operation, Dictionary<string, object?> argument)
+	{
+		var receiver = Visit(operation.Operation, argument);
+		var whenNotNull = Visit(operation.WhenNotNull, argument);
+
+		var targetType = SyntaxHelpers.GetTypeByType(compilation, operation.Type);
+		var resultVar = Expression.Variable(targetType, "conditionalResult");
+
+		return Expression.Block(
+			[ resultVar ],
+			Expression.IfThenElse(
+				Expression.NotEqual(receiver, Expression.Constant(null)),
+				Expression.Assign(resultVar, whenNotNull),
+				Expression.Assign(resultVar, Expression.Default(targetType))
+			),
+			resultVar
+		);
 	}
 }

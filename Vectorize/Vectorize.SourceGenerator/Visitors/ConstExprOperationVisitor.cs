@@ -51,7 +51,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Cancella
 	public override object? VisitArrayCreation(IArrayCreationOperation operation, Dictionary<string, object?> argument)
 	{
 		return operation.Initializer?.ElementValues
-			.Select(value => Visit(value, argument))
+			.Select(s => Visit(s, argument))
 			.ToArray();
 	}
 
@@ -178,7 +178,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Cancella
 		{
 			true => Visit(operation.WhenTrue, argument),
 			false => Visit(operation.WhenFalse, argument),
-			_ => null,
+			_ => throw new InvalidOperationException("Invalid conditional operation."),
 		};
 	}
 
@@ -538,9 +538,13 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Cancella
 		{
 			throw new InvalidOperationException("Property info could not be retrieved.");
 		}
+		
+		if (operation.Property.IsStatic)
+		{
+			return propertyInfo.GetValue(null);
+		}
 
-		// TODO: improve conversion from instance to type
-		if (instance is IConvertible && !propertyInfo.PropertyType.IsInstanceOfType(instance))
+		if (instance is IConvertible)
 		{
 			instance = Convert.ChangeType(instance, propertyInfo.PropertyType);
 		}
@@ -624,5 +628,115 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Cancella
 
 		// Compileer de lambda en retourneer de gedelegeerde
 		return lambda.Compile();
+	}
+
+	public override object? VisitMethodReference(IMethodReferenceOperation operation, Dictionary<string, object?> argument)
+	{
+		var instance = Visit(operation.Instance, argument);
+		var containingType = SyntaxHelpers.GetTypeByType(compilation, operation.Method.ContainingType);
+		var method = containingType.GetMethod(operation.Method.Name);
+
+		if (method == null)
+		{
+			return null;
+		}
+
+		return method.CreateDelegate(typeof(Delegate), instance);
+	}
+
+	public override object? VisitIsType(IIsTypeOperation operation, Dictionary<string, object?> argument)
+	{
+		var value = Visit(operation.ValueOperand, argument);
+
+		if (value == null)
+		{
+			return false;
+		}
+
+		var targetType = SyntaxHelpers.GetTypeByType(compilation, operation.TypeOperand);
+		return targetType.IsInstanceOfType(value);
+	}
+
+	public override object? VisitDynamicMemberReference(IDynamicMemberReferenceOperation operation, Dictionary<string, object?> argument)
+	{
+		var instance = Visit(operation.Instance, argument);
+
+		if (instance == null)
+		{
+			return null;
+		}
+
+		var memberInfo = instance.GetType().GetMember(operation.MemberName).FirstOrDefault();
+
+		return memberInfo switch
+		{
+			PropertyInfo propertyInfo => propertyInfo.GetValue(instance),
+			FieldInfo fieldInfo => fieldInfo.GetValue(instance),
+			_ => null
+		};
+
+	}
+
+	public override object? VisitDynamicInvocation(IDynamicInvocationOperation operation, Dictionary<string, object?> argument)
+	{
+		var instance = Visit(operation.Operation, argument);
+
+		if (instance == null)
+		{
+			return null;
+		}
+
+		var arguments = operation.Arguments
+			.Select(s => Visit(s, argument))
+			.ToArray();
+
+		if (instance is Delegate del)
+		{
+			return del.DynamicInvoke(arguments);
+		}
+
+		return null;
+	}
+
+	public override object? VisitDynamicObjectCreation(IDynamicObjectCreationOperation operation, Dictionary<string, object?> argument)
+	{
+		var arguments = operation.Arguments
+			.Select(s => Visit(s, argument))
+			.ToArray();
+
+		if (operation.Type == null)
+		{
+			return null;
+		}
+
+		var type = Type.GetType(operation.Type.ToDisplayString());
+		return Activator.CreateInstance(type, arguments);
+	}
+
+	public override object? VisitTuple(ITupleOperation operation, Dictionary<string, object?> argument)
+	{
+		var elements = operation.Elements
+			.Select(s => Visit(s, argument))
+			.ToArray();
+
+		var type = operation.Type;
+		return Activator.CreateInstance(Type.GetType(type.ToDisplayString()), elements);
+	}
+
+	public override object? VisitDynamicIndexerAccess(IDynamicIndexerAccessOperation operation, Dictionary<string, object?> argument)
+	{
+		var instance = Visit(operation.Operation, argument);
+
+		if (instance == null)
+		{
+			return null;
+		}
+
+		var arguments = operation.Arguments
+			.Select(s => Visit(s, argument))
+			.ToArray();
+
+		var indexProperty = instance.GetType().GetProperty("Item");
+		return indexProperty?.GetValue(instance, arguments);
 	}
 }

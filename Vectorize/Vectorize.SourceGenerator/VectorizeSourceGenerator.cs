@@ -26,76 +26,15 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 		{
 			var invocations = context.SyntaxProvider
 				.CreateSyntaxProvider(
-					(node, token) => node is InvocationExpressionSyntax,
-					GenerateSource)
+					predicate: (node, _) => node is InvocationExpressionSyntax,
+					transform: GenerateSource)
 				.Where(result => result != null);
 
 			context.RegisterSourceOutput(invocations.Collect(), (spc, models) =>
 			{
-				var groups = models.GroupBy(model => model.Method, SyntaxNodeComparer<MethodDeclarationSyntax>.Instance);
-
-				foreach (var group in groups)
+				foreach (var group in models.GroupBy(model => model.Method, SyntaxNodeComparer<MethodDeclarationSyntax>.Instance))
 				{
-					var code = new StringBuilder();
-					var usings = group.SelectMany(item => item.Usings).Distinct().OrderBy(s => s);
-
-					foreach (var u in usings)
-					{
-						code.AppendLine(u);
-					}
-
-					code.AppendLine();
-					code.AppendLine("namespace ConstantExpression.Generated");
-					code.AppendLine("{");
-					code.AppendLine("\tfile static class GeneratedMethods");
-					code.AppendLine("\t{");
-
-					foreach (var valueGroup in group.GroupBy(m => m.Value))
-					{
-						foreach (var item in valueGroup)
-						{
-							code.AppendLine($"\t\t[InterceptsLocation({item.Location.Version}, \"{item.Location.Data}\")]");
-						}
-
-						var first = valueGroup.First();
-
-						var methodCode = first.Method
-							.WithIdentifier(SyntaxFactory.Identifier($"{first.Method.Identifier}_{first.Invocation.GetHashCode()}"))
-							.WithAttributeLists(SyntaxFactory.List<AttributeListSyntax>())
-							.WithExpressionBody(SyntaxFactory.ArrowExpressionClause(CreateLiteral(first.Value)))
-							.WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-							.WithBody(null)
-							.NormalizeWhitespace("\t")
-							.ToString()
-							.Replace("\n", "\n\t\t");
-
-						code.AppendLine("\t\t[MethodImpl(MethodImplOptions.AggressiveInlining)]");
-						code.AppendLine(methodCode.Insert(0, "\t\t"));
-					}
-
-					code.AppendLine("\t}");
-					code.AppendLine("}");
-					code.AppendLine();
-					code.AppendLine("""
-						namespace System.Runtime.CompilerServices
-						{
-							[Conditional("DEBUG")]
-							[AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
-							file sealed class InterceptsLocationAttribute : Attribute
-							{
-								public InterceptsLocationAttribute(int version, string data)
-								{
-									_ = version;
-									_ = data;
-								}
-							}
-						}
-						""");
-
-					if (group.Key.Parent is TypeDeclarationSyntax type)
-					{
-						spc.AddSource($"{type.Identifier}_{group.Key.Identifier}.g.cs", code.ToString());
-					}
+					GenerateMethodImplementations(spc, group);
 				}
 			});
 
@@ -104,40 +43,102 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 
 				namespace ConstantExpression
 				{
-					[AttributeUsage(AttributeTargets.Method | AttributeTargets.Class | AttributeTargets.Struct, Inherited = false)]
-					public sealed class ConstExprAttribute : Attribute
-					{
-					}
+				    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class | AttributeTargets.Struct, Inherited = false)]
+				    public sealed class ConstExprAttribute : Attribute
+				    {
+				    }
 				}
 				""");
 		});
 	}
 
+	private void GenerateMethodImplementations(SgfSourceProductionContext spc, IGrouping<MethodDeclarationSyntax, InvocationModel> group)
+	{
+		var code = new StringBuilder();
+		var usings = group.SelectMany(item => item.Usings).Distinct().OrderBy(s => s);
+
+		foreach (var u in usings)
+		{
+			code.AppendLine(u);
+		}
+
+		code.AppendLine();
+		code.AppendLine("namespace ConstantExpression.Generated");
+		code.AppendLine("{");
+		code.AppendLine("\tfile static class GeneratedMethods");
+		code.AppendLine("\t{");
+
+		foreach (var valueGroup in group.GroupBy(m => m.Value))
+		{
+			// Add interceptor attributes
+			foreach (var item in valueGroup)
+			{
+				code.AppendLine($"\t\t[InterceptsLocation({item.Location.Version}, \"{item.Location.Data}\")]");
+			}
+
+			// Generate the method implementation
+			var first = valueGroup.First();
+			var methodCode = first.Method
+				.WithIdentifier(SyntaxFactory.Identifier($"{first.Method.Identifier}_{first.Invocation.GetHashCode()}"))
+				.WithAttributeLists(SyntaxFactory.List<AttributeListSyntax>())
+				.WithExpressionBody(SyntaxFactory.ArrowExpressionClause(CreateLiteral(first.Value)))
+				.WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
+				.WithBody(null)
+				.NormalizeWhitespace("\t")
+				.ToString()
+				.Replace("\n", "\n\t\t");
+
+			code.AppendLine("\t\t[MethodImpl(MethodImplOptions.AggressiveInlining)]");
+			code.AppendLine(methodCode.Insert(0, "\t\t"));
+		}
+
+		code.AppendLine("\t}");
+		code.AppendLine("}");
+		code.AppendLine();
+
+		// Add InterceptsLocationAttribute definition
+		code.AppendLine("""
+			namespace System.Runtime.CompilerServices
+			{
+			    [Conditional("DEBUG")]
+			    [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
+			    file sealed class InterceptsLocationAttribute : Attribute
+			    {
+			        public InterceptsLocationAttribute(int version, string data)
+			        {
+			            _ = version;
+			            _ = data;
+			        }
+			    }
+			}
+			""");
+
+		if (group.Key.Parent is TypeDeclarationSyntax type)
+		{
+			spc.AddSource($"{type.Identifier}_{group.Key.Identifier}.g.cs", code.ToString());
+		}
+	}
+
 	private InvocationModel? GenerateSource(GeneratorSyntaxContext context, CancellationToken token)
 	{
-		if (context.Node is not InvocationExpressionSyntax invocation
-				|| context.SemanticModel.GetSymbolInfo(invocation, token).Symbol is not IMethodSymbol { IsStatic: true } method)
+		if (context.Node is not InvocationExpressionSyntax invocation ||
+		    context.SemanticModel.GetSymbolInfo(invocation, token).Symbol is not IMethodSymbol { IsStatic: true } method)
 		{
 			return null;
 		}
 
-		if (method.ContainingType is ITypeSymbol type && type.GetAttributes().Any(IsConstExprAttribute))
+		// Check for ConstExprAttribute on type or method
+		if ((method.ContainingType is ITypeSymbol type && type.GetAttributes().Any(IsConstExprAttribute)) ||
+		    method.GetAttributes().Any(IsConstExprAttribute))
 		{
 			return GenerateExpression(context.SemanticModel.Compilation, invocation, method, token);
-		}
-
-		foreach (var attr in method.GetAttributes())
-		{
-			if (IsConstExprAttribute(attr))
-			{
-				return GenerateExpression(context.SemanticModel.Compilation, invocation, method, token);
-			}
 		}
 
 		return null;
 	}
 
-	private InvocationModel? GenerateExpression(Compilation compilation, InvocationExpressionSyntax invocation, IMethodSymbol methodSymbol, CancellationToken token)
+	private InvocationModel? GenerateExpression(Compilation compilation, InvocationExpressionSyntax invocation,
+	                                            IMethodSymbol methodSymbol, CancellationToken token)
 	{
 		if (IsInConstExprBody(invocation))
 		{
@@ -151,6 +152,46 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 			return null;
 		}
 
+		var variables = ProcessArguments(compilation, invocation, methodSymbol, token);
+
+		if (variables == null)
+		{
+			return null;
+		}
+
+		if (TryGetOperation<IMethodBodyOperation>(compilation, methodDecl, out var blockOperation) &&
+		    TryGetSemanticModel(compilation, invocation, out var model))
+		{
+			try
+			{
+				var timer = Stopwatch.StartNew();
+				var visitor = new ConstExprOperationVisitor(compilation, token);
+				visitor.VisitBlock(blockOperation.BlockBody!, variables);
+				timer.Stop();
+
+				Logger.Information($"{timer.Elapsed}: {invocation}");
+
+				return new InvocationModel
+				{
+					Usings = GetUsings(methodSymbol),
+					Method = methodDecl,
+					Invocation = invocation,
+					Value = variables[ConstExprOperationVisitor.ReturnVariableName],
+					Location = model.GetInterceptableLocation(invocation, token)
+				};
+			}
+			catch
+			{
+				return null;
+			}
+		}
+
+		return null;
+	}
+
+	private Dictionary<string, object?>? ProcessArguments(Compilation compilation, InvocationExpressionSyntax invocation,
+	                                                      IMethodSymbol methodSymbol, CancellationToken token)
+	{
 		var variables = new Dictionary<string, object?>();
 
 		for (var i = 0; i < invocation.ArgumentList.Arguments.Count; i++)
@@ -172,7 +213,6 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 					{
 						array.SetValue(values[i], j);
 					}
-
 					variables[paramName] = array;
 				}
 				else
@@ -187,10 +227,8 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 							listInstance.Add(item);
 						}
 					}
-
 					variables[paramName] = list;
 				}
-
 				break;
 			}
 
@@ -200,41 +238,13 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 			{
 				return null;
 			}
-
 			variables[paramName] = value;
 		}
 
-		if (TryGetOperation<IMethodBodyOperation>(compilation, methodDecl, out var blockOperation) && TryGetSemanticModel(compilation, invocation, out var model))
-		{
-			try
-			{
-				var timer = Stopwatch.StartNew();
-
-				var visitor = new ConstExprOperationVisitor(compilation, token);
-				visitor.VisitBlock(blockOperation.BlockBody!, variables);
-
-				timer.Stop();
-				Logger.Information($"{timer.Elapsed}: {invocation}");
-
-				return new InvocationModel
-				{
-					Usings = GetUsings(methodSymbol),
-					Method = methodDecl,
-					Invocation = invocation,
-					Value = variables[ConstExprOperationVisitor.ReturnVariableName],
-					Location = model.GetInterceptableLocation(invocation, token)
-				};
-			}
-			catch (Exception e)
-			{
-				return null;
-			}
-		}
-
-		return null;
+		return variables;
 	}
 
-	private MethodDeclarationSyntax? GetMethodSyntaxNode(IMethodSymbol methodSymbol)
+	private static MethodDeclarationSyntax? GetMethodSyntaxNode(IMethodSymbol methodSymbol)
 	{
 		return methodSymbol.DeclaringSyntaxReferences
 			.Select(s => s.GetSyntax())
@@ -242,38 +252,19 @@ public class VectorizeSourceGenerator() : IncrementalGenerator("Vectorize")
 			.FirstOrDefault();
 	}
 
-	public static HashSet<string> GetUsings(IMethodSymbol methodSymbol)
+	private static HashSet<string> GetUsings(IMethodSymbol methodSymbol)
 	{
 		var usings = new HashSet<string>
 		{
 			"using System.Diagnostics;",
-			// "using System;",
-			"using System.Runtime.CompilerServices;"
+			"using System.Runtime.CompilerServices;",
+			$"using {methodSymbol.ReturnType.ContainingNamespace};"
 		};
 
-		// if (methodSymbol.ContainingNamespace != null)
-		// {
-		// 	usings.Add($"using {methodSymbol.ContainingNamespace};");
-		// }
-
-		usings.Add($"using {methodSymbol.ReturnType.ContainingNamespace};");
-		
 		foreach (var p in methodSymbol.Parameters)
 		{
 			usings.Add($"using {p.Type.ContainingNamespace};");
 		}
-
-		// var tree = methodSymbol.DeclaringSyntaxReferences.FirstOrDefault()?.SyntaxTree;
-		//
-		// if (tree != null)
-		// {
-		// 	var root = tree.GetRoot();
-		//
-		// 	foreach (var u in root.DescendantNodes().OfType<UsingDirectiveSyntax>())
-		// 	{
-		// 		usings.Add(u.ToString());
-		// 	}
-		// }
 
 		return usings;
 	}
