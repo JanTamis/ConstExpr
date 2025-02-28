@@ -297,7 +297,22 @@ public partial class ConstExprOperationVisitor(Compilation compilation, ILogger 
 
 	public override object? VisitReturn(IReturnOperation operation, Dictionary<string, object?> argument)
 	{
-		return argument[ReturnVariableName] = Visit(operation.ReturnedValue, argument);
+		switch (operation.Kind)
+		{
+			case OperationKind.Return:
+				return argument[ReturnVariableName] = Visit(operation.ReturnedValue, argument);
+			case OperationKind.YieldReturn:
+				if (!argument.TryGetValue(ReturnVariableName, out var list) || list is not IList data)
+				{
+					data = new List<object?>();
+					argument[ReturnVariableName] = data;
+				}
+
+				data.Add(Visit(operation.ReturnedValue, argument));
+				return null;
+			default:
+				return null;
+		}
 	}
 
 	public override object? VisitWhileLoop(IWhileLoopOperation operation, Dictionary<string, object?> argument)

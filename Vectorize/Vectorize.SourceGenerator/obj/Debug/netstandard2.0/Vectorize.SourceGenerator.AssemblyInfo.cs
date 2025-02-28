@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Vectorize.SourceGenerator")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+dbb62b74263494b2d163b7ca3edfc6ef3b0bb69b")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7da991dadc2b9dd77a89679ef0826bb8b079c685")]
 [assembly: System.Reflection.AssemblyProductAttribute("Vectorize.SourceGenerator")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Vectorize.SourceGenerator")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
