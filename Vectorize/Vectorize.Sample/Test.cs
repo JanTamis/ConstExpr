@@ -1,64 +1,71 @@
 using ConstantExpression;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Vectorize.Sample;
 
+[ConstExpr]
 public static class Test
 {
-	[ConstExpr]
-	public static float Sum(params IEnumerable<float> data)
+	public static IEnumerable<float> IsOdd(params IEnumerable<float> data)
 	{
-		var sum = 0f;
-
-		foreach (var item in data)
-		{
-			sum += item;
-		}
-
-		return sum;
+		return data
+			.Where(w => w % 2 != 0);
 	}
 
-	[ConstExpr]
 	public static float Average(params IReadOnlyList<float> data)
 	{
-		return Sum(data) / data.Count;
+		return IsOdd(data).Average();
 	}
-
-	[ConstExpr]
+	
 	public static float StdDev(params IReadOnlyList<float> data)
 	{
 		var sum = 0f;
 		var sumOfSquares = 0f;
-
+	
 		foreach (var item in data)
 		{
 			sum += item;
 			sumOfSquares += item * item;
 		}
-
+	
 		var mean = sum / data.Count;
 		var variance = sumOfSquares / data.Count - mean * mean;
-
+	
 		return MathF.Sqrt(variance);
 	}
-
-	[ConstExpr]
+	
 	public static int StringLength(string value, Encoding encoding)
 	{
 		return encoding.GetByteCount(value);
 	}
-
-	[ConstExpr]
+	
 	public static ReadOnlySpan<byte> StringBytes(string value, Encoding encoding)
 	{
 		return encoding.GetBytes(value);
 	}
-
-	[ConstExpr]
+	
 	public static string Base64Encode(string value)
 	{
 		return Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
 	}
+	
+	public async static Task<string> Waiting()
+	{
+		await Task.Delay(1000);
+		
+		return nameof(Test);
+	}
+	
+	public static IEnumerable<int> Range(int start, int count)
+	{
+		return Enumerable
+			.Range(start, count)
+			.OrderBy(o => Guid.NewGuid());
+	}
+	
+	
 }

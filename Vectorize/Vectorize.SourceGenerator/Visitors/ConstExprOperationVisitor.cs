@@ -2,19 +2,22 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.FlowAnalysis;
 using Microsoft.CodeAnalysis.Operations;
-using SGF.Diagnostics;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.Linq.Expressions;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using Vectorize.Helpers;
 
 namespace Vectorize.Visitors;
 
-public partial class ConstExprOperationVisitor(Compilation compilation, ILogger logger) : OperationVisitor<Dictionary<string, object?>, object?>
+public partial class ConstExprOperationVisitor(Compilation compilation, CancellationToken token) : OperationVisitor<Dictionary<string, object?>, object?>
 {
 	public const string ReturnVariableName = "$return$";
 
@@ -33,6 +36,13 @@ public partial class ConstExprOperationVisitor(Compilation compilation, ILogger 
 		return null;
 	}
 
+	public override object? Visit(IOperation? operation, Dictionary<string, object?> argument)
+	{
+		token.ThrowIfCancellationRequested();
+
+		return base.Visit(operation, argument);
+	}
+
 	public override object? VisitIsNull(IIsNullOperation operation, Dictionary<string, object?> argument)
 	{
 		return Visit(operation.Operand, argument) is null;
@@ -41,7 +51,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, ILogger 
 	public override object? VisitArrayCreation(IArrayCreationOperation operation, Dictionary<string, object?> argument)
 	{
 		return operation.Initializer?.ElementValues
-			.Select(value => Visit(value, argument))
+			.Select(s => Visit(s, argument))
 			.ToArray();
 	}
 
@@ -168,7 +178,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, ILogger 
 		{
 			true => Visit(operation.WhenTrue, argument),
 			false => Visit(operation.WhenFalse, argument),
-			_ => null,
+			_ => throw new InvalidOperationException("Invalid conditional operation."),
 		};
 	}
 
@@ -202,7 +212,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, ILogger 
 			SpecialType.System_UInt32 => Convert.ToUInt32(operand),
 			SpecialType.System_UInt64 => Convert.ToUInt64(operand),
 			SpecialType.System_Object => operand,
-			SpecialType.System_Collections_IEnumerable => (IEnumerable)operand,
+			SpecialType.System_Collections_IEnumerable => (IEnumerable) operand,
 			_ => operand,
 		};
 	}
@@ -216,9 +226,14 @@ public partial class ConstExprOperationVisitor(Compilation compilation, ILogger 
 			.Select(s => Visit(s.Value, argument))
 			.ToArray();
 
-		if (targetMethod.GetAttributes().Any(SyntaxHelpers.IsConstExprAttribute) && SyntaxHelpers.TryGetOperation<IMethodBodyOperation>(compilation, targetMethod, out var methodOperation))
+		if (SyntaxHelpers.IsInConstExprBody(targetMethod)
+		    && SyntaxHelpers.TryGetOperation<IMethodBodyOperation>(compilation, targetMethod, out var methodOperation))
 		{
-			var syntax = (MethodDeclarationSyntax)targetMethod.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax();
+			var syntax = targetMethod.DeclaringSyntaxReferences
+				.Select(s => s.GetSyntax(token))
+				.OfType<MethodDeclarationSyntax>()
+				.FirstOrDefault();
+
 			var variables = new Dictionary<string, object?>();
 
 			for (var i = 0; i < syntax.ParameterList.Parameters.Count; i++)
@@ -228,7 +243,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, ILogger 
 				variables.Add(parameterName, arguments[i]);
 			}
 
-			var visitor = new ConstExprOperationVisitor(compilation, logger);
+			var visitor = new ConstExprOperationVisitor(compilation, token);
 			visitor.VisitBlock(methodOperation.BlockBody, variables);
 
 			return variables[ReturnVariableName];
@@ -244,9 +259,9 @@ public partial class ConstExprOperationVisitor(Compilation compilation, ILogger 
 		foreach (var caseClause in operation.Cases)
 		{
 			if (caseClause.Clauses
-					.Where(w => w.CaseKind != CaseKind.Default)
-					.Select(s => Visit(s, argument))
-					.Contains(value))
+			    .Where(w => w.CaseKind != CaseKind.Default)
+			    .Select(s => Visit(s, argument))
+			    .Contains(value))
 			{
 				VisitList(caseClause.Body, argument);
 
@@ -257,9 +272,9 @@ public partial class ConstExprOperationVisitor(Compilation compilation, ILogger 
 		foreach (var caseClause in operation.Cases)
 		{
 			if (caseClause.Clauses
-					.Where(w => w.CaseKind == CaseKind.Default)
-					.Select(s => Visit(s, argument))
-					.Contains(value))
+			    .Where(w => w.CaseKind == CaseKind.Default)
+			    .Select(s => Visit(s, argument))
+			    .Contains(value))
 			{
 				VisitList(caseClause.Body, argument);
 			}
@@ -345,7 +360,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, ILogger 
 	public override object? VisitForEachLoop(IForEachLoopOperation operation, Dictionary<string, object?> argument)
 	{
 		var itemName = GetVariableName(operation.LoopControlVariable);
-		var names = argument.Keys.ToArray();
+		// var names = argument.Keys.ToArray();
 		var collection = Visit(operation.Collection, argument);
 
 		foreach (var item in collection as IEnumerable)
@@ -473,7 +488,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, ILogger 
 
 	public override object? VisitInstanceReference(IInstanceReferenceOperation operation, Dictionary<string, object?> argument)
 	{
-		
+
 		return operation.ReferenceKind switch
 		{
 			InstanceReferenceKind.ContainingTypeInstance => argument["this"],
@@ -527,8 +542,6 @@ public partial class ConstExprOperationVisitor(Compilation compilation, ILogger 
 
 	public override object? VisitPropertyReference(IPropertyReferenceOperation operation, Dictionary<string, object?> argument)
 	{
-		var timer = Stopwatch.StartNew();
-
 		var instance = Visit(operation.Instance, argument);
 		var type = SyntaxHelpers.GetTypeByType(compilation, operation.Property.ContainingType);
 
@@ -540,18 +553,205 @@ public partial class ConstExprOperationVisitor(Compilation compilation, ILogger 
 		{
 			throw new InvalidOperationException("Property info could not be retrieved.");
 		}
+		
+		if (operation.Property.IsStatic)
+		{
+			return propertyInfo.GetValue(null);
+		}
 
-		// TODO: improve conversion from instance to type
-		if (instance is IConvertible && !propertyInfo.PropertyType.IsInstanceOfType(instance))
+		if (instance is IConvertible)
 		{
 			instance = Convert.ChangeType(instance, propertyInfo.PropertyType);
 		}
-		
+
 		return propertyInfo.GetValue(instance);
 	}
 
-	public override object? VisitExpressionStatement(IExpressionStatementOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitAwait(IAwaitOperation operation, Dictionary<string, object?> argument)
 	{
-		return Visit(operation.Operation, argument);
+		var value = Visit(operation.Operation, argument);
+
+		if (value is null)
+		{
+			return null;
+		}
+
+		var task = value.GetType();
+
+		// Use reflection to call GetAwaiter() and GetResult()
+		var getAwaiterMethod = task.GetMethod(nameof(Task.GetAwaiter));
+		var awaiter = getAwaiterMethod?.Invoke(value, null);
+
+		var getResultMethod = awaiter?.GetType().GetMethod(nameof(TaskAwaiter.GetResult));
+		var result = getResultMethod?.Invoke(awaiter, null);
+
+		return result;
+	}
+
+	public override object? VisitUsing(IUsingOperation operation, Dictionary<string, object?> argument)
+	{
+		var names = argument.Keys.ToArray();
+
+		Visit(operation.Resources, argument);
+		Visit(operation.Body, argument);
+
+		foreach (var name in argument.Keys.Except(names))
+		{
+			var item = argument[name];
+
+			if (item is IDisposable disposable)
+			{
+				disposable.Dispose();
+			}
+			else
+			{
+				item.GetType().GetMethod("Dispose")?.Invoke(item, null);
+			}
+		}
+
+		return null;
+	}
+
+	public override object? VisitNameOf(INameOfOperation operation, Dictionary<string, object?> argument)
+	{
+		return operation.ConstantValue.Value;
+	}
+
+	public override object? VisitLock(ILockOperation operation, Dictionary<string, object?> argument)
+	{
+		lock (Visit(operation.LockedValue, argument))
+		{
+			Visit(operation.Body, argument);
+		}
+
+		return null;
+	}
+
+	public override object? VisitDelegateCreation(IDelegateCreationOperation operation, Dictionary<string, object?> argument)
+	{
+		return Visit(operation.Target, argument);
+	}
+
+	public override object? VisitAnonymousFunction(IAnonymousFunctionOperation operation, Dictionary<string, object?> argument)
+	{
+		var parameters = operation.Symbol.Parameters
+			.Select(p => Expression.Parameter(SyntaxHelpers.GetTypeByType(compilation, p.Type), p.Name))
+			.ToArray();
+
+		var body = new ExpressionVisitor(compilation, parameters).VisitBlock(operation.Body, argument);
+		var lambda = Expression.Lambda(body, parameters);
+
+		// Compileer de lambda en retourneer de gedelegeerde
+		return lambda.Compile();
+	}
+
+	public override object? VisitMethodReference(IMethodReferenceOperation operation, Dictionary<string, object?> argument)
+	{
+		var instance = Visit(operation.Instance, argument);
+		var containingType = SyntaxHelpers.GetTypeByType(compilation, operation.Method.ContainingType);
+		var method = containingType.GetMethod(operation.Method.Name);
+
+		if (method == null)
+		{
+			return null;
+		}
+
+		return method.CreateDelegate(typeof(Delegate), instance);
+	}
+
+	public override object? VisitIsType(IIsTypeOperation operation, Dictionary<string, object?> argument)
+	{
+		var value = Visit(operation.ValueOperand, argument);
+
+		if (value == null)
+		{
+			return false;
+		}
+
+		var targetType = SyntaxHelpers.GetTypeByType(compilation, operation.TypeOperand);
+		return targetType.IsInstanceOfType(value);
+	}
+
+	public override object? VisitDynamicMemberReference(IDynamicMemberReferenceOperation operation, Dictionary<string, object?> argument)
+	{
+		var instance = Visit(operation.Instance, argument);
+
+		if (instance == null)
+		{
+			return null;
+		}
+
+		var memberInfo = instance.GetType().GetMember(operation.MemberName).FirstOrDefault();
+
+		return memberInfo switch
+		{
+			PropertyInfo propertyInfo => propertyInfo.GetValue(instance),
+			FieldInfo fieldInfo => fieldInfo.GetValue(instance),
+			_ => null
+		};
+
+	}
+
+	public override object? VisitDynamicInvocation(IDynamicInvocationOperation operation, Dictionary<string, object?> argument)
+	{
+		var instance = Visit(operation.Operation, argument);
+
+		if (instance == null)
+		{
+			return null;
+		}
+
+		var arguments = operation.Arguments
+			.Select(s => Visit(s, argument))
+			.ToArray();
+
+		if (instance is Delegate del)
+		{
+			return del.DynamicInvoke(arguments);
+		}
+
+		return null;
+	}
+
+	public override object? VisitDynamicObjectCreation(IDynamicObjectCreationOperation operation, Dictionary<string, object?> argument)
+	{
+		var arguments = operation.Arguments
+			.Select(s => Visit(s, argument))
+			.ToArray();
+
+		if (operation.Type == null)
+		{
+			return null;
+		}
+
+		var type = Type.GetType(operation.Type.ToDisplayString());
+		return Activator.CreateInstance(type, arguments);
+	}
+
+	public override object? VisitTuple(ITupleOperation operation, Dictionary<string, object?> argument)
+	{
+		var elements = operation.Elements
+			.Select(s => Visit(s, argument))
+			.ToArray();
+
+		var type = operation.Type;
+		return Activator.CreateInstance(Type.GetType(type.ToDisplayString()), elements);
+	}
+
+	public override object? VisitDynamicIndexerAccess(IDynamicIndexerAccessOperation operation, Dictionary<string, object?> argument)
+	{
+		var instance = Visit(operation.Operation, argument);
+
+		if (instance == null)
+		{
+			return null;
+		}
+
+		var arguments = operation.Arguments
+			.Select(s => Visit(s, argument))
+			.ToArray();
+
+		var indexProperty = instance.GetType().GetProperty("Item");
+		return indexProperty?.GetValue(instance, arguments);
 	}
 }

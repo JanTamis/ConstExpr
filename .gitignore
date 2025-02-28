@@ -3,4 +3,6 @@
 ################################################################################
 
 /.vs
-/Vectorize
+/Vectorize/Vectorize.SourceGenerator/bin/Debug/netstandard2.0
+/Vectorize/Vectorize.SourceGenerator/obj
+/Vectorize/Vectorize.Sample
