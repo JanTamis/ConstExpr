@@ -212,7 +212,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Cancella
 			SpecialType.System_UInt32 => Convert.ToUInt32(operand),
 			SpecialType.System_UInt64 => Convert.ToUInt64(operand),
 			SpecialType.System_Object => operand,
-			SpecialType.System_Collections_IEnumerable => (IEnumerable) operand,
+			SpecialType.System_Collections_IEnumerable => operand as IEnumerable,
 			_ => operand,
 		};
 	}
@@ -386,7 +386,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Cancella
 			return formattable.ToString(Visit(operation.FormatString, argument) as string, CultureInfo.InvariantCulture);
 		}
 
-		return value.ToString();
+		return value?.ToString();
 	}
 
 	public override object? VisitInterpolatedStringText(IInterpolatedStringTextOperation operation, Dictionary<string, object?> argument)
@@ -425,7 +425,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Cancella
 
 	public override object? VisitTypeOf(ITypeOfOperation operation, Dictionary<string, object?> argument)
 	{
-		return Type.GetType(operation.Type.ToDisplayString());
+		return SyntaxHelpers.GetTypeByType(compilation, operation.Type);
 	}
 
 	public override object? VisitArrayInitializer(IArrayInitializerOperation operation, Dictionary<string, object?> argument)
@@ -474,7 +474,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Cancella
 			.Select(s => Visit(s.Value, argument))
 			.ToArray();
 
-		return Activator.CreateInstance(Type.GetType(operation.Type.ToDisplayString()), arguments);
+		return Activator.CreateInstance(SyntaxHelpers.GetTypeByType(compilation, operation.Type), arguments);
 	}
 
 	public override object? VisitAnonymousObjectCreation(IAnonymousObjectCreationOperation operation, Dictionary<string, object?> argument)
@@ -483,7 +483,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Cancella
 			.Select(s => Visit(s, argument))
 			.ToArray();
 
-		return Activator.CreateInstance(Type.GetType(operation.Type.ToDisplayString()), arguments);
+		return Activator.CreateInstance(SyntaxHelpers.GetTypeByType(compilation, operation.Type), arguments);
 	}
 
 	public override object? VisitInstanceReference(IInstanceReferenceOperation operation, Dictionary<string, object?> argument)
@@ -735,7 +735,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Cancella
 			.ToArray();
 
 		var type = operation.Type;
-		return Activator.CreateInstance(Type.GetType(type.ToDisplayString()), elements);
+		return Activator.CreateInstance(SyntaxHelpers.GetTypeByType(compilation, operation.Type), elements);
 	}
 
 	public override object? VisitDynamicIndexerAccess(IDynamicIndexerAccessOperation operation, Dictionary<string, object?> argument)

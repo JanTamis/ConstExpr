@@ -60,12 +60,13 @@ public static class Test
 		return nameof(Test);
 	}
 	
-	public static IEnumerable<int> Range(int start, int count)
+	public static IEnumerable<int> Range(int count)
 	{
-		return Enumerable
-			.Range(start, count)
-			.OrderBy(o => Guid.NewGuid());
+		var random = new Random();
+
+		for (int i = 0; i < count; i++)
+		{
+			yield return random.Next();
+		}
 	}
-	
-	
 }
