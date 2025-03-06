@@ -697,7 +697,7 @@ public static class SyntaxHelpers
 					return new Enumerable_{{hashCode}}(0);
 				}
 				
-				IEnumerator IEnumerable.GetEnumerator()
+				IEnumerator IEnumerable.GetEnumerator() 
 				{
 					return GetEnumerator();
 				}
@@ -709,7 +709,6 @@ public static class SyntaxHelpers
 				
 				public void Dispose()
 				{
-					
 				}
 				""");
 		}

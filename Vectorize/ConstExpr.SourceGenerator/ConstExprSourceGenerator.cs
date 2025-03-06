@@ -33,7 +33,7 @@ public partial class ConstExprSourceGenerator() : IncrementalGenerator("ConstExp
 					predicate: (node, _) => node is InvocationExpressionSyntax,
 					transform: GenerateSource)
 				.Where(result => result != null);
-			
+
 			context.RegisterSourceOutput(invocations.Collect().Combine(context.CompilationProvider), (spc, modelAndCompilation) =>
 			{
 				foreach (var group in modelAndCompilation.Left.GroupBy(model => model.Method, SyntaxNodeComparer<MethodDeclarationSyntax>.Instance))
@@ -112,9 +112,9 @@ public partial class ConstExprSourceGenerator() : IncrementalGenerator("ConstExp
 				var body = SyntaxFactory.Block(
 					SyntaxFactory.ReturnStatement(
 						SyntaxFactory.ObjectCreationExpression(
-							SyntaxFactory.ParseTypeName($"Enumerable_{enumerable.GetHashCode()}"), 
-							SyntaxFactory.ArgumentList(SyntaxFactory.SeparatedList<ArgumentSyntax>([SyntaxFactory.Argument(CreateLiteral(-2))])), null)));
-					
+							SyntaxFactory.ParseTypeName($"Enumerable_{enumerable.GetHashCode()}"),
+							SyntaxFactory.ArgumentList(SyntaxFactory.SeparatedList<ArgumentSyntax>([ SyntaxFactory.Argument(CreateLiteral(-2)) ])), null)));
+
 				method = method
 					.WithBody(body)
 					.WithExpressionBody(null);
@@ -125,7 +125,7 @@ public partial class ConstExprSourceGenerator() : IncrementalGenerator("ConstExp
 					.WithBody(SyntaxFactory.Block(SyntaxFactory.ReturnStatement(CreateLiteral(first.Value))))
 					.WithExpressionBody(null);
 			}
-			
+
 			var methodCode = method
 				.NormalizeWhitespace("\t")
 				.ToString()
@@ -139,10 +139,14 @@ public partial class ConstExprSourceGenerator() : IncrementalGenerator("ConstExp
 
 		foreach (var invocation in group.Distinct())
 		{
-			if (IsIEnumerable(compilation, invocation.Method.ReturnType) && invocation.Value is IEnumerable enumerable)
+			if (IsInterface(compilation, invocation.Method.ReturnType) && invocation.Value is IEnumerable enumerable)
 			{
-				SyntaxHelpers.BuildEnumerable(enumerable, compilation.GetSemanticModel(invocation.Method.SyntaxTree).GetTypeInfo(invocation.Method.ReturnType).Type, code);	
+				if (IsIEnumerable(compilation, invocation.Method.ReturnType))
+				{
+					SyntaxHelpers.BuildEnumerable(enumerable, compilation.GetSemanticModel(invocation.Method.SyntaxTree).GetTypeInfo(invocation.Method.ReturnType).Type, code);
+				}
 			}
+
 		}
 
 		if (group.Key.Parent is TypeDeclarationSyntax type)
@@ -153,7 +157,7 @@ public partial class ConstExprSourceGenerator() : IncrementalGenerator("ConstExp
 
 	private InvocationModel? GenerateSource(GeneratorSyntaxContext context, CancellationToken token)
 	{
-		if (context.Node is not InvocationExpressionSyntax invocation 
+		if (context.Node is not InvocationExpressionSyntax invocation
 		    || !TryGetSymbol(context.SemanticModel, invocation, token, out var method))
 		{
 			return null;
@@ -305,18 +309,47 @@ public partial class ConstExprSourceGenerator() : IncrementalGenerator("ConstExp
 		return usings;
 	}
 
-	private static bool IsIEnumerable(Compilation compilation, TypeSyntax typeSymbol)
+	private static bool IsIEnumerable(Compilation compilation, TypeSyntax typeSymbol, CancellationToken token = default)
 	{
-		var type = compilation.GetTypeByMetadataName("System.Collections.Generic.IEnumerable`1");
-
-		if (type == null)
+		// Get the semantic model for the syntax node
+		if (!TryGetSemanticModel(compilation, typeSymbol, out var semanticModel))
 		{
 			return false;
 		}
 
-		return typeSymbol is GenericNameSyntax genericName &&
-		       genericName.Identifier.Text == type.Name &&
-		       genericName.TypeArgumentList.Arguments.Count == 1;
+		// Get the actual type symbol
+		var typeInfo = semanticModel.GetTypeInfo(typeSymbol, token);
+
+		if (typeInfo.Type is not ITypeSymbol type)
+		{
+			return false;
+		}
+
+		// Check if it's IEnumerable or implements it
+		var ienumerableGeneric = compilation.GetTypeByMetadataName("System.Collections.Generic.IEnumerable`1");
+		var ienumerable = compilation.GetTypeByMetadataName("System.Collections.IEnumerable");
+
+		if (ienumerableGeneric == null || ienumerable == null)
+		{
+			return false;
+		}
+
+		// Direct check for IEnumerable<T>
+		if (type is { TypeKind: TypeKind.Interface } 
+		    && SymbolEqualityComparer.Default.Equals(type.OriginalDefinition, ienumerableGeneric))
+		{
+			return true;
+		}
+
+		// Check if the type implements IEnumerable<T> or IEnumerable
+		return type.AllInterfaces.Any(i =>
+			SymbolEqualityComparer.Default.Equals(i.OriginalDefinition, ienumerableGeneric) ||
+			SymbolEqualityComparer.Default.Equals(i, ienumerable));
+	}
+
+	private static bool IsInterface(Compilation compilation, TypeSyntax typeSymbol, CancellationToken token = default)
+	{
+		return TryGetSemanticModel(compilation, typeSymbol, out var model) && model.GetSymbolInfo(typeSymbol, token).Symbol is ITypeSymbol { TypeKind: TypeKind.Interface };
 	}
 
 	private static bool TryGetSymbol(SemanticModel semanticModel, InvocationExpressionSyntax invocation, CancellationToken token, out IMethodSymbol symbol)
@@ -329,7 +362,7 @@ public partial class ConstExprSourceGenerator() : IncrementalGenerator("ConstExp
 
 		var memberAccess = invocation.Expression as MemberAccessExpressionSyntax;
 		var symbols = semanticModel.LookupSymbols(invocation.SpanStart, semanticModel.GetEnclosingSymbol(invocation.SpanStart)?.ContainingType);
-		
+
 		foreach (var item in symbols)
 		{
 			if (item is IMethodSymbol { IsStatic: true } methodSymbol && methodSymbol.Name == memberAccess?.Name.ToString())
@@ -338,7 +371,7 @@ public partial class ConstExprSourceGenerator() : IncrementalGenerator("ConstExp
 				return true;
 			}
 		}
-		
+
 		symbol = null;
 		return false;
 	}
