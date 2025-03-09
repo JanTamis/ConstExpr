@@ -165,19 +165,99 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				{
 					if (IsIEnumerable(namedTypeSymbol))
 					{
-						BuildEnumerable(items, namedTypeSymbol, hashCode, code);
+						code.AppendLine($"""
+							private int _state;
+							private int _initialThreadId;
+							private {elementName} _current;
+							
+							public {elementName} Current => _current;
+							object IEnumerator.Current => _current;
+							""");
 					}
 					
+					InterfaceBuilder.AppendCount(namedTypeSymbol, items.Count, code);
+					InterfaceBuilder.AppendLength(namedTypeSymbol, items.Count, code);
+					InterfaceBuilder.AppendIsReadOnly(namedTypeSymbol, code);
+					InterfaceBuilder.AppendIndexer(namedTypeSymbol, elementName, items, code);
 					
-
-					if (IsICollection(namedTypeSymbol))
+					if (IsIEnumerable(namedTypeSymbol))
 					{
-						BuildCollection(items, namedTypeSymbol, code);
+						code.AppendLine($$"""
+							
+							public {{namedTypeSymbol.Name}}_{{hashCode}}(int state)
+							{
+								_state = state;
+								_initialThreadId = Environment.CurrentManagedThreadId;
+							}
+							""");
 					}
+					
+					InterfaceBuilder.AppendAdd(namedTypeSymbol, code);
+					InterfaceBuilder.AppendClear(namedTypeSymbol, code);
+					InterfaceBuilder.AppendRemove(namedTypeSymbol, code);
+					InterfaceBuilder.AppendRemoveAt(namedTypeSymbol, code);
+					InterfaceBuilder.AppendInsert(namedTypeSymbol, code);
+					InterfaceBuilder.AppendIndexOf(namedTypeSymbol, items, code);
+					InterfaceBuilder.AppendCopyTo(namedTypeSymbol, items, elementType, code);
+					InterfaceBuilder.AppendContains(namedTypeSymbol, items, code);
 
-					if (IsIList(namedTypeSymbol))
+					if (IsIEnumerable(namedTypeSymbol))
 					{
-						BuildList(items, namedTypeSymbol, code);
+						code.AppendLine();
+						
+						using (code.AppendBlock("public bool MoveNext()"))
+						{
+							using (code.AppendBlock("switch (_state)"))
+							{
+								var index = 0;
+
+								foreach (var item in items)
+								{
+									code.AppendLine($"case {index}:");
+									code.AppendLine("\t_state = -1;");
+									code.AppendLine($"\t_current = {CreateLiteral(item)};");
+									code.AppendLine($"\t_state = {index + 1};");
+									code.AppendLine("\treturn true;");
+									index++;
+								}
+
+								code.AppendLine($"default:");
+								code.AppendLine("\treturn false;");
+							}
+						}
+						
+						code.AppendLine($$"""
+
+							bool IEnumerator.MoveNext()
+							{
+								return MoveNext();
+							}
+
+							public IEnumerator<{{elementName}}> GetEnumerator()
+							{
+								if (_state == -2 && _initialThreadId == Environment.CurrentManagedThreadId)
+								{
+									_state = 0;
+									return this;
+								}
+								
+								return new {{namedTypeSymbol.Name}}_{{hashCode}}(0);
+							}
+
+							IEnumerator IEnumerable.GetEnumerator() 
+							{
+								return GetEnumerator();
+							}
+
+							public void Reset()
+							{
+								_state = 0;
+							}
+
+							public void Dispose()
+							{
+							}
+							""");
 					}
 				}
 			}

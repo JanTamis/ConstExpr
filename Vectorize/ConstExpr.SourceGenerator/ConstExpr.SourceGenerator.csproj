@@ -10,7 +10,7 @@
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 <!--		<CompilerVisibleProperty Include="SgfAddModuleInitializerAttribute"/>-->
 		<IsRoslynComponent>true</IsRoslynComponent>
-
+<PolySharpExcludeGeneratedTypes>System.Runtime.CompilerServices.ModuleInitializerAttribute,System.AttributeUsage</PolySharpExcludeGeneratedTypes>
 		<RootNamespace>ConstExpr.SourceGenerator</RootNamespace>
 		<PackageId>ConstExpr.SourceGenerator</PackageId>
 	</PropertyGroup>
@@ -22,6 +22,10 @@
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" />
+		<PackageReference Include="PolySharp" Version="1.15.0">
+		  <PrivateAssets>all</PrivateAssets>
+		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
 		<PackageReference Include="SourceGenerator.Foundations" Version="2.0.13" />
 		<PackageReference Include="SourceGenerator.Foundations.Contracts" Version="2.0.13" />
 	</ItemGroup>

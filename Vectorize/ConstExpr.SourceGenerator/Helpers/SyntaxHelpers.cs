@@ -5,6 +5,7 @@ using Microsoft.CodeAnalysis.Operations;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -668,26 +669,26 @@ public static class SyntaxHelpers
 			.OfType<TMember>()
 			.FirstOrDefault(selector);
 
-		member = item.AllInterfaces
-			.Select(i => i.GetMembers()
+		member ??= item.AllInterfaces
+			.SelectMany(i => i.GetMembers()
 				.OfType<TMember>()
-				.FirstOrDefault(selector))
-			.FirstOrDefault(f => f is not null);
+				.Where(selector))
+			.FirstOrDefault();
 
 		return member is not null;
 	}
 
-	public static bool CheckMembers<TMember>(this ITypeSymbol item, string name, Func<TMember, bool> selector, out TMember? member) where TMember : ISymbol
+	public static bool CheckMembers<TMember>(this ITypeSymbol item, string name, Func<TMember, bool> selector, [NotNullWhen(true)] out TMember? member) where TMember : ISymbol
 	{
 		member = item.GetMembers(name)
 			.OfType<TMember>()
 			.FirstOrDefault(selector);
 
-		member = item.AllInterfaces
-			.Select(i => i.GetMembers(name)
+		member ??= item.AllInterfaces
+			.SelectMany(i => i.GetMembers(name)
 				.OfType<TMember>()
-				.FirstOrDefault(selector))
-			.FirstOrDefault(f => f is not null);
+				.Where(selector))
+			.FirstOrDefault();
 
 		return member is not null;
 	}
@@ -708,7 +709,6 @@ public static class SyntaxHelpers
 			private {{elementName}} _current;
 
 			public {{elementName}} Current => _current;
-
 			object IEnumerator.Current => _current;
 
 			public {{namedTypeSymbol.Name}}_{{hashCode}}(int state)
@@ -775,8 +775,6 @@ public static class SyntaxHelpers
 			#endregion
 			""");
 	}
-
-	
 
 	// 	public static void BuildCollection(IEnumerable<object?> items, INamedTypeSymbol namedTypeSymbol, IndentedStringBuilder builder)
 	// 	{
