@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Visitors;
@@ -22,7 +21,7 @@ namespace ConstExpr.SourceGenerator;
 #pragma warning disable RSEXPERIMENTAL002
 
 [IncrementalGenerator]
-public partial class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
+public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 {
 	public override void OnInitialize(SgfInitializationContext context)
 	{
@@ -107,12 +106,12 @@ public partial class ConstExprSourceGenerator() : IncrementalGenerator("ConstExp
 				.WithIdentifier(SyntaxFactory.Identifier($"{first.Method.Identifier}_{first.Invocation.GetHashCode()}"))
 				.WithAttributeLists(SyntaxFactory.List<AttributeListSyntax>());
 
-			if (IsIEnumerable(compilation, first.Method.ReturnType) && first.Value is IEnumerable enumerable)
+			if (IsInterface(compilation, first.Method.ReturnType) && first.Method.ReturnType is GenericNameSyntax nameSyntax && first.Value is IEnumerable enumerable)
 			{
 				var body = SyntaxFactory.Block(
 					SyntaxFactory.ReturnStatement(
 						SyntaxFactory.ObjectCreationExpression(
-							SyntaxFactory.ParseTypeName($"Enumerable_{enumerable.GetHashCode()}"),
+							SyntaxFactory.ParseTypeName($"{nameSyntax.Identifier.ToString()}_{enumerable.GetHashCode()}"),
 							SyntaxFactory.ArgumentList(SyntaxFactory.SeparatedList<ArgumentSyntax>([ SyntaxFactory.Argument(CreateLiteral(-2)) ])), null)));
 
 				method = method
@@ -141,16 +140,51 @@ public partial class ConstExprSourceGenerator() : IncrementalGenerator("ConstExp
 		{
 			if (IsInterface(compilation, invocation.Method.ReturnType) && invocation.Value is IEnumerable enumerable)
 			{
-				if (IsIEnumerable(compilation, invocation.Method.ReturnType))
+				var returnType = compilation.GetSemanticModel(invocation.Method.SyntaxTree).GetTypeInfo(invocation.Method.ReturnType).Type;
+				var items = enumerable.Cast<object>().ToList();
+
+				if (returnType is not INamedTypeSymbol namedTypeSymbol)
 				{
-					SyntaxHelpers.BuildEnumerable(enumerable, compilation.GetSemanticModel(invocation.Method.SyntaxTree).GetTypeInfo(invocation.Method.ReturnType).Type, code);
+					continue;
+				}
+
+				var elementType = namedTypeSymbol.TypeArguments.FirstOrDefault();
+				var elementName = elementType?.ToDisplayString();
+				var hashCode = enumerable.GetHashCode();
+
+				IEnumerable<string> interfaces = [ $"{namedTypeSymbol.Name}<{elementName}>" ];
+
+				if (IsIEnumerable(namedTypeSymbol))
+				{
+					interfaces = interfaces.Append($"IEnumerator<{elementName}>");
+				}
+
+				code.AppendLine();
+
+				using (code.AppendBlock($"file sealed class {namedTypeSymbol.Name}_{hashCode} : {String.Join(", ", interfaces)}"))
+				{
+					if (IsIEnumerable(namedTypeSymbol))
+					{
+						BuildEnumerable(items, namedTypeSymbol, hashCode, code);
+					}
+					
+					
+
+					if (IsICollection(namedTypeSymbol))
+					{
+						BuildCollection(items, namedTypeSymbol, code);
+					}
+
+					if (IsIList(namedTypeSymbol))
+					{
+						BuildList(items, namedTypeSymbol, code);
+					}
 				}
 			}
-
 		}
 
 		if (group.Key.Parent is TypeDeclarationSyntax type)
-		{
+		{ 
 			spc.AddSource($"{type.Identifier}_{group.Key.Identifier}.g.cs", code.ToString());
 		}
 	}
@@ -307,49 +341,6 @@ public partial class ConstExprSourceGenerator() : IncrementalGenerator("ConstExp
 		}
 
 		return usings;
-	}
-
-	private static bool IsIEnumerable(Compilation compilation, TypeSyntax typeSymbol, CancellationToken token = default)
-	{
-		// Get the semantic model for the syntax node
-		if (!TryGetSemanticModel(compilation, typeSymbol, out var semanticModel))
-		{
-			return false;
-		}
-
-		// Get the actual type symbol
-		var typeInfo = semanticModel.GetTypeInfo(typeSymbol, token);
-
-		if (typeInfo.Type is not ITypeSymbol type)
-		{
-			return false;
-		}
-
-		// Check if it's IEnumerable or implements it
-		var ienumerableGeneric = compilation.GetTypeByMetadataName("System.Collections.Generic.IEnumerable`1");
-		var ienumerable = compilation.GetTypeByMetadataName("System.Collections.IEnumerable");
-
-		if (ienumerableGeneric == null || ienumerable == null)
-		{
-			return false;
-		}
-
-		// Direct check for IEnumerable<T>
-		if (type is { TypeKind: TypeKind.Interface } 
-		    && SymbolEqualityComparer.Default.Equals(type.OriginalDefinition, ienumerableGeneric))
-		{
-			return true;
-		}
-
-		// Check if the type implements IEnumerable<T> or IEnumerable
-		return type.AllInterfaces.Any(i =>
-			SymbolEqualityComparer.Default.Equals(i.OriginalDefinition, ienumerableGeneric) ||
-			SymbolEqualityComparer.Default.Equals(i, ienumerable));
-	}
-
-	private static bool IsInterface(Compilation compilation, TypeSyntax typeSymbol, CancellationToken token = default)
-	{
-		return TryGetSemanticModel(compilation, typeSymbol, out var model) && model.GetSymbolInfo(typeSymbol, token).Symbol is ITypeSymbol { TypeKind: TypeKind.Interface };
 	}
 
 	private static bool TryGetSymbol(SemanticModel semanticModel, InvocationExpressionSyntax invocation, CancellationToken token, out IMethodSymbol symbol)

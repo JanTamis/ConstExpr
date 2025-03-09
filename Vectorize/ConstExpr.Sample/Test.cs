@@ -15,60 +15,63 @@ public static class Test
 		return data
 			.Where(w => w % 2 != 0);
 	}
-	
+
 	public static float Average(params IReadOnlyList<float> data)
 	{
 		return IsOdd(data)
 			.Average();
 	}
-	
+
 	public static float StdDev(params IReadOnlyList<float> data)
 	{
 		var sum = 0f;
 		var sumOfSquares = 0f;
-	
+
 		foreach (var item in data)
 		{
 			sum += item;
 			sumOfSquares += item * item;
 		}
-	
+
 		var mean = sum / data.Count;
 		var variance = sumOfSquares / data.Count - mean * mean;
-	
+
 		return MathF.Sqrt(variance);
 	}
-	
+
 	public static int StringLength(string value, Encoding encoding)
 	{
 		return encoding.GetByteCount(value);
 	}
-	
+
 	public static ReadOnlySpan<byte> StringBytes(string value, Encoding encoding)
 	{
 		return encoding.GetBytes(value);
 	}
-	
+
 	public static string Base64Encode(string value)
 	{
 		return Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
 	}
-	
+
 	public async static Task<string> Waiting()
 	{
-		await Task.Delay(1000);
-	
+		// await Task.Delay(1000);
+
 		return nameof(Test);
 	}
-	
-	public static IEnumerable<int> Range(int count)
+
+	public static IList<int> Range(int count)
 	{
 		var random = new Random();
-	
+		var result = new List<int>(count);
+
 		for (var i = 0; i < count; i++)
 		{
-			yield return random.Next();
+			result.Add(random.Next(count));
 		}
+
+		return result;
 	}
 
 	public static IEnumerable<string> Split(string value, char separator)
@@ -83,7 +86,7 @@ public static class Test
 		for (var i = 0; i < count; i++)
 		{
 			yield return a;
-			
+
 			var temp = a;
 			a = b;
 			b = temp + b;
@@ -118,6 +121,7 @@ public static class Test
 			}
 
 			h *= 60;
+
 			if (h < 0)
 			{
 				h += 360;

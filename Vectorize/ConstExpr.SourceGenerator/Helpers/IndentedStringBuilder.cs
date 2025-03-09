@@ -90,6 +90,14 @@ public class IndentedStringBuilder(string indentString = "\t")
 		return new ActionDisposable(() => Outdent().AppendLine("}"));
 	}
 
+	public IDisposable AppendBlock(string text, string end)
+	{
+		AppendLine(text);
+		AppendLine("{");
+		Indent();
+		return new ActionDisposable(() => Outdent().AppendLine(end));
+	}
+
 	private void AppendIndentation()
 	{
 		for (var i = 0; i < _indentLevel; i++)

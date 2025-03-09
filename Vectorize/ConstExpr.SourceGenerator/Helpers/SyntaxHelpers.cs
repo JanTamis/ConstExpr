@@ -111,8 +111,8 @@ public static class SyntaxHelpers
 			case char c:
 				return SyntaxFactory.LiteralExpression(SyntaxKind.CharacterLiteralExpression, SyntaxFactory.Literal(c));
 			case bool b:
-				return SyntaxFactory.LiteralExpression(b 
-					? SyntaxKind.TrueLiteralExpression 
+				return SyntaxFactory.LiteralExpression(b
+					? SyntaxKind.TrueLiteralExpression
 					: SyntaxKind.FalseLiteralExpression);
 			case null:
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression);
@@ -274,7 +274,7 @@ public static class SyntaxHelpers
 		var methodName = methodSymbol.Name;
 
 		var type = GetTypeByType(compilation, methodSymbol.ContainingType)
-			?? throw new InvalidOperationException($"Type '{fullyQualifiedName}' not found");
+		           ?? throw new InvalidOperationException($"Type '{fullyQualifiedName}' not found");
 
 		var methodInfos = type
 			.GetMethods(methodSymbol.IsStatic
@@ -468,9 +468,9 @@ public static class SyntaxHelpers
 	public static bool TryGetOperation<TOperation>(Compilation compilation, ISymbol symbol, out TOperation operation) where TOperation : IOperation
 	{
 		if (TryGetSemanticModel(compilation, symbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(), out var semanticModel)
-				&& semanticModel.GetOperation(symbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax()) is IOperation op)
+		    && semanticModel.GetOperation(symbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax()) is IOperation op)
 		{
-			operation = (TOperation)op;
+			operation = (TOperation) op;
 			return true;
 		}
 
@@ -481,10 +481,10 @@ public static class SyntaxHelpers
 	public static bool TryGetOperation<TOperation>(Compilation compilation, SyntaxNode? node, out TOperation operation) where TOperation : IOperation
 	{
 		if (node is not null
-				&& TryGetSemanticModel(compilation, node, out var semanticModel)
-				&& semanticModel.GetOperation(node) is IOperation op)
+		    && TryGetSemanticModel(compilation, node, out var semanticModel)
+		    && semanticModel.GetOperation(node) is IOperation op)
 		{
-			operation = (TOperation)op;
+			operation = (TOperation) op;
 			return true;
 		}
 
@@ -586,16 +586,16 @@ public static class SyntaxHelpers
 		{
 			case MethodDeclarationSyntax method:
 				if (method.AttributeLists
-						.SelectMany(s => s.Attributes)
-						.Any(a => a.Name.ToString() == "ConstExpr"))
+				    .SelectMany(s => s.Attributes)
+				    .Any(a => a.Name.ToString() == "ConstExpr"))
 				{
 					return true;
 				}
 				break;
 			case TypeDeclarationSyntax type:
 				if (type.AttributeLists
-						.SelectMany(s => s.Attributes)
-						.Any(a => a.Name.ToString() == "ConstExpr"))
+				    .SelectMany(s => s.Attributes)
+				    .Any(a => a.Name.ToString() == "ConstExpr"))
 				{
 					return true;
 				}
@@ -625,92 +625,285 @@ public static class SyntaxHelpers
 		return IsInConstExprBody(node.ContainingSymbol);
 	}
 
-	public static void BuildEnumerable(IEnumerable items, ITypeSymbol typeSymbol, IndentedStringBuilder builder)
+	public static bool IsIEnumerable(INamedTypeSymbol typeSymbol)
 	{
-		if (typeSymbol is not INamedTypeSymbol namedTypeSymbol)
+		if (typeSymbol.Name == "IEnumerable" && typeSymbol.ContainingNamespace.ToDisplayString() == "System.Collections.Generic")
 		{
-			return;
+			return true;
 		}
-		
+
+		return typeSymbol.Interfaces.Any(IsIEnumerable);
+	}
+
+	public static bool IsIEnumerable(Compilation compilation, TypeSyntax typeSymbol, CancellationToken token = default)
+	{
+		return TryGetSemanticModel(compilation, typeSymbol, out var model)
+		       && model.GetSymbolInfo(typeSymbol, token).Symbol is INamedTypeSymbol namedTypeSymbol
+		       && IsIEnumerable(namedTypeSymbol);
+	}
+
+	public static bool IsICollection(INamedTypeSymbol typeSymbol)
+	{
+		if (typeSymbol.Name == "ICollection" && typeSymbol.ContainingNamespace.ToDisplayString() == "System.Collections.Generic")
+		{
+			return true;
+		}
+
+		return typeSymbol.Interfaces.Any(IsIEnumerable);
+	}
+
+	public static bool IsIList(INamedTypeSymbol typeSymbol)
+	{
+		if (typeSymbol.Name == "IList" && typeSymbol.ContainingNamespace.ToDisplayString() == "System.Collections.Generic")
+		{
+			return true;
+		}
+
+		return typeSymbol.Interfaces.Any(IsIEnumerable);
+	}
+
+	public static bool CheckMembers<TMember>(this ITypeSymbol item, Func<TMember, bool> selector, out TMember? member) where TMember : ISymbol
+	{
+		member = item.GetMembers()
+			.OfType<TMember>()
+			.FirstOrDefault(selector);
+
+		member = item.AllInterfaces
+			.Select(i => i.GetMembers()
+				.OfType<TMember>()
+				.FirstOrDefault(selector))
+			.FirstOrDefault(f => f is not null);
+
+		return member is not null;
+	}
+
+	public static bool CheckMembers<TMember>(this ITypeSymbol item, string name, Func<TMember, bool> selector, out TMember? member) where TMember : ISymbol
+	{
+		member = item.GetMembers(name)
+			.OfType<TMember>()
+			.FirstOrDefault(selector);
+
+		member = item.AllInterfaces
+			.Select(i => i.GetMembers(name)
+				.OfType<TMember>()
+				.FirstOrDefault(selector))
+			.FirstOrDefault(f => f is not null);
+
+		return member is not null;
+	}
+
+	public static bool IsInterface(Compilation compilation, TypeSyntax typeSymbol, CancellationToken token = default)
+	{
+		return TryGetSemanticModel(compilation, typeSymbol, out var model) && model.GetSymbolInfo(typeSymbol, token).Symbol is ITypeSymbol { TypeKind: TypeKind.Interface };
+	}
+
+	public static void BuildEnumerable(IEnumerable<object?> items, INamedTypeSymbol namedTypeSymbol, int hashCode, IndentedStringBuilder builder)
+	{
 		var elementType = namedTypeSymbol.TypeArguments.FirstOrDefault();
 		var elementName = elementType?.ToDisplayString();
-		var hashCode = items.GetHashCode();
 
+		builder.AppendLine($$"""
+			private int _state;
+			private int _initialThreadId;
+			private {{elementName}} _current;
 
-		builder.AppendLine();
+			public {{elementName}} Current => _current;
 
-		using (builder.AppendBlock($"file sealed class Enumerable_{hashCode} : IEnumerable<{elementName}>, IEnumerator<{elementName}>"))
-		{
-			builder.AppendLine($$"""
-				private int _state;
-				private int _initialThreadId;
-				private {{elementName}} _current;
+			object IEnumerator.Current => _current;
 
-				public {{elementName}} Current => _current;
-
-				object IEnumerator.Current => _current;
-
-				public Enumerable_{{hashCode}}(int state)
-				{
-					_state = state;
-					_initialThreadId = Environment.CurrentManagedThreadId;
-				}
-
-				""");
-
-			using (builder.AppendBlock("public bool MoveNext()"))
+			public {{namedTypeSymbol.Name}}_{{hashCode}}(int state)
 			{
-				using (builder.AppendBlock("switch (_state)"))
-				{
-					var index = 0;
-
-					foreach (var item in items)
-					{
-						builder.AppendLine($"case {index}:");
-						builder.AppendLine("\t_state = -1;");
-						builder.AppendLine($"\t_current = {CreateLiteral(item)};");
-						builder.AppendLine($"\t_state = {index + 1};");
-						builder.AppendLine("\treturn true;");
-						index++;
-					}
-					
-					builder.AppendLine($"default:");
-					builder.AppendLine("\treturn false;");
-				}
+				_state = state;
+				_initialThreadId = Environment.CurrentManagedThreadId;
 			}
 
-			builder.AppendLine($$"""
-				
-				bool IEnumerator.MoveNext()
+			""");
+
+		using (builder.AppendBlock("public bool MoveNext()"))
+		{
+			using (builder.AppendBlock("switch (_state)"))
+			{
+				var index = 0;
+
+				foreach (var item in items)
 				{
-					return MoveNext();
+					builder.AppendLine($"case {index}:");
+					builder.AppendLine("\t_state = -1;");
+					builder.AppendLine($"\t_current = {CreateLiteral(item)};");
+					builder.AppendLine($"\t_state = {index + 1};");
+					builder.AppendLine("\treturn true;");
+					index++;
 				}
-				
-				public IEnumerator<{{elementName}}> GetEnumerator()
-				{
-					if (_state == -2 && _initialThreadId == Environment.CurrentManagedThreadId)
-					{
-						_state = 0;
-						return this;
-					}
-					
-					return new Enumerable_{{hashCode}}(0);
-				}
-				
-				IEnumerator IEnumerable.GetEnumerator() 
-				{
-					return GetEnumerator();
-				}
-				
-				public void Reset()
+
+				builder.AppendLine($"default:");
+				builder.AppendLine("\treturn false;");
+			}
+		}
+
+		builder.AppendLine($$"""
+
+			bool IEnumerator.MoveNext()
+			{
+				return MoveNext();
+			}
+
+			public IEnumerator<{{elementName}}> GetEnumerator()
+			{
+				if (_state == -2 && _initialThreadId == Environment.CurrentManagedThreadId)
 				{
 					_state = 0;
+					return this;
 				}
 				
-				public void Dispose()
-				{
-				}
-				""");
-		}
+				return new {{namedTypeSymbol.Name}}_{{hashCode}}(0);
+			}
+
+			IEnumerator IEnumerable.GetEnumerator() 
+			{
+				return GetEnumerator();
+			}
+
+			public void Reset()
+			{
+				_state = 0;
+			}
+
+			public void Dispose()
+			{
+			}
+
+			#endregion
+			""");
 	}
+
+	
+
+	// 	public static void BuildCollection(IEnumerable<object?> items, INamedTypeSymbol namedTypeSymbol, IndentedStringBuilder builder)
+	// 	{
+	// 		var elementType = namedTypeSymbol.TypeArguments.FirstOrDefault();
+	// 		var elementName = elementType?.ToDisplayString();
+	//
+	// 		builder.AppendLine($$"""
+	// 			#region ICollection
+	//
+	// 			public int Count => {{items.Count()}};
+	//
+	// 			public bool IsReadOnly => true;
+	//
+	// 			public bool Contains({{elementName}} item)
+	// 			{
+	// 				return item is {{String.Join("\n\t\tor ", items.Select(s => CreateLiteral(s).ToString()).Distinct())}};
+	// 			}
+	//
+	// 			""");
+	//
+	// 		using (builder.AppendBlock($"public void CopyTo({elementName}[] array, int arrayIndex)"))
+	// 		{
+	// 			using (builder.AppendBlock("if (array is null)"))
+	// 			{
+	// 				builder.AppendLine("throw new ArgumentNullException(nameof(array));");
+	// 			}
+	//
+	// 			builder.AppendLine();
+	//
+	// 			using (builder.AppendBlock("if (arrayIndex < 0 || arrayIndex >= array.Length)"))
+	// 			{
+	// 				builder.AppendLine("throw new ArgumentOutOfRangeException(nameof(arrayIndex));");
+	// 			}
+	//
+	// 			builder.AppendLine();
+	//
+	// 			var index = 0;
+	//
+	// 			foreach (var item in items)
+	// 			{
+	// 				builder.AppendLine($"array[{index++}] = {CreateLiteral(item)};");
+	// 			}
+	// 		}
+	//
+	// 		builder.AppendLine($$"""
+	//
+	// 			public void Add({{elementName}} item)
+	// 			{
+	// 				throw new NotSupportedException("Collection is read-only.");
+	// 			}
+	//
+	// 			public void Clear()
+	// 			{
+	// 				throw new NotSupportedException("Collection is read-only.");
+	// 			}
+	//
+	// 			public bool Remove({{elementName}} item)
+	// 			{
+	// 				throw new NotSupportedException("Collection is read-only.");
+	// 			}
+	//
+	// 			#endregion
+	// 			""");
+	// 	}
+	//
+	// 	public static void BuildList(IEnumerable<object?> items, INamedTypeSymbol namedTypeSymbol, IndentedStringBuilder builder)
+	// 	{
+	// 		var elementType = namedTypeSymbol.TypeArguments.FirstOrDefault();
+	// 		var elementName = elementType?.ToDisplayString();
+	//
+	// 		builder.AppendLine("""
+	// 			#region IList
+	//
+	// 			""");
+	//
+	// 		using (builder.AppendBlock($"public {elementName} this[int index]"))
+	// 		{
+	// 			using (builder.AppendBlock("get => index switch", "};"))
+	// 			{
+	// 				var index = 0;
+	//
+	// 				foreach (var item in items)
+	// 				{
+	// 					builder.AppendLine($"{index} => {CreateLiteral(item)},");
+	//
+	// 					index++;
+	// 				}
+	//
+	// 				builder.AppendLine("_ => throw new ArgumentOutOfRangeException(),");
+	// 			}
+	// 			builder.AppendLine("set => throw new NotSupportedException();");
+	// 		}
+	//
+	// 		builder.AppendLine();
+	//
+	// 		using (builder.AppendBlock($"public int IndexOf({elementName} item)"))
+	// 		{
+	// 			using (builder.AppendBlock("return item switch", "};"))
+	// 			{
+	// 				var index = 0;
+	// 				var hashSet = new HashSet<object?>();
+	//
+	// 				foreach (var item in items)
+	// 				{
+	// 					if (hashSet.Add(item))
+	// 					{
+	// 						builder.AppendLine($"{CreateLiteral(item)} => {index},");
+	// 					}
+	//
+	// 					index++;
+	// 				}
+	//
+	// 				builder.AppendLine("_ => -1,");
+	// 			}
+	// 		}
+	//
+	// 		builder.AppendLine($$"""
+	//
+	// 			public void Insert(int index, {{elementName}} item)
+	// 			{
+	// 				throw new NotSupportedException("Collection is read-only.");
+	// 			}
+	//
+	// 			public void RemoveAt(int index)
+	// 			{
+	// 				throw new NotSupportedException("Collection is read-only.");
+	// 			}
+	// 			""");
+	// 	}
 }
