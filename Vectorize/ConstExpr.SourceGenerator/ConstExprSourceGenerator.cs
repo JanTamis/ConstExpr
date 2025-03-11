@@ -7,6 +7,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -106,17 +107,32 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				.WithIdentifier(SyntaxFactory.Identifier($"{first.Method.Identifier}_{first.Invocation.GetHashCode()}"))
 				.WithAttributeLists(SyntaxFactory.List<AttributeListSyntax>());
 
-			if (IsInterface(compilation, first.Method.ReturnType) && first.Method.ReturnType is GenericNameSyntax nameSyntax && first.Value is IEnumerable enumerable)
+			if (IsInterface(compilation, first.Method.ReturnType) && first.Value is IEnumerable enumerable)
 			{
-				var body = SyntaxFactory.Block(
-					SyntaxFactory.ReturnStatement(
-						SyntaxFactory.ObjectCreationExpression(
-							SyntaxFactory.ParseTypeName($"{nameSyntax.Identifier.ToString()}_{enumerable.GetHashCode()}"),
-							SyntaxFactory.ArgumentList(SyntaxFactory.SeparatedList<ArgumentSyntax>([ SyntaxFactory.Argument(CreateLiteral(-2)) ])), null)));
+				if (TryGetSymbol<INamedTypeSymbol>(compilation, first.Method.ReturnType, out var symbol) && IsIEnumerable(symbol))
+				{
+					var body = SyntaxFactory.Block(
+						SyntaxFactory.ReturnStatement(
+							SyntaxFactory.ObjectCreationExpression(
+								SyntaxFactory.ParseTypeName($"{first.Method.ReturnType}_{enumerable.GetHashCode()}"),
+								SyntaxFactory.ArgumentList(SyntaxFactory.SeparatedList<ArgumentSyntax>([ SyntaxFactory.Argument(CreateLiteral(-2)) ])), null)));
 
-				method = method
-					.WithBody(body)
-					.WithExpressionBody(null);
+					method = method
+						.WithBody(body)
+						.WithExpressionBody(null);
+				}
+				else
+				{
+					var body = SyntaxFactory.Block(
+						SyntaxFactory.ReturnStatement(
+							SyntaxFactory.ObjectCreationExpression(
+								SyntaxFactory.ParseTypeName($"{first.Method.ReturnType}_{enumerable.GetHashCode()}"),
+								SyntaxFactory.ArgumentList(), null)));
+
+					method = method
+						.WithBody(body)
+						.WithExpressionBody(null);
+				}
 			}
 			else
 			{
@@ -265,7 +281,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 		if (group.Key.Parent is TypeDeclarationSyntax type)
 		{ 
-			spc.AddSource($"{type.Identifier}_{group.Key.Identifier}.g.cs", code.ToString());
+			// spc.AddSource($"{type.Identifier}_{group.Key.Identifier}.g.cs", code.ToString());
 		}
 	}
 
@@ -444,6 +460,20 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		}
 
 		symbol = null;
+		return false;
+	}
+
+	private static bool TryGetSymbol<TSymbol>(Compilation compilation, SyntaxNode invocation, [NotNullWhen(true)] out TSymbol symbol) where TSymbol : ISymbol
+	{
+		var semanticModel = compilation.GetSemanticModel(invocation.SyntaxTree);
+		
+		if (semanticModel.GetSymbolInfo(invocation, CancellationToken.None).Symbol is TSymbol s)
+		{
+			symbol = s;
+			return true;
+		}
+
+		symbol = default!;
 		return false;
 	}
 }

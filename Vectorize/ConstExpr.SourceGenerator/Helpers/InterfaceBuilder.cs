@@ -16,7 +16,7 @@ public static class InterfaceBuilder
 
 		builder.AppendLine();
 
-		if (member!.IsReadOnly)
+		if (member.IsReadOnly)
 		{
 			builder.AppendLine($"public int Count => {count};");
 			return;
@@ -31,7 +31,7 @@ public static class InterfaceBuilder
 		using (builder.AppendBlock("public int Count"))
 		{
 			builder.AppendLine($"get => {count};");
-			builder.AppendLine($"set => throw new NotSupportedException();");
+			builder.AppendLine("set => throw new NotSupportedException();");
 		}
 	}
 
@@ -44,7 +44,7 @@ public static class InterfaceBuilder
 
 		builder.AppendLine();
 
-		if (member!.IsReadOnly)
+		if (member.IsReadOnly)
 		{
 			builder.AppendLine($"public int Length => {count};");
 			return;
@@ -59,20 +59,20 @@ public static class InterfaceBuilder
 		using (builder.AppendBlock("public int Length"))
 		{
 			builder.AppendLine($"get => {count};");
-			builder.AppendLine($"set => throw new NotSupportedException();");
+			builder.AppendLine("set => throw new NotSupportedException();");
 		}
 	}
 
 	public static void AppendIsReadOnly(ITypeSymbol typeSymbol, IndentedStringBuilder builder)
 	{
-		if (!typeSymbol.CheckMembers<IPropertySymbol>("IsReadOnly", m => m.Type.SpecialType == SpecialType.System_Boolean, out var member) || !member!.IsReadOnly)
+		if (!typeSymbol.CheckMembers<IPropertySymbol>("IsReadOnly", m => m.Type.SpecialType == SpecialType.System_Boolean, out var member) || !member.IsReadOnly)
 		{
 			return;
 		}
 
 		builder.AppendLine();
 
-		if (member!.IsReadOnly)
+		if (member.IsReadOnly)
 		{
 			builder.AppendLine("public bool IsReadOnly => true;");
 		}
@@ -87,7 +87,7 @@ public static class InterfaceBuilder
 
 		builder.AppendLine();
 
-		if (member!.IsReadOnly)
+		if (member.IsReadOnly)
 		{
 			using (builder.AppendBlock($"public {typeName} this[int index] => index switch", "};"))
 			{
@@ -181,7 +181,7 @@ public static class InterfaceBuilder
 
 		using (builder.AppendBlock($"public void Add({member.Parameters[0].ToDisplayString()})"))
 		{
-			builder.AppendLine($"throw new NotSupportedException(\"Collection is read-only.\");");
+			builder.AppendLine("throw new NotSupportedException(\"Collection is read-only.\");");
 		}
 	}
 
@@ -194,9 +194,9 @@ public static class InterfaceBuilder
 
 		builder.AppendLine();
 
-		using (builder.AppendBlock($"public void Clear()"))
+		using (builder.AppendBlock("public void Clear()"))
 		{
-			builder.AppendLine($"throw new NotSupportedException(\"Collection is read-only.\");");
+			builder.AppendLine("throw new NotSupportedException(\"Collection is read-only.\");");
 		}
 	}
 
@@ -211,7 +211,7 @@ public static class InterfaceBuilder
 
 		using (builder.AppendBlock($"public bool Remove({member.Parameters[0].ToDisplayString()})"))
 		{
-			builder.AppendLine($"throw new NotSupportedException(\"Collection is read-only.\");");
+			builder.AppendLine("throw new NotSupportedException(\"Collection is read-only.\");");
 		}
 	}
 
@@ -241,7 +241,7 @@ public static class InterfaceBuilder
 					index++;
 				}
 
-				builder.AppendLine($"_ => -1,");
+				builder.AppendLine("_ => -1,");
 			}
 		}
 	}
@@ -257,7 +257,7 @@ public static class InterfaceBuilder
 
 		using (builder.AppendBlock($"public void Insert({member.Parameters[0].ToDisplayString()}, {member.Parameters[1].ToDisplayString()})"))
 		{
-			builder.AppendLine($"throw new NotSupportedException(\"Collection is read-only.\");");
+			builder.AppendLine("throw new NotSupportedException(\"Collection is read-only.\");");
 		}
 	}
 
@@ -270,9 +270,9 @@ public static class InterfaceBuilder
 
 		builder.AppendLine();
 
-		using (builder.AppendBlock($"public void RemoveAt(int index)"))
+		using (builder.AppendBlock("public void RemoveAt(int index)"))
 		{
-			builder.AppendLine($"throw new NotSupportedException(\"Collection is read-only.\");");
+			builder.AppendLine("throw new NotSupportedException(\"Collection is read-only.\");");
 		}
 	}
 
@@ -310,5 +310,23 @@ public static class InterfaceBuilder
 				builder.AppendLine("return false;");
 			}
 		}
+	}
+
+	public static void AppendToImmutableArray(ITypeSymbol typeSymbol, IList<object?> items, string elementName, IndentedStringBuilder builder)
+	{
+		if (!typeSymbol.CheckMembers<IMethodSymbol>("ToImmutableArray", m => m.Parameters.Length == 0 
+		                                                                     && m.ReturnType.Name == "ImmutableArray" 
+		                                                                     && m.ReturnType.ContainingNamespace.ToString() == "System.Collections.Immutable", out var member))
+		{
+			return;
+		}
+
+		builder.AppendLine($$"""
+			
+			public ImmutableArray<{{elementName}}> ToImmutableArray()
+			{
+				return ImmutableArray.Create({{String.Join(", ", items.Select(SyntaxHelpers.CreateLiteral))}});
+			}
+			""");
 	}
 }
