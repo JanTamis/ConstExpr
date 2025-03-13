@@ -693,9 +693,61 @@ public static class SyntaxHelpers
 		return member is not null;
 	}
 
+	public static bool CheckMethodWithReturnType(this ITypeSymbol item, string name, ITypeSymbol returnType, out IMethodSymbol? member)
+	{
+		member = item.GetMembers(name)
+			.OfType<IMethodSymbol>()
+			.FirstOrDefault(f => f.Parameters.Length == 0 && SymbolEqualityComparer.Default.Equals(f.ReturnType, returnType));
+
+		member ??= item.AllInterfaces
+			.SelectMany(i => i.GetMembers(name)
+				.OfType<IMethodSymbol>()
+				.Where(w => w.Parameters.Length == 0 && SymbolEqualityComparer.Default.Equals(w.ReturnType, returnType)))
+			.FirstOrDefault();
+
+		return member is not null;
+	}
+
+	public static bool CheckMethod(this ITypeSymbol item, string name, ITypeSymbol[] parameters, [NotNullWhen(true)] out IMethodSymbol? member)
+	{
+		member = item.GetMembers(name)
+			.OfType<IMethodSymbol>()
+			.FirstOrDefault(f => f.ReturnsVoid 
+			                     && f.Parameters.Length == parameters.Length
+			                     && f.Parameters
+				                     .Select(s => s.Type)
+				                     .Zip(parameters, (a, b) => SymbolEqualityComparer.Default.Equals(a, b))
+				                     .All(a => a));
+
+		member ??= item.AllInterfaces
+			.SelectMany(i => i.GetMembers(name)
+				.OfType<IMethodSymbol>()
+				.Where(w => w.ReturnsVoid
+				            && w.Parameters.Length == parameters.Length
+				            && w.Parameters
+					            .Select(s => s.Type)
+					            .Zip(parameters, (a, b) => SymbolEqualityComparer.Default.Equals(a, b))
+					            .All(a => a)))
+			.FirstOrDefault();
+		
+		return member is not null;
+	}
+
 	public static bool IsInterface(Compilation compilation, TypeSyntax typeSymbol, CancellationToken token = default)
 	{
 		return TryGetSemanticModel(compilation, typeSymbol, out var model) && model.GetSymbolInfo(typeSymbol, token).Symbol is ITypeSymbol { TypeKind: TypeKind.Interface };
+	}
+
+	public static ITypeSymbol GetTypeByType(Compilation compilation, Type type, params ITypeSymbol[] typeArguments)
+	{
+		var typeSymbol = compilation.GetTypeByMetadataName(type.FullName);
+
+		if (typeArguments.Length > 0)
+		{
+			typeSymbol = typeSymbol.Construct(typeArguments);
+		}
+
+		return typeSymbol;
 	}
 
 	public static void BuildEnumerable(IEnumerable<object?> items, INamedTypeSymbol namedTypeSymbol, int hashCode, IndentedStringBuilder builder)
@@ -775,133 +827,4 @@ public static class SyntaxHelpers
 			#endregion
 			""");
 	}
-
-	// 	public static void BuildCollection(IEnumerable<object?> items, INamedTypeSymbol namedTypeSymbol, IndentedStringBuilder builder)
-	// 	{
-	// 		var elementType = namedTypeSymbol.TypeArguments.FirstOrDefault();
-	// 		var elementName = elementType?.ToDisplayString();
-	//
-	// 		builder.AppendLine($$"""
-	// 			#region ICollection
-	//
-	// 			public int Count => {{items.Count()}};
-	//
-	// 			public bool IsReadOnly => true;
-	//
-	// 			public bool Contains({{elementName}} item)
-	// 			{
-	// 				return item is {{String.Join("\n\t\tor ", items.Select(s => CreateLiteral(s).ToString()).Distinct())}};
-	// 			}
-	//
-	// 			""");
-	//
-	// 		using (builder.AppendBlock($"public void CopyTo({elementName}[] array, int arrayIndex)"))
-	// 		{
-	// 			using (builder.AppendBlock("if (array is null)"))
-	// 			{
-	// 				builder.AppendLine("throw new ArgumentNullException(nameof(array));");
-	// 			}
-	//
-	// 			builder.AppendLine();
-	//
-	// 			using (builder.AppendBlock("if (arrayIndex < 0 || arrayIndex >= array.Length)"))
-	// 			{
-	// 				builder.AppendLine("throw new ArgumentOutOfRangeException(nameof(arrayIndex));");
-	// 			}
-	//
-	// 			builder.AppendLine();
-	//
-	// 			var index = 0;
-	//
-	// 			foreach (var item in items)
-	// 			{
-	// 				builder.AppendLine($"array[{index++}] = {CreateLiteral(item)};");
-	// 			}
-	// 		}
-	//
-	// 		builder.AppendLine($$"""
-	//
-	// 			public void Add({{elementName}} item)
-	// 			{
-	// 				throw new NotSupportedException("Collection is read-only.");
-	// 			}
-	//
-	// 			public void Clear()
-	// 			{
-	// 				throw new NotSupportedException("Collection is read-only.");
-	// 			}
-	//
-	// 			public bool Remove({{elementName}} item)
-	// 			{
-	// 				throw new NotSupportedException("Collection is read-only.");
-	// 			}
-	//
-	// 			#endregion
-	// 			""");
-	// 	}
-	//
-	// 	public static void BuildList(IEnumerable<object?> items, INamedTypeSymbol namedTypeSymbol, IndentedStringBuilder builder)
-	// 	{
-	// 		var elementType = namedTypeSymbol.TypeArguments.FirstOrDefault();
-	// 		var elementName = elementType?.ToDisplayString();
-	//
-	// 		builder.AppendLine("""
-	// 			#region IList
-	//
-	// 			""");
-	//
-	// 		using (builder.AppendBlock($"public {elementName} this[int index]"))
-	// 		{
-	// 			using (builder.AppendBlock("get => index switch", "};"))
-	// 			{
-	// 				var index = 0;
-	//
-	// 				foreach (var item in items)
-	// 				{
-	// 					builder.AppendLine($"{index} => {CreateLiteral(item)},");
-	//
-	// 					index++;
-	// 				}
-	//
-	// 				builder.AppendLine("_ => throw new ArgumentOutOfRangeException(),");
-	// 			}
-	// 			builder.AppendLine("set => throw new NotSupportedException();");
-	// 		}
-	//
-	// 		builder.AppendLine();
-	//
-	// 		using (builder.AppendBlock($"public int IndexOf({elementName} item)"))
-	// 		{
-	// 			using (builder.AppendBlock("return item switch", "};"))
-	// 			{
-	// 				var index = 0;
-	// 				var hashSet = new HashSet<object?>();
-	//
-	// 				foreach (var item in items)
-	// 				{
-	// 					if (hashSet.Add(item))
-	// 					{
-	// 						builder.AppendLine($"{CreateLiteral(item)} => {index},");
-	// 					}
-	//
-	// 					index++;
-	// 				}
-	//
-	// 				builder.AppendLine("_ => -1,");
-	// 			}
-	// 		}
-	//
-	// 		builder.AppendLine($$"""
-	//
-	// 			public void Insert(int index, {{elementName}} item)
-	// 			{
-	// 				throw new NotSupportedException("Collection is read-only.");
-	// 			}
-	//
-	// 			public void RemoveAt(int index)
-	// 			{
-	// 				throw new NotSupportedException("Collection is read-only.");
-	// 			}
-	// 			""");
-	// 	}
 }

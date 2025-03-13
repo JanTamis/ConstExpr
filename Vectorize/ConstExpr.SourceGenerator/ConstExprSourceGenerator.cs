@@ -111,10 +111,14 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			{
 				if (TryGetSymbol<INamedTypeSymbol>(compilation, first.Method.ReturnType, out var symbol) && IsIEnumerable(symbol))
 				{
+					var name = first.Method.ReturnType is GenericNameSyntax genericName
+						? genericName.Identifier.Text
+						: first.Method.ReturnType.ToString();
+					
 					var body = SyntaxFactory.Block(
 						SyntaxFactory.ReturnStatement(
 							SyntaxFactory.ObjectCreationExpression(
-								SyntaxFactory.ParseTypeName($"{first.Method.ReturnType}_{enumerable.GetHashCode()}"),
+								SyntaxFactory.ParseTypeName($"{name}_{enumerable.GetHashCode()}"),
 								SyntaxFactory.ArgumentList(SyntaxFactory.SeparatedList<ArgumentSyntax>([ SyntaxFactory.Argument(CreateLiteral(-2)) ])), null)));
 
 					method = method
@@ -190,11 +194,14 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 							object IEnumerator.Current => _current;
 							""");
 					}
+
+					var interfaceBuilder = new InterfaceBuilder(compilation, elementType);
+					var linqBuilder = new LinqBuilder(compilation, elementType);
 					
-					InterfaceBuilder.AppendCount(namedTypeSymbol, items.Count, code);
-					InterfaceBuilder.AppendLength(namedTypeSymbol, items.Count, code);
-					InterfaceBuilder.AppendIsReadOnly(namedTypeSymbol, code);
-					InterfaceBuilder.AppendIndexer(namedTypeSymbol, elementName, items, code);
+					interfaceBuilder.AppendCount(namedTypeSymbol, items.Count, code);
+					interfaceBuilder.AppendLength(namedTypeSymbol, items.Count, code);
+					interfaceBuilder.AppendIsReadOnly(namedTypeSymbol, code);
+					interfaceBuilder.AppendIndexer(namedTypeSymbol, items, code);
 					
 					if (IsIEnumerable(namedTypeSymbol))
 					{
@@ -208,14 +215,19 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 							""");
 					}
 					
-					InterfaceBuilder.AppendAdd(namedTypeSymbol, code);
-					InterfaceBuilder.AppendClear(namedTypeSymbol, code);
-					InterfaceBuilder.AppendRemove(namedTypeSymbol, code);
-					InterfaceBuilder.AppendRemoveAt(namedTypeSymbol, code);
-					InterfaceBuilder.AppendInsert(namedTypeSymbol, code);
-					InterfaceBuilder.AppendIndexOf(namedTypeSymbol, items, code);
-					InterfaceBuilder.AppendCopyTo(namedTypeSymbol, items, elementType, code);
-					InterfaceBuilder.AppendContains(namedTypeSymbol, items, code);
+					interfaceBuilder.AppendAdd(namedTypeSymbol, code);
+					interfaceBuilder.AppendClear(namedTypeSymbol, code);
+					interfaceBuilder.AppendRemove(namedTypeSymbol, code);
+					interfaceBuilder.AppendRemoveAt(namedTypeSymbol, code);
+					interfaceBuilder.AppendInsert(namedTypeSymbol, code);
+					interfaceBuilder.AppendIndexOf(namedTypeSymbol, items, code);
+					interfaceBuilder.AppendCopyTo(namedTypeSymbol, items, code);
+					interfaceBuilder.AppendContains(namedTypeSymbol, items, code);
+					
+					linqBuilder.AppendToArray(namedTypeSymbol, items, code);
+					linqBuilder.AppendToImmutableArray(namedTypeSymbol, items, code);
+					linqBuilder.AppendToList(namedTypeSymbol, items, code);
+					linqBuilder.AppendImmutableList(namedTypeSymbol, items, code);
 
 					if (IsIEnumerable(namedTypeSymbol))
 					{
@@ -281,7 +293,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 		if (group.Key.Parent is TypeDeclarationSyntax type)
 		{ 
-			// spc.AddSource($"{type.Identifier}_{group.Key.Identifier}.g.cs", code.ToString());
+			spc.AddSource($"{type.Identifier}_{group.Key.Identifier}.g.cs", code.ToString());
 		}
 	}
 
