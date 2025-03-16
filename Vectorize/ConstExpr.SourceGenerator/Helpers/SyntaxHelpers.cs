@@ -91,7 +91,13 @@ public static class SyntaxHelpers
 		};
 	}
 
-	public static ExpressionSyntax CreateLiteral<T>(T? value)
+	public static bool TryGetLiteral<T>(T? value, out ExpressionSyntax? expression)
+	{
+		expression = CreateLiteral(value);
+		return expression is not null;
+	}
+
+	public static ExpressionSyntax? CreateLiteral<T>(T? value)
 	{
 		switch (value)
 		{
@@ -152,13 +158,12 @@ public static class SyntaxHelpers
 
 		if (value is IEnumerable enumerable)
 		{
-			return SyntaxFactory.CollectionExpression(SyntaxFactory.SeparatedList<CollectionElementSyntax>(
-				enumerable
-					.Cast<object?>()
-					.Select(s => SyntaxFactory.ExpressionElement(CreateLiteral(s)))));
+			return SyntaxFactory.CollectionExpression(SyntaxFactory.SeparatedList<CollectionElementSyntax>(enumerable
+				.Cast<object?>()
+				.Select(s => SyntaxFactory.ExpressionElement(CreateLiteral(s)))));
 		}
 
-		throw new ArgumentOutOfRangeException();
+		return null;
 	}
 
 	public static object? GetConstantValue(Compilation compilation, SyntaxNode expression, CancellationToken token = default)
@@ -626,14 +631,26 @@ public static class SyntaxHelpers
 		return IsInConstExprBody(node.ContainingSymbol);
 	}
 
-	public static bool IsIEnumerable(INamedTypeSymbol typeSymbol)
+	public static bool IsIEnumerableRecursive(INamedTypeSymbol typeSymbol)
 	{
 		if (typeSymbol.Name == "IEnumerable" && typeSymbol.ContainingNamespace.ToDisplayString() == "System.Collections.Generic")
 		{
 			return true;
 		}
 
-		return typeSymbol.Interfaces.Any(IsIEnumerable);
+		return typeSymbol.Interfaces.Any(IsIEnumerableRecursive);
+	}
+
+	public static bool IsIEnumerableRecursive(Compilation compilation, TypeSyntax typeSymbol, CancellationToken token = default)
+	{
+		return TryGetSemanticModel(compilation, typeSymbol, out var model)
+		       && model.GetSymbolInfo(typeSymbol, token).Symbol is INamedTypeSymbol namedTypeSymbol
+		       && IsIEnumerableRecursive(namedTypeSymbol);
+	}
+
+	public static bool IsIEnumerable(INamedTypeSymbol typeSymbol)
+	{
+		return typeSymbol.Name == "IEnumerable" && typeSymbol.ContainingNamespace.ToDisplayString() == "System.Collections.Generic";
 	}
 
 	public static bool IsIEnumerable(Compilation compilation, TypeSyntax typeSymbol, CancellationToken token = default)
@@ -650,7 +667,7 @@ public static class SyntaxHelpers
 			return true;
 		}
 
-		return typeSymbol.Interfaces.Any(IsIEnumerable);
+		return typeSymbol.Interfaces.Any(IsIEnumerableRecursive);
 	}
 
 	public static bool IsIList(INamedTypeSymbol typeSymbol)
@@ -660,7 +677,7 @@ public static class SyntaxHelpers
 			return true;
 		}
 
-		return typeSymbol.Interfaces.Any(IsIEnumerable);
+		return typeSymbol.Interfaces.Any(IsIEnumerableRecursive);
 	}
 
 	public static bool CheckMembers<TMember>(this ITypeSymbol item, Func<TMember, bool> selector, out TMember? member) where TMember : ISymbol
@@ -686,51 +703,35 @@ public static class SyntaxHelpers
 
 		member ??= item.AllInterfaces
 			.SelectMany(i => i.GetMembers(name)
-				.OfType<TMember>()
-				.Where(selector))
-			.FirstOrDefault();
+				.OfType<TMember>())
+			.FirstOrDefault(selector);
 
 		return member is not null;
 	}
 
-	public static bool CheckMethodWithReturnType(this ITypeSymbol item, string name, ITypeSymbol returnType, out IMethodSymbol? member)
+	public static bool CheckMethodWithReturnType(this ITypeSymbol item, string name, ITypeSymbol returnType, [NotNullWhen(true)] out IMethodSymbol? member)
 	{
-		member = item.GetMembers(name)
-			.OfType<IMethodSymbol>()
-			.FirstOrDefault(f => f.Parameters.Length == 0 && SymbolEqualityComparer.Default.Equals(f.ReturnType, returnType));
-
-		member ??= item.AllInterfaces
-			.SelectMany(i => i.GetMembers(name)
-				.OfType<IMethodSymbol>()
-				.Where(w => w.Parameters.Length == 0 && SymbolEqualityComparer.Default.Equals(w.ReturnType, returnType)))
-			.FirstOrDefault();
-
-		return member is not null;
+		return item.CheckMembers(name, m => m.Parameters.Length == 0 && SymbolEqualityComparer.Default.Equals(m.ReturnType, returnType), out member);
 	}
 
 	public static bool CheckMethod(this ITypeSymbol item, string name, ITypeSymbol[] parameters, [NotNullWhen(true)] out IMethodSymbol? member)
 	{
-		member = item.GetMembers(name)
-			.OfType<IMethodSymbol>()
-			.FirstOrDefault(f => f.ReturnsVoid 
-			                     && f.Parameters.Length == parameters.Length
-			                     && f.Parameters
-				                     .Select(s => s.Type)
-				                     .Zip(parameters, (a, b) => SymbolEqualityComparer.Default.Equals(a, b))
-				                     .All(a => a));
+		return item.CheckMembers(name, m => m.ReturnsVoid
+		                                                   && m.Parameters.Length == parameters.Length
+		                                                   && m.Parameters
+			                                                   .Select(s => s.Type)
+			                                                   .Zip(parameters, IsEqualSymbol)
+			                                                   .All(a => a), out member);
+	}
 
-		member ??= item.AllInterfaces
-			.SelectMany(i => i.GetMembers(name)
-				.OfType<IMethodSymbol>()
-				.Where(w => w.ReturnsVoid
-				            && w.Parameters.Length == parameters.Length
-				            && w.Parameters
-					            .Select(s => s.Type)
-					            .Zip(parameters, (a, b) => SymbolEqualityComparer.Default.Equals(a, b))
-					            .All(a => a)))
-			.FirstOrDefault();
-		
-		return member is not null;
+	public static bool CheckMethod(this ITypeSymbol item, string name, ITypeSymbol returnType, ITypeSymbol[] parameters, [NotNullWhen(true)] out IMethodSymbol? member)
+	{
+		return item.CheckMembers(name, m => SymbolEqualityComparer.Default.Equals(m.ReturnType, returnType)
+		                             && m.Parameters.Length == parameters.Length
+		                             && m.Parameters
+			                             .Select(s => s.Type)
+			                             .Zip(parameters, IsEqualSymbol)
+			                             .All(a => a), out member);
 	}
 
 	public static bool IsInterface(Compilation compilation, TypeSyntax typeSymbol, CancellationToken token = default)
@@ -740,7 +741,12 @@ public static class SyntaxHelpers
 
 	public static ITypeSymbol GetTypeByType(Compilation compilation, Type type, params ITypeSymbol[] typeArguments)
 	{
-		var typeSymbol = compilation.GetTypeByMetadataName(type.FullName);
+		return GetTypeByType(compilation, type.FullName, typeArguments);
+	}
+
+	public static ITypeSymbol GetTypeByType(Compilation compilation, string typeName, params ITypeSymbol[] typeArguments)
+	{
+		var typeSymbol = compilation.GetTypeByMetadataName(typeName);
 
 		if (typeArguments.Length > 0)
 		{
@@ -750,81 +756,13 @@ public static class SyntaxHelpers
 		return typeSymbol;
 	}
 
-	public static void BuildEnumerable(IEnumerable<object?> items, INamedTypeSymbol namedTypeSymbol, int hashCode, IndentedStringBuilder builder)
+	public static bool IsEqualSymbol(ITypeSymbol typeSymbol, ITypeSymbol other)
 	{
-		var elementType = namedTypeSymbol.TypeArguments.FirstOrDefault();
-		var elementName = elementType?.ToDisplayString();
-
-		builder.AppendLine($$"""
-			private int _state;
-			private int _initialThreadId;
-			private {{elementName}} _current;
-
-			public {{elementName}} Current => _current;
-			object IEnumerator.Current => _current;
-
-			public {{namedTypeSymbol.Name}}_{{hashCode}}(int state)
-			{
-				_state = state;
-				_initialThreadId = Environment.CurrentManagedThreadId;
-			}
-
-			""");
-
-		using (builder.AppendBlock("public bool MoveNext()"))
+		if (SymbolEqualityComparer.Default.Equals(typeSymbol, other))
 		{
-			using (builder.AppendBlock("switch (_state)"))
-			{
-				var index = 0;
-
-				foreach (var item in items)
-				{
-					builder.AppendLine($"case {index}:");
-					builder.AppendLine("\t_state = -1;");
-					builder.AppendLine($"\t_current = {CreateLiteral(item)};");
-					builder.AppendLine($"\t_state = {index + 1};");
-					builder.AppendLine("\treturn true;");
-					index++;
-				}
-
-				builder.AppendLine($"default:");
-				builder.AppendLine("\treturn false;");
-			}
+			return true;
 		}
 
-		builder.AppendLine($$"""
-
-			bool IEnumerator.MoveNext()
-			{
-				return MoveNext();
-			}
-
-			public IEnumerator<{{elementName}}> GetEnumerator()
-			{
-				if (_state == -2 && _initialThreadId == Environment.CurrentManagedThreadId)
-				{
-					_state = 0;
-					return this;
-				}
-				
-				return new {{namedTypeSymbol.Name}}_{{hashCode}}(0);
-			}
-
-			IEnumerator IEnumerable.GetEnumerator() 
-			{
-				return GetEnumerator();
-			}
-
-			public void Reset()
-			{
-				_state = 0;
-			}
-
-			public void Dispose()
-			{
-			}
-
-			#endregion
-			""");
-	}
+		return other.AllInterfaces.Any(a => SymbolEqualityComparer.Default.Equals(a, other));
+	} 
 }

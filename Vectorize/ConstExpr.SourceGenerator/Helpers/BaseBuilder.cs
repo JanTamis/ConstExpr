@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Helpers;
 
-public abstract class BaseBuilder(ITypeSymbol elementType)
+public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilation)
 {
 	protected static IDisposable AppendMethod(IndentedStringBuilder builder, IMethodSymbol methodSymbol)
 	{
@@ -22,7 +22,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType)
 
 		builder.AppendLine();
 
-		return builder.AppendBlock($"{prepend} {methodSymbol.ReturnType.ToDisplayString()} {methodSymbol.Name}({String.Join(", ", methodSymbol.Parameters.Select(p => p.ToString()))})");
+		return builder.AppendBlock($"{prepend}{methodSymbol.ReturnType.ToDisplayString()} {methodSymbol.Name}({String.Join(", ", methodSymbol.Parameters.Select(p => p.ToString()))})");
 	}
 
 	protected static void AppendProperty(IndentedStringBuilder builder, IPropertySymbol propertySymbol, string? get = null, string? set = null)
@@ -100,10 +100,10 @@ public abstract class BaseBuilder(ITypeSymbol elementType)
 
 			if (propertySymbol.IsIndexer)
 			{
-				return $"{prepend} {propertySymbol.Type.ToDisplayString()} this[{string.Join(", ", propertySymbol.Parameters.Select(p => p.ToString()))}]";
+				return $"{prepend}{propertySymbol.Type.ToDisplayString()} this[{string.Join(", ", propertySymbol.Parameters.Select(p => p.ToString()))}]";
 			}
 
-			return $"{prepend} {propertySymbol.Type.ToDisplayString()} {propertySymbol.Name}";
+			return $"{prepend}{propertySymbol.Type.ToDisplayString()} {propertySymbol.Name}";
 		}
 	}
 
@@ -114,15 +114,21 @@ public abstract class BaseBuilder(ITypeSymbol elementType)
 			return SymbolEqualityComparer.Default.Equals(arrayType.ElementType, elementType);
 		}
 
-		return typeSymbol.AllInterfaces.Any(i =>
-			i.OriginalDefinition.SpecialType == SpecialType.System_Collections_Generic_IList_T &&
-			i.TypeArguments.Length == 1 &&
-			SymbolEqualityComparer.Default.Equals(i.TypeArguments[0], elementType));
+		if (SymbolEqualityComparer.Default.Equals(typeSymbol, SyntaxHelpers.GetTypeByType(compilation, typeof(Span<>), elementType)))
+		{
+			return true;
+		}
+
+		return typeSymbol.AllInterfaces.Any(i =>	i.OriginalDefinition.SpecialType == SpecialType.System_Collections_Generic_IList_T 
+			                                        && i.TypeArguments.Length == 1 
+			                                        && SymbolEqualityComparer.Default.Equals(i.TypeArguments[0], elementType));
 	}
 
 	protected string GetLengthPropertyName(ITypeSymbol typeSymbol)
 	{
-		if (typeSymbol is IArrayTypeSymbol arrayType && SymbolEqualityComparer.Default.Equals(arrayType.ElementType, elementType))
+		if ((typeSymbol is IArrayTypeSymbol arrayType && SymbolEqualityComparer.Default.Equals(arrayType.ElementType, elementType) )
+		    || SymbolEqualityComparer.Default.Equals(typeSymbol, SyntaxHelpers.GetTypeByType(compilation, typeof(Span<>), elementType))
+		    || SymbolEqualityComparer.Default.Equals(typeSymbol, SyntaxHelpers.GetTypeByType(compilation, typeof(ReadOnlySpan<>), elementType)))
 		{
 			return "Length";
 		}

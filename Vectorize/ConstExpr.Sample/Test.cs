@@ -61,7 +61,7 @@ public static class Test
 		return nameof(Test);
 	}
 
-	public static IList<int> Range(int count)
+	public static ICustomCollection<int> Range(int count)
 	{
 		var random = new Random();
 		var result = new List<int>(count);
@@ -71,7 +71,7 @@ public static class Test
 			result.Add(random.Next(count));
 		}
 
-		return result;
+		return result as ICustomCollection<int>;
 	}
 
 	public static IEnumerable<string> Split(string value, char separator)

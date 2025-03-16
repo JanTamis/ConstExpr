@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Helpers;
 
-public class InterfaceBuilder(Compilation compilation, ITypeSymbol elementType) : BaseBuilder(elementType)
+public class InterfaceBuilder(Compilation compilation, ITypeSymbol elementType) : BaseBuilder(elementType, compilation)
 {
 	public void AppendCount(ITypeSymbol typeSymbol, int count, IndentedStringBuilder builder)
 	{
@@ -57,7 +57,7 @@ public class InterfaceBuilder(Compilation compilation, ITypeSymbol elementType) 
 
 		if (member.IsReadOnly)
 		{
-			using (builder.AppendBlock($"public {elementType.Name} this[int index] => index switch", "};"))
+			using (builder.AppendBlock($"public {elementType.ToDisplayString()} this[int index] => index switch", "};"))
 			{
 				foreach (var item in items.Index().GroupBy(g => g.Value, g => g.Index))
 				{
@@ -102,43 +102,43 @@ public class InterfaceBuilder(Compilation compilation, ITypeSymbol elementType) 
 
 		using (AppendMethod(builder, member))
 		{
-			using (builder.AppendBlock($"if ({member.Parameters[0].Name} is null)"))
-			{
-				builder.AppendLine($"throw new ArgumentNullException(nameof({member.Parameters[0].Name}));");
-			}
-
-			builder.AppendLine();
-
 			if (member.Parameters.Length == 2)
 			{
+				if (member.Parameters[0].Type.IsReferenceType)
+				{
+					using (builder.AppendBlock($"if ({member.Parameters[0].Name} is null)"))
+					{
+						builder.AppendLine($"throw new ArgumentNullException(nameof({member.Parameters[0].Name}));");
+					}
+
+					builder.AppendLine();
+				}
+				
 				using (builder.AppendBlock($"if ({member.Parameters[1].Name} < 0 || {member.Parameters[1].Name} + {items.Count()} >= {member.Parameters[0].Name}.{GetLengthPropertyName(member.Parameters[0].Type)})"))
 				{
 					builder.AppendLine($"throw new ArgumentOutOfRangeException(nameof({member.Parameters[1].Name}));");
 				}
+
+				builder.AppendLine();
+
+				var index = 0;
+
+				foreach (var item in items)
+				{
+					if (member.Parameters.Length == 1)
+					{
+						builder.AppendLine($"{member.Parameters[0].Name}[{index++}] = {SyntaxHelpers.CreateLiteral(item)};");
+					}
+					else
+					{
+						builder.AppendLine($"{member.Parameters[0].Name}[{member.Parameters[1].Name} + {index++}] = {SyntaxHelpers.CreateLiteral(item)};");
+					}
+				}
 			}
 			else
 			{
-				using (builder.AppendBlock($"if ({member.Parameters[0].Name}.{GetLengthPropertyName(member.Parameters[0].Type)} >= {items.Count()})"))
-				{
-					builder.AppendLine($"throw new ArgumentOutOfRangeException(nameof({member.Parameters[1].Name}));");
-				}
-			}
-
-
-			builder.AppendLine();
-
-			var index = 0;
-
-			foreach (var item in items)
-			{
-				if (member.Parameters.Length == 1)
-				{
-					builder.AppendLine($"{member.Parameters[0].Name}[{index++}] = {SyntaxHelpers.CreateLiteral(item)};");
-				}
-				else
-				{
-					builder.AppendLine($"{member.Parameters[0].Name}[{member.Parameters[1].Name} + {index++}] = {SyntaxHelpers.CreateLiteral(item)};");
-				}
+				builder.AppendLine($"((ReadOnlySpan<{elementType.ToDisplayString()}>)[{String.Join(", ", items.Select(SyntaxHelpers.CreateLiteral))}])");
+				builder.AppendLine($"\t.CopyTo({member.Parameters[0].Name});");
 			}
 		}
 	}
@@ -158,7 +158,7 @@ public class InterfaceBuilder(Compilation compilation, ITypeSymbol elementType) 
 
 	public void AppendClear(ITypeSymbol typeSymbol, IndentedStringBuilder builder)
 	{
-		if (!typeSymbol.CheckMethod("clear", [], out var member))
+		if (!typeSymbol.CheckMethod("Clear", [], out var member))
 		{
 			return;
 		}
@@ -171,7 +171,7 @@ public class InterfaceBuilder(Compilation compilation, ITypeSymbol elementType) 
 
 	public void AppendRemove(ITypeSymbol typeSymbol, IndentedStringBuilder builder)
 	{
-		if (!typeSymbol.CheckMethod("Remove", [ elementType ], out var member))
+		if (!typeSymbol.CheckMethod("Remove", compilation.GetSpecialType(SpecialType.System_Boolean), [ elementType ], out var member))
 		{
 			return;
 		}
@@ -241,7 +241,7 @@ public class InterfaceBuilder(Compilation compilation, ITypeSymbol elementType) 
 
 	public void AppendContains(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
-		if (!typeSymbol.CheckMethod("Contains", [ compilation.GetSpecialType(SpecialType.System_Boolean), elementType ], out var member))
+		if (!typeSymbol.CheckMethod("Contains", compilation.GetSpecialType(SpecialType.System_Boolean), [ elementType ], out var member))
 		{
 			return;
 		}

@@ -107,41 +107,40 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				.WithIdentifier(SyntaxFactory.Identifier($"{first.Method.Identifier}_{first.Invocation.GetHashCode()}"))
 				.WithAttributeLists(SyntaxFactory.List<AttributeListSyntax>());
 
-			if (IsInterface(compilation, first.Method.ReturnType) && first.Value is IEnumerable enumerable)
+			if (IsInterface(compilation, first.Method.ReturnType))
 			{
-				if (TryGetSymbol<INamedTypeSymbol>(compilation, first.Method.ReturnType, out var symbol) && IsIEnumerable(symbol))
+				if (IsIEnumerable(compilation, first.Method.ReturnType) && first.Value is IEnumerable enumerable)
 				{
-					var name = first.Method.ReturnType is GenericNameSyntax genericName
-						? genericName.Identifier.Text
-						: first.Method.ReturnType.ToString();
-					
-					var body = SyntaxFactory.Block(
-						SyntaxFactory.ReturnStatement(
-							SyntaxFactory.ObjectCreationExpression(
-								SyntaxFactory.ParseTypeName($"{name}_{enumerable.GetHashCode()}"),
-								SyntaxFactory.ArgumentList(SyntaxFactory.SeparatedList<ArgumentSyntax>([ SyntaxFactory.Argument(CreateLiteral(-2)) ])), null)));
+					var block = SyntaxFactory.Block(enumerable
+						.Cast<object?>()
+						.Select(s => SyntaxFactory.YieldStatement(SyntaxKind.YieldReturnStatement, CreateLiteral(s)).WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))));
 
 					method = method
-						.WithBody(body)
+						.WithBody(block)
 						.WithExpressionBody(null);
 				}
 				else
 				{
+					var name = first.Method.ReturnType is GenericNameSyntax genericName
+							? genericName.Identifier.Text
+							: first.Method.ReturnType.ToString();
+					
 					var body = SyntaxFactory.Block(
 						SyntaxFactory.ReturnStatement(
-							SyntaxFactory.ObjectCreationExpression(
-								SyntaxFactory.ParseTypeName($"{first.Method.ReturnType}_{enumerable.GetHashCode()}"),
-								SyntaxFactory.ArgumentList(), null)));
+							SyntaxFactory.MemberAccessExpression(
+								SyntaxKind.SimpleMemberAccessExpression,
+								SyntaxFactory.ParseTypeName($"{name}_{first.Value.GetHashCode()}"),
+								SyntaxFactory.IdentifierName("Instance"))));
 
 					method = method
 						.WithBody(body)
 						.WithExpressionBody(null);
 				}
 			}
-			else
+			else if (TryGetLiteral(first.Value, out var literal))
 			{
 				method = method
-					.WithBody(SyntaxFactory.Block(SyntaxFactory.ReturnStatement(CreateLiteral(first.Value))))
+					.WithBody(SyntaxFactory.Block(SyntaxFactory.ReturnStatement(literal)))
 					.WithExpressionBody(null);
 			}
 
@@ -158,10 +157,9 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 		foreach (var invocation in group.Distinct())
 		{
-			if (IsInterface(compilation, invocation.Method.ReturnType) && invocation.Value is IEnumerable enumerable)
+			if (IsInterface(compilation, invocation.Method.ReturnType) && !IsIEnumerable(compilation, invocation.Method.ReturnType))
 			{
 				var returnType = compilation.GetSemanticModel(invocation.Method.SyntaxTree).GetTypeInfo(invocation.Method.ReturnType).Type;
-				var items = enumerable.Cast<object>().ToList();
 
 				if (returnType is not INamedTypeSymbol namedTypeSymbol)
 				{
@@ -170,129 +168,73 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 				var elementType = namedTypeSymbol.TypeArguments.FirstOrDefault();
 				var elementName = elementType?.ToDisplayString();
-				var hashCode = enumerable.GetHashCode();
+				var hashCode = invocation.Value.GetHashCode();
 
 				IEnumerable<string> interfaces = [ $"{namedTypeSymbol.Name}<{elementName}>" ];
-
-				if (IsIEnumerable(namedTypeSymbol))
-				{
-					interfaces = interfaces.Append($"IEnumerator<{elementName}>");
-				}
 
 				code.AppendLine();
 
 				using (code.AppendBlock($"file sealed class {namedTypeSymbol.Name}_{hashCode} : {String.Join(", ", interfaces)}"))
 				{
-					if (IsIEnumerable(namedTypeSymbol))
-					{
-						code.AppendLine($"""
-							private int _state;
-							private int _initialThreadId;
-							private {elementName} _current;
-							
-							public {elementName} Current => _current;
-							object IEnumerator.Current => _current;
-							""");
-					}
+					code.AppendLine($"public static {namedTypeSymbol.Name}_{hashCode} Instance = new {namedTypeSymbol.Name}_{hashCode}();");
 
-					var interfaceBuilder = new InterfaceBuilder(compilation, elementType);
-					var linqBuilder = new LinqBuilder(compilation, elementType);
-					
-					interfaceBuilder.AppendCount(namedTypeSymbol, items.Count, code);
-					interfaceBuilder.AppendLength(namedTypeSymbol, items.Count, code);
-					interfaceBuilder.AppendIsReadOnly(namedTypeSymbol, code);
-					interfaceBuilder.AppendIndexer(namedTypeSymbol, items, code);
-					
-					if (IsIEnumerable(namedTypeSymbol))
+					if (invocation.Value is IEnumerable enumerable && elementType is not null)
 					{
-						code.AppendLine($$"""
-							
-							public {{namedTypeSymbol.Name}}_{{hashCode}}(int state)
-							{
-								_state = state;
-								_initialThreadId = Environment.CurrentManagedThreadId;
-							}
-							""");
-					}
-					
-					interfaceBuilder.AppendAdd(namedTypeSymbol, code);
-					interfaceBuilder.AppendClear(namedTypeSymbol, code);
-					interfaceBuilder.AppendRemove(namedTypeSymbol, code);
-					interfaceBuilder.AppendRemoveAt(namedTypeSymbol, code);
-					interfaceBuilder.AppendInsert(namedTypeSymbol, code);
-					interfaceBuilder.AppendIndexOf(namedTypeSymbol, items, code);
-					interfaceBuilder.AppendCopyTo(namedTypeSymbol, items, code);
-					interfaceBuilder.AppendContains(namedTypeSymbol, items, code);
-					
-					linqBuilder.AppendToArray(namedTypeSymbol, items, code);
-					linqBuilder.AppendToImmutableArray(namedTypeSymbol, items, code);
-					linqBuilder.AppendToList(namedTypeSymbol, items, code);
-					linqBuilder.AppendImmutableList(namedTypeSymbol, items, code);
+						var items = enumerable.Cast<object?>().ToList();
 
-					if (IsIEnumerable(namedTypeSymbol))
-					{
-						code.AppendLine();
-						
-						using (code.AppendBlock("public bool MoveNext()"))
+						var interfaceBuilder = new InterfaceBuilder(compilation, elementType);
+						var linqBuilder = new LinqBuilder(compilation, elementType);
+
+						interfaceBuilder.AppendCount(namedTypeSymbol, items.Count, code);
+						interfaceBuilder.AppendLength(namedTypeSymbol, items.Count, code);
+						interfaceBuilder.AppendIsReadOnly(namedTypeSymbol, code);
+						interfaceBuilder.AppendIndexer(namedTypeSymbol, items, code);
+						interfaceBuilder.AppendAdd(namedTypeSymbol, code);
+						interfaceBuilder.AppendClear(namedTypeSymbol, code);
+						interfaceBuilder.AppendRemove(namedTypeSymbol, code);
+						interfaceBuilder.AppendRemoveAt(namedTypeSymbol, code);
+						interfaceBuilder.AppendInsert(namedTypeSymbol, code);
+						interfaceBuilder.AppendIndexOf(namedTypeSymbol, items, code);
+						interfaceBuilder.AppendCopyTo(namedTypeSymbol, items, code);
+						interfaceBuilder.AppendContains(namedTypeSymbol, items, code);
+
+						linqBuilder.AppendAll(namedTypeSymbol, items, code);
+						linqBuilder.AppendAny(namedTypeSymbol, items, code);
+						linqBuilder.AppendFirst(namedTypeSymbol, items, code);
+						linqBuilder.AppendFirstOrDefault(namedTypeSymbol, items, code);
+						linqBuilder.AppendLast(namedTypeSymbol, items, code);
+						linqBuilder.AppendLastOrDefault(namedTypeSymbol, items, code);
+						linqBuilder.AppendToArray(namedTypeSymbol, items, code);
+						linqBuilder.AppendToImmutableArray(namedTypeSymbol, items, code);
+						linqBuilder.AppendToList(namedTypeSymbol, items, code);
+						linqBuilder.AppendImmutableList(namedTypeSymbol, items, code);
+
+						if (IsIEnumerableRecursive(namedTypeSymbol))
 						{
-							using (code.AppendBlock("switch (_state)"))
-							{
-								var index = 0;
+							code.AppendLine();
 
+							using (code.AppendBlock($"public IEnumerator<{elementName}> GetEnumerator()"))
+							{
 								foreach (var item in items)
 								{
-									code.AppendLine($"case {index}:");
-									code.AppendLine("\t_state = -1;");
-									code.AppendLine($"\t_current = {CreateLiteral(item)};");
-									code.AppendLine($"\t_state = {index + 1};");
-									code.AppendLine("\treturn true;");
-									index++;
+									code.AppendLine($"yield return {CreateLiteral(item)};");
 								}
+							}
 
-								code.AppendLine($"default:");
-								code.AppendLine("\treturn false;");
+							code.AppendLine();
+
+							using (code.AppendBlock("IEnumerator IEnumerable.GetEnumerator()"))
+							{
+								code.AppendLine("return GetEnumerator();");
 							}
 						}
-						
-						code.AppendLine($$"""
-
-							bool IEnumerator.MoveNext()
-							{
-								return MoveNext();
-							}
-
-							public IEnumerator<{{elementName}}> GetEnumerator()
-							{
-								if (_state == -2 && _initialThreadId == Environment.CurrentManagedThreadId)
-								{
-									_state = 0;
-									return this;
-								}
-								
-								return new {{namedTypeSymbol.Name}}_{{hashCode}}(0);
-							}
-
-							IEnumerator IEnumerable.GetEnumerator() 
-							{
-								return GetEnumerator();
-							}
-
-							public void Reset()
-							{
-								_state = 0;
-							}
-
-							public void Dispose()
-							{
-							}
-							""");
 					}
 				}
 			}
 		}
 
 		if (group.Key.Parent is TypeDeclarationSyntax type)
-		{ 
+		{
 			spc.AddSource($"{type.Identifier}_{group.Key.Identifier}.g.cs", code.ToString());
 		}
 	}
@@ -478,7 +420,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 	private static bool TryGetSymbol<TSymbol>(Compilation compilation, SyntaxNode invocation, [NotNullWhen(true)] out TSymbol symbol) where TSymbol : ISymbol
 	{
 		var semanticModel = compilation.GetSemanticModel(invocation.SyntaxTree);
-		
+
 		if (semanticModel.GetSymbolInfo(invocation, CancellationToken.None).Symbol is TSymbol s)
 		{
 			symbol = s;

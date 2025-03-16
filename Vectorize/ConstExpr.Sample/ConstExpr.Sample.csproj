@@ -14,10 +14,20 @@
 
 	<ItemGroup>
 		<None Remove="DDD.UbiquitousLanguageRegistry.txt"/>
+		<None Remove="obj\**" />
 	</ItemGroup>
 
 	<ItemGroup>
 	  <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Compile Include="obj\Debug\net9.0\Vectorize.Sample.AssemblyInfo.cs" />
+	  <Compile Remove="obj\**" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <EmbeddedResource Remove="obj\**" />
 	</ItemGroup>
 
 </Project>
