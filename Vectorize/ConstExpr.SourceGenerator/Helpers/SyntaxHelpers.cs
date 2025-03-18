@@ -764,5 +764,35 @@ public static class SyntaxHelpers
 		}
 
 		return other.AllInterfaces.Any(a => SymbolEqualityComparer.Default.Equals(a, other));
-	} 
+	}
+
+	public static string GetMinimalString(Compilation compilation, ISymbol symbol)
+	{
+		if (SymbolEqualityComparer.Default.Equals(symbol, compilation.GetSpecialType(SpecialType.System_Void)))
+		{
+			return "void";
+		}
+
+		if (SymbolEqualityComparer.Default.Equals(symbol.OriginalDefinition, compilation.GetSpecialType(SpecialType.System_Collections_Generic_IEnumerable_T))
+		    && symbol is INamedTypeSymbol namedTypeSymbol)
+		{
+			return $"IEnumerable<{String.Join(", ", namedTypeSymbol.TypeArguments.Select(s => GetMinimalString(compilation, s)))}>";
+		}
+
+		var node = GetSyntaxNode(symbol);
+
+		if (!TryGetSemanticModel(compilation, node, out var model))
+		{
+			return symbol.ToDisplayString();
+		}
+
+		return symbol.ToMinimalDisplayString(model, node.Span.Start);
+	}
+
+	public static SyntaxNode? GetSyntaxNode(ISymbol symbol, CancellationToken cancellationToken = default)
+	{
+		return symbol.DeclaringSyntaxReferences
+			.Select(s => s?.GetSyntax(cancellationToken))
+			.FirstOrDefault(s => s is not null);
+	}
 }

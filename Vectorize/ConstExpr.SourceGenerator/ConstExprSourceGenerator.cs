@@ -205,6 +205,8 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 						linqBuilder.AppendLast(namedTypeSymbol, items, code);
 						linqBuilder.AppendLastOrDefault(namedTypeSymbol, items, code);
 						linqBuilder.AppendSelect(namedTypeSymbol, items, code);
+						linqBuilder.AppendSum(namedTypeSymbol, items, code);
+						linqBuilder.AppendSequenceEqual(namedTypeSymbol, items, code);
 						
 						linqBuilder.AppendToArray(namedTypeSymbol, items, code);
 						linqBuilder.AppendToImmutableArray(namedTypeSymbol, items, code);
