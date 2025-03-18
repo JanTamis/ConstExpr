@@ -90,7 +90,8 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 	
 	public void AppendCast(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
-		if (!typeSymbol.CheckMethodWithReturnType(nameof(Enumerable.Cast), elementType, out var member))
+		if (!typeSymbol.CheckMembers<IMethodSymbol>(nameof(Enumerable.Cast), m => m.TypeParameters.Length == 1
+		                                                                          && SymbolEqualityComparer.Default.Equals(m.ReturnType, GetTypeByType(compilation, typeof(IEnumerable<>), m.TypeParameters[0])), out var member))
 		{
 			return;
 		}
@@ -99,7 +100,7 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 		{
 			foreach (var item in items)
 			{
-				builder.AppendLine($"yield return {CreateLiteral(item)};");
+				builder.AppendLine($"yield return ({member.TypeParameters[0].Name})Convert.ChangeType({CreateLiteral(item)}, typeof({member.TypeParameters[0].Name}));");
 			}
 		}
 	}
@@ -154,7 +155,7 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 		}
 	}
 	
-	public void LongCount(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
+	public void AppendLongCount(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
 		if (typeSymbol.CheckMethodWithReturnType(nameof(Enumerable.LongCount), compilation.GetSpecialType(SpecialType.System_Int64), out var member))
 		{
@@ -176,6 +177,22 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 		using (AppendMethod(builder, member))
 		{
 			builder.AppendLine($"return {String.Join("\n\t + ", items.Select(s => $"{member.Parameters[0].Name}({CreateLiteral(s)}) ? 1 : 0"))};");
+		}
+	}
+
+	public void AppendDistinct(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
+	{
+		if (!typeSymbol.CheckMethodWithReturnType(nameof(Enumerable.Distinct), GetTypeByType(compilation, typeof(IEnumerable<>), elementType), out var member))
+		{
+			return;
+		}
+		
+		using (AppendMethod(builder, member))
+		{
+			foreach (var item in items.Distinct())
+			{
+				builder.AppendLine($"yield return {CreateLiteral(item)};");
+			}
 		}
 	}
 	
@@ -355,6 +372,24 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 			builder.AppendLine("return default;");
 		}
 	}
+
+	public void AppendIndex(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
+	{
+		if (!typeSymbol.CheckMethodWithReturnType("Index", GetTypeByType(compilation, typeof(ValueTuple<,>), compilation.GetSpecialType(SpecialType.System_Int32), elementType), out var member))
+		{
+			return;
+		}
+		
+		using (AppendMethod(builder, member))
+		{
+			var i = 0;
+			
+			foreach (var item in items)
+			{
+				builder.AppendLine($"yield return ({i++}, {CreateLiteral(item)});");
+			}
+		}
+	}
 	
 	public void AppendLast(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
@@ -446,6 +481,73 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 			}
 			
 			builder.AppendLine("return default;");
+		}
+	}
+	
+	public void AppendOrder(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
+	{
+		if (!typeSymbol.CheckMethodWithReturnType("Order", GetTypeByType(compilation, typeof(IEnumerable<>), elementType), out var member))
+		{
+			return;
+		}
+
+		using (AppendMethod(builder, member))
+		{
+			foreach (var item in items.OrderBy(s => s))
+			{
+				builder.AppendLine($"yield return {CreateLiteral(item)};");
+			}
+		}
+	}
+
+	public void AppendOrderDescending(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
+	{
+		if (!typeSymbol.CheckMethodWithReturnType("OrderDescending", GetTypeByType(compilation, typeof(IEnumerable<>), elementType), out var member))
+		{
+			return;
+		}
+
+		using (AppendMethod(builder, member))
+		{
+			foreach (var item in items.OrderByDescending(s => s))
+			{
+				builder.AppendLine($"yield return {CreateLiteral(item)};");
+			}
+		}
+	}
+	
+	public void AppendReverse(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
+	{
+		if (!typeSymbol.CheckMethodWithReturnType(nameof(Enumerable.Reverse), GetTypeByType(compilation, typeof(IEnumerable<>), elementType), out var member))
+		{
+			return;
+		}
+
+		using (AppendMethod(builder, member))
+		{
+			foreach (var item in items.Reverse())
+			{
+				builder.AppendLine($"yield return {CreateLiteral(item)};");
+			}
+		}
+	}
+	
+	public void AppendSelect(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
+	{
+		if (!typeSymbol.CheckMembers<IMethodSymbol>(nameof(Enumerable.Select), m => m.TypeParameters.Length == 1 
+		                                                                            && SymbolEqualityComparer.Default.Equals(m.ReturnType, GetTypeByType(compilation, typeof(IEnumerable<>), m.TypeParameters[0]))
+		                                                                            && m.Parameters.Length == 1 
+																																								&& SymbolEqualityComparer.Default.Equals(m.Parameters[0].Type, GetTypeByType(compilation, typeof(Func<,>), elementType, m.TypeParameters[0])), out var member))
+		{
+			return;
+		}
+		
+		using (AppendMethod(builder, member))
+		{
+			foreach (var item in items)
+			{
+				builder.AppendLine($"yield return {member.Parameters[0].Name}({CreateLiteral(item)});");
+			}
 		}
 	}
 	

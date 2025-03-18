@@ -1,12 +1,13 @@
 using System;
 using System.Linq;
+using System.Threading;
 using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Helpers;
 
 public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilation)
 {
-	protected static IDisposable AppendMethod(IndentedStringBuilder builder, IMethodSymbol methodSymbol)
+	protected IDisposable AppendMethod(IndentedStringBuilder builder, IMethodSymbol methodSymbol)
 	{
 		var prepend = "public ";
 
@@ -22,7 +23,12 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 
 		builder.AppendLine();
 
-		return builder.AppendBlock($"{prepend}{methodSymbol.ReturnType.ToDisplayString()} {methodSymbol.Name}({String.Join(", ", methodSymbol.Parameters.Select(p => p.ToString()))})");
+		if (methodSymbol.TypeParameters.Any())
+		{
+			return builder.AppendBlock($"{prepend}{GetMinimalString(methodSymbol.ReturnType)} {methodSymbol.Name}<{String.Join(", ", methodSymbol.TypeParameters.Select(GetMinimalString))}>({String.Join(", ", methodSymbol.Parameters.Select(GetMinimalString))})");
+		}
+
+		return builder.AppendBlock($"{prepend}{GetMinimalString(methodSymbol.ReturnType)} {methodSymbol.Name}({String.Join(", ", methodSymbol.Parameters.Select(GetMinimalString))})");
 	}
 
 	protected static void AppendProperty(IndentedStringBuilder builder, IPropertySymbol propertySymbol, string? get = null, string? set = null)
@@ -134,5 +140,28 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		}
 
 		return "Count";
+	}
+
+	private string GetMinimalString(ISymbol symbol)
+	{
+		if (SymbolEqualityComparer.Default.Equals(symbol, compilation.GetSpecialType(SpecialType.System_Void)))
+		{
+			return "void";
+		}
+		
+		var node = GetSyntaxNode(symbol);
+		
+		if (!SyntaxHelpers.TryGetSemanticModel(compilation, node, out var model))
+		{
+			return symbol.ToDisplayString();
+		}	
+		
+		return symbol.ToMinimalDisplayString(model, node.Span.Start);
+	}
+
+	public static SyntaxNode? GetSyntaxNode(ISymbol symbol, CancellationToken cancellationToken = default)
+	{
+		var syntaxReference = symbol.DeclaringSyntaxReferences.FirstOrDefault();
+		return syntaxReference?.GetSyntax(cancellationToken);
 	}
 }
