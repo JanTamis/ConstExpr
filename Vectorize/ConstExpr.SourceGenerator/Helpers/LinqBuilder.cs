@@ -12,7 +12,7 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 {
 	public void AppendAny(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
-		if (typeSymbol.CheckMethodWithReturnType(nameof(Enumerable.Any), compilation.GetSpecialType(SpecialType.System_Boolean), out var member))
+		if (typeSymbol.CheckMethodWithReturnType(nameof(Enumerable.Any), compilation.CreateBoolean(), out var member))
 		{
 			using (AppendMethod(builder, member))
 			{
@@ -22,9 +22,9 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 			return;
 		}
 
-		var selector = GetTypeByType(compilation, typeof(Func<,>), elementType, compilation.GetSpecialType(SpecialType.System_Boolean));
+		var selector = compilation.CreateFunc(elementType, compilation.CreateBoolean());
 
-		if (!typeSymbol.CheckMethod(nameof(Enumerable.Any), compilation.GetSpecialType(SpecialType.System_Boolean), [ selector ], out member))
+		if (!typeSymbol.CheckMethod(nameof(Enumerable.Any), compilation.CreateBoolean(), [ selector ], out member))
 		{
 			return;
 		}
@@ -37,9 +37,9 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 
 	public void AppendAll(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
-		var selector = GetTypeByType(compilation, typeof(Func<,>), elementType, compilation.GetSpecialType(SpecialType.System_Boolean));
+		var selector = compilation.CreateFunc(elementType, compilation.CreateBoolean());
 
-		if (!typeSymbol.CheckMethod(nameof(Enumerable.All), compilation.GetSpecialType(SpecialType.System_Boolean), [ selector ], out var member))
+		if (!typeSymbol.CheckMethod(nameof(Enumerable.All), compilation.CreateBoolean(), [ selector ], out var member))
 		{
 			return;
 		}
@@ -52,7 +52,7 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 
 	public void AppendAsEnumerable(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
-		if (!typeSymbol.CheckMethodWithReturnType(nameof(Enumerable.AsEnumerable), GetTypeByType(compilation, typeof(IEnumerable<>), elementType), out var member))
+		if (!typeSymbol.CheckMethodWithReturnType(nameof(Enumerable.AsEnumerable), compilation.CreateIEnumerable(elementType), out var member))
 		{
 			return;
 		}
@@ -91,7 +91,7 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 	public void AppendCast(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
 		if (!typeSymbol.CheckMembers<IMethodSymbol>(nameof(Enumerable.Cast), m => m.TypeParameters.Length == 1
-		                                                                          && SymbolEqualityComparer.Default.Equals(m.ReturnType, GetTypeByType(compilation, typeof(IEnumerable<>), m.TypeParameters[0])), out var member))
+		                                                                          && SymbolEqualityComparer.Default.Equals(m.ReturnType, compilation.CreateIEnumerable(m.TypeArguments[0])), out var member))
 		{
 			return;
 		}
@@ -107,7 +107,7 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 
 	public void AppendContains(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
-		if (typeSymbol.CheckMethod(nameof(Enumerable.Contains), compilation.GetSpecialType(SpecialType.System_Boolean), [ elementType ], out var member))
+		if (typeSymbol.CheckMethod(nameof(Enumerable.Contains), compilation.CreateBoolean(), [ elementType ], out var member))
 		{
 			using (AppendMethod(builder, member))
 			{
@@ -117,9 +117,9 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 			return;
 		}
 
-		var comparerType = GetTypeByType(compilation, typeof(IEqualityComparer<>), elementType);
+		var comparerType = compilation.GetTypeByType(typeof(IEqualityComparer<>), elementType);
 
-		if (!typeSymbol.CheckMethod(nameof(Enumerable.Contains), compilation.GetSpecialType(SpecialType.System_Boolean), [ elementType, comparerType ], out member))
+		if (!typeSymbol.CheckMethod(nameof(Enumerable.Contains), compilation.CreateBoolean(), [ elementType, comparerType ], out member))
 		{
 			return;
 		}
@@ -132,7 +132,7 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 
 	public void AppendCount(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
-		if (typeSymbol.CheckMethodWithReturnType(nameof(Enumerable.Count), compilation.GetSpecialType(SpecialType.System_Int32), out var member))
+		if (typeSymbol.CheckMethodWithReturnType(nameof(Enumerable.Count), compilation.CreateInt32(), out var member))
 		{
 			using (AppendMethod(builder, member))
 			{
@@ -142,9 +142,9 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 			return;
 		}
 
-		var selector = GetTypeByType(compilation, typeof(Func<,>), elementType, compilation.GetSpecialType(SpecialType.System_Boolean));
+		var selector = compilation.CreateFunc(elementType, compilation.CreateBoolean());
 
-		if (!typeSymbol.CheckMethod(nameof(Enumerable.Count), compilation.GetSpecialType(SpecialType.System_Int32), [ selector ], out member))
+		if (!typeSymbol.CheckMethod(nameof(Enumerable.Count), compilation.CreateInt32(), [ selector ], out member))
 		{
 			return;
 		}
@@ -157,7 +157,7 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 
 	public void AppendLongCount(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
-		if (typeSymbol.CheckMethodWithReturnType(nameof(Enumerable.LongCount), compilation.GetSpecialType(SpecialType.System_Int64), out var member))
+		if (typeSymbol.CheckMethodWithReturnType(nameof(Enumerable.LongCount), compilation.CreateInt64(), out var member))
 		{
 			using (AppendMethod(builder, member))
 			{
@@ -167,9 +167,9 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 			return;
 		}
 
-		var selector = GetTypeByType(compilation, typeof(Func<,>), elementType, compilation.GetSpecialType(SpecialType.System_Boolean));
+		var selector = compilation.CreateFunc(elementType, compilation.CreateBoolean());
 
-		if (!typeSymbol.CheckMethod(nameof(Enumerable.LongCount), compilation.GetSpecialType(SpecialType.System_Int64), [ selector ], out member))
+		if (!typeSymbol.CheckMethod(nameof(Enumerable.LongCount), compilation.CreateInt64(), [ selector ], out member))
 		{
 			return;
 		}
@@ -182,7 +182,7 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 
 	public void AppendDistinct(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
-		if (!typeSymbol.CheckMethodWithReturnType(nameof(Enumerable.Distinct), GetTypeByType(compilation, typeof(IEnumerable<>), elementType), out var member))
+		if (!typeSymbol.CheckMethodWithReturnType(nameof(Enumerable.Distinct), compilation.CreateIEnumerable(elementType), out var member))
 		{
 			return;
 		}
@@ -198,7 +198,7 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 
 	public void AppendElementAt(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
-		if (typeSymbol.CheckMethod(nameof(Enumerable.ElementAt), elementType, [ compilation.GetSpecialType(SpecialType.System_Int32) ], out var member))
+		if (typeSymbol.CheckMethod(nameof(Enumerable.ElementAt), elementType, [ compilation.CreateInt32() ], out var member))
 		{
 			using (AppendMethod(builder, member))
 			{
@@ -216,7 +216,7 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 			return;
 		}
 
-		if (!typeSymbol.CheckMethod(nameof(Enumerable.ElementAt), elementType, [ GetTypeByType(compilation, typeof(Index)) ], out member))
+		if (!typeSymbol.CheckMethod(nameof(Enumerable.ElementAt), elementType, [ compilation.GetTypeByType(typeof(Index)) ], out member))
 		{
 			return;
 		}
@@ -240,7 +240,7 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 
 	public void AppendElementAtOrDefault(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
-		if (typeSymbol.CheckMethod(nameof(Enumerable.ElementAtOrDefault), elementType, [ compilation.GetSpecialType(SpecialType.System_Int32) ], out var member))
+		if (typeSymbol.CheckMethod(nameof(Enumerable.ElementAtOrDefault), elementType, [ compilation.CreateInt32() ], out var member))
 		{
 			using (AppendMethod(builder, member))
 			{
@@ -258,7 +258,7 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 			return;
 		}
 
-		if (!typeSymbol.CheckMethod(nameof(Enumerable.ElementAtOrDefault), elementType, [ GetTypeByType(compilation, typeof(Index)) ], out member))
+		if (!typeSymbol.CheckMethod(nameof(Enumerable.ElementAtOrDefault), elementType, [ compilation.GetTypeByType(typeof(Index)) ], out member))
 		{
 			return;
 		}
@@ -292,7 +292,7 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 			return;
 		}
 
-		var selector = GetTypeByType(compilation, typeof(Func<,>), elementType, compilation.GetSpecialType(SpecialType.System_Boolean));
+		var selector = compilation.CreateFunc(elementType, compilation.CreateBoolean());
 
 		if (!typeSymbol.CheckMethod(nameof(Enumerable.First), elementType, [ selector ], out member))
 		{
@@ -340,7 +340,7 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 			return;
 		}
 
-		var selector = GetTypeByType(compilation, typeof(Func<,>), elementType, compilation.GetSpecialType(SpecialType.System_Boolean));
+		var selector = compilation.CreateFunc(elementType, compilation.CreateBoolean());
 
 		if (!typeSymbol.CheckMethod(nameof(Enumerable.FirstOrDefault), elementType, [ selector ], out member))
 		{
@@ -375,7 +375,7 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 
 	public void AppendIndex(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
-		if (!typeSymbol.CheckMethodWithReturnType("Index", GetTypeByType(compilation, typeof(ValueTuple<,>), compilation.GetSpecialType(SpecialType.System_Int32), elementType), out var member))
+		if (!typeSymbol.CheckMethodWithReturnType("Index", compilation.GetTypeByType(typeof(ValueTuple<,>), compilation.CreateInt32(), elementType), out var member))
 		{
 			return;
 		}
@@ -403,7 +403,7 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 			return;
 		}
 
-		var selector = GetTypeByType(compilation, typeof(Func<,>), elementType, compilation.GetSpecialType(SpecialType.System_Boolean));
+		var selector = compilation.CreateFunc(elementType, compilation.CreateBoolean());
 
 		if (!typeSymbol.CheckMethod(nameof(Enumerable.Last), elementType, [ selector ], out member))
 		{
@@ -451,7 +451,7 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 			return;
 		}
 
-		var selector = GetTypeByType(compilation, typeof(Func<,>), elementType, compilation.GetSpecialType(SpecialType.System_Boolean));
+		var selector = compilation.CreateFunc(elementType, compilation.CreateBoolean());
 
 		if (!typeSymbol.CheckMethod(nameof(Enumerable.LastOrDefault), elementType, [ selector ], out member))
 		{
@@ -486,7 +486,7 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 
 	public void AppendOrder(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
-		if (!typeSymbol.CheckMethodWithReturnType("Order", GetTypeByType(compilation, typeof(IEnumerable<>), elementType), out var member))
+		if (!typeSymbol.CheckMethodWithReturnType("Order", compilation.CreateIEnumerable(elementType), out var member))
 		{
 			return;
 		}
@@ -502,7 +502,7 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 
 	public void AppendOrderDescending(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
-		if (!typeSymbol.CheckMethodWithReturnType("OrderDescending", GetTypeByType(compilation, typeof(IEnumerable<>), elementType), out var member))
+		if (!typeSymbol.CheckMethodWithReturnType("OrderDescending", compilation.CreateIEnumerable(elementType), out var member))
 		{
 			return;
 		}
@@ -518,7 +518,7 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 
 	public void AppendReverse(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
-		if (!typeSymbol.CheckMethodWithReturnType(nameof(Enumerable.Reverse), GetTypeByType(compilation, typeof(IEnumerable<>), elementType), out var member))
+		if (!typeSymbol.CheckMethodWithReturnType(nameof(Enumerable.Reverse), compilation.CreateIEnumerable(elementType), out var member))
 		{
 			return;
 		}
@@ -534,10 +534,9 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 
 	public void AppendSelect(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
-		if (!typeSymbol.CheckMembers<IMethodSymbol>(nameof(Enumerable.Select), m => m.TypeParameters.Length == 1
-		                                                                            && SymbolEqualityComparer.Default.Equals(m.ReturnType, GetTypeByType(compilation, typeof(IEnumerable<>), m.TypeParameters[0]))
-		                                                                            && m.Parameters.Length == 1
-		                                                                            && SymbolEqualityComparer.Default.Equals(m.Parameters[0].Type, GetTypeByType(compilation, typeof(Func<,>), elementType, m.TypeParameters[0])), out var member))
+		if (!typeSymbol.CheckMembers<IMethodSymbol>(nameof(Enumerable.Select), m => m.ReturnType is INamedTypeSymbol namedTypeSymbol
+		                                                                            && IsIEnumerable(namedTypeSymbol)
+		                                                                            && SymbolEqualityComparer.Default.Equals(m.Parameters[0].Type, compilation.CreateFunc(elementType, namedTypeSymbol.TypeArguments[0])), out var member))
 		{
 			return;
 		}
@@ -553,7 +552,7 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 
 	public void AppendSequenceEqual(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
-		if (!typeSymbol.CheckMethod(nameof(Enumerable.SequenceEqual), compilation.GetSpecialType(SpecialType.System_Boolean), [ GetTypeByType(compilation, typeof(IEnumerable<>), elementType) ], out var member))
+		if (!typeSymbol.CheckMethod(nameof(Enumerable.SequenceEqual), compilation.CreateBoolean(), [ compilation.CreateIEnumerable(elementType) ], out var member))
 		{
 			return;
 		}
@@ -641,9 +640,9 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 
 	public void AppendTryGetNonEnumeratedCount(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
-		if (!typeSymbol.CheckMembers<IMethodSymbol>("TryGetNonEnumeratedCount", m => SymbolEqualityComparer.Default.Equals(m.ReturnType, compilation.GetSpecialType(SpecialType.System_Boolean))
+		if (!typeSymbol.CheckMembers<IMethodSymbol>("TryGetNonEnumeratedCount", m => SymbolEqualityComparer.Default.Equals(m.ReturnType, compilation.CreateBoolean())
 		                                                                             && m.Parameters is [ { RefKind: RefKind.Out } ]
-		                                                                             && SymbolEqualityComparer.Default.Equals(m.Parameters[0].Type, compilation.GetSpecialType(SpecialType.System_Int32)), out var member))
+		                                                                             && SymbolEqualityComparer.Default.Equals(m.Parameters[0].Type, compilation.CreateInt32()), out var member))
 		{
 			return;
 		}
@@ -653,10 +652,26 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 			builder.AppendLine($"return {items.Count};");
 		}
 	}
+	
+	public void AppendWhere(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
+	{
+		if (!typeSymbol.CheckMethod(nameof(Enumerable.Where), compilation.CreateIEnumerable(elementType), [], out var member))
+		{
+			return;
+		}
+	
+		using (AppendMethod(builder, member))
+		{
+			foreach (var item in items)
+			{
+				builder.AppendLine($"yield return {member.Parameters[0].Name}({CreateLiteral(item)}) ? {CreateLiteral(item)} : default;");
+			}
+		}
+	}
 
 	public void AppendToImmutableArray(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
-		var immutableArrayType = GetTypeByType(compilation, typeof(ImmutableArray<>), elementType);
+		var immutableArrayType = compilation.GetTypeByType(typeof(ImmutableArray<>), elementType);
 
 		if (!typeSymbol.CheckMethodWithReturnType("ToImmutableArray", immutableArrayType, out var member))
 		{
@@ -686,7 +701,7 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 
 	public void AppendImmutableList(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
-		var immutableListType = GetTypeByType(compilation, typeof(ImmutableList<>), elementType);
+		var immutableListType = compilation.GetTypeByType(typeof(ImmutableList<>), elementType);
 
 		if (!typeSymbol.CheckMethodWithReturnType("ToImmutableList", immutableListType, out var member))
 		{
@@ -701,7 +716,7 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 
 	public void AppendToList(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
-		var listType = GetTypeByType(compilation, typeof(List<>), elementType);
+		var listType = compilation.GetTypeByType(typeof(List<>), elementType);
 
 		if (!typeSymbol.CheckMethodWithReturnType(nameof(Enumerable.ToList), listType, out var member))
 		{
@@ -716,7 +731,7 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 
 	public void AppendToHashSet(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
-		var hashSetType = GetTypeByType(compilation, typeof(HashSet<>), elementType);
+		var hashSetType = compilation.GetTypeByType(typeof(HashSet<>), elementType);
 
 		if (!typeSymbol.CheckMethodWithReturnType("ToHashSet", hashSetType, out var member))
 		{

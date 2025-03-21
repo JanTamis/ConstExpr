@@ -1,4 +1,4 @@
-using ConstExpr.SourceGenerator.Helpers;
+using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 
@@ -11,6 +11,6 @@ public partial class OperatorHelper
 		var instance = GetConstantValue(compilation, fieldReferenceOperation.Instance);
 		var field = fieldReferenceOperation.Field;
 
-		return SyntaxHelpers.GetFieldValue(compilation, field, instance);
+		return compilation.GetFieldValue(field, instance);
 	}
 }

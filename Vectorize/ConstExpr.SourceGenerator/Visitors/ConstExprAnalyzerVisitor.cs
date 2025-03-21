@@ -1,11 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using ConstExpr.SourceGenerator.Analyzers;
+using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
 
@@ -35,13 +34,13 @@ public class ConstExprAnalyzerVisitor<TNode, TSymbol>(BaseAnalyzer<TNode, TSymbo
 	{
 		foreach (var variable in operation.Declarators)
 		{
-			variables.Add(variable.Symbol.Name, SyntaxHelpers.GetTypeByType(context.Compilation, variable.Symbol.Type));
+			variables.Add(variable.Symbol.Name, context.Compilation.GetTypeByType(variable.Symbol.Type));
 		}
 	}
 
 	public override void VisitPropertyReference(IPropertyReferenceOperation operation)
 	{
-		var type = SyntaxHelpers.GetTypeByType(context.Compilation, operation.Property.ContainingType);
+		var type = context.Compilation.GetTypeByType(operation.Property.ContainingType);
 
 		var propertyInfo = type
 			.GetProperties()
@@ -62,10 +61,10 @@ public class ConstExprAnalyzerVisitor<TNode, TSymbol>(BaseAnalyzer<TNode, TSymbo
 		
 		try
 		{
-			var type = SyntaxHelpers.GetTypeByType(context.Compilation, operation.TargetMethod.ContainingType);
+			var type = context.Compilation.GetTypeByType(operation.TargetMethod.ContainingType);
 
 			var arguments = operation.Arguments
-				.Select(s => SyntaxHelpers.GetTypeByType(context.Compilation, s.Parameter.Type))
+				.Select(s => context.Compilation.GetTypeByType(s.Parameter.Type))
 				.ToArray();
 
 			foreach (var methodInfo in type.GetMethods())

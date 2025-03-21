@@ -3,7 +3,6 @@ using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
-using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Attributes;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 

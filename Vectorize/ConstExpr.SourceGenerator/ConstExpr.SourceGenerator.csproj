@@ -28,6 +28,7 @@
 		</PackageReference>
 		<PackageReference Include="SourceGenerator.Foundations" Version="2.0.13" />
 		<PackageReference Include="SourceGenerator.Foundations.Contracts" Version="2.0.13" />
+		<PackageReference Include="System.Reflection.MetadataLoadContext" Version="9.0.3" />
 	</ItemGroup>
 
 	<ItemGroup>

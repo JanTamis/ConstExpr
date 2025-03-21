@@ -7,7 +7,7 @@ public interface ICustomCollection<T>
 {
 	void CopyTo(Span<T> data);
 	
-	IEnumerable<TResult> Select<TResult>(Func<T, TResult> selector);
+	IEnumerable<bool> Select(Func<T, bool> selector);
 	
 	bool SequenceEqual(IEnumerable<T> other);
 }

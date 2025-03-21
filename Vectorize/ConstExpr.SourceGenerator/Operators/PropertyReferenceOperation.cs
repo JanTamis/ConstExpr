@@ -1,3 +1,4 @@
+using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
@@ -11,6 +12,6 @@ public partial class OperatorHelper
 		var instance = GetConstantValue(compilation, propertyReferenceOperation.Instance);
 		var property = propertyReferenceOperation.Property;
 
-		return SyntaxHelpers.GetPropertyValue(compilation, property, instance);
+		return compilation.GetPropertyValue(property, instance);
 	}
 }

@@ -1,4 +1,4 @@
-using ConstExpr.SourceGenerator.Helpers;
+using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 
@@ -15,7 +15,7 @@ public partial class OperatorHelper
 
 		if (method != null)
 		{
-			return SyntaxHelpers.ExecuteMethod(compilation, method, null, left, right);
+			return compilation.ExecuteMethod(method, null, left, right);
 		}
 
 		return ExecuteBinaryOperation(operatorKind, left, right);

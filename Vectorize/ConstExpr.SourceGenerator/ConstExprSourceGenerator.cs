@@ -11,6 +11,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Visitors;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
@@ -79,6 +80,8 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 	{
 		var code = new IndentedStringBuilder();
 		var usings = group.SelectMany(item => item.Usings).Distinct().OrderBy(s => s);
+		
+		
 
 		foreach (var u in usings)
 		{
@@ -107,7 +110,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				.WithIdentifier(SyntaxFactory.Identifier($"{first.Method.Identifier}_{first.Invocation.GetHashCode()}"))
 				.WithAttributeLists(SyntaxFactory.List<AttributeListSyntax>());
 
-			if (IsInterface(compilation, first.Method.ReturnType))
+			if (compilation.IsInterface(first.Method.ReturnType))
 			{
 				if (IsIEnumerable(compilation, first.Method.ReturnType) && first.Value is IEnumerable enumerable)
 				{
@@ -157,7 +160,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 		foreach (var invocation in group.Distinct())
 		{
-			if (IsInterface(compilation, invocation.Method.ReturnType) && !IsIEnumerable(compilation, invocation.Method.ReturnType))
+			if (compilation.IsInterface(invocation.Method.ReturnType) && !IsIEnumerable(compilation, invocation.Method.ReturnType))
 			{
 				var returnType = compilation.GetSemanticModel(invocation.Method.SyntaxTree).GetTypeInfo(invocation.Method.ReturnType).Type;
 
@@ -284,7 +287,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		}
 
 		if (TryGetOperation<IMethodBodyOperation>(compilation, methodDecl, out var blockOperation) &&
-		    TryGetSemanticModel(compilation, invocation, out var model))
+		    compilation.TryGetSemanticModel(invocation, out var model))
 		{
 			try
 			{

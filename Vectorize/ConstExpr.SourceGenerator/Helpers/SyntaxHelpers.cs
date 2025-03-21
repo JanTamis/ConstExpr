@@ -7,8 +7,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
+using ConstExpr.SourceGenerator.Extensions;
 
 namespace ConstExpr.SourceGenerator.Helpers;
 
@@ -44,7 +44,7 @@ public static class SyntaxHelpers
 
 	public static bool TryGetVariableValue(Compilation compilation, SyntaxNode? expression, Dictionary<string, object?> variables, out object? value)
 	{
-		if (TryGetSemanticModel(compilation, expression, out var semanticModel) && semanticModel.GetConstantValue(expression) is { HasValue: true, Value: var temp })
+		if (compilation.TryGetSemanticModel(expression, out var semanticModel) && semanticModel.GetConstantValue(expression) is { HasValue: true, Value: var temp })
 		{
 			value = temp;
 			return true;
@@ -180,7 +180,7 @@ public static class SyntaxHelpers
 	{
 		try
 		{
-			if (TryGetSemanticModel(compilation, expression, out var semanticModel) && semanticModel.GetConstantValue(expression, token) is { HasValue: true, Value: var temp })
+			if (compilation.TryGetSemanticModel(expression, out var semanticModel) && semanticModel.GetConstantValue(expression, token) is { HasValue: true, Value: var temp })
 			{
 				value = temp;
 				return true;
@@ -204,13 +204,13 @@ public static class SyntaxHelpers
 				case MemberAccessExpressionSyntax memberAccess when semanticModel.GetOperation(memberAccess) is IPropertyReferenceOperation propertyOperation:
 					if (propertyOperation.Property.IsStatic)
 					{
-						value = GetPropertyValue(compilation, propertyOperation.Property, null);
+						value = compilation.GetPropertyValue(propertyOperation.Property, null);
 						return true;
 					}
 
 					if (TryGetConstantValue(compilation, memberAccess.Expression, token, out var instance))
 					{
-						value = GetPropertyValue(compilation, propertyOperation.Property, instance);
+						value = compilation.GetPropertyValue(propertyOperation.Property, instance);
 						return true;
 					}
 
@@ -233,11 +233,11 @@ public static class SyntaxHelpers
 							Array.Copy(fixedArguments, finalArguments, fixedArguments.Length);
 							finalArguments[fixedArguments.Length] = paramsArguments;
 
-							value = ExecuteMethod(compilation, operation.TargetMethod, null, finalArguments);
+							value = compilation.ExecuteMethod(operation.TargetMethod, null, finalArguments);
 						}
 						else
 						{
-							value = ExecuteMethod(compilation, operation.TargetMethod, null, arguments);
+							value = compilation.ExecuteMethod(operation.TargetMethod, null, arguments);
 						}
 						return true;
 					}
@@ -247,7 +247,7 @@ public static class SyntaxHelpers
 					if (operation.Arguments.All(x => x.Value.ConstantValue.HasValue))
 					{
 						var parameters = operation.Arguments.Select(x => x.Value.ConstantValue.Value).ToArray();
-						value = ExecuteMethod(compilation, operation.Constructor, null, parameters);
+						value = compilation.ExecuteMethod(operation.Constructor, null, parameters);
 						return true;
 					}
 					value = null;
@@ -274,182 +274,7 @@ public static class SyntaxHelpers
 		return attribute?.AttributeClass is { Name: "ConstExprAttribute", ContainingNamespace.Name: "ConstantExpression" };
 	}
 
-	public static object? ExecuteMethod(Compilation compilation, IMethodSymbol methodSymbol, object? instance, params object?[]? parameters)
-	{
-		var fullyQualifiedName = methodSymbol.ContainingType.ToDisplayString();
-		var methodName = methodSymbol.Name;
 
-		var type = GetTypeByType(compilation, methodSymbol.ContainingType)
-		           ?? throw new InvalidOperationException($"Type '{fullyQualifiedName}' not found");
-
-		var methodInfos = type
-			.GetMethods(methodSymbol.IsStatic
-				? BindingFlags.Public | BindingFlags.Static
-				: BindingFlags.Public | BindingFlags.Instance)
-			.Where(f =>
-			{
-				if (f.Name != methodName)
-				{
-					return false;
-				}
-
-				var methodParameters = f.GetParameters();
-
-				if (methodParameters.Length != methodSymbol.Parameters.Length)
-				{
-					return false;
-				}
-
-				for (var i = 0; i < methodParameters.Length; i++)
-				{
-					var paramType = methodParameters[i].ParameterType;
-					var methodParamType = GetTypeByType(compilation, methodSymbol.Parameters[i].Type);
-
-					if (paramType.IsGenericType)
-					{
-						continue;
-					}
-
-					if (paramType.Namespace != methodParamType.Namespace || paramType.Name != methodParamType.Name)
-					{
-						return false;
-					}
-				}
-
-				return true;
-			});
-
-		foreach (var info in methodInfos)
-		{
-			var methodInfo = info;
-
-			if (methodInfo.IsGenericMethod)
-			{
-				var types = methodSymbol.TypeArguments
-					.Select(s => GetTypeByType(compilation, s))
-					.ToArray();
-
-				methodInfo = methodInfo.MakeGenericMethod(types);
-			}
-
-			var methodParams = methodInfo.GetParameters();
-
-			for (var i = 0; i < methodParams.Length; i++)
-			{
-				if (!methodParams[i].ParameterType.IsAssignableFrom(GetTypeByType(compilation, methodSymbol.Parameters[i].Type)))
-				{
-					methodInfo = null;
-					break;
-				}
-			}
-
-			if (methodInfo is null)
-			{
-				continue;
-			}
-
-			if (methodInfo.IsStatic)
-			{
-				return methodInfo.Invoke(null, parameters);
-			}
-
-			if (instance == null)
-			{
-				throw new InvalidOperationException($"Kan geen instantie creëren van type '{fullyQualifiedName}'.");
-			}
-
-			return methodInfo.Invoke(instance, parameters);
-		}
-
-		throw new InvalidOperationException($"Methode '{methodName}' niet gevonden in type '{fullyQualifiedName}'.");
-	}
-
-	public static object? GetPropertyValue(Compilation compilation, IPropertySymbol propertySymbol, object? instance)
-	{
-		var fullyQualifiedTypeName = $"{GetFullNamespace(propertySymbol.ContainingNamespace)}.{propertySymbol.ContainingType.MetadataName}";
-		var assembly = GetAssemblyByType(compilation, propertySymbol.ContainingType);
-
-		var type = assembly.GetType(fullyQualifiedTypeName);
-
-		if (type == null)
-		{
-			throw new InvalidOperationException($"Type '{fullyQualifiedTypeName}' niet gevonden in assembly '{assembly.FullName}'.");
-		}
-
-		var propertyInfo = type.GetProperty(propertySymbol.Name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance);
-
-		if (propertyInfo == null)
-		{
-			throw new InvalidOperationException($"Eigenschap '{propertySymbol.Name}' niet gevonden in type '{fullyQualifiedTypeName}'.");
-		}
-
-		if (propertyInfo.GetMethod?.IsStatic == true)
-		{
-			return propertyInfo.GetValue(null);
-		}
-
-		if (instance == null)
-		{
-			throw new ArgumentNullException(nameof(instance), $"Een instantie van '{fullyQualifiedTypeName}' is vereist om de eigenschap '{propertySymbol.Name}' op te halen.");
-		}
-
-		if (!type.IsInstanceOfType(instance))
-		{
-			throw new ArgumentException($"De opgegeven instantie is geen type van '{fullyQualifiedTypeName}'.", nameof(instance));
-		}
-
-		return propertyInfo.GetValue(instance);
-	}
-
-	public static object? GetFieldValue(Compilation compilation, IFieldSymbol fieldSymbol, object? instance)
-	{
-		var fullyQualifiedTypeName = fieldSymbol.ContainingType.ToDisplayString();
-		var assembly = GetAssemblyByType(compilation, fieldSymbol.ContainingType);
-		var type = assembly?.GetType(fullyQualifiedTypeName);
-
-		if (type == null)
-		{
-			throw new InvalidOperationException($"Type '{fullyQualifiedTypeName}' niet gevonden in assembly '{assembly.FullName}'.");
-		}
-
-		var fieldInfo = type.GetField(fieldSymbol.Name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance);
-
-		if (fieldInfo == null)
-		{
-			throw new InvalidOperationException($"Veld '{fieldSymbol.Name}' niet gevonden in type '{fullyQualifiedTypeName}'.");
-		}
-
-		if (fieldInfo.IsStatic)
-		{
-			return fieldInfo.GetValue(null);
-		}
-
-		if (instance == null)
-		{
-			throw new ArgumentNullException(nameof(instance), $"Een instantie van '{fullyQualifiedTypeName}' is vereist om het veld '{fieldSymbol.Name}' op te halen.");
-		}
-
-		if (!type.IsInstanceOfType(instance))
-		{
-			throw new ArgumentException($"De opgegeven instantie is geen type van '{fullyQualifiedTypeName}'.", nameof(instance));
-		}
-
-		return fieldInfo.GetValue(instance);
-	}
-
-	public static bool TryGetSemanticModel(Compilation compilation, SyntaxNode? node, out SemanticModel semanticModel)
-	{
-		var tree = node?.SyntaxTree;
-
-		if (compilation.SyntaxTrees.Contains(tree))
-		{
-			semanticModel = compilation.GetSemanticModel(tree);
-			return true;
-		}
-
-		semanticModel = null!;
-		return false;
-	}
 
 	public static string GetFullNamespace(INamespaceSymbol? namespaceSymbol)
 	{
@@ -473,7 +298,7 @@ public static class SyntaxHelpers
 
 	public static bool TryGetOperation<TOperation>(Compilation compilation, ISymbol symbol, out TOperation operation) where TOperation : IOperation
 	{
-		if (TryGetSemanticModel(compilation, symbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(), out var semanticModel)
+		if (compilation.TryGetSemanticModel(symbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(), out var semanticModel)
 		    && semanticModel.GetOperation(symbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax()) is IOperation op)
 		{
 			operation = (TOperation) op;
@@ -487,7 +312,7 @@ public static class SyntaxHelpers
 	public static bool TryGetOperation<TOperation>(Compilation compilation, SyntaxNode? node, out TOperation operation) where TOperation : IOperation
 	{
 		if (node is not null
-		    && TryGetSemanticModel(compilation, node, out var semanticModel)
+		    && compilation.TryGetSemanticModel(node, out var semanticModel)
 		    && semanticModel.GetOperation(node) is IOperation op)
 		{
 			operation = (TOperation) op;
@@ -496,94 +321,6 @@ public static class SyntaxHelpers
 
 		operation = default!;
 		return false;
-	}
-
-	public static Assembly? GetAssemblyByType(Compilation compilation, ITypeSymbol typeSymbol)
-	{
-		// Verkrijg het assembly-symbool dat dit type bevat
-		IAssemblySymbol? assemblySymbol = typeSymbol.ContainingAssembly;
-
-		if (assemblySymbol == null)
-		{
-			return null;
-		}
-
-		// assemblySymbol.Identity bevat de naam, versie, enz.
-		// Nu zoeken we in de referenties van de compilatie naar een MetadataReference 
-		// waarvan de FilePath overeenkomt met deze assembly.
-		foreach (var reference in compilation.References.OfType<PortableExecutableReference>())
-		{
-			if (String.IsNullOrEmpty(reference.FilePath))
-			{
-				continue;
-			}
-
-			try
-			{
-				var loadedAssembly = Assembly.UnsafeLoadFrom(reference.FilePath);
-
-				// Vergelijk de assemblynaam
-				if (String.Equals(loadedAssembly.GetName().Name, assemblySymbol.Identity.Name, StringComparison.OrdinalIgnoreCase))
-				{
-					return loadedAssembly;
-				}
-			}
-			catch (Exception e)
-			{
-				// Als het laden mislukt, gaan we verder
-			}
-		}
-
-		return AppDomain.CurrentDomain
-			.GetAssemblies()
-			.FirstOrDefault(a => a.DefinedTypes
-				.Any(a => SymbolEqualityComparer.Default.Equals(compilation.GetTypeByMetadataName(a.FullName), typeSymbol)));
-	}
-
-	public static IEnumerable<Type> GetTypesByType(Compilation compilation, ITypeSymbol typeSymbol)
-	{
-		if (typeSymbol is INamedTypeSymbol namedTypeSymbol && !SymbolEqualityComparer.Default.Equals(typeSymbol, namedTypeSymbol.OriginalDefinition))
-		{
-			return GetTypesByType(compilation, namedTypeSymbol.OriginalDefinition)
-				.Select(s =>
-				{
-					if (s.IsGenericTypeDefinition)
-					{
-						var arguments = namedTypeSymbol.TypeArguments
-							.Select(s => GetTypeByType(compilation, s))
-							.ToArray();
-
-						return s.MakeGenericType(arguments);
-					}
-
-					return s;
-				});
-		}
-
-		return GetTypes(compilation)
-			.Where(w => SymbolEqualityComparer.Default.Equals(compilation.GetTypeByMetadataName(w.FullName), typeSymbol));
-	}
-
-	public static Type GetTypeByType(Compilation compilation, ITypeSymbol typeSymbol)
-	{
-		return GetTypesByType(compilation, typeSymbol).First();
-	}
-
-	public static IEnumerable<Type> GetTypes(Compilation compilation)
-	{
-		return AppDomain.CurrentDomain
-			.GetAssemblies()
-			.SelectMany(s =>
-			{
-				try
-				{
-					return s.DefinedTypes;
-				}
-				catch
-				{
-					return Enumerable.Empty<Type>();
-				}
-			});
 	}
 
 	public static bool IsInConstExprBody(SyntaxNode node)
@@ -643,7 +380,7 @@ public static class SyntaxHelpers
 
 	public static bool IsIEnumerableRecursive(Compilation compilation, TypeSyntax typeSymbol, CancellationToken token = default)
 	{
-		return TryGetSemanticModel(compilation, typeSymbol, out var model)
+		return compilation.TryGetSemanticModel(typeSymbol, out var model)
 		       && model.GetSymbolInfo(typeSymbol, token).Symbol is INamedTypeSymbol namedTypeSymbol
 		       && IsIEnumerableRecursive(namedTypeSymbol);
 	}
@@ -655,7 +392,7 @@ public static class SyntaxHelpers
 
 	public static bool IsIEnumerable(Compilation compilation, TypeSyntax typeSymbol, CancellationToken token = default)
 	{
-		return TryGetSemanticModel(compilation, typeSymbol, out var model)
+		return compilation.TryGetSemanticModel(typeSymbol, out var model)
 		       && model.GetSymbolInfo(typeSymbol, token).Symbol is INamedTypeSymbol namedTypeSymbol
 		       && IsIEnumerable(namedTypeSymbol);
 	}
@@ -734,27 +471,7 @@ public static class SyntaxHelpers
 			                             .All(a => a), out member);
 	}
 
-	public static bool IsInterface(Compilation compilation, TypeSyntax typeSymbol, CancellationToken token = default)
-	{
-		return TryGetSemanticModel(compilation, typeSymbol, out var model) && model.GetSymbolInfo(typeSymbol, token).Symbol is ITypeSymbol { TypeKind: TypeKind.Interface };
-	}
-
-	public static ITypeSymbol GetTypeByType(Compilation compilation, Type type, params ITypeSymbol[] typeArguments)
-	{
-		return GetTypeByType(compilation, type.FullName, typeArguments);
-	}
-
-	public static ITypeSymbol GetTypeByType(Compilation compilation, string typeName, params ITypeSymbol[] typeArguments)
-	{
-		var typeSymbol = compilation.GetTypeByMetadataName(typeName);
-
-		if (typeArguments.Length > 0)
-		{
-			typeSymbol = typeSymbol.Construct(typeArguments);
-		}
-
-		return typeSymbol;
-	}
+	
 
 	public static bool IsEqualSymbol(ITypeSymbol typeSymbol, ITypeSymbol other)
 	{
@@ -764,29 +481,6 @@ public static class SyntaxHelpers
 		}
 
 		return other.AllInterfaces.Any(a => SymbolEqualityComparer.Default.Equals(a, other));
-	}
-
-	public static string GetMinimalString(Compilation compilation, ISymbol symbol)
-	{
-		if (SymbolEqualityComparer.Default.Equals(symbol, compilation.GetSpecialType(SpecialType.System_Void)))
-		{
-			return "void";
-		}
-
-		if (SymbolEqualityComparer.Default.Equals(symbol.OriginalDefinition, compilation.GetSpecialType(SpecialType.System_Collections_Generic_IEnumerable_T))
-		    && symbol is INamedTypeSymbol namedTypeSymbol)
-		{
-			return $"IEnumerable<{String.Join(", ", namedTypeSymbol.TypeArguments.Select(s => GetMinimalString(compilation, s)))}>";
-		}
-
-		var node = GetSyntaxNode(symbol);
-
-		if (!TryGetSemanticModel(compilation, node, out var model))
-		{
-			return symbol.ToDisplayString();
-		}
-
-		return symbol.ToMinimalDisplayString(model, node.Span.Start);
 	}
 
 	public static SyntaxNode? GetSyntaxNode(ISymbol symbol, CancellationToken cancellationToken = default)

@@ -1,6 +1,6 @@
 using System;
 using System.Linq;
-using System.Threading;
+using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Helpers;
@@ -25,10 +25,10 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 
 		if (methodSymbol.TypeParameters.Any())
 		{
-			return builder.AppendBlock($"{prepend}{SyntaxHelpers.GetMinimalString(compilation, methodSymbol.ReturnType)} {methodSymbol.Name}<{String.Join(", ", methodSymbol.TypeParameters.Select(s => SyntaxHelpers.GetMinimalString(compilation, s)))}>({String.Join(", ", methodSymbol.Parameters.Select(s => SyntaxHelpers.GetMinimalString(compilation, s)))})");
+			return builder.AppendBlock($"{prepend}{compilation.GetMinimalString(methodSymbol.ReturnType)} {methodSymbol.Name}<{String.Join(", ", methodSymbol.TypeParameters.Select(compilation.GetMinimalString))}>({String.Join(", ", methodSymbol.Parameters.Select(compilation.GetMinimalString))})");
 		}
 
-		return builder.AppendBlock($"{prepend}{SyntaxHelpers.GetMinimalString(compilation, methodSymbol.ReturnType)} {methodSymbol.Name}({String.Join(", ", methodSymbol.Parameters.Select(s => SyntaxHelpers.GetMinimalString(compilation, s)))})");
+		return builder.AppendBlock($"{prepend}{compilation.GetMinimalString(methodSymbol.ReturnType)} {methodSymbol.Name}({String.Join(", ", methodSymbol.Parameters.Select(compilation.GetMinimalString))})");
 	}
 
 	protected static void AppendProperty(IndentedStringBuilder builder, IPropertySymbol propertySymbol, string? get = null, string? set = null)
@@ -120,7 +120,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 			return SymbolEqualityComparer.Default.Equals(arrayType.ElementType, elementType);
 		}
 
-		if (SymbolEqualityComparer.Default.Equals(typeSymbol, SyntaxHelpers.GetTypeByType(compilation, typeof(Span<>), elementType)))
+		if (SymbolEqualityComparer.Default.Equals(typeSymbol, compilation.GetTypeByType(typeof(Span<>), elementType)))
 		{
 			return true;
 		}
@@ -133,8 +133,8 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 	protected string GetLengthPropertyName(ITypeSymbol typeSymbol)
 	{
 		if ((typeSymbol is IArrayTypeSymbol arrayType && SymbolEqualityComparer.Default.Equals(arrayType.ElementType, elementType) )
-		    || SymbolEqualityComparer.Default.Equals(typeSymbol, SyntaxHelpers.GetTypeByType(compilation, typeof(Span<>), elementType))
-		    || SymbolEqualityComparer.Default.Equals(typeSymbol, SyntaxHelpers.GetTypeByType(compilation, typeof(ReadOnlySpan<>), elementType)))
+		    || SymbolEqualityComparer.Default.Equals(typeSymbol, compilation.GetTypeByType(typeof(Span<>), elementType))
+		    || SymbolEqualityComparer.Default.Equals(typeSymbol, compilation.GetTypeByType(typeof(ReadOnlySpan<>), elementType)))
 		{
 			return "Length";
 		}

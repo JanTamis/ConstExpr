@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Linq;
+using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
@@ -44,7 +45,7 @@ public class ExpressionVisitor(Compilation compilation, IEnumerable<ParameterExp
 	{
 		return Visit(operation.ReturnedValue, argument);
 
-		// var returnType = SyntaxHelpers.GetTypeByType(compilation, operation.ReturnedValue.Type);
+		// var returnType = compilation.GetTypeByType(operation.ReturnedValue.Type);
 		// var returnLabel = Expression.Label(returnType);
 		// var returnValue = Visit(operation.ReturnedValue, argument);
 		//
@@ -89,7 +90,7 @@ public class ExpressionVisitor(Compilation compilation, IEnumerable<ParameterExp
 		// Get method arguments as expressions
 		var arguments = operation.Arguments.Select(arg => Visit(arg.Value, argument)).ToArray();
 		var argumentTypes = operation.Arguments
-			.Select(arg => SyntaxHelpers.GetTypeByType(compilation, arg.Type))
+			.Select(arg => compilation.GetTypeByType(arg.Type))
 			.ToArray();
 
 		// If this is a delegate invocation
@@ -100,7 +101,7 @@ public class ExpressionVisitor(Compilation compilation, IEnumerable<ParameterExp
 		}
 
 		// For method calls
-		var containingType = SyntaxHelpers.GetTypeByType(compilation, operation.TargetMethod.ContainingType);
+		var containingType = compilation.GetTypeByType(operation.TargetMethod.ContainingType);
 		var methodName = operation.TargetMethod.Name;
 
 		// Find the method (simplified - may need enhancement for complex overloads)
@@ -125,7 +126,7 @@ public class ExpressionVisitor(Compilation compilation, IEnumerable<ParameterExp
 	public override Expression VisitLiteral(ILiteralOperation operation, Dictionary<string, object?> argument)
 	{
 		return Expression.Constant(operation.ConstantValue.Value,
-			SyntaxHelpers.GetTypeByType(compilation, operation.Type));
+			compilation.GetTypeByType(operation.Type));
 	}
 
 	public override Expression VisitUnaryOperator(IUnaryOperation operation, Dictionary<string, object?> argument)
@@ -164,7 +165,7 @@ public class ExpressionVisitor(Compilation compilation, IEnumerable<ParameterExp
 	{
 		var instance = operation.Instance != null ? Visit(operation.Instance, argument) : null;
 
-		var containingType = SyntaxHelpers.GetTypeByType(compilation, operation.Field.ContainingType);
+		var containingType = compilation.GetTypeByType(operation.Field.ContainingType);
 		var fieldInfo = containingType.GetField(operation.Field.Name);
 
 		return operation.Field.IsStatic
@@ -176,7 +177,7 @@ public class ExpressionVisitor(Compilation compilation, IEnumerable<ParameterExp
 	{
 		var instance = operation.Instance != null ? Visit(operation.Instance, argument) : null;
 
-		var containingType = SyntaxHelpers.GetTypeByType(compilation, operation.Property.ContainingType);
+		var containingType = compilation.GetTypeByType(operation.Property.ContainingType);
 		var propertyInfo = containingType.GetProperty(operation.Property.Name);
 
 		return operation.Property.IsStatic
@@ -198,19 +199,19 @@ public class ExpressionVisitor(Compilation compilation, IEnumerable<ParameterExp
 		}
 
 		// Otherwise, we might need to create a new parameter or handle differently
-		var localType = SyntaxHelpers.GetTypeByType(compilation, operation.Local.Type);
+		var localType = compilation.GetTypeByType(operation.Local.Type);
 		return Expression.Parameter(localType, localName);
 	}
 
 	public override Expression VisitDefaultValue(IDefaultValueOperation operation, Dictionary<string, object?> argument)
 	{
-		var type = SyntaxHelpers.GetTypeByType(compilation, operation.Type);
+		var type = compilation.GetTypeByType(operation.Type);
 		return Expression.Default(type);
 	}
 
 	public override Expression VisitObjectCreation(IObjectCreationOperation operation, Dictionary<string, object?> argument)
 	{
-		var type = SyntaxHelpers.GetTypeByType(compilation, operation.Type);
+		var type = compilation.GetTypeByType(operation.Type);
 
 		var arguments = operation.Arguments
 			.Select(arg => Visit(arg.Value, argument))
@@ -311,7 +312,7 @@ public class ExpressionVisitor(Compilation compilation, IEnumerable<ParameterExp
 		// Create parameters for the lambda
 		var lambdaParams = operation.Symbol.Parameters
 			.Select(p => Expression.Parameter(
-				SyntaxHelpers.GetTypeByType(compilation, p.Type),
+				compilation.GetTypeByType(p.Type),
 				p.Name))
 			.ToArray();
 
@@ -328,7 +329,7 @@ public class ExpressionVisitor(Compilation compilation, IEnumerable<ParameterExp
 
 	public override Expression VisitAnonymousObjectCreation(IAnonymousObjectCreationOperation operation, Dictionary<string, object?> argument)
 	{
-		var type = SyntaxHelpers.GetTypeByType(compilation, operation.Type);
+		var type = compilation.GetTypeByType(operation.Type);
 
 		var initializers = operation.Initializers
 			.Select(init => Visit(init, argument))
@@ -364,7 +365,7 @@ public class ExpressionVisitor(Compilation compilation, IEnumerable<ParameterExp
 		var catchBlocks = operation.Catches
 			.Select(c =>
 			{
-				var exType = SyntaxHelpers.GetTypeByType(compilation, c.ExceptionType);
+				var exType = compilation.GetTypeByType(c.ExceptionType);
 				var exVar = c.ExceptionDeclarationOrExpression != null
 					? Expression.Parameter(exType, c.ExceptionDeclarationOrExpression.ToString())
 					: Expression.Parameter(exType);
@@ -392,7 +393,7 @@ public class ExpressionVisitor(Compilation compilation, IEnumerable<ParameterExp
 		var receiver = Visit(operation.Operation, argument);
 		var whenNotNull = Visit(operation.WhenNotNull, argument);
 
-		var targetType = SyntaxHelpers.GetTypeByType(compilation, operation.Type);
+		var targetType = compilation.GetTypeByType(operation.Type);
 		var resultVar = Expression.Variable(targetType, "conditionalResult");
 
 		return Expression.Block(

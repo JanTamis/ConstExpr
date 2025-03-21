@@ -6,8 +6,8 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
-using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Attributes;
+using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Visitors;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 
@@ -34,7 +34,7 @@ public class UsageAnalyzer : BaseAnalyzer<InvocationExpressionSyntax, IMethodSym
 
 		foreach (var parameter in symbol.Parameters)
 		{
-			variables.Add(parameter.Name, GetTypeByType(context.Compilation, parameter.Type));
+			variables.Add(parameter.Name, context.Compilation.GetTypeByType(parameter.Type));
 		}
 
 		if (TryGetOperation<IMethodBodyOperation>(context.Compilation, symbol, out var operation))

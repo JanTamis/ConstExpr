@@ -13,6 +13,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 
 namespace ConstExpr.SourceGenerator.Visitors;
@@ -167,7 +168,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Cancella
 
 		if (method is not null)
 		{
-			return SyntaxHelpers.ExecuteMethod(compilation, method, null, left, right);
+			return compilation.ExecuteMethod(method, null, left, right);
 		}
 
 		return ExecuteBinaryOperation(operatorKind, left, right);
@@ -285,7 +286,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Cancella
 			return variables[ReturnVariableName];
 		}
 
-		return SyntaxHelpers.ExecuteMethod(compilation, targetMethod, instance, arguments);
+		return compilation.ExecuteMethod(targetMethod, instance, arguments);
 	}
 
 	public override object? VisitSwitch(ISwitchOperation operation, Dictionary<string, object?> argument)
@@ -461,7 +462,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Cancella
 
 	public override object? VisitTypeOf(ITypeOfOperation operation, Dictionary<string, object?> argument)
 	{
-		return SyntaxHelpers.GetTypeByType(compilation, operation.Type);
+		return compilation.GetTypeByType(operation.Type);
 	}
 
 	public override object? VisitArrayInitializer(IArrayInitializerOperation operation, Dictionary<string, object?> argument)
@@ -510,7 +511,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Cancella
 			.Select(s => Visit(s.Value, argument))
 			.ToArray();
 
-		return Activator.CreateInstance(SyntaxHelpers.GetTypeByType(compilation, operation.Type), arguments);
+		return Activator.CreateInstance(compilation.GetTypeByType(operation.Type), arguments);
 	}
 
 	public override object? VisitAnonymousObjectCreation(IAnonymousObjectCreationOperation operation, Dictionary<string, object?> argument)
@@ -519,7 +520,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Cancella
 			.Select(s => Visit(s, argument))
 			.ToArray();
 
-		return Activator.CreateInstance(SyntaxHelpers.GetTypeByType(compilation, operation.Type), arguments);
+		return Activator.CreateInstance(compilation.GetTypeByType(operation.Type), arguments);
 	}
 
 	public override object? VisitInstanceReference(IInstanceReferenceOperation operation, Dictionary<string, object?> argument)
@@ -573,7 +574,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Cancella
 
 	public override object? VisitFieldReference(IFieldReferenceOperation operation, Dictionary<string, object?> argument)
 	{
-		var type = SyntaxHelpers.GetTypeByType(compilation, operation.Field.ContainingType);
+		var type = compilation.GetTypeByType(operation.Field.ContainingType);
 
 		if (operation.Field.IsConst)
 		{
@@ -594,7 +595,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Cancella
 	public override object? VisitPropertyReference(IPropertyReferenceOperation operation, Dictionary<string, object?> argument)
 	{
 		var instance = Visit(operation.Instance, argument);
-		var type = SyntaxHelpers.GetTypeByType(compilation, operation.Property.ContainingType);
+		var type = compilation.GetTypeByType(operation.Property.ContainingType);
 
 		var propertyInfo = type
 			.GetProperties()
@@ -686,7 +687,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Cancella
 	public override object? VisitAnonymousFunction(IAnonymousFunctionOperation operation, Dictionary<string, object?> argument)
 	{
 		var parameters = operation.Symbol.Parameters
-			.Select(p => Expression.Parameter(SyntaxHelpers.GetTypeByType(compilation, p.Type), p.Name))
+			.Select(p => Expression.Parameter(compilation.GetTypeByType(p.Type), p.Name))
 			.ToArray();
 
 		var body = new ExpressionVisitor(compilation, parameters).VisitBlock(operation.Body, argument);
@@ -699,7 +700,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Cancella
 	public override object? VisitMethodReference(IMethodReferenceOperation operation, Dictionary<string, object?> argument)
 	{
 		var instance = Visit(operation.Instance, argument);
-		var containingType = SyntaxHelpers.GetTypeByType(compilation, operation.Method.ContainingType);
+		var containingType = compilation.GetTypeByType(operation.Method.ContainingType);
 		var method = containingType.GetMethod(operation.Method.Name);
 
 		if (method == null)
@@ -719,7 +720,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Cancella
 			return false;
 		}
 
-		var targetType = SyntaxHelpers.GetTypeByType(compilation, operation.TypeOperand);
+		var targetType = compilation.GetTypeByType(operation.TypeOperand);
 		return targetType.IsInstanceOfType(value);
 	}
 
@@ -785,8 +786,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Cancella
 			.Select(s => Visit(s, argument))
 			.ToArray();
 
-		var type = operation.Type;
-		return Activator.CreateInstance(SyntaxHelpers.GetTypeByType(compilation, operation.Type), elements);
+		return Activator.CreateInstance(compilation.GetTypeByType(operation.Type), elements);
 	}
 
 	public override object? VisitDynamicIndexerAccess(IDynamicIndexerAccessOperation operation, Dictionary<string, object?> argument)
