@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Loader;
 using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Helpers;
@@ -9,29 +11,70 @@ namespace ConstExpr.SourceGenerator.Helpers;
 /// <summary>
 /// Represents a metadata loader for retrieving types from loaded assemblies in a metadata load context.
 /// </summary>
-public class MetadataLoader
+public class MetadataLoader : IDisposable
 {
-	private readonly MetadataLoadContext _metadataLoadContext;
+	private static Dictionary<Compilation, AppDomain> _loaders = new Dictionary<Compilation, AppDomain>();
+
+	private readonly AppDomain _appDomain;
 
 	/// <summary>
 	/// Gets all assemblies loaded in the current metadata context.
 	/// </summary>
-	public IEnumerable<Assembly> Assemblies => _metadataLoadContext.GetAssemblies();
+	public IEnumerable<Assembly> Assemblies => _appDomain.GetAssemblies();
+
+	public static MetadataLoader GetLoader(Compilation compilation)
+	{
+		if (!_loaders.TryGetValue(compilation, out var domain))
+		{
+			var assemblies = compilation.References
+				.OfType<PortableExecutableReference>()
+				.Select(s => s.FilePath)
+				.Where(w => !String.IsNullOrEmpty(w));
+
+		 //var resolver = new PathAssemblyResolver(assemblies);
+
+			//using (var metadataContext = new MetadataLoadContext(resolver))
+			//{
+				domain = AppDomain.CreateDomain(compilation.AssemblyName);
+
+				foreach (var assembly in assemblies)
+				{
+					try
+					{
+#pragma warning disable RS1035 // Do not use APIs banned for analyzers
+					var data = File.ReadAllBytes(assembly);
+#pragma warning restore RS1035 // Do not use APIs banned for analyzers
+					domain.Load(data);
+					}
+					catch (Exception e)
+					{
+
+					}
+				}
+
+				_loaders.Add(compilation, domain);
+			//}
+		}
+
+		return new MetadataLoader(domain);
+	}
+
+	public static void RemoveLoader(Compilation compilation)
+	{
+		if (_loaders.TryGetValue(compilation, out var loader))
+		{
+			AppDomain.Unload(loader);
+			_loaders.Remove(compilation);
+		}
+	}
 
 	/// <summary>
 	/// Initializes a new instance of the <see cref="MetadataLoader"/> class.
 	/// </summary>
 	/// <param name="compilation">The compilation containing references to load.</param>
-	public MetadataLoader(Compilation compilation)
+	private MetadataLoader(AppDomain domain)
 	{
-		var assemblies = compilation.References
-			.OfType<PortableExecutableReference>()
-			.Select(reference => reference.FilePath)
-			.Where(path => !String.IsNullOrEmpty(path));
-
-		var resolver = new PathAssemblyResolver(assemblies);
-
-		_metadataLoadContext = new MetadataLoadContext(resolver);
+		_appDomain = domain;
 	}
 
 	/// <summary>
@@ -43,7 +86,32 @@ public class MetadataLoader
 	/// </returns>
 	public Type? GetType(ITypeSymbol typeSymbol)
 	{
-		var fullTypeName = typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+		if (typeSymbol is INamedTypeSymbol { Arity: > 0 } namedType && !SymbolEqualityComparer.Default.Equals(namedType, namedType.ConstructedFrom))
+		{
+			var constuctedFrom = GetType(namedType.ConstructedFrom);
+
+			return constuctedFrom.MakeGenericType(namedType.TypeArguments.Select(GetType).ToArray());
+		}
+
+		if (typeSymbol is IArrayTypeSymbol arrayType)
+		{
+			var type = GetType(arrayType.ElementType)
+				.MakeArrayType();
+
+			return type;
+		}
+
+		var containingNamespace = typeSymbol.ContainingNamespace.ToString();
+		var name = typeSymbol.Name;
+
+		var fullTypeName = $"{containingNamespace}.{name}";
+
+		if (typeSymbol is INamedTypeSymbol { Arity: > 0 } named)
+		{
+			fullTypeName += $"`{named.Arity}";
+		}
+
+
 
 		return GetType(fullTypeName);
 	}
@@ -57,7 +125,7 @@ public class MetadataLoader
 	/// </returns>
 	public Type? GetType(string typeName)
 	{
-		foreach (var assembly in _metadataLoadContext.GetAssemblies())
+		foreach (var assembly in _appDomain.GetAssemblies())
 		{
 			var type = assembly.GetType(typeName);
 
@@ -72,11 +140,15 @@ public class MetadataLoader
 		return null;
 	}
 
-	/// <summary>
-	/// Releases all resources used by the <see cref="MetadataLoader"/> instance.
-	/// </summary>
 	public void Dispose()
 	{
-		_metadataLoadContext.Dispose();
+		AppDomain.Unload(_appDomain);
+
+		var key = _loaders
+			.Where(w => w.Value == _appDomain)
+			.Select(s => s.Key)
+			.First();
+
+		_loaders.Remove(key);
 	}
 }

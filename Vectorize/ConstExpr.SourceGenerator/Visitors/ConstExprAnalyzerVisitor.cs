@@ -10,7 +10,7 @@ using Microsoft.CodeAnalysis.Operations;
 
 namespace ConstExpr.SourceGenerator.Visitors;
 
-public class ConstExprAnalyzerVisitor<TNode, TSymbol>(BaseAnalyzer<TNode, TSymbol> analyzer, SyntaxNodeAnalysisContext context, Dictionary<string, Type?> variables) : OperationVisitor
+public class ConstExprAnalyzerVisitor<TNode, TSymbol>(BaseAnalyzer<TNode, TSymbol> analyzer, SyntaxNodeAnalysisContext context, MetadataLoader loader, Dictionary<string, Type?> variables) : OperationVisitor
 	where TNode : SyntaxNode
 	where TSymbol : ISymbol
 {
@@ -34,13 +34,13 @@ public class ConstExprAnalyzerVisitor<TNode, TSymbol>(BaseAnalyzer<TNode, TSymbo
 	{
 		foreach (var variable in operation.Declarators)
 		{
-			variables.Add(variable.Symbol.Name, context.Compilation.GetTypeByType(variable.Symbol.Type));
+			variables.Add(variable.Symbol.Name, loader.GetType(variable.Symbol.Type));
 		}
 	}
 
 	public override void VisitPropertyReference(IPropertyReferenceOperation operation)
 	{
-		var type = context.Compilation.GetTypeByType(operation.Property.ContainingType);
+		var type = loader.GetType(operation.Property.ContainingType);
 
 		var propertyInfo = type
 			.GetProperties()
@@ -61,10 +61,10 @@ public class ConstExprAnalyzerVisitor<TNode, TSymbol>(BaseAnalyzer<TNode, TSymbo
 		
 		try
 		{
-			var type = context.Compilation.GetTypeByType(operation.TargetMethod.ContainingType);
+			var type = loader.GetType(operation.TargetMethod.ContainingType);
 
 			var arguments = operation.Arguments
-				.Select(s => context.Compilation.GetTypeByType(s.Parameter.Type))
+				.Select(s => loader.GetType(s.Parameter.Type))
 				.ToArray();
 
 			foreach (var methodInfo in type.GetMethods())

@@ -10,8 +10,9 @@
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 <!--		<CompilerVisibleProperty Include="SgfAddModuleInitializerAttribute"/>-->
 		<IsRoslynComponent>true</IsRoslynComponent>
-<PolySharpExcludeGeneratedTypes>System.Runtime.CompilerServices.ModuleInitializerAttribute,System.AttributeUsage</PolySharpExcludeGeneratedTypes>
+		<PolySharpExcludeGeneratedTypes>System.Runtime.CompilerServices.ModuleInitializerAttribute,System.AttributeUsage</PolySharpExcludeGeneratedTypes>
 		<RootNamespace>ConstExpr.SourceGenerator</RootNamespace>
+		<CompilerGeneratedFilesOutputPath>$(MSBuildProjectDirectory)/Generated</CompilerGeneratedFilesOutputPath>
 		<PackageId>ConstExpr.SourceGenerator</PackageId>
 	</PropertyGroup>
 
@@ -29,20 +30,21 @@
 		<PackageReference Include="SourceGenerator.Foundations" Version="2.0.13" />
 		<PackageReference Include="SourceGenerator.Foundations.Contracts" Version="2.0.13" />
 		<PackageReference Include="System.Reflection.MetadataLoadContext" Version="9.0.3" />
+		<PackageReference Include="System.Runtime.Loader" Version="4.3.0" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Compile Include="obj\Debug\netstandard2.0\Vectorize.SourceGenerator.AssemblyInfo.cs" />
+	  <Compile Remove="Generated\**" />
 	  <Compile Remove="obj\**" />
 	</ItemGroup>
 
 	<ItemGroup>
+	  <EmbeddedResource Remove="Generated\**" />
 	  <EmbeddedResource Remove="obj\**" />
 	</ItemGroup>
 
 	<ItemGroup>
+	  <None Remove="Generated\**" />
 	  <None Remove="obj\**" />
 	</ItemGroup>
-
-
 </Project>

@@ -80,8 +80,8 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 	{
 		var code = new IndentedStringBuilder();
 		var usings = group.SelectMany(item => item.Usings).Distinct().OrderBy(s => s);
-		
-		
+
+		using var loader = MetadataLoader.GetLoader(compilation);
 
 		foreach (var u in usings)
 		{
@@ -258,13 +258,15 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		if ((method.ContainingType is ITypeSymbol type && type.GetAttributes().Any(IsConstExprAttribute)) ||
 		    method.GetAttributes().Any(IsConstExprAttribute))
 		{
-			return GenerateExpression(context.SemanticModel.Compilation, invocation, method, token);
+			var loader = MetadataLoader.GetLoader(context.SemanticModel.Compilation);
+
+			return GenerateExpression(context.SemanticModel.Compilation, loader, invocation, method, token);
 		}
 
 		return null;
 	}
 
-	private InvocationModel? GenerateExpression(Compilation compilation, InvocationExpressionSyntax invocation,
+	private InvocationModel? GenerateExpression(Compilation compilation, MetadataLoader loader, InvocationExpressionSyntax invocation,
 	                                            IMethodSymbol methodSymbol, CancellationToken token)
 	{
 		if (IsInConstExprBody(invocation))
@@ -279,7 +281,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			return null;
 		}
 
-		var variables = ProcessArguments(compilation, invocation, methodSymbol, token);
+		var variables = ProcessArguments(compilation, loader, invocation, methodSymbol, token);
 
 		if (variables == null)
 		{
@@ -292,7 +294,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			try
 			{
 				var timer = Stopwatch.StartNew();
-				var visitor = new ConstExprOperationVisitor(compilation, token);
+				var visitor = new ConstExprOperationVisitor(compilation, loader, token);
 				visitor.VisitBlock(blockOperation.BlockBody!, variables);
 				timer.Stop();
 
@@ -317,7 +319,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		return null;
 	}
 
-	private Dictionary<string, object?>? ProcessArguments(Compilation compilation, InvocationExpressionSyntax invocation,
+	private Dictionary<string, object?>? ProcessArguments(Compilation compilation, MetadataLoader loader, InvocationExpressionSyntax invocation,
 	                                                      IMethodSymbol methodSymbol, CancellationToken token)
 	{
 		var variables = new Dictionary<string, object?>();
@@ -330,7 +332,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			{
 				var values = invocation.ArgumentList.Arguments
 					.Skip(i)
-					.Select(arg => GetConstantValue(compilation, arg.Expression, token))
+					.Select(arg => GetConstantValue(compilation, loader, arg.Expression, token))
 					.ToArray();
 
 				if (methodSymbol.Parameters[i].IsParamsArray)
@@ -362,7 +364,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 			var arg = invocation.ArgumentList.Arguments[i];
 
-			if (!TryGetConstantValue(compilation, arg.Expression, token, out var value))
+			if (!TryGetConstantValue(compilation, loader, arg.Expression, token, out var value))
 			{
 				return null;
 			}

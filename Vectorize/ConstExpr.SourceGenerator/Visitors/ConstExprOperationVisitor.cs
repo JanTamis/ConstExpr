@@ -18,7 +18,7 @@ using ConstExpr.SourceGenerator.Helpers;
 
 namespace ConstExpr.SourceGenerator.Visitors;
 
-public partial class ConstExprOperationVisitor(Compilation compilation, CancellationToken token) : OperationVisitor<Dictionary<string, object?>, object?>
+public partial class ConstExprOperationVisitor(Compilation compilation, MetadataLoader loader, CancellationToken token) : OperationVisitor<Dictionary<string, object?>, object?>
 {
 	public const string ReturnVariableName = "$return$";
 
@@ -168,7 +168,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Cancella
 
 		if (method is not null)
 		{
-			return compilation.ExecuteMethod(method, null, left, right);
+			return compilation.ExecuteMethod(loader, method, null, left, right);
 		}
 
 		return ExecuteBinaryOperation(operatorKind, left, right);
@@ -280,13 +280,13 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Cancella
 				variables.Add(parameterName, arguments[i]);
 			}
 
-			var visitor = new ConstExprOperationVisitor(compilation, token);
+			var visitor = new ConstExprOperationVisitor(compilation, loader, token);
 			visitor.VisitBlock(methodOperation.BlockBody, variables);
 
 			return variables[ReturnVariableName];
 		}
 
-		return compilation.ExecuteMethod(targetMethod, instance, arguments);
+		return compilation.ExecuteMethod(loader, targetMethod, instance, arguments);
 	}
 
 	public override object? VisitSwitch(ISwitchOperation operation, Dictionary<string, object?> argument)
@@ -462,7 +462,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Cancella
 
 	public override object? VisitTypeOf(ITypeOfOperation operation, Dictionary<string, object?> argument)
 	{
-		return compilation.GetTypeByType(operation.Type);
+		return loader.GetType(operation.Type);
 	}
 
 	public override object? VisitArrayInitializer(IArrayInitializerOperation operation, Dictionary<string, object?> argument)
@@ -511,7 +511,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Cancella
 			.Select(s => Visit(s.Value, argument))
 			.ToArray();
 
-		return Activator.CreateInstance(compilation.GetTypeByType(operation.Type), arguments);
+		return Activator.CreateInstance(loader.GetType(operation.Type), arguments);
 	}
 
 	public override object? VisitAnonymousObjectCreation(IAnonymousObjectCreationOperation operation, Dictionary<string, object?> argument)
@@ -520,7 +520,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Cancella
 			.Select(s => Visit(s, argument))
 			.ToArray();
 
-		return Activator.CreateInstance(compilation.GetTypeByType(operation.Type), arguments);
+		return Activator.CreateInstance(loader.GetType(operation.Type), arguments);
 	}
 
 	public override object? VisitInstanceReference(IInstanceReferenceOperation operation, Dictionary<string, object?> argument)
@@ -574,7 +574,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Cancella
 
 	public override object? VisitFieldReference(IFieldReferenceOperation operation, Dictionary<string, object?> argument)
 	{
-		var type = compilation.GetTypeByType(operation.Field.ContainingType);
+		var type = loader.GetType(operation.Field.ContainingType);
 
 		if (operation.Field.IsConst)
 		{
@@ -595,7 +595,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Cancella
 	public override object? VisitPropertyReference(IPropertyReferenceOperation operation, Dictionary<string, object?> argument)
 	{
 		var instance = Visit(operation.Instance, argument);
-		var type = compilation.GetTypeByType(operation.Property.ContainingType);
+		var type = loader.GetType(operation.Property.ContainingType);
 
 		var propertyInfo = type
 			.GetProperties()
@@ -687,10 +687,10 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Cancella
 	public override object? VisitAnonymousFunction(IAnonymousFunctionOperation operation, Dictionary<string, object?> argument)
 	{
 		var parameters = operation.Symbol.Parameters
-			.Select(p => Expression.Parameter(compilation.GetTypeByType(p.Type), p.Name))
+			.Select(p => Expression.Parameter(loader.GetType(p.Type), p.Name))
 			.ToArray();
 
-		var body = new ExpressionVisitor(compilation, parameters).VisitBlock(operation.Body, argument);
+		var body = new ExpressionVisitor(compilation, loader, parameters).VisitBlock(operation.Body, argument);
 		var lambda = Expression.Lambda(body, parameters);
 
 		// Compileer de lambda en retourneer de gedelegeerde
@@ -700,7 +700,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Cancella
 	public override object? VisitMethodReference(IMethodReferenceOperation operation, Dictionary<string, object?> argument)
 	{
 		var instance = Visit(operation.Instance, argument);
-		var containingType = compilation.GetTypeByType(operation.Method.ContainingType);
+		var containingType = loader.GetType(operation.Method.ContainingType);
 		var method = containingType.GetMethod(operation.Method.Name);
 
 		if (method == null)
@@ -720,7 +720,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Cancella
 			return false;
 		}
 
-		var targetType = compilation.GetTypeByType(operation.TypeOperand);
+		var targetType = loader.GetType(operation.TypeOperand);
 		return targetType.IsInstanceOfType(value);
 	}
 
@@ -786,7 +786,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Cancella
 			.Select(s => Visit(s, argument))
 			.ToArray();
 
-		return Activator.CreateInstance(compilation.GetTypeByType(operation.Type), elements);
+		return Activator.CreateInstance(loader.GetType(operation.Type), elements);
 	}
 
 	public override object? VisitDynamicIndexerAccess(IDynamicIndexerAccessOperation operation, Dictionary<string, object?> argument)

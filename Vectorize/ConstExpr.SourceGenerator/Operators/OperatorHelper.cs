@@ -1,3 +1,4 @@
+using ConstExpr.SourceGenerator.Helpers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 using System;
@@ -5,7 +6,7 @@ using System.Collections.Generic;
 
 namespace ConstExpr.SourceGenerator.Operators;
 
-public partial class OperatorHelper(Dictionary<string, object?> variables)
+public partial class OperatorHelper(Dictionary<string, object?> variables, MetadataLoader loader)
 {
 	public object? GetConstantValue(Compilation compilation, IOperation? operation)
 	{

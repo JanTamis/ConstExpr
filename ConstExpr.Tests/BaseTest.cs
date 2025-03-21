@@ -43,15 +43,20 @@ public abstract class BaseTest<TResult>
 
 	protected IEnumerable<TResult> GetResult(GeneratorDriverRunResult result, Compilation compilation)
 	{
+		using var loader = MetadataLoader.GetLoader(compilation);
+
 		var last = result.GeneratedTrees.Last();
-		var methods = last.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>();
+
+		var methods = last.GetRoot()
+			.DescendantNodes()
+			.OfType<MethodDeclarationSyntax>();
 
 		foreach (var method in methods)
 		{
 			var items = method
 				.DescendantNodes()
 				.Where(w => w is ReturnStatementSyntax or YieldStatementSyntax)
-				.Select(s => SyntaxHelpers.GetConstantValue(compilation, s));
+				.Select(s => SyntaxHelpers.GetConstantValue(compilation, loader, s));
 
 			return items.Cast<TResult>();
 		}

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using ConstExpr.SourceGenerator.Attributes;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
+using ConstExpr.SourceGenerator.Helpers;
 
 namespace ConstExpr.SourceGenerator.Analyzers;
 
@@ -29,11 +30,13 @@ public class ConstantParametersAnalyzer : BaseAnalyzer<InvocationExpressionSynta
 
 	protected override void AnalyzeSyntax(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax node, IMethodSymbol symbol, CancellationToken token)
 	{
+		using var loader = MetadataLoader.GetLoader(context.Compilation);
+
 		for (var i = 0; i < node.ArgumentList.Arguments.Count; i++)
 		{
 			var parameter = node.ArgumentList.Arguments[i];
 
-			if (!TryGetConstantValue(context.SemanticModel.Compilation, parameter.Expression, context.CancellationToken, out _))
+			if (!TryGetConstantValue(context.SemanticModel.Compilation, loader, parameter.Expression, context.CancellationToken, out _))
 			{
 				ReportDiagnostic(context, parameter, parameter.ToString());
 			}

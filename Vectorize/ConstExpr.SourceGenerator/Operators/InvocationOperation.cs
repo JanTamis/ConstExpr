@@ -16,6 +16,6 @@ public partial class OperatorHelper
 			.Select(argument => GetConstantValue(compilation, argument.Value))
 			.ToArray();
 
-		return compilation.ExecuteMethod(targetMethod, instance, arguments);
+		return compilation.ExecuteMethod(loader, targetMethod, instance, arguments);
 	}
 }

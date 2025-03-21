@@ -166,9 +166,9 @@ public static class SyntaxHelpers
 		return null;
 	}
 
-	public static object? GetConstantValue(Compilation compilation, SyntaxNode expression, CancellationToken token = default)
+	public static object? GetConstantValue(Compilation compilation, MetadataLoader loader, SyntaxNode expression, CancellationToken token = default)
 	{
-		if (TryGetConstantValue(compilation, expression, token, out var value))
+		if (TryGetConstantValue(compilation, loader, expression, token, out var value))
 		{
 			return value;
 		}
@@ -176,8 +176,14 @@ public static class SyntaxHelpers
 		return null;
 	}
 
-	public static bool TryGetConstantValue(Compilation compilation, SyntaxNode expression, CancellationToken token, out object? value)
+	public static bool TryGetConstantValue(Compilation compilation, MetadataLoader loader, SyntaxNode? expression, CancellationToken token, out object? value)
 	{
+		if (expression is null)
+		{
+			value = null;
+			return false;
+		}
+
 		try
 		{
 			if (compilation.TryGetSemanticModel(expression, out var semanticModel) && semanticModel.GetConstantValue(expression, token) is { HasValue: true, Value: var temp })
@@ -193,24 +199,24 @@ public static class SyntaxHelpers
 					return true;
 				case ImplicitArrayCreationExpressionSyntax array:
 					value = array.Initializer.Expressions
-						.Select(x => GetConstantValue(compilation, x, token))
+						.Select(x => GetConstantValue(compilation, loader, x, token))
 						.ToArray();
 					return true;
 				case CollectionExpressionSyntax collection:
 					value = collection.Elements
-						.Select(x => GetConstantValue(compilation, x, token))
+						.Select(x => GetConstantValue(compilation, loader, x, token))
 						.ToArray();
 					return true;
 				case MemberAccessExpressionSyntax memberAccess when semanticModel.GetOperation(memberAccess) is IPropertyReferenceOperation propertyOperation:
 					if (propertyOperation.Property.IsStatic)
 					{
-						value = compilation.GetPropertyValue(propertyOperation.Property, null);
+						value = compilation.GetPropertyValue(loader, propertyOperation.Property, null);
 						return true;
 					}
 
-					if (TryGetConstantValue(compilation, memberAccess.Expression, token, out var instance))
+					if (TryGetConstantValue(compilation, loader, memberAccess.Expression, token, out var instance))
 					{
-						value = compilation.GetPropertyValue(propertyOperation.Property, instance);
+						value = compilation.GetPropertyValue(loader, propertyOperation.Property, instance);
 						return true;
 					}
 
@@ -221,7 +227,7 @@ public static class SyntaxHelpers
 					{
 						var methodParameters = operation.TargetMethod.Parameters;
 						var arguments = invocation.ArgumentList.Arguments
-							.Select(s => GetConstantValue(compilation, s.Expression, token))
+							.Select(s => GetConstantValue(compilation, loader, s.Expression, token))
 							.ToArray();
 
 						if (methodParameters.Length > 0 && methodParameters.Last().IsParams)
@@ -233,11 +239,11 @@ public static class SyntaxHelpers
 							Array.Copy(fixedArguments, finalArguments, fixedArguments.Length);
 							finalArguments[fixedArguments.Length] = paramsArguments;
 
-							value = compilation.ExecuteMethod(operation.TargetMethod, null, finalArguments);
+							value = compilation.ExecuteMethod(loader, operation.TargetMethod, null, finalArguments);
 						}
 						else
 						{
-							value = compilation.ExecuteMethod(operation.TargetMethod, null, arguments);
+							value = compilation.ExecuteMethod(loader, operation.TargetMethod, null, arguments);
 						}
 						return true;
 					}
@@ -247,16 +253,16 @@ public static class SyntaxHelpers
 					if (operation.Arguments.All(x => x.Value.ConstantValue.HasValue))
 					{
 						var parameters = operation.Arguments.Select(x => x.Value.ConstantValue.Value).ToArray();
-						value = compilation.ExecuteMethod(operation.Constructor, null, parameters);
+						value = compilation.ExecuteMethod(loader, operation.Constructor, null, parameters);
 						return true;
 					}
 					value = null;
 					return false;
 				// for unit tests
 				case ReturnStatementSyntax returnStatement:
-					return TryGetConstantValue(compilation, returnStatement.Expression, token, out value);
+					return TryGetConstantValue(compilation, loader, returnStatement.Expression, token, out value);
 				case YieldStatementSyntax yieldStatement:
-					return TryGetConstantValue(compilation, yieldStatement.Expression, token, out value);
+					return TryGetConstantValue(compilation, loader, yieldStatement.Expression, token, out value);
 				default:
 					value = null;
 					return false;
@@ -273,8 +279,6 @@ public static class SyntaxHelpers
 	{
 		return attribute?.AttributeClass is { Name: "ConstExprAttribute", ContainingNamespace.Name: "ConstantExpression" };
 	}
-
-
 
 	public static string GetFullNamespace(INamespaceSymbol? namespaceSymbol)
 	{

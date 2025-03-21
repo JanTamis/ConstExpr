@@ -629,7 +629,7 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 		{
 			if (sum is null)
 			{
-				builder.AppendLine("default;");
+				builder.AppendLine("return default;");
 			}
 			else
 			{

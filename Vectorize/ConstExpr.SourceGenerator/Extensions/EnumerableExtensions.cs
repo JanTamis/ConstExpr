@@ -17,7 +17,7 @@ public static class EnumerableExtensions
 		}
 	}
 	
-	public static object? Sum(this IEnumerable<object> source)
+	public static object? Sum(this IEnumerable<object?> source)
 	{
 		using var enumerator = source.GetEnumerator();
 		
@@ -36,7 +36,7 @@ public static class EnumerableExtensions
 		return sum;
 	}
 	
-	private static object Add(object a, object b)
+	private static object Add(object? a, object? b)
 	{
 		return a switch
 		{
@@ -48,7 +48,7 @@ public static class EnumerableExtensions
 			float af when b is float bf => af + bf,
 			double ad when b is double bd => ad + bd,
 			decimal am when b is decimal bm => am + bm,
-			_ => throw new NotSupportedException($"Cannot add {a.GetType()} and {b.GetType()}")
+			_ => throw new NotSupportedException($"Cannot add {a?.GetType()} and {b?.GetType()}")
 		};
 	}
 	

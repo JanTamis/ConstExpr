@@ -8,3 +8,11 @@
 /Vectorize/Vectorize.Sample
 /bin
 /obj
+/Vectorize/ConstExpr.SourceGenerator/Generated
+/Vectorize/ConstExpr.SourceGenerator/obj
+/Vectorize/ConstExpr.SourceGenerator/bin/Debug/netstandard2.0
+/Vectorize/ConstExpr.Sample/bin/Debug/net9.0
+/Vectorize/ConstExpr.Sample/obj/Debug/net9.0
+/Vectorize/ConstExpr.Sample/obj
+/ConstExpr.Tests/bin/Debug/net9.0
+/ConstExpr.Tests/obj

@@ -15,7 +15,7 @@ public partial class OperatorHelper
 
 		if (method != null)
 		{
-			return compilation.ExecuteMethod(method, null, left, right);
+			return compilation.ExecuteMethod(loader, method, null, left, right);
 		}
 
 		return ExecuteBinaryOperation(operatorKind, left, right);
