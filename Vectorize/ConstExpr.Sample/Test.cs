@@ -74,9 +74,9 @@ public static class Test
 		return result as ICustomCollection<int>;
 	}
 
-	public static IEnumerable<string> Split(string value, char separator)
+	public static ICustomCollection<string> Split(string value, char separator)
 	{
-		return value.Split(separator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+		return (ICustomCollection<string>)(object)value.Split(separator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 	}
 
 	public static IEnumerable<int> Fibonacci(int count)

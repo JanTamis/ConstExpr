@@ -10,6 +10,94 @@ namespace ConstExpr.SourceGenerator.Helpers;
 
 public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : BaseBuilder(elementType, compilation)
 {
+	public void AppendAggregate(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
+	{
+		// First overload: Aggregate<TSource>(Func<TSource, TSource, TSource> func)
+		var funcType = compilation.CreateFunc(elementType, elementType, elementType);
+
+		if (typeSymbol.CheckMethod(nameof(Enumerable.Aggregate), elementType, [ funcType ], out var member))
+		{
+			using (AppendMethod(builder, member))
+			{
+				switch (items.Count)
+				{
+					case 0:
+						builder.AppendLine("throw new InvalidOperationException(\"Sequence contains no elements\");");
+						break;
+					case 1:
+						builder.AppendLine($"return {CreateLiteral(items[0])};");
+						break;
+					default:
+					{
+						builder.AppendLine($"var result = {CreateLiteral(items[0])};");
+
+						for (var i = 1; i < items.Count; i++)
+						{
+							if (i < items.Count - 1)
+							{
+								builder.AppendLine($"result = {member.Parameters[0].Name}(result, {CreateLiteral(items[i])});");
+							}
+							else
+							{
+								builder.AppendLine($"return {member.Parameters[0].Name}(result, {CreateLiteral(items[i])});");
+							}
+						}
+						break;
+					}
+				}
+			}
+			return;
+		}
+
+		// Second overload: Aggregate<TSource, TAccumulate>(TAccumulate seed, Func<TAccumulate, TSource, TAccumulate> func)
+		if (typeSymbol.CheckMembers(nameof(Enumerable.Aggregate), m => m.Parameters.Length == 2
+		                                                               && SymbolEqualityComparer.Default.Equals(m.Parameters[1].Type, compilation.CreateFunc(m.Parameters[0].Type, elementType, m.Parameters[0].Type))
+		                                                               && SymbolEqualityComparer.Default.Equals(m.ReturnType, m.Parameters[0].Type),
+			    out member))
+		{
+			using (AppendMethod(builder, member))
+			{
+				// builder.AppendLine($"var result = {member.Parameters[0].Name};");
+				
+				for (var i = 0; i < items.Count; i++)
+				{
+					var item = CreateLiteral(items[i]);
+
+					if (i < items.Count - 1)
+					{
+						builder.AppendLine($"{member.Parameters[0].Name} = {member.Parameters[1].Name}({member.Parameters[0].Name}, {item});");
+					}
+					else
+					{
+						builder.AppendLine($"return {member.Parameters[1].Name}({member.Parameters[0].Name}, {item});");
+					}
+				}
+			}
+			
+			return;
+		}
+
+		// Third overload: Aggregate<TSource, TAccumulate, TResult>(TAccumulate seed, Func<TAccumulate, TSource, TAccumulate> func, Func<TAccumulate, TResult> resultSelector)
+		if (typeSymbol.CheckMembers(nameof(Enumerable.Aggregate), m => m.Parameters.Length == 3
+		                                                               && m.Parameters[2].Type is INamedTypeSymbol { Arity: 2 } namedTypeSymbol
+		                                                               && SymbolEqualityComparer.Default.Equals(m.Parameters[1].Type, compilation.CreateFunc(m.Parameters[0].Type, elementType, m.Parameters[0].Type))
+		                                                               && SymbolEqualityComparer.Default.Equals(m.Parameters[2].Type, compilation.CreateFunc(m.Parameters[0].Type, namedTypeSymbol.TypeArguments[1]))
+		                                                               && SymbolEqualityComparer.Default.Equals(m.ReturnType, namedTypeSymbol.TypeArguments[1]),
+			                                                               out member))
+		{
+			using (AppendMethod(builder, member))
+			{
+				builder.AppendLine($"var result = {member.Parameters[0].Name};");
+
+				foreach (var item in items)
+				{
+					builder.AppendLine($"result = {member.Parameters[1].Name}(result, {CreateLiteral(item)});");
+				}
+				builder.AppendLine($"return {member.Parameters[2].Name}(result);");
+			}
+		}
+	}
+
 	public void AppendAny(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
 		if (typeSymbol.CheckMethodWithReturnType(nameof(Enumerable.Any), compilation.CreateBoolean(), out var member))
@@ -559,6 +647,12 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 
 		using (AppendMethod(builder, member))
 		{
+			using (builder.AppendBlock($"if ({member.Parameters[0].Name}.TryGetNonEnumeratedCount(out var count) && count != {items.Count})"))
+			{
+				builder.AppendLine($"return false;");
+			}
+
+			builder.AppendLine();
 			builder.AppendLine($"using var e = {member.Parameters[0].Name}.GetEnumerator();");
 			builder.AppendLine();
 
@@ -652,14 +746,14 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 			builder.AppendLine($"return {items.Count};");
 		}
 	}
-	
+
 	public void AppendWhere(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
-		if (!typeSymbol.CheckMethod(nameof(Enumerable.Where), compilation.CreateIEnumerable(elementType), [], out var member))
+		if (!typeSymbol.CheckMethod(nameof(Enumerable.Where), compilation.CreateIEnumerable(elementType), [ ], out var member))
 		{
 			return;
 		}
-	
+
 		using (AppendMethod(builder, member))
 		{
 			foreach (var item in items)

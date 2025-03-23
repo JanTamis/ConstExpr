@@ -1,9 +1,8 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.Loader;
 using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Helpers;
@@ -13,68 +12,75 @@ namespace ConstExpr.SourceGenerator.Helpers;
 /// </summary>
 public class MetadataLoader : IDisposable
 {
-	private static Dictionary<Compilation, AppDomain> _loaders = new Dictionary<Compilation, AppDomain>();
+	private static readonly ConcurrentDictionary<Compilation, IList<Assembly>> _loaders = new();
+	private static readonly object _lockObject = new();
 
-	private readonly AppDomain _appDomain;
+	private readonly IList<Assembly> _assemblies;
+	private readonly ConcurrentDictionary<string, Type?> _typeCache = new();
 
 	/// <summary>
 	/// Gets all assemblies loaded in the current metadata context.
 	/// </summary>
-	public IEnumerable<Assembly> Assemblies => _appDomain.GetAssemblies();
+	public IEnumerable<Assembly> Assemblies => _assemblies;
 
 	public static MetadataLoader GetLoader(Compilation compilation)
 	{
-		if (!_loaders.TryGetValue(compilation, out var domain))
+		if (!_loaders.TryGetValue(compilation, out var currentAssemblies))
 		{
-			var assemblies = compilation.References
-				.OfType<PortableExecutableReference>()
-				.Select(s => s.FilePath)
-				.Where(w => !String.IsNullOrEmpty(w));
-
-		 //var resolver = new PathAssemblyResolver(assemblies);
-
-			//using (var metadataContext = new MetadataLoadContext(resolver))
-			//{
-				domain = AppDomain.CreateDomain(compilation.AssemblyName);
-
-				foreach (var assembly in assemblies)
+			lock (_lockObject)
+			{
+				if (!_loaders.TryGetValue(compilation, out currentAssemblies))
 				{
-					try
-					{
-#pragma warning disable RS1035 // Do not use APIs banned for analyzers
-					var data = File.ReadAllBytes(assembly);
-#pragma warning restore RS1035 // Do not use APIs banned for analyzers
-					domain.Load(data);
-					}
-					catch (Exception e)
-					{
+					var assemblies = compilation.References
+						.OfType<PortableExecutableReference>()
+						.Select(s => s.FilePath)
+						.Where(w => !String.IsNullOrEmpty(w))
+						.ToList();
 
+					var resolver = new PathAssemblyResolver(assemblies);
+					currentAssemblies = new List<Assembly>();
+
+					using (var metadataContext = new MetadataLoadContext(resolver))
+					{
+						foreach (var assembly in metadataContext.GetAssemblies())
+						{
+							try
+							{
+#pragma warning disable RS1035
+								var loadedAssembly = Assembly.Load(assembly.GetName());
+								currentAssemblies.Add(loadedAssembly);
+#pragma warning restore RS1035
+							}
+							catch (Exception)
+							{
+								// Could add logging or diagnostics here if needed
+							}
+						}
+
+						foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+						{
+							if (!currentAssemblies.Contains(assembly))
+							{
+								currentAssemblies.Add(assembly);
+							}
+						}
+
+						_loaders.TryAdd(compilation, currentAssemblies);
 					}
 				}
-
-				_loaders.Add(compilation, domain);
-			//}
+			}
 		}
 
-		return new MetadataLoader(domain);
-	}
-
-	public static void RemoveLoader(Compilation compilation)
-	{
-		if (_loaders.TryGetValue(compilation, out var loader))
-		{
-			AppDomain.Unload(loader);
-			_loaders.Remove(compilation);
-		}
+		return new MetadataLoader(currentAssemblies);
 	}
 
 	/// <summary>
 	/// Initializes a new instance of the <see cref="MetadataLoader"/> class.
 	/// </summary>
-	/// <param name="compilation">The compilation containing references to load.</param>
-	private MetadataLoader(AppDomain domain)
+	/// <param name="assemblies">The assemblies to load.</param>
+	private MetadataLoader(IList<Assembly> assemblies)
 	{
-		_appDomain = domain;
+		_assemblies = assemblies;
 	}
 
 	/// <summary>
@@ -111,8 +117,6 @@ public class MetadataLoader : IDisposable
 			fullTypeName += $"`{named.Arity}";
 		}
 
-
-
 		return GetType(fullTypeName);
 	}
 
@@ -125,30 +129,41 @@ public class MetadataLoader : IDisposable
 	/// </returns>
 	public Type? GetType(string typeName)
 	{
-		foreach (var assembly in _appDomain.GetAssemblies())
+		return _typeCache.GetOrAdd(typeName, _ =>
 		{
-			var type = assembly.GetType(typeName);
-
-			if (type == null)
+			foreach (var assembly in _assemblies)
 			{
-				continue;
+				try
+				{
+					var type = assembly.GetType(typeName, false);
+
+					if (type != null)
+					{
+						return type;
+					}
+				}
+				catch
+				{
+					// Skip problematic assemblies
+				}
 			}
-
-			return type;
-		}
-
-		return null;
+			return null;
+		});
 	}
 
 	public void Dispose()
 	{
-		AppDomain.Unload(_appDomain);
+		_typeCache.Clear();
 
+		// Find and remove this instance's assemblies from the static dictionary
 		var key = _loaders
-			.Where(w => w.Value == _appDomain)
+			.Where(w => w.Value == _assemblies)
 			.Select(s => s.Key)
-			.First();
+			.FirstOrDefault();
 
-		_loaders.Remove(key);
+		if (key != null)
+		{
+			_loaders.TryRemove(key, out _);
+		}
 	}
 }

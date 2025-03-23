@@ -59,6 +59,16 @@ public static class CompilationExtensions
 			.GetSpecialType(specialType)
 			.Construct(typeArguments);
 	}
+	
+	public static bool IsSpecialType(this Compilation compilation, ISymbol symbol, SpecialType specialType)
+	{
+		if (symbol is ITypeSymbol namedTypeSymbol)
+		{
+			return namedTypeSymbol.SpecialType == specialType;
+		}
+		
+		return SymbolEqualityComparer.Default.Equals(symbol, compilation.GetSpecialType(specialType));
+	}
 
 	public static object? ExecuteMethod(this Compilation compilation, MetadataLoader loader, IMethodSymbol methodSymbol, object? instance, params object?[]? parameters)
 	{
@@ -236,12 +246,12 @@ public static class CompilationExtensions
 
 	public static string GetMinimalString(this Compilation compilation, ISymbol symbol)
 	{
-		if (SymbolEqualityComparer.Default.Equals(symbol, compilation.GetSpecialType(SpecialType.System_Void)))
+		if (compilation.IsSpecialType(symbol, SpecialType.System_Void))
 		{
 			return "void";
 		}
 
-		if (SymbolEqualityComparer.Default.Equals(symbol.OriginalDefinition, compilation.GetSpecialType(SpecialType.System_Collections_Generic_IEnumerable_T))
+		if (compilation.IsSpecialType(symbol.OriginalDefinition, SpecialType.System_Collections_Generic_IEnumerable_T)
 				&& symbol is INamedTypeSymbol namedTypeSymbol)
 		{
 			return $"IEnumerable<{String.Join(", ", namedTypeSymbol.TypeArguments.Select(s => GetMinimalString(compilation, s)))}>";

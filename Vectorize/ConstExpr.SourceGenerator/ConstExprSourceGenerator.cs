@@ -7,7 +7,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -202,14 +201,25 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 						interfaceBuilder.AppendContains(namedTypeSymbol, items, code);
 
 						linqBuilder.AppendAll(namedTypeSymbol, items, code);
+						linqBuilder.AppendAggregate(namedTypeSymbol, items, code);
 						linqBuilder.AppendAny(namedTypeSymbol, items, code);
+						linqBuilder.AppendAverage(namedTypeSymbol, items, code);
+						linqBuilder.AppendCount(namedTypeSymbol, items, code);
+						linqBuilder.AppendDistinct(namedTypeSymbol, items, code);
+						linqBuilder.AppendElementAt(namedTypeSymbol, items, code);
+						linqBuilder.AppendElementAtOrDefault(namedTypeSymbol, items, code);
 						linqBuilder.AppendFirst(namedTypeSymbol, items, code);
 						linqBuilder.AppendFirstOrDefault(namedTypeSymbol, items, code);
 						linqBuilder.AppendLast(namedTypeSymbol, items, code);
 						linqBuilder.AppendLastOrDefault(namedTypeSymbol, items, code);
+						linqBuilder.AppendOrder(namedTypeSymbol, items, code);
+						linqBuilder.AppendOrderDescending(namedTypeSymbol, items, code);
 						linqBuilder.AppendSelect(namedTypeSymbol, items, code);
-						linqBuilder.AppendSum(namedTypeSymbol, items, code);
 						linqBuilder.AppendSequenceEqual(namedTypeSymbol, items, code);
+						linqBuilder.AppendSingle(namedTypeSymbol, items, code);
+						linqBuilder.AppendSingleOrDefault(namedTypeSymbol, items, code);
+						linqBuilder.AppendSum(namedTypeSymbol, items, code);
+						linqBuilder.AppendWhere(namedTypeSymbol, items, code);
 						
 						linqBuilder.AppendToArray(namedTypeSymbol, items, code);
 						linqBuilder.AppendToImmutableArray(namedTypeSymbol, items, code);
@@ -391,6 +401,8 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			"using System.Collections.Generic;",
 			"using System.Collections;",
 			"using System;",
+			"using System.Linq;",
+			"using System.Diagnostics.CodeAnalysis;",
 			$"using {methodSymbol.ReturnType.ContainingNamespace};"
 		};
 
@@ -423,20 +435,6 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		}
 
 		symbol = null;
-		return false;
-	}
-
-	private static bool TryGetSymbol<TSymbol>(Compilation compilation, SyntaxNode invocation, [NotNullWhen(true)] out TSymbol symbol) where TSymbol : ISymbol
-	{
-		var semanticModel = compilation.GetSemanticModel(invocation.SyntaxTree);
-
-		if (semanticModel.GetSymbolInfo(invocation, CancellationToken.None).Symbol is TSymbol s)
-		{
-			symbol = s;
-			return true;
-		}
-
-		symbol = default!;
 		return false;
 	}
 }
