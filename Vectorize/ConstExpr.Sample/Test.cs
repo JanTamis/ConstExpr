@@ -12,14 +12,12 @@ public static class Test
 {
 	public static IEnumerable<float> IsOdd(params IEnumerable<float> data)
 	{
-		return data
-			.Where(w => w % 2 != 0);
+		return data.Where(w => w % 2 != 0);
 	}
 
 	public static float Average(params IReadOnlyList<float> data)
 	{
-		return IsOdd(data)
-			.Average();
+		return IsOdd(data).Average();
 	}
 
 	public static float StdDev(params IReadOnlyList<float> data)

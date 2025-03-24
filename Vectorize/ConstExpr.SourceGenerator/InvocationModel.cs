@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -18,7 +19,10 @@ public class InvocationModel : IEquatable<InvocationModel>
 	public InvocationExpressionSyntax Invocation { get; set; }
 	
 	public object? Value { get; set; }	
+	
 	public HashSet<string> Usings { get; set; }
+	
+	public IReadOnlyDictionary<SyntaxNode, Exception> Exceptions { get; set; }
 
 	public bool Equals(InvocationModel? other)
 	{

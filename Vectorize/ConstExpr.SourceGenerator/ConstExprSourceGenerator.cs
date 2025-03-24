@@ -8,6 +8,7 @@ using Microsoft.CodeAnalysis.Operations;
 using SGF;
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -30,7 +31,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		{
 			var invocations = context.SyntaxProvider
 				.CreateSyntaxProvider(
-					predicate: (node, _) => node is InvocationExpressionSyntax,
+					predicate: (node, token) => !token.IsCancellationRequested && node is InvocationExpressionSyntax,
 					transform: GenerateSource)
 				.Where(result => result != null);
 
@@ -40,6 +41,8 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				{
 					GenerateMethodImplementations(spc, modelAndCompilation.Right, group);
 				}
+
+				ReportExceptions(spc, modelAndCompilation.Left);
 			});
 
 			spc.AddSource("ConstExprAttribute.g", """
@@ -124,14 +127,14 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				else
 				{
 					var name = first.Method.ReturnType is GenericNameSyntax genericName
-							? genericName.Identifier.Text
-							: first.Method.ReturnType.ToString();
+						? genericName.Identifier.Text
+						: first.Method.ReturnType.ToString();
 
 					var body = SyntaxFactory.Block(
 						SyntaxFactory.ReturnStatement(
 							SyntaxFactory.MemberAccessExpression(
 								SyntaxKind.SimpleMemberAccessExpression,
-								SyntaxFactory.ParseTypeName($"{name}_{first.Value.GetHashCode()}"),
+								SyntaxFactory.ParseTypeName($"{name}_{first.Value?.GetHashCode()}"),
 								SyntaxFactory.IdentifierName("Instance"))));
 
 					method = method
@@ -170,9 +173,9 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 				var elementType = namedTypeSymbol.TypeArguments.FirstOrDefault();
 				var elementName = elementType?.ToDisplayString();
-				var hashCode = invocation.Value.GetHashCode();
+				var hashCode = invocation.Value?.GetHashCode();
 
-				IEnumerable<string> interfaces = [$"{namedTypeSymbol.Name}<{elementName}>"];
+				IEnumerable<string> interfaces = [ $"{namedTypeSymbol.Name}<{elementName}>" ];
 
 				code.AppendLine();
 
@@ -250,7 +253,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			}
 		}
 
-		if (group.Key.Parent is TypeDeclarationSyntax type)
+		if (group.Key.Parent is TypeDeclarationSyntax type && !group.Any(a => a.Exceptions.Any()))
 		{
 			spc.AddSource($"{type.Identifier}_{group.Key.Identifier}.g.cs", code.ToString());
 		}
@@ -259,14 +262,14 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 	private InvocationModel? GenerateSource(GeneratorSyntaxContext context, CancellationToken token)
 	{
 		if (context.Node is not InvocationExpressionSyntax invocation
-				|| !TryGetSymbol(context.SemanticModel, invocation, token, out var method))
+		    || !TryGetSymbol(context.SemanticModel, invocation, token, out var method))
 		{
 			return null;
 		}
 
 		// Check for ConstExprAttribute on type or method
 		if ((method.ContainingType is ITypeSymbol type && type.GetAttributes().Any(IsConstExprAttribute)) ||
-				method.GetAttributes().Any(IsConstExprAttribute))
+		    method.GetAttributes().Any(IsConstExprAttribute))
 		{
 			var loader = MetadataLoader.GetLoader(context.SemanticModel.Compilation);
 
@@ -277,7 +280,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 	}
 
 	private InvocationModel? GenerateExpression(Compilation compilation, MetadataLoader loader, InvocationExpressionSyntax invocation,
-																							IMethodSymbol methodSymbol, CancellationToken token)
+	                                            IMethodSymbol methodSymbol, CancellationToken token)
 	{
 		if (IsInConstExprBody(invocation))
 		{
@@ -299,12 +302,18 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		}
 
 		if (TryGetOperation<IMethodBodyOperation>(compilation, methodDecl, out var blockOperation) &&
-				compilation.TryGetSemanticModel(invocation, out var model))
+		    compilation.TryGetSemanticModel(invocation, out var model))
 		{
 			try
 			{
 				var timer = Stopwatch.StartNew();
-				var visitor = new ConstExprOperationVisitor(compilation, loader, token);
+				var exceptions = new ConcurrentDictionary<SyntaxNode, Exception>(SyntaxNodeComparer<SyntaxNode>.Instance);
+
+				var visitor = new ConstExprOperationVisitor(compilation, loader, (operation, ex) =>
+				{
+					exceptions.TryAdd(operation!.Syntax, ex);
+				}, token);
+
 				visitor.VisitBlock(blockOperation.BlockBody!, variables);
 				timer.Stop();
 
@@ -316,7 +325,8 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 					Method = methodDecl,
 					Invocation = invocation,
 					Value = variables[ConstExprOperationVisitor.ReturnVariableName],
-					Location = model.GetInterceptableLocation(invocation, token)
+					Location = model.GetInterceptableLocation(invocation, token),
+					Exceptions = exceptions,
 				};
 			}
 			catch (Exception e)
@@ -330,7 +340,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 	}
 
 	private Dictionary<string, object?>? ProcessArguments(Compilation compilation, MetadataLoader loader, InvocationExpressionSyntax invocation,
-																												IMethodSymbol methodSymbol, CancellationToken token)
+	                                                      IMethodSymbol methodSymbol, CancellationToken token)
 	{
 		var variables = new Dictionary<string, object?>();
 
@@ -436,6 +446,26 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 		symbol = null;
 		return false;
+	}
+
+	private void ReportExceptions(SgfSourceProductionContext spc, IEnumerable<InvocationModel> models)
+	{
+		var exceptions = models
+			.SelectMany(m => m.Exceptions.Select(s => s.Key))
+			.Distinct(SyntaxNodeComparer<SyntaxNode>.Instance);
+
+		var descriptor = new DiagnosticDescriptor(
+			"CEA005",
+			"Exception during evaluation",
+			"Unable to evaluate: {0}",
+			"Usage",
+			DiagnosticSeverity.Warning,
+			true);
+
+		foreach (var exception in exceptions)
+		{
+			spc.ReportDiagnostic(Diagnostic.Create(descriptor, exception.GetLocation(), exception));
+		}
 	}
 }
 #pragma warning restore RSEXPERIMENTAL002

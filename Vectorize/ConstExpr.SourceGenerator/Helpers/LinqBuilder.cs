@@ -27,6 +27,9 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 					case 1:
 						builder.AppendLine($"return {CreateLiteral(items[0])};");
 						break;
+					case 2:
+						builder.AppendLine($"return {member.Parameters[0].Name}({CreateLiteral(items[0])}, {CreateLiteral(items[1])});");
+						break;
 					default:
 					{
 						builder.AppendLine($"var result = {CreateLiteral(items[0])};");
@@ -749,16 +752,26 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 
 	public void AppendWhere(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
-		if (!typeSymbol.CheckMethod(nameof(Enumerable.Where), compilation.CreateIEnumerable(elementType), [ ], out var member))
+		if (!typeSymbol.CheckMethod(nameof(Enumerable.Where), compilation.CreateIEnumerable(elementType), [ compilation.CreateFunc(elementType, compilation.CreateBoolean()) ], out var member))
 		{
 			return;
 		}
 
 		using (AppendMethod(builder, member))
 		{
-			foreach (var item in items)
+			for (var i = 0; i < items.Count; i++)
 			{
-				builder.AppendLine($"yield return {member.Parameters[0].Name}({CreateLiteral(item)}) ? {CreateLiteral(item)} : default;");
+				if (i != 0)
+				{
+					builder.AppendLine();
+				}
+				
+				var item = CreateLiteral(items[i]);
+
+				using (builder.AppendBlock($"if ({member.Parameters[0].Name}({item}))"))
+				{
+					builder.AppendLine($"yield return {item};");
+				}
 			}
 		}
 	}

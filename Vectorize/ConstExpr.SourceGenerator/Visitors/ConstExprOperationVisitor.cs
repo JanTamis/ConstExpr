@@ -18,7 +18,7 @@ using ConstExpr.SourceGenerator.Helpers;
 
 namespace ConstExpr.SourceGenerator.Visitors;
 
-public partial class ConstExprOperationVisitor(Compilation compilation, MetadataLoader loader, CancellationToken token) : OperationVisitor<Dictionary<string, object?>, object?>
+public partial class ConstExprOperationVisitor(Compilation compilation, MetadataLoader loader, Action<IOperation?, Exception> exceptionHandler, CancellationToken token) : OperationVisitor<Dictionary<string, object?>, object?>
 {
 	public const string ReturnVariableName = "$return$";
 
@@ -41,7 +41,15 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 	{
 		token.ThrowIfCancellationRequested();
 
-		return base.Visit(operation, argument);
+		try
+		{
+			return base.Visit(operation, argument);
+		}
+		catch (Exception ex)
+		{
+			exceptionHandler(operation, ex);
+			return null;
+		}
 	}
 
 	public override object? VisitIsNull(IIsNullOperation operation, Dictionary<string, object?> argument)
@@ -280,7 +288,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 				variables.Add(parameterName, arguments[i]);
 			}
 
-			var visitor = new ConstExprOperationVisitor(compilation, loader, token);
+			var visitor = new ConstExprOperationVisitor(compilation, loader, exceptionHandler, token);
 			visitor.VisitBlock(methodOperation.BlockBody, variables);
 
 			return variables[ReturnVariableName];
