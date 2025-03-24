@@ -1,3 +1,6 @@
+using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Helpers;
+using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -10,9 +13,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using ConstExpr.SourceGenerator.Extensions;
-using ConstExpr.SourceGenerator.Helpers;
-using ConstExpr.SourceGenerator.Visitors;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 
 [assembly: InternalsVisibleTo("ConstExpr.Tests")]
@@ -126,7 +126,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 					var name = first.Method.ReturnType is GenericNameSyntax genericName
 							? genericName.Identifier.Text
 							: first.Method.ReturnType.ToString();
-					
+
 					var body = SyntaxFactory.Block(
 						SyntaxFactory.ReturnStatement(
 							SyntaxFactory.MemberAccessExpression(
@@ -172,7 +172,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				var elementName = elementType?.ToDisplayString();
 				var hashCode = invocation.Value.GetHashCode();
 
-				IEnumerable<string> interfaces = [ $"{namedTypeSymbol.Name}<{elementName}>" ];
+				IEnumerable<string> interfaces = [$"{namedTypeSymbol.Name}<{elementName}>"];
 
 				code.AppendLine();
 
@@ -220,7 +220,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 						linqBuilder.AppendSingleOrDefault(namedTypeSymbol, items, code);
 						linqBuilder.AppendSum(namedTypeSymbol, items, code);
 						linqBuilder.AppendWhere(namedTypeSymbol, items, code);
-						
+
 						linqBuilder.AppendToArray(namedTypeSymbol, items, code);
 						linqBuilder.AppendToImmutableArray(namedTypeSymbol, items, code);
 						linqBuilder.AppendToList(namedTypeSymbol, items, code);
@@ -259,14 +259,14 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 	private InvocationModel? GenerateSource(GeneratorSyntaxContext context, CancellationToken token)
 	{
 		if (context.Node is not InvocationExpressionSyntax invocation
-		    || !TryGetSymbol(context.SemanticModel, invocation, token, out var method))
+				|| !TryGetSymbol(context.SemanticModel, invocation, token, out var method))
 		{
 			return null;
 		}
 
 		// Check for ConstExprAttribute on type or method
 		if ((method.ContainingType is ITypeSymbol type && type.GetAttributes().Any(IsConstExprAttribute)) ||
-		    method.GetAttributes().Any(IsConstExprAttribute))
+				method.GetAttributes().Any(IsConstExprAttribute))
 		{
 			var loader = MetadataLoader.GetLoader(context.SemanticModel.Compilation);
 
@@ -277,7 +277,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 	}
 
 	private InvocationModel? GenerateExpression(Compilation compilation, MetadataLoader loader, InvocationExpressionSyntax invocation,
-	                                            IMethodSymbol methodSymbol, CancellationToken token)
+																							IMethodSymbol methodSymbol, CancellationToken token)
 	{
 		if (IsInConstExprBody(invocation))
 		{
@@ -299,7 +299,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		}
 
 		if (TryGetOperation<IMethodBodyOperation>(compilation, methodDecl, out var blockOperation) &&
-		    compilation.TryGetSemanticModel(invocation, out var model))
+				compilation.TryGetSemanticModel(invocation, out var model))
 		{
 			try
 			{
@@ -330,7 +330,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 	}
 
 	private Dictionary<string, object?>? ProcessArguments(Compilation compilation, MetadataLoader loader, InvocationExpressionSyntax invocation,
-	                                                      IMethodSymbol methodSymbol, CancellationToken token)
+																												IMethodSymbol methodSymbol, CancellationToken token)
 	{
 		var variables = new Dictionary<string, object?>();
 

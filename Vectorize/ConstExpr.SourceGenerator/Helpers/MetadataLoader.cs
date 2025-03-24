@@ -1,9 +1,9 @@
+using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Helpers;
 
@@ -27,46 +27,43 @@ public class MetadataLoader : IDisposable
 	{
 		if (!_loaders.TryGetValue(compilation, out var currentAssemblies))
 		{
-			lock (_lockObject)
+			if (!_loaders.TryGetValue(compilation, out currentAssemblies))
 			{
-				if (!_loaders.TryGetValue(compilation, out currentAssemblies))
+				var assemblies = compilation.References
+					.OfType<PortableExecutableReference>()
+					.Select(s => s.FilePath)
+					.Where(w => !String.IsNullOrEmpty(w))
+					.ToList();
+
+				var resolver = new PathAssemblyResolver(assemblies);
+				currentAssemblies = new List<Assembly>();
+
+				using (var metadataContext = new MetadataLoadContext(resolver))
 				{
-					var assemblies = compilation.References
-						.OfType<PortableExecutableReference>()
-						.Select(s => s.FilePath)
-						.Where(w => !String.IsNullOrEmpty(w))
-						.ToList();
-
-					var resolver = new PathAssemblyResolver(assemblies);
-					currentAssemblies = new List<Assembly>();
-
-					using (var metadataContext = new MetadataLoadContext(resolver))
+					foreach (var assembly in metadataContext.GetAssemblies())
 					{
-						foreach (var assembly in metadataContext.GetAssemblies())
+						try
 						{
-							try
-							{
 #pragma warning disable RS1035
-								var loadedAssembly = Assembly.Load(assembly.GetName());
-								currentAssemblies.Add(loadedAssembly);
+							var loadedAssembly = Assembly.Load(assembly.GetName());
+							currentAssemblies.Add(loadedAssembly);
 #pragma warning restore RS1035
-							}
-							catch (Exception)
-							{
-								// Could add logging or diagnostics here if needed
-							}
 						}
-
-						foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+						catch (Exception)
 						{
-							if (!currentAssemblies.Contains(assembly))
-							{
-								currentAssemblies.Add(assembly);
-							}
+							// Could add logging or diagnostics here if needed
 						}
-
-						_loaders.TryAdd(compilation, currentAssemblies);
 					}
+
+					foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+					{
+						if (!currentAssemblies.Contains(assembly))
+						{
+							currentAssemblies.Add(assembly);
+						}
+					}
+
+					_loaders.TryAdd(compilation, currentAssemblies);
 				}
 			}
 		}
