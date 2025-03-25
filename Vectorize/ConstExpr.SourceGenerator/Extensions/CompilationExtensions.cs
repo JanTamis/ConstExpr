@@ -59,15 +59,23 @@ public static class CompilationExtensions
 			.GetSpecialType(specialType)
 			.Construct(typeArguments);
 	}
-	
+
 	public static bool IsSpecialType(this Compilation compilation, ISymbol symbol, SpecialType specialType)
 	{
 		if (symbol is ITypeSymbol namedTypeSymbol)
 		{
 			return namedTypeSymbol.SpecialType == specialType;
 		}
-		
+
 		return SymbolEqualityComparer.Default.Equals(symbol, compilation.GetSpecialType(specialType));
+	}
+
+	public static bool IsSpanType(this Compilation compilation, ITypeSymbol typeSymbol, ITypeSymbol elementType)
+	{
+		return typeSymbol is INamedTypeSymbol { Arity: 1 } namedTypeSymbol
+		       && namedTypeSymbol.ContainingNamespace.ToString() == "System"
+		       && namedTypeSymbol.Name is "Span" or "ReadOnlySpan"
+		       && SymbolEqualityComparer.Default.Equals(namedTypeSymbol.TypeParameters[0], elementType);
 	}
 
 	public static object? ExecuteMethod(this Compilation compilation, MetadataLoader loader, IMethodSymbol methodSymbol, object? instance, params object?[]? parameters)
@@ -76,7 +84,7 @@ public static class CompilationExtensions
 		var methodName = methodSymbol.Name;
 
 		var type = loader.GetType(methodSymbol.ContainingType)
-							 ?? throw new InvalidOperationException($"Type '{fullyQualifiedName}' not found");
+		           ?? throw new InvalidOperationException($"Type '{fullyQualifiedName}' not found");
 
 		var methodInfos = type
 			.GetMethods(methodSymbol.IsStatic
@@ -252,7 +260,7 @@ public static class CompilationExtensions
 		}
 
 		if (compilation.IsSpecialType(symbol.OriginalDefinition, SpecialType.System_Collections_Generic_IEnumerable_T)
-				&& symbol is INamedTypeSymbol namedTypeSymbol)
+		    && symbol is INamedTypeSymbol namedTypeSymbol)
 		{
 			return $"IEnumerable<{String.Join(", ", namedTypeSymbol.TypeArguments.Select(s => GetMinimalString(compilation, s)))}>";
 		}

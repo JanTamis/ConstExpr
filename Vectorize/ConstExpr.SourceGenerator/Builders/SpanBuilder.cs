@@ -1,9 +1,9 @@
-﻿using ConstExpr.SourceGenerator.Extensions;
+﻿using System;
+using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using Microsoft.CodeAnalysis;
-using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Linq;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 
 namespace ConstExpr.SourceGenerator.Builders;
@@ -12,32 +12,59 @@ public class SpanBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 {
 	public void AppendCommonPrefixLength(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
-		if (!typeSymbol.CheckMethod("CommonPrefixLength", compilation.CreateInt32(), [compilation.GetTypeByType(typeof(ReadOnlySpan<>), elementType)], out var member))
+		if (typeSymbol.CheckMembers<IMethodSymbol>("CommonPrefixLength", m => compilation.IsSpecialType(m.ReturnType, SpecialType.System_Int32)
+		                                                                      && m.Parameters.Length == 1
+		                                                                      && compilation.IsSpanType(m.Parameters[0].Type, elementType), out var member))
 		{
-			return;
+			Append(member, $"EqualityComparer<{compilation.GetMinimalString(elementType)}>.Default");
 		}
 
-		using (AppendMethod(builder, member))
+		if (typeSymbol.CheckMembers("CommonPrefixLength", m => compilation.IsSpecialType(m.ReturnType, SpecialType.System_Int32)
+		                                                       && m.Parameters.Length == 2
+		                                                       && compilation.IsSpanType(m.Parameters[0].Type, elementType)
+		                                                       && IsEqualSymbol(m.Parameters[1].Type, compilation.GetTypeByType(typeof(IEqualityComparer<>), elementType)), out member))
 		{
-			for (var i = 0; i < items.Count; i++)
+			Append(member, member.Parameters[1].Name);
+		}
+
+		void Append(IMethodSymbol method, string comparerName)
+		{
+			using (AppendMethod(builder, method))
 			{
-				if (i != 0)
+				for (var i = 0; i < items.Count; i++)
+				{
+					if (i != 0)
+					{
+						builder.AppendLine();
+					}
+
+					// TODO check if condition is correct
+					builder.AppendLine($"if ({method.Parameters[0].Name}.Length == {CreateLiteral(i)} || !{comparerName}.Equals({CreateLiteral(items[i])}, {method.Parameters[0].Name}[{i}]))");
+					builder.AppendLine($"\treturn {CreateLiteral(i)};");
+				}
+
+				if (items.Count > 0)
 				{
 					builder.AppendLine();
 				}
 
-				using (builder.AppendBlock($"if ({member.Parameters[0].Name}.Length == {CreateLiteral(i + 1)} || !EqualityComparer<{compilation.GetMinimalString(elementType)}>.Default.Equals({CreateLiteral(items[i])}, {member.Parameters[0].Name}[{i}]))"))
-				{
-					builder.AppendLine($"return {CreateLiteral(i)};");
-				}
+				builder.AppendLine($"return {CreateLiteral(items.Count)};");
 			}
+		}
+	}
 
-			if (items.Count > 0)
+	public void AppendContainsAny(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
+	{
+		if (typeSymbol.CheckMembers<IMethodSymbol>("ContainsAny", m => compilation.IsSpecialType(m.ReturnType, SpecialType.System_Boolean)
+		                                                               && m.Parameters.Length > 0
+		                                                               && m.Parameters.All(a => SymbolEqualityComparer.Default.Equals(a.Type, elementType)), out var member))
+		{
+			using (AppendMethod(builder, member))
 			{
-				builder.AppendLine();
+				var checks = items.Select(s => String.Join(" || ", member.Parameters.Select(p => $"{p.Name} == {CreateLiteral(s)}")));
+				
+				builder.AppendLine($"return {String.Join("\n\t|| ", checks)};");
 			}
-
-			builder.AppendLine($"return {CreateLiteral(items.Count)};");
-		}		
+		}
 	}
 }

@@ -233,6 +233,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 						linqBuilder.AppendImmutableList(namedTypeSymbol, items, code);
 
 						spanBuilder.AppendCommonPrefixLength(namedTypeSymbol, items, code);
+						spanBuilder.AppendContainsAny(namedTypeSymbol, items, code);
 
 						if (IsIEnumerableRecursive(namedTypeSymbol))
 						{
