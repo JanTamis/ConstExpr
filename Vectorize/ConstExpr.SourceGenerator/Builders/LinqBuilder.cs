@@ -5,8 +5,9 @@ using System.Linq;
 using Microsoft.CodeAnalysis;
 using ConstExpr.SourceGenerator.Extensions;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
+using ConstExpr.SourceGenerator.Helpers;
 
-namespace ConstExpr.SourceGenerator.Helpers;
+namespace ConstExpr.SourceGenerator.Builders;
 
 public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : BaseBuilder(elementType, compilation)
 {

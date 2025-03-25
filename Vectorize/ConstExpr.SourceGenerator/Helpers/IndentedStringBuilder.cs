@@ -1,8 +1,10 @@
 using System;
+using System.Diagnostics;
 using System.Text;
 
 namespace ConstExpr.SourceGenerator.Helpers;
 
+[DebuggerDisplay("{ToString()}")]
 public class IndentedStringBuilder(string indentString = "\t")
 {
 	private readonly StringBuilder _builder = new();

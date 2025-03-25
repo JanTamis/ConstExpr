@@ -1,3 +1,4 @@
+using ConstExpr.SourceGenerator.Builders;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Visitors;
@@ -11,6 +12,7 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -78,7 +80,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		});
 	}
 
-	private void GenerateMethodImplementations(SgfSourceProductionContext spc, Compilation compilation, IGrouping<MethodDeclarationSyntax, InvocationModel> group)
+	private void GenerateMethodImplementations(SgfSourceProductionContext spc, Compilation compilation, IGrouping<MethodDeclarationSyntax, InvocationModel?> group)
 	{
 		var code = new IndentedStringBuilder();
 		var usings = group.SelectMany(item => item.Usings).Distinct().OrderBy(s => s);
@@ -189,6 +191,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 						var interfaceBuilder = new InterfaceBuilder(compilation, elementType);
 						var linqBuilder = new LinqBuilder(compilation, elementType);
+						var spanBuilder = new SpanBuilder(compilation, elementType);
 
 						interfaceBuilder.AppendCount(namedTypeSymbol, items.Count, code);
 						interfaceBuilder.AppendLength(namedTypeSymbol, items.Count, code);
@@ -228,6 +231,8 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 						linqBuilder.AppendToImmutableArray(namedTypeSymbol, items, code);
 						linqBuilder.AppendToList(namedTypeSymbol, items, code);
 						linqBuilder.AppendImmutableList(namedTypeSymbol, items, code);
+
+						spanBuilder.AppendCommonPrefixLength(namedTypeSymbol, items, code);
 
 						if (IsIEnumerableRecursive(namedTypeSymbol))
 						{
@@ -424,7 +429,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		return usings;
 	}
 
-	private static bool TryGetSymbol(SemanticModel semanticModel, InvocationExpressionSyntax invocation, CancellationToken token, out IMethodSymbol symbol)
+	private static bool TryGetSymbol(SemanticModel semanticModel, InvocationExpressionSyntax invocation, CancellationToken token, [NotNullWhen(true)] out IMethodSymbol? symbol)
 	{
 		if (semanticModel.GetSymbolInfo(invocation, token).Symbol is IMethodSymbol s)
 		{

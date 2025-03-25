@@ -2,9 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Helpers;
 using Microsoft.CodeAnalysis;
 
-namespace ConstExpr.SourceGenerator.Helpers;
+namespace ConstExpr.SourceGenerator.Builders;
 
 public class InterfaceBuilder(Compilation compilation, ITypeSymbol elementType) : BaseBuilder(elementType, compilation)
 {

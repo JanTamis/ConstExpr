@@ -12,4 +12,6 @@ public interface ICustomCollection<T>
 	IEnumerable<bool> Select(Func<T, bool> selector);
 	
 	bool SequenceEqual(IEnumerable<T> other);
+
+	int CommonPrefixLength(ReadOnlySpan<T> elements);
 }
