@@ -8,7 +8,7 @@ using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 
 namespace ConstExpr.SourceGenerator.Builders;
 
-public class SpanBuilder(Compilation compilation, ITypeSymbol elementType) : BaseBuilder(elementType, compilation)
+public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSymbol elementType) : BaseBuilder(elementType, compilation)
 {
 	public void AppendCommonPrefixLength(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
@@ -16,6 +16,7 @@ public class SpanBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 		                                                                      && m.Parameters.Length == 1
 		                                                                      && compilation.IsSpanType(m.Parameters[0].Type, elementType), out var member))
 		{
+			
 			Append(member, $"EqualityComparer<{compilation.GetMinimalString(elementType)}>.Default");
 		}
 
@@ -33,21 +34,9 @@ public class SpanBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 			{
 				for (var i = 0; i < items.Count; i++)
 				{
-					if (i != 0)
-					{
-						builder.AppendLine();
-					}
-
-					// TODO check if condition is correct
-					builder.AppendLine($"if ({method.Parameters[0].Name}.Length == {CreateLiteral(i)} || !{comparerName}.Equals({CreateLiteral(items[i])}, {method.Parameters[0].Name}[{i}]))");
-					builder.AppendLine($"\treturn {CreateLiteral(i)};");
+					builder.AppendLine($"if ({method.Parameters[0].Name}.Length == {CreateLiteral(i)} || !{comparerName}.Equals({CreateLiteral(items[i])}, {method.Parameters[0].Name}[{CreateLiteral(i)}])) return {CreateLiteral(i)};");
 				}
-
-				if (items.Count > 0)
-				{
-					builder.AppendLine();
-				}
-
+				
 				builder.AppendLine($"return {CreateLiteral(items.Count)};");
 			}
 		}
@@ -61,7 +50,8 @@ public class SpanBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 		{
 			using (AppendMethod(builder, member))
 			{
-				var checks = items.Select(s => String.Join(" || ", member.Parameters.Select(p => $"{p.Name} == {CreateLiteral(s)}")));
+				var size = compilation.GetByteSize(loader, member.Parameters[0].Type) * member.Parameters.Length;
+				var checks = items.Distinct().Select(s => String.Join(" || ", member.Parameters.Select(p => $"{p.Name} == {CreateLiteral(s)}")));
 				
 				builder.AppendLine($"return {String.Join("\n\t|| ", checks)};");
 			}

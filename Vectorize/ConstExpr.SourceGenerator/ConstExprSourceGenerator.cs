@@ -191,7 +191,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 						var interfaceBuilder = new InterfaceBuilder(compilation, elementType);
 						var linqBuilder = new LinqBuilder(compilation, elementType);
-						var spanBuilder = new SpanBuilder(compilation, elementType);
+						var spanBuilder = new SpanBuilder(compilation, loader, elementType);
 
 						interfaceBuilder.AppendCount(namedTypeSymbol, items.Count, code);
 						interfaceBuilder.AppendLength(namedTypeSymbol, items.Count, code);

@@ -75,7 +75,70 @@ public static class CompilationExtensions
 		return typeSymbol is INamedTypeSymbol { Arity: 1 } namedTypeSymbol
 		       && namedTypeSymbol.ContainingNamespace.ToString() == "System"
 		       && namedTypeSymbol.Name is "Span" or "ReadOnlySpan"
-		       && SymbolEqualityComparer.Default.Equals(namedTypeSymbol.TypeParameters[0], elementType);
+		       && SymbolEqualityComparer.Default.Equals(namedTypeSymbol.TypeArguments[0], elementType);
+	}
+	
+	public static int GetByteSize(this Compilation compilation, MetadataLoader loader, ITypeSymbol type)
+	{
+		if (type == null)
+		{
+			return 0;
+		}
+
+		// Handle primitive types
+		if (type.SpecialType != SpecialType.None)
+		{
+			return type.SpecialType switch
+			{
+				SpecialType.System_Boolean => sizeof(bool),
+				SpecialType.System_Byte => sizeof(byte),
+				SpecialType.System_Char => sizeof(char),
+				SpecialType.System_Decimal => sizeof(decimal),
+				SpecialType.System_Double => sizeof(double),
+				SpecialType.System_Int16 => sizeof(short),
+				SpecialType.System_Int32 => sizeof(int),
+				SpecialType.System_Int64 => sizeof(long),
+				SpecialType.System_SByte => sizeof(sbyte),
+				SpecialType.System_Single => sizeof(float),
+				SpecialType.System_UInt16 => sizeof(ushort),
+				SpecialType.System_UInt32 => sizeof(uint),
+				SpecialType.System_UInt64 => sizeof(ulong),
+				SpecialType.System_IntPtr => IntPtr.Size,
+				SpecialType.System_UIntPtr => UIntPtr.Size,
+				_ => 0,
+			};
+		}
+
+		// Handle pointer types
+		if (type.TypeKind == TypeKind.Pointer)
+		{
+			return IntPtr.Size;
+		}
+
+		// Handle enum types - get the size of the underlying type
+		// if (type.TypeKind == TypeKind.Enum && type.EnumUnderlyingType != null)
+		// {
+		// 	return VisitSizeOf(operation.Update(type.EnumUnderlyingType), argument);
+		// }
+
+		// Try to use Marshal.SizeOf for structs if available
+		if (type.TypeKind == TypeKind.Struct)
+		{
+			try
+			{
+				var runtimeType = loader.GetType(type);
+				// Use System.Runtime.InteropServices.Marshal.SizeOf
+				var method = typeof(System.Runtime.InteropServices.Marshal).GetMethod("SizeOf", [ typeof(Type) ]);
+				return (int)method?.Invoke(null, [ runtimeType ]);
+			}
+			catch
+			{
+				// Fallback - struct size calculation is complex due to alignment rules
+				return 0;
+			}
+		}
+
+		return 0;
 	}
 
 	public static object? ExecuteMethod(this Compilation compilation, MetadataLoader loader, IMethodSymbol methodSymbol, object? instance, params object?[]? parameters)

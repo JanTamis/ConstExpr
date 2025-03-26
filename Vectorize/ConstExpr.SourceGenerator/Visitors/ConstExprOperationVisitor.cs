@@ -447,25 +447,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 	public override object? VisitSizeOf(ISizeOfOperation operation, Dictionary<string, object?> argument)
 	{
-		var type = operation.Type;
-
-		return type?.SpecialType switch
-		{
-			SpecialType.System_Boolean => sizeof(bool),
-			SpecialType.System_Byte => sizeof(byte),
-			SpecialType.System_Char => sizeof(char),
-			SpecialType.System_Decimal => sizeof(decimal),
-			SpecialType.System_Double => sizeof(double),
-			SpecialType.System_Int16 => sizeof(short),
-			SpecialType.System_Int32 => sizeof(int),
-			SpecialType.System_Int64 => sizeof(long),
-			SpecialType.System_SByte => sizeof(sbyte),
-			SpecialType.System_Single => sizeof(float),
-			SpecialType.System_UInt16 => sizeof(ushort),
-			SpecialType.System_UInt32 => sizeof(uint),
-			SpecialType.System_UInt64 => sizeof(ulong),
-			_ => 0,
-		};
+		return compilation.GetByteSize(loader, operation.Type);
 	}
 
 	public override object? VisitTypeOf(ITypeOfOperation operation, Dictionary<string, object?> argument)

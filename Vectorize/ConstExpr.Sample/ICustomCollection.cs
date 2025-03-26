@@ -14,4 +14,6 @@ public interface ICustomCollection<T>
 	bool SequenceEqual(IEnumerable<T> other);
 	
 	bool ContainsAny(T one, T two, T three, T four);
+	
+	int CommonPrefixLength(ReadOnlySpan<T> other);
 }
