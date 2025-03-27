@@ -63,4 +63,20 @@ public static class EnumerableExtensions
 			_ => null,
 		};
 	}
+	
+	public static IEnumerable<T> Repeat<T>(this IEnumerable<T> value, int count)
+	{
+		while (true)
+		{
+			foreach (var item in value)
+			{
+				if (count-- <= 0)
+				{
+					yield break;
+				}
+				
+				yield return item;
+			}
+		}
+	}
 }

@@ -651,12 +651,16 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 
 		using (AppendMethod(builder, member))
 		{
-			using (builder.AppendBlock($"if ({member.Parameters[0].Name}.TryGetNonEnumeratedCount(out var count) && count != {items.Count})"))
+			if (compilation.HasMember<IMethodSymbol>(typeof(Enumerable), "TryGetNonEnumeratedCount"))
 			{
-				builder.AppendLine($"return false;");
-			}
+				using (builder.AppendBlock($"if ({member.Parameters[0].Name}.TryGetNonEnumeratedCount(out var count) && count != {items.Count})"))
+				{
+					builder.AppendLine($"return false;");
+				}
 
-			builder.AppendLine();
+				builder.AppendLine();
+			}
+			
 			builder.AppendLine($"using var e = {member.Parameters[0].Name}.GetEnumerator();");
 			builder.AppendLine();
 

@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.Intrinsics;
 using System.Text;
 using ConstExpr.SourceGenerator.Sample;
 

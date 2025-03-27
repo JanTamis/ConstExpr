@@ -140,6 +140,36 @@ public static class CompilationExtensions
 
 		return 0;
 	}
+	
+	public static bool HasMember<TSymbol>(this Compilation compilation, ITypeSymbol typeSymbol, string name, Func<TSymbol, bool> predicate)
+		where TSymbol : ISymbol
+	{
+		return typeSymbol.GetMembers(name).OfType<TSymbol>().Any(predicate);
+	}
+
+	public static bool HasMember<TSymbol>(this Compilation compilation, ITypeSymbol typeSymbol, string name)
+		where TSymbol : ISymbol
+	{
+		return typeSymbol.GetMembers(name).OfType<TSymbol>().Any();
+	}
+
+	public static bool HasMember<TSymbol>(this Compilation compilation, Type type, string name)
+		where TSymbol : ISymbol
+	{
+		var fullName = type.FullName;
+		var typeSymbol = compilation.GetTypeByMetadataName(fullName);
+		
+		return typeSymbol.GetMembers(name).OfType<TSymbol>().Any();
+	}
+
+	public static bool HasMember<TSymbol>(this Compilation compilation, Type type, string name, Func<TSymbol, bool> predicate)
+		where TSymbol : ISymbol
+	{
+		var fullName = type.FullName;
+		var typeSymbol = compilation.GetTypeByMetadataName(fullName);
+
+		return typeSymbol.GetMembers(name).OfType<TSymbol>().Any(predicate);
+	}
 
 	public static object? ExecuteMethod(this Compilation compilation, MetadataLoader loader, IMethodSymbol methodSymbol, object? instance, params object?[]? parameters)
 	{

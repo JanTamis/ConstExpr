@@ -66,7 +66,7 @@ public static class Test
 
 		for (var i = 0; i < count; i++)
 		{
-			result.Add(random.Next(count));
+			result.Add(random.Next(100));
 		}
 
 		return result as ICustomCollection<int>;
