@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Builders;
 
-public class InterfaceBuilder(Compilation compilation, ITypeSymbol elementType) : BaseBuilder(elementType, compilation)
+public class InterfaceBuilder(Compilation compilation, ITypeSymbol elementType, int hashCode) : BaseBuilder(elementType, compilation, hashCode)
 {
 	public void AppendCount(ITypeSymbol typeSymbol, int count, IndentedStringBuilder builder)
 	{
@@ -138,7 +138,7 @@ public class InterfaceBuilder(Compilation compilation, ITypeSymbol elementType) 
 			}
 			else
 			{
-				builder.AppendLine($"((ReadOnlySpan<{elementType.ToDisplayString()}>)[{String.Join(", ", items.Select(SyntaxHelpers.CreateLiteral))}])");
+				builder.AppendLine(GetDataName(typeSymbol));
 				builder.AppendLine($"\t.CopyTo({member.Parameters[0].Name});");
 			}
 		}

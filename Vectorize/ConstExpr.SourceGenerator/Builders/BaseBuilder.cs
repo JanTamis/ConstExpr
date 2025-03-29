@@ -1,13 +1,16 @@
 using System;
 using System.Linq;
+using ConstExpr.SourceGenerator.Enums;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Builders;
 
-public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilation)
+public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilation, int hashCode)
 {
+	public const int Threshold = 5;
+	
 	protected IDisposable AppendMethod(IndentedStringBuilder builder, IMethodSymbol methodSymbol)
 	{
 		var prepend = "public ";
@@ -141,5 +144,16 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		}
 
 		return "Count";
+	}
+
+	protected string GetDataName(ISymbol type)
+	{
+		return $"{type.Name}_{hashCode}_Data";
+	}
+
+	protected bool IsPerformance(GenerationLevel level, int count)
+	{
+		return level == GenerationLevel.Performance 
+		       || (level == GenerationLevel.Balanced && count <= Threshold);
 	}
 }

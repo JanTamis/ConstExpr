@@ -78,6 +78,18 @@ public static class CompilationExtensions
 		       && SymbolEqualityComparer.Default.Equals(namedTypeSymbol.TypeArguments[0], elementType);
 	}
 	
+	public static ITypeSymbol GetUnsignedType(this Compilation compilation, ITypeSymbol typeSymbol)
+	{
+		return typeSymbol.SpecialType switch
+		{
+			SpecialType.System_SByte => compilation.GetSpecialType(SpecialType.System_Byte),
+			SpecialType.System_Int16 => compilation.GetSpecialType(SpecialType.System_UInt16),
+			SpecialType.System_Int32 => compilation.GetSpecialType(SpecialType.System_UInt32),
+			SpecialType.System_Int64 => compilation.GetSpecialType(SpecialType.System_UInt64),
+			_ => typeSymbol,
+		};
+	}
+	
 	public static int GetByteSize(this Compilation compilation, MetadataLoader loader, ITypeSymbol type)
 	{
 		if (type == null)

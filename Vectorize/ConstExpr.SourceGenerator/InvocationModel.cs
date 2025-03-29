@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using ConstExpr.SourceGenerator.Enums;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -23,6 +24,8 @@ public class InvocationModel : IEquatable<InvocationModel>
 	public HashSet<string> Usings { get; set; }
 	
 	public IReadOnlyDictionary<SyntaxNode, Exception> Exceptions { get; set; }
+	
+	public GenerationLevel GenerationLevel { get; set; } = GenerationLevel.Balanced;
 
 	public bool Equals(InvocationModel? other)
 	{

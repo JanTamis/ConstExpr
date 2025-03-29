@@ -79,4 +79,35 @@ public static class EnumerableExtensions
 			}
 		}
 	}
+
+	public static bool IsNumericSequence(this IList<object?> items)
+	{
+		if (items.Count <= 1)
+		{
+			return true; // Empty list or single item is considered a sequence
+		}
+
+		// Check if all items are integer types
+		foreach (var item in items)
+		{
+			if (item is not (sbyte or byte or short or ushort or int or uint or long or ulong))
+			{
+				return false;
+			}
+		}
+
+		// Check if items form a sequence with difference of 1
+		for (var i = 1; i < items.Count; i++)
+		{
+			var previous = Convert.ToInt64(items[i - 1]);
+			var current = Convert.ToInt64(items[i]);
+
+			if (current - previous != 1)
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
 }

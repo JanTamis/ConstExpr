@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace ConstExpr.SourceGenerator.Sample;
 
-[ConstExpr]
+[ConstExpr(Level = GenerationLevel.Balanced)]
 public static class Test
 {
 	public static IEnumerable<float> IsOdd(params IEnumerable<float> data)
@@ -66,7 +66,7 @@ public static class Test
 
 		for (var i = 0; i < count; i++)
 		{
-			result.Add(random.Next(100));
+			result.Add(random.Next(count));
 		}
 
 		return result as ICustomCollection<int>;

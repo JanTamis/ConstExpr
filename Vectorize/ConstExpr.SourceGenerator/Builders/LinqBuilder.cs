@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using ConstExpr.SourceGenerator.Enums;
 using Microsoft.CodeAnalysis;
 using ConstExpr.SourceGenerator.Extensions;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
@@ -9,7 +10,7 @@ using ConstExpr.SourceGenerator.Helpers;
 
 namespace ConstExpr.SourceGenerator.Builders;
 
-public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : BaseBuilder(elementType, compilation)
+public class LinqBuilder(Compilation compilation, ITypeSymbol elementType, GenerationLevel level, int hashCode) : BaseBuilder(elementType, compilation, hashCode)
 {
 	public void AppendAggregate(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
@@ -33,18 +34,34 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 						break;
 					default:
 					{
-						builder.AppendLine($"var result = {CreateLiteral(items[0])};");
-
-						for (var i = 1; i < items.Count; i++)
+						if (IsPerformance(level, items.Count))
 						{
-							if (i < items.Count - 1)
+							builder.AppendLine($"var result = {CreateLiteral(items[0])};");
+
+							for (var i = 1; i < items.Count; i++)
 							{
-								builder.AppendLine($"result = {member.Parameters[0].Name}(result, {CreateLiteral(items[i])});");
+								if (i < items.Count - 1)
+								{
+									builder.AppendLine($"result = {member.Parameters[0].Name}(result, {CreateLiteral(items[i])});");
+								}
+								else
+								{
+									builder.AppendLine($"return {member.Parameters[0].Name}(result, {CreateLiteral(items[i])});");
+								}
 							}
-							else
+						}
+						else
+						{
+							builder.AppendLine($"var result = {GetDataName(typeSymbol)}[0];");
+							builder.AppendLine();
+
+							using (builder.AppendBlock($"for (var i = 0; i < {GetDataName(typeSymbol)}.Length; i++)"))
 							{
-								builder.AppendLine($"return {member.Parameters[0].Name}(result, {CreateLiteral(items[i])});");
+								builder.AppendLine($"result = {member.Parameters[0].Name}(result, {GetDataName(typeSymbol)}[i]);");
 							}
+
+							builder.AppendLine();
+							builder.AppendLine($"return result;");
 						}
 						break;
 					}
@@ -635,9 +652,19 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 
 		using (AppendMethod(builder, member))
 		{
-			foreach (var item in items)
+			if (!IsPerformance(level, items.Count))
 			{
-				builder.AppendLine($"yield return {member.Parameters[0].Name}({CreateLiteral(item)});");
+				using (builder.AppendBlock($"for (var i = 0; i < {GetDataName(typeSymbol)}.Length; i++)"))
+				{
+					builder.AppendLine($"yield return {member.Parameters[0].Name}({GetDataName(typeSymbol)}[i]);");
+				}
+			}
+			else
+			{
+				foreach (var item in items)
+				{
+					builder.AppendLine($"yield return {member.Parameters[0].Name}({CreateLiteral(item)});");
+				}
 			}
 		}
 	}
@@ -651,7 +678,7 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 
 		using (AppendMethod(builder, member))
 		{
-			if (compilation.HasMember<IMethodSymbol>(typeof(Enumerable), "TryGetNonEnumeratedCount"))
+			if (level != GenerationLevel.Minimal && compilation.HasMember<IMethodSymbol>(typeof(Enumerable), "TryGetNonEnumeratedCount"))
 			{
 				using (builder.AppendBlock($"if ({member.Parameters[0].Name}.TryGetNonEnumeratedCount(out var count) && count != {items.Count})"))
 				{
@@ -669,7 +696,9 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType) : Bas
 				builder.AppendLine($"return !e.MoveNext();");
 			}
 
-			builder.AppendLine("return " + String.Join("\n\t&& ", items.Select(s => $"e.MoveNext() && {CreateLiteral(s)} == e.Current")) + "\n\t&& !e.MoveNext();");
+			var whitespace = new string(' ', "return ".Length - 3);
+
+			builder.AppendLine("return " + String.Join($"\n{whitespace}&& ", items.Select(s => $"e.MoveNext() && {CreateLiteral(s)} == e.Current")) + $"\n{whitespace}&& !e.MoveNext();");
 		}
 	}
 
