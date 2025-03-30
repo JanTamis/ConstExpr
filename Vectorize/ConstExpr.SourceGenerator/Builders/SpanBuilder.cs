@@ -160,7 +160,7 @@ public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSy
 				{
 					if (isZero && !SymbolEqualityComparer.Default.Equals(elementType, unsignedType))
 					{
-						builder.AppendLine($"return {vectorType}.LessThanOrEqual(input.As{unsignedType.Name}(), {vectorType}.Create<{unsignedName}>({CreateLiteral(items[^1])})) != {vectorType}<{unsignedName}>.Zero;");
+						builder.AppendLine($"return {vectorType}.LessThanOrEqualAny(input.As{unsignedType.Name}(), {vectorType}.Create<{unsignedName}>({CreateLiteral(items[^1])}));");
 					}
 					else
 					{

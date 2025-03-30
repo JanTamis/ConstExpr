@@ -13,7 +13,7 @@ public interface ICustomCollection<T>
 	
 	bool SequenceEqual(IEnumerable<T> other);
 	
-	bool ContainsAny(T element1, T element2);
+	bool ContainsAny(T element1, T element2, T element3, T element4);
 	
 	int CommonPrefixLength(ReadOnlySpan<T> other);
 }

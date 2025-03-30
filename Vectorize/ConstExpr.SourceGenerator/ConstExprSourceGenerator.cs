@@ -203,11 +203,8 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 					if (invocation.Value is IEnumerable enumerable)
 					{
-						if (invocation is { GenerationLevel: GenerationLevel.Minimal } || (invocation.GenerationLevel == GenerationLevel.Balanced && enumerable.Cast<object>().Count() <= BaseBuilder.Threshold))
-						{
-							code.AppendLine();
-							code.AppendLine($"public static ReadOnlySpan<{elementName}> {namedTypeSymbol.Name}_{hashCode}_Data => [{String.Join(", ", (enumerable.Cast<object?>()).Select(CreateLiteral))}];");
-						}
+						code.AppendLine();
+						code.AppendLine($"public static ReadOnlySpan<{elementName}> {namedTypeSymbol.Name}_{hashCode}_Data => [{String.Join(", ", (enumerable.Cast<object?>()).Select(CreateLiteral))}];");
 
 						if (elementType is not null)
 						{
