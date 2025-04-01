@@ -36,9 +36,9 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType, Gener
 					{
 						if (IsPerformance(level, items.Count))
 						{
-							builder.AppendLine($"var result = {CreateLiteral(items[0])};");
+							builder.AppendLine($"var result = {member.Parameters[0].Name}({CreateLiteral(items[0])}, {CreateLiteral(items[1])});");
 
-							for (var i = 1; i < items.Count; i++)
+							for (var i = 2; i < items.Count; i++)
 							{
 								if (i < items.Count - 1)
 								{
@@ -55,7 +55,7 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType, Gener
 							builder.AppendLine($"var result = {GetDataName(typeSymbol)}[0];");
 							builder.AppendLine();
 
-							using (builder.AppendBlock($"for (var i = 0; i < {GetDataName(typeSymbol)}.Length; i++)"))
+							using (builder.AppendBlock($"for (var i = 1; i < {GetDataName(typeSymbol)}.Length; i++)"))
 							{
 								builder.AppendLine($"result = {member.Parameters[0].Name}(result, {GetDataName(typeSymbol)}[i]);");
 							}

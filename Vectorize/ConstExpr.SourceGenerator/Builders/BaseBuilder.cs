@@ -154,6 +154,6 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 	protected bool IsPerformance(GenerationLevel level, int count)
 	{
 		return level == GenerationLevel.Performance 
-		       || (level == GenerationLevel.Balanced && count <= Threshold);
+		       || level == GenerationLevel.Balanced && count <= Threshold;
 	}
 }

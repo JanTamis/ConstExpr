@@ -61,12 +61,11 @@ public static class Test
 
 	public static ICustomCollection<int> Range(int count)
 	{
-		var random = new Random();
 		var result = new List<int>(count);
 
 		for (var i = 0; i < count; i++)
 		{
-			result.Add(random.Next(count));
+			result.Add(i * 3 + 6);
 		}
 
 		return result as ICustomCollection<int>;

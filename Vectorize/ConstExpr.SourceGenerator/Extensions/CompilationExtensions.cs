@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using ConstExpr.SourceGenerator.Helpers;
+using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -369,6 +370,11 @@ public static class CompilationExtensions
 		{
 			return $"IEnumerable<{String.Join(", ", namedTypeSymbol.TypeArguments.Select(s => GetMinimalString(compilation, s)))}>";
 		}
+		
+		if (symbol is INamedTypeSymbol { Arity: > 0 } namedSymbol)
+		{
+			return $"{namedSymbol.Name}<{String.Join(", ", namedSymbol.TypeArguments.Select(s => GetMinimalString(compilation, s)))}>";
+		}
 
 		var node = SyntaxHelpers.GetSyntaxNode(symbol);
 
@@ -400,5 +406,76 @@ public static class CompilationExtensions
 		}
 
 		return typeSymbol;
+	}
+	
+	public static string GetCreateVector(this Compilation compilation, string vectorName, ITypeSymbol elementType, MetadataLoader loader, params IList<object?> items)
+	{
+		var staticType = compilation.GetTypeByMetadataName($"System.Runtime.Intrinsics.{vectorName}");
+		var fullType = compilation.GetTypeByMetadataName($"System.Runtime.Intrinsics.{vectorName}`1").Construct(elementType);
+		var vectorType = loader.GetType(fullType);
+		var vectorElementType = loader.GetType(elementType);
+
+		var elementCount = (int) vectorType.GetProperty("Count")?.GetValue(null);
+
+		if (items.All(item => item is 0 or 0L or 0U or 0UL or 0f or 0d or (byte) 0 or (short) 0 or (sbyte) 0 or (ushort) 0))
+		{
+			return $"{compilation.GetMinimalString(fullType)}.Zero";
+		}
+
+		if (items.All(item => item is 1 or 1L or 1U or 1UL or 1f or 1d or (byte) 1 or (short) 1 or (sbyte) 1 or (ushort) 1))
+		{
+			return $"{compilation.GetMinimalString(fullType)}.One";
+		}
+
+		if (items.Count == elementCount)
+		{
+			// Check if all items match their indices (0,1,2,...)
+			if (fullType.GetMembers("Indices").OfType<IPropertySymbol>().Any() 
+			    && Enumerable.Range(0, items.Count).All(i => Convert.ChangeType(i, vectorElementType).Equals(items[i])))
+			{
+				return $"{compilation.GetMinimalString(fullType)}.Indices";
+			}
+
+			// Check if items form an arithmetic sequence
+			if (items.Count >= 2 && staticType.GetMembers("CreateSequence").OfType<IMethodSymbol>().Any())
+			{
+				var isSequence = true;
+				var step = default(object);
+				
+				for (var i = 1; i < items.Count; i++)
+				{
+					var currentStep = ConstExprOperationVisitor.Subtract(items[i], items[i-1]);
+					
+					if (i == 1)
+					{
+						step = currentStep;
+					}
+					else if (!Equals(currentStep, step))
+					{
+						isSequence = false;
+						break;
+					}
+				}
+				
+				if (isSequence && step != null)
+				{
+					return $"{vectorName}.CreateSequence({SyntaxHelpers.CreateLiteral(items[0])}, {SyntaxHelpers.CreateLiteral(step)})";
+				}
+			}
+	
+			if (items.All(i => i == items[0]))
+			{
+				return $"{vectorName}.Create({SyntaxHelpers.CreateLiteral(items[0])})";
+			}
+
+			return $"{vectorName}.Create({String.Join(", ", items.Select(SyntaxHelpers.CreateLiteral))})";
+		}
+		
+		if (items.Count == 1)
+		{
+			return $"{vectorName}.Create({SyntaxHelpers.CreateLiteral(items[0])})";
+		}
+
+		return $"{vectorName}.Create({String.Join(", ", items.Concat(Enumerable.Repeat(0, elementCount - items.Count).Cast<object?>()).Select(SyntaxHelpers.CreateLiteral))})";
 	}
 }

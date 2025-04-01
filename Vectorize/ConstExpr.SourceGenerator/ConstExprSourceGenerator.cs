@@ -452,6 +452,8 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			"using System.Linq;",
 			"using System.Diagnostics.CodeAnalysis;",
 			"using System.Runtime.Intrinsics;",
+			"using System.Numerics;",
+			"using System.Runtime.InteropServices;",
 			$"using {methodSymbol.ReturnType.ContainingNamespace};"
 		};
 
