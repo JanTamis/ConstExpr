@@ -1,4 +1,5 @@
 using ConstExpr.SourceGenerator.Builders;
+using ConstExpr.SourceGenerator.Enums;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Visitors;
@@ -16,7 +17,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using ConstExpr.SourceGenerator.Enums;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 
 [assembly: InternalsVisibleTo("ConstExpr.Tests")]
@@ -115,8 +115,17 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		code.AppendLine("file static class GeneratedMethods");
 		code.AppendLine("{");
 
+		var isFirst = true;
+
 		foreach (var valueGroup in group.GroupBy(m => m.Value))
 		{
+			if (!isFirst)
+			{
+				code.AppendLine();
+			}
+
+			isFirst = false;
+
 			// Add interceptor attributes
 			foreach (var item in valueGroup)
 			{
@@ -193,7 +202,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				var elementName = elementType?.ToDisplayString();
 				var hashCode = invocation.Value?.GetHashCode();
 
-				IEnumerable<string> interfaces = [ $"{namedTypeSymbol.Name}<{elementName}>" ];
+				IEnumerable<string> interfaces = [$"{namedTypeSymbol.Name}<{elementName}>"];
 
 				code.AppendLine();
 
@@ -291,13 +300,13 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 	private InvocationModel? GenerateSource(GeneratorSyntaxContext context, CancellationToken token)
 	{
 		if (context.Node is not InvocationExpressionSyntax invocation
-		    || !TryGetSymbol(context.SemanticModel, invocation, token, out var method))
+				|| !TryGetSymbol(context.SemanticModel, invocation, token, out var method))
 		{
 			return null;
 		}
 
 		var attribute = method.GetAttributes().FirstOrDefault(IsConstExprAttribute)
-		                ?? (method.ContainingType is ITypeSymbol type ? type.GetAttributes().FirstOrDefault(IsConstExprAttribute) : null);
+										?? (method.ContainingType is ITypeSymbol type ? type.GetAttributes().FirstOrDefault(IsConstExprAttribute) : null);
 
 		// Check for ConstExprAttribute on type or method
 		if (attribute is not null)
@@ -306,7 +315,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 			var level = attribute.NamedArguments
 				.Where(w => w.Key == "Level")
-				.Select(s => (GenerationLevel) s.Value.Value)
+				.Select(s => (GenerationLevel)s.Value.Value)
 				.DefaultIfEmpty(GenerationLevel.Balanced)
 				.FirstOrDefault();
 
@@ -317,7 +326,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 	}
 
 	private InvocationModel? GenerateExpression(Compilation compilation, MetadataLoader loader, InvocationExpressionSyntax invocation,
-	                                            IMethodSymbol methodSymbol, GenerationLevel level, CancellationToken token)
+																							IMethodSymbol methodSymbol, GenerationLevel level, CancellationToken token)
 	{
 		if (IsInConstExprBody(invocation))
 		{
@@ -339,7 +348,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		}
 
 		if (TryGetOperation<IMethodBodyOperation>(compilation, methodDecl, out var blockOperation) &&
-		    compilation.TryGetSemanticModel(invocation, out var model))
+				compilation.TryGetSemanticModel(invocation, out var model))
 		{
 			try
 			{
@@ -378,7 +387,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 	}
 
 	private Dictionary<string, object?>? ProcessArguments(Compilation compilation, MetadataLoader loader, InvocationExpressionSyntax invocation,
-	                                                      IMethodSymbol methodSymbol, CancellationToken token)
+																												IMethodSymbol methodSymbol, CancellationToken token)
 	{
 		var variables = new Dictionary<string, object?>();
 
