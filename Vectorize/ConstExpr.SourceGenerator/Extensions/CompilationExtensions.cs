@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
+using ConstExpr.SourceGenerator.Enums;
 
 namespace ConstExpr.SourceGenerator.Extensions;
 
@@ -408,7 +409,7 @@ public static class CompilationExtensions
 		return typeSymbol;
 	}
 
-	public static string GetCreateVector(this Compilation compilation, string vectorName, int byteSize, ITypeSymbol elementType, MetadataLoader loader, params IList<object?> items)
+	public static string GetCreateVector(this Compilation compilation, string vectorName, int byteSize, ITypeSymbol elementType, MetadataLoader loader, bool isRepeating, params IList<object?> items)
 	{
 		var staticType = compilation.GetTypeByMetadataName($"System.Runtime.Intrinsics.{vectorName}");
 		var fullType = compilation.GetTypeByMetadataName($"System.Runtime.Intrinsics.{vectorName}`1").Construct(elementType);
@@ -416,7 +417,7 @@ public static class CompilationExtensions
 		var vectorElementType = loader.GetType(elementType);
 		var elementByteSize = compilation.GetByteSize(loader, elementType);
 
-		var elementCount = (int)byteSize / elementByteSize; // vectorType.GetProperty("Count")?.GetValue(null);
+		var elementCount = byteSize / elementByteSize; // vectorType.GetProperty("Count")?.GetValue(null);
 
 		if (items.All(item => item is 0 or 0L or 0U or 0UL or 0f or 0d or (byte)0 or (short)0 or (sbyte)0 or (ushort)0))
 		{
@@ -466,7 +467,7 @@ public static class CompilationExtensions
 
 			if (items.All(i => i == items[0]))
 			{
-				return $"{vectorName}.Create({SyntaxHelpers.CreateLiteral(items[0])})";
+				return $"{vectorName}.Create<{compilation.GetMinimalString(elementType)}>({SyntaxHelpers.CreateLiteral(items[0])})";
 			}
 
 			return $"{vectorName}.Create({String.Join(", ", items.Select(SyntaxHelpers.CreateLiteral))})";
@@ -476,7 +477,77 @@ public static class CompilationExtensions
 		{
 			return $"{vectorName}.Create({SyntaxHelpers.CreateLiteral(items[0])})";
 		}
+		
+		if (isRepeating)
+		{
+			return $"{vectorName}.Create({String.Join(", ", items.Repeat(elementCount).Select(SyntaxHelpers.CreateLiteral))})";
+		}
 
-		return $"{vectorName}.Create({String.Join(", ", items.Concat(Enumerable.Repeat(0, elementCount - items.Count).Cast<object?>()).Select(SyntaxHelpers.CreateLiteral))})";
+		return $"{vectorName}.Create({String.Join(", ", items.Concat(Enumerable.Repeat(0, items.Count - elementCount).Cast<object?>()).Select(SyntaxHelpers.CreateLiteral))})";
+	}
+
+	public static VectorTypes GetVector(this Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, IList<object> items, bool isRepeating, out string vector, out int vectorSize)
+	{
+		var elementSize = compilation.GetByteSize(loader, elementType);
+		var size = elementSize * items.Count;
+
+		switch (size)
+		{
+			case 0:
+				vector = String.Empty;
+				vectorSize = 0;
+				return VectorTypes.None;
+			case <= 8:
+				vector = GetCreateVector(compilation, nameof(VectorTypes.Vector64), 8, elementType, loader, isRepeating, items);
+				vectorSize = 8 / elementSize;
+				
+				return VectorTypes.Vector64;
+			case <= 16:
+				vector = GetCreateVector(compilation, nameof(VectorTypes.Vector128), 16, elementType, loader, isRepeating, items);
+				vectorSize = 16 / elementSize;
+				
+				return VectorTypes.Vector128;
+			case <= 32:
+				vector = GetCreateVector(compilation, nameof(VectorTypes.Vector256), 32, elementType, loader, isRepeating, items);
+				vectorSize = 32 / elementSize;
+
+				return VectorTypes.Vector256;
+			case <= 64:
+				vector = GetCreateVector(compilation, nameof(VectorTypes.Vector512), 64, elementType, loader, isRepeating, items);
+				vectorSize = 64 / elementSize;
+
+				return VectorTypes.Vector512;
+			default:
+				vector = String.Empty;
+				vectorSize = 0;
+				
+				return VectorTypes.None;
+		}
+	}
+
+	public static INamedTypeSymbol GetVectorType(this Compilation compilation, VectorTypes vectorType)
+	{
+		return compilation.GetTypeByMetadataName($"System.Runtime.Intrinsics.{vectorType}");
+	}
+
+	public static INamedTypeSymbol GetVectorType(this Compilation compilation, VectorTypes vectorType, ITypeSymbol elementType)
+	{
+		return compilation.GetTypeByMetadataName($"System.Runtime.Intrinsics.{vectorType}`1").Construct(elementType);
+	}
+	
+	public static bool IsVectorSupported(this Compilation compilation, ITypeSymbol elementType)
+	{
+		return elementType.SpecialType is SpecialType.System_Byte
+			or SpecialType.System_Double
+			or SpecialType.System_Int16
+			or SpecialType.System_Int32
+			or SpecialType.System_Int64
+			or SpecialType.System_IntPtr
+			or SpecialType.System_SByte
+			or SpecialType.System_Single
+			or SpecialType.System_UInt16
+			or SpecialType.System_UInt32
+			or SpecialType.System_UInt64
+			or SpecialType.System_UIntPtr;
 	}
 }

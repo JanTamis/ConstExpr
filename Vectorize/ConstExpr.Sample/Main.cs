@@ -14,5 +14,3 @@ Console.WriteLine(String.Join(", ", Test.Range(8)));
 // Console.WriteLine(String.Join(", ", Test.Split("Hello, World!", ',')));
 Console.WriteLine(String.Join(", ", Test.Fibonacci(20)));
 Console.WriteLine(Test.RgbToHsl(150, 100, 50));
-
-Console.WriteLine(Test.Range(8).CommonPrefixLength([1, 2, 3, 4, 5]));

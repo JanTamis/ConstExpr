@@ -110,4 +110,14 @@ public static class EnumerableExtensions
 
 		return true;
 	}
+	
+	public static bool IsZero(this IEnumerable<object?> items)
+	{
+		return items.All(a => a is 0 or 0L or (byte) 0 or (short) 0 or (sbyte) 0 or (ushort) 0 or (uint) 0 or (ulong) 0);
+	}
+
+	public static bool IsOne(this IEnumerable<object?> items)
+	{
+		return items.All(a => a is 1 or 1L or (byte) 1 or (short) 1 or (sbyte) 1 or (ushort) 1 or (uint) 1 or (ulong) 1);
+	}
 }

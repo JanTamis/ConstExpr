@@ -219,7 +219,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 						{
 							var items = enumerable.Cast<object?>().ToList();
 
-							var interfaceBuilder = new InterfaceBuilder(compilation, elementType, hashCode.GetValueOrDefault());
+							var interfaceBuilder = new InterfaceBuilder(compilation, loader, elementType, hashCode.GetValueOrDefault());
 							var linqBuilder = new LinqBuilder(compilation, elementType, invocation.GenerationLevel, hashCode.GetValueOrDefault());
 							var spanBuilder = new SpanBuilder(compilation, loader, elementType, invocation.GenerationLevel, hashCode.GetValueOrDefault());
 

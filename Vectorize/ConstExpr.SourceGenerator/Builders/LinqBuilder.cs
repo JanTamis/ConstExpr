@@ -214,31 +214,6 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType, Gener
 		}
 	}
 
-	public void AppendContains(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
-	{
-		if (typeSymbol.CheckMethod(nameof(Enumerable.Contains), compilation.CreateBoolean(), [elementType], out var member))
-		{
-			using (AppendMethod(builder, member))
-			{
-				builder.AppendLine($"return {member.Parameters[0].Name} is {String.Join("\n\t||", items.Select(s => $"EqualityComparer<{elementType.Name}>.Default.Equals({CreateLiteral(s)}, {member.Parameters[0].Name})"))};");
-			}
-
-			return;
-		}
-
-		var comparerType = compilation.GetTypeByType(typeof(IEqualityComparer<>), elementType);
-
-		if (!typeSymbol.CheckMethod(nameof(Enumerable.Contains), compilation.CreateBoolean(), [elementType, comparerType], out member))
-		{
-			return;
-		}
-
-		using (AppendMethod(builder, member))
-		{
-			builder.AppendLine($"return {member.Parameters[0].Name} is {String.Join("\n\t||", items.Select(s => $"{member.Parameters[1].Name}.Equals({CreateLiteral(s)}, {member.Parameters[0].Name})"))};");
-		}
-	}
-
 	public void AppendCount(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
 		if (typeSymbol.CheckMethodWithReturnType(nameof(Enumerable.Count), compilation.CreateInt32(), out var member))

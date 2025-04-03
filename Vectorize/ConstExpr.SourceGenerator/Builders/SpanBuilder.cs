@@ -14,37 +14,67 @@ public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSy
 	public void AppendCommonPrefixLength(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
 		if (typeSymbol.CheckMembers<IMethodSymbol>("CommonPrefixLength", m => compilation.IsSpecialType(m.ReturnType, SpecialType.System_Int32)
-																																					&& m.Parameters.Length == 1
-																																					&& compilation.IsSpanType(m.Parameters[0].Type, elementType), out var member))
+		                                                                      && m.Parameters.Length == 1
+		                                                                      && compilation.IsSpanType(m.Parameters[0].Type, elementType), out var member))
 		{
 			using (AppendMethod(builder, member))
 			{
 				if (generationLevel != GenerationLevel.Minimal && elementType.SpecialType != SpecialType.None)
 				{
-					var elementSize = compilation.GetByteSize(loader, elementType);
-					var size = elementSize * items.Count;
+					var vectorType = compilation.GetVector(elementType, loader, items, true, out var vector, out var vectorSize);
 
-					switch (size)
+					if (vectorType != VectorTypes.None && compilation.IsVectorSupported(elementType))
 					{
-						case 0:
-							break;
-						case <= 8:
-							AppendVector("Vector64", 8 / elementSize, 8);
+						using (builder.AppendBlock($"if ({vectorType}.IsHardwareAccelerated)"))
+						{
+							if (vectorSize != items.Count)
+							{
+								builder.AppendLine($"var countVec = {vectorType}.Min({vectorType}.Create({member.Parameters[0].Name}.Length), {vector});");
+							}
+							else
+							{
+								builder.AppendLine($"var countVec = {vectorType}.Create({member.Parameters[0].Name}.Length);");
+							}
+
+							builder.AppendLine($"var otherVec = {vectorType}.LoadUnsafe(ref MemoryMarshal.GetReference({member.Parameters[0].Name}));");
 							builder.AppendLine();
-							break;
-						case <= 16:
-							AppendVector("Vector128", 16 / elementSize, 16);
+
+							if (compilation.HasMember<IPropertySymbol>(compilation.GetVectorType(vectorType, compilation.CreateInt32()), "Indices"))
+							{
+								builder.AppendLine($"var sequence = {vectorType}<{compilation.GetMinimalString(elementType)}>.Indices;");
+							}
+							else
+							{
+								builder.AppendLine($"var sequence = {vectorType}.Create({String.Join(", ", Enumerable.Range(0, vectorSize).Select(CreateLiteral))});");
+							}
+
+							builder.AppendLine($"var result = {vector};");
 							builder.AppendLine();
-							break;
-						case <= 32:
-							AppendVector("Vector256", 32 / elementSize, 32);
-							builder.AppendLine();
-							break;
-						case <= 64:
-							AppendVector("Vector512", 64 / elementSize, 64);
-							builder.AppendLine();
-							break;
+
+							if (elementType.SpecialType != SpecialType.System_Int32)
+							{
+								builder.AppendLine($"var mask = {vectorType}.Equals(otherVec, result).As{elementType.Name}() & {vectorType}.LessThan(sequence, countVec);");
+							}
+							else
+							{
+								builder.AppendLine($"var mask = {vectorType}.Equals(otherVec, result) & {vectorType}.LessThan(sequence, countVec);");
+							}
+
+							if (compilation.HasMember<IMethodSymbol>(compilation.GetVectorType(vectorType), "CountWhereAllBitsSet"))
+							{
+								builder.AppendLine();
+								builder.AppendLine($"return {vectorType}.CountWhereAllBitsSet(mask);");
+							}
+							else
+							{
+								builder.AppendLine($"var matchBits = {vectorType}.ExtractMostSignificantBits(mask);");
+								builder.AppendLine();
+								builder.AppendLine("return BitOperations.PopCount(matchBits);");
+							}
+						}
 					}
+
+					builder.AppendLine();
 				}
 
 				if (!IsPerformance(generationLevel, items.Count))
@@ -67,9 +97,9 @@ public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSy
 		}
 
 		if (typeSymbol.CheckMembers("CommonPrefixLength", m => compilation.IsSpecialType(m.ReturnType, SpecialType.System_Int32)
-																													 && m.Parameters.Length == 2
-																													 && compilation.IsSpanType(m.Parameters[0].Type, elementType)
-																													 && IsEqualSymbol(m.Parameters[1].Type, compilation.GetTypeByType(typeof(IEqualityComparer<>), elementType)), out member))
+		                                                       && m.Parameters.Length == 2
+		                                                       && compilation.IsSpanType(m.Parameters[0].Type, elementType)
+		                                                       && IsEqualSymbol(m.Parameters[1].Type, compilation.GetTypeByType(typeof(IEqualityComparer<>), elementType)), out member))
 		{
 			if (IsPerformance(generationLevel, items.Count))
 			{
@@ -94,96 +124,101 @@ public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSy
 
 			builder.AppendLine($"return {CreateLiteral(items.Count)};");
 		}
-
-		void AppendVector(string vectorType, int maxCount, int vectorByteSize)
-		{
-			using (builder.AppendBlock($"if ({vectorType}.IsHardwareAccelerated && {vectorType}<{compilation.GetMinimalString(elementType)}>.IsSupported)"))
-			{
-				if (maxCount != items.Count)
-				{
-					builder.AppendLine($"var countVec = {vectorType}.Min({vectorType}.Create({member.Parameters[0].Name}.Length), {compilation.GetCreateVector(vectorType, vectorByteSize, elementType, loader, items)});");
-				}
-				else
-				{
-					builder.AppendLine($"var countVec = {vectorType}.Create({member.Parameters[0].Name}.Length);");
-				}
-
-				builder.AppendLine($"var otherVec = {vectorType}.LoadUnsafe(ref MemoryMarshal.GetReference({member.Parameters[0].Name}));");
-				builder.AppendLine();
-
-				if (compilation.HasMember<IPropertySymbol>(compilation.GetTypeByMetadataName($"System.Runtime.Intrinsics.{vectorType}`1").Construct(compilation.CreateInt32()), "Indices"))
-				{
-					builder.AppendLine($"var sequence = {vectorType}<{compilation.GetMinimalString(elementType)}>.Indices;");
-				}
-				else
-				{
-					builder.AppendLine($"var sequence = {vectorType}.Create({String.Join(", ", Enumerable.Range(0, maxCount).Select(CreateLiteral))});");
-				}
-
-				builder.AppendLine($"var result = {compilation.GetCreateVector(vectorType, vectorByteSize, elementType, loader, items)};");
-				builder.AppendLine();
-
-				if (elementType.SpecialType != SpecialType.System_Int32)
-				{
-					builder.AppendLine($"var mask = {vectorType}.Equals(otherVec, result).As{elementType.Name}() & {vectorType}.LessThan(sequence, countVec);");
-				}
-				else
-				{
-					builder.AppendLine($"var mask = {vectorType}.Equals(otherVec, result) & {vectorType}.LessThan(sequence, countVec);");
-				}
-
-				builder.AppendLine($"var matchBits = {vectorType}.ExtractMostSignificantBits(mask);");
-				builder.AppendLine();
-				builder.AppendLine("return BitOperations.PopCount(matchBits);");
-			}
-		}
 	}
 
 	public void AppendContainsAny(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
 		if (typeSymbol.CheckMembers<IMethodSymbol>("ContainsAny", m => compilation.IsSpecialType(m.ReturnType, SpecialType.System_Boolean)
-																																	 && m.Parameters.Length > 0
-																																	 && m.Parameters.All(a => SymbolEqualityComparer.Default.Equals(a.Type, elementType)), out var member))
+		                                                               && m.Parameters.Length > 0
+		                                                               && m.Parameters.All(a => SymbolEqualityComparer.Default.Equals(a.Type, elementType)), out var member))
 		{
 			using (AppendMethod(builder, member))
 			{
 				items = items.Distinct().OrderBy(o => o).ToList();
 
 				var elementSize = compilation.GetByteSize(loader, member.Parameters[0].Type);
-				var size = elementSize * member.Parameters.Length;
 				var isSequence = items.IsNumericSequence();
-				var isZero = items[0] is 0 or 0L or (byte)0 or (short)0 or (sbyte)0 or (ushort)0 or (uint)0 or (ulong)0;
+				var isZero = items[0] is 0 or 0L or (byte) 0 or (short) 0 or (sbyte) 0 or (ushort) 0 or (uint) 0 or (ulong) 0;
 				var unsignedType = compilation.GetUnsignedType(elementType);
 				var unsignedName = compilation.GetMinimalString(unsignedType);
 
 				if (member.Parameters.Length > 1 && generationLevel == GenerationLevel.Performance)
 				{
-					switch (size)
+					var vectorType = compilation.GetVector(elementType, loader, items, true, out var vector, out var vectorSize);
+
+					if (vectorType != VectorTypes.None && compilation.IsVectorSupported(elementType))
 					{
-						case 0:
-							break;
-						case <= 8:
-							AppendVector("Vector64", 8 / elementSize, 8, isSequence, isZero, unsignedType, unsignedName);
+						var vectorByteSize = vectorSize * elementSize;
+
+						var elementName = compilation.GetMinimalString(elementType);
+						var whiteSpace = new string(' ', 6);
+
+						using (builder.AppendBlock($"if ({vectorType}.IsHardwareAccelerated)"))
+						{
+							if (items.Count == 1)
+							{
+								builder.AppendLine($"return {vectorType}.EqualsAny({vector}, {compilation.GetCreateVector(vectorType.ToString(), vectorByteSize, elementType, loader, false, items[0])});");
+								return;
+							}
+
+							builder.AppendLine($"var input = {vector};");
 							builder.AppendLine();
-							break;
-						case <= 16:
-							AppendVector("Vector128", 16 / elementSize, 16, isSequence, isZero, unsignedType, unsignedName);
-							builder.AppendLine();
-							break;
-						case <= 32:
-							AppendVector("Vector256", 32 / elementSize, 32, isSequence, isZero, unsignedType, unsignedName);
-							builder.AppendLine();
-							break;
-						case <= 64:
-							AppendVector("Vector512", 64 / elementSize, 64, isSequence, isZero, unsignedType, unsignedName);
-							builder.AppendLine();
-							break;
+
+							if (isSequence)
+							{
+								if (isZero && !SymbolEqualityComparer.Default.Equals(elementType, unsignedType))
+								{
+									builder.AppendLine($"return {vectorType}.LessThanOrEqualAny(input.As{unsignedType.Name}(), {vectorType}.Create<{unsignedName}>({CreateLiteral(items[^1])}));");
+								}
+								else
+								{
+									builder.AppendLine($"return ({vectorType}.GreaterThanOrEqual(input, {compilation.GetCreateVector(vectorType.ToString(), vectorByteSize, elementType, loader, false, items[0])}) & {vectorType}.LessThanOrEqual(input, {compilation.GetCreateVector(vectorType.ToString(), vectorByteSize, elementType, loader, false, items[^1])})) != {vectorType}<{elementName}>.Zero;");
+								}
+							}
+							else
+							{
+								var checks = member.Parameters
+									.Select(s => $"{vectorType}.Equals(input, {vectorType}.Create({s.Name}))")
+									.ToList();
+
+								if (compilation.HasMember<IMethodSymbol>(compilation.GetVectorType(vectorType), "AnyWhereAllBitsSet"))
+								{
+									builder.AppendLine($"return {vectorType}.AnyWhereAllBitsSet(");
+									
+									for (var i = 0; i < checks.Count; i++)
+									{
+										if (i == 0)
+										{
+											builder.AppendLine($"{whiteSpace}  {checks[i]}");
+										}
+										else if (i == checks.Count - 1)
+										{
+											builder.AppendLine($"{whiteSpace}| {checks[i]});");
+										}
+										else
+										{
+											builder.AppendLine($"{whiteSpace}| {checks[i]}");
+										}
+									}
+								}
+								else
+								{
+									builder.AppendLine($"return ({String.Join($"\n{whiteSpace}| ", checks)}) != {vectorType}<{elementName}>.Zero;");
+								}
+							}
+						}
+						
+						builder.AppendLine();
 					}
 				}
 
-
-
-				if (generationLevel == GenerationLevel.Balanced)
+				if (typeSymbol.CheckMethod("Contains", compilation.CreateBoolean(), [ elementType ], out _))
+				{
+					var maxLength = member.Parameters.Max(m => m.Name.Length);
+					
+					builder.AppendLine($"return {String.Join($"\n{new string(' ', maxLength + "return ".Length - 11)}|| ", member.Parameters.Select(s => $"Contains({s.Name})"))};");
+				}
+				else if (generationLevel != GenerationLevel.Minimal)
 				{
 					var maxLength = member.Parameters.Max(m => m.Name.Length);
 
@@ -212,70 +247,22 @@ public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSy
 				}
 				else
 				{
+					builder.AppendLine($"return {GetDataName(typeSymbol)}");
+					
 					switch (member.Parameters.Length)
 					{
 						case 1:
-							builder.AppendLine($"return {GetDataName(typeSymbol)}");
 							builder.AppendLine($"\t.Contains({String.Join(", ", member.Parameters.Select(s => s.Name))});");
 							break;
 						case 2 or 3:
-							builder.AppendLine($"return {GetDataName(typeSymbol)}");
 							builder.AppendLine($"\t.ContainsAny({String.Join(", ", member.Parameters.Select(s => s.Name))});");
 							break;
 						default:
-							builder.AppendLine($"return {GetDataName(typeSymbol)}");
 							builder.AppendLine($"\t.ContainsAny([{String.Join(", ", member.Parameters.Select(s => s.Name))}]);");
 							break;
 					}
 				}
 			}
-		}
-
-		void AppendVector(string vectorType, int vectorSize, int vectorByteSize, bool isSequence, bool isZero, ITypeSymbol unsignedType, string unsignedName)
-		{
-			var elementName = compilation.GetMinimalString(elementType);
-			var whiteSpace = new string(' ', 6);
-
-			using (builder.AppendBlock($"if ({vectorType}.IsHardwareAccelerated && {vectorType}<{elementName}>.IsSupported)"))
-			{
-				if (items.Count == 1)
-				{
-					builder.AppendLine($"return {vectorType}.EqualsAny({GetInputVector(vectorType, vectorSize, vectorByteSize)}, {compilation.GetCreateVector(vectorType, vectorByteSize, elementType, loader, items[0])});");
-					return;
-				}
-
-				builder.AppendLine($"var input = {GetInputVector(vectorType, vectorSize, vectorByteSize)};");
-				builder.AppendLine();
-
-				if (isSequence)
-				{
-					if (isZero && !SymbolEqualityComparer.Default.Equals(elementType, unsignedType))
-					{
-						builder.AppendLine($"return {vectorType}.LessThanOrEqualAny(input.As{unsignedType.Name}(), {vectorType}.Create<{unsignedName}>({CreateLiteral(items[^1])}));");
-					}
-					else
-					{
-						builder.AppendLine($"return ({vectorType}.GreaterThanOrEqual(input, {compilation.GetCreateVector(vectorType, vectorByteSize, elementType, loader, items[0])}) & {vectorType}.LessThanOrEqual(input, {compilation.GetCreateVector(vectorType, vectorByteSize, elementType, loader, items[^1])})) != {vectorType}<{elementName}>.Zero;");
-					}
-
-				}
-				else
-				{
-					var checks = items.Select(s => $"{vectorType}.Equals(input, {compilation.GetCreateVector(vectorType, vectorByteSize, elementType, loader, s)})");
-
-					builder.AppendLine($"return ({String.Join($"\n{whiteSpace}| ", checks)}) != {vectorType}<{elementName}>.Zero;");
-				}
-			}
-		}
-
-		string GetInputVector(string vectorType, int vectorSize, int vectorByteSize)
-		{
-			if (member.Parameters.Length == 1)
-			{
-				return compilation.GetCreateVector(vectorType, vectorByteSize, elementType, loader, items);
-			}
-
-			return $"{vectorType}.Create({String.Join(", ", member.Parameters.Select(p => p.Name).Repeat(vectorSize))})";
 		}
 	}
 }
