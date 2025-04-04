@@ -17,3 +17,4 @@
 /ConstExpr.Tests/bin/Debug/net9.0
 /ConstExpr.Tests/obj
 /ConstExpr.Tests/obj/Debug/net9.0/ConstExpr.Tests.GeneratedMSBuildEditorConfig.editorconfig
+/ConstExpr.Tests/obj/Debug/net9.0/ConstExpr.Tests.GlobalUsings.g.cs
