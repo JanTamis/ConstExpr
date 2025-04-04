@@ -1,4 +1,5 @@
 using ConstExpr.SourceGenerator.Builders;
+using ConstExpr.SourceGenerator.Enums;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Visitors;
@@ -47,6 +48,20 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				ReportExceptions(spc, modelAndCompilation.Left);
 			});
 
+			spc.AddSource("GenerationLevel.g", """
+				using System;
+
+				namespace ConstantExpression
+				{
+					public enum GenerationLevel
+					{
+						Minimal,
+						Balanced,
+						Performance,
+					}
+				}
+				""");
+
 			spc.AddSource("ConstExprAttribute.g", """
 				using System;
 
@@ -55,6 +70,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 					[AttributeUsage(AttributeTargets.Method | AttributeTargets.Class | AttributeTargets.Struct, Inherited = false)]
 					public sealed class ConstExprAttribute : Attribute
 					{
+						public GenerationLevel Level { get; set; } = GenerationLevel.Balanced;
 					}
 				}
 				""");
@@ -99,8 +115,17 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		code.AppendLine("file static class GeneratedMethods");
 		code.AppendLine("{");
 
+		var isFirst = true;
+
 		foreach (var valueGroup in group.GroupBy(m => m.Value))
 		{
+			if (!isFirst)
+			{
+				code.AppendLine();
+			}
+
+			isFirst = false;
+
 			// Add interceptor attributes
 			foreach (var item in valueGroup)
 			{
@@ -177,7 +202,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				var elementName = elementType?.ToDisplayString();
 				var hashCode = invocation.Value?.GetHashCode();
 
-				IEnumerable<string> interfaces = [ $"{namedTypeSymbol.Name}<{elementName}>" ];
+				IEnumerable<string> interfaces = [$"{namedTypeSymbol.Name}<{elementName}>"];
 
 				code.AppendLine();
 
@@ -185,75 +210,83 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				{
 					code.AppendLine($"public static {namedTypeSymbol.Name}_{hashCode} Instance = new {namedTypeSymbol.Name}_{hashCode}();");
 
-					if (invocation.Value is IEnumerable enumerable && elementType is not null)
+					if (invocation.Value is IEnumerable enumerable)
 					{
-						var items = enumerable.Cast<object?>().ToList();
+						code.AppendLine();
+						code.AppendLine($"public static ReadOnlySpan<{elementName}> {namedTypeSymbol.Name}_{hashCode}_Data => [{String.Join(", ", (enumerable.Cast<object?>()).Select(CreateLiteral))}];");
 
-						var interfaceBuilder = new InterfaceBuilder(compilation, elementType);
-						var linqBuilder = new LinqBuilder(compilation, elementType);
-						var spanBuilder = new SpanBuilder(compilation, elementType);
-
-						interfaceBuilder.AppendCount(namedTypeSymbol, items.Count, code);
-						interfaceBuilder.AppendLength(namedTypeSymbol, items.Count, code);
-						interfaceBuilder.AppendIsReadOnly(namedTypeSymbol, code);
-						interfaceBuilder.AppendIndexer(namedTypeSymbol, items, code);
-						interfaceBuilder.AppendAdd(namedTypeSymbol, code);
-						interfaceBuilder.AppendClear(namedTypeSymbol, code);
-						interfaceBuilder.AppendRemove(namedTypeSymbol, code);
-						interfaceBuilder.AppendRemoveAt(namedTypeSymbol, code);
-						interfaceBuilder.AppendInsert(namedTypeSymbol, code);
-						interfaceBuilder.AppendIndexOf(namedTypeSymbol, items, code);
-						interfaceBuilder.AppendCopyTo(namedTypeSymbol, items, code);
-						interfaceBuilder.AppendContains(namedTypeSymbol, items, code);
-
-						linqBuilder.AppendAll(namedTypeSymbol, items, code);
-						linqBuilder.AppendAggregate(namedTypeSymbol, items, code);
-						linqBuilder.AppendAny(namedTypeSymbol, items, code);
-						linqBuilder.AppendAverage(namedTypeSymbol, items, code);
-						linqBuilder.AppendCount(namedTypeSymbol, items, code);
-						linqBuilder.AppendDistinct(namedTypeSymbol, items, code);
-						linqBuilder.AppendElementAt(namedTypeSymbol, items, code);
-						linqBuilder.AppendElementAtOrDefault(namedTypeSymbol, items, code);
-						linqBuilder.AppendFirst(namedTypeSymbol, items, code);
-						linqBuilder.AppendFirstOrDefault(namedTypeSymbol, items, code);
-						linqBuilder.AppendLast(namedTypeSymbol, items, code);
-						linqBuilder.AppendLastOrDefault(namedTypeSymbol, items, code);
-						linqBuilder.AppendOrder(namedTypeSymbol, items, code);
-						linqBuilder.AppendOrderDescending(namedTypeSymbol, items, code);
-						linqBuilder.AppendSelect(namedTypeSymbol, items, code);
-						linqBuilder.AppendSequenceEqual(namedTypeSymbol, items, code);
-						linqBuilder.AppendSingle(namedTypeSymbol, items, code);
-						linqBuilder.AppendSingleOrDefault(namedTypeSymbol, items, code);
-						linqBuilder.AppendSum(namedTypeSymbol, items, code);
-						linqBuilder.AppendWhere(namedTypeSymbol, items, code);
-
-						linqBuilder.AppendToArray(namedTypeSymbol, items, code);
-						linqBuilder.AppendToImmutableArray(namedTypeSymbol, items, code);
-						linqBuilder.AppendToList(namedTypeSymbol, items, code);
-						linqBuilder.AppendImmutableList(namedTypeSymbol, items, code);
-
-						spanBuilder.AppendCommonPrefixLength(namedTypeSymbol, items, code);
-
-						if (IsIEnumerableRecursive(namedTypeSymbol))
+						if (elementType is not null)
 						{
-							code.AppendLine();
+							var items = enumerable.Cast<object?>().ToList();
 
-							using (code.AppendBlock($"public IEnumerator<{elementName}> GetEnumerator()"))
+							var interfaceBuilder = new InterfaceBuilder(compilation, loader, elementType, hashCode.GetValueOrDefault());
+							var linqBuilder = new LinqBuilder(compilation, elementType, invocation.GenerationLevel, hashCode.GetValueOrDefault());
+							var spanBuilder = new SpanBuilder(compilation, loader, elementType, invocation.GenerationLevel, hashCode.GetValueOrDefault());
+
+							interfaceBuilder.AppendCount(namedTypeSymbol, items.Count, code);
+							interfaceBuilder.AppendLength(namedTypeSymbol, items.Count, code);
+							interfaceBuilder.AppendIsReadOnly(namedTypeSymbol, code);
+							interfaceBuilder.AppendIndexer(namedTypeSymbol, items, code);
+							interfaceBuilder.AppendAdd(namedTypeSymbol, code);
+							interfaceBuilder.AppendClear(namedTypeSymbol, code);
+							interfaceBuilder.AppendRemove(namedTypeSymbol, code);
+							interfaceBuilder.AppendRemoveAt(namedTypeSymbol, code);
+							interfaceBuilder.AppendInsert(namedTypeSymbol, code);
+							interfaceBuilder.AppendIndexOf(namedTypeSymbol, items, code);
+							interfaceBuilder.AppendCopyTo(namedTypeSymbol, items, code);
+							interfaceBuilder.AppendContains(namedTypeSymbol, items, code);
+
+							linqBuilder.AppendAll(namedTypeSymbol, items, code);
+							linqBuilder.AppendAggregate(namedTypeSymbol, items, code);
+							linqBuilder.AppendAny(namedTypeSymbol, items, code);
+							linqBuilder.AppendAverage(namedTypeSymbol, items, code);
+							linqBuilder.AppendCount(namedTypeSymbol, items, code);
+							linqBuilder.AppendDistinct(namedTypeSymbol, items, code);
+							linqBuilder.AppendElementAt(namedTypeSymbol, items, code);
+							linqBuilder.AppendElementAtOrDefault(namedTypeSymbol, items, code);
+							linqBuilder.AppendFirst(namedTypeSymbol, items, code);
+							linqBuilder.AppendFirstOrDefault(namedTypeSymbol, items, code);
+							linqBuilder.AppendLast(namedTypeSymbol, items, code);
+							linqBuilder.AppendLastOrDefault(namedTypeSymbol, items, code);
+							linqBuilder.AppendOrder(namedTypeSymbol, items, code);
+							linqBuilder.AppendOrderDescending(namedTypeSymbol, items, code);
+							linqBuilder.AppendSelect(namedTypeSymbol, items, code);
+							linqBuilder.AppendSequenceEqual(namedTypeSymbol, items, code);
+							linqBuilder.AppendSingle(namedTypeSymbol, items, code);
+							linqBuilder.AppendSingleOrDefault(namedTypeSymbol, items, code);
+							linqBuilder.AppendSum(namedTypeSymbol, items, code);
+							linqBuilder.AppendWhere(namedTypeSymbol, items, code);
+
+							linqBuilder.AppendToArray(namedTypeSymbol, items, code);
+							linqBuilder.AppendToImmutableArray(namedTypeSymbol, items, code);
+							linqBuilder.AppendToList(namedTypeSymbol, items, code);
+							linqBuilder.AppendImmutableList(namedTypeSymbol, items, code);
+
+							spanBuilder.AppendCommonPrefixLength(namedTypeSymbol, items, code);
+							spanBuilder.AppendContainsAny(namedTypeSymbol, items, code);
+
+							if (IsIEnumerableRecursive(namedTypeSymbol))
 							{
-								foreach (var item in items)
+								code.AppendLine();
+
+								using (code.AppendBlock($"public IEnumerator<{elementName}> GetEnumerator()"))
 								{
-									code.AppendLine($"yield return {CreateLiteral(item)};");
+									foreach (var item in items)
+									{
+										code.AppendLine($"yield return {CreateLiteral(item)};");
+									}
 								}
-							}
 
-							code.AppendLine();
+								code.AppendLine();
 
-							using (code.AppendBlock("IEnumerator IEnumerable.GetEnumerator()"))
-							{
-								code.AppendLine("return GetEnumerator();");
+								using (code.AppendBlock("IEnumerator IEnumerable.GetEnumerator()"))
+								{
+									code.AppendLine("return GetEnumerator();");
+								}
 							}
 						}
 					}
+
 				}
 			}
 		}
@@ -267,25 +300,33 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 	private InvocationModel? GenerateSource(GeneratorSyntaxContext context, CancellationToken token)
 	{
 		if (context.Node is not InvocationExpressionSyntax invocation
-		    || !TryGetSymbol(context.SemanticModel, invocation, token, out var method))
+				|| !TryGetSymbol(context.SemanticModel, invocation, token, out var method))
 		{
 			return null;
 		}
 
+		var attribute = method.GetAttributes().FirstOrDefault(IsConstExprAttribute)
+										?? (method.ContainingType is ITypeSymbol type ? type.GetAttributes().FirstOrDefault(IsConstExprAttribute) : null);
+
 		// Check for ConstExprAttribute on type or method
-		if ((method.ContainingType is ITypeSymbol type && type.GetAttributes().Any(IsConstExprAttribute)) ||
-		    method.GetAttributes().Any(IsConstExprAttribute))
+		if (attribute is not null)
 		{
 			var loader = MetadataLoader.GetLoader(context.SemanticModel.Compilation);
 
-			return GenerateExpression(context.SemanticModel.Compilation, loader, invocation, method, token);
+			var level = attribute.NamedArguments
+				.Where(w => w.Key == "Level")
+				.Select(s => (GenerationLevel)s.Value.Value)
+				.DefaultIfEmpty(GenerationLevel.Balanced)
+				.FirstOrDefault();
+
+			return GenerateExpression(context.SemanticModel.Compilation, loader, invocation, method, level, token);
 		}
 
 		return null;
 	}
 
 	private InvocationModel? GenerateExpression(Compilation compilation, MetadataLoader loader, InvocationExpressionSyntax invocation,
-	                                            IMethodSymbol methodSymbol, CancellationToken token)
+																							IMethodSymbol methodSymbol, GenerationLevel level, CancellationToken token)
 	{
 		if (IsInConstExprBody(invocation))
 		{
@@ -307,7 +348,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		}
 
 		if (TryGetOperation<IMethodBodyOperation>(compilation, methodDecl, out var blockOperation) &&
-		    compilation.TryGetSemanticModel(invocation, out var model))
+				compilation.TryGetSemanticModel(invocation, out var model))
 		{
 			try
 			{
@@ -332,6 +373,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 					Value = variables[ConstExprOperationVisitor.ReturnVariableName],
 					Location = model.GetInterceptableLocation(invocation, token),
 					Exceptions = exceptions,
+					GenerationLevel = level,
 				};
 			}
 			catch (Exception e)
@@ -345,7 +387,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 	}
 
 	private Dictionary<string, object?>? ProcessArguments(Compilation compilation, MetadataLoader loader, InvocationExpressionSyntax invocation,
-	                                                      IMethodSymbol methodSymbol, CancellationToken token)
+																												IMethodSymbol methodSymbol, CancellationToken token)
 	{
 		var variables = new Dictionary<string, object?>();
 
@@ -418,6 +460,9 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			"using System;",
 			"using System.Linq;",
 			"using System.Diagnostics.CodeAnalysis;",
+			"using System.Runtime.Intrinsics;",
+			"using System.Numerics;",
+			"using System.Runtime.InteropServices;",
 			$"using {methodSymbol.ReturnType.ContainingNamespace};"
 		};
 

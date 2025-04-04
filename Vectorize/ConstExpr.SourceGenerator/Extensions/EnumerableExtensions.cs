@@ -63,4 +63,61 @@ public static class EnumerableExtensions
 			_ => null,
 		};
 	}
+	
+	public static IEnumerable<T> Repeat<T>(this IEnumerable<T> value, int count)
+	{
+		while (true)
+		{
+			foreach (var item in value)
+			{
+				if (count-- <= 0)
+				{
+					yield break;
+				}
+				
+				yield return item;
+			}
+		}
+	}
+
+	public static bool IsNumericSequence(this IList<object?> items)
+	{
+		if (items.Count <= 1)
+		{
+			return true; // Empty list or single item is considered a sequence
+		}
+
+		// Check if all items are integer types
+		foreach (var item in items)
+		{
+			if (item is not (sbyte or byte or short or ushort or int or uint or long or ulong))
+			{
+				return false;
+			}
+		}
+
+		// Check if items form a sequence with difference of 1
+		for (var i = 1; i < items.Count; i++)
+		{
+			var previous = Convert.ToInt64(items[i - 1]);
+			var current = Convert.ToInt64(items[i]);
+
+			if (current - previous != 1)
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+	
+	public static bool IsZero(this IEnumerable<object?> items)
+	{
+		return items.All(a => a is 0 or 0L or (byte) 0 or (short) 0 or (sbyte) 0 or (ushort) 0 or (uint) 0 or (ulong) 0);
+	}
+
+	public static bool IsOne(this IEnumerable<object?> items)
+	{
+		return items.All(a => a is 1 or 1L or (byte) 1 or (short) 1 or (sbyte) 1 or (ushort) 1 or (uint) 1 or (ulong) 1);
+	}
 }

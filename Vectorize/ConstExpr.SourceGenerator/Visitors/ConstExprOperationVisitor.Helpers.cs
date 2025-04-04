@@ -72,7 +72,7 @@ public partial class ConstExprOperationVisitor
 		};
 	}
 
-	private object? Subtract(object? left, object? right)
+	public static object? Subtract(object? left, object? right)
 	{
 		return left switch
 		{

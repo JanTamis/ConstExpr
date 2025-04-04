@@ -1,11 +1,13 @@
+using ConstExpr.SourceGenerator.Helpers;
+using ConstExpr.SourceGenerator.Visitors;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
-using ConstExpr.SourceGenerator.Helpers;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
+using ConstExpr.SourceGenerator.Enums;
 
 namespace ConstExpr.SourceGenerator.Extensions;
 
@@ -59,15 +61,128 @@ public static class CompilationExtensions
 			.GetSpecialType(specialType)
 			.Construct(typeArguments);
 	}
-	
+
 	public static bool IsSpecialType(this Compilation compilation, ISymbol symbol, SpecialType specialType)
 	{
 		if (symbol is ITypeSymbol namedTypeSymbol)
 		{
 			return namedTypeSymbol.SpecialType == specialType;
 		}
-		
+
 		return SymbolEqualityComparer.Default.Equals(symbol, compilation.GetSpecialType(specialType));
+	}
+
+	public static bool IsSpanType(this Compilation compilation, ITypeSymbol typeSymbol, ITypeSymbol elementType)
+	{
+		return typeSymbol is INamedTypeSymbol { Arity: 1 } namedTypeSymbol
+					 && namedTypeSymbol.ContainingNamespace.ToString() == "System"
+					 && namedTypeSymbol.Name is "Span" or "ReadOnlySpan"
+					 && SymbolEqualityComparer.Default.Equals(namedTypeSymbol.TypeArguments[0], elementType);
+	}
+
+	public static ITypeSymbol GetUnsignedType(this Compilation compilation, ITypeSymbol typeSymbol)
+	{
+		return typeSymbol.SpecialType switch
+		{
+			SpecialType.System_SByte => compilation.GetSpecialType(SpecialType.System_Byte),
+			SpecialType.System_Int16 => compilation.GetSpecialType(SpecialType.System_UInt16),
+			SpecialType.System_Int32 => compilation.GetSpecialType(SpecialType.System_UInt32),
+			SpecialType.System_Int64 => compilation.GetSpecialType(SpecialType.System_UInt64),
+			_ => typeSymbol,
+		};
+	}
+
+	public static int GetByteSize(this Compilation compilation, MetadataLoader loader, ITypeSymbol type)
+	{
+		if (type == null)
+		{
+			return 0;
+		}
+
+		// Handle primitive types
+		if (type.SpecialType != SpecialType.None)
+		{
+			return type.SpecialType switch
+			{
+				SpecialType.System_Boolean => sizeof(bool),
+				SpecialType.System_Byte => sizeof(byte),
+				SpecialType.System_Char => sizeof(char),
+				SpecialType.System_Decimal => sizeof(decimal),
+				SpecialType.System_Double => sizeof(double),
+				SpecialType.System_Int16 => sizeof(short),
+				SpecialType.System_Int32 => sizeof(int),
+				SpecialType.System_Int64 => sizeof(long),
+				SpecialType.System_SByte => sizeof(sbyte),
+				SpecialType.System_Single => sizeof(float),
+				SpecialType.System_UInt16 => sizeof(ushort),
+				SpecialType.System_UInt32 => sizeof(uint),
+				SpecialType.System_UInt64 => sizeof(ulong),
+				SpecialType.System_IntPtr => IntPtr.Size,
+				SpecialType.System_UIntPtr => UIntPtr.Size,
+				_ => 0,
+			};
+		}
+
+		// Handle pointer types
+		if (type.TypeKind == TypeKind.Pointer)
+		{
+			return IntPtr.Size;
+		}
+
+		// Handle enum types - get the size of the underlying type
+		// if (type.TypeKind == TypeKind.Enum && type.EnumUnderlyingType != null)
+		// {
+		// 	return VisitSizeOf(operation.Update(type.EnumUnderlyingType), argument);
+		// }
+
+		// Try to use Marshal.SizeOf for structs if available
+		if (type.TypeKind == TypeKind.Struct)
+		{
+			try
+			{
+				var runtimeType = loader.GetType(type);
+				// Use System.Runtime.InteropServices.Marshal.SizeOf
+				var method = typeof(System.Runtime.InteropServices.Marshal).GetMethod("SizeOf", [typeof(Type)]);
+				return (int)method?.Invoke(null, [runtimeType]);
+			}
+			catch
+			{
+				// Fallback - struct size calculation is complex due to alignment rules
+				return 0;
+			}
+		}
+
+		return 0;
+	}
+
+	public static bool HasMember<TSymbol>(this Compilation compilation, ITypeSymbol typeSymbol, string name, Func<TSymbol, bool> predicate)
+		where TSymbol : ISymbol
+	{
+		return typeSymbol.GetMembers(name).OfType<TSymbol>().Any(predicate);
+	}
+
+	public static bool HasMember<TSymbol>(this Compilation compilation, ITypeSymbol typeSymbol, string name)
+		where TSymbol : ISymbol
+	{
+		return typeSymbol.GetMembers(name).OfType<TSymbol>().Any();
+	}
+
+	public static bool HasMember<TSymbol>(this Compilation compilation, Type type, string name)
+		where TSymbol : ISymbol
+	{
+		var fullName = type.FullName;
+		var typeSymbol = compilation.GetTypeByMetadataName(fullName);
+
+		return typeSymbol.GetMembers(name).OfType<TSymbol>().Any();
+	}
+
+	public static bool HasMember<TSymbol>(this Compilation compilation, Type type, string name, Func<TSymbol, bool> predicate)
+		where TSymbol : ISymbol
+	{
+		var fullName = type.FullName;
+		var typeSymbol = compilation.GetTypeByMetadataName(fullName);
+
+		return typeSymbol.GetMembers(name).OfType<TSymbol>().Any(predicate);
 	}
 
 	public static object? ExecuteMethod(this Compilation compilation, MetadataLoader loader, IMethodSymbol methodSymbol, object? instance, params object?[]? parameters)
@@ -257,6 +372,11 @@ public static class CompilationExtensions
 			return $"IEnumerable<{String.Join(", ", namedTypeSymbol.TypeArguments.Select(s => GetMinimalString(compilation, s)))}>";
 		}
 
+		if (symbol is INamedTypeSymbol { Arity: > 0 } namedSymbol)
+		{
+			return $"{namedSymbol.Name}<{String.Join(", ", namedSymbol.TypeArguments.Select(s => GetMinimalString(compilation, s)))}>";
+		}
+
 		var node = SyntaxHelpers.GetSyntaxNode(symbol);
 
 		if (!compilation.TryGetSemanticModel(node, out var model))
@@ -287,5 +407,147 @@ public static class CompilationExtensions
 		}
 
 		return typeSymbol;
+	}
+
+	public static string GetCreateVector(this Compilation compilation, string vectorName, int byteSize, ITypeSymbol elementType, MetadataLoader loader, bool isRepeating, params IList<object?> items)
+	{
+		var staticType = compilation.GetTypeByMetadataName($"System.Runtime.Intrinsics.{vectorName}");
+		var fullType = compilation.GetTypeByMetadataName($"System.Runtime.Intrinsics.{vectorName}`1").Construct(elementType);
+		// var vectorType = loader.GetType(fullType);
+		var vectorElementType = loader.GetType(elementType);
+		var elementByteSize = compilation.GetByteSize(loader, elementType);
+
+		var elementCount = byteSize / elementByteSize; // vectorType.GetProperty("Count")?.GetValue(null);
+
+		if (items.All(item => item is 0 or 0L or 0U or 0UL or 0f or 0d or (byte)0 or (short)0 or (sbyte)0 or (ushort)0))
+		{
+			return $"{compilation.GetMinimalString(fullType)}.Zero";
+		}
+
+		if (items.All(item => item is 1 or 1L or 1U or 1UL or 1f or 1d or (byte)1 or (short)1 or (sbyte)1 or (ushort)1))
+		{
+			return $"{compilation.GetMinimalString(fullType)}.One";
+		}
+
+		if (items.Count == elementCount)
+		{
+			// Check if all items match their indices (0,1,2,...)
+			if (fullType.GetMembers("Indices").OfType<IPropertySymbol>().Any()
+					&& Enumerable.Range(0, items.Count).All(i => Convert.ChangeType(i, vectorElementType).Equals(items[i])))
+			{
+				return $"{compilation.GetMinimalString(fullType)}.Indices";
+			}
+
+			// Check if items form an arithmetic sequence
+			if (items.Count >= 2 && staticType.GetMembers("CreateSequence").OfType<IMethodSymbol>().Any())
+			{
+				var isSequence = true;
+				var step = default(object);
+
+				for (var i = 1; i < items.Count; i++)
+				{
+					var currentStep = ConstExprOperationVisitor.Subtract(items[i], items[i - 1]);
+
+					if (i == 1)
+					{
+						step = currentStep;
+					}
+					else if (!Equals(currentStep, step))
+					{
+						isSequence = false;
+						break;
+					}
+				}
+
+				if (isSequence && step != null)
+				{
+					return $"{vectorName}.CreateSequence({SyntaxHelpers.CreateLiteral(items[0])}, {SyntaxHelpers.CreateLiteral(step)})";
+				}
+			}
+
+			if (items.All(i => i == items[0]))
+			{
+				return $"{vectorName}.Create<{compilation.GetMinimalString(elementType)}>({SyntaxHelpers.CreateLiteral(items[0])})";
+			}
+
+			return $"{vectorName}.Create({String.Join(", ", items.Select(SyntaxHelpers.CreateLiteral))})";
+		}
+
+		if (items.Count == 1)
+		{
+			return $"{vectorName}.Create({SyntaxHelpers.CreateLiteral(items[0])})";
+		}
+		
+		if (isRepeating)
+		{
+			return $"{vectorName}.Create({String.Join(", ", items.Repeat(elementCount).Select(SyntaxHelpers.CreateLiteral))})";
+		}
+
+		return $"{vectorName}.Create({String.Join(", ", items.Concat(Enumerable.Repeat(0, items.Count - elementCount).Cast<object?>()).Select(SyntaxHelpers.CreateLiteral))})";
+	}
+
+	public static VectorTypes GetVector(this Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, IList<object> items, bool isRepeating, out string vector, out int vectorSize)
+	{
+		var elementSize = compilation.GetByteSize(loader, elementType);
+		var size = elementSize * items.Count;
+
+		switch (size)
+		{
+			case 0:
+				vector = String.Empty;
+				vectorSize = 0;
+				return VectorTypes.None;
+			case <= 8:
+				vector = GetCreateVector(compilation, nameof(VectorTypes.Vector64), 8, elementType, loader, isRepeating, items);
+				vectorSize = 8 / elementSize;
+				
+				return VectorTypes.Vector64;
+			case <= 16:
+				vector = GetCreateVector(compilation, nameof(VectorTypes.Vector128), 16, elementType, loader, isRepeating, items);
+				vectorSize = 16 / elementSize;
+				
+				return VectorTypes.Vector128;
+			case <= 32:
+				vector = GetCreateVector(compilation, nameof(VectorTypes.Vector256), 32, elementType, loader, isRepeating, items);
+				vectorSize = 32 / elementSize;
+
+				return VectorTypes.Vector256;
+			case <= 64:
+				vector = GetCreateVector(compilation, nameof(VectorTypes.Vector512), 64, elementType, loader, isRepeating, items);
+				vectorSize = 64 / elementSize;
+
+				return VectorTypes.Vector512;
+			default:
+				vector = String.Empty;
+				vectorSize = 0;
+				
+				return VectorTypes.None;
+		}
+	}
+
+	public static INamedTypeSymbol GetVectorType(this Compilation compilation, VectorTypes vectorType)
+	{
+		return compilation.GetTypeByMetadataName($"System.Runtime.Intrinsics.{vectorType}");
+	}
+
+	public static INamedTypeSymbol GetVectorType(this Compilation compilation, VectorTypes vectorType, ITypeSymbol elementType)
+	{
+		return compilation.GetTypeByMetadataName($"System.Runtime.Intrinsics.{vectorType}`1").Construct(elementType);
+	}
+	
+	public static bool IsVectorSupported(this Compilation compilation, ITypeSymbol elementType)
+	{
+		return elementType.SpecialType is SpecialType.System_Byte
+			or SpecialType.System_Double
+			or SpecialType.System_Int16
+			or SpecialType.System_Int32
+			or SpecialType.System_Int64
+			or SpecialType.System_IntPtr
+			or SpecialType.System_SByte
+			or SpecialType.System_Single
+			or SpecialType.System_UInt16
+			or SpecialType.System_UInt32
+			or SpecialType.System_UInt64
+			or SpecialType.System_UIntPtr;
 	}
 }
