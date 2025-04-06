@@ -470,7 +470,7 @@ public static class CompilationExtensions
 				return $"{vectorName}.Create<{compilation.GetMinimalString(elementType)}>({SyntaxHelpers.CreateLiteral(items[0])})";
 			}
 
-			return $"{vectorName}.Create({String.Join(", ", items.Select(SyntaxHelpers.CreateLiteral))})";
+			return $"{vectorName}.Create({String.Join(", ", items.Select(s => s is string ? s : SyntaxHelpers.CreateLiteral(s)))})";
 		}
 
 		if (items.Count == 1)
@@ -480,13 +480,13 @@ public static class CompilationExtensions
 		
 		if (isRepeating)
 		{
-			return $"{vectorName}.Create({String.Join(", ", items.Repeat(elementCount).Select(SyntaxHelpers.CreateLiteral))})";
+			return $"{vectorName}.Create({String.Join(", ", items.Repeat(elementCount).Select(s => s is string ? s : SyntaxHelpers.CreateLiteral(s)))})";
 		}
 
-		return $"{vectorName}.Create({String.Join(", ", items.Concat(Enumerable.Repeat(0, items.Count - elementCount).Cast<object?>()).Select(SyntaxHelpers.CreateLiteral))})";
+		return $"{vectorName}.Create({String.Join(", ", items.Concat(Enumerable.Repeat(0, items.Count - elementCount).Cast<object?>()).Select(s => s is string ? s : SyntaxHelpers.CreateLiteral(s)))})";
 	}
 
-	public static VectorTypes GetVector(this Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, IList<object> items, bool isRepeating, out string vector, out int vectorSize)
+	public static VectorTypes GetVector(this Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, IList<object?> items, bool isRepeating, out string vector, out int vectorSize)
 	{
 		var elementSize = compilation.GetByteSize(loader, elementType);
 		var size = elementSize * items.Count;

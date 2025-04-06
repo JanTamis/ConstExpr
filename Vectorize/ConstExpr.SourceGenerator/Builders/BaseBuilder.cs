@@ -9,7 +9,7 @@ using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Builders;
 
-public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilation, int hashCode)
+public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilation, GenerationLevel generationLevel, MetadataLoader loader, int hashCode)
 {
 	public const int Threshold = 5;
 	
@@ -35,6 +35,36 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		}
 
 		return builder.AppendBlock($"{prepend}{compilation.GetMinimalString(methodSymbol.ReturnType)} {methodSymbol.Name}({String.Join(", ", methodSymbol.Parameters.Select(compilation.GetMinimalString))})");
+	}
+
+	protected void AppendMethod(IndentedStringBuilder builder, IMethodSymbol methodSymbol, IList<object?> items, Action<VectorTypes, string, int> vectorAction, Action<bool> action)
+	{
+		using (AppendMethod(builder, methodSymbol))
+		{
+			var isPerformance = IsPerformance(generationLevel, items.Count);
+			
+			if (isPerformance)
+			{
+				var vectorType = compilation.GetVector(elementType, loader, items, true, out var vector, out var vectorSize);
+
+				using (builder.AppendBlock($"if ({vectorType}.IsHardwareAccelerated)"))
+				{
+					vectorAction(vectorType, vector, vectorSize);
+				}
+				
+				builder.AppendLine();
+			}
+			
+			action(isPerformance);
+		}
+	}
+
+	protected void AppendMethod(IndentedStringBuilder builder, IMethodSymbol methodSymbol, IList<object?> items, Action<bool> action)
+	{
+		using (AppendMethod(builder, methodSymbol))
+		{
+			action(IsPerformance(generationLevel, items.Count));
+		}
 	}
 
 	protected static void AppendProperty(IndentedStringBuilder builder, IPropertySymbol propertySymbol, string? get = null, string? set = null)
@@ -157,5 +187,12 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 	{
 		return level == GenerationLevel.Performance 
 		       || level == GenerationLevel.Balanced && count <= Threshold;
+	}
+
+	protected string CreateReturnPadding(string check, IEnumerable<string> checks)
+	{
+		var padding = new string(' ', "return".Length - check.Length);
+
+		return $"return {String.Join("\n" + padding + $"{check} ", checks)};";
 	}
 }
