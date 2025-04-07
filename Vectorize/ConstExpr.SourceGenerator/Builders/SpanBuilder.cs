@@ -17,8 +17,8 @@ public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSy
 		var hasMatchingMethod = typeSymbol.CheckMembers<IMethodSymbol>(
 			"CommonPrefixLength",
 			m => compilation.IsSpecialType(m.ReturnType, SpecialType.System_Int32) &&
-			     m.Parameters.Length == 1 &&
-			     compilation.IsSpanType(m.Parameters[0].Type, elementType),
+					 m.Parameters.Length == 1 &&
+					 compilation.IsSpanType(m.Parameters[0].Type, elementType),
 			out var member);
 
 		if (hasMatchingMethod)
@@ -112,9 +112,9 @@ public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSy
 		var hasMatchingMethodWithComparer = typeSymbol.CheckMembers(
 			"CommonPrefixLength",
 			m => compilation.IsSpecialType(m.ReturnType, SpecialType.System_Int32) &&
-			     m.Parameters.Length == 2 &&
-			     compilation.IsSpanType(m.Parameters[0].Type, elementType) &&
-			     IsEqualSymbol(m.Parameters[1].Type, compilation.GetTypeByType(typeof(IEqualityComparer<>), elementType)),
+					 m.Parameters.Length == 2 &&
+					 compilation.IsSpanType(m.Parameters[0].Type, elementType) &&
+					 IsEqualSymbol(m.Parameters[1].Type, compilation.GetTypeByType(typeof(IEqualityComparer<>), elementType)),
 			out member);
 
 		if (hasMatchingMethodWithComparer)
@@ -151,8 +151,8 @@ public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSy
 		var hasMatchingMethod = typeSymbol.CheckMembers<IMethodSymbol>(
 			"ContainsAny",
 			m => compilation.IsSpecialType(m.ReturnType, SpecialType.System_Boolean) &&
-			     m.Parameters.Length > 0 &&
-			     m.Parameters.All(a => SymbolEqualityComparer.Default.Equals(a.Type, elementType)),
+					 m.Parameters.Length > 0 &&
+					 m.Parameters.All(a => SymbolEqualityComparer.Default.Equals(a.Type, elementType)),
 			out var member);
 
 		if (hasMatchingMethod)
@@ -167,8 +167,8 @@ public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSy
 		var hasMatchingMethod = typeSymbol.CheckMembers<IMethodSymbol>(
 			"ContainsAnyExcept",
 			m => compilation.IsSpecialType(m.ReturnType, SpecialType.System_Boolean) &&
-			     m.Parameters.Length > 0 &&
-			     m.Parameters.All(a => SymbolEqualityComparer.Default.Equals(a.Type, elementType)),
+					 m.Parameters.Length > 0 &&
+					 m.Parameters.All(a => SymbolEqualityComparer.Default.Equals(a.Type, elementType)),
 			out var member);
 
 		if (hasMatchingMethod)
@@ -182,7 +182,7 @@ public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSy
 		if (typeSymbol.CheckMethod("ContainsAnyInRange", compilation.CreateBoolean(), [elementType, elementType], out var member))
 		{
 			items = items.Distinct().OrderBy(o => o).ToList();
-			
+
 			AppendMethod(builder, member, items, (vectorType, vector, vectorSize) =>
 			{
 				builder.AppendLine($"var items = {vector};");
@@ -208,7 +208,7 @@ public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSy
 
 	public void AppendContainsAnyExceptInRange(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
-		if (typeSymbol.CheckMethod("ContainsAnyExceptInRange", compilation.CreateBoolean(), [ elementType, elementType ], out var member))
+		if (typeSymbol.CheckMethod("ContainsAnyExceptInRange", compilation.CreateBoolean(), [elementType, elementType], out var member))
 		{
 			items = items.Distinct().OrderBy(o => o).ToList();
 
@@ -237,7 +237,7 @@ public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSy
 
 	public void AppendCount(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
-		if (typeSymbol.CheckMethod("Count", compilation.CreateInt32(), [ elementType ], out var member))
+		if (typeSymbol.CheckMethod("Count", compilation.CreateInt32(), [elementType], out var member))
 		{
 			AppendMethod(builder, member, items, (vectorType, vector, vectorSize) =>
 			{
@@ -245,7 +245,7 @@ public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSy
 				{
 					return;
 				}
-				
+
 				builder.AppendLine($"var items = {vector};");
 				builder.AppendLine();
 
@@ -276,9 +276,9 @@ public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSy
 					builder.AppendLine("var result = 0;");
 					builder.AppendLine();
 
-					using (builder.AppendBlock($"foreach(var item in {GetDataName(typeSymbol)})"))
+					using (builder.AppendBlock($"foreach (var item in {GetDataName(typeSymbol)})"))
 					{
-						using (builder.AppendBlock("if (item == {member.Parameters[0].Name})"))
+						using (builder.AppendBlock($"if (item == {member.Parameters[0].Name})"))
 						{
 							builder.AppendLine("result++;");
 						}
@@ -294,8 +294,8 @@ public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSy
 	public void AppendEndsWith(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
 		if (typeSymbol.CheckMembers<IMethodSymbol>("EndsWith", m =>
-			    compilation.IsSpecialType(m.ReturnType, SpecialType.System_Boolean) && m.Parameters.Any() && m.Parameters
-				    .All(a => SymbolEqualityComparer.Default.Equals(a.Type, elementType)), out var member))
+					compilation.IsSpecialType(m.ReturnType, SpecialType.System_Boolean) && m.Parameters.Any() && m.Parameters
+						.All(a => SymbolEqualityComparer.Default.Equals(a.Type, elementType)), out var member))
 		{
 			AppendMethod(builder, member, items, isPerformance =>
 			{
@@ -321,7 +321,7 @@ public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSy
 	private void AppendContainsAny(ITypeSymbol typeSymbol, IMethodSymbol method, bool result, IList<object?> items, IndentedStringBuilder builder)
 	{
 		var prefix = result ? String.Empty : "!";
-		
+
 		using (AppendMethod(builder, method))
 		{
 			// Prepare items
@@ -329,7 +329,7 @@ public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSy
 
 			var elementSize = compilation.GetByteSize(loader, method.Parameters[0].Type);
 			var isSequence = items.IsNumericSequence();
-			var isZero = items[0] is 0 or 0L or (byte) 0 or (short) 0 or (sbyte) 0 or (ushort) 0 or (uint) 0 or (ulong) 0;
+			var isZero = items[0] is 0 or 0L or (byte)0 or (short)0 or (sbyte)0 or (ushort)0 or (uint)0 or (ulong)0;
 			var unsignedType = compilation.GetUnsignedType(elementType);
 			var unsignedName = compilation.GetMinimalString(unsignedType);
 
@@ -343,7 +343,7 @@ public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSy
 					vectorType = compilation.GetVector(
 						elementType,
 						loader,
-						method.Parameters.Select(s => (object?) s.Name).ToList(),
+						method.Parameters.Select(s => (object?)s.Name).ToList(),
 						true,
 						out vector,
 						out vectorSize);
@@ -431,7 +431,7 @@ public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSy
 							{
 								if (result)
 								{
-									builder.AppendLine($"return ({String.Join($"\n{whiteSpace}| ", checks)}) != {vectorType}<{elementName}>.Zero;");									
+									builder.AppendLine($"return ({String.Join($"\n{whiteSpace}| ", checks)}) != {vectorType}<{elementName}>.Zero;");
 								}
 								else
 								{
@@ -446,10 +446,10 @@ public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSy
 			}
 
 			// Use simple Contains check when available
-			if (typeSymbol.CheckMethod("Contains", compilation.CreateBoolean(), [ elementType ], out _))
+			if (typeSymbol.CheckMethod("Contains", compilation.CreateBoolean(), [elementType], out _))
 			{
 				var maxLength = method.Parameters.Max(m => m.Name.Length);
-				var padding = result 
+				var padding = result
 					? new string(' ', maxLength + "return ".Length - 11)
 					: new string(' ', maxLength + "return ".Length - 10 + prefix.Length);
 
@@ -461,7 +461,7 @@ public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSy
 				{
 					builder.AppendLine($"return !({String.Join($"\n{padding}|| ", method.Parameters.Select(s => $"Contains({s.Name})"))});");
 				}
-				
+
 			}
 			else if (generationLevel != GenerationLevel.Minimal)
 			{
