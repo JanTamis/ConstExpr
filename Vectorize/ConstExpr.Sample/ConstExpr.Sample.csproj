@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net9.0</TargetFramework>
+		<TargetFramework>net10.0</TargetFramework>
 		<Nullable>enable</Nullable>
 		<RootNamespace>Vectorize.Sample</RootNamespace>
 		<OutputType>Exe</OutputType>
@@ -9,25 +9,24 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <Compile Remove="bin\**" />
+	  <Compile Remove="obj\**" />
+	  <EmbeddedResource Remove="bin\**" />
+	  <EmbeddedResource Remove="obj\**" />
+	  <None Remove="bin\**" />
+	  <None Remove="obj\**" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<ProjectReference Include="..\ConstExpr.SourceGenerator\ConstExpr.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<None Remove="DDD.UbiquitousLanguageRegistry.txt" />
-		<None Remove="obj\**" />
 	</ItemGroup>
 
 	<ItemGroup>
 	  <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Compile Include="obj\Debug\net9.0\Vectorize.Sample.AssemblyInfo.cs" />
-	  <Compile Remove="obj\**" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <EmbeddedResource Remove="obj\**" />
 	</ItemGroup>
 
 </Project>

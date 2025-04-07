@@ -10,7 +10,7 @@ using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 
 namespace ConstExpr.SourceGenerator.Builders;
 
-public class LinqBuilder(Compilation compilation, ITypeSymbol elementType, GenerationLevel level, int hashCode) : BaseBuilder(elementType, compilation, hashCode)
+public class LinqBuilder(Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, GenerationLevel level, int hashCode) : BaseBuilder(elementType, compilation, level, loader, hashCode)
 {
 	public void AppendAggregate(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
@@ -211,31 +211,6 @@ public class LinqBuilder(Compilation compilation, ITypeSymbol elementType, Gener
 			{
 				builder.AppendLine($"yield return ({member.TypeParameters[0].Name})Convert.ChangeType({CreateLiteral(item)}, typeof({member.TypeParameters[0].Name}));");
 			}
-		}
-	}
-
-	public void AppendContains(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
-	{
-		if (typeSymbol.CheckMethod(nameof(Enumerable.Contains), compilation.CreateBoolean(), [elementType], out var member))
-		{
-			using (AppendMethod(builder, member))
-			{
-				builder.AppendLine($"return {member.Parameters[0].Name} is {String.Join("\n\t||", items.Select(s => $"EqualityComparer<{elementType.Name}>.Default.Equals({CreateLiteral(s)}, {member.Parameters[0].Name})"))};");
-			}
-
-			return;
-		}
-
-		var comparerType = compilation.GetTypeByType(typeof(IEqualityComparer<>), elementType);
-
-		if (!typeSymbol.CheckMethod(nameof(Enumerable.Contains), compilation.CreateBoolean(), [elementType, comparerType], out member))
-		{
-			return;
-		}
-
-		using (AppendMethod(builder, member))
-		{
-			builder.AppendLine($"return {member.Parameters[0].Name} is {String.Join("\n\t||", items.Select(s => $"{member.Parameters[1].Name}.Equals({CreateLiteral(s)}, {member.Parameters[0].Name})"))};");
 		}
 	}
 

@@ -1,13 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http.Headers;
+using ConstExpr.SourceGenerator.Enums;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Builders;
 
-public class InterfaceBuilder(Compilation compilation, ITypeSymbol elementType, int hashCode) : BaseBuilder(elementType, compilation, hashCode)
+public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, ITypeSymbol elementType, GenerationLevel generationLevel, int hashCode) : BaseBuilder(elementType, compilation, generationLevel, loader, hashCode)
 {
 	public void AppendCount(ITypeSymbol typeSymbol, int count, IndentedStringBuilder builder)
 	{
@@ -242,29 +244,62 @@ public class InterfaceBuilder(Compilation compilation, ITypeSymbol elementType, 
 
 	public void AppendContains(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
-		if (!typeSymbol.CheckMethod("Contains", compilation.GetSpecialType(SpecialType.System_Boolean), [ elementType ], out var member))
+		if (!typeSymbol.CheckMethod("Contains", compilation.CreateBoolean(), [ elementType ], out var member))
 		{
 			return;
 		}
 
-		items = items.Distinct().ToList();
+		items = items
+			.Distinct()
+			.OrderBy(o => o)
+			.ToList();
 
 		using (AppendMethod(builder, member))
 		{
-			if (items.Count > 0)
-			{
-				builder.AppendLine($"return {member.Parameters[0].Name} is {SyntaxHelpers.CreateLiteral(items[0])}");
+			var vectorType = compilation.GetVector(elementType, loader, items, true, out var vector, out _);
 
-				for (var i = 1; i < items.Count; i++)
+			if (vectorType != VectorTypes.None && compilation.IsVectorSupported(elementType))
+			{
+				using (builder.AppendBlock($"if ({vectorType}.IsHardwareAccelerated)"))
 				{
-					if (i == items.Count - 1)
+					if (compilation.HasMember<IMethodSymbol>(compilation.GetVectorType(vectorType), "Any"))
 					{
-						builder.AppendLine($"\tor {SyntaxHelpers.CreateLiteral(items[i])};");
+						builder.AppendLine($"return {vectorType}.Any({vector}, {member.Parameters[0].Name});");
 					}
 					else
 					{
-						builder.AppendLine($"\tor {SyntaxHelpers.CreateLiteral(items[i])}");
+						builder.AppendLine($"return {vectorType}.EqualsAny({vector}, {vectorType}.Create({member.Parameters[0].Name}));");	
 					}
+					
+				}
+				
+				builder.AppendLine();
+			}
+			
+			if (items.Count > 0)
+			{
+				var elements = items.Select(s => SyntaxHelpers.CreateLiteral(s).ToString());
+				var length = elements.Sum(s => s.Length);
+
+				if (length > 100)
+				{
+					builder.AppendLine($"return {member.Parameters[0].Name} is {SyntaxHelpers.CreateLiteral(items[0])}");
+
+					for (var i = 1; i < items.Count; i++)
+					{
+						if (i == items.Count - 1)
+						{
+							builder.AppendLine($"\tor {SyntaxHelpers.CreateLiteral(items[i])};");
+						}
+						else
+						{
+							builder.AppendLine($"\tor {SyntaxHelpers.CreateLiteral(items[i])}");
+						}
+					}
+				}
+				else
+				{
+					builder.AppendLine($"return {member.Parameters[0].Name} is {String.Join(" or ", elements)};");
 				}
 			}
 			else

@@ -219,8 +219,8 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 						{
 							var items = enumerable.Cast<object?>().ToList();
 
-							var interfaceBuilder = new InterfaceBuilder(compilation, elementType, hashCode.GetValueOrDefault());
-							var linqBuilder = new LinqBuilder(compilation, elementType, invocation.GenerationLevel, hashCode.GetValueOrDefault());
+							var interfaceBuilder = new InterfaceBuilder(compilation, loader, elementType, invocation.GenerationLevel, hashCode.GetValueOrDefault());
+							var linqBuilder = new LinqBuilder(compilation, elementType, loader, invocation.GenerationLevel, hashCode.GetValueOrDefault());
 							var spanBuilder = new SpanBuilder(compilation, loader, elementType, invocation.GenerationLevel, hashCode.GetValueOrDefault());
 
 							interfaceBuilder.AppendCount(namedTypeSymbol, items.Count, code);
@@ -264,6 +264,11 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 							spanBuilder.AppendCommonPrefixLength(namedTypeSymbol, items, code);
 							spanBuilder.AppendContainsAny(namedTypeSymbol, items, code);
+							spanBuilder.AppendContainsAnyExcept(namedTypeSymbol, items, code);
+							spanBuilder.AppendContainsAnyInRange(namedTypeSymbol, items, code);
+							spanBuilder.AppendContainsAnyExceptInRange(namedTypeSymbol, items, code);
+							spanBuilder.AppendCount(namedTypeSymbol, items, code);
+							spanBuilder.AppendEndsWith(namedTypeSymbol, items, code);
 
 							if (IsIEnumerableRecursive(namedTypeSymbol))
 							{
@@ -286,13 +291,12 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 							}
 						}
 					}
-
 				}
 			}
 		}
 
 		if (group.Key.Parent is TypeDeclarationSyntax type && !group.Any(a => a.Exceptions.Any()))
-		{
+		{ 
 			spc.AddSource($"{type.Identifier}_{group.Key.Identifier}.g.cs", code.ToString());
 		}
 	}
