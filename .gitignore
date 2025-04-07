@@ -16,4 +16,6 @@
 /Vectorize/ConstExpr.Sample/obj
 /ConstExpr.Tests/bin/Debug/net9.0
 /ConstExpr.Tests/obj
+/ConstExpr.Tests/obj/Debug/net9.0/ConstExpr.Tests.GeneratedMSBuildEditorConfig.editorconfig
+/ConstExpr.Tests/obj/Debug/net9.0/ConstExpr.Tests.GlobalUsings.g.cs
 /ConstExpr.Tests/obj/ConstExpr.Tests.csproj.nuget.g.props
