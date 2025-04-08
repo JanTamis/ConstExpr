@@ -155,7 +155,7 @@ public static class CompilationExtensions
 		return 0;
 	}
 
-	public static bool HasMember<TSymbol>(this Compilation compilation, ITypeSymbol typeSymbol, string name, Func<TSymbol, bool> predicate)
+	public static bool HasMember<TSymbol>(this ITypeSymbol typeSymbol, string name, Func<TSymbol, bool> predicate)
 		where TSymbol : ISymbol
 	{
 		return typeSymbol.GetMembers(name).OfType<TSymbol>().Any(predicate);

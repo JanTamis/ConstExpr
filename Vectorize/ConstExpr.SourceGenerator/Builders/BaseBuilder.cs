@@ -31,7 +31,33 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 
 		if (methodSymbol.TypeParameters.Any())
 		{
-			return builder.AppendBlock($"{prepend}{compilation.GetMinimalString(methodSymbol.ReturnType)} {methodSymbol.Name}<{String.Join(", ", methodSymbol.TypeParameters.Select(compilation.GetMinimalString))}>({String.Join(", ", methodSymbol.Parameters.Select(compilation.GetMinimalString))})");
+			var constraints = methodSymbol.TypeParameters
+				.Select(tp =>
+				{
+					var constraintsList = new List<string>();
+
+					if (tp.HasReferenceTypeConstraint)
+						constraintsList.Add("class");
+					if (tp.HasValueTypeConstraint)
+						constraintsList.Add("struct");
+					if (tp.HasNotNullConstraint)
+						constraintsList.Add("notnull");
+					if (tp.HasUnmanagedTypeConstraint)
+						constraintsList.Add("unmanaged");
+
+					foreach (var constraintType in tp.ConstraintTypes)
+						constraintsList.Add(compilation.GetMinimalString(constraintType));
+
+					if (tp.HasConstructorConstraint)
+						constraintsList.Add("new()");
+
+					return constraintsList.Count > 0
+						? $"where {tp.Name} : {String.Join(", ", constraintsList)}"
+						: null;
+				})
+				.Where(c => c != null);
+			
+			return builder.AppendBlock($"{prepend}{compilation.GetMinimalString(methodSymbol.ReturnType)} {methodSymbol.Name}<{String.Join(", ", methodSymbol.TypeParameters.Select(compilation.GetMinimalString))}>({String.Join(", ", methodSymbol.Parameters.Select(compilation.GetMinimalString))}) {String.Join("\n\t", constraints)}");
 		}
 
 		return builder.AppendBlock($"{prepend}{compilation.GetMinimalString(methodSymbol.ReturnType)} {methodSymbol.Name}({String.Join(", ", methodSymbol.Parameters.Select(compilation.GetMinimalString))})");

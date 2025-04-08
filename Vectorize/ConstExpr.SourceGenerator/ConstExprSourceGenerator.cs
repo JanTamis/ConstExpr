@@ -262,6 +262,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 							linqBuilder.AppendToList(namedTypeSymbol, items, code);
 							linqBuilder.AppendImmutableList(namedTypeSymbol, items, code);
 
+							spanBuilder.AppendBinarySearch(namedTypeSymbol, items, code);
 							spanBuilder.AppendCommonPrefixLength(namedTypeSymbol, items, code);
 							spanBuilder.AppendContainsAny(namedTypeSymbol, items, code);
 							spanBuilder.AppendContainsAnyExcept(namedTypeSymbol, items, code);

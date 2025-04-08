@@ -447,6 +447,14 @@ public static class SyntaxHelpers
 				.OfType<TMember>())
 			.FirstOrDefault(selector);
 
+		if (member is null && item is ITypeParameterSymbol typeParameterSymbol)
+		{
+			member = typeParameterSymbol.ConstraintTypes
+				.SelectMany(i => i.GetMembers(name)
+					.OfType<TMember>())
+				.FirstOrDefault(selector);
+		}
+
 		return member is not null;
 	}
 
@@ -458,24 +466,24 @@ public static class SyntaxHelpers
 	public static bool CheckMethod(this ITypeSymbol item, string name, ITypeSymbol[] parameters, [NotNullWhen(true)] out IMethodSymbol? member)
 	{
 		return item.CheckMembers(name, m => m.ReturnsVoid
-		                                                   && m.Parameters.Length == parameters.Length
-		                                                   && m.Parameters
-			                                                   .Select(s => s.Type)
-			                                                   .Zip(parameters, IsEqualSymbol)
-			                                                   .All(a => a), out member);
+		                                    && m.Parameters.Length == parameters.Length
+		                                    && m.Parameters
+			                                    .Select(s => s.Type)
+			                                    .Zip(parameters, IsEqualSymbol)
+			                                    .All(a => a), out member);
 	}
 
 	public static bool CheckMethod(this ITypeSymbol item, string name, ITypeSymbol returnType, ITypeSymbol[] parameters, [NotNullWhen(true)] out IMethodSymbol? member)
 	{
 		return item.CheckMembers(name, m => SymbolEqualityComparer.Default.Equals(m.ReturnType, returnType)
-		                             && m.Parameters.Length == parameters.Length
-		                             && m.Parameters
-			                             .Select(s => s.Type)
-			                             .Zip(parameters, IsEqualSymbol)
-			                             .All(a => a), out member);
+		                                    && m.Parameters.Length == parameters.Length
+		                                    && m.Parameters
+			                                    .Select(s => s.Type)
+			                                    .Zip(parameters, IsEqualSymbol)
+			                                    .All(a => a), out member);
 	}
 
-	
+
 
 	public static bool IsEqualSymbol(ITypeSymbol typeSymbol, ITypeSymbol other)
 	{
