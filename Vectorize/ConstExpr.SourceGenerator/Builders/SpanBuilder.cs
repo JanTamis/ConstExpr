@@ -372,19 +372,19 @@ public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSy
 		}
 	}
 	
-	public void AppendSequenceCompareTo(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
-	{
-		if (elementType.CheckMethod("CompareTo", compilation.CreateInt32(), [ elementType ], out _) 
-		    && typeSymbol.CheckMembers<IMethodSymbol>("SequenceCompareTo", m => SymbolEqualityComparer.Default.Equals(m.ReturnType, compilation.CreateInt32()) 
-		                                                                        && m.Parameters.Length == 1 
-		                                                                        && compilation.IsSpanType(m.Parameters[0].Type, elementType), out var member))
-		{
-			AppendMethod(builder, member, items, isPerformance =>
-			{
-				
-			});
-		}
-	}
+	// public void AppendSequenceCompareTo(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
+	// {
+	// 	if (elementType.CheckMethod("CompareTo", compilation.CreateInt32(), [ elementType ], out _) 
+	// 	    && typeSymbol.CheckMembers<IMethodSymbol>("SequenceCompareTo", m => SymbolEqualityComparer.Default.Equals(m.ReturnType, compilation.CreateInt32()) 
+	// 	                                                                        && m.Parameters.Length == 1 
+	// 	                                                                        && compilation.IsSpanType(m.Parameters[0].Type, elementType), out var member))
+	// 	{
+	// 		AppendMethod(builder, member, items, isPerformance =>
+	// 		{
+	// 			builder.AppendLine()
+	// 		});
+	// 	}
+	// }
 
 	private void AppendContainsAny(ITypeSymbol typeSymbol, IMethodSymbol method, bool result, IList<object?> items, IndentedStringBuilder builder)
 	{
