@@ -1,8 +1,7 @@
 using ConstExpr.SourceGenerator.Sample;
 using System;
-using System.Collections;
+using System.Buffers;
 using System.Collections.Generic;
-using System.Runtime.Intrinsics;
 using System.Text;
 
 var range = Test.Range(10);

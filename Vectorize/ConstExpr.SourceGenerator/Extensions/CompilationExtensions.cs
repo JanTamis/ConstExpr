@@ -36,6 +36,12 @@ public static class CompilationExtensions
 		return compilation
 			.CreateSpecialType(SpecialType.System_Int64);
 	}
+	
+	public static INamedTypeSymbol CreateString(this Compilation compilation)
+	{
+		return compilation
+			.CreateSpecialType(SpecialType.System_String);
+	}
 
 	public static INamedTypeSymbol CreateFunc(this Compilation compilation, params ITypeSymbol[] typeArguments)
 	{
@@ -361,9 +367,28 @@ public static class CompilationExtensions
 
 	public static string GetMinimalString(this Compilation compilation, ISymbol symbol)
 	{
-		if (compilation.IsSpecialType(symbol, SpecialType.System_Void))
+		// Check for built-in type keywords
+		if (symbol is ITypeSymbol typeSymbol)
 		{
-			return "void";
+			switch (typeSymbol.SpecialType)
+			{
+				case SpecialType.System_Void: return "void";
+				case SpecialType.System_Boolean: return "bool";
+				case SpecialType.System_Byte: return "byte";
+				case SpecialType.System_SByte: return "sbyte";
+				case SpecialType.System_Int16: return "short";
+				case SpecialType.System_UInt16: return "ushort";
+				case SpecialType.System_Int32: return "int";
+				case SpecialType.System_UInt32: return "uint";
+				case SpecialType.System_Int64: return "long";
+				case SpecialType.System_UInt64: return "ulong";
+				case SpecialType.System_Single: return "float";
+				case SpecialType.System_Double: return "double";
+				case SpecialType.System_Decimal: return "decimal";
+				case SpecialType.System_Char: return "char";
+				case SpecialType.System_String: return "string";
+				case SpecialType.System_Object: return "object";
+			}
 		}
 
 		if (compilation.IsSpecialType(symbol.OriginalDefinition, SpecialType.System_Collections_Generic_IEnumerable_T)
@@ -381,7 +406,7 @@ public static class CompilationExtensions
 
 		if (!compilation.TryGetSemanticModel(node, out var model))
 		{
-			return symbol.ToDisplayString();
+			return symbol.Name;
 		}
 
 		return symbol.ToMinimalDisplayString(model, node.Span.Start);

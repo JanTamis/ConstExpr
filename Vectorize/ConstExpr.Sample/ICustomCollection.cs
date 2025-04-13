@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace ConstExpr.SourceGenerator.Sample;
 
@@ -13,7 +14,7 @@ public interface ICustomCollection<T>
 	//
 	// bool SequenceEqual(IEnumerable<T> other);
 	
-	// bool Contains(T element);
+	bool Contains(T element);
 	//
 	// bool ContainsAny(T element1, T element2, T element3, T element4);
 	// bool ContainsAnyExcept(T element1, T element2, T element3, T element4);
@@ -22,5 +23,13 @@ public interface ICustomCollection<T>
 	
 	int BinarySearch<TComparer>(T item, TComparer comparer) where TComparer : IComparer<T>;
 	
+	
 	// int CommonPrefixLength(ReadOnlySpan<T> other);
+}
+
+public interface ICharCollection<T>
+{
+	IEnumerable<Rune> EnumerateRunes();
+	IEnumerable<string> EnumerateLines();
+	bool IsWhiteSpace();
 }

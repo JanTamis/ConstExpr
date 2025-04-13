@@ -5,6 +5,7 @@ using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 
 namespace ConstExpr.SourceGenerator.Builders;
@@ -39,7 +40,7 @@ public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSy
 
 		void BinarySearch(int low, int high, bool isFirst, string compareFormat)
 		{
-			var index = (int) (((uint) high + (uint) low) >> 1);
+			var index = (int) ((uint) high + (uint) low >> 1);
 
 			if (low > high)
 			{
@@ -368,6 +369,115 @@ public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSy
 					builder.AppendLine($"return {GetDataName(typeSymbol)}");
 					builder.AppendLine($"\t.EndsWith({String.Join(", ", member.Parameters.Select(s => s.Name))});");
 				}
+			});
+		}
+	}
+	
+	public void AppendEnumerateLines(ITypeSymbol typeSymbol, string? data, IndentedStringBuilder builder)
+	{
+		if (data is not null && typeSymbol.CheckMembers<IMethodSymbol>("EnumerateLines", m => SymbolEqualityComparer.Default.Equals(m.ReturnType, compilation.CreateIEnumerable(compilation.CreateString())), out var member))
+		{
+			AppendMethod(builder, member, data.Cast<object?>(), isPerformance =>
+			{
+				var remaining = data.AsSpan();
+
+				while (!remaining.IsEmpty)
+				{
+					var idx = remaining.IndexOfAny("\n\r\f\u0085\u2028\u2029".AsSpan());
+
+					if ((uint) idx < (uint) remaining.Length)
+					{
+						var stride = 1;
+
+						if (remaining[idx] == '\r' && (uint) (idx + 1) < (uint) remaining.Length && remaining[idx + 1] == '\n')
+						{
+							stride = 2;
+						}
+
+						var current = remaining.Slice(0, idx);
+						
+						builder.AppendLine($"yield return {CreateLiteral(current.ToString())};");
+						
+						remaining = remaining.Slice(idx + stride);
+					}
+					else
+					{
+						builder.AppendLine($"yield return {CreateLiteral(remaining.ToString())};");
+
+						break;
+					}
+				}
+			});
+		}
+	}
+	
+	public void AppendEnumerableRunes(ITypeSymbol typeSymbol, string? data, IndentedStringBuilder builder)
+	{
+		if (data is not null && typeSymbol.CheckMembers<IMethodSymbol>("EnumerateRunes", m => SymbolEqualityComparer.Default.Equals(m.ReturnType, compilation.CreateIEnumerable(compilation.GetTypeByMetadataName("System.Text.Rune"))), out var member))
+		{
+			AppendMethod(builder, member, data.Cast<object?>(), isPerformance =>
+			{
+				var span = data.AsSpan();
+
+				while (TryDecodeFromUtf16(span, out var result, out var charsConsumed))
+				{
+					builder.AppendLine($"yield return new Rune({CreateLiteral(result)}); \t// {span.Slice(0, charsConsumed).ToString()}");
+					span = span.Slice(charsConsumed);
+				}
+			});
+		}
+
+		bool TryDecodeFromUtf16(ReadOnlySpan<char> source, out uint result, out int charsConsumed)
+		{
+			if (source.Length == 0)
+			{
+				result = 0;
+				charsConsumed = 0;
+				return false;
+			}
+
+			var first = source[0];
+
+			if (first < 0xD800 || first > 0xDFFF)
+			{
+				// Single UTF-16 code unit
+				result = first;
+				charsConsumed = 1;
+				return true;
+			}
+
+			if (first > 0xDBFF || source.Length < 2)
+			{
+				// Invalid surrogate or insufficient data
+				result = 0;
+				charsConsumed = 0;
+				return false;
+			}
+
+			var second = source[1];
+
+			if (second < 0xDC00 || second > 0xDFFF)
+			{
+				// Invalid trailing surrogate
+				result = 0;
+				charsConsumed = 0;
+				return false;
+			}
+
+			// Valid surrogate pair
+			result = 0x10000u + ((uint) (first - 0xD800) << 10) + (uint) (second - 0xDC00);
+			charsConsumed = 2;
+			return true;
+		}
+	}
+
+	public void AppendIsWhiteSpace(ITypeSymbol typeSymbol, string? data, IndentedStringBuilder builder)
+	{
+		if (data is not null && typeSymbol.CheckMembers<IMethodSymbol>("IsWhiteSpace", m => compilation.IsSpecialType(m.ReturnType, SpecialType.System_Boolean), out var member))
+		{
+			AppendMethod(builder, member, data.Cast<object?>(), isPerformance =>
+			{
+				builder.AppendLine($"return {CreateLiteral(String.IsNullOrWhiteSpace(data))};");
 			});
 		}
 	}

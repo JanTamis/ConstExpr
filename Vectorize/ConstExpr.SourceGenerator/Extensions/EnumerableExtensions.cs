@@ -120,4 +120,17 @@ public static class EnumerableExtensions
 	{
 		return items.All(a => a is 1 or 1L or (byte) 1 or (short) 1 or (sbyte) 1 or (ushort) 1 or (uint) 1 or (ulong) 1);
 	}
+	
+	public static IEnumerable<T> DistintBy<T, TResult>(this IEnumerable<T> source, Func<T, TResult> selector)
+	{
+		var seen = new HashSet<TResult>();
+		
+		foreach (var item in source)
+		{
+			if (seen.Add(selector(item)))
+			{
+				yield return item;
+			}
+		}
+	}
 }

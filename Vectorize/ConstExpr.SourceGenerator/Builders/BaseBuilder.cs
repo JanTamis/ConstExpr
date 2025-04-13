@@ -85,11 +85,11 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		}
 	}
 
-	protected void AppendMethod(IndentedStringBuilder builder, IMethodSymbol methodSymbol, IList<object?> items, Action<bool> action)
+	protected void AppendMethod(IndentedStringBuilder builder, IMethodSymbol methodSymbol, IEnumerable<object?> items, Action<bool> action)
 	{
 		using (AppendMethod(builder, methodSymbol))
 		{
-			action(IsPerformance(generationLevel, items.Count));
+			action(IsPerformance(generationLevel, items.Count()));
 		}
 	}
 

@@ -47,9 +47,9 @@ public static class Test
 		return encoding.GetBytes(value);
 	}
 
-	public static string Base64Encode(string value)
+	public static ICharCollection<char> Base64Encode(string value)
 	{
-		return Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
+		return (ICharCollection<char>) (object)Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
 	}
 
 	public async static Task<string> Waiting()

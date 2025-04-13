@@ -136,7 +136,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			var first = valueGroup.First();
 
 			var method = first.Method
-				.WithIdentifier(SyntaxFactory.Identifier($"{first.Method.Identifier}_{first.Invocation.GetHashCode()}"))
+				.WithIdentifier(SyntaxFactory.Identifier($"{first.Method.Identifier}_{Math.Abs(first.Value?.GetHashCode() ?? 0)}"))
 				.WithAttributeLists(SyntaxFactory.List<AttributeListSyntax>());
 
 			if (compilation.IsInterface(first.Method.ReturnType))
@@ -161,7 +161,8 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 						SyntaxFactory.ReturnStatement(
 							SyntaxFactory.MemberAccessExpression(
 								SyntaxKind.SimpleMemberAccessExpression,
-								SyntaxFactory.ParseTypeName($"{name}_{first.Value?.GetHashCode()}"),
+								SyntaxFactory.ParseTypeName($"{name}_{Math.Abs(first.Value?.GetHashCode() ?? 0)}")
+									.WithTrailingTrivia(SyntaxFactory.Space),
 								SyntaxFactory.IdentifierName("Instance"))));
 
 					method = method
@@ -187,7 +188,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 		code.AppendLine("}");
 
-		foreach (var invocation in group.Distinct())
+		foreach (var invocation in group.DistintBy(d => d.Value))
 		{
 			if (compilation.IsInterface(invocation.Method.ReturnType) && !IsIEnumerable(compilation, invocation.Method.ReturnType))
 			{
@@ -200,7 +201,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 				var elementType = namedTypeSymbol.TypeArguments.FirstOrDefault();
 				var elementName = elementType?.ToDisplayString();
-				var hashCode = invocation.Value?.GetHashCode();
+				var hashCode = Math.Abs(invocation.Value?.GetHashCode() ?? 0);
 
 				IEnumerable<string> interfaces = [$"{namedTypeSymbol.Name}<{elementName}>"];
 
@@ -213,15 +214,23 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 					if (invocation.Value is IEnumerable enumerable)
 					{
 						code.AppendLine();
-						code.AppendLine($"public static ReadOnlySpan<{elementName}> {namedTypeSymbol.Name}_{hashCode}_Data => [{String.Join(", ", (enumerable.Cast<object?>()).Select(CreateLiteral))}];");
+
+						if (compilation.IsSpecialType(elementType, SpecialType.System_Char))
+						{
+							code.AppendLine($"public static ReadOnlySpan<{elementName}> {namedTypeSymbol.Name}_{hashCode}_Data => \"{String.Join(String.Empty, enumerable.Cast<object?>())}\";");
+						}
+						else
+						{
+							code.AppendLine($"public static ReadOnlySpan<{elementName}> {namedTypeSymbol.Name}_{hashCode}_Data => [{String.Join(", ", (enumerable.Cast<object?>()).Select(CreateLiteral))}];");
+						}
 
 						if (elementType is not null)
 						{
 							var items = enumerable.Cast<object?>().ToList();
 
-							var interfaceBuilder = new InterfaceBuilder(compilation, loader, elementType, invocation.GenerationLevel, hashCode.GetValueOrDefault());
-							var linqBuilder = new LinqBuilder(compilation, elementType, loader, invocation.GenerationLevel, hashCode.GetValueOrDefault());
-							var spanBuilder = new SpanBuilder(compilation, loader, elementType, invocation.GenerationLevel, hashCode.GetValueOrDefault());
+							var interfaceBuilder = new InterfaceBuilder(compilation, loader, elementType, invocation.GenerationLevel, hashCode);
+							var linqBuilder = new LinqBuilder(compilation, elementType, loader, invocation.GenerationLevel, hashCode);
+							var spanBuilder = new SpanBuilder(compilation, loader, elementType, invocation.GenerationLevel, hashCode);
 
 							interfaceBuilder.AppendCount(namedTypeSymbol, items.Count, code);
 							interfaceBuilder.AppendLength(namedTypeSymbol, items.Count, code);
@@ -270,6 +279,9 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 							spanBuilder.AppendContainsAnyExceptInRange(namedTypeSymbol, items, code);
 							spanBuilder.AppendCount(namedTypeSymbol, items, code);
 							spanBuilder.AppendEndsWith(namedTypeSymbol, items, code);
+							spanBuilder.AppendEnumerateLines(namedTypeSymbol, enumerable as string, code);
+							spanBuilder.AppendEnumerableRunes(namedTypeSymbol, enumerable as string, code);
+							spanBuilder.AppendIsWhiteSpace(namedTypeSymbol, enumerable as string, code);
 
 							if (IsIEnumerableRecursive(namedTypeSymbol))
 							{
@@ -463,6 +475,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			"using System.Collections.Generic;",
 			"using System.Collections;",
 			"using System;",
+			"using System.Text;",
 			"using System.Linq;",
 			"using System.Diagnostics.CodeAnalysis;",
 			"using System.Runtime.Intrinsics;",
