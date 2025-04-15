@@ -22,6 +22,8 @@ public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSy
 					     && elementType.CheckMethod("CompareTo", compilation.CreateInt32(), [ elementType ], out _),
 					member =>
 					{
+						items = items.OrderBy(o => o).ToList();
+
 						AppendMethod(builder, member, items, isPerformance =>
 						{
 							BinarySearch(0, items.Count - 1, true, "{1}.CompareTo({0})", member);
@@ -168,9 +170,9 @@ public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSy
 					}
 				},
 				{
-					m => compilation.IsSpecialType(m.ReturnType, SpecialType.System_Int32) 
-					     && m.Parameters.Length == 2 
-					     && compilation.IsSpanType(m.Parameters[0].Type, elementType) 
+					m => compilation.IsSpecialType(m.ReturnType, SpecialType.System_Int32)
+					     && m.Parameters.Length == 2
+					     && compilation.IsSpanType(m.Parameters[0].Type, elementType)
 					     && IsEqualSymbol(m.Parameters[1].Type, compilation.GetTypeByType(typeof(IEqualityComparer<>), elementType)),
 					member =>
 					{
@@ -204,34 +206,34 @@ public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSy
 
 	public void AppendContainsAny(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
-		// Check if type has a suitable ContainsAny method
-		var hasMatchingMethod = typeSymbol.CheckMembers<IMethodSymbol>(
-			"ContainsAny",
-			m => compilation.IsSpecialType(m.ReturnType, SpecialType.System_Boolean) &&
-			     m.Parameters.Length > 0 &&
-			     m.Parameters.All(a => SymbolEqualityComparer.Default.Equals(a.Type, elementType)),
-			out var member);
-
-		if (hasMatchingMethod)
+		typeSymbol.CheckMethods("ContainsAny", new()
 		{
-			AppendContainsAny(typeSymbol, member!, true, items, builder);
-		}
+			{
+				m => compilation.IsSpecialType(m.ReturnType, SpecialType.System_Boolean)
+				     && m.Parameters.Length > 0
+				     && m.Parameters.All(a => SymbolEqualityComparer.Default.Equals(a.Type, elementType)),
+				member =>
+				{
+					AppendContainsAny(typeSymbol, member, true, items, builder);
+				}
+			}
+		});
 	}
 
 	public void AppendContainsAnyExcept(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
-		// Check if type has a suitable ContainsAny method
-		var hasMatchingMethod = typeSymbol.CheckMembers<IMethodSymbol>(
-			"ContainsAnyExcept",
-			m => compilation.IsSpecialType(m.ReturnType, SpecialType.System_Boolean) &&
-			     m.Parameters.Length > 0 &&
-			     m.Parameters.All(a => SymbolEqualityComparer.Default.Equals(a.Type, elementType)),
-			out var member);
-
-		if (hasMatchingMethod)
+		typeSymbol.CheckMethods("ContainsAnyExcept", new()
 		{
-			AppendContainsAny(typeSymbol, member!, false, items, builder);
-		}
+			{
+				m => compilation.IsSpecialType(m.ReturnType, SpecialType.System_Boolean)
+				     && m.Parameters.Length > 0
+				     && m.Parameters.All(a => SymbolEqualityComparer.Default.Equals(a.Type, elementType)),
+				member =>
+				{
+					AppendContainsAny(typeSymbol, member, false, items, builder);
+				}
+			}
+		});
 	}
 
 	public void AppendContainsAnyInRange(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
@@ -350,84 +352,113 @@ public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSy
 
 	public void AppendEndsWith(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
-		if (typeSymbol.CheckMembers<IMethodSymbol>("EndsWith", m =>
-			    compilation.IsSpecialType(m.ReturnType, SpecialType.System_Boolean) && m.Parameters.Any() && m.Parameters
-				    .All(a => SymbolEqualityComparer.Default.Equals(a.Type, elementType)), out var member))
+		typeSymbol.CheckMethods("EndsWith", new()
 		{
-			AppendMethod(builder, member, items, isPerformance =>
 			{
-				if (isPerformance)
+				m => compilation.IsSpecialType(m.ReturnType, SpecialType.System_Boolean)
+				     && m.Parameters.Any()
+				     && m.Parameters
+					     .All(a => SymbolEqualityComparer.Default.Equals(a.Type, elementType)),
+				member =>
 				{
-					var checks = member.Parameters
-						.Index()
-						.Select(s => $"{s.Value.Name} == {items[^(s.Index + 1)]}")
-						.Take(items.Count)
-						.Reverse();
+					AppendMethod(builder, member, items, isPerformance =>
+					{
+						if (isPerformance)
+						{
+							var checks = member.Parameters
+								.Index()
+								.Select(s => $"{s.Value.Name} == {items[^(s.Index + 1)]}")
+								.Take(items.Count)
+								.Reverse();
 
-					builder.AppendLine(CreateReturnPadding("&&", checks));
+							builder.AppendLine(CreateReturnPadding("&&", checks));
+						}
+						else
+						{
+							builder.AppendLine($"return {GetDataName(typeSymbol)}");
+							builder.AppendLine($"\t.EndsWith({String.Join(", ", member.Parameters.Select(s => s.Name))});");
+						}
+					});
 				}
-				else
-				{
-					builder.AppendLine($"return {GetDataName(typeSymbol)}");
-					builder.AppendLine($"\t.EndsWith({String.Join(", ", member.Parameters.Select(s => s.Name))});");
-				}
-			});
-		}
+			}
+		});
 	}
 
 	public void AppendEnumerateLines(ITypeSymbol typeSymbol, string? data, IndentedStringBuilder builder)
 	{
-		if (data is not null && typeSymbol.CheckMembers<IMethodSymbol>("EnumerateLines", m => SymbolEqualityComparer.Default.Equals(m.ReturnType, compilation.CreateIEnumerable(compilation.CreateString())), out var member))
+		if (data is null)
 		{
-			AppendMethod(builder, member, data.Cast<object?>(), isPerformance =>
-			{
-				var remaining = data.AsSpan();
-
-				while (!remaining.IsEmpty)
-				{
-					var idx = remaining.IndexOfAny("\n\r\f\u0085\u2028\u2029".AsSpan());
-
-					if ((uint) idx < (uint) remaining.Length)
-					{
-						var stride = 1;
-
-						if (remaining[idx] == '\r' && (uint) (idx + 1) < (uint) remaining.Length && remaining[idx + 1] == '\n')
-						{
-							stride = 2;
-						}
-
-						var current = remaining.Slice(0, idx);
-
-						builder.AppendLine($"yield return {CreateLiteral(current.ToString())};");
-
-						remaining = remaining.Slice(idx + stride);
-					}
-					else
-					{
-						builder.AppendLine($"yield return {CreateLiteral(remaining.ToString())};");
-
-						break;
-					}
-				}
-			});
+			return;
 		}
+
+		typeSymbol.CheckMethods("EnumerateLines", new()
+		{
+			{
+				m => SymbolEqualityComparer.Default.Equals(m.ReturnType, compilation.CreateIEnumerable(compilation.CreateString())),
+				member =>
+				{
+					AppendMethod(builder, member, data.Cast<object?>(), isPerformance =>
+					{
+						var remaining = data.AsSpan();
+
+						while (!remaining.IsEmpty)
+						{
+							var idx = remaining.IndexOfAny("\n\r\f\u0085\u2028\u2029".AsSpan());
+
+							if ((uint) idx < (uint) remaining.Length)
+							{
+								var stride = 1;
+
+								if (remaining[idx] == '\r' && (uint) (idx + 1) < (uint) remaining.Length && remaining[idx + 1] == '\n')
+								{
+									stride = 2;
+								}
+
+								var current = remaining.Slice(0, idx);
+
+								builder.AppendLine($"yield return {CreateLiteral(current.ToString())};");
+
+								remaining = remaining.Slice(idx + stride);
+							}
+							else
+							{
+								builder.AppendLine($"yield return {CreateLiteral(remaining.ToString())};");
+
+								break;
+							}
+						}
+					});
+				}
+			}
+		});
 	}
 
 	public void AppendEnumerableRunes(ITypeSymbol typeSymbol, string? data, IndentedStringBuilder builder)
 	{
-		if (data is not null && typeSymbol.CheckMembers<IMethodSymbol>("EnumerateRunes", m => SymbolEqualityComparer.Default.Equals(m.ReturnType, compilation.CreateIEnumerable(compilation.GetTypeByMetadataName("System.Text.Rune"))), out var member))
+		if (data is null)
 		{
-			AppendMethod(builder, member, data.Cast<object?>(), isPerformance =>
-			{
-				var span = data.AsSpan();
-
-				while (TryDecodeFromUtf16(span, out var result, out var charsConsumed))
-				{
-					builder.AppendLine($"yield return new Rune({CreateLiteral(result)}); \t// {span.Slice(0, charsConsumed).ToString()}");
-					span = span.Slice(charsConsumed);
-				}
-			});
+			return;
 		}
+
+		typeSymbol.CheckMethods("EnumerateRunes", new()
+		{
+			{
+				m => SymbolEqualityComparer.Default.Equals(m.ReturnType, compilation.CreateIEnumerable(compilation.GetTypeByMetadataName("System.Text.Rune"))),
+				member =>
+				{
+					AppendMethod(builder, member, data.Cast<object?>(), isPerformance =>
+					{
+						var span = data.AsSpan();
+
+						while (TryDecodeFromUtf16(span, out var result, out var charsConsumed))
+						{
+							builder.AppendLine($"yield return new Rune({CreateLiteral(result)}); \t// {span.Slice(0, charsConsumed).ToString()}");
+							span = span.Slice(charsConsumed);
+						}
+					});
+				}
+			}
+		});
 
 		bool TryDecodeFromUtf16(ReadOnlySpan<char> source, out uint result, out int charsConsumed)
 		{

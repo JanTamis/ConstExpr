@@ -493,13 +493,10 @@ public static class SyntaxHelpers
 
 		foreach (var methodSymbol in items)
 		{
-			foreach (var method in methods)
+			foreach (var method in methods.Where(w => w.Key(methodSymbol)))
 			{
-				if (method.Key(methodSymbol))
-				{
-					method.Value(methodSymbol);
-					break;
-				}
+				method.Value(methodSymbol);
+				return;
 			}
 		}
 	}
