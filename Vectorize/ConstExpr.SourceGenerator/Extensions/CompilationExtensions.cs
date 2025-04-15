@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -574,5 +575,23 @@ public static class CompilationExtensions
 			or SpecialType.System_UInt32
 			or SpecialType.System_UInt64
 			or SpecialType.System_UIntPtr;
+	}
+	
+	public static bool EqualsTypes(this ImmutableArray<IParameterSymbol> parameters, params ITypeSymbol[] typeSymbols)
+	{
+		if (parameters.Length != typeSymbols.Length)
+		{
+			return false;
+		}
+
+		for (var i = 0; i < parameters.Length; i++)
+		{
+			if (!SymbolEqualityComparer.Default.Equals(parameters[i].Type, typeSymbols[i]))
+			{
+				return false;
+			}
+		}
+
+		return true;
 	}
 }

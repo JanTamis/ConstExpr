@@ -7,6 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading;
 using ConstExpr.SourceGenerator.Extensions;
 
@@ -485,8 +486,24 @@ public static class SyntaxHelpers
 			                                    .All(a => a), out member);
 	}
 
+	public static void CheckMethods(this ITypeSymbol item, string name, Dictionary<Func<IMethodSymbol, bool>, Action<IMethodSymbol>> methods)
+	{
+		var items = item.GetMembers(name)
+			.OfType<IMethodSymbol>();
 
-
+		foreach (var methodSymbol in items)
+		{
+			foreach (var method in methods)
+			{
+				if (method.Key(methodSymbol))
+				{
+					method.Value(methodSymbol);
+					break;
+				}
+			}
+		}
+	}
+	
 	public static bool IsEqualSymbol(ITypeSymbol typeSymbol, ITypeSymbol other)
 	{
 		if (SymbolEqualityComparer.Default.Equals(typeSymbol, other))

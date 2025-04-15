@@ -5,7 +5,6 @@ using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 
 namespace ConstExpr.SourceGenerator.Builders;
@@ -14,31 +13,37 @@ public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSy
 {
 	public void AppendBinarySearch(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
-		if (elementType.CheckMethod("CompareTo", compilation.CreateInt32(), [elementType], out _) 
-		    && typeSymbol.CheckMethod("BinarySearch", compilation.CreateInt32(), [ elementType ], out var member))
-		{
-			items = items.OrderBy(o => o).ToList();
-
-			AppendMethod(builder, member, items, isPerformance =>
+		typeSymbol.CheckMethods("BinarySearch",
+			new()
 			{
-				BinarySearch(0, items.Count - 1, true, "{1}.CompareTo({0})");
+				{
+					m => compilation.IsSpecialType(m.ReturnType, SpecialType.System_Int32)
+					     && m.Parameters.EqualsTypes(elementType)
+					     && elementType.CheckMethod("CompareTo", compilation.CreateInt32(), [ elementType ], out _),
+					member =>
+					{
+						AppendMethod(builder, member, items, isPerformance =>
+						{
+							BinarySearch(0, items.Count - 1, true, "{1}.CompareTo({0})", member);
+						});
+					}
+				},
+				{
+					m => compilation.IsSpecialType(m.ReturnType, SpecialType.System_Int32)
+					     && m.Parameters.Length == 2
+					     && SymbolEqualityComparer.Default.Equals(m.Parameters[0].Type, elementType)
+					     && m.Parameters[1].Type.CheckMethod("Compare", compilation.CreateInt32(), [ elementType, elementType ], out _),
+					member =>
+					{
+						AppendMethod(builder, member, items, isPerformance =>
+						{
+							BinarySearch(0, items.Count - 1, true, "{2}.Compare({1}, {0})", member);
+						});
+					}
+				}
 			});
-		}
 
-		if (typeSymbol.CheckMembers("BinarySearch", m => compilation.IsSpecialType(m.ReturnType, SpecialType.System_Int32)
-			    && m.Parameters.Length == 2
-			    && SymbolEqualityComparer.Default.Equals(m.Parameters[0].Type, elementType)
-			    && m.Parameters[1].Type.CheckMethod("Compare", compilation.CreateInt32(), [ elementType, elementType ], out _), out member))
-		{
-			items = items.OrderBy(o => o).ToList();
-
-			AppendMethod(builder, member, items, isPerformance =>
-			{
-				BinarySearch(0, items.Count - 1, true, "{2}.Compare({1}, {0})");
-			});
-		}
-
-		void BinarySearch(int low, int high, bool isFirst, string compareFormat)
+		void BinarySearch(int low, int high, bool isFirst, string compareFormat, IMethodSymbol member)
 		{
 			var index = (int) ((uint) high + (uint) low >> 1);
 
@@ -53,12 +58,12 @@ public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSy
 
 			using (builder.AppendBlock("if (check < 0)"))
 			{
-				BinarySearch(low, index - 1, false, compareFormat);
+				BinarySearch(low, index - 1, false, compareFormat, member);
 			}
 
 			using (builder.AppendBlock("else if (check > 0)"))
 			{
-				BinarySearch(index + 1, high, false, compareFormat);
+				BinarySearch(index + 1, high, false, compareFormat, member);
 			}
 
 			builder.AppendLine();
@@ -68,125 +73,122 @@ public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSy
 
 	public void AppendCommonPrefixLength(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{
-		// Check if the type has a suitable CommonPrefixLength method with one parameter
-		var hasMatchingMethod = typeSymbol.CheckMembers<IMethodSymbol>(
-			"CommonPrefixLength",
-			m => compilation.IsSpecialType(m.ReturnType, SpecialType.System_Int32) &&
-			     m.Parameters.Length == 1 &&
-			     compilation.IsSpanType(m.Parameters[0].Type, elementType),
-			out var member);
-
-		if (hasMatchingMethod)
-		{
-			using (AppendMethod(builder, member))
+		typeSymbol.CheckMethods("CommonPrefixLength",
+			new()
 			{
-				// Add hardware acceleration if not minimal generation and element type is a special type
-				if (generationLevel != GenerationLevel.Minimal && elementType.SpecialType != SpecialType.None)
 				{
-					var vectorType = compilation.GetVector(elementType, loader, items, true, out var vector, out var vectorSize);
-
-					if (vectorType != VectorTypes.None && compilation.IsVectorSupported(elementType))
+					m => compilation.IsSpecialType(m.ReturnType, SpecialType.System_Int32)
+					     && m.Parameters.Length == 1
+					     && compilation.IsSpanType(m.Parameters[0].Type, elementType),
+					member =>
 					{
-						using (builder.AppendBlock($"if ({vectorType}.IsHardwareAccelerated)"))
+						using (AppendMethod(builder, member))
 						{
-							// Calculate count vector based on vector size
-							if (vectorSize != items.Count)
+							// Add hardware acceleration if not minimal generation and element type is a special type
+							if (generationLevel != GenerationLevel.Minimal && elementType.SpecialType != SpecialType.None)
 							{
-								builder.AppendLine($"var countVec = {vectorType}.Min({vectorType}.Create({member.Parameters[0].Name}.Length), {vector});");
-							}
-							else
-							{
-								builder.AppendLine($"var countVec = {vectorType}.Create({member.Parameters[0].Name}.Length);");
-							}
+								var vectorType = compilation.GetVector(elementType, loader, items, true, out var vector, out var vectorSize);
 
-							builder.AppendLine($"var otherVec = {vectorType}.LoadUnsafe(ref MemoryMarshal.GetReference({member.Parameters[0].Name}));");
-							builder.AppendLine();
+								if (vectorType != VectorTypes.None && compilation.IsVectorSupported(elementType))
+								{
+									using (builder.AppendBlock($"if ({vectorType}.IsHardwareAccelerated)"))
+									{
+										// Calculate count vector based on vector size
+										if (vectorSize != items.Count)
+										{
+											builder.AppendLine($"var countVec = {vectorType}.Min({vectorType}.Create({member.Parameters[0].Name}.Length), {vector});");
+										}
+										else
+										{
+											builder.AppendLine($"var countVec = {vectorType}.Create({member.Parameters[0].Name}.Length);");
+										}
 
-							// Create sequence vector
-							if (compilation.HasMember<IPropertySymbol>(compilation.GetVectorType(vectorType, compilation.CreateInt32()), "Indices"))
-							{
-								builder.AppendLine($"var sequence = {vectorType}<{compilation.GetMinimalString(elementType)}>.Indices;");
-							}
-							else
-							{
-								builder.AppendLine($"var sequence = {vectorType}.Create({String.Join(", ", Enumerable.Range(0, vectorSize).Select(CreateLiteral))});");
-							}
+										builder.AppendLine($"var otherVec = {vectorType}.LoadUnsafe(ref MemoryMarshal.GetReference({member.Parameters[0].Name}));");
+										builder.AppendLine();
 
-							builder.AppendLine($"var items = {vector};");
-							builder.AppendLine();
+										// Create sequence vector
+										if (compilation.HasMember<IPropertySymbol>(compilation.GetVectorType(vectorType, compilation.CreateInt32()), "Indices"))
+										{
+											builder.AppendLine($"var sequence = {vectorType}<{compilation.GetMinimalString(elementType)}>.Indices;");
+										}
+										else
+										{
+											builder.AppendLine($"var sequence = {vectorType}.Create({String.Join(", ", Enumerable.Range(0, vectorSize).Select(CreateLiteral))});");
+										}
 
-							// Create mask based on element type
-							if (elementType.SpecialType != SpecialType.System_Int32)
-							{
-								builder.AppendLine($"var mask = {vectorType}.Equals(otherVec, items).As{elementType.Name}() & {vectorType}.LessThan(sequence, countVec);");
-							}
-							else
-							{
-								builder.AppendLine($"var mask = {vectorType}.Equals(otherVec, items) & {vectorType}.LessThan(sequence, countVec);");
-							}
+										builder.AppendLine($"var items = {vector};");
+										builder.AppendLine();
 
-							// Calculate items based on available methods
-							if (compilation.HasMember<IMethodSymbol>(compilation.GetVectorType(vectorType), "CountWhereAllBitsSet"))
-							{
+										// Create mask based on element type
+										if (elementType.SpecialType != SpecialType.System_Int32)
+										{
+											builder.AppendLine($"var mask = {vectorType}.Equals(otherVec, items).As{elementType.Name}() & {vectorType}.LessThan(sequence, countVec);");
+										}
+										else
+										{
+											builder.AppendLine($"var mask = {vectorType}.Equals(otherVec, items) & {vectorType}.LessThan(sequence, countVec);");
+										}
+
+										// Calculate items based on available methods
+										if (compilation.HasMember<IMethodSymbol>(compilation.GetVectorType(vectorType), "CountWhereAllBitsSet"))
+										{
+											builder.AppendLine();
+											builder.AppendLine($"return {vectorType}.CountWhereAllBitsSet(mask);");
+										}
+										else
+										{
+											builder.AppendLine($"var matchBits = {vectorType}.ExtractMostSignificantBits(mask);");
+											builder.AppendLine();
+											builder.AppendLine("return BitOperations.PopCount(matchBits);");
+										}
+									}
+								}
+
 								builder.AppendLine();
-								builder.AppendLine($"return {vectorType}.CountWhereAllBitsSet(mask);");
+							}
+
+							// Non-vectorized implementation
+							if (!IsPerformance(generationLevel, items.Count))
+							{
+								builder.AppendLine($"return {GetDataName(typeSymbol)}");
+								builder.AppendLine($"\t.CommonPrefixLength({member.Parameters[0].Name});");
 							}
 							else
 							{
-								builder.AppendLine($"var matchBits = {vectorType}.ExtractMostSignificantBits(mask);");
-								builder.AppendLine();
-								builder.AppendLine("return BitOperations.PopCount(matchBits);");
+								if (elementType.SpecialType != SpecialType.None)
+								{
+									Append(member, "{1} != {0}");
+								}
+								else
+								{
+									Append(member, $"!EqualityComparer<{compilation.GetMinimalString(elementType)}>.Default.Equals({{0}}, {{1}})");
+								}
 							}
 						}
 					}
-
-					builder.AppendLine();
-				}
-
-				// Non-vectorized implementation
-				if (!IsPerformance(generationLevel, items.Count))
+				},
 				{
-					builder.AppendLine($"return {GetDataName(typeSymbol)}");
-					builder.AppendLine($"\t.CommonPrefixLength({member.Parameters[0].Name});");
-				}
-				else
-				{
-					if (elementType.SpecialType != SpecialType.None)
+					m => compilation.IsSpecialType(m.ReturnType, SpecialType.System_Int32) 
+					     && m.Parameters.Length == 2 
+					     && compilation.IsSpanType(m.Parameters[0].Type, elementType) 
+					     && IsEqualSymbol(m.Parameters[1].Type, compilation.GetTypeByType(typeof(IEqualityComparer<>), elementType)),
+					member =>
 					{
-						Append(member, "{1} != {0}");
-					}
-					else
-					{
-						Append(member, $"!EqualityComparer<{compilation.GetMinimalString(elementType)}>.Default.Equals({{0}}, {{1}})");
+						if (IsPerformance(generationLevel, items.Count))
+						{
+							using (AppendMethod(builder, member))
+							{
+								builder.AppendLine($"return {GetDataName(typeSymbol)}");
+								builder.AppendLine($"\t.CommonPrefixLength({member.Parameters[0].Name}, {member.Parameters[1].Name});");
+							}
+						}
+						else
+						{
+							Append(member, $"!{member.Parameters[1].Name}.Equals({{0}}, {{1}})");
+						}
 					}
 				}
-			}
-		}
-
-		// Check if the type has a suitable CommonPrefixLength method with two parameters
-		var hasMatchingMethodWithComparer = typeSymbol.CheckMembers(
-			"CommonPrefixLength",
-			m => compilation.IsSpecialType(m.ReturnType, SpecialType.System_Int32) &&
-			     m.Parameters.Length == 2 &&
-			     compilation.IsSpanType(m.Parameters[0].Type, elementType) &&
-			     IsEqualSymbol(m.Parameters[1].Type, compilation.GetTypeByType(typeof(IEqualityComparer<>), elementType)),
-			out member);
-
-		if (hasMatchingMethodWithComparer)
-		{
-			if (IsPerformance(generationLevel, items.Count))
-			{
-				using (AppendMethod(builder, member))
-				{
-					builder.AppendLine($"return {GetDataName(typeSymbol)}");
-					builder.AppendLine($"\t.CommonPrefixLength({member.Parameters[0].Name}, {member.Parameters[1].Name});");
-				}
-			}
-			else
-			{
-				Append(member, $"!{member.Parameters[1].Name}.Equals({{0}}, {{1}})");
-			}
-		}
+			});
 
 		// Helper method to append prefix length calculation logic
 		void Append(IMethodSymbol method, string comparerFormat)
@@ -372,7 +374,7 @@ public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSy
 			});
 		}
 	}
-	
+
 	public void AppendEnumerateLines(ITypeSymbol typeSymbol, string? data, IndentedStringBuilder builder)
 	{
 		if (data is not null && typeSymbol.CheckMembers<IMethodSymbol>("EnumerateLines", m => SymbolEqualityComparer.Default.Equals(m.ReturnType, compilation.CreateIEnumerable(compilation.CreateString())), out var member))
@@ -395,9 +397,9 @@ public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSy
 						}
 
 						var current = remaining.Slice(0, idx);
-						
+
 						builder.AppendLine($"yield return {CreateLiteral(current.ToString())};");
-						
+
 						remaining = remaining.Slice(idx + stride);
 					}
 					else
@@ -410,7 +412,7 @@ public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSy
 			});
 		}
 	}
-	
+
 	public void AppendEnumerableRunes(ITypeSymbol typeSymbol, string? data, IndentedStringBuilder builder)
 	{
 		if (data is not null && typeSymbol.CheckMembers<IMethodSymbol>("EnumerateRunes", m => SymbolEqualityComparer.Default.Equals(m.ReturnType, compilation.CreateIEnumerable(compilation.GetTypeByMetadataName("System.Text.Rune"))), out var member))
@@ -473,15 +475,27 @@ public class SpanBuilder(Compilation compilation, MetadataLoader loader, ITypeSy
 
 	public void AppendIsWhiteSpace(ITypeSymbol typeSymbol, string? data, IndentedStringBuilder builder)
 	{
-		if (data is not null && typeSymbol.CheckMembers<IMethodSymbol>("IsWhiteSpace", m => compilation.IsSpecialType(m.ReturnType, SpecialType.System_Boolean), out var member))
+		if (data is null)
 		{
-			AppendMethod(builder, member, data.Cast<object?>(), isPerformance =>
-			{
-				builder.AppendLine($"return {CreateLiteral(String.IsNullOrWhiteSpace(data))};");
-			});
+			return;
 		}
+
+		typeSymbol.CheckMethods("IsWhiteSpace",
+			new()
+			{
+				{
+					m => compilation.IsSpecialType(m.ReturnType, SpecialType.System_Boolean),
+					member =>
+					{
+						AppendMethod(builder, member, data.Cast<object?>(), isPerformance =>
+						{
+							builder.AppendLine($"return {CreateLiteral(String.IsNullOrWhiteSpace(data))};");
+						});
+					}
+				}
+			});
 	}
-	
+
 	// public void AppendSequenceCompareTo(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	// {
 	// 	if (elementType.CheckMethod("CompareTo", compilation.CreateInt32(), [ elementType ], out _) 
