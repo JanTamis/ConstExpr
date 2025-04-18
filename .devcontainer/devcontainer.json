@@ -9,5 +9,9 @@
 		"ghcr.io/devcontainers/features/dotnet:2": {
         	"version": "9.0"
     	}
-	}
+  },
+  "tasks": {
+    "build": "dotnet build ConstExpr.sln",
+    "test": "dotnet test"
+  }
 }
