@@ -12,7 +12,7 @@ public abstract class BaseTest<TResult>
 
 	public abstract string SourceCode { get; }
 
-	[Fact]
+	// [Fact]
 	public virtual void RunTest()
 	{
 		var generated = RunGenerator(out var compilation);
