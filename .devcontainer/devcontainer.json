@@ -1,0 +1,18 @@
+{
+	"image": "mcr.microsoft.com/devcontainers/universal:2",
+	"features": {
+		"ghcr.io/jpawlowski/devcontainer-features/cascadia-code:1": {
+			"installFontconfig": true,
+			"installStaticTTF": true,
+			"version": "latest"
+		},
+		"ghcr.io/devcontainers/features/dotnet:2": {
+        	"version": "9.0"
+    	}
+  },
+  "tasks": {
+    "build": "dotnet build ConstExpr.sln",
+    "test": "dotnet test",
+    "launch": "dotnet run --project Vectorize/ConstExpr.Sample/ConstExpr.Sample.csproj"
+  }
+}

@@ -10,7 +10,7 @@ using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 
 namespace ConstExpr.SourceGenerator.Builders;
 
-public class LinqBuilder(Compilation compilation, ITypeSymbol elementType, GenerationLevel level, int hashCode) : BaseBuilder(elementType, compilation, hashCode)
+public class LinqBuilder(Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, GenerationLevel level, int hashCode) : BaseBuilder(elementType, compilation, level, loader, hashCode)
 {
 	public void AppendAggregate(ITypeSymbol typeSymbol, IList<object?> items, IndentedStringBuilder builder)
 	{

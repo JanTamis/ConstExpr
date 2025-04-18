@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -35,6 +36,12 @@ public static class CompilationExtensions
 	{
 		return compilation
 			.CreateSpecialType(SpecialType.System_Int64);
+	}
+	
+	public static INamedTypeSymbol CreateString(this Compilation compilation)
+	{
+		return compilation
+			.CreateSpecialType(SpecialType.System_String);
 	}
 
 	public static INamedTypeSymbol CreateFunc(this Compilation compilation, params ITypeSymbol[] typeArguments)
@@ -155,7 +162,7 @@ public static class CompilationExtensions
 		return 0;
 	}
 
-	public static bool HasMember<TSymbol>(this Compilation compilation, ITypeSymbol typeSymbol, string name, Func<TSymbol, bool> predicate)
+	public static bool HasMember<TSymbol>(this ITypeSymbol typeSymbol, string name, Func<TSymbol, bool> predicate)
 		where TSymbol : ISymbol
 	{
 		return typeSymbol.GetMembers(name).OfType<TSymbol>().Any(predicate);
@@ -361,9 +368,28 @@ public static class CompilationExtensions
 
 	public static string GetMinimalString(this Compilation compilation, ISymbol symbol)
 	{
-		if (compilation.IsSpecialType(symbol, SpecialType.System_Void))
+		// Check for built-in type keywords
+		if (symbol is ITypeSymbol typeSymbol)
 		{
-			return "void";
+			switch (typeSymbol.SpecialType)
+			{
+				case SpecialType.System_Void: return "void";
+				case SpecialType.System_Boolean: return "bool";
+				case SpecialType.System_Byte: return "byte";
+				case SpecialType.System_SByte: return "sbyte";
+				case SpecialType.System_Int16: return "short";
+				case SpecialType.System_UInt16: return "ushort";
+				case SpecialType.System_Int32: return "int";
+				case SpecialType.System_UInt32: return "uint";
+				case SpecialType.System_Int64: return "long";
+				case SpecialType.System_UInt64: return "ulong";
+				case SpecialType.System_Single: return "float";
+				case SpecialType.System_Double: return "double";
+				case SpecialType.System_Decimal: return "decimal";
+				case SpecialType.System_Char: return "char";
+				case SpecialType.System_String: return "string";
+				case SpecialType.System_Object: return "object";
+			}
 		}
 
 		if (compilation.IsSpecialType(symbol.OriginalDefinition, SpecialType.System_Collections_Generic_IEnumerable_T)
@@ -381,7 +407,7 @@ public static class CompilationExtensions
 
 		if (!compilation.TryGetSemanticModel(node, out var model))
 		{
-			return symbol.ToDisplayString();
+			return symbol.Name;
 		}
 
 		return symbol.ToMinimalDisplayString(model, node.Span.Start);
@@ -470,7 +496,7 @@ public static class CompilationExtensions
 				return $"{vectorName}.Create<{compilation.GetMinimalString(elementType)}>({SyntaxHelpers.CreateLiteral(items[0])})";
 			}
 
-			return $"{vectorName}.Create({String.Join(", ", items.Select(SyntaxHelpers.CreateLiteral))})";
+			return $"{vectorName}.Create({String.Join(", ", items.Select(s => s is string ? s : SyntaxHelpers.CreateLiteral(s)))})";
 		}
 
 		if (items.Count == 1)
@@ -480,13 +506,13 @@ public static class CompilationExtensions
 		
 		if (isRepeating)
 		{
-			return $"{vectorName}.Create({String.Join(", ", items.Repeat(elementCount).Select(SyntaxHelpers.CreateLiteral))})";
+			return $"{vectorName}.Create({String.Join(", ", items.Repeat(elementCount).Select(s => s is string ? s : SyntaxHelpers.CreateLiteral(s)))})";
 		}
 
-		return $"{vectorName}.Create({String.Join(", ", items.Concat(Enumerable.Repeat(0, items.Count - elementCount).Cast<object?>()).Select(SyntaxHelpers.CreateLiteral))})";
+		return $"{vectorName}.Create({String.Join(", ", items.Concat(Enumerable.Repeat(0, items.Count - elementCount).Cast<object?>()).Select(s => s is string ? s : SyntaxHelpers.CreateLiteral(s)))})";
 	}
 
-	public static VectorTypes GetVector(this Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, IList<object> items, bool isRepeating, out string vector, out int vectorSize)
+	public static VectorTypes GetVector(this Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, IList<object?> items, bool isRepeating, out string vector, out int vectorSize)
 	{
 		var elementSize = compilation.GetByteSize(loader, elementType);
 		var size = elementSize * items.Count;
@@ -549,5 +575,23 @@ public static class CompilationExtensions
 			or SpecialType.System_UInt32
 			or SpecialType.System_UInt64
 			or SpecialType.System_UIntPtr;
+	}
+	
+	public static bool EqualsTypes(this ImmutableArray<IParameterSymbol> parameters, params ITypeSymbol[] typeSymbols)
+	{
+		if (parameters.Length != typeSymbols.Length)
+		{
+			return false;
+		}
+
+		for (var i = 0; i < parameters.Length; i++)
+		{
+			if (!SymbolEqualityComparer.Default.Equals(parameters[i].Type, typeSymbols[i]))
+			{
+				return false;
+			}
+		}
+
+		return true;
 	}
 }

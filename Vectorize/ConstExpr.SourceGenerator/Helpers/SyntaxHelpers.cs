@@ -7,6 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading;
 using ConstExpr.SourceGenerator.Extensions;
 
@@ -105,6 +106,8 @@ public static class SyntaxHelpers
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(bb));
 			case int i:
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(i));
+			case uint ui:
+				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(ui));
 			case float f:
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(f));
 			case double d:
@@ -447,6 +450,14 @@ public static class SyntaxHelpers
 				.OfType<TMember>())
 			.FirstOrDefault(selector);
 
+		if (member is null && item is ITypeParameterSymbol typeParameterSymbol)
+		{
+			member = typeParameterSymbol.ConstraintTypes
+				.SelectMany(i => i.GetMembers(name)
+					.OfType<TMember>())
+				.FirstOrDefault(selector);
+		}
+
 		return member is not null;
 	}
 
@@ -458,25 +469,38 @@ public static class SyntaxHelpers
 	public static bool CheckMethod(this ITypeSymbol item, string name, ITypeSymbol[] parameters, [NotNullWhen(true)] out IMethodSymbol? member)
 	{
 		return item.CheckMembers(name, m => m.ReturnsVoid
-		                                                   && m.Parameters.Length == parameters.Length
-		                                                   && m.Parameters
-			                                                   .Select(s => s.Type)
-			                                                   .Zip(parameters, IsEqualSymbol)
-			                                                   .All(a => a), out member);
+		                                    && m.Parameters.Length == parameters.Length
+		                                    && m.Parameters
+			                                    .Select(s => s.Type)
+			                                    .Zip(parameters, IsEqualSymbol)
+			                                    .All(a => a), out member);
 	}
 
 	public static bool CheckMethod(this ITypeSymbol item, string name, ITypeSymbol returnType, ITypeSymbol[] parameters, [NotNullWhen(true)] out IMethodSymbol? member)
 	{
 		return item.CheckMembers(name, m => SymbolEqualityComparer.Default.Equals(m.ReturnType, returnType)
-		                             && m.Parameters.Length == parameters.Length
-		                             && m.Parameters
-			                             .Select(s => s.Type)
-			                             .Zip(parameters, IsEqualSymbol)
-			                             .All(a => a), out member);
+		                                    && m.Parameters.Length == parameters.Length
+		                                    && m.Parameters
+			                                    .Select(s => s.Type)
+			                                    .Zip(parameters, IsEqualSymbol)
+			                                    .All(a => a), out member);
 	}
 
-	
+	public static void CheckMethods(this ITypeSymbol item, string name, Dictionary<Func<IMethodSymbol, bool>, Action<IMethodSymbol>> methods)
+	{
+		var items = item.GetMembers(name)
+			.OfType<IMethodSymbol>();
 
+		foreach (var methodSymbol in items)
+		{
+			foreach (var method in methods.Where(w => w.Key(methodSymbol)))
+			{
+				method.Value(methodSymbol);
+				return;
+			}
+		}
+	}
+	
 	public static bool IsEqualSymbol(ITypeSymbol typeSymbol, ITypeSymbol other)
 	{
 		if (SymbolEqualityComparer.Default.Equals(typeSymbol, other))

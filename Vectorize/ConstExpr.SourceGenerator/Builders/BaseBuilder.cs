@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using ConstExpr.SourceGenerator.Enums;
@@ -9,7 +8,7 @@ using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Builders;
 
-public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilation, int hashCode)
+public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilation, GenerationLevel generationLevel, MetadataLoader loader, int hashCode)
 {
 	public const int Threshold = 5;
 	
@@ -31,10 +30,66 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 
 		if (methodSymbol.TypeParameters.Any())
 		{
-			return builder.AppendBlock($"{prepend}{compilation.GetMinimalString(methodSymbol.ReturnType)} {methodSymbol.Name}<{String.Join(", ", methodSymbol.TypeParameters.Select(compilation.GetMinimalString))}>({String.Join(", ", methodSymbol.Parameters.Select(compilation.GetMinimalString))})");
+			var constraints = methodSymbol.TypeParameters
+				.Select(tp =>
+				{
+					var constraintsList = new List<string>();
+
+					if (tp.HasReferenceTypeConstraint)
+						constraintsList.Add("class");
+					if (tp.HasValueTypeConstraint)
+						constraintsList.Add("struct");
+					if (tp.HasNotNullConstraint)
+						constraintsList.Add("notnull");
+					if (tp.HasUnmanagedTypeConstraint)
+						constraintsList.Add("unmanaged");
+
+					foreach (var constraintType in tp.ConstraintTypes)
+						constraintsList.Add(compilation.GetMinimalString(constraintType));
+
+					if (tp.HasConstructorConstraint)
+						constraintsList.Add("new()");
+
+					return constraintsList.Count > 0
+						? $"where {tp.Name} : {String.Join(", ", constraintsList)}"
+						: null;
+				})
+				.Where(c => c != null);
+			
+			return builder.AppendBlock($"{prepend}{compilation.GetMinimalString(methodSymbol.ReturnType)} {methodSymbol.Name}<{String.Join(", ", methodSymbol.TypeParameters.Select(compilation.GetMinimalString))}>({String.Join(", ", methodSymbol.Parameters.Select(compilation.GetMinimalString))}) {String.Join("\n\t", constraints)}");
 		}
 
 		return builder.AppendBlock($"{prepend}{compilation.GetMinimalString(methodSymbol.ReturnType)} {methodSymbol.Name}({String.Join(", ", methodSymbol.Parameters.Select(compilation.GetMinimalString))})");
+	}
+
+	protected void AppendMethod(IndentedStringBuilder builder, IMethodSymbol methodSymbol, IList<object?> items, Action<VectorTypes, string, int> vectorAction, Action<bool> action)
+	{
+		using (AppendMethod(builder, methodSymbol))
+		{
+			var isPerformance = IsPerformance(generationLevel, items.Count);
+			
+			if (isPerformance)
+			{
+				var vectorType = compilation.GetVector(elementType, loader, items, true, out var vector, out var vectorSize);
+
+				using (builder.AppendBlock($"if ({vectorType}.IsHardwareAccelerated)"))
+				{
+					vectorAction(vectorType, vector, vectorSize);
+				}
+				
+				builder.AppendLine();
+			}
+			
+			action(isPerformance);
+		}
+	}
+
+	protected void AppendMethod(IndentedStringBuilder builder, IMethodSymbol methodSymbol, IEnumerable<object?> items, Action<bool> action)
+	{
+		using (AppendMethod(builder, methodSymbol))
+		{
+			action(IsPerformance(generationLevel, items.Count()));
+		}
 	}
 
 	protected static void AppendProperty(IndentedStringBuilder builder, IPropertySymbol propertySymbol, string? get = null, string? set = null)
@@ -157,5 +212,12 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 	{
 		return level == GenerationLevel.Performance 
 		       || level == GenerationLevel.Balanced && count <= Threshold;
+	}
+
+	protected string CreateReturnPadding(string check, IEnumerable<string> checks)
+	{
+		var padding = new string(' ', "return".Length - check.Length);
+
+		return $"return {String.Join("\n" + padding + $"{check} ", checks)};";
 	}
 }

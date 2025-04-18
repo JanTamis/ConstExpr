@@ -9,7 +9,7 @@ using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Builders;
 
-public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, ITypeSymbol elementType, int hashCode) : BaseBuilder(elementType, compilation, hashCode)
+public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, ITypeSymbol elementType, GenerationLevel generationLevel, int hashCode) : BaseBuilder(elementType, compilation, generationLevel, loader, hashCode)
 {
 	public void AppendCount(ITypeSymbol typeSymbol, int count, IndentedStringBuilder builder)
 	{
