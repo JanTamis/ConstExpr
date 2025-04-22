@@ -300,38 +300,38 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		item.LessThan = BuildBinarySearchTree(low, index - 1, items, TreeNode.NodeState.LessThan, item);
 		item.GreaterThan = BuildBinarySearchTree(index + 1, high, items, TreeNode.NodeState.GreaterThan, item);
 
-		if (item.LessThan is not null && EqualityComparer<object?>.Default.Equals(item.Value, item.LessThan.Value) && item.GreaterThan is not { Value: not null })
-		{
-			item.LessThan.Parent = parentNode;
-
-			return item.LessThan;
-		}
-
-		if (item.GreaterThan is not null && EqualityComparer<object?>.Default.Equals(item.Value, item.GreaterThan.Value) && item.LessThan is not { Value: not null })
-		{
-			item.GreaterThan.Parent = parentNode;
-
-			return item.GreaterThan;
-		}
-
-		if (item.LessThan is not null && item.GreaterThan is not null
-		                              && EqualityComparer<object?>.Default.Equals(item.Value, item.GreaterThan.Value)
-		                              && EqualityComparer<object?>.Default.Equals(item.Value, item.LessThan.Value))
-		{
-			item.LessThan.Parent = parentNode;
-
-			return item.LessThan;
-		}
-
-		if (parentNode is { State: TreeNode.NodeState.GreaterThan } && item.LessThan is { Value: null })
-		{
-			item.LessThan = null;
-		}
-
-		if (parentNode is { State: TreeNode.NodeState.LessThan } && item.GreaterThan is { Value: null })
-		{
-			item.GreaterThan = null;
-		}
+		// if (item.LessThan is not null && EqualityComparer<object?>.Default.Equals(item.Value, item.LessThan.Value) && item.GreaterThan is not { Value: not null })
+		// {
+		// 	item.LessThan.Parent = parentNode;
+		//
+		// 	return item.LessThan;
+		// }
+		//
+		// if (item.GreaterThan is not null && EqualityComparer<object?>.Default.Equals(item.Value, item.GreaterThan.Value) && item.LessThan is not { Value: not null })
+		// {
+		// 	item.GreaterThan.Parent = parentNode;
+		//
+		// 	return item.GreaterThan;
+		// }
+		//
+		// if (item.LessThan is not null && item.GreaterThan is not null
+		//                               && EqualityComparer<object?>.Default.Equals(item.Value, item.GreaterThan.Value)
+		//                               && EqualityComparer<object?>.Default.Equals(item.Value, item.LessThan.Value))
+		// {
+		// 	item.LessThan.Parent = parentNode;
+		//
+		// 	return item.LessThan;
+		// }
+		
+		// if (!item.LessThan.IsLeaf && Comparer<object?>.Default.Compare(item.LessThan.Value, item.Value) >= 0)
+		// {
+		// 	item.LessThan = null;
+		// }
+		//
+		// if (!item.GreaterThan.IsLeaf && Comparer<object?>.Default.Compare(item.GreaterThan.Value, item.Value) <= 0)
+		// {
+		// 	item.GreaterThan = null;
+		// }
 
 		return item;
 	}
@@ -356,29 +356,29 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		                   $"{String.Format(compareFormat, method.Parameters.Select<IParameterSymbol, object>(s => s.Name).Prepend(SyntaxHelpers.CreateLiteral(node.Value)).ToArray())};");
 		builder.AppendLine();
 
-		if (node.GreaterThan is null && node.State == TreeNode.NodeState.LessThan)
-		{
-			using (builder.AppendBlock($"if ({checkVarName} != 0)"))
-			{
-				builder.AppendLine($"return {SyntaxHelpers.CreateLiteral(~0)};");
-			}
-		}
-		else if (node is { LessThan: not null, GreaterThan: not null } && node.LessThan.Index == node.GreaterThan.Index)
-		{
-			using (builder.AppendBlock($"if ({checkVarName} != 0)"))
-			{
-				builder.AppendLine($"return {SyntaxHelpers.CreateLiteral(~node.LessThan.Index)};");
-			}
-		}
-		else if (node.LessThan is null && node.GreaterThan is null)
-		{
-			using (builder.AppendBlock($"if ({checkVarName} != 0)"))
-			{
-				builder.AppendLine($"return {SyntaxHelpers.CreateLiteral(~node.Index)};");
-			}
-		}
-		else
-		{
+		// if (node.GreaterThan is null && node.State == TreeNode.NodeState.LessThan)
+		// {
+		// 	using (builder.AppendBlock($"if ({checkVarName} != 0)"))
+		// 	{
+		// 		builder.AppendLine($"return {SyntaxHelpers.CreateLiteral(~0)};");
+		// 	}
+		// }
+		// else if (node is { LessThan: not null, GreaterThan: not null } && node.LessThan.Index == node.GreaterThan.Index)
+		// {
+		// 	using (builder.AppendBlock($"if ({checkVarName} != 0)"))
+		// 	{
+		// 		builder.AppendLine($"return {SyntaxHelpers.CreateLiteral(~node.LessThan.Index)};");
+		// 	}
+		// }
+		// else if (node.LessThan is null && node.GreaterThan is null)
+		// {
+		// 	using (builder.AppendBlock($"if ({checkVarName} != 0)"))
+		// 	{
+		// 		builder.AppendLine($"return {SyntaxHelpers.CreateLiteral(~node.Index)};");
+		// 	}
+		// }
+		// else
+		// {
 			if (node.LessThan is not null)
 			{
 				// Generate branch logic
@@ -420,7 +420,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 					}
 				}
 			}
-		}
+		// }
 
 		builder.AppendLine();
 		builder.AppendLine($"return {SyntaxHelpers.CreateLiteral(node.Index)};");
