@@ -47,9 +47,9 @@ public static class Test
 		return encoding.GetBytes(value);
 	}
 
-	public static ICharCollection<char> Base64Encode(string value)
+	public static ICharCollection Base64Encode(string value)
 	{
-		return (ICharCollection<char>) (object)Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
+		return (ICharCollection) (object)Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
 	}
 
 	public async static Task<string> Waiting()
@@ -69,7 +69,7 @@ public static class Test
 			result.Add(random.Next(count));
 		}
 
-		return result as ICustomCollection<int>;
+		return result.OrderBy( o => o) as ICustomCollection<int>;
 	}
 
 	public static ICustomCollection<string> Split(string value, char separator)
@@ -77,18 +77,22 @@ public static class Test
 		return (ICustomCollection<string>)(object)value.Split(separator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 	}
 
-	public static IEnumerable<int> Fibonacci(int count)
+	public static ICustomCollection<int> Fibonacci(int count)
 	{
+		var items = new List<int>(count);
+		
 		int a = 0, b = 1;
 
 		for (var i = 0; i < count; i++)
 		{
-			yield return a;
+			items.Add(a);
 
 			var temp = a;
 			a = b;
 			b = temp + b;
 		}
+		
+		return items as ICustomCollection<int>;
 	}
 
 	public static (float h, float s, float l) RgbToHsl(byte r, byte g, byte b)

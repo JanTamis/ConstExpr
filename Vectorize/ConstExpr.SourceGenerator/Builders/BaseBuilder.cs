@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using ConstExpr.SourceGenerator.Enums;
 using ConstExpr.SourceGenerator.Extensions;
@@ -11,7 +12,7 @@ namespace ConstExpr.SourceGenerator.Builders;
 public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilation, GenerationLevel generationLevel, MetadataLoader loader, int hashCode)
 {
 	public const int Threshold = 5;
-	
+
 	protected IDisposable AppendMethod(IndentedStringBuilder builder, IMethodSymbol methodSymbol)
 	{
 		var prepend = "public ";
@@ -55,7 +56,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 						: null;
 				})
 				.Where(c => c != null);
-			
+
 			return builder.AppendBlock($"{prepend}{compilation.GetMinimalString(methodSymbol.ReturnType)} {methodSymbol.Name}<{String.Join(", ", methodSymbol.TypeParameters.Select(compilation.GetMinimalString))}>({String.Join(", ", methodSymbol.Parameters.Select(compilation.GetMinimalString))}) {String.Join("\n\t", constraints)}");
 		}
 
@@ -67,19 +68,22 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		using (AppendMethod(builder, methodSymbol))
 		{
 			var isPerformance = IsPerformance(generationLevel, items.Count);
-			
-			if (isPerformance)
+
+			if (isPerformance && compilation.IsVectorSupported(elementType))
 			{
 				var vectorType = compilation.GetVector(elementType, loader, items, true, out var vector, out var vectorSize);
 
-				using (builder.AppendBlock($"if ({vectorType}.IsHardwareAccelerated)"))
+				if (vectorType != VectorTypes.None)
 				{
-					vectorAction(vectorType, vector, vectorSize);
+					using (builder.AppendBlock($"if ({vectorType}.IsHardwareAccelerated)"))
+					{
+						vectorAction(vectorType, vector, vectorSize);
+					}
+
+					builder.AppendLine();
 				}
-				
-				builder.AppendLine();
 			}
-			
+
 			action(isPerformance);
 		}
 	}
@@ -186,14 +190,14 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 			return true;
 		}
 
-		return typeSymbol.AllInterfaces.Any(i =>	i.OriginalDefinition.SpecialType == SpecialType.System_Collections_Generic_IList_T 
-			                                        && i.TypeArguments.Length == 1 
-			                                        && SymbolEqualityComparer.Default.Equals(i.TypeArguments[0], elementType));
+		return typeSymbol.AllInterfaces.Any(i => i.OriginalDefinition.SpecialType == SpecialType.System_Collections_Generic_IList_T
+		                                         && i.TypeArguments.Length == 1
+		                                         && SymbolEqualityComparer.Default.Equals(i.TypeArguments[0], elementType));
 	}
 
 	protected string GetLengthPropertyName(ITypeSymbol typeSymbol)
 	{
-		if ((typeSymbol is IArrayTypeSymbol arrayType && SymbolEqualityComparer.Default.Equals(arrayType.ElementType, elementType) )
+		if ((typeSymbol is IArrayTypeSymbol arrayType && SymbolEqualityComparer.Default.Equals(arrayType.ElementType, elementType))
 		    || SymbolEqualityComparer.Default.Equals(typeSymbol, compilation.GetTypeByType(typeof(Span<>), elementType))
 		    || SymbolEqualityComparer.Default.Equals(typeSymbol, compilation.GetTypeByType(typeof(ReadOnlySpan<>), elementType)))
 		{
@@ -208,9 +212,9 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		return $"{type.Name}_{hashCode}_Data";
 	}
 
-	protected bool IsPerformance(GenerationLevel level, int count)
+	public static bool IsPerformance(GenerationLevel level, int count)
 	{
-		return level == GenerationLevel.Performance 
+		return level == GenerationLevel.Performance
 		       || level == GenerationLevel.Balanced && count <= Threshold;
 	}
 
@@ -219,5 +223,206 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		var padding = new string(' ', "return".Length - check.Length);
 
 		return $"return {String.Join("\n" + padding + $"{check} ", checks)};";
+	}
+
+	protected class TreeNode
+	{
+		public object? Value { get; set; }
+		public int Index { get; set; }
+		public int ReturnValue { get; set; }
+		public bool IsLeaf { get; init; }
+		public TreeNode? LessThan { get; set; }
+		public TreeNode? GreaterThan { get; set; }
+
+		public NodeState State { get; set; }
+
+		public TreeNode? Parent { get; set; }
+
+		public enum NodeState
+		{
+			None,
+			LessThan,
+			GreaterThan
+		}
+	}
+
+	protected TreeNode BuildBinarySearchTree(int low, int high, IList<object?> items, TreeNode.NodeState state, TreeNode? parentNode)
+	{
+		var index = (int) ((uint) high + (uint) low >> 1);
+
+		// Check if all items are equal
+		if (items.All(a => a.Equals(items[0])))
+		{
+			return new TreeNode
+			{
+				IsLeaf = false,
+				ReturnValue = ~index,
+				State = TreeNode.NodeState.None,
+				Parent = parentNode,
+				Index = index,
+				Value = items[index],
+				LessThan = new TreeNode
+				{
+					IsLeaf = true,
+					ReturnValue = ~0,
+					State = TreeNode.NodeState.LessThan,
+					Parent = parentNode,
+					Index = 0,
+					Value = items[0]
+				},
+				GreaterThan = new TreeNode
+				{
+					IsLeaf = true,
+					ReturnValue = ~(items.Count - 1),
+					State = TreeNode.NodeState.GreaterThan,
+					Parent = parentNode,
+					Index = items.Count - 1,
+					Value = items[^1]
+				}
+			};
+		}
+
+		if (low > high)
+		{
+			return new TreeNode { IsLeaf = true, ReturnValue = ~low, State = TreeNode.NodeState.None, Parent = parentNode };
+		}
+
+		var item = new TreeNode
+		{
+			Value = items[index],
+			Index = index,
+			IsLeaf = false,
+			ReturnValue = index,
+			State = state,
+			Parent = parentNode
+		};
+
+		item.LessThan = BuildBinarySearchTree(low, index - 1, items, TreeNode.NodeState.LessThan, item);
+		item.GreaterThan = BuildBinarySearchTree(index + 1, high, items, TreeNode.NodeState.GreaterThan, item);
+
+		if (item.LessThan is not null && EqualityComparer<object?>.Default.Equals(item.Value, item.LessThan.Value) && item.GreaterThan is not { Value: not null })
+		{
+			item.LessThan.Parent = parentNode;
+
+			return item.LessThan;
+		}
+
+		if (item.GreaterThan is not null && EqualityComparer<object?>.Default.Equals(item.Value, item.GreaterThan.Value) && item.LessThan is not { Value: not null })
+		{
+			item.GreaterThan.Parent = parentNode;
+
+			return item.GreaterThan;
+		}
+
+		if (item.LessThan is not null && item.GreaterThan is not null
+		                              && EqualityComparer<object?>.Default.Equals(item.Value, item.GreaterThan.Value)
+		                              && EqualityComparer<object?>.Default.Equals(item.Value, item.LessThan.Value))
+		{
+			item.LessThan.Parent = parentNode;
+
+			return item.LessThan;
+		}
+
+		if (parentNode is { State: TreeNode.NodeState.GreaterThan } && item.LessThan is { Value: null })
+		{
+			item.LessThan = null;
+		}
+
+		if (parentNode is { State: TreeNode.NodeState.LessThan } && item.GreaterThan is { Value: null })
+		{
+			item.GreaterThan = null;
+		}
+
+		return item;
+	}
+
+	protected void GenerateCodeFromTree(IndentedStringBuilder builder, TreeNode node, string compareFormat, bool isFirst, IMethodSymbol method, int count)
+	{
+		if (node.IsLeaf)
+		{
+			builder.AppendLine($"return {SyntaxHelpers.CreateLiteral(node.ReturnValue)};");
+			return;
+		}
+
+		if (node.Value == node.Parent?.Value && node.LessThan?.Index == node.GreaterThan?.Index)
+		{
+			builder.AppendLine($"return {SyntaxHelpers.CreateLiteral(~node.LessThan.Index)};");
+		}
+
+		var checkVarName = "check";
+
+		// Generate comparison code only once
+		builder.AppendLine($"{(isFirst ? "var " : String.Empty)}{checkVarName} = " +
+		                   $"{String.Format(compareFormat, method.Parameters.Select<IParameterSymbol, object>(s => s.Name).Prepend(SyntaxHelpers.CreateLiteral(node.Value)).ToArray())};");
+		builder.AppendLine();
+
+		if (node.GreaterThan is null && node.State == TreeNode.NodeState.LessThan)
+		{
+			using (builder.AppendBlock($"if ({checkVarName} != 0)"))
+			{
+				builder.AppendLine($"return {SyntaxHelpers.CreateLiteral(~0)};");
+			}
+		}
+		else if (node is { LessThan: not null, GreaterThan: not null } && node.LessThan.Index == node.GreaterThan.Index)
+		{
+			using (builder.AppendBlock($"if ({checkVarName} != 0)"))
+			{
+				builder.AppendLine($"return {SyntaxHelpers.CreateLiteral(~node.LessThan.Index)};");
+			}
+		}
+		else if (node.LessThan is null && node.GreaterThan is null)
+		{
+			using (builder.AppendBlock($"if ({checkVarName} != 0)"))
+			{
+				builder.AppendLine($"return {SyntaxHelpers.CreateLiteral(~node.Index)};");
+			}
+		}
+		else
+		{
+			if (node.LessThan is not null)
+			{
+				// Generate branch logic
+				using (builder.AppendBlock($"if ({checkVarName} < 0)"))
+				{
+					GenerateCodeFromTree(builder, node.LessThan!, compareFormat, false, method, count);
+				}
+			}
+
+			if (node.GreaterThan is not null)
+			{
+				if (node.LessThan is not null)
+				{
+					using (builder.AppendBlock($"else if ({checkVarName} > 0)"))
+					{
+						GenerateCodeFromTree(builder, node.GreaterThan, compareFormat, false, method, count);
+					}
+				}
+				else
+				{
+					using (builder.AppendBlock($"if ({checkVarName} > 0)"))
+					{
+						GenerateCodeFromTree(builder, node.GreaterThan, compareFormat, false, method, count);
+					}
+				}
+			}
+			else
+			{
+				using (builder.AppendBlock($"else if ({checkVarName} > 0)"))
+				{
+					switch (node.State)
+					{
+						case TreeNode.NodeState.LessThan:
+							builder.AppendLine($"return {SyntaxHelpers.CreateLiteral(~0)};");
+							break;
+						case TreeNode.NodeState.GreaterThan:
+							builder.AppendLine($"return {SyntaxHelpers.CreateLiteral(~(count - 1))};");
+							break;
+					}
+				}
+			}
+		}
+
+		builder.AppendLine();
+		builder.AppendLine($"return {SyntaxHelpers.CreateLiteral(node.Index)};");
 	}
 }

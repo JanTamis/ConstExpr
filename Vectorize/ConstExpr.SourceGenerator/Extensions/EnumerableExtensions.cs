@@ -45,6 +45,7 @@ public static class EnumerableExtensions
 			short aShort when b is short bShort => aShort + bShort,
 			ushort aUShort when b is ushort bUShort => aUShort + bUShort,
 			int ai when b is int bi => ai + bi,
+			uint ai when b is uint bi => ai + bi,
 			float af when b is float bf => af + bf,
 			double ad when b is double bd => ad + bd,
 			decimal am when b is decimal bm => am + bm,
@@ -57,6 +58,7 @@ public static class EnumerableExtensions
 		return elementType.SpecialType switch
 		{
 			SpecialType.System_Int32 => source.Cast<int>().Average(),
+			SpecialType.System_Int64 => source.Cast<long>().Average(),
 			SpecialType.System_Single => source.Cast<float>().Average(),
 			SpecialType.System_Double => source.Cast<double>().Average(),
 			SpecialType.System_Decimal => source.Cast<decimal>().Average(),

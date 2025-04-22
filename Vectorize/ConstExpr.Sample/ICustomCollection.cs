@@ -20,16 +20,17 @@ public interface ICustomCollection<T>
 	// bool ContainsAnyExcept(T element1, T element2, T element3, T element4);
 	
 	// bool EndsWith(T item);
+
+	int BinarySearch(T item);
 	
-	int BinarySearch<TComparer>(T item, TComparer comparer) where TComparer : IComparer<T>;
-	
-	
-	// int CommonPrefixLength(ReadOnlySpan<T> other);
+	int CommonPrefixLength(ReadOnlySpan<T> other);
 }
 
-public interface ICharCollection<T>
+public interface ICharCollection
 {
 	IEnumerable<Rune> EnumerateRunes();
+	
 	IEnumerable<string> EnumerateLines();
+	
 	bool IsWhiteSpace();
 }

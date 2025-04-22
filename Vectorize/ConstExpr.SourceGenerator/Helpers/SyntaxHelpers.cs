@@ -392,7 +392,7 @@ public static class SyntaxHelpers
 		       && IsIEnumerableRecursive(namedTypeSymbol);
 	}
 
-	public static bool IsIEnumerable(INamedTypeSymbol typeSymbol)
+	public static bool IsIEnumerable(ITypeSymbol typeSymbol)
 	{
 		return typeSymbol.Name == "IEnumerable" && typeSymbol.ContainingNamespace.ToDisplayString() == "System.Collections.Generic";
 	}
