@@ -3,6 +3,7 @@ using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using Microsoft.CodeAnalysis;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
@@ -50,11 +51,38 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 
 		void BinarySearch(int low, int high, bool isFirst, string compareFormat)
 		{
+			var set = new List<KeyValuePair<object?, int>>();
+			
+			BinarySearch(low, high);
+			
 			// First build a decision tree structure
-			var tree = BuildBinarySearchTree(low, high, items, TreeNode.NodeState.None, null);
+			var tree = BuildBinarySearchTree(0, set.Count - 1, set.FindIndex(f => f.Value == high / 2) , set, TreeNode.NodeState.None, null);
 
 			// Then generate code from the tree
 			GenerateCodeFromTree(builder, tree, compareFormat, isFirst, method, items.Count);
+
+			void BinarySearch(int tempLow, int tempHigh)
+			{
+				if (tempLow > tempHigh)
+				{
+					return;
+				}
+					
+				var index = (int) ((uint) tempHigh + (uint) tempLow >> 1);
+				var value = items[index];
+
+				var result = new KeyValuePair<object?, int>(value, index);
+				
+				var temp = set.BinarySearch(result,  Comparer<KeyValuePair<object?, int>>.Create((x, y) => Comparer<object>.Default.Compare(x.Key, y.Key)));
+
+				if (temp < 0)
+				{
+					set.Insert(~temp, result);
+				}
+				
+				BinarySearch(tempLow, index - 1);
+				BinarySearch(index + 1, tempHigh);
+			}
 		}
 	}
 
