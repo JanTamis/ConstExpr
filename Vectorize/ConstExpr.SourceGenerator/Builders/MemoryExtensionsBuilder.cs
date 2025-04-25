@@ -98,7 +98,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 					// Calculate count vector based on vector size
 					if (vectorSize != items.Count)
 					{
-						builder.AppendLine($"var countVec = {vectorType}.Min({vectorType}.Create({method.Parameters[0].Name}.Length), {vector});");
+						builder.AppendLine($"var countVec = {vectorType}.Min({vectorType}.Create({method.Parameters[0].Name}.Length), {vectorType}.Create({CreateLiteral(items.Count)}));");
 					}
 					else
 					{

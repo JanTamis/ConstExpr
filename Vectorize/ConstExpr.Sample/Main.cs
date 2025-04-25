@@ -17,4 +17,4 @@ Console.WriteLine(await Test.Waiting());
 Console.WriteLine(String.Join(", ", Test.Fibonacci(20)));
 Console.WriteLine(Test.RgbToHsl(150, 100, 50));
 
-Console.WriteLine(range.BinarySearch(3));
+Console.WriteLine(range.BinarySearch(2));
