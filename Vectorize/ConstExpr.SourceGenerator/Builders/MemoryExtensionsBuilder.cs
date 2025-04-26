@@ -53,7 +53,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		{
 			var set = new List<KeyValuePair<object?, int>>();
 			
-			BinarySearch(low, high);
+			PrepareBinarySearch(low, high);
 			
 			// First build a decision tree structure
 			var tree = BuildBinarySearchTree(0, set.Count - 1, set.FindIndex(f => f.Value == high / 2) , set, TreeNode.NodeState.None, null);
@@ -61,7 +61,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 			// Then generate code from the tree
 			GenerateCodeFromTree(builder, tree, compareFormat, isFirst, method, items.Count);
 
-			void BinarySearch(int tempLow, int tempHigh)
+			void PrepareBinarySearch(int tempLow, int tempHigh)
 			{
 				if (tempLow > tempHigh)
 				{
@@ -80,8 +80,8 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 					set.Insert(~temp, result);
 				}
 				
-				BinarySearch(tempLow, index - 1);
-				BinarySearch(index + 1, tempHigh);
+				PrepareBinarySearch(tempLow, index - 1);
+				PrepareBinarySearch(index + 1, tempHigh);
 			}
 		}
 	}
