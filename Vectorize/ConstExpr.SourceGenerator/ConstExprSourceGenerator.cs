@@ -489,6 +489,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			{
 				return null;
 			}
+			
 			variables[paramName] = value;
 		}
 

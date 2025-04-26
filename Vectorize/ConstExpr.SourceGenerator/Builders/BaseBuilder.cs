@@ -5,6 +5,7 @@ using System.Linq;
 using ConstExpr.SourceGenerator.Enums;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
+using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Builders;
@@ -298,17 +299,37 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		item.LessThan = BuildBinarySearchTree(low, index - 1, (int) ((uint) (index - 1) + (uint) low >> 1), items, TreeNode.NodeState.LessThan, item);
 		item.GreaterThan = BuildBinarySearchTree(index + 1, high, (int) ((uint) high + (uint) (index + 1) >> 1), items, TreeNode.NodeState.GreaterThan, item);
 
-		if (!item.LessThan.IsLeaf && Comparer<object?>.Default.Compare(item.LessThan.Value, item.Value) >= 0)
+		if ((item.LessThan.IsLeaf && CompareLessThan(item, ConstExprOperationVisitor.Subtract(item.Value, 1))) || (!item.LessThan.IsLeaf && Comparer<object?>.Default.Compare(item.LessThan.Value, item.Value) >= 0))
 		{
 			item.LessThan = null;
 		}
 		
-		if (!item.GreaterThan.IsLeaf && Comparer<object?>.Default.Compare(item.GreaterThan.Value, item.Value) <= 0)
+		if ((item.GreaterThan.IsLeaf && CompareGreaterThan(item, ConstExprOperationVisitor.Add(item.Value, 1))) ||!item.GreaterThan.IsLeaf && Comparer<object?>.Default.Compare(item.GreaterThan.Value, item.Value) <= 0)
 		{
 			item.GreaterThan = null;
 		}
 
 		return item;
+		
+		bool CompareLessThan(TreeNode node, object? value)
+		{
+			if (EqualityComparer<object?>.Default.Equals(node.Value, value))
+			{
+				return false;
+			}
+
+			return node.LessThan == null || CompareLessThan(node.LessThan, value);
+		}
+		
+		bool CompareGreaterThan(TreeNode node, object? value)
+		{
+			if (node.GreaterThan is not null && EqualityComparer<object?>.Default.Equals(node.GreaterThan.Value, value))
+			{
+				return false;
+			}
+
+			return node.LessThan == null || CompareGreaterThan(node.LessThan, value);
+		}
 	}
 
 	protected void GenerateCodeFromTree(IndentedStringBuilder builder, TreeNode node, string compareFormat, bool isFirst, IMethodSymbol method, int count)

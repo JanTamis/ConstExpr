@@ -56,7 +56,7 @@ public partial class ConstExprOperationVisitor
 		}
 	}
 	
-	private object? Add(object? left, object? right)
+	public static object? Add(object? left, object? right)
 	{
 		return left switch
 		{
