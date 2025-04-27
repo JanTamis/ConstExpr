@@ -2,7 +2,7 @@ using ConstExpr.SourceGenerator.Sample;
 using System;
 using System.Text;
 
-var range = Test.Range(10);
+var range = Test.Range(20);
 
 Console.WriteLine(Test.IsOdd(1f, 2f, 3f, 4f, 5f));
 Console.WriteLine(Test.Average(1f, 2f, 3f, 4f, 5f));

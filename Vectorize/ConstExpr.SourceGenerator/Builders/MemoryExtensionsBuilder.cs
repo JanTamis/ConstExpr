@@ -56,10 +56,10 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 			PrepareBinarySearch(low, high);
 			
 			// First build a decision tree structure
-			var tree = BuildBinarySearchTree(0, set.Count - 1, set.FindIndex(f => f.Value == high / 2) , set, TreeNode.NodeState.None, null);
+			var tree = BuildBinarySearchTree(0, set.Count - 1, set.FindIndex(f => f.Value == high / 2) , set, TreeNode.NodeState.None, null, items);
 
 			// Then generate code from the tree
-			GenerateCodeFromTree(builder, tree, compareFormat, isFirst, method, items.Count);
+			GenerateCodeFromTree(builder, tree, compareFormat, isFirst, method, set);
 
 			void PrepareBinarySearch(int tempLow, int tempHigh)
 			{
