@@ -569,7 +569,9 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 				return false;
 		}
 	}
-
+	
+	
+	
 	private void AppendContainsAny(ITypeSymbol typeSymbol, IMethodSymbol method, bool result, IList<object?> items, IndentedStringBuilder builder)
 	{
 		var prefix = result ? String.Empty : "!";

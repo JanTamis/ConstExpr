@@ -24,6 +24,8 @@ public interface ICustomCollection<T>
 	int BinarySearch(T item);
 	
 	int CommonPrefixLength(ReadOnlySpan<T> other);
+	
+	int IndexOf(T item);
 }
 
 public interface ICharCollection

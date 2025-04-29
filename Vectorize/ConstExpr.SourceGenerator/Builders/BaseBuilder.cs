@@ -269,7 +269,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 				}
 				case TreeNode.NodeState.GreaterThan:
 				{
-					for (; i < parentNode.Index; i++)
+					for (; i < values.Count; i++)
 					{
 						if (Comparer<object?>.Default.Compare(values[i], value) > 0)
 						{
@@ -296,41 +296,31 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		item.LessThan = BuildBinarySearchTree(low, index - 1, (int) ((uint) (index - 1) + (uint) low >> 1), items, TreeNode.NodeState.LessThan, item, values);
 		item.GreaterThan = BuildBinarySearchTree(index + 1, high, (int) ((uint) high + (uint) (index + 1) >> 1), items, TreeNode.NodeState.GreaterThan, item, values);
 
-		if ((item.LessThan.IsLeaf && CompareLessThan(item, ConstExprOperationVisitor.Subtract(item.Value, 1))) || (!item.LessThan.IsLeaf && Comparer<object?>.Default.Compare(item.LessThan.Value, item.Value) >= 0))
+		if (compilation.IsInterger(elementType) && item.LessThan.IsLeaf && CompareLessThan(item, ConstExprOperationVisitor.Subtract(item.Value, 1)))
 		{
 			item.LessThan = null;
 		}
 		
-		if ((item.GreaterThan.IsLeaf && CompareGreaterThan(item, ConstExprOperationVisitor.Add(item.Value, 1))) || !item.GreaterThan.IsLeaf && Comparer<object?>.Default.Compare(item.GreaterThan.Value, item.Value) <= 0)
+		if (compilation.IsInterger(elementType) && item.GreaterThan.IsLeaf && CompareGreaterThan(item, ConstExprOperationVisitor.Add(item.Value, 1)))
 		{
 			item.GreaterThan = null;
 		}
-
-		if (EqualityComparer<object?>.Default.Equals(item.Value, values[0]))
-		{
-			item.LessThan = new TreeNode { IsLeaf = true, ReturnValue = ~0, State = TreeNode.NodeState.LessThan, Parent = parentNode };
-		}
-
-		if (EqualityComparer<object?>.Default.Equals(item.Value, values[^1]))
-		{
-			item.GreaterThan = new TreeNode { IsLeaf = true, ReturnValue = ~(values.Count - 1), State = TreeNode.NodeState.GreaterThan, Parent = parentNode };
-		}
-
+		
 		return item;
 
 		bool CompareLessThan(TreeNode node, object? value)
 		{
-			return node is { State: TreeNode.NodeState.GreaterThan, Parent: not null } && EqualityComparer<object>.Default.Equals(node.Parent.Value, value) || (node.Parent is not null && CompareLessThan(node.Parent, value));
+			return node is { State: TreeNode.NodeState.GreaterThan, Parent: not null } && EqualityComparer<object?>.Default.Equals(node.Parent.Value, value) || node.Parent is not null && CompareLessThan(node.Parent, value);
 		}
 
 		bool CompareGreaterThan(TreeNode node, object? value)
 		{
-			if (node.GreaterThan is not null && EqualityComparer<object?>.Default.Equals(node.GreaterThan.Value, value))
+			if (EqualityComparer<object?>.Default.Equals(node.Value, value))
 			{
-				return false;
+				return true;
 			}
 
-			return node.LessThan == null || CompareGreaterThan(node.LessThan, value);
+			return node.Parent is not null && CompareGreaterThan(node.Parent, value);
 		}
 	}
 
@@ -354,17 +344,32 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 
 		var checkVarName = "check";
 
-		// Generate comparison code only once
-		builder.AppendLine($"{(isFirst ? "var " : String.Empty)}{checkVarName} = " +
-		                   $"{String.Format(compareFormat, method.Parameters.Select<IParameterSymbol, object>(s => s.Name).Prepend(SyntaxHelpers.CreateLiteral(node.Value)).ToArray())};");
-		builder.AppendLine();
+		if (!compilation.HasComparison(elementType))
+		{
+			// Generate comparison code only once
+			builder.AppendLine($"{(isFirst ? "var " : String.Empty)}{checkVarName} = " +
+			                   $"{String.Format(compareFormat, method.Parameters.Select<IParameterSymbol, object>(s => s.Name).Prepend(SyntaxHelpers.CreateLiteral(node.Value)).ToArray())};");
+			builder.AppendLine();
+		}
+		
 
 		if (node.LessThan is not null)
 		{
-			// Generate branch logic
-			using (builder.AppendBlock($"if ({checkVarName} < 0)"))
+			if (compilation.HasComparison(elementType))
 			{
-				GenerateCodeFromTree(builder, node.LessThan, compareFormat, false, method, items);
+				// Generate branch logic
+				using (builder.AppendBlock($"if ({method.Parameters[0].Name} < {node.Value})"))
+				{
+					GenerateCodeFromTree(builder, node.LessThan, compareFormat, false, method, items);
+				}
+			}
+			else
+			{
+				// Generate branch logic
+				using (builder.AppendBlock($"if ({checkVarName} < 0)"))
+				{
+					GenerateCodeFromTree(builder, node.LessThan, compareFormat, false, method, items);
+				}
 			}
 		}
 
@@ -372,16 +377,38 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		{
 			if (node.LessThan is not null)
 			{
-				using (builder.AppendBlock($"else if ({checkVarName} > 0)"))
+				if (compilation.HasComparison(elementType))
 				{
-					GenerateCodeFromTree(builder, node.GreaterThan, compareFormat, false, method, items);
+					using (builder.AppendBlock($"else if ({method.Parameters[0].Name} > {node.Value})"))
+					{
+						GenerateCodeFromTree(builder, node.GreaterThan, compareFormat, false, method, items);
+					}
+				}
+				else
+				{
+					using (builder.AppendBlock($"else if ({checkVarName} > 0)"))
+					{
+						GenerateCodeFromTree(builder, node.GreaterThan, compareFormat, false, method, items);
+					}
 				}
 			}
 			else
 			{
-				using (builder.AppendBlock($"if ({checkVarName} > 0)"))
+				if (compilation.HasComparison(elementType))
 				{
-					GenerateCodeFromTree(builder, node.GreaterThan, compareFormat, false, method, items);
+					using (builder.AppendBlock($"if ({method.Parameters[0].Name} > {node.Value})"))
+					{
+						GenerateCodeFromTree(builder, node.GreaterThan, compareFormat, false, method, items);
+					}
+				}
+				else
+				{
+					using (builder.AppendBlock($"else"))
+					{
+						builder.AppendLine($"if ({checkVarName} > 0)");
+					}
+
+					builder.AppendLine();
 				}
 			}
 		}

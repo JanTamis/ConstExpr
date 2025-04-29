@@ -616,4 +616,33 @@ public static class CompilationExtensions
 		return result || compilation.IsSpanType(typeSymbol, elementType)
 			&& (compilation.GetTypeByMetadataName("System.MemoryExtensions")?.HasMember<IMethodSymbol>("Contains", m => m.ReturnType.SpecialType == SpecialType.System_Boolean && m.Parameters.EqualsTypes(elementType)) ?? false);
 	}
+	
+	public static bool IsInterger(this Compilation compilation, ITypeSymbol typeSymbol)
+	{
+		return typeSymbol.SpecialType is SpecialType.System_SByte
+			or SpecialType.System_Byte
+			or SpecialType.System_Int16
+			or SpecialType.System_UInt16
+			or SpecialType.System_Int32
+			or SpecialType.System_UInt32
+			or SpecialType.System_Int64
+			or SpecialType.System_UInt64;
+	}
+
+	public static bool HasComparison(this Compilation compilation, ITypeSymbol typeSymbol)
+	{
+		return typeSymbol.SpecialType is SpecialType.System_SByte
+			or SpecialType.System_Byte
+			or SpecialType.System_Int16
+			or SpecialType.System_UInt16
+			or SpecialType.System_Int32
+			or SpecialType.System_UInt32
+			or SpecialType.System_Int64
+			or SpecialType.System_UInt64
+			or SpecialType.System_Boolean
+			or SpecialType.System_Char
+			or SpecialType.System_Decimal
+			or SpecialType.System_Double
+			or SpecialType.System_Single;
+	}
 }

@@ -233,17 +233,14 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 				{
 					using (builder.AppendBlock($"return {method.Parameters[0].Name} switch", "};"))
 					{
-						var index = 0;
 						var hashSet = new HashSet<object?>();
 
-						foreach (var item in items)
+						foreach (var (index, value) in items.Index())
 						{
-							if (hashSet.Add(item))
+							if (hashSet.Add(value))
 							{
-								builder.AppendLine($"{SyntaxHelpers.CreateLiteral(item)} => {index},");
+								builder.AppendLine($"{SyntaxHelpers.CreateLiteral(value)} => {index},");
 							}
-
-							index++;
 						}
 
 						builder.AppendLine("_ => -1,");
@@ -326,7 +323,6 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 							{
 								builder.AppendLine($"return {vectorType}.EqualsAny({vector}, {vectorType}.Create({method.Parameters[0].Name}));");
 							}
-
 						}
 
 						builder.AppendLine();
