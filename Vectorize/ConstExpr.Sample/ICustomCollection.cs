@@ -15,6 +15,9 @@ public interface ICustomCollection<T>
 	// bool SequenceEqual(IEnumerable<T> other);
 	
 	bool Contains(T element);
+	
+	int IndexOfAny(T element1, T element2);
+	
 	//
 	// bool ContainsAny(T element1, T element2, T element3, T element4);
 	// bool ContainsAnyExcept(T element1, T element2, T element3, T element4);

@@ -52,11 +52,11 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		void BinarySearch(int low, int high, bool isFirst, string compareFormat)
 		{
 			var set = new List<KeyValuePair<object?, int>>();
-			
+
 			PrepareBinarySearch(low, high);
-			
+
 			// First build a decision tree structure
-			var tree = BuildBinarySearchTree(0, set.Count - 1, set.FindIndex(f => f.Value == high / 2) , set, TreeNode.NodeState.None, null, items);
+			var tree = BuildBinarySearchTree(0, set.Count - 1, set.FindIndex(f => f.Value == high / 2), set, TreeNode.NodeState.None, null, items);
 
 			// Then generate code from the tree
 			GenerateCodeFromTree(builder, tree, compareFormat, isFirst, method, set);
@@ -67,19 +67,19 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 				{
 					return;
 				}
-					
+
 				var index = (int) ((uint) tempHigh + (uint) tempLow >> 1);
 				var value = items[index];
 
 				var result = new KeyValuePair<object?, int>(value, index);
-				
-				var temp = set.BinarySearch(result,  Comparer<KeyValuePair<object?, int>>.Create((x, y) => Comparer<object>.Default.Compare(x.Key, y.Key)));
+
+				var temp = set.BinarySearch(result, Comparer<KeyValuePair<object?, int>>.Create((x, y) => Comparer<object>.Default.Compare(x.Key, y.Key)));
 
 				if (temp < 0)
 				{
 					set.Insert(~temp, result);
 				}
-				
+
 				PrepareBinarySearch(tempLow, index - 1);
 				PrepareBinarySearch(index + 1, tempHigh);
 			}
@@ -569,9 +569,60 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 				return false;
 		}
 	}
-	
-	
-	
+
+	public bool AppendIndexOfAny(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	{
+		switch (method)
+		{
+			case { Name: "IndexOfAny", ReturnType.SpecialType: SpecialType.System_Int32, Parameters.Length: > 0 }
+				when method.Parameters.All(a => SymbolEqualityComparer.Default.Equals(a.Type, elementType)):
+			{
+				AppendMethod(builder, method, items, isPerformance =>
+				{
+					if (isPerformance)
+					{
+						var values = new HashSet<object?>();
+						var index = 0;
+
+						foreach (var item in items)
+						{
+							if (values.Add(item))
+							{
+								var checks = method.Parameters
+									.Select(s => $"{s.Name} == {CreateLiteral(item)}");
+
+								builder.AppendLine($"if ({String.Join(" || ", checks)}) return {CreateLiteral(index)};");
+							}
+
+							index++;
+						}
+
+						builder.AppendLine($"return {CreateLiteral(-1)};");
+					}
+					else
+					{
+						var collectionName = GetDataName(method.ContainingType);
+						
+						using (builder.AppendBlock($"for (var i = 0; i < {collectionName}.Length; i++)"))
+						{
+							using (builder.AppendBlock($"if ({String.Join(" || ", method.Parameters.Select(s => $"{s.Name} == {collectionName}[i]"))})"))
+							{
+								builder.AppendLine("return i;");
+							}
+						}
+						
+						builder.AppendLine();
+						builder.AppendLine("return -1;");
+					}
+				});
+
+				return true;
+			}
+			default:
+				return false;
+		}
+	}
+
 	private void AppendContainsAny(ITypeSymbol typeSymbol, IMethodSymbol method, bool result, IList<object?> items, IndentedStringBuilder builder)
 	{
 		var prefix = result ? String.Empty : "!";

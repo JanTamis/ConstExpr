@@ -295,7 +295,8 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 										     || memoryExtensionsBuilder.AppendEndsWith(method, items, code)
 										     || memoryExtensionsBuilder.AppendEnumerateLines(method, enumerable as string, code)
 										     || memoryExtensionsBuilder.AppendEnumerableRunes(method, enumerable as string, code)
-										     || memoryExtensionsBuilder.AppendIsWhiteSpace(method, enumerable as string, code):
+										     || memoryExtensionsBuilder.AppendIsWhiteSpace(method, enumerable as string, code)
+												 || memoryExtensionsBuilder.AppendIndexOfAny(method, items, code):
 										continue;
 								}
 
