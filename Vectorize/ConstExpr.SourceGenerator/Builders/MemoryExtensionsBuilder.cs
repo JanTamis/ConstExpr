@@ -574,30 +574,43 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	{
 		switch (method)
 		{
-			case { Name: "IndexOfAny", ReturnType.SpecialType: SpecialType.System_Int32, Parameters.Length: > 0 }
+			case { Name: "IndexOfAny", ReturnType.SpecialType: SpecialType.System_Int32, Parameters.Length: > 1 }
 				when method.Parameters.All(a => SymbolEqualityComparer.Default.Equals(a.Type, elementType)):
 			{
 				AppendMethod(builder, method, items, isPerformance =>
 				{
 					if (isPerformance)
 					{
-						var values = new HashSet<object?>();
-						var index = 0;
-
-						foreach (var item in items)
+						if (method.ContainingType.HasMember<IMethodSymbol>("IndexOf", m => m is { ReturnType.SpecialType: SpecialType.System_Int32 } 
+						                                                                   && m.Parameters.EqualsTypes(elementType)))
 						{
-							if (values.Add(item))
+							foreach (var (index, parameter) in method.Parameters.Index())
 							{
-								var checks = method.Parameters
-									.Select(s => $"{s.Name} == {CreateLiteral(item)}");
-
-								builder.AppendLine($"if ({String.Join(" || ", checks)}) return {CreateLiteral(index)};");
+								builder.AppendLine($"var index{index} = IndexOf({parameter.Name});");
 							}
 
-							index++;
+							builder.AppendLine();
+							builder.AppendLine($"var result = Math.Min((uint)index0, {CreateMinChain(1, method.Parameters.Length)});");
+							builder.AppendLine();
+							builder.AppendLine("return Unsafe.BitCast<uint, int>(result);");
 						}
+						else
+						{
+							var values = new HashSet<object?>();
 
-						builder.AppendLine($"return {CreateLiteral(-1)};");
+							foreach (var (index, item) in items.Index())
+							{
+								if (values.Add(item))
+								{
+									var checks = method.Parameters
+										.Select(s => $"{s.Name} == {CreateLiteral(item)}");
+
+									builder.AppendLine($"if ({String.Join(" || ", checks)}) return {CreateLiteral(index)};");
+								}
+							}
+
+							builder.AppendLine($"return {CreateLiteral(-1)};");
+						}
 					}
 					else
 					{
@@ -620,6 +633,16 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 			}
 			default:
 				return false;
+		}
+		
+		string CreateMinChain(int index, int count)
+		{
+			if (index == count - 1)
+			{
+				return $"(uint)index{index}";
+			}
+
+			return $"Math.Min((uint)index{index}, {CreateMinChain(index + 1, count)})";
 		}
 	}
 

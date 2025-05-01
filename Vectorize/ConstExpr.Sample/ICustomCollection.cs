@@ -16,7 +16,9 @@ public interface ICustomCollection<T>
 	
 	bool Contains(T element);
 	
-	int IndexOfAny(T element1, T element2);
+	int IndexOfAny(T element1, T element2, T element3);
+
+	int IndexOf(T item);
 	
 	//
 	// bool ContainsAny(T element1, T element2, T element3, T element4);
@@ -27,8 +29,6 @@ public interface ICustomCollection<T>
 	int BinarySearch(T item);
 	
 	int CommonPrefixLength(ReadOnlySpan<T> other);
-	
-	int IndexOf(T item);
 }
 
 public interface ICharCollection
