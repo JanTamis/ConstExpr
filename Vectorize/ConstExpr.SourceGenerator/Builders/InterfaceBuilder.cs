@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using ConstExpr.SourceGenerator.Enums;
 using ConstExpr.SourceGenerator.Extensions;
@@ -69,11 +70,11 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 		if (property.IsReadOnly)
 		{
-			using (builder.AppendBlock($"public {elementType.ToDisplayString()} this[int index] => index switch", "};"))
+			using (builder.AppendBlock($"public {elementType} this[int index] => index switch", "};"))
 			{
 				foreach (var item in items.Index().GroupBy(g => g.Value, g => g.Index))
 				{
-					builder.AppendLine($"{String.Join(" or ", item.Select(SyntaxHelpers.CreateLiteral))} => {SyntaxHelpers.CreateLiteral(item.Key)},");
+					builder.AppendLine($"{String.Join(" or ", item.Select(SyntaxHelpers.CreateLiteral))} => {item.Key},");
 				}
 
 				builder.AppendLine("_ => throw new ArgumentOutOfRangeException(),");
@@ -82,11 +83,11 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 		if (property.IsWriteOnly)
 		{
-			builder.AppendLine($"public {elementType.Name} this[int index] => throw new NotSupportedException();");
+			builder.AppendLine($"public {elementType} this[int index] => throw new NotSupportedException();");
 			return true;
 		}
 
-		using (builder.AppendBlock($"public {elementType.Name} this[int index]"))
+		using (builder.AppendBlock($"public {elementType} this[int index]"))
 		{
 			using (builder.AppendBlock("get => index switch", "};"))
 			{
@@ -94,7 +95,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 				foreach (var item in items.Index().GroupBy(g => g.Value, g => g.Index))
 				{
-					builder.AppendLine($"{String.Join(" or ", item.Select(SyntaxHelpers.CreateLiteral))} => {SyntaxHelpers.CreateLiteral(item.Key)},");
+					builder.AppendLine($"{String.Join(" or ", item.Select(SyntaxHelpers.CreateLiteral))} => {item.Key},");
 				}
 
 				builder.AppendLine("_ => throw new ArgumentOutOfRangeException(),");
@@ -119,17 +120,17 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 					{
 						if (method.Parameters[0].Type.IsReferenceType)
 						{
-							using (builder.AppendBlock($"if ({method.Parameters[0].Name} is null)"))
+							using (builder.AppendBlock($"if ({method.Parameters[0]} is null)"))
 							{
-								builder.AppendLine($"throw new ArgumentNullException(nameof({method.Parameters[0].Name}));");
+								builder.AppendLine($"throw new ArgumentNullException(nameof({method.Parameters[0]}));");
 							}
 
 							builder.AppendLine();
 						}
 
-						using (builder.AppendBlock($"if ({method.Parameters[1].Name} < 0 || {method.Parameters[1].Name} + {items.Count()} >= {method.Parameters[0].Name}.{GetLengthPropertyName(method.Parameters[0].Type)})"))
+						using (builder.AppendBlock($"if ({method.Parameters[1]} < 0 || {method.Parameters[1]} + {items.Count()} >= {method.Parameters[0]}.{GetLengthPropertyName(method.Parameters[0].Type)})"))
 						{
-							builder.AppendLine($"throw new ArgumentOutOfRangeException(nameof({method.Parameters[1].Name}));");
+							builder.AppendLine($"throw new ArgumentOutOfRangeException(nameof({method.Parameters[1]}));");
 						}
 
 						builder.AppendLine();
@@ -140,18 +141,18 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 						{
 							if (method.Parameters.Length == 1)
 							{
-								builder.AppendLine($"{method.Parameters[0].Name}[{index++}] = {SyntaxHelpers.CreateLiteral(item)};");
+								builder.AppendLine($"{method.Parameters[0]}[{index++}] = {item};");
 							}
 							else
 							{
-								builder.AppendLine($"{method.Parameters[0].Name}[{method.Parameters[1].Name} + {index++}] = {SyntaxHelpers.CreateLiteral(item)};");
+								builder.AppendLine($"{method.Parameters[0]}[{method.Parameters[1]} + {index++}] = {item};");
 							}
 						}
 					}
 					else
 					{
 						builder.AppendLine(GetDataName(method.ContainingType));
-						builder.AppendLine($"\t.CopyTo({method.Parameters[0].Name});");
+						builder.AppendLine($"\t.CopyTo({method.Parameters[0]});");
 					}
 				}
 
@@ -168,7 +169,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 		switch (method)
 		{
 			case { Name: "Add" }
-				when method.Parameters.EqualsTypes(elementType):
+				when method.Parameters.AsSpan().EqualsTypes(elementType):
 			{
 				using (AppendMethod(builder, method))
 				{
@@ -207,7 +208,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 		switch (method)
 		{
 			case { Name: "Remove", ReturnType.SpecialType: SpecialType.System_Boolean }
-				when method.Parameters.EqualsTypes(elementType):
+				when method.Parameters.AsSpan().EqualsTypes(elementType):
 			{
 				using (AppendMethod(builder, method))
 				{
@@ -222,28 +223,54 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 	}
 
-	public bool AppendIndexOf(IMethodSymbol method, IEnumerable<object?> items, IndentedStringBuilder builder)
+	public bool AppendIndexOf(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: "IndexOf", ReturnType.SpecialType: SpecialType.System_Int32 }
-				when method.Parameters.EqualsTypes(elementType):
+				when method.Parameters.AsSpan().EqualsTypes(elementType):
 			{
 				using (AppendMethod(builder, method))
 				{
-					using (builder.AppendBlock($"return {method.Parameters[0].Name} switch", "};"))
+					var min = items.Min();
+					var max = items.Max();
+
+					if (compilation.IsInterger(elementType) && Comparer<object?>.Default.Compare(max.Subtract(min), 10.ToSpecialType(elementType.SpecialType)) <= 0)
 					{
-						var hashSet = new HashSet<object?>();
+						var indexes = new List<int>();
 
-						foreach (var (index, value) in items.Index())
+						for (var i = min; !EqualityComparer<object?>.Default.Equals(i, max.Add(1.ToSpecialType(elementType.SpecialType))); i = i.Add(1.ToSpecialType(elementType.SpecialType)))
 						{
-							if (hashSet.Add(value))
-							{
-								builder.AppendLine($"{SyntaxHelpers.CreateLiteral(value)} => {index},");
-							}
+							indexes.Add(items.IndexOf(i));
 						}
+						
+						builder.AppendLine($"ReadOnlySpan<int> map = [{indexes}];");
+						builder.AppendLine();
 
-						builder.AppendLine("_ => -1,");
+						if (!EqualityComparer<object?>.Default.Equals(min, 0.ToSpecialType(elementType.SpecialType)))
+						{
+							builder.AppendLine($"{method.Parameters[0]} -= {min};");
+							builder.AppendLine();
+						}
+						
+						builder.AppendLine("return (uint)item < (uint)map.Length ? map[item] : -1;");
+					}
+					else
+					{
+						using (builder.AppendBlock($"return {method.Parameters[0]} switch", "};"))
+						{
+							var set = new HashSet<object?>();
+
+							foreach (var (index, value) in items.Index())
+							{
+								if (set.Add(value))
+								{
+									builder.AppendLine($"{value} => {index},");
+								}
+							}
+
+							builder.AppendLine("_ => -1,");
+						}
 					}
 				}
 
@@ -252,7 +279,6 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 			default:
 				return false;
 		}
-
 	}
 
 	public bool AppendInsert(IMethodSymbol method, IndentedStringBuilder builder)
@@ -260,7 +286,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 		switch (method)
 		{
 			case { Name: "Insert" }
-				when method.Parameters.EqualsTypes(elementType, compilation.CreateInt32()):
+				when method.Parameters.AsSpan().EqualsTypes(elementType, compilation.CreateInt32()):
 			{
 				using (AppendMethod(builder, method))
 				{
@@ -280,7 +306,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 		switch (method)
 		{
 			case { Name: "RemoveAt" }
-				when method.Parameters.EqualsTypes(compilation.CreateInt32()):
+				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateInt32()):
 			{
 				using (AppendMethod(builder, method))
 				{
@@ -295,21 +321,21 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 	}
 
-	public bool AppendContains(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendContains(IMethodSymbol method, ImmutableArray<object?> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: "Contains", ReturnType.SpecialType: SpecialType.System_Boolean }
-				when method.Parameters.EqualsTypes(elementType):
+				when method.Parameters.AsSpan().EqualsTypes(elementType):
 			{
 				items = items
 					.Distinct()
 					.OrderBy(o => o)
-					.ToList();
+					.ToImmutableArray();
 
 				using (AppendMethod(builder, method))
 				{
-					var vectorType = compilation.GetVector(elementType, loader, items, true, out var vector, out _);
+					var vectorType = compilation.GetVector(elementType, loader, items.AsSpan(), true, out var vector, out _);
 
 					if (vectorType != VectorTypes.None && compilation.IsVectorSupported(elementType))
 					{
@@ -317,34 +343,38 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 						{
 							if (compilation.HasMember<IMethodSymbol>(compilation.GetVectorType(vectorType), "Any"))
 							{
-								builder.AppendLine($"return {vectorType}.Any({vector}, {method.Parameters[0].Name});");
+								builder.AppendLine($"return {vectorType}.Any({(LiteralString) vector}, {method.Parameters[0]});");
 							}
 							else
 							{
-								builder.AppendLine($"return {vectorType}.EqualsAny({vector}, {vectorType}.Create({method.Parameters[0].Name}));");
+								builder.AppendLine($"return {vectorType}.EqualsAny({(LiteralString) vector}, {vectorType}.Create({method.Parameters[0]}));");
 							}
 						}
 
 						builder.AppendLine();
 					}
 
-					if (items.Count > 0)
+					if (items.Length > 0)
 					{
-						// Check if the interface implements BinarySearch
-						if (method.ContainingType.HasMember<IMethodSymbol>("BinarySearch", m => m is { ReturnType.SpecialType: SpecialType.System_Int32 }
-						                                                                        && m.Parameters.EqualsTypes(elementType)
-						                                                                        && elementType.HasMember<IMethodSymbol>("CompareTo", x => x is { ReturnType.SpecialType: SpecialType.System_Int32 }
-						                                                                                                                                  && x.Parameters.EqualsTypes(elementType))))
+						if (method.ContainingType.HasMember<IMethodSymbol>("IndexOf", m => m is { ReturnType.SpecialType: SpecialType.System_Int32 }
+						                                                                        && m.Parameters.AsSpan().EqualsTypes(elementType)))
 						{
-							builder.AppendLine($"return BinarySearch({method.Parameters[0].Name}) >= 0;");
+							builder.AppendLine($"return IndexOf({method.Parameters[0]}) >= 0;");
+						}
+						else if (method.ContainingType.HasMember<IMethodSymbol>("BinarySearch", m => m is { ReturnType.SpecialType: SpecialType.System_Int32 }
+						                                                                        && m.Parameters.AsSpan().EqualsTypes(elementType)
+						                                                                        && elementType.HasMember<IMethodSymbol>("CompareTo", x => x is { ReturnType.SpecialType: SpecialType.System_Int32 }
+						                                                                                                                                  && x.Parameters.AsSpan().EqualsTypes(elementType))))
+						{
+							builder.AppendLine($"return BinarySearch({method.Parameters[0]}) >= 0;");
 						}
 						// Check if the interface implements BinarySearch with a comparer
 						else if (method.ContainingType.HasMember<IMethodSymbol>("BinarySearch", m => m is { ReturnType.SpecialType: SpecialType.System_Int32, Parameters.Length: 2 }
 						                                                                             && SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, elementType)
 						                                                                             && m.Parameters[1].Type.HasMember<IMethodSymbol>("Compare", x => x is { ReturnType.SpecialType: SpecialType.System_Int32 }
-						                                                                                                                                              && x.Parameters.EqualsTypes(elementType, elementType))))
+						                                                                                                                                              && x.Parameters.AsSpan().EqualsTypes(elementType, elementType))))
 						{
-							builder.AppendLine($"return BinarySearch({method.Parameters[0].Name}, Comparer<{compilation.GetMinimalString(elementType)}>.Default) >= 0;");
+							builder.AppendLine($"return BinarySearch({method.Parameters[0]}, Comparer<{elementType}>.Default) >= 0;");
 						}
 						else
 						{
@@ -353,23 +383,23 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 							if (length > 100)
 							{
-								builder.AppendLine($"return {method.Parameters[0].Name} is {SyntaxHelpers.CreateLiteral(items[0])}");
+								builder.AppendLine($"return {method.Parameters[0]} is {items[0]}");
 
-								for (var i = 1; i < items.Count; i++)
+								for (var i = 1; i < items.Length; i++)
 								{
-									if (i == items.Count - 1)
+									if (i == items.Length - 1)
 									{
-										builder.AppendLine($"\tor {SyntaxHelpers.CreateLiteral(items[i])};");
+										builder.AppendLine($"\tor {items[i]};");
 									}
 									else
 									{
-										builder.AppendLine($"\tor {SyntaxHelpers.CreateLiteral(items[i])}");
+										builder.AppendLine($"\tor {items[i]}");
 									}
 								}
 							}
 							else
 							{
-								builder.AppendLine($"return {method.Parameters[0].Name} is {String.Join(" or ", elements)};");
+								builder.AppendLine($"return {method.Parameters[0]} is {String.Join(" or ", elements)};");
 							}
 						}
 					}
@@ -384,6 +414,5 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 			default:
 				return false;
 		}
-
 	}
 }

@@ -18,9 +18,10 @@ public interface ICustomCollection<T>
 	
 	int IndexOfAny(T element1, T element2, T element3);
 
-	int IndexOf(T item);
+	// int IndexOf(T item);
+
+	void Replace(Span<T> destination, T oldValue, T newValue);
 	
-	//
 	// bool ContainsAny(T element1, T element2, T element3, T element4);
 	// bool ContainsAnyExcept(T element1, T element2, T element3, T element4);
 	

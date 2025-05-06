@@ -12,6 +12,7 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -101,6 +102,8 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		var code = new IndentedStringBuilder();
 		var usings = group.SelectMany(item => item.Usings).Distinct().OrderBy(s => s);
 
+		IndentedStringBuilder.Compilation = compilation;
+
 		using var loader = MetadataLoader.GetLoader(compilation);
 
 		foreach (var u in usings)
@@ -129,7 +132,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			// Add interceptor attributes
 			foreach (var item in valueGroup)
 			{
-				code.AppendLine($"\t[InterceptsLocation({item.Location.Version}, \"{item.Location.Data}\")]");
+				code.AppendLine((string) $"\t[InterceptsLocation({item.Location.Version}, \"{item.Location.Data}\")]");
 			}
 
 			// Generate the method implementation
@@ -208,9 +211,9 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 				code.AppendLine();
 
-				using (code.AppendBlock($"file sealed class {namedTypeSymbol.Name}_{hashCode} : {String.Join(", ", interfaces)}"))
+				using (code.AppendBlock((string)$"file sealed class {namedTypeSymbol.Name}_{hashCode} : {String.Join(", ", interfaces)}"))
 				{
-					code.AppendLine($"public static {namedTypeSymbol.Name}_{hashCode} Instance = new {namedTypeSymbol.Name}_{hashCode}();");
+					code.AppendLine((string) $"public static {namedTypeSymbol.Name}_{hashCode} Instance = new {namedTypeSymbol.Name}_{hashCode}();");
 
 					if (invocation.Value is IEnumerable enumerable)
 					{
@@ -226,16 +229,19 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 						if (compilation.IsSpecialType(elementType, SpecialType.System_Char))
 						{
-							code.AppendLine($"public static ReadOnlySpan<{elementName}> {namedTypeSymbol.Name}_{hashCode}_Data => \"{String.Join(String.Empty, enumerable.Cast<object?>())}\";");
+							code.AppendLine((string) $"public static ReadOnlySpan<{elementName}> {namedTypeSymbol.Name}_{hashCode}_Data => \"{String.Join(String.Empty, enumerable.Cast<object?>())}\";");
 						}
 						else
 						{
-							code.AppendLine($"public static ReadOnlySpan<{elementName}> {namedTypeSymbol.Name}_{hashCode}_Data => [{String.Join(", ", (enumerable.Cast<object?>()).Select(CreateLiteral))}];");
+							code.AppendLine((string) $"public static ReadOnlySpan<{elementName}> {namedTypeSymbol.Name}_{hashCode}_Data => [{String.Join(", ", (enumerable.Cast<object?>()).Select(CreateLiteral))}];");
 						}
 
 						if (elementType is not null)
 						{
-							var items = enumerable.Cast<object?>().ToList();
+							var items = enumerable
+								.Cast<object?>()
+								.ToImmutableArray();
+							
 							var members = namedTypeSymbol.GetMembers();
 
 							var interfaceBuilder = new InterfaceBuilder(compilation, loader, elementType, invocation.GenerationLevel, hashCode);
@@ -247,8 +253,8 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 								switch (member)
 								{
 									case IPropertySymbol property
-										when interfaceBuilder.AppendCount(property, items.Count, code)
-										     || interfaceBuilder.AppendLength(property, items.Count, code)
+										when interfaceBuilder.AppendCount(property, items.Length, code)
+										     || interfaceBuilder.AppendLength(property, items.Length, code)
 										     || interfaceBuilder.AppendIsReadOnly(property, code)
 										     || interfaceBuilder.AppendIndexer(property, items, code):
 									case IMethodSymbol method
@@ -296,7 +302,8 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 										     || memoryExtensionsBuilder.AppendEnumerateLines(method, enumerable as string, code)
 										     || memoryExtensionsBuilder.AppendEnumerableRunes(method, enumerable as string, code)
 										     || memoryExtensionsBuilder.AppendIsWhiteSpace(method, enumerable as string, code)
-												 || memoryExtensionsBuilder.AppendIndexOfAny(method, items, code):
+												 || memoryExtensionsBuilder.AppendIndexOfAny(method, items, code)
+												 || memoryExtensionsBuilder.AppendReplace(method, items, code):
 										continue;
 								}
 

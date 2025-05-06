@@ -3,8 +3,8 @@ using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using Microsoft.CodeAnalysis;
 using System;
-using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 
@@ -17,9 +17,9 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		switch (method)
 		{
 			case { Name: "BinarySearch", ReturnType.SpecialType: SpecialType.System_Int32 }
-				when method.Parameters.EqualsTypes(elementType)
+				when method.Parameters.AsSpan().EqualsTypes(elementType)
 				     && elementType.HasMember<IMethodSymbol>("CompareTo", m => m is { ReturnType.SpecialType: SpecialType.System_Int32 }
-				                                                               && m.Parameters.EqualsTypes(elementType)):
+				                                                               && m.Parameters.AsSpan().EqualsTypes(elementType)):
 			{
 				items = items.OrderBy(o => o).ToList();
 
@@ -33,9 +33,11 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 			case { Name: "BinarySearch", ReturnType.SpecialType: SpecialType.System_Int32, Parameters.Length: 2 }
 				when SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, elementType)
 				     && method.Parameters[1].Type.HasMember<IMethodSymbol>("Compare", m => m is { ReturnType.SpecialType: SpecialType.System_Int32 }
-				                                                                           && m.Parameters.EqualsTypes(elementType, elementType)):
+				                                                                           && m.Parameters.AsSpan().EqualsTypes(elementType, elementType)):
 			{
-				items = items.OrderBy(o => o).ToList();
+				items = items
+					.OrderBy(o => o)
+					.ToList();
 
 				AppendMethod(builder, method, items, isPerformance =>
 				{
@@ -86,45 +88,45 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		}
 	}
 
-	public bool AppendCommonPrefixLength(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendCommonPrefixLength(IMethodSymbol method, ImmutableArray<object?> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: "CommonPrefixLength", ReturnType.SpecialType: SpecialType.System_Int32, Parameters.Length: 1 }
-				when compilation.IsSpanType(method.Parameters[0].Type, elementType):
+				when compilation.IsSpanLikeType(method.Parameters[0].Type, elementType):
 			{
 				AppendMethod(builder, method, items, (vectorType, vector, vectorSize) =>
 				{
 					// Calculate count vector based on vector size
-					if (vectorSize != items.Count)
+					if (vectorSize != items.Length)
 					{
-						builder.AppendLine($"var countVec = {vectorType}.Min({vectorType}.Create({method.Parameters[0].Name}.Length), {vectorType}.Create({CreateLiteral(items.Count)}));");
+						builder.AppendLine($"var countVec = {vectorType}.Min({vectorType}.Create({method.Parameters[0]}.Length), {vectorType}.Create({items.Length}));");
 					}
 					else
 					{
-						builder.AppendLine($"var countVec = {vectorType}.Create({method.Parameters[0].Name}.Length);");
+						builder.AppendLine($"var countVec = {vectorType}.Create({method.Parameters[0]}.Length);");
 					}
 
-					builder.AppendLine($"var otherVec = {vectorType}.LoadUnsafe(ref MemoryMarshal.GetReference({method.Parameters[0].Name}));");
+					builder.AppendLine($"var otherVec = {vectorType}.LoadUnsafe(ref MemoryMarshal.GetReference({method.Parameters[0]}));");
 					builder.AppendLine();
 
 					// Create sequence vector
 					if (compilation.HasMember<IPropertySymbol>(compilation.GetVectorType(vectorType, compilation.CreateInt32()), "Indices"))
 					{
-						builder.AppendLine($"var sequence = {vectorType}<{compilation.GetMinimalString(elementType)}>.Indices;");
+						builder.AppendLine($"var sequence = {vectorType}<{elementType}>.Indices;");
 					}
 					else
 					{
 						builder.AppendLine($"var sequence = {vectorType}.Create({String.Join(", ", Enumerable.Range(0, vectorSize).Select(CreateLiteral))});");
 					}
 
-					builder.AppendLine($"var items = {vector};");
+					builder.AppendLine($"var items = {(LiteralString) vector};");
 					builder.AppendLine();
 
 					// Create mask based on element type
 					if (elementType.SpecialType != SpecialType.System_Int32)
 					{
-						builder.AppendLine($"var mask = {vectorType}.Equals(otherVec, items).As{elementType.Name}() & {vectorType}.LessThan(sequence, countVec);");
+						builder.AppendLine($"var mask = {vectorType}.Equals(otherVec, items).As{elementType}() & {vectorType}.LessThan(sequence, countVec);");
 					}
 					else
 					{
@@ -149,7 +151,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 					if (!isperfomance)
 					{
 						builder.AppendLine($"return {GetDataName(method.ContainingType)}");
-						builder.AppendLine($"\t.CommonPrefixLength({method.Parameters[0].Name});");
+						builder.AppendLine($"\t.CommonPrefixLength({method.Parameters});");
 					}
 					else
 					{
@@ -159,7 +161,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 						}
 						else
 						{
-							Append(method, $"!EqualityComparer<{compilation.GetMinimalString(elementType)}>.Default.Equals({{0}}, {{1}})");
+							Append(method, $"!EqualityComparer<{elementType}>.Default.Equals({{0}}, {{1}})");
 						}
 					}
 				});
@@ -167,7 +169,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 				return true;
 			}
 			case { Name: "CommonPrefixLength", ReturnType.SpecialType: SpecialType.System_Int32, Parameters.Length: 2 }
-				when compilation.IsSpanType(method.Parameters[0].Type, elementType)
+				when compilation.IsSpanLikeType(method.Parameters[0].Type, elementType)
 				     && IsEqualSymbol(method.Parameters[1].Type, compilation.GetTypeByType(typeof(IEqualityComparer<>), elementType)):
 			{
 				AppendMethod(builder, method, items, isPerformance =>
@@ -177,12 +179,12 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 						using (AppendMethod(builder, method))
 						{
 							builder.AppendLine($"return {GetDataName(method.ContainingType)}");
-							builder.AppendLine($"\t.CommonPrefixLength({method.Parameters[0].Name}, {method.Parameters[1].Name});");
+							builder.AppendLine($"\t.CommonPrefixLength({method.Parameters});");
 						}
 					}
 					else
 					{
-						Append(method, $"!{method.Parameters[1].Name}.Equals({{0}}, {{1}})");
+						Append(method, $"!{method.Parameters[1]}.Equals({{0}}, {{1}})");
 					}
 				});
 
@@ -195,16 +197,16 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		// Helper method to append prefix length calculation logic
 		void Append(IMethodSymbol method, string comparerFormat)
 		{
-			for (var i = 0; i < items.Count; i++)
+			for (var i = 0; i < items.Length; i++)
 			{
-				builder.AppendLine($"if ({method.Parameters[0].Name}.Length <= {CreateLiteral(i)} || {String.Format(comparerFormat, CreateLiteral(items[i]), $"{method.Parameters[0].Name}[{CreateLiteral(i)}]")}) return {CreateLiteral(i)};");
+				builder.AppendLine($"if ({method.Parameters[0]}.Length <= {i} || {(LiteralString) String.Format(comparerFormat, CreateLiteral(items[i]), $"{method.Parameters[0].Name}[{CreateLiteral(i)}]")}) return {i};");
 			}
 
-			builder.AppendLine($"return {CreateLiteral(items.Count)};");
+			builder.AppendLine($"return {items.Length};");
 		}
 	}
 
-	public bool AppendContainsAny(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendContainsAny(IMethodSymbol method, ImmutableArray<object?> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
@@ -219,7 +221,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		}
 	}
 
-	public bool AppendContainsAnyExcept(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendContainsAnyExcept(IMethodSymbol method, ImmutableArray<object?> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
@@ -248,32 +250,35 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		}
 	}
 
-	public bool AppendContainsAnyInRange(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendContainsAnyInRange(IMethodSymbol method, ImmutableArray<object?> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: "ContainsAnyInRange", ReturnType.SpecialType: SpecialType.System_Boolean }
-				when method.Parameters.EqualsTypes(elementType, elementType):
+				when method.Parameters.AsSpan().EqualsTypes(elementType, elementType):
 			{
-				items = items.Distinct().OrderBy(o => o).ToList();
+				items = items
+					.Distinct()
+					.OrderBy(o => o)
+					.ToImmutableArray();
 
 				AppendMethod(builder, method, items, (vectorType, vector, vectorSize) =>
 				{
-					builder.AppendLine($"var items = {vector};");
+					builder.AppendLine($"var items = {(LiteralString)vector};");
 					builder.AppendLine();
 
 					if (compilation.HasMember<IMethodSymbol>(compilation.GetVectorType(vectorType), "AnyWhereAllBitsSet"))
 					{
-						builder.AppendLine($"return {vectorType}.AnyWhereAllBitsSet({vectorType}.GreaterThanOrEqual(items, {vectorType}.Create({method.Parameters[0].Name})) & {vectorType}.LessThanOrEqual(items, {vectorType}.Create({method.Parameters[1].Name})));");
+						builder.AppendLine($"return {vectorType}.AnyWhereAllBitsSet({vectorType}.GreaterThanOrEqual(items, {vectorType}.Create({method.Parameters[0]})) & {vectorType}.LessThanOrEqual(items, {vectorType}.Create({method.Parameters[1]})));");
 					}
 					else
 					{
-						builder.AppendLine($"return ({vectorType}.GreaterThanOrEqual(items, {vectorType}.Create({method.Parameters[0].Name})) & {vectorType}.LessThanOrEqual(items, {vectorType}.Create({method.Parameters[1].Name}))) != {vectorType}<{compilation.GetMinimalString(elementType)}>.Zero;");
+						builder.AppendLine($"return ({vectorType}.GreaterThanOrEqual(items, {vectorType}.Create({method.Parameters[0]})) & {vectorType}.LessThanOrEqual(items, {vectorType}.Create({method.Parameters[1]}))) != {vectorType}<{elementType}>.Zero;");
 					}
 				}, _ =>
 				{
 					var checks = items
-						.Select(s => $"{s} >= {method.Parameters[0].Name} && {s} <= {method.Parameters[1].Name}");
+						.Select(s => $"{s} >= {method.Parameters[0]} && {s} <= {method.Parameters[1]}");
 
 					builder.AppendLine(CreateReturnPadding("||", checks));
 				});
@@ -285,32 +290,35 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		}
 	}
 
-	public bool AppendContainsAnyExceptInRange(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendContainsAnyExceptInRange(IMethodSymbol method, ImmutableArray<object?> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: "ContainsAnyExceptInRange", ReturnType.SpecialType: SpecialType.System_Boolean }
-				when method.Parameters.EqualsTypes(elementType, elementType):
+				when method.Parameters.AsSpan().EqualsTypes(elementType, elementType):
 			{
-				items = items.Distinct().OrderBy(o => o).ToList();
+				items = items
+					.Distinct()
+					.OrderBy(o => o)
+					.ToImmutableArray();
 
 				AppendMethod(builder, method, items, (vectorType, vector, vectorSize) =>
 				{
-					builder.AppendLine($"var items = {vector};");
+					builder.AppendLine($"var items = {(LiteralString) vector};");
 					builder.AppendLine();
 
 					if (compilation.HasMember<IMethodSymbol>(compilation.GetVectorType(vectorType), "AnyWhereAllBitsSet"))
 					{
-						builder.AppendLine($"return {vectorType}.AnyWhereAllBitsSet({vectorType}.LessThan(items, {vectorType}.Create({method.Parameters[0].Name})) | {vectorType}.GreaterThan(items, {vectorType}.Create({method.Parameters[1].Name}));");
+						builder.AppendLine($"return {vectorType}.AnyWhereAllBitsSet({vectorType}.LessThan(items, {vectorType}.Create({method.Parameters[0]})) | {vectorType}.GreaterThan(items, {vectorType}.Create({method.Parameters[1]}));");
 					}
 					else
 					{
-						builder.AppendLine($"return ({vectorType}.LessThan(items, {vectorType}.Create({method.Parameters[0].Name})) | {vectorType}.GreaterThan(items, {vectorType}.Create({method.Parameters[1].Name}))) != {vectorType}<{compilation.GetMinimalString(elementType)}>.Zero;");
+						builder.AppendLine($"return ({vectorType}.LessThan(items, {vectorType}.Create({method.Parameters[0]})) | {vectorType}.GreaterThan(items, {vectorType}.Create({method.Parameters[1]}))) != {vectorType}<{elementType}>.Zero;");
 					}
 				}, _ =>
 				{
 					var checks = items
-						.Select(s => $"{s} < {method.Parameters[0].Name} || {s} > {method.Parameters[1].Name}");
+						.Select(s => $"{s} < {method.Parameters[0]} || {s} > {method.Parameters[1]}");
 
 					builder.AppendLine(CreateReturnPadding("||", checks));
 				});
@@ -322,30 +330,30 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		}
 	}
 
-	public bool AppendCount(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendCount(IMethodSymbol method, ImmutableArray<object?> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: "Count", ReturnType.SpecialType: SpecialType.System_Int32 }
-				when method.Parameters.EqualsTypes(elementType):
+				when method.Parameters.AsSpan().EqualsTypes(elementType):
 			{
 				AppendMethod(builder, method, items, (vectorType, vector, vectorSize) =>
 				{
-					if (vectorSize != items.Count)
+					if (vectorSize != items.Length)
 					{
 						return;
 					}
 
-					builder.AppendLine($"var items = {vector};");
+					builder.AppendLine($"var items = {(LiteralString) vector};");
 					builder.AppendLine();
 
 					if (compilation.HasMember<IMethodSymbol>(compilation.GetVectorType(vectorType), "Count"))
 					{
-						builder.AppendLine($"return {vectorType}.Count(items, {method.Parameters[0].Name});");
+						builder.AppendLine($"return {vectorType}.Count(items, {method.Parameters[0]});");
 					}
 					else
 					{
-						builder.AppendLine($"return BitOperations.PopCount({vectorType}.ExtractMostSignificantBits({vectorType}.Equals(items, {method.Parameters[0].Name})));");
+						builder.AppendLine($"return BitOperations.PopCount({vectorType}.ExtractMostSignificantBits({vectorType}.Equals(items, {method.Parameters[0]})));");
 					}
 				}, isPerformance =>
 				{
@@ -359,7 +367,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 					else if (compilation.HasMember<IMethodSymbol>(compilation.GetTypeByMetadataName("System.MemoryExtensions"), "Count"))
 					{
 						builder.AppendLine($"return {GetDataName(method.ContainingType)}");
-						builder.AppendLine($"\t.Count({method.Parameters[0].Name});");
+						builder.AppendLine($"\t.Count({method.Parameters[0]});");
 					}
 					else
 					{
@@ -368,7 +376,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 
 						using (builder.AppendBlock($"foreach (var item in {GetDataName(method.ContainingType)})"))
 						{
-							using (builder.AppendBlock($"if (item == {method.Parameters[0].Name})"))
+							using (builder.AppendBlock($"if (item == {method.Parameters[0]})"))
 							{
 								builder.AppendLine("result++;");
 							}
@@ -420,7 +428,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 					else
 					{
 						builder.AppendLine($"return {GetDataName(method.ContainingType)}");
-						builder.AppendLine($"\t.EndsWith({String.Join(", ", method.Parameters.Select(s => s.Name))});");
+						builder.AppendLine($"\t.EndsWith({method.Parameters});");
 					}
 				});
 
@@ -459,13 +467,13 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 
 							var current = remaining.Slice(0, idx);
 
-							builder.AppendLine($"yield return {CreateLiteral(current.ToString())};");
+							builder.AppendLine($"yield return {current.ToString()};");
 
 							remaining = remaining.Slice(idx + stride);
 						}
 						else
 						{
-							builder.AppendLine($"yield return {CreateLiteral(remaining.ToString())};");
+							builder.AppendLine($"yield return {remaining.ToString()};");
 
 							break;
 						}
@@ -497,7 +505,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 
 					while (TryDecodeFromUtf16(span, out var result, out var charsConsumed))
 					{
-						builder.AppendLine($"yield return new Rune({CreateLiteral(result)}); \t// {span.Slice(0, charsConsumed).ToString()}");
+						builder.AppendLine($"yield return new Rune({result}); \t// {(LiteralString) span.Slice(0, charsConsumed).ToString()}");
 						span = span.Slice(charsConsumed);
 					}
 				});
@@ -560,7 +568,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 			{
 				AppendMethod(builder, method, data.Cast<object?>(), isPerformance =>
 				{
-					builder.AppendLine($"return {CreateLiteral(String.IsNullOrWhiteSpace(data))};");
+					builder.AppendLine($"return {String.IsNullOrWhiteSpace(data)};");
 				});
 
 				return true;
@@ -570,19 +578,43 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		}
 	}
 
-	public bool AppendIndexOfAny(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendIndexOfAny(IMethodSymbol method, ImmutableArray<object?> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: "IndexOfAny", ReturnType.SpecialType: SpecialType.System_Int32, Parameters.Length: > 1 }
 				when method.Parameters.All(a => SymbolEqualityComparer.Default.Equals(a.Type, elementType)):
 			{
-				AppendMethod(builder, method, items, isPerformance =>
+				AppendMethod(builder, method, items, (vectorType, vector, vectorSize) =>
+				{
+					builder.AppendLine($"var vector = {(LiteralString) vector};");
+					builder.AppendLine();
+
+					builder.AppendLine(CreatePadding("|", "var resultVector =", method.Parameters.Select(s => $"{vectorType}.Equals(vector, {vectorType}.Create({s.Name}))")));
+					
+					builder.AppendLine();
+
+					if (compilation.GetVectorType(vectorType).HasMember<IMethodSymbol>("IndexOfWhereAllBitsSet", m => m is { ReturnType.SpecialType: SpecialType.System_Int32 }))
+					{
+						builder.AppendLine($"return {vectorType}.IndexOfWhereAllBitsSet(resultVector);");
+					}
+					else
+					{
+						using (builder.AppendBlock($"if (resultVector == {vectorType}<{elementType}>.Zero)"))
+						{
+							builder.AppendLine($"return {-1};");
+						}
+						
+						builder.AppendLine();
+						builder.AppendLine($"return BitOperations.TrailingZeroCount({vectorType}.ExtractMostSignificantBits(resultVector));");
+					}
+
+				}, isPerformance =>
 				{
 					if (isPerformance)
 					{
-						if (method.ContainingType.HasMember<IMethodSymbol>("IndexOf", m => m is { ReturnType.SpecialType: SpecialType.System_Int32 } 
-						                                                                   && m.Parameters.EqualsTypes(elementType)))
+						if (method.ContainingType.HasMember<IMethodSymbol>("IndexOf", m => m is { ReturnType.SpecialType: SpecialType.System_Int32 }
+						                                                                   && m.Parameters.AsSpan().EqualsTypes(elementType)))
 						{
 							foreach (var (index, parameter) in method.Parameters.Index())
 							{
@@ -603,19 +635,19 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 								if (values.Add(item))
 								{
 									var checks = method.Parameters
-										.Select(s => $"{s.Name} == {CreateLiteral(item)}");
+										.Select(s => $"{s.Name} == {item}");
 
-									builder.AppendLine($"if ({String.Join(" || ", checks)}) return {CreateLiteral(index)};");
+									builder.AppendLine($"if ({(LiteralString) String.Join(" || ", checks)}) return {index};");
 								}
 							}
 
-							builder.AppendLine($"return {CreateLiteral(-1)};");
+							builder.AppendLine($"return {-1};");
 						}
 					}
 					else
 					{
 						var collectionName = GetDataName(method.ContainingType);
-						
+
 						using (builder.AppendBlock($"for (var i = 0; i < {collectionName}.Length; i++)"))
 						{
 							using (builder.AppendBlock($"if ({String.Join(" || ", method.Parameters.Select(s => $"{s.Name} == {collectionName}[i]"))})"))
@@ -623,7 +655,46 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 								builder.AppendLine("return i;");
 							}
 						}
-						
+
+						builder.AppendLine();
+						builder.AppendLine("return -1;");
+					}
+				});
+
+				return true;
+			}
+
+			case { Name: "IndexOfAny", ReturnType.SpecialType: SpecialType.System_Int32, Parameters.Length: 1 }
+				when compilation.HasContainsMethod(method.Parameters[0].Type, elementType):
+			{
+				AppendMethod(builder, method, items, isPerformance =>
+				{
+					if (isPerformance)
+					{
+						for (var i = 0; i < items.Length; i++)
+						{
+							using (builder.AppendBlock($"if ({method.Parameters[0]}.Contains({items[i]}))"))
+							{
+								builder.AppendLine($"return {i};");
+							}
+
+							builder.AppendLine();
+						}
+
+						builder.AppendLine($"return {-1};");
+					}
+					else
+					{
+						var collectionName = GetDataName(method.ContainingType);
+
+						using (builder.AppendBlock($"for (var i = 0; i < {collectionName}.Length; i++)"))
+						{
+							using (builder.AppendBlock($"if ({method.Parameters[0]}.Contains({collectionName}[i]))"))
+							{
+								builder.AppendLine("return i;");
+							}
+						}
+
 						builder.AppendLine();
 						builder.AppendLine("return -1;");
 					}
@@ -634,7 +705,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 			default:
 				return false;
 		}
-		
+
 		string CreateMinChain(int index, int count)
 		{
 			if (index == count - 1)
@@ -646,12 +717,115 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		}
 	}
 
-	private void AppendContainsAny(ITypeSymbol typeSymbol, IMethodSymbol method, bool result, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendReplace(IMethodSymbol method, ImmutableArray<object?> items, IndentedStringBuilder builder)
+	{
+		switch (method)
+		{
+			case { Name: "Replace", ReturnType.SpecialType: SpecialType.System_Void, Parameters.Length: 3 }
+				when compilation.IsReadonlySpanType(method.Parameters[0].Type, elementType) && method.Parameters.AsSpan(1, method.Parameters.Length - 1).EqualsTypes(elementType, elementType):
+			{
+				AppendMethod(builder, method, items, isPerformance =>
+				{
+					using (builder.AppendBlock($"if ({(uint) items.Length} > (uint){method.Parameters[0]}.Length)"))
+					{
+						builder.AppendLine($"throw new ArgumentOutOfRangeException(nameof({method.Parameters[0]}), \"The length of the span is less than {items.Length}\");");
+					}
+
+					builder.AppendLine();
+
+					if (isPerformance && compilation.IsVectorSupported(elementType))
+					{
+						var vectors = new List<string>();
+
+						var elements = items.AsSpan();
+						var type = compilation.GetVector(elementType, loader, elements, VectorTypes.Vector512, out var vector, out var vectorSize);
+						var index = 0;
+
+						if (type != VectorTypes.None)
+						{
+							do
+							{
+								vectors.Add(vector);
+
+								index += vectorSize;
+								elements = elements.Slice(vectorSize);
+							} while (index < items.Length && type == compilation.GetVector(elementType, loader, elements, VectorTypes.Vector512, out vector, out vectorSize));
+
+							using (builder.AppendBlock($"if ({type}.IsHardwareAccelerated)"))
+							{
+								builder.AppendLine($"var {method.Parameters[1]}Vector = {type}.Create({method.Parameters[1]});");
+								builder.AppendLine($"var {method.Parameters[2]}Vector = {type}.Create({method.Parameters[2]});");
+								builder.AppendLine();
+
+								for (var i = 0; i < vectors.Count; i++)
+								{
+									builder.AppendLine($"var vec{i} = {(LiteralString) vectors[i]};");
+								}
+
+								builder.AppendLine();
+
+								for (var i = 0; i < vectors.Count; i++)
+								{
+									builder.AppendLine($"{type}.ConditionalSelect({type}.Equals(vec{i}, {method.Parameters[1]}Vector), {method.Parameters[2]}Vector, vec{i}).StoreUnsafe(ref MemoryMarshal.GetReference({method.Parameters[0]}), {i * vectorSize});");
+								}
+
+								if (index < items.Length)
+								{
+									builder.AppendLine();
+								}
+
+								for (; index < items.Length; index++)
+								{
+									builder.AppendLine($"{method.Parameters[0]}[{index}] = {items[index]} == {method.Parameters[1]} ? {method.Parameters[2]} : {items[index]};");
+								}
+
+								builder.AppendLine();
+								builder.AppendLine("return;");
+							}
+
+							builder.AppendLine();
+						}
+					}
+
+					if (isPerformance)
+					{
+						if (elementType.SpecialType != SpecialType.None)
+						{
+							for (var i = 0; i < items.Length; i++)
+							{
+								builder.AppendLine($"{method.Parameters[0]}[{i}] = {items[i]} == {method.Parameters[1]} ? {method.Parameters[2]} : {items[i]};");
+							}
+						}
+						else
+						{
+							for (var i = 0; i < items.Length; i++)
+							{
+								builder.AppendLine($"{method.Parameters[0]}[{i}] = EqualityComparer<{elementType}>.Default.Equals({items[i]}, {method.Parameters[1]}) ? {method.Parameters[2]} : {items[i]};");
+							}
+						}
+					}
+					else
+					{
+						builder.AppendLine($"{GetDataName(method.ContainingType)}.Replace({method.Parameters[0]}, {method.Parameters[1]}, {method.Parameters[2]});");
+					}
+				});
+
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	private void AppendContainsAny(ITypeSymbol typeSymbol, IMethodSymbol method, bool result, ImmutableArray<object?> items, IndentedStringBuilder builder)
 	{
 		var prefix = result ? String.Empty : "!";
 
 		// Prepare items
-		items = items.Distinct().OrderBy(o => o).ToList();
+		items = items
+			.Distinct()
+			.OrderBy(o => o)
+			.ToImmutableArray();
 
 		var elementSize = compilation.GetByteSize(loader, method.Parameters[0].Type);
 		var isSequence = items.IsNumericSequence();
@@ -662,19 +836,18 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		AppendMethod(builder, method, items, (vectorType, vector, vectorSize) =>
 		{
 			var vectorByteSize = vectorSize * elementSize;
-			var elementName = compilation.GetMinimalString(elementType);
 			var whiteSpace = new string(' ', 6);
 
 			using (builder.AppendBlock($"if ({vectorType}.IsHardwareAccelerated)"))
 			{
 				// Special case for single item
-				if (items.Count == 1)
+				if (items.Length == 1)
 				{
-					builder.AppendLine($"return {prefix}{vectorType}.EqualsAny({vector}, {compilation.GetCreateVector(vectorType.ToString(), vectorByteSize, elementType, loader, false, items[0])});");
+					builder.AppendLine($"return {prefix}{vectorType}.EqualsAny({(LiteralString) vector}, {compilation.GetCreateVector(vectorType.ToString(), vectorByteSize, elementType, loader, false, items[0])});");
 					return;
 				}
 
-				builder.AppendLine($"var input = {vector};");
+				builder.AppendLine($"var input = {(LiteralString) vector};");
 				builder.AppendLine();
 
 				// Handle sequential items differently
@@ -682,13 +855,13 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 				{
 					if (isZero && !SymbolEqualityComparer.Default.Equals(elementType, unsignedType))
 					{
-						builder.AppendLine($"return {prefix}{vectorType}.LessThanOrEqualAny(input.As{unsignedType.Name}(), {vectorType}.Create<{unsignedName}>({CreateLiteral(items[^1])}));");
+						builder.AppendLine($"return {prefix}{vectorType}.LessThanOrEqualAny(input.As{unsignedType.Name}(), {vectorType}.Create<{unsignedName}>({items[^1]}));");
 					}
 					else
 					{
 						builder.AppendLine(
 							$"return {prefix}({vectorType}.GreaterThanOrEqual(input, {compilation.GetCreateVector(vectorType.ToString(), vectorByteSize, elementType, loader, false, items[0])}) & " +
-							$"{vectorType}.LessThanOrEqual(input, {compilation.GetCreateVector(vectorType.ToString(), vectorByteSize, elementType, loader, false, items[^1])})) != {vectorType}<{elementName}>.Zero;");
+							$"{vectorType}.LessThanOrEqual(input, {compilation.GetCreateVector(vectorType.ToString(), vectorByteSize, elementType, loader, false, items[^1])})) != {vectorType}<{elementType}>.Zero;");
 					}
 				}
 				else
@@ -741,11 +914,11 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 					{
 						if (result)
 						{
-							builder.AppendLine($"return ({String.Join($"\n{whiteSpace}| ", checks)}) != {vectorType}<{elementName}>.Zero;");
+							builder.AppendLine($"return ({String.Join($"\n{whiteSpace}| ", checks)}) != {vectorType}<{elementType}>.Zero;");
 						}
 						else
 						{
-							builder.AppendLine($"return ({String.Join($"\n{whiteSpace}| ", checks)}) == {vectorType}<{elementName}>.Zero;");
+							builder.AppendLine($"return ({String.Join($"\n{whiteSpace}| ", checks)}) == {vectorType}<{elementType}>.Zero;");
 						}
 					}
 				}
@@ -781,19 +954,19 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 
 				IEnumerable<string> checks;
 
-				if (items.Count == 1)
+				if (items.Length == 1)
 				{
-					checks = method.Parameters.Select(s => $"{s.Name}{new string(' ', maxLength - s.Name.Length)} == {CreateLiteral(items[0])}");
+					checks = method.Parameters.Select(s => $"{s.Name}{new string(' ', maxLength - s.Name.Length)} == {items[0]}");
 				}
 				else if (isSequence)
 				{
 					if (isZero && !SymbolEqualityComparer.Default.Equals(elementType, unsignedType))
 					{
-						checks = method.Parameters.Select(s => $"({unsignedName}){s.Name}{new string(' ', maxLength - s.Name.Length)} <= {CreateLiteral(items[^1])}");
+						checks = method.Parameters.Select(s => $"({unsignedName}){s.Name}{new string(' ', maxLength - s.Name.Length)} <= {items[^1]}");
 					}
 					else
 					{
-						checks = method.Parameters.Select(s => $"{s.Name}{new string(' ', maxLength - s.Name.Length)} is >= {CreateLiteral(items[0])} and <= {CreateLiteral(items[^1])}");
+						checks = method.Parameters.Select(s => $"{s.Name}{new string(' ', maxLength - s.Name.Length)} is >= {items[0]} and <= {items[^1]}");
 					}
 				}
 				else
@@ -817,13 +990,13 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 				switch (method.Parameters.Length)
 				{
 					case 1:
-						builder.AppendLine($"\t.Contains({String.Join(", ", method.Parameters.Select(s => s.Name))});");
+						builder.AppendLine($"\t.Contains({method.Parameters});");
 						break;
 					case 2 or 3:
-						builder.AppendLine($"\t.ContainsAny({String.Join(", ", method.Parameters.Select(s => s.Name))});");
+						builder.AppendLine($"\t.ContainsAny({method.Parameters});");
 						break;
 					default:
-						builder.AppendLine($"\t.ContainsAny([{String.Join(", ", method.Parameters.Select(s => s.Name))}]);");
+						builder.AppendLine($"\t.ContainsAny([{method.Parameters}]);");
 						break;
 				}
 			}

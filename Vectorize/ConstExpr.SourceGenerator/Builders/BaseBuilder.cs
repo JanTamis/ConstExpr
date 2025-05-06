@@ -38,19 +38,31 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 					var constraintsList = new List<string>();
 
 					if (tp.HasReferenceTypeConstraint)
+					{
 						constraintsList.Add("class");
+					}
 					if (tp.HasValueTypeConstraint)
+					{
 						constraintsList.Add("struct");
+					}
 					if (tp.HasNotNullConstraint)
+					{
 						constraintsList.Add("notnull");
+					}
 					if (tp.HasUnmanagedTypeConstraint)
+					{
 						constraintsList.Add("unmanaged");
+					}
 
 					foreach (var constraintType in tp.ConstraintTypes)
+					{
 						constraintsList.Add(compilation.GetMinimalString(constraintType));
+					}
 
 					if (tp.HasConstructorConstraint)
+					{
 						constraintsList.Add("new()");
+					}
 
 					return constraintsList.Count > 0
 						? $"where {tp.Name} : {String.Join(", ", constraintsList)}"
@@ -58,21 +70,21 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 				})
 				.Where(c => c != null);
 
-			return builder.AppendBlock($"{prepend}{compilation.GetMinimalString(methodSymbol.ReturnType)} {methodSymbol.Name}<{String.Join(", ", methodSymbol.TypeParameters.Select(compilation.GetMinimalString))}>({String.Join(", ", methodSymbol.Parameters.Select(compilation.GetMinimalString))}) {String.Join("\n\t", constraints)}");
+			return builder.AppendBlock((string)$"{prepend}{compilation.GetMinimalString(methodSymbol.ReturnType)} {methodSymbol.Name}<{String.Join(", ", methodSymbol.TypeParameters.Select(compilation.GetMinimalString))}>({String.Join(", ", methodSymbol.Parameters.Select(compilation.GetMinimalString))}) {String.Join("\n\t", constraints)}");
 		}
 
-		return builder.AppendBlock($"{prepend}{compilation.GetMinimalString(methodSymbol.ReturnType)} {methodSymbol.Name}({String.Join(", ", methodSymbol.Parameters.Select(compilation.GetMinimalString))})");
+		return builder.AppendBlock((string)$"{prepend}{compilation.GetMinimalString(methodSymbol.ReturnType)} {methodSymbol.Name}({String.Join(", ", methodSymbol.Parameters.Select(compilation.GetMinimalString))})");
 	}
 
-	protected void AppendMethod(IndentedStringBuilder builder, IMethodSymbol methodSymbol, IList<object?> items, Action<VectorTypes, string, int> vectorAction, Action<bool> action)
+	protected void AppendMethod(IndentedStringBuilder builder, IMethodSymbol methodSymbol, ImmutableArray<object?> items, Action<VectorTypes, string, int> vectorAction, Action<bool> action)
 	{
 		using (AppendMethod(builder, methodSymbol))
 		{
-			var isPerformance = IsPerformance(generationLevel, items.Count);
+			var isPerformance = IsPerformance(generationLevel, items.Length);
 
 			if (isPerformance && compilation.IsVectorSupported(elementType))
 			{
-				var vectorType = compilation.GetVector(elementType, loader, items, true, out var vector, out var vectorSize);
+				var vectorType = compilation.GetVector(elementType, loader, items.AsSpan(), true, out var vector, out var vectorSize);
 
 				if (vectorType != VectorTypes.None)
 				{
@@ -221,9 +233,14 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 
 	protected string CreateReturnPadding(string check, IEnumerable<string> checks)
 	{
-		var padding = new string(' ', "return".Length - check.Length);
+		return CreatePadding(check, "return", checks);
+	}
 
-		return $"return {String.Join("\n" + padding + $"{check} ", checks)};";
+	protected string CreatePadding(string check, string prefix, IEnumerable<string> checks)
+	{
+		var padding = new string(' ', prefix.Length - check.Length);
+
+		return $"{prefix} {String.Join("\n" + padding + $"{check} ", checks)};";
 	}
 
 	protected class TreeNode
@@ -328,7 +345,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 	{
 		if (node.IsLeaf)
 		{
-			builder.AppendLine($"return {SyntaxHelpers.CreateLiteral(node.ReturnValue)};");
+			builder.AppendLine($"return {node.ReturnValue};");
 			return;
 		}
 
@@ -337,7 +354,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 			if (node.State == TreeNode.NodeState.LessThan && node.Value != items[0].Key
 			    || node.State == TreeNode.NodeState.GreaterThan && node.Value != items[^1].Key)
 			{
-				builder.AppendLine($"return {SyntaxHelpers.CreateLiteral(node.ReturnValue)};");
+				builder.AppendLine($"return {node.ReturnValue};");
 				return;
 			}
 		}
@@ -348,7 +365,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		{
 			// Generate comparison code only once
 			builder.AppendLine($"{(isFirst ? "var " : String.Empty)}{checkVarName} = " +
-			                   $"{String.Format(compareFormat, method.Parameters.Select<IParameterSymbol, object>(s => s.Name).Prepend(SyntaxHelpers.CreateLiteral(node.Value)).ToArray())};");
+			                   $"{String.Format(compareFormat, method.Parameters.Select<IParameterSymbol, object>(s => s.Name).Prepend(node.Value).ToArray())};");
 			builder.AppendLine();
 		}
 		
@@ -358,7 +375,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 			if (compilation.HasComparison(elementType))
 			{
 				// Generate branch logic
-				using (builder.AppendBlock($"if ({method.Parameters[0].Name} < {node.Value})"))
+				using (builder.AppendBlock($"if ({method.Parameters[0]} < {node.Value})"))
 				{
 					GenerateCodeFromTree(builder, node.LessThan, compareFormat, false, method, items);
 				}
@@ -379,7 +396,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 			{
 				if (compilation.HasComparison(elementType))
 				{
-					using (builder.AppendBlock($"else if ({method.Parameters[0].Name} > {node.Value})"))
+					using (builder.AppendBlock($"else if ({method.Parameters[0]} > {node.Value})"))
 					{
 						GenerateCodeFromTree(builder, node.GreaterThan, compareFormat, false, method, items);
 					}
@@ -396,7 +413,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 			{
 				if (compilation.HasComparison(elementType))
 				{
-					using (builder.AppendBlock($"if ({method.Parameters[0].Name} > {node.Value})"))
+					using (builder.AppendBlock($"if ({method.Parameters[0]} > {node.Value})"))
 					{
 						GenerateCodeFromTree(builder, node.GreaterThan, compareFormat, false, method, items);
 					}
@@ -414,6 +431,6 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		}
 
 		builder.AppendLine();
-		builder.AppendLine($"return {SyntaxHelpers.CreateLiteral(node.ReturnValue)};");
+		builder.AppendLine($"return {node.ReturnValue};");
 	}
 }
