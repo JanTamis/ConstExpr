@@ -179,6 +179,17 @@ public static class CompilationExtensions
 		return 0;
 	}
 
+	public static bool HasMember<TSymbol>(this ITypeSymbol typeSymbol, string name)
+		where TSymbol : ISymbol
+	{
+		if (typeSymbol is ITypeParameterSymbol parameter)
+		{
+			return parameter.ConstraintTypes.Any(a => a.HasMember<TSymbol>(name));
+		}
+
+		return typeSymbol.GetMembers(name).OfType<TSymbol>().Any();
+	}
+
 	public static bool HasMember<TSymbol>(this ITypeSymbol typeSymbol, string name, Func<TSymbol, bool> predicate)
 		where TSymbol : ISymbol
 	{
@@ -466,10 +477,18 @@ public static class CompilationExtensions
 		return typeSymbol;
 	}
 
-	public static string GetCreateVector(this Compilation compilation, string vectorName, int byteSize, ITypeSymbol elementType, MetadataLoader loader, bool isRepeating, params ReadOnlySpan<object?> items)
+	public static string GetCreateVector(this Compilation compilation, VectorTypes vectorType, ITypeSymbol elementType, MetadataLoader loader, bool isRepeating, params ReadOnlySpan<object?> items)
 	{
-		var staticType = compilation.GetTypeByMetadataName($"System.Runtime.Intrinsics.{vectorName}");
-		var fullType = compilation.GetTypeByMetadataName($"System.Runtime.Intrinsics.{vectorName}`1").Construct(elementType);
+		var byteSize = vectorType switch
+		{
+			VectorTypes.Vector64 => 8,
+			VectorTypes.Vector128 => 16,
+			VectorTypes.Vector256 => 32,
+			VectorTypes.Vector512 => 64,
+		};
+		
+		var staticType = compilation.GetTypeByMetadataName($"System.Runtime.Intrinsics.{vectorType}");
+		var fullType = compilation.GetTypeByMetadataName($"System.Runtime.Intrinsics.{vectorType}`1").Construct(elementType);
 		// var vectorType = loader.GetType(fullType);
 		var vectorElementType = loader.GetType(elementType);
 		var elementByteSize = compilation.GetByteSize(loader, elementType);
@@ -480,25 +499,20 @@ public static class CompilationExtensions
 
 		if (items.IsZero())
 		{
-			return $"{vectorName}.Zero";
+			return $"{vectorType}.Zero";
 		}
 
 		if (items.IsOne())
 		{
-			return $"{vectorName}.One";
+			return $"{vectorType}.One";
 		}
 
 		if (items.Length == elementCount)
 		{
-			var indices = fullType
-				.GetMembers("Indices")
-				.OfType<IPropertySymbol>()
-				.FirstOrDefault();
-			
 			// Check if all items match their indices (0,1,2,...)
-			if (indices != null && items.IsSequence(vectorElementType))
+			if (items.IsSequence(vectorElementType) && fullType.HasMember<IPropertySymbol>("Indices"))
 			{
-				return $"{compilation.GetMinimalString(indices)}.Indices";
+				return $"{compilation.GetMinimalString(fullType)}.Indices";
 			}
 			
 			// Check if items form an arithmetic sequence
@@ -524,29 +538,29 @@ public static class CompilationExtensions
 
 				if (isSequence && step != null)
 				{
-					return $"{vectorName}.CreateSequence({SyntaxHelpers.CreateLiteral(items[0])}, {SyntaxHelpers.CreateLiteral(step)})";
+					return $"{vectorType}.CreateSequence({SyntaxHelpers.CreateLiteral(items[0])}, {SyntaxHelpers.CreateLiteral(step)})";
 				}
 			}
 
 			if (items.IsSame(items[0]))
 			{
-				return $"{vectorName}.Create<{compilation.GetMinimalString(elementType)}>({SyntaxHelpers.CreateLiteral(items[0])})";
+				return $"{vectorType}.Create<{compilation.GetMinimalString(elementType)}>({SyntaxHelpers.CreateLiteral(items[0])})";
 			}
 
-			return $"{vectorName}.Create({items.Join(", ", s => s is string ? s : SyntaxHelpers.CreateLiteral(s))})";
+			return $"{vectorType}.Create({items.Join(", ", s => s is string ? s : SyntaxHelpers.CreateLiteral(s))})";
 		}
 
 		if (items.Length == 1)
 		{
-			return $"{vectorName}.Create({SyntaxHelpers.CreateLiteral(items[0])})";
+			return $"{vectorType}.Create({SyntaxHelpers.CreateLiteral(items[0])})";
 		}
 
 		if (isRepeating)
 		{
-			return $"{vectorName}.Create({items.Join(", ", elementCount, s => s is string ? s : SyntaxHelpers.CreateLiteral(s))})";
+			return $"{vectorType}.Create({items.Join(", ", elementCount, s => s is string ? s : SyntaxHelpers.CreateLiteral(s))})";
 		}
 
-		return $"{vectorName}.Create({items.JoinWithPadding(", ", elementCount, 0.ToSpecialType(elementType.SpecialType), s => s is string ? s : SyntaxHelpers.CreateLiteral(s))})";
+		return $"{vectorType}.Create({items.JoinWithPadding(", ", elementCount, 0.ToSpecialType(elementType.SpecialType), s => s is string ? s : SyntaxHelpers.CreateLiteral(s))})";
 	}
 
 	public static VectorTypes GetVector(this Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, ReadOnlySpan<object?> items, bool isRepeating, out string vector, out int vectorSize)
@@ -557,26 +571,26 @@ public static class CompilationExtensions
 		switch (size)
 		{
 			case 0:
-				vector = null;
+				vector = String.Empty;
 				vectorSize = 0;
 				return VectorTypes.None;
 			case <= 8:
-				vector = GetCreateVector(compilation, nameof(VectorTypes.Vector64), 8, elementType, loader, isRepeating, items);
+				vector = GetCreateVector(compilation, VectorTypes.Vector64, elementType, loader, isRepeating, items);
 				vectorSize = 8 / elementSize;
 
 				return VectorTypes.Vector64;
 			case <= 16:
-				vector = GetCreateVector(compilation, nameof(VectorTypes.Vector128), 16, elementType, loader, isRepeating, items);
+				vector = GetCreateVector(compilation, VectorTypes.Vector128, elementType, loader, isRepeating, items);
 				vectorSize = 16 / elementSize;
 
 				return VectorTypes.Vector128;
 			case <= 32:
-				vector = GetCreateVector(compilation, nameof(VectorTypes.Vector256), 32, elementType, loader, isRepeating, items);
+				vector = GetCreateVector(compilation, VectorTypes.Vector256, elementType, loader, isRepeating, items);
 				vectorSize = 32 / elementSize;
 
 				return VectorTypes.Vector256;
 			case <= 64:
-				vector = GetCreateVector(compilation, nameof(VectorTypes.Vector512), 64, elementType, loader, isRepeating, items);
+				vector = GetCreateVector(compilation, VectorTypes.Vector512, elementType, loader, isRepeating, items);
 				vectorSize = 64 / elementSize;
 
 				return VectorTypes.Vector512;
@@ -597,25 +611,25 @@ public static class CompilationExtensions
 		{
 			case >= 64
 					when limit is VectorTypes.Vector512:
-				vector = GetCreateVector(compilation, nameof(VectorTypes.Vector512), 64, elementType, loader, false, items);
+				vector = GetCreateVector(compilation, VectorTypes.Vector512, elementType, loader, false, items);
 				vectorSize = 64 / elementSize;
 
 				return VectorTypes.Vector512;
 			case >= 32
 					when limit is VectorTypes.Vector512 or VectorTypes.Vector256:
-				vector = GetCreateVector(compilation, nameof(VectorTypes.Vector256), 32, elementType, loader, false, items);
+				vector = GetCreateVector(compilation, VectorTypes.Vector256, elementType, loader, false, items);
 				vectorSize = 32 / elementSize;
 
 				return VectorTypes.Vector256;
 			case >= 16
 				when limit is VectorTypes.Vector512 or VectorTypes.Vector256 or VectorTypes.Vector128:
-				vector = GetCreateVector(compilation, nameof(VectorTypes.Vector128), 16, elementType, loader, false, items);
+				vector = GetCreateVector(compilation, VectorTypes.Vector128, elementType, loader, false, items);
 				vectorSize = 16 / elementSize;
 
 				return VectorTypes.Vector128;
 			case >= 8
 				 when limit is VectorTypes.Vector512 or VectorTypes.Vector256 or VectorTypes.Vector128 or VectorTypes.Vector64:
-				vector = GetCreateVector(compilation, nameof(VectorTypes.Vector64), 8, elementType, loader, false, items);
+				vector = GetCreateVector(compilation, VectorTypes.Vector64, elementType, loader, false, items);
 				vectorSize = 8 / elementSize;
 
 				return VectorTypes.Vector64;
@@ -625,6 +639,21 @@ public static class CompilationExtensions
 
 				return VectorTypes.None;
 		}
+	}
+
+	public static string GetVector(this Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, ReadOnlySpan<object?> items, VectorTypes limit)
+	{
+		var elementSize = compilation.GetByteSize(loader, elementType);
+		var size = elementSize * items.Length;
+
+		return size switch
+		{
+			>= 64 when limit is VectorTypes.Vector512 => GetCreateVector(compilation, VectorTypes.Vector512, elementType, loader, false, items),
+			>= 32 when limit is VectorTypes.Vector512 or VectorTypes.Vector256 => GetCreateVector(compilation, VectorTypes.Vector256, elementType, loader, false, items),
+			>= 16 when limit is VectorTypes.Vector512 or VectorTypes.Vector256 or VectorTypes.Vector128 => GetCreateVector(compilation, VectorTypes.Vector128, elementType, loader, false, items),
+			>= 8 when limit is VectorTypes.Vector512 or VectorTypes.Vector256 or VectorTypes.Vector128 or VectorTypes.Vector64 => GetCreateVector(compilation, VectorTypes.Vector64, elementType, loader, false, items),
+			_ => String.Empty
+		};
 	}
 
 	public static INamedTypeSymbol GetVectorType(this Compilation compilation, VectorTypes vectorType)
@@ -706,5 +735,16 @@ public static class CompilationExtensions
 			or SpecialType.System_Decimal
 			or SpecialType.System_Double
 			or SpecialType.System_Single;
+	}
+	
+	
+	public static bool EqualsType(this ITypeSymbol type, ITypeSymbol otherType)
+	{
+		if (SymbolEqualityComparer.Default.Equals(type, otherType))
+		{
+			return true;
+		}
+
+		return type.AllInterfaces.Any(a => SymbolEqualityComparer.Default.Equals(a, otherType));
 	}
 }

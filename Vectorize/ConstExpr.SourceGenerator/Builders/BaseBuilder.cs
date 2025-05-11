@@ -101,6 +101,47 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		}
 	}
 
+	protected void AppendMethod(IndentedStringBuilder builder, IMethodSymbol methodSymbol, ImmutableArray<object?> items, VectorTypes type, bool isRepeating, Action<IList<string>, int> vectorAction, Action<bool> action)
+	{
+		using (AppendMethod(builder, methodSymbol))
+		{
+			var isPerformance = IsPerformance(generationLevel, items.Length);
+
+			if (isPerformance && compilation.IsVectorSupported(elementType))
+			{
+				var vectors = new List<string>();
+				
+				var vectorType = compilation.GetVector(elementType, loader, items.AsSpan(), type, out var vector, out var vectorSize);
+				var index = 0;
+
+				while (vectorType == type)
+				{
+					vectors.Add(vector);
+					
+					index += vectorSize;
+					vectorType = compilation.GetVector(elementType, loader, items.AsSpan(index, items.Length - index), type, out vector, out _);
+				}
+
+				if (isRepeating && index < items.Length)
+				{
+					vectors.Add(compilation.GetCreateVector(VectorTypes.Vector128, elementType, loader, true, items.AsSpan(index, items.Length - index)));
+				}
+				
+				if (vectors.Count > 0)
+				{
+					using (builder.AppendBlock($"if ({type}.IsHardwareAccelerated)"))
+					{
+						vectorAction(vectors, vectorSize);
+					}
+
+					builder.AppendLine();
+				}
+			}
+
+			action(isPerformance);
+		}
+	}
+
 	protected void AppendMethod(IndentedStringBuilder builder, IMethodSymbol methodSymbol, IEnumerable<object?> items, Action<bool> action)
 	{
 		using (AppendMethod(builder, methodSymbol))
@@ -236,25 +277,35 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		return CreatePadding(check, "return", checks);
 	}
 
-	protected string CreatePadding(string check, string prefix, IEnumerable<string> checks)
+	protected string CreatePadding(string check, string prefix, IEnumerable<string> checks, bool isEnding = true, bool addWhitespace = true)
 	{
-		var padding = new string(' ', prefix.Length - check.Length);
+		var padding = new string(' ', prefix.Length - check.Length - (addWhitespace ? 0 : 1));
+		
+		if (addWhitespace)
+		{
+			prefix += " ";
+		}
+		
+		if (isEnding)
+		{
+			return $"{prefix}{String.Join("\n" + padding + $"{check} ", checks)};";
+		}
 
-		return $"{prefix} {String.Join("\n" + padding + $"{check} ", checks)};";
+		return $"{prefix}{String.Join("\n" + padding + $"{check} ", checks)}";
 	}
 
 	protected class TreeNode
 	{
-		public object? Value { get; set; }
-		public int Index { get; set; }
-		public int ReturnValue { get; set; }
+		public object? Value { get; init; }
+		public int Index { get; init; }
+		public int ReturnValue { get; init; }
 		public bool IsLeaf { get; init; }
 		public TreeNode? LessThan { get; set; }
 		public TreeNode? GreaterThan { get; set; }
 
-		public NodeState State { get; set; }
+		public NodeState State { get; init; }
 
-		public TreeNode? Parent { get; set; }
+		public TreeNode? Parent { get; init; }
 
 		public enum NodeState
 		{

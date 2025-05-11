@@ -303,6 +303,10 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 										     || memoryExtensionsBuilder.AppendEnumerableRunes(method, enumerable as string, code)
 										     || memoryExtensionsBuilder.AppendIsWhiteSpace(method, enumerable as string, code)
 												 || memoryExtensionsBuilder.AppendIndexOfAny(method, items, code)
+										     || memoryExtensionsBuilder.AppendIndexOfAnyExcept(method, items, code)
+										     || memoryExtensionsBuilder.AppendIndexOfAnyExceptInRange(method, items, code)
+										     || memoryExtensionsBuilder.AppendIndexOfAnyInRange(method, items, code)
+										     || memoryExtensionsBuilder.AppendSequenceCompareTo(method, items, code)
 												 || memoryExtensionsBuilder.AppendReplace(method, items, code):
 										continue;
 								}
@@ -574,19 +578,6 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				symbol = methodSymbol;
 				return true;
 			}
-		}
-
-		symbol = null;
-		return false;
-	}
-
-	private static bool TryGetType(Compilation compilation, SyntaxNode node, CancellationToken token, [NotNullWhen(true)] out INamedTypeSymbol? symbol)
-	{
-		if (compilation.TryGetSemanticModel(node, out var model)
-		    && model.GetSymbolInfo(node, token).Symbol is INamedTypeSymbol s)
-		{
-			symbol = s;
-			return true;
 		}
 
 		symbol = null;

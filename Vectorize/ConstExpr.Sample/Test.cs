@@ -66,7 +66,7 @@ public static class Test
 
 		for (var i = 0; i < count; i++)
 		{
-			result.Add(random.Next(5));
+			result.Add(random.Next(count));
 		}
 
 		return result.OrderBy( o => o) as ICustomCollection<int>;

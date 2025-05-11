@@ -243,7 +243,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 						{
 							indexes.Add(items.IndexOf(i));
 						}
-						
+
 						builder.AppendLine($"ReadOnlySpan<int> map = [{indexes}];");
 						builder.AppendLine();
 
@@ -252,7 +252,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 							builder.AppendLine($"{method.Parameters[0]} -= {min};");
 							builder.AppendLine();
 						}
-						
+
 						builder.AppendLine("return (uint)item < (uint)map.Length ? map[item] : -1;");
 					}
 					else
@@ -330,41 +330,42 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 			{
 				items = items
 					.Distinct()
-					.OrderBy(o => o)
 					.ToImmutableArray();
 
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, VectorTypes.Vector128, true, (vectors, size) =>
 				{
-					var vectorType = compilation.GetVector(elementType, loader, items.AsSpan(), true, out var vector, out _);
+					builder.AppendLine($"var {method.Parameters[0]}Vector = {VectorTypes.Vector128}.Create({method.Parameters[0]});");
+					builder.AppendLine();
 
-					if (vectorType != VectorTypes.None && compilation.IsVectorSupported(elementType))
+					if (size * vectors.Count < items.Length)
 					{
-						using (builder.AppendBlock($"if ({vectorType}.IsHardwareAccelerated)"))
-						{
-							if (compilation.HasMember<IMethodSymbol>(compilation.GetVectorType(vectorType), "Any"))
-							{
-								builder.AppendLine($"return {vectorType}.Any({(LiteralString) vector}, {method.Parameters[0]});");
-							}
-							else
-							{
-								builder.AppendLine($"return {vectorType}.EqualsAny({(LiteralString) vector}, {vectorType}.Create({method.Parameters[0]}));");
-							}
-						}
-
+						var checks = items
+							.Skip(vectors.Count * size)
+							.Select(s => $"{method.Parameters[0].Name} == {s}");
+						
+						builder.AppendLine(CreatePadding("|", "return (", vectors.Select(s => $"{VectorTypes.Vector128}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false) + $") != {VectorTypes.Vector128}<{compilation.GetMinimalString(elementType)}>.Zero");
+						builder.AppendLine(CreatePadding("|", "      |", checks));
+						
 						builder.AppendLine();
 					}
-
+					else
+					{
+						builder.AppendLine(CreatePadding("|", "return (", vectors.Select(s => $"{VectorTypes.Vector128}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false) + $") != {VectorTypes.Vector128}<{compilation.GetMinimalString(elementType)}>.Zero;");
+						return;
+					}
+				}, isPerformance =>
+				{
 					if (items.Length > 0)
 					{
 						if (method.ContainingType.HasMember<IMethodSymbol>("IndexOf", m => m is { ReturnType.SpecialType: SpecialType.System_Int32 }
-						                                                                        && m.Parameters.AsSpan().EqualsTypes(elementType)))
+						                                                                   && m.Parameters.AsSpan().EqualsTypes(elementType)))
 						{
 							builder.AppendLine($"return IndexOf({method.Parameters[0]}) >= 0;");
 						}
 						else if (method.ContainingType.HasMember<IMethodSymbol>("BinarySearch", m => m is { ReturnType.SpecialType: SpecialType.System_Int32 }
-						                                                                        && m.Parameters.AsSpan().EqualsTypes(elementType)
-						                                                                        && elementType.HasMember<IMethodSymbol>("CompareTo", x => x is { ReturnType.SpecialType: SpecialType.System_Int32 }
-						                                                                                                                                  && x.Parameters.AsSpan().EqualsTypes(elementType))))
+						                                                                             && m.Parameters.AsSpan().EqualsTypes(elementType)
+						                                                                             && elementType.HasMember<IMethodSymbol>("CompareTo", x => x is { ReturnType.SpecialType: SpecialType.System_Int32 }
+						                                                                                                                                       && x.Parameters.AsSpan().EqualsTypes(elementType))))
 						{
 							builder.AppendLine($"return BinarySearch({method.Parameters[0]}) >= 0;");
 						}
@@ -407,7 +408,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 					{
 						builder.AppendLine("return false;");
 					}
-				}
+				});
 
 				return true;
 			}

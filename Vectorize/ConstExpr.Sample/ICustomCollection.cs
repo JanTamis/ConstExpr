@@ -16,11 +16,13 @@ public interface ICustomCollection<T>
 	
 	bool Contains(T element);
 	
-	int IndexOfAny(T element1, T element2, T element3);
+	int IndexOfAnyInRange(T min, T max);
 
 	// int IndexOf(T item);
 
 	void Replace(Span<T> destination, T oldValue, T newValue);
+
+	int SequenceCompareTo(ReadOnlySpan<T> other);
 	
 	// bool ContainsAny(T element1, T element2, T element3, T element4);
 	// bool ContainsAnyExcept(T element1, T element2, T element3, T element4);
@@ -37,6 +39,8 @@ public interface ICharCollection
 	IEnumerable<Rune> EnumerateRunes();
 	
 	IEnumerable<string> EnumerateLines();
+
+	
 	
 	bool IsWhiteSpace();
 }
