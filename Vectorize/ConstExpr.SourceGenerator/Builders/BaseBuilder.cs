@@ -14,7 +14,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 {
 	public const int Threshold = 5;
 
-	protected IDisposable AppendMethod(IndentedStringBuilder builder, IMethodSymbol methodSymbol)
+	private IDisposable AppendMethod(IndentedStringBuilder builder, IMethodSymbol methodSymbol)
 	{
 		var prepend = "public ";
 
@@ -107,7 +107,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		{
 			var isPerformance = IsPerformance(generationLevel, items.Length);
 
-			if (isPerformance && compilation.IsVectorSupported(elementType))
+			if (isPerformance && type != VectorTypes.None && compilation.IsVectorSupported(elementType))
 			{
 				var vectors = new List<string>();
 				
@@ -124,7 +124,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 
 				if (isRepeating && index < items.Length)
 				{
-					vectors.Add(compilation.GetCreateVector(VectorTypes.Vector128, elementType, loader, true, items.AsSpan(index, items.Length - index)));
+					vectors.Add(compilation.GetCreateVector(type, elementType, loader, true, items.AsSpan(index, items.Length - index)));
 				}
 				
 				if (vectors.Count > 0)
@@ -147,6 +147,14 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		using (AppendMethod(builder, methodSymbol))
 		{
 			action(IsPerformance(generationLevel, items.Count()));
+		}
+	}
+
+	protected void AppendMethod(IndentedStringBuilder builder, IMethodSymbol methodSymbol, IEnumerable<object?> items, Action action)
+	{
+		using (AppendMethod(builder, methodSymbol))
+		{
+			action();
 		}
 	}
 

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace ConstExpr.SourceGenerator.Sample;
 
-[ConstExpr(Level = GenerationLevel.Performance)]
+[ConstExpr(Level = GenerationLevel.Performance, VectorLimit = VectorTypes.Vector128)]
 public static class Test
 {
 	public static IEnumerable<float> IsOdd(params IEnumerable<float> data)

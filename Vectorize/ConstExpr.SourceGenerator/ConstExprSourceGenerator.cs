@@ -63,7 +63,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				}
 				""");
 
-			spc.AddSource("ConstExprAttribute.g", """
+			spc.AddSource("ConstExprAttribute.g", $$"""
 				using System;
 
 				namespace ConstantExpression
@@ -72,9 +72,22 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 					public sealed class ConstExprAttribute : Attribute
 					{
 						public GenerationLevel Level { get; set; } = GenerationLevel.Balanced;
+						
+						public VectorTypes VectorLimit { get; set; } = VectorTypes.{{Enum.GetNames(typeof(VectorTypes))[^1]}};
 					}
 				}
 				""");
+
+			spc.AddSource("VectorTypes.g", $$"""
+				namespace ConstantExpression
+				{
+					public enum VectorTypes
+					{
+						{{String.Join(",\n\t\t", Enum.GetNames(typeof(VectorTypes))) }}
+					}
+				}
+				""");
+
 
 			spc.AddSource("InterceptsLocationAttribute.g", """
 				using System;
@@ -244,7 +257,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 							
 							var members = namedTypeSymbol.GetMembers();
 
-							var interfaceBuilder = new InterfaceBuilder(compilation, loader, elementType, invocation.GenerationLevel, hashCode);
+							var interfaceBuilder = new InterfaceBuilder(compilation, loader, elementType, invocation.GenerationLevel, invocation.VectorLimit, hashCode);
 							var enumerableBuilder = new EnumerableBuilder(compilation, elementType, loader, invocation.GenerationLevel, hashCode);
 							var memoryExtensionsBuilder = new MemoryExtensionsBuilder(compilation, loader, elementType, invocation.GenerationLevel, hashCode);
 
@@ -378,14 +391,20 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				.DefaultIfEmpty(GenerationLevel.Balanced)
 				.FirstOrDefault();
 
-			return GenerateExpression(context.SemanticModel.Compilation, loader, invocation, method, level, token);
+			var vectorLimit = attribute.NamedArguments
+				.Where(w => w.Key == "VectorLimit")
+				.Select(s => (VectorTypes) s.Value.Value)
+				.DefaultIfEmpty(VectorTypes.None)
+				.FirstOrDefault();
+
+			return GenerateExpression(context.SemanticModel.Compilation, loader, invocation, method, level, vectorLimit, token);
 		}
 
 		return null;
 	}
 
 	private InvocationModel? GenerateExpression(Compilation compilation, MetadataLoader loader, InvocationExpressionSyntax invocation,
-	                                            IMethodSymbol methodSymbol, GenerationLevel level, CancellationToken token)
+	                                            IMethodSymbol methodSymbol, GenerationLevel level, VectorTypes vectorLimit, CancellationToken token)
 	{
 		if (IsInConstExprBody(invocation))
 		{
@@ -440,6 +459,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 					Location = model.GetInterceptableLocation(invocation, token),
 					Exceptions = exceptions,
 					GenerationLevel = level,
+					VectorLimit = vectorLimit,
 				};
 			}
 			catch (Exception e)

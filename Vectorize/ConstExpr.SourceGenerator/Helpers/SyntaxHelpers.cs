@@ -128,7 +128,7 @@ public static class SyntaxHelpers
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression);
 		}
 
-		if (value?.GetType().Name.Contains("Tuple") == true)
+		if (value.GetType().Name.Contains("Tuple"))
 		{
 			var tupleItems = new List<ArgumentSyntax>();
 			var type = value.GetType();

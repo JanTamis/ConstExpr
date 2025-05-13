@@ -9,6 +9,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using ConstExpr.SourceGenerator.Enums;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Operations;
 
 namespace ConstExpr.SourceGenerator.Extensions;
@@ -457,7 +458,7 @@ public static class CompilationExtensions
 
 	public static bool IsInterface(this Compilation compilation, TypeSyntax typeSymbol, CancellationToken token = default)
 	{
-		return compilation.TryGetSemanticModel(typeSymbol, out var model) && model.GetSymbolInfo(typeSymbol, token).Symbol is ITypeSymbol { TypeKind: TypeKind.Interface };
+		return compilation.TryGetSemanticModel(typeSymbol, out var model) && ModelExtensions.GetSymbolInfo(model, typeSymbol, token).Symbol is ITypeSymbol { TypeKind: TypeKind.Interface };
 	}
 
 	public static ITypeSymbol GetTypeByType(this Compilation compilation, Type type, params ITypeSymbol[] typeArguments)
@@ -746,5 +747,30 @@ public static class CompilationExtensions
 		}
 
 		return type.AllInterfaces.Any(a => SymbolEqualityComparer.Default.Equals(a, otherType));
+	}
+
+	public static ExpressionSyntax GetDefaultValue(this ITypeSymbol type)
+	{
+		if (type.IsReferenceType)
+		{
+			return SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression);
+		}
+
+		return type.SpecialType switch
+		{
+			SpecialType.System_Boolean => SyntaxFactory.LiteralExpression(SyntaxKind.FalseLiteralExpression),
+			SpecialType.System_Byte => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0)),
+			SpecialType.System_SByte => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0)),
+			SpecialType.System_Int16 => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0)),
+			SpecialType.System_UInt16 => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0)),
+			SpecialType.System_Int32 => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0)),
+			SpecialType.System_UInt32 => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0U)),
+			SpecialType.System_Int64 => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0L)),
+			SpecialType.System_UInt64 => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0UL)),
+			SpecialType.System_Single => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0f)),
+			SpecialType.System_Double => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0d)),
+			SpecialType.System_Decimal => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0m)),
+			_ => SyntaxFactory.DefaultExpression(SyntaxFactory.ParseTypeName(type.ToDisplayString())),
+		};
 	}
 }

@@ -23,7 +23,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType)
 				     && method.Parameters.AsSpan().EqualsTypes(funcType):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, isPerformance =>
 				{
 					switch (items.Count)
 					{
@@ -35,7 +35,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 							break;
 						default:
 						{
-							if (IsPerformance(level, items.Count))
+							if (isPerformance)
 							{
 								builder.AppendLine($"var result = {method.Parameters[0]}({items[0]}, {items[1]});");
 
@@ -62,12 +62,12 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 								}
 
 								builder.AppendLine();
-								builder.AppendLine($"return result;");
+								builder.AppendLine("return result;");
 							}
 							break;
 						}
 					}
-				}
+				});
 
 				return true;
 			}
@@ -75,10 +75,8 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			case { Name: nameof(Enumerable.Aggregate) }
 				when method.Parameters.AsSpan().EqualsTypes(method.ReturnType, compilation.CreateFunc(method.Parameters[0].Type, elementType, method.Parameters[0].Type)):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, () =>
 				{
-					// builder.AppendLine($"var result = {member.Parameters[0]};");
-
 					for (var i = 0; i < items.Count; i++)
 					{
 						var item = CreateLiteral(items[i]);
@@ -92,7 +90,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 							builder.AppendLine($"return {method.Parameters[1]}({method.Parameters[0]}, {item});");
 						}
 					}
-				}
+				});
 
 				return true;
 			}
@@ -103,7 +101,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 				     && SymbolEqualityComparer.Default.Equals(method.Parameters[2].Type, compilation.CreateFunc(method.Parameters[0].Type, namedTypeSymbol.TypeArguments[1]))
 				     && SymbolEqualityComparer.Default.Equals(method.ReturnType, namedTypeSymbol.TypeArguments[1]):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, () =>
 				{
 					builder.AppendLine($"var result = {method.Parameters[0]};");
 
@@ -113,14 +111,13 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					}
 
 					builder.AppendLine($"return {method.Parameters[2]}(result);");
-				}
+				});
 
 				return true;
 			}
 			default:
 				return false;
 		}
-
 	}
 
 	public bool AppendAny(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
@@ -129,20 +126,20 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		{
 			case { Name: nameof(Enumerable.Any), Parameters.Length: 0, ReturnType.SpecialType: SpecialType.System_Boolean }:
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, () =>
 				{
 					builder.AppendLine($"return {items.Any()};");
-				}
+				});
 
 				return true;
 			}
 			case { Name: nameof(Enumerable.Any), ReturnType.SpecialType: SpecialType.System_Boolean }
 				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, compilation.CreateBoolean())):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, () =>
 				{
 					builder.AppendLine(CreateReturnPadding("||", items.Select(s => $"{method.Parameters[0]}({s})")));
-				}
+				});
 
 				return true;
 			}
@@ -158,10 +155,10 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			case { Name: nameof(Enumerable.All), ReturnType.SpecialType: SpecialType.System_Boolean }
 				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, compilation.CreateBoolean())):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, () =>
 				{
 					builder.AppendLine(CreateReturnPadding("&&", items.Select(s => $"{method.Parameters[0]}({s})")));
-				}
+				});
 
 				return true;
 			}
@@ -177,13 +174,13 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			case { Name: nameof(Enumerable.AsEnumerable) }
 				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateIEnumerable(elementType)):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, () =>
 				{
 					foreach (var item in items)
 					{
 						builder.AppendLine($"yield return {item};");
 					}
-				}
+				});
 
 				return true;
 			}
@@ -204,19 +201,21 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 				      || elementType.SpecialType == SpecialType.System_Double && method.ReturnType.SpecialType == SpecialType.System_Double
 				      || elementType.SpecialType == SpecialType.System_Decimal && method.ReturnType.SpecialType == SpecialType.System_Decimal):
 			{
-				var average = items.Average(elementType);
 
-				using (AppendMethod(builder, method))
+
+				AppendMethod(builder, method, items, () =>
 				{
+					var average = items.Average(elementType);
+
 					if (average is null)
 					{
-						builder.AppendLine("return default;");
+						builder.AppendLine("throw new InvalidOperationException(\"Sequence contains no elements\");");
 					}
 					else
 					{
 						builder.AppendLine($"return {CreateLiteral(average)};");
 					}
-				}
+				});
 
 				return true;
 			}
@@ -225,10 +224,10 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 				     && IsEqualSymbol(method.ReturnType, compilation.GetTypeByMetadataName("System.Numerics.IAdditionOperators").Construct(method.ReturnType, method.ReturnType, method.ReturnType))
 				     && IsEqualSymbol(method.ReturnType, compilation.GetTypeByMetadataName("System.Numerics.IDivisionOperators").Construct(method.ReturnType, method.ReturnType, method.ReturnType)):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, () =>
 				{
 					builder.AppendLine($"{CreateReturnPadding("+", items.Select(s => $"{method.Parameters[0]}({s})"))} / {items.Count};");
-				}
+				});
 
 				return true;
 			}
@@ -245,13 +244,13 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			case { Name: nameof(Enumerable.Cast), Parameters.Length: 0, TypeParameters.Length: 1 }
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, compilation.CreateIEnumerable(method.TypeArguments[0])):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, () =>
 				{
 					foreach (var item in items)
 					{
 						builder.AppendLine($"yield return ({method.TypeParameters[0]})Convert.ChangeType({item}, typeof({method.TypeParameters[0]}));");
 					}
-				}
+				});
 
 				return true;
 			}
@@ -266,20 +265,20 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		{
 			case { Name: nameof(Enumerable.Count), Parameters.Length: 0, ReturnType.SpecialType: SpecialType.System_Int32 }:
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, () =>
 				{
 					builder.AppendLine($"return {items.Count};");
-				}
+				});
 
 				return true;
 			}
 			case { Name: nameof(Enumerable.Count), ReturnType.SpecialType: SpecialType.System_Int32 }
 				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, compilation.CreateBoolean())):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, () =>
 				{
 					builder.AppendLine(CreateReturnPadding("+", items.Select(s => $"{method.Parameters[0]}({s}) ? 1 : 0")));
-				}
+				});
 
 				return true;
 			}
@@ -294,20 +293,20 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		{
 			case { Name: nameof(Enumerable.LongCount), Parameters.Length: 0, ReturnType.SpecialType: SpecialType.System_Int64 }:
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, () =>
 				{
-					builder.AppendLine($"return {items.Count};");
-				}
+					builder.AppendLine($"return {(long) items.Count};");
+				});
 
 				return true;
 			}
 			case { Name: nameof(Enumerable.LongCount), ReturnType.SpecialType: SpecialType.System_Int64 }
 				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, compilation.CreateBoolean())):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, () =>
 				{
 					builder.AppendLine(CreateReturnPadding("+", items.Select(s => $"{method.Parameters[0]}({s}) ? 1L : 0L")));
-				}
+				});
 
 				return true;
 			}
@@ -323,13 +322,13 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			case { Name: nameof(Enumerable.Distinct) }
 				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, compilation.CreateBoolean())):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, () =>
 				{
 					foreach (var item in items.Distinct())
 					{
 						builder.AppendLine($"yield return {item};");
 					}
-				}
+				});
 
 				return true;
 			}
@@ -346,10 +345,28 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateInt32())
 				     && SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, isPerformance =>
 				{
-					builder.AppendLine($"return {items.First()};");
-				}
+					if (isPerformance)
+					{
+						using (builder.AppendBlock($"return {method.Parameters[0]} switch", "};"))
+						{
+							for (var i = 0; i < items.Count; i++)
+							{
+								builder.AppendLine($"{i} => {items[i]},");
+							}
+
+							builder.AppendLine("_ => throw new ArgumentOutOfRangeException(\"Index out of range\")");
+						}
+					}
+					else
+					{
+						builder.AppendLine($"if ({method.Parameters[0]} < 0 || {method.Parameters[0]} >= {items.Count})");
+						builder.AppendLine("\tthrow new ArgumentOutOfRangeException(\"Index out of range\");");
+						builder.AppendLine();
+						builder.AppendLine($"return {items}[{method.Parameters[0]}];");
+					}
+				});
 
 				return true;
 			}
@@ -357,9 +374,9 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 				when method.Parameters.AsSpan().EqualsTypes(compilation.GetTypeByType(typeof(Index)))
 				     && SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, isPerformance =>
 				{
-					using (AppendMethod(builder, method))
+					if (isPerformance)
 					{
 						using (builder.AppendBlock($"return {method.Parameters[0]}.GetOffset({items.Count}) switch", "};"))
 						{
@@ -371,7 +388,16 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 							builder.AppendLine("_ => throw new ArgumentOutOfRangeException(\"Index out of range\")");
 						}
 					}
-				}
+					else
+					{
+						builder.AppendLine($"var index = {method.Parameters[0]}.GetOffset({items.Count});");
+						builder.AppendLine();
+						builder.AppendLine($"if (index < 0 || index >= {items.Count})");
+						builder.AppendLine("\tthrow new ArgumentOutOfRangeException(\"Index out of range\");");
+						builder.AppendLine();
+						builder.AppendLine($"return {items}[index];");
+					}
+				});
 
 				return true;
 			}
@@ -388,30 +414,11 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateInt32())
 				     && SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, isPerformance =>
 				{
-					using (builder.AppendBlock($"return {method.Parameters[0]} switch", "};"))
+					if (isPerformance)
 					{
-						for (var i = 0; i < items.Count; i++)
-						{
-							builder.AppendLine($"{i} => {items[i]},");
-						}
-
-						builder.AppendLine("_ => default");
-					}
-				}
-
-				return true;
-			}
-			case { Name: nameof(Enumerable.ElementAtOrDefault) }
-				when method.Parameters.AsSpan().EqualsTypes(compilation.GetTypeByType(typeof(Index)))
-				     && SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
-			{
-				using (AppendMethod(builder, method))
-				{
-					using (AppendMethod(builder, method))
-					{
-						using (builder.AppendBlock($"return {method.Parameters[0]}.GetOffset({items.Count}) switch", "};"))
+						using (builder.AppendBlock($"return {method.Parameters[0]} switch", "};"))
 						{
 							for (var i = 0; i < items.Count; i++)
 							{
@@ -421,7 +428,45 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 							builder.AppendLine("_ => default");
 						}
 					}
-				}
+					else
+					{
+						builder.AppendLine($"if ({method.Parameters[0]} < 0 || {method.Parameters[0]} >= {items.Count})");
+						builder.AppendLine("\treturn default;");
+						builder.AppendLine();
+						builder.AppendLine($"return {items}[{method.Parameters[0]}];");
+					}
+				});
+
+				return true;
+			}
+			case { Name: nameof(Enumerable.ElementAtOrDefault) }
+				when method.Parameters.AsSpan().EqualsTypes(compilation.GetTypeByType(typeof(Index)))
+				     && SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
+			{
+				AppendMethod(builder, method, items, isPerformance =>
+				{
+					if (isPerformance)
+					{
+						using (builder.AppendBlock($"return {method.Parameters[0]}.GetOffset({items.Count}) switch", "};"))
+						{
+							for (var i = 0; i < items.Count; i++)
+							{
+								builder.AppendLine($"{i} => {items[i]},");
+							}
+
+							builder.AppendLine($"_ => {elementType.GetDefaultValue()}");
+						}
+					}
+					else
+					{
+						builder.AppendLine($"var index = {method.Parameters[0]}.GetOffset({items.Count});");
+						builder.AppendLine();
+						builder.AppendLine($"if (index < 0 || index >= {items.Count})");
+						builder.AppendLine($"\treturn {elementType.GetDefaultValue()};");
+						builder.AppendLine();
+						builder.AppendLine($"return {items}[index];");
+					}
+				});
 
 				return true;
 			}
@@ -437,10 +482,17 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			case { Name: nameof(Enumerable.First), Parameters.Length: 0 }
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, () =>
 				{
-					builder.AppendLine($"return {items.First()};");
-				}
+					if (items.Count > 0)
+					{
+						builder.AppendLine($"return {items.First()};");
+					}
+					else
+					{
+						builder.AppendLine("throw new InvalidOperationException(\"Sequence contains no elements\");");
+					}
+				});
 
 				return true;
 			}
@@ -448,31 +500,47 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, compilation.CreateBoolean()))
 				     && SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, isPerformance =>
 				{
-					for (var i = 0; i < items.Count; i++)
+					if (isPerformance)
 					{
-						if (i != 0)
+						for (var i = 0; i < items.Count; i++)
+						{
+							if (i != 0)
+							{
+								builder.AppendLine();
+							}
+
+							using (builder.AppendBlock($"if ({method.Parameters[0]}({items[i]}))"))
+							{
+								builder.AppendLine($"return {items[i]};");
+							}
+						}
+
+						if (items.Count > 0)
 						{
 							builder.AppendLine();
+							builder.AppendLine("throw new InvalidOperationException(\"Sequence contains no matching element\");");
 						}
-
-						using (builder.AppendBlock($"if ({method.Parameters[0]}({items[i]}))"))
+						else
 						{
-							builder.AppendLine($"return {items[i]};");
+							builder.AppendLine("throw new InvalidOperationException(\"Sequence contains no elements\");");
 						}
-					}
-
-					if (items.Count > 0)
-					{
-						builder.AppendLine();
-						builder.AppendLine("throw new InvalidOperationException(\"Sequence contains no matching element\");");
 					}
 					else
 					{
-						builder.AppendLine("throw new InvalidOperationException(\"Sequence contains no elements\");");
+						using (builder.AppendBlock($"foreach (var item in {GetDataName(method.ContainingType)})"))
+						{
+							using (builder.AppendBlock($"if ({method.Parameters[0]}(item))"))
+							{
+								builder.AppendLine("return item;");
+							}
+						}
+						
+						builder.AppendLine();
+						builder.AppendLine("throw new InvalidOperationException(\"Sequence contains no matching element\");");
 					}
-				}
+				});
 
 				return true;
 			}
@@ -488,10 +556,17 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			case { Name: nameof(Enumerable.FirstOrDefault), Parameters.Length: 0 }
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, () =>
 				{
-					builder.AppendLine($"return {items.FirstOrDefault()};");
-				}
+					if (items.Count > 0)
+					{
+						builder.AppendLine($"return {items[0]};");
+					}
+					else
+					{
+						builder.AppendLine($"return {elementType.GetDefaultValue()};");
+					}
+				});
 
 				return true;
 			}
@@ -499,28 +574,44 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, compilation.CreateBoolean()))
 				     && SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, isPerformance =>
 				{
-					for (var i = 0; i < items.Count; i++)
+					if (isPerformance)
 					{
-						if (i != 0)
+						for (var i = 0; i < items.Count; i++)
+						{
+							if (i != 0)
+							{
+								builder.AppendLine();
+							}
+
+							using (builder.AppendBlock($"if ({method.Parameters[0]}({items[i]}))"))
+							{
+								builder.AppendLine($"return {items[i]};");
+							}
+						}
+
+						if (items.Count > 0)
 						{
 							builder.AppendLine();
 						}
 
-						using (builder.AppendBlock($"if ({method.Parameters[0]}({items[i]}))"))
-						{
-							builder.AppendLine($"return {items[i]};");
-						}
+						builder.AppendLine($"return {elementType.GetDefaultValue()};");
 					}
-
-					if (items.Count > 0)
+					else
 					{
-						builder.AppendLine();
-					}
+						using (builder.AppendBlock($"foreach (var item in {GetDataName(method.ContainingType)})"))
+						{
+							using (builder.AppendBlock($"if ({method.Parameters[0]}(item))"))
+							{
+								builder.AppendLine("return item;");
+							}
+						}
 
-					builder.AppendLine("return default;");
-				}
+						builder.AppendLine();
+						builder.AppendLine($"return {elementType.GetDefaultValue()};");
+					}
+				});
 
 				return true;
 			}
@@ -537,15 +628,18 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, compilation.CreateBoolean()))
 				     && SymbolEqualityComparer.Default.Equals(method.ReturnType, compilation.GetTypeByType(typeof(ValueTuple<,>), compilation.CreateInt32(), elementType)):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, () =>
 				{
-					var i = 0;
-
-					foreach (var item in items)
+					for (var i = 0; i < items.Count; i++)
 					{
-						builder.AppendLine($"yield return ({i++}, {item});");
+						builder.AppendLine($"yield return ({i}, {items[i]});");
 					}
-				}
+
+					if (items.Count == 0)
+					{
+						builder.AppendLine("yield break;");
+					}
+				});
 
 				return true;
 			}
@@ -554,49 +648,72 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendLast(IMethodSymbol methodSymbol, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendLast(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
 	{
-		switch (methodSymbol)
+		switch (method)
 		{
 			case { Name: nameof(Enumerable.Last), Parameters.Length: 0 }
-				when SymbolEqualityComparer.Default.Equals(methodSymbol.ReturnType, elementType):
+				when SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
 			{
-				using (AppendMethod(builder, methodSymbol))
+				AppendMethod(builder, method, items, () =>
 				{
-					builder.AppendLine($"return {items.Last()};");
-				}
-
-				return true;
-			}
-			case { Name: nameof(Enumerable.Last) }
-				when methodSymbol.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, compilation.CreateBoolean()))
-				     && SymbolEqualityComparer.Default.Equals(methodSymbol.ReturnType, elementType):
-			{
-				using (AppendMethod(builder, methodSymbol))
-				{
-					for (var i = items.Count - 1; i >= 0; i--)
-					{
-						if (i != items.Count - 1)
-						{
-							builder.AppendLine();
-						}
-
-						using (builder.AppendBlock($"if ({methodSymbol.Parameters[0]}({items[i]}))"))
-						{
-							builder.AppendLine($"return {items[i]};");
-						}
-					}
-
 					if (items.Count > 0)
 					{
-						builder.AppendLine();
-						builder.AppendLine("throw new InvalidOperationException(\"Sequence contains no matching element\");");
+						builder.AppendLine($"return {items[^1]};");
 					}
 					else
 					{
 						builder.AppendLine("throw new InvalidOperationException(\"Sequence contains no elements\");");
 					}
-				}
+				});
+
+				return true;
+			}
+			case { Name: nameof(Enumerable.Last) }
+				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, compilation.CreateBoolean()))
+				     && SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
+			{
+				AppendMethod(builder, method, items, isPerformance =>
+				{
+					if (isPerformance)
+					{
+						for (var i = items.Count - 1; i >= 0; i--)
+						{
+							if (i != items.Count - 1)
+							{
+								builder.AppendLine();
+							}
+
+							using (builder.AppendBlock($"if ({method.Parameters[0]}({items[i]}))"))
+							{
+								builder.AppendLine($"return {items[i]};");
+							}
+						}
+
+						if (items.Count > 0)
+						{
+							builder.AppendLine();
+							builder.AppendLine("throw new InvalidOperationException(\"Sequence contains no matching element\");");
+						}
+						else
+						{
+							builder.AppendLine("throw new InvalidOperationException(\"Sequence contains no elements\");");
+						}
+					}
+					else
+					{
+						using (builder.AppendBlock($"for (var i = {GetDataName(method.ContainingType)} - 1; i >= 0; i--)"))
+						{
+							using (builder.AppendBlock($"if ({method.Parameters[0]}({GetDataName(method.ContainingType)}[i]))"))
+							{
+								builder.AppendLine($"return {GetDataName(method.ContainingType)}[i];");
+							}
+						}
+
+						builder.AppendLine();
+						builder.AppendLine("throw new InvalidOperationException(\"Sequence contains no matching element\");");
+					}
+				});
 
 				return true;
 			}
@@ -612,10 +729,17 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			case { Name: nameof(Enumerable.LastOrDefault), Parameters.Length: 0 }
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, () =>
 				{
-					builder.AppendLine($"return {(items.Count > 0 ? CreateLiteral(items.Last()).ToString()  : "default")};");
-				}
+					if (items.Count > 0)
+					{
+						builder.AppendLine($"return {items[^1]};");
+					}
+					else
+					{
+						builder.AppendLine($"return {elementType.GetDefaultValue()};");
+					}
+				});
 
 				return true;
 			}
@@ -623,28 +747,44 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, compilation.CreateBoolean()))
 				     && SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, isPerformance =>
 				{
-					for (var i = items.Count - 1; i >= 0; i--)
+					if (isPerformance)
 					{
-						if (i != items.Count - 1)
+						for (var i = items.Count - 1; i >= 0; i--)
+						{
+							if (i != items.Count - 1)
+							{
+								builder.AppendLine();
+							}
+
+							using (builder.AppendBlock($"if ({method.Parameters[0]}({items[i]}))"))
+							{
+								builder.AppendLine($"return {items[i]};");
+							}
+						}
+
+						if (items.Count > 0)
 						{
 							builder.AppendLine();
 						}
 
-						using (builder.AppendBlock($"if ({method.Parameters[0]}({items[i]}))"))
-						{
-							builder.AppendLine($"return {items[i]};");
-						}
+						builder.AppendLine($"return {elementType.GetDefaultValue()};");
 					}
-
-					if (items.Count > 0)
+					else
 					{
-						builder.AppendLine();
-					}
+						using (builder.AppendBlock($"for (var i = {GetDataName(method.ContainingType)} - 1; i >= 0; i--)"))
+						{
+							using (builder.AppendBlock($"if ({method.Parameters[0]}({GetDataName(method.ContainingType)}[i]))"))
+							{
+								builder.AppendLine($"return {GetDataName(method.ContainingType)}[i];");
+							}
+						}
 
-					builder.AppendLine("return default;");
-				}
+						builder.AppendLine();
+						builder.AppendLine($"return {elementType.GetDefaultValue()};");
+					}
+				});
 
 				return true;
 			}
@@ -660,13 +800,13 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			case { Name: nameof(Enumerable.OrderBy), }
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, compilation.CreateIEnumerable(elementType)):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, () =>
 				{
 					foreach (var item in items.OrderBy(s => s))
 					{
 						builder.AppendLine($"yield return {item};");
 					}
-				}
+				});
 
 				return true;
 			}
@@ -682,13 +822,13 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			case { Name: nameof(Enumerable.OrderByDescending), }
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, compilation.CreateIEnumerable(elementType)):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, () =>
 				{
 					foreach (var item in items.OrderByDescending(s => s))
 					{
 						builder.AppendLine($"yield return {item};");
 					}
-				}
+				});
 
 				return true;
 			}
@@ -704,13 +844,13 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			case { Name: nameof(Enumerable.Reverse), Parameters.Length: 0 }
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, compilation.CreateIEnumerable(elementType)):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, () =>
 				{
 					foreach (var item in items.Reverse())
 					{
 						builder.AppendLine($"yield return {item};");
 					}
-				}
+				});
 
 				return true;
 			}
@@ -727,23 +867,23 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, compilation.CreateIEnumerable(namedTypeSymbol.TypeArguments[0]))
 				     && method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, namedTypeSymbol.TypeArguments[0])):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, isPerformance =>
 				{
-					if (!IsPerformance(level, items.Count))
-					{
-						using (builder.AppendBlock($"for (var i = 0; i < {GetDataName(method.ContainingType)}.Length; i++)"))
-						{
-							builder.AppendLine($"yield return {method.Parameters[0]}({GetDataName(method.ContainingType)}[i]);");
-						}
-					}
-					else
+					if (isPerformance)
 					{
 						foreach (var item in items)
 						{
 							builder.AppendLine($"yield return {method.Parameters[0]}({item});");
 						}
 					}
-				}
+					else
+					{
+						using (builder.AppendBlock($"for (var i = 0; i < {GetDataName(method.ContainingType)}.Length; i++)"))
+						{
+							builder.AppendLine($"yield return {method.Parameters[0]}({GetDataName(method.ContainingType)}[i]);");
+						}
+					}
+				});
 
 				return true;
 			}
@@ -759,9 +899,9 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			case { Name: nameof(Enumerable.SequenceEqual), ReturnType.SpecialType: SpecialType.System_Boolean }
 				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateIEnumerable(elementType)):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, isPerformance =>
 				{
-					if (!IsPerformance(level, items.Count) && compilation.HasMember<IMethodSymbol>(typeof(Enumerable), nameof(Enumerable.SequenceEqual)))
+					if (!isPerformance && compilation.HasMember<IMethodSymbol>(typeof(Enumerable), nameof(Enumerable.SequenceEqual)))
 					{
 						builder.AppendLine($"return {method.Parameters[0]}.SequenceEqual([{String.Join(", ", items.Select(CreateLiteral))}]);");
 					}
@@ -771,7 +911,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 						{
 							using (builder.AppendBlock($"if ({method.Parameters[0]}.TryGetNonEnumeratedCount(out var count) && count != {items.Count})"))
 							{
-								builder.AppendLine($"return false;");
+								builder.AppendLine("return false;");
 							}
 
 							builder.AppendLine();
@@ -782,12 +922,12 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 
 						if (!items.Any())
 						{
-							builder.AppendLine($"return !e.MoveNext();");
+							builder.AppendLine("return !e.MoveNext();");
 						}
-						
+
 						builder.AppendLine(CreateReturnPadding("&&", items.Select(s => $"e.MoveNext() && {s} == e.Current").Append("!e.MoveNext()")));
 					}
-				}
+				});
 
 				return true;
 			}
@@ -803,7 +943,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			case { Name: nameof(Enumerable.Single), Parameters.Length: 0 }
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, () =>
 				{
 					switch (items.Count)
 					{
@@ -817,7 +957,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 							builder.AppendLine("throw new InvalidOperationException(\"The input sequence contains more than one element\");");
 							break;
 					}
-				}
+				});
 
 				return true;
 			}
@@ -833,21 +973,18 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			case { Name: nameof(Enumerable.SingleOrDefault), Parameters.Length: 0 }
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, () =>
 				{
 					switch (items.Count)
 					{
-						case 0:
-							builder.AppendLine("return default;");
-							break;
 						case 1:
 							builder.AppendLine($"return {items[0]};");
 							break;
 						default:
-							builder.AppendLine("throw new InvalidOperationException(\"The input sequence contains more than one element\");");
+							builder.AppendLine($"return {elementType.GetDefaultValue()};");
 							break;
 					}
-				}
+				});
 
 				return true;
 			}
@@ -872,10 +1009,10 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					     or SpecialType.System_Double
 					     or SpecialType.System_Decimal:
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, () =>
 				{
 					builder.AppendLine($"return {items.Sum()};");
-				}
+				});
 
 				return true;
 			}
@@ -888,14 +1025,13 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 	{
 		switch (method)
 		{
-			case { Name: "TryGetNonEnumeratedCount", Parameters: [ { RefKind: RefKind.Out, Type.SpecialType: SpecialType.System_Boolean }] }
+			case { Name: "TryGetNonEnumeratedCount", Parameters: [ { RefKind: RefKind.Out, Type.SpecialType: SpecialType.System_Boolean } ] }
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, compilation.CreateBoolean()):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, () =>
 				{
-					builder.AppendLine($"{method.Parameters[0]} == {items.Count};");
-					builder.AppendLine($"return true;");
-				}
+					builder.AppendLine($"return {method.Parameters[0]} = {items.Count};");
+				});
 
 				return true;
 			}
@@ -912,18 +1048,31 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, compilation.CreateIEnumerable(elementType))
 				     && method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, compilation.CreateBoolean())):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, isPerformance =>
 				{
-					for (var i = 0; i < items.Count; i++)
+					if (isPerformance)
 					{
-						if (i != 0)
+						for (var i = 0; i < items.Count; i++)
 						{
-							builder.AppendLine();
-						}
+							if (i != 0)
+							{
+								builder.AppendLine();
+							}
 
-						builder.AppendLine($"if ({method.Parameters[0]}({items[i]})) \tyield return {items[i]};");
+							builder.AppendLine($"if ({method.Parameters[0]}({items[i]})) \tyield return {items[i]};");
+						}
 					}
-				}
+					else
+					{
+						using (builder.AppendBlock($"for (var i = 0; i < {GetDataName(method.ContainingType)}.Length; i++)"))
+						{
+							using (builder.AppendBlock($"if ({method.Parameters[0]}({GetDataName(method.ContainingType)}[i]))"))
+							{
+								builder.AppendLine($"yield return {GetDataName(method.ContainingType)}[i];");
+							}
+						}
+					}
+				});
 
 				return true;
 			}
@@ -939,10 +1088,10 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			case { Name: nameof(ImmutableArray.ToImmutableArray), Parameters.Length: 0 }
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, compilation.GetTypeByType(typeof(ImmutableArray<>), elementType)):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, () =>
 				{
 					builder.AppendLine($"return ImmutableArray.Create({items});");
-				}
+				});
 
 				return true;
 			}
@@ -958,10 +1107,10 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			case { Name: nameof(Enumerable.ToArray), Parameters.Length: 0 }
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, compilation.CreateArrayTypeSymbol(elementType)):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, () =>
 				{
 					builder.AppendLine($"return [{items}];");
-				}
+				});
 
 				return true;
 			}
@@ -977,10 +1126,10 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			case { Name: nameof(ImmutableList.ToImmutableList), Parameters.Length: 0 }
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, compilation.GetTypeByType(typeof(ImmutableList<>), elementType)):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, () =>
 				{
 					builder.AppendLine($"return ImmutableList.Create({items});");
-				}
+				});
 
 				return true;
 			}
@@ -996,10 +1145,10 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			case { Name: nameof(Enumerable.ToList), Parameters.Length: 0 }
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, compilation.GetTypeByType(typeof(List<>), elementType)):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, () =>
 				{
 					builder.AppendLine($"return [{items}];");
-				}
+				});
 
 				return true;
 			}
@@ -1015,10 +1164,10 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			case { Name: "ToHashSet", Parameters.Length: 0 }
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, compilation.GetTypeByType(typeof(HashSet<>), elementType)):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, () =>
 				{
-					builder.AppendLine($"return new HashSet<{elementType}>({items});");
-				}
+					builder.AppendLine($"return new HashSet<{elementType}>({items.Distinct()});");
+				});
 
 				return true;
 			}

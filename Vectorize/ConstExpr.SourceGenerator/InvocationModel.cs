@@ -26,6 +26,8 @@ public class InvocationModel : IEquatable<InvocationModel>
 	public IReadOnlyDictionary<SyntaxNode, Exception> Exceptions { get; set; }
 	
 	public GenerationLevel GenerationLevel { get; set; } = GenerationLevel.Balanced;
+	
+	public VectorTypes VectorLimit { get; set; }
 
 	public bool Equals(InvocationModel? other)
 	{

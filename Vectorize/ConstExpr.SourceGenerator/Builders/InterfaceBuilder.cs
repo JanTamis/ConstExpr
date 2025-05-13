@@ -9,7 +9,7 @@ using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Builders;
 
-public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, ITypeSymbol elementType, GenerationLevel generationLevel, int hashCode) : BaseBuilder(elementType, compilation, generationLevel, loader, hashCode)
+public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, ITypeSymbol elementType, GenerationLevel generationLevel, VectorTypes vectorLimit, int hashCode) : BaseBuilder(elementType, compilation, generationLevel, loader, hashCode)
 {
 	public bool AppendCount(IPropertySymbol property, int count, IndentedStringBuilder builder)
 	{
@@ -106,14 +106,47 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 		return true;
 	}
 
-	public bool AppendCopyTo(IMethodSymbol method, IEnumerable<object?> items, IndentedStringBuilder builder)
+	public bool AppendCopyTo(IMethodSymbol method, ImmutableArray<object?> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
-			case { Name: "CopyTo", Parameters.Length: 1 or 2 }
+			case { Name: "CopyTo", Parameters.Length: 1 or 2, ReturnsVoid: true }
 				when SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, elementType)
 				     && (method.Parameters.Length != 2 || method.Parameters[1].Type.SpecialType == SpecialType.System_Int32):
 			{
+				AppendMethod(builder, method, items, vectorLimit, false, (vectors, size) =>
+				{
+					if (method.Parameters.Length == 1)
+					{
+						for (var i = 0; i < vectors.Count; i++)
+						{
+							builder.AppendLine($"{(LiteralString) vectors[i]}.StoreUnsafe(ref MemoryMarshal.GetReference({method.Parameters[0]}), {i * size});");
+						}
+
+						for (var i = vectors.Count * size; i < items.Length; i++)
+						{
+							builder.AppendLine($"{method.Parameters[0]}[{i}] = {items[i]};");
+						}
+					}
+				}, isPerformance =>
+				{
+					if (items.Any())
+					{
+						if (method.ContainingType.HasMember<IMethodSymbol>("CopyTo", m => m is { ReturnType.SpecialType: SpecialType.System_Void }
+						                                                                   && m.Parameters.AsSpan().EqualsTypes(elementType)))
+						{
+							builder.AppendLine($"CopyTo({method.Parameters[0]});");
+						}
+						else
+						{
+							var elements = items
+								.Select(s => SyntaxHelpers.CreateLiteral(s)?.ToString());
+
+							builder.AppendLine(CreatePadding("or", $"return {method.Parameters[0].Name} is", elements));
+						}
+					}
+				});
+				
 				using (AppendMethod(builder, method))
 				{
 					if (method.Parameters.Length == 2)
@@ -332,9 +365,9 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 					.Distinct()
 					.ToImmutableArray();
 
-				AppendMethod(builder, method, items, VectorTypes.Vector128, true, (vectors, size) =>
+				AppendMethod(builder, method, items, vectorLimit, true, (vectors, size) =>
 				{
-					builder.AppendLine($"var {method.Parameters[0]}Vector = {VectorTypes.Vector128}.Create({method.Parameters[0]});");
+					builder.AppendLine($"var {method.Parameters[0]}Vector = {vectorLimit}.Create({method.Parameters[0]});");
 					builder.AppendLine();
 
 					if (size * vectors.Count < items.Length)
@@ -342,16 +375,15 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 						var checks = items
 							.Skip(vectors.Count * size)
 							.Select(s => $"{method.Parameters[0].Name} == {s}");
-						
-						builder.AppendLine(CreatePadding("|", "return (", vectors.Select(s => $"{VectorTypes.Vector128}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false) + $") != {VectorTypes.Vector128}<{compilation.GetMinimalString(elementType)}>.Zero");
+
+						builder.AppendLine(CreatePadding("|", "return (", vectors.Select(s => $"{vectorLimit}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false) + $") != {vectorLimit}<{compilation.GetMinimalString(elementType)}>.Zero");
 						builder.AppendLine(CreatePadding("|", "      |", checks));
-						
+
 						builder.AppendLine();
 					}
 					else
 					{
-						builder.AppendLine(CreatePadding("|", "return (", vectors.Select(s => $"{VectorTypes.Vector128}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false) + $") != {VectorTypes.Vector128}<{compilation.GetMinimalString(elementType)}>.Zero;");
-						return;
+						builder.AppendLine(CreatePadding("|", "return (", vectors.Select(s => $"{vectorLimit}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false) + $") != {vectorLimit}<{compilation.GetMinimalString(elementType)}>.Zero;");
 					}
 				}, isPerformance =>
 				{
@@ -379,29 +411,10 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 						}
 						else
 						{
-							var elements = items.Select(s => SyntaxHelpers.CreateLiteral(s).ToString());
-							var length = elements.Sum(s => s.Length);
+							var elements = items
+								.Select(s => SyntaxHelpers.CreateLiteral(s)?.ToString());
 
-							if (length > 100)
-							{
-								builder.AppendLine($"return {method.Parameters[0]} is {items[0]}");
-
-								for (var i = 1; i < items.Length; i++)
-								{
-									if (i == items.Length - 1)
-									{
-										builder.AppendLine($"\tor {items[i]};");
-									}
-									else
-									{
-										builder.AppendLine($"\tor {items[i]}");
-									}
-								}
-							}
-							else
-							{
-								builder.AppendLine($"return {method.Parameters[0]} is {String.Join(" or ", elements)};");
-							}
+							builder.AppendLine(CreatePadding("or", $"return {method.Parameters[0].Name} is", elements));
 						}
 					}
 					else
