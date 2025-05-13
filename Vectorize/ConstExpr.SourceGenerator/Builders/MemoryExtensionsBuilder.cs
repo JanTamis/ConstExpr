@@ -176,11 +176,8 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 				{
 					if (isPerformance)
 					{
-						using (AppendMethod(builder, method))
-						{
-							builder.AppendLine($"return {(LiteralString) GetDataName(method.ContainingType)}");
-							builder.AppendLine($"\t.CommonPrefixLength({method.Parameters});");
-						}
+						builder.AppendLine($"return {(LiteralString) GetDataName(method.ContainingType)}");
+						builder.AppendLine($"\t.CommonPrefixLength({method.Parameters});");
 					}
 					else
 					{

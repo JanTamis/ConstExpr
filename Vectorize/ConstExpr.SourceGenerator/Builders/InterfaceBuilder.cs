@@ -110,84 +110,37 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 	{
 		switch (method)
 		{
-			case { Name: "CopyTo", Parameters.Length: 1 or 2, ReturnsVoid: true }
-				when SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, elementType)
-				     && (method.Parameters.Length != 2 || method.Parameters[1].Type.SpecialType == SpecialType.System_Int32):
+			case { Name: "CopyTo", Parameters.Length: 1, ReturnsVoid: true }
+				when method.Parameters.AsSpan().EqualsTypes(elementType):
 			{
 				AppendMethod(builder, method, items, vectorLimit, false, (vectors, size) =>
 				{
-					if (method.Parameters.Length == 1)
+					for (var i = 0; i < vectors.Count; i++)
 					{
-						for (var i = 0; i < vectors.Count; i++)
-						{
-							builder.AppendLine($"{(LiteralString) vectors[i]}.StoreUnsafe(ref MemoryMarshal.GetReference({method.Parameters[0]}), {i * size});");
-						}
+						builder.AppendLine($"{(LiteralString) vectors[i]}.StoreUnsafe(ref MemoryMarshal.GetReference({method.Parameters[0]}), {i * size});");
+					}
 
-						for (var i = vectors.Count * size; i < items.Length; i++)
-						{
-							builder.AppendLine($"{method.Parameters[0]}[{i}] = {items[i]};");
-						}
+					for (var i = vectors.Count * size; i < items.Length; i++)
+					{
+						builder.AppendLine($"{method.Parameters[0]}[{i}] = {items[i]};");
 					}
 				}, isPerformance =>
 				{
 					if (items.Any())
 					{
-						if (method.ContainingType.HasMember<IMethodSymbol>("CopyTo", m => m is { ReturnType.SpecialType: SpecialType.System_Void }
-						                                                                   && m.Parameters.AsSpan().EqualsTypes(elementType)))
+						if (isPerformance)
 						{
-							builder.AppendLine($"CopyTo({method.Parameters[0]});");
+							for (var i = 0; i < items.Length; i++)
+							{
+								builder.AppendLine($"{method.Parameters[0]}[{i}] = {items[i]};");
+							}
 						}
 						else
 						{
-							var elements = items
-								.Select(s => SyntaxHelpers.CreateLiteral(s)?.ToString());
-
-							builder.AppendLine(CreatePadding("or", $"return {method.Parameters[0].Name} is", elements));
+							builder.AppendLine($"{GetDataName(method.ContainingType)}CopyTo({method.Parameters[0]});");
 						}
 					}
 				});
-				
-				using (AppendMethod(builder, method))
-				{
-					if (method.Parameters.Length == 2)
-					{
-						if (method.Parameters[0].Type.IsReferenceType)
-						{
-							using (builder.AppendBlock($"if ({method.Parameters[0]} is null)"))
-							{
-								builder.AppendLine($"throw new ArgumentNullException(nameof({method.Parameters[0]}));");
-							}
-
-							builder.AppendLine();
-						}
-
-						using (builder.AppendBlock($"if ({method.Parameters[1]} < 0 || {method.Parameters[1]} + {items.Count()} >= {method.Parameters[0]}.{GetLengthPropertyName(method.Parameters[0].Type)})"))
-						{
-							builder.AppendLine($"throw new ArgumentOutOfRangeException(nameof({method.Parameters[1]}));");
-						}
-
-						builder.AppendLine();
-
-						var index = 0;
-
-						foreach (var item in items)
-						{
-							if (method.Parameters.Length == 1)
-							{
-								builder.AppendLine($"{method.Parameters[0]}[{index++}] = {item};");
-							}
-							else
-							{
-								builder.AppendLine($"{method.Parameters[0]}[{method.Parameters[1]} + {index++}] = {item};");
-							}
-						}
-					}
-					else
-					{
-						builder.AppendLine(GetDataName(method.ContainingType));
-						builder.AppendLine($"\t.CopyTo({method.Parameters[0]});");
-					}
-				}
 
 				return true;
 			}
@@ -204,10 +157,10 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 			case { Name: "Add" }
 				when method.Parameters.AsSpan().EqualsTypes(elementType):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, [], () =>
 				{
 					builder.AppendLine("throw new NotSupportedException(\"Collection is read-only.\");");
-				}
+				});
 
 				return true;
 			}
@@ -223,10 +176,10 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 		{
 			case { Name: "Clear", Parameters.Length: 0, ReturnType.SpecialType: SpecialType.System_Void }:
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, [], () =>
 				{
 					builder.AppendLine("throw new NotSupportedException(\"Collection is read-only.\");");
-				}
+				});
 
 				return true;
 			}
@@ -243,10 +196,10 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 			case { Name: "Remove", ReturnType.SpecialType: SpecialType.System_Boolean }
 				when method.Parameters.AsSpan().EqualsTypes(elementType):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, [], () =>
 				{
 					builder.AppendLine("throw new NotSupportedException(\"Collection is read-only.\");");
-				}
+				});
 
 				return true;
 			}
@@ -263,7 +216,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 			case { Name: "IndexOf", ReturnType.SpecialType: SpecialType.System_Int32 }
 				when method.Parameters.AsSpan().EqualsTypes(elementType):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, items, () =>
 				{
 					var min = items.Min();
 					var max = items.Max();
@@ -305,7 +258,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 							builder.AppendLine("_ => -1,");
 						}
 					}
-				}
+				});
 
 				return true;
 			}
@@ -321,10 +274,10 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 			case { Name: "Insert" }
 				when method.Parameters.AsSpan().EqualsTypes(elementType, compilation.CreateInt32()):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, [], () =>
 				{
 					builder.AppendLine("throw new NotSupportedException(\"Collection is read-only.\");");
-				}
+				});
 
 				return true;
 			}
@@ -341,10 +294,10 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 			case { Name: "RemoveAt" }
 				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateInt32()):
 			{
-				using (AppendMethod(builder, method))
+				AppendMethod(builder, method, [], () =>
 				{
 					builder.AppendLine("throw new NotSupportedException(\"Collection is read-only.\");");
-				}
+				});
 
 				return true;
 			}
