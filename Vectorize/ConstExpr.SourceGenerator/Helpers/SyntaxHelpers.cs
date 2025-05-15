@@ -1,3 +1,4 @@
+using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -7,9 +8,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Threading;
-using ConstExpr.SourceGenerator.Extensions;
 
 namespace ConstExpr.SourceGenerator.Helpers;
 
@@ -306,9 +305,9 @@ public static class SyntaxHelpers
 	public static bool TryGetOperation<TOperation>(Compilation compilation, ISymbol symbol, out TOperation operation) where TOperation : IOperation
 	{
 		if (compilation.TryGetSemanticModel(symbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(), out var semanticModel)
-		    && semanticModel.GetOperation(symbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax()) is IOperation op)
+				&& semanticModel.GetOperation(symbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax()) is IOperation op)
 		{
-			operation = (TOperation) op;
+			operation = (TOperation)op;
 			return true;
 		}
 
@@ -319,10 +318,10 @@ public static class SyntaxHelpers
 	public static bool TryGetOperation<TOperation>(Compilation compilation, SyntaxNode? node, out TOperation operation) where TOperation : IOperation
 	{
 		if (node is not null
-		    && compilation.TryGetSemanticModel(node, out var semanticModel)
-		    && semanticModel.GetOperation(node) is IOperation op)
+				&& compilation.TryGetSemanticModel(node, out var semanticModel)
+				&& semanticModel.GetOperation(node) is IOperation op)
 		{
-			operation = (TOperation) op;
+			operation = (TOperation)op;
 			return true;
 		}
 
@@ -336,16 +335,16 @@ public static class SyntaxHelpers
 		{
 			case MethodDeclarationSyntax method:
 				if (method.AttributeLists
-				    .SelectMany(s => s.Attributes)
-				    .Any(a => a.Name.ToString() == "ConstExpr"))
+						.SelectMany(s => s.Attributes)
+						.Any(a => a.Name.ToString() == "ConstExpr"))
 				{
 					return true;
 				}
 				break;
 			case TypeDeclarationSyntax type:
 				if (type.AttributeLists
-				    .SelectMany(s => s.Attributes)
-				    .Any(a => a.Name.ToString() == "ConstExpr"))
+						.SelectMany(s => s.Attributes)
+						.Any(a => a.Name.ToString() == "ConstExpr"))
 				{
 					return true;
 				}
@@ -388,8 +387,8 @@ public static class SyntaxHelpers
 	public static bool IsIEnumerableRecursive(Compilation compilation, TypeSyntax typeSymbol, CancellationToken token = default)
 	{
 		return compilation.TryGetSemanticModel(typeSymbol, out var model)
-		       && model.GetSymbolInfo(typeSymbol, token).Symbol is INamedTypeSymbol namedTypeSymbol
-		       && IsIEnumerableRecursive(namedTypeSymbol);
+					 && model.GetSymbolInfo(typeSymbol, token).Symbol is INamedTypeSymbol namedTypeSymbol
+					 && IsIEnumerableRecursive(namedTypeSymbol);
 	}
 
 	public static bool IsIEnumerable(ITypeSymbol typeSymbol)
@@ -400,8 +399,8 @@ public static class SyntaxHelpers
 	public static bool IsIEnumerable(Compilation compilation, TypeSyntax typeSymbol, CancellationToken token = default)
 	{
 		return compilation.TryGetSemanticModel(typeSymbol, out var model)
-		       && model.GetSymbolInfo(typeSymbol, token).Symbol is INamedTypeSymbol namedTypeSymbol
-		       && IsIEnumerable(namedTypeSymbol);
+					 && model.GetSymbolInfo(typeSymbol, token).Symbol is INamedTypeSymbol namedTypeSymbol
+					 && IsIEnumerable(namedTypeSymbol);
 	}
 
 	public static bool IsICollection(INamedTypeSymbol typeSymbol)
@@ -469,21 +468,21 @@ public static class SyntaxHelpers
 	public static bool CheckMethod(this ITypeSymbol item, string name, ITypeSymbol[] parameters, [NotNullWhen(true)] out IMethodSymbol? member)
 	{
 		return item.CheckMembers(name, m => m.ReturnsVoid
-		                                    && m.Parameters.Length == parameters.Length
-		                                    && m.Parameters
-			                                    .Select(s => s.Type)
-			                                    .Zip(parameters, IsEqualSymbol)
-			                                    .All(a => a), out member);
+																				&& m.Parameters.Length == parameters.Length
+																				&& m.Parameters
+																					.Select(s => s.Type)
+																					.Zip(parameters, IsEqualSymbol)
+																					.All(a => a), out member);
 	}
 
 	public static bool CheckMethod(this ITypeSymbol item, string name, ITypeSymbol returnType, ITypeSymbol[] parameters, [NotNullWhen(true)] out IMethodSymbol? member)
 	{
 		return item.CheckMembers(name, m => SymbolEqualityComparer.Default.Equals(m.ReturnType, returnType)
-		                                    && m.Parameters.Length == parameters.Length
-		                                    && m.Parameters
-			                                    .Select(s => s.Type)
-			                                    .Zip(parameters, IsEqualSymbol)
-			                                    .All(a => a), out member);
+																				&& m.Parameters.Length == parameters.Length
+																				&& m.Parameters
+																					.Select(s => s.Type)
+																					.Zip(parameters, IsEqualSymbol)
+																					.All(a => a), out member);
 	}
 
 	public static void CheckMethods(this ITypeSymbol item, string name, Dictionary<Func<IMethodSymbol, bool>, Action<IMethodSymbol>> methods)
@@ -500,9 +499,14 @@ public static class SyntaxHelpers
 			}
 		}
 	}
-	
-	public static bool IsEqualSymbol(ITypeSymbol typeSymbol, ITypeSymbol other)
+
+	public static bool IsEqualSymbol(ITypeSymbol typeSymbol, ITypeSymbol? other)
 	{
+		if (other is null)
+		{
+			return false;
+		}
+
 		if (SymbolEqualityComparer.Default.Equals(typeSymbol, other))
 		{
 			return true;

@@ -1,5 +1,5 @@
-using System;
 using Microsoft.CodeAnalysis;
+using System;
 
 namespace ConstExpr.SourceGenerator.Extensions;
 
@@ -23,10 +23,10 @@ public static class ObjectExtensions
 			_ => value,
 		};
 	}
-	
-	public static object? Add(this object? left, object? right)
+
+	public static T Add<T>(this T left, T right)
 	{
-		return left switch
+		return (T)(object)(left switch
 		{
 			byte leftByte when right is byte rightByte => leftByte + rightByte,
 			short leftShort when right is short rightShort => leftShort + rightShort,
@@ -37,12 +37,12 @@ public static class ObjectExtensions
 			decimal leftDecimal when right is decimal rightDecimal => leftDecimal + rightDecimal,
 			string leftString when right is string rightString => leftString + rightString,
 			_ => null
-		};
+		});
 	}
 
-	public static object? Subtract(this object? left, object? right)
+	public static T Subtract<T>(this T left, T right)
 	{
-		return left switch
+		return (T)(object)(left switch
 		{
 			byte leftByte when right is byte rightByte => leftByte - rightByte,
 			short leftShort when right is short rightShort => leftShort - rightShort,
@@ -52,7 +52,7 @@ public static class ObjectExtensions
 			double leftDouble when right is double rightDouble => leftDouble - rightDouble,
 			decimal leftDecimal when right is decimal rightDecimal => leftDecimal - rightDecimal,
 			_ => null
-		};
+		});
 	}
 
 	public static object? Multiply(this object? left, object? right)
@@ -69,7 +69,7 @@ public static class ObjectExtensions
 			_ => null
 		};
 	}
-	
+
 	public static object? Divide(this object? left, object? right)
 	{
 		return left switch

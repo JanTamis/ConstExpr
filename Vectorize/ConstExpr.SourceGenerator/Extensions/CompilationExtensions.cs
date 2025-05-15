@@ -1,16 +1,14 @@
+using ConstExpr.SourceGenerator.Enums;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
-using ConstExpr.SourceGenerator.Enums;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.Operations;
 
 namespace ConstExpr.SourceGenerator.Extensions;
 
@@ -84,25 +82,25 @@ public static class CompilationExtensions
 	public static bool IsSpanLikeType(this Compilation compilation, ITypeSymbol typeSymbol, ITypeSymbol elementType)
 	{
 		return typeSymbol is INamedTypeSymbol { Arity: 1 } namedTypeSymbol
-		       && namedTypeSymbol.ContainingNamespace.ToString() == "System"
-		       && namedTypeSymbol.Name is "Span" or "ReadOnlySpan"
-		       && SymbolEqualityComparer.Default.Equals(namedTypeSymbol.TypeArguments[0], elementType);
+					 && namedTypeSymbol.ContainingNamespace.ToString() == "System"
+					 && namedTypeSymbol.Name is "Span" or "ReadOnlySpan"
+					 && SymbolEqualityComparer.Default.Equals(namedTypeSymbol.TypeArguments[0], elementType);
 	}
 
 	public static bool IsSpanType(this Compilation compilation, ITypeSymbol typeSymbol, ITypeSymbol elementType)
 	{
 		return typeSymbol is INamedTypeSymbol { Arity: 1 } namedTypeSymbol
-		       && namedTypeSymbol.ContainingNamespace.ToString() == "System"
-		       && namedTypeSymbol.Name is "Span"
-		       && SymbolEqualityComparer.Default.Equals(namedTypeSymbol.TypeArguments[0], elementType);
+					 && namedTypeSymbol.ContainingNamespace.ToString() == "System"
+					 && namedTypeSymbol.Name is "Span"
+					 && SymbolEqualityComparer.Default.Equals(namedTypeSymbol.TypeArguments[0], elementType);
 	}
 
 	public static bool IsReadonlySpanType(this Compilation compilation, ITypeSymbol typeSymbol, ITypeSymbol elementType)
 	{
 		return typeSymbol is INamedTypeSymbol { Arity: 1 } namedTypeSymbol
-		       && namedTypeSymbol.ContainingNamespace.ToString() == "System"
-		       && namedTypeSymbol.Name is "Span" or "ReadOnlySpan"
-		       && SymbolEqualityComparer.Default.Equals(namedTypeSymbol.TypeArguments[0], elementType);
+					 && namedTypeSymbol.ContainingNamespace.ToString() == "System"
+					 && namedTypeSymbol.Name is "Span" or "ReadOnlySpan"
+					 && SymbolEqualityComparer.Default.Equals(namedTypeSymbol.TypeArguments[0], elementType);
 	}
 
 	public static ITypeSymbol GetUnsignedType(this Compilation compilation, ITypeSymbol typeSymbol)
@@ -167,8 +165,8 @@ public static class CompilationExtensions
 			{
 				var runtimeType = loader.GetType(type);
 				// Use System.Runtime.InteropServices.Marshal.SizeOf
-				var method = typeof(System.Runtime.InteropServices.Marshal).GetMethod("SizeOf", [ typeof(Type) ]);
-				return (int) method?.Invoke(null, [ runtimeType ]);
+				var method = typeof(System.Runtime.InteropServices.Marshal).GetMethod("SizeOf", [typeof(Type)]);
+				return (int)method?.Invoke(null, [runtimeType]);
 			}
 			catch
 			{
@@ -237,7 +235,7 @@ public static class CompilationExtensions
 		var methodName = methodSymbol.Name;
 
 		var type = loader.GetType(methodSymbol.ContainingType)
-		           ?? throw new InvalidOperationException($"Type '{fullyQualifiedName}' not found");
+							 ?? throw new InvalidOperationException($"Type '{fullyQualifiedName}' not found");
 
 		var methodInfos = type
 			.GetMethods(methodSymbol.IsStatic
@@ -436,7 +434,7 @@ public static class CompilationExtensions
 		}
 
 		if (compilation.IsSpecialType(symbol.OriginalDefinition, SpecialType.System_Collections_Generic_IEnumerable_T)
-		    && symbol is INamedTypeSymbol namedTypeSymbol)
+				&& symbol is INamedTypeSymbol namedTypeSymbol)
 		{
 			return $"IEnumerable<{String.Join(", ", namedTypeSymbol.TypeArguments.Select(s => GetMinimalString(compilation, s)))}>";
 		}
@@ -478,7 +476,7 @@ public static class CompilationExtensions
 		return typeSymbol;
 	}
 
-	public static string GetCreateVector(this Compilation compilation, VectorTypes vectorType, ITypeSymbol elementType, MetadataLoader loader, bool isRepeating, params ReadOnlySpan<object?> items)
+	public static string GetCreateVector<T>(this Compilation compilation, VectorTypes vectorType, ITypeSymbol elementType, MetadataLoader loader, bool isRepeating, params ReadOnlySpan<T> items)
 	{
 		var byteSize = vectorType switch
 		{
@@ -487,7 +485,7 @@ public static class CompilationExtensions
 			VectorTypes.Vector256 => 32,
 			VectorTypes.Vector512 => 64,
 		};
-		
+
 		var staticType = compilation.GetTypeByMetadataName($"System.Runtime.Intrinsics.{vectorType}");
 		var fullType = compilation.GetTypeByMetadataName($"System.Runtime.Intrinsics.{vectorType}`1").Construct(elementType);
 		// var vectorType = loader.GetType(fullType);
@@ -515,7 +513,7 @@ public static class CompilationExtensions
 			{
 				return $"{compilation.GetMinimalString(fullType)}.Indices";
 			}
-			
+
 			// Check if items form an arithmetic sequence
 			if (items.Length >= 2 && staticType.HasMember<IMethodSymbol>("CreateSequence", m => m.Parameters.Length == 2))
 			{
@@ -548,7 +546,7 @@ public static class CompilationExtensions
 				return $"{vectorType}.Create<{compilation.GetMinimalString(elementType)}>({SyntaxHelpers.CreateLiteral(items[0])})";
 			}
 
-			return $"{vectorType}.Create({items.Join(", ", s => s is string ? s : SyntaxHelpers.CreateLiteral(s))})";
+			return $"{vectorType}.Create({items.Join<T, object?>(", ", s => s is string ? s : SyntaxHelpers.CreateLiteral(s))})";
 		}
 
 		if (items.Length == 1)
@@ -558,13 +556,13 @@ public static class CompilationExtensions
 
 		if (isRepeating)
 		{
-			return $"{vectorType}.Create({items.Join(", ", elementCount, s => s is string ? s : SyntaxHelpers.CreateLiteral(s))})";
+			return $"{vectorType}.Create({items.Join<T, object?>(", ", elementCount, s => s is string ? s : SyntaxHelpers.CreateLiteral(s))})";
 		}
 
-		return $"{vectorType}.Create({items.JoinWithPadding(", ", elementCount, 0.ToSpecialType(elementType.SpecialType), s => s is string ? s : SyntaxHelpers.CreateLiteral(s))})";
+		return $"{vectorType}.Create({items.JoinWithPadding<T, object?>(", ", elementCount, (T)0.ToSpecialType(elementType.SpecialType), s => s is string ? s : SyntaxHelpers.CreateLiteral(s))})";
 	}
 
-	public static VectorTypes GetVector(this Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, ReadOnlySpan<object?> items, bool isRepeating, out string vector, out int vectorSize)
+	public static VectorTypes GetVector<T>(this Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, ReadOnlySpan<T> items, bool isRepeating, out string vector, out int vectorSize)
 	{
 		var elementSize = compilation.GetByteSize(loader, elementType);
 		var size = elementSize * items.Length;
@@ -603,7 +601,7 @@ public static class CompilationExtensions
 		}
 	}
 
-	public static VectorTypes GetVector(this Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, ReadOnlySpan<object?> items, VectorTypes limit, out string vector, out int vectorSize)
+	public static VectorTypes GetVector<T>(this Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, ReadOnlySpan<T> items, VectorTypes limit, out string vector, out int vectorSize)
 	{
 		var elementSize = compilation.GetByteSize(loader, elementType);
 		var size = elementSize * items.Length;
@@ -642,7 +640,7 @@ public static class CompilationExtensions
 		}
 	}
 
-	public static string GetVector(this Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, ReadOnlySpan<object?> items, VectorTypes limit)
+	public static string GetVector<T>(this Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, ReadOnlySpan<T> items, VectorTypes limit)
 	{
 		var elementSize = compilation.GetByteSize(loader, elementType);
 		var size = elementSize * items.Length;
@@ -657,14 +655,14 @@ public static class CompilationExtensions
 		};
 	}
 
-	public static INamedTypeSymbol GetVectorType(this Compilation compilation, VectorTypes vectorType)
+	public static INamedTypeSymbol? GetVectorType(this Compilation compilation, VectorTypes vectorType)
 	{
 		return compilation.GetTypeByMetadataName($"System.Runtime.Intrinsics.{vectorType}");
 	}
 
-	public static INamedTypeSymbol GetVectorType(this Compilation compilation, VectorTypes vectorType, ITypeSymbol elementType)
+	public static INamedTypeSymbol? GetVectorType(this Compilation compilation, VectorTypes vectorType, ITypeSymbol elementType)
 	{
-		return compilation.GetTypeByMetadataName($"System.Runtime.Intrinsics.{vectorType}`1").Construct(elementType);
+		return compilation.GetTypeByMetadataName($"System.Runtime.Intrinsics.{vectorType}`1")?.Construct(elementType);
 	}
 
 	public static bool IsVectorSupported(this Compilation compilation, ITypeSymbol elementType)
@@ -708,7 +706,7 @@ public static class CompilationExtensions
 		return result || compilation.IsSpanLikeType(typeSymbol, elementType)
 			&& (compilation.GetTypeByMetadataName("System.MemoryExtensions")?.HasMember<IMethodSymbol>("Contains", m => m.ReturnType.SpecialType == SpecialType.System_Boolean && m.Parameters.AsSpan().EqualsTypes(elementType)) ?? false);
 	}
-	
+
 	public static bool IsInterger(this Compilation compilation, ITypeSymbol typeSymbol)
 	{
 		return typeSymbol.SpecialType is SpecialType.System_SByte
@@ -737,8 +735,8 @@ public static class CompilationExtensions
 			or SpecialType.System_Double
 			or SpecialType.System_Single;
 	}
-	
-	
+
+
 	public static bool EqualsType(this ITypeSymbol type, ITypeSymbol otherType)
 	{
 		if (SymbolEqualityComparer.Default.Equals(type, otherType))

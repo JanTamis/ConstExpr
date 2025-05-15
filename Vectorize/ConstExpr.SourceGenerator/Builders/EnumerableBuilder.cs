@@ -12,1165 +12,1163 @@ namespace ConstExpr.SourceGenerator.Builders;
 
 public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, GenerationLevel level, int hashCode) : BaseBuilder(elementType, compilation, level, loader, hashCode)
 {
-	public bool AppendAggregate(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendAggregate<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	{
 		// First overload: Aggregate<TSource>(Func<TSource, TSource, TSource> func)
-		var funcType = compilation.CreateFunc(elementType, elementType, elementType);
-
 		switch (method)
 		{
 			case { Name: nameof(Enumerable.Aggregate) }
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType)
-				     && method.Parameters.AsSpan().EqualsTypes(funcType):
-			{
-				AppendMethod(builder, method, items, isPerformance =>
+						 && method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, elementType, elementType)):
 				{
-					switch (items.Count)
+					AppendMethod(builder, method, items.AsSpan(), isPerformance =>
 					{
-						case 0:
-							builder.AppendLine("throw new InvalidOperationException(\"Sequence contains no elements\");");
-							break;
-						case 1 or 2:
-							builder.AppendLine($"return {items};");
-							break;
-						default:
+						switch (items.Length)
 						{
-							if (isPerformance)
-							{
-								builder.AppendLine($"var result = {method.Parameters[0]}({items[0]}, {items[1]});");
-
-								for (var i = 2; i < items.Count; i++)
+							case 0:
+								builder.AppendLine("throw new InvalidOperationException(\"Sequence contains no elements\");");
+								break;
+							case 1 or 2:
+								builder.AppendLine($"return {method.Parameters[0]}({items});");
+								break;
+							default:
 								{
-									if (i < items.Count - 1)
+									if (isPerformance)
 									{
-										builder.AppendLine($"result = {method.Parameters[0]}(result, {items[i]});");
+										builder.AppendLine($"var result = {method.Parameters[0]}({items[0]}, {items[1]});");
+
+										for (var i = 2; i < items.Length; i++)
+										{
+											if (i < items.Length - 1)
+											{
+												builder.AppendLine($"result = {method.Parameters[0]}(result, {items[i]});");
+											}
+											else
+											{
+												builder.AppendLine($"return {method.Parameters[0]}(result, {items[i]});");
+											}
+										}
 									}
 									else
 									{
-										builder.AppendLine($"return {method.Parameters[0]}(result, {items[i]});");
+										builder.AppendLine($"var result = {GetDataName(method.ContainingType)}[0];");
+										builder.AppendLine();
+
+										using (builder.AppendBlock($"for (var i = 1; i < {GetDataName(method.ContainingType)}.Length; i++)"))
+										{
+											builder.AppendLine($"result = {method.Parameters[0]}(result, {GetDataName(method.ContainingType)}[i]);");
+										}
+
+										builder.AppendLine();
+										builder.AppendLine("return result;");
 									}
+									break;
 								}
-							}
-							else
-							{
-								builder.AppendLine($"var result = {GetDataName(method.ContainingType)}[0];");
-								builder.AppendLine();
-
-								using (builder.AppendBlock($"for (var i = 1; i < {GetDataName(method.ContainingType)}.Length; i++)"))
-								{
-									builder.AppendLine($"result = {method.Parameters[0]}(result, {GetDataName(method.ContainingType)}[i]);");
-								}
-
-								builder.AppendLine();
-								builder.AppendLine("return result;");
-							}
-							break;
 						}
-					}
-				});
+					});
 
-				return true;
-			}
+					return true;
+				}
 			// Second overload: Aggregate<TSource, TAccumulate>(TAccumulate seed, Func<TAccumulate, TSource, TAccumulate> func)
 			case { Name: nameof(Enumerable.Aggregate) }
 				when method.Parameters.AsSpan().EqualsTypes(method.ReturnType, compilation.CreateFunc(method.Parameters[0].Type, elementType, method.Parameters[0].Type)):
-			{
-				AppendMethod(builder, method, items, () =>
 				{
-					for (var i = 0; i < items.Count; i++)
+					AppendMethod(builder, method, () =>
 					{
-						var item = CreateLiteral(items[i]);
-
-						if (i < items.Count - 1)
+						for (var i = 0; i < items.Length; i++)
 						{
-							builder.AppendLine($"{method.Parameters[0]} = {method.Parameters[1]}({method.Parameters[0]}, {item});");
-						}
-						else
-						{
-							builder.AppendLine($"return {method.Parameters[1]}({method.Parameters[0]}, {item});");
-						}
-					}
-				});
+							var item = CreateLiteral(items[i]);
 
-				return true;
-			}
+							if (i < items.Length - 1)
+							{
+								builder.AppendLine($"{method.Parameters[0]} = {method.Parameters[1]}({method.Parameters[0]}, {item});");
+							}
+							else
+							{
+								builder.AppendLine($"return {method.Parameters[1]}({method.Parameters[0]}, {item});");
+							}
+						}
+					});
+
+					return true;
+				}
 			// Third overload: Aggregate<TSource, TAccumulate, TResult>(TAccumulate seed, Func<TAccumulate, TSource, TAccumulate> func, Func<TAccumulate, TResult> resultSelector)
 			case { Name: nameof(Enumerable.Aggregate), Parameters.Length: 3 }
 				when method.Parameters[2].Type is INamedTypeSymbol { Arity: 2 } namedTypeSymbol
-				     && SymbolEqualityComparer.Default.Equals(method.Parameters[1].Type, compilation.CreateFunc(method.Parameters[0].Type, elementType, method.Parameters[0].Type))
-				     && SymbolEqualityComparer.Default.Equals(method.Parameters[2].Type, compilation.CreateFunc(method.Parameters[0].Type, namedTypeSymbol.TypeArguments[1]))
-				     && SymbolEqualityComparer.Default.Equals(method.ReturnType, namedTypeSymbol.TypeArguments[1]):
-			{
-				AppendMethod(builder, method, items, () =>
+						 && SymbolEqualityComparer.Default.Equals(method.Parameters[1].Type, compilation.CreateFunc(method.Parameters[0].Type, elementType, method.Parameters[0].Type))
+						 && SymbolEqualityComparer.Default.Equals(method.Parameters[2].Type, compilation.CreateFunc(method.Parameters[0].Type, namedTypeSymbol.TypeArguments[1]))
+						 && SymbolEqualityComparer.Default.Equals(method.ReturnType, namedTypeSymbol.TypeArguments[1]):
 				{
-					builder.AppendLine($"var result = {method.Parameters[0]};");
-
-					foreach (var item in items)
+					AppendMethod(builder, method, () =>
 					{
-						builder.AppendLine($"result = {method.Parameters[1]}(result, {item});");
-					}
+						builder.AppendLine($"var result = {method.Parameters[0]};");
 
-					builder.AppendLine($"return {method.Parameters[2]}(result);");
-				});
+						foreach (var item in items)
+						{
+							builder.AppendLine($"result = {method.Parameters[1]}(result, {item});");
+						}
 
-				return true;
-			}
+						builder.AppendLine($"return {method.Parameters[2]}(result);");
+					});
+
+					return true;
+				}
 			default:
 				return false;
 		}
 	}
 
-	public bool AppendAny(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendAny<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: nameof(Enumerable.Any), Parameters.Length: 0, ReturnType.SpecialType: SpecialType.System_Boolean }:
-			{
-				AppendMethod(builder, method, items, () =>
 				{
-					builder.AppendLine($"return {items.Any()};");
-				});
+					AppendMethod(builder, method, () =>
+					{
+						builder.AppendLine($"return {items.Any()};");
+					});
 
-				return true;
-			}
+					return true;
+				}
 			case { Name: nameof(Enumerable.Any), ReturnType.SpecialType: SpecialType.System_Boolean }
 				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, compilation.CreateBoolean())):
-			{
-				AppendMethod(builder, method, items, () =>
 				{
-					builder.AppendLine(CreateReturnPadding("||", items.Select(s => $"{method.Parameters[0]}({s})")));
-				});
+					AppendMethod(builder, method, () =>
+					{
+						builder.AppendLine(CreateReturnPadding("||", items.Select(s => $"{method.Parameters[0]}({s})")));
+					});
 
-				return true;
-			}
+					return true;
+				}
 			default:
 				return false;
 		}
 	}
 
-	public bool AppendAll(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendAll<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: nameof(Enumerable.All), ReturnType.SpecialType: SpecialType.System_Boolean }
 				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, compilation.CreateBoolean())):
-			{
-				AppendMethod(builder, method, items, () =>
 				{
-					builder.AppendLine(CreateReturnPadding("&&", items.Select(s => $"{method.Parameters[0]}({s})")));
-				});
+					AppendMethod(builder, method, () =>
+					{
+						builder.AppendLine(CreateReturnPadding("&&", items.Select(s => $"{method.Parameters[0]}({s})")));
+					});
 
-				return true;
-			}
+					return true;
+				}
 			default:
 				return false;
 		}
 	}
 
-	public bool AppendAsEnumerable(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendAsEnumerable<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: nameof(Enumerable.AsEnumerable) }
 				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateIEnumerable(elementType)):
-			{
-				AppendMethod(builder, method, items, () =>
 				{
-					foreach (var item in items)
+					AppendMethod(builder, method, () =>
 					{
-						builder.AppendLine($"yield return {item};");
-					}
-				});
+						foreach (var item in items)
+						{
+							builder.AppendLine($"yield return {item};");
+						}
+					});
 
-				return true;
-			}
+					return true;
+				}
 			default:
 				return false;
 		}
 
 	}
 
-	public bool AppendAverage(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendAverage<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: nameof(Enumerable.Average), Parameters.Length: 0 }
 				when (elementType.SpecialType == SpecialType.System_Int32 && method.ReturnType.SpecialType == SpecialType.System_Double
-				      || elementType.SpecialType == SpecialType.System_Int64 && method.ReturnType.SpecialType == SpecialType.System_Double
-				      || elementType.SpecialType == SpecialType.System_Single && method.ReturnType.SpecialType == SpecialType.System_Single
-				      || elementType.SpecialType == SpecialType.System_Double && method.ReturnType.SpecialType == SpecialType.System_Double
-				      || elementType.SpecialType == SpecialType.System_Decimal && method.ReturnType.SpecialType == SpecialType.System_Decimal):
-			{
-
-
-				AppendMethod(builder, method, items, () =>
+							|| elementType.SpecialType == SpecialType.System_Int64 && method.ReturnType.SpecialType == SpecialType.System_Double
+							|| elementType.SpecialType == SpecialType.System_Single && method.ReturnType.SpecialType == SpecialType.System_Single
+							|| elementType.SpecialType == SpecialType.System_Double && method.ReturnType.SpecialType == SpecialType.System_Double
+							|| elementType.SpecialType == SpecialType.System_Decimal && method.ReturnType.SpecialType == SpecialType.System_Decimal):
 				{
-					var average = items.Average(elementType);
 
-					if (average is null)
-					{
-						builder.AppendLine("throw new InvalidOperationException(\"Sequence contains no elements\");");
-					}
-					else
-					{
-						builder.AppendLine($"return {CreateLiteral(average)};");
-					}
-				});
 
-				return true;
-			}
+					AppendMethod(builder, method, () =>
+					{
+						var average = items.AsSpan().Average(elementType);
+
+						if (average is null)
+						{
+							builder.AppendLine("throw new InvalidOperationException(\"Sequence contains no elements\");");
+						}
+						else
+						{
+							builder.AppendLine($"return {CreateLiteral(average)};");
+						}
+					});
+
+					return true;
+				}
 			case { Name: nameof(Enumerable.Average) }
 				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, method.ReturnType))
-				     && IsEqualSymbol(method.ReturnType, compilation.GetTypeByMetadataName("System.Numerics.IAdditionOperators").Construct(method.ReturnType, method.ReturnType, method.ReturnType))
-				     && IsEqualSymbol(method.ReturnType, compilation.GetTypeByMetadataName("System.Numerics.IDivisionOperators").Construct(method.ReturnType, method.ReturnType, method.ReturnType)):
-			{
-				AppendMethod(builder, method, items, () =>
+						 && IsEqualSymbol(method.ReturnType, compilation.GetTypeByMetadataName("System.Numerics.IAdditionOperators")?.Construct(method.ReturnType, method.ReturnType, method.ReturnType))
+						 && IsEqualSymbol(method.ReturnType, compilation.GetTypeByMetadataName("System.Numerics.IDivisionOperators")?.Construct(method.ReturnType, method.ReturnType, method.ReturnType)):
 				{
-					builder.AppendLine($"{CreateReturnPadding("+", items.Select(s => $"{method.Parameters[0]}({s})"))} / {items.Count};");
-				});
+					AppendMethod(builder, method, () =>
+					{
+						builder.AppendLine($"{CreateReturnPadding("+", items.Select(s => $"{method.Parameters[0]}({s})"))} / {items.Length};");
+					});
 
-				return true;
-			}
+					return true;
+				}
 			default:
 				return false;
 		}
 
 	}
 
-	public bool AppendCast(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendCast<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: nameof(Enumerable.Cast), Parameters.Length: 0, TypeParameters.Length: 1 }
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, compilation.CreateIEnumerable(method.TypeArguments[0])):
-			{
-				AppendMethod(builder, method, items, () =>
 				{
-					foreach (var item in items)
+					AppendMethod(builder, method, () =>
 					{
-						builder.AppendLine($"yield return ({method.TypeParameters[0]})Convert.ChangeType({item}, typeof({method.TypeParameters[0]}));");
-					}
-				});
+						foreach (var item in items)
+						{
+							builder.AppendLine($"yield return ({method.TypeParameters[0]})Convert.ChangeType({item}, typeof({method.TypeParameters[0]}));");
+						}
+					});
 
-				return true;
-			}
+					return true;
+				}
 			default:
 				return false;
 		}
 	}
 
-	public bool AppendCount(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendCount<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: nameof(Enumerable.Count), Parameters.Length: 0, ReturnType.SpecialType: SpecialType.System_Int32 }:
-			{
-				AppendMethod(builder, method, items, () =>
 				{
-					builder.AppendLine($"return {items.Count};");
-				});
+					AppendMethod(builder, method, () =>
+					{
+						builder.AppendLine($"return {items.Length};");
+					});
 
-				return true;
-			}
+					return true;
+				}
 			case { Name: nameof(Enumerable.Count), ReturnType.SpecialType: SpecialType.System_Int32 }
 				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, compilation.CreateBoolean())):
-			{
-				AppendMethod(builder, method, items, () =>
 				{
-					builder.AppendLine(CreateReturnPadding("+", items.Select(s => $"{method.Parameters[0]}({s}) ? 1 : 0")));
-				});
+					AppendMethod(builder, method, () =>
+					{
+						builder.AppendLine(CreateReturnPadding("+", items.Select(s => $"{method.Parameters[0]}({s}) ? 1 : 0")));
+					});
 
-				return true;
-			}
+					return true;
+				}
 			default:
 				return false;
 		}
 	}
 
-	public bool AppendLongCount(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendLongCount<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: nameof(Enumerable.LongCount), Parameters.Length: 0, ReturnType.SpecialType: SpecialType.System_Int64 }:
-			{
-				AppendMethod(builder, method, items, () =>
 				{
-					builder.AppendLine($"return {(long) items.Count};");
-				});
+					AppendMethod(builder, method, () =>
+					{
+						builder.AppendLine($"return {(long)items.Length};");
+					});
 
-				return true;
-			}
+					return true;
+				}
 			case { Name: nameof(Enumerable.LongCount), ReturnType.SpecialType: SpecialType.System_Int64 }
 				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, compilation.CreateBoolean())):
-			{
-				AppendMethod(builder, method, items, () =>
 				{
-					builder.AppendLine(CreateReturnPadding("+", items.Select(s => $"{method.Parameters[0]}({s}) ? 1L : 0L")));
-				});
+					AppendMethod(builder, method, () =>
+					{
+						builder.AppendLine(CreateReturnPadding("+", items.Select(s => $"{method.Parameters[0]}({s}) ? 1L : 0L")));
+					});
 
-				return true;
-			}
+					return true;
+				}
 			default:
 				return false;
 		}
 	}
 
-	public bool AppendDistinct(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendDistinct<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: nameof(Enumerable.Distinct) }
 				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, compilation.CreateBoolean())):
-			{
-				AppendMethod(builder, method, items, () =>
 				{
-					foreach (var item in items.Distinct())
+					AppendMethod(builder, method, () =>
 					{
-						builder.AppendLine($"yield return {item};");
-					}
-				});
+						foreach (var item in items.Distinct())
+						{
+							builder.AppendLine($"yield return {item};");
+						}
+					});
 
-				return true;
-			}
+					return true;
+				}
 			default:
 				return false;
 		}
 	}
 
-	public bool AppendElementAt(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendElementAt<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: nameof(Enumerable.ElementAt) }
 				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateInt32())
-				     && SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
-			{
-				AppendMethod(builder, method, items, isPerformance =>
+						 && SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
 				{
-					if (isPerformance)
+					AppendMethod(builder, method, items.AsSpan(), isPerformance =>
 					{
-						using (builder.AppendBlock($"return {method.Parameters[0]} switch", "};"))
+						if (isPerformance)
 						{
-							for (var i = 0; i < items.Count; i++)
+							using (builder.AppendBlock($"return {method.Parameters[0]} switch", "};"))
 							{
-								builder.AppendLine($"{i} => {items[i]},");
+								for (var i = 0; i < items.Length; i++)
+								{
+									builder.AppendLine($"{i} => {items[i]},");
+								}
+
+								builder.AppendLine("_ => throw new ArgumentOutOfRangeException(\"Index out of range\")");
 							}
-
-							builder.AppendLine("_ => throw new ArgumentOutOfRangeException(\"Index out of range\")");
 						}
-					}
-					else
-					{
-						builder.AppendLine($"if ({method.Parameters[0]} < 0 || {method.Parameters[0]} >= {items.Count})");
-						builder.AppendLine("\tthrow new ArgumentOutOfRangeException(\"Index out of range\");");
-						builder.AppendLine();
-						builder.AppendLine($"return {items}[{method.Parameters[0]}];");
-					}
-				});
+						else
+						{
+							builder.AppendLine($"if ({method.Parameters[0]} < 0 || {method.Parameters[0]} >= {items.Length})");
+							builder.AppendLine("\tthrow new ArgumentOutOfRangeException(\"Index out of range\");");
+							builder.AppendLine();
+							builder.AppendLine($"return {items}[{method.Parameters[0]}];");
+						}
+					});
 
-				return true;
-			}
+					return true;
+				}
 			case { Name: nameof(Enumerable.ElementAt) }
 				when method.Parameters.AsSpan().EqualsTypes(compilation.GetTypeByType(typeof(Index)))
-				     && SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
-			{
-				AppendMethod(builder, method, items, isPerformance =>
+						 && SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
 				{
-					if (isPerformance)
+					AppendMethod(builder, method, items.AsSpan(), isPerformance =>
 					{
-						using (builder.AppendBlock($"return {method.Parameters[0]}.GetOffset({items.Count}) switch", "};"))
+						if (isPerformance)
 						{
-							for (var i = 0; i < items.Count; i++)
+							using (builder.AppendBlock($"return {method.Parameters[0]}.GetOffset({items.Length}) switch", "};"))
 							{
-								builder.AppendLine($"{i} => {items[i]},");
+								for (var i = 0; i < items.Length; i++)
+								{
+									builder.AppendLine($"{i} => {items[i]},");
+								}
+
+								builder.AppendLine("_ => throw new ArgumentOutOfRangeException(\"Index out of range\")");
 							}
-
-							builder.AppendLine("_ => throw new ArgumentOutOfRangeException(\"Index out of range\")");
 						}
-					}
-					else
-					{
-						builder.AppendLine($"var index = {method.Parameters[0]}.GetOffset({items.Count});");
-						builder.AppendLine();
-						builder.AppendLine($"if (index < 0 || index >= {items.Count})");
-						builder.AppendLine("\tthrow new ArgumentOutOfRangeException(\"Index out of range\");");
-						builder.AppendLine();
-						builder.AppendLine($"return {items}[index];");
-					}
-				});
+						else
+						{
+							builder.AppendLine($"var index = {method.Parameters[0]}.GetOffset({items.Length});");
+							builder.AppendLine();
+							builder.AppendLine($"if (index < 0 || index >= {items.Length})");
+							builder.AppendLine("\tthrow new ArgumentOutOfRangeException(\"Index out of range\");");
+							builder.AppendLine();
+							builder.AppendLine($"return {items}[index];");
+						}
+					});
 
-				return true;
-			}
+					return true;
+				}
 			default:
 				return false;
 		}
 	}
 
-	public bool AppendElementAtOrDefault(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendElementAtOrDefault<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: nameof(Enumerable.ElementAtOrDefault) }
 				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateInt32())
-				     && SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
-			{
-				AppendMethod(builder, method, items, isPerformance =>
+						 && SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
 				{
-					if (isPerformance)
+					AppendMethod(builder, method, items.AsSpan(), isPerformance =>
 					{
-						using (builder.AppendBlock($"return {method.Parameters[0]} switch", "};"))
+						if (isPerformance)
 						{
-							for (var i = 0; i < items.Count; i++)
+							using (builder.AppendBlock($"return {method.Parameters[0]} switch", "};"))
 							{
-								builder.AppendLine($"{i} => {items[i]},");
+								for (var i = 0; i < items.Length; i++)
+								{
+									builder.AppendLine($"{i} => {items[i]},");
+								}
+
+								builder.AppendLine("_ => default");
 							}
-
-							builder.AppendLine("_ => default");
 						}
-					}
-					else
-					{
-						builder.AppendLine($"if ({method.Parameters[0]} < 0 || {method.Parameters[0]} >= {items.Count})");
-						builder.AppendLine("\treturn default;");
-						builder.AppendLine();
-						builder.AppendLine($"return {items}[{method.Parameters[0]}];");
-					}
-				});
+						else
+						{
+							builder.AppendLine($"if ({method.Parameters[0]} < 0 || {method.Parameters[0]} >= {items.Length})");
+							builder.AppendLine("\treturn default;");
+							builder.AppendLine();
+							builder.AppendLine($"return {items}[{method.Parameters[0]}];");
+						}
+					});
 
-				return true;
-			}
+					return true;
+				}
 			case { Name: nameof(Enumerable.ElementAtOrDefault) }
 				when method.Parameters.AsSpan().EqualsTypes(compilation.GetTypeByType(typeof(Index)))
-				     && SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
-			{
-				AppendMethod(builder, method, items, isPerformance =>
+						 && SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
 				{
-					if (isPerformance)
+					AppendMethod(builder, method, items.AsSpan(), isPerformance =>
 					{
-						using (builder.AppendBlock($"return {method.Parameters[0]}.GetOffset({items.Count}) switch", "};"))
+						if (isPerformance)
 						{
-							for (var i = 0; i < items.Count; i++)
+							using (builder.AppendBlock($"return {method.Parameters[0]}.GetOffset({items.Length}) switch", "};"))
 							{
-								builder.AppendLine($"{i} => {items[i]},");
+								for (var i = 0; i < items.Length; i++)
+								{
+									builder.AppendLine($"{i} => {items[i]},");
+								}
+
+								builder.AppendLine($"_ => {elementType.GetDefaultValue()}");
 							}
-
-							builder.AppendLine($"_ => {elementType.GetDefaultValue()}");
 						}
-					}
-					else
-					{
-						builder.AppendLine($"var index = {method.Parameters[0]}.GetOffset({items.Count});");
-						builder.AppendLine();
-						builder.AppendLine($"if (index < 0 || index >= {items.Count})");
-						builder.AppendLine($"\treturn {elementType.GetDefaultValue()};");
-						builder.AppendLine();
-						builder.AppendLine($"return {items}[index];");
-					}
-				});
+						else
+						{
+							builder.AppendLine($"var index = {method.Parameters[0]}.GetOffset({items.Length});");
+							builder.AppendLine();
+							builder.AppendLine($"if (index < 0 || index >= {items.Length})");
+							builder.AppendLine($"\treturn {elementType.GetDefaultValue()};");
+							builder.AppendLine();
+							builder.AppendLine($"return {items}[index];");
+						}
+					});
 
-				return true;
-			}
+					return true;
+				}
 			default:
 				return false;
 		}
 	}
 
-	public bool AppendFirst(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendFirst<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: nameof(Enumerable.First), Parameters.Length: 0 }
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
-			{
-				AppendMethod(builder, method, items, () =>
 				{
-					if (items.Count > 0)
+					AppendMethod(builder, method, () =>
 					{
-						builder.AppendLine($"return {items.First()};");
-					}
-					else
-					{
-						builder.AppendLine("throw new InvalidOperationException(\"Sequence contains no elements\");");
-					}
-				});
-
-				return true;
-			}
-			case { Name: nameof(Enumerable.First) }
-				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, compilation.CreateBoolean()))
-				     && SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
-			{
-				AppendMethod(builder, method, items, isPerformance =>
-				{
-					if (isPerformance)
-					{
-						for (var i = 0; i < items.Count; i++)
+						if (items.Length > 0)
 						{
-							if (i != 0)
-							{
-								builder.AppendLine();
-							}
-
-							using (builder.AppendBlock($"if ({method.Parameters[0]}({items[i]}))"))
-							{
-								builder.AppendLine($"return {items[i]};");
-							}
-						}
-
-						if (items.Count > 0)
-						{
-							builder.AppendLine();
-							builder.AppendLine("throw new InvalidOperationException(\"Sequence contains no matching element\");");
+							builder.AppendLine($"return {items.First()};");
 						}
 						else
 						{
 							builder.AppendLine("throw new InvalidOperationException(\"Sequence contains no elements\");");
 						}
-					}
-					else
+					});
+
+					return true;
+				}
+			case { Name: nameof(Enumerable.First) }
+				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, compilation.CreateBoolean()))
+						 && SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
+				{
+					AppendMethod(builder, method, items.AsSpan(), isPerformance =>
 					{
-						using (builder.AppendBlock($"foreach (var item in {GetDataName(method.ContainingType)})"))
+						if (isPerformance)
 						{
-							using (builder.AppendBlock($"if ({method.Parameters[0]}(item))"))
+							for (var i = 0; i < items.Length; i++)
 							{
-								builder.AppendLine("return item;");
+								if (i != 0)
+								{
+									builder.AppendLine();
+								}
+
+								using (builder.AppendBlock($"if ({method.Parameters[0]}({items[i]}))"))
+								{
+									builder.AppendLine($"return {items[i]};");
+								}
+							}
+
+							if (items.Length > 0)
+							{
+								builder.AppendLine();
+								builder.AppendLine("throw new InvalidOperationException(\"Sequence contains no matching element\");");
+							}
+							else
+							{
+								builder.AppendLine("throw new InvalidOperationException(\"Sequence contains no elements\");");
 							}
 						}
-						
-						builder.AppendLine();
-						builder.AppendLine("throw new InvalidOperationException(\"Sequence contains no matching element\");");
-					}
-				});
+						else
+						{
+							using (builder.AppendBlock($"foreach (var item in {GetDataName(method.ContainingType)})"))
+							{
+								using (builder.AppendBlock($"if ({method.Parameters[0]}(item))"))
+								{
+									builder.AppendLine("return item;");
+								}
+							}
 
-				return true;
-			}
+							builder.AppendLine();
+							builder.AppendLine("throw new InvalidOperationException(\"Sequence contains no matching element\");");
+						}
+					});
+
+					return true;
+				}
 			default:
 				return false;
 		}
 	}
 
-	public bool AppendFirstOrDefault(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendFirstOrDefault<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: nameof(Enumerable.FirstOrDefault), Parameters.Length: 0 }
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
-			{
-				AppendMethod(builder, method, items, () =>
 				{
-					if (items.Count > 0)
+					AppendMethod(builder, method, () =>
 					{
-						builder.AppendLine($"return {items[0]};");
-					}
-					else
-					{
-						builder.AppendLine($"return {elementType.GetDefaultValue()};");
-					}
-				});
+						if (items.Length > 0)
+						{
+							builder.AppendLine($"return {items[0]};");
+						}
+						else
+						{
+							builder.AppendLine($"return {elementType.GetDefaultValue()};");
+						}
+					});
 
-				return true;
-			}
+					return true;
+				}
 			case { Name: nameof(Enumerable.FirstOrDefault) }
 				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, compilation.CreateBoolean()))
-				     && SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
-			{
-				AppendMethod(builder, method, items, isPerformance =>
+						 && SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
 				{
-					if (isPerformance)
+					AppendMethod(builder, method, items.AsSpan(), isPerformance =>
 					{
-						for (var i = 0; i < items.Count; i++)
+						if (isPerformance)
 						{
-							if (i != 0)
+							for (var i = 0; i < items.Length; i++)
+							{
+								if (i != 0)
+								{
+									builder.AppendLine();
+								}
+
+								using (builder.AppendBlock($"if ({method.Parameters[0]}({items[i]}))"))
+								{
+									builder.AppendLine($"return {items[i]};");
+								}
+							}
+
+							if (items.Length > 0)
 							{
 								builder.AppendLine();
 							}
 
-							using (builder.AppendBlock($"if ({method.Parameters[0]}({items[i]}))"))
-							{
-								builder.AppendLine($"return {items[i]};");
-							}
+							builder.AppendLine($"return {elementType.GetDefaultValue()};");
 						}
-
-						if (items.Count > 0)
+						else
 						{
+							using (builder.AppendBlock($"foreach (var item in {GetDataName(method.ContainingType)})"))
+							{
+								using (builder.AppendBlock($"if ({method.Parameters[0]}(item))"))
+								{
+									builder.AppendLine("return item;");
+								}
+							}
+
 							builder.AppendLine();
+							builder.AppendLine($"return {elementType.GetDefaultValue()};");
 						}
+					});
 
-						builder.AppendLine($"return {elementType.GetDefaultValue()};");
-					}
-					else
-					{
-						using (builder.AppendBlock($"foreach (var item in {GetDataName(method.ContainingType)})"))
-						{
-							using (builder.AppendBlock($"if ({method.Parameters[0]}(item))"))
-							{
-								builder.AppendLine("return item;");
-							}
-						}
-
-						builder.AppendLine();
-						builder.AppendLine($"return {elementType.GetDefaultValue()};");
-					}
-				});
-
-				return true;
-			}
+					return true;
+				}
 			default:
 				return false;
 		}
 	}
 
-	public bool AppendIndex(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendIndex<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: "Index" }
 				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, compilation.CreateBoolean()))
-				     && SymbolEqualityComparer.Default.Equals(method.ReturnType, compilation.GetTypeByType(typeof(ValueTuple<,>), compilation.CreateInt32(), elementType)):
-			{
-				AppendMethod(builder, method, items, () =>
+						 && SymbolEqualityComparer.Default.Equals(method.ReturnType, compilation.GetTypeByType(typeof(ValueTuple<,>), compilation.CreateInt32(), elementType)):
 				{
-					for (var i = 0; i < items.Count; i++)
+					AppendMethod(builder, method, () =>
 					{
-						builder.AppendLine($"yield return ({i}, {items[i]});");
-					}
+						for (var i = 0; i < items.Length; i++)
+						{
+							builder.AppendLine($"yield return ({i}, {items[i]});");
+						}
 
-					if (items.Count == 0)
-					{
-						builder.AppendLine("yield break;");
-					}
-				});
+						if (items.Length == 0)
+						{
+							builder.AppendLine("yield break;");
+						}
+					});
 
-				return true;
-			}
+					return true;
+				}
 			default:
 				return false;
 		}
 	}
 
-	public bool AppendLast(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendLast<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: nameof(Enumerable.Last), Parameters.Length: 0 }
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
-			{
-				AppendMethod(builder, method, items, () =>
 				{
-					if (items.Count > 0)
+					AppendMethod(builder, method, () =>
 					{
-						builder.AppendLine($"return {items[^1]};");
-					}
-					else
-					{
-						builder.AppendLine("throw new InvalidOperationException(\"Sequence contains no elements\");");
-					}
-				});
-
-				return true;
-			}
-			case { Name: nameof(Enumerable.Last) }
-				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, compilation.CreateBoolean()))
-				     && SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
-			{
-				AppendMethod(builder, method, items, isPerformance =>
-				{
-					if (isPerformance)
-					{
-						for (var i = items.Count - 1; i >= 0; i--)
+						if (items.Length > 0)
 						{
-							if (i != items.Count - 1)
-							{
-								builder.AppendLine();
-							}
-
-							using (builder.AppendBlock($"if ({method.Parameters[0]}({items[i]}))"))
-							{
-								builder.AppendLine($"return {items[i]};");
-							}
-						}
-
-						if (items.Count > 0)
-						{
-							builder.AppendLine();
-							builder.AppendLine("throw new InvalidOperationException(\"Sequence contains no matching element\");");
+							builder.AppendLine($"return {items[^1]};");
 						}
 						else
 						{
 							builder.AppendLine("throw new InvalidOperationException(\"Sequence contains no elements\");");
 						}
-					}
-					else
+					});
+
+					return true;
+				}
+			case { Name: nameof(Enumerable.Last) }
+				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, compilation.CreateBoolean()))
+						 && SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
+				{
+					AppendMethod(builder, method, items.AsSpan(), isPerformance =>
 					{
-						using (builder.AppendBlock($"for (var i = {GetDataName(method.ContainingType)} - 1; i >= 0; i--)"))
+						if (isPerformance)
 						{
-							using (builder.AppendBlock($"if ({method.Parameters[0]}({GetDataName(method.ContainingType)}[i]))"))
+							for (var i = items.Length - 1; i >= 0; i--)
 							{
-								builder.AppendLine($"return {GetDataName(method.ContainingType)}[i];");
+								if (i != items.Length - 1)
+								{
+									builder.AppendLine();
+								}
+
+								using (builder.AppendBlock($"if ({method.Parameters[0]}({items[i]}))"))
+								{
+									builder.AppendLine($"return {items[i]};");
+								}
+							}
+
+							if (items.Length > 0)
+							{
+								builder.AppendLine();
+								builder.AppendLine("throw new InvalidOperationException(\"Sequence contains no matching element\");");
+							}
+							else
+							{
+								builder.AppendLine("throw new InvalidOperationException(\"Sequence contains no elements\");");
 							}
 						}
+						else
+						{
+							using (builder.AppendBlock($"for (var i = {GetDataName(method.ContainingType)} - 1; i >= 0; i--)"))
+							{
+								using (builder.AppendBlock($"if ({method.Parameters[0]}({GetDataName(method.ContainingType)}[i]))"))
+								{
+									builder.AppendLine($"return {GetDataName(method.ContainingType)}[i];");
+								}
+							}
 
-						builder.AppendLine();
-						builder.AppendLine("throw new InvalidOperationException(\"Sequence contains no matching element\");");
-					}
-				});
+							builder.AppendLine();
+							builder.AppendLine("throw new InvalidOperationException(\"Sequence contains no matching element\");");
+						}
+					});
 
-				return true;
-			}
+					return true;
+				}
 			default:
 				return false;
 		}
 	}
 
-	public bool AppendLastOrDefault(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendLastOrDefault<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: nameof(Enumerable.LastOrDefault), Parameters.Length: 0 }
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
-			{
-				AppendMethod(builder, method, items, () =>
 				{
-					if (items.Count > 0)
+					AppendMethod(builder, method, () =>
 					{
-						builder.AppendLine($"return {items[^1]};");
-					}
-					else
-					{
-						builder.AppendLine($"return {elementType.GetDefaultValue()};");
-					}
-				});
+						if (items.Length > 0)
+						{
+							builder.AppendLine($"return {items[^1]};");
+						}
+						else
+						{
+							builder.AppendLine($"return {elementType.GetDefaultValue()};");
+						}
+					});
 
-				return true;
-			}
+					return true;
+				}
 			case { Name: nameof(Enumerable.LastOrDefault) }
 				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, compilation.CreateBoolean()))
-				     && SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
-			{
-				AppendMethod(builder, method, items, isPerformance =>
+						 && SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
 				{
-					if (isPerformance)
+					AppendMethod(builder, method, items.AsSpan(), isPerformance =>
 					{
-						for (var i = items.Count - 1; i >= 0; i--)
+						if (isPerformance)
 						{
-							if (i != items.Count - 1)
+							for (var i = items.Length - 1; i >= 0; i--)
+							{
+								if (i != items.Length - 1)
+								{
+									builder.AppendLine();
+								}
+
+								using (builder.AppendBlock($"if ({method.Parameters[0]}({items[i]}))"))
+								{
+									builder.AppendLine($"return {items[i]};");
+								}
+							}
+
+							if (items.Length > 0)
 							{
 								builder.AppendLine();
 							}
 
-							using (builder.AppendBlock($"if ({method.Parameters[0]}({items[i]}))"))
-							{
-								builder.AppendLine($"return {items[i]};");
-							}
+							builder.AppendLine($"return {elementType.GetDefaultValue()};");
 						}
-
-						if (items.Count > 0)
+						else
 						{
+							using (builder.AppendBlock($"for (var i = {GetDataName(method.ContainingType)} - 1; i >= 0; i--)"))
+							{
+								using (builder.AppendBlock($"if ({method.Parameters[0]}({GetDataName(method.ContainingType)}[i]))"))
+								{
+									builder.AppendLine($"return {GetDataName(method.ContainingType)}[i];");
+								}
+							}
+
 							builder.AppendLine();
+							builder.AppendLine($"return {elementType.GetDefaultValue()};");
 						}
+					});
 
-						builder.AppendLine($"return {elementType.GetDefaultValue()};");
-					}
-					else
-					{
-						using (builder.AppendBlock($"for (var i = {GetDataName(method.ContainingType)} - 1; i >= 0; i--)"))
-						{
-							using (builder.AppendBlock($"if ({method.Parameters[0]}({GetDataName(method.ContainingType)}[i]))"))
-							{
-								builder.AppendLine($"return {GetDataName(method.ContainingType)}[i];");
-							}
-						}
-
-						builder.AppendLine();
-						builder.AppendLine($"return {elementType.GetDefaultValue()};");
-					}
-				});
-
-				return true;
-			}
+					return true;
+				}
 			default:
 				return false;
 		}
 	}
 
-	public bool AppendOrder(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendOrder<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: nameof(Enumerable.OrderBy), }
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, compilation.CreateIEnumerable(elementType)):
-			{
-				AppendMethod(builder, method, items, () =>
 				{
-					foreach (var item in items.OrderBy(s => s))
+					AppendMethod(builder, method, () =>
 					{
-						builder.AppendLine($"yield return {item};");
-					}
-				});
+						foreach (var item in items.OrderBy(s => s))
+						{
+							builder.AppendLine($"yield return {item};");
+						}
+					});
 
-				return true;
-			}
+					return true;
+				}
 			default:
 				return false;
 		}
 	}
 
-	public bool AppendOrderDescending(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendOrderDescending<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: nameof(Enumerable.OrderByDescending), }
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, compilation.CreateIEnumerable(elementType)):
-			{
-				AppendMethod(builder, method, items, () =>
 				{
-					foreach (var item in items.OrderByDescending(s => s))
+					AppendMethod(builder, method, () =>
 					{
-						builder.AppendLine($"yield return {item};");
-					}
-				});
+						foreach (var item in items.OrderByDescending(s => s))
+						{
+							builder.AppendLine($"yield return {item};");
+						}
+					});
 
-				return true;
-			}
+					return true;
+				}
 			default:
 				return false;
 		}
 	}
 
-	public bool AppendReverse(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendReverse<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: nameof(Enumerable.Reverse), Parameters.Length: 0 }
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, compilation.CreateIEnumerable(elementType)):
-			{
-				AppendMethod(builder, method, items, () =>
 				{
-					foreach (var item in items.Reverse())
+					AppendMethod(builder, method, () =>
 					{
-						builder.AppendLine($"yield return {item};");
-					}
-				});
+						foreach (var item in items.Reverse())
+						{
+							builder.AppendLine($"yield return {item};");
+						}
+					});
 
-				return true;
-			}
+					return true;
+				}
 			default:
 				return false;
 		}
 	}
 
-	public bool AppendSelect(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendSelect<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: nameof(Enumerable.Select), Parameters.Length: 0, ReturnType: INamedTypeSymbol { TypeArguments.Length: 1 } namedTypeSymbol }
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, compilation.CreateIEnumerable(namedTypeSymbol.TypeArguments[0]))
-				     && method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, namedTypeSymbol.TypeArguments[0])):
-			{
-				AppendMethod(builder, method, items, isPerformance =>
+						 && method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, namedTypeSymbol.TypeArguments[0])):
 				{
-					if (isPerformance)
+					AppendMethod(builder, method, items.AsSpan(), isPerformance =>
 					{
-						foreach (var item in items)
+						if (isPerformance)
 						{
-							builder.AppendLine($"yield return {method.Parameters[0]}({item});");
+							foreach (var item in items)
+							{
+								builder.AppendLine($"yield return {method.Parameters[0]}({item});");
+							}
 						}
-					}
-					else
-					{
-						using (builder.AppendBlock($"for (var i = 0; i < {GetDataName(method.ContainingType)}.Length; i++)"))
+						else
 						{
-							builder.AppendLine($"yield return {method.Parameters[0]}({GetDataName(method.ContainingType)}[i]);");
+							using (builder.AppendBlock($"for (var i = 0; i < {GetDataName(method.ContainingType)}.Length; i++)"))
+							{
+								builder.AppendLine($"yield return {method.Parameters[0]}({GetDataName(method.ContainingType)}[i]);");
+							}
 						}
-					}
-				});
+					});
 
-				return true;
-			}
+					return true;
+				}
 			default:
 				return false;
 		}
 	}
 
-	public bool AppendSequenceEqual(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendSequenceEqual<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: nameof(Enumerable.SequenceEqual), ReturnType.SpecialType: SpecialType.System_Boolean }
 				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateIEnumerable(elementType)):
-			{
-				AppendMethod(builder, method, items, isPerformance =>
 				{
-					if (!isPerformance && compilation.HasMember<IMethodSymbol>(typeof(Enumerable), nameof(Enumerable.SequenceEqual)))
+					AppendMethod(builder, method, items.AsSpan(), isPerformance =>
 					{
-						builder.AppendLine($"return {method.Parameters[0]}.SequenceEqual([{String.Join(", ", items.Select(CreateLiteral))}]);");
-					}
-					else
-					{
-						if (compilation.HasMember<IMethodSymbol>(typeof(Enumerable), "TryGetNonEnumeratedCount"))
+						if (!isPerformance && compilation.HasMember<IMethodSymbol>(typeof(Enumerable), nameof(Enumerable.SequenceEqual)))
 						{
-							using (builder.AppendBlock($"if ({method.Parameters[0]}.TryGetNonEnumeratedCount(out var count) && count != {items.Count})"))
+							builder.AppendLine($"return {method.Parameters[0]}.SequenceEqual([{String.Join(", ", items.Select(CreateLiteral))}]);");
+						}
+						else
+						{
+							if (compilation.HasMember<IMethodSymbol>(typeof(Enumerable), "TryGetNonEnumeratedCount"))
 							{
-								builder.AppendLine("return false;");
+								using (builder.AppendBlock($"if ({method.Parameters[0]}.TryGetNonEnumeratedCount(out var count) && count != {items.Length})"))
+								{
+									builder.AppendLine("return false;");
+								}
+
+								builder.AppendLine();
 							}
 
+							builder.AppendLine($"using var e = {method.Parameters[0]}.GetEnumerator();");
 							builder.AppendLine();
+
+							if (!items.Any())
+							{
+								builder.AppendLine("return !e.MoveNext();");
+							}
+
+							builder.AppendLine(CreateReturnPadding("&&", items.Select(s => $"e.MoveNext() && {s} == e.Current").Append("!e.MoveNext()")));
 						}
+					});
 
-						builder.AppendLine($"using var e = {method.Parameters[0]}.GetEnumerator();");
-						builder.AppendLine();
-
-						if (!items.Any())
-						{
-							builder.AppendLine("return !e.MoveNext();");
-						}
-
-						builder.AppendLine(CreateReturnPadding("&&", items.Select(s => $"e.MoveNext() && {s} == e.Current").Append("!e.MoveNext()")));
-					}
-				});
-
-				return true;
-			}
+					return true;
+				}
 			default:
 				return false;
 		}
 	}
 
-	public bool AppendSingle(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendSingle<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: nameof(Enumerable.Single), Parameters.Length: 0 }
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
-			{
-				AppendMethod(builder, method, items, () =>
 				{
-					switch (items.Count)
+					AppendMethod(builder, method, () =>
 					{
-						case 0:
-							builder.AppendLine("throw new InvalidOperationException(\"The input sequence is empty\");");
-							break;
-						case 1:
-							builder.AppendLine($"return {items[0]};");
-							break;
-						default:
-							builder.AppendLine("throw new InvalidOperationException(\"The input sequence contains more than one element\");");
-							break;
-					}
-				});
+						switch (items.Length)
+						{
+							case 0:
+								builder.AppendLine("throw new InvalidOperationException(\"The input sequence is empty\");");
+								break;
+							case 1:
+								builder.AppendLine($"return {items[0]};");
+								break;
+							default:
+								builder.AppendLine("throw new InvalidOperationException(\"The input sequence contains more than one element\");");
+								break;
+						}
+					});
 
-				return true;
-			}
+					return true;
+				}
 			default:
 				return false;
 		}
 	}
 
-	public bool AppendSingleOrDefault(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendSingleOrDefault<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: nameof(Enumerable.SingleOrDefault), Parameters.Length: 0 }
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, elementType):
-			{
-				AppendMethod(builder, method, items, () =>
 				{
-					switch (items.Count)
+					AppendMethod(builder, method, () =>
 					{
-						case 1:
-							builder.AppendLine($"return {items[0]};");
-							break;
-						default:
-							builder.AppendLine($"return {elementType.GetDefaultValue()};");
-							break;
-					}
-				});
+						switch (items.Length)
+						{
+							case 1:
+								builder.AppendLine($"return {items[0]};");
+								break;
+							default:
+								builder.AppendLine($"return {elementType.GetDefaultValue()};");
+								break;
+						}
+					});
 
-				return true;
-			}
+					return true;
+				}
 			default:
 				return false;
 		}
 	}
 
-	public bool AppendSum(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendSum<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: nameof(Enumerable.Sum), Parameters.Length: 0 }
 				when SymbolEqualityComparer.Default.Equals(elementType, method.ReturnType)
-				     && elementType.SpecialType is SpecialType.System_SByte
-					     or SpecialType.System_Byte
-					     or SpecialType.System_Int16
-					     or SpecialType.System_UInt16
-					     or SpecialType.System_Int32
-					     or SpecialType.System_UInt32
-					     or SpecialType.System_Single
-					     or SpecialType.System_Double
-					     or SpecialType.System_Decimal:
-			{
-				AppendMethod(builder, method, items, () =>
+						 && elementType.SpecialType is SpecialType.System_SByte
+							 or SpecialType.System_Byte
+							 or SpecialType.System_Int16
+							 or SpecialType.System_UInt16
+							 or SpecialType.System_Int32
+							 or SpecialType.System_UInt32
+							 or SpecialType.System_Single
+							 or SpecialType.System_Double
+							 or SpecialType.System_Decimal:
 				{
-					builder.AppendLine($"return {items.Sum()};");
-				});
+					AppendMethod(builder, method, () =>
+					{
+						builder.AppendLine($"return {items.AsSpan().Sum()};");
+					});
 
-				return true;
-			}
+					return true;
+				}
 			default:
 				return false;
 		}
 	}
 
-	public bool AppendTryGetNonEnumeratedCount(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendTryGetNonEnumeratedCount<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
-			case { Name: "TryGetNonEnumeratedCount", Parameters: [ { RefKind: RefKind.Out, Type.SpecialType: SpecialType.System_Boolean } ] }
+			case { Name: "TryGetNonEnumeratedCount", Parameters: [{ RefKind: RefKind.Out, Type.SpecialType: SpecialType.System_Boolean }] }
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, compilation.CreateBoolean()):
-			{
-				AppendMethod(builder, method, items, () =>
 				{
-					builder.AppendLine($"return {method.Parameters[0]} = {items.Count};");
-				});
+					AppendMethod(builder, method, () =>
+					{
+						builder.AppendLine($"return {method.Parameters[0]} = {items.Length};");
+					});
 
-				return true;
-			}
+					return true;
+				}
 			default:
 				return false;
 		}
 	}
 
-	public bool AppendWhere(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendWhere<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: nameof(Enumerable.Where) }
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, compilation.CreateIEnumerable(elementType))
-				     && method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, compilation.CreateBoolean())):
-			{
-				AppendMethod(builder, method, items, isPerformance =>
+						 && method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, compilation.CreateBoolean())):
 				{
-					if (isPerformance)
+					AppendMethod(builder, method, items.AsSpan(), isPerformance =>
 					{
-						for (var i = 0; i < items.Count; i++)
+						if (isPerformance)
 						{
-							if (i != 0)
+							for (var i = 0; i < items.Length; i++)
 							{
-								builder.AppendLine();
-							}
+								if (i != 0)
+								{
+									builder.AppendLine();
+								}
 
-							builder.AppendLine($"if ({method.Parameters[0]}({items[i]})) \tyield return {items[i]};");
-						}
-					}
-					else
-					{
-						using (builder.AppendBlock($"for (var i = 0; i < {GetDataName(method.ContainingType)}.Length; i++)"))
-						{
-							using (builder.AppendBlock($"if ({method.Parameters[0]}({GetDataName(method.ContainingType)}[i]))"))
-							{
-								builder.AppendLine($"yield return {GetDataName(method.ContainingType)}[i];");
+								builder.AppendLine($"if ({method.Parameters[0]}({items[i]})) \tyield return {items[i]};");
 							}
 						}
-					}
-				});
+						else
+						{
+							using (builder.AppendBlock($"for (var i = 0; i < {GetDataName(method.ContainingType)}.Length; i++)"))
+							{
+								using (builder.AppendBlock($"if ({method.Parameters[0]}({GetDataName(method.ContainingType)}[i]))"))
+								{
+									builder.AppendLine($"yield return {GetDataName(method.ContainingType)}[i];");
+								}
+							}
+						}
+					});
 
-				return true;
-			}
+					return true;
+				}
 			default:
 				return false;
 		}
 	}
 
-	public bool AppendToImmutableArray(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendToImmutableArray<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: nameof(ImmutableArray.ToImmutableArray), Parameters.Length: 0 }
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, compilation.GetTypeByType(typeof(ImmutableArray<>), elementType)):
-			{
-				AppendMethod(builder, method, items, () =>
 				{
-					builder.AppendLine($"return ImmutableArray.Create({items});");
-				});
+					AppendMethod(builder, method, () =>
+					{
+						builder.AppendLine($"return ImmutableArray.Create({items});");
+					});
 
-				return true;
-			}
+					return true;
+				}
 			default:
 				return false;
 		}
 	}
 
-	public bool AppendToArray(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendToArray<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: nameof(Enumerable.ToArray), Parameters.Length: 0 }
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, compilation.CreateArrayTypeSymbol(elementType)):
-			{
-				AppendMethod(builder, method, items, () =>
 				{
-					builder.AppendLine($"return [{items}];");
-				});
+					AppendMethod(builder, method, () =>
+					{
+						builder.AppendLine($"return [{items}];");
+					});
 
-				return true;
-			}
+					return true;
+				}
 			default:
 				return false;
 		}
 	}
 
-	public bool AppendImmutableList(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendImmutableList<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: nameof(ImmutableList.ToImmutableList), Parameters.Length: 0 }
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, compilation.GetTypeByType(typeof(ImmutableList<>), elementType)):
-			{
-				AppendMethod(builder, method, items, () =>
 				{
-					builder.AppendLine($"return ImmutableList.Create({items});");
-				});
+					AppendMethod(builder, method, () =>
+					{
+						builder.AppendLine($"return ImmutableList.Create({items});");
+					});
 
-				return true;
-			}
+					return true;
+				}
 			default:
 				return false;
 		}
 	}
 
-	public bool AppendToList(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendToList<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: nameof(Enumerable.ToList), Parameters.Length: 0 }
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, compilation.GetTypeByType(typeof(List<>), elementType)):
-			{
-				AppendMethod(builder, method, items, () =>
 				{
-					builder.AppendLine($"return [{items}];");
-				});
+					AppendMethod(builder, method, () =>
+					{
+						builder.AppendLine($"return [{items}];");
+					});
 
-				return true;
-			}
+					return true;
+				}
 			default:
 				return false;
 		}
 	}
 
-	public bool AppendToHashSet(IMethodSymbol method, IList<object?> items, IndentedStringBuilder builder)
+	public bool AppendToHashSet<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	{
 		switch (method)
 		{
 			case { Name: "ToHashSet", Parameters.Length: 0 }
 				when SymbolEqualityComparer.Default.Equals(method.ReturnType, compilation.GetTypeByType(typeof(HashSet<>), elementType)):
-			{
-				AppendMethod(builder, method, items, () =>
 				{
-					builder.AppendLine($"return new HashSet<{elementType}>({items.Distinct()});");
-				});
+					AppendMethod(builder, method, () =>
+					{
+						builder.AppendLine($"return new HashSet<{elementType}>({items.Distinct()});");
+					});
 
-				return true;
-			}
+					return true;
+				}
 			default:
 				return false;
 		}

@@ -5,11 +5,11 @@ namespace ConstExpr.SourceGenerator.Extensions;
 
 public static class SpanExtensions
 {
-	public static bool IsZero(this ReadOnlySpan<object?> span)
+	public static bool IsZero<T>(this ReadOnlySpan<T> span)
 	{
 		for (var i = 0; i < span.Length; i++)
 		{
-			if (span[i] is not 0 and not 0L and not 0U and not 0UL and not 0f or 0d and not (byte) 0 and not (short) 0 and not (sbyte) 0 and not (ushort) 0)
+			if (span[i] is not 0 and not 0L and not 0U and not 0UL and not 0f or 0d and not (byte)0 and not (short)0 and not (sbyte)0 and not (ushort)0)
 			{
 				return false;
 			}
@@ -18,11 +18,11 @@ public static class SpanExtensions
 		return true;
 	}
 
-	public static bool IsOne(this ReadOnlySpan<object?> span)
+	public static bool IsOne<T>(this ReadOnlySpan<T> span)
 	{
 		for (var i = 0; i < span.Length; i++)
 		{
-			if (span[i] is not 1 and not 1L and not 1U and not 1UL and not 1f or 1d and not (byte) 1 and not (short) 1 and not (sbyte) 1 and not (ushort) 1)
+			if (span[i] is not 1 and not 1L and not 1U and not 1UL and not 1f or 1d and not (byte)1 and not (short)1 and not (sbyte)1 and not (ushort)1)
 			{
 				return false;
 			}
@@ -80,7 +80,7 @@ public static class SpanExtensions
 				{
 					return result.ToString();
 				}
-				
+
 				result.Append(selector(span[i]));
 
 				if (count > 1)
@@ -97,16 +97,16 @@ public static class SpanExtensions
 			}
 		}
 	}
-	
+
 	public static string JoinWithPadding<T, TResult>(this ReadOnlySpan<T> span, string separator, int count, T item, Func<T, TResult> selector)
 	{
 		var result = new StringBuilder(span.Length * 2);
-		
+
 		if (span.Length == 0 || count == 0)
 		{
 			return String.Empty;
 		}
-		
+
 		for (var i = 0; i < span.Length && count != 0; i++)
 		{
 			if (i > 0)
@@ -115,20 +115,20 @@ public static class SpanExtensions
 			}
 
 			result.Append(selector(span[i]));
-			
+
 			count--;
 		}
-		
+
 		for (var i = 0; i < count; i++)
 		{
 			result.Append(separator);
 			result.Append(selector(item));
 		}
-		
+
 		return result.ToString();
 	}
 
-	public static bool IsSequence(this ReadOnlySpan<object?> span, Type type)
+	public static bool IsSequence<T>(this ReadOnlySpan<T> span, Type type)
 	{
 		for (var i = 0; i < span.Length; i++)
 		{
