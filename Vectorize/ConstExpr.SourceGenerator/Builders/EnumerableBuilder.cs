@@ -199,11 +199,11 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 							|| elementType.SpecialType == SpecialType.System_Double && method.ReturnType.SpecialType == SpecialType.System_Double
 							|| elementType.SpecialType == SpecialType.System_Decimal && method.ReturnType.SpecialType == SpecialType.System_Decimal):
 				{
-
-
 					AppendMethod(builder, method, () =>
 					{
-						var average = items.AsSpan().Average(elementType);
+						var average = items
+							.AsSpan()
+							.Average(elementType);
 
 						if (average is null)
 						{
@@ -224,7 +224,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 				{
 					AppendMethod(builder, method, () =>
 					{
-						builder.AppendLine($"{CreateReturnPadding("+", items.Select(s => $"{method.Parameters[0]}({s})"))} / {items.Length};");
+						builder.AppendLine($"{CreatePadding("+", "return", items.Select(s => $"{method.Parameters[0]}({s})"))} / {items.Length};");
 					});
 
 					return true;
@@ -232,7 +232,6 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			default:
 				return false;
 		}
-
 	}
 
 	public bool AppendCast<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
@@ -484,7 +483,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					{
 						if (items.Length > 0)
 						{
-							builder.AppendLine($"return {items.First()};");
+							builder.AppendLine($"return {items[0]};");
 						}
 						else
 						{
@@ -624,7 +623,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		{
 			case { Name: "Index" }
 				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, compilation.CreateBoolean()))
-						 && SymbolEqualityComparer.Default.Equals(method.ReturnType, compilation.GetTypeByType(typeof(ValueTuple<,>), compilation.CreateInt32(), elementType)):
+						 && SymbolEqualityComparer.Default.Equals(method.ReturnType, compilation.CreateIEnumerable(compilation.GetTypeByType(typeof(ValueTuple<,>), compilation.CreateInt32(), elementType))):
 				{
 					AppendMethod(builder, method, () =>
 					{
@@ -876,9 +875,9 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 						}
 						else
 						{
-							using (builder.AppendBlock($"for (var i = 0; i < {GetDataName(method.ContainingType)}.Length; i++)"))
+							using (builder.AppendBlock($"foreach (var item in {GetDataName(method.ContainingType)}"))
 							{
-								builder.AppendLine($"yield return {method.Parameters[0]}({GetDataName(method.ContainingType)}[i]);");
+								builder.AppendLine($"yield return {method.Parameters[0]}(item);");
 							}
 						}
 					});
@@ -1028,7 +1027,8 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 				{
 					AppendMethod(builder, method, () =>
 					{
-						builder.AppendLine($"return {method.Parameters[0]} = {items.Length};");
+						builder.AppendLine($"{method.Parameters[0]} = {items.Length};");
+						builder.AppendLine("return true;");
 					});
 
 					return true;
@@ -1052,11 +1052,6 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 						{
 							for (var i = 0; i < items.Length; i++)
 							{
-								if (i != 0)
-								{
-									builder.AppendLine();
-								}
-
 								builder.AppendLine($"if ({method.Parameters[0]}({items[i]})) \tyield return {items[i]};");
 							}
 						}
@@ -1164,7 +1159,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 				{
 					AppendMethod(builder, method, () =>
 					{
-						builder.AppendLine($"return new HashSet<{elementType}>({items.Distinct()});");
+						builder.AppendLine($"return [{items.Distinct()}];");
 					});
 
 					return true;

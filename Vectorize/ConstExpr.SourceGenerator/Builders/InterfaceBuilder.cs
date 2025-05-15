@@ -16,11 +16,13 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 		switch (property)
 		{
 			case { Name: "Count", Type.SpecialType: SpecialType.System_Int32 }:
+			{
 				AppendProperty(builder, property,
 					$"return {count};",
 					"throw new NotSupportedException();");
 
 				return true;
+			}
 			default:
 				return false;
 		}
@@ -32,11 +34,13 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 		switch (property)
 		{
 			case { Name: "Length", Type.SpecialType: SpecialType.System_Int32 }:
+			{
 				AppendProperty(builder, property,
 					$"return {count};",
 					"throw new NotSupportedException();");
 
 				return true;
+			}
 			default:
 				return false;
 		}
@@ -61,49 +65,53 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 	public bool AppendIndexer(IPropertySymbol property, IEnumerable<object?> items, IndentedStringBuilder builder)
 	{
-		if (property is not { Name: "this[]", IsIndexer: true, Parameters: [{ Type.SpecialType: SpecialType.System_Int32 }] } && !SymbolEqualityComparer.Default.Equals(property.Type, elementType))
+		switch (property)
 		{
-			return false;
-		}
-
-		builder.AppendLine();
-
-		if (property.IsReadOnly)
-		{
-			using (builder.AppendBlock($"public {elementType} this[int index] => index switch", "};"))
+			case { IsIndexer: true, Parameters: [ { Type.SpecialType: SpecialType.System_Int32 } ] }
+				when SymbolEqualityComparer.Default.Equals(property.Type, elementType):
 			{
-				foreach (var item in items.Index().GroupBy(g => g.Value, g => g.Index))
+				builder.AppendLine();
+
+				if (property.IsReadOnly)
 				{
-					builder.AppendLine($"{String.Join(" or ", item.Select(SyntaxHelpers.CreateLiteral))} => {item.Key},");
+					using (builder.AppendBlock($"public {elementType} this[int index] => index switch", "};"))
+					{
+						foreach (var item in items.Index().GroupBy(g => g.Value, g => g.Index))
+						{
+							builder.AppendLine($"{String.Join(" or ", item.Select(SyntaxHelpers.CreateLiteral))} => {item.Key},");
+						}
+
+						builder.AppendLine("_ => throw new ArgumentOutOfRangeException(),");
+					}
 				}
 
-				builder.AppendLine("_ => throw new ArgumentOutOfRangeException(),");
-			}
-		}
-
-		if (property.IsWriteOnly)
-		{
-			builder.AppendLine($"public {elementType} this[int index] => throw new NotSupportedException();");
-			return true;
-		}
-
-		using (builder.AppendBlock($"public {elementType} this[int index]"))
-		{
-			using (builder.AppendBlock("get => index switch", "};"))
-			{
-				var index = 0;
-
-				foreach (var item in items.Index().GroupBy(g => g.Value, g => g.Index))
+				if (property.IsWriteOnly)
 				{
-					builder.AppendLine($"{String.Join(" or ", item.Select(SyntaxHelpers.CreateLiteral))} => {item.Key},");
+					builder.AppendLine($"public {elementType} this[int index] => throw new NotSupportedException();");
+					return true;
 				}
 
-				builder.AppendLine("_ => throw new ArgumentOutOfRangeException(),");
-			}
-			builder.AppendLine("set => throw new NotSupportedException();");
-		}
+				using (builder.AppendBlock($"public {elementType} this[int index]"))
+				{
+					using (builder.AppendBlock("get => index switch", "};"))
+					{
+						var index = 0;
 
-		return true;
+						foreach (var item in items.Index().GroupBy(g => g.Value, g => g.Index))
+						{
+							builder.AppendLine($"{String.Join(" or ", item.Select(SyntaxHelpers.CreateLiteral))} => {item.Key},");
+						}
+
+						builder.AppendLine("_ => throw new ArgumentOutOfRangeException(),");
+					}
+					builder.AppendLine("set => throw new NotSupportedException();");
+				}
+
+				return true;
+			}
+			default:
+				return false;
+		}
 	}
 
 	public bool AppendCopyTo<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
@@ -113,6 +121,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 			case { Name: "CopyTo", Parameters.Length: 1, ReturnsVoid: true }
 				when method.Parameters.AsSpan().EqualsTypes(elementType):
 				{
+					// TODO: check if parameter length is equal to items.Length
 					AppendMethod(builder, method, items.AsSpan(), vectorLimit, false, (vectors, size) =>
 					{
 						for (var i = 0; i < vectors.Count; i++)
