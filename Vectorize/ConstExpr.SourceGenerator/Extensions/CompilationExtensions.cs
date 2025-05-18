@@ -771,4 +771,29 @@ public static class CompilationExtensions
 			_ => SyntaxFactory.DefaultExpression(SyntaxFactory.ParseTypeName(type.ToDisplayString())),
 		};
 	}
+	
+	public static VectorTypes GetBestVectorType(this Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, int elementCount)
+	{
+		var elementSize = compilation.GetByteSize(loader, elementType);
+		var size = elementSize * elementCount;
+
+		// Beschikbare vector groottes in bytes
+		var vectorTypes = new[]
+		{
+			// (VectorTypes.Vector64, 8),
+			(VectorTypes.Vector128, 16),
+			(VectorTypes.Vector256, 32),
+			(VectorTypes.Vector512, 64)
+		};
+
+		// Zoek het vectortype met de minimale modulus (rest) t.o.v. de totale size
+		var best = vectorTypes
+			.Select(vt => (Type: vt.Item1, Mod: Math.Abs(size % vt.Item2)))
+			.OrderBy(v => v.Mod)
+			.ThenByDescending(v => v.Type) // Geef voorkeur aan grotere vectoren bij gelijke modulus
+			.First();
+
+		return best.Type;
+	}
 }
+

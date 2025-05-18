@@ -1,8 +1,10 @@
 using System;
 using System.Text;
+using BenchmarkDotNet.Running;
 using ConstExpr.SourceGenerator.Sample;
+using ConstExpr.SourceGenerator.Sample.Tests;
 
-var range = Test.Range(20);
+var range = Test.Range(5);
 
 Console.WriteLine(Test.IsOdd(1f, 2f, 3f, 4f, 5f));
 Console.WriteLine(Test.Average(1f, 2f, 3f, 4f, 5f));
@@ -18,3 +20,5 @@ Console.WriteLine(String.Join(", ", Test.Fibonacci(20)));
 Console.WriteLine(Test.RgbToHsl(150, 100, 50));
 
 // Console.WriteLine(range.BinarySearch(2));
+
+BenchmarkRunner.Run<ReplaceTest>();

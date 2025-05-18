@@ -8,7 +8,7 @@ public interface ICustomCollection<T>
 {
 	// T Aggregate(Func<T, T, T> selector);
 	//
-	// void CopyTo(Span<T> data);
+	void CopyTo(Span<T> data);
 	//
 	// IEnumerable<bool> Select(Func<T, bool> selector);
 	//
@@ -16,9 +16,9 @@ public interface ICustomCollection<T>
 	
 	bool Contains(T element);
 	
-	int IndexOfAnyInRange(T min, T max);
+	// int IndexOfAnyInRange(T min, T max);
 
-	// int IndexOf(T item);
+	int IndexOf(T item);
 
 	void Replace(Span<T> destination, T oldValue, T newValue);
 

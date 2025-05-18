@@ -9,7 +9,7 @@ using System.Linq;
 
 namespace ConstExpr.SourceGenerator.Builders;
 
-public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, ITypeSymbol elementType, GenerationLevel generationLevel, VectorTypes vectorLimit, int hashCode) : BaseBuilder(elementType, compilation, generationLevel, loader, hashCode)
+public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, ITypeSymbol elementType, GenerationLevel generationLevel, int hashCode) : BaseBuilder(elementType, compilation, generationLevel, loader, hashCode)
 {
 	public bool AppendCount(IPropertySymbol property, int count, IndentedStringBuilder builder)
 	{
@@ -119,40 +119,50 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 		switch (method)
 		{
 			case { Name: "CopyTo", Parameters.Length: 1, ReturnsVoid: true }
-				when method.Parameters.AsSpan().EqualsTypes(elementType):
+				when compilation.IsSpanType(method.Parameters[0].Type, elementType):
+			{
+				AppendMethod(builder, method, items.AsSpan(), false, () =>
 				{
-					// TODO: check if parameter length is equal to items.Length
-					AppendMethod(builder, method, items.AsSpan(), vectorLimit, false, (vectors, size) =>
+					using (builder.AppendBlock($"if ({method.Parameters[0]}.Length < {items.Length})"))
 					{
-						for (var i = 0; i < vectors.Count; i++)
-						{
-							builder.AppendLine($"{(LiteralString)vectors[i]}.StoreUnsafe(ref MemoryMarshal.GetReference({method.Parameters[0]}), {i * size});");
-						}
+						builder.AppendLine($"throw new ArgumentOutOfRangeException(nameof({method.Parameters[0]}), \"The length of the span is less than {items.Length}\");");
+					}
 
-						for (var i = vectors.Count * size; i < items.Length; i++)
-						{
-							builder.AppendLine($"{method.Parameters[0]}[{i}] = {items[i]};");
-						}
-					}, isPerformance =>
+					builder.AppendLine();
+				}, (type, vectors, size) =>
+				{
+					builder.AppendLine($"ref var {method.Parameters[0]}Reference = ref MemoryMarshal.GetReference({method.Parameters[0]});");
+					builder.AppendLine();
+					
+					for (var i = 0; i < vectors.Count; i++)
 					{
-						if (items.Any())
+						if (i == 0)
 						{
-							if (isPerformance)
-							{
-								for (var i = 0; i < items.Length; i++)
-								{
-									builder.AppendLine($"{method.Parameters[0]}[{i}] = {items[i]};");
-								}
-							}
-							else
-							{
-								builder.AppendLine($"{GetDataName(method.ContainingType)}CopyTo({method.Parameters[0]});");
-							}
+							builder.AppendLine($"{(LiteralString) vectors[i]}.StoreUnsafe(ref {method.Parameters[0]}Reference);");
 						}
-					});
+						else
+						{
+							builder.AppendLine($"{(LiteralString) vectors[i]}.StoreUnsafe(ref {method.Parameters[0]}Reference, {i * size});");
+						}
+					}
 
-					return true;
-				}
+					for (var i = vectors.Count * size; i < items.Length; i++)
+					{
+						builder.AppendLine($"{method.Parameters[0]}[{i}] = {items[i]};");
+					}
+
+					builder.AppendLine();
+					builder.AppendLine($"return;");
+				}, isPerformance =>
+				{
+					if (items.Any())
+					{
+						builder.AppendLine($"{(LiteralString) GetDataName(method.ContainingType)}.CopyTo({method.Parameters[0]});");
+					}
+				});
+
+				return true;
+			}
 			default:
 				return false;
 		}
@@ -163,16 +173,16 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 	{
 		switch (method)
 		{
-			case { Name: "Add" }
+			case { Name: "Add", ReturnsVoid: true }
 				when method.Parameters.AsSpan().EqualsTypes(elementType):
+			{
+				AppendMethod(builder, method, () =>
 				{
-					AppendMethod(builder, method, () =>
-					{
-						builder.AppendLine("throw new NotSupportedException(\"Collection is read-only.\");");
-					});
+					builder.AppendLine("throw new NotSupportedException(\"Collection is read-only.\");");
+				});
 
-					return true;
-				}
+				return true;
+			}
 			default:
 				return false;
 		}
@@ -183,15 +193,15 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 	{
 		switch (method)
 		{
-			case { Name: "Clear", Parameters.Length: 0, ReturnType.SpecialType: SpecialType.System_Void }:
+			case { Name: "Clear", Parameters.Length: 0, ReturnsVoid: true }:
+			{
+				AppendMethod(builder, method, () =>
 				{
-					AppendMethod(builder, method, () =>
-					{
-						builder.AppendLine("throw new NotSupportedException(\"Collection is read-only.\");");
-					});
+					builder.AppendLine("throw new NotSupportedException(\"Collection is read-only.\");");
+				});
 
-					return true;
-				}
+				return true;
+			}
 			default:
 				return false;
 		}
@@ -204,18 +214,17 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 		{
 			case { Name: "Remove", ReturnType.SpecialType: SpecialType.System_Boolean }
 				when method.Parameters.AsSpan().EqualsTypes(elementType):
+			{
+				AppendMethod(builder, method, () =>
 				{
-					AppendMethod(builder, method, () =>
-					{
-						builder.AppendLine("throw new NotSupportedException(\"Collection is read-only.\");");
-					});
+					builder.AppendLine("throw new NotSupportedException(\"Collection is read-only.\");");
+				});
 
-					return true;
-				}
+				return true;
+			}
 			default:
 				return false;
 		}
-
 	}
 
 	public bool AppendIndexOf<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
@@ -224,8 +233,10 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 		{
 			case { Name: "IndexOf", ReturnType.SpecialType: SpecialType.System_Int32 }
 				when method.Parameters.AsSpan().EqualsTypes(elementType):
+			{
+				AppendMethod(builder, method, items.AsSpan(), isPerformance =>
 				{
-					AppendMethod(builder, method, () =>
+					if (isPerformance)
 					{
 						var min = items.Min();
 						var max = items.Max();
@@ -234,12 +245,12 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 						{
 							var indexes = new List<int>();
 
-							for (var i = min; !EqualityComparer<object?>.Default.Equals(i, max.Add(1.ToSpecialType(elementType.SpecialType))); i = (T)i.Add(1.ToSpecialType(elementType.SpecialType)))
+							for (var i = min; !EqualityComparer<object?>.Default.Equals(i, max.Add(1.ToSpecialType(elementType.SpecialType))); i = (T) i.Add(1.ToSpecialType(elementType.SpecialType)))
 							{
 								indexes.Add(items.IndexOf(i));
 							}
 
-							builder.AppendLine($"ReadOnlySpan<int> map = [{indexes}];");
+							builder.AppendLine($"ReadOnlySpan<int> map = [{(LiteralString)String.Join(", ", indexes)}];");
 							builder.AppendLine();
 
 							if (!EqualityComparer<object?>.Default.Equals(min, 0.ToSpecialType(elementType.SpecialType)))
@@ -267,10 +278,15 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 								builder.AppendLine("_ => -1,");
 							}
 						}
-					});
+					}
+					else
+					{
+						builder.AppendLine($"return {GetDataName(method.ContainingType)}.IndexOf({method.Parameters[0]});");
+					}
+				});
 
-					return true;
-				}
+				return true;
+			}
 			default:
 				return false;
 		}
@@ -280,16 +296,16 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 	{
 		switch (method)
 		{
-			case { Name: "Insert" }
+			case { Name: "Insert", ReturnsVoid: true }
 				when method.Parameters.AsSpan().EqualsTypes(elementType, compilation.CreateInt32()):
+			{
+				AppendMethod(builder, method, () =>
 				{
-					AppendMethod(builder, method, () =>
-					{
-						builder.AppendLine("throw new NotSupportedException(\"Collection is read-only.\");");
-					});
+					builder.AppendLine("throw new NotSupportedException(\"Collection is read-only.\");");
+				});
 
-					return true;
-				}
+				return true;
+			}
 			default:
 				return false;
 		}
@@ -300,16 +316,16 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 	{
 		switch (method)
 		{
-			case { Name: "RemoveAt" }
+			case { Name: "RemoveAt", ReturnsVoid: true }
 				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateInt32()):
+			{
+				AppendMethod(builder, method, () =>
 				{
-					AppendMethod(builder, method, () =>
-					{
-						builder.AppendLine("throw new NotSupportedException(\"Collection is read-only.\");");
-					});
+					builder.AppendLine("throw new NotSupportedException(\"Collection is read-only.\");");
+				});
 
-					return true;
-				}
+				return true;
+			}
 			default:
 				return false;
 		}
@@ -322,71 +338,71 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 		{
 			case { Name: "Contains", ReturnType.SpecialType: SpecialType.System_Boolean }
 				when method.Parameters.AsSpan().EqualsTypes(elementType):
+			{
+				items = items
+					.Distinct()
+					.ToImmutableArray();
+
+				AppendMethod(builder, method, items.AsSpan(), false, (vectorType, vectors, size) =>
 				{
-					items = items
-						.Distinct()
-						.ToImmutableArray();
+					builder.AppendLine($"var {method.Parameters[0]}Vector = {vectorType}.Create({method.Parameters[0]});");
+					builder.AppendLine();
 
-					AppendMethod(builder, method, items.AsSpan(), vectorLimit, true, (vectors, size) =>
+					if (size * vectors.Count < items.Length)
 					{
-						builder.AppendLine($"var {method.Parameters[0]}Vector = {vectorLimit}.Create({method.Parameters[0]});");
+						var checks = items
+							.Skip(vectors.Count * size)
+							.Select(s => $"{method.Parameters[0].Name} == {s}");
+
+						builder.AppendLine(CreatePadding("|", "return (", vectors.Select(s => $"{vectorType}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false) + $") != {vectorType}<{compilation.GetMinimalString(elementType)}>.Zero");
+						builder.AppendLine(CreatePadding("|", "      |", checks));
+
 						builder.AppendLine();
-
-						if (size * vectors.Count < items.Length)
-						{
-							var checks = items
-								.Skip(vectors.Count * size)
-								.Select(s => $"{method.Parameters[0].Name} == {s}");
-
-							builder.AppendLine(CreatePadding("|", "return (", vectors.Select(s => $"{vectorLimit}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false) + $") != {vectorLimit}<{compilation.GetMinimalString(elementType)}>.Zero");
-							builder.AppendLine(CreatePadding("|", "      |", checks));
-
-							builder.AppendLine();
-						}
-						else
-						{
-							builder.AppendLine(CreatePadding("|", "return (", vectors.Select(s => $"{vectorLimit}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false) + $") != {vectorLimit}<{compilation.GetMinimalString(elementType)}>.Zero;");
-						}
-					}, isPerformance =>
+					}
+					else
 					{
-						if (items.Length > 0)
+						builder.AppendLine(CreatePadding("|", "return (", vectors.Select(s => $"{vectorType}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false) + $") != {vectorType}<{compilation.GetMinimalString(elementType)}>.Zero;");
+					}
+				}, isPerformance =>
+				{
+					if (items.Length > 0)
+					{
+						if (method.ContainingType.HasMember<IMethodSymbol>("IndexOf", m => m is { ReturnType.SpecialType: SpecialType.System_Int32 }
+						                                                                   && m.Parameters.AsSpan().EqualsTypes(elementType)))
 						{
-							if (method.ContainingType.HasMember<IMethodSymbol>("IndexOf", m => m is { ReturnType.SpecialType: SpecialType.System_Int32 }
-																																								 && m.Parameters.AsSpan().EqualsTypes(elementType)))
-							{
-								builder.AppendLine($"return IndexOf({method.Parameters[0]}) >= 0;");
-							}
-							else if (method.ContainingType.HasMember<IMethodSymbol>("BinarySearch", m => m is { ReturnType.SpecialType: SpecialType.System_Int32 }
-																																													 && m.Parameters.AsSpan().EqualsTypes(elementType)
-																																													 && elementType.HasMember<IMethodSymbol>("CompareTo", x => x is { ReturnType.SpecialType: SpecialType.System_Int32 }
-																																																																										 && x.Parameters.AsSpan().EqualsTypes(elementType))))
-							{
-								builder.AppendLine($"return BinarySearch({method.Parameters[0]}) >= 0;");
-							}
-							// Check if the interface implements BinarySearch with a comparer
-							else if (method.ContainingType.HasMember<IMethodSymbol>("BinarySearch", m => m is { ReturnType.SpecialType: SpecialType.System_Int32, Parameters.Length: 2 }
-																																													 && SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, elementType)
-																																													 && m.Parameters[1].Type.HasMember<IMethodSymbol>("Compare", x => x is { ReturnType.SpecialType: SpecialType.System_Int32 }
-																																																																														&& x.Parameters.AsSpan().EqualsTypes(elementType, elementType))))
-							{
-								builder.AppendLine($"return BinarySearch({method.Parameters[0]}, Comparer<{elementType}>.Default) >= 0;");
-							}
-							else
-							{
-								var elements = items
-									.Select(s => SyntaxHelpers.CreateLiteral(s)?.ToString());
-
-								builder.AppendLine(CreatePadding("or", $"return {method.Parameters[0].Name} is", elements));
-							}
+							builder.AppendLine($"return IndexOf({method.Parameters[0]}) >= 0;");
+						}
+						else if (method.ContainingType.HasMember<IMethodSymbol>("BinarySearch", m => m is { ReturnType.SpecialType: SpecialType.System_Int32 }
+						                                                                             && m.Parameters.AsSpan().EqualsTypes(elementType)
+						                                                                             && elementType.HasMember<IMethodSymbol>("CompareTo", x => x is { ReturnType.SpecialType: SpecialType.System_Int32 }
+						                                                                                                                                       && x.Parameters.AsSpan().EqualsTypes(elementType))))
+						{
+							builder.AppendLine($"return BinarySearch({method.Parameters[0]}) >= 0;");
+						}
+						// Check if the interface implements BinarySearch with a comparer
+						else if (method.ContainingType.HasMember<IMethodSymbol>("BinarySearch", m => m is { ReturnType.SpecialType: SpecialType.System_Int32, Parameters.Length: 2 }
+						                                                                             && SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, elementType)
+						                                                                             && m.Parameters[1].Type.HasMember<IMethodSymbol>("Compare", x => x is { ReturnType.SpecialType: SpecialType.System_Int32 }
+						                                                                                                                                              && x.Parameters.AsSpan().EqualsTypes(elementType, elementType))))
+						{
+							builder.AppendLine($"return BinarySearch({method.Parameters[0]}, Comparer<{elementType}>.Default) >= 0;");
 						}
 						else
 						{
-							builder.AppendLine("return false;");
-						}
-					});
+							var elements = items
+								.Select(s => SyntaxHelpers.CreateLiteral(s)?.ToString());
 
-					return true;
-				}
+							builder.AppendLine(CreatePadding("or", $"return {method.Parameters[0].Name} is", elements));
+						}
+					}
+					else
+					{
+						builder.AppendLine("return false;");
+					}
+				});
+
+				return true;
+			}
 			default:
 				return false;
 		}
