@@ -4,7 +4,7 @@ using BenchmarkDotNet.Running;
 using ConstExpr.SourceGenerator.Sample;
 using ConstExpr.SourceGenerator.Sample.Tests;
 
-var range = Test.Range(5);
+var range = Test.Range(10);
 
 Console.WriteLine(Test.IsOdd(1f, 2f, 3f, 4f, 5f));
 Console.WriteLine(Test.Average(1f, 2f, 3f, 4f, 5f));

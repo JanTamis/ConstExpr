@@ -121,45 +121,57 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 			case { Name: "CopyTo", Parameters.Length: 1, ReturnsVoid: true }
 				when compilation.IsSpanType(method.Parameters[0].Type, elementType):
 			{
-				AppendMethod(builder, method, items.AsSpan(), false, () =>
+				AppendMethod(builder, method, () =>
 				{
-					using (builder.AppendBlock($"if ({method.Parameters[0]}.Length < {items.Length})"))
-					{
-						builder.AppendLine($"throw new ArgumentOutOfRangeException(nameof({method.Parameters[0]}), \"The length of the span is less than {items.Length}\");");
-					}
-
-					builder.AppendLine();
-				}, (type, vectors, size) =>
-				{
-					builder.AppendLine($"ref var {method.Parameters[0]}Reference = ref MemoryMarshal.GetReference({method.Parameters[0]});");
-					builder.AppendLine();
-					
-					for (var i = 0; i < vectors.Count; i++)
-					{
-						if (i == 0)
-						{
-							builder.AppendLine($"{(LiteralString) vectors[i]}.StoreUnsafe(ref {method.Parameters[0]}Reference);");
-						}
-						else
-						{
-							builder.AppendLine($"{(LiteralString) vectors[i]}.StoreUnsafe(ref {method.Parameters[0]}Reference, {i * size});");
-						}
-					}
-
-					for (var i = vectors.Count * size; i < items.Length; i++)
-					{
-						builder.AppendLine($"{method.Parameters[0]}[{i}] = {items[i]};");
-					}
-
-					builder.AppendLine();
-					builder.AppendLine($"return;");
-				}, isPerformance =>
-				{
-					if (items.Any())
-					{
-						builder.AppendLine($"{(LiteralString) GetDataName(method.ContainingType)}.CopyTo({method.Parameters[0]});");
-					}
+					builder.AppendLine($"{(LiteralString) GetDataName(method.ContainingType)}.CopyTo({method.Parameters[0]});");
 				});
+				
+				// AppendMethod(builder, method, items.AsSpan(), false, () =>
+				// {
+				// 	if (compilation.HasMember<IMethodSymbol>(typeof(ArgumentOutOfRangeException), "ThrowIfLessThan"))
+				// 	{
+				// 		builder.AppendLine($"ArgumentOutOfRangeException.ThrowIfLessThan((uint){method.Parameters[0]}.Length, {(uint) items.Length});");
+				// 	}
+				// 	else
+				// 	{
+				// 		using (builder.AppendBlock($"if ((uint){method.Parameters[0]}.Length < {(uint) items.Length})"))
+				// 		{
+				// 			builder.AppendLine($"throw new ArgumentOutOfRangeException(nameof({method.Parameters[0]}), \"The length of the span is less than {items.Length}\");");
+				// 		}
+				// 	}
+				//
+				// 	builder.AppendLine();
+				// }, (type, vectors, size) =>
+				// {
+				// 	builder.AppendLine($"ref var {method.Parameters[0]}Reference = ref MemoryMarshal.GetReference({method.Parameters[0]});");
+				// 	builder.AppendLine();
+				// 	
+				// 	for (var i = 0; i < vectors.Count; i++)
+				// 	{
+				// 		if (i == 0)
+				// 		{
+				// 			builder.AppendLine($"{(LiteralString) vectors[i]}.StoreUnsafe(ref {method.Parameters[0]}Reference);");
+				// 		}
+				// 		else
+				// 		{
+				// 			builder.AppendLine($"{(LiteralString) vectors[i]}.StoreUnsafe(ref {method.Parameters[0]}Reference, {i * size});");
+				// 		}
+				// 	}
+				//
+				// 	for (var i = vectors.Count * size; i < items.Length; i++)
+				// 	{
+				// 		builder.AppendLine($"{method.Parameters[0]}[{i}] = {items[i]};");
+				// 	}
+				//
+				// 	builder.AppendLine();
+				// 	builder.AppendLine($"return;");
+				// }, isPerformance =>
+				// {
+				// 	if (items.Any())
+				// 	{
+				// 		builder.AppendLine($"{(LiteralString) GetDataName(method.ContainingType)}.CopyTo({method.Parameters[0]});");
+				// 	}
+				// });
 
 				return true;
 			}
@@ -354,14 +366,27 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 							.Skip(vectors.Count * size)
 							.Select(s => $"{method.Parameters[0].Name} == {s}");
 
-						builder.AppendLine(CreatePadding("|", "return (", vectors.Select(s => $"{vectorType}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false) + $") != {vectorType}<{compilation.GetMinimalString(elementType)}>.Zero");
-						builder.AppendLine(CreatePadding("|", "      |", checks));
+						if (compilation.HasMember<IMethodSymbol>(compilation.GetVectorType(vectorType), "AnyWhereAllBitsSet"))
+						{
+							builder.AppendLine(CreatePadding("|", $"return {vectorType}.AnyWhereAllBitsSet(", vectors.Select(s => $"{vectorType}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false) + $")");
+						}
+						else
+						{
+							builder.AppendLine(CreatePadding("|", "return (", vectors.Select(s => $"{vectorType}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false) + $") != {vectorType}<{compilation.GetMinimalString(elementType)}>.Zero");
+						}
 
-						builder.AppendLine();
+						builder.AppendLine(CreatePadding("|", "      |", checks));
 					}
 					else
 					{
-						builder.AppendLine(CreatePadding("|", "return (", vectors.Select(s => $"{vectorType}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false) + $") != {vectorType}<{compilation.GetMinimalString(elementType)}>.Zero;");
+						if (compilation.HasMember<IMethodSymbol>(compilation.GetVectorType(vectorType), "AnyWhereAllBitsSet"))
+						{
+							builder.AppendLine(CreatePadding("|", $"return {vectorType}.AnyWhereAllBitsSet(", vectors.Select(s => $"{vectorType}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false) + $");");
+						}
+						else
+						{
+							builder.AppendLine(CreatePadding("|", "return (", vectors.Select(s => $"{vectorType}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false) + $") != {vectorType}<{compilation.GetMinimalString(elementType)}>.Zero;");
+						}
 					}
 				}, isPerformance =>
 				{

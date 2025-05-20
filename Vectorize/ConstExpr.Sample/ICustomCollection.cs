@@ -21,17 +21,19 @@ public interface ICustomCollection<T>
 	int IndexOf(T item);
 
 	void Replace(Span<T> destination, T oldValue, T newValue);
+	
+	int Count(int element);
 
-	int SequenceCompareTo(ReadOnlySpan<T> other);
+	// int SequenceCompareTo(ReadOnlySpan<T> other);
 	
 	// bool ContainsAny(T element1, T element2, T element3, T element4);
 	// bool ContainsAnyExcept(T element1, T element2, T element3, T element4);
 	
 	// bool EndsWith(T item);
 
-	int BinarySearch(T item);
+	// int BinarySearch(T item);
 	
-	int CommonPrefixLength(ReadOnlySpan<T> other);
+	// int CommonPrefixLength(ReadOnlySpan<T> other);
 }
 
 public interface ICharCollection
