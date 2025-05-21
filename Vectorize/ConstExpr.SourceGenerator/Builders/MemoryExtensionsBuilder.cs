@@ -112,7 +112,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	// 				builder.AppendLine($"var otherVec = {vectorType}.LoadUnsafe(ref MemoryMarshal.GetReference({method.Parameters[0]}));");
 	// 				builder.AppendLine();
 	//
-	// 				// Create sequence vector
+	// 				// Create sequence vector 
 	// 				if (compilation.HasMember<IPropertySymbol>(compilation.GetVectorType(vectorType, compilation.CreateInt32()), "Indices"))
 	// 				{
 	// 					builder.AppendLine($"var sequence = {vectorType}<{elementType}>.Indices;");
@@ -263,33 +263,47 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 
 				AppendMethod(builder, method, items.AsSpan(), false, (vectorType, vectors, vectorSize) =>
 				{
-					var checks = vectors.Select(s => $"{vectorType}.GreaterThanOrEqual(s, {vectorType}.Create({method.Parameters[0]})) & {vectorType}.LessThanOrEqual(items, {vectorType}.Create({method.Parameters[1]}))");
+					var checks = Enumerable.Range(0, vectors.Count).Select(s => $"{vectorType}.GreaterThanOrEqual(vec{s}, {vectorType}.Create({method.Parameters[0].Name})) & {vectorType}.LessThanOrEqual(vec{s}, {vectorType}.Create({method.Parameters[1].Name}))");
 
 					var remainingChecks = items.Skip(vectors.Count * vectorSize)
-						.Select(s => $"{s} >= {method.Parameters[0]} && {s} <= {method.Parameters[1]}")
+						.Select(s => $"{s} >= {method.Parameters[0].Name} && {s} <= {method.Parameters[1].Name}")
 						.ToList();
 
 					var hasRemainingChecks = remainingChecks.Any();
+					
+					for (var i = 0; i < vectors.Count; i++)
+					{
+						builder.AppendLine($"var vec{i} = {(LiteralString) vectors[i]};");
+					}
 
-					// TODO: test remaining checks
+					builder.AppendLine();
+
 					if (compilation.HasMember<IMethodSymbol>(compilation.GetVectorType(vectorType), "AnyWhereAllBitsSet"))
 					{
 						var padding = $"return {vectorType}.AnyWhereAllBitsSet(";
 
-						builder.AppendLine(CreatePadding("|", padding, checks, false) + (hasRemainingChecks ? ");" : String.Empty));
-						builder.AppendLine(CreatePadding("|", new string(' ', padding.Length), remainingChecks));
+						builder.AppendLine(CreatePadding("|", padding, checks, false, false) + (hasRemainingChecks ? ")" : ");"));
+						
+						if (hasRemainingChecks)
+						{
+							builder.AppendLine(CreatePadding("||", new string(' ', padding.Length - 3) + "||", remainingChecks));
+						}
 					}
 					else
 					{
 						const string padding = "return (";
 
-						builder.AppendLine(CreatePadding("|", padding, checks, false) + $") != {vectorType}<{elementType}>.Zero;");
-						builder.AppendLine(CreatePadding("|", new string(' ', padding.Length), remainingChecks));
+						builder.AppendLine(CreatePadding("|", padding, checks, false, false) + $") != {vectorType}<{elementType}>.Zero" + (hasRemainingChecks ? String.Empty : ";"));
+
+						if (hasRemainingChecks)
+						{
+							builder.AppendLine(CreatePadding("||", new string(' ', padding.Length - 3) + "||", remainingChecks));
+						}
 					}
 				}, _ =>
 				{
 					var checks = items
-						.Select(s => $"{s} >= {method.Parameters[0]} && {s} <= {method.Parameters[1]}");
+						.Select(s => $"{s} >= {method.Parameters[0].Name} && {s} <= {method.Parameters[1].Name}");
 
 					builder.AppendLine(CreateReturnPadding("||", checks));
 				});

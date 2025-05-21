@@ -1,8 +1,10 @@
 using System;
+using System.CodeDom.Compiler;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -14,7 +16,7 @@ namespace ConstExpr.SourceGenerator.Helpers;
 [DebuggerDisplay("{ToString()}")]
 public class IndentedStringBuilder(string indentString = "\t")
 {
-	private readonly StringBuilder _builder = new();
+	private StringWriter _builder = new();
 	private int _indentLevel;
 	private bool _isNewLine = true;
 
@@ -42,7 +44,7 @@ public class IndentedStringBuilder(string indentString = "\t")
 			AppendIndentation();
 		}
 
-		_builder.AppendLine();
+		_builder.WriteLine();
 		_isNewLine = true;
 		return this;
 	}
@@ -56,7 +58,7 @@ public class IndentedStringBuilder(string indentString = "\t")
 				AppendIndentation();
 			}
 
-			_builder.AppendLine();
+			_builder.WriteLine();
 			_isNewLine = true;
 			return this;
 		}
@@ -70,11 +72,11 @@ public class IndentedStringBuilder(string indentString = "\t")
 				AppendIndentation();
 			}
 
-			_builder.Append(lines[i]);
+			_builder.Write(lines[i]);
 
 			if (i < lines.Length - 1 || string.IsNullOrEmpty(value))
 			{
-				_builder.AppendLine();
+				_builder.WriteLine();
 				_isNewLine = true;
 			}
 			else
@@ -85,7 +87,7 @@ public class IndentedStringBuilder(string indentString = "\t")
 
 		if (!_isNewLine)
 		{
-			_builder.AppendLine();
+			_builder.WriteLine();
 			_isNewLine = true;
 			return this;
 		}
@@ -95,17 +97,6 @@ public class IndentedStringBuilder(string indentString = "\t")
 	
 	public IndentedStringBuilder AppendLine(ref IndentedStringBuilderHandler handler)
 	{
-		if (handler.Length == 0)
-		{
-			if (_isNewLine)
-			{
-				AppendIndentation();
-			}
-
-			_builder.AppendLine();
-			_isNewLine = true;
-			return this;
-		}
 
 		if (_isNewLine)
 		{
@@ -114,7 +105,7 @@ public class IndentedStringBuilder(string indentString = "\t")
 
 		handler.CopyTo(_builder);
 
-		_builder.AppendLine();
+		_builder.WriteLine();
 		_isNewLine = true;
 		return this;
 	}
@@ -126,7 +117,7 @@ public class IndentedStringBuilder(string indentString = "\t")
 			AppendIndentation();
 		}
 
-		_builder.Append(value);
+		_builder.Write(value);
 		_isNewLine = false;
 		return this;
 	}
@@ -167,18 +158,16 @@ public class IndentedStringBuilder(string indentString = "\t")
 	{
 		for (var i = 0; i < _indentLevel; i++)
 		{
-			_builder.Append(indentString);
+			_builder.Write(indentString);
 		}
 	}
 
 	public IndentedStringBuilder Clear()
 	{
-		_builder.Clear();
+		_builder = new StringWriter();
 		_isNewLine = true;
 		return this;
 	}
-
-	public int Length => _builder.Length;
 
 	public override string ToString()
 	{
@@ -196,28 +185,26 @@ public class IndentedStringBuilder(string indentString = "\t")
 	[InterpolatedStringHandler]
 	public readonly struct IndentedStringBuilderHandler(int literalLength, int formattedCount)
 	{
-		private readonly StringBuilder _builder = new(literalLength + formattedCount * 11);
-
-		public int Length => _builder.Length;
+		private readonly StringWriter _builder = new(new StringBuilder(literalLength + formattedCount * 11));
 
 		public void AppendLiteral(string s)
 		{
-			_builder.Append(s);
+			_builder.Write(s);
 		}
 
 		public void AppendFormatted(IParameterSymbol parameter)
 		{
-			_builder.Append(parameter.Name);
+			_builder.Write(parameter.Name);
 		}
 
 		public void AppendFormatted(ReadOnlySpan<char> data)
 		{
-			_builder.Append(data.ToString());
+			_builder.Write(data.ToString());
 		}
 
 		public void AppendFormatted(ITypeSymbol type)
 		{
-			_builder.Append(Compilation.GetMinimalString(type));
+			_builder.Write(Compilation.GetMinimalString(type));
 		}
 
 		public void AppendFormatted(LiteralString literal)
@@ -229,11 +216,11 @@ public class IndentedStringBuilder(string indentString = "\t")
 		{
 			for (var i = 0; i < parameters.Length; i++)
 			{
-				_builder.Append(parameters[i].Name);
+				_builder.Write(parameters[i].Name);
 
 				if (i < parameters.Length - 1)
 				{
-					_builder.Append(", ");
+					_builder.Write(", ");
 				}
 			}
 		}
@@ -247,7 +234,7 @@ public class IndentedStringBuilder(string indentString = "\t")
 				return;
 			}
 
-			_builder.Append(enumerator.Current);
+			_builder.Write(enumerator.Current);
 
 			while (enumerator.MoveNext())
 			{
@@ -258,18 +245,20 @@ public class IndentedStringBuilder(string indentString = "\t")
 
 		public void AppendFormatted<T>(T value)
 		{
-			// if (value is string str)
-			// {
-			// 	_builder.Append(str);
-			// 	return;
-			// }
-
-			_builder.Append(SyntaxHelpers.CreateLiteral(value)?.ToString() ?? value.ToString());
+			var literal = SyntaxHelpers.CreateLiteral(value);
+			
+			if (literal != null)
+			{
+				literal.WriteTo(_builder);
+				return;
+			}
+			
+			_builder.Write(value);
 		}
 
-		public void CopyTo(StringBuilder target)
+		public void CopyTo(StringWriter target)
 		{
-			target.Append(_builder);
+			target.Write(_builder);
 		}
 	}
 }

@@ -6,6 +6,7 @@
 		<RootNamespace>Vectorize.Sample</RootNamespace>
 		<OutputType>Exe</OutputType>
 		<InterceptorsNamespaces>$(InterceptorsNamespaces);ConstantExpression.Generated</InterceptorsNamespaces>
+		<LangVersion>13</LangVersion>
 	</PropertyGroup>
 
 	<ItemGroup>

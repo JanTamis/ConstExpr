@@ -304,7 +304,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		{
 			prefix += " ";
 		}
-
+		
 		if (isEnding)
 		{
 			return $"{prefix}{String.Join("\n" + padding + $"{check} ", checks)};";

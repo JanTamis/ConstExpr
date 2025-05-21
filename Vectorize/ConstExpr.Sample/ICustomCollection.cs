@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Microsoft.Diagnostics.Symbols;
 
 namespace ConstExpr.SourceGenerator.Sample;
 
@@ -16,7 +17,7 @@ public interface ICustomCollection<T>
 	
 	bool Contains(T element);
 	
-	// int IndexOfAnyInRange(T min, T max);
+	bool ContainsAnyInRange(T min, T max);
 
 	int IndexOf(T item);
 

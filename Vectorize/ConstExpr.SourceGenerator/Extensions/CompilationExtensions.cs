@@ -777,7 +777,6 @@ public static class CompilationExtensions
 		var elementSize = compilation.GetByteSize(loader, elementType);
 		var size = elementSize * elementCount;
 
-		// Beschikbare vector groottes in bytes
 		var vectorTypes = new[]
 		{
 			// (VectorTypes.Vector64, 8),
@@ -786,11 +785,10 @@ public static class CompilationExtensions
 			(VectorTypes.Vector512, 64)
 		};
 
-		// Zoek het vectortype met de minimale modulus (rest) t.o.v. de totale size
 		var best = vectorTypes
 			.Select(vt => (Type: vt.Item1, Mod: Math.Abs(size % vt.Item2)))
 			.OrderBy(v => v.Mod)
-			.ThenByDescending(v => v.Type) // Geef voorkeur aan grotere vectoren bij gelijke modulus
+			.ThenByDescending(v => v.Type)
 			.First();
 
 		return best.Type;
