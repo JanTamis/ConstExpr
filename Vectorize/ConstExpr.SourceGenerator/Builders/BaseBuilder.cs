@@ -72,10 +72,10 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 				})
 				.Where(c => c != null);
 
-			return builder.AppendBlock((string) $"{prepend}{compilation.GetMinimalString(methodSymbol.ReturnType)} {methodSymbol.Name}<{String.Join(", ", methodSymbol.TypeParameters.Select(compilation.GetMinimalString))}>({String.Join(", ", methodSymbol.Parameters.Select(compilation.GetMinimalString))}) {String.Join("\n\t", constraints)}");
+			return builder.AppendBlock((string) $"{prepend}{compilation.GetMinimalString(methodSymbol.ReturnType)} {methodSymbol.Name}<{String.Join(", ", methodSymbol.TypeParameters.Select(compilation.GetMinimalString))}>({String.Join(", ", methodSymbol.Parameters.Select(s => s.ToString()))}) {String.Join("\n\t", constraints)}");
 		}
 
-		return builder.AppendBlock((string) $"{prepend}{compilation.GetMinimalString(methodSymbol.ReturnType)} {methodSymbol.Name}({String.Join(", ", methodSymbol.Parameters.Select(compilation.GetMinimalString))})");
+		return builder.AppendBlock((string) $"{prepend}{compilation.GetMinimalString(methodSymbol.ReturnType)} {methodSymbol.Name}({String.Join(", ", methodSymbol.Parameters.Select(s => s.ToString()))})");
 	}
 
 	// protected void AppendMethod<T>(IndentedStringBuilder builder, IMethodSymbol methodSymbol, ReadOnlySpan<T> items, Action<VectorTypes, string, int> vectorAction, Action<bool> action)
@@ -192,7 +192,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 					get = get.Substring("return".Length);
 				}
 
-				builder.AppendLine($"{GetHeader()} => {get.Trim().TrimEnd(';')};");
+				builder.AppendLine($"{(LiteralString) GetHeader()} => {(LiteralString) get.Trim().TrimEnd(';')};");
 			}
 		}
 		else if (propertySymbol.IsWriteOnly)
@@ -218,7 +218,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 				}
 				else
 				{
-					builder.AppendLine($"get => {get.TrimEnd(';')};");
+					builder.AppendLine($"get => {(LiteralString) get.TrimEnd(';')};");
 				}
 
 				using (builder.AppendBlock("set"))

@@ -1,6 +1,7 @@
 using ConstantExpression;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -59,7 +60,7 @@ public static class Test
 		return nameof(Test);
 	}
 
-	public static ICustomCollection<int> Range(int count)
+	public static IList<int> Range(int count)
 	{
 		var random = new Random();
 		var result = new List<int>(count);
@@ -69,7 +70,7 @@ public static class Test
 			result.Add(random.Next(5));
 		}
 
-		return result.OrderBy( o => o) as ICustomCollection<int>;
+		return result.OrderBy(o => o).ToList(); //as ICustomCollection<int>;
 	}
 
 	public static ICustomCollection<string> Split(string value, char separator)

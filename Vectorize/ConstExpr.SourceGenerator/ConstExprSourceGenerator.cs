@@ -243,7 +243,10 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 								.Cast<object?>()
 								.ToImmutableArray();
 							
-							var members = namedTypeSymbol.GetMembers();
+							var members = namedTypeSymbol.AllInterfaces
+								.Prepend(namedTypeSymbol)
+								.SelectMany(s => s.GetMembers())
+								.OrderBy(o => o is not IPropertySymbol);
 
 							var interfaceBuilder = new InterfaceBuilder(compilation, loader, elementType, invocation.GenerationLevel, hashCode);
 							var enumerableBuilder = new EnumerableBuilder(compilation, elementType, loader, invocation.GenerationLevel, hashCode);
@@ -330,11 +333,11 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 							{
 								code.AppendLine();
 
-								using (code.AppendBlock($"public IEnumerator<{elementName}> GetEnumerator()"))
+								using (code.AppendBlock($"public IEnumerator<{(LiteralString) elementName}> GetEnumerator()"))
 								{
 									foreach (var item in items)
 									{
-										code.AppendLine($"yield return {CreateLiteral(item)};");
+										code.AppendLine($"yield return {item};");
 									}
 								}
 
@@ -431,6 +434,8 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				Logger.Information($"{timer.Elapsed}: {invocation}");
 
 				GetUsings(methodSymbol, BaseBuilder.IsPerformance(level, (variables[ConstExprOperationVisitor.ReturnVariableName] as IEnumerable)?.Cast<object?>()?.Count() ?? 0), usings);
+				
+				
 
 				return new InvocationModel
 				{
@@ -522,6 +527,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		if (isPerformance)
 		{
 			usings.Add("using System.Numerics;");
+			usings.Add("using System.Collections;");
 			usings.Add("using System.Runtime.InteropServices;");
 		}
 

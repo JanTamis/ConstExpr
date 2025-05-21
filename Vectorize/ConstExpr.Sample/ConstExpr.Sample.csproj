@@ -7,6 +7,7 @@
 		<OutputType>Exe</OutputType>
 		<InterceptorsNamespaces>$(InterceptorsNamespaces);ConstantExpression.Generated</InterceptorsNamespaces>
 		<LangVersion>13</LangVersion>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
 	<ItemGroup>

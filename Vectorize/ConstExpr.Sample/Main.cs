@@ -1,4 +1,9 @@
 using System;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
+using System.Runtime.Intrinsics.X86;
 using System.Text;
 using BenchmarkDotNet.Running;
 using ConstExpr.SourceGenerator.Sample;
@@ -22,3 +27,35 @@ Console.WriteLine(Test.RgbToHsl(150, 100, 50));
 // Console.WriteLine(range.BinarySearch(2));
 
 BenchmarkRunner.Run<ReplaceTest>();
+
+unsafe void Replace(Span<int> destination, int oldValue, int newValue)
+{
+	ArgumentOutOfRangeException.ThrowIfLessThan((uint) destination.Length, 10U);
+
+	if (Vector256.IsHardwareAccelerated)
+	{
+		var pointer = (int*) Unsafe.AsPointer(ref MemoryMarshal.GetReference(destination));
+		var oldValueVector = Vector256.Create(oldValue);
+		var newValueVector = Vector256.Create(newValue);
+
+		var vec0 = Vector256.Create(0, 1, 2, 3, 3, 4, 4, 4);
+		var indices = Vector256<int>.Indices;
+
+		var elements = Vector256.ConditionalSelect(Vector256.Equals(vec0, oldValueVector), newValueVector, vec0);
+		
+		Avx2.MaskStore(pointer, Vector256.LessThan(Vector256.Create(destination.Length), indices), elements);
+		
+		return;
+	}
+
+	destination[0] = oldValue == 0 ? newValue : 0;
+	destination[1] = oldValue == 1 ? newValue : 1;
+	destination[2] = oldValue == 2 ? newValue : 2;
+	destination[3] = oldValue == 3 ? newValue : 3;
+	destination[4] = oldValue == 3 ? newValue : 3;
+	destination[5] = oldValue == 4 ? newValue : 4;
+	destination[6] = oldValue == 4 ? newValue : 4;
+	destination[7] = oldValue == 4 ? newValue : 4;
+	destination[8] = oldValue == 4 ? newValue : 4;
+	destination[9] = oldValue == 4 ? newValue : 4;
+}

@@ -78,7 +78,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 					{
 						foreach (var item in items.Index().GroupBy(g => g.Value, g => g.Index))
 						{
-							builder.AppendLine($"{String.Join(" or ", item.Select(SyntaxHelpers.CreateLiteral))} => {item.Key},");
+							builder.AppendLine($"{(LiteralString) String.Join(" or ", item.Select(SyntaxHelpers.CreateLiteral))} => {item.Key},");
 						}
 
 						builder.AppendLine("_ => throw new ArgumentOutOfRangeException(),");
@@ -99,7 +99,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 						foreach (var item in items.Index().GroupBy(g => g.Value, g => g.Index))
 						{
-							builder.AppendLine($"{String.Join(" or ", item.Select(SyntaxHelpers.CreateLiteral))} => {item.Key},");
+							builder.AppendLine($"{(LiteralString) String.Join(" or ", item.Select(SyntaxHelpers.CreateLiteral))} => {item.Key},");
 						}
 
 						builder.AppendLine("_ => throw new ArgumentOutOfRangeException(),");
@@ -125,54 +125,15 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 				{
 					builder.AppendLine($"{(LiteralString) GetDataName(method.ContainingType)}.CopyTo({method.Parameters[0]});");
 				});
-				
-				// AppendMethod(builder, method, items.AsSpan(), false, () =>
-				// {
-				// 	if (compilation.HasMember<IMethodSymbol>(typeof(ArgumentOutOfRangeException), "ThrowIfLessThan"))
-				// 	{
-				// 		builder.AppendLine($"ArgumentOutOfRangeException.ThrowIfLessThan((uint){method.Parameters[0]}.Length, {(uint) items.Length});");
-				// 	}
-				// 	else
-				// 	{
-				// 		using (builder.AppendBlock($"if ((uint){method.Parameters[0]}.Length < {(uint) items.Length})"))
-				// 		{
-				// 			builder.AppendLine($"throw new ArgumentOutOfRangeException(nameof({method.Parameters[0]}), \"The length of the span is less than {items.Length}\");");
-				// 		}
-				// 	}
-				//
-				// 	builder.AppendLine();
-				// }, (type, vectors, size) =>
-				// {
-				// 	builder.AppendLine($"ref var {method.Parameters[0]}Reference = ref MemoryMarshal.GetReference({method.Parameters[0]});");
-				// 	builder.AppendLine();
-				// 	
-				// 	for (var i = 0; i < vectors.Count; i++)
-				// 	{
-				// 		if (i == 0)
-				// 		{
-				// 			builder.AppendLine($"{(LiteralString) vectors[i]}.StoreUnsafe(ref {method.Parameters[0]}Reference);");
-				// 		}
-				// 		else
-				// 		{
-				// 			builder.AppendLine($"{(LiteralString) vectors[i]}.StoreUnsafe(ref {method.Parameters[0]}Reference, {i * size});");
-				// 		}
-				// 	}
-				//
-				// 	for (var i = vectors.Count * size; i < items.Length; i++)
-				// 	{
-				// 		builder.AppendLine($"{method.Parameters[0]}[{i}] = {items[i]};");
-				// 	}
-				//
-				// 	builder.AppendLine();
-				// 	builder.AppendLine($"return;");
-				// }, isPerformance =>
-				// {
-				// 	if (items.Any())
-				// 	{
-				// 		builder.AppendLine($"{(LiteralString) GetDataName(method.ContainingType)}.CopyTo({method.Parameters[0]});");
-				// 	}
-				// });
-
+				return true;
+			}
+			case { Name: "CopyTo", ReturnsVoid: true }
+				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateArrayTypeSymbol(elementType), compilation.CreateInt32()):
+			{
+				AppendMethod(builder, method, () =>
+				{
+					builder.AppendLine($"{(LiteralString) GetDataName(method.ContainingType)}.CopyTo({method.Parameters[0]}.AsSpan({method.Parameters[1]}));");
+				});
 				return true;
 			}
 			default:
