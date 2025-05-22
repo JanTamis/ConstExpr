@@ -10,7 +10,7 @@ using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 
 namespace ConstExpr.SourceGenerator.Builders;
 
-public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, GenerationLevel level, int hashCode) : BaseBuilder(elementType, compilation, level, loader, hashCode)
+public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, GenerationLevel level, string dataName) : BaseBuilder(elementType, compilation, level, loader, dataName)
 {
 	public bool AppendAggregate<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	{

@@ -1,13 +1,12 @@
+using BenchmarkDotNet.Running;
+using ConstExpr.SourceGenerator.Sample;
+using ConstExpr.SourceGenerator.Sample.Tests;
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 using System.Text;
-using BenchmarkDotNet.Running;
-using ConstExpr.SourceGenerator.Sample;
-using ConstExpr.SourceGenerator.Sample.Tests;
 
 var range = Test.Range(10);
 
@@ -28,13 +27,13 @@ Console.WriteLine(Test.RgbToHsl(150, 100, 50));
 
 BenchmarkRunner.Run<ReplaceTest>();
 
-unsafe void Replace(Span<int> destination, int oldValue, int newValue)
+static unsafe void Replace(Span<int> destination, int oldValue, int newValue)
 {
-	ArgumentOutOfRangeException.ThrowIfLessThan((uint) destination.Length, 10U);
+	ArgumentOutOfRangeException.ThrowIfLessThan((uint)destination.Length, 10U);
 
 	if (Vector256.IsHardwareAccelerated)
 	{
-		var pointer = (int*) Unsafe.AsPointer(ref MemoryMarshal.GetReference(destination));
+		var pointer = (int*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(destination));
 		var oldValueVector = Vector256.Create(oldValue);
 		var newValueVector = Vector256.Create(newValue);
 
@@ -42,9 +41,9 @@ unsafe void Replace(Span<int> destination, int oldValue, int newValue)
 		var indices = Vector256<int>.Indices;
 
 		var elements = Vector256.ConditionalSelect(Vector256.Equals(vec0, oldValueVector), newValueVector, vec0);
-		
+
 		Avx2.MaskStore(pointer, Vector256.LessThan(Vector256.Create(destination.Length), indices), elements);
-		
+
 		return;
 	}
 
