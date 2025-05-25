@@ -74,15 +74,19 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 					if (property.IsReadOnly)
 					{
-						using (builder.AppendBlock($"public {elementType} this[int index] => index switch", "};"))
-						{
-							foreach (var item in items.Index().GroupBy(g => g.Value, g => g.Index))
-							{
-								builder.AppendLine($"{(LiteralString)String.Join(" or ", item.Select(SyntaxHelpers.CreateLiteral))} => {item.Key},");
-							}
-
-							builder.AppendLine("_ => throw new ArgumentOutOfRangeException(),");
-						}
+						builder.AppendLine($"public {elementType} this[int index] => {(LiteralString) GetDataName(property.ContainingType)}[index];");
+						
+						// using (builder.AppendBlock($"public {elementType} this[int index] => index switch", "};"))
+						// {
+						// 	foreach (var item in items.Index().GroupBy(g => g.Value, g => g.Index))
+						// 	{
+						// 		builder.AppendLine($"{(LiteralString)String.Join(" or ", item.Select(SyntaxHelpers.CreateLiteral))} => {item.Key},");
+						// 	}
+						//
+						// 	builder.AppendLine("_ => throw new ArgumentOutOfRangeException(),");
+						// }
+						
+						return true;
 					}
 
 					if (property.IsWriteOnly)
@@ -93,17 +97,18 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 					using (builder.AppendBlock($"public {elementType} this[int index]"))
 					{
-						using (builder.AppendBlock("get => index switch", "};"))
-						{
-							var index = 0;
-
-							foreach (var item in items.Index().GroupBy(g => g.Value, g => g.Index))
-							{
-								builder.AppendLine($"{(LiteralString)String.Join(" or ", item.Select(SyntaxHelpers.CreateLiteral))} => {item.Key},");
-							}
-
-							builder.AppendLine("_ => throw new ArgumentOutOfRangeException(),");
-						}
+						// using (builder.AppendBlock("get => index switch", "};"))
+						// {
+						// 	var index = 0;
+						//
+						// 	foreach (var item in items.Index().GroupBy(g => g.Value, g => g.Index))
+						// 	{
+						// 		builder.AppendLine($"{(LiteralString)String.Join(" or ", item.Select(SyntaxHelpers.CreateLiteral))} => {item.Key},");
+						// 	}
+						//
+						// 	builder.AppendLine("_ => throw new ArgumentOutOfRangeException(),");
+						// }
+						builder.AppendLine($"get => {(LiteralString) GetDataName(property.ContainingType)}[index];");
 						builder.AppendLine("set => throw new NotSupportedException();");
 					}
 

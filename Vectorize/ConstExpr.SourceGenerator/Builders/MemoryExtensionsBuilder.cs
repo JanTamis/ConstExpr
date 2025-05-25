@@ -112,7 +112,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	// 				builder.AppendLine($"var otherVec = {vectorType}.LoadUnsafe(ref MemoryMarshal.GetReference({method.Parameters[0]}));");
 	// 				builder.AppendLine();
 	//
-	// 				// Create sequence vector 
+	// 				// Create sequence vector
 	// 				if (compilation.HasMember<IPropertySymbol>(compilation.GetVectorType(vectorType, compilation.CreateInt32()), "Indices"))
 	// 				{
 	// 					builder.AppendLine($"var sequence = {vectorType}<{elementType}>.Indices;");
@@ -368,9 +368,9 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 						{
 							using (builder.AppendBlock($"return {method.Parameters[0]} switch", "};"))
 							{
-								foreach (var group in items.GroupBy(g => g))
+								foreach (var count in items.CountBy(x => x).GroupBy(g => g.Value))
 								{
-									builder.AppendLine($"{group.Key} => {group.Count()},");
+									builder.AppendLine($"{(LiteralString) String.Join(" or ", count.Select(s => CreateLiteral(s.Key)))} => {count.Key},");
 								}
 
 								builder.AppendLine("_ => 0,");

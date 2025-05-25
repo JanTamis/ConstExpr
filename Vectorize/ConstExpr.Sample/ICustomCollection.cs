@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 using System.Text;
 using Microsoft.Diagnostics.Symbols;
 
@@ -24,6 +25,8 @@ public interface ICustomCollection<T>
 	void Replace(Span<T> destination, T oldValue, T newValue);
 	
 	int Count(int element);
+	
+	IEnumerable<KeyValuePair<TKey, TCount>> CountBy<TKey, TCount>(Func<T, TKey> keySelector) where TCount: INumber<TCount>;
 
 	// int SequenceCompareTo(ReadOnlySpan<T> other);
 	

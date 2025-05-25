@@ -56,6 +56,12 @@ public static class CompilationExtensions
 			.Construct(typeArguments);
 	}
 
+	public static INamedTypeSymbol CreateKeyValuePair(this Compilation compilation, ITypeSymbol keyType, ITypeSymbol valueType)
+	{
+		return compilation.GetTypeByMetadataName("System.Collections.Generic.KeyValuePair`2")
+			.Construct(keyType, valueType);
+	}
+
 	public static INamedTypeSymbol CreateSpecialType(this Compilation compilation, SpecialType specialType, params ITypeSymbol[] typeArguments)
 	{
 		if (typeArguments.Length == 0)
@@ -737,11 +743,21 @@ public static class CompilationExtensions
 	}
 
 
-	public static bool EqualsType(this ITypeSymbol type, ITypeSymbol otherType)
+	public static bool EqualsType(this ITypeSymbol type, ITypeSymbol? otherType)
 	{
+		if (otherType == null)
+		{
+			return false;
+		}
+		
 		if (SymbolEqualityComparer.Default.Equals(type, otherType))
 		{
 			return true;
+		}
+		
+		if (otherType is ITypeParameterSymbol typeParameter)
+		{
+			return typeParameter.ConstraintTypes.All(type.EqualsType);
 		}
 
 		return type.AllInterfaces.Any(a => SymbolEqualityComparer.Default.Equals(a, otherType));

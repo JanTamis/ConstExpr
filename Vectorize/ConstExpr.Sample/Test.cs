@@ -11,6 +11,16 @@ namespace ConstExpr.SourceGenerator.Sample;
 [ConstExpr(Level = GenerationLevel.Performance)]
 public static class Test
 {
+	static ReadOnlySpan<int> IReadOnlyList_21149831_Data => [ 0, 1, 1, 1, 2, 3, 4, 4, 4, 4 ];
+
+	public static IEnumerator<int> GetEnumerator()
+	{
+		for (var i = 0; i < IReadOnlyList_21149831_Data.Length; i++)
+		{
+			yield return IReadOnlyList_21149831_Data[i];
+		}
+	}
+	
 	public static IEnumerable<float> IsOdd(params IEnumerable<float> data)
 	{
 		return data.Where(w => w % 2 != 0);
@@ -60,7 +70,7 @@ public static class Test
 		return nameof(Test);
 	}
 
-	public static IList<int> Range(int count)
+	public static IReadOnlyList<int> Range(int count)
 	{
 		var random = new Random();
 		var result = new List<int>(count);

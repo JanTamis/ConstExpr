@@ -223,4 +223,25 @@ public static class EnumerableExtensions
 			}
 		}
 	}
+
+	public static IEnumerable<KeyValuePair<TKey, int>> CountBy<T, TKey>(this IEnumerable<T> items, Func<T, TKey> keySelector)
+	{
+		var counts = new Dictionary<TKey, int>(20);
+
+		foreach (var item in items)
+		{
+			var key = keySelector(item);
+
+			if (counts.TryGetValue(key, out var currentCount))
+			{
+				counts[key] = currentCount + 1;
+			}
+			else
+			{
+				counts.Add(key, 1);
+			}
+		}
+
+		return counts;
+	}
 }

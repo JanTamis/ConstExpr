@@ -186,7 +186,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				.ToString()
 				.Replace("\n", "\n\t");
 
-			code.AppendLine("\t[MethodImpl(MethodImplOptions.AggressiveInlining)]");
+			// code.AppendLine("\t[MethodImpl(MethodImplOptions.AggressiveInlining)]");
 			code.AppendLine(methodCode.Insert(0, "\t"));
 		}
 
@@ -247,6 +247,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 							var members = namedTypeSymbol.AllInterfaces
 								.Prepend(namedTypeSymbol)
 								.SelectMany(s => s.GetMembers())
+								.Distinct(SymbolEqualityComparer.Default)
 								.OrderBy(o => o is not IPropertySymbol);
 
 							var interfaceBuilder = new InterfaceBuilder(compilation, loader, elementType, invocation.GenerationLevel, dataName);
@@ -296,6 +297,12 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 												 || enumerableBuilder.AppendToImmutableArray(method, items, code)
 												 || enumerableBuilder.AppendToList(method, items, code)
 												 || enumerableBuilder.AppendImmutableList(method, items, code)
+												 || enumerableBuilder.AppendToHashSet(method, items, code)
+										     || enumerableBuilder.AppendMax(method, items, code)
+												 || enumerableBuilder.AppendMin(method, items, code)
+												 || enumerableBuilder.AppendSkip(method, items, code)
+												 || enumerableBuilder.AppendTake(method, items, code)
+												 || enumerableBuilder.AppendCountBy(method, items, code)
 												 || memoryExtensionsBuilder.AppendBinarySearch(method, items, code)
 												 // || memoryExtensionsBuilder.AppendCommonPrefixLength(method, items, code)
 												 // || memoryExtensionsBuilder.AppendContainsAny(method, items, code)
@@ -336,9 +343,9 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 								using (code.AppendBlock($"public IEnumerator<{(LiteralString)elementName}> GetEnumerator()"))
 								{
-									foreach (var item in items)
+									using (code.AppendBlock($"for (var i = 0; i < {(LiteralString) dataName}.Length; i++)"))
 									{
-										code.AppendLine($"yield return {item};");
+										code.AppendLine($"yield return {(LiteralString)dataName}[i];");
 									}
 								}
 
@@ -435,8 +442,6 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				Logger.Information($"{timer.Elapsed}: {invocation}");
 
 				GetUsings(methodSymbol, BaseBuilder.IsPerformance(level, (variables[ConstExprOperationVisitor.ReturnVariableName] as IEnumerable)?.Cast<object?>()?.Count() ?? 0), usings);
-
-
 
 				return new InvocationModel
 				{
