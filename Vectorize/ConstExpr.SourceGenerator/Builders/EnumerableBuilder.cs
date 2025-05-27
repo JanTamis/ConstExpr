@@ -1265,13 +1265,13 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 	{
 		switch (method)
 		{
-			case { Name: "CountBy", TypeArguments: [var keyType, ..] }
+			case { Name: "CountBy", TypeArguments: [ var keyType, .. ] }
 				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, keyType))
 				     && method.ReturnType is INamedTypeSymbol { Arity: 1 } enumerableType
-				     && enumerableType.TypeArguments[0] is INamedTypeSymbol { TypeArguments: [_, var numberType] } keyValuePairType
-				     && SymbolEqualityComparer.Default.Equals(keyValuePairType, compilation.CreateKeyValuePair(keyType, numberType))
-				     && SymbolEqualityComparer.Default.Equals(enumerableType, compilation.CreateIEnumerable(keyValuePairType))
-				     && numberType.EqualsType(compilation.GetTypeByMetadataName("System.Numerics.INumber`1")?.Construct(numberType)):
+				     && enumerableType.TypeArguments[0] is INamedTypeSymbol { TypeArguments: [ _, var numberType ] } keyValuePairType
+				     && keyValuePairType.EqualsType(compilation.CreateKeyValuePair(keyType, numberType))
+				     && enumerableType.EqualsType(compilation.CreateIEnumerable(keyValuePairType))
+				     && numberType.EqualsType(compilation.GetTypeByMetadataName("System.Numerics.INumberBase`1")?.Construct(numberType)):
 			{
 				AppendMethod(builder, method, () =>
 				{
@@ -1294,12 +1294,26 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 						{
 							using (builder.AppendBlock("if (counts.TryGetValue(key, out var currentCount))"))
 							{
-								builder.AppendLine("counts[key] = currentCount + 1;");
+								if (method.TypeArguments.Contains(numberType, SymbolEqualityComparer.Default))
+								{
+									builder.AppendLine($"counts[key] = currentCount + {numberType}.One;");
+								}
+								else
+								{
+									builder.AppendLine("counts[key] = currentCount + 1;");
+								}
 							}
 
 							using (builder.AppendBlock("else"))
 							{
-								builder.AppendLine("counts.Add(key, 1);");
+								if (method.TypeArguments.Contains(numberType, SymbolEqualityComparer.Default))
+								{
+									builder.AppendLine($"counts.Add(key, {numberType}.One);");
+								}
+								else
+								{
+									builder.AppendLine("counts.Add(key, 1);");
+								}
 							}
 						}
 					}
@@ -1307,9 +1321,44 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					builder.AppendLine();
 					builder.AppendLine("return counts;");
 				});
-				
+
 				return true;
 			}
+			case { Name: "CountBy", Parameters.Length: 0 }
+				when method.ReturnType is INamedTypeSymbol { Arity: 1 } enumerableType
+				     && enumerableType.TypeArguments[0] is INamedTypeSymbol { TypeArguments: [ _, var numberType ] } keyValuePairType
+				     && keyValuePairType.EqualsType(compilation.CreateKeyValuePair(elementType, numberType))
+				     && enumerableType.EqualsType(compilation.CreateIEnumerable(keyValuePairType))
+				     && numberType.EqualsType(compilation.GetTypeByMetadataName("System.Numerics.INumberBase`1")?.Construct(numberType)):
+			{
+				AppendMethod(builder, method, () =>
+				{
+					if (method.TypeArguments.Contains(numberType, SymbolEqualityComparer.Default))
+					{
+						foreach (var item in items.CountBy())
+						{
+							if (item.Value == 1)
+							{
+								builder.AppendLine($"yield return {(LiteralString) keyValuePairType.Name}.Create({item.Key}, {numberType}.One);");
+							}
+							else
+							{
+								builder.AppendLine($"yield return {(LiteralString) keyValuePairType.Name}.Create({item.Key}, {numberType}.CreateChecked({item.Value}));");
+							}
+						}
+					}
+					else
+					{
+						foreach (var item in items.CountBy())
+						{
+							builder.AppendLine($"yield return {(LiteralString) keyValuePairType.Name}.Create({item.Key}, {item.Value};");
+						}
+					}
+				});
+
+				return true;
+			}
+
 			default:
 				return false;
 		}

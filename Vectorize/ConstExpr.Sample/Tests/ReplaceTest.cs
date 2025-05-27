@@ -51,7 +51,7 @@ public class ReplaceTest
 		return counts;
 	}
 
-	public IEnumerable<object> Parameters() // for single argument it's an IEnumerable of objects (object)
+	public IEnumerable<object> Parameters()
 	{
 		yield return (Func<int, int>) (x => x);
 	}

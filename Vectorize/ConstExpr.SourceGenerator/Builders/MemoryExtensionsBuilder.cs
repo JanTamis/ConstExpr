@@ -263,7 +263,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 
 					AppendMethod(builder, method, items.AsSpan(), false, (vectorType, vectors, vectorSize) =>
 					{
-						var checks = Enumerable.Range(0, vectors.Count).Select(s => $"{vectorType}.GreaterThanOrEqual(vec{s}, {vectorType}.Create({method.Parameters[0].Name})) & {vectorType}.LessThanOrEqual(vec{s}, {vectorType}.Create({method.Parameters[1].Name}))");
+						var checks = Enumerable.Range(0, vectors.Count).Select(s => $"{vectorType}.GreaterThanOrEqual(vec{s}, {method.Parameters[0].Name}Vector) & {vectorType}.LessThanOrEqual(vec{s}, {method.Parameters[1].Name}Vector)");
 
 						var remainingChecks = items.Skip(vectors.Count * vectorSize)
 							.Select(s => $"{s} >= {method.Parameters[0].Name} && {s} <= {method.Parameters[1].Name}")
@@ -276,6 +276,9 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 							builder.AppendLine($"var vec{i} = {(LiteralString)vectors[i]};");
 						}
 
+						builder.AppendLine();
+						builder.AppendLine($"var {method.Parameters[0]}Vector = {vectorType}.Create({method.Parameters[0]});");
+						builder.AppendLine($"var {method.Parameters[1]}Vector = {vectorType}.Create({method.Parameters[1]});");
 						builder.AppendLine();
 
 						if (compilation.HasMember<IMethodSymbol>(compilation.GetVectorType(vectorType), "AnyWhereAllBitsSet"))
@@ -302,10 +305,21 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 						}
 					}, _ =>
 					{
-						var checks = items
-							.Select(s => $"{s} >= {method.Parameters[0].Name} && {s} <= {method.Parameters[1].Name}");
+						using (builder.AppendBlock($"foreach (var item in {(LiteralString) GetDataName(method.ContainingType)})"))
+						{
+							using (builder.AppendBlock($"if (item >= {method.Parameters[0]} && item <= {method.Parameters[1]})"))
+							{
+								builder.AppendLine("return true;");
+							}
+						}
 
-						builder.AppendLine(CreateReturnPadding("||", checks));
+						builder.AppendLine();
+						builder.AppendLine("return false;");
+						
+						// var checks = items
+						// 	.Select(s => $"{s} >= {method.Parameters[0].Name} && {s} <= {method.Parameters[1].Name}");
+						//
+						// builder.AppendLine(CreateReturnPadding("||", checks));
 					});
 
 					return true;
@@ -1051,18 +1065,15 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 					{
 						if (isPerformance)
 						{
-							if (elementType.SpecialType != SpecialType.None)
+							using (builder.AppendBlock($"for (var i = 0; i < {method.Parameters[0]}.Length; i++)"))
 							{
-								for (var i = 0; i < items.Length; i++)
+								if (elementType.SpecialType != SpecialType.None)
 								{
-									builder.AppendLine($"{method.Parameters[0]}[{i}] = {method.Parameters[1]} == {items[i]} ? {method.Parameters[2]} : {items[i]};");
+									builder.AppendLine($"{method.Parameters[0]}[i] = {(LiteralString) GetDataName(method.ContainingType)}[i] == {method.Parameters[1]} ? {method.Parameters[2]} : {(LiteralString) GetDataName(method.ContainingType)}[i];");
 								}
-							}
-							else
-							{
-								for (var i = 0; i < items.Length; i++)
+								else
 								{
-									builder.AppendLine($"{method.Parameters[0]}[{i}] = EqualityComparer<{elementType}>.Default.Equals({items[i]}, {method.Parameters[1]}) ? {method.Parameters[2]} : {items[i]};");
+									builder.AppendLine($"{method.Parameters[0]}[i] = EqualityComparer<{elementType}>.Default.Equals({(LiteralString) GetDataName(method.ContainingType)}[i], {method.Parameters[1]}) ? {method.Parameters[2]} : {(LiteralString) GetDataName(method.ContainingType)}[i];");
 								}
 							}
 						}

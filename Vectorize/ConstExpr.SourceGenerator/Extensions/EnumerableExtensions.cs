@@ -244,4 +244,23 @@ public static class EnumerableExtensions
 
 		return counts;
 	}
+
+	public static IEnumerable<KeyValuePair<T, int>> CountBy<T>(this IEnumerable<T> items)
+	{
+		var counts = new Dictionary<T, int>(20);
+
+		foreach (var item in items)
+		{
+			if (counts.TryGetValue(item, out var currentCount))
+			{
+				counts[item] = currentCount + 1;
+			}
+			else
+			{
+				counts.Add(item, 1);
+			}
+		}
+
+		return counts;
+	}
 }

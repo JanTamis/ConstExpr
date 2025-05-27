@@ -108,8 +108,13 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		AppendMethod<T>(builder, methodSymbol, items, isRepeating, () => { }, vectorAction, action);
 	}
 
-	protected void AppendMethod<T>(IndentedStringBuilder builder, IMethodSymbol methodSymbol, ReadOnlySpan<T> items, bool isRepeating, Action check, Action<VectorTypes, IList<string>, int> vectorAction, Action<bool> action)
+	protected void AppendMethod<T>(IndentedStringBuilder? builder, IMethodSymbol methodSymbol, ReadOnlySpan<T> items, bool isRepeating, Action check, Action<VectorTypes, IList<string>, int> vectorAction, Action<bool> action)
 	{
+		if (builder is null)
+		{
+			return;
+		}
+		
 		using (AppendMethod(builder, methodSymbol))
 		{
 			var isPerformance = IsPerformance(generationLevel, items.Length);
@@ -153,16 +158,26 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		}
 	}
 
-	protected void AppendMethod<T>(IndentedStringBuilder builder, IMethodSymbol methodSymbol, ReadOnlySpan<T> items, Action<bool> action)
+	protected void AppendMethod<T>(IndentedStringBuilder? builder, IMethodSymbol methodSymbol, ReadOnlySpan<T> items, Action<bool> action)
 	{
+		if (builder is null)
+		{
+			return;
+		}
+		
 		using (AppendMethod(builder, methodSymbol))
 		{
 			action(IsPerformance(generationLevel, items.Length));
 		}
 	}
 
-	protected void AppendMethod(IndentedStringBuilder builder, IMethodSymbol methodSymbol, Action action)
+	protected void AppendMethod(IndentedStringBuilder? builder, IMethodSymbol methodSymbol, Action action)
 	{
+		if (builder is null)
+		{
+			return;
+		}
+		
 		using (AppendMethod(builder, methodSymbol))
 		{
 			action();

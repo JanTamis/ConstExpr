@@ -205,7 +205,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 		}
 	}
 
-	public bool AppendIndexOf<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
+	public bool AppendIndexOf<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder? builder)
 	{
 		switch (method)
 		{
@@ -317,6 +317,16 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 			case { Name: "Contains", ReturnType.SpecialType: SpecialType.System_Boolean }
 				when method.Parameters.AsSpan().EqualsTypes(elementType):
 				{
+					if (method.ContainingType.HasMember<IMethodSymbol>("IndexOf", m => AppendIndexOf(m, items, null)))
+					{
+						AppendMethod(builder, method, () =>
+						{
+							builder.AppendLine($"return IndexOf({method.Parameters[0]}) >= 0;");
+						});
+						
+						return true;
+					}
+					
 					items = items
 						.Distinct()
 						.ToImmutableArray();
@@ -330,7 +340,8 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 						{
 							var checks = items
 								.Skip(vectors.Count * size)
-								.Select(s => $"{method.Parameters[0].Name} == {s}");
+								.ToList();
+								// .Select(s => $"{method.Parameters[0].Name} == {s}");
 
 							if (compilation.HasMember<IMethodSymbol>(compilation.GetVectorType(vectorType), "AnyWhereAllBitsSet"))
 							{
@@ -340,8 +351,10 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 							{
 								builder.AppendLine(CreatePadding("|", "return (", vectors.Select(s => $"{vectorType}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false) + $") != {vectorType}<{compilation.GetMinimalString(elementType)}>.Zero");
 							}
+							
+							builder.AppendLine($"     || {method.Parameters[0]} is {(LiteralString) String.Join(" or ", checks.Select(SyntaxHelpers.CreateLiteral))};");
 
-							builder.AppendLine(CreatePadding("|", "      |", checks));
+							// builder.AppendLine(CreatePadding("|", "      |", checks));
 						}
 						else
 						{

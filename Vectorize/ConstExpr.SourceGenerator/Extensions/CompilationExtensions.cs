@@ -755,9 +755,9 @@ public static class CompilationExtensions
 			return true;
 		}
 		
-		if (otherType is ITypeParameterSymbol typeParameter)
+		if (type is ITypeParameterSymbol typeParameter)
 		{
-			return typeParameter.ConstraintTypes.All(type.EqualsType);
+			return typeParameter.ConstraintTypes.All(a => a.EqualsType(otherType));
 		}
 
 		return type.AllInterfaces.Any(a => SymbolEqualityComparer.Default.Equals(a, otherType));

@@ -26,7 +26,7 @@ public interface ICustomCollection<T>
 	
 	int Count(int element);
 	
-	IEnumerable<KeyValuePair<TKey, TCount>> CountBy<TKey, TCount>(Func<T, TKey> keySelector) where TCount: INumber<TCount>;
+	IEnumerable<KeyValuePair<int, TCount>> CountBy<TCount>() where TCount : INumber<TCount>;
 
 	// int SequenceCompareTo(ReadOnlySpan<T> other);
 	
@@ -46,7 +46,5 @@ public interface ICharCollection
 	
 	IEnumerable<string> EnumerateLines();
 
-	
-	
 	bool IsWhiteSpace();
 }
