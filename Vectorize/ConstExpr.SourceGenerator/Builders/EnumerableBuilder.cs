@@ -260,21 +260,50 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 	{
 		switch (method)
 		{
-			case { Name: nameof(Enumerable.Count), Parameters.Length: 0, ReturnType.SpecialType: SpecialType.System_Int32 }:
+			case { Name: nameof(Enumerable.Count), Parameters.Length: 0 }
+				when method.ReturnType.EqualsType(compilation.GetTypeByMetadataName("System.Numerics.INumberBase`1")?.Construct(method.ReturnType)):
 			{
 				AppendMethod(builder, method, () =>
 				{
-					builder.AppendLine($"return {items.Length};");
+					if (method.ReturnType is ITypeParameterSymbol or INamedTypeSymbol { IsGenericType: true })
+					{
+						builder.AppendLine($"return {method.ReturnType}.CreateChecked({items.Length});");
+					}
+					else
+					{
+						builder.AppendLine($"return {items.Length.ToSpecialType(method.ReturnType.SpecialType)};");
+					}
 				});
 
 				return true;
 			}
-			case { Name: nameof(Enumerable.Count), ReturnType.SpecialType: SpecialType.System_Int32 }
-				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, compilation.CreateBoolean())):
+			case { Name: nameof(Enumerable.Count) }
+				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, compilation.CreateBoolean()))
+				     && method.ReturnType.EqualsType(compilation.GetTypeByMetadataName("System.Numerics.INumberBase`1")?.Construct(method.ReturnType)):
 			{
 				AppendMethod(builder, method, () =>
 				{
-					builder.AppendLine(CreateReturnPadding("+", items.Select(s => $"{method.Parameters[0]}({s}) ? 1 : 0")));
+					if (method.ReturnType is ITypeParameterSymbol or INamedTypeSymbol { IsGenericType: true })
+					{
+						builder.AppendLine($"var result = {method.ReturnType}.Zero;");
+					}
+					else
+					{
+						builder.AppendLine($"var result = {0.ToSpecialType(method.ReturnType.SpecialType)};");
+					}
+
+					builder.AppendLine();
+
+					using (builder.AppendBlock($"foreach (var item in {GetDataName(method.ContainingType)})"))
+					{
+						using (builder.AppendBlock($"if ({method.Parameters[0]}(item))"))
+						{
+							builder.AppendLine("result++;");
+						}
+					}
+
+					builder.AppendLine();
+					builder.AppendLine("return result;");
 				});
 
 				return true;
@@ -1280,7 +1309,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					builder.AppendLine();
 
 					// GetDataName(method.ContainingType) should resolve to the name of the const array field
-					using (builder.AppendBlock($"foreach (var item in {(LiteralString) GetDataName(method.ContainingType)})"))
+					using (builder.AppendBlock($"foreach (var item in {GetDataName(method.ContainingType)})"))
 					{
 						builder.AppendLine($"var key = {method.Parameters[0]}(item);");
 						builder.AppendLine();
@@ -1362,5 +1391,73 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			default:
 				return false;
 		}
+	}
+
+	public bool AppendZip<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
+	{
+		var types = method.Parameters
+			.WhereSelect<IParameterSymbol, ITypeSymbol?>((x, out result) => compilation.GetIEnumerableType(x.Type, out result))
+			.Prepend(elementType)
+			.ToImmutableArray();
+
+		switch (method)
+		{
+			case { Name: "Zip", Parameters.Length: > 0 }
+				when method.ReturnType.EqualsType(compilation.CreateIEnumerable(compilation.CreateTupleTypeSymbol(types)))
+				     && method.Parameters.Length == types.Length - 1:
+			{
+				AppendMethod(builder, method, () =>
+				{
+					foreach (var parameter in method.Parameters)
+					{
+						builder.AppendLine($"using var {parameter}Enumerator = {parameter}.GetEnumerator();");
+					}
+
+					builder.AppendLine();
+
+					using (builder.AppendBlock($"for (var i = 0; i < {GetDataName(method.ContainingType)}.Length && {(LiteralString) String.Join(" && ", method.Parameters.Select(p => $"{p.Name}Enumerator.MoveNext()"))}; i++)"))
+					{
+						builder.AppendLine($"yield return ({GetDataName(method.ContainingType)}[i], {(LiteralString) String.Join(", ", method.Parameters.Select(p => $"{p.Name}Enumerator.Current"))});");
+					}
+				});
+
+
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	public bool AppendChunk<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
+	{
+		switch (method)
+		{
+			case { Name: "Chunk", }
+				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateInt32())
+				     && SymbolEqualityComparer.Default.Equals(method.ReturnType, compilation.CreateIEnumerable(compilation.CreateArrayTypeSymbol(elementType))):
+			{
+				AppendMethod(builder, method, () =>
+				{
+					if (items.Length == 0)
+					{
+						builder.AppendLine("yield break;");
+					}
+					else
+					{
+						var dataName = GetDataName(method.ContainingType);
+						
+						using (builder.AppendBlock($"for (var i = 0; i < {dataName}.Length; i += {method.Parameters[0]})"))
+						{
+							builder.AppendLine($"yield return {dataName}.Slice(i, Math.Min({method.Parameters[0]}, {dataName}.Length - i)).ToArray();");
+						}
+					}
+				});
+
+				return true;
+			}
+		}
+		
+		return false;
 	}
 }

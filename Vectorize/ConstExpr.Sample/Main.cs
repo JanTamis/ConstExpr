@@ -2,6 +2,7 @@ using BenchmarkDotNet.Running;
 using ConstExpr.SourceGenerator.Sample;
 using ConstExpr.SourceGenerator.Sample.Tests;
 using System;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;

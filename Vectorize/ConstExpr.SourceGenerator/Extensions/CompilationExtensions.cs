@@ -84,6 +84,24 @@ public static class CompilationExtensions
 
 		return SymbolEqualityComparer.Default.Equals(symbol, compilation.GetSpecialType(specialType));
 	}
+	
+	public static bool IsLiteralType(this ITypeSymbol typeSymbol)
+	{
+		return typeSymbol.SpecialType is SpecialType.System_Boolean
+			or SpecialType.System_Byte
+			or SpecialType.System_SByte
+			or SpecialType.System_Int16
+			or SpecialType.System_UInt16
+			or SpecialType.System_Int32
+			or SpecialType.System_UInt32
+			or SpecialType.System_Int64
+			or SpecialType.System_UInt64
+			or SpecialType.System_Decimal
+			or SpecialType.System_Single
+			or SpecialType.System_Double
+			or SpecialType.System_Char
+			or SpecialType.System_String;
+	}
 
 	public static bool IsSpanLikeType(this Compilation compilation, ITypeSymbol typeSymbol, ITypeSymbol elementType)
 	{
@@ -107,6 +125,13 @@ public static class CompilationExtensions
 					 && namedTypeSymbol.ContainingNamespace.ToString() == "System"
 					 && namedTypeSymbol.Name is "Span" or "ReadOnlySpan"
 					 && SymbolEqualityComparer.Default.Equals(namedTypeSymbol.TypeArguments[0], elementType);
+	}
+	
+	public static bool IsEnumerableType(this Compilation compilation, ITypeSymbol typeSymbol, ITypeSymbol elementType)
+	{
+		return compilation.IsSpanLikeType(typeSymbol, elementType)
+			|| typeSymbol.EqualsType(compilation.CreateIEnumerable(elementType))
+			|| typeSymbol.EqualsType(compilation.CreateArrayTypeSymbol(elementType));
 	}
 
 	public static ITypeSymbol GetUnsignedType(this Compilation compilation, ITypeSymbol typeSymbol)
@@ -206,15 +231,16 @@ public static class CompilationExtensions
 		return typeSymbol.GetMembers(name).OfType<TSymbol>().Any(predicate);
 	}
 
-	public static bool HasMember<TSymbol>(this Compilation compilation, ITypeSymbol typeSymbol, string name)
+	public static bool HasMember<TSymbol>(this Compilation compilation, ITypeSymbol? typeSymbol, string name)
 		where TSymbol : ISymbol
 	{
-		if (typeSymbol is ITypeParameterSymbol parameter)
+		return typeSymbol switch
 		{
-			return parameter.ConstraintTypes.Any(a => compilation.HasMember<TSymbol>(a, name));
-		}
+			null => false,
+			ITypeParameterSymbol parameter => parameter.ConstraintTypes.Any(a => compilation.HasMember<TSymbol>(a, name)),
+			_ => typeSymbol.GetMembers(name).OfType<TSymbol>().Any()
+		};
 
-		return typeSymbol.GetMembers(name).OfType<TSymbol>().Any();
 	}
 
 	public static bool HasMember<TSymbol>(this Compilation compilation, Type type, string name)
@@ -444,10 +470,23 @@ public static class CompilationExtensions
 		{
 			return $"IEnumerable<{String.Join(", ", namedTypeSymbol.TypeArguments.Select(s => GetMinimalString(compilation, s)))}>";
 		}
-
-		if (symbol is INamedTypeSymbol { Arity: > 0 } namedSymbol)
+		
+		switch (symbol)
 		{
-			return $"{namedSymbol.Name}<{String.Join(", ", namedSymbol.TypeArguments.Select(s => GetMinimalString(compilation, s)))}>";
+			case IArrayTypeSymbol arrayTypeSymbol:
+			{
+				var elementType = GetMinimalString(compilation, arrayTypeSymbol.ElementType);
+			
+				return $"{elementType}[{new string(',', arrayTypeSymbol.Rank - 1)}]";
+			}
+			case INamedTypeSymbol { Arity: > 0, IsTupleType: true } namedSymbol:
+			{
+				return $"({namedSymbol.TypeArguments.AsSpan().Join(", ", compilation.GetMinimalString)})";
+			}
+			case INamedTypeSymbol { Arity: > 0 } namedSymbol:
+			{
+				return $"{namedSymbol.Name}<{String.Join(", ", namedSymbol.TypeArguments.Select(s => GetMinimalString(compilation, s)))}>";
+			}
 		}
 
 		var node = SyntaxHelpers.GetSyntaxNode(symbol);
@@ -808,6 +847,33 @@ public static class CompilationExtensions
 			.First();
 
 		return best.Type;
+	}
+	
+	public static bool GetIEnumerableType(this Compilation compilation, ITypeSymbol typeSymbol, out ITypeSymbol? elementType)
+	{
+		if (typeSymbol is INamedTypeSymbol { IsGenericType: true } namedTypeSymbol)
+		{
+			if (SymbolEqualityComparer.Default.Equals(namedTypeSymbol, compilation.CreateIEnumerable(namedTypeSymbol.TypeArguments[0])))
+			{
+				elementType = namedTypeSymbol.TypeArguments[0];
+				return true;
+			}
+		}
+
+		foreach (var @interface in typeSymbol.AllInterfaces)
+		{
+			if (@interface.IsGenericType && @interface.TypeArguments.Length == 1)
+			{
+				if (SymbolEqualityComparer.Default.Equals(@interface.OriginalDefinition, compilation.CreateIEnumerable(@interface.TypeArguments[0])))
+				{
+					elementType = @interface.TypeArguments[0];
+					return true;
+				}
+			}
+		}
+
+		elementType = null;
+		return false;
 	}
 }
 

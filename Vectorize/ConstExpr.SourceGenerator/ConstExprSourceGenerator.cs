@@ -107,9 +107,9 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 		using var loader = MetadataLoader.GetLoader(compilation);
 
-		foreach (var u in usings)
+		foreach (var u in usings.Where(w => !String.IsNullOrWhiteSpace(w)))
 		{
-			code.AppendLine(u);
+			code.AppendLine($"using {(LiteralString) u};");
 		}
 
 		code.AppendLine();
@@ -273,6 +273,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 												 || interfaceBuilder.AppendCopyTo(method, items, code)
 												 || interfaceBuilder.AppendContains(method, items, code)
 												 || interfaceBuilder.AppendCopyTo(method, items, code)
+												 || interfaceBuilder.AppendOverlaps(method, items, code)
 												 || enumerableBuilder.AppendAll(method, items, code)
 												 || enumerableBuilder.AppendAggregate(method, items, code)
 												 || enumerableBuilder.AppendAny(method, items, code)
@@ -303,6 +304,8 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 												 || enumerableBuilder.AppendSkip(method, items, code)
 												 || enumerableBuilder.AppendTake(method, items, code)
 												 || enumerableBuilder.AppendCountBy(method, items, code)
+												 || enumerableBuilder.AppendZip(method, items, code)
+												 || enumerableBuilder.AppendChunk(method, items, code)
 												 || memoryExtensionsBuilder.AppendBinarySearch(method, items, code)
 												 // || memoryExtensionsBuilder.AppendCommonPrefixLength(method, items, code)
 												 // || memoryExtensionsBuilder.AppendContainsAny(method, items, code)
@@ -425,10 +428,11 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			{
 				var timer = Stopwatch.StartNew();
 				var exceptions = new ConcurrentDictionary<SyntaxNode, Exception>(SyntaxNodeComparer<SyntaxNode>.Instance);
-				var usings = new HashSet<string>
+				var usings = new HashSet<string?>
 				{
-					"using System.Runtime.CompilerServices;",
-					"using System;",
+					"System.Runtime.CompilerServices",
+					"System",
+					"System.Linq",
 				};
 
 				var visitor = new ConstExprOperationVisitor(compilation, loader, (operation, ex) =>
@@ -457,6 +461,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			catch (Exception e)
 			{
 				Logger.Error(e, $"Error processing {invocation}: {e.Message}");
+
 				return null;
 			}
 		}
@@ -528,38 +533,38 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			.FirstOrDefault();
 	}
 
-	private static void GetUsings(IMethodSymbol methodSymbol, bool isPerformance, HashSet<string> usings)
+	private static void GetUsings(IMethodSymbol methodSymbol, bool isPerformance, HashSet<string?> usings)
 	{
 		if (isPerformance)
 		{
-			usings.Add("using System.Numerics;");
-			usings.Add("using System.Collections;");
-			usings.Add("using System.Runtime.InteropServices;");
+			usings.Add("System.Numerics");
+			usings.Add("System.Collections");
+			usings.Add("System.Runtime.InteropServices");
 		}
 
-		usings.Add($"using {methodSymbol.ReturnType.ContainingNamespace};");
+		usings.Add(methodSymbol.ReturnType.ContainingNamespace?.ToString());
 
 		if (methodSymbol.ReturnType is INamedTypeSymbol namedTypeSymbol)
 		{
 			foreach (var type in namedTypeSymbol.TypeArguments)
 			{
-				usings.Add($"using {type.ContainingNamespace};");
+				usings.Add(type.ContainingNamespace?.ToString());
 			}
 		}
 
 		foreach (var p in methodSymbol.Parameters)
 		{
-			usings.Add($"using {p.Type.ContainingNamespace};");
+			usings.Add(p.Type.ContainingNamespace?.ToString());
 		}
 
 		foreach (var type in methodSymbol.TypeParameters.SelectMany(s => s.ConstraintTypes))
 		{
-			usings.Add($"using {type.ContainingNamespace};");
+			usings.Add(type.ContainingNamespace?.ToString());
 		}
 
 		if (!IsIEnumerable(methodSymbol.ReturnType) && methodSymbol.ReturnType.TypeKind == TypeKind.Interface)
 		{
-			usings.Add("using System.Runtime.Intrinsics;");
+			usings.Add("System.Runtime.Intrinsics");
 
 			foreach (var member in methodSymbol.ReturnType.GetMembers())
 			{
@@ -568,7 +573,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 					GetUsings(method, false, usings);
 				}
 
-				usings.Add($"using {member.ContainingNamespace};");
+				usings.Add(member.ContainingNamespace?.ToString());
 			}
 		}
 	}

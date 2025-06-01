@@ -11,30 +11,20 @@ namespace ConstExpr.SourceGenerator.Sample;
 [ConstExpr(Level = GenerationLevel.Performance)]
 public static class Test
 {
-	static ReadOnlySpan<int> IReadOnlyList_21149831_Data => [ 0, 1, 1, 1, 2, 3, 4, 4, 4, 4 ];
-
-	public static IEnumerator<int> GetEnumerator()
-	{
-		for (var i = 0; i < IReadOnlyList_21149831_Data.Length; i++)
-		{
-			yield return IReadOnlyList_21149831_Data[i];
-		}
-	}
-	
-	public static IEnumerable<float> IsOdd(params IEnumerable<float> data)
+	public static IEnumerable<double> IsOdd(params IEnumerable<double> data)
 	{
 		return data.Where(w => w % 2 != 0);
 	}
 
-	public static float Average(params IReadOnlyList<float> data)
+	public static double Average(params IReadOnlyList<double> data)
 	{
 		return IsOdd(data).Average();
 	}
 
-	public static float StdDev(params IReadOnlyList<float> data)
+	public static double StdDev(params IReadOnlyList<double> data)
 	{
-		var sum = 0f;
-		var sumOfSquares = 0f;
+		var sum = 0d;
+		var sumOfSquares = 0d;
 
 		foreach (var item in data)
 		{
@@ -45,7 +35,7 @@ public static class Test
 		var mean = sum / data.Count;
 		var variance = sumOfSquares / data.Count - mean * mean;
 
-		return MathF.Sqrt(variance);
+		return Math.Sqrt(variance);
 	}
 
 	public static int StringLength(string value, Encoding encoding)
@@ -106,17 +96,17 @@ public static class Test
 		return items as ICustomCollection<int>;
 	}
 
-	public static (float h, float s, float l) RgbToHsl(byte r, byte g, byte b)
+	public static (double h, double s, double l) RgbToHsl(byte r, byte g, byte b)
 	{
-		var rn = r / 255.0f;
-		var gn = g / 255.0f;
-		var bn = b / 255.0f;
+		var rn = r / 255.0;
+		var gn = g / 255.0;
+		var bn = b / 255.0;
 
 		var max = Math.Max(rn, Math.Max(gn, bn));
 		var min = Math.Min(rn, Math.Min(gn, bn));
 		var delta = max - min;
 
-		var h = 0f;
+		var h = 0d;
 
 		if (delta != 0)
 		{

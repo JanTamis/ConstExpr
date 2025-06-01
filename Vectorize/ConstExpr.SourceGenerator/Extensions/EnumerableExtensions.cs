@@ -263,4 +263,39 @@ public static class EnumerableExtensions
 
 		return counts;
 	}
+	
+	public static IEnumerable<IEnumerable<T>> Chunk<T>(this IEnumerable<T> source, int count)
+	{
+		if (count <= 0)
+		{
+			throw new ArgumentOutOfRangeException(nameof(count), "Chunk size must be greater than zero.");
+		}
+
+		using var enumerator = source.GetEnumerator();
+		
+		while (enumerator.MoveNext())
+		{
+			var chunk = new List<T>(count) { enumerator.Current };
+
+			for (var i = 1; i < count && enumerator.MoveNext(); i++)
+			{
+				chunk.Add(enumerator.Current);
+			}
+
+			yield return chunk;
+		}
+	}
+
+	public delegate bool Selector<in T, TResult>(T value, out TResult result);
+	
+	public static IEnumerable<TResult> WhereSelect<T, TResult>(this IEnumerable<T> source, Selector<T, TResult> selector)
+	{
+		foreach (var item in source)
+		{
+			if (selector(item, out var result))
+			{
+				yield return result;
+			}
+		}
+	}
 }

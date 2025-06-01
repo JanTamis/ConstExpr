@@ -9,7 +9,7 @@ public static class SpanExtensions
 	{
 		for (var i = 0; i < span.Length; i++)
 		{
-			if (span[i] is not 0 and not 0L and not 0U and not 0UL and not 0f or 0d and not (byte)0 and not (short)0 and not (sbyte)0 and not (ushort)0)
+			if (span[i] is not 0 and not 0L and not 0U and not 0UL and not 0f or 0d and not 0 and not (short)0 and not (sbyte)0 and not (ushort)0)
 			{
 				return false;
 			}
@@ -22,7 +22,7 @@ public static class SpanExtensions
 	{
 		for (var i = 0; i < span.Length; i++)
 		{
-			if (span[i] is not 1 and not 1L and not 1U and not 1UL and not 1f or 1d and not (byte)1 and not (short)1 and not (sbyte)1 and not (ushort)1)
+			if (span[i] is not 1 and not 1L and not 1U and not 1UL and not 1f or 1d and not 1 and not (short)1 and not (sbyte)1 and not (ushort)1)
 			{
 				return false;
 			}

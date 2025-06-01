@@ -20,7 +20,7 @@ public static class ObjectExtensions
 			SpecialType.System_Single => Convert.ToSingle(value),
 			SpecialType.System_Double => Convert.ToDouble(value),
 			SpecialType.System_Decimal => Convert.ToDecimal(value),
-			_ => value,
+			_ => null,
 		};
 	}
 

@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 
 namespace ConstExpr.SourceGenerator.Builders;
@@ -251,6 +252,11 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 
 	public bool AppendContainsAnyInRange<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	{
+		if (!elementType.EqualsType(compilation.GetTypeByMetadataName("System.IComparable`1")?.Construct(elementType)))
+		{
+			return false;
+		}
+		
 		switch (method)
 		{
 			case { Name: "ContainsAnyInRange", ReturnType.SpecialType: SpecialType.System_Boolean }
@@ -263,7 +269,8 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 
 					AppendMethod(builder, method, items.AsSpan(), false, (vectorType, vectors, vectorSize) =>
 					{
-						var checks = Enumerable.Range(0, vectors.Count).Select(s => $"{vectorType}.GreaterThanOrEqual(vec{s}, {method.Parameters[0].Name}Vector) & {vectorType}.LessThanOrEqual(vec{s}, {method.Parameters[1].Name}Vector)");
+						var checks = Enumerable.Range(0, vectors.Count)
+							.Select(s => $"{vectorType}.GreaterThanOrEqual(vec{s}, {method.Parameters[0].Name}Vector) & {vectorType}.LessThanOrEqual(vec{s}, {method.Parameters[1].Name}Vector)");
 
 						var remainingChecks = items.Skip(vectors.Count * vectorSize)
 							.Select(s => $"{s} >= {method.Parameters[0].Name} && {s} <= {method.Parameters[1].Name}")
@@ -305,16 +312,24 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 						}
 					}, _ =>
 					{
-						using (builder.AppendBlock($"foreach (var item in {(LiteralString) GetDataName(method.ContainingType)})"))
+						if (compilation.HasMember<IMethodSymbol>(compilation.GetTypeByMetadataName("System.MemoryExtensions"), "ContainsAnyInRange"))
 						{
-							using (builder.AppendBlock($"if (item >= {method.Parameters[0]} && item <= {method.Parameters[1]})"))
-							{
-								builder.AppendLine("return true;");
-							}
+							builder.AppendLine($"return {GetDataName(method.ContainingType)}");
+							builder.AppendLine($"\t.ContainsAnyInRange({method.Parameters});");
 						}
+						else
+						{
+							using (builder.AppendBlock($"foreach (var item in {GetDataName(method.ContainingType)})"))
+							{
+								using (builder.AppendBlock($"if (item >= {method.Parameters[0]} && item <= {method.Parameters[1]})"))
+								{
+									builder.AppendLine("return true;");
+								}
+							}
 
-						builder.AppendLine();
-						builder.AppendLine("return false;");
+							builder.AppendLine();
+							builder.AppendLine("return false;");
+						}
 						
 						// var checks = items
 						// 	.Select(s => $"{s} >= {method.Parameters[0].Name} && {s} <= {method.Parameters[1].Name}");
@@ -392,7 +407,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 						}
 						else if (compilation.HasMember<IMethodSymbol>(compilation.GetTypeByMetadataName("System.MemoryExtensions"), "Count"))
 						{
-							builder.AppendLine($"return {(LiteralString)GetDataName(method.ContainingType)}");
+							builder.AppendLine($"return {GetDataName(method.ContainingType)}");
 							builder.AppendLine($"\t.Count({method.Parameters[0]});");
 						}
 						else
@@ -400,7 +415,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 							builder.AppendLine("var result = 0;");
 							builder.AppendLine();
 
-							using (builder.AppendBlock($"foreach (var item in {(LiteralString)GetDataName(method.ContainingType)})"))
+							using (builder.AppendBlock($"foreach (var item in {GetDataName(method.ContainingType)})"))
 							{
 								using (builder.AppendBlock($"if (item == {method.Parameters[0]})"))
 								{
@@ -453,7 +468,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 						}
 						else
 						{
-							builder.AppendLine($"return {(LiteralString)GetDataName(method.ContainingType)}");
+							builder.AppendLine($"return {GetDataName(method.ContainingType)}");
 							builder.AppendLine($"\t.EndsWith({method.Parameters});");
 						}
 					});
@@ -1063,24 +1078,24 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 						builder.AppendLine("return;");
 					}, isPerformance =>
 					{
-						if (isPerformance)
+						if (compilation.HasMember<IMethodSymbol>(compilation.GetTypeByMetadataName("System.MemoryExtensions"), "Replace"))
+						{
+							builder.AppendLine($"{GetDataName(method.ContainingType)}");
+							builder.AppendLine($"\t.Replace({method.Parameters});");
+						}
+						else
 						{
 							using (builder.AppendBlock($"for (var i = 0; i < {method.Parameters[0]}.Length; i++)"))
 							{
 								if (elementType.SpecialType != SpecialType.None)
 								{
-									builder.AppendLine($"{method.Parameters[0]}[i] = {(LiteralString) GetDataName(method.ContainingType)}[i] == {method.Parameters[1]} ? {method.Parameters[2]} : {(LiteralString) GetDataName(method.ContainingType)}[i];");
+									builder.AppendLine($"{method.Parameters[0]}[i] = {GetDataName(method.ContainingType)}[i] == {method.Parameters[1]} ? {method.Parameters[2]} : {GetDataName(method.ContainingType)}[i];");
 								}
 								else
 								{
-									builder.AppendLine($"{method.Parameters[0]}[i] = EqualityComparer<{elementType}>.Default.Equals({(LiteralString) GetDataName(method.ContainingType)}[i], {method.Parameters[1]}) ? {method.Parameters[2]} : {(LiteralString) GetDataName(method.ContainingType)}[i];");
+									builder.AppendLine($"{method.Parameters[0]}[i] = EqualityComparer<{elementType}>.Default.Equals({GetDataName(method.ContainingType)}[i], {method.Parameters[1]}) ? {method.Parameters[2]} : {GetDataName(method.ContainingType)}[i];");
 								}
 							}
-						}
-						else
-						{
-							builder.AppendLine($"{(LiteralString)GetDataName(method.ContainingType)}");
-							builder.AppendLine($"\t.Replace({method.Parameters});");
 						}
 					});
 

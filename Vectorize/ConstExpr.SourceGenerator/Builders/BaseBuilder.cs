@@ -295,9 +295,9 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		return "Count";
 	}
 
-	protected string GetDataName(ISymbol type)
+	protected LiteralString GetDataName(ISymbol type)
 	{
-		return dataName; // $"{type.Name}_{hashCode}_Data";
+		return (LiteralString) dataName; // $"{type.Name}_{hashCode}_Data";
 	}
 
 	public static bool IsPerformance(GenerationLevel level, int count)

@@ -2,12 +2,17 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Text;
-using Microsoft.Diagnostics.Symbols;
 
 namespace ConstExpr.SourceGenerator.Sample;
 
 public interface ICustomCollection<T>
 {
+	IEnumerable<T[]> Chunk(int size);
+	
+	bool Overlaps(IEnumerable<T> other);
+	
+	IEnumerable<(T, int)> Zip(IEnumerable<int> indices);
+	
 	// T Aggregate(Func<T, T, T> selector);
 	//
 	void CopyTo(Span<T> data);
@@ -20,11 +25,13 @@ public interface ICustomCollection<T>
 	
 	bool ContainsAnyInRange(T min, T max);
 
-	int IndexOf(T item);
+	// int IndexOf(T item);
 
 	void Replace(Span<T> destination, T oldValue, T newValue);
 	
-	int Count(int element);
+	// int Count(int element);
+
+	TNumber Count<TNumber>(Func<T, bool> selector) where TNumber : INumber<TNumber>;
 	
 	IEnumerable<KeyValuePair<int, TCount>> CountBy<TCount>() where TCount : INumber<TCount>;
 
