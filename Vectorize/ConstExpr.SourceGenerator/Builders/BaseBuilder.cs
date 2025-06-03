@@ -505,7 +505,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 				}
 				else
 				{
-					using (builder.AppendBlock($"else"))
+					using (builder.AppendBlock("else"))
 					{
 						builder.AppendLine($"if ({checkVarName} > 0)");
 					}

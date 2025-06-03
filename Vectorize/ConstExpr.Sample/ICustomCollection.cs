@@ -7,7 +7,7 @@ namespace ConstExpr.SourceGenerator.Sample;
 
 public interface ICustomCollection<T>
 {
-	IEnumerable<T[]> Chunk(int size);
+	IEnumerable<T> DistinctBy(Func<T, T> keySelector);
 	
 	bool Overlaps(IEnumerable<T> other);
 	

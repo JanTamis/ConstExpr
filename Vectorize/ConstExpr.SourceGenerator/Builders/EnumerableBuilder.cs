@@ -245,7 +245,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 				{
 					foreach (var item in items)
 					{
-						builder.AppendLine($"yield return ({method.TypeParameters[0]})Convert.ChangeType({item}, typeof({method.TypeParameters[0]}));");
+						builder.AppendLine($"yield return ({method.TypeParameters[0]}){item};");
 					}
 				});
 
@@ -345,14 +345,59 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 	{
 		switch (method)
 		{
-			case { Name: nameof(Enumerable.Distinct) }
-				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, compilation.CreateBoolean())):
+			case { Name: nameof(Enumerable.Distinct), Parameters.Length: 0 }
+				when SymbolEqualityComparer.Default.Equals(method.ReturnType, compilation.CreateIEnumerable(elementType)):
 			{
 				AppendMethod(builder, method, () =>
 				{
 					foreach (var item in items.Distinct())
 					{
 						builder.AppendLine($"yield return {item};");
+					}
+				});
+
+				return true;
+			}
+			default:
+				return false;
+		}
+	}
+
+	public bool AppendDistinctBy<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
+	{
+		switch (method)
+		{
+			case { Name: "DistinctBy" }
+				when SymbolEqualityComparer.Default.Equals(method.ReturnType, compilation.CreateIEnumerable(elementType))
+				     && compilation.TryGetFuncType(method.Parameters[0].Type, out var funcParameter, out var funcReturnType)
+				     && funcParameter.EqualsType(elementType)
+				     && (method.Parameters.AsSpan().EqualsTypes(method.Parameters[0].Type, compilation.CreateEqualityComparer(funcReturnType))
+				         || method.Parameters.Length == 1):
+			{
+				AppendMethod(builder, method, () =>
+				{
+					if (method.Parameters.Length == 1)
+					{
+						builder.AppendLine($"var seen = new HashSet<{funcReturnType}>({items.Distinct().Count()});");
+					}
+					else
+					{
+						builder.AppendLine($"var seen = new HashSet<{funcReturnType}>({method.Parameters[1]});");
+					}
+
+					builder.AppendLine();
+
+					var dataName = GetDataName(method.ContainingType);
+
+					using (builder.AppendBlock($"for (var i = 0; i < {dataName}.Length; i++)"))
+					{
+						builder.AppendLine($"var item = {dataName}[i];");
+						builder.AppendLine();
+						
+						using (builder.AppendBlock($"if (seen.Add(item))"))
+						{
+							builder.AppendLine($"yield return item;");
+						}
 					}
 				});
 
@@ -1396,7 +1441,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 	public bool AppendZip<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	{
 		var types = method.Parameters
-			.WhereSelect<IParameterSymbol, ITypeSymbol?>((x, out result) => compilation.GetIEnumerableType(x.Type, out result))
+			.WhereSelect<IParameterSymbol, ITypeSymbol?>((x, out result) => compilation.TryGetIEnumerableType(x.Type, out result))
 			.Prepend(elementType)
 			.ToImmutableArray();
 
@@ -1446,7 +1491,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					else
 					{
 						var dataName = GetDataName(method.ContainingType);
-						
+
 						using (builder.AppendBlock($"for (var i = 0; i < {dataName}.Length; i += {method.Parameters[0]})"))
 						{
 							builder.AppendLine($"yield return {dataName}.Slice(i, Math.Min({method.Parameters[0]}, {dataName}.Length - i)).ToArray();");
@@ -1457,7 +1502,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 				return true;
 			}
 		}
-		
+
 		return false;
 	}
 }

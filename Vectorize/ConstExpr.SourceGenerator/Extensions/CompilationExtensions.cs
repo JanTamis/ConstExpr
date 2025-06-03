@@ -6,6 +6,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -60,6 +61,12 @@ public static class CompilationExtensions
 	{
 		return compilation.GetTypeByMetadataName("System.Collections.Generic.KeyValuePair`2")
 			.Construct(keyType, valueType);
+	}
+
+	public static INamedTypeSymbol CreateEqualityComparer(this Compilation compilation, ITypeSymbol keyType)
+	{
+		return compilation.GetTypeByMetadataName("System.Collections.Generic.IEqualityComparer`1")
+			.Construct(keyType);
 	}
 
 	public static INamedTypeSymbol CreateSpecialType(this Compilation compilation, SpecialType specialType, params ITypeSymbol[] typeArguments)
@@ -849,7 +856,7 @@ public static class CompilationExtensions
 		return best.Type;
 	}
 	
-	public static bool GetIEnumerableType(this Compilation compilation, ITypeSymbol typeSymbol, out ITypeSymbol? elementType)
+	public static bool TryGetIEnumerableType(this Compilation compilation, ITypeSymbol typeSymbol, out ITypeSymbol? elementType)
 	{
 		if (typeSymbol is INamedTypeSymbol { IsGenericType: true } namedTypeSymbol)
 		{
@@ -873,6 +880,21 @@ public static class CompilationExtensions
 		}
 
 		elementType = null;
+		return false;
+	}
+
+	public static bool TryGetFuncType(this Compilation compilation, ITypeSymbol type, [NotNullWhen(true)] out ITypeSymbol? elementType, [NotNullWhen(true)] out ITypeSymbol? returnType)
+	{
+		if (type is INamedTypeSymbol { Arity: 2, IsGenericType: true } namedTypeSymbol 
+		    && SymbolEqualityComparer.Default.Equals(type, compilation.CreateFunc(namedTypeSymbol.TypeArguments[0], namedTypeSymbol.TypeArguments[1])))
+		{
+			elementType = namedTypeSymbol.TypeArguments[0];
+			returnType = namedTypeSymbol.TypeArguments[1];
+			return true;
+		}
+		
+		elementType = null;
+		returnType = null;
 		return false;
 	}
 }
