@@ -393,10 +393,10 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					{
 						builder.AppendLine($"var item = {dataName}[i];");
 						builder.AppendLine();
-						
-						using (builder.AppendBlock($"if (seen.Add(item))"))
+
+						using (builder.AppendBlock("if (seen.Add(item))"))
 						{
-							builder.AppendLine($"yield return item;");
+							builder.AppendLine("yield return item;");
 						}
 					}
 				});
@@ -1504,5 +1504,89 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 
 		return false;
+	}
+
+	public bool AppendExcept<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
+	{
+		switch (method)
+		{
+			case { Name: nameof(Enumerable.Except) }
+				when SymbolEqualityComparer.Default.Equals(method.ReturnType, compilation.CreateIEnumerable(elementType))
+				     && (method.Parameters.AsSpan().EqualsTypes(compilation.CreateIEnumerable(elementType))
+				         || method.Parameters.AsSpan().EqualsTypes(compilation.CreateIEnumerable(elementType), compilation.CreateEqualityComparer(elementType))):
+			{
+				AppendMethod(builder, method, () =>
+				{
+					if (items.Length == 0)
+					{
+						builder.AppendLine("yield break;");
+
+						return;
+					}
+
+					builder.AppendLine($"var set = new HashSet<{elementType}>({method.Parameters});");
+					builder.AppendLine();
+
+					using (builder.AppendBlock($"foreach (var item in {method.Parameters[0]})"))
+					{
+						using (builder.AppendBlock("if (set.Add(item))"))
+						{
+							builder.AppendLine("yield return item;");
+						}
+					}
+				});
+
+				return true;
+			}
+			default:
+				return false;
+		}
+	}
+
+	public bool AppendExceptBy<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
+	{
+		switch (method)
+		{
+			case { Name: "ExceptBy", Parameters.Length: 2 or 3 }
+				when SymbolEqualityComparer.Default.Equals(method.ReturnType, compilation.CreateIEnumerable(elementType))
+				     && method.Parameters[0].Type.EqualsType(compilation.CreateIEnumerable(elementType))
+				     && compilation.TryGetFuncType(method.Parameters[1].Type, out var typeFunc, out var keyType)
+				     && SymbolEqualityComparer.Default.Equals(typeFunc, elementType)
+						 && (method.Parameters.Length == 2 || method.Parameters[2].Type.EqualsType(compilation.CreateEqualityComparer(keyType))):
+			{
+				AppendMethod(builder, method, () =>
+				{
+					if (items.Length == 0)
+					{
+						builder.AppendLine("yield break;");
+
+						return;
+					}
+
+					if (method.Parameters.Length == 2)
+					{
+						builder.AppendLine($"var set = new HashSet<{keyType}>();");
+					}
+					else
+					{
+						builder.AppendLine($"var set = new HashSet<{keyType}>({method.Parameters[2]});");
+					}
+					
+					builder.AppendLine();
+
+					using (builder.AppendBlock($"foreach (var item in {method.Parameters[0]})"))
+					{
+						using (builder.AppendBlock($"if (set.Add({method.Parameters[1]}(item)))"))
+						{
+							builder.AppendLine("yield return item;");
+						}
+					}
+				});
+
+				return true;
+			}
+			default:
+				return false;
+		}
 	}
 }

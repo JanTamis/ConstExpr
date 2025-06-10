@@ -1015,6 +1015,11 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 
 	public bool AppendReplace<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	{
+		if (!elementType.EqualsType(compilation.GetTypeByMetadataName("System.IEquatable`1")?.Construct(elementType)))
+		{
+			return false;
+		}
+		
 		switch (method)
 		{
 			case { Name: "Replace", ReturnsVoid: true, Parameters.Length: 3 }
@@ -1039,10 +1044,10 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 					{
 						var index = vectors.Count * size;
 
+						builder.AppendLine($"ref var {method.Parameters[0]}Reference = ref MemoryMarshal.GetReference({method.Parameters[0]});");
+						builder.AppendLine();
 						builder.AppendLine($"var {method.Parameters[1]}Vector = {vectorType}.Create({method.Parameters[1]});");
 						builder.AppendLine($"var {method.Parameters[2]}Vector = {vectorType}.Create({method.Parameters[2]});");
-						builder.AppendLine();
-						builder.AppendLine($"ref var {method.Parameters[0]}Reference = ref MemoryMarshal.GetReference({method.Parameters[0]});");
 						builder.AppendLine();
 
 						for (var i = 0; i < vectors.Count; i++)

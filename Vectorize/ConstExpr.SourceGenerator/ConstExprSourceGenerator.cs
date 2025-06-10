@@ -192,7 +192,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 		code.AppendLine("}");
 
-		foreach (var invocation in group.DistintBy(d => d.Value))
+		foreach (var invocation in group.DistinctBy(d => d.Value))
 		{
 			var hashCode = Math.Abs(invocation.Value?.GetHashCode() ?? 0);
 
@@ -213,9 +213,9 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 				code.AppendLine();
 
-				using (code.AppendBlock((string)$"file sealed class {namedTypeSymbol.Name}_{hashCode} : {String.Join(", ", interfaces)}"))
+				using (code.AppendBlock($"file sealed class {(LiteralString)namedTypeSymbol.Name}_{hashCode} : {(LiteralString) String.Join(", ", interfaces)}"))
 				{
-					code.AppendLine((string)$"public static {namedTypeSymbol.Name}_{hashCode} Instance = new {namedTypeSymbol.Name}_{hashCode}();");
+					code.AppendLine($"public static {(LiteralString) namedTypeSymbol.Name}_{hashCode} Instance = new {(LiteralString) namedTypeSymbol.Name}_{hashCode}();");
 
 					if (invocation.Value is IEnumerable enumerable)
 					{
@@ -307,6 +307,8 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 												 || enumerableBuilder.AppendCountBy(method, items, code)
 												 || enumerableBuilder.AppendZip(method, items, code)
 												 || enumerableBuilder.AppendChunk(method, items, code)
+												 || enumerableBuilder.AppendExcept(method, items, code)
+												 || enumerableBuilder.AppendExceptBy(method, items, code)
 												 || memoryExtensionsBuilder.AppendBinarySearch(method, items, code)
 												 // || memoryExtensionsBuilder.AppendCommonPrefixLength(method, items, code)
 												 // || memoryExtensionsBuilder.AppendContainsAny(method, items, code)
@@ -345,7 +347,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 							{
 								code.AppendLine();
 
-								using (code.AppendBlock($"public IEnumerator<{(LiteralString)elementName}> GetEnumerator()"))
+								using (code.AppendBlock($"public IEnumerator<{elementType}> GetEnumerator()"))
 								{
 									using (code.AppendBlock($"for (var i = 0; i < {(LiteralString) dataName}.Length; i++)"))
 									{

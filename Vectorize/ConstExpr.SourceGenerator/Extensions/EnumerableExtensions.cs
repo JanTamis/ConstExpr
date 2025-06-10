@@ -211,7 +211,7 @@ public static class EnumerableExtensions
 		return true;
 	}
 
-	public static IEnumerable<T> DistintBy<T, TResult>(this IEnumerable<T> source, Func<T, TResult> selector)
+	public static IEnumerable<T> DistinctBy<T, TResult>(this IEnumerable<T> source, Func<T, TResult> selector)
 	{
 		var seen = new HashSet<TResult>();
 

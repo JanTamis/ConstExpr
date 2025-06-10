@@ -45,27 +45,27 @@ public static class CompilationExtensions
 			.CreateSpecialType(SpecialType.System_String);
 	}
 
-	public static INamedTypeSymbol CreateFunc(this Compilation compilation, params ITypeSymbol[] typeArguments)
+	public static INamedTypeSymbol? CreateFunc(this Compilation compilation, params ITypeSymbol[] typeArguments)
 	{
-		return compilation.GetTypeByMetadataName($"System.Func`{typeArguments.Length}")
+		return compilation.GetTypeByMetadataName($"System.Func`{typeArguments.Length}")?
 			.Construct(typeArguments);
 	}
 
-	public static INamedTypeSymbol CreateAction(this Compilation compilation, params ITypeSymbol[] typeArguments)
+	public static INamedTypeSymbol? CreateAction(this Compilation compilation, params ITypeSymbol[] typeArguments)
 	{
-		return compilation.GetTypeByMetadataName($"System.Action`{typeArguments.Length}")
+		return compilation.GetTypeByMetadataName($"System.Action`{typeArguments.Length}")?
 			.Construct(typeArguments);
 	}
 
-	public static INamedTypeSymbol CreateKeyValuePair(this Compilation compilation, ITypeSymbol keyType, ITypeSymbol valueType)
+	public static INamedTypeSymbol? CreateKeyValuePair(this Compilation compilation, ITypeSymbol keyType, ITypeSymbol valueType)
 	{
-		return compilation.GetTypeByMetadataName("System.Collections.Generic.KeyValuePair`2")
+		return compilation.GetTypeByMetadataName("System.Collections.Generic.KeyValuePair`2")?
 			.Construct(keyType, valueType);
 	}
 
-	public static INamedTypeSymbol CreateEqualityComparer(this Compilation compilation, ITypeSymbol keyType)
+	public static INamedTypeSymbol? CreateEqualityComparer(this Compilation compilation, ITypeSymbol keyType)
 	{
-		return compilation.GetTypeByMetadataName("System.Collections.Generic.IEqualityComparer`1")
+		return compilation.GetTypeByMetadataName("System.Collections.Generic.IEqualityComparer`1")?
 			.Construct(keyType);
 	}
 
@@ -91,7 +91,7 @@ public static class CompilationExtensions
 
 		return SymbolEqualityComparer.Default.Equals(symbol, compilation.GetSpecialType(specialType));
 	}
-	
+
 	public static bool IsLiteralType(this ITypeSymbol typeSymbol)
 	{
 		return typeSymbol.SpecialType is SpecialType.System_Boolean
@@ -113,32 +113,32 @@ public static class CompilationExtensions
 	public static bool IsSpanLikeType(this Compilation compilation, ITypeSymbol typeSymbol, ITypeSymbol elementType)
 	{
 		return typeSymbol is INamedTypeSymbol { Arity: 1 } namedTypeSymbol
-					 && namedTypeSymbol.ContainingNamespace.ToString() == "System"
-					 && namedTypeSymbol.Name is "Span" or "ReadOnlySpan"
-					 && SymbolEqualityComparer.Default.Equals(namedTypeSymbol.TypeArguments[0], elementType);
+		       && namedTypeSymbol.ContainingNamespace.ToString() == "System"
+		       && namedTypeSymbol.Name is "Span" or "ReadOnlySpan"
+		       && SymbolEqualityComparer.Default.Equals(namedTypeSymbol.TypeArguments[0], elementType);
 	}
 
 	public static bool IsSpanType(this Compilation compilation, ITypeSymbol typeSymbol, ITypeSymbol elementType)
 	{
 		return typeSymbol is INamedTypeSymbol { Arity: 1 } namedTypeSymbol
-					 && namedTypeSymbol.ContainingNamespace.ToString() == "System"
-					 && namedTypeSymbol.Name is "Span"
-					 && SymbolEqualityComparer.Default.Equals(namedTypeSymbol.TypeArguments[0], elementType);
+		       && namedTypeSymbol.ContainingNamespace.ToString() == "System"
+		       && namedTypeSymbol.Name is "Span"
+		       && SymbolEqualityComparer.Default.Equals(namedTypeSymbol.TypeArguments[0], elementType);
 	}
 
 	public static bool IsReadonlySpanType(this Compilation compilation, ITypeSymbol typeSymbol, ITypeSymbol elementType)
 	{
 		return typeSymbol is INamedTypeSymbol { Arity: 1 } namedTypeSymbol
-					 && namedTypeSymbol.ContainingNamespace.ToString() == "System"
-					 && namedTypeSymbol.Name is "Span" or "ReadOnlySpan"
-					 && SymbolEqualityComparer.Default.Equals(namedTypeSymbol.TypeArguments[0], elementType);
+		       && namedTypeSymbol.ContainingNamespace.ToString() == "System"
+		       && namedTypeSymbol.Name is "Span" or "ReadOnlySpan"
+		       && SymbolEqualityComparer.Default.Equals(namedTypeSymbol.TypeArguments[0], elementType);
 	}
-	
+
 	public static bool IsEnumerableType(this Compilation compilation, ITypeSymbol typeSymbol, ITypeSymbol elementType)
 	{
 		return compilation.IsSpanLikeType(typeSymbol, elementType)
-			|| typeSymbol.EqualsType(compilation.CreateIEnumerable(elementType))
-			|| typeSymbol.EqualsType(compilation.CreateArrayTypeSymbol(elementType));
+		       || typeSymbol.EqualsType(compilation.CreateIEnumerable(elementType))
+		       || typeSymbol.EqualsType(compilation.CreateArrayTypeSymbol(elementType));
 	}
 
 	public static ITypeSymbol GetUnsignedType(this Compilation compilation, ITypeSymbol typeSymbol)
@@ -203,8 +203,8 @@ public static class CompilationExtensions
 			{
 				var runtimeType = loader.GetType(type);
 				// Use System.Runtime.InteropServices.Marshal.SizeOf
-				var method = typeof(System.Runtime.InteropServices.Marshal).GetMethod("SizeOf", [typeof(Type)]);
-				return (int)method?.Invoke(null, [runtimeType]);
+				var method = typeof(System.Runtime.InteropServices.Marshal).GetMethod("SizeOf", [ typeof(Type) ]);
+				return (int) method?.Invoke(null, [ runtimeType ]);
 			}
 			catch
 			{
@@ -274,7 +274,7 @@ public static class CompilationExtensions
 		var methodName = methodSymbol.Name;
 
 		var type = loader.GetType(methodSymbol.ContainingType)
-							 ?? throw new InvalidOperationException($"Type '{fullyQualifiedName}' not found");
+		           ?? throw new InvalidOperationException($"Type '{fullyQualifiedName}' not found");
 
 		var methodInfos = type
 			.GetMethods(methodSymbol.IsStatic
@@ -473,17 +473,17 @@ public static class CompilationExtensions
 		}
 
 		if (compilation.IsSpecialType(symbol.OriginalDefinition, SpecialType.System_Collections_Generic_IEnumerable_T)
-				&& symbol is INamedTypeSymbol namedTypeSymbol)
+		    && symbol is INamedTypeSymbol namedTypeSymbol)
 		{
 			return $"IEnumerable<{String.Join(", ", namedTypeSymbol.TypeArguments.Select(s => GetMinimalString(compilation, s)))}>";
 		}
-		
+
 		switch (symbol)
 		{
 			case IArrayTypeSymbol arrayTypeSymbol:
 			{
 				var elementType = GetMinimalString(compilation, arrayTypeSymbol.ElementType);
-			
+
 				return $"{elementType}[{new string(',', arrayTypeSymbol.Rank - 1)}]";
 			}
 			case INamedTypeSymbol { Arity: > 0, IsTupleType: true } namedSymbol:
@@ -611,7 +611,7 @@ public static class CompilationExtensions
 			return $"{vectorType}.Create({items.Join<T, object?>(", ", elementCount, s => s is string ? s : SyntaxHelpers.CreateLiteral(s))})";
 		}
 
-		return $"{vectorType}.Create({items.JoinWithPadding<T, object?>(", ", elementCount, (T)0.ToSpecialType(elementType.SpecialType), s => s is string ? s : SyntaxHelpers.CreateLiteral(s))})";
+		return $"{vectorType}.Create({items.JoinWithPadding<T, object?>(", ", elementCount, (T) 0.ToSpecialType(elementType.SpecialType), s => s is string ? s : SyntaxHelpers.CreateLiteral(s))})";
 	}
 
 	public static VectorTypes GetVector<T>(this Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, ReadOnlySpan<T> items, bool isRepeating, out string vector, out int vectorSize)
@@ -661,13 +661,13 @@ public static class CompilationExtensions
 		switch (size)
 		{
 			case >= 64
-					when limit is VectorTypes.Vector512:
+				when limit is VectorTypes.Vector512:
 				vector = GetCreateVector(compilation, VectorTypes.Vector512, elementType, loader, false, items);
 				vectorSize = 64 / elementSize;
 
 				return VectorTypes.Vector512;
 			case >= 32
-					when limit is VectorTypes.Vector512 or VectorTypes.Vector256:
+				when limit is VectorTypes.Vector512 or VectorTypes.Vector256:
 				vector = GetCreateVector(compilation, VectorTypes.Vector256, elementType, loader, false, items);
 				vectorSize = 32 / elementSize;
 
@@ -679,7 +679,7 @@ public static class CompilationExtensions
 
 				return VectorTypes.Vector128;
 			case >= 8
-				 when limit is VectorTypes.Vector512 or VectorTypes.Vector256 or VectorTypes.Vector128 or VectorTypes.Vector64:
+				when limit is VectorTypes.Vector512 or VectorTypes.Vector256 or VectorTypes.Vector128 or VectorTypes.Vector64:
 				vector = GetCreateVector(compilation, VectorTypes.Vector64, elementType, loader, false, items);
 				vectorSize = 8 / elementSize;
 
@@ -733,7 +733,7 @@ public static class CompilationExtensions
 			or SpecialType.System_UIntPtr;
 	}
 
-	public static bool EqualsTypes(this ReadOnlySpan<IParameterSymbol> parameters, params ReadOnlySpan<ITypeSymbol> typeSymbols)
+	public static bool EqualsTypes(this ReadOnlySpan<IParameterSymbol> parameters, params ReadOnlySpan<ITypeSymbol?> typeSymbols)
 	{
 		if (parameters.Length != typeSymbols.Length)
 		{
@@ -795,12 +795,12 @@ public static class CompilationExtensions
 		{
 			return false;
 		}
-		
+
 		if (SymbolEqualityComparer.Default.Equals(type, otherType))
 		{
 			return true;
 		}
-		
+
 		if (type is ITypeParameterSymbol typeParameter)
 		{
 			return typeParameter.ConstraintTypes.All(a => a.EqualsType(otherType));
@@ -833,7 +833,7 @@ public static class CompilationExtensions
 			_ => SyntaxFactory.DefaultExpression(SyntaxFactory.ParseTypeName(type.ToDisplayString())),
 		};
 	}
-	
+
 	public static VectorTypes GetBestVectorType(this Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, int elementCount)
 	{
 		var elementSize = compilation.GetByteSize(loader, elementType);
@@ -855,7 +855,7 @@ public static class CompilationExtensions
 
 		return best.Type;
 	}
-	
+
 	public static bool TryGetIEnumerableType(this Compilation compilation, ITypeSymbol typeSymbol, out ITypeSymbol? elementType)
 	{
 		if (typeSymbol is INamedTypeSymbol { IsGenericType: true } namedTypeSymbol)
@@ -869,13 +869,11 @@ public static class CompilationExtensions
 
 		foreach (var @interface in typeSymbol.AllInterfaces)
 		{
-			if (@interface.IsGenericType && @interface.TypeArguments.Length == 1)
+			if (@interface is { Arity: 1 }
+			    && SymbolEqualityComparer.Default.Equals(@interface, compilation.CreateIEnumerable(@interface.TypeArguments[0])))
 			{
-				if (SymbolEqualityComparer.Default.Equals(@interface.OriginalDefinition, compilation.CreateIEnumerable(@interface.TypeArguments[0])))
-				{
-					elementType = @interface.TypeArguments[0];
-					return true;
-				}
+				elementType = @interface.TypeArguments[0];
+				return true;
 			}
 		}
 
@@ -885,17 +883,16 @@ public static class CompilationExtensions
 
 	public static bool TryGetFuncType(this Compilation compilation, ITypeSymbol type, [NotNullWhen(true)] out ITypeSymbol? elementType, [NotNullWhen(true)] out ITypeSymbol? returnType)
 	{
-		if (type is INamedTypeSymbol { Arity: 2, IsGenericType: true } namedTypeSymbol 
+		if (type is INamedTypeSymbol { Arity: 2 } namedTypeSymbol
 		    && SymbolEqualityComparer.Default.Equals(type, compilation.CreateFunc(namedTypeSymbol.TypeArguments[0], namedTypeSymbol.TypeArguments[1])))
 		{
 			elementType = namedTypeSymbol.TypeArguments[0];
 			returnType = namedTypeSymbol.TypeArguments[1];
 			return true;
 		}
-		
+
 		elementType = null;
 		returnType = null;
 		return false;
 	}
 }
-
