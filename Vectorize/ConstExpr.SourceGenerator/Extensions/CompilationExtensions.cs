@@ -141,16 +141,26 @@ public static class CompilationExtensions
 		       || typeSymbol.EqualsType(compilation.CreateArrayTypeSymbol(elementType));
 	}
 
-	public static ITypeSymbol GetUnsignedType(this Compilation compilation, ITypeSymbol typeSymbol)
+	public static bool TryGetUnsignedType(this Compilation compilation, ITypeSymbol typeSymbol, [NotNullWhen(true)] out ITypeSymbol? unsignedType)
 	{
-		return typeSymbol.SpecialType switch
+		switch (typeSymbol.SpecialType)
 		{
-			SpecialType.System_SByte => compilation.GetSpecialType(SpecialType.System_Byte),
-			SpecialType.System_Int16 => compilation.GetSpecialType(SpecialType.System_UInt16),
-			SpecialType.System_Int32 => compilation.GetSpecialType(SpecialType.System_UInt32),
-			SpecialType.System_Int64 => compilation.GetSpecialType(SpecialType.System_UInt64),
-			_ => typeSymbol,
-		};
+			case SpecialType.System_SByte:
+				unsignedType = compilation.GetSpecialType(SpecialType.System_Byte);
+				return true;
+			case SpecialType.System_Int16:
+				unsignedType = compilation.GetSpecialType(SpecialType.System_UInt16);
+				return true;
+			case SpecialType.System_Int32:
+				unsignedType = compilation.GetSpecialType(SpecialType.System_UInt32);
+				return true;
+			case SpecialType.System_Int64:
+				unsignedType = compilation.GetSpecialType(SpecialType.System_UInt64);
+				return true;
+			default:
+				unsignedType = null;
+				return false;
+		}
 	}
 
 	public static int GetByteSize(this Compilation compilation, MetadataLoader loader, ITypeSymbol type)

@@ -393,11 +393,38 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 						}
 						else
 						{
-							var rowLength = (int) Math.Ceiling(Math.Sqrt(items.Length));
+							if (compilation.IsInterger(elementType))
+							{
+								var orderedItems = items
+									.OrderBy(s => s)
+									.ToImmutableArray();
 
-							var elements = items
+								if (orderedItems.AsSpan().IsNumericSequence())
+								{
+									if (orderedItems.AsSpan(0, 1).IsZero() && compilation.TryGetUnsignedType(elementType, out var unsignedType))
+									{
+										builder.AppendLine($"return ({unsignedType}){method.Parameters[0]} is <= {orderedItems[^1].ToSpecialType(unsignedType.SpecialType)};");
+									}
+									else
+									{
+										builder.AppendLine($"return {method.Parameters[0]} is >= {orderedItems[0]} and <= {orderedItems[^1]};");
+									}
+									
+									
+									return;
+								}
+							}
+							
+							var literals = items
+								.Select(SyntaxHelpers.CreateLiteral)
+								.ToList();
+
+							var length = literals.Sum(s => s.Span.Length) + (items.Length * 2);
+							var rowLength = length < 125 ? items.Length : (int) Math.Ceiling(Math.Sqrt(items.Length));
+							
+							var elements = literals
 								.Chunk(rowLength)
-								.Select(s => String.Join(" or ", s.Select(SyntaxHelpers.CreateLiteral)));
+								.Select(s => String.Join(" or ", s));
 
 							builder.AppendLine(CreatePadding("or", $"return {method.Parameters[0].Name} is", elements));
 						}
