@@ -329,7 +329,28 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 				items = items
 					.Distinct()
+					.OrderBy(s => s)
 					.ToImmutableArray();
+
+				if (compilation.IsInterger(elementType))
+				{
+					if (items.AsSpan().IsNumericSequence())
+					{
+						AppendMethod(builder, method, () =>
+						{
+							if (items.AsSpan(0, 1).IsZero() && compilation.TryGetUnsignedType(elementType, out var unsignedType))
+							{
+								builder.AppendLine($"return ({unsignedType}){method.Parameters[0]} is <= {items[^1].ToSpecialType(unsignedType.SpecialType)};");
+							}
+							else
+							{
+								builder.AppendLine($"return {method.Parameters[0]} is >= {items[0]} and <= {items[^1]};");
+							}
+						});
+
+						return true;
+					}
+				}
 
 				AppendMethod(builder, method, items.AsSpan(), false, (vectorType, vectors, size) =>
 				{
@@ -393,28 +414,6 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 						}
 						else
 						{
-							if (compilation.IsInterger(elementType))
-							{
-								var orderedItems = items
-									.OrderBy(s => s)
-									.ToImmutableArray();
-
-								if (orderedItems.AsSpan().IsNumericSequence())
-								{
-									if (orderedItems.AsSpan(0, 1).IsZero() && compilation.TryGetUnsignedType(elementType, out var unsignedType))
-									{
-										builder.AppendLine($"return ({unsignedType}){method.Parameters[0]} is <= {orderedItems[^1].ToSpecialType(unsignedType.SpecialType)};");
-									}
-									else
-									{
-										builder.AppendLine($"return {method.Parameters[0]} is >= {orderedItems[0]} and <= {orderedItems[^1]};");
-									}
-									
-									
-									return;
-								}
-							}
-							
 							var literals = items
 								.Select(SyntaxHelpers.CreateLiteral)
 								.ToList();
