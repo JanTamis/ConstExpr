@@ -317,16 +317,6 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 			case { Name: "Contains", ReturnType.SpecialType: SpecialType.System_Boolean }
 				when method.Parameters.AsSpan().EqualsTypes(elementType):
 			{
-				if (method.ContainingType.HasMember<IMethodSymbol>("IndexOf", m => AppendIndexOf(m, items, null)))
-				{
-					AppendMethod(builder, method, () =>
-					{
-						builder.AppendLine($"return IndexOf({method.Parameters[0]}) >= 0;");
-					});
-
-					return true;
-				}
-
 				items = items
 					.Distinct()
 					.OrderBy(s => s)
@@ -340,7 +330,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 						{
 							if (items.AsSpan(0, 1).IsZero() && compilation.TryGetUnsignedType(elementType, out var unsignedType))
 							{
-								builder.AppendLine($"return ({unsignedType}){method.Parameters[0]} is <= {items[^1].ToSpecialType(unsignedType.SpecialType)};");
+								builder.AppendLine($"return ({unsignedType}){method.Parameters[0]} <= {items[^1].ToSpecialType(unsignedType.SpecialType)};");
 							}
 							else
 							{
@@ -350,6 +340,16 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 						return true;
 					}
+				}
+
+				if (method.ContainingType.HasMember<IMethodSymbol>("IndexOf", m => AppendIndexOf(m, items, null)))
+				{
+					AppendMethod(builder, method, () =>
+					{
+						builder.AppendLine($"return IndexOf({method.Parameters[0]}) >= 0;");
+					});
+
+					return true;
 				}
 
 				AppendMethod(builder, method, items.AsSpan(), false, (vectorType, vectors, size) =>
@@ -418,7 +418,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 								.Select(SyntaxHelpers.CreateLiteral)
 								.ToList();
 
-							var length = literals.Sum(s => s.Span.Length) + (items.Length * 2);
+							var length = literals.Sum(s => s.Span.Length) + items.Length * 2;
 							var rowLength = length < 125 ? items.Length : (int) Math.Ceiling(Math.Sqrt(items.Length));
 							
 							var elements = literals
