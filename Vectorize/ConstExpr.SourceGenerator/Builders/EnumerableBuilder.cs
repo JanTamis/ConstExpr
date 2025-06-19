@@ -54,12 +54,11 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 								builder.AppendLine($"var result = {GetDataName(method.ContainingType)}[0];");
 								builder.AppendLine();
 
-								using (builder.AppendBlock($"for (var i = 1; i < {GetDataName(method.ContainingType)}.Length; i++)"))
+								using (builder.AppendBlock($"for (var i = 1; i < {GetDataName(method.ContainingType)}.Length; i++)", WhitespacePadding.After))
 								{
 									builder.AppendLine($"result = {method.Parameters[0]}(result, {GetDataName(method.ContainingType)}[i]);");
 								}
 
-								builder.AppendLine();
 								builder.AppendLine("return result;");
 							}
 							break;
@@ -294,7 +293,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 
 					builder.AppendLine();
 
-					using (builder.AppendBlock($"foreach (var item in {GetDataName(method.ContainingType)})"))
+					using (builder.AppendBlock($"foreach (var item in {GetDataName(method.ContainingType)})", WhitespacePadding.After))
 					{
 						using (builder.AppendBlock($"if ({method.Parameters[0]}(item))"))
 						{
@@ -302,7 +301,6 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 						}
 					}
 
-					builder.AppendLine();
 					builder.AppendLine("return result;");
 				});
 
@@ -600,7 +598,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					}
 					else
 					{
-						using (builder.AppendBlock($"foreach (var item in {GetDataName(method.ContainingType)})"))
+						using (builder.AppendBlock($"foreach (var item in {GetDataName(method.ContainingType)})", WhitespacePadding.After))
 						{
 							using (builder.AppendBlock($"if ({method.Parameters[0]}(item))"))
 							{
@@ -608,7 +606,6 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 							}
 						}
 
-						builder.AppendLine();
 						builder.AppendLine("throw new InvalidOperationException(\"Sequence contains no matching element\");");
 					}
 				});
@@ -671,7 +668,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					}
 					else
 					{
-						using (builder.AppendBlock($"foreach (var item in {GetDataName(method.ContainingType)})"))
+						using (builder.AppendBlock($"foreach (var item in {GetDataName(method.ContainingType)})", WhitespacePadding.After))
 						{
 							using (builder.AppendBlock($"if ({method.Parameters[0]}(item))"))
 							{
@@ -679,7 +676,6 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 							}
 						}
 
-						builder.AppendLine();
 						builder.AppendLine($"return {elementType.GetDefaultValue()};");
 					}
 				});
@@ -773,7 +769,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					}
 					else
 					{
-						using (builder.AppendBlock($"for (var i = {GetDataName(method.ContainingType)} - 1; i >= 0; i--)"))
+						using (builder.AppendBlock($"for (var i = {GetDataName(method.ContainingType)} - 1; i >= 0; i--)", WhitespacePadding.After))
 						{
 							using (builder.AppendBlock($"if ({method.Parameters[0]}({GetDataName(method.ContainingType)}[i]))"))
 							{
@@ -781,7 +777,6 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 							}
 						}
 
-						builder.AppendLine();
 						builder.AppendLine("throw new InvalidOperationException(\"Sequence contains no matching element\");");
 					}
 				});
@@ -844,7 +839,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					}
 					else
 					{
-						using (builder.AppendBlock($"for (var i = {GetDataName(method.ContainingType)} - 1; i >= 0; i--)"))
+						using (builder.AppendBlock($"for (var i = {GetDataName(method.ContainingType)} - 1; i >= 0; i--)", WhitespacePadding.After))
 						{
 							using (builder.AppendBlock($"if ({method.Parameters[0]}({GetDataName(method.ContainingType)}[i]))"))
 							{
@@ -852,7 +847,6 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 							}
 						}
 
-						builder.AppendLine();
 						builder.AppendLine($"return {elementType.GetDefaultValue()};");
 					}
 				});
@@ -980,12 +974,10 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					{
 						if (compilation.HasMember<IMethodSymbol>(typeof(Enumerable), "TryGetNonEnumeratedCount"))
 						{
-							using (builder.AppendBlock($"if ({method.Parameters[0]}.TryGetNonEnumeratedCount(out var count) && count != {items.Length})"))
+							using (builder.AppendBlock($"if ({method.Parameters[0]}.TryGetNonEnumeratedCount(out var count) && count != {items.Length})", WhitespacePadding.After))
 							{
 								builder.AppendLine("return false;");
 							}
-
-							builder.AppendLine();
 						}
 
 						builder.AppendLine($"using var e = {method.Parameters[0]}.GetEnumerator();");
@@ -1354,7 +1346,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					builder.AppendLine();
 
 					// GetDataName(method.ContainingType) should resolve to the name of the const array field
-					using (builder.AppendBlock($"foreach (var item in {GetDataName(method.ContainingType)})"))
+					using (builder.AppendBlock($"foreach (var item in {GetDataName(method.ContainingType)})", WhitespacePadding.After))
 					{
 						builder.AppendLine($"var key = {method.Parameters[0]}(item);");
 						builder.AppendLine();
@@ -1392,7 +1384,6 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 						}
 					}
 
-					builder.AppendLine();
 					builder.AppendLine("return counts;");
 				});
 

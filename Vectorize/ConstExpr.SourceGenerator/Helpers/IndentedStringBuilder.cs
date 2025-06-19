@@ -97,7 +97,6 @@ public class IndentedStringBuilder(string indentString = "\t")
 	
 	public IndentedStringBuilder AppendLine(ref IndentedStringBuilderHandler handler)
 	{
-
 		if (_isNewLine)
 		{
 			AppendIndentation();
@@ -122,36 +121,60 @@ public class IndentedStringBuilder(string indentString = "\t")
 		return this;
 	}
 	
-	public IDisposable AppendBlock(ref IndentedStringBuilderHandler handler)
+	public IDisposable AppendBlock(ref IndentedStringBuilderHandler handler, WhitespacePadding padding = WhitespacePadding.None)
 	{
+		if (padding is WhitespacePadding.Before or WhitespacePadding.BeforeAndAfter)
+		{
+			AppendLine();
+		}
+		
 		AppendLine(ref handler);
 		AppendLine("{");
 		Indent();
-		return new ActionDisposable(() => Outdent().AppendLine("}"));
+		
+		return new ActionDisposable(() => Outdent().AppendLine("}"), padding);
 	}
 
-	public IDisposable AppendBlock(string text)
+	public IDisposable AppendBlock(string text, WhitespacePadding padding = WhitespacePadding.None)
 	{
+		if (padding is WhitespacePadding.Before or WhitespacePadding.BeforeAndAfter)
+		{
+			AppendLine();
+		}
+		
 		AppendLine(text);
 		AppendLine("{");
 		Indent();
-		return new ActionDisposable(() => Outdent().AppendLine("}"));
+		
+		return new ActionDisposable(() => Outdent().AppendLine("}"), padding);
 	}
 
-	public IDisposable AppendBlock(string text, string end)
+	public IDisposable AppendBlock(string text, string end, WhitespacePadding padding = WhitespacePadding.None)
 	{
+		if (padding is WhitespacePadding.Before or WhitespacePadding.BeforeAndAfter)
+		{
+			AppendLine();
+		}
+		
 		AppendLine(text);
 		AppendLine("{");
 		Indent();
-		return new ActionDisposable(() => Outdent().AppendLine(end));
+		
+		return new ActionDisposable(() => Outdent().AppendLine(end), padding);
 	}
 
-	public IDisposable AppendBlock(ref IndentedStringBuilderHandler handler, string end)
+	public IDisposable AppendBlock(ref IndentedStringBuilderHandler handler, string end, WhitespacePadding padding = WhitespacePadding.None)
 	{
+		if (padding is WhitespacePadding.Before or WhitespacePadding.BeforeAndAfter)
+		{
+			AppendLine();
+		}
+		
 		AppendLine(ref handler);
 		AppendLine("{");
 		Indent();
-		return new ActionDisposable(() => Outdent().AppendLine(end));
+		
+		return new ActionDisposable(() => Outdent().AppendLine(end), padding);
 	}
 
 	private void AppendIndentation()
@@ -174,16 +197,23 @@ public class IndentedStringBuilder(string indentString = "\t")
 		return _builder.ToString();
 	}
 
-	public class ActionDisposable(Func<IndentedStringBuilder> outdent) : IDisposable
+	public readonly struct ActionDisposable(Func<IndentedStringBuilder> outdent, WhitespacePadding padding) : IDisposable
 	{
 		public void Dispose()
 		{
-			outdent();
+			if (padding is WhitespacePadding.After or WhitespacePadding.BeforeAndAfter)
+			{
+				outdent().AppendLine();
+			}
+			else
+			{
+				outdent();
+			}
 		}
 	}
 
 	[InterpolatedStringHandler]
-	public readonly struct IndentedStringBuilderHandler(int literalLength, int formattedCount)
+	public readonly ref struct IndentedStringBuilderHandler(int literalLength, int formattedCount)
 	{
 		private readonly StringWriter _builder = new(new StringBuilder(literalLength + formattedCount * 11));
 
@@ -261,5 +291,13 @@ public class IndentedStringBuilder(string indentString = "\t")
 			target.Write(_builder);
 		}
 	}
+}
+
+public enum WhitespacePadding
+{
+	None,
+	Before,
+	After,
+	BeforeAndAfter
 }
 

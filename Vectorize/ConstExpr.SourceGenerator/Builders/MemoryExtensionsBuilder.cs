@@ -267,6 +267,16 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 						.OrderBy(o => o)
 						.ToImmutableArray();
 
+					if (items.AsSpan().IsNumericSequence())
+					{
+						AppendMethod(builder, method, () =>
+						{
+							builder.AppendLine($"return {method.Parameters[0]} <= {method.Parameters[1]} && {method.Parameters[0]} <= {items[^1]} && {method.Parameters[1]} >= {items[0]};");
+						});
+						
+						return true;
+					}
+
 					AppendMethod(builder, method, items.AsSpan(), false, (vectorType, vectors, vectorSize) =>
 					{
 						var checks = Enumerable.Range(0, vectors.Count)
@@ -319,7 +329,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 						}
 						else
 						{
-							using (builder.AppendBlock($"foreach (var item in {GetDataName(method.ContainingType)})"))
+							using (builder.AppendBlock($"foreach (var item in {GetDataName(method.ContainingType)})", WhitespacePadding.After))
 							{
 								using (builder.AppendBlock($"if (item >= {method.Parameters[0]} && item <= {method.Parameters[1]})"))
 								{
@@ -327,7 +337,6 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 								}
 							}
 
-							builder.AppendLine();
 							builder.AppendLine("return false;");
 						}
 						
@@ -415,7 +424,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 							builder.AppendLine("var result = 0;");
 							builder.AppendLine();
 
-							using (builder.AppendBlock($"foreach (var item in {GetDataName(method.ContainingType)})"))
+							using (builder.AppendBlock($"foreach (var item in {GetDataName(method.ContainingType)})", WhitespacePadding.After))
 							{
 								using (builder.AppendBlock($"if (item == {method.Parameters[0]})"))
 								{
@@ -423,7 +432,6 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 								}
 							}
 
-							builder.AppendLine();
 							builder.AppendLine("return result;");
 						}
 					});
