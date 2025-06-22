@@ -16,34 +16,28 @@ namespace ConstExpr.SourceGenerator.Helpers;
 [DebuggerDisplay("{ToString()}")]
 public class IndentedStringBuilder(string indentString = "\t")
 {
-	private StringWriter _builder = new();
-	private int _indentLevel;
+	private IndentedTextWriter _builder = new(new StringWriter(), "\t");
 	private bool _isNewLine = true;
 
 	public static Compilation Compilation { get; set; }
 
 	public IndentedStringBuilder Indent()
 	{
-		_indentLevel++;
+		_builder.Indent++;
 		return this;
 	}
 
 	public IndentedStringBuilder Outdent()
 	{
-		if (_indentLevel > 0)
+		if (_builder.Indent > 0)
 		{
-			_indentLevel--;
+			_builder.Indent--;
 		}
 		return this;
 	}
 
 	public IndentedStringBuilder AppendLine()
 	{
-		if (_isNewLine)
-		{
-			AppendIndentation();
-		}
-
 		_builder.WriteLine();
 		_isNewLine = true;
 		return this;
@@ -53,11 +47,6 @@ public class IndentedStringBuilder(string indentString = "\t")
 	{
 		if (string.IsNullOrEmpty(value))
 		{
-			if (_isNewLine)
-			{
-				AppendIndentation();
-			}
-
 			_builder.WriteLine();
 			_isNewLine = true;
 			return this;
@@ -67,11 +56,6 @@ public class IndentedStringBuilder(string indentString = "\t")
 
 		for (var i = 0; i < lines.Length; i++)
 		{
-			if (_isNewLine)
-			{
-				AppendIndentation();
-			}
-
 			_builder.Write(lines[i]);
 
 			if (i < lines.Length - 1 || string.IsNullOrEmpty(value))
@@ -97,11 +81,6 @@ public class IndentedStringBuilder(string indentString = "\t")
 	
 	public IndentedStringBuilder AppendLine(ref IndentedStringBuilderHandler handler)
 	{
-		if (_isNewLine)
-		{
-			AppendIndentation();
-		}
-
 		handler.CopyTo(_builder);
 
 		_builder.WriteLine();
@@ -111,11 +90,6 @@ public class IndentedStringBuilder(string indentString = "\t")
 
 	public IndentedStringBuilder Append(string value)
 	{
-		if (_isNewLine && !string.IsNullOrEmpty(value))
-		{
-			AppendIndentation();
-		}
-
 		_builder.Write(value);
 		_isNewLine = false;
 		return this;
@@ -177,24 +151,24 @@ public class IndentedStringBuilder(string indentString = "\t")
 		return new ActionDisposable(() => Outdent().AppendLine(end), padding);
 	}
 
-	private void AppendIndentation()
-	{
-		for (var i = 0; i < _indentLevel; i++)
-		{
-			_builder.Write(indentString);
-		}
-	}
+	// private void AppendIndentation()
+	// {
+	// 	for (var i = 0; i < _indentLevel; i++)
+	// 	{
+	// 		_builder.Write(indentString);
+	// 	}
+	// }
 
 	public IndentedStringBuilder Clear()
 	{
-		_builder = new StringWriter();
+		_builder = new IndentedTextWriter(new StringWriter());
 		_isNewLine = true;
 		return this;
 	}
 
 	public override string ToString()
 	{
-		return _builder.ToString();
+		return _builder.InnerWriter.ToString();
 	}
 
 	public readonly struct ActionDisposable(Func<IndentedStringBuilder> outdent, WhitespacePadding padding) : IDisposable
@@ -219,7 +193,9 @@ public class IndentedStringBuilder(string indentString = "\t")
 
 		public void AppendLiteral(string s)
 		{
+			//_builder.Write("\"");
 			_builder.Write(s);
+			// _builder.Write("\"");
 		}
 
 		public void AppendFormatted(IParameterSymbol parameter)
@@ -239,7 +215,7 @@ public class IndentedStringBuilder(string indentString = "\t")
 
 		public void AppendFormatted(LiteralString literal)
 		{
-			AppendLiteral(literal.Value);
+			_builder.Write(literal.Value);
 		}
 
 		public void AppendFormatted(ImmutableArray<IParameterSymbol> parameters)
@@ -286,7 +262,7 @@ public class IndentedStringBuilder(string indentString = "\t")
 			_builder.Write(value);
 		}
 
-		public void CopyTo(StringWriter target)
+		public void CopyTo(TextWriter target)
 		{
 			target.Write(_builder);
 		}

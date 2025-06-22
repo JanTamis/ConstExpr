@@ -618,6 +618,11 @@ public static class CompilationExtensions
 
 		if (isRepeating)
 		{
+			if (items.IsSame(items[0]))
+			{
+				return $"{vectorType}.Create({SyntaxHelpers.CreateLiteral(items[0])})";
+			}
+			
 			return $"{vectorType}.Create({items.Join<T, object?>(", ", elementCount, s => s is string ? s : SyntaxHelpers.CreateLiteral(s))})";
 		}
 
