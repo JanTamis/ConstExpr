@@ -6,7 +6,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
 using System.Text;
 
 var range = Test.Range(10);
@@ -27,3 +26,44 @@ Console.WriteLine(Test.RgbToHsl(150, 100, 50));
 // Console.WriteLine(range.BinarySearch(2));
 
 BenchmarkRunner.Run<ReplaceTest>();
+
+
+
+int CommonPrefixLength(ReadOnlySpan<int> other)
+{
+	ReadOnlySpan<int> thisData = [ 0, 0, 0, 1, 2, 2, 3, 3, 4, 4 ];
+
+	var position = 0;
+
+	// Use Vector<T> for generic vectorization
+	if (Vector.IsHardwareAccelerated)
+	{
+		var indexes = Vector<int>.Indices;
+		var lengthVector = Vector.Create(10);
+		var countVector = Vector.Create(Vector<int>.Count);
+
+		while (true)
+		{
+			var thisVec = Vector.LoadUnsafe(ref MemoryMarshal.GetReference(thisData), (nuint)position);
+			var otherVec = Vector.LoadUnsafe(ref MemoryMarshal.GetReference(other), (nuint) position);
+
+			var equalMask = Vector.Equals(thisVec, otherVec) & Vector.LessThanOrEqual(indexes, lengthVector);
+
+			if (equalMask != Vector<int>.AllBitsSet)
+			{
+				return position + Vector<int>.Count switch
+				{
+					4 => BitOperations.TrailingZeroCount(~Vector128.ExtractMostSignificantBits(equalMask.AsVector128())),
+					8 => BitOperations.TrailingZeroCount(~Vector256.ExtractMostSignificantBits(equalMask.AsVector256())),
+					16 => BitOperations.TrailingZeroCount(~Vector512.ExtractMostSignificantBits(equalMask.AsVector512())),
+					_ => BitOperations.TrailingZeroCount(Unsafe.As<Vector<int>, ulong>(ref equalMask)),
+				};
+			}
+
+			position += Vector<int>.Count;
+			indexes += countVector;
+		}
+	}
+
+	return thisData.CommonPrefixLength(other);
+}

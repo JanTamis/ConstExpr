@@ -97,44 +97,56 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 			case { Name: "CommonPrefixLength", ReturnType.SpecialType: SpecialType.System_Int32, Parameters.Length: 1 }
 				when compilation.IsSpanLikeType(method.Parameters[0].Type, elementType):
 			{
-				AppendMethod(builder, method, items.AsSpan(), true, (vectorType, vectors, vectorSize) =>
+				AppendMethod(builder, method, () =>
 				{
-					Span<int> indexes = stackalloc int[vectorSize];
-
-					for (var i = 0; i < vectorSize; i++)
+					if (elementType.SpecialType != SpecialType.None)
 					{
-						indexes[i] = i + 1;
+						Append(method, "{1} != {0}");
 					}
-
-					builder.AppendLine($"var countVec = {vectorType}.Create({method.Parameters[0]}.Length);");
-					builder.AppendLine($"var zeros = {vectorType}<{elementType}>.Zero;");
-					builder.AppendLine($"var ones = {vectorType}<{elementType}>.One;");
-					builder.AppendLine();
-
-					builder.AppendLine(CreatePadding("+", $"return {vectorType}.Sum(", vectors.Index().Select(s => $"{vectorType}.ConditionalSelect({vectorType}.Equals({vectorType}.LoadUnsafe(ref MemoryMarshal.GetReference({method.Parameters[0].Name}){(s.Index == 0 ? String.Empty : ", " + (s.Index * vectorSize))}), {s.Value}) & {vectorType}.LessThanOrEqual({compilation.GetCreateVector(vectorType, elementType, loader, false, Enumerable.Range(s.Index * vectorSize + 1, vectorSize).ToArray())}, countVec), zeros, ones)"), false, false) + ");");
-				}, isPerfomance =>
-				{
-					builder.AppendLine($"return {GetDataName(method.ContainingType)}");
-					builder.AppendLine($"\t.CommonPrefixLength({method.Parameters});");
-					
-					// Non-vectorized implementation
-					// if (!isPerfomance)
-					// {
-					// 	builder.AppendLine($"return {GetDataName(method.ContainingType)}");
-					// 	builder.AppendLine($"\t.CommonPrefixLength({method.Parameters});");
-					// }
-					// else
-					// {
-					// 	if (elementType.SpecialType != SpecialType.None)
-					// 	{
-					// 		Append(method, "{1} != {0}");
-					// 	}
-					// 	else
-					// 	{
-					// 		Append(method, $"!EqualityComparer<{elementType}>.Default.Equals({{0}}, {{1}})");
-					// 	}
-					// }
+					else
+					{
+						Append(method, $"!EqualityComparer<{elementType}>.Default.Equals({{0}}, {{1}})");
+					}
 				});
+				
+				// AppendMethod(builder, method, items.AsSpan(), true, (vectorType, vectors, vectorSize) =>
+				// {
+				// 	Span<int> indexes = stackalloc int[vectorSize];
+				//
+				// 	for (var i = 0; i < vectorSize; i++)
+				// 	{
+				// 		indexes[i] = i + 1;
+				// 	}
+				//
+				// 	builder.AppendLine($"var countVec = {vectorType}.Create({method.Parameters[0]}.Length);");
+				// 	builder.AppendLine($"var zeros = {vectorType}<{elementType}>.Zero;");
+				// 	builder.AppendLine($"var ones = {vectorType}<{elementType}>.One;");
+				// 	builder.AppendLine();
+				//
+				// 	builder.AppendLine(CreatePadding("+", $"return {vectorType}.Sum(", vectors.Index().Select(s => $"{vectorType}.ConditionalSelect({vectorType}.Equals({vectorType}.LoadUnsafe(ref MemoryMarshal.GetReference({method.Parameters[0].Name}){(s.Index == 0 ? String.Empty : ", " + (s.Index * vectorSize))}), {s.Value}) & {vectorType}.LessThanOrEqual({compilation.GetCreateVector(vectorType, elementType, loader, false, Enumerable.Range(s.Index * vectorSize + 1, vectorSize).ToArray())}, countVec), zeros, ones)"), false, false) + ");");
+				// }, isPerfomance =>
+				// {
+				// 	// builder.AppendLine($"return {GetDataName(method.ContainingType)}");
+				// 	// builder.AppendLine($"\t.CommonPrefixLength({method.Parameters});");
+				// 	
+				// 	// Non-vectorized implementation
+				// 	if (!isPerfomance)
+				// 	{
+				// 		builder.AppendLine($"return {GetDataName(method.ContainingType)}");
+				// 		builder.AppendLine($"\t.CommonPrefixLength({method.Parameters});");
+				// 	}
+				// 	else
+				// 	{
+				// 		if (elementType.SpecialType != SpecialType.None)
+				// 		{
+				// 			Append(method, "{1} != {0}");
+				// 		}
+				// 		else
+				// 		{
+				// 			Append(method, $"!EqualityComparer<{elementType}>.Default.Equals({{0}}, {{1}})");
+				// 		}
+				// 	}
+				// });
 
 				return true;
 			}
