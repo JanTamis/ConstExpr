@@ -1,13 +1,10 @@
 using System;
 using System.CodeDom.Compiler;
 using System.Collections;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis;
 
@@ -16,7 +13,7 @@ namespace ConstExpr.SourceGenerator.Helpers;
 [DebuggerDisplay("{ToString()}")]
 public class IndentedStringBuilder(string indentString = "\t")
 {
-	private IndentedTextWriter _builder = new(new StringWriter(), "\t");
+	private IndentedTextWriter _builder = new(new StringWriter(), indentString);
 	private bool _isNewLine = true;
 
 	public static Compilation Compilation { get; set; }
@@ -79,9 +76,9 @@ public class IndentedStringBuilder(string indentString = "\t")
 		return this;
 	}
 	
-	public IndentedStringBuilder AppendLine(ref IndentedStringBuilderHandler handler)
+	public IndentedStringBuilder AppendLine([InterpolatedStringHandlerArgument("")] ref IndentedStringBuilderHandler handler)
 	{
-		handler.CopyTo(_builder);
+		// handler.CopyTo(_builder);
 
 		_builder.WriteLine();
 		_isNewLine = true;
@@ -95,7 +92,7 @@ public class IndentedStringBuilder(string indentString = "\t")
 		return this;
 	}
 	
-	public IDisposable AppendBlock(ref IndentedStringBuilderHandler handler, WhitespacePadding padding = WhitespacePadding.None)
+	public IDisposable AppendBlock([InterpolatedStringHandlerArgument("")] ref IndentedStringBuilderHandler handler, WhitespacePadding padding = WhitespacePadding.None)
 	{
 		if (padding is WhitespacePadding.Before or WhitespacePadding.BeforeAndAfter)
 		{
@@ -137,7 +134,7 @@ public class IndentedStringBuilder(string indentString = "\t")
 		return new ActionDisposable(() => Outdent().AppendLine(end), padding);
 	}
 
-	public IDisposable AppendBlock(ref IndentedStringBuilderHandler handler, string end, WhitespacePadding padding = WhitespacePadding.None)
+	public IDisposable AppendBlock([InterpolatedStringHandlerArgument("")] ref IndentedStringBuilderHandler handler, string end, WhitespacePadding padding = WhitespacePadding.None)
 	{
 		if (padding is WhitespacePadding.Before or WhitespacePadding.BeforeAndAfter)
 		{
@@ -187,14 +184,26 @@ public class IndentedStringBuilder(string indentString = "\t")
 	}
 
 	[InterpolatedStringHandler]
-	public readonly ref struct IndentedStringBuilderHandler(int literalLength, int formattedCount)
+	public readonly ref struct IndentedStringBuilderHandler(int literalLength, int formattedCount, IndentedStringBuilder builder)
 	{
-		private readonly StringWriter _builder = new(new StringBuilder(literalLength + formattedCount * 11));
+		private readonly IndentedTextWriter _builder = builder._builder;
 
 		public void AppendLiteral(string s)
 		{
+			var lines = s.Split([ "\r\n", "\n" ], StringSplitOptions.None);
+
+			for (var i = 0; i < lines.Length; i++)
+			{
+				_builder.Write(lines[i]);
+
+				if (i < lines.Length - 1 || string.IsNullOrEmpty(s))
+				{
+					_builder.WriteLine();
+				}
+			}
+			
 			//_builder.Write("\"");
-			_builder.Write(s);
+			// builder.Append(s);
 			// _builder.Write("\"");
 		}
 
@@ -210,7 +219,7 @@ public class IndentedStringBuilder(string indentString = "\t")
 
 		public void AppendFormatted(ITypeSymbol type)
 		{
-			_builder.Write(Compilation.GetMinimalString(type));
+			_builder.Write(Compilation?.GetMinimalString(type) ?? type.ToString());
 		}
 
 		public void AppendFormatted(LiteralString literal)
@@ -234,18 +243,28 @@ public class IndentedStringBuilder(string indentString = "\t")
 		public void AppendFormatted(IEnumerable items)
 		{
 			var enumerator = items.GetEnumerator();
-
-			if (!enumerator.MoveNext())
+			
+			try
 			{
-				return;
+				if (!enumerator.MoveNext())
+				{
+					return;
+				}
+
+				_builder.Write(enumerator.Current);
+
+				while (enumerator.MoveNext())
+				{
+					AppendLiteral(", ");
+					AppendFormatted(enumerator.Current);
+				}
 			}
-
-			_builder.Write(enumerator.Current);
-
-			while (enumerator.MoveNext())
+			finally
 			{
-				AppendLiteral(", ");
-				AppendFormatted(enumerator.Current);
+				if (enumerator is IDisposable disposable)
+				{
+					disposable.Dispose();
+				}
 			}
 		}
 
@@ -276,4 +295,3 @@ public enum WhitespacePadding
 	After,
 	BeforeAndAfter
 }
-

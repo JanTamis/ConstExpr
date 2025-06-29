@@ -560,12 +560,12 @@ public static class CompilationExtensions
 
 		if (items.IsZero())
 		{
-			return $"{vectorType}.Zero";
+			return $"{vectorType}<{elementType}>.Zero";
 		}
 
 		if (items.IsOne())
 		{
-			return $"{vectorType}.One";
+			return $"{vectorType}<{elementType}>.One";
 		}
 
 		if (items.Length == elementCount)

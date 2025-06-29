@@ -29,8 +29,6 @@ Console.WriteLine(CommonPrefixLength([0, 0, 0, 1, 2, 2, 3, 3, 4, 4]));
 
 BenchmarkRunner.Run<ReplaceTest>();
 
-
-
 static int CommonPrefixLength(ReadOnlySpan<int> other)
 {
 	if (other.IsEmpty)
@@ -40,13 +38,13 @@ static int CommonPrefixLength(ReadOnlySpan<int> other)
 
 	ReadOnlySpan<int> thisData = [0, 0, 0, 1, 2, 2, 3, 3, 4, 4];
 
-	var position = 0;
-
 	// Use Vector<T> for generic vectorization
 	if (Vector.IsHardwareAccelerated)
 	{
+		var position = 0;
+		
 		var indexes = Vector<int>.Indices;
-		var lengthVector = Vector.MinNative(Vector.Create(other.Length), Vector.Create(10));
+		var lengthVector = Vector.Min(Vector.Create(other.Length), Vector.Create(10));
 		var countVector = Vector.Create(Vector<int>.Count);
 
 		while (true)
@@ -63,7 +61,9 @@ static int CommonPrefixLength(ReadOnlySpan<int> other)
 					4 => BitOperations.TrailingZeroCount(~Vector128.ExtractMostSignificantBits(equalMask.AsVector128())),
 					8 => BitOperations.TrailingZeroCount(~Vector256.ExtractMostSignificantBits(equalMask.AsVector256())),
 					16 => BitOperations.TrailingZeroCount(~Vector512.ExtractMostSignificantBits(equalMask.AsVector512())),
-					_ => ExtractMostSignificantBitsFallback(equalMask),
+					_ => thisData
+						.Slice(position)
+						.CommonPrefixLength(other),
 				};
 			}
 
@@ -73,20 +73,4 @@ static int CommonPrefixLength(ReadOnlySpan<int> other)
 	}
 
 	return thisData.CommonPrefixLength(other);
-
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	static int ExtractMostSignificantBitsFallback(Vector<int> mask)
-	{
-		// For larger vectors, fall back to element-wise checking
-		// This is slower but more reliable for arbitrary vector sizes
-		for (var i = 0; i < Vector<int>.Count; i++)
-		{
-			if (mask[i] == 0)
-			{
-				return i;
-			}
-		}
-
-		return Vector<int>.Count;
-	}
 }

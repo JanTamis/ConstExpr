@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 
 namespace ConstExpr.SourceGenerator.Builders;
@@ -97,18 +98,62 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 			case { Name: "CommonPrefixLength", ReturnType.SpecialType: SpecialType.System_Int32, Parameters.Length: 1 }
 				when compilation.IsSpanLikeType(method.Parameters[0].Type, elementType):
 			{
-				AppendMethod(builder, method, () =>
+				AppendMethod(builder, method, items.AsSpan(), isPerformance =>
 				{
-					if (elementType.SpecialType != SpecialType.None)
+					if (isPerformance && compilation.IsVectorSupported(elementType))
 					{
-						Append(method, "{1} != {0}");
+						builder.AppendLine($$"""
+							if (other.IsEmpty)
+							{
+								return 0;
+							}
+
+							if (Vector.IsHardwareAccelerated)
+							{
+								var position = 0;
+								
+								var indexes = Vector<{{elementType}}>.Indices;
+								var lengthVector = Vector.Min(Vector.Create(other.Length), Vector.Create({{items.Length.ToSpecialType(elementType.SpecialType)}}));
+								var countVector = Vector.Create(Vector<{{elementType}}>.Count);
+
+								while (true)
+								{
+									var thisVec = Vector.LoadUnsafe(ref MemoryMarshal.GetReference({{GetDataName(method.ContainingType)}}), (nuint)position);
+									var otherVec = Vector.LoadUnsafe(ref MemoryMarshal.GetReference(other), (nuint)position);
+
+									var equalMask = Vector.Equals(thisVec, otherVec) & Vector.LessThan(indexes, lengthVector);
+
+									if (equalMask != Vector<{{elementType}}>.AllBitsSet)
+									{
+										return position + Vector<{{elementType}}>.Count switch
+										{
+											{{(16 / compilation.GetByteSize(loader, elementType))}} => BitOperations.TrailingZeroCount(~Vector128.ExtractMostSignificantBits(equalMask.AsVector128())),
+											{{(32 / compilation.GetByteSize(loader, elementType))}} => BitOperations.TrailingZeroCount(~Vector256.ExtractMostSignificantBits(equalMask.AsVector256())),
+											{{(64 / compilation.GetByteSize(loader, elementType))}} => BitOperations.TrailingZeroCount(~Vector512.ExtractMostSignificantBits(equalMask.AsVector512())),
+											_ => {{GetDataName(method.ContainingType)}}
+												.Slice(position)
+												.CommonPrefixLength(other),
+										};
+									}
+
+									position += Vector<{{elementType}}>.Count;
+									indexes += countVector;
+								}
+							}
+								
+							return {{GetDataName(method.ContainingType)}}
+								.CommonPrefixLength(other);
+							""");
 					}
 					else
 					{
-						Append(method, $"!EqualityComparer<{elementType}>.Default.Equals({{0}}, {{1}})");
+						builder.AppendLine($"""
+							return {GetDataName(method.ContainingType)}
+								.CommonPrefixLength(other);
+							""");
 					}
 				});
-				
+
 				// AppendMethod(builder, method, items.AsSpan(), true, (vectorType, vectors, vectorSize) =>
 				// {
 				// 	Span<int> indexes = stackalloc int[vectorSize];
