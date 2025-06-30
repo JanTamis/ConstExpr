@@ -393,7 +393,8 @@ public static class SyntaxHelpers
 
 	public static bool IsIEnumerable(ITypeSymbol typeSymbol)
 	{
-		return typeSymbol.Name == "IEnumerable" && typeSymbol.ContainingNamespace.ToDisplayString() == "System.Collections.Generic";
+		return typeSymbol.Name == "IEnumerable" 
+			&& typeSymbol.ContainingNamespace.ToDisplayString() == "System.Collections.Generic";
 	}
 
 	public static bool IsIEnumerable(Compilation compilation, TypeSyntax typeSymbol, CancellationToken token = default)
@@ -403,7 +404,7 @@ public static class SyntaxHelpers
 					 && IsIEnumerable(namedTypeSymbol);
 	}
 
-	public static bool IsICollection(INamedTypeSymbol typeSymbol)
+	public static bool IsICollection(ITypeSymbol typeSymbol)
 	{
 		if (typeSymbol.Name == "ICollection" && typeSymbol.ContainingNamespace.ToDisplayString() == "System.Collections.Generic")
 		{
@@ -413,7 +414,7 @@ public static class SyntaxHelpers
 		return typeSymbol.Interfaces.Any(IsIEnumerableRecursive);
 	}
 
-	public static bool IsIList(INamedTypeSymbol typeSymbol)
+	public static bool IsIList(ITypeSymbol typeSymbol)
 	{
 		if (typeSymbol.Name == "IList" && typeSymbol.ContainingNamespace.ToDisplayString() == "System.Collections.Generic")
 		{

@@ -59,17 +59,17 @@ public static class Test
 		return nameof(Test);
 	}
 
-	public static ICustomCollection<int> Range(int count)
+	public static ICustomCollection<long> Range(int count)
 	{
 		var random = new Random();
-		var result = new List<int>(count);
+		var result = new List<long>(count);
 
 		for (var i = 0; i < count; i++)
 		{
-			result.Add(random.Next(5));
+			result.Add(random.NextInt64(5));
 		}
 
-		return result.OrderBy(o => o) as ICustomCollection<int>;
+		return result.OrderBy(o => o) as ICustomCollection<long>;
 	}
 
 	public static ICustomCollection<string> Split(string value, char separator)

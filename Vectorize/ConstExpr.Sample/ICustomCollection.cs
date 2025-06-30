@@ -33,7 +33,7 @@ public interface ICustomCollection<T>
 
 	TNumber Count<TNumber>(Func<T, bool> selector) where TNumber : INumber<TNumber>;
 	
-	IEnumerable<KeyValuePair<int, TCount>> CountBy<TCount>() where TCount : INumber<TCount>;
+	// IEnumerable<KeyValuePair<int, TCount>> CountBy<TCount>() where TCount : INumber<TCount>;
 
 	// int SequenceCompareTo(ReadOnlySpan<T> other);
 	

@@ -6,12 +6,11 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
 using System.Text;
 
 var range = Test.Range(10);
 
-Console.WriteLine(Test.IsOdd(1f, 2f, 3f, 4f, 5f));
+Console.WriteLine(Test.IsOdd(1, 2, 3, 4, 5));
 Console.WriteLine(Test.Average(1f, 2f, 3f, 4f, 5f));
 Console.WriteLine(Test.StdDev(1f, 2f, 3f, 4f, 5f));
 
@@ -24,6 +23,54 @@ Console.WriteLine(await Test.Waiting());
 Console.WriteLine(String.Join(", ", Test.Fibonacci(20)));
 Console.WriteLine(Test.RgbToHsl(150, 100, 50));
 
+Console.WriteLine(CommonPrefixLength([0, 0, 0, 1, 2, 2, 3, 3, 4, 4]));
+
 // Console.WriteLine(range.BinarySearch(2));
 
 BenchmarkRunner.Run<ReplaceTest>();
+
+static int CommonPrefixLength(ReadOnlySpan<int> other)
+{
+	if (other.IsEmpty)
+	{
+		return 0;
+	}
+
+	ReadOnlySpan<int> thisData = [0, 0, 0, 1, 2, 2, 3, 3, 4, 4];
+
+	// Use Vector<T> for generic vectorization
+	if (Vector.IsHardwareAccelerated)
+	{
+		var position = 0;
+		
+		var indexes = Vector<int>.Indices;
+		var lengthVector = Vector.Min(Vector.Create(other.Length), Vector.Create(10));
+		var countVector = Vector.Create(Vector<int>.Count);
+
+		while (true)
+		{
+			var thisVec = Vector.LoadUnsafe(ref MemoryMarshal.GetReference(thisData), (nuint)position);
+			var otherVec = Vector.LoadUnsafe(ref MemoryMarshal.GetReference(other), (nuint)position);
+
+			var equalMask = Vector.Equals(thisVec, otherVec) & Vector.LessThan(indexes, lengthVector);
+
+			if (equalMask != Vector<int>.AllBitsSet)
+			{
+				return position + Vector<int>.Count switch
+				{
+					4 => BitOperations.TrailingZeroCount(~Vector128.ExtractMostSignificantBits(equalMask.AsVector128())),
+					8 => BitOperations.TrailingZeroCount(~Vector256.ExtractMostSignificantBits(equalMask.AsVector256())),
+					16 => BitOperations.TrailingZeroCount(~Vector512.ExtractMostSignificantBits(equalMask.AsVector512())),
+					_ => thisData
+						.Slice(position)
+						.CommonPrefixLength(other),
+				};
+			}
+
+			position += Vector<int>.Count;
+			indexes += countVector;
+		}
+	}
+
+	return thisData.CommonPrefixLength(other);
+}

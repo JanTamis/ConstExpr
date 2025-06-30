@@ -496,22 +496,47 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 					{
 						array.SetValue(values[j], j);
 					}
+
 					variables[paramName] = array;
 				}
 				else
 				{
-					var listType = typeof(List<>).MakeGenericType(values[0].GetType());
-					var list = Activator.CreateInstance(listType);
-
-					if (list is IList listInstance)
+					if ((IsIEnumerable(methodSymbol.Parameters[i].Type) 
+						|| IsIList(methodSymbol.Parameters[i].Type)
+						|| IsICollection(methodSymbol.Parameters[i].Type)) && methodSymbol.Parameters[i].Type is INamedTypeSymbol enumerableType)
 					{
-						foreach (var item in values)
+						var type = loader.GetType(enumerableType.TypeArguments[0]);
+
+						var listType = typeof(List<>).MakeGenericType(type);
+						var list = Activator.CreateInstance(listType);
+
+						if (list is IList listInstance)
 						{
-							listInstance.Add(item);
+							foreach (var item in values)
+							{
+								listInstance.Add(Convert.ChangeType(item, type));
+							}
 						}
+
+						variables[paramName] = list;
 					}
-					variables[paramName] = list;
+					else
+					{
+						var listType = typeof(List<>).MakeGenericType(values[0].GetType());
+						var list = Activator.CreateInstance(listType);
+
+						if (list is IList listInstance)
+						{
+							foreach (var item in values)
+							{
+								listInstance.Add(item);
+							}
+						}
+
+						variables[paramName] = list;
+					}					
 				}
+
 				break;
 			}
 
