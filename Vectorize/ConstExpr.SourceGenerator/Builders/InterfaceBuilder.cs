@@ -95,21 +95,15 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 					return true;
 				}
 
-				using (builder.AppendBlock($"public {elementType} this[int index]"))
+				using (builder.AppendBlock($""))
 				{
-					// using (builder.AppendBlock("get => index switch", "};"))
-					// {
-					// 	var index = 0;
-					//
-					// 	foreach (var item in items.Index().GroupBy(g => g.Value, g => g.Index))
-					// 	{
-					// 		builder.AppendLine($"{(LiteralString)String.Join(" or ", item.Select(SyntaxHelpers.CreateLiteral))} => {item.Key},");
-					// 	}
-					//
-					// 	builder.AppendLine("_ => throw new ArgumentOutOfRangeException(),");
-					// }
-					builder.AppendLine($"get => {GetDataName()}[index];");
-					builder.AppendLine("set => throw new NotSupportedException();");
+					builder.AppendLine($$"""
+						public {{elementType}} this[int index]
+						{
+							get => {{GetDataName()}}[index];
+							set => throw new NotSupportedException();
+						}
+						""");
 				}
 
 				return true;
