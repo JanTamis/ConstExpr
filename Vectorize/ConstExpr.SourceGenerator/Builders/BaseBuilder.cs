@@ -123,7 +123,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 
 			var type = compilation.GetBestVectorType(elementType, loader, items.Length);
 
-			if (isPerformance && type != VectorTypes.None && compilation.IsVectorSupported(elementType))
+			if (isPerformance && type != VectorTypes.None && elementType.IsVectorSupported())
 			{
 				var vectors = new List<string>();
 
@@ -295,7 +295,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		return "Count";
 	}
 
-	protected LiteralString GetDataName(ISymbol type)
+	protected LiteralString GetDataName()
 	{
 		return (LiteralString) dataName; // $"{type.Name}_{hashCode}_Data";
 	}
@@ -398,12 +398,12 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		item.LessThan = BuildBinarySearchTree(low, index - 1, (int)((uint)(index - 1) + (uint)low >> 1), items, TreeNode<T>.NodeState.LessThan, item, values);
 		item.GreaterThan = BuildBinarySearchTree(index + 1, high, (int)((uint)high + (uint)(index + 1) >> 1), items, TreeNode<T>.NodeState.GreaterThan, item, values);
 
-		if (compilation.IsInterger(elementType) && item.LessThan.IsLeaf && CompareLessThan(item, item.Value.Subtract((T)Convert.ChangeType(1, typeof(T)))))
+		if (elementType.IsInterger() && item.LessThan.IsLeaf && CompareLessThan(item, item.Value.Subtract((T)Convert.ChangeType(1, typeof(T)))))
 		{
 			item.LessThan = null;
 		}
 
-		if (compilation.IsInterger(elementType) && item.GreaterThan.IsLeaf && CompareGreaterThan(item, item.Value.Add((T)Convert.ChangeType(1, typeof(T)))))
+		if (elementType.IsInterger() && item.GreaterThan.IsLeaf && CompareGreaterThan(item, item.Value.Add((T)Convert.ChangeType(1, typeof(T)))))
 		{
 			item.GreaterThan = null;
 		}
@@ -446,7 +446,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 
 		var checkVarName = "check";
 
-		if (!compilation.HasComparison(elementType))
+		if (!elementType.HasComparison())
 		{
 			// Generate comparison code only once
 			builder.AppendLine($"{(isFirst ? "var " : String.Empty)}{checkVarName} = " +
@@ -457,7 +457,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 
 		if (node.LessThan is not null)
 		{
-			if (compilation.HasComparison(elementType))
+			if (elementType.HasComparison())
 			{
 				// Generate branch logic
 				using (builder.AppendBlock($"if ({method.Parameters[0]} < {node.Value})"))
@@ -479,7 +479,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		{
 			if (node.LessThan is not null)
 			{
-				if (compilation.HasComparison(elementType))
+				if (elementType.HasComparison())
 				{
 					using (builder.AppendBlock($"else if ({method.Parameters[0]} > {node.Value})"))
 					{
@@ -496,7 +496,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 			}
 			else
 			{
-				if (compilation.HasComparison(elementType))
+				if (elementType.HasComparison())
 				{
 					using (builder.AppendBlock($"if ({method.Parameters[0]} > {node.Value})"))
 					{

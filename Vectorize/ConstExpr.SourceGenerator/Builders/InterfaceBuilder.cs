@@ -74,7 +74,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 				if (property.IsReadOnly)
 				{
-					builder.AppendLine($"public {elementType} this[int index] => {GetDataName(property.ContainingType)}[index];");
+					builder.AppendLine($"public {elementType} this[int index] => {GetDataName()}[index];");
 
 					// using (builder.AppendBlock($"public {elementType} this[int index] => index switch", "};"))
 					// {
@@ -108,7 +108,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 					//
 					// 	builder.AppendLine("_ => throw new ArgumentOutOfRangeException(),");
 					// }
-					builder.AppendLine($"get => {GetDataName(property.ContainingType)}[index];");
+					builder.AppendLine($"get => {GetDataName()}[index];");
 					builder.AppendLine("set => throw new NotSupportedException();");
 				}
 
@@ -128,7 +128,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 			{
 				AppendMethod(builder, method, () =>
 				{
-					builder.AppendLine($"{GetDataName(method.ContainingType)}.CopyTo({method.Parameters[0]});");
+					builder.AppendLine($"{GetDataName()}.CopyTo({method.Parameters[0]});");
 				});
 				return true;
 			}
@@ -137,7 +137,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 			{
 				AppendMethod(builder, method, () =>
 				{
-					builder.AppendLine($"{GetDataName(method.ContainingType)}.CopyTo({method.Parameters[0]}.AsSpan({method.Parameters[1]}));");
+					builder.AppendLine($"{GetDataName()}.CopyTo({method.Parameters[0]}.AsSpan({method.Parameters[1]}));");
 				});
 				return true;
 			}
@@ -219,7 +219,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 						var min = items.Min();
 						var max = items.Max();
 
-						if (compilation.IsInterger(elementType) && Comparer<object?>.Default.Compare(max.Subtract(min), 10.ToSpecialType(elementType.SpecialType)) <= 0)
+						if (elementType.IsInterger() && Comparer<object?>.Default.Compare(max.Subtract(min), 10.ToSpecialType(elementType.SpecialType)) <= 0)
 						{
 							var indexes = new List<int>();
 
@@ -259,7 +259,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 					}
 					else
 					{
-						builder.AppendLine($"return {GetDataName(method.ContainingType)}.IndexOf({method.Parameters[0]});");
+						builder.AppendLine($"return {GetDataName()}.IndexOf({method.Parameters[0]});");
 					}
 				});
 
@@ -322,7 +322,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 					.OrderBy(s => s)
 					.ToImmutableArray();
 
-				if (compilation.IsInterger(elementType))
+				if (elementType.IsInterger())
 				{
 					if (items.AsSpan().IsNumericSequence())
 					{
@@ -492,7 +492,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 							}
 							else
 							{
-								using (builder.AppendBlock($"if ({GetDataName(method.ContainingType)}.Contains(item))"))
+								using (builder.AppendBlock($"if ({GetDataName()}.Contains(item))"))
 								{
 									builder.AppendLine("return true;");
 								}

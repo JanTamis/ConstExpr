@@ -576,6 +576,16 @@ public static class CompilationExtensions
 				return $"{compilation.GetMinimalString(fullType)}.Indices";
 			}
 
+			if (items.IsSame(items[0]))
+			{
+				return elementType.SpecialType switch
+				{
+					SpecialType.System_Byte or SpecialType.System_SByte or SpecialType.System_Int16 or SpecialType.System_UInt16 or SpecialType.System_Char 
+						=> $"{vectorType}.Create<{compilation.GetMinimalString(elementType)}>({SyntaxHelpers.CreateLiteral(items[0])})",
+						_ => $"{vectorType}.Create({SyntaxHelpers.CreateLiteral(items[0])})"
+				};
+			}
+
 			// Check if items form an arithmetic sequence
 			if (items.Length >= 2 && staticType.HasMember<IMethodSymbol>("CreateSequence", m => m.Parameters.Length == 2))
 			{
@@ -599,16 +609,21 @@ public static class CompilationExtensions
 
 				if (isSequence && step != null)
 				{
-					return $"{vectorType}.CreateSequence({SyntaxHelpers.CreateLiteral(items[0])}, {SyntaxHelpers.CreateLiteral(step)})";
+					return elementType.SpecialType switch
+					{
+						SpecialType.System_Byte or SpecialType.System_SByte or SpecialType.System_Int16 or SpecialType.System_UInt16 or SpecialType.System_Char
+							=> $"{vectorType}.CreateSequence<{elementType}>({SyntaxHelpers.CreateLiteral(items[0])}, {SyntaxHelpers.CreateLiteral(step)})",
+						_ => $"{vectorType}.CreateSequence({SyntaxHelpers.CreateLiteral(items[0])}, {SyntaxHelpers.CreateLiteral(step)})"
+					};
 				}
 			}
 
-			if (items.IsSame(items[0]))
+			return elementType.SpecialType switch
 			{
-				return $"{vectorType}.Create<{compilation.GetMinimalString(elementType)}>({SyntaxHelpers.CreateLiteral(items[0])})";
-			}
-
-			return $"{vectorType}.Create({items.Join<T, object?>(", ", s => s is string ? s : SyntaxHelpers.CreateLiteral(s))})";
+				SpecialType.System_Byte or SpecialType.System_SByte or SpecialType.System_Int16 or SpecialType.System_UInt16 or SpecialType.System_Char
+					=> $"{vectorType}.Create<{elementType}>({items.Join<T, object?>(", ", s => s is string ? s : SyntaxHelpers.CreateLiteral(s))})",
+				_ => $"{vectorType}.Create({items.Join<T, object?>(", ", s => s is string ? s : SyntaxHelpers.CreateLiteral(s))})"
+			};
 		}
 
 		if (items.Length == 1)
@@ -732,7 +747,7 @@ public static class CompilationExtensions
 		return compilation.GetTypeByMetadataName($"System.Runtime.Intrinsics.{vectorType}`1")?.Construct(elementType);
 	}
 
-	public static bool IsVectorSupported(this Compilation compilation, ITypeSymbol elementType)
+	public static bool IsVectorSupported(this ITypeSymbol elementType)
 	{
 		return elementType.SpecialType is SpecialType.System_Byte
 			or SpecialType.System_Double
@@ -774,7 +789,7 @@ public static class CompilationExtensions
 			&& (compilation.GetTypeByMetadataName("System.MemoryExtensions")?.HasMember<IMethodSymbol>("Contains", m => m.ReturnType.SpecialType == SpecialType.System_Boolean && m.Parameters.AsSpan().EqualsTypes(elementType)) ?? false);
 	}
 
-	public static bool IsInterger(this Compilation compilation, ITypeSymbol typeSymbol)
+	public static bool IsInterger(this ITypeSymbol typeSymbol)
 	{
 		return typeSymbol.SpecialType is SpecialType.System_SByte
 			or SpecialType.System_Byte
@@ -786,7 +801,7 @@ public static class CompilationExtensions
 			or SpecialType.System_UInt64;
 	}
 
-	public static bool HasComparison(this Compilation compilation, ITypeSymbol typeSymbol)
+	public static bool HasComparison(this ITypeSymbol typeSymbol)
 	{
 		return typeSymbol.SpecialType is SpecialType.System_SByte
 			or SpecialType.System_Byte

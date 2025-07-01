@@ -51,15 +51,16 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 							}
 							else
 							{
-								builder.AppendLine($"var result = {GetDataName(method.ContainingType)}[0];");
-								builder.AppendLine();
+								builder.AppendLine($$"""
+									var result = {{GetDataName()}}[0];
 
-								using (builder.AppendBlock($"for (var i = 1; i < {GetDataName(method.ContainingType)}.Length; i++)", WhitespacePadding.After))
-								{
-									builder.AppendLine($"result = {method.Parameters[0]}(result, {GetDataName(method.ContainingType)}[i]);");
-								}
+									for (var i = 1; i < {{GetDataName()}}.Length; i++)
+									{
+										result = {{method.Parameters[0]}}(result, {{GetDataName()}}[i]);
+									}
 
-								builder.AppendLine("return result;");
+									return result;
+									""");
 							}
 							break;
 						}
@@ -291,17 +292,18 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 						builder.AppendLine($"var result = {0.ToSpecialType(method.ReturnType.SpecialType)};");
 					}
 
-					builder.AppendLine();
+					builder.AppendLine($$"""
 
-					using (builder.AppendBlock($"foreach (var item in {GetDataName(method.ContainingType)})", WhitespacePadding.After))
-					{
-						using (builder.AppendBlock($"if ({method.Parameters[0]}(item))"))
+						foreach (var item in {{GetDataName()}})
 						{
-							builder.AppendLine("result++;");
+							if ({{method.Parameters[0]}}(item))
+							{
+								result++;
+							}
 						}
-					}
 
-					builder.AppendLine("return result;");
+						return result;
+						""");
 				});
 
 				return true;
@@ -383,20 +385,20 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 						builder.AppendLine($"var seen = new HashSet<{funcReturnType}>({method.Parameters[1]});");
 					}
 
-					builder.AppendLine();
+					var dataName = GetDataName();
 
-					var dataName = GetDataName(method.ContainingType);
+					builder.AppendLine($$"""
 
-					using (builder.AppendBlock($"for (var i = 0; i < {dataName}.Length; i++)"))
-					{
-						builder.AppendLine($"var item = {dataName}[i];");
-						builder.AppendLine();
-
-						using (builder.AppendBlock("if (seen.Add(item))"))
+						for (var i = 0; i < {{dataName}}.Length; i++)
 						{
-							builder.AppendLine("yield return item;");
+							var item = {{dataName}}[i];
+							
+							if (seen.Add({{method.Parameters[0]}}(item)))
+							{
+								yield return item;
+							}
 						}
-					}
+						""");
 				});
 
 				return true;
@@ -430,10 +432,14 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					}
 					else
 					{
-						builder.AppendLine($"if ({method.Parameters[0]} < 0 || {method.Parameters[0]} >= {items.Length})");
-						builder.AppendLine("\tthrow new ArgumentOutOfRangeException(\"Index out of range\");");
-						builder.AppendLine();
-						builder.AppendLine($"return {items}[{method.Parameters[0]}];");
+						builder.AppendLine($$"""
+							if ({method.Parameters[0]} < 0 || {method.Parameters[0]} >= {{items.Length}})
+							{
+								throw new ArgumentOutOfRangeException("Index out of range");
+							}
+
+							return {{items}}[{{method.Parameters[0]}}];
+							""");
 					}
 				});
 
@@ -459,12 +465,16 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					}
 					else
 					{
-						builder.AppendLine($"var index = {method.Parameters[0]}.GetOffset({items.Length});");
-						builder.AppendLine();
-						builder.AppendLine($"if (index < 0 || index >= {items.Length})");
-						builder.AppendLine("\tthrow new ArgumentOutOfRangeException(\"Index out of range\");");
-						builder.AppendLine();
-						builder.AppendLine($"return {items}[index];");
+						builder.AppendLine($$"""
+							var index = {{method.Parameters[0]}}.GetOffset({{items.Length}});
+
+							if (index < 0 || index >= {{items.Length}})
+							{
+								throw new ArgumentOutOfRangeException("Index out of range");
+							}
+
+							return {{items}}[index];
+							""");
 					}
 				});
 
@@ -499,10 +509,14 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					}
 					else
 					{
-						builder.AppendLine($"if ({method.Parameters[0]} < 0 || {method.Parameters[0]} >= {items.Length})");
-						builder.AppendLine("\treturn default;");
-						builder.AppendLine();
-						builder.AppendLine($"return {items}[{method.Parameters[0]}];");
+						builder.AppendLine($$"""
+							if ({{method.Parameters[0]}} < 0 || {{method.Parameters[0]}} >= {{items.Length}})
+							{
+								return default;
+							}
+
+							return {{items}}[{{method.Parameters[0]}}];
+							""");
 					}
 				});
 
@@ -528,12 +542,16 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					}
 					else
 					{
-						builder.AppendLine($"var index = {method.Parameters[0]}.GetOffset({items.Length});");
-						builder.AppendLine();
-						builder.AppendLine($"if (index < 0 || index >= {items.Length})");
-						builder.AppendLine($"\treturn {elementType.GetDefaultValue()};");
-						builder.AppendLine();
-						builder.AppendLine($"return {items}[index];");
+						builder.AppendLine($$"""
+							var index = {{method.Parameters[0]}}.GetOffset({{items.Length}});
+
+							if (index < 0 || index >= {{items.Length}})
+							{
+								return {{elementType.GetDefaultValue()}};
+							}
+
+							return {{items}}[index];
+							""");
 					}
 				});
 
@@ -598,15 +616,17 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					}
 					else
 					{
-						using (builder.AppendBlock($"foreach (var item in {GetDataName(method.ContainingType)})", WhitespacePadding.After))
-						{
-							using (builder.AppendBlock($"if ({method.Parameters[0]}(item))"))
+						builder.AppendLine($$"""
+							foreach (var item in {{GetDataName()}})
 							{
-								builder.AppendLine("return item;");
+								if ({{method.Parameters[0]}}(item))
+								{
+									return item;
+								}
 							}
-						}
-
-						builder.AppendLine("throw new InvalidOperationException(\"Sequence contains no matching element\");");
+							
+							throw new InvalidOperationException("Sequence contains no matching element");
+							""");
 					}
 				});
 
@@ -668,15 +688,17 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					}
 					else
 					{
-						using (builder.AppendBlock($"foreach (var item in {GetDataName(method.ContainingType)})", WhitespacePadding.After))
-						{
-							using (builder.AppendBlock($"if ({method.Parameters[0]}(item))"))
+						builder.AppendLine($$"""
+							foreach (var item in {{GetDataName()}})
 							{
-								builder.AppendLine("return item;");
+								if ({{method.Parameters[0]}}(item))
+								{
+									return item;
+								}
 							}
-						}
-
-						builder.AppendLine($"return {elementType.GetDefaultValue()};");
+							
+							return {{elementType.GetDefaultValue()}};
+							""");
 					}
 				});
 
@@ -769,15 +791,17 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					}
 					else
 					{
-						using (builder.AppendBlock($"for (var i = {GetDataName(method.ContainingType)} - 1; i >= 0; i--)", WhitespacePadding.After))
-						{
-							using (builder.AppendBlock($"if ({method.Parameters[0]}({GetDataName(method.ContainingType)}[i]))"))
+						builder.AppendLine($$"""
+							for (var i = {{GetDataName()}}.Length - 1; i >= 0; i--)
 							{
-								builder.AppendLine($"return {GetDataName(method.ContainingType)}[i];");
+								if ({{method.Parameters[0]}}({{GetDataName()}}[i]))
+								{
+									return {{GetDataName()}}[i];
+								}
 							}
-						}
 
-						builder.AppendLine("throw new InvalidOperationException(\"Sequence contains no matching element\");");
+							throw new InvalidOperationException("Sequence contains no matching element");
+							""");
 					}
 				});
 
@@ -839,15 +863,17 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					}
 					else
 					{
-						using (builder.AppendBlock($"for (var i = {GetDataName(method.ContainingType)} - 1; i >= 0; i--)", WhitespacePadding.After))
-						{
-							using (builder.AppendBlock($"if ({method.Parameters[0]}({GetDataName(method.ContainingType)}[i]))"))
+						builder.AppendLine($$"""
+							for (var i = {{GetDataName()}}.Length - 1; i >= 0; i--)
 							{
-								builder.AppendLine($"return {GetDataName(method.ContainingType)}[i];");
+								if ({{method.Parameters[0]}}({{GetDataName()}}[i]))
+								{
+									return {{GetDataName()}}[i];
+								}
 							}
-						}
-
-						builder.AppendLine($"return {elementType.GetDefaultValue()};");
+							
+							return {{elementType.GetDefaultValue()}};
+							""");
 					}
 				});
 
@@ -943,10 +969,12 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					}
 					else
 					{
-						using (builder.AppendBlock($"foreach (var item in {GetDataName(method.ContainingType)})"))
-						{
-							builder.AppendLine($"yield return {method.Parameters[0]}(item);");
-						}
+						builder.AppendLine($$"""
+							foreach (var item in {{GetDataName()}})
+							{
+								yield return {{method.Parameters[0]}}(item);
+							}
+							""");
 					}
 				});
 
@@ -1093,8 +1121,10 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			{
 				AppendMethod(builder, method, () =>
 				{
-					builder.AppendLine($"{method.Parameters[0]} = {items.Length};");
-					builder.AppendLine("return true;");
+					builder.AppendLine($"""
+						{method.Parameters[0]} = {items.Length};
+						return true
+						""");
 				});
 
 				return true;
@@ -1123,13 +1153,15 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					}
 					else
 					{
-						using (builder.AppendBlock($"for (var i = 0; i < {GetDataName(method.ContainingType)}.Length; i++)"))
-						{
-							using (builder.AppendBlock($"if ({method.Parameters[0]}({GetDataName(method.ContainingType)}[i]))"))
+						builder.AppendLine($$"""
+							for (var i = 0; i < {{GetDataName()}}.Length; i++)
 							{
-								builder.AppendLine($"yield return {GetDataName(method.ContainingType)}[i];");
+								if ({{method.Parameters[0]}}({{GetDataName()}}[i]))
+								{
+									yield return {{GetDataName()}}[i];
+								}
 							}
-						}
+							""");
 					}
 				});
 
@@ -1293,10 +1325,12 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			{
 				AppendMethod(builder, method, () =>
 				{
-					using (builder.AppendBlock($"for (var i = Math.Min({method.Parameters[0]}, {items.Length}) i < {items.Length}; i++)"))
-					{
-						builder.AppendLine($"yield return {GetDataName(method.ContainingType)}[i];");
-					}
+					builder.AppendLine($$"""
+						for (var i = Math.Min({{method.Parameters[0]}}, {{items.Length}}) i < {{items.Length}}; i++)
+						{
+							yield return {{GetDataName()}}[i];
+						} 
+						""");
 				});
 				return true;
 			}
@@ -1315,10 +1349,12 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			{
 				AppendMethod(builder, method, () =>
 				{
-					using (builder.AppendBlock($"for (var i = 0; i < Math.Min({method.Parameters[0]}, {items.Length}); i++) i < {items.Length}; i++)"))
-					{
-						builder.AppendLine($"yield return {GetDataName(method.ContainingType)}[i];");
-					}
+					builder.AppendLine($$"""
+						for (var i = 0; i < Math.Min({{method.Parameters[0]}}, {{items.Length}}); i++) i < {{items.Length}}; i++)
+						{
+							yield return {{GetDataName()}}[i];
+						}
+						""");
 				});
 				return true;
 			}
@@ -1346,7 +1382,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					builder.AppendLine();
 
 					// GetDataName(method.ContainingType) should resolve to the name of the const array field
-					using (builder.AppendBlock($"foreach (var item in {GetDataName(method.ContainingType)})", WhitespacePadding.After))
+					using (builder.AppendBlock($"foreach (var item in {GetDataName()})", WhitespacePadding.After))
 					{
 						builder.AppendLine($"var key = {method.Parameters[0]}(item);");
 						builder.AppendLine();
@@ -1449,14 +1485,14 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 						builder.AppendLine($"using var {parameter}Enumerator = {parameter}.GetEnumerator();");
 					}
 
-					builder.AppendLine();
+					builder.AppendLine($$"""
 
-					using (builder.AppendBlock($"for (var i = 0; i < {GetDataName(method.ContainingType)}.Length && {(LiteralString) String.Join(" && ", method.Parameters.Select(p => $"{p.Name}Enumerator.MoveNext()"))}; i++)"))
-					{
-						builder.AppendLine($"yield return ({GetDataName(method.ContainingType)}[i], {(LiteralString) String.Join(", ", method.Parameters.Select(p => $"{p.Name}Enumerator.Current"))});");
-					}
+						for (var i = 0; i < {{GetDataName()}}.Length && {{(LiteralString) String.Join(" && ", method.Parameters.Select(p => $"{p.Name}Enumerator.MoveNext()"))}}; i++)
+						{
+							yield return ({{GetDataName()}}[i], {{(LiteralString) String.Join(", ", method.Parameters.Select(p => $"{p.Name}Enumerator.Current"))}});
+						}
+						""");
 				});
-
 
 				return true;
 			}
@@ -1481,12 +1517,12 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					}
 					else
 					{
-						var dataName = GetDataName(method.ContainingType);
-
-						using (builder.AppendBlock($"for (var i = 0; i < {dataName}.Length; i += {method.Parameters[0]})"))
-						{
-							builder.AppendLine($"yield return {dataName}.Slice(i, Math.Min({method.Parameters[0]}, {dataName}.Length - i)).ToArray();");
-						}
+						builder.AppendLine($$"""
+							for (var i = 0; i < {{GetDataName()}}.Length; i += {{method.Parameters[0]}})
+							{
+									yield return {{GetDataName()}}.Slice(i, Math.Min({{method.Parameters[0]}}, {{GetDataName()}}.Length - i)).ToArray();
+							}
+							""");
 					}
 				});
 
@@ -1515,16 +1551,17 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 						return;
 					}
 
-					builder.AppendLine($"var set = new HashSet<{elementType}>({method.Parameters});");
-					builder.AppendLine();
+					builder.AppendLine($$"""
+						var set = new HashSet<{{elementType}}>({{method.Parameters}});
 
-					using (builder.AppendBlock($"foreach (var item in {method.Parameters[0]})"))
-					{
-						using (builder.AppendBlock("if (set.Add(item))"))
+						foreach (var item in {{method.Parameters[0]}})
 						{
-							builder.AppendLine("yield return item;");
+							if (set.Add(item))
+							{
+								yield return item;
+							}
 						}
-					}
+						""");
 				});
 
 				return true;
@@ -1543,7 +1580,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 				     && method.Parameters[0].Type.EqualsType(compilation.CreateIEnumerable(elementType))
 				     && compilation.TryGetFuncType(method.Parameters[1].Type, out var typeFunc, out var keyType)
 				     && SymbolEqualityComparer.Default.Equals(typeFunc, elementType)
-						 && (method.Parameters.Length == 2 || method.Parameters[2].Type.EqualsType(compilation.CreateEqualityComparer(keyType))):
+				     && (method.Parameters.Length == 2 || method.Parameters[2].Type.EqualsType(compilation.CreateEqualityComparer(keyType))):
 			{
 				AppendMethod(builder, method, () =>
 				{
@@ -1562,16 +1599,17 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					{
 						builder.AppendLine($"var set = new HashSet<{keyType}>({method.Parameters[2]});");
 					}
-					
-					builder.AppendLine();
 
-					using (builder.AppendBlock($"foreach (var item in {method.Parameters[0]})"))
-					{
-						using (builder.AppendBlock($"if (set.Add({method.Parameters[1]}(item)))"))
+					builder.AppendLine($$"""
+						
+						foreach (var item in {{method.Parameters[0]}})
 						{
-							builder.AppendLine("yield return item;");
+							if (set.Add({{method.Parameters[1]}}(item)))
+							{
+								yield return item;
+							}
 						}
-					}
+						""");
 				});
 
 				return true;
