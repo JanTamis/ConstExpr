@@ -257,7 +257,6 @@ public static class CompilationExtensions
 			ITypeParameterSymbol parameter => parameter.ConstraintTypes.Any(a => compilation.HasMember<TSymbol>(a, name)),
 			_ => typeSymbol.GetMembers(name).OfType<TSymbol>().Any()
 		};
-
 	}
 
 	public static bool HasMember<TSymbol>(this Compilation compilation, Type type, string name)

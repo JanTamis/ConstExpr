@@ -145,16 +145,12 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 								}
 							}
 								
-							return {{GetDataName()}}
-								.CommonPrefixLength(other);
+							return {{GetDataName()}}.CommonPrefixLength(other);
 							""");
 					}
 					else
 					{
-						builder.AppendLine($"""
-							return {GetDataName()}
-								.CommonPrefixLength(other);
-							""");
+						builder.AppendLine($"return {GetDataName()}.CommonPrefixLength(other);");
 					}
 				});
 
@@ -168,10 +164,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 				{
 					if (isPerformance)
 					{
-						builder.AppendLine($$"""
-							return {{GetDataName()}}
-								.CommonPrefixLength({{method.Parameters}});
-							""");
+						builder.AppendLine($"return {GetDataName()}.CommonPrefixLength({method.Parameters});");
 					}
 					else
 					{
@@ -317,10 +310,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 				{
 					if (compilation.HasMember<IMethodSymbol>(compilation.GetTypeByMetadataName("System.MemoryExtensions"), "ContainsAnyInRange"))
 					{
-						builder.AppendLine($$"""
-							return {{GetDataName()}}
-								.ContainsAnyInRange({{method.Parameters}});
-							""");
+						builder.AppendLine($"return {GetDataName()}.ContainsAnyInRange({method.Parameters});");
 					}
 					else
 					{
@@ -413,10 +403,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 					}
 					else if (compilation.HasMember<IMethodSymbol>(compilation.GetTypeByMetadataName("System.MemoryExtensions"), "Count"))
 					{
-						builder.AppendLine($$"""
-							return {{GetDataName()}}
-								.Count({{method.Parameters[0]}});
-							""");
+						builder.AppendLine($"return {GetDataName()}.Count({method.Parameters[0]});");
 					}
 					else
 					{
@@ -476,10 +463,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 					}
 					else
 					{
-						builder.AppendLine($"""
-							return {GetDataName()}
-								.EndsWith({method.Parameters});
-							""");
+						builder.AppendLine($"return {GetDataName()}.EndsWith({method.Parameters});");
 					}
 				});
 
@@ -1097,10 +1081,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 				{
 					if (compilation.HasMember<IMethodSymbol>(compilation.GetTypeByMetadataName("System.MemoryExtensions"), "Replace"))
 					{
-						builder.AppendLine($"""
-							{GetDataName()}
-								.Replace({method.Parameters});
-							""");
+						builder.AppendLine($"{GetDataName()}.Replace({method.Parameters});");
 					}
 					else
 					{
