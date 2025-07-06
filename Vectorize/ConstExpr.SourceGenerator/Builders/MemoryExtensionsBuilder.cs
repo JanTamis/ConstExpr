@@ -106,6 +106,8 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 							? String.Empty
 							: $"({elementType})");
 						
+						var byteSize = compilation.GetByteSize(loader, elementType);
+						
 						builder.AppendLine($$"""
 							if (other.IsEmpty)
 							{
@@ -131,9 +133,9 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 									{
 										return position + Vector<{{elementType}}>.Count switch
 										{
-											{{(16 / compilation.GetByteSize(loader, elementType))}} => BitOperations.TrailingZeroCount(~Vector128.ExtractMostSignificantBits(equalMask.AsVector128())),
-											{{(32 / compilation.GetByteSize(loader, elementType))}} => BitOperations.TrailingZeroCount(~Vector256.ExtractMostSignificantBits(equalMask.AsVector256())),
-											{{(64 / compilation.GetByteSize(loader, elementType))}} => BitOperations.TrailingZeroCount(~Vector512.ExtractMostSignificantBits(equalMask.AsVector512())),
+											{{16 / byteSize}} => BitOperations.TrailingZeroCount(~Vector128.ExtractMostSignificantBits(equalMask.AsVector128())),
+											{{32 / byteSize}} => BitOperations.TrailingZeroCount(~Vector256.ExtractMostSignificantBits(equalMask.AsVector256())),
+											{{64 / byteSize}} => BitOperations.TrailingZeroCount(~Vector512.ExtractMostSignificantBits(equalMask.AsVector512())),
 											_ => {{GetDataName()}}
 												.Slice(position)
 												.CommonPrefixLength(other),
@@ -190,20 +192,45 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		}
 	}
 
-	// public bool AppendContainsAny<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
-	// {
-	// 	switch (method)
-	// 	{
-	// 		case { Name: "ContainsAny", ReturnType.SpecialType: SpecialType.System_Boolean, Parameters.Length: > 0 }
-	// 			when method.Parameters.All(a => SymbolEqualityComparer.Default.Equals(a.Type, elementType)):
-	// 		{
-	// 			AppendContainsAny(method.ContainingType, method, false, items, builder);
-	// 			return true;
-	// 		}
-	// 		default:
-	// 			return false;
-	// 	}
-	// }
+	public bool AppendContainsAny<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
+	{
+		switch (method)
+		{
+			case { Name: "ContainsAny", ReturnType.SpecialType: SpecialType.System_Boolean, Parameters.Length: > 0 }
+				when method.Parameters.All(a => SymbolEqualityComparer.Default.Equals(a.Type, elementType)):
+			{
+				if (items.Length == 0)
+				{
+					AppendMethod(builder, method, () =>
+					{
+						builder.AppendLine("return false;");
+					});
+				}
+				else
+				{
+					AppendMethod(builder, method, items.AsSpan(), false, (vectorType, vectors, vectorSize) =>
+					{
+						foreach (var parameter in method.Parameters)
+						{
+							builder.AppendLine($"var {parameter.Name}Vector = {vectorType}.Create({parameter.Name});");
+						}
+
+						builder.AppendLine();
+						
+						
+
+					}, isPerformance =>
+					{
+						
+					});
+				}
+				
+				return true;
+			}
+			default:
+				return false;
+		}
+	}
 	//
 	// public bool AppendContainsAnyExcept<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
 	// {
