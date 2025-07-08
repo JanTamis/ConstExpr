@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Net;
 using System.Runtime.CompilerServices;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 
@@ -102,12 +103,12 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 				{
 					if (isPerformance && elementType.IsVectorSupported())
 					{
-						var cast = (LiteralString)(elementType.EqualsType(compilation.CreateInt32())
+						var cast = (LiteralString) (elementType.EqualsType(compilation.CreateInt32())
 							? String.Empty
 							: $"({elementType})");
-						
+
 						var byteSize = compilation.GetByteSize(loader, elementType);
-						
+
 						builder.AppendLine($$"""
 							if (other.IsEmpty)
 							{
@@ -196,9 +197,13 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	{
 		switch (method)
 		{
-			case { Name: "ContainsAny", ReturnType.SpecialType: SpecialType.System_Boolean, Parameters.Length: > 0 }
+			case { Name: "ContainsAny", ReturnType.SpecialType: SpecialType.System_Boolean, Parameters.Length: > 1 }
 				when method.Parameters.All(a => SymbolEqualityComparer.Default.Equals(a.Type, elementType)):
 			{
+				items = items
+					.Distinct()
+					.ToImmutableArray();
+
 				if (items.Length == 0)
 				{
 					AppendMethod(builder, method, () =>
@@ -208,23 +213,48 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 				}
 				else
 				{
-					AppendMethod(builder, method, items.AsSpan(), false, (vectorType, vectors, vectorSize) =>
+					AppendMethod(builder, method, items.AsSpan(), true, (vectorType, vectors, vectorSize) =>
 					{
 						foreach (var parameter in method.Parameters)
 						{
-							builder.AppendLine($"var {parameter.Name}Vector = {vectorType}.Create({parameter.Name});");
+							builder.AppendLine($"var {(LiteralString) parameter.Name}Vector = {vectorType}.Create({(LiteralString) parameter.Name});");
 						}
 
 						builder.AppendLine();
-						
-						
 
+						var checks = method.Parameters
+							.SelectMany(s => vectors
+								.Select(x => $"{vectorType}.Equals({s.Name}Vector, {x})"));
+
+						if (compilation.GetVectorType(vectorType).HasMember<IMethodSymbol>("AnyWhereAllBitsSet", m => m is { ReturnType.SpecialType: SpecialType.System_Boolean }))
+						{
+							builder.AppendLine(CreatePadding("|", $"return {vectorType}.AnyWhereAllBitsSet(", checks, false, false) + ");");
+						}
+						else
+						{
+							builder.AppendLine(CreatePadding("|", "return (", checks, false, false) + $") != {vectorType}<{elementType}>.Zero;");
+						}
 					}, isPerformance =>
 					{
-						
+						if (method.ContainingType.HasMember<IMethodSymbol>("Contains", m => m is { ReturnType.SpecialType: SpecialType.System_Boolean }
+						                                                                    && m.Parameters.AsSpan().EqualsTypes(elementType)))
+						{
+							var checks = method.Parameters
+								.Select(s => $"Contains({s.Name})");
+
+							builder.AppendLine(CreateReturnPadding("||", checks));
+						}
+						else if (method.Parameters.Length <= 3)
+						{
+							builder.AppendLine($"return {GetDataName()}.ContainsAny({method.Parameters});");
+						}
+						else
+						{
+							builder.AppendLine($"return {GetDataName()}.ContainsAny([{method.Parameters}]);");
+						}
 					});
 				}
-				
+
 				return true;
 			}
 			default:
@@ -305,10 +335,10 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 					}
 
 					builder.AppendLine($$"""
-						
+
 						var {{method.Parameters[0]}}Vector = {{vectorType}}.Create({{method.Parameters[0]}});
 						var {{method.Parameters[1]}}Vector = {{vectorType}}.Create({{method.Parameters[1]}});
-						
+
 						""");
 
 					if (compilation.HasMember<IMethodSymbol>(compilation.GetVectorType(vectorType), "AnyWhereAllBitsSet"))
@@ -349,7 +379,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 									return true;
 								}
 							}
-							
+
 							return false;
 							""");
 					}
@@ -1067,10 +1097,10 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 
 					builder.AppendLine($"""
 						ref var {method.Parameters[0]}Reference = ref MemoryMarshal.GetReference({method.Parameters[0]});
-						
+
 						var {method.Parameters[1]}Vector = {vectorType}.Create({method.Parameters[1]});
 						var {method.Parameters[2]}Vector = {vectorType}.Create({method.Parameters[2]});
-						
+
 						""");
 
 					for (var i = 0; i < vectors.Count; i++)

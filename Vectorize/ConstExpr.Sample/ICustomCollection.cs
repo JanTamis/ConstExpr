@@ -25,6 +25,8 @@ public interface ICustomCollection<T>
 	
 	bool ContainsAnyInRange(T min, T max);
 
+	bool ContainsAny(T element1, T element2, T element3);
+
 	// int IndexOf(T item);
 
 	void Replace(Span<T> destination, T oldValue, T newValue);
@@ -37,7 +39,6 @@ public interface ICustomCollection<T>
 
 	// int SequenceCompareTo(ReadOnlySpan<T> other);
 	
-	// bool ContainsAny(T element1, T element2, T element3, T element4);
 	// bool ContainsAnyExcept(T element1, T element2, T element3, T element4);
 	
 	// bool EndsWith(T item);
