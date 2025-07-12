@@ -324,7 +324,14 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 						{
 							if (items.AsSpan(0, 1).IsZero() && compilation.TryGetUnsignedType(elementType, out var unsignedType))
 							{
-								builder.AppendLine($"return ({unsignedType}){method.Parameters[0]} <= {items[^1].ToSpecialType(unsignedType.SpecialType)};");
+								if (unsignedType.EqualsType(unsignedType))
+								{
+									builder.AppendLine($"return {method.Parameters[0]} <= {items[^1].ToSpecialType(unsignedType.SpecialType)};");
+								}
+								else
+								{
+									builder.AppendLine($"return ({unsignedType}){method.Parameters[0]} <= {items[^1].ToSpecialType(unsignedType.SpecialType)};");
+								}
 							}
 							else
 							{

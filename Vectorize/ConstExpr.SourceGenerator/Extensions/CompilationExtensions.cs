@@ -146,15 +146,19 @@ public static class CompilationExtensions
 		switch (typeSymbol.SpecialType)
 		{
 			case SpecialType.System_SByte:
+			case SpecialType.System_Byte:
 				unsignedType = compilation.GetSpecialType(SpecialType.System_Byte);
 				return true;
 			case SpecialType.System_Int16:
+			case SpecialType.System_UInt16:
 				unsignedType = compilation.GetSpecialType(SpecialType.System_UInt16);
 				return true;
 			case SpecialType.System_Int32:
+			case SpecialType.System_UInt32:
 				unsignedType = compilation.GetSpecialType(SpecialType.System_UInt32);
 				return true;
 			case SpecialType.System_Int64:
+			case SpecialType.System_UInt64:
 				unsignedType = compilation.GetSpecialType(SpecialType.System_UInt64);
 				return true;
 			default:
@@ -567,22 +571,19 @@ public static class CompilationExtensions
 			return $"{vectorType}<{elementType}>.One";
 		}
 
+		if (!items.IsEmpty && items.IsSame(items[0]))
+		{
+			return elementType.NeedsCast()
+				? $"{vectorType}.Create<{elementType}>({SyntaxHelpers.CreateLiteral(items[0])})"
+				: $"{vectorType}.Create({SyntaxHelpers.CreateLiteral(items[0])})";
+		}
+
 		if (items.Length == elementCount)
 		{
 			// Check if all items match their indices (0,1,2,...)
 			if (items.IsSequence(vectorElementType) && fullType.HasMember<IPropertySymbol>("Indices"))
 			{
 				return $"{compilation.GetMinimalString(fullType)}.Indices";
-			}
-
-			if (items.IsSame(items[0]))
-			{
-				return elementType.SpecialType switch
-				{
-					SpecialType.System_Byte or SpecialType.System_SByte or SpecialType.System_Int16 or SpecialType.System_UInt16 or SpecialType.System_Char 
-						=> $"{vectorType}.Create<{compilation.GetMinimalString(elementType)}>({SyntaxHelpers.CreateLiteral(items[0])})",
-						_ => $"{vectorType}.Create({SyntaxHelpers.CreateLiteral(items[0])})"
-				};
 			}
 
 			// Check if items form an arithmetic sequence
@@ -608,36 +609,30 @@ public static class CompilationExtensions
 
 				if (isSequence && step != null)
 				{
-					return elementType.SpecialType switch
-					{
-						SpecialType.System_Byte or SpecialType.System_SByte or SpecialType.System_Int16 or SpecialType.System_UInt16 or SpecialType.System_Char
-							=> $"{vectorType}.CreateSequence<{elementType}>({SyntaxHelpers.CreateLiteral(items[0])}, {SyntaxHelpers.CreateLiteral(step)})",
-						_ => $"{vectorType}.CreateSequence({SyntaxHelpers.CreateLiteral(items[0])}, {SyntaxHelpers.CreateLiteral(step)})"
-					};
+					return elementType.NeedsCast()
+						? $"{vectorType}.CreateSequence<{elementType}>({SyntaxHelpers.CreateLiteral(items[0])}, {SyntaxHelpers.CreateLiteral(step)})"
+						: $"{vectorType}.CreateSequence({SyntaxHelpers.CreateLiteral(items[0])}, {SyntaxHelpers.CreateLiteral(step)})";
 				}
 			}
-
-			return elementType.SpecialType switch
-			{
-				SpecialType.System_Byte or SpecialType.System_SByte or SpecialType.System_Int16 or SpecialType.System_UInt16 or SpecialType.System_Char
-					=> $"{vectorType}.Create<{elementType}>({items.Join<T, object?>(", ", s => s is string ? s : SyntaxHelpers.CreateLiteral(s))})",
-				_ => $"{vectorType}.Create({items.Join<T, object?>(", ", s => s is string ? s : SyntaxHelpers.CreateLiteral(s))})"
-			};
-		}
-
-		if (items.Length == 1)
-		{
-			return $"{vectorType}.Create({SyntaxHelpers.CreateLiteral(items[0])})";
+			
+			return elementType.NeedsCast()
+				? $"{vectorType}.Create<{elementType}>({items.Join<T, object?>(", ", s => s is string ? s : SyntaxHelpers.CreateLiteral(s))})"
+				: $"{vectorType}.Create({items.Join<T, object?>(", ", s => s is string ? s : SyntaxHelpers.CreateLiteral(s))})";
 		}
 
 		if (isRepeating)
 		{
-			if (items.IsSame(items[0]))
+			if (elementType.NeedsCast())
 			{
-				return $"{vectorType}.Create({SyntaxHelpers.CreateLiteral(items[0])})";
+				return $"{vectorType}.Create({items.Join<T, object?>(", ", elementCount, s => s is string ? s : $"({compilation.GetMinimalString(elementType)}){SyntaxHelpers.CreateLiteral(s)}")})";
 			}
 			
 			return $"{vectorType}.Create({items.Join<T, object?>(", ", elementCount, s => s is string ? s : SyntaxHelpers.CreateLiteral(s))})";
+		}
+
+		if (elementType.NeedsCast())
+		{
+			return $"{vectorType}.Create({items.JoinWithPadding<T, object?>(", ", elementCount, (T) 0.ToSpecialType(elementType.SpecialType), s => s is string ? s : $"({compilation.GetMinimalString(elementType)}){SyntaxHelpers.CreateLiteral(s)}")})";
 		}
 
 		return $"{vectorType}.Create({items.JoinWithPadding<T, object?>(", ", elementCount, (T) 0.ToSpecialType(elementType.SpecialType), s => s is string ? s : SyntaxHelpers.CreateLiteral(s))})";
@@ -689,26 +684,22 @@ public static class CompilationExtensions
 
 		switch (size)
 		{
-			case >= 64
-				when limit is VectorTypes.Vector512:
+			case >= 64 when limit is VectorTypes.Vector512:
 				vector = GetCreateVector(compilation, VectorTypes.Vector512, elementType, loader, false, items);
 				vectorSize = 64 / elementSize;
 
 				return VectorTypes.Vector512;
-			case >= 32
-				when limit is VectorTypes.Vector512 or VectorTypes.Vector256:
+			case >= 32 when limit is VectorTypes.Vector512 or VectorTypes.Vector256:
 				vector = GetCreateVector(compilation, VectorTypes.Vector256, elementType, loader, false, items);
 				vectorSize = 32 / elementSize;
 
 				return VectorTypes.Vector256;
-			case >= 16
-				when limit is VectorTypes.Vector512 or VectorTypes.Vector256 or VectorTypes.Vector128:
+			case >= 16 when limit is VectorTypes.Vector512 or VectorTypes.Vector256 or VectorTypes.Vector128:
 				vector = GetCreateVector(compilation, VectorTypes.Vector128, elementType, loader, false, items);
 				vectorSize = 16 / elementSize;
 
 				return VectorTypes.Vector128;
-			case >= 8
-				when limit is VectorTypes.Vector512 or VectorTypes.Vector256 or VectorTypes.Vector128 or VectorTypes.Vector64:
+			case >= 8 when limit is VectorTypes.Vector512 or VectorTypes.Vector256 or VectorTypes.Vector128 or VectorTypes.Vector64:
 				vector = GetCreateVector(compilation, VectorTypes.Vector64, elementType, loader, false, items);
 				vectorSize = 8 / elementSize;
 
@@ -870,19 +861,25 @@ public static class CompilationExtensions
 
 		var vectorTypes = new[]
 		{
-			// (VectorTypes.Vector64, 8),
+			(VectorTypes.Vector64, 8),
 			(VectorTypes.Vector128, 16),
 			(VectorTypes.Vector256, 32),
 			(VectorTypes.Vector512, 64)
 		};
 
+		// if (size <= vectorTypes[0].Item2)
+		// {
+		// 	return VectorTypes.Vector128;
+		// }
+
 		var best = vectorTypes
 			.Select(vt => (Type: vt.Item1, Mod: Math.Abs(size % vt.Item2)))
 			.OrderBy(v => v.Mod)
 			.ThenByDescending(v => v.Type)
+			.Select(s => s.Type)
 			.First();
 
-		return best.Type;
+		return best;
 	}
 
 	public static bool TryGetIEnumerableType(this Compilation compilation, ITypeSymbol typeSymbol, out ITypeSymbol? elementType)
@@ -923,5 +920,14 @@ public static class CompilationExtensions
 		elementType = null;
 		returnType = null;
 		return false;
+	}
+
+	public static bool NeedsCast(this ITypeSymbol type)
+	{
+		return type.SpecialType is SpecialType.System_Byte
+			or SpecialType.System_SByte
+			or SpecialType.System_Int16
+			or SpecialType.System_UInt16
+			or SpecialType.System_Decimal;
 	}
 }

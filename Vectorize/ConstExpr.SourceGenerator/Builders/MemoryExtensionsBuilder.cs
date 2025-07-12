@@ -110,7 +110,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 						var byteSize = compilation.GetByteSize(loader, elementType);
 
 						builder.AppendLine($$"""
-							if (other.IsEmpty)
+							if ({{method.Parameters[0]}}.IsEmpty)
 							{
 								return 0;
 							}
@@ -120,13 +120,13 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 								var position = 0;
 								
 								var indexes = Vector<{{elementType}}>.Indices;
-								var lengthVector = Vector.Create(Math.Min({{cast}}other.Length, {{items.Length.ToSpecialType(elementType.SpecialType)}}));
+								var lengthVector = Vector.Create(Math.Min({{cast}}{{method.Parameters[0]}}.Length, {{(LiteralString)(elementType.NeedsCast() ? $"({compilation.GetMinimalString(elementType)})" : String.Empty)}}{{items.Length.ToSpecialType(elementType.SpecialType)}}));
 								var countVector = Vector.Create({{cast}}Vector<{{elementType}}>.Count);
 
 								while (true)
 								{
 									var thisVec = Vector.LoadUnsafe(ref MemoryMarshal.GetReference({{GetDataName()}}), (nuint)position);
-									var otherVec = Vector.LoadUnsafe(ref MemoryMarshal.GetReference(other), (nuint)position);
+									var otherVec = Vector.LoadUnsafe(ref MemoryMarshal.GetReference({{method.Parameters[0]}}), (nuint)position);
 
 									var equalMask = Vector.Equals(thisVec, otherVec) & Vector.LessThan(indexes, lengthVector);
 
@@ -139,7 +139,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 											{{64 / byteSize}} => BitOperations.TrailingZeroCount(~Vector512.ExtractMostSignificantBits(equalMask.AsVector512())),
 											_ => {{GetDataName()}}
 												.Slice(position)
-												.CommonPrefixLength(other),
+												.CommonPrefixLength({{method.Parameters[0]}}),
 										};
 									}
 
@@ -148,12 +148,12 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 								}
 							}
 								
-							return {{GetDataName()}}.CommonPrefixLength(other);
+							return {{GetDataName()}}.CommonPrefixLength({{method.Parameters[0]}});
 							""");
 					}
 					else
 					{
-						builder.AppendLine($"return {GetDataName()}.CommonPrefixLength(other);");
+						builder.AppendLine($"return {GetDataName()}.CommonPrefixLength({method.Parameters[0]});");
 					}
 				});
 
