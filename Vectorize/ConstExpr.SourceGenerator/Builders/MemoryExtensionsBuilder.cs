@@ -23,9 +23,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 				     && elementType.HasMethod("CompareTo", m => m is { ReturnType.SpecialType: SpecialType.System_Int32 }
 				                                                               && m.Parameters.AsSpan().EqualsTypes(elementType)):
 			{
-				items = items
-					.OrderBy(o => o)
-					.ToImmutableArray();
+				items = items.Sort();
 
 				AppendMethod(builder, method, items.AsSpan(), isPerformance =>
 				{
@@ -39,9 +37,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 				     && method.Parameters[1].Type.HasMethod("Compare", m => m is { ReturnType.SpecialType: SpecialType.System_Int32 }
 				                                                                           && m.Parameters.AsSpan().EqualsTypes(elementType, elementType)):
 			{
-				items = items
-					.OrderBy(o => o)
-					.ToImmutableArray();
+				items = items.Sort();
 
 				AppendMethod(builder, method, items.AsSpan(), isPerformance =>
 				{
@@ -608,13 +604,13 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 
 							var current = remaining.Slice(0, idx);
 
-							builder.AppendLine($"yield return {current.ToString()};");
+							builder.AppendLine($"yield return {current};");
 
 							remaining = remaining.Slice(idx + stride);
 						}
 						else
 						{
-							builder.AppendLine($"yield return {remaining.ToString()};");
+							builder.AppendLine($"yield return {remaining};");
 
 							break;
 						}
