@@ -12,6 +12,8 @@ namespace ConstExpr.SourceGenerator.Builders;
 public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilation, GenerationLevel generationLevel, MetadataLoader loader, string dataName)
 {
 	public const int Threshold = 5;
+	
+	protected LiteralString DataName => (LiteralString) dataName; // $"{type.Name}_{hashCode}_Data";
 
 	private IDisposable AppendMethod(IndentedStringBuilder builder, IMethodSymbol methodSymbol)
 	{
@@ -121,7 +123,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 
 			check();
 
-			var type = compilation.GetBestVectorType(elementType, loader, items.Length);
+			var type = compilation.GetBestVectorType(elementType, loader, items.Length, isRepeating);
 
 			if (isPerformance && type != VectorTypes.None && elementType.IsVectorSupported())
 			{
@@ -293,11 +295,6 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		}
 
 		return "Count";
-	}
-
-	protected LiteralString GetDataName()
-	{
-		return (LiteralString) dataName; // $"{type.Name}_{hashCode}_Data";
 	}
 
 	public static bool IsPerformance(GenerationLevel level, int count)

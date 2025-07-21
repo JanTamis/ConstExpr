@@ -74,7 +74,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 				if (property.IsReadOnly)
 				{
-					builder.AppendLine($"public {elementType} this[int index] => {GetDataName()}[index];");
+					builder.AppendLine($"public {elementType} this[int index] => {DataName}[index];");
 
 					// using (builder.AppendBlock($"public {elementType} this[int index] => index switch", "};"))
 					// {
@@ -100,7 +100,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 					builder.AppendLine($$"""
 						public {{elementType}} this[int index]
 						{
-							get => {{GetDataName()}}[index];
+							get => {{DataName}}[index];
 							set => throw new NotSupportedException();
 						}
 						""");
@@ -122,7 +122,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 			{
 				AppendMethod(builder, method, () =>
 				{
-					builder.AppendLine($"{GetDataName()}.CopyTo({method.Parameters[0]});");
+					builder.AppendLine($"{DataName}.CopyTo({method.Parameters[0]});");
 				});
 				return true;
 			}
@@ -131,7 +131,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 			{
 				AppendMethod(builder, method, () =>
 				{
-					builder.AppendLine($"{GetDataName()}.CopyTo({method.Parameters[0]}.AsSpan({method.Parameters[1]}));");
+					builder.AppendLine($"{DataName}.CopyTo({method.Parameters[0]}.AsSpan({method.Parameters[1]}));");
 				});
 				return true;
 			}
@@ -222,7 +222,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 								indexes.Add(items.IndexOf(i));
 							}
 
-							builder.AppendLine($"ReadOnlySpan<int> map = [{(LiteralString) String.Join(", ", indexes)}];");
+							builder.AppendLine($"ReadOnlySpan<int> map = [{indexes}];");
 							builder.AppendLine();
 
 							if (!EqualityComparer<object?>.Default.Equals(min, 0.ToSpecialType(elementType.SpecialType)))
@@ -253,7 +253,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 					}
 					else
 					{
-						builder.AppendLine($"return {GetDataName()}.IndexOf({method.Parameters[0]});");
+						builder.AppendLine($"return {DataName}.IndexOf({method.Parameters[0]});");
 					}
 				});
 
@@ -343,7 +343,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 					}
 				}
 
-				if (method.ContainingType.HasMember<IMethodSymbol>("IndexOf", m => AppendIndexOf(m, items, null)))
+				if (method.ContainingType.HasMethod("IndexOf", m => AppendIndexOf(m, items, null)))
 				{
 					AppendMethod(builder, method, () =>
 					{
@@ -365,7 +365,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 							.ToList();
 						// .Select(s => $"{method.Parameters[0].Name} == {s}");
 
-						if (compilation.HasMember<IMethodSymbol>(compilation.GetVectorType(vectorType), "AnyWhereAllBitsSet"))
+						if (compilation.GetVectorType(vectorType).HasMethod("AnyWhereAllBitsSet"))
 						{
 							builder.AppendLine(CreatePadding("|", $"return {vectorType}.AnyWhereAllBitsSet(", vectors.Select(s => $"{vectorType}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false) + ")");
 						}
@@ -380,7 +380,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 					}
 					else
 					{
-						if (compilation.HasMember<IMethodSymbol>(compilation.GetVectorType(vectorType), "AnyWhereAllBitsSet"))
+						if (compilation.GetVectorType(vectorType).HasMethod("AnyWhereAllBitsSet"))
 						{
 							builder.AppendLine(CreatePadding("|", $"return {vectorType}.AnyWhereAllBitsSet(", vectors.Select(s => $"{vectorType}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false) + ");");
 						}
@@ -393,22 +393,22 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 				{
 					if (items.Length > 0)
 					{
-						if (method.ContainingType.HasMember<IMethodSymbol>("IndexOf", m => m is { ReturnType.SpecialType: SpecialType.System_Int32 }
+						if (method.ContainingType.HasMethod("IndexOf", m => m is { ReturnType.SpecialType: SpecialType.System_Int32 }
 						                                                                   && m.Parameters.AsSpan().EqualsTypes(elementType)))
 						{
 							builder.AppendLine($"return IndexOf({method.Parameters[0]}) >= 0;");
 						}
-						else if (method.ContainingType.HasMember<IMethodSymbol>("BinarySearch", m => m is { ReturnType.SpecialType: SpecialType.System_Int32 }
+						else if (method.ContainingType.HasMethod("BinarySearch", m => m is { ReturnType.SpecialType: SpecialType.System_Int32 }
 						                                                                             && m.Parameters.AsSpan().EqualsTypes(elementType)
-						                                                                             && elementType.HasMember<IMethodSymbol>("CompareTo", x => x is { ReturnType.SpecialType: SpecialType.System_Int32 }
+						                                                                             && elementType.HasMethod("CompareTo", x => x is { ReturnType.SpecialType: SpecialType.System_Int32 }
 						                                                                                                                                       && x.Parameters.AsSpan().EqualsTypes(elementType))))
 						{
 							builder.AppendLine($"return BinarySearch({method.Parameters[0]}) >= 0;");
 						}
 						// Check if the interface implements BinarySearch with a comparer
-						else if (method.ContainingType.HasMember<IMethodSymbol>("BinarySearch", m => m is { ReturnType.SpecialType: SpecialType.System_Int32, Parameters.Length: 2 }
+						else if (method.ContainingType.HasMethod("BinarySearch", m => m is { ReturnType.SpecialType: SpecialType.System_Int32, Parameters.Length: 2 }
 						                                                                             && SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, elementType)
-						                                                                             && m.Parameters[1].Type.HasMember<IMethodSymbol>("Compare", x => x is { ReturnType.SpecialType: SpecialType.System_Int32 }
+						                                                                             && m.Parameters[1].Type.HasMethod("Compare", x => x is { ReturnType.SpecialType: SpecialType.System_Int32 }
 						                                                                                                                                              && x.Parameters.AsSpan().EqualsTypes(elementType, elementType))))
 						{
 							builder.AppendLine($"return BinarySearch({method.Parameters[0]}, Comparer<{elementType}>.Default) >= 0;");
@@ -453,13 +453,13 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 				{
 					if (method.Parameters[0].Type.EqualsType(compilation.CreateIEnumerable(elementType)))
 					{
-						if (method.ContainingType.HasMember<IMethodSymbol>("Contains", m => AppendContains(m, items, null)))
+						if (method.ContainingType.HasMethod("Contains", m => AppendContains(m, items, null)))
 						{
 							builder.AppendLine($"return {method.Parameters[0]}.Any(Contains);");
 							return;
 						}
 
-						if (method.ContainingType.HasMember<IMethodSymbol>("IndexOf", m => AppendIndexOf(m, items, null)))
+						if (method.ContainingType.HasMethod("IndexOf", m => AppendIndexOf(m, items, null)))
 						{
 							builder.AppendLine($"return {method.Parameters[0]}.Any(item => IndexOf(item) >= 0);");
 							return;
@@ -468,14 +468,14 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 					using (builder.AppendBlock($"foreach (var item in {method.Parameters[0]})", WhitespacePadding.After))
 					{
-						if (method.ContainingType.HasMember<IMethodSymbol>("Contains", m => AppendContains(m, items, null)))
+						if (method.ContainingType.HasMethod("Contains", m => AppendContains(m, items, null)))
 						{
 							using (builder.AppendBlock("if (Contains(item))"))
 							{
 								builder.AppendLine("return true;");
 							}
 						}
-						else if (method.ContainingType.HasMember<IMethodSymbol>("IndexOf", m => AppendIndexOf(m, items, null)))
+						else if (method.ContainingType.HasMethod("IndexOf", m => AppendIndexOf(m, items, null)))
 						{
 							using (builder.AppendBlock("if (IndexOf(item) >= 0)"))
 							{
@@ -493,7 +493,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 							}
 							else
 							{
-								using (builder.AppendBlock($"if ({GetDataName()}.Contains(item))"))
+								using (builder.AppendBlock($"if ({DataName}.Contains(item))"))
 								{
 									builder.AppendLine("return true;");
 								}

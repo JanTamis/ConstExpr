@@ -52,7 +52,7 @@ public static class SpanExtensions
 		}
 
 		var result = new StringBuilder(span.Length * 2);
-		result.Append(span[0]);
+		result.Append(selector(span[0]));
 
 		for (var i = 1; i < span.Length; i++)
 		{

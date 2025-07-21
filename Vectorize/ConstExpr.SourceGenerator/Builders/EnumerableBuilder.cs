@@ -52,11 +52,11 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 							else
 							{
 								builder.AppendLine($$"""
-									var result = {{GetDataName()}}[0];
+									var result = {{DataName}}[0];
 
-									for (var i = 1; i < {{GetDataName()}}.Length; i++)
+									for (var i = 1; i < {{DataName}}.Length; i++)
 									{
-										result = {{method.Parameters[0]}}(result, {{GetDataName()}}[i]);
+										result = {{method.Parameters[0]}}(result, {{DataName}}[i]);
 									}
 
 									return result;
@@ -193,11 +193,11 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		switch (method)
 		{
 			case { Name: nameof(Enumerable.Average), Parameters.Length: 0 }
-				when (elementType.SpecialType == SpecialType.System_Int32 && method.ReturnType.SpecialType == SpecialType.System_Double
-				      || elementType.SpecialType == SpecialType.System_Int64 && method.ReturnType.SpecialType == SpecialType.System_Double
-				      || elementType.SpecialType == SpecialType.System_Single && method.ReturnType.SpecialType == SpecialType.System_Single
-				      || elementType.SpecialType == SpecialType.System_Double && method.ReturnType.SpecialType == SpecialType.System_Double
-				      || elementType.SpecialType == SpecialType.System_Decimal && method.ReturnType.SpecialType == SpecialType.System_Decimal):
+				when elementType.SpecialType == SpecialType.System_Int32 && method.ReturnType.SpecialType == SpecialType.System_Double
+				     || elementType.SpecialType == SpecialType.System_Int64 && method.ReturnType.SpecialType == SpecialType.System_Double
+				     || elementType.SpecialType == SpecialType.System_Single && method.ReturnType.SpecialType == SpecialType.System_Single
+				     || elementType.SpecialType == SpecialType.System_Double && method.ReturnType.SpecialType == SpecialType.System_Double
+				     || elementType.SpecialType == SpecialType.System_Decimal && method.ReturnType.SpecialType == SpecialType.System_Decimal:
 			{
 				AppendMethod(builder, method, () =>
 				{
@@ -219,8 +219,8 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			}
 			case { Name: nameof(Enumerable.Average) }
 				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, method.ReturnType))
-				     && IsEqualSymbol(method.ReturnType, compilation.GetTypeByMetadataName("System.Numerics.IAdditionOperators")?.Construct(method.ReturnType, method.ReturnType, method.ReturnType))
-				     && IsEqualSymbol(method.ReturnType, compilation.GetTypeByMetadataName("System.Numerics.IDivisionOperators")?.Construct(method.ReturnType, method.ReturnType, method.ReturnType)):
+				     && IsEqualSymbol(method.ReturnType, compilation.GetTypeByName("System.Numerics.IAdditionOperators", method.ReturnType, method.ReturnType, method.ReturnType))
+				     && IsEqualSymbol(method.ReturnType, compilation.GetTypeByName("System.Numerics.IDivisionOperators", method.ReturnType, method.ReturnType, method.ReturnType)):
 			{
 				AppendMethod(builder, method, () =>
 				{
@@ -261,7 +261,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		switch (method)
 		{
 			case { Name: nameof(Enumerable.Count), Parameters.Length: 0 }
-				when method.ReturnType.EqualsType(compilation.GetTypeByMetadataName("System.Numerics.INumberBase`1")?.Construct(method.ReturnType)):
+				when method.ReturnType.EqualsType(compilation.GetTypeByName("System.Numerics.INumberBase", method.ReturnType)):
 			{
 				AppendMethod(builder, method, () =>
 				{
@@ -279,7 +279,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			}
 			case { Name: nameof(Enumerable.Count) }
 				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateFunc(elementType, compilation.CreateBoolean()))
-				     && method.ReturnType.EqualsType(compilation.GetTypeByMetadataName("System.Numerics.INumberBase`1")?.Construct(method.ReturnType)):
+				     && method.ReturnType.EqualsType(compilation.GetTypeByName("System.Numerics.INumberBase", method.ReturnType)):
 			{
 				AppendMethod(builder, method, () =>
 				{
@@ -294,7 +294,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 
 					builder.AppendLine($$"""
 
-						foreach (var item in {{GetDataName()}})
+						foreach (var item in {{DataName}})
 						{
 							if ({{method.Parameters[0]}}(item))
 							{
@@ -385,13 +385,11 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 						builder.AppendLine($"var seen = new HashSet<{funcReturnType}>({method.Parameters[1]});");
 					}
 
-					var dataName = GetDataName();
-
 					builder.AppendLine($$"""
 
-						for (var i = 0; i < {{dataName}}.Length; i++)
+						for (var i = 0; i < {{DataName}}.Length; i++)
 						{
-							var item = {{dataName}}[i];
+							var item = {{DataName}}[i];
 							
 							if (seen.Add({{method.Parameters[0]}}(item)))
 							{
@@ -617,7 +615,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					else
 					{
 						builder.AppendLine($$"""
-							foreach (var item in {{GetDataName()}})
+							foreach (var item in {{DataName}})
 							{
 								if ({{method.Parameters[0]}}(item))
 								{
@@ -689,7 +687,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					else
 					{
 						builder.AppendLine($$"""
-							foreach (var item in {{GetDataName()}})
+							foreach (var item in {{DataName}})
 							{
 								if ({{method.Parameters[0]}}(item))
 								{
@@ -792,11 +790,11 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					else
 					{
 						builder.AppendLine($$"""
-							for (var i = {{GetDataName()}}.Length - 1; i >= 0; i--)
+							for (var i = {{DataName}}.Length - 1; i >= 0; i--)
 							{
-								if ({{method.Parameters[0]}}({{GetDataName()}}[i]))
+								if ({{method.Parameters[0]}}({{DataName}}[i]))
 								{
-									return {{GetDataName()}}[i];
+									return {{DataName}}[i];
 								}
 							}
 
@@ -864,11 +862,11 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					else
 					{
 						builder.AppendLine($$"""
-							for (var i = {{GetDataName()}}.Length - 1; i >= 0; i--)
+							for (var i = {{DataName}}.Length - 1; i >= 0; i--)
 							{
-								if ({{method.Parameters[0]}}({{GetDataName()}}[i]))
+								if ({{method.Parameters[0]}}({{DataName}}[i]))
 								{
-									return {{GetDataName()}}[i];
+									return {{DataName}}[i];
 								}
 							}
 							
@@ -970,7 +968,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					else
 					{
 						builder.AppendLine($$"""
-							foreach (var item in {{GetDataName()}})
+							foreach (var item in {{DataName}})
 							{
 								yield return {{method.Parameters[0]}}(item);
 							}
@@ -994,13 +992,13 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			{
 				AppendMethod(builder, method, items.AsSpan(), isPerformance =>
 				{
-					if (!isPerformance && compilation.HasMember<IMethodSymbol>(typeof(Enumerable), nameof(Enumerable.SequenceEqual)))
+					if (!isPerformance && compilation.HasMethod(typeof(Enumerable), nameof(Enumerable.SequenceEqual)))
 					{
-						builder.AppendLine($"return {method.Parameters[0]}.SequenceEqual([{String.Join(", ", items.Select(CreateLiteral))}]);");
+						builder.AppendLine($"return {method.Parameters[0]}.SequenceEqual([{items}]);");
 					}
 					else
 					{
-						if (compilation.HasMember<IMethodSymbol>(typeof(Enumerable), "TryGetNonEnumeratedCount"))
+						if (compilation.HasMethod(typeof(Enumerable), "TryGetNonEnumeratedCount"))
 						{
 							using (builder.AppendBlock($"if ({method.Parameters[0]}.TryGetNonEnumeratedCount(out var count) && count != {items.Length})", WhitespacePadding.After))
 							{
@@ -1154,11 +1152,11 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					else
 					{
 						builder.AppendLine($$"""
-							for (var i = 0; i < {{GetDataName()}}.Length; i++)
+							for (var i = 0; i < {{DataName}}.Length; i++)
 							{
-								if ({{method.Parameters[0]}}({{GetDataName()}}[i]))
+								if ({{method.Parameters[0]}}({{DataName}}[i]))
 								{
-									yield return {{GetDataName()}}[i];
+									yield return {{DataName}}[i];
 								}
 							}
 							""");
@@ -1328,7 +1326,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					builder.AppendLine($$"""
 						for (var i = Math.Min({{method.Parameters[0]}}, {{items.Length}}) i < {{items.Length}}; i++)
 						{
-							yield return {{GetDataName()}}[i];
+							yield return {{DataName}}[i];
 						} 
 						""");
 				});
@@ -1352,7 +1350,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					builder.AppendLine($$"""
 						for (var i = 0; i < Math.Min({{method.Parameters[0]}}, {{items.Length}}); i++) i < {{items.Length}}; i++)
 						{
-							yield return {{GetDataName()}}[i];
+							yield return {{DataName}}[i];
 						}
 						""");
 				});
@@ -1373,7 +1371,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 				     && enumerableType.TypeArguments[0] is INamedTypeSymbol { TypeArguments: [ _, var numberType ] } keyValuePairType
 				     && keyValuePairType.EqualsType(compilation.CreateKeyValuePair(keyType, numberType))
 				     && enumerableType.EqualsType(compilation.CreateIEnumerable(keyValuePairType))
-				     && numberType.EqualsType(compilation.GetTypeByMetadataName("System.Numerics.INumberBase`1")?.Construct(numberType)):
+				     && numberType.EqualsType(compilation.GetTypeByName("System.Numerics.INumberBase", numberType)):
 			{
 				AppendMethod(builder, method, () =>
 				{
@@ -1382,12 +1380,12 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					builder.AppendLine();
 
 					// GetDataName(method.ContainingType) should resolve to the name of the const array field
-					using (builder.AppendBlock($"foreach (var item in {GetDataName()})", WhitespacePadding.After))
+					using (builder.AppendBlock($"foreach (var item in {DataName})", WhitespacePadding.After))
 					{
 						builder.AppendLine($"var key = {method.Parameters[0]}(item);");
 						builder.AppendLine();
 
-						if (compilation.GetTypeByMetadataName("System.Runtime.InteropServices.CollectionsMarshal")?.HasMember<IMethodSymbol>("GetValueRefOrAddDefault") == true)
+						if (compilation.GetTypeByName("System.Runtime.InteropServices.CollectionsMarshal")?.HasMethod("GetValueRefOrAddDefault") == true)
 						{
 							builder.AppendLine("ref var count = ref CollectionsMarshal.GetValueRefOrAddDefault(counts, key, out _);");
 							builder.AppendLine("count++;");
@@ -1430,7 +1428,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 				     && enumerableType.TypeArguments[0] is INamedTypeSymbol { TypeArguments: [ _, var numberType ] } keyValuePairType
 				     && keyValuePairType.EqualsType(compilation.CreateKeyValuePair(elementType, numberType))
 				     && enumerableType.EqualsType(compilation.CreateIEnumerable(keyValuePairType))
-				     && numberType.EqualsType(compilation.GetTypeByMetadataName("System.Numerics.INumberBase`1")?.Construct(numberType)):
+				     && numberType.EqualsType(compilation.GetTypeByName("System.Numerics.INumberBase", numberType)):
 			{
 				AppendMethod(builder, method, () =>
 				{
@@ -1487,9 +1485,9 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 
 					builder.AppendLine($$"""
 
-						for (var i = 0; i < {{GetDataName()}}.Length && {{(LiteralString) String.Join(" && ", method.Parameters.Select(p => $"{p.Name}Enumerator.MoveNext()"))}}; i++)
+						for (var i = 0; i < {{DataName}}.Length && {{(LiteralString) String.Join(" && ", method.Parameters.Select(p => $"{p.Name}Enumerator.MoveNext()"))}}; i++)
 						{
-							yield return ({{GetDataName()}}[i], {{(LiteralString) String.Join(", ", method.Parameters.Select(p => $"{p.Name}Enumerator.Current"))}});
+							yield return ({{DataName}}[i], {{(LiteralString) String.Join(", ", method.Parameters.Select(p => $"{p.Name}Enumerator.Current"))}});
 						}
 						""");
 				});
@@ -1518,9 +1516,9 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					else
 					{
 						builder.AppendLine($$"""
-							for (var i = 0; i < {{GetDataName()}}.Length; i += {{method.Parameters[0]}})
+							for (var i = 0; i < {{DataName}}.Length; i += {{method.Parameters[0]}})
 							{
-									yield return {{GetDataName()}}.Slice(i, Math.Min({{method.Parameters[0]}}, {{GetDataName()}}.Length - i)).ToArray();
+									yield return {{DataName}}.Slice(i, Math.Min({{method.Parameters[0]}}, {{DataName}}.Length - i)).ToArray();
 							}
 							""");
 					}
@@ -1552,7 +1550,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					}
 
 					builder.AppendLine($$"""
-						var set = new HashSet<{{elementType}}>({{method.Parameters}});
+						var set = new HashSet<{{elementType}}>({{items}});
 
 						foreach (var item in {{method.Parameters[0]}})
 						{

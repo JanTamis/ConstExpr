@@ -15,8 +15,13 @@ namespace ConstExpr.SourceGenerator.Extensions;
 
 public static class CompilationExtensions
 {
-	public static INamedTypeSymbol CreateIEnumerable(this Compilation compilation, ITypeSymbol elementType)
+	public static INamedTypeSymbol? CreateIEnumerable(this Compilation compilation, ITypeSymbol? elementType)
 	{
+		if (elementType == null)
+		{
+			return null;
+		}
+		
 		return compilation
 			.CreateSpecialType(SpecialType.System_Collections_Generic_IEnumerable_T, elementType);
 	}
@@ -252,6 +257,26 @@ public static class CompilationExtensions
 		return typeSymbol.GetMembers(name).OfType<TSymbol>().Any(predicate);
 	}
 
+	public static bool HasMethod(this ITypeSymbol? typeSymbol, string name)
+	{
+		if (typeSymbol is ITypeParameterSymbol parameter)
+		{
+			return parameter.ConstraintTypes.Any(a => a.HasMethod(name));
+		}
+
+		return typeSymbol?.GetMembers(name).OfType<IMethodSymbol>().Any() == true;
+	}
+
+	public static bool HasMethod(this ITypeSymbol typeSymbol, string name, Func<IMethodSymbol, bool> predicate)
+	{
+		if (typeSymbol is ITypeParameterSymbol parameter)
+		{
+			return parameter.ConstraintTypes.Any(a => a.HasMethod(name, predicate));
+		}
+
+		return typeSymbol.GetMembers(name).OfType<IMethodSymbol>().Any(predicate);
+	}
+
 	public static bool HasMember<TSymbol>(this Compilation compilation, ITypeSymbol? typeSymbol, string name)
 		where TSymbol : ISymbol
 	{
@@ -270,6 +295,14 @@ public static class CompilationExtensions
 		var typeSymbol = compilation.GetTypeByMetadataName(fullName);
 
 		return typeSymbol.GetMembers(name).OfType<TSymbol>().Any();
+	}
+
+	public static bool HasMethod(this Compilation compilation, Type type, string name)
+	{
+		var fullName = type.FullName;
+		var typeSymbol = compilation.GetTypeByMetadataName(fullName);
+
+		return typeSymbol.GetMembers(name).OfType<IMethodSymbol>().Any();
 	}
 
 	public static bool HasMember<TSymbol>(this Compilation compilation, Type type, string name, Func<TSymbol, bool> predicate)
@@ -574,7 +607,7 @@ public static class CompilationExtensions
 		if (!items.IsEmpty && items.IsSame(items[0]))
 		{
 			return elementType.NeedsCast()
-				? $"{vectorType}.Create<{elementType}>({SyntaxHelpers.CreateLiteral(items[0])})"
+				? $"{vectorType}.Create(({elementType}){SyntaxHelpers.CreateLiteral(items[0])})"
 				: $"{vectorType}.Create({SyntaxHelpers.CreateLiteral(items[0])})";
 		}
 
@@ -587,7 +620,7 @@ public static class CompilationExtensions
 			}
 
 			// Check if items form an arithmetic sequence
-			if (items.Length >= 2 && staticType.HasMember<IMethodSymbol>("CreateSequence", m => m.Parameters.Length == 2))
+			if (items.Length >= 2 && staticType.HasMethod("CreateSequence", m => m.Parameters.Length == 2))
 			{
 				var isSequence = true;
 				var step = default(object);
@@ -610,13 +643,13 @@ public static class CompilationExtensions
 				if (isSequence && step != null)
 				{
 					return elementType.NeedsCast()
-						? $"{vectorType}.CreateSequence<{elementType}>({SyntaxHelpers.CreateLiteral(items[0])}, {SyntaxHelpers.CreateLiteral(step)})"
+						? $"{vectorType}.CreateSequence(({elementType}){SyntaxHelpers.CreateLiteral(items[0])}, ({elementType}){SyntaxHelpers.CreateLiteral(step)})"
 						: $"{vectorType}.CreateSequence({SyntaxHelpers.CreateLiteral(items[0])}, {SyntaxHelpers.CreateLiteral(step)})";
 				}
 			}
 			
 			return elementType.NeedsCast()
-				? $"{vectorType}.Create<{elementType}>({items.Join<T, object?>(", ", s => s is string ? s : SyntaxHelpers.CreateLiteral(s))})"
+				? $"{vectorType}.Create({items.Join<T, object?>(", ", s => s is string ? s : $"({compilation.GetMinimalString(elementType)}){SyntaxHelpers.CreateLiteral(s)}")})"
 				: $"{vectorType}.Create({items.Join<T, object?>(", ", s => s is string ? s : SyntaxHelpers.CreateLiteral(s))})";
 		}
 
@@ -773,10 +806,10 @@ public static class CompilationExtensions
 
 	public static bool HasContainsMethod(this Compilation compilation, ITypeSymbol typeSymbol, ITypeSymbol elementType)
 	{
-		var result = typeSymbol.HasMember<IMethodSymbol>("Contains", m => m is { ReturnType.SpecialType: SpecialType.System_Boolean } && m.Parameters.AsSpan().EqualsTypes(elementType));
+		var result = typeSymbol.HasMethod("Contains", m => m is { ReturnType.SpecialType: SpecialType.System_Boolean } && m.Parameters.AsSpan().EqualsTypes(elementType));
 
 		return result || compilation.IsSpanLikeType(typeSymbol, elementType)
-			&& (compilation.GetTypeByMetadataName("System.MemoryExtensions")?.HasMember<IMethodSymbol>("Contains", m => m.ReturnType.SpecialType == SpecialType.System_Boolean && m.Parameters.AsSpan().EqualsTypes(elementType)) ?? false);
+			&& (compilation.GetTypeByMetadataName("System.MemoryExtensions")?.HasMethod("Contains", m => m.ReturnType.SpecialType == SpecialType.System_Boolean && m.Parameters.AsSpan().EqualsTypes(elementType)) ?? false);
 	}
 
 	public static bool IsInterger(this ITypeSymbol typeSymbol)
@@ -854,7 +887,7 @@ public static class CompilationExtensions
 		};
 	}
 
-	public static VectorTypes GetBestVectorType(this Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, int elementCount)
+	public static VectorTypes GetBestVectorType(this Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, int elementCount, bool isRepeating)
 	{
 		var elementSize = compilation.GetByteSize(loader, elementType);
 		var size = elementSize * elementCount;
@@ -867,10 +900,13 @@ public static class CompilationExtensions
 			(VectorTypes.Vector512, 64)
 		};
 
-		// if (size <= vectorTypes[0].Item2)
-		// {
-		// 	return VectorTypes.Vector128;
-		// }
+		if (isRepeating)
+		{
+			return vectorTypes
+				.Where(w => w.Item2 >= size)
+				.Select(s => s.Item1)
+				.First();
+		}
 
 		var best = vectorTypes
 			.Select(vt => (Type: vt.Item1, Mod: Math.Abs(size % vt.Item2)))
@@ -929,5 +965,20 @@ public static class CompilationExtensions
 			or SpecialType.System_Int16
 			or SpecialType.System_UInt16
 			or SpecialType.System_Decimal;
+	}
+
+	public static INamedTypeSymbol? GetTypeByName(this Compilation compilation, string fullyQualifiedMetadataName, params ReadOnlySpan<ITypeSymbol> typeArguments)
+	{
+		if (typeArguments.IsEmpty)
+		{
+			return compilation.GetTypeByMetadataName(fullyQualifiedMetadataName);
+		}
+
+		if (fullyQualifiedMetadataName.EndsWith($"`{typeArguments.Length}"))
+		{
+			return compilation.GetTypeByMetadataName(fullyQualifiedMetadataName)?.Construct(typeArguments.ToArray());
+		}
+
+		return compilation.GetTypeByMetadataName($"{fullyQualifiedMetadataName}`{typeArguments.Length}")?.Construct(typeArguments.ToArray());
 	}
 }
