@@ -219,7 +219,7 @@ public class IndentedStringBuilder(string indentString = "\t")
 
 		public void AppendFormatted(ITypeSymbol type)
 		{
-			_builder.Write(Compilation?.GetMinimalString(type) ?? type.ToString());
+			_builder.Write(Compilation.GetMinimalString(type) ?? type.ToString());
 		}
 
 		public void AppendFormatted(LiteralString literal)
