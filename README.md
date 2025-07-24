@@ -143,22 +143,6 @@ public static class AsyncOps
 }
 ```
 
-## 🏗️ Project Structure
-
-```
-ConstExpr/
-├── Vectorize/
-│   ├── ConstExpr.SourceGenerator/     # Main source generator implementation
-│   │   ├── Analyzers/                 # Code analyzers
-│   │   ├── Attributes/                # Diagnostic attributes
-│   │   ├── Builders/                  # Code generation builders
-│   │   ├── Enums/                     # Generation level enums
-│   │   ├── Extensions/                # Helper extensions
-│   │   └── Visitors/                  # Syntax visitors
-│   └── ConstExpr.Sample/              # Example usage and benchmarks
-└── ConstExpr.Tests/                   # Comprehensive test suite
-```
-
 ## 🛠️ Requirements
 
 - **.NET 9.0** or later
