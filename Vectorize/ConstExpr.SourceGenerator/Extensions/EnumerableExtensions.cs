@@ -66,22 +66,22 @@ public static class EnumerableExtensions
 		};
 	}
 
-	public static T Average<T>(this ReadOnlySpan<T> source, ITypeSymbol elementType)
+	public static object? Average<T>(this ReadOnlySpan<T> source, ITypeSymbol elementType)
 	{
 		if (source.Length == 0)
 		{
-			return default;
+			return null;
 		}
 
-		return (T)(object)(elementType.SpecialType switch
+		return elementType.SpecialType switch
 		{
 			SpecialType.System_Int32 => AverageInt(source),
 			SpecialType.System_Int64 => AverageLong(source),
 			SpecialType.System_Single => AverageFloat(source),
 			SpecialType.System_Double => AverageDouble(source),
 			SpecialType.System_Decimal => AverageDecimal(source),
-			_ => default,
-		});
+			_ => null,
+		};
 	}
 
 	private static double AverageInt<T>(ReadOnlySpan<T> source)

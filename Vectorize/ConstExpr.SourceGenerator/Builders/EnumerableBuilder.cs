@@ -53,11 +53,11 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 							else
 							{
 								builder.WriteLine($$"""
-									var result = {{DataName}}[0];
+									var result = {{DataName:literal}}[0];
 
-									for (var i = 1; i < {{DataName}}.Length; i++)
+									for (var i = 1; i < {{DataName:literal}}.Length; i++)
 									{
-										result = {{method.Parameters[0]}}(result, {{DataName}}[i]);
+										result = {{method.Parameters[0]}}(result, {{DataName:literal}}[i]);
 									}
 
 									return result;
@@ -212,7 +212,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					}
 					else
 					{
-						builder.WriteLine($"return {CreateLiteral(average)};");
+						builder.WriteLine($"return {average};");
 					}
 				});
 
@@ -295,7 +295,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 
 					builder.WriteLine($$"""
 
-						foreach (var item in {{DataName}})
+						foreach (var item in {{DataName:literal}})
 						{
 							if ({{method.Parameters[0]}}(item))
 							{
@@ -388,16 +388,16 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 
 					builder.WriteLine($$"""
 
-						for (var i = 0; i < {{DataName}}.Length; i++)
+						for (var i = 0; i < {{DataName:literal}}.Length; i++)
 						{
-							var item = {{DataName}}[i];
+							var item = {{DataName:literal}}[i];
 							
 							if (seen.Add({{method.Parameters[0]}}(item)))
 							{
 								yield return item;
 							}
 						}
-						""", isMultiline: true);
+						""");
 				});
 
 				return true;
@@ -616,7 +616,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					else
 					{
 						builder.WriteLine($$"""
-							foreach (var item in {{DataName}})
+							foreach (var item in {{DataName:literal}})
 							{
 								if ({{method.Parameters[0]}}(item))
 								{
@@ -688,7 +688,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					else
 					{
 						builder.WriteLine($$"""
-							foreach (var item in {{DataName}})
+							foreach (var item in {{DataName:literal}})
 							{
 								if ({{method.Parameters[0]}}(item))
 								{
@@ -791,11 +791,11 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					else
 					{
 						builder.WriteLine($$"""
-							for (var i = {{DataName}}.Length - 1; i >= 0; i--)
+							for (var i = {{DataName:literal}}.Length - 1; i >= 0; i--)
 							{
-								if ({{method.Parameters[0]}}({{DataName}}[i]))
+								if ({{method.Parameters[0]}}({{DataName:literal}}[i]))
 								{
-									return {{DataName}}[i];
+									return {{DataName:literal}}[i];
 								}
 							}
 
@@ -863,11 +863,11 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					else
 					{
 						builder.WriteLine($$"""
-							for (var i = {{DataName}}.Length - 1; i >= 0; i--)
+							for (var i = {{DataName:literal}}.Length - 1; i >= 0; i--)
 							{
-								if ({{method.Parameters[0]}}({{DataName}}[i]))
+								if ({{method.Parameters[0]}}({{DataName:literal}}[i]))
 								{
-									return {{DataName}}[i];
+									return {{DataName:literal}}[i];
 								}
 							}
 							
@@ -969,7 +969,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					else
 					{
 						builder.WriteLine($$"""
-							foreach (var item in {{DataName}})
+							foreach (var item in {{DataName:literal}})
 							{
 								yield return {{method.Parameters[0]}}(item);
 							}
@@ -1153,11 +1153,11 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					else
 					{
 						builder.WriteLine($$"""
-							for (var i = 0; i < {{DataName}}.Length; i++)
+							for (var i = 0; i < {{DataName:literal}}.Length; i++)
 							{
-								if ({{method.Parameters[0]}}({{DataName}}[i]))
+								if ({{method.Parameters[0]}}({{DataName:literal}}[i]))
 								{
-									yield return {{DataName}}[i];
+									yield return {{DataName:literal}}[i];
 								}
 							}
 							""");
@@ -1327,7 +1327,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					builder.WriteLine($$"""
 						for (var i = Math.Min({{method.Parameters[0]}}, {{items.Length}}) i < {{items.Length}}; i++)
 						{
-							yield return {{DataName}}[i];
+							yield return {{DataName:literal}}[i];
 						} 
 						""");
 				});
@@ -1351,7 +1351,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					builder.WriteLine($$"""
 						for (var i = 0; i < Math.Min({{method.Parameters[0]}}, {{items.Length}}); i++) i < {{items.Length}}; i++)
 						{
-							yield return {{DataName}}[i];
+							yield return {{DataName:literal}}[i];
 						}
 						""");
 				});
@@ -1381,7 +1381,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					builder.WriteLine();
 
 					// GetDataName(method.ContainingType) should resolve to the name of the const array field
-					using (builder.WriteBlock($"foreach (var item in {DataName})", padding: WhitespacePadding.After))
+					using (builder.WriteBlock($"foreach (var item in {DataName:literal})", padding: WhitespacePadding.After))
 					{
 						builder.WriteLine($"var key = {method.Parameters[0]}(item);");
 						builder.WriteLine();
@@ -1486,9 +1486,9 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 
 					builder.WriteLine($$"""
 
-						for (var i = 0; i < {{DataName}}.Length && {{String.Join(" && ", method.Parameters.Select(p => $"{p.Name}Enumerator.MoveNext()")):literal}}; i++)
+						for (var i = 0; i < {{DataName:literal}}.Length && {{String.Join(" && ", method.Parameters.Select(p => $"{p.Name}Enumerator.MoveNext()")):literal}}; i++)
 						{
-							yield return ({{DataName}}[i], {{String.Join(", ", method.Parameters.Select(p => $"{p.Name}Enumerator.Current")):literal}});
+							yield return ({{DataName:literal}}[i], {{String.Join(", ", method.Parameters.Select(p => $"{p.Name}Enumerator.Current")):literal}});
 						}
 						""");
 				});
@@ -1517,9 +1517,9 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					else
 					{
 						builder.WriteLine($$"""
-							for (var i = 0; i < {{DataName}}.Length; i += {{method.Parameters[0]}})
+							for (var i = 0; i < {{DataName:literal}}.Length; i += {{method.Parameters[0]}})
 							{
-									yield return {{DataName}}.Slice(i, Math.Min({{method.Parameters[0]}}, {{DataName}}.Length - i)).ToArray();
+									yield return {{DataName:literal}}.Slice(i, Math.Min({{method.Parameters[0]}}, {{DataName:literal}}.Length - i)).ToArray();
 							}
 							""");
 					}

@@ -13,7 +13,7 @@ namespace ConstExpr.SourceGenerator.Builders;
 
 public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilation, GenerationLevel generationLevel, MetadataLoader loader, string dataName)
 {
-	public const int Threshold = 5;
+	public const int THRESHOLD = 5;
 	
 	protected string DataName => dataName; // $"{type.Name}_{hashCode}_Data";
 
@@ -76,10 +76,10 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 				})
 				.Where(c => c != null);
 
-			return builder.WriteBlock((string) $"{prepend}{compilation.GetMinimalString(methodSymbol.ReturnType)} {methodSymbol.Name}<{String.Join(", ", methodSymbol.TypeParameters.Select(compilation.GetMinimalString))}>({String.Join(", ", methodSymbol.Parameters.Select(s => $"{compilation.GetMinimalString(s.Type)} {s.Name}"))}) {String.Join("\n\t", constraints)}");
+			return builder.WriteBlock($"{prepend:literal}{methodSymbol.ReturnType} {methodSymbol.Name:literal}<{methodSymbol.TypeParameters}>({String.Join(", ", methodSymbol.Parameters.Select(s => $"{compilation.GetMinimalString(s.Type)} {s.Name}")):literal}) {String.Join("\n\t", constraints):literal}");
 		}
 
-		return builder.WriteBlock((string) $"{prepend}{compilation.GetMinimalString(methodSymbol.ReturnType)} {methodSymbol.Name}({String.Join(", ", methodSymbol.Parameters.Select(compilation.GetMinimalString))})");
+		return builder.WriteBlock($"{prepend:literal}{methodSymbol.ReturnType} {methodSymbol.Name:literal}({String.Join(", ", methodSymbol.Parameters.Select(compilation.GetMinimalString)):literal})");
 	}
 
 	// protected void AppendMethod<T>(IndentedCodeWriter builder, IMethodSymbol methodSymbol, ReadOnlySpan<T> items, Action<VectorTypes, string, int> vectorAction, Action<bool> action)
@@ -300,7 +300,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 	public static bool IsPerformance(GenerationLevel level, int count)
 	{
 		return level == GenerationLevel.Performance
-		       || level == GenerationLevel.Balanced && count <= Threshold;
+		       || level == GenerationLevel.Balanced && count <= THRESHOLD;
 	}
 
 	protected string CreateReturnPadding(string check, IEnumerable<string> checks)

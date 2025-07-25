@@ -76,7 +76,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 				if (property.IsReadOnly)
 				{
-					builder.WriteLine($"public {elementType} this[int index] => {DataName}[index];");
+					builder.WriteLine($"public {elementType} this[int index] => {DataName:literal}[index];");
 
 					// using (builder.WriteBlock($"public {elementType} this[int index] => index switch", "};"))
 					// {
@@ -102,7 +102,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 					builder.WriteLine($$"""
 						public {{elementType}} this[int index]
 						{
-							get => {{DataName}}[index];
+							get => {{DataName:literal}}[index];
 							set => throw new NotSupportedException();
 						}
 						""");
@@ -124,7 +124,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 			{
 				AppendMethod(builder, method, () =>
 				{
-					builder.WriteLine($"{DataName}.CopyTo({method.Parameters[0]});");
+					builder.WriteLine($"{DataName:literal}.CopyTo({method.Parameters[0]});");
 				});
 				return true;
 			}
@@ -133,7 +133,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 			{
 				AppendMethod(builder, method, () =>
 				{
-					builder.WriteLine($"{DataName}.CopyTo({method.Parameters[0]}.AsSpan({method.Parameters[1]}));");
+					builder.WriteLine($"{DataName:literal}.CopyTo({method.Parameters[0]}.AsSpan({method.Parameters[1]}));");
 				});
 				return true;
 			}
@@ -255,7 +255,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 					}
 					else
 					{
-						builder.WriteLine($"return {DataName}.IndexOf({method.Parameters[0]});");
+						builder.WriteLine($"return {DataName:literal}.IndexOf({method.Parameters[0]});");
 					}
 				});
 
@@ -495,7 +495,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 							}
 							else
 							{
-								using (builder.WriteBlock($"if ({DataName}.Contains(item))"))
+								using (builder.WriteBlock($"if ({DataName:literal}.Contains(item))"))
 								{
 									builder.WriteLine("return true;");
 								}

@@ -123,10 +123,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 		foreach (var valueGroup in group.GroupBy(m => m.Value))
 		{
-			if (!isFirst)
-			{
-				code.WriteLine();
-			}
+			code.WriteLineIf(!isFirst);
 
 			isFirst = false;
 
@@ -213,9 +210,9 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 				code.WriteLine();
 
-				using (code.WriteBlock($"file sealed class {namedTypeSymbol}_{hashCode} : {String.Join(", ", interfaces):literal}"))
+				using (code.WriteBlock($"file sealed class {namedTypeSymbol.Name:literal}_{hashCode} : {String.Join(", ", interfaces):literal}"))
 				{
-					code.WriteLine($"public static {namedTypeSymbol}_{hashCode} Instance = new {namedTypeSymbol}_{hashCode}();");
+					code.WriteLine($"public static {namedTypeSymbol.Name:literal}_{hashCode} Instance = new {namedTypeSymbol.Name:literal}_{hashCode}();");
 
 					if (invocation.Value is IEnumerable enumerable)
 					{
@@ -370,7 +367,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 		if (group.Key.Parent is TypeDeclarationSyntax type && !group.Any(a => a.Exceptions.Any()))
 		{
-			spc.AddSource($"{type.Identifier}_{group.Key.Identifier}.g.cs", code.ToString());
+			// spc.AddSource($"{type.Identifier}_{group.Key.Identifier}.g.cs", code.ToString());
 		}
 	}
 

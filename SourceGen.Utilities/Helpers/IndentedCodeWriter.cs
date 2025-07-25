@@ -133,7 +133,8 @@ public sealed class IndentedCodeWriter : IDisposable
 		{
 			WriteLine();
 		}
-		
+
+		WriteLine();
 		WriteLine(start);
 		IncreaseIndent();
 
@@ -262,7 +263,7 @@ public sealed class IndentedCodeWriter : IDisposable
 	/// <param name="skipIfPresent">Indicates whether to skip adding the line if there already is one.</param>
 	public void WriteLine(bool skipIfPresent = false)
 	{
-		if (skipIfPresent && _builder.WrittenSpan is [ .., '\n', '\n' ])
+		if (skipIfPresent && _builder.WrittenSpan is [.., '\n', '\n'])
 		{
 			return;
 		}
@@ -453,7 +454,7 @@ public sealed class IndentedCodeWriter : IDisposable
 		/// <param name="value">The string to write.</param>
 		public void AppendLiteral(string value)
 		{
-			_writer.Write(value);
+			_writer.Write(value, true);
 		}
 
 		/// <summary>Writes the specified value to the handler.</summary>
@@ -474,11 +475,11 @@ public sealed class IndentedCodeWriter : IDisposable
 		{
 			if (String.Equals(format, "literal", StringComparison.InvariantCultureIgnoreCase))
 			{
-				AppendFormatted(value);
+				AppendLiteral(value);
 			}
 			else
 			{
-				AppendLiteral(value ?? String.Empty);
+				AppendFormatted(value ?? String.Empty);
 			}
 		}
 
@@ -523,10 +524,14 @@ public sealed class IndentedCodeWriter : IDisposable
 		public void AppendFormatted<T>(T value)
 		{
 			var item = CreateLiteral(value);
-			
+
 			if (item is not null)
 			{
 				_writer.Write(item.ToString());
+			}
+			else if (value is not null)
+			{
+				_writer.Write(value.ToString());
 			}
 		}
 
@@ -564,6 +569,19 @@ public sealed class IndentedCodeWriter : IDisposable
 				_writer.Write(parameters[i].Name);
 
 				if (i < parameters.Length - 1)
+				{
+					_writer.Write(", ");
+				}
+			}
+		}
+
+		public void AppendFormatted(ImmutableArray<ITypeParameterSymbol> types)
+		{
+			for (var i = 0; i < types.Length; i++)
+			{
+				_writer.Write(types[i].Name);
+
+				if (i < types.Length - 1)
 				{
 					_writer.Write(", ");
 				}
@@ -640,7 +658,7 @@ public sealed class IndentedCodeWriter : IDisposable
 			_handler.AppendFormatted(parameters);
 		}
 	}
-	
+
 	public static ExpressionSyntax? CreateLiteral<T>(T? value)
 	{
 		switch (value)

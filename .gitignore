@@ -25,3 +25,5 @@
 /ConstExpr.Tests/obj/ConstExpr.Tests.csproj.nuget.g.targets
 /ConstExpr.Tests/obj/Debug/net9.0/ConstExpr.Tests.GlobalUsings.g.cs
 !/SourceGen.Utilities/obj/
+/SourceGen.Utilities/bin/Debug/netstandard2.0
+/SourceGen.Utilities/obj
