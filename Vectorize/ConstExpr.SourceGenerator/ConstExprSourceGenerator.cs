@@ -18,7 +18,9 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using SourceGen.Utilities.Helpers;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
+using SourceGen.Utilities.Extensions;
 
 [assembly: InternalsVisibleTo("ConstExpr.Tests")]
 
@@ -100,24 +102,22 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 	private void GenerateMethodImplementations(SgfSourceProductionContext spc, Compilation compilation, IGrouping<MethodDeclarationSyntax, InvocationModel?> group)
 	{
-		var code = new IndentedStringBuilder();
+		var code = new IndentedCodeWriter(compilation);
 		var usings = group.SelectMany(item => item.Usings).Distinct().OrderBy(s => s);
-
-		IndentedStringBuilder.Compilation = compilation;
 
 		using var loader = MetadataLoader.GetLoader(compilation);
 
 		foreach (var u in usings.Where(w => !String.IsNullOrWhiteSpace(w)))
 		{
-			code.AppendLine($"using {(LiteralString) u};");
+			code.WriteLine($"using {u:literal};");
 		}
 
-		code.AppendLine();
-		code.AppendLine("namespace ConstantExpression.Generated;");
-		code.AppendLine();
-		// code.AppendLine("{");
-		code.AppendLine("file static class GeneratedMethods");
-		code.AppendLine("{");
+		code.WriteLine();
+		code.WriteLine("namespace ConstantExpression.Generated;");
+		code.WriteLine();
+		// code.WriteLine("{");
+		code.WriteLine("file static class GeneratedMethods");
+		code.WriteLine("{");
 
 		var isFirst = true;
 
@@ -125,7 +125,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		{
 			if (!isFirst)
 			{
-				code.AppendLine();
+				code.WriteLine();
 			}
 
 			isFirst = false;
@@ -133,7 +133,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			// Add interceptor attributes
 			foreach (var item in valueGroup)
 			{
-				code.AppendLine((string)$"\t[InterceptsLocation({item.Location.Version}, \"{item.Location.Data}\")]");
+				code.WriteLine($"\t[InterceptsLocation({item.Location.Version}, {item.Location.Data})]");
 			}
 
 			// Generate the method implementation
@@ -186,11 +186,11 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				.ToString()
 				.Replace("\n", "\n\t");
 
-			// code.AppendLine("\t[MethodImpl(MethodImplOptions.AggressiveInlining)]");
-			code.AppendLine(methodCode.Insert(0, "\t"));
+			// code.WriteLine("\t[MethodImpl(MethodImplOptions.AggressiveInlining)]");
+			code.WriteLine(methodCode.Insert(0, "\t"));
 		}
 
-		code.AppendLine("}");
+		code.WriteLine("}");
 
 		foreach (var invocation in group.DistinctBy(d => d.Value))
 		{
@@ -206,16 +206,16 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				}
 
 				var elementType = namedTypeSymbol.TypeArguments.FirstOrDefault();
-				var elementName = compilation.GetMinimalString(elementType);
+				// var elementName = compilation.GetMinimalString(elementType);
 				var dataName = $"{namedTypeSymbol.Name}_{hashCode}_Data";
 
 				IEnumerable<string> interfaces = [compilation.GetMinimalString(returnType)];
 
-				code.AppendLine();
+				code.WriteLine();
 
-				using (code.AppendBlock($"file sealed class {(LiteralString)namedTypeSymbol.Name}_{hashCode} : {(LiteralString) String.Join(", ", interfaces)}"))
+				using (code.WriteBlock($"file sealed class {namedTypeSymbol}_{hashCode} : {String.Join(", ", interfaces):literal}"))
 				{
-					code.AppendLine($"public static {(LiteralString) namedTypeSymbol.Name}_{hashCode} Instance = new {(LiteralString) namedTypeSymbol.Name}_{hashCode}();");
+					code.WriteLine($"public static {namedTypeSymbol}_{hashCode} Instance = new {namedTypeSymbol}_{hashCode}();");
 
 					if (invocation.Value is IEnumerable enumerable)
 					{
@@ -225,17 +225,17 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 							.Select(s => compilation.GetTypeByType(s.GetType()))
 							.First();
 
-						elementName ??= compilation.GetMinimalString(elementType);
+						// elementName ??= compilation.GetMinimalString(elementType);
 
-						code.AppendLine();
+						code.WriteLine();
 
 						if (compilation.IsSpecialType(elementType, SpecialType.System_Char))
 						{
-							code.AppendLine((string)$"public static ReadOnlySpan<{elementName}> {dataName} => \"{String.Join(String.Empty, enumerable.Cast<object?>())}\";");
+							code.WriteLine($"public static ReadOnlySpan<{elementType}> {dataName:literal} => \"{String.Join(String.Empty, enumerable.Cast<object?>()):literal}\";");
 						}
 						else
 						{
-							code.AppendLine((string)$"public static ReadOnlySpan<{elementName}> {dataName} => [{String.Join(", ", (enumerable.Cast<object?>()).Select(CreateLiteral))}];");
+							code.WriteLine($"public static ReadOnlySpan<{elementType}> {dataName:literal} => [{enumerable}];");
 						}
 
 						if (elementType is not null)
@@ -345,21 +345,21 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 							if (IsIEnumerableRecursive(namedTypeSymbol))
 							{
-								code.AppendLine();
+								code.WriteLine();
 
-								using (code.AppendBlock($"public IEnumerator<{elementType}> GetEnumerator()"))
+								using (code.WriteBlock($"public IEnumerator<{elementType}> GetEnumerator()"))
 								{
-									using (code.AppendBlock($"for (var i = 0; i < {(LiteralString) dataName}.Length; i++)"))
+									using (code.WriteBlock($"for (var i = 0; i < {dataName:literal}.Length; i++)"))
 									{
-										code.AppendLine($"yield return {(LiteralString)dataName}[i];");
+										code.WriteLine($"yield return {dataName:literal}[i];");
 									}
 								}
 
-								code.AppendLine();
+								code.WriteLine();
 
-								using (code.AppendBlock("IEnumerator IEnumerable.GetEnumerator()"))
+								using (code.WriteBlock("IEnumerator IEnumerable.GetEnumerator()"))
 								{
-									code.AppendLine("return GetEnumerator();");
+									code.WriteLine("return GetEnumerator();");
 								}
 							}
 						}

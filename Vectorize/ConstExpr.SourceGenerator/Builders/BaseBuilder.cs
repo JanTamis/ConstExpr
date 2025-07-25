@@ -6,6 +6,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using SourceGen.Utilities.Extensions;
+using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Builders;
 
@@ -13,9 +15,9 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 {
 	public const int Threshold = 5;
 	
-	protected LiteralString DataName => (LiteralString) dataName; // $"{type.Name}_{hashCode}_Data";
+	protected string DataName => dataName; // $"{type.Name}_{hashCode}_Data";
 
-	private IDisposable AppendMethod(IndentedStringBuilder builder, IMethodSymbol methodSymbol)
+	private IndentedCodeWriter.Block AppendMethod(IndentedCodeWriter builder, IMethodSymbol methodSymbol)
 	{
 		var prepend = "public ";
 
@@ -29,7 +31,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 			prepend += "async ";
 		}
 
-		builder.AppendLine();
+		builder.WriteLine();
 
 		if (methodSymbol.TypeParameters.Any())
 		{
@@ -74,13 +76,13 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 				})
 				.Where(c => c != null);
 
-			return builder.AppendBlock((string) $"{prepend}{compilation.GetMinimalString(methodSymbol.ReturnType)} {methodSymbol.Name}<{String.Join(", ", methodSymbol.TypeParameters.Select(compilation.GetMinimalString))}>({String.Join(", ", methodSymbol.Parameters.Select(s => $"{compilation.GetMinimalString(s.Type)} {s.Name}"))}) {String.Join("\n\t", constraints)}");
+			return builder.WriteBlock((string) $"{prepend}{compilation.GetMinimalString(methodSymbol.ReturnType)} {methodSymbol.Name}<{String.Join(", ", methodSymbol.TypeParameters.Select(compilation.GetMinimalString))}>({String.Join(", ", methodSymbol.Parameters.Select(s => $"{compilation.GetMinimalString(s.Type)} {s.Name}"))}) {String.Join("\n\t", constraints)}");
 		}
 
-		return builder.AppendBlock((string) $"{prepend}{compilation.GetMinimalString(methodSymbol.ReturnType)} {methodSymbol.Name}({String.Join(", ", methodSymbol.Parameters.Select(compilation.GetMinimalString))})");
+		return builder.WriteBlock((string) $"{prepend}{compilation.GetMinimalString(methodSymbol.ReturnType)} {methodSymbol.Name}({String.Join(", ", methodSymbol.Parameters.Select(compilation.GetMinimalString))})");
 	}
 
-	// protected void AppendMethod<T>(IndentedStringBuilder builder, IMethodSymbol methodSymbol, ReadOnlySpan<T> items, Action<VectorTypes, string, int> vectorAction, Action<bool> action)
+	// protected void AppendMethod<T>(IndentedCodeWriter builder, IMethodSymbol methodSymbol, ReadOnlySpan<T> items, Action<VectorTypes, string, int> vectorAction, Action<bool> action)
 	// {
 	// 	using (AppendMethod(builder, methodSymbol))
 	// 	{
@@ -92,12 +94,12 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 	//
 	// 			if (vectorType != VectorTypes.None)
 	// 			{
-	// 				using (builder.AppendBlock($"if ({vectorType}.IsHardwareAccelerated)"))
+	// 				using (builder.WriteBlock($"if ({vectorType}.IsHardwareAccelerated)"))
 	// 				{
 	// 					vectorAction(vectorType, vector, vectorSize);
 	// 				}
 	//
-	// 				builder.AppendLine();
+	// 				builder.WriteLine();
 	// 			}
 	// 		}
 	//
@@ -105,12 +107,12 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 	// 	}
 	// }
 
-	protected void AppendMethod<T>(IndentedStringBuilder builder, IMethodSymbol methodSymbol, ReadOnlySpan<T> items, bool isRepeating, Action<VectorTypes, IList<string>, int> vectorAction, Action<bool> action)
+	protected void AppendMethod<T>(IndentedCodeWriter builder, IMethodSymbol methodSymbol, ReadOnlySpan<T> items, bool isRepeating, Action<VectorTypes, IList<string>, int> vectorAction, Action<bool> action)
 	{
 		AppendMethod<T>(builder, methodSymbol, items, isRepeating, () => { }, vectorAction, action);
 	}
 
-	protected void AppendMethod<T>(IndentedStringBuilder? builder, IMethodSymbol methodSymbol, ReadOnlySpan<T> items, bool isRepeating, Action check, Action<VectorTypes, IList<string>, int> vectorAction, Action<bool> action)
+	protected void AppendMethod<T>(IndentedCodeWriter? builder, IMethodSymbol methodSymbol, ReadOnlySpan<T> items, bool isRepeating, Action check, Action<VectorTypes, IList<string>, int> vectorAction, Action<bool> action)
 	{
 		if (builder is null)
 		{
@@ -147,12 +149,10 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 
 				if (vectors.Count > 0)
 				{
-					using (builder.AppendBlock($"if ({type}.IsHardwareAccelerated)"))
+					using (builder.WriteBlock($"if ({type}.IsHardwareAccelerated)", padding: WhitespacePadding.After))
 					{
 						vectorAction(type, vectors, vectorSize);
 					}
-
-					builder.AppendLine();
 				}
 			}
 
@@ -160,7 +160,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		}
 	}
 
-	protected void AppendMethod<T>(IndentedStringBuilder? builder, IMethodSymbol methodSymbol, ReadOnlySpan<T> items, Action<bool> action)
+	protected void AppendMethod<T>(IndentedCodeWriter? builder, IMethodSymbol methodSymbol, ReadOnlySpan<T> items, Action<bool> action)
 	{
 		if (builder is null)
 		{
@@ -173,7 +173,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		}
 	}
 
-	protected void AppendMethod(IndentedStringBuilder? builder, IMethodSymbol methodSymbol, Action action)
+	protected void AppendMethod(IndentedCodeWriter? builder, IMethodSymbol methodSymbol, Action action)
 	{
 		if (builder is null)
 		{
@@ -186,19 +186,19 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		}
 	}
 
-	protected static void AppendProperty(IndentedStringBuilder builder, IPropertySymbol propertySymbol, string? get = null, string? set = null)
+	protected static void AppendProperty(IndentedCodeWriter builder, IPropertySymbol propertySymbol, string? get = null, string? set = null)
 	{
-		builder.AppendLine();
+		builder.WriteLine();
 
 		if (propertySymbol.IsReadOnly)
 		{
 			if (IsMultiline(get))
 			{
-				using (builder.AppendBlock(GetHeader()))
+				using (builder.WriteBlock(GetHeader()))
 				{
-					using (builder.AppendBlock("get"))
+					using (builder.WriteBlock("get"))
 					{
-						builder.AppendLine(get);
+						builder.WriteLine(get);
 					}
 				}
 			}
@@ -209,38 +209,38 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 					get = get.Substring("return".Length);
 				}
 
-				builder.AppendLine($"{(LiteralString) GetHeader()} => {(LiteralString) get.Trim().TrimEnd(';')};");
+				builder.WriteLine($"{GetHeader():literal} => {get.Trim().TrimEnd(';'):literal};");
 			}
 		}
 		else if (propertySymbol.IsWriteOnly)
 		{
-			using (builder.AppendBlock(GetHeader()))
+			using (builder.WriteBlock(GetHeader()))
 			{
-				using (builder.AppendBlock("set"))
+				using (builder.WriteBlock("set"))
 				{
-					builder.AppendLine(set);
+					builder.WriteLine(set);
 				}
 			}
 		}
 		else
 		{
-			using (builder.AppendBlock(GetHeader()))
+			using (builder.WriteBlock(GetHeader()))
 			{
 				if (IsMultiline(get))
 				{
-					using (builder.AppendBlock("get"))
+					using (builder.WriteBlock("get"))
 					{
-						builder.AppendLine(get);
+						builder.WriteLine(get);
 					}
 				}
 				else
 				{
-					builder.AppendLine($"get => {(LiteralString) get.TrimEnd(';')};");
+					builder.WriteLine($"get => {get.TrimEnd(';'):literal};");
 				}
 
-				using (builder.AppendBlock("set"))
+				using (builder.WriteBlock("set"))
 				{
-					builder.AppendLine(set);
+					builder.WriteLine(set);
 				}
 			}
 		}
@@ -423,11 +423,11 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		}
 	}
 
-	protected void GenerateCodeFromTree<T>(IndentedStringBuilder builder, TreeNode<T> node, string compareFormat, bool isFirst, IMethodSymbol method, IList<KeyValuePair<T, int>> items)
+	protected void GenerateCodeFromTree<T>(IndentedCodeWriter builder, TreeNode<T> node, string compareFormat, bool isFirst, IMethodSymbol method, IList<KeyValuePair<T, int>> items)
 	{
 		if (node.IsLeaf)
 		{
-			builder.AppendLine($"return {node.ReturnValue};");
+			builder.WriteLine($"return {node.ReturnValue};");
 			return;
 		}
 
@@ -436,7 +436,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 			if (node.State == TreeNode<T>.NodeState.LessThan && !EqualityComparer<T>.Default.Equals(node.Value, items[0].Key)
 			    || node.State == TreeNode<T>.NodeState.GreaterThan && !EqualityComparer<T>.Default.Equals(node.Value, items[^1].Key))
 			{
-				builder.AppendLine($"return {node.ReturnValue};");
+				builder.WriteLine($"return {node.ReturnValue};");
 				return;
 			}
 		}
@@ -446,9 +446,9 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		if (!elementType.HasComparison())
 		{
 			// Generate comparison code only once
-			builder.AppendLine($"{(isFirst ? "var " : String.Empty)}{checkVarName} = " +
+			builder.WriteLine($"{(isFirst ? "var " : String.Empty)}{checkVarName} = " +
 			                   $"{String.Format(compareFormat, method.Parameters.Select<IParameterSymbol, object>(s => s.Name).Prepend(node.Value).ToArray())};");
-			builder.AppendLine();
+			builder.WriteLine();
 		}
 
 
@@ -457,7 +457,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 			if (elementType.HasComparison())
 			{
 				// Generate branch logic
-				using (builder.AppendBlock($"if ({method.Parameters[0]} < {node.Value})"))
+				using (builder.WriteBlock($"if ({method.Parameters[0]} < {node.Value})"))
 				{
 					GenerateCodeFromTree(builder, node.LessThan, compareFormat, false, method, items);
 				}
@@ -465,7 +465,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 			else
 			{
 				// Generate branch logic
-				using (builder.AppendBlock($"if ({checkVarName} < 0)"))
+				using (builder.WriteBlock($"if ({checkVarName} < 0)"))
 				{
 					GenerateCodeFromTree(builder, node.LessThan, compareFormat, false, method, items);
 				}
@@ -478,14 +478,14 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 			{
 				if (elementType.HasComparison())
 				{
-					using (builder.AppendBlock($"else if ({method.Parameters[0]} > {node.Value})"))
+					using (builder.WriteBlock($"else if ({method.Parameters[0]} > {node.Value})"))
 					{
 						GenerateCodeFromTree(builder, node.GreaterThan, compareFormat, false, method, items);
 					}
 				}
 				else
 				{
-					using (builder.AppendBlock($"else if ({checkVarName} > 0)"))
+					using (builder.WriteBlock($"else if ({checkVarName} > 0)"))
 					{
 						GenerateCodeFromTree(builder, node.GreaterThan, compareFormat, false, method, items);
 					}
@@ -495,24 +495,24 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 			{
 				if (elementType.HasComparison())
 				{
-					using (builder.AppendBlock($"if ({method.Parameters[0]} > {node.Value})"))
+					using (builder.WriteBlock($"if ({method.Parameters[0]} > {node.Value})"))
 					{
 						GenerateCodeFromTree(builder, node.GreaterThan, compareFormat, false, method, items);
 					}
 				}
 				else
 				{
-					using (builder.AppendBlock("else"))
+					using (builder.WriteBlock("else"))
 					{
-						builder.AppendLine($"if ({checkVarName} > 0)");
+						builder.WriteLine($"if ({checkVarName} > 0)");
 					}
 
-					builder.AppendLine();
+					builder.WriteLine();
 				}
 			}
 		}
 
-		builder.AppendLine();
-		builder.AppendLine($"return {node.ReturnValue};");
+		builder.WriteLine();
+		builder.WriteLine($"return {node.ReturnValue};");
 	}
 }

@@ -1,0 +1,104 @@
+using System;
+using System.Linq;
+using System.Threading;
+using Microsoft.CodeAnalysis;
+
+namespace SourceGen.Utilities.Extensions;
+
+public static class CompilerExtensions
+{
+	public static string GetMinimalString(this Compilation compilation, ISymbol? symbol)
+	{
+		switch (symbol)
+		{
+			case null:
+				return String.Empty;
+			// Check for built-in type keywords
+			case ITypeSymbol typeSymbol:
+				switch (typeSymbol.SpecialType)
+				{
+					case SpecialType.System_Void: return "void";
+					case SpecialType.System_Boolean: return "bool";
+					case SpecialType.System_Byte: return "byte";
+					case SpecialType.System_SByte: return "sbyte";
+					case SpecialType.System_Int16: return "short";
+					case SpecialType.System_UInt16: return "ushort";
+					case SpecialType.System_Int32: return "int";
+					case SpecialType.System_UInt32: return "uint";
+					case SpecialType.System_Int64: return "long";
+					case SpecialType.System_UInt64: return "ulong";
+					case SpecialType.System_Single: return "float";
+					case SpecialType.System_Double: return "double";
+					case SpecialType.System_Decimal: return "decimal";
+					case SpecialType.System_Char: return "char";
+					case SpecialType.System_String: return "string";
+					case SpecialType.System_Object: return "object";
+				}
+				break;
+		}
+
+		if (compilation.IsSpecialType(symbol.OriginalDefinition, SpecialType.System_Collections_Generic_IEnumerable_T)
+		    && symbol is INamedTypeSymbol namedTypeSymbol)
+		{
+			return $"IEnumerable<{String.Join(", ", namedTypeSymbol.TypeArguments.Select(s => GetMinimalString(compilation, s)))}>";
+		}
+
+		switch (symbol)
+		{
+			case IArrayTypeSymbol arrayTypeSymbol:
+			{
+				var elementType = GetMinimalString(compilation, arrayTypeSymbol.ElementType);
+
+				return $"{elementType}[{new string(',', arrayTypeSymbol.Rank - 1)}]";
+			}
+			case INamedTypeSymbol { Arity: > 0, IsTupleType: true } namedSymbol:
+			{
+				return $"({String.Join(", ", namedSymbol.TypeArguments.Select(compilation.GetMinimalString))})";
+			}
+			case INamedTypeSymbol { Arity: > 0 } namedSymbol:
+			{
+				return $"{namedSymbol.Name}<{String.Join(", ", namedSymbol.TypeArguments.Select(s => GetMinimalString(compilation, s)))}>";
+			}
+		}
+
+		var node = GetSyntaxNode(symbol);
+
+		if (!compilation.TryGetSemanticModel(node, out var model))
+		{
+			return symbol.Name;
+		}
+
+		return symbol.ToMinimalDisplayString(model, node.Span.Start);
+
+		static SyntaxNode? GetSyntaxNode(ISymbol symbol, CancellationToken cancellationToken = default)
+		{
+			return symbol.DeclaringSyntaxReferences
+				.Select(s => s?.GetSyntax(cancellationToken))
+				.FirstOrDefault(s => s is not null);
+		}
+	}
+
+	public static bool IsSpecialType(this Compilation compilation, ISymbol symbol, SpecialType specialType)
+	{
+		if (symbol is ITypeSymbol namedTypeSymbol)
+		{
+			return namedTypeSymbol.SpecialType == specialType;
+		}
+
+		return SymbolEqualityComparer.Default.Equals(symbol, compilation.GetSpecialType(specialType));
+	}
+
+	public static bool TryGetSemanticModel(this Compilation compilation, SyntaxNode? node, out SemanticModel semanticModel)
+	{
+		var tree = node?.SyntaxTree;
+
+		if (compilation.SyntaxTrees.Contains(tree))
+		{
+			semanticModel = compilation.GetSemanticModel(tree);
+			return true;
+		}
+
+		semanticModel = null!;
+		return false;
+	}
+}

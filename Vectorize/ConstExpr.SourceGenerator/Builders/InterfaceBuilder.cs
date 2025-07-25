@@ -6,12 +6,14 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using SourceGen.Utilities.Extensions;
+using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Builders;
 
 public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, ITypeSymbol elementType, GenerationLevel generationLevel, string dataName) : BaseBuilder(elementType, compilation, generationLevel, loader, dataName)
 {
-	public bool AppendCount(IPropertySymbol property, int count, IndentedStringBuilder builder)
+	public bool AppendCount(IPropertySymbol property, int count, IndentedCodeWriter builder)
 	{
 		switch (property)
 		{
@@ -29,7 +31,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 	}
 
-	public bool AppendLength(IPropertySymbol property, int count, IndentedStringBuilder builder)
+	public bool AppendLength(IPropertySymbol property, int count, IndentedCodeWriter builder)
 	{
 		switch (property)
 		{
@@ -47,7 +49,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 	}
 
-	public bool AppendIsReadOnly(IPropertySymbol property, IndentedStringBuilder builder)
+	public bool AppendIsReadOnly(IPropertySymbol property, IndentedCodeWriter builder)
 	{
 		switch (property)
 		{
@@ -63,27 +65,27 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 	}
 
-	public bool AppendIndexer(IPropertySymbol property, IEnumerable<object?> items, IndentedStringBuilder builder)
+	public bool AppendIndexer(IPropertySymbol property, IEnumerable<object?> items, IndentedCodeWriter builder)
 	{
 		switch (property)
 		{
 			case { IsIndexer: true, Parameters: [ { Type.SpecialType: SpecialType.System_Int32 } ] }
 				when SymbolEqualityComparer.Default.Equals(property.Type, elementType):
 			{
-				builder.AppendLine();
+				builder.WriteLine();
 
 				if (property.IsReadOnly)
 				{
-					builder.AppendLine($"public {elementType} this[int index] => {DataName}[index];");
+					builder.WriteLine($"public {elementType} this[int index] => {DataName}[index];");
 
-					// using (builder.AppendBlock($"public {elementType} this[int index] => index switch", "};"))
+					// using (builder.WriteBlock($"public {elementType} this[int index] => index switch", "};"))
 					// {
 					// 	foreach (var item in items.Index().GroupBy(g => g.Value, g => g.Index))
 					// 	{
-					// 		builder.AppendLine($"{(LiteralString)String.Join(" or ", item.Select(SyntaxHelpers.CreateLiteral))} => {item.Key},");
+					// 		builder.WriteLine($"{(LiteralString)String.Join(" or ", item.Select(SyntaxHelpers.CreateLiteral))} => {item.Key},");
 					// 	}
 					//
-					// 	builder.AppendLine("_ => throw new ArgumentOutOfRangeException(),");
+					// 	builder.WriteLine("_ => throw new ArgumentOutOfRangeException(),");
 					// }
 
 					return true;
@@ -91,13 +93,13 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 				if (property.IsWriteOnly)
 				{
-					builder.AppendLine($"public {elementType} this[int index] => throw new NotSupportedException();");
+					builder.WriteLine($"public {elementType} this[int index] => throw new NotSupportedException();");
 					return true;
 				}
 
-				using (builder.AppendBlock($""))
+				using (builder.WriteBlock($""))
 				{
-					builder.AppendLine($$"""
+					builder.WriteLine($$"""
 						public {{elementType}} this[int index]
 						{
 							get => {{DataName}}[index];
@@ -113,7 +115,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 		}
 	}
 
-	public bool AppendCopyTo<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
+	public bool AppendCopyTo<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
 	{
 		switch (method)
 		{
@@ -122,7 +124,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 			{
 				AppendMethod(builder, method, () =>
 				{
-					builder.AppendLine($"{DataName}.CopyTo({method.Parameters[0]});");
+					builder.WriteLine($"{DataName}.CopyTo({method.Parameters[0]});");
 				});
 				return true;
 			}
@@ -131,7 +133,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 			{
 				AppendMethod(builder, method, () =>
 				{
-					builder.AppendLine($"{DataName}.CopyTo({method.Parameters[0]}.AsSpan({method.Parameters[1]}));");
+					builder.WriteLine($"{DataName}.CopyTo({method.Parameters[0]}.AsSpan({method.Parameters[1]}));");
 				});
 				return true;
 			}
@@ -141,7 +143,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 	}
 
-	public bool AppendAdd(IMethodSymbol method, IndentedStringBuilder builder)
+	public bool AppendAdd(IMethodSymbol method, IndentedCodeWriter builder)
 	{
 		switch (method)
 		{
@@ -150,7 +152,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 			{
 				AppendMethod(builder, method, () =>
 				{
-					builder.AppendLine("throw new NotSupportedException(\"Collection is read-only.\");");
+					builder.WriteLine("throw new NotSupportedException(\"Collection is read-only.\");");
 				});
 
 				return true;
@@ -161,7 +163,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 	}
 
-	public bool AppendClear(IMethodSymbol method, IndentedStringBuilder builder)
+	public bool AppendClear(IMethodSymbol method, IndentedCodeWriter builder)
 	{
 		switch (method)
 		{
@@ -169,7 +171,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 			{
 				AppendMethod(builder, method, () =>
 				{
-					builder.AppendLine("throw new NotSupportedException(\"Collection is read-only.\");");
+					builder.WriteLine("throw new NotSupportedException(\"Collection is read-only.\");");
 				});
 
 				return true;
@@ -180,7 +182,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 	}
 
-	public bool AppendRemove(IMethodSymbol method, IndentedStringBuilder builder)
+	public bool AppendRemove(IMethodSymbol method, IndentedCodeWriter builder)
 	{
 		switch (method)
 		{
@@ -189,7 +191,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 			{
 				AppendMethod(builder, method, () =>
 				{
-					builder.AppendLine("throw new NotSupportedException(\"Collection is read-only.\");");
+					builder.WriteLine("throw new NotSupportedException(\"Collection is read-only.\");");
 				});
 
 				return true;
@@ -199,7 +201,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 		}
 	}
 
-	public bool AppendIndexOf<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder? builder)
+	public bool AppendIndexOf<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -222,20 +224,20 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 								indexes.Add(items.IndexOf(i));
 							}
 
-							builder.AppendLine($"ReadOnlySpan<int> map = [{indexes}];");
-							builder.AppendLine();
+							builder.WriteLine($"ReadOnlySpan<int> map = [{indexes}];");
+							builder.WriteLine();
 
 							if (!EqualityComparer<object?>.Default.Equals(min, 0.ToSpecialType(elementType.SpecialType)))
 							{
-								builder.AppendLine($"{method.Parameters[0]} -= {min};");
-								builder.AppendLine();
+								builder.WriteLine($"{method.Parameters[0]} -= {min};");
+								builder.WriteLine();
 							}
 
-							builder.AppendLine("return (uint)item < (uint)map.Length ? map[item] : -1;");
+							builder.WriteLine("return (uint)item < (uint)map.Length ? map[item] : -1;");
 						}
 						else
 						{
-							using (builder.AppendBlock($"return {method.Parameters[0]} switch", "};"))
+							using (builder.WriteBlock($"return {method.Parameters[0]} switch", "};"))
 							{
 								var set = new HashSet<object?>();
 
@@ -243,17 +245,17 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 								{
 									if (set.Add(value))
 									{
-										builder.AppendLine($"{value} => {index},");
+										builder.WriteLine($"{value} => {index},");
 									}
 								}
 
-								builder.AppendLine("_ => -1,");
+								builder.WriteLine("_ => -1,");
 							}
 						}
 					}
 					else
 					{
-						builder.AppendLine($"return {DataName}.IndexOf({method.Parameters[0]});");
+						builder.WriteLine($"return {DataName}.IndexOf({method.Parameters[0]});");
 					}
 				});
 
@@ -264,7 +266,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 		}
 	}
 
-	public bool AppendInsert(IMethodSymbol method, IndentedStringBuilder builder)
+	public bool AppendInsert(IMethodSymbol method, IndentedCodeWriter builder)
 	{
 		switch (method)
 		{
@@ -273,7 +275,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 			{
 				AppendMethod(builder, method, () =>
 				{
-					builder.AppendLine("throw new NotSupportedException(\"Collection is read-only.\");");
+					builder.WriteLine("throw new NotSupportedException(\"Collection is read-only.\");");
 				});
 
 				return true;
@@ -284,7 +286,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 	}
 
-	public bool AppendRemoveAt(IMethodSymbol method, IndentedStringBuilder builder)
+	public bool AppendRemoveAt(IMethodSymbol method, IndentedCodeWriter builder)
 	{
 		switch (method)
 		{
@@ -293,7 +295,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 			{
 				AppendMethod(builder, method, () =>
 				{
-					builder.AppendLine("throw new NotSupportedException(\"Collection is read-only.\");");
+					builder.WriteLine("throw new NotSupportedException(\"Collection is read-only.\");");
 				});
 
 				return true;
@@ -304,7 +306,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 	}
 
-	public bool AppendContains<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder? builder)
+	public bool AppendContains<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -326,16 +328,16 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 							{
 								if (unsignedType.EqualsType(unsignedType))
 								{
-									builder.AppendLine($"return {method.Parameters[0]} <= {items[^1].ToSpecialType(unsignedType.SpecialType)};");
+									builder.WriteLine($"return {method.Parameters[0]} <= {items[^1].ToSpecialType(unsignedType.SpecialType)};");
 								}
 								else
 								{
-									builder.AppendLine($"return ({unsignedType}){method.Parameters[0]} <= {items[^1].ToSpecialType(unsignedType.SpecialType)};");
+									builder.WriteLine($"return ({unsignedType}){method.Parameters[0]} <= {items[^1].ToSpecialType(unsignedType.SpecialType)};");
 								}
 							}
 							else
 							{
-								builder.AppendLine($"return {method.Parameters[0]} is >= {items[0]} and <= {items[^1]};");
+								builder.WriteLine($"return {method.Parameters[0]} is >= {items[0]} and <= {items[^1]};");
 							}
 						});
 
@@ -347,7 +349,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 				{
 					AppendMethod(builder, method, () =>
 					{
-						builder.AppendLine($"return IndexOf({method.Parameters[0]}) >= 0;");
+						builder.WriteLine($"return IndexOf({method.Parameters[0]}) >= 0;");
 					});
 
 					return true;
@@ -355,8 +357,8 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 				AppendMethod(builder, method, items.AsSpan(), false, (vectorType, vectors, size) =>
 				{
-					builder.AppendLine($"var {method.Parameters[0]}Vector = {vectorType}.Create({method.Parameters[0]});");
-					builder.AppendLine();
+					builder.WriteLine($"var {method.Parameters[0]}Vector = {vectorType}.Create({method.Parameters[0]});");
+					builder.WriteLine();
 
 					if (size * vectors.Count < items.Length)
 					{
@@ -367,26 +369,26 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 						if (compilation.GetVectorType(vectorType).HasMethod("AnyWhereAllBitsSet"))
 						{
-							builder.AppendLine(CreatePadding("|", $"return {vectorType}.AnyWhereAllBitsSet(", vectors.Select(s => $"{vectorType}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false) + ")");
+							builder.WriteLine(CreatePadding("|", $"return {vectorType}.AnyWhereAllBitsSet(", vectors.Select(s => $"{vectorType}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false) + ")");
 						}
 						else
 						{
-							builder.AppendLine(CreatePadding("|", "return (", vectors.Select(s => $"{vectorType}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false) + $") != {vectorType}<{compilation.GetMinimalString(elementType)}>.Zero");
+							builder.WriteLine(CreatePadding("|", "return (", vectors.Select(s => $"{vectorType}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false) + $") != {vectorType}<{compilation.GetMinimalString(elementType)}>.Zero");
 						}
 
-						builder.AppendLine($"     || {method.Parameters[0]} is {(LiteralString) String.Join(" or ", checks.Select(SyntaxHelpers.CreateLiteral))};");
+						builder.WriteLine($"     || {method.Parameters[0]} is {String.Join(" or ", checks.Select(SyntaxHelpers.CreateLiteral)):literal};");
 
-						// builder.AppendLine(CreatePadding("|", "      |", checks));
+						// builder.WriteLine(CreatePadding("|", "      |", checks));
 					}
 					else
 					{
 						if (compilation.GetVectorType(vectorType).HasMethod("AnyWhereAllBitsSet"))
 						{
-							builder.AppendLine(CreatePadding("|", $"return {vectorType}.AnyWhereAllBitsSet(", vectors.Select(s => $"{vectorType}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false) + ");");
+							builder.WriteLine(CreatePadding("|", $"return {vectorType}.AnyWhereAllBitsSet(", vectors.Select(s => $"{vectorType}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false) + ");");
 						}
 						else
 						{
-							builder.AppendLine(CreatePadding("|", "return (", vectors.Select(s => $"{vectorType}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false) + $") != {vectorType}<{compilation.GetMinimalString(elementType)}>.Zero;");
+							builder.WriteLine(CreatePadding("|", "return (", vectors.Select(s => $"{vectorType}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false) + $") != {vectorType}<{compilation.GetMinimalString(elementType)}>.Zero;");
 						}
 					}
 				}, isPerformance =>
@@ -396,14 +398,14 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 						if (method.ContainingType.HasMethod("IndexOf", m => m is { ReturnType.SpecialType: SpecialType.System_Int32 }
 						                                                                   && m.Parameters.AsSpan().EqualsTypes(elementType)))
 						{
-							builder.AppendLine($"return IndexOf({method.Parameters[0]}) >= 0;");
+							builder.WriteLine($"return IndexOf({method.Parameters[0]}) >= 0;");
 						}
 						else if (method.ContainingType.HasMethod("BinarySearch", m => m is { ReturnType.SpecialType: SpecialType.System_Int32 }
 						                                                                             && m.Parameters.AsSpan().EqualsTypes(elementType)
 						                                                                             && elementType.HasMethod("CompareTo", x => x is { ReturnType.SpecialType: SpecialType.System_Int32 }
 						                                                                                                                                       && x.Parameters.AsSpan().EqualsTypes(elementType))))
 						{
-							builder.AppendLine($"return BinarySearch({method.Parameters[0]}) >= 0;");
+							builder.WriteLine($"return BinarySearch({method.Parameters[0]}) >= 0;");
 						}
 						// Check if the interface implements BinarySearch with a comparer
 						else if (method.ContainingType.HasMethod("BinarySearch", m => m is { ReturnType.SpecialType: SpecialType.System_Int32, Parameters.Length: 2 }
@@ -411,7 +413,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 						                                                                             && m.Parameters[1].Type.HasMethod("Compare", x => x is { ReturnType.SpecialType: SpecialType.System_Int32 }
 						                                                                                                                                              && x.Parameters.AsSpan().EqualsTypes(elementType, elementType))))
 						{
-							builder.AppendLine($"return BinarySearch({method.Parameters[0]}, Comparer<{elementType}>.Default) >= 0;");
+							builder.WriteLine($"return BinarySearch({method.Parameters[0]}, Comparer<{elementType}>.Default) >= 0;");
 						}
 						else
 						{
@@ -426,12 +428,12 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 								.Chunk(rowLength)
 								.Select(s => String.Join(" or ", s));
 
-							builder.AppendLine(CreatePadding("or", $"return {method.Parameters[0].Name} is", elements));
+							builder.WriteLine(CreatePadding("or", $"return {method.Parameters[0].Name} is", elements));
 						}
 					}
 					else
 					{
-						builder.AppendLine("return false;");
+						builder.WriteLine("return false;");
 					}
 				});
 
@@ -442,7 +444,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 		}
 	}
 
-	public bool AppendOverlaps<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
+	public bool AppendOverlaps<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
 	{
 		switch (method)
 		{
@@ -455,53 +457,53 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 					{
 						if (method.ContainingType.HasMethod("Contains", m => AppendContains(m, items, null)))
 						{
-							builder.AppendLine($"return {method.Parameters[0]}.Any(Contains);");
+							builder.WriteLine($"return {method.Parameters[0]}.Any(Contains);");
 							return;
 						}
 
 						if (method.ContainingType.HasMethod("IndexOf", m => AppendIndexOf(m, items, null)))
 						{
-							builder.AppendLine($"return {method.Parameters[0]}.Any(item => IndexOf(item) >= 0);");
+							builder.WriteLine($"return {method.Parameters[0]}.Any(item => IndexOf(item) >= 0);");
 							return;
 						}
 					}
 
-					using (builder.AppendBlock($"foreach (var item in {method.Parameters[0]})", WhitespacePadding.After))
+					using (builder.WriteBlock($"foreach (var item in {method.Parameters[0]})", padding: WhitespacePadding.After))
 					{
 						if (method.ContainingType.HasMethod("Contains", m => AppendContains(m, items, null)))
 						{
-							using (builder.AppendBlock("if (Contains(item))"))
+							using (builder.WriteBlock("if (Contains(item))"))
 							{
-								builder.AppendLine("return true;");
+								builder.WriteLine("return true;");
 							}
 						}
 						else if (method.ContainingType.HasMethod("IndexOf", m => AppendIndexOf(m, items, null)))
 						{
-							using (builder.AppendBlock("if (IndexOf(item) >= 0)"))
+							using (builder.WriteBlock("if (IndexOf(item) >= 0)"))
 							{
-								builder.AppendLine("return true;");
+								builder.WriteLine("return true;");
 							}
 						}
 						else
 						{
 							if (isPerformance && elementType.IsLiteralType())
 							{
-								using (builder.AppendBlock($"if (item is {(LiteralString) String.Join(" or ", items.Distinct().Select(SyntaxHelpers.CreateLiteral))})"))
+								using (builder.WriteBlock($"if (item is {String.Join(" or ", items.Distinct().Select(SyntaxHelpers.CreateLiteral)):literal})"))
 								{
-									builder.AppendLine("return true;");
+									builder.WriteLine("return true;");
 								}
 							}
 							else
 							{
-								using (builder.AppendBlock($"if ({DataName}.Contains(item))"))
+								using (builder.WriteBlock($"if ({DataName}.Contains(item))"))
 								{
-									builder.AppendLine("return true;");
+									builder.WriteLine("return true;");
 								}
 							}
 						}
 					}
 
-					builder.AppendLine("return false;");
+					builder.WriteLine("return false;");
 				});
 
 				return true;

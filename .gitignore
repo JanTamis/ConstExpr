@@ -24,3 +24,4 @@
 /ConstExpr.Tests/obj/Debug/net9.0/ConstExpr.Tests.GeneratedMSBuildEditorConfig.editorconfig
 /ConstExpr.Tests/obj/ConstExpr.Tests.csproj.nuget.g.targets
 /ConstExpr.Tests/obj/Debug/net9.0/ConstExpr.Tests.GlobalUsings.g.cs
+!/SourceGen.Utilities/obj/

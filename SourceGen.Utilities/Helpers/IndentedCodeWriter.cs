@@ -1,13 +1,19 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 using System.Threading;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using SourceGen.Utilities.Extensions;
 
 namespace SourceGen.Utilities.Helpers;
 
@@ -46,16 +52,19 @@ public sealed class IndentedCodeWriter : IDisposable
 	/// </summary>
 	private string[] _availableIndentations;
 
+	private readonly Compilation _compilation;
+
 	/// <summary>
 	/// Creates a new <see cref="IndentedCodeWriter"/> object.
 	/// </summary>
-	public IndentedCodeWriter()
+	public IndentedCodeWriter(Compilation compilation)
 	{
 		_builder = new ImmutableArrayBuilder<char>();
 		_currentIndentationLevel = 0;
 		_currentIndentation = String.Empty;
 		_availableIndentations = new string[4];
 		_availableIndentations[0] = String.Empty;
+		_compilation = compilation;
 
 		for (int i = 1, n = _availableIndentations.Length; i < n; i++)
 		{
@@ -113,15 +122,42 @@ public sealed class IndentedCodeWriter : IDisposable
 	/// <summary>
 	/// Writes a block to the underlying buffer.
 	/// </summary>
+	/// <param name="handler">The interpolated string handler with content to write.</param>
 	/// <param name="start">The opening string to use for the block.</param>
 	/// <param name="end">The closing string to use for the block.</param>
+	/// <param name="padding">The whitespace padding to use around the block.</param>
 	/// <returns>A <see cref="Block"/> value to close the open block with.</returns>
-	public Block WriteBlock(string start = "{", string end = "}")
+	public Block WriteBlock([InterpolatedStringHandlerArgument("")] ref WriteInterpolatedStringHandler handler, string start = "{", string end = "}", WhitespacePadding padding = WhitespacePadding.None)
 	{
+		if (padding is WhitespacePadding.Before or WhitespacePadding.BeforeAndAfter)
+		{
+			WriteLine();
+		}
+		
 		WriteLine(start);
 		IncreaseIndent();
 
-		return new Block(this, end);
+		return new Block(this, end, padding is WhitespacePadding.After or WhitespacePadding.BeforeAndAfter);
+	}
+
+	/// <summary>
+	/// Writes a block to the underlying buffer.
+	/// </summary>
+	/// <param name="start">The opening string to use for the block.</param>
+	/// <param name="end">The closing string to use for the block.</param>
+	/// <param name="padding">The whitespace padding to use around the block.</param>
+	/// <returns>A <see cref="Block"/> value to close the open block with.</returns>
+	public Block WriteBlock(string start = "{", string end = "}", WhitespacePadding padding = WhitespacePadding.None)
+	{
+		if (padding is WhitespacePadding.Before or WhitespacePadding.BeforeAndAfter)
+		{
+			WriteLine();
+		}
+
+		WriteLine(start);
+		IncreaseIndent();
+
+		return new Block(this, end, padding is WhitespacePadding.After or WhitespacePadding.BeforeAndAfter);
 	}
 
 	/// <summary>
@@ -366,7 +402,7 @@ public sealed class IndentedCodeWriter : IDisposable
 	/// Represents an indented block that needs to be closed.
 	/// </summary>
 	/// <param name="writer">The input <see cref="IndentedCodeWriter"/> instance to wrap.</param>
-	public struct Block(IndentedCodeWriter writer, string ending) : IDisposable
+	public struct Block(IndentedCodeWriter writer, string ending, bool shouldAppendWhitespace) : IDisposable
 	{
 		/// <summary>
 		/// The <see cref="IndentedCodeWriter"/> instance to write to.
@@ -384,6 +420,11 @@ public sealed class IndentedCodeWriter : IDisposable
 			{
 				writer.DecreaseIndent();
 				writer.WriteLine(ending);
+
+				if (shouldAppendWhitespace)
+				{
+					writer.WriteLine();
+				}
 			}
 		}
 	}
@@ -419,7 +460,26 @@ public sealed class IndentedCodeWriter : IDisposable
 		/// <param name="value">The value to write.</param>
 		public void AppendFormatted(string? value)
 		{
-			AppendFormatted<string?>(value);
+			AppendLiteral($"\"{value}\"");
+		}
+
+		public void AppendFormatted(ITypeSymbol type)
+		{
+			AppendLiteral(_writer._compilation.GetMinimalString(type) ?? type.ToString());
+		}
+
+		/// <summary>Writes the specified value to the handler.</summary>
+		/// <param name="value">The value to write.</param>
+		public void AppendFormatted(string? value, string format)
+		{
+			if (String.Equals(format, "literal", StringComparison.InvariantCultureIgnoreCase))
+			{
+				AppendFormatted(value);
+			}
+			else
+			{
+				AppendLiteral(value ?? String.Empty);
+			}
 		}
 
 		/// <summary>Writes the specified character span to the handler.</summary>
@@ -429,32 +489,62 @@ public sealed class IndentedCodeWriter : IDisposable
 			_writer.Write(value);
 		}
 
-		/// <summary>Writes the specified value to the handler.</summary>
-		/// <param name="value">The value to write.</param>
-		/// <typeparam name="T">The type of the value to write.</typeparam>
-		public void AppendFormatted<T>(T value)
+		public void AppendFormatted(IEnumerable items)
 		{
-			if (value is not null)
+			var enumerator = items.GetEnumerator();
+
+			try
 			{
-				_writer.Write(value.ToString());
+				if (!enumerator.MoveNext())
+				{
+					return;
+				}
+
+				AppendFormatted(enumerator.Current);
+
+				while (enumerator.MoveNext())
+				{
+					AppendLiteral(", ");
+					AppendFormatted(enumerator.Current);
+				}
+			}
+			finally
+			{
+				if (enumerator is IDisposable disposable)
+				{
+					disposable.Dispose();
+				}
 			}
 		}
 
 		/// <summary>Writes the specified value to the handler.</summary>
 		/// <param name="value">The value to write.</param>
-		/// <param name="format">The format string.</param>
 		/// <typeparam name="T">The type of the value to write.</typeparam>
-		public void AppendFormatted<T>(T value, string? format)
+		public void AppendFormatted<T>(T value)
 		{
-			if (value is IFormattable formattable)
+			var item = CreateLiteral(value);
+			
+			if (item is not null)
 			{
-				_writer.Write(formattable.ToString(format, CultureInfo.InvariantCulture));
-			}
-			else if (value is not null)
-			{
-				_writer.Write(value.ToString());
+				_writer.Write(item.ToString());
 			}
 		}
+
+		// /// <summary>Writes the specified value to the handler.</summary>
+		// /// <param name="value">The value to write.</param>
+		// /// <param name="format">The format string.</param>
+		// /// <typeparam name="T">The type of the value to write.</typeparam>
+		// public void AppendFormatted<T>(T value, string? format)
+		// {
+		// 	if (value is IFormattable formattable)
+		// 	{
+		// 		_writer.Write(formattable.ToString(format, CultureInfo.InvariantCulture));
+		// 	}
+		// 	else if (value is not null)
+		// 	{
+		// 		_writer.Write(value.ToString());
+		// 	}
+		// }
 
 		/// <summary>Writes the specified parameter name to the handler.</summary>
 		/// <param name="parameter">The parameter symbol to write.</param>
@@ -538,12 +628,6 @@ public sealed class IndentedCodeWriter : IDisposable
 			_handler.AppendFormatted(value);
 		}
 
-		/// <inheritdoc cref="WriteInterpolatedStringHandler.AppendFormatted{T}(T, string?)"/>
-		public void AppendFormatted<T>(T value, string? format)
-		{
-			_handler.AppendFormatted(value, format);
-		}
-
 		/// <inheritdoc cref="WriteInterpolatedStringHandler.AppendFormatted(IParameterSymbol)"/>
 		public void AppendFormatted(IParameterSymbol parameter)
 		{
@@ -556,4 +640,83 @@ public sealed class IndentedCodeWriter : IDisposable
 			_handler.AppendFormatted(parameters);
 		}
 	}
+	
+	public static ExpressionSyntax? CreateLiteral<T>(T? value)
+	{
+		switch (value)
+		{
+			case byte bb:
+				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(bb));
+			case int i:
+				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(i));
+			case uint ui:
+				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(ui));
+			case float f:
+				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(f));
+			case double d:
+				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(d));
+			case long l:
+				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(l));
+			case decimal dec:
+				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(dec));
+			case string s1:
+				return SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(s1));
+			case char c:
+				return SyntaxFactory.LiteralExpression(SyntaxKind.CharacterLiteralExpression, SyntaxFactory.Literal(c));
+			case bool b:
+				return SyntaxFactory.LiteralExpression(b
+					? SyntaxKind.TrueLiteralExpression
+					: SyntaxKind.FalseLiteralExpression);
+			case null:
+				return SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression);
+		}
+
+		if (value.GetType().Name.Contains("Tuple"))
+		{
+			var tupleItems = new List<ArgumentSyntax>();
+			var type = value.GetType();
+
+			// Check for ValueTuple fields (Item1, Item2, etc.)
+			var fields = type.GetFields().Where(f => f.Name.StartsWith("Item")).ToArray();
+
+			if (fields.Length > 0)
+			{
+				foreach (var field in fields)
+				{
+					var itemValue = field.GetValue(value);
+					tupleItems.Add(SyntaxFactory.Argument(CreateLiteral(itemValue)));
+				}
+			}
+			else
+			{
+				// Check for Tuple properties (Item1, Item2, etc.)
+				var properties = type.GetProperties().Where(p => p.Name.StartsWith("Item")).ToArray();
+
+				foreach (var prop in properties)
+				{
+					var itemValue = prop.GetValue(value);
+					tupleItems.Add(SyntaxFactory.Argument(CreateLiteral(itemValue)));
+				}
+			}
+
+			return SyntaxFactory.TupleExpression(SyntaxFactory.SeparatedList(tupleItems));
+		}
+
+		if (value is IEnumerable enumerable)
+		{
+			return SyntaxFactory.CollectionExpression(SyntaxFactory.SeparatedList<CollectionElementSyntax>(enumerable
+				.Cast<object?>()
+				.Select(s => SyntaxFactory.ExpressionElement(CreateLiteral(s)))));
+		}
+
+		return null;
+	}
+}
+
+public enum WhitespacePadding
+{
+	None,
+	Before,
+	After,
+	BeforeAndAfter
 }
