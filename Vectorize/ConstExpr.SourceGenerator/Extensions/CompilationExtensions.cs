@@ -832,6 +832,7 @@ public static class CompilationExtensions
 			return vectorTypes
 				.Where(w => w.Item2 >= size)
 				.Select(s => s.Item1)
+				.DefaultIfEmpty(VectorTypes.Vector512)
 				.First();
 		}
 

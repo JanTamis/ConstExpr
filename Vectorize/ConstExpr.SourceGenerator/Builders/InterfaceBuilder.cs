@@ -212,50 +212,65 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 				{
 					if (isPerformance)
 					{
-						var min = items.Min();
-						var max = items.Max();
+						// var min = items.Min();
+						// var max = items.Max();
 
-						if (elementType.IsInterger() && Comparer<object?>.Default.Compare(max.Subtract(min), 10.ToSpecialType(elementType.SpecialType)) <= 0)
+						// if (elementType.IsInterger() && Comparer<object?>.Default.Compare(max.Subtract(min).ToSpecialType(elementType.SpecialType), 10.ToSpecialType(elementType.SpecialType)) <= 0)
+						// {
+						// 	var indexes = new List<int>();
+						//
+						// 	for (var i = min; !EqualityComparer<object?>.Default.Equals(i, max.Add(1.ToSpecialType(elementType.SpecialType))); i = (T) i.Add(1.ToSpecialType(elementType.SpecialType)))
+						// 	{
+						// 		indexes.Add(items.IndexOf(i));
+						// 	}
+						//
+						// 	builder!.WriteLine($"ReadOnlySpan<int> map = [{indexes}];");
+						// 	builder.WriteLine();
+						//
+						// 	if (!EqualityComparer<object?>.Default.Equals(min, 0.ToSpecialType(elementType.SpecialType)))
+						// 	{
+						// 		builder.WriteLine($"{method.Parameters[0]} -= {min};");
+						// 		builder.WriteLine();
+						// 	}
+						//
+						// 	builder.WriteLine("return (uint)item < (uint)map.Length ? map[item] : -1;");
+						// }
+						// else
+						// {
+						// 	using (builder!.WriteBlock($"return {method.Parameters[0]} switch", end: "};"))
+						// 	{
+						// 		var set = new HashSet<object?>();
+						//
+						// 		foreach (var (index, value) in items.Index())
+						// 		{
+						// 			if (set.Add(value))
+						// 			{
+						// 				builder.WriteLine($"{value} => {index},");
+						// 			}
+						// 		}
+						//
+						// 		builder.WriteLine("_ => -1,");
+						// 	}
+						// }
+
+						using (builder!.WriteBlock($"return {method.Parameters[0]} switch", end: "};"))
 						{
-							var indexes = new List<int>();
+							var set = new HashSet<object?>();
 
-							for (var i = min; !EqualityComparer<object?>.Default.Equals(i, max.Add(1.ToSpecialType(elementType.SpecialType))); i = (T) i.Add(1.ToSpecialType(elementType.SpecialType)))
+							foreach (var (index, value) in items.Index())
 							{
-								indexes.Add(items.IndexOf(i));
-							}
-
-							builder.WriteLine($"ReadOnlySpan<int> map = [{indexes}];");
-							builder.WriteLine();
-
-							if (!EqualityComparer<object?>.Default.Equals(min, 0.ToSpecialType(elementType.SpecialType)))
-							{
-								builder.WriteLine($"{method.Parameters[0]} -= {min};");
-								builder.WriteLine();
-							}
-
-							builder.WriteLine("return (uint)item < (uint)map.Length ? map[item] : -1;");
-						}
-						else
-						{
-							using (builder.WriteBlock($"return {method.Parameters[0]} switch", "};"))
-							{
-								var set = new HashSet<object?>();
-
-								foreach (var (index, value) in items.Index())
+								if (set.Add(value))
 								{
-									if (set.Add(value))
-									{
-										builder.WriteLine($"{value} => {index},");
-									}
+									builder.WriteLine($"{value} => {index},");
 								}
-
-								builder.WriteLine("_ => -1,");
 							}
+
+							builder.WriteLine("_ => -1,");
 						}
 					}
 					else
 					{
-						builder.WriteLine($"return {DataName:literal}.IndexOf({method.Parameters[0]});");
+						builder!.WriteLine($"return {DataName:literal}.IndexOf({method.Parameters[0]});");
 					}
 				});
 
@@ -369,11 +384,11 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 						if (compilation.GetVectorType(vectorType).HasMethod("AnyWhereAllBitsSet"))
 						{
-							builder.WriteLine(CreatePadding("|", $"return {vectorType}.AnyWhereAllBitsSet(", vectors.Select(s => $"{vectorType}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false) + ")");
+							CreatePadding(builder, "|", $"return {vectorType}.AnyWhereAllBitsSet(", vectors.Select(s => $"{vectorType}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false).WriteLine(");");
 						}
 						else
 						{
-							builder.WriteLine(CreatePadding("|", "return (", vectors.Select(s => $"{vectorType}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false) + $") != {vectorType}<{compilation.GetMinimalString(elementType)}>.Zero");
+							CreatePadding(builder, "|", "return (", vectors.Select(s => $"{vectorType}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false).WriteLine($") != {vectorType}<{elementType}>.Zero");
 						}
 
 						builder.WriteLine($"     || {method.Parameters[0]} is {String.Join(" or ", checks.Select(SyntaxHelpers.CreateLiteral)):literal};");
@@ -384,11 +399,11 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 					{
 						if (compilation.GetVectorType(vectorType).HasMethod("AnyWhereAllBitsSet"))
 						{
-							builder.WriteLine(CreatePadding("|", $"return {vectorType}.AnyWhereAllBitsSet(", vectors.Select(s => $"{vectorType}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false) + ");");
+							CreatePadding(builder, "|", $"return {vectorType}.AnyWhereAllBitsSet(", vectors.Select(s => $"{vectorType}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false).WriteLine(");");
 						}
 						else
 						{
-							builder.WriteLine(CreatePadding("|", "return (", vectors.Select(s => $"{vectorType}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false) + $") != {vectorType}<{compilation.GetMinimalString(elementType)}>.Zero;");
+							CreatePadding(builder, "|", "return (", vectors.Select(s => $"{vectorType}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false).WriteLine($") != {vectorType}<{elementType}>.Zero");
 						}
 					}
 				}, isPerformance =>
@@ -428,7 +443,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 								.Chunk(rowLength)
 								.Select(s => String.Join(" or ", s));
 
-							builder.WriteLine(CreatePadding("or", $"return {method.Parameters[0].Name} is", elements));
+							CreatePadding(builder, "or", $"return {method.Parameters[0].Name} is", elements).WriteLine();
 						}
 					}
 					else

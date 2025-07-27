@@ -3,14 +3,11 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.ComponentModel;
-using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
-using System.Threading;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using SourceGen.Utilities.Extensions;
@@ -175,6 +172,19 @@ public sealed class IndentedCodeWriter : IDisposable
 	/// Writes content to the underlying buffer.
 	/// </summary>
 	/// <param name="content">The content to write.</param>
+	/// <param name="count"></param>
+	public void Write(char content, int count)
+	{
+		TryWriteIndentation();
+		
+		_builder.Advance(count)
+			.Fill(content);
+	}
+
+	/// <summary>
+	/// Writes content to the underlying buffer.
+	/// </summary>
+	/// <param name="content">The content to write.</param>
 	/// <param name="isMultiline">Whether the input content is multiline.</param>
 	public void Write(ReadOnlySpan<char> content, bool isMultiline = false)
 	{
@@ -263,7 +273,7 @@ public sealed class IndentedCodeWriter : IDisposable
 	/// <param name="skipIfPresent">Indicates whether to skip adding the line if there already is one.</param>
 	public void WriteLine(bool skipIfPresent = false)
 	{
-		if (skipIfPresent && _builder.WrittenSpan is [.., '\n', '\n'])
+		if (skipIfPresent && _builder.WrittenSpan.EndsWith("\n\n"))
 		{
 			return;
 		}
@@ -383,12 +393,17 @@ public sealed class IndentedCodeWriter : IDisposable
 	/// <param name="content">The raw text to write.</param>
 	private void WriteRawText(ReadOnlySpan<char> content)
 	{
+		TryWriteIndentation();
+
+		_builder.AddRange(content);
+	}
+	
+	private void TryWriteIndentation()
+	{
 		if (_builder.Count == 0 || _builder.WrittenSpan[^1] == DefaultNewLine)
 		{
 			_builder.AddRange(_currentIndentation.AsSpan());
 		}
-
-		_builder.AddRange(content);
 	}
 
 	/// <summary>
@@ -487,7 +502,9 @@ public sealed class IndentedCodeWriter : IDisposable
 		/// <param name="value">The span to write.</param>
 		public void AppendFormatted(ReadOnlySpan<char> value)
 		{
-			_writer.Write(value);
+			_writer.Write("\"", false);
+			_writer.Write(value, true);
+			_writer.Write("\"", false);
 		}
 
 		public void AppendFormatted(IEnumerable items)

@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace ConstExpr.SourceGenerator.Extensions;
@@ -209,6 +210,37 @@ public static class EnumerableExtensions
 		}
 
 		return true;
+	}
+
+	public static bool IsSequenceDifference<T>(this ReadOnlySpan<T> items, out T difference)
+	{
+		if (items.Length <= 1)
+		{
+			difference = default!;
+			return false; // Need at least 2 items to calculate difference
+		}
+
+		// Get the difference from the first two items
+		var first = items[0];
+		var second = items[1];
+		var expectedDifference = second.Subtract(first);
+
+		// Check if all consecutive items have the same difference
+		for (var i = 2; i < items.Length; i++)
+		{
+			var previous = items[i - 1];
+			var current = items[i];
+			var actualDifference = current.Subtract(previous);
+
+			if (!actualDifference.Equals(expectedDifference))
+			{
+				difference = default!;
+				return false; // Found a difference that doesn't match the expected
+			}
+		}
+
+		difference = expectedDifference;
+		return true; // All items have the same difference
 	}
 
 	public static IEnumerable<T> DistinctBy<T, TResult>(this IEnumerable<T> source, Func<T, TResult> selector)

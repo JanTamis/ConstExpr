@@ -6,8 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using System.Net;
-using System.Runtime.CompilerServices;
 using SourceGen.Utilities.Extensions;
 using SourceGen.Utilities.Helpers;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
@@ -226,11 +224,11 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 
 						if (compilation.GetVectorType(vectorType).HasMethod("AnyWhereAllBitsSet", m => m is { ReturnType.SpecialType: SpecialType.System_Boolean }))
 						{
-							builder.WriteLine(CreatePadding("|", $"return {vectorType}.AnyWhereAllBitsSet(", checks, false, false) + ");", true);
+							CreatePadding(builder, "|", $"return {vectorType}.AnyWhereAllBitsSet(", checks, false, false).WriteLine(");");
 						}
 						else
 						{
-							builder.WriteLine(CreatePadding("|", "return (", checks, false, false) + $") != {vectorType}<{elementType}>.Zero;", true);
+							CreatePadding(builder, "|", "return (", checks, false, false).WriteLine($") != {vectorType}<{elementType}>.Zero;");
 						}
 					}, isPerformance =>
 					{
@@ -240,7 +238,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 							var checks = method.Parameters
 								.Select(s => $"Contains({s.Name})");
 
-							builder.WriteLine(CreateReturnPadding("||", checks), true);
+							CreateReturnPadding(builder, "||", checks).WriteLine();
 						}
 						else if (method.Parameters.Length <= 3)
 						{
@@ -291,11 +289,11 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 
 						if (compilation.GetVectorType(vectorType).HasMethod("NoneWhereAllBitsSet", m => m is { ReturnType.SpecialType: SpecialType.System_Boolean }))
 						{
-							builder.WriteLine(CreatePadding("|", $"return {vectorType}.NoneWhereAllBitsSet(", checks, false, false) + ");", true);
+							CreatePadding(builder, "|", $"return {vectorType}.NoneWhereAllBitsSet(", checks, false, false).WriteLine(");");
 						}
 						else
 						{
-							builder.WriteLine(CreatePadding("|", "return (", checks, false, false) + $") == {vectorType}<{elementType}>.Zero;", true);
+							CreatePadding(builder, "|", "return (", checks, false, false).WriteLine($") == {vectorType}<{elementType}>.Zero;");
 						}
 					}, isPerformance =>
 					{
@@ -305,7 +303,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 							var checks = method.Parameters
 								.Select(s => $"!Contains({s.Name})");
 
-							builder.WriteLine(CreateReturnPadding("&&", checks), true);
+							CreateReturnPadding(builder, "&&", checks).WriteLine();
 						}
 						else if (method.Parameters.Length <= 3)
 						{
@@ -328,7 +326,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 					var checks = items
 						.Select(s => $"{method.Parameters[0].Name}.Contains({CreateLiteral(s)})");
 
-					builder.WriteLine(CreateReturnPadding("||", checks), true);
+					CreateReturnPadding(builder, "||", checks).WriteLine();
 				});
 
 				return true;
@@ -359,6 +357,23 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 				{
 					AppendMethod(builder, method, () =>
 					{
+						if (0.ToSpecialType(elementType.SpecialType).Equals(items[0]))
+						{
+							if (compilation.TryGetUnsignedType(elementType, out var unsignedType) && unsignedType is not null)
+							{
+								if (unsignedType.EqualsType(elementType))
+								{
+									builder.WriteLine($"return {method.Parameters[0]} <= {method.Parameters[1]} && {method.Parameters[0]} <= {items[^1]};");
+								}
+								else
+								{
+									builder.WriteLine($"return {method.Parameters[0]} <= {method.Parameters[1]} && {method.Parameters[0]} <= {items[^1]} && {method.Parameters[1]} >= ({unsignedType}){items[0]};");
+								}
+								
+								return;
+							}
+						}
+						
 						builder.WriteLine($"return {method.Parameters[0]} <= {method.Parameters[1]} && {method.Parameters[0]} <= {items[^1]} && {method.Parameters[1]} >= {items[0]};");
 					});
 
@@ -392,22 +407,22 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 					{
 						var padding = $"return {vectorType}.AnyWhereAllBitsSet(";
 
-						builder.WriteLine(CreatePadding("|", padding, checks, false, false) + (hasRemainingChecks ? ")" : ");"), true);
+						CreatePadding(builder, "|", padding, checks, false, false).WriteLine(hasRemainingChecks ? ")" : ");");
 
 						if (hasRemainingChecks)
 						{
-							builder.WriteLine(CreatePadding("||", new string(' ', padding.Length - 3) + "||", remainingChecks), true);
+							CreatePadding(builder, "||", new string(' ', padding.Length - 3) + "||", remainingChecks);
 						}
 					}
 					else
 					{
 						const string padding = "return (";
 
-						builder.WriteLine(CreatePadding("|", padding, checks, false, false) + $") != {vectorType}<{elementType}>.Zero" + (hasRemainingChecks ? String.Empty : ";"), true);
+						CreatePadding(builder, "|", padding, checks, false, false).WriteLine($") != {vectorType}<{elementType}>.Zero" + (hasRemainingChecks ? String.Empty : ";"));
 
 						if (hasRemainingChecks)
 						{
-							builder.WriteLine(CreatePadding("||", new string(' ', padding.Length - 3) + "||", remainingChecks));
+							CreatePadding(builder, "||", new string(' ', padding.Length - 3) + "||", remainingChecks).WriteLine();
 						}
 					}
 				}, _ =>
@@ -536,7 +551,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 				{
 					var checks = items.Select(s => $"{method.Parameters[0].Name}.Contains({CreateLiteral(s)}) ? 1 : 0");
 
-					builder.WriteLine(CreateReturnPadding("+", checks), true);
+					CreateReturnPadding(builder, "+", checks).WriteLine();
 				});
 
 				return true;
@@ -563,7 +578,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 							.Take(items.Length)
 							.Reverse();
 
-						builder.WriteLine(CreateReturnPadding("&&", checks), true);
+						CreateReturnPadding(builder, "&&", checks).WriteLine();
 					}
 					else
 					{
@@ -705,7 +720,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		{
 			case { Name: "IsWhiteSpace", ReturnType.SpecialType: SpecialType.System_Boolean, Parameters.Length: 0 }:
 			{
-				AppendMethod(builder, method, data.AsSpan(), isPerformance =>
+				AppendMethod(builder, method, () =>
 				{
 					builder.WriteLine($"return {String.IsNullOrWhiteSpace(data)};");
 				});
@@ -1247,8 +1262,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 					}
 					else
 					{
-						builder.WriteLine($"return {DataName:literal}");
-						builder.WriteLine($"\t.SequenceCompareTo({method.Parameters[0]});");
+						builder.WriteLine($"return {DataName:literal}.SequenceCompareTo({method.Parameters[0]});");
 					}
 				});
 	

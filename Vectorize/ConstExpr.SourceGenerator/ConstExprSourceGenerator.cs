@@ -31,6 +31,8 @@ namespace ConstExpr.SourceGenerator;
 [IncrementalGenerator]
 public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 {
+	private const bool ShouldGenerate = true;
+	
 	public override void OnInitialize(SgfInitializationContext context)
 	{
 		context.RegisterPostInitializationOutput(spc =>
@@ -144,9 +146,39 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			{
 				if (IsIEnumerable(compilation, first.Method.ReturnType) && first.Value is IEnumerable enumerable)
 				{
-					var block = SyntaxFactory.Block(enumerable
-						.Cast<object?>()
+					var returnType = compilation.GetSemanticModel(first.Method.SyntaxTree).GetTypeInfo(first.Method.ReturnType).Type;
+
+					if (returnType is not INamedTypeSymbol elementType)
+					{
+						continue;
+					}
+					
+					var data = enumerable.Cast<object?>().ToArray();
+					
+					var block = SyntaxFactory.Block(data
 						.Select(s => SyntaxFactory.YieldStatement(SyntaxKind.YieldReturnStatement, CreateLiteral(s)).WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))));
+
+					if (data.IsSame(data[0]))
+					{
+						block = SyntaxFactory.Block(
+							SyntaxFactory.ReturnStatement(
+								SyntaxFactory.ParseExpression($"Enumerable.Repeat({CreateLiteral(data[0])}, {CreateLiteral(data.Length)})")));
+					}
+					else if (data.IsNumericSequence() && compilation.IsSpecialType(elementType, SpecialType.System_Int32))
+					{
+						block = SyntaxFactory.Block(
+							SyntaxFactory.ReturnStatement(
+								SyntaxFactory.ParseExpression($"Enumerable.Range({CreateLiteral(data[0])}, {CreateLiteral(data.Length)})")));
+					}
+					else if (data.IsSequenceDifference(out var difference) && compilation.GetTypeByName(nameof(enumerable)).HasMethod("InfiniteSequence"))
+					{
+						block = SyntaxFactory.Block(
+							SyntaxFactory.ReturnStatement(
+								SyntaxFactory.ParseExpression($"""
+									Enumerable.InfiniteSequence({CreateLiteral(data[0])}, {CreateLiteral(difference)})
+										.Take({CreateLiteral(data.Length)})
+									""")));
+					}
 
 					method = method
 						.WithBody(block)
@@ -365,9 +397,9 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			}
 		}
 
-		if (group.Key.Parent is TypeDeclarationSyntax type && !group.Any(a => a.Exceptions.Any()))
+		if (ShouldGenerate && group.Key.Parent is TypeDeclarationSyntax type && !group.Any(a => a.Exceptions.Any()))
 		{
-			// spc.AddSource($"{type.Identifier}_{group.Key.Identifier}.g.cs", code.ToString());
+			spc.AddSource($"{type.Identifier}_{group.Key.Identifier}.g.cs", code.ToString());
 		}
 	}
 

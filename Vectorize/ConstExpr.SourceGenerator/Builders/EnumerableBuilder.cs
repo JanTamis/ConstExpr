@@ -137,7 +137,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			{
 				AppendMethod(builder, method, () =>
 				{
-					builder.WriteLine(CreateReturnPadding("||", items.Select(s => $"{method.Parameters[0]}({s})")));
+					CreateReturnPadding(builder, "||", items.Select(s => $"{method.Parameters[0]}({s})")).WriteLine();
 				});
 
 				return true;
@@ -156,7 +156,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			{
 				AppendMethod(builder, method, () =>
 				{
-					builder.WriteLine(CreateReturnPadding("&&", items.Select(s => $"{method.Parameters[0]}({s})")));
+					CreateReturnPadding(builder, "&&", items.Select(s => $"{method.Parameters[0]}({s})")).WriteLine();
 				});
 
 				return true;
@@ -225,7 +225,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			{
 				AppendMethod(builder, method, () =>
 				{
-					builder.WriteLine($"{CreatePadding("+", "return", items.Select(s => $"{method.Parameters[0]}({s})"))} / {items.Length};");
+					CreatePadding(builder, "+", "return", items.Select(s => $"{method.Parameters[0]}({s})"), isEnding: false).WriteLine($" / {items.Length};");
 				});
 
 				return true;
@@ -332,7 +332,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			{
 				AppendMethod(builder, method, () =>
 				{
-					builder.WriteLine(CreateReturnPadding("+", items.Select(s => $"{method.Parameters[0]}({s}) ? 1L : 0L")));
+					CreateReturnPadding(builder, "+", items.Select(s => $"{method.Parameters[0]}({s}) ? 1L : 0L")).WriteLine();
 				});
 
 				return true;
@@ -496,7 +496,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 				{
 					if (isPerformance)
 					{
-						using (builder.WriteBlock($"return {method.Parameters[0]} switch", "};"))
+						using (builder.WriteBlock($"return {method.Parameters[0]} switch", end: "};"))
 						{
 							for (var i = 0; i < items.Length; i++)
 							{
@@ -529,7 +529,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 				{
 					if (isPerformance)
 					{
-						using (builder.WriteBlock($"return {method.Parameters[0]}.GetOffset({items.Length}) switch", "};"))
+						using (builder.WriteBlock($"return {method.Parameters[0]}.GetOffset({items.Length}) switch", end: "};"))
 						{
 							for (var i = 0; i < items.Length; i++)
 							{
@@ -592,10 +592,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					{
 						for (var i = 0; i < items.Length; i++)
 						{
-							if (i != 0)
-							{
-								builder.WriteLine();
-							}
+							builder.WriteLineIf(i != 0, true);
 
 							using (builder.WriteBlock($"if ({method.Parameters[0]}({items[i]}))"))
 							{
@@ -605,7 +602,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 
 						if (items.Length > 0)
 						{
-							builder.WriteLine();
+							builder.WriteLine(true);
 							builder.WriteLine("throw new InvalidOperationException(\"Sequence contains no matching element\");");
 						}
 						else
@@ -667,10 +664,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					{
 						for (var i = 0; i < items.Length; i++)
 						{
-							if (i != 0)
-							{
-								builder.WriteLine();
-							}
+							builder.WriteLineIf(i != 0);
 
 							using (builder.WriteBlock($"if ({method.Parameters[0]}({items[i]}))"))
 							{
@@ -678,11 +672,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 							}
 						}
 
-						if (items.Length > 0)
-						{
-							builder.WriteLine();
-						}
-
+						builder.WriteLineIf(items.Length > 0);
 						builder.WriteLine($"return {elementType.GetDefaultValue()};");
 					}
 					else
@@ -723,10 +713,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 						builder.WriteLine($"yield return ({i}, {items[i]});");
 					}
 
-					if (items.Length == 0)
-					{
-						builder.WriteLine("yield break;");
-					}
+					builder.WriteLineIf(items.Length == 0, "yield break;");
 				});
 
 				return true;
@@ -767,10 +754,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					{
 						for (var i = items.Length - 1; i >= 0; i--)
 						{
-							if (i != items.Length - 1)
-							{
-								builder.WriteLine();
-							}
+							builder.WriteLineIf(i != items.Length - 1);
 
 							using (builder.WriteBlock($"if ({method.Parameters[0]}({items[i]}))"))
 							{
@@ -842,10 +826,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					{
 						for (var i = items.Length - 1; i >= 0; i--)
 						{
-							if (i != items.Length - 1)
-							{
-								builder.WriteLine();
-							}
+							builder.WriteLineIf(i != items.Length - 1);
 
 							using (builder.WriteBlock($"if ({method.Parameters[0]}({items[i]}))"))
 							{
@@ -853,11 +834,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 							}
 						}
 
-						if (items.Length > 0)
-						{
-							builder.WriteLine();
-						}
-
+						builder.WriteLineIf(items.Length > 0);
 						builder.WriteLine($"return {elementType.GetDefaultValue()};");
 					}
 					else
@@ -1015,7 +992,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 							builder.WriteLine("return !e.MoveNext();");
 						}
 
-						builder.WriteLine(CreateReturnPadding("&&", items.Select(s => $"e.MoveNext() && {s} == e.Current").Append("!e.MoveNext()")));
+						CreateReturnPadding(builder, "&&", items.Select(s => $"e.MoveNext() && {s} == e.Current").Append("!e.MoveNext()")).WriteLine();
 					}
 				});
 
@@ -1545,7 +1522,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 				{
 					if (items.Length == 0)
 					{
-						builder.WriteLine("yield break;");
+						builder.WriteLine($"return Enumerable.Empty<{elementType}>();");
 
 						return;
 					}
@@ -1585,7 +1562,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 				{
 					if (items.Length == 0)
 					{
-						builder.WriteLine("yield break;");
+						builder.WriteLine($"return Enumerable.Empty<{elementType}>();");
 
 						return;
 					}

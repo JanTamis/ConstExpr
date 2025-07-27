@@ -70,10 +70,10 @@ public static class CompilerExtensions
 
 		return symbol.ToMinimalDisplayString(model, node.Span.Start);
 
-		static SyntaxNode? GetSyntaxNode(ISymbol symbol, CancellationToken cancellationToken = default)
+		static SyntaxNode? GetSyntaxNode(ISymbol symbol)
 		{
 			return symbol.DeclaringSyntaxReferences
-				.Select(s => s?.GetSyntax(cancellationToken))
+				.Select(s => s.GetSyntax())
 				.FirstOrDefault(s => s is not null);
 		}
 	}

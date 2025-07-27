@@ -4,7 +4,6 @@ using ConstExpr.SourceGenerator.Helpers;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using SourceGen.Utilities.Extensions;
 using SourceGen.Utilities.Helpers;
@@ -303,26 +302,39 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		       || level == GenerationLevel.Balanced && count <= THRESHOLD;
 	}
 
-	protected string CreateReturnPadding(string check, IEnumerable<string> checks)
+	protected IndentedCodeWriter CreateReturnPadding(IndentedCodeWriter writer, string check, IEnumerable<string> checks)
 	{
-		return CreatePadding(check, "return", checks);
+		return CreatePadding(writer, check, "return", checks);
 	}
 
-	protected string CreatePadding(string check, string prefix, IEnumerable<string> checks, bool isEnding = true, bool addWhitespace = true)
+	protected IndentedCodeWriter CreatePadding(IndentedCodeWriter writer, string check, string prefix, IEnumerable<string> checks, bool isEnding = true, bool addWhitespace = true)
 	{
-		var padding = new string(' ', prefix.Length - check.Length - (addWhitespace ? 0 : 1));
-
-		if (addWhitespace)
+		var paddingCount = prefix.Length - check.Length - (addWhitespace ? 0 : 1);
+		var isFirst = true;
+		
+		foreach (var checkItem in checks)
 		{
-			prefix += " ";
+			if (isFirst)
+			{
+				writer.Write(prefix);
+				writer.WriteIf(addWhitespace, " ");
+				writer.Write(checkItem);
+				
+				isFirst = false;
+			}
+			else
+			{
+				writer.WriteLine();
+				writer.Write(' ', paddingCount);
+				writer.Write(check);
+				writer.Write(" ");
+				writer.Write(checkItem);
+			}
 		}
 
-		if (isEnding)
-		{
-			return $"{prefix}{String.Join("\n" + padding + $"{check} ", checks)};";
-		}
-
-		return $"{prefix}{String.Join("\n" + padding + $"{check} ", checks)}";
+		writer.WriteIf(isEnding, ";");
+		
+		return writer;
 	}
 
 	protected class TreeNode<T>

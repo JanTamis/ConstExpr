@@ -7,6 +7,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using SourceGen.Utilities.Extensions;
@@ -54,6 +55,7 @@ public static class SyntaxHelpers
 		switch (expression)
 		{
 			case LiteralExpressionSyntax literal:
+			{
 				switch (literal.Kind())
 				{
 					case SyntaxKind.StringLiteralExpression:
@@ -73,13 +75,16 @@ public static class SyntaxHelpers
 						value = literal.Token.Value;
 						return true;
 				}
+			}
 			case IdentifierNameSyntax identifier:
 				return variables.TryGetValue(identifier.Identifier.Text, out value);
 			case MemberAccessExpressionSyntax simple:
 				return TryGetVariableValue(compilation, simple.Expression, variables, out value);
 			default:
+			{
 				value = null;
 				return true;
+			}
 		}
 	}
 
@@ -109,9 +114,16 @@ public static class SyntaxHelpers
 			case uint ui:
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(ui));
 			case float f:
-				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(f));
+				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal($"{f.ToString(CultureInfo.InvariantCulture)}F", f));
 			case double d:
+			{
+				if (Math.Abs(d - Math.Round(d)) < Double.Epsilon)
+				{
+					return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal($"{d.ToString(CultureInfo.InvariantCulture)}D", d));
+				}
+
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(d));
+			}
 			case long l:
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(l));
 			case decimal dec:
@@ -121,9 +133,11 @@ public static class SyntaxHelpers
 			case char c:
 				return SyntaxFactory.LiteralExpression(SyntaxKind.CharacterLiteralExpression, SyntaxFactory.Literal(c));
 			case bool b:
+			{
 				return SyntaxFactory.LiteralExpression(b
 					? SyntaxKind.TrueLiteralExpression
 					: SyntaxKind.FalseLiteralExpression);
+			}
 			case null:
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression);
 		}
@@ -198,19 +212,29 @@ public static class SyntaxHelpers
 			switch (expression)
 			{
 				case LiteralExpressionSyntax literal:
+				{
 					value = literal.Token.Value;
+					
 					return true;
+				}
 				case ImplicitArrayCreationExpressionSyntax array:
+				{
 					value = array.Initializer.Expressions
 						.Select(x => GetConstantValue(compilation, loader, x, token))
 						.ToArray();
+					
 					return true;
+				}
 				case CollectionExpressionSyntax collection:
+				{
 					value = collection.Elements
 						.Select(x => GetConstantValue(compilation, loader, x, token))
 						.ToArray();
+					
 					return true;
+				}
 				case MemberAccessExpressionSyntax memberAccess when semanticModel.GetOperation(memberAccess) is IPropertyReferenceOperation propertyOperation:
+				{
 					if (propertyOperation.Property.IsStatic)
 					{
 						value = compilation.GetPropertyValue(loader, propertyOperation.Property, null);
@@ -225,7 +249,9 @@ public static class SyntaxHelpers
 
 					value = null;
 					return false;
+				}
 				case InvocationExpressionSyntax invocation when semanticModel.GetOperation(invocation) is IInvocationOperation operation:
+				{
 					if (operation.TargetMethod.IsStatic)
 					{
 						var methodParameters = operation.TargetMethod.Parameters;
@@ -252,7 +278,9 @@ public static class SyntaxHelpers
 					}
 					value = null;
 					return false;
+				}
 				case ObjectCreationExpressionSyntax creation when semanticModel.GetOperation(creation) is IObjectCreationOperation operation:
+				{
 					if (operation.Arguments.All(x => x.Value.ConstantValue.HasValue))
 					{
 						var parameters = operation.Arguments.Select(x => x.Value.ConstantValue.Value).ToArray();
@@ -261,14 +289,17 @@ public static class SyntaxHelpers
 					}
 					value = null;
 					return false;
+				}
 				// for unit tests
 				case ReturnStatementSyntax returnStatement:
 					return TryGetConstantValue(compilation, loader, returnStatement.Expression, token, out value);
 				case YieldStatementSyntax yieldStatement:
 					return TryGetConstantValue(compilation, loader, yieldStatement.Expression, token, out value);
 				default:
+				{
 					value = null;
 					return false;
+				}
 			}
 		}
 		catch (Exception e)
