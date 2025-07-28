@@ -49,4 +49,8 @@
 	  <None Remove="Generated\**" />
 	  <None Remove="obj\**" />
 	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\..\SourceGen.Utilities\SourceGen.Utilities.csproj" />
+	</ItemGroup>
 </Project>

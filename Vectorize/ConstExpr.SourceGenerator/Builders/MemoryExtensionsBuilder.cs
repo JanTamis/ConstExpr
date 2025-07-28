@@ -6,15 +6,15 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using System.Net;
-using System.Runtime.CompilerServices;
+using SourceGen.Utilities.Extensions;
+using SourceGen.Utilities.Helpers;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 
 namespace ConstExpr.SourceGenerator.Builders;
 
 public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loader, ITypeSymbol elementType, GenerationLevel generationLevel, string dataName) : BaseBuilder(elementType, compilation, generationLevel, loader, dataName)
 {
-	public bool AppendBinarySearch<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
+	public bool AppendBinarySearch<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
 	{
 		switch (method)
 		{
@@ -88,7 +88,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		}
 	}
 
-	public bool AppendCommonPrefixLength<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
+	public bool AppendCommonPrefixLength<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
 	{
 		switch (method)
 		{
@@ -99,13 +99,13 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 				{
 					if (isPerformance && elementType.IsVectorSupported())
 					{
-						var cast = (LiteralString) (elementType.EqualsType(compilation.CreateInt32())
+						var cast = elementType.EqualsType(compilation.CreateInt32())
 							? String.Empty
-							: $"({elementType})");
+							: $"({elementType})";
 
 						var byteSize = compilation.GetByteSize(loader, elementType);
 
-						builder.AppendLine($$"""
+						builder.WriteLine($$"""
 							if ({{method.Parameters[0]}}.IsEmpty)
 							{
 								return 0;
@@ -116,12 +116,12 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 								var position = 0;
 								
 								var indexes = Vector<{{elementType}}>.Indices;
-								var lengthVector = Vector.Create(Math.Min({{cast}}{{method.Parameters[0]}}.Length, {{(LiteralString) (elementType.NeedsCast() ? $"({compilation.GetMinimalString(elementType)})" : String.Empty)}}{{items.Length.ToSpecialType(elementType.SpecialType)}}));
-								var countVector = Vector.Create({{cast}}Vector<{{elementType}}>.Count);
+								var lengthVector = Vector.Create(Math.Min({{cast:literal}}{{method.Parameters[0]}}.Length, {{(elementType.NeedsCast() ? $"({compilation.GetMinimalString(elementType)})" : String.Empty):literal}}{{items.Length.ToSpecialType(elementType.SpecialType)}}));
+								var countVector = Vector.Create({{cast:literal}}Vector<{{elementType}}>.Count);
 
 								while (true)
 								{
-									var thisVec = Vector.LoadUnsafe(ref MemoryMarshal.GetReference({{DataName}}), (nuint)position);
+									var thisVec = Vector.LoadUnsafe(ref MemoryMarshal.GetReference({{DataName:literal}}), (nuint)position);
 									var otherVec = Vector.LoadUnsafe(ref MemoryMarshal.GetReference({{method.Parameters[0]}}), (nuint)position);
 
 									var equalMask = Vector.Equals(thisVec, otherVec) & Vector.LessThan(indexes, lengthVector);
@@ -133,7 +133,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 											{{16 / byteSize}} => BitOperations.TrailingZeroCount(~Vector128.ExtractMostSignificantBits(equalMask.AsVector128())),
 											{{32 / byteSize}} => BitOperations.TrailingZeroCount(~Vector256.ExtractMostSignificantBits(equalMask.AsVector256())),
 											{{64 / byteSize}} => BitOperations.TrailingZeroCount(~Vector512.ExtractMostSignificantBits(equalMask.AsVector512())),
-											_ => {{DataName}}
+											_ => {{DataName:literal}}
 												.Slice(position)
 												.CommonPrefixLength({{method.Parameters[0]}}),
 										};
@@ -144,12 +144,12 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 								}
 							}
 								
-							return {{DataName}}.CommonPrefixLength({{method.Parameters[0]}});
+							return {{DataName:literal}}.CommonPrefixLength({{method.Parameters[0]}});
 							""");
 					}
 					else
 					{
-						builder.AppendLine($"return {DataName}.CommonPrefixLength({method.Parameters[0]});");
+						builder.WriteLine($"return {DataName:literal}.CommonPrefixLength({method.Parameters[0]});");
 					}
 				});
 
@@ -163,7 +163,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 				{
 					if (isPerformance)
 					{
-						builder.AppendLine($"return {DataName}.CommonPrefixLength({method.Parameters});");
+						builder.WriteLine($"return {DataName:literal}.CommonPrefixLength({method.Parameters});");
 					}
 					else
 					{
@@ -182,14 +182,14 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		{
 			for (var i = 0; i < items.Length; i++)
 			{
-				builder.AppendLine($"if ({method.Parameters[0]}.Length <= {i} || {(LiteralString) String.Format(comparerFormat, CreateLiteral(items[i]), $"{method.Parameters[0].Name}[{CreateLiteral(i)}]")}) return {i};");
+				builder.WriteLine($"if ({method.Parameters[0]}.Length <= {i} || {String.Format(comparerFormat, CreateLiteral(items[i]), $"{method.Parameters[0].Name}[{CreateLiteral(i)}]"):literal}) return {i};");
 			}
 
-			builder.AppendLine($"return {items.Length};");
+			builder.WriteLine($"return {items.Length};");
 		}
 	}
 
-	public bool AppendContainsAny<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
+	public bool AppendContainsAny<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
 	{
 		switch (method)
 		{
@@ -204,7 +204,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 				{
 					AppendMethod(builder, method, () =>
 					{
-						builder.AppendLine("return false;");
+						builder.WriteLine("return false;");
 					});
 				}
 				else
@@ -213,10 +213,10 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 					{
 						foreach (var parameter in method.Parameters)
 						{
-							builder.AppendLine($"var {parameter}Vector = {vectorType}.Create({parameter});");
+							builder.WriteLine($"var {parameter}Vector = {vectorType}.Create({parameter});");
 						}
 
-						builder.AppendLine();
+						builder.WriteLine();
 
 						var checks = method.Parameters
 							.SelectMany(s => vectors
@@ -224,11 +224,11 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 
 						if (compilation.GetVectorType(vectorType).HasMethod("AnyWhereAllBitsSet", m => m is { ReturnType.SpecialType: SpecialType.System_Boolean }))
 						{
-							builder.AppendLine(CreatePadding("|", $"return {vectorType}.AnyWhereAllBitsSet(", checks, false, false) + ");");
+							CreatePadding(builder, "|", $"return {vectorType}.AnyWhereAllBitsSet(", checks, false, false).WriteLine(");");
 						}
 						else
 						{
-							builder.AppendLine(CreatePadding("|", "return (", checks, false, false) + $") != {vectorType}<{elementType}>.Zero;");
+							CreatePadding(builder, "|", "return (", checks, false, false).WriteLine($") != {vectorType}<{elementType}>.Zero;");
 						}
 					}, isPerformance =>
 					{
@@ -238,15 +238,15 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 							var checks = method.Parameters
 								.Select(s => $"Contains({s.Name})");
 
-							builder.AppendLine(CreateReturnPadding("||", checks));
+							CreateReturnPadding(builder, "||", checks).WriteLine();
 						}
 						else if (method.Parameters.Length <= 3)
 						{
-							builder.AppendLine($"return {DataName}.ContainsAny({method.Parameters});");
+							builder.WriteLine($"return {DataName:literal}.ContainsAny({method.Parameters});");
 						}
 						else
 						{
-							builder.AppendLine($"return {DataName}.ContainsAny([{method.Parameters}]);");
+							builder.WriteLine($"return {DataName:literal}.ContainsAny([{method.Parameters}]);");
 						}
 					});
 				}
@@ -258,7 +258,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		}
 	}
 
-	public bool AppendContainsAnyExcept<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
+	public bool AppendContainsAnyExcept<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
 	{
 		switch (method)
 		{
@@ -269,7 +269,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 				{
 					AppendMethod(builder, method, () =>
 					{
-						builder.AppendLine("return false;");
+						builder.WriteLine("return false;");
 					});
 				}
 				else
@@ -278,10 +278,10 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 					{
 						foreach (var parameter in method.Parameters)
 						{
-							builder.AppendLine($"var {(LiteralString) parameter.Name}Vector = {vectorType}.Create({(LiteralString) parameter.Name});");
+							builder.WriteLine($"var {parameter}Vector = {vectorType}.Create({parameter});");
 						}
 
-						builder.AppendLine();
+						builder.WriteLine();
 
 						var checks = method.Parameters
 							.SelectMany(s => vectors
@@ -289,11 +289,11 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 
 						if (compilation.GetVectorType(vectorType).HasMethod("NoneWhereAllBitsSet", m => m is { ReturnType.SpecialType: SpecialType.System_Boolean }))
 						{
-							builder.AppendLine(CreatePadding("|", $"return {vectorType}.NoneWhereAllBitsSet(", checks, false, false) + ");");
+							CreatePadding(builder, "|", $"return {vectorType}.NoneWhereAllBitsSet(", checks, false, false).WriteLine(");");
 						}
 						else
 						{
-							builder.AppendLine(CreatePadding("|", "return (", checks, false, false) + $") == {vectorType}<{elementType}>.Zero;");
+							CreatePadding(builder, "|", "return (", checks, false, false).WriteLine($") == {vectorType}<{elementType}>.Zero;");
 						}
 					}, isPerformance =>
 					{
@@ -303,15 +303,15 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 							var checks = method.Parameters
 								.Select(s => $"!Contains({s.Name})");
 
-							builder.AppendLine(CreateReturnPadding("&&", checks));
+							CreateReturnPadding(builder, "&&", checks).WriteLine();
 						}
 						else if (method.Parameters.Length <= 3)
 						{
-							builder.AppendLine($"return {DataName}.ContainsAnyExcept({method.Parameters});");
+							builder.WriteLine($"return {DataName:literal}.ContainsAnyExcept({method.Parameters});");
 						}
 						else
 						{
-							builder.AppendLine($"return {DataName}.ContainsAnyExcept([{method.Parameters}]);");
+							builder.WriteLine($"return {DataName:literal}.ContainsAnyExcept([{method.Parameters}]);");
 						}
 					});
 				}
@@ -326,7 +326,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 					var checks = items
 						.Select(s => $"{method.Parameters[0].Name}.Contains({CreateLiteral(s)})");
 
-					builder.AppendLine(CreateReturnPadding("||", checks));
+					CreateReturnPadding(builder, "||", checks).WriteLine();
 				});
 
 				return true;
@@ -336,7 +336,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		}
 	}
 
-	public bool AppendContainsAnyInRange<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
+	public bool AppendContainsAnyInRange<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
 	{
 		if (!elementType.EqualsType(compilation.GetTypeByName("System.IComparable", elementType)))
 		{
@@ -357,7 +357,24 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 				{
 					AppendMethod(builder, method, () =>
 					{
-						builder.AppendLine($"return {method.Parameters[0]} <= {method.Parameters[1]} && {method.Parameters[0]} <= {items[^1]} && {method.Parameters[1]} >= {items[0]};");
+						if (0.ToSpecialType(elementType.SpecialType).Equals(items[0]))
+						{
+							if (compilation.TryGetUnsignedType(elementType, out var unsignedType) && unsignedType is not null)
+							{
+								if (unsignedType.EqualsType(elementType))
+								{
+									builder.WriteLine($"return {method.Parameters[0]} <= {method.Parameters[1]} && {method.Parameters[0]} <= {items[^1]};");
+								}
+								else
+								{
+									builder.WriteLine($"return {method.Parameters[0]} <= {method.Parameters[1]} && {method.Parameters[0]} <= {items[^1]} && {method.Parameters[1]} >= ({unsignedType}){items[0]};");
+								}
+								
+								return;
+							}
+						}
+						
+						builder.WriteLine($"return {method.Parameters[0]} <= {method.Parameters[1]} && {method.Parameters[0]} <= {items[^1]} && {method.Parameters[1]} >= {items[0]};");
 					});
 
 					return true;
@@ -376,10 +393,10 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 
 					for (var i = 0; i < vectors.Count; i++)
 					{
-						builder.AppendLine($"var vec{i} = {(LiteralString) vectors[i]};");
+						builder.WriteLine($"var vec{i} = {vectors[i]:literal};");
 					}
 
-					builder.AppendLine($$"""
+					builder.WriteLine($$"""
 
 						var {{method.Parameters[0]}}Vector = {{vectorType}}.Create({{method.Parameters[0]}});
 						var {{method.Parameters[1]}}Vector = {{vectorType}}.Create({{method.Parameters[1]}});
@@ -390,34 +407,34 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 					{
 						var padding = $"return {vectorType}.AnyWhereAllBitsSet(";
 
-						builder.AppendLine(CreatePadding("|", padding, checks, false, false) + (hasRemainingChecks ? ")" : ");"));
+						CreatePadding(builder, "|", padding, checks, false, false).WriteLine(hasRemainingChecks ? ")" : ");");
 
 						if (hasRemainingChecks)
 						{
-							builder.AppendLine(CreatePadding("||", new string(' ', padding.Length - 3) + "||", remainingChecks));
+							CreatePadding(builder, "||", new string(' ', padding.Length - 3) + "||", remainingChecks);
 						}
 					}
 					else
 					{
 						const string padding = "return (";
 
-						builder.AppendLine(CreatePadding("|", padding, checks, false, false) + $") != {vectorType}<{elementType}>.Zero" + (hasRemainingChecks ? String.Empty : ";"));
+						CreatePadding(builder, "|", padding, checks, false, false).WriteLine($") != {vectorType}<{elementType}>.Zero" + (hasRemainingChecks ? String.Empty : ";"));
 
 						if (hasRemainingChecks)
 						{
-							builder.AppendLine(CreatePadding("||", new string(' ', padding.Length - 3) + "||", remainingChecks));
+							CreatePadding(builder, "||", new string(' ', padding.Length - 3) + "||", remainingChecks).WriteLine();
 						}
 					}
 				}, _ =>
 				{
 					if (compilation.GetTypeByName("System.MemoryExtensions").HasMethod("ContainsAnyInRange"))
 					{
-						builder.AppendLine($"return {DataName}.ContainsAnyInRange({method.Parameters});");
+						builder.WriteLine($"return {DataName:literal}.ContainsAnyInRange({method.Parameters});");
 					}
 					else
 					{
-						builder.AppendLine($$"""
-							foreach (var item in {{DataName}})
+						builder.WriteLine($$"""
+							foreach (var item in {{DataName:literal}})
 							{
 								if (item >= {{method.Parameters[0]}} && item <= {{method.Parameters[1]}})
 								{
@@ -432,7 +449,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 					// var checks = items
 					// 	.Select(s => $"{s} >= {method.Parameters[0].Name} && {s} <= {method.Parameters[1].Name}");
 					//
-					// builder.AppendLine(CreateReturnPadding("||", checks));
+					// builder.WriteLine(CreateReturnPadding("||", checks));
 				});
 
 				return true;
@@ -442,7 +459,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		}
 	}
 
-	// public bool AppendContainsAnyExceptInRange<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
+	// public bool AppendContainsAnyExceptInRange<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
 	// {
 	// 	switch (method)
 	// 	{
@@ -456,23 +473,23 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	//
 	// 			AppendMethod(builder, method, items.AsSpan(), false, (vectorType, vectors, vectorSize) =>
 	// 			{
-	// 				builder.AppendLine($"var items = {(LiteralString) vectors};");
-	// 				builder.AppendLine();
+	// 				builder.WriteLine($"var items = {(LiteralString) vectors};");
+	// 				builder.WriteLine();
 	//
 	// 				if (compilation.HasMethod(compilation.GetVectorType(vectorType), "AnyWhereAllBitsSet"))
 	// 				{
-	// 					builder.AppendLine($"return {vectorType}.AnyWhereAllBitsSet({vectorType}.LessThan(items, {vectorType}.Create({method.Parameters[0]})) | {vectorType}.GreaterThan(items, {vectorType}.Create({method.Parameters[1]}));");
+	// 					builder.WriteLine($"return {vectorType}.AnyWhereAllBitsSet({vectorType}.LessThan(items, {vectorType}.Create({method.Parameters[0]})) | {vectorType}.GreaterThan(items, {vectorType}.Create({method.Parameters[1]}));");
 	// 				}
 	// 				else
 	// 				{
-	// 					builder.AppendLine($"return ({vectorType}.LessThan(items, {vectorType}.Create({method.Parameters[0]})) | {vectorType}.GreaterThan(items, {vectorType}.Create({method.Parameters[1]}))) != {vectorType}<{elementType}>.Zero;");
+	// 					builder.WriteLine($"return ({vectorType}.LessThan(items, {vectorType}.Create({method.Parameters[0]})) | {vectorType}.GreaterThan(items, {vectorType}.Create({method.Parameters[1]}))) != {vectorType}<{elementType}>.Zero;");
 	// 				}
 	// 			}, _ =>
 	// 			{
 	// 				var checks = items
 	// 					.Select(s => $"{s} < {method.Parameters[0]} || {s} > {method.Parameters[1]}");
 	//
-	// 				builder.AppendLine(CreateReturnPadding("||", checks));
+	// 				builder.WriteLine(CreateReturnPadding("||", checks));
 	// 			});
 	//
 	// 			return true;
@@ -482,7 +499,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	// 	}
 	// }
 
-	public bool AppendCount<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
+	public bool AppendCount<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
 	{
 		switch (method)
 		{
@@ -493,26 +510,26 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 				{
 					if (isPerformance)
 					{
-						using (builder.AppendBlock($"return {method.Parameters[0]} switch", "};"))
+						using (builder.WriteBlock($"return {method.Parameters[0]} switch", "};"))
 						{
 							foreach (var count in items.CountBy(x => x).GroupBy(g => g.Value))
 							{
-								builder.AppendLine($"{(LiteralString) String.Join(" or ", count.Select(s => CreateLiteral(s.Key)))} => {count.Key},");
+								builder.WriteLine($"{String.Join(" or ", count.Select(s => CreateLiteral(s.Key))):literal} => {count.Key},");
 							}
 
-							builder.AppendLine("_ => 0,");
+							builder.WriteLine("_ => 0,");
 						}
 					}
 					else if (compilation.GetTypeByName("System.MemoryExtensions").HasMethod("Count"))
 					{
-						builder.AppendLine($"return {DataName}.Count({method.Parameters[0]});");
+						builder.WriteLine($"return {DataName:literal}.Count({method.Parameters[0]});");
 					}
 					else
 					{
-						builder.AppendLine($$"""
+						builder.WriteLine($$"""
 							var result = 0;
 
-							foreach (var item in {{DataName}})
+							foreach (var item in {{DataName:literal}})
 							{
 								if (item == {{method.Parameters[0]}})
 								{
@@ -534,7 +551,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 				{
 					var checks = items.Select(s => $"{method.Parameters[0].Name}.Contains({CreateLiteral(s)}) ? 1 : 0");
 
-					builder.AppendLine(CreateReturnPadding("+", checks));
+					CreateReturnPadding(builder, "+", checks).WriteLine();
 				});
 
 				return true;
@@ -544,7 +561,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		}
 	}
 
-	public bool AppendEndsWith<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
+	public bool AppendEndsWith<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
 	{
 		switch (method)
 		{
@@ -561,11 +578,11 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 							.Take(items.Length)
 							.Reverse();
 
-						builder.AppendLine(CreateReturnPadding("&&", checks));
+						CreateReturnPadding(builder, "&&", checks).WriteLine();
 					}
 					else
 					{
-						builder.AppendLine($"return {DataName}.EndsWith({method.Parameters});");
+						builder.WriteLine($"return {DataName:literal}.EndsWith({method.Parameters});");
 					}
 				});
 
@@ -576,7 +593,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		}
 	}
 
-	public bool AppendEnumerateLines(IMethodSymbol method, string? data, IndentedStringBuilder builder)
+	public bool AppendEnumerateLines(IMethodSymbol method, string? data, IndentedCodeWriter builder)
 	{
 		data ??= String.Empty;
 
@@ -604,13 +621,13 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 
 							var current = remaining.Slice(0, idx);
 
-							builder.AppendLine($"yield return {current};");
+							builder.WriteLine($"yield return {current};");
 
 							remaining = remaining.Slice(idx + stride);
 						}
 						else
 						{
-							builder.AppendLine($"yield return {remaining};");
+							builder.WriteLine($"yield return {remaining};");
 
 							break;
 						}
@@ -624,7 +641,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		}
 	}
 
-	public bool AppendEnumerableRunes(IMethodSymbol method, string? data, IndentedStringBuilder builder)
+	public bool AppendEnumerableRunes(IMethodSymbol method, string? data, IndentedCodeWriter builder)
 	{
 		if (data is null)
 		{
@@ -642,7 +659,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 
 					while (TryDecodeFromUtf16(span, out var result, out var charsConsumed))
 					{
-						builder.AppendLine($"yield return new Rune({result}); \t// {(LiteralString) span.Slice(0, charsConsumed).ToString()}");
+						builder.WriteLine($"yield return new Rune({result}); \t// {span.Slice(0, charsConsumed).ToString():literal}");
 						span = span.Slice(charsConsumed);
 					}
 				});
@@ -697,15 +714,15 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		}
 	}
 
-	public bool AppendIsWhiteSpace(IMethodSymbol method, string? data, IndentedStringBuilder builder)
+	public bool AppendIsWhiteSpace(IMethodSymbol method, string? data, IndentedCodeWriter builder)
 	{
 		switch (method)
 		{
 			case { Name: "IsWhiteSpace", ReturnType.SpecialType: SpecialType.System_Boolean, Parameters.Length: 0 }:
 			{
-				AppendMethod(builder, method, data.AsSpan(), isPerformance =>
+				AppendMethod(builder, method, () =>
 				{
-					builder.AppendLine($"return {String.IsNullOrWhiteSpace(data)};");
+					builder.WriteLine($"return {String.IsNullOrWhiteSpace(data)};");
 				});
 
 				return true;
@@ -715,7 +732,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		}
 	}
 
-	// public bool AppendIndexOfAny<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
+	// public bool AppendIndexOfAny<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
 	// {
 	// 	switch (method)
 	// 	{
@@ -724,26 +741,26 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	// 		{
 	// 			AppendMethod(builder, method, items.AsSpan(), false, (vectorType, vectors, vectorSize) =>
 	// 			{
-	// 				builder.AppendLine($"var vector = {(LiteralString) vectors};");
-	// 				builder.AppendLine();
+	// 				builder.WriteLine($"var vector = {(LiteralString) vectors};");
+	// 				builder.WriteLine();
 	//
-	// 				builder.AppendLine(CreatePadding("|", "var resultVector =", method.Parameters.Select(s => $"{vectorType}.Equals(vector, {vectorType}.Create({s.Name}))")));
+	// 				builder.WriteLine(CreatePadding("|", "var resultVector =", method.Parameters.Select(s => $"{vectorType}.Equals(vector, {vectorType}.Create({s.Name}))")));
 	//
-	// 				builder.AppendLine();
+	// 				builder.WriteLine();
 	//
 	// 				if (compilation.GetVectorType(vectorType).HasMethod("IndexOfWhereAllBitsSet", m => m is { ReturnType.SpecialType: SpecialType.System_Int32 }))
 	// 				{
-	// 					builder.AppendLine($"return {vectorType}.IndexOfWhereAllBitsSet(resultVector);");
+	// 					builder.WriteLine($"return {vectorType}.IndexOfWhereAllBitsSet(resultVector);");
 	// 				}
 	// 				else
 	// 				{
-	// 					using (builder.AppendBlock($"if (resultVector == {vectorType}<{elementType}>.Zero)"))
+	// 					using (builder.WriteBlock($"if (resultVector == {vectorType}<{elementType}>.Zero)"))
 	// 					{
-	// 						builder.AppendLine($"return {-1};");
+	// 						builder.WriteLine($"return {-1};");
 	// 					}
 	//
-	// 					builder.AppendLine();
-	// 					builder.AppendLine($"return BitOperations.TrailingZeroCount({vectorType}.ExtractMostSignificantBits(resultVector));");
+	// 					builder.WriteLine();
+	// 					builder.WriteLine($"return BitOperations.TrailingZeroCount({vectorType}.ExtractMostSignificantBits(resultVector));");
 	// 				}
 	//
 	// 			}, isPerformance =>
@@ -755,13 +772,13 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	// 					{
 	// 						foreach (var (index, parameter) in method.Parameters.Index())
 	// 						{
-	// 							builder.AppendLine($"var index{index} = IndexOf({parameter.Name});");
+	// 							builder.WriteLine($"var index{index} = IndexOf({parameter.Name});");
 	// 						}
 	//
-	// 						builder.AppendLine();
-	// 						builder.AppendLine($"var result = Math.Min((uint)index0, {CreateMinChain(1, method.Parameters.Length)});");
-	// 						builder.AppendLine();
-	// 						builder.AppendLine("return Unsafe.BitCast<uint, int>(result);");
+	// 						builder.WriteLine();
+	// 						builder.WriteLine($"var result = Math.Min((uint)index0, {CreateMinChain(1, method.Parameters.Length)});");
+	// 						builder.WriteLine();
+	// 						builder.WriteLine("return Unsafe.BitCast<uint, int>(result);");
 	// 					}
 	// 					else
 	// 					{
@@ -774,27 +791,27 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	// 								var checks = method.Parameters
 	// 									.Select(s => $"{s.Name} == {item}");
 	//
-	// 								builder.AppendLine($"if ({(LiteralString) String.Join(" || ", checks)}) return {index};");
+	// 								builder.WriteLine($"if ({(LiteralString) String.Join(" || ", checks)}) return {index};");
 	// 							}
 	// 						}
 	//
-	// 						builder.AppendLine($"return {-1};");
+	// 						builder.WriteLine($"return {-1};");
 	// 					}
 	// 				}
 	// 				else
 	// 				{
 	// 					var collectionName = GetDataName(method.ContainingType);
 	//
-	// 					using (builder.AppendBlock($"for (var i = 0; i < {(LiteralString) collectionName}.Length; i++)"))
+	// 					using (builder.WriteBlock($"for (var i = 0; i < {(LiteralString) collectionName}.Length; i++)"))
 	// 					{
-	// 						using (builder.AppendBlock($"if ({(LiteralString) String.Join(" || ", method.Parameters.Select(s => $"{s.Name} == {collectionName}[i]"))})"))
+	// 						using (builder.WriteBlock($"if ({(LiteralString) String.Join(" || ", method.Parameters.Select(s => $"{s.Name} == {collectionName}[i]"))})"))
 	// 						{
-	// 							builder.AppendLine("return i;");
+	// 							builder.WriteLine("return i;");
 	// 						}
 	// 					}
 	//
-	// 					builder.AppendLine();
-	// 					builder.AppendLine("return -1;");
+	// 					builder.WriteLine();
+	// 					builder.WriteLine("return -1;");
 	// 				}
 	// 			});
 	//
@@ -810,30 +827,30 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	// 				{
 	// 					for (var i = 0; i < items.Length; i++)
 	// 					{
-	// 						using (builder.AppendBlock($"if ({method.Parameters[0]}.Contains({items[i]}))"))
+	// 						using (builder.WriteBlock($"if ({method.Parameters[0]}.Contains({items[i]}))"))
 	// 						{
-	// 							builder.AppendLine($"return {i};");
+	// 							builder.WriteLine($"return {i};");
 	// 						}
 	//
-	// 						builder.AppendLine();
+	// 						builder.WriteLine();
 	// 					}
 	//
-	// 					builder.AppendLine($"return {-1};");
+	// 					builder.WriteLine($"return {-1};");
 	// 				}
 	// 				else
 	// 				{
 	// 					var collectionName = GetDataName(method.ContainingType);
 	//
-	// 					using (builder.AppendBlock($"for (var i = 0; i < {(LiteralString) collectionName}.Length; i++)"))
+	// 					using (builder.WriteBlock($"for (var i = 0; i < {(LiteralString) collectionName}.Length; i++)"))
 	// 					{
-	// 						using (builder.AppendBlock($"if ({method.Parameters[0]}.Contains({(LiteralString) collectionName}[i]))"))
+	// 						using (builder.WriteBlock($"if ({method.Parameters[0]}.Contains({(LiteralString) collectionName}[i]))"))
 	// 						{
-	// 							builder.AppendLine("return i;");
+	// 							builder.WriteLine("return i;");
 	// 						}
 	// 					}
 	//
-	// 					builder.AppendLine();
-	// 					builder.AppendLine("return -1;");
+	// 					builder.WriteLine();
+	// 					builder.WriteLine("return -1;");
 	// 				}
 	// 			});
 	//
@@ -854,7 +871,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	// 	}
 	// }
 
-	// public bool AppendIndexOfAnyExcept<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
+	// public bool AppendIndexOfAnyExcept<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
 	// {
 	// 	switch (method)
 	// 	{
@@ -863,26 +880,26 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	// 		{
 	// 			AppendMethod(builder, method, items.AsSpan(), false, (vectorType, vectors, vectorSize) =>
 	// 			{
-	// 				builder.AppendLine($"var vector = {(LiteralString) vectors};");
-	// 				builder.AppendLine();
+	// 				builder.WriteLine($"var vector = {(LiteralString) vectors};");
+	// 				builder.WriteLine();
 	//
-	// 				builder.AppendLine(CreatePadding("&", "var resultVector =", method.Parameters.Select(s => $"{vectorType}.Negate({vectorType}.Equals(vector, {vectorType}.Create({s.Name})))")));
+	// 				builder.WriteLine(CreatePadding("&", "var resultVector =", method.Parameters.Select(s => $"{vectorType}.Negate({vectorType}.Equals(vector, {vectorType}.Create({s.Name})))")));
 	//
-	// 				builder.AppendLine();
+	// 				builder.WriteLine();
 	//
 	// 				if (compilation.GetVectorType(vectorType).HasMethod("IndexOfWhereAllBitsSet", m => m is { ReturnType.SpecialType: SpecialType.System_Int32 }))
 	// 				{
-	// 					builder.AppendLine($"return {vectorType}.IndexOfWhereAllBitsSet(resultVector);");
+	// 					builder.WriteLine($"return {vectorType}.IndexOfWhereAllBitsSet(resultVector);");
 	// 				}
 	// 				else
 	// 				{
-	// 					using (builder.AppendBlock($"if (resultVector == {vectorType}<{elementType}>.Zero)"))
+	// 					using (builder.WriteBlock($"if (resultVector == {vectorType}<{elementType}>.Zero)"))
 	// 					{
-	// 						builder.AppendLine($"return {-1};");
+	// 						builder.WriteLine($"return {-1};");
 	// 					}
 	//
-	// 					builder.AppendLine();
-	// 					builder.AppendLine($"return BitOperations.TrailingZeroCount({vectorType}.ExtractMostSignificantBits(resultVector));");
+	// 					builder.WriteLine();
+	// 					builder.WriteLine($"return BitOperations.TrailingZeroCount({vectorType}.ExtractMostSignificantBits(resultVector));");
 	// 				}
 	//
 	// 			}, isPerformance =>
@@ -898,26 +915,26 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	// 							var checks = method.Parameters
 	// 								.Select(s => $"{s.Name} != {item}");
 	//
-	// 							builder.AppendLine($"if ({(LiteralString) String.Join(" && ", checks)}) return {index};");
+	// 							builder.WriteLine($"if ({(LiteralString) String.Join(" && ", checks)}) return {index};");
 	// 						}
 	// 					}
 	//
-	// 					builder.AppendLine($"return {-1};");
+	// 					builder.WriteLine($"return {-1};");
 	// 				}
 	// 				else
 	// 				{
 	// 					var collectionName = GetDataName(method.ContainingType);
 	//
-	// 					using (builder.AppendBlock($"for (var i = 0; i < {(LiteralString) collectionName}.Length; i++)"))
+	// 					using (builder.WriteBlock($"for (var i = 0; i < {(LiteralString) collectionName}.Length; i++)"))
 	// 					{
-	// 						using (builder.AppendBlock($"if ({(LiteralString) String.Join(" && ", method.Parameters.Select(s => $"{s.Name} != {collectionName}[i]"))})"))
+	// 						using (builder.WriteBlock($"if ({(LiteralString) String.Join(" && ", method.Parameters.Select(s => $"{s.Name} != {collectionName}[i]"))})"))
 	// 						{
-	// 							builder.AppendLine("return i;");
+	// 							builder.WriteLine("return i;");
 	// 						}
 	// 					}
 	//
-	// 					builder.AppendLine();
-	// 					builder.AppendLine("return -1;");
+	// 					builder.WriteLine();
+	// 					builder.WriteLine("return -1;");
 	// 				}
 	// 			});
 	//
@@ -933,30 +950,30 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	// 				{
 	// 					for (var i = 0; i < items.Length; i++)
 	// 					{
-	// 						using (builder.AppendBlock($"if ({method.Parameters[0]}.Contains({items[i]}))"))
+	// 						using (builder.WriteBlock($"if ({method.Parameters[0]}.Contains({items[i]}))"))
 	// 						{
-	// 							builder.AppendLine($"return {i};");
+	// 							builder.WriteLine($"return {i};");
 	// 						}
 	//
-	// 						builder.AppendLine();
+	// 						builder.WriteLine();
 	// 					}
 	//
-	// 					builder.AppendLine("return -1;");
+	// 					builder.WriteLine("return -1;");
 	// 				}
 	// 				else
 	// 				{
 	// 					var collectionName = GetDataName(method.ContainingType);
 	//
-	// 					using (builder.AppendBlock($"for (var i = 0; i < {(LiteralString) collectionName}.Length; i++)"))
+	// 					using (builder.WriteBlock($"for (var i = 0; i < {(LiteralString) collectionName}.Length; i++)"))
 	// 					{
-	// 						using (builder.AppendBlock($"if ({method.Parameters[0]}.Contains({(LiteralString) collectionName}[i]))"))
+	// 						using (builder.WriteBlock($"if ({method.Parameters[0]}.Contains({(LiteralString) collectionName}[i]))"))
 	// 						{
-	// 							builder.AppendLine("return i;");
+	// 							builder.WriteLine("return i;");
 	// 						}
 	// 					}
 	//
-	// 					builder.AppendLine();
-	// 					builder.AppendLine("return -1;");
+	// 					builder.WriteLine();
+	// 					builder.WriteLine("return -1;");
 	// 				}
 	// 			});
 	//
@@ -967,7 +984,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	// 	}
 	// }
 
-	// public bool AppendIndexOfAnyExceptInRange<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
+	// public bool AppendIndexOfAnyExceptInRange<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
 	// {
 	// 	switch (method)
 	// 	{
@@ -976,26 +993,26 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	// 		{
 	// 			AppendMethod(builder, method, items.AsSpan(), false, (vectorType, vectors, vectorSize) =>
 	// 			{
-	// 				builder.AppendLine($"var vector = {(LiteralString) vectors};");
-	// 				builder.AppendLine($"var {(LiteralString) method.Parameters[0].Name}Vector = {vectorType}.Create({(LiteralString) method.Parameters[0].Name});");
-	// 				builder.AppendLine($"var {(LiteralString) method.Parameters[1].Name}Vector = {vectorType}.Create({(LiteralString) method.Parameters[1].Name});");
-	// 				builder.AppendLine();
-	// 				builder.AppendLine($"var resultVector = {vectorType}.LessThan(vector, {(LiteralString) method.Parameters[0].Name}Vector) | {vectorType}.GreaterThan(vector, {(LiteralString) method.Parameters[1].Name}Vector);");
-	// 				builder.AppendLine();
+	// 				builder.WriteLine($"var vector = {(LiteralString) vectors};");
+	// 				builder.WriteLine($"var {(LiteralString) method.Parameters[0].Name}Vector = {vectorType}.Create({(LiteralString) method.Parameters[0].Name});");
+	// 				builder.WriteLine($"var {(LiteralString) method.Parameters[1].Name}Vector = {vectorType}.Create({(LiteralString) method.Parameters[1].Name});");
+	// 				builder.WriteLine();
+	// 				builder.WriteLine($"var resultVector = {vectorType}.LessThan(vector, {(LiteralString) method.Parameters[0].Name}Vector) | {vectorType}.GreaterThan(vector, {(LiteralString) method.Parameters[1].Name}Vector);");
+	// 				builder.WriteLine();
 	//
 	// 				if (compilation.GetVectorType(vectorType).HasMethod("IndexOfWhereAllBitsSet", m => m is { ReturnType.SpecialType: SpecialType.System_Int32 }))
 	// 				{
-	// 					builder.AppendLine($"return {vectorType}.IndexOfWhereAllBitsSet(resultVector);");
+	// 					builder.WriteLine($"return {vectorType}.IndexOfWhereAllBitsSet(resultVector);");
 	// 				}
 	// 				else
 	// 				{
-	// 					using (builder.AppendBlock($"if (resultVector == {vectorType}<{elementType}>.Zero)"))
+	// 					using (builder.WriteBlock($"if (resultVector == {vectorType}<{elementType}>.Zero)"))
 	// 					{
-	// 						builder.AppendLine($"return {-1};");
+	// 						builder.WriteLine($"return {-1};");
 	// 					}
 	//
-	// 					builder.AppendLine();
-	// 					builder.AppendLine($"return BitOperations.TrailingZeroCount({vectorType}.ExtractMostSignificantBits(resultVector));");
+	// 					builder.WriteLine();
+	// 					builder.WriteLine($"return BitOperations.TrailingZeroCount({vectorType}.ExtractMostSignificantBits(resultVector));");
 	// 				}
 	//
 	// 			}, isPerformance =>
@@ -1008,26 +1025,26 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	// 					{
 	// 						if (values.Add(item))
 	// 						{
-	// 							builder.AppendLine($"if ({item} < {(LiteralString) method.Parameters[0].Name} || {item} > {(LiteralString) method.Parameters[1].Name}) return {index};");
+	// 							builder.WriteLine($"if ({item} < {(LiteralString) method.Parameters[0].Name} || {item} > {(LiteralString) method.Parameters[1].Name}) return {index};");
 	// 						}
 	// 					}
 	//
-	// 					builder.AppendLine($"return -1;");
+	// 					builder.WriteLine($"return -1;");
 	// 				}
 	// 				else
 	// 				{
 	// 					var collectionName = GetDataName(method.ContainingType);
 	//
-	// 					using (builder.AppendBlock($"for (var i = 0; i < {collectionName}.Length; i++)"))
+	// 					using (builder.WriteBlock($"for (var i = 0; i < {collectionName}.Length; i++)"))
 	// 					{
-	// 						using (builder.AppendBlock($"if ({(LiteralString) collectionName}[i] < {(LiteralString) method.Parameters[0].Name} || {(LiteralString) collectionName}[i] > {(LiteralString) method.Parameters[1].Name})"))
+	// 						using (builder.WriteBlock($"if ({(LiteralString) collectionName}[i] < {(LiteralString) method.Parameters[0].Name} || {(LiteralString) collectionName}[i] > {(LiteralString) method.Parameters[1].Name})"))
 	// 						{
-	// 							builder.AppendLine("return i;");
+	// 							builder.WriteLine("return i;");
 	// 						}
 	// 					}
 	//
-	// 					builder.AppendLine();
-	// 					builder.AppendLine("return -1;");
+	// 					builder.WriteLine();
+	// 					builder.WriteLine("return -1;");
 	// 				}
 	// 			});
 	//
@@ -1038,7 +1055,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	// 	}
 	// }
 
-	// public bool AppendIndexOfAnyInRange<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
+	// public bool AppendIndexOfAnyInRange<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
 	// {
 	// 	switch (method)
 	// 	{
@@ -1047,26 +1064,26 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	// 		{
 	// 			AppendMethod(builder, method, items.AsSpan(), false, (vectorType, vectors, vectorSize) =>
 	// 			{
-	// 				builder.AppendLine($"var vector = {(LiteralString) vectors};");
-	// 				builder.AppendLine($"var {(LiteralString) method.Parameters[0].Name}Vector = {vectorType}.Create({(LiteralString) method.Parameters[0].Name});");
-	// 				builder.AppendLine($"var {(LiteralString) method.Parameters[1].Name}Vector = {vectorType}.Create({(LiteralString) method.Parameters[1].Name});");
-	// 				builder.AppendLine();
-	// 				builder.AppendLine($"var resultVector = {vectorType}.GreaterThanOrEqual(vector, {(LiteralString) method.Parameters[0].Name}Vector) & {vectorType}.LessThanOrEqual(vector, {(LiteralString) method.Parameters[1].Name}Vector);");
-	// 				builder.AppendLine();
+	// 				builder.WriteLine($"var vector = {(LiteralString) vectors};");
+	// 				builder.WriteLine($"var {(LiteralString) method.Parameters[0].Name}Vector = {vectorType}.Create({(LiteralString) method.Parameters[0].Name});");
+	// 				builder.WriteLine($"var {(LiteralString) method.Parameters[1].Name}Vector = {vectorType}.Create({(LiteralString) method.Parameters[1].Name});");
+	// 				builder.WriteLine();
+	// 				builder.WriteLine($"var resultVector = {vectorType}.GreaterThanOrEqual(vector, {(LiteralString) method.Parameters[0].Name}Vector) & {vectorType}.LessThanOrEqual(vector, {(LiteralString) method.Parameters[1].Name}Vector);");
+	// 				builder.WriteLine();
 	//
 	// 				if (compilation.GetVectorType(vectorType).HasMethod("IndexOfWhereAllBitsSet", m => m is { ReturnType.SpecialType: SpecialType.System_Int32 }))
 	// 				{
-	// 					builder.AppendLine($"return {vectorType}.IndexOfWhereAllBitsSet(resultVector);");
+	// 					builder.WriteLine($"return {vectorType}.IndexOfWhereAllBitsSet(resultVector);");
 	// 				}
 	// 				else
 	// 				{
-	// 					using (builder.AppendBlock($"if (resultVector == {vectorType}<{elementType}>.Zero)"))
+	// 					using (builder.WriteBlock($"if (resultVector == {vectorType}<{elementType}>.Zero)"))
 	// 					{
-	// 						builder.AppendLine($"return {-1};");
+	// 						builder.WriteLine($"return {-1};");
 	// 					}
 	//
-	// 					builder.AppendLine();
-	// 					builder.AppendLine($"return BitOperations.TrailingZeroCount({vectorType}.ExtractMostSignificantBits(resultVector));");
+	// 					builder.WriteLine();
+	// 					builder.WriteLine($"return BitOperations.TrailingZeroCount({vectorType}.ExtractMostSignificantBits(resultVector));");
 	// 				}
 	//
 	// 			}, isPerformance =>
@@ -1079,26 +1096,26 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	// 					{
 	// 						if (values.Add(item))
 	// 						{
-	// 							builder.AppendLine($"if ({item} >= {(LiteralString) method.Parameters[0].Name} && {item} <= {(LiteralString) method.Parameters[1].Name}) return {index};");
+	// 							builder.WriteLine($"if ({item} >= {(LiteralString) method.Parameters[0].Name} && {item} <= {(LiteralString) method.Parameters[1].Name}) return {index};");
 	// 						}
 	// 					}
 	//
-	// 					builder.AppendLine($"return -1;");
+	// 					builder.WriteLine($"return -1;");
 	// 				}
 	// 				else
 	// 				{
 	// 					var collectionName = GetDataName(method.ContainingType);
 	//
-	// 					using (builder.AppendBlock($"for (var i = 0; i < {(LiteralString) collectionName}.Length; i++)"))
+	// 					using (builder.WriteBlock($"for (var i = 0; i < {(LiteralString) collectionName}.Length; i++)"))
 	// 					{
-	// 						using (builder.AppendBlock($"if ({(LiteralString) collectionName}[i] >= {(LiteralString) method.Parameters[0].Name} && {(LiteralString) collectionName}[i] <= {(LiteralString) method.Parameters[1].Name})"))
+	// 						using (builder.WriteBlock($"if ({(LiteralString) collectionName}[i] >= {(LiteralString) method.Parameters[0].Name} && {(LiteralString) collectionName}[i] <= {(LiteralString) method.Parameters[1].Name})"))
 	// 						{
-	// 							builder.AppendLine("return i;");
+	// 							builder.WriteLine("return i;");
 	// 						}
 	// 					}
 	//
-	// 					builder.AppendLine();
-	// 					builder.AppendLine("return -1;");
+	// 					builder.WriteLine();
+	// 					builder.WriteLine("return -1;");
 	// 				}
 	// 			});
 	//
@@ -1109,7 +1126,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	// 	}
 	// }
 
-	public bool AppendReplace<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
+	public bool AppendReplace<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
 	{
 		if (!elementType.EqualsType(compilation.GetTypeByName("System.IEquatable", elementType)))
 		{
@@ -1125,22 +1142,22 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 				{
 					if (compilation.HasMethod(typeof(ArgumentOutOfRangeException), "ThrowIfLessThan"))
 					{
-						builder.AppendLine($"ArgumentOutOfRangeException.ThrowIfLessThan((uint){method.Parameters[0]}.Length, {(uint) items.Length});");
+						builder.WriteLine($"ArgumentOutOfRangeException.ThrowIfLessThan((uint){method.Parameters[0]}.Length, {(uint) items.Length});");
 					}
 					else
 					{
-						using (builder.AppendBlock($"if ((uint){method.Parameters[0]}.Length < {(uint) items.Length})"))
+						using (builder.WriteBlock($"if ((uint){method.Parameters[0]}.Length < {(uint) items.Length})"))
 						{
-							builder.AppendLine($"throw new ArgumentOutOfRangeException(nameof({method.Parameters[0]}), \"The length of the span is less than {items.Length}\");");
+							builder.WriteLine($"throw new ArgumentOutOfRangeException(nameof({method.Parameters[0]}), \"The length of the span is less than {items.Length}\");");
 						}
 					}
 
-					builder.AppendLine();
+					builder.WriteLine();
 				}, (vectorType, vectors, size) =>
 				{
 					var index = vectors.Count * size;
 
-					builder.AppendLine($"""
+					builder.WriteLine($"""
 						ref var {method.Parameters[0]}Reference = ref MemoryMarshal.GetReference({method.Parameters[0]});
 
 						var {method.Parameters[1]}Vector = {vectorType}.Create({method.Parameters[1]});
@@ -1150,59 +1167,59 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 
 					for (var i = 0; i < vectors.Count; i++)
 					{
-						builder.AppendLine($"var vec{i} = {(LiteralString) vectors[i]};");
+						builder.WriteLine($"var vec{i} = {vectors[i]:literal};");
 					}
 
-					builder.AppendLine();
+					builder.WriteLine();
 
 					for (var i = 0; i < vectors.Count; i++)
 					{
 						if (i == 0)
 						{
-							builder.AppendLine($"{vectorType}.ConditionalSelect({vectorType}.Equals(vec{i}, {method.Parameters[1]}Vector), {method.Parameters[2]}Vector, vec{i}).StoreUnsafe(ref {method.Parameters[0]}Reference);");
+							builder.WriteLine($"{vectorType}.ConditionalSelect({vectorType}.Equals(vec{i}, {method.Parameters[1]}Vector), {method.Parameters[2]}Vector, vec{i}).StoreUnsafe(ref {method.Parameters[0]}Reference);");
 						}
 						else
 						{
-							builder.AppendLine($"{vectorType}.ConditionalSelect({vectorType}.Equals(vec{i}, {method.Parameters[1]}Vector), {method.Parameters[2]}Vector, vec{i}).StoreUnsafe(ref {method.Parameters[0]}Reference, {i * size});");
+							builder.WriteLine($"{vectorType}.ConditionalSelect({vectorType}.Equals(vec{i}, {method.Parameters[1]}Vector), {method.Parameters[2]}Vector, vec{i}).StoreUnsafe(ref {method.Parameters[0]}Reference, {i * size});");
 						}
 					}
 
 					if (index < items.Length)
 					{
-						builder.AppendLine();
+						builder.WriteLine();
 					}
 
 					for (; index < items.Length; index++)
 					{
 						if (elementType.NeedsCast())
 						{
-							builder.AppendLine($"{method.Parameters[0]}[{index}] = {method.Parameters[1]} == ({elementType}){items[index]} ? {method.Parameters[2]} : ({elementType}){items[index]};");
+							builder.WriteLine($"{method.Parameters[0]}[{index}] = {method.Parameters[1]} == ({elementType}){items[index]} ? {method.Parameters[2]} : ({elementType}){items[index]};");
 						}
 						else
 						{
-							builder.AppendLine($"{method.Parameters[0]}[{index}] = {method.Parameters[1]} == {items[index]} ? {method.Parameters[2]} : {items[index]};");
+							builder.WriteLine($"{method.Parameters[0]}[{index}] = {method.Parameters[1]} == {items[index]} ? {method.Parameters[2]} : {items[index]};");
 						}
 					}
 
-					builder.AppendLine();
-					builder.AppendLine("return;");
+					builder.WriteLine();
+					builder.WriteLine("return;");
 				}, isPerformance =>
 				{
 					if (compilation.GetTypeByName("System.MemoryExtensions").HasMethod("Replace"))
 					{
-						builder.AppendLine($"{DataName}.Replace({method.Parameters});");
+						builder.WriteLine($"{DataName:literal}.Replace({method.Parameters});");
 					}
 					else
 					{
-						using (builder.AppendBlock($"for (var i = 0; i < {method.Parameters[0]}.Length; i++)"))
+						using (builder.WriteBlock($"for (var i = 0; i < {method.Parameters[0]}.Length; i++)"))
 						{
 							if (elementType.SpecialType != SpecialType.None)
 							{
-								builder.AppendLine($"{method.Parameters[0]}[i] = {DataName}[i] == {method.Parameters[1]} ? {method.Parameters[2]} : {DataName}[i];");
+								builder.WriteLine($"{method.Parameters[0]}[i] = {DataName:literal}[i] == {method.Parameters[1]} ? {method.Parameters[2]} : {DataName:literal}[i];");
 							}
 							else
 							{
-								builder.AppendLine($"{method.Parameters[0]}[i] = EqualityComparer<{elementType}>.Default.Equals({DataName}[i], {method.Parameters[1]}) ? {method.Parameters[2]} : {DataName}[i];");
+								builder.WriteLine($"{method.Parameters[0]}[i] = EqualityComparer<{elementType}>.Default.Equals({DataName:literal}[i], {method.Parameters[1]}) ? {method.Parameters[2]} : {DataName:literal}[i];");
 							}
 						}
 					}
@@ -1215,7 +1232,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		return false;
 	}
 
-	public bool AppendSequenceCompareTo<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedStringBuilder builder)
+	public bool AppendSequenceCompareTo<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
 	{
 		switch (method)
 		{
@@ -1227,12 +1244,12 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 				{
 					if (isPerformance)
 					{
-						builder.AppendLine($$"""
+						builder.WriteLine($$"""
 							var count = Math.Min({{items.Length}}, {{method.Parameters[0]}}.Length);
 							
 							for (var i = 0; i < count; i++)
 							{
-								var result = {{DataName}}[i].CompareTo({{method.Parameters[0]}}[i]);
+								var result = {{DataName:literal}}[i].CompareTo({{method.Parameters[0]}}[i]);
 								
 								if (result != 0)
 								{
@@ -1240,13 +1257,12 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 								}
 							}
 							
-							return {{DataName}}.Length.CompareTo({{method.Parameters[0]}}.Length);
+							return {{DataName:literal}}.Length.CompareTo({{method.Parameters[0]}}.Length);
 							""");
 					}
 					else
 					{
-						builder.AppendLine($"return {DataName}");
-						builder.AppendLine($"\t.SequenceCompareTo({method.Parameters[0]});");
+						builder.WriteLine($"return {DataName:literal}.SequenceCompareTo({method.Parameters[0]});");
 					}
 				});
 	
@@ -1257,7 +1273,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		}
 	}
 
-	// private void AppendContainsAny<T>(ITypeSymbol typeSymbol, IMethodSymbol method, bool result, ImmutableArray<T> items, IndentedStringBuilder builder)
+	// private void AppendContainsAny<T>(ITypeSymbol typeSymbol, IMethodSymbol method, bool result, ImmutableArray<T> items, IndentedCodeWriter builder)
 	// {
 	// 	var prefix = result ? String.Empty : "!";
 	//
@@ -1280,23 +1296,23 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	// 		// Special case for single item
 	// 		if (items.Length == 1)
 	// 		{
-	// 			builder.AppendLine($"return {prefix}{vectorType}.EqualsAny({(LiteralString) vectors}, {compilation.GetCreateVector(vectorType, elementType, loader, false, items[0])});");
+	// 			builder.WriteLine($"return {prefix}{vectorType}.EqualsAny({(LiteralString) vectors}, {compilation.GetCreateVector(vectorType, elementType, loader, false, items[0])});");
 	// 			return;
 	// 		}
 	//
-	// 		builder.AppendLine($"var input = {(LiteralString) vectors};");
-	// 		builder.AppendLine();
+	// 		builder.WriteLine($"var input = {(LiteralString) vectors};");
+	// 		builder.WriteLine();
 	//
 	// 		// Handle sequential items differently
 	// 		if (isSequence)
 	// 		{
 	// 			if (isZero && !SymbolEqualityComparer.Default.Equals(elementType, unsignedType))
 	// 			{
-	// 				builder.AppendLine($"return {prefix}{vectorType}.LessThanOrEqualAny(input.As{unsignedType.Name}(), {vectorType}.Create<{unsignedName}>({items[^1]}));");
+	// 				builder.WriteLine($"return {prefix}{vectorType}.LessThanOrEqualAny(input.As{unsignedType.Name}(), {vectorType}.Create<{unsignedName}>({items[^1]}));");
 	// 			}
 	// 			else
 	// 			{
-	// 				builder.AppendLine(
+	// 				builder.WriteLine(
 	// 					$"return {prefix}({vectorType}.GreaterThanOrEqual(input, {compilation.GetCreateVector(vectorType, elementType, loader, false, items[0])}) & " +
 	// 					$"{vectorType}.LessThanOrEqual(input, {compilation.GetCreateVector(vectorType, elementType, loader, false, items[^1])})) != {vectorType}<{elementType}>.Zero;");
 	// 			}
@@ -1309,41 +1325,41 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	//
 	// 			if (result && compilation.HasMethod(compilation.GetVectorType(vectorType), "AnyWhereAllBitsSet"))
 	// 			{
-	// 				builder.AppendLine($"return {vectorType}.AnyWhereAllBitsSet(");
+	// 				builder.WriteLine($"return {vectorType}.AnyWhereAllBitsSet(");
 	//
 	// 				for (var i = 0; i < checks.Count; i++)
 	// 				{
 	// 					if (i == 0)
 	// 					{
-	// 						builder.AppendLine($"{whiteSpace}  {checks[i]}");
+	// 						builder.WriteLine($"{whiteSpace}  {checks[i]}");
 	// 					}
 	// 					else if (i == checks.Count - 1)
 	// 					{
-	// 						builder.AppendLine($"{whiteSpace}| {checks[i]});");
+	// 						builder.WriteLine($"{whiteSpace}| {checks[i]});");
 	// 					}
 	// 					else
 	// 					{
-	// 						builder.AppendLine($"{whiteSpace}| {checks[i]}");
+	// 						builder.WriteLine($"{whiteSpace}| {checks[i]}");
 	// 					}
 	// 				}
 	// 			}
 	// 			else if (!result && compilation.HasMethod(compilation.GetVectorType(vectorType), "NoneWhereAllBitsSet"))
 	// 			{
-	// 				builder.AppendLine($"return {vectorType}.NoneWhereAllBitsSet(");
+	// 				builder.WriteLine($"return {vectorType}.NoneWhereAllBitsSet(");
 	//
 	// 				for (var i = 0; i < checks.Count; i++)
 	// 				{
 	// 					if (i == 0)
 	// 					{
-	// 						builder.AppendLine($"{whiteSpace}  {checks[i]}");
+	// 						builder.WriteLine($"{whiteSpace}  {checks[i]}");
 	// 					}
 	// 					else if (i == checks.Count - 1)
 	// 					{
-	// 						builder.AppendLine($"{whiteSpace}| {checks[i]});");
+	// 						builder.WriteLine($"{whiteSpace}| {checks[i]});");
 	// 					}
 	// 					else
 	// 					{
-	// 						builder.AppendLine($"{whiteSpace}| {checks[i]}");
+	// 						builder.WriteLine($"{whiteSpace}| {checks[i]}");
 	// 					}
 	// 				}
 	// 			}
@@ -1351,11 +1367,11 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	// 			{
 	// 				if (result)
 	// 				{
-	// 					builder.AppendLine($"return ({String.Join($"\n{whiteSpace}| ", checks)}) != {vectorType}<{elementType}>.Zero;");
+	// 					builder.WriteLine($"return ({String.Join($"\n{whiteSpace}| ", checks)}) != {vectorType}<{elementType}>.Zero;");
 	// 				}
 	// 				else
 	// 				{
-	// 					builder.AppendLine($"return ({String.Join($"\n{whiteSpace}| ", checks)}) == {vectorType}<{elementType}>.Zero;");
+	// 					builder.WriteLine($"return ({String.Join($"\n{whiteSpace}| ", checks)}) == {vectorType}<{elementType}>.Zero;");
 	// 				}
 	// 			}
 	// 		}
@@ -1371,11 +1387,11 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	//
 	// 			if (result)
 	// 			{
-	// 				builder.AppendLine($"return {String.Join($"\n{padding}|| ", method.Parameters.Select(s => $"Contains({s.Name})"))};");
+	// 				builder.WriteLine($"return {String.Join($"\n{padding}|| ", method.Parameters.Select(s => $"Contains({s.Name})"))};");
 	// 			}
 	// 			else
 	// 			{
-	// 				builder.AppendLine($"return !({String.Join($"\n{padding}|| ", method.Parameters.Select(s => $"Contains({s.Name})"))});");
+	// 				builder.WriteLine($"return !({String.Join($"\n{padding}|| ", method.Parameters.Select(s => $"Contains({s.Name})"))});");
 	// 			}
 	//
 	// 		}
@@ -1410,27 +1426,27 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	//
 	// 			if (result)
 	// 			{
-	// 				builder.AppendLine($"return {String.Join($"\n{padding}|| ", checks)};");
+	// 				builder.WriteLine($"return {String.Join($"\n{padding}|| ", checks)};");
 	// 			}
 	// 			else
 	// 			{
-	// 				builder.AppendLine($"return !({String.Join($"\n{padding}|| ", checks)});");
+	// 				builder.WriteLine($"return !({String.Join($"\n{padding}|| ", checks)});");
 	// 			}
 	// 		}
 	// 		else
 	// 		{
-	// 			builder.AppendLine($"return {prefix}{(LiteralString) GetDataName(typeSymbol)}");
+	// 			builder.WriteLine($"return {prefix}{(LiteralString) GetDataName(typeSymbol)}");
 	//
 	// 			switch (method.Parameters.Length)
 	// 			{
 	// 				case 1:
-	// 					builder.AppendLine($"\t.Contains({method.Parameters});");
+	// 					builder.WriteLine($"\t.Contains({method.Parameters});");
 	// 					break;
 	// 				case 2 or 3:
-	// 					builder.AppendLine($"\t.ContainsAny({method.Parameters});");
+	// 					builder.WriteLine($"\t.ContainsAny({method.Parameters});");
 	// 					break;
 	// 				default:
-	// 					builder.AppendLine($"\t.ContainsAny([{method.Parameters}]);");
+	// 					builder.WriteLine($"\t.ContainsAny([{method.Parameters}]);");
 	// 					break;
 	// 			}
 	// 		}

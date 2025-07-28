@@ -11,7 +11,7 @@ namespace ConstExpr.SourceGenerator.Sample;
 public static class Test
 {
 	public static IEnumerable<double> IsOdd(params IEnumerable<double> data)
-	{ 
+	{
 		return data.Where(w => w % 2 != 0);
 	}
 

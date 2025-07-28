@@ -40,9 +40,9 @@ public static class ObjectExtensions
 		});
 	}
 
-	public static T Subtract<T>(this T left, T right)
+	public static T? Subtract<T>(this T left, T right)
 	{
-		return (T)(object)(left switch
+		return (T?)(object)(left switch
 		{
 			byte leftByte when right is byte rightByte => leftByte - rightByte,
 			short leftShort when right is short rightShort => leftShort - rightShort,
