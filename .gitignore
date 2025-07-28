@@ -29,3 +29,8 @@
 /SourceGen.Utilities/obj
 /SourceGen.Utilities/obj/Debug/netstandard2.0/.NETStandard,Version=v2.0.AssemblyAttributes.cs
 /SourceGen.Utilities/obj/Debug/netstandard2.0/SourceGen.Utilities.AssemblyInfoInputs.cache
+/SourceGen.Utilities/obj/Debug/netstandard2.0/SourceGen.Utilities.assets.cache
+/SourceGen.Utilities/obj/Debug/netstandard2.0/SourceGen.Utilities.csproj.AssemblyReference.cache
+/SourceGen.Utilities/obj/project.assets.json
+/SourceGen.Utilities/obj/project.nuget.cache
+/SourceGen.Utilities/obj/SourceGen.Utilities.csproj.nuget.dgspec.json
