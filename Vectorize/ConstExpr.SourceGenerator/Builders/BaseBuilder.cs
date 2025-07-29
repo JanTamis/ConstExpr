@@ -18,19 +18,37 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 
 	private IndentedCodeWriter.Block AppendMethod(IndentedCodeWriter builder, IMethodSymbol methodSymbol)
 	{
+		var customFormat = SymbolDisplayFormat.MinimallyQualifiedFormat
+			.RemoveMemberOptions(SymbolDisplayMemberOptions.IncludeContainingType)
+			.WithParameterOptions(SymbolDisplayParameterOptions.IncludeType | SymbolDisplayParameterOptions.IncludeName)
+			.WithGenericsOptions(SymbolDisplayGenericsOptions.IncludeTypeConstraints
+			                     | SymbolDisplayGenericsOptions.IncludeVariance
+			                     | SymbolDisplayGenericsOptions.IncludeTypeParameters);
+		
+		var methodString = methodSymbol.ToDisplayString(customFormat);
+		
 		var prepend = "public ";
+		
+		builder.WriteLine(true);
+		
+		builder.Write("public ");
 
 		if (methodSymbol.IsStatic)
 		{
-			prepend += "static ";
+			builder.Write("static ");
 		}
 
 		if (methodSymbol.IsAsync)
 		{
-			prepend += "async ";
+			builder.Write("async ");
 		}
-
+		
+		builder.Write(methodString);
 		builder.WriteLine();
+
+		return builder.WriteBlock();
+
+		//builder.WriteLine();
 
 		if (methodSymbol.TypeParameters.Any())
 		{

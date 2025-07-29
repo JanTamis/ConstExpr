@@ -159,6 +159,27 @@ public sealed class IndentedCodeWriter : IDisposable
 	}
 
 	/// <summary>
+	/// Writes a block to the underlying buffer, using the specified method declaration syntax.
+	/// </summary>
+	/// <param name="method"></param>
+	/// <param name="start">The opening string to use for the block.</param>
+	/// <param name="end">The closing string to use for the block.</param>
+	/// <returns>A <see cref="Block"/> value to close the open block with.</returns>
+	public Block WriteBlock(MethodDeclarationSyntax method, string start = "{", string end = "}")
+	{
+		WriteLine(method
+			.WithBody(null)
+			.WithExpressionBody(null)
+			.WithAttributeLists(SyntaxFactory.List<AttributeListSyntax>())
+			.ToString());
+
+		WriteLine(start);
+		IncreaseIndent();
+
+		return new Block(this, end, false);
+	}
+
+	/// <summary>
 	/// Writes content to the underlying buffer.
 	/// </summary>
 	/// <param name="content">The content to write.</param>
@@ -176,7 +197,7 @@ public sealed class IndentedCodeWriter : IDisposable
 	public void Write(char content, int count)
 	{
 		TryWriteIndentation();
-		
+
 		_builder.Advance(count)
 			.Fill(content);
 	}
@@ -397,7 +418,7 @@ public sealed class IndentedCodeWriter : IDisposable
 
 		_builder.AddRange(content);
 	}
-	
+
 	private void TryWriteIndentation()
 	{
 		if (_builder.Count == 0 || _builder.WrittenSpan[^1] == DefaultNewLine)
@@ -704,6 +725,8 @@ public sealed class IndentedCodeWriter : IDisposable
 					: SyntaxKind.FalseLiteralExpression);
 			case null:
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression);
+			case ExpressionSyntax expression:
+				return expression;
 		}
 
 		if (value.GetType().Name.Contains("Tuple"))

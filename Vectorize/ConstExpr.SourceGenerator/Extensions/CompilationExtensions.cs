@@ -895,14 +895,19 @@ public static class CompilationExtensions
 			or SpecialType.System_Decimal;
 	}
 
-	public static INamedTypeSymbol? GetTypeByName(this Compilation compilation, string fullyQualifiedMetadataName, params ReadOnlySpan<ITypeSymbol> typeArguments)
+	public static INamedTypeSymbol? GetTypeByName(this Compilation compilation, string? fullyQualifiedMetadataName, params ReadOnlySpan<ITypeSymbol> typeArguments)
 	{
+		if (String.IsNullOrEmpty(fullyQualifiedMetadataName))
+		{
+			return null;
+		}
+		
 		if (typeArguments.IsEmpty)
 		{
-			return compilation.GetTypeByMetadataName(fullyQualifiedMetadataName);
+			return compilation.GetTypeByMetadataName(fullyQualifiedMetadataName!);
 		}
 
-		if (fullyQualifiedMetadataName.EndsWith($"`{typeArguments.Length}"))
+		if (fullyQualifiedMetadataName!.EndsWith($"`{typeArguments.Length}"))
 		{
 			return compilation.GetTypeByMetadataName(fullyQualifiedMetadataName)?.Construct(typeArguments.ToArray());
 		}
