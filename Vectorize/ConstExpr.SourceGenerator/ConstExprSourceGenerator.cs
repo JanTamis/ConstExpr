@@ -167,7 +167,11 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 							{
 								if (compilation.GetTypeByName(typeof(Enumerable).FullName).HasMethod("InfiniteSequence"))
 								{
-									code.WriteLine($"return Enumerable.InfiniteSequence({CreateLiteral(data[0])}, {CreateLiteral(difference)}).Take({CreateLiteral(data.Length)})");
+									code.WriteLine($"""
+										return Enumerable
+											.InfiniteSequence({CreateLiteral(data[0])}, {CreateLiteral(difference)})
+											.Take({CreateLiteral(data.Length)})
+										""");
 								}
 								else
 								{

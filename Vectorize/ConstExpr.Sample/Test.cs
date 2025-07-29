@@ -95,17 +95,17 @@ public static class Test
 		return items as ICustomCollection<int>;
 	}
 
-	public static (double h, double s, double l) RgbToHsl(byte r, byte g, byte b)
+	public static (decimal h, decimal s, decimal l) RgbToHsl(byte r, byte g, byte b)
 	{
-		var rn = r / 255.0;
-		var gn = g / 255.0;
-		var bn = b / 255.0;
+		var rn = r / 255.0m;
+		var gn = g / 255.0m;
+		var bn = b / 255.0m;
 
 		var max = Math.Max(rn, Math.Max(gn, bn));
 		var min = Math.Min(rn, Math.Min(gn, bn));
 		var delta = max - min;
 
-		var h = 0d;
+		var h = 0m;
 
 		if (delta != 0)
 		{
