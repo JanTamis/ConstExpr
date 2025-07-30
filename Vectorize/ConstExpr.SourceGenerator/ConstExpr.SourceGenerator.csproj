@@ -2,7 +2,6 @@
 
 	<PropertyGroup>
 		<TargetFramework>netstandard2.0</TargetFramework>
-		<IsPackable>false</IsPackable>
 		<Nullable>enable</Nullable>
 		<LangVersion>preview</LangVersion>
 		<AssemblySearchPath_UseOutDir>true</AssemblySearchPath_UseOutDir>
@@ -13,8 +12,20 @@
 		<PolySharpExcludeGeneratedTypes>System.Runtime.CompilerServices.ModuleInitializerAttribute,System.AttributeUsage</PolySharpExcludeGeneratedTypes>
 		<RootNamespace>ConstExpr.SourceGenerator</RootNamespace>
 		<CompilerGeneratedFilesOutputPath>$(MSBuildProjectDirectory)/Generated</CompilerGeneratedFilesOutputPath>
+
 		<PackageId>ConstExpr.SourceGenerator</PackageId>
-	</PropertyGroup>
+		<Version>0.1.4-preview</Version>
+		<Authors>JanTamis</Authors>
+		<Company>JanTamis</Company>
+		<Description>A source generator that provides constant expression optimizations</Description>
+		<PackageTags>source-generator;roslyn;constant-expressions;performance</PackageTags>
+		<RepositoryUrl>https://github.com/JanTamis/ConstExpr</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<IsPackable>true</IsPackable>
+
+		<IncludeBuildOutput>false</IncludeBuildOutput>
+	</PropertyGroup>	
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Bcl.Numerics" Version="9.0.2" />
@@ -27,8 +38,12 @@
 		  <PrivateAssets>all</PrivateAssets>
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="SourceGenerator.Foundations" Version="2.0.13" />
-		<PackageReference Include="SourceGenerator.Foundations.Contracts" Version="2.0.13" />
+		<PackageReference Include="SourceGenerator.Foundations" Version="2.0.13" >
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
+		<PackageReference Include="SourceGenerator.Foundations.Contracts" Version="2.0.13" >
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
 		<PackageReference Include="System.Collections.Immutable" Version="8.0.0" />
 		<PackageReference Include="System.Memory" Version="4.6.3" />
 		<PackageReference Include="System.Reflection.MetadataLoadContext" Version="8.0.0" />
@@ -51,6 +66,11 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\..\SourceGen.Utilities\SourceGen.Utilities.csproj" />
+	  <ProjectReference Include="..\..\SourceGen.Utilities\SourceGen.Utilities.csproj">
+	    <PrivateAssets>all</PrivateAssets>
+	  </ProjectReference>
+		<None Include="ConstExpr.SourceGenerator.props" Pack="true" PackagePath="build" Visible="false" />
+		<Content Include="ConstExpr.SourceGenerator.targets" Pack="true" PackagePath="build" Visible="false" />
+		<None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
 	</ItemGroup>
 </Project>

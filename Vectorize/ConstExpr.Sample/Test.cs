@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace ConstExpr.SourceGenerator.Sample;
 
-[ConstExpr(Level = GenerationLevel.Performance)]
+[ConstExpr]
 public static class Test
 {
 	public static IEnumerable<double> IsOdd(params IEnumerable<double> data)
@@ -49,7 +49,7 @@ public static class Test
 
 	public static ICharCollection Base64Encode(string value)
 	{
-		return (ICharCollection) (object)Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
+		return (ICharCollection)(object)Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
 	}
 
 	public async static Task<string> Waiting()
@@ -80,7 +80,7 @@ public static class Test
 	public static ICustomCollection<int> Fibonacci(int count)
 	{
 		var items = new List<int>(count);
-		
+
 		int a = 0, b = 1;
 
 		for (var i = 0; i < count; i++)
@@ -91,7 +91,7 @@ public static class Test
 			a = b;
 			b = temp + b;
 		}
-		
+
 		return items as ICustomCollection<int>;
 	}
 

@@ -1,0 +1,8 @@
+<Project InitialTargets="ConstExpr_SourceGenerator_Interceptors">
+  <Target Name="ConstExpr_SourceGenerator_Interceptors">
+    <PropertyGroup>
+      <InterceptorsNamespaces>$(InterceptorsNamespaces);ConstExpr.SourceGenerator</InterceptorsNamespaces>
+      <InterceptorsPreviewNamespaces>$(InterceptorsPreviewNamespaces);ConstExpr.SourceGenerator</InterceptorsPreviewNamespaces>
+    </PropertyGroup>
+  </Target>
+</Project>

@@ -34,3 +34,6 @@
 /SourceGen.Utilities/obj/project.assets.json
 /SourceGen.Utilities/obj/project.nuget.cache
 /SourceGen.Utilities/obj/SourceGen.Utilities.csproj.nuget.dgspec.json
+/ConstExpr.Tests/bin/Release/net9.0
+/SourceGen.Utilities/bin/Release/netstandard2.0
+/Vectorize/ConstExpr.SourceGenerator/bin

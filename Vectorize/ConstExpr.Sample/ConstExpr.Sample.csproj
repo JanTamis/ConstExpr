@@ -5,9 +5,13 @@
 		<Nullable>enable</Nullable>
 		<RootNamespace>Vectorize.Sample</RootNamespace>
 		<OutputType>Exe</OutputType>
-		<InterceptorsNamespaces>$(InterceptorsNamespaces);ConstantExpression.Generated</InterceptorsNamespaces>
 		<LangVersion>13</LangVersion>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+		
+		<ConstExprGenerationLevel>Performance</ConstExprGenerationLevel>
+
+		<InterceptorsNamespaces>$(InterceptorsNamespaces);ConstantExpression.Generated</InterceptorsNamespaces>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -19,18 +23,20 @@
 	  <None Remove="obj\**" />
 	</ItemGroup>
 
-	<ItemGroup>
+	<!--<ItemGroup>
 		<ProjectReference Include="..\ConstExpr.SourceGenerator\ConstExpr.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-	</ItemGroup>
+	</ItemGroup>-->
 
-	<ItemGroup>
-		<None Remove="DDD.UbiquitousLanguageRegistry.txt" />
-	</ItemGroup>
+	<!--<ItemGroup>
+		<CompilerVisibleProperty Include="ConstExprGenerationLevel" />
+	</ItemGroup>-->
 
 	<ItemGroup>
 	  <PackageReference Include="BenchmarkDotNet" Version="0.14.0" />
 	  <PackageReference Include="BenchmarkDotNet.Annotations" Version="0.14.0" />
 	  <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" />
+		
+		<PackageReference Include="ConstExpr.SourceGenerator" Version="0.1.4-preview" />
 	</ItemGroup>
 
 </Project>

@@ -1,0 +1,5 @@
+<Project>  
+  <ItemGroup>
+    <ConstExprGenerationLevel Include="EnableEnumGeneratorInterceptor" />
+  </ItemGroup>
+</Project>
