@@ -72,9 +72,9 @@ public static class Test
 		return result.OrderBy(o => o) as ICustomCollection<byte>;
 	}
 
-	public static ICustomCollection<string> Split(string value, char separator)
+	public static IReadOnlyList<string> Split(string value, char separator)
 	{
-		return (ICustomCollection<string>)(object)value.Split(separator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+		return value.Split(separator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 	}
 
 	public static ICustomCollection<int> Fibonacci(int count)

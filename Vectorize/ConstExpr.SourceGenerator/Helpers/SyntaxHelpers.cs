@@ -368,7 +368,8 @@ public static class SyntaxHelpers
 			case MethodDeclarationSyntax method:
 				if (method.AttributeLists
 						.SelectMany(s => s.Attributes)
-						.Any(a => a.Name.ToString() == "ConstExpr"))
+						.Any(a => a.Name.ToString() == "ConstExpr")
+					|| IsInConstExprBody(method.Parent))
 				{
 					return true;
 				}

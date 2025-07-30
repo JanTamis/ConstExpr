@@ -10,10 +10,9 @@ namespace ConstExpr.SourceGenerator.Helpers;
 /// <summary>
 /// Represents a metadata loader for retrieving types from loaded assemblies in a metadata load context.
 /// </summary>
-public class MetadataLoader : IDisposable
+public class MetadataLoader
 {
-	private static readonly ConcurrentDictionary<Compilation, IList<Assembly>> _loaders = new();
-	private static readonly object _lockObject = new();
+	// private static readonly ConcurrentDictionary<Compilation, IList<Assembly>> _loaders = new();
 
 	private readonly IList<Assembly> _assemblies;
 	private readonly ConcurrentDictionary<string, Type?> _typeCache = new();
@@ -25,47 +24,42 @@ public class MetadataLoader : IDisposable
 
 	public static MetadataLoader GetLoader(Compilation compilation)
 	{
-		if (!_loaders.TryGetValue(compilation, out var currentAssemblies))
+		var assemblies = compilation.References
+			.OfType<PortableExecutableReference>()
+			.Select(s => s.FilePath)
+			.Where(w => !String.IsNullOrEmpty(w))
+			.ToList();
+
+		var resolver = new PathAssemblyResolver(assemblies);
+		var resultAssemblies = new List<Assembly>();
+
+		using (var metadataContext = new MetadataLoadContext(resolver))
 		{
-			var assemblies = compilation.References
-					.OfType<PortableExecutableReference>()
-					.Select(s => s.FilePath)
-					.Where(w => !String.IsNullOrEmpty(w))
-					.ToList();
-
-			var resolver = new PathAssemblyResolver(assemblies);
-			currentAssemblies = new List<Assembly>();
-
-			using (var metadataContext = new MetadataLoadContext(resolver))
+			foreach (var assembly in metadataContext.GetAssemblies())
 			{
-				foreach (var assembly in metadataContext.GetAssemblies())
+				try
 				{
-					try
-					{
 #pragma warning disable RS1035
-						var loadedAssembly = Assembly.Load(assembly.GetName());
-						currentAssemblies.Add(loadedAssembly);
+					var loadedAssembly = Assembly.Load(assembly.GetName());
+					resultAssemblies.Add(loadedAssembly);
 #pragma warning restore RS1035
-					}
-					catch (Exception e)
-					{
-						// Could add logging or diagnostics here if needed
-					}
 				}
-
-				foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+				catch (Exception e)
 				{
-					if (!currentAssemblies.Contains(assembly))
-					{
-						currentAssemblies.Add(assembly);
-					}
+					// Could add logging or diagnostics here if needed
 				}
-
-				_loaders.TryAdd(compilation, currentAssemblies);
 			}
-		}
 
-		return new MetadataLoader(currentAssemblies);
+			foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+			{
+				if (!resultAssemblies.Contains(assembly))
+				{
+					resultAssemblies.Add(assembly);
+				}
+			}
+
+			return new MetadataLoader(resultAssemblies);
+		}
 	}
 
 	/// <summary>
@@ -143,21 +137,5 @@ public class MetadataLoader : IDisposable
 			}
 			return null;
 		});
-	}
-
-	public void Dispose()
-	{
-		_typeCache.Clear();
-
-		// Find and remove this instance's assemblies from the static dictionary
-		var key = _loaders
-			.Where(w => w.Value == _assemblies)
-			.Select(s => s.Key)
-			.FirstOrDefault();
-
-		if (key != null)
-		{
-			_loaders.TryRemove(key, out _);
-		}
 	}
 }

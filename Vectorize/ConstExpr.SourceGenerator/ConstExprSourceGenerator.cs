@@ -115,7 +115,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		var code = new IndentedCodeWriter(compilation);
 		var usings = group.SelectMany(item => item.Usings).Distinct().OrderBy(s => s);
 
-		using var loader = MetadataLoader.GetLoader(compilation);
+		var loader = MetadataLoader.GetLoader(compilation);
 
 		foreach (var u in usings.Where(w => !String.IsNullOrWhiteSpace(w)))
 		{
@@ -263,7 +263,14 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 						}
 						else
 						{
-							code.WriteLine($"public static ReadOnlySpan<{elementType}> {dataName:literal} => [{enumerable}];");
+							if (elementType.IsVectorSupported())
+							{
+								code.WriteLine($"public static ReadOnlySpan<{elementType}> {dataName:literal} => [{enumerable}];");
+							}
+							else
+							{
+								code.WriteLine($"public static {elementType}[] {dataName:literal} = [{enumerable}];");
+							}
 						}
 
 						if (elementType is not null)
@@ -385,7 +392,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 								code.WriteLine();
 
-								using (code.WriteBlock("IEnumerator IEnumerable.GetEnumerator()"))
+								using (code.WriteBlock($"IEnumerator IEnumerable.GetEnumerator()", "{", "}"))
 								{
 									code.WriteLine("return GetEnumerator();");
 								}
@@ -405,7 +412,8 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 	private InvocationModel? GenerateSource(GeneratorSyntaxContext context, CancellationToken token)
 	{
 		if (context.Node is not InvocationExpressionSyntax invocation
-				|| !TryGetSymbol(context.SemanticModel, invocation, token, out var method))
+				|| !TryGetSymbol(context.SemanticModel, invocation, token, out var method)
+				|| !method.IsStatic)
 		{
 			return null;
 		}
@@ -445,7 +453,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			return null;
 		}
 
-		var variables = ProcessArguments(context, loader, invocation, methodSymbol, token);
+		var variables = ProcessArguments(context.SemanticModel.Compilation, loader, invocation, methodSymbol, token);
 
 		if (variables == null)
 		{
@@ -500,7 +508,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		return null;
 	}
 
-	private Dictionary<string, object?>? ProcessArguments(GeneratorSyntaxContext context, MetadataLoader loader, InvocationExpressionSyntax invocation,
+	public static Dictionary<string, object?>? ProcessArguments(Compilation compilation, MetadataLoader loader, InvocationExpressionSyntax invocation,
 																												IMethodSymbol methodSymbol, CancellationToken token)
 	{
 		var variables = new Dictionary<string, object?>();
@@ -515,7 +523,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				{
 					var values = invocation.ArgumentList.Arguments
 						.Skip(i)
-						.Select(arg => GetConstantValue(context.SemanticModel.Compilation, loader, arg.Expression, token))
+						.Select(arg => GetConstantValue(compilation, loader, arg.Expression, token))
 						.ToArray();
 
 					if (methodSymbol.Parameters[i].IsParamsArray)
@@ -572,14 +580,14 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 				var arg = invocation.ArgumentList.Arguments[i];
 
-				if (!TryGetConstantValue(context.SemanticModel.Compilation, loader, arg.Expression, token, out var value))
+				if (!TryGetConstantValue(compilation, loader, arg.Expression, token, out var value))
 				{
 					return null;
 				}
 
 				variables[paramName] = value;
 			}
-			catch (Exception)
+			catch (Exception e)
 			{
 				return null;
 			}
@@ -603,6 +611,11 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			usings.Add("System.Numerics");
 			usings.Add("System.Collections");
 			usings.Add("System.Runtime.InteropServices");
+		}
+
+		if (IsIEnumerableRecursive(methodSymbol.ReturnType as INamedTypeSymbol))
+		{
+			usings.Add("System.Collections");
 		}
 
 		usings.Add(methodSymbol.ReturnType.ContainingNamespace?.ToString());

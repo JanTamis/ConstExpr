@@ -43,7 +43,7 @@ public abstract class BaseTest<TResult>
 
 	protected IEnumerable<TResult> GetResult(GeneratorDriverRunResult result, Compilation compilation)
 	{
-		using var loader = MetadataLoader.GetLoader(compilation);
+		var loader = MetadataLoader.GetLoader(compilation);
 
 		var last = result.GeneratedTrees.Last();
 

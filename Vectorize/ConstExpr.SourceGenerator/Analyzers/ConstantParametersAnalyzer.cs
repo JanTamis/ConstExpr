@@ -13,24 +13,39 @@ namespace ConstExpr.SourceGenerator.Analyzers;
 [DiagnosticSeverity(DiagnosticSeverity.Warning)]
 [DiagnosticId("CEA001")]
 [DiagnosticTitle("Parameter is not constant")]
-[DiagnosticMessageFormat("'{0}' cannot be used as a parameter in a ConstExpr method")]
+[DiagnosticMessageFormat("Parameter '{0}' must be a constant expression in ConstExpr method calls")]
 [DiagnosticDescription("Parameters marked with the ConstExpr attribute should be constant")]
 [DiagnosticCategory("Usage")]
 public class ConstantParametersAnalyzer : BaseAnalyzer<InvocationExpressionSyntax, IMethodSymbol>
 {
 	protected override bool ValidateSyntax(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax node, CancellationToken token)
 	{
-		return !IsInConstExprBody(node);
+		SyntaxNode? item = node;
+		
+		while (item != null)
+		{
+			if (item is MethodDeclarationSyntax methodDeclaration && IsInConstExprBody(methodDeclaration))
+			{
+				return false;
+			}
+
+			item = item.Parent;
+		}
+		
+		return true;
 	}
 
 	protected override bool ValidateSymbol(SyntaxNodeAnalysisContext context, IMethodSymbol symbol, CancellationToken token)
 	{
-		return symbol.GetAttributes().Any(IsConstExprAttribute);
+		return symbol
+			.GetAttributes()
+			.Concat(symbol.ContainingType.GetAttributes())
+			.Any(IsConstExprAttribute);
 	}
 
 	protected override void AnalyzeSyntax(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax node, IMethodSymbol symbol, CancellationToken token)
 	{
-		using var loader = MetadataLoader.GetLoader(context.Compilation);
+		var loader = MetadataLoader.GetLoader(context.Compilation);
 
 		for (var i = 0; i < node.ArgumentList.Arguments.Count; i++)
 		{

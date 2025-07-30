@@ -18,30 +18,42 @@ namespace ConstExpr.SourceGenerator.Analyzers;
 [DiagnosticId("CEA004")]
 [DiagnosticTitle("Parameter is not constant")]
 [DiagnosticMessageFormat("'{0}' cannot be used in a ConstExpr method")]
-[DiagnosticDescription("Parameters marked with the ConstExpr attribute should be constant")]
+[DiagnosticDescription("ConstExpr methods must be constant expressions")]
 [DiagnosticCategory("Usage")]
-public class UsageAnalyzer : BaseAnalyzer<InvocationExpressionSyntax, IMethodSymbol>
+public class BodyAnalyzer : BaseAnalyzer<InvocationExpressionSyntax, IMethodSymbol>
 {
+	protected override bool ValidateSyntax(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax node, CancellationToken token)
+	{
+		return !IsInConstExprBody(node);
+	}
+
 	protected override bool ValidateSymbol(SyntaxNodeAnalysisContext context, IMethodSymbol symbol, CancellationToken token)
 	{
-		return symbol.GetAttributes().Any(IsConstExprAttribute);
+		return symbol
+			       .GetAttributes()
+			       .Concat(symbol.ContainingType.GetAttributes())
+			       .Any(IsConstExprAttribute)
+		       && symbol.IsStatic;
 	}
 
 	protected override void AnalyzeSyntax(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax node, IMethodSymbol symbol, CancellationToken token)
 	{
-		using var loader = MetadataLoader.GetLoader(context.SemanticModel.Compilation);
+		var loader = MetadataLoader.GetLoader(context.SemanticModel.Compilation);
+		var variables = ConstExprSourceGenerator.ProcessArguments(context.Compilation, loader, node, symbol, token);
 
-		var variables = new Dictionary<string, Type?>();
-		var visitor = new ConstExprAnalyzerVisitor<InvocationExpressionSyntax, IMethodSymbol>(this, context, loader, variables);
-
-		foreach (var parameter in symbol.Parameters)
+		if (variables == null)
 		{
-			variables.Add(parameter.Name, loader.GetType(parameter.Type));
+			return;
 		}
+
+		var visitor = new ConstExprOperationVisitor(context.Compilation, loader, (operation, exception) =>
+		{
+			// ReportDiagnostic(context, operation.Syntax.GetLocation(), operation.Syntax);
+		}, token);
 
 		if (TryGetOperation<IMethodBodyOperation>(context.Compilation, symbol, out var operation))
 		{
-			visitor.VisitBlock(operation.BlockBody);
+			visitor.VisitBlock(operation.BlockBody, variables);
 		}
 	}
 }
