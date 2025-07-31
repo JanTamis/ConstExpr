@@ -97,16 +97,13 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 					return true;
 				}
 
-				using (builder.WriteBlock($""))
-				{
-					builder.WriteLine($$"""
-						public {{elementType}} this[int index]
-						{
-							get => {{DataName:literal}}[index];
-							set => throw new NotSupportedException();
-						}
-						""");
-				}
+				builder.WriteLine($$"""
+					public {{elementType}} this[int index]
+					{
+						get => {{DataName:literal}}[index];
+						set => throw new NotSupportedException();
+					}
+					""");
 
 				return true;
 			}
@@ -411,22 +408,22 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 					if (items.Length > 0)
 					{
 						if (method.ContainingType.HasMethod("IndexOf", m => m is { ReturnType.SpecialType: SpecialType.System_Int32 }
-						                                                                   && m.Parameters.AsSpan().EqualsTypes(elementType)))
+						                                                    && m.Parameters.AsSpan().EqualsTypes(elementType)))
 						{
 							builder.WriteLine($"return IndexOf({method.Parameters[0]}) >= 0;");
 						}
 						else if (method.ContainingType.HasMethod("BinarySearch", m => m is { ReturnType.SpecialType: SpecialType.System_Int32 }
-						                                                                             && m.Parameters.AsSpan().EqualsTypes(elementType)
-						                                                                             && elementType.HasMethod("CompareTo", x => x is { ReturnType.SpecialType: SpecialType.System_Int32 }
-						                                                                                                                                       && x.Parameters.AsSpan().EqualsTypes(elementType))))
+						                                                              && m.Parameters.AsSpan().EqualsTypes(elementType)
+						                                                              && elementType.HasMethod("CompareTo", x => x is { ReturnType.SpecialType: SpecialType.System_Int32 }
+						                                                                                                         && x.Parameters.AsSpan().EqualsTypes(elementType))))
 						{
 							builder.WriteLine($"return BinarySearch({method.Parameters[0]}) >= 0;");
 						}
 						// Check if the interface implements BinarySearch with a comparer
 						else if (method.ContainingType.HasMethod("BinarySearch", m => m is { ReturnType.SpecialType: SpecialType.System_Int32, Parameters.Length: 2 }
-						                                                                             && SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, elementType)
-						                                                                             && m.Parameters[1].Type.HasMethod("Compare", x => x is { ReturnType.SpecialType: SpecialType.System_Int32 }
-						                                                                                                                                              && x.Parameters.AsSpan().EqualsTypes(elementType, elementType))))
+						                                                              && SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, elementType)
+						                                                              && m.Parameters[1].Type.HasMethod("Compare", x => x is { ReturnType.SpecialType: SpecialType.System_Int32 }
+						                                                                                                                && x.Parameters.AsSpan().EqualsTypes(elementType, elementType))))
 						{
 							builder.WriteLine($"return BinarySearch({method.Parameters[0]}, Comparer<{elementType}>.Default) >= 0;");
 						}
@@ -438,7 +435,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 							var length = literals.Sum(s => s.Span.Length) + items.Length * 2;
 							var rowLength = length < 125 ? items.Length : (int) Math.Ceiling(Math.Sqrt(items.Length));
-							
+
 							var elements = literals
 								.Chunk(rowLength)
 								.Select(s => String.Join(" or ", s));

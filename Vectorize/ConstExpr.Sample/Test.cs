@@ -17,7 +17,23 @@ public static class Test
 
 	public static double Average(params IReadOnlyList<double> data)
 	{
-		return IsOdd(data).Average();
+		return data.Average();
+	}
+	
+	public static bool IsPrime(int number)
+	{
+		if (number < 2) 
+			return false;
+
+		for (var i = 2; i <= Math.Sqrt(number); i++)
+		{
+			if (number % i == 0)
+			{
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	public static double StdDev(params IReadOnlyList<double> data)
@@ -59,7 +75,7 @@ public static class Test
 		return nameof(Test);
 	}
 
-	public static ICustomCollection<byte> Range(int count)
+	public static IList<byte> Range(int count)
 	{
 		var random = new Random();
 		var result = new List<byte>(count);
@@ -69,7 +85,7 @@ public static class Test
 			result.Add((byte)random.Next(5));
 		}
 
-		return result.OrderBy(o => o) as ICustomCollection<byte>;
+		return result.OrderBy(o => o).ToList();
 	}
 
 	public static IReadOnlyList<string> Split(string value, char separator)

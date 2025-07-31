@@ -41,6 +41,11 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 	{
 		token.ThrowIfCancellationRequested();
 
+		if (argument.TryGetValue(ReturnVariableName, out var returnValue))
+		{
+			return returnValue;
+		}
+
 		try
 		{
 			return base.Visit(operation, argument);
@@ -52,7 +57,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		}
 	}
 
-	public override object? VisitIsNull(IIsNullOperation operation, Dictionary<string, object?> argument)
+	public override object VisitIsNull(IIsNullOperation operation, Dictionary<string, object?> argument)
 	{
 		return Visit(operation.Operand, argument) is null;
 	}
