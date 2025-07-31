@@ -7,7 +7,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
-using SGF;
 using SourceGen.Utilities.Extensions;
 using SourceGen.Utilities.Helpers;
 using System;
@@ -28,39 +27,15 @@ namespace ConstExpr.SourceGenerator;
 
 #pragma warning disable RSEXPERIMENTAL002
 
-[IncrementalGenerator]
-public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
+[Generator]
+public class ConstExprSourceGenerator : IIncrementalGenerator
 {
 	private const bool ShouldGenerate = true;
 
-	public override void OnInitialize(SgfInitializationContext context)
+	public void Initialize(IncrementalGeneratorInitializationContext context)
 	{
 		context.RegisterPostInitializationOutput(spc =>
 		{
-			var invocations = context.SyntaxProvider
-				.CreateSyntaxProvider(
-					predicate: (node, token) => !token.IsCancellationRequested && node is InvocationExpressionSyntax,
-					transform: GenerateSource)
-				.Where(result => result != null);
-
-			var rootNamespace = context
-						.AnalyzerConfigOptionsProvider
-						// Retrieve the RootNamespace property
-						.Select((c, _) =>
-								c.GlobalOptions.TryGetValue("build_property.ConstExprGenerationLevel", out var level)
-										? level
-										: null);
-
-			context.RegisterSourceOutput(invocations.Collect().Combine(context.CompilationProvider).Combine(rootNamespace), (spc, modelAndCompilation) =>
-			{
-				foreach (var group in modelAndCompilation.Left.Left.GroupBy(model => model.Method, SyntaxNodeComparer<MethodDeclarationSyntax>.Instance))
-				{
-					GenerateMethodImplementations(spc, modelAndCompilation.Left.Right, group);
-				}
-
-				ReportExceptions(spc, modelAndCompilation.Left.Left);
-			});
-
 			spc.AddSource("GenerationLevel.g", """
 				using System;
 
@@ -108,9 +83,33 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				}
 				""");
 		});
+
+		var invocations = context.SyntaxProvider
+			.CreateSyntaxProvider(
+				predicate: (node, token) => !token.IsCancellationRequested && node is InvocationExpressionSyntax,
+				transform: GenerateSource)
+			.Where(result => result != null);
+
+		var rootNamespace = context
+					.AnalyzerConfigOptionsProvider
+					// Retrieve the RootNamespace property
+					.Select((c, _) =>
+							c.GlobalOptions.TryGetValue("build_property.ConstExprGenerationLevel", out var level)
+									? level
+									: null);
+
+		context.RegisterSourceOutput(invocations.Collect().Combine(context.CompilationProvider).Combine(rootNamespace), (spc, modelAndCompilation) =>
+		{
+			foreach (var group in modelAndCompilation.Left.Left.GroupBy(model => model.Method, SyntaxNodeComparer<MethodDeclarationSyntax>.Instance))
+			{
+				GenerateMethodImplementations(spc, modelAndCompilation.Left.Right, group);
+			}
+
+			ReportExceptions(spc, modelAndCompilation.Left.Left);
+		});
 	}
 
-	private void GenerateMethodImplementations(SgfSourceProductionContext spc, Compilation compilation, IGrouping<MethodDeclarationSyntax, InvocationModel?> group)
+	private void GenerateMethodImplementations(SourceProductionContext spc, Compilation compilation, IGrouping<MethodDeclarationSyntax, InvocationModel?> group)
 	{
 		var code = new IndentedCodeWriter(compilation);
 		var usings = group.SelectMany(item => item.Usings).Distinct().OrderBy(s => s);
@@ -384,7 +383,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 								using (code.WriteBlock($"public IEnumerator<{elementType}> GetEnumerator()"))
 								{
-									using (code.WriteBlock($"for (var i = 0; i < {dataName:literal}.Length; i++)"))
+									using (code.WriteBlock($"for (var i = 0; i < {dataName:literal}.Length; i++"))
 									{
 										code.WriteLine($"yield return {dataName:literal}[i];");
 									}
@@ -482,7 +481,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				visitor.VisitBlock(blockOperation.BlockBody!, variables);
 				timer.Stop();
 
-				Logger.Information($"{timer.Elapsed}: {invocation}");
+				// Logger.Information($"{timer.Elapsed}: {invocation}");
 
 				GetUsings(methodSymbol, BaseBuilder.IsPerformance(level, (variables[ConstExprOperationVisitor.ReturnVariableName] as IEnumerable)?.Cast<object?>()?.Count() ?? 0), usings);
 
@@ -499,7 +498,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			}
 			catch (Exception e)
 			{
-				Logger.Error(e, $"Error processing {invocation}: {e.Message}");
+				// Logger.Error(e, $"Error processing {invocation}: {e.Message}");
 
 				return null;
 			}
@@ -678,7 +677,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		return false;
 	}
 
-	private void ReportExceptions(SgfSourceProductionContext spc, IEnumerable<InvocationModel> models)
+	private void ReportExceptions(SourceProductionContext spc, IEnumerable<InvocationModel> models)
 	{
 		var exceptions = models
 			.SelectMany(m => m.Exceptions.Select(s => s.Key))
@@ -694,7 +693,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 		foreach (var exception in exceptions)
 		{
-			spc.ReportDiagnostic(Diagnostic.Create(exceptionDescriptor, exception.GetLocation(), exception));
+			// spc.ReportDiagnostic(Diagnostic.Create(exceptionDescriptor, exception.GetLocation(), exception));
 		}
 	}
 }

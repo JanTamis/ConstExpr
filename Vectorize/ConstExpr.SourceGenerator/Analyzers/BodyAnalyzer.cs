@@ -1,23 +1,21 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
+using ConstExpr.SourceGenerator.Attributes;
+using ConstExpr.SourceGenerator.Helpers;
+using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
-using ConstExpr.SourceGenerator.Attributes;
-using ConstExpr.SourceGenerator.Visitors;
+using System.Linq;
+using System.Threading;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
-using ConstExpr.SourceGenerator.Helpers;
 
 namespace ConstExpr.SourceGenerator.Analyzers;
 
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 [DiagnosticSeverity(DiagnosticSeverity.Warning)]
 [DiagnosticId("CEA004")]
-[DiagnosticTitle("Parameter is not constant")]
-[DiagnosticMessageFormat("'{0}' cannot be used in a ConstExpr method")]
+[DiagnosticTitle("Exception during evaluation")]
+[DiagnosticMessageFormat("Unable to evaluate: {0}")]
 [DiagnosticDescription("ConstExpr methods must be constant expressions")]
 [DiagnosticCategory("Usage")]
 public class BodyAnalyzer : BaseAnalyzer<InvocationExpressionSyntax, IMethodSymbol>
@@ -30,10 +28,10 @@ public class BodyAnalyzer : BaseAnalyzer<InvocationExpressionSyntax, IMethodSymb
 	protected override bool ValidateSymbol(SyntaxNodeAnalysisContext context, IMethodSymbol symbol, CancellationToken token)
 	{
 		return symbol
-			       .GetAttributes()
-			       .Concat(symbol.ContainingType.GetAttributes())
-			       .Any(IsConstExprAttribute)
-		       && symbol.IsStatic;
+						 .GetAttributes()
+						 .Concat(symbol.ContainingType.GetAttributes())
+						 .Any(IsConstExprAttribute)
+					 && symbol.IsStatic;
 	}
 
 	protected override void AnalyzeSyntax(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax node, IMethodSymbol symbol, CancellationToken token)
@@ -48,7 +46,7 @@ public class BodyAnalyzer : BaseAnalyzer<InvocationExpressionSyntax, IMethodSymb
 
 		var visitor = new ConstExprOperationVisitor(context.Compilation, loader, (operation, exception) =>
 		{
-			// ReportDiagnostic(context, operation.Syntax.GetLocation(), operation.Syntax);
+			ReportDiagnostic(context, operation.Syntax.GetLocation(), operation.Syntax);
 		}, token);
 
 		if (TryGetOperation<IMethodBodyOperation>(context.Compilation, symbol, out var operation))

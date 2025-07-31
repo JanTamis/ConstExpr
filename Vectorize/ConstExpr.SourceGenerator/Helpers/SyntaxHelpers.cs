@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
+using SourceGen.Utilities.Extensions;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -10,7 +11,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
-using SourceGen.Utilities.Extensions;
 
 namespace ConstExpr.SourceGenerator.Helpers;
 
@@ -55,36 +55,36 @@ public static class SyntaxHelpers
 		switch (expression)
 		{
 			case LiteralExpressionSyntax literal:
-			{
-				switch (literal.Kind())
 				{
-					case SyntaxKind.StringLiteralExpression:
-					case SyntaxKind.CharacterLiteralExpression:
-						value = literal.Token.Value;
-						return true;
-					case SyntaxKind.TrueLiteralExpression:
-						value = true;
-						return true;
-					case SyntaxKind.FalseLiteralExpression:
-						value = false;
-						return true;
-					case SyntaxKind.NullLiteralExpression:
-						value = null;
-						return true;
-					default:
-						value = literal.Token.Value;
-						return true;
+					switch (literal.Kind())
+					{
+						case SyntaxKind.StringLiteralExpression:
+						case SyntaxKind.CharacterLiteralExpression:
+							value = literal.Token.Value;
+							return true;
+						case SyntaxKind.TrueLiteralExpression:
+							value = true;
+							return true;
+						case SyntaxKind.FalseLiteralExpression:
+							value = false;
+							return true;
+						case SyntaxKind.NullLiteralExpression:
+							value = null;
+							return true;
+						default:
+							value = literal.Token.Value;
+							return true;
+					}
 				}
-			}
 			case IdentifierNameSyntax identifier:
 				return variables.TryGetValue(identifier.Identifier.Text, out value);
 			case MemberAccessExpressionSyntax simple:
 				return TryGetVariableValue(compilation, simple.Expression, variables, out value);
 			default:
-			{
-				value = null;
-				return true;
-			}
+				{
+					value = null;
+					return true;
+				}
 		}
 	}
 
@@ -116,14 +116,14 @@ public static class SyntaxHelpers
 			case float f:
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal($"{f.ToString(CultureInfo.InvariantCulture)}F", f));
 			case double d:
-			{
-				if (Math.Abs(d - Math.Round(d)) < Double.Epsilon)
 				{
-					return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal($"{d.ToString(CultureInfo.InvariantCulture)}D", d));
-				}
+					if (Math.Abs(d - Math.Round(d)) < Double.Epsilon)
+					{
+						return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal($"{d.ToString(CultureInfo.InvariantCulture)}D", d));
+					}
 
-				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(d));
-			}
+					return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(d));
+				}
 			case long l:
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(l));
 			case decimal dec:
@@ -133,11 +133,11 @@ public static class SyntaxHelpers
 			case char c:
 				return SyntaxFactory.LiteralExpression(SyntaxKind.CharacterLiteralExpression, SyntaxFactory.Literal(c));
 			case bool b:
-			{
-				return SyntaxFactory.LiteralExpression(b
-					? SyntaxKind.TrueLiteralExpression
-					: SyntaxKind.FalseLiteralExpression);
-			}
+				{
+					return SyntaxFactory.LiteralExpression(b
+						? SyntaxKind.TrueLiteralExpression
+						: SyntaxKind.FalseLiteralExpression);
+				}
 			case null:
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression);
 		}
@@ -212,94 +212,94 @@ public static class SyntaxHelpers
 			switch (expression)
 			{
 				case LiteralExpressionSyntax literal:
-				{
-					value = literal.Token.Value;
-					
-					return true;
-				}
+					{
+						value = literal.Token.Value;
+
+						return true;
+					}
 				case ImplicitArrayCreationExpressionSyntax array:
-				{
-					value = array.Initializer.Expressions
-						.Select(x => GetConstantValue(compilation, loader, x, token))
-						.ToArray();
-					
-					return true;
-				}
-				case CollectionExpressionSyntax collection:
-				{
-					value = collection.Elements
-						.Select(x => GetConstantValue(compilation, loader, x, token))
-						.ToArray();
-					
-					return true;
-				}
-				case MemberAccessExpressionSyntax memberAccess when semanticModel.GetOperation(memberAccess) is IPropertyReferenceOperation propertyOperation:
-				{
-					if (propertyOperation.Property.IsStatic)
 					{
-						value = compilation.GetPropertyValue(loader, propertyOperation.Property, null);
-						return true;
-					}
-
-					if (TryGetConstantValue(compilation, loader, memberAccess.Expression, token, out var instance))
-					{
-						value = compilation.GetPropertyValue(loader, propertyOperation.Property, instance);
-						return true;
-					}
-
-					value = null;
-					return false;
-				}
-				case InvocationExpressionSyntax invocation when semanticModel.GetOperation(invocation) is IInvocationOperation operation:
-				{
-					if (operation.TargetMethod.IsStatic)
-					{
-						var methodParameters = operation.TargetMethod.Parameters;
-						var arguments = invocation.ArgumentList.Arguments
-							.Select(s => GetConstantValue(compilation, loader, s.Expression, token))
+						value = array.Initializer.Expressions
+							.Select(x => GetConstantValue(compilation, loader, x, token))
 							.ToArray();
 
-						if (methodParameters.Length > 0 && methodParameters.Last().IsParams)
-						{
-							var fixedArguments = arguments.Take(methodParameters.Length - 1).ToArray();
-							var paramsArguments = arguments.Skip(methodParameters.Length - 1).ToArray();
-
-							var finalArguments = new object?[fixedArguments.Length + 1];
-							Array.Copy(fixedArguments, finalArguments, fixedArguments.Length);
-							finalArguments[fixedArguments.Length] = paramsArguments;
-
-							value = compilation.ExecuteMethod(loader, operation.TargetMethod, null, finalArguments);
-						}
-						else
-						{
-							value = compilation.ExecuteMethod(loader, operation.TargetMethod, null, arguments);
-						}
 						return true;
 					}
-					value = null;
-					return false;
-				}
-				case ObjectCreationExpressionSyntax creation when semanticModel.GetOperation(creation) is IObjectCreationOperation operation:
-				{
-					if (operation.Arguments.All(x => x.Value.ConstantValue.HasValue))
+				case CollectionExpressionSyntax collection:
 					{
-						var parameters = operation.Arguments.Select(x => x.Value.ConstantValue.Value).ToArray();
-						value = compilation.ExecuteMethod(loader, operation.Constructor, null, parameters);
+						value = collection.Elements
+							.Select(x => GetConstantValue(compilation, loader, x, token))
+							.ToArray();
+
 						return true;
 					}
-					value = null;
-					return false;
-				}
+				case MemberAccessExpressionSyntax memberAccess when semanticModel.GetOperation(memberAccess) is IPropertyReferenceOperation propertyOperation:
+					{
+						if (propertyOperation.Property.IsStatic)
+						{
+							value = compilation.GetPropertyValue(loader, propertyOperation.Property, null);
+							return true;
+						}
+
+						if (TryGetConstantValue(compilation, loader, memberAccess.Expression, token, out var instance))
+						{
+							value = compilation.GetPropertyValue(loader, propertyOperation.Property, instance);
+							return true;
+						}
+
+						value = null;
+						return false;
+					}
+				case InvocationExpressionSyntax invocation when semanticModel.GetOperation(invocation) is IInvocationOperation operation:
+					{
+						if (operation.TargetMethod.IsStatic)
+						{
+							var methodParameters = operation.TargetMethod.Parameters;
+							var arguments = invocation.ArgumentList.Arguments
+								.Select(s => GetConstantValue(compilation, loader, s.Expression, token))
+								.ToArray();
+
+							if (methodParameters.Length > 0 && methodParameters.Last().IsParams)
+							{
+								var fixedArguments = arguments.Take(methodParameters.Length - 1).ToArray();
+								var paramsArguments = arguments.Skip(methodParameters.Length - 1).ToArray();
+
+								var finalArguments = new object?[fixedArguments.Length + 1];
+								Array.Copy(fixedArguments, finalArguments, fixedArguments.Length);
+								finalArguments[fixedArguments.Length] = paramsArguments;
+
+								value = compilation.ExecuteMethod(loader, operation.TargetMethod, null, finalArguments);
+							}
+							else
+							{
+								value = compilation.ExecuteMethod(loader, operation.TargetMethod, null, arguments);
+							}
+							return true;
+						}
+						value = null;
+						return false;
+					}
+				case ObjectCreationExpressionSyntax creation when semanticModel.GetOperation(creation) is IObjectCreationOperation operation:
+					{
+						if (operation.Arguments.All(x => x.Value.ConstantValue.HasValue))
+						{
+							var parameters = operation.Arguments.Select(x => x.Value.ConstantValue.Value).ToArray();
+							value = compilation.ExecuteMethod(loader, operation.Constructor, null, parameters);
+							return true;
+						}
+						value = null;
+						return false;
+					}
 				// for unit tests
 				case ReturnStatementSyntax returnStatement:
 					return TryGetConstantValue(compilation, loader, returnStatement.Expression, token, out value);
 				case YieldStatementSyntax yieldStatement:
 					return TryGetConstantValue(compilation, loader, yieldStatement.Expression, token, out value);
 				default:
-				{
-					value = null;
-					return false;
-				}
+					{
+						value = null;
+						return false;
+					}
 			}
 		}
 		catch (Exception e)
@@ -407,8 +407,13 @@ public static class SyntaxHelpers
 		return IsInConstExprBody(node.ContainingSymbol);
 	}
 
-	public static bool IsIEnumerableRecursive(INamedTypeSymbol typeSymbol)
+	public static bool IsIEnumerableRecursive(INamedTypeSymbol? typeSymbol)
 	{
+		if (typeSymbol is null)
+		{
+			return false;
+		}
+
 		if (typeSymbol.Name == "IEnumerable" && typeSymbol.ContainingNamespace.ToDisplayString() == "System.Collections.Generic")
 		{
 			return true;
@@ -426,7 +431,7 @@ public static class SyntaxHelpers
 
 	public static bool IsIEnumerable(ITypeSymbol typeSymbol)
 	{
-		return typeSymbol.Name == "IEnumerable" 
+		return typeSymbol.Name == "IEnumerable"
 			&& typeSymbol.ContainingNamespace.ToDisplayString() == "System.Collections.Generic";
 	}
 

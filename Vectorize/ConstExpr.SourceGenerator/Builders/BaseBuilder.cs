@@ -2,18 +2,17 @@ using ConstExpr.SourceGenerator.Enums;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using Microsoft.CodeAnalysis;
+using SourceGen.Utilities.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using SourceGen.Utilities.Extensions;
-using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Builders;
 
 public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilation, GenerationLevel generationLevel, MetadataLoader loader, string dataName)
 {
 	public const int THRESHOLD = 5;
-	
+
 	protected string DataName => dataName; // $"{type.Name}_{hashCode}_Data";
 
 	private IndentedCodeWriter.Block AppendMethod(IndentedCodeWriter builder, IMethodSymbol methodSymbol)
@@ -22,15 +21,15 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 			.RemoveMemberOptions(SymbolDisplayMemberOptions.IncludeContainingType)
 			.WithParameterOptions(SymbolDisplayParameterOptions.IncludeType | SymbolDisplayParameterOptions.IncludeName)
 			.WithGenericsOptions(SymbolDisplayGenericsOptions.IncludeTypeConstraints
-			                     | SymbolDisplayGenericsOptions.IncludeVariance
-			                     | SymbolDisplayGenericsOptions.IncludeTypeParameters);
-		
+													 | SymbolDisplayGenericsOptions.IncludeVariance
+													 | SymbolDisplayGenericsOptions.IncludeTypeParameters);
+
 		var methodString = methodSymbol.ToDisplayString(customFormat);
-		
+
 		var prepend = "public ";
-		
+
 		builder.WriteLine(true);
-		
+
 		builder.Write("public ");
 
 		if (methodSymbol.IsStatic)
@@ -42,7 +41,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		{
 			builder.Write("async ");
 		}
-		
+
 		builder.Write(methodString);
 		builder.WriteLine();
 
@@ -50,53 +49,53 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 
 		//builder.WriteLine();
 
-		if (methodSymbol.TypeParameters.Any())
-		{
-			var constraints = methodSymbol.TypeParameters
-				.Select(tp =>
-				{
-					var constraintsList = new List<string>(tp.ConstraintTypes.Length + 4);
+		//if (methodSymbol.TypeParameters.Any())
+		//{
+		//	var constraints = methodSymbol.TypeParameters
+		//		.Select(tp =>
+		//		{
+		//			var constraintsList = new List<string>(tp.ConstraintTypes.Length + 4);
 
-					if (tp.HasReferenceTypeConstraint)
-					{
-						constraintsList.Add("class");
-					}
+		//			if (tp.HasReferenceTypeConstraint)
+		//			{
+		//				constraintsList.Add("class");
+		//			}
 
-					if (tp.HasValueTypeConstraint)
-					{
-						constraintsList.Add("struct");
-					}
+		//			if (tp.HasValueTypeConstraint)
+		//			{
+		//				constraintsList.Add("struct");
+		//			}
 
-					if (tp.HasNotNullConstraint)
-					{
-						constraintsList.Add("notnull");
-					}
+		//			if (tp.HasNotNullConstraint)
+		//			{
+		//				constraintsList.Add("notnull");
+		//			}
 
-					if (tp.HasUnmanagedTypeConstraint)
-					{
-						constraintsList.Add("unmanaged");
-					}
+		//			if (tp.HasUnmanagedTypeConstraint)
+		//			{
+		//				constraintsList.Add("unmanaged");
+		//			}
 
-					foreach (var constraintType in tp.ConstraintTypes)
-					{
-						constraintsList.Add(compilation.GetMinimalString(constraintType));
-					}
+		//			foreach (var constraintType in tp.ConstraintTypes)
+		//			{
+		//				constraintsList.Add(compilation.GetMinimalString(constraintType));
+		//			}
 
-					if (tp.HasConstructorConstraint)
-					{
-						constraintsList.Add("new()");
-					}
+		//			if (tp.HasConstructorConstraint)
+		//			{
+		//				constraintsList.Add("new()");
+		//			}
 
-					return constraintsList.Count > 0
-						? $"where {tp.Name} : {String.Join(", ", constraintsList)}"
-						: null;
-				})
-				.Where(c => c != null);
+		//			return constraintsList.Count > 0
+		//				? $"where {tp.Name} : {String.Join(", ", constraintsList)}"
+		//				: null;
+		//		})
+		//		.Where(c => c != null);
 
-			return builder.WriteBlock($"{prepend:literal}{methodSymbol.ReturnType} {methodSymbol.Name:literal}<{methodSymbol.TypeParameters}>({String.Join(", ", methodSymbol.Parameters.Select(s => $"{compilation.GetMinimalString(s.Type)} {s.Name}")):literal}) {String.Join("\n\t", constraints):literal}");
-		}
+		//	return builder.WriteBlock($"{prepend:literal}{methodSymbol.ReturnType} {methodSymbol.Name:literal}<{methodSymbol.TypeParameters}>({String.Join(", ", methodSymbol.Parameters.Select(s => $"{compilation.GetMinimalString(s.Type)} {s.Name}")):literal}) {String.Join("\n\t", constraints):literal}");
+		//}
 
-		return builder.WriteBlock($"{prepend:literal}{methodSymbol.ReturnType} {methodSymbol.Name:literal}({String.Join(", ", methodSymbol.Parameters.Select(compilation.GetMinimalString)):literal})");
+		//return builder.WriteBlock($"{prepend:literal}{methodSymbol.ReturnType} {methodSymbol.Name:literal}({String.Join(", ", methodSymbol.Parameters.Select(compilation.GetMinimalString)):literal})");
 	}
 
 	// protected void AppendMethod<T>(IndentedCodeWriter builder, IMethodSymbol methodSymbol, ReadOnlySpan<T> items, Action<VectorTypes, string, int> vectorAction, Action<bool> action)
@@ -298,15 +297,15 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		}
 
 		return typeSymbol.AllInterfaces.Any(i => i.OriginalDefinition.SpecialType == SpecialType.System_Collections_Generic_IList_T
-		                                         && i.TypeArguments.Length == 1
-		                                         && SymbolEqualityComparer.Default.Equals(i.TypeArguments[0], elementType));
+																						 && i.TypeArguments.Length == 1
+																						 && SymbolEqualityComparer.Default.Equals(i.TypeArguments[0], elementType));
 	}
 
 	protected string GetLengthPropertyName(ITypeSymbol typeSymbol)
 	{
 		if (typeSymbol is IArrayTypeSymbol arrayType && SymbolEqualityComparer.Default.Equals(arrayType.ElementType, elementType)
-		    || SymbolEqualityComparer.Default.Equals(typeSymbol, compilation.GetTypeByType(typeof(Span<>), elementType))
-		    || SymbolEqualityComparer.Default.Equals(typeSymbol, compilation.GetTypeByType(typeof(ReadOnlySpan<>), elementType)))
+				|| SymbolEqualityComparer.Default.Equals(typeSymbol, compilation.GetTypeByType(typeof(Span<>), elementType))
+				|| SymbolEqualityComparer.Default.Equals(typeSymbol, compilation.GetTypeByType(typeof(ReadOnlySpan<>), elementType)))
 		{
 			return "Length";
 		}
@@ -317,7 +316,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 	public static bool IsPerformance(GenerationLevel level, int count)
 	{
 		return level == GenerationLevel.Performance
-		       || level == GenerationLevel.Balanced && count <= THRESHOLD;
+					 || level == GenerationLevel.Balanced && count <= THRESHOLD;
 	}
 
 	protected IndentedCodeWriter CreateReturnPadding(IndentedCodeWriter writer, string check, IEnumerable<string> checks)
@@ -329,7 +328,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 	{
 		var paddingCount = prefix.Length - check.Length - (addWhitespace ? 0 : 1);
 		var isFirst = true;
-		
+
 		foreach (var checkItem in checks)
 		{
 			if (isFirst)
@@ -337,7 +336,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 				writer.Write(prefix);
 				writer.WriteIf(addWhitespace, " ");
 				writer.Write(checkItem);
-				
+
 				isFirst = false;
 			}
 			else
@@ -351,7 +350,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		}
 
 		writer.WriteIf(isEnding, ";");
-		
+
 		return writer;
 	}
 
@@ -386,27 +385,27 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 			switch (state)
 			{
 				case TreeNode<T>.NodeState.LessThan:
-				{
-					for (; i >= 0; i--)
 					{
-						if (Comparer<T>.Default.Compare(values[i], value) < 0)
+						for (; i >= 0; i--)
 						{
-							break;
+							if (Comparer<T>.Default.Compare(values[i], value) < 0)
+							{
+								break;
+							}
 						}
+						break;
 					}
-					break;
-				}
 				case TreeNode<T>.NodeState.GreaterThan:
-				{
-					for (; i < values.Count; i++)
 					{
-						if (Comparer<T>.Default.Compare(values[i], value) > 0)
+						for (; i < values.Count; i++)
 						{
-							break;
+							if (Comparer<T>.Default.Compare(values[i], value) > 0)
+							{
+								break;
+							}
 						}
+						break;
 					}
-					break;
-				}
 			}
 
 			return new TreeNode<T> { IsLeaf = true, ReturnValue = ~Math.Max(0, Math.Min(i, values.Count - 1)), State = state, Parent = parentNode };
@@ -422,15 +421,15 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 			Parent = parentNode
 		};
 
-		item.LessThan = BuildBinarySearchTree(low, index - 1, (int) ((uint) (index - 1) + (uint) low >> 1), items, TreeNode<T>.NodeState.LessThan, item, values);
-		item.GreaterThan = BuildBinarySearchTree(index + 1, high, (int) ((uint) high + (uint) (index + 1) >> 1), items, TreeNode<T>.NodeState.GreaterThan, item, values);
+		item.LessThan = BuildBinarySearchTree(low, index - 1, (int)((uint)(index - 1) + (uint)low >> 1), items, TreeNode<T>.NodeState.LessThan, item, values);
+		item.GreaterThan = BuildBinarySearchTree(index + 1, high, (int)((uint)high + (uint)(index + 1) >> 1), items, TreeNode<T>.NodeState.GreaterThan, item, values);
 
-		if (elementType.IsInterger() && item.LessThan.IsLeaf && CompareLessThan(item, item.Value.Subtract((T) Convert.ChangeType(1, typeof(T)))))
+		if (elementType.IsInterger() && item.LessThan.IsLeaf && CompareLessThan(item, item.Value.Subtract((T)Convert.ChangeType(1, typeof(T)))))
 		{
 			item.LessThan = null;
 		}
 
-		if (elementType.IsInterger() && item.GreaterThan.IsLeaf && CompareGreaterThan(item, item.Value.Add((T) Convert.ChangeType(1, typeof(T)))))
+		if (elementType.IsInterger() && item.GreaterThan.IsLeaf && CompareGreaterThan(item, item.Value.Add((T)Convert.ChangeType(1, typeof(T)))))
 		{
 			item.GreaterThan = null;
 		}
@@ -464,7 +463,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		if (node.LessThan is null && node.GreaterThan is null)
 		{
 			if (node.State == TreeNode<T>.NodeState.LessThan && !EqualityComparer<T>.Default.Equals(node.Value, items[0].Key)
-			    || node.State == TreeNode<T>.NodeState.GreaterThan && !EqualityComparer<T>.Default.Equals(node.Value, items[^1].Key))
+					|| node.State == TreeNode<T>.NodeState.GreaterThan && !EqualityComparer<T>.Default.Equals(node.Value, items[^1].Key))
 			{
 				builder.WriteLine($"return {node.ReturnValue};");
 				return;
@@ -477,7 +476,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		{
 			// Generate comparison code only once
 			builder.WriteLine($"{(isFirst ? "var " : String.Empty)}{checkVarName} = " +
-			                   $"{String.Format(compareFormat, method.Parameters.Select<IParameterSymbol, object>(s => s.Name).Prepend(node.Value).ToArray())};");
+												 $"{String.Format(compareFormat, method.Parameters.Select<IParameterSymbol, object>(s => s.Name).Prepend(node.Value).ToArray())};");
 			builder.WriteLine();
 		}
 

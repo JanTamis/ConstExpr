@@ -14,7 +14,7 @@
 		<CompilerGeneratedFilesOutputPath>$(MSBuildProjectDirectory)/Generated</CompilerGeneratedFilesOutputPath>
 
 		<PackageId>ConstExpr.SourceGenerator</PackageId>
-		<Version>0.1.4-preview</Version>
+		<Version>0.1.6-preview</Version>
 		<Authors>JanTamis</Authors>
 		<Company>JanTamis</Company>
 		<Description>A source generator that provides constant expression optimizations</Description>
@@ -33,15 +33,17 @@
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" >
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
 		<PackageReference Include="PolySharp" Version="1.15.0">
 		  <PrivateAssets>all</PrivateAssets>
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="SourceGenerator.Foundations" Version="2.0.13" >
+		<PackageReference Include="SourceGenerator.Foundations" Version="2.0.13">
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
-		<PackageReference Include="SourceGenerator.Foundations.Contracts" Version="2.0.13" >
+		<PackageReference Include="SourceGenerator.Foundations.Contracts" Version="2.0.13">
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
 		<PackageReference Include="System.Collections.Immutable" Version="8.0.0" />
@@ -51,16 +53,19 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Compile Remove="bin\**" />
 	  <Compile Remove="Generated\**" />
 	  <Compile Remove="obj\**" />
 	</ItemGroup>
 
 	<ItemGroup>
+	  <EmbeddedResource Remove="bin\**" />
 	  <EmbeddedResource Remove="Generated\**" />
 	  <EmbeddedResource Remove="obj\**" />
 	</ItemGroup>
 
 	<ItemGroup>
+	  <None Remove="bin\**" />
 	  <None Remove="Generated\**" />
 	  <None Remove="obj\**" />
 	</ItemGroup>
@@ -71,6 +76,7 @@
 	  </ProjectReference>
 		<None Include="ConstExpr.SourceGenerator.props" Pack="true" PackagePath="build" Visible="false" />
 		<Content Include="ConstExpr.SourceGenerator.targets" Pack="true" PackagePath="build" Visible="false" />
+		<None Remove="bin\Debug\netstandard2.0\\ConstExpr.SourceGenerator.dll" />
 		<None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
 	</ItemGroup>
 </Project>
