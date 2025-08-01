@@ -395,7 +395,7 @@ public static class CompilationExtensions
 		throw new InvalidOperationException($"Methode '{methodName}' niet gevonden in type '{fullyQualifiedName}'.");
 	}
 
-	public static object? GetPropertyValue(this Compilation compilation, MetadataLoader loader, IPropertySymbol propertySymbol, object? instance)
+	public static object? GetPropertyValue(this Compilation compilation, MetadataLoader loader, ISymbol propertySymbol, object? instance)
 	{
 		var fullyQualifiedTypeName = $"{SyntaxHelpers.GetFullNamespace(propertySymbol.ContainingNamespace)}.{propertySymbol.ContainingType.MetadataName}";
 		var type = loader.GetType(propertySymbol.ContainingType);
@@ -430,7 +430,7 @@ public static class CompilationExtensions
 		return propertyInfo.GetValue(instance);
 	}
 
-	public static object? GetFieldValue(this Compilation compilation, MetadataLoader loader, IFieldSymbol fieldSymbol, object? instance)
+	public static object? GetFieldValue(this Compilation compilation, MetadataLoader loader, ISymbol fieldSymbol, object? instance)
 	{
 		var fullyQualifiedTypeName = fieldSymbol.ContainingType.ToDisplayString();
 		var type = loader.GetType(fieldSymbol.ContainingType);

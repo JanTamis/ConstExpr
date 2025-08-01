@@ -46,7 +46,7 @@ public class BodyAnalyzer : BaseAnalyzer<InvocationExpressionSyntax, IMethodSymb
 
 		var visitor = new ConstExprOperationVisitor(context.Compilation, loader, (operation, exception) =>
 		{
-			ReportDiagnostic(context, operation.Syntax.GetLocation(), operation.Syntax);
+			// ReportDiagnostic(context, operation.Syntax.GetLocation(), operation.Syntax.ToString());
 		}, token);
 
 		if (TryGetOperation<IMethodBodyOperation>(context.Compilation, symbol, out var operation))

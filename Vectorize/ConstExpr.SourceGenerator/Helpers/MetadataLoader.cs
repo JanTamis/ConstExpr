@@ -78,8 +78,13 @@ public class MetadataLoader
 	/// <returns>
 	/// The <see cref="Type"/> that corresponds to the provided type symbol, or null if no matching type is found.
 	/// </returns>
-	public Type? GetType(ITypeSymbol typeSymbol)
+	public Type? GetType(ITypeSymbol? typeSymbol)
 	{
+		if (typeSymbol == null)
+		{
+			return null;
+		}
+
 		if (typeSymbol is INamedTypeSymbol { Arity: > 0 } namedType && !SymbolEqualityComparer.Default.Equals(namedType, namedType.ConstructedFrom))
 		{
 			var constuctedFrom = GetType(namedType.ConstructedFrom);

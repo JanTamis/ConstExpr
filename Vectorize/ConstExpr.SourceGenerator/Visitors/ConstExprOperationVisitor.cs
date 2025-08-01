@@ -64,9 +64,60 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 	public override object? VisitArrayCreation(IArrayCreationOperation operation, Dictionary<string, object?> argument)
 	{
-		return operation.Initializer?.ElementValues
-			.Select(s => Visit(s, argument))
+		var arrayType = loader.GetType(operation.Type);
+
+		if (arrayType is null)
+		{
+			return null;
+		}
+
+		var elementType = arrayType.GetElementType();
+		var dimensionSizes = operation.DimensionSizes
+			.Select(dim => Convert.ToInt32(Visit(dim, argument)))
 			.ToArray();
+
+		var data = Array.CreateInstance(elementType, dimensionSizes);
+
+		if (operation.Initializer?.ElementValues is { } values)
+		{
+			void SetValues(Array arr, int[] indices, int dim)
+			{
+				if (dim == arr.Rank - 1)
+				{
+					for (int i = 0; i < arr.GetLength(dim); i++)
+					{
+						var idx = indices.Append(i).ToArray();
+						var flatIndex = GetFlatIndex(idx, arr);
+						if (flatIndex < values.Length)
+						{
+							arr.SetValue(Visit(values[flatIndex], argument), idx);
+						}
+					}
+				}
+				else
+				{
+					for (int i = 0; i < arr.GetLength(dim); i++)
+					{
+						SetValues(arr, indices.Append(i).ToArray(), dim + 1);
+					}
+				}
+			}
+
+			int GetFlatIndex(int[] indices, Array arr)
+			{
+				int flat = 0, mul = 1;
+				for (int d = arr.Rank - 1; d >= 0; d--)
+				{
+					flat += indices[d] * mul;
+					mul *= arr.GetLength(d);
+				}
+				return flat;
+			}
+
+			SetValues(data, Array.Empty<int>(), 0);
+		}
+
+		return data;
 	}
 
 	public override object? VisitArrayElementReference(IArrayElementReferenceOperation operation, Dictionary<string, object?> argument)
@@ -88,7 +139,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			try
 			{
 				return array.GetType().GetMethod("Get")?.Invoke(array, indexers)
-				       ?? array.GetType().GetMethod("GetValue", indexers.Select(i => typeof(int)).ToArray())?.Invoke(array, indexers);
+							 ?? array.GetType().GetMethod("GetValue", indexers.Select(i => typeof(int)).ToArray())?.Invoke(array, indexers);
 			}
 			catch (Exception)
 			{
@@ -102,10 +153,10 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			var parameters = pi.GetIndexParameters();
 
 			if (parameters.Length == indexers.Length &&
-			    parameters.Select((p, i) => indexers[i] != null &&
-			                                (p.ParameterType.IsAssignableFrom(indexers[i].GetType()) ||
-			                                 indexers[i] is IConvertible))
-				    .All(x => x))
+					parameters.Select((p, i) => indexers[i] != null &&
+																			(p.ParameterType.IsAssignableFrom(indexers[i].GetType()) ||
+																			 indexers[i] is IConvertible))
+						.All(x => x))
 			{
 				try
 				{
@@ -218,6 +269,18 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 	public override object? VisitCollectionExpression(ICollectionExpressionOperation operation, Dictionary<string, object?> argument)
 	{
+		if (operation.Type is IArrayTypeSymbol arrayType)
+		{
+			var data = Array.CreateInstance(loader.GetType(arrayType.ElementType), operation.Elements.Length);
+			
+			for (var i = 0; i < operation.Elements.Length; i++)
+			{
+				data.SetValue(Visit(operation.Elements[i], argument), i);
+			}
+
+			return data;
+		}
+
 		return operation.Elements
 			.Select(s => Visit(s, argument));
 	}
@@ -277,7 +340,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			.ToArray();
 
 		if (SyntaxHelpers.IsInConstExprBody(targetMethod)
-		    && SyntaxHelpers.TryGetOperation<IMethodBodyOperation>(compilation, targetMethod, out var methodOperation))
+				&& SyntaxHelpers.TryGetOperation<IMethodBodyOperation>(compilation, targetMethod, out var methodOperation))
 		{
 			var syntax = targetMethod.DeclaringSyntaxReferences
 				.Select(s => s.GetSyntax(token))
@@ -309,9 +372,9 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		foreach (var caseClause in operation.Cases)
 		{
 			if (caseClause.Clauses
-			    .Where(w => w.CaseKind != CaseKind.Default)
-			    .Select(s => Visit(s, argument))
-			    .Contains(value))
+					.Where(w => w.CaseKind != CaseKind.Default)
+					.Select(s => Visit(s, argument))
+					.Contains(value))
 			{
 				VisitList(caseClause.Body, argument);
 
@@ -322,9 +385,9 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		foreach (var caseClause in operation.Cases)
 		{
 			if (caseClause.Clauses
-			    .Where(w => w.CaseKind == CaseKind.Default)
-			    .Select(s => Visit(s, argument))
-			    .Contains(value))
+					.Where(w => w.CaseKind == CaseKind.Default)
+					.Select(s => Visit(s, argument))
+					.Contains(value))
 			{
 				VisitList(caseClause.Body, argument);
 			}

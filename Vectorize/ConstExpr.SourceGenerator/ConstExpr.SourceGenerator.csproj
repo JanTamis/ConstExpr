@@ -5,13 +5,11 @@
 		<Nullable>enable</Nullable>
 		<LangVersion>preview</LangVersion>
 		<AssemblySearchPath_UseOutDir>true</AssemblySearchPath_UseOutDir>
-		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 <!--		<CompilerVisibleProperty Include="SgfAddModuleInitializerAttribute"/>-->
 		<IsRoslynComponent>true</IsRoslynComponent>
 		<PolySharpExcludeGeneratedTypes>System.Runtime.CompilerServices.ModuleInitializerAttribute,System.AttributeUsage</PolySharpExcludeGeneratedTypes>
 		<RootNamespace>ConstExpr.SourceGenerator</RootNamespace>
-		<CompilerGeneratedFilesOutputPath>$(MSBuildProjectDirectory)/Generated</CompilerGeneratedFilesOutputPath>
 
 		<PackageId>ConstExpr.SourceGenerator</PackageId>
 		<Version>0.1.6-preview</Version>
@@ -24,7 +22,6 @@
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<IsPackable>true</IsPackable>
 
-		<IncludeBuildOutput>false</IncludeBuildOutput>
 	</PropertyGroup>	
 
 	<ItemGroup>
@@ -33,7 +30,7 @@
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" >
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0">
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
 		<PackageReference Include="PolySharp" Version="1.15.0">
@@ -50,24 +47,6 @@
 		<PackageReference Include="System.Memory" Version="4.6.3" />
 		<PackageReference Include="System.Reflection.MetadataLoadContext" Version="8.0.0" />
 		<PackageReference Include="System.Runtime.Loader" Version="4.3.0" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Compile Remove="bin\**" />
-	  <Compile Remove="Generated\**" />
-	  <Compile Remove="obj\**" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <EmbeddedResource Remove="bin\**" />
-	  <EmbeddedResource Remove="Generated\**" />
-	  <EmbeddedResource Remove="obj\**" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <None Remove="bin\**" />
-	  <None Remove="Generated\**" />
-	  <None Remove="obj\**" />
 	</ItemGroup>
 
 	<ItemGroup>

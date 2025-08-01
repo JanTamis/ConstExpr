@@ -233,18 +233,42 @@ public static class SyntaxHelpers
 
 						return true;
 					}
-				case MemberAccessExpressionSyntax memberAccess when semanticModel.GetOperation(memberAccess) is IPropertyReferenceOperation propertyOperation:
+				case MemberAccessExpressionSyntax memberAccess when semanticModel.GetOperation(memberAccess) is IMemberReferenceOperation memberOperation:
 					{
-						if (propertyOperation.Property.IsStatic)
+						switch (memberOperation)
 						{
-							value = compilation.GetPropertyValue(loader, propertyOperation.Property, null);
-							return true;
-						}
+							case IPropertyReferenceOperation:
+								{
+									if (memberOperation.Member.IsStatic)
+									{
+										value = compilation.GetPropertyValue(loader, memberOperation.Member, null);
+										return true;
+									}
 
-						if (TryGetConstantValue(compilation, loader, memberAccess.Expression, token, out var instance))
-						{
-							value = compilation.GetPropertyValue(loader, propertyOperation.Property, instance);
-							return true;
+									if (TryGetConstantValue(compilation, loader, memberAccess.Expression, token, out var instance))
+									{
+										value = compilation.GetPropertyValue(loader, memberOperation.Member, instance);
+										return true;
+									}
+
+									break;
+								}
+							case IFieldReferenceOperation:
+								{
+									if (memberOperation.Member.IsStatic)
+									{
+										value = compilation.GetFieldValue(loader, memberOperation.Member, null);
+										return true;
+									}
+
+									if (TryGetConstantValue(compilation, loader, memberAccess.Expression, token, out var instance))
+									{
+										value = compilation.GetFieldValue(loader, memberOperation.Member, instance);
+										return true;
+									}
+
+									break;
+								}
 						}
 
 						value = null;

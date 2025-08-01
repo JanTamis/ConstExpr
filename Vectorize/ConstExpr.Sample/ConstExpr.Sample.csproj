@@ -7,7 +7,6 @@
 		<OutputType>Exe</OutputType>
 		<LangVersion>13</LangVersion>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
 		
 		<ConstExprGenerationLevel>Performance</ConstExprGenerationLevel>
 
@@ -16,20 +15,17 @@
 
 	<ItemGroup>
 	  <Compile Remove="bin\**" />
+	  <Compile Remove="Generated\**" />
 	  <Compile Remove="obj\**" />
-	  <EmbeddedResource Remove="bin\**" />
+	  <EmbeddedResource Remove="Generated\**" />
 	  <EmbeddedResource Remove="obj\**" />
-	  <None Remove="bin\**" />
+	  <None Remove="Generated\**" />
 	  <None Remove="obj\**" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\ConstExpr.SourceGenerator\ConstExpr.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>
-
-	<!--<ItemGroup>
-		<CompilerVisibleProperty Include="ConstExprGenerationLevel" />
-	</ItemGroup>-->
 
 	<ItemGroup>
 	  <PackageReference Include="BenchmarkDotNet" Version="0.14.0" />

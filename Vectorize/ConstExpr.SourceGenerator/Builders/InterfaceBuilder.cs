@@ -283,7 +283,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 		switch (method)
 		{
 			case { Name: "Insert", ReturnsVoid: true }
-				when method.Parameters.AsSpan().EqualsTypes(elementType, compilation.CreateInt32()):
+				when method.Parameters.AsSpan().EqualsTypes(compilation.CreateInt32(), elementType):
 			{
 				AppendMethod(builder, method, () =>
 				{
@@ -295,7 +295,6 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 			default:
 				return false;
 		}
-
 	}
 
 	public bool AppendRemoveAt(IMethodSymbol method, IndentedCodeWriter builder)

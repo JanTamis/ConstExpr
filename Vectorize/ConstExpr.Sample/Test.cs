@@ -90,7 +90,12 @@ public static class Test
 
 	public static IReadOnlyList<string> Split(string value, char separator)
 	{
-		return value.Split(separator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+		return value.Split((char[])[separator]);
+	}
+
+	public static string ToString<T>(this T value) where T : Enum
+	{
+		return value.ToString();
 	}
 
 	public static ICustomCollection<int> Fibonacci(int count)

@@ -4,9 +4,7 @@ using System.Text;
 
 var range = Test.Range(10);
 
-const int test = 0;
-
-Console.WriteLine(Test.IsOdd(1, 2, 3, 4, test));
+Console.WriteLine(String.Join(", ", Test.IsOdd(1, 2, 3, 4, 5)));
 Console.WriteLine(Test.Average(1f, 2f, 3f, 4f, 5f, 6f));
 Console.WriteLine(Test.StdDev(1f, 2f, 3f, 4f, 5f));
 
@@ -19,6 +17,7 @@ Console.WriteLine(String.Join(", ", Test.Split("Hello, World!", ',')));
 Console.WriteLine(String.Join(", ", Test.Fibonacci(20)));
 Console.WriteLine(Test.RgbToHsl(150, 100, 50));
 Console.WriteLine(Test.IsPrime(3));
+Console.WriteLine(Test.ToString(StringComparison.Ordinal));
 
 // Console.WriteLine(range.BinarySearch(2));
 
