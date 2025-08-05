@@ -16,6 +16,8 @@ public class InvocationModel
 #pragma warning restore RSEXPERIMENTAL002
 
 	public MethodDeclarationSyntax Method { get; set; }
+	
+	public IMethodSymbol Symbol { get; set; }
 
 	public InvocationExpressionSyntax Invocation { get; set; }
 

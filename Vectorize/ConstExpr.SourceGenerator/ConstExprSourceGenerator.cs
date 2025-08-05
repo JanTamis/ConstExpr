@@ -19,6 +19,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using ConstExpr.SourceGenerator.Comparers;
 using SGF;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 
@@ -101,21 +102,21 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 		context.RegisterSourceOutput(invocations.Collect().Combine(context.CompilationProvider).Combine(rootNamespace), (spc, modelAndCompilation) =>
 		{
+			var loader = MetadataLoader.GetLoader(modelAndCompilation.Left.Right);
+				
 			foreach (var group in modelAndCompilation.Left.Left.GroupBy(model => model.Method, SyntaxNodeComparer<MethodDeclarationSyntax>.Instance))
 			{
-				GenerateMethodImplementations(spc, modelAndCompilation.Left.Right, group);
+				GenerateMethodImplementations(spc, modelAndCompilation.Left.Right, group, loader);
 			}
 
 			ReportExceptions(spc, modelAndCompilation.Left.Left);
 		});
 	}
 
-	private void GenerateMethodImplementations(SgfSourceProductionContext spc, Compilation compilation, IGrouping<MethodDeclarationSyntax, InvocationModel?> group)
+	private void GenerateMethodImplementations(SgfSourceProductionContext spc, Compilation compilation, IGrouping<MethodDeclarationSyntax, InvocationModel?> group, MetadataLoader loader)
 	{
 		var code = new IndentedCodeWriter(compilation);
 		var usings = group.SelectMany(item => item.Usings).Distinct().OrderBy(s => s);
-
-		var loader = MetadataLoader.GetLoader(compilation);
 
 		foreach (var u in usings.Where(w => !String.IsNullOrWhiteSpace(w)))
 		{
@@ -130,7 +131,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		{
 			var isFirst = true;
 
-			foreach (var valueGroup in group.GroupBy(m => m.Value))
+			foreach (var valueGroup in group.GroupBy(m => m.Value, new ValueOrCollectionEqualityComparer()))
 			{
 				code.WriteLineIf(!isFirst);
 
@@ -148,6 +149,25 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				var method = first.Method
 					.WithIdentifier(SyntaxFactory.Identifier($"{first.Method.Identifier}_{Math.Abs(first.Value?.GetHashCode() ?? 0)}"));
 
+				if (first.Symbol.ReturnType is IArrayTypeSymbol arraySymbol)
+				{
+					var valueType = first.Value?.GetType();
+
+					if (valueType is not null && valueType.IsArray)
+					{
+						var elementType = valueType.GetElementType();
+						var rank = valueType.GetArrayRank();
+
+						if (elementType?.FullName == arraySymbol.ElementType.ToDisplayString() && rank == arraySymbol.Rank)
+						{
+							method = method.WithReturnType(
+								SyntaxFactory.ParseTypeName(valueType.Name)
+									.WithTrailingTrivia(SyntaxFactory.ParseTrailingTrivia(" "))
+							);
+						}
+					}
+				}
+
 				using (code.WriteBlock(method))
 				{
 					if (compilation.IsInterface(first.Method.ReturnType))
@@ -161,6 +181,11 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 								continue;
 							}
 
+							if (compilation.TryGetIEnumerableType(elementType, true, out var tempElementype) && tempElementype is INamedTypeSymbol)
+							{
+								elementType = tempElementype as INamedTypeSymbol;
+							}
+
 							var data = enumerable.Cast<object?>().ToArray();
 
 							if (data.IsSame(data[0]))
@@ -171,15 +196,11 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 							{
 								code.WriteLine($"return Enumerable.Range({CreateLiteral(data[0])}, {CreateLiteral(data.Length)})");
 							}
-							else if (data.IsSequenceDifference(out var difference))
+							else if (elementType.IsVectorSupported() && data.IsSequenceDifference(out var difference))
 							{
-								if (compilation.GetTypeByName(typeof(Enumerable).FullName).HasMethod("InfiniteSequence"))
+								if (compilation.GetTypeByName(typeof(Enumerable).FullName).HasMethod("Sequence"))
 								{
-									code.WriteLine($"""
-										return Enumerable
-											.InfiniteSequence({CreateLiteral(data[0])}, {CreateLiteral(difference)})
-											.Take({CreateLiteral(data.Length)})
-										""");
+									code.WriteLine($"return Enumerable.Sequence({CreateLiteral(data[0])}, {CreateLiteral(data[^1])}, {CreateLiteral(difference)});");
 								}
 								else
 								{
@@ -316,9 +337,16 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 								using (code.WriteBlock($"public IEnumerator<{elementType}> GetEnumerator()"))
 								{
-									using (code.WriteBlock($"for (var i = 0; i < {dataName:literal}.Length; i++)"))
+									if (elementType.IsVectorSupported())
 									{
-										code.WriteLine($"yield return {dataName:literal}[i];");
+										using (code.WriteBlock($"for (var i = 0; i < {dataName:literal}.Length; i++)"))
+										{
+											code.WriteLine($"yield return {dataName:literal}[i];");
+										}
+									}
+									else
+									{
+										code.WriteLine($"return ((IEnumerable<{elementType}>){dataName:literal}).GetEnumerator();");
 									}
 								}
 
@@ -385,7 +413,14 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			return null;
 		}
 
-		var variables = ProcessArguments(context.SemanticModel.Compilation, loader, invocation, methodSymbol, token);
+		var exceptions = new ConcurrentDictionary<SyntaxNode, Exception>(SyntaxNodeComparer<SyntaxNode>.Instance);
+
+		var visitor = new ConstExprOperationVisitor(context.SemanticModel.Compilation, loader, (operation, ex) =>
+		{
+			exceptions.TryAdd(operation!.Syntax, ex);
+		}, token);
+
+		var variables = ProcessArguments(visitor, context.SemanticModel.Compilation, invocation, loader, token);
 
 		if (variables == null)
 		{
@@ -398,7 +433,6 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			try
 			{
 				var timer = Stopwatch.StartNew();
-				var exceptions = new ConcurrentDictionary<SyntaxNode, Exception>(SyntaxNodeComparer<SyntaxNode>.Instance);
 
 				var usings = new HashSet<string?>
 				{
@@ -411,11 +445,6 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 					usings.Add("System.Collections.Generic");
 				}
 
-				var visitor = new ConstExprOperationVisitor(context.SemanticModel.Compilation, loader, (operation, ex) =>
-				{
-					exceptions.TryAdd(operation!.Syntax, ex);
-				}, token);
-
 				visitor.VisitBlock(blockOperation.BlockBody!, variables);
 				timer.Stop();
 
@@ -427,6 +456,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				{
 					Usings = usings,
 					Method = methodDecl,
+					Symbol = methodSymbol,
 					Invocation = invocation,
 					Value = variables[ConstExprOperationVisitor.ReturnVariableName],
 					Location = model.GetInterceptableLocation(invocation, token),
@@ -445,89 +475,29 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		return null;
 	}
 
-	public static Dictionary<string, object?>? ProcessArguments(Compilation compilation, MetadataLoader loader, InvocationExpressionSyntax invocation,
-	                                                            IMethodSymbol methodSymbol, CancellationToken token)
+	public static Dictionary<string, object?> ProcessArguments(ConstExprOperationVisitor visitor, Compilation compilation, InvocationExpressionSyntax invocation, MetadataLoader loader, CancellationToken token)
 	{
 		var variables = new Dictionary<string, object?>();
+		var invocationOperation = compilation.GetSemanticModel(invocation.SyntaxTree).GetOperation(invocation) as IInvocationOperation;
+		var methodSymbol = invocationOperation?.TargetMethod;
 
-		for (var i = 0; i < invocation.ArgumentList.Arguments.Count; i++)
+		foreach (var argument in invocationOperation.Arguments)
 		{
-			try
+			if (loader.GetType(argument.Parameter.Type).IsEnum)
 			{
-				var paramName = methodSymbol.Parameters[i].Name;
-
-				if (methodSymbol.Parameters[i].IsParams)
-				{
-					var values = invocation.ArgumentList.Arguments
-						.Skip(i)
-						.Select(arg => GetConstantValue(compilation, loader, arg.Expression, token))
-						.ToArray();
-
-					if (methodSymbol.Parameters[i].IsParamsArray)
-					{
-						var array = Array.CreateInstance(values[0].GetType(), values.Length);
-
-						for (var j = 0; j < values.Length; j++)
-						{
-							array.SetValue(values[j], j);
-						}
-
-						variables[paramName] = array;
-					}
-					else
-					{
-						if ((IsIEnumerable(methodSymbol.Parameters[i].Type)
-						     || IsIList(methodSymbol.Parameters[i].Type)
-						     || IsICollection(methodSymbol.Parameters[i].Type)) && methodSymbol.Parameters[i].Type is INamedTypeSymbol enumerableType)
-						{
-							var type = loader.GetType(enumerableType.TypeArguments[0]);
-
-							var listType = typeof(List<>).MakeGenericType(type);
-							var list = Activator.CreateInstance(listType);
-
-							if (list is IList listInstance)
-							{
-								foreach (var item in values)
-								{
-									listInstance.Add(Convert.ChangeType(item, type));
-								}
-							}
-
-							variables[paramName] = list;
-						}
-						else
-						{
-							var listType = typeof(List<>).MakeGenericType(values[0].GetType());
-							var list = Activator.CreateInstance(listType);
-
-							if (list is IList listInstance)
-							{
-								foreach (var item in values)
-								{
-									listInstance.Add(item);
-								}
-							}
-
-							variables[paramName] = list;
-						}
-					}
-
-					break;
-				}
-
-				var arg = invocation.ArgumentList.Arguments[i];
-
-				if (!TryGetConstantValue(compilation, loader, arg.Expression, token, out var value))
-				{
-					return null;
-				}
-
-				variables[paramName] = value;
+				var enumType = loader.GetType(argument.Parameter.Type);
+				var value = visitor.Visit(argument.Value, variables);
+				variables.Add(argument.Parameter.Name, Enum.ToObject(enumType, value));
 			}
-			catch (Exception e)
+			else
 			{
-				return null;
+				variables.Add(argument.Parameter.Name, visitor.Visit(argument.Value, variables));
 			}
+		}
+
+		foreach (var (parameter, argument) in methodSymbol.TypeParameters.Zip(methodSymbol.TypeArguments, (x, y) => (x, y)))
+		{
+			variables.Add(parameter.Name, loader.GetType(argument));
 		}
 
 		return variables;
@@ -553,6 +523,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		if (IsIEnumerableRecursive(methodSymbol.ReturnType as INamedTypeSymbol))
 		{
 			usings.Add("System.Collections");
+			usings.Add("System.Linq");
 		}
 
 		if (!methodSymbol.ReturnType.IsPrimitiveType())

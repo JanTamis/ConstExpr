@@ -655,8 +655,18 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 			{
 				AppendMethod(builder, method, data.AsSpan(), isPerformance =>
 				{
+// 					builder.WriteLine($$"""
+// 						var index = 0;
+// 						
+// 						while (Rune.DecodeFromUtf16({{DataName:literal}}.Slice(index), out var rune, out var charsConsumed) == OperationStatus.Done)
+// 						{
+// 							yield return rune;
+// 							index += charsConsumed;
+// 						}
+// 						""");
+					
 					var span = data.AsSpan();
-
+					
 					while (TryDecodeFromUtf16(span, out var result, out var charsConsumed))
 					{
 						builder.WriteLine($"yield return new Rune({result}); \t// {span.Slice(0, charsConsumed).ToString():literal}");

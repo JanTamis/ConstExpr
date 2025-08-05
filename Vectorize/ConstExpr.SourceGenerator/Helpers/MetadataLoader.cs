@@ -14,7 +14,7 @@ public class MetadataLoader
 {
 	// private static readonly ConcurrentDictionary<Compilation, IList<Assembly>> _loaders = new();
 
-	private readonly IList<Assembly> _assemblies;
+	private readonly IEnumerable<Assembly> _assemblies;
 	private readonly ConcurrentDictionary<string, Type?> _typeCache = new();
 
 	/// <summary>
@@ -26,12 +26,11 @@ public class MetadataLoader
 	{
 		var assemblies = compilation.References
 			.OfType<PortableExecutableReference>()
-			.Select(s => s.FilePath)
-			.Where(w => !String.IsNullOrEmpty(w))
-			.ToList();
+			.Select(s => s.FilePath!)
+			.Where(w => !String.IsNullOrEmpty(w));
 
 		var resolver = new PathAssemblyResolver(assemblies);
-		var resultAssemblies = new List<Assembly>();
+		var resultAssemblies = new HashSet<Assembly>();
 
 		using (var metadataContext = new MetadataLoadContext(resolver))
 		{
@@ -52,12 +51,9 @@ public class MetadataLoader
 
 			foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
 			{
-				if (!resultAssemblies.Contains(assembly))
-				{
-					resultAssemblies.Add(assembly);
-				}
+				resultAssemblies.Add(assembly);
 			}
-
+			
 			return new MetadataLoader(resultAssemblies);
 		}
 	}
@@ -66,7 +62,7 @@ public class MetadataLoader
 	/// Initializes a new instance of the <see cref="MetadataLoader"/> class.
 	/// </summary>
 	/// <param name="assemblies">The assemblies to load.</param>
-	private MetadataLoader(IList<Assembly> assemblies)
+	private MetadataLoader(IEnumerable<Assembly> assemblies)
 	{
 		_assemblies = assemblies;
 	}

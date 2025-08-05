@@ -27,11 +27,4 @@
 		<ProjectReference Include="..\ConstExpr.SourceGenerator\ConstExpr.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 
-	<ItemGroup>
-	  <PackageReference Include="BenchmarkDotNet" Version="0.14.0" />
-	  <PackageReference Include="BenchmarkDotNet.Annotations" Version="0.14.0" />
-		
-<!--		<PackageReference Include="ConstExpr.SourceGenerator" Version="0.1.6-preview" />-->
-	</ItemGroup>
-
 </Project>

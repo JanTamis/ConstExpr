@@ -84,10 +84,11 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			{
 				if (dim == arr.Rank - 1)
 				{
-					for (int i = 0; i < arr.GetLength(dim); i++)
+					for (var i = 0; i < arr.GetLength(dim); i++)
 					{
 						var idx = indices.Append(i).ToArray();
 						var flatIndex = GetFlatIndex(idx, arr);
+
 						if (flatIndex < values.Length)
 						{
 							arr.SetValue(Visit(values[flatIndex], argument), idx);
@@ -96,7 +97,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 				}
 				else
 				{
-					for (int i = 0; i < arr.GetLength(dim); i++)
+					for (var i = 0; i < arr.GetLength(dim); i++)
 					{
 						SetValues(arr, indices.Append(i).ToArray(), dim + 1);
 					}
@@ -106,7 +107,8 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			int GetFlatIndex(int[] indices, Array arr)
 			{
 				int flat = 0, mul = 1;
-				for (int d = arr.Rank - 1; d >= 0; d--)
+
+				for (var d = arr.Rank - 1; d >= 0; d--)
 				{
 					flat += indices[d] * mul;
 					mul *= arr.GetLength(d);
@@ -139,7 +141,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			try
 			{
 				return array.GetType().GetMethod("Get")?.Invoke(array, indexers)
-							 ?? array.GetType().GetMethod("GetValue", indexers.Select(i => typeof(int)).ToArray())?.Invoke(array, indexers);
+				       ?? array.GetType().GetMethod("GetValue", indexers.Select(i => typeof(int)).ToArray())?.Invoke(array, indexers);
 			}
 			catch (Exception)
 			{
@@ -153,10 +155,10 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			var parameters = pi.GetIndexParameters();
 
 			if (parameters.Length == indexers.Length &&
-					parameters.Select((p, i) => indexers[i] != null &&
-																			(p.ParameterType.IsAssignableFrom(indexers[i].GetType()) ||
-																			 indexers[i] is IConvertible))
-						.All(x => x))
+			    parameters.Select((p, i) => indexers[i] != null &&
+			                                (p.ParameterType.IsAssignableFrom(indexers[i].GetType()) ||
+			                                 indexers[i] is IConvertible))
+				    .All(x => x))
 			{
 				try
 				{
@@ -232,7 +234,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 		if (method is not null)
 		{
-			return compilation.ExecuteMethod(loader, method, null, left, right);
+			return compilation.ExecuteMethod(loader, method, null, argument, left, right);
 		}
 
 		return ExecuteBinaryOperation(operatorKind, left, right);
@@ -271,8 +273,9 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 	{
 		if (operation.Type is IArrayTypeSymbol arrayType)
 		{
-			var data = Array.CreateInstance(loader.GetType(arrayType.ElementType), operation.Elements.Length);
-			
+			var elementType = loader.GetType(arrayType.ElementType);
+			var data = Array.CreateInstance(elementType, operation.Elements.Length);
+
 			for (var i = 0; i < operation.Elements.Length; i++)
 			{
 				data.SetValue(Visit(operation.Elements[i], argument), i);
@@ -281,8 +284,66 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			return data;
 		}
 
-		return operation.Elements
-			.Select(s => Visit(s, argument));
+		if (operation.Type is not INamedTypeSymbol namedType)
+			return null;
+
+		var targetType = loader.GetType(operation.Type);
+
+		if (namedType.Constructors.Any(c => c.Parameters.IsEmpty) && namedType.HasMethod("Add"))
+		{
+			var instance = Activator.CreateInstance(targetType);
+			var addMethod = targetType.GetMethod("Add", [ loader.GetType(operation.Elements[0].Type) ]);
+
+			foreach (var element in operation.Elements)
+				addMethod?.Invoke(instance, [ Visit(element, argument) ]);
+
+			return instance;
+		}
+
+		if (compilation.TryGetIEnumerableType(operation.Type, false, out var type))
+		{
+			var elementType = loader.GetType(type);
+			var data = Array.CreateInstance(elementType, operation.Elements.Length);
+
+			for (var i = 0; i < operation.Elements.Length; i++)
+			{
+				data.SetValue(Visit(operation.Elements[i], argument), i);
+			}
+
+			return data;
+		}
+
+		var elements = operation.Elements.Select(e => Visit(e, argument));
+
+		if (namedType.TypeKind == TypeKind.Interface)
+		{
+			return namedType.MetadataName switch
+			{
+				"ICollection" or "ICollection`1" or "IList" or "IList`1" or "IReadOnlyCollection`1" or "IReadOnlyList`1" => CreateCollection(typeof(List<>), namedType, elements),
+				"ISet`1" or "IReadOnlySet`1" => CreateCollection(typeof(HashSet<>), namedType, elements),
+				_ => elements
+			};
+		}
+
+		return Activator.CreateInstance(targetType, elements);
+
+		object CreateCollection(Type genericType, INamedTypeSymbol namedType, IEnumerable<object?> elements)
+		{
+			var elementType = namedType.TypeArguments.Length > 0
+				? loader.GetType(namedType.TypeArguments[0])
+				: typeof(object);
+
+			var concreteType = genericType.MakeGenericType(elementType);
+			var instance = Activator.CreateInstance(concreteType);
+			var addMethod = concreteType.GetMethod("Add");
+
+			foreach (var element in elements)
+			{
+				addMethod?.Invoke(instance, [ element ]);
+			}
+
+			return instance;
+		}
 	}
 
 	public override object? VisitConditional(IConditionalOperation operation, Dictionary<string, object?> argument)
@@ -340,7 +401,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			.ToArray();
 
 		if (SyntaxHelpers.IsInConstExprBody(targetMethod)
-				&& SyntaxHelpers.TryGetOperation<IMethodBodyOperation>(compilation, targetMethod, out var methodOperation))
+		    && SyntaxHelpers.TryGetOperation<IMethodBodyOperation>(compilation, targetMethod, out var methodOperation))
 		{
 			var syntax = targetMethod.DeclaringSyntaxReferences
 				.Select(s => s.GetSyntax(token))
@@ -362,7 +423,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			return variables[ReturnVariableName];
 		}
 
-		return compilation.ExecuteMethod(loader, targetMethod, instance, arguments);
+		return compilation.ExecuteMethod(loader, targetMethod, instance, argument, arguments);
 	}
 
 	public override object? VisitSwitch(ISwitchOperation operation, Dictionary<string, object?> argument)
@@ -372,9 +433,9 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		foreach (var caseClause in operation.Cases)
 		{
 			if (caseClause.Clauses
-					.Where(w => w.CaseKind != CaseKind.Default)
-					.Select(s => Visit(s, argument))
-					.Contains(value))
+			    .Where(w => w.CaseKind != CaseKind.Default)
+			    .Select(s => Visit(s, argument))
+			    .Contains(value))
 			{
 				VisitList(caseClause.Body, argument);
 
@@ -385,9 +446,9 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		foreach (var caseClause in operation.Cases)
 		{
 			if (caseClause.Clauses
-					.Where(w => w.CaseKind == CaseKind.Default)
-					.Select(s => Visit(s, argument))
-					.Contains(value))
+			    .Where(w => w.CaseKind == CaseKind.Default)
+			    .Select(s => Visit(s, argument))
+			    .Contains(value))
 			{
 				VisitList(caseClause.Body, argument);
 			}

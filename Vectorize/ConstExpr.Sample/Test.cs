@@ -22,8 +22,10 @@ public static class Test
 	
 	public static bool IsPrime(int number)
 	{
-		if (number < 2) 
+		if (number < 2)
+		{
 			return false;
+		}
 
 		for (var i = 2; i <= Math.Sqrt(number); i++)
 		{
@@ -98,6 +100,11 @@ public static class Test
 		return value.ToString();
 	}
 
+	public static IEnumerable<string> GetNames<T>() where T : struct, Enum
+	{
+		return Enum.GetNames<T>();
+	}
+
 	public static ICustomCollection<int> Fibonacci(int count)
 	{
 		var items = new List<int>(count);
@@ -116,17 +123,17 @@ public static class Test
 		return items as ICustomCollection<int>;
 	}
 
-	public static (decimal h, decimal s, decimal l) RgbToHsl(byte r, byte g, byte b)
+	public static (float h, float s, float l) RgbToHsl(byte r, byte g, byte b)
 	{
-		var rn = r / 255.0m;
-		var gn = g / 255.0m;
-		var bn = b / 255.0m;
+		var rn = r / 255.0f;
+		var gn = g / 255.0f;
+		var bn = b / 255.0f;
 
 		var max = Math.Max(rn, Math.Max(gn, bn));
 		var min = Math.Min(rn, Math.Min(gn, bn));
 		var delta = max - min;
 
-		var h = 0m;
+		var h = 0f;
 
 		if (delta != 0)
 		{

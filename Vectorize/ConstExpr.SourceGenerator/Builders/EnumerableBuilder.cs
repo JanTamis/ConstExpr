@@ -1444,7 +1444,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 	public bool AppendZip<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
 	{
 		var types = method.Parameters
-			.WhereSelect<IParameterSymbol, ITypeSymbol?>((x, out result) => compilation.TryGetIEnumerableType(x.Type, out result))
+			.WhereSelect<IParameterSymbol, ITypeSymbol?>((x, out result) => compilation.TryGetIEnumerableType(x.Type, true, out result))
 			.Prepend(elementType)
 			.ToImmutableArray();
 

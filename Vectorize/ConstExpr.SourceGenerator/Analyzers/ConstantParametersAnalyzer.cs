@@ -51,7 +51,7 @@ public class ConstantParametersAnalyzer : BaseAnalyzer<InvocationExpressionSynta
 		{
 			var parameter = node.ArgumentList.Arguments[i];
 
-			if (!TryGetConstantValue(context.SemanticModel.Compilation, loader, parameter.Expression, context.CancellationToken, out _))
+			if (!TryGetConstantValue(context.SemanticModel.Compilation, loader, parameter.Expression, null, context.CancellationToken, out _))
 			{
 				ReportDiagnostic(context, parameter, parameter.ToString());
 			}

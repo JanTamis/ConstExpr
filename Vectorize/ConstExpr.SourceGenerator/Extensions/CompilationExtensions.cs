@@ -5,6 +5,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -305,7 +306,7 @@ public static class CompilationExtensions
 		return typeSymbol.GetMembers(name).OfType<TSymbol>().Any(predicate);
 	}
 
-	public static object? ExecuteMethod(this Compilation compilation, MetadataLoader loader, IMethodSymbol methodSymbol, object? instance, params object?[]? parameters)
+	public static object? ExecuteMethod(this Compilation compilation, MetadataLoader loader, IMethodSymbol methodSymbol, object? instance, Dictionary<string, object?>? arguments, params object?[]? parameters)
 	{
 		var fullyQualifiedName = methodSymbol.ContainingType.ToDisplayString();
 		var methodName = methodSymbol.Name;
@@ -357,7 +358,14 @@ public static class CompilationExtensions
 			if (methodInfo.IsGenericMethod)
 			{
 				var types = methodSymbol.TypeArguments
-					.Select(loader.GetType)
+					.Select(symbol =>
+					{
+						if (symbol is ITypeParameterSymbol parameter && arguments?.TryGetValue(parameter.Name, out var type) == true)
+						{
+							return type as Type;
+						}
+						return loader.GetType(symbol);
+					})
 					.ToArray();
 
 				methodInfo = methodInfo.MakeGenericMethod(types);
@@ -846,8 +854,14 @@ public static class CompilationExtensions
 		return best;
 	}
 
-	public static bool TryGetIEnumerableType(this Compilation compilation, ITypeSymbol typeSymbol, out ITypeSymbol? elementType)
+	public static bool TryGetIEnumerableType(this Compilation compilation, ITypeSymbol? typeSymbol, bool recursive, out ITypeSymbol? elementType)
 	{
+		if (typeSymbol == null)
+		{
+			elementType = null;
+			return false;
+		}
+		
 		if (typeSymbol is INamedTypeSymbol { IsGenericType: true } namedTypeSymbol)
 		{
 			if (SymbolEqualityComparer.Default.Equals(namedTypeSymbol, compilation.CreateIEnumerable(namedTypeSymbol.TypeArguments[0])))
@@ -860,7 +874,8 @@ public static class CompilationExtensions
 		foreach (var @interface in typeSymbol.AllInterfaces)
 		{
 			if (@interface is { Arity: 1 }
-			    && SymbolEqualityComparer.Default.Equals(@interface, compilation.CreateIEnumerable(@interface.TypeArguments[0])))
+			    && SymbolEqualityComparer.Default.Equals(@interface, compilation.CreateIEnumerable(@interface.TypeArguments[0]))
+			    && recursive)
 			{
 				elementType = @interface.TypeArguments[0];
 				return true;

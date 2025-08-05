@@ -18,7 +18,11 @@ Console.WriteLine(String.Join(", ", Test.Fibonacci(20)));
 Console.WriteLine(Test.RgbToHsl(150, 100, 50));
 Console.WriteLine(Test.IsPrime(3));
 Console.WriteLine(Test.ToString(StringComparison.Ordinal));
+Console.WriteLine(Test.GetNames<StringComparison>());
+Console.WriteLine(Test.GetNames<StringComparison>());
+Console.WriteLine(Test.GetNames<StringSplitOptions>());
 
 // Console.WriteLine(range.BinarySearch(2));
 
 // BenchmarkRunner.Run<ReplaceTest>();
+

@@ -138,6 +138,18 @@ public static class SyntaxHelpers
 						? SyntaxKind.TrueLiteralExpression
 						: SyntaxKind.FalseLiteralExpression);
 				}
+			case Enum e:
+				{
+					var enumType = e.GetType();
+					var enumValue = Enum.GetName(enumType, e);
+					if (enumValue is not null)
+					{
+						return SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
+							SyntaxFactory.IdentifierName(enumType.Name),
+							SyntaxFactory.IdentifierName(enumValue));
+					}
+					return null;
+				}
 			case null:
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression);
 		}
@@ -183,9 +195,9 @@ public static class SyntaxHelpers
 		return null;
 	}
 
-	public static object? GetConstantValue(Compilation compilation, MetadataLoader loader, SyntaxNode expression, CancellationToken token = default)
+	public static object? GetConstantValue(Compilation compilation, MetadataLoader loader, SyntaxNode expression, Dictionary<string, object?>? variables, CancellationToken token = default)
 	{
-		if (TryGetConstantValue(compilation, loader, expression, token, out var value))
+		if (TryGetConstantValue(compilation, loader, expression, variables, token, out var value))
 		{
 			return value;
 		}
@@ -193,7 +205,7 @@ public static class SyntaxHelpers
 		return null;
 	}
 
-	public static bool TryGetConstantValue(Compilation compilation, MetadataLoader loader, SyntaxNode? expression, CancellationToken token, out object? value)
+	public static bool TryGetConstantValue(Compilation compilation, MetadataLoader loader, SyntaxNode? expression, Dictionary<string, object?>? variables, CancellationToken token, out object? value)
 	{
 		if (expression is null)
 		{
@@ -203,11 +215,11 @@ public static class SyntaxHelpers
 
 		try
 		{
-			if (compilation.TryGetSemanticModel(expression, out var semanticModel) && semanticModel.GetConstantValue(expression, token) is { HasValue: true, Value: var temp })
-			{
-				value = temp;
-				return true;
-			}
+			// if (compilation.TryGetSemanticModel(expression, out var semanticModel) && semanticModel.GetConstantValue(expression, token) is { HasValue: true, Value: var temp })
+			// {
+			// 	value = temp;
+			// 	return true;
+			// }
 
 			switch (expression)
 			{
@@ -220,7 +232,7 @@ public static class SyntaxHelpers
 				case ImplicitArrayCreationExpressionSyntax array:
 					{
 						value = array.Initializer.Expressions
-							.Select(x => GetConstantValue(compilation, loader, x, token))
+							.Select(x => GetConstantValue(compilation, loader, x, variables, token))
 							.ToArray();
 
 						return true;
@@ -228,12 +240,12 @@ public static class SyntaxHelpers
 				case CollectionExpressionSyntax collection:
 					{
 						value = collection.Elements
-							.Select(x => GetConstantValue(compilation, loader, x, token))
+							.Select(x => GetConstantValue(compilation, loader, x, variables, token))
 							.ToArray();
 
 						return true;
 					}
-				case MemberAccessExpressionSyntax memberAccess when semanticModel.GetOperation(memberAccess) is IMemberReferenceOperation memberOperation:
+				case MemberAccessExpressionSyntax memberAccess when compilation.TryGetSemanticModel(expression, out var model) && model.GetOperation(memberAccess) is IMemberReferenceOperation memberOperation:
 					{
 						switch (memberOperation)
 						{
@@ -245,7 +257,7 @@ public static class SyntaxHelpers
 										return true;
 									}
 
-									if (TryGetConstantValue(compilation, loader, memberAccess.Expression, token, out var instance))
+									if (TryGetConstantValue(compilation, loader, memberAccess.Expression, variables, token, out var instance))
 									{
 										value = compilation.GetPropertyValue(loader, memberOperation.Member, instance);
 										return true;
@@ -261,7 +273,7 @@ public static class SyntaxHelpers
 										return true;
 									}
 
-									if (TryGetConstantValue(compilation, loader, memberAccess.Expression, token, out var instance))
+									if (TryGetConstantValue(compilation, loader, memberAccess.Expression, variables, token, out var instance))
 									{
 										value = compilation.GetFieldValue(loader, memberOperation.Member, instance);
 										return true;
@@ -274,13 +286,13 @@ public static class SyntaxHelpers
 						value = null;
 						return false;
 					}
-				case InvocationExpressionSyntax invocation when semanticModel.GetOperation(invocation) is IInvocationOperation operation:
+				case InvocationExpressionSyntax invocation when compilation.TryGetSemanticModel(expression, out var model) && model.GetOperation(invocation) is IInvocationOperation operation:
 					{
 						if (operation.TargetMethod.IsStatic)
 						{
 							var methodParameters = operation.TargetMethod.Parameters;
 							var arguments = invocation.ArgumentList.Arguments
-								.Select(s => GetConstantValue(compilation, loader, s.Expression, token))
+								.Select(s => GetConstantValue(compilation, loader, s.Expression, variables, token))
 								.ToArray();
 
 							if (methodParameters.Length > 0 && methodParameters.Last().IsParams)
@@ -292,23 +304,23 @@ public static class SyntaxHelpers
 								Array.Copy(fixedArguments, finalArguments, fixedArguments.Length);
 								finalArguments[fixedArguments.Length] = paramsArguments;
 
-								value = compilation.ExecuteMethod(loader, operation.TargetMethod, null, finalArguments);
+								value = compilation.ExecuteMethod(loader, operation.TargetMethod, null, variables, finalArguments);
 							}
 							else
 							{
-								value = compilation.ExecuteMethod(loader, operation.TargetMethod, null, arguments);
+								value = compilation.ExecuteMethod(loader, operation.TargetMethod, null, variables, arguments);
 							}
 							return true;
 						}
 						value = null;
 						return false;
 					}
-				case ObjectCreationExpressionSyntax creation when semanticModel.GetOperation(creation) is IObjectCreationOperation operation:
+				case ObjectCreationExpressionSyntax creation when compilation.TryGetSemanticModel(expression, out var model) && model.GetOperation(creation) is IObjectCreationOperation operation:
 					{
 						if (operation.Arguments.All(x => x.Value.ConstantValue.HasValue))
 						{
 							var parameters = operation.Arguments.Select(x => x.Value.ConstantValue.Value).ToArray();
-							value = compilation.ExecuteMethod(loader, operation.Constructor, null, parameters);
+							value = compilation.ExecuteMethod(loader, operation.Constructor, null, variables, parameters);
 							return true;
 						}
 						value = null;
@@ -316,11 +328,17 @@ public static class SyntaxHelpers
 					}
 				// for unit tests
 				case ReturnStatementSyntax returnStatement:
-					return TryGetConstantValue(compilation, loader, returnStatement.Expression, token, out value);
+					return TryGetConstantValue(compilation, loader, returnStatement.Expression, variables, token, out value);
 				case YieldStatementSyntax yieldStatement:
-					return TryGetConstantValue(compilation, loader, yieldStatement.Expression, token, out value);
+					return TryGetConstantValue(compilation, loader, yieldStatement.Expression, variables, token, out value);
 				default:
 					{
+						if (compilation.TryGetSemanticModel(expression, out var semanticModel) && semanticModel.GetConstantValue(expression, token) is { HasValue: true, Value: var temp })
+						{
+							value = temp;
+							return true;
+						}
+						
 						value = null;
 						return false;
 					}

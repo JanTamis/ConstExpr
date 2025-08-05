@@ -36,22 +36,23 @@ public class BodyAnalyzer : BaseAnalyzer<InvocationExpressionSyntax, IMethodSymb
 
 	protected override void AnalyzeSyntax(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax node, IMethodSymbol symbol, CancellationToken token)
 	{
-		var loader = MetadataLoader.GetLoader(context.SemanticModel.Compilation);
-		var variables = ConstExprSourceGenerator.ProcessArguments(context.Compilation, loader, node, symbol, token);
-
-		if (variables == null)
-		{
-			return;
-		}
-
-		var visitor = new ConstExprOperationVisitor(context.Compilation, loader, (operation, exception) =>
-		{
-			// ReportDiagnostic(context, operation.Syntax.GetLocation(), operation.Syntax.ToString());
-		}, token);
-
-		if (TryGetOperation<IMethodBodyOperation>(context.Compilation, symbol, out var operation))
-		{
-			visitor.VisitBlock(operation.BlockBody, variables);
-		}
+		// var loader = MetadataLoader.GetLoader(context.SemanticModel.Compilation);
+		//
+		// var visitor = new ConstExprOperationVisitor(context.SemanticModel.Compilation, loader, (operation, ex) =>
+		// {
+		// 	ReportDiagnostic(context, operation.Syntax.GetLocation(), operation.Syntax.ToString());
+		// }, token);
+		//
+		// var variables = ConstExprSourceGenerator.ProcessArguments(visitor, context.SemanticModel.Compilation, node, loader, token);
+		//
+		// if (variables == null)
+		// {
+		// 	return;
+		// }
+		//
+		// if (TryGetOperation<IMethodBodyOperation>(context.Compilation, symbol, out var operation))
+		// {
+		// 	visitor.VisitBlock(operation.BlockBody, variables);
+		// }
 	}
 }
