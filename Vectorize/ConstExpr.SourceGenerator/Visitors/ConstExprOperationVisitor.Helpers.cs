@@ -48,7 +48,7 @@ public partial class ConstExprOperationVisitor
 		};
 	}
 
-	private void VisitList(ImmutableArray<IOperation> operations, Dictionary<string, object?> argument)
+	private void VisitList(ImmutableArray<IOperation> operations, IDictionary<string, object?> argument)
 	{
 		foreach (var operation in operations)
 		{

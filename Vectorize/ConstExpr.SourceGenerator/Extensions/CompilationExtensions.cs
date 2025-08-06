@@ -164,7 +164,7 @@ public static class CompilationExtensions
 		}
 	}
 
-	public static int GetByteSize(this Compilation compilation, MetadataLoader loader, ITypeSymbol type)
+	public static int GetByteSize(this Compilation compilation, MetadataLoader loader, ITypeSymbol? type)
 	{
 		if (type == null)
 		{
@@ -204,7 +204,7 @@ public static class CompilationExtensions
 		// Handle enum types - get the size of the underlying type
 		// if (type.TypeKind == TypeKind.Enum && type.EnumUnderlyingType != null)
 		// {
-		// 	return VisitSizeOf(operation.Update(type.EnumUnderlyingType), argument);
+		// 	return compilation.GetByteSize(type.)
 		// }
 
 		// Try to use Marshal.SizeOf for structs if available
@@ -213,6 +213,7 @@ public static class CompilationExtensions
 			try
 			{
 				var runtimeType = loader.GetType(type);
+				
 				// Use System.Runtime.InteropServices.Marshal.SizeOf
 				var method = typeof(System.Runtime.InteropServices.Marshal).GetMethod("SizeOf", [ typeof(Type) ]);
 				return (int) method?.Invoke(null, [ runtimeType ]);
@@ -306,7 +307,7 @@ public static class CompilationExtensions
 		return typeSymbol.GetMembers(name).OfType<TSymbol>().Any(predicate);
 	}
 
-	public static object? ExecuteMethod(this Compilation compilation, MetadataLoader loader, IMethodSymbol methodSymbol, object? instance, Dictionary<string, object?>? arguments, params object?[]? parameters)
+	public static object? ExecuteMethod(this Compilation compilation, MetadataLoader loader, IMethodSymbol methodSymbol, object? instance, IDictionary<string, object?>? arguments, params object?[]? parameters)
 	{
 		var fullyQualifiedName = methodSymbol.ContainingType.ToDisplayString();
 		var methodName = methodSymbol.Name;

@@ -9,9 +9,9 @@ using Microsoft.CodeAnalysis.Operations;
 
 namespace ConstExpr.SourceGenerator.Visitors;
 
-public class ExpressionVisitor(Compilation compilation, MetadataLoader loader, IEnumerable<ParameterExpression> parameters) : OperationVisitor<Dictionary<string, object?>, Expression>
+public class ExpressionVisitor(Compilation compilation, MetadataLoader loader, IEnumerable<ParameterExpression> parameters) : OperationVisitor<IDictionary<string, object?>, Expression>
 {
-	public override Expression DefaultVisit(IOperation operation, Dictionary<string, object?> argument)
+	public override Expression DefaultVisit(IOperation operation, IDictionary<string, object?> argument)
 	{
 		if (operation.ConstantValue is { HasValue: true, Value: var value })
 		{
@@ -26,7 +26,7 @@ public class ExpressionVisitor(Compilation compilation, MetadataLoader loader, I
 		return Expression.Empty();
 	}
 
-	public override Expression VisitBlock(IBlockOperation operation, Dictionary<string, object?> argument)
+	public override Expression VisitBlock(IBlockOperation operation, IDictionary<string, object?> argument)
 	{
 		var items = operation.Operations
 			.Select(item => Visit(item, argument))
@@ -41,7 +41,7 @@ public class ExpressionVisitor(Compilation compilation, MetadataLoader loader, I
 		return Expression.Block(parameters, items);
 	}
 
-	public override Expression VisitReturn(IReturnOperation operation, Dictionary<string, object?> argument)
+	public override Expression VisitReturn(IReturnOperation operation, IDictionary<string, object?> argument)
 	{
 		return Visit(operation.ReturnedValue, argument);
 
@@ -56,7 +56,7 @@ public class ExpressionVisitor(Compilation compilation, MetadataLoader loader, I
 		// );
 	}
 
-	public override Expression VisitBinaryOperator(IBinaryOperation operation, Dictionary<string, object?> argument)
+	public override Expression VisitBinaryOperator(IBinaryOperation operation, IDictionary<string, object?> argument)
 	{
 		var kind = operation.OperatorKind switch
 		{
@@ -80,12 +80,12 @@ public class ExpressionVisitor(Compilation compilation, MetadataLoader loader, I
 		return Expression.MakeBinary(kind, left, right);
 	}
 
-	public override Expression VisitParameterReference(IParameterReferenceOperation operation, Dictionary<string, object?> argument)
+	public override Expression VisitParameterReference(IParameterReferenceOperation operation, IDictionary<string, object?> argument)
 	{
 		return parameters.First(x => x.Name == operation.Parameter.Name);
 	}
 
-	public override Expression? VisitInvocation(IInvocationOperation operation, Dictionary<string, object?> argument)
+	public override Expression? VisitInvocation(IInvocationOperation operation, IDictionary<string, object?> argument)
 	{
 		// Get method arguments as expressions
 		var arguments = operation.Arguments.Select(arg => Visit(arg.Value, argument)).ToArray();
@@ -123,13 +123,13 @@ public class ExpressionVisitor(Compilation compilation, MetadataLoader loader, I
 		return Expression.Call(instance, methodInfo, arguments);
 	}
 
-	public override Expression VisitLiteral(ILiteralOperation operation, Dictionary<string, object?> argument)
+	public override Expression VisitLiteral(ILiteralOperation operation, IDictionary<string, object?> argument)
 	{
 		return Expression.Constant(operation.ConstantValue.Value,
 			loader.GetType(operation.Type));
 	}
 
-	public override Expression VisitUnaryOperator(IUnaryOperation operation, Dictionary<string, object?> argument)
+	public override Expression VisitUnaryOperator(IUnaryOperation operation, IDictionary<string, object?> argument)
 	{
 		var operand = Visit(operation.Operand, argument);
 
@@ -143,7 +143,7 @@ public class ExpressionVisitor(Compilation compilation, MetadataLoader loader, I
 		};
 	}
 
-	public override Expression VisitIncrementOrDecrement(IIncrementOrDecrementOperation operation, Dictionary<string, object?> argument)
+	public override Expression VisitIncrementOrDecrement(IIncrementOrDecrementOperation operation, IDictionary<string, object?> argument)
 	{
 		var target = Visit(operation.Target, argument);
 		var one = Expression.Constant(1);
@@ -156,12 +156,12 @@ public class ExpressionVisitor(Compilation compilation, MetadataLoader loader, I
 		};
 	}
 
-	public override Expression VisitParenthesized(IParenthesizedOperation operation, Dictionary<string, object?> argument)
+	public override Expression VisitParenthesized(IParenthesizedOperation operation, IDictionary<string, object?> argument)
 	{
 		return Visit(operation.Operand, argument);
 	}
 
-	public override Expression VisitFieldReference(IFieldReferenceOperation operation, Dictionary<string, object?> argument)
+	public override Expression VisitFieldReference(IFieldReferenceOperation operation, IDictionary<string, object?> argument)
 	{
 		var instance = operation.Instance != null ? Visit(operation.Instance, argument) : null;
 
@@ -173,7 +173,7 @@ public class ExpressionVisitor(Compilation compilation, MetadataLoader loader, I
 			: Expression.Field(instance, fieldInfo);
 	}
 
-	public override Expression VisitPropertyReference(IPropertyReferenceOperation operation, Dictionary<string, object?> argument)
+	public override Expression VisitPropertyReference(IPropertyReferenceOperation operation, IDictionary<string, object?> argument)
 	{
 		var instance = operation.Instance != null ? Visit(operation.Instance, argument) : null;
 
@@ -185,7 +185,7 @@ public class ExpressionVisitor(Compilation compilation, MetadataLoader loader, I
 			: Expression.Property(instance, propertyInfo);
 	}
 
-	public override Expression VisitLocalReference(ILocalReferenceOperation operation, Dictionary<string, object?> argument)
+	public override Expression VisitLocalReference(ILocalReferenceOperation operation, IDictionary<string, object?> argument)
 	{
 		// For local variables, we need to find or create a parameter expression
 		string localName = operation.Local.Name;
@@ -203,13 +203,13 @@ public class ExpressionVisitor(Compilation compilation, MetadataLoader loader, I
 		return Expression.Parameter(localType, localName);
 	}
 
-	public override Expression VisitDefaultValue(IDefaultValueOperation operation, Dictionary<string, object?> argument)
+	public override Expression VisitDefaultValue(IDefaultValueOperation operation, IDictionary<string, object?> argument)
 	{
 		var type = loader.GetType(operation.Type);
 		return Expression.Default(type);
 	}
 
-	public override Expression VisitObjectCreation(IObjectCreationOperation operation, Dictionary<string, object?> argument)
+	public override Expression VisitObjectCreation(IObjectCreationOperation operation, IDictionary<string, object?> argument)
 	{
 		var type = loader.GetType(operation.Type);
 
@@ -226,7 +226,7 @@ public class ExpressionVisitor(Compilation compilation, MetadataLoader loader, I
 		return Expression.New(constructor, arguments);
 	}
 
-	public override Expression VisitInstanceReference(IInstanceReferenceOperation operation, Dictionary<string, object?> argument)
+	public override Expression VisitInstanceReference(IInstanceReferenceOperation operation, IDictionary<string, object?> argument)
 	{
 		// In an expression tree context, 'this' is typically represented by a parameter
 		var thisParameter = parameters.FirstOrDefault(p => p.Name == "this");
@@ -238,12 +238,12 @@ public class ExpressionVisitor(Compilation compilation, MetadataLoader loader, I
 		throw new InvalidOperationException("No 'this' parameter available in the current context.");
 	}
 
-	public override Expression VisitNameOf(INameOfOperation operation, Dictionary<string, object?> argument)
+	public override Expression VisitNameOf(INameOfOperation operation, IDictionary<string, object?> argument)
 	{
 		return Expression.Constant(operation.ConstantValue.Value, typeof(string));
 	}
 
-	public override Expression VisitConditional(IConditionalOperation operation, Dictionary<string, object?> argument)
+	public override Expression VisitConditional(IConditionalOperation operation, IDictionary<string, object?> argument)
 	{
 		var condition = Visit(operation.Condition, argument);
 		var whenTrue = Visit(operation.WhenTrue, argument);
@@ -252,21 +252,21 @@ public class ExpressionVisitor(Compilation compilation, MetadataLoader loader, I
 		return Expression.Condition(condition, whenTrue, whenFalse);
 	}
 
-	public override Expression VisitUtf8String(IUtf8StringOperation operation, Dictionary<string, object?> argument)
+	public override Expression VisitUtf8String(IUtf8StringOperation operation, IDictionary<string, object?> argument)
 	{
 		return Expression.Constant(System.Text.Encoding.UTF8.GetBytes(operation.Value));
 	}
 
-	public override Expression VisitAwait(IAwaitOperation operation, Dictionary<string, object?> argument)
+	public override Expression VisitAwait(IAwaitOperation operation, IDictionary<string, object?> argument)
 	{
 		var operand = Visit(operation.Operation, argument);
 		return Expression.Call(
 			operand,
 			operand.Type.GetMethod("GetAwaiter"),
-			Array.Empty<Expression>());
+			[ ]);
 	}
 
-	public override Expression VisitUsing(IUsingOperation operation, Dictionary<string, object?> argument)
+	public override Expression VisitUsing(IUsingOperation operation, IDictionary<string, object?> argument)
 	{
 		var resource = Visit(operation.Resources, argument);
 		var body = Visit(operation.Body, argument);
@@ -278,7 +278,7 @@ public class ExpressionVisitor(Compilation compilation, MetadataLoader loader, I
 		);
 	}
 
-	public override Expression VisitLock(ILockOperation operation, Dictionary<string, object?> argument)
+	public override Expression VisitLock(ILockOperation operation, IDictionary<string, object?> argument)
 	{
 		var lockObj = Visit(operation.LockedValue, argument);
 		var body = Visit(operation.Body, argument);
@@ -302,12 +302,12 @@ public class ExpressionVisitor(Compilation compilation, MetadataLoader loader, I
 		);
 	}
 
-	public override Expression VisitDelegateCreation(IDelegateCreationOperation operation, Dictionary<string, object?> argument)
+	public override Expression VisitDelegateCreation(IDelegateCreationOperation operation, IDictionary<string, object?> argument)
 	{
 		return Visit(operation.Target, argument);
 	}
 
-	public override Expression VisitAnonymousFunction(IAnonymousFunctionOperation operation, Dictionary<string, object?> argument)
+	public override Expression VisitAnonymousFunction(IAnonymousFunctionOperation operation, IDictionary<string, object?> argument)
 	{
 		// Create parameters for the lambda
 		var lambdaParams = operation.Symbol.Parameters
@@ -325,7 +325,7 @@ public class ExpressionVisitor(Compilation compilation, MetadataLoader loader, I
 		return Expression.Lambda(body, lambdaParams);
 	}
 
-	public override Expression VisitAnonymousObjectCreation(IAnonymousObjectCreationOperation operation, Dictionary<string, object?> argument)
+	public override Expression VisitAnonymousObjectCreation(IAnonymousObjectCreationOperation operation, IDictionary<string, object?> argument)
 	{
 		var type = loader.GetType(operation.Type);
 
@@ -347,7 +347,7 @@ public class ExpressionVisitor(Compilation compilation, MetadataLoader loader, I
 		return Expression.MemberInit(newExpression, bindings);
 	}
 
-	public override Expression VisitTry(ITryOperation operation, Dictionary<string, object?> argument)
+	public override Expression VisitTry(ITryOperation operation, IDictionary<string, object?> argument)
 	{
 		var tryBlock = Visit(operation.Body, argument);
 		var finallyBlock = operation.Finally != null
@@ -380,13 +380,13 @@ public class ExpressionVisitor(Compilation compilation, MetadataLoader loader, I
 		return Expression.TryCatch(tryBlock, catchBlocks);
 	}
 
-	public override Expression VisitThrow(IThrowOperation operation, Dictionary<string, object?> argument)
+	public override Expression VisitThrow(IThrowOperation operation, IDictionary<string, object?> argument)
 	{
 		var exception = Visit(operation.Exception, argument);
 		return Expression.Throw(exception);
 	}
 
-	public override Expression VisitConditionalAccess(IConditionalAccessOperation operation, Dictionary<string, object?> argument)
+	public override Expression VisitConditionalAccess(IConditionalAccessOperation operation, IDictionary<string, object?> argument)
 	{
 		var receiver = Visit(operation.Operation, argument);
 		var whenNotNull = Visit(operation.WhenNotNull, argument);

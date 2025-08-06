@@ -337,7 +337,11 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 								using (code.WriteBlock($"public IEnumerator<{elementType}> GetEnumerator()"))
 								{
-									if (elementType.IsVectorSupported())
+									if (items.IsEmpty)
+									{
+										code.WriteLine($"return Enumerable.Empty<{elementType}>().GetEnumerator();");
+									}
+									else if (elementType.IsVectorSupported())
 									{
 										using (code.WriteBlock($"for (var i = 0; i < {dataName:literal}.Length; i++)"))
 										{
@@ -346,7 +350,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 									}
 									else
 									{
-										code.WriteLine($"return ((IEnumerable<{elementType}>){dataName:literal}).GetEnumerator();");
+										code.WriteLine($"return Array.AsReadOnly({dataName:literal}).GetEnumerator();");
 									}
 								}
 

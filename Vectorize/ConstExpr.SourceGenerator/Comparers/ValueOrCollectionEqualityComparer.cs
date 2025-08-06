@@ -25,8 +25,7 @@ public class ValueOrCollectionEqualityComparer : IEqualityComparer<object?>
 		}
 
 		// Both must be enumerable and of compatible types
-		if (x is IEnumerable xEnum && y is IEnumerable yEnum &&
-		    x.GetType() == y.GetType())
+		if (x is IEnumerable xEnum && y is IEnumerable yEnum && x.GetType() == y.GetType())
 		{
 			return xEnum.Cast<object?>().SequenceEqual(yEnum.Cast<object?>(), this);
 		}
@@ -56,7 +55,7 @@ public class ValueOrCollectionEqualityComparer : IEqualityComparer<object?>
 
 				foreach (var item in enumerable)
 				{
-					hash = hash * 31 + GetHashCode(item);
+					hash *= 31 + GetHashCode(item);
 				}
 
 				return hash;

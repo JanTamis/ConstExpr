@@ -18,11 +18,11 @@ using ConstExpr.SourceGenerator.Helpers;
 
 namespace ConstExpr.SourceGenerator.Visitors;
 
-public partial class ConstExprOperationVisitor(Compilation compilation, MetadataLoader loader, Action<IOperation?, Exception> exceptionHandler, CancellationToken token) : OperationVisitor<Dictionary<string, object?>, object?>
+public partial class ConstExprOperationVisitor(Compilation compilation, MetadataLoader loader, Action<IOperation?, Exception> exceptionHandler, CancellationToken token) : OperationVisitor<IDictionary<string, object?>, object?>
 {
 	public const string ReturnVariableName = "$return$";
 
-	public override object? DefaultVisit(IOperation operation, Dictionary<string, object?> argument)
+	public override object? DefaultVisit(IOperation operation, IDictionary<string, object?> argument)
 	{
 		if (operation.ConstantValue is { HasValue: true, Value: var value })
 		{
@@ -37,7 +37,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return null;
 	}
 
-	public override object? Visit(IOperation? operation, Dictionary<string, object?> argument)
+	public override object? Visit(IOperation? operation, IDictionary<string, object?> argument)
 	{
 		token.ThrowIfCancellationRequested();
 
@@ -57,12 +57,12 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		}
 	}
 
-	public override object VisitIsNull(IIsNullOperation operation, Dictionary<string, object?> argument)
+	public override object VisitIsNull(IIsNullOperation operation, IDictionary<string, object?> argument)
 	{
 		return Visit(operation.Operand, argument) is null;
 	}
 
-	public override object? VisitArrayCreation(IArrayCreationOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitArrayCreation(IArrayCreationOperation operation, IDictionary<string, object?> argument)
 	{
 		var arrayType = loader.GetType(operation.Type);
 
@@ -80,49 +80,49 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 		if (operation.Initializer?.ElementValues is { } values)
 		{
-			void SetValues(Array arr, int[] indices, int dim)
-			{
-				if (dim == arr.Rank - 1)
-				{
-					for (var i = 0; i < arr.GetLength(dim); i++)
-					{
-						var idx = indices.Append(i).ToArray();
-						var flatIndex = GetFlatIndex(idx, arr);
-
-						if (flatIndex < values.Length)
-						{
-							arr.SetValue(Visit(values[flatIndex], argument), idx);
-						}
-					}
-				}
-				else
-				{
-					for (var i = 0; i < arr.GetLength(dim); i++)
-					{
-						SetValues(arr, indices.Append(i).ToArray(), dim + 1);
-					}
-				}
-			}
-
-			int GetFlatIndex(int[] indices, Array arr)
-			{
-				int flat = 0, mul = 1;
-
-				for (var d = arr.Rank - 1; d >= 0; d--)
-				{
-					flat += indices[d] * mul;
-					mul *= arr.GetLength(d);
-				}
-				return flat;
-			}
-
-			SetValues(data, Array.Empty<int>(), 0);
+			SetValues(data, [ ], 0);
 		}
 
 		return data;
+
+		void SetValues(Array arr, int[] indices, int dim)
+		{
+			if (dim == arr.Rank - 1)
+			{
+				for (var i = 0; i < arr.GetLength(dim); i++)
+				{
+					var idx = indices.Append(i).ToArray();
+					var flatIndex = GetFlatIndex(idx, arr);
+
+					if (flatIndex < values.Length)
+					{
+						arr.SetValue(Visit(values[flatIndex], argument), idx);
+					}
+				}
+			}
+			else
+			{
+				for (var i = 0; i < arr.GetLength(dim); i++)
+				{
+					SetValues(arr, indices.Append(i).ToArray(), dim + 1);
+				}
+			}
+		}
+
+		int GetFlatIndex(int[] indices, Array arr)
+		{
+			int flat = 0, mul = 1;
+
+			for (var d = arr.Rank - 1; d >= 0; d--)
+			{
+				flat += indices[d] * mul;
+				mul *= arr.GetLength(d);
+			}
+			return flat;
+		}
 	}
 
-	public override object? VisitArrayElementReference(IArrayElementReferenceOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitArrayElementReference(IArrayElementReferenceOperation operation, IDictionary<string, object?> argument)
 	{
 		var array = Visit(operation.ArrayReference, argument);
 
@@ -182,12 +182,12 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return null;
 	}
 
-	public override object? VisitCoalesce(ICoalesceOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitCoalesce(ICoalesceOperation operation, IDictionary<string, object?> argument)
 	{
 		return Visit(operation.Value, argument) ?? Visit(operation.WhenNull, argument);
 	}
 
-	public override object? VisitCompoundAssignment(ICompoundAssignmentOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitCompoundAssignment(ICompoundAssignmentOperation operation, IDictionary<string, object?> argument)
 	{
 		var target = Visit(operation.Target, argument);
 		var value = Visit(operation.Value, argument);
@@ -200,7 +200,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return argument[GetVariableName(operation.Target)] = ExecuteBinaryOperation(operation.OperatorKind, target, value);
 	}
 
-	public override object? VisitDeconstructionAssignment(IDeconstructionAssignmentOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitDeconstructionAssignment(IDeconstructionAssignmentOperation operation, IDictionary<string, object?> argument)
 	{
 		var target = Visit(operation.Target, argument);
 		var value = Visit(operation.Value, argument);
@@ -220,12 +220,12 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return array;
 	}
 
-	public override object? VisitSimpleAssignment(ISimpleAssignmentOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitSimpleAssignment(ISimpleAssignmentOperation operation, IDictionary<string, object?> argument)
 	{
 		return argument[GetVariableName(operation.Target)] = Visit(operation.Value, argument);
 	}
 
-	public override object? VisitBinaryOperator(IBinaryOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitBinaryOperator(IBinaryOperation operation, IDictionary<string, object?> argument)
 	{
 		var left = Visit(operation.LeftOperand, argument);
 		var right = Visit(operation.RightOperand, argument);
@@ -240,7 +240,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return ExecuteBinaryOperation(operatorKind, left, right);
 	}
 
-	public override object? VisitBlock(IBlockOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitBlock(IBlockOperation operation, IDictionary<string, object?> argument)
 	{
 		var names = argument.Keys;
 
@@ -257,7 +257,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return null;
 	}
 
-	public override object? VisitCoalesceAssignment(ICoalesceAssignmentOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitCoalesceAssignment(ICoalesceAssignmentOperation operation, IDictionary<string, object?> argument)
 	{
 		var target = Visit(operation.Target, argument);
 
@@ -269,7 +269,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return argument[GetVariableName(operation.Target)] = Visit(operation.Value, argument);
 	}
 
-	public override object? VisitCollectionExpression(ICollectionExpressionOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitCollectionExpression(ICollectionExpressionOperation operation, IDictionary<string, object?> argument)
 	{
 		if (operation.Type is IArrayTypeSymbol arrayType)
 		{
@@ -346,7 +346,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		}
 	}
 
-	public override object? VisitConditional(IConditionalOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitConditional(IConditionalOperation operation, IDictionary<string, object?> argument)
 	{
 		return Visit(operation.Condition, argument) switch
 		{
@@ -356,14 +356,14 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		};
 	}
 
-	public override object? VisitConditionalAccess(IConditionalAccessOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitConditionalAccess(IConditionalAccessOperation operation, IDictionary<string, object?> argument)
 	{
 		return Visit(operation.Operation, argument) is not null
 			? Visit(operation.WhenNotNull, argument)
 			: null;
 	}
 
-	public override object? VisitConversion(IConversionOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitConversion(IConversionOperation operation, IDictionary<string, object?> argument)
 	{
 		var operand = Visit(operation.Operand, argument);
 		var conversion = operation.Type;
@@ -391,7 +391,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		};
 	}
 
-	public override object? VisitInvocation(IInvocationOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitInvocation(IInvocationOperation operation, IDictionary<string, object?> argument)
 	{
 		var targetMethod = operation.TargetMethod;
 		var instance = Visit(operation.Instance, argument);
@@ -426,7 +426,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return compilation.ExecuteMethod(loader, targetMethod, instance, argument, arguments);
 	}
 
-	public override object? VisitSwitch(ISwitchOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitSwitch(ISwitchOperation operation, IDictionary<string, object?> argument)
 	{
 		var value = Visit(operation.Value, argument);
 
@@ -457,7 +457,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return null;
 	}
 
-	public override object? VisitVariableDeclaration(IVariableDeclarationOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitVariableDeclaration(IVariableDeclarationOperation operation, IDictionary<string, object?> argument)
 	{
 		foreach (var variable in operation.Declarators)
 		{
@@ -467,7 +467,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return null;
 	}
 
-	public override object? VisitVariableDeclarationGroup(IVariableDeclarationGroupOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitVariableDeclarationGroup(IVariableDeclarationGroupOperation operation, IDictionary<string, object?> argument)
 	{
 		foreach (var variable in operation.Declarations)
 		{
@@ -477,14 +477,14 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return null;
 	}
 
-	public override object? VisitVariableDeclarator(IVariableDeclaratorOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitVariableDeclarator(IVariableDeclaratorOperation operation, IDictionary<string, object?> argument)
 	{
 		argument[operation.Symbol.Name] = Visit(operation.Initializer?.Value, argument);
 
 		return null;
 	}
 
-	public override object? VisitReturn(IReturnOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitReturn(IReturnOperation operation, IDictionary<string, object?> argument)
 	{
 		switch (operation.Kind)
 		{
@@ -504,7 +504,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		}
 	}
 
-	public override object? VisitWhileLoop(IWhileLoopOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitWhileLoop(IWhileLoopOperation operation, IDictionary<string, object?> argument)
 	{
 		while (Visit(operation.Condition, argument) is true)
 		{
@@ -514,7 +514,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return null;
 	}
 
-	public override object? VisitForLoop(IForLoopOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitForLoop(IForLoopOperation operation, IDictionary<string, object?> argument)
 	{
 		var names = argument.Keys;
 
@@ -531,7 +531,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return null;
 	}
 
-	public override object? VisitForEachLoop(IForEachLoopOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitForEachLoop(IForEachLoopOperation operation, IDictionary<string, object?> argument)
 	{
 		var itemName = GetVariableName(operation.LoopControlVariable);
 		// var names = argument.Keys.ToArray();
@@ -551,7 +551,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return null;
 	}
 
-	public override object? VisitInterpolation(IInterpolationOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitInterpolation(IInterpolationOperation operation, IDictionary<string, object?> argument)
 	{
 		var value = Visit(operation.Expression, argument);
 
@@ -563,35 +563,40 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return value?.ToString();
 	}
 
-	public override object? VisitInterpolatedStringText(IInterpolatedStringTextOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitInterpolatedStringText(IInterpolatedStringTextOperation operation, IDictionary<string, object?> argument)
 	{
 		return operation.Text;
 	}
 
-	public override object? VisitInterpolatedString(IInterpolatedStringOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitInterpolatedString(IInterpolatedStringOperation operation, IDictionary<string, object?> argument)
 	{
 		return String.Concat(operation.Parts
 			.Select(s => Visit(s, argument)));
 	}
 
-	public override object? VisitSizeOf(ISizeOfOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitSizeOf(ISizeOfOperation operation, IDictionary<string, object?> argument)
 	{
 		return compilation.GetByteSize(loader, operation.Type);
 	}
 
-	public override object? VisitTypeOf(ITypeOfOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitTypeOf(ITypeOfOperation operation, IDictionary<string, object?> argument)
 	{
 		return loader.GetType(operation.Type);
 	}
 
-	public override object? VisitArrayInitializer(IArrayInitializerOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitArrayInitializer(IArrayInitializerOperation operation, IDictionary<string, object?> argument)
 	{
-		return operation.ElementValues
-			.Select(s => Visit(s, argument))
-			.ToArray();
+		var data = Array.CreateInstance(loader.GetType(operation.Type)!, operation.ElementValues.Length);
+		
+		for (var i = 0; i < operation.ElementValues.Length; i++)
+		{
+			data.SetValue(Visit(operation.ElementValues[i], argument), i);
+		}
+		
+		return data;
 	}
 
-	public override object? VisitUnaryOperator(IUnaryOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitUnaryOperator(IUnaryOperation operation, IDictionary<string, object?> argument)
 	{
 		var operand = Visit(operation.Operand, argument);
 
@@ -605,7 +610,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		};
 	}
 
-	public override object? VisitIncrementOrDecrement(IIncrementOrDecrementOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitIncrementOrDecrement(IIncrementOrDecrementOperation operation, IDictionary<string, object?> argument)
 	{
 		var name = GetVariableName(operation.Target);
 		var target = Visit(operation.Target, argument);
@@ -619,12 +624,12 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		};
 	}
 
-	public override object? VisitParenthesized(IParenthesizedOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitParenthesized(IParenthesizedOperation operation, IDictionary<string, object?> argument)
 	{
 		return Visit(operation.Operand, argument);
 	}
 
-	public override object? VisitObjectCreation(IObjectCreationOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitObjectCreation(IObjectCreationOperation operation, IDictionary<string, object?> argument)
 	{
 		var arguments = operation.Arguments
 			.Select(s => Visit(s.Value, argument))
@@ -633,7 +638,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return Activator.CreateInstance(loader.GetType(operation.Type), arguments);
 	}
 
-	public override object? VisitAnonymousObjectCreation(IAnonymousObjectCreationOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitAnonymousObjectCreation(IAnonymousObjectCreationOperation operation, IDictionary<string, object?> argument)
 	{
 		var arguments = operation.Initializers
 			.Select(s => Visit(s, argument))
@@ -642,7 +647,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return Activator.CreateInstance(loader.GetType(operation.Type), arguments);
 	}
 
-	public override object? VisitInstanceReference(IInstanceReferenceOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitInstanceReference(IInstanceReferenceOperation operation, IDictionary<string, object?> argument)
 	{
 
 		return operation.ReferenceKind switch
@@ -653,45 +658,45 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		};
 	}
 
-	public override object? VisitUtf8String(IUtf8StringOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitUtf8String(IUtf8StringOperation operation, IDictionary<string, object?> argument)
 	{
 		return Encoding.UTF8.GetBytes(operation.Value);
 	}
 
-	public override object? VisitDefaultValue(IDefaultValueOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitDefaultValue(IDefaultValueOperation operation, IDictionary<string, object?> argument)
 	{
 		return operation.Type?.SpecialType switch
 		{
 			SpecialType.System_Boolean => false,
-			SpecialType.System_Byte => 0,
-			SpecialType.System_Char => '\0',
+			SpecialType.System_Byte => (byte)0,
+			SpecialType.System_Char => (char)0,
 			SpecialType.System_DateTime => default(DateTime),
-			SpecialType.System_Decimal => 0,
-			SpecialType.System_Double => 0,
-			SpecialType.System_Int16 => 0,
+			SpecialType.System_Decimal => 0M,
+			SpecialType.System_Double => 0D,
+			SpecialType.System_Int16 => (short)0,
 			SpecialType.System_Int32 => 0,
-			SpecialType.System_Int64 => 0,
-			SpecialType.System_SByte => 0,
-			SpecialType.System_Single => 0,
+			SpecialType.System_Int64 => 0L,
+			SpecialType.System_SByte => (sbyte)0,
+			SpecialType.System_Single => 0F,
 			SpecialType.System_String => null,
-			SpecialType.System_UInt16 => 0,
-			SpecialType.System_UInt32 => 0,
-			SpecialType.System_UInt64 => 0,
+			SpecialType.System_UInt16 => (ushort)0,
+			SpecialType.System_UInt32 => 0U,
+			SpecialType.System_UInt64 => 0UL,
 			_ => null,
 		};
 	}
 
-	public override object? VisitLocalReference(ILocalReferenceOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitLocalReference(ILocalReferenceOperation operation, IDictionary<string, object?> argument)
 	{
 		return argument[operation.Local.Name];
 	}
 
-	public override object? VisitParameterReference(IParameterReferenceOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitParameterReference(IParameterReferenceOperation operation, IDictionary<string, object?> argument)
 	{
 		return argument[operation.Parameter.Name];
 	}
 
-	public override object? VisitFieldReference(IFieldReferenceOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitFieldReference(IFieldReferenceOperation operation, IDictionary<string, object?> argument)
 	{
 		var type = loader.GetType(operation.Field.ContainingType);
 
@@ -711,7 +716,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return argument[operation.Field.Name];
 	}
 
-	public override object? VisitPropertyReference(IPropertyReferenceOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitPropertyReference(IPropertyReferenceOperation operation, IDictionary<string, object?> argument)
 	{
 		var instance = Visit(operation.Instance, argument);
 		var type = loader.GetType(operation.Property.ContainingType);
@@ -738,7 +743,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return propertyInfo.GetValue(instance);
 	}
 
-	public override object? VisitAwait(IAwaitOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitAwait(IAwaitOperation operation, IDictionary<string, object?> argument)
 	{
 		var value = Visit(operation.Operation, argument);
 
@@ -759,7 +764,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return result;
 	}
 
-	public override object? VisitUsing(IUsingOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitUsing(IUsingOperation operation, IDictionary<string, object?> argument)
 	{
 		var names = argument.Keys.ToArray();
 
@@ -783,12 +788,12 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return null;
 	}
 
-	public override object? VisitNameOf(INameOfOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitNameOf(INameOfOperation operation, IDictionary<string, object?> argument)
 	{
 		return operation.ConstantValue.Value;
 	}
 
-	public override object? VisitLock(ILockOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitLock(ILockOperation operation, IDictionary<string, object?> argument)
 	{
 		lock (Visit(operation.LockedValue, argument))
 		{
@@ -798,12 +803,12 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return null;
 	}
 
-	public override object? VisitDelegateCreation(IDelegateCreationOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitDelegateCreation(IDelegateCreationOperation operation, IDictionary<string, object?> argument)
 	{
 		return Visit(operation.Target, argument);
 	}
 
-	public override object? VisitAnonymousFunction(IAnonymousFunctionOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitAnonymousFunction(IAnonymousFunctionOperation operation, IDictionary<string, object?> argument)
 	{
 		var parameters = operation.Symbol.Parameters
 			.Select(p => Expression.Parameter(loader.GetType(p.Type), p.Name))
@@ -816,7 +821,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return lambda.Compile();
 	}
 
-	public override object? VisitMethodReference(IMethodReferenceOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitMethodReference(IMethodReferenceOperation operation, IDictionary<string, object?> argument)
 	{
 		var instance = Visit(operation.Instance, argument);
 		var containingType = loader.GetType(operation.Method.ContainingType);
@@ -830,7 +835,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return method.CreateDelegate(typeof(Delegate), instance);
 	}
 
-	public override object? VisitIsType(IIsTypeOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitIsType(IIsTypeOperation operation, IDictionary<string, object?> argument)
 	{
 		var value = Visit(operation.ValueOperand, argument);
 
@@ -843,7 +848,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return targetType.IsInstanceOfType(value);
 	}
 
-	public override object? VisitDynamicMemberReference(IDynamicMemberReferenceOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitDynamicMemberReference(IDynamicMemberReferenceOperation operation, IDictionary<string, object?> argument)
 	{
 		var instance = Visit(operation.Instance, argument);
 
@@ -863,7 +868,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 	}
 
-	public override object? VisitDynamicInvocation(IDynamicInvocationOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitDynamicInvocation(IDynamicInvocationOperation operation, IDictionary<string, object?> argument)
 	{
 		var instance = Visit(operation.Operation, argument);
 
@@ -884,7 +889,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return null;
 	}
 
-	public override object? VisitDynamicObjectCreation(IDynamicObjectCreationOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitDynamicObjectCreation(IDynamicObjectCreationOperation operation, IDictionary<string, object?> argument)
 	{
 		var arguments = operation.Arguments
 			.Select(s => Visit(s, argument))
@@ -896,10 +901,11 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		}
 
 		var type = Type.GetType(operation.Type.ToDisplayString());
+		
 		return Activator.CreateInstance(type, arguments);
 	}
 
-	public override object? VisitTuple(ITupleOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitTuple(ITupleOperation operation, IDictionary<string, object?> argument)
 	{
 		var elements = operation.Elements
 			.Select(s => Visit(s, argument))
@@ -908,7 +914,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return Activator.CreateInstance(loader.GetType(operation.Type), elements);
 	}
 
-	public override object? VisitDynamicIndexerAccess(IDynamicIndexerAccessOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitDynamicIndexerAccess(IDynamicIndexerAccessOperation operation, IDictionary<string, object?> argument)
 	{
 		var instance = Visit(operation.Operation, argument);
 
@@ -925,7 +931,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return indexProperty?.GetValue(instance, arguments);
 	}
 
-	public override object? VisitExpressionStatement(IExpressionStatementOperation operation, Dictionary<string, object?> argument)
+	public override object? VisitExpressionStatement(IExpressionStatementOperation operation, IDictionary<string, object?> argument)
 	{
 		return Visit(operation.Operation, argument);
 	}
