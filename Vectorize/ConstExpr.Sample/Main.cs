@@ -21,6 +21,7 @@ Console.WriteLine(Test.ToString(StringComparison.Ordinal));
 Console.WriteLine(Test.GetNames<StringComparison>());
 Console.WriteLine(Test.GetNames<StringComparison>());
 Console.WriteLine(Test.GetNames<StringSplitOptions>());
+Console.WriteLine(Test.GetArray(1, 2, 3, 4, 5, 6, 7, 8, 9, 10));
 
 // Console.WriteLine(range.BinarySearch(2));
 

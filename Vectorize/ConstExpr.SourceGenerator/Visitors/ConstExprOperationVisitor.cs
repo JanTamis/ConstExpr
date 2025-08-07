@@ -80,7 +80,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 		if (operation.Initializer?.ElementValues is { } values)
 		{
-			SetValues(data, [], 0);
+			SetValues(data, [ ], 0);
 		}
 
 		return data;
@@ -138,15 +138,8 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		// Handle regular arrays (single and multi-dimensional)
 		if (array.GetType().IsArray)
 		{
-			try
-			{
-				return array.GetType().GetMethod("Get")?.Invoke(array, indexers)
-							 ?? array.GetType().GetMethod("GetValue", indexers.Select(i => typeof(int)).ToArray())?.Invoke(array, indexers);
-			}
-			catch (Exception)
-			{
-				return null;
-			}
+			return array.GetType().GetMethod("Get")?.Invoke(array, indexers)
+			       ?? array.GetType().GetMethod("GetValue", indexers.Select(i => typeof(int)).ToArray())?.Invoke(array, indexers);
 		}
 
 		// Handle collections with indexers (List<T>, Dictionary<K,V>, etc.)
@@ -154,28 +147,23 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		{
 			var parameters = pi.GetIndexParameters();
 
-			if (parameters.Length == indexers.Length &&
-					parameters.Select((p, i) => indexers[i] != null &&
-																			(p.ParameterType.IsAssignableFrom(indexers[i].GetType()) ||
-																			 indexers[i] is IConvertible))
-						.All(x => x))
+			if (parameters.Length == indexers.Length 
+			    && parameters
+				    .Select((p, i) => indexers[i] != null 
+				                      && (p.ParameterType.IsAssignableFrom(indexers[i].GetType()) 
+				                          || indexers[i] is IConvertible))
+				    .All(x => x))
 			{
-				try
+				// Convert indices to the expected parameter types if needed
+				for (var i = 0; i < indexers.Length; i++)
 				{
-					// Convert indices to the expected parameter types if needed
-					for (var i = 0; i < indexers.Length; i++)
+					if (indexers[i] is IConvertible && indexers[i].GetType() != parameters[i].ParameterType)
 					{
-						if (indexers[i] is IConvertible && indexers[i].GetType() != parameters[i].ParameterType)
-						{
-							indexers[i] = Convert.ChangeType(indexers[i], parameters[i].ParameterType);
-						}
+						indexers[i] = Convert.ChangeType(indexers[i], parameters[i].ParameterType);
 					}
-					return pi.GetValue(array, indexers);
 				}
-				catch (Exception)
-				{
-					continue;
-				}
+				
+				return pi.GetValue(array, indexers);
 			}
 		}
 
@@ -229,6 +217,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 	{
 		var left = Visit(operation.LeftOperand, argument);
 		var right = Visit(operation.RightOperand, argument);
+		
 		var operatorKind = operation.OperatorKind;
 		var method = operation.OperatorMethod;
 
@@ -292,10 +281,10 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		if (namedType.Constructors.Any(c => c.Parameters.IsEmpty) && namedType.HasMethod("Add"))
 		{
 			var instance = Activator.CreateInstance(targetType);
-			var addMethod = targetType.GetMethod("Add", [loader.GetType(operation.Elements[0].Type)]);
+			var addMethod = targetType.GetMethod("Add", [ loader.GetType(operation.Elements[0].Type) ]);
 
 			foreach (var element in operation.Elements)
-				addMethod?.Invoke(instance, [Visit(element, argument)]);
+				addMethod?.Invoke(instance, [ Visit(element, argument) ]);
 
 			return instance;
 		}
@@ -339,7 +328,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 			foreach (var element in elements)
 			{
-				addMethod?.Invoke(instance, [element]);
+				addMethod?.Invoke(instance, [ element ]);
 			}
 
 			return instance;
@@ -367,6 +356,12 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 	{
 		var operand = Visit(operation.Operand, argument);
 		var conversion = operation.Type;
+
+		if (operation.OperatorMethod is not null)
+		{
+			// If there's a conversion method, use it
+			return compilation.ExecuteMethod(loader, operation.OperatorMethod, null, argument, operand);
+		}
 
 		return conversion?.SpecialType switch
 		{
@@ -401,7 +396,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			.ToArray();
 
 		if (SyntaxHelpers.IsInConstExprBody(targetMethod)
-				&& SyntaxHelpers.TryGetOperation<IMethodBodyOperation>(compilation, targetMethod, out var methodOperation))
+		    && SyntaxHelpers.TryGetOperation<IMethodBodyOperation>(compilation, targetMethod, out var methodOperation))
 		{
 			var syntax = targetMethod.DeclaringSyntaxReferences
 				.Select(s => s.GetSyntax(token))
@@ -433,9 +428,9 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		foreach (var caseClause in operation.Cases)
 		{
 			if (caseClause.Clauses
-					.Where(w => w.CaseKind != CaseKind.Default)
-					.Select(s => Visit(s, argument))
-					.Contains(value))
+			    .Where(w => w.CaseKind != CaseKind.Default)
+			    .Select(s => Visit(s, argument))
+			    .Contains(value))
 			{
 				VisitList(caseClause.Body, argument);
 
@@ -446,9 +441,9 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		foreach (var caseClause in operation.Cases)
 		{
 			if (caseClause.Clauses
-					.Where(w => w.CaseKind == CaseKind.Default)
-					.Select(s => Visit(s, argument))
-					.Contains(value))
+			    .Where(w => w.CaseKind == CaseKind.Default)
+			    .Select(s => Visit(s, argument))
+			    .Contains(value))
 			{
 				VisitList(caseClause.Body, argument);
 			}
@@ -668,18 +663,18 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return operation.Type?.SpecialType switch
 		{
 			SpecialType.System_Boolean => false,
-			SpecialType.System_Byte => (byte)0,
-			SpecialType.System_Char => (char)0,
+			SpecialType.System_Byte => (byte) 0,
+			SpecialType.System_Char => (char) 0,
 			SpecialType.System_DateTime => default(DateTime),
 			SpecialType.System_Decimal => 0M,
 			SpecialType.System_Double => 0D,
-			SpecialType.System_Int16 => (short)0,
+			SpecialType.System_Int16 => (short) 0,
 			SpecialType.System_Int32 => 0,
 			SpecialType.System_Int64 => 0L,
-			SpecialType.System_SByte => (sbyte)0,
+			SpecialType.System_SByte => (sbyte) 0,
 			SpecialType.System_Single => 0F,
 			SpecialType.System_String => null,
-			SpecialType.System_UInt16 => (ushort)0,
+			SpecialType.System_UInt16 => (ushort) 0,
 			SpecialType.System_UInt32 => 0U,
 			SpecialType.System_UInt64 => 0UL,
 			_ => null,
@@ -900,9 +895,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			return null;
 		}
 
-		var type = Type.GetType(operation.Type.ToDisplayString());
-
-		return Activator.CreateInstance(type, arguments);
+		return Activator.CreateInstance(loader.GetType(operation.Type), arguments);
 	}
 
 	public override object? VisitTuple(ITupleOperation operation, IDictionary<string, object?> argument)
@@ -934,5 +927,49 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 	public override object? VisitExpressionStatement(IExpressionStatementOperation operation, IDictionary<string, object?> argument)
 	{
 		return Visit(operation.Operation, argument);
+	}
+
+	public override object? VisitTry(ITryOperation operation, IDictionary<string, object?> argument)
+	{
+		try
+		{
+			Visit(operation.Body, argument);
+		}
+		catch (Exception e)
+		{
+			foreach (var exception in operation.Catches)
+			{
+				var type = loader.GetType(exception.ExceptionType);
+
+				if (type != null && type.IsInstanceOfType(e) && exception.Filter is null || Visit(exception.Filter, argument) is true)
+				{
+					foreach (var variable in exception.Locals)
+					{
+						argument[variable.Name] = e;
+					}
+
+					Visit(exception.Handler, argument);
+					return null;
+				}
+			}
+		}
+		finally
+		{
+			if (operation.Finally is not null)
+			{
+				Visit(operation.Finally, argument);
+			}
+		}
+		
+		return null;
+	}
+
+	public override object? VisitRangeOperation(IRangeOperation operation, IDictionary<string, object?> argument)
+	{
+		var left = Visit(operation.LeftOperand, argument);
+		var right = Visit(operation.RightOperand, argument);
+		var method = operation.Method;
+
+		return compilation.ExecuteMethod(loader, method, null, argument, left, right);
 	}
 }

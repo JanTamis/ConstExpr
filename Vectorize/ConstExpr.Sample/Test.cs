@@ -14,6 +14,11 @@ public static class Test
 	{
 		return data.Where(w => w % 2 != 0);
 	}
+	
+	public static int[] GetArray(params int[] items)
+	{
+		return items[..5];
+	}
 
 	public static double Average(params IReadOnlyList<double> data)
 	{

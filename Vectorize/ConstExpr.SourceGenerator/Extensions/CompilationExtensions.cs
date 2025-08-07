@@ -318,7 +318,10 @@ public static class CompilationExtensions
 		var methodInfos = type
 			.GetMethods(methodSymbol.IsStatic
 				? BindingFlags.Public | BindingFlags.Static
-				: BindingFlags.Public | BindingFlags.Instance)
+				: BindingFlags.Public | BindingFlags.Instance).OfType<MethodBase?>()
+			.Concat(type.GetConstructors(methodSymbol.IsStatic
+				? BindingFlags.Public | BindingFlags.Static
+				: BindingFlags.Public | BindingFlags.Instance).OfType<MethodBase?>())
 			.Where(f =>
 			{
 				if (f.Name != methodName)
@@ -369,7 +372,10 @@ public static class CompilationExtensions
 					})
 					.ToArray();
 
-				methodInfo = methodInfo.MakeGenericMethod(types);
+				if (methodInfo is MethodInfo method)
+				{
+					methodInfo = method.MakeGenericMethod(types);
+				}
 			}
 
 			var methodParams = methodInfo.GetParameters();
@@ -391,6 +397,11 @@ public static class CompilationExtensions
 			if (methodInfo.IsStatic)
 			{
 				return methodInfo.Invoke(null, parameters);
+			}
+
+			if (methodInfo.IsConstructor)
+			{
+				return Activator.CreateInstance(type, parameters);
 			}
 
 			if (instance == null)
