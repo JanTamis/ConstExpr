@@ -454,7 +454,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 				Logger.Information($"{timer.Elapsed}: {invocation}");
 
-				GetUsings(methodSymbol, BaseBuilder.IsPerformance(level, (variables[ConstExprOperationVisitor.ReturnVariableName] as IEnumerable)?.Cast<object?>()?.Count() ?? 0), usings);
+				GetUsings(methodSymbol, BaseBuilder.IsPerformance(level, (variables[ConstExprOperationVisitor.RETURNVARIABLENAME] as IEnumerable)?.Cast<object?>()?.Count() ?? 0), usings);
 
 				return new InvocationModel
 				{
@@ -462,7 +462,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 					Method = methodDecl,
 					Symbol = methodSymbol,
 					Invocation = invocation,
-					Value = variables[ConstExprOperationVisitor.ReturnVariableName],
+					Value = variables[ConstExprOperationVisitor.RETURNVARIABLENAME],
 					Location = model.GetInterceptableLocation(invocation, token),
 					Exceptions = exceptions,
 					GenerationLevel = level,

@@ -22,7 +22,16 @@
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<IsPackable>true</IsPackable>
 
-	</PropertyGroup>	
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <Compile Remove="bin\**" />
+	  <Compile Remove="Generated\**" />
+	  <EmbeddedResource Remove="bin\**" />
+	  <EmbeddedResource Remove="Generated\**" />
+	  <None Remove="bin\**" />
+	  <None Remove="Generated\**" />
+	</ItemGroup>	
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Bcl.Numerics" Version="9.0.7" />

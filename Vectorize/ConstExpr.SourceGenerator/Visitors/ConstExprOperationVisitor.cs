@@ -1,3 +1,5 @@
+using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Helpers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.FlowAnalysis;
@@ -13,14 +15,12 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using ConstExpr.SourceGenerator.Extensions;
-using ConstExpr.SourceGenerator.Helpers;
 
 namespace ConstExpr.SourceGenerator.Visitors;
 
 public partial class ConstExprOperationVisitor(Compilation compilation, MetadataLoader loader, Action<IOperation?, Exception> exceptionHandler, CancellationToken token) : OperationVisitor<IDictionary<string, object?>, object?>
 {
-	public const string ReturnVariableName = "$return$";
+	public const string RETURNVARIABLENAME = "$return$";
 
 	public override object? DefaultVisit(IOperation operation, IDictionary<string, object?> argument)
 	{
@@ -41,9 +41,9 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 	{
 		token.ThrowIfCancellationRequested();
 
-		if (argument.TryGetValue(ReturnVariableName, out var returnValue))
+		if (argument.ContainsKey(RETURNVARIABLENAME))
 		{
-			return returnValue;
+			return null;
 		}
 
 		try
@@ -80,7 +80,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 		if (operation.Initializer?.ElementValues is { } values)
 		{
-			SetValues(data, [ ], 0);
+			SetValues(data, [], 0);
 		}
 
 		return data;
@@ -141,7 +141,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			try
 			{
 				return array.GetType().GetMethod("Get")?.Invoke(array, indexers)
-				       ?? array.GetType().GetMethod("GetValue", indexers.Select(i => typeof(int)).ToArray())?.Invoke(array, indexers);
+							 ?? array.GetType().GetMethod("GetValue", indexers.Select(i => typeof(int)).ToArray())?.Invoke(array, indexers);
 			}
 			catch (Exception)
 			{
@@ -155,10 +155,10 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			var parameters = pi.GetIndexParameters();
 
 			if (parameters.Length == indexers.Length &&
-			    parameters.Select((p, i) => indexers[i] != null &&
-			                                (p.ParameterType.IsAssignableFrom(indexers[i].GetType()) ||
-			                                 indexers[i] is IConvertible))
-				    .All(x => x))
+					parameters.Select((p, i) => indexers[i] != null &&
+																			(p.ParameterType.IsAssignableFrom(indexers[i].GetType()) ||
+																			 indexers[i] is IConvertible))
+						.All(x => x))
 			{
 				try
 				{
@@ -292,10 +292,10 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		if (namedType.Constructors.Any(c => c.Parameters.IsEmpty) && namedType.HasMethod("Add"))
 		{
 			var instance = Activator.CreateInstance(targetType);
-			var addMethod = targetType.GetMethod("Add", [ loader.GetType(operation.Elements[0].Type) ]);
+			var addMethod = targetType.GetMethod("Add", [loader.GetType(operation.Elements[0].Type)]);
 
 			foreach (var element in operation.Elements)
-				addMethod?.Invoke(instance, [ Visit(element, argument) ]);
+				addMethod?.Invoke(instance, [Visit(element, argument)]);
 
 			return instance;
 		}
@@ -339,7 +339,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 			foreach (var element in elements)
 			{
-				addMethod?.Invoke(instance, [ element ]);
+				addMethod?.Invoke(instance, [element]);
 			}
 
 			return instance;
@@ -401,7 +401,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			.ToArray();
 
 		if (SyntaxHelpers.IsInConstExprBody(targetMethod)
-		    && SyntaxHelpers.TryGetOperation<IMethodBodyOperation>(compilation, targetMethod, out var methodOperation))
+				&& SyntaxHelpers.TryGetOperation<IMethodBodyOperation>(compilation, targetMethod, out var methodOperation))
 		{
 			var syntax = targetMethod.DeclaringSyntaxReferences
 				.Select(s => s.GetSyntax(token))
@@ -420,7 +420,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			var visitor = new ConstExprOperationVisitor(compilation, loader, exceptionHandler, token);
 			visitor.VisitBlock(methodOperation.BlockBody, variables);
 
-			return variables[ReturnVariableName];
+			return variables[RETURNVARIABLENAME];
 		}
 
 		return compilation.ExecuteMethod(loader, targetMethod, instance, argument, arguments);
@@ -433,9 +433,9 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		foreach (var caseClause in operation.Cases)
 		{
 			if (caseClause.Clauses
-			    .Where(w => w.CaseKind != CaseKind.Default)
-			    .Select(s => Visit(s, argument))
-			    .Contains(value))
+					.Where(w => w.CaseKind != CaseKind.Default)
+					.Select(s => Visit(s, argument))
+					.Contains(value))
 			{
 				VisitList(caseClause.Body, argument);
 
@@ -446,9 +446,9 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		foreach (var caseClause in operation.Cases)
 		{
 			if (caseClause.Clauses
-			    .Where(w => w.CaseKind == CaseKind.Default)
-			    .Select(s => Visit(s, argument))
-			    .Contains(value))
+					.Where(w => w.CaseKind == CaseKind.Default)
+					.Select(s => Visit(s, argument))
+					.Contains(value))
 			{
 				VisitList(caseClause.Body, argument);
 			}
@@ -489,12 +489,12 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		switch (operation.Kind)
 		{
 			case OperationKind.Return:
-				return argument[ReturnVariableName] = Visit(operation.ReturnedValue, argument);
+				return argument[RETURNVARIABLENAME] = Visit(operation.ReturnedValue, argument);
 			case OperationKind.YieldReturn:
-				if (!argument.TryGetValue(ReturnVariableName, out var list) || list is not IList data)
+				if (!argument.TryGetValue(RETURNVARIABLENAME, out var list) || list is not IList data)
 				{
 					data = new List<object?>();
-					argument[ReturnVariableName] = data;
+					argument[RETURNVARIABLENAME] = data;
 				}
 
 				data.Add(Visit(operation.ReturnedValue, argument));
@@ -587,12 +587,12 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 	public override object? VisitArrayInitializer(IArrayInitializerOperation operation, IDictionary<string, object?> argument)
 	{
 		var data = Array.CreateInstance(loader.GetType(operation.Type)!, operation.ElementValues.Length);
-		
+
 		for (var i = 0; i < operation.ElementValues.Length; i++)
 		{
 			data.SetValue(Visit(operation.ElementValues[i], argument), i);
 		}
-		
+
 		return data;
 	}
 
@@ -901,7 +901,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		}
 
 		var type = Type.GetType(operation.Type.ToDisplayString());
-		
+
 		return Activator.CreateInstance(type, arguments);
 	}
 

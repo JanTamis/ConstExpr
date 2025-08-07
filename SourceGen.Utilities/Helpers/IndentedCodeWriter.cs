@@ -1,3 +1,8 @@
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Text;
+using SourceGen.Utilities.Extensions;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -6,11 +11,6 @@ using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Text;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using SourceGen.Utilities.Extensions;
 
 namespace SourceGen.Utilities.Helpers;
 
@@ -753,7 +753,7 @@ public sealed class IndentedCodeWriter : IDisposable
 				foreach (var prop in properties)
 				{
 					var itemValue = prop.GetValue(value);
-					
+
 					tupleItems.Add(SyntaxFactory.Argument(CreateLiteral(itemValue)));
 				}
 			}

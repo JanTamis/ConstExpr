@@ -1,8 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
+using System.Collections.Generic;
+using System.Collections.Immutable;
 
 namespace ConstExpr.SourceGenerator.Visitors;
 
@@ -35,16 +34,16 @@ public partial class ConstExprOperationVisitor
 		};
 	}
 
-	private string GetVariableName(IOperation operation)
+	private string? GetVariableName(IOperation operation)
 	{
 		return operation switch
 		{
 			ILocalReferenceOperation localReferenceOperation => localReferenceOperation.Local.Name,
 			IParameterReferenceOperation parameterReferenceOperation => parameterReferenceOperation.Parameter.Name,
-			IPropertyReferenceOperation propertyReferenceOperation => propertyReferenceOperation.Property.Name,
-			IFieldReferenceOperation fieldReferenceOperation => fieldReferenceOperation.Field.Name,
+			// IPropertyReferenceOperation propertyReferenceOperation => propertyReferenceOperation.Property.Name,
+			// IFieldReferenceOperation fieldReferenceOperation => fieldReferenceOperation.Field.Name,
 			IVariableDeclaratorOperation variableDeclaratorOperation => variableDeclaratorOperation.Symbol.Name,
-			_ => String.Empty,
+			_ => null,
 		};
 	}
 
@@ -55,7 +54,7 @@ public partial class ConstExprOperationVisitor
 			Visit(operation, argument);
 		}
 	}
-	
+
 	public static object? Add(object? left, object? right)
 	{
 		return left switch
@@ -101,7 +100,7 @@ public partial class ConstExprOperationVisitor
 			_ => null
 		};
 	}
-	
+
 	private object? Divide(object? left, object? right)
 	{
 		return left switch
@@ -116,7 +115,7 @@ public partial class ConstExprOperationVisitor
 			_ => null
 		};
 	}
-	
+
 	private object? Modulo(object? left, object? right)
 	{
 		return left switch
@@ -131,7 +130,7 @@ public partial class ConstExprOperationVisitor
 			_ => null
 		};
 	}
-	
+
 	private object? LeftShift(object? left, object? right)
 	{
 		return left switch
@@ -142,7 +141,7 @@ public partial class ConstExprOperationVisitor
 			_ => null
 		};
 	}
-	
+
 	private object? RightShift(object? left, object? right)
 	{
 		return left switch
@@ -153,7 +152,7 @@ public partial class ConstExprOperationVisitor
 			_ => null
 		};
 	}
-	
+
 	private object? UnsignedRightShift(object? left, object? right)
 	{
 		return left switch
@@ -164,7 +163,7 @@ public partial class ConstExprOperationVisitor
 			_ => null
 		};
 	}
-	
+
 	private object? And(object? left, object? right)
 	{
 		return left switch
@@ -175,7 +174,7 @@ public partial class ConstExprOperationVisitor
 			_ => null
 		};
 	}
-	
+
 	private object? Or(object? left, object? right)
 	{
 		return left switch
@@ -186,7 +185,7 @@ public partial class ConstExprOperationVisitor
 			_ => null
 		};
 	}
-	
+
 	private object? ExclusiveOr(object? left, object? right)
 	{
 		return left switch
@@ -197,7 +196,7 @@ public partial class ConstExprOperationVisitor
 			_ => null
 		};
 	}
-	
+
 	private object? ConditionalAnd(object? left, object? right)
 	{
 		return left switch
@@ -206,7 +205,7 @@ public partial class ConstExprOperationVisitor
 			_ => null
 		};
 	}
-	
+
 	private object? ConditionalOr(object? left, object? right)
 	{
 		return left switch

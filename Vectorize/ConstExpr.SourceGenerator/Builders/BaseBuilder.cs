@@ -26,7 +26,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 
 		var methodString = methodSymbol.ToDisplayString(customFormat);
 
-		var prepend = "public ";
+		// var prepend = "public ";
 
 		builder.WriteLine(true);
 
