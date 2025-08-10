@@ -52,7 +52,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				}
 				""");
 
-			spc.AddSource("ConstExprAttribute.g", $$"""
+			spc.AddSource("ConstExprAttribute.g", """
 				using System;
 
 				namespace ConstantExpression

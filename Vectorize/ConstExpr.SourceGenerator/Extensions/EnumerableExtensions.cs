@@ -18,18 +18,16 @@ public static class EnumerableExtensions
 		}
 	}
 
-	public static object? Sum<T>(this ReadOnlySpan<T> source)
+	public static T? Sum<T>(this ReadOnlySpan<T> source)
 	{
-		//using var enumerator = source.GetEnumerator();
-
 		if (source.Length == 0)
 		{
-			return null;
+			return default;
 		}
 
 		var sum = source[0];
 
-		for (int i = 1; i < source.Length; i++)
+		for (var i = 1; i < source.Length; i++)
 		{
 			sum = Add(sum, source[i]);
 		}

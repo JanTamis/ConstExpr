@@ -479,7 +479,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 						}
 					}
 
-					using (builder.WriteBlock($"foreach (var item in {method.Parameters[0]})", padding: WhitespacePadding.After))
+					using (builder.WriteBlock($"foreach (var item in {method.Parameters[0]})"))
 					{
 						if (method.ContainingType.HasMethod("Contains", m => AppendContains(m, items, null)))
 						{
@@ -514,6 +514,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 						}
 					}
 
+					builder.WriteLine();
 					builder.WriteLine("return false;");
 				});
 

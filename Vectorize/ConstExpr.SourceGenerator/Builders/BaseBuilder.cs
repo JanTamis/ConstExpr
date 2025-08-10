@@ -165,10 +165,12 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 
 				if (vectors.Count > 0)
 				{
-					using (builder.WriteBlock($"if ({type}.IsHardwareAccelerated)", padding: WhitespacePadding.After))
+					using (builder.WriteBlock($"if ({type}.IsHardwareAccelerated)"))
 					{
 						vectorAction(type, vectors, vectorSize);
 					}
+					
+					builder.WriteLine();
 				}
 			}
 

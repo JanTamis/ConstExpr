@@ -970,6 +970,129 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		var right = Visit(operation.RightOperand, argument);
 		var method = operation.Method;
 
-		return compilation.ExecuteMethod(loader, method, null, argument, left, right);
+		return compilation.ExecuteMethod(loader, method!, null, argument, left, right);
+	}
+
+	// Pattern matching support
+	public override object VisitIsPattern(IIsPatternOperation operation, IDictionary<string, object?> argument)
+	{
+		var value = Visit(operation.Value, argument);
+		var pattern = operation.Pattern;
+
+		return MatchPattern(value, pattern, argument);
+	}
+
+	public override object? VisitSwitchExpression(ISwitchExpressionOperation operation, IDictionary<string, object?> argument)
+	{
+		var value = Visit(operation.Value, argument);
+		
+		foreach (var arm in operation.Arms)
+		{
+			if (MatchPattern(value, arm.Pattern, argument))
+			{
+				if (arm.Guard == null || Visit(arm.Guard, argument) is true)
+				{
+					return Visit(arm.Value, argument);
+				}
+			}
+		}
+		
+		return null;
+	}
+
+	public override object? VisitWith(IWithOperation operation, IDictionary<string, object?> argument)
+	{
+		var receiver = Visit(operation.Operand, argument);
+		
+		if (receiver == null) return null;
+
+		var type = receiver.GetType();
+		var copyCtor = type.GetConstructor([ type ]);
+		
+		object clone;
+
+		if (copyCtor != null)
+		{
+			clone = copyCtor.Invoke([ receiver ]);
+		}
+		else
+		{
+			var memberwiseClone = type.GetMethod("MemberwiseClone", BindingFlags.Instance | BindingFlags.NonPublic);
+			clone = memberwiseClone?.Invoke(receiver, null) ?? throw new InvalidOperationException("Cannot clone object for with-expression.");
+		}
+
+		foreach (var assignment in operation.Initializer.ChildOperations.OfType<ISimpleAssignmentOperation>())
+		{
+			var property = type.GetProperty(assignment.Target.ToString());
+
+			if (property != null && property.CanWrite)
+			{
+				var value = Visit(assignment.Value, argument);
+				property.SetValue(clone, value);
+			}
+		}
+
+		return clone;
+	}
+	
+	private bool MatchPattern(object? value, IPatternOperation pattern, IDictionary<string, object?> argument)
+	{
+		switch (pattern)
+		{
+			case IConstantPatternOperation constantPattern:
+				return Equals(value, Visit(constantPattern.Value, argument));
+			case IDeclarationPatternOperation declarationPattern:
+				if (declarationPattern.MatchedType != null && value != null)
+				{
+					var matchedType = loader.GetType(declarationPattern.MatchedType);
+					
+					if (matchedType != null && !matchedType.IsInstanceOfType(value))
+					{
+						return false;
+					}
+
+					// If the pattern has a declaration, store the value in the argument dictionary
+					if (declarationPattern.DeclaredSymbol is { } declaration)
+					{
+						argument[declaration.Name] = value;
+					}
+				}
+				
+				return value == null;
+			case IDiscardPatternOperation:
+				return true;
+			case IRelationalPatternOperation relationalPattern:
+				if (value is IComparable comparable && relationalPattern.Value.ConstantValue is { HasValue: true, Value: var relValue })
+				{
+					var cmp = comparable.CompareTo(relValue);
+					
+					return relationalPattern.OperatorKind switch
+					{
+						BinaryOperatorKind.LessThan => cmp < 0,
+						BinaryOperatorKind.LessThanOrEqual => cmp <= 0,
+						BinaryOperatorKind.GreaterThan => cmp > 0,
+						BinaryOperatorKind.GreaterThanOrEqual => cmp >= 0,
+						_ => false
+					};
+				}
+				
+				return false;
+			case IBinaryPatternOperation binaryPattern:
+				var left = MatchPattern(value, binaryPattern.LeftPattern, argument);
+				var right = MatchPattern(value, binaryPattern.RightPattern, argument);
+				
+				return binaryPattern.OperatorKind switch
+				{
+					BinaryOperatorKind.And => left && right,
+					BinaryOperatorKind.Or => left || right,
+					_ => false
+				};
+			case INegatedPatternOperation negatedPattern:
+				return !MatchPattern(value, negatedPattern.Pattern, argument);
+			// Add more pattern types as needed (recursive, property, list, etc.)
+			
+			default:
+				return false;
+		}
 	}
 }

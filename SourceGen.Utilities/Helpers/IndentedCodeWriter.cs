@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -122,20 +123,14 @@ public sealed class IndentedCodeWriter : IDisposable
 	/// <param name="handler">The interpolated string handler with content to write.</param>
 	/// <param name="start">The opening string to use for the block.</param>
 	/// <param name="end">The closing string to use for the block.</param>
-	/// <param name="padding">The whitespace padding to use around the block.</param>
 	/// <returns>A <see cref="Block"/> value to close the open block with.</returns>
-	public Block WriteBlock([InterpolatedStringHandlerArgument("")] ref WriteInterpolatedStringHandler handler, string start = "{", string end = "}", WhitespacePadding padding = WhitespacePadding.None)
+	public Block WriteBlock([InterpolatedStringHandlerArgument("")] ref WriteInterpolatedStringHandler handler, string start = "{", string end = "}")
 	{
-		if (padding is WhitespacePadding.Before or WhitespacePadding.BeforeAndAfter)
-		{
-			WriteLine();
-		}
-
 		WriteLine();
 		WriteLine(start);
 		IncreaseIndent();
 
-		return new Block(this, end, padding is WhitespacePadding.After or WhitespacePadding.BeforeAndAfter);
+		return new Block(this, end);
 	}
 
 	/// <summary>
@@ -143,19 +138,13 @@ public sealed class IndentedCodeWriter : IDisposable
 	/// </summary>
 	/// <param name="start">The opening string to use for the block.</param>
 	/// <param name="end">The closing string to use for the block.</param>
-	/// <param name="padding">The whitespace padding to use around the block.</param>
 	/// <returns>A <see cref="Block"/> value to close the open block with.</returns>
-	public Block WriteBlock(string start = "{", string end = "}", WhitespacePadding padding = WhitespacePadding.None)
+	public Block WriteBlock(string start = "{", string end = "}")
 	{
-		if (padding is WhitespacePadding.Before or WhitespacePadding.BeforeAndAfter)
-		{
-			WriteLine();
-		}
-
 		WriteLine(start);
 		IncreaseIndent();
 
-		return new Block(this, end, padding is WhitespacePadding.After or WhitespacePadding.BeforeAndAfter);
+		return new Block(this, end);
 	}
 
 	/// <summary>
@@ -176,7 +165,7 @@ public sealed class IndentedCodeWriter : IDisposable
 		WriteLine(start);
 		IncreaseIndent();
 
-		return new Block(this, end, false);
+		return new Block(this, end);
 	}
 
 	/// <summary>
@@ -439,7 +428,7 @@ public sealed class IndentedCodeWriter : IDisposable
 	/// Represents an indented block that needs to be closed.
 	/// </summary>
 	/// <param name="writer">The input <see cref="IndentedCodeWriter"/> instance to wrap.</param>
-	public struct Block(IndentedCodeWriter writer, string ending, bool shouldAppendWhitespace) : IDisposable
+	public struct Block(IndentedCodeWriter writer, string ending) : IDisposable
 	{
 		/// <summary>
 		/// The <see cref="IndentedCodeWriter"/> instance to write to.
@@ -457,11 +446,6 @@ public sealed class IndentedCodeWriter : IDisposable
 			{
 				writer.DecreaseIndent();
 				writer.WriteLine(ending);
-
-				if (shouldAppendWhitespace)
-				{
-					writer.WriteLine();
-				}
 			}
 		}
 	}
@@ -697,12 +681,14 @@ public sealed class IndentedCodeWriter : IDisposable
 		}
 	}
 
-	public static ExpressionSyntax? CreateLiteral<T>(T? value)
+	public static ExpressionSyntax CreateLiteral<T>(T? value)
 	{
 		switch (value)
 		{
 			case byte bb:
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(bb));
+			case sbyte sb:
+				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(sb));
 			case int i:
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(i));
 			case uint ui:
@@ -713,6 +699,8 @@ public sealed class IndentedCodeWriter : IDisposable
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(d));
 			case long l:
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(l));
+			case ulong ul:
+				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(ul));
 			case decimal dec:
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(dec));
 			case string s1:
@@ -723,6 +711,18 @@ public sealed class IndentedCodeWriter : IDisposable
 				return SyntaxFactory.LiteralExpression(b
 					? SyntaxKind.TrueLiteralExpression
 					: SyntaxKind.FalseLiteralExpression);
+			case Enum e:
+				return SyntaxFactory.MemberAccessExpression(
+					SyntaxKind.SimpleMemberAccessExpression,
+					SyntaxFactory.IdentifierName(e.GetType().Name),
+					SyntaxFactory.IdentifierName(e.ToString()));
+			case DateTime dt:
+				return SyntaxFactory.ObjectCreationExpression(
+					SyntaxFactory.IdentifierName(nameof(DateTime)))
+					.WithArgumentList(
+						SyntaxFactory.ArgumentList(
+							SyntaxFactory.SingletonSeparatedList(
+								SyntaxFactory.Argument(CreateLiteral(dt.Ticks)))));
 			case null:
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression);
 			case ExpressionSyntax expression:
@@ -731,31 +731,25 @@ public sealed class IndentedCodeWriter : IDisposable
 
 		if (value.GetType().Name.Contains("Tuple"))
 		{
-			var tupleItems = new List<ArgumentSyntax>();
 			var type = value.GetType();
+			var tupleItems = new List<ArgumentSyntax>();
 
-			// Check for ValueTuple fields (Item1, Item2, etc.)
-			var fields = type.GetFields().Where(f => f.Name.StartsWith("Item")).ToArray();
+			// Prefer fields (ValueTuple), otherwise use properties (Tuple)
+			var members = type
+				.GetFields()
+				.Where(f => f.Name.StartsWith("Item"))
+				.Cast<MemberInfo>()
+				.Concat(type
+					.GetProperties()
+					.Where(p => p.Name.StartsWith("Item")));
 
-			if (fields.Length > 0)
+			foreach (var member in members)
 			{
-				foreach (var field in fields)
-				{
-					var itemValue = field.GetValue(value);
-					tupleItems.Add(SyntaxFactory.Argument(CreateLiteral(itemValue)));
-				}
-			}
-			else
-			{
-				// Check for Tuple properties (Item1, Item2, etc.)
-				var properties = type.GetProperties().Where(p => p.Name.StartsWith("Item")).ToArray();
+				var itemValue = member is FieldInfo fi
+					? fi.GetValue(value)
+					: ((PropertyInfo) member).GetValue(value);
 
-				foreach (var prop in properties)
-				{
-					var itemValue = prop.GetValue(value);
-
-					tupleItems.Add(SyntaxFactory.Argument(CreateLiteral(itemValue)));
-				}
+				tupleItems.Add(SyntaxFactory.Argument(CreateLiteral(itemValue)));
 			}
 
 			return SyntaxFactory.TupleExpression(SyntaxFactory.SeparatedList(tupleItems));
@@ -768,14 +762,6 @@ public sealed class IndentedCodeWriter : IDisposable
 				.Select(s => SyntaxFactory.ExpressionElement(CreateLiteral(s)))));
 		}
 
-		return null;
+		throw new Exception($"Cannot create literal for type: {typeof(T).FullName}");
 	}
-}
-
-public enum WhitespacePadding
-{
-	None,
-	Before,
-	After,
-	BeforeAndAfter
 }

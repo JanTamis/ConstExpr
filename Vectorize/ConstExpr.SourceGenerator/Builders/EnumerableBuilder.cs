@@ -869,7 +869,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			{
 				AppendMethod(builder, method, () =>
 				{
-					foreach (var item in items.OrderBy(s => s))
+					foreach (var item in items.OrderBy(o => o))
 					{
 						builder.WriteLine($"yield return {item};");
 					}
@@ -891,7 +891,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			{
 				AppendMethod(builder, method, () =>
 				{
-					foreach (var item in items.OrderByDescending(s => s))
+					foreach (var item in items.OrderByDescending(o => o))
 					{
 						builder.WriteLine($"yield return {item};");
 					}
@@ -978,10 +978,12 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					{
 						if (compilation.HasMethod(typeof(Enumerable), "TryGetNonEnumeratedCount"))
 						{
-							using (builder.WriteBlock($"if ({method.Parameters[0]}.TryGetNonEnumeratedCount(out var count) && count != {items.Length})", padding: WhitespacePadding.After))
+							using (builder.WriteBlock($"if ({method.Parameters[0]}.TryGetNonEnumeratedCount(out var count) && count != {items.Length})"))
 							{
 								builder.WriteLine("return false;");
 							}
+							
+							builder.WriteLine();
 						}
 
 						builder.WriteLine($"using var e = {method.Parameters[0]}.GetEnumerator();");
@@ -1358,7 +1360,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					builder.WriteLine();
 
 					// GetDataName(method.ContainingType) should resolve to the name of the const array field
-					using (builder.WriteBlock($"foreach (var item in {DataName:literal})", padding: WhitespacePadding.After))
+					using (builder.WriteBlock($"foreach (var item in {DataName:literal})"))
 					{
 						builder.WriteLine($"var key = {method.Parameters[0]}(item);");
 						builder.WriteLine();
@@ -1396,6 +1398,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 						}
 					}
 
+					builder.WriteLine();
 					builder.WriteLine("return counts;");
 				});
 
