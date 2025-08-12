@@ -1035,7 +1035,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return clone;
 	}
 	
-	private bool MatchPattern(object? value, IPatternOperation pattern, IDictionary<string, object?> argument)
+	private bool MatchPattern(object? value, IPatternOperation? pattern, IDictionary<string, object?> argument)
 	{
 		switch (pattern)
 		{
@@ -1090,7 +1090,29 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			case INegatedPatternOperation negatedPattern:
 				return !MatchPattern(value, negatedPattern.Pattern, argument);
 			// Add more pattern types as needed (recursive, property, list, etc.)
-			
+			case IListPatternOperation listPattern:
+				if (value is not IEnumerable enumerable)
+				{
+					return false;
+				}
+
+				var elements = enumerable.Cast<object?>().ToList();
+
+				if (elements.Count != listPattern.ChildOperations.Count)
+				{
+					return false;
+				}
+
+				foreach (var (index, childPattern) in listPattern.ChildOperations.Index())
+				{
+					if (!MatchPattern(elements[index], childPattern as IPatternOperation, argument))
+					{
+						return false;
+					}
+				}
+
+				return true;
+
 			default:
 				return false;
 		}
