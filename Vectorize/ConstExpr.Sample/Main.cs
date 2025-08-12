@@ -22,6 +22,7 @@ Console.WriteLine(Test.GetNames<StringComparison>());
 Console.WriteLine(Test.GetNames<StringComparison>());
 Console.WriteLine(Test.GetNames<StringSplitOptions>());
 Console.WriteLine(Test.GetArray(1, 2, 3, 4, 5, 6, 7, 8, 9, 10));
+Console.WriteLine(Test.InterpolationTest("Test", 42, 3.14));
 
 // Console.WriteLine(range.BinarySearch(2));
 

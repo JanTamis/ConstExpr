@@ -168,4 +168,9 @@ public static class Test
 
 		return (h, s, l);
 	}
+	
+	public static string InterpolationTest(string name, int age, double height)
+	{
+		return $"Name: {name}, Age: {age}, Height: {height:N2} cm";
+	}
 }
