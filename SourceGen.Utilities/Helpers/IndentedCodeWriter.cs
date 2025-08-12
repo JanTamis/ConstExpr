@@ -283,7 +283,7 @@ public sealed class IndentedCodeWriter : IDisposable
 	/// <param name="skipIfPresent">Indicates whether to skip adding the line if there already is one.</param>
 	public void WriteLine(bool skipIfPresent = false)
 	{
-		if (skipIfPresent && _builder.WrittenSpan.EndsWith("\n\n"))
+		if (skipIfPresent && _builder.WrittenSpan.EndsWith("\n\n".AsSpan()))
 		{
 			return;
 		}

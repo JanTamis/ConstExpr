@@ -521,7 +521,7 @@ public static class CompilationExtensions
 		return typeSymbol;
 	}
 
-	public static string GetCreateVector<T>(this Compilation compilation, VectorTypes vectorType, ITypeSymbol elementType, MetadataLoader loader, bool isRepeating, params ReadOnlySpan<T> items)
+	public static string GetCreateVector<T>(this Compilation compilation, VectorTypes vectorType, ITypeSymbol elementType, MetadataLoader loader, bool isRepeating, ReadOnlySpan<T> items)
 	{
 		var byteSize = vectorType switch
 		{
@@ -733,7 +733,7 @@ public static class CompilationExtensions
 			or SpecialType.System_UIntPtr;
 	}
 
-	public static bool EqualsTypes(this ReadOnlySpan<IParameterSymbol> parameters, params ReadOnlySpan<ITypeSymbol?> typeSymbols)
+	public static bool EqualsTypes(this ReadOnlySpan<IParameterSymbol> parameters, ReadOnlySpan<ITypeSymbol?> typeSymbols)
 	{
 		if (parameters.Length != typeSymbols.Length)
 		{
@@ -922,7 +922,7 @@ public static class CompilationExtensions
 			or SpecialType.System_Decimal;
 	}
 
-	public static INamedTypeSymbol? GetTypeByName(this Compilation compilation, string? fullyQualifiedMetadataName, params ReadOnlySpan<ITypeSymbol> typeArguments)
+	public static INamedTypeSymbol? GetTypeByName(this Compilation compilation, string? fullyQualifiedMetadataName, ReadOnlySpan<ITypeSymbol> typeArguments)
 	{
 		if (String.IsNullOrEmpty(fullyQualifiedMetadataName))
 		{

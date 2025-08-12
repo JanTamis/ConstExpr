@@ -1,5 +1,6 @@
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
+using ConstExpr.SourceGenerator.Operations;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.FlowAnalysis;
@@ -15,6 +16,8 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text.RegularExpressions;
+using System.Numerics;
 
 namespace ConstExpr.SourceGenerator.Visitors;
 
@@ -1089,10 +1092,427 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 				};
 			case INegatedPatternOperation negatedPattern:
 				return !MatchPattern(value, negatedPattern.Pattern, argument);
-			// Add more pattern types as needed (recursive, property, list, etc.)
+			
+			// Enhanced Pattern Matching - List Patterns
+			case IListPatternOperation listPattern:
+				return MatchListPattern(value, listPattern, argument);
+			
+			// Enhanced Pattern Matching - Property Patterns
+			case IPropertyPatternOperation propertyPattern:
+				return MatchPropertyPattern(value, propertyPattern, argument);
+			
+			// Enhanced Pattern Matching - Tuple Patterns  
+			case ITuplePatternOperation tuplePattern:
+				return MatchTuplePattern(value, tuplePattern, argument);
+			
+			// Enhanced Pattern Matching - Recursive Patterns
+			case IRecursivePatternOperation recursivePattern:
+				return MatchRecursivePattern(value, recursivePattern, argument);
 			
 			default:
 				return false;
 		}
+	}
+
+	// Enhanced Pattern Matching Support
+	private bool MatchListPattern(object? value, IListPatternOperation listPattern, IDictionary<string, object?> argument)
+	{
+		if (value is not IEnumerable enumerable)
+		{
+			return false;
+		}
+
+		var list = enumerable.Cast<object?>().ToArray();
+		var patterns = listPattern.Patterns;
+
+		if (patterns.Length != list.Length)
+		{
+			return false;
+		}
+
+		for (int i = 0; i < patterns.Length; i++)
+		{
+			if (!MatchPattern(list[i], patterns[i], argument))
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	private bool MatchPropertyPattern(object? value, IPropertyPatternOperation propertyPattern, IDictionary<string, object?> argument)
+	{
+		if (value == null)
+		{
+			return false;
+		}
+
+		var type = value.GetType();
+		var property = type.GetProperty(propertyPattern.Member.Name);
+		
+		if (property == null)
+		{
+			return false;
+		}
+
+		var propertyValue = property.GetValue(value);
+		return MatchPattern(propertyValue, propertyPattern.Pattern, argument);
+	}
+
+	private bool MatchTuplePattern(object? value, ITuplePatternOperation tuplePattern, IDictionary<string, object?> argument)
+	{
+		if (value == null)
+		{
+			return false;
+		}
+
+		var type = value.GetType();
+		
+		// Handle ValueTuple types
+		if (type.Name.StartsWith("ValueTuple"))
+		{
+			var fields = type.GetFields();
+			var patterns = tuplePattern.Patterns;
+
+			if (fields.Length != patterns.Length)
+			{
+				return false;
+			}
+
+			for (int i = 0; i < fields.Length; i++)
+			{
+				var fieldValue = fields[i].GetValue(value);
+				if (!MatchPattern(fieldValue, patterns[i], argument))
+				{
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		return false;
+	}
+
+	private bool MatchRecursivePattern(object? value, IRecursivePatternOperation recursivePattern, IDictionary<string, object?> argument)
+	{
+		if (value == null)
+		{
+			return recursivePattern.DeclaredSymbol == null;
+		}
+
+		// Type check
+		if (recursivePattern.MatchedType != null)
+		{
+			var matchedType = loader.GetType(recursivePattern.MatchedType);
+			if (matchedType != null && !matchedType.IsInstanceOfType(value))
+			{
+				return false;
+			}
+		}
+
+		// Property patterns
+		if (recursivePattern.PropertySubpatterns != null)
+		{
+			foreach (var subpattern in recursivePattern.PropertySubpatterns)
+			{
+				if (!MatchPropertyPattern(value, subpattern, argument))
+				{
+					return false;
+				}
+			}
+		}
+
+		// Variable assignment
+		if (recursivePattern.DeclaredSymbol != null)
+		{
+			argument[recursivePattern.DeclaredSymbol.Name] = value;
+		}
+
+		return true;
+	}
+
+	// Advanced LINQ Operations Support
+	public override object? VisitGroupBy(IGroupByOperation operation, IDictionary<string, object?> argument)
+	{
+		var source = Visit(operation.Source, argument) as IEnumerable;
+		var keySelector = Visit(operation.KeySelector, argument);
+
+		if (source == null || keySelector == null)
+		{
+			return null;
+		}
+
+		// Implement GroupBy logic
+		var groups = new Dictionary<object?, List<object?>>();
+		
+		foreach (var item in source)
+		{
+			var key = InvokeDelegate(keySelector, item);
+			
+			if (!groups.TryGetValue(key, out var group))
+			{
+				group = new List<object?>();
+				groups[key] = group;
+			}
+			
+			group.Add(item);
+		}
+
+		return groups.Select(kvp => new Grouping<object?, object?>(kvp.Key, kvp.Value));
+	}
+
+	public override object? VisitJoin(IJoinOperation operation, IDictionary<string, object?> argument)
+	{
+		var outer = Visit(operation.Outer, argument) as IEnumerable;
+		var inner = Visit(operation.Inner, argument) as IEnumerable;
+		var outerKeySelector = Visit(operation.OuterKeySelector, argument);
+		var innerKeySelector = Visit(operation.InnerKeySelector, argument);
+		var resultSelector = Visit(operation.ResultSelector, argument);
+
+		if (outer == null || inner == null || outerKeySelector == null || innerKeySelector == null || resultSelector == null)
+		{
+			return null;
+		}
+
+		var result = new List<object?>();
+
+		foreach (var outerItem in outer)
+		{
+			var outerKey = InvokeDelegate(outerKeySelector, outerItem);
+			
+			foreach (var innerItem in inner)
+			{
+				var innerKey = InvokeDelegate(innerKeySelector, innerItem);
+				
+				if (Equals(outerKey, innerKey))
+				{
+					var joinResult = InvokeDelegate(resultSelector, outerItem, innerItem);
+					result.Add(joinResult);
+				}
+			}
+		}
+
+		return result;
+	}
+
+	// Mathematical Extensions Support
+	public object? VisitComplexNumber(IComplexNumberOperation operation, IDictionary<string, object?> argument)
+	{
+		var real = Convert.ToDouble(Visit(operation.Real, argument));
+		var imaginary = Convert.ToDouble(Visit(operation.Imaginary, argument));
+		
+		return new Complex(real, imaginary);
+	}
+
+	public object? VisitStatisticalFunction(IStatisticalOperation operation, IDictionary<string, object?> argument)
+	{
+		var source = Visit(operation.Source, argument) as IEnumerable<double>;
+		
+		if (source == null)
+		{
+			return null;
+		}
+
+		var data = source.ToArray();
+		
+		return operation.Function switch
+		{
+			StatisticalFunction.Median => CalculateMedian(data),
+			StatisticalFunction.Mode => CalculateMode(data),
+			StatisticalFunction.StandardDeviation => CalculateStandardDeviation(data),
+			StatisticalFunction.Variance => CalculateVariance(data),
+			StatisticalFunction.Percentile => CalculatePercentile(data, operation.Percentile ?? 50),
+			_ => null
+		};
+	}
+
+	// Advanced Collection Operations Support
+	public object? VisitDictionaryOperation(IDictionaryOperation operation, IDictionary<string, object?> argument)
+	{
+		var dictionary = Visit(operation.Dictionary, argument) as IDictionary;
+		
+		if (dictionary == null)
+		{
+			return null;
+		}
+
+		return operation.OperationType switch
+		{
+			DictionaryOperationType.Keys => dictionary.Keys,
+			DictionaryOperationType.Values => dictionary.Values,
+			DictionaryOperationType.Count => dictionary.Count,
+			DictionaryOperationType.ContainsKey => dictionary.Contains(Visit(operation.Key, argument)),
+			_ => null
+		};
+	}
+
+	// Advanced String Processing Support
+	public object? VisitRegexOperation(IRegexOperation operation, IDictionary<string, object?> argument)
+	{
+		var input = Visit(operation.Input, argument) as string;
+		var pattern = Visit(operation.Pattern, argument) as string;
+		
+		if (input == null || pattern == null)
+		{
+			return null;
+		}
+
+		var regex = new Regex(pattern, operation.Options);
+		
+		return operation.OperationType switch
+		{
+			RegexOperationType.IsMatch => regex.IsMatch(input),
+			RegexOperationType.Match => regex.Match(input),
+			RegexOperationType.Matches => regex.Matches(input),
+			RegexOperationType.Replace => regex.Replace(input, operation.Replacement ?? ""),
+			RegexOperationType.Split => regex.Split(input),
+			_ => null
+		};
+	}
+
+	public object? VisitCultureSpecificString(ICultureStringOperation operation, IDictionary<string, object?> argument)
+	{
+		var input = Visit(operation.Input, argument) as string;
+		var culture = operation.Culture ?? CultureInfo.InvariantCulture;
+		
+		if (input == null)
+		{
+			return null;
+		}
+
+		return operation.OperationType switch
+		{
+			CultureStringOperationType.ToUpper => input.ToUpper(culture),
+			CultureStringOperationType.ToLower => input.ToLower(culture),
+			CultureStringOperationType.Compare => string.Compare(input, operation.CompareWith, culture, operation.CompareOptions),
+			CultureStringOperationType.StartsWith => input.StartsWith(operation.CompareWith ?? "", StringComparison.Create(culture, operation.CompareOptions)),
+			CultureStringOperationType.EndsWith => input.EndsWith(operation.CompareWith ?? "", StringComparison.Create(culture, operation.CompareOptions)),
+			_ => null
+		};
+	}
+
+	// Performance Optimization Support
+	public object? VisitVectorizedOperation(IVectorizedOperation operation, IDictionary<string, object?> argument)
+	{
+		var source = Visit(operation.Source, argument);
+		
+		if (source is not Array array)
+		{
+			return null;
+		}
+
+		return operation.VectorType switch
+		{
+			VectorType.Vector64 => ProcessVector64(array, operation.VectorOperation),
+			VectorType.Vector128 => ProcessVector128(array, operation.VectorOperation),
+			VectorType.Vector256 => ProcessVector256(array, operation.VectorOperation),
+			_ => null
+		};
+	}
+
+	// Helper Methods for New Functionality
+	private object? InvokeDelegate(object? del, params object?[] args)
+	{
+		if (del is Delegate delegateObj)
+		{
+			return delegateObj.DynamicInvoke(args);
+		}
+		return null;
+	}
+
+	private double CalculateMedian(double[] data)
+	{
+		Array.Sort(data);
+		int n = data.Length;
+		
+		if (n % 2 == 0)
+		{
+			return (data[n / 2 - 1] + data[n / 2]) / 2.0;
+		}
+		else
+		{
+			return data[n / 2];
+		}
+	}
+
+	private double CalculateMode(double[] data)
+	{
+		var frequencies = new Dictionary<double, int>();
+		
+		foreach (var value in data)
+		{
+			frequencies[value] = frequencies.GetValueOrDefault(value, 0) + 1;
+		}
+
+		return frequencies.OrderByDescending(kvp => kvp.Value).First().Key;
+	}
+
+	private double CalculateStandardDeviation(double[] data)
+	{
+		return Math.Sqrt(CalculateVariance(data));
+	}
+
+	private double CalculateVariance(double[] data)
+	{
+		double mean = data.Average();
+		return data.Select(x => Math.Pow(x - mean, 2)).Average();
+	}
+
+	private double CalculatePercentile(double[] data, double percentile)
+	{
+		Array.Sort(data);
+		double index = (percentile / 100.0) * (data.Length - 1);
+		
+		if (index == Math.Floor(index))
+		{
+			return data[(int)index];
+		}
+		else
+		{
+			int lower = (int)Math.Floor(index);
+			int upper = (int)Math.Ceiling(index);
+			double weight = index - lower;
+			
+			return data[lower] * (1 - weight) + data[upper] * weight;
+		}
+	}
+
+	private object? ProcessVector64(Array array, VectorOperation operation)
+	{
+		// Placeholder for Vector64 operations
+		// This would implement hardware-accelerated operations for Vector64<T>
+		return array;
+	}
+
+	private object? ProcessVector128(Array array, VectorOperation operation)
+	{
+		// Placeholder for Vector128 operations
+		// This would implement hardware-accelerated operations for Vector128<T>
+		return array;
+	}
+
+	private object? ProcessVector256(Array array, VectorOperation operation)
+	{
+		// Placeholder for Vector256 operations
+		// This would implement hardware-accelerated operations for Vector256<T>
+		return array;
+	}
+
+	// Inner class for Grouping implementation
+	private class Grouping<TKey, TElement> : IGrouping<TKey, TElement>
+	{
+		public TKey Key { get; }
+		private readonly IEnumerable<TElement> _elements;
+
+		public Grouping(TKey key, IEnumerable<TElement> elements)
+		{
+			Key = key;
+			_elements = elements;
+		}
+
+		public IEnumerator<TElement> GetEnumerator() => _elements.GetEnumerator();
+		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 	}
 }

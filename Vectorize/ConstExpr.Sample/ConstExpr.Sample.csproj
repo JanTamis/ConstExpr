@@ -1,11 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net9.0</TargetFramework>
+		<TargetFramework>net8.0</TargetFramework>
 		<Nullable>enable</Nullable>
 		<RootNamespace>Vectorize.Sample</RootNamespace>
 		<OutputType>Exe</OutputType>
-		<LangVersion>13</LangVersion>
+		<LangVersion>12</LangVersion>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		
 		<ConstExprGenerationLevel>Performance</ConstExprGenerationLevel>

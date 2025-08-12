@@ -1365,7 +1365,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 						builder.WriteLine($"var key = {method.Parameters[0]}(item);");
 						builder.WriteLine();
 
-						if (compilation.GetTypeByName("System.Runtime.InteropServices.CollectionsMarshal")?.HasMethod("GetValueRefOrAddDefault") == true)
+						if (compilation.GetTypeByName("System.Runtime.InteropServices.CollectionsMarshal", ReadOnlySpan<ITypeSymbol>.Empty)?.HasMethod("GetValueRefOrAddDefault") == true)
 						{
 							builder.WriteLine("ref var count = ref CollectionsMarshal.GetValueRefOrAddDefault(counts, key, out _);");
 							builder.WriteLine("count++;");
@@ -1447,7 +1447,8 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 	public bool AppendZip<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
 	{
 		var types = method.Parameters
-			.WhereSelect<IParameterSymbol, ITypeSymbol?>((x, out result) => compilation.TryGetIEnumerableType(x.Type, true, out result))
+			.Where(x => compilation.TryGetIEnumerableType(x.Type, true, out _))
+			.Select(x => { compilation.TryGetIEnumerableType(x.Type, true, out var result); return result; })
 			.Prepend(elementType)
 			.ToImmutableArray();
 
