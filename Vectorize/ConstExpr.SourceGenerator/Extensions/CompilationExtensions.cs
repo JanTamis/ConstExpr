@@ -364,7 +364,8 @@ public static class CompilationExtensions
 				var types = methodSymbol.TypeArguments
 					.Select(symbol =>
 					{
-						if (symbol is ITypeParameterSymbol parameter && arguments?.TryGetValue(parameter.Name, out var type) == true)
+						if (symbol is ITypeParameterSymbol parameter 
+						    && arguments?.TryGetValue(parameter.Name, out var type) == true)
 						{
 							return type as Type;
 						}
