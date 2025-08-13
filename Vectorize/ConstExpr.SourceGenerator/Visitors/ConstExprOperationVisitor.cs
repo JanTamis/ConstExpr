@@ -7,6 +7,7 @@ using Microsoft.CodeAnalysis.Operations;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -560,12 +561,6 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 	public override object? VisitInterpolatedStringText(IInterpolatedStringTextOperation operation, IDictionary<string, object?> argument)
 	{
 		return operation.Text;
-	}
-
-	public override object? VisitInterpolatedString(IInterpolatedStringOperation operation, IDictionary<string, object?> argument)
-	{
-		return String.Concat(operation.Parts
-			.Select(s => Visit(s, argument)));
 	}
 
 	public override object? VisitSizeOf(ISizeOfOperation operation, IDictionary<string, object?> argument)
