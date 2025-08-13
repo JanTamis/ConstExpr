@@ -146,10 +146,10 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		{
 			var parameters = pi.GetIndexParameters();
 
-			if (parameters.Length == indexers.Length
+			if (parameters.Length == indexers.Length 
 			    && parameters
-				    .Select((p, i) => indexers[i] != null
-				                      && (p.ParameterType.IsAssignableFrom(indexers[i].GetType())
+				    .Select((p, i) => indexers[i] != null 
+				                      && (p.ParameterType.IsAssignableFrom(indexers[i].GetType()) 
 				                          || indexers[i] is IConvertible))
 				    .All(x => x))
 			{
@@ -161,7 +161,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 						indexers[i] = Convert.ChangeType(indexers[i], parameters[i].ParameterType);
 					}
 				}
-
+				
 				return pi.GetValue(array, indexers);
 			}
 		}
@@ -216,7 +216,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 	{
 		var left = Visit(operation.LeftOperand, argument);
 		var right = Visit(operation.RightOperand, argument);
-
+		
 		var operatorKind = operation.OperatorKind;
 		var method = operation.OperatorMethod;
 
@@ -545,7 +545,30 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return null;
 	}
 
-	public override object VisitSizeOf(ISizeOfOperation operation, IDictionary<string, object?> argument)
+	public override object? VisitInterpolation(IInterpolationOperation operation, IDictionary<string, object?> argument)
+	{
+		var value = Visit(operation.Expression, argument);
+
+		if (value is IFormattable formattable)
+		{
+			return formattable.ToString(Visit(operation.FormatString, argument) as string, CultureInfo.InvariantCulture);
+		}
+
+		return value?.ToString();
+	}
+
+	public override object? VisitInterpolatedStringText(IInterpolatedStringTextOperation operation, IDictionary<string, object?> argument)
+	{
+		return operation.Text;
+	}
+
+	public override object? VisitInterpolatedString(IInterpolatedStringOperation operation, IDictionary<string, object?> argument)
+	{
+		return String.Concat(operation.Parts
+			.Select(s => Visit(s, argument)));
+	}
+
+	public override object? VisitSizeOf(ISizeOfOperation operation, IDictionary<string, object?> argument)
 	{
 		return compilation.GetByteSize(loader, operation.Type);
 	}
@@ -677,51 +700,25 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 	public override object? VisitDefaultValue(IDefaultValueOperation operation, IDictionary<string, object?> argument)
 	{
-
-		switch (operation.Type?.SpecialType)
+		return operation.Type?.SpecialType switch
 		{
-			case SpecialType.System_Boolean:
-				return false;
-			case SpecialType.System_Byte:
-				return (byte) 0;
-			case SpecialType.System_Char:
-				return (char) 0;
-			case SpecialType.System_DateTime:
-				return default(DateTime);
-			case SpecialType.System_Decimal:
-				return 0M;
-			case SpecialType.System_Double:
-				return 0D;
-			case SpecialType.System_Int16:
-				return (short) 0;
-			case SpecialType.System_Int32:
-				return 0;
-			case SpecialType.System_Int64:
-				return 0L;
-			case SpecialType.System_SByte:
-				return (sbyte) 0;
-			case SpecialType.System_Single:
-				return 0F;
-			case SpecialType.System_String:
-				return null;
-			case SpecialType.System_UInt16:
-				return (ushort) 0;
-			case SpecialType.System_UInt32:
-				return 0U;
-			case SpecialType.System_UInt64:
-				return 0UL;
-			default:
-			{
-				var type = loader.GetType(operation.Type);
-
-				if (type?.IsValueType is true)
-				{
-					return Activator.CreateInstance(type);
-				}
-				
-				return null;
-			}
-		}
+			SpecialType.System_Boolean => false,
+			SpecialType.System_Byte => (byte) 0,
+			SpecialType.System_Char => (char) 0,
+			SpecialType.System_DateTime => default(DateTime),
+			SpecialType.System_Decimal => 0M,
+			SpecialType.System_Double => 0D,
+			SpecialType.System_Int16 => (short) 0,
+			SpecialType.System_Int32 => 0,
+			SpecialType.System_Int64 => 0L,
+			SpecialType.System_SByte => (sbyte) 0,
+			SpecialType.System_Single => 0F,
+			SpecialType.System_String => null,
+			SpecialType.System_UInt16 => (ushort) 0,
+			SpecialType.System_UInt32 => 0U,
+			SpecialType.System_UInt64 => 0UL,
+			_ => null,
+		};
 	}
 
 	public override object? VisitLocalReference(ILocalReferenceOperation operation, IDictionary<string, object?> argument)
@@ -1003,7 +1000,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 				Visit(operation.Finally, argument);
 			}
 		}
-
+		
 		return null;
 	}
 
@@ -1028,7 +1025,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 	public override object? VisitSwitchExpression(ISwitchExpressionOperation operation, IDictionary<string, object?> argument)
 	{
 		var value = Visit(operation.Value, argument);
-
+		
 		foreach (var arm in operation.Arms)
 		{
 			if (MatchPattern(value, arm.Pattern, argument))
@@ -1039,19 +1036,19 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 				}
 			}
 		}
-
+		
 		return null;
 	}
 
 	public override object? VisitWith(IWithOperation operation, IDictionary<string, object?> argument)
 	{
 		var receiver = Visit(operation.Operand, argument);
-
+		
 		if (receiver == null) return null;
 
 		var type = receiver.GetType();
 		var copyCtor = type.GetConstructor([ type ]);
-
+		
 		object clone;
 
 		if (copyCtor != null)
@@ -1077,7 +1074,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 		return clone;
 	}
-
+	
 	private bool MatchPattern(object? value, IPatternOperation pattern, IDictionary<string, object?> argument)
 	{
 		switch (pattern)
@@ -1088,7 +1085,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 				if (declarationPattern.MatchedType != null && value != null)
 				{
 					var matchedType = loader.GetType(declarationPattern.MatchedType);
-
+					
 					if (matchedType != null && !matchedType.IsInstanceOfType(value))
 					{
 						return false;
@@ -1100,7 +1097,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 						argument[declaration.Name] = value;
 					}
 				}
-
+				
 				return value == null;
 			case IDiscardPatternOperation:
 				return true;
@@ -1108,7 +1105,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 				if (value is IComparable comparable && relationalPattern.Value.ConstantValue is { HasValue: true, Value: var relValue })
 				{
 					var cmp = comparable.CompareTo(relValue);
-
+					
 					return relationalPattern.OperatorKind switch
 					{
 						BinaryOperatorKind.LessThan => cmp < 0,
@@ -1118,12 +1115,12 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 						_ => false
 					};
 				}
-
+				
 				return false;
 			case IBinaryPatternOperation binaryPattern:
 				var left = MatchPattern(value, binaryPattern.LeftPattern, argument);
 				var right = MatchPattern(value, binaryPattern.RightPattern, argument);
-
+				
 				return binaryPattern.OperatorKind switch
 				{
 					BinaryOperatorKind.And => left && right,
@@ -1133,6 +1130,28 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			case INegatedPatternOperation negatedPattern:
 				return !MatchPattern(value, negatedPattern.Pattern, argument);
 			// Add more pattern types as needed (recursive, property, list, etc.)
+			case IListPatternOperation listPattern:
+				if (value is not IEnumerable enumerable)
+				{
+					return false;
+				}
+
+				var elements = enumerable.Cast<object?>().ToList();
+
+				if (elements.Count != listPattern.ChildOperations.Count)
+				{
+					return false;
+				}
+
+				foreach (var (index, childPattern) in listPattern.ChildOperations.Index())
+				{
+					if (!MatchPattern(elements[index], childPattern as IPatternOperation, argument))
+					{
+						return false;
+					}
+				}
+
+				return true;
 
 			default:
 				return false;
