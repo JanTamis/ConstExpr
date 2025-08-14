@@ -1,5 +1,5 @@
-<Project>  
-  <ItemGroup>
-    <ConstExprGenerationLevel Include="EnableEnumGeneratorInterceptor" />
-  </ItemGroup>
+<Project>
+	<ItemGroup>
+		<CompilerVisibleProperty Include="UseConstExpr" />
+	</ItemGroup>
 </Project>

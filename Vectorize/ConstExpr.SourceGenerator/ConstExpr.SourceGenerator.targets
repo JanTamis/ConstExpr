@@ -1,8 +1,8 @@
 <Project InitialTargets="ConstExpr_SourceGenerator_Interceptors">
   <Target Name="ConstExpr_SourceGenerator_Interceptors">
-    <PropertyGroup>
-      <InterceptorsNamespaces>$(InterceptorsNamespaces);ConstExpr.SourceGenerator</InterceptorsNamespaces>
-      <InterceptorsPreviewNamespaces>$(InterceptorsPreviewNamespaces);ConstExpr.SourceGenerator</InterceptorsPreviewNamespaces>
+    <PropertyGroup Condition="'$(UseConstExpr)' == 'true'">
+      <InterceptorsNamespaces>$(InterceptorsNamespaces);ConstantExpression.Generated</InterceptorsNamespaces>
+      <InterceptorsPreviewNamespaces>$(InterceptorsPreviewNamespaces);ConstantExpression.Generated</InterceptorsPreviewNamespaces>
     </PropertyGroup>
   </Target>
 </Project>

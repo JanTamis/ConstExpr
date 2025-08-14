@@ -7,24 +7,29 @@
 		<OutputType>Exe</OutputType>
 		<LangVersion>13</LangVersion>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		
-		<ConstExprGenerationLevel>Performance</ConstExprGenerationLevel>
 
-		<InterceptorsNamespaces>$(InterceptorsNamespaces);ConstantExpression.Generated</InterceptorsNamespaces>
+		<UseConstExpr>true</UseConstExpr>
+
+		<!--<InterceptorsNamespaces>$(InterceptorsNamespaces);ConstantExpression.Generated</InterceptorsNamespaces>-->
 	</PropertyGroup>
 
+	<!--<ItemGroup>
+		<CompilerVisibleProperty Include="UseConstExpr" />
+	</ItemGroup>-->
+
 	<ItemGroup>
-	  <Compile Remove="bin\**" />
-	  <Compile Remove="Generated\**" />
-	  <Compile Remove="obj\**" />
-	  <EmbeddedResource Remove="Generated\**" />
-	  <EmbeddedResource Remove="obj\**" />
-	  <None Remove="Generated\**" />
-	  <None Remove="obj\**" />
+		<Compile Remove="bin\**" />
+		<Compile Remove="Generated\**" />
+		<Compile Remove="obj\**" />
+		<EmbeddedResource Remove="Generated\**" />
+		<EmbeddedResource Remove="obj\**" />
+		<None Remove="Generated\**" />
+		<None Remove="obj\**" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\ConstExpr.SourceGenerator\ConstExpr.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+		<!--<ProjectReference Include="..\ConstExpr.SourceGenerator\ConstExpr.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />-->
+		<PackageReference Include="ConstExpr.SourceGenerator" Version="0.1.8-preview" />
 	</ItemGroup>
 
 </Project>

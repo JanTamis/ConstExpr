@@ -6,13 +6,13 @@
 		<LangVersion>preview</LangVersion>
 		<AssemblySearchPath_UseOutDir>true</AssemblySearchPath_UseOutDir>
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
-<!--		<CompilerVisibleProperty Include="SgfAddModuleInitializerAttribute"/>-->
+		<!--		<CompilerVisibleProperty Include="SgfAddModuleInitializerAttribute"/>-->
 		<IsRoslynComponent>true</IsRoslynComponent>
 		<PolySharpExcludeGeneratedTypes>System.Runtime.CompilerServices.ModuleInitializerAttribute,System.AttributeUsage</PolySharpExcludeGeneratedTypes>
 		<RootNamespace>ConstExpr.SourceGenerator</RootNamespace>
 
 		<PackageId>ConstExpr.SourceGenerator</PackageId>
-		<Version>0.1.6-preview</Version>
+		<Version>0.1.8-preview</Version>
 		<Authors>JanTamis</Authors>
 		<Company>JanTamis</Company>
 		<Description>A source generator that provides constant expression optimizations</Description>
@@ -25,13 +25,23 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <Compile Remove="bin\**" />
-	  <Compile Remove="Generated\**" />
-	  <EmbeddedResource Remove="bin\**" />
-	  <EmbeddedResource Remove="Generated\**" />
-	  <None Remove="bin\**" />
-	  <None Remove="Generated\**" />
-	</ItemGroup>	
+		<None Include="ConstExpr.SourceGenerator.props" Visible="false"
+      Pack="true" PackagePath="build" />
+
+		<None Include="ConstExpr.SourceGenerator.targets" Visible="false"
+      Pack="true" PackagePath="build" />
+
+		<None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Remove="bin\**" />
+		<Compile Remove="Generated\**" />
+		<EmbeddedResource Remove="bin\**" />
+		<EmbeddedResource Remove="Generated\**" />
+		<None Remove="bin\**" />
+		<None Remove="Generated\**" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Bcl.Numerics" Version="9.0.7" />
@@ -43,8 +53,8 @@
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
 		<PackageReference Include="PolySharp" Version="1.15.0">
-		  <PrivateAssets>all</PrivateAssets>
-		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="SourceGenerator.Foundations" Version="2.0.13">
 			<PrivateAssets>all</PrivateAssets>
@@ -59,12 +69,11 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\..\SourceGen.Utilities\SourceGen.Utilities.csproj">
-	    <PrivateAssets>all</PrivateAssets>
-	  </ProjectReference>
-		<None Include="ConstExpr.SourceGenerator.props" Pack="true" PackagePath="build" Visible="false" />
-		<Content Include="ConstExpr.SourceGenerator.targets" Pack="true" PackagePath="build" Visible="false" />
+		<ProjectReference Include="..\..\SourceGen.Utilities\SourceGen.Utilities.csproj">
+			<PrivateAssets>all</PrivateAssets>
+		</ProjectReference>
+
 		<None Remove="bin\Debug\netstandard2.0\\ConstExpr.SourceGenerator.dll" />
-		<None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+		
 	</ItemGroup>
 </Project>
