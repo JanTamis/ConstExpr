@@ -16,7 +16,7 @@ Console.WriteLine(await Test.Waiting());
 Console.WriteLine(String.Join(", ", Test.Split("Hello, World!", ',')));
 Console.WriteLine(String.Join(", ", Test.Fibonacci(20)));
 Console.WriteLine(Test.RgbToHsl(150, 100, 50));
-Console.WriteLine(Test.IsPrime(3));
+Console.WriteLine(Test.IsPrime(4));
 Console.WriteLine(Test.ToString(StringComparison.Ordinal));
 Console.WriteLine(Test.GetNames<StringComparison>());
 Console.WriteLine(Test.GetNames<StringComparison>());

@@ -28,8 +28,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <PackageReference Include="ConstExpr.SourceGenerator" Version="0.1.8-preview" />
 		<!--<ProjectReference Include="..\ConstExpr.SourceGenerator\ConstExpr.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />-->
-		<PackageReference Include="ConstExpr.SourceGenerator" Version="0.1.8-preview" />
 	</ItemGroup>
 
 </Project>

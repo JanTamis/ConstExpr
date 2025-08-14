@@ -12,7 +12,7 @@ public abstract class BaseTest<TResult>
 
 	public abstract string SourceCode { get; }
 
-	// [Fact]
+	[Fact]
 	public virtual void RunTest()
 	{
 		var generated = RunGenerator(out var compilation);
@@ -56,7 +56,7 @@ public abstract class BaseTest<TResult>
 			var items = method
 				.DescendantNodes()
 				.Where(w => w is ReturnStatementSyntax or YieldStatementSyntax)
-				.Select(s => SyntaxHelpers.GetConstantValue(compilation, loader, s));
+				.Select(s => SyntaxHelpers.GetConstantValue(compilation, loader, s, new Dictionary<string, object?>()));
 
 			return items.Cast<TResult>();
 		}
