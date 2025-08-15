@@ -18,17 +18,7 @@
 	</ItemGroup>-->
 
 	<ItemGroup>
-		<Compile Remove="bin\**" />
-		<Compile Remove="Generated\**" />
-		<Compile Remove="obj\**" />
-		<EmbeddedResource Remove="Generated\**" />
-		<EmbeddedResource Remove="obj\**" />
-		<None Remove="Generated\**" />
-		<None Remove="obj\**" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <PackageReference Include="ConstExpr.SourceGenerator" Version="0.1.8-preview" />
+		<PackageReference Include="ConstExpr.SourceGenerator" Version="0.1.12-preview" />
 		<!--<ProjectReference Include="..\ConstExpr.SourceGenerator\ConstExpr.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />-->
 	</ItemGroup>
 

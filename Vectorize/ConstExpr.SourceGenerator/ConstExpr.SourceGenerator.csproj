@@ -8,11 +8,11 @@
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 		<!--		<CompilerVisibleProperty Include="SgfAddModuleInitializerAttribute"/>-->
 		<IsRoslynComponent>true</IsRoslynComponent>
-		<PolySharpExcludeGeneratedTypes>System.Runtime.CompilerServices.ModuleInitializerAttribute,System.AttributeUsage</PolySharpExcludeGeneratedTypes>
+		<PolySharpExcludeGeneratedTypes>System.Runtime.CompilerServices.ModuleInitializerAttribute</PolySharpExcludeGeneratedTypes>
 		<RootNamespace>ConstExpr.SourceGenerator</RootNamespace>
 
 		<PackageId>ConstExpr.SourceGenerator</PackageId>
-		<Version>0.1.8-preview</Version>
+		<Version>0.1.12-preview</Version>
 		<Authors>JanTamis</Authors>
 		<Company>JanTamis</Company>
 		<Description>A source generator that provides constant expression optimizations</Description>
