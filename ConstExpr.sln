@@ -10,7 +10,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{F849E68D-6C24-470D-BB6F-1574FD71EE54}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
-		mcp.json = mcp.json
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConstExpr.Tests", "ConstExpr.Tests\ConstExpr.Tests.csproj", "{6638E185-8578-4CCF-8BB7-A9809E8AE188}"

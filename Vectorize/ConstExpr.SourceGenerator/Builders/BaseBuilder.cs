@@ -165,7 +165,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 
 				if (vectors.Count > 0)
 				{
-					using (builder.WriteBlock($"if ({type}.IsHardwareAccelerated)"))
+					using (builder.WriteBlock($"if ({type.ToString():literal}.IsHardwareAccelerated)"))
 					{
 						vectorAction(type, vectors, vectorSize);
 					}

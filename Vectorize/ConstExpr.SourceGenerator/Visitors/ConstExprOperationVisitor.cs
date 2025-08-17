@@ -474,9 +474,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 	public override object? VisitVariableDeclarator(IVariableDeclaratorOperation operation, IDictionary<string, object?> argument)
 	{
-		argument[operation.Symbol.Name] = Visit(operation.Initializer?.Value, argument);
-
-		return null;
+		return argument[operation.Symbol.Name] = Visit(operation.Initializer?.Value, argument);
 	}
 
 	public override object? VisitReturn(IReturnOperation operation, IDictionary<string, object?> argument)

@@ -428,18 +428,51 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 						}
 						else
 						{
-							var literals = items
-								.Select(SyntaxHelpers.CreateLiteral)
-								.ToList();
+							var i = 0;
 
-							var length = literals.Sum(s => s.Span.Length) + items.Length * 2;
+							var fragments = new List<string>();
+
+							for (; i < items.Length;)
+							{
+								var j = i + 1;
+
+								while (j < items.Length && items.AsSpan(i, j - i + 1).IsNumericSequence())
+								{
+									j++;
+								}
+
+								var count = j - i;
+
+								if (count == 1)
+								{
+									fragments.Add(SyntaxHelpers.CreateLiteral(items[i]).ToString());
+								}
+								else
+								{
+									var data = items.AsSpan(i, count);
+
+									if (data.Slice(0, 1).IsZero() && compilation.TryGetUnsignedType(elementType, out var unsignedType) && SymbolEqualityComparer.Default.Equals(unsignedType, elementType))
+									{
+										fragments.Add($"<= {SyntaxHelpers.CreateLiteral(data[^1])}");
+									}
+									else
+									{
+										fragments.Add($"(>= {SyntaxHelpers.CreateLiteral(data[0])} and <= {SyntaxHelpers.CreateLiteral(data[^1])})");
+									}
+								}
+
+								i = j;
+							}
+
+							var length = fragments.Sum(s => s.Length) + items.Length * 2;
 							var rowLength = length < 125 ? items.Length : (int) Math.Ceiling(Math.Sqrt(items.Length));
 
-							var elements = literals
+							var elements = fragments
 								.Chunk(rowLength)
 								.Select(s => String.Join(" or ", s));
 
-							CreatePadding(builder, "or", $"return {method.Parameters[0].Name} is", elements).WriteLine();
+							CreatePadding(builder, "or", $"return {method.Parameters[0].Name} is", elements)
+								.WriteLine();
 						}
 					}
 					else

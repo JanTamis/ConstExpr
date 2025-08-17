@@ -57,7 +57,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 				namespace ConstantExpression
 				{
-					[AttributeUsage(AttributeTargets.Method | AttributeTargets.Class | AttributeTargets.Struct, Inherited = false)]
+					[AttributeUsage(AttributeTargets.Method | AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Assembly, Inherited = false)]
 					public sealed class ConstExprAttribute : Attribute
 					{
 						public GenerationLevel Level { get; set; } = GenerationLevel.Balanced;
@@ -392,7 +392,8 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		}
 
 		var attribute = method.GetAttributes().FirstOrDefault(IsConstExprAttribute)
-										?? (method.ContainingType is ITypeSymbol type ? type.GetAttributes().FirstOrDefault(IsConstExprAttribute) : null);
+										?? method.ContainingType?.GetAttributes().FirstOrDefault(IsConstExprAttribute)
+										?? method.ContainingAssembly.GetAttributes().FirstOrDefault(IsConstExprAttribute);
 
 		// Check for ConstExprAttribute on type or method
 		if (attribute is not null)

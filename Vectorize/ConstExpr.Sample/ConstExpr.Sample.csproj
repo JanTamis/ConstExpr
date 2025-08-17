@@ -10,16 +10,16 @@
 
 		<UseConstExpr>true</UseConstExpr>
 
-		<!--<InterceptorsNamespaces>$(InterceptorsNamespaces);ConstantExpression.Generated</InterceptorsNamespaces>-->
+		<InterceptorsNamespaces>$(InterceptorsNamespaces);ConstantExpression.Generated</InterceptorsNamespaces>
 	</PropertyGroup>
 
-	<!--<ItemGroup>
+	<ItemGroup>
 		<CompilerVisibleProperty Include="UseConstExpr" />
-	</ItemGroup>-->
+	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="ConstExpr.SourceGenerator" Version="0.1.12-preview" />
-		<!--<ProjectReference Include="..\ConstExpr.SourceGenerator\ConstExpr.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />-->
+<!--		<PackageReference Include="ConstExpr.SourceGenerator" Version="0.1.15-preview" />-->
+		<ProjectReference Include="..\ConstExpr.SourceGenerator\ConstExpr.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 
 </Project>

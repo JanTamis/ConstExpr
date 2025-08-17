@@ -12,7 +12,7 @@
 		<RootNamespace>ConstExpr.SourceGenerator</RootNamespace>
 
 		<PackageId>ConstExpr.SourceGenerator</PackageId>
-		<Version>0.1.12-preview</Version>
+		<Version>0.1.15-preview</Version>
 		<Authors>JanTamis</Authors>
 		<Company>JanTamis</Company>
 		<Description>A source generator that provides constant expression optimizations</Description>
@@ -21,7 +21,9 @@
 		<RepositoryType>git</RepositoryType>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<IsPackable>true</IsPackable>
-
+		<AssemblyName>ConstExpr.SourceGenerator</AssemblyName>
+		<IncludeBuildOutput>false</IncludeBuildOutput>
+<!--		<PackageType>Analyzer</PackageType>-->
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -30,8 +32,6 @@
 
 		<None Include="ConstExpr.SourceGenerator.targets" Visible="false"
       Pack="true" PackagePath="build" />
-
-		<None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -43,8 +43,15 @@
 		<None Remove="Generated\**" />
 	</ItemGroup>
 
+	<!-- Analyzer dll include AFTER removal so it isn't excluded -->
 	<ItemGroup>
-		<PackageReference Include="Microsoft.Bcl.Numerics" Version="9.0.7" />
+		<None Include="$(TargetPath)" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Bcl.Numerics" Version="9.0.7" >
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
 		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="4.14.0">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -62,10 +69,18 @@
 		<PackageReference Include="SourceGenerator.Foundations.Contracts" Version="2.0.13">
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
-		<PackageReference Include="System.Collections.Immutable" Version="9.0.7" />
-		<PackageReference Include="System.Memory" Version="4.6.3" />
-		<PackageReference Include="System.Reflection.MetadataLoadContext" Version="9.0.7" />
-		<PackageReference Include="System.Runtime.Loader" Version="4.3.0" />
+		<PackageReference Include="System.Collections.Immutable" Version="9.0.7" >
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
+		<PackageReference Include="System.Memory" Version="4.6.3" >
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
+		<PackageReference Include="System.Reflection.MetadataLoadContext" Version="9.0.7" >
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
+		<PackageReference Include="System.Runtime.Loader" Version="4.3.0" >
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
 	</ItemGroup>
 
 	<ItemGroup>

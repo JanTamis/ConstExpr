@@ -60,9 +60,13 @@ public partial class ConstExprOperationVisitor
 		return left switch
 		{
 			byte leftByte when right is byte rightByte => leftByte + rightByte,
+			sbyte leftSByte when right is sbyte rightSByte => leftSByte + rightSByte,
 			short leftShort when right is short rightShort => leftShort + rightShort,
+			ushort leftUShort when right is ushort rightUShort => leftUShort + rightUShort,
 			int leftInt when right is int rightInt => leftInt + rightInt,
+			uint leftUInt when right is uint rightUInt => leftUInt + rightUInt,
 			long leftLong when right is long rightLong => leftLong + rightLong,
+			ulong leftULong when right is ulong rightULong => leftULong + rightULong,
 			float leftFloat when right is float rightFloat => leftFloat + rightFloat,
 			double leftDouble when right is double rightDouble => leftDouble + rightDouble,
 			decimal leftDecimal when right is decimal rightDecimal => leftDecimal + rightDecimal,
@@ -76,9 +80,13 @@ public partial class ConstExprOperationVisitor
 		return left switch
 		{
 			byte leftByte when right is byte rightByte => leftByte - rightByte,
+			sbyte leftSByte when right is sbyte rightSByte => leftSByte - rightSByte,
 			short leftShort when right is short rightShort => leftShort - rightShort,
+			ushort leftUShort when right is ushort rightUShort => leftUShort - rightUShort,
 			int leftInt when right is int rightInt => leftInt - rightInt,
+			uint leftUInt when right is uint rightUInt => leftUInt - rightUInt,
 			long leftLong when right is long rightLong => leftLong - rightLong,
+			ulong leftULong when right is ulong rightULong => leftULong - rightULong,
 			float leftFloat when right is float rightFloat => leftFloat - rightFloat,
 			double leftDouble when right is double rightDouble => leftDouble - rightDouble,
 			decimal leftDecimal when right is decimal rightDecimal => leftDecimal - rightDecimal,
@@ -91,9 +99,13 @@ public partial class ConstExprOperationVisitor
 		return left switch
 		{
 			byte leftByte when right is byte rightByte => leftByte * rightByte,
+			sbyte leftSByte when right is sbyte rightSByte => leftSByte * rightSByte,
 			short leftShort when right is short rightShort => leftShort * rightShort,
+			ushort leftUShort when right is ushort rightUShort => leftUShort * rightUShort,
 			int leftInt when right is int rightInt => leftInt * rightInt,
+			uint leftUInt when right is uint rightUInt => leftUInt * rightUInt,
 			long leftLong when right is long rightLong => leftLong * rightLong,
+			ulong leftULong when right is ulong rightULong => leftULong * rightULong,
 			float leftFloat when right is float rightFloat => leftFloat * rightFloat,
 			double leftDouble when right is double rightDouble => leftDouble * rightDouble,
 			decimal leftDecimal when right is decimal rightDecimal => leftDecimal * rightDecimal,
@@ -106,9 +118,13 @@ public partial class ConstExprOperationVisitor
 		return left switch
 		{
 			byte leftByte when right is byte rightByte => leftByte / rightByte,
+			sbyte leftSByte when right is sbyte rightSByte => leftSByte / rightSByte,
 			short leftShort when right is short rightShort => leftShort / rightShort,
+			ushort leftUShort when right is ushort rightUShort => leftUShort / rightUShort,
 			int leftInt when right is int rightInt => leftInt / rightInt,
+			uint leftUInt when right is uint rightUInt => leftUInt / rightUInt,
 			long leftLong when right is long rightLong => leftLong / rightLong,
+			ulong leftULong when right is ulong rightULong => leftULong / rightULong,
 			float leftFloat when right is float rightFloat => leftFloat / rightFloat,
 			double leftDouble when right is double rightDouble => leftDouble / rightDouble,
 			decimal leftDecimal when right is decimal rightDecimal => leftDecimal / rightDecimal,
@@ -121,9 +137,13 @@ public partial class ConstExprOperationVisitor
 		return left switch
 		{
 			byte leftByte when right is byte rightByte => leftByte % rightByte,
+			sbyte leftSByte when right is sbyte rightSByte => leftSByte % rightSByte,
 			short leftShort when right is short rightShort => leftShort % rightShort,
+			ushort leftUShort when right is ushort rightUShort => leftUShort % rightUShort,
 			int leftInt when right is int rightInt => leftInt % rightInt,
+			uint leftUInt when right is uint rightUInt => leftUInt % rightUInt,
 			long leftLong when right is long rightLong => leftLong % rightLong,
+			ulong leftULong when right is ulong rightULong => leftULong % rightULong,
 			float leftFloat when right is float rightFloat => leftFloat % rightFloat,
 			double leftDouble when right is double rightDouble => leftDouble % rightDouble,
 			decimal leftDecimal when right is decimal rightDecimal => leftDecimal % rightDecimal,
@@ -136,8 +156,13 @@ public partial class ConstExprOperationVisitor
 		return left switch
 		{
 			byte leftByte when right is byte rightByte => leftByte << rightByte,
+			sbyte leftSByte when right is sbyte rightSByte => leftSByte << rightSByte,
 			short leftShort when right is short rightShort => leftShort << rightShort,
+			ushort leftUShort when right is ushort rightUShort => leftUShort << rightUShort,
 			int leftInt when right is int rightInt => leftInt << rightInt,
+			uint leftUInt when right is int rightUInt => leftUInt << rightUInt,
+			long leftLong when right is int rightLong => leftLong << rightLong,
+			ulong leftULong when right is int rightULong => leftULong << rightULong,
 			_ => null
 		};
 	}
@@ -147,8 +172,13 @@ public partial class ConstExprOperationVisitor
 		return left switch
 		{
 			byte leftByte when right is byte rightByte => leftByte >> rightByte,
+			sbyte leftSByte when right is sbyte rightSByte => leftSByte >> rightSByte,
 			short leftShort when right is short rightShort => leftShort >> rightShort,
+			ushort leftUShort when right is ushort rightUShort => leftUShort >> rightUShort,
 			int leftInt when right is int rightInt => leftInt >> rightInt,
+			uint leftUInt when right is int rightUInt => leftUInt >> rightUInt,
+			long leftLong when right is int rightLong => leftLong >> rightLong,
+			ulong leftULong when right is int rightULong => leftULong >> rightULong,
 			_ => null
 		};
 	}
@@ -158,8 +188,12 @@ public partial class ConstExprOperationVisitor
 		return left switch
 		{
 			byte leftByte when right is byte rightByte => leftByte >>> rightByte,
+			sbyte leftSByte when right is sbyte rightSByte => leftSByte >>> rightSByte,
 			short leftShort when right is short rightShort => leftShort >>> rightShort,
+			ushort leftUShort when right is ushort rightUShort => leftUShort >>> rightUShort,
 			int leftInt when right is int rightInt => leftInt >>> rightInt,
+			long leftLong when right is int rightLong => leftLong >>> rightLong,
+			ulong leftULong when right is int rightULong => leftULong >>> rightULong,
 			_ => null
 		};
 	}
@@ -169,8 +203,13 @@ public partial class ConstExprOperationVisitor
 		return left switch
 		{
 			byte leftByte when right is byte rightByte => leftByte & rightByte,
+			sbyte leftSByte when right is sbyte rightSByte => leftSByte & rightSByte,
 			short leftShort when right is short rightShort => leftShort & rightShort,
+			ushort leftUShort when right is ushort rightUShort => leftUShort & rightUShort,
 			int leftInt when right is int rightInt => leftInt & rightInt,
+			uint leftUInt when right is uint rightUInt => leftUInt & rightUInt,
+			long leftLong when right is long rightLong => leftLong & rightLong,
+			ulong leftULong when right is ulong rightULong => leftULong & rightULong,
 			_ => null
 		};
 	}
@@ -180,8 +219,13 @@ public partial class ConstExprOperationVisitor
 		return left switch
 		{
 			byte leftByte when right is byte rightByte => leftByte | rightByte,
+			sbyte leftSByte when right is sbyte rightSByte => leftSByte | rightSByte,
 			short leftShort when right is short rightShort => leftShort | rightShort,
+			ushort leftUShort when right is ushort rightUShort => leftUShort | rightUShort,
 			int leftInt when right is int rightInt => leftInt | rightInt,
+			uint leftUInt when right is uint rightUInt => leftUInt | rightUInt,
+			long leftLong when right is long rightLong => leftLong | rightLong,
+			ulong leftULong when right is ulong rightULong => leftULong | rightULong,
 			_ => null
 		};
 	}
@@ -191,8 +235,13 @@ public partial class ConstExprOperationVisitor
 		return left switch
 		{
 			byte leftByte when right is byte rightByte => leftByte ^ rightByte,
+			sbyte leftSByte when right is sbyte rightSByte => leftSByte ^ rightSByte,
 			short leftShort when right is short rightShort => leftShort ^ rightShort,
+			ushort leftUShort when right is ushort rightUShort => leftUShort ^ rightUShort,
 			int leftInt when right is int rightInt => leftInt ^ rightInt,
+			uint leftUInt when right is uint rightUInt => leftUInt ^ rightUInt,
+			long leftLong when right is long rightLong => leftLong ^ rightLong,
+			ulong leftULong when right is ulong rightULong => leftULong ^ rightULong,
 			_ => null
 		};
 	}
@@ -220,9 +269,13 @@ public partial class ConstExprOperationVisitor
 		return value switch
 		{
 			byte b => ~b,
+			sbyte sb => ~sb,
 			short s => ~s,
+			ushort us => ~us,
 			int i => ~i,
+			uint ui => ~ui,
 			long l => ~l,
+			ulong ul => ~ul,
 			_ => null
 		};
 	}

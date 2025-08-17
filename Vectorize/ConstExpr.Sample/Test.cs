@@ -5,9 +5,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+[assembly: ConstExpr(Level = GenerationLevel.Performance)]
+
 namespace ConstExpr.SourceGenerator.Sample;
 
-[ConstExpr]
+// [ConstExpr]
 public static class Test
 {
 	public static IEnumerable<double> IsOdd(params IEnumerable<double> data)
@@ -113,17 +115,26 @@ public static class Test
 	public static ICustomCollection<int> Fibonacci(int count)
 	{
 		var items = new List<int>(count);
+		
+		items.Add(1);
+		items.Add(2);
+		items.Add(3);
+		items.Add(5);
+		items.Add(7);
+		items.Add(8);
+		items.Add(9);
+		
 
-		int a = 0, b = 1;
-
-		for (var i = 0; i < count; i++)
-		{
-			items.Add(a);
-
-			var temp = a;
-			a = b;
-			b = temp + b;
-		}
+		// int a = 0, b = 1;
+		//
+		// for (var i = 0; i < count; i++)
+		// {
+		// 	items.Add(a);
+		//
+		// 	var temp = a;
+		// 	a = b;
+		// 	b = temp + b;
+		// }
 
 		return items as ICustomCollection<int>;
 	}

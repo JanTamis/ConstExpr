@@ -213,7 +213,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 					{
 						foreach (var parameter in method.Parameters)
 						{
-							builder.WriteLine($"var {parameter}Vector = {vectorType}.Create({parameter});");
+							builder.WriteLine($"var {parameter}Vector = {vectorType.ToString():literal}.Create({parameter});");
 						}
 
 						builder.WriteLine();
@@ -224,11 +224,11 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 
 						if (compilation.GetVectorType(vectorType).HasMethod("AnyWhereAllBitsSet", m => m is { ReturnType.SpecialType: SpecialType.System_Boolean }))
 						{
-							CreatePadding(builder, "|", $"return {vectorType}.AnyWhereAllBitsSet(", checks, false, false).WriteLine(");");
+							CreatePadding(builder, "|", $"return {vectorType.ToString():literal}.AnyWhereAllBitsSet(", checks, false, false).WriteLine(");");
 						}
 						else
 						{
-							CreatePadding(builder, "|", "return (", checks, false, false).WriteLine($") != {vectorType}<{elementType}>.Zero;");
+							CreatePadding(builder, "|", "return (", checks, false, false).WriteLine($") != {vectorType.ToString():literal}<{elementType}>.Zero;");
 						}
 					}, isPerformance =>
 					{
@@ -278,7 +278,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 					{
 						foreach (var parameter in method.Parameters)
 						{
-							builder.WriteLine($"var {parameter}Vector = {vectorType}.Create({parameter});");
+							builder.WriteLine($"var {parameter}Vector = {vectorType.ToString():literal}.Create({parameter});");
 						}
 
 						builder.WriteLine();
@@ -293,7 +293,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 						}
 						else
 						{
-							CreatePadding(builder, "|", "return (", checks, false, false).WriteLine($") == {vectorType}<{elementType}>.Zero;");
+							CreatePadding(builder, "|", "return (", checks, false, false).WriteLine($") == {vectorType.ToString():literal}<{elementType}>.Zero;");
 						}
 					}, isPerformance =>
 					{
@@ -398,8 +398,8 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 
 					builder.WriteLine($$"""
 
-						var {{method.Parameters[0]}}Vector = {{vectorType}}.Create({{method.Parameters[0]}});
-						var {{method.Parameters[1]}}Vector = {{vectorType}}.Create({{method.Parameters[1]}});
+						var {{method.Parameters[0]}}Vector = {{vectorType.ToString():literal}}.Create({{method.Parameters[0]}});
+						var {{method.Parameters[1]}}Vector = {{vectorType.ToString():literal}}.Create({{method.Parameters[1]}});
 
 						""");
 
@@ -418,7 +418,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 					{
 						const string padding = "return (";
 
-						CreatePadding(builder, "|", padding, checks, false, false).WriteLine($") != {vectorType}<{elementType}>.Zero" + (hasRemainingChecks ? String.Empty : ";"));
+						CreatePadding(builder, "|", padding, checks, false, false).WriteLine($") != {vectorType.ToString():literal}<{elementType}>.Zero" + (hasRemainingChecks ? String.Empty : ";"));
 
 						if (hasRemainingChecks)
 						{
@@ -1170,8 +1170,8 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 					builder.WriteLine($"""
 						ref var {method.Parameters[0]}Reference = ref MemoryMarshal.GetReference({method.Parameters[0]});
 
-						var {method.Parameters[1]}Vector = {vectorType}.Create({method.Parameters[1]});
-						var {method.Parameters[2]}Vector = {vectorType}.Create({method.Parameters[2]});
+						var {method.Parameters[1]}Vector = {vectorType.ToString():literal}.Create({method.Parameters[1]});
+						var {method.Parameters[2]}Vector = {vectorType.ToString():literal}.Create({method.Parameters[2]});
 
 						""");
 
@@ -1186,11 +1186,11 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 					{
 						if (i == 0)
 						{
-							builder.WriteLine($"{vectorType}.ConditionalSelect({vectorType}.Equals(vec{i}, {method.Parameters[1]}Vector), {method.Parameters[2]}Vector, vec{i}).StoreUnsafe(ref {method.Parameters[0]}Reference);");
+							builder.WriteLine($"{vectorType.ToString():literal}.ConditionalSelect({vectorType.ToString():literal}.Equals(vec{i}, {method.Parameters[1]}Vector), {method.Parameters[2]}Vector, vec{i}).StoreUnsafe(ref {method.Parameters[0]}Reference);");
 						}
 						else
 						{
-							builder.WriteLine($"{vectorType}.ConditionalSelect({vectorType}.Equals(vec{i}, {method.Parameters[1]}Vector), {method.Parameters[2]}Vector, vec{i}).StoreUnsafe(ref {method.Parameters[0]}Reference, {i * size});");
+							builder.WriteLine($"{vectorType.ToString():literal}.ConditionalSelect({vectorType.ToString():literal}.Equals(vec{i}, {method.Parameters[1]}Vector), {method.Parameters[2]}Vector, vec{i}).StoreUnsafe(ref {method.Parameters[0]}Reference, {i * size});");
 						}
 					}
 
