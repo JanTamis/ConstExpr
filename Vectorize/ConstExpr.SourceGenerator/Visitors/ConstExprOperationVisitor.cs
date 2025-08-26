@@ -185,7 +185,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			return null;
 		}
 
-		return argument[GetVariableName(operation.Target)] = ExecuteBinaryOperation(operation.OperatorKind, target, value);
+		return argument[GetVariableName(operation.Target)] = ObjectExtensions.ExecuteBinaryOperation(operation.OperatorKind, target, value);
 	}
 
 	public override object? VisitDeconstructionAssignment(IDeconstructionAssignmentOperation operation, IDictionary<string, object?> argument)
@@ -226,7 +226,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			return compilation.ExecuteMethod(loader, method, null, argument, left, right);
 		}
 
-		return ExecuteBinaryOperation(operatorKind, left, right);
+		return ObjectExtensions.ExecuteBinaryOperation(operatorKind, left, right);
 	}
 
 	public override object? VisitBlock(IBlockOperation operation, IDictionary<string, object?> argument)
@@ -509,16 +509,9 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 	public override object? VisitForLoop(IForLoopOperation operation, IDictionary<string, object?> argument)
 	{
-		var names = argument.Keys;
-
 		for (VisitList(operation.Before, argument); Visit(operation.Condition, argument) is true; VisitList(operation.AtLoopBottom, argument))
 		{
 			Visit(operation.Body, argument);
-		}
-
-		foreach (var name in argument.Keys.Except(names))
-		{
-			argument.Remove(name);
 		}
 
 		return null;
@@ -527,7 +520,6 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 	public override object? VisitForEachLoop(IForEachLoopOperation operation, IDictionary<string, object?> argument)
 	{
 		var itemName = GetVariableName(operation.LoopControlVariable);
-		// var names = argument.Keys.ToArray();
 		var collection = Visit(operation.Collection, argument);
 
 		foreach (var item in collection as IEnumerable)
@@ -535,11 +527,6 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			argument[itemName] = item;
 			Visit(operation.Body, argument);
 		}
-
-		//foreach (var name in argument.Keys.Except(names))
-		//{
-		//	argument.Remove(name);
-		//}
 
 		return null;
 	}
@@ -631,9 +618,9 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return operation.OperatorKind switch
 		{
 			UnaryOperatorKind.Plus => operand,
-			UnaryOperatorKind.Minus => Subtract(0, operand),
-			UnaryOperatorKind.BitwiseNegation => BitwiseNot(operand),
-			UnaryOperatorKind.Not => LogicalNot(operand),
+			UnaryOperatorKind.Minus => 0.Subtract(operand),
+			UnaryOperatorKind.BitwiseNegation => operand.BitwiseNot(),
+			UnaryOperatorKind.Not => (operand.LogicalNot()),
 			_ => operand,
 		};
 	}
@@ -646,8 +633,8 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 		return argument[name] = type switch
 		{
-			OperationKind.Increment => Add(target, 1),
-			OperationKind.Decrement => Add(target, -1),
+			OperationKind.Increment => target.Add(1),
+			OperationKind.Decrement => target.Add(-1),
 			_ => target,
 		};
 	}

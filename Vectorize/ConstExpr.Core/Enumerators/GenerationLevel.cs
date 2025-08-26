@@ -1,4 +1,4 @@
-namespace ConstExpr.SourceGenerator.Enums;
+namespace ConstExpr.Core.Enumerators;
 
 public enum GenerationLevel
 {
@@ -6,3 +6,4 @@ public enum GenerationLevel
 	Balanced,
 	Performance,
 }
+

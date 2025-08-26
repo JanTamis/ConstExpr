@@ -1,9 +1,10 @@
-using ConstantExpression;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ConstExpr.Core.Attributes;
+using ConstExpr.Core.Enumerators;
 
 [assembly: ConstExpr(Level = GenerationLevel.Performance)]
 
@@ -16,7 +17,7 @@ public static class Test
 	{
 		return data.Where(w => w % 2 != 0);
 	}
-	
+
 	public static int[] GetArray(params int[] items)
 	{
 		return items[..5];
@@ -26,15 +27,25 @@ public static class Test
 	{
 		return data.Average();
 	}
-	
+
 	public static bool IsPrime(int number)
 	{
-		if (number < 2)
+		switch (number)
+		{
+			case < 2:
+				return false;
+			case 2:
+				return true;
+		}
+
+		if (number % 2 == 0)
 		{
 			return false;
 		}
 
-		for (var i = 2; i <= Math.Sqrt(number); i++)
+		var sqrt = (int) Math.Sqrt(number);
+
+		for (var i = 3; i <= sqrt; i += 2)
 		{
 			if (number % i == 0)
 			{
@@ -74,7 +85,7 @@ public static class Test
 
 	public static ICharCollection Base64Encode(string value)
 	{
-		return (ICharCollection)(object)Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
+		return (ICharCollection) (object) Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
 	}
 
 	public async static Task<string> Waiting()
@@ -91,7 +102,7 @@ public static class Test
 
 		for (var i = 0; i < count; i++)
 		{
-			result.Add((byte)random.Next(5));
+			result.Add((byte) random.Next(5));
 		}
 
 		return result.OrderBy(o => o).ToList();
@@ -99,7 +110,7 @@ public static class Test
 
 	public static IReadOnlyList<string> Split(string value, char separator)
 	{
-		return value.Split((char[])[separator]);
+		return value.Split((char[]) [ separator ]);
 	}
 
 	public static string ToString<T>(this T value) where T : Enum
@@ -115,28 +126,203 @@ public static class Test
 	public static ICustomCollection<int> Fibonacci(int count)
 	{
 		var items = new List<int>(count);
-		
-		items.Add(1);
-		items.Add(2);
-		items.Add(3);
-		items.Add(5);
-		items.Add(7);
-		items.Add(8);
-		items.Add(9);
-		
 
-		// int a = 0, b = 1;
-		//
-		// for (var i = 0; i < count; i++)
-		// {
-		// 	items.Add(a);
-		//
-		// 	var temp = a;
-		// 	a = b;
-		// 	b = temp + b;
-		// }
+		int a = 0, b = 1;
+
+		for (var i = 0; i < count; i++)
+		{
+			items.Add(a);
+
+			var temp = a;
+			a = b;
+			b = temp + b;
+		}
 
 		return items as ICustomCollection<int>;
+	}
+
+	public static IEnumerable<long> FibonacciSequence(int count)
+	{
+		if (count < 0)
+		{
+			throw new ArgumentOutOfRangeException(nameof(count));
+		}
+		long a = 0, b = 1;
+
+		for (var i = 0; i < count; i++)
+		{
+			yield return a;
+
+			checked
+			{
+				var next = a + b;
+				a = b;
+				b = next;
+			}
+		}
+	}
+
+	public static IEnumerable<int> PrimesUpTo(int max)
+	{
+		if (max < 2)
+		{
+			yield break;
+		}
+
+		// Simple sieve for reasonable max values
+		var sieve = new bool[max + 1];
+
+		for (var p = 2; p * p <= max; p++)
+		{
+			if (!sieve[p])
+			{
+				for (var m = p * p; m <= max; m += p)
+					sieve[m] = true;
+			}
+		}
+
+		for (var i = 2; i <= max; i++)
+		{
+			if (!sieve[i])
+			{
+				yield return i;
+			}
+		}
+	}
+
+	public static int Clamp(int value, int min, int max)
+	{
+		if (min > max)
+		{
+			throw new ArgumentException("min cannot be greater than max");
+		}
+
+		if (value < min)
+		{
+			return min;
+		}
+
+		if (value > max)
+		{
+			return max;
+		}
+		return value;
+	}
+
+	public static double Map(double value, double inMin, double inMax, double outMin, double outMax)
+	{
+		if (Math.Abs(inMax - inMin) < double.Epsilon)
+		{
+			throw new ArgumentException("Input range cannot be zero", nameof(inMax));
+		}
+
+		var t = (value - inMin) / (inMax - inMin);
+		return outMin + t * (outMax - outMin);
+	}
+
+	public static (byte r, byte g, byte b) HslToRgb(float h, float s, float l)
+	{
+		h = h % 360f;
+
+		if (h < 0)
+		{
+			h += 360f;
+		}
+		
+		s = Clamp01(s);
+		l = Clamp01(l);
+
+		if (s == 0f)
+		{
+			var vGray = (byte) Math.Round(l * 255f);
+			return (vGray, vGray, vGray);
+		}
+
+		var c = (1 - MathF.Abs(2 * l - 1)) * s;
+		var hp = h / 60f;
+		var x = c * (1 - MathF.Abs(hp % 2 - 1));
+
+		float r1, g1, b1;
+
+		switch (hp)
+		{
+			case < 1:
+				r1 = c;
+				g1 = x;
+				b1 = 0;
+				break;
+			case < 2:
+				r1 = x;
+				g1 = c;
+				b1 = 0;
+				break;
+			case < 3:
+				r1 = 0;
+				g1 = c;
+				b1 = x;
+				break;
+			case < 4:
+				r1 = 0;
+				g1 = x;
+				b1 = c;
+				break;
+			case < 5:
+				r1 = x;
+				g1 = 0;
+				b1 = c;
+				break;
+			default:
+				r1 = c;
+				g1 = 0;
+				b1 = x; // 5-6
+				break;
+		}
+
+		var m = l - c / 2f;
+		var r = (byte) Math.Round((r1 + m) * 255f);
+		var g = (byte) Math.Round((g1 + m) * 255f);
+		var b = (byte) Math.Round((b1 + m) * 255f);
+		return (r, g, b);
+	}
+
+	public static float Luminance(byte r, byte g, byte b)
+	{
+		static float Channel(byte c)
+		{
+			var cs = c / 255f;
+			return cs <= 0.03928f ? cs / 12.92f : MathF.Pow((cs + 0.055f) / 1.055f, 2.4f);
+		}
+
+		var rl = Channel(r);
+		var gl = Channel(g);
+		var bl = Channel(b);
+		return 0.2126f * rl + 0.7152f * gl + 0.0722f * bl;
+	}
+
+	public static float ContrastRatio(byte r1, byte g1, byte b1, byte r2, byte g2, byte b2)
+	{
+		var l1 = Luminance(r1, g1, b1);
+		var l2 = Luminance(r2, g2, b2);
+
+		if (l1 < l2)
+		{
+			(l1, l2) = (l2, l1);
+		}
+		return (l1 + 0.05f) / (l2 + 0.05f);
+	}
+
+	private static float Clamp01(float v)
+	{
+		if (v < 0f)
+		{
+			return 0f;
+		}
+
+		if (v > 1f)
+		{
+			return 1f;
+		}
+		return v;
 	}
 
 	public static (float h, float s, float l) RgbToHsl(byte r, byte g, byte b)
@@ -179,7 +365,7 @@ public static class Test
 
 		return (h, s, l);
 	}
-	
+
 	public static string InterpolationTest(string name, int age, double height)
 	{
 		return $"Name: {name}, Age: {age}, Height: {height:N2} cm";

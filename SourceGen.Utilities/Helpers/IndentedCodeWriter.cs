@@ -8,9 +8,11 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
 namespace SourceGen.Utilities.Helpers;
@@ -555,6 +557,60 @@ public sealed class IndentedCodeWriter : IDisposable
 			{
 				_writer.Write(value.ToString());
 			}
+		}
+
+		/// <summary>Writes the specified value to the handler.</summary>
+		/// <param name="value">The value to write.</param>
+		/// <param name="format">The format string.</param>
+		/// <typeparam name="T">The type of the value to write.</typeparam>
+		public void AppendFormatted<T>(T value, string format)
+		{
+			if (String.Equals("literal", format, StringComparison.InvariantCultureIgnoreCase))
+			{
+				_writer.Write(value.ToString());
+				return;
+			}
+
+			if (String.Equals("binary", format, StringComparison.InvariantCultureIgnoreCase))
+			{
+				switch (value)
+				{
+					case byte b:
+						AppendLiteral($"0b{Convert.ToString(b, 2).PadLeft(8, '0')}");
+						return;
+					case sbyte sb:
+						AppendLiteral($"0b{Convert.ToString(sb, 2).PadLeft(8, '0')}");
+						return;
+					case short s:
+						AppendLiteral($"0b{Convert.ToString(s, 2).PadLeft(16, '0')}");
+						return;
+					case ushort us:
+						AppendLiteral($"0b{Convert.ToString(us, 2).PadLeft(16, '0')}");
+						return;
+					case int i:
+						AppendLiteral($"0b{Convert.ToString(i, 2).PadLeft(32, '0')}");
+						return;
+					case uint ui:
+						AppendLiteral($"0b{Convert.ToString(ui, 2).PadLeft(32, '0')}");
+						return;
+					case long l:
+						AppendLiteral($"0b{Convert.ToString(l, 2).PadLeft(64, '0')}");
+						return;
+					case ulong ul:
+						AppendLiteral($"0b{Convert.ToString((long)ul, 2).PadLeft(64, '0')}");
+						return;
+				}
+			}
+
+			if (String.Equals("hex", format, StringComparison.InvariantCultureIgnoreCase) && value is IFormattable formattable)
+			{
+				AppendLiteral("0x");
+				AppendLiteral(formattable.ToString("X", CultureInfo.InvariantCulture));
+				
+				return;
+			}
+
+			AppendFormatted(value);
 		}
 
 		// /// <summary>Writes the specified value to the handler.</summary>

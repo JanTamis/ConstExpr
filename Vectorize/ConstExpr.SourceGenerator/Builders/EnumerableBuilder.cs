@@ -1,4 +1,3 @@
-using ConstExpr.SourceGenerator.Enums;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using Microsoft.CodeAnalysis;
@@ -6,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using ConstExpr.Core.Enumerators;
 using SourceGen.Utilities.Helpers;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 
@@ -13,7 +13,7 @@ namespace ConstExpr.SourceGenerator.Builders;
 
 public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, GenerationLevel level, string dataName) : BaseBuilder(elementType, compilation, level, loader, dataName)
 {
-	public bool AppendAggregate<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendAggregate<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		// First overload: Aggregate<TSource>(Func<TSource, TSource, TSource> func)
 		switch (method)
@@ -119,7 +119,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendAny<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendAny<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -147,7 +147,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendAll<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendAll<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -166,7 +166,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendAsEnumerable<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendAsEnumerable<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -189,7 +189,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 
 	}
 
-	public bool AppendAverage<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendAverage<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -235,7 +235,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendCast<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendCast<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -257,7 +257,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendCount<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendCount<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -314,7 +314,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendLongCount<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendLongCount<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -342,7 +342,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendDistinct<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendDistinct<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -364,7 +364,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendDistinctBy<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendDistinctBy<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -407,7 +407,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendElementAt<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendElementAt<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -484,7 +484,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendElementAtOrDefault<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendElementAtOrDefault<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -561,7 +561,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendFirst<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendFirst<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -633,7 +633,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendFirstOrDefault<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendFirstOrDefault<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -698,7 +698,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendIndex<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendIndex<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -723,7 +723,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendLast<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendLast<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -795,7 +795,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendLastOrDefault<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendLastOrDefault<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -860,7 +860,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendOrder<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendOrder<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -882,7 +882,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendOrderDescending<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendOrderDescending<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -904,7 +904,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendReverse<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendReverse<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -926,7 +926,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendSelect<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendSelect<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -961,7 +961,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendSequenceEqual<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendSequenceEqual<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -1005,7 +1005,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendSingle<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendSingle<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -1035,7 +1035,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendSingleOrDefault<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendSingleOrDefault<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -1062,7 +1062,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendSum<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendSum<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -1090,7 +1090,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendTryGetNonEnumeratedCount<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendTryGetNonEnumeratedCount<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -1112,7 +1112,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendWhere<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendWhere<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -1150,7 +1150,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendToImmutableArray<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendToImmutableArray<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -1169,7 +1169,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendToArray<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendToArray<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -1188,7 +1188,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendImmutableList<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendImmutableList<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -1207,7 +1207,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendToList<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendToList<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -1226,7 +1226,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendToHashSet<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendToHashSet<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -1245,7 +1245,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendMin<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendMin<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -1269,7 +1269,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendMax<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendMax<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -1293,7 +1293,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendSkip<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendSkip<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -1317,7 +1317,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendTake<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendTake<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -1341,7 +1341,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendCountBy<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendCountBy<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -1444,7 +1444,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendZip<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendZip<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		var types = method.Parameters
 			.WhereSelect<IParameterSymbol, ITypeSymbol?>((x, out result) => compilation.TryGetIEnumerableType(x.Type, true, out result))
@@ -1480,7 +1480,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		return false;
 	}
 
-	public bool AppendChunk<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendChunk<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -1512,7 +1512,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		return false;
 	}
 
-	public bool AppendExcept<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendExcept<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -1550,7 +1550,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 		}
 	}
 
-	public bool AppendExceptBy<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendExceptBy<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{

@@ -1,12 +1,10 @@
 using ConstExpr.SourceGenerator.Enums;
 using ConstExpr.SourceGenerator.Helpers;
-using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
@@ -575,7 +573,7 @@ public static class CompilationExtensions
 
 				for (var i = 1; i < items.Length; i++)
 				{
-					var currentStep = ConstExprOperationVisitor.Subtract(items[i], items[i - 1]);
+					var currentStep = items[i].Subtract(items[i - 1]);
 
 					if (i == 1)
 					{

@@ -1,6 +1,5 @@
 using ConstExpr.SourceGenerator.Builders;
 using ConstExpr.SourceGenerator.Comparers;
-using ConstExpr.SourceGenerator.Enums;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Visitors;
@@ -21,6 +20,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using ConstExpr.Core.Enumerators;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 
 [assembly: InternalsVisibleTo("ConstExpr.Tests")]
@@ -32,60 +32,8 @@ namespace ConstExpr.SourceGenerator;
 [IncrementalGenerator]
 public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 {
-	private const bool ShouldGenerate = true;
-
 	public override void OnInitialize(SgfInitializationContext context)
 	{
-		context.RegisterPostInitializationOutput(spc =>
-		{
-			spc.AddSource("GenerationLevel.g", """
-				using System;
-
-				namespace ConstantExpression
-				{
-					public enum GenerationLevel
-					{
-						Minimal,
-						Balanced,
-						Performance,
-					}
-				}
-				""");
-
-			spc.AddSource("ConstExprAttribute.g", """
-				using System;
-
-				namespace ConstantExpression
-				{
-					[AttributeUsage(AttributeTargets.Method | AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Assembly, Inherited = false)]
-					public sealed class ConstExprAttribute : Attribute
-					{
-						public GenerationLevel Level { get; set; } = GenerationLevel.Balanced;
-					}
-				}
-				""");
-
-
-			spc.AddSource("InterceptsLocationAttribute.g", """
-				using System;
-				using System.Diagnostics;
-
-				namespace System.Runtime.CompilerServices
-				{
-					[Conditional("DEBUG")]
-					[AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
-					internal sealed class InterceptsLocationAttribute : Attribute
-					{
-						public InterceptsLocationAttribute(int version, string data)
-						{
-							_ = version;
-							_ = data;
-						}
-					}
-				}
-				""");
-		});
-
 		var invocations = context.SyntaxProvider
 			.CreateSyntaxProvider(
 				predicate: (node, token) => !token.IsCancellationRequested && node is InvocationExpressionSyntax,
@@ -94,7 +42,6 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 		var rootNamespace = context
 			.AnalyzerConfigOptionsProvider
-			// Retrieve the RootNamespace property
 			.Select((c, _) =>
 				c.GlobalOptions.TryGetValue("build_property.UseConstExpr", out var enableSwitch)
 				&& enableSwitch.Equals("true", StringComparison.Ordinal));
@@ -105,15 +52,15 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			{
 				var loader = MetadataLoader.GetLoader(modelAndCompilation.Left.Right);
 
-				foreach (var group in modelAndCompilation.Left.Left.GroupBy(model => model.Method, SyntaxNodeComparer<MethodDeclarationSyntax>.Instance))
+				foreach (var methodGroup in modelAndCompilation.Left.Left.GroupBy(m => m.Method, SyntaxNodeComparer<MethodDeclarationSyntax>.Instance))
 				{
 					try
 					{
-						GenerateMethodImplementations(spc, modelAndCompilation.Left.Right, group, loader);
+						GenerateMethodImplementations(spc, modelAndCompilation.Left.Right, methodGroup, loader);
 					}
-					catch (Exception e)
+					catch (Exception ex)
 					{
-
+						Logger.Error(ex, $"Error generating implementations for {methodGroup.Key.Identifier}: {ex.Message}");
 					}
 				}
 
@@ -122,278 +69,328 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		});
 	}
 
-	private void GenerateMethodImplementations(SgfSourceProductionContext spc, Compilation compilation, IGrouping<MethodDeclarationSyntax, InvocationModel?> group, MetadataLoader loader)
+	private void GenerateMethodImplementations(SgfSourceProductionContext spc, Compilation compilation, IGrouping<MethodDeclarationSyntax, InvocationModel?> methodGroup, MetadataLoader loader)
 	{
 		var code = new IndentedCodeWriter(compilation);
-		var usings = group.SelectMany(item => item.Usings).Distinct().OrderBy(s => s);
+		var distinctUsings = methodGroup.SelectMany(m => m.Usings).Distinct().Where(w => !string.IsNullOrWhiteSpace(w)).OrderBy(s => s);
+		
+		EmitUsings(code, distinctUsings);
+		
+		code.WriteLine();
 
-		foreach (var u in usings.Where(w => !String.IsNullOrWhiteSpace(w)))
+		using (code.WriteBlock($"namespace ConstantExpression.Generated", "{", "}"))
+		{
+			// Emit top-level generated methods grouped by value.
+			using (code.WriteBlock($"file static class GeneratedMethods", "{", "}"))
+			{
+				EmitGeneratedMethodsForValueGroups(code, compilation, methodGroup);
+			}
+
+			// Emit concrete interface implementations (non IEnumerable interfaces) per distinct value.
+			EmitInterfaceImplementations(code, compilation, methodGroup, loader);
+		}
+
+		EmitInterceptsLocationAttributeStub(code);
+
+		if (methodGroup.Key.Parent is TypeDeclarationSyntax declaringType && !methodGroup.Any(a => a.Exceptions.Any()))
+		{
+			spc.AddSource($"{declaringType.Identifier}_{methodGroup.Key.Identifier}.g.cs", code.ToString());
+		}
+	}
+
+	#region Emission Helpers
+	private static void EmitUsings(IndentedCodeWriter code, IEnumerable<string?> usings)
+	{
+		foreach (var u in usings)
 		{
 			code.WriteLine($"using {u:literal};");
 		}
+	}
 
-		code.WriteLine();
-		code.WriteLine("namespace ConstantExpression.Generated;");
-		code.WriteLine();
+	private void EmitGeneratedMethodsForValueGroups(IndentedCodeWriter code, Compilation compilation, IEnumerable<InvocationModel?> methodGroup)
+	{
+		var wroteFirstGroup = false;
 
-		using (code.WriteBlock($"file static class GeneratedMethods", "{", "}"))
+		foreach (var invocationsByValue in methodGroup.GroupBy(m => m.Value, new ValueOrCollectionEqualityComparer()))
 		{
-			var isFirst = true;
-
-			foreach (var valueGroup in group.GroupBy(m => m.Value, new ValueOrCollectionEqualityComparer()))
+			if (wroteFirstGroup)
 			{
-				code.WriteLineIf(!isFirst);
+				code.WriteLine();
+			}
+			wroteFirstGroup = true;
 
-				isFirst = false;
+			// Add interceptor attributes for every invocation (location based) that shares the same value.
+			foreach (var invocationModel in invocationsByValue)
+			{
+				code.WriteLine($"[InterceptsLocation({invocationModel.Location.Version}, {invocationModel.Location.Data})]");
+			}
 
-				// Add interceptor attributes
-				foreach (var item in valueGroup)
+			var representativeInvocation = invocationsByValue.First();
+			var originalMethodSyntax = representativeInvocation.Method;
+			var valueHashSuffix = GetValueHashSuffix(representativeInvocation.Value);
+
+			var generatedMethodSyntax = originalMethodSyntax
+				.WithIdentifier(SyntaxFactory.Identifier($"{originalMethodSyntax.Identifier}_{valueHashSuffix}"));
+
+			// Adjust return type for array cases where we can use the specific runtime array type name.
+			generatedMethodSyntax = AdjustArrayReturnTypeIfNeeded(generatedMethodSyntax, representativeInvocation.Value, representativeInvocation.Symbol.ReturnType);
+
+			using (code.WriteBlock(generatedMethodSyntax))
+			{
+				if (compilation.IsInterface(originalMethodSyntax.ReturnType))
 				{
-					code.WriteLine($"[InterceptsLocation({item.Location.Version}, {item.Location.Data})]");
+					EmitInterfaceReturnBody(code, compilation, representativeInvocation, representativeInvocation.Value);
 				}
-
-				// Generate the method implementation
-				var first = valueGroup.First();
-
-				var method = first.Method
-					.WithIdentifier(SyntaxFactory.Identifier($"{first.Method.Identifier}_{Math.Abs(first.Value?.GetHashCode() ?? 0)}"));
-
-				if (first.Symbol.ReturnType is IArrayTypeSymbol arraySymbol)
+				else if (TryGetLiteral(representativeInvocation.Value, out var literal))
 				{
-					var valueType = first.Value?.GetType();
-
-					if (valueType is not null && valueType.IsArray)
-					{
-						var elementType = valueType.GetElementType();
-						var rank = valueType.GetArrayRank();
-
-						if (elementType?.FullName == arraySymbol.ElementType.ToDisplayString() && rank == arraySymbol.Rank)
-						{
-							method = method.WithReturnType(
-								SyntaxFactory.ParseTypeName(valueType.Name)
-									.WithTrailingTrivia(SyntaxFactory.ParseTrailingTrivia(" "))
-							);
-						}
-					}
-				}
-
-				using (code.WriteBlock(method))
-				{
-					if (compilation.IsInterface(first.Method.ReturnType))
-					{
-						if (IsIEnumerable(compilation, first.Method.ReturnType) && first.Value is IEnumerable enumerable)
-						{
-							var returnType = compilation.GetSemanticModel(first.Method.SyntaxTree).GetTypeInfo(first.Method.ReturnType).Type;
-
-							if (returnType is not INamedTypeSymbol elementType)
-							{
-								continue;
-							}
-
-							if (compilation.TryGetIEnumerableType(elementType, true, out var tempElementype) && tempElementype is INamedTypeSymbol)
-							{
-								elementType = tempElementype as INamedTypeSymbol;
-							}
-
-							var data = enumerable.Cast<object?>().ToArray();
-
-							if (data.IsSame(data[0]))
-							{
-								code.WriteLine($"return Enumerable.Repeat({CreateLiteral(data[0])}, {CreateLiteral(data.Length)})");
-							}
-							else if (data.IsNumericSequence() && compilation.IsSpecialType(elementType, SpecialType.System_Int32))
-							{
-								code.WriteLine($"return Enumerable.Range({CreateLiteral(data[0])}, {CreateLiteral(data.Length)})");
-							}
-							else if (elementType.IsVectorSupported() && data.IsSequenceDifference(out var difference))
-							{
-								if (compilation.GetTypeByName(typeof(Enumerable).FullName).HasMethod("Sequence"))
-								{
-									code.WriteLine($"return Enumerable.Sequence({CreateLiteral(data[0])}, {CreateLiteral(data[^1])}, {CreateLiteral(difference)});");
-								}
-								else
-								{
-									code.WriteLine($$"""
-										var start = {{data[0]}};
-
-										do
-										{
-											yield return start;
-											start += {{difference}};
-										}
-										while (start <= {{data[^1]}});
-										""");
-								}
-							}
-							else
-							{
-								foreach (var item in data)
-								{
-									code.WriteLine($"yield return {item};");
-								}
-							}
-						}
-						else
-						{
-							var name = first.Method.ReturnType is GenericNameSyntax genericName
-								? genericName.Identifier.Text
-								: first.Method.ReturnType.ToString();
-
-							code.WriteLine($"return {name:literal}_{Math.Abs(first.Value?.GetHashCode() ?? 0)}.Instance;");
-						}
-					}
-					else if (TryGetLiteral(first.Value, out var literal))
-					{
-						code.WriteLine($"return {literal};");
-					}
+					code.WriteLine($"return {literal};");
 				}
 			}
 		}
+	}
 
-		foreach (var invocation in group.DistinctBy(d => d.Value))
+	private void EmitInterfaceImplementations(IndentedCodeWriter code, Compilation compilation, IEnumerable<InvocationModel?> methodGroup, MetadataLoader loader)
+	{
+		// Only unique values.
+		foreach (var invocationModel in methodGroup.DistinctBy(d => d.Value))
 		{
-			var hashCode = Math.Abs(invocation.Value?.GetHashCode() ?? 0);
+			var valueHashSuffix = GetValueHashSuffix(invocationModel.Value);
 
-			if (compilation.IsInterface(invocation.Method.ReturnType) && !IsIEnumerable(compilation, invocation.Method.ReturnType))
+			if (compilation.IsInterface(invocationModel.Method.ReturnType) && !IsIEnumerable(compilation, invocationModel.Method.ReturnType))
 			{
-				var returnType = compilation.GetSemanticModel(invocation.Method.SyntaxTree).GetTypeInfo(invocation.Method.ReturnType).Type;
-
-				if (returnType is not INamedTypeSymbol namedTypeSymbol)
+				if (!TryGetInterfaceSymbol(compilation, invocationModel, out var namedTypeSymbol))
 				{
 					continue;
 				}
 
 				var elementType = namedTypeSymbol.TypeArguments.FirstOrDefault();
-				// var elementName = compilation.GetMinimalString(elementType);
-				var dataName = $"{namedTypeSymbol.Name}_{hashCode}_Data";
-
-				IEnumerable<string> interfaces = [compilation.GetMinimalString(returnType)];
+				var dataFieldName = $"{namedTypeSymbol.Name}_{valueHashSuffix}_Data";
+				IEnumerable<string> interfaces = [ compilation.GetMinimalString(namedTypeSymbol) ];
 
 				code.WriteLine();
-
-				using (code.WriteBlock($"file sealed class {namedTypeSymbol.Name:literal}_{hashCode} : {String.Join(", ", interfaces):literal}"))
+				using (code.WriteBlock($"file sealed class {namedTypeSymbol.Name:literal}_{valueHashSuffix:literal} : {string.Join(", ", interfaces):literal}"))
 				{
-					code.WriteLine($"public static {namedTypeSymbol.Name:literal}_{hashCode} Instance = new {namedTypeSymbol.Name:literal}_{hashCode}();");
+					code.WriteLine($"public static {namedTypeSymbol.Name:literal}_{valueHashSuffix:literal} Instance = new {namedTypeSymbol.Name:literal}_{valueHashSuffix:literal}();");
 
-					if (invocation.Value is IEnumerable enumerable)
+					if (invocationModel.Value is IEnumerable enumerable)
 					{
-						elementType ??= enumerable
+						var resolvedElementType = elementType ?? enumerable
 							.Cast<object?>()
 							.Where(w => w is not null)
 							.Select(s => compilation.GetTypeByType(s.GetType()))
 							.First();
 
-						// elementName ??= compilation.GetMinimalString(elementType);
-
-						code.WriteLine();
-
-						if (compilation.IsSpecialType(elementType, SpecialType.System_Char))
-						{
-							code.WriteLine($"public static ReadOnlySpan<{elementType}> {dataName:literal} => \"{String.Join(String.Empty, enumerable.Cast<object?>()):literal}\";");
-						}
-						else
-						{
-							if (elementType.IsVectorSupported())
-							{
-								code.WriteLine($"public static ReadOnlySpan<{elementType}> {dataName:literal} => [{enumerable}];");
-							}
-							else
-							{
-								code.WriteLine($"public static {elementType}[] {dataName:literal} = [{enumerable}];");
-							}
-						}
-
-						if (elementType is not null)
-						{
-							var items = enumerable
-								.Cast<object?>()
-								.ToImmutableArray();
-
-							var members = namedTypeSymbol.AllInterfaces
-								.Prepend(namedTypeSymbol)
-								.SelectMany(s => s.GetMembers())
-								.Distinct(SymbolEqualityComparer.Default)
-								.OrderBy(o => o is not IPropertySymbol);
-
-							var interfaceBuilder = new InterfaceBuilder(compilation, loader, elementType, invocation.GenerationLevel, dataName);
-							var enumerableBuilder = new EnumerableBuilder(compilation, elementType, loader, invocation.GenerationLevel, dataName);
-							var memoryExtensionsBuilder = new MemoryExtensionsBuilder(compilation, loader, elementType, invocation.GenerationLevel, dataName);
-
-							foreach (var member in members)
-							{
-								if (TryWrite(code, member, items, enumerable, interfaceBuilder, enumerableBuilder, memoryExtensionsBuilder))
-								{
-									continue;
-								}
-
-								if (!IsIEnumerableRecursive(namedTypeSymbol))
-								{
-									var descriptor = new DiagnosticDescriptor(
-										"CEA006",
-										"Unable to implement {0}",
-										"Unable to implement {0}",
-										"Usage",
-										DiagnosticSeverity.Error,
-										true);
-
-									spc.ReportDiagnostic(Diagnostic.Create(descriptor, member.Locations[0], member.Name));
-								}
-							}
-
-							if (IsIEnumerableRecursive(namedTypeSymbol))
-							{
-								code.WriteLine();
-
-								using (code.WriteBlock($"public IEnumerator<{elementType}> GetEnumerator()"))
-								{
-									if (items.IsEmpty)
-									{
-										code.WriteLine($"return Enumerable.Empty<{elementType}>().GetEnumerator();");
-									}
-									else if (elementType.IsVectorSupported())
-									{
-										using (code.WriteBlock($"for (var i = 0; i < {dataName:literal}.Length; i++)"))
-										{
-											code.WriteLine($"yield return {dataName:literal}[i];");
-										}
-									}
-									else
-									{
-										code.WriteLine($"return Array.AsReadOnly({dataName:literal}).GetEnumerator();");
-									}
-								}
-
-								code.WriteLine();
-
-								using (code.WriteBlock($"IEnumerator IEnumerable.GetEnumerator()", "{", "}"))
-								{
-									code.WriteLine("return GetEnumerator();");
-								}
-							}
-						}
+						EmitCollectionBackingField(code, invocationModel, resolvedElementType, dataFieldName, enumerable);
+						EmitInterfaceMemberImplementations(code, compilation, loader, invocationModel, namedTypeSymbol, resolvedElementType, dataFieldName, enumerable);
 					}
 				}
 			}
 		}
+	}
 
-		if (ShouldGenerate && group.Key.Parent is TypeDeclarationSyntax type && !group.Any(a => a.Exceptions.Any()))
+	private static void EmitCollectionBackingField(IndentedCodeWriter code, InvocationModel invocationModel, ITypeSymbol elementType, string dataFieldName, IEnumerable enumerable)
+	{
+		code.WriteLine();
+		if (elementType is { } && invocationModel.Value is IEnumerable)
 		{
-			spc.AddSource($"{type.Identifier}_{group.Key.Identifier}.g.cs", code.ToString());
+			if (elementType.SpecialType == SpecialType.System_Char)
+			{
+				code.WriteLine($"public static ReadOnlySpan<{elementType}> {dataFieldName:literal} => \"{string.Join(string.Empty, enumerable.Cast<object?>()):literal}\";");
+			}
+			else if (elementType.IsVectorSupported())
+			{
+				code.WriteLine($"public static ReadOnlySpan<{elementType}> {dataFieldName:literal} => [{enumerable}];");
+			}
+			else
+			{
+				code.WriteLine($"public static {elementType}[] {dataFieldName:literal} = [{enumerable}];");
+			}
 		}
+	}
+
+	private void EmitInterfaceMemberImplementations(IndentedCodeWriter code, Compilation compilation, MetadataLoader loader, InvocationModel invocationModel, INamedTypeSymbol interfaceType, ITypeSymbol elementType, string dataFieldName, IEnumerable enumerable)
+	{
+		var items = enumerable.Cast<object?>().ToImmutableArray();
+		var members = interfaceType.AllInterfaces
+			.Prepend(interfaceType)
+			.SelectMany(s => s.GetMembers())
+			.Distinct(SymbolEqualityComparer.Default)
+			.OrderBy(o => o is not IPropertySymbol);
+
+		var interfaceBuilder = new InterfaceBuilder(compilation, loader, elementType, invocationModel.GenerationLevel, dataFieldName);
+		var enumerableBuilder = new EnumerableBuilder(compilation, elementType, loader, invocationModel.GenerationLevel, dataFieldName);
+		var memoryExtensionsBuilder = new MemoryExtensionsBuilder(compilation, loader, elementType, invocationModel.GenerationLevel, dataFieldName);
+
+		foreach (var member in members)
+		{
+			if (TryWrite(code, member, items, enumerable, interfaceBuilder, enumerableBuilder, memoryExtensionsBuilder))
+			{
+				continue;
+			}
+
+			if (!IsIEnumerableRecursive(interfaceType))
+			{
+				var descriptor = new DiagnosticDescriptor(
+					"CEA006",
+					"Unable to implement {0}",
+					"Unable to implement {0}",
+					"Usage",
+					DiagnosticSeverity.Error,
+					true);
+
+				// We can't access SgfSourceProductionContext here; original behavior only reported when generation finished.
+				// Intentionally left as originally designed – would need redesign to surface diagnostics here.
+			}
+		}
+
+		if (IsIEnumerableRecursive(interfaceType))
+		{
+			code.WriteLine();
+			// IEnumerator<T> implementation
+			using (code.WriteBlock($"public IEnumerator<{elementType}> GetEnumerator()"))
+			{
+				if (items.IsEmpty)
+				{
+					code.WriteLine($"return Enumerable.Empty<{elementType}>().GetEnumerator();");
+				}
+				else if (elementType.IsVectorSupported())
+				{
+					using (code.WriteBlock($"for (var i = 0; i < {dataFieldName:literal}.Length; i++)"))
+					{
+						code.WriteLine($"yield return {dataFieldName:literal}[i];");
+					}
+				}
+				else
+				{
+					code.WriteLine($"return Array.AsReadOnly({dataFieldName:literal}).GetEnumerator();");
+				}
+			}
+
+			code.WriteLine();
+			using (code.WriteBlock($"IEnumerator IEnumerable.GetEnumerator()", "{", "}"))
+			{
+				code.WriteLine("return GetEnumerator();");
+			}
+		}
+	}
+
+	private static MethodDeclarationSyntax AdjustArrayReturnTypeIfNeeded(MethodDeclarationSyntax methodSyntax, object? value, ITypeSymbol returnTypeSymbol)
+	{
+		if (returnTypeSymbol is IArrayTypeSymbol arraySymbol && value is Array runtimeArray)
+		{
+			var runtimeElementType = runtimeArray.GetType().GetElementType();
+			if (runtimeElementType?.FullName == arraySymbol.ElementType.ToDisplayString() && runtimeArray.Rank == arraySymbol.Rank)
+			{
+				methodSyntax = methodSyntax.WithReturnType(
+					SyntaxFactory.ParseTypeName(runtimeArray.GetType().Name)
+						.WithTrailingTrivia(SyntaxFactory.ParseTrailingTrivia(" ")));
+			}
+		}
+		return methodSyntax;
+	}
+
+	private static void EmitInterfaceReturnBody(IndentedCodeWriter code, Compilation compilation, InvocationModel representativeInvocation, object? value)
+	{
+		// IEnumerable optimized emission.
+		if (IsIEnumerable(compilation, representativeInvocation.Method.ReturnType) && value is IEnumerable enumerable)
+		{
+			var returnTypeInfo = compilation.GetSemanticModel(representativeInvocation.Method.SyntaxTree).GetTypeInfo(representativeInvocation.Method.ReturnType).Type as INamedTypeSymbol;
+			if (returnTypeInfo is null) return;
+
+			if (compilation.TryGetIEnumerableType(returnTypeInfo, true, out var tempElementType) && tempElementType is INamedTypeSymbol resolvedElementType)
+			{
+				returnTypeInfo = resolvedElementType;
+			}
+
+			var data = enumerable.Cast<object?>().ToArray();
+
+			if (data.IsSame(data.FirstOrDefault()))
+			{
+				code.WriteLine($"return Enumerable.Repeat({CreateLiteral(data.FirstOrDefault())}, {CreateLiteral(data.Length)});");
+			}
+			else if (data.IsNumericSequence() && compilation.IsSpecialType(returnTypeInfo, SpecialType.System_Int32))
+			{
+				code.WriteLine($"return Enumerable.Range({CreateLiteral(data[0])}, {CreateLiteral(data.Length)});");
+			}
+			else if (returnTypeInfo.IsVectorSupported() && data.IsSequenceDifference(out var difference))
+			{
+				if (compilation.GetTypeByName(typeof(Enumerable).FullName).HasMethod("Sequence"))
+				{
+					code.WriteLine($"return Enumerable.Sequence({CreateLiteral(data[0])}, {CreateLiteral(data[^1])}, {CreateLiteral(difference)});");
+				}
+				else
+				{
+					code.WriteLine($$"""
+					var start = {{data[0]}};
+
+					do
+					{
+						yield return start;
+						start += {{difference}};
+					}
+					while (start <= {{data[^1]}});
+					""");
+				}
+			}
+			else
+			{
+				foreach (var item in data)
+				{
+					code.WriteLine($"yield return {CreateLiteral(item)};");
+				}
+			}
+		}
+		else
+		{
+			var returnTypeName = representativeInvocation.Method.ReturnType is GenericNameSyntax g ? g.Identifier.Text : representativeInvocation.Method.ReturnType.ToString();
+			code.WriteLine($"return {returnTypeName:literal}_{GetValueHashSuffix(value):literal}.Instance;");
+		}
+	}
+
+	private static void EmitInterceptsLocationAttributeStub(IndentedCodeWriter code)
+	{
+		code.WriteLine("""
+
+		namespace System.Runtime.CompilerServices
+		{
+			[AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
+			file sealed class InterceptsLocationAttribute : Attribute
+			{
+				public InterceptsLocationAttribute(int version, string data)
+				{
+					_ = version;
+					_ = data;
+				}
+			}
+		}
+		""");
+	}
+	#endregion
+
+	private static int GetValueHashSuffix(object? value)
+	{
+		return Math.Abs(value?.GetHashCode() ?? 0);
+	}
+
+	private static bool TryGetInterfaceSymbol(Compilation compilation, InvocationModel invocationModel, out INamedTypeSymbol? namedTypeSymbol)
+	{
+		var returnType = compilation.GetSemanticModel(invocationModel.Method.SyntaxTree).GetTypeInfo(invocationModel.Method.ReturnType).Type;
+		namedTypeSymbol = returnType as INamedTypeSymbol;
+		return namedTypeSymbol != null;
 	}
 
 	private InvocationModel? GenerateSource(GeneratorSyntaxContext context, CancellationToken token)
 	{
 		if (context.Node is not InvocationExpressionSyntax invocation
-				|| !TryGetSymbol(context.SemanticModel, invocation, token, out var method)
-				|| !method.IsStatic)
+		    || !TryGetSymbol(context.SemanticModel, invocation, token, out var methodSymbol)
+		    || !methodSymbol.IsStatic)
 		{
 			return null;
 		}
 
-		var attribute = method.GetAttributes().FirstOrDefault(IsConstExprAttribute)
-										?? method.ContainingType?.GetAttributes().FirstOrDefault(IsConstExprAttribute)
-										?? method.ContainingAssembly.GetAttributes().FirstOrDefault(IsConstExprAttribute);
+		var attribute = methodSymbol.GetAttributes().FirstOrDefault(IsConstExprAttribute)
+		                ?? methodSymbol.ContainingType?.GetAttributes().FirstOrDefault(IsConstExprAttribute)
+		                ?? methodSymbol.ContainingAssembly.GetAttributes().FirstOrDefault(IsConstExprAttribute);
 
 		// Check for ConstExprAttribute on type or method
 		if (attribute is not null)
@@ -402,18 +399,18 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 			var level = attribute.NamedArguments
 				.Where(w => w.Key == "Level")
-				.Select(s => (GenerationLevel)s.Value.Value)
+				.Select(s => (GenerationLevel) s.Value.Value)
 				.DefaultIfEmpty(GenerationLevel.Balanced)
 				.FirstOrDefault();
 
-			return GenerateExpression(context, loader, invocation, method, level, token);
+			return GenerateExpression(context, loader, invocation, methodSymbol, level, token);
 		}
 
 		return null;
 	}
 
 	private InvocationModel? GenerateExpression(GeneratorSyntaxContext context, MetadataLoader loader, InvocationExpressionSyntax invocation,
-																							IMethodSymbol methodSymbol, GenerationLevel level, CancellationToken token)
+	                                            IMethodSymbol methodSymbol, GenerationLevel level, CancellationToken token)
 	{
 		if (IsInConstExprBody(invocation))
 		{
@@ -442,7 +439,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		}
 
 		if (TryGetOperation<IMethodBodyOperation>(context.SemanticModel.Compilation, methodDecl, out var blockOperation) &&
-				context.SemanticModel.Compilation.TryGetSemanticModel(invocation, out var model))
+		    context.SemanticModel.Compilation.TryGetSemanticModel(invocation, out var model))
 		{
 			try
 			{
@@ -580,9 +577,9 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 			foreach (var member in methodSymbol.ReturnType.GetMembers())
 			{
-				if (member is IMethodSymbol method)
+				if (member is IMethodSymbol subMethod)
 				{
-					GetUsings(method, false, usings);
+					GetUsings(subMethod, false, usings);
 				}
 
 				usings.Add(member.ContainingNamespace?.ToString());
@@ -640,72 +637,65 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		{
 			case IPropertySymbol property
 				when interfaceBuilder.AppendCount(property, items.Length, code)
-						 || interfaceBuilder.AppendLength(property, items.Length, code)
-						 || interfaceBuilder.AppendIsReadOnly(property, code)
-						 || interfaceBuilder.AppendIndexer(property, items, code):
+				     || interfaceBuilder.AppendLength(property, items.Length, code)
+				     || interfaceBuilder.AppendIsReadOnly(property, code)
+				     || interfaceBuilder.AppendIndexer(property, items, code):
 			case IMethodSymbol method
 				when interfaceBuilder.AppendAdd(method, code)
-						 || interfaceBuilder.AppendClear(method, code)
-						 || interfaceBuilder.AppendRemove(method, code)
-						 || interfaceBuilder.AppendRemoveAt(method, code)
-						 || interfaceBuilder.AppendInsert(method, code)
-						 || interfaceBuilder.AppendIndexOf(method, items, code)
-						 || interfaceBuilder.AppendCopyTo(method, items, code)
-						 || interfaceBuilder.AppendContains(method, items, code)
-						 || interfaceBuilder.AppendCopyTo(method, items, code)
-						 || interfaceBuilder.AppendOverlaps(method, items, code)
-						 || enumerableBuilder.AppendAll(method, items, code)
-						 || enumerableBuilder.AppendAggregate(method, items, code)
-						 || enumerableBuilder.AppendAny(method, items, code)
-						 || enumerableBuilder.AppendAverage(method, items, code)
-						 || enumerableBuilder.AppendCount(method, items, code)
-						 || enumerableBuilder.AppendDistinct(method, items, code)
-						 || enumerableBuilder.AppendDistinctBy(method, items, code)
-						 || enumerableBuilder.AppendElementAt(method, items, code)
-						 || enumerableBuilder.AppendElementAtOrDefault(method, items, code)
-						 || enumerableBuilder.AppendFirst(method, items, code)
-						 || enumerableBuilder.AppendFirstOrDefault(method, items, code)
-						 || enumerableBuilder.AppendLast(method, items, code)
-						 || enumerableBuilder.AppendLastOrDefault(method, items, code)
-						 || enumerableBuilder.AppendOrder(method, items, code)
-						 || enumerableBuilder.AppendOrderDescending(method, items, code)
-						 || enumerableBuilder.AppendSelect(method, items, code)
-						 || enumerableBuilder.AppendSequenceEqual(method, items, code)
-						 || enumerableBuilder.AppendSingle(method, items, code)
-						 || enumerableBuilder.AppendSingleOrDefault(method, items, code)
-						 || enumerableBuilder.AppendSum(method, items, code)
-						 || enumerableBuilder.AppendWhere(method, items, code)
-						 || enumerableBuilder.AppendToArray(method, items, code)
-						 || enumerableBuilder.AppendToImmutableArray(method, items, code)
-						 || enumerableBuilder.AppendToList(method, items, code)
-						 || enumerableBuilder.AppendImmutableList(method, items, code)
-						 || enumerableBuilder.AppendToHashSet(method, items, code)
-						 || enumerableBuilder.AppendMax(method, items, code)
-						 || enumerableBuilder.AppendMin(method, items, code)
-						 || enumerableBuilder.AppendSkip(method, items, code)
-						 || enumerableBuilder.AppendTake(method, items, code)
-						 || enumerableBuilder.AppendCountBy(method, items, code)
-						 || enumerableBuilder.AppendZip(method, items, code)
-						 || enumerableBuilder.AppendChunk(method, items, code)
-						 || enumerableBuilder.AppendExcept(method, items, code)
-						 || enumerableBuilder.AppendExceptBy(method, items, code)
-						 || memoryExtensionsBuilder.AppendBinarySearch(method, items, code)
-						 || memoryExtensionsBuilder.AppendCommonPrefixLength(method, items, code)
-						 || memoryExtensionsBuilder.AppendContainsAny(method, items, code)
-						 // || memoryExtensionsBuilder.AppendContainsAnyExcept(method, items, code)
-						 || memoryExtensionsBuilder.AppendContainsAnyInRange(method, items, code)
-						 // || memoryExtensionsBuilder.AppendContainsAnyExceptInRange(method, items, code)
-						 || memoryExtensionsBuilder.AppendCount(method, items, code)
-						 || memoryExtensionsBuilder.AppendEndsWith(method, items, code)
-						 || memoryExtensionsBuilder.AppendEnumerateLines(method, enumerable as string, code)
-						 || memoryExtensionsBuilder.AppendEnumerableRunes(method, enumerable as string, code)
-						 || memoryExtensionsBuilder.AppendIsWhiteSpace(method, enumerable as string, code)
-						 // || memoryExtensionsBuilder.AppendIndexOfAny(method, items, code)
-						 // || memoryExtensionsBuilder.AppendIndexOfAnyExcept(method, items, code)
-						 // || memoryExtensionsBuilder.AppendIndexOfAnyExceptInRange(method, items, code)
-						 // || memoryExtensionsBuilder.AppendIndexOfAnyInRange(method, items, code)
-						 // || memoryExtensionsBuilder.AppendSequenceCompareTo(method, items, code)
-						 || memoryExtensionsBuilder.AppendReplace(method, items, code):
+				     || interfaceBuilder.AppendClear(method, code)
+				     || interfaceBuilder.AppendRemove(method, code)
+				     || interfaceBuilder.AppendRemoveAt(method, code)
+				     || interfaceBuilder.AppendInsert(method, code)
+				     || interfaceBuilder.AppendIndexOf(method, items, code)
+				     || interfaceBuilder.AppendCopyTo(method, items, code)
+				     || interfaceBuilder.AppendContains(method, items, code)
+				     || interfaceBuilder.AppendCopyTo(method, items, code)
+				     || interfaceBuilder.AppendOverlaps(method, items, code)
+				     || enumerableBuilder.AppendAll(method, items, code)
+				     || enumerableBuilder.AppendAggregate(method, items, code)
+				     || enumerableBuilder.AppendAny(method, items, code)
+				     || enumerableBuilder.AppendAverage(method, items, code)
+				     || enumerableBuilder.AppendCount(method, items, code)
+				     || enumerableBuilder.AppendDistinct(method, items, code)
+				     || enumerableBuilder.AppendDistinctBy(method, items, code)
+				     || enumerableBuilder.AppendElementAt(method, items, code)
+				     || enumerableBuilder.AppendElementAtOrDefault(method, items, code)
+				     || enumerableBuilder.AppendFirst(method, items, code)
+				     || enumerableBuilder.AppendFirstOrDefault(method, items, code)
+				     || enumerableBuilder.AppendLast(method, items, code)
+				     || enumerableBuilder.AppendLastOrDefault(method, items, code)
+				     || enumerableBuilder.AppendOrder(method, items, code)
+				     || enumerableBuilder.AppendOrderDescending(method, items, code)
+				     || enumerableBuilder.AppendSelect(method, items, code)
+				     || enumerableBuilder.AppendSequenceEqual(method, items, code)
+				     || enumerableBuilder.AppendSingle(method, items, code)
+				     || enumerableBuilder.AppendSingleOrDefault(method, items, code)
+				     || enumerableBuilder.AppendSum(method, items, code)
+				     || enumerableBuilder.AppendWhere(method, items, code)
+				     || enumerableBuilder.AppendToArray(method, items, code)
+				     || enumerableBuilder.AppendToImmutableArray(method, items, code)
+				     || enumerableBuilder.AppendToList(method, items, code)
+				     || enumerableBuilder.AppendImmutableList(method, items, code)
+				     || enumerableBuilder.AppendToHashSet(method, items, code)
+				     || enumerableBuilder.AppendMax(method, items, code)
+				     || enumerableBuilder.AppendMin(method, items, code)
+				     || enumerableBuilder.AppendSkip(method, items, code)
+				     || enumerableBuilder.AppendTake(method, items, code)
+				     || enumerableBuilder.AppendCountBy(method, items, code)
+				     || enumerableBuilder.AppendZip(method, items, code)
+				     || enumerableBuilder.AppendChunk(method, items, code)
+				     || enumerableBuilder.AppendExcept(method, items, code)
+				     || enumerableBuilder.AppendExceptBy(method, items, code)
+				     || memoryExtensionsBuilder.AppendBinarySearch(method, items, code)
+				     || memoryExtensionsBuilder.AppendCommonPrefixLength(method, items, code)
+				     || memoryExtensionsBuilder.AppendContainsAny(method, items, code)
+				     || memoryExtensionsBuilder.AppendContainsAnyInRange(method, items, code)
+				     || memoryExtensionsBuilder.AppendCount(method, items, code)
+				     || memoryExtensionsBuilder.AppendEndsWith(method, items, code)
+				     || memoryExtensionsBuilder.AppendEnumerateLines(method, enumerable as string, code)
+				     || memoryExtensionsBuilder.AppendEnumerableRunes(method, enumerable as string, code)
+				     || memoryExtensionsBuilder.AppendIsWhiteSpace(method, enumerable as string, code)
+				     || memoryExtensionsBuilder.AppendReplace(method, items, code):
 				return true;
 			default:
 				return false;

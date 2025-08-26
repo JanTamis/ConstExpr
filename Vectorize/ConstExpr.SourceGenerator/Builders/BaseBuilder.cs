@@ -6,6 +6,7 @@ using SourceGen.Utilities.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ConstExpr.Core.Enumerators;
 
 namespace ConstExpr.SourceGenerator.Builders;
 
@@ -165,7 +166,7 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 
 				if (vectors.Count > 0)
 				{
-					using (builder.WriteBlock($"if ({type.ToString():literal}.IsHardwareAccelerated)"))
+					using (builder.WriteBlock($"if ({type:literal}.IsHardwareAccelerated)"))
 					{
 						vectorAction(type, vectors, vectorSize);
 					}

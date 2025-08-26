@@ -16,6 +16,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConstExpr.Tests", "ConstExp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SourceGen.Utilities", "SourceGen.Utilities\SourceGen.Utilities.csproj", "{02B67DE3-68DF-4D7B-914B-B00235F275E9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConstExpr.Core", "Vectorize\ConstExpr.Core\ConstExpr.Core.csproj", "{E052C217-7D49-4E29-85B4-B1EA386753BE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -38,6 +40,10 @@ Global
 		{02B67DE3-68DF-4D7B-914B-B00235F275E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{02B67DE3-68DF-4D7B-914B-B00235F275E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{02B67DE3-68DF-4D7B-914B-B00235F275E9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E052C217-7D49-4E29-85B4-B1EA386753BE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E052C217-7D49-4E29-85B4-B1EA386753BE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E052C217-7D49-4E29-85B4-B1EA386753BE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E052C217-7D49-4E29-85B4-B1EA386753BE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

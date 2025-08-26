@@ -11,6 +11,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
+using ConstExpr.Core.Attributes;
 
 namespace ConstExpr.SourceGenerator.Helpers;
 
@@ -20,11 +21,7 @@ public static class SyntaxHelpers
 	{
 		return value switch
 		{
-			int => SyntaxKind.NumericLiteralExpression,
-			float => SyntaxKind.NumericLiteralExpression,
-			double => SyntaxKind.NumericLiteralExpression,
-			long => SyntaxKind.NumericLiteralExpression,
-			decimal => SyntaxKind.NumericLiteralExpression,
+			int or float or double or long or decimal => SyntaxKind.NumericLiteralExpression,
 			string => SyntaxKind.StringLiteralExpression,
 			char => SyntaxKind.CharacterLiteralExpression,
 			true => SyntaxKind.TrueLiteralExpression,
@@ -353,7 +350,7 @@ public static class SyntaxHelpers
 
 	public static bool IsConstExprAttribute(AttributeData? attribute)
 	{
-		return attribute?.AttributeClass is { Name: "ConstExprAttribute", ContainingNamespace.Name: "ConstantExpression" };
+		return attribute?.AttributeClass?.ToDisplayString() == typeof(ConstExprAttribute).FullName;
 	}
 
 	public static string GetFullNamespace(INamespaceSymbol? namespaceSymbol)

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>preview</LangVersion>
+    <PackageId>ConstExpr.Core</PackageId>
+    <Version>0.1.16-preview</Version>
+    <Authors>JanTamis</Authors>
+    <Company>JanTamis</Company>
+    <Description>Core types (attributes and enums) for ConstExpr.SourceGenerator</Description>
+    <PackageTags>constexpr;source-generator;attributes</PackageTags>
+    <RepositoryUrl>https://github.com/JanTamis/ConstExpr</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+</Project>
+

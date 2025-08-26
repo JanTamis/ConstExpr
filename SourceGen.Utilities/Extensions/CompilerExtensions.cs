@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using System.Threading;
 using Microsoft.CodeAnalysis;
 
 namespace SourceGen.Utilities.Extensions;
@@ -63,7 +62,7 @@ public static class CompilerExtensions
 
 		var node = GetSyntaxNode(symbol);
 
-		if (!compilation.TryGetSemanticModel(node, out var model))
+		if (node is null || !compilation.TryGetSemanticModel(node, out var model))
 		{
 			return symbol.Name;
 		}
@@ -92,7 +91,7 @@ public static class CompilerExtensions
 	{
 		var tree = node?.SyntaxTree;
 
-		if (compilation.SyntaxTrees.Contains(tree))
+		if (tree is not null && compilation.SyntaxTrees.Contains(tree))
 		{
 			semanticModel = compilation.GetSemanticModel(tree);
 			return true;
@@ -101,7 +100,7 @@ public static class CompilerExtensions
 		semanticModel = null!;
 		return false;
 	}
-	
+
 	public static bool IsPrimitiveType(this ITypeSymbol typeSymbol)
 	{
 		return typeSymbol.SpecialType is SpecialType.System_Boolean

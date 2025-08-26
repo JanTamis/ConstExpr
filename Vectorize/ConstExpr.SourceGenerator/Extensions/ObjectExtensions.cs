@@ -1,5 +1,7 @@
 using Microsoft.CodeAnalysis;
 using System;
+using System.Collections.Generic;
+using Microsoft.CodeAnalysis.Operations;
 
 namespace ConstExpr.SourceGenerator.Extensions;
 
@@ -82,6 +84,190 @@ public static class ObjectExtensions
 			double leftDouble when right is double rightDouble => leftDouble / rightDouble,
 			decimal leftDecimal when right is decimal rightDecimal => leftDecimal / rightDecimal,
 			_ => null
+		};
+	}
+	
+	public static object? Modulo(this object? left, object? right)
+	{
+		return left switch
+		{
+			byte leftByte when right is byte rightByte => leftByte % rightByte,
+			sbyte leftSByte when right is sbyte rightSByte => leftSByte % rightSByte,
+			short leftShort when right is short rightShort => leftShort % rightShort,
+			ushort leftUShort when right is ushort rightUShort => leftUShort % rightUShort,
+			int leftInt when right is int rightInt => leftInt % rightInt,
+			uint leftUInt when right is uint rightUInt => leftUInt % rightUInt,
+			long leftLong when right is long rightLong => leftLong % rightLong,
+			ulong leftULong when right is ulong rightULong => leftULong % rightULong,
+			float leftFloat when right is float rightFloat => leftFloat % rightFloat,
+			double leftDouble when right is double rightDouble => leftDouble % rightDouble,
+			decimal leftDecimal when right is decimal rightDecimal => leftDecimal % rightDecimal,
+			_ => null
+		};
+	}
+
+	public static object? LeftShift(this object? left, object? right)
+	{
+		return left switch
+		{
+			byte leftByte when right is byte rightByte => leftByte << rightByte,
+			sbyte leftSByte when right is sbyte rightSByte => leftSByte << rightSByte,
+			short leftShort when right is short rightShort => leftShort << rightShort,
+			ushort leftUShort when right is ushort rightUShort => leftUShort << rightUShort,
+			int leftInt when right is int rightInt => leftInt << rightInt,
+			uint leftUInt when right is int rightUInt => leftUInt << rightUInt,
+			long leftLong when right is int rightLong => leftLong << rightLong,
+			ulong leftULong when right is int rightULong => leftULong << rightULong,
+			_ => null
+		};
+	}
+
+	public static object? RightShift(this object? left, object? right)
+	{
+		return left switch
+		{
+			byte leftByte when right is byte rightByte => leftByte >> rightByte,
+			sbyte leftSByte when right is sbyte rightSByte => leftSByte >> rightSByte,
+			short leftShort when right is short rightShort => leftShort >> rightShort,
+			ushort leftUShort when right is ushort rightUShort => leftUShort >> rightUShort,
+			int leftInt when right is int rightInt => leftInt >> rightInt,
+			uint leftUInt when right is int rightUInt => leftUInt >> rightUInt,
+			long leftLong when right is int rightLong => leftLong >> rightLong,
+			ulong leftULong when right is int rightULong => leftULong >> rightULong,
+			_ => null
+		};
+	}
+
+	public static object? UnsignedRightShift(object? left, object? right)
+	{
+		return left switch
+		{
+			byte leftByte when right is byte rightByte => leftByte >>> rightByte,
+			sbyte leftSByte when right is sbyte rightSByte => leftSByte >>> rightSByte,
+			short leftShort when right is short rightShort => leftShort >>> rightShort,
+			ushort leftUShort when right is ushort rightUShort => leftUShort >>> rightUShort,
+			int leftInt when right is int rightInt => leftInt >>> rightInt,
+			long leftLong when right is int rightLong => leftLong >>> rightLong,
+			ulong leftULong when right is int rightULong => leftULong >>> rightULong,
+			_ => null
+		};
+	}
+
+	public static object? And(this object? left, object? right)
+	{
+		return left switch
+		{
+			byte leftByte when right is byte rightByte => leftByte & rightByte,
+			sbyte leftSByte when right is sbyte rightSByte => leftSByte & rightSByte,
+			short leftShort when right is short rightShort => leftShort & rightShort,
+			ushort leftUShort when right is ushort rightUShort => leftUShort & rightUShort,
+			int leftInt when right is int rightInt => leftInt & rightInt,
+			uint leftUInt when right is uint rightUInt => leftUInt & rightUInt,
+			long leftLong when right is long rightLong => leftLong & rightLong,
+			ulong leftULong when right is ulong rightULong => leftULong & rightULong,
+			_ => null
+		};
+	}
+
+	public static object? Or(this object? left, object? right)
+	{
+		return left switch
+		{
+			byte leftByte when right is byte rightByte => leftByte | rightByte,
+			sbyte leftSByte when right is sbyte rightSByte => leftSByte | rightSByte,
+			short leftShort when right is short rightShort => leftShort | rightShort,
+			ushort leftUShort when right is ushort rightUShort => leftUShort | rightUShort,
+			int leftInt when right is int rightInt => leftInt | rightInt,
+			uint leftUInt when right is uint rightUInt => leftUInt | rightUInt,
+			long leftLong when right is long rightLong => leftLong | rightLong,
+			ulong leftULong when right is ulong rightULong => leftULong | rightULong,
+			_ => null
+		};
+	}
+
+	public static object? ExclusiveOr(this object? left, object? right)
+	{
+		return left switch
+		{
+			byte leftByte when right is byte rightByte => leftByte ^ rightByte,
+			sbyte leftSByte when right is sbyte rightSByte => leftSByte ^ rightSByte,
+			short leftShort when right is short rightShort => leftShort ^ rightShort,
+			ushort leftUShort when right is ushort rightUShort => leftUShort ^ rightUShort,
+			int leftInt when right is int rightInt => leftInt ^ rightInt,
+			uint leftUInt when right is uint rightUInt => leftUInt ^ rightUInt,
+			long leftLong when right is long rightLong => leftLong ^ rightLong,
+			ulong leftULong when right is ulong rightULong => leftULong ^ rightULong,
+			_ => null
+		};
+	}
+
+	public static object? ConditionalAnd(this object? left, object? right)
+	{
+		return left switch
+		{
+			bool leftBool when right is bool rightBool => leftBool && rightBool,
+			_ => null
+		};
+	}
+
+	public static object? ConditionalOr(this object? left, object? right)
+	{
+		return left switch
+		{
+			bool leftBool when right is bool rightBool => leftBool || rightBool,
+			_ => null
+		};
+	}
+
+	public static object? BitwiseNot(this object? value)
+	{
+		return value switch
+		{
+			byte b => ~b,
+			sbyte sb => ~sb,
+			short s => ~s,
+			ushort us => ~us,
+			int i => ~i,
+			uint ui => ~ui,
+			long l => ~l,
+			ulong ul => ~ul,
+			_ => null
+		};
+	}
+
+	public static object? LogicalNot(this object? value)
+	{
+		return value switch
+		{
+			bool b => !b,
+			_ => false,
+		};
+	}
+
+	public static object? ExecuteBinaryOperation(BinaryOperatorKind operatorKind, object? left, object? right)
+	{
+		return operatorKind switch
+		{
+			BinaryOperatorKind.Add => Add(left, right),
+			BinaryOperatorKind.Subtract => Subtract(left, right),
+			BinaryOperatorKind.Multiply => Multiply(left, right),
+			BinaryOperatorKind.Divide => Divide(left, right),
+			BinaryOperatorKind.Remainder => Modulo(left, right),
+			BinaryOperatorKind.LeftShift => LeftShift(left, right),
+			BinaryOperatorKind.RightShift => RightShift(left, right),
+			BinaryOperatorKind.UnsignedRightShift => UnsignedRightShift(left, right),
+			BinaryOperatorKind.And => And(left, right),
+			BinaryOperatorKind.Or => Or(left, right),
+			BinaryOperatorKind.ExclusiveOr => ExclusiveOr(left, right),
+			BinaryOperatorKind.ConditionalAnd => ConditionalAnd(left, right),
+			BinaryOperatorKind.ConditionalOr => ConditionalOr(left, right),
+			BinaryOperatorKind.Equals => EqualityComparer<object?>.Default.Equals(left, right),
+			BinaryOperatorKind.NotEquals => !EqualityComparer<object?>.Default.Equals(left, right),
+			BinaryOperatorKind.LessThan => Comparer<object?>.Default.Compare(left, right) < 0,
+			BinaryOperatorKind.LessThanOrEqual => Comparer<object?>.Default.Compare(left, right) <= 0,
+			BinaryOperatorKind.GreaterThan => Comparer<object?>.Default.Compare(left, right) > 0,
+			BinaryOperatorKind.GreaterThanOrEqual => Comparer<object?>.Default.Compare(left, right) >= 0,
+			_ => null,
 		};
 	}
 }

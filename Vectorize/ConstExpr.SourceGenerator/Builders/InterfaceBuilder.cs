@@ -1,4 +1,3 @@
-using ConstExpr.SourceGenerator.Enums;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using Microsoft.CodeAnalysis;
@@ -6,14 +5,15 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using SourceGen.Utilities.Extensions;
+using ConstExpr.Core.Enumerators;
+using Microsoft.CodeAnalysis.Operations;
 using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Builders;
 
 public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, ITypeSymbol elementType, GenerationLevel generationLevel, string dataName) : BaseBuilder(elementType, compilation, generationLevel, loader, dataName)
 {
-	public bool AppendCount(IPropertySymbol property, int count, IndentedCodeWriter builder)
+	public bool AppendCount(IPropertySymbol property, int count, IndentedCodeWriter? builder)
 	{
 		switch (property)
 		{
@@ -31,7 +31,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 	}
 
-	public bool AppendLength(IPropertySymbol property, int count, IndentedCodeWriter builder)
+	public bool AppendLength(IPropertySymbol property, int count, IndentedCodeWriter? builder)
 	{
 		switch (property)
 		{
@@ -49,7 +49,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 	}
 
-	public bool AppendIsReadOnly(IPropertySymbol property, IndentedCodeWriter builder)
+	public bool AppendIsReadOnly(IPropertySymbol property, IndentedCodeWriter? builder)
 	{
 		switch (property)
 		{
@@ -65,7 +65,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 	}
 
-	public bool AppendIndexer(IPropertySymbol property, IEnumerable<object?> items, IndentedCodeWriter builder)
+	public bool AppendIndexer(IPropertySymbol property, IEnumerable<object?> items, IndentedCodeWriter? builder)
 	{
 		switch (property)
 		{
@@ -112,7 +112,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 		}
 	}
 
-	public bool AppendCopyTo<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendCopyTo<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -140,7 +140,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 	}
 
-	public bool AppendAdd(IMethodSymbol method, IndentedCodeWriter builder)
+	public bool AppendAdd(IMethodSymbol method, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -160,7 +160,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 	}
 
-	public bool AppendClear(IMethodSymbol method, IndentedCodeWriter builder)
+	public bool AppendClear(IMethodSymbol method, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -179,7 +179,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 	}
 
-	public bool AppendRemove(IMethodSymbol method, IndentedCodeWriter builder)
+	public bool AppendRemove(IMethodSymbol method, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -278,7 +278,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 		}
 	}
 
-	public bool AppendInsert(IMethodSymbol method, IndentedCodeWriter builder)
+	public bool AppendInsert(IMethodSymbol method, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -297,7 +297,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 		}
 	}
 
-	public bool AppendRemoveAt(IMethodSymbol method, IndentedCodeWriter builder)
+	public bool AppendRemoveAt(IMethodSymbol method, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -354,6 +354,36 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 						return true;
 					}
+
+					if (compilation.TryGetUnsignedType(elementType, out var unsignedType))
+					{
+						var bitSize = compilation.GetByteSize(loader, elementType) * 8;
+
+						if (ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.LessThanOrEqual, items[^1], (bitSize - 1).ToSpecialType(elementType.SpecialType)) is true
+							&& items.All(a => ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.GreaterThanOrEqual, a, 0.ToSpecialType(elementType.SpecialType)) is true))
+						{
+							var mask = (object) 0;
+
+							foreach (var item in items)
+							{
+								mask = mask.Or(1.ToSpecialType(elementType.SpecialType).LeftShift(item));
+							}
+
+							AppendMethod(builder, method, () =>
+							{
+								if (elementType.EqualsType(unsignedType))
+								{
+									builder.WriteLine($"return {method.Parameters[0]} <= {items[^1]} && (({mask:hex} >> {method.Parameters[0]}) & 1) != 0;");
+								}
+								else
+								{
+									builder.WriteLine($"return ({unsignedType}){method.Parameters[0]} <= {items[^1].ToSpecialType(unsignedType.SpecialType)} && (({mask:hex} >> {method.Parameters[0]}) & 1) != 0;");
+								}
+							});
+
+							return true;
+						}
+					}
 				}
 
 				if (method.ContainingType.HasMethod("IndexOf", m => AppendIndexOf(m, items, null)))
@@ -368,7 +398,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 
 				AppendMethod(builder, method, items.AsSpan(), false, (vectorType, vectors, size) =>
 				{
-					builder.WriteLine($"var {method.Parameters[0]}Vector = {vectorType}.Create({method.Parameters[0]});");
+					builder.WriteLine($"var {method.Parameters[0]}Vector = {vectorType:literal}.Create({method.Parameters[0]});");
 					builder.WriteLine();
 
 					if (size * vectors.Count < items.Length)
@@ -384,7 +414,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 						}
 						else
 						{
-							CreatePadding(builder, "|", "return (", vectors.Select(s => $"{vectorType}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false).WriteLine($") != {vectorType}<{elementType}>.Zero");
+							CreatePadding(builder, "|", "return (", vectors.Select(s => $"{vectorType}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false).WriteLine($") != {vectorType:literal}<{elementType}>.Zero");
 						}
 
 						builder.WriteLine($"     || {method.Parameters[0]} is {String.Join(" or ", checks.Select(SyntaxHelpers.CreateLiteral)):literal};");
@@ -399,7 +429,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 						}
 						else
 						{
-							CreatePadding(builder, "|", "return (", vectors.Select(s => $"{vectorType}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false).WriteLine($") != {vectorType}<{elementType}>.Zero");
+							CreatePadding(builder, "|", "return (", vectors.Select(s => $"{vectorType}.Equals({s}, {method.Parameters[0].Name}Vector)"), false, false).WriteLine($") != {vectorType:literal}<{elementType}>.Zero");
 						}
 					}
 				}, isPerformance =>
@@ -488,7 +518,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 		}
 	}
 
-	public bool AppendOverlaps<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendOverlaps<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{

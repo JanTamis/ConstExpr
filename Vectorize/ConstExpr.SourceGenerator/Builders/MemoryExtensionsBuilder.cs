@@ -1,11 +1,11 @@
-﻿using ConstExpr.SourceGenerator.Enums;
-using ConstExpr.SourceGenerator.Extensions;
+﻿using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using ConstExpr.Core.Enumerators;
 using SourceGen.Utilities.Extensions;
 using SourceGen.Utilities.Helpers;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
@@ -14,7 +14,7 @@ namespace ConstExpr.SourceGenerator.Builders;
 
 public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loader, ITypeSymbol elementType, GenerationLevel generationLevel, string dataName) : BaseBuilder(elementType, compilation, generationLevel, loader, dataName)
 {
-	public bool AppendBinarySearch<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendBinarySearch<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -88,7 +88,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		}
 	}
 
-	public bool AppendCommonPrefixLength<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendCommonPrefixLength<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -189,7 +189,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		}
 	}
 
-	public bool AppendContainsAny<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendContainsAny<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -258,7 +258,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		}
 	}
 
-	public bool AppendContainsAnyExcept<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendContainsAnyExcept<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -336,7 +336,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		}
 	}
 
-	public bool AppendContainsAnyInRange<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendContainsAnyInRange<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		if (!elementType.EqualsType(compilation.GetTypeByName("System.IComparable", elementType)))
 		{
@@ -459,7 +459,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		}
 	}
 
-	// public bool AppendContainsAnyExceptInRange<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	// public bool AppendContainsAnyExceptInRange<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	// {
 	// 	switch (method)
 	// 	{
@@ -499,7 +499,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	// 	}
 	// }
 
-	public bool AppendCount<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendCount<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -561,7 +561,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		}
 	}
 
-	public bool AppendEndsWith<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendEndsWith<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -593,7 +593,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		}
 	}
 
-	public bool AppendEnumerateLines(IMethodSymbol method, string? data, IndentedCodeWriter builder)
+	public bool AppendEnumerateLines(IMethodSymbol method, string? data, IndentedCodeWriter? builder)
 	{
 		data ??= String.Empty;
 
@@ -641,7 +641,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		}
 	}
 
-	public bool AppendEnumerableRunes(IMethodSymbol method, string? data, IndentedCodeWriter builder)
+	public bool AppendEnumerableRunes(IMethodSymbol method, string? data, IndentedCodeWriter? builder)
 	{
 		if (data is null)
 		{
@@ -724,7 +724,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		}
 	}
 
-	public bool AppendIsWhiteSpace(IMethodSymbol method, string? data, IndentedCodeWriter builder)
+	public bool AppendIsWhiteSpace(IMethodSymbol method, string? data, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -742,7 +742,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		}
 	}
 
-	// public bool AppendIndexOfAny<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	// public bool AppendIndexOfAny<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	// {
 	// 	switch (method)
 	// 	{
@@ -812,7 +812,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	// 				{
 	// 					var collectionName = GetDataName(method.ContainingType);
 	//
-	// 					using (builder.WriteBlock($"for (var i = 0; i < {(LiteralString) collectionName}.Length; i++)"))
+	// 					using (builder.WriteBlock($"for (var i = 0; i < {(LiteralString) collectionName}.Length; i++"))
 	// 					{
 	// 						using (builder.WriteBlock($"if ({(LiteralString) String.Join(" || ", method.Parameters.Select(s => $"{s.Name} == {collectionName}[i]"))})"))
 	// 						{
@@ -851,7 +851,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	// 				{
 	// 					var collectionName = GetDataName(method.ContainingType);
 	//
-	// 					using (builder.WriteBlock($"for (var i = 0; i < {(LiteralString) collectionName}.Length; i++)"))
+	// 					using (builder.WriteBlock($"for (var i = 0; i < {(LiteralString) collectionName}.Length; i++"))
 	// 					{
 	// 						using (builder.WriteBlock($"if ({method.Parameters[0]}.Contains({(LiteralString) collectionName}[i]))"))
 	// 						{
@@ -881,7 +881,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	// 	}
 	// }
 
-	// public bool AppendIndexOfAnyExcept<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	// public bool AppendIndexOfAnyExcept<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	// {
 	// 	switch (method)
 	// 	{
@@ -935,7 +935,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	// 				{
 	// 					var collectionName = GetDataName(method.ContainingType);
 	//
-	// 					using (builder.WriteBlock($"for (var i = 0; i < {(LiteralString) collectionName}.Length; i++)"))
+	// 					using (builder.WriteBlock($"for (var i = 0; i < {(LiteralString) collectionName}.Length; i++"))
 	// 					{
 	// 						using (builder.WriteBlock($"if ({(LiteralString) String.Join(" && ", method.Parameters.Select(s => $"{s.Name} != {collectionName}[i]"))})"))
 	// 						{
@@ -974,7 +974,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	// 				{
 	// 					var collectionName = GetDataName(method.ContainingType);
 	//
-	// 					using (builder.WriteBlock($"for (var i = 0; i < {(LiteralString) collectionName}.Length; i++)"))
+	// 					using (builder.WriteBlock($"for (var i = 0; i < {(LiteralString) collectionName}.Length; i++"))
 	// 					{
 	// 						using (builder.WriteBlock($"if ({method.Parameters[0]}.Contains({(LiteralString) collectionName}[i]))"))
 	// 						{
@@ -994,7 +994,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	// 	}
 	// }
 
-	// public bool AppendIndexOfAnyExceptInRange<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	// public bool AppendIndexOfAnyExceptInRange<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	// {
 	// 	switch (method)
 	// 	{
@@ -1045,7 +1045,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	// 				{
 	// 					var collectionName = GetDataName(method.ContainingType);
 	//
-	// 					using (builder.WriteBlock($"for (var i = 0; i < {collectionName}.Length; i++)"))
+	// 					using (builder.WriteBlock($"for (var i = 0; i < {collectionName}.Length; i++"))
 	// 					{
 	// 						using (builder.WriteBlock($"if ({(LiteralString) collectionName}[i] < {(LiteralString) method.Parameters[0].Name} || {(LiteralString) collectionName}[i] > {(LiteralString) method.Parameters[1].Name})"))
 	// 						{
@@ -1065,7 +1065,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	// 	}
 	// }
 
-	// public bool AppendIndexOfAnyInRange<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	// public bool AppendIndexOfAnyInRange<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	// {
 	// 	switch (method)
 	// 	{
@@ -1116,7 +1116,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	// 				{
 	// 					var collectionName = GetDataName(method.ContainingType);
 	//
-	// 					using (builder.WriteBlock($"for (var i = 0; i < {(LiteralString) collectionName}.Length; i++)"))
+	// 					using (builder.WriteBlock($"for (var i = 0; i < {(LiteralString) collectionName}.Length; i++"))
 	// 					{
 	// 						using (builder.WriteBlock($"if ({(LiteralString) collectionName}[i] >= {(LiteralString) method.Parameters[0].Name} && {(LiteralString) collectionName}[i] <= {(LiteralString) method.Parameters[1].Name})"))
 	// 						{
@@ -1136,7 +1136,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	// 	}
 	// }
 
-	public bool AppendReplace<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendReplace<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		if (!elementType.EqualsType(compilation.GetTypeByName("System.IEquatable", elementType)))
 		{
@@ -1242,7 +1242,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		return false;
 	}
 
-	public bool AppendSequenceCompareTo<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter builder)
+	public bool AppendSequenceCompareTo<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
 		switch (method)
 		{
@@ -1283,7 +1283,7 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 		}
 	}
 
-	// private void AppendContainsAny<T>(ITypeSymbol typeSymbol, IMethodSymbol method, bool result, ImmutableArray<T> items, IndentedCodeWriter builder)
+	// private void AppendContainsAny<T>(ITypeSymbol typeSymbol, IMethodSymbol method, bool result, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	// {
 	// 	var prefix = result ? String.Empty : "!";
 	//
@@ -1463,3 +1463,4 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 	// 	});
 	// }
 }
+
