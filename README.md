@@ -1,5 +1,7 @@
 # ConstExpr - Compile-Time Expression Optimizer
 
+[![NuGet Version](https://img.shields.io/nuget/v/ConstExpr.SourceGenerator.svg?style=flat-square)](https://www.nuget.org/packages/ConstExpr.SourceGenerator/)
+
 ConstExpr is a powerful C# source generator that optimizes method calls at compile time, transforming runtime computations into compile-time constants for improved performance.
 
 ## 🚀 Features
@@ -14,10 +16,24 @@ ConstExpr is a powerful C# source generator that optimizes method calls at compi
 
 ## 📦 Installation
 
-Add the ConstExpr source generator to your project:
+Install the ConstExpr source generator via NuGet:
+
+```sh
+dotnet add package ConstExpr.SourceGenerator
+```
+
+Or add the package manually to your project file:
 
 ```xml
-<PackageReference Include="ConstExpr.SourceGenerator" Version="1.0.0" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+<PackageReference Include="ConstExpr.SourceGenerator" Version="*" />
+```
+
+To enable ConstExpr optimizations, add the following property to your `.csproj` file:
+
+```xml
+<PropertyGroup>
+  <EnableConstExpr>true</EnableConstExpr>
+</PropertyGroup>
 ```
 
 ## 🔧 Usage
