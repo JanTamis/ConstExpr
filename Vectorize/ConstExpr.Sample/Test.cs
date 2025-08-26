@@ -147,6 +147,7 @@ public static class Test
 		{
 			throw new ArgumentOutOfRangeException(nameof(count));
 		}
+
 		long a = 0, b = 1;
 
 		for (var i = 0; i < count; i++)
@@ -177,7 +178,9 @@ public static class Test
 			if (!sieve[p])
 			{
 				for (var m = p * p; m <= max; m += p)
+				{
 					sieve[m] = true;
+				}
 			}
 		}
 
@@ -308,6 +311,7 @@ public static class Test
 		{
 			(l1, l2) = (l2, l1);
 		}
+
 		return (l1 + 0.05f) / (l2 + 0.05f);
 	}
 

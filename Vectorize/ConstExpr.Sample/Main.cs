@@ -31,7 +31,7 @@ using System.Text;
 
 // Numbers / sequences
 Console.WriteLine("Primes up to 50: " + string.Join(", ", Test.PrimesUpTo(50)));
-Console.WriteLine("First 12 Fibonacci (long): " + string.Join(", ", Test.FibonacciSequence(12)));
+// Console.WriteLine("First 12 Fibonacci (long): " + string.Join(", ", Test.FibonacciSequence(12)));
 Console.WriteLine("Clamp(15, 0, 10) => " + Test.Clamp(15, 0, 10));
 Console.WriteLine("Map(5, 0..10 -> 0..100) => " + Test.Map(5, 0, 10, 0, 100));
 

@@ -37,3 +37,6 @@
 /ConstExpr.Tests/bin/Release/net9.0
 /SourceGen.Utilities/bin/Release/netstandard2.0
 /Vectorize/ConstExpr.SourceGenerator/bin
+/Vectorize/ConstExpr.Core/bin/Debug/netstandard2.0
+/Vectorize/ConstExpr.Core/obj/Debug/netstandard2.0
+/Vectorize/ConstExpr.Core/obj

@@ -35,7 +35,7 @@ public static class SpanExtensions
 	{
 		for (var i = 0; i < span.Length; i++)
 		{
-			if (!span[i].Equals(item))
+			if (span[i]?.Equals(item) is false)
 			{
 				return false;
 			}
