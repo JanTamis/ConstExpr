@@ -1,3 +1,4 @@
+using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Builders;
 using ConstExpr.SourceGenerator.Comparers;
 using ConstExpr.SourceGenerator.Extensions;
@@ -20,7 +21,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using ConstExpr.Core.Enumerators;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 
 [assembly: InternalsVisibleTo("ConstExpr.Tests")]
@@ -73,9 +73,9 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 	{
 		var code = new IndentedCodeWriter(compilation);
 		var distinctUsings = methodGroup.SelectMany(m => m.Usings).Distinct().Where(w => !string.IsNullOrWhiteSpace(w)).OrderBy(s => s);
-		
+
 		EmitUsings(code, distinctUsings);
-		
+
 		code.WriteLine();
 
 		using (code.WriteBlock($"namespace ConstantExpression.Generated", "{", "}"))
@@ -165,7 +165,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 				var elementType = namedTypeSymbol.TypeArguments.FirstOrDefault();
 				var dataFieldName = $"{namedTypeSymbol.Name}_{valueHashSuffix}_Data";
-				IEnumerable<string> interfaces = [ compilation.GetMinimalString(namedTypeSymbol) ];
+				IEnumerable<string> interfaces = [compilation.GetMinimalString(namedTypeSymbol)];
 
 				code.WriteLine();
 				using (code.WriteBlock($"file sealed class {namedTypeSymbol.Name:literal}_{valueHashSuffix:literal} : {string.Join(", ", interfaces):literal}"))
@@ -382,15 +382,15 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 	private InvocationModel? GenerateSource(GeneratorSyntaxContext context, CancellationToken token)
 	{
 		if (context.Node is not InvocationExpressionSyntax invocation
-		    || !TryGetSymbol(context.SemanticModel, invocation, token, out var methodSymbol)
-		    || !methodSymbol.IsStatic)
+				|| !TryGetSymbol(context.SemanticModel, invocation, token, out var methodSymbol)
+				|| !methodSymbol.IsStatic)
 		{
 			return null;
 		}
 
 		var attribute = methodSymbol.GetAttributes().FirstOrDefault(IsConstExprAttribute)
-		                ?? methodSymbol.ContainingType?.GetAttributes().FirstOrDefault(IsConstExprAttribute)
-		                ?? methodSymbol.ContainingAssembly.GetAttributes().FirstOrDefault(IsConstExprAttribute);
+										?? methodSymbol.ContainingType?.GetAttributes().FirstOrDefault(IsConstExprAttribute)
+										?? methodSymbol.ContainingAssembly.GetAttributes().FirstOrDefault(IsConstExprAttribute);
 
 		// Check for ConstExprAttribute on type or method
 		if (attribute is not null)
@@ -399,7 +399,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 			var level = attribute.NamedArguments
 				.Where(w => w.Key == "Level")
-				.Select(s => (GenerationLevel) s.Value.Value)
+				.Select(s => (GenerationLevel)s.Value.Value)
 				.DefaultIfEmpty(GenerationLevel.Balanced)
 				.FirstOrDefault();
 
@@ -410,9 +410,9 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 	}
 
 	private InvocationModel? GenerateExpression(GeneratorSyntaxContext context, MetadataLoader loader, InvocationExpressionSyntax invocation,
-	                                            IMethodSymbol methodSymbol, GenerationLevel level, CancellationToken token)
+																							IMethodSymbol methodSymbol, GenerationLevel level, CancellationToken token)
 	{
-		if (IsInConstExprBody(invocation))
+		if (IsInConstExprBody(context.SemanticModel.Compilation, invocation))
 		{
 			return null;
 		}
@@ -439,7 +439,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		}
 
 		if (TryGetOperation<IMethodBodyOperation>(context.SemanticModel.Compilation, methodDecl, out var blockOperation) &&
-		    context.SemanticModel.Compilation.TryGetSemanticModel(invocation, out var model))
+				context.SemanticModel.Compilation.TryGetSemanticModel(invocation, out var model))
 		{
 			try
 			{
@@ -637,65 +637,65 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		{
 			case IPropertySymbol property
 				when interfaceBuilder.AppendCount(property, items.Length, code)
-				     || interfaceBuilder.AppendLength(property, items.Length, code)
-				     || interfaceBuilder.AppendIsReadOnly(property, code)
-				     || interfaceBuilder.AppendIndexer(property, items, code):
+						 || interfaceBuilder.AppendLength(property, items.Length, code)
+						 || interfaceBuilder.AppendIsReadOnly(property, code)
+						 || interfaceBuilder.AppendIndexer(property, items, code):
 			case IMethodSymbol method
 				when interfaceBuilder.AppendAdd(method, code)
-				     || interfaceBuilder.AppendClear(method, code)
-				     || interfaceBuilder.AppendRemove(method, code)
-				     || interfaceBuilder.AppendRemoveAt(method, code)
-				     || interfaceBuilder.AppendInsert(method, code)
-				     || interfaceBuilder.AppendIndexOf(method, items, code)
-				     || interfaceBuilder.AppendCopyTo(method, items, code)
-				     || interfaceBuilder.AppendContains(method, items, code)
-				     || interfaceBuilder.AppendCopyTo(method, items, code)
-				     || interfaceBuilder.AppendOverlaps(method, items, code)
-				     || enumerableBuilder.AppendAll(method, items, code)
-				     || enumerableBuilder.AppendAggregate(method, items, code)
-				     || enumerableBuilder.AppendAny(method, items, code)
-				     || enumerableBuilder.AppendAverage(method, items, code)
-				     || enumerableBuilder.AppendCount(method, items, code)
-				     || enumerableBuilder.AppendDistinct(method, items, code)
-				     || enumerableBuilder.AppendDistinctBy(method, items, code)
-				     || enumerableBuilder.AppendElementAt(method, items, code)
-				     || enumerableBuilder.AppendElementAtOrDefault(method, items, code)
-				     || enumerableBuilder.AppendFirst(method, items, code)
-				     || enumerableBuilder.AppendFirstOrDefault(method, items, code)
-				     || enumerableBuilder.AppendLast(method, items, code)
-				     || enumerableBuilder.AppendLastOrDefault(method, items, code)
-				     || enumerableBuilder.AppendOrder(method, items, code)
-				     || enumerableBuilder.AppendOrderDescending(method, items, code)
-				     || enumerableBuilder.AppendSelect(method, items, code)
-				     || enumerableBuilder.AppendSequenceEqual(method, items, code)
-				     || enumerableBuilder.AppendSingle(method, items, code)
-				     || enumerableBuilder.AppendSingleOrDefault(method, items, code)
-				     || enumerableBuilder.AppendSum(method, items, code)
-				     || enumerableBuilder.AppendWhere(method, items, code)
-				     || enumerableBuilder.AppendToArray(method, items, code)
-				     || enumerableBuilder.AppendToImmutableArray(method, items, code)
-				     || enumerableBuilder.AppendToList(method, items, code)
-				     || enumerableBuilder.AppendImmutableList(method, items, code)
-				     || enumerableBuilder.AppendToHashSet(method, items, code)
-				     || enumerableBuilder.AppendMax(method, items, code)
-				     || enumerableBuilder.AppendMin(method, items, code)
-				     || enumerableBuilder.AppendSkip(method, items, code)
-				     || enumerableBuilder.AppendTake(method, items, code)
-				     || enumerableBuilder.AppendCountBy(method, items, code)
-				     || enumerableBuilder.AppendZip(method, items, code)
-				     || enumerableBuilder.AppendChunk(method, items, code)
-				     || enumerableBuilder.AppendExcept(method, items, code)
-				     || enumerableBuilder.AppendExceptBy(method, items, code)
-				     || memoryExtensionsBuilder.AppendBinarySearch(method, items, code)
-				     || memoryExtensionsBuilder.AppendCommonPrefixLength(method, items, code)
-				     || memoryExtensionsBuilder.AppendContainsAny(method, items, code)
-				     || memoryExtensionsBuilder.AppendContainsAnyInRange(method, items, code)
-				     || memoryExtensionsBuilder.AppendCount(method, items, code)
-				     || memoryExtensionsBuilder.AppendEndsWith(method, items, code)
-				     || memoryExtensionsBuilder.AppendEnumerateLines(method, enumerable as string, code)
-				     || memoryExtensionsBuilder.AppendEnumerableRunes(method, enumerable as string, code)
-				     || memoryExtensionsBuilder.AppendIsWhiteSpace(method, enumerable as string, code)
-				     || memoryExtensionsBuilder.AppendReplace(method, items, code):
+						 || interfaceBuilder.AppendClear(method, code)
+						 || interfaceBuilder.AppendRemove(method, code)
+						 || interfaceBuilder.AppendRemoveAt(method, code)
+						 || interfaceBuilder.AppendInsert(method, code)
+						 || interfaceBuilder.AppendIndexOf(method, items, code)
+						 || interfaceBuilder.AppendCopyTo(method, items, code)
+						 || interfaceBuilder.AppendContains(method, items, code)
+						 || interfaceBuilder.AppendCopyTo(method, items, code)
+						 || interfaceBuilder.AppendOverlaps(method, items, code)
+						 || enumerableBuilder.AppendAll(method, items, code)
+						 || enumerableBuilder.AppendAggregate(method, items, code)
+						 || enumerableBuilder.AppendAny(method, items, code)
+						 || enumerableBuilder.AppendAverage(method, items, code)
+						 || enumerableBuilder.AppendCount(method, items, code)
+						 || enumerableBuilder.AppendDistinct(method, items, code)
+						 || enumerableBuilder.AppendDistinctBy(method, items, code)
+						 || enumerableBuilder.AppendElementAt(method, items, code)
+						 || enumerableBuilder.AppendElementAtOrDefault(method, items, code)
+						 || enumerableBuilder.AppendFirst(method, items, code)
+						 || enumerableBuilder.AppendFirstOrDefault(method, items, code)
+						 || enumerableBuilder.AppendLast(method, items, code)
+						 || enumerableBuilder.AppendLastOrDefault(method, items, code)
+						 || enumerableBuilder.AppendOrder(method, items, code)
+						 || enumerableBuilder.AppendOrderDescending(method, items, code)
+						 || enumerableBuilder.AppendSelect(method, items, code)
+						 || enumerableBuilder.AppendSequenceEqual(method, items, code)
+						 || enumerableBuilder.AppendSingle(method, items, code)
+						 || enumerableBuilder.AppendSingleOrDefault(method, items, code)
+						 || enumerableBuilder.AppendSum(method, items, code)
+						 || enumerableBuilder.AppendWhere(method, items, code)
+						 || enumerableBuilder.AppendToArray(method, items, code)
+						 || enumerableBuilder.AppendToImmutableArray(method, items, code)
+						 || enumerableBuilder.AppendToList(method, items, code)
+						 || enumerableBuilder.AppendImmutableList(method, items, code)
+						 || enumerableBuilder.AppendToHashSet(method, items, code)
+						 || enumerableBuilder.AppendMax(method, items, code)
+						 || enumerableBuilder.AppendMin(method, items, code)
+						 || enumerableBuilder.AppendSkip(method, items, code)
+						 || enumerableBuilder.AppendTake(method, items, code)
+						 || enumerableBuilder.AppendCountBy(method, items, code)
+						 || enumerableBuilder.AppendZip(method, items, code)
+						 || enumerableBuilder.AppendChunk(method, items, code)
+						 || enumerableBuilder.AppendExcept(method, items, code)
+						 || enumerableBuilder.AppendExceptBy(method, items, code)
+						 || memoryExtensionsBuilder.AppendBinarySearch(method, items, code)
+						 || memoryExtensionsBuilder.AppendCommonPrefixLength(method, items, code)
+						 || memoryExtensionsBuilder.AppendContainsAny(method, items, code)
+						 || memoryExtensionsBuilder.AppendContainsAnyInRange(method, items, code)
+						 || memoryExtensionsBuilder.AppendCount(method, items, code)
+						 || memoryExtensionsBuilder.AppendEndsWith(method, items, code)
+						 || memoryExtensionsBuilder.AppendEnumerateLines(method, enumerable as string, code)
+						 || memoryExtensionsBuilder.AppendEnumerableRunes(method, enumerable as string, code)
+						 || memoryExtensionsBuilder.AppendIsWhiteSpace(method, enumerable as string, code)
+						 || memoryExtensionsBuilder.AppendReplace(method, items, code):
 				return true;
 			default:
 				return false;

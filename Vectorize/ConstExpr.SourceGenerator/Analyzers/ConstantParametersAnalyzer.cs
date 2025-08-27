@@ -1,11 +1,11 @@
+using ConstExpr.SourceGenerator.Attributes;
+using ConstExpr.SourceGenerator.Helpers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System.Linq;
 using System.Threading;
-using ConstExpr.SourceGenerator.Attributes;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
-using ConstExpr.SourceGenerator.Helpers;
 
 namespace ConstExpr.SourceGenerator.Analyzers;
 
@@ -21,17 +21,17 @@ public class ConstantParametersAnalyzer : BaseAnalyzer<InvocationExpressionSynta
 	protected override bool ValidateSyntax(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax node, CancellationToken token)
 	{
 		SyntaxNode? item = node;
-		
+
 		while (item != null)
 		{
-			if (item is MethodDeclarationSyntax methodDeclaration && IsInConstExprBody(methodDeclaration))
+			if (item is MethodDeclarationSyntax methodDeclaration && IsInConstExprBody(context.Compilation, methodDeclaration))
 			{
 				return false;
 			}
 
 			item = item.Parent;
 		}
-		
+
 		return true;
 	}
 

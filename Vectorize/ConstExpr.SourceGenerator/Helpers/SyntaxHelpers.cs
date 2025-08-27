@@ -1,3 +1,4 @@
+using ConstExpr.Core.Attributes;
 using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -11,7 +12,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
-using ConstExpr.Core.Attributes;
 
 namespace ConstExpr.SourceGenerator.Helpers;
 
@@ -335,7 +335,7 @@ public static class SyntaxHelpers
 							value = temp;
 							return true;
 						}
-						
+
 						value = null;
 						return false;
 					}
@@ -400,26 +400,22 @@ public static class SyntaxHelpers
 		return false;
 	}
 
-	public static bool IsInConstExprBody(SyntaxNode node)
+	public static bool IsInConstExprBody(Compilation compilation, SyntaxNode node)
 	{
+		var typeText = node.ToFullString();
+		var typeName = node.GetType();
+
+		// Check if the node is part of a method or type with [ConstExpr] attribute
 		switch (node)
 		{
 			case MethodDeclarationSyntax method:
-				if (method.AttributeLists
-						.SelectMany(s => s.Attributes)
-						.Any(a => a.Name.ToString() == "ConstExpr")
-					|| IsInConstExprBody(method.Parent))
+				if (compilation.TryGetSemanticModel(method, out var model)
+						&& model.GetDeclaredSymbol(method) is IMethodSymbol methodSymbol
+						&& IsInConstExprBody(methodSymbol))
 				{
 					return true;
 				}
-				break;
-			case TypeDeclarationSyntax type:
-				if (type.AttributeLists
-						.SelectMany(s => s.Attributes)
-						.Any(a => a.Name.ToString() == "ConstExpr"))
-				{
-					return true;
-				}
+
 				break;
 		}
 
@@ -428,7 +424,7 @@ public static class SyntaxHelpers
 			return false;
 		}
 
-		return IsInConstExprBody(node.Parent);
+		return IsInConstExprBody(compilation, node.Parent);
 	}
 
 	public static bool IsInConstExprBody(ISymbol node)

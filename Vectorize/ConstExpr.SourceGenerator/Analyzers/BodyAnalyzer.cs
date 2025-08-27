@@ -19,7 +19,7 @@ public class BodyAnalyzer : BaseAnalyzer<InvocationExpressionSyntax, IMethodSymb
 {
 	protected override bool ValidateSyntax(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax node, CancellationToken token)
 	{
-		return !IsInConstExprBody(node);
+		return !IsInConstExprBody(context.Compilation, node);
 	}
 
 	protected override bool ValidateSymbol(SyntaxNodeAnalysisContext context, IMethodSymbol symbol, CancellationToken token)

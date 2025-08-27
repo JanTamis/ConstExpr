@@ -40,3 +40,6 @@
 /Vectorize/ConstExpr.Core/bin/Debug/netstandard2.0
 /Vectorize/ConstExpr.Core/obj/Debug/netstandard2.0
 /Vectorize/ConstExpr.Core/obj
+/Vectorize/ConstExpr.Core/bin/Release/netstandard2.0
+/Vectorize/ConstExpr.Core/bin/Release
+/Vectorize/ConstExpr.Sample/bin/Release/net9.0

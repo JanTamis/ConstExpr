@@ -7,7 +7,7 @@ namespace ConstExpr.SourceGenerator.Visitors;
 
 public partial class ConstExprOperationVisitor
 {
-	
+
 
 	private string? GetVariableName(IOperation operation)
 	{
@@ -16,7 +16,8 @@ public partial class ConstExprOperationVisitor
 			ILocalReferenceOperation localReferenceOperation => localReferenceOperation.Local.Name,
 			IParameterReferenceOperation parameterReferenceOperation => parameterReferenceOperation.Parameter.Name,
 			// IPropertyReferenceOperation propertyReferenceOperation => propertyReferenceOperation.Property.Name,
-			// IFieldReferenceOperation fieldReferenceOperation => fieldReferenceOperation.Field.Name,
+			IArrayElementReferenceOperation arrayElementReferenceOperation => GetVariableName(arrayElementReferenceOperation.ArrayReference),
+			IFieldReferenceOperation fieldReferenceOperation => fieldReferenceOperation.Field.Name,
 			IVariableDeclaratorOperation variableDeclaratorOperation => variableDeclaratorOperation.Symbol.Name,
 			_ => null,
 		};

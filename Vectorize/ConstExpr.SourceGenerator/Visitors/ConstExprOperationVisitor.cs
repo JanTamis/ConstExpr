@@ -22,6 +22,8 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 {
 	public const string RETURNVARIABLENAME = "$return$";
 
+	private bool isYield = false;
+
 	public override object? DefaultVisit(IOperation operation, IDictionary<string, object?> argument)
 	{
 		if (operation.ConstantValue is { HasValue: true, Value: var value })
@@ -41,7 +43,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 	{
 		token.ThrowIfCancellationRequested();
 
-		if (argument.ContainsKey(RETURNVARIABLENAME))
+		if (!isYield && argument.ContainsKey(RETURNVARIABLENAME))
 		{
 			return null;
 		}
@@ -80,7 +82,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 		if (operation.Initializer?.ElementValues is { } values)
 		{
-			SetValues(data, [ ], 0);
+			SetValues(data, [], 0);
 		}
 
 		return data;
@@ -139,7 +141,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		if (array.GetType().IsArray)
 		{
 			return array.GetType().GetMethod("Get")?.Invoke(array, indexers)
-			       ?? array.GetType().GetMethod("GetValue", indexers.Select(i => typeof(int)).ToArray())?.Invoke(array, indexers);
+						 ?? array.GetType().GetMethod("GetValue", indexers.Select(i => typeof(int)).ToArray())?.Invoke(array, indexers);
 		}
 
 		// Handle collections with indexers (List<T>, Dictionary<K,V>, etc.)
@@ -147,12 +149,12 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		{
 			var parameters = pi.GetIndexParameters();
 
-			if (parameters.Length == indexers.Length 
-			    && parameters
-				    .Select((p, i) => indexers[i] != null 
-				                      && (p.ParameterType.IsAssignableFrom(indexers[i].GetType()) 
-				                          || indexers[i] is IConvertible))
-				    .All(x => x))
+			if (parameters.Length == indexers.Length
+					&& parameters
+						.Select((p, i) => indexers[i] != null
+															&& (p.ParameterType.IsAssignableFrom(indexers[i].GetType())
+																	|| indexers[i] is IConvertible))
+						.All(x => x))
 			{
 				// Convert indices to the expected parameter types if needed
 				for (var i = 0; i < indexers.Length; i++)
@@ -162,7 +164,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 						indexers[i] = Convert.ChangeType(indexers[i], parameters[i].ParameterType);
 					}
 				}
-				
+
 				return pi.GetValue(array, indexers);
 			}
 		}
@@ -217,7 +219,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 	{
 		var left = Visit(operation.LeftOperand, argument);
 		var right = Visit(operation.RightOperand, argument);
-		
+
 		var operatorKind = operation.OperatorKind;
 		var method = operation.OperatorMethod;
 
@@ -231,16 +233,9 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 	public override object? VisitBlock(IBlockOperation operation, IDictionary<string, object?> argument)
 	{
-		var names = argument.Keys;
-
 		foreach (var currentOperation in operation.Operations)
 		{
 			Visit(currentOperation, argument);
-		}
-
-		foreach (var name in argument.Keys.Except(names))
-		{
-			argument.Remove(name);
 		}
 
 		return null;
@@ -281,10 +276,10 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		if (namedType.Constructors.Any(c => c.Parameters.IsEmpty) && namedType.HasMethod("Add"))
 		{
 			var instance = Activator.CreateInstance(targetType);
-			var addMethod = targetType.GetMethod("Add", [ loader.GetType(operation.Elements[0].Type) ]);
+			var addMethod = targetType.GetMethod("Add", [loader.GetType(operation.Elements[0].Type)]);
 
 			foreach (var element in operation.Elements)
-				addMethod?.Invoke(instance, [ Visit(element, argument) ]);
+				addMethod?.Invoke(instance, [Visit(element, argument)]);
 
 			return instance;
 		}
@@ -328,7 +323,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 			foreach (var element in elements)
 			{
-				addMethod?.Invoke(instance, [ element ]);
+				addMethod?.Invoke(instance, [element]);
 			}
 
 			return instance;
@@ -396,7 +391,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			.ToArray();
 
 		if (SyntaxHelpers.IsInConstExprBody(targetMethod)
-		    && SyntaxHelpers.TryGetOperation<IMethodBodyOperation>(compilation, targetMethod, out var methodOperation))
+				&& SyntaxHelpers.TryGetOperation<IMethodBodyOperation>(compilation, targetMethod, out var methodOperation))
 		{
 			var syntax = targetMethod.DeclaringSyntaxReferences
 				.Select(s => s.GetSyntax(token))
@@ -428,9 +423,9 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		foreach (var caseClause in operation.Cases)
 		{
 			if (caseClause.Clauses
-			    .Where(w => w.CaseKind != CaseKind.Default)
-			    .Select(s => Visit(s, argument))
-			    .Contains(value))
+					.Where(w => w.CaseKind != CaseKind.Default)
+					.Select(s => Visit(s, argument))
+					.Contains(value))
 			{
 				VisitList(caseClause.Body, argument);
 
@@ -441,9 +436,9 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		foreach (var caseClause in operation.Cases)
 		{
 			if (caseClause.Clauses
-			    .Where(w => w.CaseKind == CaseKind.Default)
-			    .Select(s => Visit(s, argument))
-			    .Contains(value))
+					.Where(w => w.CaseKind == CaseKind.Default)
+					.Select(s => Visit(s, argument))
+					.Contains(value))
 			{
 				VisitList(caseClause.Body, argument);
 			}
@@ -488,6 +483,8 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 				{
 					data = new List<object?>();
 					argument[RETURNVARIABLENAME] = data;
+
+					isYield = true;
 				}
 
 				data.Add(Visit(operation.ReturnedValue, argument));
@@ -575,8 +572,8 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 						_ => 0
 					};
 
-					var formatted = !String.IsNullOrEmpty(format) && value is IFormattable formattable 
-						? formattable.ToString(format, null) 
+					var formatted = !String.IsNullOrEmpty(format) && value is IFormattable formattable
+						? formattable.ToString(format, null)
 						: value?.ToString() ?? String.Empty;
 
 					if (alignment != 0)
@@ -683,18 +680,18 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return operation.Type?.SpecialType switch
 		{
 			SpecialType.System_Boolean => false,
-			SpecialType.System_Byte => (byte) 0,
-			SpecialType.System_Char => (char) 0,
+			SpecialType.System_Byte => (byte)0,
+			SpecialType.System_Char => (char)0,
 			SpecialType.System_DateTime => default(DateTime),
 			SpecialType.System_Decimal => 0M,
 			SpecialType.System_Double => 0D,
-			SpecialType.System_Int16 => (short) 0,
+			SpecialType.System_Int16 => (short)0,
 			SpecialType.System_Int32 => 0,
 			SpecialType.System_Int64 => 0L,
-			SpecialType.System_SByte => (sbyte) 0,
+			SpecialType.System_SByte => (sbyte)0,
 			SpecialType.System_Single => 0F,
 			SpecialType.System_String => null,
-			SpecialType.System_UInt16 => (ushort) 0,
+			SpecialType.System_UInt16 => (ushort)0,
 			SpecialType.System_UInt32 => 0U,
 			SpecialType.System_UInt64 => 0UL,
 			_ => null,
@@ -980,7 +977,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 				Visit(operation.Finally, argument);
 			}
 		}
-		
+
 		return null;
 	}
 
@@ -1005,7 +1002,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 	public override object? VisitSwitchExpression(ISwitchExpressionOperation operation, IDictionary<string, object?> argument)
 	{
 		var value = Visit(operation.Value, argument);
-		
+
 		foreach (var arm in operation.Arms)
 		{
 			if (MatchPattern(value, arm.Pattern, argument))
@@ -1016,24 +1013,24 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 				}
 			}
 		}
-		
+
 		return null;
 	}
 
 	public override object? VisitWith(IWithOperation operation, IDictionary<string, object?> argument)
 	{
 		var receiver = Visit(operation.Operand, argument);
-		
+
 		if (receiver == null) return null;
 
 		var type = receiver.GetType();
-		var copyCtor = type.GetConstructor([ type ]);
-		
+		var copyCtor = type.GetConstructor([type]);
+
 		object clone;
 
 		if (copyCtor != null)
 		{
-			clone = copyCtor.Invoke([ receiver ]);
+			clone = copyCtor.Invoke([receiver]);
 		}
 		else
 		{
@@ -1054,7 +1051,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 		return clone;
 	}
-	
+
 	private bool MatchPattern(object? value, IPatternOperation pattern, IDictionary<string, object?> argument)
 	{
 		switch (pattern)
@@ -1065,7 +1062,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 				if (declarationPattern.MatchedType != null && value != null)
 				{
 					var matchedType = loader.GetType(declarationPattern.MatchedType);
-					
+
 					if (matchedType != null && !matchedType.IsInstanceOfType(value))
 					{
 						return false;
@@ -1077,7 +1074,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 						argument[declaration.Name] = value;
 					}
 				}
-				
+
 				return value == null;
 			case IDiscardPatternOperation:
 				return true;
@@ -1085,7 +1082,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 				if (value is IComparable comparable && relationalPattern.Value.ConstantValue is { HasValue: true, Value: var relValue })
 				{
 					var cmp = comparable.CompareTo(relValue);
-					
+
 					return relationalPattern.OperatorKind switch
 					{
 						BinaryOperatorKind.LessThan => cmp < 0,
@@ -1095,12 +1092,12 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 						_ => false
 					};
 				}
-				
+
 				return false;
 			case IBinaryPatternOperation binaryPattern:
 				var left = MatchPattern(value, binaryPattern.LeftPattern, argument);
 				var right = MatchPattern(value, binaryPattern.RightPattern, argument);
-				
+
 				return binaryPattern.OperatorKind switch
 				{
 					BinaryOperatorKind.And => left && right,

@@ -1,16 +1,15 @@
+using ConstExpr.Core.Attributes;
+using ConstExpr.Core.Enumerators;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using ConstExpr.Core.Attributes;
-using ConstExpr.Core.Enumerators;
 
 [assembly: ConstExpr(Level = GenerationLevel.Performance)]
 
 namespace ConstExpr.SourceGenerator.Sample;
 
-// [ConstExpr]
 public static class Test
 {
 	public static IEnumerable<double> IsOdd(params IEnumerable<double> data)
@@ -43,7 +42,7 @@ public static class Test
 			return false;
 		}
 
-		var sqrt = (int) Math.Sqrt(number);
+		var sqrt = (int)Math.Sqrt(number);
 
 		for (var i = 3; i <= sqrt; i += 2)
 		{
@@ -85,7 +84,7 @@ public static class Test
 
 	public static ICharCollection Base64Encode(string value)
 	{
-		return (ICharCollection) (object) Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
+		return (ICharCollection)(object)Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
 	}
 
 	public async static Task<string> Waiting()
@@ -102,7 +101,7 @@ public static class Test
 
 		for (var i = 0; i < count; i++)
 		{
-			result.Add((byte) random.Next(5));
+			result.Add((byte)random.Next(5));
 		}
 
 		return result.OrderBy(o => o).ToList();
@@ -110,7 +109,7 @@ public static class Test
 
 	public static IReadOnlyList<string> Split(string value, char separator)
 	{
-		return value.Split((char[]) [ separator ]);
+		return value.Split((char[])[separator]);
 	}
 
 	public static string ToString<T>(this T value) where T : Enum
@@ -143,12 +142,13 @@ public static class Test
 
 	public static IEnumerable<long> FibonacciSequence(int count)
 	{
-		if (count < 0)
-		{
-			throw new ArgumentOutOfRangeException(nameof(count));
-		}
+		//if (count < 0)
+		//{
+		//	throw new ArgumentOutOfRangeException(nameof(count));
+		//}
 
-		long a = 0, b = 1;
+		long a = 0;
+		long b = 1;
 
 		for (var i = 0; i < count; i++)
 		{
@@ -225,19 +225,19 @@ public static class Test
 
 	public static (byte r, byte g, byte b) HslToRgb(float h, float s, float l)
 	{
-		h = h % 360f;
+		h %= 360f;
 
 		if (h < 0)
 		{
 			h += 360f;
 		}
-		
+
 		s = Clamp01(s);
 		l = Clamp01(l);
 
 		if (s == 0f)
 		{
-			var vGray = (byte) Math.Round(l * 255f);
+			var vGray = (byte)Math.Round(l * 255f);
 			return (vGray, vGray, vGray);
 		}
 
@@ -282,9 +282,10 @@ public static class Test
 		}
 
 		var m = l - c / 2f;
-		var r = (byte) Math.Round((r1 + m) * 255f);
-		var g = (byte) Math.Round((g1 + m) * 255f);
-		var b = (byte) Math.Round((b1 + m) * 255f);
+		var r = (byte)Math.Round((r1 + m) * 255f);
+		var g = (byte)Math.Round((g1 + m) * 255f);
+		var b = (byte)Math.Round((b1 + m) * 255f);
+
 		return (r, g, b);
 	}
 
@@ -293,7 +294,10 @@ public static class Test
 		static float Channel(byte c)
 		{
 			var cs = c / 255f;
-			return cs <= 0.03928f ? cs / 12.92f : MathF.Pow((cs + 0.055f) / 1.055f, 2.4f);
+
+			return cs <= 0.03928f
+				? cs / 12.92f
+				: MathF.Pow((cs + 0.055f) / 1.055f, 2.4f);
 		}
 
 		var rl = Channel(r);
@@ -326,6 +330,7 @@ public static class Test
 		{
 			return 1f;
 		}
+
 		return v;
 	}
 
