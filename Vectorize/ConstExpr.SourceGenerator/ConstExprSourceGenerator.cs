@@ -168,7 +168,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				IEnumerable<string> interfaces = [compilation.GetMinimalString(namedTypeSymbol)];
 
 				code.WriteLine();
-				using (code.WriteBlock($"file sealed class {namedTypeSymbol.Name:literal}_{valueHashSuffix:literal} : {string.Join(", ", interfaces):literal}"))
+				using (code.WriteBlock($"file sealed class {namedTypeSymbol.Name:literal}_{valueHashSuffix:literal} : {String.Join(", ", interfaces):literal}"))
 				{
 					code.WriteLine($"public static {namedTypeSymbol.Name:literal}_{valueHashSuffix:literal} Instance = new {namedTypeSymbol.Name:literal}_{valueHashSuffix:literal}();");
 
@@ -195,7 +195,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		{
 			if (elementType.SpecialType == SpecialType.System_Char)
 			{
-				code.WriteLine($"public static ReadOnlySpan<{elementType}> {dataFieldName:literal} => \"{string.Join(string.Empty, enumerable.Cast<object?>()):literal}\";");
+				code.WriteLine($"public static ReadOnlySpan<{elementType}> {dataFieldName:literal} => \"{String.Join(String.Empty, enumerable.Cast<object?>()):literal}\";");
 			}
 			else if (elementType.IsVectorSupported())
 			{

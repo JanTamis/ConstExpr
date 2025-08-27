@@ -212,6 +212,31 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 	public override object? VisitSimpleAssignment(ISimpleAssignmentOperation operation, IDictionary<string, object?> argument)
 	{
+		if (operation.Target is IArrayElementReferenceOperation arrayElement)
+		{
+			var array = Visit(arrayElement.ArrayReference, argument);
+			
+			var indices = arrayElement.Indices
+				.Select(s => Visit(s, argument))
+				.ToArray();
+
+			if (array is Array arr)
+			{
+				var value = Visit(operation.Value, argument);
+				
+				if (indices.All(a => a is int))
+				{
+					arr.SetValue(value, indices.Cast<int>().ToArray());
+				}
+				else if (indices.All(a => a is long))
+				{
+					arr.SetValue(value, indices.Cast<long>().ToArray());
+				}
+
+				return value;
+			}
+		}
+		
 		return argument[GetVariableName(operation.Target)] = Visit(operation.Value, argument);
 	}
 
@@ -390,27 +415,39 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			.Select(s => Visit(s.Value, argument))
 			.ToArray();
 
-		if (SyntaxHelpers.IsInConstExprBody(targetMethod)
-				&& SyntaxHelpers.TryGetOperation<IMethodBodyOperation>(compilation, targetMethod, out var methodOperation))
+		if (SyntaxHelpers.IsInConstExprBody(targetMethod))
 		{
-			var syntax = targetMethod.DeclaringSyntaxReferences
-				.Select(s => s.GetSyntax(token))
-				.OfType<MethodDeclarationSyntax>()
-				.FirstOrDefault();
-
-			var variables = new Dictionary<string, object?>();
-
-			for (var i = 0; i < syntax.ParameterList.Parameters.Count; i++)
+			if (SyntaxHelpers.TryGetOperation<IOperation>(compilation, targetMethod, out var methodOperation))
 			{
-				var parameterName = syntax.ParameterList.Parameters[i].Identifier.Text;
+				var parameters = methodOperation.Syntax switch
+				{
+					LocalFunctionStatementSyntax localFunc => localFunc.ParameterList,
+					MethodDeclarationSyntax methodDecl => methodDecl.ParameterList,
+				};
 
-				variables.Add(parameterName, arguments[i]);
+				var variables = new Dictionary<string, object?>();
+
+				for (var i = 0; i < parameters.Parameters.Count; i++)
+				{
+					var parameterName = parameters.Parameters[i].Identifier.Text;
+
+					variables.Add(parameterName, arguments[i]);
+				}
+
+				var visitor = new ConstExprOperationVisitor(compilation, loader, exceptionHandler, token);
+
+				switch (methodOperation)
+				{
+					case ILocalFunctionOperation localFunction:
+						visitor.VisitBlock(localFunction.Body, variables);
+						break;
+					case IMethodBodyOperation methodBody:
+						visitor.VisitBlock(methodBody.BlockBody, variables);
+						break;
+				}
+
+				return variables[RETURNVARIABLENAME];
 			}
-
-			var visitor = new ConstExprOperationVisitor(compilation, loader, exceptionHandler, token);
-			visitor.VisitBlock(methodOperation.BlockBody, variables);
-
-			return variables[RETURNVARIABLENAME];
 		}
 
 		return compilation.ExecuteMethod(loader, targetMethod, instance, argument, arguments);

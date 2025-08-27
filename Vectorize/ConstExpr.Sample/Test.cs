@@ -125,13 +125,13 @@ public static class Test
 	public static ICustomCollection<int> Fibonacci(int count)
 	{
 		var items = new List<int>(count);
-
+		
 		int a = 0, b = 1;
-
+		
 		for (var i = 0; i < count; i++)
 		{
 			items.Add(a);
-
+		
 			var temp = a;
 			a = b;
 			b = temp + b;
@@ -291,6 +291,12 @@ public static class Test
 
 	public static float Luminance(byte r, byte g, byte b)
 	{
+		var rl = Channel(r);
+		var gl = Channel(g);
+		var bl = Channel(b);
+		
+		return 0.2126f * rl + 0.7152f * gl + 0.0722f * bl;
+
 		static float Channel(byte c)
 		{
 			var cs = c / 255f;
@@ -299,11 +305,6 @@ public static class Test
 				? cs / 12.92f
 				: MathF.Pow((cs + 0.055f) / 1.055f, 2.4f);
 		}
-
-		var rl = Channel(r);
-		var gl = Channel(g);
-		var bl = Channel(b);
-		return 0.2126f * rl + 0.7152f * gl + 0.0722f * bl;
 	}
 
 	public static float ContrastRatio(byte r1, byte g1, byte b1, byte r2, byte g2, byte b2)
@@ -321,17 +322,13 @@ public static class Test
 
 	private static float Clamp01(float v)
 	{
-		if (v < 0f)
+		return v switch
 		{
-			return 0f;
-		}
+			< 0f => 0f,
+			> 1f => 1f,
+			_ => v
+		};
 
-		if (v > 1f)
-		{
-			return 1f;
-		}
-
-		return v;
 	}
 
 	public static (float h, float s, float l) RgbToHsl(byte r, byte g, byte b)
