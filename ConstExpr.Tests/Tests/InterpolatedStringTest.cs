@@ -6,19 +6,19 @@ public class InterpolatedStringTest : BaseTest<string>
 
 	public override string SourceCode => """
 		using System.Collections.Generic;
-		using ConstantExpression;
+		using ConstExpr.Core.Attributes;
 
 		namespace Testing;
 
 		public static class Classes
 		{
-			public void Test()
+			public static void Test()
 			{
-				Test.BasicInterpolation("World");
-				Test.NumericInterpolation(42);
-				Test.ExpressionInterpolation(new[] { 1, 2, 3, 4, 5 });
-				Test.FormattedInterpolation(123.45m);
-				Test.ComplexInterpolation("John", 30);
+				BasicInterpolation("World");
+				NumericInterpolation(42);
+				ExpressionInterpolation(new[] { 1, 2, 3, 4, 5 });
+				FormattedInterpolation(123.45m);
+				ComplexInterpolation("John", 30);
 			}
 			
 			[ConstExpr]

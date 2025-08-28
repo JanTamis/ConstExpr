@@ -1118,6 +1118,11 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return null;
 	}
 
+	public override object? VisitLocalFunction(ILocalFunctionOperation operation, IDictionary<string, object?> argument)
+	{
+		return null;
+	}
+
 	public override object? VisitWith(IWithOperation operation, IDictionary<string, object?> argument)
 	{
 		var receiver = Visit(operation.Operand, argument);
@@ -1155,7 +1160,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 		return clone;
 	}
-
+	
 	private bool MatchPattern(object? value, IPatternOperation pattern, IDictionary<string, object?> argument)
 	{
 		switch (pattern)

@@ -7,22 +7,21 @@ public class DateTimeTest : BaseTest<int>
 	public override string SourceCode => """
 		using System;
 		using System.Collections.Generic;
-		using ConstantExpression;
+		using ConstExpr.Core.Attributes;
 
 		namespace Testing;
 
-		[ConstExpr(Level = GenerationLevel.Performance)]
 		public static class Classes
 		{
-			public void Test()
+			public static void Test()
 			{
-				Test.DaysBetween(new DateTime(2023, 1, 1), new DateTime(2023, 1, 4));
+				DaysBetween(new DateTime(2023, 1, 1), new DateTime(2023, 1, 4));
 			}
 			
-			
+			[ConstExpr]
 			public static IEnumerable<int> DaysBetween(DateTime start, DateTime end)
 			{
-				return new[] { (end - start).Days };
+				yield return (end - start).Days;
 			}
 		}
 		""";

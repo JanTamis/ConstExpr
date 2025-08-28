@@ -7,15 +7,15 @@ public class IsOddTest : BaseTest<float>
 	public override string SourceCode => """
 		using System.Collections.Generic;
 		using System.Linq;
-		using ConstantExpression;
+		using ConstExpr.Core.Attributes;
 		
 		namespace Testing;
 		
 		public static class Classes
 		{
-			public void Test()
+			public static void Test()
 			{
-				Test.IsOdd(1f, 2f, 3f, 4f, 5f);
+				IsOdd(1f, 2f, 3f, 4f, 5f);
 			}
 			
 			[ConstExpr]

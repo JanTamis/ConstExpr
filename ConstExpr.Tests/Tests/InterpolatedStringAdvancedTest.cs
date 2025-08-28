@@ -16,22 +16,22 @@ public class InterpolatedStringAdvancedTest : BaseTest<string>
 	public override string SourceCode => """
 		using System;
 		using System.Collections.Generic;
-		using ConstantExpression;
+		using ConstExpr.Core.Attributes;
 
 		namespace Testing;
 
 		public static class Classes
 		{
-			public void Test()
+			public static void Test()
 			{
-				Test.HexFormatting(255);
-				Test.BinaryFormatting(10);
-				Test.DateFormatting(new DateTime(2023, 12, 25));
-				Test.TimeFormatting(new TimeSpan(14, 30, 0));
-				Test.MultiLineString();
-				Test.EmptyString();
-				Test.NullString();
-				Test.ConditionalString(true);
+				HexFormatting(255);
+				BinaryFormatting(10);
+				DateFormatting(new DateTime(2023, 12, 25));
+				TimeFormatting(new TimeSpan(14, 30, 0));
+				MultiLineString();
+				EmptyString();
+				NullString();
+				ConditionalString(true);
 			}
 			
 			[ConstExpr]

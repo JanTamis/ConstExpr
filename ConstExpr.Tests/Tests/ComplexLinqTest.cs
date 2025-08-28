@@ -7,15 +7,15 @@ public class ComplexLinqTest : BaseTest<int>
 	public override string SourceCode => """
 		using System.Collections.Generic;
 		using System.Linq;
-		using ConstantExpression;
+		using ConstExpr.Core.Attributes;
 
 		namespace Testing;
 
 		public static class Classes
 		{
-			public void Test()
+			public static void Test()
 			{
-				Test.ProcessNumbers(1, 2, 3, 4, 5, 6);
+				ProcessNumbers(1, 2, 3, 4, 5, 6);
 			}
 			
 			[ConstExpr]

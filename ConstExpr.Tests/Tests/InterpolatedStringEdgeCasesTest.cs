@@ -15,7 +15,7 @@ public class InterpolatedStringEdgeCasesTest : BaseTest<string>
 		using System;
 		using System.Collections.Generic;
 		using System.Linq;
-		using ConstantExpression;
+		using ConstExpr.Core.Attributes;
 
 		namespace Testing;
 
@@ -32,14 +32,14 @@ public class InterpolatedStringEdgeCasesTest : BaseTest<string>
 
 		public static class Classes
 		{
-			public void Test()
+			public static void Test()
 			{
-				Test.NestedInterpolation("John");
-				Test.MathExpression(3, 4);
-				Test.ArrayToString(new[] { 1, 2, 3 });
-				Test.ObjectToString(new Person { Name = "Alice", Age = 25 });
-				Test.EscapedBraces();
-				Test.MultipleVariables(10, 20);
+				NestedInterpolation("John");
+				MathExpression(3, 4);
+				ArrayToString(new[] { 1, 2, 3 });
+				ObjectToString(new Person { Name = "Alice", Age = 25 });
+				EscapedBraces();
+				MultipleVariables(10, 20);
 			}
 			
 			[ConstExpr]

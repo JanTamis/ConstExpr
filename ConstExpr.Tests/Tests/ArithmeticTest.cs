@@ -6,15 +6,15 @@ public class ArithmeticTest : BaseTest<int>
 
 	public override string SourceCode => """
 		using System.Collections.Generic;
-		using ConstantExpression;
+		using ConstExpr.Core.Attributes;
 
 		namespace Testing;
 
 		public static class Classes
 		{
-		 	public void Test()
+		 	public static void Test()
 		 	{
-				Test.Calculate(1, 2, 5, 10);
+				Calculate(1, 2, 5, 10);
 		 	}	
 		 	
 		 	[ConstExpr]

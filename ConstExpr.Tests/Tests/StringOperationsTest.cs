@@ -7,15 +7,15 @@ public class StringOperationsTest : BaseTest<string>
 	public override string SourceCode => """
 		using System.Collections.Generic;
 		using System.Linq;
-		using ConstantExpression;
+		using ConstExpr.Core.Attributes;
 
 		namespace Testing;
 
 		public static class Classes
 		{
-			public void Test()
+			public static void Test()
 			{
-				Test.ToUpperCase("hello", "world", "test");
+				ToUpperCase("hello", "world", "test");
 			}
 			
 			[ConstExpr]

@@ -34,15 +34,8 @@
 
 	<ItemGroup>
 		<Compile Remove="bin\**" />
-		<Compile Remove="Generated\**" />
 		<EmbeddedResource Remove="bin\**" />
-		<EmbeddedResource Remove="Generated\**" />
 		<None Remove="bin\**" />
-		<None Remove="Generated\**" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <None Remove="C:\Users\jan.tamis\source\repos\JanTamis\Vectorize\Vectorize\ConstExpr.SourceGenerator\bin\Release\netstandard2.0\ConstExpr.SourceGenerator.dll" />
 	</ItemGroup>
 
 	<!-- Analyzer dll include AFTER removal so it isn't excluded -->

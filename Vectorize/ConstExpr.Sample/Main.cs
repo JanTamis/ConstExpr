@@ -29,7 +29,7 @@ using System;
 //  // BenchmarkRunner.Run<ReplaceTest>();
 //
 //  // Numbers / sequences
-Console.WriteLine("Primes up to 50: " + String.Join(", ", Test.PrimesUpTo(50)));
+// Console.WriteLine("Primes up to 50: " + String.Join(", ", Test.PrimesUpTo(50)));
 //  Console.WriteLine("First 12 Fibonacci (long): " + String.Join(", ", Test.FibonacciSequence(12)));
 //  Console.WriteLine("Clamp(15, 0, 10) => " + Test.Clamp(15, 0, 10));
 //  Console.WriteLine("Map(5, 0..10 -> 0..100) => " + Test.Map(5, 0, 10, 0, 100));
@@ -42,8 +42,9 @@ Console.WriteLine("Primes up to 50: " + String.Join(", ", Test.PrimesUpTo(50)));
 var lumDark = Test.Luminance(0, 128, 0);
 var lumLight = Test.Luminance(255, 255, 255);
 // Console.WriteLine($"Luminance black={lumDark:F4} white={lumLight:F4}");
-Console.WriteLine("Contrast black/white: " + Test.ContrastRatio(0, 0, 0, 255, 255, 255).ToString("F2"));
+// Console.WriteLine("Contrast black/white: " + Test.ContrastRatio(0, 0, 0, 255, 255, 255).ToString("F2"));
 //
 // // A couple of pre-existing samples to keep context
 // Console.WriteLine("IsPrime(97) => " + Test.IsPrime(97));
 // Console.WriteLine("StdDev(1..5) => " + Test.StdDev(1, 2, 3, 4, 5));
+

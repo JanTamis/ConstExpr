@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
 [assembly: ConstExpr(Level = GenerationLevel.Performance)]
 
 namespace ConstExpr.SourceGenerator.Sample;
@@ -43,7 +42,7 @@ public static class Test
 			return false;
 		}
 
-		var sqrt = (int)Math.Sqrt(number);
+		var sqrt = (int) Math.Sqrt(number);
 
 		for (var i = 3; i <= sqrt; i += 2)
 		{
@@ -85,7 +84,7 @@ public static class Test
 
 	public static ICharCollection Base64Encode(string value)
 	{
-		return (ICharCollection)(object)Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
+		return (ICharCollection) (object) Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
 	}
 
 	public async static Task<string> Waiting()
@@ -102,7 +101,7 @@ public static class Test
 
 		for (var i = 0; i < count; i++)
 		{
-			result.Add((byte)random.Next(5));
+			result.Add((byte) random.Next(5));
 		}
 
 		return result.OrderBy(o => o).ToList();
@@ -110,7 +109,7 @@ public static class Test
 
 	public static IReadOnlyList<string> Split(string value, char separator)
 	{
-		return value.Split((char[])[separator]);
+		return value.Split((char[]) [ separator ]);
 	}
 
 	public static string ToString<T>(this T value) where T : Enum
@@ -143,13 +142,10 @@ public static class Test
 
 	public static IEnumerable<long> FibonacciSequence(int count)
 	{
-		//if (count < 0)
-		//{
-		//	throw new ArgumentOutOfRangeException(nameof(count));
-		//}
+		ArgumentOutOfRangeException.ThrowIfNegative(count);
 
-		long a = 0;
-		long b = 1;
+		var a = 0L;
+		var b = 1L;
 
 		for (var i = 0; i < count; i++)
 		{
@@ -238,7 +234,7 @@ public static class Test
 
 		if (s == 0f)
 		{
-			var vGray = (byte)Math.Round(l * 255f);
+			var vGray = (byte) Math.Round(l * 255f);
 			return (vGray, vGray, vGray);
 		}
 
@@ -283,9 +279,9 @@ public static class Test
 		}
 
 		var m = l - c / 2f;
-		var r = (byte)Math.Round((r1 + m) * 255f);
-		var g = (byte)Math.Round((g1 + m) * 255f);
-		var b = (byte)Math.Round((b1 + m) * 255f);
+		var r = (byte) Math.Round((r1 + m) * 255f);
+		var g = (byte) Math.Round((g1 + m) * 255f);
+		var b = (byte) Math.Round((b1 + m) * 255f);
 
 		return (r, g, b);
 	}
