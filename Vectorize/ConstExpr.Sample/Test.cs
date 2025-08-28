@@ -1,6 +1,7 @@
 using ConstExpr.Core.Attributes;
 using ConstExpr.Core.Enumerators;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -125,13 +126,13 @@ public static class Test
 	public static ICustomCollection<int> Fibonacci(int count)
 	{
 		var items = new List<int>(count);
-		
+
 		int a = 0, b = 1;
-		
+
 		for (var i = 0; i < count; i++)
 		{
 			items.Add(a);
-		
+
 			var temp = a;
 			a = b;
 			b = temp + b;
@@ -171,7 +172,7 @@ public static class Test
 		}
 
 		// Simple sieve for reasonable max values
-		var sieve = new bool[max + 1];
+		var sieve = new BitArray(max + 1);
 
 		for (var p = 2; p * p <= max; p++)
 		{
@@ -294,7 +295,7 @@ public static class Test
 		var rl = Channel(r);
 		var gl = Channel(g);
 		var bl = Channel(b);
-		
+
 		return 0.2126f * rl + 0.7152f * gl + 0.0722f * bl;
 
 		static float Channel(byte c)

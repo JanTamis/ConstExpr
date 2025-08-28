@@ -212,18 +212,18 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 	public override object? VisitSimpleAssignment(ISimpleAssignmentOperation operation, IDictionary<string, object?> argument)
 	{
+		var value = Visit(operation.Value, argument);
+
 		if (operation.Target is IArrayElementReferenceOperation arrayElement)
 		{
 			var array = Visit(arrayElement.ArrayReference, argument);
-			
+
 			var indices = arrayElement.Indices
 				.Select(s => Visit(s, argument))
 				.ToArray();
 
 			if (array is Array arr)
 			{
-				var value = Visit(operation.Value, argument);
-				
 				if (indices.All(a => a is int))
 				{
 					arr.SetValue(value, indices.Cast<int>().ToArray());
@@ -236,8 +236,45 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 				return value;
 			}
 		}
-		
-		return argument[GetVariableName(operation.Target)] = Visit(operation.Value, argument);
+		else if (operation.Target is IPropertyReferenceOperation propertyReference)
+		{
+			var instance = Visit(propertyReference.Instance, argument);
+			var type = loader.GetType(propertyReference.Property.ContainingType);
+
+			if (propertyReference.Arguments.Length > 0)
+			{
+				var propertyInfo = type
+					.GetProperties()
+					.FirstOrDefault(f => f.GetIndexParameters().Length == propertyReference.Arguments.Length)
+					?? throw new InvalidOperationException("Indexer property info could not be retrieved.");
+
+				var indices = propertyReference.Arguments.Select(a => Visit(a.Value, argument)).ToArray();
+
+				propertyInfo.SetValue(instance, value, indices);
+
+				return value;
+			}
+			else
+			{
+				var name = propertyReference.Property.Name;
+
+				var propertyInfo = type
+					.GetProperties()
+					.FirstOrDefault(f => f.Name == name && f.GetMethod.IsStatic == propertyReference.Property.IsStatic)
+					?? throw new InvalidOperationException("Property info could not be retrieved.");
+
+				if (propertyReference.Property.IsStatic)
+				{
+					propertyInfo.SetValue(null, value);
+					return value;
+				}
+
+				propertyInfo.SetValue(instance, value);
+				return value;
+			}
+		}
+
+		return argument[GetVariableName(operation.Target)] = value;
 	}
 
 	public override object? VisitBinaryOperator(IBinaryOperation operation, IDictionary<string, object?> argument)
@@ -294,7 +331,9 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		}
 
 		if (operation.Type is not INamedTypeSymbol namedType)
+		{
 			return null;
+		}
 
 		var targetType = loader.GetType(operation.Type);
 
@@ -304,7 +343,9 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			var addMethod = targetType.GetMethod("Add", [loader.GetType(operation.Elements[0].Type)]);
 
 			foreach (var element in operation.Elements)
+			{
 				addMethod?.Invoke(instance, [Visit(element, argument)]);
+			}
 
 			return instance;
 		}
@@ -770,26 +811,49 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		var instance = Visit(operation.Instance, argument);
 		var type = loader.GetType(operation.Property.ContainingType);
 
-		var propertyInfo = type
-			.GetProperties()
-			.FirstOrDefault(f => f.Name == operation.Property.Name && f.GetMethod.IsStatic == operation.Property.IsStatic);
-
-		if (propertyInfo == null)
+		// Handle indexer properties (usually named "Item")
+		if (operation.Arguments.Length > 0)
 		{
-			throw new InvalidOperationException("Property info could not be retrieved.");
-		}
+			var propertyInfo = type
+				.GetProperties()
+				.FirstOrDefault(f => f.GetIndexParameters().Length == operation.Arguments.Length);
 
-		if (operation.Property.IsStatic)
+			if (propertyInfo == null)
+			{
+				throw new InvalidOperationException("Indexer property info could not be retrieved.");
+			}
+
+			var indices = operation.Arguments
+				.Select(a => Visit(a.Value, argument))
+				.ToArray();
+
+			return propertyInfo.GetValue(instance, indices);
+		}
+		else
 		{
-			return propertyInfo.GetValue(null);
-		}
+			var name = operation.Property.Name;
 
-		if (instance is IConvertible)
-		{
-			instance = Convert.ChangeType(instance, propertyInfo.PropertyType);
-		}
+			var propertyInfo = type
+				.GetProperties()
+				.FirstOrDefault(f => f.Name == name && f.GetMethod.IsStatic == operation.Property.IsStatic);
 
-		return propertyInfo.GetValue(instance);
+			if (propertyInfo == null)
+			{
+				throw new InvalidOperationException("Property info could not be retrieved.");
+			}
+
+			if (operation.Property.IsStatic)
+			{
+				return propertyInfo.GetValue(null);
+			}
+
+			if (instance is IConvertible)
+			{
+				instance = Convert.ChangeType(instance, propertyInfo.PropertyType);
+			}
+
+			return propertyInfo.GetValue(instance);
+		}
 	}
 
 	public override object? VisitAwait(IAwaitOperation operation, IDictionary<string, object?> argument)
@@ -1058,7 +1122,10 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 	{
 		var receiver = Visit(operation.Operand, argument);
 
-		if (receiver == null) return null;
+		if (receiver == null)
+		{
+			return null;
+		}
 
 		var type = receiver.GetType();
 		var copyCtor = type.GetConstructor([type]);

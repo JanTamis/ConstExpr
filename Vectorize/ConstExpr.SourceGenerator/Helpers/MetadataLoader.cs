@@ -53,7 +53,7 @@ public class MetadataLoader
 			{
 				resultAssemblies.Add(assembly);
 			}
-			
+
 			return new MetadataLoader(resultAssemblies);
 		}
 	}
@@ -83,9 +83,9 @@ public class MetadataLoader
 
 		if (typeSymbol is INamedTypeSymbol { Arity: > 0 } namedType && !SymbolEqualityComparer.Default.Equals(namedType, namedType.ConstructedFrom))
 		{
-			var constuctedFrom = GetType(namedType.ConstructedFrom);
+			var constructedFrom = GetType(namedType.ConstructedFrom);
 
-			return constuctedFrom.MakeGenericType(namedType.TypeArguments.Select(GetType).ToArray());
+			return constructedFrom.MakeGenericType(namedType.TypeArguments.Select(GetType).ToArray());
 		}
 
 		if (typeSymbol is IArrayTypeSymbol arrayType)
