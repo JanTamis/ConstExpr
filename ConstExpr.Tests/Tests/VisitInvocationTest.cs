@@ -1,19 +1,14 @@
 namespace ConstExpr.Tests.Tests;
 
-public class VisitInvocationTest : BaseTest<int>
+public class VisitInvocationTest : BaseTest<string>
 {
-	public override IEnumerable<int> Result => [42];
+	public override IEnumerable<string> Result => ["42"];
 
 	public override string SourceCode => """
 		using System.Collections.Generic;
 		using ConstExpr.Core.Attributes;
 
 		namespace Testing;
-
-		public static class Helpers
-		{
-			public static int Id(int x) => x;
-		}
 
 		public static class Classes
 		{
@@ -23,9 +18,9 @@ public class VisitInvocationTest : BaseTest<int>
 			}
 
 			[ConstExpr]
-			public static IEnumerable<int> Run()
+			public static IEnumerable<string> Run()
 			{
-				yield return Helpers.Id(42); // VisitInvocation
+				yield return 42.ToString() // VisitInvocation
 			}
 		}
 		""";

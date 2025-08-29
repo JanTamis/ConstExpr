@@ -26,16 +26,17 @@ public abstract class BaseTest<TResult>
 		var diagnostics = generated.Diagnostics;
 		var exceptions = diagnostics.Select(s => new InvalidOperationException(s.ToString()));
 
-		if (diagnostics.Length == 1)
+		switch (diagnostics.Length)
 		{
-			throw exceptions.First();
-		}
-		else if (diagnostics.Length > 1)
-		{
-			throw new AggregateException(exceptions);
+			case 1:
+				throw exceptions.First();
+			case > 1:
+				throw new AggregateException(exceptions);
+			default:
+				Assert.Equal(Result, result);
+				break;
 		}
 
-		Assert.Equal(Result, result);
 	}
 
 	protected GeneratorDriverRunResult RunGenerator(out Compilation outputCompilation)
@@ -85,7 +86,7 @@ public abstract class BaseTest<TResult>
 	private static CSharpCompilation CreateCompilation(string source)
 	{
 		var references = AppDomain.CurrentDomain.GetAssemblies()
-			.Where(a => !string.IsNullOrEmpty(a.Location))
+			.Where(a => !String.IsNullOrEmpty(a.Location))
 			.Select(a => MetadataReference.CreateFromFile(a.Location))
 			.Cast<MetadataReference>()
 			.ToList();
@@ -112,7 +113,7 @@ internal sealed class TestGlobalAnalyzerConfigOptions : AnalyzerConfigOptions
 {
 	private readonly Dictionary<string, string> _data = new(StringComparer.OrdinalIgnoreCase)
 	{
-		{"build_property.UseConstExpr", "true"}
+		{ "build_property.UseConstExpr", "true" }
 	};
 	public override bool TryGetValue(string key, out string value) => _data.TryGetValue(key, out value!);
 }
