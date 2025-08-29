@@ -52,7 +52,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		}
 		catch (Exception ex)
 		{
-			exceptionHandler(operation, ex);
+			exceptionHandler(operation, ex);			
 			return null;
 		}
 	}
@@ -1191,6 +1191,11 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		}
 
 		return null;
+	}
+
+	public override object? VisitThrow(IThrowOperation operation, IDictionary<string, object?> argument)
+	{
+		throw Visit(operation.Exception, argument) as Exception;
 	}
 
 	public override object? VisitRangeOperation(IRangeOperation operation, IDictionary<string, object?> argument)
