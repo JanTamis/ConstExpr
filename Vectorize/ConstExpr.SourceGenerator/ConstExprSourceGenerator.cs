@@ -304,7 +304,11 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 			var data = enumerable.Cast<object?>().ToArray();
 
-			if (data.IsSame(data.FirstOrDefault()))
+			if (data.Length == 1)
+			{
+				code.WriteLine($"return [{data[0]}];");
+			}
+			else if (data.IsSame(data.FirstOrDefault()))
 			{
 				code.WriteLine($"return Enumerable.Repeat({CreateLiteral(data.FirstOrDefault())}, {CreateLiteral(data.Length)});");
 			}
@@ -320,16 +324,32 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				}
 				else
 				{
-					code.WriteLine($$"""
-					var start = {{data[0]}};
-
-					do
+					if (ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.LessThan, difference, 0.ToSpecialType(returnTypeInfo.SpecialType)) is true)
 					{
-						yield return start;
-						start += {{difference}};
+						code.WriteLine($$"""
+							var start = {{data[0]}};
+
+							do
+							{
+								yield return start;
+								start -= {{difference.Abs(returnTypeInfo.SpecialType)}};
+							}
+							while (start >= {{data[^1]}});
+							""");
 					}
-					while (start <= {{data[^1]}});
-					""");
+					else
+					{
+						code.WriteLine($$"""
+							var start = {{data[0]}};
+
+							do
+							{
+								yield return start;
+								start += {{difference}};
+							}
+							while (start <= {{data[^1]}});
+							""");
+					}
 				}
 			}
 			else
@@ -627,6 +647,11 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 		foreach (var exception in exceptions)
 		{
+			if (exceptions.Any(a => a != exception && a.Span.Contains(exception.Span)))
+			{
+				continue;
+			}
+			
 			spc.ReportDiagnostic(Diagnostic.Create(exceptionDescriptor, exception.GetLocation(), exception));
 		}
 	}

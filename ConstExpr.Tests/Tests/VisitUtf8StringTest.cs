@@ -1,8 +1,8 @@
 namespace ConstExpr.Tests.Tests;
 
-public class DateTimeTest : BaseTest<int>
+public class VisitUtf8StringTest : BaseTest<int>
 {
-	public override IEnumerable<int> Result => [ 3 ];
+	public override IEnumerable<int> Result => [65];
 
 	public override string SourceCode => """
 		using System;
@@ -15,13 +15,14 @@ public class DateTimeTest : BaseTest<int>
 		{
 			public static void Test()
 			{
-				DaysBetween(new DateTime(2023, 1, 1), new DateTime(2023, 1, 4));
+				Run();
 			}
-			
+
 			[ConstExpr]
-			public static IEnumerable<int> DaysBetween(DateTime start, DateTime end)
+			public static IEnumerable<int> Run()
 			{
-				yield return (end - start).Days;
+				var b = "A"u8;
+				yield return b[0];
 			}
 		}
 		""";

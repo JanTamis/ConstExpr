@@ -31,19 +31,14 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			return value;
 		}
 
-		foreach (var currentOperation in operation.ChildOperations)
-		{
-			Visit(currentOperation, argument);
-		}
+		exceptionHandler(operation, new NotImplementedException($"Operation of type {operation?.Kind} is not supported."));
 
 		return null;
 	}
 
 	public override object? Visit(IOperation? operation, IDictionary<string, object?> argument)
 	{
-		token.ThrowIfCancellationRequested();
-
-		if (!isYield && argument.ContainsKey(RETURNVARIABLENAME))
+		if (token.IsCancellationRequested || (!isYield && argument.ContainsKey(RETURNVARIABLENAME)))
 		{
 			return null;
 		}

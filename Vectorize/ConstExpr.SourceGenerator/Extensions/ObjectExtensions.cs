@@ -270,4 +270,12 @@ public static class ObjectExtensions
 			_ => null,
 		};
 	}
+
+	public static object? Abs(this object? value, SpecialType specialType)
+	{
+		var zero = 0.ToSpecialType(specialType);
+		return ExecuteBinaryOperation(BinaryOperatorKind.LessThan, value, zero) is true
+				? ExecuteBinaryOperation(BinaryOperatorKind.Subtract, zero, value)
+				: value;
+	}
 }

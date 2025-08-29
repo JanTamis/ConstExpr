@@ -1,7 +1,4 @@
-using System.Collections;
-using System.Collections.Immutable;
-using System.Runtime.InteropServices.ComTypes;
-using System.Text;
+using ConstExpr.Core.Attributes;
 using ConstExpr.SourceGenerator;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Visitors;
@@ -10,7 +7,8 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
-using Microsoft.CodeAnalysis.Text;
+using System.Collections;
+using System.Collections.Immutable;
 
 namespace ConstExpr.Tests;
 
@@ -24,7 +22,19 @@ public abstract class BaseTest<TResult>
 	{
 		var generated = RunGenerator(out var compilation);
 		var result = GetResult(generated, compilation);
-		
+
+		var diagnostics = generated.Diagnostics;
+		var exceptions = diagnostics.Select(s => new InvalidOperationException(s.ToString()));
+
+		if (diagnostics.Length == 1)
+		{
+			throw exceptions.First();
+		}
+		else if (diagnostics.Length > 1)
+		{
+			throw new AggregateException(exceptions);
+		}
+
 		Assert.Equal(Result, result);
 	}
 
@@ -45,10 +55,10 @@ public abstract class BaseTest<TResult>
 	protected IEnumerable<TResult> GetResult(GeneratorDriverRunResult result, Compilation compilation)
 	{
 		var generatedTrees = result.GeneratedTrees;
-		
+
 		if (generatedTrees.Length == 0)
 		{
-			return [ ];
+			return [];
 		}
 
 		var loader = MetadataLoader.GetLoader(compilation);
@@ -59,9 +69,8 @@ public abstract class BaseTest<TResult>
 			.OfType<MethodDeclarationSyntax>();
 
 		var variables = new Dictionary<string, object?>();
-
 		var visitor = new ConstExprOperationVisitor(compilation, loader, (_, _) => { }, CancellationToken.None);
-		
+
 		foreach (var method in methods)
 		{
 			var model = compilation.GetSemanticModel(method.SyntaxTree);
@@ -69,12 +78,11 @@ public abstract class BaseTest<TResult>
 
 			visitor.VisitBlock(operation.BlockBody, variables);
 		}
-		
-		return (variables[ConstExprOperationVisitor.RETURNVARIABLENAME] as IEnumerable)
-			.Cast<TResult>();
+
+		return (variables[ConstExprOperationVisitor.RETURNVARIABLENAME] as IEnumerable)?.Cast<TResult>() ?? [];
 	}
 
-	private static Compilation CreateCompilation(string source)
+	private static CSharpCompilation CreateCompilation(string source)
 	{
 		var references = AppDomain.CurrentDomain.GetAssemblies()
 			.Where(a => !string.IsNullOrEmpty(a.Location))
@@ -82,11 +90,11 @@ public abstract class BaseTest<TResult>
 			.Cast<MetadataReference>()
 			.ToList();
 
-		references.Add(MetadataReference.CreateFromFile(typeof(Core.Attributes.ConstExprAttribute).Assembly.Location));
+		references.Add(MetadataReference.CreateFromFile(typeof(ConstExprAttribute).Assembly.Location));
 
 		return CSharpCompilation.Create(
 			"TestAssembly",
-			[ CSharpSyntaxTree.ParseText(source) ],
+			[CSharpSyntaxTree.ParseText(source)],
 			references,
 			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 	}

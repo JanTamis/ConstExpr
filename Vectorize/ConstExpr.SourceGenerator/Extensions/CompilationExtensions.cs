@@ -339,7 +339,7 @@ public static class CompilationExtensions
 					var paramType = methodParameters[i].ParameterType;
 					var methodParamType = loader.GetType(methodSymbol.Parameters[i].Type);
 
-					if (paramType.IsGenericType)
+					if (paramType.IsGenericType || paramType.IsGenericParameter)
 					{
 						continue;
 					}
