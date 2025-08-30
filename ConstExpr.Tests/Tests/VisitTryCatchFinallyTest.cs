@@ -25,7 +25,7 @@ public class VisitTryCatchFinallyTest : BaseTest<string>
 
 				try
 				{
-					throw new InvalidOperationException();
+					throw new InvalidOperationException("test");
 				}
 				catch (InvalidOperationException)
 				{

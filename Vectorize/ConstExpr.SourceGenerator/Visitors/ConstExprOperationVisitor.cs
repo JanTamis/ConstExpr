@@ -32,14 +32,14 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			return value;
 		}
 
-		exceptionHandler(operation, new NotImplementedException($"Operation of type {operation?.Kind} is not supported."));
+		exceptionHandler(operation, new NotImplementedException($"Operation of type {operation.Kind} is not supported."));
 
 		return null;
 	}
 
 	public override object? Visit(IOperation? operation, IDictionary<string, object?> argument)
 	{
-		if (token.IsCancellationRequested || (!isYield && argument.ContainsKey(RETURNVARIABLENAME)))
+		if (token.IsCancellationRequested || !isYield && argument.ContainsKey(RETURNVARIABLENAME))
 		{
 			return null;
 		}
@@ -50,7 +50,12 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		}
 		catch (Exception ex)
 		{
-			exceptionHandler(operation, ex);			
+			if (operation is IThrowOperation or IBlockOperation)
+			{
+				throw;
+			}
+			
+			exceptionHandler(operation, ex);
 			return null;
 		}
 	}
@@ -726,7 +731,59 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			.Select(s => Visit(s.Value, argument))
 			.ToArray();
 
-		return Activator.CreateInstance(loader.GetType(operation.Type), arguments);
+		var result = Activator.CreateInstance(loader.GetType(operation.Type), arguments);
+
+		if (operation.Initializer.Initializers.Length > 0)
+		{
+			foreach (var initializer in operation.Initializer.Initializers)
+			{
+				switch (initializer)
+				{
+					case IInvocationOperation invocation:
+					{
+						var method = result?.GetType().GetMethod(invocation.TargetMethod.Name, invocation.Arguments.Select(a => loader.GetType(a.Value.Type)).ToArray());
+
+						method?.Invoke(result, invocation.Arguments.Select(a => Visit(a.Value, argument)).ToArray());
+						break;
+					}
+					case ISimpleAssignmentOperation assignment:
+					{
+						var name = assignment.Target switch
+						{
+							IPropertyReferenceOperation propRef => propRef.Property.Name,
+							IFieldReferenceOperation fieldRef => fieldRef.Field.Name,
+							_ => null
+						};
+
+						if (name is not null)
+						{
+							var propertyInfo = result?.GetType()
+								.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+								.FirstOrDefault(f => f.Name == name);
+
+							if (propertyInfo != null && propertyInfo.CanWrite)
+							{
+								propertyInfo.SetValue(result, Visit(assignment.Value, argument));
+							}
+							else
+							{
+								var fieldInfo = result?.GetType()
+									.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+									.FirstOrDefault(f => f.Name == name);
+
+								if (fieldInfo != null)
+								{
+									fieldInfo.SetValue(result, Visit(assignment.Value, argument));
+								}
+							}
+						}
+						break;
+					}
+				}
+			}
+		}
+
+		return result;
 	}
 
 	public override object? VisitAnonymousObjectCreation(IAnonymousObjectCreationOperation operation, IDictionary<string, object?> argument)
@@ -964,7 +1021,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			return propertyInfo.GetValue(instance);
 		}
 	}
-
+	
 	public override object? VisitAwait(IAwaitOperation operation, IDictionary<string, object?> argument)
 	{
 		var value = Visit(operation.Operation, argument);
@@ -1232,6 +1289,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return null;
 	}
 
+	// skip local functions
 	public override object? VisitLocalFunction(ILocalFunctionOperation operation, IDictionary<string, object?> argument)
 	{
 		return null;
