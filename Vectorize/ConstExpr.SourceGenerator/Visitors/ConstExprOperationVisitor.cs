@@ -841,7 +841,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		// Dynamically create a type with the required properties
 		var type = CreateAnonymousType(properties);
 		var instance = Activator.CreateInstance(type);
-
+		
 		// Set property values
 		foreach (var kvp in properties)
 		{
@@ -1004,7 +1004,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 	public override object? VisitPropertyReference(IPropertyReferenceOperation operation, IDictionary<string, object?> argument)
 	{
 		var instance = Visit(operation.Instance, argument);
-		var type = loader.GetType(operation.Property.ContainingType);
+		var type = loader.GetType(operation.Property.ContainingType) ?? instance?.GetType();
 
 		// Handle indexer properties (usually named "Item")
 		if (operation.Arguments.Length > 0)
