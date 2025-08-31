@@ -470,11 +470,24 @@ public static class SyntaxHelpers
 			&& typeSymbol.ContainingNamespace.ToDisplayString() == "System.Collections.Generic";
 	}
 
+	public static bool IsIAsyncEnumerable(ITypeSymbol typeSymbol)
+	{
+		return typeSymbol.Name == "IAsyncEnumerable"
+		       && typeSymbol.ContainingNamespace.ToDisplayString() == "System.Collections.Generic";
+	}
+
 	public static bool IsIEnumerable(Compilation compilation, TypeSyntax typeSymbol, CancellationToken token = default)
 	{
 		return compilation.TryGetSemanticModel(typeSymbol, out var model)
 					 && model.GetSymbolInfo(typeSymbol, token).Symbol is INamedTypeSymbol namedTypeSymbol
 					 && IsIEnumerable(namedTypeSymbol);
+	}
+
+	public static bool IsIAsyncEnumerable(Compilation compilation, TypeSyntax typeSymbol, CancellationToken token = default)
+	{
+		return compilation.TryGetSemanticModel(typeSymbol, out var model)
+		       && model.GetSymbolInfo(typeSymbol, token).Symbol is INamedTypeSymbol namedTypeSymbol
+		       && IsIAsyncEnumerable(namedTypeSymbol);
 	}
 
 	public static bool IsICollection(ITypeSymbol typeSymbol)

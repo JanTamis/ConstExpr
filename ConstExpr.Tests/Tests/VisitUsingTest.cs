@@ -7,15 +7,10 @@ public class VisitUsingTest : BaseTest<string>
 	public override string SourceCode => """
 		using System;
 		using System.Collections.Generic;
+		using System.IO;
 		using ConstExpr.Core.Attributes;
 
 		namespace Testing;
-
-		file sealed class Dummy : IDisposable
-		{
-			public static List<string> Log = new();
-			public void Dispose() => Log.Add("disposed");
-		}
 
 		public static class Classes
 		{
@@ -27,8 +22,12 @@ public class VisitUsingTest : BaseTest<string>
 			[ConstExpr]
 			public static IEnumerable<string> Run()
 			{
-				using var d = new Dummy();
-				return Dummy.Log;
+				using (var ms = new MemoryStream())
+				{
+					
+				}
+				
+				yield return "disposed";
 			}
 		}
 		""";

@@ -4,6 +4,11 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
+using System.Threading;
+using ConstExpr.SourceGenerator.Visitors;
+using Microsoft.CodeAnalysis.Operations;
+using SourceGen.Utilities.Extensions;
 
 namespace ConstExpr.SourceGenerator.Helpers;
 
@@ -16,6 +21,7 @@ public class MetadataLoader
 
 	private readonly IEnumerable<Assembly> _assemblies;
 	private readonly ConcurrentDictionary<string, Type?> _typeCache = new();
+	private readonly Compilation _compilation;
 
 	/// <summary>
 	/// Gets all assemblies loaded in the current metadata context.
@@ -54,7 +60,7 @@ public class MetadataLoader
 				resultAssemblies.Add(assembly);
 			}
 
-			return new MetadataLoader(resultAssemblies);
+			return new MetadataLoader(resultAssemblies, compilation);
 		}
 	}
 
@@ -62,9 +68,10 @@ public class MetadataLoader
 	/// Initializes a new instance of the <see cref="MetadataLoader"/> class.
 	/// </summary>
 	/// <param name="assemblies">The assemblies to load.</param>
-	private MetadataLoader(IEnumerable<Assembly> assemblies)
+	private MetadataLoader(IEnumerable<Assembly> assemblies, Compilation compilation)
 	{
 		_assemblies = assemblies;
+		_compilation = compilation;
 	}
 
 	/// <summary>

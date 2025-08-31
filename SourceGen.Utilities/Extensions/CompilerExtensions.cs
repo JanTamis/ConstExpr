@@ -101,6 +101,53 @@ public static class CompilerExtensions
 		return false;
 	}
 
+	public static bool TryGetSemanticModel(this Compilation compilation, ISymbol? symbol, out SemanticModel semanticModel)
+	{
+		var tree =  symbol?.DeclaringSyntaxReferences
+			.Select(s => s.SyntaxTree)
+			.FirstOrDefault();
+
+		if (tree is not null && compilation.SyntaxTrees.Contains(tree))
+		{
+			semanticModel = compilation.GetSemanticModel(tree);
+			return true;
+		}
+
+		semanticModel = null!;
+		return false;
+	}
+
+	public static bool TryGetValue(this Compilation compilation, ISymbol symbol, out Optional<object?> value)
+	{
+		if (TryGetSemanticModel(compilation, symbol, out var model))
+		{
+			value = symbol.DeclaringSyntaxReferences
+				.Select(s => model.GetConstantValue(s.GetSyntax()))
+				.FirstOrDefault(f=> f.HasValue);
+			
+			return value.HasValue;
+		}
+		
+		value = default;
+		return false;
+	}
+	
+	public static bool TryGetOperation(this Compilation compilation, ISymbol symbol, out IOperation? operation)
+	{
+		if (TryGetSemanticModel(compilation, symbol, out var model))
+		{
+			operation = symbol.DeclaringSyntaxReferences
+				.Select(s => s.GetSyntax())
+				.SelectMany(n => new[] { model.GetOperation(n) }.Concat(n.DescendantNodes().Select(s => model.GetOperation(s))))
+				.FirstOrDefault(op => op is not null);
+			
+			return operation is not null;
+		}
+		
+		operation = null;
+		return false;
+	}
+
 	public static bool IsPrimitiveType(this ITypeSymbol typeSymbol)
 	{
 		return typeSymbol.SpecialType is SpecialType.System_Boolean

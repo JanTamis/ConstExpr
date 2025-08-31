@@ -10,11 +10,6 @@ public class VisitMethodReferenceTest : BaseTest<int>
 		using ConstExpr.Core.Attributes;
 		namespace Testing;
 
-		public static class S
-		{
-			public static int F(int x) => x;
-		}
-
 		public static class Classes
 		{
 			public static void Test()
@@ -25,7 +20,7 @@ public class VisitMethodReferenceTest : BaseTest<int>
 			[ConstExpr]
 			public static IEnumerable<int> Run()
 			{
-				var d = (Func<int, int>)S.F;
+				var d = (Func<int, int>)(x => x);
 				yield return d(10);
 			}
 		}

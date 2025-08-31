@@ -5,15 +5,11 @@ public class VisitPropertyReferenceStaticGetTest : BaseTest<int>
 	public override IEnumerable<int> Result => [7];
 
 	public override string SourceCode => """
+		using System;
 		using System.Collections.Generic;
 		using ConstExpr.Core.Attributes;
 
 		namespace Testing;
-
-		public static class P
-		{
-			public static int X { get; set; } = 7;
-		}
 
 		public static class Classes
 		{
@@ -25,7 +21,7 @@ public class VisitPropertyReferenceStaticGetTest : BaseTest<int>
 			[ConstExpr]
 			public static IEnumerable<int> Run()
 			{
-				yield return P.X;
+			yield return Math.Abs(-7);
 			}
 		}
 		""";

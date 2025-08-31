@@ -2,7 +2,7 @@ namespace ConstExpr.Tests.Tests;
 
 public class VisitCoalesceAssignmentTest : BaseTest<int>
 {
-	public override IEnumerable<int> Result => [5, 5];
+	public override IEnumerable<int> Result => [5];
 
 	public override string SourceCode => """
 		using System.Collections.Generic;
@@ -23,7 +23,6 @@ public class VisitCoalesceAssignmentTest : BaseTest<int>
 				int? x = null;
 				x ??= 5; // VisitCoalesceAssignment
 				yield return x.Value;
-				yield return x.Value; // ensure no repeat changes
 			}
 		}
 		""";

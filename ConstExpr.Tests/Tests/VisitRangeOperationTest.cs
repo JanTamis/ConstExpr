@@ -23,9 +23,8 @@ public class VisitRangeOperationTest : BaseTest<int>
 			public static IEnumerable<int> Run()
 			{
 				var a = new[] { 1, 2, 3, 4, 5 };
-				var r = 1..^1;
-				var slice = System.Runtime.CompilerServices.RuntimeHelpers.GetSubArray(a, r);
-				return slice;
+				
+				return a[1..^1];
 			}
 		}
 		""";

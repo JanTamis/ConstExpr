@@ -12,8 +12,6 @@ public class VisitLockTest : BaseTest<int>
 
 		public static class Classes
 		{
-			static readonly object O = new();
-
 			public static void Test()
 			{
 				Run();
@@ -22,9 +20,11 @@ public class VisitLockTest : BaseTest<int>
 			[ConstExpr]
 			public static IEnumerable<int> Run()
 			{
+				var lockObj = new object();
+				
 				int x = 0;
 
-				lock (O)
+				lock (lockObj)
 				{
 					x = 1;
 				}

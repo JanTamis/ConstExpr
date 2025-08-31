@@ -39,9 +39,14 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 	public override object? Visit(IOperation? operation, IDictionary<string, object?> argument)
 	{
-		if (token.IsCancellationRequested || !isYield && argument.ContainsKey(RETURNVARIABLENAME))
+		if (operation is null || token.IsCancellationRequested || !isYield && argument.ContainsKey(RETURNVARIABLENAME))
 		{
 			return null;
+		}
+
+		if (operation.ConstantValue is { HasValue: true, Value: var value })
+		{
+			return value;
 		}
 
 		try
@@ -50,13 +55,12 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		}
 		catch (Exception ex)
 		{
-			if (operation is IThrowOperation or IBlockOperation)
+			if (operation is not IThrowOperation and not IBlockOperation)
 			{
-				throw;
+				exceptionHandler(operation, ex);
 			}
 			
-			exceptionHandler(operation, ex);
-			return null;
+			throw;
 		}
 	}
 
@@ -139,12 +143,32 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			.ToArray();
 
 		// Handle regular arrays (single and multi-dimensional)
-		if (array.GetType().IsArray)
+		if (array.GetType().IsArray && array is Array arr)
 		{
-			return array.GetType().GetMethod("Get")?.Invoke(array, indexers)
-			       ?? array.GetType().GetMethod("GetValue", indexers.Select(i => typeof(int)).ToArray())?.Invoke(array, indexers);
-		}
+			if (indexers.All(i => i is int))
+			{
+				return arr.GetValue(indexers.Cast<int>().ToArray());
+			}
 
+			if (indexers.All(i => i is long))
+			{
+				return arr.GetValue(indexers.Cast<long>().ToArray());
+			}
+			
+			var rangeType = loader.GetType("System.Range");
+
+			if (indexers.All(i => i.GetType() == rangeType))
+			{
+				var range = (ValueTuple<int, int>)rangeType.GetMethod("GetOffsetAndLength").Invoke(indexers[0], [ arr.Length ]);
+				var result = Array.CreateInstance(arr.GetType().GetElementType(), range.Item2);
+
+				Array.Copy(arr, range.Item1, result, 0, range.Item2);
+				return result;
+			}
+
+			return null;
+		}
+		
 		// Handle collections with indexers (List<T>, Dictionary<K,V>, etc.)
 		foreach (var pi in array.GetType().GetProperties())
 		{
@@ -727,13 +751,18 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 	public override object? VisitObjectCreation(IObjectCreationOperation operation, IDictionary<string, object?> argument)
 	{
+		if (operation is { Type.SpecialType: SpecialType.System_Object })
+		{
+			return new object();
+		}
+		
 		var arguments = operation.Arguments
 			.Select(s => Visit(s.Value, argument))
 			.ToArray();
 
 		var result = Activator.CreateInstance(loader.GetType(operation.Type), arguments);
 
-		if (operation.Initializer.Initializers.Length > 0)
+		if (operation.Initializer?.Initializers.Length > 0)
 		{
 			foreach (var initializer in operation.Initializer.Initializers)
 			{
@@ -848,7 +877,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			propBuilder.SetGetMethod(getter);
 
 			// Setter
-			var setter = typeBuilder.DefineMethod($"set_{kvp.Key}", MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.HideBySig, null, new[] { kvp.Value?.GetType() ?? typeof(object) });
+			var setter = typeBuilder.DefineMethod($"set_{kvp.Key}", MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.HideBySig, null, [ kvp.Value?.GetType() ?? typeof(object) ]);
 			var ilSet = setter.GetILGenerator();
 			ilSet.Emit(OpCodes.Ldarg_0);
 			ilSet.Emit(OpCodes.Ldarg_1);
@@ -860,15 +889,15 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return typeBuilder.CreateTypeInfo()?.AsType();
 	}
 
-	public override object? VisitInstanceReference(IInstanceReferenceOperation operation, IDictionary<string, object?> argument)
-	{
-		return operation.ReferenceKind switch
-		{
-			InstanceReferenceKind.ContainingTypeInstance => argument["this"],
-			InstanceReferenceKind.ImplicitReceiver => argument["this"],
-			_ => null,
-		};
-	}
+	// public override object? VisitInstanceReference(IInstanceReferenceOperation operation, IDictionary<string, object?> argument)
+	// {
+	// 	return operation.ReferenceKind switch
+	// 	{
+	// 		InstanceReferenceKind.ContainingTypeInstance => argument["this"],
+	// 		InstanceReferenceKind.ImplicitReceiver => argument["this"],
+	// 		_ => null,
+	// 	};
+	// }
 
 	public override object VisitUtf8String(IUtf8StringOperation operation, IDictionary<string, object?> argument)
 	{
@@ -975,7 +1004,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 	public override object? VisitPropertyReference(IPropertyReferenceOperation operation, IDictionary<string, object?> argument)
 	{
 		var instance = Visit(operation.Instance, argument);
-		var type = instance?.GetType() ?? loader.GetType(operation.Property.ContainingType);
+		var type = loader.GetType(operation.Property.ContainingType);
 
 		// Handle indexer properties (usually named "Item")
 		if (operation.Arguments.Length > 0)
@@ -992,6 +1021,19 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			var indices = operation.Arguments
 				.Select(a => Visit(a.Value, argument))
 				.ToArray();
+
+			if (instance is Array array)
+			{
+				if (indices.All(a => a is int))
+				{
+					return array.GetValue(indices.Cast<int>().ToArray());
+				}
+
+				if (indices.All(a => a is long))
+				{
+					return array.GetValue(indices.Cast<long>().ToArray());
+				}
+			}
 
 			return propertyInfo.GetValue(instance, indices);
 		}
@@ -1021,7 +1063,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			return propertyInfo.GetValue(instance);
 		}
 	}
-	
+
 	public override object? VisitAwait(IAwaitOperation operation, IDictionary<string, object?> argument)
 	{
 		var value = Visit(operation.Operation, argument);
@@ -1255,26 +1297,83 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 	public override object? VisitRangeOperation(IRangeOperation operation, IDictionary<string, object?> argument)
 	{
-		var left = Visit(operation.LeftOperand, argument);
-		var right = Visit(operation.RightOperand, argument);
-		var method = operation.Method;
+		// Use reflection to construct System.Range / System.Index at runtime (generator targets netstandard2.0)
+		var indexType = loader.GetType("System.Index");
+		var rangeType = loader.GetType("System.Range");
 
-		return compilation.ExecuteMethod(loader, method!, null, argument, left, right);
+		if (indexType == null || rangeType == null)
+		{
+			return null; // Environment without Index/Range support
+		}
+
+		var startIndexObj = CreateIndex(operation.LeftOperand);
+		var endIndexObj = CreateIndex(operation.RightOperand);
+
+		if (startIndexObj == null && endIndexObj == null)
+		{
+			return rangeType.GetProperty("All", BindingFlags.Public | BindingFlags.Static)?.GetValue(null);
+		}
+		if (startIndexObj == null && endIndexObj != null)
+		{
+			var endAt = rangeType.GetMethod("EndAt", BindingFlags.Public | BindingFlags.Static, null, [ indexType ], null);
+			return endAt?.Invoke(null, [ endIndexObj ]);
+		}
+		if (startIndexObj != null && endIndexObj == null)
+		{
+			var startAt = rangeType.GetMethod("StartAt", BindingFlags.Public | BindingFlags.Static, null, [ indexType ], null);
+			return startAt?.Invoke(null, [ startIndexObj ]);
+		}
+
+		var ctorRange = rangeType.GetConstructor([ indexType, indexType ]);
+		return ctorRange?.Invoke([ startIndexObj, endIndexObj ]);
+
+		object? CreateIndex(IOperation? op)
+		{
+			if (op is null)
+			{
+				return null;
+			}
+			
+			var fromEnd = false;
+			object? valueObj;
+
+			if (op is IUnaryOperation u)
+			{
+				// Detect '^' from-end syntax via textual representation
+				var text = u.Syntax.ToString().TrimStart();
+
+				if (text.StartsWith("^"))
+				{
+					fromEnd = true;
+				}
+				
+				valueObj = Visit(u.Operand, argument);
+			}
+			else
+			{
+				valueObj = Visit(op, argument);
+			}
+
+			if (valueObj is IConvertible conv)
+			{
+				var intValue = Convert.ToInt32(conv, CultureInfo.InvariantCulture);
+				var ctor = indexType.GetConstructor([ typeof(int), typeof(bool) ]);
+				return ctor?.Invoke([ intValue, fromEnd ]);
+			}
+			
+			return valueObj;
+		}
 	}
 
-	// Pattern matching support
 	public override object VisitIsPattern(IIsPatternOperation operation, IDictionary<string, object?> argument)
 	{
 		var value = Visit(operation.Value, argument);
-		var pattern = operation.Pattern;
-
-		return MatchPattern(value, pattern, argument);
+		return MatchPattern(value, operation.Pattern, argument);
 	}
 
 	public override object? VisitSwitchExpression(ISwitchExpressionOperation operation, IDictionary<string, object?> argument)
 	{
 		var value = Visit(operation.Value, argument);
-
 		foreach (var arm in operation.Arms)
 		{
 			if (MatchPattern(value, arm.Pattern, argument))
@@ -1285,30 +1384,19 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 				}
 			}
 		}
-
 		return null;
 	}
 
-	// skip local functions
-	public override object? VisitLocalFunction(ILocalFunctionOperation operation, IDictionary<string, object?> argument)
-	{
-		return null;
-	}
+	public override object? VisitLocalFunction(ILocalFunctionOperation operation, IDictionary<string, object?> argument) => null; // skip
 
 	public override object? VisitWith(IWithOperation operation, IDictionary<string, object?> argument)
 	{
 		var receiver = Visit(operation.Operand, argument);
-
-		if (receiver == null)
-		{
-			return null;
-		}
+		if (receiver == null) return null;
 
 		var type = receiver.GetType();
 		var copyCtor = type.GetConstructor([ type ]);
-
 		object clone;
-
 		if (copyCtor != null)
 		{
 			clone = copyCtor.Invoke([ receiver ]);
@@ -1321,12 +1409,11 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 		foreach (var assignment in operation.Initializer.ChildOperations.OfType<ISimpleAssignmentOperation>())
 		{
-			var property = type.GetProperty(assignment.Target.ToString());
-
-			if (property != null && property.CanWrite)
+			var propName = assignment.Target.ToString();
+			var prop = type.GetProperty(propName);
+			if (prop != null && prop.CanWrite)
 			{
-				var value = Visit(assignment.Value, argument);
-				property.SetValue(clone, value);
+				prop.SetValue(clone, Visit(assignment.Value, argument));
 			}
 		}
 
@@ -1343,42 +1430,32 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 				if (declarationPattern.MatchedType != null && value != null)
 				{
 					var matchedType = loader.GetType(declarationPattern.MatchedType);
-
-					if (matchedType != null && !matchedType.IsInstanceOfType(value))
+					if (matchedType != null && !matchedType.IsInstanceOfType(value)) return false;
+					if (declarationPattern.DeclaredSymbol is { } decl)
 					{
-						return false;
-					}
-
-					// If the pattern has a declaration, store the value in the argument dictionary
-					if (declarationPattern.DeclaredSymbol is { } declaration)
-					{
-						argument[declaration.Name] = value;
+						argument[decl.Name] = value;
 					}
 				}
-
 				return value == null;
 			case IDiscardPatternOperation:
 				return true;
 			case IRelationalPatternOperation relationalPattern:
-				if (value is IComparable comparable && relationalPattern.Value.ConstantValue is { HasValue: true, Value: var relValue })
+				if (value is IComparable cmp && relationalPattern.Value.ConstantValue is { HasValue: true, Value: var relVal })
 				{
-					var cmp = comparable.CompareTo(relValue);
-
+					var res = cmp.CompareTo(relVal);
 					return relationalPattern.OperatorKind switch
 					{
-						BinaryOperatorKind.LessThan => cmp < 0,
-						BinaryOperatorKind.LessThanOrEqual => cmp <= 0,
-						BinaryOperatorKind.GreaterThan => cmp > 0,
-						BinaryOperatorKind.GreaterThanOrEqual => cmp >= 0,
+						BinaryOperatorKind.LessThan => res < 0,
+						BinaryOperatorKind.LessThanOrEqual => res <= 0,
+						BinaryOperatorKind.GreaterThan => res > 0,
+						BinaryOperatorKind.GreaterThanOrEqual => res >= 0,
 						_ => false
 					};
 				}
-
 				return false;
 			case IBinaryPatternOperation binaryPattern:
 				var left = MatchPattern(value, binaryPattern.LeftPattern, argument);
 				var right = MatchPattern(value, binaryPattern.RightPattern, argument);
-
 				return binaryPattern.OperatorKind switch
 				{
 					BinaryOperatorKind.And => left && right,
@@ -1387,30 +1464,15 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 				};
 			case INegatedPatternOperation negatedPattern:
 				return !MatchPattern(value, negatedPattern.Pattern, argument);
-			// Add more pattern types as needed (recursive, property, list, etc.)
 			case IListPatternOperation listPattern:
-				if (value is not IEnumerable enumerable)
-				{
-					return false;
-				}
-
+				if (value is not IEnumerable enumerable) return false;
 				var elements = enumerable.Cast<object?>().ToList();
-
-				if (elements.Count != listPattern.ChildOperations.Count)
+				if (elements.Count != listPattern.ChildOperations.Count) return false;
+				foreach (var (index, child) in listPattern.ChildOperations.Index())
 				{
-					return false;
+					if (!MatchPattern(elements[index], child as IPatternOperation, argument)) return false;
 				}
-
-				foreach (var (index, childPattern) in listPattern.ChildOperations.Index())
-				{
-					if (!MatchPattern(elements[index], childPattern as IPatternOperation, argument))
-					{
-						return false;
-					}
-				}
-
 				return true;
-
 			default:
 				return false;
 		}

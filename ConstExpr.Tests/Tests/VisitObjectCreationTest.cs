@@ -1,24 +1,15 @@
 namespace ConstExpr.Tests.Tests;
 
-public class VisitObjectCreationTest : BaseTest<string>
+public class VisitObjectCreationTest : BaseTest<int>
 {
-	public override IEnumerable<string> Result => ["3"];
+	public override IEnumerable<int> Result => [3];
 
 	public override string SourceCode => """
 		using System;
 		using System.Collections.Generic;
 		using ConstExpr.Core.Attributes;
+		
 		namespace Testing;
-
-		public class P
-		{
-			public int X;
-
-			public P(int x)
-			{
-				X = x;
-			}
-		}
 
 		public static class Classes
 		{
@@ -28,10 +19,11 @@ public class VisitObjectCreationTest : BaseTest<string>
 			}
 
 			[ConstExpr]
-			public static IEnumerable<string> Run()
+			public static IEnumerable<int> Run()
 			{
-				var p = new P(3); // VisitObjectCreation
-				yield return p.X.ToString();
+				var list = new List<int>(3); // VisitObjectCreation
+				
+				yield return list.Capacity;
 			}
 		}
 		""";
