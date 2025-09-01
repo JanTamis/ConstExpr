@@ -442,9 +442,50 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 	#endregion
 
-	private static int GetValueHashSuffix(object? value)
+	private static string GetValueHashSuffix(object? value)
 	{
-		return Math.Abs(value?.GetHashCode() ?? 0);
+		var hash = ComputeContentHash(value);
+		var bytes = BitConverter.GetBytes(hash);
+		var b64 = Convert.ToBase64String(bytes);
+
+		// Sanitize to identifier-safe characters and ensure it doesn't start with a digit
+		b64 = b64.Replace('+', '_').Replace('/', '_').Replace("=", String.Empty);
+
+		return b64;
+
+		// Build a content-aware hash for collections; otherwise use value.GetHashCode()
+		int ComputeContentHash(object? obj)
+		{
+			if (obj is null)
+			{
+				return 0;
+			}
+
+			// Strings as scalar values
+			if (obj is string s)
+			{
+				return s.GetHashCode();
+			}
+
+			// Collections: fold element hashes recursively
+			if (obj is IEnumerable enumerable)
+			{
+				unchecked
+				{
+					var hash = 19;
+
+					foreach (var item in enumerable)
+					{
+						hash = hash * 31 + ComputeContentHash(item);
+					}
+
+					return hash;
+				}
+			}
+
+			// Fallback: object hash
+			return obj.GetHashCode();
+		}
 	}
 
 	private static bool TryGetInterfaceSymbol(Compilation compilation, InvocationModel invocationModel, out INamedTypeSymbol? namedTypeSymbol)

@@ -27,8 +27,6 @@ Console.WriteLine(Test.InterpolationTest("Test", 42, 3.14));
 // AdvancedPrimeTest demo
 // Console.WriteLine(Test.AdvancedPrimeTest(100));
 
-// BenchmarkRunner.Run<ReplaceTest>();
-
 // Numbers / sequences
 Console.WriteLine("Primes up to 50: " + String.Join(", ", Test.PrimesUpTo(50)));
 Console.WriteLine("First 12 Fibonacci (long): " + String.Join(", ", Test.FibonacciSequence(12)));
