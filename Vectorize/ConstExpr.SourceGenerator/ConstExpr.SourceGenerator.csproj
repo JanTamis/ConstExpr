@@ -12,7 +12,7 @@
 		<RootNamespace>ConstExpr.SourceGenerator</RootNamespace>
 
 		<PackageId>ConstExpr.SourceGenerator</PackageId>
-		<Version>0.1.17-preview</Version>
+		<Version>0.1.18-preview</Version>
 		<Authors>JanTamis</Authors>
 		<Company>JanTamis</Company>
 		<Description>A source generator that provides constant expression optimizations</Description>

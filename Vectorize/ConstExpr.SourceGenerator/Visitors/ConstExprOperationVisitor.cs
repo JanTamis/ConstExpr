@@ -25,6 +25,8 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 	private bool isYield = false;
 
+	public bool ShouldThrow { get; set; } = true;
+
 	public override object? DefaultVisit(IOperation operation, IDictionary<string, object?> argument)
 	{
 		if (operation.ConstantValue is { HasValue: true, Value: var value })
@@ -59,8 +61,13 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			{
 				exceptionHandler(operation, ex);
 			}
-			
-			throw;
+
+			if (ShouldThrow)
+			{
+				throw;
+			}
+
+			return null;
 		}
 	}
 
@@ -87,7 +94,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 		if (operation.Initializer?.ElementValues is { } values)
 		{
-			SetValues(data, [ ], 0);
+			SetValues(data, [], 0);
 		}
 
 		return data;
@@ -154,12 +161,12 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			{
 				return arr.GetValue(indexers.Cast<long>().ToArray());
 			}
-			
+
 			var rangeType = loader.GetType("System.Range");
 
 			if (indexers.All(i => i.GetType() == rangeType))
 			{
-				var range = (ValueTuple<int, int>)rangeType.GetMethod("GetOffsetAndLength").Invoke(indexers[0], [ arr.Length ]);
+				var range = (ValueTuple<int, int>)rangeType.GetMethod("GetOffsetAndLength").Invoke(indexers[0], [arr.Length]);
 				var result = Array.CreateInstance(arr.GetType().GetElementType(), range.Item2);
 
 				Array.Copy(arr, range.Item1, result, 0, range.Item2);
@@ -168,18 +175,18 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 			return null;
 		}
-		
+
 		// Handle collections with indexers (List<T>, Dictionary<K,V>, etc.)
 		foreach (var pi in array.GetType().GetProperties())
 		{
 			var parameters = pi.GetIndexParameters();
 
 			if (parameters.Length == indexers.Length
-			    && parameters
-				    .Select((p, i) => indexers[i] != null
-				                      && (p.ParameterType.IsAssignableFrom(indexers[i].GetType())
-				                          || indexers[i] is IConvertible))
-				    .All(x => x))
+					&& parameters
+						.Select((p, i) => indexers[i] != null
+															&& (p.ParameterType.IsAssignableFrom(indexers[i].GetType())
+																	|| indexers[i] is IConvertible))
+						.All(x => x))
 			{
 				// Convert indices to the expected parameter types if needed
 				for (var i = 0; i < indexers.Length; i++)
@@ -269,9 +276,9 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			if (propertyReference.Arguments.Length > 0)
 			{
 				var propertyInfo = type
-					                   .GetProperties()
-					                   .FirstOrDefault(f => f.GetIndexParameters().Length == propertyReference.Arguments.Length)
-				                   ?? throw new InvalidOperationException("Indexer property info could not be retrieved.");
+														 .GetProperties()
+														 .FirstOrDefault(f => f.GetIndexParameters().Length == propertyReference.Arguments.Length)
+													 ?? throw new InvalidOperationException("Indexer property info could not be retrieved.");
 
 				var indices = propertyReference.Arguments.Select(a => Visit(a.Value, argument)).ToArray();
 
@@ -284,9 +291,9 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 				var name = propertyReference.Property.Name;
 
 				var propertyInfo = type
-					                   .GetProperties()
-					                   .FirstOrDefault(f => f.Name == name && f.GetMethod.IsStatic == propertyReference.Property.IsStatic)
-				                   ?? throw new InvalidOperationException("Property info could not be retrieved.");
+														 .GetProperties()
+														 .FirstOrDefault(f => f.Name == name && f.GetMethod.IsStatic == propertyReference.Property.IsStatic)
+													 ?? throw new InvalidOperationException("Property info could not be retrieved.");
 
 				if (propertyReference.Property.IsStatic)
 				{
@@ -365,11 +372,11 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		if (namedType.Constructors.Any(c => c.Parameters.IsEmpty) && namedType.HasMethod("Add"))
 		{
 			var instance = Activator.CreateInstance(targetType);
-			var addMethod = targetType.GetMethod("Add", [ loader.GetType(operation.Elements[0].Type) ]);
+			var addMethod = targetType.GetMethod("Add", [loader.GetType(operation.Elements[0].Type)]);
 
 			foreach (var element in operation.Elements)
 			{
-				addMethod?.Invoke(instance, [ Visit(element, argument) ]);
+				addMethod?.Invoke(instance, [Visit(element, argument)]);
 			}
 
 			return instance;
@@ -414,7 +421,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 			foreach (var element in elements)
 			{
-				addMethod?.Invoke(instance, [ element ]);
+				addMethod?.Invoke(instance, [element]);
 			}
 
 			return instance;
@@ -531,9 +538,9 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		foreach (var caseClause in operation.Cases)
 		{
 			if (caseClause.Clauses
-			    .Where(w => w.CaseKind != CaseKind.Default)
-			    .Select(s => Visit(s, argument))
-			    .Contains(value))
+					.Where(w => w.CaseKind != CaseKind.Default)
+					.Select(s => Visit(s, argument))
+					.Contains(value))
 			{
 				VisitList(caseClause.Body, argument);
 
@@ -544,9 +551,9 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		foreach (var caseClause in operation.Cases)
 		{
 			if (caseClause.Clauses
-			    .Where(w => w.CaseKind == CaseKind.Default)
-			    .Select(s => Visit(s, argument))
-			    .Contains(value))
+					.Where(w => w.CaseKind == CaseKind.Default)
+					.Select(s => Visit(s, argument))
+					.Contains(value))
 			{
 				VisitList(caseClause.Body, argument);
 			}
@@ -755,7 +762,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		{
 			return new object();
 		}
-		
+
 		var arguments = operation.Arguments
 			.Select(s => Visit(s.Value, argument))
 			.ToArray();
@@ -769,45 +776,45 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 				switch (initializer)
 				{
 					case IInvocationOperation invocation:
-					{
-						var method = result?.GetType().GetMethod(invocation.TargetMethod.Name, invocation.Arguments.Select(a => loader.GetType(a.Value.Type)).ToArray());
+						{
+							var method = result?.GetType().GetMethod(invocation.TargetMethod.Name, invocation.Arguments.Select(a => loader.GetType(a.Value.Type)).ToArray());
 
-						method?.Invoke(result, invocation.Arguments.Select(a => Visit(a.Value, argument)).ToArray());
-						break;
-					}
+							method?.Invoke(result, invocation.Arguments.Select(a => Visit(a.Value, argument)).ToArray());
+							break;
+						}
 					case ISimpleAssignmentOperation assignment:
-					{
-						var name = assignment.Target switch
 						{
-							IPropertyReferenceOperation propRef => propRef.Property.Name,
-							IFieldReferenceOperation fieldRef => fieldRef.Field.Name,
-							_ => null
-						};
-
-						if (name is not null)
-						{
-							var propertyInfo = result?.GetType()
-								.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-								.FirstOrDefault(f => f.Name == name);
-
-							if (propertyInfo != null && propertyInfo.CanWrite)
+							var name = assignment.Target switch
 							{
-								propertyInfo.SetValue(result, Visit(assignment.Value, argument));
-							}
-							else
+								IPropertyReferenceOperation propRef => propRef.Property.Name,
+								IFieldReferenceOperation fieldRef => fieldRef.Field.Name,
+								_ => null
+							};
+
+							if (name is not null)
 							{
-								var fieldInfo = result?.GetType()
-									.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+								var propertyInfo = result?.GetType()
+									.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
 									.FirstOrDefault(f => f.Name == name);
 
-								if (fieldInfo != null)
+								if (propertyInfo != null && propertyInfo.CanWrite)
 								{
-									fieldInfo.SetValue(result, Visit(assignment.Value, argument));
+									propertyInfo.SetValue(result, Visit(assignment.Value, argument));
+								}
+								else
+								{
+									var fieldInfo = result?.GetType()
+										.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+										.FirstOrDefault(f => f.Name == name);
+
+									if (fieldInfo != null)
+									{
+										fieldInfo.SetValue(result, Visit(assignment.Value, argument));
+									}
 								}
 							}
+							break;
 						}
-						break;
-					}
 				}
 			}
 		}
@@ -841,7 +848,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		// Dynamically create a type with the required properties
 		var type = CreateAnonymousType(properties);
 		var instance = Activator.CreateInstance(type);
-		
+
 		// Set property values
 		foreach (var kvp in properties)
 		{
@@ -877,7 +884,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			propBuilder.SetGetMethod(getter);
 
 			// Setter
-			var setter = typeBuilder.DefineMethod($"set_{kvp.Key}", MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.HideBySig, null, [ kvp.Value?.GetType() ?? typeof(object) ]);
+			var setter = typeBuilder.DefineMethod($"set_{kvp.Key}", MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.HideBySig, null, [kvp.Value?.GetType() ?? typeof(object)]);
 			var ilSet = setter.GetILGenerator();
 			ilSet.Emit(OpCodes.Ldarg_0);
 			ilSet.Emit(OpCodes.Ldarg_1);
@@ -914,17 +921,17 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		return operation.Type?.SpecialType switch
 		{
 			SpecialType.System_Boolean => false,
-			SpecialType.System_Byte => (byte) 0,
-			SpecialType.System_Char => (char) 0,
+			SpecialType.System_Byte => (byte)0,
+			SpecialType.System_Char => (char)0,
 			SpecialType.System_DateTime => default(DateTime),
 			SpecialType.System_Decimal => 0M,
 			SpecialType.System_Double => 0D,
-			SpecialType.System_Int16 => (short) 0,
+			SpecialType.System_Int16 => (short)0,
 			SpecialType.System_Int32 => 0,
 			SpecialType.System_Int64 => 0L,
-			SpecialType.System_SByte => (sbyte) 0,
+			SpecialType.System_SByte => (sbyte)0,
 			SpecialType.System_Single => 0F,
-			SpecialType.System_UInt16 => (ushort) 0,
+			SpecialType.System_UInt16 => (ushort)0,
 			SpecialType.System_UInt32 => 0U,
 			SpecialType.System_UInt64 => 0UL,
 			_ => Activator.CreateInstance(loader.GetType(operation.Type)),
@@ -1315,17 +1322,17 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		}
 		if (startIndexObj == null && endIndexObj != null)
 		{
-			var endAt = rangeType.GetMethod("EndAt", BindingFlags.Public | BindingFlags.Static, null, [ indexType ], null);
-			return endAt?.Invoke(null, [ endIndexObj ]);
+			var endAt = rangeType.GetMethod("EndAt", BindingFlags.Public | BindingFlags.Static, null, [indexType], null);
+			return endAt?.Invoke(null, [endIndexObj]);
 		}
 		if (startIndexObj != null && endIndexObj == null)
 		{
-			var startAt = rangeType.GetMethod("StartAt", BindingFlags.Public | BindingFlags.Static, null, [ indexType ], null);
-			return startAt?.Invoke(null, [ startIndexObj ]);
+			var startAt = rangeType.GetMethod("StartAt", BindingFlags.Public | BindingFlags.Static, null, [indexType], null);
+			return startAt?.Invoke(null, [startIndexObj]);
 		}
 
-		var ctorRange = rangeType.GetConstructor([ indexType, indexType ]);
-		return ctorRange?.Invoke([ startIndexObj, endIndexObj ]);
+		var ctorRange = rangeType.GetConstructor([indexType, indexType]);
+		return ctorRange?.Invoke([startIndexObj, endIndexObj]);
 
 		object? CreateIndex(IOperation? op)
 		{
@@ -1333,7 +1340,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			{
 				return null;
 			}
-			
+
 			var fromEnd = false;
 			object? valueObj;
 
@@ -1346,7 +1353,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 				{
 					fromEnd = true;
 				}
-				
+
 				valueObj = Visit(u.Operand, argument);
 			}
 			else
@@ -1357,10 +1364,10 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			if (valueObj is IConvertible conv)
 			{
 				var intValue = Convert.ToInt32(conv, CultureInfo.InvariantCulture);
-				var ctor = indexType.GetConstructor([ typeof(int), typeof(bool) ]);
-				return ctor?.Invoke([ intValue, fromEnd ]);
+				var ctor = indexType.GetConstructor([typeof(int), typeof(bool)]);
+				return ctor?.Invoke([intValue, fromEnd]);
 			}
-			
+
 			return valueObj;
 		}
 	}
@@ -1395,11 +1402,11 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		if (receiver == null) return null;
 
 		var type = receiver.GetType();
-		var copyCtor = type.GetConstructor([ type ]);
+		var copyCtor = type.GetConstructor([type]);
 		object clone;
 		if (copyCtor != null)
 		{
-			clone = copyCtor.Invoke([ receiver ]);
+			clone = copyCtor.Invoke([receiver]);
 		}
 		else
 		{
