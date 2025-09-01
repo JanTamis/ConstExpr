@@ -19,7 +19,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<!--<PackageReference Include="ConstExpr.SourceGenerator" Version="0.1.18-preview" />-->
+<!--		<PackageReference Include="ConstExpr.SourceGenerator" Version="0.1.18-preview" />-->
 		<ProjectReference Include="..\ConstExpr.Core\ConstExpr.Core.csproj" />
 		<ProjectReference Include="..\ConstExpr.SourceGenerator\ConstExpr.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>

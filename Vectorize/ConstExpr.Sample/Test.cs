@@ -5,7 +5,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-[assembly: ConstExpr]
+using ConstExpr.Core.Enumerators;
+
+[assembly: ConstExpr(Level = GenerationLevel.Performance)]
 
 namespace ConstExpr.SourceGenerator.Sample;
 

@@ -5,7 +5,7 @@ using System.Text;
 
 namespace ConstExpr.SourceGenerator.Sample;
 
-public interface ICustomCollection<T>
+public interface ICustomCollection<T> : IEnumerable<T>
 {
 	IEnumerable<T> DistinctBy(Func<T, T> keySelector);
 	

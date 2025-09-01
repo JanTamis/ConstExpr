@@ -12,7 +12,7 @@ using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 
 namespace ConstExpr.SourceGenerator.Builders;
 
-public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loader, ITypeSymbol elementType, GenerationLevel generationLevel, string dataName) : BaseBuilder(elementType, compilation, generationLevel, loader, dataName)
+public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loader, ITypeSymbol elementType, GenerationLevel generationLevel, string dataName, ISet<string> usings) : BaseBuilder(elementType, compilation, generationLevel, loader, dataName, usings)
 {
 	public bool AppendBinarySearch<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
@@ -99,6 +99,9 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 				{
 					if (isPerformance && elementType.IsVectorSupported())
 					{
+						Usings.Add("System.Numerics");
+						Usings.Add("System.Runtime.InteropServices");
+						
 						var cast = elementType.EqualsType(compilation.CreateInt32())
 							? String.Empty
 							: $"({elementType})";
@@ -655,6 +658,8 @@ public class MemoryExtensionsBuilder(Compilation compilation, MetadataLoader loa
 			{
 				AppendMethod(builder, method, data.AsSpan(), isPerformance =>
 				{
+					Usings.Add("System.Text");
+					
 // 					builder.WriteLine($$"""
 // 						var index = 0;
 // 						

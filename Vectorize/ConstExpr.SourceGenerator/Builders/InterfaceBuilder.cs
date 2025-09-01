@@ -11,7 +11,7 @@ using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Builders;
 
-public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, ITypeSymbol elementType, GenerationLevel generationLevel, string dataName) : BaseBuilder(elementType, compilation, generationLevel, loader, dataName)
+public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, ITypeSymbol elementType, GenerationLevel generationLevel, string dataName, ISet<string> usings) : BaseBuilder(elementType, compilation, generationLevel, loader, dataName, usings)
 {
 	public bool AppendCount(IPropertySymbol property, int count, IndentedCodeWriter? builder)
 	{
@@ -54,11 +54,13 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 		switch (property)
 		{
 			case { Name: "IsReadOnly", Type.SpecialType: SpecialType.System_Boolean, IsReadOnly: true }:
+			{
 				AppendProperty(builder, property,
 					"return true;",
 					"throw new NotSupportedException();");
 
 				return true;
+			}
 			default:
 				return false;
 		}
@@ -137,7 +139,6 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 			default:
 				return false;
 		}
-
 	}
 
 	public bool AppendAdd(IMethodSymbol method, IndentedCodeWriter? builder)
@@ -454,12 +455,13 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 						                                                              && m.Parameters[1].Type.HasMethod("Compare", x => x is { ReturnType.SpecialType: SpecialType.System_Int32 }
 						                                                                                                                && x.Parameters.AsSpan().EqualsTypes(elementType, elementType))))
 						{
+							Usings.Add("System.Collections.Generic");
+							
 							builder.WriteLine($"return BinarySearch({method.Parameters[0]}, Comparer<{elementType}>.Default) >= 0;");
 						}
 						else
 						{
 							var i = 0;
-
 							var fragments = new List<string>();
 
 							for (; i < items.Length;)
@@ -531,12 +533,16 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 					{
 						if (method.ContainingType.HasMethod("Contains", m => AppendContains(m, items, null)))
 						{
+							Usings.Add("System.Linq");
+							
 							builder.WriteLine($"return {method.Parameters[0]}.Any(Contains);");
 							return;
 						}
 
 						if (method.ContainingType.HasMethod("IndexOf", m => AppendIndexOf(m, items, null)))
 						{
+							Usings.Add("System.Linq");
+							
 							builder.WriteLine($"return {method.Parameters[0]}.Any(item => IndexOf(item) >= 0);");
 							return;
 						}

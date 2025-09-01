@@ -1,5 +1,8 @@
 using ConstExpr.SourceGenerator.Sample;
 using System;
+using System.Numerics;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using System.Text;
 
 var range = Test.Range(10);
@@ -37,7 +40,7 @@ Console.WriteLine("Map(5, 0..10 -> 0..100) => " + Test.Map(5, 0, 10, 0, 100));
 var (h, s, l) = Test.RgbToHsl((byte)Math.Abs(-150), 100, 50);
 Console.WriteLine($"RGB(150,100,50) -> HSL({h:F1}, {s:F3}, {l:F3})");
 
-var (rr, gg, bb) = Test.HslToRgb(h, s, l);
+var (rr, gg, bb) = Test.HslToRgb(720, 1, 0.5f);
 Console.WriteLine($"Round-trip HSL -> RGB({rr},{gg},{bb})");
 
 var lumDark = Test.Luminance(0, 128, 0);
@@ -49,4 +52,3 @@ Console.WriteLine("Contrast black/white: " + Test.ContrastRatio(0, 0, 0, 255, 25
 // A couple of pre-existing samples to keep context
 Console.WriteLine("IsPrime(97) => " + Test.IsPrime(97));
 Console.WriteLine("StdDev(1..5) => " + Test.StdDev(1, 2, 3, 4, 5));
-

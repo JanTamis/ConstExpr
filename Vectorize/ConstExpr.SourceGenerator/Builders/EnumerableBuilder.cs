@@ -11,7 +11,7 @@ using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 
 namespace ConstExpr.SourceGenerator.Builders;
 
-public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, GenerationLevel level, string dataName) : BaseBuilder(elementType, compilation, level, loader, dataName)
+public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, GenerationLevel level, string dataName, ISet<string> usings) : BaseBuilder(elementType, compilation, level, loader, dataName, usings)
 {
 	public bool AppendAggregate<T>(IMethodSymbol method, ImmutableArray<T> items, IndentedCodeWriter? builder)
 	{
@@ -377,6 +377,8 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			{
 				AppendMethod(builder, method, () =>
 				{
+					Usings.Add("System.Collections.Generic");
+					
 					if (method.Parameters.Length == 1)
 					{
 						builder.WriteLine($"var seen = new HashSet<{funcReturnType}>({items.Distinct().Count()});");
@@ -972,12 +974,16 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 				{
 					if (!isPerformance && compilation.HasMethod(typeof(Enumerable), nameof(Enumerable.SequenceEqual)))
 					{
+						Usings.Add("System.Linq");
+						
 						builder.WriteLine($"return {method.Parameters[0]}.SequenceEqual([{items}]);");
 					}
 					else
 					{
 						if (compilation.HasMethod(typeof(Enumerable), "TryGetNonEnumeratedCount"))
 						{
+							Usings.Add("System.Linq");
+							
 							using (builder.WriteBlock($"if ({method.Parameters[0]}.TryGetNonEnumeratedCount(out var count) && count != {items.Length})"))
 							{
 								builder.WriteLine("return false;");
@@ -1101,7 +1107,7 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 				{
 					builder.WriteLine($"""
 						{method.Parameters[0]} = {items.Length};
-						return true
+						return true;
 						""");
 				});
 
@@ -1197,6 +1203,8 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			{
 				AppendMethod(builder, method, () =>
 				{
+					Usings.Add("System.Collections.Immutable");
+					
 					builder.WriteLine($"return ImmutableList.Create({items});");
 				});
 
@@ -1355,6 +1363,8 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 			{
 				AppendMethod(builder, method, () =>
 				{
+					Usings.Add("System.Collections.Generic");
+					
 					// Use fully qualified names to avoid namespace conflicts in generated code
 					builder.WriteLine($"var counts = new Dictionary<{keyType}, {numberType}>({items.Length});");
 					builder.WriteLine();
@@ -1367,6 +1377,8 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 
 						if (compilation.GetTypeByName("System.Runtime.InteropServices.CollectionsMarshal")?.HasMethod("GetValueRefOrAddDefault") == true)
 						{
+							Usings.Add("System.Runtime.InteropServices");
+							
 							builder.WriteLine("ref var count = ref CollectionsMarshal.GetValueRefOrAddDefault(counts, key, out _);");
 							builder.WriteLine("count++;");
 						}
@@ -1417,6 +1429,8 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 					{
 						foreach (var item in items.CountBy())
 						{
+							Usings.Add("System.Collections.Generic");
+								
 							if (item.Value == 1)
 							{
 								builder.WriteLine($"yield return {keyValuePairType.Name:literal}.Create({item.Key}, {numberType}.One);");
@@ -1525,10 +1539,14 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 				{
 					if (items.Length == 0)
 					{
+						Usings.Add("System.Linq");
+						
 						builder.WriteLine($"return Enumerable.Empty<{elementType}>();");
 
 						return;
 					}
+					
+					Usings.Add("System.Collections.Generic");
 
 					builder.WriteLine($$"""
 						var set = new HashSet<{{elementType}}>({{items}});
@@ -1565,10 +1583,14 @@ public class EnumerableBuilder(Compilation compilation, ITypeSymbol elementType,
 				{
 					if (items.Length == 0)
 					{
+						Usings.Add("System.Linq");
+						
 						builder.WriteLine($"return Enumerable.Empty<{elementType}>();");
 
 						return;
 					}
+					
+					Usings.Add("System.Collections.Generic");
 
 					if (method.Parameters.Length == 2)
 					{

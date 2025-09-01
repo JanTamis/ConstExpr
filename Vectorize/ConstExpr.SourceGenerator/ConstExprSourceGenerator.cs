@@ -73,11 +73,12 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 	private void GenerateMethodImplementations(SgfSourceProductionContext spc, Compilation compilation, IGrouping<MethodDeclarationSyntax, InvocationModel?> methodGroup, MetadataLoader loader)
 	{
 		var code = new IndentedCodeWriter(compilation);
-		var distinctUsings = methodGroup.SelectMany(m => m.Usings).Distinct().Where(w => !string.IsNullOrWhiteSpace(w)).OrderBy(s => s);
+		
+		var distinctUsings = methodGroup
+			.SelectMany(m => m.Usings)
+			.ToSet();
 
-		EmitUsings(code, distinctUsings);
-
-		code.WriteLine();
+		//code.WriteLine();
 
 		using (code.WriteBlock($"namespace ConstantExpression.Generated", "{", "}"))
 		{
@@ -88,26 +89,24 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			}
 
 			// Emit concrete interface implementations (non IEnumerable interfaces) per distinct value.
-			EmitInterfaceImplementations(code, compilation, methodGroup, loader);
+			EmitInterfaceImplementations(code, compilation, methodGroup, loader, distinctUsings);
 		}
 
 		EmitInterceptsLocationAttributeStub(code);
 
 		if (methodGroup.Key.Parent is TypeDeclarationSyntax declaringType && !methodGroup.Any(a => a.Exceptions.Any()))
 		{
-			spc.AddSource($"{declaringType.Identifier}_{methodGroup.Key.Identifier}.g.cs", code.ToString());
+			var result = String.Join("\n", distinctUsings
+				.Where(w => !String.IsNullOrWhiteSpace(w))
+				.OrderByDescending(o => o.StartsWith("System"))
+				.ThenBy(o => o)
+				.Select(s => $"using {s};")) + "\n\n" + code;
+			
+			spc.AddSource($"{declaringType.Identifier}_{methodGroup.Key.Identifier}.g.cs", result);
 		}
 	}
 
 	#region Emission Helpers
-
-	private static void EmitUsings(IndentedCodeWriter code, IEnumerable<string?> usings)
-	{
-		foreach (var u in usings)
-		{
-			code.WriteLine($"using {u:literal};");
-		}
-	}
 
 	private void EmitGeneratedMethodsForValueGroups(IndentedCodeWriter code, Compilation compilation, IEnumerable<InvocationModel?> methodGroup)
 	{
@@ -119,6 +118,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			{
 				code.WriteLine();
 			}
+			
 			wroteFirstGroup = true;
 
 			// Add interceptor attributes for every invocation (location based) that shares the same value.
@@ -136,7 +136,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 			// Adjust return type for array cases where we can use the specific runtime array type name.
 			generatedMethodSyntax = AdjustArrayReturnTypeIfNeeded(generatedMethodSyntax, representativeInvocation.Value, representativeInvocation.Symbol.ReturnType);
-
+			
 			using (code.WriteBlock(generatedMethodSyntax))
 			{
 				if (compilation.IsInterface(originalMethodSyntax.ReturnType))
@@ -151,7 +151,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		}
 	}
 
-	private void EmitInterfaceImplementations(IndentedCodeWriter code, Compilation compilation, IEnumerable<InvocationModel?> methodGroup, MetadataLoader loader)
+	private void EmitInterfaceImplementations(IndentedCodeWriter code, Compilation compilation, IEnumerable<InvocationModel?> methodGroup, MetadataLoader loader, ISet<string> usings)
 	{
 		// Only unique values.
 		foreach (var invocationModel in methodGroup.DistinctBy(d => d.Value))
@@ -183,15 +183,15 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 							.Select(s => compilation.GetTypeByType(s.GetType()))
 							.First();
 
-						EmitCollectionBackingField(code, invocationModel, resolvedElementType, dataFieldName, enumerable);
-						EmitInterfaceMemberImplementations(code, compilation, loader, invocationModel, namedTypeSymbol, resolvedElementType, dataFieldName, enumerable);
+						EmitCollectionBackingField(code, invocationModel, resolvedElementType, dataFieldName, enumerable, usings);
+						EmitInterfaceMemberImplementations(code, compilation, loader, invocationModel, namedTypeSymbol, resolvedElementType, dataFieldName, enumerable, usings);
 					}
 				}
 			}
 		}
 	}
 
-	private static void EmitCollectionBackingField(IndentedCodeWriter code, InvocationModel invocationModel, ITypeSymbol elementType, string dataFieldName, IEnumerable enumerable)
+	private static void EmitCollectionBackingField(IndentedCodeWriter code, InvocationModel invocationModel, ITypeSymbol elementType, string dataFieldName, IEnumerable enumerable, ISet<string> usings)
 	{
 		code.WriteLine();
 
@@ -200,10 +200,14 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			if (elementType.SpecialType == SpecialType.System_Char)
 			{
 				code.WriteLine($"public static ReadOnlySpan<{elementType}> {dataFieldName:literal} => \"{String.Join(String.Empty, enumerable.Cast<object?>()):literal}\";");
+				
+				usings.Add("System");
 			}
 			else if (elementType.IsVectorSupported())
 			{
 				code.WriteLine($"public static ReadOnlySpan<{elementType}> {dataFieldName:literal} => [{enumerable}];");
+				
+				usings.Add("System");
 			}
 			else
 			{
@@ -212,23 +216,41 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		}
 	}
 
-	private void EmitInterfaceMemberImplementations(IndentedCodeWriter code, Compilation compilation, MetadataLoader loader, InvocationModel invocationModel, INamedTypeSymbol interfaceType, ITypeSymbol elementType, string dataFieldName, IEnumerable enumerable)
+	private void EmitInterfaceMemberImplementations(IndentedCodeWriter code, Compilation compilation, MetadataLoader loader, InvocationModel invocationModel, INamedTypeSymbol interfaceType, ITypeSymbol elementType, string dataFieldName, IEnumerable enumerable, ISet<string> usings)
 	{
-		var items = enumerable.Cast<object?>().ToImmutableArray();
+		var items = enumerable
+			.Cast<object?>()
+			.ToImmutableArray();
+		
 		var members = interfaceType.AllInterfaces
 			.Prepend(interfaceType)
 			.SelectMany(s => s.GetMembers())
 			.Distinct(SymbolEqualityComparer.Default)
 			.OrderBy(o => o is not IPropertySymbol);
 
-		var interfaceBuilder = new InterfaceBuilder(compilation, loader, elementType, invocationModel.GenerationLevel, dataFieldName);
-		var enumerableBuilder = new EnumerableBuilder(compilation, elementType, loader, invocationModel.GenerationLevel, dataFieldName);
-		var memoryExtensionsBuilder = new MemoryExtensionsBuilder(compilation, loader, elementType, invocationModel.GenerationLevel, dataFieldName);
+		var interfaceBuilder = new InterfaceBuilder(compilation, loader, elementType, invocationModel.GenerationLevel, dataFieldName, usings);
+		var enumerableBuilder = new EnumerableBuilder(compilation, elementType, loader, invocationModel.GenerationLevel, dataFieldName, usings);
+		var memoryExtensionsBuilder = new MemoryExtensionsBuilder(compilation, loader, elementType, invocationModel.GenerationLevel, dataFieldName, usings);
 
 		foreach (var member in members)
 		{
 			if (TryWrite(code, member, items, enumerable, interfaceBuilder, enumerableBuilder, memoryExtensionsBuilder))
 			{
+				switch (member)
+				{
+					case IMethodSymbol methodSymbol:
+						GetUsings(methodSymbol, usings);
+						break;
+					case IPropertySymbol propertySymbol:
+						SetUsings(propertySymbol.Type, usings);
+
+						foreach (var parameter in propertySymbol.Parameters)
+						{
+							SetUsings(parameter.Type, usings);
+						}
+						break;
+				}
+
 				continue;
 			}
 
@@ -249,6 +271,9 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 		if (IsIEnumerableRecursive(interfaceType))
 		{
+			usings.Add("System.Collections");
+			usings.Add("System.Collections.Generic");
+			
 			code.WriteLine();
 
 			// IEnumerator<T> implementation
@@ -547,34 +572,24 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 			var variables = ProcessArguments(visitor, context.SemanticModel.Compilation, invocation, loader, token);
 
-			if (variables == null)
+			if (exceptions.IsEmpty 
+			    && TryGetOperation<IMethodBodyOperation>(context.SemanticModel.Compilation, methodDecl, out var blockOperation) 
+			    && context.SemanticModel.Compilation.TryGetSemanticModel(invocation, out var model))
 			{
-				return null;
-			}
-
-			if (TryGetOperation<IMethodBodyOperation>(context.SemanticModel.Compilation, methodDecl, out var blockOperation) &&
-					context.SemanticModel.Compilation.TryGetSemanticModel(invocation, out var model))
-			{
-
 				var timer = Stopwatch.StartNew();
 
 				var usings = new HashSet<string?>
 				{
 					"System.Runtime.CompilerServices",
+					"System",
 				};
-
-				if (!methodSymbol.ReturnType.IsPrimitiveType() && !methodSymbol.IsAsync)
-				{
-					usings.Add("System.Numerics");
-					usings.Add("System.Collections.Generic");
-				}
 
 				visitor.VisitBlock(blockOperation.BlockBody!, variables);
 				timer.Stop();
 
 				Logger.Information($"{timer.Elapsed}: {invocation}");
 
-				GetUsings(methodSymbol, BaseBuilder.IsPerformance(level, (variables[ConstExprOperationVisitor.RETURNVARIABLENAME] as IEnumerable)?.Cast<object?>()?.Count() ?? 0), usings);
+				GetUsings(methodSymbol, usings);
 
 				return new InvocationModel
 				{
@@ -592,19 +607,17 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		catch (Exception e)
 		{
 			Logger.Error(e, $"Error processing {invocation}: {e.Message}");
-
-			return new InvocationModel
-			{
-				Method = methodDecl,
-				Symbol = methodSymbol,
-				Invocation = invocation,
-				// Location = model.GetInterceptableLocation(invocation, token),
-				Exceptions = exceptions,
-				GenerationLevel = level,
-			};
 		}
 
-		return null;
+		return new InvocationModel
+		{
+			Method = methodDecl,
+			Symbol = methodSymbol,
+			Invocation = invocation,
+			// Location = model.GetInterceptableLocation(invocation, token),
+			Exceptions = exceptions,
+			GenerationLevel = level,
+		};
 	}
 
 	public static Dictionary<string, object?> ProcessArguments(ConstExprOperationVisitor visitor, Compilation compilation, InvocationExpressionSyntax invocation, MetadataLoader loader, CancellationToken token)
@@ -647,68 +660,41 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			.FirstOrDefault();
 	}
 
-	private static void GetUsings(IMethodSymbol methodSymbol, bool isPerformance, HashSet<string?> usings)
+	private static void GetUsings(IMethodSymbol methodSymbol, ISet<string?> usings)
 	{
-		if (isPerformance && methodSymbol.ReturnType.TypeKind == TypeKind.Interface)
-		{
-			usings.Add("System.Numerics");
-			usings.Add("System.Collections");
-			usings.Add("System.Runtime.InteropServices");
-		}
-
-		if (IsIEnumerableRecursive(methodSymbol.ReturnType as INamedTypeSymbol))
-		{
-			usings.Add("System.Collections");
-			usings.Add("System.Linq");
-		}
-
-		if (!methodSymbol.ReturnType.IsPrimitiveType())
-		{
-			usings.Add(methodSymbol.ReturnType.ContainingNamespace?.ToString());
-		}
-
-		if (methodSymbol.ReturnType is INamedTypeSymbol namedTypeSymbol)
-		{
-			foreach (var type in namedTypeSymbol.TypeArguments)
-			{
-				if (!type.IsPrimitiveType())
-				{
-					usings.Add(type.ContainingNamespace?.ToString());
-				}
-			}
-		}
+		SetUsings(methodSymbol.ReturnType, usings);
 
 		foreach (var p in methodSymbol.Parameters)
 		{
-			if (!p.Type.IsPrimitiveType())
-			{
-				usings.Add(p.Type.ContainingNamespace?.ToString());
-			}
+			SetUsings(p.Type, usings);
 		}
 
 		foreach (var type in methodSymbol.TypeParameters.SelectMany(s => s.ConstraintTypes))
 		{
-			if (!type.IsPrimitiveType())
-			{
-				usings.Add(type.ContainingNamespace?.ToString());
-			}
+			SetUsings(type, usings);
+		}
+	}
+
+	private static void SetUsings(ITypeSymbol type, ISet<string?> usings)
+	{
+		if (!type.IsPrimitiveType())
+		{
+			usings.Add(type.ContainingNamespace?.ToString());
 		}
 
-		if (!IsIEnumerable(methodSymbol.ReturnType) && methodSymbol.ReturnType.TypeKind == TypeKind.Interface)
+		switch (type)
 		{
-			usings.Add("System.Runtime.Intrinsics");
-			usings.Add("System.Collections.Generic");
-			usings.Add("System.Linq");
-
-			foreach (var member in methodSymbol.ReturnType.GetMembers())
+			case INamedTypeSymbol namedType:
 			{
-				if (member is IMethodSymbol subMethod)
+				foreach (var arg in namedType.TypeArguments)
 				{
-					GetUsings(subMethod, false, usings);
+					SetUsings(arg, usings);
 				}
-
-				usings.Add(member.ContainingNamespace?.ToString());
+				break;
 			}
+			case IArrayTypeSymbol arrayType:
+				SetUsings(arrayType.ElementType, usings);
+				break;
 		}
 	}
 

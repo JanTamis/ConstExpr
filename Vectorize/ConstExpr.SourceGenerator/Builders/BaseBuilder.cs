@@ -10,11 +10,13 @@ using ConstExpr.Core.Enumerators;
 
 namespace ConstExpr.SourceGenerator.Builders;
 
-public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilation, GenerationLevel generationLevel, MetadataLoader loader, string dataName)
+public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilation, GenerationLevel generationLevel, MetadataLoader loader, string dataName, ISet<string> usings)
 {
 	public const int THRESHOLD = 5;
 
 	protected string DataName => dataName; // $"{type.Name}_{hashCode}_Data";
+
+	protected ISet<string> Usings => usings;
 
 	private IndentedCodeWriter.Block AppendMethod(IndentedCodeWriter builder, IMethodSymbol methodSymbol)
 	{
@@ -146,6 +148,8 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 
 			if (isPerformance && type != VectorTypes.None && elementType.IsVectorSupported())
 			{
+				Usings.Add("System.Runtime.Intrinsics");
+				
 				var vectors = new List<string>();
 
 				var vectorType = compilation.GetVector(elementType, loader, items, type, out var vector, out var vectorSize);

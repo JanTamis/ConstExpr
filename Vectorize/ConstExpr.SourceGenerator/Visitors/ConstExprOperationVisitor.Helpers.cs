@@ -7,8 +7,6 @@ namespace ConstExpr.SourceGenerator.Visitors;
 
 public partial class ConstExprOperationVisitor
 {
-
-
 	private string? GetVariableName(IOperation operation)
 	{
 		return operation switch
@@ -27,7 +25,9 @@ public partial class ConstExprOperationVisitor
 	{
 		foreach (var operation in operations)
 		{
-			Visit(operation, argument);
+			var loopResult = Visit(operation, argument);
+			
+			if (ReferenceEquals(loopResult, BreakSentinel)) break;
 		}
 	}
 }
