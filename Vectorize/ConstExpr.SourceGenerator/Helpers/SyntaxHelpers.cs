@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 
 namespace ConstExpr.SourceGenerator.Helpers;
@@ -151,6 +152,26 @@ public static class SyntaxHelpers
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression);
 		}
 
+		// Support for Span<T> / ReadOnlySpan<T> via reflection by converting to array
+		if (value is object obj && IsSpanLike(obj))
+		{
+			var array = TryToArray(obj);
+			if (array != null)
+			{
+				// If char-span, emit a string literal
+				var elemType = array.GetType().GetElementType();
+				if (elemType == typeof(char))
+				{
+					var chars = (char[])array;
+					return SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(new string(chars)));
+				}
+
+				return SyntaxFactory.CollectionExpression(SyntaxFactory.SeparatedList<CollectionElementSyntax>(array
+					.Cast<object?>()
+					.Select(s => SyntaxFactory.ExpressionElement(CreateLiteral(s)))));
+			}
+		}
+
 		if (value.GetType().Name.Contains("Tuple"))
 		{
 			var tupleItems = new List<ArgumentSyntax>();
@@ -189,6 +210,25 @@ public static class SyntaxHelpers
 				.Select(s => SyntaxFactory.ExpressionElement(CreateLiteral(s)))));
 		}
 
+		return null;
+	}
+
+	private static bool IsSpanLike(object obj)
+	{
+		var type = obj.GetType();
+		return type.IsGenericType
+		       && type.Namespace == "System"
+		       && (type.Name == "Span`1" || type.Name == "ReadOnlySpan`1");
+	}
+
+	private static Array? TryToArray(object spanLike)
+	{
+		var type = spanLike.GetType();
+		var toArray = type.GetMethod("ToArray", BindingFlags.Public | BindingFlags.Instance, null, Type.EmptyTypes, null);
+		if (toArray != null)
+		{
+			return toArray.Invoke(spanLike, null) as Array;
+		}
 		return null;
 	}
 
@@ -555,21 +595,21 @@ public static class SyntaxHelpers
 	public static bool CheckMethod(this ITypeSymbol item, string name, ITypeSymbol[] parameters, [NotNullWhen(true)] out IMethodSymbol? member)
 	{
 		return item.CheckMembers(name, m => m.ReturnsVoid
-																				&& m.Parameters.Length == parameters.Length
-																				&& m.Parameters
-																					.Select(s => s.Type)
-																					.Zip(parameters, IsEqualSymbol)
-																					.All(a => a), out member);
+											&& m.Parameters.Length == parameters.Length
+											&& m.Parameters
+												.Select(s => s.Type)
+												.Zip(parameters, IsEqualSymbol)
+												.All(a => a), out member);
 	}
 
 	public static bool CheckMethod(this ITypeSymbol item, string name, ITypeSymbol returnType, ITypeSymbol[] parameters, [NotNullWhen(true)] out IMethodSymbol? member)
 	{
 		return item.CheckMembers(name, m => SymbolEqualityComparer.Default.Equals(m.ReturnType, returnType)
-																				&& m.Parameters.Length == parameters.Length
-																				&& m.Parameters
-																					.Select(s => s.Type)
-																					.Zip(parameters, IsEqualSymbol)
-																					.All(a => a), out member);
+											&& m.Parameters.Length == parameters.Length
+											&& m.Parameters
+												.Select(s => s.Type)
+												.Zip(parameters, IsEqualSymbol)
+												.All(a => a), out member);
 	}
 
 	public static void CheckMethods(this ITypeSymbol item, string name, Dictionary<Func<IMethodSymbol, bool>, Action<IMethodSymbol>> methods)

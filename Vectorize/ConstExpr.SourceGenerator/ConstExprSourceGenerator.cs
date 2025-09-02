@@ -75,7 +75,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		var code = new IndentedCodeWriter(compilation);
 		
 		var distinctUsings = methodGroup
-			.SelectMany(m => m.Usings)
+			.SelectMany(m => m?.Usings ?? [])
 			.ToSet();
 
 		//code.WriteLine();
@@ -94,7 +94,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 		EmitInterceptsLocationAttributeStub(code);
 
-		if (methodGroup.Key.Parent is TypeDeclarationSyntax declaringType && !methodGroup.Any(a => a.Exceptions.Any()))
+		if (methodGroup.Key.Parent is TypeDeclarationSyntax declaringType && !methodGroup.SelectMany(s => s!.Exceptions).Any())
 		{
 			var result = String.Join("\n", distinctUsings
 				.Where(w => !String.IsNullOrWhiteSpace(w))
@@ -112,7 +112,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 	{
 		var wroteFirstGroup = false;
 
-		foreach (var invocationsByValue in methodGroup.GroupBy(m => m.Value, new ValueOrCollectionEqualityComparer()))
+		foreach (var invocationsByValue in methodGroup.Where(w => w?.Location is not null).GroupBy(m => m.Value, ValueOrCollectionEqualityComparer<object?>.Instance))
 		{
 			if (wroteFirstGroup)
 			{
@@ -469,7 +469,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 	private static string GetValueHashSuffix(object? value)
 	{
-		var hash = ComputeContentHash(value);
+		var hash = ValueOrCollectionEqualityComparer<object?>.Instance.GetHashCode(value);
 		var bytes = BitConverter.GetBytes(hash);
 		var b64 = Convert.ToBase64String(bytes);
 
@@ -569,7 +569,6 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 		try
 		{
-
 			var variables = ProcessArguments(visitor, context.SemanticModel.Compilation, invocation, loader, token);
 
 			if (exceptions.IsEmpty 

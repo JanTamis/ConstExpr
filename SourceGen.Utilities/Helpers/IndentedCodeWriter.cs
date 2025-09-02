@@ -514,6 +514,25 @@ public sealed class IndentedCodeWriter : IDisposable
 			_writer.Write("\"", false);
 		}
 
+		/// <summary>Writes the specified character span to the handler.</summary>
+		/// <param name="value">The span to write.</param>
+		public void AppendFormatted<T>(ReadOnlySpan<T> value)
+		{
+			_writer.Write("[", false);
+
+			for (var i = 0; i < value.Length; i++)
+			{
+				AppendFormatted(value[i]);
+
+				if (i < value.Length - 1)
+				{
+					AppendLiteral(", ");
+				}
+			}
+
+			_writer.Write("]", false);
+		}
+
 		public void AppendFormatted(IEnumerable items)
 		{
 			var enumerator = items.GetEnumerator();
@@ -606,7 +625,7 @@ public sealed class IndentedCodeWriter : IDisposable
 			{
 				AppendLiteral("0x");
 				AppendLiteral(formattable.ToString("X", CultureInfo.InvariantCulture));
-				
+
 				return;
 			}
 
@@ -803,7 +822,7 @@ public sealed class IndentedCodeWriter : IDisposable
 			{
 				var itemValue = member is FieldInfo fi
 					? fi.GetValue(value)
-					: ((PropertyInfo) member).GetValue(value);
+					: ((PropertyInfo)member).GetValue(value);
 
 				tupleItems.Add(SyntaxFactory.Argument(CreateLiteral(itemValue)));
 			}

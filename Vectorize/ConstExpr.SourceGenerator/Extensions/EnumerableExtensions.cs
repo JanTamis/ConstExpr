@@ -1,3 +1,4 @@
+using ConstExpr.SourceGenerator.Comparers;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
@@ -242,7 +243,7 @@ public static class EnumerableExtensions
 
 	public static IEnumerable<T> DistinctBy<T, TResult>(this IEnumerable<T> source, Func<T, TResult> selector)
 	{
-		var seen = new HashSet<TResult>();
+		var seen = new HashSet<TResult>(ValueOrCollectionEqualityComparer<TResult>.Instance);
 
 		foreach (var item in source)
 		{
