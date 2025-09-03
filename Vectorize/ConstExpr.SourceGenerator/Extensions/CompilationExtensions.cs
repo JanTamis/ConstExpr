@@ -310,8 +310,11 @@ public static class CompilationExtensions
 		var fullyQualifiedName = methodSymbol.ContainingType.ToDisplayString();
 		var methodName = methodSymbol.Name;
 
-		var type = loader.GetType(methodSymbol.ContainingType)
-		           ?? throw new InvalidOperationException($"Type '{fullyQualifiedName}' not found");
+		// Prefer the runtime type for instance calls to correctly resolve virtual/override methods
+		var type = instance != null && !methodSymbol.IsStatic
+			? instance.GetType()
+			: loader.GetType(methodSymbol.ContainingType)
+			  ?? throw new InvalidOperationException($"Type '{fullyQualifiedName}' not found");
 
 		var methodInfos = type
 			.GetMethods(methodSymbol.IsStatic

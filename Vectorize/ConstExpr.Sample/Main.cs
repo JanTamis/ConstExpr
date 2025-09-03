@@ -1,8 +1,5 @@
 using ConstExpr.SourceGenerator.Sample;
 using System;
-using System.Numerics;
-using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
 using System.Text;
 
 //var range = Test.Range(10);
@@ -12,7 +9,7 @@ using System.Text;
 //Console.WriteLine(Test.StdDev(1f, 2f, 3f, 4f, 5f));
 
 //Console.WriteLine(Test.StringLength("Hello, World!", Encoding.UTF8));
-Console.WriteLine(Test.StringBytes("Hello, World!", Encoding.UTF8).Length);
+Console.WriteLine(Test.StringBytes("Hello, World!!!", Encoding.UTF8).Length);
 //Console.WriteLine(Test.Base64Encode("Hello, World!"));
 //Console.WriteLine(await Test.Waiting());
 //// Console.WriteLine(String.Join(", ", range.BinarySearch(11, Comparer<int>.Default)));

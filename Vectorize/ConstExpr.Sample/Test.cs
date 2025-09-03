@@ -1,11 +1,11 @@
 using ConstExpr.Core.Attributes;
+using ConstExpr.Core.Enumerators;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using ConstExpr.Core.Enumerators;
 
 [assembly: ConstExpr(Level = GenerationLevel.Performance)]
 
