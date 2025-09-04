@@ -21,6 +21,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Threading;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 
@@ -574,15 +575,13 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 		try
 		{
-
-
 			if (//exceptions.IsEmpty
 					TryGetOperation<IMethodBodyOperation>(context.SemanticModel.Compilation, methodDecl, out var blockOperation)
 					&& context.SemanticModel.Compilation.TryGetSemanticModel(invocation, out var model))
 			{
 				var timer = Stopwatch.StartNew();
 
-				var variables = ProcessArguments(visitor, context.SemanticModel.Compilation, invocation, loader, token);
+				// var variables = ProcessArguments(visitor, context.SemanticModel.Compilation, invocation, loader, token);
 				var variablesPartial = ProcessArguments(visitor, context.SemanticModel.Compilation, invocation, loader, token);
 
 				var usings = new HashSet<string?>
@@ -594,6 +593,9 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				// visitor.VisitBlock(blockOperation.BlockBody!, variables);
 
 				var result = partialVisitor.VisitBlock(blockOperation.BlockBody!, variablesPartial);
+				
+				// Format using Roslyn formatter instead of NormalizeWhitespace
+				var text = FormattingHelper.Render(result);
 
 				timer.Stop();
 
@@ -630,11 +632,11 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		};
 	}
 
-	public static Dictionary<string, object?> ProcessArguments(ConstExprOperationVisitor visitor, Compilation compilation, InvocationExpressionSyntax invocation, MetadataLoader loader, CancellationToken token)
+	public static Dictionary<string, VariableItem> ProcessArguments(ConstExprOperationVisitor visitor, Compilation compilation, InvocationExpressionSyntax invocation, MetadataLoader loader, CancellationToken token)
 	{
 		//visitor.ShouldThrow = false;
 
-		var variables = new Dictionary<string, object?>();
+		var variables = new Dictionary<string, VariableItem>();
 		var invocationOperation = compilation.GetSemanticModel(invocation.SyntaxTree).GetOperation(invocation) as IInvocationOperation;
 		var methodSymbol = invocationOperation?.TargetMethod;
 
@@ -645,28 +647,30 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				try
 				{
 					var enumType = loader.GetType(argument.Parameter.Type);
-					var value = visitor.Visit(argument.Value, variables);
-					variables.Add(argument.Parameter.Name, Enum.ToObject(enumType, value));
+					var value = visitor.Visit(argument.Value, new ConstExprPartialVisitor.VariableItemDictionary(variables));
+					variables.Add(argument.Parameter.Name, new VariableItem(argument.Type, true, Enum.ToObject(enumType, value)));
 				}
 				catch (Exception)
 				{
+					variables.Add(argument.Parameter.Name, new VariableItem(argument.Type, false, null));
 				}
 			}
 			else
 			{
 				try
 				{
-					variables.Add(argument.Parameter.Name, visitor.Visit(argument.Value, variables));
+					variables.Add(argument.Parameter.Name, new VariableItem(argument.Type, true, visitor.Visit(argument.Value, new ConstExprPartialVisitor.VariableItemDictionary(variables))));
 				}
 				catch (Exception)
 				{
+					variables.Add(argument.Parameter.Name, new VariableItem(argument.Type, false, null));
 				}
 			}
 		}
 
 		foreach (var (parameter, argument) in methodSymbol.TypeParameters.Zip(methodSymbol.TypeArguments, (x, y) => (x, y)))
 		{
-			variables.Add(parameter.Name, loader.GetType(argument));
+			variables.Add(parameter.Name, new VariableItem(argument, true, loader.GetType(argument)));
 		}
 
 		//visitor.ShouldThrow = true;
