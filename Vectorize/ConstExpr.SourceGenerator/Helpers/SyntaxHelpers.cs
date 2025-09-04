@@ -217,8 +217,8 @@ public static class SyntaxHelpers
 	{
 		var type = obj.GetType();
 		return type.IsGenericType
-		       && type.Namespace == "System"
-		       && (type.Name == "Span`1" || type.Name == "ReadOnlySpan`1");
+					 && type.Namespace == "System"
+					 && (type.Name == "Span`1" || type.Name == "ReadOnlySpan`1");
 	}
 
 	private static Array? TryToArray(object spanLike)
@@ -232,7 +232,7 @@ public static class SyntaxHelpers
 		return null;
 	}
 
-	public static object? GetConstantValue(Compilation compilation, MetadataLoader loader, SyntaxNode expression, Dictionary<string, object?>? variables, CancellationToken token = default)
+	public static object? GetConstantValue(Compilation compilation, MetadataLoader loader, SyntaxNode expression, IDictionary<string, object?>? variables, CancellationToken token = default)
 	{
 		if (TryGetConstantValue(compilation, loader, expression, variables, token, out var value))
 		{
@@ -242,7 +242,7 @@ public static class SyntaxHelpers
 		return null;
 	}
 
-	public static bool TryGetConstantValue(Compilation compilation, MetadataLoader loader, SyntaxNode? expression, Dictionary<string, object?>? variables, CancellationToken token, out object? value)
+	public static bool TryGetConstantValue(Compilation compilation, MetadataLoader loader, SyntaxNode? expression, IDictionary<string, object?>? variables, CancellationToken token, out object? value)
 	{
 		if (expression is null)
 		{
@@ -513,7 +513,7 @@ public static class SyntaxHelpers
 	public static bool IsIAsyncEnumerable(ITypeSymbol typeSymbol)
 	{
 		return typeSymbol.Name == "IAsyncEnumerable"
-		       && typeSymbol.ContainingNamespace.ToDisplayString() == "System.Collections.Generic";
+					 && typeSymbol.ContainingNamespace.ToDisplayString() == "System.Collections.Generic";
 	}
 
 	public static bool IsIEnumerable(Compilation compilation, TypeSyntax typeSymbol, CancellationToken token = default)
@@ -526,8 +526,8 @@ public static class SyntaxHelpers
 	public static bool IsIAsyncEnumerable(Compilation compilation, TypeSyntax typeSymbol, CancellationToken token = default)
 	{
 		return compilation.TryGetSemanticModel(typeSymbol, out var model)
-		       && model.GetSymbolInfo(typeSymbol, token).Symbol is INamedTypeSymbol namedTypeSymbol
-		       && IsIAsyncEnumerable(namedTypeSymbol);
+					 && model.GetSymbolInfo(typeSymbol, token).Symbol is INamedTypeSymbol namedTypeSymbol
+					 && IsIAsyncEnumerable(namedTypeSymbol);
 	}
 
 	public static bool IsICollection(ITypeSymbol typeSymbol)
