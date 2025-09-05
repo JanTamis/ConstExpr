@@ -3,6 +3,7 @@ using ConstExpr.SourceGenerator.Builders;
 using ConstExpr.SourceGenerator.Comparers;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
+using ConstExpr.SourceGenerator.Rewriters;
 using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -593,7 +594,8 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				// visitor.VisitBlock(blockOperation.BlockBody!, variables);
 
 				var result = partialVisitor.VisitBlock(blockOperation.BlockBody!, variablesPartial);
-				
+				result = new PruneVariableRewriter(variablesPartial).Visit(result)!;
+
 				// Format using Roslyn formatter instead of NormalizeWhitespace
 				var text = FormattingHelper.Render(result);
 

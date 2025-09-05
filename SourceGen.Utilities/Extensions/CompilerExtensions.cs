@@ -77,7 +77,7 @@ public static class CompilerExtensions
 		}
 	}
 
-	public static bool IsSpecialType(this Compilation compilation, ISymbol symbol, SpecialType specialType)
+	public static bool IsSpecialType(this Compilation compilation, ISymbol? symbol, SpecialType specialType)
 	{
 		if (symbol is ITypeSymbol namedTypeSymbol)
 		{

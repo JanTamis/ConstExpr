@@ -16,7 +16,7 @@ const byte test = 150;
 //// Console.WriteLine(String.Join(", ", range.BinarySearch(11, Comparer<int>.Default)));
 //Console.WriteLine(String.Join(", ", Test.Split("Hello, World!", ',')));
 //Console.WriteLine(String.Join(", ", Test.Fibonacci(20)));
-Console.WriteLine(Test.RgbToHsl(test, 100, 50));
+// Console.WriteLine(Test.RgbToHsl(test, 100, 50));
 //Console.WriteLine(Test.IsPrime(4));
 //Console.WriteLine(Test.ToString(StringComparison.Ordinal));
 //Console.WriteLine(Test.GetNames<StringComparison>());
@@ -31,14 +31,14 @@ Console.WriteLine(Test.RgbToHsl(test, 100, 50));
 //// Numbers / sequences
 //Console.WriteLine("Primes up to 50: " + String.Join(", ", Test.PrimesUpTo(50)));
 //Console.WriteLine("First 12 Fibonacci (long): " + String.Join(", ", Test.FibonacciSequence(12)));
-//Console.WriteLine("Clamp(15, 0, 10) => " + Test.Clamp(15, 0, 10));
+// Console.WriteLine("Clamp(15, 0, 10) => " + Test.Clamp(test, 0, 10));
 //Console.WriteLine("Map(5, 0..10 -> 0..100) => " + Test.Map(5, 0, 10, 0, 100));
 
 //// Color conversions
 //var (h, s, l) = Test.RgbToHsl((byte)Math.Abs(-150), 100, 50);
 //Console.WriteLine($"RGB(150,100,50) -> HSL({h:F1}, {s:F3}, {l:F3})");
 
-//var (rr, gg, bb) = Test.HslToRgb(720, 1, 0.5f);
+var (rr, gg, bb) = Test.HslToRgb(720, 1, 0.5f);
 //Console.WriteLine($"Round-trip HSL -> RGB({rr},{gg},{bb})");
 
 //var lumDark = Test.Luminance(0, 128, 0);
