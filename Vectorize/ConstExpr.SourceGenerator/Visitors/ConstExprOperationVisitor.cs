@@ -832,7 +832,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			UnaryOperatorKind.Plus => operand,
 			UnaryOperatorKind.Minus => 0.Subtract(operand),
 			UnaryOperatorKind.BitwiseNegation => operand.BitwiseNot(),
-			UnaryOperatorKind.Not => (operand.LogicalNot()),
+			UnaryOperatorKind.Not => operand.LogicalNot(),
 			_ => operand,
 		};
 	}

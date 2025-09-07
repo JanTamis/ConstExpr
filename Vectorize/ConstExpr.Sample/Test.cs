@@ -207,6 +207,7 @@ public static class Test
 		{
 			return max;
 		}
+		
 		return value;
 	}
 
@@ -283,7 +284,6 @@ public static class Test
 		var r = (byte)Math.Round((r1 + m) * 255f);
 		var g = (byte)Math.Round((g1 + m) * 255f);
 		var b = (byte)Math.Round((b1 + m) * 255f);
-
 		return (r, g, b);
 	}
 
@@ -326,7 +326,6 @@ public static class Test
 			> 1f => 1f,
 			_ => v
 		};
-
 	}
 
 	public static (float h, float s, float l) RgbToHsl(byte r, byte g, byte b)

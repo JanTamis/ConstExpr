@@ -278,4 +278,52 @@ public static class ObjectExtensions
 				? ExecuteBinaryOperation(BinaryOperatorKind.Subtract, zero, value)
 				: value;
 	}
+
+	public static bool IsNumericZero(this object? value) => value switch
+	{
+		byte b => b == 0,
+		sbyte sb => sb == 0,
+		short s => s == 0,
+		ushort us => us == 0,
+		int i => i == 0,
+		uint ui => ui == 0,
+		long l => l == 0,
+		ulong ul => ul == 0,
+		float f => f == 0f,
+		double d => d == 0d,
+		decimal m => m == 0m,
+		_ => false
+	};
+
+	public static bool IsNumericOne(this object? value) => value switch
+	{
+		byte b => b == 1,
+		sbyte sb => sb == 1,
+		short s => s == 1,
+		ushort us => us == 1,
+		int i => i == 1,
+		uint ui => ui == 1,
+		long l => l == 1,
+		ulong ul => ul == 1,
+		float f => f == 1f,
+		double d => d == 1d,
+		decimal m => m == 1m,
+		_ => false
+	};
+
+	public static bool IsNumericTwo(this object? value) => value switch
+	{
+		byte b => b == 2,
+		sbyte sb => sb == 2,
+		short s => s == 2,
+		ushort us => us == 2,
+		int i => i == 2,
+		uint ui => ui == 2,
+		long l => l == 2,
+		ulong ul => ul == 2,
+		float f => f == 2f,
+		double d => d == 2d,
+		decimal m => m == 2m,
+		_ => false
+	};
 }

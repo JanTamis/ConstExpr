@@ -1,9 +1,10 @@
 using ConstExpr.SourceGenerator.Sample;
 using System;
 
-//var range = Test.Range(10);
+// var range = Test.Range(10);
 
-const byte test = 150;
+float test = 1f;
+byte test2 = 128;
 
 //Console.WriteLine(String.Join(", ", Test.IsOdd(1, 2, 3, 4, 5)));
 //Console.WriteLine(Test.Average(1f, 2f, 3f, 4f, 5f, 6f));
@@ -15,9 +16,9 @@ const byte test = 150;
 //Console.WriteLine(await Test.Waiting());
 //// Console.WriteLine(String.Join(", ", range.BinarySearch(11, Comparer<int>.Default)));
 //Console.WriteLine(String.Join(", ", Test.Split("Hello, World!", ',')));
-//Console.WriteLine(String.Join(", ", Test.Fibonacci(20)));
+// Console.WriteLine(String.Join(", ", Test.Fibonacci(20)));
 // Console.WriteLine(Test.RgbToHsl(test, 100, 50));
-//Console.WriteLine(Test.IsPrime(4));
+// Console.WriteLine(Test.IsPrime(3));
 //Console.WriteLine(Test.ToString(StringComparison.Ordinal));
 //Console.WriteLine(Test.GetNames<StringComparison>());
 //Console.WriteLine(Test.GetNames<StringComparison>());
@@ -29,24 +30,53 @@ const byte test = 150;
 // Console.WriteLine(Test.AdvancedPrimeTest(100));
 
 //// Numbers / sequences
-//Console.WriteLine("Primes up to 50: " + String.Join(", ", Test.PrimesUpTo(50)));
-//Console.WriteLine("First 12 Fibonacci (long): " + String.Join(", ", Test.FibonacciSequence(12)));
-// Console.WriteLine("Clamp(15, 0, 10) => " + Test.Clamp(test, 0, 10));
+// Console.WriteLine("Primes up to 50: " + String.Join(", ", Test.PrimesUpTo(5)));
+// Console.WriteLine("First 12 Fibonacci (long): " + String.Join(", ", Test.FibonacciSequence(12)));
+// Console.WriteLine("Clamp(15, 0, 10) => " + Test.Clamp(test2, 0, 10));
 //Console.WriteLine("Map(5, 0..10 -> 0..100) => " + Test.Map(5, 0, 10, 0, 100));
 
 //// Color conversions
-//var (h, s, l) = Test.RgbToHsl((byte)Math.Abs(-150), 100, 50);
+var (h, s, l) = Test.RgbToHsl((byte)Math.Abs(-150), test2, 50);
 //Console.WriteLine($"RGB(150,100,50) -> HSL({h:F1}, {s:F3}, {l:F3})");
 
-var (rr, gg, bb) = Test.HslToRgb(720, 1, 0.5f);
-//Console.WriteLine($"Round-trip HSL -> RGB({rr},{gg},{bb})");
+// var (rr, gg, bb) = Test.HslToRgb(720, test, 0.5f);
+// Console.WriteLine($"Round-trip HSL -> RGB({rr},{gg},{bb})");
 
-//var lumDark = Test.Luminance(0, 128, 0);
+// var lumDark = Test.Luminance(0, test2, 0);
 //var lumLight = Test.Luminance(255, 255, 255);
 
 //Console.WriteLine($"Luminance black={lumDark:F4} white={lumLight:F4}");
-//Console.WriteLine("Contrast black/white: " + Test.ContrastRatio(0, 0, 0, 255, 255, 255).ToString("F2"));
+// Console.WriteLine("Contrast black/white: " + Test.ContrastRatio(0, 0, 0, 255, 255, 255).ToString("F2"));
 
 //// A couple of pre-existing samples to keep context
 //Console.WriteLine("IsPrime(97) => " + Test.IsPrime(97));
-//Console.WriteLine("StdDev(1..5) => " + Test.StdDev(1, 2, 3, 4, 5));
+// Console.WriteLine("StdDev(1..5) => " + Test.StdDev(1, 2, 3, 4, 5));
+
+static (byte r, byte g, byte b) HslToRgb(float h, float s, float l)
+{
+	s = Clamp01(s);
+
+	if (s == 0F)
+	{
+		return (128, 128, 128);
+	}
+
+	var x = s * 0F;
+	var m = 0.5F - s / 2F;
+	var r = (byte) Math.Round(s + m * 255F);
+	var g = (byte) Math.Round(x + m * 255F);
+	var b = (byte) Math.Round(m * 255F);
+
+	return (r, g, b);
+}
+
+static float Clamp01(float v)
+{
+	return v switch
+	{
+		< 0f => 0f,
+		> 1f => 1f,
+		_ => v
+	};
+
+}

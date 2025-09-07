@@ -943,4 +943,12 @@ public static class CompilationExtensions
 
 		return compilation.GetTypeByMetadataName($"{fullyQualifiedMetadataName}`{typeArguments.Length}")?.Construct(typeArguments.ToArray());
 	}
+
+	public static TypeSyntax GetTypeSyntax(this ITypeSymbol typeSymbol, bool fullyQualified = true)
+	{
+		var format = fullyQualified ? SymbolDisplayFormat.FullyQualifiedFormat : SymbolDisplayFormat.MinimallyQualifiedFormat;
+		var typeText = typeSymbol.ToDisplayString(format);
+		
+		return SyntaxFactory.ParseTypeName(typeText);
+	}
 }

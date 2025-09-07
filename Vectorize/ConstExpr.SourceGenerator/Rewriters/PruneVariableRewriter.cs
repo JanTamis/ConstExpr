@@ -49,19 +49,30 @@ public sealed class PruneVariableRewriter(IDictionary<string, VariableItem> vari
 	{
 		var items = node.Statements;
 		var result = new List<StatementSyntax>(items.Count);
+		var terminalReached = false;
 
 		foreach (var item in items)
 		{
 			var visited = Visit(item);
 
-			if (visited is StatementSyntax stmt)
+			if (!terminalReached)
 			{
-				result.Add(stmt);
-
-				// Stop collecting further statements if this one terminates control flow
-				if (IsTerminalStatement(stmt))
+				if (visited is StatementSyntax stmt)
 				{
-					break;
+					result.Add(stmt);
+
+					if (IsTerminalStatement(stmt))
+					{
+						terminalReached = true;
+					}
+				}
+			}
+			else
+			{
+				// Na een terminale statement: blijf wel visit-en maar neem alleen lokale functies op
+				if (visited is LocalFunctionStatementSyntax localFunc)
+				{
+					result.Add(localFunc);
 				}
 			}
 		}
@@ -72,10 +83,8 @@ public sealed class PruneVariableRewriter(IDictionary<string, VariableItem> vari
 	// Critical: if a variable declaration becomes empty after pruning, remove the whole local declaration statement
 	public override SyntaxNode? VisitLocalDeclarationStatement(LocalDeclarationStatementSyntax node)
 	{
-		var visitedDeclaration = Visit(node.Declaration) as VariableDeclarationSyntax;
-
 		// If the declaration is removed or contains no variables, drop the entire statement
-		if (visitedDeclaration is null || visitedDeclaration.Variables.Count == 0)
+		if (Visit(node.Declaration) is not VariableDeclarationSyntax visitedDeclaration || visitedDeclaration.Variables.Count == 0)
 		{
 			return null;
 		}
@@ -106,7 +115,7 @@ public sealed class PruneVariableRewriter(IDictionary<string, VariableItem> vari
 
 		return base.VisitExpressionStatement(node);
 	}
-
+	
 	private static bool IsTerminalStatement(StatementSyntax statement)
 	{
 		// A statement that guarantees no following statement in the same block will execute

@@ -104,7 +104,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				.ThenBy(o => o)
 				.Select(s => $"using {s};")) + "\n\n" + code;
 
-			spc.AddSource($"{declaringType.Identifier}_{methodGroup.Key.Identifier}.g.cs", result);
+			// spc.AddSource($"{declaringType.Identifier}_{methodGroup.Key.Identifier}.g.cs", result);
 		}
 	}
 
@@ -569,22 +569,24 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			// exceptions.TryAdd(operation!.Syntax, ex);
 		}, token);
 
-		var partialVisitor = new ConstExprPartialVisitor(context.SemanticModel.Compilation, loader, (operation, ex) =>
-		{
-			// exceptions.TryAdd(operation!.Syntax, ex);
-		}, token);
+		
 
 		try
 		{
 			if (//exceptions.IsEmpty
 					TryGetOperation<IMethodBodyOperation>(context.SemanticModel.Compilation, methodDecl, out var blockOperation)
-					&& context.SemanticModel.Compilation.TryGetSemanticModel(invocation, out var model))
+					&& context.SemanticModel.Compilation.TryGetSemanticModel(methodDecl, out var model))
 			{
-				var timer = Stopwatch.StartNew();
-
 				// var variables = ProcessArguments(visitor, context.SemanticModel.Compilation, invocation, loader, token);
 				var variablesPartial = ProcessArguments(visitor, context.SemanticModel.Compilation, invocation, loader, token);
-
+				
+				var partialVisitor = new ConstExprPartialRewriter(model, loader, (operation, ex) =>
+				{
+					// exceptions.TryAdd(operation!.Syntax, ex);
+				}, variablesPartial, token);
+				
+				var timer = Stopwatch.StartNew();
+				
 				var usings = new HashSet<string?>
 				{
 					"System.Runtime.CompilerServices",
@@ -593,12 +595,13 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 				// visitor.VisitBlock(blockOperation.BlockBody!, variables);
 
-				var result = partialVisitor.VisitBlock(blockOperation.BlockBody!, variablesPartial);
-				result = new PruneVariableRewriter(variablesPartial).Visit(result)!;
+				var result = partialVisitor.VisitBlock(methodDecl.Body); // partialVisitor.VisitBlock(blockOperation.BlockBody!, variablesPartial);
+				var result2 = new PruneVariableRewriter(variablesPartial).Visit(result)!;
 
 				// Format using Roslyn formatter instead of NormalizeWhitespace
-				var text = FormattingHelper.Render(result);
-
+				// var text = FormattingHelper.Render(result);
+				 var text2 = FormattingHelper.Render(result2);
+				
 				timer.Stop();
 
 				Logger.Information($"{timer.Elapsed}: {invocation}");
@@ -649,30 +652,31 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				try
 				{
 					var enumType = loader.GetType(argument.Parameter.Type);
-					var value = visitor.Visit(argument.Value, new ConstExprPartialVisitor.VariableItemDictionary(variables));
-					variables.Add(argument.Parameter.Name, new VariableItem(argument.Type, true, Enum.ToObject(enumType, value)));
+					var value = visitor.Visit(argument.Value, new VariableItemDictionary(variables));
+					
+					variables.Add(argument.Parameter.Name, new VariableItem(argument.Type, true, Enum.ToObject(enumType, value), true));
 				}
 				catch (Exception)
 				{
-					variables.Add(argument.Parameter.Name, new VariableItem(argument.Type, false, null));
+					variables.Add(argument.Parameter.Name, new VariableItem(argument.Type ?? argument.Parameter.Type, false, null, true));
 				}
 			}
 			else
 			{
 				try
 				{
-					variables.Add(argument.Parameter.Name, new VariableItem(argument.Type, true, visitor.Visit(argument.Value, new ConstExprPartialVisitor.VariableItemDictionary(variables))));
+					variables.Add(argument.Parameter.Name, new VariableItem(argument.Type ?? argument.Parameter.Type, true, visitor.Visit(argument.Value, new VariableItemDictionary(variables)), true));
 				}
 				catch (Exception)
 				{
-					variables.Add(argument.Parameter.Name, new VariableItem(argument.Type, false, null));
+					variables.Add(argument.Parameter.Name, new VariableItem(argument.Type ?? argument.Parameter.Type, false, null, true));
 				}
 			}
 		}
 
 		foreach (var (parameter, argument) in methodSymbol.TypeParameters.Zip(methodSymbol.TypeArguments, (x, y) => (x, y)))
 		{
-			variables.Add(parameter.Name, new VariableItem(argument, true, loader.GetType(argument)));
+			variables.Add(parameter.Name, new VariableItem(argument, true, loader.GetType(argument), true));
 		}
 
 		//visitor.ShouldThrow = true;

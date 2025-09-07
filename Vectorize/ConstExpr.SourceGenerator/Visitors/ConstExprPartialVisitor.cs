@@ -8,6 +8,7 @@ using SourceGen.Utilities.Extensions;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
@@ -40,7 +41,6 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 		foreach (var child in operation.ChildOperations)
 		{
 			var visited = Visit(child, argument);
-			var kind = child.Kind;
 
 			if (visited is null)
 			{
@@ -84,11 +84,104 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 
 	public override SyntaxNode? VisitLocalReference(ILocalReferenceOperation operation, IDictionary<string, VariableItem> argument)
 	{
-		if (argument.TryGetValue(operation.Local.Name, out var value) 
-			&& value.HasValue 
-			&& SyntaxHelpers.TryGetLiteral(value.Value, out var expression))
+		if (argument.TryGetValue(operation.Local.Name, out var value)
+		    && value.HasValue)
 		{
-			return expression;
+			if (SyntaxHelpers.TryGetLiteral(value.Value, out var expression))
+			{
+				return expression;
+			}
+
+			return value.Value as SyntaxNode;
+		}
+
+		return operation.Syntax;
+	}
+
+	public override SyntaxNode? VisitPropertyReference(IPropertyReferenceOperation operation, IDictionary<string, VariableItem> argument)
+	{
+		var name = GetVariableName(operation.Instance);
+
+
+		if (name is not null && argument.TryGetValue(name, out var item) && item.HasValue)
+		{
+			var instance = item.Value;
+			var type = instance?.GetType() ?? loader.GetType(operation.Property.ContainingType);
+
+			// Handle indexer properties (usually named "Item")
+			if (operation.Arguments.Length > 0)
+			{
+				var propertyInfo = type
+					.GetProperties()
+					.FirstOrDefault(f => f.GetIndexParameters().Length == operation.Arguments.Length);
+
+				if (propertyInfo == null)
+				{
+					throw new InvalidOperationException("Indexer property info could not be retrieved.");
+				}
+
+				var indices = operation.Arguments
+					.Select(a => Visit(a.Value, argument))
+					.ToArray();
+
+				if (instance is Array array)
+				{
+					if (indices.All(a => a is int))
+					{
+						return SyntaxHelpers.CreateLiteral(array.GetValue(indices.Cast<int>().ToArray()));
+					}
+
+					if (indices.All(a => a is long))
+					{
+						return SyntaxHelpers.CreateLiteral(array.GetValue(indices.Cast<long>().ToArray()));
+					}
+				}
+
+				var indexValues = indices
+					.Select(i => SyntaxHelpers.GetConstantValue(compilation, loader, i, new VariableItemDictionary(argument), token))
+					.ToArray();
+
+				return SyntaxHelpers.CreateLiteral(propertyInfo.GetValue(instance, indexValues));
+			}
+			else
+			{
+				var propertyName = operation.Property.Name;
+
+				var propertyInfo = type
+					.GetProperties()
+					.FirstOrDefault(f => f.Name == propertyName && f.GetMethod.IsStatic == operation.Property.IsStatic);
+
+				if (propertyInfo == null)
+				{
+					throw new InvalidOperationException("Property info could not be retrieved.");
+				}
+
+				if (operation.Property.IsStatic)
+				{
+					return SyntaxHelpers.CreateLiteral(propertyInfo.GetValue(null));
+				}
+
+				if (instance is IConvertible)
+				{
+					instance = Convert.ChangeType(instance, propertyInfo.PropertyType);
+				}
+
+				return SyntaxHelpers.CreateLiteral(propertyInfo.GetValue(instance));
+			}
+		}
+
+		if (operation.Syntax is ElementAccessExpressionSyntax elementAccessSyntax)
+		{
+			var arguments = operation.Arguments
+				.Select(a => Visit(a.Value, argument))
+				.OfType<ExpressionSyntax>()
+				.ToArray();
+
+			return elementAccessSyntax.WithArgumentList(
+				SyntaxFactory.BracketedArgumentList(
+					SyntaxFactory.SeparatedList(arguments.Select(SyntaxFactory.Argument))
+				)
+			);
 		}
 
 		return operation.Syntax;
@@ -111,158 +204,117 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 
 			// Try algebraic/logical simplifications when one side is a constant and operator is built-in.
 			// We avoid transforms that would duplicate or skip evaluation of non-constant operands.
-			var leftExpr = (ExpressionSyntax?)left;
-			var rightExpr = (ExpressionSyntax?)right;
 
-			if (leftExpr is not null && rightExpr is not null)
+			if (left is ExpressionSyntax leftExpr
+			    && right is ExpressionSyntax rightExpr)
 			{
-				var opMethod = (operation as IBinaryOperation).OperatorMethod; // null => built-in operator
-				var resultType = operation.Type;
+				var opMethod = operation.OperatorMethod; // null => built-in operator
 
 				var isBuiltIn = opMethod is null;
-				bool IsBoolType(ITypeSymbol? t) => t?.SpecialType == SpecialType.System_Boolean;
-				bool IsNumericType(ITypeSymbol? t) => t is not null && t.SpecialType switch
-				{
-					SpecialType.System_Byte or SpecialType.System_SByte or SpecialType.System_Int16 or SpecialType.System_UInt16 or
-					SpecialType.System_Int32 or SpecialType.System_UInt32 or SpecialType.System_Int64 or SpecialType.System_UInt64 or
-					SpecialType.System_Single or SpecialType.System_Double or SpecialType.System_Decimal => true,
-					_ => false
-				};
-
-				bool IsVarOrLiteralOperation(IOperation op)
-				{
-					switch (op)
-					{
-						case ILocalReferenceOperation:
-						case IParameterReferenceOperation:
-						case ILiteralOperation:
-							return true;
-						case IParenthesizedOperation p:
-							return p.Operand is not null && IsVarOrLiteralOperation(p.Operand);
-						case IConversionOperation c:
-							return c.Operand is not null && IsVarOrLiteralOperation(c.Operand);
-						default:
-							return false;
-					}
-				}
-
-				// Stricter check for duplication safety: only locals/parameters/literals (allow parentheses but NO conversions)
-				bool IsSafeToDuplicate(IOperation op)
-				{
-					switch (op)
-					{
-						case ILocalReferenceOperation:
-						case IParameterReferenceOperation:
-						case ILiteralOperation:
-							return true;
-						case IParenthesizedOperation p:
-							return p.Operand is not null && IsSafeToDuplicate(p.Operand);
-						default:
-							return false;
-					}
-				}
-
-				var leftIsPureVarOrLiteral = operation.LeftOperand is not null && IsVarOrLiteralOperation(operation.LeftOperand);
-				var rightIsPureVarOrLiteral = operation.RightOperand is not null && IsVarOrLiteralOperation(operation.RightOperand);
-
-				ExpressionSyntax Parens(ExpressionSyntax e) => e is ParenthesizedExpressionSyntax ? e : SyntaxFactory.ParenthesizedExpression(e);
+				// var leftIsPureVarOrLiteral = operation.LeftOperand is not null && IsVarOrLiteralOperation(operation.LeftOperand);
+				// var rightIsPureVarOrLiteral = operation.RightOperand is not null && IsVarOrLiteralOperation(operation.RightOperand);
 
 				if (isBuiltIn)
 				{
 					// Numeric identities
-					if (IsNumericType(operation.LeftOperand.Type) 
-						&& IsNumericType(operation.RightOperand.Type))
+					if (IsNumericType(operation.LeftOperand.Type)
+					    && IsNumericType(operation.RightOperand.Type))
 					{
 						switch (operation.OperatorKind)
 						{
 							case BinaryOperatorKind.Add:
-								if (hasRightValue && IsNumericZero(rightValue) && leftIsPureVarOrLiteral) return leftExpr;
-								if (hasLeftValue && IsNumericZero(leftValue) && rightIsPureVarOrLiteral) return rightExpr;
+								if (hasRightValue && rightValue.IsNumericZero()) return leftExpr;
+								if (hasLeftValue && leftValue.IsNumericZero()) return rightExpr;
 								break;
 							case BinaryOperatorKind.Subtract:
-								if (hasRightValue && IsNumericZero(rightValue) && leftIsPureVarOrLiteral) return leftExpr;
-								if (hasLeftValue && IsNumericZero(leftValue) && rightIsPureVarOrLiteral) return SyntaxFactory.PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression, Parens(rightExpr));
+								if (hasRightValue && rightValue.IsNumericZero()) return leftExpr;
+								if (hasLeftValue && leftValue.IsNumericZero()) return SyntaxFactory.PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression, Parens(rightExpr));
 								break;
 							case BinaryOperatorKind.Multiply:
-								if (hasRightValue && IsNumericOne(rightValue) && leftIsPureVarOrLiteral) return leftExpr;
-								if (hasLeftValue && IsNumericOne(leftValue) && rightIsPureVarOrLiteral) return rightExpr;
+								if (hasRightValue && rightValue.IsNumericOne()) return leftExpr;
+								if (hasLeftValue && leftValue.IsNumericOne()) return rightExpr;
+
 								// x * 0 => 0 and 0 * x => 0 (only for non-floating numeric types to avoid NaN/-0.0 semantics)
-								bool IsNonFloatingNumeric(ITypeSymbol? t) => t is not null && IsNumericType(t) && t.SpecialType != SpecialType.System_Single && t.SpecialType != SpecialType.System_Double;
 								var nonFloating = IsNonFloatingNumeric(operation.LeftOperand.Type) && IsNonFloatingNumeric(operation.RightOperand.Type);
-								if (nonFloating && hasRightValue && IsNumericZero(rightValue) && leftIsPureVarOrLiteral)
+
+								if (nonFloating && hasRightValue && rightValue.IsNumericZero())
 								{
 									return SyntaxHelpers.CreateLiteral(0.ToSpecialType(operation.Type.SpecialType));
 								}
-								if (nonFloating && hasLeftValue && IsNumericZero(leftValue) && rightIsPureVarOrLiteral)
+
+								if (nonFloating && hasLeftValue && leftValue.IsNumericZero())
 								{
 									return SyntaxHelpers.CreateLiteral(0.ToSpecialType(operation.Type.SpecialType));
 								}
+
 								// 2 * x => (x + x), x * 2 => (x + x) when x is safe to duplicate
-								if (hasLeftValue && IsNumericTwo(leftValue) && IsSafeToDuplicate(operation.RightOperand))
+								if (hasLeftValue && leftValue.IsNumericTwo() && IsSafeToDuplicate(operation.RightOperand))
 								{
 									var dup = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, rightExpr, rightExpr);
 									return Parens(dup);
 								}
-								if (hasRightValue && IsNumericTwo(rightValue) && IsSafeToDuplicate(operation.LeftOperand))
+
+								if (hasRightValue && rightValue.IsNumericTwo() && IsSafeToDuplicate(operation.LeftOperand))
 								{
 									var dup = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, leftExpr, leftExpr);
 									return Parens(dup);
 								}
 								break;
 							case BinaryOperatorKind.Divide:
-								if (hasRightValue && IsNumericOne(rightValue) && leftIsPureVarOrLiteral) return leftExpr;
+								if (hasRightValue && rightValue.IsNumericOne()) return leftExpr;
 								break;
 							case BinaryOperatorKind.ExclusiveOr:
 								// integral XOR 0 => x
-								if (hasRightValue && IsNumericZero(rightValue) && leftIsPureVarOrLiteral) return leftExpr;
-								if (hasLeftValue && IsNumericZero(leftValue) && rightIsPureVarOrLiteral) return rightExpr;
+								if (hasRightValue && rightValue.IsNumericZero()) return leftExpr;
+								if (hasLeftValue && leftValue.IsNumericZero()) return rightExpr;
 								break;
 							case BinaryOperatorKind.Or:
 								// x | 0 => x
-								if (hasRightValue && IsNumericZero(rightValue) && leftIsPureVarOrLiteral) return leftExpr;
-								if (hasLeftValue && IsNumericZero(leftValue) && rightIsPureVarOrLiteral) return rightExpr;
+								if (hasRightValue && rightValue.IsNumericZero()) return leftExpr;
+								if (hasLeftValue && leftValue.IsNumericZero()) return rightExpr;
 								break;
 						}
 					}
 
 					// Boolean logical identities
-					if (IsBoolType(operation.LeftOperand.Type) 
-						&& IsBoolType(operation.RightOperand.Type))
+					if (IsBoolType(operation.LeftOperand.Type)
+					    && IsBoolType(operation.RightOperand.Type))
 					{
 						switch (operation.OperatorKind)
 						{
 							case BinaryOperatorKind.ConditionalAnd: // &&
-								if (hasRightValue && rightValue is true && leftIsPureVarOrLiteral) return leftExpr; // x && true => x
-								if (hasLeftValue && leftValue is true && rightIsPureVarOrLiteral) return rightExpr;  // true && x => x
-								if (hasLeftValue && leftValue is false && rightIsPureVarOrLiteral) return SyntaxHelpers.CreateLiteral(false); // false && x => false
+								if (hasRightValue && rightValue is true) return leftExpr; // x && true => x
+								if (hasLeftValue && leftValue is true) return rightExpr; // true && x => x
+								if (hasLeftValue && leftValue is false) return SyntaxHelpers.CreateLiteral(false); // false && x => false
 								break;
 							case BinaryOperatorKind.ConditionalOr: // ||
-								if (hasRightValue && rightValue is false && leftIsPureVarOrLiteral) return leftExpr; // x || false => x
-								if (hasLeftValue && leftValue is false && rightIsPureVarOrLiteral) return rightExpr;  // false || x => x
-								if (hasLeftValue && leftValue is true && rightIsPureVarOrLiteral) return SyntaxHelpers.CreateLiteral(true); // true || x => true
+								if (hasRightValue && rightValue is false) return leftExpr; // x || false => x
+								if (hasLeftValue && leftValue is false) return rightExpr; // false || x => x
+								if (hasLeftValue && leftValue is true) return SyntaxHelpers.CreateLiteral(true); // true || x => true
 								break;
 							case BinaryOperatorKind.And: // & (bool)
-								if (hasRightValue && rightValue is true && leftIsPureVarOrLiteral) return leftExpr; // x & true => x
-								if (hasLeftValue && leftValue is true && rightIsPureVarOrLiteral) return rightExpr;  // true & x => x
+								if (hasRightValue && rightValue is true) return leftExpr; // x & true => x
+								if (hasLeftValue && leftValue is true) return rightExpr; // true & x => x
 								break; // avoid collapsing to false to preserve evaluation of the other side
 							case BinaryOperatorKind.Or: // | (bool)
-								if (hasRightValue && rightValue is false && leftIsPureVarOrLiteral) return leftExpr; // x | false => x
-								if (hasLeftValue && leftValue is false && rightIsPureVarOrLiteral) return rightExpr;  // false | x => x
+								if (hasRightValue && rightValue is false) return leftExpr; // x | false => x
+								if (hasLeftValue && leftValue is false) return rightExpr; // false | x => x
 								break; // avoid collapsing to true to preserve evaluation of the other side
 							case BinaryOperatorKind.ExclusiveOr: // ^ (bool)
-								if (hasRightValue && rightValue is false && leftIsPureVarOrLiteral) return leftExpr; // x ^ false => x
-								if (hasLeftValue && leftValue is false && rightIsPureVarOrLiteral) return rightExpr;  // false ^ x => x
-								if (hasRightValue && rightValue is true && leftIsPureVarOrLiteral) return SyntaxFactory.PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, Parens(leftExpr)); // x ^ true => !x
-								if (hasLeftValue && leftValue is true && rightIsPureVarOrLiteral) return SyntaxFactory.PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, Parens(rightExpr)); // true ^ x => !x
+								if (hasRightValue && rightValue is false) return leftExpr; // x ^ false => x
+								if (hasLeftValue && leftValue is false) return rightExpr; // false ^ x => x
+								if (hasRightValue && rightValue is true) return SyntaxFactory.PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, Parens(leftExpr)); // x ^ true => !x
+								if (hasLeftValue && leftValue is true) return SyntaxFactory.PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, Parens(rightExpr)); // true ^ x => !x
 								break;
 							case BinaryOperatorKind.Equals:
-								if (hasRightValue && rightValue is bool rb && leftIsPureVarOrLiteral)
+								if (hasRightValue && rightValue is bool rb)
 								{
 									return rb
 										? leftExpr // x == true => x
 										: SyntaxFactory.PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, Parens(leftExpr)); // x == false => !x
 								}
-								if (hasLeftValue && leftValue is bool lb && rightIsPureVarOrLiteral)
+
+								if (hasLeftValue && leftValue is bool lb)
 								{
 									return lb
 										? rightExpr // true == x => x
@@ -270,13 +322,14 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 								}
 								break;
 							case BinaryOperatorKind.NotEquals:
-								if (hasRightValue && rightValue is bool rbn && leftIsPureVarOrLiteral)
+								if (hasRightValue && rightValue is bool rbn)
 								{
 									return rbn
 										? SyntaxFactory.PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, Parens(leftExpr)) // x != true => !x
 										: leftExpr; // x != false => x
 								}
-								if (hasLeftValue && leftValue is bool lbn && rightIsPureVarOrLiteral)
+
+								if (hasLeftValue && leftValue is bool lbn)
 								{
 									return lbn
 										? SyntaxFactory.PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, Parens(rightExpr)) // true != x => !x
@@ -286,19 +339,87 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 						}
 					}
 				}
-			}
 
-			return binary
-				.WithLeft((ExpressionSyntax)left!)
-				.WithRight((ExpressionSyntax)right!);
+				ExpressionSyntax result = binary
+					.WithLeft(leftExpr)
+					.WithRight(rightExpr);
+
+				if (operation.Syntax.Parent is ParenthesizedExpressionSyntax)
+				{
+					result = SyntaxFactory.ParenthesizedExpression(result);
+				}
+
+				return result;
+			}
 		}
 
 		return operation.Syntax;
+
+		bool IsVarOrLiteralOperation(IOperation op)
+		{
+			switch (op)
+			{
+				case ILocalReferenceOperation:
+				case IParameterReferenceOperation:
+				case ILiteralOperation:
+					return true;
+				case IParenthesizedOperation p:
+					return p.Operand is not null && IsVarOrLiteralOperation(p.Operand);
+				case IConversionOperation c:
+					return c.Operand is not null && IsVarOrLiteralOperation(c.Operand);
+				default:
+					return false;
+			}
+		}
+
+		// Stricter check for duplication safety: only locals/parameters/literals (allow parentheses but NO conversions)
+		bool IsSafeToDuplicate(IOperation op)
+		{
+			switch (op)
+			{
+				case ILocalReferenceOperation:
+				case IParameterReferenceOperation:
+				case ILiteralOperation:
+					return true;
+				case IParenthesizedOperation p:
+					return p.Operand is not null && IsSafeToDuplicate(p.Operand);
+				default:
+					return false;
+			}
+		}
+
+		ExpressionSyntax Parens(ExpressionSyntax e)
+		{
+			return e is ParenthesizedExpressionSyntax
+				? e
+				: SyntaxFactory.ParenthesizedExpression(e);
+		}
+
+		bool IsNonFloatingNumeric(ITypeSymbol? t)
+		{
+			return t is not null && IsNumericType(t) && t.SpecialType != SpecialType.System_Single && t.SpecialType != SpecialType.System_Double;
+		}
+
+		bool IsBoolType(ITypeSymbol? t)
+		{
+			return t?.SpecialType == SpecialType.System_Boolean;
+		}
+
+		bool IsNumericType(ITypeSymbol? t)
+		{
+			return t is not null && t.SpecialType switch
+			{
+				SpecialType.System_Byte or SpecialType.System_SByte or SpecialType.System_Int16 or SpecialType.System_UInt16 or
+					SpecialType.System_Int32 or SpecialType.System_UInt32 or SpecialType.System_Int64 or SpecialType.System_UInt64 or
+					SpecialType.System_Single or SpecialType.System_Double or SpecialType.System_Decimal => true,
+				_ => false
+			};
+		}
 	}
 
 	public override SyntaxNode? VisitVariableDeclarationGroup(IVariableDeclarationGroupOperation operation, IDictionary<string, VariableItem> argument)
 	{
-		if (operation.Syntax is LocalDeclarationStatementSyntax local)
+		if (operation.Syntax is LocalDeclarationStatementSyntax or VariableDeclarationSyntax)
 		{
 			var declarations = operation.Declarations
 				.Select(decl => Visit(decl, argument))
@@ -339,19 +460,39 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 
 	public override SyntaxNode? VisitVariableDeclarator(IVariableDeclaratorOperation operation, IDictionary<string, VariableItem> argument)
 	{
+		var name = operation.Symbol.Name;
+		
 		if (operation.Syntax is VariableDeclaratorSyntax variable)
 		{
-			var result = (EqualsValueClauseSyntax)Visit(operation.Initializer, argument);
-			var item = new VariableItem(operation.Symbol.Type, SyntaxHelpers.TryGetConstantValue(compilation, loader, result?.Value, new VariableItemDictionary(argument), token, out var value), value);
+			var result = (EqualsValueClauseSyntax) Visit(operation.Initializer, argument);
 
-			if (operation.Initializer is null && operation.Symbol is ILocalSymbol local)
+			if (!argument.TryGetValue(name, out var item))
+			{
+				item = new VariableItem(operation.Type ?? operation.Symbol.Type, true, result?.Value);
+				argument.Add(name, item);
+			}
+
+			if (result?.Value is IdentifierNameSyntax nameSyntax)
+			{
+				item.Value = nameSyntax;
+				item.IsInitialized = true;
+			}
+			else if (operation.Initializer is null && operation.Symbol is ILocalSymbol local)
 			{
 				item.Value = local.Type.GetDefaultValue();
-				item.HasValue = true;
+				item.IsInitialized = false;
+			}
+			else if (SyntaxHelpers.TryGetConstantValue(compilation, loader, result?.Value, new VariableItemDictionary(argument), token, out var value))
+			{
+				item.Value = value;
+				item.IsInitialized = true;
+			}
+			else
+			{
+				item.HasValue = false;
+				item.IsInitialized = true;
 			}
 			
-			argument.Add(operation.Symbol.Name, item);
-
 			return variable.WithInitializer(result);
 		}
 
@@ -404,6 +545,11 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 			};
 		}
 
+		if (operation.Syntax is CastExpressionSyntax castExpressionSyntax)
+		{
+			return castExpressionSyntax.WithExpression((ExpressionSyntax) operand);
+		}
+
 		return operand;
 	}
 
@@ -438,13 +584,46 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 				}
 				catch (Exception)
 				{
+					if (SyntaxHelpers.TryGetOperation<IOperation>(compilation, targetMethod, out var methodOperation))
+					{
+						var parameters = methodOperation.Syntax switch
+						{
+							LocalFunctionStatementSyntax localFunc => localFunc.ParameterList,
+							MethodDeclarationSyntax methodDecl => methodDecl.ParameterList,
+						};
 
+						var variables = new Dictionary<string, object?>();
+
+						for (var i = 0; i < parameters.Parameters.Count; i++)
+						{
+							var parameterName = parameters.Parameters[i].Identifier.Text;
+
+							variables.Add(parameterName, constantArguments[i]);
+						}
+
+						var visitor = new ConstExprOperationVisitor(compilation, loader, exceptionHandler, token);
+
+						switch (methodOperation)
+						{
+							case ILocalFunctionOperation localFunction:
+								visitor.VisitBlock(localFunction.Body, variables);
+								break;
+							case IMethodBodyOperation methodBody:
+								visitor.VisitBlock(methodBody.BlockBody, variables);
+								break;
+						}
+
+						if (SyntaxHelpers.TryGetLiteral(variables[ConstExprOperationVisitor.RETURNVARIABLENAME], out var result))
+						{
+							return result;
+						}
+					}
 				}
 			}
 
 			return invocation
 				.WithArgumentList(invocation.ArgumentList
-					.WithArguments(SyntaxFactory.SeparatedList(arguments.Select(s => SyntaxFactory.Argument((ExpressionSyntax)s)))));
+					.WithArguments(SyntaxFactory.SeparatedList(arguments.Select(s => SyntaxFactory.Argument((ExpressionSyntax) s)))));
 		}
 
 		return operation.Syntax;
@@ -468,9 +647,9 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 			}
 
 			return conditional
-				.WithCondition((ExpressionSyntax)condition!)
-				.WithWhenTrue((ExpressionSyntax)Visit(operation.WhenTrue, argument)!)
-				.WithWhenFalse((ExpressionSyntax)Visit(operation.WhenFalse, argument)!);
+				.WithCondition((ExpressionSyntax) condition!)
+				.WithWhenTrue((ExpressionSyntax) Visit(operation.WhenTrue, argument)!)
+				.WithWhenFalse((ExpressionSyntax) Visit(operation.WhenFalse, argument)!);
 		}
 
 		if (operation.Syntax is IfStatementSyntax ifStatement)
@@ -531,12 +710,13 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 
 	public override SyntaxNode? VisitReturn(IReturnOperation operation, IDictionary<string, VariableItem> argument)
 	{
-		if (operation.Syntax is ReturnStatementSyntax returnStatement)
+		return operation.Syntax switch
 		{
-			return returnStatement.WithExpression((ExpressionSyntax?)Visit(operation.ReturnedValue, argument));
-		}
+			ReturnStatementSyntax returnStatement => returnStatement.WithExpression((ExpressionSyntax?) Visit(operation.ReturnedValue, argument)),
+			YieldStatementSyntax yieldStatementSyntax => yieldStatementSyntax.WithExpression((ExpressionSyntax?) Visit(operation.ReturnedValue, argument)),
+			_ => operation.Syntax
+		};
 
-		return operation.Syntax;
 	}
 
 	public override SyntaxNode? VisitTuple(ITupleOperation operation, IDictionary<string, VariableItem> argument)
@@ -555,12 +735,27 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 
 	public override SyntaxNode? VisitSimpleAssignment(ISimpleAssignmentOperation operation, IDictionary<string, VariableItem> argument)
 	{
+		if (operation is { Target: IPropertyReferenceOperation propertyReference, Syntax: AssignmentExpressionSyntax assignmentExpression })
+		{
+			var instance = Visit(propertyReference.Instance, argument);
+
+			if (propertyReference.Arguments.Length > 0)
+			{
+				var indices = propertyReference.Arguments.Select(a => Visit(a.Value, argument)).ToArray();
+
+				return assignmentExpression.WithLeft(SyntaxFactory.ElementAccessExpression(
+					(ExpressionSyntax) instance!,
+					SyntaxFactory.BracketedArgumentList(SyntaxFactory.SeparatedList(indices.OfType<ExpressionSyntax>().Select(SyntaxFactory.Argument)))
+				));
+			}
+		}
+
 		if (operation.Syntax is AssignmentExpressionSyntax assignment)
 		{
 			// Do not visit the left/target to avoid turning assignable expressions into constants.
 			var visitedRight = Visit(operation.Value, argument);
 			var rightExpr = visitedRight as ExpressionSyntax ?? assignment.Right;
-			
+
 			var name = operation.Target switch
 			{
 				ILocalReferenceOperation localRef => localRef.Local.Name,
@@ -568,29 +763,49 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 				_ => null
 			};
 
-			// If RHS is constant, update the environment for locals/params and replace RHS with a literal.
-			if (SyntaxHelpers.TryGetConstantValue(compilation, loader, rightExpr, new VariableItemDictionary(argument), token, out var value))
+			if (name is not null && argument.TryGetValue(name, out var variable))
 			{
-				switch (operation.Target)
+				if (!variable.IsInitialized)
 				{
-					case ILocalReferenceOperation localRef:
-						argument[name].Value = value;
-						break;
-					case IParameterReferenceOperation paramRef:
-						argument[name].Value = value;
-						break;
+					if (rightExpr is IdentifierNameSyntax nameSyntax)
+					{
+						variable.Value = nameSyntax;
+						variable.HasValue = true;
+					}
+					else if (SyntaxHelpers.TryGetConstantValue(compilation, loader, rightExpr, new VariableItemDictionary(argument), token, out var value))
+					{
+						variable.Value = value;
+						variable.HasValue = true;
+					}
+					else
+					{
+						variable.HasValue = false;
+					}
+
+					variable.IsInitialized = true;
+
+					var result = SyntaxFactory.LocalDeclarationStatement(SyntaxFactory.VariableDeclaration(SyntaxFactory.ParseTypeName("var"), SyntaxFactory.SingletonSeparatedList(
+						SyntaxFactory.VariableDeclarator(SyntaxFactory.Identifier(name))
+							.WithInitializer(SyntaxFactory.EqualsValueClause(rightExpr)))
+					));
+
+					return result;
 				}
 
-				if (SyntaxHelpers.TryGetLiteral(value, out var literal))
+				if (SyntaxHelpers.TryGetConstantValue(compilation, loader, rightExpr, new VariableItemDictionary(argument), token, out var tempValue))
 				{
-					rightExpr = literal;
+					variable.Value = tempValue;
+
+					if (SyntaxHelpers.TryGetLiteral(tempValue, out var literal))
+					{
+						rightExpr = literal;
+					}
+				}
+				else
+				{
+					variable.HasValue = false;
 				}
 			}
-			else
-			{
-				argument[name].HasValue = false;
-			}
-			
 
 			return assignment.WithRight(rightExpr);
 		}
@@ -608,12 +823,12 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 
 			object? leftValue = null;
 			var hasLeftValue = false;
-			
+
 			// Try to obtain current left value from the environment (locals/params) or as a constant expression
 			switch (operation.Target)
 			{
 				case ILocalReferenceOperation localRef:
-					hasLeftValue = argument.TryGetValue(localRef.Local.Name, out var  tempLeftValue) && tempLeftValue.HasValue;
+					hasLeftValue = argument.TryGetValue(localRef.Local.Name, out var tempLeftValue) && tempLeftValue.HasValue;
 					leftValue = tempLeftValue?.Value;
 					break;
 				case IParameterReferenceOperation paramRef:
@@ -624,12 +839,12 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 					hasLeftValue = SyntaxHelpers.TryGetConstantValue(compilation, loader, assignmentSyntax.Left, new VariableItemDictionary(argument), token, out leftValue);
 					break;
 			}
-	
+
 			// If both sides are constant, compute the result and update environment for locals/params
 			if (hasLeftValue && SyntaxHelpers.TryGetConstantValue(compilation, loader, rightExpr, new VariableItemDictionary(argument), token, out var rightValue))
 			{
 				var result = ObjectExtensions.ExecuteBinaryOperation(operation.OperatorKind, leftValue, rightValue);
-	
+
 				switch (operation.Target)
 				{
 					case ILocalReferenceOperation localRef:
@@ -639,14 +854,14 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 						argument[paramRef.Parameter.Name].Value = result;
 						break;
 				}
-	
-				return SyntaxFactory.AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, assignmentSyntax.Left,SyntaxHelpers.CreateLiteral(result));
+
+				return SyntaxFactory.AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, assignmentSyntax.Left, SyntaxHelpers.CreateLiteral(result));
 			}
-	
+
 			// Otherwise, rebuild the assignment with the visited RHS
-			return assignmentSyntax.WithRight((ExpressionSyntax)rightExpr);
+			return assignmentSyntax.WithRight((ExpressionSyntax) rightExpr);
 		}
-		
+
 		return operation.Syntax;
 	}
 
@@ -662,6 +877,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 				case IConstantPatternOperation constPat:
 				{
 					var patNode = Visit(constPat.Value, argument);
+
 					if (SyntaxHelpers.TryGetConstantValue(compilation, loader, patNode, new VariableItemDictionary(argument), token, out var patValue))
 					{
 						return Equals(governingValue, patValue);
@@ -671,6 +887,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 				case IRelationalPatternOperation relPat:
 				{
 					var rightNode = Visit(relPat.Value, argument);
+
 					if (SyntaxHelpers.TryGetConstantValue(compilation, loader, rightNode, new VariableItemDictionary(argument), token, out var rightValue))
 					{
 						var result = ObjectExtensions.ExecuteBinaryOperation(relPat.OperatorKind, governingValue, rightValue);
@@ -682,6 +899,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 				{
 					var left = EvaluatePattern(binPat.LeftPattern, governingValue, argument);
 					var right = EvaluatePattern(binPat.RightPattern, governingValue, argument);
+
 					if (left is null || right is null)
 					{
 						return null;
@@ -690,7 +908,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 					{
 						BinaryOperatorKind.Or => left.Value || right.Value,
 						BinaryOperatorKind.And => left.Value && right.Value,
-						_ => (bool?)null
+						_ => (bool?) null
 					};
 				}
 				case INegatedPatternOperation notPat:
@@ -726,6 +944,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 						case ISingleValueCaseClauseOperation single:
 						{
 							var node = Visit(single.Value, argument);
+
 							if (SyntaxHelpers.TryGetConstantValue(compilation, loader, node, new VariableItemDictionary(argument), token, out var caseValue))
 							{
 								return Equals(governingValue, caseValue);
@@ -735,6 +954,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 						case IRelationalCaseClauseOperation rel:
 						{
 							var rightNode = Visit(rel.Value, argument);
+
 							if (SyntaxHelpers.TryGetConstantValue(compilation, loader, rightNode, new VariableItemDictionary(argument), token, out var rightValue))
 							{
 								var result = ObjectExtensions.ExecuteBinaryOperation(rel.Relation, governingValue, rightValue);
@@ -745,13 +965,16 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 						case IPatternCaseClauseOperation patClause:
 						{
 							var patMatch = EvaluatePattern(patClause.Pattern, governingValue, argument);
+
 							if (patMatch is not true)
 							{
 								return patMatch; // false or null
 							}
+
 							if (patClause.Guard is not null)
 							{
 								var guardVisited = Visit(patClause.Guard, argument);
+
 								if (!SyntaxHelpers.TryGetConstantValue(compilation, loader, guardVisited, new VariableItemDictionary(argument), token, out var guardVal))
 								{
 									return null;
@@ -774,11 +997,13 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 					foreach (var clause in @case.Clauses)
 					{
 						var res = MatchClause(clause);
+
 						if (res is true)
 						{
 							matched = true;
 							break;
 						}
+
 						if (res is null)
 						{
 							hasUnknown = true;
@@ -788,9 +1013,11 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 					if (matched)
 					{
 						var statements = new List<StatementSyntax>();
+
 						foreach (var bodyOp in @case.Body)
 						{
 							var visited = Visit(bodyOp, argument);
+
 							if (visited is null)
 							{
 								continue;
@@ -845,19 +1072,23 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 				var newSections = new List<SwitchSectionSyntax>();
 
 				var count = Math.Min(switchStmt.Sections.Count, operation.Cases.Length);
+
 				for (var i = 0; i < count; i++)
 				{
 					var sectionSyntax = switchStmt.Sections[i];
 					var caseOp = operation.Cases[i];
 
 					var newStatements = new List<StatementSyntax>();
+
 					foreach (var bodyOp in caseOp.Body)
 					{
 						var visited = Visit(bodyOp, argument);
+
 						if (visited is null)
 						{
 							continue;
 						}
+
 						switch (visited)
 						{
 							case BlockSyntax block:
@@ -898,10 +1129,12 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 				{
 					var arm = operation.Arms[i];
 					var patternMatches = EvaluatePattern(arm.Pattern, governingValue, argument);
+
 					if (patternMatches is false)
 					{
 						continue;
 					}
+
 					if (patternMatches is null)
 					{
 						// cannot determine; bail out and rebuild
@@ -912,10 +1145,12 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 					if (arm.Guard is not null)
 					{
 						var visitedGuard = Visit(arm.Guard, argument);
+
 						if (!SyntaxHelpers.TryGetConstantValue(compilation, loader, visitedGuard, new VariableItemDictionary(argument), token, out var guardVal))
 						{
 							goto ReBuild;
 						}
+
 						if (guardVal is not true)
 						{
 							continue; // guard failed
@@ -924,6 +1159,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 
 					// Evaluate arm value
 					var visitedValue = Visit(arm.Value, argument);
+
 					if (SyntaxHelpers.TryGetConstantValue(compilation, loader, visitedValue, new VariableItemDictionary(argument), token, out var armValue))
 					{
 						return SyntaxHelpers.CreateLiteral(armValue);
@@ -936,17 +1172,18 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 			{
 				// Rebuild switch expression with visited governing expression and visited guards/values
 				var newArms = new List<SwitchExpressionArmSyntax>();
+
 				for (var i = 0; i < switchExpr.Arms.Count; i++)
 				{
 					var armSyntax = switchExpr.Arms[i];
 					var armOp = operation.Arms[i];
 					var visitedArmValue = Visit(armOp.Value, argument) as ExpressionSyntax ?? armSyntax.Expression;
 
-					WhenClauseSyntax? newWhen = null;
+					WhenClauseSyntax? newWhen;
+
 					if (armOp.Guard is not null)
 					{
-						var visitedGuard = Visit(armOp.Guard, argument) as ExpressionSyntax;
-						if (visitedGuard is not null)
+						if (Visit(armOp.Guard, argument) is ExpressionSyntax visitedGuard)
 						{
 							newWhen = armSyntax.WhenClause is null
 								? SyntaxFactory.WhenClause(visitedGuard)
@@ -969,7 +1206,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 				}
 
 				return switchExpr
-					.WithGoverningExpression((ExpressionSyntax)visitedGoverning!)
+					.WithGoverningExpression((ExpressionSyntax) visitedGoverning!)
 					.WithArms(SyntaxFactory.SeparatedList(newArms));
 			}
 		}
@@ -977,166 +1214,197 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 		return operation.Syntax;
 	}
 
-	// Helpers for algebraic/logical identities
-	private static bool IsNumericZero(object? value) => value switch
+	public override SyntaxNode? VisitLocalFunction(ILocalFunctionOperation operation, IDictionary<string, VariableItem> argument)
 	{
-		byte b => b == 0,
-		sbyte sb => sb == 0,
-		short s => s == 0,
-		ushort us => us == 0,
-		int i => i == 0,
-		uint ui => ui == 0,
-		long l => l == 0,
-		ulong ul => ul == 0,
-		float f => f == 0f,
-		double d => d == 0d,
-		decimal m => m == 0m,
-		_ => false
-	};
+		return operation.Syntax;
+	}
 
-	private static bool IsNumericOne(object? value) => value switch
+	public override SyntaxNode? VisitObjectCreation(IObjectCreationOperation operation, IDictionary<string, VariableItem> argument)
 	{
-		byte b => b == 1,
-		sbyte sb => sb == 1,
-		short s => s == 1,
-		ushort us => us == 1,
-		int i => i == 1,
-		uint ui => ui == 1,
-		long l => l == 1,
-		ulong ul => ul == 1,
-		float f => f == 1f,
-		double d => d == 1d,
-		decimal m => m == 1m,
-		_ => false
-	};
-
-	private static bool IsNumericTwo(object? value) => value switch
-	{
-		byte b => b == 2,
-		sbyte sb => sb == 2,
-		short s => s == 2,
-		ushort us => us == 2,
-		int i => i == 2,
-		uint ui => ui == 2,
-		long l => l == 2,
-		ulong ul => ul == 2,
-		float f => f == 2f,
-		double d => d == 2d,
-		decimal m => m == 2m,
-		_ => false
-	};
-
-	public class VariableItemDictionary(IDictionary<string, VariableItem> inner) : IDictionary<string, object?>
-	{
-		public bool TryGetValue(string key, [UnscopedRef] out object? value)
+		if (operation.Syntax is ObjectCreationExpressionSyntax objCreation)
 		{
-			if (inner.TryGetValue(key, out var item) && item.HasValue)
+			var arguments = new List<ArgumentSyntax>(operation.Arguments.Length);
+
+			foreach (var arg in operation.Arguments)
 			{
-				value = item.Value;
-				return true;
+				if (arg.Syntax is ArgumentSyntax argumentSyntax)
+				{
+					var value = Visit(arg.Value, argument);
+
+					arguments.Add(argumentSyntax.WithExpression((ExpressionSyntax) value!));
+				}
 			}
 
-			value = null;
-			return false;
+			return objCreation.WithArgumentList(SyntaxFactory.ArgumentList(SyntaxFactory.SeparatedList(arguments)));
 		}
 
-		public object? this[string key]
+
+
+		return base.VisitObjectCreation(operation, argument);
+	}
+
+	public override SyntaxNode? VisitForLoop(IForLoopOperation operation, IDictionary<string, VariableItem> argument)
+	{
+		if (operation.Syntax is ForStatementSyntax forStatement)
 		{
-			get => inner[key].Value;
-			set
+			var result = new List<SyntaxNode>();
+			var count = 0;
+
+			for (VisitList(operation.Before, argument); Visit(operation.Condition, argument) is LiteralExpressionSyntax { Token.Value: true }; VisitList(operation.AtLoopBottom, argument))
 			{
-				if (inner.ContainsKey(key))
-				{
-					var item = inner[key];
-					inner[key] = new VariableItem(item.Type, value is not null, value);
-				}
-				else
-				{
-					throw new KeyNotFoundException($"The given key '{key}' was not present in the dictionary.");
-				}
+				result.Add(Visit(operation.Body, argument));
+
+				// if (++count > 5)
+				// {
+				// 	return operation.Syntax;
+				// }
+			}
+
+			return ToStatementSyntax(result);
+		}
+
+		return operation.Syntax;
+	}
+
+	public override SyntaxNode? VisitIncrementOrDecrement(IIncrementOrDecrementOperation operation, IDictionary<string, VariableItem> argument)
+	{
+		var name = GetVariableName(operation.Target);
+
+		if (name is not null && argument.TryGetValue(name, out var variable) && variable.HasValue)
+		{
+			variable.Value = operation.Kind switch
+			{
+				OperationKind.Increment => variable.Value.Add(1),
+				OperationKind.Decrement => variable.Value.Add(-1),
+				_ => variable.Value,
+			};
+
+			if (SyntaxHelpers.TryGetLiteral(variable.Value, out var literal))
+			{
+				return literal;
 			}
 		}
 
-		public ICollection<string> Keys => inner.Keys;
+		return operation.Syntax;
+	}
 
-		public ICollection<object?> Values => inner.Values
-			.Where(w => w.HasValue)
-			.Select(v => v.Value)
-			.ToList();
+	public override SyntaxNode? VisitUnaryOperator(IUnaryOperation operation, IDictionary<string, VariableItem> argument)
+	{
+		var name = GetVariableName(operation.Operand);
 
-		public bool Remove(KeyValuePair<string, object?> item)
+		if (name is not null && argument.TryGetValue(name, out var variable) && variable.HasValue)
 		{
-			throw new NotSupportedException("Removing keys is not supported.");
-		}
-
-		public int Count => inner.Count(c => c.Value.HasValue);
-
-		public bool IsReadOnly => inner.IsReadOnly;
-
-		public void Add(string key, object? value)
-		{
-			throw new NotSupportedException("Adding new keys is not supported.");
-		}
-
-		public void Add(KeyValuePair<string, object?> item)
-		{
-			throw new NotSupportedException("Adding new keys is not supported.");
-		}
-
-		public void Clear()
-		{
-			throw new NotSupportedException("Clearing the dictionary is not supported.");
-		}
-
-		public bool Contains(KeyValuePair<string, object?> item)
-		{
-			return inner.TryGetValue(item.Key, out var value) && value.HasValue && Equals(value.Value, item.Value);
-		}
-
-		public bool ContainsKey(string key)
-		{
-			return inner.TryGetValue(key, out var item) && item.HasValue;
-		}
-
-		public void CopyTo(KeyValuePair<string, object?>[] array, int arrayIndex)
-		{
-			foreach (var kvp in inner)
+			variable.Value = operation.OperatorKind switch
 			{
-				if (kvp.Value.HasValue)
-				{
-					array[arrayIndex++] = new KeyValuePair<string, object?>(kvp.Key, kvp.Value.Value);
-				}
+				UnaryOperatorKind.Plus => variable.Value,
+				UnaryOperatorKind.Minus => 0.Subtract(variable.Value),
+				UnaryOperatorKind.BitwiseNegation => variable.Value.BitwiseNot(),
+				UnaryOperatorKind.Not => variable.Value.LogicalNot(),
+				_ => variable.Value,
+			};
+
+			if (SyntaxHelpers.TryGetLiteral(variable.Value, out var literal))
+			{
+				return literal;
 			}
 		}
 
-		public IEnumerator<KeyValuePair<string, object?>> GetEnumerator()
+		if (operation.Syntax is PrefixUnaryExpressionSyntax prefixUnary)
 		{
-			foreach (var kvp in inner)
+			var operand = Visit(operation.Operand, argument);
+			var operandExpr = operand as ExpressionSyntax ?? prefixUnary.Operand;
+
+			return prefixUnary.WithOperand(operandExpr);
+		}
+
+		return operation.Syntax;
+	}
+
+	public override SyntaxNode? VisitForEachLoop(IForEachLoopOperation operation, IDictionary<string, VariableItem> argument)
+	{
+		if (operation.Syntax is ForEachStatementSyntax forEachStatement)
+		{
+			var result = new List<SyntaxNode>();
+			var collection = Visit(operation.Collection, argument);
+
+			if (SyntaxHelpers.TryGetConstantValue(compilation, loader, collection, new VariableItemDictionary(argument), token, out var collectionValue) &&
+			    collectionValue is IEnumerable enumerable)
 			{
-				if (kvp.Value.HasValue)
+				if (operation.LoopControlVariable is IVariableDeclaratorOperation loopControlVariable)
 				{
-					yield return new KeyValuePair<string, object?>(kvp.Key, kvp.Value.Value);
+					foreach (var item in enumerable)
+					{
+						var itemName = loopControlVariable.Symbol.Name;
+
+						if (!argument.TryGetValue(itemName, out var itemVar))
+						{
+							itemVar = new VariableItem(operation.LoopControlVariable.Type, true, SyntaxHelpers.CreateLiteral(item), true);
+							argument.Add(itemName, itemVar);
+						}
+						else
+						{
+							itemVar.Value = SyntaxHelpers.CreateLiteral(item);
+							itemVar.HasValue = true;
+							itemVar.IsInitialized = true;
+						}
+
+						result.Add(Visit(operation.Body, argument));
+					}
 				}
+
+				return ToStatementSyntax(result);
 			}
+			else if (operation.LoopControlVariable is IVariableDeclaratorOperation loopControlVariable)
+			{
+				// var itemVar = new VariableItem(operation.LoopControlVariable.Type, false, null, false);
+				// argument.Add(loopControlVariable.Symbol.Name, itemVar);
+
+				Visit(operation.LoopControlVariable, argument);
+				Visit(operation.Body, argument);
+			}
+
+			// return forEachStatement.WithExpression((ExpressionSyntax) collection!)
+			// 	.with
+			// 	.WithStatement((StatementSyntax)Visit(operation.Body, argument));
 		}
 
-		public bool Remove(string key)
-		{
-			throw new NotSupportedException("Removing keys is not supported.");
-		}
+		return operation.Syntax;
+	}
 
-		IEnumerator IEnumerable.GetEnumerator()
+	private void VisitList(ImmutableArray<IOperation> operations, IDictionary<string, VariableItem> argument)
+	{
+		foreach (var operation in operations)
 		{
-			return GetEnumerator();
+			Visit(operation, argument);
 		}
 	}
-}
 
-public class VariableItem(ITypeSymbol type, bool hasValue, object? value)
-{
-	public ITypeSymbol Type { get; } = type;
-	
-	public object? Value { get; set; } = value;
+	private StatementSyntax ToStatementSyntax(IEnumerable<SyntaxNode> nodes)
+	{
+		var items = nodes
+			.SelectMany<SyntaxNode, SyntaxNode>(s => s is BlockSyntax block ? block.Statements : [ s ])
+			.OfType<StatementSyntax>()
+			.ToList();
 
-	public bool HasValue { get; set; } = hasValue;
+		if (items.Count == 1)
+		{
+			return items[0];
+		}
+
+		return SyntaxFactory.Block(items);
+	}
+
+	private string? GetVariableName(IOperation? operation)
+	{
+		return operation switch
+		{
+			ILocalReferenceOperation localReferenceOperation => localReferenceOperation.Local.Name,
+			IParameterReferenceOperation parameterReferenceOperation => parameterReferenceOperation.Parameter.Name,
+			// IPropertyReferenceOperation propertyReferenceOperation => propertyReferenceOperation.Property.Name,
+			IArrayElementReferenceOperation arrayElementReferenceOperation => GetVariableName(arrayElementReferenceOperation.ArrayReference),
+			IFieldReferenceOperation fieldReferenceOperation => fieldReferenceOperation.Field.Name,
+			IVariableDeclaratorOperation variableDeclaratorOperation => variableDeclaratorOperation.Symbol.Name,
+			_ => null,
+		};
+	}
 }
