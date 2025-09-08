@@ -1,8 +1,8 @@
-using System.Collections.Generic;
+using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
+using System.Collections.Generic;
 using System.Linq;
-using ConstExpr.SourceGenerator.Extensions;
 
 namespace ConstExpr.SourceGenerator.Operators;
 
@@ -17,6 +17,6 @@ public partial class OperatorHelper
 			.Select(argument => GetConstantValue(compilation, argument.Value))
 			.ToArray();
 
-		return compilation.ExecuteMethod(loader, targetMethod, instance, variables, arguments);
+		return loader.ExecuteMethod(targetMethod, instance, variables, arguments);
 	}
 }

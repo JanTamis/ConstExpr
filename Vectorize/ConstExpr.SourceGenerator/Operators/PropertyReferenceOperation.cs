@@ -11,6 +11,6 @@ public partial class OperatorHelper
 		var instance = GetConstantValue(compilation, propertyReferenceOperation.Instance);
 		var property = propertyReferenceOperation.Property;
 
-		return compilation.GetPropertyValue(loader, property, instance);
+		return loader.GetPropertyValue(property, instance);
 	}
 }

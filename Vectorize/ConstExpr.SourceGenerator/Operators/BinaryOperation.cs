@@ -1,7 +1,7 @@
-using System.Collections.Generic;
 using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
+using System.Collections.Generic;
 
 namespace ConstExpr.SourceGenerator.Operators;
 
@@ -16,7 +16,7 @@ public partial class OperatorHelper
 
 		if (method != null)
 		{
-			return compilation.ExecuteMethod(loader, method, null, variables, left, right);
+			return loader.ExecuteMethod(method, null, variables, left, right);
 		}
 
 		return ExecuteBinaryOperation(operatorKind, left, right);

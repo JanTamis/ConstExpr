@@ -11,6 +11,6 @@ public partial class OperatorHelper
 		var instance = GetConstantValue(compilation, fieldReferenceOperation.Instance);
 		var field = fieldReferenceOperation.Field;
 
-		return compilation.GetFieldValue(loader, field, instance);
+		return loader.GetFieldValue(field, instance);
 	}
 }

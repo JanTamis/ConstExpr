@@ -4,12 +4,10 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
-using SourceGen.Utilities.Extensions;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 
@@ -85,7 +83,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 	public override SyntaxNode? VisitLocalReference(ILocalReferenceOperation operation, IDictionary<string, VariableItem> argument)
 	{
 		if (argument.TryGetValue(operation.Local.Name, out var value)
-		    && value.HasValue)
+				&& value.HasValue)
 		{
 			if (SyntaxHelpers.TryGetLiteral(value.Value, out var expression))
 			{
@@ -206,7 +204,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 			// We avoid transforms that would duplicate or skip evaluation of non-constant operands.
 
 			if (left is ExpressionSyntax leftExpr
-			    && right is ExpressionSyntax rightExpr)
+					&& right is ExpressionSyntax rightExpr)
 			{
 				var opMethod = operation.OperatorMethod; // null => built-in operator
 
@@ -218,7 +216,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 				{
 					// Numeric identities
 					if (IsNumericType(operation.LeftOperand.Type)
-					    && IsNumericType(operation.RightOperand.Type))
+							&& IsNumericType(operation.RightOperand.Type))
 					{
 						switch (operation.OperatorKind)
 						{
@@ -278,7 +276,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 
 					// Boolean logical identities
 					if (IsBoolType(operation.LeftOperand.Type)
-					    && IsBoolType(operation.RightOperand.Type))
+							&& IsBoolType(operation.RightOperand.Type))
 					{
 						switch (operation.OperatorKind)
 						{
@@ -461,10 +459,10 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 	public override SyntaxNode? VisitVariableDeclarator(IVariableDeclaratorOperation operation, IDictionary<string, VariableItem> argument)
 	{
 		var name = operation.Symbol.Name;
-		
+
 		if (operation.Syntax is VariableDeclaratorSyntax variable)
 		{
-			var result = (EqualsValueClauseSyntax) Visit(operation.Initializer, argument);
+			var result = (EqualsValueClauseSyntax)Visit(operation.Initializer, argument);
 
 			if (!argument.TryGetValue(name, out var item))
 			{
@@ -492,7 +490,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 				item.HasValue = false;
 				item.IsInitialized = true;
 			}
-			
+
 			return variable.WithInitializer(result);
 		}
 
@@ -519,7 +517,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 			if (operation.OperatorMethod is not null)
 			{
 				// If there's a conversion method, use it and produce a literal syntax node
-				return SyntaxHelpers.CreateLiteral(compilation.ExecuteMethod(loader, operation.OperatorMethod, null, new VariableItemDictionary(argument), value));
+				return SyntaxHelpers.CreateLiteral(loader.ExecuteMethod(operation.OperatorMethod, null, new VariableItemDictionary(argument), value));
 			}
 
 			// Convert the runtime value to the requested special type, then create a literal syntax node
@@ -547,7 +545,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 
 		if (operation.Syntax is CastExpressionSyntax castExpressionSyntax)
 		{
-			return castExpressionSyntax.WithExpression((ExpressionSyntax) operand);
+			return castExpressionSyntax.WithExpression((ExpressionSyntax)operand);
 		}
 
 		return operand;
@@ -574,12 +572,12 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 				{
 					if (instance is null)
 					{
-						return SyntaxHelpers.CreateLiteral(compilation.ExecuteMethod(loader, targetMethod, null, new VariableItemDictionary(argument), constantArguments));
+						return SyntaxHelpers.CreateLiteral(loader.ExecuteMethod(targetMethod, null, new VariableItemDictionary(argument), constantArguments));
 					}
 
 					if (SyntaxHelpers.TryGetConstantValue(compilation, loader, instance, new VariableItemDictionary(argument), token, out var instanceValue))
 					{
-						return SyntaxHelpers.CreateLiteral(compilation.ExecuteMethod(loader, targetMethod, instanceValue, new VariableItemDictionary(argument), constantArguments));
+						return SyntaxHelpers.CreateLiteral(loader.ExecuteMethod(targetMethod, instanceValue, new VariableItemDictionary(argument), constantArguments));
 					}
 				}
 				catch (Exception)
@@ -623,7 +621,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 
 			return invocation
 				.WithArgumentList(invocation.ArgumentList
-					.WithArguments(SyntaxFactory.SeparatedList(arguments.Select(s => SyntaxFactory.Argument((ExpressionSyntax) s)))));
+					.WithArguments(SyntaxFactory.SeparatedList(arguments.Select(s => SyntaxFactory.Argument((ExpressionSyntax)s)))));
 		}
 
 		return operation.Syntax;
@@ -647,9 +645,9 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 			}
 
 			return conditional
-				.WithCondition((ExpressionSyntax) condition!)
-				.WithWhenTrue((ExpressionSyntax) Visit(operation.WhenTrue, argument)!)
-				.WithWhenFalse((ExpressionSyntax) Visit(operation.WhenFalse, argument)!);
+				.WithCondition((ExpressionSyntax)condition!)
+				.WithWhenTrue((ExpressionSyntax)Visit(operation.WhenTrue, argument)!)
+				.WithWhenFalse((ExpressionSyntax)Visit(operation.WhenFalse, argument)!);
 		}
 
 		if (operation.Syntax is IfStatementSyntax ifStatement)
@@ -664,15 +662,15 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 						// Return only the 'then' part
 						return Visit(operation.WhenTrue, argument);
 					case false:
-					{
-						// Return only the 'else' part (if present); otherwise drop the whole if
-						if (operation.WhenFalse is null)
 						{
-							return null;
-						}
+							// Return only the 'else' part (if present); otherwise drop the whole if
+							if (operation.WhenFalse is null)
+							{
+								return null;
+							}
 
-						return Visit(operation.WhenFalse, argument);
-					}
+							return Visit(operation.WhenFalse, argument);
+						}
 				}
 			}
 
@@ -712,8 +710,8 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 	{
 		return operation.Syntax switch
 		{
-			ReturnStatementSyntax returnStatement => returnStatement.WithExpression((ExpressionSyntax?) Visit(operation.ReturnedValue, argument)),
-			YieldStatementSyntax yieldStatementSyntax => yieldStatementSyntax.WithExpression((ExpressionSyntax?) Visit(operation.ReturnedValue, argument)),
+			ReturnStatementSyntax returnStatement => returnStatement.WithExpression((ExpressionSyntax?)Visit(operation.ReturnedValue, argument)),
+			YieldStatementSyntax yieldStatementSyntax => yieldStatementSyntax.WithExpression((ExpressionSyntax?)Visit(operation.ReturnedValue, argument)),
 			_ => operation.Syntax
 		};
 
@@ -744,7 +742,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 				var indices = propertyReference.Arguments.Select(a => Visit(a.Value, argument)).ToArray();
 
 				return assignmentExpression.WithLeft(SyntaxFactory.ElementAccessExpression(
-					(ExpressionSyntax) instance!,
+					(ExpressionSyntax)instance!,
 					SyntaxFactory.BracketedArgumentList(SyntaxFactory.SeparatedList(indices.OfType<ExpressionSyntax>().Select(SyntaxFactory.Argument)))
 				));
 			}
@@ -859,7 +857,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 			}
 
 			// Otherwise, rebuild the assignment with the visited RHS
-			return assignmentSyntax.WithRight((ExpressionSyntax) rightExpr);
+			return assignmentSyntax.WithRight((ExpressionSyntax)rightExpr);
 		}
 
 		return operation.Syntax;
@@ -875,47 +873,47 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 				case IDiscardPatternOperation:
 					return true; // matches anything
 				case IConstantPatternOperation constPat:
-				{
-					var patNode = Visit(constPat.Value, argument);
-
-					if (SyntaxHelpers.TryGetConstantValue(compilation, loader, patNode, new VariableItemDictionary(argument), token, out var patValue))
 					{
-						return Equals(governingValue, patValue);
-					}
-					return null;
-				}
-				case IRelationalPatternOperation relPat:
-				{
-					var rightNode = Visit(relPat.Value, argument);
+						var patNode = Visit(constPat.Value, argument);
 
-					if (SyntaxHelpers.TryGetConstantValue(compilation, loader, rightNode, new VariableItemDictionary(argument), token, out var rightValue))
-					{
-						var result = ObjectExtensions.ExecuteBinaryOperation(relPat.OperatorKind, governingValue, rightValue);
-						return result is true;
-					}
-					return null;
-				}
-				case IBinaryPatternOperation binPat:
-				{
-					var left = EvaluatePattern(binPat.LeftPattern, governingValue, argument);
-					var right = EvaluatePattern(binPat.RightPattern, governingValue, argument);
-
-					if (left is null || right is null)
-					{
+						if (SyntaxHelpers.TryGetConstantValue(compilation, loader, patNode, new VariableItemDictionary(argument), token, out var patValue))
+						{
+							return Equals(governingValue, patValue);
+						}
 						return null;
 					}
-					return binPat.OperatorKind switch
+				case IRelationalPatternOperation relPat:
 					{
-						BinaryOperatorKind.Or => left.Value || right.Value,
-						BinaryOperatorKind.And => left.Value && right.Value,
-						_ => (bool?) null
-					};
-				}
+						var rightNode = Visit(relPat.Value, argument);
+
+						if (SyntaxHelpers.TryGetConstantValue(compilation, loader, rightNode, new VariableItemDictionary(argument), token, out var rightValue))
+						{
+							var result = ObjectExtensions.ExecuteBinaryOperation(relPat.OperatorKind, governingValue, rightValue);
+							return result is true;
+						}
+						return null;
+					}
+				case IBinaryPatternOperation binPat:
+					{
+						var left = EvaluatePattern(binPat.LeftPattern, governingValue, argument);
+						var right = EvaluatePattern(binPat.RightPattern, governingValue, argument);
+
+						if (left is null || right is null)
+						{
+							return null;
+						}
+						return binPat.OperatorKind switch
+						{
+							BinaryOperatorKind.Or => left.Value || right.Value,
+							BinaryOperatorKind.And => left.Value && right.Value,
+							_ => (bool?)null
+						};
+					}
 				case INegatedPatternOperation notPat:
-				{
-					var inner = EvaluatePattern(notPat.Pattern, governingValue, argument);
-					return inner is null ? null : !inner.Value;
-				}
+					{
+						var inner = EvaluatePattern(notPat.Pattern, governingValue, argument);
+						return inner is null ? null : !inner.Value;
+					}
 				default:
 					return null; // unsupported pattern kinds -> unknown
 			}
@@ -942,47 +940,47 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 						case IDefaultCaseClauseOperation:
 							return true;
 						case ISingleValueCaseClauseOperation single:
-						{
-							var node = Visit(single.Value, argument);
-
-							if (SyntaxHelpers.TryGetConstantValue(compilation, loader, node, new VariableItemDictionary(argument), token, out var caseValue))
 							{
-								return Equals(governingValue, caseValue);
-							}
-							return null;
-						}
-						case IRelationalCaseClauseOperation rel:
-						{
-							var rightNode = Visit(rel.Value, argument);
+								var node = Visit(single.Value, argument);
 
-							if (SyntaxHelpers.TryGetConstantValue(compilation, loader, rightNode, new VariableItemDictionary(argument), token, out var rightValue))
-							{
-								var result = ObjectExtensions.ExecuteBinaryOperation(rel.Relation, governingValue, rightValue);
-								return result is true;
-							}
-							return null;
-						}
-						case IPatternCaseClauseOperation patClause:
-						{
-							var patMatch = EvaluatePattern(patClause.Pattern, governingValue, argument);
-
-							if (patMatch is not true)
-							{
-								return patMatch; // false or null
-							}
-
-							if (patClause.Guard is not null)
-							{
-								var guardVisited = Visit(patClause.Guard, argument);
-
-								if (!SyntaxHelpers.TryGetConstantValue(compilation, loader, guardVisited, new VariableItemDictionary(argument), token, out var guardVal))
+								if (SyntaxHelpers.TryGetConstantValue(compilation, loader, node, new VariableItemDictionary(argument), token, out var caseValue))
 								{
-									return null;
+									return Equals(governingValue, caseValue);
 								}
-								return guardVal is true;
+								return null;
 							}
-							return true;
-						}
+						case IRelationalCaseClauseOperation rel:
+							{
+								var rightNode = Visit(rel.Value, argument);
+
+								if (SyntaxHelpers.TryGetConstantValue(compilation, loader, rightNode, new VariableItemDictionary(argument), token, out var rightValue))
+								{
+									var result = ObjectExtensions.ExecuteBinaryOperation(rel.Relation, governingValue, rightValue);
+									return result is true;
+								}
+								return null;
+							}
+						case IPatternCaseClauseOperation patClause:
+							{
+								var patMatch = EvaluatePattern(patClause.Pattern, governingValue, argument);
+
+								if (patMatch is not true)
+								{
+									return patMatch; // false or null
+								}
+
+								if (patClause.Guard is not null)
+								{
+									var guardVisited = Visit(patClause.Guard, argument);
+
+									if (!SyntaxHelpers.TryGetConstantValue(compilation, loader, guardVisited, new VariableItemDictionary(argument), token, out var guardVal))
+									{
+										return null;
+									}
+									return guardVal is true;
+								}
+								return true;
+							}
 						default:
 							return null;
 					}
@@ -1066,7 +1064,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 				return null;
 			}
 
-			Rebuild:
+		Rebuild:
 			{
 				var exprSyntax = visitedGoverning as ExpressionSyntax ?? switchStmt.Expression;
 				var newSections = new List<SwitchSectionSyntax>();
@@ -1168,7 +1166,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 				}
 			}
 
-			ReBuild:
+		ReBuild:
 			{
 				// Rebuild switch expression with visited governing expression and visited guards/values
 				var newArms = new List<SwitchExpressionArmSyntax>();
@@ -1206,7 +1204,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 				}
 
 				return switchExpr
-					.WithGoverningExpression((ExpressionSyntax) visitedGoverning!)
+					.WithGoverningExpression((ExpressionSyntax)visitedGoverning!)
 					.WithArms(SyntaxFactory.SeparatedList(newArms));
 			}
 		}
@@ -1231,7 +1229,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 				{
 					var value = Visit(arg.Value, argument);
 
-					arguments.Add(argumentSyntax.WithExpression((ExpressionSyntax) value!));
+					arguments.Add(argumentSyntax.WithExpression((ExpressionSyntax)value!));
 				}
 			}
 
@@ -1328,7 +1326,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 			var collection = Visit(operation.Collection, argument);
 
 			if (SyntaxHelpers.TryGetConstantValue(compilation, loader, collection, new VariableItemDictionary(argument), token, out var collectionValue) &&
-			    collectionValue is IEnumerable enumerable)
+					collectionValue is IEnumerable enumerable)
 			{
 				if (operation.LoopControlVariable is IVariableDeclaratorOperation loopControlVariable)
 				{
@@ -1382,7 +1380,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 	private StatementSyntax ToStatementSyntax(IEnumerable<SyntaxNode> nodes)
 	{
 		var items = nodes
-			.SelectMany<SyntaxNode, SyntaxNode>(s => s is BlockSyntax block ? block.Statements : [ s ])
+			.SelectMany<SyntaxNode, SyntaxNode>(s => s is BlockSyntax block ? block.Statements : [s])
 			.OfType<StatementSyntax>()
 			.ToList();
 

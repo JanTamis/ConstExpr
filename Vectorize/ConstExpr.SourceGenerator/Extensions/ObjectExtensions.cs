@@ -1,7 +1,8 @@
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Operations;
 using System;
 using System.Collections.Generic;
-using Microsoft.CodeAnalysis.Operations;
 
 namespace ConstExpr.SourceGenerator.Extensions;
 
@@ -86,7 +87,7 @@ public static class ObjectExtensions
 			_ => null
 		};
 	}
-	
+
 	public static object? Modulo(this object? left, object? right)
 	{
 		return left switch
@@ -267,6 +268,33 @@ public static class ObjectExtensions
 			BinaryOperatorKind.LessThanOrEqual => Comparer<object?>.Default.Compare(left, right) <= 0,
 			BinaryOperatorKind.GreaterThan => Comparer<object?>.Default.Compare(left, right) > 0,
 			BinaryOperatorKind.GreaterThanOrEqual => Comparer<object?>.Default.Compare(left, right) >= 0,
+			_ => null,
+		};
+	}
+
+	public static object? ExecuteBinaryOperation(SyntaxKind operatorKind, object? left, object? right)
+	{
+		return operatorKind switch
+		{
+			SyntaxKind.AddExpression => Add(left, right),
+			SyntaxKind.SubtractExpression => Subtract(left, right),
+			SyntaxKind.MultiplyExpression => Multiply(left, right),
+			SyntaxKind.DivideExpression => Divide(left, right),
+			SyntaxKind.ModuloExpression => Modulo(left, right),
+			SyntaxKind.LeftShiftExpression => LeftShift(left, right),
+			SyntaxKind.RightShiftExpression => RightShift(left, right),
+			SyntaxKind.UnsignedRightShiftExpression => UnsignedRightShift(left, right),
+			SyntaxKind.BitwiseAndExpression => And(left, right),
+			SyntaxKind.BitwiseOrExpression => Or(left, right),
+			SyntaxKind.ExclusiveOrExpression => ExclusiveOr(left, right),
+			SyntaxKind.LogicalAndExpression => ConditionalAnd(left, right),
+			SyntaxKind.LogicalOrExpression => ConditionalOr(left, right),
+			SyntaxKind.EqualsExpression => EqualityComparer<object?>.Default.Equals(left, right),
+			SyntaxKind.NotEqualsExpression => !EqualityComparer<object?>.Default.Equals(left, right),
+			SyntaxKind.LessThanExpression => Comparer<object?>.Default.Compare(left, right) < 0,
+			SyntaxKind.LessThanOrEqualExpression => Comparer<object?>.Default.Compare(left, right) <= 0,
+			SyntaxKind.GreaterThanExpression => Comparer<object?>.Default.Compare(left, right) > 0,
+			SyntaxKind.GreaterThanOrEqualExpression => Comparer<object?>.Default.Compare(left, right) >= 0,
 			_ => null,
 		};
 	}
