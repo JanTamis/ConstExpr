@@ -18,6 +18,20 @@ namespace ConstExpr.SourceGenerator.Rewriters;
 
 public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoader loader, Action<SyntaxNode?, Exception> exceptionHandler, IDictionary<string, VariableItem> variables, CancellationToken token) : CSharpSyntaxRewriter
 {
+	[return: NotNullIfNotNull(nameof(node))]
+	public override SyntaxNode? Visit(SyntaxNode? node)
+	{
+		try
+		{
+			return base.Visit(node);
+		}
+		catch (Exception e)
+		{
+			exceptionHandler(node, e);
+			return node;
+		}
+	}
+
 	public override SyntaxNode? VisitIdentifierName(IdentifierNameSyntax node)
 	{
 		if (variables.TryGetValue(node.Identifier.Text, out var value)
@@ -527,26 +541,36 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 				// }
 
 				// Convert the runtime value to the requested special type, then create a literal syntax node
-				return symbol.SpecialType switch
+				switch (symbol.SpecialType)
 				{
-					SpecialType.System_Boolean => CreateLiteral(Convert.ToBoolean(value)),
-					SpecialType.System_Byte => CreateLiteral(Convert.ToByte(value)),
-					SpecialType.System_Char => CreateLiteral(Convert.ToChar(value)),
-					SpecialType.System_DateTime => CreateLiteral(Convert.ToDateTime(value)),
-					SpecialType.System_Decimal => CreateLiteral(Convert.ToDecimal(value)),
-					SpecialType.System_Double => CreateLiteral(Convert.ToDouble(value)),
-					SpecialType.System_Int16 => CreateLiteral(Convert.ToInt16(value)),
-					SpecialType.System_Int32 => CreateLiteral(Convert.ToInt32(value)),
-					SpecialType.System_Int64 => CreateLiteral(Convert.ToInt64(value)),
-					SpecialType.System_SByte => CreateLiteral(Convert.ToSByte(value)),
-					SpecialType.System_Single => CreateLiteral(Convert.ToSingle(value)),
-					SpecialType.System_String => CreateLiteral(Convert.ToString(value)),
-					SpecialType.System_UInt16 => CreateLiteral(Convert.ToUInt16(value)),
-					SpecialType.System_UInt32 => CreateLiteral(Convert.ToUInt32(value)),
-					SpecialType.System_UInt64 => CreateLiteral(Convert.ToUInt64(value)),
-					SpecialType.System_Object => CreateLiteral(value),
-					_ => base.VisitCastExpression(node),
-				};
+					case SpecialType.System_Boolean: return CreateLiteral(Convert.ToBoolean(value));
+					case SpecialType.System_Byte: return CreateLiteral(Convert.ToByte(value));
+					case SpecialType.System_Char: return CreateLiteral(Convert.ToChar(value));
+					case SpecialType.System_DateTime: return CreateLiteral(Convert.ToDateTime(value));
+					case SpecialType.System_Decimal: return CreateLiteral(Convert.ToDecimal(value));
+					case SpecialType.System_Double: return CreateLiteral(Convert.ToDouble(value));
+					case SpecialType.System_Int16: return CreateLiteral(Convert.ToInt16(value));
+					case SpecialType.System_Int32: return CreateLiteral(Convert.ToInt32(value));
+					case SpecialType.System_Int64: return CreateLiteral(Convert.ToInt64(value));
+					case SpecialType.System_SByte: return CreateLiteral(Convert.ToSByte(value));
+					case SpecialType.System_Single: return CreateLiteral(Convert.ToSingle(value));
+					case SpecialType.System_String: return CreateLiteral(Convert.ToString(value));
+					case SpecialType.System_UInt16: return CreateLiteral(Convert.ToUInt16(value));
+					case SpecialType.System_UInt32: return CreateLiteral(Convert.ToUInt32(value));
+					case SpecialType.System_UInt64: return CreateLiteral(Convert.ToUInt64(value));
+					case SpecialType.System_Object: return CreateLiteral(value);
+					default:
+					{
+						if (TryGetOperation(semanticModel, node, out IConversionOperation? operation)
+							&& loader.TryExecuteMethod(operation.OperatorMethod, null, new VariableItemDictionary(variables), [ value ], out value)
+							&& TryGetLiteral(value, out var literal))
+						{
+							return literal;
+						}
+						
+						break;
+					}
+				}
 			}
 		}
 
@@ -572,7 +596,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 							var visited = Visit(constPat.Expression) ?? constPat.Expression;
 							return TryGetConstantValue(semanticModel.Compilation, loader, visited, new VariableItemDictionary(variables), token, out var patVal)
 								? Equals(value, patVal)
-								: (bool?) null;
+								: null;
 						}
 						case RelationalPatternSyntax relPat:
 						{
@@ -584,6 +608,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 							}
 
 							var op = relPat.OperatorToken.Kind();
+							
 							var result = op switch
 							{
 								SyntaxKind.LessThanToken => ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.LessThan, value, rightVal),

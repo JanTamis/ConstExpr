@@ -562,14 +562,12 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			return null;
 		}
 
-		var exceptions = new ConcurrentDictionary<SyntaxNode, Exception>(SyntaxNodeComparer<SyntaxNode>.Instance);
+		var exceptions = new ConcurrentDictionary<SyntaxNode?, Exception>(SyntaxNodeComparer<SyntaxNode>.Instance);
 
 		var visitor = new ConstExprOperationVisitor(context.SemanticModel.Compilation, loader, (operation, ex) =>
 		{
 			// exceptions.TryAdd(operation!.Syntax, ex);
 		}, token);
-
-		
 
 		try
 		{
@@ -580,9 +578,9 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				// var variables = ProcessArguments(visitor, context.SemanticModel.Compilation, invocation, loader, token);
 				var variablesPartial = ProcessArguments(visitor, context.SemanticModel.Compilation, invocation, loader, token);
 				
-				var partialVisitor = new ConstExprPartialRewriter(model, loader, (operation, ex) =>
+				var partialVisitor = new ConstExprPartialRewriter(model, loader, (node, ex) =>
 				{
-					// exceptions.TryAdd(operation!.Syntax, ex);
+					exceptions.TryAdd(node, ex);
 				}, variablesPartial, token);
 				
 				var timer = Stopwatch.StartNew();

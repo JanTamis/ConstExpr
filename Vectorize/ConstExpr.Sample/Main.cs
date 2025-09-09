@@ -1,5 +1,6 @@
 using ConstExpr.SourceGenerator.Sample;
 using System;
+using System.Text;
 
 // var range = Test.Range(10);
 
@@ -11,14 +12,14 @@ byte test2 = 128;
 //Console.WriteLine(Test.StdDev(1f, 2f, 3f, 4f, 5f));
 
 //Console.WriteLine(Test.StringLength("Hello, World!", Encoding.UTF8));
-//Console.WriteLine(Test.StringBytes("Hello, World!!!", Encoding.UTF8).Length);
+Console.WriteLine(Test.StringBytes("Hello, World!!!", Encoding.UTF8).Length);
 //Console.WriteLine(Test.Base64Encode("Hello, World!"));
 //Console.WriteLine(await Test.Waiting());
 //// Console.WriteLine(String.Join(", ", range.BinarySearch(11, Comparer<int>.Default)));
 //Console.WriteLine(String.Join(", ", Test.Split("Hello, World!", ',')));
 // Console.WriteLine(String.Join(", ", Test.Fibonacci(20)));
 // Console.WriteLine(Test.RgbToHsl(test, 100, 50));
-Console.WriteLine(Test.IsPrime(3));
+// Console.WriteLine(Test.IsPrime(3));
 //Console.WriteLine(Test.ToString(StringComparison.Ordinal));
 //Console.WriteLine(Test.GetNames<StringComparison>());
 //Console.WriteLine(Test.GetNames<StringComparison>());
