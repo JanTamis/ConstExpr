@@ -599,8 +599,8 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				var result2 = new PruneVariableRewriter(variablesPartial).Visit(result)!;
 
 				// Format using Roslyn formatter instead of NormalizeWhitespace
-				// var text = FormattingHelper.Render(result);
-				 var text2 = FormattingHelper.Render(result2);
+				var text = FormattingHelper.Render(result);
+				var text2 = FormattingHelper.Render(result2);
 				
 				timer.Stop();
 

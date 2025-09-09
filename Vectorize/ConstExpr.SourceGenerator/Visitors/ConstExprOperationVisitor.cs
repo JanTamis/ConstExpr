@@ -321,9 +321,9 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		var operatorKind = operation.OperatorKind;
 		var method = operation.OperatorMethod;
 
-		if (method is not null)
+		if (loader.TryExecuteMethod(method, null, argument, [left, right], out var value))
 		{
-			return loader.ExecuteMethod(method, null, argument, left, right);
+			return value;
 		}
 
 		return ObjectExtensions.ExecuteBinaryOperation(operatorKind, left, right);
@@ -464,10 +464,10 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		var operand = Visit(operation.Operand, argument);
 		var conversion = operation.Type;
 
-		if (operation.OperatorMethod is not null)
+		if (loader.TryExecuteMethod(operation.OperatorMethod, null, argument, [operand], out var value))
 		{
 			// If there's a conversion method, use it
-			return loader.ExecuteMethod(operation.OperatorMethod, null, argument, operand);
+			return value;
 		}
 
 		if (operand is null)
@@ -541,8 +541,11 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 				return variables[RETURNVARIABLENAME];
 			}
 		}
+		
+		
 
-		return loader.ExecuteMethod(targetMethod, instance, argument, arguments);
+		loader.TryExecuteMethod(targetMethod, instance, argument, arguments, out var value);
+		return value;
 	}
 
 	public override object? VisitSwitch(ISwitchOperation operation, IDictionary<string, object?> argument)

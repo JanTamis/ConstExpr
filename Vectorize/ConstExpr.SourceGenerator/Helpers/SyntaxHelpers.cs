@@ -337,9 +337,9 @@ public static class SyntaxHelpers
 						if (operation.TargetMethod.IsStatic)
 						{
 							var methodParameters = operation.TargetMethod.Parameters;
+
 							var arguments = invocation.ArgumentList.Arguments
-								.Select(s => GetConstantValue(compilation, loader, s.Expression, variables, token))
-								.ToArray();
+								.Select(s => GetConstantValue(compilation, loader, s.Expression, variables, token));
 
 							if (methodParameters.Length > 0 && methodParameters.Last().IsParams)
 							{
@@ -350,23 +350,26 @@ public static class SyntaxHelpers
 								Array.Copy(fixedArguments, finalArguments, fixedArguments.Length);
 								finalArguments[fixedArguments.Length] = paramsArguments;
 
-								value = loader.ExecuteMethod(operation.TargetMethod, null, variables, finalArguments);
+								if (loader.TryExecuteMethod(operation.TargetMethod, null, variables, finalArguments, out value))
+								{
+									return true;
+								}
 							}
-							else
+							
+							if (loader.TryExecuteMethod(operation.TargetMethod, null, variables, arguments, out value))
 							{
-								value = loader.ExecuteMethod(operation.TargetMethod, null, variables, arguments);
+								return true;
 							}
-							return true;
 						}
+						
 						value = null;
 						return false;
 					}
 				case ObjectCreationExpressionSyntax creation when compilation.TryGetSemanticModel(expression, out var model) && model.GetOperation(creation) is IObjectCreationOperation operation:
 					{
-						if (operation.Arguments.All(x => x.Value.ConstantValue.HasValue))
+						if (operation.Arguments.All(x => x.Value.ConstantValue.HasValue) 
+						    && loader.TryExecuteMethod(operation.Constructor, null, variables, operation.Arguments.Select(x => x.Value.ConstantValue.Value), out value))
 						{
-							var parameters = operation.Arguments.Select(x => x.Value.ConstantValue.Value).ToArray();
-							value = loader.ExecuteMethod(operation.Constructor, null, variables, parameters);
 							return true;
 						}
 						value = null;
@@ -428,6 +431,25 @@ public static class SyntaxHelpers
 				&& semanticModel.GetOperation(symbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax()) is TOperation op)
 		{
 			operation = op;
+			return true;
+		}
+
+		operation = default!;
+		return false;
+	}
+
+	public static bool TryGetOperation<TOperation>(SemanticModel model, ISymbol symbol, [NotNullWhen(true)] out TOperation? operation) where TOperation : IOperation
+	{
+		if (model.GetOperation(symbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax()) is TOperation op1)
+		{
+			operation = op1;
+			return true;
+		}
+		
+		if (model.Compilation.TryGetSemanticModel(symbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(), out var semanticModel)
+		    && semanticModel.GetOperation(symbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax()) is TOperation op2)
+		{
+			operation = op2;
 			return true;
 		}
 

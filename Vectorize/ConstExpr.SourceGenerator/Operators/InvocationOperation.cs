@@ -16,7 +16,8 @@ public partial class OperatorHelper
 		var arguments = invocationOperation.Arguments
 			.Select(argument => GetConstantValue(compilation, argument.Value))
 			.ToArray();
-
-		return loader.ExecuteMethod(targetMethod, instance, variables, arguments);
+		
+		loader.TryExecuteMethod(targetMethod, instance, variables, arguments, out var value);
+		return value;
 	}
 }

@@ -18,7 +18,7 @@ byte test2 = 128;
 //Console.WriteLine(String.Join(", ", Test.Split("Hello, World!", ',')));
 // Console.WriteLine(String.Join(", ", Test.Fibonacci(20)));
 // Console.WriteLine(Test.RgbToHsl(test, 100, 50));
-// Console.WriteLine(Test.IsPrime(3));
+Console.WriteLine(Test.IsPrime(3));
 //Console.WriteLine(Test.ToString(StringComparison.Ordinal));
 //Console.WriteLine(Test.GetNames<StringComparison>());
 //Console.WriteLine(Test.GetNames<StringComparison>());
@@ -36,7 +36,7 @@ byte test2 = 128;
 //Console.WriteLine("Map(5, 0..10 -> 0..100) => " + Test.Map(5, 0, 10, 0, 100));
 
 //// Color conversions
-var (h, s, l) = Test.RgbToHsl((byte)Math.Abs(-150), test2, 50);
+// var (h, s, l) = Test.RgbToHsl((byte)Math.Abs(-150), test2, 50);
 //Console.WriteLine($"RGB(150,100,50) -> HSL({h:F1}, {s:F3}, {l:F3})");
 
 // var (rr, gg, bb) = Test.HslToRgb(720, test, 0.5f);

@@ -305,8 +305,14 @@ public static class CompilationExtensions
 		return typeSymbol.GetMembers(name).OfType<TSymbol>().Any(predicate);
 	}
 
-	public static object? ExecuteMethod(this MetadataLoader loader, IMethodSymbol methodSymbol, object? instance, IDictionary<string, object?>? arguments, params object?[]? parameters)
+	public static bool TryExecuteMethod(this MetadataLoader loader, [NotNullWhen(true)] IMethodSymbol? methodSymbol, object? instance, IDictionary<string, object?>? arguments, IEnumerable<object?> parameters, out object? value)
 	{
+		if (methodSymbol is null)
+		{
+			value = null;
+			return false;
+		}
+		
 		var fullyQualifiedName = methodSymbol.ContainingType.ToDisplayString();
 		var methodName = methodSymbol.Name;
 
@@ -316,13 +322,16 @@ public static class CompilationExtensions
 			: loader.GetType(methodSymbol.ContainingType)
 				?? throw new InvalidOperationException($"Type '{fullyQualifiedName}' not found");
 
-		var methodInfos = type
-			.GetMethods(methodSymbol.IsStatic
+		var methods = methodSymbol.MethodKind switch
+		{
+			MethodKind.Constructor => type.GetConstructors(BindingFlags.Public | BindingFlags.Instance).OfType<MethodBase?>(),
+			MethodKind.StaticConstructor => type.GetConstructors(BindingFlags.Public | BindingFlags.Static).OfType<MethodBase?>(),
+			_ => type.GetMethods(methodSymbol.IsStatic
 				? BindingFlags.Public | BindingFlags.Static
-				: BindingFlags.Public | BindingFlags.Instance).OfType<MethodBase?>()
-			.Concat(type.GetConstructors(methodSymbol.IsStatic
-				? BindingFlags.Public | BindingFlags.Static
-				: BindingFlags.Public | BindingFlags.Instance).OfType<MethodBase?>())
+				: BindingFlags.Public | BindingFlags.Instance).OfType<MethodBase?>(),
+		};
+
+		var methodInfos = methods
 			.Where(f =>
 			{
 				if (f.Name != methodName)
@@ -398,23 +407,28 @@ public static class CompilationExtensions
 
 			if (methodInfo.IsStatic)
 			{
-				return methodInfo.Invoke(null, parameters);
+				value = methodInfo.Invoke(null, parameters.ToArray());
+				return true;
 			}
 
 			if (methodInfo.IsConstructor)
 			{
-				return Activator.CreateInstance(type, parameters);
+				value = Activator.CreateInstance(type, parameters);
+				return true;
 			}
 
 			if (instance == null)
 			{
-				throw new InvalidOperationException($"Kan geen instantie creëren van type '{fullyQualifiedName}'.");
+				value = null;
+				return false;
 			}
 
-			return methodInfo.Invoke(instance, parameters);
+			value = methodInfo.Invoke(instance, parameters.ToArray());
+			return true;
 		}
 
-		throw new InvalidOperationException($"Methode '{methodName}' niet gevonden in type '{fullyQualifiedName}'.");
+		value = null;
+		return false;
 	}
 
 	public static object? GetPropertyValue(this MetadataLoader loader, ISymbol propertySymbol, object? instance)

@@ -514,10 +514,11 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 
 		if (SyntaxHelpers.TryGetConstantValue(compilation, loader, operand, new VariableItemDictionary(argument), token, out var value))
 		{
-			if (operation.OperatorMethod is not null)
+			if (loader.TryExecuteMethod(operation.OperatorMethod, null, new VariableItemDictionary(argument), [value], out value)
+			    && SyntaxHelpers.TryGetLiteral(value, out var literal))
 			{
 				// If there's a conversion method, use it and produce a literal syntax node
-				return SyntaxHelpers.CreateLiteral(loader.ExecuteMethod(operation.OperatorMethod, null, new VariableItemDictionary(argument), value));
+				return literal;
 			}
 
 			// Convert the runtime value to the requested special type, then create a literal syntax node
@@ -570,14 +571,12 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 			{
 				try
 				{
-					if (instance is null)
+					SyntaxHelpers.TryGetConstantValue(compilation, loader, instance, new VariableItemDictionary(argument), token, out var instanceValue);
+						
+					if (loader.TryExecuteMethod(targetMethod, instanceValue, new VariableItemDictionary(argument), constantArguments, out var value)
+					    && SyntaxHelpers.TryGetLiteral(value, out var literal))
 					{
-						return SyntaxHelpers.CreateLiteral(loader.ExecuteMethod(targetMethod, null, new VariableItemDictionary(argument), constantArguments));
-					}
-
-					if (SyntaxHelpers.TryGetConstantValue(compilation, loader, instance, new VariableItemDictionary(argument), token, out var instanceValue))
-					{
-						return SyntaxHelpers.CreateLiteral(loader.ExecuteMethod(targetMethod, instanceValue, new VariableItemDictionary(argument), constantArguments));
+						return literal;
 					}
 				}
 				catch (Exception)
@@ -857,7 +856,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 			}
 
 			// Otherwise, rebuild the assignment with the visited RHS
-			return assignmentSyntax.WithRight((ExpressionSyntax)rightExpr);
+			return assignmentSyntax.WithRight(rightExpr);
 		}
 
 		return operation.Syntax;
@@ -1064,7 +1063,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 				return null;
 			}
 
-		Rebuild:
+			Rebuild:
 			{
 				var exprSyntax = visitedGoverning as ExpressionSyntax ?? switchStmt.Expression;
 				var newSections = new List<SwitchSectionSyntax>();

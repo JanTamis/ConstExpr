@@ -14,9 +14,9 @@ public partial class OperatorHelper
 		var operatorKind = binaryOperation.OperatorKind;
 		var method = binaryOperation.OperatorMethod;
 
-		if (method != null)
+		if (method != null && loader.TryExecuteMethod(method, null, variables, [left, right], out var value))
 		{
-			return loader.ExecuteMethod(method, null, variables, left, right);
+			return value;
 		}
 
 		return ExecuteBinaryOperation(operatorKind, left, right);
