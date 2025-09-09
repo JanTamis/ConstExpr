@@ -427,12 +427,31 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 			.WithElse(@else as ElseClauseSyntax);
 	}
 
+	public override SyntaxNode? VisitForStatement(ForStatementSyntax node)
+	{
+		var result = new List<SyntaxNode>();
+		// var count = 0;
+
+		for (Visit(node.Declaration); TryGetLiteralValue(Visit(node.Condition), out var value) && value is true; VisitList(node.Incrementors))
+		{
+			result.Add(Visit(node.Statement));
+
+			// if (++count > 5)
+			// {
+			// 	return operation.Syntax;
+			// }
+		}
+
+		return ToStatementSyntax(result);
+	}
+
 	public override SyntaxNode? VisitAssignmentExpression(AssignmentExpressionSyntax node)
 	{
 		// Do not visit the left/target to avoid turning assignable expressions into constants.
 		var visitedRight = Visit(node.Right);
 		var rightExpr = visitedRight as ExpressionSyntax ?? node.Right;
-
+		var kind = node.OperatorToken.Kind();
+		
 		if (node.Left is IdentifierNameSyntax { Identifier.Text: var name } && variables.TryGetValue(name, out var variable))
 		{
 			if (!variable.IsInitialized)
@@ -442,9 +461,9 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 					variable.Value = nameSyntax;
 					variable.HasValue = true;
 				}
-				else if (TryGetConstantValue(semanticModel.Compilation, loader, rightExpr, new VariableItemDictionary(variables), token, out var value))
+				else if (TryGetLiteralValue(rightExpr, out var value))
 				{
-					variable.Value = value;
+					variable.Value = ObjectExtensions.ExecuteBinaryOperation(kind, variable.Value, value) ?? value;
 					variable.HasValue = true;
 				}
 				else
@@ -464,7 +483,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 
 			if (TryGetLiteralValue(node.Left, out var tempValue))
 			{
-				variable.Value = tempValue;
+				variable.Value = ObjectExtensions.ExecuteBinaryOperation(kind, variable.Value, tempValue) ?? tempValue;
 
 				if (TryGetLiteral(tempValue, out var literal))
 				{
@@ -831,5 +850,20 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 
 		value = default;
 		return false;
+	}
+
+	private StatementSyntax ToStatementSyntax(IEnumerable<SyntaxNode> nodes)
+	{
+		var items = nodes
+			.SelectMany<SyntaxNode, SyntaxNode>(s => s is BlockSyntax block ? block.Statements : [s])
+			.OfType<StatementSyntax>()
+			.ToList();
+
+		if (items.Count == 1)
+		{
+			return items[0];
+		}
+
+		return SyntaxFactory.Block(items);
 	}
 }
