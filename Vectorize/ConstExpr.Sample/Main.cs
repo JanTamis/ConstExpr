@@ -4,8 +4,8 @@ using System.Text;
 
 // var range = Test.Range(10);
 
-float test = 1f;
-byte test2 = 128;
+const float test = 1f;
+const byte test2 = 128;
 
 //Console.WriteLine(String.Join(", ", Test.IsOdd(1, 2, 3, 4, 5)));
 //Console.WriteLine(Test.Average(1f, 2f, 3f, 4f, 5f, 6f));
@@ -40,7 +40,7 @@ Console.WriteLine(Test.StringBytes("Hello, World!!!", Encoding.UTF8).Length);
 // var (h, s, l) = Test.RgbToHsl((byte)Math.Abs(-150), test2, 50);
 //Console.WriteLine($"RGB(150,100,50) -> HSL({h:F1}, {s:F3}, {l:F3})");
 
-// var (rr, gg, bb) = Test.HslToRgb(720, test, 0.5f);
+var (rr, gg, bb) = Test.HslToRgb(720, test, 0.5f);
 // Console.WriteLine($"Round-trip HSL -> RGB({rr},{gg},{bb})");
 
 // var lumDark = Test.Luminance(0, test2, 0);
@@ -64,9 +64,9 @@ static (byte r, byte g, byte b) HslToRgb(float h, float s, float l)
 
 	var x = s * 0F;
 	var m = 0.5F - s / 2F;
-	var r = (byte) Math.Round(s + m * 255F);
-	var g = (byte) Math.Round(x + m * 255F);
-	var b = (byte) Math.Round(m * 255F);
+	var r = (byte)Math.Round(s + m * 255F);
+	var g = (byte)Math.Round(x + m * 255F);
+	var b = (byte)Math.Round(m * 255F);
 
 	return (r, g, b);
 }

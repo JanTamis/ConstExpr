@@ -35,7 +35,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 	public override SyntaxNode? VisitIdentifierName(IdentifierNameSyntax node)
 	{
 		if (variables.TryGetValue(node.Identifier.Text, out var value)
-		    && value.HasValue)
+				&& value.HasValue)
 		{
 			if (TryGetLiteral(value.Value, out var expression))
 			{
@@ -74,7 +74,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 			.Select(Visit)
 			.Where(w => w is not null)
 			.OfType<TNode>()
-			.SelectMany(s => s is BlockSyntax blockSyntax ? blockSyntax.Statements.OfType<TNode>() : [ s ]);
+			.SelectMany(s => s is BlockSyntax blockSyntax ? blockSyntax.Statements.OfType<TNode>() : [s]);
 
 		return List(items);
 	}
@@ -101,7 +101,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 
 			if (hasLeftValue && hasRightValue)
 			{
-				if (loader.TryExecuteMethod(operation.OperatorMethod, null, new VariableItemDictionary(variables), [ leftValue, rightValue ], out var result))
+				if (loader.TryExecuteMethod(operation.OperatorMethod, null, new VariableItemDictionary(variables), [leftValue, rightValue], out var result))
 				{
 					return CreateLiteral(result);
 				}
@@ -112,7 +112,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 			// Try algebraic/logical simplifications when one side is a constant and operator is built-in.
 			// We avoid transforms that would duplicate or skip evaluation of non-constant operands.
 			if (left is ExpressionSyntax leftExpr
-			    && right is ExpressionSyntax rightExpr)
+					&& right is ExpressionSyntax rightExpr)
 			{
 				var opMethod = operation.OperatorMethod; // null => built-in operator
 				var isBuiltIn = opMethod is null;
@@ -121,7 +121,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 				{
 					// Numeric identities
 					if (IsNumericType(operation.LeftOperand.Type)
-					    && IsNumericType(operation.RightOperand.Type))
+							&& IsNumericType(operation.RightOperand.Type))
 					{
 						switch (operation.OperatorKind)
 						{
@@ -181,7 +181,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 
 					// Boolean logical identities
 					if (IsBoolType(operation.LeftOperand.Type)
-					    && IsBoolType(operation.RightOperand.Type))
+							&& IsBoolType(operation.RightOperand.Type))
 					{
 						switch (operation.OperatorKind)
 						{
@@ -319,7 +319,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 					TryGetConstantValue(semanticModel.Compilation, loader, instance, new VariableItemDictionary(variables), token, out var instanceValue);
 
 					if (loader.TryExecuteMethod(targetMethod, instanceValue, new VariableItemDictionary(variables), constantArguments, out var value)
-					    && TryGetLiteral(value, out var literal))
+							&& TryGetLiteral(value, out var literal))
 					{
 						return literal;
 					}
@@ -365,7 +365,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 
 			return node
 				.WithArgumentList(node.ArgumentList
-					.WithArguments(SeparatedList(arguments.Select(s => Argument((ExpressionSyntax) s)))));
+					.WithArguments(SeparatedList(arguments.Select(s => Argument((ExpressionSyntax)s)))));
 		}
 
 		return node;
@@ -465,7 +465,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 		var visitedRight = Visit(node.Right);
 		var rightExpr = visitedRight as ExpressionSyntax ?? node.Right;
 		var kind = node.OperatorToken.Kind();
-		
+
 		if (node.Left is IdentifierNameSyntax { Identifier.Text: var name } && variables.TryGetValue(name, out var variable))
 		{
 			if (!variable.IsInitialized)
@@ -522,7 +522,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 			return expression;
 		}
 
-		return node.WithExpression((ExpressionSyntax) expression);
+		return node.WithExpression((ExpressionSyntax)expression);
 	}
 
 	public override SyntaxNode? VisitCastExpression(CastExpressionSyntax node)
@@ -560,16 +560,16 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 					case SpecialType.System_UInt64: return CreateLiteral(Convert.ToUInt64(value));
 					case SpecialType.System_Object: return CreateLiteral(value);
 					default:
-					{
-						if (TryGetOperation(semanticModel, node, out IConversionOperation? operation)
-							&& loader.TryExecuteMethod(operation.OperatorMethod, null, new VariableItemDictionary(variables), [ value ], out value)
-							&& TryGetLiteral(value, out var literal))
 						{
-							return literal;
+							if (TryGetOperation(semanticModel, node, out IConversionOperation? operation)
+								&& loader.TryExecuteMethod(operation.OperatorMethod, null, new VariableItemDictionary(variables), [value], out value)
+								&& TryGetLiteral(value, out var literal))
+							{
+								return literal;
+							}
+
+							break;
 						}
-						
-						break;
-					}
 				}
 			}
 		}
@@ -592,75 +592,75 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 						case DiscardPatternSyntax:
 							return true;
 						case ConstantPatternSyntax constPat:
-						{
-							var visited = Visit(constPat.Expression) ?? constPat.Expression;
-							return TryGetConstantValue(semanticModel.Compilation, loader, visited, new VariableItemDictionary(variables), token, out var patVal)
-								? Equals(value, patVal)
-								: null;
-						}
+							{
+								var visited = Visit(constPat.Expression) ?? constPat.Expression;
+								return TryGetConstantValue(semanticModel.Compilation, loader, visited, new VariableItemDictionary(variables), token, out var patVal)
+									? Equals(value, patVal)
+									: null;
+							}
 						case RelationalPatternSyntax relPat:
-						{
-							var visited = Visit(relPat.Expression) ?? relPat.Expression;
-
-							if (!TryGetConstantValue(semanticModel.Compilation, loader, visited, new VariableItemDictionary(variables), token, out var rightVal))
 							{
-								return null;
+								var visited = Visit(relPat.Expression) ?? relPat.Expression;
+
+								if (!TryGetConstantValue(semanticModel.Compilation, loader, visited, new VariableItemDictionary(variables), token, out var rightVal))
+								{
+									return null;
+								}
+
+								var op = relPat.OperatorToken.Kind();
+
+								var result = op switch
+								{
+									SyntaxKind.LessThanToken => ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.LessThan, value, rightVal),
+									SyntaxKind.LessThanEqualsToken => ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.LessThanOrEqual, value, rightVal),
+									SyntaxKind.GreaterThanToken => ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.GreaterThan, value, rightVal),
+									SyntaxKind.GreaterThanEqualsToken => ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.GreaterThanOrEqual, value, rightVal),
+									_ => null,
+								};
+
+								return result is true;
 							}
-
-							var op = relPat.OperatorToken.Kind();
-							
-							var result = op switch
-							{
-								SyntaxKind.LessThanToken => ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.LessThan, value, rightVal),
-								SyntaxKind.LessThanEqualsToken => ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.LessThanOrEqual, value, rightVal),
-								SyntaxKind.GreaterThanToken => ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.GreaterThan, value, rightVal),
-								SyntaxKind.GreaterThanEqualsToken => ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.GreaterThanOrEqual, value, rightVal),
-								_ => null,
-							};
-
-							return result is true;
-						}
 						case BinaryPatternSyntax binPat:
-						{
-							var l = EvaluatePattern(binPat.Left, value);
-							var r = EvaluatePattern(binPat.Right, value);
-
-							if (l is null || r is null)
 							{
-								return null;
+								var l = EvaluatePattern(binPat.Left, value);
+								var r = EvaluatePattern(binPat.Right, value);
+
+								if (l is null || r is null)
+								{
+									return null;
+								}
+
+								return binPat.OperatorToken.Kind() switch
+								{
+									SyntaxKind.OrKeyword => l.Value || r.Value,
+									SyntaxKind.AndKeyword => l.Value && r.Value,
+									_ => (bool?)null,
+								};
 							}
-
-							return binPat.OperatorToken.Kind() switch
-							{
-								SyntaxKind.OrKeyword => l.Value || r.Value,
-								SyntaxKind.AndKeyword => l.Value && r.Value,
-								_ => (bool?) null,
-							};
-						}
 						case UnaryPatternSyntax unary when unary.OperatorToken.IsKind(SyntaxKind.NotKeyword):
-						{
-							var inner = EvaluatePattern(unary.Pattern, value);
-							return inner is null ? null : !inner.Value;
-						}
+							{
+								var inner = EvaluatePattern(unary.Pattern, value);
+								return inner is null ? null : !inner.Value;
+							}
 						case ParenthesizedPatternSyntax parPat:
 							return EvaluatePattern(parPat.Pattern, value);
 						case VarPatternSyntax:
 							return true;
 						case DeclarationPatternSyntax declPat:
-						{
-							if (semanticModel.Compilation.TryGetSemanticModel(declPat.Type, out var model))
 							{
-								var typeInfo = model.GetTypeInfo(declPat.Type, token).Type;
-
-								if (typeInfo is not null && value is not null)
+								if (semanticModel.Compilation.TryGetSemanticModel(declPat.Type, out var model))
 								{
-									return string.Equals(typeInfo.ToDisplayString(), value.GetType().FullName, StringComparison.Ordinal)
-									       || string.Equals(typeInfo.Name, value.GetType().Name, StringComparison.Ordinal);
+									var typeInfo = model.GetTypeInfo(declPat.Type, token).Type;
+
+									if (typeInfo is not null && value is not null)
+									{
+										return string.Equals(typeInfo.ToDisplayString(), value.GetType().FullName, StringComparison.Ordinal)
+													 || string.Equals(typeInfo.Name, value.GetType().Name, StringComparison.Ordinal);
+									}
+									return false;
 								}
-								return false;
+								return null;
 							}
-							return null;
-						}
 						default:
 							return null;
 					}
@@ -676,7 +676,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 				var visited = Visit(when.Condition) ?? when.Condition;
 				return TryGetConstantValue(semanticModel.Compilation, loader, visited, new VariableItemDictionary(variables), token, out var val)
 					? val is true
-					: (bool?) null;
+					: (bool?)null;
 			}
 
 			bool? LabelMatches(SwitchLabelSyntax label)
@@ -687,19 +687,19 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 					CaseSwitchLabelSyntax constCase =>
 						TryGetConstantValue(semanticModel.Compilation, loader, Visit(constCase.Value) ?? constCase.Value, new VariableItemDictionary(variables), token, out var caseValue)
 							? Equals(governingValue, caseValue)
-							: (bool?) null,
+							: (bool?)null,
 					CasePatternSwitchLabelSyntax patCase =>
 						EvaluatePattern(patCase.Pattern, governingValue) is not bool patMatch
-							? (bool?) null
+							? (bool?)null
 							: patCase.WhenClause is null
 								? patMatch
 								: EvaluateWhen(patCase.WhenClause) switch
 								{
 									true => patMatch,
 									false => false,
-									null => (bool?) null,
+									null => (bool?)null,
 								},
-					_ => (bool?) null
+					_ => (bool?)null
 				};
 			}
 
@@ -805,7 +805,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 	private object? ExecuteConversion(IConversionOperation conversion, object? value)
 	{
 		// If there's a conversion method, use it and produce a literal syntax node
-		if (loader.TryExecuteMethod(conversion.OperatorMethod, null, new VariableItemDictionary(variables), [ value ], out var result))
+		if (loader.TryExecuteMethod(conversion.OperatorMethod, null, new VariableItemDictionary(variables), [value], out var result))
 		{
 			return result;
 		}
@@ -844,6 +844,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 				{
 					return TryGetLiteralValue(sn, out value);
 				}
+
 				value = variable.Value;
 				return true;
 		}
