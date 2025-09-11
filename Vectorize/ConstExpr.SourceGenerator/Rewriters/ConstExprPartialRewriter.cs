@@ -634,7 +634,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 								{
 									SyntaxKind.OrKeyword => l.Value || r.Value,
 									SyntaxKind.AndKeyword => l.Value && r.Value,
-									_ => (bool?)null,
+									_ => null,
 								};
 							}
 						case UnaryPatternSyntax unary when unary.OperatorToken.IsKind(SyntaxKind.NotKeyword):
@@ -676,7 +676,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 				var visited = Visit(when.Condition) ?? when.Condition;
 				return TryGetConstantValue(semanticModel.Compilation, loader, visited, new VariableItemDictionary(variables), token, out var val)
 					? val is true
-					: (bool?)null;
+					: null;
 			}
 
 			bool? LabelMatches(SwitchLabelSyntax label)
@@ -687,19 +687,19 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 					CaseSwitchLabelSyntax constCase =>
 						TryGetConstantValue(semanticModel.Compilation, loader, Visit(constCase.Value) ?? constCase.Value, new VariableItemDictionary(variables), token, out var caseValue)
 							? Equals(governingValue, caseValue)
-							: (bool?)null,
+							: null,
 					CasePatternSwitchLabelSyntax patCase =>
 						EvaluatePattern(patCase.Pattern, governingValue) is not bool patMatch
-							? (bool?)null
+							? null
 							: patCase.WhenClause is null
 								? patMatch
 								: EvaluateWhen(patCase.WhenClause) switch
 								{
 									true => patMatch,
 									false => false,
-									null => (bool?)null,
+									null => null,
 								},
-					_ => (bool?)null
+					_ => null
 				};
 			}
 
