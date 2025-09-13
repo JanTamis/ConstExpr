@@ -20,7 +20,7 @@ public static class Test
 
 	public static int[] GetArray(params int[] items)
 	{
-		return items[..5];
+		return items[1..5];
 	}
 
 	public static double Average(params IReadOnlyList<double> data)

@@ -285,10 +285,20 @@ public static class SyntaxHelpers
 					}
 				case CollectionExpressionSyntax collection:
 					{
-						value = collection.Elements
-							.Select(x => GetConstantValue(compilation, loader, x, variables, token))
-							.ToArray();
+						var elementType = collection.Elements.FirstOrDefault() is ExpressionElementSyntax firstElement
+							? GetConstantValue(compilation, loader, firstElement.Expression, variables, token)?.GetType() ?? typeof(object)
+							: typeof(object);
+						
+						var arrayLength = collection.Elements.Count;
+						var data = Array.CreateInstance(elementType, arrayLength);
 
+						for (var i = 0; i < arrayLength; i++)
+						{
+							var constantValue = GetConstantValue(compilation, loader, collection.Elements[i], variables, token);
+							data.SetValue(constantValue, i);
+						}
+
+						value = data;
 						return true;
 					}
 				case MemberAccessExpressionSyntax memberAccess when compilation.TryGetSemanticModel(expression, out var model) && model.GetOperation(memberAccess) is IMemberReferenceOperation memberOperation:

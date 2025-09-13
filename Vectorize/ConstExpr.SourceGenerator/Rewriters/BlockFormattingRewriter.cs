@@ -76,6 +76,40 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		return newNode;
 	}
 
+	// Ensure a space after 'return' when the returned expression is a collection expression ([...])
+	public override SyntaxNode VisitReturnStatement(ReturnStatementSyntax node)
+	{
+		var visited = (ReturnStatementSyntax)base.VisitReturnStatement(node);
+
+		if (visited.Expression is CollectionExpressionSyntax collection)
+		{
+			// Add exactly one space after 'return'
+			var newReturn = visited.ReturnKeyword.WithTrailingTrivia(SyntaxFactory.Space);
+
+			// Remove leading whitespace from the expression to avoid double spaces, preserve comments
+			var leading = collection.GetLeadingTrivia();
+			var idx = 0;
+			
+			while (idx < leading.Count && leading[idx].IsKind(SyntaxKind.WhitespaceTrivia))
+			{
+				idx++;
+			}
+			
+			var newLeading = SyntaxFactory.TriviaList();
+			
+			for (var i = idx; i < leading.Count; i++)
+			{
+				newLeading = newLeading.Add(leading[i]);
+			}
+
+			visited = visited
+				.WithReturnKeyword(newReturn)
+				.WithExpression(collection.WithLeadingTrivia(newLeading));
+		}
+
+		return visited;
+	}
+
 	private static void SurroundContiguousGroup(List<StatementSyntax> visited, ref int i, Func<StatementSyntax, bool> isInGroup)
 	{
 		var start = i;

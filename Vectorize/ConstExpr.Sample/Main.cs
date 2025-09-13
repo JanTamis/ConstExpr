@@ -7,12 +7,12 @@ using System.Text;
 const float test = 1f;
 const byte test2 = 128;
 
-//Console.WriteLine(String.Join(", ", Test.IsOdd(1, 2, 3, 4, 5)));
+// Console.WriteLine(String.Join(", ", Test.IsOdd(1, 2, 3, 4, 5)));
 //Console.WriteLine(Test.Average(1f, 2f, 3f, 4f, 5f, 6f));
 //Console.WriteLine(Test.StdDev(1f, 2f, 3f, 4f, 5f));
 
 //Console.WriteLine(Test.StringLength("Hello, World!", Encoding.UTF8));
-Console.WriteLine(Test.StringBytes("Hello, World!!!", Encoding.UTF8).Length);
+// Console.WriteLine(Test.StringBytes("Hello, World!!!", Encoding.UTF8).Length);
 //Console.WriteLine(Test.Base64Encode("Hello, World!"));
 //Console.WriteLine(await Test.Waiting());
 //// Console.WriteLine(String.Join(", ", range.BinarySearch(11, Comparer<int>.Default)));
@@ -24,7 +24,7 @@ Console.WriteLine(Test.StringBytes("Hello, World!!!", Encoding.UTF8).Length);
 //Console.WriteLine(Test.GetNames<StringComparison>());
 //Console.WriteLine(Test.GetNames<StringComparison>());
 //Console.WriteLine(Test.GetNames<StringSplitOptions>());
-//Console.WriteLine(Test.GetArray(1, 2, 3, 4, 5, 6, 7, 8, 9, 10));
+Console.WriteLine(Test.GetArray(1, 2, 3, 4, 5, 6, 7, 8, 9, 10));
 //Console.WriteLine(Test.InterpolationTest("Test", 42, 3.14));
 //
 // AdvancedPrimeTest demo
@@ -40,7 +40,7 @@ Console.WriteLine(Test.StringBytes("Hello, World!!!", Encoding.UTF8).Length);
 // var (h, s, l) = Test.RgbToHsl((byte)Math.Abs(-150), test2, 50);
 //Console.WriteLine($"RGB(150,100,50) -> HSL({h:F1}, {s:F3}, {l:F3})");
 
-var (rr, gg, bb) = Test.HslToRgb(720, test, 0.5f);
+// var (rr, gg, bb) = Test.HslToRgb(720, test, 0.5f);
 // Console.WriteLine($"Round-trip HSL -> RGB({rr},{gg},{bb})");
 
 // var lumDark = Test.Luminance(0, test2, 0);
