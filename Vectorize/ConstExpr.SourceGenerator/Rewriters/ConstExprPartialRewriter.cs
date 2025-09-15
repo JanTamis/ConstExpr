@@ -9,8 +9,8 @@ using SourceGen.Utilities.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Threading;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
@@ -79,6 +79,13 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 			.SelectMany(s => s is BlockSyntax blockSyntax ? blockSyntax.Statements.OfType<TNode>() : [ s ]);
 
 		return List(items);
+	}
+
+	public override SyntaxNode? VisitArgument(ArgumentSyntax node)
+	{
+		var expression = Visit(node.Expression);
+
+		return node.WithExpression(expression as ExpressionSyntax ?? node.Expression);
 	}
 
 	public override SyntaxNode? VisitBinaryExpression(BinaryExpressionSyntax node)
@@ -178,6 +185,30 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 								if (hasRightValue && rightValue.IsNumericZero()) return leftExpr;
 								if (hasLeftValue && leftValue.IsNumericZero()) return rightExpr;
 								break;
+							case BinaryOperatorKind.GreaterThan:
+							{
+								if (TryGetVariableItem<SyntaxNode>(left, out var leftVariable)
+								    && TryGetVariableItem<SyntaxNode>(right, out var rightVariable)
+								    && leftVariable.IsEquivalentTo(rightVariable))
+								{
+									// x > x => false
+									return CreateLiteral(false);
+								}
+								
+								break;
+							}
+							case BinaryOperatorKind.LessThan:
+							{
+								if (TryGetVariableItem<SyntaxNode>(left, out var leftVariable)
+								    && TryGetVariableItem<SyntaxNode>(right, out var rightVariable)
+								    && leftVariable.IsEquivalentTo(rightVariable))
+								{
+									// x < x => false
+									return CreateLiteral(false);
+								}
+
+								break;
+							}
 						}
 					}
 
@@ -303,15 +334,15 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 	public override SyntaxNode? VisitInvocationExpression(InvocationExpressionSyntax node)
 	{
 		if (TryGetSymbol(node, out IMethodSymbol? targetMethod)
-		    && node.Expression is MemberAccessExpressionSyntax { Expression: var instanceName }
-		    && TryGetLiteralValue(instanceName, out var instance))
+		    && node.Expression is MemberAccessExpressionSyntax { Expression: var instanceName })
 		{
+			TryGetLiteralValue(instanceName, out var instance);
+
 			var arguments = node.ArgumentList.Arguments
 				.Select(arg => Visit(arg.Expression));
 
 			var constantArguments = arguments
-				.Where(w => TryGetConstantValue(semanticModel.Compilation, loader, w, new VariableItemDictionary(variables), token, out _))
-				.Select(s => GetConstantValue(semanticModel.Compilation, loader, s, new VariableItemDictionary(variables), token))
+				.WhereSelect<SyntaxNode?, object?>((w, out result) => TryGetConstantValue(semanticModel.Compilation, loader, w, new VariableItemDictionary(variables), token, out result))
 				.ToArray();
 
 			if (constantArguments.Length == targetMethod.Parameters.Length)
@@ -326,7 +357,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 						return literal;
 					}
 				}
-				catch (Exception)
+				catch (Exception e)
 				{
 					if (TryGetOperation<IOperation>(semanticModel, targetMethod, out var methodOperation))
 					{
@@ -370,7 +401,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 					.WithArguments(SeparatedList(arguments.Select(s => Argument((ExpressionSyntax) s)))));
 		}
 
-		return node;
+		return base.VisitInvocationExpression(node);
 	}
 
 	public override SyntaxNode? VisitVariableDeclarator(VariableDeclaratorSyntax node)
@@ -497,7 +528,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 				return result;
 			}
 
-			if (TryGetLiteralValue(node.Left, out var tempValue))
+			if (TryGetLiteralValue(rightExpr, out var tempValue))
 			{
 				variable.Value = ObjectExtensions.ExecuteBinaryOperation(kind, variable.Value, tempValue) ?? tempValue;
 
@@ -529,7 +560,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 
 	public override SyntaxNode? VisitCastExpression(CastExpressionSyntax node)
 	{
-		if (TryGetSymbol(node.Type, out INamedTypeSymbol? symbol))
+		if (TryGetSymbol(node.Type, out ITypeSymbol? symbol))
 		{
 			var expression = Visit(node.Expression);
 
@@ -563,11 +594,15 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 					case SpecialType.System_Object: return CreateLiteral(value);
 					default:
 					{
-						if (TryGetOperation(semanticModel, node, out IConversionOperation? operation)
-						    && loader.TryExecuteMethod(operation.OperatorMethod, null, new VariableItemDictionary(variables), [ value ], out value)
-						    && TryGetLiteral(value, out var literal))
+						if (TryGetOperation(semanticModel, node, out IConversionOperation? operation))
 						{
-							return literal;
+							if (loader.TryExecuteMethod(operation.OperatorMethod, null, new VariableItemDictionary(variables), [ value ], out var result)
+							    && TryGetLiteral(result, out var literal))
+							{
+								return literal;
+							}
+
+							return expression;
 						}
 
 						break;
@@ -889,7 +924,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 										}
 									}
 								}
-								
+
 								if (constantArguments.All(a => a is int))
 								{
 									var value = arr.GetValue(constantArguments.OfType<int>().ToArray());
@@ -961,6 +996,151 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 		return base.VisitElementAccessExpression(node);
 	}
 
+	public override SyntaxNode? VisitMemberAccessExpression(MemberAccessExpressionSyntax node)
+	{
+		if (TryGetLiteralValue(node.Expression, out var instanceValue))
+		{
+			if (TryGetSymbol(node, out ISymbol? symbol))
+			{
+				switch (symbol)
+				{
+					case IFieldSymbol fieldSymbol:
+						if (loader.TryGetFieldValue(fieldSymbol, instanceValue, out var value)
+						    && TryGetLiteral(value, out var literal))
+						{
+							return literal;
+						}
+						break;
+					case IPropertySymbol propertySymbol:
+						if (propertySymbol.Parameters.Length == 0)
+						{
+							if (loader.TryExecuteMethod(propertySymbol.GetMethod, instanceValue, new VariableItemDictionary(variables), [ ], out value)
+							    && TryGetLiteral(value, out literal))
+							{
+								return literal;
+							}
+						}
+						break;
+				}
+			}
+		}
+
+		return base.VisitMemberAccessExpression(node);
+	}
+
+	public override SyntaxNode? VisitForEachStatement(ForEachStatementSyntax node)
+	{
+		var visitedExpr = Visit(node.Expression);
+
+		if (TryGetLiteralValue(visitedExpr, out var collection))
+		{
+			IEnumerable<object?> Enumerate(object? obj)
+			{
+				switch (obj)
+				{
+					case null:
+						yield break;
+					case Array arr:
+						foreach (var it in arr) yield return it;
+						yield break;
+					case string s:
+						foreach (var ch in s) yield return ch;
+						yield break;
+					case System.Collections.IEnumerable en:
+						foreach (var it in en) yield return it;
+						yield break;
+				}
+			}
+
+			if (TryGetOperation(semanticModel, node, out IForEachLoopOperation? operation))
+			{
+				var name = node.Identifier.Text;
+				var hadPrev = variables.TryGetValue(name, out var prevItem);
+				var statements = new List<SyntaxNode>();
+				var elementType =
+					operation.Type
+					?? semanticModel.GetTypeInfo(node.Type, token).Type
+					?? operation.LoopControlVariable?.Type
+					?? semanticModel.Compilation.GetSpecialType(SpecialType.System_Object);
+
+				foreach (var item in Enumerate(collection))
+				{
+					var loopVar = new VariableItem(elementType, true, item, true);
+
+					variables[name] = loopVar;
+
+					var visitedBody = Visit(node.Statement);
+
+					if (visitedBody is not null)
+					{
+						statements.Add(visitedBody);
+					}
+				}
+
+				if (hadPrev)
+				{
+					variables[name] = prevItem;
+				}
+				else
+				{
+					variables.Remove(name);
+				}
+
+				return ToStatementSyntax(statements);
+			}
+		}
+
+		return node
+			.WithExpression(visitedExpr as ExpressionSyntax ?? node.Expression)
+			.WithStatement(Visit(node.Statement) as StatementSyntax ?? node.Statement);
+	}
+
+	public override SyntaxNode? VisitInterpolatedStringExpression(InterpolatedStringExpressionSyntax node)
+	{
+		var contents = node.Contents;
+		var result = new List<InterpolatedStringContentSyntax>(contents.Count);
+
+		foreach (var content in contents)
+		{
+			switch (content)
+			{
+				case InterpolatedStringTextSyntax text:
+					result.Add(text);
+					break;
+				case InterpolationSyntax interp:
+				{
+					var visited = Visit(interp.Expression);
+
+					if (TryGetLiteralValue(visited, out var value))
+					{
+						var str = value?.ToString() ?? string.Empty;
+						var format = interp.FormatClause?.FormatStringToken.ValueText;
+
+						if (value is IFormattable formattable && format?.Length > 0)
+						{
+							str = formattable.ToString(format, CultureInfo.InvariantCulture);
+						}
+
+						result.Add(InterpolatedStringText(Token(interp.GetLeadingTrivia(), SyntaxKind.InterpolatedStringTextToken, str, str, interp.GetTrailingTrivia())));
+					}
+					else
+					{
+						result.Add(interp.WithExpression(visited as ExpressionSyntax ?? interp.Expression));
+					}
+
+					break;
+				}
+			}
+		}
+
+		if (result.All(a => a is InterpolatedStringTextSyntax))
+		{
+			return LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(String.Concat(result.OfType<InterpolatedStringTextSyntax>().Select(s => s.TextToken.ValueText))));
+		}
+
+		return node.WithContents(List(result));
+	}
+
 	public override SyntaxNode VisitBlock(BlockSyntax node)
 	{
 		return node.WithStatements(VisitList(node.Statements));
@@ -973,7 +1153,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 
 	public override SyntaxNode? VisitArgumentList(ArgumentListSyntax node)
 	{
-		return node;
+		return node.WithArguments(VisitList(node.Arguments));
 	}
 
 	private object? ExecuteConversion(IConversionOperation conversion, object? value)
@@ -1177,5 +1357,19 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 		}
 
 		return Block(items);
+	}
+	
+	private bool TryGetVariableItem<TValue>(SyntaxNode? node, [NotNullWhen(true)] out TValue? item)
+	{
+		if (node is IdentifierNameSyntax { Identifier.Text: var name } 
+		    && variables.TryGetValue(name, out var variable)
+		    && variable.Value is TValue value)
+		{
+			item = value;
+			return true;
+		}
+
+		item = default;
+		return false;
 	}
 }

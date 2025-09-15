@@ -1,5 +1,4 @@
 using ConstExpr.Core.Attributes;
-using ConstExpr.Core.Enumerators;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -7,10 +6,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-[assembly: ConstExpr(Level = GenerationLevel.Performance)]
-
 namespace ConstExpr.SourceGenerator.Sample;
 
+[ConstExpr]
 public static class Test
 {
 	public static IEnumerable<double> IsOdd(params IEnumerable<double> data)
@@ -105,12 +103,12 @@ public static class Test
 			result.Add((byte)random.Next(5));
 		}
 
-		return result.OrderBy(o => o).ToList();
+		return result;  // result.OrderBy(o => o).ToList();
 	}
 
 	public static IReadOnlyList<string> Split(string value, char separator)
 	{
-		return value.Split((char[])[separator]);
+		return value.Split((char[])[separator], StringSplitOptions.TrimEntries);
 	}
 
 	public static string ToString<T>(this T value) where T : Enum
@@ -371,6 +369,6 @@ public static class Test
 
 	public static string InterpolationTest(string name, int age, double height)
 	{
-		return $"Name: {name}, Age: {age}, Height: {height:N2} cm";
+		return $"Name: {name}, Age: {age}, Height: {height:N3} cm";
 	}
 }

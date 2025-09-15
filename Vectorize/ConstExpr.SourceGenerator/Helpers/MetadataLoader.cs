@@ -4,11 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Reflection.Emit;
-using System.Threading;
-using ConstExpr.SourceGenerator.Visitors;
-using Microsoft.CodeAnalysis.Operations;
-using SourceGen.Utilities.Extensions;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Helpers;
 

@@ -501,6 +501,40 @@ public static class CompilationExtensions
 		return fieldInfo.GetValue(instance);
 	}
 
+	public static bool TryGetFieldValue(this MetadataLoader loader, ISymbol fieldSymbol, object? instance, [NotNullWhen(true)] out object? value)
+	{
+		var type = loader.GetType(fieldSymbol.ContainingType);
+
+		if (type == null)
+		{
+			value = null;
+			return false;
+		}
+
+		var fieldInfo = type.GetField(fieldSymbol.Name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance);
+
+		if (fieldInfo == null)
+		{
+			value = null;
+			return false;
+		}
+
+		if (fieldInfo.IsStatic)
+		{
+			value = fieldInfo.GetValue(null);
+			return true;
+		}
+
+		if (instance == null || !type.IsInstanceOfType(instance))
+		{
+			value = null;
+			return false;
+		}
+
+		value = fieldInfo.GetValue(instance);
+		return true;
+	}
+
 	// public static bool TryGetSemanticModel(this Compilation compilation, SyntaxNode? node, out SemanticModel semanticModel)
 	// {
 	// 	var tree = node?.SyntaxTree;
@@ -964,5 +998,24 @@ public static class CompilationExtensions
 		var typeText = typeSymbol.ToDisplayString(format);
 
 		return SyntaxFactory.ParseTypeName(typeText);
+	}
+	
+	public static bool TryGetParentOfType<T>(this SyntaxNode node, [NotNullWhen(true)] out T? parent) where T : SyntaxNode
+	{
+		var tempParent = node.Parent;
+
+		while (tempParent != null)
+		{
+			if (tempParent is T t)
+			{
+				parent = t;
+				return true;
+			}
+
+			tempParent = tempParent.Parent;
+		}
+
+		parent = null;
+		return false;
 	}
 }

@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis.CSharp;
 
 namespace ConstExpr.SourceGenerator;
 
-public class SyntaxNodeComparer<TNode> : IEqualityComparer<TNode> where TNode : SyntaxNode
+public class SyntaxNodeComparer<TNode> : IEqualityComparer<TNode?> where TNode : SyntaxNode
 {
 	public static SyntaxNodeComparer<TNode> Instance { get; } = new SyntaxNodeComparer<TNode>();
 	
@@ -13,8 +13,8 @@ public class SyntaxNodeComparer<TNode> : IEqualityComparer<TNode> where TNode : 
 		return SyntaxFactory.AreEquivalent(x, y);
 	}
 
-	public int GetHashCode(TNode obj)
+	public int GetHashCode(TNode? obj)
 	{
-		return obj.GetHashCode();
+		return obj?.GetHashCode() ?? 0;
 	}
 }
