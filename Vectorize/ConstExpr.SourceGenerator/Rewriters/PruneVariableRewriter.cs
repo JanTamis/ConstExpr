@@ -113,7 +113,49 @@ public sealed class PruneVariableRewriter(IDictionary<string, VariableItem> vari
 
 		return base.VisitExpressionStatement(node);
 	}
-	
+
+	// New override: strip all comment trivia (including XML doc comments) from tokens
+	public override SyntaxToken VisitToken(SyntaxToken token)
+	{
+		if (token.IsKind(SyntaxKind.None))
+		{
+			return token;
+		}
+
+		var leading = FilterTrivia(token.LeadingTrivia);
+		var trailing = FilterTrivia(token.TrailingTrivia);
+
+		if (leading != token.LeadingTrivia || trailing != token.TrailingTrivia)
+		{
+			token = token.WithLeadingTrivia(leading).WithTrailingTrivia(trailing);
+		}
+
+		return base.VisitToken(token);
+	}
+
+	private static SyntaxTriviaList FilterTrivia(SyntaxTriviaList triviaList)
+	{
+		
+		return SyntaxFactory.TriviaList(GetFiltered(triviaList));
+		
+		static IEnumerable<SyntaxTrivia> GetFiltered(SyntaxTriviaList triviaList)
+		{
+			foreach (var t in triviaList)
+			{
+				switch (t.Kind())
+				{
+					case SyntaxKind.SingleLineCommentTrivia:
+					case SyntaxKind.MultiLineCommentTrivia:
+					case SyntaxKind.SingleLineDocumentationCommentTrivia:
+					case SyntaxKind.MultiLineDocumentationCommentTrivia:
+						continue; // skip comment
+				}
+
+				yield return t;
+			}
+		}
+	}
+
 	private static bool IsTerminalStatement(StatementSyntax statement)
 	{
 		// A statement that guarantees no following statement in the same block will execute

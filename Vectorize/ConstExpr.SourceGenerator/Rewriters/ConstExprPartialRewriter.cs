@@ -194,7 +194,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 								{
 									return CreateLiteral(false);
 								}
-								
+
 								break;
 							}
 							case BinaryOperatorKind.LessThan:
@@ -333,6 +333,34 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 
 	public override SyntaxNode? VisitInvocationExpression(InvocationExpressionSyntax node)
 	{
+		// Handle nameof(...) directly (in addition to TryGetLiteralValue) so the invocation itself is collapsed early.
+		if (node.Expression is IdentifierNameSyntax { Identifier.Text: "nameof" } && node.ArgumentList.Arguments.Count == 1)
+		{
+			var arg = node.ArgumentList.Arguments[0].Expression;
+			string? name = null;
+			if (TryGetSymbol(arg, out ISymbol? sym) && sym is not null)
+			{
+				name = sym.Name;
+			}
+			else
+			{
+				switch (arg)
+				{
+					case IdentifierNameSyntax id: name = id.Identifier.Text; break;
+					case MemberAccessExpressionSyntax ma when ma.Name is IdentifierNameSyntax last: name = last.Identifier.Text; break;
+					case QualifiedNameSyntax qn: name = qn.Right.Identifier.Text; break;
+					case GenericNameSyntax gen: name = gen.Identifier.Text; break;
+				}
+			}
+
+			if (name is not null)
+			{
+				return LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(name));
+			}
+			// Fallback to base if we could not resolve (should be rare)
+			return base.VisitInvocationExpression(node);
+		}
+
 		if (TryGetSymbol(node, out IMethodSymbol? targetMethod)
 		    && node.Expression is MemberAccessExpressionSyntax { Expression: var instanceName })
 		{
@@ -349,8 +377,6 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 			{
 				try
 				{
-					// TryGetConstantValue(semanticModel.Compilation, loader, instance, new VariableItemDictionary(variables), token, out var instanceValue);
-
 					if (loader.TryExecuteMethod(targetMethod, instance, new VariableItemDictionary(variables), constantArguments, out var value)
 					    && TryGetLiteral(value, out var literal))
 					{
@@ -372,7 +398,6 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 						for (var i = 0; i < parameters.Parameters.Count; i++)
 						{
 							var parameterName = parameters.Parameters[i].Identifier.Text;
-
 							variables.Add(parameterName, constantArguments[i]);
 						}
 
@@ -1140,7 +1165,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 
 		return node.WithContents(List(result));
 	}
-	
+
 	public override SyntaxNode VisitBlock(BlockSyntax node)
 	{
 		return node.WithStatements(VisitList(node.Statements));
@@ -1155,9 +1180,6 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 	{
 		return node.WithArguments(VisitList(node.Arguments));
 	}
-	
-	
-	
 
 	private object? ExecuteConversion(IConversionOperation conversion, object? value)
 	{
@@ -1361,10 +1383,10 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 
 		return Block(items);
 	}
-	
+
 	private bool TryGetVariableItem<TValue>(SyntaxNode? node, [NotNullWhen(true)] out TValue? item)
 	{
-		if (node is IdentifierNameSyntax { Identifier.Text: var name } 
+		if (node is IdentifierNameSyntax { Identifier.Text: var name }
 		    && variables.TryGetValue(name, out var variable)
 		    && variable.Value is TValue value)
 		{
@@ -1376,3 +1398,4 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 		return false;
 	}
 }
+
