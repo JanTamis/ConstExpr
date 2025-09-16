@@ -38,7 +38,7 @@ internal class Program
 		//// Numbers / sequences
 		// Console.WriteLine("Primes up to 50: " + String.Join(", ", Test.PrimesUpTo(5)));
 		// Console.WriteLine("First 12 Fibonacci (long): " + String.Join(", ", Test.FibonacciSequence(12)));
-		Console.WriteLine("Clamp(15, 0, 10) => " + Test.Clamp(test2, test2, test2));
+		Console.WriteLine("Clamp(15, 0, 10) => " + Test.Clamp(test2, test2, 20));
 		//Console.WriteLine("Map(5, 0..10 -> 0..100) => " + Test.Map(5, 0, 10, 0, 100));
 
 		//// Color conversions

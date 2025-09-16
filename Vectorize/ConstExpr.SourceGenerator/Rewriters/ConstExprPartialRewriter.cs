@@ -187,11 +187,11 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 								break;
 							case BinaryOperatorKind.GreaterThan:
 							{
+								// x > x => false
 								if (TryGetVariableItem<SyntaxNode>(left, out var leftVariable)
 								    && TryGetVariableItem<SyntaxNode>(right, out var rightVariable)
 								    && leftVariable.IsEquivalentTo(rightVariable))
 								{
-									// x > x => false
 									return CreateLiteral(false);
 								}
 								
@@ -199,11 +199,11 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 							}
 							case BinaryOperatorKind.LessThan:
 							{
+								// x < x => false
 								if (TryGetVariableItem<SyntaxNode>(left, out var leftVariable)
 								    && TryGetVariableItem<SyntaxNode>(right, out var rightVariable)
 								    && leftVariable.IsEquivalentTo(rightVariable))
 								{
-									// x < x => false
 									return CreateLiteral(false);
 								}
 
@@ -1140,7 +1140,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 
 		return node.WithContents(List(result));
 	}
-
+	
 	public override SyntaxNode VisitBlock(BlockSyntax node)
 	{
 		return node.WithStatements(VisitList(node.Statements));
@@ -1155,6 +1155,9 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 	{
 		return node.WithArguments(VisitList(node.Arguments));
 	}
+	
+	
+	
 
 	private object? ExecuteConversion(IConversionOperation conversion, object? value)
 	{
