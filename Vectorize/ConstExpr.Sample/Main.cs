@@ -1,22 +1,21 @@
 using ConstExpr.SourceGenerator.Sample;
 using System;
-using System.Text;
 
 // var range = Test.Range(10);
 
-const float test = 1f;
+float test = 1f;
 byte test2 = 128;
 
 // Console.WriteLine(String.Join(", ", Test.Range(5)));
 
 // Console.WriteLine(String.Join(", ", Test.IsOdd(1, 2, 3, 4, 5)));
-//Console.WriteLine(Test.Average(1f, 2f, 3f, 4f, 5f, 6f));
-// Console.WriteLine(Test.StdDev(1f, 2f, 3f, 4f, 5f));
+Console.WriteLine(Test.Average(1f, 2f, 3f, 4f, 5f, 6f));
+// Console.WriteLine(Test.StdDev(test, 2f, 3f, 4f, 5f));
 
 //Console.WriteLine(Test.StringLength("Hello, World!", Encoding.UTF8));
 // Console.WriteLine(Test.StringBytes("Hello, World!!!", Encoding.UTF8).Length);
 // Console.WriteLine(Test.Base64Encode("Hello, World!"));
-Console.WriteLine(await Test.Waiting());
+// Console.WriteLine(await Test.Waiting());
 //// Console.WriteLine(String.Join(", ", range.BinarySearch(11, Comparer<int>.Default)));
 // Console.WriteLine(String.Join(", ", Test.Split("Hello, World!", ',')));
 // Console.WriteLine(String.Join(", ", Test.Fibonacci(20)));
@@ -32,7 +31,7 @@ Console.WriteLine(await Test.Waiting());
 // Console.WriteLine(Test.AdvancedPrimeTest(100));
 
 //// Numbers / sequences
-// Console.WriteLine("Primes up to 50: " + String.Join(", ", Test.PrimesUpTo(5)));
+// Console.WriteLine("Primes up to 50: " + String.Join(", ", Test.PrimesUpTo(1)));
 // Console.WriteLine("First 12 Fibonacci (long): " + String.Join(", ", Test.FibonacciSequence(12)));
 // Console.WriteLine("Clamp(15, 0, 10) => " + Test.Clamp(20, test2, test2));
 //Console.WriteLine("Map(5, 0..10 -> 0..100) => " + Test.Map(5, 0, 10, 0, 100));
@@ -53,32 +52,3 @@ Console.WriteLine(await Test.Waiting());
 //// A couple of pre-existing samples to keep context
 // Console.WriteLine("IsPrime(97) => " + Test.IsPrime(97));
 // Console.WriteLine("StdDev(1..5) => " + Test.StdDev(1, 2, 3, 4, 5));
-
-static (byte r, byte g, byte b) HslToRgb(float h, float s, float l)
-{
-	s = Clamp01(s);
-
-	if (s == 0F)
-	{
-		return (128, 128, 128);
-	}
-
-	var x = s * 0F;
-	var m = 0.5F - s / 2F;
-	var r = (byte)Math.Round(s + m * 255F);
-	var g = (byte)Math.Round(x + m * 255F);
-	var b = (byte)Math.Round(m * 255F);
-
-	return (r, g, b);
-}
-
-static float Clamp01(float v)
-{
-	return v switch
-	{
-		< 0f => 0f,
-		> 1f => 1f,
-		_ => v
-	};
-
-}

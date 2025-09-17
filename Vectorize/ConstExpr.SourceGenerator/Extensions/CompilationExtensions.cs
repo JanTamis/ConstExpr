@@ -312,21 +312,31 @@ public static class CompilationExtensions
 			value = null;
 			return false;
 		}
-		
+
+		var parameterLength = methodSymbol.Parameters.Length;
+
+		if (methodSymbol.IsExtensionMethod)
+		{
+			parameters = parameters.Prepend(instance);
+
+			parameterLength++;
+		}
+
 		var fullyQualifiedName = methodSymbol.ContainingType.ToDisplayString();
 		var methodName = methodSymbol.Name;
 
 		// Prefer the runtime type for instance calls to correctly resolve virtual/override methods
-		var type = instance != null && !methodSymbol.IsStatic
-			? instance.GetType()
-			: loader.GetType(methodSymbol.ContainingType)
-				?? throw new InvalidOperationException($"Type '{fullyQualifiedName}' not found");
+		var type = loader.GetType(methodSymbol.ContainingType) ?? instance?.GetType();
 
 		var methods = methodSymbol.MethodKind switch
 		{
 			MethodKind.Constructor => type.GetConstructors(BindingFlags.Public | BindingFlags.Instance).OfType<MethodBase?>(),
 			MethodKind.StaticConstructor => type.GetConstructors(BindingFlags.Public | BindingFlags.Static).OfType<MethodBase?>(),
-			_ => type.GetMethods(methodSymbol.IsStatic
+			MethodKind.PropertyGet or MethodKind.PropertySet => type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static)
+				//.Where(p => p.Name == methodName)
+				.Select(p => methodSymbol.MethodKind == MethodKind.PropertyGet ? p.GetMethod : p.SetMethod)
+				.OfType<MethodBase?>(),
+			_ => type.GetMethods(methodSymbol.IsStatic || methodSymbol.IsExtensionMethod
 				? BindingFlags.Public | BindingFlags.Static
 				: BindingFlags.Public | BindingFlags.Instance).OfType<MethodBase?>(),
 		};
@@ -341,7 +351,7 @@ public static class CompilationExtensions
 
 				var methodParameters = f.GetParameters();
 
-				if (methodParameters.Length != methodSymbol.Parameters.Length)
+				if (methodParameters.Length != parameterLength)
 				{
 					return false;
 				}
@@ -413,7 +423,7 @@ public static class CompilationExtensions
 
 			if (methodInfo.IsConstructor)
 			{
-				value = Activator.CreateInstance(type, parameters);
+				value = Activator.CreateInstance(type, parameters.ToArray());
 				return true;
 			}
 
@@ -999,7 +1009,7 @@ public static class CompilationExtensions
 
 		return SyntaxFactory.ParseTypeName(typeText);
 	}
-	
+
 	public static bool TryGetParentOfType<T>(this SyntaxNode node, [NotNullWhen(true)] out T? parent) where T : SyntaxNode
 	{
 		var tempParent = node.Parent;

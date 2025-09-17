@@ -4,7 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Runtime.CompilerServices;
 
 namespace ConstExpr.SourceGenerator.Helpers;
 
@@ -15,9 +15,10 @@ public class MetadataLoader
 {
 	// private static readonly ConcurrentDictionary<Compilation, IList<Assembly>> _loaders = new();
 
+	private static readonly ConditionalWeakTable<Compilation, MetadataLoader> _loaderCache = new();
+
 	private readonly IEnumerable<Assembly> _assemblies;
 	private readonly ConcurrentDictionary<string, Type?> _typeCache = new();
-	private readonly Compilation _compilation;
 
 	/// <summary>
 	/// Gets all assemblies loaded in the current metadata context.
@@ -25,6 +26,12 @@ public class MetadataLoader
 	public IEnumerable<Assembly> Assemblies => _assemblies;
 
 	public static MetadataLoader GetLoader(Compilation compilation)
+	{
+		// Cache per-compilation to avoid repeatedly creating MetadataLoadContext and loading assemblies
+		return _loaderCache.GetValue(compilation, static comp => CreateLoader(comp));
+	}
+
+	private static MetadataLoader CreateLoader(Compilation compilation)
 	{
 		var assemblies = compilation.References
 			.OfType<PortableExecutableReference>()
@@ -45,19 +52,19 @@ public class MetadataLoader
 					resultAssemblies.Add(loadedAssembly);
 #pragma warning restore RS1035
 				}
-				catch (Exception e)
+				catch
 				{
-					// Could add logging or diagnostics here if needed
+					// Ignore load issues; best-effort set
 				}
 			}
-
-			foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
-			{
-				resultAssemblies.Add(assembly);
-			}
-
-			return new MetadataLoader(resultAssemblies, compilation);
 		}
+
+		foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+		{
+			resultAssemblies.Add(assembly);
+		}
+
+		return new MetadataLoader(resultAssemblies, compilation);
 	}
 
 	/// <summary>
@@ -67,7 +74,6 @@ public class MetadataLoader
 	private MetadataLoader(IEnumerable<Assembly> assemblies, Compilation compilation)
 	{
 		_assemblies = assemblies;
-		_compilation = compilation;
 	}
 
 	/// <summary>
@@ -88,15 +94,12 @@ public class MetadataLoader
 		{
 			var constructedFrom = GetType(namedType.ConstructedFrom);
 
-			return constructedFrom.MakeGenericType(namedType.TypeArguments.Select(GetType).ToArray());
+			return constructedFrom?.MakeGenericType(namedType.TypeArguments.Select(GetType).ToArray());
 		}
 
 		if (typeSymbol is IArrayTypeSymbol arrayType)
 		{
-			var type = GetType(arrayType.ElementType)
-				.MakeArrayType();
-
-			return type;
+			return GetType(arrayType.ElementType)?.MakeArrayType();
 		}
 
 		var containingNamespace = typeSymbol.ContainingNamespace.ToString();
@@ -139,6 +142,7 @@ public class MetadataLoader
 					// Skip problematic assemblies
 				}
 			}
+
 			return null;
 		});
 	}

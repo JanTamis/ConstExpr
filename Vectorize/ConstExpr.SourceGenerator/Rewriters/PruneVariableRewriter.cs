@@ -2,12 +2,35 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
 using System.Collections.Generic;
 
 namespace ConstExpr.SourceGenerator.Rewriters;
 
 public sealed class PruneVariableRewriter(IDictionary<string, VariableItem> variables) : CSharpSyntaxRewriter
 {
+	public override SyntaxNode? Visit(SyntaxNode? node)
+	{
+		try
+		{
+			return base.Visit(node);
+		}
+		catch (Exception)
+		{
+			return null;
+		}
+	}
+
+	public override SyntaxNode? VisitIdentifierName(IdentifierNameSyntax node)
+	{
+		if (variables.TryGetValue(node.Identifier.Text, out var value) && value.HasValue)
+		{
+			return null;
+		}
+
+		return base.VisitIdentifierName(node);
+	}
+
 	public override SyntaxNode? VisitVariableDeclaration(VariableDeclarationSyntax node)
 	{
 		var items = node.Variables;
@@ -41,6 +64,18 @@ public sealed class PruneVariableRewriter(IDictionary<string, VariableItem> vari
 		}
 
 		return base.VisitVariableDeclarator(node);
+	}
+
+	public override SyntaxNode? VisitCheckedStatement(CheckedStatementSyntax node)
+	{
+		var visited = VisitBlock(node.Block);
+
+		if (visited is BlockSyntax { Statements.Count: > 0 } block)
+		{
+			return node.WithBlock(block);
+		}
+
+		return null;
 	}
 
 	public override SyntaxNode? VisitBlock(BlockSyntax node)
@@ -135,9 +170,8 @@ public sealed class PruneVariableRewriter(IDictionary<string, VariableItem> vari
 
 	private static SyntaxTriviaList FilterTrivia(SyntaxTriviaList triviaList)
 	{
-		
 		return SyntaxFactory.TriviaList(GetFiltered(triviaList));
-		
+
 		static IEnumerable<SyntaxTrivia> GetFiltered(SyntaxTriviaList triviaList)
 		{
 			foreach (var t in triviaList)
@@ -163,6 +197,6 @@ public sealed class PruneVariableRewriter(IDictionary<string, VariableItem> vari
 			|| statement is ThrowStatementSyntax
 			|| statement is BreakStatementSyntax
 			|| statement is ContinueStatementSyntax
-			|| (statement is YieldStatementSyntax ys && ys.Kind() == SyntaxKind.YieldBreakStatement);
+			|| (statement is YieldStatementSyntax ys && ys.IsKind(SyntaxKind.YieldBreakStatement));
 	}
 }
