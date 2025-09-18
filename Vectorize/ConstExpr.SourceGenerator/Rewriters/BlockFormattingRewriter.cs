@@ -1,8 +1,8 @@
 using System;
+using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.Collections.Generic;
 
 namespace ConstExpr.SourceGenerator.Helpers;
 
@@ -14,7 +14,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 		foreach (var stmt in node.Statements)
 		{
-			visited.Add((StatementSyntax)Visit(stmt)!);
+			visited.Add((StatementSyntax) Visit(stmt)!);
 		}
 
 		if (visited.Count == 0)
@@ -22,7 +22,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			return node;
 		}
 
-		// Omring aaneengesloten blokken met lokale variabele declaraties met lege regels
+		// Groepeer lokale declaraties en omring met lege regels
 		for (var i = 0; i < visited.Count; i++)
 		{
 			if (visited[i] is LocalDeclarationStatementSyntax)
@@ -31,7 +31,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			}
 		}
 
-		// Omring aaneengesloten 'yield return' statements met lege regels
+		// Groepeer yield return statements
 		for (var i = 0; i < visited.Count; i++)
 		{
 			if (visited[i] is YieldStatementSyntax ys && ys.Kind() == SyntaxKind.YieldReturnStatement)
@@ -40,7 +40,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			}
 		}
 
-		// Control-flow statements en return spacing
+		// Control-flow en return spacing (lege regel voor/na waar passend)
 		for (var i = 0; i < visited.Count; i++)
 		{
 			var current = visited[i];
@@ -58,6 +58,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 				{
 					visited[i - 1] = EnsureTrailingBlankLine(visited[i - 1]);
 				}
+				
 				visited[i] = TrimLeadingBlankLinesTo(visited[i], 0);
 			}
 
@@ -67,7 +68,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			}
 		}
 
-		// Nooit een blanco regel direct vóór de eerste statement
+		// Geen blanco regel voor de eerste statement
 		visited[0] = TrimLeadingBlankLinesTo(visited[0], 0);
 
 		var newNode = node.WithStatements(SyntaxFactory.List(visited));
@@ -76,35 +77,67 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		return newNode;
 	}
 
-	// Ensure a space after 'return' when the returned expression is a collection expression ([...])
 	public override SyntaxNode VisitReturnStatement(ReturnStatementSyntax node)
 	{
-		var visited = (ReturnStatementSyntax)base.VisitReturnStatement(node);
+		var visited = (ReturnStatementSyntax) base.VisitReturnStatement(node);
 
-		if (visited.Expression is CollectionExpressionSyntax collection)
+		if (visited.Expression is null)
 		{
-			// Add exactly one space after 'return'
-			var newReturn = visited.ReturnKeyword.WithTrailingTrivia(SyntaxFactory.Space);
+			return visited;
+		}
 
-			// Remove leading whitespace from the expression to avoid double spaces, preserve comments
-			var leading = collection.GetLeadingTrivia();
+		// Zorg voor precies één spatie na 'return' als de expressie niet op een nieuwe regel staat
+		var rk = visited.ReturnKeyword;
+		var trailing = rk.TrailingTrivia;
+		var hasWhitespace = false;
+		var hasEol = false;
+
+		foreach (var t in trailing)
+		{
+			if (t.IsKind(SyntaxKind.WhitespaceTrivia))
+			{
+				hasWhitespace = true;
+			}
+			else if (t.IsKind(SyntaxKind.EndOfLineTrivia))
+			{
+				hasEol = true;
+				break;
+			}
+		}
+
+		if (!hasWhitespace && !hasEol)
+		{
+			// Voeg spatie toe
+			rk = rk.WithTrailingTrivia(trailing.Add(SyntaxFactory.Space));
+			visited = visited.WithReturnKeyword(rk);
+
+			// Verwijder leading whitespace van eerste token van de expressie (anders dubbele spatie)
+			var firstToken = visited.Expression.GetFirstToken();
+			var leading = firstToken.LeadingTrivia;
 			var idx = 0;
 			
 			while (idx < leading.Count && leading[idx].IsKind(SyntaxKind.WhitespaceTrivia))
 			{
 				idx++;
 			}
-			
-			var newLeading = SyntaxFactory.TriviaList();
-			
-			for (var i = idx; i < leading.Count; i++)
-			{
-				newLeading = newLeading.Add(leading[i]);
-			}
 
-			visited = visited
-				.WithReturnKeyword(newReturn)
-				.WithExpression(collection.WithLeadingTrivia(newLeading));
+			if (idx > 0)
+			{
+				var newLeading = SyntaxFactory.TriviaList();
+				
+				for (var i = idx; i < leading.Count; i++)
+				{
+					newLeading = newLeading.Add(leading[i]);
+				}
+				
+				visited = visited.WithExpression(visited.Expression.ReplaceToken(firstToken, firstToken.WithLeadingTrivia(newLeading)));
+			}
+		}
+
+		// Speciaal geval: collectie-expressie – zorg dat er geen voorafgaande extra spaties zijn (al afgevangen door bovenstaande)
+		if (visited.Expression is CollectionExpressionSyntax coll)
+		{
+			// (Extra normalisatie niet nodig; leading is al opgeschoond.)
 		}
 
 		return visited;
@@ -114,38 +147,30 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 	{
 		var start = i;
 		var end = i;
-		
+
 		for (var j = i + 1; j < visited.Count; j++)
 		{
 			if (isInGroup(visited[j]))
 			{
 				end = j;
 				continue;
-			} 
-			
+			}
 			break;
 		}
 
-		// Voor het blok
-		if (start > 0)
+		if (start > 0 && NeedsBlankLineBefore(visited[start - 1]))
 		{
-			if (NeedsBlankLineBefore(visited[start - 1]))
-			{
-				visited[start - 1] = EnsureTrailingBlankLine(visited[start - 1]);
-			}
+			visited[start - 1] = EnsureTrailingBlankLine(visited[start - 1]);
 		}
-		
-		// Geen lege regel direct na '{'
+
 		visited[start] = TrimLeadingBlankLinesTo(visited[start], 0);
 
-		// Na het blok
 		if (end < visited.Count - 1)
 		{
 			visited[end] = EnsureTrailingBlankLine(visited[end]);
 			visited[end + 1] = TrimLeadingBlankLinesTo(visited[end + 1], 0);
 		}
 
-		// Sla rest van het blok over
 		i = end;
 	}
 
@@ -180,10 +205,9 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			return statement;
 		}
 		
-		var needed = 2 - newlineCount;
 		var list = trailing;
 		
-		for (var k = 0; k < needed; k++)
+		for (var k = 0; k < 2 - newlineCount; k++)
 		{
 			list = list.Add(SyntaxFactory.ElasticCarriageReturnLineFeed);
 		}
@@ -191,13 +215,12 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		return statement.WithTrailingTrivia(list);
 	}
 
-	// Trim leading EOL-trivia aan het begin van een statement tot maximaal 'maxEols'
 	private static StatementSyntax TrimLeadingBlankLinesTo(StatementSyntax statement, int maxEols)
 	{
 		var leading = statement.GetLeadingTrivia();
-		var eolCount = 0;
 		var idx = 0;
-		
+		var eolCount = 0;
+
 		while (idx < leading.Count && leading[idx].IsKind(SyntaxKind.EndOfLineTrivia))
 		{
 			eolCount++;
@@ -227,7 +250,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 	private static int CountTrailingNewLines(SyntaxTriviaList trailing)
 	{
 		var count = 0;
-		
+
 		for (var i = trailing.Count - 1; i >= 0; i--)
 		{
 			if (trailing[i].IsKind(SyntaxKind.EndOfLineTrivia))
@@ -243,31 +266,25 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 				break;
 			}
 		}
-		
 		return count;
 	}
 
-	// Normaliseer trailing trivia van de open brace naar exact één newline
 	private static BlockSyntax NormalizeOpenBraceTrailing(BlockSyntax block)
 	{
 		var open = block.OpenBraceToken;
 		var trailing = open.TrailingTrivia;
-
-		// Zoek de laatste trivia die geen whitespace of EOL is
 		var lastContentIdx = trailing.Count - 1;
-		
+
 		while (lastContentIdx >= 0 && (trailing[lastContentIdx].IsKind(SyntaxKind.EndOfLineTrivia) || trailing[lastContentIdx].IsKind(SyntaxKind.WhitespaceTrivia)))
 		{
 			lastContentIdx--;
 		}
-
-		// Als de trailing al exact 1 EOL is na content zonder extra whitespace/EOL, niets veranderen
+		
 		if (lastContentIdx >= 0 && lastContentIdx == trailing.Count - 2 && trailing[^1].IsKind(SyntaxKind.EndOfLineTrivia))
 		{
 			return block;
 		}
-
-		// Behoud alle trivia t/m lastContentIdx en voeg exact één newline toe
+		
 		var newTrailing = new List<SyntaxTrivia>(lastContentIdx + 2);
 		
 		for (var i = 0; i <= lastContentIdx; i++)
@@ -276,7 +293,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		}
 		
 		newTrailing.Add(SyntaxFactory.ElasticCarriageReturnLineFeed);
-
+		
 		return block.WithOpenBraceToken(open.WithTrailingTrivia(SyntaxFactory.TriviaList(newTrailing)));
 	}
 }

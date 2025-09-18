@@ -1,5 +1,6 @@
 using ConstExpr.SourceGenerator.Sample;
 using System;
+using System.Collections.Generic;
 
 // var range = Test.Range(10);
 
@@ -8,8 +9,8 @@ byte test2 = 128;
 
 // Console.WriteLine(String.Join(", ", Test.Range(5)));
 
-// Console.WriteLine(String.Join(", ", Test.IsOdd(1, 2, 3, 4, 5)));
-Console.WriteLine(Test.Average(1f, 2f, 3f, 4f, 5f, 6f));
+Console.WriteLine(String.Join(", ", Test.IsOdd(1, 2, 3, 4, 5)));
+// Console.WriteLine(Test.Average(1f, 2f, 3f, 4f, 5f, 6f));
 // Console.WriteLine(Test.StdDev(test, 2f, 3f, 4f, 5f));
 
 //Console.WriteLine(Test.StringLength("Hello, World!", Encoding.UTF8));
@@ -31,7 +32,7 @@ Console.WriteLine(Test.Average(1f, 2f, 3f, 4f, 5f, 6f));
 // Console.WriteLine(Test.AdvancedPrimeTest(100));
 
 //// Numbers / sequences
-// Console.WriteLine("Primes up to 50: " + String.Join(", ", Test.PrimesUpTo(1)));
+// Console.WriteLine("Primes up to 50: " + String.Join(", ", Test.PrimesUpTo(5)));
 // Console.WriteLine("First 12 Fibonacci (long): " + String.Join(", ", Test.FibonacciSequence(12)));
 // Console.WriteLine("Clamp(15, 0, 10) => " + Test.Clamp(20, test2, test2));
 //Console.WriteLine("Map(5, 0..10 -> 0..100) => " + Test.Map(5, 0, 10, 0, 100));

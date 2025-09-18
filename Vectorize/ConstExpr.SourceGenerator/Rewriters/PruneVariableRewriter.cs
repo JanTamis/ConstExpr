@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace ConstExpr.SourceGenerator.Rewriters;
 
@@ -141,12 +142,7 @@ public sealed class PruneVariableRewriter(IDictionary<string, VariableItem> vari
 	{
 		var result = Visit(node.Expression);
 
-		if (result is null)
-		{
-			return null;
-		}
-
-		return base.VisitExpressionStatement(node);
+		return result;
 	}
 
 	// New override: strip all comment trivia (including XML doc comments) from tokens
@@ -160,6 +156,18 @@ public sealed class PruneVariableRewriter(IDictionary<string, VariableItem> vari
 		var leading = FilterTrivia(token.LeadingTrivia);
 		var trailing = FilterTrivia(token.TrailingTrivia);
 
+		// Ensure space after 'return' keyword if an expression follows immediately (no whitespace/comment/newline)
+		if (token.IsKind(SyntaxKind.ReturnKeyword) && token.Parent is ReturnStatementSyntax { Expression: not null })
+		{
+			var hasWhitespace = trailing.Any(t => t.IsKind(SyntaxKind.WhitespaceTrivia));
+			var hasNewLine = trailing.Any(t => t.IsKind(SyntaxKind.EndOfLineTrivia));
+			
+			if (!hasWhitespace && !hasNewLine)
+			{
+				trailing = trailing.Add(SyntaxFactory.Space);
+			}
+		}
+		
 		if (leading != token.LeadingTrivia || trailing != token.TrailingTrivia)
 		{
 			token = token.WithLeadingTrivia(leading).WithTrailingTrivia(trailing);

@@ -108,32 +108,32 @@ public static class CompilationExtensions
 	public static bool IsSpanLikeType(this Compilation compilation, ITypeSymbol typeSymbol, ITypeSymbol elementType)
 	{
 		return typeSymbol is INamedTypeSymbol { Arity: 1 } namedTypeSymbol
-					 && namedTypeSymbol.ContainingNamespace.ToString() == "System"
-					 && namedTypeSymbol.Name is "Span" or "ReadOnlySpan"
-					 && SymbolEqualityComparer.Default.Equals(namedTypeSymbol.TypeArguments[0], elementType);
+		       && namedTypeSymbol.ContainingNamespace.ToString() == "System"
+		       && namedTypeSymbol.Name is "Span" or "ReadOnlySpan"
+		       && SymbolEqualityComparer.Default.Equals(namedTypeSymbol.TypeArguments[0], elementType);
 	}
 
 	public static bool IsSpanType(this Compilation compilation, ITypeSymbol typeSymbol, ITypeSymbol elementType)
 	{
 		return typeSymbol is INamedTypeSymbol { Arity: 1 } namedTypeSymbol
-					 && namedTypeSymbol.ContainingNamespace.ToString() == "System"
-					 && namedTypeSymbol.Name is "Span"
-					 && SymbolEqualityComparer.Default.Equals(namedTypeSymbol.TypeArguments[0], elementType);
+		       && namedTypeSymbol.ContainingNamespace.ToString() == "System"
+		       && namedTypeSymbol.Name is "Span"
+		       && SymbolEqualityComparer.Default.Equals(namedTypeSymbol.TypeArguments[0], elementType);
 	}
 
 	public static bool IsReadonlySpanType(this Compilation compilation, ITypeSymbol typeSymbol, ITypeSymbol elementType)
 	{
 		return typeSymbol is INamedTypeSymbol { Arity: 1 } namedTypeSymbol
-					 && namedTypeSymbol.ContainingNamespace.ToString() == "System"
-					 && namedTypeSymbol.Name is "Span" or "ReadOnlySpan"
-					 && SymbolEqualityComparer.Default.Equals(namedTypeSymbol.TypeArguments[0], elementType);
+		       && namedTypeSymbol.ContainingNamespace.ToString() == "System"
+		       && namedTypeSymbol.Name is "Span" or "ReadOnlySpan"
+		       && SymbolEqualityComparer.Default.Equals(namedTypeSymbol.TypeArguments[0], elementType);
 	}
 
 	public static bool IsEnumerableType(this Compilation compilation, ITypeSymbol typeSymbol, ITypeSymbol elementType)
 	{
 		return compilation.IsSpanLikeType(typeSymbol, elementType)
-					 || typeSymbol.EqualsType(compilation.CreateIEnumerable(elementType))
-					 || typeSymbol.EqualsType(compilation.CreateArrayTypeSymbol(elementType));
+		       || typeSymbol.EqualsType(compilation.CreateIEnumerable(elementType))
+		       || typeSymbol.EqualsType(compilation.CreateArrayTypeSymbol(elementType));
 	}
 
 	public static bool TryGetUnsignedType(this Compilation compilation, ITypeSymbol typeSymbol, [NotNullWhen(true)] out ITypeSymbol? unsignedType)
@@ -213,8 +213,8 @@ public static class CompilationExtensions
 				var runtimeType = loader.GetType(type);
 
 				// Use System.Runtime.InteropServices.Marshal.SizeOf
-				var method = typeof(System.Runtime.InteropServices.Marshal).GetMethod("SizeOf", [typeof(Type)]);
-				return (int)method?.Invoke(null, [runtimeType]);
+				var method = typeof(System.Runtime.InteropServices.Marshal).GetMethod("SizeOf", [ typeof(Type) ]);
+				return (int) method?.Invoke(null, [ runtimeType ]);
 			}
 			catch
 			{
@@ -313,132 +313,186 @@ public static class CompilationExtensions
 			return false;
 		}
 
-		var parameterLength = methodSymbol.Parameters.Length;
+		var isExtension = methodSymbol.IsExtensionMethod;
+		var originalSymbol = isExtension && methodSymbol.ReducedFrom != null ? methodSymbol.ReducedFrom : methodSymbol;
+		var originalParameters = originalSymbol.Parameters;
 
-		if (methodSymbol.IsExtensionMethod)
+		if (isExtension)
 		{
 			parameters = parameters.Prepend(instance);
-
-			parameterLength++;
 		}
 
-		var fullyQualifiedName = methodSymbol.ContainingType.ToDisplayString();
-		var methodName = methodSymbol.Name;
+		var paramArray = parameters as object?[] ?? parameters.ToArray();
+		var expectedParameterLength = originalParameters.Length;
 
-		// Prefer the runtime type for instance calls to correctly resolve virtual/override methods
+		if (paramArray.Length != expectedParameterLength)
+		{
+			value = null; // quick mismatch
+			return false;
+		}
+
+		var methodName = methodSymbol.Name;
 		var type = loader.GetType(methodSymbol.ContainingType) ?? instance?.GetType();
+
+		if (type == null)
+		{
+			value = null;
+			return false;
+		}
 
 		var methods = methodSymbol.MethodKind switch
 		{
-			MethodKind.Constructor => type.GetConstructors(BindingFlags.Public | BindingFlags.Instance).OfType<MethodBase?>(),
-			MethodKind.StaticConstructor => type.GetConstructors(BindingFlags.Public | BindingFlags.Static).OfType<MethodBase?>(),
+			MethodKind.Constructor => type.GetConstructors(BindingFlags.Public | BindingFlags.Instance),
+			MethodKind.StaticConstructor => type.GetConstructors(BindingFlags.Public | BindingFlags.Static),
 			MethodKind.PropertyGet or MethodKind.PropertySet => type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static)
-				//.Where(p => p.Name == methodName)
-				.Select(p => methodSymbol.MethodKind == MethodKind.PropertyGet ? p.GetMethod : p.SetMethod)
-				.OfType<MethodBase?>(),
-			_ => type.GetMethods(methodSymbol.IsStatic || methodSymbol.IsExtensionMethod
+				.Select(p => methodSymbol.MethodKind == MethodKind.PropertyGet ? p.GetMethod : p.SetMethod),
+			_ => type.GetMethods(methodSymbol.IsStatic || isExtension
 				? BindingFlags.Public | BindingFlags.Static
-				: BindingFlags.Public | BindingFlags.Instance).OfType<MethodBase?>(),
+				: BindingFlags.Public | BindingFlags.Instance).Cast<MethodBase?>(),
 		};
 
-		var methodInfos = methods
-			.Where(f =>
-			{
-				if (f.Name != methodName)
-				{
-					return false;
-				}
+		// Filter candidates
+		var candidates = methods
+			.Where(m => m != null && m.Name == methodName && m.GetParameters().Length == expectedParameterLength);
 
-				var methodParameters = f.GetParameters();
-
-				if (methodParameters.Length != parameterLength)
-				{
-					return false;
-				}
-
-				for (var i = 0; i < methodParameters.Length; i++)
-				{
-					var paramType = methodParameters[i].ParameterType;
-					var methodParamType = loader.GetType(methodSymbol.Parameters[i].Type);
-
-					if (paramType.IsGenericType || paramType.IsGenericParameter)
-					{
-						continue;
-					}
-
-					if (paramType.Namespace != methodParamType.Namespace || paramType.Name != methodParamType.Name)
-					{
-						return false;
-					}
-				}
-
-				return true;
-			});
-
-		foreach (var info in methodInfos)
+		foreach (var candidate in candidates!)
 		{
-			var methodInfo = info;
+			var methodInfo = candidate! as MethodInfo;
+			var invokeBase = candidate!;
 
-			if (methodInfo.IsGenericMethod)
+			// Parameter type validation (stricter than namespace+name if possible)
+			var reflParams = invokeBase.GetParameters();
+			var compatible = true;
+
+			for (var i = 0; i < reflParams.Length; i++)
 			{
-				var types = methodSymbol.TypeArguments
-					.Select(symbol =>
-					{
-						if (symbol is ITypeParameterSymbol parameter
-								&& arguments?.TryGetValue(parameter.Name, out var type) == true)
-						{
-							return type as Type;
-						}
-						return loader.GetType(symbol);
-					})
-					.ToArray();
+				var reflParam = reflParams[i];
+				var symbolParam = originalParameters[i];
+				var symbolParamType = loader.GetType(symbolParam.Type);
 
-				if (methodInfo is MethodInfo method)
+				if (symbolParamType == null)
 				{
-					methodInfo = method.MakeGenericMethod(types);
-				}
-			}
-
-			var methodParams = methodInfo.GetParameters();
-
-			for (var i = 0; i < methodParams.Length; i++)
-			{
-				if (!methodParams[i].ParameterType.IsAssignableFrom(loader.GetType(methodSymbol.Parameters[i].Type)))
-				{
-					methodInfo = null;
+					compatible = false;
 					break;
 				}
+
+				if (isExtension && i == 0)
+				{
+					if (instance == null || !reflParam.ParameterType.IsInstanceOfType(instance))
+					{
+						compatible = false;
+						break;
+					}
+
+					continue;
+				}
+
+				if (!reflParam.ParameterType.IsGenericParameter && !reflParam.ParameterType.IsAssignableFrom(symbolParamType))
+				{
+					compatible = false;
+					break;
+				}
+
+				// Also validate provided runtime value if present
+				var providedVal = paramArray[i];
+
+				if (providedVal != null && !reflParam.ParameterType.IsInstanceOfType(providedVal))
+				{
+					// Try implicit conversion for numeric primitives
+					if (!TryChangeNumericType(providedVal, reflParam.ParameterType, out var converted))
+					{
+						compatible = false;
+						break;
+					}
+
+					paramArray[i] = converted; // replace with converted value
+				}
 			}
 
-			if (methodInfo is null)
+			if (!compatible)
 			{
 				continue;
 			}
 
-			if (methodInfo.IsStatic)
+			// Handle generics
+			if (methodInfo != null && methodInfo.IsGenericMethodDefinition)
 			{
-				value = methodInfo.Invoke(null, parameters.ToArray());
+				var typeArgs = methodSymbol.TypeArguments.Select(loader.GetType).ToArray();
+
+				if (typeArgs.Any(a => a == null))
+				{
+					continue;
+				}
+
+				methodInfo = methodInfo.MakeGenericMethod(typeArgs!);
+				invokeBase = methodInfo;
+			}
+
+			// Final safety checks to avoid needing try/catch
+			if (invokeBase.IsConstructor)
+			{
+				if (invokeBase is ConstructorInfo ctor)
+				{
+					value = ctor.Invoke(paramArray);
+					return true;
+				}
+			}
+			else if (invokeBase.IsStatic)
+			{
+				value = invokeBase.Invoke(null, paramArray);
 				return true;
 			}
-
-			if (methodInfo.IsConstructor)
+			else
 			{
-				value = Activator.CreateInstance(type, parameters.ToArray());
+				if (instance == null || !type.IsInstanceOfType(instance))
+				{
+					continue;
+				}
+				value = invokeBase.Invoke(instance, paramArray);
 				return true;
 			}
-
-			if (instance == null)
-			{
-				value = null;
-				return false;
-			}
-
-			value = methodInfo.Invoke(instance, parameters.ToArray());
-			return true;
 		}
 
 		value = null;
 		return false;
+	}
+
+	private static bool TryChangeNumericType(object value, Type targetType, out object? converted)
+	{
+		converted = null;
+		
+		if (value == null)
+		{
+			return false;
+		}
+		
+		var srcType = value.GetType();
+		
+		if (!IsNumeric(srcType) || !IsNumeric(targetType))
+		{
+			return false;
+		}
+
+		try
+		{
+			converted = Convert.ChangeType(value, Nullable.GetUnderlyingType(targetType) ?? targetType);
+			return true;
+		}
+		catch
+		{
+			return false;
+		}
+	}
+
+	private static bool IsNumeric(Type t)
+	{
+		if (t.IsEnum)
+		{
+			return false;
+		}
+		
+		var nt = Nullable.GetUnderlyingType(t) ?? t;
+		return nt == typeof(byte) || nt == typeof(sbyte) || nt == typeof(short) || nt == typeof(ushort) || nt == typeof(int) || nt == typeof(uint) || nt == typeof(long) || nt == typeof(ulong) || nt == typeof(float) || nt == typeof(double) || nt == typeof(decimal);
 	}
 
 	public static object? GetPropertyValue(this MetadataLoader loader, ISymbol propertySymbol, object? instance)
@@ -672,10 +726,10 @@ public static class CompilationExtensions
 
 		if (elementType.NeedsCast())
 		{
-			return $"{vectorType}.Create({items.JoinWithPadding<T, object?>(", ", elementCount, (T)0.ToSpecialType(elementType.SpecialType), s => s is string ? s : $"({compilation.GetMinimalString(elementType)}){SyntaxHelpers.CreateLiteral(s)}")})";
+			return $"{vectorType}.Create({items.JoinWithPadding<T, object?>(", ", elementCount, (T) 0.ToSpecialType(elementType.SpecialType), s => s is string ? s : $"({compilation.GetMinimalString(elementType)}){SyntaxHelpers.CreateLiteral(s)}")})";
 		}
 
-		return $"{vectorType}.Create({items.JoinWithPadding<T, object?>(", ", elementCount, (T)0.ToSpecialType(elementType.SpecialType), s => s is string ? s : SyntaxHelpers.CreateLiteral(s))})";
+		return $"{vectorType}.Create({items.JoinWithPadding<T, object?>(", ", elementCount, (T) 0.ToSpecialType(elementType.SpecialType), s => s is string ? s : SyntaxHelpers.CreateLiteral(s))})";
 	}
 
 	public static VectorTypes GetVector<T>(this Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, ReadOnlySpan<T> items, bool isRepeating, out string vector, out int vectorSize)
@@ -946,8 +1000,8 @@ public static class CompilationExtensions
 		foreach (var @interface in typeSymbol.AllInterfaces)
 		{
 			if (@interface is { Arity: 1 }
-					&& SymbolEqualityComparer.Default.Equals(@interface, compilation.CreateIEnumerable(@interface.TypeArguments[0]))
-					&& recursive)
+			    && SymbolEqualityComparer.Default.Equals(@interface, compilation.CreateIEnumerable(@interface.TypeArguments[0]))
+			    && recursive)
 			{
 				elementType = @interface.TypeArguments[0];
 				return true;
@@ -961,7 +1015,7 @@ public static class CompilationExtensions
 	public static bool TryGetFuncType(this Compilation compilation, ITypeSymbol type, [NotNullWhen(true)] out ITypeSymbol? elementType, [NotNullWhen(true)] out ITypeSymbol? returnType)
 	{
 		if (type is INamedTypeSymbol { Arity: 2 } namedTypeSymbol
-				&& SymbolEqualityComparer.Default.Equals(type, compilation.CreateFunc(namedTypeSymbol.TypeArguments[0], namedTypeSymbol.TypeArguments[1])))
+		    && SymbolEqualityComparer.Default.Equals(type, compilation.CreateFunc(namedTypeSymbol.TypeArguments[0], namedTypeSymbol.TypeArguments[1])))
 		{
 			elementType = namedTypeSymbol.TypeArguments[0];
 			returnType = namedTypeSymbol.TypeArguments[1];
