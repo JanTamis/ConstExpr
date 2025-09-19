@@ -3,6 +3,7 @@ using ConstExpr.SourceGenerator.Helpers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Newtonsoft.Json.Linq;
 using SourceGen.Utilities.Extensions;
 using System;
 using System.Collections.Generic;
@@ -1080,6 +1081,36 @@ public static class CompilationExtensions
 		}
 
 		parent = null;
+		return false;
+	}
+
+	public static bool TryGetSymbol<TSymbol>(this SemanticModel semanticModel, SyntaxNode? node, [NotNullWhen(true)] out TSymbol? value) where TSymbol : ISymbol
+	{
+		if (node is not null)
+		{
+			var info = semanticModel.GetSymbolInfo(node);
+
+			if (info.Symbol is null)
+			{
+				if (semanticModel.Compilation.TryGetSemanticModel(node, out var semantic))
+				{
+					info = semantic.GetSymbolInfo(node);
+				}
+				else
+				{
+					value = default;
+					return false;
+				}
+			}
+
+			if (info.Symbol is TSymbol symbol)
+			{
+				value = symbol;
+				return true;
+			}
+		}
+
+		value = default;
 		return false;
 	}
 }
