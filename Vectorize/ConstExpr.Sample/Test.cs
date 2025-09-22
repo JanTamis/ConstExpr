@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace ConstExpr.SourceGenerator.Sample;
 
-[ConstExpr]
+[ConstExpr(IEEE754Compliant = false)]
 public static class Test
 {
 	public static IEnumerable<double> IsOdd(params IEnumerable<double> data)
@@ -205,7 +205,7 @@ public static class Test
 		{
 			return max;
 		}
-		
+
 		return value;
 	}
 

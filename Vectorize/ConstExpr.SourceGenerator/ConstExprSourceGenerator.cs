@@ -122,7 +122,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			{
 				code.WriteLine($"[InterceptsLocation({invocationModel.Location.Version}, {invocationModel.Location.Data})]");
 			}
-			
+
 			code.WriteLine(invocationsByValue.First().Method.ToFullString(), true);
 
 			// var representativeInvocation = invocationsByValue.First();
@@ -319,128 +319,128 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 	// 	return methodSyntax;
 	// }
 
-// 	private static void EmitInterfaceReturnBody(IndentedCodeWriter code, Compilation compilation, InvocationModel representativeInvocation, object? value)
-// 	{
-// 		// IEnumerable optimized emission.
-// 		if ((IsIEnumerable(compilation, representativeInvocation.Method.ReturnType) || IsIAsyncEnumerable(compilation, representativeInvocation.Method.ReturnType)) && value is IEnumerable enumerable)
-// 		{
-// 			if (compilation.GetSemanticModel(representativeInvocation.Method.SyntaxTree).GetTypeInfo(representativeInvocation.Method.ReturnType).Type is not INamedTypeSymbol returnTypeInfo)
-// 			{
-// 				return;
-// 			}
-//
-// 			if (compilation.TryGetIEnumerableType(returnTypeInfo, true, out var tempElementType) && tempElementType is INamedTypeSymbol resolvedElementType)
-// 			{
-// 				returnTypeInfo = resolvedElementType;
-// 			}
-//
-// 			var data = enumerable.Cast<object?>().ToArray();
-//
-// 			if (IsIAsyncEnumerable(returnTypeInfo))
-// 			{
-// 				if (returnTypeInfo.IsVectorSupported() && data.IsSequenceDifference(out var difference))
-// 				{
-// 					if (ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.LessThan, difference, 0.ToSpecialType(returnTypeInfo.SpecialType)) is true)
-// 					{
-// 						code.WriteLine($$"""
-// 							var start = {{data[0]}};
-//
-// 							do
-// 							{
-// 								yield return start;
-// 								start -= {{difference.Abs(returnTypeInfo.SpecialType)}};
-// 							}
-// 							while (start >= {{data[^1]}});
-// 							""");
-// 					}
-// 					else
-// 					{
-// 						code.WriteLine($$"""
-// 							var start = {{data[0]}};
-//
-// 							do
-// 							{
-// 								yield return start;
-// 								start += {{difference}};
-// 							}
-// 							while (start <= {{data[^1]}});
-// 							""");
-// 					}
-// 				}
-// 				else
-// 				{
-// 					foreach (var item in data)
-// 					{
-// 						code.WriteLine($"yield return {CreateLiteral(item)};");
-// 					}
-// 				}
-//
-// 			}
-// 			else
-// 			{
-// 				if (data.Length == 1)
-// 				{
-// 					code.WriteLine($"return [{data[0]}];");
-// 				}
-// 				else if (data.IsSame(data.FirstOrDefault()))
-// 				{
-// 					code.WriteLine($"return Enumerable.Repeat({CreateLiteral(data.FirstOrDefault())}, {CreateLiteral(data.Length)});");
-// 				}
-// 				else if (data.IsNumericSequence() && compilation.IsSpecialType(returnTypeInfo, SpecialType.System_Int32))
-// 				{
-// 					code.WriteLine($"return Enumerable.Range({CreateLiteral(data[0])}, {CreateLiteral(data.Length)});");
-// 				}
-// 				else if (returnTypeInfo.IsVectorSupported() && data.IsSequenceDifference(out var difference))
-// 				{
-// 					if (compilation.GetTypeByName(typeof(Enumerable).FullName).HasMethod("Sequence"))
-// 					{
-// 						code.WriteLine($"return Enumerable.Sequence({CreateLiteral(data[0])}, {CreateLiteral(data[^1])}, {CreateLiteral(difference)});");
-// 					}
-// 					else
-// 					{
-// 						if (ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.LessThan, difference, 0.ToSpecialType(returnTypeInfo.SpecialType)) is true)
-// 						{
-// 							code.WriteLine($$"""
-// 								var start = {{data[0]}};
-//
-// 								do
-// 								{
-// 									yield return start;
-// 									start -= {{difference.Abs(returnTypeInfo.SpecialType)}};
-// 								}
-// 								while (start >= {{data[^1]}});
-// 								""");
-// 						}
-// 						else
-// 						{
-// 							code.WriteLine($$"""
-// 								var start = {{data[0]}};
-//
-// 								do
-// 								{
-// 									yield return start;
-// 									start += {{difference}};
-// 								}
-// 								while (start <= {{data[^1]}});
-// 								""");
-// 						}
-// 					}
-// 				}
-// 				else
-// 				{
-// 					foreach (var item in data)
-// 					{
-// 						code.WriteLine($"yield return {CreateLiteral(item)};");
-// 					}
-// 				}
-// 			}
-// 		}
-// 		else
-// 		{
-// 			var returnTypeName = representativeInvocation.Method.ReturnType is GenericNameSyntax g ? g.Identifier.Text : representativeInvocation.Method.ReturnType.ToString();
-// 			code.WriteLine($"return {returnTypeName:literal}_{GetValueHashSuffix(value):literal}.Instance;");
-// 		}
-// 	}
+	// 	private static void EmitInterfaceReturnBody(IndentedCodeWriter code, Compilation compilation, InvocationModel representativeInvocation, object? value)
+	// 	{
+	// 		// IEnumerable optimized emission.
+	// 		if ((IsIEnumerable(compilation, representativeInvocation.Method.ReturnType) || IsIAsyncEnumerable(compilation, representativeInvocation.Method.ReturnType)) && value is IEnumerable enumerable)
+	// 		{
+	// 			if (compilation.GetSemanticModel(representativeInvocation.Method.SyntaxTree).GetTypeInfo(representativeInvocation.Method.ReturnType).Type is not INamedTypeSymbol returnTypeInfo)
+	// 			{
+	// 				return;
+	// 			}
+	//
+	// 			if (compilation.TryGetIEnumerableType(returnTypeInfo, true, out var tempElementType) && tempElementType is INamedTypeSymbol resolvedElementType)
+	// 			{
+	// 				returnTypeInfo = resolvedElementType;
+	// 			}
+	//
+	// 			var data = enumerable.Cast<object?>().ToArray();
+	//
+	// 			if (IsIAsyncEnumerable(returnTypeInfo))
+	// 			{
+	// 				if (returnTypeInfo.IsVectorSupported() && data.IsSequenceDifference(out var difference))
+	// 				{
+	// 					if (ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.LessThan, difference, 0.ToSpecialType(returnTypeInfo.SpecialType)) is true)
+	// 					{
+	// 						code.WriteLine($$"""
+	// 							var start = {{data[0]}};
+	//
+	// 							do
+	// 							{
+	// 								yield return start;
+	// 								start -= {{difference.Abs(returnTypeInfo.SpecialType)}};
+	// 							}
+	// 							while (start >= {{data[^1]}});
+	// 							""");
+	// 					}
+	// 					else
+	// 					{
+	// 						code.WriteLine($$"""
+	// 							var start = {{data[0]}};
+	//
+	// 							do
+	// 							{
+	// 								yield return start;
+	// 								start += {{difference}};
+	// 							}
+	// 							while (start <= {{data[^1]}});
+	// 							""");
+	// 					}
+	// 				}
+	// 				else
+	// 				{
+	// 					foreach (var item in data)
+	// 					{
+	// 						code.WriteLine($"yield return {CreateLiteral(item)};");
+	// 					}
+	// 				}
+	//
+	// 			}
+	// 			else
+	// 			{
+	// 				if (data.Length == 1)
+	// 				{
+	// 					code.WriteLine($"return [{data[0]}];");
+	// 				}
+	// 				else if (data.IsSame(data.FirstOrDefault()))
+	// 				{
+	// 					code.WriteLine($"return Enumerable.Repeat({CreateLiteral(data.FirstOrDefault())}, {CreateLiteral(data.Length)});");
+	// 				}
+	// 				else if (data.IsNumericSequence() && compilation.IsSpecialType(returnTypeInfo, SpecialType.System_Int32))
+	// 				{
+	// 					code.WriteLine($"return Enumerable.Range({CreateLiteral(data[0])}, {CreateLiteral(data.Length)});");
+	// 				}
+	// 				else if (returnTypeInfo.IsVectorSupported() && data.IsSequenceDifference(out var difference))
+	// 				{
+	// 					if (compilation.GetTypeByName(typeof(Enumerable).FullName).HasMethod("Sequence"))
+	// 					{
+	// 						code.WriteLine($"return Enumerable.Sequence({CreateLiteral(data[0])}, {CreateLiteral(data[^1])}, {CreateLiteral(difference)});");
+	// 					}
+	// 					else
+	// 					{
+	// 						if (ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.LessThan, difference, 0.ToSpecialType(returnTypeInfo.SpecialType)) is true)
+	// 						{
+	// 							code.WriteLine($$"""
+	// 								var start = {{data[0]}};
+	//
+	// 								do
+	// 								{
+	// 									yield return start;
+	// 									start -= {{difference.Abs(returnTypeInfo.SpecialType)}};
+	// 								}
+	// 								while (start >= {{data[^1]}});
+	// 								""");
+	// 						}
+	// 						else
+	// 						{
+	// 							code.WriteLine($$"""
+	// 								var start = {{data[0]}};
+	//
+	// 								do
+	// 								{
+	// 									yield return start;
+	// 									start += {{difference}};
+	// 								}
+	// 								while (start <= {{data[^1]}});
+	// 								""");
+	// 						}
+	// 					}
+	// 				}
+	// 				else
+	// 				{
+	// 					foreach (var item in data)
+	// 					{
+	// 						code.WriteLine($"yield return {CreateLiteral(item)};");
+	// 					}
+	// 				}
+	// 			}
+	// 		}
+	// 		else
+	// 		{
+	// 			var returnTypeName = representativeInvocation.Method.ReturnType is GenericNameSyntax g ? g.Identifier.Text : representativeInvocation.Method.ReturnType.ToString();
+	// 			code.WriteLine($"return {returnTypeName:literal}_{GetValueHashSuffix(value):literal}.Instance;");
+	// 		}
+	// 	}
 
 	private static void EmitInterceptsLocationAttributeStub(IndentedCodeWriter code)
 	{
@@ -602,15 +602,17 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 				return new InvocationModel
 				{
-					Usings = usings,
+					Usings = usings!,
 					OriginalMethod = methodDecl,
 					Method = FormattingHelper.Format(methodDecl
-						.WithIdentifier(SyntaxFactory.Identifier($"{methodDecl.Identifier.Text}_{result2.GetDeterministicHash()}").WithLeadingTrivia(methodDecl.Identifier.LeadingTrivia).WithTrailingTrivia(methodDecl.Identifier.TrailingTrivia))
-						.WithBody((BlockSyntax) result2)) as MethodDeclarationSyntax,
+						.WithIdentifier(SyntaxFactory.Identifier($"{methodDecl.Identifier.Text}_{result2.GetDeterministicHash()}")
+							.WithLeadingTrivia(methodDecl.Identifier.LeadingTrivia)
+							.WithTrailingTrivia(methodDecl.Identifier.TrailingTrivia))
+						.WithBody((BlockSyntax)result2)) as MethodDeclarationSyntax ?? methodDecl,
 					ParentType = methodDecl.Parent as TypeDeclarationSyntax,
 					Invocation = invocation,
 					Location = context.SemanticModel.GetInterceptableLocation(invocation, token),
-					Exceptions = exceptions,
+					Exceptions = exceptions!,
 				};
 			}
 		}

@@ -1,11 +1,11 @@
-﻿using ConstExpr.SourceGenerator.Visitors;
+﻿using ConstExpr.SourceGenerator.Helpers;
+using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using ConstExpr.SourceGenerator.Helpers;
 
 namespace ConstExpr.SourceGenerator.Rewriters;
 
@@ -100,7 +100,7 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 				{
 					result.Add(SyntaxFactory.ExpressionStatement(expressionStatement.Expression));
 				}
-				else
+				else if (visited is not null)
 				{
 					result.Add(SyntaxFactory.ExpressionStatement(visited as ExpressionSyntax));
 				}
@@ -139,7 +139,7 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 	{
 		var identifier = node.Left.ToString();
 
-		if (variables.TryGetValue(identifier, out var value) && value.HasValue && TryGetLiteralValue(node.Right, out _))
+		if (variables.TryGetValue(identifier, out var value) && value.HasValue)
 		{
 			return null;
 		}
@@ -170,13 +170,13 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 		{
 			var hasWhitespace = trailing.Any(t => t.IsKind(SyntaxKind.WhitespaceTrivia));
 			var hasNewLine = trailing.Any(t => t.IsKind(SyntaxKind.EndOfLineTrivia));
-			
+
 			if (!hasWhitespace && !hasNewLine)
 			{
 				trailing = trailing.Add(SyntaxFactory.Space);
 			}
 		}
-		
+
 		if (leading != token.LeadingTrivia || trailing != token.TrailingTrivia)
 		{
 			token = token.WithLeadingTrivia(leading).WithTrailingTrivia(trailing);

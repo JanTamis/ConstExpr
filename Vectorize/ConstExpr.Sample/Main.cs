@@ -1,6 +1,4 @@
 using ConstExpr.SourceGenerator.Sample;
-using System;
-using System.Collections.Generic;
 
 // var range = Test.Range(10);
 
