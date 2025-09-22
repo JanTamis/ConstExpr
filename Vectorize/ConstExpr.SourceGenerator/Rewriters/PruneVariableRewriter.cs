@@ -5,10 +5,11 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ConstExpr.SourceGenerator.Helpers;
 
 namespace ConstExpr.SourceGenerator.Rewriters;
 
-public sealed class PruneVariableRewriter(IDictionary<string, VariableItem> variables) : CSharpSyntaxRewriter
+public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataLoader loader, IDictionary<string, VariableItem> variables) : BaseRewriter(semanticModel, loader, variables)
 {
 	public override SyntaxNode? Visit(SyntaxNode? node)
 	{
@@ -16,9 +17,9 @@ public sealed class PruneVariableRewriter(IDictionary<string, VariableItem> vari
 		{
 			return base.Visit(node);
 		}
-		catch (Exception)
+		catch (Exception e)
 		{
-			return null;
+			return node;
 		}
 	}
 
@@ -91,14 +92,22 @@ public sealed class PruneVariableRewriter(IDictionary<string, VariableItem> vari
 
 			if (!terminalReached)
 			{
-				if (visited is StatementSyntax stmt)
+				if (visited is StatementSyntax statementSyntax)
 				{
-					result.Add(stmt);
+					result.Add(statementSyntax);
+				}
+				else if (visited is ExpressionStatementSyntax { Expression: null } expressionStatement)
+				{
+					result.Add(SyntaxFactory.ExpressionStatement(expressionStatement.Expression));
+				}
+				else
+				{
+					result.Add(SyntaxFactory.ExpressionStatement(visited as ExpressionSyntax));
+				}
 
-					if (IsTerminalStatement(stmt))
-					{
-						terminalReached = true;
-					}
+				if (IsTerminalStatement(visited))
+				{
+					terminalReached = true;
 				}
 			}
 			else
@@ -130,12 +139,12 @@ public sealed class PruneVariableRewriter(IDictionary<string, VariableItem> vari
 	{
 		var identifier = node.Left.ToString();
 
-		if (variables.TryGetValue(identifier, out var value) && value.HasValue)
+		if (variables.TryGetValue(identifier, out var value) && value.HasValue && TryGetLiteralValue(node.Right, out _))
 		{
 			return null;
 		}
 
-		return base.VisitAssignmentExpression(node);
+		return node;
 	}
 
 	public override SyntaxNode? VisitExpressionStatement(ExpressionStatementSyntax node)
@@ -198,7 +207,7 @@ public sealed class PruneVariableRewriter(IDictionary<string, VariableItem> vari
 		}
 	}
 
-	private static bool IsTerminalStatement(StatementSyntax statement)
+	private static bool IsTerminalStatement(SyntaxNode statement)
 	{
 		// A statement that guarantees no following statement in the same block will execute
 		return statement is ReturnStatementSyntax

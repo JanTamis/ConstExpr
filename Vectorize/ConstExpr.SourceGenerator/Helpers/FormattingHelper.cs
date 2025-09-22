@@ -2,7 +2,7 @@ using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Helpers;
 
-internal static partial class FormattingHelper
+internal static class FormattingHelper
 {
 	public static SyntaxNode Format(SyntaxNode node)
 	{

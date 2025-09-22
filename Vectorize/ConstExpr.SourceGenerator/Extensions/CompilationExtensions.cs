@@ -7,9 +7,12 @@ using Newtonsoft.Json.Linq;
 using SourceGen.Utilities.Extensions;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 
 namespace ConstExpr.SourceGenerator.Extensions;
@@ -315,8 +318,12 @@ public static class CompilationExtensions
 		}
 
 		var isExtension = methodSymbol.IsExtensionMethod;
-		var originalSymbol = isExtension && methodSymbol.ReducedFrom != null ? methodSymbol.ReducedFrom : methodSymbol;
-		var originalParameters = originalSymbol.Parameters;
+		
+		var originalParameterTypes = methodSymbol.Parameters
+			.Select(s => s.Type)
+			.Prepend(methodSymbol.IsExtensionMethod ? methodSymbol.ReceiverType : null)
+			.Where(w => w != null)
+			.ToImmutableArray();
 
 		if (isExtension)
 		{
@@ -324,7 +331,7 @@ public static class CompilationExtensions
 		}
 
 		var paramArray = parameters as object?[] ?? parameters.ToArray();
-		var expectedParameterLength = originalParameters.Length;
+		var expectedParameterLength = originalParameterTypes.Length;
 
 		if (paramArray.Length != expectedParameterLength)
 		{
@@ -356,10 +363,32 @@ public static class CompilationExtensions
 		var candidates = methods
 			.Where(m => m != null && m.Name == methodName && m.GetParameters().Length == expectedParameterLength);
 
-		foreach (var candidate in candidates!)
+		foreach (var candidate in candidates)
 		{
 			var methodInfo = candidate! as MethodInfo;
 			var invokeBase = candidate!;
+
+			// Bind generics early so parameter types are closed (e.g. IEnumerable<double>)
+			if (methodInfo != null && methodInfo.IsGenericMethodDefinition)
+			{
+				var typeArgs = methodSymbol.TypeArguments.Select(symbol =>
+				{
+					if (arguments.TryGetValue($"#{symbol.Name}", out var type) && type is Type resultType)
+					{
+						return resultType;
+					}
+					
+					return loader.GetType(symbol);
+				}).ToArray();
+
+				if (typeArgs.Any(a => a == null))
+				{
+					continue;
+				}
+
+				methodInfo = methodInfo.MakeGenericMethod(typeArgs!);
+				invokeBase = methodInfo;
+			}
 
 			// Parameter type validation (stricter than namespace+name if possible)
 			var reflParams = invokeBase.GetParameters();
@@ -368,8 +397,8 @@ public static class CompilationExtensions
 			for (var i = 0; i < reflParams.Length; i++)
 			{
 				var reflParam = reflParams[i];
-				var symbolParam = originalParameters[i];
-				var symbolParamType = loader.GetType(symbolParam.Type);
+				var symbolParam = originalParameterTypes[i];
+				var symbolParamType = loader.GetType(symbolParam);
 
 				if (symbolParamType == null)
 				{
@@ -379,7 +408,21 @@ public static class CompilationExtensions
 
 				if (isExtension && i == 0)
 				{
-					if (instance == null || !reflParam.ParameterType.IsInstanceOfType(instance))
+					if (instance == null)
+					{
+						compatible = false;
+						break;
+					}
+
+					var instType = instance.GetType();
+					var pType = reflParam.ParameterType;
+
+					// Accept if assignable, or if pType is an open generic interface implemented by the instance
+					var ok = pType.IsAssignableFrom(instType)
+					         || pType is { IsGenericType: true, ContainsGenericParameters: true }
+					         && instType.GetInterfaces().Any(it => it.IsGenericType && it.GetGenericTypeDefinition() == pType.GetGenericTypeDefinition());
+
+					if (!ok)
 					{
 						compatible = false;
 						break;
@@ -415,20 +458,6 @@ public static class CompilationExtensions
 				continue;
 			}
 
-			// Handle generics
-			if (methodInfo != null && methodInfo.IsGenericMethodDefinition)
-			{
-				var typeArgs = methodSymbol.TypeArguments.Select(loader.GetType).ToArray();
-
-				if (typeArgs.Any(a => a == null))
-				{
-					continue;
-				}
-
-				methodInfo = methodInfo.MakeGenericMethod(typeArgs!);
-				invokeBase = methodInfo;
-			}
-
 			// Final safety checks to avoid needing try/catch
 			if (invokeBase.IsConstructor)
 			{
@@ -461,14 +490,14 @@ public static class CompilationExtensions
 	private static bool TryChangeNumericType(object value, Type targetType, out object? converted)
 	{
 		converted = null;
-		
+
 		if (value == null)
 		{
 			return false;
 		}
-		
+
 		var srcType = value.GetType();
-		
+
 		if (!IsNumeric(srcType) || !IsNumeric(targetType))
 		{
 			return false;
@@ -491,7 +520,7 @@ public static class CompilationExtensions
 		{
 			return false;
 		}
-		
+
 		var nt = Nullable.GetUnderlyingType(t) ?? t;
 		return nt == typeof(byte) || nt == typeof(sbyte) || nt == typeof(short) || nt == typeof(ushort) || nt == typeof(int) || nt == typeof(uint) || nt == typeof(long) || nt == typeof(ulong) || nt == typeof(float) || nt == typeof(double) || nt == typeof(decimal);
 	}
@@ -1086,31 +1115,46 @@ public static class CompilationExtensions
 
 	public static bool TryGetSymbol<TSymbol>(this SemanticModel semanticModel, SyntaxNode? node, [NotNullWhen(true)] out TSymbol? value) where TSymbol : ISymbol
 	{
-		if (node is not null)
+		try
 		{
-			var info = semanticModel.GetSymbolInfo(node);
-
-			if (info.Symbol is null)
+			if (node is not null)
 			{
-				if (semanticModel.Compilation.TryGetSemanticModel(node, out var semantic))
+				var info = semanticModel.GetSymbolInfo(node);
+
+				if (info.Symbol is null)
 				{
-					info = semantic.GetSymbolInfo(node);
+					if (semanticModel.Compilation.TryGetSemanticModel(node, out var semantic))
+					{
+						info = semantic.GetSymbolInfo(node);
+					}
+					else
+					{
+						value = default;
+						return false;
+					}
 				}
-				else
+
+				if (info.Symbol is TSymbol symbol)
 				{
-					value = default;
-					return false;
+					value = symbol;
+					return true;
 				}
 			}
+		}
+		catch (Exception e)
+		{
 
-			if (info.Symbol is TSymbol symbol)
-			{
-				value = symbol;
-				return true;
-			}
 		}
 
 		value = default;
 		return false;
+	}
+
+	public static string GetDeterministicHash(this SyntaxNode node)
+	{
+		// Normalize to a canonical form so whitespace/trivia do not affect the hash.
+		var normalized = node.ToFullString().GetHashCode();
+		
+		return Convert.ToBase64String(BitConverter.GetBytes(normalized)).TrimEnd('=').Replace('+', '_').Replace('/', '_');
 	}
 }

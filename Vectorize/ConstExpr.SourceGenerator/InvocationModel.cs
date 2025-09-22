@@ -15,17 +15,20 @@ public class InvocationModel
 	public InterceptableLocation? Location { get; set; }
 #pragma warning restore RSEXPERIMENTAL002
 
+	public MethodDeclarationSyntax OriginalMethod { get; set; }
 	public MethodDeclarationSyntax Method { get; set; }
+	public TypeDeclarationSyntax ParentType { get; set; }
 	
-	public IMethodSymbol Symbol { get; set; }
+	// public IMethodSymbol Symbol { get; set; }
 
 	public InvocationExpressionSyntax Invocation { get; set; }
 
-	public object? Value { get; set; }
+	// public object? Value { get; set; }
 
 	public HashSet<string> Usings { get; set; }
 
 	public IReadOnlyDictionary<SyntaxNode, Exception> Exceptions { get; set; }
+	
 
-	public GenerationLevel GenerationLevel { get; set; } = GenerationLevel.Balanced;
+	// public GenerationLevel GenerationLevel { get; set; } = GenerationLevel.Balanced;
 }

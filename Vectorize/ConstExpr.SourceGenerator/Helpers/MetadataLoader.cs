@@ -64,14 +64,14 @@ public class MetadataLoader
 			resultAssemblies.Add(assembly);
 		}
 
-		return new MetadataLoader(resultAssemblies, compilation);
+		return new MetadataLoader(resultAssemblies);
 	}
 
 	/// <summary>
 	/// Initializes a new instance of the <see cref="MetadataLoader"/> class.
 	/// </summary>
 	/// <param name="assemblies">The assemblies to load.</param>
-	private MetadataLoader(IEnumerable<Assembly> assemblies, Compilation compilation)
+	private MetadataLoader(IEnumerable<Assembly> assemblies)
 	{
 		_assemblies = assemblies;
 	}
@@ -85,21 +85,22 @@ public class MetadataLoader
 	/// </returns>
 	public Type? GetType(ITypeSymbol? typeSymbol)
 	{
-		if (typeSymbol == null)
+		switch (typeSymbol)
 		{
-			return null;
-		}
+			case null:
+			{
+				return null;
+			}
+			case INamedTypeSymbol { Arity: > 0 } namedType when !SymbolEqualityComparer.Default.Equals(namedType, namedType.ConstructedFrom):
+			{
+				var constructedFrom = GetType(namedType.ConstructedFrom);
 
-		if (typeSymbol is INamedTypeSymbol { Arity: > 0 } namedType && !SymbolEqualityComparer.Default.Equals(namedType, namedType.ConstructedFrom))
-		{
-			var constructedFrom = GetType(namedType.ConstructedFrom);
-
-			return constructedFrom?.MakeGenericType(namedType.TypeArguments.Select(GetType).ToArray());
-		}
-
-		if (typeSymbol is IArrayTypeSymbol arrayType)
-		{
-			return GetType(arrayType.ElementType)?.MakeArrayType();
+				return constructedFrom?.MakeGenericType(namedType.TypeArguments.Select(GetType).ToArray());
+			}
+			case IArrayTypeSymbol arrayType:
+			{
+				return GetType(arrayType.ElementType)?.MakeArrayType();
+			}
 		}
 
 		var containingNamespace = typeSymbol.ContainingNamespace.ToString();

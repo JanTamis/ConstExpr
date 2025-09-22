@@ -1,6 +1,4 @@
 using ConstExpr.Core.Enumerators;
-using ConstExpr.SourceGenerator.Builders;
-using ConstExpr.SourceGenerator.Comparers;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Rewriters;
@@ -13,10 +11,8 @@ using SGF;
 using SourceGen.Utilities.Extensions;
 using SourceGen.Utilities.Helpers;
 using System;
-using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -53,7 +49,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			{
 				var loader = MetadataLoader.GetLoader(modelAndCompilation.Left.Right);
 
-				foreach (var methodGroup in modelAndCompilation.Left.Left.GroupBy(m => m.Method, SyntaxNodeComparer<MethodDeclarationSyntax>.Instance))
+				foreach (var methodGroup in modelAndCompilation.Left.Left.GroupBy(m => m.OriginalMethod, SyntaxNodeComparer<MethodDeclarationSyntax>.Instance))
 				{
 					try
 					{
@@ -89,12 +85,12 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			}
 
 			// Emit concrete interface implementations (non IEnumerable interfaces) per distinct value.
-			EmitInterfaceImplementations(code, compilation, methodGroup, loader, distinctUsings);
+			// EmitInterfaceImplementations(code, compilation, methodGroup, loader, distinctUsings);
 		}
 
 		EmitInterceptsLocationAttributeStub(code);
 
-		if (methodGroup.Key.Parent is TypeDeclarationSyntax declaringType && !methodGroup.SelectMany(s => s!.Exceptions).Any())
+		if (!methodGroup.SelectMany(s => s!.Exceptions).Any())
 		{
 			var result = String.Join("\n", distinctUsings
 				.Where(w => !String.IsNullOrWhiteSpace(w))
@@ -102,7 +98,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				.ThenBy(o => o)
 				.Select(s => $"using {s};")) + "\n\n" + code;
 
-			// spc.AddSource($"{declaringType.Identifier}_{methodGroup.Key.Identifier}.g.cs", result);
+			spc.AddSource($"{methodGroup.First().ParentType.Identifier}_{methodGroup.Key.Identifier}.g.cs", result);
 		}
 	}
 
@@ -112,7 +108,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 	{
 		var wroteFirstGroup = false;
 
-		foreach (var invocationsByValue in methodGroup.Where(w => w?.Location is not null).GroupBy(m => m.Value, ValueOrCollectionEqualityComparer<object?>.Instance))
+		foreach (var invocationsByValue in methodGroup.Where(w => w?.Location is not null).GroupBy(m => m.Method.Identifier.ValueText, StringComparer.CurrentCultureIgnoreCase))
 		{
 			if (wroteFirstGroup)
 			{
@@ -126,323 +122,325 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			{
 				code.WriteLine($"[InterceptsLocation({invocationModel.Location.Version}, {invocationModel.Location.Data})]");
 			}
+			
+			code.WriteLine(invocationsByValue.First().Method.ToFullString(), true);
 
-			var representativeInvocation = invocationsByValue.First();
-			var originalMethodSyntax = representativeInvocation.Method;
-			var valueHashSuffix = GetValueHashSuffix(representativeInvocation.Value);
-
-			var generatedMethodSyntax = originalMethodSyntax
-				.WithIdentifier(SyntaxFactory.Identifier($"{originalMethodSyntax.Identifier}_{valueHashSuffix}"));
-
-			// Adjust return type for array cases where we can use the specific runtime array type name.
-			generatedMethodSyntax = AdjustArrayReturnTypeIfNeeded(generatedMethodSyntax, representativeInvocation.Value, representativeInvocation.Symbol.ReturnType);
-
-			using (code.WriteBlock(generatedMethodSyntax))
-			{
-				if (compilation.IsInterface(originalMethodSyntax.ReturnType))
-				{
-					EmitInterfaceReturnBody(code, compilation, representativeInvocation, representativeInvocation.Value);
-				}
-				else if (TryGetLiteral(representativeInvocation.Value, out var literal))
-				{
-					code.WriteLine($"return {literal};");
-				}
-			}
+			// var representativeInvocation = invocationsByValue.First();
+			// var originalMethodSyntax = representativeInvocation.Method;
+			// var valueHashSuffix = GetValueHashSuffix(representativeInvocation.Value);
+			//
+			// var generatedMethodSyntax = originalMethodSyntax
+			// 	.WithIdentifier(SyntaxFactory.Identifier($"{originalMethodSyntax.Identifier}_{valueHashSuffix}"));
+			//
+			// // Adjust return type for array cases where we can use the specific runtime array type name.
+			// generatedMethodSyntax = AdjustArrayReturnTypeIfNeeded(generatedMethodSyntax, representativeInvocation.Value, representativeInvocation.Symbol.ReturnType);
+			//
+			// using (code.WriteBlock(generatedMethodSyntax))
+			// {
+			// 	if (compilation.IsInterface(originalMethodSyntax.ReturnType))
+			// 	{
+			// 		EmitInterfaceReturnBody(code, compilation, representativeInvocation, representativeInvocation.Value);
+			// 	}
+			// 	else if (TryGetLiteral(representativeInvocation.Value, out var literal))
+			// 	{
+			// 		code.WriteLine($"return {literal};");
+			// 	}
+			// }
 		}
 	}
 
-	private void EmitInterfaceImplementations(IndentedCodeWriter code, Compilation compilation, IEnumerable<InvocationModel?> methodGroup, MetadataLoader loader, ISet<string> usings)
-	{
-		// Only unique values.
-		foreach (var invocationModel in methodGroup.DistinctBy(d => d.Value))
-		{
-			var valueHashSuffix = GetValueHashSuffix(invocationModel.Value);
+	// private void EmitInterfaceImplementations(IndentedCodeWriter code, Compilation compilation, IEnumerable<InvocationModel?> methodGroup, MetadataLoader loader, ISet<string> usings)
+	// {
+	// 	// Only unique values.
+	// 	foreach (var invocationModel in methodGroup.DistinctBy(d => d.Value))
+	// 	{
+	// 		var valueHashSuffix = GetValueHashSuffix(invocationModel.Value);
+	//
+	// 		if (compilation.IsInterface(invocationModel.Method.ReturnType) && !IsIEnumerable(compilation, invocationModel.Method.ReturnType))
+	// 		{
+	// 			if (!TryGetInterfaceSymbol(compilation, invocationModel, out var namedTypeSymbol))
+	// 			{
+	// 				continue;
+	// 			}
+	//
+	// 			var elementType = namedTypeSymbol.TypeArguments.FirstOrDefault();
+	// 			var dataFieldName = $"{namedTypeSymbol.Name}_{valueHashSuffix}_Data";
+	// 			IEnumerable<string> interfaces = [compilation.GetMinimalString(namedTypeSymbol)];
+	//
+	// 			code.WriteLine();
+	//
+	// 			using (code.WriteBlock($"file sealed class {namedTypeSymbol.Name:literal}_{valueHashSuffix:literal} : {String.Join(", ", interfaces):literal}"))
+	// 			{
+	// 				code.WriteLine($"public static {namedTypeSymbol.Name:literal}_{valueHashSuffix:literal} Instance = new {namedTypeSymbol.Name:literal}_{valueHashSuffix:literal}();");
+	//
+	// 				if (invocationModel.Value is IEnumerable enumerable)
+	// 				{
+	// 					var resolvedElementType = elementType ?? enumerable
+	// 						.Cast<object?>()
+	// 						.Where(w => w is not null)
+	// 						.Select(s => compilation.GetTypeByType(s.GetType()))
+	// 						.First();
+	//
+	// 					EmitCollectionBackingField(code, invocationModel, resolvedElementType, dataFieldName, enumerable, usings);
+	// 					EmitInterfaceMemberImplementations(code, compilation, loader, invocationModel, namedTypeSymbol, resolvedElementType, dataFieldName, enumerable, usings);
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+	// }
 
-			if (compilation.IsInterface(invocationModel.Method.ReturnType) && !IsIEnumerable(compilation, invocationModel.Method.ReturnType))
-			{
-				if (!TryGetInterfaceSymbol(compilation, invocationModel, out var namedTypeSymbol))
-				{
-					continue;
-				}
+	// private static void EmitCollectionBackingField(IndentedCodeWriter code, InvocationModel invocationModel, ITypeSymbol elementType, string dataFieldName, IEnumerable enumerable, ISet<string> usings)
+	// {
+	// 	code.WriteLine();
+	//
+	// 	if (elementType is { } && invocationModel.Value is IEnumerable)
+	// 	{
+	// 		if (elementType.SpecialType == SpecialType.System_Char)
+	// 		{
+	// 			code.WriteLine($"public static ReadOnlySpan<{elementType}> {dataFieldName:literal} => \"{String.Join(String.Empty, enumerable.Cast<object?>()):literal}\";");
+	//
+	// 			usings.Add("System");
+	// 		}
+	// 		else if (elementType.IsVectorSupported())
+	// 		{
+	// 			code.WriteLine($"public static ReadOnlySpan<{elementType}> {dataFieldName:literal} => [{enumerable}];");
+	//
+	// 			usings.Add("System");
+	// 		}
+	// 		else
+	// 		{
+	// 			code.WriteLine($"public static {elementType}[] {dataFieldName:literal} = [{enumerable}];");
+	// 		}
+	// 	}
+	// }
 
-				var elementType = namedTypeSymbol.TypeArguments.FirstOrDefault();
-				var dataFieldName = $"{namedTypeSymbol.Name}_{valueHashSuffix}_Data";
-				IEnumerable<string> interfaces = [compilation.GetMinimalString(namedTypeSymbol)];
+	// private void EmitInterfaceMemberImplementations(IndentedCodeWriter code, Compilation compilation, MetadataLoader loader, InvocationModel invocationModel, INamedTypeSymbol interfaceType, ITypeSymbol elementType, string dataFieldName, IEnumerable enumerable, ISet<string> usings)
+	// {
+	// 	var items = enumerable
+	// 		.Cast<object?>()
+	// 		.ToImmutableArray();
+	//
+	// 	var members = interfaceType.AllInterfaces
+	// 		.Prepend(interfaceType)
+	// 		.SelectMany(s => s.GetMembers())
+	// 		.Distinct(SymbolEqualityComparer.Default)
+	// 		.OrderBy(o => o is not IPropertySymbol);
+	//
+	// 	var interfaceBuilder = new InterfaceBuilder(compilation, loader, elementType, invocationModel.GenerationLevel, dataFieldName, usings);
+	// 	var enumerableBuilder = new EnumerableBuilder(compilation, elementType, loader, invocationModel.GenerationLevel, dataFieldName, usings);
+	// 	var memoryExtensionsBuilder = new MemoryExtensionsBuilder(compilation, loader, elementType, invocationModel.GenerationLevel, dataFieldName, usings);
+	//
+	// 	foreach (var member in members)
+	// 	{
+	// 		if (TryWrite(code, member, items, enumerable, interfaceBuilder, enumerableBuilder, memoryExtensionsBuilder))
+	// 		{
+	// 			switch (member)
+	// 			{
+	// 				case IMethodSymbol methodSymbol:
+	// 					GetUsings(methodSymbol, usings);
+	// 					break;
+	// 				case IPropertySymbol propertySymbol:
+	// 					SetUsings(propertySymbol.Type, usings);
+	//
+	// 					foreach (var parameter in propertySymbol.Parameters)
+	// 					{
+	// 						SetUsings(parameter.Type, usings);
+	// 					}
+	// 					break;
+	// 			}
+	//
+	// 			continue;
+	// 		}
+	//
+	// 		if (!IsIEnumerableRecursive(interfaceType))
+	// 		{
+	// 			var descriptor = new DiagnosticDescriptor(
+	// 				"CEA006",
+	// 				"Unable to implement {0}",
+	// 				"Unable to implement {0}",
+	// 				"Usage",
+	// 				DiagnosticSeverity.Error,
+	// 				true);
+	//
+	// 			// We can't access SgfSourceProductionContext here; original behavior only reported when generation finished.
+	// 			// Intentionally left as originally designed – would need redesign to surface diagnostics here.
+	// 		}
+	// 	}
+	//
+	// 	if (IsIEnumerableRecursive(interfaceType))
+	// 	{
+	// 		usings.Add("System.Collections");
+	// 		usings.Add("System.Collections.Generic");
+	//
+	// 		code.WriteLine();
+	//
+	// 		// IEnumerator<T> implementation
+	// 		using (code.WriteBlock($"public IEnumerator<{elementType}> GetEnumerator()"))
+	// 		{
+	// 			if (items.IsEmpty)
+	// 			{
+	// 				code.WriteLine($"return Enumerable.Empty<{elementType}>().GetEnumerator();");
+	// 			}
+	// 			else if (elementType.IsVectorSupported())
+	// 			{
+	// 				using (code.WriteBlock($"for (var i = 0; i < {dataFieldName:literal}.Length; i++"))
+	// 				{
+	// 					code.WriteLine($"yield return {dataFieldName:literal}[i];");
+	// 				}
+	// 			}
+	// 			else
+	// 			{
+	// 				code.WriteLine($"return Array.AsReadOnly({dataFieldName:literal}).GetEnumerator();");
+	// 			}
+	// 		}
+	//
+	// 		code.WriteLine();
+	//
+	// 		using (code.WriteBlock($"IEnumerator IEnumerable.GetEnumerator()", "{", "}"))
+	// 		{
+	// 			code.WriteLine("return GetEnumerator();");
+	// 		}
+	// 	}
+	// }
 
-				code.WriteLine();
+	// private static MethodDeclarationSyntax AdjustArrayReturnTypeIfNeeded(MethodDeclarationSyntax methodSyntax, object? value, ITypeSymbol returnTypeSymbol)
+	// {
+	// 	if (returnTypeSymbol is IArrayTypeSymbol arraySymbol && value is Array runtimeArray)
+	// 	{
+	// 		var runtimeElementType = runtimeArray.GetType().GetElementType();
+	//
+	// 		if (runtimeElementType?.FullName == arraySymbol.ElementType.ToDisplayString() && runtimeArray.Rank == arraySymbol.Rank)
+	// 		{
+	// 			methodSyntax = methodSyntax.WithReturnType(
+	// 				SyntaxFactory.ParseTypeName(runtimeArray.GetType().Name)
+	// 					.WithTrailingTrivia(SyntaxFactory.ParseTrailingTrivia(" ")));
+	// 		}
+	// 	}
+	// 	return methodSyntax;
+	// }
 
-				using (code.WriteBlock($"file sealed class {namedTypeSymbol.Name:literal}_{valueHashSuffix:literal} : {String.Join(", ", interfaces):literal}"))
-				{
-					code.WriteLine($"public static {namedTypeSymbol.Name:literal}_{valueHashSuffix:literal} Instance = new {namedTypeSymbol.Name:literal}_{valueHashSuffix:literal}();");
-
-					if (invocationModel.Value is IEnumerable enumerable)
-					{
-						var resolvedElementType = elementType ?? enumerable
-							.Cast<object?>()
-							.Where(w => w is not null)
-							.Select(s => compilation.GetTypeByType(s.GetType()))
-							.First();
-
-						EmitCollectionBackingField(code, invocationModel, resolvedElementType, dataFieldName, enumerable, usings);
-						EmitInterfaceMemberImplementations(code, compilation, loader, invocationModel, namedTypeSymbol, resolvedElementType, dataFieldName, enumerable, usings);
-					}
-				}
-			}
-		}
-	}
-
-	private static void EmitCollectionBackingField(IndentedCodeWriter code, InvocationModel invocationModel, ITypeSymbol elementType, string dataFieldName, IEnumerable enumerable, ISet<string> usings)
-	{
-		code.WriteLine();
-
-		if (elementType is { } && invocationModel.Value is IEnumerable)
-		{
-			if (elementType.SpecialType == SpecialType.System_Char)
-			{
-				code.WriteLine($"public static ReadOnlySpan<{elementType}> {dataFieldName:literal} => \"{String.Join(String.Empty, enumerable.Cast<object?>()):literal}\";");
-
-				usings.Add("System");
-			}
-			else if (elementType.IsVectorSupported())
-			{
-				code.WriteLine($"public static ReadOnlySpan<{elementType}> {dataFieldName:literal} => [{enumerable}];");
-
-				usings.Add("System");
-			}
-			else
-			{
-				code.WriteLine($"public static {elementType}[] {dataFieldName:literal} = [{enumerable}];");
-			}
-		}
-	}
-
-	private void EmitInterfaceMemberImplementations(IndentedCodeWriter code, Compilation compilation, MetadataLoader loader, InvocationModel invocationModel, INamedTypeSymbol interfaceType, ITypeSymbol elementType, string dataFieldName, IEnumerable enumerable, ISet<string> usings)
-	{
-		var items = enumerable
-			.Cast<object?>()
-			.ToImmutableArray();
-
-		var members = interfaceType.AllInterfaces
-			.Prepend(interfaceType)
-			.SelectMany(s => s.GetMembers())
-			.Distinct(SymbolEqualityComparer.Default)
-			.OrderBy(o => o is not IPropertySymbol);
-
-		var interfaceBuilder = new InterfaceBuilder(compilation, loader, elementType, invocationModel.GenerationLevel, dataFieldName, usings);
-		var enumerableBuilder = new EnumerableBuilder(compilation, elementType, loader, invocationModel.GenerationLevel, dataFieldName, usings);
-		var memoryExtensionsBuilder = new MemoryExtensionsBuilder(compilation, loader, elementType, invocationModel.GenerationLevel, dataFieldName, usings);
-
-		foreach (var member in members)
-		{
-			if (TryWrite(code, member, items, enumerable, interfaceBuilder, enumerableBuilder, memoryExtensionsBuilder))
-			{
-				switch (member)
-				{
-					case IMethodSymbol methodSymbol:
-						GetUsings(methodSymbol, usings);
-						break;
-					case IPropertySymbol propertySymbol:
-						SetUsings(propertySymbol.Type, usings);
-
-						foreach (var parameter in propertySymbol.Parameters)
-						{
-							SetUsings(parameter.Type, usings);
-						}
-						break;
-				}
-
-				continue;
-			}
-
-			if (!IsIEnumerableRecursive(interfaceType))
-			{
-				var descriptor = new DiagnosticDescriptor(
-					"CEA006",
-					"Unable to implement {0}",
-					"Unable to implement {0}",
-					"Usage",
-					DiagnosticSeverity.Error,
-					true);
-
-				// We can't access SgfSourceProductionContext here; original behavior only reported when generation finished.
-				// Intentionally left as originally designed – would need redesign to surface diagnostics here.
-			}
-		}
-
-		if (IsIEnumerableRecursive(interfaceType))
-		{
-			usings.Add("System.Collections");
-			usings.Add("System.Collections.Generic");
-
-			code.WriteLine();
-
-			// IEnumerator<T> implementation
-			using (code.WriteBlock($"public IEnumerator<{elementType}> GetEnumerator()"))
-			{
-				if (items.IsEmpty)
-				{
-					code.WriteLine($"return Enumerable.Empty<{elementType}>().GetEnumerator();");
-				}
-				else if (elementType.IsVectorSupported())
-				{
-					using (code.WriteBlock($"for (var i = 0; i < {dataFieldName:literal}.Length; i++"))
-					{
-						code.WriteLine($"yield return {dataFieldName:literal}[i];");
-					}
-				}
-				else
-				{
-					code.WriteLine($"return Array.AsReadOnly({dataFieldName:literal}).GetEnumerator();");
-				}
-			}
-
-			code.WriteLine();
-
-			using (code.WriteBlock($"IEnumerator IEnumerable.GetEnumerator()", "{", "}"))
-			{
-				code.WriteLine("return GetEnumerator();");
-			}
-		}
-	}
-
-	private static MethodDeclarationSyntax AdjustArrayReturnTypeIfNeeded(MethodDeclarationSyntax methodSyntax, object? value, ITypeSymbol returnTypeSymbol)
-	{
-		if (returnTypeSymbol is IArrayTypeSymbol arraySymbol && value is Array runtimeArray)
-		{
-			var runtimeElementType = runtimeArray.GetType().GetElementType();
-
-			if (runtimeElementType?.FullName == arraySymbol.ElementType.ToDisplayString() && runtimeArray.Rank == arraySymbol.Rank)
-			{
-				methodSyntax = methodSyntax.WithReturnType(
-					SyntaxFactory.ParseTypeName(runtimeArray.GetType().Name)
-						.WithTrailingTrivia(SyntaxFactory.ParseTrailingTrivia(" ")));
-			}
-		}
-		return methodSyntax;
-	}
-
-	private static void EmitInterfaceReturnBody(IndentedCodeWriter code, Compilation compilation, InvocationModel representativeInvocation, object? value)
-	{
-		// IEnumerable optimized emission.
-		if ((IsIEnumerable(compilation, representativeInvocation.Method.ReturnType) || IsIAsyncEnumerable(compilation, representativeInvocation.Method.ReturnType)) && value is IEnumerable enumerable)
-		{
-			if (compilation.GetSemanticModel(representativeInvocation.Method.SyntaxTree).GetTypeInfo(representativeInvocation.Method.ReturnType).Type is not INamedTypeSymbol returnTypeInfo)
-			{
-				return;
-			}
-
-			if (compilation.TryGetIEnumerableType(returnTypeInfo, true, out var tempElementType) && tempElementType is INamedTypeSymbol resolvedElementType)
-			{
-				returnTypeInfo = resolvedElementType;
-			}
-
-			var data = enumerable.Cast<object?>().ToArray();
-
-			if (IsIAsyncEnumerable(returnTypeInfo))
-			{
-				if (returnTypeInfo.IsVectorSupported() && data.IsSequenceDifference(out var difference))
-				{
-					if (ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.LessThan, difference, 0.ToSpecialType(returnTypeInfo.SpecialType)) is true)
-					{
-						code.WriteLine($$"""
-							var start = {{data[0]}};
-
-							do
-							{
-								yield return start;
-								start -= {{difference.Abs(returnTypeInfo.SpecialType)}};
-							}
-							while (start >= {{data[^1]}});
-							""");
-					}
-					else
-					{
-						code.WriteLine($$"""
-							var start = {{data[0]}};
-
-							do
-							{
-								yield return start;
-								start += {{difference}};
-							}
-							while (start <= {{data[^1]}});
-							""");
-					}
-				}
-				else
-				{
-					foreach (var item in data)
-					{
-						code.WriteLine($"yield return {CreateLiteral(item)};");
-					}
-				}
-
-			}
-			else
-			{
-				if (data.Length == 1)
-				{
-					code.WriteLine($"return [{data[0]}];");
-				}
-				else if (data.IsSame(data.FirstOrDefault()))
-				{
-					code.WriteLine($"return Enumerable.Repeat({CreateLiteral(data.FirstOrDefault())}, {CreateLiteral(data.Length)});");
-				}
-				else if (data.IsNumericSequence() && compilation.IsSpecialType(returnTypeInfo, SpecialType.System_Int32))
-				{
-					code.WriteLine($"return Enumerable.Range({CreateLiteral(data[0])}, {CreateLiteral(data.Length)});");
-				}
-				else if (returnTypeInfo.IsVectorSupported() && data.IsSequenceDifference(out var difference))
-				{
-					if (compilation.GetTypeByName(typeof(Enumerable).FullName).HasMethod("Sequence"))
-					{
-						code.WriteLine($"return Enumerable.Sequence({CreateLiteral(data[0])}, {CreateLiteral(data[^1])}, {CreateLiteral(difference)});");
-					}
-					else
-					{
-						if (ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.LessThan, difference, 0.ToSpecialType(returnTypeInfo.SpecialType)) is true)
-						{
-							code.WriteLine($$"""
-								var start = {{data[0]}};
-
-								do
-								{
-									yield return start;
-									start -= {{difference.Abs(returnTypeInfo.SpecialType)}};
-								}
-								while (start >= {{data[^1]}});
-								""");
-						}
-						else
-						{
-							code.WriteLine($$"""
-								var start = {{data[0]}};
-
-								do
-								{
-									yield return start;
-									start += {{difference}};
-								}
-								while (start <= {{data[^1]}});
-								""");
-						}
-					}
-				}
-				else
-				{
-					foreach (var item in data)
-					{
-						code.WriteLine($"yield return {CreateLiteral(item)};");
-					}
-				}
-			}
-		}
-		else
-		{
-			var returnTypeName = representativeInvocation.Method.ReturnType is GenericNameSyntax g ? g.Identifier.Text : representativeInvocation.Method.ReturnType.ToString();
-			code.WriteLine($"return {returnTypeName:literal}_{GetValueHashSuffix(value):literal}.Instance;");
-		}
-	}
+// 	private static void EmitInterfaceReturnBody(IndentedCodeWriter code, Compilation compilation, InvocationModel representativeInvocation, object? value)
+// 	{
+// 		// IEnumerable optimized emission.
+// 		if ((IsIEnumerable(compilation, representativeInvocation.Method.ReturnType) || IsIAsyncEnumerable(compilation, representativeInvocation.Method.ReturnType)) && value is IEnumerable enumerable)
+// 		{
+// 			if (compilation.GetSemanticModel(representativeInvocation.Method.SyntaxTree).GetTypeInfo(representativeInvocation.Method.ReturnType).Type is not INamedTypeSymbol returnTypeInfo)
+// 			{
+// 				return;
+// 			}
+//
+// 			if (compilation.TryGetIEnumerableType(returnTypeInfo, true, out var tempElementType) && tempElementType is INamedTypeSymbol resolvedElementType)
+// 			{
+// 				returnTypeInfo = resolvedElementType;
+// 			}
+//
+// 			var data = enumerable.Cast<object?>().ToArray();
+//
+// 			if (IsIAsyncEnumerable(returnTypeInfo))
+// 			{
+// 				if (returnTypeInfo.IsVectorSupported() && data.IsSequenceDifference(out var difference))
+// 				{
+// 					if (ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.LessThan, difference, 0.ToSpecialType(returnTypeInfo.SpecialType)) is true)
+// 					{
+// 						code.WriteLine($$"""
+// 							var start = {{data[0]}};
+//
+// 							do
+// 							{
+// 								yield return start;
+// 								start -= {{difference.Abs(returnTypeInfo.SpecialType)}};
+// 							}
+// 							while (start >= {{data[^1]}});
+// 							""");
+// 					}
+// 					else
+// 					{
+// 						code.WriteLine($$"""
+// 							var start = {{data[0]}};
+//
+// 							do
+// 							{
+// 								yield return start;
+// 								start += {{difference}};
+// 							}
+// 							while (start <= {{data[^1]}});
+// 							""");
+// 					}
+// 				}
+// 				else
+// 				{
+// 					foreach (var item in data)
+// 					{
+// 						code.WriteLine($"yield return {CreateLiteral(item)};");
+// 					}
+// 				}
+//
+// 			}
+// 			else
+// 			{
+// 				if (data.Length == 1)
+// 				{
+// 					code.WriteLine($"return [{data[0]}];");
+// 				}
+// 				else if (data.IsSame(data.FirstOrDefault()))
+// 				{
+// 					code.WriteLine($"return Enumerable.Repeat({CreateLiteral(data.FirstOrDefault())}, {CreateLiteral(data.Length)});");
+// 				}
+// 				else if (data.IsNumericSequence() && compilation.IsSpecialType(returnTypeInfo, SpecialType.System_Int32))
+// 				{
+// 					code.WriteLine($"return Enumerable.Range({CreateLiteral(data[0])}, {CreateLiteral(data.Length)});");
+// 				}
+// 				else if (returnTypeInfo.IsVectorSupported() && data.IsSequenceDifference(out var difference))
+// 				{
+// 					if (compilation.GetTypeByName(typeof(Enumerable).FullName).HasMethod("Sequence"))
+// 					{
+// 						code.WriteLine($"return Enumerable.Sequence({CreateLiteral(data[0])}, {CreateLiteral(data[^1])}, {CreateLiteral(difference)});");
+// 					}
+// 					else
+// 					{
+// 						if (ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.LessThan, difference, 0.ToSpecialType(returnTypeInfo.SpecialType)) is true)
+// 						{
+// 							code.WriteLine($$"""
+// 								var start = {{data[0]}};
+//
+// 								do
+// 								{
+// 									yield return start;
+// 									start -= {{difference.Abs(returnTypeInfo.SpecialType)}};
+// 								}
+// 								while (start >= {{data[^1]}});
+// 								""");
+// 						}
+// 						else
+// 						{
+// 							code.WriteLine($$"""
+// 								var start = {{data[0]}};
+//
+// 								do
+// 								{
+// 									yield return start;
+// 									start += {{difference}};
+// 								}
+// 								while (start <= {{data[^1]}});
+// 								""");
+// 						}
+// 					}
+// 				}
+// 				else
+// 				{
+// 					foreach (var item in data)
+// 					{
+// 						code.WriteLine($"yield return {CreateLiteral(item)};");
+// 					}
+// 				}
+// 			}
+// 		}
+// 		else
+// 		{
+// 			var returnTypeName = representativeInvocation.Method.ReturnType is GenericNameSyntax g ? g.Identifier.Text : representativeInvocation.Method.ReturnType.ToString();
+// 			code.WriteLine($"return {returnTypeName:literal}_{GetValueHashSuffix(value):literal}.Instance;");
+// 		}
+// 	}
 
 	private static void EmitInterceptsLocationAttributeStub(IndentedCodeWriter code)
 	{
@@ -465,58 +463,58 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 	#endregion
 
-	private static string GetValueHashSuffix(object? value)
-	{
-		var hash = ValueOrCollectionEqualityComparer<object?>.Instance.GetHashCode(value);
-		var bytes = BitConverter.GetBytes(hash);
-		var b64 = Convert.ToBase64String(bytes);
+	// private static string GetValueHashSuffix(object? value)
+	// {
+	// 	var hash = ValueOrCollectionEqualityComparer<object?>.Instance.GetHashCode(value);
+	// 	var bytes = BitConverter.GetBytes(hash);
+	// 	var b64 = Convert.ToBase64String(bytes);
+	//
+	// 	// Sanitize to identifier-safe characters and ensure it doesn't start with a digit
+	// 	b64 = b64.Replace('+', '_').Replace('/', '_').Replace("=", String.Empty);
+	//
+	// 	return b64;
+	//
+	// 	// Build a content-aware hash for collections; otherwise use value.GetHashCode()
+	// 	int ComputeContentHash(object? obj)
+	// 	{
+	// 		if (obj is null)
+	// 		{
+	// 			return 0;
+	// 		}
+	//
+	// 		// Strings as scalar values
+	// 		if (obj is string s)
+	// 		{
+	// 			return s.GetHashCode();
+	// 		}
+	//
+	// 		// Collections: fold element hashes recursively
+	// 		if (obj is IEnumerable enumerable)
+	// 		{
+	// 			unchecked
+	// 			{
+	// 				var hash = 19;
+	//
+	// 				foreach (var item in enumerable)
+	// 				{
+	// 					hash = hash * 31 + ComputeContentHash(item);
+	// 				}
+	//
+	// 				return hash;
+	// 			}
+	// 		}
+	//
+	// 		// Fallback: object hash
+	// 		return obj.GetHashCode();
+	// 	}
+	// }
 
-		// Sanitize to identifier-safe characters and ensure it doesn't start with a digit
-		b64 = b64.Replace('+', '_').Replace('/', '_').Replace("=", String.Empty);
-
-		return b64;
-
-		// Build a content-aware hash for collections; otherwise use value.GetHashCode()
-		int ComputeContentHash(object? obj)
-		{
-			if (obj is null)
-			{
-				return 0;
-			}
-
-			// Strings as scalar values
-			if (obj is string s)
-			{
-				return s.GetHashCode();
-			}
-
-			// Collections: fold element hashes recursively
-			if (obj is IEnumerable enumerable)
-			{
-				unchecked
-				{
-					var hash = 19;
-
-					foreach (var item in enumerable)
-					{
-						hash = hash * 31 + ComputeContentHash(item);
-					}
-
-					return hash;
-				}
-			}
-
-			// Fallback: object hash
-			return obj.GetHashCode();
-		}
-	}
-
-	private static bool TryGetInterfaceSymbol(Compilation compilation, InvocationModel invocationModel, out INamedTypeSymbol? namedTypeSymbol)
-	{
-		var returnType = compilation.GetSemanticModel(invocationModel.Method.SyntaxTree).GetTypeInfo(invocationModel.Method.ReturnType).Type;
-		namedTypeSymbol = returnType as INamedTypeSymbol;
-		return namedTypeSymbol != null;
-	}
+	// private static bool TryGetInterfaceSymbol(Compilation compilation, InvocationModel invocationModel, out INamedTypeSymbol? namedTypeSymbol)
+	// {
+	// 	var returnType = compilation.GetSemanticModel(invocationModel.Method.SyntaxTree).GetTypeInfo(invocationModel.Method.ReturnType).Type;
+	// 	namedTypeSymbol = returnType as INamedTypeSymbol;
+	// 	return namedTypeSymbol != null;
+	// }
 
 	private InvocationModel? GenerateSource(GeneratorSyntaxContext context, CancellationToken token)
 	{
@@ -590,7 +588,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				// visitor.VisitBlock(blockOperation.BlockBody!, variables);
 
 				var result = partialVisitor.VisitBlock(methodDecl.Body); // partialVisitor.VisitBlock(blockOperation.BlockBody!, variablesPartial);
-				var result2 = new PruneVariableRewriter(variablesPartial).Visit(result)!;
+				var result2 = new PruneVariableRewriter(model, loader, variablesPartial).Visit(result)!;
 
 				// Format using Roslyn formatter instead of NormalizeWhitespace
 				var text = FormattingHelper.Render(methodDecl.WithBody((BlockSyntax)result));
@@ -602,17 +600,18 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 				GetUsings(methodSymbol, usings);
 
-				//return new InvocationModel
-				//{
-				//	Usings = usings,
-				//	Method = methodDecl,
-				//	Symbol = methodSymbol,
-				//	Invocation = invocation,
-				//	Value = variables[ConstExprOperationVisitor.RETURNVARIABLENAME],
-				//	Location = model.GetInterceptableLocation(invocation, token),
-				//	Exceptions = exceptions,
-				//	GenerationLevel = level,
-				//};
+				return new InvocationModel
+				{
+					Usings = usings,
+					OriginalMethod = methodDecl,
+					Method = FormattingHelper.Format(methodDecl
+						.WithIdentifier(SyntaxFactory.Identifier($"{methodDecl.Identifier.Text}_{result2.GetDeterministicHash()}").WithLeadingTrivia(methodDecl.Identifier.LeadingTrivia).WithTrailingTrivia(methodDecl.Identifier.TrailingTrivia))
+						.WithBody((BlockSyntax) result2)) as MethodDeclarationSyntax,
+					ParentType = methodDecl.Parent as TypeDeclarationSyntax,
+					Invocation = invocation,
+					Location = context.SemanticModel.GetInterceptableLocation(invocation, token),
+					Exceptions = exceptions,
+				};
 			}
 		}
 		catch (Exception e)
@@ -620,15 +619,17 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			Logger.Error(e, $"Error processing {invocation}: {e.Message}");
 		}
 
-		return new InvocationModel
-		{
-			Method = methodDecl,
-			Symbol = methodSymbol,
-			Invocation = invocation,
-			// Location = model.GetInterceptableLocation(invocation, token),
-			Exceptions = exceptions,
-			GenerationLevel = level,
-		};
+		return null;
+
+		// return new InvocationModel
+		// {
+		// 	Method = methodDecl,
+		// 	// Symbol = methodSymbol,
+		// 	Invocation = invocation,
+		// 	// Location = model.GetInterceptableLocation(invocation, token),
+		// 	Exceptions = exceptions,
+		// 	// GenerationLevel = level,
+		// };
 	}
 
 	public static Dictionary<string, VariableItem> ProcessArguments(ConstExprOperationVisitor visitor, SemanticModel model, InvocationExpressionSyntax invocation, MetadataLoader loader, CancellationToken token)
@@ -668,7 +669,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 		foreach (var (parameter, argument) in methodSymbol.TypeParameters.Zip(methodSymbol.TypeArguments, (x, y) => (x, y)))
 		{
-			variables.Add(parameter.Name, new VariableItem(argument, true, loader.GetType(argument), true));
+			variables.Add($"#{parameter.Name}", new VariableItem(argument, true, loader.GetType(argument), true));
 		}
 
 		return variables;
@@ -771,76 +772,76 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		}
 	}
 
-	private static bool TryWrite(IndentedCodeWriter? code, ISymbol symbol, ImmutableArray<object?> items, IEnumerable enumerable, InterfaceBuilder interfaceBuilder, EnumerableBuilder enumerableBuilder, MemoryExtensionsBuilder memoryExtensionsBuilder)
-	{
-		switch (symbol)
-		{
-			case IPropertySymbol property
-				when interfaceBuilder.AppendCount(property, items.Length, code)
-						 || interfaceBuilder.AppendLength(property, items.Length, code)
-						 || interfaceBuilder.AppendIsReadOnly(property, code)
-						 || interfaceBuilder.AppendIndexer(property, items, code):
-			case IMethodSymbol method
-				when interfaceBuilder.AppendAdd(method, code)
-						 || interfaceBuilder.AppendClear(method, code)
-						 || interfaceBuilder.AppendRemove(method, code)
-						 || interfaceBuilder.AppendRemoveAt(method, code)
-						 || interfaceBuilder.AppendInsert(method, code)
-						 || interfaceBuilder.AppendIndexOf(method, items, code)
-						 || interfaceBuilder.AppendCopyTo(method, items, code)
-						 || interfaceBuilder.AppendContains(method, items, code)
-						 || interfaceBuilder.AppendCopyTo(method, items, code)
-						 || interfaceBuilder.AppendOverlaps(method, items, code)
-						 || enumerableBuilder.AppendAll(method, items, code)
-						 || enumerableBuilder.AppendAggregate(method, items, code)
-						 || enumerableBuilder.AppendAny(method, items, code)
-						 || enumerableBuilder.AppendAverage(method, items, code)
-						 || enumerableBuilder.AppendCount(method, items, code)
-						 || enumerableBuilder.AppendDistinct(method, items, code)
-						 || enumerableBuilder.AppendDistinctBy(method, items, code)
-						 || enumerableBuilder.AppendElementAt(method, items, code)
-						 || enumerableBuilder.AppendElementAtOrDefault(method, items, code)
-						 || enumerableBuilder.AppendFirst(method, items, code)
-						 || enumerableBuilder.AppendFirstOrDefault(method, items, code)
-						 || enumerableBuilder.AppendLast(method, items, code)
-						 || enumerableBuilder.AppendLastOrDefault(method, items, code)
-						 || enumerableBuilder.AppendOrder(method, items, code)
-						 || enumerableBuilder.AppendOrderDescending(method, items, code)
-						 || enumerableBuilder.AppendSelect(method, items, code)
-						 || enumerableBuilder.AppendSequenceEqual(method, items, code)
-						 || enumerableBuilder.AppendSingle(method, items, code)
-						 || enumerableBuilder.AppendSingleOrDefault(method, items, code)
-						 || enumerableBuilder.AppendSum(method, items, code)
-						 || enumerableBuilder.AppendWhere(method, items, code)
-						 || enumerableBuilder.AppendToArray(method, items, code)
-						 || enumerableBuilder.AppendToImmutableArray(method, items, code)
-						 || enumerableBuilder.AppendToList(method, items, code)
-						 || enumerableBuilder.AppendImmutableList(method, items, code)
-						 || enumerableBuilder.AppendToHashSet(method, items, code)
-						 || enumerableBuilder.AppendMax(method, items, code)
-						 || enumerableBuilder.AppendMin(method, items, code)
-						 || enumerableBuilder.AppendSkip(method, items, code)
-						 || enumerableBuilder.AppendTake(method, items, code)
-						 || enumerableBuilder.AppendCountBy(method, items, code)
-						 || enumerableBuilder.AppendZip(method, items, code)
-						 || enumerableBuilder.AppendChunk(method, items, code)
-						 || enumerableBuilder.AppendExcept(method, items, code)
-						 || enumerableBuilder.AppendExceptBy(method, items, code)
-						 || memoryExtensionsBuilder.AppendBinarySearch(method, items, code)
-						 || memoryExtensionsBuilder.AppendCommonPrefixLength(method, items, code)
-						 || memoryExtensionsBuilder.AppendContainsAny(method, items, code)
-						 || memoryExtensionsBuilder.AppendContainsAnyInRange(method, items, code)
-						 || memoryExtensionsBuilder.AppendCount(method, items, code)
-						 || memoryExtensionsBuilder.AppendEndsWith(method, items, code)
-						 || memoryExtensionsBuilder.AppendEnumerateLines(method, enumerable as string, code)
-						 || memoryExtensionsBuilder.AppendEnumerableRunes(method, enumerable as string, code)
-						 || memoryExtensionsBuilder.AppendIsWhiteSpace(method, enumerable as string, code)
-						 || memoryExtensionsBuilder.AppendReplace(method, items, code):
-				return true;
-			default:
-				return false;
-		}
-	}
+	// private static bool TryWrite(IndentedCodeWriter? code, ISymbol symbol, ImmutableArray<object?> items, IEnumerable enumerable, InterfaceBuilder interfaceBuilder, EnumerableBuilder enumerableBuilder, MemoryExtensionsBuilder memoryExtensionsBuilder)
+	// {
+	// 	switch (symbol)
+	// 	{
+	// 		case IPropertySymbol property
+	// 			when interfaceBuilder.AppendCount(property, items.Length, code)
+	// 					 || interfaceBuilder.AppendLength(property, items.Length, code)
+	// 					 || interfaceBuilder.AppendIsReadOnly(property, code)
+	// 					 || interfaceBuilder.AppendIndexer(property, items, code):
+	// 		case IMethodSymbol method
+	// 			when interfaceBuilder.AppendAdd(method, code)
+	// 					 || interfaceBuilder.AppendClear(method, code)
+	// 					 || interfaceBuilder.AppendRemove(method, code)
+	// 					 || interfaceBuilder.AppendRemoveAt(method, code)
+	// 					 || interfaceBuilder.AppendInsert(method, code)
+	// 					 || interfaceBuilder.AppendIndexOf(method, items, code)
+	// 					 || interfaceBuilder.AppendCopyTo(method, items, code)
+	// 					 || interfaceBuilder.AppendContains(method, items, code)
+	// 					 || interfaceBuilder.AppendCopyTo(method, items, code)
+	// 					 || interfaceBuilder.AppendOverlaps(method, items, code)
+	// 					 || enumerableBuilder.AppendAll(method, items, code)
+	// 					 || enumerableBuilder.AppendAggregate(method, items, code)
+	// 					 || enumerableBuilder.AppendAny(method, items, code)
+	// 					 || enumerableBuilder.AppendAverage(method, items, code)
+	// 					 || enumerableBuilder.AppendCount(method, items, code)
+	// 					 || enumerableBuilder.AppendDistinct(method, items, code)
+	// 					 || enumerableBuilder.AppendDistinctBy(method, items, code)
+	// 					 || enumerableBuilder.AppendElementAt(method, items, code)
+	// 					 || enumerableBuilder.AppendElementAtOrDefault(method, items, code)
+	// 					 || enumerableBuilder.AppendFirst(method, items, code)
+	// 					 || enumerableBuilder.AppendFirstOrDefault(method, items, code)
+	// 					 || enumerableBuilder.AppendLast(method, items, code)
+	// 					 || enumerableBuilder.AppendLastOrDefault(method, items, code)
+	// 					 || enumerableBuilder.AppendOrder(method, items, code)
+	// 					 || enumerableBuilder.AppendOrderDescending(method, items, code)
+	// 					 || enumerableBuilder.AppendSelect(method, items, code)
+	// 					 || enumerableBuilder.AppendSequenceEqual(method, items, code)
+	// 					 || enumerableBuilder.AppendSingle(method, items, code)
+	// 					 || enumerableBuilder.AppendSingleOrDefault(method, items, code)
+	// 					 || enumerableBuilder.AppendSum(method, items, code)
+	// 					 || enumerableBuilder.AppendWhere(method, items, code)
+	// 					 || enumerableBuilder.AppendToArray(method, items, code)
+	// 					 || enumerableBuilder.AppendToImmutableArray(method, items, code)
+	// 					 || enumerableBuilder.AppendToList(method, items, code)
+	// 					 || enumerableBuilder.AppendImmutableList(method, items, code)
+	// 					 || enumerableBuilder.AppendToHashSet(method, items, code)
+	// 					 || enumerableBuilder.AppendMax(method, items, code)
+	// 					 || enumerableBuilder.AppendMin(method, items, code)
+	// 					 || enumerableBuilder.AppendSkip(method, items, code)
+	// 					 || enumerableBuilder.AppendTake(method, items, code)
+	// 					 || enumerableBuilder.AppendCountBy(method, items, code)
+	// 					 || enumerableBuilder.AppendZip(method, items, code)
+	// 					 || enumerableBuilder.AppendChunk(method, items, code)
+	// 					 || enumerableBuilder.AppendExcept(method, items, code)
+	// 					 || enumerableBuilder.AppendExceptBy(method, items, code)
+	// 					 || memoryExtensionsBuilder.AppendBinarySearch(method, items, code)
+	// 					 || memoryExtensionsBuilder.AppendCommonPrefixLength(method, items, code)
+	// 					 || memoryExtensionsBuilder.AppendContainsAny(method, items, code)
+	// 					 || memoryExtensionsBuilder.AppendContainsAnyInRange(method, items, code)
+	// 					 || memoryExtensionsBuilder.AppendCount(method, items, code)
+	// 					 || memoryExtensionsBuilder.AppendEndsWith(method, items, code)
+	// 					 || memoryExtensionsBuilder.AppendEnumerateLines(method, enumerable as string, code)
+	// 					 || memoryExtensionsBuilder.AppendEnumerableRunes(method, enumerable as string, code)
+	// 					 || memoryExtensionsBuilder.AppendIsWhiteSpace(method, enumerable as string, code)
+	// 					 || memoryExtensionsBuilder.AppendReplace(method, items, code):
+	// 			return true;
+	// 		default:
+	// 			return false;
+	// 	}
+	// }
 }
 
 #pragma warning restore RSEXPERIMENTAL002
