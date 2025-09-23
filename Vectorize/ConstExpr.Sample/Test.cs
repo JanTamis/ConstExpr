@@ -41,7 +41,7 @@ public static class Test
 			return false;
 		}
 
-		var sqrt = (int)Math.Sqrt(number);
+		var sqrt = (int) Math.Sqrt(number);
 
 		for (var i = 3; i <= sqrt; i += 2)
 		{
@@ -83,7 +83,7 @@ public static class Test
 
 	public static ICharCollection Base64Encode(string value)
 	{
-		return (ICharCollection)(object)Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
+		return (ICharCollection) (object) Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
 	}
 
 	public async static Task<string> Waiting()
@@ -100,15 +100,15 @@ public static class Test
 
 		for (var i = 0; i < count; i++)
 		{
-			result.Add((byte)random.Next(5));
+			result.Add((byte) random.Next(5));
 		}
 
-		return result;  // result.OrderBy(o => o).ToList();
+		return result; // result.OrderBy(o => o).ToList();
 	}
 
 	public static IReadOnlyList<string> Split(string value, char separator)
 	{
-		return value.Split([separator], StringSplitOptions.TrimEntries);
+		return value.Split([ separator ], StringSplitOptions.TrimEntries);
 	}
 
 	public static string ToString<T>(this T value) where T : Enum
@@ -234,7 +234,7 @@ public static class Test
 
 		if (s == 0f)
 		{
-			var vGray = (byte)Math.Round(l * 255f);
+			var vGray = (byte) Math.Round(l * 255f);
 			return (vGray, vGray, vGray);
 		}
 
@@ -279,9 +279,9 @@ public static class Test
 		}
 
 		var m = l - c / 2f;
-		var r = (byte)Math.Round((r1 + m) * 255f);
-		var g = (byte)Math.Round((g1 + m) * 255f);
-		var b = (byte)Math.Round((b1 + m) * 255f);
+		var r = (byte) Math.Round((r1 + m) * 255f);
+		var g = (byte) Math.Round((g1 + m) * 255f);
+		var b = (byte) Math.Round((b1 + m) * 255f);
 		return (r, g, b);
 	}
 
@@ -365,6 +365,57 @@ public static class Test
 		var s = delta == 0 ? 0 : delta / (1 - Math.Abs(2 * l - 1));
 
 		return (h, s, l);
+	}
+
+	public static (byte r, byte g, byte b) BlendRgb(byte rDst, byte gDst, byte bDst,
+	                                                byte rSrc, byte gSrc, byte bSrc,
+	                                                float alpha, bool gammaCorrect = true)
+	{
+		alpha = Clamp01(alpha);
+
+		if (gammaCorrect)
+		{
+			static float ToLinear(byte c)
+			{
+				var cs = c / 255f;
+				return cs <= 0.04045f ? cs / 12.92f : MathF.Pow((cs + 0.055f) / 1.055f, 2.4f);
+			}
+
+			static byte ToSrgbByte(float l)
+			{
+				if (l <= 0f) return 0;
+				if (l >= 1f) return 255;
+				var cs = l <= 0.0031308f ? 12.92f * l : 1.055f * MathF.Pow(l, 1f / 2.4f) - 0.055f;
+				return (byte) Math.Round(MathF.Max(0f, MathF.Min(1f, cs)) * 255f);
+			}
+
+			var lrDst = ToLinear(rDst);
+			var lgDst = ToLinear(gDst);
+			var lbDst = ToLinear(bDst);
+
+			var lrSrc = ToLinear(rSrc);
+			var lgSrc = ToLinear(gSrc);
+			var lbSrc = ToLinear(bSrc);
+
+			var lr = alpha * lrSrc + (1f - alpha) * lrDst;
+			var lg = alpha * lgSrc + (1f - alpha) * lgDst;
+			var lb = alpha * lbSrc + (1f - alpha) * lbDst;
+
+			return (ToSrgbByte(lr), ToSrgbByte(lg), ToSrgbByte(lb));
+		}
+
+		static byte LerpByte(byte a, byte b, float t)
+		{
+			var fa = a / 255f;
+			var fb = b / 255f;
+			var fr = t * fb + (1f - t) * fa;
+			return (byte) Math.Round(MathF.Max(0f, MathF.Min(1f, fr)) * 255f);
+		}
+
+		var r = LerpByte(rDst, rSrc, alpha);
+		var g = LerpByte(gDst, gSrc, alpha);
+		var b = LerpByte(bDst, bSrc, alpha);
+		return (r, g, b);
 	}
 
 	public static string InterpolationTest(string name, int age, double height)

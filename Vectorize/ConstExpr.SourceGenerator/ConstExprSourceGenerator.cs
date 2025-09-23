@@ -1,4 +1,3 @@
-using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Rewriters;
@@ -18,6 +17,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using ConstExpr.Core.Attributes;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 
 [assembly: InternalsVisibleTo("ConstExpr.Tests")]
@@ -98,7 +98,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				.ThenBy(o => o)
 				.Select(s => $"using {s};")) + "\n\n" + code;
 
-			spc.AddSource($"{methodGroup.First().ParentType.Identifier}_{methodGroup.Key.Identifier}.g.cs", result);
+			// spc.AddSource($"{methodGroup.First().ParentType.Identifier}_{methodGroup.Key.Identifier}.g.cs", result);
 		}
 	}
 
@@ -533,21 +533,16 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		if (attribute is not null && !IsInConstExprBody(context.SemanticModel.Compilation, invocation))
 		{
 			var loader = MetadataLoader.GetLoader(context.SemanticModel.Compilation);
+			var data = attribute.ToAttribute<ConstExprAttribute>(loader);
 
-			var level = attribute.NamedArguments
-				.Where(w => w.Key == "Level")
-				.Select(s => (GenerationLevel)s.Value.Value)
-				.DefaultIfEmpty(GenerationLevel.Balanced)
-				.FirstOrDefault();
-
-			return GenerateExpression(context, loader, invocation, methodSymbol, level, token);
+			return GenerateExpression(context, loader, invocation, methodSymbol, data, token);
 		}
 
 		return null;
 	}
 
 	private InvocationModel? GenerateExpression(GeneratorSyntaxContext context, MetadataLoader loader, InvocationExpressionSyntax invocation,
-																							IMethodSymbol methodSymbol, GenerationLevel level, CancellationToken token)
+																							IMethodSymbol methodSymbol, ConstExprAttribute attribute, CancellationToken token)
 	{
 		var methodDecl = GetMethodSyntaxNode(methodSymbol);
 
@@ -566,8 +561,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		try
 		{
 			if ( //exceptions.IsEmpty
-					TryGetOperation<IMethodBodyOperation>(context.SemanticModel.Compilation, methodDecl, out var blockOperation)
-					&& context.SemanticModel.Compilation.TryGetSemanticModel(methodDecl, out var model))
+					context.SemanticModel.Compilation.TryGetSemanticModel(methodDecl, out var model))
 			{
 				// var variables = ProcessArguments(visitor, context.SemanticModel.Compilation, invocation, loader, token);
 				var variablesPartial = ProcessArguments(visitor, context.SemanticModel, invocation, loader, token);
@@ -575,7 +569,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				var partialVisitor = new ConstExprPartialRewriter(model, loader, (node, ex) =>
 				{
 					exceptions.TryAdd(node, ex);
-				}, variablesPartial, token);
+				}, variablesPartial, attribute, token);
 
 				var usings = new HashSet<string?>
 				{

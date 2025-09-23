@@ -317,9 +317,9 @@ public static class ObjectExtensions
 		uint ui => ui == 0,
 		long l => l == 0,
 		ulong ul => ul == 0,
-		float f => f == 0f,
-		double d => d == 0d,
-		decimal m => m == 0m,
+		float f => f is 0f or -0f,
+		double d => d is 0d or -0d,
+		decimal m => m is 0m or -0m,
 		_ => false
 	};
 

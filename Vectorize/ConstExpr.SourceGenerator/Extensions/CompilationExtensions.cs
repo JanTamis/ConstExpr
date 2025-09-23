@@ -1157,4 +1157,47 @@ public static class CompilationExtensions
 		
 		return Convert.ToBase64String(BitConverter.GetBytes(normalized)).TrimEnd('=').Replace('+', '_').Replace('/', '_');
 	}
+	
+	public static TAttribute ToAttribute<TAttribute>(this AttributeData attributeData, MetadataLoader loader)
+		where TAttribute : Attribute
+	{
+		var type = loader.GetType(attributeData.AttributeClass);
+
+		if (type == null)
+		{
+			throw new InvalidOperationException($"Type '{attributeData.AttributeClass?.ToDisplayString()}' not found.");
+		}
+
+		var constructorArgs = attributeData.ConstructorArguments
+			.Select(a => a.Value)
+			.ToArray();
+
+		var attribute = (TAttribute?) Activator.CreateInstance(type, constructorArgs);
+
+		if (attribute == null)
+		{
+			throw new InvalidOperationException($"Could not create instance of '{type.FullName}'.");
+		}
+
+		foreach (var namedArg in attributeData.NamedArguments)
+		{
+			var property = type.GetProperty(namedArg.Key, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+
+			if (property != null && property.CanWrite)
+			{
+				property.SetValue(attribute, namedArg.Value.Value);
+			}
+			else
+			{
+				var field = type.GetField(namedArg.Key, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+
+				if (field != null)
+				{
+					field.SetValue(attribute, namedArg.Value.Value);
+				}
+			}
+		}
+
+		return attribute;
+	}
 }

@@ -12,12 +12,13 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
+using ConstExpr.Core.Attributes;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Rewriters;
 
-public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoader loader, Action<SyntaxNode?, Exception> exceptionHandler, IDictionary<string, VariableItem> variables, CancellationToken token) : BaseRewriter(semanticModel, loader, variables)
+public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoader loader, Action<SyntaxNode?, Exception> exceptionHandler, IDictionary<string, VariableItem> variables, ConstExprAttribute attribute, CancellationToken token) : BaseRewriter(semanticModel, loader, variables)
 {
 	[return: NotNullIfNotNull(nameof(node))]
 	public override SyntaxNode? Visit(SyntaxNode? node)
@@ -31,6 +32,16 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 			exceptionHandler(node, e);
 			return node;
 		}
+	}
+
+	public override SyntaxNode? VisitLocalFunctionStatement(LocalFunctionStatementSyntax node)
+	{
+		if (node.Modifiers.Any(a => a.IsKind(SyntaxKind.StaticKeyword)))
+		{
+			
+		}
+
+		return node;
 	}
 
 	public override SyntaxNode? VisitIdentifierName(IdentifierNameSyntax node)
@@ -146,7 +157,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 								if (hasLeftValue && leftValue.IsNumericOne()) return rightExpr;
 
 								// x * 0 => 0 and 0 * x => 0 (only for non-floating numeric types to avoid NaN/-0.0 semantics)
-								var nonFloating = IsNonFloatingNumeric(operation.LeftOperand.Type) && IsNonFloatingNumeric(operation.RightOperand.Type);
+								var nonFloating = !attribute.IEEE754Compliant || (IsNonFloatingNumeric(operation.LeftOperand.Type) && IsNonFloatingNumeric(operation.RightOperand.Type));
 
 								if (nonFloating && hasRightValue && rightValue.IsNumericZero())
 								{
