@@ -3,7 +3,6 @@ using ConstExpr.SourceGenerator.Helpers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Newtonsoft.Json.Linq;
 using SourceGen.Utilities.Extensions;
 using System;
 using System.Collections.Generic;
@@ -11,8 +10,6 @@ using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading;
 
 namespace ConstExpr.SourceGenerator.Extensions;
@@ -112,32 +109,32 @@ public static class CompilationExtensions
 	public static bool IsSpanLikeType(this Compilation compilation, ITypeSymbol typeSymbol, ITypeSymbol elementType)
 	{
 		return typeSymbol is INamedTypeSymbol { Arity: 1 } namedTypeSymbol
-		       && namedTypeSymbol.ContainingNamespace.ToString() == "System"
-		       && namedTypeSymbol.Name is "Span" or "ReadOnlySpan"
-		       && SymbolEqualityComparer.Default.Equals(namedTypeSymbol.TypeArguments[0], elementType);
+					 && namedTypeSymbol.ContainingNamespace.ToString() == "System"
+					 && namedTypeSymbol.Name is "Span" or "ReadOnlySpan"
+					 && SymbolEqualityComparer.Default.Equals(namedTypeSymbol.TypeArguments[0], elementType);
 	}
 
 	public static bool IsSpanType(this Compilation compilation, ITypeSymbol typeSymbol, ITypeSymbol elementType)
 	{
 		return typeSymbol is INamedTypeSymbol { Arity: 1 } namedTypeSymbol
-		       && namedTypeSymbol.ContainingNamespace.ToString() == "System"
-		       && namedTypeSymbol.Name is "Span"
-		       && SymbolEqualityComparer.Default.Equals(namedTypeSymbol.TypeArguments[0], elementType);
+					 && namedTypeSymbol.ContainingNamespace.ToString() == "System"
+					 && namedTypeSymbol.Name is "Span"
+					 && SymbolEqualityComparer.Default.Equals(namedTypeSymbol.TypeArguments[0], elementType);
 	}
 
 	public static bool IsReadonlySpanType(this Compilation compilation, ITypeSymbol typeSymbol, ITypeSymbol elementType)
 	{
 		return typeSymbol is INamedTypeSymbol { Arity: 1 } namedTypeSymbol
-		       && namedTypeSymbol.ContainingNamespace.ToString() == "System"
-		       && namedTypeSymbol.Name is "Span" or "ReadOnlySpan"
-		       && SymbolEqualityComparer.Default.Equals(namedTypeSymbol.TypeArguments[0], elementType);
+					 && namedTypeSymbol.ContainingNamespace.ToString() == "System"
+					 && namedTypeSymbol.Name is "Span" or "ReadOnlySpan"
+					 && SymbolEqualityComparer.Default.Equals(namedTypeSymbol.TypeArguments[0], elementType);
 	}
 
 	public static bool IsEnumerableType(this Compilation compilation, ITypeSymbol typeSymbol, ITypeSymbol elementType)
 	{
 		return compilation.IsSpanLikeType(typeSymbol, elementType)
-		       || typeSymbol.EqualsType(compilation.CreateIEnumerable(elementType))
-		       || typeSymbol.EqualsType(compilation.CreateArrayTypeSymbol(elementType));
+					 || typeSymbol.EqualsType(compilation.CreateIEnumerable(elementType))
+					 || typeSymbol.EqualsType(compilation.CreateArrayTypeSymbol(elementType));
 	}
 
 	public static bool TryGetUnsignedType(this Compilation compilation, ITypeSymbol typeSymbol, [NotNullWhen(true)] out ITypeSymbol? unsignedType)
@@ -217,8 +214,8 @@ public static class CompilationExtensions
 				var runtimeType = loader.GetType(type);
 
 				// Use System.Runtime.InteropServices.Marshal.SizeOf
-				var method = typeof(System.Runtime.InteropServices.Marshal).GetMethod("SizeOf", [ typeof(Type) ]);
-				return (int) method?.Invoke(null, [ runtimeType ]);
+				var method = typeof(System.Runtime.InteropServices.Marshal).GetMethod("SizeOf", [typeof(Type)]);
+				return (int)method?.Invoke(null, [runtimeType]);
 			}
 			catch
 			{
@@ -318,7 +315,7 @@ public static class CompilationExtensions
 		}
 
 		var isExtension = methodSymbol.IsExtensionMethod;
-		
+
 		var originalParameterTypes = methodSymbol.Parameters
 			.Select(s => s.Type)
 			.Prepend(methodSymbol.IsExtensionMethod ? methodSymbol.ReceiverType : null)
@@ -377,7 +374,7 @@ public static class CompilationExtensions
 					{
 						return resultType;
 					}
-					
+
 					return loader.GetType(symbol);
 				}).ToArray();
 
@@ -419,8 +416,8 @@ public static class CompilationExtensions
 
 					// Accept if assignable, or if pType is an open generic interface implemented by the instance
 					var ok = pType.IsAssignableFrom(instType)
-					         || pType is { IsGenericType: true, ContainsGenericParameters: true }
-					         && instType.GetInterfaces().Any(it => it.IsGenericType && it.GetGenericTypeDefinition() == pType.GetGenericTypeDefinition());
+									 || pType is { IsGenericType: true, ContainsGenericParameters: true }
+									 && instType.GetInterfaces().Any(it => it.IsGenericType && it.GetGenericTypeDefinition() == pType.GetGenericTypeDefinition());
 
 					if (!ok)
 					{
@@ -756,10 +753,10 @@ public static class CompilationExtensions
 
 		if (elementType.NeedsCast())
 		{
-			return $"{vectorType}.Create({items.JoinWithPadding<T, object?>(", ", elementCount, (T) 0.ToSpecialType(elementType.SpecialType), s => s is string ? s : $"({compilation.GetMinimalString(elementType)}){SyntaxHelpers.CreateLiteral(s)}")})";
+			return $"{vectorType}.Create({items.JoinWithPadding<T, object?>(", ", elementCount, (T)0.ToSpecialType(elementType.SpecialType), s => s is string ? s : $"({compilation.GetMinimalString(elementType)}){SyntaxHelpers.CreateLiteral(s)}")})";
 		}
 
-		return $"{vectorType}.Create({items.JoinWithPadding<T, object?>(", ", elementCount, (T) 0.ToSpecialType(elementType.SpecialType), s => s is string ? s : SyntaxHelpers.CreateLiteral(s))})";
+		return $"{vectorType}.Create({items.JoinWithPadding<T, object?>(", ", elementCount, (T)0.ToSpecialType(elementType.SpecialType), s => s is string ? s : SyntaxHelpers.CreateLiteral(s))})";
 	}
 
 	public static VectorTypes GetVector<T>(this Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, ReadOnlySpan<T> items, bool isRepeating, out string vector, out int vectorSize)
@@ -1030,8 +1027,8 @@ public static class CompilationExtensions
 		foreach (var @interface in typeSymbol.AllInterfaces)
 		{
 			if (@interface is { Arity: 1 }
-			    && SymbolEqualityComparer.Default.Equals(@interface, compilation.CreateIEnumerable(@interface.TypeArguments[0]))
-			    && recursive)
+					&& SymbolEqualityComparer.Default.Equals(@interface, compilation.CreateIEnumerable(@interface.TypeArguments[0]))
+					&& recursive)
 			{
 				elementType = @interface.TypeArguments[0];
 				return true;
@@ -1045,7 +1042,7 @@ public static class CompilationExtensions
 	public static bool TryGetFuncType(this Compilation compilation, ITypeSymbol type, [NotNullWhen(true)] out ITypeSymbol? elementType, [NotNullWhen(true)] out ITypeSymbol? returnType)
 	{
 		if (type is INamedTypeSymbol { Arity: 2 } namedTypeSymbol
-		    && SymbolEqualityComparer.Default.Equals(type, compilation.CreateFunc(namedTypeSymbol.TypeArguments[0], namedTypeSymbol.TypeArguments[1])))
+				&& SymbolEqualityComparer.Default.Equals(type, compilation.CreateFunc(namedTypeSymbol.TypeArguments[0], namedTypeSymbol.TypeArguments[1])))
 		{
 			elementType = namedTypeSymbol.TypeArguments[0];
 			returnType = namedTypeSymbol.TypeArguments[1];
@@ -1154,14 +1151,14 @@ public static class CompilationExtensions
 	{
 		// Normalize to a canonical form so whitespace/trivia do not affect the hash.
 		var normalized = node.ToFullString().GetHashCode();
-		
+
 		return Convert.ToBase64String(BitConverter.GetBytes(normalized)).TrimEnd('=').Replace('+', '_').Replace('/', '_');
 	}
-	
+
 	public static TAttribute ToAttribute<TAttribute>(this AttributeData attributeData, MetadataLoader loader)
 		where TAttribute : Attribute
 	{
-		var type = loader.GetType(attributeData.AttributeClass);
+		var type = typeof(TAttribute);
 
 		if (type == null)
 		{
@@ -1172,7 +1169,7 @@ public static class CompilationExtensions
 			.Select(a => a.Value)
 			.ToArray();
 
-		var attribute = (TAttribute?) Activator.CreateInstance(type, constructorArgs);
+		var attribute = (TAttribute?)Activator.CreateInstance(type, constructorArgs);
 
 		if (attribute == null)
 		{

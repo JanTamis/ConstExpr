@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace ConstExpr.SourceGenerator.Sample;
 
-[ConstExpr(IEEE754Compliant = false)]
+[ConstExpr(FloatingPointMode = FloatingPointEvaluationMode.FastMath)]
 public static class Test
 {
 	public static IEnumerable<double> IsOdd(params IEnumerable<double> data)
@@ -41,7 +41,7 @@ public static class Test
 			return false;
 		}
 
-		var sqrt = (int) Math.Sqrt(number);
+		var sqrt = (int)Math.Sqrt(number);
 
 		for (var i = 3; i <= sqrt; i += 2)
 		{
@@ -83,7 +83,7 @@ public static class Test
 
 	public static ICharCollection Base64Encode(string value)
 	{
-		return (ICharCollection) (object) Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
+		return (ICharCollection)(object)Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
 	}
 
 	public async static Task<string> Waiting()
@@ -100,7 +100,7 @@ public static class Test
 
 		for (var i = 0; i < count; i++)
 		{
-			result.Add((byte) random.Next(5));
+			result.Add((byte)random.Next(5));
 		}
 
 		return result; // result.OrderBy(o => o).ToList();
@@ -108,7 +108,7 @@ public static class Test
 
 	public static IReadOnlyList<string> Split(string value, char separator)
 	{
-		return value.Split([ separator ], StringSplitOptions.TrimEntries);
+		return value.Split([separator], StringSplitOptions.TrimEntries);
 	}
 
 	public static string ToString<T>(this T value) where T : Enum
@@ -234,7 +234,7 @@ public static class Test
 
 		if (s == 0f)
 		{
-			var vGray = (byte) Math.Round(l * 255f);
+			var vGray = (byte)Math.Round(l * 255f);
 			return (vGray, vGray, vGray);
 		}
 
@@ -279,9 +279,9 @@ public static class Test
 		}
 
 		var m = l - c / 2f;
-		var r = (byte) Math.Round((r1 + m) * 255f);
-		var g = (byte) Math.Round((g1 + m) * 255f);
-		var b = (byte) Math.Round((b1 + m) * 255f);
+		var r = (byte)Math.Round((r1 + m) * 255f);
+		var g = (byte)Math.Round((g1 + m) * 255f);
+		var b = (byte)Math.Round((b1 + m) * 255f);
 		return (r, g, b);
 	}
 
@@ -368,8 +368,8 @@ public static class Test
 	}
 
 	public static (byte r, byte g, byte b) BlendRgb(byte rDst, byte gDst, byte bDst,
-	                                                byte rSrc, byte gSrc, byte bSrc,
-	                                                float alpha, bool gammaCorrect = true)
+																									byte rSrc, byte gSrc, byte bSrc,
+																									float alpha, bool gammaCorrect = true)
 	{
 		alpha = Clamp01(alpha);
 
@@ -386,7 +386,7 @@ public static class Test
 				if (l <= 0f) return 0;
 				if (l >= 1f) return 255;
 				var cs = l <= 0.0031308f ? 12.92f * l : 1.055f * MathF.Pow(l, 1f / 2.4f) - 0.055f;
-				return (byte) Math.Round(MathF.Max(0f, MathF.Min(1f, cs)) * 255f);
+				return (byte)Math.Round(MathF.Max(0f, MathF.Min(1f, cs)) * 255f);
 			}
 
 			var lrDst = ToLinear(rDst);
@@ -409,7 +409,7 @@ public static class Test
 			var fa = a / 255f;
 			var fb = b / 255f;
 			var fr = t * fb + (1f - t) * fa;
-			return (byte) Math.Round(MathF.Max(0f, MathF.Min(1f, fr)) * 255f);
+			return (byte)Math.Round(MathF.Max(0f, MathF.Min(1f, fr)) * 255f);
 		}
 
 		var r = LerpByte(rDst, rSrc, alpha);

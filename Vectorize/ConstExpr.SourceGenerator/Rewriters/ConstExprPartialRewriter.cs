@@ -1,3 +1,4 @@
+using ConstExpr.Core.Attributes;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Visitors;
@@ -12,7 +13,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
-using ConstExpr.Core.Attributes;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
@@ -38,10 +38,10 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 	{
 		if (node.Modifiers.Any(a => a.IsKind(SyntaxKind.StaticKeyword)))
 		{
-			
+
 		}
 
-		return node;
+		return base.VisitLocalFunctionStatement(node);
 	}
 
 	public override SyntaxNode? VisitIdentifierName(IdentifierNameSyntax node)
@@ -157,7 +157,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 								if (hasLeftValue && leftValue.IsNumericOne()) return rightExpr;
 
 								// x * 0 => 0 and 0 * x => 0 (only for non-floating numeric types to avoid NaN/-0.0 semantics)
-								var nonFloating = !attribute.IEEE754Compliant || (IsNonFloatingNumeric(operation.LeftOperand.Type) && IsNonFloatingNumeric(operation.RightOperand.Type));
+								var nonFloating = attribute.FloatingPointMode == FloatingPointEvaluationMode.FastMath || (IsNonFloatingNumeric(operation.LeftOperand.Type) && IsNonFloatingNumeric(operation.RightOperand.Type));
 
 								if (nonFloating && hasRightValue && rightValue.IsNumericZero())
 								{

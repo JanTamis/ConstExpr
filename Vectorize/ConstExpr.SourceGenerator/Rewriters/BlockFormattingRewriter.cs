@@ -1,9 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace ConstExpr.SourceGenerator.Helpers;
 
@@ -15,7 +15,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 		foreach (var stmt in node.Statements)
 		{
-			visited.Add((StatementSyntax) Visit(stmt)!);
+			visited.Add((StatementSyntax)Visit(stmt)!);
 		}
 
 		if (visited.Count == 0)
@@ -125,7 +125,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 				{
 					// Voeg locals aaneengesloten toe, en zorg voor spacing: 1 lege regel vóór de groep, geen lege regels tussen of na functies
 					var firstLocalIdx = visited.Count;
-					
+
 					visited.AddRange(keptLocals);
 
 					if (firstLocalIdx > 0)
@@ -200,7 +200,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 	public override SyntaxNode VisitReturnStatement(ReturnStatementSyntax node)
 	{
-		var visited = (ReturnStatementSyntax) base.VisitReturnStatement(node);
+		var visited = (ReturnStatementSyntax)base.VisitReturnStatement(node);
 
 		if (visited.Expression is null)
 		{

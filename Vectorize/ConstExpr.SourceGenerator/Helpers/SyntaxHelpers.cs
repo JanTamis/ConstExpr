@@ -95,7 +95,7 @@ public static class SyntaxHelpers
 		};
 	}
 
-	public static bool TryGetLiteral<T>(T? value, out ExpressionSyntax? expression)
+	public static bool TryGetLiteral<T>(T? value, [NotNullWhen(true)] out ExpressionSyntax? expression)
 	{
 		expression = CreateLiteral(value);
 		return expression is not null;
