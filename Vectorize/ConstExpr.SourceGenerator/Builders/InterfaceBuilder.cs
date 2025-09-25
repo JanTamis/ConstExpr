@@ -330,7 +330,7 @@ public class InterfaceBuilder(Compilation compilation, MetadataLoader loader, IT
 					.OrderBy(s => s)
 					.ToImmutableArray();
 
-				if (elementType.IsInterger())
+				if (elementType.IsInteger())
 				{
 					if (items.AsSpan().IsNumericSequence())
 					{

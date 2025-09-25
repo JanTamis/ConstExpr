@@ -900,7 +900,7 @@ public static class CompilationExtensions
 			&& (compilation.GetTypeByMetadataName("System.MemoryExtensions")?.HasMethod("Contains", m => m.ReturnType.SpecialType == SpecialType.System_Boolean && m.Parameters.AsSpan().EqualsTypes(elementType)) ?? false);
 	}
 
-	public static bool IsInterger(this ITypeSymbol typeSymbol)
+	public static bool IsInteger(this ITypeSymbol typeSymbol)
 	{
 		return typeSymbol.SpecialType is SpecialType.System_SByte
 			or SpecialType.System_Byte
@@ -1196,5 +1196,26 @@ public static class CompilationExtensions
 		}
 
 		return attribute;
+	}
+
+	public static bool IsNumericType(this ITypeSymbol? t)
+	{
+		return t is not null && t.SpecialType switch
+		{
+			SpecialType.System_Byte or SpecialType.System_SByte or SpecialType.System_Int16 or SpecialType.System_UInt16 or
+				SpecialType.System_Int32 or SpecialType.System_UInt32 or SpecialType.System_Int64 or SpecialType.System_UInt64 or
+				SpecialType.System_Single or SpecialType.System_Double or SpecialType.System_Decimal => true,
+			_ => false
+		};
+	}
+
+	public static bool IsNonFloatingNumeric(this ITypeSymbol? t)
+	{
+		return t is not null && IsNumericType(t) && t.SpecialType != SpecialType.System_Single && t.SpecialType != SpecialType.System_Double;
+	}
+
+	public static bool IsBoolType(this ITypeSymbol? t)
+	{
+		return t?.SpecialType == SpecialType.System_Boolean;
 	}
 }

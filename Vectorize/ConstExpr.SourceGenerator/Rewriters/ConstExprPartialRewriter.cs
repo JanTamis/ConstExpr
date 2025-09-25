@@ -13,6 +13,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
+using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
@@ -136,18 +137,33 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 				var opMethod = operation.OperatorMethod; // null => built-in operator
 				var isBuiltIn = opMethod is null;
 
-				if (isBuiltIn)
+				if (isBuiltIn && operation.Type is not null)
 				{
+					// Select optimizer based on operator kind
+					BaseBinaryOptimizer? optimizer = operation.OperatorKind switch
+					{
+						BinaryOperatorKind.Add => new BinaryAddOptimizer { Left = leftExpr, Right = rightExpr, Operation = operation, FloatingPointMode = attribute.FloatingPointMode },
+						BinaryOperatorKind.Subtract => new BinarySubtractOptimizer { Left = leftExpr, Right = rightExpr, Operation = operation, FloatingPointMode = attribute.FloatingPointMode },
+						BinaryOperatorKind.Multiply => new BinaryMultiplyOptimizer { Left = leftExpr, Right = rightExpr, Operation = operation, FloatingPointMode = attribute.FloatingPointMode },
+						BinaryOperatorKind.Divide => new BinaryDivideOptimizer { Left = leftExpr, Right = rightExpr, Operation = operation, FloatingPointMode = attribute.FloatingPointMode },
+						_ => null
+					};
+
+					if (optimizer is not null)
+					{
+						if (optimizer.Kind == operation.OperatorKind 
+						    && optimizer.TryOptimize(hasLeftValue, leftValue, hasRightValue, rightValue, out var optimized))
+						{
+							return optimized;
+						}
+					}
+
 					// Numeric identities
-					if (IsNumericType(operation.LeftOperand.Type)
-							&& IsNumericType(operation.RightOperand.Type))
+					if (operation.LeftOperand.Type.IsNumericType()
+					    && operation.RightOperand.Type.IsNumericType())
 					{
 						switch (operation.OperatorKind)
 						{
-							case BinaryOperatorKind.Add:
-								if (hasRightValue && rightValue.IsNumericZero()) return leftExpr;
-								if (hasLeftValue && leftValue.IsNumericZero()) return rightExpr;
-								break;
 							case BinaryOperatorKind.Subtract:
 								if (hasRightValue && rightValue.IsNumericZero()) return leftExpr;
 								if (hasLeftValue && leftValue.IsNumericZero()) return PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression, Parens(rightExpr));
@@ -157,14 +173,10 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 								if (hasLeftValue && leftValue.IsNumericOne()) return rightExpr;
 
 								// x * 0 => 0 and 0 * x => 0 (only for non-floating numeric types to avoid NaN/-0.0 semantics)
-								var nonFloating = attribute.FloatingPointMode == FloatingPointEvaluationMode.FastMath || (IsNonFloatingNumeric(operation.LeftOperand.Type) && IsNonFloatingNumeric(operation.RightOperand.Type));
+								var nonFloating = attribute.FloatingPointMode == FloatingPointEvaluationMode.FastMath || operation.LeftOperand.Type.IsNonFloatingNumeric() && operation.RightOperand.Type.IsNonFloatingNumeric();
 
-								if (nonFloating && hasRightValue && rightValue.IsNumericZero())
-								{
-									return CreateLiteral(0.ToSpecialType(operation.Type.SpecialType));
-								}
-
-								if (nonFloating && hasLeftValue && leftValue.IsNumericZero())
+								if (nonFloating && hasRightValue && rightValue.IsNumericZero() 
+								    || nonFloating && hasLeftValue && leftValue.IsNumericZero())
 								{
 									return CreateLiteral(0.ToSpecialType(operation.Type.SpecialType));
 								}
@@ -223,8 +235,8 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 					}
 
 					// Boolean logical identities
-					if (IsBoolType(operation.LeftOperand.Type)
-							&& IsBoolType(operation.RightOperand.Type))
+					if (operation.LeftOperand.Type.IsBoolType()
+					    && operation.RightOperand.Type.IsBoolType())
 					{
 						switch (operation.OperatorKind)
 						{
@@ -319,26 +331,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 				: ParenthesizedExpression(e);
 		}
 
-		bool IsNonFloatingNumeric(ITypeSymbol? t)
-		{
-			return t is not null && IsNumericType(t) && t.SpecialType != SpecialType.System_Single && t.SpecialType != SpecialType.System_Double;
-		}
-
-		bool IsBoolType(ITypeSymbol? t)
-		{
-			return t?.SpecialType == SpecialType.System_Boolean;
-		}
-
-		bool IsNumericType(ITypeSymbol? t)
-		{
-			return t is not null && t.SpecialType switch
-			{
-				SpecialType.System_Byte or SpecialType.System_SByte or SpecialType.System_Int16 or SpecialType.System_UInt16 or
-					SpecialType.System_Int32 or SpecialType.System_UInt32 or SpecialType.System_Int64 or SpecialType.System_UInt64 or
-					SpecialType.System_Single or SpecialType.System_Double or SpecialType.System_Decimal => true,
-				_ => false
-			};
-		}
+		
 	}
 
 	public override SyntaxNode? VisitInvocationExpression(InvocationExpressionSyntax node)

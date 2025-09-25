@@ -3,7 +3,6 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Operations;
 using System;
 using System.Collections.Generic;
-
 namespace ConstExpr.SourceGenerator.Extensions;
 
 public static class ObjectExtensions
@@ -354,4 +353,45 @@ public static class ObjectExtensions
 		decimal m => m == 2m,
 		_ => false
 	};
+	
+	public static bool IsNumericNegativeOne(this object? value) => value switch
+	{
+		sbyte sb => sb == -1,
+		short s => s == -1,
+		int i => i == -1,
+		long l => l == -1,
+		float f => f == -1f,
+		double d => d == -1d,
+		decimal m => m == -1m,
+		_ => false
+	};
+	
+	public static bool IsNumericPowerOfTwo(this object? value, out int power)
+	{
+		power = 0;
+	
+		static int Log2(ulong x)
+		{
+			int p = 0;
+			while (x > 1)
+			{
+				x >>= 1;
+				p++;
+			}
+			return p;
+		}
+	
+		return value switch
+		{
+			byte b when b != 0 && (b & b - 1) == 0 => (power = Log2(b)) >= 0,
+			sbyte sb and > 0 when (sb & sb - 1) == 0 => (power = Log2((byte)sb)) >= 0,
+			short s and > 0 when (s & s - 1) == 0 => (power = Log2((ushort)s)) >= 0,
+			ushort us when us != 0 && (us & us - 1) == 0 => (power = Log2(us)) >= 0,
+			int i and > 0 when (i & i - 1) == 0 => (power = Log2((uint)i)) >= 0,
+			uint ui when ui != 0 && (ui & ui - 1) == 0 => (power = Log2(ui)) >= 0,
+			long l and > 0 when (l & l - 1) == 0 => (power = Log2((ulong)l)) >= 0,
+			ulong ul when ul != 0 && (ul & ul - 1) == 0 => (power = Log2(ul)) >= 0,
+			_ => false
+		};
+	}
 }

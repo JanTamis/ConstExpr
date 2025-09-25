@@ -431,12 +431,12 @@ public abstract class BaseBuilder(ITypeSymbol elementType, Compilation compilati
 		item.LessThan = BuildBinarySearchTree(low, index - 1, (int)((uint)(index - 1) + (uint)low >> 1), items, TreeNode<T>.NodeState.LessThan, item, values);
 		item.GreaterThan = BuildBinarySearchTree(index + 1, high, (int)((uint)high + (uint)(index + 1) >> 1), items, TreeNode<T>.NodeState.GreaterThan, item, values);
 
-		if (elementType.IsInterger() && item.LessThan.IsLeaf && CompareLessThan(item, item.Value.Subtract((T)Convert.ChangeType(1, typeof(T)))))
+		if (elementType.IsInteger() && item.LessThan.IsLeaf && CompareLessThan(item, item.Value.Subtract((T)Convert.ChangeType(1, typeof(T)))))
 		{
 			item.LessThan = null;
 		}
 
-		if (elementType.IsInterger() && item.GreaterThan.IsLeaf && CompareGreaterThan(item, item.Value.Add((T)Convert.ChangeType(1, typeof(T)))))
+		if (elementType.IsInteger() && item.GreaterThan.IsLeaf && CompareGreaterThan(item, item.Value.Add((T)Convert.ChangeType(1, typeof(T)))))
 		{
 			item.GreaterThan = null;
 		}
