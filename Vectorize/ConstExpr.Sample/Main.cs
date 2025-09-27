@@ -1,3 +1,4 @@
+using System.Runtime.Intrinsics.X86;
 using ConstExpr.SourceGenerator.Sample;
 
 // var range = Test.Range(10);
@@ -37,13 +38,13 @@ byte test2 = 128;
 //Console.WriteLine("Map(5, 0..10 -> 0..100) => " + Test.Map(5, 0, 10, 0, 100));
 
 //// Color conversions
-// var (h, s, l) = Test.RgbToHsl(150, test2, 50);
+var (h, s, l) = Test.RgbToHsl(150, test2, 50);
 //Console.WriteLine($"RGB(150,100,50) -> HSL({h:F1}, {s:F3}, {l:F3})");
 
 // var (rr, gg, bb) = Test.HslToRgb(720, test, 0.5f);
 // Console.WriteLine($"Round-trip HSL -> RGB({rr},{gg},{bb})");
 
-var lumDark = Test.Luminance(0, test2, test2);
+// var lumDark = Test.Luminance(0, test2, test2);
 //var lumLight = Test.Luminance(255, 255, 255);
 
 //Console.WriteLine($"Luminance black={lumDark:F4} white={lumLight:F4}");

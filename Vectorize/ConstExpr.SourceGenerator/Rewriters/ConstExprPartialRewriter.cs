@@ -35,6 +35,11 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 		}
 	}
 
+	public override SyntaxNode? DefaultVisit(SyntaxNode node)
+	{
+		return base.DefaultVisit(node);
+	}
+
 	public override SyntaxNode? VisitLocalFunctionStatement(LocalFunctionStatementSyntax node)
 	{
 		if (node.Modifiers.Any(a => a.IsKind(SyntaxKind.StaticKeyword)))
@@ -140,19 +145,12 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 				if (isBuiltIn && operation.Type is not null)
 				{
 					// Select optimizer based on operator kind
-					BaseBinaryOptimizer? optimizer = operation.OperatorKind switch
-					{
-						BinaryOperatorKind.Add => new BinaryAddOptimizer { Left = leftExpr, Right = rightExpr, Operation = operation, FloatingPointMode = attribute.FloatingPointMode },
-						BinaryOperatorKind.Subtract => new BinarySubtractOptimizer { Left = leftExpr, Right = rightExpr, Operation = operation, FloatingPointMode = attribute.FloatingPointMode },
-						BinaryOperatorKind.Multiply => new BinaryMultiplyOptimizer { Left = leftExpr, Right = rightExpr, Operation = operation, FloatingPointMode = attribute.FloatingPointMode },
-						BinaryOperatorKind.Divide => new BinaryDivideOptimizer { Left = leftExpr, Right = rightExpr, Operation = operation, FloatingPointMode = attribute.FloatingPointMode },
-						_ => null
-					};
+					var optimizer = BaseBinaryOptimizer.Create(operation.OperatorKind, operation.Type, leftExpr, rightExpr, attribute.FloatingPointMode);
 
 					if (optimizer is not null)
 					{
 						if (optimizer.Kind == operation.OperatorKind 
-						    && optimizer.TryOptimize(hasLeftValue, leftValue, hasRightValue, rightValue, out var optimized))
+						    && optimizer.TryOptimize(loader, variables, out var optimized))
 						{
 							return optimized;
 						}
@@ -569,7 +567,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 				return result;
 			}
 
-			if (TryGetLiteralValue(rightExpr, out var tempValue))
+			if (TryGetLiteralValue(rightExpr, out var tempValue) && variable.HasValue)
 			{
 				variable.Value = ObjectExtensions.ExecuteBinaryOperation(kind, variable.Value, tempValue) ?? tempValue;
 
@@ -1399,7 +1397,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 
 		return node.WithContents(List(result));
 	}
-
+	
 	public override SyntaxNode VisitBlock(BlockSyntax node)
 	{
 		return node.WithStatements(VisitList(node.Statements));

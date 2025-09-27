@@ -381,16 +381,40 @@ public static class ObjectExtensions
 			return p;
 		}
 	
+		static bool IsDecimalIntegerPowerOfTwo(decimal m, out int p)
+		{
+			p = 0;
+			if (m <= 0m || decimal.Truncate(m) != m)
+				return false;
+	
+			while (m % 2m == 0m)
+			{
+				m /= 2m;
+				p++;
+			}
+			return m == 1m;
+		}
+	
 		return value switch
 		{
-			byte b when b != 0 && (b & b - 1) == 0 => (power = Log2(b)) >= 0,
-			sbyte sb and > 0 when (sb & sb - 1) == 0 => (power = Log2((byte)sb)) >= 0,
-			short s and > 0 when (s & s - 1) == 0 => (power = Log2((ushort)s)) >= 0,
-			ushort us when us != 0 && (us & us - 1) == 0 => (power = Log2(us)) >= 0,
-			int i and > 0 when (i & i - 1) == 0 => (power = Log2((uint)i)) >= 0,
-			uint ui when ui != 0 && (ui & ui - 1) == 0 => (power = Log2(ui)) >= 0,
-			long l and > 0 when (l & l - 1) == 0 => (power = Log2((ulong)l)) >= 0,
-			ulong ul when ul != 0 && (ul & ul - 1) == 0 => (power = Log2(ul)) >= 0,
+			byte b when b != 0 && (b & (b - 1)) == 0 => (power = Log2(b)) >= 0,
+			sbyte sb and > 0 when (sb & (sb - 1)) == 0 => (power = Log2((byte)sb)) >= 0,
+			short s and > 0 when (s & (s - 1)) == 0 => (power = Log2((ushort)s)) >= 0,
+			ushort us when us != 0 && (us & (us - 1)) == 0 => (power = Log2(us)) >= 0,
+			int i and > 0 when (i & (i - 1)) == 0 => (power = Log2((uint)i)) >= 0,
+			uint ui when ui != 0 && (ui & (ui - 1)) == 0 => (power = Log2(ui)) >= 0,
+			long l and > 0 when (l & (l - 1)) == 0 => (power = Log2((ulong)l)) >= 0,
+			ulong ul when ul != 0 && (ul & (ul - 1)) == 0 => (power = Log2(ul)) >= 0,
+	
+			// Floating-point: alleen positieve, gehele waarden binnen ulong-bereik
+			float f when !float.IsNaN(f) && !float.IsInfinity(f) && f > 0f && f == MathF.Truncate(f) && f <= ulong.MaxValue &&
+			             (((ulong)f & ((ulong)f - 1)) == 0) => (power = Log2((ulong)f)) >= 0,
+			double d when !double.IsNaN(d) && !double.IsInfinity(d) && d > 0d && d == Math.Truncate(d) && d <= ulong.MaxValue &&
+			              (((ulong)d & ((ulong)d - 1)) == 0) => (power = Log2((ulong)d)) >= 0,
+	
+			// Decimal: positieve, gehele waarden (geen fracties)
+			decimal m when IsDecimalIntegerPowerOfTwo(m, out var p) => (power = p) >= 0,
+	
 			_ => false
 		};
 	}

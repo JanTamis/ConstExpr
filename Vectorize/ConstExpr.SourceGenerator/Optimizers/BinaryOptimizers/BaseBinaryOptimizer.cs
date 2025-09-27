@@ -1,6 +1,9 @@
-using System;
+using System.Collections.Generic;
 using ConstExpr.Core.Attributes;
+using ConstExpr.SourceGenerator.Helpers;
+using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 
@@ -14,26 +17,36 @@ public abstract class BaseBinaryOptimizer
 	
 	public ExpressionSyntax Right { get; init; }
 	
-	public ITypeSymbol Type => Operation.Type ?? throw new InvalidOperationException("Operation type is null");
+	public ITypeSymbol Type { get; init; }
 
 	public FloatingPointEvaluationMode FloatingPointMode { get; init; }
 	
-	public IBinaryOperation Operation { get; init; }
+	public abstract bool TryOptimize(MetadataLoader loader, IDictionary<string, VariableItem> variables, out SyntaxNode? result);
 	
-	public abstract bool TryOptimize(bool hasLeftValue, object? leftValue, bool hasRightValue, object? rightValue, out SyntaxNode? result);
-
-	protected static bool IsPure(IOperation? op)
+	public static BaseBinaryOptimizer? Create(BinaryOperatorKind kind, ITypeSymbol type, ExpressionSyntax leftExpr, ExpressionSyntax rightExpr, FloatingPointEvaluationMode mode)
 	{
-		return op switch
+		return kind switch
 		{
-			ILocalReferenceOperation => true,
-			IParameterReferenceOperation => true,
-			ILiteralOperation => true,
-			IConversionOperation conv => IsPure(conv.Operand),
-			IParenthesizedOperation par => IsPure(par.Operand),
-			IFieldReferenceOperation f => f.Field.IsConst || f.Field.IsReadOnly,
-			IBinaryOperation b => IsPure(b.LeftOperand) && IsPure(b.RightOperand),
-			IUnaryOperation { OperatorKind: UnaryOperatorKind.Minus } u => IsPure(u.Operand),
+			BinaryOperatorKind.Add => new BinaryAddOptimizer { Left = leftExpr, Right = rightExpr, Type = type, FloatingPointMode = mode },
+			BinaryOperatorKind.Subtract => new BinarySubtractOptimizer { Left = leftExpr, Right = rightExpr, Type = type, FloatingPointMode = mode },
+			BinaryOperatorKind.Multiply => new BinaryMultiplyOptimizer { Left = leftExpr, Right = rightExpr, Type = type, FloatingPointMode = mode },
+			BinaryOperatorKind.Divide => new BinaryDivideOptimizer { Left = leftExpr, Right = rightExpr, Type = type, FloatingPointMode = mode },
+			BinaryOperatorKind.Remainder => new BinaryModuloOptimizer { Left = leftExpr, Right = rightExpr, Type = type, FloatingPointMode = mode },
+			BinaryOperatorKind.LeftShift => new BinaryLeftShiftOptimizer { Left = leftExpr, Right = rightExpr, Type = type, FloatingPointMode = mode },
+			BinaryOperatorKind.RightShift => new BinaryRightShiftOptimizer { Left = leftExpr, Right = rightExpr, Type = type, FloatingPointMode = mode },
+			_ => null
+		};
+	}
+
+	protected static bool IsPure(SyntaxNode node)
+	{
+		return node switch
+		{
+			IdentifierNameSyntax => true,
+			LiteralExpressionSyntax => true,
+			ParenthesizedExpressionSyntax par => IsPure(par.Expression),
+			PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken } u => IsPure(u.Operand),
+			BinaryExpressionSyntax b => IsPure(b.Left) && IsPure(b.Right),
 			_ => false
 		};
 	}

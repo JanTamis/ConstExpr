@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using ConstExpr.Core.Attributes;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
@@ -7,6 +8,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 using System.Linq;
+using ConstExpr.SourceGenerator.Visitors;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;
 
@@ -14,7 +16,7 @@ public class BinarySubtractOptimizer : BaseBinaryOptimizer
 {
 	public override BinaryOperatorKind Kind => BinaryOperatorKind.Subtract;
 
-	public override bool TryOptimize(bool hasLeftValue, object? leftValue, bool hasRightValue, object? rightValue, out SyntaxNode? result)
+	public override bool TryOptimize(MetadataLoader loader, IDictionary<string, VariableItem> variables, out SyntaxNode? result)
 	{
 		result = null;
 
@@ -22,6 +24,9 @@ public class BinarySubtractOptimizer : BaseBinaryOptimizer
 		{
 			return false;
 		}
+		
+		var hasLeftValue = Left.TryGetLiteralValue(loader, variables, out var leftValue);
+		var hasRightValue = Right.TryGetLiteralValue(loader, variables, out var rightValue);
 
 		// x - 0 = x
 		if (hasRightValue && rightValue.IsNumericZero())
@@ -38,7 +43,7 @@ public class BinarySubtractOptimizer : BaseBinaryOptimizer
 		}
 
 		// x - x = 0 (pure)
-		if (Left.IsEquivalentTo(Right) && IsPure(Operation.LeftOperand) && IsPure(Operation.RightOperand)
+		if (Left.IsEquivalentTo(Right) && IsPure(Left) && IsPure(Right)
 		    && (Type.IsInteger() || FloatingPointMode == FloatingPointEvaluationMode.FastMath))
 		{
 			result = SyntaxHelpers.CreateLiteral(0.ToSpecialType(Type.SpecialType));
@@ -46,10 +51,10 @@ public class BinarySubtractOptimizer : BaseBinaryOptimizer
 		}
 
 		// x - -y  => x + y (pure)
-		if (Operation.RightOperand is IUnaryOperation { OperatorKind: UnaryOperatorKind.Minus } unary
-		    && IsPure(Operation.LeftOperand) && IsPure(unary.Operand))
+		if (Right is PrefixUnaryExpressionSyntax pre && pre.IsKind(SyntaxKind.UnaryMinusExpression)
+		    && IsPure(Left) && IsPure(pre.Operand))
 		{
-			result = BinaryExpression(SyntaxKind.AddExpression, Left, Right);
+			result = BinaryExpression(SyntaxKind.AddExpression, Left, pre.Operand);
 			return true;
 		}
 
@@ -61,15 +66,27 @@ public class BinarySubtractOptimizer : BaseBinaryOptimizer
 			var host = ParseName(Type.Name);
 			var fmaIdentifier = MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, host, IdentifierName("FusedMultiplyAdd"));
 
-			if (Operation.LeftOperand is IBinaryOperation { OperatorKind: BinaryOperatorKind.Multiply } multLeft
-			    && IsPure(multLeft.LeftOperand) && IsPure(multLeft.RightOperand) && IsPure(Operation.RightOperand))
+			if (Left is BinaryExpressionSyntax multLeftSyntax && multLeftSyntax.IsKind(SyntaxKind.MultiplyExpression)
+			    && IsPure(multLeftSyntax.Left) && IsPure(multLeftSyntax.Right) && IsPure(Right))
 			{
-				var aExpr = (ExpressionSyntax) multLeft.LeftOperand.Syntax;
-				var bExpr = (ExpressionSyntax) multLeft.RightOperand.Syntax;
+				var aExpr = multLeftSyntax.Left;
+				var bExpr = multLeftSyntax.Right;
 				var cExpr = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression, Right);
 
 				result = InvocationExpression(fmaIdentifier,
 					ArgumentList(SeparatedList([ Argument(aExpr), Argument(bExpr), Argument(cExpr) ])));
+				return true;
+			}
+
+			// Fused Multiply-Add pattern: c - (a * b) => FMA(-a, b, c)
+			if (Right is BinaryExpressionSyntax multRightSyntax && multRightSyntax.IsKind(SyntaxKind.MultiplyExpression)
+			    && IsPure(multRightSyntax.Left) && IsPure(multRightSyntax.Right) && IsPure(Left))
+			{
+				var aExpr = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression, multRightSyntax.Left);
+				var bExpr = multRightSyntax.Right;
+
+				result = InvocationExpression(fmaIdentifier,
+					ArgumentList(SeparatedList([ Argument(aExpr), Argument(bExpr), Argument(Left) ])));
 				return true;
 			}
 		}

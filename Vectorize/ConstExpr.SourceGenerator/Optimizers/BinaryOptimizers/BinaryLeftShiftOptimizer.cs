@@ -1,0 +1,46 @@
+using System.Collections.Generic;
+using ConstExpr.Core.Attributes;
+using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Helpers;
+using ConstExpr.SourceGenerator.Visitors;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Operations;
+
+namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;
+
+public class BinaryLeftShiftOptimizer : BaseBinaryOptimizer
+{
+	public override BinaryOperatorKind Kind => BinaryOperatorKind.LeftShift;
+
+	public override bool TryOptimize(MetadataLoader loader, IDictionary<string, VariableItem> variables, out SyntaxNode? result)
+	{
+		result = null;
+
+		// Only integer-like types participate in shifts
+		if (!Type.IsInteger())
+		{
+			return false;
+		}
+
+		// x << 0 => x (only if Right is pure; otherwise we'd drop side effects)
+		if (Right.TryGetLiteralValue(loader, variables, out var rightValue) 
+		    && rightValue.IsNumericZero()
+		    && (FloatingPointMode == FloatingPointEvaluationMode.FastMath || IsPure(Left)))
+		{
+			result = Left;
+			return true;
+		}
+
+		// 0 << x => 0 (only if Right is pure; otherwise we'd drop side effects)
+		if (Left.TryGetLiteralValue(loader, variables, out var leftValue) 
+		    && leftValue.IsNumericZero() 
+		    && (FloatingPointMode == FloatingPointEvaluationMode.FastMath || IsPure(Right)))
+		{
+			result = SyntaxHelpers.CreateLiteral(0.ToSpecialType(Type.SpecialType));
+			return true;
+		}
+
+		// Avoid unsafe rewrites such as combining nested shifts because of C# masking semantics on shift counts
+		return false;
+	}
+}

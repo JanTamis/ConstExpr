@@ -1,6 +1,8 @@
-using System.Net;
+using System.Collections.Generic;
+using ConstExpr.Core.Attributes;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
+using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Operations;
@@ -12,7 +14,7 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 {
 	public override BinaryOperatorKind Kind => BinaryOperatorKind.Multiply;
 
-	public override bool TryOptimize(bool hasLeftValue, object? leftValue, bool hasRightValue, object? rightValue, out SyntaxNode? result)
+	public override bool TryOptimize(MetadataLoader loader, IDictionary<string, VariableItem> variables, out SyntaxNode? result)
 	{
 		result = null;
 
@@ -20,16 +22,19 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 		{
 			return false;
 		}
+		
+		Left.TryGetLiteralValue(loader, variables, out var leftValue);
+		Right.TryGetLiteralValue(loader, variables, out var rightValue);
 
 		// x * 0 = 0
-		if (rightValue.IsNumericZero())
+		if (rightValue.IsNumericZero() && (Type.IsInteger() || FloatingPointMode == FloatingPointEvaluationMode.FastMath))
 		{
 			result = SyntaxHelpers.CreateLiteral(0.ToSpecialType(Type.SpecialType));
 			return true;
 		}
 
 		// 0 * x = 0
-		if (leftValue.IsNumericZero())
+		if (leftValue.IsNumericZero() && (Type.IsInteger() || FloatingPointMode == FloatingPointEvaluationMode.FastMath))
 		{
 			result = SyntaxHelpers.CreateLiteral(0.ToSpecialType(Type.SpecialType));
 			return true;
@@ -64,7 +69,7 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 		}
 
 		// x * (power of two) => x << n (integer)
-		if (Type.IsInteger() && IsPure(Operation.LeftOperand) && rightValue.IsNumericPowerOfTwo(out var power))
+		if (Type.IsInteger() && IsPure(Left) && rightValue.IsNumericPowerOfTwo(out var power))
 		{
 			result = BinaryExpression(SyntaxKind.LeftShiftExpression, Left,
 				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(power)));
@@ -73,7 +78,7 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 		}
 
 		// (power of two) * x => x << n (integer)
-		if (Type.IsInteger() && IsPure(Operation.RightOperand) && rightValue.IsNumericPowerOfTwo(out power))
+		if (Type.IsInteger() && IsPure(Right) && rightValue.IsNumericPowerOfTwo(out power))
 		{
 			result = BinaryExpression(SyntaxKind.LeftShiftExpression, Right,
 				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(power)));

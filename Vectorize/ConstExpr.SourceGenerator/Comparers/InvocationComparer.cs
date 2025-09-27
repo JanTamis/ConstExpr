@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace ConstExpr.SourceGenerator.Comparers;
+﻿namespace ConstExpr.SourceGenerator.Comparers;
 
 // public class InvocationComparer : IEqualityComparer<InvocationModel?>
 // {
