@@ -74,6 +74,10 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			.SelectMany(m => m?.Usings ?? [])
 			.ToSet();
 
+		var distinctAdditionalMethods = methodGroup
+			.SelectMany(m => m?.AdditionalMethods)
+			.Distinct(SyntaxNodeComparer<SyntaxNode>.Instance);
+
 		//code.WriteLine();
 
 		using (code.WriteBlock($"namespace ConstantExpression.Generated", "{", "}"))
@@ -82,6 +86,12 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			using (code.WriteBlock($"file static class GeneratedMethods", "{", "}"))
 			{
 				EmitGeneratedMethodsForValueGroups(code, compilation, methodGroup);
+				
+				foreach (var additionalMethod in distinctAdditionalMethods)
+				{
+					code.WriteLine();
+					code.WriteLine(additionalMethod.ToString(), true);
+				}
 			}
 
 			// Emit concrete interface implementations (non IEnumerable interfaces) per distinct value.
@@ -565,11 +575,12 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			{
 				// var variables = ProcessArguments(visitor, context.SemanticModel.Compilation, invocation, loader, token);
 				var variablesPartial = ProcessArguments(visitor, context.SemanticModel, invocation, loader, token);
+				var additionalMethods = new HashSet<SyntaxNode>(SyntaxNodeComparer<SyntaxNode>.Instance);
 
 				var partialVisitor = new ConstExprPartialRewriter(model, loader, (node, ex) =>
 				{
 					exceptions.TryAdd(node, ex);
-				}, variablesPartial, attribute, token);
+				}, variablesPartial, additionalMethods, attribute, token);
 
 				var usings = new HashSet<string?>
 				{
@@ -603,6 +614,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 							.WithLeadingTrivia(methodDecl.Identifier.LeadingTrivia)
 							.WithTrailingTrivia(methodDecl.Identifier.TrailingTrivia))
 						.WithBody((BlockSyntax)result2)) as MethodDeclarationSyntax ?? methodDecl,
+					AdditionalMethods = additionalMethods.Select(FormattingHelper.Format),
 					ParentType = methodDecl.Parent as TypeDeclarationSyntax,
 					Invocation = invocation,
 					Location = context.SemanticModel.GetInterceptableLocation(invocation, token),

@@ -21,6 +21,8 @@ public class InvocationModel
 	// public IMethodSymbol Symbol { get; set; }
 
 	public InvocationExpressionSyntax Invocation { get; set; }
+	
+	public IEnumerable<SyntaxNode> AdditionalMethods { get; set; }
 
 	// public object? Value { get; set; }
 

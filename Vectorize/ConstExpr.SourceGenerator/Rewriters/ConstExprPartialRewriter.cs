@@ -14,12 +14,13 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;
+using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Rewriters;
 
-public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoader loader, Action<SyntaxNode?, Exception> exceptionHandler, IDictionary<string, VariableItem> variables, ConstExprAttribute attribute, CancellationToken token) : BaseRewriter(semanticModel, loader, variables)
+public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoader loader, Action<SyntaxNode?, Exception> exceptionHandler, IDictionary<string, VariableItem> variables, ISet<SyntaxNode> additionalMethods, ConstExprAttribute attribute, CancellationToken token) : BaseRewriter(semanticModel, loader, variables)
 {
 	[return: NotNullIfNotNull(nameof(node))]
 	public override SyntaxNode? Visit(SyntaxNode? node)
@@ -35,19 +36,9 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 		}
 	}
 
-	public override SyntaxNode? DefaultVisit(SyntaxNode node)
-	{
-		return base.DefaultVisit(node);
-	}
-
 	public override SyntaxNode? VisitLocalFunctionStatement(LocalFunctionStatementSyntax node)
 	{
-		if (node.Modifiers.Any(a => a.IsKind(SyntaxKind.StaticKeyword)))
-		{
-
-		}
-
-		return base.VisitLocalFunctionStatement(node);
+		return null;
 	}
 
 	public override SyntaxNode? VisitIdentifierName(IdentifierNameSyntax node)
@@ -88,13 +79,48 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 
 	public override SyntaxList<TNode> VisitList<TNode>(SyntaxList<TNode> list)
 	{
-		var items = list
-			.Select(Visit)
-			.Where(w => w is not null)
-			.OfType<TNode>()
-			.SelectMany(s => s is BlockSyntax blockSyntax ? blockSyntax.Statements.OfType<TNode>() : [s]);
-
-		return List(items);
+		var result = new List<TNode>();
+		var shouldStop = false;
+	
+		foreach (var node in list)
+		{
+			if (shouldStop) break;
+	
+			var visited = Visit(node);
+			
+			switch (visited)
+			{
+				case null:
+					continue;
+				case BlockSyntax block:
+				{
+					foreach (var st in block.Statements)
+					{
+						if (st is TNode t)
+						{
+							result.Add(t);
+							if (st is ReturnStatementSyntax)
+							{
+								shouldStop = true;
+								break;
+							}
+						}
+					}
+					break;
+				}
+				case TNode t:
+				{
+					result.Add(t);
+					if (visited is ReturnStatementSyntax)
+					{
+						shouldStop = true;
+					}
+					break;
+				}
+			}
+		}
+	
+		return List(result);
 	}
 
 	public override SyntaxNode? VisitArgument(ArgumentSyntax node)
@@ -145,7 +171,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 				if (isBuiltIn && operation.Type is not null)
 				{
 					// Select optimizer based on operator kind
-					var optimizer = BaseBinaryOptimizer.Create(operation.OperatorKind, operation.Type, leftExpr, rightExpr, attribute.FloatingPointMode);
+					var optimizer = BaseBinaryOptimizer.Create(operation.OperatorKind, operation.Type, leftExpr, operation?.LeftOperand?.Type, rightExpr, operation?.RightOperand?.Type, attribute.FloatingPointMode);
 
 					if (optimizer is not null)
 					{
@@ -367,7 +393,8 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 		if (semanticModel.TryGetSymbol(node, out IMethodSymbol? targetMethod))
 		{
 			var arguments = node.ArgumentList.Arguments
-				.Select(arg => Visit(arg.Expression));
+				.Select(arg => Visit(arg.Expression))
+				.ToList();
 
 			var constantArguments = arguments
 				.WhereSelect<SyntaxNode?, object?>(TryGetLiteralValue)
@@ -419,24 +446,70 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 					}
 				}
 			}
+			else
+			{
+				IEnumerable<BaseFunctionOptimizer> optimizers = arguments.Count switch
+				{
+					1 => [ new AbsBaseFunctionOptimizer(), new RoundFunctionOptimizer() ],
+					2 => [ new MaxFunctionOptimizer(), new MinFunctionOptimizer(), new RoundFunctionOptimizer() ],
+					3 => [ new RoundFunctionOptimizer() ],
+					_ => [ ]
+				};
+				
+				foreach (var optimizer in optimizers)
+				{
+					if (optimizer.TryOptimize(targetMethod, arguments.OfType<ExpressionSyntax>().ToArray(), out var optimized))
+					{
+						return optimized;
+					}
+				}
+			}
 
-			// if (constantArguments.Length == targetMethod.Parameters.Length)
-			// {
-			// 	try
-			// 	{
-			// 		if (loader.TryExecuteMethod(targetMethod, instance, new VariableItemDictionary(variables), constantArguments, out var value)
-			// 		    && TryGetLiteral(value, out var literal))
-			// 		{
-			// 			return literal;
-			// 		}
-			// 	}
-			// 	catch (Exception e)
-			// 	{
-			// 		
-			// 	}
-			// }
+			if (targetMethod.IsStatic)
+			{
+				var syntax = targetMethod.DeclaringSyntaxReferences
+					.Select(s => s.GetSyntax(token))
+					.Select<SyntaxNode, SyntaxNode?>(s =>
+					{
+						var mods = TokenList(Token(SyntaxKind.PrivateKeyword), Token(SyntaxKind.StaticKeyword));
 
-			return node.WithArgumentList(node.ArgumentList.WithArguments(SeparatedList(arguments.OfType<ExpressionSyntax>().Select(Argument))));
+						switch (s)
+						{
+							case MethodDeclarationSyntax method:
+							{
+								var parameters = method.ParameterList.Parameters
+									.ToDictionary(d => d.Identifier.Text, d => new VariableItem(semanticModel.GetTypeInfo(d.Type).Type ?? semanticModel.Compilation.ObjectType, false, null));
+								
+								var visitor = new ConstExprPartialRewriter(semanticModel, loader, (_, _) => { }, parameters, additionalMethods, attribute, token);
+								var body = visitor.Visit(method.Body) as BlockSyntax;
+								
+								return method.WithBody(body).WithModifiers(mods);
+							}
+							case LocalFunctionStatementSyntax localFunc:
+							{
+								var parameters = localFunc.ParameterList.Parameters
+									.ToDictionary(d => d.Identifier.Text, d => new VariableItem(semanticModel.GetTypeInfo(d.Type).Type ?? semanticModel.Compilation.ObjectType, false, null));
+
+								var visitor = new ConstExprPartialRewriter(semanticModel, loader, (_, _) => { }, parameters, additionalMethods, attribute, token);
+								var body = visitor.Visit(localFunc.Body) as BlockSyntax;
+
+								return localFunc.WithBody(body).WithModifiers(mods);
+							}
+							default:
+							{
+								return null;
+							}
+						}
+					})
+					.FirstOrDefault(f => f is not null);
+
+				if (syntax is not null)
+				{
+					additionalMethods.Add(syntax);
+				}
+
+				return node.WithArgumentList(node.ArgumentList.WithArguments(SeparatedList(arguments.OfType<ExpressionSyntax>().Select(Argument))));
+			}
 		}
 
 		return base.VisitInvocationExpression(node);

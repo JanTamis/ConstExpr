@@ -15,7 +15,10 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 		foreach (var stmt in node.Statements)
 		{
-			visited.Add((StatementSyntax)Visit(stmt)!);
+			if (Visit(stmt) is StatementSyntax statement)
+			{
+				visited.Add(statement);
+			}
 		}
 
 		if (visited.Count == 0)
@@ -23,133 +26,133 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			return node;
 		}
 
-		// Verplaats lokale functies naar het einde van de functie-/method-body
-		// en verwijder ongebruikte lokale functies via een eenvoudige syntactische analyse.
-		// (alleen voor top-level blokken van methoden/constructors/operators of lokale functies, niet voor willekeurige geneste blokken)
-		if (node.Parent is BaseMethodDeclarationSyntax or LocalFunctionStatementSyntax)
-		{
-			var nonLocal = new List<StatementSyntax>(visited.Count);
-			var locals = new List<LocalFunctionStatementSyntax>();
+		// // Verplaats lokale functies naar het einde van de functie-/method-body
+		// // en verwijder ongebruikte lokale functies via een eenvoudige syntactische analyse.
+		// // (alleen voor top-level blokken van methoden/constructors/operators of lokale functies, niet voor willekeurige geneste blokken)
+		// if (node.Parent is BaseMethodDeclarationSyntax or LocalFunctionStatementSyntax)
+		// {
+		// 	var nonLocal = new List<StatementSyntax>(visited.Count);
+		// 	var locals = new List<LocalFunctionStatementSyntax>();
+		//
+		// 	foreach (var s in visited)
+		// 	{
+		// 		if (s is LocalFunctionStatementSyntax lfs)
+		// 		{
+		// 			locals.Add(lfs);
+		// 		}
+		// 		else
+		// 		{
+		// 			nonLocal.Add(s);
+		// 		}
+		// 	}
+		//
+		// 	if (locals.Count > 0)
+		// 	{
+		// 		// Bepaal welke lokale functies gebruikt worden
+		// 		var localNames = new HashSet<string>(StringComparer.Ordinal);
+		//
+		// 		foreach (var l in locals)
+		// 		{
+		// 			localNames.Add(l.Identifier.ValueText);
+		// 		}
+		//
+		// 		// Verzamel naam-gebruik vanuit niet-lokale statements (aanroepen en method groups)
+		// 		var usedFromNonLocal = new HashSet<string>(StringComparer.Ordinal);
+		//
+		// 		foreach (var st in nonLocal)
+		// 		{
+		// 			foreach (var id in st.DescendantNodes().OfType<IdentifierNameSyntax>())
+		// 			{
+		// 				var name = id.Identifier.ValueText;
+		//
+		// 				if (localNames.Contains(name))
+		// 				{
+		// 					usedFromNonLocal.Add(name);
+		// 				}
+		// 			}
+		// 		}
+		//
+		// 		// Bouw eenvoudige call graph tussen lokale functies (op basis van identifier-namen)
+		// 		var edges = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+		//
+		// 		foreach (var l in locals)
+		// 		{
+		// 			var from = l.Identifier.ValueText;
+		// 			var targets = new HashSet<string>(StringComparer.Ordinal);
+		//
+		// 			foreach (var id in l.DescendantNodes().OfType<IdentifierNameSyntax>())
+		// 			{
+		// 				var name = id.Identifier.ValueText;
+		//
+		// 				if (localNames.Contains(name) && !string.Equals(name, from, StringComparison.Ordinal))
+		// 				{
+		// 					targets.Add(name);
+		// 				}
+		// 			}
+		// 			edges[from] = targets;
+		// 		}
+		//
+		// 		// Bereken bereikbare lokale functies vanuit niet-lokale gebruiksplaatsen
+		// 		var used = new HashSet<string>(usedFromNonLocal, StringComparer.Ordinal);
+		// 		var stack = new Stack<string>(usedFromNonLocal);
+		//
+		// 		while (stack.Count > 0)
+		// 		{
+		// 			var u = stack.Pop();
+		// 			if (!edges.TryGetValue(u, out var targets) || targets is null)
+		// 				continue;
+		//
+		// 			foreach (var v in targets)
+		// 			{
+		// 				if (used.Add(v))
+		// 				{
+		// 					stack.Push(v);
+		// 				}
+		// 			}
+		// 		}
+		//
+		// 		// Houd alleen de gebruikte lokale functies over (in oorspronkelijke volgorde)
+		// 		var keptLocals = new List<LocalFunctionStatementSyntax>(locals.Count);
+		//
+		// 		foreach (var l in locals)
+		// 		{
+		// 			if (used.Contains(l.Identifier.ValueText))
+		// 			{
+		// 				keptLocals.Add(l);
+		// 			}
+		// 		}
+		//
+		// 		visited = nonLocal;
+		//
+		// 		if (keptLocals.Count > 0)
+		// 		{
+		// 			// Voeg locals aaneengesloten toe, en zorg voor spacing: 1 lege regel vóór de groep, geen lege regels tussen of na functies
+		// 			var firstLocalIdx = visited.Count;
+		//
+		// 			visited.AddRange(keptLocals);
+		//
+		// 			if (firstLocalIdx > 0)
+		// 			{
+		// 				visited[firstLocalIdx - 1] = EnsureTrailingBlankLine(visited[firstLocalIdx - 1]);
+		// 			}
+		//
+		// 			for (var j = firstLocalIdx; j < visited.Count; j++)
+		// 			{
+		// 				visited[j] = TrimLeadingBlankLinesTo(visited[j], 0);
+		// 				visited[j] = EnsureTrailingSingleNewLine(visited[j]);
+		// 			}
+		// 		}
+		// 	}
+		// }
 
-			foreach (var s in visited)
-			{
-				if (s is LocalFunctionStatementSyntax lfs)
-				{
-					locals.Add(lfs);
-				}
-				else
-				{
-					nonLocal.Add(s);
-				}
-			}
-
-			if (locals.Count > 0)
-			{
-				// Bepaal welke lokale functies gebruikt worden
-				var localNames = new HashSet<string>(StringComparer.Ordinal);
-
-				foreach (var l in locals)
-				{
-					localNames.Add(l.Identifier.ValueText);
-				}
-
-				// Verzamel naam-gebruik vanuit niet-lokale statements (aanroepen en method groups)
-				var usedFromNonLocal = new HashSet<string>(StringComparer.Ordinal);
-
-				foreach (var st in nonLocal)
-				{
-					foreach (var id in st.DescendantNodes().OfType<IdentifierNameSyntax>())
-					{
-						var name = id.Identifier.ValueText;
-
-						if (localNames.Contains(name))
-						{
-							usedFromNonLocal.Add(name);
-						}
-					}
-				}
-
-				// Bouw eenvoudige call graph tussen lokale functies (op basis van identifier-namen)
-				var edges = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
-
-				foreach (var l in locals)
-				{
-					var from = l.Identifier.ValueText;
-					var targets = new HashSet<string>(StringComparer.Ordinal);
-
-					foreach (var id in l.DescendantNodes().OfType<IdentifierNameSyntax>())
-					{
-						var name = id.Identifier.ValueText;
-
-						if (localNames.Contains(name) && !string.Equals(name, from, StringComparison.Ordinal))
-						{
-							targets.Add(name);
-						}
-					}
-					edges[from] = targets;
-				}
-
-				// Bereken bereikbare lokale functies vanuit niet-lokale gebruiksplaatsen
-				var used = new HashSet<string>(usedFromNonLocal, StringComparer.Ordinal);
-				var stack = new Stack<string>(usedFromNonLocal);
-
-				while (stack.Count > 0)
-				{
-					var u = stack.Pop();
-					if (!edges.TryGetValue(u, out var targets) || targets is null)
-						continue;
-
-					foreach (var v in targets)
-					{
-						if (used.Add(v))
-						{
-							stack.Push(v);
-						}
-					}
-				}
-
-				// Houd alleen de gebruikte lokale functies over (in oorspronkelijke volgorde)
-				var keptLocals = new List<LocalFunctionStatementSyntax>(locals.Count);
-
-				foreach (var l in locals)
-				{
-					if (used.Contains(l.Identifier.ValueText))
-					{
-						keptLocals.Add(l);
-					}
-				}
-
-				visited = nonLocal;
-
-				if (keptLocals.Count > 0)
-				{
-					// Voeg locals aaneengesloten toe, en zorg voor spacing: 1 lege regel vóór de groep, geen lege regels tussen of na functies
-					var firstLocalIdx = visited.Count;
-
-					visited.AddRange(keptLocals);
-
-					if (firstLocalIdx > 0)
-					{
-						visited[firstLocalIdx - 1] = EnsureTrailingBlankLine(visited[firstLocalIdx - 1]);
-					}
-
-					for (var j = firstLocalIdx; j < visited.Count; j++)
-					{
-						visited[j] = TrimLeadingBlankLinesTo(visited[j], 0);
-						visited[j] = EnsureTrailingSingleNewLine(visited[j]);
-					}
-				}
-			}
-		}
-
-		// Groepeer lokale declaraties en omring met lege regels
-		for (var i = 0; i < visited.Count; i++)
-		{
-			if (visited[i] is LocalDeclarationStatementSyntax)
-			{
-				SurroundContiguousGroup(visited, ref i, static s => s is LocalDeclarationStatementSyntax);
-			}
-		}
+		// // Groepeer lokale declaraties en omring met lege regels
+		// for (var i = 0; i < visited.Count; i++)
+		// {
+		// 	if (visited[i] is LocalDeclarationStatementSyntax)
+		// 	{
+		// 		SurroundContiguousGroup(visited, ref i, static s => s is LocalDeclarationStatementSyntax);
+		// 	}
+		// }
 
 		// Groepeer yield return statements
 		for (var i = 0; i < visited.Count; i++)

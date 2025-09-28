@@ -15,6 +15,6 @@ public class SyntaxNodeComparer<TNode> : IEqualityComparer<TNode?> where TNode :
 
 	public int GetHashCode(TNode? obj)
 	{
-		return obj?.GetHashCode() ?? 0;
+		return obj?.ToString().GetHashCode() ?? 0;
 	}
 }

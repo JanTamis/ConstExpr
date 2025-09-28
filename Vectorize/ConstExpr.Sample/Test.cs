@@ -234,7 +234,7 @@ public static class Test
 
 		if (s == 0f)
 		{
-			var vGray = (byte)Math.Round(l * 255f);
+			var vGray = (byte)MathF.Round(l * 255f);
 			return (vGray, vGray, vGray);
 		}
 
@@ -279,9 +279,9 @@ public static class Test
 		}
 
 		var m = l - c / 2f;
-		var r = (byte)Math.Round((r1 + m) * 255f);
-		var g = (byte)Math.Round((g1 + m) * 255f);
-		var b = (byte)Math.Round((b1 + m) * 255f);
+		var r = (byte)MathF.Round((r1 + m) * 255f);
+		var g = (byte)MathF.Round((g1 + m) * 255f);
+		var b = (byte)MathF.Round((b1 + m) * 255f);
 		return (r, g, b);
 	}
 

@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.Intrinsics.X86;
 using ConstExpr.SourceGenerator.Sample;
 
@@ -8,7 +9,7 @@ byte test2 = 128;
 
 // Console.WriteLine(String.Join(", ", Test.Range(5)));
 
-// Console.WriteLine(String.Join(", ", Test.IsOdd(1, 2, 3, 4, 5)));
+// Console.WriteLine(String.Join(", ", Test.IsOdd(1, 2, 3, 4, 5));
 // Console.WriteLine(Test.Average(1f, 2f, 3f, 4f, 5f, 6f));
 // Console.WriteLine(Test.StdDev(test, 2f, 3f, 4f, 5f));
 
@@ -38,10 +39,10 @@ byte test2 = 128;
 //Console.WriteLine("Map(5, 0..10 -> 0..100) => " + Test.Map(5, 0, 10, 0, 100));
 
 //// Color conversions
-var (h, s, l) = Test.RgbToHsl(150, test2, 50);
+// var (h, s, l) = Test.RgbToHsl(150, test2, 50);
 //Console.WriteLine($"RGB(150,100,50) -> HSL({h:F1}, {s:F3}, {l:F3})");
 
-// var (rr, gg, bb) = Test.HslToRgb(720, test, 0.5f);
+var (rr, gg, bb) = Test.HslToRgb(720, test, 0.5f);
 // Console.WriteLine($"Round-trip HSL -> RGB({rr},{gg},{bb})");
 
 // var lumDark = Test.Luminance(0, test2, test2);
@@ -55,7 +56,7 @@ var (h, s, l) = Test.RgbToHsl(150, test2, 50);
 // Console.WriteLine("StdDev(1..5) => " + Test.StdDev(1, 2, 3, 4, 5));
 
 //// Demonstration of multi-parameter BlendRgb (gamma-correct and simple sRGB)
-// var (br1, bg1, bb1) = Test.BlendRgb(255, 0, 0, 0, 0, 255, test, gammaCorrect: true);
+var (br1, bg1, bb1) = Test.BlendRgb(255, 0, 0, 0, 0, 255, test, gammaCorrect: true);
 // Console.WriteLine($"Gamma-correct blend red over blue @0.5 => RGB({br1},{bg1},{bb1})");
 // var (br2, bg2, bb2) = Test.BlendRgb(255, 0, 0, 0, 0, 255, 0.5f, gammaCorrect: false);
 // Console.WriteLine($"Simple sRGB blend red over blue @0.5 => RGB({br2},{bg2},{bb2})");
