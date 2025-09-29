@@ -1,13 +1,14 @@
-using System.Collections.Generic;
+using ConstExpr.Core.Attributes;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Collections.Generic;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers;
 
 public class MinFunctionOptimizer : BaseFunctionOptimizer
 {
-	public override bool TryOptimize(IMethodSymbol method, IList<ExpressionSyntax> parameters, out SyntaxNode? result)
+	public override bool TryOptimize(IMethodSymbol method, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, out SyntaxNode? result)
 	{
 		result = null;
 
@@ -30,6 +31,21 @@ public class MinFunctionOptimizer : BaseFunctionOptimizer
 			return false;
 		}
 
+		// Try to recognize Clamp pattern: Min(Max(X, min), max) -> Clamp(X, min, max)
+		if (parameters.Count == 2)
+		{
+			if (TryRewriteClampFromMinMax(paramType, floatingPointMode, containingName, parameters[0], parameters[1], out var clamp))
+			{
+				result = clamp;
+				return true;
+			}
+			if (TryRewriteClampFromMinMax(paramType, floatingPointMode, containingName, parameters[1], parameters[0], out clamp))
+			{
+				result = clamp;
+				return true;
+			}
+		}
+
 		// Try to flatten nested Min with constants: Min(C1, Min(X, C2)) -> Min(X, min(C1, C2)) and symmetrical forms
 		if (parameters.Count == 2)
 		{
@@ -45,8 +61,14 @@ public class MinFunctionOptimizer : BaseFunctionOptimizer
 			}
 		}
 
+		var methodName = floatingPointMode switch
+		{
+			FloatingPointEvaluationMode.Strict => "Min",
+			FloatingPointEvaluationMode.FastMath => "MinNative",
+		};
+
 		// Fallback: just re-target to the numeric helper (ensures nested Single.Min(...) is supported)
-		result = CreateInvocation(paramType!, "Min", parameters[0], parameters[1]);
+		result = CreateInvocation(paramType!, methodName, parameters[0], parameters[1]);
 		return true;
 	}
 
@@ -60,7 +82,7 @@ public class MinFunctionOptimizer : BaseFunctionOptimizer
 			return false;
 		}
 
-		if (second is not InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Min" } member } innerInv)
+		if (second is not InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Min" or "MinNative" } member } innerInv)
 		{
 			return false;
 		}
@@ -139,6 +161,137 @@ public class MinFunctionOptimizer : BaseFunctionOptimizer
 		// Preserve evaluation safety: moving a constant across boundaries has no side-effects
 		result = CreateInvocation(paramType, "Min", nonConst!, smallerConstExpr);
 		return true;
+	}
+
+	private bool TryRewriteClampFromMinMax(ITypeSymbol paramType, FloatingPointEvaluationMode floatingPointMode, string? outerContainingName, ExpressionSyntax first, ExpressionSyntax second, out InvocationExpressionSyntax? result)
+	{
+		result = null;
+
+		// Pattern 1: Min(Max(X, minConst), maxConst)
+		if (first is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Max" or "MaxNative" } maxMember } maxInv
+			&& TryGetConstantValue(paramType, second, out var maxConstVal, out var maxConstExpr))
+		{
+			// Ensure the inner Max belongs to the same numeric helper
+			if (outerContainingName is not null)
+			{
+				var innerContainerName = maxMember.Expression switch
+				{
+					IdentifierNameSyntax id => id.Identifier.Text,
+					QualifiedNameSyntax qn => qn.Right.Identifier.Text,
+					_ => null
+				};
+				if (innerContainerName is not null && innerContainerName != paramType.Name)
+				{
+					return false;
+				}
+			}
+
+			var args = maxInv.ArgumentList.Arguments;
+			if (args.Count != 2) return false;
+
+			var m0 = args[0].Expression;
+			var m1 = args[1].Expression;
+
+			var hasMinC0 = TryGetConstantValue(paramType, m0, out var minValA, out var minExprA);
+			var hasMinC1 = TryGetConstantValue(paramType, m1, out var minValB, out var minExprB);
+
+			ExpressionSyntax? valueExpr = null;
+			ExpressionSyntax? minExpr = null;
+			object? minVal = null;
+
+			if (hasMinC0 && !hasMinC1)
+			{
+				valueExpr = m1;
+				minExpr = minExprA;
+				minVal = minValA;
+			}
+			else if (!hasMinC0 && hasMinC1)
+			{
+				valueExpr = m0;
+				minExpr = minExprB;
+				minVal = minValB;
+			}
+			else
+			{
+				return false; // inner must have exactly one constant bound
+			}
+
+			// Bounds must be ordered min <= max to preserve semantics
+			if (Compare(paramType, minVal!, maxConstVal!) <= 0)
+			{
+				var methodName = floatingPointMode switch
+				{
+					FloatingPointEvaluationMode.Strict => "Clamp",
+					FloatingPointEvaluationMode.FastMath => "ClampNative",
+				};
+
+				result = CreateInvocation(paramType, methodName, valueExpr!, minExpr!, maxConstExpr!);
+				return true;
+			}
+		}
+
+		// Pattern 2: Min(maxConst, Max(X, minConst))
+		if (second is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Max" or "MaxNative" } maxMember2 } maxInv2
+			&& TryGetConstantValue(paramType, first, out var maxConstVal2, out var maxConstExpr2))
+		{
+			if (outerContainingName is not null)
+			{
+				var innerContainerName = maxMember2.Expression switch
+				{
+					IdentifierNameSyntax id => id.Identifier.Text,
+					QualifiedNameSyntax qn => qn.Right.Identifier.Text,
+					_ => null
+				};
+				if (innerContainerName is not null && innerContainerName != paramType.Name)
+				{
+					return false;
+				}
+			}
+
+			var args2 = maxInv2.ArgumentList.Arguments;
+			if (args2.Count != 2) return false;
+
+			var mm0 = args2[0].Expression;
+			var mm1 = args2[1].Expression;
+
+			var hasMinC0b = TryGetConstantValue(paramType, mm0, out var minValA2, out var minExprA2);
+			var hasMinC1b = TryGetConstantValue(paramType, mm1, out var minValB2, out var minExprB2);
+
+			ExpressionSyntax? valueExpr2 = null;
+			ExpressionSyntax? minExpr2 = null;
+			object? minVal2 = null;
+
+			if (hasMinC0b && !hasMinC1b)
+			{
+				valueExpr2 = mm1;
+				minExpr2 = minExprA2;
+				minVal2 = minValA2;
+			}
+			else if (!hasMinC0b && hasMinC1b)
+			{
+				valueExpr2 = mm0;
+				minExpr2 = minExprB2;
+				minVal2 = minValB2;
+			}
+			else
+			{
+				return false;
+			}
+
+			if (Compare(paramType, minVal2!, maxConstVal2!) <= 0)
+			{
+				var methodName = floatingPointMode switch
+				{
+					FloatingPointEvaluationMode.Strict => "Clamp",
+					FloatingPointEvaluationMode.FastMath => "ClampNative",
+				};
+
+				result = CreateInvocation(paramType, methodName, valueExpr2!, minExpr2!, maxConstExpr2!);
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	private static bool TryGetConstantValue(ITypeSymbol paramType, ExpressionSyntax expr, out object? value, out ExpressionSyntax? constExpr)

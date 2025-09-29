@@ -386,7 +386,7 @@ public static class Test
 				if (l <= 0f) return 0;
 				if (l >= 1f) return 255;
 				var cs = l <= 0.0031308f ? 12.92f * l : 1.055f * MathF.Pow(l, 1f / 2.4f) - 0.055f;
-				return (byte)Math.Round(MathF.Max(0f, MathF.Min(1f, cs)) * 255f);
+				return (byte)MathF.Round(MathF.Max(0f, MathF.Min(1f, cs)) * 255f);
 			}
 
 			var lrDst = ToLinear(rDst);
@@ -409,7 +409,7 @@ public static class Test
 			var fa = a / 255f;
 			var fb = b / 255f;
 			var fr = t * fb + (1f - t) * fa;
-			return (byte)Math.Round(MathF.Max(0f, MathF.Min(1f, fr)) * 255f);
+			return (byte)MathF.Round(MathF.Max(0f, MathF.Min(1f, fr)) * 255f);
 		}
 
 		var r = LerpByte(rDst, rSrc, alpha);

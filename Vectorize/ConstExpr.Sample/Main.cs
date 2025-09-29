@@ -1,5 +1,3 @@
-using System;
-using System.Runtime.Intrinsics.X86;
 using ConstExpr.SourceGenerator.Sample;
 
 // var range = Test.Range(10);

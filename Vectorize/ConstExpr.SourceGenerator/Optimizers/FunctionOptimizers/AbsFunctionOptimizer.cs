@@ -1,15 +1,14 @@
-using System.Collections.Generic;
+using ConstExpr.Core.Attributes;
 using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
+using System.Collections.Generic;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers;
 
 public class AbsBaseFunctionOptimizer : BaseFunctionOptimizer
 {
-	public override bool TryOptimize(IMethodSymbol method, IList<ExpressionSyntax> parameters, out SyntaxNode? result)
+	public override bool TryOptimize(IMethodSymbol method, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, out SyntaxNode? result)
 	{
 		result = null;
 
@@ -26,7 +25,7 @@ public class AbsBaseFunctionOptimizer : BaseFunctionOptimizer
 			result = parameters[0];
 			return true;
 		}
-		
+
 		result = CreateInvocation(paramType, "Abs", parameters[0]);
 		return true;
 	}

@@ -86,7 +86,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			using (code.WriteBlock($"file static class GeneratedMethods", "{", "}"))
 			{
 				EmitGeneratedMethodsForValueGroups(code, compilation, methodGroup);
-				
+
 				foreach (var additionalMethod in distinctAdditionalMethods)
 				{
 					code.WriteLine();

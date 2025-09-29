@@ -1,15 +1,13 @@
-using System.Collections.Generic;
-using System.Linq;
+using ConstExpr.Core.Attributes;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
+using System.Collections.Generic;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers;
 
 public class RoundFunctionOptimizer : BaseFunctionOptimizer
 {
-	public override bool TryOptimize(IMethodSymbol method, IList<ExpressionSyntax> parameters, out SyntaxNode? result)
+	public override bool TryOptimize(IMethodSymbol method, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, out SyntaxNode? result)
 	{
 		result = null;
 
@@ -17,9 +15,9 @@ public class RoundFunctionOptimizer : BaseFunctionOptimizer
 		{
 			return false;
 		}
-		
+
 		var containing = method.ContainingType?.ToString();
-		
+
 		if (containing is not "System.Math" and not "System.MathF")
 		{
 			return false;
@@ -37,9 +35,9 @@ public class RoundFunctionOptimizer : BaseFunctionOptimizer
 			var args = new List<ExpressionSyntax>(parameters);
 
 			bool IsZero(ExpressionSyntax e)
-				=> e is LiteralExpressionSyntax { Token.Value: 0 } 
-					or LiteralExpressionSyntax { Token.Value: 0u } 
-					or LiteralExpressionSyntax { Token.Value: 0L } 
+				=> e is LiteralExpressionSyntax { Token.Value: 0 }
+					or LiteralExpressionSyntax { Token.Value: 0u }
+					or LiteralExpressionSyntax { Token.Value: 0L }
 					or LiteralExpressionSyntax { Token.Value: 0ul };
 
 			bool IsToEven(ExpressionSyntax e)
