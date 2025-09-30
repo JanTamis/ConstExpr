@@ -53,18 +53,20 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 
 			return value.Value as SyntaxNode;
 		}
-
+		
 		return node;
 	}
 
 	public override SyntaxNode? VisitExpressionStatement(ExpressionStatementSyntax node)
 	{
-		if (Visit(node.Expression) is ExpressionSyntax expression)
+		var result = Visit(node.Expression);
+		
+		if (result is ExpressionSyntax expression)
 		{
 			return node.WithExpression(expression);
 		}
 
-		return node;
+		return result;
 	}
 
 	public override SyntaxNode? VisitLiteralExpression(LiteralExpressionSyntax node)
@@ -99,6 +101,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 							if (st is TNode t)
 							{
 								result.Add(t);
+								
 								if (st is ReturnStatementSyntax)
 								{
 									shouldStop = true;
@@ -111,10 +114,12 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 				case TNode t:
 					{
 						result.Add(t);
+						
 						if (visited is ReturnStatementSyntax)
 						{
 							shouldStop = true;
 						}
+						
 						break;
 					}
 			}
@@ -410,6 +415,11 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 					if (loader.TryExecuteMethod(targetMethod, instance, new VariableItemDictionary(variables), constantArguments, out var value)
 							&& TryGetLiteral(value, out var literal))
 					{
+						if (targetMethod.ReturnsVoid)
+						{
+							return null;
+						}
+						
 						return literal;
 					}
 				}
@@ -451,7 +461,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 			{
 				IEnumerable<BaseFunctionOptimizer> optimizers = arguments.Count switch
 				{
-					1 => [new AbsBaseFunctionOptimizer(), new RoundFunctionOptimizer()],
+					1 => [new AbsBaseFunctionOptimizer(), new RoundFunctionOptimizer(), new SqrtFunctionOptimizer()],
 					2 => [new MaxFunctionOptimizer(), new MinFunctionOptimizer(), new RoundFunctionOptimizer()],
 					3 => [new RoundFunctionOptimizer()],
 					_ => []
@@ -922,7 +932,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 					case SpecialType.System_UInt16: return CreateLiteral(Convert.ToUInt16(value));
 					case SpecialType.System_UInt32: return CreateLiteral(Convert.ToUInt32(value));
 					case SpecialType.System_UInt64: return CreateLiteral(Convert.ToUInt64(value));
-					case SpecialType.System_Object: return CreateLiteral(value);
+					case SpecialType.System_Object: return node.WithExpression(expression as ExpressionSyntax ?? node.Expression);
 					default:
 						{
 							if (TryGetOperation(semanticModel, node, out IConversionOperation? operation))
@@ -933,13 +943,15 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 									return literal;
 								}
 
-								return expression;
+								return node.WithExpression(expression as ExpressionSyntax ?? node.Expression);
 							}
 
 							break;
 						}
 				}
 			}
+			
+			return node.WithExpression(expression as ExpressionSyntax ?? node.Expression);
 		}
 
 		return base.VisitCastExpression(node);
@@ -1329,34 +1341,33 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 
 	public override SyntaxNode? VisitMemberAccessExpression(MemberAccessExpressionSyntax node)
 	{
-		if (TryGetLiteralValue(node.Expression, out var instanceValue))
+		TryGetLiteralValue(Visit(node.Expression), out var instanceValue);
+			
+		if (semanticModel.TryGetSymbol(node, out ISymbol? symbol))
 		{
-			if (semanticModel.TryGetSymbol(node, out ISymbol? symbol))
+			switch (symbol)
 			{
-				switch (symbol)
-				{
-					case IFieldSymbol fieldSymbol:
-						if (loader.TryGetFieldValue(fieldSymbol, instanceValue, out var value)
-								&& TryGetLiteral(value, out var literal))
+				case IFieldSymbol fieldSymbol:
+					if (loader.TryGetFieldValue(fieldSymbol, instanceValue, out var value)
+					    && TryGetLiteral(value, out var literal))
+					{
+						return literal;
+					}
+					break;
+				case IPropertySymbol propertySymbol:
+					if (propertySymbol.Parameters.Length == 0)
+					{
+						if (loader.TryExecuteMethod(propertySymbol.GetMethod, instanceValue, new VariableItemDictionary(variables), [], out value)
+						    && TryGetLiteral(value, out literal))
 						{
 							return literal;
 						}
-						break;
-					case IPropertySymbol propertySymbol:
-						if (propertySymbol.Parameters.Length == 0)
-						{
-							if (loader.TryExecuteMethod(propertySymbol.GetMethod, instanceValue, new VariableItemDictionary(variables), [], out value)
-									&& TryGetLiteral(value, out literal))
-							{
-								return literal;
-							}
-						}
-						break;
-				}
+					}
+					break;
 			}
 		}
 
-		return base.VisitMemberAccessExpression(node);
+		return node;
 	}
 
 	public override SyntaxNode? VisitForEachStatement(ForEachStatementSyntax node)
@@ -1471,7 +1482,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 
 		return node.WithContents(List(result));
 	}
-
+	
 	public override SyntaxNode VisitBlock(BlockSyntax node)
 	{
 		return node.WithStatements(VisitList(node.Statements));

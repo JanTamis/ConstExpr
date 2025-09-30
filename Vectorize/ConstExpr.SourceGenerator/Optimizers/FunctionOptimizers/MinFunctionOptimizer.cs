@@ -39,6 +39,7 @@ public class MinFunctionOptimizer : BaseFunctionOptimizer
 				result = clamp;
 				return true;
 			}
+
 			if (TryRewriteClampFromMinMax(paramType, floatingPointMode, containingName, parameters[1], parameters[0], out clamp))
 			{
 				result = clamp;
@@ -54,6 +55,7 @@ public class MinFunctionOptimizer : BaseFunctionOptimizer
 				result = flattened;
 				return true;
 			}
+
 			if (TryFlattenNestedMin(paramType, containingName, parameters[1], parameters[0], out flattened))
 			{
 				result = flattened;
@@ -61,14 +63,15 @@ public class MinFunctionOptimizer : BaseFunctionOptimizer
 			}
 		}
 
-		var methodName = floatingPointMode switch
+		if (floatingPointMode == FloatingPointEvaluationMode.FastMath && HasMethod(paramType, "MinNative", 2))
 		{
-			FloatingPointEvaluationMode.Strict => "Min",
-			FloatingPointEvaluationMode.FastMath => "MinNative",
-		};
+			// Use MaxNative if available on the numeric helper type
+			result = CreateInvocation(paramType, "MinNative", parameters[0], parameters[1]);
+			return true;
+		}
 
-		// Fallback: just re-target to the numeric helper (ensures nested Single.Min(...) is supported)
-		result = CreateInvocation(paramType!, methodName, parameters[0], parameters[1]);
+		// Fallback: just re-target to the numeric helper (ensures nested Single.Max(...) is supported)
+		result = CreateInvocation(paramType!, "Min", parameters[0], parameters[1]);
 		return true;
 	}
 
@@ -104,6 +107,7 @@ public class MinFunctionOptimizer : BaseFunctionOptimizer
 		}
 
 		var args = innerInv.ArgumentList.Arguments;
+
 		if (args.Count != 2)
 		{
 			return false;
@@ -169,7 +173,7 @@ public class MinFunctionOptimizer : BaseFunctionOptimizer
 
 		// Pattern 1: Min(Max(X, minConst), maxConst)
 		if (first is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Max" or "MaxNative" } maxMember } maxInv
-			&& TryGetConstantValue(paramType, second, out var maxConstVal, out var maxConstExpr))
+		    && TryGetConstantValue(paramType, second, out var maxConstVal, out var maxConstExpr))
 		{
 			// Ensure the inner Max belongs to the same numeric helper
 			if (outerContainingName is not null)
@@ -180,6 +184,7 @@ public class MinFunctionOptimizer : BaseFunctionOptimizer
 					QualifiedNameSyntax qn => qn.Right.Identifier.Text,
 					_ => null
 				};
+
 				if (innerContainerName is not null && innerContainerName != paramType.Name)
 				{
 					return false;
@@ -219,20 +224,22 @@ public class MinFunctionOptimizer : BaseFunctionOptimizer
 			// Bounds must be ordered min <= max to preserve semantics
 			if (Compare(paramType, minVal!, maxConstVal!) <= 0)
 			{
-				var methodName = floatingPointMode switch
+				if (floatingPointMode == FloatingPointEvaluationMode.FastMath && HasMethod(paramType, "ClampNative", 2))
 				{
-					FloatingPointEvaluationMode.Strict => "Clamp",
-					FloatingPointEvaluationMode.FastMath => "ClampNative",
-				};
+					// Use MaxNative if available on the numeric helper type
+					result = CreateInvocation(paramType, "ClampNative", valueExpr!, minExpr!, maxConstExpr!);
+					return true;
+				}
 
-				result = CreateInvocation(paramType, methodName, valueExpr!, minExpr!, maxConstExpr!);
+				// Fallback: just re-target to the numeric helper (ensures nested Single.Max(...) is supported)
+				result = CreateInvocation(paramType!, "Clamp", valueExpr!, minExpr!, maxConstExpr!);
 				return true;
 			}
 		}
 
 		// Pattern 2: Min(maxConst, Max(X, minConst))
 		if (second is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Max" or "MaxNative" } maxMember2 } maxInv2
-			&& TryGetConstantValue(paramType, first, out var maxConstVal2, out var maxConstExpr2))
+		    && TryGetConstantValue(paramType, first, out var maxConstVal2, out var maxConstExpr2))
 		{
 			if (outerContainingName is not null)
 			{
@@ -242,6 +249,7 @@ public class MinFunctionOptimizer : BaseFunctionOptimizer
 					QualifiedNameSyntax qn => qn.Right.Identifier.Text,
 					_ => null
 				};
+
 				if (innerContainerName is not null && innerContainerName != paramType.Name)
 				{
 					return false;
@@ -280,13 +288,15 @@ public class MinFunctionOptimizer : BaseFunctionOptimizer
 
 			if (Compare(paramType, minVal2!, maxConstVal2!) <= 0)
 			{
-				var methodName = floatingPointMode switch
+				if (floatingPointMode == FloatingPointEvaluationMode.FastMath && HasMethod(paramType, "ClampNative", 2))
 				{
-					FloatingPointEvaluationMode.Strict => "Clamp",
-					FloatingPointEvaluationMode.FastMath => "ClampNative",
-				};
+					// Use MaxNative if available on the numeric helper type
+					result = CreateInvocation(paramType, "ClampNative", valueExpr2!, minExpr2!, maxConstExpr2!);
+					return true;
+				}
 
-				result = CreateInvocation(paramType, methodName, valueExpr2!, minExpr2!, maxConstExpr2!);
+				// Fallback: just re-target to the numeric helper (ensures nested Single.Max(...) is supported)
+				result = CreateInvocation(paramType!, "Clamp", valueExpr2!, minExpr2!, maxConstExpr2!);
 				return true;
 			}
 		}
@@ -305,7 +315,7 @@ public class MinFunctionOptimizer : BaseFunctionOptimizer
 				value = lit.Token.Value;
 				constExpr = expr;
 				return value is not null && IsNumericLiteral(value);
-			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax opLit }:
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax opLit }:
 				var v = opLit.Token.Value;
 				if (v is null || !IsNumericLiteral(v)) return false;
 				value = NegateNumeric(v);
@@ -370,8 +380,7 @@ public class MinFunctionOptimizer : BaseFunctionOptimizer
 
 	private static T ConvertTo<T>(object v)
 	{
-		try { return (T)System.Convert.ChangeType(v, typeof(T), System.Globalization.CultureInfo.InvariantCulture); }
+		try { return (T) System.Convert.ChangeType(v, typeof(T), System.Globalization.CultureInfo.InvariantCulture); }
 		catch { return default!; }
 	}
 }
-

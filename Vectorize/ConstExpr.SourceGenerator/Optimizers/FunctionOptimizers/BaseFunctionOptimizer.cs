@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
 using System.Linq;
+using ConstExpr.SourceGenerator.Extensions;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers;
 
@@ -35,5 +36,14 @@ public abstract class BaseFunctionOptimizer
 			BinaryExpressionSyntax b => IsPure(b.Left) && IsPure(b.Right),
 			_ => false
 		};
+	}
+	
+	protected bool HasMethod(ITypeSymbol type, string name, int parameterCount)
+	{
+		return type.GetMembers(name)
+			.OfType<IMethodSymbol>()
+			.Any(m => m.Parameters.Length == parameterCount 
+			          && m.DeclaredAccessibility == Accessibility.Public 
+			          && SymbolEqualityComparer.Default.Equals(type, m.ContainingType));
 	}
 }

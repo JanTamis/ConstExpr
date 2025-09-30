@@ -1,18 +1,18 @@
+using System.Collections.Generic;
 using ConstExpr.Core.Attributes;
 using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.Collections.Generic;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers;
 
-public class AbsBaseFunctionOptimizer : BaseFunctionOptimizer
+public class SqrtFunctionOptimizer : BaseFunctionOptimizer
 {
 	public override bool TryOptimize(IMethodSymbol method, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, out SyntaxNode? result)
 	{
 		result = null;
 
-		if (method.Name != "Abs")
+		if (method.Name != "Sqrt")
 		{
 			return false;
 		}
@@ -30,14 +30,12 @@ public class AbsBaseFunctionOptimizer : BaseFunctionOptimizer
 			return false;
 		}
 
-		if (paramType.IsUnsignedInteger())
+		if (!paramType.IsNumericType())
 		{
-			// Abs(x) where x is unsigned => x
-			result = parameters[0];
-			return true;
+			return false;
 		}
 
-		result = CreateInvocation(paramType, "Abs", parameters);
+		result = CreateInvocation(paramType, "Sqrt", parameters);
 		return true;
 	}
 }

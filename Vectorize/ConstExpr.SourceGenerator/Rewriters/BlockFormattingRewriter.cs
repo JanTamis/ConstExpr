@@ -145,14 +145,14 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		// 	}
 		// }
 
-		// // Groepeer lokale declaraties en omring met lege regels
-		// for (var i = 0; i < visited.Count; i++)
-		// {
-		// 	if (visited[i] is LocalDeclarationStatementSyntax)
-		// 	{
-		// 		SurroundContiguousGroup(visited, ref i, static s => s is LocalDeclarationStatementSyntax);
-		// 	}
-		// }
+		// Groepeer lokale declaraties en omring met lege regels
+		for (var i = 0; i < visited.Count; i++)
+		{
+			if (visited[i] is LocalDeclarationStatementSyntax)
+			{
+				SurroundContiguousGroup(visited, ref i, static s => s is LocalDeclarationStatementSyntax);
+			}
+		}
 
 		// Groepeer yield return statements
 		for (var i = 0; i < visited.Count; i++)
@@ -265,6 +265,73 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		}
 
 		return visited;
+	}
+
+	public override SyntaxNode VisitConditionalExpression(ConditionalExpressionSyntax node)
+	{
+		// Breng de ?: operator op meerdere regels en houd rekening met nesting.
+		// Doel-layout:
+		// condition
+		// \t? whenTrue
+		// \t: whenFalse
+		var v = (ConditionalExpressionSyntax)base.VisitConditionalExpression(node);
+
+		// Tokens die we gaan aanpassen
+		var conditionLast = v.Condition.GetLastToken();
+		var question = v.QuestionToken;
+		var whenTrueFirst = v.WhenTrue.GetFirstToken();
+		var whenTrueLast = v.WhenTrue.GetLastToken();
+		var colon = v.ColonToken;
+		var whenFalseFirst = v.WhenFalse.GetFirstToken();
+
+		// Bepaal de indent op basis van het statement waarin we zitten en gebruik dezelfde unit als NormalizeWhitespace (\t)
+		var indentUnit = SyntaxFactory.Whitespace("\t");
+		var baseIndent = GetBaseIndentTrivia(v);
+		var lineIndent = baseIndent.Add(indentUnit);
+
+		// 1) Na de condition een nieuwe regel forceren
+		var condTrailing = TrimTrailingWhitespaceAndEndOfLines(conditionLast.TrailingTrivia);
+		condTrailing = condTrailing.Add(SyntaxFactory.ElasticCarriageReturnLineFeed);
+		var newConditionLast = conditionLast.WithTrailingTrivia(condTrailing);
+
+		// 2) '?' start op nieuwe regel met indent en 1 spatie erna; behoud niet-witruimte leading trivia (zoals comments) na de indent
+		var qLeadingRest = TrimLeadingWhitespaceAndEndOfLines(question.LeadingTrivia);
+		var qLeading = lineIndent;
+		foreach (var tr in qLeadingRest) qLeading = qLeading.Add(tr);
+		var qTrailing = TrimTrailingWhitespaceAndEndOfLines(question.TrailingTrivia).Add(SyntaxFactory.Space);
+		var newQuestion = question.WithLeadingTrivia(qLeading).WithTrailingTrivia(qTrailing);
+
+		// 3) whenTrue direct na '? ' (geen leidende whitespace/eol)
+		var wtFirst = whenTrueFirst.WithLeadingTrivia(TrimLeadingWhitespaceAndEndOfLines(whenTrueFirst.LeadingTrivia));
+
+		// 4) Na whenTrue een nieuwe regel forceren vóór ':'
+		var wtTrailing = TrimTrailingWhitespaceAndEndOfLines(whenTrueLast.TrailingTrivia).Add(SyntaxFactory.ElasticCarriageReturnLineFeed);
+		var newWhenTrueLast = whenTrueLast.WithTrailingTrivia(wtTrailing);
+
+		// 5) ':' start op nieuwe regel met indent en 1 spatie erna; behoud niet-witruimte leading trivia na de indent
+		var cLeadingRest = TrimLeadingWhitespaceAndEndOfLines(colon.LeadingTrivia);
+		var cLeading = lineIndent;
+		foreach (var tr in cLeadingRest) cLeading = cLeading.Add(tr);
+		var cTrailing = TrimTrailingWhitespaceAndEndOfLines(colon.TrailingTrivia).Add(SyntaxFactory.Space);
+		var newColon = colon.WithLeadingTrivia(cLeading).WithTrailingTrivia(cTrailing);
+
+		// 6) whenFalse direct na ': ' (geen leidende whitespace/eol)
+		var wfFirst = whenFalseFirst.WithLeadingTrivia(TrimLeadingWhitespaceAndEndOfLines(whenFalseFirst.LeadingTrivia));
+
+		// Vervang tokens in één bewerking
+		var tokens = new[] { conditionLast, question, whenTrueFirst, whenTrueLast, colon, whenFalseFirst };
+		var map = new Dictionary<SyntaxToken, SyntaxToken>
+		{
+			[conditionLast] = newConditionLast,
+			[question] = newQuestion,
+			[whenTrueFirst] = wtFirst,
+			[whenTrueLast] = newWhenTrueLast,
+			[colon] = newColon,
+			[whenFalseFirst] = wfFirst,
+		};
+
+		v = v.ReplaceTokens(tokens, (orig, _) => map.TryGetValue(orig, out var rep) ? rep : orig);
+		return v;
 	}
 
 	private static void SurroundContiguousGroup(List<StatementSyntax> visited, ref int i, Func<StatementSyntax, bool> isInGroup)
@@ -446,5 +513,69 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		newTrailing.Add(SyntaxFactory.ElasticCarriageReturnLineFeed);
 
 		return block.WithOpenBraceToken(open.WithTrailingTrivia(SyntaxFactory.TriviaList(newTrailing)));
+	}
+
+	private static SyntaxTriviaList TrimTrailingWhitespaceAndEndOfLines(SyntaxTriviaList list)
+	{
+		var idx = list.Count - 1;
+		while (idx >= 0 && (list[idx].IsKind(SyntaxKind.EndOfLineTrivia) || list[idx].IsKind(SyntaxKind.WhitespaceTrivia)))
+		{
+			idx--;
+		}
+		var result = SyntaxFactory.TriviaList();
+		for (var i = 0; i <= idx; i++)
+		{
+			result = result.Add(list[i]);
+		}
+		return result;
+	}
+
+	private static SyntaxTriviaList TrimLeadingWhitespaceAndEndOfLines(SyntaxTriviaList list)
+	{
+		var idx = 0;
+		while (idx < list.Count && (list[idx].IsKind(SyntaxKind.EndOfLineTrivia) || list[idx].IsKind(SyntaxKind.WhitespaceTrivia)))
+		{
+			idx++;
+		}
+		var result = SyntaxFactory.TriviaList();
+		for (var i = idx; i < list.Count; i++)
+		{
+			result = result.Add(list[i]);
+		}
+		return result;
+	}
+
+	private static SyntaxTriviaList GetBaseIndentTrivia(SyntaxNode node)
+	{
+		// Zoek dichtstbijzijnde statement en gebruik de indentatie van de eerste token na de laatste line break
+		var stmt = node.AncestorsAndSelf().OfType<StatementSyntax>().FirstOrDefault();
+		var token = (stmt ?? node).GetFirstToken();
+		var leading = token.LeadingTrivia;
+		var lastEol = -1;
+		for (var i = 0; i < leading.Count; i++)
+		{
+			if (leading[i].IsKind(SyntaxKind.EndOfLineTrivia)) lastEol = i;
+		}
+		if (lastEol < 0)
+		{
+			// Geen EOL: neem alleen whitespace aan het begin
+			var result = SyntaxFactory.TriviaList();
+			for (var i = 0; i < leading.Count; i++)
+			{
+				if (leading[i].IsKind(SyntaxKind.WhitespaceTrivia)) result = result.Add(leading[i]);
+				else result = SyntaxFactory.TriviaList(); // reset als er comments/anders tussenzit
+			}
+			return result;
+		}
+		else
+		{
+			var result = SyntaxFactory.TriviaList();
+			for (var i = lastEol + 1; i < leading.Count; i++)
+			{
+				if (leading[i].IsKind(SyntaxKind.WhitespaceTrivia)) result = result.Add(leading[i]);
+				else break;
+			}
+			return result;
+		}
 	}
 }

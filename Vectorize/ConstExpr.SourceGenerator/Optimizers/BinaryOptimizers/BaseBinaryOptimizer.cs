@@ -51,6 +51,7 @@ public abstract class BaseBinaryOptimizer
 			ParenthesizedExpressionSyntax par => IsPure(par.Expression),
 			PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken } u => IsPure(u.Operand),
 			BinaryExpressionSyntax b => IsPure(b.Left) && IsPure(b.Right),
+			MemberAccessExpressionSyntax m => IsPure(m.Expression),
 			_ => false
 		};
 	}

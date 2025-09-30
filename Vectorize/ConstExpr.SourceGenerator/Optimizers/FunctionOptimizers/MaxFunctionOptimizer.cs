@@ -62,14 +62,15 @@ public class MaxFunctionOptimizer : BaseFunctionOptimizer
 			}
 		}
 
-		var methodName = floatingPointMode switch
+		if (floatingPointMode == FloatingPointEvaluationMode.FastMath && HasMethod(paramType, "MaxNative", 2))
 		{
-			FloatingPointEvaluationMode.Strict => "Max",
-			FloatingPointEvaluationMode.FastMath => "MaxNative",
-		};
-
+			// Use MaxNative if available on the numeric helper type
+			result = CreateInvocation(paramType, "MaxNative", parameters[0], parameters[1]);
+			return true;
+		}
+		
 		// Fallback: just re-target to the numeric helper (ensures nested Single.Max(...) is supported)
-		result = CreateInvocation(paramType!, methodName, parameters[0], parameters[1]);
+		result = CreateInvocation(paramType!, "Max", parameters[0], parameters[1]);
 		return true;
 	}
 
@@ -222,13 +223,13 @@ public class MaxFunctionOptimizer : BaseFunctionOptimizer
 			// Bounds must be ordered min <= max to preserve semantics
 			if (Compare(paramType, minConstVal!, maxVal!) <= 0)
 			{
-				var methodName = floatingPointMode switch
+				if (floatingPointMode == FloatingPointEvaluationMode.FastMath && HasMethod(paramType, "ClampNative", 3))
 				{
-					FloatingPointEvaluationMode.Strict => "Clamp",
-					FloatingPointEvaluationMode.FastMath => "ClampNative",
-				};
+					result = CreateInvocation(paramType, "ClampNative", valueExpr!, minConstExpr!, maxExpr!);
+					return true;
+				}
 
-				result = CreateInvocation(paramType, methodName, valueExpr!, minConstExpr!, maxExpr!);
+				result = CreateInvocation(paramType!, "Clamp", valueExpr!, minConstExpr!, maxExpr!);
 				return true;
 			}
 		}
@@ -284,13 +285,13 @@ public class MaxFunctionOptimizer : BaseFunctionOptimizer
 
 			if (Compare(paramType, minConstVal2!, maxVal2!) <= 0)
 			{
-				var methodName = floatingPointMode switch
+				if (floatingPointMode == FloatingPointEvaluationMode.FastMath && HasMethod(paramType, "ClampNative", 3))
 				{
-					FloatingPointEvaluationMode.Strict => "Clamp",
-					FloatingPointEvaluationMode.FastMath => "ClampNative",
-				};
+					result = CreateInvocation(paramType, "ClampNative", valueExpr2!, minConstExpr2!, maxExpr2!);
+					return true;
+				}
 
-				result = CreateInvocation(paramType, methodName, valueExpr2!, minConstExpr2!, maxExpr2!);
+				result = CreateInvocation(paramType!, "Clamp", valueExpr2!, minConstExpr2!, maxExpr2!);
 				return true;
 			}
 		}

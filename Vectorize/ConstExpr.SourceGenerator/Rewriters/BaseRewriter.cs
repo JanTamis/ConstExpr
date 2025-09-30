@@ -219,10 +219,67 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 						"Object" => innerVal,
 						_ => innerVal
 					};
-					
+
 					return true;
 				}
 				break;
+			}
+			case MemberAccessExpressionSyntax memberAccessExpressionSyntax:
+			{
+				if (semanticModel.TryGetSymbol(node, out ISymbol? symbol))
+				{
+					TryGetLiteralValue(Visit(memberAccessExpressionSyntax.Expression), out var instanceValue);
+
+					switch (symbol)
+					{
+						case IFieldSymbol fieldSymbol:
+							if (loader.TryGetFieldValue(fieldSymbol, instanceValue, out value))
+							{
+								return true;
+							}
+							break;
+						case IPropertySymbol propertySymbol:
+							if (propertySymbol.Parameters.Length == 0)
+							{
+								if (loader.TryExecuteMethod(propertySymbol.GetMethod, instanceValue, new VariableItemDictionary(variables), [ ], out value))
+								{
+									return true;
+								}
+							}
+							break;
+					}
+				}
+
+				break;
+			}
+			case CollectionExpressionSyntax collectionExpressionSyntax:
+			{
+				var elements = new List<object?>();
+				
+				foreach (var element in collectionExpressionSyntax.Elements.OfType<ExpressionElementSyntax>())
+				{
+					if (TryGetLiteralValue(element.Expression, out var elemVal))
+					{
+						elements.Add(elemVal);
+					}
+					else
+					{
+						value = null;
+						return false;
+					}
+				}
+				
+				var type = elements[0]?.GetType() ?? typeof(object);
+				
+				var array = Array.CreateInstance(type, elements.Count);
+				
+				for (var i = 0; i < elements.Count; i++)
+				{
+					array.SetValue(Convert.ChangeType(elements[i], type), i);
+				}
+
+				value = array;
+				return true;
 			}
 		}
 

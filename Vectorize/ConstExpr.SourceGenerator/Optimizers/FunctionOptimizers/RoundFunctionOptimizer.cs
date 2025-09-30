@@ -17,13 +17,18 @@ public class RoundFunctionOptimizer : BaseFunctionOptimizer
 		}
 
 		var containing = method.ContainingType?.ToString();
+		var paramType = method.Parameters.Length > 0 ? method.Parameters[0].Type : null;
+		var containingName = method.ContainingType?.Name;
+		var paramTypeName = paramType?.Name;
 
-		if (containing is not "System.Math" and not "System.MathF")
+		var isMath = containing is "System.Math" or "System.MathF";
+		var isNumericHelper = paramTypeName is not null && containingName == paramTypeName;
+
+		if (!isMath && !isNumericHelper || paramType is null)
 		{
 			return false;
 		}
-
-		var type = method.Parameters[0].Type;
+		
 
 		// We only simplify default arguments:
 		// - digits == 0 can be dropped
@@ -54,17 +59,17 @@ public class RoundFunctionOptimizer : BaseFunctionOptimizer
 
 				if (IsZero(digits) && IsToEven(mode))
 				{
-					result = CreateInvocation(type, "Round", arg0);
+					result = CreateInvocation(paramType, "Round", arg0);
 					return true;
 				}
 				if (IsToEven(mode))
 				{
-					result = CreateInvocation(type, "Round", arg0, digits);
+					result = CreateInvocation(paramType, "Round", arg0, digits);
 					return true;
 				}
 				if (IsZero(digits))
 				{
-					result = CreateInvocation(type, "Round", arg0, mode);
+					result = CreateInvocation(paramType, "Round", arg0, mode);
 					return true;
 				}
 			}
@@ -75,13 +80,13 @@ public class RoundFunctionOptimizer : BaseFunctionOptimizer
 
 				if (IsZero(second) || IsToEven(second))
 				{
-					result = CreateInvocation(type, "Round", arg0);
+					result = CreateInvocation(paramType, "Round", arg0);
 					return true;
 				}
 			}
 		}
 
-		result = CreateInvocation(type, "Round", parameters[0]);
+		result = CreateInvocation(paramType, "Round", parameters[0]);
 		return true;
 	}
 }
