@@ -108,7 +108,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				.ThenBy(o => o)
 				.Select(s => $"using {s};")) + "\n\n" + code;
 
-			// spc.AddSource($"{methodGroup.First().ParentType.Identifier}_{methodGroup.Key.Identifier}.g.cs", result);
+			spc.AddSource($"{methodGroup.First().ParentType.Identifier}_{methodGroup.Key.Identifier}.g.cs", result);
 		}
 	}
 

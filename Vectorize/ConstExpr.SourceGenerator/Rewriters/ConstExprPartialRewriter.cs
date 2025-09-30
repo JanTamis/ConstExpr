@@ -53,14 +53,14 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 
 			return value.Value as SyntaxNode;
 		}
-		
+
 		return node;
 	}
 
 	public override SyntaxNode? VisitExpressionStatement(ExpressionStatementSyntax node)
 	{
 		var result = Visit(node.Expression);
-		
+
 		if (result is ExpressionSyntax expression)
 		{
 			return node.WithExpression(expression);
@@ -101,7 +101,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 							if (st is TNode t)
 							{
 								result.Add(t);
-								
+
 								if (st is ReturnStatementSyntax)
 								{
 									shouldStop = true;
@@ -114,12 +114,12 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 				case TNode t:
 					{
 						result.Add(t);
-						
+
 						if (visited is ReturnStatementSyntax)
 						{
 							shouldStop = true;
 						}
-						
+
 						break;
 					}
 			}
@@ -336,7 +336,9 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 			}
 		}
 
-		return node;
+		return node
+			.WithLeft(left as ExpressionSyntax)
+			.WithRight(right as ExpressionSyntax);
 
 		// Stricter check for duplication safety: only locals/parameters/literals (allow parentheses but NO conversions)
 		bool IsSafeToDuplicate(IOperation op)
@@ -419,7 +421,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 						{
 							return null;
 						}
-						
+
 						return literal;
 					}
 				}
@@ -950,7 +952,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 						}
 				}
 			}
-			
+
 			return node.WithExpression(expression as ExpressionSyntax ?? node.Expression);
 		}
 
@@ -1342,14 +1344,14 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 	public override SyntaxNode? VisitMemberAccessExpression(MemberAccessExpressionSyntax node)
 	{
 		TryGetLiteralValue(Visit(node.Expression), out var instanceValue);
-			
+
 		if (semanticModel.TryGetSymbol(node, out ISymbol? symbol))
 		{
 			switch (symbol)
 			{
 				case IFieldSymbol fieldSymbol:
 					if (loader.TryGetFieldValue(fieldSymbol, instanceValue, out var value)
-					    && TryGetLiteral(value, out var literal))
+							&& TryGetLiteral(value, out var literal))
 					{
 						return literal;
 					}
@@ -1358,7 +1360,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 					if (propertySymbol.Parameters.Length == 0)
 					{
 						if (loader.TryExecuteMethod(propertySymbol.GetMethod, instanceValue, new VariableItemDictionary(variables), [], out value)
-						    && TryGetLiteral(value, out literal))
+								&& TryGetLiteral(value, out literal))
 						{
 							return literal;
 						}
@@ -1482,7 +1484,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 
 		return node.WithContents(List(result));
 	}
-	
+
 	public override SyntaxNode VisitBlock(BlockSyntax node)
 	{
 		return node.WithStatements(VisitList(node.Statements));
