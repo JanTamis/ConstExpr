@@ -180,7 +180,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 
 					if (optimizer is not null)
 					{
-						if (optimizer.Kind == operation.OperatorKind
+						if (optimizer.Kind == operation?.OperatorKind
 								&& optimizer.TryOptimize(loader, variables, out var optimized))
 						{
 							return optimized;
@@ -189,8 +189,9 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 					}
 
 					// Numeric identities
-					if (operation.LeftOperand.Type.IsNumericType()
-							&& operation.RightOperand.Type.IsNumericType())
+					if (operation is not null
+						&& operation.LeftOperand.Type.IsNumericType()
+						&& operation.RightOperand.Type.IsNumericType())
 					{
 						switch (operation.OperatorKind)
 						{
@@ -265,8 +266,9 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 					}
 
 					// Boolean logical identities
-					if (operation.LeftOperand.Type.IsBoolType()
-							&& operation.RightOperand.Type.IsBoolType())
+					if (operation is not null
+						&& operation.LeftOperand.Type.IsBoolType()
+						&& operation.RightOperand.Type.IsBoolType())
 					{
 						switch (operation.OperatorKind)
 						{
@@ -337,8 +339,8 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 		}
 
 		return node
-			.WithLeft(left as ExpressionSyntax)
-			.WithRight(right as ExpressionSyntax);
+			.WithLeft(left as ExpressionSyntax ?? node.Left)
+			.WithRight(right as ExpressionSyntax ?? node.Right);
 
 		// Stricter check for duplication safety: only locals/parameters/literals (allow parentheses but NO conversions)
 		bool IsSafeToDuplicate(IOperation op)
@@ -431,6 +433,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 					{
 						LocalFunctionStatementSyntax localFunc => localFunc.ParameterList,
 						MethodDeclarationSyntax methodDecl => methodDecl.ParameterList,
+						_ => null,
 					};
 
 					var variables = new Dictionary<string, object?>();
@@ -445,10 +448,10 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 
 					switch (methodOperation)
 					{
-						case ILocalFunctionOperation localFunction:
+						case ILocalFunctionOperation localFunction when localFunction.Body is not null:
 							visitor.VisitBlock(localFunction.Body, variables);
 							break;
-						case IMethodBodyOperation methodBody:
+						case IMethodBodyOperation methodBody when methodBody.BlockBody is not null:
 							visitor.VisitBlock(methodBody.BlockBody, variables);
 							break;
 					}
@@ -566,7 +569,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 
 			if (node.Initializer is not null)
 			{
-				return node.WithInitializer(node.Initializer.WithValue(value as ExpressionSyntax));
+				return node.WithInitializer(node.Initializer.WithValue(value as ExpressionSyntax ?? node.Initializer.Value));
 			}
 		}
 
@@ -594,8 +597,8 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 		var @else = Visit(node.Else);
 
 		return node
-			.WithCondition(condition as ExpressionSyntax)
-			.WithStatement(statement as StatementSyntax)
+			.WithCondition(condition as ExpressionSyntax ?? node.Condition)
+			.WithStatement(statement as StatementSyntax ?? node.Statement)
 			.WithElse(@else as ElseClauseSyntax);
 	}
 
@@ -1088,7 +1091,6 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 			for (var i = 0; i < node.Sections.Count; i++)
 			{
 				var section = node.Sections[i];
-				var hasUnknown = false;
 				var matched = false;
 
 				foreach (var label in section.Labels)
@@ -1099,11 +1101,6 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 					{
 						matched = true;
 						break;
-					}
-
-					if (res is null)
-					{
-						hasUnknown = true;
 					}
 				}
 
@@ -1332,7 +1329,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 				}
 
 				return node
-					.WithExpression(instance as ExpressionSyntax)
+					.WithExpression(instance as ExpressionSyntax ?? node.Expression)
 					.WithArgumentList(node.ArgumentList
 						.WithArguments(SeparatedList(arguments.Select(s => Argument((ExpressionSyntax)s)))));
 			}
@@ -1529,8 +1526,6 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 			_ => value,
 		};
 	}
-
-
 
 	private StatementSyntax ToStatementSyntax(IEnumerable<SyntaxNode> nodes)
 	{

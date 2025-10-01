@@ -268,36 +268,39 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		var invocationOperation = model.GetOperation(invocation) as IInvocationOperation;
 		var methodSymbol = invocationOperation?.TargetMethod;
 
-		foreach (var argument in invocationOperation.Arguments)
+		foreach (var argument in invocationOperation?.Arguments ?? [])
 		{
-			if (loader.GetType(argument.Parameter.Type).IsEnum)
+			if (argument is { Parameter: not null, Type: not null })
 			{
-				try
+				if (loader.GetType(argument.Parameter.Type)?.IsEnum == true)
 				{
-					var enumType = loader.GetType(argument.Parameter.Type);
-					var value = visitor.Visit(argument.Value, new VariableItemDictionary(variables));
+					try
+					{
+						var enumType = loader.GetType(argument.Parameter.Type);
+						var value = visitor.Visit(argument.Value, new VariableItemDictionary(variables));
 
-					variables.Add(argument.Parameter.Name, new VariableItem(argument.Type, true, Enum.ToObject(enumType, value), true));
+						variables.Add(argument.Parameter.Name, new VariableItem(argument.Type, true, Enum.ToObject(enumType, value), true));
+					}
+					catch (Exception)
+					{
+						variables.Add(argument.Parameter.Name, new VariableItem(argument.Type ?? argument.Parameter.Type, false, null, true));
+					}
 				}
-				catch (Exception)
+				else
 				{
-					variables.Add(argument.Parameter.Name, new VariableItem(argument.Type ?? argument.Parameter.Type, false, null, true));
-				}
-			}
-			else
-			{
-				try
-				{
-					variables.Add(argument.Parameter.Name, new VariableItem(argument.Type ?? argument.Parameter.Type, true, visitor.Visit(argument.Value, new VariableItemDictionary(variables)), true));
-				}
-				catch (Exception)
-				{
-					variables.Add(argument.Parameter.Name, new VariableItem(argument.Type ?? argument.Parameter.Type, false, argument.Syntax, true));
+					try
+					{
+						variables.Add(argument.Parameter.Name, new VariableItem(argument.Type ?? argument.Parameter.Type, true, visitor.Visit(argument.Value, new VariableItemDictionary(variables)), true));
+					}
+					catch (Exception)
+					{
+						variables.Add(argument.Parameter.Name, new VariableItem(argument.Type ?? argument.Parameter.Type, false, argument.Syntax, true));
+					}
 				}
 			}
 		}
 
-		foreach (var (parameter, argument) in methodSymbol.TypeParameters.Zip(methodSymbol.TypeArguments, (x, y) => (x, y)))
+		foreach (var (parameter, argument) in methodSymbol?.TypeParameters.Zip(methodSymbol.TypeArguments, (x, y) => (x, y)) ?? [])
 		{
 			variables.Add($"#{parameter.Name}", new VariableItem(argument, true, loader.GetType(argument), true));
 		}
