@@ -30,9 +30,9 @@ public class AbsBaseFunctionOptimizer : BaseFunctionOptimizer
 			return false;
 		}
 
+		// Abs(x) where x is unsigned => x
 		if (paramType.IsUnsignedInteger())
 		{
-			// Abs(x) where x is unsigned => x
 			result = parameters[0];
 			return true;
 		}

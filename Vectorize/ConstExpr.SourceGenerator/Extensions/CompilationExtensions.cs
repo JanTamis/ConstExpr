@@ -1,5 +1,6 @@
 using ConstExpr.SourceGenerator.Enums;
 using ConstExpr.SourceGenerator.Helpers;
+using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -11,7 +12,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
-using ConstExpr.SourceGenerator.Visitors;
 
 namespace ConstExpr.SourceGenerator.Extensions;
 
@@ -1201,18 +1201,16 @@ public static class CompilationExtensions
 
 	public static bool IsNumericType(this ITypeSymbol? t)
 	{
-		return t is not null && t.SpecialType switch
-		{
+		return t is not null && t.SpecialType is
 			SpecialType.System_Byte or SpecialType.System_SByte or SpecialType.System_Int16 or SpecialType.System_UInt16 or
-				SpecialType.System_Int32 or SpecialType.System_UInt32 or SpecialType.System_Int64 or SpecialType.System_UInt64 or
-				SpecialType.System_Single or SpecialType.System_Double or SpecialType.System_Decimal => true,
-			_ => false
-		};
+			SpecialType.System_Int32 or SpecialType.System_UInt32 or SpecialType.System_Int64 or SpecialType.System_UInt64 or
+			SpecialType.System_Single or SpecialType.System_Double or SpecialType.System_Decimal;
 	}
 
 	public static bool IsNonFloatingNumeric(this ITypeSymbol? t)
 	{
-		return t is not null && IsNumericType(t) && t.SpecialType != SpecialType.System_Single && t.SpecialType != SpecialType.System_Double;
+		return t is not null && IsNumericType(t)
+			&& t.SpecialType is not SpecialType.System_Single and not SpecialType.System_Double;
 	}
 
 	public static bool IsBoolType(this ITypeSymbol? t)
@@ -1222,9 +1220,12 @@ public static class CompilationExtensions
 
 	public static bool IsUnsignedInteger(this ITypeSymbol t)
 	{
-		return t.SpecialType is SpecialType.System_Byte or SpecialType.System_UInt16 or SpecialType.System_UInt32 or SpecialType.System_UInt64;
+		return t.SpecialType is SpecialType.System_Byte
+			or SpecialType.System_UInt16
+			or SpecialType.System_UInt32
+			or SpecialType.System_UInt64;
 	}
-	
+
 	public static bool TryGetLiteralValue(this SyntaxNode? node, MetadataLoader loader, IDictionary<string, VariableItem> variables, out object? value)
 	{
 		switch (node)
@@ -1245,164 +1246,164 @@ public static class CompilationExtensions
 				return TryGetLiteralValue(paren.Expression, loader, variables, out value);
 			// ^n => System.Index(n, fromEnd: true)
 			case PrefixUnaryExpressionSyntax prefix when prefix.OperatorToken.IsKind(SyntaxKind.CaretToken):
-			{
-				if (TryGetLiteralValue(prefix.Operand, loader, variables, out var inner) && inner is not null)
+				{
+					if (TryGetLiteralValue(prefix.Operand, loader, variables, out var inner) && inner is not null)
+					{
+						try
+						{
+							var indexType = loader.GetType("System.Index");
+
+							if (indexType is not null)
+							{
+								var ctor = indexType.GetConstructor([typeof(int), typeof(bool)]);
+
+								if (ctor is not null)
+								{
+									var intVal = Convert.ToInt32(inner);
+									value = ctor.Invoke([intVal, true]);
+									return true;
+								}
+							}
+						}
+						catch { }
+					}
+					value = null;
+					return false;
+				}
+			// a..b => System.Range
+			case RangeExpressionSyntax rangeSyntax:
 				{
 					try
 					{
 						var indexType = loader.GetType("System.Index");
+						var rangeType = loader.GetType("System.Range");
 
-						if (indexType is not null)
+						if (indexType is null || rangeType is null)
 						{
-							var ctor = indexType.GetConstructor([ typeof(int), typeof(bool) ]);
-
-							if (ctor is not null)
-							{
-								var intVal = Convert.ToInt32(inner);
-								value = ctor.Invoke([ intVal, true ]);
-								return true;
-							}
+							value = null;
+							return false;
 						}
-					}
-					catch { }
-				}
-				value = null;
-				return false;
-			}
-			// a..b => System.Range
-			case RangeExpressionSyntax rangeSyntax:
-			{
-				try
-				{
-					var indexType = loader.GetType("System.Index");
-					var rangeType = loader.GetType("System.Range");
 
-					if (indexType is null || rangeType is null)
+						object? MakeIndex(ExpressionSyntax expr)
+						{
+							if (TryGetLiteralValue(expr, loader, variables, out var innerVal) && innerVal is not null)
+							{
+								// Already an Index (e.g., ^n handled above)
+								if (innerVal.GetType().FullName == "System.Index")
+								{
+									return innerVal;
+								}
+
+								// Wrap int as FromStart
+								if (innerVal is IConvertible)
+								{
+									var intVal = Convert.ToInt32(innerVal);
+									var ctor2 = indexType.GetConstructor([typeof(int), typeof(bool)]);
+									var ctor1 = indexType.GetConstructor([typeof(int)]);
+									if (ctor2 is not null) return ctor2.Invoke([intVal, false]);
+									if (ctor1 is not null) return ctor1.Invoke([intVal]);
+								}
+							}
+							return null;
+						}
+
+						var leftIdx = rangeSyntax.LeftOperand is null ? null : MakeIndex(rangeSyntax.LeftOperand);
+						var rightIdx = rangeSyntax.RightOperand is null ? null : MakeIndex(rangeSyntax.RightOperand);
+
+						if (leftIdx is null && rightIdx is null)
+						{
+							var allProp = rangeType.GetProperty("All", BindingFlags.Public | BindingFlags.Static);
+							value = allProp?.GetValue(null);
+							return value is not null;
+						}
+
+						if (leftIdx is not null && rightIdx is null)
+						{
+							var startAt = rangeType.GetMethod("StartAt", BindingFlags.Public | BindingFlags.Static, null, [indexType], null);
+							value = startAt?.Invoke(null, [leftIdx]);
+							return value is not null;
+						}
+
+						if (leftIdx is null && rightIdx is not null)
+						{
+							var endAt = rangeType.GetMethod("EndAt", BindingFlags.Public | BindingFlags.Static, null, [indexType], null);
+							value = endAt?.Invoke(null, [rightIdx]);
+							return value is not null;
+						}
+
+						var ctorRange = rangeType.GetConstructor([indexType, indexType]);
+						value = ctorRange?.Invoke([leftIdx, rightIdx]);
+						return value is not null;
+					}
+					catch
 					{
 						value = null;
 						return false;
 					}
-
-					object? MakeIndex(ExpressionSyntax expr)
-					{
-						if (TryGetLiteralValue(expr, loader, variables, out var innerVal) && innerVal is not null)
-						{
-							// Already an Index (e.g., ^n handled above)
-							if (innerVal.GetType().FullName == "System.Index")
-							{
-								return innerVal;
-							}
-
-							// Wrap int as FromStart
-							if (innerVal is IConvertible)
-							{
-								var intVal = Convert.ToInt32(innerVal);
-								var ctor2 = indexType.GetConstructor([ typeof(int), typeof(bool) ]);
-								var ctor1 = indexType.GetConstructor([ typeof(int) ]);
-								if (ctor2 is not null) return ctor2.Invoke([ intVal, false ]);
-								if (ctor1 is not null) return ctor1.Invoke([ intVal ]);
-							}
-						}
-						return null;
-					}
-
-					var leftIdx = rangeSyntax.LeftOperand is null ? null : MakeIndex(rangeSyntax.LeftOperand);
-					var rightIdx = rangeSyntax.RightOperand is null ? null : MakeIndex(rangeSyntax.RightOperand);
-
-					if (leftIdx is null && rightIdx is null)
-					{
-						var allProp = rangeType.GetProperty("All", BindingFlags.Public | BindingFlags.Static);
-						value = allProp?.GetValue(null);
-						return value is not null;
-					}
-
-					if (leftIdx is not null && rightIdx is null)
-					{
-						var startAt = rangeType.GetMethod("StartAt", BindingFlags.Public | BindingFlags.Static, null, [ indexType ], null);
-						value = startAt?.Invoke(null, [ leftIdx ]);
-						return value is not null;
-					}
-
-					if (leftIdx is null && rightIdx is not null)
-					{
-						var endAt = rangeType.GetMethod("EndAt", BindingFlags.Public | BindingFlags.Static, null, [ indexType ], null);
-						value = endAt?.Invoke(null, [ rightIdx ]);
-						return value is not null;
-					}
-
-					var ctorRange = rangeType.GetConstructor([ indexType, indexType ]);
-					value = ctorRange?.Invoke([ leftIdx, rightIdx ]);
-					return value is not null;
 				}
-				catch
-				{
-					value = null;
-					return false;
-				}
-			}
 			case CastExpressionSyntax castExpressionSyntax:
-			{
-				if (TryGetLiteralValue(castExpressionSyntax.Expression, loader, variables, out var innerVal))
 				{
-					// Try to resolve the *textual* type name from the syntax node (no semantic model)
-					string typeName = castExpressionSyntax.Type switch
+					if (TryGetLiteralValue(castExpressionSyntax.Expression, loader, variables, out var innerVal))
 					{
-						PredefinedTypeSyntax p => p.Keyword.ValueText,
-						IdentifierNameSyntax id => id.Identifier.Text,
-						QualifiedNameSyntax q => q.ToString(), // preserve qualification for System.* cases
-						GenericNameSyntax g => g.Identifier.Text,
-						NullableTypeSyntax n => (n.ElementType as PredefinedTypeSyntax)?.Keyword.ValueText ?? n.ElementType.ToString(),
-						_ => castExpressionSyntax.Type.ToString()
-					};
+						// Try to resolve the *textual* type name from the syntax node (no semantic model)
+						string typeName = castExpressionSyntax.Type switch
+						{
+							PredefinedTypeSyntax p => p.Keyword.ValueText,
+							IdentifierNameSyntax id => id.Identifier.Text,
+							QualifiedNameSyntax q => q.ToString(), // preserve qualification for System.* cases
+							GenericNameSyntax g => g.Identifier.Text,
+							NullableTypeSyntax n => (n.ElementType as PredefinedTypeSyntax)?.Keyword.ValueText ?? n.ElementType.ToString(),
+							_ => castExpressionSyntax.Type.ToString()
+						};
 
-					// normalize common C# keywords and System.* names
-					if (typeName.StartsWith("System.", StringComparison.OrdinalIgnoreCase))
-						typeName = typeName["System.".Length..];
+						// normalize common C# keywords and System.* names
+						if (typeName.StartsWith("System.", StringComparison.OrdinalIgnoreCase))
+							typeName = typeName["System.".Length..];
 
-					typeName = typeName switch
-					{
-						"int" => "Int32",
-						"short" => "Int16",
-						"long" => "Int64",
-						"uint" => "UInt32",
-						"ushort" => "UInt16",
-						"ulong" => "UInt64",
-						"float" => "Single",
-						"double" => "Double",
-						"bool" => "Boolean",
-						"string" => "String",
-						"char" => "Char",
-						"decimal" => "Decimal",
-						"sbyte" => "SByte",
-						"byte" => "Byte",
-						_ => typeName
-					};
+						typeName = typeName switch
+						{
+							"int" => "Int32",
+							"short" => "Int16",
+							"long" => "Int64",
+							"uint" => "UInt32",
+							"ushort" => "UInt16",
+							"ulong" => "UInt64",
+							"float" => "Single",
+							"double" => "Double",
+							"bool" => "Boolean",
+							"string" => "String",
+							"char" => "Char",
+							"decimal" => "Decimal",
+							"sbyte" => "SByte",
+							"byte" => "Byte",
+							_ => typeName
+						};
 
-					value = typeName switch
-					{
-						"Boolean" => Convert.ToBoolean(innerVal),
-						"Byte" => Convert.ToByte(innerVal),
-						"Char" => Convert.ToChar(innerVal),
-						"DateTime" => Convert.ToDateTime(innerVal),
-						"Decimal" => Convert.ToDecimal(innerVal),
-						"Double" => Convert.ToDouble(innerVal),
-						"Int16" => Convert.ToInt16(innerVal),
-						"Int32" => Convert.ToInt32(innerVal),
-						"Int64" => Convert.ToInt64(innerVal),
-						"SByte" => Convert.ToSByte(innerVal),
-						"Single" => Convert.ToSingle(innerVal),
-						"String" => Convert.ToString(innerVal),
-						"UInt16" => Convert.ToUInt16(innerVal),
-						"UInt32" => Convert.ToUInt32(innerVal),
-						"UInt64" => Convert.ToUInt64(innerVal),
-						"Object" => innerVal,
-						_ => innerVal
-					};
-					
-					return true;
+						value = typeName switch
+						{
+							"Boolean" => Convert.ToBoolean(innerVal),
+							"Byte" => Convert.ToByte(innerVal),
+							"Char" => Convert.ToChar(innerVal),
+							"DateTime" => Convert.ToDateTime(innerVal),
+							"Decimal" => Convert.ToDecimal(innerVal),
+							"Double" => Convert.ToDouble(innerVal),
+							"Int16" => Convert.ToInt16(innerVal),
+							"Int32" => Convert.ToInt32(innerVal),
+							"Int64" => Convert.ToInt64(innerVal),
+							"SByte" => Convert.ToSByte(innerVal),
+							"Single" => Convert.ToSingle(innerVal),
+							"String" => Convert.ToString(innerVal),
+							"UInt16" => Convert.ToUInt16(innerVal),
+							"UInt32" => Convert.ToUInt32(innerVal),
+							"UInt64" => Convert.ToUInt64(innerVal),
+							"Object" => innerVal,
+							_ => innerVal
+						};
+
+						return true;
+					}
+					break;
 				}
-				break;
-			}
 		}
 
 		// Fallback to semantic constant evaluation
