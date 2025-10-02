@@ -109,17 +109,24 @@ public class PowFunctionOptimizer : BaseFunctionOptimizer
 				return true;
 			}
 
-			// x^0.5 => Sqrt(x)
+			// x^(1 / 2) => Sqrt(x)
 			if (IsApproximately(exp, 1 / 2.0) && HasMethod(paramType, "Sqrt", 1))
 			{
 				result = CreateInvocation(paramType, "Sqrt", x);
 				return true;
 			}
 			
-			// x^0.33 => Cbrt(x)
+			// x^(1 / 3) => Cbrt(x)
 			if (IsApproximately(exp, 1 / 3.0) && HasMethod(paramType, "Cbrt", 1))
 			{
 				result = CreateInvocation(paramType, "Cbrt", x);
+				return true;
+			}
+
+			// x^(1 / n) => RootN(x, n) for small integer n
+			if (IsApproximately(1 / exp, Math.Floor(1 / exp)))
+			{
+				result = CreateInvocation(paramType, "RootN", x, SyntaxHelpers.CreateLiteral((int)Math.Round(1 / exp)));
 				return true;
 			}
 		}

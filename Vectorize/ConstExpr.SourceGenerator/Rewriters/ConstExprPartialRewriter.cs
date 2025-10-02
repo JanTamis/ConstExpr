@@ -175,18 +175,8 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 
 				if (isBuiltIn && operation.Type is not null)
 				{
-					// Select optimizer based on operator kind
-					var optimizer = BaseBinaryOptimizer.Create(operation.OperatorKind, operation.Type, leftExpr, operation?.LeftOperand?.Type, rightExpr, operation?.RightOperand?.Type, attribute.FloatingPointMode);
-
-					if (optimizer is not null)
-					{
-						if (optimizer.Kind == operation?.OperatorKind
-								&& optimizer.TryOptimize(loader, variables, out var optimized))
-						{
-							return optimized;
-							// return Visit(optimized);
-						}
-					}
+					if (TryOptimizeNode(operation.OperatorKind, operation.Type, leftExpr, operation.LeftOperand.Type, rightExpr, operation.RightOperand.Type, out var syntaxNode))
+						return syntaxNode;
 
 					// Numeric identities
 					if (operation is not null
@@ -364,10 +354,8 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 				? e
 				: ParenthesizedExpression(e);
 		}
-
-
 	}
-
+	
 	public override SyntaxNode? VisitInvocationExpression(InvocationExpressionSyntax node)
 	{
 		// Handle nameof(...) directly (in addition to TryGetLiteralValue) so the invocation itself is collapsed early.
@@ -768,6 +756,14 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 							}
 					}
 				}
+			}
+		}
+
+		if (TryGetOperation(semanticModel, node, out ICompoundAssignmentOperation? compOp))
+		{
+			if (TryOptimizeNode(compOp.OperatorKind, compOp.Type, node.Left, compOp.Target.Type, rightExpr, compOp.Value.Type, out var syntaxNode))
+			{
+				return AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, node.Left, syntaxNode as ExpressionSyntax);
 			}
 		}
 
@@ -1553,6 +1549,25 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 		}
 
 		item = default;
+		return false;
+	}
+
+	private bool TryOptimizeNode(BinaryOperatorKind kind, ITypeSymbol type, ExpressionSyntax leftExpr, ITypeSymbol leftType, ExpressionSyntax rightExpr, ITypeSymbol rightType, out SyntaxNode? syntaxNode)
+	{
+		// Select optimizer based on operator kind
+		var optimizer = BaseBinaryOptimizer.Create(kind, type, leftExpr, leftType, rightExpr, rightType, attribute.FloatingPointMode);
+
+		if (optimizer is not null)
+		{
+			if (optimizer.Kind == kind
+			    && optimizer.TryOptimize(loader, variables, out var optimized))
+			{
+				syntaxNode = optimized;
+				return true;
+			}
+		}
+
+		syntaxNode = null;
 		return false;
 	}
 }

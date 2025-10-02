@@ -11,7 +11,7 @@ public abstract class BaseFunctionOptimizer
 {
 	public abstract bool TryOptimize(IMethodSymbol method, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, out SyntaxNode? result);
 
-	protected InvocationExpressionSyntax CreateInvocation(ITypeSymbol type, string name, params IEnumerable<ExpressionSyntax> parameters)
+	protected InvocationExpressionSyntax CreateInvocation(ITypeSymbol type, string name, params IList<ExpressionSyntax> parameters)
 	{
 		return SyntaxFactory.InvocationExpression(
 			SyntaxFactory.MemberAccessExpression(
