@@ -580,9 +580,9 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 	{
 		var condition = Visit(node.Condition);
 
-		if (condition is LiteralExpressionSyntax { Token.Value: bool b })
+		if (TryGetLiteralValue(condition, out var value))
 		{
-			if (b)
+			if (value is true)
 			{
 				return Visit(node.Statement);
 			}
