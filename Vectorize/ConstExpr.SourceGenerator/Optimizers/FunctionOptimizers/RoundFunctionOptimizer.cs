@@ -7,7 +7,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers;
 
 public class RoundFunctionOptimizer : BaseFunctionOptimizer
 {
-	public override bool TryOptimize(IMethodSymbol method, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, out SyntaxNode? result)
+	public override bool TryOptimize(IMethodSymbol method, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, ISet<SyntaxNode> additionalMethods, out SyntaxNode? result)
 	{
 		result = null;
 
@@ -29,7 +29,6 @@ public class RoundFunctionOptimizer : BaseFunctionOptimizer
 			return false;
 		}
 		
-
 		// We only simplify default arguments:
 		// - digits == 0 can be dropped
 		// - mode == MidpointRounding.ToEven can be dropped

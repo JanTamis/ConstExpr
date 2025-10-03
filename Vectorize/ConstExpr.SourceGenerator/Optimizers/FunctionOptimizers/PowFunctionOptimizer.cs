@@ -1,6 +1,7 @@
 // filepath: /Users/jantamiskossen/RiderProjects/Vectorize/Vectorize/ConstExpr.SourceGenerator/Optimizers/FunctionOptimizers/PowFunctionOptimizer.cs
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using ConstExpr.Core.Attributes;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
@@ -12,7 +13,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers;
 
 public class PowFunctionOptimizer : BaseFunctionOptimizer
 {
-	public override bool TryOptimize(IMethodSymbol method, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, out SyntaxNode? result)
+	public override bool TryOptimize(IMethodSymbol method, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, ISet<SyntaxNode> additionalMethods, out SyntaxNode? result)
 	{
 		result = null;
 
@@ -131,6 +132,34 @@ public class PowFunctionOptimizer : BaseFunctionOptimizer
 			}
 		}
 
+		// When FastMath is enabled, add a fast pow approximation method
+		if (floatingPointMode == FloatingPointEvaluationMode.FastMath)
+		{
+			// Generate fast pow method for floating point types
+			if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
+			{
+				var methodString = paramType.SpecialType == SpecialType.System_Single
+					? GenerateFastPowMethodFloat() 
+					: GenerateFastPowMethodDouble();
+					
+				var fastPowMethod = ParseMethodFromString(methodString);
+				
+				if (fastPowMethod is not null)
+				{
+					additionalMethods.Add(fastPowMethod);
+					
+					result = SyntaxFactory.InvocationExpression(
+						SyntaxFactory.IdentifierName("FastPow"))
+						.WithArgumentList(
+							SyntaxFactory.ArgumentList(
+								SyntaxFactory.SeparatedList(
+									parameters.Select(SyntaxFactory.Argument))));
+					
+					return true;
+				}
+			}
+		}
+
 		result = CreateInvocation(paramType, "Pow", x, y);
 		return true;
 	}
@@ -154,5 +183,126 @@ public class PowFunctionOptimizer : BaseFunctionOptimizer
 	private static bool IsApproximately(double a, double b)
 	{
 		return Math.Abs(a - b) <= Double.Epsilon;
+	}
+
+	private static string GenerateFastPowMethodFloat()
+	{
+		return """
+			private static float FastPow(float x, float y)
+			{
+				// Handle special cases
+				if (y == 0.0f)
+					return 1.0f;
+					
+				if (x == 0.0f)
+					return 0.0f;
+					
+				if (x == 1.0f)
+					return 1.0f;
+				
+				// Handle negative bases with non-integer exponents
+				if (x < 0.0f && MathF.Abs(y - MathF.Round(y)) > float.Epsilon)
+					return float.NaN;
+				
+				var isNegative = x < 0.0f;
+				var absX = MathF.Abs(x);
+				
+				// Use bit manipulation for fast approximation: x^y ≈ 2^(y * log2(x))
+				var bits = BitConverter.SingleToInt32Bits(absX);
+				var exp = ((bits >> 23) & 0xFF) - 127;
+				var mantissa = (bits & 0x7FFFFF) | 0x3F800000;
+				var mantissaFloat = BitConverter.Int32BitsToSingle(mantissa);
+				
+				// Improved log2(mantissa) approximation for [1, 2) range
+				var m = mantissaFloat;
+				var log2Mantissa = -1.7417939f + (2.8212026f + (-1.4699568f + (0.4434793f - 0.0565717f * m) * m) * m) * m;
+				var log2X = exp + log2Mantissa;
+				
+				// Calculate y * log2(x)
+				var product = y * log2X;
+				
+				// Split into integer and fractional parts
+				var intPart = MathF.Floor(product);
+				var fracPart = product - intPart;
+				
+				// Better 2^fracPart approximation using exp2 polynomial
+				var exp2Frac = 1.0f + fracPart * (0.693147f + fracPart * (0.240227f + fracPart * (0.0555041f + fracPart * (0.00961813f + fracPart * 0.00133336f))));
+				
+				// Combine: 2^product = 2^intPart * 2^fracPart
+				var resultInt = (int)((intPart + 127) * (1 << 23));
+				var exp2Int = BitConverter.Int32BitsToSingle(resultInt);
+				var result = exp2Int * exp2Frac;
+				
+				// Handle negative base with odd integer exponent
+				if (isNegative && MathF.Abs(y % 2.0f - 1.0f) < float.Epsilon)
+					result = -result;
+				
+				return result;
+			}
+			""";
+	}
+
+	private static string GenerateFastPowMethodDouble()
+	{
+		return """
+			private static double FastPow(double x, double y)
+			{
+				// Handle special cases
+				if (y == 0.0)
+					return 1.0;
+					
+				if (x == 0.0)
+					return 0.0;
+					
+				if (x == 1.0)
+					return 1.0;
+				
+				// Handle negative bases with non-integer exponents
+				if (x < 0.0 && Math.Abs(y - Math.Round(y)) > double.Epsilon)
+					return double.NaN;
+				
+				var isNegative = x < 0.0;
+				var absX = Math.Abs(x);
+				
+				// Use bit manipulation for fast approximation: x^y ≈ 2^(y * log2(x))
+				var bits = BitConverter.DoubleToInt64Bits(absX);
+				var exp = ((bits >> 52) & 0x7FF) - 1023;
+				var mantissa = (bits & 0xFFFFFFFFFFFFF) | 0x3FF0000000000000;
+				var mantissaDouble = BitConverter.Int64BitsToDouble(mantissa);
+				
+				// Improved log2(mantissa) approximation for [1, 2) range
+				// Using minimax polynomial approximation
+				var m = mantissaDouble;
+				var log2Mantissa = -1.7417939 + (2.8212026 + (-1.4699568 + (0.4434793 - 0.0565717 * m) * m) * m) * m;
+				var log2X = exp + log2Mantissa;
+				
+				// Calculate y * log2(x)
+				var product = y * log2X;
+				
+				// Split into integer and fractional parts for better accuracy
+				var intPart = Math.Floor(product);
+				var fracPart = product - intPart;
+				
+				// Better 2^fracPart approximation using exp2 polynomial for [0, 1)
+				var exp2Frac = 1.0 + fracPart * (0.6931471805599453 + fracPart * (0.2402265069591007 + fracPart * (0.05550410866482158 + fracPart * (0.009618129842071888 + fracPart * 0.001333355814670307))));
+				
+				// Combine using bit manipulation for 2^intPart
+				var resultLong = ((long)(intPart + 1023) << 52);
+				if (resultLong < 0 || resultLong > (2047L << 52))
+				{
+					// Handle overflow/underflow
+					return (resultLong < 0) ? 0.0 : double.PositiveInfinity;
+				}
+				
+				var exp2Int = BitConverter.Int64BitsToDouble(resultLong);
+				var result = exp2Int * exp2Frac;
+				
+				// Handle negative base with odd integer exponent
+				if (isNegative && Math.Abs(y % 2.0 - 1.0) < double.Epsilon)
+					result = -result;
+				
+				return result;
+			}
+			""";
 	}
 }

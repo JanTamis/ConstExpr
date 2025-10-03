@@ -462,7 +462,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 
 				foreach (var optimizer in optimizers)
 				{
-					if (optimizer.TryOptimize(targetMethod, attribute.FloatingPointMode, arguments.OfType<ExpressionSyntax>().ToArray(), out var optimized))
+					if (optimizer.TryOptimize(targetMethod, attribute.FloatingPointMode, arguments.OfType<ExpressionSyntax>().ToArray(), additionalMethods, out var optimized))
 					{
 						return optimized;
 					}

@@ -8,7 +8,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers;
 
 public class MinFunctionOptimizer : BaseFunctionOptimizer
 {
-	public override bool TryOptimize(IMethodSymbol method, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, out SyntaxNode? result)
+	public override bool TryOptimize(IMethodSymbol method, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, ISet<SyntaxNode> additionalMethods, out SyntaxNode? result)
 	{
 		result = null;
 

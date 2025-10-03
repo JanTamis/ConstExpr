@@ -9,19 +9,19 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers;
 
 public abstract class BaseFunctionOptimizer
 {
-	public abstract bool TryOptimize(IMethodSymbol method, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, out SyntaxNode? result);
+	public abstract bool TryOptimize(IMethodSymbol method, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, ISet<SyntaxNode> additionalMethods, out SyntaxNode? result);
 
 	protected InvocationExpressionSyntax CreateInvocation(ITypeSymbol type, string name, params IList<ExpressionSyntax> parameters)
 	{
 		return SyntaxFactory.InvocationExpression(
-			SyntaxFactory.MemberAccessExpression(
-				SyntaxKind.SimpleMemberAccessExpression,
-				SyntaxFactory.ParseTypeName(type.Name),
-				SyntaxFactory.IdentifierName(name)))
-		.WithArgumentList(
-			SyntaxFactory.ArgumentList(
-				SyntaxFactory.SeparatedList(
-					parameters.Select(SyntaxFactory.Argument))));
+				SyntaxFactory.MemberAccessExpression(
+					SyntaxKind.SimpleMemberAccessExpression,
+					SyntaxFactory.ParseTypeName(type.Name),
+					SyntaxFactory.IdentifierName(name)))
+			.WithArgumentList(
+				SyntaxFactory.ArgumentList(
+					SyntaxFactory.SeparatedList(
+						parameters.Select(SyntaxFactory.Argument))));
 	}
 
 	protected static bool IsPure(SyntaxNode node)
@@ -31,18 +31,35 @@ public abstract class BaseFunctionOptimizer
 			IdentifierNameSyntax => true,
 			LiteralExpressionSyntax => true,
 			ParenthesizedExpressionSyntax par => IsPure(par.Expression),
-			PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken } u => IsPure(u.Operand),
+			PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken } u => IsPure(u.Operand),
 			BinaryExpressionSyntax b => IsPure(b.Left) && IsPure(b.Right),
 			_ => false
 		};
 	}
-	
+
 	protected bool HasMethod(ITypeSymbol type, string name, int parameterCount)
 	{
 		return type.GetMembers(name)
 			.OfType<IMethodSymbol>()
-			.Any(m => m.Parameters.Length == parameterCount 
-			          && m.DeclaredAccessibility == Accessibility.Public 
+			.Any(m => m.Parameters.Length == parameterCount
+			          && m.DeclaredAccessibility == Accessibility.Public
 			          && SymbolEqualityComparer.Default.Equals(type, m.ContainingType));
+	}
+
+	protected static MethodDeclarationSyntax? ParseMethodFromString(string methodString)
+	{
+		var wrappedCode = $$"""
+			public class TempClass
+			{
+				{{methodString}}
+			}
+			""";
+
+		var syntaxTree = CSharpSyntaxTree.ParseText(wrappedCode);
+
+		return syntaxTree.GetRoot()
+			.DescendantNodes()
+			.OfType<MethodDeclarationSyntax>()
+			.FirstOrDefault();
 	}
 }
