@@ -10,7 +10,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers;
 
 public class SqrtFunctionOptimizer : BaseFunctionOptimizer
 {
-	public override bool TryOptimize(IMethodSymbol method, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, ISet<SyntaxNode> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(IMethodSymbol method, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		result = null;
 
@@ -51,7 +51,10 @@ public class SqrtFunctionOptimizer : BaseFunctionOptimizer
 				
 				if (fastSqrtMethod is not null)
 				{
-					additionalMethods.Add(fastSqrtMethod);
+					if (!additionalMethods.ContainsKey(fastSqrtMethod))
+					{
+						additionalMethods.Add(fastSqrtMethod, false);
+					}
 					
 					result = SyntaxFactory.InvocationExpression(
 						SyntaxFactory.IdentifierName("FastSqrt"))

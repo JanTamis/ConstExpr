@@ -20,7 +20,7 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Rewriters;
 
-public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoader loader, Action<SyntaxNode?, Exception> exceptionHandler, IDictionary<string, VariableItem> variables, ISet<SyntaxNode> additionalMethods, ConstExprAttribute attribute, CancellationToken token) : BaseRewriter(semanticModel, loader, variables)
+public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoader loader, Action<SyntaxNode?, Exception> exceptionHandler, IDictionary<string, VariableItem> variables, IDictionary<SyntaxNode, bool> additionalMethods, ConstExprAttribute attribute, CancellationToken token) : BaseRewriter(semanticModel, loader, variables)
 {
 	[return: NotNullIfNotNull(nameof(node))]
 	public override SyntaxNode? Visit(SyntaxNode? node)
@@ -507,9 +507,9 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 					})
 					.FirstOrDefault(f => f is not null);
 
-				if (syntax is not null)
+				if (syntax is not null && !additionalMethods.ContainsKey(syntax))
 				{
-					additionalMethods.Add(syntax);
+					additionalMethods.Add(syntax, true);
 				}
 
 				return node.WithArgumentList(node.ArgumentList.WithArguments(SeparatedList(arguments.OfType<ExpressionSyntax>().Select(Argument))));

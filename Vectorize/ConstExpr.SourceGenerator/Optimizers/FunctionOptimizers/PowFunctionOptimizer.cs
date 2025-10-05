@@ -13,7 +13,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers;
 
 public class PowFunctionOptimizer : BaseFunctionOptimizer
 {
-	public override bool TryOptimize(IMethodSymbol method, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, ISet<SyntaxNode> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(IMethodSymbol method, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		result = null;
 
@@ -146,7 +146,10 @@ public class PowFunctionOptimizer : BaseFunctionOptimizer
 				
 				if (fastPowMethod is not null)
 				{
-					additionalMethods.Add(fastPowMethod);
+					if (!additionalMethods.ContainsKey(fastPowMethod))
+					{
+						additionalMethods.Add(fastPowMethod, false);
+					}
 					
 					result = SyntaxFactory.InvocationExpression(
 						SyntaxFactory.IdentifierName("FastPow"))
@@ -190,54 +193,53 @@ public class PowFunctionOptimizer : BaseFunctionOptimizer
 		return """
 			private static float FastPow(float x, float y)
 			{
-				// Handle special cases
-				if (y == 0.0f)
-					return 1.0f;
-					
-				if (x == 0.0f)
-					return 0.0f;
-					
-				if (x == 1.0f)
-					return 1.0f;
-				
-				// Handle negative bases with non-integer exponents
-				if (x < 0.0f && MathF.Abs(y - MathF.Round(y)) > float.Epsilon)
-					return float.NaN;
-				
-				var isNegative = x < 0.0f;
-				var absX = MathF.Abs(x);
-				
-				// Use bit manipulation for fast approximation: x^y ≈ 2^(y * log2(x))
-				var bits = BitConverter.SingleToInt32Bits(absX);
-				var exp = ((bits >> 23) & 0xFF) - 127;
-				var mantissa = (bits & 0x7FFFFF) | 0x3F800000;
-				var mantissaFloat = BitConverter.Int32BitsToSingle(mantissa);
-				
-				// Improved log2(mantissa) approximation for [1, 2) range
-				var m = mantissaFloat;
-				var log2Mantissa = -1.7417939f + (2.8212026f + (-1.4699568f + (0.4434793f - 0.0565717f * m) * m) * m) * m;
-				var log2X = exp + log2Mantissa;
-				
-				// Calculate y * log2(x)
-				var product = y * log2X;
-				
-				// Split into integer and fractional parts
-				var intPart = MathF.Floor(product);
-				var fracPart = product - intPart;
-				
-				// Better 2^fracPart approximation using exp2 polynomial
-				var exp2Frac = 1.0f + fracPart * (0.693147f + fracPart * (0.240227f + fracPart * (0.0555041f + fracPart * (0.00961813f + fracPart * 0.00133336f))));
-				
-				// Combine: 2^product = 2^intPart * 2^fracPart
-				var resultInt = (int)((intPart + 127) * (1 << 23));
-				var exp2Int = BitConverter.Int32BitsToSingle(resultInt);
-				var result = exp2Int * exp2Frac;
-				
-				// Handle negative base with odd integer exponent
-				if (isNegative && MathF.Abs(y % 2.0f - 1.0f) < float.Epsilon)
-					result = -result;
-				
-				return result;
+				// Handle special cases (keep minimal and predictable)
+				if (y == 0.0f) return 1.0f;
+				if (x == 1.0f) return 1.0f;
+				if (x <= 0.0f) return float.NaN; // consistent with fast-math approximation path
+
+				// Range reduction: x = m * 2^e with m in [1,2)
+				var ibits = BitConverter.SingleToInt32Bits(x);
+				var iexp = ((ibits >> 23) & 0xFF) - 127; // unbiased exponent
+				var imant = ibits & 0x7FFFFF;
+				var m = 1.0f + (imant * (1.0f / 8388608.0f)); // 2^23
+
+				// log2(m) via ln(m) ≈ 2*(z + z^3/3 + z^5/5 + z^7/7), z = (m-1)/(m+1) ∈ [0, 1/3]
+				const float INV_LN2 = 1.4426950408889634f; // 1/ln(2)
+				var z = (m - 1.0f) / (m + 1.0f);
+				var t2 = z * z; // z^2
+				// Horner: z * (1 + t2/3 + t2^2/5 + t2^3/7)
+				var sInner = MathF.FusedMultiplyAdd(1f / 7f, t2, 1f / 5f);
+				sInner = MathF.FusedMultiplyAdd(sInner, t2, 1f / 3f);
+				sInner = MathF.FusedMultiplyAdd(sInner, t2, 1f);
+				var ln_m = 2.0f * (z * sInner);
+				var log2m = ln_m * INV_LN2;
+				var log2x = iexp + log2m;
+
+				var t = y * log2x;
+
+				// exp2(t): split into k + f with f in [-0.5, 0.5) for better poly accuracy
+				var kf = MathF.Floor(t + 0.5f);
+				var k = (int)kf;
+				var f = t - kf;
+
+				// 2^f ≈ e^(ln2*f), 7th order Taylor around 0
+				const float LN2 = 0.6931471805599453f;
+				var u = LN2 * f;
+				// Horner with FMA: ((((((1/5040)u + 1/720)u + 1/120)u + 1/24)u + 1/6)u + 1/2)u + 1; then add final +u term fused
+				var p = 1f / 5040f;
+				p = MathF.FusedMultiplyAdd(p, u, 1f / 720f);
+				p = MathF.FusedMultiplyAdd(p, u, 1f / 120f);
+				p = MathF.FusedMultiplyAdd(p, u, 1f / 24f);
+				p = MathF.FusedMultiplyAdd(p, u, 1f / 6f);
+				p = MathF.FusedMultiplyAdd(p, u, 0.5f);
+				p = MathF.FusedMultiplyAdd(p, u, 1f);
+				var exp2f = MathF.FusedMultiplyAdd(p, u, 1f);
+
+				// Scale by 2^k via exponent bits (mantissa = 1.0)
+				var expBits = (k + 127) << 23;
+				var scale = BitConverter.Int32BitsToSingle(expBits);
+				return exp2f * scale;
 			}
 			""";
 	}
@@ -247,61 +249,52 @@ public class PowFunctionOptimizer : BaseFunctionOptimizer
 		return """
 			private static double FastPow(double x, double y)
 			{
-				// Handle special cases
-				if (y == 0.0)
-					return 1.0;
-					
-				if (x == 0.0)
-					return 0.0;
-					
-				if (x == 1.0)
-					return 1.0;
-				
-				// Handle negative bases with non-integer exponents
-				if (x < 0.0 && Math.Abs(y - Math.Round(y)) > double.Epsilon)
-					return double.NaN;
-				
-				var isNegative = x < 0.0;
-				var absX = Math.Abs(x);
-				
-				// Use bit manipulation for fast approximation: x^y ≈ 2^(y * log2(x))
-				var bits = BitConverter.DoubleToInt64Bits(absX);
-				var exp = ((bits >> 52) & 0x7FF) - 1023;
-				var mantissa = (bits & 0xFFFFFFFFFFFFF) | 0x3FF0000000000000;
-				var mantissaDouble = BitConverter.Int64BitsToDouble(mantissa);
-				
-				// Improved log2(mantissa) approximation for [1, 2) range
-				// Using minimax polynomial approximation
-				var m = mantissaDouble;
-				var log2Mantissa = -1.7417939 + (2.8212026 + (-1.4699568 + (0.4434793 - 0.0565717 * m) * m) * m) * m;
-				var log2X = exp + log2Mantissa;
-				
-				// Calculate y * log2(x)
-				var product = y * log2X;
-				
-				// Split into integer and fractional parts for better accuracy
-				var intPart = Math.Floor(product);
-				var fracPart = product - intPart;
-				
-				// Better 2^fracPart approximation using exp2 polynomial for [0, 1)
-				var exp2Frac = 1.0 + fracPart * (0.6931471805599453 + fracPart * (0.2402265069591007 + fracPart * (0.05550410866482158 + fracPart * (0.009618129842071888 + fracPart * 0.001333355814670307))));
-				
-				// Combine using bit manipulation for 2^intPart
-				var resultLong = ((long)(intPart + 1023) << 52);
-				if (resultLong < 0 || resultLong > (2047L << 52))
-				{
-					// Handle overflow/underflow
-					return (resultLong < 0) ? 0.0 : double.PositiveInfinity;
-				}
-				
-				var exp2Int = BitConverter.Int64BitsToDouble(resultLong);
-				var result = exp2Int * exp2Frac;
-				
-				// Handle negative base with odd integer exponent
-				if (isNegative && Math.Abs(y % 2.0 - 1.0) < double.Epsilon)
-					result = -result;
-				
-				return result;
+				// Handle special cases (keep minimal and predictable)
+				if (y == 0.0) return 1.0;
+				if (x == 1.0) return 1.0;
+				if (x <= 0.0) return double.NaN;
+
+				// Range reduction: x = m * 2^e with m in [1,2)
+				var bits = BitConverter.DoubleToInt64Bits(x);
+				var iexp = (int)((bits >> 52) & 0x7FF) - 1023; // unbiased exponent
+				var imant = bits & 0x000F_FFFF_FFFF_FFFFL; // 52-bit mantissa
+				var m = 1.0 + (imant * (1.0 / 4503599627370496.0)); // 2^52
+
+				// log2(m) via ln(m) ≈ 2*(z + z^3/3 + z^5/5 + z^7/7)
+				const double INV_LN2 = 1.4426950408889634073599; // 1/ln(2)
+				var z = (m - 1.0) / (m + 1.0);
+				var t2 = z * z;
+				// Horner: z * (1 + t2/3 + t2^2/5 + t2^3/7)
+				var sInner = Math.FusedMultiplyAdd(1.0 / 7.0, t2, 1.0 / 5.0);
+				sInner = Math.FusedMultiplyAdd(sInner, t2, 1.0 / 3.0);
+				sInner = Math.FusedMultiplyAdd(sInner, t2, 1.0);
+				var ln_m = 2.0 * (z * sInner);
+				var log2m = ln_m * INV_LN2;
+				var log2x = iexp + log2m;
+
+				var t = y * log2x;
+
+				// exp2(t): k + f with f in [-0.5, 0.5)
+				var kf = Math.Floor(t + 0.5);
+				var k = (int)kf;
+				var f = t - kf;
+
+				// 2^f ≈ e^(ln2*f), 7th order Taylor
+				const double LN2 = 0.6931471805599453094172;
+				var u = LN2 * f;
+				var p = 1.0 / 5040.0;
+				p = Math.FusedMultiplyAdd(p, u, 1.0 / 720.0);
+				p = Math.FusedMultiplyAdd(p, u, 1.0 / 120.0);
+				p = Math.FusedMultiplyAdd(p, u, 1.0 / 24.0);
+				p = Math.FusedMultiplyAdd(p, u, 1.0 / 6.0);
+				p = Math.FusedMultiplyAdd(p, u, 0.5);
+				p = Math.FusedMultiplyAdd(p, u, 1.0);
+				var exp2f = Math.FusedMultiplyAdd(p, u, 1.0);
+
+				// Scale by 2^k using exponent bits
+				var expBits = ((long)(k + 1023) & 0x7FFL) << 52;
+				var scale = BitConverter.Int64BitsToDouble(expBits);
+				return exp2f * scale;
 			}
 			""";
 	}
