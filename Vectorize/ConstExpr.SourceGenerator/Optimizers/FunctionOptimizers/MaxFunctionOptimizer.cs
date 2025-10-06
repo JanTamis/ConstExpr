@@ -68,7 +68,7 @@ public class MaxFunctionOptimizer : BaseFunctionOptimizer
 			result = CreateInvocation(paramType, "MaxNative", parameters[0], parameters[1]);
 			return true;
 		}
-		
+
 		// Fallback: just re-target to the numeric helper (ensures nested Single.Max(...) is supported)
 		result = CreateInvocation(paramType!, "Max", parameters[0], parameters[1]);
 		return true;
@@ -283,7 +283,7 @@ public class MaxFunctionOptimizer : BaseFunctionOptimizer
 				return false;
 			}
 
-			if (Compare(paramType, minConstVal2!, maxVal2!) <= 0)
+			if (Compare(paramType, minConstVal2!, null!) <= 0)
 			{
 				if (floatingPointMode == FloatingPointEvaluationMode.FastMath && HasMethod(paramType, "ClampNative", 3))
 				{

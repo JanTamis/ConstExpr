@@ -454,7 +454,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 			{
 				IEnumerable<BaseFunctionOptimizer> optimizers = arguments.Count switch
 				{
-					1 => [new AbsBaseFunctionOptimizer(), new RoundFunctionOptimizer(), new SqrtFunctionOptimizer()],
+					1 => [new AbsBaseFunctionOptimizer(), new RoundFunctionOptimizer(), new SqrtFunctionOptimizer(), new CbrtFunctionOptimizer()],
 					2 => [new MaxFunctionOptimizer(), new MinFunctionOptimizer(), new RoundFunctionOptimizer(), new PowFunctionOptimizer()],
 					3 => [new RoundFunctionOptimizer()],
 					_ => []
