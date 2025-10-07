@@ -1,0 +1,229 @@
+using ConstExpr.Core.Attributes;
+using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Helpers;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers;
+
+public class TanhFunctionOptimizer : BaseFunctionOptimizer
+{
+	public override bool TryOptimize(IMethodSymbol method, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	{
+		result = null;
+
+		if (method.Name != "Tanh")
+		{
+			return false;
+		}
+
+		var containing = method.ContainingType?.ToString();
+		var paramType = method.Parameters.Length > 0 ? method.Parameters[0].Type : null;
+		var containingName = method.ContainingType?.Name;
+		var paramTypeName = paramType?.Name;
+
+		var isMath = containing is "System.Math" or "System.MathF";
+		var isNumericHelper = paramTypeName is not null && containingName == paramTypeName;
+
+		if (!isMath && !isNumericHelper || paramType is null)
+		{
+			return false;
+		}
+
+		if (!paramType.IsNumericType())
+		{
+			return false;
+		}
+
+		// Expect one parameter for Tanh
+		if (parameters.Count != 1)
+		{
+			return false;
+		}
+
+		var x = parameters[0];
+
+		// Algebraic simplifications on literal values
+		if (TryGetNumericLiteral(x, out var value))
+		{
+			// Tanh(0) => 0
+			if (IsApproximately(value, 0.0))
+			{
+				result = SyntaxHelpers.CreateLiteral(0.0.ToSpecialType(paramType.SpecialType));
+				return true;
+			}
+
+			// Tanh(?) => 1
+			if (double.IsPositiveInfinity(value))
+			{
+				result = SyntaxHelpers.CreateLiteral(1.0.ToSpecialType(paramType.SpecialType));
+				return true;
+			}
+
+			// Tanh(-?) => -1
+			if (double.IsNegativeInfinity(value))
+			{
+				result = SyntaxHelpers.CreateLiteral((-1.0).ToSpecialType(paramType.SpecialType));
+				return true;
+			}
+		}
+
+		// When FastMath is enabled, add a fast tanh approximation method
+		if (floatingPointMode == FloatingPointEvaluationMode.FastMath)
+		{
+			// Generate fast tanh method for floating point types
+			if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
+			{
+				var methodString = paramType.SpecialType == SpecialType.System_Single
+					? GenerateFastTanhMethodFloat()
+					: GenerateFastTanhMethodDouble();
+
+				var fastTanhMethod = ParseMethodFromString(methodString);
+
+				if (fastTanhMethod is not null)
+				{
+					if (!additionalMethods.ContainsKey(fastTanhMethod))
+					{
+						additionalMethods.Add(fastTanhMethod, false);
+					}
+
+					result = SyntaxFactory.InvocationExpression(
+						SyntaxFactory.IdentifierName("FastTanh"))
+						.WithArgumentList(
+							SyntaxFactory.ArgumentList(
+								SyntaxFactory.SeparatedList(
+									parameters.Select(SyntaxFactory.Argument))));
+
+					return true;
+				}
+			}
+		}
+
+		result = CreateInvocation(paramType, "Tanh", x);
+		return true;
+	}
+
+	private static bool TryGetNumericLiteral(ExpressionSyntax expr, out double value)
+	{
+		value = 0;
+		switch (expr)
+		{
+			case LiteralExpressionSyntax { Token.Value: IConvertible c }:
+				value = c.ToDouble(System.Globalization.CultureInfo.InvariantCulture);
+				return true;
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
+				value = -c2.ToDouble(System.Globalization.CultureInfo.InvariantCulture);
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	private static bool IsApproximately(double a, double b)
+	{
+		return Math.Abs(a - b) <= Double.Epsilon;
+	}
+
+	private static string GenerateFastTanhMethodFloat()
+	{
+		return """
+			private static float FastTanh(float x)
+			{
+				// Handle special cases
+				if (Single.IsNaN(x)) return Single.NaN;
+				if (x >= 5.0f) return 1.0f;  // Saturates to 1 for large positive values
+				if (x <= -5.0f) return -1.0f; // Saturates to -1 for large negative values
+				
+				// For small values, use rational approximation
+				// tanh(x) ? x * P(x²) / Q(x²) for |x| < 1
+				// For larger values, use the identity: tanh(x) = (e^(2x) - 1) / (e^(2x) + 1)
+				
+				var absX = Single.Abs(x);
+				
+				if (absX < 1.0f)
+				{
+					// Rational approximation for small values
+					var x2 = x * x;
+					
+					// Numerator coefficients for tanh(x) ? x * (1 + a1*x² + a2*x?) / (1 + b1*x² + b2*x?)
+					var a1 = -0.3333314f;
+					var a2 = 0.1333924f;
+					var numerator = Single.FusedMultiplyAdd(a2, x2, a1);
+					numerator = Single.FusedMultiplyAdd(numerator, x2, 1.0f);
+					numerator *= x;
+					
+					var b1 = 1.0f;
+					var b2 = -0.3333314f;
+					var denominator = Single.FusedMultiplyAdd(b2, x2, b1);
+					denominator = Single.FusedMultiplyAdd(denominator, x2, 1.0f);
+					
+					return numerator / denominator;
+				}
+				else
+				{
+					// Use exponential form for larger values
+					var exp2x = Single.Exp(2.0f * x);
+					return (exp2x - 1.0f) / (exp2x + 1.0f);
+				}
+			}
+			""";
+	}
+
+	private static string GenerateFastTanhMethodDouble()
+	{
+		return """
+			private static double FastTanh(double x)
+			{
+				// Handle special cases
+				if (Double.IsNaN(x)) return Double.NaN;
+				if (x >= 19.0) return 1.0;  // Saturates to 1 for large positive values
+				if (x <= -19.0) return -1.0; // Saturates to -1 for large negative values
+				
+				// For small values, use high-precision rational approximation
+				// For larger values, use exponential form
+				
+				var absX = Double.Abs(x);
+				
+				if (absX < 1.0)
+				{
+					// High-precision rational approximation for small values
+					var x2 = x * x;
+					
+					// Numerator coefficients - minimax polynomial
+					var a1 = -0.333333333333331;
+					var a2 = 0.133333333333197;
+					var a3 = -0.0539682539682505;
+					var numerator = Double.FusedMultiplyAdd(a3, x2, a2);
+					numerator = Double.FusedMultiplyAdd(numerator, x2, a1);
+					numerator = Double.FusedMultiplyAdd(numerator, x2, 1.0);
+					numerator *= x;
+					
+					var b1 = 1.0;
+					var b2 = -0.133333333333197;
+					var b3 = 0.0107936507936338;
+					var denominator = Double.FusedMultiplyAdd(b3, x2, b2);
+					denominator = Double.FusedMultiplyAdd(denominator, x2, b1);
+					denominator = Double.FusedMultiplyAdd(denominator, x2, 1.0);
+					
+					return numerator / denominator;
+				}
+				else if (absX < 9.0)
+				{
+					// Use exponential form for medium values
+					var exp2x = Double.Exp(2.0 * x);
+					return (exp2x - 1.0) / (exp2x + 1.0);
+				}
+				else
+				{
+					// For very large values, use approximation: tanh(x) ? sign(x) * (1 - 2*e^(-2|x|))
+					var exp2absX = Double.Exp(-2.0 * absX);
+					return Double.CopySign(1.0 - 2.0 * exp2absX, x);
+				}
+			}
+			""";
+	}
+}
