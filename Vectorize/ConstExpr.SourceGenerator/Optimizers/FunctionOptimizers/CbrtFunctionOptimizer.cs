@@ -87,7 +87,7 @@ public class CbrtFunctionOptimizer : BaseFunctionOptimizer
 				i = 0x2a517d47 + i / 3;
 				var y = BitConverter.Int32BitsToSingle(i);
 				
-				// Newton-Raphson iteration: y = (2*y + x/y²) / 3
+				// Newton-Raphson iteration: y = (2*y + x/y) / 3
 				y = (y + y + absX / (y * y)) / 3.0f;
 				y = (y + y + absX / (y * y)) / 3.0f;
 				
@@ -111,7 +111,7 @@ public class CbrtFunctionOptimizer : BaseFunctionOptimizer
 				i = 0x2a9f8b7cef1d0da0L + i / 3;
 				var y = BitConverter.Int64BitsToDouble(i);
 				
-				// Newton-Raphson iteration: y = (2*y + x/y²) / 3
+				// Newton-Raphson iteration: y = (2*y + x/yï¿½) / 3
 				y = (y + y + absX / (y * y)) / 3.0;
 				y = (y + y + absX / (y * y)) / 3.0;
 				
