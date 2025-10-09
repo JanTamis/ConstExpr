@@ -7,70 +7,52 @@ using System.Globalization;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers;
 
-public class MaxFunctionOptimizer : BaseFunctionOptimizer
+public class MaxFunctionOptimizer() : BaseFunctionOptimizer("Max", 2)
 {
 	public override bool TryOptimize(IMethodSymbol method, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		result = null;
 
-		// Support Max on System.Math/System.MathF and also on the numeric type helper (e.g., Single.Max, Double.Max, Int32.Max, ...)
-		if (method.Name != "Max")
+		if (!IsValidMethod(method, out var paramType))
 		{
 			return false;
 		}
 
-		var containing = method.ContainingType?.ToString();
-		var paramType = method.Parameters.Length > 0 ? method.Parameters[0].Type : null;
 		var containingName = method.ContainingType?.Name;
-		var paramTypeName = paramType?.Name;
-
-		var isMath = containing is "System.Math" or "System.MathF";
-		var isNumericHelper = paramTypeName is not null && containingName == paramTypeName; // e.g., Single.Max(float, float)
-
-		if (!isMath && !isNumericHelper || paramType is null)
-		{
-			return false;
-		}
 
 		// Try to recognize Clamp pattern: Max(Min(X, max), min) -> Clamp(X, min, max)
-		if (parameters.Count == 2)
+		if (TryRewriteClampFromMaxMin(paramType, floatingPointMode, containingName, parameters[0], parameters[1], out var clamp))
 		{
-			if (TryRewriteClampFromMaxMin(paramType, floatingPointMode, containingName, parameters[0], parameters[1], out var clamp))
-			{
-				result = clamp;
-				return true;
-			}
-			if (TryRewriteClampFromMaxMin(paramType, floatingPointMode, containingName, parameters[1], parameters[0], out clamp))
-			{
-				result = clamp;
-				return true;
-			}
+			result = clamp;
+			return true;
+		}
+		if (TryRewriteClampFromMaxMin(paramType, floatingPointMode, containingName, parameters[1], parameters[0], out clamp))
+		{
+			result = clamp;
+			return true;
 		}
 
 		// Try to flatten nested Max with constants: Max(C1, Max(X, C2)) -> Max(X, max(C1, C2)) and symmetrical forms
-		if (parameters.Count == 2)
+		if (TryFlattenNestedMax(paramType, containingName, parameters[0], parameters[1], out var flattened))
 		{
-			if (TryFlattenNestedMax(paramType, containingName, parameters[0], parameters[1], out var flattened))
-			{
-				result = flattened;
-				return true;
-			}
-			if (TryFlattenNestedMax(paramType, containingName, parameters[1], parameters[0], out flattened))
-			{
-				result = flattened;
-				return true;
-			}
+			result = flattened;
+			return true;
+		}
+		if (TryFlattenNestedMax(paramType, containingName, parameters[1], parameters[0], out flattened))
+		{
+			result = flattened;
+			return true;
 		}
 
 		if (floatingPointMode == FloatingPointEvaluationMode.FastMath && HasMethod(paramType, "MaxNative", 2))
 		{
 			// Use MaxNative if available on the numeric helper type
-			result = CreateInvocation(paramType, "MaxNative", parameters[0], parameters[1]);
+			result = CreateInvocation(paramType, "MaxNative", parameters);
 			return true;
 		}
 
 		// Fallback: just re-target to the numeric helper (ensures nested Single.Max(...) is supported)
-		result = CreateInvocation(paramType!, "Max", parameters[0], parameters[1]);
+		result = CreateInvocation(paramType!, Name, parameters);
 		return true;
 	}
 
@@ -152,7 +134,7 @@ public class MaxFunctionOptimizer : BaseFunctionOptimizer
 			var pickOuter = Compare(paramType, c1!, innerConstValue!) >= 0;
 			var chosen = pickOuter ? c1Expr : innerConstExpr;
 			// Wrap chosen as the full expression result (no invocation needed)
-			result = CreateInvocation(paramType, "Max", chosen, chosen);
+			result = CreateInvocation(paramType, Name, chosen, chosen);
 			// But returning Max(x, x) would be redundant; instead, signal to caller we cannot produce invocation
 			result = null;
 			return false;
@@ -163,7 +145,7 @@ public class MaxFunctionOptimizer : BaseFunctionOptimizer
 		var largerConstExpr = pickOuterConst ? c1Expr : innerConstExpr!;
 
 		// Preserve evaluation safety: moving a constant across boundaries has no side-effects
-		result = CreateInvocation(paramType, "Max", nonConst!, largerConstExpr);
+		result = CreateInvocation(paramType, Name, nonConst!, largerConstExpr);
 		return true;
 	}
 

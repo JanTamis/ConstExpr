@@ -353,7 +353,7 @@ public static class ObjectExtensions
 		decimal m => m == 2m,
 		_ => false
 	};
-	
+
 	public static bool IsNumericNegativeOne(this object? value) => value switch
 	{
 		sbyte sb => sb == -1,
@@ -365,11 +365,11 @@ public static class ObjectExtensions
 		decimal m => m == -1m,
 		_ => false
 	};
-	
+
 	public static bool IsNumericPowerOfTwo(this object? value, out int power)
 	{
 		power = 0;
-	
+
 		static int Log2(ulong x)
 		{
 			int p = 0;
@@ -380,13 +380,13 @@ public static class ObjectExtensions
 			}
 			return p;
 		}
-	
+
 		static bool IsDecimalIntegerPowerOfTwo(decimal m, out int p)
 		{
 			p = 0;
 			if (m <= 0m || decimal.Truncate(m) != m)
 				return false;
-	
+
 			while (m % 2m == 0m)
 			{
 				m /= 2m;
@@ -394,7 +394,7 @@ public static class ObjectExtensions
 			}
 			return m == 1m;
 		}
-	
+
 		return value switch
 		{
 			byte b when b != 0 && (b & (b - 1)) == 0 => (power = Log2(b)) >= 0,
@@ -405,17 +405,28 @@ public static class ObjectExtensions
 			uint ui when ui != 0 && (ui & (ui - 1)) == 0 => (power = Log2(ui)) >= 0,
 			long l and > 0 when (l & (l - 1)) == 0 => (power = Log2((ulong)l)) >= 0,
 			ulong ul when ul != 0 && (ul & (ul - 1)) == 0 => (power = Log2(ul)) >= 0,
-	
+
 			// Floating-point: alleen positieve, gehele waarden binnen ulong-bereik
 			float f when !float.IsNaN(f) && !float.IsInfinity(f) && f > 0f && f == MathF.Truncate(f) && f <= ulong.MaxValue &&
-			             (((ulong)f & ((ulong)f - 1)) == 0) => (power = Log2((ulong)f)) >= 0,
+									 (((ulong)f & ((ulong)f - 1)) == 0) => (power = Log2((ulong)f)) >= 0,
 			double d when !double.IsNaN(d) && !double.IsInfinity(d) && d > 0d && d == Math.Truncate(d) && d <= ulong.MaxValue &&
-			              (((ulong)d & ((ulong)d - 1)) == 0) => (power = Log2((ulong)d)) >= 0,
-	
+										(((ulong)d & ((ulong)d - 1)) == 0) => (power = Log2((ulong)d)) >= 0,
+
 			// Decimal: positieve, gehele waarden (geen fracties)
 			decimal m when IsDecimalIntegerPowerOfTwo(m, out var p) => (power = p) >= 0,
-	
+
 			_ => false
 		};
+	}
+
+	public static bool TryAdd<TKey, TValue>(this IDictionary<TKey, TValue> dictionary, TKey key, TValue value)
+	{
+		if (dictionary.ContainsKey(key))
+		{
+			dictionary.Add(key, value);
+			return true;
+		}
+
+		return false;
 	}
 }

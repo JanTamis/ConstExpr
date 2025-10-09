@@ -931,9 +931,9 @@ public static class CompilationExtensions
 	}
 
 
-	public static bool EqualsType(this ITypeSymbol type, ITypeSymbol? otherType)
+	public static bool EqualsType(this ITypeSymbol? type, ITypeSymbol? otherType)
 	{
-		if (otherType == null)
+		if (otherType == null || type == null)
 		{
 			return false;
 		}

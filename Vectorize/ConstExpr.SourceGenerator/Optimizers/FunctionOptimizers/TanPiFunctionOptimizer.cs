@@ -6,41 +6,17 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Globalization;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers;
 
-public class TanPiFunctionOptimizer : BaseFunctionOptimizer
+public class TanPiFunctionOptimizer() : BaseFunctionOptimizer("TanPi", 1)
 {
 	public override bool TryOptimize(IMethodSymbol method, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		result = null;
 
-		if (method.Name != "TanPi")
-		{
-			return false;
-		}
-
-		var containing = method.ContainingType?.ToString();
-		var paramType = method.Parameters.Length > 0 ? method.Parameters[0].Type : null;
-		var containingName = method.ContainingType?.Name;
-		var paramTypeName = paramType?.Name;
-
-		var isMath = containing is "System.Math" or "System.MathF";
-		var isNumericHelper = paramTypeName is not null && containingName == paramTypeName;
-
-		if (!isMath && !isNumericHelper || paramType is null)
-		{
-			return false;
-		}
-
-		if (!paramType.IsNumericType())
-		{
-			return false;
-		}
-
-		// Expect one parameter for TanPi
-		if (parameters.Count != 1)
+		if (!IsValidMethod(method, out var paramType))
 		{
 			return false;
 		}
@@ -88,37 +64,20 @@ public class TanPiFunctionOptimizer : BaseFunctionOptimizer
 		}
 
 		// When FastMath is enabled, add a fast tanpi approximation method
-		if (floatingPointMode == FloatingPointEvaluationMode.FastMath)
+		if (floatingPointMode == FloatingPointEvaluationMode.FastMath
+			&& paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
 		{
-			// Generate fast tanpi method for floating point types
-			if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
-			{
-				var methodString = paramType.SpecialType == SpecialType.System_Single
-					? GenerateFastTanPiMethodFloat()
-					: GenerateFastTanPiMethodDouble();
+			var methodString = paramType.SpecialType == SpecialType.System_Single
+				? GenerateFastTanPiMethodFloat()
+				: GenerateFastTanPiMethodDouble();
 
-				var fastTanPiMethod = ParseMethodFromString(methodString);
+			additionalMethods.TryAdd(ParseMethodFromString(methodString), false);
 
-				if (fastTanPiMethod is not null)
-				{
-					if (!additionalMethods.ContainsKey(fastTanPiMethod))
-					{
-						additionalMethods.Add(fastTanPiMethod, false);
-					}
-
-					result = SyntaxFactory.InvocationExpression(
-						SyntaxFactory.IdentifierName("FastTanPi"))
-						.WithArgumentList(
-							SyntaxFactory.ArgumentList(
-								SyntaxFactory.SeparatedList(
-									parameters.Select(SyntaxFactory.Argument))));
-
-					return true;
-				}
-			}
+			result = CreateInvocation("FastTanPi", parameters);
+			return true;
 		}
 
-		result = CreateInvocation(paramType, "TanPi", x);
+		result = CreateInvocation(paramType, Name, parameters);
 		return true;
 	}
 
@@ -128,19 +87,14 @@ public class TanPiFunctionOptimizer : BaseFunctionOptimizer
 		switch (expr)
 		{
 			case LiteralExpressionSyntax { Token.Value: IConvertible c }:
-				value = c.ToDouble(System.Globalization.CultureInfo.InvariantCulture);
+				value = c.ToDouble(CultureInfo.InvariantCulture);
 				return true;
 			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
-				value = -c2.ToDouble(System.Globalization.CultureInfo.InvariantCulture);
+				value = -c2.ToDouble(CultureInfo.InvariantCulture);
 				return true;
 			default:
 				return false;
 		}
-	}
-
-	private static bool IsApproximately(double a, double b)
-	{
-		return Math.Abs(a - b) <= Double.Epsilon;
 	}
 
 	private static string GenerateFastTanPiMethodFloat()

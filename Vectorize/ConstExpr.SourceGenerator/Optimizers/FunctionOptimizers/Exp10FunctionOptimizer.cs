@@ -1,77 +1,42 @@
 using ConstExpr.Core.Attributes;
 using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers;
 
-public class Exp10FunctionOptimizer : BaseFunctionOptimizer
+public class Exp10FunctionOptimizer() : BaseFunctionOptimizer("Exp10", 1)
 {
 	public override bool TryOptimize(IMethodSymbol method, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		result = null;
 
-		if (method.Name != "Exp10")
-			return false;
-
-		var containing = method.ContainingType?.ToString();
-		var paramType = method.Parameters.Length > 0 ? method.Parameters[0].Type : null;
-		var containingName = method.ContainingType?.Name;
-		var paramTypeName = paramType?.Name;
-
-		var isMath = containing is "System.Math" or "System.MathF";
-		var isNumericHelper = paramTypeName is not null && containingName == paramTypeName;
-
-		if (!isMath && !isNumericHelper || paramType is null)
-			return false;
-
-		if (!paramType.IsNumericType())
-			return false;
-
-		// Only meaningful for floating point types
-		if (paramType.SpecialType is not (SpecialType.System_Single or SpecialType.System_Double))
+		if (!IsValidMethod(method, out var paramType))
 		{
-			// For integers, cast to double and call Exp10 on double helper
-			result = CreateInvocation(paramType, "Exp10", parameters);
-			return true;
+			return false;
 		}
 
 		// When FastMath is enabled, add chosen fast exp10 approximation methods
-		if (floatingPointMode == FloatingPointEvaluationMode.FastMath)
+		if (floatingPointMode == FloatingPointEvaluationMode.FastMath
+			&& paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
 		{
 			var methodString = paramType.SpecialType == SpecialType.System_Single
-					? GenerateFastExp10MethodFloat_Order4()
-					: GenerateFastExp10MethodDouble_Order4();
+				? GenerateFastExp10MethodFloat()
+				: GenerateFastExp10MethodDouble();
 
-			var fastExpMethod = ParseMethodFromString(methodString);
+			additionalMethods.TryAdd(ParseMethodFromString(methodString), false);
 
-			if (fastExpMethod is not null)
-			{
-				if (!additionalMethods.ContainsKey(fastExpMethod))
-				{
-					additionalMethods.Add(fastExpMethod, false);
-				}
-
-				result = SyntaxFactory.InvocationExpression(
-						SyntaxFactory.IdentifierName("FastExp10"))
-					.WithArgumentList(
-						SyntaxFactory.ArgumentList(
-							SyntaxFactory.SeparatedList(
-							parameters.Select(SyntaxFactory.Argument))));
-
-				return true;
-			}
+			result = CreateInvocation("FastExp10", parameters);
+			return true;
 		}
 
 		// Default: keep as Exp10 call (target numeric helper type)
-		result = CreateInvocation(paramType, "Exp10", parameters);
+		result = CreateInvocation(paramType, Name, parameters);
 		return true;
 	}
 
-	private static string GenerateFastExp10MethodFloat_Order4()
+	private static string GenerateFastExp10MethodFloat()
 	{
 		return """
 			private static float FastExp10(float x)
@@ -110,7 +75,7 @@ public class Exp10FunctionOptimizer : BaseFunctionOptimizer
 			""";
 	}
 
-	private static string GenerateFastExp10MethodDouble_Order4()
+	private static string GenerateFastExp10MethodDouble()
 	{
 		return """
 			private static double FastExp10(double x)

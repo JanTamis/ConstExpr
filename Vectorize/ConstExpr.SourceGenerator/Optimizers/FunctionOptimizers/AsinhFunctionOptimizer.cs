@@ -1,74 +1,37 @@
-using System.Collections.Generic;
-using System.Linq;
 using ConstExpr.Core.Attributes;
 using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Collections.Generic;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers;
 
-public class AsinhFunctionOptimizer : BaseFunctionOptimizer
+public class AsinhFunctionOptimizer() : BaseFunctionOptimizer("Asinh", 1)
 {
 	public override bool TryOptimize(IMethodSymbol method, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		result = null;
 
-		if (method.Name != "Asinh")
-		{
-			return false;
-		}
-
-		var containing = method.ContainingType?.ToString();
-		var paramType = method.Parameters.Length > 0 ? method.Parameters[0].Type : null;
-		var containingName = method.ContainingType?.Name;
-		var paramTypeName = paramType?.Name;
-
-		var isMath = containing is "System.Math" or "System.MathF";
-		var isNumericHelper = paramTypeName is not null && containingName == paramTypeName;
-
-		if (!isMath && !isNumericHelper || paramType is null)
-		{
-			return false;
-		}
-
-		if (!paramType.IsNumericType())
+		if (!IsValidMethod(method, out var paramType))
 		{
 			return false;
 		}
 
 		// When FastMath is enabled, add a fast asinh approximation method
-		if (floatingPointMode == FloatingPointEvaluationMode.FastMath)
+		if (floatingPointMode == FloatingPointEvaluationMode.FastMath
+			&& paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
 		{
-			// Generate fast asinh method for floating point types
-			if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
-			{
-				var methodString = paramType.SpecialType == SpecialType.System_Single
-					? GenerateFastAsinhMethodFloat() 
-					: GenerateFastAsinhMethodDouble();
-					
-				var fastAsinhMethod = ParseMethodFromString(methodString);
-				
-				if (fastAsinhMethod is not null)
-				{
-					if (!additionalMethods.ContainsKey(fastAsinhMethod))
-					{
-						additionalMethods.Add(fastAsinhMethod, false);
-					}
-					
-					result = SyntaxFactory.InvocationExpression(
-						SyntaxFactory.IdentifierName("FastAsinh"))
-						.WithArgumentList(
-							SyntaxFactory.ArgumentList(
-								SyntaxFactory.SeparatedList(
-									parameters.Select(SyntaxFactory.Argument))));
-					
-					return true;
-				}
-			}
+			var methodString = paramType.SpecialType == SpecialType.System_Single
+				? GenerateFastAsinhMethodFloat()
+				: GenerateFastAsinhMethodDouble();
+
+			additionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+
+			result = CreateInvocation("FastAsinh", parameters);
+			return true;
 		}
 
-		result = CreateInvocation(paramType, "Asinh", parameters);
+		result = CreateInvocation(paramType, Name, parameters);
 		return true;
 	}
 
@@ -94,10 +57,10 @@ public class AsinhFunctionOptimizer : BaseFunctionOptimizer
 				}
 				
 				// For medium values, use direct formula
-				var result2 = Single.Log(xa + Single.Sqrt(Single.FusedMultiplyAdd(xa, xa, 1.0f));
+				var result2 = Single.Log(xa + Single.Sqrt(Single.FusedMultiplyAdd(xa, xa, 1.0f)));
 				return Single.CopySign(result2, x);
 			}
-			""";
+		""";
 	}
 
 	private static string GenerateFastAsinhMethodDouble()
@@ -122,9 +85,9 @@ public class AsinhFunctionOptimizer : BaseFunctionOptimizer
 				}
 				
 				// For medium values, use direct formula
-				var result2 = Double.Log(xa + Double.Sqrt(Double.FusedMultiplyAdd(xa, xa, 1.0));
+				var result2 = Double.Log(xa + Double.Sqrt(Double.FusedMultiplyAdd(xa, xa, 1.0)));
 				return Double.CopySign(result2, x);
 			}
-			""";
+		""";
 	}
 }

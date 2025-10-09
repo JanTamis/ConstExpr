@@ -1,47 +1,21 @@
-// filepath: /Users/jantamiskossen/RiderProjects/Vectorize/Vectorize/ConstExpr.SourceGenerator/Optimizers/FunctionOptimizers/PowFunctionOptimizer.cs
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using ConstExpr.Core.Attributes;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
+using System.Collections.Generic;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers;
 
-public class PowFunctionOptimizer : BaseFunctionOptimizer
+public class PowFunctionOptimizer() : BaseFunctionOptimizer("Pow", 2)
 {
 	public override bool TryOptimize(IMethodSymbol method, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		result = null;
 
-		if (method.Name != "Pow")
-		{
-			return false;
-		}
-
-		var containing = method.ContainingType?.ToString();
-		var paramType = method.Parameters.Length > 0 ? method.Parameters[0].Type : null;
-		var containingName = method.ContainingType?.Name;
-		var paramTypeName = paramType?.Name;
-
-		var isMath = containing is "System.Math" or "System.MathF";
-		var isNumericHelper = paramTypeName is not null && containingName == paramTypeName;
-
-		if (!isMath && !isNumericHelper || paramType is null)
-		{
-			return false;
-		}
-
-		if (!paramType.IsNumericType())
-		{
-			return false;
-		}
-
-		// Expect two parameters for Pow
-		if (parameters.Count != 2)
+		if (!IsValidMethod(method, out var paramType))
 		{
 			return false;
 		}
@@ -67,9 +41,10 @@ public class PowFunctionOptimizer : BaseFunctionOptimizer
 					result = CreateInvocation(paramType, "Reciprocal", x);
 					return true;
 				}
-				
+
 				var div = SyntaxFactory.BinaryExpression(SyntaxKind.DivideExpression,
 					SyntaxHelpers.CreateLiteral(1.0.ToSpecialType(paramType.SpecialType)), x);
+
 				result = SyntaxFactory.ParenthesizedExpression(div);
 				return true;
 			}
@@ -79,18 +54,18 @@ public class PowFunctionOptimizer : BaseFunctionOptimizer
 			{
 				var n = (int)Math.Round(exp);
 				var acc = x;
-				
+
 				for (var i = 1; i < Math.Abs(n); i++)
 				{
 					acc = SyntaxFactory.BinaryExpression(SyntaxKind.MultiplyExpression, acc, x);
 				}
-				
+
 				if (n < 0)
 				{
 					acc = SyntaxFactory.BinaryExpression(SyntaxKind.DivideExpression,
 						SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(1.0)), acc);
 				}
-				
+
 				result = SyntaxFactory.ParenthesizedExpression(acc);
 				return true;
 			}
@@ -116,7 +91,7 @@ public class PowFunctionOptimizer : BaseFunctionOptimizer
 				result = CreateInvocation(paramType, "Sqrt", x);
 				return true;
 			}
-			
+
 			// x^(1 / 3) => Cbrt(x)
 			if (IsApproximately(exp, 1 / 3.0) && HasMethod(paramType, "Cbrt", 1))
 			{
@@ -133,37 +108,20 @@ public class PowFunctionOptimizer : BaseFunctionOptimizer
 		}
 
 		// When FastMath is enabled, add a fast pow approximation method
-		if (floatingPointMode == FloatingPointEvaluationMode.FastMath)
+		if (floatingPointMode == FloatingPointEvaluationMode.FastMath
+			&& paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
 		{
-			// Generate fast pow method for floating point types
-			if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
-			{
-				var methodString = paramType.SpecialType == SpecialType.System_Single
-					? GenerateFastPowMethodFloat() 
-					: GenerateFastPowMethodDouble();
-					
-				var fastPowMethod = ParseMethodFromString(methodString);
-				
-				if (fastPowMethod is not null)
-				{
-					if (!additionalMethods.ContainsKey(fastPowMethod))
-					{
-						additionalMethods.Add(fastPowMethod, false);
-					}
-					
-					result = SyntaxFactory.InvocationExpression(
-						SyntaxFactory.IdentifierName("FastPow"))
-						.WithArgumentList(
-							SyntaxFactory.ArgumentList(
-								SyntaxFactory.SeparatedList(
-									parameters.Select(SyntaxFactory.Argument))));
-					
-					return true;
-				}
-			}
+			var methodString = paramType.SpecialType == SpecialType.System_Single
+				? GenerateFastPowMethodFloat()
+				: GenerateFastPowMethodDouble();
+
+			additionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+
+			result = CreateInvocation("FastPow", parameters);
+			return true;
 		}
 
-		result = CreateInvocation(paramType, "Pow", x, y);
+		result = CreateInvocation(paramType, Name, parameters);
 		return true;
 	}
 
@@ -177,15 +135,10 @@ public class PowFunctionOptimizer : BaseFunctionOptimizer
 				return true;
 			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
 				value = -c2.ToDouble(System.Globalization.CultureInfo.InvariantCulture);
-				return true; 
+				return true;
 			default:
 				return false;
 		}
-	}
-
-	private static bool IsApproximately(double a, double b)
-	{
-		return Math.Abs(a - b) <= Double.Epsilon;
 	}
 
 	private static string GenerateFastPowMethodFloat()
@@ -194,8 +147,7 @@ public class PowFunctionOptimizer : BaseFunctionOptimizer
 			private static float FastPow(float x, float y)
 			{
 				// Handle special cases (keep minimal and predictable)
-				if (y == 0.0f) return 1.0f;
-				if (x == 1.0f) return 1.0f;
+				if (y == 0.0f || x == 1.0f) return 1.0f;
 				if (x <= 0.0f) return float.NaN; // consistent with fast-math approximation path
 
 				// Range reduction: x = m * 2^e with m in [1,2)
@@ -250,8 +202,7 @@ public class PowFunctionOptimizer : BaseFunctionOptimizer
 			private static double FastPow(double x, double y)
 			{
 				// Handle special cases (keep minimal and predictable)
-				if (y == 0.0) return 1.0;
-				if (x == 1.0) return 1.0;
+				if (y == 0.0 || x == 1.0) return 1.0;
 				if (x <= 0.0) return double.NaN;
 
 				// Range reduction: x = m * 2^e with m in [1,2)

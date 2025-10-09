@@ -7,31 +7,13 @@ using System.Globalization;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers;
 
-public class ClampFunctionOptimizer : BaseFunctionOptimizer
+public class ClampFunctionOptimizer() : BaseFunctionOptimizer("Clamp", 3)
 {
 	public override bool TryOptimize(IMethodSymbol method, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		result = null;
 
-		if (method.Name != "Clamp")
-		{
-			return false;
-		}
-
-		var containing = method.ContainingType?.ToString();
-		var paramType = method.Parameters.Length > 0 ? method.Parameters[0].Type : null;
-		var containingName = method.ContainingType?.Name;
-		var paramTypeName = paramType?.Name;
-
-		var isMath = containing is "System.Math" or "System.MathF";
-		var isNumericHelper = paramTypeName is not null && containingName == paramTypeName;
-
-		if (!isMath && !isNumericHelper || paramType is null)
-		{
-			return false;
-		}
-
-		if (parameters.Count != 3)
+		if (!IsValidMethod(method, out var paramType))
 		{
 			return false;
 		}
@@ -44,6 +26,7 @@ public class ClampFunctionOptimizer : BaseFunctionOptimizer
 		if (value is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Clamp" or "ClampNative" } } innerClamp)
 		{
 			var innerArgs = innerClamp.ArgumentList.Arguments;
+
 			if (innerArgs.Count == 3)
 			{
 				var innerMin = innerArgs[1].Expression;
@@ -60,7 +43,7 @@ public class ClampFunctionOptimizer : BaseFunctionOptimizer
 
 		// 2) Constant bounds: if min == max, return that constant (wrapped in appropriate context)
 		if (TryGetConstantValue(paramType, min, out var minVal, out var minExpr) &&
-		    TryGetConstantValue(paramType, max, out var maxVal, out _))
+				TryGetConstantValue(paramType, max, out var maxVal, out _))
 		{
 			if (Compare(paramType, minVal!, maxVal!) == 0)
 			{
@@ -104,7 +87,7 @@ public class ClampFunctionOptimizer : BaseFunctionOptimizer
 		}
 
 		// Fallback: just re-target to the numeric helper
-		result = CreateInvocation(paramType, "Clamp", value, min, max);
+		result = CreateInvocation(paramType, Name, value, min, max);
 		return true;
 	}
 
@@ -143,7 +126,7 @@ public class ClampFunctionOptimizer : BaseFunctionOptimizer
 		// Check if innerMaxExpr matches outerMax
 		if (innerMaxExpr is not null && AreSyntacticallyEqual(innerMaxExpr, outerMax))
 		{
-			result = CreateInvocation(paramType, "Clamp", valueExpr, outerMin, outerMax);
+			result = CreateInvocation(paramType, Name, valueExpr, outerMin, outerMax);
 			return true;
 		}
 
@@ -185,7 +168,7 @@ public class ClampFunctionOptimizer : BaseFunctionOptimizer
 		// Check if innerMinExpr matches outerMin
 		if (innerMinExpr is not null && AreSyntacticallyEqual(innerMinExpr, outerMin))
 		{
-			result = CreateInvocation(paramType, "Clamp", valueExpr, outerMin, outerMax);
+			result = CreateInvocation(paramType, Name, valueExpr, outerMin, outerMax);
 			return true;
 		}
 

@@ -6,41 +6,16 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers;
 
-public class Atan2PiFunctionOptimizer : BaseFunctionOptimizer
+public class Atan2PiFunctionOptimizer() : BaseFunctionOptimizer("Atan2Pi", 2)
 {
 	public override bool TryOptimize(IMethodSymbol method, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		result = null;
 
-		if (method.Name != "Atan2Pi")
-		{
-			return false;
-		}
-
-		var containing = method.ContainingType?.ToString();
-		var paramType = method.Parameters.Length > 0 ? method.Parameters[0].Type : null;
-		var containingName = method.ContainingType?.Name;
-		var paramTypeName = paramType?.Name;
-
-		var isMath = containing is "System.Math" or "System.MathF";
-		var isNumericHelper = paramTypeName is not null && containingName == paramTypeName;
-
-		if (!isMath && !isNumericHelper || paramType is null)
-		{
-			return false;
-		}
-
-		if (!paramType.IsNumericType())
-		{
-			return false;
-		}
-
-		// Expect two parameters for Atan2Pi
-		if (parameters.Count != 2)
+		if (!IsValidMethod(method, out var paramType))
 		{
 			return false;
 		}
@@ -88,37 +63,20 @@ public class Atan2PiFunctionOptimizer : BaseFunctionOptimizer
 		}
 
 		// When FastMath is enabled, add a fast atan2pi approximation method
-		if (floatingPointMode == FloatingPointEvaluationMode.FastMath)
+		if (floatingPointMode == FloatingPointEvaluationMode.FastMath
+			&& paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
 		{
-			// Generate fast atan2pi method for floating point types
-			if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
-			{
-				var methodString = paramType.SpecialType == SpecialType.System_Single
-					? GenerateFastAtan2PiMethodFloat()
-					: GenerateFastAtan2PiMethodDouble();
+			var methodString = paramType.SpecialType == SpecialType.System_Single
+				? GenerateFastAtan2PiMethodFloat()
+				: GenerateFastAtan2PiMethodDouble();
 
-				var fastAtan2PiMethod = ParseMethodFromString(methodString);
+			additionalMethods.TryAdd(ParseMethodFromString(methodString), false);
 
-				if (fastAtan2PiMethod is not null)
-				{
-					if (!additionalMethods.ContainsKey(fastAtan2PiMethod))
-					{
-						additionalMethods.Add(fastAtan2PiMethod, false);
-					}
-
-					result = SyntaxFactory.InvocationExpression(
-						SyntaxFactory.IdentifierName("FastAtan2Pi"))
-						.WithArgumentList(
-							SyntaxFactory.ArgumentList(
-								SyntaxFactory.SeparatedList(
-									parameters.Select(SyntaxFactory.Argument))));
-
-					return true;
-				}
-			}
+			result = CreateInvocation("FastAtan2Pi", parameters);
+			return true;
 		}
 
-		result = CreateInvocation(paramType, "Atan2Pi", y, x);
+		result = CreateInvocation(paramType, Name, parameters);
 		return true;
 	}
 
@@ -136,11 +94,6 @@ public class Atan2PiFunctionOptimizer : BaseFunctionOptimizer
 			default:
 				return false;
 		}
-	}
-
-	private static bool IsApproximately(double a, double b)
-	{
-		return Math.Abs(a - b) <= Double.Epsilon;
 	}
 
 	private static string GenerateFastAtan2PiMethodFloat()

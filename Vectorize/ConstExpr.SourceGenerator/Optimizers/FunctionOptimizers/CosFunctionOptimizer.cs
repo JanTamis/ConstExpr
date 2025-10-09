@@ -1,74 +1,37 @@
-using System.Collections.Generic;
-using System.Linq;
 using ConstExpr.Core.Attributes;
 using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Collections.Generic;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers;
 
-public class CosFunctionOptimizer : BaseFunctionOptimizer
+public class CosFunctionOptimizer() : BaseFunctionOptimizer("Cos", 1)
 {
 	public override bool TryOptimize(IMethodSymbol method, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		result = null;
 
-		if (method.Name != "Cos")
-		{
-			return false;
-		}
-
-		var containing = method.ContainingType?.ToString();
-		var paramType = method.Parameters.Length > 0 ? method.Parameters[0].Type : null;
-		var containingName = method.ContainingType?.Name;
-		var paramTypeName = paramType?.Name;
-
-		var isMath = containing is "System.Math" or "System.MathF";
-		var isNumericHelper = paramTypeName is not null && containingName == paramTypeName;
-
-		if (!isMath && !isNumericHelper || paramType is null)
-		{
-			return false;
-		}
-
-		if (!paramType.IsNumericType())
+		if (!IsValidMethod(method, out var paramType))
 		{
 			return false;
 		}
 
 		// When FastMath is enabled, add a fast cos approximation method
-		if (floatingPointMode == FloatingPointEvaluationMode.FastMath)
+		if (floatingPointMode == FloatingPointEvaluationMode.FastMath
+			&& paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
 		{
-			// Generate fast cos method for floating point types
-			if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
-			{
-				var methodString = paramType.SpecialType == SpecialType.System_Single
-					? GenerateFastCosMethodFloat() 
-					: GenerateFastCosMethodDouble();
-					
-				var fastCosMethod = ParseMethodFromString(methodString);
-				
-				if (fastCosMethod is not null)
-				{
-					if (!additionalMethods.ContainsKey(fastCosMethod))
-					{
-						additionalMethods.Add(fastCosMethod, false);
-					}
-					
-					result = SyntaxFactory.InvocationExpression(
-						SyntaxFactory.IdentifierName("FastCos"))
-						.WithArgumentList(
-							SyntaxFactory.ArgumentList(
-								SyntaxFactory.SeparatedList(
-									parameters.Select(SyntaxFactory.Argument))));
-					
-					return true;
-				}
-			}
+			var methodString = paramType.SpecialType == SpecialType.System_Single
+				? GenerateFastCosMethodFloat()
+				: GenerateFastCosMethodDouble();
+
+			additionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+
+			result = CreateInvocation("FastCos", parameters);
+			return true;
 		}
 
-		result = CreateInvocation(paramType, "Cos", parameters);
+		result = CreateInvocation(paramType, Name, parameters);
 		return true;
 	}
 

@@ -1,74 +1,38 @@
 using ConstExpr.Core.Attributes;
 using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers;
 
-public class SignFunctionOptimizer : BaseFunctionOptimizer
+public class SignFunctionOptimizer() : BaseFunctionOptimizer("Sign", 1)
 {
 	public override bool TryOptimize(IMethodSymbol method, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		result = null;
 
-		if (method.Name != "Sign")
-		{
-			return false;
-		}
-
-		var containing = method.ContainingType?.ToString();
-		var paramType = method.Parameters.Length > 0 ? method.Parameters[0].Type : null;
-		var containingName = method.ContainingType?.Name;
-		var paramTypeName = paramType?.Name;
-
-		var isMath = containing is "System.Math" or "System.MathF";
-		var isNumericHelper = paramTypeName is not null && containingName == paramTypeName;
-
-		if (!isMath && !isNumericHelper || paramType is null)
-		{
-			return false;
-		}
-
-		if (!paramType.IsNumericType())
+		if (!IsValidMethod(method, out var paramType))
 		{
 			return false;
 		}
 
 		// When FastMath is enabled, use CopySign for better performance on floating point types
-		if (floatingPointMode == FloatingPointEvaluationMode.FastMath)
+		if (floatingPointMode == FloatingPointEvaluationMode.FastMath
+			&& paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
 		{
-			if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
-			{
-				var methodString = paramType.SpecialType == SpecialType.System_Single
-					? GenerateFastSignMethodFloat()
-					: GenerateFastSignMethodDouble();
+			var methodString = paramType.SpecialType == SpecialType.System_Single
+				? GenerateFastSignMethodFloat()
+				: GenerateFastSignMethodDouble();
 
-				var fastSignMethod = ParseMethodFromString(methodString);
+			additionalMethods.TryAdd(ParseMethodFromString(methodString), false);
 
-				if (fastSignMethod is not null)
-				{
-					if (!additionalMethods.ContainsKey(fastSignMethod))
-					{
-						additionalMethods.Add(fastSignMethod, false);
-					}
-
-					result = SyntaxFactory.InvocationExpression(
-							SyntaxFactory.IdentifierName("FastSign"))
-						.WithArgumentList(
-							SyntaxFactory.ArgumentList(
-								SyntaxFactory.SeparatedList(
-									parameters.Select(SyntaxFactory.Argument))));
-
-					return true;
-				}
-			}
+			result = CreateInvocation("FastSign", parameters);
+			return true;
 		}
 
 		// Default: keep as Sign call (target numeric helper type)
-		result = CreateInvocation(paramType, "Sign", parameters);
+		result = CreateInvocation(paramType, Name, parameters);
 		return true;
 	}
 
