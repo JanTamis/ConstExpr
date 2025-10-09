@@ -59,7 +59,7 @@ public class AcosPiFunctionOptimizer() : BaseFunctionOptimizer("AcosPi", 1)
 				
 				return Single.FusedMultiplyAdd(negate, 1.0f, ret);
 			}
-		""";
+			""";
 	}
 
 	private static string GenerateFastAcosPiMethodDouble()
@@ -86,6 +86,6 @@ public class AcosPiFunctionOptimizer() : BaseFunctionOptimizer("AcosPi", 1)
 				
 				return Double.FusedMultiplyAdd(negate, 1.0, ret);
 			}
-		""";
+			""";
 	}
 }

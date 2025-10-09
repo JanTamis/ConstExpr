@@ -52,6 +52,7 @@ public class SqrtFunctionOptimizer() : BaseFunctionOptimizer("Sqrt", 1)
 				// Pre-compute for better performance
 				var halfY = y * 0.5f;
 				var halfXdivY = 0.5f * x / y;
+				
 				return halfY + halfXdivY;
 			}
 			""";
@@ -74,6 +75,7 @@ public class SqrtFunctionOptimizer() : BaseFunctionOptimizer("Sqrt", 1)
 				// Pre-compute for better performance
 				var halfY = y * 0.5;
 				var halfXdivY = 0.5 * x / y;
+				
 				return halfY + halfXdivY;
 			}
 			""";

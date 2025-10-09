@@ -110,7 +110,7 @@ public class TanPiFunctionOptimizer() : BaseFunctionOptimizer("TanPi", 1)
 				// TanPi(x) has period 1, so reduce x modulo 1
 				var xReduced = x - Single.Round(x);
 				
-				// Check if we're close to asymptotes at ±0.5 (±?/2)
+				// Check if we're close to asymptotes at ï¿½0.5 (ï¿½?/2)
 				var absX = Single.Abs(xReduced);
 				if (absX > 0.45f) // Getting close to 0.5
 				{
@@ -125,15 +125,15 @@ public class TanPiFunctionOptimizer() : BaseFunctionOptimizer("TanPi", 1)
 				// Using the same polynomial coefficients as regular tan
 				var x2 = xRadians * xRadians;
 				
-				// tan(x) ? x * P(x²) / Q(x²) where P and Q are polynomials
-				// P(x²) = 1 + p1*x² + p2*x?
+				// tan(x) ? x * P(xï¿½) / Q(xï¿½) where P and Q are polynomials
+				// P(xï¿½) = 1 + p1*xï¿½ + p2*x?
 				var p1 = -0.1306282f;
 				var p2 = 0.0052854f;
 				var numerator = Single.FusedMultiplyAdd(p2, x2, p1);
 				numerator = Single.FusedMultiplyAdd(numerator, x2, 1.0f);
 				numerator *= xRadians;
 				
-				// Q(x²) = 1 + q1*x² + q2*x?
+				// Q(xï¿½) = 1 + q1*xï¿½ + q2*x?
 				var q1 = -0.4636476f;
 				var q2 = 0.0157903f;
 				var denominator = Single.FusedMultiplyAdd(q2, x2, q1);
@@ -157,7 +157,7 @@ public class TanPiFunctionOptimizer() : BaseFunctionOptimizer("TanPi", 1)
 				// TanPi(x) has period 1, so reduce x modulo 1
 				var xReduced = x - Double.Round(x);
 				
-				// Check if we're close to asymptotes at ±0.5 (±?/2)
+				// Check if we're close to asymptotes at ï¿½0.5 (ï¿½?/2)
 				var absX = Double.Abs(xReduced);
 				if (absX > 0.45) // Getting close to 0.5
 				{
@@ -172,8 +172,8 @@ public class TanPiFunctionOptimizer() : BaseFunctionOptimizer("TanPi", 1)
 				// Using the same polynomial coefficients as regular tan
 				var x2 = xRadians * xRadians;
 				
-				// tan(x) ? x * P(x²) / Q(x²) where P and Q are polynomials
-				// P(x²) = 1 + p1*x² + p2*x? + p3*x?
+				// tan(x) ? x * P(xï¿½) / Q(xï¿½) where P and Q are polynomials
+				// P(xï¿½) = 1 + p1*xï¿½ + p2*x? + p3*x?
 				var p1 = -0.13089944486966634;
 				var p2 = 0.005405742881796775;
 				var p3 = -0.00010606776596208569;
@@ -182,7 +182,7 @@ public class TanPiFunctionOptimizer() : BaseFunctionOptimizer("TanPi", 1)
 				numerator = Double.FusedMultiplyAdd(numerator, x2, 1.0);
 				numerator *= xRadians;
 				
-				// Q(x²) = 1 + q1*x² + q2*x? + q3*x?
+				// Q(xï¿½) = 1 + q1*xï¿½ + q2*x? + q3*x?
 				var q1 = -0.46468849716162905;
 				var q2 = 0.015893657956882884;
 				var q3 = -0.00031920703894961204;

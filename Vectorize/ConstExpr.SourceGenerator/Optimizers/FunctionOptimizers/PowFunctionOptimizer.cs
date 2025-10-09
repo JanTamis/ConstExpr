@@ -52,7 +52,7 @@ public class PowFunctionOptimizer() : BaseFunctionOptimizer("Pow", 2)
 			// x^n => x * x * ... * x for small integer n
 			if (Math.Abs(exp) > 1.0 && Math.Abs(exp) <= 5.0 && IsPure(x) && Math.Abs(exp - Math.Round(exp)) < Double.Epsilon)
 			{
-				var n = (int)Math.Round(exp);
+				var n = (int) Math.Round(exp);
 				var acc = x;
 
 				for (var i = 1; i < Math.Abs(n); i++)
@@ -102,14 +102,14 @@ public class PowFunctionOptimizer() : BaseFunctionOptimizer("Pow", 2)
 			// x^(1 / n) => RootN(x, n) for small integer n
 			if (IsApproximately(1 / exp, Math.Floor(1 / exp)))
 			{
-				result = CreateInvocation(paramType, "RootN", x, SyntaxHelpers.CreateLiteral((int)Math.Round(1 / exp)));
+				result = CreateInvocation(paramType, "RootN", x, SyntaxHelpers.CreateLiteral((int) Math.Round(1 / exp)));
 				return true;
 			}
 		}
 
 		// When FastMath is enabled, add a fast pow approximation method
 		if (floatingPointMode == FloatingPointEvaluationMode.FastMath
-			&& paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
+		    && paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
 		{
 			var methodString = paramType.SpecialType == SpecialType.System_Single
 				? GenerateFastPowMethodFloat()
@@ -128,12 +128,13 @@ public class PowFunctionOptimizer() : BaseFunctionOptimizer("Pow", 2)
 	private static bool TryGetNumericLiteral(ExpressionSyntax expr, out double value)
 	{
 		value = 0;
+
 		switch (expr)
 		{
 			case LiteralExpressionSyntax { Token.Value: IConvertible c }:
 				value = c.ToDouble(System.Globalization.CultureInfo.InvariantCulture);
 				return true;
-			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
 				value = -c2.ToDouble(System.Globalization.CultureInfo.InvariantCulture);
 				return true;
 			default:
@@ -148,7 +149,7 @@ public class PowFunctionOptimizer() : BaseFunctionOptimizer("Pow", 2)
 			{
 				// Handle special cases (keep minimal and predictable)
 				if (y == 0.0f || x == 1.0f) return 1.0f;
-				if (x <= 0.0f) return float.NaN; // consistent with fast-math approximation path
+				if (x <= 0.0f) return Single.NaN; // consistent with fast-math approximation path
 
 				// Range reduction: x = m * 2^e with m in [1,2)
 				var ibits = BitConverter.SingleToInt32Bits(x);
@@ -161,9 +162,9 @@ public class PowFunctionOptimizer() : BaseFunctionOptimizer("Pow", 2)
 				var z = (m - 1.0f) / (m + 1.0f);
 				var t2 = z * z; // z^2
 				// Horner: z * (1 + t2/3 + t2^2/5 + t2^3/7)
-				var sInner = MathF.FusedMultiplyAdd(1f / 7f, t2, 1f / 5f);
-				sInner = MathF.FusedMultiplyAdd(sInner, t2, 1f / 3f);
-				sInner = MathF.FusedMultiplyAdd(sInner, t2, 1f);
+				var sInner = Single.FusedMultiplyAdd(1f / 7f, t2, 1f / 5f);
+				sInner = Single.FusedMultiplyAdd(sInner, t2, 1f / 3f);
+				sInner = Single.FusedMultiplyAdd(sInner, t2, 1f);
 				var ln_m = 2.0f * (z * sInner);
 				var log2m = ln_m * INV_LN2;
 				var log2x = iexp + log2m;
@@ -171,7 +172,7 @@ public class PowFunctionOptimizer() : BaseFunctionOptimizer("Pow", 2)
 				var t = y * log2x;
 
 				// exp2(t): split into k + f with f in [-0.5, 0.5) for better poly accuracy
-				var kf = MathF.Floor(t + 0.5f);
+				var kf = Single.Floor(t + 0.5f);
 				var k = (int)kf;
 				var f = t - kf;
 
@@ -180,13 +181,13 @@ public class PowFunctionOptimizer() : BaseFunctionOptimizer("Pow", 2)
 				var u = LN2 * f;
 				// Horner with FMA: ((((((1/5040)u + 1/720)u + 1/120)u + 1/24)u + 1/6)u + 1/2)u + 1; then add final +u term fused
 				var p = 1f / 5040f;
-				p = MathF.FusedMultiplyAdd(p, u, 1f / 720f);
-				p = MathF.FusedMultiplyAdd(p, u, 1f / 120f);
-				p = MathF.FusedMultiplyAdd(p, u, 1f / 24f);
-				p = MathF.FusedMultiplyAdd(p, u, 1f / 6f);
-				p = MathF.FusedMultiplyAdd(p, u, 0.5f);
-				p = MathF.FusedMultiplyAdd(p, u, 1f);
-				var exp2f = MathF.FusedMultiplyAdd(p, u, 1f);
+				p = Single.FusedMultiplyAdd(p, u, 1f / 720f);
+				p = Single.FusedMultiplyAdd(p, u, 1f / 120f);
+				p = Single.FusedMultiplyAdd(p, u, 1f / 24f);
+				p = Single.FusedMultiplyAdd(p, u, 1f / 6f);
+				p = Single.FusedMultiplyAdd(p, u, 0.5f);
+				p = Single.FusedMultiplyAdd(p, u, 1f);
+				var exp2f = Single.FusedMultiplyAdd(p, u, 1f);
 
 				// Scale by 2^k via exponent bits (mantissa = 1.0)
 				var expBits = (k + 127) << 23;
@@ -203,7 +204,7 @@ public class PowFunctionOptimizer() : BaseFunctionOptimizer("Pow", 2)
 			{
 				// Handle special cases (keep minimal and predictable)
 				if (y == 0.0 || x == 1.0) return 1.0;
-				if (x <= 0.0) return double.NaN;
+				if (x <= 0.0) return Double.NaN;
 
 				// Range reduction: x = m * 2^e with m in [1,2)
 				var bits = BitConverter.DoubleToInt64Bits(x);
@@ -216,9 +217,9 @@ public class PowFunctionOptimizer() : BaseFunctionOptimizer("Pow", 2)
 				var z = (m - 1.0) / (m + 1.0);
 				var t2 = z * z;
 				// Horner: z * (1 + t2/3 + t2^2/5 + t2^3/7)
-				var sInner = Math.FusedMultiplyAdd(1.0 / 7.0, t2, 1.0 / 5.0);
-				sInner = Math.FusedMultiplyAdd(sInner, t2, 1.0 / 3.0);
-				sInner = Math.FusedMultiplyAdd(sInner, t2, 1.0);
+				var sInner = Double.FusedMultiplyAdd(1.0 / 7.0, t2, 1.0 / 5.0);
+				sInner = Double.FusedMultiplyAdd(sInner, t2, 1.0 / 3.0);
+				sInner = Double.FusedMultiplyAdd(sInner, t2, 1.0);
 				var ln_m = 2.0 * (z * sInner);
 				var log2m = ln_m * INV_LN2;
 				var log2x = iexp + log2m;
@@ -226,7 +227,7 @@ public class PowFunctionOptimizer() : BaseFunctionOptimizer("Pow", 2)
 				var t = y * log2x;
 
 				// exp2(t): k + f with f in [-0.5, 0.5)
-				var kf = Math.Floor(t + 0.5);
+				var kf = Double.Floor(t + 0.5);
 				var k = (int)kf;
 				var f = t - kf;
 
@@ -234,13 +235,13 @@ public class PowFunctionOptimizer() : BaseFunctionOptimizer("Pow", 2)
 				const double LN2 = 0.6931471805599453094172;
 				var u = LN2 * f;
 				var p = 1.0 / 5040.0;
-				p = Math.FusedMultiplyAdd(p, u, 1.0 / 720.0);
-				p = Math.FusedMultiplyAdd(p, u, 1.0 / 120.0);
-				p = Math.FusedMultiplyAdd(p, u, 1.0 / 24.0);
-				p = Math.FusedMultiplyAdd(p, u, 1.0 / 6.0);
-				p = Math.FusedMultiplyAdd(p, u, 0.5);
-				p = Math.FusedMultiplyAdd(p, u, 1.0);
-				var exp2f = Math.FusedMultiplyAdd(p, u, 1.0);
+				p = Double.FusedMultiplyAdd(p, u, 1.0 / 720.0);
+				p = Double.FusedMultiplyAdd(p, u, 1.0 / 120.0);
+				p = Double.FusedMultiplyAdd(p, u, 1.0 / 24.0);
+				p = Double.FusedMultiplyAdd(p, u, 1.0 / 6.0);
+				p = Double.FusedMultiplyAdd(p, u, 0.5);
+				p = Double.FusedMultiplyAdd(p, u, 1.0);
+				var exp2f = Double.FusedMultiplyAdd(p, u, 1.0);
 
 				// Scale by 2^k using exponent bits
 				var expBits = ((long)(k + 1023) & 0x7FFL) << 52;

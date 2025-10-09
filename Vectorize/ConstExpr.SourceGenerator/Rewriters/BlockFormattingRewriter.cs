@@ -9,6 +9,18 @@ namespace ConstExpr.SourceGenerator.Helpers;
 
 public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 {
+	public override SyntaxNode? VisitLiteralExpression(LiteralExpressionSyntax node)
+	{
+		if (SyntaxHelpers.TryGetLiteral(node.Token.Value, out var expression))
+		{
+			return expression
+				.WithLeadingTrivia(node.GetLeadingTrivia())
+				.WithTrailingTrivia(node.GetTrailingTrivia());
+		}
+
+		return node;
+	}
+
 	public override SyntaxNode VisitBlock(BlockSyntax node)
 	{
 		var visited = new List<StatementSyntax>(node.Statements.Count);
@@ -163,6 +175,15 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			}
 		}
 
+		// Groepeer expression statements (zoals FMA chains)
+		for (var i = 0; i < visited.Count; i++)
+		{
+			if (visited[i] is ExpressionStatementSyntax)
+			{
+				SurroundContiguousGroup(visited, ref i, static s => s is ExpressionStatementSyntax);
+			}
+		}
+
 		// Control-flow en return spacing (lege regel voor/na waar passend)
 		for (var i = 0; i < visited.Count; i++)
 		{
@@ -178,9 +199,12 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 			if (i > 0)
 			{
-				if (NeedsBlankLineBefore(visited[i - 1]))
+				var prev = visited[i - 1];
+				
+				// Don't add blank line if previous statement has a comment that belongs to current statement
+				if (!HasTrailingCommentForNext(prev) && NeedsBlankLineBefore(prev))
 				{
-					visited[i - 1] = EnsureTrailingBlankLine(visited[i - 1]);
+					visited[i - 1] = EnsureTrailingBlankLine(prev);
 				}
 
 				visited[i] = TrimLeadingBlankLinesTo(visited[i], 0);
@@ -188,7 +212,31 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 			if (isCtrlNonLocal && i < visited.Count - 1)
 			{
-				visited[i] = EnsureTrailingBlankLine(visited[i]);
+				// Only add blank line after control flow if next statement doesn't start with a comment
+				var next = visited[i + 1];
+				if (!HasLeadingComment(next))
+				{
+					visited[i] = EnsureTrailingBlankLine(visited[i]);
+				}
+			}
+		}
+
+		// Zorg voor precies één lege regel vóór commentaarregels (zodat er een witregel boven commentaar komt)
+		for (var i = 0; i < visited.Count; i++)
+		{
+			if (HasLeadingComment(visited[i]))
+			{
+				if (i == 0)
+				{
+					// Eerste statement in blok: beperk eventueel meerdere leidende lege regels tot maximaal 1
+					visited[i] = TrimLeadingBlankLinesTo(visited[i], 1);
+				}
+				else
+				{
+					// Zorg dat er een volledige blanco regel (2 EOLs) komt vóór de commentaarregel
+					visited[i - 1] = EnsureTrailingBlankLine(visited[i - 1]);
+					visited[i] = TrimLeadingBlankLinesTo(visited[i], 1);
+				}
 			}
 		}
 
@@ -577,5 +625,41 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			}
 			return result;
 		}
+	}
+
+	private static bool HasLeadingComment(StatementSyntax statement)
+	{
+		var leading = statement.GetLeadingTrivia();
+		foreach (var trivia in leading)
+		{
+			if (trivia.IsKind(SyntaxKind.SingleLineCommentTrivia) || 
+			    trivia.IsKind(SyntaxKind.MultiLineCommentTrivia) ||
+			    trivia.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia) ||
+			    trivia.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static bool HasTrailingCommentForNext(StatementSyntax statement)
+	{
+		var trailing = statement.GetTrailingTrivia();
+		var foundEol = false;
+		
+		foreach (var trivia in trailing)
+		{
+			if (trivia.IsKind(SyntaxKind.EndOfLineTrivia))
+			{
+				foundEol = true;
+			}
+			else if (foundEol && (trivia.IsKind(SyntaxKind.SingleLineCommentTrivia) || 
+			                       trivia.IsKind(SyntaxKind.MultiLineCommentTrivia)))
+			{
+				return true;
+			}
+		}
+		return false;
 	}
 }

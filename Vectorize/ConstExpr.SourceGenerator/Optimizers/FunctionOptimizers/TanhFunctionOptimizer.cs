@@ -92,7 +92,7 @@ public class TanhFunctionOptimizer() : BaseFunctionOptimizer("Tanh", 1)
 				if (x <= -5.0f) return -1.0f; // Saturates to -1 for large negative values
 				
 				// For small values, use rational approximation
-				// tanh(x) ? x * P(x²) / Q(x²) for |x| < 1
+				// tanh(x) ? x * P(xï¿½) / Q(xï¿½) for |x| < 1
 				// For larger values, use the identity: tanh(x) = (e^(2x) - 1) / (e^(2x) + 1)
 				
 				var absX = Single.Abs(x);
@@ -102,7 +102,7 @@ public class TanhFunctionOptimizer() : BaseFunctionOptimizer("Tanh", 1)
 					// Rational approximation for small values
 					var x2 = x * x;
 					
-					// Numerator coefficients for tanh(x) ? x * (1 + a1*x² + a2*x?) / (1 + b1*x² + b2*x?)
+					// Numerator coefficients for tanh(x) ? x * (1 + a1*xï¿½ + a2*x?) / (1 + b1*xï¿½ + b2*x?)
 					var a1 = -0.3333314f;
 					var a2 = 0.1333924f;
 					var numerator = Single.FusedMultiplyAdd(a2, x2, a1);

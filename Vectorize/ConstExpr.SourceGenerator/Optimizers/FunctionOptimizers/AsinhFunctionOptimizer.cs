@@ -60,7 +60,7 @@ public class AsinhFunctionOptimizer() : BaseFunctionOptimizer("Asinh", 1)
 				var result2 = Single.Log(xa + Single.Sqrt(Single.FusedMultiplyAdd(xa, xa, 1.0f)));
 				return Single.CopySign(result2, x);
 			}
-		""";
+			""";
 	}
 
 	private static string GenerateFastAsinhMethodDouble()
@@ -88,6 +88,6 @@ public class AsinhFunctionOptimizer() : BaseFunctionOptimizer("Asinh", 1)
 				var result2 = Double.Log(xa + Double.Sqrt(Double.FusedMultiplyAdd(xa, xa, 1.0)));
 				return Double.CopySign(result2, x);
 			}
-		""";
+			""";
 	}
 }

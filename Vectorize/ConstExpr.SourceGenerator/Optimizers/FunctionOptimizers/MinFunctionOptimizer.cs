@@ -324,7 +324,10 @@ public class MinFunctionOptimizer() : BaseFunctionOptimizer("Min", 2)
 				var dbl = System.Convert.ToDouble(v, System.Globalization.CultureInfo.InvariantCulture);
 				return -dbl;
 			}
-			catch { return v; }
+			catch
+			{
+				return v;
+			}
 		}
 	}
 

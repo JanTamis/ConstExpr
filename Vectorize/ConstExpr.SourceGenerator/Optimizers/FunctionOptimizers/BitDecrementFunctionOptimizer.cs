@@ -17,8 +17,7 @@ public class BitDecrementFunctionOptimizer() : BaseFunctionOptimizer("BitDecreme
 		}
 
 		// BitDecrement(BitIncrement(x)) -> x (inverse operations)
-		if (parameters[0] is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "BitIncrement" } } innerInv
-			&& innerInv.ArgumentList.Arguments.Count == 1)
+		if (parameters[0] is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "BitIncrement" }, ArgumentList.Arguments.Count: 1 } innerInv)
 		{
 			result = innerInv.ArgumentList.Arguments[0].Expression;
 			return true;
