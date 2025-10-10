@@ -72,11 +72,19 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 									// Trim leading whitespace-only trivia to avoid double spaces after the '='
 									var leading = firstToken.LeadingTrivia;
 									var idx = 0;
-									while (idx < leading.Count && leading[idx].IsKind(SyntaxKind.WhitespaceTrivia)) idx++;
+									while (idx < leading.Count && leading[idx].IsKind(SyntaxKind.WhitespaceTrivia))
+									{
+										idx++;
+									}
+
 									if (idx > 0)
 									{
 										var newLeading = SyntaxFactory.TriviaList();
-										for (var k = idx; k < leading.Count; k++) newLeading = newLeading.Add(leading[k]);
+										for (var k = idx; k < leading.Count; k++)
+										{
+											newLeading = newLeading.Add(leading[k]);
+										}
+
 										newFirstToken = firstToken.WithLeadingTrivia(newLeading);
 										rightExpr = rightExpr.ReplaceToken(firstToken, newFirstToken);
 									}
@@ -145,7 +153,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			if (i > 0)
 			{
 				var prev = visited[i - 1];
-				
+
 				// Don't add blank line if previous statement has a comment that belongs to current statement
 				if (!HasTrailingCommentForNext(prev) && NeedsBlankLineBefore(prev))
 				{
@@ -267,6 +275,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		// condition
 		// \t? whenTrue
 		// \t: whenFalse
+
 		var v = (ConditionalExpressionSyntax)base.VisitConditionalExpression(node);
 
 		// Tokens die we gaan aanpassen
@@ -279,32 +288,75 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 		// Bepaal de indent op basis van het statement waarin we zitten en gebruik dezelfde unit als NormalizeWhitespace (\t)
 		var indentUnit = SyntaxFactory.Whitespace("\t");
-		var baseIndent = GetBaseIndentTrivia(v);
-		var lineIndent = baseIndent.Add(indentUnit);
 
-		// 1) Na de condition een nieuwe regel forceren
+		// Use the condition node's indent as base so the '?' / ':' are one tab
+		// further indented relative to the condition line.
+		var baseIndent = GetBaseIndentTrivia(v.Condition);
+
+		// Bouw de indent expliciet zodat we zeker zijn dat er een tab vóór '?' en ':' komt
+		// (voorkom dat eventuele elastic/normalisatie de tab verwijdert)
+		SyntaxTriviaList BuildLineIndent()
+		{
+			var list = SyntaxFactory.TriviaList();
+			for (var i = 0; i < baseIndent.Count; i++)
+			{
+				list = list.Add(baseIndent[i]);
+			}
+
+			list = list.Add(indentUnit);
+			return list;
+		}
+
+		var lineIndent = BuildLineIndent();
+
+		// 1) Na de condition een nieuwe regel forceren en voeg expliciet één tab toe
+		// zodat de volgende '?'-regel één indent verder staat.
 		var condTrailing = TrimTrailingWhitespaceAndEndOfLines(conditionLast.TrailingTrivia);
 		condTrailing = condTrailing.Add(SyntaxFactory.ElasticCarriageReturnLineFeed);
+		condTrailing = condTrailing.Add(indentUnit);
 		var newConditionLast = conditionLast.WithTrailingTrivia(condTrailing);
 
-		// 2) '?' start op nieuwe regel met indent en 1 spatie erna; behoud niet-witruimte leading trivia (zoals comments) na de indent
+		// 2) '?' start op nieuwe regel met indent (tab) en 1 spatie erna; behoud niet-witruimte leading trivia (zoals comments) na de indent
 		var qLeadingRest = TrimLeadingWhitespaceAndEndOfLines(question.LeadingTrivia);
-		var qLeading = lineIndent;
-		foreach (var tr in qLeadingRest) qLeading = qLeading.Add(tr);
+
+		// Zorg dat de tab direct vóór het token staat, gevolgd door eventuele comment-trivia
+		var qLeading = SyntaxFactory.TriviaList();
+		for (var i = 0; i < lineIndent.Count; i++)
+		{
+			qLeading = qLeading.Add(lineIndent[i]);
+		}
+
+		foreach (var tr in qLeadingRest)
+		{
+			qLeading = qLeading.Add(tr);
+		}
+
 		var qTrailing = TrimTrailingWhitespaceAndEndOfLines(question.TrailingTrivia).Add(SyntaxFactory.Space);
 		var newQuestion = question.WithLeadingTrivia(qLeading).WithTrailingTrivia(qTrailing);
 
 		// 3) whenTrue direct na '? ' (geen leidende whitespace/eol)
 		var wtFirst = whenTrueFirst.WithLeadingTrivia(TrimLeadingWhitespaceAndEndOfLines(whenTrueFirst.LeadingTrivia));
 
-		// 4) Na whenTrue een nieuwe regel forceren vóór ':'
-		var wtTrailing = TrimTrailingWhitespaceAndEndOfLines(whenTrueLast.TrailingTrivia).Add(SyntaxFactory.ElasticCarriageReturnLineFeed);
+		// 4) Na whenTrue een nieuwe regel forceren vóór ':' en voeg expliciet één tab toe
+		// zodat de ':' één indent verder staat.
+		var wtTrailing = TrimTrailingWhitespaceAndEndOfLines(whenTrueLast.TrailingTrivia)
+				.Add(SyntaxFactory.ElasticCarriageReturnLineFeed)
+				.Add(indentUnit);
 		var newWhenTrueLast = whenTrueLast.WithTrailingTrivia(wtTrailing);
 
-		// 5) ':' start op nieuwe regel met indent en 1 spatie erna; behoud niet-witruimte leading trivia na de indent
+		// 5) ':' start op nieuwe regel met indent (tab) en 1 spatie erna; behoud niet-witruimte leading trivia na de indent
 		var cLeadingRest = TrimLeadingWhitespaceAndEndOfLines(colon.LeadingTrivia);
-		var cLeading = lineIndent;
-		foreach (var tr in cLeadingRest) cLeading = cLeading.Add(tr);
+		var cLeading = SyntaxFactory.TriviaList();
+		for (var i = 0; i < lineIndent.Count; i++)
+		{
+			cLeading = cLeading.Add(lineIndent[i]);
+		}
+
+		foreach (var tr in cLeadingRest)
+		{
+			cLeading = cLeading.Add(tr);
+		}
+
 		var cTrailing = TrimTrailingWhitespaceAndEndOfLines(colon.TrailingTrivia).Add(SyntaxFactory.Space);
 		var newColon = colon.WithLeadingTrivia(cLeading).WithTrailingTrivia(cTrailing);
 
@@ -324,6 +376,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		};
 
 		v = v.ReplaceTokens(tokens, (orig, _) => map.TryGetValue(orig, out var rep) ? rep : orig);
+
 		return v;
 	}
 
@@ -621,23 +674,57 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 	private static SyntaxTriviaList GetBaseIndentTrivia(SyntaxNode node)
 	{
-		// Zoek dichtstbijzijnde statement en gebruik de indentatie van de eerste token na de laatste line break
+		// Zoek dichtstbijzijnde statement en gebruik de indentatie van de eerste token na de laatste line break.
+		// Wanneer de huidige node zelf leading trivia bevat met een EOL gebruiken we die, zodat
+		// bij gebroken expressies (zoals een condition op meerdere regels) de indent van de
+		// condition-regel wordt gebruikt. Val anders terug op de statement-token.
 		var stmt = node.AncestorsAndSelf().OfType<StatementSyntax>().FirstOrDefault();
-		var token = (stmt ?? node).GetFirstToken();
+
+		// Probeer eerst de node's eigen eerste token
+		var token = node.GetFirstToken();
 		var leading = token.LeadingTrivia;
 		var lastEol = -1;
 		for (var i = 0; i < leading.Count; i++)
 		{
-			if (leading[i].IsKind(SyntaxKind.EndOfLineTrivia)) lastEol = i;
+			if (leading[i].IsKind(SyntaxKind.EndOfLineTrivia))
+			{
+				lastEol = i;
+			}
 		}
+
+		// Als de node geen EOL in zijn leading trivia heeft, fall back naar de
+		// statement-token alleen wanneer de token geen enkele leading whitespace/EOL
+		// bevat. Hierdoor geven we prioriteit aan (spatie)inspringing direct vóór
+		// de conditie wanneer die op dezelfde regel staat.
+		var hasLeadingWhitespaceOrEol = leading.Any(t => t.IsKind(SyntaxKind.WhitespaceTrivia) || t.IsKind(SyntaxKind.EndOfLineTrivia));
+		if (!hasLeadingWhitespaceOrEol && lastEol < 0 && stmt is not null)
+		{
+			token = stmt.GetFirstToken();
+			leading = token.LeadingTrivia;
+			lastEol = -1;
+			for (var i = 0; i < leading.Count; i++)
+			{
+				if (leading[i].IsKind(SyntaxKind.EndOfLineTrivia))
+				{
+					lastEol = i;
+				}
+			}
+		}
+
 		if (lastEol < 0)
 		{
 			// Geen EOL: neem alleen whitespace aan het begin
 			var result = SyntaxFactory.TriviaList();
 			for (var i = 0; i < leading.Count; i++)
 			{
-				if (leading[i].IsKind(SyntaxKind.WhitespaceTrivia)) result = result.Add(leading[i]);
-				else result = SyntaxFactory.TriviaList(); // reset als er comments/anders tussenzit
+				if (leading[i].IsKind(SyntaxKind.WhitespaceTrivia))
+				{
+					result = result.Add(leading[i]);
+				}
+				else
+				{
+					result = SyntaxFactory.TriviaList(); // reset als er comments/anders tussenzit
+				}
 			}
 			return result;
 		}
@@ -646,8 +733,14 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			var result = SyntaxFactory.TriviaList();
 			for (var i = lastEol + 1; i < leading.Count; i++)
 			{
-				if (leading[i].IsKind(SyntaxKind.WhitespaceTrivia)) result = result.Add(leading[i]);
-				else break;
+				if (leading[i].IsKind(SyntaxKind.WhitespaceTrivia))
+				{
+					result = result.Add(leading[i]);
+				}
+				else
+				{
+					break;
+				}
 			}
 			return result;
 		}
@@ -658,10 +751,10 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		var leading = statement.GetLeadingTrivia();
 		foreach (var trivia in leading)
 		{
-			if (trivia.IsKind(SyntaxKind.SingleLineCommentTrivia) || 
-			    trivia.IsKind(SyntaxKind.MultiLineCommentTrivia) ||
-			    trivia.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia) ||
-			    trivia.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia))
+			if (trivia.IsKind(SyntaxKind.SingleLineCommentTrivia) ||
+					trivia.IsKind(SyntaxKind.MultiLineCommentTrivia) ||
+					trivia.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia) ||
+					trivia.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia))
 			{
 				return true;
 			}
@@ -673,15 +766,15 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 	{
 		var trailing = statement.GetTrailingTrivia();
 		var foundEol = false;
-		
+
 		foreach (var trivia in trailing)
 		{
 			if (trivia.IsKind(SyntaxKind.EndOfLineTrivia))
 			{
 				foundEol = true;
 			}
-			else if (foundEol && (trivia.IsKind(SyntaxKind.SingleLineCommentTrivia) || 
-			                       trivia.IsKind(SyntaxKind.MultiLineCommentTrivia)))
+			else if (foundEol && (trivia.IsKind(SyntaxKind.SingleLineCommentTrivia) ||
+														 trivia.IsKind(SyntaxKind.MultiLineCommentTrivia)))
 			{
 				return true;
 			}
