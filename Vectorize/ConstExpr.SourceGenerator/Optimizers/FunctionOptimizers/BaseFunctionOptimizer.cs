@@ -12,8 +12,8 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers;
 
 public abstract class BaseFunctionOptimizer(string name, params int[] parameterCounts)
 {
-	protected string Name { get; } = name;
-	protected int[] ParameterCounts { get; } = parameterCounts;
+	public string Name { get; } = name;
+	public int[] ParameterCounts { get; } = parameterCounts;
 
 	public abstract bool TryOptimize(IMethodSymbol method, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result);
 

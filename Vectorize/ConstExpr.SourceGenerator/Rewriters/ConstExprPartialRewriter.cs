@@ -452,13 +452,13 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 			}
 			else
 			{
-				IEnumerable<BaseFunctionOptimizer> optimizers = arguments.Count switch
-				{
-					1 => [new AbsFunctionOptimizer(), new SignFunctionOptimizer(), new RoundFunctionOptimizer(), new SqrtFunctionOptimizer(), new CbrtFunctionOptimizer(), new CeilingFunctionOptimizer(), new FloorFunctionOptimizer(), new CosFunctionOptimizer(), new CoshFunctionOptimizer(), new CosPiFunctionOptimizer(), new SinCosFunctionOptimizer(), new SinCosPiFunctionOptimizer(), new AsinFunctionOptimizer(), new AcosFunctionOptimizer(), new TanFunctionOptimizer(), new DegreesToRadiansFunctionOptimizer(), new RadiansToDegreesFunctionOptimizer()],
-					2 => [new MaxFunctionOptimizer(), new MinFunctionOptimizer(), new RoundFunctionOptimizer(), new PowFunctionOptimizer()],
-					3 => [new RoundFunctionOptimizer()],
-					_ => []
-				};
+				IEnumerable<BaseFunctionOptimizer> optimizers = typeof(BaseFunctionOptimizer).Assembly
+					.GetTypes()
+					.Where(t => !t.IsAbstract && typeof(BaseFunctionOptimizer).IsAssignableFrom(t))
+					.Select(t => Activator.CreateInstance(t) as BaseFunctionOptimizer)
+					.OfType<BaseFunctionOptimizer>()
+					.Where(o => String.Equals(o.Name, targetMethod.Name, StringComparison.Ordinal)
+					            && o.ParameterCounts.Contains(targetMethod.Parameters.Length));
 
 				foreach (var optimizer in optimizers)
 				{

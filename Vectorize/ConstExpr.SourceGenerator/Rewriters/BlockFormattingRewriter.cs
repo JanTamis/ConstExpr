@@ -38,124 +38,69 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			return node;
 		}
 
-		// // Verplaats lokale functies naar het einde van de functie-/method-body
-		// // en verwijder ongebruikte lokale functies via een eenvoudige syntactische analyse.
-		// // (alleen voor top-level blokken van methoden/constructors/operators of lokale functies, niet voor willekeurige geneste blokken)
-		// if (node.Parent is BaseMethodDeclarationSyntax or LocalFunctionStatementSyntax)
-		// {
-		// 	var nonLocal = new List<StatementSyntax>(visited.Count);
-		// 	var locals = new List<LocalFunctionStatementSyntax>();
-		//
-		// 	foreach (var s in visited)
-		// 	{
-		// 		if (s is LocalFunctionStatementSyntax lfs)
-		// 		{
-		// 			locals.Add(lfs);
-		// 		}
-		// 		else
-		// 		{
-		// 			nonLocal.Add(s);
-		// 		}
-		// 	}
-		//
-		// 	if (locals.Count > 0)
-		// 	{
-		// 		// Bepaal welke lokale functies gebruikt worden
-		// 		var localNames = new HashSet<string>(StringComparer.Ordinal);
-		//
-		// 		foreach (var l in locals)
-		// 		{
-		// 			localNames.Add(l.Identifier.ValueText);
-		// 		}
-		//
-		// 		// Verzamel naam-gebruik vanuit niet-lokale statements (aanroepen en method groups)
-		// 		var usedFromNonLocal = new HashSet<string>(StringComparer.Ordinal);
-		//
-		// 		foreach (var st in nonLocal)
-		// 		{
-		// 			foreach (var id in st.DescendantNodes().OfType<IdentifierNameSyntax>())
-		// 			{
-		// 				var name = id.Identifier.ValueText;
-		//
-		// 				if (localNames.Contains(name))
-		// 				{
-		// 					usedFromNonLocal.Add(name);
-		// 				}
-		// 			}
-		// 		}
-		//
-		// 		// Bouw eenvoudige call graph tussen lokale functies (op basis van identifier-namen)
-		// 		var edges = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
-		//
-		// 		foreach (var l in locals)
-		// 		{
-		// 			var from = l.Identifier.ValueText;
-		// 			var targets = new HashSet<string>(StringComparer.Ordinal);
-		//
-		// 			foreach (var id in l.DescendantNodes().OfType<IdentifierNameSyntax>())
-		// 			{
-		// 				var name = id.Identifier.ValueText;
-		//
-		// 				if (localNames.Contains(name) && !string.Equals(name, from, StringComparison.Ordinal))
-		// 				{
-		// 					targets.Add(name);
-		// 				}
-		// 			}
-		// 			edges[from] = targets;
-		// 		}
-		//
-		// 		// Bereken bereikbare lokale functies vanuit niet-lokale gebruiksplaatsen
-		// 		var used = new HashSet<string>(usedFromNonLocal, StringComparer.Ordinal);
-		// 		var stack = new Stack<string>(usedFromNonLocal);
-		//
-		// 		while (stack.Count > 0)
-		// 		{
-		// 			var u = stack.Pop();
-		// 			if (!edges.TryGetValue(u, out var targets) || targets is null)
-		// 				continue;
-		//
-		// 			foreach (var v in targets)
-		// 			{
-		// 				if (used.Add(v))
-		// 				{
-		// 					stack.Push(v);
-		// 				}
-		// 			}
-		// 		}
-		//
-		// 		// Houd alleen de gebruikte lokale functies over (in oorspronkelijke volgorde)
-		// 		var keptLocals = new List<LocalFunctionStatementSyntax>(locals.Count);
-		//
-		// 		foreach (var l in locals)
-		// 		{
-		// 			if (used.Contains(l.Identifier.ValueText))
-		// 			{
-		// 				keptLocals.Add(l);
-		// 			}
-		// 		}
-		//
-		// 		visited = nonLocal;
-		//
-		// 		if (keptLocals.Count > 0)
-		// 		{
-		// 			// Voeg locals aaneengesloten toe, en zorg voor spacing: 1 lege regel vóór de groep, geen lege regels tussen of na functies
-		// 			var firstLocalIdx = visited.Count;
-		//
-		// 			visited.AddRange(keptLocals);
-		//
-		// 			if (firstLocalIdx > 0)
-		// 			{
-		// 				visited[firstLocalIdx - 1] = EnsureTrailingBlankLine(visited[firstLocalIdx - 1]);
-		// 			}
-		//
-		// 			for (var j = firstLocalIdx; j < visited.Count; j++)
-		// 			{
-		// 				visited[j] = TrimLeadingBlankLinesTo(visited[j], 0);
-		// 				visited[j] = EnsureTrailingSingleNewLine(visited[j]);
-		// 			}
-		// 		}
-		// 	}
-		// }
+		// Combine simple patterns: single-variable local declaration without initializer
+		// immediately followed by a simple assignment to that variable, e.g.
+		// "int x; x = expr;" -> "int x = expr;"
+		for (var i = 0; i < visited.Count - 1; i++)
+		{
+			if (visited[i] is LocalDeclarationStatementSyntax declStmt)
+			{
+				var decl = declStmt.Declaration;
+
+				// Only handle single-variable declarations without initializer
+				if (decl is not null && decl.Variables.Count == 1 && decl.Variables[0].Initializer is null)
+				{
+					var varId = decl.Variables[0].Identifier.ValueText;
+					if (!string.IsNullOrEmpty(varId))
+					{
+						if (visited[i + 1] is ExpressionStatementSyntax exprStmt)
+						{
+							if (exprStmt.Expression is AssignmentExpressionSyntax assign &&
+								assign.Kind() == SyntaxKind.SimpleAssignmentExpression)
+							{
+								// Check left side is the same identifier (allow parentheses/trivia by getting IdentifierName)
+								if (assign.Left is IdentifierNameSyntax idLeft && idLeft.Identifier.ValueText == varId)
+								{
+									// Create a new variable declarator with initializer from assignment.Right
+									// Preserve leading trivia on the right-hand expression's first token by attaching it to the initializer expression
+									var rightExpr = assign.Right;
+
+									// If the RHS's first token has leading whitespace we will keep it; remove an initial space if it would duplicate formatting
+									var firstToken = rightExpr.GetFirstToken();
+									var newFirstToken = firstToken; // default
+
+									// Trim leading whitespace-only trivia to avoid double spaces after the '='
+									var leading = firstToken.LeadingTrivia;
+									var idx = 0;
+									while (idx < leading.Count && leading[idx].IsKind(SyntaxKind.WhitespaceTrivia)) idx++;
+									if (idx > 0)
+									{
+										var newLeading = SyntaxFactory.TriviaList();
+										for (var k = idx; k < leading.Count; k++) newLeading = newLeading.Add(leading[k]);
+										newFirstToken = firstToken.WithLeadingTrivia(newLeading);
+										rightExpr = rightExpr.ReplaceToken(firstToken, newFirstToken);
+									}
+
+									var newVar = decl.Variables[0].WithInitializer(SyntaxFactory.EqualsValueClause(rightExpr));
+									var newDecl = decl.WithVariables(SyntaxFactory.SingletonSeparatedList(newVar));
+
+									// Preserve any trivia from the assignment's statement (e.g. trailing comments) by moving trailing trivia
+									// from the exprStmt to the new declaration's semicolon/trailing trivia.
+									var newDeclStmt = declStmt.WithDeclaration(newDecl)
+										.WithTrailingTrivia(exprStmt.GetTrailingTrivia());
+
+									// Replace declStmt and remove the assignment statement
+									visited[i] = newDeclStmt;
+									visited.RemoveAt(i + 1);
+									// Step back one position to re-evaluate around the modified area
+									i = Math.Max(-1, i - 1);
+								}
+							}
+						}
+					}
+				}
+			}
+		}
 
 		// Groepeer lokale declaraties en omring met lege regels
 		for (var i = 0; i < visited.Count; i++)
@@ -399,15 +344,96 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 		if (start > 0 && NeedsBlankLineBefore(visited[start - 1]))
 		{
-			visited[start - 1] = EnsureTrailingBlankLine(visited[start - 1]);
+			var prev = visited[start - 1];
+			var skipAddingBlankBefore = false;
+
+			// If the group we're surrounding is an expression-statement group and the
+			// previous contiguous statements are local declarations, do not insert a
+			// blank line if the first expression in the group is a simple assignment
+			// to one of the declared variables. This prevents a blank line between
+			// a declaration and an immediate assignment to that variable.
+			if (isInGroup(visited[start]) && visited[start] is ExpressionStatementSyntax && prev is LocalDeclarationStatementSyntax)
+			{
+				// gather declared ids from the contiguous declaration block that ends at prev
+				var ids = new HashSet<string>(StringComparer.Ordinal);
+				for (var k = start - 1; k >= 0; k--)
+				{
+					if (visited[k] is LocalDeclarationStatementSyntax ls && ls.Declaration is { } decl)
+					{
+						foreach (var v in decl.Variables)
+						{
+							ids.Add(v.Identifier.ValueText);
+						}
+					}
+					else
+					{
+						break; // stop at first non-declaration
+					}
+				}
+
+				// check the group's first statement
+				var first = visited[start] as ExpressionStatementSyntax;
+				if (first?.Expression is AssignmentExpressionSyntax assign && assign.Kind() == SyntaxKind.SimpleAssignmentExpression)
+				{
+					if (assign.Left is IdentifierNameSyntax leftId)
+					{
+						if (ids.Contains(leftId.Identifier.ValueText))
+						{
+							skipAddingBlankBefore = true;
+						}
+					}
+				}
+			}
+
+			if (!skipAddingBlankBefore)
+			{
+				visited[start - 1] = EnsureTrailingBlankLine(prev);
+			}
 		}
 
 		visited[start] = TrimLeadingBlankLinesTo(visited[start], 0);
 
 		if (end < visited.Count - 1)
 		{
-			visited[end] = EnsureTrailingBlankLine(visited[end]);
-			visited[end + 1] = TrimLeadingBlankLinesTo(visited[end + 1], 0);
+			// If this group is a group of local declarations, and the next statement
+			// is a direct assignment to one of the variables declared here, do not
+			// insert a blank line between the group and that assignment.
+			var shouldAddBlank = true;
+
+			if (isInGroup(visited[start]) && visited[start] is LocalDeclarationStatementSyntax)
+			{
+				// gather all declared identifiers in the group
+				var ids = new HashSet<string>(StringComparer.Ordinal);
+				for (var k = start; k <= end; k++)
+				{
+					if (visited[k] is LocalDeclarationStatementSyntax ls && ls.Declaration is { } decl)
+					{
+						foreach (var v in decl.Variables)
+						{
+							ids.Add(v.Identifier.ValueText);
+						}
+					}
+				}
+
+				// check next statement
+				var next = visited[end + 1];
+				if (next is ExpressionStatementSyntax es && es.Expression is AssignmentExpressionSyntax assign && assign.Kind() == SyntaxKind.SimpleAssignmentExpression)
+				{
+					if (assign.Left is IdentifierNameSyntax leftId)
+					{
+						if (ids.Contains(leftId.Identifier.ValueText))
+						{
+							shouldAddBlank = false;
+						}
+					}
+				}
+			}
+
+			if (shouldAddBlank)
+			{
+				visited[end] = EnsureTrailingBlankLine(visited[end]);
+				visited[end + 1] = TrimLeadingBlankLinesTo(visited[end + 1], 0);
+			}
 		}
 
 		i = end;
