@@ -8,7 +8,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers;
 
 public class AcosFunctionOptimizer() : BaseFunctionOptimizer("Acos", 1)
 {
-	public override bool TryOptimize(IMethodSymbol method, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(IMethodSymbol method, InvocationExpressionSyntax invocation, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		result = null;
 

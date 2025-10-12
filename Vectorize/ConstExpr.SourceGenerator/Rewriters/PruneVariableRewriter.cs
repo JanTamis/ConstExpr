@@ -137,6 +137,39 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 
 	public override SyntaxNode? VisitAssignmentExpression(AssignmentExpressionSyntax node)
 	{
+		// Handle Tuple deconstruction assignments: (a, b) = (1, 2)
+		if (node.Left is TupleExpressionSyntax leftTuple && node.OperatorToken.IsKind(SyntaxKind.EqualsToken))
+		{
+			var allElementsHaveValue = true;
+			
+			// Check if all tuple elements have constant values
+			foreach (var arg in leftTuple.Arguments)
+			{
+				if (arg.Expression is IdentifierNameSyntax { Identifier.Text: var name })
+				{
+					if (!variables.TryGetValue(name, out var tupleValue) || !tupleValue.HasValue)
+					{
+						allElementsHaveValue = false;
+						break;
+					}
+				}
+				else
+				{
+					allElementsHaveValue = false;
+					break;
+				}
+			}
+			
+			// If all tuple elements have constant values, the assignment can be pruned
+			if (allElementsHaveValue)
+			{
+				return null;
+			}
+			
+			// Otherwise keep the assignment
+			return node;
+		}
+		
 		var identifier = node.Left.ToString();
 
 		if (variables.TryGetValue(identifier, out var value) && value.HasValue)

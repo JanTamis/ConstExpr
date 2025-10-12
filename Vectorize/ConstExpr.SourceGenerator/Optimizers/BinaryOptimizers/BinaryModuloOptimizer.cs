@@ -125,13 +125,13 @@ public class BinaryModuloOptimizer : BaseBinaryOptimizer
 				}
 			}
 
-			// x % (power of two) => x & (m - 1) for unsigned integer types only
-			if (hasRightValue && Type.IsUnsignedInteger() && rightValue.IsNumericPowerOfTwo(out _))
+			// x % (power of two) => x & (power - 1) (for unsigned integers only)
+			if (Type.IsUnsignedInteger() && hasRightValue && rightValue.IsNumericPowerOfTwo(out var power))
 			{
-				var one = 1.ToSpecialType(Type.SpecialType);
-				var mask = ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.Subtract, rightValue, one);
-
-				if (mask is not null && SyntaxHelpers.TryGetLiteral(mask, out var maskLiteral))
+				// 2^power - 1 creates a mask with 'power' bits set
+				var mask = (1 << power) - 1;
+				var maskLiteral = SyntaxHelpers.CreateLiteral(mask.ToSpecialType(Type.SpecialType));
+				if (maskLiteral != null)
 				{
 					result = BinaryExpression(SyntaxKind.BitwiseAndExpression, Left, maskLiteral);
 					return true;

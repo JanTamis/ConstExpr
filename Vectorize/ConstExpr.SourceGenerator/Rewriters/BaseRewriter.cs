@@ -42,16 +42,14 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 					{
 						var indexType = loader.GetType("System.Index");
 
-						if (indexType is not null)
-						{
-							var ctor = indexType.GetConstructor([ typeof(int), typeof(bool) ]);
+						var ctor = indexType?.GetConstructor([ typeof(int), typeof(bool) ]);
 
-							if (ctor is not null)
-							{
-								var intVal = Convert.ToInt32(inner);
-								value = ctor.Invoke([ intVal, true ]);
-								return true;
-							}
+						if (ctor != null)
+						{
+							var intVal = Convert.ToInt32(inner);
+							
+							value = ctor.Invoke([ intVal, true ]);
+							return true;
 						}
 					}
 					catch { }

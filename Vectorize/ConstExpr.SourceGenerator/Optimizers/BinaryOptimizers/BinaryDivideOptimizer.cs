@@ -3,6 +3,7 @@ using ConstExpr.Core.Attributes;
 using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 using System.Linq;
 using ConstExpr.SourceGenerator.Helpers;
@@ -41,8 +42,33 @@ public class BinaryDivideOptimizer : BaseBinaryOptimizer
 			return true;
 		}
 
-		// x / (power of two) => x >> n (integer)
-		if (Type.IsInteger() && rightValue.IsNumericPowerOfTwo(out var power))
+		// 0 / x = 0 (when x != 0, integers only)
+		if (Type.IsInteger() && hasLeftValue && leftValue.IsNumericZero() && hasRightValue && !rightValue.IsNumericZero())
+		{
+			result = SyntaxHelpers.CreateLiteral(0.ToSpecialType(Type.SpecialType));
+			return true;
+		}
+
+		// x / x = 1 (pure, when x != 0 for integers, or FastMath for floats)
+		if (Left.IsEquivalentTo(Right) && IsPure(Left) && IsPure(Right))
+		{
+			if (Type.IsInteger() || FloatingPointMode == FloatingPointEvaluationMode.FastMath)
+			{
+				result = SyntaxHelpers.CreateLiteral(1.ToSpecialType(Type.SpecialType));
+				return true;
+			}
+		}
+
+		// x / 2 => x >> 1 (unsigned integer only, signed division is different)
+		if (Type.IsUnsignedInteger() && hasRightValue && rightValue.IsNumericValue(2))
+		{
+			result = BinaryExpression(SyntaxKind.RightShiftExpression, Left,
+				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(1)));
+			return true;
+		}
+
+		// x / (power of two) => x >> n (unsigned integer)
+		if (Type.IsUnsignedInteger() && rightValue.IsNumericPowerOfTwo(out var power))
 		{
 			result = BinaryExpression(SyntaxKind.RightShiftExpression, Left,
 				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(power)));
@@ -60,6 +86,33 @@ public class BinaryDivideOptimizer : BaseBinaryOptimizer
 			return true;
 		}
 		
+
+		// (-x) / (-y) => x / y (pure)
+		if (Left is PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.UnaryMinusExpression } leftNeg
+		    && Right is PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.UnaryMinusExpression } rightNeg
+		    && IsPure(leftNeg.Operand) && IsPure(rightNeg.Operand))
+		{
+			result = BinaryExpression(SyntaxKind.DivideExpression, leftNeg.Operand, rightNeg.Operand);
+			return true;
+		}
+
+		// (-x) / y => -(x / y) (pure)
+		if (Left is PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.UnaryMinusExpression } leftNeg2
+		    && IsPure(leftNeg2.Operand) && IsPure(Right))
+		{
+			result = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
+				ParenthesizedExpression(BinaryExpression(SyntaxKind.DivideExpression, leftNeg2.Operand, Right)));
+			return true;
+		}
+
+		// x / (-y) => -(x / y) (pure)
+		if (Right is PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.UnaryMinusExpression } rightNeg2
+		    && IsPure(Left) && IsPure(rightNeg2.Operand))
+		{
+			result = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
+				ParenthesizedExpression(BinaryExpression(SyntaxKind.DivideExpression, Left, rightNeg2.Operand)));
+			return true;
+		}
 
 		// 1 / x = reciprocal
 		if (FloatingPointMode == FloatingPointEvaluationMode.FastMath

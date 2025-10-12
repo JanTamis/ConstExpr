@@ -366,6 +366,22 @@ public static class ObjectExtensions
 		_ => false
 	};
 
+	public static bool IsNumericValue(this object? value, int target) => value switch
+	{
+		byte b => b == target,
+		sbyte sb => sb == target,
+		short s => s == target,
+		ushort us => us == target,
+		int i => i == target,
+		uint ui => ui == target,
+		long l => l == target,
+		ulong ul => ul == (ulong)target,
+		float f => f == target,
+		double d => d == target,
+		decimal m => m == target,
+		_ => false
+	};
+
 	public static bool IsNumericPowerOfTwo(this object? value, out int power)
 	{
 		power = 0;

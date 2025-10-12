@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using ConstExpr.Core.Attributes;
 using ConstExpr.SourceGenerator.Helpers;
+using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;
 using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -38,6 +39,15 @@ public abstract class BaseBinaryOptimizer
 			BinaryOperatorKind.RightShift => new BinaryRightShiftOptimizer { Left = leftExpr, LeftType = leftType, Right = rightExpr, RightType = rightType, Type = type, FloatingPointMode = mode },
 			BinaryOperatorKind.LessThan => new BinaryLessThanOptimizer { Left = leftExpr, LeftType = leftType, Right = rightExpr, RightType = rightType, Type = type, FloatingPointMode = mode },
 			BinaryOperatorKind.GreaterThan => new BinaryGreaterThanOptimizer { Left = leftExpr, LeftType = leftType, Right = rightExpr, RightType = rightType, Type = type, FloatingPointMode = mode },
+			BinaryOperatorKind.LessThanOrEqual => new BinaryLessThanOrEqualOptimizer { Left = leftExpr, LeftType = leftType, Right = rightExpr, RightType = rightType, Type = type, FloatingPointMode = mode },
+			BinaryOperatorKind.GreaterThanOrEqual => new BinaryGreaterThanOrEqualOptimizer { Left = leftExpr, LeftType = leftType, Right = rightExpr, RightType = rightType, Type = type, FloatingPointMode = mode },
+			BinaryOperatorKind.Equals => new BinaryEqualsOptimizer { Left = leftExpr, LeftType = leftType, Right = rightExpr, RightType = rightType, Type = type, FloatingPointMode = mode },
+			BinaryOperatorKind.NotEquals => new BinaryNotEqualsOptimizer { Left = leftExpr, LeftType = leftType, Right = rightExpr, RightType = rightType, Type = type, FloatingPointMode = mode },
+			BinaryOperatorKind.And => new BinaryAndOptimizer { Left = leftExpr, LeftType = leftType, Right = rightExpr, RightType = rightType, Type = type, FloatingPointMode = mode },
+			BinaryOperatorKind.Or => new BinaryOrOptimizer { Left = leftExpr, LeftType = leftType, Right = rightExpr, RightType = rightType, Type = type, FloatingPointMode = mode },
+			BinaryOperatorKind.ExclusiveOr => new BinaryExclusiveOrOptimizer { Left = leftExpr, LeftType = leftType, Right = rightExpr, RightType = rightType, Type = type, FloatingPointMode = mode },
+			BinaryOperatorKind.ConditionalAnd => new BinaryConditionalAndOptimizer { Left = leftExpr, LeftType = leftType, Right = rightExpr, RightType = rightType, Type = type, FloatingPointMode = mode },
+			BinaryOperatorKind.ConditionalOr => new BinaryConditionalOrOptimizer { Left = leftExpr, LeftType = leftType, Right = rightExpr, RightType = rightType, Type = type, FloatingPointMode = mode },
 			_ => null
 		};
 	}

@@ -11,7 +11,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers;
 
 public class Atan2FunctionOptimizer() : BaseFunctionOptimizer("Atan2", 2)
 {
-	public override bool TryOptimize(IMethodSymbol method, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(IMethodSymbol method, InvocationExpressionSyntax invocation, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		result = null;
 
