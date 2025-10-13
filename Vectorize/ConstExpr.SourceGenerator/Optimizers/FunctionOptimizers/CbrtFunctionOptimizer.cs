@@ -1,4 +1,3 @@
-using ConstExpr.Core.Attributes;
 using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -8,7 +7,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers;
 
 public class CbrtFunctionOptimizer() : BaseFunctionOptimizer("Cbrt")
 {
-	public override bool TryOptimize(IMethodSymbol method, InvocationExpressionSyntax invocation, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		result = null;
 
@@ -17,9 +16,7 @@ public class CbrtFunctionOptimizer() : BaseFunctionOptimizer("Cbrt")
 			return false;
 		}
 
-		// When FastMath is enabled, add a fast cbrt approximation method
-		if (floatingPointMode == FloatingPointEvaluationMode.FastMath
-			&& paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
+		if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
 		{
 			var methodString = paramType.SpecialType == SpecialType.System_Single
 				? GenerateFastCbrtMethodFloat()
@@ -43,7 +40,7 @@ public class CbrtFunctionOptimizer() : BaseFunctionOptimizer("Cbrt")
 				if (x == 0.0f)
 					return 0.0f;
 				
-				var absX = System.Math.Abs(x);
+				var absX = Single.Abs(x);
 				
 				// Initial approximation using bit manipulation
 				var i = BitConverter.SingleToInt32Bits(absX);
@@ -54,7 +51,7 @@ public class CbrtFunctionOptimizer() : BaseFunctionOptimizer("Cbrt")
 				y = (y + y + absX / (y * y)) / 3.0f;
 				y = (y + y + absX / (y * y)) / 3.0f;
 				
-				return System.MathF.CopySign(y, x);
+				return Single.CopySign(y, x);
 			}
 			""";
 	}
@@ -67,7 +64,7 @@ public class CbrtFunctionOptimizer() : BaseFunctionOptimizer("Cbrt")
 				if (x == 0.0)
 					return 0.0;
 				
-				var absX = System.Math.Abs(x);
+				var absX = Double.Abs(x);
 				
 				// Initial approximation using bit manipulation
 				var i = BitConverter.DoubleToInt64Bits(absX);
@@ -78,7 +75,7 @@ public class CbrtFunctionOptimizer() : BaseFunctionOptimizer("Cbrt")
 				y = (y + y + absX / (y * y)) / 3.0;
 				y = (y + y + absX / (y * y)) / 3.0;
 				
-				return System.Math.CopySign(y, x);
+				return Double.CopySign(y, x);
 			}
 			""";
 	}

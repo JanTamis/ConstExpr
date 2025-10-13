@@ -1,5 +1,4 @@
-﻿using ConstExpr.Core.Attributes;
-using ConstExpr.SourceGenerator.Extensions;
+﻿using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
@@ -8,7 +7,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers;
 
 public class ExpFunctionOptimizer() : BaseFunctionOptimizer("Exp", 1)
 {
-	public override bool TryOptimize(IMethodSymbol method, InvocationExpressionSyntax invocation, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		result = null;
 
@@ -17,9 +16,7 @@ public class ExpFunctionOptimizer() : BaseFunctionOptimizer("Exp", 1)
 			return false;
 		}
 
-		// When FastMath is enabled, add chosen fast exp approximation methods
-		if (floatingPointMode == FloatingPointEvaluationMode.FastMath
-			&& paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
+		if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
 		{
 			// Use order-3 polynomial for float (fastest option tested)
 			// Use order-4 polynomial for double (fastest option tested)

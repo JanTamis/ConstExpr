@@ -1,4 +1,3 @@
-using ConstExpr.Core.Attributes;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -9,7 +8,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers;
 
 public class ClampFunctionOptimizer() : BaseFunctionOptimizer("Clamp", 3)
 {
-	public override bool TryOptimize(IMethodSymbol method, InvocationExpressionSyntax invocation, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		result = null;
 
@@ -80,7 +79,7 @@ public class ClampFunctionOptimizer() : BaseFunctionOptimizer("Clamp", 3)
 		}
 
 		// 5) FastMath: use ClampNative if available
-		if (floatingPointMode == FloatingPointEvaluationMode.FastMath && HasMethod(paramType, "ClampNative", 3))
+		if (HasMethod(paramType, "ClampNative", 3))
 		{
 			result = CreateInvocation(paramType, "ClampNative", value, min, max);
 			return true;

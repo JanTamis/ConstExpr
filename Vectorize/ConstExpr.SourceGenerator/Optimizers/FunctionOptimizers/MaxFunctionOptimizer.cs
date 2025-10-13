@@ -1,4 +1,3 @@
-using ConstExpr.Core.Attributes;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -9,7 +8,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers;
 
 public class MaxFunctionOptimizer() : BaseFunctionOptimizer("Max", 2)
 {
-	public override bool TryOptimize(IMethodSymbol method, InvocationExpressionSyntax invocation, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		result = null;
 
@@ -21,12 +20,13 @@ public class MaxFunctionOptimizer() : BaseFunctionOptimizer("Max", 2)
 		var containingName = method.ContainingType?.Name;
 
 		// Try to recognize Clamp pattern: Max(Min(X, max), min) -> Clamp(X, min, max)
-		if (TryRewriteClampFromMaxMin(paramType, floatingPointMode, containingName, parameters[0], parameters[1], out var clamp))
+		if (TryRewriteClampFromMaxMin(paramType, containingName, parameters[0], parameters[1], out var clamp))
 		{
 			result = clamp;
 			return true;
 		}
-		if (TryRewriteClampFromMaxMin(paramType, floatingPointMode, containingName, parameters[1], parameters[0], out clamp))
+
+		if (TryRewriteClampFromMaxMin(paramType, containingName, parameters[1], parameters[0], out clamp))
 		{
 			result = clamp;
 			return true;
@@ -38,13 +38,14 @@ public class MaxFunctionOptimizer() : BaseFunctionOptimizer("Max", 2)
 			result = flattened;
 			return true;
 		}
+
 		if (TryFlattenNestedMax(paramType, containingName, parameters[1], parameters[0], out flattened))
 		{
 			result = flattened;
 			return true;
 		}
 
-		if (floatingPointMode == FloatingPointEvaluationMode.FastMath && HasMethod(paramType, "MaxNative", 2))
+		if (HasMethod(paramType, "MaxNative", 2))
 		{
 			// Use MaxNative if available on the numeric helper type
 			result = CreateInvocation(paramType, "MaxNative", parameters);
@@ -149,7 +150,7 @@ public class MaxFunctionOptimizer() : BaseFunctionOptimizer("Max", 2)
 		return true;
 	}
 
-	private bool TryRewriteClampFromMaxMin(ITypeSymbol paramType, FloatingPointEvaluationMode floatingPointMode, string? outerContainingName, ExpressionSyntax first, ExpressionSyntax second, out InvocationExpressionSyntax? result)
+	private bool TryRewriteClampFromMaxMin(ITypeSymbol paramType, string? outerContainingName, ExpressionSyntax first, ExpressionSyntax second, out InvocationExpressionSyntax? result)
 	{
 		result = null;
 
@@ -205,7 +206,7 @@ public class MaxFunctionOptimizer() : BaseFunctionOptimizer("Max", 2)
 			// Bounds must be ordered min <= max to preserve semantics
 			if (Compare(paramType, minConstVal!, maxVal!) <= 0)
 			{
-				if (floatingPointMode == FloatingPointEvaluationMode.FastMath && HasMethod(paramType, "ClampNative", 3))
+				if (HasMethod(paramType, "ClampNative", 3))
 				{
 					result = CreateInvocation(paramType, "ClampNative", valueExpr!, minConstExpr!, maxExpr!);
 					return true;
@@ -267,7 +268,7 @@ public class MaxFunctionOptimizer() : BaseFunctionOptimizer("Max", 2)
 
 			if (Compare(paramType, minConstVal2!, null!) <= 0)
 			{
-				if (floatingPointMode == FloatingPointEvaluationMode.FastMath && HasMethod(paramType, "ClampNative", 3))
+				if (HasMethod(paramType, "ClampNative", 3))
 				{
 					result = CreateInvocation(paramType, "ClampNative", valueExpr2!, minConstExpr2!, maxExpr2!);
 					return true;

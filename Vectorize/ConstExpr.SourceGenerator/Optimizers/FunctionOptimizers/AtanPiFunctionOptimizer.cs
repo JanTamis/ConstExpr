@@ -1,5 +1,4 @@
-﻿using ConstExpr.Core.Attributes;
-using ConstExpr.SourceGenerator.Extensions;
+﻿using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -11,7 +10,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers;
 
 public class AtanPiFunctionOptimizer() : BaseFunctionOptimizer("AtanPi", 1)
 {
-	public override bool TryOptimize(IMethodSymbol method, InvocationExpressionSyntax invocation, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		result = null;
 
@@ -47,9 +46,7 @@ public class AtanPiFunctionOptimizer() : BaseFunctionOptimizer("AtanPi", 1)
 			}
 		}
 
-		// When FastMath is enabled, add a fast atanpi approximation method
-		if (floatingPointMode == FloatingPointEvaluationMode.FastMath
-			&& paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
+		if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
 		{
 			var methodString = paramType.SpecialType == SpecialType.System_Single
 				? GenerateFastAtanPiMethodFloat()

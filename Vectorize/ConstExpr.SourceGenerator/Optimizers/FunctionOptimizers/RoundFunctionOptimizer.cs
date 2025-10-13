@@ -1,4 +1,3 @@
-using ConstExpr.Core.Attributes;
 using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -10,7 +9,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers;
 
 public class RoundFunctionOptimizer() : BaseFunctionOptimizer("Round", 1, 2, 3)
 {
-	public override bool TryOptimize(IMethodSymbol method, InvocationExpressionSyntax invocation, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		result = null;
 
@@ -34,7 +33,7 @@ public class RoundFunctionOptimizer() : BaseFunctionOptimizer("Round", 1, 2, 3)
 		}
 
 		// 3) Unary minus: Round(-x) -> -Round(x)
-		if (parameters[0] is PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken } prefix)
+		if (parameters[0] is PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken } prefix)
 		{
 			// Keep sign and round the operand
 			var roundCall = CreateInvocation(paramType, "Round", prefix.Operand);
@@ -45,22 +44,21 @@ public class RoundFunctionOptimizer() : BaseFunctionOptimizer("Round", 1, 2, 3)
 
 		// 4) check if parent of invocation is casting to integer type
 		if (invocation.Parent is CastExpressionSyntax
-		    {
-			    Type: PredefinedTypeSyntax
-			    {
-				    Keyword.RawKind: (int) SyntaxKind.IntKeyword
-				    or (int) SyntaxKind.UIntKeyword
-				    or (int) SyntaxKind.LongKeyword
-				    or (int) SyntaxKind.ULongKeyword
-				    or (int) SyntaxKind.ShortKeyword
-				    or (int) SyntaxKind.UShortKeyword
-				    or (int) SyntaxKind.ByteKeyword
-				    or (int) SyntaxKind.SByteKeyword
-				    or (int) SyntaxKind.CharKeyword
-			    }
-		    }
-		    && floatingPointMode == FloatingPointEvaluationMode.FastMath
-		    && parameters.Count == 2)
+			{
+				Type: PredefinedTypeSyntax
+				{
+					Keyword.RawKind: (int)SyntaxKind.IntKeyword
+						or (int)SyntaxKind.UIntKeyword
+						or (int)SyntaxKind.LongKeyword
+						or (int)SyntaxKind.ULongKeyword
+						or (int)SyntaxKind.ShortKeyword
+						or (int)SyntaxKind.UShortKeyword
+						or (int)SyntaxKind.ByteKeyword
+						or (int)SyntaxKind.SByteKeyword
+						or (int)SyntaxKind.CharKeyword
+				}
+			}
+				&& parameters.Count == 2)
 		{
 			// Check that the second argument is a compile-time MidpointRounding enum member
 			string? enumMember = null;
@@ -68,14 +66,14 @@ public class RoundFunctionOptimizer() : BaseFunctionOptimizer("Round", 1, 2, 3)
 			switch (parameters[1])
 			{
 				case MemberAccessExpressionSyntax mae:
-				{
-					// e.g. MidpointRounding.AwayFromZero or System.MidpointRounding.AwayFromZero
-					if (mae.Name is IdentifierNameSyntax idName)
 					{
-						enumMember = idName.Identifier.Text;
+						// e.g. MidpointRounding.AwayFromZero or System.MidpointRounding.AwayFromZero
+						if (mae.Name is IdentifierNameSyntax idName)
+						{
+							enumMember = idName.Identifier.Text;
+						}
+						break;
 					}
-					break;
-				}
 				case IdentifierNameSyntax id:
 					// e.g. AwayFromZero when using a using static or same-namespace alias
 					enumMember = id.Identifier.Text;
@@ -89,7 +87,7 @@ public class RoundFunctionOptimizer() : BaseFunctionOptimizer("Round", 1, 2, 3)
 			switch (enumMember)
 			{
 				case "ToZero":
-					result = CreateInvocation(paramType,"Truncate", parameters.Take(1));
+					result = CreateInvocation(paramType, "Truncate", parameters.Take(1));
 					return true;
 				case "ToPositiveInfinity":
 					result = CreateInvocation(paramType, "Ceiling", parameters.Take(1));

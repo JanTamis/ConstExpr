@@ -1,4 +1,3 @@
-using ConstExpr.Core.Attributes;
 using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -9,7 +8,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers;
 
 public class TruncateFunctionOptimizer() : BaseFunctionOptimizer("Truncate", 1)
 {
-	public override bool TryOptimize(IMethodSymbol method, InvocationExpressionSyntax invocation, FloatingPointEvaluationMode floatingPointMode, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		result = null;
 
@@ -36,7 +35,7 @@ public class TruncateFunctionOptimizer() : BaseFunctionOptimizer("Truncate", 1)
 		if (parameters[0] is PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken } prefix)
 		{
 			var truncateCall = CreateInvocation(paramType, "Truncate", prefix.Operand);
-			
+
 			result = SyntaxFactory.PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression, SyntaxFactory.ParenthesizedExpression(truncateCall));
 			return true;
 		}
@@ -62,9 +61,7 @@ public class TruncateFunctionOptimizer() : BaseFunctionOptimizer("Truncate", 1)
 			return true;
 		}
 
-		// When FastMath is enabled, add a fast truncate implementation
-		if (floatingPointMode == FloatingPointEvaluationMode.FastMath
-			&& paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
+		if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
 		{
 			var methodString = paramType.SpecialType == SpecialType.System_Single
 				? GenerateFastTruncateMethodFloat()
