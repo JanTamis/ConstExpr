@@ -29,30 +29,17 @@ public class BinaryGreaterThanOrEqualOptimizer : BaseBinaryOptimizer
 		if (Type.IsInteger())
 		{
 			// x >= 0 = true (when x is unsigned)
-			if (Type.IsUnsignedInteger() && hasRightValue && rightValue.IsNumericZero())
+			if (Type.IsUnsignedInteger() && rightValue.IsNumericZero())
 			{
 				result = SyntaxHelpers.CreateLiteral(true);
 				return true;
 			}
 
 			// 0 >= x = false (when x is positive and non-zero and unsigned)
-			if (hasLeftValue && leftValue.IsNumericZero() && hasRightValue && !rightValue.IsNumericZero())
+			if (leftValue.IsNumericZero() && hasRightValue && !rightValue.IsNumericZero() 
+			    && (Type.IsUnsignedInteger() || ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.GreaterThan, rightValue, 0.ToSpecialType(Type.SpecialType)) is true))
 			{
-				if (Type.IsUnsignedInteger() || ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.GreaterThan, rightValue, 0.ToSpecialType(Type.SpecialType)) is true)
-				{
-					result = SyntaxHelpers.CreateLiteral(false);
-					return true;
-				}
-			}
-		}
-
-		// Both sides are constant, evaluate
-		if (hasLeftValue && hasRightValue)
-		{
-			var evalResult = ObjectExtensions.ExecuteBinaryOperation(Kind, leftValue, rightValue);
-			if (evalResult != null)
-			{
-				result = SyntaxHelpers.CreateLiteral(evalResult);
+				result = SyntaxHelpers.CreateLiteral(false);
 				return true;
 			}
 		}

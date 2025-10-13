@@ -25,21 +25,21 @@ public class BinaryAndOptimizer : BaseBinaryOptimizer
 		if (Type.IsInteger() || Type.IsBoolType())
 		{
 			// x & 0 = 0
-			if (hasRightValue && rightValue.IsNumericZero())
+			if (rightValue.IsNumericZero())
 			{
 				result = SyntaxHelpers.CreateLiteral(0.ToSpecialType(Type.SpecialType));
 				return true;
 			}
 
 			// 0 & x = 0
-			if (hasLeftValue && leftValue.IsNumericZero())
+			if (leftValue.IsNumericZero())
 			{
 				result = SyntaxHelpers.CreateLiteral(0.ToSpecialType(Type.SpecialType));
 				return true;
 			}
 
 			// x & x = x (for pure expressions)
-			if (Left.IsEquivalentTo(Right) && IsPure(Left))
+			if (LeftEqualsRight(variables) && IsPure(Left))
 			{
 				result = Left;
 				return true;
@@ -129,17 +129,6 @@ public class BinaryAndOptimizer : BaseBinaryOptimizer
 					result = Right;
 					return true;
 				}
-			}
-		}
-
-		// Both sides are constant, evaluate
-		if (hasLeftValue && hasRightValue)
-		{
-			var evalResult = ObjectExtensions.ExecuteBinaryOperation(Kind, leftValue, rightValue);
-			if (evalResult != null)
-			{
-				result = SyntaxHelpers.CreateLiteral(evalResult);
-				return true;
 			}
 		}
 

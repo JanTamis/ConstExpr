@@ -388,7 +388,7 @@ public static class ObjectExtensions
 
 		static int Log2(ulong x)
 		{
-			int p = 0;
+			var p = 0;
 			while (x > 1)
 			{
 				x >>= 1;

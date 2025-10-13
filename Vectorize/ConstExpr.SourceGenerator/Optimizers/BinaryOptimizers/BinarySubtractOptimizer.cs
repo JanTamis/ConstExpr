@@ -25,26 +25,25 @@ public class BinarySubtractOptimizer : BaseBinaryOptimizer
 			return false;
 		}
 		
-		var hasLeftValue = Left.TryGetLiteralValue(loader, variables, out var leftValue);
-		var hasRightValue = Right.TryGetLiteralValue(loader, variables, out var rightValue);
+		Left.TryGetLiteralValue(loader, variables, out var leftValue);
+		Right.TryGetLiteralValue(loader, variables, out var rightValue);
 
 		// x - 0 = x
-		if (hasRightValue && rightValue.IsNumericZero())
+		if (rightValue.IsNumericZero())
 		{
 			result = Left;
 			return true;
 		}
 
 		// 0 - x = -x
-		if (hasLeftValue && leftValue.IsNumericZero())
+		if (leftValue.IsNumericZero())
 		{
 			result = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression, Right);
 			return true;
 		}
 
 		// x - x = 0 (pure)
-		if (Left.IsEquivalentTo(Right) && IsPure(Left) && IsPure(Right)
-		    && (Type.IsInteger() || FloatingPointMode == FloatingPointEvaluationMode.FastMath))
+		if (LeftEqualsRight(variables) && IsPure(Left) && IsPure(Right))
 		{
 			result = SyntaxHelpers.CreateLiteral(0.ToSpecialType(Type.SpecialType));
 			return true;
@@ -60,8 +59,7 @@ public class BinarySubtractOptimizer : BaseBinaryOptimizer
 
 		// Fused Multiply-Add pattern: (a * b) - c => FMA(a,b,-c)
 		// Only in FastMath and for float/double (semantic change due to single rounding)
-		if (FloatingPointMode == FloatingPointEvaluationMode.FastMath
-		    && Type.HasMember<IMethodSymbol>("FusedMultiplyAdd", m => m.Parameters.Length == 3 && m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, Type))))
+		if (Type.HasMember<IMethodSymbol>("FusedMultiplyAdd", m => m.Parameters.Length == 3 && m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, Type))))
 		{
 			var host = ParseName(Type.Name);
 			var fmaIdentifier = MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, host, IdentifierName("FusedMultiplyAdd"));

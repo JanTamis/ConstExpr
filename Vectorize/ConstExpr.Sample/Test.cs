@@ -121,24 +121,6 @@ public static class Test
 		return Enum.GetNames<T>();
 	}
 
-	public static ICustomCollection<int> Fibonacci(int count)
-	{
-		var items = new List<int>(count);
-
-		int a = 0, b = 1;
-
-		for (var i = 0; i < count; i++)
-		{
-			items.Add(a);
-
-			var temp = a;
-			a = b;
-			b = temp + b;
-		}
-
-		return items as ICustomCollection<int>;
-	}
-
 	public static IEnumerable<long> FibonacciSequence(int count)
 	{
 		ArgumentOutOfRangeException.ThrowIfNegative(count);

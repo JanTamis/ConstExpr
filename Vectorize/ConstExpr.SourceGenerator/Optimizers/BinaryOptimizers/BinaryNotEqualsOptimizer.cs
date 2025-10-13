@@ -28,14 +28,15 @@ public class BinaryNotEqualsOptimizer : BaseBinaryOptimizer
 		var hasRightValue = Right.TryGetLiteralValue(loader, variables, out var rightValue);
 
 		// x != x = false (for pure expressions)
-		if (Left.IsEquivalentTo(Right) && IsPure(Left))
+		if (LeftEqualsRight(variables) && IsPure(Left))
 		{
 			result = SyntaxHelpers.CreateLiteral(false);
 			return true;
 		}
 
 		// For boolean types: x != true => !x, x != false => x
-		if (LeftType?.IsBoolType() == true && RightType?.IsBoolType() == true)
+		if (LeftType?.IsBoolType() == true 
+		    && RightType?.IsBoolType() == true)
 		{
 			if (hasRightValue && rightValue is bool rbn)
 			{
@@ -132,17 +133,6 @@ public class BinaryNotEqualsOptimizer : BaseBinaryOptimizer
 						SingletonSeparatedList(
 							Argument(andExpr2.Left))));
 			return true;
-		}
-
-		// Both sides are constant, evaluate
-		if (hasLeftValue && hasRightValue)
-		{
-			var evalResult = ObjectExtensions.ExecuteBinaryOperation(Kind, leftValue, rightValue);
-			if (evalResult != null)
-			{
-				result = SyntaxHelpers.CreateLiteral(evalResult);
-				return true;
-			}
 		}
 
 		return false;
