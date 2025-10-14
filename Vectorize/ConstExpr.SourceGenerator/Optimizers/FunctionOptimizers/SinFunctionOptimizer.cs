@@ -43,22 +43,21 @@ public class SinFunctionOptimizer() : BaseFunctionOptimizer("Sin", 1)
 				// Store original sign for CopySign
 				var originalX = x;
 				
-				// Range reduction: bring x to [-π, π]
-				x -= Single.Floor(x / Single.Tau) * Single.Tau;
-				if (x > Single.Pi) x -= Single.Tau;
-				if (x < -Single.Pi) x += Single.Tau;
+				// Range reduction: bring x to [-?, ?]
+				// Simplified range reduction using Round instead of Floor
+				x -= Single.Round(x * (1.0f / Single.Tau)) * Single.Tau;
 				
 				// Use absolute value
 				x = Single.Abs(x);
 				
-				// Use symmetry: sin(x) for x > π/2 is sin(π - x)
+				// Use symmetry: sin(x) for x > ?/2 is sin(? - x)
 				if (x > Single.Pi / 2f)
 				{
 					x = Single.Pi - x;
 				}
 				
 				// Taylor series approximation with optimized coefficients
-				// sin(x) ≈ x - x³/3! + x⁵/5! - x⁷/7! + x⁹/9!
+				// sin(x) ? x - x�/3! + x?/5! - x?/7! + x?/9!
 				var x2 = x * x;
 				var ret = 2.6019406621361745e-6f;
 				ret = Single.FusedMultiplyAdd(ret, x2, -0.00019839531932f);
@@ -84,15 +83,13 @@ public class SinFunctionOptimizer() : BaseFunctionOptimizer("Sin", 1)
 				// Store original sign for CopySign
 				var originalX = x;
 				
-				// Range reduction: bring x to [-π, π]
-				x -= Double.Floor(x / Double.Tau) * Double.Tau;
-				if (x > Double.Pi) x -= Double.Tau;
-				if (x < -Double.Pi) x += Double.Tau;
+				// Simplified range reduction using Round instead of Floor
+				x -= Double.Round(x * (1.0 / Double.Tau)) * Double.Tau;
 				
 				// Use absolute value
 				x = Double.Abs(x);
 				
-				// Use symmetry: sin(x) for x > π/2 is sin(π - x)
+				// Use symmetry: sin(x) for x > ?/2 is sin(? - x)
 				if (x > Double.Pi / 2.0)
 				{
 					x = Double.Pi - x;
