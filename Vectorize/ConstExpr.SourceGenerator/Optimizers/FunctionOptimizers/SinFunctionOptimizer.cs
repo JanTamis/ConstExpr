@@ -57,7 +57,7 @@ public class SinFunctionOptimizer() : BaseFunctionOptimizer("Sin", 1)
 				}
 				
 				// Taylor series approximation with optimized coefficients
-				// sin(x) ? x - x³/3! + x?/5! - x?/7! + x?/9!
+				// sin(x) ? x - xï¿½/3! + x?/5! - x?/7! + x?/9!
 				var x2 = x * x;
 				var ret = 2.6019406621361745e-6f;
 				ret = Single.FusedMultiplyAdd(ret, x2, -0.00019839531932f);

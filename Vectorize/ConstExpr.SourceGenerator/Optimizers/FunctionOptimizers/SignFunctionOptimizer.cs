@@ -45,7 +45,7 @@ public class SignFunctionOptimizer() : BaseFunctionOptimizer("Sign", 1)
 				if (x == 0.0f)
 					return 0;
 
-				return (int)Single.CopySign(1.0f, x);
+				return Single.CopySign(1, BitConvertere.SingleToInt32Bits(x));
 			}
 			""";
 	}
