@@ -5,7 +5,7 @@ using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 
-namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;
+namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;
 
 public class BinaryLessThanOrEqualOptimizer : BaseBinaryOptimizer
 {

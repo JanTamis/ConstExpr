@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using ConstExpr.Core.Attributes;
 using ConstExpr.SourceGenerator.Helpers;
-using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;
 using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -66,7 +65,7 @@ public abstract class BaseBinaryOptimizer
 
 	protected bool LeftEqualsRight(IDictionary<string, VariableItem> variables)
 	{
-		return LeftEqualsRight(variables) ||
+		return Left.IsEquivalentTo(Right) ||
 		       (Left is IdentifierNameSyntax leftIdentifier
 		        && Right is IdentifierNameSyntax rightIdentifier
 		        && variables.TryGetValue(leftIdentifier.Identifier.Text, out var leftVar)

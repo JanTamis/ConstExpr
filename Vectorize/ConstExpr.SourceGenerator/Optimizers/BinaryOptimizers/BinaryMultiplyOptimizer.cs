@@ -28,7 +28,7 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 		Right.TryGetLiteralValue(loader, variables, out var rightValue);
 
 		// x * 0 = 0
-		if (IsPure(Left) && rightValue.IsNumericZero() )
+		if (IsPure(Left) && rightValue.IsNumericZero())
 		{
 			result = SyntaxHelpers.CreateLiteral(0.ToSpecialType(Type.SpecialType));
 			return true;

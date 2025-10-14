@@ -40,25 +40,21 @@ public class SinFunctionOptimizer() : BaseFunctionOptimizer("Sin", 1)
 				// Fast sine approximation using optimized minimax polynomial
 				// Uses range reduction and symmetry properties of sine
 				
-				const float TwoPi = 6.28318530717958647692f;
-				const float Pi = 3.14159265358979323846f;
-				const float HalfPi = 1.57079632679489661923f;
-				
 				// Store original sign for CopySign
 				var originalX = x;
 				
 				// Range reduction: bring x to [-π, π]
-				x = x - Single.Floor(x / TwoPi) * TwoPi;
-				if (x > Pi) x -= TwoPi;
-				if (x < -Pi) x += TwoPi;
+				x -= Single.Floor(x / Single.Tau) * Single.Tau;
+				if (x > Single.Pi) x -= Single.Tau;
+				if (x < -Single.Pi) x += Single.Tau;
 				
 				// Use absolute value
 				x = Single.Abs(x);
 				
 				// Use symmetry: sin(x) for x > π/2 is sin(π - x)
-				if (x > HalfPi)
+				if (x > Single.Pi / 2f)
 				{
-					x = Pi - x;
+					x = Single.Pi - x;
 				}
 				
 				// Taylor series approximation with optimized coefficients
@@ -71,7 +67,7 @@ public class SinFunctionOptimizer() : BaseFunctionOptimizer("Sin", 1)
 				ret = Single.FusedMultiplyAdd(ret, x2, 1.0f);
 				ret *= x;
 				
-				// Apply original sign using CopySign (faster than manual sign handling)
+				// Apply original sign using CopySign
 				return Single.CopySign(ret, originalX);
 			}
 			""";
@@ -85,25 +81,21 @@ public class SinFunctionOptimizer() : BaseFunctionOptimizer("Sin", 1)
 				// Fast sine approximation for double precision
 				// Uses range reduction and symmetry properties of sine
 				
-				const double TwoPi = 6.283185307179586476925286766559;
-				const double Pi = 3.1415926535897932384626433832795;
-				const double HalfPi = 1.5707963267948966192313216916398;
-				
 				// Store original sign for CopySign
 				var originalX = x;
 				
 				// Range reduction: bring x to [-π, π]
-				x = x - Double.Floor(x / TwoPi) * TwoPi;
-				if (x > Pi) x -= TwoPi;
-				if (x < -Pi) x += TwoPi;
+				x -= Double.Floor(x / Double.Tau) * Double.Tau;
+				if (x > Double.Pi) x -= Double.Tau;
+				if (x < -Double.Pi) x += Double.Tau;
 				
 				// Use absolute value
 				x = Double.Abs(x);
 				
 				// Use symmetry: sin(x) for x > π/2 is sin(π - x)
-				if (x > HalfPi)
+				if (x > Double.Pi / 2.0)
 				{
-					x = Pi - x;
+					x = Double.Pi - x;
 				}
 				
 				// Taylor series approximation with optimized coefficients
@@ -118,7 +110,7 @@ public class SinFunctionOptimizer() : BaseFunctionOptimizer("Sin", 1)
 				ret = Double.FusedMultiplyAdd(ret, x2, 1.0);
 				ret *= x;
 				
-				// Apply original sign using CopySign (faster than manual sign handling)
+				// Apply original sign using CopySign
 				return Double.CopySign(ret, originalX);
 			}
 			""";

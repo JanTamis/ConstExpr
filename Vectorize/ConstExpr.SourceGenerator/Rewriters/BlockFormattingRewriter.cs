@@ -13,9 +13,16 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 	{
 		if (SyntaxHelpers.TryGetLiteral(node.Token.Value, out var expression))
 		{
-			return expression
-				.WithLeadingTrivia(node.GetLeadingTrivia())
-				.WithTrailingTrivia(node.GetTrailingTrivia());
+			return (node.Token.Value switch
+			{
+				Math.PI => SyntaxFactory.ParseExpression("Double.Pi"),
+				Math.PI * 2 => SyntaxFactory.ParseExpression("Double.Tau"),
+				Math.E => SyntaxFactory.ParseExpression("Double.E"),
+				MathF.PI => SyntaxFactory.ParseExpression("Single.Pi"),
+				MathF.PI * 2 => SyntaxFactory.ParseExpression("Single.Tau"),
+				MathF.E => SyntaxFactory.ParseExpression("Single.E"),
+				_ => expression,
+			}).WithLeadingTrivia(node.GetLeadingTrivia()).WithTrailingTrivia(node.GetTrailingTrivia());
 		}
 
 		return node;
@@ -378,6 +385,16 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		v = v.ReplaceTokens(tokens, (orig, _) => map.TryGetValue(orig, out var rep) ? rep : orig);
 
 		return v;
+	}
+
+	public override SyntaxNode? VisitIfStatement(IfStatementSyntax node)
+	{
+		if (node.Statement is BlockSyntax { Statements.Count: 1 } block)
+		{
+			return node.WithStatement(Visit(block.Statements[0]) as StatementSyntax ?? block.Statements[0]);
+		}
+		
+		return base.VisitIfStatement(node);
 	}
 
 	private static void SurroundContiguousGroup(List<StatementSyntax> visited, ref int i, Func<StatementSyntax, bool> isInGroup)

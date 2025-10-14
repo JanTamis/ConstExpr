@@ -404,4 +404,145 @@ public static class Test
 	{
 		return $"Name: {name}, Age: {age}, Height: {height:N3} cm";
 	}
+
+	// Complex mathematical function with multiple parameters
+	public static double PolynomialEvaluate(double x, double a, double b, double c, double d)
+	{
+		return a * x * x * x + b * x * x + c * x + d;
+	}
+
+	// String manipulation with multiple parameters
+	public static string FormatFullName(string firstName, string middleName, string lastName, bool includeMiddle)
+	{
+		if (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName))
+		{
+			throw new ArgumentException("First and last name are required");
+		}
+
+		if (includeMiddle && !string.IsNullOrWhiteSpace(middleName))
+		{
+			return $"{firstName} {middleName} {lastName}";
+		}
+
+		return $"{firstName} {lastName}";
+	}
+
+	// Geometric calculation with multiple parameters
+	public static double TriangleArea(double sideA, double sideB, double angleC)
+	{
+		if (sideA <= 0 || sideB <= 0)
+		{
+			throw new ArgumentException("Sides must be positive");
+		}
+
+		var angleRad = angleC * Math.PI / 180.0;
+		return 0.5 * sideA * sideB * Math.Sin(angleRad);
+	}
+
+	// Statistical function with multiple parameters
+	public static double WeightedAverage(double value1, double weight1, double value2, double weight2, double value3, double weight3)
+	{
+		var totalWeight = weight1 + weight2 + weight3;
+
+		if (Math.Abs(totalWeight) < double.Epsilon)
+		{
+			throw new ArgumentException("Total weight cannot be zero");
+		}
+
+		return (value1 * weight1 + value2 * weight2 + value3 * weight3) / totalWeight;
+	}
+
+	// Date calculation with multiple parameters
+	public static int DaysBetweenDates(int year1, int month1, int day1, int year2, int month2, int day2)
+	{
+		var date1 = new DateTime(year1, month1, day1);
+		var date2 = new DateTime(year2, month2, day2);
+		return Math.Abs((date2 - date1).Days);
+	}
+
+	// Complex conditional logic with multiple parameters
+	public static string DetermineGrade(double score, double maxScore, bool useCurve, double curveBonus)
+	{
+		if (maxScore <= 0)
+		{
+			throw new ArgumentException("Max score must be positive");
+		}
+
+		var percentage = (score / maxScore) * 100.0;
+
+		if (useCurve)
+		{
+			percentage += curveBonus;
+		}
+
+		percentage = Math.Min(percentage, 100.0);
+
+		return percentage switch
+		{
+			>= 90.0 => "A",
+			>= 80.0 => "B",
+			>= 70.0 => "C",
+			>= 60.0 => "D",
+			_ => "F"
+		};
+	}
+
+	// Physics calculation with multiple parameters
+	public static double ProjectileMaxHeight(double initialVelocity, double launchAngle, double gravity)
+	{
+		if (gravity <= 0)
+		{
+			throw new ArgumentException("Gravity must be positive");
+		}
+
+		var angleRad = launchAngle * Math.PI / 180.0;
+		var verticalVelocity = initialVelocity * Math.Sin(angleRad);
+		return (verticalVelocity * verticalVelocity) / (2 * gravity);
+	}
+
+	// Financial calculation with multiple parameters
+	public static double CompoundInterest(double principal, double rate, int timesCompounded, double years)
+	{
+		if (principal < 0 || rate < 0 || timesCompounded <= 0 || years < 0)
+		{
+			throw new ArgumentException("Invalid input parameters");
+		}
+
+		return principal * Math.Pow(1.0 + rate / timesCompounded, timesCompounded * years);
+	}
+
+	// Text processing with multiple parameters
+	public static string GenerateSlug(string text, int maxLength, char separator, bool toLowerCase)
+	{
+		if (string.IsNullOrWhiteSpace(text))
+		{
+			return string.Empty;
+		}
+
+		var result = text.Trim();
+
+		if (toLowerCase)
+		{
+			result = result.ToLowerInvariant();
+		}
+
+		result = result.Replace(' ', separator);
+		result = new string(result.Where(c => char.IsLetterOrDigit(c) || c == separator).ToArray());
+
+		if (result.Length > maxLength && maxLength > 0)
+		{
+			result = result.Substring(0, maxLength);
+		}
+
+		return result;
+	}
+
+	// Array manipulation with multiple parameters
+	public static int[] FilterAndTransform(int[] array, int minValue, int maxValue, int multiplier)
+	{
+		return array
+			.Where(x => x >= minValue && x <= maxValue)
+			.Select(x => x * multiplier)
+			.ToArray();
+	}
 }
