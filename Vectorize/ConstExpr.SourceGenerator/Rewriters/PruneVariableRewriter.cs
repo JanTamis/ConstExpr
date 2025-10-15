@@ -137,11 +137,16 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 
 	public override SyntaxNode? VisitAssignmentExpression(AssignmentExpressionSyntax node)
 	{
+		if (node.Left.IsEquivalentTo(node.Right))
+		{
+			return null;
+		}
+
 		// Handle Tuple deconstruction assignments: (a, b) = (1, 2)
 		if (node.Left is TupleExpressionSyntax leftTuple && node.OperatorToken.IsKind(SyntaxKind.EqualsToken))
 		{
 			var allElementsHaveValue = true;
-			
+
 			// Check if all tuple elements have constant values
 			foreach (var arg in leftTuple.Arguments)
 			{
@@ -159,17 +164,17 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 					break;
 				}
 			}
-			
+
 			// If all tuple elements have constant values, the assignment can be pruned
 			if (allElementsHaveValue)
 			{
 				return null;
 			}
-			
+
 			// Otherwise keep the assignment
 			return node;
 		}
-		
+
 		var identifier = node.Left.ToString();
 
 		if (variables.TryGetValue(identifier, out var value) && value.HasValue)
@@ -178,6 +183,23 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 		}
 
 		return node;
+	}
+
+	public override SyntaxNode? VisitIfStatement(IfStatementSyntax node)
+	{
+		var body = Visit(node.Statement);
+
+		if (body is null or BlockSyntax { Statements.Count: 0 })
+		{
+			if (node.Else is null)
+			{
+				return null;
+			}
+
+
+		}
+
+		return base.VisitIfStatement(node);
 	}
 
 	public override SyntaxNode? VisitExpressionStatement(ExpressionStatementSyntax node)

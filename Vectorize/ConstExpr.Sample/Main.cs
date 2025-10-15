@@ -1,7 +1,5 @@
 using ConstExpr.SourceGenerator.Sample;
 using System;
-using System.Numerics;
-using System.Runtime.CompilerServices;
 using System.Text;
 
 // var range = Test.Range(10);

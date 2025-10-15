@@ -126,6 +126,117 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 				ParenthesizedExpression(BinaryExpression(SyntaxKind.MultiplyExpression, Left, rightNeg2.Operand)));
 			return true;
 		}
+
+		// (x * C1) * C2 => x * (C1 * C2) - combine constants
+		if (Left is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.MultiplyExpression } leftMul
+		    && rightValue != null)
+		{
+			var hasLeftLeft = leftMul.Left.TryGetLiteralValue(loader, variables, out var leftLeftValue);
+			var hasLeftRight = leftMul.Right.TryGetLiteralValue(loader, variables, out var leftRightValue);
+
+			if (hasLeftRight && leftRightValue != null)
+			{
+				// (x * C1) * C2 => x * (C1 * C2)
+				var combined = leftRightValue.Multiply(rightValue);
+				if (combined != null)
+				{
+					result = BinaryExpression(SyntaxKind.MultiplyExpression, leftMul.Left,
+						SyntaxHelpers.CreateLiteral(combined));
+					return true;
+				}
+			}
+			else if (hasLeftLeft && leftLeftValue != null)
+			{
+				// (C1 * x) * C2 => x * (C1 * C2)
+				var combined = leftLeftValue.Multiply(rightValue);
+				if (combined != null)
+				{
+					result = BinaryExpression(SyntaxKind.MultiplyExpression, leftMul.Right,
+						SyntaxHelpers.CreateLiteral(combined));
+					return true;
+				}
+			}
+		}
+
+		// C1 * (x * C2) => x * (C1 * C2) - combine constants
+		if (Right is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.MultiplyExpression } rightMul
+		    && leftValue != null)
+		{
+			var hasRightLeft = rightMul.Left.TryGetLiteralValue(loader, variables, out var rightLeftValue);
+			var hasRightRight = rightMul.Right.TryGetLiteralValue(loader, variables, out var rightRightValue);
+
+			if (hasRightRight && rightRightValue != null)
+			{
+				// C1 * (x * C2) => x * (C1 * C2)
+				var combined = leftValue.Multiply(rightRightValue);
+				if (combined != null)
+				{
+					result = BinaryExpression(SyntaxKind.MultiplyExpression, rightMul.Left,
+						SyntaxHelpers.CreateLiteral(combined));
+					return true;
+				}
+			}
+			else if (hasRightLeft && rightLeftValue != null)
+			{
+				// C1 * (C2 * x) => x * (C1 * C2)
+				var combined = leftValue.Multiply(rightLeftValue);
+				if (combined != null)
+				{
+					result = BinaryExpression(SyntaxKind.MultiplyExpression, rightMul.Right,
+						SyntaxHelpers.CreateLiteral(combined));
+					return true;
+				}
+			}
+		}
+
+		// (x * C1) * (y * C2) => (x * y) * (C1 * C2) - combine constants from both sides
+		if (Left is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.MultiplyExpression } leftMul2
+		    && Right is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.MultiplyExpression } rightMul2)
+		{
+			var hasLeftLeft = leftMul2.Left.TryGetLiteralValue(loader, variables, out var leftLeftValue2);
+			var hasLeftRight = leftMul2.Right.TryGetLiteralValue(loader, variables, out var leftRightValue2);
+			var hasRightLeft = rightMul2.Left.TryGetLiteralValue(loader, variables, out var rightLeftValue2);
+			var hasRightRight = rightMul2.Right.TryGetLiteralValue(loader, variables, out var rightRightValue2);
+
+			ExpressionSyntax? leftNonConstant = null;
+			object? leftConstant = null;
+			ExpressionSyntax? rightNonConstant = null;
+			object? rightConstant = null;
+
+			if (hasLeftRight && leftRightValue2 != null)
+			{
+				leftNonConstant = leftMul2.Left;
+				leftConstant = leftRightValue2;
+			}
+			else if (hasLeftLeft && leftLeftValue2 != null)
+			{
+				leftNonConstant = leftMul2.Right;
+				leftConstant = leftLeftValue2;
+			}
+
+			if (hasRightRight && rightRightValue2 != null)
+			{
+				rightNonConstant = rightMul2.Left;
+				rightConstant = rightRightValue2;
+			}
+			else if (hasRightLeft && rightLeftValue2 != null)
+			{
+				rightNonConstant = rightMul2.Right;
+				rightConstant = rightLeftValue2;
+			}
+
+			if (leftConstant != null && rightConstant != null && leftNonConstant != null && rightNonConstant != null)
+			{
+				var combined = leftConstant.Multiply(rightConstant);
+				if (combined != null)
+				{
+					result = BinaryExpression(SyntaxKind.MultiplyExpression,
+						BinaryExpression(SyntaxKind.MultiplyExpression, leftNonConstant, rightNonConstant),
+						SyntaxHelpers.CreateLiteral(combined));
+					return true;
+				}
+			}
+		}
 		
 		return false;
 	}

@@ -227,7 +227,9 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 						&& operation.Type is not null
 						&& attribute.FloatingPointMode == FloatingPointEvaluationMode.FastMath
 						&& TryOptimizeNode(operation.OperatorKind, operation.Type, leftExpr, operation.LeftOperand.Type, rightExpr, operation.RightOperand.Type, out var syntaxNode))
+				{
 					return syntaxNode;
+				}
 
 				var result = node
 					.WithLeft(leftExpr)
@@ -1569,7 +1571,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 		return Block(items);
 	}
 
-	private bool TryOptimizeNode(BinaryOperatorKind kind, ITypeSymbol type, ExpressionSyntax leftExpr, ITypeSymbol leftType, ExpressionSyntax rightExpr, ITypeSymbol rightType, out SyntaxNode? syntaxNode)
+	private bool TryOptimizeNode(BinaryOperatorKind kind, ITypeSymbol type, ExpressionSyntax leftExpr, ITypeSymbol? leftType, ExpressionSyntax rightExpr, ITypeSymbol? rightType, out SyntaxNode? syntaxNode)
 	{
 		// Select optimizer based on operator kind
 		var optimizer = BaseBinaryOptimizer.Create(kind, type, leftExpr, leftType, rightExpr, rightType, attribute.FloatingPointMode);
@@ -1579,6 +1581,19 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 			if (optimizer.Kind == kind
 					&& optimizer.TryOptimize(loader, variables, out var optimized))
 			{
+				// If the optimized result is a binary expression, try to optimize it recursively
+				if (optimized is BinaryExpressionSyntax optimizedBinary)
+				{
+					var optimizedKind = SyntaxKindToBinaryOperatorKind(optimizedBinary.Kind());
+
+					if (optimizedKind.HasValue
+						&& TryOptimizeNode(optimizedKind.Value, type, (ExpressionSyntax)Visit(optimizedBinary.Left), leftType, (ExpressionSyntax)Visit(optimizedBinary.Right), rightType, out var furtherOptimized))
+					{
+						syntaxNode = furtherOptimized;
+						return true;
+					}
+				}
+
 				syntaxNode = optimized;
 				return true;
 			}
@@ -1586,5 +1601,32 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 
 		syntaxNode = null;
 		return false;
+	}
+
+	private static BinaryOperatorKind? SyntaxKindToBinaryOperatorKind(SyntaxKind kind)
+	{
+		return kind switch
+		{
+			SyntaxKind.AddExpression => BinaryOperatorKind.Add,
+			SyntaxKind.SubtractExpression => BinaryOperatorKind.Subtract,
+			SyntaxKind.MultiplyExpression => BinaryOperatorKind.Multiply,
+			SyntaxKind.DivideExpression => BinaryOperatorKind.Divide,
+			SyntaxKind.ModuloExpression => BinaryOperatorKind.Remainder,
+			SyntaxKind.LeftShiftExpression => BinaryOperatorKind.LeftShift,
+			SyntaxKind.RightShiftExpression => BinaryOperatorKind.RightShift,
+			SyntaxKind.UnsignedRightShiftExpression => BinaryOperatorKind.UnsignedRightShift,
+			SyntaxKind.BitwiseAndExpression => BinaryOperatorKind.And,
+			SyntaxKind.BitwiseOrExpression => BinaryOperatorKind.Or,
+			SyntaxKind.ExclusiveOrExpression => BinaryOperatorKind.ExclusiveOr,
+			SyntaxKind.LogicalAndExpression => BinaryOperatorKind.ConditionalAnd,
+			SyntaxKind.LogicalOrExpression => BinaryOperatorKind.ConditionalOr,
+			SyntaxKind.EqualsExpression => BinaryOperatorKind.Equals,
+			SyntaxKind.NotEqualsExpression => BinaryOperatorKind.NotEquals,
+			SyntaxKind.LessThanExpression => BinaryOperatorKind.LessThan,
+			SyntaxKind.LessThanOrEqualExpression => BinaryOperatorKind.LessThanOrEqual,
+			SyntaxKind.GreaterThanExpression => BinaryOperatorKind.GreaterThan,
+			SyntaxKind.GreaterThanOrEqualExpression => BinaryOperatorKind.GreaterThanOrEqual,
+			_ => null
+		};
 	}
 }
