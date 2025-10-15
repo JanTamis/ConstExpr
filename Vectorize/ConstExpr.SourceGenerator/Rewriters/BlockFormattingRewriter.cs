@@ -21,6 +21,38 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		return node;
 	}
 
+	public override SyntaxNode? VisitIfStatement(IfStatementSyntax node)
+	{
+		// Visit child nodes first
+		var visitedNode = base.VisitIfStatement(node);
+
+		if (visitedNode is not IfStatementSyntax visited)
+		{
+			return visitedNode;
+		}
+
+		// Process the if-statement body
+		if (visited.Statement is BlockSyntax { Statements.Count: 1 } ifBlock)
+		{
+			visited = visited.WithStatement(ifBlock.Statements[0]);
+		}
+
+		// Handle the else clause (including else-if)
+		if (visited.Else is not null)
+		{
+			var elseClause = visited.Else;
+
+			// If the else statement is a block with a single statement (and not a nested if)
+			if (elseClause.Statement is BlockSyntax { Statements.Count: 1 } elseBlock &&
+				elseBlock.Statements[0] is not IfStatementSyntax)
+			{
+				visited = visited.WithElse(elseClause.WithStatement(elseBlock.Statements[0]));
+			}
+		}
+
+		return visited;
+	}
+
 	public override SyntaxNode VisitBlock(BlockSyntax node)
 	{
 		var visited = new List<StatementSyntax>(node.Statements.Count);
@@ -38,79 +70,10 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			return node;
 		}
 
-		// Combine simple patterns: single-variable local declaration without initializer
-		// immediately followed by a simple assignment to that variable, e.g.
-		// "int x; x = expr;" -> "int x = expr;"
-		for (var i = 0; i < visited.Count - 1; i++)
-		{
-			if (visited[i] is LocalDeclarationStatementSyntax declStmt)
-			{
-				var decl = declStmt.Declaration;
+		// Merge simple declaration + next assignment patterns
+		CombineSimpleDeclarationWithAssignment(visited);
 
-				// Only handle single-variable declarations without initializer
-				if (decl is not null && decl.Variables.Count == 1 && decl.Variables[0].Initializer is null)
-				{
-					var varId = decl.Variables[0].Identifier.ValueText;
-					if (!string.IsNullOrEmpty(varId))
-					{
-						if (visited[i + 1] is ExpressionStatementSyntax exprStmt)
-						{
-							if (exprStmt.Expression is AssignmentExpressionSyntax assign &&
-								assign.Kind() == SyntaxKind.SimpleAssignmentExpression)
-							{
-								// Check left side is the same identifier (allow parentheses/trivia by getting IdentifierName)
-								if (assign.Left is IdentifierNameSyntax idLeft && idLeft.Identifier.ValueText == varId)
-								{
-									// Create a new variable declarator with initializer from assignment.Right
-									// Preserve leading trivia on the right-hand expression's first token by attaching it to the initializer expression
-									var rightExpr = assign.Right;
-
-									// If the RHS's first token has leading whitespace we will keep it; remove an initial space if it would duplicate formatting
-									var firstToken = rightExpr.GetFirstToken();
-									var newFirstToken = firstToken; // default
-
-									// Trim leading whitespace-only trivia to avoid double spaces after the '='
-									var leading = firstToken.LeadingTrivia;
-									var idx = 0;
-									while (idx < leading.Count && leading[idx].IsKind(SyntaxKind.WhitespaceTrivia))
-									{
-										idx++;
-									}
-
-									if (idx > 0)
-									{
-										var newLeading = SyntaxFactory.TriviaList();
-										for (var k = idx; k < leading.Count; k++)
-										{
-											newLeading = newLeading.Add(leading[k]);
-										}
-
-										newFirstToken = firstToken.WithLeadingTrivia(newLeading);
-										rightExpr = rightExpr.ReplaceToken(firstToken, newFirstToken);
-									}
-
-									var newVar = decl.Variables[0].WithInitializer(SyntaxFactory.EqualsValueClause(rightExpr));
-									var newDecl = decl.WithVariables(SyntaxFactory.SingletonSeparatedList(newVar));
-
-									// Preserve any trivia from the assignment's statement (e.g. trailing comments) by moving trailing trivia
-									// from the exprStmt to the new declaration's semicolon/trailing trivia.
-									var newDeclStmt = declStmt.WithDeclaration(newDecl)
-										.WithTrailingTrivia(exprStmt.GetTrailingTrivia());
-
-									// Replace declStmt and remove the assignment statement
-									visited[i] = newDeclStmt;
-									visited.RemoveAt(i + 1);
-									// Step back one position to re-evaluate around the modified area
-									i = Math.Max(-1, i - 1);
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-
-		// Groepeer lokale declaraties en omring met lege regels
+		// Group local declarations and surround with blank lines
 		for (var i = 0; i < visited.Count; i++)
 		{
 			if (visited[i] is LocalDeclarationStatementSyntax)
@@ -119,7 +82,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			}
 		}
 
-		// Groepeer yield return statements
+		// Group yield return statements
 		for (var i = 0; i < visited.Count; i++)
 		{
 			if (visited[i] is YieldStatementSyntax ys && ys.Kind() == SyntaxKind.YieldReturnStatement)
@@ -128,7 +91,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			}
 		}
 
-		// Groepeer expression statements (zoals FMA chains)
+		// Group expression statements (e.g., FMA chains)
 		for (var i = 0; i < visited.Count; i++)
 		{
 			if (visited[i] is ExpressionStatementSyntax)
@@ -137,7 +100,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			}
 		}
 
-		// Control-flow en return spacing (lege regel voor/na waar passend)
+		// Control-flow and return spacing (blank line before/after where appropriate)
 		for (var i = 0; i < visited.Count; i++)
 		{
 			var current = visited[i];
@@ -174,32 +137,156 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			}
 		}
 
-		// Zorg voor precies één lege regel vóór commentaarregels (zodat er een witregel boven commentaar komt)
+		// Ensure exactly one blank line before comment-only statements (so a blank line precedes comments)
 		for (var i = 0; i < visited.Count; i++)
 		{
 			if (HasLeadingComment(visited[i]))
 			{
 				if (i == 0)
 				{
-					// Eerste statement in blok: beperk eventueel meerdere leidende lege regels tot maximaal 1
+					// First statement in block: limit multiple leading blank lines to at most 1
 					visited[i] = TrimLeadingBlankLinesTo(visited[i], 1);
 				}
 				else
 				{
-					// Zorg dat er een volledige blanco regel (2 EOLs) komt vóór de commentaarregel
+					// Ensure there is a full blank line (2 EOLs) before the comment line
 					visited[i - 1] = EnsureTrailingBlankLine(visited[i - 1]);
 					visited[i] = TrimLeadingBlankLinesTo(visited[i], 1);
 				}
 			}
 		}
 
-		// Geen blanco regel voor de eerste statement
+		// No blank line before the first statement
 		visited[0] = TrimLeadingBlankLinesTo(visited[0], 0);
 
 		var newNode = node.WithStatements(SyntaxFactory.List(visited));
 		newNode = NormalizeOpenBraceTrailing(newNode);
 
 		return newNode;
+	}
+
+	private static void CombineSimpleDeclarationWithAssignment(List<StatementSyntax> visited)
+	{
+		// Combine simple pattern: single-variable declaration without initializer
+		// immediately followed by a simple assignment to that variable, e.g.
+		// "int x; x = expr;" -> "int x = expr;"
+		for (var i = 0; i < visited.Count - 1; i++)
+		{
+			if (visited[i] is not LocalDeclarationStatementSyntax declStmt)
+			{
+				continue;
+			}
+
+			var decl = declStmt.Declaration;
+			if (decl is null || decl.Variables.Count != 1 || decl.Variables[0].Initializer is not null)
+			{
+				continue;
+			}
+
+			var varId = decl.Variables[0].Identifier.ValueText;
+			if (string.IsNullOrEmpty(varId) || visited[i + 1] is not ExpressionStatementSyntax exprStmt)
+			{
+				continue;
+			}
+
+			if (exprStmt.Expression is not AssignmentExpressionSyntax assign || assign.Kind() != SyntaxKind.SimpleAssignmentExpression)
+			{
+				continue;
+			}
+
+			// Ensure left side is the same identifier
+			if (assign.Left is not IdentifierNameSyntax idLeft || idLeft.Identifier.ValueText != varId)
+			{
+				continue;
+			}
+
+			var rightExpr = assign.Right;
+			var firstToken = rightExpr.GetFirstToken();
+			var leading = firstToken.LeadingTrivia;
+			var idx = 0;
+			while (idx < leading.Count && leading[idx].IsKind(SyntaxKind.WhitespaceTrivia))
+			{
+				idx++;
+			}
+
+			if (idx > 0)
+			{
+				var newLeading = SyntaxFactory.TriviaList();
+				for (var k = idx; k < leading.Count; k++)
+				{
+					newLeading = newLeading.Add(leading[k]);
+				}
+
+				rightExpr = rightExpr.ReplaceToken(firstToken, firstToken.WithLeadingTrivia(newLeading));
+			}
+
+			var newVar = decl.Variables[0].WithInitializer(SyntaxFactory.EqualsValueClause(rightExpr));
+			var newDecl = decl.WithVariables(SyntaxFactory.SingletonSeparatedList(newVar));
+			var newDeclStmt = declStmt.WithDeclaration(newDecl)
+				.WithTrailingTrivia(exprStmt.GetTrailingTrivia());
+
+			// Replace declaration and remove the assignment statement
+			visited[i] = newDeclStmt;
+			visited.RemoveAt(i + 1);
+			// Step back to re-evaluate around the modified area
+			i = Math.Max(-1, i - 1);
+		}
+	}
+
+	private static void ApplyControlFlowAndReturnSpacing(List<StatementSyntax> visited)
+	{
+		for (var i = 0; i < visited.Count; i++)
+		{
+			var current = visited[i];
+			var isLocalFunc = current is LocalFunctionStatementSyntax;
+			var isCtrlNonLocal = !isLocalFunc && IsTarget(current);
+			var isReturn = current is ReturnStatementSyntax;
+
+			if (!isCtrlNonLocal && !isReturn)
+			{
+				continue;
+			}
+
+			if (i > 0)
+			{
+				var prev = visited[i - 1];
+				if (!HasTrailingCommentForNext(prev) && NeedsBlankLineBefore(prev))
+				{
+					visited[i - 1] = EnsureTrailingBlankLine(prev);
+				}
+				visited[i] = TrimLeadingBlankLinesTo(visited[i], 0);
+			}
+
+			if (isCtrlNonLocal && i < visited.Count - 1)
+			{
+				var next = visited[i + 1];
+				if (!HasLeadingComment(next))
+				{
+					visited[i] = EnsureTrailingBlankLine(visited[i]);
+				}
+			}
+		}
+	}
+
+	private static void EnsureCommentLineSpacing(List<StatementSyntax> visited)
+	{
+		for (var i = 0; i < visited.Count; i++)
+		{
+			if (!HasLeadingComment(visited[i]))
+			{
+				continue;
+			}
+
+			if (i == 0)
+			{
+				visited[i] = TrimLeadingBlankLinesTo(visited[i], 1);
+			}
+			else
+			{
+				visited[i - 1] = EnsureTrailingBlankLine(visited[i - 1]);
+				visited[i] = TrimLeadingBlankLinesTo(visited[i], 1);
+			}
+		}
 	}
 
 	public override SyntaxNode VisitReturnStatement(ReturnStatementSyntax node)
@@ -211,7 +298,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			return visited;
 		}
 
-		// Zorg voor precies één spatie na 'return' als de expressie niet op een nieuwe regel staat
+		// Ensure exactly one space after 'return' when the expression is not on a new line
 		var rk = visited.ReturnKeyword;
 		var trailing = rk.TrailingTrivia;
 		var hasWhitespace = false;
@@ -232,11 +319,11 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 		if (!hasWhitespace && !hasEol)
 		{
-			// Voeg spatie toe
+			// Add a space
 			rk = rk.WithTrailingTrivia(trailing.Add(SyntaxFactory.Space));
 			visited = visited.WithReturnKeyword(rk);
 
-			// Verwijder leading whitespace van eerste token van de expressie (anders dubbele spatie)
+			// Remove leading whitespace from the expression's first token (to avoid double spaces)
 			var firstToken = visited.Expression.GetFirstToken();
 			var leading = firstToken.LeadingTrivia;
 			var idx = 0;
@@ -259,10 +346,10 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			}
 		}
 
-		// Speciaal geval: collectie-expressie – zorg dat er geen voorafgaande extra spaties zijn (al afgevangen door bovenstaande)
+		// Special case: collection expression — ensure no extra leading spaces (already handled above)
 		if (visited.Expression is CollectionExpressionSyntax)
 		{
-			// (Extra normalisatie niet nodig; leading is al opgeschoond.)
+			// (No extra normalization needed; leading trivia already cleaned.)
 		}
 
 		return visited;
@@ -270,15 +357,15 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 	public override SyntaxNode VisitConditionalExpression(ConditionalExpressionSyntax node)
 	{
-		// Breng de ?: operator op meerdere regels en houd rekening met nesting.
-		// Doel-layout:
+		// Rewrite the ?: operator across multiple lines and account for nesting.
+		// Desired layout:
 		// condition
 		// \t? whenTrue
 		// \t: whenFalse
 
 		var v = (ConditionalExpressionSyntax)base.VisitConditionalExpression(node);
 
-		// Tokens die we gaan aanpassen
+		// Tokens we will adjust
 		var conditionLast = v.Condition.GetLastToken();
 		var question = v.QuestionToken;
 		var whenTrueFirst = v.WhenTrue.GetFirstToken();
@@ -286,84 +373,36 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		var colon = v.ColonToken;
 		var whenFalseFirst = v.WhenFalse.GetFirstToken();
 
-		// Bepaal de indent op basis van het statement waarin we zitten en gebruik dezelfde unit als NormalizeWhitespace (\t)
+		// Determine the indent based on the surrounding statement and use the same unit as NormalizeWhitespace (\t)
 		var indentUnit = SyntaxFactory.Whitespace("\t");
 
-		// Use the condition node's indent as base so the '?' / ':' are one tab
-		// further indented relative to the condition line.
+		// Use the condition node's indent as a base so '?' and ':' are indented
+		// one tab relative to the condition line.
 		var baseIndent = GetBaseIndentTrivia(v.Condition);
 
-		// Bouw de indent expliciet zodat we zeker zijn dat er een tab vóór '?' en ':' komt
-		// (voorkom dat eventuele elastic/normalisatie de tab verwijdert)
-		SyntaxTriviaList BuildLineIndent()
-		{
-			var list = SyntaxFactory.TriviaList();
-			for (var i = 0; i < baseIndent.Count; i++)
-			{
-				list = list.Add(baseIndent[i]);
-			}
+		var lineIndent = BuildLineIndent(baseIndent, indentUnit);
 
-			list = list.Add(indentUnit);
-			return list;
-		}
+		// 1) After condition: force a new line and indent
+		var newConditionLast = ForceNewLineAndIndentAfter(conditionLast, indentUnit);
 
-		var lineIndent = BuildLineIndent();
+		// 2) Rewrite '?' leading and trailing trivia
+		var newQuestion = WithLeadingIndentPreserveNonWhitespace(question, lineIndent);
+		newQuestion = WithTrailingSpaceOnly(newQuestion);
 
-		// 1) Na de condition een nieuwe regel forceren en voeg expliciet één tab toe
-		// zodat de volgende '?'-regel één indent verder staat.
-		var condTrailing = TrimTrailingWhitespaceAndEndOfLines(conditionLast.TrailingTrivia);
-		condTrailing = condTrailing.Add(SyntaxFactory.ElasticCarriageReturnLineFeed);
-		condTrailing = condTrailing.Add(indentUnit);
-		var newConditionLast = conditionLast.WithTrailingTrivia(condTrailing);
+		// 3) whenTrue immediately after '? '
+		var wtFirst = TrimLeadingTrivia(whenTrueFirst);
 
-		// 2) '?' start op nieuwe regel met indent (tab) en 1 spatie erna; behoud niet-witruimte leading trivia (zoals comments) na de indent
-		var qLeadingRest = TrimLeadingWhitespaceAndEndOfLines(question.LeadingTrivia);
+		// 4) Force newline + indent after whenTrue
+		var newWhenTrueLast = ForceNewLineAndIndentAfter(whenTrueLast, indentUnit);
 
-		// Zorg dat de tab direct vóór het token staat, gevolgd door eventuele comment-trivia
-		var qLeading = SyntaxFactory.TriviaList();
-		for (var i = 0; i < lineIndent.Count; i++)
-		{
-			qLeading = qLeading.Add(lineIndent[i]);
-		}
+		// 5) Rewrite ':' leading and trailing trivia
+		var newColon = WithLeadingIndentPreserveNonWhitespace(colon, lineIndent);
+		newColon = WithTrailingSpaceOnly(newColon);
 
-		foreach (var tr in qLeadingRest)
-		{
-			qLeading = qLeading.Add(tr);
-		}
+		// 6) whenFalse immediately after ': '
+		var wfFirst = TrimLeadingTrivia(whenFalseFirst);
 
-		var qTrailing = TrimTrailingWhitespaceAndEndOfLines(question.TrailingTrivia).Add(SyntaxFactory.Space);
-		var newQuestion = question.WithLeadingTrivia(qLeading).WithTrailingTrivia(qTrailing);
-
-		// 3) whenTrue direct na '? ' (geen leidende whitespace/eol)
-		var wtFirst = whenTrueFirst.WithLeadingTrivia(TrimLeadingWhitespaceAndEndOfLines(whenTrueFirst.LeadingTrivia));
-
-		// 4) Na whenTrue een nieuwe regel forceren vóór ':' en voeg expliciet één tab toe
-		// zodat de ':' één indent verder staat.
-		var wtTrailing = TrimTrailingWhitespaceAndEndOfLines(whenTrueLast.TrailingTrivia)
-				.Add(SyntaxFactory.ElasticCarriageReturnLineFeed)
-				.Add(indentUnit);
-		var newWhenTrueLast = whenTrueLast.WithTrailingTrivia(wtTrailing);
-
-		// 5) ':' start op nieuwe regel met indent (tab) en 1 spatie erna; behoud niet-witruimte leading trivia na de indent
-		var cLeadingRest = TrimLeadingWhitespaceAndEndOfLines(colon.LeadingTrivia);
-		var cLeading = SyntaxFactory.TriviaList();
-		for (var i = 0; i < lineIndent.Count; i++)
-		{
-			cLeading = cLeading.Add(lineIndent[i]);
-		}
-
-		foreach (var tr in cLeadingRest)
-		{
-			cLeading = cLeading.Add(tr);
-		}
-
-		var cTrailing = TrimTrailingWhitespaceAndEndOfLines(colon.TrailingTrivia).Add(SyntaxFactory.Space);
-		var newColon = colon.WithLeadingTrivia(cLeading).WithTrailingTrivia(cTrailing);
-
-		// 6) whenFalse direct na ': ' (geen leidende whitespace/eol)
-		var wfFirst = whenFalseFirst.WithLeadingTrivia(TrimLeadingWhitespaceAndEndOfLines(whenFalseFirst.LeadingTrivia));
-
-		// Vervang tokens in één bewerking
+		// Replace tokens in a single operation
 		var tokens = new[] { conditionLast, question, whenTrueFirst, whenTrueLast, colon, whenFalseFirst };
 		var map = new Dictionary<SyntaxToken, SyntaxToken>
 		{
@@ -378,6 +417,51 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		v = v.ReplaceTokens(tokens, (orig, _) => map.TryGetValue(orig, out var rep) ? rep : orig);
 
 		return v;
+	}
+
+	private static SyntaxTriviaList BuildLineIndent(SyntaxTriviaList baseIndent, SyntaxTrivia indentUnit)
+	{
+		var list = SyntaxFactory.TriviaList();
+		for (var i = 0; i < baseIndent.Count; i++)
+		{
+			list = list.Add(baseIndent[i]);
+		}
+		list = list.Add(indentUnit);
+		return list;
+	}
+
+	private static SyntaxToken ForceNewLineAndIndentAfter(SyntaxToken token, SyntaxTrivia indentUnit)
+	{
+		var trailing = TrimTrailingWhitespaceAndEndOfLines(token.TrailingTrivia)
+			.Add(SyntaxFactory.ElasticCarriageReturnLineFeed)
+			.Add(indentUnit);
+		return token.WithTrailingTrivia(trailing);
+	}
+
+	private static SyntaxToken WithLeadingIndentPreserveNonWhitespace(SyntaxToken token, SyntaxTriviaList lineIndent)
+	{
+		var rest = TrimLeadingWhitespaceAndEndOfLines(token.LeadingTrivia);
+		var leading = SyntaxFactory.TriviaList();
+		for (var i = 0; i < lineIndent.Count; i++)
+		{
+			leading = leading.Add(lineIndent[i]);
+		}
+		foreach (var tr in rest)
+		{
+			leading = leading.Add(tr);
+		}
+		return token.WithLeadingTrivia(leading);
+	}
+
+	private static SyntaxToken WithTrailingSpaceOnly(SyntaxToken token)
+	{
+		var trailing = TrimTrailingWhitespaceAndEndOfLines(token.TrailingTrivia).Add(SyntaxFactory.Space);
+		return token.WithTrailingTrivia(trailing);
+	}
+
+	private static SyntaxToken TrimLeadingTrivia(SyntaxToken token)
+	{
+		return token.WithLeadingTrivia(TrimLeadingWhitespaceAndEndOfLines(token.LeadingTrivia));
 	}
 
 	private static void SurroundContiguousGroup(List<StatementSyntax> visited, ref int i, Func<StatementSyntax, bool> isInGroup)
@@ -395,101 +479,96 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			break;
 		}
 
-		if (start > 0 && NeedsBlankLineBefore(visited[start - 1]))
+		if (start > 0 && NeedsBlankLineBefore(visited[start - 1]) &&
+			!ShouldSkipBlankBeforeGroup(visited, start, isInGroup))
 		{
-			var prev = visited[start - 1];
-			var skipAddingBlankBefore = false;
-
-			// If the group we're surrounding is an expression-statement group and the
-			// previous contiguous statements are local declarations, do not insert a
-			// blank line if the first expression in the group is a simple assignment
-			// to one of the declared variables. This prevents a blank line between
-			// a declaration and an immediate assignment to that variable.
-			if (isInGroup(visited[start]) && visited[start] is ExpressionStatementSyntax && prev is LocalDeclarationStatementSyntax)
-			{
-				// gather declared ids from the contiguous declaration block that ends at prev
-				var ids = new HashSet<string>(StringComparer.Ordinal);
-				for (var k = start - 1; k >= 0; k--)
-				{
-					if (visited[k] is LocalDeclarationStatementSyntax ls && ls.Declaration is { } decl)
-					{
-						foreach (var v in decl.Variables)
-						{
-							ids.Add(v.Identifier.ValueText);
-						}
-					}
-					else
-					{
-						break; // stop at first non-declaration
-					}
-				}
-
-				// check the group's first statement
-				var first = visited[start] as ExpressionStatementSyntax;
-				if (first?.Expression is AssignmentExpressionSyntax assign && assign.Kind() == SyntaxKind.SimpleAssignmentExpression)
-				{
-					if (assign.Left is IdentifierNameSyntax leftId)
-					{
-						if (ids.Contains(leftId.Identifier.ValueText))
-						{
-							skipAddingBlankBefore = true;
-						}
-					}
-				}
-			}
-
-			if (!skipAddingBlankBefore)
-			{
-				visited[start - 1] = EnsureTrailingBlankLine(prev);
-			}
+			visited[start - 1] = EnsureTrailingBlankLine(visited[start - 1]);
 		}
 
 		visited[start] = TrimLeadingBlankLinesTo(visited[start], 0);
 
-		if (end < visited.Count - 1)
+		if (end < visited.Count - 1 && ShouldAddBlankAfterGroup(visited, start, end, isInGroup))
 		{
-			// If this group is a group of local declarations, and the next statement
-			// is a direct assignment to one of the variables declared here, do not
-			// insert a blank line between the group and that assignment.
-			var shouldAddBlank = true;
-
-			if (isInGroup(visited[start]) && visited[start] is LocalDeclarationStatementSyntax)
-			{
-				// gather all declared identifiers in the group
-				var ids = new HashSet<string>(StringComparer.Ordinal);
-				for (var k = start; k <= end; k++)
-				{
-					if (visited[k] is LocalDeclarationStatementSyntax ls && ls.Declaration is { } decl)
-					{
-						foreach (var v in decl.Variables)
-						{
-							ids.Add(v.Identifier.ValueText);
-						}
-					}
-				}
-
-				// check next statement
-				var next = visited[end + 1];
-				if (next is ExpressionStatementSyntax es && es.Expression is AssignmentExpressionSyntax assign && assign.Kind() == SyntaxKind.SimpleAssignmentExpression)
-				{
-					if (assign.Left is IdentifierNameSyntax leftId)
-					{
-						if (ids.Contains(leftId.Identifier.ValueText))
-						{
-							shouldAddBlank = false;
-						}
-					}
-				}
-			}
-
-			if (shouldAddBlank)
-			{
-				visited[end] = EnsureTrailingBlankLine(visited[end]);
-				visited[end + 1] = TrimLeadingBlankLinesTo(visited[end + 1], 0);
-			}
+			visited[end] = EnsureTrailingBlankLine(visited[end]);
+			visited[end + 1] = TrimLeadingBlankLinesTo(visited[end + 1], 0);
 		}
 
 		i = end;
+	}
+
+	private static bool ShouldSkipBlankBeforeGroup(List<StatementSyntax> visited, int start, Func<StatementSyntax, bool> isInGroup)
+	{
+		if (!(isInGroup(visited[start]) && visited[start] is ExpressionStatementSyntax) || start <= 0)
+		{
+			return false;
+		}
+
+		var prev = visited[start - 1];
+		if (prev is not LocalDeclarationStatementSyntax)
+		{
+			return false;
+		}
+
+		// Gather declared ids from the contiguous declaration block that ends at prev
+		var ids = new HashSet<string>(StringComparer.Ordinal);
+		for (var k = start - 1; k >= 0; k--)
+		{
+			if (visited[k] is LocalDeclarationStatementSyntax ls && ls.Declaration is { } decl)
+			{
+				foreach (var v in decl.Variables)
+				{
+					ids.Add(v.Identifier.ValueText);
+				}
+			}
+			else
+			{
+				break;
+			}
+		}
+
+		// Check first statement of the group
+		if (visited[start] is ExpressionStatementSyntax first &&
+			first.Expression is AssignmentExpressionSyntax assign &&
+			assign.Kind() == SyntaxKind.SimpleAssignmentExpression &&
+			assign.Left is IdentifierNameSyntax leftId &&
+			ids.Contains(leftId.Identifier.ValueText))
+		{
+			return true;
+		}
+
+		return false;
+	}
+
+	private static bool ShouldAddBlankAfterGroup(List<StatementSyntax> visited, int start, int end, Func<StatementSyntax, bool> isInGroup)
+	{
+		// If this is a group of local declarations and the next statement is a simple
+		// assignment to one of the declared vars, do NOT add a blank line.
+		if (isInGroup(visited[start]) && visited[start] is LocalDeclarationStatementSyntax)
+		{
+			var ids = new HashSet<string>(StringComparer.Ordinal);
+			for (var k = start; k <= end; k++)
+			{
+				if (visited[k] is LocalDeclarationStatementSyntax ls && ls.Declaration is { } decl)
+				{
+					foreach (var v in decl.Variables)
+					{
+						ids.Add(v.Identifier.ValueText);
+					}
+				}
+			}
+
+			var next = visited[end + 1];
+			if (next is ExpressionStatementSyntax es &&
+				es.Expression is AssignmentExpressionSyntax assign &&
+				assign.Kind() == SyntaxKind.SimpleAssignmentExpression &&
+				assign.Left is IdentifierNameSyntax leftId &&
+				ids.Contains(leftId.Identifier.ValueText))
+			{
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	private static bool IsTarget(StatementSyntax s) => s is IfStatementSyntax
@@ -674,46 +753,30 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 	private static SyntaxTriviaList GetBaseIndentTrivia(SyntaxNode node)
 	{
-		// Zoek dichtstbijzijnde statement en gebruik de indentatie van de eerste token na de laatste line break.
-		// Wanneer de huidige node zelf leading trivia bevat met een EOL gebruiken we die, zodat
-		// bij gebroken expressies (zoals een condition op meerdere regels) de indent van de
-		// condition-regel wordt gebruikt. Val anders terug op de statement-token.
+		// Find the nearest statement and use the indentation of the first token after the last
+		// line break. Prefer the node's own leading trivia when it contains an EOL, otherwise
+		// fall back to the statement token. This retains indentation of broken expressions.
 		var stmt = node.AncestorsAndSelf().OfType<StatementSyntax>().FirstOrDefault();
 
-		// Probeer eerst de node's eigen eerste token
+		// Prefer the node's own first token first
 		var token = node.GetFirstToken();
 		var leading = token.LeadingTrivia;
-		var lastEol = -1;
-		for (var i = 0; i < leading.Count; i++)
-		{
-			if (leading[i].IsKind(SyntaxKind.EndOfLineTrivia))
-			{
-				lastEol = i;
-			}
-		}
+		var lastEol = IndexOfLastEol(leading);
 
-		// Als de node geen EOL in zijn leading trivia heeft, fall back naar de
-		// statement-token alleen wanneer de token geen enkele leading whitespace/EOL
-		// bevat. Hierdoor geven we prioriteit aan (spatie)inspringing direct vóór
-		// de conditie wanneer die op dezelfde regel staat.
-		var hasLeadingWhitespaceOrEol = leading.Any(t => t.IsKind(SyntaxKind.WhitespaceTrivia) || t.IsKind(SyntaxKind.EndOfLineTrivia));
+		// If the node has no EOL in its leading trivia, fall back to the statement token
+		// only when the token has no leading whitespace/EOL at all. This gives priority to
+		// indentation directly before the condition when it is on the same line.
+		var hasLeadingWhitespaceOrEol = HasWhitespaceOrEol(leading);
 		if (!hasLeadingWhitespaceOrEol && lastEol < 0 && stmt is not null)
 		{
 			token = stmt.GetFirstToken();
 			leading = token.LeadingTrivia;
-			lastEol = -1;
-			for (var i = 0; i < leading.Count; i++)
-			{
-				if (leading[i].IsKind(SyntaxKind.EndOfLineTrivia))
-				{
-					lastEol = i;
-				}
-			}
+			lastEol = IndexOfLastEol(leading);
 		}
 
 		if (lastEol < 0)
 		{
-			// Geen EOL: neem alleen whitespace aan het begin
+			// No EOL: take only initial whitespace
 			var result = SyntaxFactory.TriviaList();
 			for (var i = 0; i < leading.Count; i++)
 			{
@@ -723,27 +786,57 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 				}
 				else
 				{
-					result = SyntaxFactory.TriviaList(); // reset als er comments/anders tussenzit
+					result = SyntaxFactory.TriviaList(); // reset if comments/other trivia appear
 				}
 			}
 			return result;
 		}
 		else
 		{
-			var result = SyntaxFactory.TriviaList();
-			for (var i = lastEol + 1; i < leading.Count; i++)
-			{
-				if (leading[i].IsKind(SyntaxKind.WhitespaceTrivia))
-				{
-					result = result.Add(leading[i]);
-				}
-				else
-				{
-					break;
-				}
-			}
-			return result;
+			return IndentAfterLastEol(leading, lastEol);
 		}
+	}
+
+	private static int IndexOfLastEol(SyntaxTriviaList list)
+	{
+		var lastEol = -1;
+		for (var i = 0; i < list.Count; i++)
+		{
+			if (list[i].IsKind(SyntaxKind.EndOfLineTrivia))
+			{
+				lastEol = i;
+			}
+		}
+		return lastEol;
+	}
+
+	private static bool HasWhitespaceOrEol(SyntaxTriviaList list)
+	{
+		for (var i = 0; i < list.Count; i++)
+		{
+			if (list[i].IsKind(SyntaxKind.WhitespaceTrivia) || list[i].IsKind(SyntaxKind.EndOfLineTrivia))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static SyntaxTriviaList IndentAfterLastEol(SyntaxTriviaList leading, int lastEol)
+	{
+		var result = SyntaxFactory.TriviaList();
+		for (var i = lastEol + 1; i < leading.Count; i++)
+		{
+			if (leading[i].IsKind(SyntaxKind.WhitespaceTrivia))
+			{
+				result = result.Add(leading[i]);
+			}
+			else
+			{
+				break;
+			}
+		}
+		return result;
 	}
 
 	private static bool HasLeadingComment(StatementSyntax statement)
@@ -782,3 +875,4 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		return false;
 	}
 }
+
