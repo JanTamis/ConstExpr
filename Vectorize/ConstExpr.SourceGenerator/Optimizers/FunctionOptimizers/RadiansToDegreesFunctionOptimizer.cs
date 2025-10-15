@@ -1,5 +1,4 @@
-﻿using ConstExpr.Core.Attributes;
-using ConstExpr.SourceGenerator.Extensions;
+﻿using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
