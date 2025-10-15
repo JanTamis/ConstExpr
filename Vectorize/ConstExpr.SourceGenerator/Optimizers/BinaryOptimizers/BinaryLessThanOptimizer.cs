@@ -27,7 +27,7 @@ public class BinaryLessThanOptimizer : BaseBinaryOptimizer
 		var hasRightValue = Right.TryGetLiteralValue(loader, variables, out var rightValue);
 
 		// x < x => false (for pure expressions)
-		if (Left.IsEquivalentTo(Right) && IsPure(Left))
+		if (LeftEqualsRight(variables) && IsPure(Left))
 		{
 			result = SyntaxHelpers.CreateLiteral(false);
 			return true;
@@ -37,14 +37,14 @@ public class BinaryLessThanOptimizer : BaseBinaryOptimizer
 		if (Type.IsInteger())
 		{
 			// x < 0 = false (when x is unsigned)
-			if (Type.IsUnsignedInteger() && hasRightValue && rightValue.IsNumericZero())
+			if (Type.IsUnsignedInteger() && rightValue.IsNumericZero())
 			{
 				result = SyntaxHelpers.CreateLiteral(false);
 				return true;
 			}
 
 			// 0 < x = true (when x is positive and non-zero and unsigned)
-			if (hasLeftValue && leftValue.IsNumericZero() && hasRightValue && !rightValue.IsNumericZero())
+			if (leftValue.IsNumericZero() && hasRightValue && !rightValue.IsNumericZero())
 			{
 				if (Type.IsUnsignedInteger() || ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.GreaterThan, rightValue, 0.ToSpecialType(Type.SpecialType)) is true)
 				{
@@ -54,7 +54,7 @@ public class BinaryLessThanOptimizer : BaseBinaryOptimizer
 			}
 
 			// x < -1 = false for signed integer types
-			if (!Type.IsUnsignedInteger() && hasRightValue && rightValue.IsNumericNegativeOne())
+			if (!Type.IsUnsignedInteger() && rightValue.IsNumericNegativeOne())
 			{
 				result = SyntaxHelpers.CreateLiteral(false);
 				return true;
@@ -62,7 +62,7 @@ public class BinaryLessThanOptimizer : BaseBinaryOptimizer
 		}
 
 		// x < 0 = T.IsNegative(x)
-		if (hasRightValue && rightValue.IsNumericZero() && RightType?.HasMember<IMethodSymbol>("IsNegative", m => m.Parameters.Length == 1 && m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, RightType))) == true)
+		if (rightValue.IsNumericZero() && RightType?.HasMember<IMethodSymbol>("IsNegative", m => m.Parameters.Length == 1 && m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, RightType))) == true)
 		{
 			result = InvocationExpression(
 				MemberAccessExpression(
@@ -78,7 +78,7 @@ public class BinaryLessThanOptimizer : BaseBinaryOptimizer
 		}
 		
 		// 0 < x = T.IsPositive(x)
-		if (hasLeftValue && leftValue.IsNumericZero() && LeftType?.HasMember<IMethodSymbol>("IsPositive", m => m.Parameters.Length == 1 && m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, LeftType))) == true)
+		if (leftValue.IsNumericZero() && LeftType?.HasMember<IMethodSymbol>("IsPositive", m => m.Parameters.Length == 1 && m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, LeftType))) == true)
 		{
 			result = InvocationExpression(
 				MemberAccessExpression(

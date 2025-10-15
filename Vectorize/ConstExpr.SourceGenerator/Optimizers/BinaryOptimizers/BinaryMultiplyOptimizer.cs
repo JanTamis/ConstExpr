@@ -24,18 +24,18 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 			return false;
 		}
 		
-		var hasLeftValue = Left.TryGetLiteralValue(loader, variables, out var leftValue);
-		var hasRightValue = Right.TryGetLiteralValue(loader, variables, out var rightValue);
+		Left.TryGetLiteralValue(loader, variables, out var leftValue);
+		Right.TryGetLiteralValue(loader, variables, out var rightValue);
 
 		// x * 0 = 0
-		if (rightValue.IsNumericZero() && (Type.IsInteger() || FloatingPointMode == FloatingPointEvaluationMode.FastMath))
+		if (IsPure(Left) && rightValue.IsNumericZero())
 		{
 			result = SyntaxHelpers.CreateLiteral(0.ToSpecialType(Type.SpecialType));
 			return true;
 		}
 
 		// 0 * x = 0
-		if (leftValue.IsNumericZero() && (Type.IsInteger() || FloatingPointMode == FloatingPointEvaluationMode.FastMath))
+		if (leftValue.IsNumericZero() && IsPure(Right))
 		{
 			result = SyntaxHelpers.CreateLiteral(0.ToSpecialType(Type.SpecialType));
 			return true;
@@ -70,7 +70,7 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 		}
 
 		// x * 2 => x << 1 (integer, pure)
-		if (Type.IsInteger() && IsPure(Left) && rightValue.IsNumericValue(2))
+		if (Type.IsInteger() && rightValue.IsNumericValue(2))
 		{
 			result = BinaryExpression(SyntaxKind.LeftShiftExpression, Left,
 				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(1)));
@@ -78,7 +78,7 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 		}
 
 		// 2 * x => x << 1 (integer, pure)
-		if (Type.IsInteger() && IsPure(Right) && leftValue.IsNumericValue(2))
+		if (Type.IsInteger() && leftValue.IsNumericValue(2))
 		{
 			result = BinaryExpression(SyntaxKind.LeftShiftExpression, Right,
 				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(1)));
@@ -86,7 +86,7 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 		}
 
 		// x * (power of two) => x << n (integer)
-		if (Type.IsInteger() && IsPure(Left) && rightValue.IsNumericPowerOfTwo(out var power))
+		if (Type.IsInteger() && rightValue.IsNumericPowerOfTwo(out var power))
 		{
 			result = BinaryExpression(SyntaxKind.LeftShiftExpression, Left,
 				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(power)));
@@ -95,7 +95,7 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 		}
 
 		// (power of two) * x => x << n (integer)
-		if (Type.IsInteger() && IsPure(Right) && leftValue.IsNumericPowerOfTwo(out power))
+		if (Type.IsInteger() && leftValue.IsNumericPowerOfTwo(out power))
 		{
 			result = BinaryExpression(SyntaxKind.LeftShiftExpression, Right,
 				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(power)));
@@ -103,26 +103,16 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 			return true;
 		}
 
-		// x * x => x squared (for integer and floating point with specific types)
-		if (Left.IsEquivalentTo(Right) && IsPure(Left))
-		{
-			// Check if type has Pow method or use multiplication
-			// This is a simple strength reduction that can help with further optimizations
-			// We keep it as is since x * x is already optimal for most architectures
-		}
-
 		// (-x) * (-y) => x * y (pure)
 		if (Left is PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.UnaryMinusExpression } leftNeg
-		    && Right is PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.UnaryMinusExpression } rightNeg
-		    && IsPure(leftNeg.Operand) && IsPure(rightNeg.Operand))
+		    && Right is PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.UnaryMinusExpression } rightNeg)
 		{
 			result = BinaryExpression(SyntaxKind.MultiplyExpression, leftNeg.Operand, rightNeg.Operand);
 			return true;
 		}
 
 		// (-x) * y => -(x * y) (pure, can help with further optimizations)
-		if (Left is PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.UnaryMinusExpression } leftNeg2
-		    && IsPure(leftNeg2.Operand) && IsPure(Right))
+		if (Left is PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.UnaryMinusExpression } leftNeg2)
 		{
 			result = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
 				ParenthesizedExpression(BinaryExpression(SyntaxKind.MultiplyExpression, leftNeg2.Operand, Right)));
@@ -130,8 +120,7 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 		}
 
 		// x * (-y) => -(x * y) (pure)
-		if (Right is PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.UnaryMinusExpression } rightNeg2
-		    && IsPure(Left) && IsPure(rightNeg2.Operand))
+		if (Right is PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.UnaryMinusExpression } rightNeg2)
 		{
 			result = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
 				ParenthesizedExpression(BinaryExpression(SyntaxKind.MultiplyExpression, Left, rightNeg2.Operand)));

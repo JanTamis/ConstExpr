@@ -13,9 +13,16 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 	{
 		if (SyntaxHelpers.TryGetLiteral(node.Token.Value, out var expression))
 		{
-			return expression
-				.WithLeadingTrivia(node.GetLeadingTrivia())
-				.WithTrailingTrivia(node.GetTrailingTrivia());
+			return (node.Token.Value switch
+			{
+				Math.PI => SyntaxFactory.ParseExpression("Double.Pi"),
+				Math.PI * 2 => SyntaxFactory.ParseExpression("Double.Tau"),
+				Math.E => SyntaxFactory.ParseExpression("Double.E"),
+				MathF.PI => SyntaxFactory.ParseExpression("Single.Pi"),
+				MathF.PI * 2 => SyntaxFactory.ParseExpression("Single.Tau"),
+				MathF.E => SyntaxFactory.ParseExpression("Single.E"),
+				_ => expression,
+			}).WithLeadingTrivia(node.GetLeadingTrivia()).WithTrailingTrivia(node.GetTrailingTrivia());
 		}
 
 		return node;
@@ -453,11 +460,23 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		return token.WithLeadingTrivia(leading);
 	}
 
-	private static SyntaxToken WithTrailingSpaceOnly(SyntaxToken token)
-	{
-		var trailing = TrimTrailingWhitespaceAndEndOfLines(token.TrailingTrivia).Add(SyntaxFactory.Space);
-		return token.WithTrailingTrivia(trailing);
-	}
+		var cTrailing = TrimTrailingWhitespaceAndEndOfLines(colon.TrailingTrivia).Add(SyntaxFactory.Space);
+		var newColon = colon.WithLeadingTrivia(cLeading).WithTrailingTrivia(cTrailing);
+
+		// 6) whenFalse direct na ': ' (geen leidende whitespace/eol)
+		var wfFirst = whenFalseFirst.WithLeadingTrivia(TrimLeadingWhitespaceAndEndOfLines(whenFalseFirst.LeadingTrivia));
+
+		// Vervang tokens in één bewerking
+		var tokens = new[] { conditionLast, question, whenTrueFirst, whenTrueLast, colon, whenFalseFirst };
+		var map = new Dictionary<SyntaxToken, SyntaxToken>
+		{
+			[conditionLast] = newConditionLast,
+			[question] = newQuestion,
+			[whenTrueFirst] = wtFirst,
+			[whenTrueLast] = newWhenTrueLast,
+			[colon] = newColon,
+			[whenFalseFirst] = wfFirst,
+		};
 
 	private static SyntaxToken TrimLeadingTrivia(SyntaxToken token)
 	{

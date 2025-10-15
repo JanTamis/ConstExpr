@@ -24,8 +24,7 @@ public class BinaryRightShiftOptimizer : BaseBinaryOptimizer
 
 		// x >> 0 => x (require Right to be pure to avoid dropping side effects)
 		if (Right.TryGetLiteralValue(loader, variables, out var rightValue) 
-		    && rightValue.IsNumericZero() 
-		    && (FloatingPointMode == FloatingPointEvaluationMode.FastMath || IsPure(Left)))
+		    && rightValue.IsNumericZero())
 		{
 			result = Left;
 			return true;
@@ -34,7 +33,7 @@ public class BinaryRightShiftOptimizer : BaseBinaryOptimizer
 		// 0 >> x => 0 (require Right to be pure to avoid dropping side effects)
 		if (Left.TryGetLiteralValue(loader, variables, out var leftValue) 
 		    && leftValue.IsNumericZero() 
-		    && (FloatingPointMode == FloatingPointEvaluationMode.FastMath || IsPure(Right)))
+		    && IsPure(Right))
 		{
 			result = SyntaxHelpers.CreateLiteral(0.ToSpecialType(Type.SpecialType));
 			return true;

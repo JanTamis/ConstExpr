@@ -25,21 +25,21 @@ public class BinaryOrOptimizer : BaseBinaryOptimizer
 		if (Type.IsInteger() || Type.IsBoolType())
 		{
 			// x | 0 = x
-			if (hasRightValue && rightValue.IsNumericZero())
+			if (rightValue.IsNumericZero())
 			{
 				result = Left;
 				return true;
 			}
 
 			// 0 | x = x
-			if (hasLeftValue && leftValue.IsNumericZero())
+			if (leftValue.IsNumericZero())
 			{
 				result = Right;
 				return true;
 			}
 
 			// x | x = x (for pure expressions)
-			if (Left.IsEquivalentTo(Right) && IsPure(Left))
+			if (LeftEqualsRight(variables) && IsPure(Left))
 			{
 				result = Left;
 				return true;
@@ -94,26 +94,26 @@ public class BinaryOrOptimizer : BaseBinaryOptimizer
 			// For bool: false | x = x, x | false = x
 			if (Type.IsBoolType())
 			{
-				if (hasRightValue && rightValue is false)
+				if (rightValue is false)
 				{
 					result = Left;
 					return true;
 				}
 
-				if (hasLeftValue && leftValue is false)
+				if (leftValue is false)
 				{
 					result = Right;
 					return true;
 				}
 
 				// true | x = true, x | true = true
-				if (hasRightValue && rightValue is true)
+				if (rightValue is true)
 				{
 					result = SyntaxHelpers.CreateLiteral(true);
 					return true;
 				}
 
-				if (hasLeftValue && leftValue is true)
+				if (leftValue is true)
 				{
 					result = SyntaxHelpers.CreateLiteral(true);
 					return true;
@@ -140,17 +140,6 @@ public class BinaryOrOptimizer : BaseBinaryOptimizer
 					result = Right;
 					return true;
 				}
-			}
-		}
-
-		// Both sides are constant, evaluate
-		if (hasLeftValue && hasRightValue)
-		{
-			var evalResult = ObjectExtensions.ExecuteBinaryOperation(Kind, leftValue, rightValue);
-			if (evalResult != null)
-			{
-				result = SyntaxHelpers.CreateLiteral(evalResult);
-				return true;
 			}
 		}
 

@@ -26,49 +26,38 @@ public class BinaryConditionalAndOptimizer : BaseBinaryOptimizer
 		var hasRightValue = Right.TryGetLiteralValue(loader, variables, out var rightValue);
 
 		// false && x = false
-		if (hasLeftValue && leftValue is false)
+		if (leftValue is false)
 		{
 			result = SyntaxHelpers.CreateLiteral(false);
 			return true;
 		}
 
 		// true && x = x
-		if (hasLeftValue && leftValue is true)
+		if (leftValue is true)
 		{
 			result = Right;
 			return true;
 		}
 
 		// x && true = x (only if x is pure, to avoid side effects)
-		if (hasRightValue && rightValue is true && IsPure(Left))
+		if (rightValue is true && IsPure(Left))
 		{
 			result = Left;
 			return true;
 		}
 
 		// x && false = false (only if x is pure, to avoid side effects)
-		if (hasRightValue && rightValue is false && IsPure(Left))
+		if (rightValue is false && IsPure(Left))
 		{
 			result = SyntaxHelpers.CreateLiteral(false);
 			return true;
 		}
 
 		// x && x = x (for pure expressions)
-		if (Left.IsEquivalentTo(Right) && IsPure(Left))
+		if (LeftEqualsRight(variables) && IsPure(Left))
 		{
 			result = Left;
 			return true;
-		}
-
-		// Both sides are constant, evaluate
-		if (hasLeftValue && hasRightValue)
-		{
-			var evalResult = ObjectExtensions.ExecuteBinaryOperation(Kind, leftValue, rightValue);
-			if (evalResult != null)
-			{
-				result = SyntaxHelpers.CreateLiteral(evalResult);
-				return true;
-			}
 		}
 
 		return false;

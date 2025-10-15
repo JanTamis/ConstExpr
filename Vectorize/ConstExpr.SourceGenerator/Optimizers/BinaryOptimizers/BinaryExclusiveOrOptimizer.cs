@@ -25,21 +25,21 @@ public class BinaryExclusiveOrOptimizer : BaseBinaryOptimizer
 		if (Type.IsInteger() || Type.IsBoolType())
 		{
 			// x ^ 0 = x
-			if (hasRightValue && rightValue.IsNumericZero())
+			if (rightValue.IsNumericZero())
 			{
 				result = Left;
 				return true;
 			}
 
 			// 0 ^ x = x
-			if (hasLeftValue && leftValue.IsNumericZero())
+			if (leftValue.IsNumericZero())
 			{
 				result = Right;
 				return true;
 			}
 
 			// x ^ x = 0 (for pure expressions)
-			if (Left.IsEquivalentTo(Right) && IsPure(Left))
+			if (LeftEqualsRight(variables) && IsPure(Left))
 			{
 				result = SyntaxHelpers.CreateLiteral(0.ToSpecialType(Type.SpecialType));
 				return true;

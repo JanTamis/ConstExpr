@@ -28,7 +28,7 @@ public class BinaryEqualsOptimizer : BaseBinaryOptimizer
 		var hasRightValue = Right.TryGetLiteralValue(loader, variables, out var rightValue);
 
 		// x == x = true (for pure expressions)
-		if (Left.IsEquivalentTo(Right) && IsPure(Left))
+		if (LeftEqualsRight(variables) && IsPure(Left))
 		{
 			result = SyntaxHelpers.CreateLiteral(true);
 			return true;
@@ -60,7 +60,7 @@ public class BinaryEqualsOptimizer : BaseBinaryOptimizer
 		    && modExpr.Right.TryGetLiteralValue(loader, variables, out var modValue)
 		    && modValue.IsNumericValue(2)
 		    // && LeftType?.IsInteger() == true
-		    && LeftType.HasMember<IMethodSymbol>("IsEvenInteger", m => m.Parameters.Length == 1 && m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, LeftType))))
+		    && LeftType?.HasMember<IMethodSymbol>("IsEvenInteger", m => m.Parameters.Length == 1 && m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, LeftType))) == true)
 		{
 			result = InvocationExpression(
 				MemberAccessExpression(
@@ -80,7 +80,7 @@ public class BinaryEqualsOptimizer : BaseBinaryOptimizer
 		    && modExpr2.Right.TryGetLiteralValue(loader, variables, out var modValue2)
 		    && modValue2.IsNumericValue(2)
 		    // && LeftType?.IsInteger() == true
-		    && LeftType.HasMember<IMethodSymbol>("IsOddInteger", m => m.Parameters.Length == 1 && m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, LeftType))))
+		    && LeftType?.HasMember<IMethodSymbol>("IsOddInteger", m => m.Parameters.Length == 1 && m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, LeftType))) == true)
 		{
 			result = InvocationExpression(
 				MemberAccessExpression(
@@ -100,7 +100,7 @@ public class BinaryEqualsOptimizer : BaseBinaryOptimizer
 		    && andExpr.Right.TryGetLiteralValue(loader, variables, out var andValue)
 		    && andValue.IsNumericOne()
 		    // && LeftType?.IsInteger() == true
-		    && LeftType.HasMember<IMethodSymbol>("IsEvenInteger", m => m.Parameters.Length == 1 && m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, LeftType))))
+		    && LeftType?.HasMember<IMethodSymbol>("IsEvenInteger", m => m.Parameters.Length == 1 && m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, LeftType))) == true)
 		{
 			result = InvocationExpression(
 				MemberAccessExpression(
@@ -120,7 +120,7 @@ public class BinaryEqualsOptimizer : BaseBinaryOptimizer
 		    && andExpr2.Right.TryGetLiteralValue(loader, variables, out var andValue2)
 		    && andValue2.IsNumericOne()
 		    // && LeftType?.IsInteger() == true
-		    && LeftType.HasMember<IMethodSymbol>("IsOddInteger", m => m.Parameters.Length == 1 && m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, LeftType))))
+		    && LeftType?.HasMember<IMethodSymbol>("IsOddInteger", m => m.Parameters.Length == 1 && m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, LeftType))) == true)
 		{
 			result = InvocationExpression(
 				MemberAccessExpression(
@@ -138,6 +138,7 @@ public class BinaryEqualsOptimizer : BaseBinaryOptimizer
 		if (hasLeftValue && hasRightValue)
 		{
 			var evalResult = ObjectExtensions.ExecuteBinaryOperation(Kind, leftValue, rightValue);
+			
 			if (evalResult != null)
 			{
 				result = SyntaxHelpers.CreateLiteral(evalResult);

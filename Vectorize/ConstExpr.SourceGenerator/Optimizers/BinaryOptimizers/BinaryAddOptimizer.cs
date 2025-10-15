@@ -24,7 +24,7 @@ public class BinaryAddOptimizer : BaseBinaryOptimizer
 		{
 			return false;
 		}
-		
+
 		Left.TryGetLiteralValue(loader, variables, out var leftValue);
 		Right.TryGetLiteralValue(loader, variables, out var rightValue);
 
@@ -42,38 +42,30 @@ public class BinaryAddOptimizer : BaseBinaryOptimizer
 			return true;
 		}
 
-		// FastMath: x + (-x) => 0 and (-x) + x => 0 (pure)
-		if (FloatingPointMode == FloatingPointEvaluationMode.FastMath)
+		// x + (-x) => 0 and (-x) + x => 0 (pure)
+		if (Right is PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.UnaryMinusExpression } rNeg
+		    && rNeg.Operand.IsEquivalentTo(Left)
+		    && IsPure(Left) && IsPure(rNeg.Operand))
 		{
-			if (Right is PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.UnaryMinusExpression } rNeg
-			    && rNeg.Operand.IsEquivalentTo(Left)
-			    && IsPure(Left) && IsPure(rNeg.Operand))
-			{
-				result = SyntaxHelpers.CreateLiteral(0.ToSpecialType(Type.SpecialType));
-				return true;
-			}
+			result = SyntaxHelpers.CreateLiteral(0.ToSpecialType(Type.SpecialType));
+			return true;
+		}
 
-			if (Left is PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.UnaryMinusExpression } lNeg
-			    && lNeg.Operand.IsEquivalentTo(Right)
-			    && IsPure(Right) && IsPure(lNeg.Operand))
-			{
-				result = SyntaxHelpers.CreateLiteral(0.ToSpecialType(Type.SpecialType));
-				return true;
-			}
+		if (Left is PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.UnaryMinusExpression } lNeg
+		    && lNeg.Operand.IsEquivalentTo(Right)
+		    && IsPure(Right) && IsPure(lNeg.Operand))
+		{
+			result = SyntaxHelpers.CreateLiteral(0.ToSpecialType(Type.SpecialType));
+			return true;
 		}
 
 		// x + x => x << 1 (integer, pure)
-		if (Left.IsEquivalentTo(Right) && IsPure(Left) && IsPure(Right))
+		if (LeftEqualsRight(variables) && IsPure(Left) && IsPure(Right))
 		{
 			// x + x => x << 1 (integer, pure)
 			if (Type.IsInteger())
 			{
 				result = BinaryExpression(SyntaxKind.LeftShiftExpression, Left, SyntaxHelpers.CreateLiteral(1)!);
-			}
-			// x + x => x * 2 (pure)
-			else
-			{
-				result = BinaryExpression(SyntaxKind.MultiplyExpression, Left, SyntaxHelpers.CreateLiteral(2.ToSpecialType(Type.SpecialType))!);
 			}
 
 			return true;
@@ -113,9 +105,7 @@ public class BinaryAddOptimizer : BaseBinaryOptimizer
 		}
 
 		// Fused Multiply-Add: (a * b) + c  OR  c + (a * b) => FMA(a,b,c)
-		// Only when FastMath (can change rounding semantics) and for float/double
-		if (FloatingPointMode == FloatingPointEvaluationMode.FastMath
-		    && Type.HasMember<IMethodSymbol>("FusedMultiplyAdd", m => m.Parameters.Length == 3 && m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, Type))))
+		if (Type.HasMember<IMethodSymbol>("FusedMultiplyAdd", m => m.Parameters.Length == 3 && m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, Type))))
 		{
 			// var isFloat = Type.SpecialType == SpecialType.System_Single;
 			var host = ParseName(Type.Name);

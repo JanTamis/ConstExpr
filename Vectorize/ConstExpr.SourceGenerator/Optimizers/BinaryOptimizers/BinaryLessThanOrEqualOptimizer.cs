@@ -5,7 +5,7 @@ using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 
-namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;
+namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;
 
 public class BinaryLessThanOrEqualOptimizer : BaseBinaryOptimizer
 {
@@ -20,34 +20,23 @@ public class BinaryLessThanOrEqualOptimizer : BaseBinaryOptimizer
 			return false;
 		}
 
-		var hasLeftValue = Left.TryGetLiteralValue(loader, variables, out var leftValue);
-		var hasRightValue = Right.TryGetLiteralValue(loader, variables, out var rightValue);
+		Left.TryGetLiteralValue(loader, variables, out var leftValue);
+		Right.TryGetLiteralValue(loader, variables, out var rightValue);
 
 		// Only apply arithmetic identities that are guaranteed safe for integer types.
 		if (Type.IsInteger())
 		{
 			// x <= -1 = false (when x is unsigned)
-			if (Type.IsUnsignedInteger() && hasRightValue && rightValue.IsNumericNegativeOne())
+			if (Type.IsUnsignedInteger() && rightValue.IsNumericNegativeOne())
 			{
 				result = SyntaxHelpers.CreateLiteral(false);
 				return true;
 			}
 
 			// 0 <= x = true (when x is unsigned)
-			if (Type.IsUnsignedInteger() && hasLeftValue && leftValue.IsNumericZero())
+			if (Type.IsUnsignedInteger() && leftValue.IsNumericZero())
 			{
 				result = SyntaxHelpers.CreateLiteral(true);
-				return true;
-			}
-		}
-
-		// Both sides are constant, evaluate
-		if (hasLeftValue && hasRightValue)
-		{
-			var evalResult = ObjectExtensions.ExecuteBinaryOperation(Kind, leftValue, rightValue);
-			if (evalResult != null)
-			{
-				result = SyntaxHelpers.CreateLiteral(evalResult);
 				return true;
 			}
 		}

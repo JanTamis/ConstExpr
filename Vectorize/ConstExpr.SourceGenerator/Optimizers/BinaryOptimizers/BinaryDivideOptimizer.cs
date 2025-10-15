@@ -24,7 +24,7 @@ public class BinaryDivideOptimizer : BaseBinaryOptimizer
 		{
 			return false;
 		}
-		
+
 		var hasLeftValue = Left.TryGetLiteralValue(loader, variables, out var leftValue);
 		var hasRightValue = Right.TryGetLiteralValue(loader, variables, out var rightValue);
 
@@ -43,24 +43,21 @@ public class BinaryDivideOptimizer : BaseBinaryOptimizer
 		}
 
 		// 0 / x = 0 (when x != 0, integers only)
-		if (Type.IsInteger() && hasLeftValue && leftValue.IsNumericZero() && hasRightValue && !rightValue.IsNumericZero())
+		if (Type.IsInteger() && leftValue.IsNumericZero() && hasRightValue && !rightValue.IsNumericZero())
 		{
 			result = SyntaxHelpers.CreateLiteral(0.ToSpecialType(Type.SpecialType));
 			return true;
 		}
 
 		// x / x = 1 (pure, when x != 0 for integers, or FastMath for floats)
-		if (Left.IsEquivalentTo(Right) && IsPure(Left) && IsPure(Right))
+		if (LeftEqualsRight(variables) && IsPure(Left))
 		{
-			if (Type.IsInteger() || FloatingPointMode == FloatingPointEvaluationMode.FastMath)
-			{
-				result = SyntaxHelpers.CreateLiteral(1.ToSpecialType(Type.SpecialType));
-				return true;
-			}
+			result = SyntaxHelpers.CreateLiteral(1.ToSpecialType(Type.SpecialType));
+			return true;
 		}
 
 		// x / 2 => x >> 1 (unsigned integer only, signed division is different)
-		if (Type.IsUnsignedInteger() && hasRightValue && rightValue.IsNumericValue(2))
+		if (Type.IsUnsignedInteger() && rightValue.IsNumericValue(2))
 		{
 			result = BinaryExpression(SyntaxKind.RightShiftExpression, Left,
 				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(1)));
@@ -75,9 +72,8 @@ public class BinaryDivideOptimizer : BaseBinaryOptimizer
 			return true;
 		}
 
-		// x / (power of two) => x * (1/power) (floating point, FastMath)
-		if (FloatingPointMode == FloatingPointEvaluationMode.FastMath
-		    && !Type.IsInteger()
+		// x / (power of two) => x * (1/power) (floating point)
+		if (!Type.IsInteger()
 		    && hasRightValue
 		    && !rightValue.IsNumericZero()
 		    && ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.Divide, 1.ToSpecialType(Type.SpecialType), rightValue.ToSpecialType(Type.SpecialType)) is { } reciprocal)
@@ -85,11 +81,11 @@ public class BinaryDivideOptimizer : BaseBinaryOptimizer
 			result = BinaryExpression(SyntaxKind.MultiplyExpression, Left, SyntaxHelpers.CreateLiteral(reciprocal)!);
 			return true;
 		}
-		
+
 
 		// (-x) / (-y) => x / y (pure)
-		if (Left is PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.UnaryMinusExpression } leftNeg
-		    && Right is PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.UnaryMinusExpression } rightNeg
+		if (Left is PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.UnaryMinusExpression } leftNeg
+		    && Right is PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.UnaryMinusExpression } rightNeg
 		    && IsPure(leftNeg.Operand) && IsPure(rightNeg.Operand))
 		{
 			result = BinaryExpression(SyntaxKind.DivideExpression, leftNeg.Operand, rightNeg.Operand);
@@ -97,7 +93,7 @@ public class BinaryDivideOptimizer : BaseBinaryOptimizer
 		}
 
 		// (-x) / y => -(x / y) (pure)
-		if (Left is PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.UnaryMinusExpression } leftNeg2
+		if (Left is PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.UnaryMinusExpression } leftNeg2
 		    && IsPure(leftNeg2.Operand) && IsPure(Right))
 		{
 			result = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
@@ -106,7 +102,7 @@ public class BinaryDivideOptimizer : BaseBinaryOptimizer
 		}
 
 		// x / (-y) => -(x / y) (pure)
-		if (Right is PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.UnaryMinusExpression } rightNeg2
+		if (Right is PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.UnaryMinusExpression } rightNeg2
 		    && IsPure(Left) && IsPure(rightNeg2.Operand))
 		{
 			result = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
@@ -115,15 +111,14 @@ public class BinaryDivideOptimizer : BaseBinaryOptimizer
 		}
 
 		// 1 / x = reciprocal
-		if (FloatingPointMode == FloatingPointEvaluationMode.FastMath
-		    && leftValue.IsNumericOne()
+		if (leftValue.IsNumericOne()
 		    && Type.HasMember<IMethodSymbol>("ReciprocalEstimate", m => m.Parameters.Length == 1 && m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, Type))))
 		{
 			var host = ParseName(Type.Name);
 			var reciprocalIdentifier = MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, host, IdentifierName("ReciprocalEstimate"));
-			
+
 			result = InvocationExpression(reciprocalIdentifier, ArgumentList(SingletonSeparatedList(Argument(Right))));
-			
+
 			return true;
 		}
 
