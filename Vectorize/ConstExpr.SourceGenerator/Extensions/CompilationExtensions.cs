@@ -1416,4 +1416,123 @@ public static class CompilationExtensions
 		value = null;
 		return false;
 	}
+
+	public static bool TryGetMinValue([NotNullWhen(true)] this ITypeSymbol? type, [NotNullWhen(true)] out object? minValue)
+	{
+		if (type == null)
+		{
+			minValue = null;
+			return false;
+		}
+
+		// Handle primitive types
+		switch (type.SpecialType)
+		{
+			case SpecialType.System_Boolean:
+				minValue = false;
+				return true;
+			case SpecialType.System_Byte:
+				minValue = byte.MinValue;
+				return true;
+			case SpecialType.System_SByte:
+				minValue = sbyte.MinValue;
+				return true;
+			case SpecialType.System_Int16:
+				minValue = short.MinValue;
+				return true;
+			case SpecialType.System_UInt16:
+				minValue = ushort.MinValue;
+				return true;
+			case SpecialType.System_Int32:
+				minValue = int.MinValue;
+				return true;
+			case SpecialType.System_UInt32:
+				minValue = uint.MinValue;
+				return true;
+			case SpecialType.System_Int64:
+				minValue = long.MinValue;
+				return true;
+			case SpecialType.System_UInt64:
+				minValue = ulong.MinValue;
+				return true;
+			case SpecialType.System_Single:
+				minValue = float.MinValue;
+				return true;
+			case SpecialType.System_Double:
+				minValue = double.MinValue;
+				return true;
+			case SpecialType.System_Decimal:
+				minValue = decimal.MinValue;
+				return true;
+			case SpecialType.System_Char:
+				minValue = char.MinValue;
+				return true;
+			default:
+				minValue = null;
+				return false;
+		}
+	}
+
+	public static bool TryGetMaxValue([NotNullWhen(true)] this ITypeSymbol? type, [NotNullWhen(true)] out object? maxValue)
+	{
+		if (type == null)
+		{
+			maxValue = null;
+			return false;
+		}
+
+		// Handle primitive types
+		switch (type.SpecialType)
+		{
+			case SpecialType.System_Boolean:
+				maxValue = true;
+				return true;
+			case SpecialType.System_Byte:
+				maxValue = byte.MaxValue;
+				return true;
+			case SpecialType.System_SByte:
+				maxValue = sbyte.MaxValue;
+				return true;
+			case SpecialType.System_Int16:
+				maxValue = short.MaxValue;
+				return true;
+			case SpecialType.System_UInt16:
+				maxValue = ushort.MaxValue;
+				return true;
+			case SpecialType.System_Int32:
+				maxValue = int.MaxValue;
+				return true;
+			case SpecialType.System_UInt32:
+				maxValue = uint.MaxValue;
+				return true;
+			case SpecialType.System_Int64:
+				maxValue = long.MaxValue;
+				return true;
+			case SpecialType.System_UInt64:
+				maxValue = ulong.MaxValue;
+				return true;
+			case SpecialType.System_Single:
+				maxValue = float.MaxValue;
+				return true;
+			case SpecialType.System_Double:
+				maxValue = double.MaxValue;
+				return true;
+			case SpecialType.System_Decimal:
+				maxValue = decimal.MaxValue;
+				return true;
+			case SpecialType.System_Char:
+				maxValue = char.MaxValue;
+				return true;
+			default:
+				maxValue = null;
+				return false;
+		}
+	}
+
+	public static bool TryGetMinMaxValue(this ITypeSymbol? type, [NotNullWhen(true)] out object? minValue, [NotNullWhen(true)] out object? maxValue)
+	{
+		var hasMin = type.TryGetMinValue(out minValue);
+		var hasMax = type.TryGetMaxValue(out maxValue);
+		return hasMin && hasMax;
+	}
 }

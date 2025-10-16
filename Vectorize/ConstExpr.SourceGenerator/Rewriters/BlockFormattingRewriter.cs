@@ -60,6 +60,16 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		return visited;
 	}
 
+	public override SyntaxNode? VisitLocalFunctionStatement(LocalFunctionStatementSyntax node)
+	{
+		return base.VisitLocalFunctionStatement(node)?.WithoutLeadingTrivia();
+	}
+
+	public override SyntaxNode? VisitMethodDeclaration(MethodDeclarationSyntax node)
+	{
+		return base.VisitMethodDeclaration(node)?.WithoutLeadingTrivia();
+	}
+
 	public override SyntaxNode VisitBlock(BlockSyntax node)
 	{
 		var visited = new List<StatementSyntax>(node.Statements.Count);

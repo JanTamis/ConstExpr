@@ -418,6 +418,13 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 			if (!variables.TryGetValue(name, out var item))
 			{
 				item = new VariableItem(operation.Type ?? operation.Symbol.Type, true, value);
+
+				if (operation.Type.TryGetMinMaxValue(out var min, out var max))
+				{
+					item.MinValue = min;
+					item.MaxValue = max;
+				}
+
 				variables.Add(name, item);
 			}
 
