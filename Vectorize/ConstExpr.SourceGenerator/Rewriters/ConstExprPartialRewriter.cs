@@ -935,36 +935,22 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 					var parentKind = binaryParent.Kind();
 					var innerKind = inner.Kind();
 
-					// Division and subtraction are left-associative, so parentheses on the right side matter
-					// x / (y * z) != x / y * z
-					// x / (y / z) != x / y / z
-					// x - (y + z) != x - y + z
-					// x - (y - z) != x - y - z
-					if (parentKind == SyntaxKind.DivideExpression)
+					switch (parentKind)
 					{
-						if (innerKind is SyntaxKind.MultiplyExpression or SyntaxKind.DivideExpression or SyntaxKind.ModuloExpression)
-						{
+						// Division and subtraction are left-associative, so parentheses on the right side matter
+						// x / (y * z) != x / y * z
+						// x / (y / z) != x / y / z
+						// x - (y + z) != x - y + z
+						// x - (y - z) != x - y - z
+						case SyntaxKind.DivideExpression when innerKind is SyntaxKind.MultiplyExpression or SyntaxKind.DivideExpression or SyntaxKind.ModuloExpression:
+						// Keep parentheses
+						case SyntaxKind.SubtractExpression when innerKind is SyntaxKind.AddExpression or SyntaxKind.SubtractExpression:
+						// Modulo with multiply/divide on right also needs parentheses
+						// Keep parentheses
+						case SyntaxKind.ModuloExpression when innerKind is SyntaxKind.MultiplyExpression or SyntaxKind.DivideExpression or SyntaxKind.ModuloExpression:
 							return true; // Keep parentheses
-						}
 					}
 
-					if (parentKind == SyntaxKind.SubtractExpression)
-					{
-						if (innerKind == SyntaxKind.AddExpression ||
-						    innerKind == SyntaxKind.SubtractExpression)
-						{
-							return true; // Keep parentheses
-						}
-					}
-
-					// Modulo with multiply/divide on right also needs parentheses
-					if (parentKind == SyntaxKind.ModuloExpression)
-					{
-						if (innerKind is SyntaxKind.MultiplyExpression or SyntaxKind.DivideExpression or SyntaxKind.ModuloExpression)
-						{
-							return true; // Keep parentheses
-						}
-					}
 				}
 			}
 
