@@ -332,8 +332,8 @@ public static class ObjectExtensions
 		uint ui => ui == 1,
 		long l => l == 1,
 		ulong ul => ul == 1,
-		float f => f == 1f,
-		double d => d == 1d,
+		float f => Math.Abs(f - 1f) < Single.Epsilon,
+		double d => Math.Abs(d - 1d) < Double.Epsilon,
 		decimal m => m == 1m,
 		_ => false
 	};
@@ -348,8 +348,8 @@ public static class ObjectExtensions
 		uint ui => ui == 2,
 		long l => l == 2,
 		ulong ul => ul == 2,
-		float f => f == 2f,
-		double d => d == 2d,
+		float f => Math.Abs(f - 2f) < Single.Epsilon,
+		double d => Math.Abs(d - 2d) < Double.Epsilon,
 		decimal m => m == 2m,
 		_ => false
 	};
@@ -360,8 +360,8 @@ public static class ObjectExtensions
 		short s => s == -1,
 		int i => i == -1,
 		long l => l == -1,
-		float f => f == -1f,
-		double d => d == -1d,
+		float f => Math.Abs(f - -1f) < Single.Epsilon,
+		double d => Math.Abs(d - -1d) < Double.Epsilon,
 		decimal m => m == -1m,
 		_ => false
 	};
@@ -376,8 +376,8 @@ public static class ObjectExtensions
 		uint ui => ui == target,
 		long l => l == target,
 		ulong ul => ul == (ulong)target,
-		float f => f == target,
-		double d => d == target,
+		float f => Math.Abs(f - target) < Single.Epsilon,
+		double d => Math.Abs(d - target) < Double.Epsilon,
 		decimal m => m == target,
 		_ => false
 	};

@@ -21,6 +21,8 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 				MathF.PI => SyntaxFactory.ParseExpression("Single.Pi"),
 				MathF.PI * 2 => SyntaxFactory.ParseExpression("Single.Tau"),
 				MathF.E => SyntaxFactory.ParseExpression("Single.E"),
+				Double.Epsilon => SyntaxFactory.ParseExpression("Double.Epsilon"),
+				Single.Epsilon => SyntaxFactory.ParseExpression("Single.Epsilon"),
 				_ => expression,
 			}).WithLeadingTrivia(node.GetLeadingTrivia()).WithTrailingTrivia(node.GetTrailingTrivia());
 		}
@@ -427,6 +429,63 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		v = v.ReplaceTokens(tokens, (orig, _) => map.TryGetValue(orig, out var rep) ? rep : orig);
 
 		return v;
+	}
+
+	public override SyntaxNode? VisitParenthesizedExpression(ParenthesizedExpressionSyntax node)
+	{
+		// Bezoek de binnenliggende expressie eerst
+		var inner = Visit(node.Expression);
+
+		// Haakjes zijn alleen nodig als de parent een lagere operator-precedentie heeft dan de child
+		var parent = node.Parent;
+		
+		if (parent is ExpressionSyntax parentExpr && inner is ExpressionSyntax innerExpr)
+		{
+			var parentPrecedence = GetOperatorPrecedence(parentExpr);
+			var childPrecedence = GetOperatorPrecedence(innerExpr);
+
+			// Als de parent-precedentie lager is, zijn haakjes nodig
+			if (childPrecedence > parentPrecedence)
+			{
+				return node.WithExpression(innerExpr);
+			}
+			
+			// Haakjes zijn niet nodig, retourneer de binnenliggende expressie
+			return innerExpr;
+		}
+
+		// Als geen parent of geen expressie, behoud haakjes
+		return node.WithExpression((ExpressionSyntax)inner);
+	}
+
+	private static int GetOperatorPrecedence(ExpressionSyntax expr)
+	{
+		// Eenvoudige precedentie: hoe hoger het getal, hoe sterker de binding
+		return expr switch
+		{
+			ParenthesizedExpressionSyntax => 0,
+			AssignmentExpressionSyntax => 1,
+			ConditionalExpressionSyntax => 2,
+			BinaryExpressionSyntax bin => bin.Kind() switch
+			{
+				SyntaxKind.LogicalOrExpression => 3,
+				SyntaxKind.LogicalAndExpression => 4,
+				SyntaxKind.BitwiseOrExpression => 5,
+				SyntaxKind.BitwiseAndExpression => 6,
+				SyntaxKind.EqualsExpression or SyntaxKind.NotEqualsExpression => 7,
+				SyntaxKind.LessThanExpression or SyntaxKind.LessThanOrEqualExpression or SyntaxKind.GreaterThanExpression or SyntaxKind.GreaterThanOrEqualExpression => 8,
+				SyntaxKind.AddExpression or SyntaxKind.SubtractExpression => 9,
+				SyntaxKind.MultiplyExpression or SyntaxKind.DivideExpression or SyntaxKind.ModuloExpression => 10,
+				_ => 11,
+			},
+			PrefixUnaryExpressionSyntax => 12,
+			PostfixUnaryExpressionSyntax => 13,
+			MemberAccessExpressionSyntax => 14,
+			InvocationExpressionSyntax => 15,
+			IdentifierNameSyntax => 16,
+			LiteralExpressionSyntax => 17,
+			_ => 0,
+		};
 	}
 
 	private static void SurroundContiguousGroup(List<StatementSyntax> visited, ref int i, Func<StatementSyntax, bool> isInGroup)

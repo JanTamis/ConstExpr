@@ -352,6 +352,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 				{
 					if (optimizer.TryOptimize(targetMethod, node, arguments.OfType<ExpressionSyntax>().ToArray(), additionalMethods, out var optimized))
 					{
+						
 						return optimized;
 					}
 				}
@@ -895,7 +896,110 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 			return expression;
 		}
 
-		return node.WithExpression((ExpressionSyntax)expression);
+		var parent = node.Parent;
+
+		if (parent is ExpressionSyntax parentExpr && expression is ExpressionSyntax innerExpr)
+		{
+			var parentPrecedence = GetOperatorPrecedence(parentExpr);
+			var childPrecedence = GetOperatorPrecedence(innerExpr);
+
+			// Check if parentheses are semantically required due to associativity
+			// For example: x / (y * z) should NOT become x / y * z
+			// Similarly: x - (y + z) should NOT become x - y + z
+			if (RequiresParenthesesForAssociativity(parent, node, innerExpr))
+			{
+				return node.WithExpression(innerExpr);
+			}
+
+			// Als de parent-precedentie lager is, zijn haakjes nodig
+			if (childPrecedence > parentPrecedence)
+			{
+				return node.WithExpression(innerExpr);
+			}
+
+			return innerExpr;
+		}
+
+		return node.WithExpression(expression as ExpressionSyntax ?? node.Expression);
+
+		static bool RequiresParenthesesForAssociativity(SyntaxNode? parent, ParenthesizedExpressionSyntax parenthesized, ExpressionSyntax inner)
+		{
+			// Check if we're on the right side of a non-associative operator
+			if (parent is BinaryExpressionSyntax binaryParent)
+			{
+				// Check if the parenthesized expression is the right operand
+				var isRightOperand = binaryParent.Right == parenthesized;
+
+				if (isRightOperand)
+				{
+					var parentKind = binaryParent.Kind();
+					var innerKind = inner.Kind();
+
+					// Division and subtraction are left-associative, so parentheses on the right side matter
+					// x / (y * z) != x / y * z
+					// x / (y / z) != x / y / z
+					// x - (y + z) != x - y + z
+					// x - (y - z) != x - y - z
+					if (parentKind == SyntaxKind.DivideExpression)
+					{
+						if (innerKind is SyntaxKind.MultiplyExpression or SyntaxKind.DivideExpression or SyntaxKind.ModuloExpression)
+						{
+							return true; // Keep parentheses
+						}
+					}
+
+					if (parentKind == SyntaxKind.SubtractExpression)
+					{
+						if (innerKind == SyntaxKind.AddExpression ||
+						    innerKind == SyntaxKind.SubtractExpression)
+						{
+							return true; // Keep parentheses
+						}
+					}
+
+					// Modulo with multiply/divide on right also needs parentheses
+					if (parentKind == SyntaxKind.ModuloExpression)
+					{
+						if (innerKind is SyntaxKind.MultiplyExpression or SyntaxKind.DivideExpression or SyntaxKind.ModuloExpression)
+						{
+							return true; // Keep parentheses
+						}
+					}
+				}
+			}
+
+			return false;
+		}
+
+		static int GetOperatorPrecedence(ExpressionSyntax expr)
+		{
+			// Eenvoudige precedentie: hoe hoger het getal, hoe sterker de binding
+			return expr switch
+			{
+				ParenthesizedExpressionSyntax => 0,
+				AssignmentExpressionSyntax => 1,
+				ConditionalExpressionSyntax => 2,
+				BinaryExpressionSyntax bin => bin.Kind() switch
+				{
+					SyntaxKind.LogicalOrExpression => 3,
+					SyntaxKind.LogicalAndExpression => 4,
+					SyntaxKind.BitwiseOrExpression => 5,
+					SyntaxKind.BitwiseAndExpression => 6,
+					SyntaxKind.EqualsExpression or SyntaxKind.NotEqualsExpression => 7,
+					SyntaxKind.LessThanExpression or SyntaxKind.LessThanOrEqualExpression or SyntaxKind.GreaterThanExpression or SyntaxKind.GreaterThanOrEqualExpression => 8,
+					SyntaxKind.AddExpression or SyntaxKind.SubtractExpression => 9,
+					SyntaxKind.MultiplyExpression or SyntaxKind.DivideExpression or SyntaxKind.ModuloExpression => 10,
+					_ => 11,
+				},
+				PrefixUnaryExpressionSyntax => 12,
+				PostfixUnaryExpressionSyntax => 13,
+				MemberAccessExpressionSyntax => 14,
+				InvocationExpressionSyntax => 15,
+				IdentifierNameSyntax => 16,
+				LiteralExpressionSyntax => 17,
+				_ => 0,
+			};
+		}
 	}
 
 	public override SyntaxNode? VisitCastExpression(CastExpressionSyntax node)
@@ -1594,7 +1698,8 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 					var optimizedKind = SyntaxKindToBinaryOperatorKind(optimizedBinary.Kind());
 
 					if (optimizedKind.HasValue
-						&& TryOptimizeNode(optimizedKind.Value, type, (ExpressionSyntax)Visit(optimizedBinary.Left), leftType, (ExpressionSyntax)Visit(optimizedBinary.Right), rightType, out var furtherOptimized))
+						&& TryOptimizeNode(optimizedKind.Value, type, (ExpressionSyntax)Visit(optimizedBinary.Left), leftType, (ExpressionSyntax)Visit(optimizedBinary.Right), rightType, out var furtherOptimized)
+						&& furtherOptimized is not null)
 					{
 						syntaxNode = furtherOptimized;
 						return true;

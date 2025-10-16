@@ -82,7 +82,6 @@ public class BinaryDivideOptimizer : BaseBinaryOptimizer
 			return true;
 		}
 
-
 		// (-x) / (-y) => x / y (pure)
 		if (Left is PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.UnaryMinusExpression } leftNeg
 		    && Right is PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.UnaryMinusExpression } rightNeg

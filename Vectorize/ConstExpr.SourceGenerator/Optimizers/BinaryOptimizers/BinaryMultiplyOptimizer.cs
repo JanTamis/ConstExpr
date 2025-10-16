@@ -77,11 +77,25 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 			return true;
 		}
 
+		// x * 2 => x + x (pure)
+		if (rightValue.IsNumericValue(2) && IsPure(Left))
+		{
+			result = ParenthesizedExpression(BinaryExpression(SyntaxKind.AddExpression, Left, Left));
+			return true;
+		}
+
 		// 2 * x => x << 1 (integer, pure)
 		if (Type.IsInteger() && leftValue.IsNumericValue(2))
 		{
 			result = BinaryExpression(SyntaxKind.LeftShiftExpression, Right,
 				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(1)));
+			return true;
+		}
+
+		// 2 * x => x + x (pure)
+		if (leftValue.IsNumericValue(2) && IsPure(Right))
+		{
+			result = ParenthesizedExpression(BinaryExpression(SyntaxKind.AddExpression, Right, Right));
 			return true;
 		}
 
