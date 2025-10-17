@@ -102,8 +102,8 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 		EmitInterceptsLocationAttributeStub(code);
 
-		if (!methodGroup.SelectMany(s => s!.Exceptions).Any())
-		{
+		// if (!methodGroup.SelectMany(s => s!.Exceptions).Any())
+		// {
 			var result = String.Join("\n", distinctUsings
 				.Where(w => !String.IsNullOrWhiteSpace(w))
 				.OrderByDescending(o => o.StartsWith("System"))
@@ -111,7 +111,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				.Select(s => $"using {s};")) + "\n\n" + code;
 
 			spc.AddSource($"{methodGroup.First().ParentType.Identifier}_{methodGroup.Key.Identifier}.g.cs", result);
-		}
+		// }
 	}
 
 	#region Emission Helpers
@@ -207,6 +207,12 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			if ( //exceptions.IsEmpty
 					context.SemanticModel.Compilation.TryGetSemanticModel(methodDecl, out var model))
 			{
+				var usings = new HashSet<string?>
+				{
+					"System.Runtime.CompilerServices",
+					"System",
+				};
+				
 				// var variables = ProcessArguments(visitor, context.SemanticModel.Compilation, invocation, loader, token);
 				var variablesPartial = ProcessArguments(visitor, context.SemanticModel, invocation, loader, token);
 				var additionalMethods = new Dictionary<SyntaxNode, bool>(SyntaxNodeComparer<SyntaxNode>.Instance);
@@ -214,13 +220,9 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				var partialVisitor = new ConstExprPartialRewriter(model, loader, (node, ex) =>
 				{
 					exceptions.TryAdd(node, ex);
-				}, variablesPartial, additionalMethods, attribute, token);
+				}, variablesPartial, additionalMethods, usings, attribute, token);
 
-				var usings = new HashSet<string?>
-				{
-					"System.Runtime.CompilerServices",
-					"System",
-				};
+				
 
 				var timer = Stopwatch.StartNew();
 
@@ -230,8 +232,8 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				var result2 = new PruneVariableRewriter(model, loader, variablesPartial).Visit(result)!;
 
 				// Format using Roslyn formatter instead of NormalizeWhitespace
-				var text = FormattingHelper.Render(methodDecl.WithBody((BlockSyntax)result));
-				var text2 = FormattingHelper.Render(methodDecl.WithBody((BlockSyntax)result2));
+				// var text = FormattingHelper.Render(methodDecl.WithBody((BlockSyntax)result));
+				// var text2 = FormattingHelper.Render(methodDecl.WithBody((BlockSyntax)result2));
 
 				timer.Stop();
 

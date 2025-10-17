@@ -31,37 +31,37 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		return node;
 	}
 
-	public override SyntaxNode? VisitIfStatement(IfStatementSyntax node)
-	{
-		// Visit child nodes first
-		var visitedNode = base.VisitIfStatement(node);
-
-		if (visitedNode is not IfStatementSyntax visited)
-		{
-			return visitedNode;
-		}
-
-		// Process the if-statement body
-		if (visited.Statement is BlockSyntax { Statements.Count: 1 } ifBlock)
-		{
-			visited = visited.WithStatement(ifBlock.Statements[0]);
-		}
-
-		// Handle the else clause (including else-if)
-		if (visited.Else is not null)
-		{
-			var elseClause = visited.Else;
-
-			// If the else statement is a block with a single statement (and not a nested if)
-			if (elseClause.Statement is BlockSyntax { Statements.Count: 1 } elseBlock &&
-				elseBlock.Statements[0] is not IfStatementSyntax)
-			{
-				visited = visited.WithElse(elseClause.WithStatement(elseBlock.Statements[0]));
-			}
-		}
-
-		return visited;
-	}
+	// public override SyntaxNode? VisitIfStatement(IfStatementSyntax node)
+	// {
+	// 	// Visit child nodes first
+	// 	var visitedNode = base.VisitIfStatement(node);
+	//
+	// 	if (visitedNode is not IfStatementSyntax visited)
+	// 	{
+	// 		return visitedNode;
+	// 	}
+	//
+	// 	// Process the if-statement body
+	// 	if (visited.Statement is BlockSyntax { Statements.Count: 1 } ifBlock)
+	// 	{
+	// 		visited = visited.WithStatement(ifBlock.Statements[0]);
+	// 	}
+	//
+	// 	// Handle the else clause (including else-if)
+	// 	if (visited.Else is not null)
+	// 	{
+	// 		var elseClause = visited.Else;
+	//
+	// 		// If the else statement is a block with a single statement (and not a nested if)
+	// 		if (elseClause.Statement is BlockSyntax { Statements.Count: 1 } elseBlock &&
+	// 			elseBlock.Statements[0] is not IfStatementSyntax)
+	// 		{
+	// 			visited = visited.WithElse(elseClause.WithStatement(elseBlock.Statements[0]));
+	// 		}
+	// 	}
+	//
+	// 	return visited;
+	// }
 
 	public override SyntaxNode? VisitLocalFunctionStatement(LocalFunctionStatementSyntax node)
 	{
@@ -432,62 +432,133 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		return v;
 	}
 
-	public override SyntaxNode? VisitParenthesizedExpression(ParenthesizedExpressionSyntax node)
-	{
-		// Bezoek de binnenliggende expressie eerst
-		var inner = Visit(node.Expression);
+	// public override SyntaxNode? VisitInvocationExpression(InvocationExpressionSyntax node)
+	// {
+	// 	var visited = (InvocationExpressionSyntax?)base.VisitInvocationExpression(node);
+	// 	if (visited is null)
+	// 	{
+	// 		return visited;
+	// 	}
+	//
+	// 	// Check if this is part of a method chain (MemberAccessExpression as the expression)
+	// 	if (visited.Expression is not MemberAccessExpressionSyntax memberAccess)
+	// 	{
+	// 		return visited;
+	// 	}
+	//
+	// 	// Count the chain length to determine if we should split
+	// 	var chainLength = CountMethodChain(visited);
+	// 	if (chainLength < 2)
+	// 	{
+	// 		return visited; // Single method call, no need to split
+	// 	}
+	//
+	// 	// Format the chain: each method call on a new line with proper indentation
+	// 	return FormatMethodChain(visited);
+	// }
+	//
+	// private static int CountMethodChain(InvocationExpressionSyntax invocation)
+	// {
+	// 	var count = 1;
+	// 	var current = invocation.Expression;
+	//
+	// 	while (current is MemberAccessExpressionSyntax memberAccess)
+	// 	{
+	// 		if (memberAccess.Expression is InvocationExpressionSyntax innerInvocation)
+	// 		{
+	// 			count++;
+	// 			current = innerInvocation.Expression;
+	// 		}
+	// 		else
+	// 		{
+	// 			break;
+	// 		}
+	// 	}
+	//
+	// 	return count;
+	// }
 
-		// Haakjes zijn alleen nodig als de parent een lagere operator-precedentie heeft dan de child
-		var parent = node.Parent;
-		
-		if (parent is ExpressionSyntax parentExpr && inner is ExpressionSyntax innerExpr)
-		{
-			var parentPrecedence = GetOperatorPrecedence(parentExpr);
-			var childPrecedence = GetOperatorPrecedence(innerExpr);
-
-			// Als de parent-precedentie lager is, zijn haakjes nodig
-			if (childPrecedence > parentPrecedence)
-			{
-				return node.WithExpression(innerExpr);
-			}
-			
-			// Haakjes zijn niet nodig, retourneer de binnenliggende expressie
-			return innerExpr;
-		}
-
-		// Als geen parent of geen expressie, behoud haakjes
-		return node.WithExpression((ExpressionSyntax)inner);
-	}
-
-	private static int GetOperatorPrecedence(ExpressionSyntax expr)
-	{
-		// Eenvoudige precedentie: hoe hoger het getal, hoe sterker de binding
-		return expr switch
-		{
-			ParenthesizedExpressionSyntax => 0,
-			AssignmentExpressionSyntax => 1,
-			ConditionalExpressionSyntax => 2,
-			BinaryExpressionSyntax bin => bin.Kind() switch
-			{
-				SyntaxKind.LogicalOrExpression => 3,
-				SyntaxKind.LogicalAndExpression => 4,
-				SyntaxKind.BitwiseOrExpression => 5,
-				SyntaxKind.BitwiseAndExpression => 6,
-				SyntaxKind.EqualsExpression or SyntaxKind.NotEqualsExpression => 7,
-				SyntaxKind.LessThanExpression or SyntaxKind.LessThanOrEqualExpression or SyntaxKind.GreaterThanExpression or SyntaxKind.GreaterThanOrEqualExpression => 8,
-				SyntaxKind.AddExpression or SyntaxKind.SubtractExpression => 9,
-				SyntaxKind.MultiplyExpression or SyntaxKind.DivideExpression or SyntaxKind.ModuloExpression => 10,
-				_ => 11,
-			},
-			PrefixUnaryExpressionSyntax => 12,
-			PostfixUnaryExpressionSyntax => 13,
-			MemberAccessExpressionSyntax => 14,
-			InvocationExpressionSyntax => 15,
-			IdentifierNameSyntax => 16,
-			LiteralExpressionSyntax => 17,
-			_ => 0,
-		};
-	}
+	// private static InvocationExpressionSyntax FormatMethodChain(InvocationExpressionSyntax invocation)
+	// {
+	// 	// Collect all method calls in the chain from innermost to outermost
+	// 	var chain = new List<(MemberAccessExpressionSyntax MemberAccess, InvocationExpressionSyntax Invocation)>();
+	// 	var current = invocation;
+	//
+	// 	while (current.Expression is MemberAccessExpressionSyntax memberAccess)
+	// 	{
+	// 		chain.Add((memberAccess, current));
+	// 		
+	// 		if (memberAccess.Expression is InvocationExpressionSyntax innerInvocation)
+	// 		{
+	// 			current = innerInvocation;
+	// 		}
+	// 		else
+	// 		{
+	// 			break;
+	// 		}
+	// 	}
+	//
+	// 	// Reverse to go from innermost to outermost
+	// 	chain.Reverse();
+	//
+	// 	if (chain.Count == 0)
+	// 	{
+	// 		return invocation;
+	// 	}
+	//
+	// 	// Get base indentation from the statement
+	// 	var baseIndent = GetBaseIndentTrivia(invocation);
+	// 	var indentUnit = SyntaxFactory.Whitespace("\t");
+	//
+	// 	// Build the indentation for chained methods (base + two tabs for extra indentation)
+	// 	var chainIndent = SyntaxFactory.TriviaList();
+	// 	
+	// 	for (var i = 0; i < baseIndent.Count; i++)
+	// 	{
+	// 		chainIndent = chainIndent.Add(baseIndent[i]);
+	// 	}
+	// 	
+	// 	chainIndent = chainIndent.Add(indentUnit);
+	// 	chainIndent = chainIndent.Add(indentUnit); // Extra tab for chained methods
+	//
+	// 	// Process each link in the chain
+	// 	var tokensToReplace = new Dictionary<SyntaxToken, SyntaxToken>();
+	//
+	// 	for (var i = 0; i < chain.Count; i++)
+	// 	{
+	// 		var (memberAccess, inv) = chain[i];
+	// 		var dot = memberAccess.OperatorToken;
+	//
+	// 		// For all method calls after the first, add newline + indent before the dot
+	// 		if (i > 0)
+	// 		{
+	// 			var dotLeading = TrimLeadingWhitespaceAndEndOfLines(dot.LeadingTrivia);
+	// 			var newDotLeading = SyntaxFactory.TriviaList()
+	// 				.Add(SyntaxFactory.ElasticCarriageReturnLineFeed);
+	// 			
+	// 			foreach (var trivia in chainIndent)
+	// 			{
+	// 				newDotLeading = newDotLeading.Add(trivia);
+	// 			}
+	// 			
+	// 			// Preserve any comments after whitespace trimming
+	// 			foreach (var trivia in dotLeading)
+	// 			{
+	// 				newDotLeading = newDotLeading.Add(trivia);
+	// 			}
+	//
+	// 			tokensToReplace[dot] = dot.WithLeadingTrivia(newDotLeading);
+	// 		}
+	// 	}
+	//
+	// 	// Apply all token replacements
+	// 	if (tokensToReplace.Count > 0)
+	// 	{
+	// 		invocation = invocation.ReplaceTokens(tokensToReplace.Keys, (orig, _) => tokensToReplace.TryGetValue(orig, out var rep) ? rep : orig);
+	// 	}
+	//
+	// 	return invocation;
+	// }
 
 	private static void SurroundContiguousGroup(List<StatementSyntax> visited, ref int i, Func<StatementSyntax, bool> isInGroup)
 	{

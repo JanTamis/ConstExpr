@@ -22,7 +22,7 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Rewriters;
 
-public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoader loader, Action<SyntaxNode?, Exception> exceptionHandler, IDictionary<string, VariableItem> variables, IDictionary<SyntaxNode, bool> additionalMethods, ConstExprAttribute attribute, CancellationToken token) : BaseRewriter(semanticModel, loader, variables)
+public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoader loader, Action<SyntaxNode?, Exception> exceptionHandler, IDictionary<string, VariableItem> variables, IDictionary<SyntaxNode, bool> additionalMethods, ISet<string> usings, ConstExprAttribute attribute, CancellationToken token) : BaseRewriter(semanticModel, loader, variables)
 {
 	[return: NotNullIfNotNull(nameof(node))]
 	public override SyntaxNode? Visit(SyntaxNode? node)
@@ -340,6 +340,29 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 					}
 				}
 			}
+			else if (targetMethod.ContainingType.SpecialType == SpecialType.System_String
+			         && targetMethod.IsStatic)
+			{
+				var stringOptimizers = typeof(BaseStringFunctionOptimizer).Assembly
+					.GetTypes()
+					.Where(t => !t.IsAbstract && typeof(BaseStringFunctionOptimizer).IsAssignableFrom(t))
+					.Select(t => Activator.CreateInstance(t) as BaseStringFunctionOptimizer)
+					.OfType<BaseStringFunctionOptimizer>()
+					.Where(o => String.Equals(o.Name, targetMethod.Name, StringComparison.Ordinal));
+
+				foreach (var stringOptimizer in stringOptimizers)
+				{
+					if (stringOptimizer.TryOptimize(targetMethod, node, arguments.OfType<ExpressionSyntax>().ToArray(), additionalMethods, out var optimized))
+					{
+						return optimized;
+					}
+				}
+
+				if (node.Expression is MemberAccessExpressionSyntax memberAccess)
+				{
+					return node.WithExpression(memberAccess.WithExpression(ParseTypeName(targetMethod.ContainingType.Name)));
+				}
+			}
 			else if (attribute.FloatingPointMode == FloatingPointEvaluationMode.FastMath)
 			{
 				var mathOptimizers = typeof(BaseMathFunctionOptimizer).Assembly
@@ -353,24 +376,6 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 				foreach (var mathOptimizer in mathOptimizers)
 				{
 					if (mathOptimizer.TryOptimize(targetMethod, node, arguments.OfType<ExpressionSyntax>().ToArray(), additionalMethods, out var optimized))
-					{
-						return optimized;
-					}
-				}
-			}
-			else if (targetMethod.ContainingType.SpecialType == SpecialType.System_String
-				&& targetMethod.IsStatic)
-			{
-				var stringOptimizers = typeof(BaseStringFunctionOptimizer).Assembly
-					.GetTypes()
-					.Where(t => !t.IsAbstract && typeof(BaseStringFunctionOptimizer).IsAssignableFrom(t))
-					.Select(t => Activator.CreateInstance(t) as BaseStringFunctionOptimizer)
-					.OfType<BaseStringFunctionOptimizer>()
-					.Where(o => String.Equals(o.Name, targetMethod.Name, StringComparison.Ordinal));
-
-				foreach (var stringOptimizer in stringOptimizers)
-				{
-					if (stringOptimizer.TryOptimize(targetMethod, node, arguments.OfType<ExpressionSyntax>().ToArray(), additionalMethods, out var optimized))
 					{
 						return optimized;
 					}
@@ -392,7 +397,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 									var parameters = method.ParameterList.Parameters
 										.ToDictionary(d => d.Identifier.Text, d => new VariableItem(semanticModel.GetTypeInfo(d.Type).Type ?? semanticModel.Compilation.ObjectType, false, null));
 
-									var visitor = new ConstExprPartialRewriter(semanticModel, loader, (_, _) => { }, parameters, additionalMethods, attribute, token);
+									var visitor = new ConstExprPartialRewriter(semanticModel, loader, (_, _) => { }, parameters, additionalMethods, usings, attribute, token);
 									var body = visitor.Visit(method.Body) as BlockSyntax;
 
 									return method.WithBody(body).WithModifiers(mods);
@@ -402,7 +407,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 									var parameters = localFunc.ParameterList.Parameters
 										.ToDictionary(d => d.Identifier.Text, d => new VariableItem(semanticModel.GetTypeInfo(d.Type).Type ?? semanticModel.Compilation.ObjectType, false, null));
 
-									var visitor = new ConstExprPartialRewriter(semanticModel, loader, (_, _) => { }, parameters, additionalMethods, attribute, token);
+									var visitor = new ConstExprPartialRewriter(semanticModel, loader, (_, _) => { }, parameters, additionalMethods, usings, attribute, token);
 									var body = visitor.Visit(localFunc.Body) as BlockSyntax;
 
 									return localFunc.WithBody(body).WithModifiers(mods);
@@ -415,15 +420,24 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 					})
 					.FirstOrDefault(f => f is not null);
 
-				if (syntax is not null && !additionalMethods.ContainsKey(syntax))
+				if (syntax is not null)
 				{
-					additionalMethods.Add(syntax, true);
+					if (!additionalMethods.ContainsKey(syntax))
+					{
+						additionalMethods.Add(syntax, true);
+					}
+				}
+				else
+				{
+					usings.Add(targetMethod.ContainingType.ContainingNamespace.ToString());
 				}
 
 				return node.WithArgumentList(node.ArgumentList.WithArguments(SeparatedList(arguments.OfType<ExpressionSyntax>().Select(Argument))));
 			}
-		}
 
+			usings.Add(targetMethod.ContainingType.ContainingNamespace.ToString());
+		}
+		
 		return base.VisitInvocationExpression(node);
 	}
 
@@ -910,101 +924,13 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 	{
 		var expression = Visit(node.Expression);
 
-		if (expression is LiteralExpressionSyntax or IdentifierNameSyntax)
+		if (node.WithExpression(expression as ExpressionSyntax ?? node.Expression).CanRemoveParentheses(semanticModel, CancellationToken.None) 
+		    || expression is ParenthesizedExpressionSyntax)
 		{
 			return expression;
 		}
 
-		var parent = node.Parent;
-
-		if (parent is ExpressionSyntax parentExpr && expression is ExpressionSyntax innerExpr)
-		{
-			var parentPrecedence = GetOperatorPrecedence(parentExpr);
-			var childPrecedence = GetOperatorPrecedence(innerExpr);
-
-			// Check if parentheses are semantically required due to associativity
-			// For example: x / (y * z) should NOT become x / y * z
-			// Similarly: x - (y + z) should NOT become x - y + z
-			if (RequiresParenthesesForAssociativity(parent, node, innerExpr))
-			{
-				return node.WithExpression(innerExpr);
-			}
-
-			// Als de parent-precedentie lager is, zijn haakjes nodig
-			if (childPrecedence < parentPrecedence)
-			{
-				return node.WithExpression(innerExpr);
-			}
-
-			return innerExpr;
-		}
-
 		return node.WithExpression(expression as ExpressionSyntax ?? node.Expression);
-
-		static bool RequiresParenthesesForAssociativity(SyntaxNode? parent, ParenthesizedExpressionSyntax parenthesized, ExpressionSyntax inner)
-		{
-			// Check if we're on the right side of a non-associative operator
-			if (parent is BinaryExpressionSyntax binaryParent)
-			{
-				// Check if the parenthesized expression is the right operand
-				var isRightOperand = binaryParent.Right == parenthesized;
-
-				if (isRightOperand)
-				{
-					var parentKind = binaryParent.Kind();
-					var innerKind = inner.Kind();
-
-					switch (parentKind)
-					{
-						// Division and subtraction are left-associative, so parentheses on the right side matter
-						// x / (y * z) != x / y * z
-						// x / (y / z) != x / y / z
-						// x - (y + z) != x - y + z
-						// x - (y - z) != x - y - z
-						case SyntaxKind.DivideExpression when innerKind is SyntaxKind.MultiplyExpression or SyntaxKind.DivideExpression or SyntaxKind.ModuloExpression:
-						// Keep parentheses
-						case SyntaxKind.SubtractExpression when innerKind is SyntaxKind.AddExpression or SyntaxKind.SubtractExpression:
-						// Modulo with multiply/divide on right also needs parentheses
-						// Keep parentheses
-						case SyntaxKind.ModuloExpression when innerKind is SyntaxKind.MultiplyExpression or SyntaxKind.DivideExpression or SyntaxKind.ModuloExpression:
-							return true; // Keep parentheses
-					}
-
-				}
-			}
-
-			return false;
-		}
-
-		static int GetOperatorPrecedence(ExpressionSyntax expr)
-		{
-			// Eenvoudige precedentie: hoe hoger het getal, hoe sterker de binding
-			return expr switch
-			{
-				ParenthesizedExpressionSyntax => 0,
-				AssignmentExpressionSyntax => 1,
-				ConditionalExpressionSyntax => 2,
-				BinaryExpressionSyntax bin => bin.Kind() switch
-				{
-					SyntaxKind.LogicalOrExpression => 3,
-					SyntaxKind.LogicalAndExpression => 4,
-					SyntaxKind.BitwiseOrExpression => 5,
-					SyntaxKind.BitwiseAndExpression => 6,
-					SyntaxKind.EqualsExpression or SyntaxKind.NotEqualsExpression => 7,
-					SyntaxKind.LessThanExpression or SyntaxKind.LessThanOrEqualExpression or SyntaxKind.GreaterThanExpression or SyntaxKind.GreaterThanOrEqualExpression => 8,
-					SyntaxKind.AddExpression or SyntaxKind.SubtractExpression => 9,
-					SyntaxKind.MultiplyExpression or SyntaxKind.DivideExpression or SyntaxKind.ModuloExpression => 10,
-					_ => 11,
-				},
-				PrefixUnaryExpressionSyntax => 12,
-				PostfixUnaryExpressionSyntax => 13,
-				MemberAccessExpressionSyntax => 14,
-				InvocationExpressionSyntax => 15,
-				IdentifierNameSyntax => 16,
-				LiteralExpressionSyntax => 17,
-				_ => 0,
-			};
-		}
 	}
 
 	public override SyntaxNode? VisitCastExpression(CastExpressionSyntax node)
@@ -1128,7 +1054,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 						case UnaryPatternSyntax unary when unary.OperatorToken.IsKind(SyntaxKind.NotKeyword):
 							{
 								var inner = EvaluatePattern(unary.Pattern, value);
-								return inner is null ? null : !inner.Value;
+								return !inner;
 							}
 						case ParenthesizedPatternSyntax parPat:
 							return EvaluatePattern(parPat.Pattern, value);
@@ -1443,7 +1369,9 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 
 	public override SyntaxNode? VisitMemberAccessExpression(MemberAccessExpressionSyntax node)
 	{
-		TryGetLiteralValue(Visit(node.Expression), out var instanceValue);
+		var expression = Visit(node.Expression);
+		
+		TryGetLiteralValue(expression, out var instanceValue);
 
 		if (semanticModel.TryGetSymbol(node, out ISymbol? symbol))
 		{
@@ -1469,7 +1397,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 			}
 		}
 
-		return node;
+		return node.WithExpression(expression as ExpressionSyntax ?? node.Expression);
 	}
 
 	public override SyntaxNode? VisitForEachStatement(ForEachStatementSyntax node)
