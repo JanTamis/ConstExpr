@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
-namespace ConstExpr.SourceGenerator.Visitors;
+namespace ConstExpr.SourceGenerator.Models;
 
 public class VariableItemDictionary(IDictionary<string, VariableItem> inner) : IDictionary<string, object?>
 {

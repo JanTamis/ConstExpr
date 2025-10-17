@@ -1,6 +1,6 @@
 using Microsoft.CodeAnalysis;
 
-namespace ConstExpr.SourceGenerator.Visitors;
+namespace ConstExpr.SourceGenerator.Models;
 
 public class VariableItem(ITypeSymbol type, bool hasValue, object? value, bool isInitialized = false)
 {

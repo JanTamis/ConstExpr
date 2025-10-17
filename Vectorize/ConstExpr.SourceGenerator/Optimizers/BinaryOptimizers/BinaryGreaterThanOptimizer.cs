@@ -1,12 +1,12 @@
 using System.Collections.Generic;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
-using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Operations;
 using System.Linq;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
+using ConstExpr.SourceGenerator.Models;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;
 

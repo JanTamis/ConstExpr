@@ -1,3 +1,4 @@
+using ConstExpr.SourceGenerator.Helpers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -5,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace ConstExpr.SourceGenerator.Helpers;
+namespace ConstExpr.SourceGenerator.Rewriters;
 
 public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 {
@@ -21,8 +22,8 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 				MathF.PI => SyntaxFactory.ParseExpression("Single.Pi"),
 				MathF.PI * 2 => SyntaxFactory.ParseExpression("Single.Tau"),
 				MathF.E => SyntaxFactory.ParseExpression("Single.E"),
-				Double.Epsilon => SyntaxFactory.ParseExpression("Double.Epsilon"),
-				Single.Epsilon => SyntaxFactory.ParseExpression("Single.Epsilon"),
+				double.Epsilon => SyntaxFactory.ParseExpression("Double.Epsilon"),
+				float.Epsilon => SyntaxFactory.ParseExpression("Single.Epsilon"),
 				_ => expression,
 			}).WithLeadingTrivia(node.GetLeadingTrivia()).WithTrailingTrivia(node.GetTrailingTrivia());
 		}

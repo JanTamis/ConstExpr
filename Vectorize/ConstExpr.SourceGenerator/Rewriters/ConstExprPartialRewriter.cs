@@ -1,8 +1,10 @@
 using ConstExpr.Core.Attributes;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
+using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;
-using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers;
+using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
+using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -340,19 +342,36 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 			}
 			else if (attribute.FloatingPointMode == FloatingPointEvaluationMode.FastMath)
 			{
-				var optimizers = typeof(BaseFunctionOptimizer).Assembly
+				var mathOptimizers = typeof(BaseMathFunctionOptimizer).Assembly
 					.GetTypes()
-					.Where(t => !t.IsAbstract && typeof(BaseFunctionOptimizer).IsAssignableFrom(t))
-					.Select(t => Activator.CreateInstance(t) as BaseFunctionOptimizer)
-					.OfType<BaseFunctionOptimizer>()
+					.Where(t => !t.IsAbstract && typeof(BaseMathFunctionOptimizer).IsAssignableFrom(t))
+					.Select(t => Activator.CreateInstance(t) as BaseMathFunctionOptimizer)
+					.OfType<BaseMathFunctionOptimizer>()
 					.Where(o => String.Equals(o.Name, targetMethod.Name, StringComparison.Ordinal)
 											&& o.ParameterCounts.Contains(targetMethod.Parameters.Length));
 
-				foreach (var optimizer in optimizers)
+				foreach (var mathOptimizer in mathOptimizers)
 				{
-					if (optimizer.TryOptimize(targetMethod, node, arguments.OfType<ExpressionSyntax>().ToArray(), additionalMethods, out var optimized))
+					if (mathOptimizer.TryOptimize(targetMethod, node, arguments.OfType<ExpressionSyntax>().ToArray(), additionalMethods, out var optimized))
 					{
-						
+						return optimized;
+					}
+				}
+			}
+			else if (targetMethod.ContainingType.SpecialType == SpecialType.System_String
+				&& targetMethod.IsStatic)
+			{
+				var stringOptimizers = typeof(BaseStringFunctionOptimizer).Assembly
+					.GetTypes()
+					.Where(t => !t.IsAbstract && typeof(BaseStringFunctionOptimizer).IsAssignableFrom(t))
+					.Select(t => Activator.CreateInstance(t) as BaseStringFunctionOptimizer)
+					.OfType<BaseStringFunctionOptimizer>()
+					.Where(o => String.Equals(o.Name, targetMethod.Name, StringComparison.Ordinal));
+
+				foreach (var stringOptimizer in stringOptimizers)
+				{
+					if (stringOptimizer.TryOptimize(targetMethod, node, arguments.OfType<ExpressionSyntax>().ToArray(), additionalMethods, out var optimized))
+					{
 						return optimized;
 					}
 				}
@@ -912,7 +931,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 			}
 
 			// Als de parent-precedentie lager is, zijn haakjes nodig
-			if (childPrecedence > parentPrecedence)
+			if (childPrecedence < parentPrecedence)
 			{
 				return node.WithExpression(innerExpr);
 			}

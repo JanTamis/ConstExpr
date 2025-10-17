@@ -8,7 +8,7 @@ using ConstExpr.Core.Attributes;
 using ConstExpr.SourceGenerator.Helpers;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Linq;
-using ConstExpr.SourceGenerator.Visitors;
+using ConstExpr.SourceGenerator.Models;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;
 

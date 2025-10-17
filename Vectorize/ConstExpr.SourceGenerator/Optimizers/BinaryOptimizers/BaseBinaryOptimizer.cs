@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using ConstExpr.Core.Attributes;
 using ConstExpr.SourceGenerator.Helpers;
-using ConstExpr.SourceGenerator.Visitors;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;

@@ -1,0 +1,97 @@
+﻿using ConstExpr.SourceGenerator.Helpers;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers
+{
+	public class ConcatFunctionOptimizer() : BaseStringFunctionOptimizer("Concat")
+	{
+		public override bool TryOptimize(IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+		{
+			result = null;
+
+			if (!IsValidMethod(method, out var stringType))
+			{
+				return false;
+			}
+
+			// If no arguments -> empty string
+			if (parameters.Count == 0)
+			{
+				result = SyntaxHelpers.CreateLiteral(String.Empty);
+				return true;
+			}
+
+			// Combine adjacent string literals: Concat("a", "b", x, "c") -> Concat("ab", x, "c")
+			var newParams = new List<ExpressionSyntax>();
+			var literalBuffer = new StringBuilder();
+
+			void FlushBuffer()
+			{
+				if (literalBuffer.Length == 0)
+				{
+					return;
+				}
+
+				var lit = SyntaxHelpers.CreateLiteral(literalBuffer.ToString());
+
+				newParams.Add(lit);
+				literalBuffer.Clear();
+			}
+
+			foreach (var p in parameters)
+			{
+				switch (p)
+				{
+					case LiteralExpressionSyntax les when les.IsKind(SyntaxKind.StringLiteralExpression):
+						// Use Token.ValueText to get unescaped text
+						literalBuffer.Append(les.Token.ValueText);
+						break;
+					default:
+						// Non-literal: flush buffer and add parameter as-is
+						FlushBuffer();
+						newParams.Add(p);
+						break;
+				}
+			}
+
+			FlushBuffer();
+
+			// If after combining we have a single expression, return it directly
+			if (newParams.Count == 1)
+			{
+				result = newParams[0];
+				return true;
+			}
+
+			// If nothing changed, don't claim optimization
+			if (newParams.Count == parameters.Count)
+			{
+				// Compare sequence elements by reference/simple kind - cheap heuristic
+				var changed = false;
+
+				for (int i = 0; i < parameters.Count; i++)
+				{
+					if (!parameters[i].IsEquivalentTo(newParams[i])) 
+					{ 
+						changed = true; 
+						break; 
+					}
+				}
+
+				if (!changed)
+				{
+					return false;
+				}
+			}
+
+			// Rebuild invocation targeting the string helper/type
+			result = CreateInvocation(stringType, Name, newParams);
+			return true;
+		}
+	}
+}

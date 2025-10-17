@@ -102,7 +102,7 @@ public static class SyntaxHelpers
 		return expression is not null;
 	}
 
-	public static ExpressionSyntax? CreateLiteral<T>(T? value)
+	public static ExpressionSyntax CreateLiteral<T>(T? value)
 	{
 		switch (value)
 		{
@@ -130,6 +130,11 @@ public static class SyntaxHelpers
 			case decimal dec:
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(dec));
 			case string s1:
+				if (s1.Length == 0)
+				{
+					return SyntaxFactory.ParseExpression("String.Empty");
+				}
+
 				return SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(s1));
 			case char c:
 				return SyntaxFactory.LiteralExpression(SyntaxKind.CharacterLiteralExpression, SyntaxFactory.Literal(c));
@@ -230,7 +235,7 @@ public static class SyntaxHelpers
 				.Select(s => SyntaxFactory.ExpressionElement(CreateLiteral(s)))));
 		}
 
-		return null;
+		return SyntaxFactory.ParseExpression(value.ToString());
 	}
 
 	private static bool IsSpanLike(object obj)
