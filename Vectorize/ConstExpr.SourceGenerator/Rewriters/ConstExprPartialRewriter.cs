@@ -925,7 +925,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 		var expression = Visit(node.Expression);
 
 		if (node.WithExpression(expression as ExpressionSyntax ?? node.Expression).CanRemoveParentheses(semanticModel, CancellationToken.None) 
-		    || expression is ParenthesizedExpressionSyntax)
+		    || expression is ParenthesizedExpressionSyntax or IdentifierNameSyntax or LiteralExpressionSyntax)
 		{
 			return expression;
 		}
