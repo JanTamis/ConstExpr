@@ -432,6 +432,19 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		return v;
 	}
 
+	// New: normalize object creation spacing so `new Type (` -> `new Type(`
+	public override SyntaxNode? VisitObjectCreationExpression(ObjectCreationExpressionSyntax node)
+	{
+		var result = base.VisitObjectCreationExpression(node);
+		
+		if (result is ObjectCreationExpressionSyntax visited)
+		{
+			return node.WithType(node.Type.WithTrailingTrivia());
+		}
+		
+		return result;
+	}
+
 	// public override SyntaxNode? VisitInvocationExpression(InvocationExpressionSyntax node)
 	// {
 	// 	var visited = (InvocationExpressionSyntax?)base.VisitInvocationExpression(node);
@@ -487,7 +500,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 	// 	while (current.Expression is MemberAccessExpressionSyntax memberAccess)
 	// 	{
 	// 		chain.Add((memberAccess, current));
-	// 		
+	//
 	// 		if (memberAccess.Expression is InvocationExpressionSyntax innerInvocation)
 	// 		{
 	// 			current = innerInvocation;
@@ -512,12 +525,12 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 	//
 	// 	// Build the indentation for chained methods (base + two tabs for extra indentation)
 	// 	var chainIndent = SyntaxFactory.TriviaList();
-	// 	
+	//
 	// 	for (var i = 0; i < baseIndent.Count; i++)
 	// 	{
 	// 		chainIndent = chainIndent.Add(baseIndent[i]);
 	// 	}
-	// 	
+	//
 	// 	chainIndent = chainIndent.Add(indentUnit);
 	// 	chainIndent = chainIndent.Add(indentUnit); // Extra tab for chained methods
 	//
@@ -535,12 +548,12 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 	// 			var dotLeading = TrimLeadingWhitespaceAndEndOfLines(dot.LeadingTrivia);
 	// 			var newDotLeading = SyntaxFactory.TriviaList()
 	// 				.Add(SyntaxFactory.ElasticCarriageReturnLineFeed);
-	// 			
+	//
 	// 			foreach (var trivia in chainIndent)
 	// 			{
 	// 				newDotLeading = newDotLeading.Add(trivia);
 	// 			}
-	// 			
+	//
 	// 			// Preserve any comments after whitespace trimming
 	// 			foreach (var trivia in dotLeading)
 	// 			{

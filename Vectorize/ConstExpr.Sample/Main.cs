@@ -9,8 +9,8 @@ byte test2 = 16;
 
 Console.WriteLine(String.Join(", ", Test.Range(5)));
 
-Console.WriteLine(String.Join(", ", Test.IsOdd(1, 2, 3, 4, 5)));
-Console.WriteLine(Test.Average(1f, 2f, 3f, 4f, 5f, 6f));
+Console.WriteLine(String.Join(", ", Test.IsOdd(test, 2, 3, 4, 5)));
+Console.WriteLine(Test.Average(test, 2f, 3f, 4f, 5f, 6f));
 Console.WriteLine(Test.StdDev(test, 2f, 3f, 4f, 5f));
 
 Console.WriteLine(Test.StringLength("Hello, World!", Encoding.UTF8));

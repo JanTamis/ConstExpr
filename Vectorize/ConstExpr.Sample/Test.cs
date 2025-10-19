@@ -538,7 +538,7 @@ public static class Test
 	}
 
 	// Array manipulation with multiple parameters
-	public static int[] FilterAndTransform(int[] array, int minValue, int maxValue, int multiplier)
+	public static int[] FilterAndTransform(IEnumerable<int> array, int minValue, int maxValue, int multiplier)
 	{
 		return array
 			.Where(x => x >= minValue && x <= maxValue)

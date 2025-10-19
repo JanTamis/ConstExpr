@@ -222,8 +222,6 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 					exceptions.TryAdd(node, ex);
 				}, variablesPartial, additionalMethods, usings, attribute, token);
 
-				
-
 				var timer = Stopwatch.StartNew();
 
 				// visitor.VisitBlock(blockOperation.BlockBody!, variables);
@@ -236,6 +234,12 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				// var text2 = FormattingHelper.Render(methodDecl.WithBody((BlockSyntax)result2));
 
 				timer.Stop();
+
+				if (result2 is BlockSyntax blockSyntax
+				    && blockSyntax.IsEquivalentTo(methodDecl.Body))
+				{
+					return null;
+				}
 
 				Logger.Information($"{timer.Elapsed}: {invocation}");
 
