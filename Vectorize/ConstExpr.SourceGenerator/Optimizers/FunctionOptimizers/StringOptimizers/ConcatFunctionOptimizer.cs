@@ -8,13 +8,13 @@ using System.Text;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers
 {
-	public class ConcatFunctionOptimizer() : BaseStringFunctionOptimizer("Concat")
+	public class ConcatFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "Concat")
 	{
 		public override bool TryOptimize(IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 		{
 			result = null;
 
-			if (!IsValidMethod(method, out var stringType))
+			if (!IsValidMethod(method, out var stringType) || !method.IsStatic)
 			{
 				return false;
 			}
@@ -76,10 +76,10 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 
 				for (int i = 0; i < parameters.Count; i++)
 				{
-					if (!parameters[i].IsEquivalentTo(newParams[i])) 
-					{ 
-						changed = true; 
-						break; 
+					if (!parameters[i].IsEquivalentTo(newParams[i]))
+					{
+						changed = true;
+						break;
 					}
 				}
 

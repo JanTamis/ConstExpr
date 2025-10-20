@@ -341,12 +341,14 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 				}
 			}
 			else if (targetMethod.ContainingType.SpecialType == SpecialType.System_String
-			         && targetMethod.IsStatic)
+				&& node.Expression is MemberAccessExpressionSyntax memberAccess)
 			{
+				var instance = Visit(memberAccess.Expression);
+
 				var stringOptimizers = typeof(BaseStringFunctionOptimizer).Assembly
 					.GetTypes()
 					.Where(t => !t.IsAbstract && typeof(BaseStringFunctionOptimizer).IsAssignableFrom(t))
-					.Select(t => Activator.CreateInstance(t) as BaseStringFunctionOptimizer)
+					.Select(t => Activator.CreateInstance(t, instance) as BaseStringFunctionOptimizer)
 					.OfType<BaseStringFunctionOptimizer>()
 					.Where(o => String.Equals(o.Name, targetMethod.Name, StringComparison.Ordinal));
 
@@ -358,7 +360,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 					}
 				}
 
-				if (node.Expression is MemberAccessExpressionSyntax memberAccess)
+				if (targetMethod.IsStatic)
 				{
 					return node.WithExpression(memberAccess.WithExpression(ParseTypeName(targetMethod.ContainingType.Name)));
 				}
@@ -437,7 +439,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 
 			usings.Add(targetMethod.ContainingType.ContainingNamespace.ToString());
 		}
-		
+
 		return base.VisitInvocationExpression(node);
 	}
 
@@ -924,8 +926,8 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 	{
 		var expression = Visit(node.Expression);
 
-		if (node.WithExpression(expression as ExpressionSyntax ?? node.Expression).CanRemoveParentheses(semanticModel, CancellationToken.None) 
-		    || expression is ParenthesizedExpressionSyntax or IdentifierNameSyntax or LiteralExpressionSyntax)
+		if (node.WithExpression(expression as ExpressionSyntax ?? node.Expression).CanRemoveParentheses(semanticModel, CancellationToken.None)
+				|| expression is ParenthesizedExpressionSyntax or IdentifierNameSyntax or LiteralExpressionSyntax)
 		{
 			return expression;
 		}
@@ -1370,7 +1372,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 	public override SyntaxNode? VisitMemberAccessExpression(MemberAccessExpressionSyntax node)
 	{
 		var expression = Visit(node.Expression);
-		
+
 		TryGetLiteralValue(expression, out var instanceValue);
 
 		if (semanticModel.TryGetSymbol(node, out ISymbol? symbol))

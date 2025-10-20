@@ -9,8 +9,8 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers
 public abstract class BaseMathFunctionOptimizer(string name, params int[] parameterCounts) : BaseFunctionOptimizer
 {
 	public string Name { get; } = name;
-	public int[] ParameterCounts { get; } = parameterCounts;	
-	
+	public int[] ParameterCounts { get; } = parameterCounts;
+
 	protected bool HasMethod(ITypeSymbol type, string name, int parameterCount)
 	{
 		return type.GetMembers(name)
@@ -22,13 +22,15 @@ public abstract class BaseMathFunctionOptimizer(string name, params int[] parame
 
 	protected bool IsValidMathMethod(IMethodSymbol method, [NotNullWhen(true)] out ITypeSymbol type)
 	{
-		type = method.Parameters.Length > 0 ? method.Parameters[0].Type : null!;
+		type = method.Parameters
+			.Select(s => s.Type)
+			.FirstOrDefault();
 
 		return method.Name == Name
 			&& type.IsNumericType()
 			&& ParameterCounts.Contains(method.Parameters.Length)
 			&& method.ContainingType.ToString() is "System.Math" or "System.MathF" || method.ContainingType.EqualsType(type);
-	}	
+	}
 
 	protected bool IsApproximately(double a, double b)
 	{
