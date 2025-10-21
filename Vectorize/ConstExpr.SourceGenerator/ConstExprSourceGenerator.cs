@@ -73,7 +73,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		var code = new IndentedCodeWriter(compilation);
 
 		var distinctUsings = methodGroup
-			.SelectMany(m => m?.Usings ?? [])
+			.SelectMany(m => m?.Usings ?? [ ])
 			.ToSet();
 
 		var distinctAdditionalMethods = methodGroup
@@ -102,16 +102,13 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 		EmitInterceptsLocationAttributeStub(code);
 
-		// if (!methodGroup.SelectMany(s => s!.Exceptions).Any())
-		// {
-			var result = String.Join("\n", distinctUsings
-				.Where(w => !String.IsNullOrWhiteSpace(w))
-				.OrderByDescending(o => o.StartsWith("System"))
-				.ThenBy(o => o)
-				.Select(s => $"using {s};")) + "\n\n" + code;
+		var result = String.Join("\n", distinctUsings
+			.Where(w => !String.IsNullOrWhiteSpace(w))
+			.OrderByDescending(o => o.StartsWith("System"))
+			.ThenBy(o => o)
+			.Select(s => $"using {s};")) + "\n\n" + code;
 
-			spc.AddSource($"{methodGroup.First().ParentType.Identifier}_{methodGroup.Key.Identifier}.g.cs", result);
-		// }
+		spc.AddSource($"{methodGroup.First().ParentType.Identifier}_{methodGroup.Key.Identifier}.g.cs", result);
 	}
 
 	#region Emission Helpers
@@ -163,15 +160,15 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 	private InvocationModel? GenerateSource(GeneratorSyntaxContext context, CancellationToken token)
 	{
 		if (context.Node is not InvocationExpressionSyntax invocation
-				|| !TryGetSymbol(context.SemanticModel, invocation, token, out var methodSymbol)
-				|| !methodSymbol.IsStatic)
+		    || !TryGetSymbol(context.SemanticModel, invocation, token, out var methodSymbol)
+		    || !methodSymbol.IsStatic)
 		{
 			return null;
 		}
 
 		var attribute = methodSymbol.GetAttributes().FirstOrDefault(IsConstExprAttribute)
-										?? methodSymbol.ContainingType?.GetAttributes().FirstOrDefault(IsConstExprAttribute)
-										?? methodSymbol.ContainingAssembly.GetAttributes().FirstOrDefault(IsConstExprAttribute);
+		                ?? methodSymbol.ContainingType?.GetAttributes().FirstOrDefault(IsConstExprAttribute)
+		                ?? methodSymbol.ContainingAssembly.GetAttributes().FirstOrDefault(IsConstExprAttribute);
 
 		// Check for ConstExprAttribute on type or method
 		if (attribute is not null && !IsInConstExprBody(context.SemanticModel.Compilation, invocation))
@@ -186,7 +183,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 	}
 
 	private InvocationModel? GenerateExpression(GeneratorSyntaxContext context, MetadataLoader loader, InvocationExpressionSyntax invocation,
-																							IMethodSymbol methodSymbol, ConstExprAttribute attribute, CancellationToken token)
+	                                            IMethodSymbol methodSymbol, ConstExprAttribute attribute, CancellationToken token)
 	{
 		var methodDecl = GetMethodSyntaxNode(methodSymbol);
 
@@ -205,14 +202,14 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		try
 		{
 			if ( //exceptions.IsEmpty
-					context.SemanticModel.Compilation.TryGetSemanticModel(methodDecl, out var model))
+			    context.SemanticModel.Compilation.TryGetSemanticModel(methodDecl, out var model))
 			{
 				var usings = new HashSet<string?>
 				{
 					"System.Runtime.CompilerServices",
 					"System",
 				};
-				
+
 				// var variables = ProcessArguments(visitor, context.SemanticModel.Compilation, invocation, loader, token);
 				var variablesPartial = ProcessArguments(visitor, context.SemanticModel, invocation, loader, token);
 				var additionalMethods = new Dictionary<SyntaxNode, bool>(SyntaxNodeComparer<SyntaxNode>.Instance);
@@ -253,7 +250,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 						.WithIdentifier(SyntaxFactory.Identifier($"{methodDecl.Identifier.Text}_{result2.GetDeterministicHash()}")
 							.WithLeadingTrivia(methodDecl.Identifier.LeadingTrivia)
 							.WithTrailingTrivia(methodDecl.Identifier.TrailingTrivia))
-						.WithBody((BlockSyntax)result2)) as MethodDeclarationSyntax ?? methodDecl,
+						.WithBody((BlockSyntax) result2)) as MethodDeclarationSyntax ?? methodDecl,
 					AdditionalMethods = additionalMethods
 						.OrderByDescending(o => o.Value)
 						.Select(s => FormattingHelper.Format(s.Key)),
@@ -348,13 +345,13 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		switch (type)
 		{
 			case INamedTypeSymbol namedType:
+			{
+				foreach (var arg in namedType.TypeArguments)
 				{
-					foreach (var arg in namedType.TypeArguments)
-					{
-						SetUsings(arg, usings);
-					}
-					break;
+					SetUsings(arg, usings);
 				}
+				break;
+			}
 			case IArrayTypeSymbol arrayType:
 				SetUsings(arrayType.ElementType, usings);
 				break;

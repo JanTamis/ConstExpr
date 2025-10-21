@@ -2,10 +2,7 @@ using System.Collections.Generic;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Operations;
-using System.Linq;
-using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 using ConstExpr.SourceGenerator.Models;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;
@@ -61,37 +58,37 @@ public class BinaryLessThanOptimizer : BaseBinaryOptimizer
 			}
 		}
 
-		// x < 0 = T.IsNegative(x)
-		if (rightValue.IsNumericZero() && RightType?.HasMember<IMethodSymbol>("IsNegative", m => m.Parameters.Length == 1 && m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, RightType))) == true)
-		{
-			result = InvocationExpression(
-				MemberAccessExpression(
-					SyntaxKind.SimpleMemberAccessExpression,
-					ParseTypeName(RightType.Name),
-					IdentifierName("IsNegative")))
-				.WithArgumentList(
-					ArgumentList(
-						SingletonSeparatedList(
-							Argument(Left))));
-
-			return true;
-		}
+		// // x < 0 = T.IsNegative(x)
+		// if (rightValue.IsNumericZero() && RightType?.HasMember<IMethodSymbol>("IsNegative", m => m.Parameters.Length == 1 && m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, RightType))) == true)
+		// {
+		// 	result = InvocationExpression(
+		// 		MemberAccessExpression(
+		// 			SyntaxKind.SimpleMemberAccessExpression,
+		// 			ParseTypeName(RightType.Name),
+		// 			IdentifierName("IsNegative")))
+		// 		.WithArgumentList(
+		// 			ArgumentList(
+		// 				SingletonSeparatedList(
+		// 					Argument(Left))));
+		//
+		// 	return true;
+		// }
 		
-		// 0 < x = T.IsPositive(x)
-		if (leftValue.IsNumericZero() && LeftType?.HasMember<IMethodSymbol>("IsPositive", m => m.Parameters.Length == 1 && m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, LeftType))) == true)
-		{
-			result = InvocationExpression(
-				MemberAccessExpression(
-					SyntaxKind.SimpleMemberAccessExpression,
-					ParseTypeName(LeftType.Name),
-					IdentifierName("IsPositive")))
-				.WithArgumentList(
-					ArgumentList(
-						SingletonSeparatedList(
-							Argument(Right))));
-			
-			return true;
-		}
+		// // 0 < x = T.IsPositive(x)
+		// if (leftValue.IsNumericZero() && LeftType?.HasMember<IMethodSymbol>("IsPositive", m => m.Parameters.Length == 1 && m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, LeftType))) == true)
+		// {
+		// 	result = InvocationExpression(
+		// 		MemberAccessExpression(
+		// 			SyntaxKind.SimpleMemberAccessExpression,
+		// 			ParseTypeName(LeftType.Name),
+		// 			IdentifierName("IsPositive")))
+		// 		.WithArgumentList(
+		// 			ArgumentList(
+		// 				SingletonSeparatedList(
+		// 					Argument(Right))));
+		// 	
+		// 	return true;
+		// }
 
 		return false;
 	}

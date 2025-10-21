@@ -60,7 +60,6 @@ public class BinaryNotEqualsOptimizer : BaseBinaryOptimizer
 		    && Left is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.ModuloExpression } modExpr
 		    && modExpr.Right.TryGetLiteralValue(loader, variables, out var modValue)
 		    && modValue.IsNumericValue(2)
-		    && LeftType?.IsInteger() == true
 		    && LeftType.HasMember<IMethodSymbol>("IsOddInteger", m => m.Parameters.Length == 1 && m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, LeftType))))
 		{
 			result = InvocationExpression(
@@ -80,7 +79,6 @@ public class BinaryNotEqualsOptimizer : BaseBinaryOptimizer
 		    && Left is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.ModuloExpression } modExpr2
 		    && modExpr2.Right.TryGetLiteralValue(loader, variables, out var modValue2)
 		    && modValue2.IsNumericValue(2)
-		    && LeftType?.IsInteger() == true
 		    && LeftType.HasMember<IMethodSymbol>("IsEvenInteger", m => m.Parameters.Length == 1 && m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, LeftType))))
 		{
 			result = InvocationExpression(
@@ -100,7 +98,6 @@ public class BinaryNotEqualsOptimizer : BaseBinaryOptimizer
 		    && Left is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.BitwiseAndExpression } andExpr
 		    && andExpr.Right.TryGetLiteralValue(loader, variables, out var andValue)
 		    && andValue.IsNumericOne()
-		    && LeftType?.IsInteger() == true
 		    && LeftType.HasMember<IMethodSymbol>("IsOddInteger", m => m.Parameters.Length == 1 && m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, LeftType))))
 		{
 			result = InvocationExpression(
@@ -120,7 +117,6 @@ public class BinaryNotEqualsOptimizer : BaseBinaryOptimizer
 		    && Left is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.BitwiseAndExpression } andExpr2
 		    && andExpr2.Right.TryGetLiteralValue(loader, variables, out var andValue2)
 		    && andValue2.IsNumericOne()
-		    && LeftType?.IsInteger() == true
 		    && LeftType.HasMember<IMethodSymbol>("IsOddInteger", m => m.Parameters.Length == 1 && m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, LeftType))))
 		{
 			result = InvocationExpression(

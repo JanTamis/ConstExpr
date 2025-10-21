@@ -4,7 +4,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Operations;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
-using ConstExpr.Core.Attributes;
 using ConstExpr.SourceGenerator.Helpers;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Linq;

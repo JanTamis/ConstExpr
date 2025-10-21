@@ -100,7 +100,7 @@ public static class Test
 
 		for (var i = 0; i < count; i++)
 		{
-			result.Add((byte)random.Next(5));
+			result.Add((byte)random.Next(i));
 		}
 
 		return result; // result.OrderBy(o => o).ToList();

@@ -11,7 +11,6 @@ using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.InteropServices.ComTypes;
 using System.Threading;
 using TypeInfo = Microsoft.CodeAnalysis.TypeInfo;
 

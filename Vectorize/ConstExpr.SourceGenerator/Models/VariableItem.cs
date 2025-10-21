@@ -11,6 +11,8 @@ public class VariableItem(ITypeSymbol type, bool hasValue, object? value, bool i
 	public bool HasValue { get; set; } = hasValue;
 
 	public bool IsInitialized { get; set; } = isInitialized;
+	
+	public bool IsAccessed { get; set; }
 
 	public object? MinValue { get; set; }
 	public object? MaxValue { get; set; }

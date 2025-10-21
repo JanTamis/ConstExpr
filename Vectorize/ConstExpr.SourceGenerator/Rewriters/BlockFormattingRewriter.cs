@@ -10,6 +10,38 @@ namespace ConstExpr.SourceGenerator.Rewriters;
 
 public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 {
+	public override SyntaxNode? VisitSimpleLambdaExpression(SimpleLambdaExpressionSyntax node)
+	{
+		var visited = (SimpleLambdaExpressionSyntax?)base.VisitSimpleLambdaExpression(node);
+		if (visited is null)
+		{
+			return visited;
+		}
+
+		// Check if the lambda body is a simple invocation where the parameter is passed as the only argument
+		// Pattern: w => Method(w) -> Method
+		if (visited.ExpressionBody is InvocationExpressionSyntax invocation)
+		{
+			// Check if there's exactly one argument and it matches the lambda parameter
+			if (invocation.ArgumentList.Arguments.Count == 1)
+			{
+				var arg = invocation.ArgumentList.Arguments[0];
+				if (arg.Expression is IdentifierNameSyntax identifier &&
+				    identifier.Identifier.ValueText == visited.Parameter.Identifier.ValueText &&
+				    arg.NameColon is null &&
+				    arg.RefKindKeyword.IsKind(SyntaxKind.None))
+				{
+					// Return just the method expression (e.g., Double.IsOddInteger)
+					return invocation.Expression
+						.WithLeadingTrivia(visited.GetLeadingTrivia())
+						.WithTrailingTrivia(visited.GetTrailingTrivia());
+				}
+			}
+		}
+
+		return visited;
+	}
+
 	public override SyntaxNode? VisitLiteralExpression(LiteralExpressionSyntax node)
 	{
 		if (SyntaxHelpers.TryGetLiteral(node.Token.Value, out var expression))
@@ -975,3 +1007,4 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		return false;
 	}
 }
+

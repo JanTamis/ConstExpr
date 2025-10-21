@@ -1,10 +1,9 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers
 {
@@ -14,25 +13,25 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers
 
 		protected InvocationExpressionSyntax CreateInvocation(ITypeSymbol type, string name, params IEnumerable<ExpressionSyntax> parameters)
 		{
-			return SyntaxFactory.InvocationExpression(
-					SyntaxFactory.MemberAccessExpression(
+			return InvocationExpression(
+					MemberAccessExpression(
 						SyntaxKind.SimpleMemberAccessExpression,
-						SyntaxFactory.ParseTypeName(type.Name),
-						SyntaxFactory.IdentifierName(name)))
+						ParseTypeName(type.Name),
+						IdentifierName(name)))
 				.WithArgumentList(
-					SyntaxFactory.ArgumentList(
-						SyntaxFactory.SeparatedList(
-							parameters.Select(SyntaxFactory.Argument))));
+					ArgumentList(
+						SeparatedList(
+							parameters.Select(Argument))));
 		}
 
 		protected InvocationExpressionSyntax CreateInvocation(string name, params IEnumerable<ExpressionSyntax> parameters)
 		{
-			return SyntaxFactory.InvocationExpression(
-							SyntaxFactory.IdentifierName(name))
+			return InvocationExpression(
+							IdentifierName(name))
 							.WithArgumentList(
-								SyntaxFactory.ArgumentList(
-									SyntaxFactory.SeparatedList(
-										parameters.Select(SyntaxFactory.Argument))));
+								ArgumentList(
+									SeparatedList(
+										parameters.Select(Argument))));
 		}
 
 		protected static bool IsPure(SyntaxNode node)
