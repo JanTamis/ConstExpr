@@ -47,7 +47,8 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 	public override SyntaxNode? VisitIdentifierName(IdentifierNameSyntax node)
 	{
 		if (variables.TryGetValue(node.Identifier.Text, out var value)
-		    && value.HasValue)
+		    && value.HasValue
+		    && !value.IsAltered)
 		{
 			value.IsAccessed = true;
 			
@@ -443,9 +444,11 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 			usings.Add(targetMethod.ContainingType.ContainingNamespace.ToString());
 		}
 
-		if (node.Expression is MemberAccessExpressionSyntax memberAccessExpression)
+		if (node.Expression is MemberAccessExpressionSyntax { Expression: IdentifierNameSyntax identifierName }
+		    && variables.TryGetValue(identifierName.Identifier.Text, out var variable))
 		{
-			Visit(memberAccessExpression.Expression);
+			variable.IsAccessed = true;
+			variable.IsAltered = true;
 		}
 
 		return node
