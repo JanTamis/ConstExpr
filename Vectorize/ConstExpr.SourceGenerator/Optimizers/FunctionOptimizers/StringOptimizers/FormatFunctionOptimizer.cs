@@ -8,6 +8,13 @@ using System.Text;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers
 {
+	/// <summary>
+	/// Optimizes usages of <c>string.Format</c>. This optimizer:
+	/// - Converts suitable <c>string.Format</c> calls with a constant format string into an interpolated string expression when it can safely be done (for example, <c>string.Format("Hello {0}", name)</c> -> <c>$"Hello {name}"</c>).
+	/// - Ensures purity for repeated argument usages to avoid duplicating side-effects.
+	/// - If conversion to an interpolated string is not possible or safe, the optimizer will not claim a change.
+	/// </summary>
+	/// <param name="instance">Optional syntax node instance provided by the optimizer infrastructure; may be null.</param>
 	public class FormatFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "Format")
 	{
 		public override bool TryOptimize(IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
@@ -280,7 +287,6 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 
 					contentBuilder.Append('}');
 					continue;
-
 				}
 
 				if (ch == '}')
@@ -297,15 +303,12 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 				}
 
 				// regular char: escape backslash and double-quote for inclusion in a double-quoted string
-				if (ch == '"' || ch == '\\')
+				if (ch is '"' or '\\')
 				{
 					contentBuilder.Append('\\');
-					contentBuilder.Append(ch);
 				}
-				else
-				{
-					contentBuilder.Append(ch);
-				}
+				
+				contentBuilder.Append(ch);
 
 				pos++;
 			}

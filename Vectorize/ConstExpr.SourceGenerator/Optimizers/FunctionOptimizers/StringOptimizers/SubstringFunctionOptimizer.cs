@@ -7,6 +7,13 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers
 {
+	/// <summary>
+	/// Optimizes usages of <c>string.Substring</c>. This optimizer:
+	/// - Converts certain Substring calls to range-based element access when possible (for example, <c>s.Substring(start, length)</c> -> <c>s[start..(start+length)]</c> or <c>s[..to]</c> when start is 0).
+	/// - Returns an empty string literal for zero-length requests when that can be determined at compile time.
+	/// - Rewrites the invocation to use range/element access expressions when appropriate while preserving semantics.
+	/// </summary>
+	/// <param name="instance">Optional syntax node instance provided by the optimizer infrastructure; may be null.</param>
 	public class SubstringFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "Substring")
 	{
 		public override bool TryOptimize(IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
@@ -65,9 +72,6 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 					if (startLit.Token.Value is 0)
 					{
 						range = RangeExpression(null, length);
-						// var bracketedArgs = BracketedArgumentList(SingletonSeparatedList(Argument(RangeExpression(null, length))));
-						// result = ElementAccessExpression(targetExpr, bracketedArgs);
-						// return true;
 					}
 				}
 			

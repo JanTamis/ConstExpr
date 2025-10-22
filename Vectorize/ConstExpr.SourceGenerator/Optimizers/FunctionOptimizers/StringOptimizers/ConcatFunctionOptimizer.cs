@@ -8,6 +8,13 @@ using System.Text;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers
 {
+	/// <summary>
+	/// Optimizes usages of <c>string.Concat</c>. This optimizer:
+	/// - Combines adjacent string literal arguments into a single literal (for example, <c>Concat("a", "b", x)</c> -> <c>Concat("ab", x)</c>).
+	/// - If the call reduces to a single expression, returns that expression directly.
+	/// - Rebuilds the invocation targeting the resolved string type/helper when changes are made.
+	/// </summary>
+	/// <param name="instance">Optional syntax node instance provided by the optimizer infrastructure; may be null.</param>
 	public class ConcatFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "Concat")
 	{
 		public override bool TryOptimize(IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
@@ -74,7 +81,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 				// Compare sequence elements by reference/simple kind - cheap heuristic
 				var changed = false;
 
-				for (int i = 0; i < parameters.Count; i++)
+				for (var i = 0; i < parameters.Count; i++)
 				{
 					if (!parameters[i].IsEquivalentTo(newParams[i]))
 					{
