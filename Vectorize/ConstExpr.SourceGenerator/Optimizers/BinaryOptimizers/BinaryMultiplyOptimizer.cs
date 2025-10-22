@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
@@ -22,7 +23,7 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 		{
 			return false;
 		}
-		
+
 		Left.TryGetLiteralValue(loader, variables, out var leftValue);
 		Right.TryGetLiteralValue(loader, variables, out var rightValue);
 
@@ -98,12 +99,65 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 			return true;
 		}
 
+
+
+		// Strength reduction: express multiplications by constants as shifts +/- original using nearest power of two
+		// e.g. 3 => (x << 1) + x, 5 => (x << 2) + x, 7 => (x << 3) - x, 9 => (x << 3) + x
+		if (Type.IsInteger())
+		{
+			// right constant: x * C => use (x << n) +/- x when applicable
+			if (rightValue != null && TryGetUInt(rightValue, out var rv) && IsPure(Left))
+			{
+				var down = RoundDownToPowerOf2(rv);
+				var up = RoundUpToPowerOf2(rv);
+
+				if (down != 0 && rv == down + 1)
+				{
+					var shifted = BinaryExpression(SyntaxKind.LeftShiftExpression, Left,
+						LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(Log2(down))));
+					result = ParenthesizedExpression(BinaryExpression(SyntaxKind.AddExpression, shifted, Left));
+					return true;
+				}
+
+				if (up != 0 && rv == up - 1)
+				{
+					var shifted = BinaryExpression(SyntaxKind.LeftShiftExpression, Left,
+						LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(Log2(up))));
+					result = ParenthesizedExpression(BinaryExpression(SyntaxKind.SubtractExpression, shifted, Left));
+					return true;
+				}
+			}
+
+			// left constant: C * x => use (x << n) +/- x when applicable
+			if (leftValue != null && TryGetUInt(leftValue, out var lv) && IsPure(Right))
+			{
+				var down = RoundDownToPowerOf2(lv);
+				var up = RoundUpToPowerOf2(lv);
+
+				if (down != 0 && lv == down + 1)
+				{
+					var shifted = BinaryExpression(SyntaxKind.LeftShiftExpression, Right,
+						LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(Log2(down))));
+					result = ParenthesizedExpression(BinaryExpression(SyntaxKind.AddExpression, shifted, Right));
+					return true;
+				}
+
+				if (up != 0 && lv == up - 1)
+				{
+					var shifted = BinaryExpression(SyntaxKind.LeftShiftExpression, Right,
+						LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(Log2(up))));
+					result = ParenthesizedExpression(BinaryExpression(SyntaxKind.SubtractExpression, shifted, Right));
+					return true;
+				}
+			}
+		}
+
 		// x * (power of two) => x << n (integer)
 		if (Type.IsInteger() && rightValue.IsNumericPowerOfTwo(out var power))
 		{
 			result = BinaryExpression(SyntaxKind.LeftShiftExpression, Left,
 				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(power)));
-			
+
 			return true;
 		}
 
@@ -117,15 +171,15 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 		}
 
 		// (-x) * (-y) => x * y (pure)
-		if (Left is PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.UnaryMinusExpression } leftNeg
-		    && Right is PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.UnaryMinusExpression } rightNeg)
+		if (Left is PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.UnaryMinusExpression } leftNeg
+		    && Right is PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.UnaryMinusExpression } rightNeg)
 		{
 			result = BinaryExpression(SyntaxKind.MultiplyExpression, leftNeg.Operand, rightNeg.Operand);
 			return true;
 		}
 
 		// (-x) * y => -(x * y) (pure, can help with further optimizations)
-		if (Left is PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.UnaryMinusExpression } leftNeg2)
+		if (Left is PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.UnaryMinusExpression } leftNeg2)
 		{
 			result = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
 				ParenthesizedExpression(BinaryExpression(SyntaxKind.MultiplyExpression, leftNeg2.Operand, Right)));
@@ -133,7 +187,7 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 		}
 
 		// x * (-y) => -(x * y) (pure)
-		if (Right is PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.UnaryMinusExpression } rightNeg2)
+		if (Right is PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.UnaryMinusExpression } rightNeg2)
 		{
 			result = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
 				ParenthesizedExpression(BinaryExpression(SyntaxKind.MultiplyExpression, Left, rightNeg2.Operand)));
@@ -141,7 +195,7 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 		}
 
 		// (x * C1) * C2 => x * (C1 * C2) - combine constants
-		if (Left is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.MultiplyExpression } leftMul
+		if (Left is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.MultiplyExpression } leftMul
 		    && rightValue != null)
 		{
 			var hasLeftLeft = leftMul.Left.TryGetLiteralValue(loader, variables, out var leftLeftValue);
@@ -151,6 +205,7 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 			{
 				// (x * C1) * C2 => x * (C1 * C2)
 				var combined = leftRightValue.Multiply(rightValue);
+
 				if (combined != null)
 				{
 					result = BinaryExpression(SyntaxKind.MultiplyExpression, leftMul.Left,
@@ -162,6 +217,7 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 			{
 				// (C1 * x) * C2 => x * (C1 * C2)
 				var combined = leftLeftValue.Multiply(rightValue);
+
 				if (combined != null)
 				{
 					result = BinaryExpression(SyntaxKind.MultiplyExpression, leftMul.Right,
@@ -172,7 +228,7 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 		}
 
 		// C1 * (x * C2) => x * (C1 * C2) - combine constants
-		if (Right is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.MultiplyExpression } rightMul
+		if (Right is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.MultiplyExpression } rightMul
 		    && leftValue != null)
 		{
 			var hasRightLeft = rightMul.Left.TryGetLiteralValue(loader, variables, out var rightLeftValue);
@@ -182,6 +238,7 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 			{
 				// C1 * (x * C2) => x * (C1 * C2)
 				var combined = leftValue.Multiply(rightRightValue);
+
 				if (combined != null)
 				{
 					result = BinaryExpression(SyntaxKind.MultiplyExpression, rightMul.Left,
@@ -193,6 +250,7 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 			{
 				// C1 * (C2 * x) => x * (C1 * C2)
 				var combined = leftValue.Multiply(rightLeftValue);
+
 				if (combined != null)
 				{
 					result = BinaryExpression(SyntaxKind.MultiplyExpression, rightMul.Right,
@@ -203,8 +261,8 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 		}
 
 		// (x * C1) * (y * C2) => (x * y) * (C1 * C2) - combine constants from both sides
-		if (Left is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.MultiplyExpression } leftMul2
-		    && Right is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.MultiplyExpression } rightMul2)
+		if (Left is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.MultiplyExpression } leftMul2
+		    && Right is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.MultiplyExpression } rightMul2)
 		{
 			var hasLeftLeft = leftMul2.Left.TryGetLiteralValue(loader, variables, out var leftLeftValue2);
 			var hasLeftRight = leftMul2.Right.TryGetLiteralValue(loader, variables, out var leftRightValue2);
@@ -241,6 +299,7 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 			if (leftConstant != null && rightConstant != null && leftNonConstant != null && rightNonConstant != null)
 			{
 				var combined = leftConstant.Multiply(rightConstant);
+
 				if (combined != null)
 				{
 					result = BinaryExpression(SyntaxKind.MultiplyExpression,
@@ -250,7 +309,63 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 				}
 			}
 		}
-		
+
 		return false;
+	}
+
+	private static uint RoundUpToPowerOf2(uint value)
+	{
+		// Based on https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
+		--value;
+		value |= value >> 1;
+		value |= value >> 2;
+		value |= value >> 4;
+		value |= value >> 8;
+		value |= value >> 16;
+		return value + 1;
+	}
+
+	private static uint RoundDownToPowerOf2(uint value)
+	{
+		// Returns the largest power of two less than or equal to value.
+		// If value is 0, returns 0.
+		if (value == 0)
+			return 0;
+
+		value |= value >> 1;
+		value |= value >> 2;
+		value |= value >> 4;
+		value |= value >> 8;
+		value |= value >> 16;
+		return value - (value >> 1);
+	}
+
+	private static bool TryGetUInt(object? value, out uint result)
+	{
+		result = 0;
+		if (value == null) return false;
+
+		try
+		{
+			result = Convert.ToUInt32(value);
+			return true;
+		}
+		catch
+		{
+			return false;
+		}
+	}
+
+	private static int Log2(uint v)
+	{
+		var n = 0;
+
+		while (v > 1)
+		{
+			v >>= 1;
+			n++;
+		}
+		
+		return n;
 	}
 }

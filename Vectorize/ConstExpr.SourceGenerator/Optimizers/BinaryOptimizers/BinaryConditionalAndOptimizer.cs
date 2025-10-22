@@ -58,6 +58,57 @@ public class BinaryConditionalAndOptimizer : BaseBinaryOptimizer
 			return true;
 		}
 
+		// Absorption law: a && (a || b) => a (pure)
+		if (Right is Microsoft.CodeAnalysis.CSharp.Syntax.BinaryExpressionSyntax { RawKind: (int) Microsoft.CodeAnalysis.CSharp.SyntaxKind.LogicalOrExpression } rightOr
+		    && IsPure(Left))
+		{
+			if (rightOr.Left.IsEquivalentTo(Left) || rightOr.Right.IsEquivalentTo(Left))
+			{
+				result = Left;
+				return true;
+			}
+		}
+
+		// Absorption law: (a || b) && a => a (pure)
+		if (Left is Microsoft.CodeAnalysis.CSharp.Syntax.BinaryExpressionSyntax { RawKind: (int) Microsoft.CodeAnalysis.CSharp.SyntaxKind.LogicalOrExpression } leftOr
+		    && IsPure(Right))
+		{
+			if (leftOr.Left.IsEquivalentTo(Right) || leftOr.Right.IsEquivalentTo(Right))
+			{
+				result = Right;
+				return true;
+			}
+		}
+
+		// Redundancy: (a && b) && a => a && b (already covered by left side, pure)
+		if (Right is Microsoft.CodeAnalysis.CSharp.Syntax.BinaryExpressionSyntax { RawKind: (int) Microsoft.CodeAnalysis.CSharp.SyntaxKind.LogicalAndExpression } rightAnd
+		    && IsPure(Left))
+		{
+			if (rightAnd.Left.IsEquivalentTo(Left) || rightAnd.Right.IsEquivalentTo(Left))
+			{
+				result = Right;
+				return true;
+			}
+		}
+
+		// a && !a => false (contradiction, pure)
+		if (Right is Microsoft.CodeAnalysis.CSharp.Syntax.PrefixUnaryExpressionSyntax { RawKind: (int) Microsoft.CodeAnalysis.CSharp.SyntaxKind.LogicalNotExpression } rightNot
+		    && rightNot.Operand.IsEquivalentTo(Left)
+		    && IsPure(Left))
+		{
+			result = SyntaxHelpers.CreateLiteral(false);
+			return true;
+		}
+
+		// !a && a => false (contradiction, pure)
+		if (Left is Microsoft.CodeAnalysis.CSharp.Syntax.PrefixUnaryExpressionSyntax { RawKind: (int) Microsoft.CodeAnalysis.CSharp.SyntaxKind.LogicalNotExpression } leftNot
+		    && leftNot.Operand.IsEquivalentTo(Right)
+		    && IsPure(Right))
+		{
+			result = SyntaxHelpers.CreateLiteral(false);
+			return true;
+		}
+
 		return false;
 	}
 }

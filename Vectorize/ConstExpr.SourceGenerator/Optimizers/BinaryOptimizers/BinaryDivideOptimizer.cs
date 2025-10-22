@@ -81,6 +81,27 @@ public class BinaryDivideOptimizer : BaseBinaryOptimizer
 			return true;
 		}
 
+		// (x * a) / a => x (algebraic identity, pure, when a != 0)
+		if (Left is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.MultiplyExpression } leftMul
+		    && hasRightValue && !rightValue.IsNumericZero())
+		{
+			if (leftMul.Right.TryGetLiteralValue(loader, variables, out var leftMulRight)
+			    && EqualityComparer<object?>.Default.Equals(leftMulRight, rightValue)
+			    && IsPure(leftMul.Left))
+			{
+				result = leftMul.Left;
+				return true;
+			}
+			
+			if (leftMul.Left.TryGetLiteralValue(loader, variables, out var leftMulLeft)
+			    && EqualityComparer<object?>.Default.Equals(leftMulLeft, rightValue)
+			    && IsPure(leftMul.Right))
+			{
+				result = leftMul.Right;
+				return true;
+			}
+		}
+
 		// (-x) / (-y) => x / y (pure)
 		if (Left is PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.UnaryMinusExpression } leftNeg
 		    && Right is PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.UnaryMinusExpression } rightNeg

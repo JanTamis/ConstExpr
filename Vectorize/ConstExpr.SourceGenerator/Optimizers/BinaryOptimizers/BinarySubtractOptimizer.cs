@@ -56,6 +56,24 @@ public class BinarySubtractOptimizer : BaseBinaryOptimizer
 			return true;
 		}
 
+		// (x + a) - a => x (algebraic identity, pure)
+		if (Left is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.AddExpression } leftAdd
+		    && leftAdd.Right.IsEquivalentTo(Right)
+		    && IsPure(leftAdd.Left) && IsPure(leftAdd.Right) && IsPure(Right))
+		{
+			result = leftAdd.Left;
+			return true;
+		}
+
+		// (a + x) - a => x (algebraic identity, pure)
+		if (Left is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.AddExpression } leftAdd2
+		    && leftAdd2.Left.IsEquivalentTo(Right)
+		    && IsPure(leftAdd2.Left) && IsPure(leftAdd2.Right) && IsPure(Right))
+		{
+			result = leftAdd2.Right;
+			return true;
+		}
+
 		// Fused Multiply-Add pattern: (a * b) - c => FMA(a,b,-c)
 		// Only in FastMath and for float/double (semantic change due to single rounding)
 		if (Type.HasMember<IMethodSymbol>("FusedMultiplyAdd", m => m.Parameters.Length == 3 && m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, Type))))

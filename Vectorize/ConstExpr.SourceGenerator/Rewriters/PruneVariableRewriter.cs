@@ -25,7 +25,7 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 
 	public override SyntaxNode? VisitIdentifierName(IdentifierNameSyntax node)
 	{
-		if (variables.TryGetValue(node.Identifier.Text, out var value) && value.HasValue && !value.IsAccessed)
+		if (variables.TryGetValue(node.Identifier.Text, out var value) && value.HasValue && (!value.IsAccessed || !value.IsAltered))
 		{
 			return null;
 		}
@@ -60,7 +60,7 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 	{
 		var identifier = node.Identifier.Text;
 
-		if (variables.TryGetValue(identifier, out var value) && value.HasValue && !value.IsAccessed)
+		if (variables.TryGetValue(identifier, out var value) && value.HasValue && (!value.IsAccessed || !value.IsAltered))
 		{
 			return null;
 		}

@@ -103,6 +103,24 @@ public class BinaryAddOptimizer : BaseBinaryOptimizer
 			return true;
 		}
 
+		// (x - a) + a => x (algebraic identity, pure)
+		if (Left is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.SubtractExpression } leftSub
+		    && leftSub.Right.IsEquivalentTo(Right)
+		    && IsPure(leftSub.Left) && IsPure(leftSub.Right) && IsPure(Right))
+		{
+			result = leftSub.Left;
+			return true;
+		}
+
+		// a + (x - a) => x (algebraic identity, pure)
+		if (Right is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.SubtractExpression } rightSub
+		    && rightSub.Right.IsEquivalentTo(Left)
+		    && IsPure(Left) && IsPure(rightSub.Left) && IsPure(rightSub.Right))
+		{
+			result = rightSub.Left;
+			return true;
+		}
+
 		// Fused Multiply-Add: (a * b) + c  OR  c + (a * b) => FMA(a,b,c)
 		if (Type.HasMember<IMethodSymbol>("FusedMultiplyAdd", m => m.Parameters.Length == 3 && m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, Type))))
 		{

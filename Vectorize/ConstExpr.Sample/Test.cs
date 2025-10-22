@@ -367,7 +367,9 @@ public static class Test
 			{
 				if (l <= 0f) return 0;
 				if (l >= 1f) return 255;
+				
 				var cs = l <= 0.0031308f ? 12.92f * l : 1.055f * MathF.Pow(l, 1f / 2.4f) - 0.055f;
+				
 				return (byte)MathF.Round(MathF.Max(0f, MathF.Min(1f, cs)) * 255f);
 			}
 
@@ -391,18 +393,20 @@ public static class Test
 			var fa = a / 255f;
 			var fb = b / 255f;
 			var fr = t * fb + (1f - t) * fa;
+			
 			return (byte)MathF.Round(MathF.Max(0f, MathF.Min(1f, fr)) * 255f);
 		}
 
 		var r = LerpByte(rDst, rSrc, alpha);
 		var g = LerpByte(gDst, gSrc, alpha);
 		var b = LerpByte(bDst, bSrc, alpha);
+		
 		return (r, g, b);
 	}
 
 	public static string InterpolationTest(string name, int age, double height)
 	{
-		return $"Name: {name}, Age: {age}, Height: {height:N3} cm";
+		return $"Name: {name}, Age: {age}, Height: {height:N0} cm";
 	}
 
 	// Complex mathematical function with multiple parameters
