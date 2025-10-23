@@ -11,35 +11,19 @@ public class ConditionalAndRightLiteralStrategy : BooleanBinaryStrategy
 {
 	public override bool CanBeOptimized(BinaryOptimizeContext context)
 	{
-		// x && true = x (only if x is pure)
-		if (context.Right.HasValue && context.Right.Value is true && IsPure(context.Left.Syntax))
-		{
-			return true;
-		}
-
-		// x && false = false (only if x is pure)
-		if (context.Right.HasValue && context.Right.Value is false && IsPure(context.Left.Syntax))
-		{
-			return true;
-		}
-
-		return false;
+		return context.Right is { HasValue: true, Value: true or false } && IsPure(context.Left.Syntax);
 	}
 
 	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
 	{
-		// x && true = x (only if x is pure)
-		if (context.Right.HasValue && context.Right.Value is true && IsPure(context.Left.Syntax))
+		return context.Right switch
 		{
-			return context.Left.Syntax;
-		}
+			// x && true = x (only if x is pure)
+			{ HasValue: true, Value: true } when IsPure(context.Left.Syntax) => context.Left.Syntax,
+			// x && false = false (only if x is pure)
+			{ HasValue: true, Value: false } when IsPure(context.Left.Syntax) => SyntaxHelpers.CreateLiteral(false),
+			_ => null
+		};
 
-		// x && false = false (only if x is pure)
-		if (context.Right.HasValue && context.Right.Value is false && IsPure(context.Left.Syntax))
-		{
-			return SyntaxHelpers.CreateLiteral(false);
-		}
-
-		return null;
 	}
 }

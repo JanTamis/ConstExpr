@@ -13,7 +13,8 @@ public class AddDoubleToShiftStrategy : IntegerBinaryStrategy
 {
 	public override bool CanBeOptimized(BinaryOptimizeContext context)
 	{
-		return LeftEqualsRight(context) && IsPure(context.Left.Syntax) && IsPure(context.Right.Syntax);
+		return base.CanBeOptimized(context)
+		       && LeftEqualsRight(context) && IsPure(context.Left.Syntax) && IsPure(context.Right.Syntax);
 	}
 
 	public override SyntaxNode? Optimize(BinaryOptimizeContext context)

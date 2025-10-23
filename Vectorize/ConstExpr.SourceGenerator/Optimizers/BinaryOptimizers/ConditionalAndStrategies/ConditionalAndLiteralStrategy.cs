@@ -11,35 +11,19 @@ public class ConditionalAndLiteralStrategy : BooleanBinaryStrategy
 {
 	public override bool CanBeOptimized(BinaryOptimizeContext context)
 	{
-		// false && x = false
-		if (context.Left.HasValue && context.Left.Value is false)
-		{
-			return true;
-		}
-
-		// true && x = x
-		if (context.Left.HasValue && context.Left.Value is true)
-		{
-			return true;
-		}
-
-		return false;
+		return context.Left is { HasValue: true, Value: false or true };
 	}
 
 	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
 	{
-		// false && x = false
-		if (context.Left.HasValue && context.Left.Value is false)
+		return context.Left switch
 		{
-			return SyntaxHelpers.CreateLiteral(false);
-		}
+			// false && x = false
+			{ HasValue: true, Value: false } => SyntaxHelpers.CreateLiteral(false),
+			// true && x = x
+			{ HasValue: true, Value: true } => context.Right.Syntax,
+			_ => null
+		};
 
-		// true && x = x
-		if (context.Left.HasValue && context.Left.Value is true)
-		{
-			return context.Right.Syntax;
-		}
-
-		return null;
 	}
 }

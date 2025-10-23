@@ -9,30 +9,16 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalAndSt
 /// <summary>
 /// Strategy for contradiction: a && !a => false and !a && a => false (pure)
 /// </summary>
-public class ConditionalAndContradictionStrategy : BooleanBinaryStrategy
+public class ConditionalAndContradictionStrategy : SymmetricStrategy<BooleanBinaryStrategy>
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool CanBeOptimizedSymmetric(BinaryOptimizeContext context)
 	{
-		// a && !a => false (contradiction, pure)
-		if (context.Right.Syntax is PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.LogicalNotExpression } rightNot
-				&& rightNot.Operand.IsEquivalentTo(context.Left.Syntax)
-				&& IsPure(context.Left.Syntax))
-		{
-			return true;
-		}
-
-		// !a && a => false (contradiction, pure)
-		if (context.Left.Syntax is PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.LogicalNotExpression } leftNot
-				&& leftNot.Operand.IsEquivalentTo(context.Right.Syntax)
-				&& IsPure(context.Right.Syntax))
-		{
-			return true;
-		}
-
-		return false;
+		return context.Right.Syntax is PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.LogicalNotExpression } rightNot
+		       && rightNot.Operand.IsEquivalentTo(context.Left.Syntax)
+		       && IsPure(context.Left.Syntax);
 	}
 
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
+	public override SyntaxNode? OptimizeSymmetric(BinaryOptimizeContext context)
 	{
 		return SyntaxHelpers.CreateLiteral(false);
 	}

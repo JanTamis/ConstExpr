@@ -10,45 +10,18 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AddStrategies;
 /// (x - a) + a => x (algebraic identity, pure)
 /// a + (x - a) => x (algebraic identity, pure)
 /// </summary>
-public class AddSubtractionCancellationStrategy : NumericBinaryStrategy
+public class AddSubtractionCancellationStrategy : SymmetricStrategy<NumericBinaryStrategy>
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool CanBeOptimizedSymmetric(BinaryOptimizeContext context)
 	{
-		return CanOptimizeLeftSubtraction(context) || CanOptimizeRightSubtraction(context);
+		return context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.SubtractExpression } leftSub
+		       && leftSub.Right.IsEquivalentTo(context.Right.Syntax)
+		       && IsPure(leftSub.Left) && IsPure(leftSub.Right) && IsPure(context.Right.Syntax);
 	}
 
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
+	public override SyntaxNode? OptimizeSymmetric(BinaryOptimizeContext context)
 	{
-		// (x - a) + a => x (algebraic identity, pure)
-		if (CanOptimizeLeftSubtraction(context))
-		{
-			var leftSub = (BinaryExpressionSyntax)context.Left.Syntax;
-			return leftSub.Left;
-		}
-
-		// a + (x - a) => x (algebraic identity, pure)
-		if (CanOptimizeRightSubtraction(context))
-		{
-			var rightSub = (BinaryExpressionSyntax)context.Right.Syntax;
-			return rightSub.Left;
-		}
-
-		return null;
-	}
-
-	private static bool CanOptimizeLeftSubtraction(BinaryOptimizeContext context)
-	{
-		return context.Left.Syntax is BinaryExpressionSyntax leftSub
-			&& leftSub.RawKind == (int)SyntaxKind.SubtractExpression
-			&& leftSub.Right.IsEquivalentTo(context.Right.Syntax)
-			&& IsPure(leftSub.Left) && IsPure(leftSub.Right) && IsPure(context.Right.Syntax);
-	}
-
-	private static bool CanOptimizeRightSubtraction(BinaryOptimizeContext context)
-	{
-		return context.Right.Syntax is BinaryExpressionSyntax rightSub
-				&& rightSub.RawKind == (int)SyntaxKind.SubtractExpression
-				&& rightSub.Right.IsEquivalentTo(context.Left.Syntax)
-				&& IsPure(context.Left.Syntax) && IsPure(rightSub.Left) && IsPure(rightSub.Right);
+		var leftSub = (BinaryExpressionSyntax) context.Left.Syntax;
+		return leftSub.Left;
 	}
 }

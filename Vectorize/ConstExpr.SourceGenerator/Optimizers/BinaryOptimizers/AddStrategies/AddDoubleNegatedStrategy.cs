@@ -13,15 +13,16 @@ public class AddDoubleNegatedStrategy : NumericBinaryStrategy
 {
 	public override bool CanBeOptimized(BinaryOptimizeContext context)
 	{
-		return context.Left.Syntax is PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.UnaryMinusExpression } leftUnary
-				&& context.Right.Syntax is PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.UnaryMinusExpression } rightUnary
-				&& IsPure(leftUnary.Operand) && IsPure(rightUnary.Operand);
+		return base.CanBeOptimized(context)
+		       && context.Left.Syntax is PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.UnaryMinusExpression } leftUnary
+		       && context.Right.Syntax is PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.UnaryMinusExpression } rightUnary
+		       && IsPure(leftUnary.Operand) && IsPure(rightUnary.Operand);
 	}
 
 	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
 	{
-		var leftUnary = (PrefixUnaryExpressionSyntax)context.Left.Syntax;
-		var rightUnary = (PrefixUnaryExpressionSyntax)context.Right.Syntax;
+		var leftUnary = (PrefixUnaryExpressionSyntax) context.Left.Syntax;
+		var rightUnary = (PrefixUnaryExpressionSyntax) context.Right.Syntax;
 
 		var leftWithoutMinus = leftUnary.Operand;
 		var rightWithoutMinus = rightUnary.Operand;

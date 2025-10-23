@@ -1,4 +1,5 @@
 using ConstExpr.Core.Attributes;
+using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis;
@@ -6,6 +7,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;
 
@@ -21,9 +23,18 @@ public abstract class BaseBinaryOptimizer
 
 	public ITypeSymbol Type { get; init; }
 
-	// public abstract bool TryOptimize(MetadataLoader loader, IDictionary<string, VariableItem> variables, out SyntaxNode? result);
+	// Backwards-compatible TryOptimize so older optimizers still compile
+	public virtual bool TryOptimize(MetadataLoader loader, IDictionary<string, VariableItem> variables, out SyntaxNode? result)
+	{
+		result = null;
+		return false;
+	}
 
-	public abstract IEnumerable<IBinaryStrategy> GetStrategies();
+	// Default strategies: none. Optimizers can override to provide strategies.
+	public virtual IEnumerable<IBinaryStrategy> GetStrategies()
+	{
+		return Enumerable.Empty<IBinaryStrategy>();
+	}
 
 	public static BaseBinaryOptimizer? Create(BinaryOperatorKind kind, ITypeSymbol type, ExpressionSyntax leftExpr, ITypeSymbol? leftType, ExpressionSyntax rightExpr, ITypeSymbol? rightType, FloatingPointEvaluationMode mode)
 	{

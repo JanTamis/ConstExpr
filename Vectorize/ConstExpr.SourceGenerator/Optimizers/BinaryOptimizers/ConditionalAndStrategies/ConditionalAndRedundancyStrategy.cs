@@ -8,16 +8,16 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalAndSt
 /// <summary>
 /// Strategy for redundancy elimination: (a && b) && a => a && b (already covered, pure)
 /// </summary>
-public class ConditionalAndRedundancyStrategy : BooleanBinaryStrategy
+public class ConditionalAndRedundancyStrategy : SymmetricStrategy<BooleanBinaryStrategy>
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool CanBeOptimizedSymmetric(BinaryOptimizeContext context)
 	{
 		return context.Right.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LogicalAndExpression } rightAnd
 				&& IsPure(context.Left.Syntax)
 				&& (rightAnd.Left.IsEquivalentTo(context.Left.Syntax) || rightAnd.Right.IsEquivalentTo(context.Left.Syntax));
 	}
 
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
+	public override SyntaxNode? OptimizeSymmetric(BinaryOptimizeContext context)
 	{
 		return context.Right.Syntax;
 	}

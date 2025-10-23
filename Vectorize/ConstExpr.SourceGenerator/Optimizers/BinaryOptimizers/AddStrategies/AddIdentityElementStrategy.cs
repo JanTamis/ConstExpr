@@ -7,39 +7,15 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AddStrategies;
 /// <summary>
 /// Strategy for identity element optimization: x + 0 = x and 0 + x = x
 /// </summary>
-public class AddIdentityElementStrategy : NumericBinaryStrategy
+public class AddIdentityElementStrategy : SymmetricStrategy<NumericBinaryStrategy>
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool CanBeOptimizedSymmetric(BinaryOptimizeContext context)
 	{
-		// x + 0 = x
-		if (context.Right.HasValue && context.Right.Value.IsNumericZero())
-		{
-			return true;
-		}
-
-		// 0 + x = x
-		if (context.Left.HasValue && context.Left.Value.IsNumericZero())
-		{
-			return true;
-		}
-
-		return false;
+		return context.Right.HasValue && context.Right.Value.IsNumericZero();
 	}
 
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
+	public override SyntaxNode? OptimizeSymmetric(BinaryOptimizeContext context)
 	{
-		// x + 0 = x
-		if (context.Right.HasValue && context.Right.Value.IsNumericZero())
-		{
-			return context.Left.Syntax;
-		}
-
-		// 0 + x = x
-		if (context.Left.HasValue && context.Left.Value.IsNumericZero())
-		{
-			return context.Right.Syntax;
-		}
-
-		return null;
+		return context.Left.Syntax;
 	}
 }

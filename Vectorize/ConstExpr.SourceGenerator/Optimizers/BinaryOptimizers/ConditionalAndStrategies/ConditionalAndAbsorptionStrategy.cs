@@ -8,55 +8,17 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalAndSt
 /// <summary>
 /// Strategy for absorption law: a && (a || b) => a and (a || b) && a => a (pure)
 /// </summary>
-public class ConditionalAndAbsorptionStrategy : BooleanBinaryStrategy
+public class ConditionalAndAbsorptionStrategy : SymmetricStrategy<BooleanBinaryStrategy>
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool CanBeOptimizedSymmetric(BinaryOptimizeContext context)
 	{
-		// a && (a || b) => a (pure)
-		if (context.Right.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LogicalOrExpression } rightOr
-				&& IsPure(context.Left.Syntax))
-		{
-			if (rightOr.Left.IsEquivalentTo(context.Left.Syntax) || rightOr.Right.IsEquivalentTo(context.Left.Syntax))
-			{
-				return true;
-			}
-		}
-
-		// (a || b) && a => a (pure)
-		if (context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LogicalOrExpression } leftOr
-				&& IsPure(context.Right.Syntax))
-		{
-			if (leftOr.Left.IsEquivalentTo(context.Right.Syntax) || leftOr.Right.IsEquivalentTo(context.Right.Syntax))
-			{
-				return true;
-			}
-		}
-
-		return false;
+		return context.Right.Syntax is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LogicalOrExpression } rightOr
+		       && IsPure(context.Left.Syntax)
+		       && (rightOr.Left.IsEquivalentTo(context.Left.Syntax) || rightOr.Right.IsEquivalentTo(context.Left.Syntax));
 	}
 
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
+	public override SyntaxNode? OptimizeSymmetric(BinaryOptimizeContext context)
 	{
-		// a && (a || b) => a (pure)
-		if (context.Right.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LogicalOrExpression } rightOr
-				&& IsPure(context.Left.Syntax))
-		{
-			if (rightOr.Left.IsEquivalentTo(context.Left.Syntax) || rightOr.Right.IsEquivalentTo(context.Left.Syntax))
-			{
-				return context.Left.Syntax;
-			}
-		}
-
-		// (a || b) && a => a (pure)
-		if (context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LogicalOrExpression } leftOr
-			&& IsPure(context.Right.Syntax))
-		{
-			if (leftOr.Left.IsEquivalentTo(context.Right.Syntax) || leftOr.Right.IsEquivalentTo(context.Right.Syntax))
-			{
-				return context.Right.Syntax;
-			}
-		}
-
-		return null;
+		return context.Right.Syntax;
 	}
 }
