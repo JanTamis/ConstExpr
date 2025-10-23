@@ -152,6 +152,21 @@ public class BinaryExclusiveOrOptimizer : BaseBinaryOptimizer
 			}
 		}
 
+		// (x ^ mask1) ^ mask2 => x ^ (mask1 ^ mask2) - combine constant masks
+		if (Left is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.ExclusiveOrExpression } leftXor
+		    && hasRightValue && rightValue != null)
+		{
+			if (leftXor.Right.TryGetLiteralValue(loader, variables, out var leftXorRight) && leftXorRight != null)
+			{
+				var combined = ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.ExclusiveOr, leftXorRight, rightValue);
+				if (combined != null && SyntaxHelpers.TryGetLiteral(combined, out var combinedLiteral))
+				{
+					result = SyntaxFactory.BinaryExpression(SyntaxKind.ExclusiveOrExpression, leftXor.Left, combinedLiteral);
+					return true;
+				}
+			}
+		}
+
 		return false;
 	}
 }

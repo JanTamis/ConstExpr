@@ -140,6 +140,34 @@ public class BinaryOrOptimizer : BaseBinaryOptimizer
 					return true;
 				}
 			}
+
+			// (x | mask1) | mask2 => x | (mask1 | mask2) - combine constant masks
+			if (Left is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.BitwiseOrExpression } leftOr2
+			    && hasRightValue && rightValue != null)
+			{
+				if (leftOr2.Right.TryGetLiteralValue(loader, variables, out var leftOrRight) && leftOrRight != null)
+				{
+					var combined = ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.Or, leftOrRight, rightValue);
+					if (combined != null && SyntaxHelpers.TryGetLiteral(combined, out var combinedLiteral))
+					{
+						result = SyntaxFactory.BinaryExpression(SyntaxKind.BitwiseOrExpression, leftOr2.Left, combinedLiteral);
+						return true;
+					}
+				}
+			}
+
+			// (x & mask) | mask => mask (when x is pure)
+			if (hasRightValue && rightValue != null
+			    && Left is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.BitwiseAndExpression } leftAnd
+			    && IsPure(leftAnd.Left))
+			{
+				if (leftAnd.Right.TryGetLiteralValue(loader, variables, out var andMask)
+				    && EqualityComparer<object?>.Default.Equals(andMask, rightValue))
+				{
+					result = Right;
+					return true;
+				}
+			}
 		}
 
 		return false;

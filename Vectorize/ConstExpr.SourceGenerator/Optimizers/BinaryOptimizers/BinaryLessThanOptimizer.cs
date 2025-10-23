@@ -56,39 +56,50 @@ public class BinaryLessThanOptimizer : BaseBinaryOptimizer
 				result = SyntaxHelpers.CreateLiteral(false);
 				return true;
 			}
-		}
 
-		// // x < 0 = T.IsNegative(x)
-		// if (rightValue.IsNumericZero() && RightType?.HasMember<IMethodSymbol>("IsNegative", m => m.Parameters.Length == 1 && m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, RightType))) == true)
-		// {
-		// 	result = InvocationExpression(
-		// 		MemberAccessExpression(
-		// 			SyntaxKind.SimpleMemberAccessExpression,
-		// 			ParseTypeName(RightType.Name),
-		// 			IdentifierName("IsNegative")))
-		// 		.WithArgumentList(
-		// 			ArgumentList(
-		// 				SingletonSeparatedList(
-		// 					Argument(Left))));
-		//
-		// 	return true;
-		// }
-		
-		// // 0 < x = T.IsPositive(x)
-		// if (leftValue.IsNumericZero() && LeftType?.HasMember<IMethodSymbol>("IsPositive", m => m.Parameters.Length == 1 && m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, LeftType))) == true)
-		// {
-		// 	result = InvocationExpression(
-		// 		MemberAccessExpression(
-		// 			SyntaxKind.SimpleMemberAccessExpression,
-		// 			ParseTypeName(LeftType.Name),
-		// 			IdentifierName("IsPositive")))
-		// 		.WithArgumentList(
-		// 			ArgumentList(
-		// 				SingletonSeparatedList(
-		// 					Argument(Right))));
-		// 	
-		// 	return true;
-		// }
+			// MinValue < x = true (for x > MinValue in signed types)
+			if (hasLeftValue && hasRightValue && !rightValue.IsNumericZero())
+			{
+				// If left is the minimum value of the type and right is not, then left < right is always true
+				var isLeftMin = Type.SpecialType switch
+				{
+					SpecialType.System_SByte => leftValue is sbyte.MinValue,
+					SpecialType.System_Int16 => leftValue is short.MinValue,
+					SpecialType.System_Int32 => leftValue is int.MinValue,
+					SpecialType.System_Int64 => leftValue is long.MinValue,
+					_ => false
+				};
+
+				if (isLeftMin && !Type.IsUnsignedInteger())
+				{
+					result = SyntaxHelpers.CreateLiteral(true);
+					return true;
+				}
+			}
+
+			// x < MaxValue = true for x != MaxValue
+			if (hasRightValue && hasLeftValue)
+			{
+				var isRightMax = Type.SpecialType switch
+				{
+					SpecialType.System_SByte => rightValue is sbyte.MaxValue,
+					SpecialType.System_Byte => rightValue is byte.MaxValue,
+					SpecialType.System_Int16 => rightValue is short.MaxValue,
+					SpecialType.System_UInt16 => rightValue is ushort.MaxValue,
+					SpecialType.System_Int32 => rightValue is int.MaxValue,
+					SpecialType.System_UInt32 => rightValue is uint.MaxValue,
+					SpecialType.System_Int64 => rightValue is long.MaxValue,
+					SpecialType.System_UInt64 => rightValue is ulong.MaxValue,
+					_ => false
+				};
+
+				if (isRightMax && !EqualityComparer<object?>.Default.Equals(leftValue, rightValue))
+				{
+					result = SyntaxHelpers.CreateLiteral(true);
+					return true;
+				}
+			}
+		}
 
 		return false;
 	}

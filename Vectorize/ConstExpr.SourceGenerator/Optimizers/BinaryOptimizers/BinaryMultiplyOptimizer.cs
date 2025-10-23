@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
@@ -7,6 +5,8 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
+using System;
+using System.Collections.Generic;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;
@@ -171,15 +171,15 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 		}
 
 		// (-x) * (-y) => x * y (pure)
-		if (Left is PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.UnaryMinusExpression } leftNeg
-		    && Right is PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.UnaryMinusExpression } rightNeg)
+		if (Left is PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.UnaryMinusExpression } leftNeg
+				&& Right is PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.UnaryMinusExpression } rightNeg)
 		{
 			result = BinaryExpression(SyntaxKind.MultiplyExpression, leftNeg.Operand, rightNeg.Operand);
 			return true;
 		}
 
 		// (-x) * y => -(x * y) (pure, can help with further optimizations)
-		if (Left is PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.UnaryMinusExpression } leftNeg2)
+		if (Left is PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.UnaryMinusExpression } leftNeg2)
 		{
 			result = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
 				ParenthesizedExpression(BinaryExpression(SyntaxKind.MultiplyExpression, leftNeg2.Operand, Right)));
@@ -187,7 +187,7 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 		}
 
 		// x * (-y) => -(x * y) (pure)
-		if (Right is PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.UnaryMinusExpression } rightNeg2)
+		if (Right is PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.UnaryMinusExpression } rightNeg2)
 		{
 			result = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
 				ParenthesizedExpression(BinaryExpression(SyntaxKind.MultiplyExpression, Left, rightNeg2.Operand)));
@@ -195,8 +195,8 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 		}
 
 		// (x * C1) * C2 => x * (C1 * C2) - combine constants
-		if (Left is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.MultiplyExpression } leftMul
-		    && rightValue != null)
+		if (Left is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.MultiplyExpression } leftMul
+				&& rightValue != null)
 		{
 			var hasLeftLeft = leftMul.Left.TryGetLiteralValue(loader, variables, out var leftLeftValue);
 			var hasLeftRight = leftMul.Right.TryGetLiteralValue(loader, variables, out var leftRightValue);
@@ -228,8 +228,8 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 		}
 
 		// C1 * (x * C2) => x * (C1 * C2) - combine constants
-		if (Right is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.MultiplyExpression } rightMul
-		    && leftValue != null)
+		if (Right is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.MultiplyExpression } rightMul
+				&& leftValue != null)
 		{
 			var hasRightLeft = rightMul.Left.TryGetLiteralValue(loader, variables, out var rightLeftValue);
 			var hasRightRight = rightMul.Right.TryGetLiteralValue(loader, variables, out var rightRightValue);
@@ -261,8 +261,8 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 		}
 
 		// (x * C1) * (y * C2) => (x * y) * (C1 * C2) - combine constants from both sides
-		if (Left is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.MultiplyExpression } leftMul2
-		    && Right is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.MultiplyExpression } rightMul2)
+		if (Left is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.MultiplyExpression } leftMul2
+				&& Right is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.MultiplyExpression } rightMul2)
 		{
 			var hasLeftLeft = leftMul2.Left.TryGetLiteralValue(loader, variables, out var leftLeftValue2);
 			var hasLeftRight = leftMul2.Right.TryGetLiteralValue(loader, variables, out var leftRightValue2);
@@ -365,7 +365,7 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 			v >>= 1;
 			n++;
 		}
-		
+
 		return n;
 	}
 }

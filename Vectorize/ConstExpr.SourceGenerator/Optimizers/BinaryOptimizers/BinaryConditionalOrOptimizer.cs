@@ -82,13 +82,24 @@ public class BinaryConditionalOrOptimizer : BaseBinaryOptimizer
 			}
 		}
 
-		// Redundancy: (a || b) || a => a || b (already covered by left side, pure)
+		// Absorption law: a || (a || b) => a || b (pure)
 		if (Right is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LogicalOrExpression } rightOr
-		    && IsPure(Left))
+		  && IsPure(Left))
 		{
 			if (rightOr.Left.IsEquivalentTo(Left) || rightOr.Right.IsEquivalentTo(Left))
 			{
 				result = Right;
+				return true;
+			}
+		}
+
+		// Absorption law: (a || b) || a => a || b (pure)
+		if (Left is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LogicalOrExpression } leftOr
+		    && IsPure(Right))
+		{
+			if (leftOr.Left.IsEquivalentTo(Right) || leftOr.Right.IsEquivalentTo(Right))
+			{
+				result = Left;
 				return true;
 			}
 		}

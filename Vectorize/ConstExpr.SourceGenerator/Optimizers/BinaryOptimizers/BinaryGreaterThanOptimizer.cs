@@ -56,39 +56,49 @@ public class BinaryGreaterThanOptimizer : BaseBinaryOptimizer
 				result = SyntaxHelpers.CreateLiteral(false);
 				return true;
 			}
+
+			// x > MaxValue = false (for x <= MaxValue)
+			if (hasLeftValue && hasRightValue)
+			{
+				var isRightMax = Type.SpecialType switch
+				{
+					SpecialType.System_SByte => rightValue is sbyte.MaxValue,
+					SpecialType.System_Byte => rightValue is byte.MaxValue,
+					SpecialType.System_Int16 => rightValue is short.MaxValue,
+					SpecialType.System_UInt16 => rightValue is ushort.MaxValue,
+					SpecialType.System_Int32 => rightValue is int.MaxValue,
+					SpecialType.System_UInt32 => rightValue is uint.MaxValue,
+					SpecialType.System_Int64 => rightValue is long.MaxValue,
+					SpecialType.System_UInt64 => rightValue is ulong.MaxValue,
+					_ => false
+				};
+
+				if (isRightMax)
+				{
+					result = SyntaxHelpers.CreateLiteral(false);
+					return true;
+				}
+			}
+
+			// MinValue > x = false (MinValue cannot be greater than anything)
+			if (hasLeftValue && hasRightValue && !rightValue.IsNumericZero())
+			{
+				var isLeftMin = Type.SpecialType switch
+				{
+					SpecialType.System_SByte => leftValue is sbyte.MinValue,
+					SpecialType.System_Int16 => leftValue is short.MinValue,
+					SpecialType.System_Int32 => leftValue is int.MinValue,
+					SpecialType.System_Int64 => leftValue is long.MinValue,
+					_ => false
+				};
+
+				if (isLeftMin && !Type.IsUnsignedInteger())
+				{
+					result = SyntaxHelpers.CreateLiteral(false);
+					return true;
+				}
+			}
 		}
-
-		// // x > 0 = T.IsPositive(x)
-		// if (rightValue.IsNumericZero() && LeftType?.HasMember<IMethodSymbol>("IsPositive", m => m.Parameters.Length == 1 && m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, LeftType))) == true)
-		// {
-		// 	result = InvocationExpression(
-		// 		MemberAccessExpression(
-		// 			SyntaxKind.SimpleMemberAccessExpression,
-		// 			ParseTypeName(LeftType.Name),
-		// 			IdentifierName("IsPositive")))
-		// 		.WithArgumentList(
-		// 			ArgumentList(
-		// 				SingletonSeparatedList(
-		// 					Argument(Left))));
-		//
-		// 	return true;
-		// }
-
-		// // 0 > x = T.IsNegative(x)
-		// if (leftValue.IsNumericZero() && RightType?.HasMember<IMethodSymbol>("IsNegative", m => m.Parameters.Length == 1 && m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, RightType))) == true)
-		// {
-		// 	result = InvocationExpression(
-		// 		MemberAccessExpression(
-		// 			SyntaxKind.SimpleMemberAccessExpression,
-		// 			ParseTypeName(RightType.Name),
-		// 			IdentifierName("IsNegative")))
-		// 		.WithArgumentList(
-		// 			ArgumentList(
-		// 				SingletonSeparatedList(
-		// 					Argument(Right))));
-		//
-		// 	return true;
-		// }
 
 		return false;
 	}

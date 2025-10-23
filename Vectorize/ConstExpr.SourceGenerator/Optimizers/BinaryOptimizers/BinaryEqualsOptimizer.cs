@@ -54,6 +54,34 @@ public class BinaryEqualsOptimizer : BaseBinaryOptimizer
 			}
 		}
 
+		// Integer range-based optimizations
+		if (LeftType?.IsInteger() == true || RightType?.IsInteger() == true)
+		{
+			var intType = LeftType?.IsInteger() == true ? LeftType : RightType;
+
+			// unsigned == negative_constant => false
+			if (intType?.IsUnsignedInteger() == true && hasRightValue)
+			{
+				var isNegative = ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.LessThan, rightValue, 0.ToSpecialType(intType.SpecialType)) is true;
+				if (isNegative)
+				{
+					result = SyntaxHelpers.CreateLiteral(false);
+					return true;
+				}
+			}
+
+			// unsigned == negative_constant => false (reversed)
+			if (intType?.IsUnsignedInteger() == true && hasLeftValue)
+			{
+				var isNegative = ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.LessThan, leftValue, 0.ToSpecialType(intType.SpecialType)) is true;
+				if (isNegative)
+				{
+					result = SyntaxHelpers.CreateLiteral(false);
+					return true;
+				}
+			}
+		}
+
 		// (x % 2) == 0 => T.IsEvenInteger(x) for integer types
 		if (hasRightValue && rightValue.IsNumericZero() 
 		    && Left is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.ModuloExpression } modExpr

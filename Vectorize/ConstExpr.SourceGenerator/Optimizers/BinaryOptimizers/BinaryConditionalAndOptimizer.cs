@@ -4,12 +4,23 @@ using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
+using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalAndStrategies;
+using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;
 
 public class BinaryConditionalAndOptimizer : BaseBinaryOptimizer
 {
 	public override BinaryOperatorKind Kind => BinaryOperatorKind.ConditionalAnd;
+
+	private static readonly IBinaryStrategy[] Strategies =
+	[
+		new ConditionalAndLiteralStrategy(),
+		new ConditionalAndRightLiteralStrategy(),
+		new ConditionalAndAbsorptionStrategy(),
+		new ConditionalAndRedundancyStrategy(),
+		new ConditionalAndContradictionStrategy(),
+	];
 
 	public override bool TryOptimize(MetadataLoader loader, IDictionary<string, VariableItem> variables, out SyntaxNode? result)
 	{
@@ -20,93 +31,43 @@ public class BinaryConditionalAndOptimizer : BaseBinaryOptimizer
 			return false;
 		}
 
-		var hasLeftValue = Left.TryGetLiteralValue(loader, variables, out var leftValue);
-		var hasRightValue = Right.TryGetLiteralValue(loader, variables, out var rightValue);
+		Left.TryGetLiteralValue(loader, variables, out var leftValue);
+		Right.TryGetLiteralValue(loader, variables, out var rightValue);
 
-		// false && x = false
-		if (leftValue is false)
+		var context = new BinaryOptimizeContext
 		{
-			result = SyntaxHelpers.CreateLiteral(false);
-			return true;
-		}
+			Left = Left,
+			LeftType = LeftType,
+			HasLeftValue = leftValue != null,
+			LeftValue = leftValue,
+			Right = Right,
+			RightType = RightType,
+			HasRightValue = rightValue != null,
+			RightValue = rightValue,
+			Type = Type
+		};
 
-		// true && x = x
-		if (leftValue is true)
+		// Try each strategy
+		foreach (var strategy in Strategies)
 		{
-			result = Right;
-			return true;
-		}
-
-		// x && true = x (only if x is pure, to avoid side effects)
-		if (rightValue is true && IsPure(Left))
-		{
-			result = Left;
-			return true;
-		}
-
-		// x && false = false (only if x is pure, to avoid side effects)
-		if (rightValue is false && IsPure(Left))
-		{
-			result = SyntaxHelpers.CreateLiteral(false);
-			return true;
-		}
-
-		// x && x = x (for pure expressions)
-		if (LeftEqualsRight(variables) && IsPure(Left))
-		{
-			result = Left;
-			return true;
-		}
-
-		// Absorption law: a && (a || b) => a (pure)
-		if (Right is Microsoft.CodeAnalysis.CSharp.Syntax.BinaryExpressionSyntax { RawKind: (int) Microsoft.CodeAnalysis.CSharp.SyntaxKind.LogicalOrExpression } rightOr
-		    && IsPure(Left))
-		{
-			if (rightOr.Left.IsEquivalentTo(Left) || rightOr.Right.IsEquivalentTo(Left))
+			if (strategy.CanBeOptimized(context))
 			{
-				result = Left;
-				return true;
+				// Special case for ConditionalAndIdempotencyStrategy which needs variables
+				if (strategy is ConditionalAndIdempotencyStrategy)
+				{
+					var idempotencyStrategy = new ConditionalAndIdempotencyStrategy(variables);
+					if (idempotencyStrategy.CanBeOptimized(context))
+					{
+						result = idempotencyStrategy.Optimize(context);
+						return true;
+					}
+				}
+				else
+				{
+					result = strategy.Optimize(context);
+					return true;
+				}
 			}
-		}
-
-		// Absorption law: (a || b) && a => a (pure)
-		if (Left is Microsoft.CodeAnalysis.CSharp.Syntax.BinaryExpressionSyntax { RawKind: (int) Microsoft.CodeAnalysis.CSharp.SyntaxKind.LogicalOrExpression } leftOr
-		    && IsPure(Right))
-		{
-			if (leftOr.Left.IsEquivalentTo(Right) || leftOr.Right.IsEquivalentTo(Right))
-			{
-				result = Right;
-				return true;
-			}
-		}
-
-		// Redundancy: (a && b) && a => a && b (already covered by left side, pure)
-		if (Right is Microsoft.CodeAnalysis.CSharp.Syntax.BinaryExpressionSyntax { RawKind: (int) Microsoft.CodeAnalysis.CSharp.SyntaxKind.LogicalAndExpression } rightAnd
-		    && IsPure(Left))
-		{
-			if (rightAnd.Left.IsEquivalentTo(Left) || rightAnd.Right.IsEquivalentTo(Left))
-			{
-				result = Right;
-				return true;
-			}
-		}
-
-		// a && !a => false (contradiction, pure)
-		if (Right is Microsoft.CodeAnalysis.CSharp.Syntax.PrefixUnaryExpressionSyntax { RawKind: (int) Microsoft.CodeAnalysis.CSharp.SyntaxKind.LogicalNotExpression } rightNot
-		    && rightNot.Operand.IsEquivalentTo(Left)
-		    && IsPure(Left))
-		{
-			result = SyntaxHelpers.CreateLiteral(false);
-			return true;
-		}
-
-		// !a && a => false (contradiction, pure)
-		if (Left is Microsoft.CodeAnalysis.CSharp.Syntax.PrefixUnaryExpressionSyntax { RawKind: (int) Microsoft.CodeAnalysis.CSharp.SyntaxKind.LogicalNotExpression } leftNot
-		    && leftNot.Operand.IsEquivalentTo(Right)
-		    && IsPure(Right))
-		{
-			result = SyntaxHelpers.CreateLiteral(false);
-			return true;
 		}
 
 		return false;

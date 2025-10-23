@@ -23,6 +23,13 @@ public class BinaryGreaterThanOrEqualOptimizer : BaseBinaryOptimizer
 		var hasLeftValue = Left.TryGetLiteralValue(loader, variables, out var leftValue);
 		var hasRightValue = Right.TryGetLiteralValue(loader, variables, out var rightValue);
 
+		// x >= x => true (pure)
+		if (LeftEqualsRight(variables) && IsPure(Left))
+		{
+			result = SyntaxHelpers.CreateLiteral(true);
+			return true;
+		}
+
 		// Only apply arithmetic identities that are guaranteed safe for integer types.
 		if (Type.IsInteger())
 		{
@@ -35,7 +42,7 @@ public class BinaryGreaterThanOrEqualOptimizer : BaseBinaryOptimizer
 
 			// 0 >= x = false (when x is positive and non-zero and unsigned)
 			if (leftValue.IsNumericZero() && hasRightValue && !rightValue.IsNumericZero() 
-			    && (Type.IsUnsignedInteger() || ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.GreaterThan, rightValue, 0.ToSpecialType(Type.SpecialType)) is true))
+			 && (Type.IsUnsignedInteger() || ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.GreaterThan, rightValue, 0.ToSpecialType(Type.SpecialType)) is true))
 			{
 				result = SyntaxHelpers.CreateLiteral(false);
 				return true;
@@ -86,13 +93,6 @@ public class BinaryGreaterThanOrEqualOptimizer : BaseBinaryOptimizer
 					return true;
 				}
 			}
-		}
-
-		// x >= x => true (pure)
-		if (LeftEqualsRight(variables) && IsPure(Left))
-		{
-			result = SyntaxHelpers.CreateLiteral(true);
-			return true;
 		}
 
 		return false;

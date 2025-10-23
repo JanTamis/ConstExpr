@@ -55,6 +55,34 @@ public class BinaryNotEqualsOptimizer : BaseBinaryOptimizer
 			}
 		}
 
+		// Integer range-based optimizations
+		if (LeftType?.IsInteger() == true || RightType?.IsInteger() == true)
+		{
+			var intType = LeftType?.IsInteger() == true ? LeftType : RightType;
+
+			// unsigned != negative_constant => true
+			if (intType?.IsUnsignedInteger() == true && hasRightValue)
+			{
+				var isNegative = ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.LessThan, rightValue, 0.ToSpecialType(intType.SpecialType)) is true;
+				if (isNegative)
+				{
+					result = SyntaxHelpers.CreateLiteral(true);
+					return true;
+				}
+			}
+
+			// unsigned != negative_constant => true (reversed)
+			if (intType?.IsUnsignedInteger() == true && hasLeftValue)
+			{
+				var isNegative = ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.LessThan, leftValue, 0.ToSpecialType(intType.SpecialType)) is true;
+				if (isNegative)
+				{
+					result = SyntaxHelpers.CreateLiteral(true);
+					return true;
+				}
+			}
+		}
+
 		// (x % 2) != 0 => T.IsOddInteger(x) for integer types
 		if (hasRightValue && rightValue.IsNumericZero() 
 		    && Left is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.ModuloExpression } modExpr
@@ -129,6 +157,17 @@ public class BinaryNotEqualsOptimizer : BaseBinaryOptimizer
 						SingletonSeparatedList(
 							Argument(andExpr2.Left))));
 			return true;
+		}
+
+		// Both sides are constant, evaluate
+		if (hasLeftValue && hasRightValue)
+		{
+			var evalResult = ObjectExtensions.ExecuteBinaryOperation(Kind, leftValue, rightValue);
+			if (evalResult != null)
+			{
+				result = SyntaxHelpers.CreateLiteral(evalResult);
+				return true;
+			}
 		}
 
 		return false;

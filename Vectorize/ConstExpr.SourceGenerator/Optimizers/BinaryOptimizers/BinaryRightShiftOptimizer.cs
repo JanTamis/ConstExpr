@@ -3,7 +3,10 @@ using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
+using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;
 
@@ -36,6 +39,19 @@ public class BinaryRightShiftOptimizer : BaseBinaryOptimizer
 		{
 			result = SyntaxHelpers.CreateLiteral(0.ToSpecialType(Type.SpecialType));
 			return true;
+		}
+
+		// ((x >> a) >> b) => x >> (a + b) - combine shifts
+		if (Left is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.RightShiftExpression } leftShift
+		    && Right.TryGetLiteralValue(loader, variables, out var rightShiftValue) && rightShiftValue != null
+		    && leftShift.Right.TryGetLiteralValue(loader, variables, out var leftShiftValue) && leftShiftValue != null)
+		{
+			var combined = ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.Add, leftShiftValue, rightShiftValue);
+			if (combined != null && SyntaxHelpers.TryGetLiteral(combined, out var combinedLiteral))
+			{
+				result = BinaryExpression(SyntaxKind.RightShiftExpression, leftShift.Left, combinedLiteral);
+				return true;
+			}
 		}
 
 		return false;

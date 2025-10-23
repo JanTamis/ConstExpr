@@ -1,11 +1,11 @@
-using System.Collections.Generic;
 using ConstExpr.Core.Attributes;
-using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
+using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
+using System.Collections.Generic;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;
 
@@ -21,7 +21,9 @@ public abstract class BaseBinaryOptimizer
 
 	public ITypeSymbol Type { get; init; }
 
-	public abstract bool TryOptimize(MetadataLoader loader, IDictionary<string, VariableItem> variables, out SyntaxNode? result);
+	// public abstract bool TryOptimize(MetadataLoader loader, IDictionary<string, VariableItem> variables, out SyntaxNode? result);
+
+	public abstract IEnumerable<IBinaryStrategy> GetStrategies();
 
 	public static BaseBinaryOptimizer? Create(BinaryOperatorKind kind, ITypeSymbol type, ExpressionSyntax leftExpr, ITypeSymbol? leftType, ExpressionSyntax rightExpr, ITypeSymbol? rightType, FloatingPointEvaluationMode mode)
 	{
@@ -56,7 +58,7 @@ public abstract class BaseBinaryOptimizer
 			IdentifierNameSyntax => true,
 			LiteralExpressionSyntax => true,
 			ParenthesizedExpressionSyntax par => IsPure(par.Expression),
-			PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken } u => IsPure(u.Operand),
+			PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken } u => IsPure(u.Operand),
 			BinaryExpressionSyntax b => IsPure(b.Left) && IsPure(b.Right),
 			MemberAccessExpressionSyntax m => IsPure(m.Expression),
 			_ => false
@@ -66,12 +68,12 @@ public abstract class BaseBinaryOptimizer
 	protected bool LeftEqualsRight(IDictionary<string, VariableItem> variables)
 	{
 		return Left.IsEquivalentTo(Right) ||
-		       (Left is IdentifierNameSyntax leftIdentifier
-		        && Right is IdentifierNameSyntax rightIdentifier
-		        && variables.TryGetValue(leftIdentifier.Identifier.Text, out var leftVar)
-		        && variables.TryGetValue(rightIdentifier.Identifier.Text, out var rightVar)
-		        && leftVar.Value is ArgumentSyntax leftArgument
-		        && rightVar.Value is ArgumentSyntax rightArgument
-		        && leftArgument.Expression.IsEquivalentTo(rightArgument.Expression));
+					 (Left is IdentifierNameSyntax leftIdentifier
+						&& Right is IdentifierNameSyntax rightIdentifier
+						&& variables.TryGetValue(leftIdentifier.Identifier.Text, out var leftVar)
+						&& variables.TryGetValue(rightIdentifier.Identifier.Text, out var rightVar)
+						&& leftVar.Value is ArgumentSyntax leftArgument
+						&& rightVar.Value is ArgumentSyntax rightArgument
+						&& leftArgument.Expression.IsEquivalentTo(rightArgument.Expression));
 	}
 }
