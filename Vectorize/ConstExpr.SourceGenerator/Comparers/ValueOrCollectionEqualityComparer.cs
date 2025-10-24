@@ -146,7 +146,7 @@ public class ValueOrCollectionEqualityComparer<T> : IEqualityComparer<T>
 		if (type.IsGenericType && type.Namespace == "System" && (type.Name == "Span`1" || type.Name == "ReadOnlySpan`1"))
 		{
 			length = type.GetProperty("Length");
-			indexer = type.GetProperty("Item", new[] { typeof(int) });
+			indexer = type.GetProperty("Item", [typeof(int)]);
 			elementType = type.GetGenericArguments()[0];
 			return length != null && elementType != null; // do not require indexer due to ByRef issues
 		}

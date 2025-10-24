@@ -26,10 +26,12 @@ public abstract class BaseBinaryStrategy : IBinaryStrategy
 	protected static bool LeftEqualsRight(BinaryOptimizeContext context)
 	{
 		return context.Left.Syntax.IsEquivalentTo(context.Right.Syntax) ||
-		       (context.Left.Syntax is IdentifierNameSyntax leftIdentifier
-		        && context.Right.Syntax is IdentifierNameSyntax rightIdentifier
-		        && context.Left.Value is ArgumentSyntax leftArgument
-		        && context.Right.Value is ArgumentSyntax rightArgument
-		        && leftArgument.Expression.IsEquivalentTo(rightArgument.Expression));
+					(context.Left.Syntax is IdentifierNameSyntax leftIdentifier
+					 && context.Right.Syntax is IdentifierNameSyntax rightIdentifier
+					 && context.Variables.TryGetValue(leftIdentifier.Identifier.Text, out var leftVar)
+					 && context.Variables.TryGetValue(rightIdentifier.Identifier.Text, out var rightVar)
+					 && leftVar.Value is ArgumentSyntax leftArgument
+					 && rightVar.Value is ArgumentSyntax rightArgument
+					 && leftArgument.Expression.IsEquivalentTo(rightArgument.Expression));
 	}
 }

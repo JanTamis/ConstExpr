@@ -1,8 +1,4 @@
 using System.Collections.Generic;
-using ConstExpr.SourceGenerator.Extensions;
-using ConstExpr.SourceGenerator.Helpers;
-using ConstExpr.SourceGenerator.Models;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalAndStrategies;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;

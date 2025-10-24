@@ -2,8 +2,13 @@
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 
-public abstract class IntegerBinaryStrategy : SpecialTypeBinaryStrategy
+public class IntegerBinaryStrategy : SpecialTypeBinaryStrategy
 {
+	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
+	{
+		throw new System.NotImplementedException();
+	}
+
 	public override bool IsValidSpecialType(SpecialType specialType)
 	{
 		return specialType is SpecialType.System_SByte

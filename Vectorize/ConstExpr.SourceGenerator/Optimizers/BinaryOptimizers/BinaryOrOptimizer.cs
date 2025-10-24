@@ -1,10 +1,6 @@
 using System.Collections.Generic;
-using ConstExpr.SourceGenerator.Extensions;
-using ConstExpr.SourceGenerator.Helpers;
-using ConstExpr.SourceGenerator.Models;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
+using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.OrStrategies;
+using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis.Operations;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;
@@ -13,163 +9,14 @@ public class BinaryOrOptimizer : BaseBinaryOptimizer
 {
 	public override BinaryOperatorKind Kind => BinaryOperatorKind.Or;
 
-	public override bool TryOptimize(MetadataLoader loader, IDictionary<string, VariableItem> variables, out SyntaxNode? result)
+	public override IEnumerable<IBinaryStrategy> GetStrategies()
 	{
-		result = null;
-
-		var hasLeftValue = Left.TryGetLiteralValue(loader, variables, out var leftValue);
-		var hasRightValue = Right.TryGetLiteralValue(loader, variables, out var rightValue);
-
-		// For integer/bool types
-		if (Type.IsInteger() || Type.IsBoolType())
-		{
-			// x | 0 = x
-			if (rightValue.IsNumericZero())
-			{
-				result = Left;
-				return true;
-			}
-
-			// 0 | x = x
-			if (leftValue.IsNumericZero())
-			{
-				result = Right;
-				return true;
-			}
-
-			// x | x = x (for pure expressions)
-			if (LeftEqualsRight(variables) && IsPure(Left))
-			{
-				result = Left;
-				return true;
-			}
-
-			// For integer: x | ~0 (all bits set) = ~0
-			if (Type.IsInteger() && hasRightValue)
-			{
-				var allBitsSet = Type.SpecialType switch
-				{
-					SpecialType.System_Byte => rightValue is byte.MaxValue,
-					SpecialType.System_SByte => rightValue is sbyte b && unchecked((byte)b) == byte.MaxValue,
-					SpecialType.System_UInt16 => rightValue is ushort.MaxValue,
-					SpecialType.System_Int16 => rightValue is short s && unchecked((ushort)s) == ushort.MaxValue,
-					SpecialType.System_UInt32 => rightValue is uint.MaxValue,
-					SpecialType.System_Int32 => rightValue is int i && unchecked((uint)i) == uint.MaxValue,
-					SpecialType.System_UInt64 => rightValue is ulong.MaxValue,
-					SpecialType.System_Int64 => rightValue is long l && unchecked((ulong)l) == ulong.MaxValue,
-					_ => false
-				};
-
-				if (allBitsSet)
-				{
-					result = Right;
-					return true;
-				}
-			}
-
-			// ~0 | x = ~0 (all bits set on left)
-			if (Type.IsInteger() && hasLeftValue)
-			{
-				var allBitsSet = Type.SpecialType switch
-				{
-					SpecialType.System_Byte => leftValue is byte.MaxValue,
-					SpecialType.System_SByte => leftValue is sbyte b && unchecked((byte)b) == byte.MaxValue,
-					SpecialType.System_UInt16 => leftValue is ushort.MaxValue,
-					SpecialType.System_Int16 => leftValue is short s && unchecked((ushort)s) == ushort.MaxValue,
-					SpecialType.System_UInt32 => leftValue is uint.MaxValue,
-					SpecialType.System_Int32 => leftValue is int i && unchecked((uint)i) == uint.MaxValue,
-					SpecialType.System_UInt64 => leftValue is ulong.MaxValue,
-					SpecialType.System_Int64 => leftValue is long l && unchecked((ulong)l) == ulong.MaxValue,
-					_ => false
-				};
-
-				if (allBitsSet)
-				{
-					result = Left;
-					return true;
-				}
-			}
-
-			// For bool: false | x = x, x | false = x
-			if (Type.IsBoolType())
-			{
-				if (rightValue is false)
-				{
-					result = Left;
-					return true;
-				}
-
-				if (leftValue is false)
-				{
-					result = Right;
-					return true;
-				}
-
-				// true | x = true, x | true = true
-				if (rightValue is true)
-				{
-					result = SyntaxHelpers.CreateLiteral(true);
-					return true;
-				}
-
-				if (leftValue is true)
-				{
-					result = SyntaxHelpers.CreateLiteral(true);
-					return true;
-				}
-			}
-
-			// x | (x & y) = x (absorption law, pure)
-			if (Right is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.BitwiseAndExpression } andRight
-			    && IsPure(Left) && IsPure(andRight.Left) && IsPure(andRight.Right))
-			{
-				if (Left.IsEquivalentTo(andRight.Left) || Left.IsEquivalentTo(andRight.Right))
-				{
-					result = Left;
-					return true;
-				}
-			}
-
-			// (x & y) | x = x (absorption law, pure)
-			if (Left is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.BitwiseAndExpression } andLeft
-			    && IsPure(Right) && IsPure(andLeft.Left) && IsPure(andLeft.Right))
-			{
-				if (Right.IsEquivalentTo(andLeft.Left) || Right.IsEquivalentTo(andLeft.Right))
-				{
-					result = Right;
-					return true;
-				}
-			}
-
-			// (x | mask1) | mask2 => x | (mask1 | mask2) - combine constant masks
-			if (Left is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.BitwiseOrExpression } leftOr2
-			    && hasRightValue && rightValue != null)
-			{
-				if (leftOr2.Right.TryGetLiteralValue(loader, variables, out var leftOrRight) && leftOrRight != null)
-				{
-					var combined = ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.Or, leftOrRight, rightValue);
-					if (combined != null && SyntaxHelpers.TryGetLiteral(combined, out var combinedLiteral))
-					{
-						result = SyntaxFactory.BinaryExpression(SyntaxKind.BitwiseOrExpression, leftOr2.Left, combinedLiteral);
-						return true;
-					}
-				}
-			}
-
-			// (x & mask) | mask => mask (when x is pure)
-			if (hasRightValue && rightValue != null
-			    && Left is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.BitwiseAndExpression } leftAnd
-			    && IsPure(leftAnd.Left))
-			{
-				if (leftAnd.Right.TryGetLiteralValue(loader, variables, out var andMask)
-				    && EqualityComparer<object?>.Default.Equals(andMask, rightValue))
-				{
-					result = Right;
-					return true;
-				}
-			}
-		}
-
-		return false;
+		yield return new OrIdentityElementStrategy();
+		yield return new OrIdempotencyStrategy();
+		yield return new OrAllBitsSetStrategy();
+		yield return new OrBooleanTrueStrategy();
+		yield return new OrAbsorptionStrategy();
+		yield return new OrCombineMasksStrategy();
+		yield return new OrAndMaskAbsorptionStrategy();
 	}
 }

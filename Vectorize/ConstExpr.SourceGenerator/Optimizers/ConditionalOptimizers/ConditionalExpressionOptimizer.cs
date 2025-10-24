@@ -67,7 +67,7 @@ public class ConditionalExpressionOptimizer
 			var mathType = ParseTypeName(Type.Name);
 			result = InvocationExpression(
 				MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, mathType, IdentifierName("Min")))
-				.WithArgumentList(ArgumentList(SeparatedList(new[] { Argument(WhenTrue), Argument(WhenFalse) })));
+				.WithArgumentList(ArgumentList(SeparatedList([Argument(WhenTrue), Argument(WhenFalse)])));
 			return true;
 		}
 
@@ -81,7 +81,7 @@ public class ConditionalExpressionOptimizer
 			var mathType = ParseTypeName(Type.Name);
 			result = InvocationExpression(
 				MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, mathType, IdentifierName("Max")))
-				.WithArgumentList(ArgumentList(SeparatedList(new[] { Argument(WhenTrue), Argument(WhenFalse) })));
+				.WithArgumentList(ArgumentList(SeparatedList([Argument(WhenTrue), Argument(WhenFalse)])));
 			return true;
 		}
 
@@ -95,7 +95,7 @@ public class ConditionalExpressionOptimizer
 			var mathType = ParseTypeName(Type.Name);
 			result = InvocationExpression(
 				MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, mathType, IdentifierName("Min")))
-				.WithArgumentList(ArgumentList(SeparatedList(new[] { Argument(WhenTrue), Argument(WhenFalse) })));
+				.WithArgumentList(ArgumentList(SeparatedList([Argument(WhenTrue), Argument(WhenFalse)])));
 			return true;
 		}
 
@@ -109,7 +109,7 @@ public class ConditionalExpressionOptimizer
 			var mathType = ParseTypeName(Type.Name);
 			result = InvocationExpression(
 				MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, mathType, IdentifierName("Max")))
-				.WithArgumentList(ArgumentList(SeparatedList(new[] { Argument(WhenTrue), Argument(WhenFalse) })));
+				.WithArgumentList(ArgumentList(SeparatedList([Argument(WhenTrue), Argument(WhenFalse)])));
 			return true;
 		}
 
@@ -123,7 +123,7 @@ public class ConditionalExpressionOptimizer
 			var mathType = ParseTypeName(Type.Name);
 			result = InvocationExpression(
 				MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, mathType, IdentifierName("Max")))
-				.WithArgumentList(ArgumentList(SeparatedList(new[] { Argument(WhenTrue), Argument(WhenFalse) })));
+				.WithArgumentList(ArgumentList(SeparatedList([Argument(WhenTrue), Argument(WhenFalse)])));
 			return true;
 		}
 
@@ -137,7 +137,7 @@ public class ConditionalExpressionOptimizer
 			var mathType = ParseTypeName(Type.Name);
 			result = InvocationExpression(
 				MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, mathType, IdentifierName("Min")))
-				.WithArgumentList(ArgumentList(SeparatedList(new[] { Argument(WhenTrue), Argument(WhenFalse) })));
+				.WithArgumentList(ArgumentList(SeparatedList([Argument(WhenTrue), Argument(WhenFalse)])));
 			return true;
 		}
 
