@@ -7,6 +7,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;
 
+public delegate bool TryGetLiteralDelegate(SyntaxNode? expression, out object? value);
+
 [DebuggerDisplay("{GetDebuggerDisplay(),nq}")]
 public sealed class BinaryOptimizeContext
 {
@@ -16,6 +18,8 @@ public sealed class BinaryOptimizeContext
 	public ITypeSymbol Type { get; init; }
 
 	public IDictionary<string, VariableItem> Variables { get; init; }
+	
+	public TryGetLiteralDelegate TryGetLiteral { get; init; }
 
 	internal string GetDebuggerDisplay()
 	{

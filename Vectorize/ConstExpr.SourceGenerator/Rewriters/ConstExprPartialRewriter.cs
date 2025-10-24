@@ -51,7 +51,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 		    && !value.IsAltered)
 		{
 			value.IsAccessed = true;
-			
+
 			if (TryGetLiteral(value.Value, out var expression))
 			{
 				return expression;
@@ -939,7 +939,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 		var expression = Visit(node.Expression);
 
 		if (node.WithExpression(expression as ExpressionSyntax ?? node.Expression).CanRemoveParentheses(semanticModel, CancellationToken.None)
-		    || expression is ParenthesizedExpressionSyntax or IdentifierNameSyntax or LiteralExpressionSyntax)
+		    || expression is ParenthesizedExpressionSyntax or IdentifierNameSyntax or LiteralExpressionSyntax or InvocationExpressionSyntax)
 		{
 			return expression;
 		}
@@ -1669,6 +1669,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 			},
 			Type = type,
 			Variables = variables,
+			TryGetLiteral = TryGetLiteralValue
 		};
 
 		foreach (var strategy in strategies)
@@ -1679,6 +1680,13 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 
 				if (result is not null)
 				{
+					if (result is BinaryExpressionSyntax binary
+					    && TryOptimizeNode(binary.Kind().ToBinaryOperatorKind(), type, binary.Left, leftType, binary.Right, rightType, out var nested))
+					{
+						syntaxNode = nested;
+						return true;
+					}
+
 					syntaxNode = result;
 					return true;
 				}

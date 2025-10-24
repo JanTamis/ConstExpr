@@ -22,7 +22,7 @@ public class MultiplyConstantFoldingStrategy : NumericBinaryStrategy
 		// Pattern 1: (x * C1) * C2
 		if (context.Right.HasValue 
 		    && context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.MultiplyExpression } leftMult
-		    && leftMult.Right is LiteralExpressionSyntax
+		    && context.TryGetLiteral(leftMult.Right, out _)
 		    && IsPure(leftMult.Left))
 		{
 			return true;
@@ -31,8 +31,7 @@ public class MultiplyConstantFoldingStrategy : NumericBinaryStrategy
 		// Pattern 2: C1 * (x * C2)
 		if (context.Left.HasValue 
 		    && context.Right.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.MultiplyExpression } rightMult
-		    && rightMult.Right is LiteralExpressionSyntax
-		    && IsPure(rightMult.Left))
+		    && context.TryGetLiteral(rightMult.Right, out _))
 		{
 			return true;
 		}
@@ -40,8 +39,7 @@ public class MultiplyConstantFoldingStrategy : NumericBinaryStrategy
 		// Pattern 3: C1 * (C2 * x)
 		if (context.Left.HasValue 
 		    && context.Right.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.MultiplyExpression } rightMult2
-		    && rightMult2.Left is LiteralExpressionSyntax
-		    && IsPure(rightMult2.Right))
+		    && context.TryGetLiteral(rightMult2.Left, out _))
 		{
 			return true;
 		}
@@ -54,14 +52,13 @@ public class MultiplyConstantFoldingStrategy : NumericBinaryStrategy
 		// Pattern 1: (x * C1) * C2 => x * (C1 * C2)
 		if (context.Right.HasValue 
 		    && context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.MultiplyExpression } leftMult
-		    && leftMult.Right is LiteralExpressionSyntax leftConstant)
+		    && context.TryGetLiteral(leftMult.Right, out var leftConstant))
 		{
-			var c1 = leftConstant.Token.Value;
 			var c2 = context.Right.Value;
 
-			if (c1 != null && c2 != null)
+			if (leftConstant != null && c2 != null)
 			{
-				var result = c1.Multiply(c2);
+				var result = leftConstant.Multiply(c2);
 				
 				if (result != null)
 				{
@@ -77,14 +74,13 @@ public class MultiplyConstantFoldingStrategy : NumericBinaryStrategy
 		// Pattern 2: C1 * (x * C2) => x * (C1 * C2)
 		if (context.Left.HasValue 
 		    && context.Right.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.MultiplyExpression } rightMult
-		    && rightMult.Right is LiteralExpressionSyntax rightConstant)
+		    && context.TryGetLiteral(rightMult.Right, out var rightConstant))
 		{
 			var c1 = context.Left.Value;
-			var c2 = rightConstant.Token.Value;
 
-			if (c1 != null && c2 != null)
+			if (c1 != null && rightConstant != null)
 			{
-				var result = c1.Multiply(c2);
+				var result = c1.Multiply(rightConstant);
 				
 				if (result != null)
 				{
@@ -100,14 +96,13 @@ public class MultiplyConstantFoldingStrategy : NumericBinaryStrategy
 		// Pattern 3: C1 * (C2 * x) => x * (C1 * C2)
 		if (context.Left.HasValue 
 		    && context.Right.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.MultiplyExpression } rightMult2
-		    && rightMult2.Left is LiteralExpressionSyntax rightConstant2)
+		    && context.TryGetLiteral(rightMult2.Left, out var rightConstant2))
 		{
 			var c1 = context.Left.Value;
-			var c2 = rightConstant2.Token.Value;
 
-			if (c1 != null && c2 != null)
+			if (c1 != null && rightConstant2 != null)
 			{
-				var result = c1.Multiply(c2);
+				var result = c1.Multiply(rightConstant2);
 				
 				if (result != null)
 				{
