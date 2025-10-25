@@ -20,6 +20,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 
 [assembly: InternalsVisibleTo("ConstExpr.Tests")]
@@ -33,11 +34,14 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 {
 	public override void OnInitialize(SgfInitializationContext context)
 	{
+		// Use WithComparer for incremental generation caching
+		// This prevents reprocessing invocations that haven't changed
 		var invocations = context.SyntaxProvider
 			.CreateSyntaxProvider(
 				predicate: (node, token) => !token.IsCancellationRequested && node is InvocationExpressionSyntax,
 				transform: GenerateSource)
-			.Where(result => result != null);
+			.Where(result => result != null)
+			.WithComparer(InvocationModelEqualityComparer.Instance);
 
 		var rootNamespace = context
 			.AnalyzerConfigOptionsProvider
@@ -68,21 +72,75 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 							""");
 				}
 
+				// Create MetadataLoader once for all invocations
 				var loader = MetadataLoader.GetLoader(modelAndCompilation.Left.Right);
-
-				foreach (var methodGroup in modelAndCompilation.Left.Left.GroupBy(m => m.OriginalMethod, SyntaxNodeComparer<MethodDeclarationSyntax>.Instance))
-				{
-					try
+				var compilation = modelAndCompilation.Left.Right;
+				
+				// Thread-safe cache for semantic models (ConcurrentDictionary for parallel access)
+				var semanticModelCache = new ConcurrentDictionary<SyntaxTree, SemanticModel>();
+				
+				// Process all invocations in parallel with the shared loader
+				var processedModels = new ConcurrentBag<InvocationModel>();
+				
+				// Parallel processing of invocations for better performance
+				Parallel.ForEach(
+					modelAndCompilation.Left.Left,
+					new ParallelOptions 
+					{ 
+						CancellationToken = spc.CancellationToken,
+						// Use default parallelism (-1) to let TPL decide optimal thread count
+						MaxDegreeOfParallelism = -1
+					},
+					model =>
 					{
-						GenerateMethodImplementations(spc, modelAndCompilation.Left.Right, methodGroup, loader);
-					}
-					catch (Exception ex)
-					{
-						Logger.Error(ex, $"Error generating implementations for {methodGroup.Key.Identifier}: {ex.Message}");
-					}
-				}
+						if (model is { AttributeData: not null, MethodSymbol: not null })
+						{
+							try
+							{
+								var attribute = model.AttributeData.ToAttribute<ConstExprAttribute>(loader);
+								
+								// Thread-safe semantic model caching
+								var semanticModel = semanticModelCache.GetOrAdd(
+									model.Invocation.SyntaxTree,
+									tree => compilation.GetSemanticModel(tree));
+								
+								var processedModel = GenerateExpression(semanticModel, loader, model.Invocation, model.MethodSymbol, attribute, spc.CancellationToken);
+								if (processedModel != null)
+								{
+									processedModels.Add(processedModel);
+								}
+							}
+							catch (Exception ex)
+							{
+								Logger.Error(ex, $"Error processing invocation {model.Invocation}: {ex.Message}");
+							}
+						}
+					});
 
-				ReportExceptions(spc, modelAndCompilation.Left.Left);
+				// Parallel processing of method group code generation
+				var methodGroups = processedModels.GroupBy(m => m.OriginalMethod, SyntaxNodeComparer<MethodDeclarationSyntax>.Instance);
+				
+				Parallel.ForEach(
+					methodGroups,
+					new ParallelOptions 
+					{ 
+						CancellationToken = spc.CancellationToken,
+						// Use default parallelism (-1) to let TPL decide optimal thread count
+						MaxDegreeOfParallelism = -1
+					},
+					methodGroup =>
+					{
+						try
+						{
+							GenerateMethodImplementations(spc, compilation, methodGroup, loader);
+						}
+						catch (Exception ex)
+						{
+							Logger.Error(ex, $"Error generating implementations for {methodGroup.Key.Identifier}: {ex.Message}");
+						}
+					});
+
+				ReportExceptions(spc, processedModels);
 			}
 		});
 	}
@@ -111,7 +169,8 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			foreach (var additionalMethod in distinctAdditionalMethods)
 			{
 				code.WriteLine();
-				code.WriteLine(additionalMethod.ToString(), true);
+				// Format at emission time to avoid expensive NormalizeWhitespace during processing
+				code.WriteLine(FormattingHelper.Render(additionalMethod), true);
 			}
 		}
 
@@ -154,25 +213,6 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		}
 	}
 
-	private static void EmitInterceptsLocationAttributeStub(IndentedCodeWriter code)
-	{
-		code.WriteLine("""
-
-			namespace System.Runtime.CompilerServices
-			{
-				[AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
-				file sealed class InterceptsLocationAttribute : Attribute
-				{
-					public InterceptsLocationAttribute(int version, string data)
-					{
-						_ = version;
-						_ = data;
-					}
-				}
-			}
-			""");
-	}
-
 	#endregion
 
 	private InvocationModel? GenerateSource(GeneratorSyntaxContext context, CancellationToken token)
@@ -189,18 +229,22 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 										?? methodSymbol.ContainingAssembly.GetAttributes().FirstOrDefault(IsConstExprAttribute);
 
 		// Check for ConstExprAttribute on type or method
+		// Store minimal info here; defer heavy MetadataLoader creation until RegisterSourceOutput
 		if (attribute is not null && !IsInConstExprBody(context.SemanticModel.Compilation, invocation))
 		{
-			var loader = MetadataLoader.GetLoader(context.SemanticModel.Compilation);
-			var data = attribute.ToAttribute<ConstExprAttribute>(loader);
-
-			return GenerateExpression(context, loader, invocation, methodSymbol, data, token);
+			// Return a marker model to be processed later with shared MetadataLoader
+			return new InvocationModel
+			{
+				Invocation = invocation,
+				MethodSymbol = methodSymbol,
+				AttributeData = attribute,
+			};
 		}
 
 		return null;
 	}
 
-	private InvocationModel? GenerateExpression(GeneratorSyntaxContext context, MetadataLoader loader, InvocationExpressionSyntax invocation,
+	private InvocationModel? GenerateExpression(SemanticModel semanticModel, MetadataLoader loader, InvocationExpressionSyntax invocation,
 																							IMethodSymbol methodSymbol, ConstExprAttribute attribute, CancellationToken token)
 	{
 		var methodDecl = GetMethodSyntaxNode(methodSymbol);
@@ -212,7 +256,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 		var exceptions = new ConcurrentDictionary<SyntaxNode?, Exception>(SyntaxNodeComparer<SyntaxNode>.Instance);
 
-		var visitor = new ConstExprOperationVisitor(context.SemanticModel.Compilation, loader, (operation, ex) =>
+		var visitor = new ConstExprOperationVisitor(semanticModel.Compilation, loader, (operation, ex) =>
 		{
 			// exceptions.TryAdd(operation!.Syntax, ex);
 		}, token);
@@ -220,7 +264,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		try
 		{
 			if ( //exceptions.IsEmpty
-					context.SemanticModel.Compilation.TryGetSemanticModel(methodDecl, out var model))
+					semanticModel.Compilation.TryGetSemanticModel(methodDecl, out var model))
 			{
 				var usings = new HashSet<string?>
 				{
@@ -229,7 +273,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				};
 
 				// var variables = ProcessArguments(visitor, context.SemanticModel.Compilation, invocation, loader, token);
-				var variablesPartial = ProcessArguments(visitor, context.SemanticModel, invocation, loader, token);
+				var variablesPartial = ProcessArguments(visitor, semanticModel, invocation, loader, token);
 				var additionalMethods = new Dictionary<SyntaxNode, bool>(SyntaxNodeComparer<SyntaxNode>.Instance);
 
 				var partialVisitor = new ConstExprPartialRewriter(model, loader, (node, ex) =>
@@ -269,12 +313,13 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 							.WithLeadingTrivia(methodDecl.Identifier.LeadingTrivia)
 							.WithTrailingTrivia(methodDecl.Identifier.TrailingTrivia))
 						.WithBody((BlockSyntax)result2)) as MethodDeclarationSyntax ?? methodDecl,
+					// Defer formatting to emission time to avoid expensive NormalizeWhitespace calls
 					AdditionalMethods = additionalMethods
 						.OrderByDescending(o => o.Value)
-						.Select(s => FormattingHelper.Format(s.Key)),
+						.Select(s => s.Key),
 					ParentType = methodDecl.Parent as TypeDeclarationSyntax,
 					Invocation = invocation,
-					Location = context.SemanticModel.GetInterceptableLocation(invocation, token),
+					Location = semanticModel.GetInterceptableLocation(invocation, token),
 					Exceptions = exceptions!,
 				};
 			}

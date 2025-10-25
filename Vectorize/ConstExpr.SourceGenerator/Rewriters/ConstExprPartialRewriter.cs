@@ -22,8 +22,22 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Rewriters;
 
-public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoader loader, Action<SyntaxNode?, Exception> exceptionHandler, IDictionary<string, VariableItem> variables, IDictionary<SyntaxNode, bool> additionalMethods, ISet<string> usings, ConstExprAttribute attribute, CancellationToken token) : BaseRewriter(semanticModel, loader, variables)
+public class ConstExprPartialRewriter(
+	SemanticModel semanticModel,
+	MetadataLoader loader,
+	Action<SyntaxNode?, Exception> exceptionHandler,
+	IDictionary<string, VariableItem> variables,
+	IDictionary<SyntaxNode, bool> additionalMethods,
+	ISet<string> usings,
+	ConstExprAttribute attribute,
+	CancellationToken token,
+	HashSet<IMethodSymbol>? visitingMethods = null)
+	: BaseRewriter(semanticModel, loader, variables)
 {
+	private readonly SemanticModel semanticModel = semanticModel;
+	private readonly MetadataLoader loader = loader;
+	private readonly HashSet<IMethodSymbol> visitingMethods = visitingMethods ?? new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+
 	[return: NotNullIfNotNull(nameof(node))]
 	public override SyntaxNode? Visit(SyntaxNode? node)
 	{
@@ -390,6 +404,14 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 
 			if (targetMethod.IsStatic)
 			{
+				// Check if we're already visiting this method to prevent infinite recursion
+				if (visitingMethods.Contains(targetMethod))
+				{
+					// Don't inline this method - just keep the invocation
+					usings.Add(targetMethod.ContainingType.ContainingNamespace.ToString());
+					return node.WithArgumentList(node.ArgumentList.WithArguments(SeparatedList(arguments.OfType<ExpressionSyntax>().Select(Argument))));
+				}
+
 				var syntax = targetMethod.DeclaringSyntaxReferences
 					.Select(s => s.GetSyntax(token))
 					.Select<SyntaxNode, SyntaxNode?>(s =>
@@ -403,8 +425,11 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 								var parameters = method.ParameterList.Parameters
 									.ToDictionary(d => d.Identifier.Text, d => new VariableItem(semanticModel.GetTypeInfo(d.Type).Type ?? semanticModel.Compilation.ObjectType, false, null));
 
-								var visitor = new ConstExprPartialRewriter(semanticModel, loader, (_, _) => { }, parameters, additionalMethods, usings, attribute, token);
+								// Add this method to the visiting set before recursing
+								visitingMethods.Add(targetMethod);
+								var visitor = new ConstExprPartialRewriter(semanticModel, loader, (_, _) => { }, parameters, additionalMethods, usings, attribute, token, visitingMethods);
 								var body = visitor.Visit(method.Body) as BlockSyntax;
+								visitingMethods.Remove(targetMethod);
 
 								return method.WithBody(body).WithModifiers(mods);
 							}
@@ -413,8 +438,11 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 								var parameters = localFunc.ParameterList.Parameters
 									.ToDictionary(d => d.Identifier.Text, d => new VariableItem(semanticModel.GetTypeInfo(d.Type).Type ?? semanticModel.Compilation.ObjectType, false, null));
 
-								var visitor = new ConstExprPartialRewriter(semanticModel, loader, (_, _) => { }, parameters, additionalMethods, usings, attribute, token);
+								// Add this method to the visiting set before recursing
+								visitingMethods.Add(targetMethod);
+								var visitor = new ConstExprPartialRewriter(semanticModel, loader, (_, _) => { }, parameters, additionalMethods, usings, attribute, token, visitingMethods);
 								var body = visitor.Visit(localFunc.Body) as BlockSyntax;
+								visitingMethods.Remove(targetMethod);
 
 								return localFunc.WithBody(body).WithModifiers(mods);
 							}
@@ -938,7 +966,7 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 	{
 		var expression = Visit(node.Expression);
 
-		if (node.WithExpression(expression as ExpressionSyntax ?? node.Expression).CanRemoveParentheses(semanticModel, CancellationToken.None)
+		if (node.WithExpression(expression as ExpressionSyntax ?? node.Expression).CanRemoveParentheses(semanticModel, token)
 		    || expression is ParenthesizedExpressionSyntax or IdentifierNameSyntax or LiteralExpressionSyntax or InvocationExpressionSyntax)
 		{
 			return expression;
@@ -1578,7 +1606,26 @@ public class ConstExprPartialRewriter(SemanticModel semanticModel, MetadataLoade
 				.Select((arg, i) => Argument(arg as ExpressionSyntax ?? node.Arguments[i].Expression))));
 	}
 
+	public override SyntaxNode? VisitConditionalExpression(ConditionalExpressionSyntax node)
+	{
+		var condition = Visit(node.Condition);
 
+		if (TryGetLiteralValue(condition, out var value) && value is bool b)
+		{
+			return b ? Visit(node.WhenTrue) : Visit(node.WhenFalse);
+		}
+
+		return node
+			.WithCondition(condition as ExpressionSyntax ?? node.Condition)
+			.WithWhenTrue(Visit(node.WhenTrue) as ExpressionSyntax ?? node.WhenTrue)
+			.WithWhenFalse(Visit(node.WhenFalse) as ExpressionSyntax ?? node.WhenFalse);
+	}
+
+	public override SyntaxNode? VisitWhileStatement(WhileStatementSyntax node)
+	{
+		return node;
+		return base.VisitWhileStatement(node);
+	}
 
 	public override SyntaxNode VisitBlock(BlockSyntax node)
 	{

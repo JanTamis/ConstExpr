@@ -13,9 +13,25 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Rewriters;
 
-public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, IDictionary<string, VariableItem> variables) : CSharpSyntaxRewriter
+public class BaseRewriter : CSharpSyntaxRewriter
 {
+	protected readonly SemanticModel semanticModel;
+	protected readonly MetadataLoader loader;
+	protected readonly IDictionary<string, VariableItem> variables;
+
+	public BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, IDictionary<string, VariableItem> variables)
+	{
+		this.semanticModel = semanticModel;
+		this.loader = loader;
+		this.variables = variables;
+	}
+
 	protected bool TryGetLiteralValue(SyntaxNode? node, out object? value)
+	{
+		return TryGetLiteralValue(node, out value, new HashSet<string>());
+	}
+
+	private bool TryGetLiteralValue(SyntaxNode? node, out object? value, HashSet<string> visitedVariables)
 	{
 		switch (node)
 		{
@@ -23,20 +39,27 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 				value = v;
 				return true;
 			case IdentifierNameSyntax identifier when variables.TryGetValue(identifier.Identifier.Text, out var variable) && variable.HasValue:
+				// Prevent infinite recursion from circular variable references
+				if (!visitedVariables.Add(identifier.Identifier.Text))
+				{
+					value = null;
+					return false;
+				}
+				
 				if (variable.Value is SyntaxNode sn)
 				{
-					return TryGetLiteralValue(sn, out value);
+					return TryGetLiteralValue(sn, out value, visitedVariables);
 				}
 
 				value = variable.Value;
 				return true;
 			// unwrap ( ... )
 			case ParenthesizedExpressionSyntax paren:
-				return TryGetLiteralValue(paren.Expression, out value);
+				return TryGetLiteralValue(paren.Expression, out value, visitedVariables);
 			// ^n => System.Index(n, fromEnd: true)
 			case PrefixUnaryExpressionSyntax prefix when prefix.OperatorToken.IsKind(SyntaxKind.CaretToken):
 			{
-				if (TryGetLiteralValue(prefix.Operand, out var inner) && inner is not null)
+				if (TryGetLiteralValue(prefix.Operand, out var inner, visitedVariables) && inner is not null)
 				{
 					try
 					{
@@ -73,7 +96,7 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 
 					object? MakeIndex(ExpressionSyntax expr)
 					{
-						if (TryGetLiteralValue(expr, out var innerVal) && innerVal is not null)
+						if (TryGetLiteralValue(expr, out var innerVal, visitedVariables) && innerVal is not null)
 						{
 							// Already an Index (e.g., ^n handled above)
 							if (innerVal.GetType().FullName == "System.Index")
@@ -161,7 +184,7 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 			}
 			case CastExpressionSyntax castExpressionSyntax:
 			{
-				if (TryGetLiteralValue(castExpressionSyntax.Expression, out var innerVal))
+				if (TryGetLiteralValue(castExpressionSyntax.Expression, out var innerVal, visitedVariables))
 				{
 					// Try to resolve the *textual* type name from the syntax node (no semantic model)
 					string typeName = castExpressionSyntax.Type switch
@@ -226,7 +249,7 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 			{
 				if (semanticModel.TryGetSymbol(node, out ISymbol? symbol))
 				{
-					TryGetLiteralValue(Visit(memberAccessExpressionSyntax.Expression), out var instanceValue);
+					TryGetLiteralValue(Visit(memberAccessExpressionSyntax.Expression), out var instanceValue, visitedVariables);
 
 					switch (symbol)
 					{
@@ -256,7 +279,7 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 				
 				foreach (var element in collectionExpressionSyntax.Elements.OfType<ExpressionElementSyntax>())
 				{
-					if (TryGetLiteralValue(element.Expression, out var elemVal))
+					if (TryGetLiteralValue(element.Expression, out var elemVal, visitedVariables))
 					{
 						elements.Add(elemVal);
 					}

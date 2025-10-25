@@ -159,6 +159,20 @@ public static class SyntaxHelpers
 				}
 			case null:
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression);
+			case DateTime dt:
+			{
+				return SyntaxFactory.ObjectCreationExpression(
+					SyntaxFactory.IdentifierName("DateTime"))
+					.WithArgumentList(SyntaxFactory.ArgumentList(SyntaxFactory.SeparatedList(new[]
+					{
+						SyntaxFactory.Argument(CreateLiteral(dt.Ticks)),
+						SyntaxFactory.Argument(
+							SyntaxFactory.MemberAccessExpression(
+								SyntaxKind.SimpleMemberAccessExpression,
+								SyntaxFactory.IdentifierName("DateTimeKind"),
+								SyntaxFactory.IdentifierName(dt.Kind.ToString())))
+					})));
+			}
 		}
 
 		// Support for Span<T> / ReadOnlySpan<T> via reflection by converting to array

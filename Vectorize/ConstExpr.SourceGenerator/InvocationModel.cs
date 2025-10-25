@@ -7,28 +7,29 @@ using System.Diagnostics;
 
 namespace ConstExpr.SourceGenerator;
 
-[DebuggerDisplay("{Method.ToString()}")]
+[DebuggerDisplay("{Method?.ToString() ?? Invocation?.ToString()}")]
 public class InvocationModel
 {
 #pragma warning disable RSEXPERIMENTAL002
 	public InterceptableLocation? Location { get; set; }
 #pragma warning restore RSEXPERIMENTAL002
 
-	public MethodDeclarationSyntax OriginalMethod { get; set; }
-	public MethodDeclarationSyntax Method { get; set; }
-	public TypeDeclarationSyntax ParentType { get; set; }
+	public MethodDeclarationSyntax? OriginalMethod { get; set; }
+	public MethodDeclarationSyntax? Method { get; set; }
+	public TypeDeclarationSyntax? ParentType { get; set; }
 	
-	// public IMethodSymbol Symbol { get; set; }
+	public IMethodSymbol? MethodSymbol { get; set; }
+	public AttributeData? AttributeData { get; set; }
 
-	public InvocationExpressionSyntax Invocation { get; set; }
+	public InvocationExpressionSyntax? Invocation { get; set; }
 	
-	public IEnumerable<SyntaxNode> AdditionalMethods { get; set; }
+	public IEnumerable<SyntaxNode>? AdditionalMethods { get; set; }
 
 	// public object? Value { get; set; }
 
-	public HashSet<string> Usings { get; set; }
+	public HashSet<string>? Usings { get; set; }
 
-	public IReadOnlyDictionary<SyntaxNode, Exception> Exceptions { get; set; }
+	public IReadOnlyDictionary<SyntaxNode, Exception>? Exceptions { get; set; }
 	
 
 	// public GenerationLevel GenerationLevel { get; set; } = GenerationLevel.Balanced;
