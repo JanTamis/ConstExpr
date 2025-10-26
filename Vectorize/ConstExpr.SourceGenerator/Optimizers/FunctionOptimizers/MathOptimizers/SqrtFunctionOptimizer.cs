@@ -30,8 +30,10 @@ public class SqrtFunctionOptimizer() : BaseMathFunctionOptimizer("Sqrt", 1)
 				.WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(mul.Left))));
 			return true;
 		}
-
-		return false;
+		
+		
+		result = CreateInvocation(paramType, "Sqrt", arg);
+		return true;
 	}
 }
 
