@@ -12,7 +12,7 @@ public class SqrtFunctionOptimizer() : BaseMathFunctionOptimizer("Sqrt", 1)
 	{
 		result = null;
 
-		if (IsValidMathMethod(method, out var paramType))
+		if (!IsValidMathMethod(method, out var paramType))
 		{
 			return false;
 		}
