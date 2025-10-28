@@ -1157,7 +1157,7 @@ public static class CompilationExtensions
 		return Convert.ToBase64String(BitConverter.GetBytes(normalized)).TrimEnd('=').Replace('+', '_').Replace('/', '_');
 	}
 
-	public static TAttribute ToAttribute<TAttribute>(this AttributeData attributeData, MetadataLoader loader)
+	public static TAttribute ToAttribute<TAttribute>(this AttributeData attributeData)
 		where TAttribute : Attribute
 	{
 		var type = typeof(TAttribute);

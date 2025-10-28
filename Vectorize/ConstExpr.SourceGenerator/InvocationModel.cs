@@ -1,3 +1,4 @@
+using ConstExpr.Core.Attributes;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -19,7 +20,7 @@ public class InvocationModel
 	public TypeDeclarationSyntax? ParentType { get; set; }
 	
 	public IMethodSymbol? MethodSymbol { get; set; }
-	public AttributeData? AttributeData { get; set; }
+	public ConstExprAttribute? AttributeData { get; set; }
 
 	public InvocationExpressionSyntax? Invocation { get; set; }
 	

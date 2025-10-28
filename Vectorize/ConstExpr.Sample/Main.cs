@@ -294,126 +294,126 @@ var varDouble13 = 75.0;
 // ═══════════════════════════════════════════════════════════════
 // FINANCIAL OPERATIONS
 // ═══════════════════════════════════════════════════════════════
-Console.WriteLine("═══ FINANCIAL OPERATIONS ═══\n");
+//Console.WriteLine("═══ FINANCIAL OPERATIONS ═══\n");
 
-// CompoundInterest - alleen constanten
-Console.WriteLine($"[CONST] CompoundInterest(1000,0.05,12,5): {FinancialOperations.CompoundInterest(1000, 0.05, 12, 5):F2}");
-// CompoundInterest - mixed
-Console.WriteLine($"[MIXED] CompoundInterest(varDouble*100,0.05,12,5): {FinancialOperations.CompoundInterest(varDouble * 100, 0.05, 12, 5):F2}");
-// CompoundInterest - alleen variabelen
-Console.WriteLine($"[VARS ] CompoundInterest(varDouble5,varDouble4/10,varInt8,varInt2): {FinancialOperations.CompoundInterest(varDouble5, varDouble4 / 10, varInt8, varInt2):F2}");
+//// CompoundInterest - alleen constanten
+//Console.WriteLine($"[CONST] CompoundInterest(1000,0.05,12,5): {FinancialOperations.CompoundInterest(1000, 0.05, 12, 5):F2}");
+//// CompoundInterest - mixed
+//Console.WriteLine($"[MIXED] CompoundInterest(varDouble*100,0.05,12,5): {FinancialOperations.CompoundInterest(varDouble * 100, 0.05, 12, 5):F2}");
+//// CompoundInterest - alleen variabelen
+//Console.WriteLine($"[VARS ] CompoundInterest(varDouble5,varDouble4/10,varInt8,varInt2): {FinancialOperations.CompoundInterest(varDouble5, varDouble4 / 10, varInt8, varInt2):F2}");
 
-// SimpleInterest - alleen constanten
-Console.WriteLine($"[CONST] SimpleInterest(1000,0.05,3): {FinancialOperations.SimpleInterest(1000, 0.05, 3):F2}");
-// SimpleInterest - mixed
-Console.WriteLine($"[MIXED] SimpleInterest(varDouble*100,0.05,3): {FinancialOperations.SimpleInterest(varDouble * 100, 0.05, 3):F2}");
-// SimpleInterest - alleen variabelen
-Console.WriteLine($"[VARS ] SimpleInterest(varDouble5,varDouble4/10,varInt4): {FinancialOperations.SimpleInterest(varDouble5, varDouble4 / 10, varInt4):F2}");
+//// SimpleInterest - alleen constanten
+//Console.WriteLine($"[CONST] SimpleInterest(1000,0.05,3): {FinancialOperations.SimpleInterest(1000, 0.05, 3):F2}");
+//// SimpleInterest - mixed
+//Console.WriteLine($"[MIXED] SimpleInterest(varDouble*100,0.05,3): {FinancialOperations.SimpleInterest(varDouble * 100, 0.05, 3):F2}");
+//// SimpleInterest - alleen variabelen
+//Console.WriteLine($"[VARS ] SimpleInterest(varDouble5,varDouble4/10,varInt4): {FinancialOperations.SimpleInterest(varDouble5, varDouble4 / 10, varInt4):F2}");
 
-// MonthlyMortgagePayment - alleen constanten
-Console.WriteLine($"[CONST] MortgagePayment(200000,0.04,30): {FinancialOperations.MonthlyMortgagePayment(200000, 0.04, 30):F2}");
-// MonthlyMortgagePayment - mixed
-Console.WriteLine($"[MIXED] MortgagePayment(varDouble*1000,0.04,30): {FinancialOperations.MonthlyMortgagePayment(varDouble * 1000, 0.04, 30):F2}");
-// MonthlyMortgagePayment - alleen variabelen
-Console.WriteLine($"[VARS ] MortgagePayment(varDouble5*2000,varDouble4/10,varInt3): {FinancialOperations.MonthlyMortgagePayment(varDouble5 * 2000, varDouble4 / 10, varInt3):F2}");
+//// MonthlyMortgagePayment - alleen constanten
+//Console.WriteLine($"[CONST] MortgagePayment(200000,0.04,30): {FinancialOperations.MonthlyMortgagePayment(200000, 0.04, 30):F2}");
+//// MonthlyMortgagePayment - mixed
+//Console.WriteLine($"[MIXED] MortgagePayment(varDouble*1000,0.04,30): {FinancialOperations.MonthlyMortgagePayment(varDouble * 1000, 0.04, 30):F2}");
+//// MonthlyMortgagePayment - alleen variabelen
+//Console.WriteLine($"[VARS ] MortgagePayment(varDouble5*2000,varDouble4/10,varInt3): {FinancialOperations.MonthlyMortgagePayment(varDouble5 * 2000, varDouble4 / 10, varInt3):F2}");
 
-// ReturnOnInvestment - alleen constanten
-Console.WriteLine($"[CONST] ROI(1500,1000): {FinancialOperations.ReturnOnInvestment(1500, 1000):F2}");
-// ReturnOnInvestment - mixed
-Console.WriteLine($"[MIXED] ROI(varDouble*100,1000): {FinancialOperations.ReturnOnInvestment(varDouble * 100, 1000):F2}");
-// ReturnOnInvestment - alleen variabelen
-Console.WriteLine($"[VARS ] ROI(varDouble5,varDouble3*10): {FinancialOperations.ReturnOnInvestment(varDouble5, varDouble3 * 10):F2}");
+//// ReturnOnInvestment - alleen constanten
+//Console.WriteLine($"[CONST] ROI(1500,1000): {FinancialOperations.ReturnOnInvestment(1500, 1000):F2}");
+//// ReturnOnInvestment - mixed
+//Console.WriteLine($"[MIXED] ROI(varDouble*100,1000): {FinancialOperations.ReturnOnInvestment(varDouble * 100, 1000):F2}");
+//// ReturnOnInvestment - alleen variabelen
+//Console.WriteLine($"[VARS ] ROI(varDouble5,varDouble3*10): {FinancialOperations.ReturnOnInvestment(varDouble5, varDouble3 * 10):F2}");
 
-// FutureValue - alleen constanten
-Console.WriteLine($"[CONST] FutureValue(1000,0.05,10): {FinancialOperations.FutureValue(1000, 0.05, 10):F2}");
-// FutureValue - mixed
-Console.WriteLine($"[MIXED] FutureValue(varDouble*100,0.05,10): {FinancialOperations.FutureValue(varDouble * 100, 0.05, 10):F2}");
-// FutureValue - alleen variabelen
-Console.WriteLine($"[VARS ] FutureValue(varDouble5,varDouble4/10,varInt): {FinancialOperations.FutureValue(varDouble5, varDouble4 / 10, varInt):F2}");
+//// FutureValue - alleen constanten
+//Console.WriteLine($"[CONST] FutureValue(1000,0.05,10): {FinancialOperations.FutureValue(1000, 0.05, 10):F2}");
+//// FutureValue - mixed
+//Console.WriteLine($"[MIXED] FutureValue(varDouble*100,0.05,10): {FinancialOperations.FutureValue(varDouble * 100, 0.05, 10):F2}");
+//// FutureValue - alleen variabelen
+//Console.WriteLine($"[VARS ] FutureValue(varDouble5,varDouble4/10,varInt): {FinancialOperations.FutureValue(varDouble5, varDouble4 / 10, varInt):F2}");
 
-// PresentValue - alleen constanten
-Console.WriteLine($"[CONST] PresentValue(1500,0.05,10): {FinancialOperations.PresentValue(1500, 0.05, 10):F2}");
-// PresentValue - mixed
-Console.WriteLine($"[MIXED] PresentValue(varDouble*100,0.05,10): {FinancialOperations.PresentValue(varDouble * 100, 0.05, 10):F2}");
-// PresentValue - alleen variabelen
-Console.WriteLine($"[VARS ] PresentValue(varDouble5,varDouble4/10,varInt): {FinancialOperations.PresentValue(varDouble5, varDouble4 / 10, varInt):F2}");
+//// PresentValue - alleen constanten
+//Console.WriteLine($"[CONST] PresentValue(1500,0.05,10): {FinancialOperations.PresentValue(1500, 0.05, 10):F2}");
+//// PresentValue - mixed
+//Console.WriteLine($"[MIXED] PresentValue(varDouble*100,0.05,10): {FinancialOperations.PresentValue(varDouble * 100, 0.05, 10):F2}");
+//// PresentValue - alleen variabelen
+//Console.WriteLine($"[VARS ] PresentValue(varDouble5,varDouble4/10,varInt): {FinancialOperations.PresentValue(varDouble5, varDouble4 / 10, varInt):F2}");
 
-// LoanPayment - alleen constanten
-Console.WriteLine($"[CONST] LoanPayment(10000,0.05,60): {FinancialOperations.LoanPayment(10000, 0.05, 60):F2}");
-// LoanPayment - mixed
-Console.WriteLine($"[MIXED] LoanPayment(varDouble*1000,0.05,60): {FinancialOperations.LoanPayment(varDouble * 1000, 0.05, 60):F2}");
-// LoanPayment - alleen variabelen
-Console.WriteLine($"[VARS ] LoanPayment(varDouble5*100,varDouble4/10,varInt3*3): {FinancialOperations.LoanPayment(varDouble5 * 100, varDouble4 / 10, varInt3 * 3):F2}");
+//// LoanPayment - alleen constanten
+//Console.WriteLine($"[CONST] LoanPayment(10000,0.05,60): {FinancialOperations.LoanPayment(10000, 0.05, 60):F2}");
+//// LoanPayment - mixed
+//Console.WriteLine($"[MIXED] LoanPayment(varDouble*1000,0.05,60): {FinancialOperations.LoanPayment(varDouble * 1000, 0.05, 60):F2}");
+//// LoanPayment - alleen variabelen
+//Console.WriteLine($"[VARS ] LoanPayment(varDouble5*100,varDouble4/10,varInt3*3): {FinancialOperations.LoanPayment(varDouble5 * 100, varDouble4 / 10, varInt3 * 3):F2}");
 
-// EffectiveAnnualRate - alleen constanten
-Console.WriteLine($"[CONST] EffectiveAnnualRate(0.05,12): {FinancialOperations.EffectiveAnnualRate(0.05, 12):F4}");
-// EffectiveAnnualRate - mixed
-Console.WriteLine($"[MIXED] EffectiveAnnualRate(0.05,varInt8): {FinancialOperations.EffectiveAnnualRate(0.05, varInt8):F4}");
-// EffectiveAnnualRate - alleen variabelen
-Console.WriteLine($"[VARS ] EffectiveAnnualRate(varDouble4/10,varInt8): {FinancialOperations.EffectiveAnnualRate(varDouble4 / 10, varInt8):F4}");
+//// EffectiveAnnualRate - alleen constanten
+//Console.WriteLine($"[CONST] EffectiveAnnualRate(0.05,12): {FinancialOperations.EffectiveAnnualRate(0.05, 12):F4}");
+//// EffectiveAnnualRate - mixed
+//Console.WriteLine($"[MIXED] EffectiveAnnualRate(0.05,varInt8): {FinancialOperations.EffectiveAnnualRate(0.05, varInt8):F4}");
+//// EffectiveAnnualRate - alleen variabelen
+//Console.WriteLine($"[VARS ] EffectiveAnnualRate(varDouble4/10,varInt8): {FinancialOperations.EffectiveAnnualRate(varDouble4 / 10, varInt8):F4}");
 
-// BreakEvenPoint - alleen constanten
-Console.WriteLine($"[CONST] BreakEvenPoint(5000,50,30): {FinancialOperations.BreakEvenPoint(5000, 50, 30):F2}");
-// BreakEvenPoint - mixed
-Console.WriteLine($"[MIXED] BreakEvenPoint(varDouble*1000,50,30): {FinancialOperations.BreakEvenPoint(varDouble * 1000, 50, 30):F2}");
-// BreakEvenPoint - alleen variabelen
-Console.WriteLine($"[VARS ] BreakEvenPoint(varDouble5*50,varDouble5/2,varInt3): {FinancialOperations.BreakEvenPoint(varDouble5 * 50, varDouble5 / 2, varInt3):F2}");
+//// BreakEvenPoint - alleen constanten
+//Console.WriteLine($"[CONST] BreakEvenPoint(5000,50,30): {FinancialOperations.BreakEvenPoint(5000, 50, 30):F2}");
+//// BreakEvenPoint - mixed
+//Console.WriteLine($"[MIXED] BreakEvenPoint(varDouble*1000,50,30): {FinancialOperations.BreakEvenPoint(varDouble * 1000, 50, 30):F2}");
+//// BreakEvenPoint - alleen variabelen
+//Console.WriteLine($"[VARS ] BreakEvenPoint(varDouble5*50,varDouble5/2,varInt3): {FinancialOperations.BreakEvenPoint(varDouble5 * 50, varDouble5 / 2, varInt3):F2}");
 
-// AnnuityPayment - alleen constanten
-Console.WriteLine($"[CONST] AnnuityPayment(0.05,10,1000): {FinancialOperations.AnnuityPayment(0.05, 10, 1000):F2}");
-// AnnuityPayment - mixed
-Console.WriteLine($"[MIXED] AnnuityPayment(0.05,varInt,1000): {FinancialOperations.AnnuityPayment(0.05, varInt, 1000):F2}");
-// AnnuityPayment - alleen variabelen
-Console.WriteLine($"[VARS ] AnnuityPayment(varDouble4/10,varInt,varDouble5*10): {FinancialOperations.AnnuityPayment(varDouble4 / 10, varInt, varDouble5 * 10):F2}");
+//// AnnuityPayment - alleen constanten
+//Console.WriteLine($"[CONST] AnnuityPayment(0.05,10,1000): {FinancialOperations.AnnuityPayment(0.05, 10, 1000):F2}");
+//// AnnuityPayment - mixed
+//Console.WriteLine($"[MIXED] AnnuityPayment(0.05,varInt,1000): {FinancialOperations.AnnuityPayment(0.05, varInt, 1000):F2}");
+//// AnnuityPayment - alleen variabelen
+//Console.WriteLine($"[VARS ] AnnuityPayment(varDouble4/10,varInt,varDouble5*10): {FinancialOperations.AnnuityPayment(varDouble4 / 10, varInt, varDouble5 * 10):F2}");
 
-// AnnuityFutureValue - alleen constanten
-Console.WriteLine($"[CONST] AnnuityFutureValue(100,0.05,10): {FinancialOperations.AnnuityFutureValue(100, 0.05, 10):F2}");
-// AnnuityFutureValue - mixed
-Console.WriteLine($"[MIXED] AnnuityFutureValue(varDouble5,0.05,10): {FinancialOperations.AnnuityFutureValue(varDouble5, 0.05, 10):F2}");
-// AnnuityFutureValue - alleen variabelen
-Console.WriteLine($"[VARS ] AnnuityFutureValue(varDouble5,varDouble4/10,varInt): {FinancialOperations.AnnuityFutureValue(varDouble5, varDouble4 / 10, varInt):F2}");
+//// AnnuityFutureValue - alleen constanten
+//Console.WriteLine($"[CONST] AnnuityFutureValue(100,0.05,10): {FinancialOperations.AnnuityFutureValue(100, 0.05, 10):F2}");
+//// AnnuityFutureValue - mixed
+//Console.WriteLine($"[MIXED] AnnuityFutureValue(varDouble5,0.05,10): {FinancialOperations.AnnuityFutureValue(varDouble5, 0.05, 10):F2}");
+//// AnnuityFutureValue - alleen variabelen
+//Console.WriteLine($"[VARS ] AnnuityFutureValue(varDouble5,varDouble4/10,varInt): {FinancialOperations.AnnuityFutureValue(varDouble5, varDouble4 / 10, varInt):F2}");
 
-// ProfitMargin - alleen constanten
-Console.WriteLine($"[CONST] ProfitMargin(1000,750): {FinancialOperations.ProfitMargin(1000, 750):F2}");
-// ProfitMargin - mixed
-Console.WriteLine($"[MIXED] ProfitMargin(varDouble5*10,750): {FinancialOperations.ProfitMargin(varDouble5 * 10, 750):F2}");
-// ProfitMargin - alleen variabelen
-Console.WriteLine($"[VARS ] ProfitMargin(varDouble5*10,varDouble13*10): {FinancialOperations.ProfitMargin(varDouble5 * 10, varDouble13 * 10):F2}");
+//// ProfitMargin - alleen constanten
+//Console.WriteLine($"[CONST] ProfitMargin(1000,750): {FinancialOperations.ProfitMargin(1000, 750):F2}");
+//// ProfitMargin - mixed
+//Console.WriteLine($"[MIXED] ProfitMargin(varDouble5*10,750): {FinancialOperations.ProfitMargin(varDouble5 * 10, 750):F2}");
+//// ProfitMargin - alleen variabelen
+//Console.WriteLine($"[VARS ] ProfitMargin(varDouble5*10,varDouble13*10): {FinancialOperations.ProfitMargin(varDouble5 * 10, varDouble13 * 10):F2}");
 
-// DividendYield - alleen constanten
-Console.WriteLine($"[CONST] DividendYield(5,100): {FinancialOperations.DividendYield(5, 100):F2}");
-// DividendYield - mixed
-Console.WriteLine($"[MIXED] DividendYield(varDouble,100): {FinancialOperations.DividendYield(varDouble, 100):F2}");
-// DividendYield - alleen variabelen
-Console.WriteLine($"[VARS ] DividendYield(varDouble,varDouble5): {FinancialOperations.DividendYield(varDouble, varDouble5):F2}");
+//// DividendYield - alleen constanten
+//Console.WriteLine($"[CONST] DividendYield(5,100): {FinancialOperations.DividendYield(5, 100):F2}");
+//// DividendYield - mixed
+//Console.WriteLine($"[MIXED] DividendYield(varDouble,100): {FinancialOperations.DividendYield(varDouble, 100):F2}");
+//// DividendYield - alleen variabelen
+//Console.WriteLine($"[VARS ] DividendYield(varDouble,varDouble5): {FinancialOperations.DividendYield(varDouble, varDouble5):F2}");
 
-// EarningsPerShare - alleen constanten
-Console.WriteLine($"[CONST] EarningsPerShare(10000,1000): {FinancialOperations.EarningsPerShare(10000, 1000):F2}");
-// EarningsPerShare - mixed
-Console.WriteLine($"[MIXED] EarningsPerShare(varDouble5*100,1000): {FinancialOperations.EarningsPerShare(varDouble5 * 100, 1000):F2}");
-// EarningsPerShare - alleen variabelen
-Console.WriteLine($"[VARS ] EarningsPerShare(varDouble5*100,varDouble5*10): {FinancialOperations.EarningsPerShare(varDouble5 * 100, varDouble5 * 10):F2}");
+//// EarningsPerShare - alleen constanten
+//Console.WriteLine($"[CONST] EarningsPerShare(10000,1000): {FinancialOperations.EarningsPerShare(10000, 1000):F2}");
+//// EarningsPerShare - mixed
+//Console.WriteLine($"[MIXED] EarningsPerShare(varDouble5*100,1000): {FinancialOperations.EarningsPerShare(varDouble5 * 100, 1000):F2}");
+//// EarningsPerShare - alleen variabelen
+//Console.WriteLine($"[VARS ] EarningsPerShare(varDouble5*100,varDouble5*10): {FinancialOperations.EarningsPerShare(varDouble5 * 100, varDouble5 * 10):F2}");
 
-// PriceToEarningsRatio - alleen constanten
-Console.WriteLine($"[CONST] PriceToEarningsRatio(100,10): {FinancialOperations.PriceToEarningsRatio(100, 10):F2}");
-// PriceToEarningsRatio - mixed
-Console.WriteLine($"[MIXED] PriceToEarningsRatio(varDouble5,10): {FinancialOperations.PriceToEarningsRatio(varDouble5, 10):F2}");
-// PriceToEarningsRatio - alleen variabelen
-Console.WriteLine($"[VARS ] PriceToEarningsRatio(varDouble5,varInt): {FinancialOperations.PriceToEarningsRatio(varDouble5, varInt):F2}");
+//// PriceToEarningsRatio - alleen constanten
+//Console.WriteLine($"[CONST] PriceToEarningsRatio(100,10): {FinancialOperations.PriceToEarningsRatio(100, 10):F2}");
+//// PriceToEarningsRatio - mixed
+//Console.WriteLine($"[MIXED] PriceToEarningsRatio(varDouble5,10): {FinancialOperations.PriceToEarningsRatio(varDouble5, 10):F2}");
+//// PriceToEarningsRatio - alleen variabelen
+//Console.WriteLine($"[VARS ] PriceToEarningsRatio(varDouble5,varInt): {FinancialOperations.PriceToEarningsRatio(varDouble5, varInt):F2}");
 
-// Depreciation - alleen constanten
-Console.WriteLine($"[CONST] Depreciation(10000,1000,10): {FinancialOperations.Depreciation(10000, 1000, 10):F2}");
-// Depreciation - mixed
-Console.WriteLine($"[MIXED] Depreciation(varDouble5*100,1000,10): {FinancialOperations.Depreciation(varDouble5 * 100, 1000, 10):F2}");
-// Depreciation - alleen variabelen
-Console.WriteLine($"[VARS ] Depreciation(varDouble5*100,varDouble5*10,varInt): {FinancialOperations.Depreciation(varDouble5 * 100, varDouble5 * 10, varInt):F2}");
+//// Depreciation - alleen constanten
+//Console.WriteLine($"[CONST] Depreciation(10000,1000,10): {FinancialOperations.Depreciation(10000, 1000, 10):F2}");
+//// Depreciation - mixed
+//Console.WriteLine($"[MIXED] Depreciation(varDouble5*100,1000,10): {FinancialOperations.Depreciation(varDouble5 * 100, 1000, 10):F2}");
+//// Depreciation - alleen variabelen
+//Console.WriteLine($"[VARS ] Depreciation(varDouble5*100,varDouble5*10,varInt): {FinancialOperations.Depreciation(varDouble5 * 100, varDouble5 * 10, varInt):F2}");
 
-// TaxAmount - alleen constanten
-Console.WriteLine($"[CONST] TaxAmount(10000,0.21): {FinancialOperations.TaxAmount(10000, 0.21):F2}");
-// TaxAmount - mixed
-Console.WriteLine($"[MIXED] TaxAmount(varDouble5*100,0.21): {FinancialOperations.TaxAmount(varDouble5 * 100, 0.21):F2}");
-// TaxAmount - alleen variabelen
-Console.WriteLine($"[VARS ] TaxAmount(varDouble5*100,varDouble4/2): {FinancialOperations.TaxAmount(varDouble5 * 100, varDouble4 / 2):F2}");
+//// TaxAmount - alleen constanten
+//Console.WriteLine($"[CONST] TaxAmount(10000,0.21): {FinancialOperations.TaxAmount(10000, 0.21):F2}");
+//// TaxAmount - mixed
+//Console.WriteLine($"[MIXED] TaxAmount(varDouble5*100,0.21): {FinancialOperations.TaxAmount(varDouble5 * 100, 0.21):F2}");
+//// TaxAmount - alleen variabelen
+//Console.WriteLine($"[VARS ] TaxAmount(varDouble5*100,varDouble4/2): {FinancialOperations.TaxAmount(varDouble5 * 100, varDouble4 / 2):F2}");
 //
 // Console.WriteLine();
 //
@@ -422,141 +422,141 @@ Console.WriteLine($"[VARS ] TaxAmount(varDouble5*100,varDouble4/2): {FinancialOp
 // // ═══════════════════════════════════════════════════════════════
 // Console.WriteLine("═══ GEOMETRY OPERATIONS ═══\n");
 //
-// // CircleArea - alleen constanten
-// Console.WriteLine($"[CONST] CircleArea(5): {GeometryOperations.CircleArea(5):F2}");
-// // CircleArea - mixed
-// Console.WriteLine($"[MIXED] CircleArea(varDouble): {GeometryOperations.CircleArea(varDouble):F2}");
-// // CircleArea - alleen variabelen
-// Console.WriteLine($"[VARS ] CircleArea(varDouble2): {GeometryOperations.CircleArea(varDouble2):F2}");
-//
-// // RectangleArea - alleen constanten
-// Console.WriteLine($"[CONST] RectangleArea(10,5): {GeometryOperations.RectangleArea(10, 5):F2}");
-// // RectangleArea - mixed
-// Console.WriteLine($"[MIXED] RectangleArea(varDouble,5): {GeometryOperations.RectangleArea(varDouble, 5):F2}");
-// // RectangleArea - alleen variabelen
-// Console.WriteLine($"[VARS ] RectangleArea(varDouble3,varDouble2): {GeometryOperations.RectangleArea(varDouble3, varDouble2):F2}");
-//
-// // SphereVolume - alleen constanten
-// Console.WriteLine($"[CONST] SphereVolume(3): {GeometryOperations.SphereVolume(3):F2}");
-// // SphereVolume - mixed
-// Console.WriteLine($"[MIXED] SphereVolume(varDouble): {GeometryOperations.SphereVolume(varDouble):F2}");
-// // SphereVolume - alleen variabelen
-// Console.WriteLine($"[VARS ] SphereVolume(varDouble6): {GeometryOperations.SphereVolume(varDouble6):F2}");
-//
-// // Distance2D - alleen constanten
-// Console.WriteLine($"[CONST] Distance2D(0,0,3,4): {GeometryOperations.Distance2D(0, 0, 3, 4):F2}");
-// // Distance2D - mixed
-// Console.WriteLine($"[MIXED] Distance2D(0,0,varDouble,4): {GeometryOperations.Distance2D(0, 0, varDouble, 4):F2}");
-// // Distance2D - alleen variabelen
-// Console.WriteLine($"[VARS ] Distance2D(varDouble2,varDouble4,varDouble6,varDouble8): {GeometryOperations.Distance2D(varDouble2, varDouble4, varDouble6, varDouble8):F2}");
-//
-// // TriangleArea - alleen constanten
-// Console.WriteLine($"[CONST] TriangleArea(5,6,90): {GeometryOperations.TriangleArea(5, 6, 90):F2}");
-// // TriangleArea - mixed
-// Console.WriteLine($"[MIXED] TriangleArea(varDouble,6,90): {GeometryOperations.TriangleArea(varDouble, 6, 90):F2}");
-// // TriangleArea - alleen variabelen
-// Console.WriteLine($"[VARS ] TriangleArea(varDouble2,varDouble6,varDouble12): {GeometryOperations.TriangleArea(varDouble2, varDouble6, varDouble12):F2}");
-//
-// // CircleCircumference - alleen constanten
-// Console.WriteLine($"[CONST] CircleCircumference(5): {GeometryOperations.CircleCircumference(5):F2}");
-// // CircleCircumference - mixed
-// Console.WriteLine($"[MIXED] CircleCircumference(varDouble): {GeometryOperations.CircleCircumference(varDouble):F2}");
-// // CircleCircumference - alleen variabelen
-// Console.WriteLine($"[VARS ] CircleCircumference(varDouble2): {GeometryOperations.CircleCircumference(varDouble2):F2}");
-//
-// // RectanglePerimeter - alleen constanten
-// Console.WriteLine($"[CONST] RectanglePerimeter(10,5): {GeometryOperations.RectanglePerimeter(10, 5):F2}");
-// // RectanglePerimeter - mixed
-// Console.WriteLine($"[MIXED] RectanglePerimeter(varDouble,5): {GeometryOperations.RectanglePerimeter(varDouble, 5):F2}");
-// // RectanglePerimeter - alleen variabelen
-// Console.WriteLine($"[VARS ] RectanglePerimeter(varDouble3,varDouble2): {GeometryOperations.RectanglePerimeter(varDouble3, varDouble2):F2}");
-//
-// // SphereSurfaceArea - alleen constanten
-// Console.WriteLine($"[CONST] SphereSurfaceArea(3): {GeometryOperations.SphereSurfaceArea(3):F2}");
-// // SphereSurfaceArea - mixed
-// Console.WriteLine($"[MIXED] SphereSurfaceArea(varDouble): {GeometryOperations.SphereSurfaceArea(varDouble):F2}");
-// // SphereSurfaceArea - alleen variabelen
-// Console.WriteLine($"[VARS ] SphereSurfaceArea(varDouble6): {GeometryOperations.SphereSurfaceArea(varDouble6):F2}");
-//
-// // CylinderVolume - alleen constanten
-// Console.WriteLine($"[CONST] CylinderVolume(3,5): {GeometryOperations.CylinderVolume(3, 5):F2}");
-// // CylinderVolume - mixed
-// Console.WriteLine($"[MIXED] CylinderVolume(varDouble,5): {GeometryOperations.CylinderVolume(varDouble, 5):F2}");
-// // CylinderVolume - alleen variabelen
-// Console.WriteLine($"[VARS ] CylinderVolume(varDouble2,varDouble6): {GeometryOperations.CylinderVolume(varDouble2, varDouble6):F2}");
-//
-// // TriangleAreaHeron - alleen constanten
-// Console.WriteLine($"[CONST] TriangleAreaHeron(3,4,5): {GeometryOperations.TriangleAreaHeron(3, 4, 5):F2}");
-// // TriangleAreaHeron - mixed
-// Console.WriteLine($"[MIXED] TriangleAreaHeron(varDouble,4,5): {GeometryOperations.TriangleAreaHeron(varDouble, 4, 5):F2}");
-// // TriangleAreaHeron - alleen variabelen
-// Console.WriteLine($"[VARS ] TriangleAreaHeron(varDouble2,varDouble6,varDouble7): {GeometryOperations.TriangleAreaHeron(varDouble2, varDouble6, varDouble7):F2}");
-//
-// // Distance3D - alleen constanten
-// Console.WriteLine($"[CONST] Distance3D(0,0,0,1,2,2): {GeometryOperations.Distance3D(0, 0, 0, 1, 2, 2):F2}");
-// // Distance3D - mixed
-// Console.WriteLine($"[MIXED] Distance3D(0,0,0,varDouble,2,2): {GeometryOperations.Distance3D(0, 0, 0, varDouble, 2, 2):F2}");
-// // Distance3D - alleen variabelen
-// Console.WriteLine($"[VARS ] Distance3D(varDouble2,varDouble4,varDouble6,varDouble3,varDouble7,varDouble8): {GeometryOperations.Distance3D(varDouble2, varDouble4, varDouble6, varDouble3, varDouble7, varDouble8):F2}");
-//
-// // ManhattanDistance2D - alleen constanten
-// Console.WriteLine($"[CONST] ManhattanDistance2D(0,0,3,4): {GeometryOperations.ManhattanDistance2D(0, 0, 3, 4):F2}");
-// // ManhattanDistance2D - mixed
-// Console.WriteLine($"[MIXED] ManhattanDistance2D(0,0,varDouble,4): {GeometryOperations.ManhattanDistance2D(0, 0, varDouble, 4):F2}");
-// // ManhattanDistance2D - alleen variabelen
-// Console.WriteLine($"[VARS ] ManhattanDistance2D(varDouble2,varDouble4,varDouble6,varDouble8): {GeometryOperations.ManhattanDistance2D(varDouble2, varDouble4, varDouble6, varDouble8):F2}");
-//
-// // CylinderSurfaceArea - alleen constanten
-// Console.WriteLine($"[CONST] CylinderSurfaceArea(3,5): {GeometryOperations.CylinderSurfaceArea(3, 5):F2}");
-// // CylinderSurfaceArea - mixed
-// Console.WriteLine($"[MIXED] CylinderSurfaceArea(varDouble,5): {GeometryOperations.CylinderSurfaceArea(varDouble, 5):F2}");
-// // CylinderSurfaceArea - alleen variabelen
-// Console.WriteLine($"[VARS ] CylinderSurfaceArea(varDouble2,varDouble6): {GeometryOperations.CylinderSurfaceArea(varDouble2, varDouble6):F2}");
-//
-// // ConeVolume - alleen constanten
-// Console.WriteLine($"[CONST] ConeVolume(3,5): {GeometryOperations.ConeVolume(3, 5):F2}");
-// // ConeVolume - mixed
-// Console.WriteLine($"[MIXED] ConeVolume(varDouble,5): {GeometryOperations.ConeVolume(varDouble, 5):F2}");
-// // ConeVolume - alleen variabelen
-// Console.WriteLine($"[VARS ] ConeVolume(varDouble2,varDouble6): {GeometryOperations.ConeVolume(varDouble2, varDouble6):F2}");
-//
-// // PolygonArea - alleen constanten
-// Console.WriteLine($"[CONST] PolygonArea(0,0,4,0,4,3,0,3): {GeometryOperations.PolygonArea(0, 0, 4, 0, 4, 3, 0, 3):F2}");
-// // PolygonArea - mixed
-// Console.WriteLine($"[MIXED] PolygonArea(0,0,varDouble,0,varDouble,varDouble,0,varDouble): {GeometryOperations.PolygonArea(0, 0, varDouble, 0, varDouble, varDouble, 0, varDouble):F2}");
-// // PolygonArea - alleen variabelen
-// Console.WriteLine($"[VARS ] PolygonArea(0,0,varDouble6,0,varDouble6,varDouble4,0,varDouble4): {GeometryOperations.PolygonArea(0, 0, varDouble6, 0, varDouble6, varDouble4, 0, varDouble4):F2}");
-//
-// // MidPoint2D - alleen constanten
-// var mid1 = GeometryOperations.MidPoint2D(0, 0, 10, 10);
-// Console.WriteLine($"[CONST] MidPoint2D(0,0,10,10): ({mid1.x:F2},{mid1.y:F2})");
-// // MidPoint2D - mixed
-// var mid2 = GeometryOperations.MidPoint2D(0, 0, varDouble, 10);
-// Console.WriteLine($"[MIXED] MidPoint2D(0,0,varDouble,10): ({mid2.x:F2},{mid2.y:F2})");
-// // MidPoint2D - alleen variabelen
-// var mid3 = GeometryOperations.MidPoint2D(varDouble2, varDouble4, varDouble6, varDouble8);
-// Console.WriteLine($"[VARS ] MidPoint2D(varDouble2,varDouble4,varDouble6,varDouble8): ({mid3.x:F2},{mid3.y:F2})");
-//
-// // AngleBetweenVectors2D - alleen constanten
-// Console.WriteLine($"[CONST] AngleBetweenVectors2D(1,0,0,1): {GeometryOperations.AngleBetweenVectors2D(1, 0, 0, 1):F2}");
-// // AngleBetweenVectors2D - mixed
-// Console.WriteLine($"[MIXED] AngleBetweenVectors2D(varDouble,0,0,1): {GeometryOperations.AngleBetweenVectors2D(varDouble, 0, 0, 1):F2}");
-// // AngleBetweenVectors2D - alleen variabelen
-// Console.WriteLine($"[VARS ] AngleBetweenVectors2D(varDouble2,varDouble4,varDouble6,varDouble8): {GeometryOperations.AngleBetweenVectors2D(varDouble2, varDouble4, varDouble6, varDouble8):F2}");
-//
-// // IsPointInRectangle - alleen constanten
-// Console.WriteLine($"[CONST] IsPointInRectangle(5,5,0,0,10,10): {GeometryOperations.IsPointInRectangle(5, 5, 0, 0, 10, 10)}");
-// // IsPointInRectangle - mixed
-// Console.WriteLine($"[MIXED] IsPointInRectangle(varDouble,varDouble,0,0,10,10): {GeometryOperations.IsPointInRectangle(varDouble, varDouble, 0, 0, 10, 10)}");
-// // IsPointInRectangle - alleen variabelen
-// Console.WriteLine($"[VARS ] IsPointInRectangle(varDouble2,varDouble4,0,0,varInt,varInt): {GeometryOperations.IsPointInRectangle(varDouble2, varDouble4, 0, 0, varInt, varInt)}");
-//
-// // IsPointInCircle - alleen constanten
-// Console.WriteLine($"[CONST] IsPointInCircle(3,4,0,0,5): {GeometryOperations.IsPointInCircle(3, 4, 0, 0, 5)}");
-// // IsPointInCircle - mixed
-// Console.WriteLine($"[MIXED] IsPointInCircle(varDouble,4,0,0,5): {GeometryOperations.IsPointInCircle(varDouble, 4, 0, 0, 5)}");
-// // IsPointInCircle - alleen variabelen
-// Console.WriteLine($"[VARS ] IsPointInCircle(varDouble2,varDouble4,0,0,varDouble): {GeometryOperations.IsPointInCircle(varDouble2, varDouble4, 0, 0, varDouble)}");
+//// CircleArea - alleen constanten
+//Console.WriteLine($"[CONST] CircleArea(5): {GeometryOperations.CircleArea(5):F2}");
+//// CircleArea - mixed
+//Console.WriteLine($"[MIXED] CircleArea(varDouble): {GeometryOperations.CircleArea(varDouble):F2}");
+//// CircleArea - alleen variabelen
+//Console.WriteLine($"[VARS ] CircleArea(varDouble2): {GeometryOperations.CircleArea(varDouble2):F2}");
+
+//// RectangleArea - alleen constanten
+//Console.WriteLine($"[CONST] RectangleArea(10,5): {GeometryOperations.RectangleArea(10, 5):F2}");
+//// RectangleArea - mixed
+//Console.WriteLine($"[MIXED] RectangleArea(varDouble,5): {GeometryOperations.RectangleArea(varDouble, 5):F2}");
+//// RectangleArea - alleen variabelen
+//Console.WriteLine($"[VARS ] RectangleArea(varDouble3,varDouble2): {GeometryOperations.RectangleArea(varDouble3, varDouble2):F2}");
+
+//// SphereVolume - alleen constanten
+//Console.WriteLine($"[CONST] SphereVolume(3): {GeometryOperations.SphereVolume(3):F2}");
+//// SphereVolume - mixed
+//Console.WriteLine($"[MIXED] SphereVolume(varDouble): {GeometryOperations.SphereVolume(varDouble):F2}");
+//// SphereVolume - alleen variabelen
+//Console.WriteLine($"[VARS ] SphereVolume(varDouble6): {GeometryOperations.SphereVolume(varDouble6):F2}");
+
+//// Distance2D - alleen constanten
+//Console.WriteLine($"[CONST] Distance2D(0,0,3,4): {GeometryOperations.Distance2D(0, 0, 3, 4):F2}");
+//// Distance2D - mixed
+//Console.WriteLine($"[MIXED] Distance2D(0,0,varDouble,4): {GeometryOperations.Distance2D(0, 0, varDouble, 4):F2}");
+//// Distance2D - alleen variabelen
+//Console.WriteLine($"[VARS ] Distance2D(varDouble2,varDouble4,varDouble6,varDouble8): {GeometryOperations.Distance2D(varDouble2, varDouble4, varDouble6, varDouble8):F2}");
+
+//// TriangleArea - alleen constanten
+//Console.WriteLine($"[CONST] TriangleArea(5,6,90): {GeometryOperations.TriangleArea(5, 6, 90):F2}");
+//// TriangleArea - mixed
+//Console.WriteLine($"[MIXED] TriangleArea(varDouble,6,90): {GeometryOperations.TriangleArea(varDouble, 6, 90):F2}");
+//// TriangleArea - alleen variabelen
+//Console.WriteLine($"[VARS ] TriangleArea(varDouble2,varDouble6,varDouble12): {GeometryOperations.TriangleArea(varDouble2, varDouble6, varDouble12):F2}");
+
+//// CircleCircumference - alleen constanten
+//Console.WriteLine($"[CONST] CircleCircumference(5): {GeometryOperations.CircleCircumference(5):F2}");
+//// CircleCircumference - mixed
+//Console.WriteLine($"[MIXED] CircleCircumference(varDouble): {GeometryOperations.CircleCircumference(varDouble):F2}");
+//// CircleCircumference - alleen variabelen
+//Console.WriteLine($"[VARS ] CircleCircumference(varDouble2): {GeometryOperations.CircleCircumference(varDouble2):F2}");
+
+//// RectanglePerimeter - alleen constanten
+//Console.WriteLine($"[CONST] RectanglePerimeter(10,5): {GeometryOperations.RectanglePerimeter(10, 5):F2}");
+//// RectanglePerimeter - mixed
+//Console.WriteLine($"[MIXED] RectanglePerimeter(varDouble,5): {GeometryOperations.RectanglePerimeter(varDouble, 5):F2}");
+//// RectanglePerimeter - alleen variabelen
+//Console.WriteLine($"[VARS ] RectanglePerimeter(varDouble3,varDouble2): {GeometryOperations.RectanglePerimeter(varDouble3, varDouble2):F2}");
+
+//// SphereSurfaceArea - alleen constanten
+//Console.WriteLine($"[CONST] SphereSurfaceArea(3): {GeometryOperations.SphereSurfaceArea(3):F2}");
+//// SphereSurfaceArea - mixed
+//Console.WriteLine($"[MIXED] SphereSurfaceArea(varDouble): {GeometryOperations.SphereSurfaceArea(varDouble):F2}");
+//// SphereSurfaceArea - alleen variabelen
+//Console.WriteLine($"[VARS ] SphereSurfaceArea(varDouble6): {GeometryOperations.SphereSurfaceArea(varDouble6):F2}");
+
+//// CylinderVolume - alleen constanten
+//Console.WriteLine($"[CONST] CylinderVolume(3,5): {GeometryOperations.CylinderVolume(3, 5):F2}");
+//// CylinderVolume - mixed
+//Console.WriteLine($"[MIXED] CylinderVolume(varDouble,5): {GeometryOperations.CylinderVolume(varDouble, 5):F2}");
+//// CylinderVolume - alleen variabelen
+//Console.WriteLine($"[VARS ] CylinderVolume(varDouble2,varDouble6): {GeometryOperations.CylinderVolume(varDouble2, varDouble6):F2}");
+
+//// TriangleAreaHeron - alleen constanten
+//Console.WriteLine($"[CONST] TriangleAreaHeron(3,4,5): {GeometryOperations.TriangleAreaHeron(3, 4, 5):F2}");
+//// TriangleAreaHeron - mixed
+//Console.WriteLine($"[MIXED] TriangleAreaHeron(varDouble,4,5): {GeometryOperations.TriangleAreaHeron(varDouble, 4, 5):F2}");
+//// TriangleAreaHeron - alleen variabelen
+//Console.WriteLine($"[VARS ] TriangleAreaHeron(varDouble2,varDouble6,varDouble7): {GeometryOperations.TriangleAreaHeron(varDouble2, varDouble6, varDouble7):F2}");
+
+//// Distance3D - alleen constanten
+//Console.WriteLine($"[CONST] Distance3D(0,0,0,1,2,2): {GeometryOperations.Distance3D(0, 0, 0, 1, 2, 2):F2}");
+//// Distance3D - mixed
+//Console.WriteLine($"[MIXED] Distance3D(0,0,0,varDouble,2,2): {GeometryOperations.Distance3D(0, 0, 0, varDouble, 2, 2):F2}");
+//// Distance3D - alleen variabelen
+//Console.WriteLine($"[VARS ] Distance3D(varDouble2,varDouble4,varDouble6,varDouble3,varDouble7,varDouble8): {GeometryOperations.Distance3D(varDouble2, varDouble4, varDouble6, varDouble3, varDouble7, varDouble8):F2}");
+
+//// ManhattanDistance2D - alleen constanten
+//Console.WriteLine($"[CONST] ManhattanDistance2D(0,0,3,4): {GeometryOperations.ManhattanDistance2D(0, 0, 3, 4):F2}");
+//// ManhattanDistance2D - mixed
+//Console.WriteLine($"[MIXED] ManhattanDistance2D(0,0,varDouble,4): {GeometryOperations.ManhattanDistance2D(0, 0, varDouble, 4):F2}");
+//// ManhattanDistance2D - alleen variabelen
+//Console.WriteLine($"[VARS ] ManhattanDistance2D(varDouble2,varDouble4,varDouble6,varDouble8): {GeometryOperations.ManhattanDistance2D(varDouble2, varDouble4, varDouble6, varDouble8):F2}");
+
+//// CylinderSurfaceArea - alleen constanten
+//Console.WriteLine($"[CONST] CylinderSurfaceArea(3,5): {GeometryOperations.CylinderSurfaceArea(3, 5):F2}");
+//// CylinderSurfaceArea - mixed
+//Console.WriteLine($"[MIXED] CylinderSurfaceArea(varDouble,5): {GeometryOperations.CylinderSurfaceArea(varDouble, 5):F2}");
+//// CylinderSurfaceArea - alleen variabelen
+//Console.WriteLine($"[VARS ] CylinderSurfaceArea(varDouble2,varDouble6): {GeometryOperations.CylinderSurfaceArea(varDouble2, varDouble6):F2}");
+
+//// ConeVolume - alleen constanten
+//Console.WriteLine($"[CONST] ConeVolume(3,5): {GeometryOperations.ConeVolume(3, 5):F2}");
+//// ConeVolume - mixed
+//Console.WriteLine($"[MIXED] ConeVolume(varDouble,5): {GeometryOperations.ConeVolume(varDouble, 5):F2}");
+//// ConeVolume - alleen variabelen
+//Console.WriteLine($"[VARS ] ConeVolume(varDouble2,varDouble6): {GeometryOperations.ConeVolume(varDouble2, varDouble6):F2}");
+
+//// PolygonArea - alleen constanten
+//Console.WriteLine($"[CONST] PolygonArea(0,0,4,0,4,3,0,3): {GeometryOperations.PolygonArea(0, 0, 4, 0, 4, 3, 0, 3):F2}");
+//// PolygonArea - mixed
+//Console.WriteLine($"[MIXED] PolygonArea(0,0,varDouble,0,varDouble,varDouble,0,varDouble): {GeometryOperations.PolygonArea(0, 0, varDouble, 0, varDouble, varDouble, 0, varDouble):F2}");
+//// PolygonArea - alleen variabelen
+//Console.WriteLine($"[VARS ] PolygonArea(0,0,varDouble6,0,varDouble6,varDouble4,0,varDouble4): {GeometryOperations.PolygonArea(0, 0, varDouble6, 0, varDouble6, varDouble4, 0, varDouble4):F2}");
+
+//// MidPoint2D - alleen constanten
+//var mid1 = GeometryOperations.MidPoint2D(0, 0, 10, 10);
+//Console.WriteLine($"[CONST] MidPoint2D(0,0,10,10): ({mid1.x:F2},{mid1.y:F2})");
+//// MidPoint2D - mixed
+//var mid2 = GeometryOperations.MidPoint2D(0, 0, varDouble, 10);
+//Console.WriteLine($"[MIXED] MidPoint2D(0,0,varDouble,10): ({mid2.x:F2},{mid2.y:F2})");
+//// MidPoint2D - alleen variabelen
+//var mid3 = GeometryOperations.MidPoint2D(varDouble2, varDouble4, varDouble6, varDouble8);
+//Console.WriteLine($"[VARS ] MidPoint2D(varDouble2,varDouble4,varDouble6,varDouble8): ({mid3.x:F2},{mid3.y:F2})");
+
+//// AngleBetweenVectors2D - alleen constanten
+//Console.WriteLine($"[CONST] AngleBetweenVectors2D(1,0,0,1): {GeometryOperations.AngleBetweenVectors2D(1, 0, 0, 1):F2}");
+//// AngleBetweenVectors2D - mixed
+//Console.WriteLine($"[MIXED] AngleBetweenVectors2D(varDouble,0,0,1): {GeometryOperations.AngleBetweenVectors2D(varDouble, 0, 0, 1):F2}");
+//// AngleBetweenVectors2D - alleen variabelen
+//Console.WriteLine($"[VARS ] AngleBetweenVectors2D(varDouble2,varDouble4,varDouble6,varDouble8): {GeometryOperations.AngleBetweenVectors2D(varDouble2, varDouble4, varDouble6, varDouble8):F2}");
+
+//// IsPointInRectangle - alleen constanten
+//Console.WriteLine($"[CONST] IsPointInRectangle(5,5,0,0,10,10): {GeometryOperations.IsPointInRectangle(5, 5, 0, 0, 10, 10)}");
+//// IsPointInRectangle - mixed
+//Console.WriteLine($"[MIXED] IsPointInRectangle(varDouble,varDouble,0,0,10,10): {GeometryOperations.IsPointInRectangle(varDouble, varDouble, 0, 0, 10, 10)}");
+//// IsPointInRectangle - alleen variabelen
+//Console.WriteLine($"[VARS ] IsPointInRectangle(varDouble2,varDouble4,0,0,varInt,varInt): {GeometryOperations.IsPointInRectangle(varDouble2, varDouble4, 0, 0, varInt, varInt)}");
+
+//// IsPointInCircle - alleen constanten
+//Console.WriteLine($"[CONST] IsPointInCircle(3,4,0,0,5): {GeometryOperations.IsPointInCircle(3, 4, 0, 0, 5)}");
+//// IsPointInCircle - mixed
+//Console.WriteLine($"[MIXED] IsPointInCircle(varDouble,4,0,0,5): {GeometryOperations.IsPointInCircle(varDouble, 4, 0, 0, 5)}");
+//// IsPointInCircle - alleen variabelen
+//Console.WriteLine($"[VARS ] IsPointInCircle(varDouble2,varDouble4,0,0,varDouble): {GeometryOperations.IsPointInCircle(varDouble2, varDouble4, 0, 0, varDouble)}");
 //
 // Console.WriteLine();
 //
@@ -712,96 +712,96 @@ Console.WriteLine($"[VARS ] TaxAmount(varDouble5*100,varDouble4/2): {FinancialOp
 // // ═══════════════════════════════════════════════════════════════
 // Console.WriteLine("═══ STRING OPERATIONS ═══\n");
 //
-// // InterpolationTest - alleen constanten
-// Console.WriteLine($"[CONST] Interpolation('John',25,180): {StringOperations.InterpolationTest("John", 25, 180)}");
-// // InterpolationTest - mixed
-// Console.WriteLine($"[MIXED] Interpolation(varString,varInt,180): {StringOperations.InterpolationTest(varString, varInt, 180)}");
-// // InterpolationTest - alleen variabelen
-// Console.WriteLine($"[VARS ] Interpolation(varString,varInt,varDouble5): {StringOperations.InterpolationTest(varString, varInt, varDouble5)}");
-//
-// // FormatFullName - alleen constanten
-// Console.WriteLine($"[CONST] FormatFullName('John','Q','Doe',true): {StringOperations.FormatFullName("John", "Q", "Doe", true)}");
-// // FormatFullName - mixed
-// Console.WriteLine($"[MIXED] FormatFullName('John','Q',varString,false): {StringOperations.FormatFullName("John", "Q", varString, false)}");
-// // FormatFullName - alleen variabelen (using string literals)
-// Console.WriteLine($"[VARS ] FormatFullName('Jane','M','Smith',true): {StringOperations.FormatFullName("Jane", "M", "Smith", true)}");
-//
-// // Reverse - alleen constanten
-// Console.WriteLine($"[CONST] Reverse('Hello'): {StringOperations.Reverse("Hello")}");
-// // Reverse - mixed
-// Console.WriteLine($"[MIXED] Reverse(varString): {StringOperations.Reverse(varString)}");
-// // Reverse - alleen variabelen (using string literals)
-// Console.WriteLine($"[VARS ] Reverse('World'): {StringOperations.Reverse("World")}");
-//
-// // IsPalindrome - alleen constanten
-// Console.WriteLine($"[CONST] IsPalindrome('racecar'): {StringOperations.IsPalindrome("racecar")}");
-// // IsPalindrome - mixed
-// Console.WriteLine($"[MIXED] IsPalindrome(varString): {StringOperations.IsPalindrome(varString)}");
-// // IsPalindrome - alleen variabelen (using string literals)
-// Console.WriteLine($"[VARS ] IsPalindrome('level'): {StringOperations.IsPalindrome("level")}");
-//
-// // CountOccurrences - alleen constanten
-// Console.WriteLine($"[CONST] CountOccurrences('hello world','l'): {StringOperations.CountOccurrences("hello world", "l")}");
-// // CountOccurrences - mixed
-// Console.WriteLine($"[MIXED] CountOccurrences(varString,'e'): {StringOperations.CountOccurrences(varString, "e")}");
-// // CountOccurrences - alleen variabelen (using string literals)
-// Console.WriteLine($"[VARS ] CountOccurrences('banana','a'): {StringOperations.CountOccurrences("banana", "a")}");
-//
-// // RemoveWhitespace - alleen constanten
-// Console.WriteLine($"[CONST] RemoveWhitespace('hello world'): {StringOperations.RemoveWhitespace("hello world")}");
-// // RemoveWhitespace - mixed
-// Console.WriteLine($"[MIXED] RemoveWhitespace('hello '+varString): {StringOperations.RemoveWhitespace("hello " + varString)}");
-// // RemoveWhitespace - alleen variabelen (using string literals)
-// Console.WriteLine($"[VARS ] RemoveWhitespace('test string'): {StringOperations.RemoveWhitespace("test string")}");
-//
-// // ToCamelCase - alleen constanten
-// Console.WriteLine($"[CONST] ToCamelCase('hello world test'): {StringOperations.ToCamelCase("hello world test")}");
-// // ToCamelCase - mixed (using string literals)
-// Console.WriteLine($"[MIXED] ToCamelCase('test string value'): {StringOperations.ToCamelCase("test string value")}");
-// // ToCamelCase - alleen variabelen (using string literals)
-// Console.WriteLine($"[VARS ] ToCamelCase('some_snake_case'): {StringOperations.ToCamelCase("some_snake_case")}");
-//
-// // ToPascalCase - alleen constanten
-// Console.WriteLine($"[CONST] ToPascalCase('hello world'): {StringOperations.ToPascalCase("hello world")}");
-// // ToPascalCase - mixed (using string literals)
-// Console.WriteLine($"[MIXED] ToPascalCase('my test string'): {StringOperations.ToPascalCase("my test string")}");
-// // ToPascalCase - alleen variabelen (using string literals)
-// Console.WriteLine($"[VARS ] ToPascalCase('another_test_case'): {StringOperations.ToPascalCase("another_test_case")}");
-//
-// // ToSnakeCase - alleen constanten
-// Console.WriteLine($"[CONST] ToSnakeCase('Hello World'): {StringOperations.ToSnakeCase("Hello World")}");
-// // ToSnakeCase - mixed (using string literals)
-// Console.WriteLine($"[MIXED] ToSnakeCase('My Test String'): {StringOperations.ToSnakeCase("My Test String")}");
-// // ToSnakeCase - alleen variabelen (using string literals)
-// Console.WriteLine($"[VARS ] ToSnakeCase('Another Test'): {StringOperations.ToSnakeCase("Another Test")}");
-//
-// // GenerateSlug - alleen constanten
-// Console.WriteLine($"[CONST] GenerateSlug('Hello World',20,'-',true): {StringOperations.GenerateSlug("Hello World", 20, '-', true)}");
-// // GenerateSlug - mixed (using string literals and variables)
-// Console.WriteLine($"[MIXED] GenerateSlug('Test String',varInt*2,'-',true): {StringOperations.GenerateSlug("Test String", varInt * 2, '-', true)}");
-// // GenerateSlug - alleen variabelen (using string literals)
-// Console.WriteLine($"[VARS ] GenerateSlug('My Blog Post',varInt3*5,'_',false): {StringOperations.GenerateSlug("My Blog Post", varInt3 * 5, '_', false)}");
-//
-// // ToKebabCase - alleen constanten
-// Console.WriteLine($"[CONST] ToKebabCase('Hello World'): {StringOperations.ToKebabCase("Hello World")}");
-// // ToKebabCase - mixed (using string literals)
-// Console.WriteLine($"[MIXED] ToKebabCase('My Test String'): {StringOperations.ToKebabCase("My Test String")}");
-// // ToKebabCase - alleen variabelen (using string literals)
-// Console.WriteLine($"[VARS ] ToKebabCase('Another Test'): {StringOperations.ToKebabCase("Another Test")}");
-//
-// // Truncate - alleen constanten
-// Console.WriteLine($"[CONST] Truncate('This is a long string',10): {StringOperations.Truncate("This is a long string", 10)}");
-// // Truncate - mixed (using string literals and variables)
-// Console.WriteLine($"[MIXED] Truncate('Another long string',varInt): {StringOperations.Truncate("Another long string", varInt)}");
-// // Truncate - alleen variabelen (using string literals)
-// Console.WriteLine($"[VARS ] Truncate('Yet another string',varInt5,'***'): {StringOperations.Truncate("Yet another string", varInt5, "***")}");
-//
-// // RepeatString - alleen constanten
-// Console.WriteLine($"[CONST] RepeatString('Ab',5): {StringOperations.RepeatString("Ab", 5)}");
-// // RepeatString - mixed (using string literals and variables)
-// Console.WriteLine($"[MIXED] RepeatString('X',varInt): {StringOperations.RepeatString("X", varInt)}");
-// // RepeatString - alleen variabelen (using string literals)
-// Console.WriteLine($"[VARS ] RepeatString('*',varInt4): {StringOperations.RepeatString("*", varInt4)}");
+// InterpolationTest - alleen constanten
+Console.WriteLine($"[CONST] Interpolation('John',25,180): {StringOperations.InterpolationTest("John", 25, 180)}");
+// InterpolationTest - mixed
+Console.WriteLine($"[MIXED] Interpolation(varString,varInt,180): {StringOperations.InterpolationTest(varString, varInt, 180)}");
+// InterpolationTest - alleen variabelen
+Console.WriteLine($"[VARS ] Interpolation(varString,varInt,varDouble5): {StringOperations.InterpolationTest(varString, varInt, varDouble5)}");
+
+// FormatFullName - alleen constanten
+Console.WriteLine($"[CONST] FormatFullName('John','Q','Doe',true): {StringOperations.FormatFullName("John", "Q", "Doe", true)}");
+// FormatFullName - mixed
+Console.WriteLine($"[MIXED] FormatFullName('John','Q',varString,false): {StringOperations.FormatFullName("John", "Q", varString, false)}");
+// FormatFullName - alleen variabelen (using string literals)
+Console.WriteLine($"[VARS ] FormatFullName('Jane','M','Smith',true): {StringOperations.FormatFullName("Jane", "M", "Smith", true)}");
+
+// Reverse - alleen constanten
+Console.WriteLine($"[CONST] Reverse('Hello'): {StringOperations.Reverse("Hello")}");
+// Reverse - mixed
+Console.WriteLine($"[MIXED] Reverse(varString): {StringOperations.Reverse(varString)}");
+// Reverse - alleen variabelen (using string literals)
+Console.WriteLine($"[VARS ] Reverse('World'): {StringOperations.Reverse("World")}");
+
+// IsPalindrome - alleen constanten
+Console.WriteLine($"[CONST] IsPalindrome('racecar'): {StringOperations.IsPalindrome("racecar")}");
+// IsPalindrome - mixed
+Console.WriteLine($"[MIXED] IsPalindrome(varString): {StringOperations.IsPalindrome(varString)}");
+// IsPalindrome - alleen variabelen (using string literals)
+Console.WriteLine($"[VARS ] IsPalindrome('level'): {StringOperations.IsPalindrome("level")}");
+
+// CountOccurrences - alleen constanten
+Console.WriteLine($"[CONST] CountOccurrences('hello world','l'): {StringOperations.CountOccurrences("hello world", "l")}");
+// CountOccurrences - mixed
+Console.WriteLine($"[MIXED] CountOccurrences(varString,'e'): {StringOperations.CountOccurrences(varString, "e")}");
+// CountOccurrences - alleen variabelen (using string literals)
+Console.WriteLine($"[VARS ] CountOccurrences('banana','a'): {StringOperations.CountOccurrences("banana", "a")}");
+
+// RemoveWhitespace - alleen constanten
+Console.WriteLine($"[CONST] RemoveWhitespace('hello world'): {StringOperations.RemoveWhitespace("hello world")}");
+// RemoveWhitespace - mixed
+Console.WriteLine($"[MIXED] RemoveWhitespace('hello '+varString): {StringOperations.RemoveWhitespace("hello " + varString)}");
+// RemoveWhitespace - alleen variabelen (using string literals)
+Console.WriteLine($"[VARS ] RemoveWhitespace('test string'): {StringOperations.RemoveWhitespace("test string")}");
+
+// ToCamelCase - alleen constanten
+Console.WriteLine($"[CONST] ToCamelCase('hello world test'): {StringOperations.ToCamelCase("hello world test")}");
+// ToCamelCase - mixed (using string literals)
+Console.WriteLine($"[MIXED] ToCamelCase('test string value'): {StringOperations.ToCamelCase("test string value")}");
+// ToCamelCase - alleen variabelen (using string literals)
+Console.WriteLine($"[VARS ] ToCamelCase('some_snake_case'): {StringOperations.ToCamelCase("some_snake_case")}");
+
+// ToPascalCase - alleen constanten
+Console.WriteLine($"[CONST] ToPascalCase('hello world'): {StringOperations.ToPascalCase("hello world")}");
+// ToPascalCase - mixed (using string literals)
+Console.WriteLine($"[MIXED] ToPascalCase('my test string'): {StringOperations.ToPascalCase("my test string")}");
+// ToPascalCase - alleen variabelen (using string literals)
+Console.WriteLine($"[VARS ] ToPascalCase('another_test_case'): {StringOperations.ToPascalCase("another_test_case")}");
+
+// ToSnakeCase - alleen constanten
+Console.WriteLine($"[CONST] ToSnakeCase('Hello World'): {StringOperations.ToSnakeCase("Hello World")}");
+// ToSnakeCase - mixed (using string literals)
+Console.WriteLine($"[MIXED] ToSnakeCase('My Test String'): {StringOperations.ToSnakeCase("My Test String")}");
+// ToSnakeCase - alleen variabelen (using string literals)
+Console.WriteLine($"[VARS ] ToSnakeCase('Another Test'): {StringOperations.ToSnakeCase("Another Test")}");
+
+// GenerateSlug - alleen constanten
+Console.WriteLine($"[CONST] GenerateSlug('Hello World',20,'-',true): {StringOperations.GenerateSlug("Hello World", 20, '-', true)}");
+// GenerateSlug - mixed (using string literals and variables)
+Console.WriteLine($"[MIXED] GenerateSlug('Test String',varInt*2,'-',true): {StringOperations.GenerateSlug("Test String", varInt * 2, '-', true)}");
+// GenerateSlug - alleen variabelen (using string literals)
+Console.WriteLine($"[VARS ] GenerateSlug('My Blog Post',varInt3*5,'_',false): {StringOperations.GenerateSlug("My Blog Post", varInt3 * 5, '_', false)}");
+
+// ToKebabCase - alleen constanten
+Console.WriteLine($"[CONST] ToKebabCase('Hello World'): {StringOperations.ToKebabCase("Hello World")}");
+// ToKebabCase - mixed (using string literals)
+Console.WriteLine($"[MIXED] ToKebabCase('My Test String'): {StringOperations.ToKebabCase("My Test String")}");
+// ToKebabCase - alleen variabelen (using string literals)
+Console.WriteLine($"[VARS ] ToKebabCase('Another Test'): {StringOperations.ToKebabCase("Another Test")}");
+
+// Truncate - alleen constanten
+Console.WriteLine($"[CONST] Truncate('This is a long string',10): {StringOperations.Truncate("This is a long string", 10)}");
+// Truncate - mixed (using string literals and variables)
+Console.WriteLine($"[MIXED] Truncate('Another long string',varInt): {StringOperations.Truncate("Another long string", varInt)}");
+// Truncate - alleen variabelen (using string literals)
+Console.WriteLine($"[VARS ] Truncate('Yet another string',varInt5,'***'): {StringOperations.Truncate("Yet another string", varInt5, "***")}");
+
+// RepeatString - alleen constanten
+Console.WriteLine($"[CONST] RepeatString('Ab',5): {StringOperations.RepeatString("Ab", 5)}");
+// RepeatString - mixed (using string literals and variables)
+Console.WriteLine($"[MIXED] RepeatString('X',varInt): {StringOperations.RepeatString("X", varInt)}");
+// RepeatString - alleen variabelen (using string literals)
+Console.WriteLine($"[VARS ] RepeatString('*',varInt4): {StringOperations.RepeatString("*", varInt4)}");
 //
 // Console.WriteLine();
 //

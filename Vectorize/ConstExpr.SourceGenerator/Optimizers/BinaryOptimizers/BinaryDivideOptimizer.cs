@@ -11,6 +11,7 @@ public class BinaryDivideOptimizer : BaseBinaryOptimizer
 
 	public override IEnumerable<IBinaryStrategy> GetStrategies()
 	{
+		yield return new DivideConstantFoldingStrategy();
 		yield return new DivideByOneStrategy();
 		yield return new DivideByNegativeOneStrategy();
 		yield return new DivideZeroByNonZeroStrategy();

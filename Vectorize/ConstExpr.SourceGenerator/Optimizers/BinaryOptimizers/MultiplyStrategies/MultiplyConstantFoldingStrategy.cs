@@ -11,6 +11,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.MultiplyStrategi
 /// <summary>
 /// Strategy for constant folding in chained multiplications: (x * C1) * C2 => x * (C1 * C2)
 /// Also handles: C1 * (x * C2) => x * (C1 * C2) and C1 * (C2 * x) => x * (C1 * C2)
+/// Additionally handles: (C1 * x) * C2 => x * (C1 * C2) and (C1 * x) * C2 when C1 is on the left
 /// </summary>
 public class MultiplyConstantFoldingStrategy : NumericBinaryStrategy
 {
@@ -22,8 +23,15 @@ public class MultiplyConstantFoldingStrategy : NumericBinaryStrategy
 		// Pattern 1: (x * C1) * C2
 		if (context.Right.HasValue 
 		    && context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.MultiplyExpression } leftMult
-		    && context.TryGetLiteral(leftMult.Right, out _)
-		    && IsPure(leftMult.Left))
+		 && context.TryGetLiteral(leftMult.Right, out _))
+		{
+			return true;
+		}
+
+		// Pattern 1b: (C1 * x) * C2 - constant on left side of inner multiply
+		if (context.Right.HasValue 
+		    && context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.MultiplyExpression } leftMult2
+		    && context.TryGetLiteral(leftMult2.Left, out _))
 		{
 			return true;
 		}
@@ -66,6 +74,28 @@ public class MultiplyConstantFoldingStrategy : NumericBinaryStrategy
 					return BinaryExpression(
 						SyntaxKind.MultiplyExpression,
 						leftMult.Left,
+						newConstant);
+				}
+			}
+		}
+
+		// Pattern 1b: (C1 * x) * C2 => x * (C1 * C2) - constant on left side of inner multiply
+		if (context.Right.HasValue 
+		    && context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.MultiplyExpression } leftMult2
+		    && context.TryGetLiteral(leftMult2.Left, out var leftConstant2))
+		{
+			var c2 = context.Right.Value;
+
+			if (leftConstant2 != null && c2 != null)
+			{
+				var result = leftConstant2.Multiply(c2);
+				
+				if (result != null)
+				{
+					var newConstant = SyntaxHelpers.CreateLiteral(result);
+					return BinaryExpression(
+						SyntaxKind.MultiplyExpression,
+						leftMult2.Right,
 						newConstant);
 				}
 			}

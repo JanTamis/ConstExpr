@@ -97,7 +97,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 						{
 							try
 							{
-								var attribute = model.AttributeData.ToAttribute<ConstExprAttribute>(loader);
+								var attribute = model.AttributeData;
 								
 								// Thread-safe semantic model caching
 								var semanticModel = semanticModelCache.GetOrAdd(
@@ -105,6 +105,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 									tree => compilation.GetSemanticModel(tree));
 								
 								var processedModel = GenerateExpression(semanticModel, loader, model.Invocation, model.MethodSymbol, attribute, spc.CancellationToken);
+
 								if (processedModel != null)
 								{
 									processedModels.Add(processedModel);
@@ -164,7 +165,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		// Emit top-level generated methods grouped by value.
 		using (code.WriteBlock($"file static class GeneratedMethods", "{", "}"))
 		{
-			EmitGeneratedMethodsForValueGroups(code, compilation, methodGroup);
+			EmitGeneratedMethodsForValueGroups(code, compilation, methodGroup, loader);
 
 			foreach (var additionalMethod in distinctAdditionalMethods)
 			{
@@ -190,7 +191,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 	#region Emission Helpers
 
-	private void EmitGeneratedMethodsForValueGroups(IndentedCodeWriter code, Compilation compilation, IEnumerable<InvocationModel?> methodGroup)
+	private void EmitGeneratedMethodsForValueGroups(IndentedCodeWriter code, Compilation compilation, IEnumerable<InvocationModel?> methodGroup, MetadataLoader loader)
 	{
 		var wroteFirstGroup = false;
 
@@ -202,6 +203,11 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			}
 
 			wroteFirstGroup = true;
+
+			if (invocationsByValue.Any(a => a?.AttributeData.FloatingPointMode == FloatingPointEvaluationMode.FastMath))
+			{
+				code.WriteLine("[MethodImpl(MethodImplOptions.AggressiveOptimization)]");
+			}
 
 			// Add interceptor attributes for every invocation (location based) that shares the same value.
 			foreach (var invocationModel in invocationsByValue)
@@ -237,7 +243,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			{
 				Invocation = invocation,
 				MethodSymbol = methodSymbol,
-				AttributeData = attribute,
+				AttributeData = attribute.ToAttribute<ConstExprAttribute>(),
 			};
 		}
 
@@ -300,9 +306,14 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 					return null;
 				}
 
-				Logger.Information($"{timer.Elapsed}: {invocation}");
+				Logger.Information($"{timer.Elapsed}: {invocation}");				
 
 				GetUsings(methodSymbol, usings);
+
+				if (attribute.FloatingPointMode == FloatingPointEvaluationMode.FastMath)
+				{
+					usings.Add("System.Runtime.CompilerServices");
+				}
 
 				return new InvocationModel
 				{
@@ -321,6 +332,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 					Invocation = invocation,
 					Location = semanticModel.GetInterceptableLocation(invocation, token),
 					Exceptions = exceptions!,
+					AttributeData = attribute,
 				};
 			}
 		}
