@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -45,7 +46,7 @@ public class BaseRewriter : CSharpSyntaxRewriter
 					value = null;
 					return false;
 				}
-				
+
 				if (variable.Value is SyntaxNode sn)
 				{
 					return TryGetLiteralValue(sn, out value, visitedVariables);
@@ -55,7 +56,7 @@ public class BaseRewriter : CSharpSyntaxRewriter
 				return true;
 			// unwrap ( ... )
 			case ParenthesizedExpressionSyntax paren:
-				return TryGetLiteralValue(paren.Expression, out value, visitedVariables);
+				return TryGetLiteralValue(paren.Expression, out value, visitedVariables) || TryGetLiteralValue(Visit(paren.Expression), out value, visitedVariables);
 			// ^n => System.Index(n, fromEnd: true)
 			case PrefixUnaryExpressionSyntax prefix when prefix.OperatorToken.IsKind(SyntaxKind.CaretToken):
 			{
@@ -70,7 +71,7 @@ public class BaseRewriter : CSharpSyntaxRewriter
 						if (ctor != null)
 						{
 							var intVal = Convert.ToInt32(inner);
-							
+
 							value = ctor.Invoke([ intVal, true ]);
 							return true;
 						}
@@ -151,16 +152,69 @@ public class BaseRewriter : CSharpSyntaxRewriter
 					return false;
 				}
 			}
-			case ObjectCreationExpressionSyntax objectCreationExpression when semanticModel.TryGetSymbol(objectCreationExpression, out IMethodSymbol? constructor):
+			case ObjectCreationExpressionSyntax objectCreationExpression:
 			{
-				var arguments = objectCreationExpression.ArgumentList.Arguments
-					.Select(s => Visit(s.Expression))
-					.WhereSelect<SyntaxNode, object?>(TryGetLiteralValue);
+				var arguments = objectCreationExpression.ArgumentList?.Arguments
+					                .Select(s => Visit(s.Expression))
+					                .WhereSelect<SyntaxNode, object?>(TryGetLiteralValue)
+				                ?? Enumerable.Empty<object?>();
 
-				if (loader.TryExecuteMethod(constructor, null, null, arguments, out var result))
+				if (semanticModel.TryGetSymbol(objectCreationExpression, out IMethodSymbol? constructor)
+				    && loader.TryExecuteMethod(constructor, null, null, arguments, out var result))
 				{
 					value = result;
 					return true;
+				}
+
+				if (semanticModel.TryGetSymbol(objectCreationExpression.Type, out ITypeSymbol? typeSymbol))
+				{
+					var type = loader.GetType(typeSymbol);
+
+					if (type != null)
+					{
+						var argumentsArray = arguments.ToArray();
+						var ctorInfos = type.GetConstructors()
+							.Where(c => c.GetParameters().Length == argumentsArray.Length)
+							.ToList();
+
+						foreach (var ctorInfo in ctorInfos)
+						{
+							try
+							{
+								value = ctorInfo.Invoke(argumentsArray);
+								return true;
+							}
+							catch
+							{
+								// Try next
+							}
+						}
+					}
+				}
+
+				// Fallback for SyntaxFactory-created nodes without semantic binding
+				var typeName = objectCreationExpression.Type.ToString();
+				var fallbackType = loader.GetType(typeName) ?? loader.GetType($"System.{typeName}");
+
+				if (fallbackType != null)
+				{
+					var argumentsArray = arguments.ToArray();
+					var ctorInfos = fallbackType.GetConstructors()
+						.Where(c => c.GetParameters().Length == argumentsArray.Length)
+						.ToList();
+
+					foreach (var ctorInfo in ctorInfos)
+					{
+						try
+						{
+							value = ctorInfo.Invoke(argumentsArray);
+							return true;
+						}
+						catch
+						{
+							// Try next
+						}
+					}
 				}
 
 				break;
@@ -276,7 +330,7 @@ public class BaseRewriter : CSharpSyntaxRewriter
 			case CollectionExpressionSyntax collectionExpressionSyntax:
 			{
 				var elements = new List<object?>();
-				
+
 				foreach (var element in collectionExpressionSyntax.Elements.OfType<ExpressionElementSyntax>())
 				{
 					if (TryGetLiteralValue(element.Expression, out var elemVal, visitedVariables))
@@ -289,11 +343,11 @@ public class BaseRewriter : CSharpSyntaxRewriter
 						return false;
 					}
 				}
-				
+
 				var type = elements[0]?.GetType() ?? typeof(object);
-				
+
 				var array = Array.CreateInstance(type, elements.Count);
-				
+
 				for (var i = 0; i < elements.Count; i++)
 				{
 					array.SetValue(Convert.ChangeType(elements[i], type), i);

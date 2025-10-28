@@ -32,8 +32,4 @@
 	  <ProjectReference Include="..\Vectorize\ConstExpr.SourceGenerator\ConstExpr.SourceGenerator.csproj" />
 	</ItemGroup>
 
-	<ItemGroup>
-	  <Folder Include="Tests\" />
-	</ItemGroup>
-
 </Project>

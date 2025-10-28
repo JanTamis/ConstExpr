@@ -37,171 +37,171 @@ var varDouble11 = 85.0;
 var varDouble12 = 90.0;
 var varDouble13 = 75.0;
 
-// ═══════════════════════════════════════════════════════════════
-// MATHEMATICAL OPERATIONS
-// ═══════════════════════════════════════════════════════════════
-Console.WriteLine("═══ MATHEMATICAL OPERATIONS ═══\n");
-
-// Average - alleen constanten
-Console.WriteLine($"[CONST] Average(1,2,3,4,5): {MathematicalOperations.Average(1, 2, 3, 4, 5)}");
-// Average - mixed
-Console.WriteLine($"[MIXED] Average(varDouble,2,3): {MathematicalOperations.Average(varDouble, 2, 3)}");
-// Average - alleen variabelen
-Console.WriteLine($"[VARS ] Average(varInt,varInt2,varInt4): {MathematicalOperations.Average(varInt, varInt2, varInt4)}");
-
-// StdDev - alleen constanten
-Console.WriteLine($"[CONST] StdDev(2,4,6,8): {MathematicalOperations.StdDev(2, 4, 6, 8):F3}");
-// StdDev - mixed
-Console.WriteLine($"[MIXED] StdDev(varDouble,4,6): {MathematicalOperations.StdDev(varDouble, 4, 6):F3}");
-// StdDev - alleen variabelen
-Console.WriteLine($"[VARS ] StdDev(varDouble2,varDouble6,varDouble7,varDouble8): {MathematicalOperations.StdDev(varDouble2, varDouble6, varDouble7, varDouble8):F3}");
-
-// Median - alleen constanten
-Console.WriteLine($"[CONST] Median(1,3,2,5,4): {MathematicalOperations.Median(1, 3, 2, 5, 4)}");
-// Median - mixed
-Console.WriteLine($"[MIXED] Median(varDouble,3,2,5): {MathematicalOperations.Median(varDouble, 3, 2, 5)}");
-// Median - alleen variabelen
-Console.WriteLine($"[VARS ] Median(varInt,varInt4,varInt2,varInt5): {MathematicalOperations.Median(varInt, varInt4, varInt2, varInt5)}");
-
-// IsPrime - alleen constanten
-Console.WriteLine($"[CONST] IsPrime(17): {MathematicalOperations.IsPrime(17)}");
-// IsPrime - mixed
-Console.WriteLine($"[MIXED] IsPrime(varInt): {MathematicalOperations.IsPrime(varInt)}");
-// IsPrime - alleen variabelen
-Console.WriteLine($"[VARS ] IsPrime(varInt5): {MathematicalOperations.IsPrime(varInt5)}");
-
-// PrimesUpTo - alleen constanten
-Console.WriteLine($"[CONST] PrimesUpTo(30): {String.Join(", ", MathematicalOperations.PrimesUpTo(30))}");
-// PrimesUpTo - mixed
-Console.WriteLine($"[MIXED] PrimesUpTo(varInt*2): {String.Join(", ", MathematicalOperations.PrimesUpTo(varInt * 2))}");
-// PrimesUpTo - alleen variabelen
-Console.WriteLine($"[VARS ] PrimesUpTo(varInt3): {String.Join(", ", MathematicalOperations.PrimesUpTo(varInt3))}");
-
-// FibonacciSequence - alleen constanten
-Console.WriteLine($"[CONST] Fibonacci(10): {String.Join(", ", MathematicalOperations.FibonacciSequence(10))}");
-// FibonacciSequence - mixed
-Console.WriteLine($"[MIXED] Fibonacci(varInt): {String.Join(", ", MathematicalOperations.FibonacciSequence(varInt))}");
-// FibonacciSequence - alleen variabelen
-Console.WriteLine($"[VARS ] Fibonacci(varInt8): {String.Join(", ", MathematicalOperations.FibonacciSequence(varInt8))}");
-
-// Clamp - alleen constanten
-Console.WriteLine($"[CONST] Clamp(15,0,10): {MathematicalOperations.Clamp(15, 0, 10)}");
-// Clamp - mixed
-Console.WriteLine($"[MIXED] Clamp(varInt,0,20): {MathematicalOperations.Clamp(varInt, 0, 20)}");
-// Clamp - alleen variabelen
-Console.WriteLine($"[VARS ] Clamp(varInt5,varInt2,varInt3): {MathematicalOperations.Clamp(varInt5, varInt2, varInt3)}");
-
-// Map - alleen constanten
-Console.WriteLine($"[CONST] Map(5,0,10,0,100): {MathematicalOperations.Map(5, 0, 10, 0, 100)}");
-// Map - mixed
-Console.WriteLine($"[MIXED] Map(varDouble,0,10,0,100): {MathematicalOperations.Map(varDouble, 0, 10, 0, 100):F2}");
-// Map - alleen variabelen
-Console.WriteLine($"[VARS ] Map(varInt2,varInt,varInt3,varDouble5,varDouble3): {MathematicalOperations.Map(varInt2, varInt, varInt3, varDouble5, varDouble3):F2}");
-
-// Lerp - alleen constanten
-Console.WriteLine($"[CONST] Lerp(0,10,0.5): {MathematicalOperations.Lerp(0, 10, 0.5)}");
-// Lerp - mixed
-Console.WriteLine($"[MIXED] Lerp(0,varDouble,0.5): {MathematicalOperations.Lerp(0, varDouble, 0.5):F2}");
-// Lerp - alleen variabelen
-Console.WriteLine($"[VARS ] Lerp(varInt2,varInt,varDouble4): {MathematicalOperations.Lerp(varInt2, varInt, varDouble4):F2}");
-
-// InverseLerp - alleen constanten
-Console.WriteLine($"[CONST] InverseLerp(0,10,5): {MathematicalOperations.InverseLerp(0, 10, 5)}");
-// InverseLerp - mixed
-Console.WriteLine($"[MIXED] InverseLerp(0,varInt,5): {MathematicalOperations.InverseLerp(0, varInt, 5):F2}");
-// InverseLerp - alleen variabelen
-Console.WriteLine($"[VARS ] InverseLerp(varInt2,varInt3,varInt5): {MathematicalOperations.InverseLerp(varInt2, varInt3, varInt5):F2}");
-
-// GreatestCommonDivisor - alleen constanten
-Console.WriteLine($"[CONST] GCD(48,18): {MathematicalOperations.GreatestCommonDivisor(48, 18)}");
-// GreatestCommonDivisor - mixed
-Console.WriteLine($"[MIXED] GCD(varInt,15): {MathematicalOperations.GreatestCommonDivisor(varInt, 15)}");
-// GreatestCommonDivisor - alleen variabelen
-Console.WriteLine($"[VARS ] GCD(varInt6,varInt7): {MathematicalOperations.GreatestCommonDivisor(varInt6, varInt7)}");
-
-// LeastCommonMultiple - alleen constanten
-Console.WriteLine($"[CONST] LCM(12,18): {MathematicalOperations.LeastCommonMultiple(12, 18)}");
-// LeastCommonMultiple - mixed
-Console.WriteLine($"[MIXED] LCM(varInt,15): {MathematicalOperations.LeastCommonMultiple(varInt, 15)}");
-// LeastCommonMultiple - alleen variabelen
-Console.WriteLine($"[VARS ] LCM(varInt8,varInt7): {MathematicalOperations.LeastCommonMultiple(varInt8, varInt7)}");
-
-// Factorial - alleen constanten
-Console.WriteLine($"[CONST] Factorial(6): {MathematicalOperations.Factorial(6)}");
-// Factorial - mixed
-Console.WriteLine($"[MIXED] Factorial(varInt/2): {MathematicalOperations.Factorial(varInt / 2)}");
-// Factorial - alleen variabelen
-Console.WriteLine($"[VARS ] Factorial(varInt2): {MathematicalOperations.Factorial(varInt2)}");
-
-// Combination - alleen constanten
-Console.WriteLine($"[CONST] Combination(10,3): {MathematicalOperations.Combination(10, 3)}");
-// Combination - mixed
-Console.WriteLine($"[MIXED] Combination(varInt,3): {MathematicalOperations.Combination(varInt, 3)}");
-// Combination - alleen variabelen
-Console.WriteLine($"[VARS ] Combination(varInt,varInt4): {MathematicalOperations.Combination(varInt, varInt4)}");
-
-// Power - alleen constanten
-Console.WriteLine($"[CONST] Power(2,8): {MathematicalOperations.Power(2, 8)}");
-// Power - mixed
-Console.WriteLine($"[MIXED] Power(varDouble,3): {MathematicalOperations.Power(varDouble, 3):F2}");
-// Power - alleen variabelen
-Console.WriteLine($"[VARS ] Power(varDouble2,varInt4): {MathematicalOperations.Power(varDouble2, varInt4):F2}");
-
-// IsPerfectSquare - alleen constanten
-Console.WriteLine($"[CONST] IsPerfectSquare(64): {MathematicalOperations.IsPerfectSquare(64)}");
-// IsPerfectSquare - mixed
-Console.WriteLine($"[MIXED] IsPerfectSquare(varInt): {MathematicalOperations.IsPerfectSquare(varInt)}");
-// IsPerfectSquare - alleen variabelen
-Console.WriteLine($"[VARS ] IsPerfectSquare(varInt6): {MathematicalOperations.IsPerfectSquare(varInt6)}");
-
-// RoundToDecimalPlaces - alleen constanten
-Console.WriteLine($"[CONST] Round(3.14159,2): {MathematicalOperations.RoundToDecimalPlaces(3.14159, 2)}");
-// RoundToDecimalPlaces - mixed
-Console.WriteLine($"[MIXED] Round(varDouble,2): {MathematicalOperations.RoundToDecimalPlaces(varDouble, 2)}");
-// RoundToDecimalPlaces - alleen variabelen
-Console.WriteLine($"[VARS ] Round(varFloat,varInt4): {MathematicalOperations.RoundToDecimalPlaces(varFloat, varInt4)}");
-
-// IsPrime - alleen constanten
-Console.WriteLine($"[CONST] IsPrime(17): {MathematicalOperations.IsPrime(17)}");
-// IsPrime - mixed
-Console.WriteLine($"[MIXED] IsPrime(varInt): {MathematicalOperations.IsPrime(varInt)}");
-// IsPrime - alleen variabelen
-Console.WriteLine($"[VARS ] IsPrime(varInt5): {MathematicalOperations.IsPrime(varInt5)}");
-
-// Clamp - alleen constanten
-Console.WriteLine($"[CONST] Clamp(15,0,10): {MathematicalOperations.Clamp(15, 0, 10)}");
-// Clamp - mixed
-Console.WriteLine($"[MIXED] Clamp(varInt,0,20): {MathematicalOperations.Clamp(varInt, 0, 20)}");
-// Clamp - alleen variabelen
-Console.WriteLine($"[VARS ] Clamp(varInt5,varInt2,varInt): {MathematicalOperations.Clamp(varInt5, varInt2, varInt)}");
-
-// Map - alleen constanten
-Console.WriteLine($"[CONST] Map(5,0,10,0,100): {MathematicalOperations.Map(5, 0, 10, 0, 100):F2}");
-// Map - mixed
-Console.WriteLine($"[MIXED] Map(varDouble,0,10,0,100): {MathematicalOperations.Map(varDouble, 0, 10, 0, 100):F2}");
-// Map - alleen variabelen
-Console.WriteLine($"[VARS ] Map(varDouble2,varInt2,varInt,varInt2,varInt3): {MathematicalOperations.Map(varDouble2, varInt2, varInt, varInt2, varInt3):F2}");
-
-// Power (mathematical) - alleen constanten
-Console.WriteLine($"[CONST] Power(2,8): {MathematicalOperations.Power(2, 8):F2}");
-// Power - mixed
-Console.WriteLine($"[MIXED] Power(varDouble,varInt4): {MathematicalOperations.Power(varDouble, varInt4):F2}");
-// Power - alleen variabelen
-Console.WriteLine($"[VARS ] Power(varDouble2,varInt2): {MathematicalOperations.Power(varDouble2, varInt2):F2}");
-
-Console.WriteLine();
-Console.WriteLine($"[CONST] Polynomial(2,1,-2,3,-1): {MathematicalOperations.PolynomialEvaluate(2, 1, -2, 3, -1):F2}");
-// PolynomialEvaluate - mixed
-Console.WriteLine($"[MIXED] Polynomial(varDouble,1,-2,3,-1): {MathematicalOperations.PolynomialEvaluate(varDouble, 1, -2, 3, -1):F2}");
-// PolynomialEvaluate - alleen variabelen
-Console.WriteLine($"[VARS ] Polynomial(varDouble2,varInt2,varInt4,varInt,varInt5): {MathematicalOperations.PolynomialEvaluate(varDouble2, varInt2, varInt4, varInt, varInt5):F2}");
-
-// WeightedAverage - alleen constanten
-Console.WriteLine($"[CONST] WeightedAvg(85,0.3,90,0.5,75,0.2): {MathematicalOperations.WeightedAverage(85, 0.3, 90, 0.5, 75, 0.2):F2}");
-// WeightedAverage - mixed
-Console.WriteLine($"[MIXED] WeightedAvg(varDouble*10,0.3,90,0.5,75,0.2): {MathematicalOperations.WeightedAverage(varDouble * 10, 0.3, 90, 0.5, 75, 0.2):F2}");
-// WeightedAverage - alleen variabelen
-Console.WriteLine($"[VARS ] WeightedAvg(varDouble11,varDouble9,varDouble12,varDouble4,varDouble13,varDouble10): {MathematicalOperations.WeightedAverage(varDouble11, varDouble9, varDouble12, varDouble4, varDouble13, varDouble10):F2}");
+// // ═══════════════════════════════════════════════════════════════
+// // MATHEMATICAL OPERATIONS
+// // ═══════════════════════════════════════════════════════════════
+// Console.WriteLine("═══ MATHEMATICAL OPERATIONS ═══\n");
+//
+// // Average - alleen constanten
+// Console.WriteLine($"[CONST] Average(1,2,3,4,5): {MathematicalOperations.Average(1, 2, 3, 4, 5)}");
+// // Average - mixed
+// Console.WriteLine($"[MIXED] Average(varDouble,2,3): {MathematicalOperations.Average(varDouble, 2, 3)}");
+// // Average - alleen variabelen
+// Console.WriteLine($"[VARS ] Average(varInt,varInt2,varInt4): {MathematicalOperations.Average(varInt, varInt2, varInt4)}");
+//
+// // StdDev - alleen constanten
+// Console.WriteLine($"[CONST] StdDev(2,4,6,8): {MathematicalOperations.StdDev(2, 4, 6, 8):F3}");
+// // StdDev - mixed
+// Console.WriteLine($"[MIXED] StdDev(varDouble,4,6): {MathematicalOperations.StdDev(varDouble, 4, 6):F3}");
+// // StdDev - alleen variabelen
+// Console.WriteLine($"[VARS ] StdDev(varDouble2,varDouble6,varDouble7,varDouble8): {MathematicalOperations.StdDev(varDouble2, varDouble6, varDouble7, varDouble8):F3}");
+//
+// // Median - alleen constanten
+// Console.WriteLine($"[CONST] Median(1,3,2,5,4): {MathematicalOperations.Median(1, 3, 2, 5, 4)}");
+// // Median - mixed
+// Console.WriteLine($"[MIXED] Median(varDouble,3,2,5): {MathematicalOperations.Median(varDouble, 3, 2, 5)}");
+// // Median - alleen variabelen
+// Console.WriteLine($"[VARS ] Median(varInt,varInt4,varInt2,varInt5): {MathematicalOperations.Median(varInt, varInt4, varInt2, varInt5)}");
+//
+// // IsPrime - alleen constanten
+// Console.WriteLine($"[CONST] IsPrime(17): {MathematicalOperations.IsPrime(17)}");
+// // IsPrime - mixed
+// Console.WriteLine($"[MIXED] IsPrime(varInt): {MathematicalOperations.IsPrime(varInt)}");
+// // IsPrime - alleen variabelen
+// Console.WriteLine($"[VARS ] IsPrime(varInt5): {MathematicalOperations.IsPrime(varInt5)}");
+//
+// // PrimesUpTo - alleen constanten
+// Console.WriteLine($"[CONST] PrimesUpTo(30): {String.Join(", ", MathematicalOperations.PrimesUpTo(30))}");
+// // PrimesUpTo - mixed
+// Console.WriteLine($"[MIXED] PrimesUpTo(varInt*2): {String.Join(", ", MathematicalOperations.PrimesUpTo(varInt * 2))}");
+// // PrimesUpTo - alleen variabelen
+// Console.WriteLine($"[VARS ] PrimesUpTo(varInt3): {String.Join(", ", MathematicalOperations.PrimesUpTo(varInt3))}");
+//
+// // FibonacciSequence - alleen constanten
+// Console.WriteLine($"[CONST] Fibonacci(10): {String.Join(", ", MathematicalOperations.FibonacciSequence(10))}");
+// // FibonacciSequence - mixed
+// Console.WriteLine($"[MIXED] Fibonacci(varInt): {String.Join(", ", MathematicalOperations.FibonacciSequence(varInt))}");
+// // FibonacciSequence - alleen variabelen
+// Console.WriteLine($"[VARS ] Fibonacci(varInt8): {String.Join(", ", MathematicalOperations.FibonacciSequence(varInt8))}");
+//
+// // Clamp - alleen constanten
+// Console.WriteLine($"[CONST] Clamp(15,0,10): {MathematicalOperations.Clamp(15, 0, 10)}");
+// // Clamp - mixed
+// Console.WriteLine($"[MIXED] Clamp(varInt,0,20): {MathematicalOperations.Clamp(varInt, 0, 20)}");
+// // Clamp - alleen variabelen
+// Console.WriteLine($"[VARS ] Clamp(varInt5,varInt2,varInt3): {MathematicalOperations.Clamp(varInt5, varInt2, varInt3)}");
+//
+// // Map - alleen constanten
+// Console.WriteLine($"[CONST] Map(5,0,10,0,100): {MathematicalOperations.Map(5, 0, 10, 0, 100)}");
+// // Map - mixed
+// Console.WriteLine($"[MIXED] Map(varDouble,0,10,0,100): {MathematicalOperations.Map(varDouble, 0, 10, 0, 100):F2}");
+// // Map - alleen variabelen
+// Console.WriteLine($"[VARS ] Map(varInt2,varInt,varInt3,varDouble5,varDouble3): {MathematicalOperations.Map(varInt2, varInt, varInt3, varDouble5, varDouble3):F2}");
+//
+// // Lerp - alleen constanten
+// Console.WriteLine($"[CONST] Lerp(0,10,0.5): {MathematicalOperations.Lerp(0, 10, 0.5)}");
+// // Lerp - mixed
+// Console.WriteLine($"[MIXED] Lerp(0,varDouble,0.5): {MathematicalOperations.Lerp(0, varDouble, 0.5):F2}");
+// // Lerp - alleen variabelen
+// Console.WriteLine($"[VARS ] Lerp(varInt2,varInt,varDouble4): {MathematicalOperations.Lerp(varInt2, varInt, varDouble4):F2}");
+//
+// // InverseLerp - alleen constanten
+// Console.WriteLine($"[CONST] InverseLerp(0,10,5): {MathematicalOperations.InverseLerp(0, 10, 5)}");
+// // InverseLerp - mixed
+// Console.WriteLine($"[MIXED] InverseLerp(0,varInt,5): {MathematicalOperations.InverseLerp(0, varInt, 5):F2}");
+// // InverseLerp - alleen variabelen
+// Console.WriteLine($"[VARS ] InverseLerp(varInt2,varInt3,varInt5): {MathematicalOperations.InverseLerp(varInt2, varInt3, varInt5):F2}");
+//
+// // GreatestCommonDivisor - alleen constanten
+// Console.WriteLine($"[CONST] GCD(48,18): {MathematicalOperations.GreatestCommonDivisor(48, 18)}");
+// // GreatestCommonDivisor - mixed
+// Console.WriteLine($"[MIXED] GCD(varInt,15): {MathematicalOperations.GreatestCommonDivisor(varInt, 15)}");
+// // GreatestCommonDivisor - alleen variabelen
+// Console.WriteLine($"[VARS ] GCD(varInt6,varInt7): {MathematicalOperations.GreatestCommonDivisor(varInt6, varInt7)}");
+//
+// // LeastCommonMultiple - alleen constanten
+// Console.WriteLine($"[CONST] LCM(12,18): {MathematicalOperations.LeastCommonMultiple(12, 18)}");
+// // LeastCommonMultiple - mixed
+// Console.WriteLine($"[MIXED] LCM(varInt,15): {MathematicalOperations.LeastCommonMultiple(varInt, 15)}");
+// // LeastCommonMultiple - alleen variabelen
+// Console.WriteLine($"[VARS ] LCM(varInt8,varInt7): {MathematicalOperations.LeastCommonMultiple(varInt8, varInt7)}");
+//
+// // Factorial - alleen constanten
+// Console.WriteLine($"[CONST] Factorial(6): {MathematicalOperations.Factorial(6)}");
+// // Factorial - mixed
+// Console.WriteLine($"[MIXED] Factorial(varInt/2): {MathematicalOperations.Factorial(varInt / 2)}");
+// // Factorial - alleen variabelen
+// Console.WriteLine($"[VARS ] Factorial(varInt2): {MathematicalOperations.Factorial(varInt2)}");
+//
+// // Combination - alleen constanten
+// Console.WriteLine($"[CONST] Combination(10,3): {MathematicalOperations.Combination(10, 3)}");
+// // Combination - mixed
+// Console.WriteLine($"[MIXED] Combination(varInt,3): {MathematicalOperations.Combination(varInt, 3)}");
+// // Combination - alleen variabelen
+// Console.WriteLine($"[VARS ] Combination(varInt,varInt4): {MathematicalOperations.Combination(varInt, varInt4)}");
+//
+// // Power - alleen constanten
+// Console.WriteLine($"[CONST] Power(2,8): {MathematicalOperations.Power(2, 8)}");
+// // Power - mixed
+// Console.WriteLine($"[MIXED] Power(varDouble,3): {MathematicalOperations.Power(varDouble, 3):F2}");
+// // Power - alleen variabelen
+// Console.WriteLine($"[VARS ] Power(varDouble2,varInt4): {MathematicalOperations.Power(varDouble2, varInt4):F2}");
+//
+// // IsPerfectSquare - alleen constanten
+// Console.WriteLine($"[CONST] IsPerfectSquare(64): {MathematicalOperations.IsPerfectSquare(64)}");
+// // IsPerfectSquare - mixed
+// Console.WriteLine($"[MIXED] IsPerfectSquare(varInt): {MathematicalOperations.IsPerfectSquare(varInt)}");
+// // IsPerfectSquare - alleen variabelen
+// Console.WriteLine($"[VARS ] IsPerfectSquare(varInt6): {MathematicalOperations.IsPerfectSquare(varInt6)}");
+//
+// // RoundToDecimalPlaces - alleen constanten
+// Console.WriteLine($"[CONST] Round(3.14159,2): {MathematicalOperations.RoundToDecimalPlaces(3.14159, 2)}");
+// // RoundToDecimalPlaces - mixed
+// Console.WriteLine($"[MIXED] Round(varDouble,2): {MathematicalOperations.RoundToDecimalPlaces(varDouble, 2)}");
+// // RoundToDecimalPlaces - alleen variabelen
+// Console.WriteLine($"[VARS ] Round(varFloat,varInt4): {MathematicalOperations.RoundToDecimalPlaces(varFloat, varInt4)}");
+//
+// // IsPrime - alleen constanten
+// Console.WriteLine($"[CONST] IsPrime(17): {MathematicalOperations.IsPrime(17)}");
+// // IsPrime - mixed
+// Console.WriteLine($"[MIXED] IsPrime(varInt): {MathematicalOperations.IsPrime(varInt)}");
+// // IsPrime - alleen variabelen
+// Console.WriteLine($"[VARS ] IsPrime(varInt5): {MathematicalOperations.IsPrime(varInt5)}");
+//
+// // Clamp - alleen constanten
+// Console.WriteLine($"[CONST] Clamp(15,0,10): {MathematicalOperations.Clamp(15, 0, 10)}");
+// // Clamp - mixed
+// Console.WriteLine($"[MIXED] Clamp(varInt,0,20): {MathematicalOperations.Clamp(varInt, 0, 20)}");
+// // Clamp - alleen variabelen
+// Console.WriteLine($"[VARS ] Clamp(varInt5,varInt2,varInt): {MathematicalOperations.Clamp(varInt5, varInt2, varInt)}");
+//
+// // Map - alleen constanten
+// Console.WriteLine($"[CONST] Map(5,0,10,0,100): {MathematicalOperations.Map(5, 0, 10, 0, 100):F2}");
+// // Map - mixed
+// Console.WriteLine($"[MIXED] Map(varDouble,0,10,0,100): {MathematicalOperations.Map(varDouble, 0, 10, 0, 100):F2}");
+// // Map - alleen variabelen
+// Console.WriteLine($"[VARS ] Map(varDouble2,varInt2,varInt,varInt2,varInt3): {MathematicalOperations.Map(varDouble2, varInt2, varInt, varInt2, varInt3):F2}");
+//
+// // Power (mathematical) - alleen constanten
+// Console.WriteLine($"[CONST] Power(2,8): {MathematicalOperations.Power(2, 8):F2}");
+// // Power - mixed
+// Console.WriteLine($"[MIXED] Power(varDouble,varInt4): {MathematicalOperations.Power(varDouble, varInt4):F2}");
+// // Power - alleen variabelen
+// Console.WriteLine($"[VARS ] Power(varDouble2,varInt2): {MathematicalOperations.Power(varDouble2, varInt2):F2}");
+//
+// Console.WriteLine();
+// Console.WriteLine($"[CONST] Polynomial(2,1,-2,3,-1): {MathematicalOperations.PolynomialEvaluate(2, 1, -2, 3, -1):F2}");
+// // PolynomialEvaluate - mixed
+// Console.WriteLine($"[MIXED] Polynomial(varDouble,1,-2,3,-1): {MathematicalOperations.PolynomialEvaluate(varDouble, 1, -2, 3, -1):F2}");
+// // PolynomialEvaluate - alleen variabelen
+// Console.WriteLine($"[VARS ] Polynomial(varDouble2,varInt2,varInt4,varInt,varInt5): {MathematicalOperations.PolynomialEvaluate(varDouble2, varInt2, varInt4, varInt, varInt5):F2}");
+//
+// // WeightedAverage - alleen constanten
+// Console.WriteLine($"[CONST] WeightedAvg(85,0.3,90,0.5,75,0.2): {MathematicalOperations.WeightedAverage(85, 0.3, 90, 0.5, 75, 0.2):F2}");
+// // WeightedAverage - mixed
+// Console.WriteLine($"[MIXED] WeightedAvg(varDouble*10,0.3,90,0.5,75,0.2): {MathematicalOperations.WeightedAverage(varDouble * 10, 0.3, 90, 0.5, 75, 0.2):F2}");
+// // WeightedAverage - alleen variabelen
+// Console.WriteLine($"[VARS ] WeightedAvg(varDouble11,varDouble9,varDouble12,varDouble4,varDouble13,varDouble10): {MathematicalOperations.WeightedAverage(varDouble11, varDouble9, varDouble12, varDouble4, varDouble13, varDouble10):F2}");
 
 // // ═══════════════════════════════════════════════════════════════
 // // DATE TIME OPERATIONS
@@ -284,136 +284,136 @@ Console.WriteLine($"[VARS ] WeightedAvg(varDouble11,varDouble9,varDouble12,varDo
 // Console.WriteLine($"[MIXED] UnixTimestamp(varYear,varMonth,varDay,0,0,0): {DateTimeOperations.UnixTimestamp(varYear, varMonth, varDay, 0, 0, 0)}");
 // // UnixTimestamp - alleen variabelen
 // Console.WriteLine($"[VARS ] UnixTimestamp(varYear,varMonth,varDay,varInt8,0,0): {DateTimeOperations.UnixTimestamp(varYear, varMonth, varDay, varInt8, 0, 0)}");
-//
-// // FromUnixTimestamp - exercise the reverse path as well
+
+// FromUnixTimestamp - exercise the reverse path as well
 // var fromEpoch = DateTimeOperations.FromUnixTimestamp(DateTimeOperations.UnixTimestamp(2024, 6, 15, 0, 0, 0));
 // Console.WriteLine($"[CONST] FromUnixTimestamp(UnixTimestamp(2024,6,15,..)): {fromEpoch:d}");
 //
 // Console.WriteLine();
 //
-// // ═══════════════════════════════════════════════════════════════
-// // FINANCIAL OPERATIONS
-// // ═══════════════════════════════════════════════════════════════
-// Console.WriteLine("═══ FINANCIAL OPERATIONS ═══\n");
-//
-// // CompoundInterest - alleen constanten
-// Console.WriteLine($"[CONST] CompoundInterest(1000,0.05,12,5): {FinancialOperations.CompoundInterest(1000, 0.05, 12, 5):F2}");
-// // CompoundInterest - mixed
-// Console.WriteLine($"[MIXED] CompoundInterest(varDouble*100,0.05,12,5): {FinancialOperations.CompoundInterest(varDouble * 100, 0.05, 12, 5):F2}");
-// // CompoundInterest - alleen variabelen
-// Console.WriteLine($"[VARS ] CompoundInterest(varDouble5,varDouble4/10,varInt8,varInt2): {FinancialOperations.CompoundInterest(varDouble5, varDouble4 / 10, varInt8, varInt2):F2}");
-//
-// // SimpleInterest - alleen constanten
-// Console.WriteLine($"[CONST] SimpleInterest(1000,0.05,3): {FinancialOperations.SimpleInterest(1000, 0.05, 3):F2}");
-// // SimpleInterest - mixed
-// Console.WriteLine($"[MIXED] SimpleInterest(varDouble*100,0.05,3): {FinancialOperations.SimpleInterest(varDouble * 100, 0.05, 3):F2}");
-// // SimpleInterest - alleen variabelen
-// Console.WriteLine($"[VARS ] SimpleInterest(varDouble5,varDouble4/10,varInt4): {FinancialOperations.SimpleInterest(varDouble5, varDouble4 / 10, varInt4):F2}");
-//
-// // MonthlyMortgagePayment - alleen constanten
-// Console.WriteLine($"[CONST] MortgagePayment(200000,0.04,30): {FinancialOperations.MonthlyMortgagePayment(200000, 0.04, 30):F2}");
-// // MonthlyMortgagePayment - mixed
-// Console.WriteLine($"[MIXED] MortgagePayment(varDouble*1000,0.04,30): {FinancialOperations.MonthlyMortgagePayment(varDouble * 1000, 0.04, 30):F2}");
-// // MonthlyMortgagePayment - alleen variabelen
-// Console.WriteLine($"[VARS ] MortgagePayment(varDouble5*2000,varDouble4/10,varInt3): {FinancialOperations.MonthlyMortgagePayment(varDouble5 * 2000, varDouble4 / 10, varInt3):F2}");
-//
-// // ReturnOnInvestment - alleen constanten
-// Console.WriteLine($"[CONST] ROI(1500,1000): {FinancialOperations.ReturnOnInvestment(1500, 1000):F2}");
-// // ReturnOnInvestment - mixed
-// Console.WriteLine($"[MIXED] ROI(varDouble*100,1000): {FinancialOperations.ReturnOnInvestment(varDouble * 100, 1000):F2}");
-// // ReturnOnInvestment - alleen variabelen
-// Console.WriteLine($"[VARS ] ROI(varDouble5,varDouble3*10): {FinancialOperations.ReturnOnInvestment(varDouble5, varDouble3 * 10):F2}");
-//
-// // FutureValue - alleen constanten
-// Console.WriteLine($"[CONST] FutureValue(1000,0.05,10): {FinancialOperations.FutureValue(1000, 0.05, 10):F2}");
-// // FutureValue - mixed
-// Console.WriteLine($"[MIXED] FutureValue(varDouble*100,0.05,10): {FinancialOperations.FutureValue(varDouble * 100, 0.05, 10):F2}");
-// // FutureValue - alleen variabelen
-// Console.WriteLine($"[VARS ] FutureValue(varDouble5,varDouble4/10,varInt): {FinancialOperations.FutureValue(varDouble5, varDouble4 / 10, varInt):F2}");
-//
-// // PresentValue - alleen constanten
-// Console.WriteLine($"[CONST] PresentValue(1500,0.05,10): {FinancialOperations.PresentValue(1500, 0.05, 10):F2}");
-// // PresentValue - mixed
-// Console.WriteLine($"[MIXED] PresentValue(varDouble*100,0.05,10): {FinancialOperations.PresentValue(varDouble * 100, 0.05, 10):F2}");
-// // PresentValue - alleen variabelen
-// Console.WriteLine($"[VARS ] PresentValue(varDouble5,varDouble4/10,varInt): {FinancialOperations.PresentValue(varDouble5, varDouble4 / 10, varInt):F2}");
-//
-// // LoanPayment - alleen constanten
-// Console.WriteLine($"[CONST] LoanPayment(10000,0.05,60): {FinancialOperations.LoanPayment(10000, 0.05, 60):F2}");
-// // LoanPayment - mixed
-// Console.WriteLine($"[MIXED] LoanPayment(varDouble*1000,0.05,60): {FinancialOperations.LoanPayment(varDouble * 1000, 0.05, 60):F2}");
-// // LoanPayment - alleen variabelen
-// Console.WriteLine($"[VARS ] LoanPayment(varDouble5*100,varDouble4/10,varInt3*3): {FinancialOperations.LoanPayment(varDouble5 * 100, varDouble4 / 10, varInt3 * 3):F2}");
-//
-// // EffectiveAnnualRate - alleen constanten
-// Console.WriteLine($"[CONST] EffectiveAnnualRate(0.05,12): {FinancialOperations.EffectiveAnnualRate(0.05, 12):F4}");
-// // EffectiveAnnualRate - mixed
-// Console.WriteLine($"[MIXED] EffectiveAnnualRate(0.05,varInt8): {FinancialOperations.EffectiveAnnualRate(0.05, varInt8):F4}");
-// // EffectiveAnnualRate - alleen variabelen
-// Console.WriteLine($"[VARS ] EffectiveAnnualRate(varDouble4/10,varInt8): {FinancialOperations.EffectiveAnnualRate(varDouble4 / 10, varInt8):F4}");
-//
-// // BreakEvenPoint - alleen constanten
-// Console.WriteLine($"[CONST] BreakEvenPoint(5000,50,30): {FinancialOperations.BreakEvenPoint(5000, 50, 30):F2}");
-// // BreakEvenPoint - mixed
-// Console.WriteLine($"[MIXED] BreakEvenPoint(varDouble*1000,50,30): {FinancialOperations.BreakEvenPoint(varDouble * 1000, 50, 30):F2}");
-// // BreakEvenPoint - alleen variabelen
-// Console.WriteLine($"[VARS ] BreakEvenPoint(varDouble5*50,varDouble5/2,varInt3): {FinancialOperations.BreakEvenPoint(varDouble5 * 50, varDouble5 / 2, varInt3):F2}");
-//
-// // AnnuityPayment - alleen constanten
-// Console.WriteLine($"[CONST] AnnuityPayment(0.05,10,1000): {FinancialOperations.AnnuityPayment(0.05, 10, 1000):F2}");
-// // AnnuityPayment - mixed
-// Console.WriteLine($"[MIXED] AnnuityPayment(0.05,varInt,1000): {FinancialOperations.AnnuityPayment(0.05, varInt, 1000):F2}");
-// // AnnuityPayment - alleen variabelen
-// Console.WriteLine($"[VARS ] AnnuityPayment(varDouble4/10,varInt,varDouble5*10): {FinancialOperations.AnnuityPayment(varDouble4 / 10, varInt, varDouble5 * 10):F2}");
-//
-// // AnnuityFutureValue - alleen constanten
-// Console.WriteLine($"[CONST] AnnuityFutureValue(100,0.05,10): {FinancialOperations.AnnuityFutureValue(100, 0.05, 10):F2}");
-// // AnnuityFutureValue - mixed
-// Console.WriteLine($"[MIXED] AnnuityFutureValue(varDouble5,0.05,10): {FinancialOperations.AnnuityFutureValue(varDouble5, 0.05, 10):F2}");
-// // AnnuityFutureValue - alleen variabelen
-// Console.WriteLine($"[VARS ] AnnuityFutureValue(varDouble5,varDouble4/10,varInt): {FinancialOperations.AnnuityFutureValue(varDouble5, varDouble4 / 10, varInt):F2}");
-//
-// // ProfitMargin - alleen constanten
-// Console.WriteLine($"[CONST] ProfitMargin(1000,750): {FinancialOperations.ProfitMargin(1000, 750):F2}");
-// // ProfitMargin - mixed
-// Console.WriteLine($"[MIXED] ProfitMargin(varDouble5*10,750): {FinancialOperations.ProfitMargin(varDouble5 * 10, 750):F2}");
-// // ProfitMargin - alleen variabelen
-// Console.WriteLine($"[VARS ] ProfitMargin(varDouble5*10,varDouble13*10): {FinancialOperations.ProfitMargin(varDouble5 * 10, varDouble13 * 10):F2}");
-//
-// // DividendYield - alleen constanten
-// Console.WriteLine($"[CONST] DividendYield(5,100): {FinancialOperations.DividendYield(5, 100):F2}");
-// // DividendYield - mixed
-// Console.WriteLine($"[MIXED] DividendYield(varDouble,100): {FinancialOperations.DividendYield(varDouble, 100):F2}");
-// // DividendYield - alleen variabelen
-// Console.WriteLine($"[VARS ] DividendYield(varDouble,varDouble5): {FinancialOperations.DividendYield(varDouble, varDouble5):F2}");
-//
-// // EarningsPerShare - alleen constanten
-// Console.WriteLine($"[CONST] EarningsPerShare(10000,1000): {FinancialOperations.EarningsPerShare(10000, 1000):F2}");
-// // EarningsPerShare - mixed
-// Console.WriteLine($"[MIXED] EarningsPerShare(varDouble5*100,1000): {FinancialOperations.EarningsPerShare(varDouble5 * 100, 1000):F2}");
-// // EarningsPerShare - alleen variabelen
-// Console.WriteLine($"[VARS ] EarningsPerShare(varDouble5*100,varDouble5*10): {FinancialOperations.EarningsPerShare(varDouble5 * 100, varDouble5 * 10):F2}");
-//
-// // PriceToEarningsRatio - alleen constanten
-// Console.WriteLine($"[CONST] PriceToEarningsRatio(100,10): {FinancialOperations.PriceToEarningsRatio(100, 10):F2}");
-// // PriceToEarningsRatio - mixed
-// Console.WriteLine($"[MIXED] PriceToEarningsRatio(varDouble5,10): {FinancialOperations.PriceToEarningsRatio(varDouble5, 10):F2}");
-// // PriceToEarningsRatio - alleen variabelen
-// Console.WriteLine($"[VARS ] PriceToEarningsRatio(varDouble5,varInt): {FinancialOperations.PriceToEarningsRatio(varDouble5, varInt):F2}");
-//
-// // Depreciation - alleen constanten
-// Console.WriteLine($"[CONST] Depreciation(10000,1000,10): {FinancialOperations.Depreciation(10000, 1000, 10):F2}");
-// // Depreciation - mixed
-// Console.WriteLine($"[MIXED] Depreciation(varDouble5*100,1000,10): {FinancialOperations.Depreciation(varDouble5 * 100, 1000, 10):F2}");
-// // Depreciation - alleen variabelen
-// Console.WriteLine($"[VARS ] Depreciation(varDouble5*100,varDouble5*10,varInt): {FinancialOperations.Depreciation(varDouble5 * 100, varDouble5 * 10, varInt):F2}");
-//
-// // TaxAmount - alleen constanten
-// Console.WriteLine($"[CONST] TaxAmount(10000,0.21): {FinancialOperations.TaxAmount(10000, 0.21):F2}");
-// // TaxAmount - mixed
-// Console.WriteLine($"[MIXED] TaxAmount(varDouble5*100,0.21): {FinancialOperations.TaxAmount(varDouble5 * 100, 0.21):F2}");
-// // TaxAmount - alleen variabelen
-// Console.WriteLine($"[VARS ] TaxAmount(varDouble5*100,varDouble4/2): {FinancialOperations.TaxAmount(varDouble5 * 100, varDouble4 / 2):F2}");
+// ═══════════════════════════════════════════════════════════════
+// FINANCIAL OPERATIONS
+// ═══════════════════════════════════════════════════════════════
+Console.WriteLine("═══ FINANCIAL OPERATIONS ═══\n");
+
+// CompoundInterest - alleen constanten
+Console.WriteLine($"[CONST] CompoundInterest(1000,0.05,12,5): {FinancialOperations.CompoundInterest(1000, 0.05, 12, 5):F2}");
+// CompoundInterest - mixed
+Console.WriteLine($"[MIXED] CompoundInterest(varDouble*100,0.05,12,5): {FinancialOperations.CompoundInterest(varDouble * 100, 0.05, 12, 5):F2}");
+// CompoundInterest - alleen variabelen
+Console.WriteLine($"[VARS ] CompoundInterest(varDouble5,varDouble4/10,varInt8,varInt2): {FinancialOperations.CompoundInterest(varDouble5, varDouble4 / 10, varInt8, varInt2):F2}");
+
+// SimpleInterest - alleen constanten
+Console.WriteLine($"[CONST] SimpleInterest(1000,0.05,3): {FinancialOperations.SimpleInterest(1000, 0.05, 3):F2}");
+// SimpleInterest - mixed
+Console.WriteLine($"[MIXED] SimpleInterest(varDouble*100,0.05,3): {FinancialOperations.SimpleInterest(varDouble * 100, 0.05, 3):F2}");
+// SimpleInterest - alleen variabelen
+Console.WriteLine($"[VARS ] SimpleInterest(varDouble5,varDouble4/10,varInt4): {FinancialOperations.SimpleInterest(varDouble5, varDouble4 / 10, varInt4):F2}");
+
+// MonthlyMortgagePayment - alleen constanten
+Console.WriteLine($"[CONST] MortgagePayment(200000,0.04,30): {FinancialOperations.MonthlyMortgagePayment(200000, 0.04, 30):F2}");
+// MonthlyMortgagePayment - mixed
+Console.WriteLine($"[MIXED] MortgagePayment(varDouble*1000,0.04,30): {FinancialOperations.MonthlyMortgagePayment(varDouble * 1000, 0.04, 30):F2}");
+// MonthlyMortgagePayment - alleen variabelen
+Console.WriteLine($"[VARS ] MortgagePayment(varDouble5*2000,varDouble4/10,varInt3): {FinancialOperations.MonthlyMortgagePayment(varDouble5 * 2000, varDouble4 / 10, varInt3):F2}");
+
+// ReturnOnInvestment - alleen constanten
+Console.WriteLine($"[CONST] ROI(1500,1000): {FinancialOperations.ReturnOnInvestment(1500, 1000):F2}");
+// ReturnOnInvestment - mixed
+Console.WriteLine($"[MIXED] ROI(varDouble*100,1000): {FinancialOperations.ReturnOnInvestment(varDouble * 100, 1000):F2}");
+// ReturnOnInvestment - alleen variabelen
+Console.WriteLine($"[VARS ] ROI(varDouble5,varDouble3*10): {FinancialOperations.ReturnOnInvestment(varDouble5, varDouble3 * 10):F2}");
+
+// FutureValue - alleen constanten
+Console.WriteLine($"[CONST] FutureValue(1000,0.05,10): {FinancialOperations.FutureValue(1000, 0.05, 10):F2}");
+// FutureValue - mixed
+Console.WriteLine($"[MIXED] FutureValue(varDouble*100,0.05,10): {FinancialOperations.FutureValue(varDouble * 100, 0.05, 10):F2}");
+// FutureValue - alleen variabelen
+Console.WriteLine($"[VARS ] FutureValue(varDouble5,varDouble4/10,varInt): {FinancialOperations.FutureValue(varDouble5, varDouble4 / 10, varInt):F2}");
+
+// PresentValue - alleen constanten
+Console.WriteLine($"[CONST] PresentValue(1500,0.05,10): {FinancialOperations.PresentValue(1500, 0.05, 10):F2}");
+// PresentValue - mixed
+Console.WriteLine($"[MIXED] PresentValue(varDouble*100,0.05,10): {FinancialOperations.PresentValue(varDouble * 100, 0.05, 10):F2}");
+// PresentValue - alleen variabelen
+Console.WriteLine($"[VARS ] PresentValue(varDouble5,varDouble4/10,varInt): {FinancialOperations.PresentValue(varDouble5, varDouble4 / 10, varInt):F2}");
+
+// LoanPayment - alleen constanten
+Console.WriteLine($"[CONST] LoanPayment(10000,0.05,60): {FinancialOperations.LoanPayment(10000, 0.05, 60):F2}");
+// LoanPayment - mixed
+Console.WriteLine($"[MIXED] LoanPayment(varDouble*1000,0.05,60): {FinancialOperations.LoanPayment(varDouble * 1000, 0.05, 60):F2}");
+// LoanPayment - alleen variabelen
+Console.WriteLine($"[VARS ] LoanPayment(varDouble5*100,varDouble4/10,varInt3*3): {FinancialOperations.LoanPayment(varDouble5 * 100, varDouble4 / 10, varInt3 * 3):F2}");
+
+// EffectiveAnnualRate - alleen constanten
+Console.WriteLine($"[CONST] EffectiveAnnualRate(0.05,12): {FinancialOperations.EffectiveAnnualRate(0.05, 12):F4}");
+// EffectiveAnnualRate - mixed
+Console.WriteLine($"[MIXED] EffectiveAnnualRate(0.05,varInt8): {FinancialOperations.EffectiveAnnualRate(0.05, varInt8):F4}");
+// EffectiveAnnualRate - alleen variabelen
+Console.WriteLine($"[VARS ] EffectiveAnnualRate(varDouble4/10,varInt8): {FinancialOperations.EffectiveAnnualRate(varDouble4 / 10, varInt8):F4}");
+
+// BreakEvenPoint - alleen constanten
+Console.WriteLine($"[CONST] BreakEvenPoint(5000,50,30): {FinancialOperations.BreakEvenPoint(5000, 50, 30):F2}");
+// BreakEvenPoint - mixed
+Console.WriteLine($"[MIXED] BreakEvenPoint(varDouble*1000,50,30): {FinancialOperations.BreakEvenPoint(varDouble * 1000, 50, 30):F2}");
+// BreakEvenPoint - alleen variabelen
+Console.WriteLine($"[VARS ] BreakEvenPoint(varDouble5*50,varDouble5/2,varInt3): {FinancialOperations.BreakEvenPoint(varDouble5 * 50, varDouble5 / 2, varInt3):F2}");
+
+// AnnuityPayment - alleen constanten
+Console.WriteLine($"[CONST] AnnuityPayment(0.05,10,1000): {FinancialOperations.AnnuityPayment(0.05, 10, 1000):F2}");
+// AnnuityPayment - mixed
+Console.WriteLine($"[MIXED] AnnuityPayment(0.05,varInt,1000): {FinancialOperations.AnnuityPayment(0.05, varInt, 1000):F2}");
+// AnnuityPayment - alleen variabelen
+Console.WriteLine($"[VARS ] AnnuityPayment(varDouble4/10,varInt,varDouble5*10): {FinancialOperations.AnnuityPayment(varDouble4 / 10, varInt, varDouble5 * 10):F2}");
+
+// AnnuityFutureValue - alleen constanten
+Console.WriteLine($"[CONST] AnnuityFutureValue(100,0.05,10): {FinancialOperations.AnnuityFutureValue(100, 0.05, 10):F2}");
+// AnnuityFutureValue - mixed
+Console.WriteLine($"[MIXED] AnnuityFutureValue(varDouble5,0.05,10): {FinancialOperations.AnnuityFutureValue(varDouble5, 0.05, 10):F2}");
+// AnnuityFutureValue - alleen variabelen
+Console.WriteLine($"[VARS ] AnnuityFutureValue(varDouble5,varDouble4/10,varInt): {FinancialOperations.AnnuityFutureValue(varDouble5, varDouble4 / 10, varInt):F2}");
+
+// ProfitMargin - alleen constanten
+Console.WriteLine($"[CONST] ProfitMargin(1000,750): {FinancialOperations.ProfitMargin(1000, 750):F2}");
+// ProfitMargin - mixed
+Console.WriteLine($"[MIXED] ProfitMargin(varDouble5*10,750): {FinancialOperations.ProfitMargin(varDouble5 * 10, 750):F2}");
+// ProfitMargin - alleen variabelen
+Console.WriteLine($"[VARS ] ProfitMargin(varDouble5*10,varDouble13*10): {FinancialOperations.ProfitMargin(varDouble5 * 10, varDouble13 * 10):F2}");
+
+// DividendYield - alleen constanten
+Console.WriteLine($"[CONST] DividendYield(5,100): {FinancialOperations.DividendYield(5, 100):F2}");
+// DividendYield - mixed
+Console.WriteLine($"[MIXED] DividendYield(varDouble,100): {FinancialOperations.DividendYield(varDouble, 100):F2}");
+// DividendYield - alleen variabelen
+Console.WriteLine($"[VARS ] DividendYield(varDouble,varDouble5): {FinancialOperations.DividendYield(varDouble, varDouble5):F2}");
+
+// EarningsPerShare - alleen constanten
+Console.WriteLine($"[CONST] EarningsPerShare(10000,1000): {FinancialOperations.EarningsPerShare(10000, 1000):F2}");
+// EarningsPerShare - mixed
+Console.WriteLine($"[MIXED] EarningsPerShare(varDouble5*100,1000): {FinancialOperations.EarningsPerShare(varDouble5 * 100, 1000):F2}");
+// EarningsPerShare - alleen variabelen
+Console.WriteLine($"[VARS ] EarningsPerShare(varDouble5*100,varDouble5*10): {FinancialOperations.EarningsPerShare(varDouble5 * 100, varDouble5 * 10):F2}");
+
+// PriceToEarningsRatio - alleen constanten
+Console.WriteLine($"[CONST] PriceToEarningsRatio(100,10): {FinancialOperations.PriceToEarningsRatio(100, 10):F2}");
+// PriceToEarningsRatio - mixed
+Console.WriteLine($"[MIXED] PriceToEarningsRatio(varDouble5,10): {FinancialOperations.PriceToEarningsRatio(varDouble5, 10):F2}");
+// PriceToEarningsRatio - alleen variabelen
+Console.WriteLine($"[VARS ] PriceToEarningsRatio(varDouble5,varInt): {FinancialOperations.PriceToEarningsRatio(varDouble5, varInt):F2}");
+
+// Depreciation - alleen constanten
+Console.WriteLine($"[CONST] Depreciation(10000,1000,10): {FinancialOperations.Depreciation(10000, 1000, 10):F2}");
+// Depreciation - mixed
+Console.WriteLine($"[MIXED] Depreciation(varDouble5*100,1000,10): {FinancialOperations.Depreciation(varDouble5 * 100, 1000, 10):F2}");
+// Depreciation - alleen variabelen
+Console.WriteLine($"[VARS ] Depreciation(varDouble5*100,varDouble5*10,varInt): {FinancialOperations.Depreciation(varDouble5 * 100, varDouble5 * 10, varInt):F2}");
+
+// TaxAmount - alleen constanten
+Console.WriteLine($"[CONST] TaxAmount(10000,0.21): {FinancialOperations.TaxAmount(10000, 0.21):F2}");
+// TaxAmount - mixed
+Console.WriteLine($"[MIXED] TaxAmount(varDouble5*100,0.21): {FinancialOperations.TaxAmount(varDouble5 * 100, 0.21):F2}");
+// TaxAmount - alleen variabelen
+Console.WriteLine($"[VARS ] TaxAmount(varDouble5*100,varDouble4/2): {FinancialOperations.TaxAmount(varDouble5 * 100, varDouble4 / 2):F2}");
 //
 // Console.WriteLine();
 //

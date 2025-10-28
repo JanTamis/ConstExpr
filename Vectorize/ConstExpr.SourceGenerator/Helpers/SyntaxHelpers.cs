@@ -163,15 +163,22 @@ public static class SyntaxHelpers
 			{
 				return SyntaxFactory.ObjectCreationExpression(
 					SyntaxFactory.IdentifierName("DateTime"))
-					.WithArgumentList(SyntaxFactory.ArgumentList(SyntaxFactory.SeparatedList(new[]
-					{
+					.WithArgumentList(SyntaxFactory.ArgumentList(SyntaxFactory.SeparatedList([
 						SyntaxFactory.Argument(CreateLiteral(dt.Ticks)),
 						SyntaxFactory.Argument(
 							SyntaxFactory.MemberAccessExpression(
 								SyntaxKind.SimpleMemberAccessExpression,
 								SyntaxFactory.IdentifierName("DateTimeKind"),
 								SyntaxFactory.IdentifierName(dt.Kind.ToString())))
-					})));
+					])));
+			}
+			case TimeSpan ts:
+			{
+				return SyntaxFactory.ObjectCreationExpression(
+					SyntaxFactory.IdentifierName("TimeSpan"))
+					.WithArgumentList(SyntaxFactory.ArgumentList(SyntaxFactory.SeparatedList([
+						SyntaxFactory.Argument(CreateLiteral(ts.Ticks))
+					])));
 			}
 		}
 

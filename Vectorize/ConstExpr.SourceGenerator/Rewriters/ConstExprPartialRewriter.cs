@@ -209,8 +209,8 @@ public class ConstExprPartialRewriter(
 		var left = Visit(node.Left);
 		var right = Visit(node.Right);
 
-		var hasLeftValue = TryGetLiteralValue(left, out var leftValue);
-		var hasRightValue = TryGetLiteralValue(right, out var rightValue);
+		var hasLeftValue = TryGetLiteralValue(node.Left, out var leftValue) || TryGetLiteralValue(left, out leftValue);
+		var hasRightValue = TryGetLiteralValue(node.Right, out var rightValue) || TryGetLiteralValue(right, out rightValue);
 
 		if (TryGetOperation(semanticModel, node, out IBinaryOperation? operation))
 		{
@@ -710,12 +710,12 @@ public class ConstExprPartialRewriter(
 
 				variable.IsInitialized = true;
 
-				var result = LocalDeclarationStatement(VariableDeclaration(ParseTypeName("var"), SingletonSeparatedList(
-					VariableDeclarator(Identifier(name))
-						.WithInitializer(EqualsValueClause(rightExpr)))
-				));
-
-				return result;
+				// var result = LocalDeclarationStatement(VariableDeclaration(ParseTypeName("var"), SingletonSeparatedList(
+				// 	VariableDeclarator(Identifier(name))
+				// 		.WithInitializer(EqualsValueClause(rightExpr)))
+				// ));
+				//
+				// return result;
 			}
 
 			if (TryGetLiteralValue(rightExpr, out var tempValue) && variable.HasValue)
@@ -967,7 +967,7 @@ public class ConstExprPartialRewriter(
 		var expression = Visit(node.Expression);
 
 		if (node.WithExpression(expression as ExpressionSyntax ?? node.Expression).CanRemoveParentheses(semanticModel, token)
-		    || expression is ParenthesizedExpressionSyntax or IdentifierNameSyntax or LiteralExpressionSyntax or InvocationExpressionSyntax)
+		    || expression is ParenthesizedExpressionSyntax or IdentifierNameSyntax or LiteralExpressionSyntax or InvocationExpressionSyntax or ObjectCreationExpressionSyntax)
 		{
 			return expression;
 		}
@@ -981,7 +981,7 @@ public class ConstExprPartialRewriter(
 		{
 			var expression = Visit(node.Expression);
 
-			if (TryGetLiteralValue(expression, out var value))
+			if (TryGetLiteralValue(expression, out var value) || TryGetLiteralValue(node.Expression, out value))
 			{
 				// if (loader.TryExecuteMethod(operation.OperatorMethod, null, new VariableItemDictionary(variables), [ value ], out value)
 				//     && TryGetLiteral(value, out var literal))
@@ -1422,8 +1422,11 @@ public class ConstExprPartialRewriter(
 	{
 		var expression = Visit(node.Expression);
 
-		TryGetLiteralValue(expression, out var instanceValue);
-
+		if (!TryGetLiteralValue(node.Expression, out var instanceValue))
+		{
+			TryGetLiteralValue(expression, out instanceValue);
+		}
+		
 		if (semanticModel.TryGetSymbol(node, out ISymbol? symbol))
 		{
 			switch (symbol)
@@ -1621,12 +1624,32 @@ public class ConstExprPartialRewriter(
 			.WithWhenFalse(Visit(node.WhenFalse) as ExpressionSyntax ?? node.WhenFalse);
 	}
 
+	public override SyntaxNode? VisitObjectCreationExpression(ObjectCreationExpressionSyntax node)
+	{
+		if (semanticModel.TryGetSymbol(node.Type, out ITypeSymbol? type))
+		{
+			usings.Add(type.ContainingNamespace.ToDisplayString());
+		}
+		
+		return base.VisitObjectCreationExpression(node);
+	}
+
+	public override SyntaxNode? VisitQualifiedName(QualifiedNameSyntax node)
+	{
+		usings.Add(node.Left.ToString());
+
+		return node.Right;
+	}
+	
 	public override SyntaxNode? VisitWhileStatement(WhileStatementSyntax node)
 	{
 		return node;
+		
+		// return node.WithStatement(Visit(node.Statement) as StatementSyntax ?? node.Statement);
+		
 		return base.VisitWhileStatement(node);
 	}
-
+	
 	public override SyntaxNode VisitBlock(BlockSyntax node)
 	{
 		return node.WithStatements(VisitList(node.Statements));
