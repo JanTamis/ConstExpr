@@ -58,9 +58,9 @@ using ConstExpr.Core.Attributes;
 [ConstExpr]
 public static class MathOperations
 {
-    public static double Average(params IReadOnlyList<double> data)
+    public static double Add(double a, double b)
     {
-        return data.Average();
+        return a + b;
     }
     
     public static bool IsPrime(int number)
@@ -83,7 +83,7 @@ public static class MathOperations
 
 ```csharp
 // This will be evaluated at compile time
-var average = MathOperations.Average(1, 2, 3, 4, 5); // Result: 3.0
+var sum = MathOperations.Add(10.5, 20.3); // Result: 30.8
 var isPrime = MathOperations.IsPrime(17); // Result: true
 ```
 
