@@ -79,14 +79,72 @@ public class ConstExprPartialRewriter(
 
 	public override SyntaxNode? VisitExpressionStatement(ExpressionStatementSyntax node)
 	{
-		var result = Visit(node.Expression);
-
-		if (result is ExpressionSyntax expression)
+		// Special handling for increment/decrement expressions used as statements
+		// When used as a statement, we need to preserve the side-effect, not the return value
+		if (node.Expression is PostfixUnaryExpressionSyntax or PrefixUnaryExpressionSyntax)
 		{
-			return node.WithExpression(expression);
+			var originalExpression = node.Expression;
+			var result = Visit(originalExpression);
+
+			// If the result is a literal (the return value), we need to preserve the original
+			// increment/decrement statement because it's being used for side-effects only
+			if (result is LiteralExpressionSyntax)
+			{
+				// Keep the original increment/decrement statement
+				return node;
+			}
+
+			if (result is ExpressionSyntax expression)
+			{
+				return node.WithExpression(expression);
+			}
+
+			return result;
 		}
 
-		return result;
+		var visitedResult = Visit(node.Expression);
+
+		// If the result is not an expression (e.g., it got removed or transformed),
+		// check if we should preserve the original statement
+		if (visitedResult is not ExpressionSyntax syntax)
+		{
+			// If Visit returned null or a non-expression, preserve the original statement
+			// to maintain side-effects (e.g., method calls like StringBuilder.Append)
+			if (visitedResult is null)
+			{
+				return node;
+			}
+
+			return visitedResult;
+		}
+
+		return node.WithExpression(syntax);
+	}
+
+	/// <summary>
+	/// Visits an expression that may be an increment/decrement used for side-effects.
+	/// Preserves the original expression if it evaluates to a literal (indicating it was simplified).
+	/// </summary>
+	private ExpressionSyntax VisitIncrementExpression(ExpressionSyntax expression)
+	{
+		if (expression is PostfixUnaryExpressionSyntax or PrefixUnaryExpressionSyntax)
+		{
+			var result = Visit(expression);
+
+			// If the result is a literal, keep the original increment/decrement for side-effects
+			if (result is LiteralExpressionSyntax)
+			{
+				return expression;
+			}
+
+			if (result is ExpressionSyntax expr)
+			{
+				return expr;
+			}
+		}
+
+		var visited = Visit(expression);
+		return visited as ExpressionSyntax ?? expression;
 	}
 
 	public override SyntaxNode? VisitLiteralExpression(LiteralExpressionSyntax node)
@@ -301,6 +359,8 @@ public class ConstExprPartialRewriter(
 				.Select(arg => Visit(arg.Expression))
 				.ToList();
 
+			var hasCharOverload = TryGetCharOverload(targetMethod, arguments, out var charMethod);
+
 			var constantArguments = arguments
 				.WhereSelect<SyntaxNode?, object?>(TryGetLiteralValue)
 				.ToArray();
@@ -402,6 +462,22 @@ public class ConstExprPartialRewriter(
 				}
 			}
 
+			if (hasCharOverload)
+			{
+				arguments = arguments.Select(s =>
+					{
+						if (TryGetLiteralValue(s, out var value) && value is string { Length: 1 } charValue)
+						{
+							return LiteralExpression(
+								SyntaxKind.CharacterLiteralExpression,
+								Literal(charValue[0]));
+						}
+
+						return s;
+					})
+					.ToList();
+			}
+
 			if (targetMethod.IsStatic)
 			{
 				// Check if we're already visiting this method to prevent infinite recursion
@@ -427,8 +503,10 @@ public class ConstExprPartialRewriter(
 
 								// Add this method to the visiting set before recursing
 								visitingMethods.Add(targetMethod);
+
 								var visitor = new ConstExprPartialRewriter(semanticModel, loader, (_, _) => { }, parameters, additionalMethods, usings, attribute, token, visitingMethods);
 								var body = visitor.Visit(method.Body) as BlockSyntax;
+
 								visitingMethods.Remove(targetMethod);
 
 								return method.WithBody(body).WithModifiers(mods);
@@ -470,15 +548,20 @@ public class ConstExprPartialRewriter(
 			}
 
 			usings.Add(targetMethod.ContainingType.ContainingNamespace.ToString());
+
+			if (node.Expression is MemberAccessExpressionSyntax { Expression: IdentifierNameSyntax identifierName }
+			    && variables.TryGetValue(identifierName.Identifier.Text, out var variable))
+			{
+				variable.IsAccessed = true;
+				variable.IsAltered = true;
+			}
+
+			// Return with the optimized/visited arguments
+			return node
+				.WithArgumentList(node.ArgumentList.WithArguments(SeparatedList(arguments.OfType<ExpressionSyntax>().Select(Argument))));
 		}
 
-		if (node.Expression is MemberAccessExpressionSyntax { Expression: IdentifierNameSyntax identifierName }
-		    && variables.TryGetValue(identifierName.Identifier.Text, out var variable))
-		{
-			variable.IsAccessed = true;
-			variable.IsAltered = true;
-		}
-
+		// Symbol not found, visit arguments normally using base implementation
 		return node
 			.WithArgumentList(VisitArgumentList(node.ArgumentList) as ArgumentListSyntax ?? node.ArgumentList);
 	}
@@ -588,7 +671,6 @@ public class ConstExprPartialRewriter(
 			return ToStatementSyntax(result);
 		}
 
-
 		var decl = Visit(node.Declaration);
 
 		foreach (var declaration in node.Declaration?.Variables ?? [ ])
@@ -602,11 +684,55 @@ public class ConstExprPartialRewriter(
 			}
 		}
 
+		// Non-constant condition: optimize the condition and body
+		// Take a snapshot of variable states before visiting the loop body
+		var variablesSnapshot = new Dictionary<string, (object? Value, bool HasValue, bool IsInitialized)>();
+
+		foreach (var kvp in variables)
+		{
+			variablesSnapshot[kvp.Key] = (kvp.Value.Value, kvp.Value.HasValue, kvp.Value.IsInitialized);
+		}
+
+		// Visit the body to see which variables get modified
+		var visitedStatement = Visit(node.Statement) as StatementSyntax ?? node.Statement;
+
+		// Visit incrementors with special handling for increment/decrement expressions
+		var visitedIncrementors = SeparatedList(
+			node.Incrementors.Select(VisitIncrementExpression));
+
+		// Restore variable states and mark modified variables as having no constant value
+		// since we don't know how many times the loop will execute
+		foreach (var kvp in variablesSnapshot)
+		{
+			if (variables.TryGetValue(kvp.Key, out var currentVar))
+			{
+				var (originalValue, originalHasValue, originalIsInitialized) = kvp.Value;
+
+				// If the variable was modified in the loop body
+				if (currentVar.HasValue != originalHasValue || !Equals(currentVar.Value, originalValue))
+				{
+					// Restore the original value but mark it as no longer having a constant value
+					currentVar.Value = originalValue;
+					currentVar.HasValue = false;
+					currentVar.IsInitialized = true;
+				}
+				else
+				{
+					// Variable wasn't modified, restore original state just in case
+					currentVar.Value = originalValue;
+					currentVar.HasValue = originalHasValue;
+					currentVar.IsInitialized = originalIsInitialized;
+				}
+			}
+		}
+
+		var visitedCondition = Visit(node.Condition) as ExpressionSyntax ?? node.Condition;
+
 		return node
 			.WithDeclaration(decl as VariableDeclarationSyntax ?? node.Declaration)
-			.WithStatement(Visit(node.Statement) as StatementSyntax ?? node.Statement)
-			.WithCondition(Visit(node.Condition) as ExpressionSyntax ?? node.Condition)
-			.WithIncrementors(VisitList(node.Incrementors));
+			.WithStatement(visitedStatement)
+			.WithCondition(visitedCondition)
+			.WithIncrementors(visitedIncrementors);
 	}
 
 	public override SyntaxNode? VisitAssignmentExpression(AssignmentExpressionSyntax node)
@@ -616,11 +742,13 @@ public class ConstExprPartialRewriter(
 		var rightExpr = visitedRight as ExpressionSyntax ?? node.Right;
 		var kind = node.OperatorToken.Kind();
 
+		var hasRightValue = TryGetLiteralValue(rightExpr, out var rightValue);
+
 		// Handle Tuple deconstruction assignments: (a, b) = (1, 2)
 		if (node.Left is TupleExpressionSyntax leftTuple && kind == SyntaxKind.EqualsToken)
 		{
 			// Try to get the right-hand side as a tuple value
-			if (TryGetLiteralValue(rightExpr, out var rightValue))
+			if (hasRightValue)
 			{
 				var rightType = rightValue?.GetType();
 
@@ -718,13 +846,17 @@ public class ConstExprPartialRewriter(
 				// return result;
 			}
 
+			// Only simplify assignments when the variable has a known constant value
+			// For compound assignments (+=, -=, etc.), only simplify if we can compute the result
 			if (TryGetLiteralValue(rightExpr, out var tempValue) && variable.HasValue)
 			{
 				variable.Value = ObjectExtensions.ExecuteBinaryOperation(kind, variable.Value, tempValue) ?? tempValue;
 
-				if (TryGetLiteral(tempValue, out var literal))
+				// Only convert to simple assignment with literal if it's already a simple assignment
+				// or if we're dealing with constant values on both sides
+				if (kind == SyntaxKind.SimpleAssignmentExpression && TryGetLiteral(tempValue, out var literal))
 				{
-					return node.WithRight(literal).WithOperatorToken(Token(SyntaxKind.EqualsToken));
+					return node.WithRight(literal);
 				}
 			}
 			else
@@ -838,6 +970,19 @@ public class ConstExprPartialRewriter(
 			if (TryOptimizeNode(compOp.OperatorKind, compOp.Type, node.Left, compOp.Target.Type, rightExpr, compOp.Value.Type, out var syntaxNode))
 			{
 				return AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, node.Left, syntaxNode as ExpressionSyntax);
+			}
+		}
+
+		if (node.IsKind(SyntaxKind.AddAssignmentExpression) && hasRightValue)
+		{
+			if (rightValue.IsNumericZero())
+			{
+				return null;
+			}
+
+			if (rightValue.IsNumericOne())
+			{
+				return PostfixUnaryExpression(SyntaxKind.PostIncrementExpression, node.Left);
 			}
 		}
 
@@ -1426,7 +1571,7 @@ public class ConstExprPartialRewriter(
 		{
 			TryGetLiteralValue(expression, out instanceValue);
 		}
-		
+
 		if (semanticModel.TryGetSymbol(node, out ISymbol? symbol))
 		{
 			switch (symbol)
@@ -1516,9 +1661,47 @@ public class ConstExprPartialRewriter(
 			}
 		}
 
+		// Non-constant collection: optimize the body
+		// Take a snapshot of variable states before visiting the loop body
+		var variablesSnapshot = new Dictionary<string, (object? Value, bool HasValue, bool IsInitialized)>();
+
+		foreach (var kvp in variables)
+		{
+			variablesSnapshot[kvp.Key] = (kvp.Value.Value, kvp.Value.HasValue, kvp.Value.IsInitialized);
+		}
+
+		// Visit the body to see which variables get modified
+		var visitedStatement = Visit(node.Statement) as StatementSyntax ?? node.Statement;
+
+		// Restore variable states and mark modified variables as having no constant value
+		// since we don't know how many times the loop will execute
+		foreach (var kvp in variablesSnapshot)
+		{
+			if (variables.TryGetValue(kvp.Key, out var currentVar))
+			{
+				var (originalValue, originalHasValue, originalIsInitialized) = kvp.Value;
+
+				// If the variable was modified in the loop body
+				if (currentVar.HasValue != originalHasValue || !Equals(currentVar.Value, originalValue))
+				{
+					// Restore the original value but mark it as no longer having a constant value
+					currentVar.Value = originalValue;
+					currentVar.HasValue = false;
+					currentVar.IsInitialized = true;
+				}
+				else
+				{
+					// Variable wasn't modified, restore original state just in case
+					currentVar.Value = originalValue;
+					currentVar.HasValue = originalHasValue;
+					currentVar.IsInitialized = originalIsInitialized;
+				}
+			}
+		}
+
 		return node
 			.WithExpression(visitedExpr as ExpressionSyntax ?? node.Expression)
-			.WithStatement(Visit(node.Statement) as StatementSyntax ?? node.Statement);
+			.WithStatement(visitedStatement);
 	}
 
 	public override SyntaxNode? VisitInterpolatedStringExpression(InterpolatedStringExpressionSyntax node)
@@ -1630,7 +1813,7 @@ public class ConstExprPartialRewriter(
 		{
 			usings.Add(type.ContainingNamespace.ToDisplayString());
 		}
-		
+
 		return base.VisitObjectCreationExpression(node);
 	}
 
@@ -1640,16 +1823,87 @@ public class ConstExprPartialRewriter(
 
 		return node.Right;
 	}
-	
+
 	public override SyntaxNode? VisitWhileStatement(WhileStatementSyntax node)
 	{
-		return node;
-		
-		// return node.WithStatement(Visit(node.Statement) as StatementSyntax ?? node.Statement);
-		
-		return base.VisitWhileStatement(node);
+		var result = new List<SyntaxNode>();
+
+		// Check if the condition is immediately false (loop never executes)
+		var initialCondition = Visit(node.Condition);
+
+		if (TryGetLiteralValue(initialCondition, out var initialValue) && initialValue is false)
+		{
+			// Loop never executes, return null to remove it
+			return null;
+		}
+
+		// Try to unroll the loop if the condition remains constant true
+		const int maxUnrollIterations = 1000; // Safety limit to prevent infinite unrolling
+		var iterations = 0;
+
+		while (TryGetLiteralValue(Visit(node.Condition), out var value) && value is true)
+		{
+			if (++iterations > maxUnrollIterations)
+			{
+				// Condition is always true but we've hit the unroll limit
+				// Fall back to preserving the loop
+				break;
+			}
+
+			result.Add(Visit(node.Statement));
+		}
+
+		if (result.Any() && iterations <= maxUnrollIterations)
+		{
+			// Successfully unrolled the loop
+			return ToStatementSyntax(result);
+		}
+
+		// Non-constant condition: optimize the condition and body
+		// Take a snapshot of variable states before visiting the loop body
+		var variablesSnapshot = new Dictionary<string, (object? Value, bool HasValue, bool IsInitialized)>();
+
+		foreach (var kvp in variables)
+		{
+			variablesSnapshot[kvp.Key] = (kvp.Value.Value, kvp.Value.HasValue, kvp.Value.IsInitialized);
+		}
+
+		// Visit the body to see which variables get modified
+		var visitedStatement = Visit(node.Statement) as StatementSyntax ?? node.Statement;
+
+		// Restore variable states and mark modified variables as having no constant value
+		// since we don't know how many times the loop will execute
+		foreach (var kvp in variablesSnapshot)
+		{
+			if (variables.TryGetValue(kvp.Key, out var currentVar))
+			{
+				var (originalValue, originalHasValue, originalIsInitialized) = kvp.Value;
+
+				// If the variable was modified in the loop body
+				if (currentVar.HasValue != originalHasValue || !Equals(currentVar.Value, originalValue))
+				{
+					// Restore the original value but mark it as no longer having a constant value
+					currentVar.Value = originalValue;
+					currentVar.HasValue = false;
+					currentVar.IsInitialized = true;
+				}
+				else
+				{
+					// Variable wasn't modified, restore original state just in case
+					currentVar.Value = originalValue;
+					currentVar.HasValue = originalHasValue;
+					currentVar.IsInitialized = originalIsInitialized;
+				}
+			}
+		}
+
+		var visitedCondition = Visit(node.Condition) as ExpressionSyntax ?? node.Condition;
+
+		return node
+			.WithCondition(visitedCondition)
+			.WithStatement(visitedStatement);
 	}
-	
+
 	public override SyntaxNode VisitBlock(BlockSyntax node)
 	{
 		return node.WithStatements(VisitList(node.Statements));
@@ -1764,6 +2018,111 @@ public class ConstExprPartialRewriter(
 		}
 
 		syntaxNode = null;
+		return false;
+	}
+
+	/// <summary>
+	/// Checks if a method call with string arguments can be replaced with a char overload.
+	/// If one or more string arguments have length 1, looks for a method overload that accepts char instead.
+	/// </summary>
+	private bool TryGetCharOverload(
+		IMethodSymbol currentMethod,
+		IReadOnlyList<SyntaxNode?> arguments,
+		[NotNullWhen(true)] out IMethodSymbol? charMethod)
+	{
+		charMethod = null;
+
+		// Check if any arguments are strings with length 1
+		var stringIndices = new List<int>();
+		var charValues = new List<char>();
+
+		for (var i = 0; i < currentMethod.Parameters.Length && i < arguments.Count; i++)
+		{
+			var param = currentMethod.Parameters[i];
+
+			// Only consider string parameters
+			if (param.Type.SpecialType != SpecialType.System_String)
+			{
+				continue;
+			}
+
+			var arg = arguments[i];
+
+			// Check if the argument is a string literal with length 1
+			if (TryGetLiteralValue(arg, out var value) && value is string { Length: 1 } str)
+			{
+				stringIndices.Add(i);
+				charValues.Add(str[0]);
+			}
+		}
+
+		// If no single-char strings found, no optimization possible
+		if (stringIndices.Count == 0)
+		{
+			return false;
+		}
+
+		// Look for an overload with char parameters at those positions
+		var methodName = currentMethod.Name;
+		var containingType = currentMethod.ContainingType;
+
+		var candidateMethods = containingType
+			.GetMembers(methodName)
+			.OfType<IMethodSymbol>()
+			.Where(m =>
+				m.Parameters.Length == currentMethod.Parameters.Length &&
+				m.IsStatic == currentMethod.IsStatic &&
+				!SymbolEqualityComparer.Default.Equals(m, currentMethod));
+
+		foreach (var candidate in candidateMethods)
+		{
+			var isMatch = true;
+			var charIndicesInCandidate = new HashSet<int>();
+
+			// Check if parameters match, with char at the identified positions
+			for (var i = 0; i < candidate.Parameters.Length; i++)
+			{
+				var candidateParam = candidate.Parameters[i];
+				var currentParam = currentMethod.Parameters[i];
+
+				if (stringIndices.Contains(i))
+				{
+					// This position should be char in the candidate
+					if (candidateParam.Type.SpecialType == SpecialType.System_Char)
+					{
+						charIndicesInCandidate.Add(i);
+					}
+					else
+					{
+						isMatch = false;
+						break;
+					}
+				}
+				else
+				{
+					// Other positions should have the same type
+					if (!SymbolEqualityComparer.Default.Equals(candidateParam.Type, currentParam.Type))
+					{
+						isMatch = false;
+						break;
+					}
+				}
+			}
+
+			// Check return type matches
+			if (isMatch && !SymbolEqualityComparer.Default.Equals(candidate.ReturnType, currentMethod.ReturnType))
+			{
+				isMatch = false;
+			}
+
+			if (isMatch && charIndicesInCandidate.Count == stringIndices.Count)
+			{
+				// Found a matching char overload!
+				charMethod = candidate;
+				return true;
+			}
+		}
+
 		return false;
 	}
 }

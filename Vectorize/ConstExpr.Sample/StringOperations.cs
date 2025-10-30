@@ -116,7 +116,7 @@ public static class StringOperations
 		var count = 0;
 		var index = 0;
 
-		while ((index = text.IndexOf(substring, index, StringComparison.Ordinal)) != -1)
+		while ((index = text.IndexOf(substring, index)) != -1)
 		{
 			count++;
 			index += substring.Length;
