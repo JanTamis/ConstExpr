@@ -1,8 +1,8 @@
 # ConstExpr
 
-A C# source generator that performs compile-time constant expression evaluation and optimization.
+A C# source generator that brings compile-time constant expression evaluation to your codebase.
 
-ConstExpr automatically detects and evaluates constant expressions at compile time, transforming runtime computations into compile-time constants. This eliminates unnecessary runtime overhead and improves application performance.
+Ever wish your constant calculations happened at build time instead of runtime? ConstExpr makes it happen automatically. It detects constant expressions, evaluates them during compilation, and generates optimized code with pre-computed values.
 
 ```csharp
 // You write this:
@@ -12,18 +12,18 @@ var result = MathOps.IsPrime(17);
 var result = true;
 ```
 
-## Overview
+## What is ConstExpr?
 
-ConstExpr is a Roslyn-based source generator that analyzes your code to identify opportunities for constant folding. When it finds method calls or expressions that can be evaluated at compile time, it automatically generates optimized code with pre-computed constant values.
+ConstExpr is a Roslyn-based source generator that analyzes your code looking for opportunities to optimize. When it finds method calls or expressions that can be evaluated at compile time, it automatically generates optimized code with the values already computed.
 
-This results in faster applications and smaller binaries while maintaining clean, readable code.
+The benefits? Faster applications, smaller binaries, and you still get to write clean, expressive code.
 
 ## Features
 
-- **Compile-Time Evaluation**: Automatically evaluates constant expressions during compilation
-- **Performance Optimization**: Eliminates runtime overhead by pre-computing constant values
-- **Floating-Point Precision Control**: Choose between strict IEEE 754 compliance or fast-math optimizations
-- **Comprehensive Operation Support**:
+- **Compile-Time Evaluation** - Automatically evaluates constant expressions during compilation
+- **Performance Boost** - Eliminates runtime overhead by pre-computing values
+- **Flexible Floating-Point Control** - Choose between strict IEEE 754 compliance or fast-math optimizations
+- **Wide Operation Support** - Works with:
   - Mathematical operations (statistics, prime detection, numeric algorithms)
   - String manipulation (formatting, encoding, text processing)
   - Collection operations (LINQ queries, transformations, filtering)
@@ -31,18 +31,20 @@ This results in faster applications and smaller binaries while maintaining clean
   - Geometry and physics computations
   - Financial calculations
   - Color transformations
-- **Incremental Generation**: Efficient caching prevents unnecessary reprocessing
-- **Seamless Integration**: Works with your existing codebase
+- **Smart Caching** - Incremental generation means fast rebuilds
+- **Drop-in Integration** - Works seamlessly with your existing code
 
-## Installation
+## Getting Started
 
-Install via NuGet:
+### Installation
+
+Add ConstExpr to your project via NuGet:
 
 ```bash
 dotnet add package ConstExpr.SourceGenerator
 ```
 
-Or add to your `.csproj`:
+Or add it directly to your `.csproj`:
 
 ```xml
 <ItemGroup>
@@ -50,11 +52,9 @@ Or add to your `.csproj`:
 </ItemGroup>
 ```
 
-## Usage
+### Basic Setup
 
-### Enable ConstExpr
-
-Add this to your `.csproj`:
+First, enable ConstExpr in your `.csproj`:
 
 ```xml
 <PropertyGroup>
@@ -62,9 +62,7 @@ Add this to your `.csproj`:
 </PropertyGroup>
 ```
 
-### Mark Methods for Optimization
-
-Use the `[ConstExpr]` attribute on methods you want to optimize:
+Then, mark the methods you want to optimize with the `[ConstExpr]` attribute:
 
 ```csharp
 using ConstExpr.Core.Attributes;
@@ -93,53 +91,54 @@ public static class MathOperations
 }
 ```
 
-### Use with Constant or Mixed Values
+### How It Optimizes
 
-ConstExpr can optimize method calls in several ways:
+ConstExpr works in multiple ways depending on your code:
+
+**Full optimization** happens when all arguments are constants:
 
 ```csharp
-// Full optimization - all constant arguments:
 var sum = MathOperations.Add(10.5, 20.3);
 var isPrime = MathOperations.IsPrime(17);
 
-// Generated at compile time:
+// ✨ Becomes this at compile time:
 var sum = 30.8;
 var isPrime = true;
 ```
 
-ConstExpr also supports **partial evaluation** when only some arguments are constants:
+**Partial evaluation** works even when mixing constants with variables:
 
 ```csharp
-// Partial optimization - mix of constant and variable arguments:
 var x = 5.0;
 var result = MathOperations.Add(10.5, x);
-
-// ConstExpr can still optimize the constant parts
+// ConstExpr optimizes what it can, even with variables
 ```
 
-## Advanced Configuration
+## Going Deeper
 
 ### Floating-Point Modes
 
-Control floating-point evaluation behavior:
+You can control how ConstExpr handles floating-point math:
 
 ```csharp
-// Strict IEEE 754 compliance (default)
+// Strict mode - exact IEEE 754 behavior (default)
 [ConstExpr(FloatingPointMode = FloatingPointEvaluationMode.Strict)]
 public static class StrictMath
 {
-    // Guarantees exact IEEE 754 behavior
+    // Perfect precision, always
 }
 
-// Fast-math optimizations
+// Fast mode - allows some flexibility for better performance
 [ConstExpr(FloatingPointMode = FloatingPointEvaluationMode.FastMath)]
 public static class FastMath
 {
-    // Allows optimizations that may deviate slightly from IEEE 754
+    // Faster, with minor precision tradeoffs
 }
 ```
 
-### String Operations Example
+### More Examples
+
+Here's ConstExpr working with string operations:
 
 ```csharp
 [ConstExpr]
@@ -156,44 +155,45 @@ public static class StringOps
     }
 }
 
-// Optimized at compile time when possible
+// These get optimized at compile time too
 var name = StringOps.FormatFullName("John", "Doe");
 var length = StringOps.StringLength("Hello", Encoding.UTF8);
 ```
 
-## How It Works
+## Under the Hood
 
-The source generator follows a 5-step optimization process:
+Here's what happens when ConstExpr processes your code:
 
-1. **Detection**: Scans for method invocations marked with `[ConstExpr]`
-2. **Analysis**: Determines if the method (or parts of it) can be evaluated at compile time
-3. **Evaluation**: Executes optimizable parts during compilation
-4. **Generation**: Replaces method calls or expressions with computed values where possible
-5. **Caching**: Stores results for incremental compilation
+1. **Detection** - Scans for methods marked with `[ConstExpr]`
+2. **Analysis** - Figures out what can be computed at compile time
+3. **Evaluation** - Actually runs the optimizable code during compilation
+4. **Generation** - Creates new code with the computed values
+5. **Caching** - Remembers results for fast incremental builds
 
-ConstExpr supports both full constant folding (when all arguments are constants) and partial evaluation (when only some arguments are constants).
+The cool part? ConstExpr handles both full constant folding (all arguments constant) and partial evaluation (mix of constants and variables).
 
-## Limitations
+## Good to Know
 
-- Methods are optimized when they can be evaluated at compile time
-- Full optimization occurs when all arguments are constants
-- Partial evaluation is supported when only some arguments are constants
-- Some operations may not be evaluable due to runtime dependencies
-- Complex dynamic behavior cannot be optimized
+A few things to keep in mind:
+
+- ✅ Full optimization when all arguments are constants
+- ✅ Partial evaluation when mixing constants with variables
+- ⚠️ Can't optimize code with runtime dependencies
+- ⚠️ Complex dynamic behavior won't be optimized
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit issues and pull requests.
+Found a bug or have an idea? Contributions are welcome! Feel free to open an issue or submit a pull request.
 
 ## License
 
-This project is licensed under the MIT License.
+MIT License
 
 ## Author
 
-Jan Tamis ([GitHub](https://github.com/JanTamis))
+Created by Jan Tamis - [GitHub](https://github.com/JanTamis)
 
 ## Links
 
-- [NuGet Package](https://www.nuget.org/packages/ConstExpr.SourceGenerator)
-- [GitHub Repository](https://github.com/JanTamis/ConstExpr)
+- 📦 [NuGet Package](https://www.nuget.org/packages/ConstExpr.SourceGenerator)
+- 💻 [GitHub Repository](https://github.com/JanTamis/ConstExpr)
