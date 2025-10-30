@@ -93,18 +93,28 @@ public static class MathOperations
 }
 ```
 
-### Use with Constant Values
+### Use with Constant or Mixed Values
 
-When you call these methods with constant arguments, ConstExpr optimizes them at compile time:
+ConstExpr can optimize method calls in several ways:
 
 ```csharp
-// Your code:
+// Full optimization - all constant arguments:
 var sum = MathOperations.Add(10.5, 20.3);
 var isPrime = MathOperations.IsPrime(17);
 
 // Generated at compile time:
 var sum = 30.8;
 var isPrime = true;
+```
+
+ConstExpr also supports **partial evaluation** when only some arguments are constants:
+
+```csharp
+// Partial optimization - mix of constant and variable arguments:
+var x = 5.0;
+var result = MathOperations.Add(10.5, x);
+
+// ConstExpr can still optimize the constant parts
 ```
 
 ## Advanced Configuration
@@ -146,7 +156,7 @@ public static class StringOps
     }
 }
 
-// Evaluated at compile time when called with constants
+// Optimized at compile time when possible
 var name = StringOps.FormatFullName("John", "Doe");
 var length = StringOps.StringLength("Hello", Encoding.UTF8);
 ```
@@ -156,15 +166,19 @@ var length = StringOps.StringLength("Hello", Encoding.UTF8);
 The source generator follows a 5-step optimization process:
 
 1. **Detection**: Scans for method invocations marked with `[ConstExpr]`
-2. **Analysis**: Determines if the method can be evaluated at compile time
-3. **Evaluation**: Executes the method during compilation with constant arguments
-4. **Generation**: Replaces the method call with the computed constant value
+2. **Analysis**: Determines if the method (or parts of it) can be evaluated at compile time
+3. **Evaluation**: Executes optimizable parts during compilation
+4. **Generation**: Replaces method calls or expressions with computed values where possible
 5. **Caching**: Stores results for incremental compilation
+
+ConstExpr supports both full constant folding (when all arguments are constants) and partial evaluation (when only some arguments are constants).
 
 ## Limitations
 
-- Only methods with constant arguments can be evaluated at compile time
-- Some operations may not be fully evaluable due to runtime dependencies
+- Methods are optimized when they can be evaluated at compile time
+- Full optimization occurs when all arguments are constants
+- Partial evaluation is supported when only some arguments are constants
+- Some operations may not be evaluable due to runtime dependencies
 - Complex dynamic behavior cannot be optimized
 
 ## Contributing
