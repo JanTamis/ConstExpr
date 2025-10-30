@@ -359,7 +359,8 @@ public class ConstExprPartialRewriter(
 				.Select(arg => Visit(arg.Expression))
 				.ToList();
 
-			var hasCharOverload = TryGetCharOverload(targetMethod, arguments, out var charMethod);
+			var hasCharOverload = attribute.FloatingPointMode == FloatingPointEvaluationMode.FastMath 
+			                      && TryGetCharOverload(targetMethod, arguments, out _);
 
 			var constantArguments = arguments
 				.WhereSelect<SyntaxNode?, object?>(TryGetLiteralValue)
