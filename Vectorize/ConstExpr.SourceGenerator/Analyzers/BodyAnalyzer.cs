@@ -1,3 +1,4 @@
+using ConstExpr.Core.Attributes;
 using ConstExpr.SourceGenerator.Attributes;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -27,7 +28,7 @@ public class BodyAnalyzer : BaseAnalyzer<InvocationExpressionSyntax, IMethodSymb
 		return symbol
 						 .GetAttributes()
 						 .Concat(symbol.ContainingType.GetAttributes())
-						 .Any(IsConstExprAttribute)
+						 .Any(IsAttribute<ConstEvalAttribute>)
 					 && symbol.IsStatic;
 	}
 

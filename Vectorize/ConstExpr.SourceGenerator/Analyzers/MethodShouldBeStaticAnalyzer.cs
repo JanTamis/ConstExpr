@@ -1,3 +1,4 @@
+using ConstExpr.Core.Attributes;
 using ConstExpr.SourceGenerator.Attributes;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -28,7 +29,7 @@ public class MethodShouldBeStaticAnalyzer : BaseAnalyzer<MethodDeclarationSyntax
 		return !symbol.IsStatic && symbol
 			.GetAttributes()
 			.Concat(symbol.ContainingType.GetAttributes())
-			.Any(IsConstExprAttribute);
+			.Any(IsAttribute<ConstEvalAttribute>);
 	}
 
 	protected override void AnalyzeSyntax(SyntaxNodeAnalysisContext context, MethodDeclarationSyntax node, IMethodSymbol symbol, CancellationToken token)

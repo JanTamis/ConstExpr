@@ -102,7 +102,7 @@ public static class SyntaxHelpers
 		return expression is not null;
 	}
 
-	public static ExpressionSyntax CreateLiteral<T>(T? value)
+	public static ExpressionSyntax? CreateLiteral<T>(T? value)
 	{
 		switch (value)
 		{
@@ -256,7 +256,7 @@ public static class SyntaxHelpers
 				.Select(s => SyntaxFactory.ExpressionElement(CreateLiteral(s)))));
 		}
 
-		return SyntaxFactory.ParseExpression(value.ToString());
+		return null; // SyntaxFactory.ParseExpression(value.ToString());
 	}
 
 	private static bool IsSpanLike(object obj)
@@ -576,9 +576,10 @@ public static class SyntaxHelpers
 		}
 	}
 
-	public static bool IsConstExprAttribute(AttributeData? attribute)
+	public static bool IsAttribute<TAttribute>(AttributeData? attribute)
+		where TAttribute : Attribute
 	{
-		return attribute?.AttributeClass?.ToDisplayString() == typeof(ConstExprAttribute).FullName;
+		return attribute?.AttributeClass?.ToDisplayString() == typeof(TAttribute).FullName;
 	}
 
 	public static string GetFullNamespace(INamespaceSymbol? namespaceSymbol)
@@ -676,6 +677,33 @@ public static class SyntaxHelpers
 		}
 	}
 
+	public static bool IsInConstEvalBody(Compilation compilation, SyntaxNode node)
+	{
+		var typeText = node.ToFullString();
+		var typeName = node.GetType();
+
+		// Check if the node is part of a method or type with [ConstExpr] attribute
+		switch (node)
+		{
+			case MethodDeclarationSyntax method:
+				if (compilation.TryGetSemanticModel(method, out var model)
+						&& model.GetDeclaredSymbol(method) is IMethodSymbol methodSymbol
+						&& IsInConstEvalBody(methodSymbol))
+				{
+					return true;
+				}
+
+				break;
+		}
+
+		if (node.Parent is null)
+		{
+			return false;
+		}
+
+		return IsInConstEvalBody(compilation, node.Parent);
+	}
+
 	public static bool IsInConstExprBody(Compilation compilation, SyntaxNode node)
 	{
 		var typeText = node.ToFullString();
@@ -703,9 +731,24 @@ public static class SyntaxHelpers
 		return IsInConstExprBody(compilation, node.Parent);
 	}
 
+	public static bool IsInConstEvalBody(ISymbol node)
+	{
+		if (node.GetAttributes().Any(IsAttribute<ConstEvalAttribute>))
+		{
+			return true;
+		}
+
+		if (node.ContainingSymbol is null)
+		{
+			return false;
+		}
+
+		return IsInConstEvalBody(node.ContainingSymbol);
+	}
+
 	public static bool IsInConstExprBody(ISymbol node)
 	{
-		if (node.GetAttributes().Any(IsConstExprAttribute))
+		if (node.GetAttributes().Any(IsAttribute<ConstExprAttribute>))
 		{
 			return true;
 		}

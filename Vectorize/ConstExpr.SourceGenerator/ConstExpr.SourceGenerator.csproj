@@ -38,6 +38,10 @@
 		<None Remove="bin\**" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <None Remove="D:\source\repos\JanTamis\Vectorize\Vectorize\ConstExpr.SourceGenerator\bin\Debug\netstandard2.0\ConstExpr.SourceGenerator.dll" />
+	</ItemGroup>
+
 	<!-- Analyzer dll include AFTER removal so it isn't excluded -->
 	<ItemGroup>
 		<None Include="$(TargetPath)" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />

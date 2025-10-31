@@ -1,3 +1,4 @@
+using ConstExpr.Core.Attributes;
 using ConstExpr.SourceGenerator.Attributes;
 using ConstExpr.SourceGenerator.Helpers;
 using Microsoft.CodeAnalysis;
@@ -10,11 +11,11 @@ using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 namespace ConstExpr.SourceGenerator.Analyzers;
 
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
-[DiagnosticSeverity(DiagnosticSeverity.Warning)]
+[DiagnosticSeverity(DiagnosticSeverity.Error)]
 [DiagnosticId("CEA001")]
 [DiagnosticTitle("Parameter is not constant")]
-[DiagnosticMessageFormat("Parameter '{0}' must be a constant expression in ConstExpr method calls")]
-[DiagnosticDescription("Parameters marked with the ConstExpr attribute should be constant")]
+[DiagnosticMessageFormat("Parameter '{0}' must be a constant expression in ConstEval method calls")]
+[DiagnosticDescription("Parameters marked with the ConstEval attribute must be constant")]
 [DiagnosticCategory("Usage")]
 public class ConstantParametersAnalyzer : BaseAnalyzer<InvocationExpressionSyntax, IMethodSymbol>
 {
@@ -24,7 +25,7 @@ public class ConstantParametersAnalyzer : BaseAnalyzer<InvocationExpressionSynta
 
 		while (item != null)
 		{
-			if (item is MethodDeclarationSyntax methodDeclaration && IsInConstExprBody(context.Compilation, methodDeclaration))
+			if (item is MethodDeclarationSyntax methodDeclaration && IsInConstEvalBody(context.Compilation, methodDeclaration))
 			{
 				return false;
 			}
@@ -40,7 +41,7 @@ public class ConstantParametersAnalyzer : BaseAnalyzer<InvocationExpressionSynta
 		return symbol
 			.GetAttributes()
 			.Concat(symbol.ContainingType.GetAttributes())
-			.Any(IsConstExprAttribute);
+			.Any(IsAttribute<ConstEvalAttribute>);
 	}
 
 	protected override void AnalyzeSyntax(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax node, IMethodSymbol symbol, CancellationToken token)

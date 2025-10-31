@@ -14,20 +14,13 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Rewriters;
 
-public class BaseRewriter : CSharpSyntaxRewriter
+public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, IDictionary<string, VariableItem> variables) : CSharpSyntaxRewriter
 {
-	protected readonly SemanticModel semanticModel;
-	protected readonly MetadataLoader loader;
-	protected readonly IDictionary<string, VariableItem> variables;
+	protected readonly SemanticModel semanticModel = semanticModel;
+	protected readonly MetadataLoader loader = loader;
+	protected readonly IDictionary<string, VariableItem> variables = variables;
 
-	public BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, IDictionary<string, VariableItem> variables)
-	{
-		this.semanticModel = semanticModel;
-		this.loader = loader;
-		this.variables = variables;
-	}
-
-	protected bool TryGetLiteralValue(SyntaxNode? node, out object? value)
+  protected bool TryGetLiteralValue(SyntaxNode? node, out object? value)
 	{
 		return TryGetLiteralValue(node, out value, new HashSet<string>());
 	}

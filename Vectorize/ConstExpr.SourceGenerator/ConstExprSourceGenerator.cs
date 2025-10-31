@@ -1,4 +1,5 @@
 using ConstExpr.Core.Attributes;
+using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Comparers;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
@@ -230,13 +231,18 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			return null;
 		}
 
-		var attribute = methodSymbol.GetAttributes().FirstOrDefault(IsConstExprAttribute)
-										?? methodSymbol.ContainingType?.GetAttributes().FirstOrDefault(IsConstExprAttribute)
-										?? methodSymbol.ContainingAssembly.GetAttributes().FirstOrDefault(IsConstExprAttribute);
+		var attributes = methodSymbol.GetAttributes()
+			.Concat(methodSymbol.ContainingType?.GetAttributes() ?? Enumerable.Empty<AttributeData>())
+			.Concat(methodSymbol.ContainingAssembly.GetAttributes());
+
+		var attribute = attributes.FirstOrDefault(IsAttribute<ConstEvalAttribute>)
+			?? attributes.FirstOrDefault(IsAttribute<ConstExprAttribute>);
 
 		// Check for ConstExprAttribute on type or method
 		// Store minimal info here; defer heavy MetadataLoader creation until RegisterSourceOutput
-		if (attribute is not null && !IsInConstExprBody(context.SemanticModel.Compilation, invocation))
+		if (attribute is not null 
+			&& !IsInConstEvalBody(context.SemanticModel.Compilation, invocation) 
+			&& !IsInConstExprBody(context.SemanticModel.Compilation, invocation))
 		{
 			// Return a marker model to be processed later with shared MetadataLoader
 			return new InvocationModel

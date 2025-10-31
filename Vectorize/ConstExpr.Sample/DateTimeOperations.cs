@@ -1,4 +1,5 @@
 using ConstExpr.Core.Attributes;
+using ConstExpr.Core.Enumerators;
 using System;
 
 namespace ConstExpr.SourceGenerator.Sample;
