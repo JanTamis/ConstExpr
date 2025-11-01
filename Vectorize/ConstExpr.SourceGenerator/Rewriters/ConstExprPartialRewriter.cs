@@ -373,10 +373,6 @@ public class ConstExprPartialRewriter(
 					constantArguments.Add(value);
 				}
 			}
-			
-			// var constantArguments = arguments
-			// 	.WhereSelect<SyntaxNode?, object?>(TryGetLiteralValue)
-			// 	.ToArray();
 
 			if (constantArguments.Count == targetMethod.Parameters.Length)
 			{
@@ -518,12 +514,12 @@ public class ConstExprPartialRewriter(
 									.ToDictionary(d => d.Identifier.Text, d => new VariableItem(semanticModel.GetTypeInfo(d.Type).Type ?? semanticModel.Compilation.ObjectType, false, null));
 
 								// Add this method to the visiting set before recursing
-								visitingMethods.Add(targetMethod);
+								visitingMethods?.Add(targetMethod);
 
 								var visitor = new ConstExprPartialRewriter(semanticModel, loader, (_, _) => { }, parameters, additionalMethods, usings, attribute, token, visitingMethods);
 								var body = visitor.Visit(method.Body) as BlockSyntax;
 
-								visitingMethods.Remove(targetMethod);
+								visitingMethods?.Remove(targetMethod);
 
 								return method.WithBody(body).WithModifiers(mods);
 							}
@@ -533,10 +529,10 @@ public class ConstExprPartialRewriter(
 									.ToDictionary(d => d.Identifier.Text, d => new VariableItem(semanticModel.GetTypeInfo(d.Type).Type ?? semanticModel.Compilation.ObjectType, false, null));
 
 								// Add this method to the visiting set before recursing
-								visitingMethods.Add(targetMethod);
+								visitingMethods?.Add(targetMethod);
 								var visitor = new ConstExprPartialRewriter(semanticModel, loader, (_, _) => { }, parameters, additionalMethods, usings, attribute, token, visitingMethods);
 								var body = visitor.Visit(localFunc.Body) as BlockSyntax;
-								visitingMethods.Remove(targetMethod);
+								visitingMethods?.Remove(targetMethod);
 
 								return localFunc.WithBody(body).WithModifiers(mods);
 							}

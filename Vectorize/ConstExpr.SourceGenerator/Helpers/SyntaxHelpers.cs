@@ -102,14 +102,20 @@ public static class SyntaxHelpers
 		return expression is not null;
 	}
 
-	public static ExpressionSyntax? CreateLiteral<T>(T? value)
+	public static ExpressionSyntax? CreateLiteral<T>(T? value, bool useExplicitByte = false)
 	{
 		switch (value)
 		{
 			case byte bb:
-				return SyntaxFactory.CastExpression(
-					SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.ByteKeyword)),
-					SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(bb)));
+				if (useExplicitByte)
+				{
+					return SyntaxFactory.CastExpression(
+						SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.ByteKeyword)),
+						SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(bb)));
+				}
+				
+				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(bb));
+				
 			case int i:
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(i));
 			case uint ui:
@@ -214,7 +220,7 @@ public static class SyntaxHelpers
 
 				return SyntaxFactory.CollectionExpression(SyntaxFactory.SeparatedList<CollectionElementSyntax>(array
 					.Cast<object?>()
-					.Select(s => SyntaxFactory.ExpressionElement(CreateLiteral(s)))));
+					.Select(s => SyntaxFactory.ExpressionElement(CreateLiteral(s, true)))));
 			}
 		}
 

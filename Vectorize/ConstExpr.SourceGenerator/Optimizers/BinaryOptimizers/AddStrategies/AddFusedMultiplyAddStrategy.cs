@@ -17,7 +17,9 @@ public class AddFusedMultiplyAddStrategy : SymmetricStrategy<NumericBinaryStrate
 {
 	public override bool CanBeOptimizedSymmetric(BinaryOptimizeContext context)
 	{
-		return context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.MultiplyExpression }
+		var left = GetExpression(context.Left.Syntax);
+		
+		return left is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.MultiplyExpression }
 		       && (ContainsMultiplyAddEstimate(context.Type) || ContainsFusedMultiplyAdd(context.Type));
 	}
 
@@ -25,7 +27,10 @@ public class AddFusedMultiplyAddStrategy : SymmetricStrategy<NumericBinaryStrate
 	{
 		var host = ParseName(context.Type.Name);
 
-		var multLeft = (BinaryExpressionSyntax) context.Left.Syntax;
+		var multLeft = context.Left.Syntax is ParenthesizedExpressionSyntax parenExpr
+			? (BinaryExpressionSyntax)parenExpr.Expression
+			: (BinaryExpressionSyntax)context.Left.Syntax;
+		
 		var aExpr = multLeft.Left;
 		var bExpr = multLeft.Right;
 
@@ -34,7 +39,7 @@ public class AddFusedMultiplyAddStrategy : SymmetricStrategy<NumericBinaryStrate
 			return multLeft;
 		}
 		
-		var arguments = ArgumentList(SeparatedList([ Argument(aExpr), Argument(bExpr), Argument(context.Right.Syntax) ]));
+		var arguments = ArgumentList(SeparatedList([ Argument(GetExpression(aExpr)), Argument(GetExpression(bExpr)), Argument(GetExpression(context.Right.Syntax)) ]));
 
 		if (ContainsMultiplyAddEstimate(context.Type))
 		{
@@ -63,5 +68,15 @@ public class AddFusedMultiplyAddStrategy : SymmetricStrategy<NumericBinaryStrate
 		return type.HasMethod("FusedMultiplyAdd", m =>
 			m.Parameters.Length == 3 &&
 			m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, type)));
+	}
+
+	private ExpressionSyntax GetExpression(ExpressionSyntax syntax)
+	{
+		if (syntax is ParenthesizedExpressionSyntax parenthesizedExpression)
+		{
+			return parenthesizedExpression.Expression;
+		}
+		
+		return syntax;
 	}
 }

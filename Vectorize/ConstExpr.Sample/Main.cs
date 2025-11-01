@@ -712,96 +712,96 @@ var varDouble13 = 75.0;
 // // ═══════════════════════════════════════════════════════════════
 // Console.WriteLine("═══ STRING OPERATIONS ═══\n");
 //
-// InterpolationTest - alleen constanten
-Console.WriteLine($"[CONST] Interpolation('John',25,180): {StringOperations.InterpolationTest("John", 25, 180)}");
-// InterpolationTest - mixed
-Console.WriteLine($"[MIXED] Interpolation(varString,varInt,180): {StringOperations.InterpolationTest(varString, varInt, 180)}");
-// InterpolationTest - alleen variabelen
-Console.WriteLine($"[VARS ] Interpolation(varString,varInt,varDouble5): {StringOperations.InterpolationTest(varString, varInt, varDouble5)}");
-
-// FormatFullName - alleen constanten
-Console.WriteLine($"[CONST] FormatFullName('John','Q','Doe',true): {StringOperations.FormatFullName("John", "Q", "Doe", true)}");
-// FormatFullName - mixed
-Console.WriteLine($"[MIXED] FormatFullName('John','Q',varString,false): {StringOperations.FormatFullName("John", "Q", varString, false)}");
-// FormatFullName - alleen variabelen (using string literals)
-Console.WriteLine($"[VARS ] FormatFullName('Jane','M','Smith',true): {StringOperations.FormatFullName("Jane", "M", "Smith", true)}");
-
-// Reverse - alleen constanten
-Console.WriteLine($"[CONST] Reverse('Hello'): {StringOperations.Reverse("Hello")}");
-// Reverse - mixed
-Console.WriteLine($"[MIXED] Reverse(varString): {StringOperations.Reverse(varString)}");
-// Reverse - alleen variabelen (using string literals)
-Console.WriteLine($"[VARS ] Reverse('World'): {StringOperations.Reverse("World")}");
-
-// IsPalindrome - alleen constanten
-Console.WriteLine($"[CONST] IsPalindrome('racecar'): {StringOperations.IsPalindrome("racecar")}");
-// IsPalindrome - mixed
-Console.WriteLine($"[MIXED] IsPalindrome(varString): {StringOperations.IsPalindrome(varString)}");
-// IsPalindrome - alleen variabelen (using string literals)
-Console.WriteLine($"[VARS ] IsPalindrome('level'): {StringOperations.IsPalindrome("level")}");
-
-// CountOccurrences - alleen constanten
-Console.WriteLine($"[CONST] CountOccurrences('hello world','l'): {StringOperations.CountOccurrences("hello world", "l")}");
-// CountOccurrences - mixed
-Console.WriteLine($"[MIXED] CountOccurrences(varString,'e'): {StringOperations.CountOccurrences(varString, "e")}");
-// CountOccurrences - alleen variabelen (using string literals)
-Console.WriteLine($"[VARS ] CountOccurrences('banana','a'): {StringOperations.CountOccurrences("banana", "a")}");
-
-// RemoveWhitespace - alleen constanten
-Console.WriteLine($"[CONST] RemoveWhitespace('hello world'): {StringOperations.RemoveWhitespace("hello world")}");
-// RemoveWhitespace - mixed
-Console.WriteLine($"[MIXED] RemoveWhitespace('hello '+varString): {StringOperations.RemoveWhitespace("hello " + varString)}");
-// RemoveWhitespace - alleen variabelen (using string literals)
-Console.WriteLine($"[VARS ] RemoveWhitespace('test string'): {StringOperations.RemoveWhitespace("test string")}");
-
-// ToCamelCase - alleen constanten
-Console.WriteLine($"[CONST] ToCamelCase('hello world test'): {StringOperations.ToCamelCase("hello world test")}");
-// ToCamelCase - mixed (using string literals)
-Console.WriteLine($"[MIXED] ToCamelCase('test string value'): {StringOperations.ToCamelCase("test string value")}");
-// ToCamelCase - alleen variabelen (using string literals)
-Console.WriteLine($"[VARS ] ToCamelCase('some_snake_case'): {StringOperations.ToCamelCase("some_snake_case")}");
-
-// ToPascalCase - alleen constanten
-Console.WriteLine($"[CONST] ToPascalCase('hello world'): {StringOperations.ToPascalCase("hello world")}");
-// ToPascalCase - mixed (using string literals)
-Console.WriteLine($"[MIXED] ToPascalCase('my test string'): {StringOperations.ToPascalCase("my test string")}");
-// ToPascalCase - alleen variabelen (using string literals)
-Console.WriteLine($"[VARS ] ToPascalCase('another_test_case'): {StringOperations.ToPascalCase("another_test_case")}");
-
-// ToSnakeCase - alleen constanten
-Console.WriteLine($"[CONST] ToSnakeCase('Hello World'): {StringOperations.ToSnakeCase("Hello World")}");
-// ToSnakeCase - mixed (using string literals)
-Console.WriteLine($"[MIXED] ToSnakeCase('My Test String'): {StringOperations.ToSnakeCase("My Test String")}");
-// ToSnakeCase - alleen variabelen (using string literals)
-Console.WriteLine($"[VARS ] ToSnakeCase('Another Test'): {StringOperations.ToSnakeCase("Another Test")}");
-
-// GenerateSlug - alleen constanten
-Console.WriteLine($"[CONST] GenerateSlug('Hello World',20,'-',true): {StringOperations.GenerateSlug("Hello World", 20, '-', true)}");
-// GenerateSlug - mixed (using string literals and variables)
-Console.WriteLine($"[MIXED] GenerateSlug('Test String',varInt*2,'-',true): {StringOperations.GenerateSlug("Test String", varInt * 2, '-', true)}");
-// GenerateSlug - alleen variabelen (using string literals)
-Console.WriteLine($"[VARS ] GenerateSlug('My Blog Post',varInt3*5,'_',false): {StringOperations.GenerateSlug("My Blog Post", varInt3 * 5, '_', false)}");
-
-// ToKebabCase - alleen constanten
-Console.WriteLine($"[CONST] ToKebabCase('Hello World'): {StringOperations.ToKebabCase("Hello World")}");
-// ToKebabCase - mixed (using string literals)
-Console.WriteLine($"[MIXED] ToKebabCase('My Test String'): {StringOperations.ToKebabCase("My Test String")}");
-// ToKebabCase - alleen variabelen (using string literals)
-Console.WriteLine($"[VARS ] ToKebabCase('Another Test'): {StringOperations.ToKebabCase("Another Test")}");
-
-// Truncate - alleen constanten
-Console.WriteLine($"[CONST] Truncate('This is a long string',10): {StringOperations.Truncate("This is a long string", 10)}");
-// Truncate - mixed (using string literals and variables)
-Console.WriteLine($"[MIXED] Truncate('Another long string',varInt): {StringOperations.Truncate("Another long string", varInt)}");
-// Truncate - alleen variabelen (using string literals)
-Console.WriteLine($"[VARS ] Truncate('Yet another string',varInt5,'***'): {StringOperations.Truncate("Yet another string", varInt5, "***")}");
-
-// RepeatString - alleen constanten
-Console.WriteLine($"[CONST] RepeatString('Ab',5): {StringOperations.RepeatString("Ab", 5)}");
-// RepeatString - mixed (using string literals and variables)
-Console.WriteLine($"[MIXED] RepeatString('X',varInt): {StringOperations.RepeatString("X", varInt)}");
-// RepeatString - alleen variabelen (using string literals)
-Console.WriteLine($"[VARS ] RepeatString('*',varInt4): {StringOperations.RepeatString("*", varInt4)}");
+// // InterpolationTest - alleen constanten
+// Console.WriteLine($"[CONST] Interpolation('John',25,180): {StringOperations.InterpolationTest("John", 25, 180)}");
+// // InterpolationTest - mixed
+// Console.WriteLine($"[MIXED] Interpolation(varString,varInt,180): {StringOperations.InterpolationTest(varString, varInt, 180)}");
+// // InterpolationTest - alleen variabelen
+// Console.WriteLine($"[VARS ] Interpolation(varString,varInt,varDouble5): {StringOperations.InterpolationTest(varString, varInt, varDouble5)}");
+//
+// // FormatFullName - alleen constanten
+// Console.WriteLine($"[CONST] FormatFullName('John','Q','Doe',true): {StringOperations.FormatFullName("John", "Q", "Doe", true)}");
+// // FormatFullName - mixed
+// Console.WriteLine($"[MIXED] FormatFullName('John','Q',varString,false): {StringOperations.FormatFullName("John", "Q", varString, false)}");
+// // FormatFullName - alleen variabelen (using string literals)
+// Console.WriteLine($"[VARS ] FormatFullName('Jane','M','Smith',true): {StringOperations.FormatFullName("Jane", "M", "Smith", true)}");
+//
+// // Reverse - alleen constanten
+// Console.WriteLine($"[CONST] Reverse('Hello'): {StringOperations.Reverse("Hello")}");
+// // Reverse - mixed
+// Console.WriteLine($"[MIXED] Reverse(varString): {StringOperations.Reverse(varString)}");
+// // Reverse - alleen variabelen (using string literals)
+// Console.WriteLine($"[VARS ] Reverse('World'): {StringOperations.Reverse("World")}");
+//
+// // IsPalindrome - alleen constanten
+// Console.WriteLine($"[CONST] IsPalindrome('racecar'): {StringOperations.IsPalindrome("racecar")}");
+// // IsPalindrome - mixed
+// Console.WriteLine($"[MIXED] IsPalindrome(varString): {StringOperations.IsPalindrome(varString)}");
+// // IsPalindrome - alleen variabelen (using string literals)
+// Console.WriteLine($"[VARS ] IsPalindrome('level'): {StringOperations.IsPalindrome("level")}");
+//
+// // CountOccurrences - alleen constanten
+// Console.WriteLine($"[CONST] CountOccurrences('hello world','l'): {StringOperations.CountOccurrences("hello world", "l")}");
+// // CountOccurrences - mixed
+// Console.WriteLine($"[MIXED] CountOccurrences(varString,'e'): {StringOperations.CountOccurrences(varString, "e")}");
+// // CountOccurrences - alleen variabelen (using string literals)
+// Console.WriteLine($"[VARS ] CountOccurrences('banana','a'): {StringOperations.CountOccurrences("banana", "a")}");
+//
+// // RemoveWhitespace - alleen constanten
+// Console.WriteLine($"[CONST] RemoveWhitespace('hello world'): {StringOperations.RemoveWhitespace("hello world")}");
+// // RemoveWhitespace - mixed
+// Console.WriteLine($"[MIXED] RemoveWhitespace('hello '+varString): {StringOperations.RemoveWhitespace("hello " + varString)}");
+// // RemoveWhitespace - alleen variabelen (using string literals)
+// Console.WriteLine($"[VARS ] RemoveWhitespace('test string'): {StringOperations.RemoveWhitespace("test string")}");
+//
+// // ToCamelCase - alleen constanten
+// Console.WriteLine($"[CONST] ToCamelCase('hello world test'): {StringOperations.ToCamelCase("hello world test")}");
+// // ToCamelCase - mixed (using string literals)
+// Console.WriteLine($"[MIXED] ToCamelCase('test string value'): {StringOperations.ToCamelCase("test string value")}");
+// // ToCamelCase - alleen variabelen (using string literals)
+// Console.WriteLine($"[VARS ] ToCamelCase('some_snake_case'): {StringOperations.ToCamelCase("some_snake_case")}");
+//
+// // ToPascalCase - alleen constanten
+// Console.WriteLine($"[CONST] ToPascalCase('hello world'): {StringOperations.ToPascalCase("hello world")}");
+// // ToPascalCase - mixed (using string literals)
+// Console.WriteLine($"[MIXED] ToPascalCase('my test string'): {StringOperations.ToPascalCase("my test string")}");
+// // ToPascalCase - alleen variabelen (using string literals)
+// Console.WriteLine($"[VARS ] ToPascalCase('another_test_case'): {StringOperations.ToPascalCase("another_test_case")}");
+//
+// // ToSnakeCase - alleen constanten
+// Console.WriteLine($"[CONST] ToSnakeCase('Hello World'): {StringOperations.ToSnakeCase("Hello World")}");
+// // ToSnakeCase - mixed (using string literals)
+// Console.WriteLine($"[MIXED] ToSnakeCase('My Test String'): {StringOperations.ToSnakeCase("My Test String")}");
+// // ToSnakeCase - alleen variabelen (using string literals)
+// Console.WriteLine($"[VARS ] ToSnakeCase('Another Test'): {StringOperations.ToSnakeCase("Another Test")}");
+//
+// // GenerateSlug - alleen constanten
+// Console.WriteLine($"[CONST] GenerateSlug('Hello World',20,'-',true): {StringOperations.GenerateSlug("Hello World", 20, '-', true)}");
+// // GenerateSlug - mixed (using string literals and variables)
+// Console.WriteLine($"[MIXED] GenerateSlug('Test String',varInt*2,'-',true): {StringOperations.GenerateSlug("Test String", varInt * 2, '-', true)}");
+// // GenerateSlug - alleen variabelen (using string literals)
+// Console.WriteLine($"[VARS ] GenerateSlug('My Blog Post',varInt3*5,'_',false): {StringOperations.GenerateSlug("My Blog Post", varInt3 * 5, '_', false)}");
+//
+// // ToKebabCase - alleen constanten
+// Console.WriteLine($"[CONST] ToKebabCase('Hello World'): {StringOperations.ToKebabCase("Hello World")}");
+// // ToKebabCase - mixed (using string literals)
+// Console.WriteLine($"[MIXED] ToKebabCase('My Test String'): {StringOperations.ToKebabCase("My Test String")}");
+// // ToKebabCase - alleen variabelen (using string literals)
+// Console.WriteLine($"[VARS ] ToKebabCase('Another Test'): {StringOperations.ToKebabCase("Another Test")}");
+//
+// // Truncate - alleen constanten
+// Console.WriteLine($"[CONST] Truncate('This is a long string',10): {StringOperations.Truncate("This is a long string", 10)}");
+// // Truncate - mixed (using string literals and variables)
+// Console.WriteLine($"[MIXED] Truncate('Another long string',varInt): {StringOperations.Truncate("Another long string", varInt)}");
+// // Truncate - alleen variabelen (using string literals)
+// Console.WriteLine($"[VARS ] Truncate('Yet another string',varInt5,'***'): {StringOperations.Truncate("Yet another string", varInt5, "***")}");
+//
+// // RepeatString - alleen constanten
+// Console.WriteLine($"[CONST] RepeatString('Ab',5): {StringOperations.RepeatString("Ab", 5)}");
+// // RepeatString - mixed (using string literals and variables)
+// Console.WriteLine($"[MIXED] RepeatString('X',varInt): {StringOperations.RepeatString("X", varInt)}");
+// // RepeatString - alleen variabelen (using string literals)
+// Console.WriteLine($"[VARS ] RepeatString('*',varInt4): {StringOperations.RepeatString("*", varInt4)}");
 //
 // Console.WriteLine();
 //
@@ -810,96 +810,99 @@ Console.WriteLine($"[VARS ] RepeatString('*',varInt4): {StringOperations.RepeatS
 // // ═══════════════════════════════════════════════════════════════
 // Console.WriteLine("═══ COLOR OPERATIONS ═══\n");
 //
-// // HslToRgb - alleen constanten
-// var rgb1 = ColorOperations.HslToRgb(120, 1.0f, 0.5f);
-// Console.WriteLine($"[CONST] HslToRgb(120,1.0,0.5): ({rgb1.r},{rgb1.g},{rgb1.b})");
-// // HslToRgb - mixed
-// var rgb2 = ColorOperations.HslToRgb((float)varDouble * 10, 1.0f, 0.5f);
-// Console.WriteLine($"[MIXED] HslToRgb(varDouble*10,1.0,0.5): ({rgb2.r},{rgb2.g},{rgb2.b})");
-// // HslToRgb - alleen variabelen
-// var rgb3 = ColorOperations.HslToRgb((float)varDouble12, (float)varDouble4, (float)varDouble4);
-// Console.WriteLine($"[VARS ] HslToRgb(varDouble12,varDouble4,varDouble4): ({rgb3.r},{rgb3.g},{rgb3.b})");
-//
-// // Luminance - alleen constanten
-// Console.WriteLine($"[CONST] Luminance(255,128,64): {ColorOperations.Luminance(255, 128, 64):F3}");
-// // Luminance - mixed
-// Console.WriteLine($"[MIXED] Luminance(varByte,128,64): {ColorOperations.Luminance(varByte, 128, 64):F3}");
-// // Luminance - alleen variabelen
-// Console.WriteLine($"[VARS ] Luminance(varByte,varByte,varByte): {ColorOperations.Luminance(varByte, varByte, varByte):F3}");
-//
-// // ContrastRatio - alleen constanten
-// Console.WriteLine($"[CONST] ContrastRatio(255,255,255,0,0,0): {ColorOperations.ContrastRatio(255, 255, 255, 0, 0, 0):F2}");
-// // ContrastRatio - mixed
-// Console.WriteLine($"[MIXED] ContrastRatio(varByte,varByte,varByte,0,0,0): {ColorOperations.ContrastRatio(varByte, varByte, varByte, 0, 0, 0):F2}");
-// // ContrastRatio - alleen variabelen
-// Console.WriteLine($"[VARS ] ContrastRatio(varByte,varByte,varByte,varByte,varByte,varByte): {ColorOperations.ContrastRatio(varByte, varByte, varByte, varByte, varByte, varByte):F2}");
-//
-// // RgbToHsl - alleen constanten
-// var hsl1 = ColorOperations.RgbToHsl(255, 0, 0);
-// Console.WriteLine($"[CONST] RgbToHsl(255,0,0): ({hsl1.h:F2},{hsl1.s:F2},{hsl1.l:F2})");
-// // RgbToHsl - mixed
-// var hsl2 = ColorOperations.RgbToHsl(varByte, 128, 64);
-// Console.WriteLine($"[MIXED] RgbToHsl(varByte,128,64): ({hsl2.h:F2},{hsl2.s:F2},{hsl2.l:F2})");
-// // RgbToHsl - alleen variabelen
-// var hsl3 = ColorOperations.RgbToHsl(varByte, varByte, varByte);
-// Console.WriteLine($"[VARS ] RgbToHsl(varByte,varByte,varByte): ({hsl3.h:F2},{hsl3.s:F2},{hsl3.l:F2})");
-//
-// // BlendRgb - alleen constanten
-// var blend1 = ColorOperations.BlendRgb(255, 255, 255, 0, 0, 0, 0.5f, false);
-// Console.WriteLine($"[CONST] BlendRgb(255,255,255,0,0,0,0.5,false): ({blend1.r},{blend1.g},{blend1.b})");
-// // BlendRgb - mixed
-// var blend2 = ColorOperations.BlendRgb(varByte, varByte, varByte, 0, 0, 0, 0.5f, false);
-// Console.WriteLine($"[MIXED] BlendRgb(varByte,varByte,varByte,0,0,0,0.5,false): ({blend2.r},{blend2.g},{blend2.b})");
-// // BlendRgb - alleen variabelen
-// var blend3 = ColorOperations.BlendRgb(varByte, varByte, varByte, varByte, varByte, varByte, (float)varDouble4, false);
-// Console.WriteLine($"[VARS ] BlendRgb(varByte,varByte,varByte,varByte,varByte,varByte,varDouble4,false): ({blend3.r},{blend3.g},{blend3.b})");
-//
-// // RgbToGrayscale - alleen constanten
-// var gray1 = ColorOperations.RgbToGrayscale(100, 150, 200);
-// Console.WriteLine($"[CONST] RgbToGrayscale(100,150,200): ({gray1.r},{gray1.g},{gray1.b})");
-// // RgbToGrayscale - mixed
-// var gray2 = ColorOperations.RgbToGrayscale(varByte, 150, 200);
-// Console.WriteLine($"[MIXED] RgbToGrayscale(varByte,150,200): ({gray2.r},{gray2.g},{gray2.b})");
-// // RgbToGrayscale - alleen variabelen
-// var gray3 = ColorOperations.RgbToGrayscale(varByte, varByte, varByte);
-// Console.WriteLine($"[VARS ] RgbToGrayscale(varByte,varByte,varByte): ({gray3.r},{gray3.g},{gray3.b})");
-//
-// // InvertRgb - alleen constanten
-// var inv1 = ColorOperations.InvertRgb(100, 150, 200);
-// Console.WriteLine($"[CONST] InvertRgb(100,150,200): ({inv1.r},{inv1.g},{inv1.b})");
-// // InvertRgb - mixed
-// var inv2 = ColorOperations.InvertRgb(varByte, 150, 200);
-// Console.WriteLine($"[MIXED] InvertRgb(varByte,150,200): ({inv2.r},{inv2.g},{inv2.b})");
-// // InvertRgb - alleen variabelen
-// var inv3 = ColorOperations.InvertRgb(varByte, varByte, varByte);
-// Console.WriteLine($"[VARS ] InvertRgb(varByte,varByte,varByte): ({inv3.r},{inv3.g},{inv3.b})");
-//
-// // AdjustBrightness - alleen constanten
-// var bright1 = ColorOperations.AdjustBrightness(100, 150, 200, 1.5f);
-// Console.WriteLine($"[CONST] AdjustBrightness(100,150,200,1.5): ({bright1.r},{bright1.g},{bright1.b})");
-// // AdjustBrightness - mixed
-// var bright2 = ColorOperations.AdjustBrightness(varByte, 150, 200, 1.5f);
-// Console.WriteLine($"[MIXED] AdjustBrightness(varByte,150,200,1.5): ({bright2.r},{bright2.g},{bright2.b})");
-// // AdjustBrightness - alleen variabelen
-// var bright3 = ColorOperations.AdjustBrightness(varByte, varByte, varByte, (float)varDouble4 * 2);
-// Console.WriteLine($"[VARS ] AdjustBrightness(varByte,varByte,varByte,varDouble4*2): ({bright3.r},{bright3.g},{bright3.b})");
-//
-// // RgbToHex - alleen constanten
-// Console.WriteLine($"[CONST] RgbToHex(255,128,64): 0x{ColorOperations.RgbToHex(255, 128, 64):X6}");
-// // RgbToHex - mixed
-// Console.WriteLine($"[MIXED] RgbToHex(varByte,128,64): 0x{ColorOperations.RgbToHex(varByte, 128, 64):X6}");
-// // RgbToHex - alleen variabelen
-// Console.WriteLine($"[VARS ] RgbToHex(varByte,varByte,varByte): 0x{ColorOperations.RgbToHex(varByte, varByte, varByte):X6}");
-//
-// // HexToRgb - alleen constanten
-// var hexrgb1 = ColorOperations.HexToRgb(0xFF8040);
-// Console.WriteLine($"[CONST] HexToRgb(0xFF8040): ({hexrgb1.r},{hexrgb1.g},{hexrgb1.b})");
-// // HexToRgb - mixed (using constant hex value)
-// var hexrgb2 = ColorOperations.HexToRgb(0x00FF00);
-// Console.WriteLine($"[MIXED] HexToRgb(0x00FF00): ({hexrgb2.r},{hexrgb2.g},{hexrgb2.b})");
-// // HexToRgb - alleen variabelen (using calculated value)
-// var hexrgb3 = ColorOperations.HexToRgb(varInt * 65536);
-// Console.WriteLine($"[VARS ] HexToRgb(varInt*65536): ({hexrgb3.r},{hexrgb3.g},{hexrgb3.b})");
+// HslToRgb - alleen constanten
+var rgb1 = ColorOperations.HslToRgb(120, 1.0f, 0.5f);
+Console.WriteLine($"[CONST] HslToRgb(120,1.0,0.5): ({rgb1.r},{rgb1.g},{rgb1.b})");
+// HslToRgb - mixed
+var rgb2 = ColorOperations.HslToRgb((float)varDouble * 10, 1.0f, 0.5f);
+Console.WriteLine($"[MIXED] HslToRgb(varDouble*10,1.0,0.5): ({rgb2.r},{rgb2.g},{rgb2.b})");
+// HslToRgb - alleen variabelen
+var rgb3 = ColorOperations.HslToRgb((float)varDouble12, (float)varDouble4, (float)varDouble4);
+Console.WriteLine($"[VARS ] HslToRgb(varDouble12,varDouble4,varDouble4): ({rgb3.r},{rgb3.g},{rgb3.b})");
+
+var rgb4 = ColorOperations.HslToRgb(80, (float) varDouble4, (float) varDouble4);
+Console.WriteLine($"[VARS ] HslToRgb(80,varDouble4,varDouble4): ({rgb3.r},{rgb3.g},{rgb3.b})");
+
+// Luminance - alleen constanten
+Console.WriteLine($"[CONST] Luminance(255,128,64): {ColorOperations.Luminance(255, 128, 64):F3}");
+// Luminance - mixed
+Console.WriteLine($"[MIXED] Luminance(varByte,128,64): {ColorOperations.Luminance(varByte, 128, 64):F3}");
+// Luminance - alleen variabelen
+Console.WriteLine($"[VARS ] Luminance(varByte,varByte,varByte): {ColorOperations.Luminance(varByte, varByte, varByte):F3}");
+
+// ContrastRatio - alleen constanten
+Console.WriteLine($"[CONST] ContrastRatio(255,255,255,0,0,0): {ColorOperations.ContrastRatio(255, 255, 255, 0, 0, 0):F2}");
+// ContrastRatio - mixed
+Console.WriteLine($"[MIXED] ContrastRatio(varByte,varByte,varByte,0,0,0): {ColorOperations.ContrastRatio(varByte, varByte, varByte, 0, 0, 0):F2}");
+// ContrastRatio - alleen variabelen
+Console.WriteLine($"[VARS ] ContrastRatio(varByte,varByte,varByte,varByte,varByte,varByte): {ColorOperations.ContrastRatio(varByte, varByte, varByte, varByte, varByte, varByte):F2}");
+
+// RgbToHsl - alleen constanten
+var hsl1 = ColorOperations.RgbToHsl(255, 0, 0);
+Console.WriteLine($"[CONST] RgbToHsl(255,0,0): ({hsl1.h:F2},{hsl1.s:F2},{hsl1.l:F2})");
+// RgbToHsl - mixed
+var hsl2 = ColorOperations.RgbToHsl(varByte, 128, 64);
+Console.WriteLine($"[MIXED] RgbToHsl(varByte,128,64): ({hsl2.h:F2},{hsl2.s:F2},{hsl2.l:F2})");
+// RgbToHsl - alleen variabelen
+var hsl3 = ColorOperations.RgbToHsl(varByte, varByte, varByte);
+Console.WriteLine($"[VARS ] RgbToHsl(varByte,varByte,varByte): ({hsl3.h:F2},{hsl3.s:F2},{hsl3.l:F2})");
+
+// BlendRgb - alleen constanten
+var blend1 = ColorOperations.BlendRgb(255, 255, 255, 0, 0, 0, 0.5f, false);
+Console.WriteLine($"[CONST] BlendRgb(255,255,255,0,0,0,0.5,false): ({blend1.r},{blend1.g},{blend1.b})");
+// BlendRgb - mixed
+var blend2 = ColorOperations.BlendRgb(varByte, varByte, varByte, 0, 0, 0, 0.5f, false);
+Console.WriteLine($"[MIXED] BlendRgb(varByte,varByte,varByte,0,0,0,0.5,false): ({blend2.r},{blend2.g},{blend2.b})");
+// BlendRgb - alleen variabelen
+var blend3 = ColorOperations.BlendRgb(varByte, varByte, varByte, varByte, varByte, varByte, (float)varDouble4, false);
+Console.WriteLine($"[VARS ] BlendRgb(varByte,varByte,varByte,varByte,varByte,varByte,varDouble4,false): ({blend3.r},{blend3.g},{blend3.b})");
+
+// RgbToGrayscale - alleen constanten
+var gray1 = ColorOperations.RgbToGrayscale(100, 150, 200);
+Console.WriteLine($"[CONST] RgbToGrayscale(100,150,200): ({gray1.r},{gray1.g},{gray1.b})");
+// RgbToGrayscale - mixed
+var gray2 = ColorOperations.RgbToGrayscale(varByte, 150, 200);
+Console.WriteLine($"[MIXED] RgbToGrayscale(varByte,150,200): ({gray2.r},{gray2.g},{gray2.b})");
+// RgbToGrayscale - alleen variabelen
+var gray3 = ColorOperations.RgbToGrayscale(varByte, varByte, varByte);
+Console.WriteLine($"[VARS ] RgbToGrayscale(varByte,varByte,varByte): ({gray3.r},{gray3.g},{gray3.b})");
+
+// InvertRgb - alleen constanten
+var inv1 = ColorOperations.InvertRgb(100, 150, 200);
+Console.WriteLine($"[CONST] InvertRgb(100,150,200): ({inv1.r},{inv1.g},{inv1.b})");
+// InvertRgb - mixed
+var inv2 = ColorOperations.InvertRgb(varByte, 150, 200);
+Console.WriteLine($"[MIXED] InvertRgb(varByte,150,200): ({inv2.r},{inv2.g},{inv2.b})");
+// InvertRgb - alleen variabelen
+var inv3 = ColorOperations.InvertRgb(varByte, varByte, varByte);
+Console.WriteLine($"[VARS ] InvertRgb(varByte,varByte,varByte): ({inv3.r},{inv3.g},{inv3.b})");
+
+// AdjustBrightness - alleen constanten
+var bright1 = ColorOperations.AdjustBrightness(100, 150, 200, 1.5f);
+Console.WriteLine($"[CONST] AdjustBrightness(100,150,200,1.5): ({bright1.r},{bright1.g},{bright1.b})");
+// AdjustBrightness - mixed
+var bright2 = ColorOperations.AdjustBrightness(varByte, 150, 200, 1.5f);
+Console.WriteLine($"[MIXED] AdjustBrightness(varByte,150,200,1.5): ({bright2.r},{bright2.g},{bright2.b})");
+// AdjustBrightness - alleen variabelen
+var bright3 = ColorOperations.AdjustBrightness(varByte, varByte, varByte, (float)varDouble4 * 2);
+Console.WriteLine($"[VARS ] AdjustBrightness(varByte,varByte,varByte,varDouble4*2): ({bright3.r},{bright3.g},{bright3.b})");
+
+// RgbToHex - alleen constanten
+Console.WriteLine($"[CONST] RgbToHex(255,128,64): 0x{ColorOperations.RgbToHex(255, 128, 6):X6}");
+// RgbToHex - mixed
+Console.WriteLine($"[MIXED] RgbToHex(varByte,128,64): 0x{ColorOperations.RgbToHex(varByte, 128, 64):X6}");
+// RgbToHex - alleen variabelen
+Console.WriteLine($"[VARS ] RgbToHex(varByte,varByte,varByte): 0x{ColorOperations.RgbToHex(varByte, varByte, varByte):X6}");
+
+// HexToRgb - alleen constanten
+var hexrgb1 = ColorOperations.HexToRgb(0xFF8040);
+Console.WriteLine($"[CONST] HexToRgb(0xFF8040): ({hexrgb1.r},{hexrgb1.g},{hexrgb1.b})");
+// HexToRgb - mixed (using constant hex value)
+var hexrgb2 = ColorOperations.HexToRgb(0x00FF00);
+Console.WriteLine($"[MIXED] HexToRgb(0x00FF00): ({hexrgb2.r},{hexrgb2.g},{hexrgb2.b})");
+// HexToRgb - alleen variabelen (using calculated value)
+var hexrgb3 = ColorOperations.HexToRgb(varInt * 65536);
+Console.WriteLine($"[VARS ] HexToRgb(varInt*65536): ({hexrgb3.r},{hexrgb3.g},{hexrgb3.b})");
 //
 // Console.WriteLine();
 //
