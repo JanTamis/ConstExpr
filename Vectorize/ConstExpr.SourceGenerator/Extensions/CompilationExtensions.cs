@@ -1538,29 +1538,39 @@ public static class CompilationExtensions
 	}
 
 	public static bool IsSpanOrReadOnlySpan([NotNullWhen(true)] this ITypeSymbol? type)
-		=> type.IsSpan() || type.IsReadOnlySpan();
+	{
+		return type.IsSpan() || type.IsReadOnlySpan();
+	}
 
 	public static bool IsSpan([NotNullWhen(true)] this ITypeSymbol? type)
-		=> type is INamedTypeSymbol
+	{
+		return type is INamedTypeSymbol
 		{
 			Name: nameof(Span<>),
 			TypeArguments.Length: 1,
 			ContainingNamespace: { Name: nameof(System), ContainingNamespace.IsGlobalNamespace: true }
 		};
+	}
 
 	public static bool IsReadOnlySpan([NotNullWhen(true)] this ISymbol? symbol)
-		=> symbol is INamedTypeSymbol
+	{
+		return symbol is INamedTypeSymbol
 		{
 			Name: nameof(ReadOnlySpan<>),
 			TypeArguments.Length: 1,
 			ContainingNamespace: { Name: nameof(System), ContainingNamespace.IsGlobalNamespace: true }
 		};
+	}
 
 	public static bool IsParentKind([NotNullWhen(true)] this SyntaxNode? node, SyntaxKind kind)
-		=> node?.Parent.IsKind(kind) ?? false;
+	{
+		return node?.Parent.IsKind(kind) ?? false;
+	}
 
 	public static bool IsLeftSideOfAnyAssignExpression([NotNullWhen(true)] this SyntaxNode? node)
-		=> node?.Parent is AssignmentExpressionSyntax assignment && assignment.Left == node;
+	{
+		return node?.Parent is AssignmentExpressionSyntax assignment && assignment.Left == node;
+	}
 
 	public static bool IsKind<TNode>([NotNullWhen(true)] this SyntaxNode? node, SyntaxKind kind, [NotNullWhen(true)] out TNode? result)
 		where TNode : SyntaxNode
@@ -1576,8 +1586,17 @@ public static class CompilationExtensions
 	}
 
 	public static bool IsFloatingPoint(this TypeInfo typeInfo)
-		=> IsFloatingPoint(typeInfo) || IsFloatingPoint(typeInfo.ConvertedType);
+	{
+		return IsFloatingPoint(typeInfo) || IsFloatingPoint(typeInfo.ConvertedType);
+	}
+
+	public static bool IsMethod(this IMethodSymbol method, Type parentType, params IEnumerable<string> methodNames)
+	{
+		return method.ContainingType.ToString() == parentType.FullName && methodNames.Any(n => method.Name == n);
+	}
 
 	private static bool IsFloatingPoint([NotNullWhen(returnValue: true)] ITypeSymbol? type)
-		=> type?.SpecialType is SpecialType.System_Single or SpecialType.System_Double;
+	{
+		return type?.SpecialType is SpecialType.System_Single or SpecialType.System_Double;
+	}
 }

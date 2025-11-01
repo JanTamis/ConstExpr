@@ -12,7 +12,8 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 {
 	public override SyntaxNode? VisitSimpleLambdaExpression(SimpleLambdaExpressionSyntax node)
 	{
-		var visited = (SimpleLambdaExpressionSyntax?)base.VisitSimpleLambdaExpression(node);
+		var visited = (SimpleLambdaExpressionSyntax?) base.VisitSimpleLambdaExpression(node);
+
 		if (visited is null)
 		{
 			return visited;
@@ -20,22 +21,20 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 		// Check if the lambda body is a simple invocation where the parameter is passed as the only argument
 		// Pattern: w => Method(w) -> Method
-		if (visited.ExpressionBody is InvocationExpressionSyntax invocation)
+		if (visited.ExpressionBody is InvocationExpressionSyntax { ArgumentList.Arguments.Count: 1 } invocation)
 		{
 			// Check if there's exactly one argument and it matches the lambda parameter
-			if (invocation.ArgumentList.Arguments.Count == 1)
+			var arg = invocation.ArgumentList.Arguments[0];
+
+			if (arg.Expression is IdentifierNameSyntax identifier &&
+			    identifier.Identifier.ValueText == visited.Parameter.Identifier.ValueText &&
+			    arg.NameColon is null &&
+			    arg.RefKindKeyword.IsKind(SyntaxKind.None))
 			{
-				var arg = invocation.ArgumentList.Arguments[0];
-				if (arg.Expression is IdentifierNameSyntax identifier &&
-				    identifier.Identifier.ValueText == visited.Parameter.Identifier.ValueText &&
-				    arg.NameColon is null &&
-				    arg.RefKindKeyword.IsKind(SyntaxKind.None))
-				{
-					// Return just the method expression (e.g., Double.IsOddInteger)
-					return invocation.Expression
-						.WithLeadingTrivia(visited.GetLeadingTrivia())
-						.WithTrailingTrivia(visited.GetTrailingTrivia());
-				}
+				// Return just the method expression (e.g., Double.IsOddInteger)
+				return invocation.Expression
+					.WithLeadingTrivia(visited.GetLeadingTrivia())
+					.WithTrailingTrivia(visited.GetTrailingTrivia());
 			}
 		}
 
@@ -102,7 +101,8 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 	public override SyntaxNode? VisitMethodDeclaration(MethodDeclarationSyntax node)
 	{
-		return base.VisitMethodDeclaration(node)?.WithoutLeadingTrivia();
+		return base.VisitMethodDeclaration(node)
+			.WithoutLeadingTrivia();
 	}
 
 	public override SyntaxNode VisitBlock(BlockSyntax node)
@@ -135,12 +135,13 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 				if (decl is not null && decl.Variables.Count == 1 && decl.Variables[0].Initializer is null)
 				{
 					var varId = decl.Variables[0].Identifier.ValueText;
+
 					if (!string.IsNullOrEmpty(varId))
 					{
 						if (visited[i + 1] is ExpressionStatementSyntax exprStmt)
 						{
 							if (exprStmt.Expression is AssignmentExpressionSyntax assign &&
-								assign.Kind() == SyntaxKind.SimpleAssignmentExpression)
+							    assign.Kind() == SyntaxKind.SimpleAssignmentExpression)
 							{
 								// Check left side is the same identifier (allow parentheses/trivia by getting IdentifierName)
 								if (assign.Left is IdentifierNameSyntax idLeft && idLeft.Identifier.ValueText == varId)
@@ -156,6 +157,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 									// Trim leading whitespace-only trivia to avoid double spaces after the '='
 									var leading = firstToken.LeadingTrivia;
 									var idx = 0;
+
 									while (idx < leading.Count && leading[idx].IsKind(SyntaxKind.WhitespaceTrivia))
 									{
 										idx++;
@@ -164,6 +166,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 									if (idx > 0)
 									{
 										var newLeading = SyntaxFactory.TriviaList();
+
 										for (var k = idx; k < leading.Count; k++)
 										{
 											newLeading = newLeading.Add(leading[k]);
@@ -251,6 +254,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			{
 				// Only add blank line after control flow if next statement doesn't start with a comment
 				var next = visited[i + 1];
+
 				if (!HasLeadingComment(next))
 				{
 					visited[i] = EnsureTrailingBlankLine(visited[i]);
@@ -288,7 +292,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 	public override SyntaxNode VisitReturnStatement(ReturnStatementSyntax node)
 	{
-		var visited = (ReturnStatementSyntax)base.VisitReturnStatement(node);
+		var visited = (ReturnStatementSyntax) base.VisitReturnStatement(node);
 
 		if (visited.Expression is null)
 		{
@@ -360,7 +364,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		// \t? whenTrue
 		// \t: whenFalse
 
-		var v = (ConditionalExpressionSyntax)base.VisitConditionalExpression(node);
+		var v = (ConditionalExpressionSyntax) base.VisitConditionalExpression(node);
 
 		// Tokens die we gaan aanpassen
 		var conditionLast = v.Condition.GetLastToken();
@@ -382,6 +386,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		SyntaxTriviaList BuildLineIndent()
 		{
 			var list = SyntaxFactory.TriviaList();
+
 			for (var i = 0; i < baseIndent.Count; i++)
 			{
 				list = list.Add(baseIndent[i]);
@@ -405,6 +410,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 		// Zorg dat de tab direct vóór het token staat, gevolgd door eventuele comment-trivia
 		var qLeading = SyntaxFactory.TriviaList();
+
 		for (var i = 0; i < lineIndent.Count; i++)
 		{
 			qLeading = qLeading.Add(lineIndent[i]);
@@ -424,13 +430,14 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		// 4) Na whenTrue een nieuwe regel forceren vóór ':' en voeg expliciet één tab toe
 		// zodat de ':' één indent verder staat.
 		var wtTrailing = TrimTrailingWhitespaceAndEndOfLines(whenTrueLast.TrailingTrivia)
-				.Add(SyntaxFactory.ElasticCarriageReturnLineFeed)
-				.Add(indentUnit);
+			.Add(SyntaxFactory.ElasticCarriageReturnLineFeed)
+			.Add(indentUnit);
 		var newWhenTrueLast = whenTrueLast.WithTrailingTrivia(wtTrailing);
 
 		// 5) ':' start op nieuwe regel met indent (tab) en 1 spatie erna; behoud niet-witruimte leading trivia na de indent
 		var cLeadingRest = TrimLeadingWhitespaceAndEndOfLines(colon.LeadingTrivia);
 		var cLeading = SyntaxFactory.TriviaList();
+
 		for (var i = 0; i < lineIndent.Count; i++)
 		{
 			cLeading = cLeading.Add(lineIndent[i]);
@@ -468,12 +475,48 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 	public override SyntaxNode? VisitObjectCreationExpression(ObjectCreationExpressionSyntax node)
 	{
 		var result = base.VisitObjectCreationExpression(node);
-		
+
 		if (result is ObjectCreationExpressionSyntax visited)
 		{
 			return node.WithType(node.Type.WithTrailingTrivia());
 		}
-		
+
+		return result;
+	}
+
+	public override SyntaxNode? VisitInvocationExpression(InvocationExpressionSyntax node)
+	{
+		var result = base.VisitInvocationExpression(node) as InvocationExpressionSyntax ?? node;
+
+		if (result.Expression is MemberAccessExpressionSyntax { Expression: PredefinedTypeSyntax predefinedTypeSyntax } memberAccess)
+		{
+			var fullTypeName = predefinedTypeSyntax.Keyword.Kind() switch
+			{
+				SyntaxKind.VoidKeyword => "Void",
+				SyntaxKind.BoolKeyword => "Boolean",
+				SyntaxKind.ByteKeyword => "Byte",
+				SyntaxKind.SByteKeyword => "SByte",
+				SyntaxKind.ShortKeyword => "Int16",
+				SyntaxKind.UShortKeyword => "UInt16",
+				SyntaxKind.IntKeyword => "Int32",
+				SyntaxKind.UIntKeyword => "UInt32",
+				SyntaxKind.LongKeyword => "Int64",
+				SyntaxKind.ULongKeyword => "UInt64",
+				SyntaxKind.FloatKeyword => "Single",
+				SyntaxKind.DoubleKeyword => "Double",
+				SyntaxKind.DecimalKeyword => "Decimal",
+				SyntaxKind.CharKeyword => "Char",
+				SyntaxKind.StringKeyword => "String",
+				SyntaxKind.ObjectKeyword => "Object",
+				_ => null,
+			};
+
+			if (fullTypeName is not null)
+			{
+				return result.WithExpression(memberAccess.WithExpression(SyntaxFactory.ParseTypeName(fullTypeName)));
+			}
+		}
+
 		return result;
 	}
 
@@ -634,6 +677,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			{
 				// gather declared ids from the contiguous declaration block that ends at prev
 				var ids = new HashSet<string>(StringComparer.Ordinal);
+
 				for (var k = start - 1; k >= 0; k--)
 				{
 					if (visited[k] is LocalDeclarationStatementSyntax ls && ls.Declaration is { } decl)
@@ -651,6 +695,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 				// check the group's first statement
 				var first = visited[start] as ExpressionStatementSyntax;
+
 				if (first?.Expression is AssignmentExpressionSyntax assign && assign.Kind() == SyntaxKind.SimpleAssignmentExpression)
 				{
 					if (assign.Left is IdentifierNameSyntax leftId)
@@ -682,6 +727,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			{
 				// gather all declared identifiers in the group
 				var ids = new HashSet<string>(StringComparer.Ordinal);
+
 				for (var k = start; k <= end; k++)
 				{
 					if (visited[k] is LocalDeclarationStatementSyntax ls && ls.Declaration is { } decl)
@@ -695,6 +741,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 				// check next statement
 				var next = visited[end + 1];
+
 				if (next is ExpressionStatementSyntax es && es.Expression is AssignmentExpressionSyntax assign && assign.Kind() == SyntaxKind.SimpleAssignmentExpression)
 				{
 					if (assign.Left is IdentifierNameSyntax leftId)
@@ -870,11 +917,13 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 	private static SyntaxTriviaList TrimTrailingWhitespaceAndEndOfLines(SyntaxTriviaList list)
 	{
 		var idx = list.Count - 1;
+
 		while (idx >= 0 && (list[idx].IsKind(SyntaxKind.EndOfLineTrivia) || list[idx].IsKind(SyntaxKind.WhitespaceTrivia)))
 		{
 			idx--;
 		}
 		var result = SyntaxFactory.TriviaList();
+
 		for (var i = 0; i <= idx; i++)
 		{
 			result = result.Add(list[i]);
@@ -885,11 +934,13 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 	private static SyntaxTriviaList TrimLeadingWhitespaceAndEndOfLines(SyntaxTriviaList list)
 	{
 		var idx = 0;
+
 		while (idx < list.Count && (list[idx].IsKind(SyntaxKind.EndOfLineTrivia) || list[idx].IsKind(SyntaxKind.WhitespaceTrivia)))
 		{
 			idx++;
 		}
 		var result = SyntaxFactory.TriviaList();
+
 		for (var i = idx; i < list.Count; i++)
 		{
 			result = result.Add(list[i]);
@@ -909,6 +960,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		var token = node.GetFirstToken();
 		var leading = token.LeadingTrivia;
 		var lastEol = -1;
+
 		for (var i = 0; i < leading.Count; i++)
 		{
 			if (leading[i].IsKind(SyntaxKind.EndOfLineTrivia))
@@ -922,11 +974,13 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		// bevat. Hierdoor geven we prioriteit aan (spatie)inspringing direct vóór
 		// de conditie wanneer die op dezelfde regel staat.
 		var hasLeadingWhitespaceOrEol = leading.Any(t => t.IsKind(SyntaxKind.WhitespaceTrivia) || t.IsKind(SyntaxKind.EndOfLineTrivia));
+
 		if (!hasLeadingWhitespaceOrEol && lastEol < 0 && stmt is not null)
 		{
 			token = stmt.GetFirstToken();
 			leading = token.LeadingTrivia;
 			lastEol = -1;
+
 			for (var i = 0; i < leading.Count; i++)
 			{
 				if (leading[i].IsKind(SyntaxKind.EndOfLineTrivia))
@@ -940,6 +994,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		{
 			// Geen EOL: neem alleen whitespace aan het begin
 			var result = SyntaxFactory.TriviaList();
+
 			for (var i = 0; i < leading.Count; i++)
 			{
 				if (leading[i].IsKind(SyntaxKind.WhitespaceTrivia))
@@ -956,6 +1011,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		else
 		{
 			var result = SyntaxFactory.TriviaList();
+
 			for (var i = lastEol + 1; i < leading.Count; i++)
 			{
 				if (leading[i].IsKind(SyntaxKind.WhitespaceTrivia))
@@ -974,12 +1030,13 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 	private static bool HasLeadingComment(StatementSyntax statement)
 	{
 		var leading = statement.GetLeadingTrivia();
+
 		foreach (var trivia in leading)
 		{
 			if (trivia.IsKind(SyntaxKind.SingleLineCommentTrivia) ||
-					trivia.IsKind(SyntaxKind.MultiLineCommentTrivia) ||
-					trivia.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia) ||
-					trivia.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia))
+			    trivia.IsKind(SyntaxKind.MultiLineCommentTrivia) ||
+			    trivia.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia) ||
+			    trivia.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia))
 			{
 				return true;
 			}
@@ -999,12 +1056,44 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 				foundEol = true;
 			}
 			else if (foundEol && (trivia.IsKind(SyntaxKind.SingleLineCommentTrivia) ||
-														 trivia.IsKind(SyntaxKind.MultiLineCommentTrivia)))
+			                      trivia.IsKind(SyntaxKind.MultiLineCommentTrivia)))
 			{
 				return true;
 			}
 		}
 		return false;
 	}
-}
 
+	// public override SyntaxNode? VisitPredefinedType(PredefinedTypeSyntax node)
+	// {
+	// 	var fullTypeName = node.Keyword.Kind() switch
+	// 	{
+	// 		SyntaxKind.VoidKeyword => "Void",
+	// 		SyntaxKind.BoolKeyword => "Boolean",
+	// 		SyntaxKind.ByteKeyword => "Byte",
+	// 		SyntaxKind.SByteKeyword => "SByte",
+	// 		SyntaxKind.ShortKeyword => "Int16",
+	// 		SyntaxKind.UShortKeyword => "UInt16",
+	// 		SyntaxKind.IntKeyword => "Int32",
+	// 		SyntaxKind.UIntKeyword => "UInt32",
+	// 		SyntaxKind.LongKeyword => "Int64",
+	// 		SyntaxKind.ULongKeyword => "UInt64",
+	// 		SyntaxKind.FloatKeyword => "Single",
+	// 		SyntaxKind.DoubleKeyword => "Double",
+	// 		SyntaxKind.DecimalKeyword => "Decimal",
+	// 		SyntaxKind.CharKeyword => "Char",
+	// 		SyntaxKind.StringKeyword => "String",
+	// 		SyntaxKind.ObjectKeyword => "Object",
+	// 		_ => null,
+	// 	};
+	//
+	// 	if (fullTypeName is not null)
+	// 	{
+	// 		return SyntaxFactory.ParseTypeName(fullTypeName)
+	// 			.WithLeadingTrivia(node.GetLeadingTrivia())
+	// 			.WithTrailingTrivia(node.GetTrailingTrivia());
+	// 	}
+	//
+	// 	return node;
+	// }
+}

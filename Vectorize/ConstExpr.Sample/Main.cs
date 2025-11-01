@@ -712,89 +712,89 @@ var varDouble13 = 75.0;
 // // ═══════════════════════════════════════════════════════════════
 // Console.WriteLine("═══ STRING OPERATIONS ═══\n");
 //
-//// InterpolationTest - alleen constanten
-//Console.WriteLine($"[CONST] Interpolation('John',25,180): {StringOperations.InterpolationTest("John", 25, 180)}");
-//// InterpolationTest - mixed
-//Console.WriteLine($"[MIXED] Interpolation(varString,varInt,180): {StringOperations.InterpolationTest(varString, varInt, 180)}");
-//// InterpolationTest - alleen variabelen
-//Console.WriteLine($"[VARS ] Interpolation(varString,varInt,varDouble5): {StringOperations.InterpolationTest(varString, varInt, varDouble5)}");
+// InterpolationTest - alleen constanten
+Console.WriteLine($"[CONST] Interpolation('John',25,180): {StringOperations.InterpolationTest("John", 25, 180)}");
+// InterpolationTest - mixed
+Console.WriteLine($"[MIXED] Interpolation(varString,varInt,180): {StringOperations.InterpolationTest(varString, varInt, 180)}");
+// InterpolationTest - alleen variabelen
+Console.WriteLine($"[VARS ] Interpolation(varString,varInt,varDouble5): {StringOperations.InterpolationTest(varString, varInt, varDouble5)}");
 
-//// FormatFullName - alleen constanten
-//Console.WriteLine($"[CONST] FormatFullName('John','Q','Doe',true): {StringOperations.FormatFullName("John", "Q", "Doe", true)}");
-//// FormatFullName - mixed
-//Console.WriteLine($"[MIXED] FormatFullName('John','Q',varString,false): {StringOperations.FormatFullName("John", "Q", varString, false)}");
-//// FormatFullName - alleen variabelen (using string literals)
-//Console.WriteLine($"[VARS ] FormatFullName('Jane','M','Smith',true): {StringOperations.FormatFullName("Jane", "M", "Smith", true)}");
+// FormatFullName - alleen constanten
+Console.WriteLine($"[CONST] FormatFullName('John','Q','Doe',true): {StringOperations.FormatFullName("John", "Q", "Doe", true)}");
+// FormatFullName - mixed
+Console.WriteLine($"[MIXED] FormatFullName('John','Q',varString,false): {StringOperations.FormatFullName("John", "Q", varString, false)}");
+// FormatFullName - alleen variabelen (using string literals)
+Console.WriteLine($"[VARS ] FormatFullName('Jane','M','Smith',true): {StringOperations.FormatFullName("Jane", "M", "Smith", true)}");
 
-//// Reverse - alleen constanten
-//Console.WriteLine($"[CONST] Reverse('Hello'): {StringOperations.Reverse("Hello")}");
-//// Reverse - mixed
-//Console.WriteLine($"[MIXED] Reverse(varString): {StringOperations.Reverse(varString)}");
-//// Reverse - alleen variabelen (using string literals)
-//Console.WriteLine($"[VARS ] Reverse('World'): {StringOperations.Reverse("World")}");
+// Reverse - alleen constanten
+Console.WriteLine($"[CONST] Reverse('Hello'): {StringOperations.Reverse("Hello")}");
+// Reverse - mixed
+Console.WriteLine($"[MIXED] Reverse(varString): {StringOperations.Reverse(varString)}");
+// Reverse - alleen variabelen (using string literals)
+Console.WriteLine($"[VARS ] Reverse('World'): {StringOperations.Reverse("World")}");
 
-//// IsPalindrome - alleen constanten
-//Console.WriteLine($"[CONST] IsPalindrome('racecar'): {StringOperations.IsPalindrome("racecar")}");
-//// IsPalindrome - mixed
-//Console.WriteLine($"[MIXED] IsPalindrome(varString): {StringOperations.IsPalindrome(varString)}");
-//// IsPalindrome - alleen variabelen (using string literals)
-//Console.WriteLine($"[VARS ] IsPalindrome('level'): {StringOperations.IsPalindrome("level")}");
+// IsPalindrome - alleen constanten
+Console.WriteLine($"[CONST] IsPalindrome('racecar'): {StringOperations.IsPalindrome("racecar")}");
+// IsPalindrome - mixed
+Console.WriteLine($"[MIXED] IsPalindrome(varString): {StringOperations.IsPalindrome(varString)}");
+// IsPalindrome - alleen variabelen (using string literals)
+Console.WriteLine($"[VARS ] IsPalindrome('level'): {StringOperations.IsPalindrome("level")}");
 
-//// CountOccurrences - alleen constanten
-//Console.WriteLine($"[CONST] CountOccurrences('hello world','l'): {StringOperations.CountOccurrences("hello world", "l")}");
-//// CountOccurrences - mixed
-//Console.WriteLine($"[MIXED] CountOccurrences(varString,'e'): {StringOperations.CountOccurrences(varString, "e")}");
-//// CountOccurrences - alleen variabelen (using string literals)
-//Console.WriteLine($"[VARS ] CountOccurrences('banana','a'): {StringOperations.CountOccurrences("banana", "a")}");
+// CountOccurrences - alleen constanten
+Console.WriteLine($"[CONST] CountOccurrences('hello world','l'): {StringOperations.CountOccurrences("hello world", "l")}");
+// CountOccurrences - mixed
+Console.WriteLine($"[MIXED] CountOccurrences(varString,'e'): {StringOperations.CountOccurrences(varString, "e")}");
+// CountOccurrences - alleen variabelen (using string literals)
+Console.WriteLine($"[VARS ] CountOccurrences('banana','a'): {StringOperations.CountOccurrences("banana", "a")}");
 
-//// RemoveWhitespace - alleen constanten
-//Console.WriteLine($"[CONST] RemoveWhitespace('hello world'): {StringOperations.RemoveWhitespace("hello world")}");
-//// RemoveWhitespace - mixed
-//Console.WriteLine($"[MIXED] RemoveWhitespace('hello '+varString): {StringOperations.RemoveWhitespace("hello " + varString)}");
-//// RemoveWhitespace - alleen variabelen (using string literals)
-//Console.WriteLine($"[VARS ] RemoveWhitespace('test string'): {StringOperations.RemoveWhitespace("test string")}");
+// RemoveWhitespace - alleen constanten
+Console.WriteLine($"[CONST] RemoveWhitespace('hello world'): {StringOperations.RemoveWhitespace("hello world")}");
+// RemoveWhitespace - mixed
+Console.WriteLine($"[MIXED] RemoveWhitespace('hello '+varString): {StringOperations.RemoveWhitespace("hello " + varString)}");
+// RemoveWhitespace - alleen variabelen (using string literals)
+Console.WriteLine($"[VARS ] RemoveWhitespace('test string'): {StringOperations.RemoveWhitespace("test string")}");
 
-//// ToCamelCase - alleen constanten
-//Console.WriteLine($"[CONST] ToCamelCase('hello world test'): {StringOperations.ToCamelCase("hello world test")}");
-//// ToCamelCase - mixed (using string literals)
-//Console.WriteLine($"[MIXED] ToCamelCase('test string value'): {StringOperations.ToCamelCase("test string value")}");
-//// ToCamelCase - alleen variabelen (using string literals)
-//Console.WriteLine($"[VARS ] ToCamelCase('some_snake_case'): {StringOperations.ToCamelCase("some_snake_case")}");
+// ToCamelCase - alleen constanten
+Console.WriteLine($"[CONST] ToCamelCase('hello world test'): {StringOperations.ToCamelCase("hello world test")}");
+// ToCamelCase - mixed (using string literals)
+Console.WriteLine($"[MIXED] ToCamelCase('test string value'): {StringOperations.ToCamelCase("test string value")}");
+// ToCamelCase - alleen variabelen (using string literals)
+Console.WriteLine($"[VARS ] ToCamelCase('some_snake_case'): {StringOperations.ToCamelCase("some_snake_case")}");
 
-//// ToPascalCase - alleen constanten
-//Console.WriteLine($"[CONST] ToPascalCase('hello world'): {StringOperations.ToPascalCase("hello world")}");
-//// ToPascalCase - mixed (using string literals)
-//Console.WriteLine($"[MIXED] ToPascalCase('my test string'): {StringOperations.ToPascalCase("my test string")}");
-//// ToPascalCase - alleen variabelen (using string literals)
-//Console.WriteLine($"[VARS ] ToPascalCase('another_test_case'): {StringOperations.ToPascalCase("another_test_case")}");
+// ToPascalCase - alleen constanten
+Console.WriteLine($"[CONST] ToPascalCase('hello world'): {StringOperations.ToPascalCase("hello world")}");
+// ToPascalCase - mixed (using string literals)
+Console.WriteLine($"[MIXED] ToPascalCase('my test string'): {StringOperations.ToPascalCase("my test string")}");
+// ToPascalCase - alleen variabelen (using string literals)
+Console.WriteLine($"[VARS ] ToPascalCase('another_test_case'): {StringOperations.ToPascalCase("another_test_case")}");
 
-//// ToSnakeCase - alleen constanten
-//Console.WriteLine($"[CONST] ToSnakeCase('Hello World'): {StringOperations.ToSnakeCase("Hello World")}");
-//// ToSnakeCase - mixed (using string literals)
-//Console.WriteLine($"[MIXED] ToSnakeCase('My Test String'): {StringOperations.ToSnakeCase("My Test String")}");
-//// ToSnakeCase - alleen variabelen (using string literals)
-//Console.WriteLine($"[VARS ] ToSnakeCase('Another Test'): {StringOperations.ToSnakeCase("Another Test")}");
+// ToSnakeCase - alleen constanten
+Console.WriteLine($"[CONST] ToSnakeCase('Hello World'): {StringOperations.ToSnakeCase("Hello World")}");
+// ToSnakeCase - mixed (using string literals)
+Console.WriteLine($"[MIXED] ToSnakeCase('My Test String'): {StringOperations.ToSnakeCase("My Test String")}");
+// ToSnakeCase - alleen variabelen (using string literals)
+Console.WriteLine($"[VARS ] ToSnakeCase('Another Test'): {StringOperations.ToSnakeCase("Another Test")}");
 
-//// GenerateSlug - alleen constanten
-//Console.WriteLine($"[CONST] GenerateSlug('Hello World',20,'-',true): {StringOperations.GenerateSlug("Hello World", 20, '-', true)}");
-//// GenerateSlug - mixed (using string literals and variables)
-//Console.WriteLine($"[MIXED] GenerateSlug('Test String',varInt*2,'-',true): {StringOperations.GenerateSlug("Test String", varInt * 2, '-', true)}");
-//// GenerateSlug - alleen variabelen (using string literals)
-//Console.WriteLine($"[VARS ] GenerateSlug('My Blog Post',varInt3*5,'_',false): {StringOperations.GenerateSlug("My Blog Post", varInt3 * 5, '_', false)}");
+// GenerateSlug - alleen constanten
+Console.WriteLine($"[CONST] GenerateSlug('Hello World',20,'-',true): {StringOperations.GenerateSlug("Hello World", 20, '-', true)}");
+// GenerateSlug - mixed (using string literals and variables)
+Console.WriteLine($"[MIXED] GenerateSlug('Test String',varInt*2,'-',true): {StringOperations.GenerateSlug("Test String", varInt * 2, '-', true)}");
+// GenerateSlug - alleen variabelen (using string literals)
+Console.WriteLine($"[VARS ] GenerateSlug('My Blog Post',varInt3*5,'_',false): {StringOperations.GenerateSlug("My Blog Post", varInt3 * 5, '_', false)}");
 
-//// ToKebabCase - alleen constanten
-//Console.WriteLine($"[CONST] ToKebabCase('Hello World'): {StringOperations.ToKebabCase("Hello World")}");
-//// ToKebabCase - mixed (using string literals)
-//Console.WriteLine($"[MIXED] ToKebabCase('My Test String'): {StringOperations.ToKebabCase("My Test String")}");
-//// ToKebabCase - alleen variabelen (using string literals)
-//Console.WriteLine($"[VARS ] ToKebabCase('Another Test'): {StringOperations.ToKebabCase("Another Test")}");
+// ToKebabCase - alleen constanten
+Console.WriteLine($"[CONST] ToKebabCase('Hello World'): {StringOperations.ToKebabCase("Hello World")}");
+// ToKebabCase - mixed (using string literals)
+Console.WriteLine($"[MIXED] ToKebabCase('My Test String'): {StringOperations.ToKebabCase("My Test String")}");
+// ToKebabCase - alleen variabelen (using string literals)
+Console.WriteLine($"[VARS ] ToKebabCase('Another Test'): {StringOperations.ToKebabCase("Another Test")}");
 
-//// Truncate - alleen constanten
-//Console.WriteLine($"[CONST] Truncate('This is a long string',10): {StringOperations.Truncate("This is a long string", 10)}");
-//// Truncate - mixed (using string literals and variables)
-//Console.WriteLine($"[MIXED] Truncate('Another long string',varInt): {StringOperations.Truncate("Another long string", varInt)}");
-//// Truncate - alleen variabelen (using string literals)
-//Console.WriteLine($"[VARS ] Truncate('Yet another string',varInt5,'***'): {StringOperations.Truncate("Yet another string", varInt5, "***")}");
+// Truncate - alleen constanten
+Console.WriteLine($"[CONST] Truncate('This is a long string',10): {StringOperations.Truncate("This is a long string", 10)}");
+// Truncate - mixed (using string literals and variables)
+Console.WriteLine($"[MIXED] Truncate('Another long string',varInt): {StringOperations.Truncate("Another long string", varInt)}");
+// Truncate - alleen variabelen (using string literals)
+Console.WriteLine($"[VARS ] Truncate('Yet another string',varInt5,'***'): {StringOperations.Truncate("Yet another string", varInt5, "***")}");
 
 // RepeatString - alleen constanten
 Console.WriteLine($"[CONST] RepeatString('Ab',5): {StringOperations.RepeatString("Ab", 5)}");

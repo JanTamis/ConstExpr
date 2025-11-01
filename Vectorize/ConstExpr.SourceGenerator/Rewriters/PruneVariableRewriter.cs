@@ -17,7 +17,7 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 		{
 			return base.Visit(node);
 		}
-		catch (Exception e)
+		catch (Exception)
 		{
 			return node;
 		}
@@ -60,7 +60,7 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 	{
 		var identifier = node.Identifier.Text;
 
-		if (variables.TryGetValue(identifier, out var value) && value.HasValue && (!value.IsAccessed || !value.IsAltered))
+		if (variables.TryGetValue(identifier, out var value) && value.HasValue)
 		{
 			return null;
 		}
@@ -96,16 +96,16 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 				{
 					result.Add(statementSyntax);
 				}
-				else if (visited is ExpressionStatementSyntax { Expression: null } expressionStatement)
+				else if (visited is ExpressionStatementSyntax { Expression: not null } expressionStatement)
 				{
 					result.Add(SyntaxFactory.ExpressionStatement(expressionStatement.Expression));
 				}
-				else if (visited is not null)
+				else if (visited is ExpressionSyntax expressionSyntax)
 				{
-					result.Add(SyntaxFactory.ExpressionStatement(visited as ExpressionSyntax));
+					result.Add(SyntaxFactory.ExpressionStatement(expressionSyntax));
 				}
 
-				if (IsTerminalStatement(visited))
+				if (visited is StatementSyntax stmt && IsTerminalStatement(stmt))
 				{
 					terminalReached = true;
 				}
@@ -206,7 +206,138 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 	{
 		var result = Visit(node.Expression);
 
+		// If the expression was pruned to null, remove the entire statement
+		if (result is null)
+		{
+			return null;
+		}
+
+		// If the result is the same expression, return the original statement
+		if (ReferenceEquals(result, node.Expression))
+		{
+			return node;
+		}
+
+		// If we have a new expression, create a new statement with it
+		if (result is ExpressionSyntax expression)
+		{
+			return node.WithExpression(expression);
+		}
+
 		return result;
+	}
+
+	public override SyntaxNode? VisitInvocationExpression(InvocationExpressionSyntax node)
+	{
+		if (node.Expression is MemberAccessExpressionSyntax { Expression: IdentifierNameSyntax identifier } 
+		    && variables.TryGetValue(identifier.Identifier.Text, out var value) && value.HasValue
+		    && node.ArgumentList.Arguments.All(a => TryGetLiteralValue(a.Expression, out _)))
+		{
+			return null;
+		}
+
+		return base.VisitInvocationExpression(node);
+	}
+
+	public override SyntaxNode? VisitMemberAccessExpression(MemberAccessExpressionSyntax node)
+	{
+		// If accessing a member on a constant value that doesn't change state, it can potentially be pruned
+		if (TryGetLiteralValue(node.Expression, out _))
+		{
+			// Check if this member access is for a property or field that doesn't have side effects
+			var symbolInfo = semanticModel.GetSymbolInfo(node);
+
+			if (symbolInfo.Symbol is IPropertySymbol property && property.IsReadOnly)
+			{
+				// This is accessing a readonly property on a constant - safe to prune if not used
+				return node; // Let parent visitor decide if it should be pruned
+			}
+
+			if (symbolInfo.Symbol is IFieldSymbol field && field.IsReadOnly)
+			{
+				// This is accessing a readonly field on a constant - safe to prune if not used
+				return node; // Let parent visitor decide if it should be pruned
+			}
+		}
+
+		return base.VisitMemberAccessExpression(node);
+	}
+
+	public override SyntaxNode? VisitObjectCreationExpression(ObjectCreationExpressionSyntax node)
+	{
+		// Check if this is creating an object with constant arguments that has no side effects
+		var symbolInfo = semanticModel.GetSymbolInfo(node);
+
+		if (symbolInfo.Symbol is IMethodSymbol constructor)
+		{
+			// Check if it's a value type or immutable type that's safe to prune
+			if (constructor.ContainingType.IsValueType)
+			{
+				// For value types, check if all constructor arguments are constants
+				var allArgsConstant = true;
+
+				if (node.ArgumentList != null)
+				{
+					foreach (var arg in node.ArgumentList.Arguments)
+					{
+						if (!TryGetLiteralValue(arg.Expression, out _))
+						{
+							allArgsConstant = false;
+							break;
+						}
+					}
+				}
+
+				// If all arguments are constant, this object creation can be pruned if not used
+				if (allArgsConstant)
+				{
+					return node; // Let parent visitor decide if it should be pruned
+				}
+			}
+		}
+
+		return base.VisitObjectCreationExpression(node);
+	}
+
+	public override SyntaxNode? VisitElementAccessExpression(ElementAccessExpressionSyntax node)
+	{
+		// Check if we're accessing an element of a constant collection with constant indices
+		if (TryGetLiteralValue(node.Expression, out _))
+		{
+			var allIndicesConstant = true;
+
+			foreach (var arg in node.ArgumentList.Arguments)
+			{
+				if (!TryGetLiteralValue(arg.Expression, out _))
+				{
+					allIndicesConstant = false;
+					break;
+				}
+			}
+
+			// If both collection and indices are constant, this can potentially be pruned
+			if (allIndicesConstant)
+			{
+				return node; // Let parent visitor decide if it should be pruned
+			}
+		}
+
+		return base.VisitElementAccessExpression(node);
+	}
+
+	public override SyntaxNode? VisitConditionalExpression(ConditionalExpressionSyntax node)
+	{
+		// If the condition is a constant, we can prune the unused branch
+		if (TryGetLiteralValue(node.Condition, out var conditionValue))
+		{
+			if (conditionValue is bool boolValue)
+			{
+				// Return the appropriate branch and let it be further processed
+				return Visit(boolValue ? node.WhenTrue : node.WhenFalse);
+			}
+		}
+
+		return base.VisitConditionalExpression(node);
 	}
 
 	// New override: strip all comment trivia (including XML doc comments) from tokens
@@ -262,13 +393,20 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 		}
 	}
 
-	private static bool IsTerminalStatement(SyntaxNode statement)
+	private static bool IsTerminalStatement(SyntaxNode? statement)
 	{
 		// A statement that guarantees no following statement in the same block will execute
 		return statement is ReturnStatementSyntax
-			|| statement is ThrowStatementSyntax
-			|| statement is BreakStatementSyntax
-			|| statement is ContinueStatementSyntax
-			|| (statement is YieldStatementSyntax ys && ys.IsKind(SyntaxKind.YieldBreakStatement));
+		       || statement is ThrowStatementSyntax
+		       || statement is BreakStatementSyntax
+		       || statement is ContinueStatementSyntax
+		       || (statement is YieldStatementSyntax ys && ys.IsKind(SyntaxKind.YieldBreakStatement));
+	}
+
+	private static bool HasPureAttribute(IMethodSymbol method)
+	{
+		// Check for [Pure] attribute from System.Diagnostics.Contracts
+		return method.GetAttributes().Any(attr =>
+			attr.AttributeClass?.ToDisplayString() == "System.Diagnostics.Contracts.PureAttribute");
 	}
 }

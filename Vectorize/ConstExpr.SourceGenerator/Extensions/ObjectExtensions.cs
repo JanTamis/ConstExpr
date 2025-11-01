@@ -38,6 +38,8 @@ public static class ObjectExtensions
 			double leftDouble when right is double rightDouble => leftDouble + rightDouble,
 			decimal leftDecimal when right is decimal rightDecimal => leftDecimal + rightDecimal,
 			string leftString when right is string rightString => leftString + rightString,
+			string leftStr when right is not null => leftStr + right,
+			char leftChar when right is string => leftChar + (right as string),
 			_ => null
 		});
 	}
