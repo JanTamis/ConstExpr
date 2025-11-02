@@ -830,12 +830,12 @@ Console.WriteLine($"[MIXED] Luminance(varByte,128,64): {ColorOperations.Luminanc
 // Luminance - alleen variabelen
 Console.WriteLine($"[VARS ] Luminance(varByte,varByte,varByte): {ColorOperations.Luminance(varByte, varByte, varByte):F3}");
 
-// ContrastRatio - alleen constanten
-Console.WriteLine($"[CONST] ContrastRatio(255,255,255,0,0,0): {ColorOperations.ContrastRatio(255, 255, 255, 0, 0, 0):F2}");
-// ContrastRatio - mixed
-Console.WriteLine($"[MIXED] ContrastRatio(varByte,varByte,varByte,0,0,0): {ColorOperations.ContrastRatio(varByte, varByte, varByte, 0, 0, 0):F2}");
-// ContrastRatio - alleen variabelen
-Console.WriteLine($"[VARS ] ContrastRatio(varByte,varByte,varByte,varByte,varByte,varByte): {ColorOperations.ContrastRatio(varByte, varByte, varByte, varByte, varByte, varByte):F2}");
+// // ContrastRatio - alleen constanten
+// Console.WriteLine($"[CONST] ContrastRatio(255,255,255,0,0,0): {ColorOperations.ContrastRatio(255, 255, 255, 0, 0, 0):F2}");
+// // ContrastRatio - mixed
+// Console.WriteLine($"[MIXED] ContrastRatio(varByte,varByte,varByte,0,0,0): {ColorOperations.ContrastRatio(varByte, varByte, varByte, 0, 0, 0):F2}");
+// // ContrastRatio - alleen variabelen
+// Console.WriteLine($"[VARS ] ContrastRatio(varByte,varByte,varByte,varByte,varByte,varByte): {ColorOperations.ContrastRatio(varByte, varByte, varByte, varByte, varByte, varByte):F2}");
 
 // RgbToHsl - alleen constanten
 var hsl1 = ColorOperations.RgbToHsl(255, 0, 0);
