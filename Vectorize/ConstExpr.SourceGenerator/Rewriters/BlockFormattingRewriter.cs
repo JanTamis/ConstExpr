@@ -62,37 +62,151 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		return node;
 	}
 
-	// public override SyntaxNode? VisitIfStatement(IfStatementSyntax node)
-	// {
-	// 	// Visit child nodes first
-	// 	var visitedNode = base.VisitIfStatement(node);
-	//
-	// 	if (visitedNode is not IfStatementSyntax visited)
-	// 	{
-	// 		return visitedNode;
-	// 	}
-	//
-	// 	// Process the if-statement body
-	// 	if (visited.Statement is BlockSyntax { Statements.Count: 1 } ifBlock)
-	// 	{
-	// 		visited = visited.WithStatement(ifBlock.Statements[0]);
-	// 	}
-	//
-	// 	// Handle the else clause (including else-if)
-	// 	if (visited.Else is not null)
-	// 	{
-	// 		var elseClause = visited.Else;
-	//
-	// 		// If the else statement is a block with a single statement (and not a nested if)
-	// 		if (elseClause.Statement is BlockSyntax { Statements.Count: 1 } elseBlock &&
-	// 			elseBlock.Statements[0] is not IfStatementSyntax)
-	// 		{
-	// 			visited = visited.WithElse(elseClause.WithStatement(elseBlock.Statements[0]));
-	// 		}
-	// 	}
-	//
-	// 	return visited;
-	// }
+	public override SyntaxNode? VisitIfStatement(IfStatementSyntax node)
+	{
+		// Visit child nodes first
+		var visitedNode = base.VisitIfStatement(node);
+
+		if (visitedNode is not IfStatementSyntax visited)
+		{
+			return visitedNode;
+		}
+
+		// Check if the if body is empty
+		var ifBodyIsEmpty = IsStatementEmpty(visited.Statement);
+
+		// Check if else clause exists and is empty
+		var elseClauseEmpty = false;
+
+		if (visited.Else is not null)
+		{
+			elseClauseEmpty = IsStatementEmpty(visited.Else.Statement);
+		}
+
+		// If the entire if statement is empty (if body empty and no else, or if body empty and else empty)
+		if (ifBodyIsEmpty && (visited.Else is null || elseClauseEmpty))
+		{
+			// Remove the entire if statement
+			return null;
+		}
+
+		// If if body is empty but else exists and is not empty
+		if (ifBodyIsEmpty && visited.Else is not null && !elseClauseEmpty)
+		{
+			// Transform: if (condition) { } else { statements } -> if (!condition) { statements }
+			var negatedCondition = NegateCondition(visited.Condition);
+			return visited
+				.WithCondition(negatedCondition)
+				.WithStatement(visited.Else.Statement)
+				.WithElse(null);
+		}
+
+		// If else clause is empty, just remove it
+		if (elseClauseEmpty && visited.Else is not null)
+		{
+			visited = visited.WithElse(null);
+		}
+
+		return visited;
+	}
+
+	private static bool IsStatementEmpty(StatementSyntax statement)
+	{
+		if (statement is BlockSyntax block)
+		{
+			return block.Statements.Count == 0;
+		}
+		return false;
+	}
+
+	private static ExpressionSyntax NegateCondition(ExpressionSyntax condition)
+	{
+		// Handle logical NOT: !x -> x
+		if (condition is PrefixUnaryExpressionSyntax prefix && prefix.Kind() == SyntaxKind.LogicalNotExpression)
+		{
+			return prefix.Operand;
+		}
+
+		// Handle binary expressions (comparisons and logical operators)
+		if (condition is BinaryExpressionSyntax binary)
+		{
+			var negatedKind = GetNegatedBinaryOperator(binary.Kind());
+
+			if (negatedKind.HasValue)
+			{
+				// For comparisons: invert the operator (e.g., > becomes <=)
+				if (IsComparisonOperator(binary.Kind()))
+				{
+					return SyntaxFactory.BinaryExpression(
+						negatedKind.Value,
+						binary.Left,
+						binary.Right
+					);
+				}
+
+				// For logical operators (&&, ||): apply De Morgan's law
+				// !(a && b) -> !a || !b
+				// !(a || b) -> !a && !b
+				if (binary.Kind() == SyntaxKind.LogicalAndExpression || binary.Kind() == SyntaxKind.LogicalOrExpression)
+				{
+					return SyntaxFactory.BinaryExpression(
+						negatedKind.Value,
+						NegateCondition(binary.Left),
+						NegateCondition(binary.Right)
+					);
+				}
+			}
+		}
+
+		// Handle parenthesized expressions: move negation inside
+		if (condition is ParenthesizedExpressionSyntax paren)
+		{
+			return NegateCondition(paren.Expression);
+		}
+
+		// Handle method calls that return bool (like IsNullOrEmpty, Any, etc.)
+		// Keep them simple with ! prefix
+		if (condition is InvocationExpressionSyntax ||
+		    condition is IdentifierNameSyntax ||
+		    condition is MemberAccessExpressionSyntax)
+		{
+			return SyntaxFactory.PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, condition);
+		}
+
+		// Default: wrap in parentheses and add !
+		var parenthesizedCondition = SyntaxFactory.ParenthesizedExpression(condition);
+		return SyntaxFactory.PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, parenthesizedCondition);
+	}
+
+	private static bool IsComparisonOperator(SyntaxKind kind)
+	{
+		return kind == SyntaxKind.GreaterThanExpression ||
+		       kind == SyntaxKind.GreaterThanOrEqualExpression ||
+		       kind == SyntaxKind.LessThanExpression ||
+		       kind == SyntaxKind.LessThanOrEqualExpression ||
+		       kind == SyntaxKind.EqualsExpression ||
+		       kind == SyntaxKind.NotEqualsExpression;
+	}
+
+	private static SyntaxKind? GetNegatedBinaryOperator(SyntaxKind kind)
+	{
+		return kind switch
+		{
+			// Comparison operators
+			SyntaxKind.GreaterThanExpression => SyntaxKind.LessThanOrEqualExpression,
+			SyntaxKind.GreaterThanOrEqualExpression => SyntaxKind.LessThanExpression,
+			SyntaxKind.LessThanExpression => SyntaxKind.GreaterThanOrEqualExpression,
+			SyntaxKind.LessThanOrEqualExpression => SyntaxKind.GreaterThanExpression,
+			SyntaxKind.EqualsExpression => SyntaxKind.NotEqualsExpression,
+			SyntaxKind.NotEqualsExpression => SyntaxKind.EqualsExpression,
+
+			// Logical operators (De Morgan's law)
+			SyntaxKind.LogicalAndExpression => SyntaxKind.LogicalOrExpression,
+			SyntaxKind.LogicalOrExpression => SyntaxKind.LogicalAndExpression,
+
+			_ => null
+		};
+	}
 
 	public override SyntaxNode? VisitLocalFunctionStatement(LocalFunctionStatementSyntax node)
 	{

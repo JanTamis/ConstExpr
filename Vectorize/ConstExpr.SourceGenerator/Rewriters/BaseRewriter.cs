@@ -147,6 +147,13 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 			}
 			case ObjectCreationExpressionSyntax objectCreationExpression:
 			{
+				if (semanticModel.TryGetSymbol(objectCreationExpression.Type, out ITypeSymbol? randomType) 
+				    && randomType.EqualsType(semanticModel.Compilation.GetTypeByMetadataName("System.Random")))
+				{
+					value = null;
+					return false;
+				}
+				
 				var arguments = objectCreationExpression.ArgumentList?.Arguments
 					                .Select(s => Visit(s.Expression))
 					                .WhereSelect<SyntaxNode, object?>(TryGetLiteralValue)

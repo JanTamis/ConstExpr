@@ -96,7 +96,7 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 				{
 					result.Add(statementSyntax);
 				}
-				else if (visited is ExpressionStatementSyntax { Expression: not null } expressionStatement)
+				else if (visited is ExpressionStatementSyntax expressionStatement)
 				{
 					result.Add(SyntaxFactory.ExpressionStatement(expressionStatement.Expression));
 				}
@@ -195,8 +195,6 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 			{
 				return null;
 			}
-
-
 		}
 
 		return base.VisitIfStatement(node);
@@ -338,6 +336,30 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 		}
 
 		return base.VisitConditionalExpression(node);
+	}
+
+	public override SyntaxNode? VisitPostfixUnaryExpression(PostfixUnaryExpressionSyntax node)
+	{
+		// Handle i++, i--, etc. on constant variables
+		if (node.Operand is IdentifierNameSyntax { Identifier.Text: var name }
+		    && variables.TryGetValue(name, out var value) && value.HasValue)
+		{
+			return null;
+		}
+
+		return base.VisitPostfixUnaryExpression(node);
+	}
+
+	public override SyntaxNode? VisitPrefixUnaryExpression(PrefixUnaryExpressionSyntax node)
+	{
+		// Handle ++i, --i, etc. on constant variables
+		if (node.Operand is IdentifierNameSyntax { Identifier.Text: var name }
+		    && variables.TryGetValue(name, out var value) && value.HasValue)
+		{
+			return null;
+		}
+
+		return base.VisitPrefixUnaryExpression(node);
 	}
 
 	// New override: strip all comment trivia (including XML doc comments) from tokens

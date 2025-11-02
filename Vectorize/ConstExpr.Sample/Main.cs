@@ -810,25 +810,25 @@ var varDouble13 = 75.0;
 // // ═══════════════════════════════════════════════════════════════
 // Console.WriteLine("═══ COLOR OPERATIONS ═══\n");
 //
-// HslToRgb - alleen constanten
-var rgb1 = ColorOperations.HslToRgb(120, 1.0f, 0.5f);
-Console.WriteLine($"[CONST] HslToRgb(120,1.0,0.5): ({rgb1.r},{rgb1.g},{rgb1.b})");
-// HslToRgb - mixed
-var rgb2 = ColorOperations.HslToRgb((float)varDouble * 10, 1.0f, 0.5f);
-Console.WriteLine($"[MIXED] HslToRgb(varDouble*10,1.0,0.5): ({rgb2.r},{rgb2.g},{rgb2.b})");
-// HslToRgb - alleen variabelen
-var rgb3 = ColorOperations.HslToRgb((float)varDouble12, (float)varDouble4, (float)varDouble4);
-Console.WriteLine($"[VARS ] HslToRgb(varDouble12,varDouble4,varDouble4): ({rgb3.r},{rgb3.g},{rgb3.b})");
-
-var rgb4 = ColorOperations.HslToRgb(80, (float) varDouble4, (float) varDouble4);
-Console.WriteLine($"[VARS ] HslToRgb(80,varDouble4,varDouble4): ({rgb3.r},{rgb3.g},{rgb3.b})");
-
-// Luminance - alleen constanten
-Console.WriteLine($"[CONST] Luminance(255,128,64): {ColorOperations.Luminance(255, 128, 64):F3}");
-// Luminance - mixed
-Console.WriteLine($"[MIXED] Luminance(varByte,128,64): {ColorOperations.Luminance(varByte, 128, 64):F3}");
-// Luminance - alleen variabelen
-Console.WriteLine($"[VARS ] Luminance(varByte,varByte,varByte): {ColorOperations.Luminance(varByte, varByte, varByte):F3}");
+// // HslToRgb - alleen constanten
+// var rgb1 = ColorOperations.HslToRgb(120, 1.0f, 0.5f);
+// Console.WriteLine($"[CONST] HslToRgb(120,1.0,0.5): ({rgb1.r},{rgb1.g},{rgb1.b})");
+// // HslToRgb - mixed
+// var rgb2 = ColorOperations.HslToRgb((float)varDouble * 10, 1.0f, 0.5f);
+// Console.WriteLine($"[MIXED] HslToRgb(varDouble*10,1.0,0.5): ({rgb2.r},{rgb2.g},{rgb2.b})");
+// // HslToRgb - alleen variabelen
+// var rgb3 = ColorOperations.HslToRgb((float)varDouble12, (float)varDouble4, (float)varDouble4);
+// Console.WriteLine($"[VARS ] HslToRgb(varDouble12,varDouble4,varDouble4): ({rgb3.r},{rgb3.g},{rgb3.b})");
+//
+// var rgb4 = ColorOperations.HslToRgb(80, (float) varDouble4, (float) varDouble4);
+// Console.WriteLine($"[VARS ] HslToRgb(80,varDouble4,varDouble4): ({rgb3.r},{rgb3.g},{rgb3.b})");
+//
+// // Luminance - alleen constanten
+// Console.WriteLine($"[CONST] Luminance(255,128,64): {ColorOperations.Luminance(255, 128, 64):F3}");
+// // Luminance - mixed
+// Console.WriteLine($"[MIXED] Luminance(varByte,128,64): {ColorOperations.Luminance(varByte, 128, 64):F3}");
+// // Luminance - alleen variabelen
+// Console.WriteLine($"[VARS ] Luminance(varByte,varByte,varByte): {ColorOperations.Luminance(varByte, varByte, varByte):F3}");
 
 // // ContrastRatio - alleen constanten
 // Console.WriteLine($"[CONST] ContrastRatio(255,255,255,0,0,0): {ColorOperations.ContrastRatio(255, 255, 255, 0, 0, 0):F2}");
@@ -837,72 +837,72 @@ Console.WriteLine($"[VARS ] Luminance(varByte,varByte,varByte): {ColorOperations
 // // ContrastRatio - alleen variabelen
 // Console.WriteLine($"[VARS ] ContrastRatio(varByte,varByte,varByte,varByte,varByte,varByte): {ColorOperations.ContrastRatio(varByte, varByte, varByte, varByte, varByte, varByte):F2}");
 
-// RgbToHsl - alleen constanten
-var hsl1 = ColorOperations.RgbToHsl(255, 0, 0);
-Console.WriteLine($"[CONST] RgbToHsl(255,0,0): ({hsl1.h:F2},{hsl1.s:F2},{hsl1.l:F2})");
-// RgbToHsl - mixed
-var hsl2 = ColorOperations.RgbToHsl(varByte, 128, 64);
-Console.WriteLine($"[MIXED] RgbToHsl(varByte,128,64): ({hsl2.h:F2},{hsl2.s:F2},{hsl2.l:F2})");
-// RgbToHsl - alleen variabelen
-var hsl3 = ColorOperations.RgbToHsl(varByte, varByte, varByte);
-Console.WriteLine($"[VARS ] RgbToHsl(varByte,varByte,varByte): ({hsl3.h:F2},{hsl3.s:F2},{hsl3.l:F2})");
-
-// BlendRgb - alleen constanten
-var blend1 = ColorOperations.BlendRgb(255, 255, 255, 0, 0, 0, 0.5f, false);
-Console.WriteLine($"[CONST] BlendRgb(255,255,255,0,0,0,0.5,false): ({blend1.r},{blend1.g},{blend1.b})");
-// BlendRgb - mixed
-var blend2 = ColorOperations.BlendRgb(varByte, varByte, varByte, 0, 0, 0, 0.5f, false);
-Console.WriteLine($"[MIXED] BlendRgb(varByte,varByte,varByte,0,0,0,0.5,false): ({blend2.r},{blend2.g},{blend2.b})");
-// BlendRgb - alleen variabelen
-var blend3 = ColorOperations.BlendRgb(varByte, varByte, varByte, varByte, varByte, varByte, (float)varDouble4, false);
-Console.WriteLine($"[VARS ] BlendRgb(varByte,varByte,varByte,varByte,varByte,varByte,varDouble4,false): ({blend3.r},{blend3.g},{blend3.b})");
-
-// RgbToGrayscale - alleen constanten
-var gray1 = ColorOperations.RgbToGrayscale(100, 150, 200);
-Console.WriteLine($"[CONST] RgbToGrayscale(100,150,200): ({gray1.r},{gray1.g},{gray1.b})");
-// RgbToGrayscale - mixed
-var gray2 = ColorOperations.RgbToGrayscale(varByte, 150, 200);
-Console.WriteLine($"[MIXED] RgbToGrayscale(varByte,150,200): ({gray2.r},{gray2.g},{gray2.b})");
-// RgbToGrayscale - alleen variabelen
-var gray3 = ColorOperations.RgbToGrayscale(varByte, varByte, varByte);
-Console.WriteLine($"[VARS ] RgbToGrayscale(varByte,varByte,varByte): ({gray3.r},{gray3.g},{gray3.b})");
-
-// InvertRgb - alleen constanten
-var inv1 = ColorOperations.InvertRgb(100, 150, 200);
-Console.WriteLine($"[CONST] InvertRgb(100,150,200): ({inv1.r},{inv1.g},{inv1.b})");
-// InvertRgb - mixed
-var inv2 = ColorOperations.InvertRgb(varByte, 150, 200);
-Console.WriteLine($"[MIXED] InvertRgb(varByte,150,200): ({inv2.r},{inv2.g},{inv2.b})");
-// InvertRgb - alleen variabelen
-var inv3 = ColorOperations.InvertRgb(varByte, varByte, varByte);
-Console.WriteLine($"[VARS ] InvertRgb(varByte,varByte,varByte): ({inv3.r},{inv3.g},{inv3.b})");
-
-// AdjustBrightness - alleen constanten
-var bright1 = ColorOperations.AdjustBrightness(100, 150, 200, 1.5f);
-Console.WriteLine($"[CONST] AdjustBrightness(100,150,200,1.5): ({bright1.r},{bright1.g},{bright1.b})");
-// AdjustBrightness - mixed
-var bright2 = ColorOperations.AdjustBrightness(varByte, 150, 200, 1.5f);
-Console.WriteLine($"[MIXED] AdjustBrightness(varByte,150,200,1.5): ({bright2.r},{bright2.g},{bright2.b})");
-// AdjustBrightness - alleen variabelen
-var bright3 = ColorOperations.AdjustBrightness(varByte, varByte, varByte, (float)varDouble4 * 2);
-Console.WriteLine($"[VARS ] AdjustBrightness(varByte,varByte,varByte,varDouble4*2): ({bright3.r},{bright3.g},{bright3.b})");
-
-// RgbToHex - alleen constanten
-Console.WriteLine($"[CONST] RgbToHex(255,128,64): 0x{ColorOperations.RgbToHex(255, 128, 6):X6}");
-// RgbToHex - mixed
-Console.WriteLine($"[MIXED] RgbToHex(varByte,128,64): 0x{ColorOperations.RgbToHex(varByte, 128, 64):X6}");
-// RgbToHex - alleen variabelen
-Console.WriteLine($"[VARS ] RgbToHex(varByte,varByte,varByte): 0x{ColorOperations.RgbToHex(varByte, varByte, varByte):X6}");
-
-// HexToRgb - alleen constanten
-var hexrgb1 = ColorOperations.HexToRgb(0xFF8040);
-Console.WriteLine($"[CONST] HexToRgb(0xFF8040): ({hexrgb1.r},{hexrgb1.g},{hexrgb1.b})");
-// HexToRgb - mixed (using constant hex value)
-var hexrgb2 = ColorOperations.HexToRgb(0x00FF00);
-Console.WriteLine($"[MIXED] HexToRgb(0x00FF00): ({hexrgb2.r},{hexrgb2.g},{hexrgb2.b})");
-// HexToRgb - alleen variabelen (using calculated value)
-var hexrgb3 = ColorOperations.HexToRgb(varInt * 65536);
-Console.WriteLine($"[VARS ] HexToRgb(varInt*65536): ({hexrgb3.r},{hexrgb3.g},{hexrgb3.b})");
+// // RgbToHsl - alleen constanten
+// var hsl1 = ColorOperations.RgbToHsl(255, 0, 0);
+// Console.WriteLine($"[CONST] RgbToHsl(255,0,0): ({hsl1.h:F2},{hsl1.s:F2},{hsl1.l:F2})");
+// // RgbToHsl - mixed
+// var hsl2 = ColorOperations.RgbToHsl(varByte, 128, 64);
+// Console.WriteLine($"[MIXED] RgbToHsl(varByte,128,64): ({hsl2.h:F2},{hsl2.s:F2},{hsl2.l:F2})");
+// // RgbToHsl - alleen variabelen
+// var hsl3 = ColorOperations.RgbToHsl(varByte, varByte, varByte);
+// Console.WriteLine($"[VARS ] RgbToHsl(varByte,varByte,varByte): ({hsl3.h:F2},{hsl3.s:F2},{hsl3.l:F2})");
+//
+// // BlendRgb - alleen constanten
+// var blend1 = ColorOperations.BlendRgb(255, 255, 255, 0, 0, 0, 0.5f, false);
+// Console.WriteLine($"[CONST] BlendRgb(255,255,255,0,0,0,0.5,false): ({blend1.r},{blend1.g},{blend1.b})");
+// // BlendRgb - mixed
+// var blend2 = ColorOperations.BlendRgb(varByte, varByte, varByte, 0, 0, 0, 0.5f, false);
+// Console.WriteLine($"[MIXED] BlendRgb(varByte,varByte,varByte,0,0,0,0.5,false): ({blend2.r},{blend2.g},{blend2.b})");
+// // BlendRgb - alleen variabelen
+// var blend3 = ColorOperations.BlendRgb(varByte, varByte, varByte, varByte, varByte, varByte, (float)varDouble4, false);
+// Console.WriteLine($"[VARS ] BlendRgb(varByte,varByte,varByte,varByte,varByte,varByte,varDouble4,false): ({blend3.r},{blend3.g},{blend3.b})");
+//
+// // RgbToGrayscale - alleen constanten
+// var gray1 = ColorOperations.RgbToGrayscale(100, 150, 200);
+// Console.WriteLine($"[CONST] RgbToGrayscale(100,150,200): ({gray1.r},{gray1.g},{gray1.b})");
+// // RgbToGrayscale - mixed
+// var gray2 = ColorOperations.RgbToGrayscale(varByte, 150, 200);
+// Console.WriteLine($"[MIXED] RgbToGrayscale(varByte,150,200): ({gray2.r},{gray2.g},{gray2.b})");
+// // RgbToGrayscale - alleen variabelen
+// var gray3 = ColorOperations.RgbToGrayscale(varByte, varByte, varByte);
+// Console.WriteLine($"[VARS ] RgbToGrayscale(varByte,varByte,varByte): ({gray3.r},{gray3.g},{gray3.b})");
+//
+// // InvertRgb - alleen constanten
+// var inv1 = ColorOperations.InvertRgb(100, 150, 200);
+// Console.WriteLine($"[CONST] InvertRgb(100,150,200): ({inv1.r},{inv1.g},{inv1.b})");
+// // InvertRgb - mixed
+// var inv2 = ColorOperations.InvertRgb(varByte, 150, 200);
+// Console.WriteLine($"[MIXED] InvertRgb(varByte,150,200): ({inv2.r},{inv2.g},{inv2.b})");
+// // InvertRgb - alleen variabelen
+// var inv3 = ColorOperations.InvertRgb(varByte, varByte, varByte);
+// Console.WriteLine($"[VARS ] InvertRgb(varByte,varByte,varByte): ({inv3.r},{inv3.g},{inv3.b})");
+//
+// // AdjustBrightness - alleen constanten
+// var bright1 = ColorOperations.AdjustBrightness(100, 150, 200, 1.5f);
+// Console.WriteLine($"[CONST] AdjustBrightness(100,150,200,1.5): ({bright1.r},{bright1.g},{bright1.b})");
+// // AdjustBrightness - mixed
+// var bright2 = ColorOperations.AdjustBrightness(varByte, 150, 200, 1.5f);
+// Console.WriteLine($"[MIXED] AdjustBrightness(varByte,150,200,1.5): ({bright2.r},{bright2.g},{bright2.b})");
+// // AdjustBrightness - alleen variabelen
+// var bright3 = ColorOperations.AdjustBrightness(varByte, varByte, varByte, (float)varDouble4 * 2);
+// Console.WriteLine($"[VARS ] AdjustBrightness(varByte,varByte,varByte,varDouble4*2): ({bright3.r},{bright3.g},{bright3.b})");
+//
+// // RgbToHex - alleen constanten
+// Console.WriteLine($"[CONST] RgbToHex(255,128,64): 0x{ColorOperations.RgbToHex(255, 128, 6):X6}");
+// // RgbToHex - mixed
+// Console.WriteLine($"[MIXED] RgbToHex(varByte,128,64): 0x{ColorOperations.RgbToHex(varByte, 128, 64):X6}");
+// // RgbToHex - alleen variabelen
+// Console.WriteLine($"[VARS ] RgbToHex(varByte,varByte,varByte): 0x{ColorOperations.RgbToHex(varByte, varByte, varByte):X6}");
+//
+// // HexToRgb - alleen constanten
+// var hexrgb1 = ColorOperations.HexToRgb(0xFF8040);
+// Console.WriteLine($"[CONST] HexToRgb(0xFF8040): ({hexrgb1.r},{hexrgb1.g},{hexrgb1.b})");
+// // HexToRgb - mixed (using constant hex value)
+// var hexrgb2 = ColorOperations.HexToRgb(0x00FF00);
+// Console.WriteLine($"[MIXED] HexToRgb(0x00FF00): ({hexrgb2.r},{hexrgb2.g},{hexrgb2.b})");
+// // HexToRgb - alleen variabelen (using calculated value)
+// var hexrgb3 = ColorOperations.HexToRgb(varInt * 65536);
+// Console.WriteLine($"[VARS ] HexToRgb(varInt*65536): ({hexrgb3.r},{hexrgb3.g},{hexrgb3.b})");
 //
 // Console.WriteLine();
 //
@@ -926,11 +926,11 @@ Console.WriteLine($"[VARS ] HexToRgb(varInt*65536): ({hexrgb3.r},{hexrgb3.g},{he
 // Console.WriteLine($"[VARS ] GenerateRange(varInt2,varInt,varInt4): [{String.Join(", ", CollectionOperations.GenerateRange(varInt2, varInt, varInt4))}]");
 //
 // // FilterAndTransform - alleen constanten
-// Console.WriteLine($"[CONST] FilterAndTransform([1,2,3,4,5],2,4,10): [{String.Join(", ", CollectionOperations.FilterAndTransform(new[] { 1, 2, 3, 4, 5 }, 2, 4, 10))}]");
+// Console.WriteLine($"[CONST] FilterAndTransform([1,2,3,4,5],2,4,10): [{String.Join(", ", CollectionOperations.FilterAndTransform([ 1, 2, 3, 4, 5 ], 2, 4, 10))}]");
 // // FilterAndTransform - mixed
-// Console.WriteLine($"[MIXED] FilterAndTransform([1,2,3,4,5],varInt2,varInt4,10): [{String.Join(", ", CollectionOperations.FilterAndTransform(new[] { 1, 2, 3, 4, 5 }, varInt2, varInt4, 10))}]");
+// Console.WriteLine($"[MIXED] FilterAndTransform([1,2,3,4,5],varInt2,varInt4,10): [{String.Join(", ", CollectionOperations.FilterAndTransform([ 1, 2, 3, 4, 5 ], varInt2, varInt4, 10))}]");
 // // FilterAndTransform - alleen variabelen
-// Console.WriteLine($"[VARS ] FilterAndTransform([1,2,3,4,5],varInt2,varInt,varInt2): [{String.Join(", ", CollectionOperations.FilterAndTransform(new[] { 1, 2, 3, 4, 5 }, varInt2, varInt, varInt2))}]");
+// Console.WriteLine($"[VARS ] FilterAndTransform([1,2,3,4,5],varInt2,varInt,varInt2): [{String.Join(", ", CollectionOperations.FilterAndTransform([ 1, 2, 3, 4, 5 ], varInt2, varInt, varInt2))}]");
 //
 // // ReverseArray - alleen constanten
 // Console.WriteLine($"[CONST] ReverseArray(1,2,3,4,5): [{String.Join(", ", CollectionOperations.ReverseArray(1, 2, 3, 4, 5))}]");
@@ -940,11 +940,11 @@ Console.WriteLine($"[VARS ] HexToRgb(varInt*65536): ({hexrgb3.r},{hexrgb3.g},{he
 // Console.WriteLine($"[VARS ] ReverseArray(varInt,varInt2,varInt4): [{String.Join(", ", CollectionOperations.ReverseArray(varInt, varInt2, varInt4))}]");
 //
 // // ChunkArray - alleen constanten
-// Console.WriteLine($"[CONST] ChunkArray([1,2,3,4,5,6],2,1): [{String.Join(", ", CollectionOperations.ChunkArray(new[] { 1, 2, 3, 4, 5, 6 }, 2, 1))}]");
+// Console.WriteLine($"[CONST] ChunkArray([1,2,3,4,5,6],2,1): [{String.Join(", ", CollectionOperations.ChunkArray([ 1, 2, 3, 4, 5, 6 ], 2, 1))}]");
 // // ChunkArray - mixed
-// Console.WriteLine($"[MIXED] ChunkArray([1,2,3,4,5,6],varInt2,1): [{String.Join(", ", CollectionOperations.ChunkArray(new[] { 1, 2, 3, 4, 5, 6 }, varInt2, 1))}]");
+// Console.WriteLine($"[MIXED] ChunkArray([1,2,3,4,5,6],varInt2,1): [{String.Join(", ", CollectionOperations.ChunkArray([ 1, 2, 3, 4, 5, 6 ], varInt2, 1))}]");
 // // ChunkArray - alleen variabelen
-// Console.WriteLine($"[VARS ] ChunkArray([1,2,3,4,5,6],varInt4,varInt2): [{String.Join(", ", CollectionOperations.ChunkArray(new[] { 1, 2, 3, 4, 5, 6 }, varInt4, varInt2))}]");
+// Console.WriteLine($"[VARS ] ChunkArray([1,2,3,4,5,6],varInt4,varInt2): [{String.Join(", ", CollectionOperations.ChunkArray([ 1, 2, 3, 4, 5, 6 ], varInt4, varInt2))}]");
 //
 // // RemoveDuplicates - alleen constanten
 // Console.WriteLine($"[CONST] RemoveDuplicates(1,2,2,3,3,3): [{String.Join(", ", CollectionOperations.RemoveDuplicates(1, 2, 2, 3, 3, 3))}]");
@@ -954,32 +954,32 @@ Console.WriteLine($"[VARS ] HexToRgb(varInt*65536): ({hexrgb3.r},{hexrgb3.g},{he
 // Console.WriteLine($"[VARS ] RemoveDuplicates(varInt,varInt2,varInt,varInt4): [{String.Join(", ", CollectionOperations.RemoveDuplicates(varInt, varInt2, varInt, varInt4))}]");
 //
 // // IntersectArrays - alleen constanten
-// Console.WriteLine($"[CONST] IntersectArrays([1,2,3],[2,3,4]): [{String.Join(", ", CollectionOperations.IntersectArrays(new[] { 1, 2, 3 }, new[] { 2, 3, 4 }))}]");
+// Console.WriteLine($"[CONST] IntersectArrays([1,2,3],[2,3,4]): [{String.Join(", ", CollectionOperations.IntersectArrays([ 1, 2, 3 ], [ 2, 3, 4 ]))}]");
 // // IntersectArrays - mixed
-// Console.WriteLine($"[MIXED] IntersectArrays([1,2,3],[varInt2,3,4]): [{String.Join(", ", CollectionOperations.IntersectArrays(new[] { 1, 2, 3 }, new[] { varInt2, 3, 4 }))}]");
+// Console.WriteLine($"[MIXED] IntersectArrays([1,2,3],[varInt2,3,4]): [{String.Join(", ", CollectionOperations.IntersectArrays([ 1, 2, 3 ], [ varInt2, 3, 4 ]))}]");
 // // IntersectArrays - alleen variabelen
-// Console.WriteLine($"[VARS ] IntersectArrays([varInt,varInt2],[varInt2,varInt4]): [{String.Join(", ", CollectionOperations.IntersectArrays(new[] { varInt, varInt2 }, new[] { varInt2, varInt4 }))}]");
+// Console.WriteLine($"[VARS ] IntersectArrays([varInt,varInt2],[varInt2,varInt4]): [{String.Join(", ", CollectionOperations.IntersectArrays([ varInt, varInt2 ], [ varInt2, varInt4 ]))}]");
 //
 // // UnionArrays - alleen constanten
-// Console.WriteLine($"[CONST] UnionArrays([1,2,3],[3,4,5]): [{String.Join(", ", CollectionOperations.UnionArrays(new[] { 1, 2, 3 }, new[] { 3, 4, 5 }))}]");
+// Console.WriteLine($"[CONST] UnionArrays([1,2,3],[3,4,5]): [{String.Join(", ", CollectionOperations.UnionArrays([ 1, 2, 3 ], [ 3, 4, 5 ]))}]");
 // // UnionArrays - mixed
-// Console.WriteLine($"[MIXED] UnionArrays([1,2,3],[varInt4,4,5]): [{String.Join(", ", CollectionOperations.UnionArrays(new[] { 1, 2, 3 }, new[] { varInt4, 4, 5 }))}]");
+// Console.WriteLine($"[MIXED] UnionArrays([1,2,3],[varInt4,4,5]): [{String.Join(", ", CollectionOperations.UnionArrays([ 1, 2, 3 ], [ varInt4, 4, 5 ]))}]");
 // // UnionArrays - alleen variabelen
-// Console.WriteLine($"[VARS ] UnionArrays([varInt,varInt2],[varInt4,varInt2]): [{String.Join(", ", CollectionOperations.UnionArrays(new[] { varInt, varInt2 }, new[] { varInt4, varInt2 }))}]");
+// Console.WriteLine($"[VARS ] UnionArrays([varInt,varInt2],[varInt4,varInt2]): [{String.Join(", ", CollectionOperations.UnionArrays([ varInt, varInt2 ], [ varInt4, varInt2 ]))}]");
 //
 // // FlattenNestedArray - alleen constanten
-// Console.WriteLine($"[CONST] FlattenNestedArray([[1,2],[3,4],[5]]): [{String.Join(", ", CollectionOperations.FlattenNestedArray(new[] { new[] { 1, 2 }, new[] { 3, 4 }, new[] { 5 } }))}]");
+// Console.WriteLine($"[CONST] FlattenNestedArray([[1,2],[3,4],[5]]): [{String.Join(", ", CollectionOperations.FlattenNestedArray([ [ 1, 2 ], [ 3, 4 ], [ 5 ] ]))}]");
 // // FlattenNestedArray - mixed
-// Console.WriteLine($"[MIXED] FlattenNestedArray([[varInt,2],[3,4]]): [{String.Join(", ", CollectionOperations.FlattenNestedArray(new[] { new[] { varInt, 2 }, new[] { 3, 4 } }))}]");
+// Console.WriteLine($"[MIXED] FlattenNestedArray([[varInt,2],[3,4]]): [{String.Join(", ", CollectionOperations.FlattenNestedArray([ [ varInt, 2 ], [ 3, 4 ] ]))}]");
 // // FlattenNestedArray - alleen variabelen
-// Console.WriteLine($"[VARS ] FlattenNestedArray([[varInt,varInt2],[varInt4]]): [{String.Join(", ", CollectionOperations.FlattenNestedArray(new[] { new[] { varInt, varInt2 }, new[] { varInt4 } }))}]");
+// Console.WriteLine($"[VARS ] FlattenNestedArray([[varInt,varInt2],[varInt4]]): [{String.Join(", ", CollectionOperations.FlattenNestedArray([ [ varInt, varInt2 ], [ varInt4 ] ]))}]");
 //
 // // RotateArray - alleen constanten
-// Console.WriteLine($"[CONST] RotateArray([1,2,3,4,5],2): [{String.Join(", ", CollectionOperations.RotateArray(new[] { 1, 2, 3, 4, 5 }, 2))}]");
+// Console.WriteLine($"[CONST] RotateArray([1,2,3,4,5],2): [{String.Join(", ", CollectionOperations.RotateArray([ 1, 2, 3, 4, 5 ], 2))}]");
 // // RotateArray - mixed
-// Console.WriteLine($"[MIXED] RotateArray([1,2,3,4,5],varInt2): [{String.Join(", ", CollectionOperations.RotateArray(new[] { 1, 2, 3, 4, 5 }, varInt2))}]");
+// Console.WriteLine($"[MIXED] RotateArray([1,2,3,4,5],varInt2): [{String.Join(", ", CollectionOperations.RotateArray([ 1, 2, 3, 4, 5 ], varInt2))}]");
 // // RotateArray - alleen variabelen
-// Console.WriteLine($"[VARS ] RotateArray([varInt,varInt2,varInt4,varInt],varInt4): [{String.Join(", ", CollectionOperations.RotateArray(new[] { varInt, varInt2, varInt4, varInt }, varInt4))}]");
+// Console.WriteLine($"[VARS ] RotateArray([varInt,varInt2,varInt4,varInt],varInt4): [{String.Join(", ", CollectionOperations.RotateArray([ varInt, varInt2, varInt4, varInt ], varInt4))}]");
 //
 // // FindMax - alleen constanten
 // Console.WriteLine($"[CONST] FindMax(5,2,8,1,9,3): {CollectionOperations.FindMax(5, 2, 8, 1, 9, 3)}");
@@ -1003,11 +1003,11 @@ Console.WriteLine($"[VARS ] HexToRgb(varInt*65536): ({hexrgb3.r},{hexrgb3.g},{he
 // Console.WriteLine($"[VARS ] BubbleSort(varInt5,varInt2,varInt8,varInt): [{String.Join(", ", CollectionOperations.BubbleSort(varInt5, varInt2, varInt8, varInt))}]");
 //
 // // BinarySearch - alleen constanten
-// Console.WriteLine($"[CONST] BinarySearch([1,2,3,4,5],3): {CollectionOperations.BinarySearch(new[] { 1, 2, 3, 4, 5 }, 3)}");
+// Console.WriteLine($"[CONST] BinarySearch([1,2,3,4,5],3): {CollectionOperations.BinarySearch([ 1, 2, 3, 4, 5 ], 3)}");
 // // BinarySearch - mixed
-// Console.WriteLine($"[MIXED] BinarySearch([1,2,3,4,5],varInt4): {CollectionOperations.BinarySearch(new[] { 1, 2, 3, 4, 5 }, varInt4)}");
+// Console.WriteLine($"[MIXED] BinarySearch([1,2,3,4,5],varInt4): {CollectionOperations.BinarySearch([ 1, 2, 3, 4, 5 ], varInt4)}");
 // // BinarySearch - alleen variabelen
-// Console.WriteLine($"[VARS ] BinarySearch([varInt2,varInt4,varInt,varInt5],varInt): {CollectionOperations.BinarySearch(new[] { varInt2, varInt4, varInt, varInt5 }, varInt)}");
+// Console.WriteLine($"[VARS ] BinarySearch([varInt2,varInt4,varInt,varInt5],varInt): {CollectionOperations.BinarySearch([ varInt2, varInt4, varInt, varInt5 ], varInt)}");
 //
 // Console.WriteLine();
 //
@@ -1016,65 +1016,65 @@ Console.WriteLine($"[VARS ] HexToRgb(varInt*65536): ({hexrgb3.r},{hexrgb3.g},{he
 // // ═══════════════════════════════════════════════════════════════
 // Console.WriteLine("═══ REMAINING / MISC EXTRA FUNCTIONS ═══\n");
 //
-// // Geometry: EllipseArea
-// Console.WriteLine($"[CONST] EllipseArea(5,3): {GeometryOperations.EllipseArea(5, 3):F2}");
-// Console.WriteLine($"[MIXED] EllipseArea(varDouble,3): {GeometryOperations.EllipseArea(varDouble, 3):F2}");
-// Console.WriteLine($"[VARS ] EllipseArea(varDouble6,varDouble4): {GeometryOperations.EllipseArea(varDouble6, varDouble4):F2}");
-//
-// // Geometry: TrapezoidArea
-// Console.WriteLine($"[CONST] TrapezoidArea(3,5,4): {GeometryOperations.TrapezoidArea(3, 5, 4):F2}");
-// Console.WriteLine($"[MIXED] TrapezoidArea(varDouble,5,4): {GeometryOperations.TrapezoidArea(varDouble, 5, 4):F2}");
-// Console.WriteLine($"[VARS ] TrapezoidArea(varDouble2,varDouble6,varDouble3): {GeometryOperations.TrapezoidArea(varDouble2, varDouble6, varDouble3):F2}");
-//
-// // Physics: EscapeVelocity
-// Console.WriteLine($"[CONST] EscapeVelocity(6.67430e-11,5.972e24,6.371e6): {PhysicsOperations.EscapeVelocity(6.67430e-11, 5.972e24, 6.371e6):F2}");
-// Console.WriteLine($"[MIXED] EscapeVelocity(6.67430e-11,varDouble5,6.371e6): {PhysicsOperations.EscapeVelocity(6.67430e-11, varDouble5, 6.371e6):F2}");
-// Console.WriteLine($"[VARS ] EscapeVelocity(varDouble5,varDouble6,varDouble7): {PhysicsOperations.EscapeVelocity(varDouble5, varDouble6, varDouble7):F2}");
-//
-// // Physics: RelativisticMass
-// Console.WriteLine($"[CONST] RelativisticMass(1.0,100000,299792458): {PhysicsOperations.RelativisticMass(1.0, 100000, 299792458):F6}");
-// Console.WriteLine($"[MIXED] RelativisticMass(1.0,varDouble5,299792458): {PhysicsOperations.RelativisticMass(1.0, varDouble5, 299792458):F6}");
-// Console.WriteLine($"[VARS ] RelativisticMass(varDouble5,varDouble6,299792458): {PhysicsOperations.RelativisticMass(varDouble5, varDouble6, 299792458):F6}");
-//
-// // Physics: SchwarzschildRadius
-// Console.WriteLine($"[CONST] SchwarzschildRadius(5.972e24,6.67430e-11,299792458): {PhysicsOperations.SchwarzschildRadius(5.972e24, 6.67430e-11, 299792458):E6}");
-// Console.WriteLine($"[MIXED] SchwarzschildRadius(varDouble5,6.67430e-11,299792458): {PhysicsOperations.SchwarzschildRadius(varDouble5, 6.67430e-11, 299792458):E6}");
-// Console.WriteLine($"[VARS ] SchwarzschildRadius(varDouble6,varDouble7,299792458): {PhysicsOperations.SchwarzschildRadius(varDouble6, varDouble7, 299792458):E6}");
-//
-// // StringOperations: StringLength / StringBytes / Base64Encode / Split / LevenshteinDistance
-// Console.WriteLine($"[CONST] StringLength('hello', UTF8): {StringOperations.StringLength("hello", System.Text.Encoding.UTF8)}");
-// var sbBytes = StringOperations.StringBytes("hello", System.Text.Encoding.UTF8);
-// Console.WriteLine($"[CONST] StringBytes('hello', UTF8): [{string.Join(", ", sbBytes.ToArray())}]");
-// var b64 = StringOperations.Base64Encode("hello");
-// Console.WriteLine($"[CONST] Base64Encode('hello'): {b64}");
-// var split1 = StringOperations.Split("a,b,c", ',');
-// Console.WriteLine($"[CONST] Split('a,b,c',','): [{string.Join(", ", split1)}]");
-// Console.WriteLine($"[CONST] LevenshteinDistance('kitten','sitting'): {StringOperations.LevenshteinDistance("kitten", "sitting")}");
-//
-// // CollectionOperations: CountOccurrences
-// var countDict = CollectionOperations.CountOccurrences(1,2,2,3,3,3);
-// Console.WriteLine($"[CONST] CountOccurrences(1,2,2,3,3,3): {{{string.Join(", ", countDict.Select(kv => kv.Key + ":" + kv.Value))}}}");
-//
-// // MiscellaneousOperations: ToString (enum), GetNames, Waiting, RandomInRange, ClearBit, ToggleBit, Decimal/Hex conversions
-// Console.WriteLine($"[CONST] EnumToString(DayOfWeek.Monday): {MiscellaneousOperations.ToString(DayOfWeek.Monday)}");
-// Console.WriteLine($"[CONST] GetNames<DayOfWeek>: [{string.Join(", ", MiscellaneousOperations.GetNames<DayOfWeek>())}]");
-// Console.WriteLine($"[CONST] Waiting(): {MiscellaneousOperations.Waiting().GetAwaiter().GetResult()}");
-// Console.WriteLine($"[CONST] RandomInRange(1,10): {MiscellaneousOperations.RandomInRange(1, 10)}");
-//
-// Console.WriteLine($"[CONST] ClearBit(15,1): {MiscellaneousOperations.ClearBit(15, 1)}");
-// Console.WriteLine($"[CONST] ToggleBit(8,3): {MiscellaneousOperations.ToggleBit(8, 3)}");
-//
-// // Add missing bit-related tests
-// Console.WriteLine($"[CONST] SetBit(8,1): {MiscellaneousOperations.SetBit(8, 1)}");
-// Console.WriteLine($"[CONST] CountBits(13): {MiscellaneousOperations.CountBits(13)}");
-// Console.WriteLine($"[CONST] ReverseBits(1): {MiscellaneousOperations.ReverseBits(1)}");
-// Console.WriteLine($"[CONST] IsBitSet(13,2): {MiscellaneousOperations.IsBitSet(13, 2)}");
-// Console.WriteLine($"[CONST] NextPowerOfTwo(5): {MiscellaneousOperations.NextPowerOfTwo(5)}");
-//
-// Console.WriteLine($"[CONST] DecimalToBinary(13): {MiscellaneousOperations.DecimalToBinary(13)}");
-// Console.WriteLine($"[CONST] BinaryToDecimal('1101'): {MiscellaneousOperations.BinaryToDecimal("1101")} ");
-// Console.WriteLine($"[CONST] DecimalToHex(255): {MiscellaneousOperations.DecimalToHex(255)}");
-// Console.WriteLine($"[CONST] HexToDecimal('FF'): {MiscellaneousOperations.HexToDecimal("FF")}" );
+// Geometry: EllipseArea
+Console.WriteLine($"[CONST] EllipseArea(5,3): {GeometryOperations.EllipseArea(5, 3):F2}");
+Console.WriteLine($"[MIXED] EllipseArea(varDouble,3): {GeometryOperations.EllipseArea(varDouble, 3):F2}");
+Console.WriteLine($"[VARS ] EllipseArea(varDouble6,varDouble4): {GeometryOperations.EllipseArea(varDouble6, varDouble4):F2}");
+
+// Geometry: TrapezoidArea
+Console.WriteLine($"[CONST] TrapezoidArea(3,5,4): {GeometryOperations.TrapezoidArea(3, 5, 4):F2}");
+Console.WriteLine($"[MIXED] TrapezoidArea(varDouble,5,4): {GeometryOperations.TrapezoidArea(varDouble, 5, 4):F2}");
+Console.WriteLine($"[VARS ] TrapezoidArea(varDouble2,varDouble6,varDouble3): {GeometryOperations.TrapezoidArea(varDouble2, varDouble6, varDouble3):F2}");
+
+// Physics: EscapeVelocity
+Console.WriteLine($"[CONST] EscapeVelocity(6.67430e-11,5.972e24,6.371e6): {PhysicsOperations.EscapeVelocity(6.67430e-11, 5.972e24, 6.371e6):F2}");
+Console.WriteLine($"[MIXED] EscapeVelocity(6.67430e-11,varDouble5,6.371e6): {PhysicsOperations.EscapeVelocity(6.67430e-11, varDouble5, 6.371e6):F2}");
+Console.WriteLine($"[VARS ] EscapeVelocity(varDouble5,varDouble6,varDouble7): {PhysicsOperations.EscapeVelocity(varDouble5, varDouble6, varDouble7):F2}");
+
+// Physics: RelativisticMass
+Console.WriteLine($"[CONST] RelativisticMass(1.0,100000,299792458): {PhysicsOperations.RelativisticMass(1.0, 100000, 299792458):F6}");
+Console.WriteLine($"[MIXED] RelativisticMass(1.0,varDouble5,299792458): {PhysicsOperations.RelativisticMass(1.0, varDouble5, 299792458):F6}");
+Console.WriteLine($"[VARS ] RelativisticMass(varDouble5,varDouble6,299792458): {PhysicsOperations.RelativisticMass(varDouble5, varDouble6, 299792458):F6}");
+
+// Physics: SchwarzschildRadius
+Console.WriteLine($"[CONST] SchwarzschildRadius(5.972e24,6.67430e-11,299792458): {PhysicsOperations.SchwarzschildRadius(5.972e24, 6.67430e-11, 299792458):E6}");
+Console.WriteLine($"[MIXED] SchwarzschildRadius(varDouble5,6.67430e-11,299792458): {PhysicsOperations.SchwarzschildRadius(varDouble5, 6.67430e-11, 299792458):E6}");
+Console.WriteLine($"[VARS ] SchwarzschildRadius(varDouble6,varDouble7,299792458): {PhysicsOperations.SchwarzschildRadius(varDouble6, varDouble7, 299792458):E6}");
+
+// StringOperations: StringLength / StringBytes / Base64Encode / Split / LevenshteinDistance
+Console.WriteLine($"[CONST] StringLength('hello', UTF8): {StringOperations.StringLength("hello", System.Text.Encoding.UTF8)}");
+var sbBytes = StringOperations.StringBytes("hello", System.Text.Encoding.UTF8);
+Console.WriteLine($"[CONST] StringBytes('hello', UTF8): [{string.Join(", ", sbBytes.ToArray())}]");
+var b64 = StringOperations.Base64Encode("hello");
+Console.WriteLine($"[CONST] Base64Encode('hello'): {b64}");
+var split1 = StringOperations.Split("a,b,c", ',');
+Console.WriteLine($"[CONST] Split('a,b,c',','): [{string.Join(", ", split1)}]");
+Console.WriteLine($"[CONST] LevenshteinDistance('kitten','sitting'): {StringOperations.LevenshteinDistance("kitten", "sitting")}");
+
+// CollectionOperations: CountOccurrences
+var countDict = CollectionOperations.CountOccurrences(1,2,2,3,3,3);
+Console.WriteLine($"[CONST] CountOccurrences(1,2,2,3,3,3): {{{string.Join(", ", countDict.Select(kv => kv.Key + ":" + kv.Value))}}}");
+
+// MiscellaneousOperations: ToString (enum), GetNames, Waiting, RandomInRange, ClearBit, ToggleBit, Decimal/Hex conversions
+Console.WriteLine($"[CONST] EnumToString(DayOfWeek.Monday): {MiscellaneousOperations.ToString(DayOfWeek.Monday)}");
+Console.WriteLine($"[CONST] GetNames<DayOfWeek>: [{string.Join(", ", MiscellaneousOperations.GetNames<DayOfWeek>())}]");
+Console.WriteLine($"[CONST] Waiting(): {MiscellaneousOperations.Waiting().GetAwaiter().GetResult()}");
+Console.WriteLine($"[CONST] RandomInRange(1,10): {MiscellaneousOperations.RandomInRange(1, 10)}");
+
+Console.WriteLine($"[CONST] ClearBit(15,1): {MiscellaneousOperations.ClearBit(15, 1)}");
+Console.WriteLine($"[CONST] ToggleBit(8,3): {MiscellaneousOperations.ToggleBit(8, 3)}");
+
+// Add missing bit-related tests
+Console.WriteLine($"[CONST] SetBit(8,1): {MiscellaneousOperations.SetBit(8, 1)}");
+Console.WriteLine($"[CONST] CountBits(13): {MiscellaneousOperations.CountBits(13)}");
+Console.WriteLine($"[CONST] ReverseBits(1): {MiscellaneousOperations.ReverseBits(1)}");
+Console.WriteLine($"[CONST] IsBitSet(13,2): {MiscellaneousOperations.IsBitSet(13, 2)}");
+Console.WriteLine($"[CONST] NextPowerOfTwo(5): {MiscellaneousOperations.NextPowerOfTwo(5)}");
+
+Console.WriteLine($"[CONST] DecimalToBinary(13): {MiscellaneousOperations.DecimalToBinary(13)}");
+Console.WriteLine($"[CONST] BinaryToDecimal('1101'): {MiscellaneousOperations.BinaryToDecimal("1101")} ");
+Console.WriteLine($"[CONST] DecimalToHex(255): {MiscellaneousOperations.DecimalToHex(255)}");
+Console.WriteLine($"[CONST] HexToDecimal('FF'): {MiscellaneousOperations.HexToDecimal("FF")}" );
 //
 // Console.WriteLine();
 //

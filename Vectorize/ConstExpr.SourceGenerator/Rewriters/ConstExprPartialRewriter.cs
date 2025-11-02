@@ -878,28 +878,121 @@ public class ConstExprPartialRewriter(
 
 				if (leftArgs.Count == rightArgs.Count)
 				{
-					// Update each variable with its corresponding value
+					// Mark all left-hand side variables as altered (they're being assigned to)
+					// This MUST happen before we check allLeftVarsExist to prevent pruning
 					for (var i = 0; i < leftArgs.Count; i++)
 					{
-						if (leftArgs[i].Expression is IdentifierNameSyntax { Identifier.Text: var tupleName }
-						    && variables.TryGetValue(tupleName, out var tupleVariable))
+						if (leftArgs[i].Expression is IdentifierNameSyntax { Identifier.Text: var leftVarName }
+						    && variables.TryGetValue(leftVarName, out var leftVar))
+						{
+							leftVar.IsAltered = true;
+						}
+					}
+
+					// Check if all left-hand side variables exist in our tracking dictionary
+					var allLeftVarsExist = true;
+					for (var i = 0; i < leftArgs.Count; i++)
+					{
+						if (leftArgs[i].Expression is IdentifierNameSyntax { Identifier.Text: var tupleName })
+						{
+							if (!variables.TryGetValue(tupleName, out _))
+							{
+								allLeftVarsExist = false;
+								break;
+							}
+						}
+						else
+						{
+							// Non-identifier on left side (e.g., member access)
+							allLeftVarsExist = false;
+							break;
+						}
+					}
+
+					// Only try to optimize if all left-hand side variables are tracked
+					if (allLeftVarsExist)
+					{
+						// Collect right-side values FIRST (to support swaps like (x, y) = (y, x))
+						var rightValues = new object?[rightArgs.Count];
+						var allRightValuesResolved = true;
+						var newRightArgs = new ArgumentSyntax[rightArgs.Count];
+						var hasOptimization = false;
+
+						for (var i = 0; i < rightArgs.Count; i++)
 						{
 							if (TryGetLiteralValue(rightArgs[i].Expression, out var value))
 							{
-								tupleVariable.Value = value;
-								tupleVariable.HasValue = true;
-								tupleVariable.IsInitialized = true;
+								rightValues[i] = value;
+								newRightArgs[i] = rightArgs[i];
 							}
-							else if (rightArgs[i].Expression is IdentifierNameSyntax nameSyntax)
+							else if (rightArgs[i].Expression is IdentifierNameSyntax rightVarName
+							         && variables.TryGetValue(rightVarName.Identifier.Text, out var rightVar)
+							         && rightVar.HasValue)
 							{
-								tupleVariable.Value = nameSyntax;
-								tupleVariable.HasValue = true;
-								tupleVariable.IsInitialized = true;
+								// Store the current value for swapping
+								rightValues[i] = rightVar.Value;
+								
+								// Replace identifier with literal value if possible
+								if (TryGetLiteral(rightVar.Value, out var literal))
+								{
+									newRightArgs[i] = SyntaxFactory.Argument(literal);
+									hasOptimization = true;
+								}
+								else
+								{
+									// Keep the identifier and mark as accessed to prevent pruning
+									newRightArgs[i] = rightArgs[i];
+									rightVar.IsAccessed = true;
+								}
 							}
 							else
 							{
-								tupleVariable.HasValue = false;
-								tupleVariable.IsInitialized = true;
+								// Cannot resolve this value, keep original
+								allRightValuesResolved = false;
+								newRightArgs[i] = rightArgs[i];
+								
+								// Mark identifier as accessed if it's a variable reference
+								if (rightArgs[i].Expression is IdentifierNameSyntax varName
+								    && variables.TryGetValue(varName.Identifier.Text, out var varItem))
+								{
+									varItem.IsAccessed = true;
+								}
+							}
+						}
+
+						// Update left-hand side variables AFTER collecting all right-side values
+						if (allRightValuesResolved)
+						{
+							for (var i = 0; i < leftArgs.Count; i++)
+							{
+								if (leftArgs[i].Expression is IdentifierNameSyntax { Identifier.Text: var tupleName }
+								    && variables.TryGetValue(tupleName, out var tupleVariable))
+								{
+									tupleVariable.Value = rightValues[i];
+									tupleVariable.HasValue = true;
+									tupleVariable.IsInitialized = true;
+									// IsAltered is already set earlier for all left-hand variables
+								}
+							}
+						}
+
+						// Return optimized tuple if we made any changes
+						if (hasOptimization || !allRightValuesResolved)
+						{
+							var optimizedRightTuple = SyntaxFactory.TupleExpression(
+								SyntaxFactory.SeparatedList(newRightArgs));
+							return node.WithRight(optimizedRightTuple);
+						}
+					}
+					else
+					{
+						// Not all left variables are tracked, mark right-side identifiers as accessed
+						for (var i = 0; i < rightArgs.Count; i++)
+						{
+							if (rightArgs[i].Expression is IdentifierNameSyntax rightVarName
+							    && variables.TryGetValue(rightVarName.Identifier.Text, out var rightVar))
+							{
+								rightVar.IsAccessed = true;
 							}
 						}
 					}
@@ -1916,6 +2009,11 @@ public class ConstExprPartialRewriter(
 		{
 			usings.Add(type.ContainingNamespace.ToDisplayString());
 
+			if (type.EqualsType(semanticModel.Compilation.GetTypeByMetadataName("System.Random")))
+			{
+				return base.VisitObjectCreationExpression(node);
+			}
+
 			// Try to create the object and convert it to a literal
 			var runtimeType = loader.GetType(type);
 			
@@ -1927,6 +2025,8 @@ public class ConstExprPartialRewriter(
 						.Select(arg => Visit(arg.Expression))
 						.OfType<ExpressionSyntax>()
 						.ToList() ?? [ ];
+
+					
 
 					// Extract literal values from arguments
 					var argumentValues = arguments
