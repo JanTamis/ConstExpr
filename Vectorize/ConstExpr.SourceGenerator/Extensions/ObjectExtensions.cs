@@ -447,7 +447,12 @@ public static class ObjectExtensions
 
 		return false;
 	}
-	
+
+	public static IDictionary<TKey, TValue> Clone<TKey, TValue>(this IDictionary<TKey, TValue> dictionary)
+	{
+		return new Dictionary<TKey, TValue>(dictionary);
+	}
+
 	public static bool TryPop<T>(this Stack<T> stack, out T? value)
 	{
 		if (stack.Count > 0)

@@ -2078,82 +2078,105 @@ public class ConstExprPartialRewriter(
 
 	public override SyntaxNode? VisitWhileStatement(WhileStatementSyntax node)
 	{
-		var result = new List<SyntaxNode>();
+		var clone = variables.Clone();
+		var result = new List<SyntaxNode?>();
 
-		// Check if the condition is immediately false (loop never executes)
-		var initialCondition = Visit(node.Condition);
-
-		if (TryGetLiteralValue(initialCondition, out var initialValue) && initialValue is false)
+		while (TryGetLiteralValue(Visit(node.Condition), out var condition) && condition is true)
 		{
-			// Loop never executes, return null to remove it
-			return null;
-		}
-
-		// Try to unroll the loop if the condition remains constant true
-		const int maxUnrollIterations = 1000; // Safety limit to prevent infinite unrolling
-		var iterations = 0;
-
-		while (TryGetLiteralValue(Visit(node.Condition), out var value) && value is true)
-		{
-			if (++iterations > maxUnrollIterations)
-			{
-				// Condition is always true but we've hit the unroll limit
-				// Fall back to preserving the loop
-				break;
-			}
-
 			result.Add(Visit(node.Statement));
 		}
 
-		if (result.Any() && iterations <= maxUnrollIterations)
+		if (result.Count > 0)
 		{
-			// Successfully unrolled the loop
 			return ToStatementSyntax(result);
 		}
 
-		// Non-constant condition: optimize the condition and body
-		// Take a snapshot of variable states before visiting the loop body
-		var variablesSnapshot = new Dictionary<string, (object? Value, bool HasValue, bool IsInitialized)>();
+		// Restore variable states
+		variables.Clear();
 
-		foreach (var kvp in variables)
+		foreach (var kvp in clone)
 		{
-			variablesSnapshot[kvp.Key] = (kvp.Value.Value, kvp.Value.HasValue, kvp.Value.IsInitialized);
+			variables[kvp.Key] = kvp.Value;
 		}
 
-		// Visit the body to see which variables get modified
-		var visitedStatement = Visit(node.Statement) as StatementSyntax ?? node.Statement;
+		return node;
 
-		// Restore variable states and mark modified variables as having no constant value
-		// since we don't know how many times the loop will execute
-		foreach (var kvp in variablesSnapshot)
-		{
-			if (variables.TryGetValue(kvp.Key, out var currentVar))
-			{
-				var (originalValue, originalHasValue, originalIsInitialized) = kvp.Value;
+		//var result = new List<SyntaxNode>();
 
-				// If the variable was modified in the loop body
-				if (currentVar.HasValue != originalHasValue || !Equals(currentVar.Value, originalValue))
-				{
-					// Restore the original value but mark it as no longer having a constant value
-					currentVar.Value = originalValue;
-					currentVar.HasValue = false;
-					currentVar.IsInitialized = true;
-				}
-				else
-				{
-					// Variable wasn't modified, restore original state just in case
-					currentVar.Value = originalValue;
-					currentVar.HasValue = originalHasValue;
-					currentVar.IsInitialized = originalIsInitialized;
-				}
-			}
-		}
+		//// Check if the condition is immediately false (loop never executes)
+		//var initialCondition = Visit(node.Condition);
 
-		var visitedCondition = Visit(node.Condition) as ExpressionSyntax ?? node.Condition;
+		//if (TryGetLiteralValue(initialCondition, out var initialValue) && initialValue is false)
+		//{
+		//	// Loop never executes, return null to remove it
+		//	return null;
+		//}
 
-		return node
-			.WithCondition(visitedCondition)
-			.WithStatement(visitedStatement);
+		//// Try to unroll the loop if the condition remains constant true
+		//const int maxUnrollIterations = 1000; // Safety limit to prevent infinite unrolling
+		//var iterations = 0;
+
+		//while (TryGetLiteralValue(Visit(node.Condition), out var value) && value is true)
+		//{
+		//	if (++iterations > maxUnrollIterations)
+		//	{
+		//		// Condition is always true but we've hit the unroll limit
+		//		// Fall back to preserving the loop
+		//		break;
+		//	}
+
+		//	result.Add(Visit(node.Statement));
+		//}
+
+		//if (result.Any() && iterations <= maxUnrollIterations)
+		//{
+		//	// Successfully unrolled the loop
+		//	return ToStatementSyntax(result);
+		//}
+
+		//// Non-constant condition: optimize the condition and body
+		//// Take a snapshot of variable states before visiting the loop body
+		//var variablesSnapshot = new Dictionary<string, (object? Value, bool HasValue, bool IsInitialized)>();
+
+		//foreach (var kvp in variables)
+		//{
+		//	variablesSnapshot[kvp.Key] = (kvp.Value.Value, kvp.Value.HasValue, kvp.Value.IsInitialized);
+		//}
+
+		//// Visit the body to see which variables get modified
+		//var visitedStatement = Visit(node.Statement) as StatementSyntax ?? node.Statement;
+
+		//// Restore variable states and mark modified variables as having no constant value
+		//// since we don't know how many times the loop will execute
+		//foreach (var kvp in variablesSnapshot)
+		//{
+		//	if (variables.TryGetValue(kvp.Key, out var currentVar))
+		//	{
+		//		var (originalValue, originalHasValue, originalIsInitialized) = kvp.Value;
+
+		//		// If the variable was modified in the loop body
+		//		if (currentVar.HasValue != originalHasValue || !Equals(currentVar.Value, originalValue))
+		//		{
+		//			// Restore the original value but mark it as no longer having a constant value
+		//			currentVar.Value = originalValue;
+		//			currentVar.HasValue = false;
+		//			currentVar.IsInitialized = true;
+		//		}
+		//		else
+		//		{
+		//			// Variable wasn't modified, restore original state just in case
+		//			currentVar.Value = originalValue;
+		//			currentVar.HasValue = originalHasValue;
+		//			currentVar.IsInitialized = originalIsInitialized;
+		//		}
+		//	}
+		//}
+
+		//var visitedCondition = Visit(node.Condition) as ExpressionSyntax ?? node.Condition;
+
+		//return node
+		//	.WithCondition(visitedCondition)
+		//	.WithStatement(visitedStatement);
 	}
 
 	public override SyntaxNode VisitBlock(BlockSyntax node)
@@ -2201,10 +2224,10 @@ public class ConstExprPartialRewriter(
 		};
 	}
 
-	private StatementSyntax ToStatementSyntax(IEnumerable<SyntaxNode> nodes)
+	private StatementSyntax ToStatementSyntax(IEnumerable<SyntaxNode?> nodes)
 	{
 		var items = nodes
-			.SelectMany<SyntaxNode, SyntaxNode>(s => s is BlockSyntax block ? block.Statements : [ s ])
+			.SelectMany<SyntaxNode?, SyntaxNode?>(s => s is BlockSyntax block ? block.Statements : [ s ])
 			.OfType<StatementSyntax>()
 			.ToList();
 
