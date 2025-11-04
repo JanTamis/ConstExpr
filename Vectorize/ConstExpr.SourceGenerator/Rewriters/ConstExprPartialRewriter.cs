@@ -384,8 +384,8 @@ public class ConstExprPartialRewriter(
 
 					var hasLiteral = TryGetLiteralValue(instanceName, out var instance) || TryGetLiteralValue(Visit(instanceName), out instance);
 
-					if ((targetMethod.IsStatic || hasLiteral)
-					    && loader.TryExecuteMethod(targetMethod, instance, new VariableItemDictionary(variables), constantArguments, out var value)
+					if ((targetMethod.IsStatic || (hasLiteral && (instanceName is not IdentifierNameSyntax identifier || CanBePruned(identifier.Identifier.Text))))
+							&& loader.TryExecuteMethod(targetMethod, instance, new VariableItemDictionary(variables), constantArguments, out var value)
 					    && TryGetLiteral(value, out var literal))
 					{
 						if (targetMethod.ReturnsVoid)

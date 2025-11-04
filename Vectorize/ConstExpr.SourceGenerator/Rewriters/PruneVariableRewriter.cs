@@ -6,6 +6,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Xml.Linq;
 
 namespace ConstExpr.SourceGenerator.Rewriters;
 
@@ -25,7 +26,7 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 
 	public override SyntaxNode? VisitIdentifierName(IdentifierNameSyntax node)
 	{
-		if (variables.TryGetValue(node.Identifier.Text, out var value) && value.HasValue && (!value.IsAccessed && !value.IsAltered))
+		if (CanBePruned(node.Identifier.Text))
 		{
 			return null;
 		}
@@ -60,7 +61,7 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 	{
 		var identifier = node.Identifier.Text;
 
-		if (variables.TryGetValue(identifier, out var value) && value.HasValue)
+		if (CanBePruned(identifier))
 		{
 			return null;
 		}
@@ -177,7 +178,7 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 
 		var identifier = node.Left.ToString();
 
-		if (variables.TryGetValue(identifier, out var value) && value.HasValue)
+		if (CanBePruned(identifier))
 		{
 			return null;
 		}
@@ -342,7 +343,7 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 	{
 		// Handle i++, i--, etc. on constant variables
 		if (node.Operand is IdentifierNameSyntax { Identifier.Text: var name }
-		    && variables.TryGetValue(name, out var value) && value.HasValue)
+		    && CanBePruned(name))
 		{
 			return null;
 		}
@@ -354,7 +355,7 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 	{
 		// Handle ++i, --i, etc. on constant variables
 		if (node.Operand is IdentifierNameSyntax { Identifier.Text: var name }
-		    && variables.TryGetValue(name, out var value) && value.HasValue)
+		    && CanBePruned(name))
 		{
 			return null;
 		}

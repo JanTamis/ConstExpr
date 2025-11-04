@@ -201,6 +201,7 @@ public static class DataValidationOperations
 			if (isSecond)
 			{
 				digit *= 2;
+
 				if (digit > 9)
 				{
 					digit -= 9;
