@@ -10,37 +10,30 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalAndStrategies;
 
-public class ConditionalAndCharOptimizer : BaseBinaryStrategy
+public class ConditionalAndCharOptimizer : SymmetricStrategy<BooleanBinaryStrategy>
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool CanBeOptimizedSymmetric(BinaryOptimizeContext context)
 	{
 		return context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.GreaterThanOrEqualExpression, Right: LiteralExpressionSyntax { Token.Value: char } } left
 			&& context.Right.Syntax is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LessThanOrEqualExpression, Right: LiteralExpressionSyntax { Token.Value: char } } right
 			&& left.Left.IsEquivalentTo(right.Left);
 	}
 
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
+	public override SyntaxNode? OptimizeSymmetric(BinaryOptimizeContext context)
 	{
 		if (context.Left.Syntax is not BinaryExpressionSyntax { Right: LiteralExpressionSyntax leftLiteral } left
 		    || context.Right.Syntax is not BinaryExpressionSyntax { Right: LiteralExpressionSyntax rightLiteral } right)
 		{
 			return null;
 		}
-		
-		var memberName = String.Empty;
 
-		switch (leftLiteral.Token.Value)
+		var memberName = (leftLiteral.Token.Value, rightLiteral.Token.Value) switch
 		{
-			case 'A' when rightLiteral.Token.Value is 'Z':
-				memberName = "IsAsciiLetterUpper";
-				break;
-			case 'a' when rightLiteral.Token.Value is 'z':
-				memberName = "IsAsciiLetterLower";
-				break;
-			case '0' when rightLiteral.Token.Value is '9':
-				memberName = "IsAsciiDigit";
-				break;
-		}
+			('A', 'Z') => "IsAsciiLetterUpper",
+			('a', 'z') => "IsAsciiLetterLower",
+			('0', '9') => "IsAsciiDigit",
+			_ => String.Empty
+		};
 
 		if (!String.IsNullOrEmpty(memberName))
 		{
@@ -63,7 +56,7 @@ public class ConditionalAndCharOptimizer : BaseBinaryStrategy
           IdentifierName("IsBetween")),
         ArgumentList([Argument(left.Left), Argument(leftLiteral), Argument(rightLiteral)]));
 		}
-		
+
 		return null;
 	}
 }

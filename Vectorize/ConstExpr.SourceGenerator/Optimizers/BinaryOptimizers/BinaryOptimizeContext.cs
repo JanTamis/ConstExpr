@@ -55,7 +55,7 @@ public sealed class BinaryOptimizeElement
 		// Convert to single line and trim
 		var s = Syntax.ToString().Replace("\r", " ").Replace("\n", " ").Trim();
 		if (s.Length > 80) s = s.Substring(0, 77) + "...";
-		return s.Length == 0 ? "Syntax=<empty>" : $"Syntax=\"{s}\"";
+		return s; // .Length == 0 ? "Syntax=<empty>" : $"Syntax=\"{s}\"";
 	}
 
 	private static string FormatValue(object? v)
