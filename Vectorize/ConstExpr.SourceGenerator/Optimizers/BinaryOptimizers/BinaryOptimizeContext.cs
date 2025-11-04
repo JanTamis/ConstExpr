@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;
@@ -14,6 +15,8 @@ public sealed class BinaryOptimizeContext
 {
 	public BinaryOptimizeElement Left { get; init; }
 	public BinaryOptimizeElement Right { get; init; }
+	
+	public Microsoft.CodeAnalysis.Operations.BinaryOperatorKind Kind { get; init; }
 
 	public ITypeSymbol Type { get; init; }
 
@@ -43,7 +46,7 @@ public sealed class BinaryOptimizeElement
 		var syntaxText = ShortSyntax();
 		var typeText = Type?.ToDisplayString() ?? "null";
 		var valueText = HasValue ? $"Value={FormatValue(Value)}" : "Value=<none>";
-		return $"{syntaxText} | Type={typeText} | HasValue={HasValue} | {valueText}";
+		return $"{syntaxText}";
 	}
 
 	private string ShortSyntax()

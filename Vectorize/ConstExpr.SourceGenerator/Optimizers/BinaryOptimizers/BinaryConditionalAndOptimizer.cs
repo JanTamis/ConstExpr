@@ -17,6 +17,11 @@ public class BinaryConditionalAndOptimizer : BaseBinaryOptimizer
 		yield return new ConditionalAndRedundancyStrategy();
 		yield return new ConditionalAndContradictionStrategy();
 		yield return new ConditionalAndIdempotencyStrategy();
+		yield return new ConditionalAndCharOptimizer();
+		
+		yield return new ConditionalPatternStrategy();
+		yield return new ConditionalPatternCombinerStrategy();
+		yield return new ConditionalPatternCombinersStrategy();
 	}
 
 	// public override bool TryOptimize(MetadataLoader loader, IDictionary<string, VariableItem> variables, out SyntaxNode? result)

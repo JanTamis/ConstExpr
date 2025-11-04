@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalAndStrategies;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalOrStrategies;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis.Operations;
@@ -16,6 +17,10 @@ public class BinaryConditionalOrOptimizer : BaseBinaryOptimizer
 		yield return new ConditionalOrAbsorptionStrategy();
 		yield return new ConditionalOrAbsorptionOrStrategy();
 		yield return new ConditionalOrTautologyStrategy();
+
+		yield return new ConditionalPatternStrategy();
+		yield return new ConditionalPatternCombinerStrategy();
+		yield return new ConditionalPatternCombinersStrategy();
 	}
 
 	//public override bool TryOptimize(MetadataLoader loader, IDictionary<string, VariableItem> variables, out SyntaxNode? result)

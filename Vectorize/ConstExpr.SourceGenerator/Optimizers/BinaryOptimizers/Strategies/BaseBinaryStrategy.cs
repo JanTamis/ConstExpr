@@ -34,4 +34,16 @@ public abstract class BaseBinaryStrategy : IBinaryStrategy
 					 && rightVar.Value is ArgumentSyntax rightArgument
 					 && leftArgument.Expression.IsEquivalentTo(rightArgument.Expression));
 	}
+
+	protected static SyntaxKind SwapCondition(SyntaxKind kind)
+	{
+		return kind switch
+		{
+			SyntaxKind.LessThanExpression => SyntaxKind.GreaterThanOrEqualExpression,
+			SyntaxKind.LessThanOrEqualExpression => SyntaxKind.GreaterThanExpression,
+			SyntaxKind.GreaterThanExpression => SyntaxKind.LessThanOrEqualExpression,
+			SyntaxKind.GreaterThanOrEqualExpression => SyntaxKind.LessThanExpression,
+			_ => kind
+		};
+	}
 }

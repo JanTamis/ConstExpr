@@ -10,6 +10,26 @@ namespace ConstExpr.SourceGenerator.Rewriters;
 
 public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 {
+	public override SyntaxNode? VisitExpressionStatement(ExpressionStatementSyntax node)
+	{
+		if (node.Expression is LiteralExpressionSyntax)
+		{
+			return null;
+		}
+		
+		return base.VisitExpressionStatement(node);
+	}
+
+	public override SyntaxNode? VisitAssignmentExpression(AssignmentExpressionSyntax node)
+	{
+		if (node.Left is LiteralExpressionSyntax)
+		{
+			return null;
+		}
+		
+		return base.VisitAssignmentExpression(node);
+	}
+
 	public override SyntaxNode? VisitSimpleLambdaExpression(SimpleLambdaExpressionSyntax node)
 	{
 		var visited = (SimpleLambdaExpressionSyntax?) base.VisitSimpleLambdaExpression(node);
@@ -472,117 +492,119 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 	public override SyntaxNode VisitConditionalExpression(ConditionalExpressionSyntax node)
 	{
-		// Breng de ?: operator op meerdere regels en houd rekening met nesting.
-		// Doel-layout:
-		// condition
-		// \t? whenTrue
-		// \t: whenFalse
-
-		var v = (ConditionalExpressionSyntax) base.VisitConditionalExpression(node);
-
-		// Tokens die we gaan aanpassen
-		var conditionLast = v.Condition.GetLastToken();
-		var question = v.QuestionToken;
-		var whenTrueFirst = v.WhenTrue.GetFirstToken();
-		var whenTrueLast = v.WhenTrue.GetLastToken();
-		var colon = v.ColonToken;
-		var whenFalseFirst = v.WhenFalse.GetFirstToken();
-
-		// Bepaal de indent op basis van het statement waarin we zitten en gebruik dezelfde unit als NormalizeWhitespace (\t)
-		var indentUnit = SyntaxFactory.Whitespace("\t");
-
-		// Use the condition node's indent as base so the '?' / ':' are one tab
-		// further indented relative to the condition line.
-		var baseIndent = GetBaseIndentTrivia(v.Condition);
-
-		// Bouw de indent expliciet zodat we zeker zijn dat er een tab vóór '?' en ':' komt
-		// (voorkom dat eventuele elastic/normalisatie de tab verwijdert)
-		SyntaxTriviaList BuildLineIndent()
-		{
-			var list = SyntaxFactory.TriviaList();
-
-			for (var i = 0; i < baseIndent.Count; i++)
-			{
-				list = list.Add(baseIndent[i]);
-			}
-
-			list = list.Add(indentUnit);
-			return list;
-		}
-
-		var lineIndent = BuildLineIndent();
-
-		// 1) Na de condition een nieuwe regel forceren en voeg expliciet één tab toe
-		// zodat de volgende '?'-regel één indent verder staat.
-		var condTrailing = TrimTrailingWhitespaceAndEndOfLines(conditionLast.TrailingTrivia);
-		condTrailing = condTrailing.Add(SyntaxFactory.ElasticCarriageReturnLineFeed);
-		condTrailing = condTrailing.Add(indentUnit);
-		var newConditionLast = conditionLast.WithTrailingTrivia(condTrailing);
-
-		// 2) '?' start op nieuwe regel met indent (tab) en 1 spatie erna; behoud niet-witruimte leading trivia (zoals comments) na de indent
-		var qLeadingRest = TrimLeadingWhitespaceAndEndOfLines(question.LeadingTrivia);
-
-		// Zorg dat de tab direct vóór het token staat, gevolgd door eventuele comment-trivia
-		var qLeading = SyntaxFactory.TriviaList();
-
-		for (var i = 0; i < lineIndent.Count; i++)
-		{
-			qLeading = qLeading.Add(lineIndent[i]);
-		}
-
-		foreach (var tr in qLeadingRest)
-		{
-			qLeading = qLeading.Add(tr);
-		}
-
-		var qTrailing = TrimTrailingWhitespaceAndEndOfLines(question.TrailingTrivia).Add(SyntaxFactory.Space);
-		var newQuestion = question.WithLeadingTrivia(qLeading).WithTrailingTrivia(qTrailing);
-
-		// 3) whenTrue direct na '? ' (geen leidende whitespace/eol)
-		var wtFirst = whenTrueFirst.WithLeadingTrivia(TrimLeadingWhitespaceAndEndOfLines(whenTrueFirst.LeadingTrivia));
-
-		// 4) Na whenTrue een nieuwe regel forceren vóór ':' en voeg expliciet één tab toe
-		// zodat de ':' één indent verder staat.
-		var wtTrailing = TrimTrailingWhitespaceAndEndOfLines(whenTrueLast.TrailingTrivia)
-			.Add(SyntaxFactory.ElasticCarriageReturnLineFeed)
-			.Add(indentUnit);
-		var newWhenTrueLast = whenTrueLast.WithTrailingTrivia(wtTrailing);
-
-		// 5) ':' start op nieuwe regel met indent (tab) en 1 spatie erna; behoud niet-witruimte leading trivia na de indent
-		var cLeadingRest = TrimLeadingWhitespaceAndEndOfLines(colon.LeadingTrivia);
-		var cLeading = SyntaxFactory.TriviaList();
-
-		for (var i = 0; i < lineIndent.Count; i++)
-		{
-			cLeading = cLeading.Add(lineIndent[i]);
-		}
-
-		foreach (var tr in cLeadingRest)
-		{
-			cLeading = cLeading.Add(tr);
-		}
-
-		var cTrailing = TrimTrailingWhitespaceAndEndOfLines(colon.TrailingTrivia).Add(SyntaxFactory.Space);
-		var newColon = colon.WithLeadingTrivia(cLeading).WithTrailingTrivia(cTrailing);
-
-		// 6) whenFalse direct na ': ' (geen leidende whitespace/eol)
-		var wfFirst = whenFalseFirst.WithLeadingTrivia(TrimLeadingWhitespaceAndEndOfLines(whenFalseFirst.LeadingTrivia));
-
-		// Vervang tokens in één bewerking
-		var tokens = new[] { conditionLast, question, whenTrueFirst, whenTrueLast, colon, whenFalseFirst };
-		var map = new Dictionary<SyntaxToken, SyntaxToken>
-		{
-			[conditionLast] = newConditionLast,
-			[question] = newQuestion,
-			[whenTrueFirst] = wtFirst,
-			[whenTrueLast] = newWhenTrueLast,
-			[colon] = newColon,
-			[whenFalseFirst] = wfFirst,
-		};
-
-		v = v.ReplaceTokens(tokens, (orig, _) => map.TryGetValue(orig, out var rep) ? rep : orig);
-
-		return v;
+		return base.VisitConditionalExpression(node);
+		
+		// // Breng de ?: operator op meerdere regels en houd rekening met nesting.
+		// // Doel-layout:
+		// // condition
+		// // \t? whenTrue
+		// // \t: whenFalse
+		//
+		// var v = (ConditionalExpressionSyntax) base.VisitConditionalExpression(node);
+		//
+		// // Tokens die we gaan aanpassen
+		// var conditionLast = v.Condition.GetLastToken();
+		// var question = v.QuestionToken;
+		// var whenTrueFirst = v.WhenTrue.GetFirstToken();
+		// var whenTrueLast = v.WhenTrue.GetLastToken();
+		// var colon = v.ColonToken;
+		// var whenFalseFirst = v.WhenFalse.GetFirstToken();
+		//
+		// // Bepaal de indent op basis van het statement waarin we zitten en gebruik dezelfde unit als NormalizeWhitespace (\t)
+		// var indentUnit = SyntaxFactory.Whitespace("\t");
+		//
+		// // Use the condition node's indent as base so the '?' / ':' are one tab
+		// // further indented relative to the condition line.
+		// var baseIndent = GetBaseIndentTrivia(v.Condition);
+		//
+		// // Bouw de indent expliciet zodat we zeker zijn dat er een tab vóór '?' en ':' komt
+		// // (voorkom dat eventuele elastic/normalisatie de tab verwijdert)
+		// SyntaxTriviaList BuildLineIndent()
+		// {
+		// 	var list = SyntaxFactory.TriviaList();
+		//
+		// 	for (var i = 0; i < baseIndent.Count; i++)
+		// 	{
+		// 		list = list.Add(baseIndent[i]);
+		// 	}
+		//
+		// 	list = list.Add(indentUnit);
+		// 	return list;
+		// }
+		//
+		// var lineIndent = BuildLineIndent();
+		//
+		// // 1) Na de condition een nieuwe regel forceren en voeg expliciet één tab toe
+		// // zodat de volgende '?'-regel één indent verder staat.
+		// var condTrailing = TrimTrailingWhitespaceAndEndOfLines(conditionLast.TrailingTrivia);
+		// condTrailing = condTrailing.Add(SyntaxFactory.ElasticCarriageReturnLineFeed);
+		// condTrailing = condTrailing.Add(indentUnit);
+		// var newConditionLast = conditionLast.WithTrailingTrivia(condTrailing);
+		//
+		// // 2) '?' start op nieuwe regel met indent (tab) en 1 spatie erna; behoud niet-witruimte leading trivia (zoals comments) na de indent
+		// var qLeadingRest = TrimLeadingWhitespaceAndEndOfLines(question.LeadingTrivia);
+		//
+		// // Zorg dat de tab direct vóór het token staat, gevolgd door eventuele comment-trivia
+		// var qLeading = SyntaxFactory.TriviaList();
+		//
+		// for (var i = 0; i < lineIndent.Count; i++)
+		// {
+		// 	qLeading = qLeading.Add(lineIndent[i]);
+		// }
+		//
+		// foreach (var tr in qLeadingRest)
+		// {
+		// 	qLeading = qLeading.Add(tr);
+		// }
+		//
+		// var qTrailing = TrimTrailingWhitespaceAndEndOfLines(question.TrailingTrivia).Add(SyntaxFactory.Space);
+		// var newQuestion = question.WithLeadingTrivia(qLeading).WithTrailingTrivia(qTrailing);
+		//
+		// // 3) whenTrue direct na '? ' (geen leidende whitespace/eol)
+		// var wtFirst = whenTrueFirst.WithLeadingTrivia(TrimLeadingWhitespaceAndEndOfLines(whenTrueFirst.LeadingTrivia));
+		//
+		// // 4) Na whenTrue een nieuwe regel forceren vóór ':' en voeg expliciet één tab toe
+		// // zodat de ':' één indent verder staat.
+		// var wtTrailing = TrimTrailingWhitespaceAndEndOfLines(whenTrueLast.TrailingTrivia)
+		// 	.Add(SyntaxFactory.ElasticCarriageReturnLineFeed)
+		// 	.Add(indentUnit);
+		// var newWhenTrueLast = whenTrueLast.WithTrailingTrivia(wtTrailing);
+		//
+		// // 5) ':' start op nieuwe regel met indent (tab) en 1 spatie erna; behoud niet-witruimte leading trivia na de indent
+		// var cLeadingRest = TrimLeadingWhitespaceAndEndOfLines(colon.LeadingTrivia);
+		// var cLeading = SyntaxFactory.TriviaList();
+		//
+		// for (var i = 0; i < lineIndent.Count; i++)
+		// {
+		// 	cLeading = cLeading.Add(lineIndent[i]);
+		// }
+		//
+		// foreach (var tr in cLeadingRest)
+		// {
+		// 	cLeading = cLeading.Add(tr);
+		// }
+		//
+		// var cTrailing = TrimTrailingWhitespaceAndEndOfLines(colon.TrailingTrivia).Add(SyntaxFactory.Space);
+		// var newColon = colon.WithLeadingTrivia(cLeading).WithTrailingTrivia(cTrailing);
+		//
+		// // 6) whenFalse direct na ': ' (geen leidende whitespace/eol)
+		// var wfFirst = whenFalseFirst.WithLeadingTrivia(TrimLeadingWhitespaceAndEndOfLines(whenFalseFirst.LeadingTrivia));
+		//
+		// // Vervang tokens in één bewerking
+		// var tokens = new[] { conditionLast, question, whenTrueFirst, whenTrueLast, colon, whenFalseFirst };
+		// var map = new Dictionary<SyntaxToken, SyntaxToken>
+		// {
+		// 	[conditionLast] = newConditionLast,
+		// 	[question] = newQuestion,
+		// 	[whenTrueFirst] = wtFirst,
+		// 	[whenTrueLast] = newWhenTrueLast,
+		// 	[colon] = newColon,
+		// 	[whenFalseFirst] = wfFirst,
+		// };
+		//
+		// v = v.ReplaceTokens(tokens, (orig, _) => map.TryGetValue(orig, out var rep) ? rep : orig);
+		//
+		// return v;
 	}
 
 	// New: normalize object creation spacing so `new Type (` -> `new Type(`

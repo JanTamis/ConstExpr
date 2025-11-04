@@ -90,7 +90,7 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 
 					object? MakeIndex(ExpressionSyntax expr)
 					{
-						if (TryGetLiteralValue(expr, out var innerVal, visitedVariables) && innerVal is not null)
+						if (TryGetLiteralValue(Visit(expr), out var innerVal, visitedVariables) && innerVal is not null)
 						{
 							// Already an Index (e.g., ^n handled above)
 							if (innerVal.GetType().FullName == "System.Index")
@@ -322,6 +322,138 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 								}
 							}
 							break;
+					}
+				}
+
+				break;
+			}
+			case ArrayCreationExpressionSyntax arrayCreationExpression:
+			{
+				// Handle multidimensional arrays like new int[2,3] or new int[2,3,4]
+				if (arrayCreationExpression.Initializer is null && arrayCreationExpression.Type.RankSpecifiers.Count > 0)
+				{
+					var rankSpecifier = arrayCreationExpression.Type.RankSpecifiers[0];
+					var dimensions = rankSpecifier.Sizes.Count;
+
+					if (dimensions > 1)
+					{
+						// Multidimensional array
+						var dimensionLengths = new List<int>();
+
+						foreach (var size in rankSpecifier.Sizes)
+						{
+							if (TryGetLiteralValue(Visit(size), out var dimValue, visitedVariables) && dimValue is not null)
+							{
+								try
+								{
+									dimensionLengths.Add(Convert.ToInt32(dimValue));
+								}
+								catch
+								{
+									value = null;
+									return false;
+								}
+							}
+							else
+							{
+								value = null;
+								return false;
+							}
+						}
+
+						// Create multidimensional array
+						if (semanticModel.TryGetSymbol(arrayCreationExpression.Type.ElementType, out ITypeSymbol? elementTypeSymbol))
+						{
+							var elementType = loader.GetType(elementTypeSymbol);
+
+							if (elementType is not null)
+							{
+								try
+								{
+									value = Array.CreateInstance(elementType, dimensionLengths.ToArray());
+									return true;
+								}
+								catch
+								{
+									value = null;
+									return false;
+								}
+							}
+						}
+					}
+					else if (dimensions == 1)
+					{
+						// Single-dimensional array with explicit size
+						if (TryGetLiteralValue(rankSpecifier.Sizes[0], out var sizeVal, visitedVariables) && sizeVal is not null)
+						{
+							try
+							{
+								var arraySize = Convert.ToInt32(sizeVal);
+
+								if (semanticModel.TryGetSymbol(arrayCreationExpression.Type.ElementType, out ITypeSymbol? elementTypeSymbol))
+								{
+									var elementType = loader.GetType(elementTypeSymbol);
+
+									if (elementType is not null)
+									{
+										value = Array.CreateInstance(elementType, arraySize);
+										return true;
+									}
+								}
+							}
+							catch
+							{
+								value = null;
+								return false;
+							}
+						}
+					}
+				}
+
+				// Handle array initialization like new int[] { 1, 2, 3 } or new[] { 1, 2, 3 }
+				if (arrayCreationExpression.Initializer is not null)
+				{
+					var elements = new List<object?>();
+
+					foreach (var element in arrayCreationExpression.Initializer.Expressions)
+					{
+						if (TryGetLiteralValue(element, out var elemVal, visitedVariables))
+						{
+							elements.Add(elemVal);
+						}
+						else
+						{
+							value = null;
+							return false;
+						}
+					}
+
+					if (elements.Count == 0)
+					{
+						// Empty array
+						if (semanticModel.TryGetSymbol(arrayCreationExpression.Type.ElementType, out ITypeSymbol? elementTypeSymbol))
+						{
+							var elementType = loader.GetType(elementTypeSymbol);
+
+							if (elementType is not null)
+							{
+								value = Array.CreateInstance(elementType, 0);
+								return true;
+							}
+						}
+					}
+					else
+					{
+						var elementType = elements[0]?.GetType() ?? typeof(object);
+						var array = Array.CreateInstance(elementType, elements.Count);
+
+						for (var i = 0; i < elements.Count; i++)
+						{
+							array.SetValue(Convert.ChangeType(elements[i], elementType), i);
+						}
+
+						value = array;
+						return true;
 					}
 				}
 
