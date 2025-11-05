@@ -85,10 +85,12 @@ public static class CryptographyOperations
 		}
 
 		var result = new System.Text.StringBuilder(data.Length * 2);
+
 		foreach (var b in data)
 		{
 			result.Append(b.ToString("X2"));
 		}
+
 		return result.ToString();
 	}
 

@@ -3,8 +3,8 @@ using System;
 using System.Linq;
 
 Console.WriteLine("╔═══════════════════════════════════════���════════════════════════╗");
-Console.WriteLine("║  ConstExpr Test Suite - Alle functies met constanten & vars    ║");
-Console.WriteLine("╚════════════════════════════════════════════════════════════════╝\n");
+Console.WriteLine("║  ConstExpr Test Suite - Alle functies met constanten & vars      ║");
+Console.WriteLine("╚══════════════════════════════════════════════════════════════════╝\n");
 
 // Variabelen voor mixed tests
 var varInt = 10;
@@ -40,7 +40,7 @@ var varDouble13 = 75.0;
 // ════════════════════════════════════════════════���══════════════
 // CRYPTOGRAPHY OPERATIONS
 // ═══════════════════════════════════════════════════════════════
-Console.WriteLine("═══ CRYPTOGRAPHY OPERATIONS ═══\n");
+//Console.WriteLine("═══ CRYPTOGRAPHY OPERATIONS ═══\n");
 
 // CalculateChecksum - alleen constanten
 Console.WriteLine($"[CONST] CalculateChecksum(1,2,3,4,5): {CryptographyOperations.CalculateChecksum(1, 2, 3, 4, 5)}");

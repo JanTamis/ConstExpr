@@ -477,6 +477,7 @@ public static class CompilationExtensions
 				{
 					continue;
 				}
+
 				value = invokeBase.Invoke(instance, paramArray);
 				return true;
 			}

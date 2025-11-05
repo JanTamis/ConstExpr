@@ -384,6 +384,18 @@ public class ConstExprPartialRewriter(
 
 					var hasLiteral = TryGetLiteralValue(instanceName, out var instance) || TryGetLiteralValue(Visit(instanceName), out instance);
 
+					if (hasLiteral)
+					{
+						try
+						{
+							instance = Convert.ChangeType(instance, loader.GetType(targetMethod.ContainingType));
+						}
+						catch (InvalidCastException)
+						{
+
+						}
+					}
+
 					if ((targetMethod.IsStatic || (hasLiteral && (instanceName is not IdentifierNameSyntax identifier || CanBePruned(identifier.Identifier.Text))))
 							&& loader.TryExecuteMethod(targetMethod, instance, new VariableItemDictionary(variables), constantArguments, out var value)
 					    && TryGetLiteral(value, out var literal))
@@ -1267,6 +1279,10 @@ public class ConstExprPartialRewriter(
 					// Prefix returns the updated value
 					return TryGetLiteral(updated, out var lit) ? lit : (SyntaxNode) node.WithOperand(id);
 				}
+				else
+				{
+					variable.IsAltered = true;
+				}
 			}
 		}
 		else if (node.OperatorToken.IsKind(SyntaxKind.ExclamationToken)
@@ -1349,7 +1365,7 @@ public class ConstExprPartialRewriter(
 					{
 						try
 						{
-							if (loader.TryExecuteMethod(op.OperatorMethod, null, new VariableItemDictionary(variables), [ current ], out var res))
+							if (loader.TryExecuteMethod(op.OperatorMethod, null, new VariableItemDictionary(variables), [current], out var res))
 							{
 								updated = res;
 							}
@@ -1379,7 +1395,12 @@ public class ConstExprPartialRewriter(
 					variable.Value = updated;
 					variable.HasValue = true;
 
-					return TryGetLiteral(current, out var lit) ? lit : (SyntaxNode) node.WithOperand(id);
+
+					return TryGetLiteral(current, out var lit) ? lit : (SyntaxNode)node.WithOperand(id);
+				}
+				else
+				{
+					variable.IsAltered = true;
 				}
 			}
 		}
@@ -1769,6 +1790,7 @@ public class ConstExprPartialRewriter(
 											{
 												return literal;
 											}
+											// TODO: Handle case where index is valid but value is not a compile-time constant
 										}
 									}
 								}
@@ -1781,6 +1803,7 @@ public class ConstExprPartialRewriter(
 									{
 										return literal;
 									}
+									// TODO: Handle case where all indices are ints but value is not a compile-time constant
 								}
 								else if (constantArguments.All(a => a is long))
 								{
@@ -2159,7 +2182,7 @@ public class ConstExprPartialRewriter(
 					exceptionHandler(node, ex);
 				}
 			}
-		}
+		 }
 
 		return base.VisitObjectCreationExpression(node);
 	}
@@ -2236,7 +2259,7 @@ public class ConstExprPartialRewriter(
 		//	// Loop never executes, return null to remove it
 		//	return null;
 		//}
-
+		//
 		//// Try to unroll the loop if the condition remains constant true
 		//const int maxUnrollIterations = 1000; // Safety limit to prevent infinite unrolling
 		//var iterations = 0;
@@ -2270,7 +2293,7 @@ public class ConstExprPartialRewriter(
 
 		//// Visit the body to see which variables get modified
 		//var visitedStatement = Visit(node.Statement) as StatementSyntax ?? node.Statement;
-
+		//
 		//// Restore variable states and mark modified variables as having no constant value
 		//// since we don't know how many times the loop will execute
 		//foreach (var kvp in variablesSnapshot)

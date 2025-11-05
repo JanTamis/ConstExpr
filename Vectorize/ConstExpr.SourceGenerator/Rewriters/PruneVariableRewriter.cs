@@ -93,20 +93,20 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 
 			if (!terminalReached)
 			{
-				if (visited is StatementSyntax statementSyntax)
-				{
-					result.Add(statementSyntax);
-				}
-				else if (visited is ExpressionStatementSyntax expressionStatement)
-				{
-					result.Add(SyntaxFactory.ExpressionStatement(expressionStatement.Expression));
-				}
-				else if (visited is ExpressionSyntax expressionSyntax)
-				{
-					result.Add(SyntaxFactory.ExpressionStatement(expressionSyntax));
-				}
+        switch (visited)
+        {
+          case ExpressionStatementSyntax expressionStatement:
+            result.Add(SyntaxFactory.ExpressionStatement(expressionStatement.Expression));
+            break;
+          case StatementSyntax statementSyntax:
+            result.Add(statementSyntax);
+            break;
+          case ExpressionSyntax expressionSyntax:
+            result.Add(SyntaxFactory.ExpressionStatement(expressionSyntax));
+            break;
+        }
 
-				if (visited is StatementSyntax stmt && IsTerminalStatement(stmt))
+        if (visited is StatementSyntax stmt && IsTerminalStatement(stmt))
 				{
 					terminalReached = true;
 				}
@@ -229,7 +229,7 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 	public override SyntaxNode? VisitInvocationExpression(InvocationExpressionSyntax node)
 	{
 		if (node.Expression is MemberAccessExpressionSyntax { Expression: IdentifierNameSyntax identifier } 
-		    && variables.TryGetValue(identifier.Identifier.Text, out var value) && value.HasValue
+		    && CanBePruned(identifier.Identifier.Text)
 		    && node.ArgumentList.Arguments.All(a => TryGetLiteralValue(a.Expression, out _)))
 		{
 			return null;
