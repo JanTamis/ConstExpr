@@ -30,16 +30,18 @@ public static class ObjectExtensions
 	{
 		return (T)(object)(left switch
 		{
-			byte leftByte when right is byte rightByte => leftByte + rightByte,
-			short leftShort when right is short rightShort => leftShort + rightShort,
-			int leftInt when right is int rightInt => leftInt + rightInt,
-			long leftLong when right is long rightLong => leftLong + rightLong,
-			float leftFloat when right is float rightFloat => leftFloat + rightFloat,
-			double leftDouble when right is double rightDouble => leftDouble + rightDouble,
-			decimal leftDecimal when right is decimal rightDecimal => leftDecimal + rightDecimal,
-			string leftString when right is string rightString => leftString + rightString,
-			string leftStr when right is not null => leftStr + right,
-			char leftChar when right is string => leftChar + (right as string),
+			byte b => b + Convert.ToByte(right),
+			sbyte sb => sb + Convert.ToSByte(right),
+			short s => s + Convert.ToInt16(right),
+			ushort us => us + Convert.ToUInt16(right),
+			int i => i + Convert.ToInt32(right),
+			uint ui => ui + Convert.ToUInt32(right),
+			long l => l + Convert.ToInt64(right),
+			ulong ul => ul + Convert.ToUInt64(right),
+			float f => f + Convert.ToSingle(right),
+			double d => d + Convert.ToDouble(right),
+			decimal m => m + Convert.ToDecimal(right),
+			string str => str + right?.ToString(),
 			_ => null
 		});
 	}
@@ -48,13 +50,17 @@ public static class ObjectExtensions
 	{
 		return (T?)(object)(left switch
 		{
-			byte leftByte when right is byte rightByte => leftByte - rightByte,
-			short leftShort when right is short rightShort => leftShort - rightShort,
-			int leftInt when right is int rightInt => leftInt - rightInt,
-			long leftLong when right is long rightLong => leftLong - rightLong,
-			float leftFloat when right is float rightFloat => leftFloat - rightFloat,
-			double leftDouble when right is double rightDouble => leftDouble - rightDouble,
-			decimal leftDecimal when right is decimal rightDecimal => leftDecimal - rightDecimal,
+			byte b => b - Convert.ToByte(right),
+			sbyte sb => sb - Convert.ToSByte(right),
+			short s => s - Convert.ToInt16(right),
+			ushort us => us - Convert.ToUInt16(right),
+			int i => i - Convert.ToInt32(right),
+			uint ui => ui - Convert.ToUInt32(right),
+			long l => l - Convert.ToInt64(right),
+			ulong ul => ul - Convert.ToUInt64(right),
+			float f => f - Convert.ToSingle(right),
+			double d => d - Convert.ToDouble(right),
+			decimal m => m - Convert.ToDecimal(right),
 			_ => null
 		});
 	}
@@ -63,13 +69,17 @@ public static class ObjectExtensions
 	{
 		return left switch
 		{
-			byte leftByte when right is byte rightByte => leftByte * rightByte,
-			short leftShort when right is short rightShort => leftShort * rightShort,
-			int leftInt when right is int rightInt => leftInt * rightInt,
-			long leftLong when right is long rightLong => leftLong * rightLong,
-			float leftFloat when right is float rightFloat => leftFloat * rightFloat,
-			double leftDouble when right is double rightDouble => leftDouble * rightDouble,
-			decimal leftDecimal when right is decimal rightDecimal => leftDecimal * rightDecimal,
+			byte b => b * Convert.ToByte(right),
+			sbyte sb => sb * Convert.ToSByte(right),
+			short s => s * Convert.ToInt16(right),
+			ushort us => us * Convert.ToUInt16(right),
+			int i => i * Convert.ToInt32(right),
+			uint ui => ui * Convert.ToUInt32(right),
+			long l => l * Convert.ToInt64(right),
+			ulong ul => ul * Convert.ToUInt64(right),
+			float f => f * Convert.ToSingle(right),
+			double d => d * Convert.ToDouble(right),
+			decimal m => m * Convert.ToDecimal(right),
 			_ => null
 		};
 	}
@@ -78,13 +88,17 @@ public static class ObjectExtensions
 	{
 		return left switch
 		{
-			byte leftByte when right is byte rightByte => leftByte / rightByte,
-			short leftShort when right is short rightShort => leftShort / rightShort,
-			int leftInt when right is int rightInt => leftInt / rightInt,
-			long leftLong when right is long rightLong => leftLong / rightLong,
-			float leftFloat when right is float rightFloat => leftFloat / rightFloat,
-			double leftDouble when right is double rightDouble => leftDouble / rightDouble,
-			decimal leftDecimal when right is decimal rightDecimal => leftDecimal / rightDecimal,
+			byte b => b / Convert.ToByte(right),
+			sbyte sb => sb / Convert.ToSByte(right),
+			short s => s / Convert.ToInt16(right),
+			ushort us => us / Convert.ToUInt16(right),
+			int i => i / Convert.ToInt32(right),
+			uint ui => ui / Convert.ToUInt32(right),
+			long l => l / Convert.ToInt64(right),
+			ulong ul => ul / Convert.ToUInt64(right),
+			float f => f / Convert.ToSingle(right),
+			double d => d / Convert.ToDouble(right),
+			decimal m => m / Convert.ToDecimal(right),
 			_ => null
 		};
 	}
@@ -93,64 +107,68 @@ public static class ObjectExtensions
 	{
 		return left switch
 		{
-			byte leftByte when right is byte rightByte => leftByte % rightByte,
-			sbyte leftSByte when right is sbyte rightSByte => leftSByte % rightSByte,
-			short leftShort when right is short rightShort => leftShort % rightShort,
-			ushort leftUShort when right is ushort rightUShort => leftUShort % rightUShort,
-			int leftInt when right is int rightInt => leftInt % rightInt,
-			uint leftUInt when right is uint rightUInt => leftUInt % rightUInt,
-			long leftLong when right is long rightLong => leftLong % rightLong,
-			ulong leftULong when right is ulong rightULong => leftULong % rightULong,
-			float leftFloat when right is float rightFloat => leftFloat % rightFloat,
-			double leftDouble when right is double rightDouble => leftDouble % rightDouble,
-			decimal leftDecimal when right is decimal rightDecimal => leftDecimal % rightDecimal,
+			byte b => b % Convert.ToByte(right),
+			sbyte sb => sb % Convert.ToSByte(right),
+			short s => s % Convert.ToInt16(right),
+			ushort us => us % Convert.ToUInt16(right),
+			int i => i % Convert.ToInt32(right),
+			uint ui => ui % Convert.ToUInt32(right),
+			long l => l % Convert.ToInt64(right),
+			ulong ul => ul % Convert.ToUInt64(right),
+			float f => f % Convert.ToSingle(right),
+			double d => d % Convert.ToDouble(right),
+			decimal m => m % Convert.ToDecimal(right),
 			_ => null
 		};
 	}
 
 	public static object? LeftShift(this object? left, object? right)
 	{
+		var shift = Convert.ToInt32(right);
 		return left switch
 		{
-			byte leftByte when right is byte rightByte => leftByte << rightByte,
-			sbyte leftSByte when right is sbyte rightSByte => leftSByte << rightSByte,
-			short leftShort when right is short rightShort => leftShort << rightShort,
-			ushort leftUShort when right is ushort rightUShort => leftUShort << rightUShort,
-			int leftInt when right is int rightInt => leftInt << rightInt,
-			uint leftUInt when right is int rightUInt => leftUInt << rightUInt,
-			long leftLong when right is int rightLong => leftLong << rightLong,
-			ulong leftULong when right is int rightULong => leftULong << rightULong,
+			byte b => b << shift,
+			sbyte sb => sb << shift,
+			short s => s << shift,
+			ushort us => us << shift,
+			int i => i << shift,
+			uint ui => ui << shift,
+			long l => l << shift,
+			ulong ul => ul << shift,
 			_ => null
 		};
 	}
 
 	public static object? RightShift(this object? left, object? right)
 	{
+		var shift = Convert.ToInt32(right);
 		return left switch
 		{
-			byte leftByte when right is byte rightByte => leftByte >> rightByte,
-			sbyte leftSByte when right is sbyte rightSByte => leftSByte >> rightSByte,
-			short leftShort when right is short rightShort => leftShort >> rightShort,
-			ushort leftUShort when right is ushort rightUShort => leftUShort >> rightUShort,
-			int leftInt when right is int rightInt => leftInt >> rightInt,
-			uint leftUInt when right is int rightUInt => leftUInt >> rightUInt,
-			long leftLong when right is int rightLong => leftLong >> rightLong,
-			ulong leftULong when right is int rightULong => leftULong >> rightULong,
+			byte b => b >> shift,
+			sbyte sb => sb >> shift,
+			short s => s >> shift,
+			ushort us => us >> shift,
+			int i => i >> shift,
+			uint ui => ui >> shift,
+			long l => l >> shift,
+			ulong ul => ul >> shift,
 			_ => null
 		};
 	}
 
 	public static object? UnsignedRightShift(object? left, object? right)
 	{
+		var shift = Convert.ToInt32(right);
 		return left switch
 		{
-			byte leftByte when right is byte rightByte => leftByte >>> rightByte,
-			sbyte leftSByte when right is sbyte rightSByte => leftSByte >>> rightSByte,
-			short leftShort when right is short rightShort => leftShort >>> rightShort,
-			ushort leftUShort when right is ushort rightUShort => leftUShort >>> rightUShort,
-			int leftInt when right is int rightInt => leftInt >>> rightInt,
-			long leftLong when right is int rightLong => leftLong >>> rightLong,
-			ulong leftULong when right is int rightULong => leftULong >>> rightULong,
+			byte b => b >>> shift,
+			sbyte sb => sb >>> shift,
+			short s => s >>> shift,
+			ushort us => us >>> shift,
+			int i => i >>> shift,
+			uint ui => ui >>> shift,
+			long l => l >>> shift,
+			ulong ul => ul >>> shift,
 			_ => null
 		};
 	}
@@ -159,14 +177,14 @@ public static class ObjectExtensions
 	{
 		return left switch
 		{
-			byte leftByte when right is byte rightByte => leftByte & rightByte,
-			sbyte leftSByte when right is sbyte rightSByte => leftSByte & rightSByte,
-			short leftShort when right is short rightShort => leftShort & rightShort,
-			ushort leftUShort when right is ushort rightUShort => leftUShort & rightUShort,
-			int leftInt when right is int rightInt => leftInt & rightInt,
-			uint leftUInt when right is uint rightUInt => leftUInt & rightUInt,
-			long leftLong when right is long rightLong => leftLong & rightLong,
-			ulong leftULong when right is ulong rightULong => leftULong & rightULong,
+			byte b => b & Convert.ToByte(right),
+			sbyte sb => sb & Convert.ToSByte(right),
+			short s => s & Convert.ToInt16(right),
+			ushort us => us & Convert.ToUInt16(right),
+			int i => i & Convert.ToInt32(right),
+			uint ui => ui & Convert.ToUInt32(right),
+			long l => l & Convert.ToInt64(right),
+			ulong ul => ul & Convert.ToUInt64(right),
 			_ => null
 		};
 	}
@@ -175,14 +193,14 @@ public static class ObjectExtensions
 	{
 		return left switch
 		{
-			byte leftByte when right is byte rightByte => leftByte | rightByte,
-			sbyte leftSByte when right is sbyte rightSByte => leftSByte | rightSByte,
-			short leftShort when right is short rightShort => leftShort | rightShort,
-			ushort leftUShort when right is ushort rightUShort => leftUShort | rightUShort,
-			int leftInt when right is int rightInt => leftInt | rightInt,
-			uint leftUInt when right is uint rightUInt => leftUInt | rightUInt,
-			long leftLong when right is long rightLong => leftLong | rightLong,
-			ulong leftULong when right is ulong rightULong => leftULong | rightULong,
+			byte b => b | Convert.ToByte(right),
+			sbyte sb => sb | Convert.ToSByte(right),
+			short s => s | Convert.ToInt16(right),
+			ushort us => us | Convert.ToUInt16(right),
+			int i => i | Convert.ToInt32(right),
+			uint ui => ui | Convert.ToUInt32(right),
+			long l => l | Convert.ToInt64(right),
+			ulong ul => ul | Convert.ToUInt64(right),
 			_ => null
 		};
 	}
@@ -191,14 +209,14 @@ public static class ObjectExtensions
 	{
 		return left switch
 		{
-			byte leftByte when right is byte rightByte => leftByte ^ rightByte,
-			sbyte leftSByte when right is sbyte rightSByte => leftSByte ^ rightSByte,
-			short leftShort when right is short rightShort => leftShort ^ rightShort,
-			ushort leftUShort when right is ushort rightUShort => leftUShort ^ rightUShort,
-			int leftInt when right is int rightInt => leftInt ^ rightInt,
-			uint leftUInt when right is uint rightUInt => leftUInt ^ rightUInt,
-			long leftLong when right is long rightLong => leftLong ^ rightLong,
-			ulong leftULong when right is ulong rightULong => leftULong ^ rightULong,
+			byte b => b ^ Convert.ToByte(right),
+			sbyte sb => sb ^ Convert.ToSByte(right),
+			short s => s ^ Convert.ToInt16(right),
+			ushort us => us ^ Convert.ToUInt16(right),
+			int i => i ^ Convert.ToInt32(right),
+			uint ui => ui ^ Convert.ToUInt32(right),
+			long l => l ^ Convert.ToInt64(right),
+			ulong ul => ul ^ Convert.ToUInt64(right),
 			_ => null
 		};
 	}
@@ -207,7 +225,7 @@ public static class ObjectExtensions
 	{
 		return left switch
 		{
-			bool leftBool when right is bool rightBool => leftBool && rightBool,
+			bool b => b && Convert.ToBoolean(right),
 			_ => null
 		};
 	}
@@ -216,7 +234,7 @@ public static class ObjectExtensions
 	{
 		return left switch
 		{
-			bool leftBool when right is bool rightBool => leftBool || rightBool,
+			bool b => b || Convert.ToBoolean(right),
 			_ => null
 		};
 	}

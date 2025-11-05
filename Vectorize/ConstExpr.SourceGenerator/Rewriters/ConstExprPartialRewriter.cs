@@ -66,7 +66,11 @@ public class ConstExprPartialRewriter(
 		    && value.HasValue
 		    && !value.IsAltered)
 		{
-			value.IsAccessed = true;
+			if (!value.HasValue)
+			{
+				value.IsAccessed = true;
+			}
+			
 
 			if (TryGetLiteral(value.Value, out var expression))
 			{
@@ -1093,6 +1097,7 @@ public class ConstExprPartialRewriter(
 			if (TryGetLiteralValue(rightExpr, out var tempValue) && variable.HasValue)
 			{
 				variable.Value = ObjectExtensions.ExecuteBinaryOperation(kind, variable.Value, tempValue) ?? tempValue;
+				variable.HasValue = true;
 
 				// Only convert to simple assignment with literal if it's already a simple assignment
 				// or if we're dealing with constant values on both sides

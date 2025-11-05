@@ -133,6 +133,8 @@ public static class SyntaxHelpers
 				}
 			case long l:
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(l));
+			case ulong ul:
+				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(ul));
 			case decimal dec:
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(dec));
 			case string s1:

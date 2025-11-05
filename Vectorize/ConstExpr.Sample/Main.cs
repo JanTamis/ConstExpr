@@ -87,7 +87,7 @@ Console.WriteLine($"[MIXED] IsInRange(varDouble, 0, 10): {DataValidationOperatio
 
 // AllPositive - alleen constanten
 Console.WriteLine($"[CONST] AllPositive(1, 2, 3, 4, 5): {DataValidationOperations.AllPositive(1, 2, 3, 4, 5)}");
-Console.WriteLine($"[CONST] AllPositive(1, -2, 3): {DataValidationOperations.AllPositive(1, -2, 3)}");
+// Console.WriteLine($"[CONST] AllPositive(1, -2, 3): {DataValidationOperations.AllPositive(1, -2, 3)}");
 
 // AllPositive - mixed
 Console.WriteLine($"[MIXED] AllPositive(varDouble, 2, 3): {DataValidationOperations.AllPositive(varDouble, 2, 3)}");
