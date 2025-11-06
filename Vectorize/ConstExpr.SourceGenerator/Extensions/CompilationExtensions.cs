@@ -1153,7 +1153,7 @@ public static class CompilationExtensions
 	public static string GetDeterministicHash(this SyntaxNode node)
 	{
 		// Normalize to a canonical form so whitespace/trivia do not affect the hash.
-		var normalized = node.ToFullString().GetHashCode();
+		var normalized = FormattingHelper.Format(node).ToString().GetHashCode();
 
 		return Convert.ToBase64String(BitConverter.GetBytes(normalized)).TrimEnd('=').Replace('+', '_').Replace('/', '_');
 	}

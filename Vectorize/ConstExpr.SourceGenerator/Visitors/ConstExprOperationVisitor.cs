@@ -541,8 +541,8 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 				return variables[RETURNVARIABLENAME];
 			}
 		}
-		
-		
+
+
 
 		loader.TryExecuteMethod(targetMethod, instance, argument, arguments, out var value);
 		return value;
@@ -1167,7 +1167,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 			if (instance is IConvertible)
 			{
-				instance = Convert.ChangeType(instance, propertyInfo.PropertyType);
+				instance = Convert.ChangeType(instance, loader.GetType(operation.Instance?.Type));
 			}
 
 			return propertyInfo.GetValue(instance);

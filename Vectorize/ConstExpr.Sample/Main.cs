@@ -40,7 +40,7 @@ var varDouble13 = 75.0;
 // ════════════════════════════════════════════════���══════════════
 // CRYPTOGRAPHY OPERATIONS
 // ═══════════════════════════════════════════════════════════════
-//Console.WriteLine("═══ CRYPTOGRAPHY OPERATIONS ═══\n");
+Console.WriteLine("═══ CRYPTOGRAPHY OPERATIONS ═══\n");
 
 // CalculateChecksum - alleen constanten
 Console.WriteLine($"[CONST] CalculateChecksum(1,2,3,4,5): {CryptographyOperations.CalculateChecksum(1, 2, 3, 4, 5)}");

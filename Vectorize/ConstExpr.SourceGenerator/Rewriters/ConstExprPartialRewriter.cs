@@ -255,6 +255,10 @@ public class ConstExprPartialRewriter(
 
 					break;
 				}
+				// Skip nodes that are not of the expected type
+				// This can happen when a VariableDeclarator returns an ExpressionStatementSyntax
+				default:
+					break;
 			}
 		}
 
@@ -624,10 +628,44 @@ public class ConstExprPartialRewriter(
 
 				variables.Add(name, item);
 			}
-
-			if (value is IdentifierNameSyntax nameSyntax)
+			else
 			{
-				item.Value = nameSyntax;
+				// Variable is already declared, convert this to an assignment instead
+				if (node.Initializer is not null)
+				{
+					var assignment = AssignmentExpression(
+						SyntaxKind.SimpleAssignmentExpression,
+						IdentifierName(name),
+						value as ExpressionSyntax ?? node.Initializer.Value);
+
+					// Update the variable value
+					if (value is IdentifierNameSyntax nameSyntax)
+					{
+						item.Value = nameSyntax;
+						item.IsInitialized = true;
+					}
+					else if (TryGetLiteralValue(node.Initializer?.Value, out var result)
+					         || TryGetLiteralValue(value, out result))
+					{
+						item.Value = result;
+						item.IsInitialized = true;
+					}
+					else
+					{
+						item.HasValue = false;
+						item.IsInitialized = true;
+					}
+
+					return ExpressionStatement(assignment);
+				}
+
+				// No initializer on the duplicate declaration - just remove it
+				return null;
+			}
+
+			if (value is IdentifierNameSyntax nameSyntax2)
+			{
+				item.Value = nameSyntax2;
 				item.IsInitialized = true;
 			}
 			else if (operation.Initializer is null && operation.Symbol is ILocalSymbol local)
@@ -658,9 +696,63 @@ public class ConstExprPartialRewriter(
 
 	public override SyntaxNode? VisitVariableDeclaration(VariableDeclarationSyntax node)
 	{
-		return node
-			.WithType(node.Variables.Count == 1 ? ParseTypeName("var") : node.Type)
-			.WithVariables(VisitList(node.Variables));
+		var visitedVariables = new List<VariableDeclaratorSyntax>();
+		var statements = new List<StatementSyntax>();
+
+		foreach (var variable in node.Variables)
+		{
+			var visited = Visit(variable);
+
+			switch (visited)
+			{
+				case VariableDeclaratorSyntax declarator:
+					visitedVariables.Add(declarator);
+					break;
+				case ExpressionStatementSyntax expressionStatement:
+					// This is a duplicate declaration converted to an assignment
+					statements.Add(expressionStatement);
+					break;
+				case null:
+					// Variable was removed (e.g., duplicate with no initializer)
+					break;
+			}
+		}
+
+		// If we have assignment statements from duplicate declarations,
+		// we need to return them separately
+		if (statements.Count > 0)
+		{
+			// If we also have valid declarations, create a block with both
+			if (visitedVariables.Count > 0)
+			{
+				var declaration = node
+					.WithType(visitedVariables.Count == 1 ? ParseTypeName("var") : node.Type)
+					.WithVariables(SeparatedList(visitedVariables));
+
+				return Block(
+					List<StatementSyntax>(
+						new[] { LocalDeclarationStatement(declaration) }
+							.Concat(statements)
+					)
+				);
+			}
+
+			// Only assignments, no declarations
+			return statements.Count == 1 
+				? statements[0] 
+				: Block(statements);
+		}
+
+		// No duplicate declarations, just return the updated variable declaration
+		if (visitedVariables.Count > 0)
+		{
+			return node
+				.WithType(visitedVariables.Count == 1 ? ParseTypeName("var") : node.Type)
+				.WithVariables(SeparatedList(visitedVariables));
+		}
+
+		// All variables were removed
+		return null;
 	}
 
 	public override SyntaxNode? VisitIfStatement(IfStatementSyntax node)
@@ -693,7 +785,6 @@ public class ConstExprPartialRewriter(
 	{
 		var names = variables.Keys.ToImmutableHashSet();
 		var declaration = Visit(node.Declaration);
-
 		var condition = Visit(node.Condition);
 
 		if (TryGetLiteralValue(condition, out var value))
@@ -725,7 +816,7 @@ public class ConstExprPartialRewriter(
 		}
 
 		// Restore variable states after visiting the loop
-		foreach (var name in variables.Keys.Except(names))
+		foreach (var name in variables.Keys.Except(names).ToList())
 		{
 			variables.Remove(name);
 		}
@@ -733,158 +824,6 @@ public class ConstExprPartialRewriter(
 		return node
 			// .WithStatement(Visit(node.Statement) as StatementSyntax ?? node.Statement)
 			.WithInitializers(VisitList(node.Initializers));
-
-		// var result = new List<SyntaxNode>();
-		//
-		// // Visit the declaration first to initialize variables
-		// Visit(node.Declaration);
-		//
-		// // Check if the condition is immediately false (loop never executes)
-		// var initialCondition = Visit(node.Condition);
-		//
-		// if (TryGetLiteralValue(initialCondition, out var initialValue) && initialValue is false)
-		// {
-		// 	// Loop never executes, return null to remove it
-		// 	return null;
-		// }
-		//
-		// // Try to unroll the loop if all parts are constant
-		// for (; TryGetLiteralValue(Visit(node.Condition), out var value) && value is true; VisitList(node.Incrementors))
-		// {
-		// 	result.Add(Visit(node.Statement));
-		// }
-		//
-		// if (result.Any())
-		// {
-		// 	return ToStatementSyntax(result);
-		// }
-		//
-		// var decl = Visit(node.Declaration);
-		//
-		// foreach (var declaration in node.Declaration?.Variables ?? [ ])
-		// {
-		// 	var name = declaration.Identifier.Text;
-		//
-		// 	if (variables.TryGetValue(name, out var variable))
-		// 	{
-		// 		variable.IsInitialized = true;
-		// 		variable.HasValue = false;
-		// 	}
-		// }
-		//
-		// // Non-constant condition: optimize the condition and body
-		// // Take a snapshot of variable states before visiting the loop body
-		// var variablesSnapshot = new Dictionary<string, (object? Value, bool HasValue, bool IsInitialized)>();
-		//
-		// foreach (var kvp in variables)
-		// {
-		// 	variablesSnapshot[kvp.Key] = (kvp.Value.Value, kvp.Value.HasValue, kvp.Value.IsInitialized);
-		// }
-		//
-		// // Visit the body to see which variables get modified
-		// var visitedStatement = Visit(node.Statement) as StatementSyntax ?? node.Statement;
-		//
-		// // Visit incrementors with special handling for increment/decrement expressions
-		// var visitedIncrementors = SeparatedList(
-		// 	node.Incrementors.Select(VisitIncrementExpression));
-		//
-		// // Restore variable states and mark modified variables as having no constant value
-		// // since we don't know how many times the loop will execute
-		// foreach (var kvp in variablesSnapshot)
-		// {
-		// 	if (variables.TryGetValue(kvp.Key, out var currentVar))
-		// 	{
-		// 		var (originalValue, originalHasValue, originalIsInitialized) = kvp.Value;
-		//
-		// 		// If the variable was modified in the loop body
-		// 		if (currentVar.HasValue != originalHasValue || !Equals(currentVar.Value, originalValue))
-		// 		{
-		// 			// Restore the original value but mark it as no longer having a constant value
-		// 			currentVar.Value = originalValue;
-		// 			currentVar.HasValue = false;
-		// 			currentVar.IsInitialized = true;
-		// 		}
-		// 		else
-		// 		{
-		// 			// Variable wasn't modified, restore original state just in case
-		// 			currentVar.Value = originalValue;
-		// 			currentVar.HasValue = originalHasValue;
-		// 			currentVar.IsInitialized = originalIsInitialized;
-		// 		}
-		// 	}
-		// }
-		//
-		// var visitedCondition = Visit(node.Condition) as ExpressionSyntax ?? node.Condition;
-		//
-		// if (TryGetOperation(semanticModel, node, out IForLoopOperation? operation))
-		// {
-		// 	var usedSymbols = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
-		//
-		// 	// Include the root operation + all descendants
-		// 	var ops = new[] { operation }.Concat(operation.Descendants());
-		//
-		// 	foreach (var op in ops)
-		// 	{
-		// 		switch (op)
-		// 		{
-		// 			case ILocalReferenceOperation lr:
-		// 				usedSymbols.Add(lr.Local);
-		// 				break;
-		// 			case IParameterReferenceOperation pr:
-		// 				usedSymbols.Add(pr.Parameter);
-		// 				break;
-		// 			case IFieldReferenceOperation fr:
-		// 				usedSymbols.Add(fr.Field);
-		// 				break;
-		// 			case IPropertyReferenceOperation por:
-		// 				usedSymbols.Add(por.Property);
-		// 				break;
-		// 			case IEventReferenceOperation er:
-		// 				usedSymbols.Add(er.Event);
-		// 				break;
-		// 		}
-		// 	}
-		//
-		// 	// Fallback / complement: semantic model dataflow for reads/writes
-		// 	try
-		// 	{
-		// 		var data = semanticModel.AnalyzeDataFlow(operation.Syntax);
-		//
-		// 		if (data != null)
-		// 		{
-		// 			foreach (var s in data.ReadInside.Concat(data.WrittenInside).Concat(data.VariablesDeclared))
-		// 			{
-		// 				usedSymbols.Add(s);
-		// 			}
-		// 		}
-		// 	}
-		// 	catch
-		// 	{
-		// 		// ignore analysis failures
-		// 	}
-		//
-		// 	// Mark matching variables in the current dictionary as accessed/altered
-		// 	foreach (var sym in usedSymbols)
-		// 	{
-		// 		if (sym is ILocalSymbol local && variables.TryGetValue(local.Name, out var v))
-		// 		{
-		// 			v.IsAccessed = true;
-		// 			v.HasValue = false;
-		//
-		// 			// mark as altered if there's an assignment to that local inside the loop
-		// 			var assigned = ops.OfType<IAssignmentOperation>().Any(a =>
-		// 				a.Target is ILocalReferenceOperation tlr && SymbolEqualityComparer.Default.Equals(tlr.Local, local));
-		// 			
-		// 			if (assigned) v.IsAltered = true;
-		// 		}
-		// 	}
-		// }
-		//
-		// return node
-		// 	.WithDeclaration(decl as VariableDeclarationSyntax ?? node.Declaration)
-		// 	.WithStatement(visitedStatement)
-		// 	.WithCondition(visitedCondition)
-		// 	.WithIncrementors(visitedIncrementors);
 	}
 
 	public override SyntaxNode? VisitAssignmentExpression(AssignmentExpressionSyntax node)
@@ -2553,5 +2492,34 @@ public class ConstExprPartialRewriter(
 		}
 
 		return false;
+	}
+
+	public override SyntaxNode? VisitLocalDeclarationStatement(LocalDeclarationStatementSyntax node)
+	{
+		var visited = Visit(node.Declaration);
+
+		switch (visited)
+		{
+			case null:
+				// All variables were removed
+				return null;
+			
+			case BlockSyntax block:
+				// VisitVariableDeclaration returned a block (declaration + assignments)
+				// Return the block to replace the local declaration statement
+				return block;
+			
+			case VariableDeclarationSyntax declaration:
+				// Normal case: return the updated declaration
+				return node.WithDeclaration(declaration);
+			
+			case ExpressionStatementSyntax expressionStatement:
+				// Only assignments, no declarations
+				return expressionStatement;
+			
+			default:
+				// Unexpected type, return original
+				return node;
+		}
 	}
 }

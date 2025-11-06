@@ -784,6 +784,17 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 	// 	return invocation;
 	// }
 
+	/// <summary>
+	/// Surrounds a contiguous group of statements in the list with appropriate blank lines, based on grouping logic and
+	/// statement context.
+	/// </summary>
+	/// <remarks>This method ensures that blank lines are inserted or removed around groups of related statements,
+	/// such as local declarations or expression statements, to improve code readability. Special handling is applied to
+	/// avoid unnecessary blank lines between declarations and immediate assignments to declared variables.</remarks>
+	/// <param name="visited">The list of statements to process and modify by adding or trimming blank lines around contiguous groups.</param>
+	/// <param name="i">The index in the list at which to start searching for a contiguous group. Updated to the last index of the
+	/// processed group.</param>
+	/// <param name="isInGroup">A predicate that determines whether a given statement belongs to the group to be surrounded.</param>
 	private static void SurroundContiguousGroup(List<StatementSyntax> visited, ref int i, Func<StatementSyntax, bool> isInGroup)
 	{
 		var start = i;
