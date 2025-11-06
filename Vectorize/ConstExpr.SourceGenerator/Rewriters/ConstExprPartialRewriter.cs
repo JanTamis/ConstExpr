@@ -70,7 +70,7 @@ public class ConstExprPartialRewriter(
 			{
 				value.IsAccessed = true;
 			}
-			
+
 
 			if (TryGetLiteral(value.Value, out var expression))
 			{
@@ -405,7 +405,7 @@ public class ConstExprPartialRewriter(
 					}
 
 					if ((targetMethod.IsStatic || (hasLiteral && (instanceName is not IdentifierNameSyntax identifier || CanBePruned(identifier.Identifier.Text))))
-							&& loader.TryExecuteMethod(targetMethod, instance, new VariableItemDictionary(variables), constantArguments, out var value)
+					    && loader.TryExecuteMethod(targetMethod, instance, new VariableItemDictionary(variables), constantArguments, out var value)
 					    && TryGetLiteral(value, out var literal))
 					{
 						if (targetMethod.ReturnsVoid)
@@ -738,8 +738,8 @@ public class ConstExprPartialRewriter(
 			}
 
 			// Only assignments, no declarations
-			return statements.Count == 1 
-				? statements[0] 
+			return statements.Count == 1
+				? statements[0]
 				: Block(statements);
 		}
 
@@ -787,6 +787,8 @@ public class ConstExprPartialRewriter(
 		var declaration = Visit(node.Declaration);
 		var condition = Visit(node.Condition);
 
+
+
 		if (TryGetLiteralValue(condition, out var value))
 		{
 			if (value is false)
@@ -821,8 +823,22 @@ public class ConstExprPartialRewriter(
 			variables.Remove(name);
 		}
 
+		var assignedVariables = AssignedVariables(node.Statement as BlockSyntax);
+
+		foreach (var name in names)
+		{
+			if (variables.TryGetValue(name, out var variable)
+			    && assignedVariables.Contains(name))
+			{
+				variable.HasValue = false;
+			}
+		}
+
 		return node
-			// .WithStatement(Visit(node.Statement) as StatementSyntax ?? node.Statement)
+			.WithDeclaration(Visit(node.Declaration) as VariableDeclarationSyntax ?? node.Declaration)
+			.WithCondition(condition as ExpressionSyntax ?? node.Condition)
+			.WithIncrementors(VisitList(node.Incrementors))
+			.WithStatement(Visit(node.Statement) as StatementSyntax ?? node.Statement)
 			.WithInitializers(VisitList(node.Initializers));
 	}
 
@@ -1109,7 +1125,7 @@ public class ConstExprPartialRewriter(
 										if (indexConsts.All(a => a is int))
 										{
 											arr.SetValue(rightVal, indexConsts.OfType<int>().ToArray());
-											
+
 											return rightExpr;
 										}
 
@@ -1250,7 +1266,7 @@ public class ConstExprPartialRewriter(
 				long longVal => -longVal,
 				float floatVal => -floatVal,
 				double doubleVal => -doubleVal,
-				decimal decimalVal => (object?)(-decimalVal),
+				decimal decimalVal => (object?) (-decimalVal),
 				_ => null
 			};
 			return result is not null && TryGetLiteral(result, out var lit) ? lit : node.WithOperand(operand as ExpressionSyntax ?? node.Operand);
@@ -1270,7 +1286,7 @@ public class ConstExprPartialRewriter(
 				long longVal => +longVal,
 				float floatVal => +floatVal,
 				double doubleVal => +doubleVal,
-				decimal decimalVal => (object?)(+decimalVal),
+				decimal decimalVal => (object?) (+decimalVal),
 				_ => null
 			};
 			return result is not null && TryGetLiteral(result, out var lit) ? lit : node.WithOperand(operand as ExpressionSyntax ?? node.Operand);
@@ -1309,7 +1325,7 @@ public class ConstExprPartialRewriter(
 					{
 						try
 						{
-							if (loader.TryExecuteMethod(op.OperatorMethod, null, new VariableItemDictionary(variables), [current], out var res))
+							if (loader.TryExecuteMethod(op.OperatorMethod, null, new VariableItemDictionary(variables), [ current ], out var res))
 							{
 								updated = res;
 							}
@@ -1340,7 +1356,7 @@ public class ConstExprPartialRewriter(
 					variable.HasValue = true;
 
 
-					return TryGetLiteral(current, out var lit) ? lit : (SyntaxNode)node.WithOperand(id);
+					return TryGetLiteral(current, out var lit) ? lit : (SyntaxNode) node.WithOperand(id);
 				}
 				else
 				{
@@ -2126,7 +2142,7 @@ public class ConstExprPartialRewriter(
 					exceptionHandler(node, ex);
 				}
 			}
-		 }
+		}
 
 		return base.VisitObjectCreationExpression(node);
 	}
@@ -2269,6 +2285,29 @@ public class ConstExprPartialRewriter(
 		//return node
 		//	.WithCondition(visitedCondition)
 		//	.WithStatement(visitedStatement);
+	}
+
+	public override SyntaxNode? VisitLocalDeclarationStatement(LocalDeclarationStatementSyntax node)
+	{
+		var visited = Visit(node.Declaration);
+
+		return visited switch
+		{
+			null =>
+				// All variables were removed
+				null,
+			BlockSyntax block =>
+				// VisitVariableDeclaration returned a block (declaration + assignments)
+				// Return the block to replace the local declaration statement
+				block,
+			VariableDeclarationSyntax declaration =>
+				// Normal case: return the updated declaration
+				node.WithDeclaration(declaration),
+			ExpressionStatementSyntax expressionStatement =>
+				// Only assignments, no declarations
+				expressionStatement,
+			_ => node
+		};
 	}
 
 	public override SyntaxNode VisitBlock(BlockSyntax node)
@@ -2494,32 +2533,25 @@ public class ConstExprPartialRewriter(
 		return false;
 	}
 
-	public override SyntaxNode? VisitLocalDeclarationStatement(LocalDeclarationStatementSyntax node)
+	private HashSet<string> AssignedVariables(BlockSyntax? block)
 	{
-		var visited = Visit(node.Declaration);
-
-		switch (visited)
+		if (block == null || block.Statements.Count == 0)
 		{
-			case null:
-				// All variables were removed
-				return null;
-			
-			case BlockSyntax block:
-				// VisitVariableDeclaration returned a block (declaration + assignments)
-				// Return the block to replace the local declaration statement
-				return block;
-			
-			case VariableDeclarationSyntax declaration:
-				// Normal case: return the updated declaration
-				return node.WithDeclaration(declaration);
-			
-			case ExpressionStatementSyntax expressionStatement:
-				// Only assignments, no declarations
-				return expressionStatement;
-			
-			default:
-				// Unexpected type, return original
-				return node;
+			return [ ];
 		}
+
+		var data = semanticModel.AnalyzeDataFlow(block.Statements[0], block.Statements[^1]);
+
+		if (!data.Succeeded)
+		{
+			return [ ];
+		}
+
+		// Get all variables that are written to within the block
+		var assignedVariables = new HashSet<string>(data.WrittenInside
+			.Where(symbol => symbol is ILocalSymbol or IParameterSymbol)
+			.Select(symbol => symbol.Name));
+
+		return assignedVariables;
 	}
 }
