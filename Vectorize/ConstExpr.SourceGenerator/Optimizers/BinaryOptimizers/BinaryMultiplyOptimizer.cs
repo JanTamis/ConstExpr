@@ -27,8 +27,8 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 		yield return new MultiplyByTwoToShiftLeftStrategy();
 		yield return new MultiplyByTwoToAdditionRightStrategy();
 		yield return new MultiplyByTwoToAdditionLeftStrategy();
-		yield return new MultiplyStrengthReductionRightStrategy();
-		yield return new MultiplyStrengthReductionLeftStrategy();
+		// yield return new MultiplyStrengthReductionRightStrategy();
+		// yield return new MultiplyStrengthReductionLeftStrategy();
 		yield return new MultiplyByPowerOfTwoRightStrategy();
 		yield return new MultiplyByPowerOfTwoLeftStrategy();
 		yield return new MultiplyDoubleNegationStrategy();
