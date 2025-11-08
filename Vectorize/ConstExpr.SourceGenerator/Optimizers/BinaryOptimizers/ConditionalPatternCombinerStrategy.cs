@@ -23,22 +23,40 @@ public class ConditionalPatternCombinerStrategy : BaseBinaryStrategy
 			return null;
 		}
 
+		var patternKind = GetRelationalPatternKind(context.Kind);
+		if (patternKind == SyntaxKind.None)
+		{
+			return null;
+		}
+
 		if (left.Expression.IsEquivalentTo(right.Left))
 		{
+			var rightPattern = ConvertToPattern(right.OperatorToken.Kind(), right.Right);
+			if (rightPattern == null)
+			{
+				return null;
+			}
+
 			var combinedPattern = SyntaxFactory.BinaryPattern(
-				GetRelationalPatternKind(context.Kind),
+				patternKind,
 				left.Pattern,
-				SyntaxFactory.RelationalPattern(right.OperatorToken, right.Right));
+				rightPattern);
 
 			return SyntaxFactory.IsPatternExpression(left.Expression, combinedPattern);
 		}
 
 		if (left.Expression.IsEquivalentTo(right.Right))
 		{
+			var rightPattern = ConvertToPattern(SwapCondition(right.OperatorToken.Kind()), right.Left);
+			if (rightPattern == null)
+			{
+				return null;
+			}
+
 			var combinedPattern = SyntaxFactory.BinaryPattern(
-				GetRelationalPatternKind(context.Kind),
+				patternKind,
 				left.Pattern,
-				SyntaxFactory.RelationalPattern(SyntaxFactory.Token(SwapCondition(right.OperatorToken.Kind())), right.Left));
+				rightPattern);
 
 			return SyntaxFactory.IsPatternExpression(left.Expression, combinedPattern);
 		}
@@ -52,6 +70,7 @@ public class ConditionalPatternCombinerStrategy : BaseBinaryStrategy
 		{
 			BinaryOperatorKind.ConditionalAnd => SyntaxKind.AndPattern,
 			BinaryOperatorKind.ConditionalOr => SyntaxKind.OrPattern,
+			_ => SyntaxKind.None
 		};
 	}
 }

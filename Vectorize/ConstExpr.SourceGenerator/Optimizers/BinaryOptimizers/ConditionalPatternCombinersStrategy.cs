@@ -23,8 +23,14 @@ public class ConditionalPatternCombinersStrategy : BaseBinaryStrategy
 			return null;
 		}
 		
+		var patternKind = GetRelationalPatternKind(context.Kind);
+		if (patternKind == SyntaxKind.None)
+		{
+			return null;
+		}
+		
 		var combinedPattern = SyntaxFactory.BinaryPattern(
-			GetRelationalPatternKind(context.Kind),
+			patternKind,
 			left.Pattern,
 			right.Pattern);
 		
@@ -37,6 +43,7 @@ public class ConditionalPatternCombinersStrategy : BaseBinaryStrategy
 		{
 			BinaryOperatorKind.ConditionalAnd => SyntaxKind.AndPattern,
 			BinaryOperatorKind.ConditionalOr => SyntaxKind.OrPattern,
+			_ => SyntaxKind.None
 		};
 	}
 }

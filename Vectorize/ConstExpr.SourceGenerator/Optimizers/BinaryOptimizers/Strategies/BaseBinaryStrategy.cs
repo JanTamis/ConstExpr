@@ -34,16 +34,37 @@ public abstract class BaseBinaryStrategy : IBinaryStrategy
 					 && rightVar.Value is ArgumentSyntax rightArgument
 					 && leftArgument.Expression.IsEquivalentTo(rightArgument.Expression));
 	}
-
+	
 	protected static SyntaxKind SwapCondition(SyntaxKind kind)
 	{
 		return kind switch
 		{
-			SyntaxKind.LessThanExpression => SyntaxKind.GreaterThanOrEqualExpression,
-			SyntaxKind.LessThanOrEqualExpression => SyntaxKind.GreaterThanExpression,
-			SyntaxKind.GreaterThanExpression => SyntaxKind.LessThanOrEqualExpression,
-			SyntaxKind.GreaterThanOrEqualExpression => SyntaxKind.LessThanExpression,
+			SyntaxKind.LessThanExpression => SyntaxKind.GreaterThanEqualsToken,
+			SyntaxKind.LessThanToken => SyntaxKind.GreaterThanToken,
+			SyntaxKind.LessThanOrEqualExpression => SyntaxKind.GreaterThanToken,
+			SyntaxKind.LessThanEqualsToken => SyntaxKind.GreaterThanToken,
+			SyntaxKind.GreaterThanExpression => SyntaxKind.LessThanEqualsToken,
+			SyntaxKind.GreaterThanToken => SyntaxKind.LessThanEqualsToken,
+			SyntaxKind.GreaterThanOrEqualExpression => SyntaxKind.LessThanToken,
+			SyntaxKind.GreaterThanEqualsToken => SyntaxKind.LessThanToken,
 			_ => kind
+		};
+	}
+
+	protected static PatternSyntax? ConvertToPattern(SyntaxKind operatorKind, ExpressionSyntax expression)
+	{
+		return operatorKind switch
+		{
+			SyntaxKind.EqualsEqualsToken => SyntaxFactory.ConstantPattern(expression),
+			SyntaxKind.ExclamationEqualsToken => SyntaxFactory.UnaryPattern(
+				SyntaxFactory.Token(SyntaxKind.NotKeyword),
+				SyntaxFactory.ConstantPattern(expression)),
+			SyntaxKind.LessThanToken or 
+			SyntaxKind.LessThanEqualsToken or 
+			SyntaxKind.GreaterThanToken or 
+			SyntaxKind.GreaterThanEqualsToken => 
+				SyntaxFactory.RelationalPattern(SyntaxFactory.Token(operatorKind), expression),
+			_ => null
 		};
 	}
 }

@@ -25,10 +25,15 @@ public class ConditionalPatternStrategy : BaseBinaryStrategy
 			return null;
 		}
 
-		var leftRel = SyntaxFactory.RelationalPattern(left.OperatorToken, left.Right);
-		var rightRel = SyntaxFactory.RelationalPattern(right.OperatorToken, right.Right);
+		var leftPattern = ConvertToPattern(left.OperatorToken.Kind(), left.Right);
+		var rightPattern = ConvertToPattern(right.OperatorToken.Kind(), right.Right);
 		
-		var andPattern = SyntaxFactory.BinaryPattern(GetRelationalPatternKind(context.Kind), leftRel, rightRel);
+		if (leftPattern == null || rightPattern == null)
+		{
+			return null;
+		}
+		
+		var andPattern = SyntaxFactory.BinaryPattern(GetRelationalPatternKind(context.Kind), leftPattern, rightPattern);
 		
 		return SyntaxFactory.IsPatternExpression(left.Left, andPattern);
 	}
@@ -39,6 +44,7 @@ public class ConditionalPatternStrategy : BaseBinaryStrategy
 		{
 			BinaryOperatorKind.ConditionalAnd => SyntaxKind.AndPattern,
 			BinaryOperatorKind.ConditionalOr => SyntaxKind.OrPattern,
+			_ => SyntaxKind.None
 		};
 	}
 }

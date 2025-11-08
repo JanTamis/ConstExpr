@@ -16,8 +16,15 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		{
 			return null;
 		}
+
+		var result = Visit(node.Expression);
+
+		if (result is null)
+		{
+			return null;
+		}
 		
-		return base.VisitExpressionStatement(node);
+		return node.WithExpression(result as ExpressionSyntax ?? node.Expression);
 	}
 
 	public override SyntaxNode? VisitAssignmentExpression(AssignmentExpressionSyntax node)
