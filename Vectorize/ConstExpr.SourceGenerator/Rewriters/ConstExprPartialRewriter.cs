@@ -687,6 +687,11 @@ public class ConstExprPartialRewriter(
 
 			if (node.Initializer is not null)
 			{
+				if (value is LiteralExpressionSyntax literal && operation.Symbol.Type?.SpecialType is SpecialType.System_Byte or SpecialType.System_SByte)
+				{
+					return node.WithInitializer(node.Initializer.WithValue(CastExpression(ParseTypeName(semanticModel.Compilation.GetMinimalString(operation.Symbol.Type)), literal)));
+				}
+
 				return node.WithInitializer(node.Initializer.WithValue(value as ExpressionSyntax ?? node.Initializer.Value));
 			}
 		}
@@ -730,7 +735,7 @@ public class ConstExprPartialRewriter(
 					.WithVariables(SeparatedList(visitedVariables));
 
 				return Block(
-					List<StatementSyntax>(
+					List(
 						new[] { LocalDeclarationStatement(declaration) }
 							.Concat(statements)
 					)

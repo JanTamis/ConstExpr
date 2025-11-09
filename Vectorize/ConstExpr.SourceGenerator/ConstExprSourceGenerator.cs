@@ -197,7 +197,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 	{
 		var wroteFirstGroup = false;
 
-		foreach (var invocationsByValue in methodGroup.Where(w => w?.Location is not null).GroupBy(m => m.Method.Identifier.ValueText, StringComparer.CurrentCultureIgnoreCase))
+		foreach (var invocationsByValue in methodGroup.Where(w => w?.Location is not null).GroupBy(m => m.Method.Identifier.ValueText, StringComparer.Ordinal))
 		{
 			if (wroteFirstGroup)
 			{
@@ -271,7 +271,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 		var visitor = new ConstExprOperationVisitor(semanticModel.Compilation, loader, (operation, ex) =>
 		{
-			// exceptions.TryAdd(operation!.Syntax, ex);
+			exceptions.TryAdd(operation!.Syntax, ex);
 		}, token);
 
 		try
@@ -312,8 +312,6 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				{
 					return null;
 				}
-
-				Logger.Information($"{timer.Elapsed}: {invocation}");				
 
 				GetUsings(methodSymbol, usings);
 
