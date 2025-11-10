@@ -214,5 +214,101 @@ public static class DataValidationOperations
 
 		return sum % 10 == 0;
 	}
+
+	/// <summary>
+	/// Tests break statement in a while loop with constant condition
+	/// Counts items until it finds the target value
+	/// </summary>
+	public static int CountUntilTarget(int target)
+	{
+		var count = 0;
+		while (true)
+		{
+			if (count == target)
+			{
+				break;
+			}
+			count++;
+		}
+		return count;
+	}
+
+	/// <summary>
+	/// Tests return statement in a for loop with constant condition
+	/// Returns the first even number it finds
+	/// </summary>
+	public static int FindFirstEven()
+	{
+		for (var i = 0; i < 10; i++)
+		{
+			if (i % 2 == 0)
+			{
+				return i;
+			}
+		}
+		return -1;
+	}
+
+	/// <summary>
+	/// Tests break statement in a foreach loop
+	/// Finds the index of a specific character
+	/// </summary>
+	public static int FindCharIndex(string text, char target)
+	{
+		var index = 0;
+		foreach (var c in text)
+		{
+			if (c == target)
+			{
+				break;
+			}
+			index++;
+		}
+		return index;
+	}
+
+	/// <summary>
+	/// Tests nested loops with break statements
+	/// Counts items in a 2D grid
+	/// </summary>
+	public static int CountInGrid(int rows, int cols, int breakAt)
+	{
+		var count = 0;
+		for (var i = 0; i < rows; i++)
+		{
+			for (var j = 0; j < cols; j++)
+			{
+				if (count == breakAt)
+				{
+					break;
+				}
+				count++;
+			}
+			if (count == breakAt)
+			{
+				break;
+			}
+		}
+		return count;
+	}
+
+	/// <summary>
+	/// Tests while loop with early return and break detection
+	/// Sums numbers until reaching the limit
+	/// </summary>
+	public static int SumUntilLimit(int limit)
+	{
+		var sum = 0;
+		var i = 0;
+		while (true)
+		{
+			sum += i;
+			if (sum >= limit)
+			{
+				return sum;
+			}
+			i++;
+		}
+	}
 }
 
