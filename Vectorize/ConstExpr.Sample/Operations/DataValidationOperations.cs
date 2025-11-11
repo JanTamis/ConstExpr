@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace ConstExpr.SourceGenerator.Sample;
+namespace ConstExpr.SourceGenerator.Sample.Operations;
 
 [ConstExpr(FloatingPointMode = FloatingPointEvaluationMode.FastMath)]
 public static class DataValidationOperations

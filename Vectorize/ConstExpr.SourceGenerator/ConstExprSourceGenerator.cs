@@ -165,7 +165,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		code.WriteLine();
 
 		// Emit top-level generated methods grouped by value.
-		using (code.WriteBlock($"file static class GeneratedMethods", "{", "}"))
+		using (code.WriteBlock($"file static class {methodGroup.First().ParentType.Identifier:literal}"))
 		{
 			EmitGeneratedMethodsForValueGroups(code, compilation, methodGroup, loader);
 

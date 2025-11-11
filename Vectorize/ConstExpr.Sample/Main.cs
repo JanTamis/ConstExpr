@@ -1,10 +1,12 @@
 using ConstExpr.SourceGenerator.Sample;
+using ConstExpr.SourceGenerator.Sample.Operations;
+using ConstExpr.SourceGenerator.Sample.Tests;
 using System;
 using System.Linq;
 
-Console.WriteLine("╔═══════════════════════════════════════���════════════════════════╗");
-Console.WriteLine("║  ConstExpr Test Suite - Alle functies met constanten & vars      ║");
-Console.WriteLine("╚══════════════════════════════════════════════════════════════════╝\n");
+Console.WriteLine("╔═══════════════════════════════════════════════════════════════════╗");
+Console.WriteLine("║  ConstExpr Test Suite - Alle functies met constanten & vars       ║");
+Console.WriteLine("╚═══════════════════════════════════════════════════════════════════╝\n");
 
 // Variabelen voor mixed tests
 var varInt = 10;
@@ -37,121 +39,7 @@ var varDouble11 = 85.0;
 var varDouble12 = 90.0;
 var varDouble13 = 75.0;
 
-// ════════════════════════════════════════════════���══════════════
-// CRYPTOGRAPHY OPERATIONS
-// ═══════════════════════════════════════════════════════════════
-Console.WriteLine("═══ CRYPTOGRAPHY OPERATIONS ═══\n");
-
-// CalculateChecksum - alleen constanten
-Console.WriteLine($"[CONST] CalculateChecksum(1,2,3,4,5): {CryptographyOperations.CalculateChecksum(1, 2, 3, 4, 5)}");
-// CalculateChecksum - mixed
-Console.WriteLine($"[MIXED] CalculateChecksum(varByte,255,128,64): {CryptographyOperations.CalculateChecksum(varByte, 255, 128, 64)}");
-
-// CaesarEncrypt - alleen constanten
-Console.WriteLine($"[CONST] CaesarEncrypt(\"HELLO\",3): {CryptographyOperations.CaesarEncrypt("HELLO", 3)}");
-// CaesarEncrypt - mixed
-Console.WriteLine($"[MIXED] CaesarEncrypt(\"HELLO\",varInt2): {CryptographyOperations.CaesarEncrypt("HELLO", varInt2)}");
-
-// CaesarDecrypt - alleen constanten
-Console.WriteLine($"[CONST] CaesarDecrypt(\"KHOOR\",3): {CryptographyOperations.CaesarDecrypt("KHOOR", 3)}");
-// CaesarDecrypt - mixed
-Console.WriteLine($"[MIXED] CaesarDecrypt(\"KHOOR\",varInt2): {CryptographyOperations.CaesarDecrypt("KHOOR", varInt2)}");
-
-// IsValidHex - alleen constanten
-Console.WriteLine($"[CONST] IsValidHex(\"1A2F3C\"): {CryptographyOperations.IsValidHex("1A2F3C")}");
-Console.WriteLine($"[CONST] IsValidHex(\"XYZ\"): {CryptographyOperations.IsValidHex("XYZ")}");
-
-// BytesToHex - alleen constanten
-Console.WriteLine($"[CONST] BytesToHex(255,128,64,32): {CryptographyOperations.BytesToHex(255, 128, 64, 32)}");
-// BytesToHex - mixed
-Console.WriteLine($"[MIXED] BytesToHex(varByte,255,128): {CryptographyOperations.BytesToHex(varByte, 255, 128)}");
-
-// PolynomialHash - alleen constanten
-Console.WriteLine($"[CONST] PolynomialHash(\"hello\"): {CryptographyOperations.PolynomialHash("hello")}");
-// PolynomialHash - mixed
-Console.WriteLine($"[MIXED] PolynomialHash(varString): {CryptographyOperations.PolynomialHash(varString)}");
-
-Console.WriteLine();
-
-// ════════════════════════════════════════���══════════════════════
-// DATA VALIDATION OPERATIONS
-// ═══════════════════════════════════════════════════════════════
-Console.WriteLine("═══ DATA VALIDATION OPERATIONS ═══\n");
-
-// IsInRange - alleen constanten
-Console.WriteLine($"[CONST] IsInRange(5.5, 0, 10): {DataValidationOperations.IsInRange(5.5, 0, 10)}");
-Console.WriteLine($"[CONST] IsInRange(15, 0, 10): {DataValidationOperations.IsInRange(15, 0, 10)}");
-
-// IsInRange - mixed
-Console.WriteLine($"[MIXED] IsInRange(varDouble, 0, 10): {DataValidationOperations.IsInRange(varDouble, 0, 10)}");
-
-// AllPositive - alleen constanten
-Console.WriteLine($"[CONST] AllPositive(1, 2, 3, 4, 5): {DataValidationOperations.AllPositive(1, 2, 3, 4, 5)}");
-// Console.WriteLine($"[CONST] AllPositive(1, -2, 3): {DataValidationOperations.AllPositive(1, -2, 3)}");
-
-// AllPositive - mixed
-Console.WriteLine($"[MIXED] AllPositive(varDouble, 2, 3): {DataValidationOperations.AllPositive(varDouble, 2, 3)}");
-
-// IsAlphanumeric - alleen constanten
-Console.WriteLine($"[CONST] IsAlphanumeric(\"Hello123\"): {DataValidationOperations.IsAlphanumeric("Hello123")}");
-Console.WriteLine($"[CONST] IsAlphanumeric(\"Hello@123\"): {DataValidationOperations.IsAlphanumeric("Hello@123")}");
-
-// IsAlphanumeric - mixed
-Console.WriteLine($"[MIXED] IsAlphanumeric(varString): {DataValidationOperations.IsAlphanumeric(varString)}");
-
-// IsValidEmail - alleen constanten
-Console.WriteLine($"[CONST] IsValidEmail(\"test@example.com\"): {DataValidationOperations.IsValidEmail("test@example.com")}");
-Console.WriteLine($"[CONST] IsValidEmail(\"invalid.email\"): {DataValidationOperations.IsValidEmail("invalid.email")}");
-Console.WriteLine($"[CONST] IsValidEmail(\"user@domain.co.uk\"): {DataValidationOperations.IsValidEmail("user@domain.co.uk")}");
-
-// IsValidPhoneNumber - alleen constanten
-Console.WriteLine($"[CONST] IsValidPhoneNumber(\"06-12345678\"): {DataValidationOperations.IsValidPhoneNumber("06-12345678")}");
-Console.WriteLine($"[CONST] IsValidPhoneNumber(\"+31 6 1234 5678\"): {DataValidationOperations.IsValidPhoneNumber("+31 6 1234 5678")}");
-Console.WriteLine($"[CONST] IsValidPhoneNumber(\"123\"): {DataValidationOperations.IsValidPhoneNumber("123")}");
-
-// CalculateDataQuality - alleen constanten
-Console.WriteLine($"[CONST] CalculateDataQuality(1, 2, 3, 4, 5): {DataValidationOperations.CalculateDataQuality(1, 2, 3, 4, 5):F2}");
-
-// CalculateDataQuality - mixed
-Console.WriteLine($"[MIXED] CalculateDataQuality(varDouble, 2, 3, 4): {DataValidationOperations.CalculateDataQuality(varDouble, 2, 3, 4):F2}");
-
-// HasBalancedParentheses - alleen constanten
-Console.WriteLine($"[CONST] HasBalancedParentheses(\"((()))\"): {DataValidationOperations.HasBalancedParentheses("((()))")}");
-Console.WriteLine($"[CONST] HasBalancedParentheses(\"(()\"): {DataValidationOperations.HasBalancedParentheses("(())")}");
-Console.WriteLine($"[CONST] HasBalancedParentheses(\"()()()\"): {DataValidationOperations.HasBalancedParentheses("()()()")}");
-
-// IsValidCreditCard - alleen constanten (test met geldige Luhn-nummers)
-Console.WriteLine($"[CONST] IsValidCreditCard(\"4532015112830366\"): {DataValidationOperations.IsValidCreditCard("4532015112830366")}");
-Console.WriteLine($"[CONST] IsValidCreditCard(\"1234567890123456\"): {DataValidationOperations.IsValidCreditCard("1234567890123456")}");
-Console.WriteLine($"[CONST] IsValidCreditCard(\"12345\"): {DataValidationOperations.IsValidCreditCard("12345")}");
-
-Console.WriteLine();
-
-// ════════════════════════════════════════════════════════════════
-// LOOP BREAK & RETURN TESTS
-// ════════════════════════════════════════════════════════════════
-Console.WriteLine("═══ LOOP BREAK & RETURN TESTS ═══\n");
-
-// CountUntilTarget - Tests break in while(true) loop
-Console.WriteLine($"[CONST] CountUntilTarget(5): {DataValidationOperations.CountUntilTarget(5)}");
-Console.WriteLine($"[CONST] CountUntilTarget(10): {DataValidationOperations.CountUntilTarget(10)}");
-Console.WriteLine($"[MIXED] CountUntilTarget(varInt2): {DataValidationOperations.CountUntilTarget(varInt2)}");
-
-// FindFirstEven - Tests return in for loop
-Console.WriteLine($"[CONST] FindFirstEven(): {DataValidationOperations.FindFirstEven()}");
-
-// FindCharIndex - Tests break in foreach loop
-Console.WriteLine($"[CONST] FindCharIndex(\"HELLO\", 'L'): {DataValidationOperations.FindCharIndex("HELLO", 'L')}");
-Console.WriteLine($"[CONST] FindCharIndex(\"HELLO\", 'X'): {DataValidationOperations.FindCharIndex("HELLO", 'X')}");
-Console.WriteLine($"[MIXED] FindCharIndex(varString, 'T'): {DataValidationOperations.FindCharIndex(varString, 'T')}");
-
-// CountInGrid - Tests nested loops with break
-Console.WriteLine($"[CONST] CountInGrid(3, 3, 5): {DataValidationOperations.CountInGrid(3, 3, 5)}");
-Console.WriteLine($"[CONST] CountInGrid(2, 4, 6): {DataValidationOperations.CountInGrid(2, 4, 6)}");
-
-// SumUntilLimit - Tests while(true) with early return
-Console.WriteLine($"[CONST] SumUntilLimit(10): {DataValidationOperations.SumUntilLimit(10)}");
-Console.WriteLine($"[CONST] SumUntilLimit(20): {DataValidationOperations.SumUntilLimit(20)}");
-Console.WriteLine($"[MIXED] SumUntilLimit(varInt * 2): {DataValidationOperations.SumUntilLimit(varInt * 2)}");
-
-Console.WriteLine();
+// Run test categories
+CryptographyTests.RunTests(varByte, varInt2, varString);
+DataValidationTests.RunTests(varDouble, varString, varInt);
+LoopBreakReturnTests.RunTests(varInt2, varString, varInt);
