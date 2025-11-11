@@ -824,7 +824,7 @@ public class ConstExprPartialRewriter(
 				{
 					if (iteratorCount++ >= attribute.MaxUnrollIterations)
 					{
-							foreach (var name in AssignedVariables(node.Statement as BlockSyntax))
+							foreach (var name in AssignedVariables(node))
 							{
 								if (variables.TryGetValue(name, out var variable))
 								{
@@ -887,17 +887,22 @@ public class ConstExprPartialRewriter(
 			variables.Remove(name);
 		}
 
-		var assignedVariables = AssignedVariables(node.Statement as BlockSyntax);
+		var declaration = Visit(node.Declaration);
+		var assignedVariables = AssignedVariables(node);
 
-		foreach (var name in names)
+		foreach (var name in assignedVariables)
 		{
-			if (variables.TryGetValue(name, out var variable) && assignedVariables.Contains(name))
+			if (variables.TryGetValue(name, out var variable))
 			{
 				variable.HasValue = false;
 			}
 		}
 
-		return base.VisitForStatement(node);
+		return node
+			.WithInitializers(VisitList(node.Initializers))
+			.WithCondition(Visit(node.Condition) as ExpressionSyntax ?? node.Condition)
+			.WithDeclaration(declaration as VariableDeclarationSyntax ?? node.Declaration)
+			.WithStatement(Visit(node.Statement) as StatementSyntax ?? node.Statement);
 	}
 
 	public override SyntaxNode? VisitAssignmentExpression(AssignmentExpressionSyntax node)
@@ -2004,7 +2009,7 @@ public class ConstExprPartialRewriter(
 			}
 		}
 
-		var assignedVariables = AssignedVariables(node.Statement as BlockSyntax);
+		var assignedVariables = AssignedVariables(node);
 
 		foreach (var name in names)
 		{
@@ -2221,7 +2226,7 @@ public class ConstExprPartialRewriter(
 			{
 				if (iteratorCount++ >= attribute.MaxUnrollIterations)
 				{
-						foreach (var name in AssignedVariables(node.Statement as BlockSyntax))
+						foreach (var name in AssignedVariables(node))
 						{
 							if (variables.TryGetValue(name, out var variable))
 							{
@@ -2275,7 +2280,7 @@ public class ConstExprPartialRewriter(
 			}
 		}
 
-		foreach (var name in AssignedVariables(node.Statement as BlockSyntax))
+		foreach (var name in AssignedVariables(node))
 		{
 			if (variables.TryGetValue(name, out var variable))
 			{
@@ -2532,14 +2537,14 @@ public class ConstExprPartialRewriter(
 		return false;
 	}
 
-	private HashSet<string> AssignedVariables(BlockSyntax? block)
+	private IEnumerable<string> AssignedVariables(SyntaxNode? block)
 	{
-		if (block == null || block.Statements.Count == 0)
+		if (block == null)
 		{
 			return [ ];
 		}
 
-		var data = semanticModel.AnalyzeDataFlow(block.Statements[0], block.Statements[^1]);
+		var data = semanticModel.AnalyzeDataFlow(block, block);
 
 		if (!data.Succeeded)
 		{
@@ -2547,9 +2552,9 @@ public class ConstExprPartialRewriter(
 		}
 
 		// Get all variables that are written to within the block
-		var assignedVariables = new HashSet<string>(data.WrittenInside
+		var assignedVariables = data.WrittenInside
 			.Where(symbol => symbol is ILocalSymbol or IParameterSymbol)
-			.Select(symbol => symbol.Name));
+			.Select(symbol => symbol.Name);
 
 		return assignedVariables;
 	}
