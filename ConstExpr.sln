@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.12.35707.178
+# Visual Studio Version 18
+VisualStudioVersion = 18.0.11205.157 d18.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConstExpr.SourceGenerator", "Vectorize\ConstExpr.SourceGenerator\ConstExpr.SourceGenerator.csproj", "{AE5F1FCD-4ED0-4B14-8578-E0EC62625973}"
 EndProject

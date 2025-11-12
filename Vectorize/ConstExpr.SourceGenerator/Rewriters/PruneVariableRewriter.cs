@@ -6,12 +6,23 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Xml.Linq;
 
 namespace ConstExpr.SourceGenerator.Rewriters;
 
-public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataLoader loader, IDictionary<string, VariableItem> variables) : BaseRewriter(semanticModel, loader, variables)
+public sealed class PruneVariableRewriter : BaseRewriter
 {
+	private readonly RoslynApiCache? _apiCache;
+	private readonly CancellationToken _cancellationToken;
+
+	public PruneVariableRewriter(SemanticModel semanticModel, MetadataLoader loader, IDictionary<string, VariableItem> variables, RoslynApiCache? apiCache = null, CancellationToken cancellationToken = default) 
+		: base(semanticModel, loader, variables)
+	{
+		_apiCache = apiCache;
+		_cancellationToken = cancellationToken;
+	}
+
 	public override SyntaxNode? Visit(SyntaxNode? node)
 	{
 		try
@@ -244,7 +255,9 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 		if (TryGetLiteralValue(node.Expression, out _))
 		{
 			// Check if this member access is for a property or field that doesn't have side effects
-			var symbolInfo = semanticModel.GetSymbolInfo(node);
+			var symbolInfo = _apiCache != null 
+				? _apiCache.GetOrAddSymbolInfo(node, semanticModel, _cancellationToken)
+				: semanticModel.GetSymbolInfo(node, _cancellationToken);
 
 			if (symbolInfo.Symbol is IPropertySymbol property && property.IsReadOnly)
 			{
@@ -265,7 +278,9 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 	public override SyntaxNode? VisitObjectCreationExpression(ObjectCreationExpressionSyntax node)
 	{
 		// Check if this is creating an object with constant arguments that has no side effects
-		var symbolInfo = semanticModel.GetSymbolInfo(node);
+		var symbolInfo = _apiCache != null 
+			? _apiCache.GetOrAddSymbolInfo(node, semanticModel, _cancellationToken)
+			: semanticModel.GetSymbolInfo(node, _cancellationToken);
 
 		if (symbolInfo.Symbol is IMethodSymbol constructor)
 		{

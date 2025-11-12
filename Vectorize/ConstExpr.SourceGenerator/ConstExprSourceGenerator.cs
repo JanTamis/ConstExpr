@@ -28,8 +28,6 @@ using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 
 namespace ConstExpr.SourceGenerator;
 
-#pragma warning disable RSEXPERIMENTAL002
-
 [IncrementalGenerator]
 public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 {
@@ -61,6 +59,9 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				// Thread-safe cache for semantic models (ConcurrentDictionary for parallel access)
 				var semanticModelCache = new ConcurrentDictionary<SyntaxTree, SemanticModel>();
 				
+				// Thread-safe cache for Roslyn API results to avoid repeated expensive calls
+				var roslynApiCache = new RoslynApiCache();
+				
 				// Process all invocations in parallel with the shared loader
 				var processedModels = new ConcurrentBag<InvocationModel>();
 				
@@ -86,7 +87,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 									model.Invocation.SyntaxTree,
 									tree => compilation.GetSemanticModel(tree));
 								
-								var processedModel = GenerateExpression(semanticModel, loader, model.Invocation, model.MethodSymbol, attribute, spc.CancellationToken);
+								var processedModel = GenerateExpression(semanticModel, loader, model.Invocation, model.MethodSymbol, attribute, roslynApiCache, spc.CancellationToken);
 
 								if (processedModel != null)
 								{
@@ -144,6 +145,9 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 					});
 
 				ReportExceptions(spc, processedModels);
+				
+				// Clear cache to free memory after processing
+				roslynApiCache.Clear();
 			}
 		});
 	}
@@ -177,16 +181,33 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			}
 		}
 
-		// Emit concrete interface implementations (non IEnumerable interfaces) per distinct value.
-		// EmitInterfaceImplementations(code, compilation, methodGroup, loader, distinctUsings);
+		// Build final result with pooled StringBuilder instead of String.Join and LINQ pipeline
+		var sb = StringBuilderCache.Acquire(512);
 
-		// EmitInterceptsLocationAttributeStub(code);
+		// Collect and sort usings: System* first, then alphabetical
+		var usingsList = new List<string>(distinctUsings.Count);
+		foreach (var u in distinctUsings)
+		{
+			if (!string.IsNullOrWhiteSpace(u))
+			{
+				usingsList.Add(u!);
+			}
+		}
+		usingsList.Sort(UsingComparer.Instance);
 
-		var result = String.Join("\n", distinctUsings
-			.Where(w => !String.IsNullOrWhiteSpace(w))
-			.OrderByDescending(o => o.StartsWith("System"))
-			.ThenBy(o => o)
-			.Select(s => $"using {s};")) + "\n\n" + code;
+		for (var i = 0; i < usingsList.Count; i++)
+		{
+			sb.Append("using ");
+			sb.Append(usingsList[i]);
+			sb.Append(';');
+			sb.Append('\n');
+		}
+
+		// Separator between usings and code body
+		sb.Append('\n');
+		sb.Append(code.ToString());
+
+		var result = StringBuilderCache.GetStringAndRelease(sb);
 
 		spc.AddSource($"{methodGroup.First().ParentType.Identifier}_{methodGroup.Key.Identifier}.g.cs", result);
 	}
@@ -258,7 +279,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 	}
 
 	private InvocationModel? GenerateExpression(SemanticModel semanticModel, MetadataLoader loader, InvocationExpressionSyntax invocation,
-																							IMethodSymbol methodSymbol, ConstExprAttribute attribute, CancellationToken token)
+																							IMethodSymbol methodSymbol, ConstExprAttribute attribute, RoslynApiCache apiCache, CancellationToken token)
 	{
 		var methodDecl = GetMethodSyntaxNode(methodSymbol);
 
@@ -286,7 +307,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				};
 
 				// var variables = ProcessArguments(visitor, context.SemanticModel.Compilation, invocation, loader, token);
-				var variablesPartial = ProcessArguments(visitor, semanticModel, invocation, loader, token);
+				var variablesPartial = ProcessArguments(visitor, semanticModel, invocation, loader, apiCache, token);
 				var additionalMethods = new Dictionary<SyntaxNode, bool>(SyntaxNodeComparer<SyntaxNode>.Instance);
 
 				var partialVisitor = new ConstExprPartialRewriter(model, loader, (node, ex) =>
@@ -299,7 +320,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				// visitor.VisitBlock(blockOperation.BlockBody!, variables);
 
 				var result = partialVisitor.VisitBlock(methodDecl.Body); // partialVisitor.VisitBlock(blockOperation.BlockBody!, variablesPartial);
-				var result2 = new PruneVariableRewriter(model, loader, variablesPartial).Visit(result)!;
+				var result2 = new PruneVariableRewriter(model, loader, variablesPartial, apiCache, token).Visit(result)!;
 
 				// Format using Roslyn formatter instead of NormalizeWhitespace
 				// var text = FormattingHelper.Render(methodDecl.WithBody((BlockSyntax)result));
@@ -349,10 +370,12 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		return null;
 	}
 
-	public static Dictionary<string, VariableItem> ProcessArguments(ConstExprOperationVisitor visitor, SemanticModel model, InvocationExpressionSyntax invocation, MetadataLoader loader, CancellationToken token)
+	public static Dictionary<string, VariableItem> ProcessArguments(ConstExprOperationVisitor visitor, SemanticModel model, InvocationExpressionSyntax invocation, MetadataLoader loader, RoslynApiCache apiCache, CancellationToken token)
 	{
 		var variables = new Dictionary<string, VariableItem>();
-		var invocationOperation = model.GetOperation(invocation) as IInvocationOperation;
+		
+		// Use cached GetOperation result
+		var invocationOperation = apiCache.GetOrAddOperation(invocation, model, token) as IInvocationOperation;
 		var methodSymbol = invocationOperation?.TargetMethod;
 
 		foreach (var argument in invocationOperation.Arguments)

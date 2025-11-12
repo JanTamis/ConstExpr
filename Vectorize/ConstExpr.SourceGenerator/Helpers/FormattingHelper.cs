@@ -14,6 +14,6 @@ internal static class FormattingHelper
 	
 	public static string Render(SyntaxNode node)
 	{
-		return Format(node).ToFullString();
+		return Format(node).ToString();
 	}
 }

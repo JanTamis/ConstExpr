@@ -668,11 +668,20 @@ public static class SyntaxHelpers
 
 	public static bool TryGetOperation<TOperation>(SemanticModel semanticModel, SyntaxNode? node, [NotNullWhen(true)] out TOperation? operation) where TOperation : IOperation
 	{
+		return TryGetOperation(semanticModel, node, null, CancellationToken.None, out operation);
+	}
+
+	public static bool TryGetOperation<TOperation>(SemanticModel semanticModel, SyntaxNode? node, RoslynApiCache? cache, CancellationToken cancellationToken, [NotNullWhen(true)] out TOperation? operation) where TOperation : IOperation
+	{
 		try
 		{
-			if (semanticModel.GetOperation(node) is TOperation op)
+			var op = cache != null 
+				? cache.GetOrAddOperation(node, semanticModel, cancellationToken)
+				: semanticModel.GetOperation(node, cancellationToken);
+
+			if (op is TOperation typedOp)
 			{
-				operation = op;
+				operation = typedOp;
 				return true;
 			}
 
@@ -687,8 +696,8 @@ public static class SyntaxHelpers
 
 	public static bool IsInConstEvalBody(Compilation compilation, SyntaxNode node)
 	{
-		var typeText = node.ToFullString();
-		var typeName = node.GetType();
+		//var typeText = node.ToFullString();
+		//var typeName = node.GetType();
 
 		// Check if the node is part of a method or type with [ConstExpr] attribute
 		switch (node)
@@ -714,8 +723,8 @@ public static class SyntaxHelpers
 
 	public static bool IsInConstExprBody(Compilation compilation, SyntaxNode node)
 	{
-		var typeText = node.ToFullString();
-		var typeName = node.GetType();
+		//var typeText = node.ToFullString();
+		//var typeName = node.GetType();
 
 		// Check if the node is part of a method or type with [ConstExpr] attribute
 		switch (node)

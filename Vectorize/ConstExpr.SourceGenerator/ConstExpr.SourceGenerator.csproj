@@ -92,4 +92,10 @@
 		<ProjectReference Include="..\ConstExpr.Core\ConstExpr.Core.csproj" />
 		
 	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Factories\" />
+	  <Folder Include="Handlers\" />
+	  <Folder Include="Strategies\" />
+	</ItemGroup>
 </Project>
