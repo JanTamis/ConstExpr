@@ -36,6 +36,7 @@
 		<Compile Remove="bin\**" />
 		<EmbeddedResource Remove="bin\**" />
 		<None Remove="bin\**" />
+		<Compile Remove="Optimizers\StatementOptimizers\BaseStatementOptimizer.cs" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -94,8 +95,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include="Factories\" />
-	  <Folder Include="Handlers\" />
 	  <Folder Include="Strategies\" />
 	</ItemGroup>
 </Project>

@@ -205,7 +205,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 		// Separator between usings and code body
 		sb.Append('\n');
-		sb.Append(code.ToString());
+		sb.Append(code);
 
 		var result = StringBuilderCache.GetStringAndRelease(sb);
 
