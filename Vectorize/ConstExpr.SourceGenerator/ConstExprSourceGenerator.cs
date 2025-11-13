@@ -231,7 +231,12 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 	{
 		var wroteFirstGroup = false;
 
-		foreach (var invocationsByValue in methodGroup.Where(w => w?.Location is not null).GroupBy(m => m.Method.Identifier.ValueText, StringComparer.Ordinal))
+		var invocations = methodGroup
+			.Where(w => w?.Location is not null)
+			.OrderBy(m => m!.Method.Identifier.ValueText, StringComparer.Ordinal)
+			.GroupBy(m => m.Method.Identifier.ValueText, StringComparer.Ordinal);
+
+		foreach (var invocationsByValue in invocations)
 		{
 			if (wroteFirstGroup)
 			{
