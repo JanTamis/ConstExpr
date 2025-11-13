@@ -56,18 +56,32 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				var loader = MetadataLoader.GetLoader(modelAndCompilation.Left.Right);
 				var compilation = modelAndCompilation.Left.Right;
 				
+				// Create CallGraphAnalyzer once for all invocations to enable caching
+				var callGraphAnalyzer = new CallGraphAnalyzer(compilation);
+				
 				// Thread-safe cache for semantic models (ConcurrentDictionary for parallel access)
 				var semanticModelCache = new ConcurrentDictionary<SyntaxTree, SemanticModel>();
 				
 				// Thread-safe cache for Roslyn API results to avoid repeated expensive calls
 				var roslynApiCache = new RoslynApiCache();
 				
+				// Filter out invocations whose containing method is never called
+				// Do this filtering BEFORE parallel processing to reduce work
+				var relevantInvocations = modelAndCompilation.Left.Left
+					.Where(model => model is { AttributeData: not null, MethodSymbol: not null, Invocation: not null })
+					.Where(model => 
+					{
+						// Use the shared RoslynApiCache for filtering
+						return IsContainingMethodInvoked(compilation, model.Invocation, roslynApiCache, spc.CancellationToken);
+					})
+					.ToList(); // Materialize to avoid multiple enumeration
+				
 				// Process all invocations in parallel with the shared loader
 				var processedModels = new ConcurrentBag<InvocationModel>();
 				
 				// Parallel processing of invocations for better performance
 				Parallel.ForEach(
-					modelAndCompilation.Left.Left,
+					relevantInvocations,
 					new ParallelOptions 
 					{ 
 						CancellationToken = spc.CancellationToken,
@@ -76,28 +90,25 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 					},
 					model =>
 					{
-						if (model is { AttributeData: not null, MethodSymbol: not null })
+						try
 						{
-							try
-							{
-								var attribute = model.AttributeData;
-								
-								// Thread-safe semantic model caching
-								var semanticModel = semanticModelCache.GetOrAdd(
-									model.Invocation.SyntaxTree,
-									tree => compilation.GetSemanticModel(tree));
-								
-								var processedModel = GenerateExpression(semanticModel, loader, model.Invocation, model.MethodSymbol, attribute, roslynApiCache, spc.CancellationToken);
+							var attribute = model.AttributeData;
+							
+							// Thread-safe semantic model caching
+							var semanticModel = semanticModelCache.GetOrAdd(
+								model.Invocation.SyntaxTree,
+								tree => compilation.GetSemanticModel(tree));
+							
+							var processedModel = GenerateExpression(semanticModel, loader, model.Invocation, model.MethodSymbol, attribute, roslynApiCache, spc.CancellationToken);
 
-								if (processedModel != null)
-								{
-									processedModels.Add(processedModel);
-								}
-							}
-							catch (Exception ex)
+							if (processedModel != null)
 							{
-								Logger.Error(ex, $"Error processing invocation {model.Invocation}: {ex.Message}");
+								processedModels.Add(processedModel);
 							}
+						}
+						catch (Exception ex)
+						{
+							Logger.Error(ex, $"Error processing invocation {model.Invocation}: {ex.Message}");
 						}
 					});
 
@@ -133,6 +144,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 						MaxDegreeOfParallelism = -1
 					},
 					methodGroup =>
+
 					{
 						try
 						{
@@ -146,8 +158,9 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 				ReportExceptions(spc, processedModels);
 				
-				// Clear cache to free memory after processing
+				// Clear caches to free memory after processing
 				roslynApiCache.Clear();
+				callGraphAnalyzer.ClearCache();
 			}
 		});
 	}
@@ -229,7 +242,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 			if (invocationsByValue.Any(a => a?.AttributeData.FloatingPointMode == FloatingPointEvaluationMode.FastMath))
 			{
-				code.WriteLine("[MethodImpl(MethodImplOptions.AggressiveOptimization)]");
+				// code.WriteLine("[MethodImpl(MethodImplOptions.AggressiveOptimization)]");
 			}
 
 			// Add interceptor attributes for every invocation (location based) that shares the same value.
@@ -266,7 +279,9 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			&& !IsInConstEvalBody(context.SemanticModel.Compilation, invocation) 
 			&& !IsInConstExprBody(context.SemanticModel.Compilation, invocation))
 		{
-			// Return a marker model to be processed later with shared MetadataLoader
+			// Note: We skip IsContainingMethodInvoked check here since we don't have RoslynApiCache yet
+			// This check will be done later in RegisterSourceOutput with the shared cache
+			// Return a marker model to be processed later with shared MetadataLoader and RoslynApiCache
 			return new InvocationModel
 			{
 				Invocation = invocation,

@@ -509,4 +509,9 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 	{
 		return variables.TryGetValue(variableName, out var value) && value.HasValue && (!value.IsAccessed && !value.IsAltered);
 	}
+
+	protected bool CanBePruned(SyntaxNode node)
+	{
+		return node is IdentifierNameSyntax identifier && CanBePruned(identifier.Identifier.Text);
+	}
 }

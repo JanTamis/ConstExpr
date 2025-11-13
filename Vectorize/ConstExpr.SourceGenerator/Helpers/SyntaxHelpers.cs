@@ -944,4 +944,267 @@ public static class SyntaxHelpers
 			.Select(s => s?.GetSyntax(cancellationToken))
 			.FirstOrDefault(s => s is not null);
 	}
+
+	/// <summary>
+	/// Checks if the method containing the given invocation is actually invoked in the compilation.
+	/// Uses recursive call graph analysis to trace through intermediate callers.
+	/// Supports methods, local functions, and global statements.
+	/// </summary>
+	/// <param name="compilation">The compilation context</param>
+	/// <param name="invocation">The invocation expression to check</param>
+	/// <param name="cache">Optional cache for Roslyn API calls to improve performance</param>
+	/// <param name="token">Cancellation token</param>
+	/// <returns>True if the containing method is invoked (directly or transitively), false otherwise</returns>
+	public static bool IsContainingMethodInvoked(Compilation compilation, InvocationExpressionSyntax invocation, RoslynApiCache? cache = null, CancellationToken token = default)
+	{
+		// Check for global statement - always considered invoked (it's top-level code)
+		var globalStatement = invocation.Ancestors().OfType<GlobalStatementSyntax>().FirstOrDefault();
+		if (globalStatement != null)
+		{
+			return true;
+		}
+
+		// Find the containing method (could be a regular method, local function, etc.)
+		var containingMethod = invocation.Ancestors()
+			.OfType<BaseMethodDeclarationSyntax>()
+			.FirstOrDefault();
+
+		// Also check for LocalFunctionStatementSyntax
+		var localFunction = containingMethod == null 
+			? invocation.Ancestors().OfType<LocalFunctionStatementSyntax>().FirstOrDefault()
+			: null;
+
+		if (containingMethod == null && localFunction == null)
+		{
+			// If not in a method or local function (e.g., in a field initializer, property initializer), consider it invoked
+			return true;
+		}
+
+		SyntaxNode nodeToCheck = (SyntaxNode?)containingMethod ?? localFunction!;
+		var tree = nodeToCheck.SyntaxTree;
+
+		if (!compilation.SyntaxTrees.Contains(tree))
+		{
+			return true;
+		}
+
+		var semanticModel = compilation.GetSemanticModel(tree);
+
+    if (semanticModel.GetDeclaredSymbol(nodeToCheck, token) is not IMethodSymbol methodSymbol)
+    {
+      return true;
+    }
+
+    // Check if this is a public API method (entry point)
+    if (IsPublicApiMethod(methodSymbol))
+		{
+			return true;
+		}
+
+		// Use recursive call graph analysis with visited set to prevent infinite loops
+		var visited = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+
+		return IsMethodInvokedRecursive(compilation, methodSymbol, visited, cache, token);
+	}
+
+	/// <summary>
+	/// Recursively checks if a method is invoked, following the call chain up to entry points.
+	/// </summary>
+	private static bool IsMethodInvokedRecursive(Compilation compilation, IMethodSymbol targetMethod, HashSet<IMethodSymbol> visited, RoslynApiCache? cache, CancellationToken token)
+	{
+		// Prevent infinite recursion
+		if (!visited.Add(targetMethod))
+		{
+			return false;
+		}
+
+		// Find all methods that call the target method
+		var callers = FindCallingMethods(compilation, targetMethod, cache, token);
+
+		foreach (var caller in callers)
+		{
+			if (token.IsCancellationRequested)
+			{
+				return true; // Assume invoked if cancelled
+			}
+
+			// If the caller is a public API method, the target is invoked
+			if (IsPublicApiMethod(caller))
+			{
+				return true;
+			}
+
+			// Recursively check if the caller is invoked
+			if (IsMethodInvokedRecursive(compilation, caller, visited, cache, token))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/// <summary>
+	/// Finds all methods in the compilation that invoke the target method.
+	/// Checks regular methods, local functions, and global statements.
+	/// Uses RoslynApiCache to avoid expensive repeated GetSymbolInfo calls.
+	/// </summary>
+	private static IEnumerable<IMethodSymbol> FindCallingMethods(Compilation compilation, IMethodSymbol targetMethod, RoslynApiCache? cache, CancellationToken token)
+	{
+		var callers = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+
+		foreach (var tree in compilation.SyntaxTrees)
+		{
+			if (token.IsCancellationRequested)
+			{
+				yield break;
+			}
+
+			if (!compilation.SyntaxTrees.Contains(tree))
+			{
+				continue;
+			}
+
+			var semanticModel = compilation.GetSemanticModel(tree);
+			var root = tree.GetRoot(token);
+			
+			// Find all invocations in this tree
+			var invocations = root.DescendantNodes()
+				.OfType<InvocationExpressionSyntax>();
+
+			foreach (var invocation in invocations)
+			{
+				if (token.IsCancellationRequested)
+				{
+					yield break;
+				}
+
+				// Check if this invocation calls our target method - USE CACHE HERE
+				SymbolInfo symbolInfo = cache != null
+					? cache.GetOrAddSymbolInfo(invocation, semanticModel, token)
+					: semanticModel.GetSymbolInfo(invocation, token);
+
+				if (symbolInfo.Symbol is IMethodSymbol symbol &&
+				    (SymbolEqualityComparer.Default.Equals(symbol, targetMethod) ||
+				     (symbol.OriginalDefinition != null &&
+				      SymbolEqualityComparer.Default.Equals(symbol.OriginalDefinition, targetMethod.OriginalDefinition))))
+				{
+					// Check if invocation is in a global statement - if so, it's always invoked
+					var globalStatement = invocation.Ancestors().OfType<GlobalStatementSyntax>().FirstOrDefault();
+					if (globalStatement != null)
+					{
+						// Global statements are top-level code, so we treat them as entry points
+						// Return a synthetic "Main" method to represent the global scope
+						var entryPoint = compilation.GetEntryPoint(token);
+						if (entryPoint != null && callers.Add(entryPoint))
+						{
+							yield return entryPoint;
+						}
+						continue;
+					}
+
+					// Find the containing method or local function of this invocation
+					var containingMethod = invocation.Ancestors()
+						.OfType<BaseMethodDeclarationSyntax>()
+						.FirstOrDefault();
+
+					var localFunction = containingMethod == null
+						? invocation.Ancestors().OfType<LocalFunctionStatementSyntax>().FirstOrDefault()
+						: null;
+
+					var nodeToCheck = (SyntaxNode?)containingMethod ?? localFunction;
+
+					if (nodeToCheck != null)
+					{
+            if (semanticModel.GetDeclaredSymbol(nodeToCheck, token) is IMethodSymbol callingMethod && callers.Add(callingMethod))
+            {
+              yield return callingMethod;
+            }
+          }
+				}
+			}
+		}
+	}
+
+	/// <summary>
+	/// Checks if a method is a public API method (likely to be called from outside)
+	/// </summary>
+	private static bool IsPublicApiMethod(IMethodSymbol method)
+	{
+		// Public methods in public types are considered entry points
+		if (method.DeclaredAccessibility == Accessibility.Public)
+		{
+			var containingType = method.ContainingType;
+			while (containingType != null)
+			{
+				if (containingType.DeclaredAccessibility != Accessibility.Public)
+				{
+					return false;
+				}
+				containingType = containingType.ContainingType;
+			}
+			return true;
+		}
+
+		// Special entry points (Main, test methods with [Test], [Fact], etc.)
+		if (method.Name == "Main" && method.IsStatic)
+		{
+			return true;
+		}
+
+		// Entry point for global statements (synthesized Main method)
+		if (method.Name == "<Main>$")
+		{
+			return true;
+		}
+
+		// Test methods
+		var testAttributes = new[] { "Test", "TestMethod", "Fact", "Theory" };
+		if (method.GetAttributes().Any(attr => testAttributes.Any(ta => attr.AttributeClass?.Name.Contains(ta) == true)))
+		{
+			return true;
+		}
+
+		return false;
+	}
+
+	/// <summary>
+	/// Searches the compilation to determine if a method is invoked anywhere (non-recursive version, kept for backward compatibility)
+	/// </summary>
+	private static bool IsMethodInvoked(Compilation compilation, IMethodSymbol targetMethod, CancellationToken token)
+	{
+		// Search through all syntax trees in the compilation
+		foreach (var tree in compilation.SyntaxTrees)
+		{
+			if (token.IsCancellationRequested)
+			{
+				return true; // Assume invoked if cancelled
+			}
+
+			if (!compilation.SyntaxTrees.Contains(tree))
+			{
+				continue;
+			}
+
+			var semanticModel = compilation.GetSemanticModel(tree);
+			var root = tree.GetRoot(token);
+			var invocations = root.DescendantNodes()
+				.OfType<InvocationExpressionSyntax>();
+
+			foreach (var inv in invocations)
+			{
+				if (token.IsCancellationRequested)
+				{
+					return true;
+				}
+
+        if (semanticModel.GetSymbolInfo(inv, token).Symbol is IMethodSymbol symbol && SymbolEqualityComparer.Default.Equals(symbol, targetMethod))
+        {
+          return true;
+        }
+      }
+		}
+
+		return false;
+	}
 }

@@ -204,7 +204,7 @@ public static class MathOperations
 	/// </summary>
 	public static int ReverseNumber(int n)
 	{
-		var isNegative = n < 0;
+		var originalN = n;
 		n = Math.Abs(n);
 
 		var reversed = 0;
@@ -214,7 +214,7 @@ public static class MathOperations
 			n /= 10;
 		}
 
-		return isNegative ? -reversed : reversed;
+		return Int32.CopySign(reversed, originalN);
 	}
 
 	/// <summary>

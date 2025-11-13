@@ -230,9 +230,9 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 
 	public override SyntaxNode? VisitInvocationExpression(InvocationExpressionSyntax node)
 	{
-		if (node.Expression is MemberAccessExpressionSyntax { Expression: IdentifierNameSyntax identifier } 
-		    && CanBePruned(identifier.Identifier.Text)
-		    && node.ArgumentList.Arguments.All(a => TryGetLiteralValue(a.Expression, out _)))
+		if ((node.Expression is MemberAccessExpressionSyntax { Expression: IdentifierNameSyntax identifier } 
+		    && CanBePruned(identifier.Identifier.Text))
+		    || node.ArgumentList.Arguments.Any(a => CanBePruned(a.Expression)))
 		{
 			return null;
 		}
