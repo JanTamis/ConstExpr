@@ -7,27 +7,95 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies;
 
 /// <summary>
-/// Strategy for division by power of two: x / (2^n) => x >> n (unsigned integers only)
+/// Strategy for division by power of two: x / (2^n) => x >> n (for unsigned) or (x + ((x >> (bitSize - 1)) & (2^n - 1))) >> n (for signed)
 /// </summary>
 public class DivideByPowerOfTwoToShiftStrategy : BaseBinaryStrategy
 {
 	public override bool CanBeOptimized(BinaryOptimizeContext context)
 	{
-		return context.Type.IsUnsignedInteger() 
-		       && context.Right is { HasValue: true, Value: { } value } 
-		       && value.IsNumericPowerOfTwo(out _);
+		return context.Type.IsInteger()
+					 && context.Right is { HasValue: true, Value: { } value }
+					 && value.IsNumericPowerOfTwo(out _);
 	}
 
 	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
 	{
-		if (context.Right.Value.IsNumericPowerOfTwo(out var power))
+		if (!context.Right.Value.IsNumericPowerOfTwo(out var power))
 		{
 			return null;
 		}
 
-		return BinaryExpression(
-			SyntaxKind.RightShiftExpression, 
+		// For unsigned integers: x >> n
+		if (context.Type.IsUnsignedInteger())
+		{
+			return BinaryExpression(
+				SyntaxKind.RightShiftExpression,
+				context.Left.Syntax,
+				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(power)));
+		}
+
+		// For signed integers: (x + ((x >> (bitSize - 1)) & (2^n - 1))) >> n
+		// This correctly handles negative numbers by adding a bias before shifting
+		var bitSize = GetBitSize(context.Type.SpecialType);
+
+		if (bitSize == 0)
+		{
+			return null;
+		}
+
+		// x >> (bitSize - 1) - extracts sign bit (0 for positive, -1 for negative)
+		var signExtract = BinaryExpression(
+			SyntaxKind.RightShiftExpression,
 			context.Left.Syntax,
-			LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(power)));
+			LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(bitSize - 1)));
+
+		// (2^n - 1) - bias mask
+		var bias = (1 << power) - 1;
+		var biasLiteral = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(bias));
+
+		if (bias == 1)
+		{
+			var adjusted = BinaryExpression(
+				SyntaxKind.AddExpression,
+				context.Left.Syntax,
+				ParenthesizedExpression(signExtract));
+
+			return BinaryExpression(
+				SyntaxKind.RightShiftExpression,
+				ParenthesizedExpression(adjusted),
+				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(power)));
+		}
+		else
+		{
+			// (x >> (bitSize - 1)) & (2^n - 1)
+			var maskedSign = BinaryExpression(
+				SyntaxKind.BitwiseAndExpression,
+				ParenthesizedExpression(signExtract),
+				biasLiteral);
+
+			// x + ((x >> (bitSize - 1)) & (2^n - 1))
+			var adjusted = BinaryExpression(
+				SyntaxKind.AddExpression,
+				context.Left.Syntax,
+				ParenthesizedExpression(maskedSign));
+
+			// (x + ((x >> (bitSize - 1)) & (2^n - 1))) >> n
+			return BinaryExpression(
+				SyntaxKind.RightShiftExpression,
+				ParenthesizedExpression(adjusted),
+				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(power)));
+		}
+	}
+
+	private static int GetBitSize(SpecialType specialType)
+	{
+		return specialType switch
+		{
+			SpecialType.System_SByte => 8,
+			SpecialType.System_Int16 => 16,
+			SpecialType.System_Int32 => 32,
+			SpecialType.System_Int64 => 64,
+			_ => 0
+		};
 	}
 }
