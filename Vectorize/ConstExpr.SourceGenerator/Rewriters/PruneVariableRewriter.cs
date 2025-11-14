@@ -347,8 +347,7 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 	public override SyntaxNode? VisitPostfixUnaryExpression(PostfixUnaryExpressionSyntax node)
 	{
 		// Handle i++, i--, etc. on constant variables
-		if (node.Operand is IdentifierNameSyntax { Identifier.Text: var name }
-		    && CanBePruned(name))
+		if (CanBePruned(node.Operand))
 		{
 			return null;
 		}
@@ -359,8 +358,7 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 	public override SyntaxNode? VisitPrefixUnaryExpression(PrefixUnaryExpressionSyntax node)
 	{
 		// Handle ++i, --i, etc. on constant variables
-		if (node.Operand is IdentifierNameSyntax { Identifier.Text: var name }
-		    && CanBePruned(name))
+		if (CanBePruned(node.Operand))
 		{
 			return null;
 		}
@@ -368,7 +366,7 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 		return base.VisitPrefixUnaryExpression(node);
 	}
 
-	// New override: strip all comment trivia (including XML doc comments) from tokens
+	// Strip all comment trivia (including XML doc comments) from tokens
 	public override SyntaxToken VisitToken(SyntaxToken token)
 	{
 		if (token.IsKind(SyntaxKind.None))

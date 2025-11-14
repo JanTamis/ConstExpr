@@ -1,15 +1,16 @@
 using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public abstract class BaseMathFunctionOptimizer(string name, params int[] parameterCounts) : BaseFunctionOptimizer
+public abstract class BaseMathFunctionOptimizer(string name, params HashSet<int> parameterCounts) : BaseFunctionOptimizer
 {
 	public string Name { get; } = name;
-	public int[] ParameterCounts { get; } = parameterCounts;
+	public HashSet<int> ParameterCounts { get; } = parameterCounts;
 
 	protected bool HasMethod(ITypeSymbol type, string name, int parameterCount)
 	{

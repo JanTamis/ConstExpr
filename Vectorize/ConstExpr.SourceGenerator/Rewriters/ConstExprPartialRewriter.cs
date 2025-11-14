@@ -24,7 +24,12 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Rewriters;
 
-public class ConstExprPartialRewriter(
+/// <summary>
+/// Rewriter that performs constant folding and safe partial evaluation over C# syntax trees.
+/// This class is intentionally split across multiple partial files to keep concerns focused
+/// and the code easier to navigate and extend.
+/// </summary>
+public partial class ConstExprPartialRewriter(
 	SemanticModel semanticModel,
 	MetadataLoader loader,
 	Action<SyntaxNode?, Exception> exceptionHandler,
@@ -36,7 +41,6 @@ public class ConstExprPartialRewriter(
 	HashSet<IMethodSymbol>? visitingMethods = null)
 	: BaseRewriter(semanticModel, loader, variables)
 {
-
 	private readonly Lazy<Type[]> _stringOptimizers = new(() =>
 	{
 		return typeof(BaseStringFunctionOptimizer).Assembly
@@ -270,10 +274,6 @@ public class ConstExprPartialRewriter(
 
 					break;
 				}
-				// Skip nodes that are not of the expected type
-				// This can happen when a VariableDeclarator returns an ExpressionStatementSyntax
-				default:
-					break;
 			}
 		}
 
@@ -470,7 +470,7 @@ public class ConstExprPartialRewriter(
 			         && node.Expression is MemberAccessExpressionSyntax memberAccess)
 			{
 				var instance = Visit(memberAccess.Expression);
-				
+
 				var optimizers = _stringOptimizers.Value
 					.Select(s => Activator.CreateInstance(s, instance) as BaseStringFunctionOptimizer)
 					.Where(o => String.Equals(o.Name, targetMethod.Name, StringComparison.Ordinal));
@@ -809,21 +809,21 @@ public class ConstExprPartialRewriter(
 				case false:
 					// Condition is always false; remove the loop
 					return null;
-			case true:
-			{
-				// Skip loop unrolling if MaxUnrollIterations is 0
-				if (attribute.MaxUnrollIterations == 0)
+				case true:
 				{
-					return base.VisitForStatement(node);
-				}
-
-				var result = new List<SyntaxNode?>();
-				var iteratorCount = 0;
-
-				do
-				{
-					if (iteratorCount++ >= attribute.MaxUnrollIterations)
+					// Skip loop unrolling if MaxUnrollIterations is 0
+					if (attribute.MaxUnrollIterations == 0)
 					{
+						return base.VisitForStatement(node);
+					}
+
+					var result = new List<SyntaxNode?>();
+					var iteratorCount = 0;
+
+					do
+					{
+						if (iteratorCount++ >= attribute.MaxUnrollIterations)
+						{
 							foreach (var name in AssignedVariables(node))
 							{
 								if (variables.TryGetValue(name, out var variable))
@@ -834,7 +834,7 @@ public class ConstExprPartialRewriter(
 
 							return base.VisitForStatement(node);
 						}
-						
+
 						var statement = Visit(node.Statement);
 
 						if (statement is not BlockSyntax)
@@ -1944,7 +1944,7 @@ public class ConstExprPartialRewriter(
 		var items = collection switch
 		{
 			CollectionExpressionSyntax collectionExpression => collectionExpression.Elements,
-			LiteralExpressionSyntax { RawKind: (int) SyntaxKind.StringLiteralExpression } stringLiteral => (IReadOnlyList<CSharpSyntaxNode>)stringLiteral.Token.ValueText.Select(s => CreateLiteral(s) as CSharpSyntaxNode).ToList(),
+			LiteralExpressionSyntax { RawKind: (int) SyntaxKind.StringLiteralExpression } stringLiteral => (IReadOnlyList<CSharpSyntaxNode>) stringLiteral.Token.ValueText.Select(s => CreateLiteral(s) as CSharpSyntaxNode).ToList(),
 			_ => null,
 		};
 
@@ -1999,7 +1999,7 @@ public class ConstExprPartialRewriter(
 
 								break;
 							}
-							
+
 							statements.Add(block);
 						}
 					}
@@ -2211,21 +2211,21 @@ public class ConstExprPartialRewriter(
 				return null;
 			}
 
-		if (value is true)
-		{
-			// Skip loop unrolling if MaxUnrollIterations is 0
-			if (attribute.MaxUnrollIterations == 0)
+			if (value is true)
 			{
-				return base.VisitWhileStatement(node);
-			}
-
-			var result = new List<SyntaxNode?>();
-			var iteratorCount = 0;
-
-			do
-			{
-				if (iteratorCount++ >= attribute.MaxUnrollIterations)
+				// Skip loop unrolling if MaxUnrollIterations is 0
+				if (attribute.MaxUnrollIterations == 0)
 				{
+					return base.VisitWhileStatement(node);
+				}
+
+				var result = new List<SyntaxNode?>();
+				var iteratorCount = 0;
+
+				do
+				{
+					if (iteratorCount++ >= attribute.MaxUnrollIterations)
+					{
 						foreach (var name in AssignedVariables(node))
 						{
 							if (variables.TryGetValue(name, out var variable))
@@ -2327,235 +2327,5 @@ public class ConstExprPartialRewriter(
 	public override SyntaxNode? VisitArgumentList(ArgumentListSyntax node)
 	{
 		return node.WithArguments(VisitList(node.Arguments));
-	}
-
-	private object? ExecuteConversion(IConversionOperation conversion, object? value)
-	{
-		// If there's a conversion method, use it and produce a literal syntax node
-		if (loader.TryExecuteMethod(conversion.OperatorMethod, null, new VariableItemDictionary(variables), [ value ], out var result))
-		{
-			return result;
-		}
-
-		// Convert the runtime value to the requested special type, then create a literal syntax node
-		return conversion.Type?.SpecialType switch
-		{
-			SpecialType.System_Boolean => Convert.ToBoolean(value),
-			SpecialType.System_Byte => Convert.ToByte(value),
-			SpecialType.System_Char => Convert.ToChar(value),
-			SpecialType.System_DateTime => Convert.ToDateTime(value),
-			SpecialType.System_Decimal => Convert.ToDecimal(value),
-			SpecialType.System_Double => Convert.ToDouble(value),
-			SpecialType.System_Int16 => Convert.ToInt16(value),
-			SpecialType.System_Int32 => Convert.ToInt32(value),
-			SpecialType.System_Int64 => Convert.ToInt64(value),
-			SpecialType.System_SByte => Convert.ToSByte(value),
-			SpecialType.System_Single => Convert.ToSingle(value),
-			SpecialType.System_String => Convert.ToString(value),
-			SpecialType.System_UInt16 => Convert.ToUInt16(value),
-			SpecialType.System_UInt32 => Convert.ToUInt32(value),
-			SpecialType.System_UInt64 => Convert.ToUInt64(value),
-			_ => value,
-		};
-	}
-
-	private StatementSyntax ToStatementSyntax(IEnumerable<SyntaxNode?> nodes)
-	{
-		var items = nodes
-			.SelectMany<SyntaxNode?, SyntaxNode?>(s => s is BlockSyntax block ? block.Statements : [ s ])
-			.OfType<StatementSyntax>()
-			.ToList();
-
-		if (items.Count == 1)
-		{
-			return items[0];
-		}
-
-		return Block(items);
-	}
-
-	private bool TryOptimizeNode(BinaryOperatorKind kind, ITypeSymbol type, ExpressionSyntax leftExpr, ITypeSymbol? leftType, ExpressionSyntax rightExpr, ITypeSymbol? rightType, out SyntaxNode? syntaxNode)
-	{
-		// Select optimizer based on operator kind
-		var strategies = typeof(BaseBinaryOptimizer).Assembly
-			.GetTypes()
-			.Where(t => !t.IsAbstract && typeof(BaseBinaryOptimizer).IsAssignableFrom(t))
-			.Select(t => Activator.CreateInstance(t) as BaseBinaryOptimizer)
-			.OfType<BaseBinaryOptimizer>()
-			.Where(o => o.Kind == kind)
-			.SelectMany(s => s.GetStrategies());
-
-		var context = new BinaryOptimizeContext
-		{
-			Left = new BinaryOptimizeElement
-			{
-				HasValue = TryGetLiteralValue(leftExpr, out var leftVal),
-				Value = leftVal,
-				Type = leftType,
-				Syntax = leftExpr,
-			},
-			Right = new BinaryOptimizeElement
-			{
-				HasValue = TryGetLiteralValue(rightExpr, out var rightVal),
-				Value = rightVal,
-				Type = rightType,
-				Syntax = rightExpr,
-			},
-			Type = type,
-			Variables = variables,
-			Kind = kind,
-			TryGetLiteral = TryGetLiteralValue
-		};
-
-		foreach (var strategy in strategies)
-		{
-			if (strategy.CanBeOptimized(context))
-			{
-				var result = strategy.Optimize(context);
-
-				if (result is not null)
-				{
-					if (result is BinaryExpressionSyntax binary
-					    && TryOptimizeNode(binary.Kind().ToBinaryOperatorKind(), type, binary.Left, leftType, binary.Right, rightType, out var nested))
-					{
-						syntaxNode = nested;
-						return true;
-					}
-
-					syntaxNode = result;
-					return true;
-				}
-			}
-		}
-
-		syntaxNode = null;
-		return false;
-	}
-
-	/// <summary>
-	/// Checks if a method call with string arguments can be replaced with a char overload.
-	/// If one or more string arguments have length 1, looks for a method overload that accepts char instead.
-	/// </summary>
-	private bool TryGetCharOverload(
-		IMethodSymbol currentMethod,
-		IReadOnlyList<SyntaxNode?> arguments,
-		[NotNullWhen(true)] out IMethodSymbol? charMethod)
-	{
-		charMethod = null;
-
-		// Check if any arguments are strings with length 1
-		var stringIndices = new List<int>();
-		var charValues = new List<char>();
-
-		for (var i = 0; i < currentMethod.Parameters.Length && i < arguments.Count; i++)
-		{
-			var param = currentMethod.Parameters[i];
-
-			// Only consider string parameters
-			if (param.Type.SpecialType != SpecialType.System_String)
-			{
-				continue;
-			}
-
-			var arg = arguments[i];
-
-			// Check if the argument is a string literal with length 1
-			if (TryGetLiteralValue(arg, out var value) && value is string { Length: 1 } str)
-			{
-				stringIndices.Add(i);
-				charValues.Add(str[0]);
-			}
-		}
-
-		// If no single-char strings found, no optimization possible
-		if (stringIndices.Count == 0)
-		{
-			return false;
-		}
-
-		// Look for an overload with char parameters at those positions
-		var methodName = currentMethod.Name;
-		var containingType = currentMethod.ContainingType;
-
-		var candidateMethods = containingType
-			.GetMembers(methodName)
-			.OfType<IMethodSymbol>()
-			.Where(m =>
-				m.Parameters.Length == currentMethod.Parameters.Length &&
-				m.IsStatic == currentMethod.IsStatic &&
-				!SymbolEqualityComparer.Default.Equals(m, currentMethod));
-
-		foreach (var candidate in candidateMethods)
-		{
-			var isMatch = true;
-			var charIndicesInCandidate = new HashSet<int>();
-
-			// Check if parameters match, with char at the identified positions
-			for (var i = 0; i < candidate.Parameters.Length; i++)
-			{
-				var candidateParam = candidate.Parameters[i];
-				var currentParam = currentMethod.Parameters[i];
-
-				if (stringIndices.Contains(i))
-				{
-					// This position should be char in the candidate
-					if (candidateParam.Type.SpecialType == SpecialType.System_Char)
-					{
-						charIndicesInCandidate.Add(i);
-					}
-					else
-					{
-						isMatch = false;
-						break;
-					}
-				}
-				else
-				{
-					// Other positions should have the same type
-					if (!SymbolEqualityComparer.Default.Equals(candidateParam.Type, currentParam.Type))
-					{
-						isMatch = false;
-						break;
-					}
-				}
-			}
-
-			// Check return type matches
-			if (isMatch && !SymbolEqualityComparer.Default.Equals(candidate.ReturnType, currentMethod.ReturnType))
-			{
-				isMatch = false;
-			}
-
-			if (isMatch && charIndicesInCandidate.Count == stringIndices.Count)
-			{
-				// Found a matching char overload!
-				charMethod = candidate;
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	private IEnumerable<string> AssignedVariables(SyntaxNode? block)
-	{
-		if (block == null)
-		{
-			return [ ];
-		}
-
-		var data = semanticModel.AnalyzeDataFlow(block, block);
-
-		if (!data.Succeeded)
-		{
-			return [ ];
-		}
-
-		// Get all variables that are written to within the block
-		var assignedVariables = data.WrittenInside
-			.Where(symbol => symbol is ILocalSymbol or IParameterSymbol)
-			.Select(symbol => symbol.Name);
-
-		return assignedVariables;
 	}
 }
