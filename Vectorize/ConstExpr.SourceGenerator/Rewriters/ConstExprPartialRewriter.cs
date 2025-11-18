@@ -90,7 +90,6 @@ public partial class ConstExprPartialRewriter(
 				value.IsAccessed = true;
 			}
 
-
 			if (TryGetLiteral(value.Value, out var expression))
 			{
 				return expression;
@@ -176,6 +175,10 @@ public partial class ConstExprPartialRewriter(
 	{
 		if (TryGetLiteral(node.Token.Value, out var expression))
 		{
+			if (semanticModel.TryGetSymbol(node, out ISymbol? symbol))
+			{
+				
+			}
 			return expression;
 		}
 
@@ -189,7 +192,8 @@ public partial class ConstExprPartialRewriter(
 
 		foreach (var node in list)
 		{
-			if (shouldStop) break;
+			if (shouldStop) 
+				break;
 
 			var visited = Visit(node);
 

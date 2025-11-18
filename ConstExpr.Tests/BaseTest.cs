@@ -93,10 +93,11 @@ public abstract class BaseTest
 							errorMessage.AppendLine($"""
 							  Body:
 							{body.ToFullString()}
+							
 							""");
 						}
 
-						errorMessage.AppendLine();
+						// errorMessage.AppendLine();
 					}
 					
 					if (actualMethods.Count > 0)
@@ -109,6 +110,7 @@ public abstract class BaseTest
 								Method signature: {method.ReturnType} {method.Identifier}{method.ParameterList}
 								Body:
 							{method.Body?.ToFullString() ?? "(no body)"}
+							
 							""");
 						}
 					}
