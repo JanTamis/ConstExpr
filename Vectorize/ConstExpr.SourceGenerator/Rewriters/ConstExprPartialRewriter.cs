@@ -175,7 +175,7 @@ public partial class ConstExprPartialRewriter(
 	{
 		if (TryGetLiteral(node.Token.Value, out var expression))
 		{
-			if (semanticModel.TryGetSymbol(node, out ISymbol? symbol))
+			if (semanticModel.GetOperation(node) is IOperation operation)
 			{
 				
 			}
@@ -1318,59 +1318,18 @@ public partial class ConstExprPartialRewriter(
 		{
 			return CreateLiteral(!logicalBool);
 		}
-		// Support unary minus (negation)
-		else if (node.OperatorToken.IsKind(SyntaxKind.MinusToken)
-		         && TryGetLiteralValue(operand, out var negValue))
+
+		if (semanticModel.GetOperation(node) is IUnaryOperation { ConstantValue.HasValue: true } operation)
 		{
-			var result = negValue switch
+			if (operation.Parent is IConversionOperation conversionOperation
+				&& TryGetLiteral(conversionOperation.ConstantValue.Value, out var lit))
 			{
-				byte byteVal => -byteVal,
-				sbyte sbyteVal => -sbyteVal,
-				short shortVal => -shortVal,
-				ushort ushortVal => -ushortVal,
-				int intVal => -intVal,
-				uint uintVal => -uintVal,
-				long longVal => -longVal,
-				float floatVal => -floatVal,
-				double doubleVal => -doubleVal,
-				decimal decimalVal => (object?) (-decimalVal),
-				_ => null
-			};
-			return result is not null && TryGetLiteral(result, out var lit) ? lit : node.WithOperand(operand as ExpressionSyntax ?? node.Operand);
-		}
-		// Support unary plus
-		else if (node.OperatorToken.IsKind(SyntaxKind.PlusToken)
-		         && TryGetLiteralValue(operand, out var plusValue))
-		{
-			var result = plusValue switch
+				return lit;
+			}
+			else if (TryGetLiteral(operation.ConstantValue.Value, out lit))
 			{
-				byte byteVal => +byteVal,
-				sbyte sbyteVal => +sbyteVal,
-				short shortVal => +shortVal,
-				ushort ushortVal => +ushortVal,
-				int intVal => +intVal,
-				uint uintVal => +uintVal,
-				long longVal => +longVal,
-				float floatVal => +floatVal,
-				double doubleVal => +doubleVal,
-				decimal decimalVal => (object?) (+decimalVal),
-				_ => null
-			};
-			return result is not null && TryGetLiteral(result, out var lit) ? lit : node.WithOperand(operand as ExpressionSyntax ?? node.Operand);
-		}
-		// Support bitwise NOT (~)
-		else if (node.OperatorToken.IsKind(SyntaxKind.TildeToken)
-		         && TryGetLiteralValue(operand, out var bitwiseValue))
-		{
-			var result = bitwiseValue.BitwiseNot();
-			return result is not null && TryGetLiteral(result, out var lit) ? lit : node.WithOperand(operand as ExpressionSyntax ?? node.Operand);
-		}
-		// Support address-of (&)
-		else if (node.OperatorToken.IsKind(SyntaxKind.AmpersandToken))
-		{
-			// Address-of is typically not allowed in const expressions, but we can track it as a pointer type
-			// For now, we'll keep the node as-is since pointers require special handling
-			return node.WithOperand(operand as ExpressionSyntax ?? node.Operand);
+				return lit;
+			}
 		}
 
 		return node.WithOperand(operand as ExpressionSyntax ?? node.Operand);
