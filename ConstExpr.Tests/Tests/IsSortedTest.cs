@@ -22,7 +22,6 @@ public class IsSortedTest : BaseTest
     """,
     "return true;",
     "return false;",
-    "return true;"
   ];
 
   public override string Invocations => """

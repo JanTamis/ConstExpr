@@ -32,8 +32,6 @@ public class IsPrimeTest : BaseTest
     """,
     "return true;",
     "return false;",
-    "return true;",
-    "return false;"
   ];
 
   public override string Invocations => """

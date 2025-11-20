@@ -175,10 +175,11 @@ public partial class ConstExprPartialRewriter(
 	{
 		if (TryGetLiteral(node.Token.Value, out var expression))
 		{
-			if (semanticModel.GetOperation(node) is IOperation operation)
+			if (semanticModel.GetOperation(node) is IOperation { Parent: IConversionOperation conversion })
 			{
-				
+				TryGetLiteral(ExecuteConversion(conversion, node.Token.Value), out expression);
 			}
+
 			return expression;
 		}
 

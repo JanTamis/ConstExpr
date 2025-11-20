@@ -4,7 +4,7 @@ public class PowerTest : BaseTest
 {
   public override IEnumerable<string> Result => 
   [
-    """
+		"""
     if (exponent < 0)
     {
     	return 0L;
@@ -20,13 +20,13 @@ public class PowerTest : BaseTest
 
     while (exponent > 0)
     {
-    	if (exponent % 2 == 1)
+    	if (Int32.IsOddInteger(exponent))
     	{
     		result *= base64;
     	}
 
     	base64 *= base64;
-    	exponent /= 2;
+    	exponent = (exponent + (exponent >> 31)) >> 1;
     }
 
     return result;
@@ -49,7 +49,7 @@ public class PowerTest : BaseTest
     """;
 
   public override string TestMethod => """
-    [ConstExpr]
+    [ConstExpr(FloatingPointMode = FloatingPointEvaluationMode.FastMath)]
     public static long Power(int baseNum, int exponent)
     {
       if (exponent < 0)
