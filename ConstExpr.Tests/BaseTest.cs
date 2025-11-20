@@ -5,6 +5,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Immutable;
+using System.Text;
 
 namespace ConstExpr.Tests;
 
@@ -80,7 +81,7 @@ public abstract class BaseTest
 				// Report any mismatches
 				if (unmatchedExpected.Count > 0 || actualMethods.Count > 0)
 				{
-					var errorMessage = new System.Text.StringBuilder();
+					var errorMessage = new StringBuilder();
 					errorMessage.AppendLine("Generated method bodies do not match expected bodies.");
 					errorMessage.AppendLine();
 					
