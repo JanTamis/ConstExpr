@@ -1043,12 +1043,12 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 	public override object? VisitLocalReference(ILocalReferenceOperation operation, IDictionary<string, object?> argument)
 	{
-		return argument[operation.Local.Name];
+		return argument.TryGetValue(operation.Local.Name, out var value) ? value : throw new KeyNotFoundException();
 	}
 
 	public override object? VisitParameterReference(IParameterReferenceOperation operation, IDictionary<string, object?> argument)
 	{
-		return argument[operation.Parameter.Name];
+		return argument.TryGetValue(operation.Parameter.Name, out var value) ? value : throw new KeyNotFoundException();
 	}
 
 	public override object? VisitFieldReference(IFieldReferenceOperation operation, IDictionary<string, object?> argument)

@@ -95,6 +95,11 @@ public partial class ConstExprPartialRewriter(
 				return expression;
 			}
 
+			if (value.Value is IdentifierNameSyntax identifier && variables.TryGetValue(identifier.Identifier.Text, out var nestedValue) && nestedValue is { IsAltered: true })
+			{
+				return node;
+			}
+
 			return value.Value as SyntaxNode;
 		}
 
@@ -1132,6 +1137,7 @@ public partial class ConstExprPartialRewriter(
 			else
 			{
 				variable.HasValue = false;
+				variable.IsAltered = true;
 			}
 		}
 		else if (node.Left is ElementAccessExpressionSyntax elementAccess)
@@ -2175,14 +2181,8 @@ public partial class ConstExprPartialRewriter(
 				return null;
 			}
 
-			if (value is true)
+			if (value is true && attribute.MaxUnrollIterations > 0)
 			{
-				// Skip loop unrolling if MaxUnrollIterations is 0
-				if (attribute.MaxUnrollIterations == 0)
-				{
-					return base.VisitWhileStatement(node);
-				}
-
 				var result = new List<SyntaxNode?>();
 				var iteratorCount = 0;
 
@@ -2276,6 +2276,23 @@ public partial class ConstExprPartialRewriter(
 				expressionStatement,
 			_ => node
 		};
+	}
+
+	public override SyntaxNode? VisitIsPatternExpression(IsPatternExpressionSyntax node)
+	{
+		var expression = Visit(node.Expression);
+
+		if (TryGetLiteralValue(expression, out var value))
+		{
+			if (node.Pattern is ConstantPatternSyntax constantPattern && TryGetLiteralValue(constantPattern.Expression, out var patternValue))
+			{
+				return CreateLiteral(Equals(value, patternValue));
+			}
+		}
+		
+		return node.WithExpression(expression as ExpressionSyntax ?? node.Expression);
+		
+		// return base.VisitIsPatternExpression(node);
 	}
 
 	public override SyntaxNode VisitBlock(BlockSyntax node)

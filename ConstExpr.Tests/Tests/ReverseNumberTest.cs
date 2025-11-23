@@ -18,12 +18,11 @@ public class ReverseNumberTest : BaseTest
     """,
     "return 321;",
     "return -654;",
-    "return 1;"
+    "return 1;",
   ];
 
   public override string Invocations => """
     var varInt = 987;
-    
     TestMethods.ReverseNumber(123);
     TestMethods.ReverseNumber(-456);
     TestMethods.ReverseNumber(1);

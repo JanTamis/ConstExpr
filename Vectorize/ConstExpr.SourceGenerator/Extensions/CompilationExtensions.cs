@@ -1150,7 +1150,19 @@ public static class CompilationExtensions
 		return false;
 	}
 
-	public static string GetDeterministicHash(this SyntaxNode node)
+	public static string GetDeterministicHashString(this SyntaxNode node)
+	{
+		var hash = node.GetDeterministicHash();
+
+		// Fold to 32-bit to keep identifier suffix short (similar length as previous implementation).
+		var folded = (uint) (hash ^ (hash >> 32));
+
+		return Convert.ToBase64String(BitConverter.GetBytes(folded)).TrimEnd('=')
+			.Replace('+', '_')
+			.Replace('/', '_');
+	}
+
+	public static ulong GetDeterministicHash(this SyntaxNode node)
 	{
 		if (node == null)
 		{
@@ -1160,6 +1172,7 @@ public static class CompilationExtensions
 		// Deterministic structural hash (FNV-1a) over RawKind and token ValueText, ignoring trivia/whitespace.
 		const ulong FnvOffset = 14695981039346656037UL;
 		const ulong FnvPrime = 1099511628211UL;
+		
 		var hash = FnvOffset;
 
 		var stack = new Stack<SyntaxNodeOrToken>();
@@ -1200,12 +1213,7 @@ public static class CompilationExtensions
 			}
 		}
 
-		// Fold to 32-bit to keep identifier suffix short (similar length as previous implementation).
-		var folded = (uint) (hash ^ (hash >> 32));
-
-		return Convert.ToBase64String(BitConverter.GetBytes(folded)).TrimEnd('=')
-			.Replace('+', '_')
-			.Replace('/', '_');
+		return hash;
 	}
 
 	public static TAttribute ToAttribute<TAttribute>(this AttributeData attributeData)

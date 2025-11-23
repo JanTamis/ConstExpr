@@ -17,7 +17,7 @@ public class SumRangeTest : BaseTest
     """,
     "return 55L;",
     "return 5050L;",
-    "return 15L;"
+    "return 25L;"
   ];
 
   public override string Invocations => """

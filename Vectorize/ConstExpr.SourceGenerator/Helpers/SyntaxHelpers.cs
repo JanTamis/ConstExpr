@@ -138,10 +138,10 @@ public static class SyntaxHelpers
 			case decimal dec:
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(dec));
 			case string s1:
-				if (s1.Length == 0)
-				{
-					return SyntaxFactory.ParseExpression("String.Empty");
-				}
+				// if (s1.Length == 0)
+				// {
+				// 	return SyntaxFactory.ParseExpression("String.Empty");
+				// }
 
 				return SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(s1));
 			case char c:

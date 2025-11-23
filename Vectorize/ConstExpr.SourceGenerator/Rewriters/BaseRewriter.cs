@@ -507,7 +507,8 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 
 	protected bool CanBePruned(string variableName)
 	{
-		return variables.TryGetValue(variableName, out var value) && value.HasValue && (!value.IsAccessed && !value.IsAltered);
+		return variables.TryGetValue(variableName, out var value) && value.HasValue && value is { IsAccessed: false, IsAltered: false } 
+		       && (value.Value is not IdentifierNameSyntax identifier || variables.TryGetValue(identifier.Identifier.Text, out var nestedValue) && nestedValue is { IsAltered: false });
 	}
 
 	protected bool CanBePruned(SyntaxNode node)

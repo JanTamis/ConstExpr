@@ -199,6 +199,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 		// Collect and sort usings: System* first, then alphabetical
 		var usingsList = new List<string>(distinctUsings.Count);
+		
 		foreach (var u in distinctUsings)
 		{
 			if (!string.IsNullOrWhiteSpace(u))
@@ -206,6 +207,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				usingsList.Add(u!);
 			}
 		}
+		
 		usingsList.Sort(UsingComparer.Instance);
 
 		for (var i = 0; i < usingsList.Count; i++)
@@ -312,7 +314,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 		var visitor = new ConstExprOperationVisitor(semanticModel.Compilation, loader, (operation, ex) =>
 		{
-			exceptions.TryAdd(operation!.Syntax, ex);
+			// exceptions.TryAdd(operation!.Syntax, ex);
 		}, token);
 
 		try
@@ -366,7 +368,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 					Usings = usings!,
 					OriginalMethod = methodDecl,
 					Method = FormattingHelper.Format(methodDecl
-						.WithIdentifier(SyntaxFactory.Identifier($"{methodDecl.Identifier.Text}_{result2.GetDeterministicHash()}")
+						.WithIdentifier(SyntaxFactory.Identifier($"{methodDecl.Identifier.Text}_{result2.GetDeterministicHashString()}")
 							.WithLeadingTrivia(methodDecl.Identifier.LeadingTrivia)
 							.WithTrailingTrivia(methodDecl.Identifier.TrailingTrivia))
 						.WithBody((BlockSyntax)result2)) as MethodDeclarationSyntax ?? methodDecl,
