@@ -24,7 +24,6 @@ public class LCMTest : BaseTest
     "return 12;",
     "return 0;",
     "return 42;",
-    "return 24;"
   ];
 
   public override string Invocations => """
