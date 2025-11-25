@@ -482,7 +482,7 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 						}
 					}
 
-					var type = loader.GetType(typeSymbol);
+					var type = elements.Count > 0 ? elements[0].GetType() : loader.GetType(typeSymbol);
 					var array = Array.CreateInstance(type, elements.Count);
 
 					for (var i = 0; i < elements.Count; i++)

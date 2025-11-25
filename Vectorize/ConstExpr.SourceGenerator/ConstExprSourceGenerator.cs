@@ -55,35 +55,35 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				// Create MetadataLoader once for all invocations
 				var loader = MetadataLoader.GetLoader(modelAndCompilation.Left.Right);
 				var compilation = modelAndCompilation.Left.Right;
-				
+
 				// Create CallGraphAnalyzer once for all invocations to enable caching
 				var callGraphAnalyzer = new CallGraphAnalyzer(compilation);
-				
+
 				// Thread-safe cache for semantic models (ConcurrentDictionary for parallel access)
 				var semanticModelCache = new ConcurrentDictionary<SyntaxTree, SemanticModel>();
-				
+
 				// Thread-safe cache for Roslyn API results to avoid repeated expensive calls
 				var roslynApiCache = new RoslynApiCache();
-				
+
 				// Filter out invocations whose containing method is never called
 				// Do this filtering BEFORE parallel processing to reduce work
 				var relevantInvocations = modelAndCompilation.Left.Left
 					.Where(model => model is { AttributeData: not null, MethodSymbol: not null, Invocation: not null })
-					.Where(model => 
+					.Where(model =>
 					{
 						// Use the shared RoslynApiCache for filtering
 						return IsContainingMethodInvoked(compilation, model.Invocation, roslynApiCache, spc.CancellationToken);
 					})
 					.ToList(); // Materialize to avoid multiple enumeration
-				
+
 				// Process all invocations in parallel with the shared loader
 				var processedModels = new ConcurrentBag<InvocationModel>();
-				
+
 				// Parallel processing of invocations for better performance
 				Parallel.ForEach(
 					relevantInvocations,
-					new ParallelOptions 
-					{ 
+					new ParallelOptions
+					{
 						CancellationToken = spc.CancellationToken,
 						// Use default parallelism (-1) to let TPL decide optimal thread count
 						MaxDegreeOfParallelism = -1
@@ -93,12 +93,12 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 						try
 						{
 							var attribute = model.AttributeData;
-							
+
 							// Thread-safe semantic model caching
 							var semanticModel = semanticModelCache.GetOrAdd(
 								model.Invocation.SyntaxTree,
 								tree => compilation.GetSemanticModel(tree));
-							
+
 							var processedModel = GenerateExpression(semanticModel, loader, model.Invocation, model.MethodSymbol, attribute, roslynApiCache, spc.CancellationToken);
 
 							if (processedModel != null)
@@ -134,11 +134,11 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 						}
 						""");
 				}
-				
+
 				Parallel.ForEach(
 					methodGroups,
-					new ParallelOptions 
-					{ 
+					new ParallelOptions
+					{
 						CancellationToken = spc.CancellationToken,
 						// Use default parallelism (-1) to let TPL decide optimal thread count
 						MaxDegreeOfParallelism = -1
@@ -157,7 +157,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 					});
 
 				ReportExceptions(spc, processedModels);
-				
+
 				// Clear caches to free memory after processing
 				roslynApiCache.Clear();
 				callGraphAnalyzer.ClearCache();
@@ -170,7 +170,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		var code = new IndentedCodeWriter(compilation);
 
 		var distinctUsings = methodGroup
-			.SelectMany(m => m?.Usings ?? [])
+			.SelectMany(m => m?.Usings ?? [ ])
 			.ToSet();
 
 		var distinctAdditionalMethods = methodGroup
@@ -199,7 +199,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 		// Collect and sort usings: System* first, then alphabetical
 		var usingsList = new List<string>(distinctUsings.Count);
-		
+
 		foreach (var u in distinctUsings)
 		{
 			if (!string.IsNullOrWhiteSpace(u))
@@ -207,7 +207,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				usingsList.Add(u!);
 			}
 		}
-		
+
 		usingsList.Sort(UsingComparer.Instance);
 
 		for (var i = 0; i < usingsList.Count; i++)
@@ -267,8 +267,8 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 	private InvocationModel? GenerateSource(GeneratorSyntaxContext context, CancellationToken token)
 	{
 		if (context.Node is not InvocationExpressionSyntax invocation
-				|| !TryGetSymbol(context.SemanticModel, invocation, token, out var methodSymbol)
-				|| !methodSymbol.IsStatic)
+		    || !TryGetSymbol(context.SemanticModel, invocation, token, out var methodSymbol)
+		    || !methodSymbol.IsStatic)
 		{
 			return null;
 		}
@@ -278,13 +278,13 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			.Concat(methodSymbol.ContainingAssembly.GetAttributes());
 
 		var attribute = attributes.FirstOrDefault(IsAttribute<ConstEvalAttribute>)
-			?? attributes.FirstOrDefault(IsAttribute<ConstExprAttribute>);
+		                ?? attributes.FirstOrDefault(IsAttribute<ConstExprAttribute>);
 
 		// Check for ConstExprAttribute on type or method
 		// Store minimal info here; defer heavy MetadataLoader creation until RegisterSourceOutput
-		if (attribute is not null 
-			&& !IsInConstEvalBody(context.SemanticModel.Compilation, invocation) 
-			&& !IsInConstExprBody(context.SemanticModel.Compilation, invocation))
+		if (attribute is not null
+		    && !IsInConstEvalBody(context.SemanticModel.Compilation, invocation)
+		    && !IsInConstExprBody(context.SemanticModel.Compilation, invocation))
 		{
 			// Note: We skip IsContainingMethodInvoked check here since we don't have RoslynApiCache yet
 			// This check will be done later in RegisterSourceOutput with the shared cache
@@ -301,7 +301,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 	}
 
 	private InvocationModel? GenerateExpression(SemanticModel semanticModel, MetadataLoader loader, InvocationExpressionSyntax invocation,
-																							IMethodSymbol methodSymbol, ConstExprAttribute attribute, RoslynApiCache apiCache, CancellationToken token)
+	                                            IMethodSymbol methodSymbol, ConstExprAttribute attribute, RoslynApiCache apiCache, CancellationToken token)
 	{
 		var methodDecl = GetMethodSyntaxNode(methodSymbol);
 
@@ -320,7 +320,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		try
 		{
 			if ( //exceptions.IsEmpty
-					semanticModel.Compilation.TryGetSemanticModel(methodDecl, out var model))
+			    semanticModel.Compilation.TryGetSemanticModel(methodDecl, out var model))
 			{
 				var usings = new HashSet<string?>
 				{
@@ -351,7 +351,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				timer.Stop();
 
 				if (result2 is BlockSyntax blockSyntax
-						&& blockSyntax.IsEquivalentTo(methodDecl.Body))
+				    && blockSyntax.GetDeterministicHash() == methodDecl.Body.GetDeterministicHash())
 				{
 					return null;
 				}
@@ -371,7 +371,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 						.WithIdentifier(SyntaxFactory.Identifier($"{methodDecl.Identifier.Text}_{result2.GetDeterministicHashString()}")
 							.WithLeadingTrivia(methodDecl.Identifier.LeadingTrivia)
 							.WithTrailingTrivia(methodDecl.Identifier.TrailingTrivia))
-						.WithBody((BlockSyntax)result2)) as MethodDeclarationSyntax ?? methodDecl,
+						.WithBody((BlockSyntax) result2)) as MethodDeclarationSyntax ?? methodDecl,
 					// Defer formatting to emission time to avoid expensive NormalizeWhitespace calls
 					AdditionalMethods = additionalMethods
 						.OrderByDescending(o => o.Value)
@@ -395,7 +395,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 	public static Dictionary<string, VariableItem> ProcessArguments(ConstExprOperationVisitor visitor, SemanticModel model, InvocationExpressionSyntax invocation, MetadataLoader loader, RoslynApiCache apiCache, CancellationToken token)
 	{
 		var variables = new Dictionary<string, VariableItem>();
-		
+
 		// Use cached GetOperation result
 		var invocationOperation = apiCache.GetOrAddOperation(invocation, model, token) as IInvocationOperation;
 		var methodSymbol = invocationOperation?.TargetMethod;
@@ -470,13 +470,13 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		switch (type)
 		{
 			case INamedTypeSymbol namedType:
+			{
+				foreach (var arg in namedType.TypeArguments)
 				{
-					foreach (var arg in namedType.TypeArguments)
-					{
-						SetUsings(arg, usings);
-					}
-					break;
+					SetUsings(arg, usings);
 				}
+				break;
+			}
 			case IArrayTypeSymbol arrayType:
 				SetUsings(arrayType.ElementType, usings);
 				break;

@@ -198,7 +198,7 @@ public partial class ConstExprPartialRewriter(
 
 		foreach (var node in list)
 		{
-			if (shouldStop) 
+			if (shouldStop)
 				break;
 
 			var visited = Visit(node);
@@ -336,9 +336,13 @@ public partial class ConstExprPartialRewriter(
 				var opMethod = operation.OperatorMethod; // null => built-in operator
 				var isBuiltIn = opMethod is null;
 
+				// Boolean optimizations are always safe to apply
+				var isBooleanOp = operation.OperatorKind is BinaryOperatorKind.ConditionalAnd
+					or BinaryOperatorKind.ConditionalOr;
+
 				if (isBuiltIn
 				    && operation.Type is not null
-				    && attribute.FloatingPointMode == FloatingPointEvaluationMode.FastMath
+				    && (isBooleanOp || attribute.FloatingPointMode == FloatingPointEvaluationMode.FastMath)
 				    && TryOptimizeNode(operation.OperatorKind, operation.Type, leftExpr, operation.LeftOperand.Type, rightExpr, operation.RightOperand.Type, out var syntaxNode))
 				{
 					return syntaxNode;
@@ -1162,8 +1166,6 @@ public partial class ConstExprPartialRewriter(
 							{
 								try
 								{
-									object? current = null;
-
 									if (indexConsts.Length == 1)
 									{
 										var arg0 = indexConsts[0];
@@ -1176,7 +1178,8 @@ public partial class ConstExprPartialRewriter(
 
 											if (offset is int idx)
 											{
-												current = arr.GetValue(idx);
+												arr.SetValue(rightVal, idx);
+												return rightExpr;
 											}
 										}
 										// Range on the left is not assignable in C#; skip
@@ -1187,11 +1190,13 @@ public partial class ConstExprPartialRewriter(
 										}
 										else if (arg0 is int i0)
 										{
-											current = arr.GetValue(i0);
+											arr.SetValue(rightVal, i0);
+											return rightExpr;
 										}
 										else if (arg0 is long l0)
 										{
-											current = arr.GetValue(l0);
+											arr.SetValue(rightVal, l0);
+											return rightExpr;
 										}
 									}
 									else
@@ -1325,11 +1330,45 @@ public partial class ConstExprPartialRewriter(
 		{
 			return CreateLiteral(!logicalBool);
 		}
+		// Simplify double negatives: -(-x) becomes x when operand is a negative numeric literal
+		else if (node.OperatorToken.IsKind(SyntaxKind.MinusToken)
+		         && operand is PrefixUnaryExpressionSyntax { OperatorToken: var innerOp } innerUnary
+		         && innerOp.IsKind(SyntaxKind.MinusToken))
+		{
+			// Return the inner operand since -(-x) = x
+			return innerUnary.Operand;
+		}
+		// Also handle case where operand is already a negative literal (e.g., -(-42) after evaluation)
+		else if (node.OperatorToken.IsKind(SyntaxKind.MinusToken)
+		         && TryGetLiteralValue(operand, out var numValue))
+		{
+			// Negate the value
+			try
+			{
+				var negated = numValue switch
+				{
+					int i => -i,
+					long l => -l,
+					float f => -f,
+					double d => -d,
+					decimal dec => -dec,
+					short s => -s,
+					sbyte sb => (object) -sb,
+					_ => null
+				};
+
+				if (negated != null && TryGetLiteral(negated, out var lit))
+				{
+					return lit;
+				}
+			}
+			catch { }
+		}
 
 		if (semanticModel.GetOperation(node) is IUnaryOperation { ConstantValue.HasValue: true } operation)
 		{
 			if (operation.Parent is IConversionOperation conversionOperation
-				&& TryGetLiteral(conversionOperation.ConstantValue.Value, out var lit))
+			    && TryGetLiteral(conversionOperation.ConstantValue.Value, out var lit))
 			{
 				return lit;
 			}
@@ -2289,9 +2328,9 @@ public partial class ConstExprPartialRewriter(
 				return CreateLiteral(Equals(value, patternValue));
 			}
 		}
-		
+
 		return node.WithExpression(expression as ExpressionSyntax ?? node.Expression);
-		
+
 		// return base.VisitIsPatternExpression(node);
 	}
 

@@ -14,7 +14,7 @@ public abstract class BaseTest
 {
 	// the generated method bodies to be expected
 	public abstract IEnumerable<string> Result { get; }
-	
+
 	// the source code to be tested
 	public abstract string Invocations { get; }
 
@@ -42,14 +42,23 @@ public abstract class BaseTest
 					.ToList();
 
 				var actualMethods = result
-					.Select(m => m.WithAttributeLists([]).NormalizeWhitespace())
+					.Select(m => m.WithAttributeLists([ ]).NormalizeWhitespace())
 					.ToList();
 
 				// Compare count first
 				if (expectedBodies.Count != actualMethods.Count)
 				{
-					var generatedMethodsList = String.Join("\n", actualMethods.Select((m, i) => $"  [{i}] {m.Identifier}"));
+					var generatedMethodsList = System.String.Join("\n", actualMethods.Select((m, i) => $"  [{i}] {m.Identifier}"));
 
+					if (actualMethods.Count == 0)
+					{
+						throw new InvalidOperationException($"""
+							Generated method count does not match expected count.
+							Expected: {expectedBodies.Count} {(expectedBodies.Count == 1 ? "method" : "methods")}
+							Generated: 0 methods
+							""");
+					}
+					
 					throw new InvalidOperationException($"""
 						Generated method count does not match expected count.
 						Expected: {expectedBodies.Count} {(expectedBodies.Count == 1 ? "method" : "methods")}
@@ -85,6 +94,7 @@ public abstract class BaseTest
 					// New logic: If all unmatched expected bodies are non-constant (contain more than a single return statement) AND we have only constant actual methods left, allow pass.
 					var onlyReturnConstantsLeft = actualMethods.All(m => m.Body?.Statements.Count == 1 && m.Body.Statements[0] is ReturnStatementSyntax);
 					var unmatchedAreGenericBodies = unmatchedExpected.All(b => b.Statements.Count > 1);
+
 					if (onlyReturnConstantsLeft && unmatchedAreGenericBodies)
 					{
 						// treat as success (generic body optimized away into constants)
@@ -102,10 +112,10 @@ public abstract class BaseTest
 						foreach (var body in unmatchedExpected)
 						{
 							errorMessage.AppendLine($"""
-							  Body:
-							{body.ToFullString()}
+								  Body:
+								{body.ToFullString()}
 
-							""");
+								""");
 						}
 
 						// errorMessage.AppendLine();
@@ -118,11 +128,11 @@ public abstract class BaseTest
 						foreach (var method in actualMethods)
 						{
 							errorMessage.AppendLine($"""
-								Method signature: {method.ReturnType} {method.Identifier}{method.ParameterList}
-								Body:
-							{method.Body?.ToFullString() ?? "(no body)"}
+									Method signature: {method.ReturnType} {method.Identifier}{method.ParameterList}
+									Body:
+								{method.Body?.ToFullString() ?? "(no body)"}
 
-							""");
+								""");
 						}
 					}
 
@@ -137,13 +147,13 @@ public abstract class BaseTest
 	{
 		// Trim whitespace
 		var trimmedBody = bodyText.Trim();
-		
+
 		// Add curly braces if not present
 		if (!trimmedBody.StartsWith('{'))
 		{
 			trimmedBody = $"{{\n{trimmedBody}\n}}";
 		}
-		
+
 		// Wrap in a method to parse the body
 		var wrappedCode = $$"""
 			class TempClass
@@ -152,7 +162,7 @@ public abstract class BaseTest
 				{{trimmedBody}}
 			}
 			""";
-		
+
 		var tree = CSharpSyntaxTree.ParseText(wrappedCode);
 		var root = tree.GetRoot();
 
@@ -197,7 +207,7 @@ public abstract class BaseTest
 	private static CSharpCompilation CreateCompilation(string source)
 	{
 		var references = AppDomain.CurrentDomain.GetAssemblies()
-			.Where(a => !String.IsNullOrEmpty(a.Location))
+			.Where(a => !System.String.IsNullOrEmpty(a.Location))
 			.Select(a => MetadataReference.CreateFromFile(a.Location))
 			.Cast<MetadataReference>()
 			.ToList();
@@ -206,27 +216,27 @@ public abstract class BaseTest
 
 		return CSharpCompilation.Create(
 			"TestAssembly",
-			[CSharpSyntaxTree.ParseText(source)],
+			[ CSharpSyntaxTree.ParseText(source) ],
 			references,
 			new CSharpCompilationOptions(OutputKind.ConsoleApplication));
 	}
 
-  // Builds the final source passed to Roslyn
-  protected virtual string BuildSource()
-  {
+	// Builds the final source passed to Roslyn
+	protected virtual string BuildSource()
+	{
 		return $$"""
-		using ConstExpr.Core.Attributes;
-		using ConstExpr.Core.Enumerators;
-		using System;
+			using ConstExpr.Core.Attributes;
+			using ConstExpr.Core.Enumerators;
+			using System;
 
-		{{Invocations}}
+			{{Invocations}}
 
-		public static class TestMethods
-		{
-		{{TestMethod}}
-		}
-		""";
-  }
+			public static class TestMethods
+			{
+			{{TestMethod}}
+			}
+			""";
+	}
 }
 
 internal sealed class TestAnalyzerConfigOptionsProvider : AnalyzerConfigOptionsProvider
