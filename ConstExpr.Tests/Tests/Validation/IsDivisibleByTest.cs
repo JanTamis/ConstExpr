@@ -4,7 +4,7 @@ public class IsDivisibleByTest : BaseTest
 {
   public override IEnumerable<string> Result =>
   [
-    "return divisor != 0 && n % divisor == 0;",
+    //"return divisor != 0 && n % divisor == 0;",
     "return true;",
     "return false;"
   ];

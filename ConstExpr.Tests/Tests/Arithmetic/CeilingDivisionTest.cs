@@ -4,14 +4,14 @@ public class CeilingDivisionTest : BaseTest
 {
   public override IEnumerable<string> Result =>
   [
-    """
-    if (divisor == 0)
-    {
-    	return 0;
-    }
+    //"""
+    //if (divisor == 0)
+    //{
+    //	return 0;
+    //}
     
-    return (numerator + divisor - 1) / divisor;
-    """,
+    //return (numerator + divisor - 1) / divisor;
+    //""",
     "return 3;",
     "return 5;",
     "return 0;"

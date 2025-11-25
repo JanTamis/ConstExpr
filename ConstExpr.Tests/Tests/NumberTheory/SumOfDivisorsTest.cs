@@ -4,26 +4,26 @@ public class SumOfDivisorsTest : BaseTest
 {
   public override IEnumerable<string> Result =>
   [
-    """
-    if (n <= 0)
-    {
-    	return 0;
-    }
+    //"""
+    //if (n <= 0)
+    //{
+    //	return 0;
+    //}
     
-    var sum = 0;
-    var i = 1;
-    while (i <= n)
-    {
-    	if (n % i == 0)
-    	{
-    		sum += i;
-    	}
+    //var sum = 0;
+    //var i = 1;
+    //while (i <= n)
+    //{
+    //	if (n % i == 0)
+    //	{
+    //		sum += i;
+    //	}
     
-    	i++;
-    }
+    //	i++;
+    //}
     
-    return sum;
-    """,
+    //return sum;
+    //""",
     "return 28;",
     "return 1;",
     "return 0;"

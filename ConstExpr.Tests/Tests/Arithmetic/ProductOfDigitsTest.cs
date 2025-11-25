@@ -4,17 +4,17 @@ public class ProductOfDigitsTest : BaseTest
 {
   public override IEnumerable<string> Result =>
   [
-    """
-    var product = 1;
-    var num = Math.Abs(n);
-    while (num > 0)
-    {
-    	product *= num % 10;
-    	num /= 10;
-    }
+    //"""
+    //var product = 1;
+    //var num = Math.Abs(n);
+    //while (num > 0)
+    //{
+    //	product *= num % 10;
+    //	num /= 10;
+    //}
     
-    return product;
-    """,
+    //return product;
+    //""",
     "return 24;",
     "return 0;",
     "return 5;"

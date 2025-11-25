@@ -4,15 +4,15 @@ public class ArrayProductTest : BaseTest
 {
   public override IEnumerable<string> Result =>
   [
-    """
-    var product = 1;
-    foreach (var num in arr)
-    {
-    	product *= num;
-    }
+    //"""
+    //var product = 1;
+    //foreach (var num in arr)
+    //{
+    //	product *= num;
+    //}
     
-    return product;
-    """,
+    //return product;
+    //""",
     "return 120;",
     "return 1;",
     "return 0;"

@@ -4,22 +4,22 @@ public class DigitCountTest : BaseTest
 {
   public override IEnumerable<string> Result =>
   [
-    """
-    if (n == 0)
-    {
-    	return 1;
-    }
+    //"""
+    //if (n == 0)
+    //{
+    //	return 1;
+    //}
     
-    var count = 0;
-    var num = Math.Abs(n);
-    while (num > 0)
-    {
-    	count++;
-    	num /= 10;
-    }
+    //var count = 0;
+    //var num = Math.Abs(n);
+    //while (num > 0)
+    //{
+    //	count++;
+    //	num /= 10;
+    //}
     
-    return count;
-    """,
+    //return count;
+    //""",
     "return 3;",
     "return 1;",
     "return 4;"

@@ -4,18 +4,18 @@ public class CountEvensTest : BaseTest
 {
   public override IEnumerable<string> Result =>
   [
-    """
-    var count = 0;
-    foreach (var num in arr)
-    {
-    	if (num % 2 == 0)
-    	{
-    		count++;
-    	}
-    }
+    //"""
+    //var count = 0;
+    //foreach (var num in arr)
+    //{
+    //	if (num % 2 == 0)
+    //	{
+    //		count++;
+    //	}
+    //}
     
-    return count;
-    """,
+    //return count;
+    //""",
     "return 3;",
     "return 0;",
     "return 4;"

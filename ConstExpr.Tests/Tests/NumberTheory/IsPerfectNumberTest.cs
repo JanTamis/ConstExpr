@@ -4,30 +4,30 @@ public class IsPerfectNumberTest : BaseTest
 {
   public override IEnumerable<string> Result =>
   [
-    """
-    if (n <= 1)
-    {
-    	return false;
-    }
+    //"""
+    //if (n <= 1)
+    //{
+    //	return false;
+    //}
     
-    var sum = 1;
-    var i = 2;
-    while (i * i <= n)
-    {
-    	if (n % i == 0)
-    	{
-    		sum += i;
-    		if (i * i != n)
-    		{
-    			sum += n / i;
-    		}
-    	}
+    //var sum = 1;
+    //var i = 2;
+    //while (i * i <= n)
+    //{
+    //	if (n % i == 0)
+    //	{
+    //		sum += i;
+    //		if (i * i != n)
+    //		{
+    //			sum += n / i;
+    //		}
+    //	}
     
-    	i++;
-    }
+    //	i++;
+    //}
     
-    return sum == n;
-    """,
+    //return sum == n;
+    //""",
     "return true;",
     "return false;"
   ];

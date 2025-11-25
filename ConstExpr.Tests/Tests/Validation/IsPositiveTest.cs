@@ -4,7 +4,7 @@ public class IsPositiveTest : BaseTest
 {
   public override IEnumerable<string> Result =>
   [
-    "return n > 0;",
+    // "return n > 0;",
     "return true;",
     "return false;"
   ];

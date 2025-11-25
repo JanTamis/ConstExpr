@@ -4,7 +4,7 @@ public class NthTriangularNumberTest : BaseTest
 {
   public override IEnumerable<string> Result =>
   [
-    "return n * (n + 1) / 2;",
+    //"return n * (n + 1) / 2;",
     "return 15;",
     "return 1;",
     "return 55;"

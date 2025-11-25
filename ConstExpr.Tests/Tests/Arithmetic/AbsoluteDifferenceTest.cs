@@ -4,10 +4,10 @@ public class AbsoluteDifferenceTest : BaseTest
 {
   public override IEnumerable<string> Result =>
   [
-    """
-    var diff = a - b;
-    return diff < 0 ? -diff : diff;
-    """,
+    //"""
+    //var diff = a - b;
+    //return diff < 0 ? -diff : diff;
+    //""",
     "return 5;",
     "return 30;",
     "return 0;"

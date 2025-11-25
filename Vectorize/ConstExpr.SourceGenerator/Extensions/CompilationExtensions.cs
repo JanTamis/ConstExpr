@@ -1,6 +1,7 @@
 using ConstExpr.SourceGenerator.Enums;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
+using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -1164,56 +1165,7 @@ public static class CompilationExtensions
 
 	public static ulong GetDeterministicHash(this SyntaxNode node)
 	{
-		if (node == null)
-		{
-			throw new ArgumentNullException(nameof(node));
-		}
-
-		// Deterministic structural hash (FNV-1a) over RawKind and token ValueText, ignoring trivia/whitespace.
-		const ulong FnvOffset = 14695981039346656037UL;
-		const ulong FnvPrime = 1099511628211UL;
-		
-		var hash = FnvOffset;
-
-		var stack = new Stack<SyntaxNodeOrToken>();
-		stack.Push(node);
-
-		while (stack.Count > 0)
-		{
-			var current = stack.Pop();
-
-			if (current.IsNode)
-			{
-				var n = current.AsNode();
-				hash = (hash ^ (ulong) n.RawKind) * FnvPrime;
-
-				// Push children in reverse so we process in original order when popping.
-				var children = n.ChildNodesAndTokens();
-
-				for (var i = children.Count - 1; i >= 0; i--)
-				{
-					stack.Push(children[i]);
-				}
-			}
-			else
-			{
-				var t = current.AsToken();
-				hash = (hash ^ (ulong) t.RawKind) * FnvPrime;
-
-				// Use ValueText (semantic content) instead of raw Text to ignore formatting differences.
-				var valueText = t.ValueText;
-
-				if (!String.IsNullOrEmpty(valueText))
-				{
-					for (var i = 0; i < valueText.Length; i++)
-					{
-						hash = (hash ^ valueText[i]) * FnvPrime;
-					}
-				}
-			}
-		}
-
-		return hash;
+		return DeteministicHashVisitor.Instance.Visit(node);
 	}
 
 	public static TAttribute ToAttribute<TAttribute>(this AttributeData attributeData)

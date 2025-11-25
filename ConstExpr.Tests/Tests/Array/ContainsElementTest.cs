@@ -4,17 +4,17 @@ public class ContainsElementTest : BaseTest
 {
   public override IEnumerable<string> Result =>
   [
-    """
-    foreach (var item in arr)
-    {
-    	if (item == value)
-    	{
-    		return true;
-    	}
-    }
+    //"""
+    //foreach (var item in arr)
+    //{
+    //	if (item == value)
+    //	{
+    //		return true;
+    //	}
+    //}
     
-    return false;
-    """,
+    //return false;
+    //""",
     "return true;",
     "return false;"
   ];

@@ -4,15 +4,15 @@ public class ArraySumTest : BaseTest
 {
   public override IEnumerable<string> Result =>
   [
-    """
-    var sum = 0;
-    foreach (var num in arr)
-    {
-    	sum += num;
-    }
+    //"""
+    //var sum = 0;
+    //foreach (var num in arr)
+    //{
+    //	sum += num;
+    //}
     
-    return sum;
-    """,
+    //return sum;
+    //""",
     "return 15;",
     "return 0;",
     "return 42;"

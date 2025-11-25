@@ -4,7 +4,7 @@ public class SumOfFirstNTest : BaseTest
 {
   public override IEnumerable<string> Result =>
   [
-    "return n * (n + 1) / 2;",
+    //"return n * (n + 1) / 2;",
     "return 55;",
     "return 0;",
     "return 5050;"

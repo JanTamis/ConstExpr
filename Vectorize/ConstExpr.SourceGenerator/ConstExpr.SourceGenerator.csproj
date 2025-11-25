@@ -49,6 +49,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<PackageReference Include="Microsoft.Bcl.HashCode" Version="6.0.0" />
 		<PackageReference Include="Microsoft.Bcl.Numerics" Version="9.0.8">
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>

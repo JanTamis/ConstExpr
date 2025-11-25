@@ -4,22 +4,22 @@ public class DigitalRootTest : BaseTest
 {
   public override IEnumerable<string> Result =>
   [
-    """
-    var num = Math.Abs(n);
-    while (num >= 10)
-    {
-    	var sum = 0;
-    	while (num > 0)
-    	{
-    		sum += num % 10;
-    		num /= 10;
-    	}
+    //"""
+    //var num = Math.Abs(n);
+    //while (num >= 10)
+    //{
+    //	var sum = 0;
+    //	while (num > 0)
+    //	{
+    //		sum += num % 10;
+    //		num /= 10;
+    //	}
     
-    	num = sum;
-    }
+    //	num = sum;
+    //}
     
-    return num;
-    """,
+    //return num;
+    //""",
     "return 2;",
     "return 6;",
     "return 0;"

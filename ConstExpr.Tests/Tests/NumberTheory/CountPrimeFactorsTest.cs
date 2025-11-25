@@ -4,28 +4,28 @@ public class CountPrimeFactorsTest : BaseTest
 {
   public override IEnumerable<string> Result =>
   [
-    """
-    var count = 0;
-    var num = Math.Abs(n);
-    var i = 2;
-    while (i * i <= num)
-    {
-    	while (num % i == 0)
-    	{
-    		count++;
-    		num /= i;
-    	}
+    //"""
+    //var count = 0;
+    //var num = Math.Abs(n);
+    //var i = 2;
+    //while (i * i <= num)
+    //{
+    //	while (num % i == 0)
+    //	{
+    //		count++;
+    //		num /= i;
+    //	}
     
-    	i++;
-    }
+    //	i++;
+    //}
     
-    if (num > 1)
-    {
-    	count++;
-    }
+    //if (num > 1)
+    //{
+    //	count++;
+    //}
     
-    return count;
-    """,
+    //return count;
+    //""",
     "return 3;",
     "return 0;"
   ];

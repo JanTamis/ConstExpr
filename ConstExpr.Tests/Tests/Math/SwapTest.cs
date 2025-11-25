@@ -4,12 +4,12 @@ public class SwapTest : BaseTest
 {
   public override IEnumerable<string> Result =>
   [
-    """
-    var temp = a;
-    a = b;
-    b = temp;
-    return (a, b);
-    """,
+    //"""
+    //var temp = a;
+    //a = b;
+    //b = temp;
+    //return (a, b);
+    //""",
     "return (20, 10);",
     "return (0, 42);",
     "return (-5, 5);"

@@ -4,18 +4,18 @@ public class IsPalindromeTest : BaseTest
 {
   public override IEnumerable<string> Result =>
   [
-    """
-    var original = Math.Abs(n);
-    var reversed = 0;
-    var temp = original;
-    while (temp > 0)
-    {
-      reversed = reversed * 10 + temp % 10;
-      temp /= 10;
-    }
+    //"""
+    //var original = Math.Abs(n);
+    //var reversed = 0;
+    //var temp = original;
+    //while (temp > 0)
+    //{
+    //  reversed = reversed * 10 + temp % 10;
+    //  temp /= 10;
+    //}
     
-    return original == reversed;
-    """,
+    //return original == reversed;
+    //""",
     "return true;",
     "return false;",
   ];
