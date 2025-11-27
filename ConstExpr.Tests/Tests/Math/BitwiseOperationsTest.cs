@@ -1,5 +1,6 @@
 namespace ConstExpr.Tests.Math;
 
+[InheritsTests]
 public class BitwiseOperationsTest : BaseTest
 {
   public override IEnumerable<string> Result =>

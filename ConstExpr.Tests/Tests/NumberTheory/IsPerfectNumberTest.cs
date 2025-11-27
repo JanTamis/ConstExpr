@@ -1,5 +1,6 @@
 namespace ConstExpr.Tests.NumberTheory;
 
+[InheritsTests]
 public class IsPerfectNumberTest : BaseTest
 {
   public override IEnumerable<string> Result =>

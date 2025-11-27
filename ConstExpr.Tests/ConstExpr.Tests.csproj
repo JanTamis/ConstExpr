@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>net9.0</TargetFramework>
@@ -6,6 +6,7 @@
 		<Nullable>enable</Nullable>
 		<IsPackable>false</IsPackable>
 		<IsTestProject>true</IsTestProject>
+		<EnableTUnitSourceGeneration>false</EnableTUnitSourceGeneration>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -14,22 +15,13 @@
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
-		<PackageReference Include="SourceGenerator.Foundations.Contracts" Version="2.0.13" />
-		<PackageReference Include="xunit" Version="2.9.3" />
-		<PackageReference Include="xunit.runner.visualstudio" Version="3.1.3">
-		  <PrivateAssets>all</PrivateAssets>
-		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-		</PackageReference>
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.14.0" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<Using Include="Xunit" />
+		<PackageReference Include="TUnit" Version="1.2.11" />
+		<PackageReference Include="SourceGenerator.Foundations.Contracts" Version="2.0.13" />
 	</ItemGroup>
 
 	<ItemGroup>
 	  <ProjectReference Include="..\Vectorize\ConstExpr.SourceGenerator\ConstExpr.SourceGenerator.csproj" />
 	</ItemGroup>
-
 </Project>

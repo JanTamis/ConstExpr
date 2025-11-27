@@ -1,5 +1,6 @@
 namespace ConstExpr.Tests.Arithmetic;
 
+[InheritsTests]
 public class MultiplyByPowerOfTwoTest : BaseTest
 {
   public override IEnumerable<string> Result =>

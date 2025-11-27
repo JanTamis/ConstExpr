@@ -1,5 +1,6 @@
 namespace ConstExpr.Tests.String;
 
+[InheritsTests]
 public class StartsWithTest : BaseTest
 {
   public override IEnumerable<string> Result =>

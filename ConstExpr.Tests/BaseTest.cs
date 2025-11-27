@@ -7,20 +7,20 @@ using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Immutable;
 using System.Text;
 using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.Core.Enumerators;
 
 namespace ConstExpr.Tests;
 
-public abstract class BaseTest
+public abstract class BaseTest(FloatingPointEvaluationMode evaluationMode = FloatingPointEvaluationMode.Strict)
 {
 	// the generated method bodies to be expected
-	public abstract IEnumerable<string> Result { get; }
-
-	// the source code to be tested
-	public abstract string Invocations { get; }
+	public abstract IEnumerable<KeyValuePair<string?, object[]>> Result { get; }
 
 	public abstract string TestMethod { get; }
 
-	[Fact]
+	protected object Unknown = new object();
+
+	[Test]
 	public virtual void RunTest()
 	{
 		var generated = RunGenerator(out var compilation);
@@ -237,6 +237,9 @@ public abstract class BaseTest
 			}
 			""";
 	}
+
+	protected static KeyValuePair<string?, object[]> Create(string? key, params object[] values)
+		=> KeyValuePair.Create(key, values);
 }
 
 internal sealed class TestAnalyzerConfigOptionsProvider : AnalyzerConfigOptionsProvider

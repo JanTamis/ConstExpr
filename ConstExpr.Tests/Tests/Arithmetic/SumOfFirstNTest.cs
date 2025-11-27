@@ -1,5 +1,6 @@
 namespace ConstExpr.Tests.Arithmetic;
 
+[InheritsTests]
 public class SumOfFirstNTest : BaseTest
 {
   public override IEnumerable<string> Result =>

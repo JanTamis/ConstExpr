@@ -1,5 +1,6 @@
 namespace ConstExpr.Tests.Array;
 
+[InheritsTests]
 public class ArrayProductTest : BaseTest
 {
   public override IEnumerable<string> Result =>

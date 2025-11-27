@@ -1,5 +1,6 @@
 namespace ConstExpr.Tests.Array;
 
+[InheritsTests]
 public class ContainsElementTest : BaseTest
 {
   public override IEnumerable<string> Result =>

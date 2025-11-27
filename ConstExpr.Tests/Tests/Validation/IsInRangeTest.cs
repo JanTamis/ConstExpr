@@ -1,5 +1,6 @@
 namespace ConstExpr.Tests.Validation;
 
+[InheritsTests]
 public class IsInRangeTest : BaseTest
 {
   public override IEnumerable<string> Result =>

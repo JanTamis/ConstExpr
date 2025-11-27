@@ -1,5 +1,6 @@
 namespace ConstExpr.Tests.Math;
 
+[InheritsTests]
 public class SquareTest : BaseTest
 {
   public override IEnumerable<string> Result =>

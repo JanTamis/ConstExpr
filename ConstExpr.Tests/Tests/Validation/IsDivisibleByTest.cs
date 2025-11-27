@@ -1,5 +1,6 @@
 namespace ConstExpr.Tests.Validation;
 
+[InheritsTests]
 public class IsDivisibleByTest : BaseTest
 {
   public override IEnumerable<string> Result =>

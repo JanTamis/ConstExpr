@@ -1,5 +1,6 @@
 namespace ConstExpr.Tests.String;
 
+[InheritsTests]
 public class ReverseStringTest : BaseTest
 {
   public override IEnumerable<string> Result =>

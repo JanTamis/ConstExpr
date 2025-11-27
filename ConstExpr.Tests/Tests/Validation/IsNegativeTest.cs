@@ -1,5 +1,6 @@
 namespace ConstExpr.Tests.Validation;
 
+[InheritsTests]
 public class IsNegativeTest : BaseTest
 {
   public override IEnumerable<string> Result =>

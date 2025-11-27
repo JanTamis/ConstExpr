@@ -1,5 +1,6 @@
 namespace ConstExpr.Tests.NumberTheory;
 
+[InheritsTests]
 public class SumOfDivisorsTest : BaseTest
 {
   public override IEnumerable<string> Result =>

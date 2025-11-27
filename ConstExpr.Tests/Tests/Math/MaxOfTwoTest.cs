@@ -1,5 +1,6 @@
 namespace ConstExpr.Tests.Math;
 
+[InheritsTests]
 public class MaxOfTwoTest : BaseTest
 {
   public override IEnumerable<string> Result =>

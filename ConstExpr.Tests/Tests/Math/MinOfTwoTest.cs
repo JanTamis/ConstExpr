@@ -1,5 +1,6 @@
 namespace ConstExpr.Tests.Math;
 
+[InheritsTests]
 public class MinOfTwoTest : BaseTest
 {
   public override IEnumerable<string> Result =>
