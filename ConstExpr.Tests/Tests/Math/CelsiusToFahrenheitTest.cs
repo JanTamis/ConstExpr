@@ -1,26 +1,23 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Math;
 
-public class CelsiusToFahrenheitTest : BaseTest
+[InheritsTests]
+public class CelsiusToFahrenheitTest() : BaseTest(FloatingPointEvaluationMode.FastMath)
 {
-  public override IEnumerable<string> Result =>
-  [
-    "return 32;",
-    "return 212;",
-    "return 77;"
-  ];
+	public override IEnumerable<KeyValuePair<string?, object[]>> Result =>
+	[
+		Create("return Double.MultiplyAddEstimate(celsius, 1.8, 32D);", Unknown),
+		Create("return 32D;", 0.0),
+		Create("return 212D;", 100.0),
+		Create("return 77D;", 25.0),
+	];
 
-  public override string Invocations => """
-    TestMethods.CelsiusToFahrenheit(0);
-    TestMethods.CelsiusToFahrenheit(100);
-    TestMethods.CelsiusToFahrenheit(25);
-    """;
-
-  public override string TestMethod => """
-    [ConstExpr(FloatingPointMode = FloatingPointEvaluationMode.FastMath)]
-    public static double CelsiusToFahrenheit(double celsius)
-    {
-      return celsius * 9 / 5 + 32;
-    }
-    """;
+	public override string TestMethod => """
+		double CelsiusToFahrenheit(double celsius)
+		{
+			return celsius * 9 / 5 + 32;
+		}
+		""";
 }
 

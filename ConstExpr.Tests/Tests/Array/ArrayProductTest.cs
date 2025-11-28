@@ -1,43 +1,28 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Array;
 
 [InheritsTests]
-public class ArrayProductTest : BaseTest
+public class ArrayProductTest(FloatingPointEvaluationMode evaluationMode = FloatingPointEvaluationMode.FastMath) : BaseTest(evaluationMode)
 {
-  public override IEnumerable<string> Result =>
-  [
-    //"""
-    //var product = 1;
-    //foreach (var num in arr)
-    //{
-    //	product *= num;
-    //}
-    
-    //return product;
-    //""",
-    "return 120;",
-    "return 1;",
-    "return 0;"
-  ];
+	public override IEnumerable<KeyValuePair<string?, object[]>> Result =>
+	[
+		Create(null, Unknown),
+		Create("return 120;", new[] { 1, 2, 3, 4, 5 }),
+		Create("return 1;", System.Array.Empty<int>()),
+		Create("return 0;", new[] { 5, 0, 3 }),
+	];
 
-  public override string Invocations => """
-    var varArr = new[] { 1, 2, 3 };
-    TestMethods.ArrayProduct(new[] { 1, 2, 3, 4, 5 }); // 120
-    TestMethods.ArrayProduct(new int[] { });            // 1
-    TestMethods.ArrayProduct(new[] { 5, 0, 3 });        // 0
-    TestMethods.ArrayProduct(varArr);
-    """;
-
-  public override string TestMethod => """
-    [ConstExpr(FloatingPointMode = FloatingPointEvaluationMode.FastMath)]
-    public static int ArrayProduct(int[] arr)
-    {
-      var product = 1;
-      foreach (var num in arr)
-      {
-        product *= num;
-      }
-      return product;
-    }
-    """;
+	public override string TestMethod => """
+		int ArrayProduct(int[] arr)
+		{
+			var product = 1;
+			foreach (var num in arr)
+			{
+				product *= num;
+			}
+			return product;
+		}
+		""";
 }
 

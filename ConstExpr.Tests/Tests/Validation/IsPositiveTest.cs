@@ -1,30 +1,25 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Validation;
 
 [InheritsTests]
-public class IsPositiveTest : BaseTest
+public class IsPositiveTest(FloatingPointEvaluationMode evaluationMode = FloatingPointEvaluationMode.FastMath) : BaseTest(evaluationMode)
 {
-  public override IEnumerable<string> Result =>
-  [
-    // "return n > 0;",
-    "return true;",
-    "return false;"
-  ];
+	public override IEnumerable<KeyValuePair<string?, object[]>> Result =>
+	[
+		Create(null, Unknown),
+		Create("return true;", 42),
+		Create("return false;", -10),
+		Create("return false;", 0),
+	];
 
-  public override string Invocations => """
-    var varNum = -5;
-    TestMethods.IsPositive(42);    // true
-    TestMethods.IsPositive(-10);   // false
-    TestMethods.IsPositive(0);     // false
-    TestMethods.IsPositive(varNum);
-    """;
-
-  public override string TestMethod => """
-    [ConstExpr(FloatingPointMode = FloatingPointEvaluationMode.FastMath)]
-    public static bool IsPositive(int n)
-    {
-      return n > 0;
-    }
-    """;
+	public override string TestMethod => """
+		bool IsPositive(int n)
+		{
+			return n > 0;
+		}
+		""";
 }
+
 
 

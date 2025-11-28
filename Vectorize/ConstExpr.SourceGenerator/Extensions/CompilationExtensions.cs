@@ -1163,8 +1163,13 @@ public static class CompilationExtensions
 			.Replace('/', '_');
 	}
 
-	public static ulong GetDeterministicHash(this SyntaxNode node)
+	public static ulong GetDeterministicHash(this SyntaxNode? node)
 	{
+		if (node is null)
+		{
+			return 0;
+		}
+
 		return DeteministicHashVisitor.Instance.Visit(node);
 	}
 

@@ -16,7 +16,7 @@ public class AbsoluteDifferenceTest : BaseTest
 		Create(null, Unknown, Unknown),
 		Create("return 5;", 10, 5),
 		Create("return 30;", -10, 20),
-		Create("return 0;", 42)
+		Create("return 0;", 42, 42)
 	];
 }
 

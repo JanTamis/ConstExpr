@@ -1,34 +1,23 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Validation;
 
-public class IsEvenTest : BaseTest
+[InheritsTests]
+public class IsEvenTest(FloatingPointEvaluationMode evaluationMode = FloatingPointEvaluationMode.FastMath) : BaseTest(evaluationMode)
 {
-  public override IEnumerable<string> Result =>
-  [
-    """
-    if (n < 0)
-    {
-    	n = -n;
-    }
-    return (n & 1) == 0;
-    """,
-    "return true;",
-    "return false;",
-  ];
+	public override IEnumerable<KeyValuePair<string?, object[]>> Result =>
+	[
+		Create(null, Unknown),
+		Create("return true;", 4),
+		Create("return false;", 5),
+	];
 
-  public override string Invocations => """
-    var local = 10;
-    TestMethods.IsEven(4); // true
-    TestMethods.IsEven(5); // false
-    TestMethods.IsEven(local); // true
-    """;
-
-  public override string TestMethod => """
-    [ConstExpr(FloatingPointMode = FloatingPointEvaluationMode.FastMath)]
-    public static bool IsEven(int n)
-    {
-      if (n < 0) { n = -n; }
-      return (n & 1) == 0;
-    }
-    """;
+	public override string TestMethod => """
+		bool IsEven(int n)
+		{
+			if (n < 0) { n = -n; }
+			return (n & 1) == 0;
+		}
+		""";
 }
 

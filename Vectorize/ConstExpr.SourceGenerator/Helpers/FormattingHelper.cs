@@ -12,8 +12,13 @@ internal static class FormattingHelper
 		return rewriter.Visit(node.NormalizeWhitespace("\t"));
 	}
 	
-	public static string Render(SyntaxNode node)
+	public static string? Render(SyntaxNode? node)
 	{
+		if (node is null)
+		{
+			return null;
+		}
+
 		return Format(node).ToString();
 	}
 }

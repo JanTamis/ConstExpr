@@ -1,30 +1,23 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Validation;
 
 [InheritsTests]
-public class IsMultipleOfTest : BaseTest
+public class IsMultipleOfTest(FloatingPointEvaluationMode evaluationMode = FloatingPointEvaluationMode.FastMath) : BaseTest(evaluationMode)
 {
-  public override IEnumerable<string> Result =>
-  [
-    // "return divisor != 0 && n % divisor == 0;",
-    "return true;",
-    "return false;",
-  ];
+	public override IEnumerable<KeyValuePair<string?, object[]>> Result =>
+	[
+		Create(null, Unknown, Unknown),
+		Create("return true;", 15, 5),
+		Create("return false;", 17, 3),
+		Create("return true;", 0, 5),
+	];
 
-  public override string Invocations => """
-    var varN = 100;
-    var varD = 7;
-    TestMethods.IsMultipleOf(15, 5);    // true
-    TestMethods.IsMultipleOf(17, 3);    // false
-    TestMethods.IsMultipleOf(0, 5);     // true (0 is multiple of any number)
-    TestMethods.IsMultipleOf(varN, varD);
-    """;
-
-  public override string TestMethod => """
-    [ConstExpr(FloatingPointMode = FloatingPointEvaluationMode.FastMath)]
-    public static bool IsMultipleOf(int n, int divisor)
-    {
-      return divisor != 0 && n % divisor == 0;
-    }
-    """;
+	public override string TestMethod => """
+		bool IsMultipleOf(int n, int divisor)
+		{
+			return divisor != 0 && n % divisor == 0;
+		}
+		""";
 }
 

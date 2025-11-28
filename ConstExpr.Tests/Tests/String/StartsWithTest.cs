@@ -1,30 +1,23 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.String;
 
 [InheritsTests]
-public class StartsWithTest : BaseTest
+public class StartsWithTest(FloatingPointEvaluationMode evaluationMode = FloatingPointEvaluationMode.FastMath) : BaseTest(evaluationMode)
 {
-  public override IEnumerable<string> Result =>
-  [
-    // "return s.StartsWith(prefix);",
-    "return true;",
-    "return false;",
-  ];
+	public override IEnumerable<KeyValuePair<string?, object[]>> Result =>
+	[
+		Create(null, Unknown, Unknown),
+		Create("return true;", "hello", "hel"),
+		Create("return false;", "world", "foo"),
+		Create("return true;", "", ""),
+	];
 
-  public override string Invocations => """
-    var varStr = "test";
-    var varPre = "te";
-    TestMethods.StartsWith("hello", "hel");   // true
-    TestMethods.StartsWith("world", "foo");   // false
-    TestMethods.StartsWith("", "");           // true
-    TestMethods.StartsWith(varStr, varPre);
-    """;
-
-  public override string TestMethod => """
-    [ConstExpr(FloatingPointMode = FloatingPointEvaluationMode.FastMath)]
-    public static bool StartsWith(string s, string prefix)
-    {
-      return s.StartsWith(prefix);
-    }
-    """;
+	public override string TestMethod => """
+		bool StartsWith(string s, string prefix)
+		{
+			return s.StartsWith(prefix);
+		}
+		""";
 }
 

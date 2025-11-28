@@ -3,30 +3,20 @@ namespace ConstExpr.Tests.Math;
 [InheritsTests]
 public class BitwiseOperationsTest : BaseTest
 {
-  public override IEnumerable<string> Result =>
-  [
-    "return a & b | a ^ b;",
-    "return 14;",
-    "return 8;",
-    "return 5;"
-  ];
+	public override IEnumerable<KeyValuePair<string?, object[]>> Result =>
+	[
+		Create(null, Unknown, Unknown),
+		Create("return 14;", 12, 10),
+		Create("return 8;", 8, 8),
+		Create("return 5;", 5, 0),
+	];
 
-  public override string Invocations => """
-    var x = 10;
-    var y = 20;
-    TestMethods.BitwiseOr(12, 10); // 14
-    TestMethods.BitwiseOr(8, 8);   // 8
-    TestMethods.BitwiseOr(5, 0);   // 5
-    TestMethods.BitwiseOr(x, y);   // non-constant
-    """;
-
-  public override string TestMethod => """
-    [ConstExpr]
-    public static int BitwiseOr(int a, int b)
-    {
-      return (a & b) | (a ^ b);
-    }
-    """;
+	public override string TestMethod => """
+		int BitwiseOr(int a, int b)
+		{
+			return (a & b) | (a ^ b);
+		}
+		""";
 }
 
 

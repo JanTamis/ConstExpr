@@ -1,29 +1,23 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.String;
 
 [InheritsTests]
-public class ToUpperCaseTest : BaseTest
+public class ToUpperCaseTest(FloatingPointEvaluationMode evaluationMode = FloatingPointEvaluationMode.FastMath) : BaseTest(evaluationMode)
 {
-  public override IEnumerable<string> Result =>
-  [
-    "return \"HELLO\";",
-    "return \"WORLD123\";",
-    "return \"\";"
-  ];
+	public override IEnumerable<KeyValuePair<string?, object[]>> Result =>
+	[
+		Create(null, Unknown),
+		Create("return \"HELLO\";", "hello"),
+		Create("return \"WORLD123\";", "WoRlD123"),
+		Create("return \"\";", ""),
+	];
 
-  public override string Invocations => """
-    var varStr = "test";
-    TestMethods.ToUpperCase("hello");      // "HELLO"
-    TestMethods.ToUpperCase("WoRlD123");   // "WORLD123"
-    TestMethods.ToUpperCase("");           // ""
-    TestMethods.ToUpperCase(varStr);
-    """;
-
-  public override string TestMethod => """
-    [ConstExpr(FloatingPointMode = FloatingPointEvaluationMode.FastMath)]
-    public static string ToUpperCase(string s)
-    {
-      return s.ToUpper();
-    }
-    """;
+	public override string TestMethod => """
+		string ToUpperCase(string s)
+		{
+			return s.ToUpper();
+		}
+		""";
 }
 

@@ -1,31 +1,24 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Validation;
 
 [InheritsTests]
-public class IsDivisibleByTest : BaseTest
+public class IsDivisibleByTest(FloatingPointEvaluationMode evaluationMode = FloatingPointEvaluationMode.FastMath) : BaseTest(evaluationMode)
 {
-  public override IEnumerable<string> Result =>
-  [
-    //"return divisor != 0 && n % divisor == 0;",
-    "return true;",
-    "return false;"
-  ];
+	public override IEnumerable<KeyValuePair<string?, object[]>> Result =>
+	[
+		Create(null, Unknown, Unknown),
+		Create("return true;", 10, 5),
+		Create("return false;", 10, 3),
+		Create("return false;", 0, 0),
+	];
 
-  public override string Invocations => """
-    var varN = 100;
-    var varD = 7;
-    TestMethods.IsDivisibleBy(10, 5);    // true
-    TestMethods.IsDivisibleBy(10, 3);    // false
-    TestMethods.IsDivisibleBy(0, 0);     // false
-    TestMethods.IsDivisibleBy(varN, varD);
-    """;
-
-  public override string TestMethod => """
-    [ConstExpr(FloatingPointMode = FloatingPointEvaluationMode.FastMath)]
-    public static bool IsDivisibleBy(int n, int divisor)
-    {
-      return divisor != 0 && n % divisor == 0;
-    }
-    """;
+	public override string TestMethod => """
+		bool IsDivisibleBy(int n, int divisor)
+		{
+			return divisor != 0 && n % divisor == 0;
+		}
+		""";
 }
 
 

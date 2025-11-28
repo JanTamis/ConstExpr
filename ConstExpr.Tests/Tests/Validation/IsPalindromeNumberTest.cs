@@ -1,58 +1,36 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Validation;
 
-public class IsPalindromeNumberTest : BaseTest
+[InheritsTests]
+public class IsPalindromeNumberTest(FloatingPointEvaluationMode evaluationMode = FloatingPointEvaluationMode.FastMath) : BaseTest(evaluationMode)
 {
-  public override IEnumerable<string> Result =>
-  [
-    """
-    if (n < 0)
-    {
-    	return false;
-    }
+	public override IEnumerable<KeyValuePair<string?, object[]>> Result =>
+	[
+		Create(null, Unknown),
+		Create("return true;", 121),
+		Create("return false;", 123),
+	];
 
-    var original = n;
-    var reversed = 0;
-
-    while (n > 0)
-    {
-    	reversed = reversed * 10 + n % 10;
-    	n /= 10;
-    }
-
-    return original == reversed;
-    """,
-    "return true;",
-    "return false;"
-  ];
-
-  public override string Invocations => """
-    var varNum = 12321;
-    
-    TestMethods.IsPalindromeNumber(121);
-    TestMethods.IsPalindromeNumber(123);
-    TestMethods.IsPalindromeNumber(varNum);
-    """;
-
-  public override string TestMethod => """
-    [ConstExpr(FloatingPointMode = FloatingPointEvaluationMode.FastMath)]
-    public static bool IsPalindromeNumber(int n)
-    {
-      if (n < 0)
-      {
-        return false;
-      }
-      
-      var original = n;
-      var reversed = 0;
-      
-      while (n > 0)
-      {
-        reversed = reversed * 10 + n % 10;
-        n /= 10;
-      }
-      
-      return original == reversed;
-    }
-    """;
+	public override string TestMethod => """
+		bool IsPalindromeNumber(int n)
+		{
+			if (n < 0)
+			{
+				return false;
+			}
+			
+			var original = n;
+			var reversed = 0;
+			
+			while (n > 0)
+			{
+				reversed = reversed * 10 + n % 10;
+				n /= 10;
+			}
+			
+			return original == reversed;
+		}
+		""";
 }
 

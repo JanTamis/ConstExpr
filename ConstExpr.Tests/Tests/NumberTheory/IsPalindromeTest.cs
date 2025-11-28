@@ -3,47 +3,28 @@ namespace ConstExpr.Tests.NumberTheory;
 [InheritsTests]
 public class IsPalindromeTest : BaseTest
 {
-  public override IEnumerable<string> Result =>
-  [
-    //"""
-    //var original = Math.Abs(n);
-    //var reversed = 0;
-    //var temp = original;
-    //while (temp > 0)
-    //{
-    //  reversed = reversed * 10 + temp % 10;
-    //  temp /= 10;
-    //}
-    
-    //return original == reversed;
-    //""",
-    "return true;",
-    "return false;",
-  ];
+	public override IEnumerable<KeyValuePair<string?, object[]>> Result =>
+	[
+		Create(null, Unknown),
+		Create("return true;", 121),
+		Create("return false;", 123),
+	];
 
-  public override string Invocations => """
-    var varNum = 100;
-    TestMethods.IsPalindrome(121);   // true
-    TestMethods.IsPalindrome(123);   // false
-    TestMethods.IsPalindrome(varNum);
-    """;
-
-  public override string TestMethod => """
-    [ConstExpr]
-    public static bool IsPalindrome(int n)
-    {
-      var original = Math.Abs(n);
-      var reversed = 0;
-      var temp = original;
-      
-      while (temp > 0)
-      {
-        reversed = reversed * 10 + temp % 10;
-        temp /= 10;
-      }
-      
-      return original == reversed;
-    }
-    """;
+	public override string TestMethod => """
+		bool IsPalindrome(int n)
+		{
+			var original = Math.Abs(n);
+			var reversed = 0;
+			var temp = original;
+			
+			while (temp > 0)
+			{
+				reversed = reversed * 10 + temp % 10;
+				temp /= 10;
+			}
+			
+			return original == reversed;
+		}
+		""";
 }
 

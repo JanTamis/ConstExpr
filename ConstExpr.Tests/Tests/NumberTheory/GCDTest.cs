@@ -1,51 +1,30 @@
 namespace ConstExpr.Tests.NumberTheory;
 
+[InheritsTests]
 public class GCDTest : BaseTest
 {
-  public override IEnumerable<string> Result => 
-  [
-    """
-    a = Math.Abs(a);
-    b = Math.Abs(b);
-    while (b != 0)
-    {
-    	var temp = b;
-    	b = a % b;
-    	a = temp;
-    }
+	public override IEnumerable<KeyValuePair<string?, object[]>> Result =>
+	[
+		Create(null, Unknown, Unknown),
+		Create("return 6;", 48, 18),
+		Create("return 1;", 17, 19),
+		Create("return 15;", 45, 60),
+	];
 
-    return a;
-    """,
-    "return 6;",
-    "return 1;",
-    "return 15;"
-  ];
+	public override string TestMethod => """
+		int GCD(int a, int b)
+		{
+			a = Math.Abs(a);
+			b = Math.Abs(b);
 
-  public override string Invocations => """
-    var varInt1 = 20;
-    var varInt2 = 30;
-    
-    TestMethods.GCD(48, 18);
-    TestMethods.GCD(17, 19);
-    TestMethods.GCD(45, 60);
-    TestMethods.GCD(varInt1, varInt2);
-    """;
+			while (b != 0)
+			{
+				var temp = b;
+				b = a % b;
+				a = temp;
+			}
 
-  public override string TestMethod => """
-    [ConstExpr]
-    public static int GCD(int a, int b)
-    {
-      a = Math.Abs(a);
-      b = Math.Abs(b);
-
-      while (b != 0)
-      {
-        var temp = b;
-        b = a % b;
-        a = temp;
-      }
-
-      return a;
-    }
-    """;
+			return a;
+		}
+		""";
 }

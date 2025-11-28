@@ -8,7 +8,8 @@ public class AverageTest : BaseTest
     Create(null, Unknown),
     Create("return 30D;", new[] { 10, 20, 30, 40, 50 }),
     Create("return 15D;", new[] { 5, 15, 25 }),
-  ];
+    Create("return 0D;", System.Array.Empty<int>()),
+	];
 
   public override string TestMethod => """
     double Average(int[] numbers)

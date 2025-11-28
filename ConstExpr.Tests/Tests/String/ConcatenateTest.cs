@@ -1,31 +1,23 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.String;
 
 [InheritsTests]
-public class ConcatenateTest : BaseTest
+public class ConcatenateTest(FloatingPointEvaluationMode evaluationMode = FloatingPointEvaluationMode.FastMath) : BaseTest(evaluationMode)
 {
-  public override IEnumerable<string> Result =>
-  [
-    // "return a + b;",
-    "return \"helloworld\";",
-    "return \"test\";",
-    "return \"\";"
-  ];
+	public override IEnumerable<KeyValuePair<string?, object[]>> Result =>
+	[
+		Create(null, Unknown, Unknown),
+		Create("return \"helloworld\";", "hello", "world"),
+		Create("return \"test\";", "test", ""),
+		Create("return \"\";", "", ""),
+	];
 
-  public override string Invocations => """
-    var varA = "foo";
-    var varB = "bar";
-    TestMethods.Concatenate("hello", "world");  // "helloworld"
-    TestMethods.Concatenate("test", "");        // "test"
-    TestMethods.Concatenate("", "");            // ""
-    TestMethods.Concatenate(varA, varB);
-    """;
-
-  public override string TestMethod => """
-    [ConstExpr(FloatingPointMode = FloatingPointEvaluationMode.FastMath)]
-    public static string Concatenate(string a, string b)
-    {
-      return a + b;
-    }
-    """;
+	public override string TestMethod => """
+		string Concatenate(string a, string b)
+		{
+			return a + b;
+		}
+		""";
 }
 

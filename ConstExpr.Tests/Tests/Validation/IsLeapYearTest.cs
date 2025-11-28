@@ -1,50 +1,32 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Validation;
 
-public class IsLeapYearTest : BaseTest
+[InheritsTests]
+public class IsLeapYearTest(FloatingPointEvaluationMode evaluationMode = FloatingPointEvaluationMode.FastMath) : BaseTest(evaluationMode)
 {
-  public override IEnumerable<string> Result =>
-  [
-    """
-    if (year % 4 != 0)
-    {
-    	return false;
-    }
+	public override IEnumerable<KeyValuePair<string?, object[]>> Result =>
+	[
+		Create(null, Unknown),
+		Create("return true;", 2000),
+		Create("return false;", 1900),
+	];
 
-    if (year % 100 != 0)
-    {
-    	return true;
-    }
-
-    return year % 400 == 0;
-    """,
-    "return true;",
-    "return false;"
-  ];
-
-  public override string Invocations => """
-    var varYear = 2024;
-    
-    TestMethods.IsLeapYear(2000);
-    TestMethods.IsLeapYear(1900);
-    TestMethods.IsLeapYear(varYear);
-    """;
-
-  public override string TestMethod => """
-    [ConstExpr(FloatingPointMode = FloatingPointEvaluationMode.FastMath)]
-    public static bool IsLeapYear(int year)
-    {
-      if (year % 4 != 0)
-      {
-        return false;
-      }
-      
-      if (year % 100 != 0)
-      {
-        return true;
-      }
-      
-      return year % 400 == 0;
-    }
-    """;
+	public override string TestMethod => """
+		bool IsLeapYear(int year)
+		{
+			if (year % 4 != 0)
+			{
+				return false;
+			}
+			
+			if (year % 100 != 0)
+			{
+				return true;
+			}
+			
+			return year % 400 == 0;
+		}
+		""";
 }
 
