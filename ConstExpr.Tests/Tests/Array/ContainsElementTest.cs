@@ -5,7 +5,7 @@ namespace ConstExpr.Tests.Array;
 [InheritsTests]
 public class ContainsElementTest() : BaseTest(FloatingPointEvaluationMode.FastMath)
 {
-	public override IEnumerable<KeyValuePair<string?, object[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create(null, Unknown, Unknown),
 		Create("return true;", new[] { 1, 2, 3, 4, 5 }, 3),

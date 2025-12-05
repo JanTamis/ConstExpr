@@ -1,9 +1,11 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class MaxOfThreeTest : BaseTest
+public class MaxOfThreeTest () : BaseTest(FloatingPointEvaluationMode.FastMath)
 {
-	public override IEnumerable<KeyValuePair<string?, object[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create(null, Unknown, Unknown, Unknown),
 		Create("return 10;", 5, 10, 3),

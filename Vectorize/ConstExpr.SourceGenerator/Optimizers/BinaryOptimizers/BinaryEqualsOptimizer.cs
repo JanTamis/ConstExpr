@@ -1,10 +1,6 @@
 using System.Collections.Generic;
-using ConstExpr.SourceGenerator.Extensions;
-using ConstExpr.SourceGenerator.Helpers;
-using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.EqualsStrategies;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;

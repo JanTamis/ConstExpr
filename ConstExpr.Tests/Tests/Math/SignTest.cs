@@ -3,9 +3,9 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class SignTest(FloatingPointEvaluationMode evaluationMode = FloatingPointEvaluationMode.FastMath) : BaseTest(evaluationMode)
+public class SignTest() : BaseTest(FloatingPointEvaluationMode.FastMath)
 {
-	public override IEnumerable<KeyValuePair<string?, object[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create(null, Unknown),
 		Create("return 1;", 100),
@@ -20,10 +20,12 @@ public class SignTest(FloatingPointEvaluationMode evaluationMode = FloatingPoint
 			{
 				return 1;
 			}
+			
 			if (n < 0)
 			{
 				return -1;
 			}
+			
 			return 0;
 		}
 		""";

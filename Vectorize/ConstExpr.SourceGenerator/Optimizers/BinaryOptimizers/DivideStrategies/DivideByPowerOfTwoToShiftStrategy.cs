@@ -36,6 +36,17 @@ public class DivideByPowerOfTwoToShiftStrategy : BaseBinaryStrategy
 
 		// For signed integers: (x + ((x >> (bitSize - 1)) & (2^n - 1))) >> n
 		// This correctly handles negative numbers by adding a bias before shifting
+		// However, this optimization duplicates the left expression, so we should
+		// only apply it if the left expression is simple (e.g., a variable or literal).
+		// Complex expressions (like multiplication) should use regular division to avoid duplication.
+		
+		// Check if left expression is simple enough to duplicate
+		if (!IsSimpleExpression(context.Left.Syntax))
+		{
+			// Complex expression - don't duplicate, use regular division
+			return null;
+		}
+
 		var bitSize = GetBitSize(context.Type.SpecialType);
 
 		if (bitSize == 0)

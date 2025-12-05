@@ -3,9 +3,9 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Array;
 
 [InheritsTests]
-public class ArraySumTest(FloatingPointEvaluationMode evaluationMode = FloatingPointEvaluationMode.FastMath) : BaseTest(evaluationMode)
+public class ArraySumTest() : BaseTest(FloatingPointEvaluationMode.FastMath)
 {
-	public override IEnumerable<KeyValuePair<string?, object[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create(null, Unknown),
 		Create("return 15;", new[] { 1, 2, 3, 4, 5 }),

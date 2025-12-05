@@ -1,9 +1,11 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class ClampTest : BaseTest
+public class ClampTest () : BaseTest(FloatingPointEvaluationMode.FastMath)
 {
-	public override IEnumerable<KeyValuePair<string?, object[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create(null, Unknown, Unknown, Unknown),
 		Create("return 5;", 5, 0, 10),

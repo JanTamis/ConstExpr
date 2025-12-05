@@ -12,6 +12,7 @@ public class BinarySubtractOptimizer : BaseBinaryOptimizer
 	public override IEnumerable<IBinaryStrategy> GetStrategies()
 	{
 		yield return new SubtractConstantFoldingStrategy();
+		yield return new SubtractFromAdditionConstantFoldingStrategy();
 		yield return new SubtractIdentityElementStrategy();
 		yield return new SubtractZeroMinusStrategy();
 		yield return new SubtractIdempotencyStrategy();

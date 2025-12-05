@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -233,6 +232,23 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 
 						var rewriter = new ExpressionRewriter(semanticModel, loader, (_, _) => { }, variables, parameters, CancellationToken.None);
 						var body = rewriter.Visit(lambda.Body);
+
+						value = Expression.Lambda(body, parameters.Values).Compile();
+						return true;
+					}
+
+					break;
+				}
+			case ParenthesizedLambdaExpressionSyntax parenthesizedLambdaExpressionSyntax:
+				{
+					if (semanticModel.TryGetSymbol(parenthesizedLambdaExpressionSyntax, out IMethodSymbol symbol))
+					{
+						var parameters = symbol.Parameters
+							.Select(p => Expression.Parameter(loader.GetType(p.Type), p.Name))
+							.ToDictionary(t => t.Name);
+
+						var rewriter = new ExpressionRewriter(semanticModel, loader, (_, _) => { }, variables, parameters, CancellationToken.None);
+						var body = rewriter.Visit(parenthesizedLambdaExpressionSyntax.Body);
 
 						value = Expression.Lambda(body, parameters.Values).Compile();
 						return true;
@@ -493,6 +509,40 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 					value = array;
 					return true;
 				}
+			case TupleExpressionSyntax tupleExpressionSyntax:
+				{
+					var elements = new List<object?>();
+
+					foreach (var element in tupleExpressionSyntax.Arguments)
+					{
+						if (TryGetLiteralValue(element.Expression, typeSymbol, out var elemVal, visitedVariables))
+						{
+							elements.Add(elemVal);
+						}
+						else
+						{
+							value = null;
+							return false;
+						}
+					}
+
+					var tupleTypes = elements.Select(e => e?.GetType() ?? typeof(object)).ToArray();
+					var tupleType = loader.GetTupleType(tupleTypes.Length);
+
+					if (tupleType != null)
+					{
+						var genericTupleType = tupleType.MakeGenericType(tupleTypes);
+						var ctor = genericTupleType.GetConstructor(tupleTypes);
+
+						if (ctor != null)
+						{
+							value = ctor.Invoke(elements.ToArray());
+							return true;
+						}
+					}
+
+					break;
+				}
 		}
 
 		// Fallback to semantic constant evaluation
@@ -508,8 +558,28 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 
 	protected bool CanBePruned(string variableName)
 	{
-		return variables.TryGetValue(variableName, out var value) && value.HasValue && value is { IsAccessed: false, IsAltered: false }
-					 && (value.Value is not IdentifierNameSyntax identifier || variables.TryGetValue(identifier.Identifier.Text, out var nestedValue) && nestedValue is { IsAltered: false });
+		if (!variables.TryGetValue(variableName, out var value) || !value.HasValue || value is not { IsAccessed: false, IsAltered: false })
+		{
+			return false;
+		}
+
+		// Don't prune if the value is a complex syntax node that might have side effects
+		// Only prune if the value is a true constant (not a SyntaxNode, or a simple literal/identifier)
+		if (value.Value is SyntaxNode syntaxNode)
+		{
+			return syntaxNode switch
+			{
+				// Allow pruning for simple cases: literals and identifiers that point to prunable variables
+				LiteralExpressionSyntax => true,
+				IdentifierNameSyntax identifier => variables.TryGetValue(identifier.Identifier.Text, out var nestedValue) && nestedValue is { IsAltered: false },
+				_ => false
+			};
+
+			// Don't prune variables with complex syntax values (like ObjectCreationExpressionSyntax)
+		}
+
+		// Value is not a SyntaxNode - it's a true constant value (string, int, etc.)
+		return true;
 	}
 
 	protected bool CanBePruned(SyntaxNode node)

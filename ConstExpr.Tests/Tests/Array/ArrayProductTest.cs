@@ -3,9 +3,9 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Array;
 
 [InheritsTests]
-public class ArrayProductTest(FloatingPointEvaluationMode evaluationMode = FloatingPointEvaluationMode.FastMath) : BaseTest(evaluationMode)
+public class ArrayProductTest() : BaseTest(FloatingPointEvaluationMode.FastMath)
 {
-	public override IEnumerable<KeyValuePair<string?, object[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create(null, Unknown),
 		Create("return 120;", new[] { 1, 2, 3, 4, 5 }),
@@ -17,10 +17,12 @@ public class ArrayProductTest(FloatingPointEvaluationMode evaluationMode = Float
 		int ArrayProduct(int[] arr)
 		{
 			var product = 1;
+			
 			foreach (var num in arr)
 			{
 				product *= num;
 			}
+			
 			return product;
 		}
 		""";

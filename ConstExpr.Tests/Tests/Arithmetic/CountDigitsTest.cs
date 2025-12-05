@@ -1,9 +1,11 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Arithmetic;
 
 [InheritsTests]
-public class CountDigitsTest : BaseTest
+public class CountDigitsTest () : BaseTest(FloatingPointEvaluationMode.FastMath)
 {
-	public override IEnumerable<KeyValuePair<string?, object[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
  [
     Create(null, Unknown),
     Create("return 3;", 123),

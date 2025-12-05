@@ -5,7 +5,7 @@ namespace ConstExpr.Tests.Array;
 [InheritsTests]
 public class FindMaxTest() : BaseTest(FloatingPointEvaluationMode.FastMath)
 {
-	public override IEnumerable<KeyValuePair<string?, object[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create(null, Unknown),
 		Create("return 50;", new[] { 10, 20, 50, 30 }),

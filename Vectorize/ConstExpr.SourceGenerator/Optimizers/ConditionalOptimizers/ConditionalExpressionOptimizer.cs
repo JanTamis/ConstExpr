@@ -37,7 +37,7 @@ public class ConditionalExpressionOptimizer
 		}
 
 		// condition ? x : x => x (when x is pure)
-		if (WhenTrue.IsEquivalentTo(WhenFalse) && IsPure(WhenTrue))
+		if (WhenTrue.EqualsTo(WhenFalse))
 		{
 			result = WhenTrue;
 			return true;
@@ -58,10 +58,10 @@ public class ConditionalExpressionOptimizer
 		}
 
 		// a < b ? a : b => Math.Min(a, b) (for numeric types)
-		if (Type.IsNumericType() 
+		if (Type.IsNumericType()
 		    && Condition is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LessThanExpression } ltExpr
-		    && ltExpr.Left.IsEquivalentTo(WhenTrue)
-		    && ltExpr.Right.IsEquivalentTo(WhenFalse)
+		    && ltExpr.Left.GetDeterministicHash() == WhenTrue.GetDeterministicHash()
+		    && ltExpr.Right.GetDeterministicHash() == WhenFalse.GetDeterministicHash()
 		    && IsPure(WhenTrue) && IsPure(WhenFalse))
 		{
 			var mathType = ParseTypeName(Type.Name);
@@ -74,8 +74,8 @@ public class ConditionalExpressionOptimizer
 		// a > b ? a : b => Math.Max(a, b)
 		if (Type.IsNumericType()
 		    && Condition is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.GreaterThanExpression } gtExpr
-		    && gtExpr.Left.IsEquivalentTo(WhenTrue)
-		    && gtExpr.Right.IsEquivalentTo(WhenFalse)
+		    && gtExpr.Left.GetDeterministicHash() == WhenTrue.GetDeterministicHash()
+		    && gtExpr.Right.GetDeterministicHash() == WhenFalse.GetDeterministicHash()
 		    && IsPure(WhenTrue) && IsPure(WhenFalse))
 		{
 			var mathType = ParseTypeName(Type.Name);
@@ -88,8 +88,8 @@ public class ConditionalExpressionOptimizer
 		// a <= b ? a : b => Math.Min(a, b)
 		if (Type.IsNumericType()
 		    && Condition is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LessThanOrEqualExpression } leExpr
-		    && leExpr.Left.IsEquivalentTo(WhenTrue)
-		    && leExpr.Right.IsEquivalentTo(WhenFalse)
+		    && leExpr.Left.GetDeterministicHash() == WhenTrue.GetDeterministicHash()
+		    && leExpr.Right.GetDeterministicHash() == WhenFalse.GetDeterministicHash()
 		    && IsPure(WhenTrue) && IsPure(WhenFalse))
 		{
 			var mathType = ParseTypeName(Type.Name);
@@ -102,8 +102,8 @@ public class ConditionalExpressionOptimizer
 		// a >= b ? a : b => Math.Max(a, b)
 		if (Type.IsNumericType()
 		    && Condition is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.GreaterThanOrEqualExpression } geExpr
-		    && geExpr.Left.IsEquivalentTo(WhenTrue)
-		    && geExpr.Right.IsEquivalentTo(WhenFalse)
+		    && geExpr.Left.GetDeterministicHash() == WhenTrue.GetDeterministicHash()
+		    && geExpr.Right.GetDeterministicHash() == WhenFalse.GetDeterministicHash()
 		    && IsPure(WhenTrue) && IsPure(WhenFalse))
 		{
 			var mathType = ParseTypeName(Type.Name);
@@ -116,8 +116,8 @@ public class ConditionalExpressionOptimizer
 		// b < a ? a : b => Math.Max(a, b)
 		if (Type.IsNumericType()
 		    && Condition is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LessThanExpression } ltExpr2
-		    && ltExpr2.Right.IsEquivalentTo(WhenTrue)
-		    && ltExpr2.Left.IsEquivalentTo(WhenFalse)
+		    && ltExpr2.Right.GetDeterministicHash() == WhenTrue.GetDeterministicHash()
+		    && ltExpr2.Left.GetDeterministicHash() == WhenFalse.GetDeterministicHash()
 		    && IsPure(WhenTrue) && IsPure(WhenFalse))
 		{
 			var mathType = ParseTypeName(Type.Name);
@@ -130,8 +130,8 @@ public class ConditionalExpressionOptimizer
 		// b > a ? a : b => Math.Min(a, b)
 		if (Type.IsNumericType()
 		    && Condition is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.GreaterThanExpression } gtExpr2
-		    && gtExpr2.Right.IsEquivalentTo(WhenTrue)
-		    && gtExpr2.Left.IsEquivalentTo(WhenFalse)
+		    && gtExpr2.Right.GetDeterministicHash() == WhenTrue.GetDeterministicHash()
+		    && gtExpr2.Left.GetDeterministicHash() == WhenFalse.GetDeterministicHash()
 		    && IsPure(WhenTrue) && IsPure(WhenFalse))
 		{
 			var mathType = ParseTypeName(Type.Name);

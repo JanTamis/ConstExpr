@@ -1,9 +1,11 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.NumberTheory;
 
 [InheritsTests]
-public class IsPerfectNumberTest : BaseTest
+public class IsPerfectNumberTest () : BaseTest(FloatingPointEvaluationMode.FastMath)
 {
-	public override IEnumerable<KeyValuePair<string?, object[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create(null, Unknown),
 		Create("return true;", 6),

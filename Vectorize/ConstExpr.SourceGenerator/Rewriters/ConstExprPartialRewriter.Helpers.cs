@@ -1,5 +1,4 @@
 using ConstExpr.SourceGenerator.Extensions;
-using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;
 using Microsoft.CodeAnalysis;
@@ -8,7 +7,6 @@ using Microsoft.CodeAnalysis.Operations;
 using SourceGen.Utilities.Extensions;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
@@ -244,14 +242,14 @@ public partial class ConstExprPartialRewriter
 	{
 		if (block == null)
 		{
-			return Array.Empty<string>();
+			return [ ];
 		}
 
 		var data = semanticModel.AnalyzeDataFlow(block, block);
 
 		if (!data.Succeeded)
 		{
-			return Array.Empty<string>();
+			return [ ];
 		}
 
 		// Get all variables that are written to within the block

@@ -108,8 +108,11 @@ public class MetadataLoader
 			{
 				var existing = _preloadedAssemblies.Value
 					.FirstOrDefault(a => AssemblyName.ReferenceMatchesDefinition(a.GetName(), assemblyName));
+
 				if (existing != null)
+				{
 					return existing;
+				}
 			}
 
 			// Try to load the assembly
@@ -191,8 +194,11 @@ public class MetadataLoader
 			foreach (var assembly in _preloadedAssemblies.Value)
 			{
 				var type = TryGetTypeFromAssembly(assembly, typeName);
+
 				if (type != null)
+				{
 					return type;
+				}
 			}
 		}
 
@@ -205,7 +211,9 @@ public class MetadataLoader
 		{
 			// Quick check: does the type name match the assembly's namespace patterns?
 			if (!CouldContainType(metadataAssembly, typeName))
+			{
 				continue;
+			}
 
 			// Load the actual assembly only if it might contain our type
 			var assembly = LoadAssemblyByName(metadataAssembly.GetName());
@@ -213,8 +221,11 @@ public class MetadataLoader
 			if (assembly != null)
 			{
 				var type = TryGetTypeFromAssembly(assembly, typeName);
+
 				if (type != null)
+				{
 					return type;
+				}
 			}
 		}
 
@@ -239,13 +250,19 @@ public class MetadataLoader
 	{
 		// Simple heuristic: check if assembly name prefix matches type namespace
 		var assemblyName = assembly.GetName().Name;
+
 		if (string.IsNullOrEmpty(assemblyName))
+		{
 			return true;
+		}
 
 		// Extract namespace from type name
 		var lastDot = typeName.LastIndexOf('.');
+
 		if (lastDot <= 0)
+		{
 			return true; // No namespace, could be anywhere
+		}
 
 		var typeNamespace = typeName.Substring(0, lastDot);
 
@@ -270,5 +287,23 @@ public class MetadataLoader
 			// Skip problematic assemblies
 			return null;
 		}
+	}
+
+	public Type GetTupleType(int tupleTypesLength)
+	{
+		if (tupleTypesLength is < 1 or > 8)
+		{
+			throw new ArgumentOutOfRangeException(nameof(tupleTypesLength), "Tuple length must be between 1 and 8.");
+		}
+
+		var tupleTypeName = $"System.ValueTuple`{tupleTypesLength}";
+		var tupleType = GetType(tupleTypeName);
+
+		if (tupleType == null)
+		{
+			throw new InvalidOperationException($"Could not find type '{tupleTypeName}'.");
+		}
+
+		return tupleType;
 	}
 }

@@ -1,9 +1,11 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Arithmetic;
 
 [InheritsTests]
-public class SumOfSquaresTest : BaseTest
+public class SumOfSquaresTest () : BaseTest(FloatingPointEvaluationMode.FastMath)
 {
-	public override IEnumerable<KeyValuePair<string?, object[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create(null, Unknown),
 		Create("return 55;", 5),

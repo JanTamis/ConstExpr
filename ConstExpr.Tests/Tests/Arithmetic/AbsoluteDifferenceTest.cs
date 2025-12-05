@@ -1,7 +1,9 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Arithmetic;
 
 [InheritsTests]
-public class AbsoluteDifferenceTest : BaseTest
+public class AbsoluteDifferenceTest () : BaseTest(FloatingPointEvaluationMode.FastMath)
 {
 	public override string TestMethod => """
     int AbsoluteDifference(int a, int b)
@@ -11,7 +13,7 @@ public class AbsoluteDifferenceTest : BaseTest
     }
     """;
 
-	public override IEnumerable<KeyValuePair<string?, object[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create(null, Unknown, Unknown),
 		Create("return 5;", 10, 5),

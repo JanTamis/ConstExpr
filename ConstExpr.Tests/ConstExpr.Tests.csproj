@@ -6,7 +6,11 @@
 		<Nullable>enable</Nullable>
 		<IsPackable>false</IsPackable>
 		<IsTestProject>true</IsTestProject>
-		<EnableTUnitSourceGeneration>false</EnableTUnitSourceGeneration>
+		<EnableTUnitSourceGeneration>true</EnableTUnitSourceGeneration>
+		<!-- Opt in to the new test runner to avoid VSTest target usage on .NET 10 SDK and later -->
+		<UseNewTestRunner>true</UseNewTestRunner>
+		<!-- Explicitly opt into Microsoft Testing Platform -->
+		<UseMicrosoftTestingPlatform>true</UseMicrosoftTestingPlatform>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -14,14 +18,17 @@
 		  <PrivateAssets>all</PrivateAssets>
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.14.0" />
+		<PackageReference Include="Microsoft.Testing.Platform.MSBuild" Version="2.0.2" />
 		<PackageReference Include="TUnit" Version="1.2.11" />
 		<PackageReference Include="SourceGenerator.Foundations.Contracts" Version="2.0.13" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\Vectorize\ConstExpr.SourceGenerator\ConstExpr.SourceGenerator.csproj" />
+	  <ProjectReference Include="..\Vectorize\ConstExpr.SourceGenerator\ConstExpr.SourceGenerator.csproj">
+	    <Aliases>sourcegen</Aliases>
+	  </ProjectReference>
 	</ItemGroup>
 </Project>

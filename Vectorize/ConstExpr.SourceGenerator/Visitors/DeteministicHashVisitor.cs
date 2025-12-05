@@ -1,7 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System;
+using System.Linq;
 
 namespace ConstExpr.SourceGenerator.Visitors;
 
@@ -13,6 +13,62 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
   private const ulong FnvOffsetBasis = 14695981039346656037UL;
   private const ulong FnvPrime = 1099511628211UL;
 
+  /// <summary>
+  /// Strips all trivia (whitespace, comments, etc.) from a syntax node for pure structural comparison.
+  /// </summary>
+  public static SyntaxNode StripAllTrivia(SyntaxNode node)
+  {
+    return node.ReplaceTokens(
+      node.DescendantTokens(),
+      (oldToken, _) => oldToken.WithLeadingTrivia().WithTrailingTrivia()
+    );
+  }
+
+  /// <summary>
+  /// Normalizes a syntax node by re-parsing it to remove parent/span information.
+  /// This ensures true structural equivalence for comparison.
+  /// </summary>
+  public static T NormalizeForComparison<T>(T node) where T : SyntaxNode
+  {
+    if (node is null)
+    {
+      return node;
+    }
+
+    // Use NormalizeWhitespace to get canonical formatting (spaces between tokens)
+    // This is critical - StripAllTrivia would remove ALL spaces including between 'var' and identifier!
+    var normalized = node.NormalizeWhitespace();
+    
+    // Re-parse to remove parent and span information
+    var text = normalized.ToFullString();
+    
+    // For blocks, wrap in a method to parse correctly
+    if (node is BlockSyntax)
+    {
+      var methodText = $"void M(){text}";
+      var methodTree = CSharpSyntaxTree.ParseText(methodText);
+      var method = methodTree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().FirstOrDefault();
+      var parsedBlock = method?.Body;
+      
+      if (parsedBlock != null)
+      {
+        // Strip trivia AFTER parsing to get clean comparison
+        return (StripAllTrivia(parsedBlock) as T) ?? node;
+      }
+    }
+    
+    // For other node types, parse and find the equivalent node
+    var parsed = CSharpSyntaxTree.ParseText(text).GetRoot();
+    var result = parsed.DescendantNodesAndSelf().OfType<T>().FirstOrDefault();
+    
+    if (result != null)
+    {
+      return (StripAllTrivia(result) as T) ?? node;
+    }
+    
+    return node;
+  }
+
   public override ulong Visit(SyntaxNode? node)
   {
     if (node is null)
@@ -23,21 +79,9 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
     var hash = HashCombine(FnvOffsetBasis, (ulong)node.RawKind);
 
     // Recursively hash all children
-    foreach (var child in node.ChildNodesAndTokens())
+    foreach (var child in node.ChildNodes())
     {
-      if (child.IsNode)
-      {
-        hash = HashCombine(hash, Visit(child.AsNode()));
-      }
-      else if (child.IsToken)
-      {
-        var token = child.AsToken();
-
-        if (token.ValueText != null && token.ValueText.Length > 0)
-        {
-          hash = HashCombine(hash, HashString(token.ValueText));
-        }
-      }
+      hash = HashCombine(hash, Visit(child));
     }
 
     return hash;

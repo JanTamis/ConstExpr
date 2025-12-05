@@ -1,9 +1,11 @@
-﻿namespace ConstExpr.Tests.Arithmetic;
+﻿using ConstExpr.Core.Enumerators;
+
+namespace ConstExpr.Tests.Arithmetic;
 
 [InheritsTests]
-public class AverageTest : BaseTest
+public class AverageTest () : BaseTest(FloatingPointEvaluationMode.FastMath)
 {
-  public override IEnumerable<KeyValuePair<string?, object[]>> Result => 
+  public override IEnumerable<KeyValuePair<string?, object?[]>> Result => 
   [
     Create(null, Unknown),
     Create("return 30D;", new[] { 10, 20, 30, 40, 50 }),

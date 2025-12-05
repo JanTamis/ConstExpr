@@ -1,9 +1,11 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Arithmetic;
 
 [InheritsTests]
-public class MultiplyByPowerOfTwoTest : BaseTest
+public class MultiplyByPowerOfTwoTest () : BaseTest(FloatingPointEvaluationMode.FastMath)
 {
-	public override IEnumerable<KeyValuePair<string?, object[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create(null, Unknown, Unknown),
 		Create("return 40;", 10, 2),

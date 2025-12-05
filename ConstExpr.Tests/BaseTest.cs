@@ -1,26 +1,25 @@
+extern alias sourcegen;
 using ConstExpr.Core.Attributes;
-using ConstExpr.SourceGenerator;
+using sourcegen::ConstExpr.SourceGenerator;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Diagnostics;
-using System.Collections.Immutable;
-using ConstExpr.SourceGenerator.Extensions;
+using sourcegen::ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.Core.Enumerators;
-using ConstExpr.SourceGenerator.Helpers;
-using ConstExpr.SourceGenerator.Models;
-using ConstExpr.SourceGenerator.Rewriters;
+using sourcegen::ConstExpr.SourceGenerator.Helpers;
+using sourcegen::ConstExpr.SourceGenerator.Models;
+using sourcegen::ConstExpr.SourceGenerator.Rewriters;
 
 namespace ConstExpr.Tests;
 
 public abstract class BaseTest(FloatingPointEvaluationMode evaluationMode = FloatingPointEvaluationMode.Strict)
 {
 	// the generated method bodies to be expected
-	public abstract IEnumerable<KeyValuePair<string?, object[]>> Result { get; }
+	public abstract IEnumerable<KeyValuePair<string?, object?[]>> Result { get; }
 
 	public abstract string TestMethod { get; }
 
-	protected object Unknown = new object();
+	protected object Unknown = new();
 
 	[Test]
 	public void RunTest()
@@ -73,7 +72,7 @@ public abstract class BaseTest(FloatingPointEvaluationMode evaluationMode = Floa
 
 		var roslynCache = new RoslynApiCache();
 
-		var rewriter = new ConstExprPartialRewriter(semanticModel, loader, (_, exception) => { }, parameters, new Dictionary<SyntaxNode, bool>(), new HashSet<string>(), attribute, CancellationToken.None, []);
+		var rewriter = new ConstExprPartialRewriter(semanticModel, loader, (_, exception) => { }, parameters, new Dictionary<SyntaxNode, bool>(), new HashSet<string>(), attribute, CancellationToken.None, [ ]);
 		var pruneRewriter = new PruneVariableRewriter(semanticModel, loader, parameters, roslynCache);
 
 		foreach (var result in Result)
@@ -113,38 +112,59 @@ public abstract class BaseTest(FloatingPointEvaluationMode evaluationMode = Floa
 			}
 
 			var newBody = rewriter.VisitBlock(method.Body!) as BlockSyntax;
+
+			foreach (var parameter in parameters)
+			{
+				if (!newBody.HasIdentifier(parameter.Key))
+				{
+					parameter.Value.HasValue = true;
+					parameter.Value.IsAccessed = false;
+					parameter.Value.IsAltered = false;
+					parameter.Value.IsInitialized = true;
+				}
+			}
+			
+			
 			newBody = pruneRewriter.Visit(newBody) as BlockSyntax;
+			newBody = FormattingHelper.Format(newBody!) as BlockSyntax;
 
 			if (result.Key is null)
 			{
-				if (method.Body.GetDeterministicHash() != newBody.GetDeterministicHash())
+				var expectedBody = FormattingHelper.Format(method.Body!) as BlockSyntax;
+
+				if (!expectedBody.EqualsTo(newBody))
 				{
 					throw new InvalidOperationException($"""
-					Generated method body does not match expected body.
+						Generated method body does not match expected body.
+						Parameters: {string.Join(", ", parameterNames.Select(p => $"{p} = {(parameters[p].HasValue ? ParseValue(parameters[p].Value) : "Unknown")}"))}
 
-					Expected body:
-					{FormattingHelper.Render(method.Body) ?? "(null)"}
+						Expected body:
+						{FormattingHelper.Render(expectedBody) ?? "(null)"}
 
-					Generated body:
-					{FormattingHelper.Render(newBody) ?? "(null)"}
-					""");
+						Generated body:
+						{FormattingHelper.Render(newBody) ?? "(null)"}
+						""");
 				}
 			}
 			else
 			{
-				var expectedBody = ParseBlock(result.Key); // SyntaxFactory.Block(SyntaxFactory.ParseStatement(result.Key!));
+				var expectedBody = ParseBlock(result.Key);
+				
+				expectedBody = FormattingHelper.Format(expectedBody) as BlockSyntax;
 
-        if (newBody == null || expectedBody == null || FormattingHelper.Render(newBody) != FormattingHelper.Render(expectedBody))
+				// Use Roslyn structural equivalence which ignores trivia differences
+				if (newBody == null || expectedBody == null || !expectedBody.EqualsTo(newBody))
 				{
 					throw new InvalidOperationException($"""
-					Generated method body does not match expected body.
+						Generated method body does not match expected body.
+						Parameters: {string.Join(", ", parameterNames.Select(p => $"{p} = {(parameters[p].HasValue ? ParseValue(parameters[p].Value) : "Unknown")}"))}
 
-					Expected body:
-					{FormattingHelper.Render(expectedBody) ?? "(null)"}
+						Expected body:
+						{FormattingHelper.Render(expectedBody) ?? "(null)"}
 
-					Generated body:
-					{FormattingHelper.Render(newBody) ?? "(null)"}
-					""");
+						Generated body:
+						{FormattingHelper.Render(newBody) ?? "(null)"}
+						""");
 				}
 			}
 		}
@@ -154,8 +174,8 @@ public abstract class BaseTest(FloatingPointEvaluationMode evaluationMode = Floa
 	{
 		return CSharpCompilation.Create(
 			"TestAssembly",
-			[CSharpSyntaxTree.ParseText(source)],
-			[MetadataReference.CreateFromFile(typeof(object).Assembly.Location)],
+			[ CSharpSyntaxTree.ParseText(source) ],
+			[ MetadataReference.CreateFromFile(typeof(object).Assembly.Location) ],
 			new CSharpCompilationOptions(OutputKind.ConsoleApplication));
 	}
 
@@ -169,7 +189,7 @@ public abstract class BaseTest(FloatingPointEvaluationMode evaluationMode = Floa
 			""";
 	}
 
-	protected static KeyValuePair<string?, object[]> Create(string? key, params object[] values)
+	protected static KeyValuePair<string?, object?[]> Create(string? key, params object?[] values)
 	{
 		return KeyValuePair.Create(key, values);
 	}
@@ -184,9 +204,20 @@ public abstract class BaseTest(FloatingPointEvaluationMode evaluationMode = Floa
 			""");
 
 		return tree.GetRoot()
-				.DescendantNodes()
-				.OfType<LocalFunctionStatementSyntax>()
-				.Select(s => s.Body!)
-				.First();
+			.DescendantNodes()
+			.OfType<LocalFunctionStatementSyntax>()
+			.Select(s => s.Body!)
+			.First();
+	}
+
+	private string? ParseValue(object? value)
+	{
+		return value switch
+		{
+			null => "null",
+			string s => $"\"{s}\"",
+			_ => value.ToString()
+		};
+
 	}
 }

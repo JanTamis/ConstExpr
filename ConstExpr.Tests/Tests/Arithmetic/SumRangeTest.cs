@@ -1,9 +1,11 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Arithmetic;
 
 [InheritsTests]
-public class SumRangeTest : BaseTest
+public class SumRangeTest () : BaseTest(FloatingPointEvaluationMode.FastMath)
 {
-	public override IEnumerable<KeyValuePair<string?, object[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create(null, Unknown, Unknown),
 		Create("return 55L;", 1, 10),
@@ -22,7 +24,7 @@ public class SumRangeTest : BaseTest
 			}
 
 			var n = end - start + 1;
-			return (long)n * (start + end) / 2;
+			return (long)n * (start + end) / 2L;
 		}
 		""";
 }

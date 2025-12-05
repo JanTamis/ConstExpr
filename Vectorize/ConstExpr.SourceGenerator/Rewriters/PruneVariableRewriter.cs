@@ -44,7 +44,7 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 		{
 			var visited = Visit(item);
 
-			if (visited is VariableDeclaratorSyntax decl)
+			if (visited is VariableDeclaratorSyntax decl && !CanBePruned(decl.Identifier.Text))
 			{
 				result.Add(decl);
 			}

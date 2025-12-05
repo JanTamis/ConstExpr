@@ -1,6 +1,5 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using SourceGen.Utilities.Extensions;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;

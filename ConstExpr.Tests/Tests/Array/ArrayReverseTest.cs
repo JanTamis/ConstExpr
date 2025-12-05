@@ -1,9 +1,11 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Array;
 
 [InheritsTests]
-public class ArrayReverseTest : BaseTest
+public class ArrayReverseTest () : BaseTest(FloatingPointEvaluationMode.FastMath)
 {
-	public override IEnumerable<KeyValuePair<string?, object[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create(null, Unknown),
 		Create("return [5, 4, 3, 2, 1];", new[] { 1, 2, 3, 4, 5 }),

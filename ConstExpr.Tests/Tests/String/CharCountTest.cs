@@ -5,7 +5,7 @@ namespace ConstExpr.Tests.String;
 [InheritsTests]
 public class CharCountTest() : BaseTest(FloatingPointEvaluationMode.FastMath)
 {
-	public override IEnumerable<KeyValuePair<string?, object[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create(null, Unknown, Unknown),
 		Create("return 3;", "ababa", 'a'),

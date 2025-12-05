@@ -67,4 +67,21 @@ public abstract class BaseBinaryStrategy : IBinaryStrategy
 			_ => null
 		};
 	}
+
+	/// <summary>
+	/// Checks if an expression is simple enough to duplicate without performance penalty.
+	/// Simple expressions include: identifiers, literals, and member access.
+	/// Complex expressions include: binary operations, invocations, etc.
+	/// </summary>
+	protected static bool IsSimpleExpression(ExpressionSyntax expr)
+	{
+		return expr switch
+		{
+			IdentifierNameSyntax => true,
+			LiteralExpressionSyntax => true,
+			MemberAccessExpressionSyntax => true,
+			ParenthesizedExpressionSyntax paren => IsSimpleExpression(paren.Expression),
+			_ => false
+		};
+	}
 }

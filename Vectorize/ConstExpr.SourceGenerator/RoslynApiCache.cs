@@ -1,5 +1,4 @@
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Operations;
 using System.Collections.Concurrent;
 using System.Threading;
 using ConstExpr.SourceGenerator.Comparers;

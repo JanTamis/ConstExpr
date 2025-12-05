@@ -1170,7 +1170,36 @@ public static class CompilationExtensions
 			return 0;
 		}
 
-		return DeteministicHashVisitor.Instance.Visit(node);
+		// Normalize for comparison to ensure trivia-independent and structure-independent hash
+		var normalized = DeteministicHashVisitor.NormalizeForComparison(node);
+		return DeteministicHashVisitor.Instance.Visit(normalized);
+	}
+
+	public static bool EqualsTo<TLeft, TRight>(this TLeft? node, TRight? other)
+		where TLeft : SyntaxNode
+		where TRight : SyntaxNode
+	{
+		if (node is null || other is null)
+		{
+			return false;
+		}
+
+		// Fast path: if both are identifiers, compare their names directly
+		if (node is IdentifierNameSyntax idA && other is IdentifierNameSyntax idB)
+		{
+			return idA.Identifier.ValueText == idB.Identifier.ValueText;
+		}
+
+		if (node.IsEquivalentTo(other))
+		{
+			return true;
+		}
+
+		// Compute deterministic hashes and use them for structural equality
+		var hashA = node.GetDeterministicHash();
+		var hashB = other.GetDeterministicHash();
+
+		return hashA == hashB;
 	}
 
 	public static TAttribute ToAttribute<TAttribute>(this AttributeData attributeData)
