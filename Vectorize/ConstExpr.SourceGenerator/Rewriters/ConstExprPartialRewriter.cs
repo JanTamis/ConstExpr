@@ -1,11 +1,9 @@
 using ConstExpr.Core.Attributes;
-using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
@@ -86,31 +84,35 @@ public partial class ConstExprPartialRewriter(
 
 	public override SyntaxNode? VisitIdentifierName(IdentifierNameSyntax node)
 	{
-		if (variables.TryGetValue(node.Identifier.Text, out var value))
+		if (!variables.TryGetValue(node.Identifier.Text, out var variable))
 		{
-			if (value.HasValue && !value.IsAltered)
+			return node;
+		}
+
+		// If variable has a known constant value and hasn't been altered, inline it
+		if (variable.HasValue && !variable.IsAltered)
+		{
+			// Try to convert to a literal
+			if (TryGetLiteral(variable.Value, out var literal))
 			{
-				if (TryGetLiteral(value.Value, out var expression))
-				{
-					// Variable is inlined to a literal, so it's not "accessed" in the generated code
-					return expression;
-				}
-
-				if (value.Value is IdentifierNameSyntax identifier
-				    && variables.TryGetValue(identifier.Identifier.Text, out var nestedValue)
-				    && nestedValue is { IsAltered: true })
-				{
-					// Variable points to an altered variable, keep the original reference
-					value.IsAccessed = true;
-					return node;
-				}
-
-				// Variable is inlined to its value (which is a SyntaxNode)
-				return value.Value as SyntaxNode;
+				return literal;
 			}
-			
-			// Variable doesn't have a known value or has been altered, mark as accessed
-			value.IsAccessed = true;
+
+			// If the value is another identifier pointing to an altered variable, keep original
+			if (variable.Value is IdentifierNameSyntax nestedId
+			    && variables.TryGetValue(nestedId.Identifier.Text, out var nestedVar)
+			    && nestedVar.IsAltered)
+			{
+				return node;
+			}
+
+			// Inline the syntax node value
+			return variable.Value as SyntaxNode ?? node;
+		}
+
+		if (variable is { HasValue: true, Value: SyntaxNode variableNode })
+		{
+			return variableNode;
 		}
 
 		return node;
@@ -118,58 +120,16 @@ public partial class ConstExprPartialRewriter(
 
 	public override SyntaxNode? VisitExpressionStatement(ExpressionStatementSyntax node)
 	{
-		// Special handling for increment/decrement expressions used as statements
-		if (node.Expression is PostfixUnaryExpressionSyntax or PrefixUnaryExpressionSyntax)
+		var result = Visit(node.Expression);
+
+		return result switch
 		{
-			var originalExpression = node.Expression;
-			var result = Visit(originalExpression);
-
-			return result switch
-			{
-				// If the result is a literal, preserve the original increment/decrement for side-effects
-				LiteralExpressionSyntax => node,
-				ExpressionSyntax expression => node.WithExpression(expression),
-				_ => result
-			};
-
-		}
-
-		var visitedResult = Visit(node.Expression);
-
-		if (visitedResult is not ExpressionSyntax syntax)
-		{
-			if (visitedResult is null)
-			{
-				return node;
-			}
-
-			return visitedResult;
-		}
-
-		return node.WithExpression(syntax);
-	}
-
-	/// <summary>
-	/// Visits an expression that may be an increment/decrement used for side-effects.
-	/// </summary>
-	private ExpressionSyntax VisitIncrementExpression(ExpressionSyntax expression)
-	{
-		if (expression is PostfixUnaryExpressionSyntax or PrefixUnaryExpressionSyntax)
-		{
-			var result = Visit(expression);
-
-			switch (result)
-			{
-				case LiteralExpressionSyntax:
-					return expression;
-				case ExpressionSyntax expr:
-					return expr;
-			}
-
-		}
-
-		var visited = Visit(expression);
-		return visited as ExpressionSyntax ?? expression;
+			// For increment/decrement that evaluate to literals, keep original for side-effects
+			LiteralExpressionSyntax when node.Expression is PostfixUnaryExpressionSyntax or PrefixUnaryExpressionSyntax => node,
+			ExpressionSyntax expr => node.WithExpression(expr),
+			null => node,
+			_ => result
+		};
 	}
 
 	#endregion

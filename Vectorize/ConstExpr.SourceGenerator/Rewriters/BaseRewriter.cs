@@ -556,30 +556,29 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 		return false;
 	}
 
+	/// <summary>
+	/// Checks if a variable has a known constant value that can be inlined.
+	/// Used for constant folding decisions during evaluation.
+	/// </summary>
 	protected bool CanBePruned(string variableName)
 	{
-		if (!variables.TryGetValue(variableName, out var value) || !value.HasValue || value is not { IsAccessed: false, IsAltered: false })
+		if (!variables.TryGetValue(variableName, out var variable) || !variable.HasValue || variable.IsAltered)
 		{
 			return false;
 		}
 
-		// Don't prune if the value is a complex syntax node that might have side effects
-		// Only prune if the value is a true constant (not a SyntaxNode, or a simple literal/identifier)
-		if (value.Value is SyntaxNode syntaxNode)
+		// Check if the value is a simple constant that can be inlined
+		return variable.Value switch
 		{
-			return syntaxNode switch
+			SyntaxNode syntaxNode => syntaxNode switch
 			{
-				// Allow pruning for simple cases: literals and identifiers that point to prunable variables
 				LiteralExpressionSyntax => true,
-				IdentifierNameSyntax identifier => variables.TryGetValue(identifier.Identifier.Text, out var nestedValue) && nestedValue is { IsAltered: false },
+				IdentifierNameSyntax id => variables.TryGetValue(id.Identifier.Text, out var nested) && !nested.IsAltered,
 				_ => false
-			};
-
-			// Don't prune variables with complex syntax values (like ObjectCreationExpressionSyntax)
-		}
-
-		// Value is not a SyntaxNode - it's a true constant value (string, int, etc.)
-		return true;
+			},
+			// Non-SyntaxNode values are true constants (string, int, etc.)
+			_ => true
+		};
 	}
 
 	protected bool CanBePruned(SyntaxNode node)

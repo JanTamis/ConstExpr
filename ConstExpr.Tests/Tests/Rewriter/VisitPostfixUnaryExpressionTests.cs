@@ -15,11 +15,11 @@ public class VisitPostfixUnaryExpressionTests : BaseTest
 			
 			return a;
 		}
-	""";
+		""";
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
-		Create(null, Unknown),
+		Create("return x;", Unknown),
 		Create("return 7;", 7),
 		Create("return 1;", 1),
 		Create("return -1;", -1),

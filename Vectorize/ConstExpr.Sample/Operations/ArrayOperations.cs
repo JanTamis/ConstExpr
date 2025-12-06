@@ -1,7 +1,6 @@
 using ConstExpr.Core.Attributes;
 using ConstExpr.Core.Enumerators;
 using System;
-using System.Linq;
 
 namespace ConstExpr.SourceGenerator.Sample.Operations;
 

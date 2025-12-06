@@ -334,27 +334,12 @@ public partial class ConstExprPartialRewriter
 
 		if (!allLeftVarsExist)
 		{
-			MarkRightSideVariablesAsAccessed(rightArgs);
 			return node.WithRight(rightExpr);
 		}
 
 		return OptimizeTupleAssignment(node, leftArgs, rightArgs, rightExpr);
 	}
 
-	/// <summary>
-	/// Marks right side variables as accessed.
-	/// </summary>
-	private void MarkRightSideVariablesAsAccessed(SeparatedSyntaxList<ArgumentSyntax> rightArgs)
-	{
-		foreach (var rightArg in rightArgs)
-		{
-			if (rightArg.Expression is IdentifierNameSyntax rightVarName
-			    && variables.TryGetValue(rightVarName.Identifier.Text, out var rightVar))
-			{
-				rightVar.IsAccessed = true;
-			}
-		}
-	}
 
 	/// <summary>
 	/// Optimizes tuple assignment.
@@ -387,19 +372,12 @@ public partial class ConstExprPartialRewriter
 				else
 				{
 					newRightArgs[i] = rightArgs[i];
-					rightVar.IsAccessed = true;
 				}
 			}
 			else
 			{
 				allRightValuesResolved = false;
 				newRightArgs[i] = rightArgs[i];
-
-				if (rightArgs[i].Expression is IdentifierNameSyntax varName
-				    && variables.TryGetValue(varName.Identifier.Text, out var varItem))
-				{
-					varItem.IsAccessed = true;
-				}
 			}
 		}
 

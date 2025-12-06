@@ -20,7 +20,7 @@ public class VisitVariableDeclarationTests : BaseTest
 	[
 		Create("""
 		var d = x + y;
-		int e = x << 1, f = y - 1;
+		var e = x << 1;
 		
 		return (1, 2, 3, d, e);
 		""", Unknown, Unknown),

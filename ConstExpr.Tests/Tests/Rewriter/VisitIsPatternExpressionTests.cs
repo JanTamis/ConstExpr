@@ -7,15 +7,16 @@ namespace ConstExpr.Tests.Tests.Rewriter;
 public class VisitIsPatternExpressionTests : BaseTest
 {
 	public override string TestMethod => """
-		(bool, bool, bool, bool, bool) TestMethod(int x, int y, object obj)
+		(bool, bool, bool, bool, bool, bool) TestMethod(int x, int y, object obj, char ch)
 		{
 			var a = 5 is 5;
 			var b = 10 is 20;
 			var c = x is 0;
 			var d = y is > 0;
 			var e = obj is int;
-			
-			return (a, b, c, d, e);
+			var f = ch == 'a' || ch == 'e' || ch == 'i' || ch == 'o' || ch == 'u';
+
+			return (a, b, c, d, e, f);
 		}
 	""";
 
@@ -23,15 +24,16 @@ public class VisitIsPatternExpressionTests : BaseTest
 	[
 		Create("""
 		var c = x is 0;
-		var d = y is> 0;
+		var d = y is > 0;
 		var e = obj is int;
+		var f = ch is 'a' or 'e' or 'i' or 'o' or 'u';
 		
-		return (true, false, c, d, e);
-		""", Unknown, Unknown, Unknown),
-		Create("return (true, false, true, false, true);", 0, -5, 42),
-		Create("return (true, false, false, true, true);", 10, 20, 100),
-		Create("return (true, false, false, true, false);", 5, 15, "hello"),
-		Create("return (true, false, false, false, true);", -10, -20, 0)
+		return (true, false, c, d, e, f);
+		""", Unknown, Unknown, Unknown, Unknown),
+		Create("return (true, false, true, false, true, false);", 0, -5, 42, 'b'),
+		Create("return (true, false, false, true, true, false);", 10, 20, 100, 'c'),
+		Create("return (true, false, false, true, false, false);", 5, 15, "hello", 'd'),
+		Create("return (true, false, false, false, true, true);", -10, -20, 0, 'e')
 	];
 }
 

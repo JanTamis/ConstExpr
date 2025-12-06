@@ -1,7 +1,5 @@
 using ConstExpr.Core.Attributes;
 using ConstExpr.Core.Enumerators;
-using System;
-using System.Linq;
 using System.Text;
 
 namespace ConstExpr.SourceGenerator.Sample.Operations;
@@ -75,6 +73,7 @@ public static class StringOperations
 		foreach (var c in input)
 		{
 			var lower = char.ToLower(c);
+			
 			if (lower == 'a' || lower == 'e' || lower == 'i' || lower == 'o' || lower == 'u')
 			{
 				count++;
@@ -290,7 +289,7 @@ public static class StringOperations
 	/// <summary>
 	/// Checks if strings are anagrams
 	/// </summary>
-	public static bool AreAnagrams(string str1, string str2)
+	public static bool AreAnagrams(string? str1, string? str2)
 	{
 		if (str1 == null || str2 == null)
 		{

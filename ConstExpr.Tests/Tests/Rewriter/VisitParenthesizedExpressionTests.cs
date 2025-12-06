@@ -37,40 +37,16 @@ public class VisitParenthesizedExpressionTests : BaseTest
 		Create("""
 		var d = x + y;
 		var e = x + y;
-		var i = $"{x}";
-		var j = $"{x}";
-		var t = (x, y);
-		
-		var anon = new { a = x };
-		var arr = new[] { x };
+		var i = x.ToString();
+		var j = x.ToString();
 		
 		G(x);
 		
 		return (3, 9, 5, d, e, 1, 6, i, j);
 		""", Unknown, Unknown),
-		Create("""
-		var anon = new { a = 10 };
-		var arr = new[] { 10 };
-		
-		return (3, 9, 5, 15, 15, 1, 6, "10", "10");
-		""", 10, 5),
-		Create("""
-		var anon = new { a = -10 };
-		var arr = new[] { -10 };
-		
-		return (3, 9, 5, -5, -5, 1, 6, "-10", "-10");
-		""", -10, 5),
-		Create("""
-		var anon = new { a = 0 };
-		var arr = new[] { 0 };
-		
-		return (3, 9, 5, 0, 0, 1, 6, "0", "0");
-		""", 0, 0),
-		Create("""
-		var anon = new { a = 20 };
-		var arr = new[] { 20 };
-		
-		return (3, 9, 5, 42, 42, 1, 6, "20", "20");
-		""", 20, 22)
+		Create("return (3, 9, 5, 15, 15, 1, 6, \"10\", \"10\");", 10, 5),
+		Create("return (3, 9, 5, -5, -5, 1, 6, \"-10\", \"-10\");", -10, 5),
+		Create("return (3, 9, 5, 0, 0, 1, 6, \"0\", \"0\");", 0, 0),
+		Create("return (3, 9, 5, 42, 42, 1, 6, \"20\", \"20\");", 20, 22)
 	];
 }

@@ -1,8 +1,5 @@
-using ConstExpr.SourceGenerator.Sample;
-using ConstExpr.SourceGenerator.Sample.Operations;
 using ConstExpr.SourceGenerator.Sample.Tests;
 using System;
-using System.Linq;
 
 Console.WriteLine("╔═══════════════════════════════════════════════════════════════════╗");
 Console.WriteLine("║  ConstExpr Test Suite - Alle functies met constanten & vars       ║");
@@ -40,9 +37,9 @@ var varDouble12 = 90.0;
 var varDouble13 = 75.0;
 
 // Run test categories
-//CryptographyTests.RunTests(varByte, varInt2, varString);
-//DataValidationTests.RunTests(varDouble, varString, varInt);
-//LoopBreakReturnTests.RunTests(varInt2, varString, varInt);
-//MathOperationsTests.RunTests(varInt, varInt2, varInt3, varInt4);
-//StringOperationsTests.RunTests(varString);
-//ArrayOperationsTests.RunTests(varInt, varInt2, varInt3);
+CryptographyTests.RunTests(varByte, varInt2, varString);
+DataValidationTests.RunTests(varDouble, varString, varInt);
+LoopBreakReturnTests.RunTests(varInt2, varString, varInt);
+MathOperationsTests.RunTests(varInt, varInt2, varInt3, varInt4);
+StringOperationsTests.RunTests(varString);
+ArrayOperationsTests.RunTests(varInt, varInt2, varInt3);

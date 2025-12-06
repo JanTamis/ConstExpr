@@ -5,9 +5,9 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
-using SourceGen.Utilities.Extensions;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
@@ -24,7 +24,10 @@ public partial class ConstExprPartialRewriter
 	{
 		if (TryGetLiteral(node.Token.Value, out var expression))
 		{
-			if (semanticModel.GetOperation(node) is IOperation { Parent: IConversionOperation conversion })
+			// Don't implicitly convert char literals to int - they should remain as char
+			// to preserve their representation in pattern matching contexts
+			if (semanticModel.GetOperation(node) is { Parent: IConversionOperation conversion }
+			    && !(node.Token.Value is char && conversion.Type?.SpecialType == SpecialType.System_Int32))
 			{
 				TryGetLiteral(ExecuteConversion(conversion, node.Token.Value), out expression);
 			}
@@ -51,12 +54,16 @@ public partial class ConstExprPartialRewriter
 
 		if (TryGetOperation(semanticModel, node, out IBinaryOperation? operation))
 		{
-			if (hasLeftValue && operation.LeftOperand is IConversionOperation leftConversion)
+			// Don't implicitly convert char values to int - they should remain as char
+			// to preserve their representation in pattern matching contexts
+			if (hasLeftValue && operation.LeftOperand is IConversionOperation leftConversion
+			    && !(leftValue is char && leftConversion.Type?.SpecialType == SpecialType.System_Int32))
 			{
 				leftValue = ExecuteConversion(leftConversion, leftValue);
 			}
 
-			if (hasRightValue && operation.RightOperand is IConversionOperation rightConversion)
+			if (hasRightValue && operation.RightOperand is IConversionOperation rightConversion
+			    && !(rightValue is char && rightConversion.Type?.SpecialType == SpecialType.System_Int32))
 			{
 				rightValue = ExecuteConversion(rightConversion, rightValue);
 			}
@@ -623,6 +630,16 @@ public partial class ConstExprPartialRewriter
 			return LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(combinedText));
 		}
 
+		if (result is [ InterpolationSyntax { FormatClause: null, AlignmentClause: null } singleInterp ])
+		{
+			return InvocationExpression(
+					MemberAccessExpression(
+						SyntaxKind.SimpleMemberAccessExpression,
+						singleInterp.Expression,
+						IdentifierName("ToString")))
+				.WithArgumentList(ArgumentList());
+		}
+
 		return node.WithContents(List(result));
 	}
 
@@ -640,7 +657,7 @@ public partial class ConstExprPartialRewriter
 
 			if (value is IFormattable formattable && format?.Length > 0)
 			{
-				str = formattable.ToString(format, System.Globalization.CultureInfo.InvariantCulture);
+				str = formattable.ToString(format, CultureInfo.InvariantCulture);
 			}
 
 			return InterpolatedStringText(

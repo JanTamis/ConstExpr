@@ -7,16 +7,22 @@ namespace ConstExpr.Tests.Tests.Rewriter;
 public class VisitLocalFunctionStatementTests : BaseTest
 {
 	public override string TestMethod => """
-		void TestMethod()
+		int TestMethod(int x)
 		{
 			int Add(int a, int b) => a + b;
-			int x = 1;
+			
+			return Add(x, 2);
 		}
 	""";
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
-		Create("")
+		Create("return Add(x, 2);", Unknown),
+		Create("return 3;", 1),
+		Create("return 10;", 8),
+		Create("return -5;", -7),
+		Create("return 0;", -2),
+		Create("return 42;", 40),
 	];
 }
 

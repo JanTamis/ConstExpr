@@ -3,7 +3,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
-using SourceGen.Utilities.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,9 +26,6 @@ public partial class ConstExprPartialRewriter
 		{
 			return nameofResult;
 		}
-
-		// Mark delegate/lambda variables as accessed when invoked
-		MarkDelegateAsAccessed(node);
 
 		if (!semanticModel.TryGetSymbol(node, out IMethodSymbol? targetMethod))
 		{
@@ -128,17 +124,6 @@ public partial class ConstExprPartialRewriter
 		return true;
 	}
 
-	/// <summary>
-	/// Marks delegate variables as accessed when invoked.
-	/// </summary>
-	private void MarkDelegateAsAccessed(InvocationExpressionSyntax node)
-	{
-		if (node.Expression is IdentifierNameSyntax delegateIdentifier
-		    && variables.TryGetValue(delegateIdentifier.Identifier.Text, out var delegateVariable))
-		{
-			delegateVariable.IsAccessed = true;
-		}
-	}
 
 	/// <summary>
 	/// Extracts constant arguments from visited arguments.
@@ -397,10 +382,10 @@ public partial class ConstExprPartialRewriter
 	{
 		usings.Add(targetMethod.ContainingType.ContainingNamespace.ToString());
 
+		// Mark variable as altered since instance method may mutate it
 		if (node.Expression is MemberAccessExpressionSyntax { Expression: IdentifierNameSyntax identifierName }
 		    && variables.TryGetValue(identifierName.Identifier.Text, out var variable))
 		{
-			variable.IsAccessed = true;
 			variable.IsAltered = true;
 		}
 

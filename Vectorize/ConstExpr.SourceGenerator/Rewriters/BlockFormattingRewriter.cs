@@ -122,6 +122,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		{
 			// Transform: if (condition) { } else { statements } -> if (!condition) { statements }
 			var negatedCondition = NegateCondition(visited.Condition);
+			
 			return visited
 				.WithCondition(negatedCondition)
 				.WithStatement(visited.Else.Statement)
@@ -260,7 +261,12 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 		if (visited.Count == 0)
 		{
-			return node;
+			if (node.Parent is LocalFunctionStatementSyntax or MethodDeclarationSyntax)
+			{
+				return node.WithStatements(SyntaxFactory.List(visited));
+			}
+			
+			return null;
 		}
 
 		// Combine simple patterns: single-variable local declaration without initializer

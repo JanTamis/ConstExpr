@@ -28,9 +28,14 @@ public partial class ConstExprPartialRewriter
 			return EvaluateSwitchAtCompileTime(node, governingValue);
 		}
 
+		// When switch value is unknown, we need to visit all sections to rewrite them,
+		// but then invalidate any variables assigned within the switch since we don't
+		// know which branch will execute at runtime
+		var result = VisitSwitchStatementSections(node, visitedGoverning as ExpressionSyntax ?? node.Expression);
+
 		InvalidateAssignedVariables(node);
 
-		return VisitSwitchStatementSections(node, visitedGoverning as ExpressionSyntax ?? node.Expression);
+		return result;
 	}
 
 	/// <summary>

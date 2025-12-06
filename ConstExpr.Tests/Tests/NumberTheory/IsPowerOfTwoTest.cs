@@ -7,7 +7,14 @@ public class IsPowerOfTwoTest () : BaseTest(FloatingPointEvaluationMode.FastMath
 {
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
-		Create(null, Unknown),
+		Create("""
+		if (n <= 0)
+		{
+			return false;
+		}
+
+		return (n & n - 1) == 0;
+		""", Unknown),
 		Create("return true;", 16),
 		Create("return false;", 18),
 	];
@@ -19,8 +26,11 @@ public class IsPowerOfTwoTest () : BaseTest(FloatingPointEvaluationMode.FastMath
 			{
 				return false;
 			}
+			
 			return (n & (n - 1)) == 0;
 		}
 		""";
+	
+	
 }
 

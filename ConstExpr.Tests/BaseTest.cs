@@ -1,6 +1,5 @@
 extern alias sourcegen;
 using ConstExpr.Core.Attributes;
-using sourcegen::ConstExpr.SourceGenerator;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -19,7 +18,7 @@ public abstract class BaseTest(FloatingPointEvaluationMode evaluationMode = Floa
 
 	public abstract string TestMethod { get; }
 
-	protected object Unknown = new();
+	protected static readonly object Unknown = new();
 
 	[Test]
 	public void RunTest()
@@ -70,10 +69,7 @@ public abstract class BaseTest(FloatingPointEvaluationMode evaluationMode = Floa
 		var loader = MetadataLoader.GetLoader(compilation);
 		var attribute = new ConstExprAttribute { FloatingPointMode = evaluationMode };
 
-		var roslynCache = new RoslynApiCache();
-
 		var rewriter = new ConstExprPartialRewriter(semanticModel, loader, (_, exception) => { }, parameters, new Dictionary<SyntaxNode, bool>(), new HashSet<string>(), attribute, CancellationToken.None, [ ]);
-		var pruneRewriter = new PruneVariableRewriter(semanticModel, loader, parameters, roslynCache);
 
 		foreach (var result in Result)
 		{
@@ -123,9 +119,9 @@ public abstract class BaseTest(FloatingPointEvaluationMode evaluationMode = Floa
 					parameter.Value.IsInitialized = true;
 				}
 			}
-			
-			
-			newBody = pruneRewriter.Visit(newBody) as BlockSyntax;
+
+
+			newBody = DeadCodePruner.Prune(newBody, parameters, semanticModel) as BlockSyntax;
 			newBody = FormattingHelper.Format(newBody!) as BlockSyntax;
 
 			if (result.Key is null)
