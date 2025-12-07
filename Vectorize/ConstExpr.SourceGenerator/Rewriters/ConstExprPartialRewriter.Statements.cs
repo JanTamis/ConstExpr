@@ -144,6 +144,50 @@ public partial class ConstExprPartialRewriter
 		return base.VisitWhileStatement(node);
 	}
 
+	public override SyntaxNode? VisitDoStatement(DoStatementSyntax node)
+	{
+		// Do-while always executes at least once
+		var result = new List<SyntaxNode?>();
+		var iteratorCount = 0;
+
+		do
+		{
+			if (iteratorCount++ >= attribute.MaxUnrollIterations)
+			{
+				InvalidateAssignedVariables(node);
+				return base.VisitDoStatement(node);
+			}
+
+			var statement = Visit(node.Statement);
+
+			if (statement is not BlockSyntax)
+			{
+				result.Add(statement);
+			}
+
+			if (ShouldStopUnrolling(statement, result))
+			{
+				break;
+			}
+
+			if (statement is BlockSyntax block)
+			{
+				result.AddRange(block.Statements);
+			}
+		} while (TryGetLiteralValue(Visit(node.Condition), out var value) && value is true);
+
+		// Check final condition
+		var finalCondition = Visit(node.Condition);
+
+		if (TryGetLiteralValue(finalCondition, out var finalValue) && finalValue is false)
+		{
+			return result.Count > 0 ? ToStatementSyntax(result) : null;
+		}
+
+		InvalidateAssignedVariables(node);
+		return base.VisitDoStatement(node);
+	}
+
 	/// <summary>
 	/// Tries to unroll a while loop when the condition is always true.
 	/// </summary>

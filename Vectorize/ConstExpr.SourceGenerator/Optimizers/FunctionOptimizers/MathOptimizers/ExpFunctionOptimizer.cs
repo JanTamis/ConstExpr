@@ -1,4 +1,4 @@
-﻿using ConstExpr.SourceGenerator.Extensions;
+﻿﻿using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
@@ -14,6 +14,16 @@ public class ExpFunctionOptimizer() : BaseMathFunctionOptimizer("Exp", 1)
 		if (!IsValidMathMethod(method, out var paramType))
 		{
 			return false;
+		}
+
+		var arg = parameters[0];
+
+		// Exp(Log(x)) => x (inverse operation)
+		if (arg is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Log" }, ArgumentList.Arguments.Count: 1 } inv
+		    && IsPure(inv.ArgumentList.Arguments[0].Expression))
+		{
+			result = inv.ArgumentList.Arguments[0].Expression;
+			return true;
 		}
 
 		if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)

@@ -18,6 +18,7 @@ public class BinaryConditionalAndOptimizer : BaseBinaryOptimizer
 		yield return new ConditionalAndContradictionStrategy();
 		yield return new ConditionalAndIdempotencyStrategy();
 		yield return new ConditionalAndCharOptimizer();
+		yield return new ConditionalAndDeMorganStrategy();
 		
 		yield return new ConditionalPatternStrategy();
 		yield return new ConditionalPatternCombinerStrategy();

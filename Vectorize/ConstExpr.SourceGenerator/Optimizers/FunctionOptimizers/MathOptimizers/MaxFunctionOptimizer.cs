@@ -17,6 +17,13 @@ public class MaxFunctionOptimizer() : BaseMathFunctionOptimizer("Max", 2)
 			return false;
 		}
 
+		// Idempotency: Max(x, x) → x (when x is pure)
+		if (parameters[0].IsEquivalentTo(parameters[1]) && IsPure(parameters[0]))
+		{
+			result = parameters[0];
+			return true;
+		}
+
 		var containingName = method.ContainingType?.Name;
 
 		// Try to recognize Clamp pattern: Max(Min(X, max), min) -> Clamp(X, min, max)

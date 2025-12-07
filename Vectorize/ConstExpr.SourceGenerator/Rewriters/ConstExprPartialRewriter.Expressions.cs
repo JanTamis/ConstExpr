@@ -305,6 +305,14 @@ public partial class ConstExprPartialRewriter
 			return CreateLiteral(!logicalBool);
 		}
 
+		// Simplify double logical negation: !!x => x (when result is boolean)
+		if (node.OperatorToken.IsKind(SyntaxKind.ExclamationToken)
+		    && operand is PrefixUnaryExpressionSyntax { OperatorToken: var innerLogicalOp } innerLogicalUnary
+		    && innerLogicalOp.IsKind(SyntaxKind.ExclamationToken))
+		{
+			return innerLogicalUnary.Operand;
+		}
+
 		// Simplify double negatives: -(-x) becomes x
 		if (node.OperatorToken.IsKind(SyntaxKind.MinusToken)
 		    && operand is PrefixUnaryExpressionSyntax { OperatorToken: var innerOp } innerUnary
@@ -313,12 +321,31 @@ public partial class ConstExprPartialRewriter
 			return innerUnary.Operand;
 		}
 
+		// Simplify bitwise double negation: ~(~x) => x
+		if (node.OperatorToken.IsKind(SyntaxKind.TildeToken)
+		    && operand is PrefixUnaryExpressionSyntax { OperatorToken: var innerBitwiseOp } innerBitwiseUnary
+		    && innerBitwiseOp.IsKind(SyntaxKind.TildeToken))
+		{
+			return innerBitwiseUnary.Operand;
+		}
+
 		// Handle negation of numeric literals
 		if (node.OperatorToken.IsKind(SyntaxKind.MinusToken) && TryGetLiteralValue(operand, out var numValue))
 		{
 			var negated = NegateValue(numValue);
 
 			if (negated != null && TryGetLiteral(negated, out var lit))
+			{
+				return lit;
+			}
+		}
+
+		// Handle bitwise complement of numeric literals
+		if (node.OperatorToken.IsKind(SyntaxKind.TildeToken) && TryGetLiteralValue(operand, out var bitwiseValue))
+		{
+			var complemented = BitwiseComplement(bitwiseValue);
+
+			if (complemented != null && TryGetLiteral(complemented, out var lit))
 			{
 				return lit;
 			}
@@ -339,6 +366,32 @@ public partial class ConstExprPartialRewriter
 		}
 
 		return node.WithOperand(operand as ExpressionSyntax ?? node.Operand);
+	}
+
+	/// <summary>
+	/// Computes the bitwise complement of a value.
+	/// </summary>
+	private static object? BitwiseComplement(object? value)
+	{
+		try
+		{
+			return value switch
+			{
+				int i => ~i,
+				long l => ~l,
+				uint ui => ~ui,
+				ulong ul => ~ul,
+				short s => ~s,
+				ushort us => ~us,
+				byte b => ~b,
+				sbyte sb => ~sb,
+				_ => null
+			};
+		}
+		catch
+		{
+			return null;
+		}
 	}
 
 	/// <summary>
@@ -575,6 +628,62 @@ public partial class ConstExprPartialRewriter
 			.WithCondition(condition as ExpressionSyntax ?? node.Condition)
 			.WithWhenTrue(whenTrue as ExpressionSyntax ?? node.WhenTrue)
 			.WithWhenFalse(whenFalse as ExpressionSyntax ?? node.WhenFalse);
+	}
+
+	public override SyntaxNode? VisitConditionalAccessExpression(ConditionalAccessExpressionSyntax node)
+	{
+		var expression = Visit(node.Expression);
+
+		// x?.Member where x is known non-null → x.Member
+		if (TryGetLiteralValue(expression, out var value) && value is not null)
+		{
+			// Convert ?. to regular member access
+			if (node.WhenNotNull is MemberBindingExpressionSyntax memberBinding)
+			{
+				var memberAccess = MemberAccessExpression(
+					SyntaxKind.SimpleMemberAccessExpression,
+					expression as ExpressionSyntax ?? node.Expression,
+					memberBinding.Name);
+
+				return Visit(memberAccess);
+			}
+
+			if (node.WhenNotNull is ElementBindingExpressionSyntax elementBinding)
+			{
+				var elementAccess = ElementAccessExpression(
+					expression as ExpressionSyntax ?? node.Expression,
+					elementBinding.ArgumentList);
+
+				return Visit(elementAccess);
+			}
+
+			if (node.WhenNotNull is InvocationExpressionSyntax invocation)
+			{
+				// For ?.Method() we need to handle the member binding inside
+				if (invocation.Expression is MemberBindingExpressionSyntax methodBinding)
+				{
+					var memberAccess = MemberAccessExpression(
+						SyntaxKind.SimpleMemberAccessExpression,
+						expression as ExpressionSyntax ?? node.Expression,
+						methodBinding.Name);
+
+					var newInvocation = InvocationExpression(memberAccess, invocation.ArgumentList);
+					return Visit(newInvocation);
+				}
+			}
+		}
+
+		// x?.Member where x is known null → null
+		if (expression is LiteralExpressionSyntax { RawKind: (int)SyntaxKind.NullLiteralExpression })
+		{
+			return LiteralExpression(SyntaxKind.NullLiteralExpression);
+		}
+
+		var whenNotNull = Visit(node.WhenNotNull);
+
+		return node
+			.WithExpression(expression as ExpressionSyntax ?? node.Expression)
+			.WithWhenNotNull(whenNotNull as ExpressionSyntax ?? node.WhenNotNull);
 	}
 
 	public override SyntaxNode? VisitTupleExpression(TupleExpressionSyntax node)

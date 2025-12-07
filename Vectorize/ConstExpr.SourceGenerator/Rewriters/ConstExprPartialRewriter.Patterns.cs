@@ -365,5 +365,72 @@ public partial class ConstExprPartialRewriter
 
 		return node.WithExpression(expression as ExpressionSyntax ?? node.Expression);
 	}
+
+	public override SyntaxNode? VisitSwitchExpression(SwitchExpressionSyntax node)
+	{
+		var governing = Visit(node.GoverningExpression);
+
+		// Try to evaluate switch at compile time when governing expression is constant
+		if (TryGetLiteralValue(governing ?? node.GoverningExpression, out var governingValue))
+		{
+			foreach (var arm in node.Arms)
+			{
+				var patternResult = EvaluatePattern(arm.Pattern, governingValue);
+
+				if (patternResult is true)
+				{
+					// Check when clause if present
+					if (arm.WhenClause is not null)
+					{
+						var whenResult = EvaluateWhen(arm.WhenClause);
+
+						if (whenResult is false)
+						{
+							continue;
+						}
+
+						if (whenResult is null)
+						{
+							break; // Cannot determine statically
+						}
+					}
+
+					return Visit(arm.Expression);
+				}
+			}
+		}
+
+		// Simplify: x switch { _ => a } → a (single discard arm)
+		if (node.Arms.Count == 1 && node.Arms[0].Pattern is DiscardPatternSyntax && node.Arms[0].WhenClause is null)
+		{
+			return Visit(node.Arms[0].Expression);
+		}
+
+		// Simplify: x switch { true => a, false => b } → x ? a : b
+		if (node.Arms.Count == 2 &&
+		    semanticModel.GetTypeInfo(node.GoverningExpression).Type?.SpecialType == SpecialType.System_Boolean)
+		{
+			var trueArm = node.Arms.FirstOrDefault(a => a.Pattern is ConstantPatternSyntax { Expression: LiteralExpressionSyntax { RawKind: (int)SyntaxKind.TrueLiteralExpression } });
+			var falseArm = node.Arms.FirstOrDefault(a => a.Pattern is ConstantPatternSyntax { Expression: LiteralExpressionSyntax { RawKind: (int)SyntaxKind.FalseLiteralExpression } });
+
+			if (trueArm is not null && falseArm is not null && trueArm.WhenClause is null && falseArm.WhenClause is null)
+			{
+				return ConditionalExpression(
+					governing as ExpressionSyntax ?? node.GoverningExpression,
+					Visit(trueArm.Expression) as ExpressionSyntax ?? trueArm.Expression,
+					Visit(falseArm.Expression) as ExpressionSyntax ?? falseArm.Expression);
+			}
+		}
+
+		// Visit all arms
+		var visitedArms = node.Arms
+			.Select(arm => arm
+				.WithExpression(Visit(arm.Expression) as ExpressionSyntax ?? arm.Expression))
+			.ToArray();
+
+		return node
+			.WithGoverningExpression(governing as ExpressionSyntax ?? node.GoverningExpression)
+			.WithArms(SeparatedList(visitedArms));
+	}
 }
 

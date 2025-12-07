@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Tests.Rewriter;
 /// Tests for VisitParenthesizedExpression - unwrap parens to inner expression
 /// </summary>
 [InheritsTests]
-public class VisitParenthesizedExpressionTests : BaseTest
+public class VisitParenthesizedExpressionTests : BaseTest 
 {
 	public override string TestMethod => """
 		(int, int, int, int, int, int, int, string, string) TestMethod(int x, int y)
