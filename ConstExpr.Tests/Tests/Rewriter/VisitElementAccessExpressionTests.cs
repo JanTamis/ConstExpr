@@ -4,18 +4,17 @@ namespace ConstExpr.Tests.Tests.Rewriter;
 /// Tests for VisitElementAccessExpression - array/indexer constant evaluation
 /// </summary>
 [InheritsTests]
-public class VisitElementAccessExpressionTests : BaseTest
+public class VisitElementAccessExpressionTests : BaseTest<Func<int[], int, int, (int, int, int, int)>>
 {
-	public override string TestMethod => """
-		(int, int, int, int) TestMethod(int[] arr, int index1, int index2)
-		{
-			var a = arr[0];
-			var b = arr[2];
-			var c = arr[index1];
-			var d = arr[index2];
-			return (a, b, c, d);
-		}
-	""";
+	public override string TestMethod => GetString((arr, index1, index2) =>
+	{
+		var a = arr[0];
+		var b = arr[2];
+		var c = arr[index1];
+		var d = arr[index2];
+
+		return (a, b, c, d);
+	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
@@ -26,4 +25,3 @@ public class VisitElementAccessExpressionTests : BaseTest
 		Create("return (1, 3, 5, 1);", new[] { 1, 2, 3, 4, 5 }, 4, 0)
 	];
 }
-

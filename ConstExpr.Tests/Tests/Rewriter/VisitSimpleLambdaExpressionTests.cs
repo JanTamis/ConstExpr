@@ -4,16 +4,14 @@ namespace ConstExpr.Tests.Tests.Rewriter;
 /// Tests for VisitSimpleLambdaExpression - lambda constant folding
 /// </summary>
 [InheritsTests]
-public class VisitSimpleLambdaExpressionTests : BaseTest
+public class VisitSimpleLambdaExpressionTests : BaseTest<Func<int, int>>
 {
-	public override string TestMethod => """
-		int TestMethod(int y)
-		{
-			var func = (int x) => x + 1;
-			
-			return func(y);
-		}
-	""";
+	public override string TestMethod => GetString(y =>
+	{
+		var func = (int x) => x + 1;
+
+		return func(y);
+	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
@@ -22,7 +20,6 @@ public class VisitSimpleLambdaExpressionTests : BaseTest
 		Create("return 12;", 11),
 		Create("return 2;", 1),
 		Create("return 0;", -1),
-		Create("return 1;", 0),
+		Create("return 1;", 0)
 	];
 }
-

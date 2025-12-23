@@ -17,7 +17,8 @@ public class EqualsBitwiseAndEvenStrategy : SymmetricStrategy<NumericBinaryStrat
 	{
 		return context.Right is { HasValue: true, Value: { } value } && value.IsNumericZero()
 			&& context.Left.Syntax is  BinaryExpressionSyntax { RawKind: (int)SyntaxKind.BitwiseAndExpression } andExpr
-			&& andExpr.Right is LiteralExpressionSyntax { Token.Value: var andValue } && andValue.IsNumericOne()
+			&& andExpr.Right is LiteralExpressionSyntax { Token.Value: var andValue } 
+			&& andValue.IsNumericOne()
 			&& context.Left.Type?.HasMember<IMethodSymbol>(
 			"IsEvenInteger",
 			m => m.Parameters.Length == 1

@@ -3,19 +3,27 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.NumberTheory;
 
 [InheritsTests]
-public class IsPalindromeTest () : BaseTest(FloatingPointEvaluationMode.FastMath)
+public class IsPalindromeTest() : BaseTest<Func<int, bool>>(FloatingPointEvaluationMode.FastMath)
 {
+	public override string TestMethod => GetString(n =>
+	{
+		var original = System.Math.Abs(n);
+		var reversed = 0;
+		var temp = original;
+
+		while (temp > 0)
+		{
+			reversed = reversed * 10 + temp % 10;
+			temp /= 10;
+		}
+
+		return original == reversed;
+	});
+
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
-		Create(null, Unknown),
-		Create("return true;", 121),
-		Create("return false;", 123),
-	];
-
-	public override string TestMethod => """
-		bool IsPalindrome(int n)
-		{
-			var original = Math.Abs(n);
+		Create("""
+			var original = Int32.Abs(n);
 			var reversed = 0;
 			var temp = original;
 			
@@ -26,7 +34,8 @@ public class IsPalindromeTest () : BaseTest(FloatingPointEvaluationMode.FastMath
 			}
 			
 			return original == reversed;
-		}
-		""";
+			""", Unknown),
+		Create("return true;", 121),
+		Create("return false;", 123)
+	];
 }
-

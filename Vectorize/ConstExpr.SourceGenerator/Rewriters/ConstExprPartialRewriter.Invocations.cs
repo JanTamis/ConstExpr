@@ -8,6 +8,8 @@ using System.Collections.Generic;
 using System.Linq;
 using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
+using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 
@@ -173,7 +175,8 @@ public partial class ConstExprPartialRewriter
 			catch (InvalidCastException) { }
 		}
 
-		if ((targetMethod.IsStatic || (hasLiteral && (instanceName is not IdentifierNameSyntax identifier || CanBePruned(identifier.Identifier.Text))))
+		if ((targetMethod.IsStatic || hasLiteral
+			    && (instanceName is not IdentifierNameSyntax identifier || CanBePruned(identifier.Identifier.Text)))
 		    && loader.TryExecuteMethod(targetMethod, instance, new VariableItemDictionary(variables), constantArguments, out var value)
 		    && TryGetLiteral(value, out var literal))
 		{
@@ -241,7 +244,7 @@ public partial class ConstExprPartialRewriter
 		var instance = Visit(memberAccess.Expression);
 
 		var optimizers = _stringOptimizers.Value
-			.Select(s => Activator.CreateInstance(s, instance) as Optimizers.FunctionOptimizers.StringOptimizers.BaseStringFunctionOptimizer)
+			.Select(s => Activator.CreateInstance(s, instance) as BaseStringFunctionOptimizer)
 			.Where(o => string.Equals(o?.Name, targetMethod.Name, StringComparison.Ordinal));
 
 		foreach (var stringOptimizer in optimizers)
@@ -266,19 +269,11 @@ public partial class ConstExprPartialRewriter
 	/// </summary>
 	private SyntaxNode? TryOptimizeMathMethod(IMethodSymbol targetMethod, InvocationExpressionSyntax node, List<SyntaxNode?> arguments)
 	{
-		var mathOptimizers = _mathOptimizers.Value
-			.Where(o => string.Equals(o.Name, targetMethod.Name, StringComparison.Ordinal)
-			            && o.ParameterCounts.Contains(targetMethod.Parameters.Length));
-
-		foreach (var mathOptimizer in mathOptimizers)
-		{
-			if (mathOptimizer.TryOptimize(targetMethod, node, arguments.OfType<ExpressionSyntax>().ToArray(), additionalMethods, out var optimized))
-			{
-				return optimized;
-			}
-		}
-
-		return null;
+		return _mathOptimizers.Value
+			.Where(o => String.Equals(o.Name, targetMethod.Name, StringComparison.Ordinal)
+			            && o.ParameterCounts.Contains(targetMethod.Parameters.Length))
+			.WhereSelect<BaseMathFunctionOptimizer, SyntaxNode>((w, out optimized) => w.TryOptimize(targetMethod, node, arguments.OfType<ExpressionSyntax>().ToArray(), additionalMethods, out optimized))
+			.FirstOrDefault();
 	}
 
 	/// <summary>
@@ -294,15 +289,17 @@ public partial class ConstExprPartialRewriter
 			return arguments;
 		}
 
-		return arguments.Select(s =>
-		{
-			if (TryGetLiteralValue(s, out var value) && value is string { Length: 1 } charValue)
+		return arguments
+			.Select(s =>
 			{
-				return LiteralExpression(SyntaxKind.CharacterLiteralExpression, Literal(charValue[0]));
-			}
+				if (TryGetLiteralValue(s, out var value) && value is string { Length: 1 } charValue)
+				{
+					return LiteralExpression(SyntaxKind.CharacterLiteralExpression, Literal(charValue[0]));
+				}
 
-			return s;
-		}).ToList();
+				return s;
+			})
+			.ToList();
 	}
 
 	/// <summary>
@@ -314,6 +311,7 @@ public partial class ConstExprPartialRewriter
 		if (visitingMethods?.Contains(targetMethod) is true)
 		{
 			usings.Add(targetMethod.ContainingType.ContainingNamespace.ToString());
+
 			return node.WithArgumentList(node.ArgumentList.WithArguments(SeparatedList(arguments.OfType<ExpressionSyntax>().Select(Argument))));
 		}
 
@@ -421,7 +419,9 @@ public partial class ConstExprPartialRewriter
 			return null;
 		}
 
-		var constantArguments = arguments.WhereSelect<SyntaxNode?, object?>(TryGetLiteralValue).ToList();
+		var constantArguments = arguments
+			.WhereSelect<SyntaxNode?, object?>(TryGetLiteralValue)
+			.ToList();
 
 		if (constantArguments.Count != arguments.Count)
 		{
@@ -494,7 +494,7 @@ public partial class ConstExprPartialRewriter
 				return node
 					.WithExpression(instance as ExpressionSyntax ?? node.Expression)
 					.WithArgumentList(node.ArgumentList
-						.WithArguments(SeparatedList(arguments.Select(s => Argument((ExpressionSyntax)s)))));
+						.WithArguments(SeparatedList(arguments.Select(s => Argument((ExpressionSyntax) s)))));
 			}
 		}
 
@@ -513,30 +513,16 @@ public partial class ConstExprPartialRewriter
 
 		var type = instanceValue?.GetType();
 
-		switch (operation)
+		return operation switch
 		{
-			case IArrayElementReferenceOperation arrayOp:
-				return TryEvaluateArrayAccess(instanceValue as Array, constantArguments, arrayOp.Indices.Length, type);
+			IArrayElementReferenceOperation arrayOp => TryEvaluateArrayAccess(instanceValue as Array, constantArguments, arrayOp.Indices.Length, type),
+			IPropertyReferenceOperation { Property.IsIndexer: true } propOp when instanceValue is not null
+			                                                                     && constantArguments.Length == propOp.Arguments.Length
+			                                                                     && loader.TryExecuteMethod(propOp.Property.GetMethod, instanceValue, new VariableItemDictionary(variables), constantArguments, out var value)
+			                                                                     && TryGetLiteral(value, out var literal) => literal,
+			_ => null
+		};
 
-			case IPropertyReferenceOperation propOp:
-				if (propOp.Property.IsIndexer
-				    && instanceValue is not null
-				    && constantArguments.Length == propOp.Arguments.Length)
-				{
-					try
-					{
-						if (loader.TryExecuteMethod(propOp.Property.GetMethod, instanceValue, new VariableItemDictionary(variables), constantArguments, out var value)
-						    && TryGetLiteral(value, out var literal))
-						{
-							return literal;
-						}
-					}
-					catch { }
-				}
-				break;
-		}
-
-		return null;
 	}
 
 	/// <summary>
@@ -572,6 +558,7 @@ public partial class ConstExprPartialRewriter
 			if (constantArguments.All(a => a is int))
 			{
 				var value = arr.GetValue(constantArguments.OfType<int>().ToArray());
+
 				if (TryGetLiteral(value, out var literal))
 				{
 					return literal;
@@ -580,6 +567,7 @@ public partial class ConstExprPartialRewriter
 			else if (constantArguments.All(a => a is long))
 			{
 				var value = arr.GetValue(constantArguments.OfType<long>().ToArray());
+
 				if (TryGetLiteral(value, out var literal))
 				{
 					return literal;
@@ -596,14 +584,8 @@ public partial class ConstExprPartialRewriter
 	/// </summary>
 	private SyntaxNode? TryEvaluateRangeAccess(Array arr, object arg, Type? type)
 	{
-		var getOffsetAndLength = arg.GetType().GetMethod("GetOffsetAndLength", [typeof(int)]);
-
-		if (getOffsetAndLength is null)
-		{
-			return null;
-		}
-
-		var tuple = getOffsetAndLength.Invoke(arg, [arr.Length]);
+		var getOffsetAndLength = arg.GetType().GetMethod("GetOffsetAndLength", [ typeof(int) ]);
+		var tuple = getOffsetAndLength?.Invoke(arg, [ arr.Length ]);
 
 		if (tuple is null)
 		{
@@ -633,8 +615,8 @@ public partial class ConstExprPartialRewriter
 	/// </summary>
 	private SyntaxNode? TryEvaluateIndexAccess(Array arr, object arg)
 	{
-		var getOffset = arg.GetType().GetMethod("GetOffset", [typeof(int)]);
-		var offset = getOffset?.Invoke(arg, [arr.Length]);
+		var getOffset = arg.GetType().GetMethod("GetOffset", [ typeof(int) ]);
+		var offset = getOffset?.Invoke(arg, [ arr.Length ]);
 
 		if (offset is int idx)
 		{
@@ -697,14 +679,11 @@ public partial class ConstExprPartialRewriter
 				}
 				break;
 
-			case IPropertySymbol propertySymbol:
-				if (propertySymbol.Parameters.Length == 0)
+			case IPropertySymbol { Parameters.Length: 0 } propertySymbol:
+				if (loader.TryExecuteMethod(propertySymbol.GetMethod, instanceValue, new VariableItemDictionary(variables), [ ], out value)
+				    && TryGetLiteral(value, out literal))
 				{
-					if (loader.TryExecuteMethod(propertySymbol.GetMethod, instanceValue, new VariableItemDictionary(variables), [], out value)
-					    && TryGetLiteral(value, out literal))
-					{
-						return literal;
-					}
+					return literal;
 				}
 				break;
 		}
@@ -729,4 +708,3 @@ public partial class ConstExprPartialRewriter
 		return node.Right;
 	}
 }
-

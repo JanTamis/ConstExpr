@@ -4,18 +4,16 @@ namespace ConstExpr.Tests.Tests.Rewriter;
 /// Tests for VisitPostfixUnaryExpression - ++ and -- folding
 /// </summary>
 [InheritsTests]
-public class VisitPostfixUnaryExpressionTests : BaseTest
+public class VisitPostfixUnaryExpressionTests : BaseTest<Func<int, int>>
 {
-	public override string TestMethod => """
-		int TestMethod(int x)
-		{
-			var a = x;
-			var b = a++;
-			var c = a--;
-			
-			return a;
-		}
-		""";
+	public override string TestMethod => GetString(x =>
+	{
+		var a = x;
+		var b = a++;
+		var c = a--;
+
+		return a;
+	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
@@ -23,7 +21,6 @@ public class VisitPostfixUnaryExpressionTests : BaseTest
 		Create("return 7;", 7),
 		Create("return 1;", 1),
 		Create("return -1;", -1),
-		Create("return 0;", 0),
+		Create("return 0;", 0)
 	];
 }
-

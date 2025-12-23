@@ -1,7 +1,7 @@
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
+using SourceGen.Utilities.Extensions;
 
 namespace ConstExpr.SourceGenerator.Rewriters;
 
@@ -53,8 +53,7 @@ public sealed class VariableUsageCollector(IEnumerable<string> trackedVariables)
 	public override void VisitArgument(ArgumentSyntax node)
 	{
 		// Check for ref/out arguments
-		if (node.RefOrOutKeyword.IsKind(SyntaxKind.RefKeyword) || 
-		    node.RefOrOutKeyword.IsKind(SyntaxKind.OutKeyword))
+		if (node.RefOrOutKeyword.IsKind(SyntaxKind.RefKeyword, SyntaxKind.OutKeyword))
 		{
 			if (node.Expression is IdentifierNameSyntax id && _trackedVariables.Contains(id.Identifier.Text))
 			{

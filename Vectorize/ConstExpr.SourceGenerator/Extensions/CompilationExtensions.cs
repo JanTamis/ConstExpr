@@ -160,13 +160,16 @@ public static class CompilationExtensions
 			case SpecialType.System_UInt64:
 				unsignedType = compilation.GetSpecialType(SpecialType.System_UInt64);
 				return true;
+			case SpecialType.System_Char:
+				unsignedType = typeSymbol;
+				return true;
 			default:
 				unsignedType = null;
 				return false;
 		}
 	}
 
-	public static int GetByteSize(this Compilation compilation, MetadataLoader loader, ITypeSymbol? type)
+	public static int GetByteSize(this ITypeSymbol? type, MetadataLoader loader)
 	{
 		if (type == null)
 		{
@@ -680,7 +683,7 @@ public static class CompilationExtensions
 		var fullType = compilation.GetTypeByMetadataName($"System.Runtime.Intrinsics.{vectorType}`1").Construct(elementType);
 		// var vectorType = loader.GetType(fullType);
 		var vectorElementType = loader.GetType(elementType);
-		var elementByteSize = compilation.GetByteSize(loader, elementType);
+		var elementByteSize = elementType.GetByteSize(loader);
 
 		var elementCount = byteSize / elementByteSize; // vectorType.GetProperty("Count")?.GetValue(null);
 
@@ -765,7 +768,7 @@ public static class CompilationExtensions
 
 	public static VectorTypes GetVector<T>(this Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, ReadOnlySpan<T> items, bool isRepeating, out string vector, out int vectorSize)
 	{
-		var elementSize = compilation.GetByteSize(loader, elementType);
+		var elementSize = elementType.GetByteSize(loader);
 		var size = elementSize * items.Length;
 
 		switch (size)
@@ -804,7 +807,7 @@ public static class CompilationExtensions
 
 	public static VectorTypes GetVector<T>(this Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, ReadOnlySpan<T> items, VectorTypes limit, out string vector, out int vectorSize)
 	{
-		var elementSize = compilation.GetByteSize(loader, elementType);
+		var elementSize = elementType.GetByteSize(loader);
 		var size = elementSize * items.Length;
 
 		switch (size)
@@ -839,7 +842,7 @@ public static class CompilationExtensions
 
 	public static string GetVector<T>(this Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, ReadOnlySpan<T> items, VectorTypes limit)
 	{
-		var elementSize = compilation.GetByteSize(loader, elementType);
+		var elementSize = elementType.GetByteSize(loader);
 		var size = elementSize * items.Length;
 
 		return size switch
@@ -975,13 +978,14 @@ public static class CompilationExtensions
 			SpecialType.System_Single => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0f)),
 			SpecialType.System_Double => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0d)),
 			SpecialType.System_Decimal => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0m)),
+			SpecialType.System_Char => SyntaxFactory.LiteralExpression(SyntaxKind.CharacterLiteralExpression, SyntaxFactory.Literal(0)),
 			_ => SyntaxFactory.DefaultExpression(SyntaxFactory.ParseTypeName(type.ToDisplayString())),
 		};
 	}
 
 	public static VectorTypes GetBestVectorType(this Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, int elementCount, bool isRepeating)
 	{
-		var elementSize = compilation.GetByteSize(loader, elementType);
+		var elementSize = elementType.GetByteSize(loader);
 		var size = elementSize * elementCount;
 
 		var vectorTypes = new[]
@@ -1114,7 +1118,7 @@ public static class CompilationExtensions
 		return false;
 	}
 
-	public static bool TryGetSymbol<TSymbol>(this SemanticModel semanticModel, SyntaxNode? node, [NotNullWhen(true)] out TSymbol? value) where TSymbol : ISymbol
+	public static bool TryGetSymbol<TSymbol>(this SemanticModel semanticModel, ExpressionSyntax? node, [NotNullWhen(true)] out TSymbol? value) where TSymbol : ISymbol
 	{
 		try
 		{
@@ -1247,8 +1251,7 @@ public static class CompilationExtensions
 
 	public static bool IsNumericType(this ITypeSymbol? t)
 	{
-		return t is not null && t.SpecialType is
-			SpecialType.System_Byte or SpecialType.System_SByte or SpecialType.System_Int16 or SpecialType.System_UInt16 or
+		return t?.SpecialType is SpecialType.System_Byte or SpecialType.System_SByte or SpecialType.System_Int16 or SpecialType.System_UInt16 or
 			SpecialType.System_Int32 or SpecialType.System_UInt32 or SpecialType.System_Int64 or SpecialType.System_UInt64 or
 			SpecialType.System_Single or SpecialType.System_Double or SpecialType.System_Decimal;
 	}

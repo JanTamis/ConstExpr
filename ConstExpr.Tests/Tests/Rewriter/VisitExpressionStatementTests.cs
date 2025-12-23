@@ -4,22 +4,20 @@ namespace ConstExpr.Tests.Tests.Rewriter;
 /// Tests for VisitExpressionStatement - visit expression in statement
 /// </summary>
 [InheritsTests]
-public class VisitExpressionStatementTests : BaseTest
+public class VisitExpressionStatementTests : BaseTest<Func<int, int>>
 {
-	public override string TestMethod => """
-		int TestMethod(int x)
-		{
-			x++;
-			x--;
-			
-			return x;
-		}
-	""";
+	// Using lambda expression for type-safe, refactorable test method definition
+	public override string TestMethod => GetString(x =>
+	{
+		x++;
+		x--;
+
+		return x;
+	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create(null, Unknown),
-		Create("return 6;", 6),
+		Create("return 6;", 6)
 	];
 }
-

@@ -3,6 +3,10 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Operations;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Runtime.CompilerServices;
+
 namespace ConstExpr.SourceGenerator.Extensions;
 
 public static class ObjectExtensions
@@ -22,221 +26,372 @@ public static class ObjectExtensions
 			SpecialType.System_Single => Convert.ToSingle(value),
 			SpecialType.System_Double => Convert.ToDouble(value),
 			SpecialType.System_Decimal => Convert.ToDecimal(value),
+			SpecialType.System_Char => Convert.ToChar(value),
+			SpecialType.System_String => Convert.ToString(value),
 			_ => null,
 		};
 	}
 
 	public static T Add<T>(this T left, T right)
 	{
-		return (T)(object)(left switch
-		{
-			byte b => b + Convert.ToByte(right),
-			sbyte sb => sb + Convert.ToSByte(right),
-			short s => s + Convert.ToInt16(right),
-			ushort us => us + Convert.ToUInt16(right),
-			int i => i + Convert.ToInt32(right),
-			uint ui => ui + Convert.ToUInt32(right),
-			long l => l + Convert.ToInt64(right),
-			ulong ul => ul + Convert.ToUInt64(right),
-			float f => f + Convert.ToSingle(right),
-			double d => d + Convert.ToDouble(right),
-			decimal m => m + Convert.ToDecimal(right),
-			string str => str + right?.ToString(),
-			_ => null
-		});
+		return (T)ExecuteArithmeticOperation(left, right, Expression.Add)!;
 	}
 
 	public static T? Subtract<T>(this T left, T right)
 	{
-		return (T?)(object)(left switch
-		{
-			byte b => b - Convert.ToByte(right),
-			sbyte sb => sb - Convert.ToSByte(right),
-			short s => s - Convert.ToInt16(right),
-			ushort us => us - Convert.ToUInt16(right),
-			int i => i - Convert.ToInt32(right),
-			uint ui => ui - Convert.ToUInt32(right),
-			long l => l - Convert.ToInt64(right),
-			ulong ul => ul - Convert.ToUInt64(right),
-			float f => f - Convert.ToSingle(right),
-			double d => d - Convert.ToDouble(right),
-			decimal m => m - Convert.ToDecimal(right),
-			_ => null
-		});
+		return (T?)ExecuteArithmeticOperation(left, right, Expression.Subtract);
 	}
 
 	public static object? Multiply(this object? left, object? right)
 	{
-		return left switch
-		{
-			byte b => b * Convert.ToByte(right),
-			sbyte sb => sb * Convert.ToSByte(right),
-			short s => s * Convert.ToInt16(right),
-			ushort us => us * Convert.ToUInt16(right),
-			int i => i * Convert.ToInt32(right),
-			uint ui => ui * Convert.ToUInt32(right),
-			long l => l * Convert.ToInt64(right),
-			ulong ul => ul * Convert.ToUInt64(right),
-			float f => f * Convert.ToSingle(right),
-			double d => d * Convert.ToDouble(right),
-			decimal m => m * Convert.ToDecimal(right),
-			_ => null
-		};
+		return ExecuteArithmeticOperation(left, right, Expression.Multiply);
 	}
 
 	public static object? Divide(this object? left, object? right)
 	{
-		return left switch
-		{
-			byte b => b / Convert.ToByte(right),
-			sbyte sb => sb / Convert.ToSByte(right),
-			short s => s / Convert.ToInt16(right),
-			ushort us => us / Convert.ToUInt16(right),
-			int i => i / Convert.ToInt32(right),
-			uint ui => ui / Convert.ToUInt32(right),
-			long l => l / Convert.ToInt64(right),
-			ulong ul => ul / Convert.ToUInt64(right),
-			float f => f / Convert.ToSingle(right),
-			double d => d / Convert.ToDouble(right),
-			decimal m => m / Convert.ToDecimal(right),
-			_ => null
-		};
+		return ExecuteArithmeticOperation(left, right, Expression.Divide);
 	}
 
 	public static object? Modulo(this object? left, object? right)
 	{
-		return left switch
+		return ExecuteArithmeticOperation(left, right, Expression.Modulo);
+	}
+
+	private static object? ExecuteArithmeticOperation(
+		object? left,
+		object? right,
+		Func<Expression, Expression, BinaryExpression> operation)
+	{
+		if (left is null || right is null)
+			return null;
+
+		var lType = left.GetType();
+		var rType = right.GetType();
+
+		try
 		{
-			byte b => b % Convert.ToByte(right),
-			sbyte sb => sb % Convert.ToSByte(right),
-			short s => s % Convert.ToInt16(right),
-			ushort us => us % Convert.ToUInt16(right),
-			int i => i % Convert.ToInt32(right),
-			uint ui => ui % Convert.ToUInt32(right),
-			long l => l % Convert.ToInt64(right),
-			ulong ul => ul % Convert.ToUInt64(right),
-			float f => f % Convert.ToSingle(right),
-			double d => d % Convert.ToDouble(right),
-			decimal m => m % Convert.ToDecimal(right),
-			_ => null
+			// String concatenation special case
+			if (lType == typeof(string) || rType == typeof(string))
+			{
+				if (operation == (Func<Expression, Expression, BinaryExpression>)Expression.Add)
+					return left?.ToString() + right?.ToString();
+				return null;
+			}
+
+			// Check if both are numeric types
+			if (!IsNumericType(lType) || !IsNumericType(rType))
+				return null;
+
+			// Find common type according to C# numeric promotion rules
+			var common = GetCommonArithmeticType(lType, rType);
+			if (common is null)
+				return null;
+
+			var lc = Expression.Convert(Expression.Constant(left), common);
+			var rc = Expression.Convert(Expression.Constant(right), common);
+			var expr = operation(lc, rc);
+
+			// Box result
+			var boxed = Expression.Convert(expr, typeof(object));
+			var lambda = Expression.Lambda<Func<object>>(boxed);
+			return lambda.Compile().Invoke();
+		}
+		catch
+		{
+			return null;
+		}
+	}
+
+	private static bool IsNumericType(Type t)
+	{
+		return Type.GetTypeCode(t) switch
+		{
+			TypeCode.SByte or TypeCode.Byte or TypeCode.Int16 or TypeCode.UInt16 or
+			TypeCode.Int32 or TypeCode.UInt32 or TypeCode.Int64 or TypeCode.UInt64 or
+			TypeCode.Single or TypeCode.Double or TypeCode.Decimal or TypeCode.Char => true,
+			_ => false
 		};
+	}
+
+	private static Type? GetCommonArithmeticType(Type lt, Type rt)
+	{
+		var tl = Type.GetTypeCode(lt);
+		var tr = Type.GetTypeCode(rt);
+
+		// Decimal: if either is decimal, result is decimal (but not with float/double)
+		if (tl == TypeCode.Decimal || tr == TypeCode.Decimal)
+		{
+			if (tl == TypeCode.Single || tl == TypeCode.Double || tr == TypeCode.Single || tr == TypeCode.Double)
+				return null;
+			return typeof(decimal);
+		}
+
+		// Double: if either is double, result is double
+		if (tl == TypeCode.Double || tr == TypeCode.Double)
+			return typeof(double);
+
+		// Float: if either is float, result is float
+		if (tl == TypeCode.Single || tr == TypeCode.Single)
+			return typeof(float);
+
+		// Integral promotions
+		// Disallow long|ulong combination
+		if ((tl == TypeCode.UInt64 && tr == TypeCode.Int64) || (tl == TypeCode.Int64 && tr == TypeCode.UInt64))
+			return null;
+
+		if (tl == TypeCode.UInt64 || tr == TypeCode.UInt64)
+			return typeof(ulong);
+		if (tl == TypeCode.Int64 || tr == TypeCode.Int64)
+			return typeof(long);
+		if (tl == TypeCode.UInt32 || tr == TypeCode.UInt32)
+			return typeof(uint);
+		return typeof(int);
 	}
 
 	public static object? LeftShift(this object? left, object? right)
 	{
-		var shift = Convert.ToInt32(right);
-		return left switch
-		{
-			byte b => b << shift,
-			sbyte sb => sb << shift,
-			short s => s << shift,
-			ushort us => us << shift,
-			int i => i << shift,
-			uint ui => ui << shift,
-			long l => l << shift,
-			ulong ul => ul << shift,
-			_ => null
-		};
+		return ExecuteShiftOperation(left, right, Expression.LeftShift);
 	}
 
 	public static object? RightShift(this object? left, object? right)
 	{
-		var shift = Convert.ToInt32(right);
-		return left switch
-		{
-			byte b => b >> shift,
-			sbyte sb => sb >> shift,
-			short s => s >> shift,
-			ushort us => us >> shift,
-			int i => i >> shift,
-			uint ui => ui >> shift,
-			long l => l >> shift,
-			ulong ul => ul >> shift,
-			_ => null
-		};
+		return ExecuteShiftOperation(left, right, Expression.RightShift);
 	}
 
 	public static object? UnsignedRightShift(object? left, object? right)
 	{
-		var shift = Convert.ToInt32(right);
-		return left switch
+		// Expression trees don't support >>> directly, so we handle it manually
+		if (left is null || right is null)
+			return null;
+
+		try
 		{
-			byte b => b >>> shift,
-			sbyte sb => sb >>> shift,
-			short s => s >>> shift,
-			ushort us => us >>> shift,
-			int i => i >>> shift,
-			uint ui => ui >>> shift,
-			long l => l >>> shift,
-			ulong ul => ul >>> shift,
-			_ => null
-		};
+			// Convert shift amount to int using expression tree
+			var shift = ConvertToInt32(right);
+			if (shift is null)
+				return null;
+
+			return left switch
+			{
+				byte b => b >>> shift.Value,
+				sbyte sb => sb >>> shift.Value,
+				short s => s >>> shift.Value,
+				ushort us => us >>> shift.Value,
+				int i => i >>> shift.Value,
+				uint ui => ui >>> shift.Value,
+				long l => l >>> shift.Value,
+				ulong ul => ul >>> shift.Value,
+				char c => c >>> shift.Value,
+				_ => null
+			};
+		}
+		catch
+		{
+			return null;
+		}
+	}
+
+	private static int? ConvertToInt32(object? value)
+	{
+		if (value is null)
+			return null;
+
+		var type = value.GetType();
+		if (!IsNumericType(type) && !IsIntegralType(type))
+			return null;
+
+		try
+		{
+			var constant = Expression.Constant(value);
+			var converted = Expression.Convert(constant, typeof(int));
+			var boxed = Expression.Convert(converted, typeof(object));
+			var lambda = Expression.Lambda<Func<object>>(boxed);
+			return (int)lambda.Compile().Invoke();
+		}
+		catch
+		{
+			return null;
+		}
+	}
+
+	private static object? ExecuteShiftOperation(
+		object? left,
+		object? right,
+		Func<Expression, Expression, BinaryExpression> operation)
+	{
+		if (left is null || right is null)
+			return null;
+
+		var lType = left.GetType();
+
+		try
+		{
+			if (!IsIntegralType(lType))
+				return null;
+
+			// Convert shift amount to int using expression tree
+			var shiftAmount = ConvertToInt32(right);
+			if (shiftAmount is null)
+				return null;
+
+			// C# promotes smaller types to int for shift operations
+			var promoted = GetPromotedType(lType);
+
+			var lc = Expression.Convert(Expression.Constant(left), promoted);
+			var rc = Expression.Constant(shiftAmount.Value);
+			var expr = operation(lc, rc);
+
+			// Box result
+			var boxed = Expression.Convert(expr, typeof(object));
+			var lambda = Expression.Lambda<Func<object>>(boxed);
+			return lambda.Compile().Invoke();
+		}
+		catch
+		{
+			return null;
+		}
 	}
 
 	public static object? And(this object? left, object? right)
 	{
-		return left switch
-		{
-			byte b => b & Convert.ToByte(right),
-			sbyte sb => sb & Convert.ToSByte(right),
-			short s => s & Convert.ToInt16(right),
-			ushort us => us & Convert.ToUInt16(right),
-			int i => i & Convert.ToInt32(right),
-			uint ui => ui & Convert.ToUInt32(right),
-			long l => l & Convert.ToInt64(right),
-			ulong ul => ul & Convert.ToUInt64(right),
-			_ => null
-		};
+		return ExecuteBitwiseOperation(left, right, Expression.And);
 	}
 
 	public static object? Or(this object? left, object? right)
 	{
-		return left switch
-		{
-			byte b => b | Convert.ToByte(right),
-			sbyte sb => sb | Convert.ToSByte(right),
-			short s => s | Convert.ToInt16(right),
-			ushort us => us | Convert.ToUInt16(right),
-			int i => i | Convert.ToInt32(right),
-			uint ui => ui | Convert.ToUInt32(right),
-			long l => l | Convert.ToInt64(right),
-			ulong ul => ul | Convert.ToUInt64(right),
-			_ => null
-		};
+		return ExecuteBitwiseOperation(left, right, Expression.Or);
 	}
 
 	public static object? ExclusiveOr(this object? left, object? right)
 	{
-		return left switch
+		return ExecuteBitwiseOperation(left, right, Expression.ExclusiveOr);
+	}
+
+	private static object? ExecuteBitwiseOperation(
+		object? left,
+		object? right,
+		Func<Expression, Expression, BinaryExpression> operation)
+	{
+		if (left is null || right is null)
+			return null;
+
+		var lType = left.GetType();
+		var rType = right.GetType();
+
+		try
 		{
-			byte b => b ^ Convert.ToByte(right),
-			sbyte sb => sb ^ Convert.ToSByte(right),
-			short s => s ^ Convert.ToInt16(right),
-			ushort us => us ^ Convert.ToUInt16(right),
-			int i => i ^ Convert.ToInt32(right),
-			uint ui => ui ^ Convert.ToUInt32(right),
-			long l => l ^ Convert.ToInt64(right),
-			ulong ul => ul ^ Convert.ToUInt64(right),
-			_ => null
+			// Same enum type: perform bitwise operation on underlying type and cast back
+			if (lType.IsEnum && rType.IsEnum)
+			{
+				if (lType != rType)
+					return null;
+
+				var underlying = Enum.GetUnderlyingType(lType);
+				var lConst = Expression.Constant(left);
+				var rConst = Expression.Constant(right);
+				var lToUnder = Expression.Convert(lConst, underlying);
+				var rToUnder = Expression.Convert(rConst, underlying);
+
+				// Promote to int if smaller than int (C# rules)
+				var promoted = GetPromotedType(underlying);
+				var lProm = Expression.Convert(lToUnder, promoted);
+				var rProm = Expression.Convert(rToUnder, promoted);
+
+				var opExpr = operation(lProm, rProm);
+				var backToUnder = Expression.Convert(opExpr, underlying);
+				var backToEnum = Expression.Convert(backToUnder, lType);
+				var boxed = Expression.Convert(backToEnum, typeof(object));
+				var lambda = Expression.Lambda<Func<object>>(boxed);
+				return lambda.Compile().Invoke();
+			}
+
+			// Check if both are integral types
+			if (!IsIntegralType(lType) || !IsIntegralType(rType))
+				return null;
+
+			// Find common type according to C# numeric promotion rules
+			var common = GetCommonBitwiseType(lType, rType);
+			if (common is null)
+				return null;
+
+			var lc = Expression.Convert(Expression.Constant(left), common);
+			var rc = Expression.Convert(Expression.Constant(right), common);
+			var be = operation(lc, rc);
+
+			// Box result
+			var boxed2 = Expression.Convert(be, typeof(object));
+			var lambda2 = Expression.Lambda<Func<object>>(boxed2);
+			return lambda2.Compile().Invoke();
+		}
+		catch
+		{
+			return null;
+		}
+	}
+
+	private static bool IsIntegralType(Type t)
+	{
+		if (t.IsEnum) return false;
+		return Type.GetTypeCode(t) switch
+		{
+			TypeCode.SByte or TypeCode.Byte or TypeCode.Int16 or TypeCode.UInt16 or
+			TypeCode.Int32 or TypeCode.UInt32 or TypeCode.Int64 or TypeCode.UInt64 or
+			TypeCode.Char => true,
+			_ => false
 		};
+	}
+
+	private static Type GetPromotedType(Type t)
+	{
+		// C# promotes smaller types to int for bitwise operations
+		return Type.GetTypeCode(t) switch
+		{
+			TypeCode.SByte or TypeCode.Byte or TypeCode.Int16 or TypeCode.UInt16 or TypeCode.Char => typeof(int),
+			TypeCode.Int32 => typeof(int),
+			TypeCode.UInt32 => typeof(uint),
+			TypeCode.Int64 => typeof(long),
+			TypeCode.UInt64 => typeof(ulong),
+			_ => typeof(int)
+		};
+	}
+
+	private static Type? GetCommonBitwiseType(Type lt, Type rt)
+	{
+		if (lt.IsEnum || rt.IsEnum)
+			return null;
+
+		if (!IsIntegralType(lt) || !IsIntegralType(rt))
+			return null;
+
+		var tl = Type.GetTypeCode(lt);
+		var tr = Type.GetTypeCode(rt);
+
+		// Disallow long|ulong combination (no implicit common type in C#)
+		if ((tl == TypeCode.UInt64 && tr == TypeCode.Int64) || (tl == TypeCode.Int64 && tr == TypeCode.UInt64))
+			return null;
+
+		// C# binary numeric promotions:
+		if (tl == TypeCode.UInt64 || tr == TypeCode.UInt64)
+			return typeof(ulong);
+		if (tl == TypeCode.Int64 || tr == TypeCode.Int64)
+			return typeof(long);
+		if (tl == TypeCode.UInt32 || tr == TypeCode.UInt32)
+			return typeof(uint);
+		return typeof(int);
 	}
 
 	public static object? ConditionalAnd(this object? left, object? right)
 	{
-		return left switch
-		{
-			bool b => b && Convert.ToBoolean(right),
-			_ => null
-		};
+		if (left is bool lb && right is bool rb)
+			return lb && rb;
+		return null;
 	}
 
 	public static object? ConditionalOr(this object? left, object? right)
 	{
-		return left switch
-		{
-			bool b => b || Convert.ToBoolean(right),
-			_ => null
-		};
+		if (left is bool lb && right is bool rb)
+			return lb || rb;
+		return null;
 	}
 
 	public static object? BitwiseNot(this object? value)
@@ -402,6 +557,48 @@ public static class ObjectExtensions
 		_ => false
 	};
 
+	public static bool IsPositive(this object? value) => value switch
+	{
+		byte => true,
+		sbyte sb => sb >= 0,
+		short s => s >= 0,
+		ushort => true,
+		int i => i >= 0,
+		uint => true,
+		long l => l >= 0,
+		ulong => true,
+		float f => !float.IsNaN(f) && f > 0f,
+		double d => !double.IsNaN(d) && d > 0d,
+		decimal m => m > 0m,
+		char => true,
+		_ => false,
+	};
+
+	public static bool IsNegative(this object? value) => value switch
+	{
+		sbyte sb => sb < 0,
+		short s => s < 0,
+		int i => i < 0,
+		long l => l < 0,
+		float f => !float.IsNaN(f) && f < 0f,
+		double d => !double.IsNaN(d) && d < 0d,
+		decimal m => m < 0m,
+		char => false,
+		_ => false,
+	};
+
+	public static int GetBitSize(this object? value) => value switch
+	{
+		byte or sbyte => 8,
+		short or ushort or char => 16,
+		int or uint => 32,
+		long or ulong => 64,
+		float => 32,
+		double => 64,
+		decimal => 128,
+		_ => 0,
+	};
+
 	public static bool IsNumericPowerOfTwo(this object? value, out int power)
 	{
 		power = 0;
@@ -481,5 +678,73 @@ public static class ObjectExtensions
 
 		value = default;
 		return false;
+	}
+
+	public static IEnumerable<(object start, object step, object end, IList<object?> values)> GetClusters(this IList<object?> items)
+	{
+		var i = 0;
+		var result = new List<object>(items.Count);
+
+		var previous = items[0];
+
+		while (i < items.Count)
+		{
+			var start = items[i];
+			result.Add(start);
+			
+			var j = i + 1;
+			object step = null!;
+
+			if (j < items.Count)
+			{
+				step = items[j].Subtract(items[i]);
+			}
+
+			while (j < items.Count && items[j].Subtract(previous).Subtract(step).IsNumericZero())
+			{
+				result.Add(items[j]);
+				previous = items[j];
+				j++;
+			}
+
+			var minValue = items[i];
+			var maxValue = items[j - 1];
+
+			// if ((i != 0 && j - 1 != items.Count - 1) && Convert.ToInt32(maxValue) <= maxValue.GetBitSize())
+			// {
+			// 	// maxValue = maxValue.Subtract(minValue);
+			// 	// minValue = minValue.Subtract(minValue);
+			//
+			// 	// for (var k = 0; k < items.Count; k++)
+			// 	// {
+			// 	// 	items[k] = items[k].Subtract(minValue);
+			// 	// }
+			//
+			// 	yield return (minValue, -1, maxValue, items);
+			// 	yield break;
+			// }
+
+			yield return (start, step, items[j - 1], result);
+			
+			result.Clear();
+			i = j;
+		}
+	}
+	
+	public static bool IsEvenNumber(this object? value)
+	{
+		return value switch
+		{
+			byte b => (b & 1) == 0,
+			sbyte sb => (sb & 1) == 0,
+			short s => (s & 1) == 0,
+			ushort us => (us & 1) == 0,
+			int i => (i & 1) == 0,
+			uint ui => (ui & 1) == 0,
+			long l => (l & 1) == 0,
+			ulong ul => (ul & 1) == 0,
+			char c => (c & 1) == 0,
+			_ => false
+		};
 	}
 }

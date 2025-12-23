@@ -3,34 +3,29 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.NumberTheory;
 
 [InheritsTests]
-public class IsPowerOfTwoTest () : BaseTest(FloatingPointEvaluationMode.FastMath)
+public class IsPowerOfTwoTest() : BaseTest<Func<int, bool>>(FloatingPointEvaluationMode.FastMath)
 {
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
-	[
-		Create("""
+	public override string TestMethod => GetString(n =>
+	{
 		if (n <= 0)
 		{
 			return false;
 		}
 
 		return (n & n - 1) == 0;
-		""", Unknown),
-		Create("return true;", 16),
-		Create("return false;", 18),
-	];
+	});
 
-	public override string TestMethod => """
-		bool IsPowerOfTwo(int n)
-		{
+	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	[
+		Create("""
 			if (n <= 0)
 			{
 				return false;
 			}
-			
-			return (n & (n - 1)) == 0;
-		}
-		""";
-	
-	
-}
 
+			return (n & n - 1) == 0;
+			""", Unknown),
+		Create("return true;", 16),
+		Create("return false;", 18)
+	];
+}

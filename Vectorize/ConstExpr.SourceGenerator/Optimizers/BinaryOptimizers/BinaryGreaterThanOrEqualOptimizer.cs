@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.EqualsStrategies;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.GreaterThanOrEqualStrategies;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis.Operations;

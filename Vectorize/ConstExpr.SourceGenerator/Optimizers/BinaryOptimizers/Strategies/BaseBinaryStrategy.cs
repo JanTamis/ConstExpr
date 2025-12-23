@@ -8,13 +8,12 @@ public abstract class BaseBinaryStrategy : IBinaryStrategy
 {
 	public abstract bool CanBeOptimized(BinaryOptimizeContext context);
 	public abstract SyntaxNode? Optimize(BinaryOptimizeContext context);
-	
+
 	protected static bool IsPure(SyntaxNode node)
 	{
 		return node switch
 		{
-			IdentifierNameSyntax => true,
-			LiteralExpressionSyntax => true,
+			IdentifierNameSyntax or LiteralExpressionSyntax => true,
 			ParenthesizedExpressionSyntax par => IsPure(par.Expression),
 			PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken } u => IsPure(u.Operand),
 			BinaryExpressionSyntax b => IsPure(b.Left) && IsPure(b.Right),
@@ -25,16 +24,16 @@ public abstract class BaseBinaryStrategy : IBinaryStrategy
 
 	protected static bool LeftEqualsRight(BinaryOptimizeContext context)
 	{
-		return context.Left.Syntax.IsEquivalentTo(context.Right.Syntax) ||
-					(context.Left.Syntax is IdentifierNameSyntax leftIdentifier
-					 && context.Right.Syntax is IdentifierNameSyntax rightIdentifier
-					 && context.Variables.TryGetValue(leftIdentifier.Identifier.Text, out var leftVar)
-					 && context.Variables.TryGetValue(rightIdentifier.Identifier.Text, out var rightVar)
-					 && leftVar.Value is ArgumentSyntax leftArgument
-					 && rightVar.Value is ArgumentSyntax rightArgument
-					 && leftArgument.Expression.IsEquivalentTo(rightArgument.Expression));
+		return context.Left.Syntax.IsEquivalentTo(context.Right.Syntax)
+		       || context.Left.Syntax is IdentifierNameSyntax leftIdentifier
+		       && context.Right.Syntax is IdentifierNameSyntax rightIdentifier
+		       && context.Variables.TryGetValue(leftIdentifier.Identifier.Text, out var leftVar)
+		       && context.Variables.TryGetValue(rightIdentifier.Identifier.Text, out var rightVar)
+		       && leftVar.Value is ArgumentSyntax leftArgument
+		       && rightVar.Value is ArgumentSyntax rightArgument
+		       && leftArgument.Expression.IsEquivalentTo(rightArgument.Expression);
 	}
-	
+
 	protected static SyntaxKind SwapCondition(SyntaxKind kind)
 	{
 		return kind switch
@@ -59,10 +58,10 @@ public abstract class BaseBinaryStrategy : IBinaryStrategy
 			SyntaxKind.ExclamationEqualsToken => SyntaxFactory.UnaryPattern(
 				SyntaxFactory.Token(SyntaxKind.NotKeyword),
 				SyntaxFactory.ConstantPattern(expression)),
-			SyntaxKind.LessThanToken or 
-			SyntaxKind.LessThanEqualsToken or 
-			SyntaxKind.GreaterThanToken or 
-			SyntaxKind.GreaterThanEqualsToken => 
+			SyntaxKind.LessThanToken or
+				SyntaxKind.LessThanEqualsToken or
+				SyntaxKind.GreaterThanToken or
+				SyntaxKind.GreaterThanEqualsToken =>
 				SyntaxFactory.RelationalPattern(SyntaxFactory.Token(operatorKind), expression),
 			_ => null
 		};

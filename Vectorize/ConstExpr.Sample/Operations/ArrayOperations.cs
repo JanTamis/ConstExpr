@@ -4,7 +4,7 @@ using System;
 
 namespace ConstExpr.SourceGenerator.Sample.Operations;
 
-[ConstExpr(FloatingPointMode = FloatingPointEvaluationMode.FastMath)]
+[ConstExpr(FloatingPointEvaluationMode.FastMath)]
 public static class ArrayOperations
 {
 	/// <summary>
@@ -71,43 +71,6 @@ public static class ArrayOperations
 	}
 
 	/// <summary>
-	/// Calculates the median of numbers
-	/// </summary>
-	public static double Median(params int[] numbers)
-	{
-		if (numbers.Length == 0)
-		{
-			return 0.0;
-		}
-
-		// Simple bubble sort for small arrays
-		var sorted = new int[numbers.Length];
-		Array.Copy(numbers, sorted, numbers.Length);
-
-		for (var i = 0; i < sorted.Length - 1; i++)
-		{
-			for (var j = 0; j < sorted.Length - i - 1; j++)
-			{
-				if (sorted[j] > sorted[j + 1])
-				{
-					var temp = sorted[j];
-					sorted[j] = sorted[j + 1];
-					sorted[j + 1] = temp;
-				}
-			}
-		}
-
-		if (sorted.Length % 2 == 0)
-		{
-			return (sorted[sorted.Length / 2 - 1] + sorted[sorted.Length / 2]) / 2.0;
-		}
-		else
-		{
-			return sorted[sorted.Length / 2];
-		}
-	}
-
-	/// <summary>
 	/// Checks if array is sorted in ascending order
 	/// </summary>
 	public static bool IsSorted(params int[] numbers)
@@ -126,39 +89,6 @@ public static class ArrayOperations
 		}
 
 		return true;
-	}
-
-	/// <summary>
-	/// Removes duplicates from array
-	/// </summary>
-	public static int[] RemoveDuplicates(params int[] numbers)
-	{
-		if (numbers.Length == 0)
-		{
-			return Array.Empty<int>();
-		}
-
-		var unique = new System.Collections.Generic.List<int>();
-
-		foreach (var num in numbers)
-		{
-			var found = false;
-			foreach (var existing in unique)
-			{
-				if (existing == num)
-				{
-					found = true;
-					break;
-				}
-			}
-
-			if (!found)
-			{
-				unique.Add(num);
-			}
-		}
-
-		return unique.ToArray();
 	}
 
 	/// <summary>

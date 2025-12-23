@@ -75,15 +75,8 @@ public partial class ConstExprPartialRewriter
 	{
 		var statements = new List<StatementSyntax>();
 
-		foreach (var st in section.Statements)
+		foreach (var visited in section.Statements.Select(Visit).OfType<SyntaxNode>())
 		{
-			var visited = Visit(st);
-
-			if (visited is null)
-			{
-				continue;
-			}
-
 			switch (visited)
 			{
 				case BlockSyntax block:
@@ -122,15 +115,8 @@ public partial class ConstExprPartialRewriter
 		{
 			var newStatements = new List<StatementSyntax>(section.Statements.Count);
 
-			foreach (var st in section.Statements)
+			foreach (var visited in section.Statements.Select(Visit).OfType<SyntaxNode>())
 			{
-				var visited = Visit(st);
-
-				if (visited is null)
-				{
-					continue;
-				}
-
 				switch (visited)
 				{
 					case BlockSyntax block:
@@ -362,6 +348,74 @@ public partial class ConstExprPartialRewriter
 				return CreateLiteral(result.Value);
 			}
 		}
+		
+		// Handle unary "not" around constant patterns: `x is not 0` -> `x != 0`
+		if (node.Pattern is UnaryPatternSyntax unary && unary.OperatorToken.IsKind(SyntaxKind.NotKeyword) && unary.Pattern is ConstantPatternSyntax constInner)
+		{
+			var left = expression as ExpressionSyntax ?? node.Expression;
+			var right = Visit(constInner.Expression) as ExpressionSyntax ?? constInner.Expression;
+
+			return BinaryExpression(SyntaxKind.NotEqualsExpression, left, right);
+		}
+
+		// Handle unary "not" around relational patterns: `x is not > 0` -> `x <= 0` (negated operator)
+		if (node.Pattern is UnaryPatternSyntax unaryRel && unaryRel.OperatorToken.IsKind(SyntaxKind.NotKeyword) && unaryRel.Pattern is RelationalPatternSyntax relInner)
+		{
+			var left = expression as ExpressionSyntax ?? node.Expression;
+			var right = Visit(relInner.Expression) as ExpressionSyntax ?? relInner.Expression;
+
+			var negatedKind = relInner.OperatorToken.Kind() switch
+			{
+				SyntaxKind.LessThanToken => SyntaxKind.GreaterThanOrEqualExpression, // !(x < y) -> x >= y
+				SyntaxKind.LessThanEqualsToken => SyntaxKind.GreaterThanExpression, // !(x <= y) -> x > y
+				SyntaxKind.GreaterThanToken => SyntaxKind.LessThanOrEqualExpression, // !(x > y) -> x <= y
+				SyntaxKind.GreaterThanEqualsToken => SyntaxKind.LessThanExpression, // !(x >= y) -> x < y
+				_ => (SyntaxKind?)null,
+			};
+
+			if (negatedKind.HasValue)
+			{
+				return BinaryExpression(negatedKind.Value, left, right);
+			}
+		}
+
+		// Handle constant pattern: `x is 0` -> `x == 0`
+		if (node.Pattern is ConstantPatternSyntax constPat)
+		{
+			var left = expression as ExpressionSyntax ?? node.Expression;
+			var right = Visit(constPat.Expression) as ExpressionSyntax ?? constPat.Expression;
+
+			return BinaryExpression(SyntaxKind.EqualsExpression, left, right);
+		}
+
+		// If the pattern is a relational pattern (e.g. `x is > 0`), rewrite it to a binary
+		// expression (`x > 0`) so further rewrites/optimizations and compilation see the
+		// simpler form. We use the visited subexpressions when available.
+		if (node.Pattern is RelationalPatternSyntax relPat)
+		{
+			var left = expression as ExpressionSyntax ?? node.Expression;
+			var right = Visit(relPat.Expression) as ExpressionSyntax ?? relPat.Expression;
+
+			var binaryKind = relPat.OperatorToken.Kind() switch
+			{
+				SyntaxKind.LessThanToken => SyntaxKind.LessThanExpression,
+				SyntaxKind.LessThanEqualsToken => SyntaxKind.LessThanOrEqualExpression,
+				SyntaxKind.GreaterThanToken => SyntaxKind.GreaterThanExpression,
+				SyntaxKind.GreaterThanEqualsToken => SyntaxKind.GreaterThanOrEqualExpression,
+				_ => (SyntaxKind?)null,
+			};
+
+			if (binaryKind.HasValue)
+			{
+				return BinaryExpression(binaryKind.Value, left, right);
+			}
+		}
+
+		// Try to optimize OR patterns into bitmask checks
+		if (TryOptmizePattern(node.WithExpression(exprToEvaluate as ExpressionSyntax ?? node.Expression), out var optimized))
+		{
+			return optimized;
+		}
 
 		return node.WithExpression(expression as ExpressionSyntax ?? node.Expression);
 	}
@@ -401,7 +455,7 @@ public partial class ConstExprPartialRewriter
 		}
 
 		// Simplify: x switch { _ => a } → a (single discard arm)
-		if (node.Arms.Count == 1 && node.Arms[0].Pattern is DiscardPatternSyntax && node.Arms[0].WhenClause is null)
+		if (node.Arms is [ { Pattern: DiscardPatternSyntax, WhenClause: null } ])
 		{
 			return Visit(node.Arms[0].Expression);
 		}

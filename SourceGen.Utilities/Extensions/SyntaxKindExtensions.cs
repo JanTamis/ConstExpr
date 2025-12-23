@@ -1,4 +1,5 @@
 using System;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Operations;
 
@@ -31,6 +32,51 @@ public static class SyntaxKindExtensions
 			SyntaxKind.ExclamationEqualsToken or SyntaxKind.NotEqualsExpression => BinaryOperatorKind.NotEquals,
 			_ => throw new ArgumentException($"Unknown binary operator: {kind}", nameof(kind))
 		};
+	}
+	
+	public static bool IsKind(this CSharpSyntaxNode node, params ReadOnlySpan<SyntaxKind> kinds)
+	{
+		var nodeKind = node.Kind();
+
+		foreach (var kind in kinds)
+		{
+			if (nodeKind == kind)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	public static bool IsKind(this SyntaxTrivia node, params ReadOnlySpan<SyntaxKind> kinds)
+	{
+		var nodeKind = node.Kind();
+
+		foreach (var kind in kinds)
+		{
+			if (nodeKind == kind)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	public static bool IsKind(this SyntaxToken node, params ReadOnlySpan<SyntaxKind> kinds)
+	{
+		var nodeKind = node.Kind();
+
+		foreach (var kind in kinds)
+		{
+			if (nodeKind == kind)
+			{
+				return true;
+			}
+		}
+
+		return false;
 	}
 }
 

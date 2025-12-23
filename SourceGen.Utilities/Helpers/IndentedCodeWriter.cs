@@ -800,7 +800,7 @@ public sealed class IndentedCodeWriter : IDisposable
 			case null:
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression);
 			case ExpressionSyntax expression:
-				return expression.NormalizeWhitespace("\t");
+				return expression.NormalizeWhitespace(DefaultIndentation);
 		}
 
 		if (value.GetType().Name.Contains("Tuple"))

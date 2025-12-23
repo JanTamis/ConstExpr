@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -311,7 +312,6 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 							"UInt16" => Convert.ToUInt16(innerVal),
 							"UInt32" => Convert.ToUInt32(innerVal),
 							"UInt64" => Convert.ToUInt64(innerVal),
-							"Object" => innerVal,
 							_ => innerVal
 						};
 
@@ -321,7 +321,7 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 				}
 			case MemberAccessExpressionSyntax memberAccessExpressionSyntax:
 				{
-					if (semanticModel.TryGetSymbol(node, out ISymbol? symbol))
+					if (semanticModel.TryGetSymbol(memberAccessExpressionSyntax, out ISymbol? symbol))
 					{
 						var parentType = symbol.ContainingType;
 
@@ -584,5 +584,23 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 	protected bool CanBePruned(SyntaxNode node)
 	{
 		return node is IdentifierNameSyntax identifier && CanBePruned(identifier.Identifier.Text);
+	}
+	
+	protected bool TryGetTypeSymbol(SyntaxNode? node, [NotNullWhen(true)] out ITypeSymbol? typeSymbol)
+	{
+		switch (node)
+		{
+			case null:
+				typeSymbol = null;
+				return false;
+			case IdentifierNameSyntax identifier when variables.TryGetValue(identifier.Identifier.Text, out var value):
+				typeSymbol = value.Type;
+				return true;
+		}
+
+		var typeInfo = semanticModel.GetTypeInfo(node);
+		typeSymbol = typeInfo.Type ?? typeInfo.ConvertedType;
+
+		return typeSymbol is not null;
 	}
 }

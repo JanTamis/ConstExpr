@@ -24,6 +24,7 @@ public class ConditionalPatternCombinersStrategy : BaseBinaryStrategy
 		}
 		
 		var patternKind = GetRelationalPatternKind(context.Kind);
+		
 		if (patternKind == SyntaxKind.None)
 		{
 			return null;

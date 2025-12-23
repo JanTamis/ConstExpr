@@ -3,15 +3,14 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Arithmetic;
 
 [InheritsTests]
-public class AbsoluteDifferenceTest () : BaseTest(FloatingPointEvaluationMode.FastMath)
+public class AbsoluteDifferenceTest() : BaseTest<Func<int, int, int>>(FloatingPointEvaluationMode.FastMath)
 {
-	public override string TestMethod => """
-    int AbsoluteDifference(int a, int b)
-    {
-      var diff = a - b;
-      return diff < 0 ? -diff : diff;
-    }
-    """;
+	public override string TestMethod => GetString((a, b) =>
+	{
+		var diff = a - b;
+
+		return diff < 0 ? -diff : diff;
+	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
@@ -21,4 +20,3 @@ public class AbsoluteDifferenceTest () : BaseTest(FloatingPointEvaluationMode.Fa
 		Create("return 0;", 42, 42)
 	];
 }
-

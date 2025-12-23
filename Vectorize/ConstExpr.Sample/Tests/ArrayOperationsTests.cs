@@ -27,18 +27,10 @@ namespace ConstExpr.SourceGenerator.Sample.Tests
 			// Average - mixed
 			Console.WriteLine($"[MIXED] Average(varInt, varInt2, varInt3): {ArrayOperations.Average(varInt, varInt2, varInt3):F2}");
 
-			// Median - alleen constanten
-			Console.WriteLine($"[CONST] Median(3, 1, 4, 1, 5, 9, 2, 6): {ArrayOperations.Median(3, 1, 4, 1, 5, 9, 2, 6):F2}");
-			Console.WriteLine($"[CONST] Median(10, 20, 30, 40, 50): {ArrayOperations.Median(10, 20, 30, 40, 50):F2}");
-
 			// IsSorted - alleen constanten
 			Console.WriteLine($"[CONST] IsSorted(1, 2, 3, 4, 5): {ArrayOperations.IsSorted(1, 2, 3, 4, 5)}");
 			Console.WriteLine($"[CONST] IsSorted(1, 3, 2, 4, 5): {ArrayOperations.IsSorted(1, 3, 2, 4, 5)}");
 			Console.WriteLine($"[CONST] IsSorted(5, 10, 15, 20, 25): {ArrayOperations.IsSorted(5, 10, 15, 20, 25)}");
-
-			// RemoveDuplicates - alleen constanten
-			Console.WriteLine($"[CONST] RemoveDuplicates(1, 2, 2, 3, 3, 3, 4): [{string.Join(", ", ArrayOperations.RemoveDuplicates(1, 2, 2, 3, 3, 3, 4))}]");
-			Console.WriteLine($"[CONST] RemoveDuplicates(5, 5, 5, 5): [{string.Join(", ", ArrayOperations.RemoveDuplicates(5, 5, 5, 5))}]");
 
 			// CountOccurrences - alleen constanten
 			Console.WriteLine($"[CONST] CountOccurrences(3, [1, 2, 3, 3, 4, 3, 5]): {ArrayOperations.CountOccurrences(3, 1, 2, 3, 3, 4, 3, 5)}");

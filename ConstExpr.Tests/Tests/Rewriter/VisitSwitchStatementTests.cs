@@ -4,29 +4,27 @@ namespace ConstExpr.Tests.Tests.Rewriter;
 /// Tests for VisitSwitchStatement - constant folding of switch expression
 /// </summary>
 [InheritsTests]
-public class VisitSwitchStatementTests : BaseTest
+public class VisitSwitchStatementTests : BaseTest<Func<int, int>>
 {
-	public override string TestMethod => """
-		int TestMethod(int value)
+	public override string TestMethod => GetString(value =>
+	{
+		var result = 0;
+
+		switch (value)
 		{
-			var result = 0;
-			
-			switch (value)
-			{
-				case 1:
-					result = 10;
-					break;
-				case 2:
-					result = 20;
-					break;
-				default:
-					result = 30;
-					break;
-			}
-			
-			return result;
+			case 1:
+				result = 10;
+				break;
+			case 2:
+				result = 20;
+				break;
+			default:
+				result = 30;
+				break;
 		}
-		""";
+
+		return result;
+	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[

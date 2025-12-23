@@ -1,4 +1,5 @@
 extern alias sourcegen;
+using System.Runtime.CompilerServices;
 using ConstExpr.Core.Attributes;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -11,7 +12,8 @@ using sourcegen::ConstExpr.SourceGenerator.Rewriters;
 
 namespace ConstExpr.Tests;
 
-public abstract class BaseTest(FloatingPointEvaluationMode evaluationMode = FloatingPointEvaluationMode.Strict)
+public abstract class BaseTest<TDelegate>(FloatingPointEvaluationMode evaluationMode = FloatingPointEvaluationMode.Strict)
+	where TDelegate : Delegate
 {
 	// the generated method bodies to be expected
 	public abstract IEnumerable<KeyValuePair<string?, object?[]>> Result { get; }
@@ -145,7 +147,7 @@ public abstract class BaseTest(FloatingPointEvaluationMode evaluationMode = Floa
 			else
 			{
 				var expectedBody = ParseBlock(result.Key);
-				
+
 				expectedBody = FormattingHelper.Format(expectedBody) as BlockSyntax;
 
 				// Use Roslyn structural equivalence which ignores trivia differences
@@ -178,16 +180,39 @@ public abstract class BaseTest(FloatingPointEvaluationMode evaluationMode = Floa
 	// Builds the final source passed to Roslyn
 	protected string BuildSource()
 	{
-		return $"""
+		return $""""
 			using System;
 
 			{TestMethod}
-			""";
+			"""";
 	}
 
 	protected static KeyValuePair<string?, object?[]> Create(string? key, params object?[] values)
 	{
+		// test if length of values matches delegate parameters
+		var delegateParams = typeof(TDelegate).GetMethod("Invoke")!.GetParameters();
+
+		if (values.Length != delegateParams.Length)
+		{
+			throw new InvalidOperationException("Parameter count mismatch.");
+		}
+
 		return KeyValuePair.Create(key, values);
+	}
+
+	protected string GetString(TDelegate method, [CallerArgumentExpression(nameof(method))] string? lambdaSource = null)
+	{
+		var returnType = TestMethodHelper.GetTypeName(method.Method.ReturnType);
+		var parameters = method.Method.GetParameters();
+		var paramList = string.Join(", ", parameters.Select(p => $"{TestMethodHelper.GetTypeName(p.ParameterType)} {p.Name}"));
+
+		// Try to extract body from CallerArgumentExpression
+		var body = TestMethodHelper.ExtractLambdaBody(lambdaSource);
+
+		return $"""
+			{returnType} TestMethod({paramList})
+			{body}
+			""";
 	}
 
 	protected static BlockSyntax ParseBlock(string code)

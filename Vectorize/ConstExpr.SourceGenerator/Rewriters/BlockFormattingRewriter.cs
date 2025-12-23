@@ -5,6 +5,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using SourceGen.Utilities.Extensions;
 
 namespace ConstExpr.SourceGenerator.Rewriters;
 
@@ -23,7 +24,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		{
 			return null;
 		}
-		
+
 		return node.WithExpression(result as ExpressionSyntax ?? node.Expression);
 	}
 
@@ -33,7 +34,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		{
 			return null;
 		}
-		
+
 		return base.VisitAssignmentExpression(node);
 	}
 
@@ -80,13 +81,22 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 				MathF.PI => SyntaxFactory.ParseExpression("Single.Pi"),
 				MathF.PI * 2 => SyntaxFactory.ParseExpression("Single.Tau"),
 				MathF.E => SyntaxFactory.ParseExpression("Single.E"),
-				double.Epsilon => SyntaxFactory.ParseExpression("Double.Epsilon"),
-				float.Epsilon => SyntaxFactory.ParseExpression("Single.Epsilon"),
-				_ => expression,
+				Double.Epsilon => SyntaxFactory.ParseExpression("Double.Epsilon"),
+				Single.Epsilon => SyntaxFactory.ParseExpression("Single.Epsilon"),
+				_ => IsHexOrBinaryLiteral(node.Token) ? node : expression,
 			}).WithLeadingTrivia(node.GetLeadingTrivia()).WithTrailingTrivia(node.GetTrailingTrivia());
 		}
 
 		return node;
+	}
+
+	private static bool IsHexOrBinaryLiteral(SyntaxToken token)
+	{
+		var text = token.Text;
+		return text.StartsWith("0x", StringComparison.OrdinalIgnoreCase) || 
+		       text.StartsWith("0X", StringComparison.OrdinalIgnoreCase) ||
+		       text.StartsWith("0b", StringComparison.OrdinalIgnoreCase) ||
+		       text.StartsWith("0B", StringComparison.OrdinalIgnoreCase);
 	}
 
 	public override SyntaxNode? VisitIfStatement(IfStatementSyntax node)
@@ -110,23 +120,23 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			elseClauseEmpty = IsStatementEmpty(visited.Else.Statement);
 		}
 
-		// If the entire if statement is empty (if body empty and no else, or if body empty and else empty)
-		if (ifBodyIsEmpty && (visited.Else is null || elseClauseEmpty))
+		switch (ifBodyIsEmpty)
 		{
-			// Remove the entire if statement
-			return null;
-		}
+			// If the entire if statement is empty (if body empty and no else, or if body empty and else empty)
+			case true when (visited.Else is null || elseClauseEmpty):
+				// Remove the entire if statement
+				return null;
+			// If if body is empty but else exists and is not empty
+			case true when visited.Else is not null && !elseClauseEmpty:
+			{
+				// Transform: if (condition) { } else { statements } -> if (!condition) { statements }
+				var negatedCondition = NegateCondition(visited.Condition);
 
-		// If if body is empty but else exists and is not empty
-		if (ifBodyIsEmpty && visited.Else is not null && !elseClauseEmpty)
-		{
-			// Transform: if (condition) { } else { statements } -> if (!condition) { statements }
-			var negatedCondition = NegateCondition(visited.Condition);
-			
-			return visited
-				.WithCondition(negatedCondition)
-				.WithStatement(visited.Else.Statement)
-				.WithElse(null);
+				return visited
+					.WithCondition(negatedCondition)
+					.WithStatement(visited.Else.Statement)
+					.WithElse(null);
+			}
 		}
 
 		// If else clause is empty, just remove it
@@ -136,104 +146,6 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		}
 
 		return visited;
-	}
-
-	private static bool IsStatementEmpty(StatementSyntax statement)
-	{
-		if (statement is BlockSyntax block)
-		{
-			return block.Statements.Count == 0;
-		}
-		return false;
-	}
-
-	private static ExpressionSyntax NegateCondition(ExpressionSyntax condition)
-	{
-		// Handle logical NOT: !x -> x
-		if (condition is PrefixUnaryExpressionSyntax prefix && prefix.Kind() == SyntaxKind.LogicalNotExpression)
-		{
-			return prefix.Operand;
-		}
-
-		// Handle binary expressions (comparisons and logical operators)
-		if (condition is BinaryExpressionSyntax binary)
-		{
-			var negatedKind = GetNegatedBinaryOperator(binary.Kind());
-
-			if (negatedKind.HasValue)
-			{
-				// For comparisons: invert the operator (e.g., > becomes <=)
-				if (IsComparisonOperator(binary.Kind()))
-				{
-					return SyntaxFactory.BinaryExpression(
-						negatedKind.Value,
-						binary.Left,
-						binary.Right
-					);
-				}
-
-				// For logical operators (&&, ||): apply De Morgan's law
-				// !(a && b) -> !a || !b
-				// !(a || b) -> !a && !b
-				if (binary.Kind() == SyntaxKind.LogicalAndExpression || binary.Kind() == SyntaxKind.LogicalOrExpression)
-				{
-					return SyntaxFactory.BinaryExpression(
-						negatedKind.Value,
-						NegateCondition(binary.Left),
-						NegateCondition(binary.Right)
-					);
-				}
-			}
-		}
-
-		// Handle parenthesized expressions: move negation inside
-		if (condition is ParenthesizedExpressionSyntax paren)
-		{
-			return NegateCondition(paren.Expression);
-		}
-
-		// Handle method calls that return bool (like IsNullOrEmpty, Any, etc.)
-		// Keep them simple with ! prefix
-		if (condition is InvocationExpressionSyntax ||
-		    condition is IdentifierNameSyntax ||
-		    condition is MemberAccessExpressionSyntax)
-		{
-			return SyntaxFactory.PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, condition);
-		}
-
-		// Default: wrap in parentheses and add !
-		var parenthesizedCondition = SyntaxFactory.ParenthesizedExpression(condition);
-		return SyntaxFactory.PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, parenthesizedCondition);
-	}
-
-	private static bool IsComparisonOperator(SyntaxKind kind)
-	{
-		return kind == SyntaxKind.GreaterThanExpression ||
-		       kind == SyntaxKind.GreaterThanOrEqualExpression ||
-		       kind == SyntaxKind.LessThanExpression ||
-		       kind == SyntaxKind.LessThanOrEqualExpression ||
-		       kind == SyntaxKind.EqualsExpression ||
-		       kind == SyntaxKind.NotEqualsExpression;
-	}
-
-	private static SyntaxKind? GetNegatedBinaryOperator(SyntaxKind kind)
-	{
-		return kind switch
-		{
-			// Comparison operators
-			SyntaxKind.GreaterThanExpression => SyntaxKind.LessThanOrEqualExpression,
-			SyntaxKind.GreaterThanOrEqualExpression => SyntaxKind.LessThanExpression,
-			SyntaxKind.LessThanExpression => SyntaxKind.GreaterThanOrEqualExpression,
-			SyntaxKind.LessThanOrEqualExpression => SyntaxKind.GreaterThanExpression,
-			SyntaxKind.EqualsExpression => SyntaxKind.NotEqualsExpression,
-			SyntaxKind.NotEqualsExpression => SyntaxKind.EqualsExpression,
-
-			// Logical operators (De Morgan's law)
-			SyntaxKind.LogicalAndExpression => SyntaxKind.LogicalOrExpression,
-			SyntaxKind.LogicalOrExpression => SyntaxKind.LogicalAndExpression,
-
-			_ => null
-		};
 	}
 
 	public override SyntaxNode? VisitLocalFunctionStatement(LocalFunctionStatementSyntax node)
@@ -251,13 +163,9 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 	{
 		var visited = new List<StatementSyntax>(node.Statements.Count);
 
-		foreach (var stmt in node.Statements)
-		{
-			if (Visit(stmt) is StatementSyntax statement)
-			{
-				visited.Add(statement);
-			}
-		}
+		visited.AddRange(node.Statements
+			.Select(Visit)
+			.OfType<StatementSyntax>());
 
 		if (visited.Count == 0)
 		{
@@ -265,7 +173,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			{
 				return node.WithStatements(SyntaxFactory.List(visited));
 			}
-			
+
 			return null;
 		}
 
@@ -279,16 +187,16 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 				var decl = declStmt.Declaration;
 
 				// Only handle single-variable declarations without initializer
-				if (decl is not null && decl.Variables.Count == 1 && decl.Variables[0].Initializer is null)
+				if (decl?.Variables is [ { Initializer: null } ])
 				{
 					var varId = decl.Variables[0].Identifier.ValueText;
 
-					if (!string.IsNullOrEmpty(varId))
+					if (!String.IsNullOrEmpty(varId))
 					{
 						if (visited[i + 1] is ExpressionStatementSyntax exprStmt)
 						{
 							if (exprStmt.Expression is AssignmentExpressionSyntax assign &&
-							    assign.Kind() == SyntaxKind.SimpleAssignmentExpression)
+							    assign.IsKind(SyntaxKind.SimpleAssignmentExpression))
 							{
 								// Check left side is the same identifier (allow parentheses/trivia by getting IdentifierName)
 								if (assign.Left is IdentifierNameSyntax idLeft && idLeft.Identifier.ValueText == varId)
@@ -356,9 +264,9 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		// Groepeer yield return statements
 		for (var i = 0; i < visited.Count; i++)
 		{
-			if (visited[i] is YieldStatementSyntax ys && ys.Kind() == SyntaxKind.YieldReturnStatement)
+			if (visited[i] is YieldStatementSyntax ys && ys.IsKind(SyntaxKind.YieldReturnStatement))
 			{
-				SurroundContiguousGroup(visited, ref i, static s => s is YieldStatementSyntax ys2 && ys2.Kind() == SyntaxKind.YieldReturnStatement);
+				SurroundContiguousGroup(visited, ref i, static s => s is YieldStatementSyntax ys2 && ys2.IsKind(SyntaxKind.YieldReturnStatement));
 			}
 		}
 
@@ -437,11 +345,11 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		return newNode;
 	}
 
-	public override SyntaxNode VisitReturnStatement(ReturnStatementSyntax node)
+	public override SyntaxNode? VisitReturnStatement(ReturnStatementSyntax node)
 	{
-		var visited = (ReturnStatementSyntax) base.VisitReturnStatement(node);
+		var visited = base.VisitReturnStatement(node) as ReturnStatementSyntax;
 
-		if (visited.Expression is null)
+		if (visited?.Expression is null)
 		{
 			return visited;
 		}
@@ -472,7 +380,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			visited = visited.WithReturnKeyword(rk);
 
 			// Verwijder leading whitespace van eerste token van de expressie (anders dubbele spatie)
-			var firstToken = visited.Expression.GetFirstToken();
+			var firstToken = visited.Expression!.GetFirstToken();
 			var leading = firstToken.LeadingTrivia;
 			var idx = 0;
 
@@ -503,129 +411,12 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		return visited;
 	}
 
-	public override SyntaxNode VisitConditionalExpression(ConditionalExpressionSyntax node)
-	{
-		return base.VisitConditionalExpression(node);
-		
-		// // Breng de ?: operator op meerdere regels en houd rekening met nesting.
-		// // Doel-layout:
-		// // condition
-		// // \t? whenTrue
-		// // \t: whenFalse
-		//
-		// var v = (ConditionalExpressionSyntax) base.VisitConditionalExpression(node);
-		//
-		// // Tokens die we gaan aanpassen
-		// var conditionLast = v.Condition.GetLastToken();
-		// var question = v.QuestionToken;
-		// var whenTrueFirst = v.WhenTrue.GetFirstToken();
-		// var whenTrueLast = v.WhenTrue.GetLastToken();
-		// var colon = v.ColonToken;
-		// var whenFalseFirst = v.WhenFalse.GetFirstToken();
-		//
-		// // Bepaal de indent op basis van het statement waarin we zitten en gebruik dezelfde unit als NormalizeWhitespace (\t)
-		// var indentUnit = SyntaxFactory.Whitespace("\t");
-		//
-		// // Use the condition node's indent as base so the '?' / ':' are one tab
-		// // further indented relative to the condition line.
-		// var baseIndent = GetBaseIndentTrivia(v.Condition);
-		//
-		// // Bouw de indent expliciet zodat we zeker zijn dat er een tab vóór '?' en ':' komt
-		// // (voorkom dat eventuele elastic/normalisatie de tab verwijdert)
-		// SyntaxTriviaList BuildLineIndent()
-		// {
-		// 	var list = SyntaxFactory.TriviaList();
-		//
-		// 	for (var i = 0; i < baseIndent.Count; i++)
-		// 	{
-		// 		list = list.Add(baseIndent[i]);
-		// 	}
-		//
-		// 	list = list.Add(indentUnit);
-		// 	return list;
-		// }
-		//
-		// var lineIndent = BuildLineIndent();
-		//
-		// // 1) Na de condition een nieuwe regel forceren en voeg expliciet één tab toe
-		// // zodat de volgende '?'-regel één indent verder staat.
-		// var condTrailing = TrimTrailingWhitespaceAndEndOfLines(conditionLast.TrailingTrivia);
-		// condTrailing = condTrailing.Add(SyntaxFactory.ElasticCarriageReturnLineFeed);
-		// condTrailing = condTrailing.Add(indentUnit);
-		// var newConditionLast = conditionLast.WithTrailingTrivia(condTrailing);
-		//
-		// // 2) '?' start op nieuwe regel met indent (tab) en 1 spatie erna; behoud niet-witruimte leading trivia (zoals comments) na de indent
-		// var qLeadingRest = TrimLeadingWhitespaceAndEndOfLines(question.LeadingTrivia);
-		//
-		// // Zorg dat de tab direct vóór het token staat, gevolgd door eventuele comment-trivia
-		// var qLeading = SyntaxFactory.TriviaList();
-		//
-		// for (var i = 0; i < lineIndent.Count; i++)
-		// {
-		// 	qLeading = qLeading.Add(lineIndent[i]);
-		// }
-		//
-		// foreach (var tr in qLeadingRest)
-		// {
-		// 	qLeading = qLeading.Add(tr);
-		// }
-		//
-		// var qTrailing = TrimTrailingWhitespaceAndEndOfLines(question.TrailingTrivia).Add(SyntaxFactory.Space);
-		// var newQuestion = question.WithLeadingTrivia(qLeading).WithTrailingTrivia(qTrailing);
-		//
-		// // 3) whenTrue direct na '? ' (geen leidende whitespace/eol)
-		// var wtFirst = whenTrueFirst.WithLeadingTrivia(TrimLeadingWhitespaceAndEndOfLines(whenTrueFirst.LeadingTrivia));
-		//
-		// // 4) Na whenTrue een nieuwe regel forceren vóór ':' en voeg expliciet één tab toe
-		// // zodat de ':' één indent verder staat.
-		// var wtTrailing = TrimTrailingWhitespaceAndEndOfLines(whenTrueLast.TrailingTrivia)
-		// 	.Add(SyntaxFactory.ElasticCarriageReturnLineFeed)
-		// 	.Add(indentUnit);
-		// var newWhenTrueLast = whenTrueLast.WithTrailingTrivia(wtTrailing);
-		//
-		// // 5) ':' start op nieuwe regel met indent (tab) en 1 spatie erna; behoud niet-witruimte leading trivia na de indent
-		// var cLeadingRest = TrimLeadingWhitespaceAndEndOfLines(colon.LeadingTrivia);
-		// var cLeading = SyntaxFactory.TriviaList();
-		//
-		// for (var i = 0; i < lineIndent.Count; i++)
-		// {
-		// 	cLeading = cLeading.Add(lineIndent[i]);
-		// }
-		//
-		// foreach (var tr in cLeadingRest)
-		// {
-		// 	cLeading = cLeading.Add(tr);
-		// }
-		//
-		// var cTrailing = TrimTrailingWhitespaceAndEndOfLines(colon.TrailingTrivia).Add(SyntaxFactory.Space);
-		// var newColon = colon.WithLeadingTrivia(cLeading).WithTrailingTrivia(cTrailing);
-		//
-		// // 6) whenFalse direct na ': ' (geen leidende whitespace/eol)
-		// var wfFirst = whenFalseFirst.WithLeadingTrivia(TrimLeadingWhitespaceAndEndOfLines(whenFalseFirst.LeadingTrivia));
-		//
-		// // Vervang tokens in één bewerking
-		// var tokens = new[] { conditionLast, question, whenTrueFirst, whenTrueLast, colon, whenFalseFirst };
-		// var map = new Dictionary<SyntaxToken, SyntaxToken>
-		// {
-		// 	[conditionLast] = newConditionLast,
-		// 	[question] = newQuestion,
-		// 	[whenTrueFirst] = wtFirst,
-		// 	[whenTrueLast] = newWhenTrueLast,
-		// 	[colon] = newColon,
-		// 	[whenFalseFirst] = wfFirst,
-		// };
-		//
-		// v = v.ReplaceTokens(tokens, (orig, _) => map.TryGetValue(orig, out var rep) ? rep : orig);
-		//
-		// return v;
-	}
-
 	// New: normalize object creation spacing so `new Type (` -> `new Type(`
 	public override SyntaxNode? VisitObjectCreationExpression(ObjectCreationExpressionSyntax node)
 	{
 		var result = base.VisitObjectCreationExpression(node);
 
-		if (result is ObjectCreationExpressionSyntax visited)
+		if (result is ObjectCreationExpressionSyntax)
 		{
 			return node.WithType(node.Type.WithTrailingTrivia());
 		}
@@ -668,134 +459,6 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 		return result;
 	}
-
-	// public override SyntaxNode? VisitInvocationExpression(InvocationExpressionSyntax node)
-	// {
-	// 	var visited = (InvocationExpressionSyntax?)base.VisitInvocationExpression(node);
-	// 	if (visited is null)
-	// 	{
-	// 		return visited;
-	// 	}
-	//
-	// 	// Check if this is part of a method chain (MemberAccessExpression as the expression)
-	// 	if (visited.Expression is not MemberAccessExpressionSyntax memberAccess)
-	// 	{
-	// 		return visited;
-	// 	}
-	//
-	// 	// Count the chain length to determine if we should split
-	// 	var chainLength = CountMethodChain(visited);
-	// 	if (chainLength < 2)
-	// 	{
-	// 		return visited; // Single method call, no need to split
-	// 	}
-	//
-	// 	// Format the chain: each method call on a new line with proper indentation
-	// 	return FormatMethodChain(visited);
-	// }
-	//
-	// private static int CountMethodChain(InvocationExpressionSyntax invocation)
-	// {
-	// 	var count = 1;
-	// 	var current = invocation.Expression;
-	//
-	// 	while (current is MemberAccessExpressionSyntax memberAccess)
-	// 	{
-	// 		if (memberAccess.Expression is InvocationExpressionSyntax innerInvocation)
-	// 		{
-	// 			count++;
-	// 			current = innerInvocation.Expression;
-	// 		}
-	// 		else
-	// 		{
-	// 			break;
-	// 		}
-	// 	}
-	//
-	// 	return count;
-	// }
-
-	// private static InvocationExpressionSyntax FormatMethodChain(InvocationExpressionSyntax invocation)
-	// {
-	// 	// Collect all method calls in the chain from innermost to outermost
-	// 	var chain = new List<(MemberAccessExpressionSyntax MemberAccess, InvocationExpressionSyntax Invocation)>();
-	// 	var current = invocation;
-	//
-	// 	while (current.Expression is MemberAccessExpressionSyntax memberAccess)
-	// 	{
-	// 		chain.Add((memberAccess, current));
-	//
-	// 		if (memberAccess.Expression is InvocationExpressionSyntax innerInvocation)
-	// 		{
-	// 			current = innerInvocation;
-	// 		}
-	// 		else
-	// 		{
-	// 			break;
-	// 		}
-	// 	}
-	//
-	// 	// Reverse to go from innermost to outermost
-	// 	chain.Reverse();
-	//
-	// 	if (chain.Count == 0)
-	// 	{
-	// 		return invocation;
-	// 	}
-	//
-	// 	// Get base indentation from the statement
-	// 	var baseIndent = GetBaseIndentTrivia(invocation);
-	// 	var indentUnit = SyntaxFactory.Whitespace("\t");
-	//
-	// 	// Build the indentation for chained methods (base + two tabs for extra indentation)
-	// 	var chainIndent = SyntaxFactory.TriviaList();
-	//
-	// 	for (var i = 0; i < baseIndent.Count; i++)
-	// 	{
-	// 		chainIndent = chainIndent.Add(baseIndent[i]);
-	// 	}
-	//
-	// 	chainIndent = chainIndent.Add(indentUnit);
-	// 	chainIndent = chainIndent.Add(indentUnit); // Extra tab for chained methods
-	//
-	// 	// Process each link in the chain
-	// 	var tokensToReplace = new Dictionary<SyntaxToken, SyntaxToken>();
-	//
-	// 	for (var i = 0; i < chain.Count; i++)
-	// 	{
-	// 		var (memberAccess, inv) = chain[i];
-	// 		var dot = memberAccess.OperatorToken;
-	//
-	// 		// For all method calls after the first, add newline + indent before the dot
-	// 		if (i > 0)
-	// 		{
-	// 			var dotLeading = TrimLeadingWhitespaceAndEndOfLines(dot.LeadingTrivia);
-	// 			var newDotLeading = SyntaxFactory.TriviaList()
-	// 				.Add(SyntaxFactory.ElasticCarriageReturnLineFeed);
-	//
-	// 			foreach (var trivia in chainIndent)
-	// 			{
-	// 				newDotLeading = newDotLeading.Add(trivia);
-	// 			}
-	//
-	// 			// Preserve any comments after whitespace trimming
-	// 			foreach (var trivia in dotLeading)
-	// 			{
-	// 				newDotLeading = newDotLeading.Add(trivia);
-	// 			}
-	//
-	// 			tokensToReplace[dot] = dot.WithLeadingTrivia(newDotLeading);
-	// 		}
-	// 	}
-	//
-	// 	// Apply all token replacements
-	// 	if (tokensToReplace.Count > 0)
-	// 	{
-	// 		invocation = invocation.ReplaceTokens(tokensToReplace.Keys, (orig, _) => tokensToReplace.TryGetValue(orig, out var rep) ? rep : orig);
-	// 	}
-	//
-	// 	return invocation;
-	// }
 
 	/// <summary>
 	/// Surrounds a contiguous group of statements in the list with appropriate blank lines, based on grouping logic and
@@ -840,7 +503,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 				for (var k = start - 1; k >= 0; k--)
 				{
-					if (visited[k] is LocalDeclarationStatementSyntax ls && ls.Declaration is { } decl)
+					if (visited[k] is LocalDeclarationStatementSyntax { Declaration: { } decl })
 					{
 						foreach (var v in decl.Variables)
 						{
@@ -856,7 +519,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 				// check the group's first statement
 				var first = visited[start] as ExpressionStatementSyntax;
 
-				if (first?.Expression is AssignmentExpressionSyntax assign && assign.Kind() == SyntaxKind.SimpleAssignmentExpression)
+				if (first?.Expression is AssignmentExpressionSyntax assign && assign.IsKind(SyntaxKind.SimpleAssignmentExpression))
 				{
 					if (assign.Left is IdentifierNameSyntax leftId)
 					{
@@ -902,7 +565,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 				// check next statement
 				var next = visited[end + 1];
 
-				if (next is ExpressionStatementSyntax es && es.Expression is AssignmentExpressionSyntax assign && assign.Kind() == SyntaxKind.SimpleAssignmentExpression)
+				if (next is ExpressionStatementSyntax { Expression: AssignmentExpressionSyntax assign } && assign.IsKind(SyntaxKind.SimpleAssignmentExpression))
 				{
 					if (assign.Left is IdentifierNameSyntax leftId)
 					{
@@ -965,33 +628,6 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		return statement.WithTrailingTrivia(list);
 	}
 
-	private static StatementSyntax EnsureTrailingSingleNewLine(StatementSyntax statement)
-	{
-		var trailing = statement.GetTrailingTrivia();
-		var eols = CountTrailingNewLines(trailing);
-
-		if (eols == 1)
-		{
-			return statement;
-		}
-
-		// Verwijder alle trailing whitespace/eols en voeg precies 1 EOL toe
-		var idx = trailing.Count - 1;
-
-		while (idx >= 0 && (trailing[idx].IsKind(SyntaxKind.EndOfLineTrivia) || trailing[idx].IsKind(SyntaxKind.WhitespaceTrivia)))
-		{
-			idx--;
-		}
-		var newTrailing = SyntaxFactory.TriviaList();
-
-		for (var i = 0; i <= idx; i++)
-		{
-			newTrailing = newTrailing.Add(trailing[i]);
-		}
-		newTrailing = newTrailing.Add(SyntaxFactory.ElasticCarriageReturnLineFeed);
-		return statement.WithTrailingTrivia(newTrailing);
-	}
-
 	private static StatementSyntax TrimLeadingBlankLinesTo(StatementSyntax statement, int maxEols)
 	{
 		var leading = statement.GetLeadingTrivia();
@@ -1052,7 +688,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		var trailing = open.TrailingTrivia;
 		var lastContentIdx = trailing.Count - 1;
 
-		while (lastContentIdx >= 0 && (trailing[lastContentIdx].IsKind(SyntaxKind.EndOfLineTrivia) || trailing[lastContentIdx].IsKind(SyntaxKind.WhitespaceTrivia)))
+		while (lastContentIdx >= 0 && trailing[lastContentIdx].IsKind(SyntaxKind.EndOfLineTrivia, SyntaxKind.WhitespaceTrivia))
 		{
 			lastContentIdx--;
 		}
@@ -1074,129 +710,16 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		return block.WithOpenBraceToken(open.WithTrailingTrivia(SyntaxFactory.TriviaList(newTrailing)));
 	}
 
-	private static SyntaxTriviaList TrimTrailingWhitespaceAndEndOfLines(SyntaxTriviaList list)
-	{
-		var idx = list.Count - 1;
-
-		while (idx >= 0 && (list[idx].IsKind(SyntaxKind.EndOfLineTrivia) || list[idx].IsKind(SyntaxKind.WhitespaceTrivia)))
-		{
-			idx--;
-		}
-		var result = SyntaxFactory.TriviaList();
-
-		for (var i = 0; i <= idx; i++)
-		{
-			result = result.Add(list[i]);
-		}
-		return result;
-	}
-
-	private static SyntaxTriviaList TrimLeadingWhitespaceAndEndOfLines(SyntaxTriviaList list)
-	{
-		var idx = 0;
-
-		while (idx < list.Count && (list[idx].IsKind(SyntaxKind.EndOfLineTrivia) || list[idx].IsKind(SyntaxKind.WhitespaceTrivia)))
-		{
-			idx++;
-		}
-		var result = SyntaxFactory.TriviaList();
-
-		for (var i = idx; i < list.Count; i++)
-		{
-			result = result.Add(list[i]);
-		}
-		return result;
-	}
-
-	private static SyntaxTriviaList GetBaseIndentTrivia(SyntaxNode node)
-	{
-		// Zoek dichtstbijzijnde statement en gebruik de indentatie van de eerste token na de laatste line break.
-		// Wanneer de huidige node zelf leading trivia bevat met een EOL gebruiken we die, zodat
-		// bij gebroken expressies (zoals een condition op meerdere regels) de indent van de
-		// condition-regel wordt gebruikt. Val anders terug op de statement-token.
-		var stmt = node.AncestorsAndSelf().OfType<StatementSyntax>().FirstOrDefault();
-
-		// Probeer eerst de node's eigen eerste token
-		var token = node.GetFirstToken();
-		var leading = token.LeadingTrivia;
-		var lastEol = -1;
-
-		for (var i = 0; i < leading.Count; i++)
-		{
-			if (leading[i].IsKind(SyntaxKind.EndOfLineTrivia))
-			{
-				lastEol = i;
-			}
-		}
-
-		// Als de node geen EOL in zijn leading trivia heeft, fall back naar de
-		// statement-token alleen wanneer de token geen enkele leading whitespace/EOL
-		// bevat. Hierdoor geven we prioriteit aan (spatie)inspringing direct vóór
-		// de conditie wanneer die op dezelfde regel staat.
-		var hasLeadingWhitespaceOrEol = leading.Any(t => t.IsKind(SyntaxKind.WhitespaceTrivia) || t.IsKind(SyntaxKind.EndOfLineTrivia));
-
-		if (!hasLeadingWhitespaceOrEol && lastEol < 0 && stmt is not null)
-		{
-			token = stmt.GetFirstToken();
-			leading = token.LeadingTrivia;
-			lastEol = -1;
-
-			for (var i = 0; i < leading.Count; i++)
-			{
-				if (leading[i].IsKind(SyntaxKind.EndOfLineTrivia))
-				{
-					lastEol = i;
-				}
-			}
-		}
-
-		if (lastEol < 0)
-		{
-			// Geen EOL: neem alleen whitespace aan het begin
-			var result = SyntaxFactory.TriviaList();
-
-			for (var i = 0; i < leading.Count; i++)
-			{
-				if (leading[i].IsKind(SyntaxKind.WhitespaceTrivia))
-				{
-					result = result.Add(leading[i]);
-				}
-				else
-				{
-					result = SyntaxFactory.TriviaList(); // reset als er comments/anders tussenzit
-				}
-			}
-			return result;
-		}
-		else
-		{
-			var result = SyntaxFactory.TriviaList();
-
-			for (var i = lastEol + 1; i < leading.Count; i++)
-			{
-				if (leading[i].IsKind(SyntaxKind.WhitespaceTrivia))
-				{
-					result = result.Add(leading[i]);
-				}
-				else
-				{
-					break;
-				}
-			}
-			return result;
-		}
-	}
-
 	private static bool HasLeadingComment(StatementSyntax statement)
 	{
 		var leading = statement.GetLeadingTrivia();
 
 		foreach (var trivia in leading)
 		{
-			if (trivia.IsKind(SyntaxKind.SingleLineCommentTrivia) ||
-			    trivia.IsKind(SyntaxKind.MultiLineCommentTrivia) ||
-			    trivia.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia) ||
-			    trivia.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia))
+			if (trivia.IsKind(SyntaxKind.SingleLineCommentTrivia, 
+				    SyntaxKind.MultiLineCommentTrivia, 
+				    SyntaxKind.SingleLineDocumentationCommentTrivia,
+				    SyntaxKind.MultiLineDocumentationCommentTrivia))
 			{
 				return true;
 			}
@@ -1215,8 +738,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			{
 				foundEol = true;
 			}
-			else if (foundEol && (trivia.IsKind(SyntaxKind.SingleLineCommentTrivia) ||
-			                      trivia.IsKind(SyntaxKind.MultiLineCommentTrivia)))
+			else if (foundEol && trivia.IsKind(SyntaxKind.SingleLineCommentTrivia, SyntaxKind.MultiLineCommentTrivia))
 			{
 				return true;
 			}
@@ -1224,36 +746,93 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		return false;
 	}
 
-	// public override SyntaxNode? VisitPredefinedType(PredefinedTypeSyntax node)
-	// {
-	// 	var fullTypeName = node.Keyword.Kind() switch
-	// 	{
-	// 		SyntaxKind.VoidKeyword => "Void",
-	// 		SyntaxKind.BoolKeyword => "Boolean",
-	// 		SyntaxKind.ByteKeyword => "Byte",
-	// 		SyntaxKind.SByteKeyword => "SByte",
-	// 		SyntaxKind.ShortKeyword => "Int16",
-	// 		SyntaxKind.UShortKeyword => "UInt16",
-	// 		SyntaxKind.IntKeyword => "Int32",
-	// 		SyntaxKind.UIntKeyword => "UInt32",
-	// 		SyntaxKind.LongKeyword => "Int64",
-	// 		SyntaxKind.ULongKeyword => "UInt64",
-	// 		SyntaxKind.FloatKeyword => "Single",
-	// 		SyntaxKind.DoubleKeyword => "Double",
-	// 		SyntaxKind.DecimalKeyword => "Decimal",
-	// 		SyntaxKind.CharKeyword => "Char",
-	// 		SyntaxKind.StringKeyword => "String",
-	// 		SyntaxKind.ObjectKeyword => "Object",
-	// 		_ => null,
-	// 	};
-	//
-	// 	if (fullTypeName is not null)
-	// 	{
-	// 		return SyntaxFactory.ParseTypeName(fullTypeName)
-	// 			.WithLeadingTrivia(node.GetLeadingTrivia())
-	// 			.WithTrailingTrivia(node.GetTrailingTrivia());
-	// 	}
-	//
-	// 	return node;
-	// }
+	private static bool IsStatementEmpty(StatementSyntax statement)
+	{
+		return statement is BlockSyntax { Statements.Count: 0 };
+	}
+
+	private static ExpressionSyntax NegateCondition(ExpressionSyntax condition)
+	{
+		switch (condition)
+		{
+			// Handle logical NOT: !x -> x
+			case PrefixUnaryExpressionSyntax prefix when prefix.IsKind(SyntaxKind.LogicalNotExpression):
+				return prefix.Operand;
+			// Handle binary expressions (comparisons and logical operators)
+			case BinaryExpressionSyntax binary:
+			{
+				var negatedKind = GetNegatedBinaryOperator(binary.Kind());
+
+				if (negatedKind.HasValue)
+				{
+					// For comparisons: invert the operator (e.g., > becomes <=)
+					if (IsComparisonOperator(binary.Kind()))
+					{
+						return SyntaxFactory.BinaryExpression(
+							negatedKind.Value,
+							binary.Left,
+							binary.Right
+						);
+					}
+
+					// For logical operators (&&, ||): apply De Morgan's law
+					// !(a && b) -> !a || !b
+					// !(a || b) -> !a && !b
+					if (binary.IsKind(SyntaxKind.LogicalAndExpression, SyntaxKind.LogicalOrExpression))
+					{
+						return SyntaxFactory.BinaryExpression(
+							negatedKind.Value,
+							NegateCondition(binary.Left),
+							NegateCondition(binary.Right)
+						);
+					}
+				}
+
+				break;
+			}
+			// Handle parenthesized expressions: move negation inside
+			case ParenthesizedExpressionSyntax paren:
+				return NegateCondition(paren.Expression);
+			// Handle method calls that return bool (like IsNullOrEmpty, Any, etc.)
+			// Keep them simple with ! prefix
+			case InvocationExpressionSyntax:
+			case IdentifierNameSyntax:
+			case MemberAccessExpressionSyntax:
+				return SyntaxFactory.PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, condition);
+		}
+
+		// Default: wrap in parentheses and add !
+		var parenthesizedCondition = SyntaxFactory.ParenthesizedExpression(condition);
+		return SyntaxFactory.PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, parenthesizedCondition);
+	}
+
+	private static bool IsComparisonOperator(SyntaxKind kind)
+	{
+		return kind is SyntaxKind.GreaterThanExpression
+			or SyntaxKind.GreaterThanOrEqualExpression
+			or SyntaxKind.LessThanExpression
+			or SyntaxKind.LessThanOrEqualExpression
+			or SyntaxKind.EqualsExpression
+			or SyntaxKind.NotEqualsExpression;
+	}
+
+	private static SyntaxKind? GetNegatedBinaryOperator(SyntaxKind kind)
+	{
+		return kind switch
+		{
+			// Comparison operators
+			SyntaxKind.GreaterThanExpression => SyntaxKind.LessThanOrEqualExpression,
+			SyntaxKind.GreaterThanOrEqualExpression => SyntaxKind.LessThanExpression,
+			SyntaxKind.LessThanExpression => SyntaxKind.GreaterThanOrEqualExpression,
+			SyntaxKind.LessThanOrEqualExpression => SyntaxKind.GreaterThanExpression,
+			SyntaxKind.EqualsExpression => SyntaxKind.NotEqualsExpression,
+			SyntaxKind.NotEqualsExpression => SyntaxKind.EqualsExpression,
+
+			// Logical operators (De Morgan's law)
+			SyntaxKind.LogicalAndExpression => SyntaxKind.LogicalOrExpression,
+			SyntaxKind.LogicalOrExpression => SyntaxKind.LogicalAndExpression,
+
+			_ => null
+		};
+	}
 }

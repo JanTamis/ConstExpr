@@ -765,7 +765,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 	public override object? VisitSizeOf(ISizeOfOperation operation, IDictionary<string, object?> argument)
 	{
-		return compilation.GetByteSize(loader, operation.Type);
+		return operation.Type.GetByteSize(loader);
 	}
 
 	public override object VisitInterpolatedString(IInterpolatedStringOperation operation, IDictionary<string, object?> argument)

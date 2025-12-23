@@ -348,7 +348,7 @@ public partial class ConstExprPartialRewriter
 	/// <summary>
 	/// Invalidates all assigned variables in the given node.
 	/// </summary>
-	private void InvalidateAssignedVariables(SyntaxNode node)
+	private void InvalidateAssignedVariables(StatementSyntax node)
 	{
 		foreach (var name in AssignedVariables(node))
 		{
@@ -361,7 +361,289 @@ public partial class ConstExprPartialRewriter
 
 	public override SyntaxNode VisitBlock(BlockSyntax node)
 	{
-		return node.WithStatements(VisitList(node.Statements));
+		var visited = VisitList(node.Statements);
+		var combined = CombineConsecutiveIfStatements(visited);
+		var simplified = SimplifyIfReturnPatterns(combined);
+		
+		return node.WithStatements(simplified);
+	}
+
+	/// <summary>
+	/// Simplifies patterns like:
+	/// - if (cond) { return true; } return false; => return cond;
+	/// - if (cond) { return false; } return true; => return !cond;
+	/// </summary>
+	private static SyntaxList<StatementSyntax> SimplifyIfReturnPatterns(SyntaxList<StatementSyntax> statements)
+	{
+		if (statements.Count < 2)
+		{
+			return statements;
+		}
+
+		var result = new List<StatementSyntax>();
+
+		for (var i = 0; i < statements.Count; i++)
+		{
+			// Check for pattern: if (cond) { return <bool>; } followed by return <opposite bool>;
+			if (i + 1 < statements.Count 
+			    && statements[i] is IfStatementSyntax { Else: null } ifStatement 
+			    && statements[i + 1] is ReturnStatementSyntax followingReturn 
+			    && TryGetIfReturnBoolPattern(ifStatement, followingReturn, out var simplifiedReturn))
+			{
+				result.Add(simplifiedReturn!);
+				i++; // Skip the following return statement
+				continue;
+			}
+
+			result.Add(statements[i]);
+		}
+
+		return SyntaxFactory.List(result);
+	}
+
+	/// <summary>
+	/// Tries to simplify if-return-bool patterns.
+	/// </summary>
+	private static bool TryGetIfReturnBoolPattern(IfStatementSyntax ifStatement, ReturnStatementSyntax followingReturn, out ReturnStatementSyntax? simplified)
+	{
+		simplified = null;
+
+		// Get the return statement from the if body
+		var ifBody = ifStatement.Statement;
+		ReturnStatementSyntax? ifReturn = ifBody switch
+		{
+			ReturnStatementSyntax ret => ret,
+			BlockSyntax { Statements: [ ReturnStatementSyntax ret ] } => ret,
+			_ => null
+		};
+
+		if (ifReturn is null)
+		{
+			return false;
+		}
+
+		// Check if both returns are boolean literals
+		if (!TryGetBoolLiteral(ifReturn.Expression, out var ifReturnValue) 
+		    || !TryGetBoolLiteral(followingReturn.Expression, out var followingReturnValue))
+		{
+			return false;
+		}
+
+		// Only simplify if they return opposite values
+		if (ifReturnValue == followingReturnValue)
+		{
+			return false;
+		}
+
+		// if (cond) { return true; } return false; => return cond;
+		// if (cond) { return false; } return true; => return !cond;
+		var condition = ifStatement.Condition;
+
+		if (ifReturnValue)
+		{
+			// return cond;
+			simplified = SyntaxFactory.ReturnStatement(condition);
+		}
+		else
+		{
+			// return !cond; (only add parentheses if needed)
+			var negatedCondition = NeedsParenthesesForNegation(condition)
+				? SyntaxFactory.PrefixUnaryExpression(
+					SyntaxKind.LogicalNotExpression,
+					SyntaxFactory.ParenthesizedExpression(condition))
+				: SyntaxFactory.PrefixUnaryExpression(
+					SyntaxKind.LogicalNotExpression,
+					condition);
+
+			simplified = SyntaxFactory.ReturnStatement(negatedCondition);
+		}
+
+		return true;
+	}
+
+	/// <summary>
+	/// Determines if an expression needs parentheses when negated.
+	/// </summary>
+	private static bool NeedsParenthesesForNegation(ExpressionSyntax expression)
+	{
+		// These expression types don't need parentheses when negated
+		return expression is not (IdentifierNameSyntax 
+			or LiteralExpressionSyntax 
+			or IsPatternExpressionSyntax 
+			or InvocationExpressionSyntax 
+			or MemberAccessExpressionSyntax 
+			or ParenthesizedExpressionSyntax 
+			or PrefixUnaryExpressionSyntax);
+	}
+
+	/// <summary>
+	/// Tries to extract a boolean literal value from an expression.
+	/// </summary>
+	private static bool TryGetBoolLiteral(ExpressionSyntax? expression, out bool value)
+	{
+		value = false;
+
+		if (expression is LiteralExpressionSyntax literal)
+		{
+			if (literal.IsKind(SyntaxKind.TrueLiteralExpression))
+			{
+				value = true;
+				return true;
+			}
+
+			if (literal.IsKind(SyntaxKind.FalseLiteralExpression))
+			{
+				value = false;
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/// <summary>
+	/// Combines consecutive if statements that have identical bodies and use equality comparisons
+	/// against the same target variable into a single if statement with OR conditions.
+	/// Example: if (1 == x) { return true; } if (5 == x) { return true; }
+	///       => if (x is 1 or 5) { return true; }
+	/// </summary>
+	private SyntaxList<StatementSyntax> CombineConsecutiveIfStatements(SyntaxList<StatementSyntax> statements)
+	{
+		if (statements.Count < 2)
+		{
+			return statements;
+		}
+
+		var result = new List<StatementSyntax>();
+		var i = 0;
+
+		while (i < statements.Count)
+		{
+			// Check if current statement is an if statement that can be combined
+			if (statements[i] is not IfStatementSyntax currentIf || currentIf.Else is not null)
+			{
+				result.Add(statements[i]);
+				i++;
+				
+				continue;
+			}
+
+			// Try to extract the comparison target and literal value
+			if (!TryGetEqualityComparisonInfo(currentIf.Condition, out var targetIdentifier, out var firstLiteral))
+			{
+				result.Add(statements[i]);
+				i++;
+				
+				continue;
+			}
+
+			// Collect all consecutive if statements with the same body and target
+			var bodyString = currentIf.Statement.NormalizeWhitespace().ToFullString();
+			var literals = new List<LiteralExpressionSyntax> { firstLiteral! };
+			var j = i + 1;
+
+			while (j < statements.Count)
+			{
+				if (statements[j] is not IfStatementSyntax { Else: null } nextIf)
+				{
+					break;
+				}
+
+				// Check if the body matches
+				var nextBodyString = nextIf.Statement.NormalizeWhitespace().ToFullString();
+				
+				if (bodyString != nextBodyString)
+				{
+					break;
+				}
+
+				// Check if the target matches and get the literal
+				if (!TryGetEqualityComparisonInfo(nextIf.Condition, out var nextTarget, out var nextLiteral) ||
+				    nextTarget != targetIdentifier)
+				{
+					break;
+				}
+
+				literals.Add(nextLiteral!);
+				j++;
+			}
+
+			// If we found multiple if statements to combine
+			if (literals.Count > 1)
+			{
+				// Create optimized condition using 'is' pattern with 'or'
+				// e.g., target is 1 or 5 or 10
+				var combinedCondition = CreateIsOrPattern(targetIdentifier!, literals);
+
+				// Create combined if statement
+				var combinedIf = currentIf.WithCondition(combinedCondition);
+				result.Add(combinedIf);
+				i = j;
+			}
+			else
+			{
+				result.Add(statements[i]);
+				i++;
+			}
+		}
+
+		return SyntaxFactory.List(result);
+	}
+
+	/// <summary>
+	/// Creates an 'is' pattern expression with 'or' for multiple values.
+	/// Example: target is 1 or 5 or 10
+	/// </summary>
+	private static ExpressionSyntax CreateIsOrPattern(string targetIdentifier, List<LiteralExpressionSyntax> literals)
+	{
+		// Build pattern: 1 or 5 or 10 or ...
+		PatternSyntax pattern = SyntaxFactory.ConstantPattern(literals[0]);
+
+		for (var k = 1; k < literals.Count; k++)
+		{
+			pattern = SyntaxFactory.BinaryPattern(
+				SyntaxKind.OrPattern,
+				pattern,
+				SyntaxFactory.ConstantPattern(literals[k]));
+		}
+
+		// Create: target is <pattern>
+		return SyntaxFactory.IsPatternExpression(
+			SyntaxFactory.IdentifierName(targetIdentifier),
+			pattern);
+	}
+
+	/// <summary>
+	/// Tries to extract the comparison target identifier and literal value from an equality expression.
+	/// Handles both 'value == target' and 'target == value' formats.
+	/// </summary>
+	private static bool TryGetEqualityComparisonInfo(ExpressionSyntax condition, out string? targetIdentifier, out LiteralExpressionSyntax? literal)
+	{
+		targetIdentifier = null;
+		literal = null;
+
+		if (condition is not BinaryExpressionSyntax binary 
+		    || !binary.IsKind(SyntaxKind.EqualsExpression))
+		{
+			return false;
+		}
+
+		switch (binary)
+		{
+			// Check if left side is identifier and right side is literal
+			case { Left: IdentifierNameSyntax leftId, Right: LiteralExpressionSyntax rightLit }:
+				targetIdentifier = leftId.Identifier.Text;
+				literal = rightLit;
+				return true;
+			// Check if right side is identifier and left side is literal
+			case { Right: IdentifierNameSyntax rightId, Left: LiteralExpressionSyntax leftLit }:
+				targetIdentifier = rightId.Identifier.Text;
+				literal = leftLit;
+				return true;
+			default:
+				return false;
+		}
+
 	}
 
 	public override SyntaxNode? VisitReturnStatement(ReturnStatementSyntax node)

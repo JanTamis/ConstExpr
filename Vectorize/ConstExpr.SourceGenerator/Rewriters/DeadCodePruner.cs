@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
 using System.Linq;
+using SourceGen.Utilities.Extensions;
 
 namespace ConstExpr.SourceGenerator.Rewriters;
 
@@ -11,19 +12,8 @@ namespace ConstExpr.SourceGenerator.Rewriters;
 /// Simplified dead code pruner using the Mark-and-Sweep pattern.
 /// First collects all variable usages, then prunes in a single rewrite pass.
 /// </summary>
-public sealed class DeadCodePruner : CSharpSyntaxRewriter
+public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDictionary<string, VariableItem> variables, SemanticModel model) : CSharpSyntaxRewriter
 {
-	private readonly VariableUsageCollector _usageCollector;
-	private readonly IDictionary<string, VariableItem> _variables;
-	private readonly SemanticModel _model;
-
-	private DeadCodePruner(VariableUsageCollector usageCollector, IDictionary<string, VariableItem> variables, SemanticModel model)
-	{
-		_usageCollector = usageCollector;
-		_variables = variables;
-		_model = model;
-	}
-
 	/// <summary>
 	/// Prunes dead code from a syntax node using the Mark-and-Sweep pattern.
 	/// </summary>
@@ -44,13 +34,13 @@ public sealed class DeadCodePruner : CSharpSyntaxRewriter
 	private bool CanBePruned(string variableName)
 	{
 		// Must not be read anywhere
-		if (!_usageCollector.CanBePruned(variableName))
+		if (!usageCollector.CanBePruned(variableName))
 		{
 			return false;
 		}
 
 		// If variable is not tracked (e.g., local in nested scope), it can be pruned if not read
-		if (!_variables.TryGetValue(variableName, out var variable))
+		if (!variables.TryGetValue(variableName, out var variable))
 		{
 			// Variable not in our tracking dictionary - if it's not read, it can be pruned
 			return true;
@@ -78,14 +68,13 @@ public sealed class DeadCodePruner : CSharpSyntaxRewriter
 			.Where(v => !CanBePruned(v.Identifier.Text))
 			.ToList();
 
-		if (remainingVariables.Count == 0)
+		switch (remainingVariables.Count)
 		{
-			return null;
-		}
-
-		if (remainingVariables.Count == 1)
-		{
-			node = node.WithType(SyntaxFactory.ParseTypeName("var"));
+			case 0:
+				return null;
+			case 1:
+				node = node.WithType(SyntaxFactory.ParseTypeName("var"));
+				break;
 		}
 
 		return node.WithVariables(SyntaxFactory.SeparatedList(remainingVariables));
@@ -93,28 +82,23 @@ public sealed class DeadCodePruner : CSharpSyntaxRewriter
 
 	public override SyntaxNode? VisitExpressionStatement(ExpressionStatementSyntax node)
 	{
-		// Prune assignments to dead variables
-		if (node.Expression is AssignmentExpressionSyntax assignment && ShouldPruneAssignment(assignment))
+		switch (node.Expression)
 		{
-			return null;
+			// Prune assignments to dead variables
+			case AssignmentExpressionSyntax assignment when ShouldPruneAssignment(assignment):
+			// Prune increment/decrement on dead variables
+			case PostfixUnaryExpressionSyntax { Operand: IdentifierNameSyntax postfixId }
+				when CanBePruned(postfixId.Identifier.Text):
+			case PrefixUnaryExpressionSyntax { Operand: IdentifierNameSyntax prefixId }
+				when CanBePruned(prefixId.Identifier.Text):
+				return null;
+			default:
+			{
+				var visited = Visit(node.Expression);
+
+				return visited is ExpressionSyntax expr ? node.WithExpression(expr) : node;
+			}
 		}
-
-		// Prune increment/decrement on dead variables
-		if (node.Expression is PostfixUnaryExpressionSyntax { Operand: IdentifierNameSyntax postfixId }
-		    && CanBePruned(postfixId.Identifier.Text))
-		{
-			return null;
-		}
-
-		if (node.Expression is PrefixUnaryExpressionSyntax { Operand: IdentifierNameSyntax prefixId }
-		    && CanBePruned(prefixId.Identifier.Text))
-		{
-			return null;
-		}
-
-		var visited = Visit(node.Expression);
-
-		return visited is ExpressionSyntax expr ? node.WithExpression(expr) : node;
 	}
 
 	public override SyntaxNode? VisitBlock(BlockSyntax node)
@@ -126,19 +110,22 @@ public sealed class DeadCodePruner : CSharpSyntaxRewriter
 		{
 			var visited = Visit(statement);
 
-			if (!terminalReached && visited is StatementSyntax stmt)
+			switch (terminalReached)
 			{
-				statements.Add(stmt);
-
-				if (IsTerminalStatement(stmt))
+				case false when visited is StatementSyntax stmt:
 				{
-					terminalReached = true;
+					statements.Add(stmt);
+
+					if (IsTerminalStatement(stmt))
+					{
+						terminalReached = true;
+					}
+					break;
 				}
-			}
-			else if (terminalReached && visited is LocalFunctionStatementSyntax localFunc)
-			{
-				// Keep local functions even after terminal statements
-				statements.Add(localFunc);
+				case true when visited is LocalFunctionStatementSyntax localFunc:
+					// Keep local functions even after terminal statements
+					statements.Add(localFunc);
+					break;
 			}
 		}
 
@@ -213,7 +200,7 @@ public sealed class DeadCodePruner : CSharpSyntaxRewriter
 		// If calling a method on a pruned variable, prune the call
 		if (node.Expression is MemberAccessExpressionSyntax { Expression: IdentifierNameSyntax id }
 		    && CanBePruned(id.Identifier.Text)
-		    && _model.Compilation.GetTypeByMetadataName($"System.{id}") is null)
+		    && model.Compilation.GetTypeByMetadataName($"System.{id}") is null)
 		{
 			return null;
 		}
@@ -283,7 +270,7 @@ public sealed class DeadCodePruner : CSharpSyntaxRewriter
 		// Ensure space after 'return' keyword
 		if (token.IsKind(SyntaxKind.ReturnKeyword) && token.Parent is ReturnStatementSyntax { Expression: not null })
 		{
-			if (!trailing.Any(t => t.IsKind(SyntaxKind.WhitespaceTrivia) || t.IsKind(SyntaxKind.EndOfLineTrivia)))
+			if (!trailing.Any(t => t.IsKind(SyntaxKind.WhitespaceTrivia, SyntaxKind.EndOfLineTrivia)))
 			{
 				trailing = trailing.Add(SyntaxFactory.Space);
 			}

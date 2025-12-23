@@ -94,20 +94,20 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 
 			if (!terminalReached)
 			{
-        switch (visited)
-        {
-          case ExpressionStatementSyntax expressionStatement:
-            result.Add(SyntaxFactory.ExpressionStatement(expressionStatement.Expression));
-            break;
-          case StatementSyntax statementSyntax:
-            result.Add(statementSyntax);
-            break;
-          case ExpressionSyntax expressionSyntax:
-            result.Add(SyntaxFactory.ExpressionStatement(expressionSyntax));
-            break;
-        }
+				switch (visited)
+				{
+					case ExpressionStatementSyntax expressionStatement:
+						result.Add(SyntaxFactory.ExpressionStatement(expressionStatement.Expression));
+						break;
+					case StatementSyntax statementSyntax:
+						result.Add(statementSyntax);
+						break;
+					case ExpressionSyntax expressionSyntax:
+						result.Add(SyntaxFactory.ExpressionStatement(expressionSyntax));
+						break;
+				}
 
-        if (visited is StatementSyntax stmt && IsTerminalStatement(stmt))
+				if (visited is StatementSyntax stmt && IsTerminalStatement(stmt))
 				{
 					terminalReached = true;
 				}
@@ -191,12 +191,9 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 	{
 		var body = Visit(node.Statement);
 
-		if (body is null or BlockSyntax { Statements.Count: 0 })
+		if (body is null or BlockSyntax { Statements.Count: 0 } && node.Else is null)
 		{
-			if (node.Else is null)
-			{
-				return null;
-			}
+			return null;
 		}
 
 		return base.VisitIfStatement(node);
@@ -229,8 +226,8 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 
 	public override SyntaxNode? VisitInvocationExpression(InvocationExpressionSyntax node)
 	{
-		if ((node.Expression is MemberAccessExpressionSyntax { Expression: IdentifierNameSyntax identifier } 
-		    && CanBePruned(identifier.Identifier.Text))
+		if (node.Expression is MemberAccessExpressionSyntax { Expression: IdentifierNameSyntax identifier }
+		    && CanBePruned(identifier.Identifier.Text)
 		    || node.ArgumentList.Arguments.Any(a => CanBePruned(a.Expression)))
 		{
 			return null;
@@ -245,21 +242,18 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 		if (TryGetLiteralValue(node.Expression, out _))
 		{
 			// Check if this member access is for a property or field that doesn't have side effects
-			var symbolInfo = apiCache != null 
-				? apiCache.GetOrAddSymbolInfo(node, semanticModel, cancellationToken)
-				: semanticModel.GetSymbolInfo(node, cancellationToken);
+			var symbolInfo = apiCache?.GetOrAddSymbolInfo(node, semanticModel, cancellationToken) ?? semanticModel.GetSymbolInfo(node, cancellationToken);
 
-			if (symbolInfo.Symbol is IPropertySymbol property && property.IsReadOnly)
+			switch (symbolInfo.Symbol)
 			{
-				// This is accessing a readonly property on a constant - safe to prune if not used
-				return node; // Let parent visitor decide if it should be pruned
+				case IPropertySymbol { IsReadOnly: true }:
+					// This is accessing a readonly property on a constant - safe to prune if not used
+					return node; // Let parent visitor decide if it should be pruned
+				case IFieldSymbol { IsReadOnly: true }:
+					// This is accessing a readonly field on a constant - safe to prune if not used
+					return node; // Let parent visitor decide if it should be pruned
 			}
 
-			if (symbolInfo.Symbol is IFieldSymbol field && field.IsReadOnly)
-			{
-				// This is accessing a readonly field on a constant - safe to prune if not used
-				return node; // Let parent visitor decide if it should be pruned
-			}
 		}
 
 		return base.VisitMemberAccessExpression(node);
@@ -268,35 +262,30 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 	public override SyntaxNode? VisitObjectCreationExpression(ObjectCreationExpressionSyntax node)
 	{
 		// Check if this is creating an object with constant arguments that has no side effects
-		var symbolInfo = apiCache != null 
-			? apiCache.GetOrAddSymbolInfo(node, semanticModel, cancellationToken)
-			: semanticModel.GetSymbolInfo(node, cancellationToken);
+		var symbolInfo = apiCache?.GetOrAddSymbolInfo(node, semanticModel, cancellationToken) ?? semanticModel.GetSymbolInfo(node, cancellationToken);
 
-		if (symbolInfo.Symbol is IMethodSymbol constructor)
+		if (symbolInfo.Symbol is IMethodSymbol { ContainingType.IsValueType: true })
 		{
 			// Check if it's a value type or immutable type that's safe to prune
-			if (constructor.ContainingType.IsValueType)
-			{
-				// For value types, check if all constructor arguments are constants
-				var allArgsConstant = true;
+			// For value types, check if all constructor arguments are constants
+			var allArgsConstant = true;
 
-				if (node.ArgumentList != null)
+			if (node.ArgumentList != null)
+			{
+				foreach (var arg in node.ArgumentList.Arguments)
 				{
-					foreach (var arg in node.ArgumentList.Arguments)
+					if (!TryGetLiteralValue(arg.Expression, out _))
 					{
-						if (!TryGetLiteralValue(arg.Expression, out _))
-						{
-							allArgsConstant = false;
-							break;
-						}
+						allArgsConstant = false;
+						break;
 					}
 				}
+			}
 
-				// If all arguments are constant, this object creation can be pruned if not used
-				if (allArgsConstant)
-				{
-					return node; // Let parent visitor decide if it should be pruned
-				}
+			// If all arguments are constant, this object creation can be pruned if not used
+			if (allArgsConstant)
+			{
+				return node; // Let parent visitor decide if it should be pruned
 			}
 		}
 
@@ -400,12 +389,12 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 	public override SyntaxNode? VisitForEachStatement(ForEachStatementSyntax node)
 	{
 		var list = Visit(node.Expression);
-		
+
 		if (list is null)
 		{
 			return null;
 		}
-		
+
 		return base.VisitForEachStatement(node);
 	}
 
@@ -435,10 +424,10 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 	{
 		// A statement that guarantees no following statement in the same block will execute
 		return statement is ReturnStatementSyntax
-		       || statement is ThrowStatementSyntax
-		       || statement is BreakStatementSyntax
-		       || statement is ContinueStatementSyntax
-		       || (statement is YieldStatementSyntax ys && ys.IsKind(SyntaxKind.YieldBreakStatement));
+		       or ThrowStatementSyntax
+		       or BreakStatementSyntax
+		       or ContinueStatementSyntax
+		       or YieldStatementSyntax { RawKind: (int)SyntaxKind.YieldBreakStatement };
 	}
 
 	private static bool HasPureAttribute(IMethodSymbol method)

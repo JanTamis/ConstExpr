@@ -2,6 +2,7 @@ using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 using SourceGen.Utilities.Extensions;
@@ -108,22 +109,18 @@ public partial class ConstExprPartialRewriter
 
 		foreach (var strategy in strategies)
 		{
-			if (strategy.CanBeOptimized(context))
+			if (strategy.CanBeOptimized(context) 
+			    && strategy.Optimize(context) is { } result)
 			{
-				var result = strategy.Optimize(context);
-
-				if (result is not null)
+				if (result is BinaryExpressionSyntax binary
+				    && TryOptimizeNode(binary.Kind().ToBinaryOperatorKind(), type, binary.Left, leftType, binary.Right, rightType, out var nested))
 				{
-					if (result is BinaryExpressionSyntax binary
-					    && TryOptimizeNode(binary.Kind().ToBinaryOperatorKind(), type, binary.Left, leftType, binary.Right, rightType, out var nested))
-					{
-						syntaxNode = nested;
-						return true;
-					}
-
-					syntaxNode = result;
+					syntaxNode = nested;
 					return true;
 				}
+
+				syntaxNode = result;
+				return true;
 			}
 		}
 
@@ -238,7 +235,7 @@ public partial class ConstExprPartialRewriter
 	/// <summary>
 	/// Gets the set of local/parameter names assigned within a given block node using Roslyn data flow.
 	/// </summary>
-	private IEnumerable<string> AssignedVariables(SyntaxNode? block)
+	private IEnumerable<string> AssignedVariables(StatementSyntax? block)
 	{
 		if (block == null)
 		{
@@ -258,5 +255,27 @@ public partial class ConstExprPartialRewriter
 			.Select(symbol => symbol.Name);
 
 		return assignedVariables;
+	}
+
+	/// <summary>
+	/// Tries to get the compound assignment kind for a given binary expression kind.
+	/// For example, LeftShiftExpression maps to LeftShiftAssignmentExpression.
+	/// </summary>
+	private static SyntaxKind TryGetCompoundAssignmentKind(SyntaxKind binaryKind)
+	{
+		return binaryKind switch
+		{
+			SyntaxKind.AddExpression => SyntaxKind.AddAssignmentExpression,
+			SyntaxKind.SubtractExpression => SyntaxKind.SubtractAssignmentExpression,
+			SyntaxKind.MultiplyExpression => SyntaxKind.MultiplyAssignmentExpression,
+			SyntaxKind.DivideExpression => SyntaxKind.DivideAssignmentExpression,
+			SyntaxKind.ModuloExpression => SyntaxKind.ModuloAssignmentExpression,
+			SyntaxKind.LeftShiftExpression => SyntaxKind.LeftShiftAssignmentExpression,
+			SyntaxKind.RightShiftExpression => SyntaxKind.RightShiftAssignmentExpression,
+			SyntaxKind.BitwiseAndExpression => SyntaxKind.AndAssignmentExpression,
+			SyntaxKind.BitwiseOrExpression => SyntaxKind.OrAssignmentExpression,
+			SyntaxKind.ExclusiveOrExpression => SyntaxKind.ExclusiveOrAssignmentExpression,
+			_ => SyntaxKind.None
+		};
 	}
 }

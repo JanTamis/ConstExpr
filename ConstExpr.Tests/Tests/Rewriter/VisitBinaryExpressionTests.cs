@@ -4,22 +4,21 @@ namespace ConstExpr.Tests.Tests.Rewriter;
 /// Tests for VisitBinaryExpression - arithmetic/comparison/logical folding
 /// </summary>
 [InheritsTests]
-public class VisitBinaryExpressionTests : BaseTest
+public class VisitBinaryExpressionTests : BaseTest<Func<int, int, bool, bool, (int, int, int, int, int, bool, bool, bool)>>
 {
-	public override string TestMethod => """
-		(int, int, int, int, int, bool, bool, bool) TestMethod(int x, int y, bool b1, bool b2)
-		{
-			var a = x + y;
-			var b = x - y;
-			var c = x * y;
-			var d = x / y;
-			var e = x % y;
-			var f = x > y;
-			var g = b1 && b2;
-			var h = b1 || b2;
-			return (a, b, c, d, e, f, g, h);
-		}
-		""";
+	public override string TestMethod => GetString((x, y, b1, b2) =>
+	{
+		var a = x + y;
+		var b = x - y;
+		var c = x * y;
+		var d = x / y;
+		var e = x % y;
+		var f = x > y;
+		var g = b1 && b2;
+		var h = b1 || b2;
+
+		return (a, b, c, d, e, f, g, h);
+	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
@@ -30,4 +29,3 @@ public class VisitBinaryExpressionTests : BaseTest
 		Create("return (0, -20, -100, -1, 0, false, false, true);", -10, 10, false, true)
 	];
 }
-

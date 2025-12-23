@@ -11,6 +11,7 @@ using System.Globalization;
 using System.Linq;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
+using SourceGen.Utilities.Extensions;
 
 namespace ConstExpr.SourceGenerator.Rewriters;
 
@@ -22,12 +23,17 @@ public partial class ConstExprPartialRewriter
 {
 	public override SyntaxNode? VisitLiteralExpression(LiteralExpressionSyntax node)
 	{
+		if (node.Token.Value is null)
+		{
+			return node;
+		}
+
 		if (TryGetLiteral(node.Token.Value, out var expression))
 		{
 			// Don't implicitly convert char literals to int - they should remain as char
 			// to preserve their representation in pattern matching contexts
 			if (semanticModel.GetOperation(node) is { Parent: IConversionOperation conversion }
-			    && !(node.Token.Value is char && conversion.Type?.SpecialType == SpecialType.System_Int32))
+			    && (node.Token.Value is not char || conversion.Type?.SpecialType != SpecialType.System_Int32))
 			{
 				TryGetLiteral(ExecuteConversion(conversion, node.Token.Value), out expression);
 			}
@@ -57,13 +63,13 @@ public partial class ConstExprPartialRewriter
 			// Don't implicitly convert char values to int - they should remain as char
 			// to preserve their representation in pattern matching contexts
 			if (hasLeftValue && operation.LeftOperand is IConversionOperation leftConversion
-			    && !(leftValue is char && leftConversion.Type?.SpecialType == SpecialType.System_Int32))
+			                 && !(leftValue is char && leftConversion.Type?.SpecialType == SpecialType.System_Int32))
 			{
 				leftValue = ExecuteConversion(leftConversion, leftValue);
 			}
 
 			if (hasRightValue && operation.RightOperand is IConversionOperation rightConversion
-			    && !(rightValue is char && rightConversion.Type?.SpecialType == SpecialType.System_Int32))
+			                  && (rightValue is not char || rightConversion.Type?.SpecialType != SpecialType.System_Int32))
 			{
 				rightValue = ExecuteConversion(rightConversion, rightValue);
 			}
@@ -71,7 +77,7 @@ public partial class ConstExprPartialRewriter
 			if (hasLeftValue && hasRightValue)
 			{
 				if (operation.OperatorMethod is not null
-				    && loader.TryExecuteMethod(operation.OperatorMethod, null, new VariableItemDictionary(variables), [leftValue, rightValue], out var result))
+				    && loader.TryExecuteMethod(operation.OperatorMethod, null, new VariableItemDictionary(variables), [ leftValue, rightValue ], out var result))
 				{
 					return CreateLiteral(result);
 				}
@@ -84,6 +90,12 @@ public partial class ConstExprPartialRewriter
 			{
 				if (TryOptimizeBinaryExpression(operation, leftExpr, rightExpr, out var optimized))
 				{
+					if (node.Parent is not BinaryExpressionSyntax && optimized is IsPatternExpressionSyntax pattern
+					                                              && TryOptmizePattern(pattern, out var result))
+					{
+						return result;
+					}
+
 					return optimized;
 				}
 
@@ -104,19 +116,11 @@ public partial class ConstExprPartialRewriter
 		var visitedLeft = Visit(node.Left);
 		var exprToEvaluate = visitedLeft ?? node.Left;
 
-		if (TryGetConstantValue(semanticModel.Compilation, loader, exprToEvaluate, new VariableItemDictionary(variables), token, out var value))
+		if (TryGetConstantValue(semanticModel.Compilation, loader, exprToEvaluate, new VariableItemDictionary(variables), token, out var value)
+		    && GetTypeFromRightSide(node.Right) is { } typeInfo
+		    && IsTypeMatchForBinaryIs(typeInfo, value) is { } result)
 		{
-			ITypeSymbol? typeInfo = GetTypeFromRightSide(node.Right);
-
-			if (typeInfo is not null)
-			{
-				var result = IsTypeMatchForBinaryIs(typeInfo, value);
-
-				if (result.HasValue)
-				{
-					return CreateLiteral(result.Value);
-				}
-			}
+			return CreateLiteral(result);
 		}
 
 		return node.WithLeft(visitedLeft as ExpressionSyntax ?? node.Left);
@@ -175,11 +179,7 @@ public partial class ConstExprPartialRewriter
 				return typeInfo.NullableAnnotation == NullableAnnotation.Annotated;
 			}
 
-			if (typeInfo.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
-			{
-				return true;
-			}
-			return false;
+			return typeInfo.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T;
 		}
 
 		var valueType = val.GetType();
@@ -351,18 +351,11 @@ public partial class ConstExprPartialRewriter
 			}
 		}
 
-		if (semanticModel.GetOperation(node) is IUnaryOperation { ConstantValue.HasValue: true } operation)
+		if (semanticModel.GetOperation(node) is IUnaryOperation { ConstantValue.HasValue: true } operation
+		    && (operation.Parent is IConversionOperation conversionOperation
+			    && TryGetLiteral(conversionOperation.ConstantValue.Value, out var lit1) || TryGetLiteral(operation.ConstantValue.Value, out lit1)))
 		{
-			if (operation.Parent is IConversionOperation conversionOperation
-			    && TryGetLiteral(conversionOperation.ConstantValue.Value, out var lit))
-			{
-				return lit;
-			}
-
-			if (TryGetLiteral(operation.ConstantValue.Value, out lit))
-			{
-				return lit;
-			}
+			return lit1;
 		}
 
 		return node.WithOperand(operand as ExpressionSyntax ?? node.Operand);
@@ -426,16 +419,10 @@ public partial class ConstExprPartialRewriter
 		object? updated = null;
 
 		// Prefer operator method if available (overloaded ++/--)
-		if (TryGetOperation(semanticModel, node, out IIncrementOrDecrementOperation? op) && op is not null)
+		if (TryGetOperation(semanticModel, node, out IIncrementOrDecrementOperation? op)
+		    && loader.TryExecuteMethod(op.OperatorMethod, null, new VariableItemDictionary(variables), [ current ], out var res))
 		{
-			try
-			{
-				if (loader.TryExecuteMethod(op.OperatorMethod, null, new VariableItemDictionary(variables), [current], out var res))
-				{
-					updated = res;
-				}
-			}
-			catch { }
+			updated = res;
 		}
 
 		if (updated is null)
@@ -494,23 +481,22 @@ public partial class ConstExprPartialRewriter
 	public override SyntaxNode? VisitPostfixUnaryExpression(PostfixUnaryExpressionSyntax node)
 	{
 		// Support i++ and i--
-		if (node.OperatorToken.IsKind(SyntaxKind.PlusPlusToken) || node.OperatorToken.IsKind(SyntaxKind.MinusMinusToken))
+		if ((node.OperatorToken.IsKind(SyntaxKind.PlusPlusToken) || node.OperatorToken.IsKind(SyntaxKind.MinusMinusToken))
+		    && node.Operand is IdentifierNameSyntax id
+		    && variables.TryGetValue(id.Identifier.Text, out var variable))
 		{
-			if (node.Operand is IdentifierNameSyntax id && variables.TryGetValue(id.Identifier.Text, out var variable))
+			if (variable.IsInitialized && TryGetLiteralValue(id, out var current))
 			{
-				if (variable.IsInitialized && TryGetLiteralValue(id, out var current))
-				{
-					var updated = ComputeIncrementDecrement(node, current, variable);
+				var updated = ComputeIncrementDecrement(node, current, variable);
 
-					// Postfix returns the original value, but updates the variable
-					variable.Value = updated;
-					variable.HasValue = true;
+				// Postfix returns the original value, but updates the variable
+				variable.Value = updated;
+				variable.HasValue = true;
 
-					return TryGetLiteral(current, out var lit) ? lit : node.WithOperand(id);
-				}
-
-				variable.IsAltered = true;
+				return TryGetLiteral(current, out var lit) ? lit : node.WithOperand(id);
 			}
+
+			variable.IsAltered = true;
 		}
 
 		return base.VisitPostfixUnaryExpression(node);
@@ -522,9 +508,13 @@ public partial class ConstExprPartialRewriter
 
 		// Try to remove parentheses if possible
 		if (node.CanRemoveParentheses(semanticModel, token)
-		    || visitedExpression is ParenthesizedExpressionSyntax or IdentifierNameSyntax or LiteralExpressionSyntax
-		       or InvocationExpressionSyntax or ObjectCreationExpressionSyntax or IsPatternExpressionSyntax
-		       or InterpolatedStringExpressionSyntax)
+		    || visitedExpression is ParenthesizedExpressionSyntax
+			    or IdentifierNameSyntax
+			    or LiteralExpressionSyntax
+			    or InvocationExpressionSyntax
+			    or ObjectCreationExpressionSyntax
+			    or IsPatternExpressionSyntax
+			    or InterpolatedStringExpressionSyntax)
 		{
 			return visitedExpression;
 		}
@@ -550,7 +540,7 @@ public partial class ConstExprPartialRewriter
 				// Handle non-special types via operator method
 				if (symbol.SpecialType == SpecialType.None
 				    && TryGetOperation(semanticModel, node, out IConversionOperation? operation)
-				    && loader.TryExecuteMethod(operation.OperatorMethod, null, new VariableItemDictionary(variables), [value], out var opResult)
+				    && loader.TryExecuteMethod(operation.OperatorMethod, null, new VariableItemDictionary(variables), [ value ], out var opResult)
 				    && TryGetLiteral(opResult, out literal))
 				{
 					return literal;
@@ -657,24 +647,22 @@ public partial class ConstExprPartialRewriter
 				return Visit(elementAccess);
 			}
 
-			if (node.WhenNotNull is InvocationExpressionSyntax invocation)
+			// For ?.Method() we need to handle the member binding inside
+			if (node.WhenNotNull is InvocationExpressionSyntax { Expression: MemberBindingExpressionSyntax methodBinding } invocation)
 			{
-				// For ?.Method() we need to handle the member binding inside
-				if (invocation.Expression is MemberBindingExpressionSyntax methodBinding)
-				{
-					var memberAccess = MemberAccessExpression(
-						SyntaxKind.SimpleMemberAccessExpression,
-						expression as ExpressionSyntax ?? node.Expression,
-						methodBinding.Name);
+				var memberAccess = MemberAccessExpression(
+					SyntaxKind.SimpleMemberAccessExpression,
+					expression as ExpressionSyntax ?? node.Expression,
+					methodBinding.Name);
 
-					var newInvocation = InvocationExpression(memberAccess, invocation.ArgumentList);
-					return Visit(newInvocation);
-				}
+				var newInvocation = InvocationExpression(memberAccess, invocation.ArgumentList);
+
+				return Visit(newInvocation);
 			}
 		}
 
 		// x?.Member where x is known null → null
-		if (expression is LiteralExpressionSyntax { RawKind: (int)SyntaxKind.NullLiteralExpression })
+		if (expression is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NullLiteralExpression })
 		{
 			return LiteralExpression(SyntaxKind.NullLiteralExpression);
 		}
@@ -735,7 +723,10 @@ public partial class ConstExprPartialRewriter
 
 		if (result.All(a => a is InterpolatedStringTextSyntax))
 		{
-			var combinedText = string.Concat(result.OfType<InterpolatedStringTextSyntax>().Select(s => s.TextToken.ValueText));
+			var combinedText = String.Concat(result
+				.OfType<InterpolatedStringTextSyntax>()
+				.Select(s => s.TextToken.ValueText));
+
 			return LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(combinedText));
 		}
 
@@ -775,5 +766,362 @@ public partial class ConstExprPartialRewriter
 
 		return interp.WithExpression(visited as ExpressionSyntax ?? interp.Expression);
 	}
-}
 
+	private bool TryOptmizePattern(IsPatternExpressionSyntax pattern, out ExpressionSyntax? result)
+	{
+		result = null;
+
+		// Only optimize binary patterns with OR
+		if (pattern.Pattern is not BinaryPatternSyntax binaryPattern
+		    || !TryGetTypeSymbol(pattern.Expression, out var type)
+		    || !semanticModel.Compilation.TryGetUnsignedType(type, out var unsignedType))
+		{
+			return false;
+		}
+
+		var constants = new List<object?>();
+		var isUnsigedType = IsEqualSymbol(type, unsignedType);
+
+		// Extract all constant values from the OR pattern
+		if (!TryExtractOrPatternConstants(binaryPattern, constants))
+		{
+			return false;
+		}
+
+		// Need at least 2 values to make optimization worthwhile
+		if (constants.Count < 2)
+		{
+			return false;
+		}
+
+		constants = constants
+			.Distinct()
+			.OrderBy(o => o)
+			.ToList();
+
+		var results = new List<ExpressionSyntax>();
+
+		var minValue = constants[0];
+		var maxValue = constants[^1];
+		var originalMinValue = minValue;
+
+		var clusters = constants.GetClusters().ToList();
+
+		maxValue = maxValue.Subtract(minValue);
+		minValue = minValue.Subtract(minValue);
+
+		if (clusters.Count != 1
+		    && Convert.ToInt32(maxValue) <= maxValue.GetBitSize())
+		{
+			var identifierSyntax = pattern.Expression;
+			
+			var expression = isUnsigedType
+				? pattern.Expression
+				: CastExpression(
+					ParseTypeName(semanticModel.Compilation.GetMinimalString(unsignedType)),
+					identifierSyntax);
+
+			if (!constants[0].IsNumericZero()
+			    && TryGetLiteral(constants[0], out var minLit))
+			{
+				identifierSyntax = BinaryExpression(SyntaxKind.SubtractExpression, pattern.Expression, minLit);
+					
+				expression = isUnsigedType
+					? identifierSyntax
+					: CastExpression(
+						ParseTypeName(semanticModel.Compilation.GetMinimalString(unsignedType)),
+						ParenthesizedExpression(identifierSyntax));
+			}
+
+			for (var i = 0; i < constants.Count; i++)
+			{
+				constants[i] = constants[i].Subtract(minValue);
+			}
+
+			// Calculate the bitmask using relative positions from minValue
+			var bitmask = 0.ToSpecialType(type.SpecialType);
+
+			foreach (var value in constants)
+			{
+				// Calculate relative position: value - minValue
+				var relativePos = value.Subtract(originalMinValue);
+				bitmask = bitmask.Or(GetOneLiteral(type).LeftShift(relativePos));
+			}
+
+			// bitmask = bitmask.ToSpecialType(unsignedType.SpecialType);
+
+			if (!TryGetLiteral(GetOneLiteral(type), out var oneLit))
+			{
+				return true;
+			}
+
+			var bitmaskExpr = BuildBitmaskExpression(bitmask, oneLit, identifierSyntax, type);
+
+			if (TryGetLiteral(maxValue.Subtract(minValue).ToSpecialType(unsignedType.SpecialType), out var unsigneddiff))
+			{
+				expression = BinaryExpression(SyntaxKind.LessThanOrEqualExpression, expression, unsigneddiff);
+
+				result = BinaryExpression(SyntaxKind.LogicalAndExpression, expression, bitmaskExpr);
+				return true;
+			}
+			
+			return false;
+		}
+
+		foreach (var cluster in constants!.GetClusters())
+		{
+			minValue = cluster.start;
+			maxValue = cluster.end;
+
+			var step = cluster.step;
+			var values = cluster.values;
+
+			if (!TryGetLiteral(maxValue, out var maxLit)
+			    || !TryGetLiteral(step, out var stepLit)
+			    || !TryGetLiteral(maxValue.Subtract(minValue).ToSpecialType(unsignedType.SpecialType), out var unsigneddiff))
+			{
+				return false;
+			}
+
+			var expression = isUnsigedType
+				? pattern.Expression
+				: CastExpression(
+					ParseTypeName(semanticModel.Compilation.GetMinimalString(unsignedType)),
+					pattern.Expression);
+
+			if (!constants[0].IsNumericZero()
+			    && TryGetLiteral(constants[0], out var minLit))
+			{
+				expression = isUnsigedType
+					? BinaryExpression(SyntaxKind.SubtractExpression, pattern.Expression, minLit)
+					: CastExpression(
+						ParseTypeName(semanticModel.Compilation.GetMinimalString(unsignedType)),
+						ParenthesizedExpression(BinaryExpression(SyntaxKind.SubtractExpression, pattern.Expression, minLit)));
+			}
+
+			if (values.Count != 1)
+			{
+				// add range check 
+				results.Add(BinaryExpression(SyntaxKind.LessThanOrEqualExpression, expression, unsigneddiff));
+			}
+
+			originalMinValue = minValue;
+
+			if (step.IsNumericOne())
+			{
+				continue;
+			}
+
+			if (step.IsNumericTwo())
+			{
+				var memberAccess = MemberAccessExpression(
+					SyntaxKind.SimpleMemberAccessExpression,
+					ParseTypeName(type.Name),
+					IdentifierName(minValue.IsEvenNumber() ? "IsEvenInteger" : "IsOddInteger"));
+
+				// Generate optimized expression: ((uint)target - {minValue}) & 1) == 0 && (uint)target - {minValue} <= {maxValue} - {minValue}
+				results.Add(InvocationExpression(memberAccess, ArgumentList([ Argument(pattern.Expression) ])));
+				continue;
+			}
+
+			if (Convert.ToInt32(maxValue) > maxValue.GetBitSize())
+			{
+				maxValue = maxValue.Subtract(minValue);
+				minValue = minValue.Subtract(minValue);
+
+				if (Convert.ToInt32(maxValue) <= maxValue.GetBitSize())
+				{
+					for (var i = 0; i < values.Count; i++)
+					{
+						values[i] = values[i].Subtract(minValue);
+					}
+				}
+				else
+				{
+					// Generate optimized expression: ({maxValue} - {minValue}) % {step} == 0
+					results.Add(BinaryExpression(
+						SyntaxKind.EqualsExpression,
+						BinaryExpression(
+							SyntaxKind.ModuloExpression,
+							pattern.Expression,
+							stepLit),
+						GetDefault(type)));
+
+					continue;
+				}
+			}
+
+			if (values.Count == 1)
+			{
+				results.Add(BinaryExpression(SyntaxKind.EqualsExpression, pattern.Expression, maxLit));
+				continue;
+			}
+
+			// Calculate the bitmask using relative positions from minValue
+			var bitmask = 0.ToSpecialType(type.SpecialType);
+
+			foreach (var value in values)
+			{
+				// Calculate relative position: value - minValue
+				var relativePos = value.Subtract(originalMinValue);
+				bitmask = bitmask.Or(GetOneLiteral(type).LeftShift(relativePos));
+			}
+
+			// bitmask = bitmask.ToSpecialType(unsignedType.SpecialType);
+
+			if (!TryGetLiteral(originalMinValue, out var orgMinLit)
+			    || !TryGetLiteral(GetOneLiteral(type), out var oneLit))
+			{
+				return false;
+			}
+
+			// Always create the subtraction expression for the shift: (target - minValue)
+			var shiftTargetExpr = BinaryExpression(
+				SyntaxKind.SubtractExpression,
+				pattern.Expression,
+				orgMinLit);
+
+			var bitmaskCheck = BuildBitmaskExpression(bitmask, oneLit, shiftTargetExpr, type);
+
+			results.Add(bitmaskCheck);
+		}
+
+		result = results[0];
+
+		for (var i = 1; i < results.Count; i++)
+		{
+			result = BinaryExpression(i == 1 ? SyntaxKind.LogicalAndExpression : SyntaxKind.LogicalOrExpression, result, results[i]);
+		}
+
+		return true;
+
+		ExpressionSyntax GetDefault(ITypeSymbol typeSymbol)
+		{
+			if (typeSymbol.SpecialType == SpecialType.System_Char)
+			{
+				return LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0));
+			}
+
+			return type.GetDefaultValue();
+		}
+
+		object? GetOneLiteral(ITypeSymbol typeSymbol)
+		{
+			if (typeSymbol.SpecialType == SpecialType.System_Char)
+			{
+				return 1;
+			}
+
+			return 1.ToSpecialType(typeSymbol.SpecialType);
+		}
+
+		LiteralExpressionSyntax CreateHexLiteralFromObject(object? value)
+		{
+			if (value is null)
+			{
+				return LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal("0", 0));
+			}
+
+			var token = value switch
+			{
+				int i => Literal("0x" + i.ToString("X"), i),
+				uint ui => Literal("0x" + ui.ToString("X") + "u", ui),
+				long l => Literal("0x" + unchecked((ulong) l).ToString("X").Insert(0, "0x") + "L", l),
+				ulong ul => Literal("0x" + ul.ToString("X") + "UL", ul),
+				short s => Literal("0x" + ((ushort) s).ToString("X"), s),
+				ushort us => Literal("0x" + us.ToString("X"), us),
+				byte b => Literal("0x" + b.ToString("X"), b),
+				sbyte sb => Literal("0x" + ((byte) sb).ToString("X"), sb),
+				char c => Literal("0x" + ((int) c).ToString("X"), (int) c),
+			};
+
+			return LiteralExpression(SyntaxKind.NumericLiteralExpression, token);
+		}
+
+		ExpressionSyntax BuildBitmaskExpression(object? bitmaskValue, ExpressionSyntax oneLiteral, ExpressionSyntax shiftExpression, ITypeSymbol maskType)
+		{
+			var maskLiteral = CreateHexLiteralFromObject(bitmaskValue);
+
+			// bitmask check: ({mask} >> shiftExpression & 1) != 0;
+			var shiftRight = BinaryExpression(
+				SyntaxKind.RightShiftExpression,
+				maskLiteral,
+				shiftExpression);
+
+			var andMask = BinaryExpression(
+				SyntaxKind.BitwiseAndExpression,
+				shiftRight,
+				oneLiteral);
+
+			return BinaryExpression(
+				SyntaxKind.NotEqualsExpression,
+				ParenthesizedExpression(andMask),
+				GetDefault(maskType));
+		}
+	}
+
+	/// <summary>
+	/// Extracts all constant values from an OR pattern.
+	/// </summary>
+	private bool TryExtractOrPatternConstants(BinaryPatternSyntax pattern, List<object?> constants)
+	{
+		// Check if this is an OR pattern
+		if (!pattern.OperatorToken.IsKind(SyntaxKind.OrKeyword))
+		{
+			return false;
+		}
+
+		// Recursively extract constants from left side
+		if (!TryExtractPatternConstants(pattern.Left, constants))
+		{
+			return false;
+		}
+
+		// Recursively extract constants from right side
+		if (!TryExtractPatternConstants(pattern.Right, constants))
+		{
+			return false;
+		}
+
+		return true;
+	}
+
+	/// <summary>
+	/// Extracts constant values from a pattern (handles OR chains and individual constants).
+	/// </summary>
+	private bool TryExtractPatternConstants(PatternSyntax pattern, List<object?> constants)
+	{
+		return pattern switch
+		{
+			// Handle nested OR patterns
+			BinaryPatternSyntax { OperatorToken: var opToken } binaryPattern when opToken.IsKind(SyntaxKind.OrKeyword) =>
+				TryExtractOrPatternConstants(binaryPattern, constants),
+
+			// Handle constant patterns
+			ConstantPatternSyntax constPattern when
+				TryGetConstantValue(semanticModel.Compilation, loader, constPattern.Expression, new VariableItemDictionary(variables), token, out var value) =>
+				AddAndReturnTrue(constants, value),
+
+			// Handle parenthesized patterns
+			ParenthesizedPatternSyntax parenthesized =>
+				TryExtractPatternConstants(parenthesized.Pattern, constants),
+
+			// Unsupported pattern type for this optimization
+			_ => false
+		};
+	}
+
+	/// <summary>
+	/// Adds a value to a list and returns true.
+	/// </summary>
+	private static bool AddAndReturnTrue<T>(List<T> list, T value)
+	{
+		list.Add(value);
+		return true;
+	}
+
+	static bool Pattern3(int target)
+	{
+		return (uint) (target - 1) <= 9U && (0x28D >> target - 1 & 1) != 0;
+	}
+}

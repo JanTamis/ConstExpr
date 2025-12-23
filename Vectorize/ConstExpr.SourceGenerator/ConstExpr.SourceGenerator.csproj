@@ -68,7 +68,7 @@
 		<PackageReference Include="SourceGenerator.Foundations" Version="2.0.13">
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
-		<PackageReference Include="SourceGenerator.Foundations.Contracts" Version="2.0.13">
+		<PackageReference Include="SourceGenerator.Foundations.Contracts" Version="2.0.14">
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
 		<PackageReference Include="System.Collections.Immutable" Version="9.0.8">

@@ -16,9 +16,9 @@ public partial class ConstExprPartialRewriter
 	public override SyntaxNode? VisitSimpleLambdaExpression(SimpleLambdaExpressionSyntax node)
 	{
 		var addedParameters = AddLambdaParameters(node);
-
+		
 		SyntaxNode? result;
-
+		
 		if (node.Block is not null)
 		{
 			var block = Visit(node.Block);
@@ -60,7 +60,7 @@ public partial class ConstExprPartialRewriter
 	/// <summary>
 	/// Adds lambda parameters to the variables dictionary.
 	/// </summary>
-	private List<string> AddLambdaParameters(SyntaxNode node)
+	private List<string> AddLambdaParameters(ExpressionSyntax node)
 	{
 		var addedParameters = new List<string>();
 

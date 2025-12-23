@@ -3,50 +3,45 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class PowerTest() : BaseTest(FloatingPointEvaluationMode.FastMath)
+public class PowerTest() : BaseTest<Func<int, int, long>>(FloatingPointEvaluationMode.FastMath)
 {
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
-	[
-		Create("""
+	public override string TestMethod => GetString((baseNum, exponent) =>
+	{
 		if (exponent < 0)
 		{
 			return 0L;
 		}
-		
+
 		if (exponent == 0)
 		{
 			return 1L;
 		}
-		
+
 		var result = 1L;
-		var base64 = (long)baseNum;
-		
+		var base64 = (long) baseNum;
+
 		while (exponent > 0)
 		{
-			if (Int32.IsOddInteger(exponent))
+			if (exponent % 2 == 1)
 			{
 				result *= base64;
 			}
-		
-			base64 *= base64;
-			exponent = (exponent + (exponent >> 31)) >> 1;
-		}
-		
-		return result;
-		""", Unknown, Unknown),
-		Create("return 32L;", 2, 5),
-		Create("return 1L;", 5, 0),
-		Create("return 0L;", 2, -3),
-		Create("return 1024L;", 2, 10),
-	];
 
-	public override string TestMethod => """
-		long Power(int baseNum, int exponent)
-		{
+			base64 *= base64;
+			exponent /= 2;
+		}
+
+		return result;
+	});
+
+	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	[
+		Create("""
 			if (exponent < 0)
 			{
 				return 0L;
 			}
+
 			if (exponent == 0)
 			{
 				return 1L;
@@ -57,15 +52,20 @@ public class PowerTest() : BaseTest(FloatingPointEvaluationMode.FastMath)
 
 			while (exponent > 0)
 			{
-				if (exponent % 2 == 1)
+				if (Int32.IsOddInteger(exponent))
 				{
 					result *= base64;
 				}
+
 				base64 *= base64;
-				exponent /= 2;
+				exponent = (exponent + (exponent >> 31)) >> 1;
 			}
 
 			return result;
-		}
-		""";
+			""", Unknown, Unknown),
+		Create("return 32L;", 2, 5),
+		Create("return 1L;", 5, 0),
+		Create("return 0L;", 2, -3),
+		Create("return 1024L;", 2, 10)
+	];
 }

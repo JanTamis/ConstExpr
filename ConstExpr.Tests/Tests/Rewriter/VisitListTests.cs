@@ -4,21 +4,18 @@ namespace ConstExpr.Tests.Tests.Rewriter;
 /// Tests for VisitList - visits list elements
 /// </summary>
 [InheritsTests]
-public class VisitListTests : BaseTest
+public class VisitListTests : BaseTest<Action>
 {
-	public override string TestMethod => """
-		void TestMethod()
-		{
-			int a = 1;
-			int b = 2;
-			return;
-			int c = 3;
-		}
-	""";
+	public override string TestMethod => GetString(() =>
+	{
+		var a = 1;
+		var b = 2;
+		return;
+		var c = 3;
+	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("return;")
 	];
 }
-

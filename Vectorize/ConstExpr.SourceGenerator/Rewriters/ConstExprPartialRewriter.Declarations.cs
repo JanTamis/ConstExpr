@@ -41,7 +41,7 @@ public partial class ConstExprPartialRewriter
 	/// <summary>
 	/// Handles declaration of a new variable.
 	/// </summary>
-	private SyntaxNode? HandleNewVariableDeclaration(VariableDeclaratorSyntax node, IVariableDeclaratorOperation operation, string name, SyntaxNode? value)
+	private SyntaxNode HandleNewVariableDeclaration(VariableDeclaratorSyntax node, IVariableDeclaratorOperation operation, string name, SyntaxNode? value)
 	{
 		var item = new VariableItem(operation.Type ?? operation.Symbol.Type, true, value);
 
@@ -100,18 +100,17 @@ public partial class ConstExprPartialRewriter
 		if (value is IdentifierNameSyntax nameSyntax)
 		{
 			item.Value = nameSyntax;
-			item.IsInitialized = true;
 		}
 		else if (TryGetLiteralValue(initializerValue, out var result) || TryGetLiteralValue(value, out result))
 		{
 			item.Value = result;
-			item.IsInitialized = true;
 		}
 		else
 		{
 			item.HasValue = false;
-			item.IsInitialized = true;
 		}
+
+		item.IsInitialized = true;
 	}
 
 	/// <summary>
@@ -124,7 +123,7 @@ public partial class ConstExprPartialRewriter
 			item.Value = nameSyntax;
 			item.IsInitialized = true;
 		}
-		else if (operation.Initializer is null && operation.Symbol is ILocalSymbol local)
+		else if (operation.Initializer is null && operation.Symbol is { } local)
 		{
 			item.Value = local.Type.GetDefaultValue();
 			item.IsInitialized = false;
@@ -146,10 +145,8 @@ public partial class ConstExprPartialRewriter
 		var visitedVariables = new List<VariableDeclaratorSyntax>();
 		var statements = new List<StatementSyntax>();
 
-		foreach (var variable in node.Variables)
+		foreach (var visited in node.Variables.Select(Visit))
 		{
-			var visited = Visit(variable);
-
 			switch (visited)
 			{
 				case VariableDeclaratorSyntax declarator:
@@ -205,36 +202,45 @@ public partial class ConstExprPartialRewriter
 		var kind = node.OperatorToken.Kind();
 		var hasRightValue = TryGetLiteralValue(rightExpr, out var rightValue);
 
-		// Handle Tuple deconstruction assignments
-		if (node.Left is TupleExpressionSyntax leftTuple && kind == SyntaxKind.EqualsToken)
+		switch (node.Left)
 		{
-			return HandleTupleAssignment(node, leftTuple, rightExpr, hasRightValue, rightValue);
-		}
-
-		// Handle identifier assignments
-		if (node.Left is IdentifierNameSyntax { Identifier.Text: var name } && variables.TryGetValue(name, out var variable))
-		{
-			return HandleIdentifierAssignment(node, variable, rightExpr, kind);
-		}
-
-		// Handle element access assignments
-		if (node.Left is ElementAccessExpressionSyntax elementAccess)
-		{
-			var result = HandleElementAccessAssignment(node, elementAccess, rightExpr, hasRightValue, rightValue);
-
-			if (result is not null)
+			// Handle Tuple deconstruction assignments
+			case TupleExpressionSyntax leftTuple when kind == SyntaxKind.EqualsToken:
+				return HandleTupleAssignment(node, leftTuple, rightExpr, hasRightValue, rightValue);
+			// Handle identifier assignments
+			case IdentifierNameSyntax { Identifier.Text: var name } when variables.TryGetValue(name, out var variable):
+				return HandleIdentifierAssignment(node, variable, rightExpr, kind);
+			// Handle element access assignments
+			case ElementAccessExpressionSyntax elementAccess:
 			{
-				return result;
+				var result = HandleElementAccessAssignment(node, elementAccess, rightExpr, hasRightValue, rightValue);
+
+				if (result is not null)
+				{
+					return result;
+				}
+				break;
 			}
 		}
 
 		// Try compound assignment optimization for non-tracked variables
-		if (TryGetOperation(semanticModel, node, out ICompoundAssignmentOperation? compOp))
+		if (TryGetOperation(semanticModel, node, out ICompoundAssignmentOperation? compOp) 
+		    && TryOptimizeNode(compOp.OperatorKind, compOp.Type, node.Left, compOp.Target.Type, rightExpr, compOp.Value.Type, out var syntaxNode))
 		{
-			if (TryOptimizeNode(compOp.OperatorKind, compOp.Type, node.Left, compOp.Target.Type, rightExpr, compOp.Value.Type, out var syntaxNode))
+			// If the optimized node is a binary expression where left matches the assignment target,
+			// try to convert it to a compound assignment (e.g., x << 1 becomes x <<= 1)
+			if (syntaxNode is BinaryExpressionSyntax binaryExpr 
+			    && binaryExpr.Left.ToString() == node.Left.ToString())
 			{
-				return AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, node.Left, syntaxNode as ExpressionSyntax);
+				var compoundKind = TryGetCompoundAssignmentKind(binaryExpr.Kind());
+				
+				if (compoundKind != SyntaxKind.None)
+				{
+					return AssignmentExpression(compoundKind, node.Left, binaryExpr.Right);
+				}
 			}
+				
+			return AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, node.Left, syntaxNode as ExpressionSyntax);
 		}
 
 		// Optimize add assignment
@@ -452,6 +458,18 @@ public partial class ConstExprPartialRewriter
 			if (TryGetOperation(semanticModel, node, out ICompoundAssignmentOperation? compOp)
 			    && TryOptimizeNode(compOp.OperatorKind, compOp.Type, node.Left, compOp.Target.Type, rightExpr, compOp.Value.Type, out var optimizedNode))
 			{
+				// If the optimized node is a binary expression where left matches the assignment target,
+				// convert it to a compound assignment (e.g., x << 1 becomes x <<= 1)
+				if (optimizedNode is BinaryExpressionSyntax binaryExpr 
+				    && binaryExpr.Left.ToString() == node.Left.ToString())
+				{
+					var compoundKind = TryGetCompoundAssignmentKind(binaryExpr.Kind());
+					if (compoundKind != SyntaxKind.None)
+					{
+						return AssignmentExpression(compoundKind, node.Left, binaryExpr.Right);
+					}
+				}
+				
 				return AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, node.Left, optimizedNode as ExpressionSyntax ?? rightExpr);
 			}
 			
@@ -567,15 +585,14 @@ public partial class ConstExprPartialRewriter
 						return rightExpr;
 					}
 				}
-				else if (arg0 is int i0)
+				else switch (arg0)
 				{
-					arr.SetValue(rightValue, i0);
-					return rightExpr;
-				}
-				else if (arg0 is long l0)
-				{
-					arr.SetValue(rightValue, l0);
-					return rightExpr;
+					case int i0:
+						arr.SetValue(rightValue, i0);
+						return rightExpr;
+					case long l0:
+						arr.SetValue(rightValue, l0);
+						return rightExpr;
 				}
 			}
 			else

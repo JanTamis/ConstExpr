@@ -63,19 +63,15 @@ public partial class ConstExprPartialRewriter
 
 		var arg = args[0];
 
-		// new string("text") => "text"
-		if (arg is LiteralExpressionSyntax les && les.IsKind(SyntaxKind.StringLiteralExpression))
+		return arg switch
 		{
-			return les;
-		}
+			// new string("text") => "text"
+			LiteralExpressionSyntax les when les.IsKind(SyntaxKind.StringLiteralExpression) => les,
+			// new string([]) or new string(['a','b',...]) => "..."
+			CollectionExpressionSyntax collection => TryFoldCharCollectionToString(collection),
+			_ => null
+		};
 
-		// new string([]) or new string(['a','b',...]) => "..."
-		if (arg is CollectionExpressionSyntax collection)
-		{
-			return TryFoldCharCollectionToString(collection);
-		}
-
-		return null;
 	}
 
 	/// <summary>
@@ -96,22 +92,21 @@ public partial class ConstExprPartialRewriter
 		{
 			var e = Visit(el.Expression) as ExpressionSyntax ?? el.Expression;
 
-			if (e is LiteralExpressionSyntax cle && cle.IsKind(SyntaxKind.CharacterLiteralExpression))
+			switch (e)
 			{
-				if (cle.Token.Value is char ch)
-				{
+				case LiteralExpressionSyntax cle when cle.IsKind(SyntaxKind.CharacterLiteralExpression) && cle.Token.Value is char ch:
 					chars.Add(ch);
 					continue;
-				}
-			}
-			else if (e is LiteralExpressionSyntax sle && sle.IsKind(SyntaxKind.StringLiteralExpression))
-			{
-				var text = sle.Token.ValueText;
-
-				if (text.Length == 1)
+				case LiteralExpressionSyntax sle when sle.IsKind(SyntaxKind.StringLiteralExpression):
 				{
-					chars.Add(text[0]);
-					continue;
+					var text = sle.Token.ValueText;
+
+					if (text.Length == 1)
+					{
+						chars.Add(text[0]);
+						continue;
+					}
+					break;
 				}
 			}
 
