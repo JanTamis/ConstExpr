@@ -800,85 +800,14 @@ public partial class ConstExprPartialRewriter
 			.ToList();
 
 		var results = new List<ExpressionSyntax>();
-
-		var minValue = constants[0];
-		var maxValue = constants[^1];
-		var originalMinValue = minValue;
-
-		var clusters = constants.GetClusters().ToList();
-
-		maxValue = maxValue.Subtract(minValue);
-		minValue = minValue.Subtract(minValue);
-
-		if (clusters.Count != 1
-		    && Convert.ToInt32(maxValue) <= maxValue.GetBitSize())
+		var originalMinValue = constants[0];
+		
+		foreach (var cluster in constants!.GetClusterPatterns())
 		{
-			var identifierSyntax = pattern.Expression;
-			
-			var expression = isUnsigedType
-				? pattern.Expression
-				: CastExpression(
-					ParseTypeName(semanticModel.Compilation.GetMinimalString(unsignedType)),
-					identifierSyntax);
+			var minValue = cluster.Start;
+			var maxValue = cluster.End;
 
-			if (!constants[0].IsNumericZero()
-			    && TryGetLiteral(constants[0], out var minLit))
-			{
-				identifierSyntax = BinaryExpression(SyntaxKind.SubtractExpression, pattern.Expression, minLit);
-					
-				expression = isUnsigedType
-					? identifierSyntax
-					: CastExpression(
-						ParseTypeName(semanticModel.Compilation.GetMinimalString(unsignedType)),
-						ParenthesizedExpression(identifierSyntax));
-			}
-
-			for (var i = 0; i < constants.Count; i++)
-			{
-				constants[i] = constants[i].Subtract(minValue);
-			}
-
-			// Calculate the bitmask using relative positions from minValue
-			var bitmask = 0.ToSpecialType(type.SpecialType);
-
-			foreach (var value in constants)
-			{
-				// Calculate relative position: value - minValue
-				var relativePos = value.Subtract(originalMinValue);
-				bitmask = bitmask.Or(GetOneLiteral(type).LeftShift(relativePos));
-			}
-
-			// bitmask = bitmask.ToSpecialType(unsignedType.SpecialType);
-
-			if (!TryGetLiteral(GetOneLiteral(type), out var oneLit))
-			{
-				return true;
-			}
-
-			var bitmaskExpr = BuildBitmaskExpression(bitmask, oneLit, identifierSyntax, type);
-
-			if (TryGetLiteral(maxValue.Subtract(minValue).ToSpecialType(unsignedType.SpecialType), out var unsigneddiff))
-			{
-				expression = BinaryExpression(SyntaxKind.LessThanOrEqualExpression, expression, unsigneddiff);
-
-				result = BinaryExpression(SyntaxKind.LogicalAndExpression, expression, bitmaskExpr);
-				return true;
-			}
-			
-			return false;
-		}
-
-		foreach (var cluster in constants!.GetClusters())
-		{
-			minValue = cluster.start;
-			maxValue = cluster.end;
-
-			var step = cluster.step;
-			var values = cluster.values;
-
-			if (!TryGetLiteral(maxValue, out var maxLit)
-			    || !TryGetLiteral(step, out var stepLit)
-			    || !TryGetLiteral(maxValue.Subtract(minValue).ToSpecialType(unsignedType.SpecialType), out var unsigneddiff))
+			if (!TryGetLiteral(maxValue.Subtract(minValue).ToSpecialType(unsignedType.SpecialType), out var unsigneddiff))
 			{
 				return false;
 			}
@@ -899,91 +828,82 @@ public partial class ConstExprPartialRewriter
 						ParenthesizedExpression(BinaryExpression(SyntaxKind.SubtractExpression, pattern.Expression, minLit)));
 			}
 
-			if (values.Count != 1)
+			// add range check 
+			results.Add(BinaryExpression(SyntaxKind.LessThanOrEqualExpression, expression, unsigneddiff));
+
+			if (!TryGetLiteral(cluster.Start, out var startExpression)
+			    || !TryGetLiteral(cluster.End, out var endExpression)
+			    || !TryGetLiteral(cluster.Step, out var stepExpression)
+			    || !TryGetLiteral(cluster.Diff, out var diffExpression))
 			{
-				// add range check 
-				results.Add(BinaryExpression(SyntaxKind.LessThanOrEqualExpression, expression, unsigneddiff));
+				throw new InvalidOperationException("Failed to get literals for cluster optimization.");
 			}
 
-			originalMinValue = minValue;
+			cluster.StartExpression = startExpression;
+			cluster.EndExpression = endExpression;
+			cluster.StepExpression = stepExpression;
+			cluster.DiffExpression = diffExpression;
+			cluster.Expression = pattern.Expression;
 
-			if (step.IsNumericOne())
+			var zeroExpression = GetDefault(type);
+			var oneExpression = CreateLiteral(GetOneLiteral(type));
+
+			switch (cluster.Type)
 			{
-				continue;
-			}
-
-			if (step.IsNumericTwo())
-			{
-				var memberAccess = MemberAccessExpression(
-					SyntaxKind.SimpleMemberAccessExpression,
-					ParseTypeName(type.Name),
-					IdentifierName(minValue.IsEvenNumber() ? "IsEvenInteger" : "IsOddInteger"));
-
-				// Generate optimized expression: ((uint)target - {minValue}) & 1) == 0 && (uint)target - {minValue} <= {maxValue} - {minValue}
-				results.Add(InvocationExpression(memberAccess, ArgumentList([ Argument(pattern.Expression) ])));
-				continue;
-			}
-
-			if (Convert.ToInt32(maxValue) > maxValue.GetBitSize())
-			{
-				maxValue = maxValue.Subtract(minValue);
-				minValue = minValue.Subtract(minValue);
-
-				if (Convert.ToInt32(maxValue) <= maxValue.GetBitSize())
+				case ObjectExtensions.ClusterType.Consecutive:
 				{
-					for (var i = 0; i < values.Count; i++)
-					{
-						values[i] = values[i].Subtract(minValue);
-					}
-				}
-				else
-				{
-					// Generate optimized expression: ({maxValue} - {minValue}) % {step} == 0
-					results.Add(BinaryExpression(
-						SyntaxKind.EqualsExpression,
-						BinaryExpression(
-							SyntaxKind.ModuloExpression,
-							pattern.Expression,
-							stepLit),
-						GetDefault(type)));
-
 					continue;
 				}
+				case ObjectExtensions.ClusterType.Step:
+				{
+					results.Add(GetStepSetExpression(cluster, zeroExpression));
+					break;
+				}
+				case ObjectExtensions.ClusterType.PowerOfTwo:
+				{
+					results.Add(GetPowerOfTwoExpression(cluster, oneExpression!, zeroExpression));
+					break;
+				}
+				case ObjectExtensions.ClusterType.Odd or ObjectExtensions.ClusterType.Even:
+				{
+					var memberAccess = MemberAccessExpression(
+						SyntaxKind.SimpleMemberAccessExpression,
+						ParseTypeName(type.Name),
+						IdentifierName(cluster.Type == ObjectExtensions.ClusterType.Even ? "IsEvenInteger" : "IsOddInteger"));
+
+					// Generate optimized expression: int.IsEvenInteger(x) or int.IsOddInteger(x)
+					results.Add(InvocationExpression(memberAccess, ArgumentList([ Argument(pattern.Expression) ])));
+					break;
+				}
+				case ObjectExtensions.ClusterType.Bitmask:
+				{
+					var bitType = (int) cluster.Step! switch
+					{
+						<= 32 => semanticModel.Compilation.GetSpecialType(SpecialType.System_UInt32),
+						<= 64 => semanticModel.Compilation.GetSpecialType(SpecialType.System_UInt64),
+						_ => unsignedType,
+					};
+
+					// Calculate the bitmask using relative positions from minValue
+					var bitmask = 0.ToSpecialType(bitType.SpecialType);
+
+					foreach (var value in cluster.Values)
+					{
+						// Calculate relative position: value - minValue
+						var relativePos = value.Subtract(originalMinValue).ToSpecialType(bitType.SpecialType);
+						bitmask = bitmask.Or(GetOneLiteral(bitType).LeftShift(relativePos));
+					}
+
+					// bitmask = bitmask.ToSpecialType(unsignedType.SpecialType);
+
+					results.Add(GetBitmaskExpression(cluster, bitmask, oneExpression!, type));
+					break;
+				}
+				default:
+				{
+					return false;
+				}
 			}
-
-			if (values.Count == 1)
-			{
-				results.Add(BinaryExpression(SyntaxKind.EqualsExpression, pattern.Expression, maxLit));
-				continue;
-			}
-
-			// Calculate the bitmask using relative positions from minValue
-			var bitmask = 0.ToSpecialType(type.SpecialType);
-
-			foreach (var value in values)
-			{
-				// Calculate relative position: value - minValue
-				var relativePos = value.Subtract(originalMinValue);
-				bitmask = bitmask.Or(GetOneLiteral(type).LeftShift(relativePos));
-			}
-
-			// bitmask = bitmask.ToSpecialType(unsignedType.SpecialType);
-
-			if (!TryGetLiteral(originalMinValue, out var orgMinLit)
-			    || !TryGetLiteral(GetOneLiteral(type), out var oneLit))
-			{
-				return false;
-			}
-
-			// Always create the subtraction expression for the shift: (target - minValue)
-			var shiftTargetExpr = BinaryExpression(
-				SyntaxKind.SubtractExpression,
-				pattern.Expression,
-				orgMinLit);
-
-			var bitmaskCheck = BuildBitmaskExpression(bitmask, oneLit, shiftTargetExpr, type);
-
-			results.Add(bitmaskCheck);
 		}
 
 		result = results[0];
@@ -995,16 +915,6 @@ public partial class ConstExprPartialRewriter
 
 		return true;
 
-		ExpressionSyntax GetDefault(ITypeSymbol typeSymbol)
-		{
-			if (typeSymbol.SpecialType == SpecialType.System_Char)
-			{
-				return LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0));
-			}
-
-			return type.GetDefaultValue();
-		}
-
 		object? GetOneLiteral(ITypeSymbol typeSymbol)
 		{
 			if (typeSymbol.SpecialType == SpecialType.System_Char)
@@ -1013,50 +923,6 @@ public partial class ConstExprPartialRewriter
 			}
 
 			return 1.ToSpecialType(typeSymbol.SpecialType);
-		}
-
-		LiteralExpressionSyntax CreateHexLiteralFromObject(object? value)
-		{
-			if (value is null)
-			{
-				return LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal("0", 0));
-			}
-
-			var token = value switch
-			{
-				int i => Literal("0x" + i.ToString("X"), i),
-				uint ui => Literal("0x" + ui.ToString("X") + "u", ui),
-				long l => Literal("0x" + unchecked((ulong) l).ToString("X").Insert(0, "0x") + "L", l),
-				ulong ul => Literal("0x" + ul.ToString("X") + "UL", ul),
-				short s => Literal("0x" + ((ushort) s).ToString("X"), s),
-				ushort us => Literal("0x" + us.ToString("X"), us),
-				byte b => Literal("0x" + b.ToString("X"), b),
-				sbyte sb => Literal("0x" + ((byte) sb).ToString("X"), sb),
-				char c => Literal("0x" + ((int) c).ToString("X"), (int) c),
-			};
-
-			return LiteralExpression(SyntaxKind.NumericLiteralExpression, token);
-		}
-
-		ExpressionSyntax BuildBitmaskExpression(object? bitmaskValue, ExpressionSyntax oneLiteral, ExpressionSyntax shiftExpression, ITypeSymbol maskType)
-		{
-			var maskLiteral = CreateHexLiteralFromObject(bitmaskValue);
-
-			// bitmask check: ({mask} >> shiftExpression & 1) != 0;
-			var shiftRight = BinaryExpression(
-				SyntaxKind.RightShiftExpression,
-				maskLiteral,
-				shiftExpression);
-
-			var andMask = BinaryExpression(
-				SyntaxKind.BitwiseAndExpression,
-				shiftRight,
-				oneLiteral);
-
-			return BinaryExpression(
-				SyntaxKind.NotEqualsExpression,
-				ParenthesizedExpression(andMask),
-				GetDefault(maskType));
 		}
 	}
 
@@ -1109,19 +975,93 @@ public partial class ConstExprPartialRewriter
 			// Unsupported pattern type for this optimization
 			_ => false
 		};
+
+		bool AddAndReturnTrue<T>(List<T> list, T value)
+		{
+			list.Add(value);
+			return true;
+		}
 	}
 
-	/// <summary>
-	/// Adds a value to a list and returns true.
-	/// </summary>
-	private static bool AddAndReturnTrue<T>(List<T> list, T value)
+	// ({expression}) % {step} == 0
+	private ExpressionSyntax GetStepSetExpression(ObjectExtensions.Cluster cluster, ExpressionSyntax zeroExpression)
 	{
-		list.Add(value);
-		return true;
+		return BinaryExpression(
+			SyntaxKind.EqualsExpression,
+			BinaryExpression(
+				SyntaxKind.ModuloExpression,
+				cluster.Expression,
+				cluster.StepExpression),
+			zeroExpression);
 	}
 
-	static bool Pattern3(int target)
+	// ({expression} & ({expression} - 1)) == 0
+	private ExpressionSyntax GetPowerOfTwoExpression(ObjectExtensions.Cluster cluster, ExpressionSyntax OneExpression, ExpressionSyntax zeroExpression)
 	{
-		return (uint) (target - 1) <= 9U && (0x28D >> target - 1 & 1) != 0;
+		return BinaryExpression(
+			SyntaxKind.EqualsExpression,
+			BinaryExpression(
+				SyntaxKind.BitwiseAndExpression,
+				cluster.Expression,
+				ParenthesizedExpression(
+					BinaryExpression(
+						SyntaxKind.SubtractExpression,
+						cluster.Expression,
+						OneExpression))),
+			zeroExpression);
+	}
+
+	private ExpressionSyntax GetBitmaskExpression(ObjectExtensions.Cluster cluster, object? bitmaskValue, ExpressionSyntax oneLiteral, ITypeSymbol maskType)
+	{
+		// Always create the subtraction expression for the shift: (target - minValue)
+		var shiftTargetExpr = cluster.Expression;
+
+		if (!cluster.Start.IsNumericZero())
+		{
+			shiftTargetExpr = BinaryExpression(
+				SyntaxKind.SubtractExpression,
+				cluster.Expression,
+				cluster.StartExpression);
+		}
+
+		var maskLiteral = LiteralExpression(SyntaxKind.NumericLiteralExpression, bitmaskValue switch
+		{
+			int i => Literal($"0x{i:X}", i),
+			uint ui => Literal($"0x{ui:X}u", ui),
+			long l => Literal($"0x{l:X}L", l),
+			ulong ul => Literal($"0x{ul:X}UL", ul),
+			short s => Literal($"0x{s:X}", s),
+			ushort us => Literal($"0x{us:X}", us),
+			byte b => Literal($"0x{b:X}", b),
+			sbyte sb => Literal($"0x{sb:X}", sb),
+			char c => Literal($"0x{(ushort) c:X}", (ushort) c),
+			_ => Literal(0)
+		});
+
+		// bitmask check: ({mask} >> {shiftExpression} & 1) != 0;
+		var shiftRight = BinaryExpression(
+			SyntaxKind.RightShiftExpression,
+			maskLiteral,
+			shiftTargetExpr);
+
+		var andMask = BinaryExpression(
+			SyntaxKind.BitwiseAndExpression,
+			shiftRight,
+			oneLiteral);
+
+		return BinaryExpression(
+			SyntaxKind.NotEqualsExpression,
+			ParenthesizedExpression(andMask),
+			GetDefault(maskType));
+	}
+
+	private ExpressionSyntax GetDefault(ITypeSymbol typeSymbol)
+	{
+		if (typeSymbol.SpecialType == SpecialType.System_Char)
+		{
+			return LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0));
+		}
+
+		return typeSymbol.GetDefaultValue();
 	}
 }
