@@ -13,8 +13,6 @@ public class PatternBitmaskTest() : BaseTest<Func<int, bool>>(FloatingPointEvalu
 {
 	public override string TestMethod => GetString(n =>
 	{
-		// Pattern: n is 1 or 5 or 10 or 15 or 20
-		// Should optimize to: (uint)n < 21u && ((1082402u >> n) & 1) != 0
 		return n is 1 or 5 or 10 or 15 or 20;
 	});
 

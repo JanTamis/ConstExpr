@@ -70,10 +70,11 @@ public static class StringOperations
 		}
 
 		var count = 0;
+
 		foreach (var c in input)
 		{
 			var lower = char.ToLower(c);
-			
+
 			if (lower == 'a' || lower == 'e' || lower == 'i' || lower == 'o' || lower == 'u')
 			{
 				count++;
@@ -94,11 +95,13 @@ public static class StringOperations
 		}
 
 		var count = 0;
+
 		foreach (var c in input)
 		{
 			if (char.IsLetter(c))
 			{
 				var lower = char.ToLower(c);
+
 				if (lower != 'a' && lower != 'e' && lower != 'i' && lower != 'o' && lower != 'u')
 				{
 					count++;
@@ -154,6 +157,7 @@ public static class StringOperations
 		}
 
 		var count = 0;
+
 		foreach (var c in input)
 		{
 			if (c == target)
@@ -176,6 +180,7 @@ public static class StringOperations
 		}
 
 		var result = new StringBuilder();
+
 		foreach (var c in input)
 		{
 			if (!char.IsWhiteSpace(c))
@@ -248,6 +253,7 @@ public static class StringOperations
 		}
 
 		var result = new StringBuilder(input.Length * count);
+
 		for (var i = 0; i < count; i++)
 		{
 			result.Append(input);
@@ -267,6 +273,7 @@ public static class StringOperations
 		}
 
 		var result = new StringBuilder();
+
 		foreach (var c in input)
 		{
 			if (char.IsUpper(c))

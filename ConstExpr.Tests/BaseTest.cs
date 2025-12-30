@@ -70,8 +70,10 @@ public abstract class BaseTest<TDelegate>(FloatingPointEvaluationMode evaluation
 		var semanticModel = compilation.GetSemanticModel(method.SyntaxTree);
 		var loader = MetadataLoader.GetLoader(compilation);
 		var attribute = new ConstExprAttribute { FloatingPointMode = evaluationMode };
+		var visitedMethods = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+		var additionalMethods = new Dictionary<SyntaxNode, bool>();
 
-		var rewriter = new ConstExprPartialRewriter(semanticModel, loader, (_, exception) => { }, parameters, new Dictionary<SyntaxNode, bool>(), new HashSet<string>(), attribute, CancellationToken.None, [ ]);
+		var rewriter = new ConstExprPartialRewriter(semanticModel, loader, (_, exception) => { }, parameters, additionalMethods, new HashSet<string>(), attribute, CancellationToken.None, visitedMethods);
 
 		foreach (var result in Result)
 		{
@@ -121,7 +123,6 @@ public abstract class BaseTest<TDelegate>(FloatingPointEvaluationMode evaluation
 					parameter.Value.IsInitialized = true;
 				}
 			}
-
 
 			newBody = DeadCodePruner.Prune(newBody, parameters, semanticModel) as BlockSyntax;
 			newBody = FormattingHelper.Format(newBody!) as BlockSyntax;

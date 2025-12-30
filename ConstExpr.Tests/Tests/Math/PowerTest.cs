@@ -58,7 +58,7 @@ public class PowerTest() : BaseTest<Func<int, int, long>>(FloatingPointEvaluatio
 				}
 
 				base64 *= base64;
-				exponent = (exponent + (exponent >> 31)) >> 1;
+				exponent >>= 1;
 			}
 
 			return result;

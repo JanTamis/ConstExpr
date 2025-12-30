@@ -1,7 +1,9 @@
+using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using SourceGen.Utilities.Extensions;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies;
@@ -14,8 +16,8 @@ public class DivideByPowerOfTwoToShiftStrategy : BaseBinaryStrategy
 	public override bool CanBeOptimized(BinaryOptimizeContext context)
 	{
 		return context.Type.IsInteger()
-					 && context.Right is { HasValue: true, Value: { } value }
-					 && value.IsNumericPowerOfTwo(out _);
+		       && context.Right is { HasValue: true, Value: { } value }
+		       && value.IsNumericPowerOfTwo(out _);
 	}
 
 	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
@@ -25,8 +27,18 @@ public class DivideByPowerOfTwoToShiftStrategy : BaseBinaryStrategy
 			return null;
 		}
 
+		var isPositive = context.BinaryExpressions.Any(a =>
+		{
+			return LeftEqualsRight(a.Left, context.Left.Syntax, context.Variables)
+			       && a.OperatorToken.IsKind(SyntaxKind.GreaterThanToken, SyntaxKind.GreaterThanEqualsToken)
+			       && IsPostive(a.Right, context.Variables)
+			       || LeftEqualsRight(a.Right, context.Left.Syntax, context.Variables)
+			       && a.OperatorToken.IsKind(SyntaxKind.LessThanToken, SyntaxKind.LessThanEqualsToken)
+			       && IsNegative(a.Left, context.Variables);
+		});
+
 		// For unsigned integers: x >> n
-		if (context.Type.IsUnsignedInteger())
+		if (context.Type.IsUnsignedInteger() || isPositive)
 		{
 			return BinaryExpression(
 				SyntaxKind.RightShiftExpression,
@@ -39,7 +51,7 @@ public class DivideByPowerOfTwoToShiftStrategy : BaseBinaryStrategy
 		// However, this optimization duplicates the left expression, so we should
 		// only apply it if the left expression is simple (e.g., a variable or literal).
 		// Complex expressions (like multiplication) should use regular division to avoid duplication.
-		
+
 		// Check if left expression is simple enough to duplicate
 		if (!IsSimpleExpression(context.Left.Syntax))
 		{

@@ -43,9 +43,8 @@ public partial class ConstExprPartialRewriter
 	/// </summary>
 	private SyntaxNode? EvaluateSwitchAtCompileTime(SwitchStatementSyntax node, object? governingValue)
 	{
-		for (var i = 0; i < node.Sections.Count; i++)
+		foreach (var section in node.Sections)
 		{
-			var section = node.Sections[i];
 			var matched = false;
 
 			foreach (var label in section.Labels)

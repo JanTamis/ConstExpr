@@ -18,6 +18,7 @@ public static class ArrayOperations
 		}
 
 		var max = numbers[0];
+
 		for (var i = 1; i < numbers.Length; i++)
 		{
 			if (numbers[i] > max)
@@ -40,6 +41,7 @@ public static class ArrayOperations
 		}
 
 		var min = numbers[0];
+
 		for (var i = 1; i < numbers.Length; i++)
 		{
 			if (numbers[i] < min)
@@ -62,12 +64,13 @@ public static class ArrayOperations
 		}
 
 		var sum = 0;
+
 		foreach (var num in numbers)
 		{
 			sum += num;
 		}
 
-		return (double)sum / numbers.Length;
+		return (double) sum / numbers.Length;
 	}
 
 	/// <summary>
@@ -97,6 +100,7 @@ public static class ArrayOperations
 	public static int CountOccurrences(int target, params int[] numbers)
 	{
 		var count = 0;
+
 		foreach (var num in numbers)
 		{
 			if (num == target)
@@ -130,6 +134,7 @@ public static class ArrayOperations
 	public static int[] Reverse(params int[] numbers)
 	{
 		var result = new int[numbers.Length];
+
 		for (var i = 0; i < numbers.Length; i++)
 		{
 			result[i] = numbers[numbers.Length - 1 - i];
@@ -149,12 +154,14 @@ public static class ArrayOperations
 		}
 
 		positions = positions % numbers.Length;
+
 		if (positions < 0)
 		{
 			positions += numbers.Length;
 		}
 
 		var result = new int[numbers.Length];
+
 		for (var i = 0; i < numbers.Length; i++)
 		{
 			result[i] = numbers[(i + positions) % numbers.Length];
@@ -169,6 +176,7 @@ public static class ArrayOperations
 	public static int Sum(params int[] numbers)
 	{
 		var sum = 0;
+
 		foreach (var num in numbers)
 		{
 			sum += num;
@@ -188,6 +196,7 @@ public static class ArrayOperations
 		}
 
 		var product = 1L;
+
 		foreach (var num in numbers)
 		{
 			product *= num;

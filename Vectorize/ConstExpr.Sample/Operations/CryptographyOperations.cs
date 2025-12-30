@@ -12,7 +12,8 @@ public static class CryptographyOperations
 	/// </summary>
 	public static byte CalculateChecksum(params byte[] data)
 	{
-		var checksum = (byte)0;
+		var checksum = (byte) 0;
+
 		foreach (var b in data)
 		{
 			checksum ^= b;
@@ -40,7 +41,7 @@ public static class CryptographyOperations
 				var baseChar = char.IsUpper(c) ? 'A' : 'a';
 				var charIndex = c - baseChar;
 				var newIndex = (charIndex + normalizedShift) % 26;
-				result.Append((char)(baseChar + newIndex));
+				result.Append((char) (baseChar + newIndex));
 			}
 			else
 			{
@@ -109,10 +110,9 @@ public static class CryptographyOperations
 		for (var i = input.Length - 1; i >= 0; i--)
 		{
 			hash = (hash + input[i] * primePower) % mod;
-			primePower = (primePower * (ulong)prime) % mod;
+			primePower = (primePower * (ulong) prime) % mod;
 		}
 
 		return hash;
 	}
 }
-

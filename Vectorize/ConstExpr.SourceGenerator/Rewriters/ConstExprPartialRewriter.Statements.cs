@@ -56,7 +56,7 @@ public partial class ConstExprPartialRewriter
 				case false:
 					return null;
 				case true:
-					return TryUnrollForLoop(node, names);
+					return TryUnrollForLoop(node);
 			}
 		}
 
@@ -66,7 +66,7 @@ public partial class ConstExprPartialRewriter
 	/// <summary>
 	/// Tries to unroll a for loop when the condition is always true.
 	/// </summary>
-	private SyntaxNode? TryUnrollForLoop(ForStatementSyntax node, ImmutableHashSet<string> names)
+	private SyntaxNode? TryUnrollForLoop(ForStatementSyntax node)
 	{
 		if (attribute.MaxUnrollIterations == 0)
 		{
@@ -245,7 +245,9 @@ public partial class ConstExprPartialRewriter
 		{
 			CollectionExpressionSyntax collectionExpression => collectionExpression.Elements,
 			LiteralExpressionSyntax { RawKind: (int)SyntaxKind.StringLiteralExpression } stringLiteral =>
-				stringLiteral.Token.ValueText.Select(s => CreateLiteral(s) as CSharpSyntaxNode).ToList(),
+				stringLiteral.Token.ValueText
+					.Select(s => CreateLiteral(s) as CSharpSyntaxNode)
+					.ToList()!,
 			_ => null
 		};
 	}

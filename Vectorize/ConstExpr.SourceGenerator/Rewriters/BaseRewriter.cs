@@ -603,4 +603,38 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 
 		return typeSymbol is not null;
 	}
+	
+	protected IEnumerable<BinaryExpressionSyntax>  GetBinaryExpressions(SyntaxNode node)
+	{
+		return node.Ancestors()
+			.Where(w => w is BinaryExpressionSyntax or WhileStatementSyntax or IfStatementSyntax)
+			.Select(s => s switch
+			{
+				BinaryExpressionSyntax binary => binary,
+				WhileStatementSyntax whileStmt => whileStmt.Condition,
+				IfStatementSyntax ifStmt => ifStmt.Condition,
+				ForStatementSyntax forStmt => forStmt.Condition,
+				_ => null
+			})
+			.OfType<BinaryExpressionSyntax>()
+			.SelectMany(GetInnerBinaryExpressions);
+		
+		IEnumerable<BinaryExpressionSyntax> GetInnerBinaryExpressions(ExpressionSyntax expr)
+		{
+			if (expr is BinaryExpressionSyntax binary)
+			{
+				yield return binary;
+
+				foreach (var inner in GetInnerBinaryExpressions(binary.Left))
+				{
+					yield return inner;
+				}
+
+				foreach (var inner in GetInnerBinaryExpressions(binary.Right))
+				{
+					yield return inner;
+				}
+			}
+		}
+	}
 }

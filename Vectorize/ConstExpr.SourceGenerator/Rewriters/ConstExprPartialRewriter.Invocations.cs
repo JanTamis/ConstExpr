@@ -378,6 +378,12 @@ public partial class ConstExprPartialRewriter
 	/// </summary>
 	private SyntaxNode? HandleInstanceMethodInvocation(InvocationExpressionSyntax node, IMethodSymbol targetMethod, List<SyntaxNode?> arguments)
 	{
+		// try check if method is empty
+		if (IsEmptyInstanceMethod(targetMethod))
+		{
+			return null;
+		}
+		
 		usings.Add(targetMethod.ContainingType.ContainingNamespace.ToString());
 
 		// Mark variable as altered since instance method may mutate it

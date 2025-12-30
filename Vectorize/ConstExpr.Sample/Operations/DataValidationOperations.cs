@@ -85,6 +85,7 @@ public static class DataValidationOperations
 		}
 
 		var digitCount = 0;
+
 		foreach (var c in phone)
 		{
 			if (char.IsDigit(c))
@@ -111,7 +112,7 @@ public static class DataValidationOperations
 		}
 
 		var nonNullCount = values.Count(v => !double.IsNaN(v) && !double.IsInfinity(v));
-		return (double)nonNullCount / values.Length;
+		return (double) nonNullCount / values.Length;
 	}
 
 	/// <summary>
@@ -130,6 +131,7 @@ public static class DataValidationOperations
 		var threshold = stdDev * standardDeviations;
 
 		var outliers = new List<int>();
+
 		for (var i = 0; i < data.Length; i++)
 		{
 			if (Math.Abs(data[i] - mean) > threshold)
@@ -152,6 +154,7 @@ public static class DataValidationOperations
 		}
 
 		var balance = 0;
+
 		foreach (var c in input)
 		{
 			if (c == '(')
@@ -161,6 +164,7 @@ public static class DataValidationOperations
 			else if (c == ')')
 			{
 				balance--;
+
 				if (balance < 0)
 				{
 					return false;
@@ -222,6 +226,7 @@ public static class DataValidationOperations
 	public static int CountUntilTarget(int target)
 	{
 		var count = 0;
+
 		while (true)
 		{
 			if (count == target)
@@ -256,6 +261,7 @@ public static class DataValidationOperations
 	public static int FindCharIndex(string text, char target)
 	{
 		var index = 0;
+
 		foreach (var c in text)
 		{
 			if (c == target)
@@ -274,6 +280,7 @@ public static class DataValidationOperations
 	public static int CountInGrid(int rows, int cols, int breakAt)
 	{
 		var count = 0;
+
 		for (var i = 0; i < rows; i++)
 		{
 			for (var j = 0; j < cols; j++)
@@ -284,6 +291,7 @@ public static class DataValidationOperations
 				}
 				count++;
 			}
+
 			if (count == breakAt)
 			{
 				break;
@@ -300,9 +308,11 @@ public static class DataValidationOperations
 	{
 		var sum = 0;
 		var i = 0;
+
 		while (true)
 		{
 			sum += i;
+
 			if (sum >= limit)
 			{
 				return sum;
@@ -311,4 +321,3 @@ public static class DataValidationOperations
 		}
 	}
 }
-

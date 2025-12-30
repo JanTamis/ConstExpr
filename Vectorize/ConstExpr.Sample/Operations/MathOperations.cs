@@ -16,16 +16,19 @@ public static class MathOperations
 		{
 			return -1;
 		}
+
 		if (n == 0 || n == 1)
 		{
 			return 1;
 		}
 
 		var result = 1L;
+
 		for (var i = 2; i <= n; i++)
 		{
 			result *= i;
 		}
+		
 		return result;
 	}
 
@@ -38,6 +41,7 @@ public static class MathOperations
 		{
 			return 0;
 		}
+
 		if (n == 1)
 		{
 			return 1;
@@ -65,10 +69,12 @@ public static class MathOperations
 		{
 			return false;
 		}
+
 		if (n <= 3)
 		{
 			return true;
 		}
+
 		if (n % 2 == 0 || n % 3 == 0)
 		{
 			return false;
@@ -125,13 +131,14 @@ public static class MathOperations
 		{
 			return 0;
 		}
+
 		if (exponent == 0)
 		{
 			return 1;
 		}
 
 		var result = 1L;
-		var base64 = (long)baseNum;
+		var base64 = (long) baseNum;
 
 		while (exponent > 0)
 		{
@@ -173,7 +180,7 @@ public static class MathOperations
 			return false;
 		}
 
-		var sqrt = (int)Math.Sqrt(n);
+		var sqrt = (int) Math.Sqrt(n);
 		return sqrt * sqrt == n;
 	}
 
@@ -208,6 +215,7 @@ public static class MathOperations
 		n = Math.Abs(n);
 
 		var reversed = 0;
+
 		while (n > 0)
 		{
 			reversed = reversed * 10 + n % 10;
@@ -230,7 +238,7 @@ public static class MathOperations
 		}
 
 		var n = end - start + 1;
-		return (long)n * (start + end) / 2;
+		return (long) n * (start + end) / 2;
 	}
 
 	/// <summary>
@@ -242,6 +250,7 @@ public static class MathOperations
 		{
 			return 0;
 		}
+
 		if (k == 0 || k == n)
 		{
 			return 1;
@@ -254,6 +263,7 @@ public static class MathOperations
 		}
 
 		var result = 1L;
+
 		for (var i = 0; i < k; i++)
 		{
 			result = result * (n - i) / (i + 1);

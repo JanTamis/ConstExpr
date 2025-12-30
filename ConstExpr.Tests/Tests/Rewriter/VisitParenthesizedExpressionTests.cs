@@ -50,8 +50,6 @@ public class VisitParenthesizedExpressionTests : BaseTest<Func<int, int, (int, i
 			var e = (x + y);
 			var j = x.ToString();
 
-			G(x);
-
 			return (3, 9, 5, d, e, 1, 6, j);
 			""", Unknown, Unknown),
 		Create("return (3, 9, 5, 15, 15, 1, 6, \"10\");", 10, 5),

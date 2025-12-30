@@ -21,6 +21,8 @@ public sealed class BinaryOptimizeContext
 	public IDictionary<string, VariableItem> Variables { get; init; }
 	
 	public TryGetLiteralDelegate TryGetLiteral { get; init; }
+	
+	public IList<BinaryExpressionSyntax> BinaryExpressions { get; init; }
 
 	internal string GetDebuggerDisplay()
 	{

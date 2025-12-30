@@ -74,7 +74,7 @@ public partial class ConstExprPartialRewriter
 	/// <summary>
 	/// Try to apply registered binary optimization strategies for the given operator and operands.
 	/// </summary>
-	private bool TryOptimizeNode(BinaryOperatorKind kind, ITypeSymbol type, ExpressionSyntax leftExpr, ITypeSymbol? leftType, ExpressionSyntax rightExpr, ITypeSymbol? rightType, out SyntaxNode? syntaxNode)
+	private bool TryOptimizeNode(BinaryOperatorKind kind, List<BinaryExpressionSyntax> expressions, ITypeSymbol type, ExpressionSyntax leftExpr, ITypeSymbol? leftType, ExpressionSyntax rightExpr, ITypeSymbol? rightType, out SyntaxNode? syntaxNode)
 	{
 		// Select optimizer based on operator kind
 		var strategies = typeof(BaseBinaryOptimizer).Assembly
@@ -104,7 +104,8 @@ public partial class ConstExprPartialRewriter
 			Type = type,
 			Variables = variables,
 			Kind = kind,
-			TryGetLiteral = TryGetLiteralValue
+			TryGetLiteral = TryGetLiteralValue,
+			BinaryExpressions = expressions
 		};
 
 		foreach (var strategy in strategies)
@@ -113,7 +114,7 @@ public partial class ConstExprPartialRewriter
 			    && strategy.Optimize(context) is { } result)
 			{
 				if (result is BinaryExpressionSyntax binary
-				    && TryOptimizeNode(binary.Kind().ToBinaryOperatorKind(), type, binary.Left, leftType, binary.Right, rightType, out var nested))
+				    && TryOptimizeNode(binary.Kind().ToBinaryOperatorKind(), expressions, type, binary.Left, leftType, binary.Right, rightType, out var nested))
 				{
 					syntaxNode = nested;
 					return true;
@@ -277,5 +278,63 @@ public partial class ConstExprPartialRewriter
 			SyntaxKind.ExclusiveOrExpression => SyntaxKind.ExclusiveOrAssignmentExpression,
 			_ => SyntaxKind.None
 		};
+	}
+
+	private bool IsEmptyInstanceMethod(IMethodSymbol method)
+	{
+		if (method.IsStatic || !method.ReturnsVoid || method.IsAbstract)
+		{
+			return false;
+		}
+
+		var hasDeclaration = false;
+		var allEmpty = true;
+
+		foreach (var syntaxRef in method.DeclaringSyntaxReferences)
+		{
+			hasDeclaration = true;
+			var syntax = syntaxRef.GetSyntax(token);
+
+			switch (syntax)
+			{
+				case MethodDeclarationSyntax { Body: { } body }:
+					if (!IsBlockEffectivelyEmpty(body))
+					{
+						allEmpty = false;
+					}
+					break;
+				case MethodDeclarationSyntax { ExpressionBody: not null }:
+					return false;
+				case LocalFunctionStatementSyntax { Body: { } body }:
+					if (!IsBlockEffectivelyEmpty(body))
+					{
+						allEmpty = false;
+					}
+					break;
+				case LocalFunctionStatementSyntax { ExpressionBody: not null }:
+					return false;
+				default:
+					allEmpty = false;
+					break;
+			}
+		}
+
+		return hasDeclaration && allEmpty;
+
+		static bool IsBlockEffectivelyEmpty(BlockSyntax block)
+		{
+			if (block.Statements.Count == 0)
+			{
+				return true;
+			}
+
+			return block.Statements.All(static s => s switch
+			{
+				BlockSyntax { Statements.Count: 0 } => true,
+				EmptyStatementSyntax => true,
+				ReturnStatementSyntax { Expression: null } => true,
+				_ => false
+			});
+		}
 	}
 }

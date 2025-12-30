@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -24,14 +27,20 @@ public abstract class BaseBinaryStrategy : IBinaryStrategy
 
 	protected static bool LeftEqualsRight(BinaryOptimizeContext context)
 	{
-		return context.Left.Syntax.IsEquivalentTo(context.Right.Syntax)
-		       || context.Left.Syntax is IdentifierNameSyntax leftIdentifier
-		       && context.Right.Syntax is IdentifierNameSyntax rightIdentifier
-		       && context.Variables.TryGetValue(leftIdentifier.Identifier.Text, out var leftVar)
-		       && context.Variables.TryGetValue(rightIdentifier.Identifier.Text, out var rightVar)
+		return LeftEqualsRight(context.Left.Syntax, context.Right.Syntax, context.Variables);
+	}
+
+	protected static bool LeftEqualsRight(SyntaxNode left, SyntaxNode right, IDictionary<string, VariableItem> variables)
+	{
+		return left.IsEquivalentTo(right)
+		       || left is IdentifierNameSyntax leftIdentifier
+		       && right is IdentifierNameSyntax rightIdentifier
+		        && (leftIdentifier.Identifier.Text == rightIdentifier.Identifier.Text ||
+		       variables.TryGetValue(leftIdentifier.Identifier.Text, out var leftVar)
+		       && variables.TryGetValue(rightIdentifier.Identifier.Text, out var rightVar)
 		       && leftVar.Value is ArgumentSyntax leftArgument
 		       && rightVar.Value is ArgumentSyntax rightArgument
-		       && leftArgument.Expression.IsEquivalentTo(rightArgument.Expression);
+		       && leftArgument.Expression.IsEquivalentTo(rightArgument.Expression));
 	}
 
 	protected static SyntaxKind SwapCondition(SyntaxKind kind)
@@ -80,6 +89,28 @@ public abstract class BaseBinaryStrategy : IBinaryStrategy
 			LiteralExpressionSyntax => true,
 			MemberAccessExpressionSyntax => true,
 			ParenthesizedExpressionSyntax paren => IsSimpleExpression(paren.Expression),
+			_ => false
+		};
+	}
+
+	protected static bool IsPostive(SyntaxNode node, IDictionary<string, VariableItem> variables)
+	{
+		return node switch
+		{
+			LiteralExpressionSyntax literal => literal.Token.Value.IsPositive(),
+			ArgumentSyntax argument => IsPostive(argument.Expression, variables),
+			IdentifierNameSyntax identifier when variables.TryGetValue(identifier.Identifier.Text, out var variable) && variable.HasValue => variable.Value.IsPositive(),
+			_ => false
+		};
+	}
+
+	protected static bool IsNegative(SyntaxNode node, IDictionary<string, VariableItem> variables)
+	{
+		return node switch
+		{
+			LiteralExpressionSyntax literal => literal.Token.Value.IsNegative(),
+			ArgumentSyntax argument => IsNegative(argument.Expression, variables),
+			IdentifierNameSyntax identifier when variables.TryGetValue(identifier.Identifier.Text, out var variable) && variable.HasValue => variable.Value.IsNegative(),
 			_ => false
 		};
 	}
