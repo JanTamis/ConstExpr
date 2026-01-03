@@ -11,7 +11,8 @@ public class AddIdentityElementStrategy : SymmetricStrategy<NumericBinaryStrateg
 {
 	public override bool CanBeOptimizedSymmetric(BinaryOptimizeContext context)
 	{
-		return context.Right.HasValue && context.Right.Value.IsNumericZero();
+		return context.Right.HasValue 
+		       && context.Right.Value.IsNumericZero();
 	}
 
 	public override SyntaxNode? OptimizeSymmetric(BinaryOptimizeContext context)

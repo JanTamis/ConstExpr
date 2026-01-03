@@ -9,27 +9,27 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AddStrategies;
 /// <summary>
 /// Strategy for double negated addition: -x + (-y) => -(x + y) (pure)
 /// </summary>
-public class AddDoubleNegatedStrategy : NumericBinaryStrategy
+public class AddDoubleNegatedStrategy : NumericBinaryStrategy<PrefixUnaryExpressionSyntax, PrefixUnaryExpressionSyntax>
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool TryOptimize(BinaryOptimizeContext<PrefixUnaryExpressionSyntax, PrefixUnaryExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return base.CanBeOptimized(context)
-		       && context.Left.Syntax is PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.UnaryMinusExpression } leftUnary
-		       && context.Right.Syntax is PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.UnaryMinusExpression } rightUnary
-		       && IsPure(leftUnary.Operand) && IsPure(rightUnary.Operand);
-	}
+		if (!base.TryOptimize(context, out optimized))
+			return false;
 
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		var leftUnary = (PrefixUnaryExpressionSyntax) context.Left.Syntax;
-		var rightUnary = (PrefixUnaryExpressionSyntax) context.Right.Syntax;
+		if (context.Left.Syntax.IsKind(SyntaxKind.UnaryMinusExpression)
+		    && context.Right.Syntax.IsKind(SyntaxKind.UnaryMinusExpression)
+		    && IsPure(context.Left.Syntax.Operand)
+		    && IsPure(context.Right.Syntax.Operand))
+		{
+			optimized = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
+				ParenthesizedExpression(
+					BinaryExpression(SyntaxKind.AddExpression, 
+						context.Left.Syntax.Operand, 
+						context.Right.Syntax.Operand)));
 
-		var leftWithoutMinus = leftUnary.Operand;
-		var rightWithoutMinus = rightUnary.Operand;
+			return true;
+		}
 
-		var addition = ParenthesizedExpression(
-			BinaryExpression(SyntaxKind.AddExpression, leftWithoutMinus, rightWithoutMinus));
-
-		return PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression, addition);
+		return false;
 	}
 }

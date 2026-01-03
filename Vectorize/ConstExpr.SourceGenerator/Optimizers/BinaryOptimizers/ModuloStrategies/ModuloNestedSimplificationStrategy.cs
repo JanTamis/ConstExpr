@@ -11,35 +11,18 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ModuloStrategies
 /// <summary>
 /// Strategy for nested modulo simplification: (x % m) % n where m % n == 0 => x % n
 /// </summary>
-public class ModuloNestedSimplificationStrategy : IntegerBinaryStrategy
+public class ModuloNestedSimplificationStrategy : IntegerBinaryStrategy<BinaryExpressionSyntax, ExpressionSyntax>
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool TryOptimize(BinaryOptimizeContext<BinaryExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (!base.CanBeOptimized(context))
+		if (!base.TryOptimize(context, out optimized)
+		    || !context.Left.Syntax.IsKind(SyntaxKind.ModuloExpression)
+		    || !context.TryGetLiteral(context.Right.Syntax, out var rightValue)
+		    || !context.TryGetLiteral(context.Left.Syntax.Right, out var innerRightValue)
+		    || !innerRightValue.Modulo(rightValue).IsNumericZero())
 			return false;
-
-		if (!context.Right.HasValue || context.Right.Value == null || context.Right.Value.IsNumericZero())
-			return false;
-
-		if (context.Left.Syntax is not BinaryExpressionSyntax { RawKind: (int)SyntaxKind.ModuloExpression } inner)
-			return false;
-
-		if (inner.Right is not LiteralExpressionSyntax innerRightLiteral)
-			return false;
-
-		var innerRightValue = innerRightLiteral.Token.Value;
-
-		if (innerRightValue == null)
-			return false;
-
-		// Check if m % n == 0
-		var mod = ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.Remainder, innerRightValue, context.Right.Value);
-		return mod != null && mod.IsNumericZero();
-	}
-
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		var inner = (BinaryExpressionSyntax)context.Left.Syntax;
-		return BinaryExpression(SyntaxKind.ModuloExpression, inner.Left, context.Right.Syntax);
+		
+		optimized = BinaryExpression(SyntaxKind.ModuloExpression, context.Left.Syntax.Left, context.Right.Syntax);
+		return true;
 	}
 }

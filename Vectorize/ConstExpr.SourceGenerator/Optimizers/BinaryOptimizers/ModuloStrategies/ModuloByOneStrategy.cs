@@ -2,23 +2,21 @@ using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ModuloStrategies;
 
 /// <summary>
 /// Strategy for modulo by one: x % 1 = 0
 /// </summary>
-public class ModuloByOneStrategy : IntegerBinaryStrategy
+public class ModuloByOneStrategy : IntegerBinaryStrategy<ExpressionSyntax, ExpressionSyntax>
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return base.CanBeOptimized(context)
-		       && context.Right.HasValue 
-		       && context.Right.Value.IsNumericOne();
-	}
+		optimized = null;
 
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		return SyntaxHelpers.CreateLiteral(0.ToSpecialType(context.Type.SpecialType));
+		return context.TryGetLiteral(context.Right.Syntax, out var rightValue)
+		       && rightValue.IsNumericOne()
+		       && SyntaxHelpers.TryGetLiteral(0.ToSpecialType(context.Type.SpecialType), out optimized);
 	}
 }

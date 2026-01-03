@@ -2,6 +2,7 @@ using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies;
@@ -9,17 +10,16 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies
 /// <summary>
 /// Strategy for division by negative one: x / -1 = -x
 /// </summary>
-public class DivideByNegativeOneStrategy : NumericBinaryStrategy
+public class DivideByNegativeOneStrategy : NumericBinaryStrategy<ExpressionSyntax, ExpressionSyntax>
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return base.CanBeOptimized(context) 
-		       && context.Right is { HasValue: true, Value: { } value } 
-		       && value.IsNumericNegativeOne();
-	}
-
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		return PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression, context.Left.Syntax);
+		if (!base.TryOptimize(context, out optimized)
+		    || !context.TryGetLiteral(context.Right.Syntax, out var value)
+		    || !value.IsNumericNegativeOne())
+			return false;
+		
+		optimized = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression, context.Left.Syntax);
+		return true;
 	}
 }

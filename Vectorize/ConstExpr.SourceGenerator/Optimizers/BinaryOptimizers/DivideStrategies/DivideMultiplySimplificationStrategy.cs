@@ -8,36 +8,33 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies
 /// <summary>
 /// Strategy for algebraic simplification: (x * a) / a => x
 /// </summary>
-public class DivideMultiplySimplificationStrategy : BaseBinaryStrategy
+public class DivideMultiplySimplificationStrategy : BaseBinaryStrategy<BinaryExpressionSyntax, ExpressionSyntax>
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool TryOptimize(BinaryOptimizeContext<BinaryExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.MultiplyExpression } leftMul
-			&& ((leftMul.Right.IsEquivalentTo(context.Right.Syntax) && IsPure(leftMul.Left))
-				|| (leftMul.Left.IsEquivalentTo(context.Right.Syntax) && IsPure(leftMul.Right)));
-	}
-
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		if (context.Left.Syntax is not BinaryExpressionSyntax { RawKind: (int)SyntaxKind.MultiplyExpression } leftMul)
+		if (!context.Left.Syntax.IsKind(SyntaxKind.MultiplyExpression))
 		{
-			return null;
+			optimized = null;
+			return false;
 		}
 
 		// Check if right side of multiply matches divisor
-		if (leftMul.Right.IsEquivalentTo(context.Right.Syntax)
-				&& IsPure(leftMul.Left))
+		if (context.Left.Syntax.Right.IsEquivalentTo(context.Right.Syntax)
+		    && IsPure(context.Left.Syntax.Left))
 		{
-			return leftMul.Left;
+			optimized = context.Left.Syntax.Left;
+			return true;
 		}
 
 		// Check if left side of multiply matches divisor
-		if (leftMul.Left.IsEquivalentTo(context.Right.Syntax)
-				&& IsPure(leftMul.Right))
+		if (context.Left.Syntax.Left.IsEquivalentTo(context.Right.Syntax)
+		    && IsPure(context.Left.Syntax.Right))
 		{
-			return leftMul.Right;
+			optimized = context.Left.Syntax.Right;
+			return true;
 		}
-
-		return null;
+		
+		optimized = null;
+		return false;
 	}
 }

@@ -9,25 +9,23 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies
 /// <summary>
 /// Strategy for right negation extraction: x / (-y) => -(x / y)
 /// </summary>
-public class DivideRightNegationStrategy : BaseBinaryStrategy
+public class DivideRightNegationStrategy : BaseBinaryStrategy<ExpressionSyntax, PrefixUnaryExpressionSyntax>
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, PrefixUnaryExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return context.Right.Syntax is PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.UnaryMinusExpression } rightNeg
-		       && IsPure(context.Left.Syntax) 
-		       && IsPure(rightNeg.Operand);
-	}
-
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		if (context.Right.Syntax is not PrefixUnaryExpressionSyntax rightNeg)
+		if (!context.Right.Syntax.IsKind(SyntaxKind.UnaryMinusExpression)
+		    || !IsPure(context.Left.Syntax)
+		    || !IsPure(context.Right.Syntax.Operand))
 		{
-			return null;
+			optimized = null;
+			return false;
 		}
 
-		return PrefixUnaryExpression(
+		optimized = PrefixUnaryExpression(
 			SyntaxKind.UnaryMinusExpression,
 			ParenthesizedExpression(
-				BinaryExpression(SyntaxKind.DivideExpression, context.Left.Syntax, rightNeg.Operand)));
+				BinaryExpression(SyntaxKind.DivideExpression, context.Left.Syntax, context.Right.Syntax.Operand)));
+			
+		return true;
 	}
 }

@@ -1,24 +1,23 @@
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.LeftShiftStrategies;
 
 /// <summary>
 /// Strategy for shift by zero: x << 0 => x (pure)
 /// </summary>
-public class LeftShiftByZeroStrategy : IntegerBinaryStrategy
+public class LeftShiftByZeroStrategy : IntegerBinaryStrategy<ExpressionSyntax, ExpressionSyntax>
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return base.CanBeOptimized(context)
-		       && context.Right.HasValue 
-		       && context.Right.Value.IsNumericZero()
-		       && IsPure(context.Left.Syntax);
-	}
-
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		return context.Left.Syntax;
+		if (!base.TryOptimize(context, out optimized)
+		    || !context.TryGetLiteral(context.Right.Syntax, out var rightValue)
+		    || !rightValue.IsNumericZero())
+			return false;
+		
+		optimized = context.Left.Syntax;
+		return true;
 	}
 }

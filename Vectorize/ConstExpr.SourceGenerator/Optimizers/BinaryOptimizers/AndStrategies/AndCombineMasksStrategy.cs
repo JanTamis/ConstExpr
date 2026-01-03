@@ -15,11 +15,13 @@ public class AndCombineMasksStrategy : SymmetricStrategy<NumericOrBooleanBinaryS
 {
 	public override bool CanBeOptimizedSymmetric(BinaryOptimizeContext context)
 	{
-		if (context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.BitwiseAndExpression } && context.Right.HasValue && context.Left.Value != null)
+		if (context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.BitwiseAndExpression } 
+		    && context.Right.HasValue 
+		    && context.Left.Value != null)
 		{
 			var leftMask = context.Left.Value;
 			var rightMask = context.Right.Value;
-			var combined = ObjectExtensions.And(leftMask, rightMask);
+			var combined = leftMask.And(rightMask);
 
 			if (combined != null && SyntaxHelpers.TryGetLiteral(combined, out _))
 			{
@@ -36,7 +38,7 @@ public class AndCombineMasksStrategy : SymmetricStrategy<NumericOrBooleanBinaryS
 		{
 			var leftMask = context.Left.Value;
 			var rightMask = context.Right.Value;
-			var combined = ObjectExtensions.And(leftMask, rightMask);
+			var combined = leftMask.And(rightMask);
 			
 			if (SyntaxHelpers.TryGetLiteral(combined, out var combinedLiteral))
 			{

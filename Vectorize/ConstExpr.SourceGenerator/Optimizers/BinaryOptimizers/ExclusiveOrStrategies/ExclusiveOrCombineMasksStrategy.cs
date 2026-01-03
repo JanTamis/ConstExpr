@@ -12,37 +12,18 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ExclusiveOrStrat
 /// <summary>
 /// Strategy for combining constant masks: (x ^ mask1) ^ mask2 => x ^ (mask1 ^ mask2)
 /// </summary>
-public class ExclusiveOrCombineMasksStrategy : NumericOrBooleanBinaryStrategy
+public class ExclusiveOrCombineMasksStrategy : NumericOrBooleanBinaryStrategy<BinaryExpressionSyntax, ExpressionSyntax>
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool TryOptimize(BinaryOptimizeContext<BinaryExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return base.CanBeOptimized(context)
-		       && context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.ExclusiveOrExpression } leftXor
-		       && context.Right.HasValue 
-		       && context.Right.Value != null
-		       && leftXor.Right is LiteralExpressionSyntax;
-	}
-
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		if (context.Left.Syntax is not BinaryExpressionSyntax { RawKind: (int)SyntaxKind.ExclusiveOrExpression } leftXor)
-			return null;
-
-		if (leftXor.Right is not LiteralExpressionSyntax leftXorRightLiteral)
-			return null;
-
-		var leftXorRight = leftXorRightLiteral.Token.Value;
-
-		if (leftXorRight == null)
-			return null;
-
-		var combined = ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.ExclusiveOr, leftXorRight, context.Right.Value);
-
-		if (combined != null && SyntaxHelpers.TryGetLiteral(combined, out var combinedLiteral))
-		{
-			return BinaryExpression(SyntaxKind.ExclusiveOrExpression, leftXor.Left, combinedLiteral);
-		}
-
-		return null;
+		if (!base.TryOptimize(context, out optimized)
+		    || context.Left.Syntax.IsKind(SyntaxKind.ExclusiveOrExpression)
+		    || !context.TryGetLiteral(context.Right.Syntax, out var rightValue)
+		    || !context.TryGetLiteral(context.Left.Syntax.Right, out var leftXorRightValue)
+		    || !SyntaxHelpers.TryGetLiteral(leftXorRightValue.ExclusiveOr(rightValue), out var combinedLiteral))
+			return false;
+		
+		optimized = BinaryExpression(SyntaxKind.ExclusiveOrExpression, context.Left.Syntax.Left, combinedLiteral);
+		return true;
 	}
 }

@@ -10,29 +10,26 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalOrStr
 /// Strategy for De Morgan's law: !a || !b → !(a && b)
 /// This can reduce the number of negations and may help branch prediction.
 /// </summary>
-public class ConditionalOrDeMorganStrategy : BaseBinaryStrategy
+public class ConditionalOrDeMorganStrategy : BaseBinaryStrategy<PrefixUnaryExpressionSyntax, PrefixUnaryExpressionSyntax>
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool TryOptimize(BinaryOptimizeContext<PrefixUnaryExpressionSyntax, PrefixUnaryExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		// Check if both sides are negations: !a || !b
-		return context.Left.Syntax is PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.ExclamationToken } &&
-		       context.Right.Syntax is PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.ExclamationToken };
-	}
-
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		var leftNegation = (PrefixUnaryExpressionSyntax)context.Left.Syntax;
-		var rightNegation = (PrefixUnaryExpressionSyntax)context.Right.Syntax;
+		if (!context.Left.Syntax.IsKind(SyntaxKind.ExclamationToken)
+		    || !context.Right.Syntax.IsKind(SyntaxKind.ExclamationToken))
+		{
+			optimized = null;
+			return false;
+		}
 
 		// !a || !b → !(a && b)
-		var andExpression = BinaryExpression(
-			SyntaxKind.LogicalAndExpression,
-			leftNegation.Operand,
-			rightNegation.Operand);
-
-		return PrefixUnaryExpression(
+		optimized = PrefixUnaryExpression(
 			SyntaxKind.LogicalNotExpression,
-			ParenthesizedExpression(andExpression));
+			ParenthesizedExpression(BinaryExpression(
+				SyntaxKind.LogicalAndExpression,
+				context.Left.Syntax.Operand,
+				context.Right.Syntax.Operand)));
+			
+		return true;
 	}
 }
 

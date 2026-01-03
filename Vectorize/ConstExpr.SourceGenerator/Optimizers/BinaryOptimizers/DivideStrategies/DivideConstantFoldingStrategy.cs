@@ -18,7 +18,9 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 	public override bool CanBeOptimized(BinaryOptimizeContext context)
 	{
 		if (!base.CanBeOptimized(context))
+		{
 			return false;
+		}
 
 		// Pattern 1: (x / C1) / C2 => x / (C1 * C2)
 		if (context.Right.HasValue 

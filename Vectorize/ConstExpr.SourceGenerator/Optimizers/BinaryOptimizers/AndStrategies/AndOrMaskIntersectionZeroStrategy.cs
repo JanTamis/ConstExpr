@@ -28,7 +28,7 @@ public class AndOrMaskIntersectionZeroStrategy : SymmetricStrategy<NumericBinary
 				// Check if mask1 & mask2 == 0 using ObjectExtensions.And
 				var mask1 = context.Left.Value;
 				var mask2 = context.Right.Value;
-				var andResult = ObjectExtensions.And(mask1, mask2);
+				var andResult = mask1.And(mask2);
 
 				return andResult is not null && Equals(andResult, 0.ToSpecialType(context.Type.SpecialType));
 			}
@@ -39,7 +39,9 @@ public class AndOrMaskIntersectionZeroStrategy : SymmetricStrategy<NumericBinary
 
 	public override SyntaxNode? OptimizeSymmetric(BinaryOptimizeContext context)
 	{
-		if (context.Left.Syntax is BinaryExpressionSyntax leftOr && leftOr.RawKind == (int)SyntaxKind.BitwiseOrExpression && context.Right.HasValue && context.Left.Value != null)
+		if (context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.BitwiseOrExpression } leftOr 
+		    && context.Right.HasValue 
+		    && context.Left.Value != null)
 		{
 			var mask2 = context.Right.Value;
 			

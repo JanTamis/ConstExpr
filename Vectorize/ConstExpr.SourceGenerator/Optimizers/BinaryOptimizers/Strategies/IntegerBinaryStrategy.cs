@@ -1,14 +1,12 @@
 ﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 
-public class IntegerBinaryStrategy : SpecialTypeBinaryStrategy
+public abstract class IntegerBinaryStrategy<TLeft, TRight> : SpecialTypeBinaryStrategy<TLeft, TRight>
+	where TLeft : ExpressionSyntax
+	where TRight : ExpressionSyntax
 {
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		throw new System.NotImplementedException();
-	}
-
 	public override bool IsValidSpecialType(SpecialType specialType)
 	{
 		return specialType is SpecialType.System_SByte

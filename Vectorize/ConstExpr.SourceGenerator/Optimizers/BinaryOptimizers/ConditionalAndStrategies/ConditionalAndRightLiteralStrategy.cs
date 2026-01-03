@@ -1,29 +1,31 @@
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalAndStrategies;
 
 /// <summary>
 /// Strategy for right-side literal boolean optimization: x && true = x, x && false = false (only if x is pure)
 /// </summary>
-public class ConditionalAndRightLiteralStrategy : BooleanBinaryStrategy
+public class ConditionalAndRightLiteralStrategy : BooleanBinaryStrategy<ExpressionSyntax, ExpressionSyntax>
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return context.Right is { HasValue: true, Value: true or false } && IsPure(context.Left.Syntax);
-	}
+		if (!base.TryOptimize(context, out optimized)
+		    || !context.TryGetLiteral(context.Right.Syntax, out var value)
+		    || value is not bool
+		    || !IsPure(context.Left.Syntax))
+			return false;
 
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		return context.Right switch
+		optimized = value switch
 		{
 			// x && true = x (only if x is pure)
-			{ HasValue: true, Value: true } when IsPure(context.Left.Syntax) => context.Left.Syntax,
+			true => context.Left.Syntax,
 			// x && false = false (only if x is pure)
-			{ HasValue: true, Value: false } when IsPure(context.Left.Syntax) => SyntaxHelpers.CreateLiteral(false),
-			_ => null
+			false => SyntaxHelpers.CreateLiteral(false),
 		};
 
+		return true;
 	}
 }

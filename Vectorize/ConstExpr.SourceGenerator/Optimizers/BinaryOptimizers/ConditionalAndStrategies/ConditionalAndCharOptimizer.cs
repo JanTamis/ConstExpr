@@ -21,7 +21,7 @@ public class ConditionalAndCharOptimizer : SymmetricStrategy<BooleanBinaryStrate
 	public override SyntaxNode? OptimizeSymmetric(BinaryOptimizeContext context)
 	{
 		if (context.Left.Syntax is not BinaryExpressionSyntax { Right: LiteralExpressionSyntax leftLiteral } left
-		    || context.Right.Syntax is not BinaryExpressionSyntax { Right: LiteralExpressionSyntax rightLiteral } right)
+		    || context.Right.Syntax is not BinaryExpressionSyntax { Right: LiteralExpressionSyntax rightLiteral })
 		{
 			return null;
 		}

@@ -9,28 +9,20 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies
 /// <summary>
 /// Strategy for double negation cancellation: (-x) / (-y) => x / y
 /// </summary>
-public class DivideDoubleNegationStrategy : BaseBinaryStrategy
+public class DivideDoubleNegationStrategy : BaseBinaryStrategy<PrefixUnaryExpressionSyntax, PrefixUnaryExpressionSyntax>
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool TryOptimize(BinaryOptimizeContext<PrefixUnaryExpressionSyntax, PrefixUnaryExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return context.Left.Syntax is PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.UnaryMinusExpression } leftNeg
-		       && context.Right.Syntax is PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.UnaryMinusExpression } rightNeg
-		       && IsPure(leftNeg.Operand) 
-		       && IsPure(rightNeg.Operand);
-	}
-
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		if (context.Left.Syntax is not PrefixUnaryExpressionSyntax leftNeg)
+		if (!context.Left.Syntax.IsKind(SyntaxKind.UnaryMinusExpression)
+		    || !context.Right.Syntax.IsKind(SyntaxKind.UnaryMinusExpression)
+		    || !IsPure(context.Left.Syntax.Operand)
+		    || !IsPure(context.Right.Syntax.Operand))
 		{
-			return null;
+			optimized = null;
+			return false;
 		}
 
-		if (context.Right.Syntax is not PrefixUnaryExpressionSyntax rightNeg)
-		{
-			return null;
-		}
-
-		return BinaryExpression(SyntaxKind.DivideExpression, leftNeg.Operand, rightNeg.Operand);
+		optimized = BinaryExpression(SyntaxKind.DivideExpression, context.Left.Syntax.Operand, context.Right.Syntax.Operand);
+		return true;
 	}
 }

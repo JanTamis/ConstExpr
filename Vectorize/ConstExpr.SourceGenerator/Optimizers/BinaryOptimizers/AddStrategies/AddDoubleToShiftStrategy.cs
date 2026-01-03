@@ -2,6 +2,7 @@ using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AddStrategies;
@@ -9,16 +10,19 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AddStrategies;
 /// <summary>
 /// Strategy for double-to-shift optimization: x + x => x << 1 (integer, pure)
 /// </summary>
-public class AddDoubleToShiftStrategy : IntegerBinaryStrategy
+public class AddDoubleToShiftStrategy : IntegerBinaryStrategy<ExpressionSyntax, ExpressionSyntax>
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return base.CanBeOptimized(context)
-		       && LeftEqualsRight(context) && IsPure(context.Left.Syntax) && IsPure(context.Right.Syntax);
-	}
-
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		return BinaryExpression(SyntaxKind.LeftShiftExpression, context.Left.Syntax, SyntaxHelpers.CreateLiteral(1));
+		if (base.TryOptimize(context, out optimized)
+		    && LeftEqualsRight(context)
+		    && IsPure(context.Left.Syntax)
+		    && IsPure(context.Right.Syntax))
+		{
+			optimized = BinaryExpression(SyntaxKind.LeftShiftExpression, context.Left.Syntax, SyntaxHelpers.CreateLiteral(1)!);
+			return true;
+		}
+		
+		return false;
 	}
 }

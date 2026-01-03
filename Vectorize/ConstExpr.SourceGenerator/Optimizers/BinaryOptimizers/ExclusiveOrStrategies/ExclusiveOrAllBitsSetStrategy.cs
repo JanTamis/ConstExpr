@@ -1,6 +1,7 @@
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ExclusiveOrStrategies;
@@ -8,34 +9,32 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ExclusiveOrStrat
 /// <summary>
 /// Strategy for all-bits-set: x ^ ~0 = ~x (integer types)
 /// </summary>
-public class ExclusiveOrAllBitsSetStrategy : IntegerBinaryStrategy
+public class ExclusiveOrAllBitsSetStrategy : IntegerBinaryStrategy<ExpressionSyntax, ExpressionSyntax>
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
-	{
-		if (!base.CanBeOptimized(context))
-			return false;
-
-		return (context.Right.HasValue && IsAllBitsSet(context.Right.Value, context.Type.SpecialType))
-		       || (context.Left.HasValue && IsAllBitsSet(context.Left.Value, context.Type.SpecialType));
-	}
-
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
+	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		// x ^ ~0 = ~x
-		if (context.Right.HasValue && IsAllBitsSet(context.Right.Value, context.Type.SpecialType))
-			return PrefixUnaryExpression(SyntaxKind.BitwiseNotExpression, context.Left.Syntax);
+		if (context.TryGetLiteral(context.Right.Syntax, out var rightValue) 
+		    && IsAllBitsSet(rightValue, context.Type.SpecialType))
+		{
+			optimized = PrefixUnaryExpression(SyntaxKind.BitwiseNotExpression, context.Left.Syntax);
+			return true;
+		}
 
 		// ~0 ^ x = ~x
-		if (context.Left.HasValue && IsAllBitsSet(context.Left.Value, context.Type.SpecialType))
-			return PrefixUnaryExpression(SyntaxKind.BitwiseNotExpression, context.Right.Syntax);
-
-		return null;
+		if (context.TryGetLiteral(context.Left.Syntax, out var leftValue) 
+		    && IsAllBitsSet(leftValue, context.Type.SpecialType))
+		{
+			optimized = PrefixUnaryExpression(SyntaxKind.BitwiseNotExpression, context.Right.Syntax);
+			return true;
+		}
+		
+		optimized = null;
+		return false;
 	}
 
 	private static bool IsAllBitsSet(object? value, SpecialType type)
 	{
-		if (value == null) return false;
-
 		return type switch
 		{
 			SpecialType.System_Byte => value is byte.MaxValue,

@@ -7,10 +7,11 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 
-public abstract class BaseBinaryStrategy : IBinaryStrategy
+public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft, TRight>
+	where TLeft : ExpressionSyntax
+	where TRight : ExpressionSyntax
 {
-	public abstract bool CanBeOptimized(BinaryOptimizeContext context);
-	public abstract SyntaxNode? Optimize(BinaryOptimizeContext context);
+	public abstract bool TryOptimize(BinaryOptimizeContext<TLeft, TRight> context, out ExpressionSyntax? optimized);
 
 	protected static bool IsPure(SyntaxNode node)
 	{
@@ -25,12 +26,12 @@ public abstract class BaseBinaryStrategy : IBinaryStrategy
 		};
 	}
 
-	protected static bool LeftEqualsRight(BinaryOptimizeContext context)
+	protected static bool LeftEqualsRight(BinaryOptimizeContext<TLeft, TRight> context)
 	{
-		return LeftEqualsRight(context.Left.Syntax, context.Right.Syntax, context.Variables);
+		return LeftEqualsRight(context.Left.Syntax, context.Right.Syntax, context.TryGetLiteral);
 	}
 
-	protected static bool LeftEqualsRight(SyntaxNode left, SyntaxNode right, IDictionary<string, VariableItem> variables)
+	protected static bool LeftEqualsRight(SyntaxNode left, SyntaxNode right, TryGetLiteralDelegate tryGetLiteral)
 	{
 		return left.IsEquivalentTo(right)
 		       || left is IdentifierNameSyntax leftIdentifier

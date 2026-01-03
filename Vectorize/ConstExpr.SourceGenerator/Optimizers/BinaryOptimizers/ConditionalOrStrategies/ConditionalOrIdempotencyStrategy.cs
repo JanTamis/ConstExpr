@@ -1,20 +1,22 @@
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalOrStrategies;
 
 /// <summary>
 /// Strategy for idempotency: x || x = x (for pure expressions)
 /// </summary>
-public class ConditionalOrIdempotencyStrategy : BooleanBinaryStrategy
+public class ConditionalOrIdempotencyStrategy : BooleanBinaryStrategy<ExpressionSyntax, ExpressionSyntax>
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return LeftEqualsRight(context) && IsPure(context.Left.Syntax);
-	}
-
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		return context.Left.Syntax;
+		if (!base.TryOptimize(context, out optimized)
+		    || !LeftEqualsRight(context)
+		    || !IsPure(context.Left.Syntax))
+			return false;
+		
+		optimized = context.Left.Syntax;
+		return true;
 	}
 }

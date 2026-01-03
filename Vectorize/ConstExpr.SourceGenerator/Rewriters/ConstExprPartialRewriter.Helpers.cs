@@ -77,13 +77,12 @@ public partial class ConstExprPartialRewriter
 	private bool TryOptimizeNode(BinaryOperatorKind kind, List<BinaryExpressionSyntax> expressions, ITypeSymbol type, ExpressionSyntax leftExpr, ITypeSymbol? leftType, ExpressionSyntax rightExpr, ITypeSymbol? rightType, out SyntaxNode? syntaxNode)
 	{
 		// Select optimizer based on operator kind
-		var strategies = typeof(BaseBinaryOptimizer).Assembly
+		var strategies = typeof(BaseBinaryOptimizer<,>).Assembly
 			.GetTypes()
 			.Where(t => !t.IsAbstract && typeof(BaseBinaryOptimizer).IsAssignableFrom(t))
 			.Select(t => Activator.CreateInstance(t) as BaseBinaryOptimizer)
-			.OfType<BaseBinaryOptimizer>()
-			.Where(o => o.Kind == kind)
-			.SelectMany(s => s.GetStrategies());
+			.OfType<BaseBinaryOptimizer<,>>()
+			.Where(o => o.Kind == kind);
 
 		var context = new BinaryOptimizeContext
 		{
