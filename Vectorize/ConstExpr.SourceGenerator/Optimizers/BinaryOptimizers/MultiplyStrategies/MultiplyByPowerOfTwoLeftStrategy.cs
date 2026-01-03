@@ -2,6 +2,7 @@ using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.MultiplyStrategies;
@@ -9,23 +10,17 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.MultiplyStrategi
 /// <summary>
 /// Strategy for power of two optimization: (power of two) * x => x << n (integer)
 /// </summary>
-public class MultiplyByPowerOfTwoLeftStrategy : IntegerBinaryStrategy
+public class MultiplyByPowerOfTwoLeftStrategy : IntegerBinaryStrategy<ExpressionSyntax, ExpressionSyntax>
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return base.CanBeOptimized(context) 
-		       && context.Left.HasValue 
-		       && context.Left.Value.IsNumericPowerOfTwo(out _);
-	}
-
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		if (context.Left.Value.IsNumericPowerOfTwo(out var power))
-		{
-			return BinaryExpression(SyntaxKind.LeftShiftExpression, context.Right.Syntax,
-				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(power)));
-		}
-
-		return null;
+		if (!base.TryOptimize(context, out optimized)
+		    || context.TryGetLiteral(context.Left.Syntax, out var leftValue)
+		    || !leftValue.IsNumericPowerOfTwo(out var power))
+			return false;
+		
+		optimized = BinaryExpression(SyntaxKind.LeftShiftExpression, context.Right.Syntax,
+			LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(power)));
+		return true;
 	}
 }

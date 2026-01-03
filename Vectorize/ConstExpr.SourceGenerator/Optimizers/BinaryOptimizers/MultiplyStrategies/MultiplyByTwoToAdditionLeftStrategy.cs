@@ -2,6 +2,7 @@ using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.MultiplyStrategies;
@@ -9,19 +10,17 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.MultiplyStrategi
 /// <summary>
 /// Strategy for multiplication by two to addition: 2 * x => x + x (pure, non-integer)
 /// </summary>
-public class MultiplyByTwoToAdditionLeftStrategy : NumericBinaryStrategy
+public class MultiplyByTwoToAdditionLeftStrategy : NumericBinaryStrategy<ExpressionSyntax, ExpressionSyntax>
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return base.CanBeOptimized(context) 
-		       && !context.Type.IsInteger()
-		       && context.Left.HasValue 
-		       && context.Left.Value.IsNumericValue(2)
-		       && IsPure(context.Right.Syntax);
-	}
+		if (!base.TryOptimize(context, out optimized)
+		    || !context.TryGetLiteral(context.Left.Syntax, out var leftValue)
+		    || !leftValue.IsNumericValue(2)
+		    || !IsPure(context.Right.Syntax))
+			return false;
 
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		return ParenthesizedExpression(BinaryExpression(SyntaxKind.AddExpression, context.Right.Syntax, context.Right.Syntax));
+		optimized = ParenthesizedExpression(BinaryExpression(SyntaxKind.AddExpression, context.Right.Syntax, context.Right.Syntax));
+		return true;
 	}
 }
