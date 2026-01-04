@@ -1,5 +1,5 @@
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
-using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.OrStrategies;
 
@@ -8,14 +8,16 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.OrStrategies;
 /// </summary>
 public class OrIdempotencyStrategy : BaseBinaryStrategy
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return LeftEqualsRight(context) 
-		       && IsPure(context.Left.Syntax);
-	}
-
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		return context.Left.Syntax;
+		if (!LeftEqualsRight(context)
+		    || !IsPure(context.Left.Syntax))
+		{
+			optimized = null;
+			return false;
+		}
+		
+		optimized = context.Left.Syntax;
+		return true;
 	}
 }

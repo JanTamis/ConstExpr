@@ -9,20 +9,16 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.MultiplyStrategi
 /// <summary>
 /// Strategy for double negation: (-x) * (-y) => x * y (pure)
 /// </summary>
-public class MultiplyDoubleNegationStrategy : NumericBinaryStrategy
+public class MultiplyDoubleNegationStrategy : NumericBinaryStrategy<PrefixUnaryExpressionSyntax, PrefixUnaryExpressionSyntax>
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool TryOptimize(BinaryOptimizeContext<PrefixUnaryExpressionSyntax, PrefixUnaryExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return base.CanBeOptimized(context)
-		       && context.Left.Syntax is PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.UnaryMinusExpression }
-		       && context.Right.Syntax is PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.UnaryMinusExpression };
-	}
-
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		var leftNeg = (PrefixUnaryExpressionSyntax)context.Left.Syntax;
-		var rightNeg = (PrefixUnaryExpressionSyntax)context.Right.Syntax;
-
-		return BinaryExpression(SyntaxKind.MultiplyExpression, leftNeg.Operand, rightNeg.Operand);
+		if (!base.TryOptimize(context, out optimized)
+		    || !context.Left.Syntax.IsKind(SyntaxKind.UnaryMinusExpression)
+		    || !context.Right.Syntax.IsKind(SyntaxKind.UnaryMinusExpression))
+			return false;
+		
+		optimized = BinaryExpression(SyntaxKind.MultiplyExpression, context.Left.Syntax.Operand, context.Right.Syntax.Operand);
+		return true;
 	}
 }

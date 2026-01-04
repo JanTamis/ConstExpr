@@ -1,7 +1,6 @@
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
@@ -11,7 +10,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ModuloStrategies
 /// <summary>
 /// Strategy for power of two optimization: x % (power of two) => x & (power - 1) (unsigned integers)
 /// </summary>
-public class ModuloByPowerOfTwoStrategy : IntegerBinaryStrategy<ExpressionSyntax, ExpressionSyntax>
+public class ModuloByPowerOfTwoStrategy : IntegerBinaryStrategy
 {
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{

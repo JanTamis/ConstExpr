@@ -1,10 +1,9 @@
-﻿using System;
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 
-public abstract class NumericBinaryStrategy<TLeft, TRight> : SpecialTypeBinaryStrategy<TLeft, TRight>
+public class NumericBinaryStrategy<TLeft, TRight> : SpecialTypeBinaryStrategy<TLeft, TRight>
 	where TLeft : ExpressionSyntax
 	where TRight : ExpressionSyntax
 {
@@ -16,3 +15,5 @@ public abstract class NumericBinaryStrategy<TLeft, TRight> : SpecialTypeBinarySt
 			SpecialType.System_Single or SpecialType.System_Double or SpecialType.System_Decimal;
 	}
 }
+
+public class NumericBinaryStrategy : NumericBinaryStrategy<ExpressionSyntax, ExpressionSyntax>;

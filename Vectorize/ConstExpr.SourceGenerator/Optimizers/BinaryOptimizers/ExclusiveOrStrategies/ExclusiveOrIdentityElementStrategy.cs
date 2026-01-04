@@ -1,6 +1,5 @@
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ExclusiveOrStrategies;
@@ -8,7 +7,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ExclusiveOrStrat
 /// <summary>
 /// Strategy for identity element: x ^ 0 = x and 0 ^ x = x
 /// </summary>
-public class ExclusiveOrIdentityElementStrategy : NumericBinaryStrategy<ExpressionSyntax, ExpressionSyntax>
+public class ExclusiveOrIdentityElementStrategy : NumericBinaryStrategy
 {
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{

@@ -1,5 +1,4 @@
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalOrStrategies;
@@ -7,7 +6,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalOrStr
 /// <summary>
 /// Strategy for idempotency: x || x = x (for pure expressions)
 /// </summary>
-public class ConditionalOrIdempotencyStrategy : BooleanBinaryStrategy<ExpressionSyntax, ExpressionSyntax>
+public class ConditionalOrIdempotencyStrategy : BooleanBinaryStrategy
 {
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{

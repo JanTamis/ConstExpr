@@ -1,6 +1,5 @@
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
@@ -10,7 +9,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies
 /// <summary>
 /// Strategy for division by negative one: x / -1 = -x
 /// </summary>
-public class DivideByNegativeOneStrategy : NumericBinaryStrategy<ExpressionSyntax, ExpressionSyntax>
+public class DivideByNegativeOneStrategy : NumericBinaryStrategy
 {
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{

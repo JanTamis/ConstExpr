@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 
-public abstract class IntegerBinaryStrategy<TLeft, TRight> : SpecialTypeBinaryStrategy<TLeft, TRight>
+public class IntegerBinaryStrategy<TLeft, TRight> : SpecialTypeBinaryStrategy<TLeft, TRight>
 	where TLeft : ExpressionSyntax
 	where TRight : ExpressionSyntax
 {
@@ -19,3 +19,5 @@ public abstract class IntegerBinaryStrategy<TLeft, TRight> : SpecialTypeBinarySt
 			or SpecialType.System_UInt64;
 	}
 }
+
+public class IntegerBinaryStrategy : IntegerBinaryStrategy<ExpressionSyntax, ExpressionSyntax>;

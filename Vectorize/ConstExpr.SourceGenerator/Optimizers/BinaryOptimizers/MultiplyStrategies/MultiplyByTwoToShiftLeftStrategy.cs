@@ -1,6 +1,5 @@
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
@@ -10,7 +9,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.MultiplyStrategi
 /// <summary>
 /// Strategy for multiplication by two to shift: 2 * x => x << 1 (integer)
 /// </summary>
-public class MultiplyByTwoToShiftLeftStrategy : IntegerBinaryStrategy<ExpressionSyntax, ExpressionSyntax>
+public class MultiplyByTwoToShiftLeftStrategy : IntegerBinaryStrategy
 {
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{

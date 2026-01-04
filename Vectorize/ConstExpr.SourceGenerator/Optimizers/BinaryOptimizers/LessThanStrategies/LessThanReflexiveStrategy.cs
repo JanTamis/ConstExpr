@@ -1,6 +1,5 @@
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.LessThanStrategies;
@@ -8,7 +7,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.LessThanStrategi
 /// <summary>
 /// Strategy for reflexive comparison: x < x => false (pure)
 /// </summary>
-public class LessThanReflexiveStrategy : BaseBinaryStrategy<ExpressionSyntax, ExpressionSyntax>
+public class LessThanReflexiveStrategy : BaseBinaryStrategy
 {
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{

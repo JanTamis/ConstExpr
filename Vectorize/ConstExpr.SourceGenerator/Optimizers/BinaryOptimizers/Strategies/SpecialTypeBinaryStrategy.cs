@@ -18,3 +18,5 @@ public abstract class SpecialTypeBinaryStrategy<TLeft, TRight> : BaseBinaryStrat
 		       || context.Right.Type is not null && IsValidSpecialType(context.Right.Type.SpecialType);
 	}
 }
+
+public abstract class SpecialTypeBinaryStrategy : SpecialTypeBinaryStrategy<ExpressionSyntax, ExpressionSyntax>;

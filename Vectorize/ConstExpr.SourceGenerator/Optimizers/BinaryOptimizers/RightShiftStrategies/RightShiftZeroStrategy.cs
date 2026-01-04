@@ -2,6 +2,7 @@ using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.RightShiftStrategies;
 
@@ -10,16 +11,15 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.RightShiftStrate
 /// </summary>
 public class RightShiftZeroStrategy : IntegerBinaryStrategy
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return base.CanBeOptimized(context)
-		       && context.Left.HasValue 
-		       && context.Left.Value.IsNumericZero()
-		       && IsPure(context.Right.Syntax);
-	}
-
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		return SyntaxHelpers.CreateLiteral(0.ToSpecialType(context.Type.SpecialType));
+		if (!base.TryOptimize(context, out optimized)
+		    || !context.TryGetLiteral(context.Left.Syntax, out var leftValue)
+		    || !leftValue.IsNumericZero()
+		    || !IsPure(context.Right.Syntax))
+			return false;
+		
+		optimized = SyntaxHelpers.CreateLiteral(0.ToSpecialType(context.Type.SpecialType));
+		return true;
 	}
 }

@@ -1,6 +1,6 @@
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
-using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.NotEqualsStrategies;
 
@@ -9,14 +9,16 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.NotEqualsStrateg
 /// </summary>
 public class NotEqualsReflexiveStrategy : BaseBinaryStrategy
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return LeftEqualsRight(context) 
-		       && IsPure(context.Left.Syntax);
-	}
+		if (!LeftEqualsRight(context)
+		    || !IsPure(context.Left.Syntax))
+		{
+			optimized = null;
+			return false;
+		}
 
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		return SyntaxHelpers.CreateLiteral(false);
+		optimized = SyntaxHelpers.CreateLiteral(false);
+		return true;
 	}
 }

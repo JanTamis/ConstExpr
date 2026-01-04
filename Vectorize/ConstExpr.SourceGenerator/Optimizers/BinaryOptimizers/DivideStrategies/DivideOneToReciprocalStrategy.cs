@@ -11,7 +11,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies
 /// <summary>
 /// Strategy for reciprocal optimization: 1 / x => ReciprocalEstimate(x)
 /// </summary>
-public class DivideOneToReciprocalStrategy : BaseBinaryStrategy<ExpressionSyntax, ExpressionSyntax>
+public class DivideOneToReciprocalStrategy : BaseBinaryStrategy
 {
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{

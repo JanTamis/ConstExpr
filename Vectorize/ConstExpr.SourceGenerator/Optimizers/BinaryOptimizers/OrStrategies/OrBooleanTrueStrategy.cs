@@ -1,6 +1,6 @@
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
-using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.OrStrategies;
 
@@ -9,15 +9,19 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.OrStrategies;
 /// </summary>
 public class OrBooleanTrueStrategy : BooleanBinaryStrategy
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return base.CanBeOptimized(context)
-		       && ((context.Right.HasValue && context.Right.Value is true)
-		           || (context.Left.HasValue && context.Left.Value is true));
-	}
+		if (!base.TryOptimize(context, out optimized))
+			return false;
 
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		return SyntaxHelpers.CreateLiteral(true);
+		if (context.TryGetLiteral(context.Left.Syntax, out var leftValue)
+		    && leftValue is true || context.TryGetLiteral(context.Right.Syntax, out var rightValue)
+		    && rightValue is true)
+		{
+			optimized = SyntaxHelpers.CreateLiteral(true);
+			return true;
+		}
+
+		return false;
 	}
 }

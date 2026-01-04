@@ -10,20 +10,20 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AddStrategies;
 /// <summary>
 /// Strategy for negation cancellation: x + (-x) => 0 and (-x) + x => 0
 /// </summary>
-public class AddNegationStrategy : SymmetricStrategy<NumericBinaryStrategy>
+public class AddNegationStrategy : SymmetricStrategy<NumericBinaryStrategy, ExpressionSyntax, PrefixUnaryExpressionSyntax>
 {
-	public override bool CanBeOptimizedSymmetric(BinaryOptimizeContext context)
+	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<ExpressionSyntax, PrefixUnaryExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		var left = context.Left.Syntax;
-		var right = context.Right.Syntax;
-
-		return right is PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.UnaryMinusExpression } rNeg
-		       && rNeg.Operand.IsEquivalentTo(left)
-		       && IsPure(left) && IsPure(rNeg.Operand);
-	}
-
-	public override SyntaxNode? OptimizeSymmetric(BinaryOptimizeContext context)
-	{
-		return SyntaxHelpers.CreateLiteral(0.ToSpecialType(context.Type.SpecialType));
+		if (!context.Right.Syntax.IsKind(SyntaxKind.UnaryMinusExpression)
+		    || LeftEqualsRight(context.Right.Syntax.Operand, context.Left.Syntax, context.TryGetLiteral)
+		    || !IsPure(context.Left.Syntax)
+		    || !IsPure(context.Right.Syntax))
+		{
+			optimized = null;
+			return false;
+		}
+		
+		optimized = SyntaxHelpers.CreateLiteral(0.ToSpecialType(context.Type.SpecialType));
+		return true;
 	}
 }

@@ -1,4 +1,3 @@
-using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using ConstExpr.SourceGenerator.Helpers;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;

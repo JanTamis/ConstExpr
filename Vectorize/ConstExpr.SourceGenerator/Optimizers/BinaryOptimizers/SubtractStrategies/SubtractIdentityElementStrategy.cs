@@ -1,6 +1,7 @@
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.SubtractStrategies;
 
@@ -9,15 +10,14 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.SubtractStrategi
 /// </summary>
 public class SubtractIdentityElementStrategy : NumericBinaryStrategy
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return base.CanBeOptimized(context) 
-		       && context.Right.HasValue 
-		       && context.Right.Value.IsNumericZero();
-	}
+		if (!base.TryOptimize(context, out optimized)
+		    || !context.TryGetLiteral(context.Right.Syntax, out var rightValue)
+		    || !rightValue.IsNumericZero())
+			return false;
 
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		return context.Left.Syntax;
+		optimized = context.Left.Syntax;
+		return true;
 	}
 }

@@ -1,6 +1,5 @@
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
@@ -10,7 +9,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.MultiplyStrategi
 /// <summary>
 /// Strategy for multiplication by two to addition: x * 2 => x + x (pure, non-integer)
 /// </summary>
-public class MultiplyByTwoToAdditionRightStrategy : NumericBinaryStrategy<ExpressionSyntax, ExpressionSyntax>
+public class MultiplyByTwoToAdditionRightStrategy : NumericBinaryStrategy
 {
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{

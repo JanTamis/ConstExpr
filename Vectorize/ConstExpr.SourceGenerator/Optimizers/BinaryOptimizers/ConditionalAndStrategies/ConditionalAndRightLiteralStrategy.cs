@@ -1,6 +1,5 @@
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalAndStrategies;
@@ -8,7 +7,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalAndSt
 /// <summary>
 /// Strategy for right-side literal boolean optimization: x && true = x, x && false = false (only if x is pure)
 /// </summary>
-public class ConditionalAndRightLiteralStrategy : BooleanBinaryStrategy<ExpressionSyntax, ExpressionSyntax>
+public class ConditionalAndRightLiteralStrategy : BooleanBinaryStrategy
 {
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{

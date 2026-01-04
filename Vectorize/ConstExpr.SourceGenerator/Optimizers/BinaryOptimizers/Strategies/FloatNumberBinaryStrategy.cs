@@ -14,3 +14,5 @@ public class FloatNumberBinaryStrategy<TLeft, TRight> : SpecialTypeBinaryStrateg
 			or SpecialType.System_Decimal;
 	}
 }
+
+public class FloatNumberBinaryStrategy : FloatNumberBinaryStrategy<ExpressionSyntax, ExpressionSyntax>;

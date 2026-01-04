@@ -1,6 +1,6 @@
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.MultiplyStrategies;
@@ -11,19 +11,13 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.MultiplyStrategi
 /// </summary>
 public class MultiplyStrengthReductionLeftStrategy : IntegerBinaryStrategy
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return base.CanBeOptimized(context)
-		       && context.Left.HasValue
-		       && context.Left.Value != null
-		       && TryGetUInt(context.Left.Value, out _)
-		       && IsPure(context.Right.Syntax);
-	}
-
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		if (!TryGetUInt(context.Left.Value, out var lv))
-			return null;
+		if (!base.TryOptimize(context, out optimized)
+		    || !context.TryGetLiteral(context.Left.Syntax, out var leftValue)
+		    || !TryGetUInt(leftValue, out var lv)
+		    || !IsPure(context.Right.Syntax))
+			return false;
 
 		var down = RoundDownToPowerOf2(lv);
 		var up = RoundUpToPowerOf2(lv);
@@ -31,20 +25,24 @@ public class MultiplyStrengthReductionLeftStrategy : IntegerBinaryStrategy
 		// Pattern: lv = down + 1 => (x << log2(down)) + x
 		if (down != 0 && lv == down + 1)
 		{
-			var shifted = BinaryExpression(SyntaxKind.LeftShiftExpression, context.Right.Syntax,
-				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(Log2(down))));
-			return ParenthesizedExpression(BinaryExpression(SyntaxKind.AddExpression, shifted, context.Right.Syntax));
+			optimized = ParenthesizedExpression(BinaryExpression(SyntaxKind.AddExpression, 
+				BinaryExpression(SyntaxKind.LeftShiftExpression, context.Right.Syntax,
+				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(Log2(down)))), context.Right.Syntax));
+			
+			return true;
 		}
 
 		// Pattern: lv = up - 1 => (x << log2(up)) - x
 		if (up != 0 && lv == up - 1)
 		{
-			var shifted = BinaryExpression(SyntaxKind.LeftShiftExpression, context.Right.Syntax,
-				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(Log2(up))));
-			return ParenthesizedExpression(BinaryExpression(SyntaxKind.SubtractExpression, shifted, context.Right.Syntax));
+			optimized = ParenthesizedExpression(BinaryExpression(SyntaxKind.SubtractExpression, 
+				BinaryExpression(SyntaxKind.LeftShiftExpression, context.Right.Syntax,
+				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(Log2(up)))), context.Right.Syntax));
+			
+			return true;
 		}
 
-		return null;
+		return false;
 	}
 
 	private static uint RoundUpToPowerOf2(uint value)

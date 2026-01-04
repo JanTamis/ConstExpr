@@ -9,7 +9,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies
 /// <summary>
 /// Strategy for floating point division to multiplication: x / a => x * (1/a)
 /// </summary>
-public class DivideToMultiplyReciprocalStrategy : FloatNumberBinaryStrategy<ExpressionSyntax, ExpressionSyntax>
+public class DivideToMultiplyReciprocalStrategy : FloatNumberBinaryStrategy
 {
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{

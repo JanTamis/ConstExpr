@@ -19,7 +19,7 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 		{
 			IdentifierNameSyntax or LiteralExpressionSyntax => true,
 			ParenthesizedExpressionSyntax par => IsPure(par.Expression),
-			PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken } u => IsPure(u.Operand),
+			PrefixUnaryExpressionSyntax u => IsPure(u.Operand),
 			BinaryExpressionSyntax b => IsPure(b.Left) && IsPure(b.Right),
 			MemberAccessExpressionSyntax m => IsPure(m.Expression),
 			_ => false
@@ -36,12 +36,12 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 		return left.IsEquivalentTo(right)
 		       || left is IdentifierNameSyntax leftIdentifier
 		       && right is IdentifierNameSyntax rightIdentifier
-		        && (leftIdentifier.Identifier.Text == rightIdentifier.Identifier.Text ||
-		       variables.TryGetValue(leftIdentifier.Identifier.Text, out var leftVar)
-		       && variables.TryGetValue(rightIdentifier.Identifier.Text, out var rightVar)
-		       && leftVar.Value is ArgumentSyntax leftArgument
-		       && rightVar.Value is ArgumentSyntax rightArgument
-		       && leftArgument.Expression.IsEquivalentTo(rightArgument.Expression));
+		       && (leftIdentifier.Identifier.Text == rightIdentifier.Identifier.Text
+		           || variables.TryGetValue(leftIdentifier.Identifier.Text, out var leftVar)
+		           && variables.TryGetValue(rightIdentifier.Identifier.Text, out var rightVar)
+		           && leftVar.Value is ArgumentSyntax leftArgument
+		           && rightVar.Value is ArgumentSyntax rightArgument
+		           && leftArgument.Expression.IsEquivalentTo(rightArgument.Expression));
 	}
 
 	protected static SyntaxKind SwapCondition(SyntaxKind kind)
@@ -116,3 +116,5 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 		};
 	}
 }
+
+public abstract class BaseBinaryStrategy : BaseBinaryStrategy<ExpressionSyntax, ExpressionSyntax>;

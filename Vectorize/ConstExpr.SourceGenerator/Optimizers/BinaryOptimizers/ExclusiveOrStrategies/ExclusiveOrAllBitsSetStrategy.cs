@@ -9,7 +9,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ExclusiveOrStrat
 /// <summary>
 /// Strategy for all-bits-set: x ^ ~0 = ~x (integer types)
 /// </summary>
-public class ExclusiveOrAllBitsSetStrategy : IntegerBinaryStrategy<ExpressionSyntax, ExpressionSyntax>
+public class ExclusiveOrAllBitsSetStrategy : IntegerBinaryStrategy
 {
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{

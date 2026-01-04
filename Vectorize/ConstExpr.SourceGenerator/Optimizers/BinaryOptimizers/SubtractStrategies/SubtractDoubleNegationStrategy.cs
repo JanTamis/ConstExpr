@@ -9,19 +9,17 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.SubtractStrategi
 /// <summary>
 /// Strategy for double negation: x - -y => x + y (pure)
 /// </summary>
-public class SubtractDoubleNegationStrategy : NumericBinaryStrategy
+public class SubtractDoubleNegationStrategy : NumericBinaryStrategy<ExpressionSyntax, PrefixUnaryExpressionSyntax>
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, PrefixUnaryExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return base.CanBeOptimized(context) 
-		       && context.Right.Syntax is PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.UnaryMinusExpression } pre
-		       && IsPure(context.Left.Syntax) 
-		       && IsPure(pre.Operand);
-	}
-
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		var pre = (PrefixUnaryExpressionSyntax)context.Right.Syntax;
-		return BinaryExpression(SyntaxKind.AddExpression, context.Left.Syntax, pre.Operand);
+		if (!base.TryOptimize(context, out optimized)
+		    || !context.Right.Syntax.IsKind(SyntaxKind.UnaryMinusExpression)
+		    || !IsPure(context.Left.Syntax)
+		    || !IsPure(context.Right.Syntax))
+			return false;
+		
+		optimized = BinaryExpression(SyntaxKind.AddExpression, context.Left.Syntax, context.Right.Syntax.Operand);
+		return true;
 	}
 }

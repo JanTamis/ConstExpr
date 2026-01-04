@@ -1,5 +1,4 @@
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -10,46 +9,29 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.OrStrategies;
 /// </summary>
 public class OrAbsorptionStrategy : NumericOrBooleanBinaryStrategy
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (!base.CanBeOptimized(context))
+		if (!base.TryOptimize(context, out optimized))
 			return false;
 
 		// x | (x & y) = x
-		if (context.Right.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.BitwiseAndExpression } andRight
-		    && IsPure(context.Left.Syntax) && IsPure(andRight.Left) && IsPure(andRight.Right))
+		if (context.Right.Syntax is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.BitwiseAndExpression } andRight
+		    && (LeftEqualsRight(context.Left.Syntax, andRight.Left, context.TryGetLiteral) 
+		        || LeftEqualsRight(context.Left.Syntax, andRight.Right, context.TryGetLiteral)))
 		{
-			return context.Left.Syntax.IsEquivalentTo(andRight.Left) 
-			       || context.Left.Syntax.IsEquivalentTo(andRight.Right);
+			optimized = context.Left.Syntax;
+			return true;
 		}
 
 		// (x & y) | x = x
-		if (context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.BitwiseAndExpression } andLeft
-		    && IsPure(context.Right.Syntax) && IsPure(andLeft.Left) && IsPure(andLeft.Right))
+		if (context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.BitwiseAndExpression } andLeft
+		    && (LeftEqualsRight(context.Right.Syntax, andLeft.Left, context.TryGetLiteral) 
+		        || LeftEqualsRight(context.Right.Syntax, andLeft.Right, context.TryGetLiteral)))
 		{
-			return context.Right.Syntax.IsEquivalentTo(andLeft.Left) 
-			       || context.Right.Syntax.IsEquivalentTo(andLeft.Right);
+			optimized = context.Right.Syntax;
+			return true;
 		}
-
+		
 		return false;
-	}
-
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		// x | (x & y) = x
-		if (context.Right.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.BitwiseAndExpression } andRight
-		    && (context.Left.Syntax.IsEquivalentTo(andRight.Left) || context.Left.Syntax.IsEquivalentTo(andRight.Right)))
-		{
-			return context.Left.Syntax;
-		}
-
-		// (x & y) | x = x
-		if (context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.BitwiseAndExpression } andLeft
-		    && (context.Right.Syntax.IsEquivalentTo(andLeft.Left) || context.Right.Syntax.IsEquivalentTo(andLeft.Right)))
-		{
-			return context.Right.Syntax;
-		}
-
-		return null;
 	}
 }

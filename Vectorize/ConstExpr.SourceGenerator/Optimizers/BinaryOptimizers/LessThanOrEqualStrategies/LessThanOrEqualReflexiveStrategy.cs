@@ -1,7 +1,5 @@
-using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.LessThanOrEqualStrategies;
@@ -9,7 +7,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.LessThanOrEqualS
 /// <summary>
 /// Strategy for reflexive comparison: x <= x => true (pure)
 /// </summary>
-public class LessThanOrEqualReflexiveStrategy : BaseBinaryStrategy<ExpressionSyntax, ExpressionSyntax>
+public class LessThanOrEqualReflexiveStrategy : BaseBinaryStrategy
 {
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{

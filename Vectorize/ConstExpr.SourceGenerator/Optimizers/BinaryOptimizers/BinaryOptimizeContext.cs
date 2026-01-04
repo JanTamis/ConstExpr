@@ -61,3 +61,4 @@ public sealed class BinaryOptimizeElement<T>
 		return s; // .Length == 0 ? "Syntax=<empty>" : $"Syntax=\"{s}\"";
 	}
 }
+

@@ -1,6 +1,5 @@
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.LeftShiftStrategies;
@@ -8,7 +7,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.LeftShiftStrateg
 /// <summary>
 /// Strategy for shift by zero: x << 0 => x (pure)
 /// </summary>
-public class LeftShiftByZeroStrategy : IntegerBinaryStrategy<ExpressionSyntax, ExpressionSyntax>
+public class LeftShiftByZeroStrategy : IntegerBinaryStrategy
 {
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{

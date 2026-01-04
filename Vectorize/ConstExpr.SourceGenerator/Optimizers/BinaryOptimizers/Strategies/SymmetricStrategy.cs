@@ -1,47 +1,70 @@
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 
-public abstract class SymmetricStrategy<TStrategy> : BaseBinaryStrategy
-	where TStrategy : IBinaryStrategy, new()
+public abstract class SymmetricStrategy<TStrategy, TLeft, TRight> : BaseBinaryStrategy<ExpressionSyntax, ExpressionSyntax>
+	where TStrategy : IBinaryStrategy<ExpressionSyntax, ExpressionSyntax>, new()
+	where TLeft : ExpressionSyntax
+	where TRight : ExpressionSyntax
 {
 	private readonly TStrategy _innerStrategy = new();
 
-	public abstract bool CanBeOptimizedSymmetric(BinaryOptimizeContext context);
-	public abstract SyntaxNode? OptimizeSymmetric(BinaryOptimizeContext context);
-
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		var swappedContext = new BinaryOptimizeContext
-		{
-			Left = context.Right,
-			Right = context.Left,
-			Type = context.Type
-		};
+		if (!_innerStrategy.TryOptimize(context, out optimized))
+			return false;
 
-		return _innerStrategy.CanBeOptimized(context)
-		       && (CanBeOptimizedSymmetric(context) || CanBeOptimizedSymmetric(swappedContext));
-	}
-
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		var swappedContext = new BinaryOptimizeContext
+		if (context.Left.Syntax is TLeft left 
+		    && context.Right.Syntax is TRight right)
 		{
-			Left = context.Right,
-			Right = context.Left,
-			Type = context.Type
-		};
+			var newContext = new BinaryOptimizeContext<TLeft, TRight>
+			{
+				Left = new BinaryOptimizeElement<TLeft>()
+				{
+					Syntax = left,
+					Type = context.Left.Type,
+				},
+				Right = new BinaryOptimizeElement<TRight>()
+				{
+					Syntax = right,
+					Type = context.Right.Type,
+				},
+				Type = context.Type,
+			};
 
-		if (CanBeOptimizedSymmetric(context))
-		{
-			return OptimizeSymmetric(context);
+			if (TryOptimizeSymmetric(newContext, out optimized))
+			{
+				return true;
+			}
 		}
 
-		if (CanBeOptimizedSymmetric(swappedContext))
+		if (context.Right.Syntax is TRight swappedRight
+		    && context.Left.Syntax is TLeft swappedLeft)
 		{
-			return OptimizeSymmetric(swappedContext);
-		}
+			var swappedContext = new BinaryOptimizeContext<TLeft, TRight>
+			{
+				Left = new BinaryOptimizeElement<TLeft>()
+				{
+					Syntax = swappedLeft,
+					Type = context.Right.Type,
+				},
+				Right = new BinaryOptimizeElement<TRight>()
+				{
+					Syntax = swappedRight,
+					Type = context.Left.Type,
+				},
+				Type = context.Type,
+			};
 
-		return null;
+			if (TryOptimizeSymmetric(swappedContext, out optimized))
+			{
+				return true;
+			}
+		}
+		
+		return false;
 	}
+	
+	public abstract bool TryOptimizeSymmetric(BinaryOptimizeContext<TLeft, TRight> context, out ExpressionSyntax? optimized);
 }

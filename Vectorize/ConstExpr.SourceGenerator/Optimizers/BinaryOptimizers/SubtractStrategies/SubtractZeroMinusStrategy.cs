@@ -1,7 +1,7 @@
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.SubtractStrategies;
@@ -11,15 +11,14 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.SubtractStrategi
 /// </summary>
 public class SubtractZeroMinusStrategy : NumericBinaryStrategy
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return base.CanBeOptimized(context) 
-		       && context.Left.HasValue 
-		       && context.Left.Value.IsNumericZero();
-	}
+		if (base.TryOptimize(context, out optimized)
+		    || context.TryGetLiteral(context.Left.Syntax, out var leftValue)
+		    || !leftValue.IsNumericZero())
+			return false;
 
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		return PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression, context.Right.Syntax);
+		optimized = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression, context.Right.Syntax);
+		return true;
 	}
 }

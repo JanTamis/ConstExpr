@@ -4,7 +4,6 @@ using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Operations;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.RightShiftStrategies;
@@ -12,43 +11,18 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.RightShiftStrate
 /// <summary>
 /// Strategy for combining shifts: ((x >> a) >> b) => x >> (a + b)
 /// </summary>
-public class RightShiftCombineStrategy : IntegerBinaryStrategy
+public class RightShiftCombineStrategy : IntegerBinaryStrategy<BinaryExpressionSyntax, ExpressionSyntax>
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
-	{
-		if (!base.CanBeOptimized(context))
+	public override bool TryOptimize(BinaryOptimizeContext<BinaryExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
+	{ 
+		if (!base.TryOptimize(context, out optimized)
+		    || !context.Left.Syntax.IsKind(SyntaxKind.RightShiftExpression)
+		    || !context.TryGetLiteral(context.Right.Syntax, out var rightValue)
+		    || !context.TryGetLiteral(context.Left.Syntax.Right, out var leftShiftValue)
+		    || !SyntaxHelpers.TryGetLiteral(rightValue.Add(leftShiftValue), out var combinedLiteral))
 			return false;
-
-		if (context.Left.Syntax is not BinaryExpressionSyntax { RawKind: (int)SyntaxKind.RightShiftExpression } leftShift)
-			return false;
-
-		if (!context.Right.HasValue || context.Right.Value == null)
-			return false;
-
-		// Check if the inner shift has a constant shift amount
-		// We'd need to evaluate leftShift.Right, but we don't have loader/variables here
-		// For now, require that it's a literal
-		return leftShift.Right is LiteralExpressionSyntax;
-	}
-
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		if (context.Left.Syntax is not BinaryExpressionSyntax { RawKind: (int)SyntaxKind.RightShiftExpression} leftShift)
-			return null;
-
-		if (leftShift.Right is not LiteralExpressionSyntax leftShiftLiteral)
-			return null;
-
-		var leftShiftValue = leftShiftLiteral.Token.Value;
-		if (leftShiftValue == null)
-			return null;
-
-		var combined = ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.Add, leftShiftValue, context.Right.Value);
-		if (combined != null && SyntaxHelpers.TryGetLiteral(combined, out var combinedLiteral))
-		{
-			return BinaryExpression(SyntaxKind.RightShiftExpression, leftShift.Left, combinedLiteral);
-		}
-
-		return null;
+		
+		optimized = BinaryExpression(SyntaxKind.RightShiftExpression, context.Left.Syntax.Left, combinedLiteral);
+		return true;
 	}
 }

@@ -10,18 +10,20 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AddStrategies;
 /// (x - a) + a => x (algebraic identity, pure)
 /// a + (x - a) => x (algebraic identity, pure)
 /// </summary>
-public class AddSubtractionCancellationStrategy : SymmetricStrategy<NumericBinaryStrategy>
+public class AddSubtractionCancellationStrategy : SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, ExpressionSyntax>
 {
-	public override bool CanBeOptimizedSymmetric(BinaryOptimizeContext context)
+	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<BinaryExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.SubtractExpression } leftSub
-		       && leftSub.Right.IsEquivalentTo(context.Right.Syntax)
-		       && IsPure(leftSub.Left) && IsPure(leftSub.Right) && IsPure(context.Right.Syntax);
-	}
-
-	public override SyntaxNode? OptimizeSymmetric(BinaryOptimizeContext context)
-	{
-		var leftSub = (BinaryExpressionSyntax) context.Left.Syntax;
-		return leftSub.Left;
+		if (!context.Left.Syntax.IsKind(SyntaxKind.SubtractExpression)
+		    || !LeftEqualsRight(context.Left.Syntax.Right, context.Right.Syntax, context.TryGetLiteral)
+		    || !IsPure(context.Left.Syntax)
+		    || !IsPure(context.Right.Syntax))
+		{
+			optimized = null;
+			return false;
+		}
+		
+		optimized = context.Left.Syntax.Left;
+		return true;
 	}
 }
