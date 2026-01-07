@@ -8,18 +8,17 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ModuloStrategies
 /// <summary>
 /// Strategy for zero modulo non-zero: 0 % c = 0 (when c != 0)
 /// </summary>
-public class ModuloZeroStrategy : IntegerBinaryStrategy
+public class ModuloZeroStrategy : SymmetricStrategy<IntegerBinaryStrategy, ExpressionSyntax, ExpressionSyntax>
 {
-	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
+	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (!base.TryOptimize(context, out optimized)
-		    || !context.TryGetLiteral(context.Left.Syntax, out var leftValue)
-		    || !leftValue.IsNumericZero()
-		    || !context.TryGetLiteral(context.Right.Syntax, out var rightValue)
-		    || rightValue.IsNumericZero())
+		if (!context.Left.Syntax.IsNumericZero())
+		{
+			optimized = null;
 			return false;
-		
-		optimized = SyntaxHelpers.CreateLiteral(0.ToSpecialType(context.Type.SpecialType));
+		}
+
+		optimized = context.Left.Syntax;
 		return true;
 	}
 }

@@ -7,40 +7,37 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalOrStrategies;
 
-public class ConditionalOrIsNullOrEmptyStrategy : SymmetricStrategy<BooleanBinaryStrategy>
+public class ConditionalOrIsNullOrEmptyStrategy : SymmetricStrategy<BooleanBinaryStrategy, BinaryExpressionSyntax, BinaryExpressionSyntax>
 {
-	public override bool CanBeOptimizedSymmetric(BinaryOptimizeContext context)
+	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<BinaryExpressionSyntax, BinaryExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.EqualsExpression } leftExpr
-		       && context.Right.Syntax is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.EqualsExpression } rightExpr
-		       && IsNullCheck(leftExpr)
-		       && IsEmptyStringCheck(rightExpr);
-	}
+		if (!context.Left.Syntax.IsKind(SyntaxKind.EqualsExpression)
+		    || !context.Right.Syntax.IsKind(SyntaxKind.EqualsExpression)
+		    || !IsNullCheck(context.Left.Syntax)
+		    || !IsEmptyStringCheck(context.Right.Syntax))
+		{
+			optimized = null;
+			return false;
+		}
 
-	public override SyntaxNode? OptimizeSymmetric(BinaryOptimizeContext context)
-	{
-		return InvocationExpression(
-			MemberAccessExpression(
-				SyntaxKind.SimpleMemberAccessExpression,
+		optimized = InvocationExpression(
+			MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
 				IdentifierName("String"),
 				IdentifierName("IsNullOrEmpty")))
 			.WithArgumentList(
 				ArgumentList(
 					SingletonSeparatedList(
-						Argument(context.Left.Syntax is BinaryExpressionSyntax leftExpr && IsNullCheck(leftExpr)
-							? GetExpressionSyntax(leftExpr)
-							: context.Right.Syntax is BinaryExpressionSyntax rightExpr && IsNullCheck(rightExpr)
-								? GetExpressionSyntax(rightExpr)
-								: throw new InvalidOperationException()))));
+						Argument(GetExpressionSyntax(context.Left.Syntax)))));
+		return true;
 	}
 
-	private bool IsNullCheck(BinaryExpressionSyntax expr)
+	private static bool IsNullCheck(BinaryExpressionSyntax expr)
 	{
 		return expr.Left is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NullLiteralExpression }
 		       || expr.Right is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NullLiteralExpression };
 	}
 
-	private bool IsEmptyStringCheck(BinaryExpressionSyntax expr)
+	private static bool IsEmptyStringCheck(BinaryExpressionSyntax expr)
 	{
 		return (expr.Left is MemberAccessExpressionSyntax { Name.Identifier.Text: "Length" }
 		        || expr.Right is MemberAccessExpressionSyntax { Name.Identifier.Text: "Length" })
@@ -48,7 +45,7 @@ public class ConditionalOrIsNullOrEmptyStrategy : SymmetricStrategy<BooleanBinar
 		           || expr.Right is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NumericLiteralExpression, Token.Value: 0 });
 	}
 	
-	private ExpressionSyntax GetExpressionSyntax(BinaryExpressionSyntax expr)
+	private static ExpressionSyntax GetExpressionSyntax(BinaryExpressionSyntax expr)
 	{
 		return expr.Left is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NullLiteralExpression }
 			? expr.Right

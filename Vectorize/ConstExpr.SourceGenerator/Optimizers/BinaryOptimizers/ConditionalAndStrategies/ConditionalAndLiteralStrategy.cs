@@ -7,21 +7,20 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalAndSt
 /// <summary>
 /// Strategy for literal boolean optimization: false && x = false, true && x = x
 /// </summary>
-public class ConditionalAndLiteralStrategy : BooleanBinaryStrategy
+public class ConditionalAndLiteralStrategy : BooleanBinaryStrategy<LiteralExpressionSyntax, ExpressionSyntax>
 {
-	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
+	public override bool TryOptimize(BinaryOptimizeContext<LiteralExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (!base.TryOptimize(context, out optimized)
-		    || !context.TryGetLiteral(context.Left.Syntax, out var value)
-		    || value is not bool)
+		if (!base.TryOptimize(context, out optimized))
 			return false;
 		
-		optimized = value switch
+		optimized = context.Left.Syntax.Token.Value switch
 		{
 			// false && x = false
 			false => SyntaxHelpers.CreateLiteral(false),
 			// true && x = x
 			true => context.Right.Syntax,
+			_ => null,
 		};
 			
 		return true;

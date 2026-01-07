@@ -9,15 +9,16 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.MultiplyStrategi
 /// <summary>
 /// Strategy for multiplication by two to addition: 2 * x => x + x (pure, non-integer)
 /// </summary>
-public class MultiplyByTwoToAdditionLeftStrategy : NumericBinaryStrategy
+public class MultiplyByTwoToAdditionStrategy : SymmetricStrategy<NumericBinaryStrategy, LiteralExpressionSyntax, ExpressionSyntax>
 {
-	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
+	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<LiteralExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (!base.TryOptimize(context, out optimized)
-		    || !context.TryGetLiteral(context.Left.Syntax, out var leftValue)
-		    || !leftValue.IsNumericValue(2)
+		if (!context.Left.Syntax.IsNumericValue(2)
 		    || !IsPure(context.Right.Syntax))
+		{
+			optimized = null;
 			return false;
+		}
 
 		optimized = ParenthesizedExpression(BinaryExpression(SyntaxKind.AddExpression, context.Right.Syntax, context.Right.Syntax));
 		return true;

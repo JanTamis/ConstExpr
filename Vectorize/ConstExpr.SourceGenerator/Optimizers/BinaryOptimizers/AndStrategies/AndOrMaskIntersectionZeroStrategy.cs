@@ -12,45 +12,20 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AndStrategies;
 /// (x | mask1) & mask2 when mask1 & mask2 == 0 => x & mask2 (when x is pure)
 /// symmetric
 /// </summary>
-public class AndOrMaskIntersectionZeroStrategy : SymmetricStrategy<NumericBinaryStrategy>
+public class AndOrMaskIntersectionZeroStrategy : SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, LiteralExpressionSyntax>
 {
-	public override bool CanBeOptimizedSymmetric(BinaryOptimizeContext context)
+	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<BinaryExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.BitwiseOrExpression } leftOr)
+		if (!context.Left.Syntax.IsKind(SyntaxKind.BitwiseOrExpression)
+		    || !IsPure(context.Left.Syntax.Left)
+		    || !context.TryGetValue(context.Left.Syntax.Right, out var leftValue)
+		    || !Equals(context.Right.Syntax.Token.Value.And(leftValue), 0.ToSpecialType(context.Type.SpecialType)))
 		{
-			if (!IsPure(leftOr.Left))
-			{
-				return false;
-			}
-
-			if (context.Right.HasValue && context.Left.Value != null)
-			{
-				// Check if mask1 & mask2 == 0 using ObjectExtensions.And
-				var mask1 = context.Left.Value;
-				var mask2 = context.Right.Value;
-				var andResult = mask1.And(mask2);
-
-				return andResult is not null && Equals(andResult, 0.ToSpecialType(context.Type.SpecialType));
-			}
+			optimized = null;
+			return false;
 		}
-
-		return false;
-	}
-
-	public override SyntaxNode? OptimizeSymmetric(BinaryOptimizeContext context)
-	{
-		if (context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.BitwiseOrExpression } leftOr 
-		    && context.Right.HasValue 
-		    && context.Left.Value != null)
-		{
-			var mask2 = context.Right.Value;
-			
-			if (SyntaxHelpers.TryGetLiteral(mask2, out var maskLiteral))
-			{
-				return BinaryExpression(SyntaxKind.BitwiseAndExpression, leftOr.Left, maskLiteral);
-			}
-		}
-
-		return null;
+		
+		optimized = BinaryExpression(SyntaxKind.BitwiseAndExpression, context.Left.Syntax.Left, context.Right.Syntax);
+		return true;
 	}
 }

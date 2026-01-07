@@ -1,9 +1,10 @@
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 
-public abstract class SymmetricStrategy<TStrategy, TLeft, TRight> : BaseBinaryStrategy<ExpressionSyntax, ExpressionSyntax>
+public abstract class SymmetricStrategy<TStrategy, TLeft, TRight>(SyntaxKind leftKind = SyntaxKind.None, SyntaxKind rightKind = SyntaxKind.None) : BaseBinaryStrategy<ExpressionSyntax, ExpressionSyntax>
 	where TStrategy : IBinaryStrategy<ExpressionSyntax, ExpressionSyntax>, new()
 	where TLeft : ExpressionSyntax
 	where TRight : ExpressionSyntax
@@ -16,7 +17,9 @@ public abstract class SymmetricStrategy<TStrategy, TLeft, TRight> : BaseBinarySt
 			return false;
 
 		if (context.Left.Syntax is TLeft left 
-		    && context.Right.Syntax is TRight right)
+		    && context.Right.Syntax is TRight right
+		    && (leftKind == SyntaxKind.None || left.IsKind(leftKind))
+		    && (rightKind == SyntaxKind.None || right.IsKind(rightKind)))
 		{
 			var newContext = new BinaryOptimizeContext<TLeft, TRight>
 			{
@@ -40,7 +43,9 @@ public abstract class SymmetricStrategy<TStrategy, TLeft, TRight> : BaseBinarySt
 		}
 
 		if (context.Right.Syntax is TRight swappedRight
-		    && context.Left.Syntax is TLeft swappedLeft)
+		    && context.Left.Syntax is TLeft swappedLeft
+		    && (leftKind == SyntaxKind.None || swappedLeft.IsKind(leftKind))
+		    && (rightKind == SyntaxKind.None || swappedRight.IsKind(rightKind)))
 		{
 			var swappedContext = new BinaryOptimizeContext<TLeft, TRight>
 			{

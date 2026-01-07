@@ -16,8 +16,8 @@ public class OrAbsorptionStrategy : NumericOrBooleanBinaryStrategy
 
 		// x | (x & y) = x
 		if (context.Right.Syntax is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.BitwiseAndExpression } andRight
-		    && (LeftEqualsRight(context.Left.Syntax, andRight.Left, context.TryGetLiteral) 
-		        || LeftEqualsRight(context.Left.Syntax, andRight.Right, context.TryGetLiteral)))
+		    && (LeftEqualsRight(context.Left.Syntax, andRight.Left, context.TryGetValue) 
+		        || LeftEqualsRight(context.Left.Syntax, andRight.Right, context.TryGetValue)))
 		{
 			optimized = context.Left.Syntax;
 			return true;
@@ -25,8 +25,8 @@ public class OrAbsorptionStrategy : NumericOrBooleanBinaryStrategy
 
 		// (x & y) | x = x
 		if (context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.BitwiseAndExpression } andLeft
-		    && (LeftEqualsRight(context.Right.Syntax, andLeft.Left, context.TryGetLiteral) 
-		        || LeftEqualsRight(context.Right.Syntax, andLeft.Right, context.TryGetLiteral)))
+		    && (LeftEqualsRight(context.Right.Syntax, andLeft.Left, context.TryGetValue) 
+		        || LeftEqualsRight(context.Right.Syntax, andLeft.Right, context.TryGetValue)))
 		{
 			optimized = context.Right.Syntax;
 			return true;

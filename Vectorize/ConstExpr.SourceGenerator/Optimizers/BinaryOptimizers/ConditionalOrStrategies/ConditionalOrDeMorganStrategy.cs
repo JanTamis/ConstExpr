@@ -22,10 +22,9 @@ public class ConditionalOrDeMorganStrategy : BaseBinaryStrategy<PrefixUnaryExpre
 		}
 
 		// !a || !b → !(a && b)
-		optimized = PrefixUnaryExpression(
-			SyntaxKind.LogicalNotExpression,
-			ParenthesizedExpression(BinaryExpression(
-				SyntaxKind.LogicalAndExpression,
+		optimized = PrefixUnaryExpression(SyntaxKind.LogicalNotExpression,
+			ParenthesizedExpression(
+				BinaryExpression(SyntaxKind.LogicalAndExpression,
 				context.Left.Syntax.Operand,
 				context.Right.Syntax.Operand)));
 			

@@ -14,7 +14,7 @@ public class ModuloByNegativeOneStrategy : BaseBinaryStrategy
 	{
 		optimized = null;
 		
-		return context.TryGetLiteral(context.Right.Syntax, out var rightValue)
+		return context.TryGetValue(context.Right.Syntax, out var rightValue)
 		       && rightValue.IsNumericNegativeOne()
 		       && SyntaxHelpers.TryGetLiteral(0.ToSpecialType(context.Type.SpecialType), out optimized);
 	}

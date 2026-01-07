@@ -13,15 +13,13 @@ public class AddDoubleToShiftStrategy : IntegerBinaryStrategy
 {
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (base.TryOptimize(context, out optimized)
-		    && LeftEqualsRight(context)
-		    && IsPure(context.Left.Syntax)
-		    && IsPure(context.Right.Syntax))
-		{
-			optimized = BinaryExpression(SyntaxKind.LeftShiftExpression, context.Left.Syntax, SyntaxHelpers.CreateLiteral(1)!);
-			return true;
-		}
-		
-		return false;
+		if (!base.TryOptimize(context, out optimized)
+		    || !LeftEqualsRight(context)
+		    || !IsPure(context.Left.Syntax)
+		    || !IsPure(context.Right.Syntax))
+			return false;
+		optimized = BinaryExpression(SyntaxKind.LeftShiftExpression, context.Left.Syntax, SyntaxHelpers.CreateLiteral(1)!);
+		return true;
+
 	}
 }

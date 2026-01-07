@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;
 
-public delegate bool TryGetLiteralDelegate(SyntaxNode? expression, [NotNullWhen(true)] out object? value);
+public delegate bool TryGetValueDelegate(SyntaxNode? expression, [NotNullWhen(true)] out object? value);
 
 [DebuggerDisplay("{GetDebuggerDisplay(),nq}")]
 public sealed class BinaryOptimizeContext<TLeft, TRight>
@@ -22,7 +22,7 @@ public sealed class BinaryOptimizeContext<TLeft, TRight>
 
 	// public IDictionary<string, VariableItem> Variables { get; init; }
 
-	public TryGetLiteralDelegate TryGetLiteral { get; init; }
+	public TryGetValueDelegate TryGetValue { get; init; }
 
 	public IList<BinaryExpressionSyntax> BinaryExpressions { get; init; }
 

@@ -1,28 +1,36 @@
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalOrStrategies;
 
 /// <summary>
 /// Strategy for literal boolean optimization: true || x = true, false || x = x or  x || false = x, x || true = true
 /// </summary>
-public class ConditionalOrLiteralStrategy : SymmetricStrategy<BooleanBinaryStrategy>
+public class ConditionalOrLiteralStrategy : SymmetricStrategy<BooleanBinaryStrategy, LiteralExpressionSyntax, ExpressionSyntax>
 {
-	public override bool CanBeOptimizedSymmetric(BinaryOptimizeContext context)
+	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<LiteralExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return context.Left is { HasValue: true, Value: bool };
-	}
-
-	public override SyntaxNode? OptimizeSymmetric(BinaryOptimizeContext context)
-	{
-		return context.Left switch
+		switch (context.Left.Syntax.Token.Value)
 		{
-			// true || x = true
-			{ HasValue: true, Value: true } => SyntaxHelpers.CreateLiteral(true),
-			// false || x = x
-			{ HasValue: true, Value: false } => context.Right.Syntax,
-			_ => null
-		};
+			case true:
+			{
+				// true || x = true
+				optimized = SyntaxHelpers.CreateLiteral(true);
+				return true;
+			}
+			case false:
+			{
+				// false || x = x
+				optimized = context.Right.Syntax;
+				return true;
+			}
+			default:
+			{
+				optimized = null;
+				return false;
+			}
+		}
 	}
 }

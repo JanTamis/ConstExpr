@@ -14,8 +14,8 @@ public class OrBooleanTrueStrategy : BooleanBinaryStrategy
 		if (!base.TryOptimize(context, out optimized))
 			return false;
 
-		if (context.TryGetLiteral(context.Left.Syntax, out var leftValue)
-		    && leftValue is true || context.TryGetLiteral(context.Right.Syntax, out var rightValue)
+		if (context.TryGetValue(context.Left.Syntax, out var leftValue)
+		    && leftValue is true || context.TryGetValue(context.Right.Syntax, out var rightValue)
 		    && rightValue is true)
 		{
 			optimized = SyntaxHelpers.CreateLiteral(true);

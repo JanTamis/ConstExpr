@@ -1,8 +1,7 @@
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
-using ConstExpr.SourceGenerator.Helpers;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AndStrategies;
 
@@ -10,25 +9,21 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AndStrategies;
 /// (x | mask) & mask => mask (when x is pure)
 /// symmetric
 /// </summary>
-public class AndOrMaskCollisionStrategy : SymmetricStrategy<NumericBinaryStrategy>
+public class AndOrMaskCollisionStrategy : SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, ExpressionSyntax>
 {
-	public override bool CanBeOptimizedSymmetric(BinaryOptimizeContext context)
+	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<BinaryExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.BitwiseOrExpression }
-		       && context.Right.HasValue
-		       && context.Left.Value != null
-		       && Equals(context.Left.Value, context.Right.Value)
-		       && SyntaxHelpers.TryGetLiteral(context.Right.Value, out _);
-	}
-
-	public override SyntaxNode? OptimizeSymmetric(BinaryOptimizeContext context)
-	{
-		if (SyntaxHelpers.TryGetLiteral(context.Right.Value, out var lit))
+		if (!context.Left.Syntax.IsKind(SyntaxKind.BitwiseOrExpression)
+		    || !Equals(context.Left.Syntax.Left, context.Right.Syntax)
+		    || !Equals(context.Left.Syntax.Right, context.Right.Syntax)
+		    || !IsPure(context.Left.Syntax.Left)
+		    || !IsPure(context.Right.Syntax))
 		{
-			// if masks equal -> return mask literal
-			return lit;
+			optimized = null;
+			return false;
 		}
-
-		return null;
+		
+		optimized = context.Right.Syntax;
+		return true;
 	}
 }

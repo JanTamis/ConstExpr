@@ -7,13 +7,12 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies
 /// <summary>
 /// Strategy for division by one: x / 1 = x
 /// </summary>
-public class DivideByOneStrategy : NumericBinaryStrategy
+public class DivideByOneStrategy : NumericBinaryStrategy<ExpressionSyntax, LiteralExpressionSyntax>
 {
-	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
+	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!base.TryOptimize(context, out optimized)
-		    || !context.TryGetLiteral(context.Right.Syntax, out var value)
-		    || !value.IsNumericOne())
+		    || !context.Right.Syntax.IsNumericOne())
 			return false;
 		
 		optimized = context.Left.Syntax;

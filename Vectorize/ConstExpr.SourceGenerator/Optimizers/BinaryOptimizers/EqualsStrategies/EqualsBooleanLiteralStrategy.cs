@@ -8,19 +8,25 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.EqualsStrategies
 /// <summary>
 /// Strategy for boolean literal comparison: x == true => x, x == false => !x
 /// </summary>
-public class EqualsBooleanLiteralStrategy : BooleanBinaryStrategy
+public class EqualsBooleanLiteralStrategy : BooleanBinaryStrategy<ExpressionSyntax, LiteralExpressionSyntax>
 {
-	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
+	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (!base.TryOptimize(context, out optimized)
-		    || !context.TryGetLiteral(context.Right.Syntax, out var value)
-		    || value is not bool boolValue)
+		if (!base.TryOptimize(context, out optimized))
 			return false;
-		
-		optimized = boolValue
-				? context.Left.Syntax // x == true => x
-				: PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, ParenthesizedExpression(context.Left.Syntax)); // x == false => !x
-		
+
+		switch (context.Right.Syntax.Token.Value)
+		{
+			case true:
+				optimized = context.Left.Syntax;
+				break;
+			case false:
+				optimized = PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, ParenthesizedExpression(context.Left.Syntax));
+				break;
+			default:
+				return false;
+		}
+
 		return true;
 	}
 }

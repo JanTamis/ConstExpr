@@ -8,13 +8,12 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.LeftShiftStrateg
 /// <summary>
 /// Strategy for shifting zero: 0 << x => 0 (pure)
 /// </summary>
-public class LeftShiftZeroStrategy : IntegerBinaryStrategy
+public class LeftShiftZeroStrategy : IntegerBinaryStrategy<LiteralExpressionSyntax, ExpressionSyntax>
 {
-	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
+	public override bool TryOptimize(BinaryOptimizeContext<LiteralExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!base.TryOptimize(context, out optimized)
-		    || !context.TryGetLiteral(context.Left.Syntax, out var leftValue)
-		    || !leftValue.IsNumericZero())
+		    || !context.Left.Syntax.IsNumericZero())
 			return false;
 		
 		optimized = SyntaxHelpers.CreateLiteral(0.ToSpecialType(context.Type.SpecialType));

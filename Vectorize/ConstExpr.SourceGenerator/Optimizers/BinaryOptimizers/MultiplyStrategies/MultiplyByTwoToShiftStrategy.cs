@@ -9,17 +9,20 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.MultiplyStrategi
 /// <summary>
 /// Strategy for multiplication by two to shift: 2 * x => x << 1 (integer)
 /// </summary>
-public class MultiplyByTwoToShiftLeftStrategy : IntegerBinaryStrategy
+public class MultiplyByTwoToShiftStrategy : SymmetricStrategy<UnsigedIntegerBinaryStrategy, LiteralExpressionSyntax, ExpressionSyntax>
 {
-	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
+	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<LiteralExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (!base.TryOptimize(context, out optimized)
-		    || !context.TryGetLiteral(context.Left.Syntax, out var leftValue)
-		    || !leftValue.IsNumericValue(2))
+		if (!context.Left.Syntax.IsNumericTwo())
+		{
+			optimized = null;
 			return false;
+		}
 		
-		optimized = BinaryExpression(SyntaxKind.LeftShiftExpression, context.Right.Syntax,
+		optimized = BinaryExpression(SyntaxKind.LeftShiftExpression, 
+			context.Right.Syntax,
 			LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(1)));
+		
 		return true;
 	}
 }

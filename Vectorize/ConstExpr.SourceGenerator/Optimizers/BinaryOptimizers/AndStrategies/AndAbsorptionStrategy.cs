@@ -8,21 +8,21 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AndStrategies;
 /// <summary>
 /// Absorption with Or: x & (x | y) = x and (x | y) & x = x (pure)
 /// </summary>
-public class AndAbsorptionStrategy : SymmetricStrategy<NumericOrBooleanBinaryStrategy>
+public class AndAbsorptionStrategy : SymmetricStrategy<NumericOrBooleanBinaryStrategy, ExpressionSyntax, BinaryExpressionSyntax>
 {
-	public override bool CanBeOptimizedSymmetric(BinaryOptimizeContext context)
+	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<ExpressionSyntax, BinaryExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		// Right is (x | y)
-		return context.Right.Syntax is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.BitwiseOrExpression } rightBin 
-		       && IsPure(context.Left.Syntax) 
-		       && IsPure(rightBin.Left) 
-		       && IsPure(rightBin.Right) 
-		       && (context.Left.Syntax.IsEquivalentTo(rightBin.Left) || context.Left.Syntax.IsEquivalentTo(rightBin.Right));
-
-	}
-
-	public override SyntaxNode? OptimizeSymmetric(BinaryOptimizeContext context)
-	{
-		return context.Left.Syntax;
+		if (!context.Right.Syntax.IsKind(SyntaxKind.BitwiseOrExpression)
+		    || !LeftEqualsRight(context.Left.Syntax, context.Right.Syntax.Left, context.TryGetValue)
+		    || !LeftEqualsRight(context.Left.Syntax, context.Right.Syntax.Right, context.TryGetValue)
+		    || !IsPure(context.Left.Syntax)
+		    || !IsPure(context.Right.Syntax))
+		{
+			optimized = null;
+			return false;
+		}
+		
+		optimized = context.Left.Syntax;
+		return true;
 	}
 }

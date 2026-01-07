@@ -1,22 +1,24 @@
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AndStrategies;
 
 /// <summary>
 /// x & ~0 = x and ~0 & x = x for integer types
 /// </summary>
-public class AndAllBitsSetStrategy : SymmetricStrategy<NumericBinaryStrategy>
+public class AndAllBitsSetStrategy : SymmetricStrategy<NumericBinaryStrategy, ExpressionSyntax, LiteralExpressionSyntax>
 {
-	public override bool CanBeOptimizedSymmetric(BinaryOptimizeContext context)
+	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<ExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return context.Right is { HasValue: true, Value: not null }
-			&& IsAllBitsSet(context.Type.SpecialType, context.Right.Value);
-	}
-
-	public override SyntaxNode? OptimizeSymmetric(BinaryOptimizeContext context)
-	{
-		return context.Left.Syntax;
+		if (!IsAllBitsSet(context.Type.SpecialType, context.Right.Syntax.Token.Value))
+		{
+			optimized = null;
+			return false;
+		}
+		
+		optimized = context.Left.Syntax;
+		return true;
 	}
 
 	private static bool IsAllBitsSet(SpecialType specialType, object? value)

@@ -11,12 +11,11 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies
 /// <summary>
 /// Strategy for reciprocal optimization: 1 / x => ReciprocalEstimate(x)
 /// </summary>
-public class DivideOneToReciprocalStrategy : BaseBinaryStrategy
+public class DivideOneToReciprocalStrategy : BaseBinaryStrategy<LiteralExpressionSyntax, ExpressionSyntax>
 {
-	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
+	public override bool TryOptimize(BinaryOptimizeContext<LiteralExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (context.TryGetLiteral(context.Left.Syntax, out var value)
-		    || !value.IsNumericOne()
+		if (!context.Left.Syntax.IsNumericOne()
 		    || !context.Type.HasMember<IMethodSymbol>(
 			    "ReciprocalEstimate",
 			    m => m.Parameters.Length == 1

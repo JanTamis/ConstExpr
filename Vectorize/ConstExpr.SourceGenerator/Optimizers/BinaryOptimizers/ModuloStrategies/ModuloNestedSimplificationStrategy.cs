@@ -10,15 +10,14 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ModuloStrategies
 /// <summary>
 /// Strategy for nested modulo simplification: (x % m) % n where m % n == 0 => x % n
 /// </summary>
-public class ModuloNestedSimplificationStrategy : IntegerBinaryStrategy<BinaryExpressionSyntax, ExpressionSyntax>
+public class ModuloNestedSimplificationStrategy : IntegerBinaryStrategy<BinaryExpressionSyntax, LiteralExpressionSyntax>
 {
-	public override bool TryOptimize(BinaryOptimizeContext<BinaryExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
+	public override bool TryOptimize(BinaryOptimizeContext<BinaryExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!base.TryOptimize(context, out optimized)
 		    || !context.Left.Syntax.IsKind(SyntaxKind.ModuloExpression)
-		    || !context.TryGetLiteral(context.Right.Syntax, out var rightValue)
-		    || !context.TryGetLiteral(context.Left.Syntax.Right, out var innerRightValue)
-		    || !innerRightValue.Modulo(rightValue).IsNumericZero())
+		    || !context.TryGetValue(context.Left.Syntax.Right, out var innerRightValue)
+		    || !innerRightValue.Modulo(context.Right.Syntax.Token.Value).IsNumericZero())
 			return false;
 		
 		optimized = BinaryExpression(SyntaxKind.ModuloExpression, context.Left.Syntax.Left, context.Right.Syntax);

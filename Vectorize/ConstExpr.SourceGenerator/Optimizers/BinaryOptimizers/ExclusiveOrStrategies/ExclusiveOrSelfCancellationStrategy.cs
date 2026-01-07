@@ -16,7 +16,7 @@ public class ExclusiveOrSelfCancellationStrategy : NumericBinaryStrategy
 		    || !LeftEqualsRight(context)
 		    || !IsPure(context.Left.Syntax))
 			return false;
-		
+
 		optimized = SyntaxHelpers.CreateLiteral(0.ToSpecialType(context.Type.SpecialType));
 		return true;
 	}

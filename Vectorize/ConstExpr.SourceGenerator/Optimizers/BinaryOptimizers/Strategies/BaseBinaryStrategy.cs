@@ -28,10 +28,10 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 
 	protected static bool LeftEqualsRight(BinaryOptimizeContext<TLeft, TRight> context)
 	{
-		return LeftEqualsRight(context.Left.Syntax, context.Right.Syntax, context.TryGetLiteral);
+		return LeftEqualsRight(context.Left.Syntax, context.Right.Syntax, context.TryGetValue);
 	}
 
-	protected static bool LeftEqualsRight(SyntaxNode left, SyntaxNode right, TryGetLiteralDelegate tryGetLiteral)
+	protected static bool LeftEqualsRight(SyntaxNode left, SyntaxNode right, TryGetValueDelegate tryGetValue)
 	{
 		return left.IsEquivalentTo(right)
 		       || left is IdentifierNameSyntax leftIdentifier

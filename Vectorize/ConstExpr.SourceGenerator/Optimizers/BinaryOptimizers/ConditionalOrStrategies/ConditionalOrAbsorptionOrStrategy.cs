@@ -8,17 +8,20 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalOrStr
 /// <summary>
 /// Strategy for absorption law: a || (a || b) => a || b (pure) or (a || b) || a => a || b (pure)
 /// </summary>
-public class ConditionalOrAbsorptionOrStrategy : SymmetricStrategy<BooleanBinaryStrategy>
+public class ConditionalOrAbsorptionOrStrategy : SymmetricStrategy<BooleanBinaryStrategy, ExpressionSyntax, BinaryExpressionSyntax>
 {
-	public override bool CanBeOptimizedSymmetric(BinaryOptimizeContext context)
+	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<ExpressionSyntax, BinaryExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return context.Right.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LogicalOrExpression } rightOr
-					 && (rightOr.Left.IsEquivalentTo(context.Left.Syntax) || rightOr.Right.IsEquivalentTo(context.Left.Syntax))
-					 && IsPure(context.Left.Syntax);
-	}
+		if (!context.Right.Syntax.IsKind(SyntaxKind.LogicalOrExpression)
+		    || !IsPure(context.Left.Syntax)
+		    || !(LeftEqualsRight(context.Right.Syntax.Left, context.Left.Syntax, context.TryGetValue)
+		         || LeftEqualsRight(context.Right.Syntax.Right, context.Left.Syntax, context.TryGetValue)))
+		{
+			optimized = null;
+			return false;
+		}
 
-	public override SyntaxNode? OptimizeSymmetric(BinaryOptimizeContext context)
-	{
-		return context.Right.Syntax;
+		optimized = context.Right.Syntax;
+		return true;
 	}
 }

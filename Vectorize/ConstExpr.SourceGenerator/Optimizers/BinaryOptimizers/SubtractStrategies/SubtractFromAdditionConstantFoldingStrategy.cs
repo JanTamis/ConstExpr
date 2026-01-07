@@ -22,7 +22,7 @@ public class SubtractFromAdditionConstantFoldingStrategy : NumericBinaryStrategy
 		// Pattern 1: (x + C1) - C2 => x + (C1 - C2)
 		if (context.Right.HasValue 
 		    && context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.AddExpression } leftAdd
-		    && context.TryGetLiteral(leftAdd.Right, out _))
+		    && context.TryGetValue(leftAdd.Right, out _))
 		{
 			return true;
 		}
@@ -30,7 +30,7 @@ public class SubtractFromAdditionConstantFoldingStrategy : NumericBinaryStrategy
 		// Pattern 2: (C1 + x) - C2 => x + (C1 - C2)
 		if (context.Right.HasValue 
 		    && context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.AddExpression } leftAdd2
-		    && context.TryGetLiteral(leftAdd2.Left, out _))
+		    && context.TryGetValue(leftAdd2.Left, out _))
 		{
 			return true;
 		}
@@ -43,7 +43,7 @@ public class SubtractFromAdditionConstantFoldingStrategy : NumericBinaryStrategy
 		// Pattern 1: (x + C1) - C2 => x + (C1 - C2)
 		if (context.Right.HasValue 
 		    && context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.AddExpression } leftAdd
-		    && context.TryGetLiteral(leftAdd.Right, out var c1))
+		    && context.TryGetValue(leftAdd.Right, out var c1))
 		{
 			var c2 = context.Right.Value;
 
@@ -65,7 +65,7 @@ public class SubtractFromAdditionConstantFoldingStrategy : NumericBinaryStrategy
 		// Pattern 2: (C1 + x) - C2 => x + (C1 - C2)
 		if (context.Right.HasValue 
 		    && context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.AddExpression } leftAdd2
-		    && context.TryGetLiteral(leftAdd2.Left, out var c1_2))
+		    && context.TryGetValue(leftAdd2.Left, out var c1_2))
 		{
 			var c2 = context.Right.Value;
 

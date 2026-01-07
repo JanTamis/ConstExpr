@@ -8,13 +8,12 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AddStrategies;
 /// <summary>
 /// Strategy for identity element optimization: x + 0 = x and 0 + x = x
 /// </summary>
-public class AddIdentityElementStrategy : SymmetricStrategy<NumericBinaryStrategy, ExpressionSyntax, ExpressionSyntax>
+public class AddIdentityElementStrategy : SymmetricStrategy<NumericBinaryStrategy, LiteralExpressionSyntax, ExpressionSyntax>
 {
 
-	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
+	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<LiteralExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (context.TryGetLiteral(context.Left.Syntax, out var leftValue)
-		    && leftValue.IsNumericZero())
+		if (context.Left.Syntax.IsNumericZero())
 		{
 			optimized = context.Right.Syntax;
 			return true;

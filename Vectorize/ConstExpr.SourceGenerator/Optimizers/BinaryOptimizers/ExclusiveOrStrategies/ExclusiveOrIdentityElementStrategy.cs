@@ -7,27 +7,17 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ExclusiveOrStrat
 /// <summary>
 /// Strategy for identity element: x ^ 0 = x and 0 ^ x = x
 /// </summary>
-public class ExclusiveOrIdentityElementStrategy : NumericBinaryStrategy
+public class ExclusiveOrIdentityElementStrategy : SymmetricStrategy<NumericBinaryStrategy, LiteralExpressionSyntax, ExpressionSyntax>
 {
-	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
+	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<LiteralExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (!base.TryOptimize(context, out optimized))
+		if (!context.Left.Syntax.IsNumericZero())
+		{
+			optimized = null;
 			return false;
+		}
 
-		if (context.TryGetLiteral(context.Left.Syntax, out var leftValue)
-		    && leftValue.IsNumericZero())
-		{
-			optimized = context.Right.Syntax;
-			return true;
-		}
-		
-		if (context.TryGetLiteral(context.Right.Syntax, out var rightValue)
-		    && rightValue.IsNumericZero())
-		{
-			optimized = context.Left.Syntax;
-			return true;
-		}
-		
-		return false;
+		optimized = context.Right.Syntax;
+		return true;
 	}
 }

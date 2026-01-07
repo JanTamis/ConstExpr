@@ -14,7 +14,7 @@ public class MultiplyStrengthReductionRightStrategy : IntegerBinaryStrategy
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!base.TryOptimize(context, out optimized)
-		    || !context.TryGetLiteral(context.Right.Syntax, out var rightValue)
+		    || !context.TryGetValue(context.Right.Syntax, out var rightValue)
 		    || !TryGetUInt(rightValue, out var rv)
 		    || !IsPure(context.Left.Syntax))
 			return false;

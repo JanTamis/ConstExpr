@@ -1,9 +1,10 @@
 ﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 
-public class IntegerBinaryStrategy<TLeft, TRight> : SpecialTypeBinaryStrategy<TLeft, TRight>
+public class IntegerBinaryStrategy<TLeft, TRight>(SyntaxKind leftKind = SyntaxKind.None, SyntaxKind rightKind = SyntaxKind.None) : SpecialTypeBinaryStrategy<TLeft, TRight>(leftKind, rightKind)
 	where TLeft : ExpressionSyntax
 	where TRight : ExpressionSyntax
 {
@@ -20,4 +21,10 @@ public class IntegerBinaryStrategy<TLeft, TRight> : SpecialTypeBinaryStrategy<TL
 	}
 }
 
-public class IntegerBinaryStrategy : IntegerBinaryStrategy<ExpressionSyntax, ExpressionSyntax>;
+public class IntegerBinaryStrategy(SyntaxKind leftKind = SyntaxKind.None, SyntaxKind rightKind = SyntaxKind.None) : IntegerBinaryStrategy<ExpressionSyntax, ExpressionSyntax>(leftKind, rightKind)
+{
+	public IntegerBinaryStrategy() : this(SyntaxKind.None, SyntaxKind.None)
+	{
+		
+	}
+}

@@ -103,7 +103,7 @@ public partial class ConstExprPartialRewriter
 			Type = type,
 			Variables = variables,
 			Kind = kind,
-			TryGetLiteral = TryGetLiteralValue,
+			TryGetValue = TryGetLiteralValue,
 			BinaryExpressions = expressions
 		};
 

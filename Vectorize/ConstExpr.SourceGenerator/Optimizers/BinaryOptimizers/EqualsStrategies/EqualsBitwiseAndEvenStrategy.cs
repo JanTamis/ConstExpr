@@ -11,36 +11,33 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.EqualsStrategies
 /// <summary>
 /// Strategy for bitwise AND even detection: (x & 1) == 0 => T.IsEvenInteger(x)
 /// </summary>
-public class EqualsBitwiseAndEvenStrategy : SymmetricStrategy<NumericBinaryStrategy>
+public class EqualsBitwiseAndEvenStrategy : SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, LiteralExpressionSyntax>
 {
-	public override bool CanBeOptimizedSymmetric(BinaryOptimizeContext context)
+	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<BinaryExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return context.Right is { HasValue: true, Value: { } value } && value.IsNumericZero()
-			&& context.Left.Syntax is  BinaryExpressionSyntax { RawKind: (int)SyntaxKind.BitwiseAndExpression } andExpr
-			&& andExpr.Right is LiteralExpressionSyntax { Token.Value: var andValue } 
-			&& andValue.IsNumericOne()
-			&& context.Left.Type?.HasMember<IMethodSymbol>(
-			"IsEvenInteger",
-			m => m.Parameters.Length == 1
-			     && m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, context.Left.Type))) == true;
-	}
-
-	public override SyntaxNode? OptimizeSymmetric(BinaryOptimizeContext context)
-	{
-		if (context.Left.Syntax is not BinaryExpressionSyntax
-		    { RawKind: (int)SyntaxKind.BitwiseAndExpression } andExpr)
+		if (!context.Right.Syntax.IsNumericZero()
+		    || !context.Left.Syntax.IsKind(SyntaxKind.BitwiseAndExpression)
+		    || !context.TryGetValue(context.Left.Syntax.Right, out var andValue)
+		    || !andValue.IsNumericOne()
+		    || context.Left.Type?.HasMember<IMethodSymbol>(
+			    "IsEvenInteger",
+			    m => m.Parameters.Length == 1
+			         && m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, context.Left.Type))) != true)
 		{
-			return null;
+			optimized = null;
+			return false;
 		}
 
-		return InvocationExpression(
-			MemberAccessExpression(
-				SyntaxKind.SimpleMemberAccessExpression,
-				ParseTypeName(context.Left.Type!.Name),
-				IdentifierName("IsEvenInteger")))
+		optimized = InvocationExpression(
+				MemberAccessExpression(
+					SyntaxKind.SimpleMemberAccessExpression,
+					ParseTypeName(context.Left.Type!.Name),
+					IdentifierName("IsEvenInteger")))
 			.WithArgumentList(
 				ArgumentList(
 					SingletonSeparatedList(
-						Argument(andExpr.Left))));
+						Argument(context.Left.Syntax.Left))));
+
+		return true;
 	}
 }

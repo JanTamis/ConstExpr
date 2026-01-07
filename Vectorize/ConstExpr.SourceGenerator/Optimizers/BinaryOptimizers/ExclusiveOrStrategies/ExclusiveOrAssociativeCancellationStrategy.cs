@@ -8,27 +8,32 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ExclusiveOrStrat
 /// <summary>
 /// Strategy for associative cancellation: (x ^ y) ^ x = y (pure)
 /// </summary>
-public class ExclusiveOrAssociativeCancellationStrategy : SymmetricStrategy<NumericOrBooleanBinaryStrategy>
+public class ExclusiveOrAssociativeCancellationStrategy : SymmetricStrategy<NumericOrBooleanBinaryStrategy, BinaryExpressionSyntax, ExpressionSyntax>
 {
-	public override bool CanBeOptimizedSymmetric(BinaryOptimizeContext context)
+	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<BinaryExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.ExclusiveOrExpression } xorLeft
-		       && IsPure(context.Right.Syntax) 
-		       && IsPure(xorLeft.Left) 
-		       && IsPure(xorLeft.Right)
-		       && (context.Right.Syntax.IsEquivalentTo(xorLeft.Left) || context.Right.Syntax.IsEquivalentTo(xorLeft.Right));
-	}
+		if (context.Left.Syntax.IsKind(SyntaxKind.ExclusiveOrExpression)
+		    || !IsPure(context.Right.Syntax))
+		{
+			optimized = null;
+			return false;
+		}
 
-	public override SyntaxNode? OptimizeSymmetric(BinaryOptimizeContext context)
-	{
-		var xorLeft = (BinaryExpressionSyntax)context.Left.Syntax;
+		if (LeftEqualsRight(context.Right.Syntax, context.Left.Syntax.Left, context.TryGetValue)
+		    && IsPure(context.Left.Syntax.Left))
+		{
+			optimized = context.Left.Syntax.Right;
+			return true;
+		}
 
-		if (context.Right.Syntax.IsEquivalentTo(xorLeft.Left))
-			return xorLeft.Right;
+		if (LeftEqualsRight(context.Right.Syntax, context.Left.Syntax.Right, context.TryGetValue)
+		    && IsPure(context.Left.Syntax.Right))
+		{
+			optimized = context.Left.Syntax.Left;
+			return true;
+		}
 
-		if (context.Right.Syntax.IsEquivalentTo(xorLeft.Right))
-			return xorLeft.Left;
-
-		return null;
+		optimized = null;
+		return false;
 	}
 }

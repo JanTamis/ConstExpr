@@ -14,7 +14,7 @@ public class SubtractZeroMinusStrategy : NumericBinaryStrategy
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (base.TryOptimize(context, out optimized)
-		    || context.TryGetLiteral(context.Left.Syntax, out var leftValue)
+		    || context.TryGetValue(context.Left.Syntax, out var leftValue)
 		    || !leftValue.IsNumericZero())
 			return false;
 

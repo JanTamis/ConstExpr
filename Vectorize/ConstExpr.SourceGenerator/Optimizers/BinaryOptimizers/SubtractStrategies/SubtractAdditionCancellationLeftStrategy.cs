@@ -14,7 +14,7 @@ public class SubtractAdditionCancellationLeftStrategy : NumericBinaryStrategy<Bi
 	{
 		if (!base.TryOptimize(context, out optimized)
 		    || !context.Left.Syntax.IsKind(SyntaxKind.AddExpression)
-		    || !LeftEqualsRight(context.Left.Syntax.Left, context.Right.Syntax, context.TryGetLiteral)
+		    || !LeftEqualsRight(context.Left.Syntax.Left, context.Right.Syntax, context.TryGetValue)
 		    || !IsPure(context.Left.Syntax)
 		    || !IsPure(context.Right.Syntax))
 			return false;

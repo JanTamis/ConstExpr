@@ -2,36 +2,34 @@ using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using ConstExpr.SourceGenerator.Helpers;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AndStrategies;
 
 /// <summary>
 /// Identity element: x & 0 = 0 (for numeric types), x & true = x, x & false = false (for boolean type)
 /// </summary>
-public class AndIdentityElementStrategy : SymmetricStrategy<NumericOrBooleanBinaryStrategy>
+public class AndIdentityElementStrategy : SymmetricStrategy<NumericOrBooleanBinaryStrategy, ExpressionSyntax, LiteralExpressionSyntax>
 {
-	public override bool CanBeOptimizedSymmetric(BinaryOptimizeContext context)
+	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<ExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		// Right is a literal
-		return context.Right.Value is bool || context.Right.Value.IsNumericZero();
-	}
-
-	public override SyntaxNode? OptimizeSymmetric(BinaryOptimizeContext context)
-	{
-		switch (context.Right.Value)
+		if (context.Right.Syntax.IsNumericZero())
+		{
+			optimized = context.Right.Syntax;
+			return true;
+		}
+		
+		switch (context.Right.Syntax.Token.Value)
 		{
 			case false:
-				return SyntaxHelpers.CreateLiteral(false);
+				optimized = SyntaxHelpers.CreateLiteral(false);
+				return true;
 			case true:
-				return context.Left.Syntax;
+				optimized = context.Left.Syntax;
+				return true;
+			default:
+				optimized = null;
+				return false;
 		}
-
-		// Numeric types: x & 0 = 0, 0 & x = 0
-		if (context.Right.Value.IsNumericZero())
-		{
-			return SyntaxHelpers.CreateLiteral(0.ToSpecialType(context.Type.SpecialType));
-		}
-
-		return null;
 	}
 }

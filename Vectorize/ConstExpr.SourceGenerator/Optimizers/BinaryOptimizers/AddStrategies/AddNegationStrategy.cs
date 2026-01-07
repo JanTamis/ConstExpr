@@ -10,12 +10,11 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AddStrategies;
 /// <summary>
 /// Strategy for negation cancellation: x + (-x) => 0 and (-x) + x => 0
 /// </summary>
-public class AddNegationStrategy : SymmetricStrategy<NumericBinaryStrategy, ExpressionSyntax, PrefixUnaryExpressionSyntax>
+public class AddNegationStrategy() : SymmetricStrategy<NumericBinaryStrategy, ExpressionSyntax, PrefixUnaryExpressionSyntax>(rightKind: SyntaxKind.UnaryMinusExpression)
 {
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<ExpressionSyntax, PrefixUnaryExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (!context.Right.Syntax.IsKind(SyntaxKind.UnaryMinusExpression)
-		    || LeftEqualsRight(context.Right.Syntax.Operand, context.Left.Syntax, context.TryGetLiteral)
+		if (LeftEqualsRight(context.Right.Syntax.Operand, context.Left.Syntax, context.TryGetValue)
 		    || !IsPure(context.Left.Syntax)
 		    || !IsPure(context.Right.Syntax))
 		{

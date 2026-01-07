@@ -1,6 +1,7 @@
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ExclusiveOrStrategies;
@@ -8,15 +9,17 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ExclusiveOrStrat
 /// <summary>
 /// Strategy for boolean true: x ^ true = !x and true ^ x = !x
 /// </summary>
-public class ExclusiveOrBooleanTrueStrategy : SymmetricStrategy<BooleanBinaryStrategy>
+public class ExclusiveOrBooleanTrueStrategy : SymmetricStrategy<BooleanBinaryStrategy, LiteralExpressionSyntax, ExpressionSyntax>
 {
-	public override bool CanBeOptimizedSymmetric(BinaryOptimizeContext context)
+	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<LiteralExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return context.Right.HasValue && context.Right.Value is true;
-	}
+		if (context.Left.Syntax.Token.Value is not true)
+		{
+			optimized = null;
+			return false;
+		}
 
-	public override SyntaxNode? OptimizeSymmetric(BinaryOptimizeContext context)
-	{
-		return PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, context.Left.Syntax);
+		optimized = PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, context.Right.Syntax);
+		return true;
 	}
 }

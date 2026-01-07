@@ -21,10 +21,11 @@ public class DivideRightNegationStrategy : BaseBinaryStrategy<ExpressionSyntax, 
 			return false;
 		}
 
-		optimized = PrefixUnaryExpression(
-			SyntaxKind.UnaryMinusExpression,
+		optimized = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
 			ParenthesizedExpression(
-				BinaryExpression(SyntaxKind.DivideExpression, context.Left.Syntax, context.Right.Syntax.Operand)));
+				BinaryExpression(SyntaxKind.DivideExpression, 
+					context.Left.Syntax, 
+					context.Right.Syntax.Operand)));
 			
 		return true;
 	}

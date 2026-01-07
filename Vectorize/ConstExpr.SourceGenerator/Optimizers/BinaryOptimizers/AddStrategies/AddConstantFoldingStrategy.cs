@@ -21,17 +21,16 @@ public class AddConstantFoldingStrategy : NumericBinaryStrategy<BinaryExpression
 		if (!base.TryOptimize(context, out optimized))
 			return false;
 
-		if (context.TryGetLiteral(context.Right.Syntax, out var c2)
+		if (context.TryGetValue(context.Right.Syntax, out var c2)
 		    && context.Left.Syntax.IsKind(SyntaxKind.AddExpression))
 		{
 			// Pattern 1: (x + C1) + C2 => x + (C1 + C2)
-			if (context.TryGetLiteral(context.Left.Syntax.Right, out var leftConstant))
+			if (context.TryGetValue(context.Left.Syntax.Right, out var leftConstant))
 			{
 				var result = leftConstant.Add(c2);
 				var newConstant = SyntaxHelpers.CreateLiteral(result);
 
-				optimized = BinaryExpression(
-					SyntaxKind.AddExpression,
+				optimized = BinaryExpression(SyntaxKind.AddExpression,
 					context.Left.Syntax.Left,
 					newConstant!);
 
@@ -39,15 +38,14 @@ public class AddConstantFoldingStrategy : NumericBinaryStrategy<BinaryExpression
 			}
 
 			// Pattern 1b: (C1 + x) + C2 => x + (C1 + C2) - constant on left side of inner addition
-			if (context.TryGetLiteral(context.Left.Syntax.Left, out var leftConstant2))
+			if (context.TryGetValue(context.Left.Syntax.Left, out var leftConstant2))
 			{
 				var result = leftConstant2.Add(c2);
 
 				var newConstant = SyntaxHelpers.CreateLiteral(result);
-				optimized = BinaryExpression(
-					SyntaxKind.AddExpression,
+				optimized = BinaryExpression(SyntaxKind.AddExpression,
 					context.Left.Syntax.Right,
-					newConstant);
+					newConstant!);
 
 				return true;
 			}

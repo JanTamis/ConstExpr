@@ -9,17 +9,19 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalOrStr
 /// <summary>
 /// Strategy for tautology: a || !a => true, !a || a => true (pure)
 /// </summary>
-public class ConditionalOrTautologyStrategy : SymmetricStrategy<BooleanBinaryStrategy>
+public class ConditionalOrTautologyStrategy : SymmetricStrategy<BooleanBinaryStrategy, ExpressionSyntax, PrefixUnaryExpressionSyntax>
 {
-	public override bool CanBeOptimizedSymmetric(BinaryOptimizeContext context)
+	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<ExpressionSyntax, PrefixUnaryExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return context.Right.Syntax is PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.LogicalNotExpression } rightNot
-		       && rightNot.Operand.IsEquivalentTo(context.Left.Syntax)
-		       && IsPure(context.Left.Syntax);
-	}
-
-	public override SyntaxNode? OptimizeSymmetric(BinaryOptimizeContext context)
-	{
-		return SyntaxHelpers.CreateLiteral(true);
+		if (!context.Right.Syntax.IsKind(SyntaxKind.LogicalNotExpression)
+		    || !LeftEqualsRight(context.Right.Syntax.Operand, context.Left.Syntax, context.TryGetValue)
+		    || !IsPure(context.Left.Syntax))
+		{
+			optimized = null;
+			return false;
+		}
+		
+		optimized = SyntaxHelpers.CreateLiteral(true);
+		return true;
 	}
 }

@@ -1,57 +1,46 @@
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
+using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ModuloStrategies;
 
 /// <summary>
 /// Strategy for already masked values: (x & (m-1)) % m => (x & (m-1)) for unsigned integers when m is power of two
 /// </summary>
-public class ModuloAlreadyMaskedStrategy : IntegerBinaryStrategy
+public class ModuloAlreadyMaskedStrategy : IntegerBinaryStrategy<BinaryExpressionSyntax, ExpressionSyntax>
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool TryOptimize(BinaryOptimizeContext<BinaryExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (!base.CanBeOptimized(context))
-			return false;
+		optimized = null;
 
-		if (!context.Type.IsUnsignedInteger())
-			return false;
-
-		if (!context.Right.HasValue || !context.Right.Value.IsNumericPowerOfTwo(out _))
-			return false;
-
-		if (context.Left.Syntax is not BinaryExpressionSyntax { RawKind: (int)SyntaxKind.BitwiseAndExpression } andOp)
+		// Base type validation
+		if (!base.TryOptimize(context, out optimized)
+		    || !context.Type.IsUnsignedInteger()
+		    || !context.TryGetValue(context.Right.Syntax, out var rightValue) 
+		    || !rightValue.IsNumericPowerOfTwo(out _)
+		    || !context.Left.Syntax.IsKind(SyntaxKind.BitwiseAndExpression))
 			return false;
 
 		// Calculate m - 1
 		var one = 1.ToSpecialType(context.Type.SpecialType);
-		var mask = ObjectExtensions.ExecuteBinaryOperation(Microsoft.CodeAnalysis.Operations.BinaryOperatorKind.Subtract, context.Right.Value, one);
+		var mask = rightValue.Subtract(one);
 
 		if (mask == null)
 			return false;
 
 		// Check if either operand of the AND matches the mask
-		if (andOp.Left is LiteralExpressionSyntax leftLit)
+		if (context.TryGetValue(context.Left.Syntax.Left, out var leftAndValue) 
+		    && EqualityComparer<object?>.Default.Equals(leftAndValue, mask)
+		    || context.TryGetValue(context.Left.Syntax.Right, out var rightAndValue)
+		    && EqualityComparer<object?>.Default.Equals(rightAndValue, mask))
 		{
-			if (EqualityComparer<object?>.Default.Equals(leftLit.Token.Value, mask))
-				return true;
-		}
-
-		if (andOp.Right is LiteralExpressionSyntax rightLit)
-		{
-			if (EqualityComparer<object?>.Default.Equals(rightLit.Token.Value, mask))
-				return true;
+			optimized = context.Left.Syntax;
+			return true;
 		}
 
 		return false;
-	}
-
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		// The value is already masked, so just return it
-		return context.Left.Syntax;
 	}
 }

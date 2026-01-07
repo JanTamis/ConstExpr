@@ -430,6 +430,11 @@ public static class ObjectExtensions
 		return ExecuteComparisonOperation(left, right, Expression.NotEqual);
 	}
 
+	public static bool LessThan(this object? left, object? right)
+	{
+		return ExecuteComparisonOperation(left, right, Expression.LessThan);
+	}
+
 	private static bool ExecuteComparisonOperation(
 		object? left,
 		object? right,
@@ -613,6 +618,7 @@ public static class ObjectExtensions
 		float f => Math.Abs(f - 1f) < Single.Epsilon,
 		double d => Math.Abs(d - 1d) < Double.Epsilon,
 		decimal m => m == 1m,
+		LiteralExpressionSyntax literal => literal.Token.Value.IsNumericOne(),
 		_ => false
 	};
 
@@ -629,8 +635,14 @@ public static class ObjectExtensions
 		float f => Math.Abs(f - 2f) < Single.Epsilon,
 		double d => Math.Abs(d - 2d) < Double.Epsilon,
 		decimal m => m == 2m,
+		LiteralExpressionSyntax literal => literal.Token.Value.IsNumericTwo(),
 		_ => false
 	};
+
+	public static bool IsNumericTwo(this LiteralExpressionSyntax literal)
+	{
+		return literal.Token.Value.IsNumericTwo();
+	}
 
 	public static bool IsNumericNegativeOne(this object? value) => value switch
 	{
@@ -641,6 +653,9 @@ public static class ObjectExtensions
 		float f => Math.Abs(f - -1f) < Single.Epsilon,
 		double d => Math.Abs(d - -1d) < Double.Epsilon,
 		decimal m => m == -1m,
+		PrefixUnaryExpressionSyntax prefix when prefix.IsKind(SyntaxKind.UnaryMinusExpression) &&
+		                                        prefix.Operand is LiteralExpressionSyntax lit =>
+			lit.Token.Value.IsNumericOne(),
 		_ => false
 	};
 
@@ -659,6 +674,11 @@ public static class ObjectExtensions
 		decimal m => m == target,
 		_ => false
 	};
+
+	public static bool IsNumericValue(this LiteralExpressionSyntax literal, int target)
+	{
+		return literal.Token.Value.IsNumericValue(target);
+	}
 
 	public static bool IsPositive(this object? value) => value switch
 	{
@@ -715,12 +735,14 @@ public static class ObjectExtensions
 				x >>= 1;
 				p++;
 			}
+
 			return p;
 		}
 
 		static bool IsDecimalIntegerPowerOfTwo(decimal m, out int p)
 		{
 			p = 0;
+
 			if (m <= 0m || decimal.Truncate(m) != m)
 				return false;
 
@@ -729,6 +751,7 @@ public static class ObjectExtensions
 				m /= 2m;
 				p++;
 			}
+
 			return m == 1m;
 		}
 
@@ -754,6 +777,11 @@ public static class ObjectExtensions
 
 			_ => false
 		};
+	}
+
+	public static bool IsNumericPowerOfTwo(this LiteralExpressionSyntax literal, out int power)
+	{
+		return literal.Token.Value.IsNumericPowerOfTwo(out power);
 	}
 
 	public static bool TryAdd<TKey, TValue>(this IDictionary<TKey, TValue> dictionary, TKey key, TValue value)

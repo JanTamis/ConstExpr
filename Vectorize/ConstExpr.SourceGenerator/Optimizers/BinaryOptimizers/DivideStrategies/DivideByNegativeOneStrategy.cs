@@ -9,13 +9,12 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies
 /// <summary>
 /// Strategy for division by negative one: x / -1 = -x
 /// </summary>
-public class DivideByNegativeOneStrategy : NumericBinaryStrategy
+public class DivideByNegativeOneStrategy : NumericBinaryStrategy<ExpressionSyntax, PrefixUnaryExpressionSyntax>
 {
-	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
+	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, PrefixUnaryExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!base.TryOptimize(context, out optimized)
-		    || !context.TryGetLiteral(context.Right.Syntax, out var value)
-		    || !value.IsNumericNegativeOne())
+		    || !context.Right.IsNumericNegativeOne())
 			return false;
 		
 		optimized = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression, context.Left.Syntax);

@@ -1,4 +1,5 @@
 using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -9,17 +10,17 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.MultiplyStrategi
 /// <summary>
 /// Strategy for power of two optimization: (power of two) * x => x << n (integer)
 /// </summary>
-public class MultiplyByPowerOfTwoLeftStrategy : IntegerBinaryStrategy
+public class MultiplyByPowerOfTwoLeftStrategy : IntegerBinaryStrategy<LiteralExpressionSyntax, ExpressionSyntax>
 {
-	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
+	public override bool TryOptimize(BinaryOptimizeContext<LiteralExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!base.TryOptimize(context, out optimized)
-		    || context.TryGetLiteral(context.Left.Syntax, out var leftValue)
-		    || !leftValue.IsNumericPowerOfTwo(out var power))
+		    || !context.Left.Syntax.IsNumericPowerOfTwo(out var power))
 			return false;
 		
-		optimized = BinaryExpression(SyntaxKind.LeftShiftExpression, context.Right.Syntax,
-			LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(power)));
+		optimized = BinaryExpression(SyntaxKind.LeftShiftExpression, 
+			context.Right.Syntax,
+			SyntaxHelpers.CreateLiteral(power)!);
 		return true;
 	}
 }

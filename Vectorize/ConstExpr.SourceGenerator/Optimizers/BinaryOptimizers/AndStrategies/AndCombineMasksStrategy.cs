@@ -1,3 +1,4 @@
+using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using ConstExpr.SourceGenerator.Helpers;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
@@ -10,41 +11,19 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AndStrategies;
 /// <summary>
 /// Combine masks: (x & mask1) & mask2 => x & (mask1 & mask2)
 /// </summary>
-public class AndCombineMasksStrategy : SymmetricStrategy<NumericOrBooleanBinaryStrategy>
+public class AndCombineMasksStrategy : SymmetricStrategy<NumericOrBooleanBinaryStrategy, BinaryExpressionSyntax, LiteralExpressionSyntax>
 {
-	public override bool CanBeOptimizedSymmetric(BinaryOptimizeContext context)
+	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<BinaryExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.BitwiseAndExpression } 
-		    && context.Right.HasValue 
-		    && context.Left.Value != null)
+		if (!context.Left.Syntax.IsKind(SyntaxKind.BitwiseAndExpression)
+		    || !context.TryGetValue(context.Left.Syntax.Right, out var leftMask)
+		    || !SyntaxHelpers.TryGetLiteral(leftMask.And(context.Right.Syntax.Token.Value), out var combinedLiteral))
 		{
-			var leftMask = context.Left.Value;
-			var rightMask = context.Right.Value;
-			var combined = leftMask.And(rightMask);
-
-			if (combined != null && SyntaxHelpers.TryGetLiteral(combined, out _))
-			{
-				return true;
-			}
+			optimized = null;
+			return false;
 		}
-
-		return false;
-	}
-
-	public override SyntaxNode? OptimizeSymmetric(BinaryOptimizeContext context)
-	{
-		if (context.Left.Syntax is BinaryExpressionSyntax leftAnd)
-		{
-			var leftMask = context.Left.Value;
-			var rightMask = context.Right.Value;
-			var combined = leftMask.And(rightMask);
-			
-			if (SyntaxHelpers.TryGetLiteral(combined, out var combinedLiteral))
-			{
-				return BinaryExpression(SyntaxKind.BitwiseAndExpression, leftAnd.Left, combinedLiteral);
-			}
-		}
-
-		return null;
+		
+		optimized = BinaryExpression(SyntaxKind.BitwiseAndExpression, context.Left.Syntax.Left, combinedLiteral);
+		return true;
 	}
 }

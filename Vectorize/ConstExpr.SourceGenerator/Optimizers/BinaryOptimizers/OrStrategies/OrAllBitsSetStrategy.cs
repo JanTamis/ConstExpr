@@ -14,14 +14,14 @@ public class OrAllBitsSetStrategy : IntegerBinaryStrategy
 		if (!base.TryOptimize(context, out optimized))
 			return false;
 		
-		if (context.TryGetLiteral(context.Right.Syntax, out var rightValue)
+		if (context.TryGetValue(context.Right.Syntax, out var rightValue)
 		    && IsAllBitsSet(rightValue, context.Type.SpecialType))
 		{
 			optimized = context.Right.Syntax;
 			return true;
 		}
 		
-		if (context.TryGetLiteral(context.Left.Syntax, out var leftValue)
+		if (context.TryGetValue(context.Left.Syntax, out var leftValue)
 		    && IsAllBitsSet(leftValue, context.Type.SpecialType))
 		{
 			optimized = context.Left.Syntax;

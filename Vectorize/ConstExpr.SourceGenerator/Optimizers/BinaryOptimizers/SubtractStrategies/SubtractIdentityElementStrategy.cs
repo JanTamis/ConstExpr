@@ -13,7 +13,7 @@ public class SubtractIdentityElementStrategy : NumericBinaryStrategy
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!base.TryOptimize(context, out optimized)
-		    || !context.TryGetLiteral(context.Right.Syntax, out var rightValue)
+		    || !context.TryGetValue(context.Right.Syntax, out var rightValue)
 		    || !rightValue.IsNumericZero())
 			return false;
 

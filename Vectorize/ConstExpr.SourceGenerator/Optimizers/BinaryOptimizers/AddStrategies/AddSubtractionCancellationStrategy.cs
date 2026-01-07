@@ -15,7 +15,7 @@ public class AddSubtractionCancellationStrategy : SymmetricStrategy<NumericBinar
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<BinaryExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!context.Left.Syntax.IsKind(SyntaxKind.SubtractExpression)
-		    || !LeftEqualsRight(context.Left.Syntax.Right, context.Right.Syntax, context.TryGetLiteral)
+		    || !LeftEqualsRight(context.Left.Syntax.Right, context.Right.Syntax, context.TryGetValue)
 		    || !IsPure(context.Left.Syntax)
 		    || !IsPure(context.Right.Syntax))
 		{

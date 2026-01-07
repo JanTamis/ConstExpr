@@ -25,7 +25,7 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 		// Pattern 1: (x / C1) / C2 => x / (C1 * C2)
 		if (context.Right.HasValue 
 		    && context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.DivideExpression } leftDiv
-		    && context.TryGetLiteral(leftDiv.Right, out _))
+		    && context.TryGetValue(leftDiv.Right, out _))
 		{
 			return true;
 		}
@@ -33,7 +33,7 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 		// Pattern 2: (C1 / x) / C2 => (C1 / C2) / x
 		if (context.Right.HasValue 
 		    && context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.DivideExpression } leftDiv2
-		    && context.TryGetLiteral(leftDiv2.Left, out _))
+		    && context.TryGetValue(leftDiv2.Left, out _))
 		{
 			return true;
 		}
@@ -41,7 +41,7 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 		// Pattern 3: C1 / (x / C2) => (C1 * C2) / x
 		if (context.Left.HasValue 
 		    && context.Right.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.DivideExpression } rightDiv
-		    && context.TryGetLiteral(rightDiv.Right, out _))
+		    && context.TryGetValue(rightDiv.Right, out _))
 		{
 			return true;
 		}
@@ -49,7 +49,7 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 		// Pattern 4: C1 / (C2 / x) => (C1 / C2) * x
 		if (context.Left.HasValue 
 		 && context.Right.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.DivideExpression } rightDiv2
-		    && context.TryGetLiteral(rightDiv2.Left, out _))
+		    && context.TryGetValue(rightDiv2.Left, out _))
 		{
 			return true;
 		}
@@ -62,7 +62,7 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 		// Pattern 1: (x / C1) / C2 => x / (C1 * C2)
 		if (context.Right.HasValue 
 		    && context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.DivideExpression } leftDiv
-		    && context.TryGetLiteral(leftDiv.Right, out var leftConstant))
+		    && context.TryGetValue(leftDiv.Right, out var leftConstant))
 		{
 			var c2 = context.Right.Value;
 
@@ -84,7 +84,7 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 		// Pattern 2: (C1 / x) / C2 => (C1 / C2) / x
 		if (context.Right.HasValue 
 		    && context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.DivideExpression } leftDiv2
-		    && context.TryGetLiteral(leftDiv2.Left, out var leftConstant2))
+		    && context.TryGetValue(leftDiv2.Left, out var leftConstant2))
 		{
 			var c2 = context.Right.Value;
 
@@ -106,7 +106,7 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 		// Pattern 3: C1 / (x / C2) => (C1 * C2) / x
 		if (context.Left.HasValue 
 		    && context.Right.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.DivideExpression } rightDiv
-		    && context.TryGetLiteral(rightDiv.Right, out var rightConstant))
+		    && context.TryGetValue(rightDiv.Right, out var rightConstant))
 		{
 			var c1 = context.Left.Value;
 
@@ -128,7 +128,7 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 		// Pattern 4: C1 / (C2 / x) => (C1 / C2) * x
 		if (context.Left.HasValue 
 		    && context.Right.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.DivideExpression } rightDiv2
-		    && context.TryGetLiteral(rightDiv2.Left, out var rightConstant2))
+		    && context.TryGetValue(rightDiv2.Left, out var rightConstant2))
 		{
 			var c1 = context.Left.Value;
 
