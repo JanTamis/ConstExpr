@@ -11,12 +11,11 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.LeftShiftStrateg
 /// <summary>
 /// Strategy for combining shifts: ((x << a) << b) => x << (a + b)
 /// </summary>
-public class LeftShiftCombineStrategy : IntegerBinaryStrategy<BinaryExpressionSyntax, LiteralExpressionSyntax>
+public class LeftShiftCombineStrategy() : IntegerBinaryStrategy<BinaryExpressionSyntax, LiteralExpressionSyntax>(leftKind: SyntaxKind.LeftShiftExpression)
 {
 	public override bool TryOptimize(BinaryOptimizeContext<BinaryExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!base.TryOptimize(context, out optimized)
-		    || !context.Left.Syntax.IsKind(SyntaxKind.LeftShiftExpression)
 		    || !context.TryGetValue(context.Left.Syntax.Right, out var leftShiftValue)
 		    || !SyntaxHelpers.TryGetLiteral(leftShiftValue.Add(context.Right.Syntax.Token.Value), out var combinedLiteral))
 		{

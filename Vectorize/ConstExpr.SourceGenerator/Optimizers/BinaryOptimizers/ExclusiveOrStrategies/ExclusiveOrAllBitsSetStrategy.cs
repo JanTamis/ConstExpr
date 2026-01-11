@@ -13,15 +13,14 @@ public class ExclusiveOrAllBitsSetStrategy : SymmetricStrategy<IntegerBinaryStra
 {
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<ExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (context.Right.Syntax.IsKind(SyntaxKind.BitwiseNotExpression)
-		    && IsAllBitsSet(context.Right.Syntax, context.Type.SpecialType))
+		if (!IsAllBitsSet(context.Right.Syntax, context.Type.SpecialType))
 		{
-			optimized = PrefixUnaryExpression(SyntaxKind.BitwiseNotExpression, context.Left.Syntax);
-			return true;
+			optimized = null;
+			return false;
 		}
 
-		optimized = null;
-		return false;
+		optimized = PrefixUnaryExpression(SyntaxKind.BitwiseNotExpression, context.Left.Syntax);
+		return true;
 	}
 
 	private static bool IsAllBitsSet(LiteralExpressionSyntax? value, SpecialType type)

@@ -14,11 +14,18 @@ public abstract class SpecialTypeBinaryStrategy<TLeft, TRight>(SyntaxKind leftKi
 	{
 		optimized = null;
 		
-		return IsValidSpecialType(context.Type.SpecialType)
-		       || (leftKind == SyntaxKind.None || context.Left.Syntax.IsKind(leftKind))
-		       && (rightKind == SyntaxKind.None || context.Right.Syntax.IsKind(rightKind))
-		       || context.Left.Type is not null && IsValidSpecialType(context.Left.Type.SpecialType)
-		       || context.Right.Type is not null && IsValidSpecialType(context.Right.Type.SpecialType);
+		return (IsValidSpecialType(context.Type.SpecialType)
+			|| context.Left.Type is not null && IsValidSpecialType(context.Left.Type.SpecialType)
+			|| context.Right.Type is not null && IsValidSpecialType(context.Right.Type.SpecialType))
+			&& (leftKind == SyntaxKind.None || context.Left.Syntax.IsKind(leftKind))
+		       && (rightKind == SyntaxKind.None || context.Right.Syntax.IsKind(rightKind));
+			
+		
+		// return IsValidSpecialType(context.Type.SpecialType)
+		//        || (leftKind == SyntaxKind.None || context.Left.Syntax.IsKind(leftKind))
+		//        && (rightKind == SyntaxKind.None || context.Right.Syntax.IsKind(rightKind))
+		//        || context.Left.Type is not null && IsValidSpecialType(context.Left.Type.SpecialType)
+		//        || context.Right.Type is not null && IsValidSpecialType(context.Right.Type.SpecialType);
 	}
 }
 

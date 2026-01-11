@@ -13,47 +13,37 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AddStrategies;
 /// (a * b) + c => FMA(a, b, c)
 /// c + (a * b) => FMA(a, b, c)
 /// </summary>
-public class AddFusedMultiplyAddStrategy : SymmetricStrategy<NumericBinaryStrategy>
+public class AddFusedMultiplyAddStrategy() : SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, ExpressionSyntax>(leftKind: SyntaxKind.MultiplyExpression)
 {
-	public override bool CanBeOptimizedSymmetric(BinaryOptimizeContext context)
-	{
-		var left = GetExpression(context.Left.Syntax);
-		
-		return left is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.MultiplyExpression }
-		       && (ContainsMultiplyAddEstimate(context.Type) || ContainsFusedMultiplyAdd(context.Type));
-	}
-
-	public override SyntaxNode? OptimizeSymmetric(BinaryOptimizeContext context)
+	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<BinaryExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		var host = ParseName(context.Type.Name);
 
-		var multLeft = context.Left.Syntax is ParenthesizedExpressionSyntax parenExpr
-			? (BinaryExpressionSyntax)parenExpr.Expression
-			: (BinaryExpressionSyntax)context.Left.Syntax;
-		
-		var aExpr = multLeft.Left;
-		var bExpr = multLeft.Right;
-
-		if (context.Right.Value.IsNumericZero())
-		{
-			return multLeft;
-		}
-		
-		var arguments = ArgumentList(SeparatedList([ Argument(GetExpression(aExpr)), Argument(GetExpression(bExpr)), Argument(GetExpression(context.Right.Syntax)) ]));
+		var arguments = ArgumentList(SeparatedList([ Argument(context.Left.Syntax.Left), Argument(context.Left.Syntax.Right), Argument(context.Right.Syntax) ]));
 
 		if (ContainsMultiplyAddEstimate(context.Type))
 		{
-			return InvocationExpression(MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, host, IdentifierName("MultiplyAddEstimate")),
+			optimized = InvocationExpression(
+				MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, 
+					host, 
+					IdentifierName("MultiplyAddEstimate")),
 				arguments);
+			
+			return true;
 		}
 
 		if (ContainsFusedMultiplyAdd(context.Type))
 		{
-			return InvocationExpression(MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, host, IdentifierName("FusedMultiplyAdd")),
+			optimized = InvocationExpression(
+				MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
+					host,
+					IdentifierName("FusedMultiplyAdd")),
 				arguments);
+			return true;
 		}
 
-		return null;
+		optimized = null;
+		return false;
 	}
 
 	private bool ContainsMultiplyAddEstimate(ITypeSymbol type)
@@ -68,15 +58,5 @@ public class AddFusedMultiplyAddStrategy : SymmetricStrategy<NumericBinaryStrate
 		return type.HasMethod("FusedMultiplyAdd", m =>
 			m.Parameters.Length == 3 &&
 			m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, type)));
-	}
-
-	private ExpressionSyntax GetExpression(ExpressionSyntax syntax)
-	{
-		if (syntax is ParenthesizedExpressionSyntax parenthesizedExpression)
-		{
-			return parenthesizedExpression.Expression;
-		}
-		
-		return syntax;
 	}
 }

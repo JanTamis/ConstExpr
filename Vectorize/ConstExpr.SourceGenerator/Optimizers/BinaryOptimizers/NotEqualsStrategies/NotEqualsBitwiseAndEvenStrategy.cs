@@ -11,12 +11,11 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.NotEqualsStrateg
 /// <summary>
 /// Strategy for bitwise AND even detection: (x & 1) != 1 => T.IsEvenInteger(x)
 /// </summary>
-public class NotEqualsBitwiseAndEvenStrategy : SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, LiteralExpressionSyntax>
+public class NotEqualsBitwiseAndEvenStrategy() : SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, LiteralExpressionSyntax>(leftKind: SyntaxKind.BitwiseAndExpression)
 {
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<BinaryExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (!context.Left.Syntax.IsKind(SyntaxKind.BitwiseAndExpression)
-		    || !context.Right.IsNumericOne()
+		if (!context.Right.IsNumericOne()
 		    || !context.Left.Syntax.Right.IsNumericOne()
 		    || context.Left.Type?.HasMember<IMethodSymbol>(
 			    "IsEvenInteger",

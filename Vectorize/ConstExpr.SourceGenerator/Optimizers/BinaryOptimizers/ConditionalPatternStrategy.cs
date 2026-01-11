@@ -6,36 +6,31 @@ using Microsoft.CodeAnalysis.Operations;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalAndStrategies;
 
-public class ConditionalPatternStrategy : BaseBinaryStrategy
+public class ConditionalPatternStrategy(BinaryOperatorKind operatorKind) : BaseBinaryStrategy<BinaryExpressionSyntax, BinaryExpressionSyntax>
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool TryOptimize(BinaryOptimizeContext<BinaryExpressionSyntax, BinaryExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return context.Left.Syntax is BinaryExpressionSyntax { Right: LiteralExpressionSyntax } left
-			&& context.Right.Syntax is BinaryExpressionSyntax { Right: LiteralExpressionSyntax } right
-			&& left.Left.IsEquivalentTo(right.Left)
-			&& IsPure(left.Left)
-			&& IsPure(right.Left);
-	}
-
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		if (context.Left.Syntax is not BinaryExpressionSyntax left
-		    || context.Right.Syntax is not BinaryExpressionSyntax right)
+		if (!LeftEqualsRight(context.Left.Syntax.Left, context.Right.Syntax.Left, context.Variables)
+		    || !IsPure(context.Left.Syntax.Left)
+		    || !IsPure(context.Right.Syntax.Left))
 		{
-			return null;
+			optimized = null;
+			return false;
 		}
-
-		var leftPattern = ConvertToPattern(left.OperatorToken.Kind(), left.Right);
-		var rightPattern = ConvertToPattern(right.OperatorToken.Kind(), right.Right);
+		
+		var leftPattern = ConvertToPattern(context.Left.Syntax.OperatorToken.Kind(), context.Left.Syntax.Right);
+		var rightPattern = ConvertToPattern(context.Right.Syntax.OperatorToken.Kind(), context.Right.Syntax.Right);
 		
 		if (leftPattern == null || rightPattern == null)
 		{
-			return null;
+			optimized = null;
+			return false;
 		}
 		
-		var andPattern = SyntaxFactory.BinaryPattern(GetRelationalPatternKind(context.Kind), leftPattern, rightPattern);
+		var andPattern = SyntaxFactory.BinaryPattern(GetRelationalPatternKind(operatorKind), leftPattern, rightPattern);
 		
-		return SyntaxFactory.IsPatternExpression(left.Left, andPattern);
+		optimized = SyntaxFactory.IsPatternExpression(context.Left.Syntax.Left, andPattern);
+		return true;
 	}
 	
 	private SyntaxKind GetRelationalPatternKind(BinaryOperatorKind operatorKind)

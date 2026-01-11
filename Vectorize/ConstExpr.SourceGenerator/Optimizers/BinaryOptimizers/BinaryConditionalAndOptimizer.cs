@@ -20,60 +20,9 @@ public class BinaryConditionalAndOptimizer : BaseBinaryOptimizer
 		yield return new ConditionalAndCharOptimizer();
 		yield return new ConditionalAndDeMorganStrategy();
 		
-		yield return new ConditionalPatternStrategy();
-		yield return new ConditionalPatternCombinerStrategy();
-		yield return new ConditionalPatternCombinersStrategy();
+		yield return new ConditionalPatternStrategy(Kind);
+		yield return new ConditionalPatternCombinerStrategy(Kind);
+		yield return new ConditionalPatternCombinersStrategy(Kind);
 	}
-
-	// public override bool TryOptimize(MetadataLoader loader, IDictionary<string, VariableItem> variables, out SyntaxNode? result)
-	// {
-	// 	result = null;
-	//
-	// 	if (!Type.IsBoolType())
-	// 	{
-	// 		return false;
-	// 	}
-	//
-	// 	Left.TryGetLiteralValue(loader, variables, out var leftValue);
-	// 	Right.TryGetLiteralValue(loader, variables, out var rightValue);
-	//
-	// 	var context = new BinaryOptimizeContext
-	// 	{
-	// 		Left = Left,
-	// 		LeftType = LeftType,
-	// 		HasLeftValue = leftValue != null,
-	// 		LeftValue = leftValue,
-	// 		Right = Right,
-	// 		RightType = RightType,
-	// 		HasRightValue = rightValue != null,
-	// 		RightValue = rightValue,
-	// 		Type = Type
-	// 	};
-	//
-	// 	// Try each strategy
-	// 	foreach (var strategy in Strategies)
-	// 	{
-	// 		if (strategy.CanBeOptimized(context))
-	// 		{
-	// 			// Special case for ConditionalAndIdempotencyStrategy which needs variables
-	// 			if (strategy is ConditionalAndIdempotencyStrategy)
-	// 			{
-	// 				var idempotencyStrategy = new ConditionalAndIdempotencyStrategy(variables);
-	// 				if (idempotencyStrategy.CanBeOptimized(context))
-	// 				{
-	// 					result = idempotencyStrategy.Optimize(context);
-	// 					return true;
-	// 				}
-	// 			}
-	// 			else
-	// 			{
-	// 				result = strategy.Optimize(context);
-	// 				return true;
-	// 			}
-	// 		}
-	// 	}
-	//
-	// 	return false;
-	// }
 }
 

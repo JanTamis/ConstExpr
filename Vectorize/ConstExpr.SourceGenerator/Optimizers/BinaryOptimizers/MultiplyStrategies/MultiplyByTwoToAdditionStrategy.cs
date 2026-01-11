@@ -13,14 +13,17 @@ public class MultiplyByTwoToAdditionStrategy : SymmetricStrategy<NumericBinarySt
 {
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<LiteralExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (!context.Left.Syntax.IsNumericValue(2)
+		if (!context.Left.Syntax.IsNumericTwo()
 		    || !IsPure(context.Right.Syntax))
 		{
 			optimized = null;
 			return false;
 		}
 
-		optimized = ParenthesizedExpression(BinaryExpression(SyntaxKind.AddExpression, context.Right.Syntax, context.Right.Syntax));
+		optimized = ParenthesizedExpression(BinaryExpression(SyntaxKind.AddExpression, 
+			context.Right.Syntax, 
+			context.Right.Syntax));
+		
 		return true;
 	}
 }

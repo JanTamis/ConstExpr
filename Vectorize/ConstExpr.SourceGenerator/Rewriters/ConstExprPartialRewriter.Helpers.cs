@@ -7,8 +7,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 using SourceGen.Utilities.Extensions;
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Linq;
+using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Rewriters;
@@ -19,6 +21,13 @@ namespace ConstExpr.SourceGenerator.Rewriters;
 /// </summary>
 public partial class ConstExprPartialRewriter
 {
+	private static FrozenDictionary<BinaryOperatorKind, BaseBinaryOptimizer> _binaryOptimizers = typeof(BaseBinaryOptimizer).Assembly
+		.GetTypes()
+		.Where(t => !t.IsAbstract && typeof(BaseBinaryOptimizer).IsAssignableFrom(t))
+		.Select(t => Activator.CreateInstance(t) as BaseBinaryOptimizer)
+		.OfType<BaseBinaryOptimizer>()
+		.ToFrozenDictionary(t => t.Kind);
+
 	/// <summary>
 	/// Execute a Roslyn conversion operation either via operator method or basic Convert.*
 	/// Returns a runtime value that can be turned into a literal by CreateLiteral/TryGetLiteral.
@@ -76,56 +85,91 @@ public partial class ConstExprPartialRewriter
 	/// </summary>
 	private bool TryOptimizeNode(BinaryOperatorKind kind, List<BinaryExpressionSyntax> expressions, ITypeSymbol type, ExpressionSyntax leftExpr, ITypeSymbol? leftType, ExpressionSyntax rightExpr, ITypeSymbol? rightType, out SyntaxNode? syntaxNode)
 	{
-		// Select optimizer based on operator kind
-		var strategies = typeof(BaseBinaryOptimizer<,>).Assembly
-			.GetTypes()
-			.Where(t => !t.IsAbstract && typeof(BaseBinaryOptimizer).IsAssignableFrom(t))
-			.Select(t => Activator.CreateInstance(t) as BaseBinaryOptimizer)
-			.OfType<BaseBinaryOptimizer<,>>()
-			.Where(o => o.Kind == kind);
-
-		var context = new BinaryOptimizeContext
+		if (_binaryOptimizers.TryGetValue(kind, out var optimizer))
 		{
-			Left = new BinaryOptimizeElement
+			foreach (var strategy in optimizer.GetStrategies())
 			{
-				HasValue = TryGetLiteralValue(leftExpr, out var leftVal),
-				Value = leftVal,
-				Type = leftType,
-				Syntax = leftExpr,
-			},
-			Right = new BinaryOptimizeElement
-			{
-				HasValue = TryGetLiteralValue(rightExpr, out var rightVal),
-				Value = rightVal,
-				Type = rightType,
-				Syntax = rightExpr,
-			},
-			Type = type,
-			Variables = variables,
-			Kind = kind,
-			TryGetValue = TryGetLiteralValue,
-			BinaryExpressions = expressions
-		};
-
-		foreach (var strategy in strategies)
-		{
-			if (strategy.CanBeOptimized(context) 
-			    && strategy.Optimize(context) is { } result)
-			{
-				if (result is BinaryExpressionSyntax binary
-				    && TryOptimizeNode(binary.Kind().ToBinaryOperatorKind(), expressions, type, binary.Left, leftType, binary.Right, rightType, out var nested))
+				if (TryOptimizeWithStrategy(strategy, expressions, type, leftExpr, leftType, rightExpr, rightType, out var result)
+				    && result != null)
 				{
-					syntaxNode = nested;
+					if (result is BinaryExpressionSyntax binary
+					    && TryOptimizeNode(binary.Kind().ToBinaryOperatorKind(), expressions, type, binary.Left, leftType, binary.Right, rightType, out var nested))
+					{
+						syntaxNode = nested;
+						return true;
+					}
+
+					syntaxNode = result;
 					return true;
 				}
-
-				syntaxNode = result;
-				return true;
 			}
 		}
 
 		syntaxNode = null;
 		return false;
+	}
+
+	/// <summary>
+	/// Tries to optimize using a specific strategy by invoking GetContext and TryOptimize via reflection.
+	/// </summary>
+	private bool TryOptimizeWithStrategy(IBinaryStrategy strategy, List<BinaryExpressionSyntax> expressions, ITypeSymbol type, ExpressionSyntax leftExpr, ITypeSymbol? leftType, ExpressionSyntax rightExpr, ITypeSymbol? rightType, out ExpressionSyntax? result)
+	{
+		result = null;
+
+		try
+		{
+			var strategyType = strategy.GetType();
+
+			// Find GetContext method
+			var getContextMethod = strategyType.GetMethod(nameof(BaseBinaryStrategy.GetContext));
+
+			if (getContextMethod is null)
+			{
+				return false;
+			}
+
+			// Call GetContext with all required parameters
+			var context = getContextMethod.Invoke(strategy, 
+			[
+				expressions,
+				type,
+				leftExpr,
+				leftType,
+				rightExpr,
+				rightType,
+				variables,
+				(TryGetValueDelegate) TryGetLiteralValue
+			]);
+
+			if (context is null)
+			{
+				return false;
+			}
+
+			// Find TryOptimize method
+			var tryOptimizeMethod = strategyType.GetMethod(nameof(BaseBinaryStrategy.TryOptimize));
+
+			if (tryOptimizeMethod is null)
+			{
+				return false;
+			}
+
+			// Prepare parameters for TryOptimize (context, out result)
+			var parameters = new[] { context, null };
+			var success = tryOptimizeMethod.Invoke(strategy, parameters);
+
+			if (success is true && parameters[1] is ExpressionSyntax optimized)
+			{
+				result = optimized;
+				return true;
+			}
+
+			return false;
+		}
+		catch
+		{
+			return false;
+		}
 	}
 
 	/// <summary>

@@ -9,12 +9,11 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies
 /// <summary>
 /// Strategy for left negation extraction: (-x) / y => -(x / y)
 /// </summary>
-public class DivideLeftNegationStrategy : BaseBinaryStrategy<PrefixUnaryExpressionSyntax, ExpressionSyntax>
+public class DivideLeftNegationStrategy() : NumericBinaryStrategy<PrefixUnaryExpressionSyntax, ExpressionSyntax>(leftKind: SyntaxKind.UnaryMinusExpression)
 {
 	public override bool TryOptimize(BinaryOptimizeContext<PrefixUnaryExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (!context.Left.Syntax.IsKind(SyntaxKind.UnaryMinusExpression)
-		    || !IsPure(context.Left.Syntax.Operand)
+		if (!IsPure(context.Left.Syntax.Operand)
 		    || !IsPure(context.Right.Syntax))
 		{
 			optimized = null;

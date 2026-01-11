@@ -8,18 +8,12 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies
 /// <summary>
 /// Strategy for algebraic simplification: (x * a) / a => x
 /// </summary>
-public class DivideMultiplySimplificationStrategy : BaseBinaryStrategy<BinaryExpressionSyntax, ExpressionSyntax>
+public class DivideMultiplySimplificationStrategy() : NumericBinaryStrategy<BinaryExpressionSyntax, ExpressionSyntax>(leftKind: SyntaxKind.MultiplyExpression)
 {
 	public override bool TryOptimize(BinaryOptimizeContext<BinaryExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (!context.Left.Syntax.IsKind(SyntaxKind.MultiplyExpression))
-		{
-			optimized = null;
-			return false;
-		}
-
 		// Check if right side of multiply matches divisor
-		if (context.Left.Syntax.Right.IsEquivalentTo(context.Right.Syntax)
+		if (LeftEqualsRight(context.Left.Syntax.Right, context.Right.Syntax, context.Variables)
 		    && IsPure(context.Left.Syntax.Left))
 		{
 			optimized = context.Left.Syntax.Left;
@@ -27,7 +21,7 @@ public class DivideMultiplySimplificationStrategy : BaseBinaryStrategy<BinaryExp
 		}
 
 		// Check if left side of multiply matches divisor
-		if (context.Left.Syntax.Left.IsEquivalentTo(context.Right.Syntax)
+		if (LeftEqualsRight(context.Left.Syntax.Left, context.Right.Syntax, context.Variables)
 		    && IsPure(context.Left.Syntax.Right))
 		{
 			optimized = context.Left.Syntax.Right;

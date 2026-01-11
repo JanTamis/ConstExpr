@@ -11,14 +11,13 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.EqualsStrategies
 /// <summary>
 /// Strategy for modulo even detection: (x % 2) == 0 => T.IsEvenInteger(x)
 /// </summary>
-public class EqualsModuloEvenStrategy : SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, LiteralExpressionSyntax>
+public class EqualsModuloEvenStrategy() : SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, LiteralExpressionSyntax>(leftKind: SyntaxKind.ModuloExpression)
 {
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<BinaryExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!context.Right.Syntax.IsNumericZero()
-		    || !context.Left.Syntax.IsKind(SyntaxKind.ModuloExpression)
 		    || !context.TryGetValue(context.Left.Syntax.Right, out var modValue)
-		    || !modValue.IsNumericValue(2)
+		    || !modValue.IsNumericTwo()
 		    || context.Left.Type?.HasMember<IMethodSymbol>(
 			    "IsEvenInteger",
 			    m => m.Parameters.Length == 1

@@ -20,12 +20,12 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 	protected readonly MetadataLoader loader = loader;
 	protected readonly IDictionary<string, VariableItem> variables = variables;
 
-	protected bool TryGetLiteralValue(SyntaxNode? node, out object? value)
+	protected bool TryGetLiteralValue(SyntaxNode? node, [NotNullWhen(true)] out object? value)
 	{
 		return TryGetLiteralValue(node, null, out value, new HashSet<string>());
 	}
 
-	private bool TryGetLiteralValue(SyntaxNode? node, ITypeSymbol? typeSymbol, out object? value, HashSet<string> visitedVariables)
+	private bool TryGetLiteralValue(SyntaxNode? node, ITypeSymbol? typeSymbol, [NotNullWhen(true)] out object? value, HashSet<string> visitedVariables)
 	{
 		switch (node)
 		{

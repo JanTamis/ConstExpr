@@ -9,13 +9,12 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.RightShiftStrate
 /// <summary>
 /// Strategy for shifting zero: 0 >> x => 0 (pure)
 /// </summary>
-public class RightShiftZeroStrategy : IntegerBinaryStrategy
+public class RightShiftZeroStrategy : IntegerBinaryStrategy<LiteralExpressionSyntax, ExpressionSyntax>
 {
-	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
+	public override bool TryOptimize(BinaryOptimizeContext<LiteralExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!base.TryOptimize(context, out optimized)
-		    || !context.TryGetValue(context.Left.Syntax, out var leftValue)
-		    || !leftValue.IsNumericZero()
+		    || !context.Left.Syntax.IsNumericZero()
 		    || !IsPure(context.Right.Syntax))
 			return false;
 		

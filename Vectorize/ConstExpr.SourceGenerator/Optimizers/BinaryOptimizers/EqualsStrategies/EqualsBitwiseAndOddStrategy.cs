@@ -11,14 +11,13 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.EqualsStrategies
 /// <summary>
 /// Strategy for bitwise AND odd detection: (x & 1) == 1 => T.IsOddInteger(x)
 /// </summary>
-public class EqualsBitwiseAndOddStrategy : SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, LiteralExpressionSyntax>
+public class EqualsBitwiseAndOddStrategy()
+	: SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, LiteralExpressionSyntax>(leftKind: SyntaxKind.BitwiseAndExpression)
 {
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<BinaryExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!context.Right.Syntax.IsNumericOne()
-		    || !context.Left.Syntax.IsKind(SyntaxKind.BitwiseAndExpression)
-		    || !context.TryGetValue(context.Left.Syntax.Right, out var andValue)
-		    || !andValue.IsNumericOne()
+		    || !context.Left.Syntax.Right.IsNumericOne()
 		    || context.Left.Type?.HasMember<IMethodSymbol>(
 			    "IsOddInteger",
 			    m => m.Parameters.Length == 1

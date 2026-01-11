@@ -9,12 +9,11 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AndStrategies;
 /// (x | mask) & mask => mask (when x is pure)
 /// symmetric
 /// </summary>
-public class AndOrMaskCollisionStrategy : SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, ExpressionSyntax>
+public class AndOrMaskCollisionStrategy() : SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, ExpressionSyntax>(leftKind: SyntaxKind.BitwiseOrExpression)
 {
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<BinaryExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (!context.Left.Syntax.IsKind(SyntaxKind.BitwiseOrExpression)
-		    || !Equals(context.Left.Syntax.Left, context.Right.Syntax)
+		if (!Equals(context.Left.Syntax.Left, context.Right.Syntax)
 		    || !Equals(context.Left.Syntax.Right, context.Right.Syntax)
 		    || !IsPure(context.Left.Syntax.Left)
 		    || !IsPure(context.Right.Syntax))

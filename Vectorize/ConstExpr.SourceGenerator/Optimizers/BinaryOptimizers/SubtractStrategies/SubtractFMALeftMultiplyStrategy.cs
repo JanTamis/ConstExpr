@@ -11,42 +11,40 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.SubtractStrategi
 /// <summary>
 /// Strategy for Fused Multiply-Add pattern: (a * b) - c => FMA(a,b,-c) (when FMA is available)
 /// </summary>
-public class SubtractFMALeftMultiplyStrategy : NumericBinaryStrategy
+public class SubtractFMALeftMultiplyStrategy() : NumericBinaryStrategy<BinaryExpressionSyntax, ExpressionSyntax>(leftKind: SyntaxKind.MultiplyExpression)
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool TryOptimize(BinaryOptimizeContext<BinaryExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return base.CanBeOptimized(context)
-		       && (ContainsMultiplyAddEstimate(context.Type) || ContainsFusedMultiplyAdd(context.Type))
-		       && context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.MultiplyExpression } multLeft
-		       && IsPure(multLeft.Left)
-		       && IsPure(multLeft.Right)
-		       && IsPure(context.Right.Syntax);
-	}
+		if (!base.TryOptimize(context, out optimized))
+			return false;
 
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		var multLeft = (BinaryExpressionSyntax)context.Left.Syntax;
 		var host = ParseName(context.Type.Name);
-		
-		var aExpr = multLeft.Left;
-		var bExpr = multLeft.Right;
-		var cExpr = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression, context.Right.Syntax);
 
-		var arguments = ArgumentList(SeparatedList([ Argument(aExpr), Argument(bExpr), Argument(cExpr) ]));
+		var arguments = ArgumentList(SeparatedList(
+		[
+			Argument(context.Left.Syntax.Left),
+			Argument(context.Left.Syntax.Right),
+			Argument(PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression, context.Right.Syntax))
+		]));
 
 		if (ContainsMultiplyAddEstimate(context.Type))
 		{
-			return InvocationExpression(MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, host, IdentifierName("MultiplyAddEstimate")),
+			optimized = InvocationExpression(MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, host, IdentifierName("MultiplyAddEstimate")),
 				arguments);
+			
+			return true;
 		}
 
 		if (ContainsFusedMultiplyAdd(context.Type))
 		{
-			return InvocationExpression(MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, host, IdentifierName("FusedMultiplyAdd")),
+			optimized = InvocationExpression(MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, host, IdentifierName("FusedMultiplyAdd")),
 				arguments);
+			
+			return true;
 		}
 
-		return null;
+		optimized = null;
+		return false;
 	}
 
 	private bool ContainsMultiplyAddEstimate(ITypeSymbol type)

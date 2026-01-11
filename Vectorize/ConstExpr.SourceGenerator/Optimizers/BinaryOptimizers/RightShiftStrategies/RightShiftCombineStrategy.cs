@@ -11,15 +11,13 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.RightShiftStrate
 /// <summary>
 /// Strategy for combining shifts: ((x >> a) >> b) => x >> (a + b)
 /// </summary>
-public class RightShiftCombineStrategy : IntegerBinaryStrategy<BinaryExpressionSyntax, ExpressionSyntax>
+public class RightShiftCombineStrategy() : IntegerBinaryStrategy<BinaryExpressionSyntax, LiteralExpressionSyntax>(leftKind: SyntaxKind.RightShiftExpression)
 {
-	public override bool TryOptimize(BinaryOptimizeContext<BinaryExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
+	public override bool TryOptimize(BinaryOptimizeContext<BinaryExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{ 
 		if (!base.TryOptimize(context, out optimized)
-		    || !context.Left.Syntax.IsKind(SyntaxKind.RightShiftExpression)
-		    || !context.TryGetValue(context.Right.Syntax, out var rightValue)
 		    || !context.TryGetValue(context.Left.Syntax.Right, out var leftShiftValue)
-		    || !SyntaxHelpers.TryGetLiteral(rightValue.Add(leftShiftValue), out var combinedLiteral))
+		    || !SyntaxHelpers.TryGetLiteral(context.Right.Syntax.Token.Value.Add(leftShiftValue), out var combinedLiteral))
 			return false;
 		
 		optimized = BinaryExpression(SyntaxKind.RightShiftExpression, context.Left.Syntax.Left, combinedLiteral);

@@ -7,31 +7,19 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.OrStrategies;
 /// <summary>
 /// Strategy for absorption law: x | (x & y) = x and (x & y) | x = x (pure)
 /// </summary>
-public class OrAbsorptionStrategy : NumericOrBooleanBinaryStrategy
+public class OrAbsorptionStrategy : SymmetricStrategy<NumericOrBooleanBinaryStrategy, ExpressionSyntax, BinaryExpressionSyntax>
 {
-	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
+	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<ExpressionSyntax, BinaryExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (!base.TryOptimize(context, out optimized))
-			return false;
-
 		// x | (x & y) = x
-		if (context.Right.Syntax is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.BitwiseAndExpression } andRight
-		    && (LeftEqualsRight(context.Left.Syntax, andRight.Left, context.TryGetValue) 
-		        || LeftEqualsRight(context.Left.Syntax, andRight.Right, context.TryGetValue)))
+		if (LeftEqualsRight(context.Left.Syntax, context.Right.Syntax.Left, context.Variables) 
+		    || LeftEqualsRight(context.Left.Syntax, context.Right.Syntax.Right, context.Variables))
 		{
 			optimized = context.Left.Syntax;
 			return true;
 		}
-
-		// (x & y) | x = x
-		if (context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.BitwiseAndExpression } andLeft
-		    && (LeftEqualsRight(context.Right.Syntax, andLeft.Left, context.TryGetValue) 
-		        || LeftEqualsRight(context.Right.Syntax, andLeft.Right, context.TryGetValue)))
-		{
-			optimized = context.Right.Syntax;
-			return true;
-		}
 		
+		optimized = null;
 		return false;
 	}
 }

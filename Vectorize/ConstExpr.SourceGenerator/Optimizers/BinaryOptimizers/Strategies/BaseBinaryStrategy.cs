@@ -1,9 +1,11 @@
 using System.Collections.Generic;
+using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using SourceGen.Utilities.Extensions;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 
@@ -12,6 +14,40 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 	where TRight : ExpressionSyntax
 {
 	public abstract bool TryOptimize(BinaryOptimizeContext<TLeft, TRight> context, out ExpressionSyntax? optimized);
+
+	public BinaryOptimizeContext<TLeft, TRight>? GetContext(
+		List<BinaryExpressionSyntax> expressions, 
+		ITypeSymbol type, 
+		ExpressionSyntax leftExpr, 
+		ITypeSymbol? leftType, 
+		ExpressionSyntax rightExpr, 
+		ITypeSymbol? rightType,
+		IDictionary<string, VariableItem> variables,
+		TryGetValueDelegate tryGetValue)
+	{
+		if (leftExpr is not TLeft typedLeft || rightExpr is not TRight typedRight)
+		{
+			return null;
+		}
+
+		return new BinaryOptimizeContext<TLeft, TRight>
+		{
+			Left = new BinaryOptimizeElement<TLeft>
+			{
+				Type = leftType,
+				Syntax = typedLeft,
+			},
+			Right = new BinaryOptimizeElement<TRight>
+			{
+				Type = rightType,
+				Syntax = typedRight,
+			},
+			Type = type,
+			Variables = variables,
+			TryGetValue = tryGetValue,
+			BinaryExpressions = expressions
+		};
+	}
 
 	protected static bool IsPure(SyntaxNode node)
 	{
@@ -28,10 +64,10 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 
 	protected static bool LeftEqualsRight(BinaryOptimizeContext<TLeft, TRight> context)
 	{
-		return LeftEqualsRight(context.Left.Syntax, context.Right.Syntax, context.TryGetValue);
+		return LeftEqualsRight(context.Left.Syntax, context.Right.Syntax, context.Variables);
 	}
 
-	protected static bool LeftEqualsRight(SyntaxNode left, SyntaxNode right, TryGetValueDelegate tryGetValue)
+	protected static bool LeftEqualsRight(SyntaxNode left, SyntaxNode right, IDictionary<string, VariableItem> variables)
 	{
 		return left.IsEquivalentTo(right)
 		       || left is IdentifierNameSyntax leftIdentifier
@@ -114,6 +150,19 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 			IdentifierNameSyntax identifier when variables.TryGetValue(identifier.Identifier.Text, out var variable) && variable.HasValue => variable.Value.IsNegative(),
 			_ => false
 		};
+	}
+
+	protected bool IsPositive(BinaryOptimizeContext<TLeft, TRight> context, ExpressionSyntax node)
+	{
+		return context.BinaryExpressions.Any(a =>
+		{
+			return LeftEqualsRight(a.Left, node, context.Variables)
+			       && a.OperatorToken.IsKind(SyntaxKind.GreaterThanToken, SyntaxKind.GreaterThanEqualsToken)
+			       && IsPostive(a.Right, context.Variables)
+			       || LeftEqualsRight(a.Right, node, context.Variables)
+			       && a.OperatorToken.IsKind(SyntaxKind.LessThanToken, SyntaxKind.LessThanEqualsToken)
+			       && IsNegative(a.Left, context.Variables);
+		});
 	}
 }
 

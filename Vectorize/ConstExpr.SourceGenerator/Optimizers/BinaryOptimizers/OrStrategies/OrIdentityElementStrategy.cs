@@ -1,20 +1,24 @@
+using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.OrStrategies;
 
 /// <summary>
 /// Strategy for identity element: x | 0 = x and 0 | x = x
 /// </summary>
-public class OrIdentityElementStrategy : SymmetricStrategy<NumericBinaryStrategy>
+public class OrIdentityElementStrategy : SymmetricStrategy<NumericBinaryStrategy, ExpressionSyntax, LiteralExpressionSyntax>
 {
-	public override bool CanBeOptimizedSymmetric(BinaryOptimizeContext context)
+	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<ExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return context.Right.HasValue && context.Right.Value.IsNumericZero();
-	}
+		if (!context.Right.IsNumericZero())
+		{
+			optimized = null;
+			return false;
+		}
 
-	public override SyntaxNode? OptimizeSymmetric(BinaryOptimizeContext context)
-	{
-		return context.Left.Syntax;
+		optimized = context.Left.Syntax;
+		return true;
 	}
 }

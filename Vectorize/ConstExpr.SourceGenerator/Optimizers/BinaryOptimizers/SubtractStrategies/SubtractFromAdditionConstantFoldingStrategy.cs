@@ -12,79 +12,36 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.SubtractStrategi
 /// Strategy for constant folding when subtracting from an addition: (x + C1) - C2 => x + (C1 - C2)
 /// Also handles: (C1 + x) - C2 => x + (C1 - C2)
 /// </summary>
-public class SubtractFromAdditionConstantFoldingStrategy : NumericBinaryStrategy
+public class SubtractFromAdditionConstantFoldingStrategy() : NumericBinaryStrategy<BinaryExpressionSyntax, LiteralExpressionSyntax>(leftKind: SyntaxKind.AddExpression)
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool TryOptimize(BinaryOptimizeContext<BinaryExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (!base.CanBeOptimized(context))
+		if (!base.TryOptimize(context, out optimized))
 			return false;
 
-		// Pattern 1: (x + C1) - C2 => x + (C1 - C2)
-		if (context.Right.HasValue 
-		    && context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.AddExpression } leftAdd
-		    && context.TryGetValue(leftAdd.Right, out _))
+		if (context.TryGetValue(context.Left.Syntax.Left, out var leftConstant))
 		{
-			return true;
-		}
+			var result = leftConstant.Subtract(context.Right.Syntax.Token.Value);
 
-		// Pattern 2: (C1 + x) - C2 => x + (C1 - C2)
-		if (context.Right.HasValue 
-		    && context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.AddExpression } leftAdd2
-		    && context.TryGetValue(leftAdd2.Left, out _))
+			if (SyntaxHelpers.TryGetLiteral(result, out var newConstant))
+			{
+				optimized = BinaryExpression(SyntaxKind.AddExpression, context.Left.Syntax.Right, newConstant);
+				return true;
+			}
+		}
+		
+		if (context.TryGetValue(context.Left.Syntax.Right, out var leftConstant2))
 		{
-			return true;
-		}
+			var result = leftConstant2.Subtract(context.Right.Syntax.Token.Value);
 
+			if (SyntaxHelpers.TryGetLiteral(result, out var newConstant))
+			{
+				optimized = BinaryExpression(SyntaxKind.AddExpression, context.Left.Syntax.Left, newConstant);
+				return true;
+			}
+		}
+		
 		return false;
-	}
-
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		// Pattern 1: (x + C1) - C2 => x + (C1 - C2)
-		if (context.Right.HasValue 
-		    && context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.AddExpression } leftAdd
-		    && context.TryGetValue(leftAdd.Right, out var c1))
-		{
-			var c2 = context.Right.Value;
-
-			if (c1 != null && c2 != null)
-			{
-				var result = c1.Subtract(c2);
-				
-				if (result != null)
-				{
-					var newConstant = SyntaxHelpers.CreateLiteral(result);
-					return BinaryExpression(
-						SyntaxKind.AddExpression,
-						leftAdd.Left,
-						newConstant);
-				}
-			}
-		}
-
-		// Pattern 2: (C1 + x) - C2 => x + (C1 - C2)
-		if (context.Right.HasValue 
-		    && context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.AddExpression } leftAdd2
-		    && context.TryGetValue(leftAdd2.Left, out var c1_2))
-		{
-			var c2 = context.Right.Value;
-
-			if (c1_2 != null && c2 != null)
-			{
-				var result = c1_2.Subtract(c2);
-				
-				if (result != null)
-				{
-					var newConstant = SyntaxHelpers.CreateLiteral(result);
-					return BinaryExpression(
-						SyntaxKind.AddExpression,
-						leftAdd2.Right,
-						newConstant);
-				}
-			}
-		}
-
-		return null;
 	}
 }
 

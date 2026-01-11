@@ -12,37 +12,18 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.OrStrategies;
 /// <summary>
 /// Strategy for combining constant masks: (x | mask1) | mask2 => x | (mask1 | mask2)
 /// </summary>
-public class OrCombineMasksStrategy : NumericOrBooleanBinaryStrategy
+public class OrCombineMasksStrategy() : SymmetricStrategy<NumericOrBooleanBinaryStrategy, BinaryExpressionSyntax, LiteralExpressionSyntax>(leftKind: SyntaxKind.BitwiseOrExpression)
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<BinaryExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return base.CanBeOptimized(context)
-		       && context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.BitwiseOrExpression } leftOr
-		       && context.Right.HasValue 
-		       && context.Right.Value != null
-		       && leftOr.Right is LiteralExpressionSyntax;
-	}
-
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		if (context.Left.Syntax is not BinaryExpressionSyntax { RawKind: (int)SyntaxKind.BitwiseOrExpression } leftOr)
-			return null;
-
-		if (leftOr.Right is not LiteralExpressionSyntax leftOrRightLiteral)
-			return null;
-
-		var leftOrRight = leftOrRightLiteral.Token.Value;
-
-		if (leftOrRight == null)
-			return null;
-
-		var combined = ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.Or, leftOrRight, context.Right.Value);
-
-		if (combined != null && SyntaxHelpers.TryGetLiteral(combined, out var combinedLiteral))
+		if (!context.TryGetValue(context.Left.Syntax.Right, out var leftMask)
+		    || !SyntaxHelpers.TryGetLiteral(leftMask.Or(context.Right.Syntax.Token.Value), out var combinedLiteral))
 		{
-			return BinaryExpression(SyntaxKind.BitwiseOrExpression, leftOr.Left, combinedLiteral);
+			optimized = null;
+			return false;
 		}
 
-		return null;
+		optimized = BinaryExpression(SyntaxKind.BitwiseOrExpression, context.Left.Syntax.Left, combinedLiteral);
+		return true;
 	}
 }

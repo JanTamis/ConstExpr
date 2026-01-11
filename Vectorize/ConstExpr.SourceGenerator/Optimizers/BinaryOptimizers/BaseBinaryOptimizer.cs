@@ -5,11 +5,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;
 
-public abstract class BaseBinaryOptimizer<TLeft, TRight>
-	where TLeft : ExpressionSyntax
-	where TRight : ExpressionSyntax
+public abstract class BaseBinaryOptimizer
 {
 	public abstract BinaryOperatorKind Kind { get; }
 
-	public abstract IEnumerable<IBinaryStrategy<TLeft, TRight>> GetStrategies();
+	public abstract IEnumerable<IBinaryStrategy> GetStrategies();
 }

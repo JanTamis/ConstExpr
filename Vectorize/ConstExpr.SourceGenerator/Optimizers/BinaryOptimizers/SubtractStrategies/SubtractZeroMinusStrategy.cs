@@ -9,13 +9,12 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.SubtractStrategi
 /// <summary>
 /// Strategy for zero minus optimization: 0 - x = -x
 /// </summary>
-public class SubtractZeroMinusStrategy : NumericBinaryStrategy
+public class SubtractZeroMinusStrategy : NumericBinaryStrategy<LiteralExpressionSyntax, ExpressionSyntax>
 {
-	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
+	public override bool TryOptimize(BinaryOptimizeContext<LiteralExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (base.TryOptimize(context, out optimized)
-		    || context.TryGetValue(context.Left.Syntax, out var leftValue)
-		    || !leftValue.IsNumericZero())
+		    || !context.Left.Syntax.IsNumericZero())
 			return false;
 
 		optimized = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression, context.Right.Syntax);

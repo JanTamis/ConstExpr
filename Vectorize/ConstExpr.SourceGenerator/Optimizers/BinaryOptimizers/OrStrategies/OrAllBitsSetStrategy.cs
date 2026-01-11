@@ -7,28 +7,19 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.OrStrategies;
 /// <summary>
 /// Strategy for all-bits-set absorption: x | ~0 = ~0 (integer types)
 /// </summary>
-public class OrAllBitsSetStrategy : IntegerBinaryStrategy
+public class OrAllBitsSetStrategy : SymmetricStrategy<IntegerBinaryStrategy, ExpressionSyntax, ExpressionSyntax>
 {
-	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
+	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (!base.TryOptimize(context, out optimized))
+		if (!context.TryGetValue(context.Right.Syntax, out var rightValue)
+		    || !IsAllBitsSet(rightValue, context.Type.SpecialType))
+		{
+			optimized = null;
 			return false;
-		
-		if (context.TryGetValue(context.Right.Syntax, out var rightValue)
-		    && IsAllBitsSet(rightValue, context.Type.SpecialType))
-		{
-			optimized = context.Right.Syntax;
-			return true;
 		}
 		
-		if (context.TryGetValue(context.Left.Syntax, out var leftValue)
-		    && IsAllBitsSet(leftValue, context.Type.SpecialType))
-		{
-			optimized = context.Left.Syntax;
-			return true;
-		}
-		
-		return false;
+		optimized = context.Right.Syntax;
+		return true;
 	}
 
 	private static bool IsAllBitsSet(object? value, SpecialType type)

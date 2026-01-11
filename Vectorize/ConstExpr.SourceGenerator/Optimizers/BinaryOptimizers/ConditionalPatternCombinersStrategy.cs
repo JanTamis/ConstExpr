@@ -6,36 +6,23 @@ using Microsoft.CodeAnalysis.Operations;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;
 
-public class ConditionalPatternCombinersStrategy : BaseBinaryStrategy
+public class ConditionalPatternCombinersStrategy(BinaryOperatorKind operatorKind) : BaseBinaryStrategy<IsPatternExpressionSyntax, IsPatternExpressionSyntax>
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool TryOptimize(BinaryOptimizeContext<IsPatternExpressionSyntax, IsPatternExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return context.Left.Syntax is IsPatternExpressionSyntax left
-		       && context.Right.Syntax is IsPatternExpressionSyntax right
-		       && left.Expression.IsEquivalentTo(right.Expression);
-	}
-
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		if (context.Left.Syntax is not IsPatternExpressionSyntax left
-		    || context.Right.Syntax is not IsPatternExpressionSyntax right)
+		if (!LeftEqualsRight(context.Left.Syntax.Expression, context.Right.Syntax.Expression, context.Variables))
 		{
-			return null;
-		}
-		
-		var patternKind = GetRelationalPatternKind(context.Kind);
-		
-		if (patternKind == SyntaxKind.None)
-		{
-			return null;
+			optimized = null;
+			return false;
 		}
 		
 		var combinedPattern = SyntaxFactory.BinaryPattern(
-			patternKind,
-			left.Pattern,
-			right.Pattern);
+			GetRelationalPatternKind(operatorKind),
+			context.Left.Syntax.Pattern,
+			context.Right.Syntax.Pattern);
 		
-		return SyntaxFactory.IsPatternExpression(left.Expression, combinedPattern);
+		optimized = SyntaxFactory.IsPatternExpression(context.Left.Syntax.Expression, combinedPattern);
+		return true;
 	}
 
 	private SyntaxKind GetRelationalPatternKind(BinaryOperatorKind operatorKind)

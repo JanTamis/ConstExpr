@@ -10,7 +10,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ModuloStrategies
 /// <summary>
 /// Strategy for already masked values: (x & (m-1)) % m => (x & (m-1)) for unsigned integers when m is power of two
 /// </summary>
-public class ModuloAlreadyMaskedStrategy : IntegerBinaryStrategy<BinaryExpressionSyntax, ExpressionSyntax>
+public class ModuloAlreadyMaskedStrategy() : UnsigedIntegerBinaryStrategy<BinaryExpressionSyntax, ExpressionSyntax>(leftKind: SyntaxKind.BitwiseAndExpression)
 {
 	public override bool TryOptimize(BinaryOptimizeContext<BinaryExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
@@ -18,10 +18,8 @@ public class ModuloAlreadyMaskedStrategy : IntegerBinaryStrategy<BinaryExpressio
 
 		// Base type validation
 		if (!base.TryOptimize(context, out optimized)
-		    || !context.Type.IsUnsignedInteger()
 		    || !context.TryGetValue(context.Right.Syntax, out var rightValue) 
-		    || !rightValue.IsNumericPowerOfTwo(out _)
-		    || !context.Left.Syntax.IsKind(SyntaxKind.BitwiseAndExpression))
+		    || !rightValue.IsNumericPowerOfTwo(out _))
 			return false;
 
 		// Calculate m - 1

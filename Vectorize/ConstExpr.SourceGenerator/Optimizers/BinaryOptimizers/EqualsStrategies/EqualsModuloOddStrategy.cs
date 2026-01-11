@@ -11,12 +11,11 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.EqualsStrategies
 /// <summary>
 /// Strategy for modulo odd detection: (x % 2) == 1 => T.IsOddInteger(x)
 /// </summary>
-public class EqualsModuloOddStrategy : SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, LiteralExpressionSyntax>
+public class EqualsModuloOddStrategy() : SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, LiteralExpressionSyntax>(leftKind: SyntaxKind.ModuloExpression)
 {
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<BinaryExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!context.Right.Syntax.IsNumericOne()
-		    || !context.Left.Syntax.IsKind(SyntaxKind.ModuloExpression)
 		    || !context.TryGetValue(context.Left.Syntax.Right, out var modValue)
 		    || !modValue.IsNumericValue(2)
 		    || context.Left.Type?.HasMember<IMethodSymbol>(

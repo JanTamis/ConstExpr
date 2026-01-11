@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -20,7 +21,7 @@ public sealed class BinaryOptimizeContext<TLeft, TRight>
 
 	public ITypeSymbol Type { get; init; }
 
-	// public IDictionary<string, VariableItem> Variables { get; init; }
+	public IDictionary<string, VariableItem> Variables { get; init; }
 
 	public TryGetValueDelegate TryGetValue { get; init; }
 
@@ -61,4 +62,3 @@ public sealed class BinaryOptimizeElement<T>
 		return s; // .Length == 0 ? "Syntax=<empty>" : $"Syntax=\"{s}\"";
 	}
 }
-

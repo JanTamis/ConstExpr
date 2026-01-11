@@ -9,13 +9,12 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalAndStrategies;
 
-public class ConditionalAndCharOptimizer : SymmetricStrategy<BooleanBinaryStrategy, BinaryExpressionSyntax, BinaryExpressionSyntax>
+public class ConditionalAndCharOptimizer() 
+	: SymmetricStrategy<BooleanBinaryStrategy, BinaryExpressionSyntax, BinaryExpressionSyntax>(SyntaxKind.GreaterThanOrEqualExpression, SyntaxKind.LessThanOrEqualExpression)
 {
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<BinaryExpressionSyntax, BinaryExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (!context.Left.Syntax.IsKind(SyntaxKind.GreaterThanOrEqualExpression)
-		    || !context.Right.Syntax.IsKind(SyntaxKind.LessThanOrEqualExpression)
-		    || !LeftEqualsRight(context.Left.Syntax.Left, context.Right.Syntax.Left, context.TryGetValue)
+		if (!LeftEqualsRight(context.Left.Syntax.Left, context.Right.Syntax.Left, context.Variables)
 		    || !context.TryGetValue(context.Left.Syntax.Right, out var leftValue)
 		    || !context.TryGetValue(context.Right.Syntax.Right, out var rightValue))
 		{
@@ -36,7 +35,7 @@ public class ConditionalAndCharOptimizer : SymmetricStrategy<BooleanBinaryStrate
 			optimized =  InvocationExpression(
 				MemberAccessExpression(
 					SyntaxKind.SimpleMemberAccessExpression,
-					IdentifierName("Char"),
+					ParseTypeName("Char"),
 					IdentifierName(memberName)),
 				ArgumentList(
 					SingletonSeparatedList(
@@ -50,7 +49,7 @@ public class ConditionalAndCharOptimizer : SymmetricStrategy<BooleanBinaryStrate
 			optimized = InvocationExpression(
 				MemberAccessExpression(
 					SyntaxKind.SimpleMemberAccessExpression,
-					IdentifierName("Char"),
+					ParseTypeName("Char"),
 					IdentifierName("IsBetween")),
 				ArgumentList([ Argument(context.Left.Syntax.Left), Argument(context.Left.Syntax.Right), Argument(context.Right.Syntax.Right) ]));
 			

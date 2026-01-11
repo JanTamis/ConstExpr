@@ -9,20 +9,15 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.MultiplyStrategi
 /// <summary>
 /// Strategy for left negation: (-x) * y => -(x * y) (pure)
 /// </summary>
-public class MultiplyNegationStrategy : SymmetricStrategy<NumericBinaryStrategy, PrefixUnaryExpressionSyntax, ExpressionSyntax>
+public class MultiplyNegationStrategy() : SymmetricStrategy<NumericBinaryStrategy, PrefixUnaryExpressionSyntax, ExpressionSyntax>(leftKind: SyntaxKind.UnaryMinusExpression)
 {
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<PrefixUnaryExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (!context.Left.Syntax.IsKind(SyntaxKind.UnaryMinusExpression))
-		{
-			optimized = null;
-			return false;
-		}
-
 		optimized = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
 			ParenthesizedExpression(BinaryExpression(SyntaxKind.MultiplyExpression,
 				context.Left.Syntax.Operand,
 				context.Right.Syntax)));
+		
 		return true;
 	}
 }

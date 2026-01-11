@@ -7,21 +7,17 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.OrStrategies;
 /// <summary>
 /// Strategy for boolean true absorption: x | true = true and true | x = true
 /// </summary>
-public class OrBooleanTrueStrategy : BooleanBinaryStrategy
+public class OrBooleanTrueStrategy : SymmetricStrategy<BooleanBinaryStrategy, LiteralExpressionSyntax, ExpressionSyntax>
 {
-	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
+	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<LiteralExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (!base.TryOptimize(context, out optimized))
-			return false;
-
-		if (context.TryGetValue(context.Left.Syntax, out var leftValue)
-		    && leftValue is true || context.TryGetValue(context.Right.Syntax, out var rightValue)
-		    && rightValue is true)
+		if (context.Left.Syntax.Token.Value is not true)
 		{
-			optimized = SyntaxHelpers.CreateLiteral(true);
-			return true;
+			optimized = null;
+			return false;
 		}
 
-		return false;
+		optimized = SyntaxHelpers.CreateLiteral(true);
+		return true;
 	}
 }

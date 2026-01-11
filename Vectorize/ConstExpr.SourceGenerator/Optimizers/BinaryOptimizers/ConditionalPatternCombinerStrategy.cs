@@ -6,62 +6,52 @@ using Microsoft.CodeAnalysis.Operations;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;
 
-public class ConditionalPatternCombinerStrategy : BaseBinaryStrategy
+public class ConditionalPatternCombinerStrategy(BinaryOperatorKind operatorKind) : BaseBinaryStrategy<IsPatternExpressionSyntax, BinaryExpressionSyntax>
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool TryOptimize(BinaryOptimizeContext<IsPatternExpressionSyntax, BinaryExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return context.Left.Syntax is IsPatternExpressionSyntax left
-		       && context.Right.Syntax is BinaryExpressionSyntax right
-		       && (left.Expression.IsEquivalentTo(right.Left) || left.Expression.IsEquivalentTo(right.Right));
-	}
+		var patternKind = GetRelationalPatternKind(operatorKind);
 
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		if (context.Left.Syntax is not IsPatternExpressionSyntax left
-		    || context.Right.Syntax is not BinaryExpressionSyntax right)
+		if (LeftEqualsRight(context.Left.Syntax.Expression, context.Right.Syntax.Left, context.Variables))
 		{
-			return null;
-		}
+			var rightPattern = ConvertToPattern(context.Right.Syntax.OperatorToken.Kind(), context.Right.Syntax.Right);
 
-		var patternKind = GetRelationalPatternKind(context.Kind);
-		if (patternKind == SyntaxKind.None)
-		{
-			return null;
-		}
-
-		if (left.Expression.IsEquivalentTo(right.Left))
-		{
-			var rightPattern = ConvertToPattern(right.OperatorToken.Kind(), right.Right);
 			if (rightPattern == null)
 			{
-				return null;
+				optimized = null;
+				return false;
 			}
 
 			var combinedPattern = SyntaxFactory.BinaryPattern(
 				patternKind,
-				left.Pattern,
+				context.Left.Syntax.Pattern,
 				rightPattern);
 
-			return SyntaxFactory.IsPatternExpression(left.Expression, combinedPattern);
+			optimized = SyntaxFactory.IsPatternExpression(context.Left.Syntax.Expression, combinedPattern);
+			return true;
 		}
 
-		if (left.Expression.IsEquivalentTo(right.Right))
+		if (context.Left.Syntax.Expression.IsEquivalentTo(context.Right.Syntax.Right))
 		{
-			var rightPattern = ConvertToPattern(SwapCondition(right.OperatorToken.Kind()), right.Left);
+			var rightPattern = ConvertToPattern(SwapCondition(context.Right.Syntax.OperatorToken.Kind()), context.Right.Syntax.Left);
+
 			if (rightPattern == null)
 			{
-				return null;
+				optimized = null;
+				return false;
 			}
 
 			var combinedPattern = SyntaxFactory.BinaryPattern(
 				patternKind,
-				left.Pattern,
+				context.Left.Syntax.Pattern,
 				rightPattern);
 
-			return SyntaxFactory.IsPatternExpression(left.Expression, combinedPattern);
+			optimized = SyntaxFactory.IsPatternExpression(context.Left.Syntax.Expression, combinedPattern);
+			return true;
 		}
 
-		return null;
+		optimized = null;
+		return false;
 	}
 
 	private SyntaxKind GetRelationalPatternKind(BinaryOperatorKind operatorKind)

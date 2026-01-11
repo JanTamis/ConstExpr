@@ -15,7 +15,7 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 		yield return new MultiplyIdentityElementStrategy();
 		yield return new MultiplyByNegativeOneStrategy();
 		yield return new MultiplyConstantFoldingStrategy();
-		yield return new MultiplyByTwoToShiftRightStrategy();
+		// yield return new MultiplyByTwoToShiftRightStrategy();
 		yield return new MultiplyByTwoToShiftStrategy();
 		yield return new MultiplyByTwoToAdditionStrategy();
 		// yield return new MultiplyStrengthReductionRightStrategy();
@@ -24,6 +24,6 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 		yield return new MultiplyByPowerOfTwoLeftStrategy();
 		yield return new MultiplyDoubleNegationStrategy();
 		yield return new MultiplyNegationStrategy();
-		yield return new MultiplyRightNegationStrategy();
+		// yield return new MultiplyRightNegationStrategy();
 	}
 }

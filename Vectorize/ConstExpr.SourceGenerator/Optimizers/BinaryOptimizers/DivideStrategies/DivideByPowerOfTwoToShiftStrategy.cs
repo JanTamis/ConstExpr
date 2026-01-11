@@ -3,7 +3,7 @@ using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using SourceGen.Utilities.Extensions;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies;
@@ -11,59 +11,39 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies
 /// <summary>
 /// Strategy for division by power of two: x / (2^n) => x >> n (for unsigned) or (x + ((x >> (bitSize - 1)) & (2^n - 1))) >> n (for signed)
 /// </summary>
-public class DivideByPowerOfTwoToShiftStrategy : BaseBinaryStrategy
+public class DivideByPowerOfTwoToShiftStrategy : IntegerBinaryStrategy<ExpressionSyntax, LiteralExpressionSyntax>
 {
-	public override bool CanBeOptimized(BinaryOptimizeContext context)
+	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return context.Type.IsInteger()
-		       && context.Right is { HasValue: true, Value: { } value }
-		       && value.IsNumericPowerOfTwo(out _);
-	}
+		if (!base.TryOptimize(context, out optimized)
+		    || !context.Right.Syntax.IsNumericPowerOfTwo(out var power))
+			return false;
 
-	public override SyntaxNode? Optimize(BinaryOptimizeContext context)
-	{
-		if (!context.Right.Value.IsNumericPowerOfTwo(out var power))
-		{
-			return null;
-		}
-
-		var isPositive = context.BinaryExpressions.Any(a =>
-		{
-			return LeftEqualsRight(a.Left, context.Left.Syntax, context.Variables)
-			       && a.OperatorToken.IsKind(SyntaxKind.GreaterThanToken, SyntaxKind.GreaterThanEqualsToken)
-			       && IsPostive(a.Right, context.Variables)
-			       || LeftEqualsRight(a.Right, context.Left.Syntax, context.Variables)
-			       && a.OperatorToken.IsKind(SyntaxKind.LessThanToken, SyntaxKind.LessThanEqualsToken)
-			       && IsNegative(a.Left, context.Variables);
-		});
-
-		// For unsigned integers: x >> n
+		var isPositive = IsPositive(context, context.Left.Syntax);
+		
 		if (context.Type.IsUnsignedInteger() || isPositive)
 		{
-			return BinaryExpression(
+			optimized = BinaryExpression(
 				SyntaxKind.RightShiftExpression,
 				context.Left.Syntax,
 				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(power)));
+			
+			return true;
 		}
 
-		// For signed integers: (x + ((x >> (bitSize - 1)) & (2^n - 1))) >> n
-		// This correctly handles negative numbers by adding a bias before shifting
-		// However, this optimization duplicates the left expression, so we should
-		// only apply it if the left expression is simple (e.g., a variable or literal).
-		// Complex expressions (like multiplication) should use regular division to avoid duplication.
-
-		// Check if left expression is simple enough to duplicate
 		if (!IsSimpleExpression(context.Left.Syntax))
 		{
 			// Complex expression - don't duplicate, use regular division
-			return null;
+			optimized = null;
+			return false;
 		}
 
 		var bitSize = GetBitSize(context.Type.SpecialType);
 
 		if (bitSize == 0)
 		{
-			return null;
+			optimized = null;
+			return false;
 		}
 
 		// x >> (bitSize - 1) - extracts sign bit (0 for positive, -1 for negative)
@@ -83,7 +63,7 @@ public class DivideByPowerOfTwoToShiftStrategy : BaseBinaryStrategy
 				context.Left.Syntax,
 				ParenthesizedExpression(signExtract));
 
-			return BinaryExpression(
+			optimized = BinaryExpression(
 				SyntaxKind.RightShiftExpression,
 				ParenthesizedExpression(adjusted),
 				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(power)));
@@ -103,11 +83,13 @@ public class DivideByPowerOfTwoToShiftStrategy : BaseBinaryStrategy
 				ParenthesizedExpression(maskedSign));
 
 			// (x + ((x >> (bitSize - 1)) & (2^n - 1))) >> n
-			return BinaryExpression(
+			optimized = BinaryExpression(
 				SyntaxKind.RightShiftExpression,
 				ParenthesizedExpression(adjusted),
 				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(power)));
 		}
+		
+		return true;
 	}
 
 	private static int GetBitSize(SpecialType specialType)

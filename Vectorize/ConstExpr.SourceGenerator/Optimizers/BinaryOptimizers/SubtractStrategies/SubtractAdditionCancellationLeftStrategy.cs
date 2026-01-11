@@ -8,13 +8,12 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.SubtractStrategi
 /// <summary>
 /// Strategy for algebraic identity: (a + x) - a => x (pure)
 /// </summary>
-public class SubtractAdditionCancellationLeftStrategy : NumericBinaryStrategy<BinaryExpressionSyntax, ExpressionSyntax>
+public class SubtractAdditionCancellationLeftStrategy() : NumericBinaryStrategy<BinaryExpressionSyntax, ExpressionSyntax>(leftKind: SyntaxKind.AddExpression)
 {
 	public override bool TryOptimize(BinaryOptimizeContext<BinaryExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!base.TryOptimize(context, out optimized)
-		    || !context.Left.Syntax.IsKind(SyntaxKind.AddExpression)
-		    || !LeftEqualsRight(context.Left.Syntax.Left, context.Right.Syntax, context.TryGetValue)
+		    || !LeftEqualsRight(context.Left.Syntax.Left, context.Right.Syntax, context.Variables)
 		    || !IsPure(context.Left.Syntax)
 		    || !IsPure(context.Right.Syntax))
 			return false;

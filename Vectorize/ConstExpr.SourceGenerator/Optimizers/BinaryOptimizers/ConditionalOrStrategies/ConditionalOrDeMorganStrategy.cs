@@ -10,25 +10,20 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalOrStr
 /// Strategy for De Morgan's law: !a || !b → !(a && b)
 /// This can reduce the number of negations and may help branch prediction.
 /// </summary>
-public class ConditionalOrDeMorganStrategy : BaseBinaryStrategy<PrefixUnaryExpressionSyntax, PrefixUnaryExpressionSyntax>
+public class ConditionalOrDeMorganStrategy() : BooleanBinaryStrategy<PrefixUnaryExpressionSyntax, PrefixUnaryExpressionSyntax>(SyntaxKind.ExclamationToken, SyntaxKind.ExclamationToken)
 {
 	public override bool TryOptimize(BinaryOptimizeContext<PrefixUnaryExpressionSyntax, PrefixUnaryExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (!context.Left.Syntax.IsKind(SyntaxKind.ExclamationToken)
-		    || !context.Right.Syntax.IsKind(SyntaxKind.ExclamationToken))
-		{
-			optimized = null;
+		if (!base.TryOptimize(context, out optimized))
 			return false;
-		}
 
 		// !a || !b → !(a && b)
 		optimized = PrefixUnaryExpression(SyntaxKind.LogicalNotExpression,
 			ParenthesizedExpression(
 				BinaryExpression(SyntaxKind.LogicalAndExpression,
-				context.Left.Syntax.Operand,
-				context.Right.Syntax.Operand)));
-			
+					context.Left.Syntax.Operand,
+					context.Right.Syntax.Operand)));
+
 		return true;
 	}
 }
-

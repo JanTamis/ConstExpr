@@ -9,12 +9,11 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.SubtractStrategi
 /// <summary>
 /// Strategy for double negation: x - -y => x + y (pure)
 /// </summary>
-public class SubtractDoubleNegationStrategy : NumericBinaryStrategy<ExpressionSyntax, PrefixUnaryExpressionSyntax>
+public class SubtractDoubleNegationStrategy() : NumericBinaryStrategy<ExpressionSyntax, PrefixUnaryExpressionSyntax>(rightKind: SyntaxKind.UnaryMinusExpression)
 {
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, PrefixUnaryExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!base.TryOptimize(context, out optimized)
-		    || !context.Right.Syntax.IsKind(SyntaxKind.UnaryMinusExpression)
 		    || !IsPure(context.Left.Syntax)
 		    || !IsPure(context.Right.Syntax))
 			return false;

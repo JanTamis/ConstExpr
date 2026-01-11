@@ -9,13 +9,12 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.MultiplyStrategi
 /// <summary>
 /// Strategy for double negation: (-x) * (-y) => x * y (pure)
 /// </summary>
-public class MultiplyDoubleNegationStrategy : NumericBinaryStrategy<PrefixUnaryExpressionSyntax, PrefixUnaryExpressionSyntax>
+public class MultiplyDoubleNegationStrategy() 
+	: NumericBinaryStrategy<PrefixUnaryExpressionSyntax, PrefixUnaryExpressionSyntax>(SyntaxKind.UnaryMinusExpression, SyntaxKind.UnaryMinusExpression)
 {
 	public override bool TryOptimize(BinaryOptimizeContext<PrefixUnaryExpressionSyntax, PrefixUnaryExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (!base.TryOptimize(context, out optimized)
-		    || !context.Left.Syntax.IsKind(SyntaxKind.UnaryMinusExpression)
-		    || !context.Right.Syntax.IsKind(SyntaxKind.UnaryMinusExpression))
+		if (!base.TryOptimize(context, out optimized))
 			return false;
 		
 		optimized = BinaryExpression(SyntaxKind.MultiplyExpression, context.Left.Syntax.Operand, context.Right.Syntax.Operand);

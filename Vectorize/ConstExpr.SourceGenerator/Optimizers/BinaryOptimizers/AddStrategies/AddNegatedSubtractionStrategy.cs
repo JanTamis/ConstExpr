@@ -11,30 +11,18 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AddStrategies;
 /// x + (-y) => x - y (pure)
 /// -x + y => y - x (pure)
 /// </summary>
-public class AddNegatedSubtractionStrategy : SymmetricStrategy<NumericBinaryStrategy>
+public class AddNegatedSubtractionStrategy() : SymmetricStrategy<NumericBinaryStrategy, ExpressionSyntax, PrefixUnaryExpressionSyntax>(rightKind: SyntaxKind.UnaryMinusExpression)
 {
-	public override bool CanBeOptimizedSymmetric(BinaryOptimizeContext context)
+	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<ExpressionSyntax, PrefixUnaryExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return context.Right.Syntax is PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.UnaryMinusExpression } syntax
-		       && IsPure(context.Left.Syntax) && IsPure(syntax.Operand);
-	}
-
-	public override SyntaxNode? OptimizeSymmetric(BinaryOptimizeContext context)
-	{
-		// x + (-y) => x - y (pure)
-		if (context.Right.Syntax is PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.UnaryMinusExpression } rightUnary)
+		if (!IsPure(context.Left.Syntax)
+		    || !IsPure(context.Right.Syntax))
 		{
-			var rightWithoutMinus = rightUnary.Operand;
-			return BinaryExpression(SyntaxKind.SubtractExpression, context.Left.Syntax, rightWithoutMinus);
+			optimized = null;
+			return false;
 		}
 
-		// -x + y => y - x (pure)
-		if (context.Left.Syntax is PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.UnaryMinusExpression } leftUnary)
-		{
-			var leftWithoutMinus = leftUnary.Operand;
-			return BinaryExpression(SyntaxKind.SubtractExpression, context.Right.Syntax, leftWithoutMinus);
-		}
-
-		return null;
+		optimized = BinaryExpression(SyntaxKind.SubtractExpression, context.Left.Syntax, context.Right.Syntax.Operand);
+		return true;
 	}
 }

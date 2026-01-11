@@ -9,20 +9,19 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.OrStrategies;
 /// <summary>
 /// Strategy for mask absorption: (x & mask) | mask => mask (when x is pure)
 /// </summary>
-public class OrAndMaskAbsorptionStrategy : SymmetricStrategy<NumericOrBooleanBinaryStrategy>
+public class OrAndMaskAbsorptionStrategy() : SymmetricStrategy<NumericOrBooleanBinaryStrategy, BinaryExpressionSyntax, LiteralExpressionSyntax>(leftKind: SyntaxKind.BitwiseAndExpression)
 {
-	public override bool CanBeOptimizedSymmetric(BinaryOptimizeContext context)
+	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<BinaryExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		return context.Right.HasValue 
-		       && context.Right.Value != null
-		       && context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.BitwiseAndExpression } leftAnd
-		       && IsPure(leftAnd.Left)
-		       && leftAnd.Right is LiteralExpressionSyntax leftAndRightLiteral
-		       && EqualityComparer<object?>.Default.Equals(leftAndRightLiteral.Token.Value, context.Right.Value);
-	}
-
-	public override SyntaxNode? OptimizeSymmetric(BinaryOptimizeContext context)
-	{
-		return context.Right.Syntax;
+		if (!IsPure(context.Left.Syntax.Left)
+		    || ! context.TryGetValue(context.Left.Syntax.Right, out var leftAndRightLiteral)
+		    || !EqualityComparer<object?>.Default.Equals(leftAndRightLiteral, context.Right.Syntax.Token.Value))
+		{
+			optimized = null;
+			return false;
+		}
+		
+		optimized = context.Right.Syntax;
+		return true;
 	}
 }

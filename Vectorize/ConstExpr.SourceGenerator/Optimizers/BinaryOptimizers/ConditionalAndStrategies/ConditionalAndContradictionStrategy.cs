@@ -14,7 +14,7 @@ public class ConditionalAndContradictionStrategy : SymmetricStrategy<BooleanBina
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<ExpressionSyntax, PrefixUnaryExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!context.Right.Syntax.IsKind(SyntaxKind.LogicalNotExpression)
-		    || !LeftEqualsRight(context.Right.Syntax.Operand, context.Left.Syntax, context.TryGetValue)
+		    || !LeftEqualsRight(context.Right.Syntax.Operand, context.Left.Syntax, context.Variables)
 		    || !IsPure(context.Left.Syntax))
 		{
 			optimized = null;

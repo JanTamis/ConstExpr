@@ -7,13 +7,12 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalOrStrategies;
 
-public class ConditionalOrIsNullOrEmptyStrategy : SymmetricStrategy<BooleanBinaryStrategy, BinaryExpressionSyntax, BinaryExpressionSyntax>
+public class ConditionalOrIsNullOrEmptyStrategy() 
+	: SymmetricStrategy<BooleanBinaryStrategy, BinaryExpressionSyntax, BinaryExpressionSyntax>(SyntaxKind.EqualsExpression, SyntaxKind.EqualsExpression)
 {
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<BinaryExpressionSyntax, BinaryExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (!context.Left.Syntax.IsKind(SyntaxKind.EqualsExpression)
-		    || !context.Right.Syntax.IsKind(SyntaxKind.EqualsExpression)
-		    || !IsNullCheck(context.Left.Syntax)
+		if (!IsNullCheck(context.Left.Syntax)
 		    || !IsEmptyStringCheck(context.Right.Syntax))
 		{
 			optimized = null;

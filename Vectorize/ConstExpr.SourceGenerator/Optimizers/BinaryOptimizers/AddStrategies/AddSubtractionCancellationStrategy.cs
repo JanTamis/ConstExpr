@@ -10,12 +10,11 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AddStrategies;
 /// (x - a) + a => x (algebraic identity, pure)
 /// a + (x - a) => x (algebraic identity, pure)
 /// </summary>
-public class AddSubtractionCancellationStrategy : SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, ExpressionSyntax>
+public class AddSubtractionCancellationStrategy() : SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, ExpressionSyntax>(leftKind: SyntaxKind.SubtractExpression)
 {
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<BinaryExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (!context.Left.Syntax.IsKind(SyntaxKind.SubtractExpression)
-		    || !LeftEqualsRight(context.Left.Syntax.Right, context.Right.Syntax, context.TryGetValue)
+		if (!LeftEqualsRight(context.Left.Syntax.Right, context.Right.Syntax, context.Variables)
 		    || !IsPure(context.Left.Syntax)
 		    || !IsPure(context.Right.Syntax))
 		{

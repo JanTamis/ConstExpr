@@ -11,12 +11,11 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ExclusiveOrStrat
 /// <summary>
 /// Strategy for combining constant masks: (x ^ mask1) ^ mask2 => x ^ (mask1 ^ mask2)
 /// </summary>
-public class ExclusiveOrCombineMasksStrategy : NumericOrBooleanBinaryStrategy<BinaryExpressionSyntax, LiteralExpressionSyntax>
+public class ExclusiveOrCombineMasksStrategy() : NumericOrBooleanBinaryStrategy<BinaryExpressionSyntax, LiteralExpressionSyntax>(leftKind: SyntaxKind.ExclusiveOrExpression)
 {
 	public override bool TryOptimize(BinaryOptimizeContext<BinaryExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!base.TryOptimize(context, out optimized)
-		    || context.Left.Syntax.IsKind(SyntaxKind.ExclusiveOrExpression)
 		    || !context.TryGetValue(context.Left.Syntax.Right, out var leftXorRightValue)
 		    || !SyntaxHelpers.TryGetLiteral(leftXorRightValue.ExclusiveOr(context.Right.Syntax.Token.Value), out var combinedLiteral))
 			return false;

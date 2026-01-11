@@ -602,6 +602,7 @@ public static class ObjectExtensions
 		float f => f is 0f or -0f,
 		double d => d is 0d or -0d,
 		decimal m => m is 0m or -0m,
+		LiteralExpressionSyntax literal => literal.Token.Value.IsNumericZero(),
 		_ => false
 	};
 
