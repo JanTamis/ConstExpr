@@ -16,7 +16,9 @@ public class ConditionalAndCharOptimizer()
 	{
 		if (!LeftEqualsRight(context.Left.Syntax.Left, context.Right.Syntax.Left, context.Variables)
 		    || !context.TryGetValue(context.Left.Syntax.Right, out var leftValue)
-		    || !context.TryGetValue(context.Right.Syntax.Right, out var rightValue))
+		    || !context.TryGetValue(context.Right.Syntax.Right, out var rightValue)
+		    || leftValue is not char
+		    || rightValue is not char)
 		{
 			optimized = null;
 			return false;

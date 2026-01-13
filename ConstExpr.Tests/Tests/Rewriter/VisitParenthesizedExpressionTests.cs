@@ -47,7 +47,7 @@ public class VisitParenthesizedExpressionTests : BaseTest<Func<int, int, (int, i
 	[
 		Create("""
 			var d = x + y;
-			var e = (x + y);
+			var e = x + y;
 			var j = x.ToString();
 
 			return (3, 9, 5, d, e, 1, 6, j);

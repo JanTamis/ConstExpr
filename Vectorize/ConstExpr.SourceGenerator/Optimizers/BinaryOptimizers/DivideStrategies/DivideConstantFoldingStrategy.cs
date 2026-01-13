@@ -91,6 +91,42 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 				return true;
 			}
 		}
+
+		// Pattern 5: (x * C1) / C2 => x * (C1 / C2)
+		if (context.TryGetValue(context.Right.Syntax, out c2)
+		    && context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.MultiplyExpression } leftMul
+		    && context.TryGetValue(leftMul.Right, out var mulConstant))
+		{
+			var result = mulConstant.Divide(c2);
+
+			if (result != null && SyntaxHelpers.TryGetLiteral(result, out var newConstant))
+			{
+				optimized = BinaryExpression(
+					SyntaxKind.MultiplyExpression,
+					leftMul.Left,
+					newConstant);
+
+				return true;
+			}
+		}
+
+		// Pattern 6: (C1 * x) / C2 => x * (C1 / C2)
+		if (context.TryGetValue(context.Right.Syntax, out c2)
+		    && context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.MultiplyExpression } leftMul2
+		    && context.TryGetValue(leftMul2.Left, out var mulConstant2))
+		{
+			var result = mulConstant2.Divide(c2);
+
+			if (result != null && SyntaxHelpers.TryGetLiteral(result, out var newConstant))
+			{
+				optimized = BinaryExpression(
+					SyntaxKind.MultiplyExpression,
+					leftMul2.Right,
+					newConstant);
+
+				return true;
+			}
+		}
 		
 		return false;
 	}

@@ -23,17 +23,21 @@ public abstract class SymmetricStrategy<TStrategy, TLeft, TRight>(SyntaxKind lef
 		{
 			var newContext = new BinaryOptimizeContext<TLeft, TRight>
 			{
-				Left = new BinaryOptimizeElement<TLeft>()
+				Left = new BinaryOptimizeElement<TLeft>
 				{
 					Syntax = left,
 					Type = context.Left.Type,
 				},
-				Right = new BinaryOptimizeElement<TRight>()
+				Right = new BinaryOptimizeElement<TRight>
 				{
 					Syntax = right,
 					Type = context.Right.Type,
 				},
 				Type = context.Type,
+				Variables = context.Variables,
+				TryGetValue = context.TryGetValue,
+				BinaryExpressions = context.BinaryExpressions,
+				Parent = context.Parent,
 			};
 
 			if (TryOptimizeSymmetric(newContext, out optimized))
@@ -42,24 +46,28 @@ public abstract class SymmetricStrategy<TStrategy, TLeft, TRight>(SyntaxKind lef
 			}
 		}
 
-		if (context.Right.Syntax is TRight swappedRight
-		    && context.Left.Syntax is TLeft swappedLeft
+		if (context.Left.Syntax is TRight swappedRight
+		    && context.Right.Syntax is TLeft swappedLeft
 		    && (leftKind == SyntaxKind.None || swappedLeft.IsKind(leftKind))
 		    && (rightKind == SyntaxKind.None || swappedRight.IsKind(rightKind)))
 		{
 			var swappedContext = new BinaryOptimizeContext<TLeft, TRight>
 			{
-				Left = new BinaryOptimizeElement<TLeft>()
+				Left = new BinaryOptimizeElement<TLeft>
 				{
 					Syntax = swappedLeft,
 					Type = context.Right.Type,
 				},
-				Right = new BinaryOptimizeElement<TRight>()
+				Right = new BinaryOptimizeElement<TRight>
 				{
 					Syntax = swappedRight,
 					Type = context.Left.Type,
 				},
 				Type = context.Type,
+				Variables = context.Variables,
+				TryGetValue = context.TryGetValue,
+				BinaryExpressions = context.BinaryExpressions,
+				Parent = context.Parent
 			};
 
 			if (TryOptimizeSymmetric(swappedContext, out optimized))

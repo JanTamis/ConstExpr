@@ -90,10 +90,11 @@ public partial class ConstExprPartialRewriter
 			{
 				var expressions = GetBinaryExpressions(node).ToList();
 				
-				if (TryOptimizeBinaryExpression(operation, expressions, leftExpr, rightExpr, out var optimized))
+				if (TryOptimizeBinaryExpression(operation, expressions, leftExpr, rightExpr, node.Parent, out var optimized))
 				{
-					if (node.Parent is not BinaryExpressionSyntax && optimized is IsPatternExpressionSyntax pattern
-					                                              && TryOptmizePattern(pattern, out var result))
+					if (node.Parent is not BinaryExpressionSyntax 
+					    && optimized is IsPatternExpressionSyntax pattern
+					    && TryOptmizePattern(pattern, out var result))
 					{
 						return result;
 					}
@@ -265,7 +266,7 @@ public partial class ConstExprPartialRewriter
 	/// <summary>
 	/// Tries to optimize a binary expression using algebraic/logical simplifications.
 	/// </summary>
-	private bool TryOptimizeBinaryExpression(IBinaryOperation operation, List<BinaryExpressionSyntax> expressions, ExpressionSyntax leftExpr, ExpressionSyntax rightExpr, out SyntaxNode? result)
+	private bool TryOptimizeBinaryExpression(IBinaryOperation operation, List<BinaryExpressionSyntax> expressions, ExpressionSyntax leftExpr, ExpressionSyntax rightExpr, SyntaxNode? parent, out SyntaxNode? result)
 	{
 		result = null;
 
@@ -281,7 +282,7 @@ public partial class ConstExprPartialRewriter
 		if (isBuiltIn
 		    && operation.Type is not null
 		    && (isBooleanOp || isIntegerOp || attribute.FloatingPointMode == FloatingPointEvaluationMode.FastMath)
-		    && TryOptimizeNode(operation.OperatorKind, expressions, operation.Type, leftExpr, operation.LeftOperand.Type, rightExpr, operation.RightOperand.Type, out result))
+		    && TryOptimizeNode(operation.OperatorKind, expressions, operation.Type, leftExpr, operation.LeftOperand.Type, rightExpr, operation.RightOperand.Type, parent, out result))
 		{
 			return true;
 		}

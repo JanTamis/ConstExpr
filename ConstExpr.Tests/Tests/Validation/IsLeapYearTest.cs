@@ -22,7 +22,19 @@ public class IsLeapYearTest() : BaseTest<Func<int, bool>>(FloatingPointEvaluatio
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
-		Create(null, Unknown),
+		Create("""
+			if (year & 3 != 0)
+			{
+				return false;
+			}
+
+			if (year % 100 != 0)
+			{
+				return true;
+			}
+
+			return year % 400 == 0;
+			""", Unknown),
 		Create("return true;", 2000),
 		Create("return false;", 1900)
 	];

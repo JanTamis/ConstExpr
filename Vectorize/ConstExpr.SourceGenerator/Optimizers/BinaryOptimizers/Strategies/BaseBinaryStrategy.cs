@@ -23,7 +23,8 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 		ExpressionSyntax rightExpr, 
 		ITypeSymbol? rightType,
 		IDictionary<string, VariableItem> variables,
-		TryGetValueDelegate tryGetValue)
+		TryGetValueDelegate tryGetValue,
+		SyntaxNode? parent)
 	{
 		if (leftExpr is not TLeft typedLeft || rightExpr is not TRight typedRight)
 		{
@@ -45,7 +46,8 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 			Type = type,
 			Variables = variables,
 			TryGetValue = tryGetValue,
-			BinaryExpressions = expressions
+			BinaryExpressions = expressions,
+			Parent = parent,
 		};
 	}
 

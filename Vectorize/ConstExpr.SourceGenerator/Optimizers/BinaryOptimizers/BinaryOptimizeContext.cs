@@ -26,6 +26,8 @@ public sealed class BinaryOptimizeContext<TLeft, TRight>
 	public TryGetValueDelegate TryGetValue { get; init; }
 
 	public IList<BinaryExpressionSyntax> BinaryExpressions { get; init; }
+	
+	public SyntaxNode? Parent { get; init; }
 
 	internal string GetDebuggerDisplay()
 	{

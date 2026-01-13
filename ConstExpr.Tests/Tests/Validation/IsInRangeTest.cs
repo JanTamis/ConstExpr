@@ -11,6 +11,7 @@ public class IsInRangeTest() : BaseTest<Func<int, int, int, bool>>(FloatingPoint
 	[
 		Create(null, Unknown, Unknown, Unknown),
 		Create("return false;", 15, 1, 10),
+		Create("return value is >= 1 and <= 10;", Unknown, 1, 10),
 		Create("return true;", 1, 1, 10)
 	];
 }

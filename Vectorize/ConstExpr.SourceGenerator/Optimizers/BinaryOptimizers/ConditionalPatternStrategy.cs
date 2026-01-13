@@ -8,11 +8,14 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalAndSt
 
 public class ConditionalPatternStrategy(BinaryOperatorKind operatorKind) : BaseBinaryStrategy<BinaryExpressionSyntax, BinaryExpressionSyntax>
 {
+	// TODO: add support for left literal and right pure expression
 	public override bool TryOptimize(BinaryOptimizeContext<BinaryExpressionSyntax, BinaryExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!LeftEqualsRight(context.Left.Syntax.Left, context.Right.Syntax.Left, context.Variables)
 		    || !IsPure(context.Left.Syntax.Left)
-		    || !IsPure(context.Right.Syntax.Left))
+		    || !IsPure(context.Right.Syntax.Left)
+		    || context.Left.Syntax.Right is not LiteralExpressionSyntax
+		    || context.Right.Syntax.Right is not LiteralExpressionSyntax)
 		{
 			optimized = null;
 			return false;
@@ -27,13 +30,13 @@ public class ConditionalPatternStrategy(BinaryOperatorKind operatorKind) : BaseB
 			return false;
 		}
 		
-		var andPattern = SyntaxFactory.BinaryPattern(GetRelationalPatternKind(operatorKind), leftPattern, rightPattern);
+		var andPattern = SyntaxFactory.BinaryPattern(GetRelationalPatternKind(), leftPattern, rightPattern);
 		
 		optimized = SyntaxFactory.IsPatternExpression(context.Left.Syntax.Left, andPattern);
 		return true;
 	}
 	
-	private SyntaxKind GetRelationalPatternKind(BinaryOperatorKind operatorKind)
+	private SyntaxKind GetRelationalPatternKind()
 	{
 		return operatorKind switch
 		{

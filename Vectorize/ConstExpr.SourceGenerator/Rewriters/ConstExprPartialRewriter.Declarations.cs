@@ -227,7 +227,7 @@ public partial class ConstExprPartialRewriter
 
 		// Try compound assignment optimization for non-tracked variables
 		if (TryGetOperation(semanticModel, node, out ICompoundAssignmentOperation? compOp) 
-		    && TryOptimizeNode(compOp.OperatorKind, expressions, compOp.Type, node.Left, compOp.Target.Type, rightExpr, compOp.Value.Type, out var syntaxNode))
+		    && TryOptimizeNode(compOp.OperatorKind, expressions, compOp.Type, node.Left, compOp.Target.Type, rightExpr, compOp.Value.Type, node.Parent, out var syntaxNode))
 		{
 			// If the optimized node is a binary expression where left matches the assignment target,
 			// try to convert it to a compound assignment (e.g., x << 1 becomes x <<= 1)
@@ -460,7 +460,7 @@ public partial class ConstExprPartialRewriter
 			
 			// Try compound assignment optimization even when variable value is unknown
 			if (TryGetOperation(semanticModel, node, out ICompoundAssignmentOperation? compOp)
-			    && TryOptimizeNode(compOp.OperatorKind, expressions, compOp.Type, node.Left, compOp.Target.Type, rightExpr, compOp.Value.Type, out var optimizedNode))
+			    && TryOptimizeNode(compOp.OperatorKind, expressions, compOp.Type, node.Left, compOp.Target.Type, rightExpr, compOp.Value.Type, node.Parent, out var optimizedNode))
 			{
 				// If the optimized node is a binary expression where left matches the assignment target,
 				// convert it to a compound assignment (e.g., x << 1 becomes x <<= 1)

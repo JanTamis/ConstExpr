@@ -10,7 +10,7 @@ public class ConditionalPatternCombinerStrategy(BinaryOperatorKind operatorKind)
 {
 	public override bool TryOptimize(BinaryOptimizeContext<IsPatternExpressionSyntax, BinaryExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		var patternKind = GetRelationalPatternKind(operatorKind);
+		var patternKind = GetRelationalPatternKind();
 
 		if (LeftEqualsRight(context.Left.Syntax.Expression, context.Right.Syntax.Left, context.Variables))
 		{
@@ -54,7 +54,7 @@ public class ConditionalPatternCombinerStrategy(BinaryOperatorKind operatorKind)
 		return false;
 	}
 
-	private SyntaxKind GetRelationalPatternKind(BinaryOperatorKind operatorKind)
+	private SyntaxKind GetRelationalPatternKind()
 	{
 		return operatorKind switch
 		{
