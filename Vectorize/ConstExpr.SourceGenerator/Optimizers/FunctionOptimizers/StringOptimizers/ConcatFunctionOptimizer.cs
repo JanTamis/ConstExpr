@@ -37,19 +37,6 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 			var newParams = new List<ExpressionSyntax>();
 			var literalBuffer = new StringBuilder();
 
-			void FlushBuffer()
-			{
-				if (literalBuffer.Length == 0)
-				{
-					return;
-				}
-
-				var lit = SyntaxHelpers.CreateLiteral(literalBuffer.ToString());
-
-				newParams.Add(lit!);
-				literalBuffer.Clear();
-			}
-
 			foreach (var p in parameters)
 			{
 				switch (p)
@@ -99,6 +86,19 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 			// Rebuild invocation targeting the string helper/type
 			result = CreateInvocation(stringType, Name, newParams);
 			return true;
+
+			void FlushBuffer()
+			{
+				if (literalBuffer.Length == 0)
+				{
+					return;
+				}
+
+				var lit = SyntaxHelpers.CreateLiteral(literalBuffer.ToString());
+
+				newParams.Add(lit!);
+				literalBuffer.Clear();
+			}
 		}
 	}
 }

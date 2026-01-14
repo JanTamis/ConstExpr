@@ -19,19 +19,11 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 
 		protected bool TryGetStringInstance(out string? result)
 		{
-			if (Instance is LiteralExpressionSyntax les)
+			if (Instance is LiteralExpressionSyntax les 
+			    && les.Kind() is SyntaxKind.StringLiteralExpression or SyntaxKind.NullLiteralExpression)
 			{
-				if (les.IsKind(SyntaxKind.StringLiteralExpression))
-				{
-					result = les.Token.ValueText;
-					return true;
-				}
-
-				if (les.IsKind(SyntaxKind.NullLiteralExpression))
-				{
-					result = null;
-					return true;
-				}
+				result = les.Token.Value as string;
+				return true;
 			}
 
 			result = null;

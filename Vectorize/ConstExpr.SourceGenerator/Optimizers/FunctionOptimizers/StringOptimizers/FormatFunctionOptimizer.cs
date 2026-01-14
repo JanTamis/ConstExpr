@@ -49,7 +49,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 			// Collect following expressions; require purity to avoid side-effects
 			var argExpressions = new List<ExpressionSyntax>();
 
-			for (var i = formatIndex + 1; i < parameters.Count; i++)
+			for (var i = 1; i < parameters.Count; i++)
 			{
 				argExpressions.Add(parameters[i]);
 			}

@@ -13,13 +13,13 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 /// </summary>
 public class CaseFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "ToUpper")
 {
-	private static readonly HashSet<string> CaseMethods = new()
-	{
+	private static readonly HashSet<string> CaseMethods =
+	[
 		"ToUpper",
 		"ToLower",
 		"ToUpperInvariant",
 		"ToLowerInvariant"
-	};
+	];
 
 	public override bool TryOptimize(IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
