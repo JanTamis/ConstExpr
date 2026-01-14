@@ -99,7 +99,10 @@ public partial class ConstExprPartialRewriter
 						return result;
 					}
 
-					return optimized;
+					// Strip unnecessary parentheses from the optimized result
+					// since the context may have changed (e.g., (x + y) * 1 becomes just (x + y),
+					// but parens around x + y are no longer needed in assignment context)
+					return StripUnnecessaryParentheses(optimized);
 				}
 
 				return node.WithLeft(leftExpr).WithRight(rightExpr);

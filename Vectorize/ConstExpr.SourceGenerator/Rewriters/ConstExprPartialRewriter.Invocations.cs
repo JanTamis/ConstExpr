@@ -76,8 +76,8 @@ public partial class ConstExprPartialRewriter
 		// Handle char overload conversion
 		arguments = ConvertToCharOverloadIfNeeded(targetMethod, arguments);
 
-		// Handle static methods
-		if (targetMethod.IsStatic)
+		// Handle static methods and local functions
+		if (targetMethod.IsStatic || targetMethod.MethodKind == MethodKind.LocalFunction)
 		{
 			return HandleStaticMethodInvocation(node, targetMethod, arguments);
 		}
@@ -307,6 +307,12 @@ public partial class ConstExprPartialRewriter
 	/// </summary>
 	private SyntaxNode? HandleStaticMethodInvocation(InvocationExpressionSyntax node, IMethodSymbol targetMethod, List<SyntaxNode?> arguments)
 	{
+		// Check if method is empty (applies to local functions too)
+		if (IsEmptyMethod(targetMethod))
+		{
+			return null;
+		}
+
 		// Check if we're already visiting this method to prevent infinite recursion
 		if (visitingMethods?.Contains(targetMethod) is true)
 		{
@@ -379,7 +385,7 @@ public partial class ConstExprPartialRewriter
 	private SyntaxNode? HandleInstanceMethodInvocation(InvocationExpressionSyntax node, IMethodSymbol targetMethod, List<SyntaxNode?> arguments)
 	{
 		// try check if method is empty
-		if (IsEmptyInstanceMethod(targetMethod))
+		if (IsEmptyMethod(targetMethod))
 		{
 			return null;
 		}
@@ -700,6 +706,7 @@ public partial class ConstExprPartialRewriter
 	public override SyntaxNode? VisitArgument(ArgumentSyntax node)
 	{
 		var expression = Visit(node.Expression);
+		
 		return node.WithExpression(expression as ExpressionSyntax ?? node.Expression);
 	}
 

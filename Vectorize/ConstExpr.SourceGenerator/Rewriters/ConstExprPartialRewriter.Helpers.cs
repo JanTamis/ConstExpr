@@ -29,6 +29,45 @@ public partial class ConstExprPartialRewriter
 		.ToFrozenDictionary(t => t.Kind);
 
 	/// <summary>
+	/// Strips unnecessary outer parentheses from an expression.
+	/// Recursively unwraps parentheses when the inner expression doesn't require them.
+	/// </summary>
+	private static SyntaxNode? StripUnnecessaryParentheses(SyntaxNode? node)
+	{
+		while (node is ParenthesizedExpressionSyntax paren)
+		{
+			var inner = paren.Expression;
+			
+			// These expression types never need parentheses
+			if (inner is IdentifierNameSyntax
+			    or LiteralExpressionSyntax
+			    or InvocationExpressionSyntax
+			    or ObjectCreationExpressionSyntax
+			    or MemberAccessExpressionSyntax
+			    or ElementAccessExpressionSyntax
+			    or InterpolatedStringExpressionSyntax
+			    or ParenthesizedExpressionSyntax)
+			{
+				node = inner;
+				continue;
+			}
+			
+			// Binary expressions don't need parens when they are at the top level
+			// (i.e., their parent would be an assignment, return, or variable declaration)
+			if (inner is BinaryExpressionSyntax)
+			{
+				node = inner;
+				continue;
+			}
+			
+			// Keep parentheses for other expression types
+			break;
+		}
+		
+		return node;
+	}
+
+	/// <summary>
 	/// Execute a Roslyn conversion operation either via operator method or basic Convert.*
 	/// Returns a runtime value that can be turned into a literal by CreateLiteral/TryGetLiteral.
 	/// </summary>
@@ -326,9 +365,9 @@ public partial class ConstExprPartialRewriter
 		};
 	}
 
-	private bool IsEmptyInstanceMethod(IMethodSymbol method)
+	private bool IsEmptyMethod(IMethodSymbol method)
 	{
-		if (method.IsStatic || !method.ReturnsVoid || method.IsAbstract)
+		if (!method.ReturnsVoid || method.IsAbstract)
 		{
 			return false;
 		}

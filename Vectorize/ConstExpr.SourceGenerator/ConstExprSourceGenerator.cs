@@ -33,6 +33,11 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 {
 	public override void OnInitialize(SgfInitializationContext context)
 	{
+		AppDomain.CurrentDomain.TypeResolve += (sender, args) =>
+		{
+			return null;
+		};
+		
 		// Use WithComparer for incremental generation caching
 		// This prevents reprocessing invocations that haven't changed
 		var invocations = context.SyntaxProvider
@@ -69,11 +74,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				// Do this filtering BEFORE parallel processing to reduce work
 				var relevantInvocations = modelAndCompilation.Left.Left
 					.Where(model => model is { AttributeData: not null, MethodSymbol: not null, Invocation: not null })
-					.Where(model =>
-					{
-						// Use the shared RoslynApiCache for filtering
-						return IsContainingMethodInvoked(compilation, model.Invocation, roslynApiCache, spc.CancellationToken);
-					})
+					.Where(model => IsContainingMethodInvoked(compilation, model.Invocation, roslynApiCache, spc.CancellationToken))
 					.ToList(); // Materialize to avoid multiple enumeration
 
 				// Process all invocations in parallel with the shared loader

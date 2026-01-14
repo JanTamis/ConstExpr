@@ -466,7 +466,8 @@ public partial class ConstExprPartialRewriter
 			var trueArm = node.Arms.FirstOrDefault(a => a.Pattern is ConstantPatternSyntax { Expression: LiteralExpressionSyntax { RawKind: (int)SyntaxKind.TrueLiteralExpression } });
 			var falseArm = node.Arms.FirstOrDefault(a => a.Pattern is ConstantPatternSyntax { Expression: LiteralExpressionSyntax { RawKind: (int)SyntaxKind.FalseLiteralExpression } });
 
-			if (trueArm is not null && falseArm is not null && trueArm.WhenClause is null && falseArm.WhenClause is null)
+			if (trueArm is { WhenClause: null } 
+			    && falseArm is { WhenClause: null })
 			{
 				return ConditionalExpression(
 					governing as ExpressionSyntax ?? node.GoverningExpression,

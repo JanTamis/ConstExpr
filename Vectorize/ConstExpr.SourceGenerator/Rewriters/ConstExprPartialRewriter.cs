@@ -127,7 +127,6 @@ public partial class ConstExprPartialRewriter(
 			// For increment/decrement that evaluate to literals, keep original for side-effects
 			LiteralExpressionSyntax when node.Expression is PostfixUnaryExpressionSyntax or PrefixUnaryExpressionSyntax => node,
 			ExpressionSyntax expr => node.WithExpression(expr),
-			null => node,
 			_ => result
 		};
 	}
