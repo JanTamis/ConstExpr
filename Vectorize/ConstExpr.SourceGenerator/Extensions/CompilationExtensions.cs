@@ -1154,6 +1154,43 @@ public static class CompilationExtensions
 		value = default;
 		return false;
 	}
+	
+	public static bool TryGetTypeSymbol(this SemanticModel semanticModel, ExpressionSyntax? node, [NotNullWhen(true)] out ITypeSymbol? typeSymbol)
+	{
+		try
+		{
+			if (node is not null)
+			{
+				var info = semanticModel.GetTypeInfo(node);
+
+				if (info.Type is null)
+				{
+					if (semanticModel.Compilation.TryGetSemanticModel(node, out var semantic))
+					{
+						info = semantic.GetTypeInfo(node);
+					}
+					else
+					{
+						typeSymbol = null;
+						return false;
+					}
+				}
+
+				if (info.Type is { } symbol)
+				{
+					typeSymbol = symbol;
+					return true;
+				}
+			}
+		}
+		catch (Exception e)
+		{
+
+		}
+
+		typeSymbol = null;
+		return false;
+	}
 
 	public static string GetDeterministicHashString(this SyntaxNode node)
 	{

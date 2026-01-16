@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
+using ConstExpr.SourceGenerator.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 
@@ -35,13 +36,13 @@ public class IndexOfFunctionOptimizer(SyntaxNode? instance) : BaseStringFunction
 		if (literal.IsKind(SyntaxKind.StringLiteralExpression))
 		{
 			var substring = literal.Token.ValueText;
-			result = Helpers.SyntaxHelpers.CreateLiteral(str.IndexOf(substring, StringComparison.Ordinal));
+			result = SyntaxHelpers.CreateLiteral(str.IndexOf(substring, StringComparison.Ordinal));
 			return true;
 		}
 
 		if (literal.IsKind(SyntaxKind.CharacterLiteralExpression) && literal.Token.Value is char c)
 		{
-			result = Helpers.SyntaxHelpers.CreateLiteral(str.IndexOf(c));
+			result = SyntaxHelpers.CreateLiteral(str.IndexOf(c));
 			return true;
 		}
 

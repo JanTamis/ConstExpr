@@ -530,13 +530,13 @@ public partial class ConstExprPartialRewriter
 
 	public override SyntaxNode? VisitCastExpression(CastExpressionSyntax node)
 	{
-		if (semanticModel.TryGetSymbol(node.Type, out ITypeSymbol? symbol))
+		if (semanticModel.TryGetTypeSymbol(node.Type, out var type))
 		{
 			var expression = Visit(node.Expression);
 
 			if (TryGetLiteralValue(expression, out var value) || TryGetLiteralValue(node.Expression, out value))
 			{
-				var result = ConvertToSpecialType(symbol.SpecialType, value);
+				var result = ConvertToSpecialType(type.SpecialType, value);
 
 				if (result is not null && TryGetLiteral(result, out var literal))
 				{
@@ -544,13 +544,19 @@ public partial class ConstExprPartialRewriter
 				}
 
 				// Handle non-special types via operator method
-				if (symbol.SpecialType == SpecialType.None
+				if (type.SpecialType == SpecialType.None
 				    && TryGetOperation(semanticModel, node, out IConversionOperation? operation)
 				    && loader.TryExecuteMethod(operation.OperatorMethod, null, new VariableItemDictionary(variables), [ value ], out var opResult)
 				    && TryGetLiteral(opResult, out literal))
 				{
 					return literal;
 				}
+			}
+
+			if (semanticModel.TryGetTypeSymbol(node.Expression, out var expressionType)
+			    && SymbolEqualityComparer.Default.Equals(type, expressionType))
+			{
+				return expression;
 			}
 
 			return node.WithExpression(expression as ExpressionSyntax ?? node.Expression);

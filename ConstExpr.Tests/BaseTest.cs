@@ -171,10 +171,15 @@ public abstract class BaseTest<TDelegate>(FloatingPointEvaluationMode evaluation
 
 	private static CSharpCompilation CreateCompilation(string source)
 	{
+		var references = AppDomain.CurrentDomain.GetAssemblies()
+			.Where(a => !a.IsDynamic && !string.IsNullOrWhiteSpace(a.Location))
+			.Select(a => MetadataReference.CreateFromFile(a.Location))
+			.ToList();
+
 		return CSharpCompilation.Create(
 			"TestAssembly",
 			[ CSharpSyntaxTree.ParseText(source) ],
-			[ MetadataReference.CreateFromFile(typeof(object).Assembly.Location) ],
+			references,
 			new CSharpCompilationOptions(OutputKind.ConsoleApplication));
 	}
 
@@ -183,6 +188,8 @@ public abstract class BaseTest<TDelegate>(FloatingPointEvaluationMode evaluation
 	{
 		return $""""
 			using System;
+			using System.Collections.Generic;
+			using System.Linq;
 
 			{TestMethod}
 			"""";

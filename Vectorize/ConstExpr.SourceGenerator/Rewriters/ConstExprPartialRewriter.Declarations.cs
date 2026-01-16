@@ -468,6 +468,7 @@ public partial class ConstExprPartialRewriter
 				    && binaryExpr.Left.ToString() == node.Left.ToString())
 				{
 					var compoundKind = TryGetCompoundAssignmentKind(binaryExpr.Kind());
+					
 					if (compoundKind != SyntaxKind.None)
 					{
 						return AssignmentExpression(compoundKind, node.Left, binaryExpr.Right);
