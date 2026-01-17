@@ -1,4 +1,5 @@
 using System.Collections;
+using ConstExpr.Core.Enumerators;
 
 namespace ConstExpr.Tests.Tests.Linq;
 
@@ -6,7 +7,7 @@ namespace ConstExpr.Tests.Tests.Linq;
 /// Tests for LINQ projection removal - verify that unnecessary Select/Map operations are eliminated
 /// </summary>
 [InheritsTests]
-public class LinqProjectionRemovalTests : BaseTest<Func<IEnumerable<double>, double[]>>
+public class LinqProjectionRemovalTests() : BaseTest<Func<IEnumerable<double>, double[]>>(FloatingPointEvaluationMode.FastMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -33,7 +34,18 @@ public class LinqProjectionRemovalTests : BaseTest<Func<IEnumerable<double>, dou
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
-		Create(null, Unknown),
+		Create("""
+			var a = x.First();
+			var b = x.Sum();
+			var c = x.Count();
+			var d = x.Select(v => v + v + 1).First();
+			var e = new[]
+			{
+				x
+			}.SelectMany(arr => arr).Count();
+			
+			return [a, b, c, d, e];
+			""", Unknown),
 		Create("return 16;", 5),
 		Create("return 16;", 100),
 	];
