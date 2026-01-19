@@ -21,7 +21,7 @@ public abstract class BaseMathFunctionOptimizer(string name, params HashSet<int>
 								&& SymbolEqualityComparer.Default.Equals(type, m.ContainingType));
 	}
 
-	protected bool IsValidMathMethod(IMethodSymbol method, [NotNullWhen(true)] out ITypeSymbol type)
+	protected bool IsValidMathMethod(IMethodSymbol method, [NotNullWhen(true)] out ITypeSymbol? type)
 	{
 		type = method.Parameters
 			.Select(s => s.Type)

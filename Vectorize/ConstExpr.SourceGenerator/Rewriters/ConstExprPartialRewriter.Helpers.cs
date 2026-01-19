@@ -37,29 +37,23 @@ public partial class ConstExprPartialRewriter
 		while (node is ParenthesizedExpressionSyntax paren)
 		{
 			var inner = paren.Expression;
-			
-			// These expression types never need parentheses
-			if (inner is IdentifierNameSyntax
-			    or LiteralExpressionSyntax
-			    or InvocationExpressionSyntax
-			    or ObjectCreationExpressionSyntax
-			    or MemberAccessExpressionSyntax
-			    or ElementAccessExpressionSyntax
-			    or InterpolatedStringExpressionSyntax
-			    or ParenthesizedExpressionSyntax)
+
+			switch (inner)
 			{
-				node = inner;
-				continue;
+				// These expression types never need parentheses
+				case IdentifierNameSyntax
+					or LiteralExpressionSyntax
+					or InvocationExpressionSyntax
+					or ObjectCreationExpressionSyntax
+					or MemberAccessExpressionSyntax
+					or ElementAccessExpressionSyntax
+					or InterpolatedStringExpressionSyntax
+					or ParenthesizedExpressionSyntax
+					or BinaryExpressionSyntax:
+					node = inner;
+					continue;
 			}
-			
-			// Binary expressions don't need parens when they are at the top level
-			// (i.e., their parent would be an assignment, return, or variable declaration)
-			if (inner is BinaryExpressionSyntax)
-			{
-				node = inner;
-				continue;
-			}
-			
+
 			// Keep parentheses for other expression types
 			break;
 		}
@@ -131,8 +125,6 @@ public partial class ConstExprPartialRewriter
 				if (TryOptimizeWithStrategy(strategy, expressions, type, leftExpr, leftType, rightExpr, rightType, parent, out var result)
 				    && result != null)
 				{
-					result = result;
-					
 					if (result is BinaryExpressionSyntax binary
 					    && TryOptimizeNode(binary.Kind().ToBinaryOperatorKind(), expressions, type, binary.Left, leftType, binary.Right, rightType, parent, out var nested))
 					{

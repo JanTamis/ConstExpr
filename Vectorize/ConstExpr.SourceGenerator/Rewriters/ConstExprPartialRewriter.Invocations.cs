@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
@@ -71,6 +72,12 @@ public partial class ConstExprPartialRewriter
 			{
 				return optimized;
 			}
+		}
+		
+		// Try linq optimizers
+		if (TryOptimizeLinqMethod(targetMethod, node, arguments) is { } optimizedLinq)
+		{
+			return Visit(optimizedLinq);
 		}
 
 		// Handle char overload conversion
@@ -273,6 +280,18 @@ public partial class ConstExprPartialRewriter
 			.Where(o => String.Equals(o.Name, targetMethod.Name, StringComparison.Ordinal)
 			            && o.ParameterCounts.Contains(targetMethod.Parameters.Length))
 			.WhereSelect<BaseMathFunctionOptimizer, SyntaxNode>((w, out optimized) => w.TryOptimize(targetMethod, node, arguments.OfType<ExpressionSyntax>().ToArray(), additionalMethods, out optimized))
+			.FirstOrDefault();
+	}
+
+	/// <summary>
+	/// Tries to optimize a linq method.
+	/// </summary>
+	private SyntaxNode? TryOptimizeLinqMethod(IMethodSymbol targetMethod, InvocationExpressionSyntax node, List<SyntaxNode?> arguments)
+	{
+		return _linqOptimizers.Value
+			.Where(o => String.Equals(o.Name, targetMethod.Name, StringComparison.Ordinal)
+			            && o.ParameterCounts.Contains(targetMethod.Parameters.Length))
+			.WhereSelect<BaseLinqFunctionOptimizer, SyntaxNode>((w, out optimized) => w.TryOptimize(targetMethod, node, arguments.OfType<ExpressionSyntax>().ToArray(), additionalMethods, out optimized))
 			.FirstOrDefault();
 	}
 

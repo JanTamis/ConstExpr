@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
+using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 
 namespace ConstExpr.SourceGenerator.Rewriters;
@@ -56,6 +57,16 @@ public partial class ConstExprPartialRewriter(
 			.Where(t => !t.IsAbstract && typeof(BaseMathFunctionOptimizer).IsAssignableFrom(t))
 			.Select(t => Activator.CreateInstance(t) as BaseMathFunctionOptimizer)
 			.OfType<BaseMathFunctionOptimizer>()
+			.ToArray();
+	}, isThreadSafe: true);
+
+	private readonly Lazy<BaseLinqFunctionOptimizer[]> _linqOptimizers = new(() =>
+	{
+		return typeof(BaseLinqFunctionOptimizer).Assembly
+			.GetTypes()
+			.Where(t => !t.IsAbstract && typeof(BaseLinqFunctionOptimizer).IsAssignableFrom(t))
+			.Select(t => Activator.CreateInstance(t) as BaseLinqFunctionOptimizer)
+			.OfType<BaseLinqFunctionOptimizer>()
 			.ToArray();
 	}, isThreadSafe: true);
 

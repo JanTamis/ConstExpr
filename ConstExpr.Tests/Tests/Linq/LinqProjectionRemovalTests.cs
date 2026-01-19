@@ -22,7 +22,7 @@ public class LinqProjectionRemovalTests() : BaseTest<Func<IEnumerable<double>, d
 
 		// Nested Select that can be flattened
 		var d = x
-			.Select(v => v * 2)
+			.Select(v => v * 3)
 			.Select(v => v + 1)
 			.First();
 
@@ -38,7 +38,7 @@ public class LinqProjectionRemovalTests() : BaseTest<Func<IEnumerable<double>, d
 			var a = x.First();
 			var b = x.Sum();
 			var c = x.Count();
-			var d = x.Select(v => v + v + 1).First();
+			var d = x.Select(v => Double.FusedMultiplyAdd(v, 3D, 1D)).First();
 			var e = new[]
 			{
 				x
