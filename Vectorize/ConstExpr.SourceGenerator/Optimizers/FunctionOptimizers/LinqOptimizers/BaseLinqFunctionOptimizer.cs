@@ -17,11 +17,11 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		       && method.ContainingType.ToString() is "System.Linq.Enumerable";
 	}
 	
-	protected bool TryGetLambda(ArgumentSyntax parameter, [NotNullWhen(true)] out LambdaExpressionSyntax? lambda)
+	protected bool TryGetLambda(ExpressionSyntax parameter, [NotNullWhen(true)] out LambdaExpressionSyntax? lambda)
 	{
 		lambda = null;
 
-		if (parameter.Expression is LambdaExpressionSyntax lambdaExpression)
+		if (parameter is LambdaExpressionSyntax lambdaExpression)
 		{
 			lambda = lambdaExpression;
 			return true;

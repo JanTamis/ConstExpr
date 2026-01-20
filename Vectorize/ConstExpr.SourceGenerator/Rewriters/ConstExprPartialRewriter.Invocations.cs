@@ -73,7 +73,7 @@ public partial class ConstExprPartialRewriter
 				return optimized;
 			}
 		}
-		
+
 		// Try linq optimizers
 		if (TryOptimizeLinqMethod(targetMethod, node, arguments) is { } optimizedLinq)
 		{
@@ -408,7 +408,7 @@ public partial class ConstExprPartialRewriter
 		{
 			return null;
 		}
-		
+
 		usings.Add(targetMethod.ContainingType.ContainingNamespace.ToString());
 
 		// Mark variable as altered since instance method may mutate it
@@ -494,13 +494,15 @@ public partial class ConstExprPartialRewriter
 		var instance = Visit(node.Expression);
 
 		var arguments = node.ArgumentList.Arguments
-			.Select(arg => Visit(arg.Expression));
+			.Select(arg => Visit(arg.Expression))
+			.ToList();
 
 		var constantArguments = arguments
 			.WhereSelect<SyntaxNode, object?>(TryGetLiteralValue)
 			.ToArray();
 
-		if (TryGetLiteralValue(node.Expression, out var instanceValue) || TryGetLiteralValue(instance, out instanceValue))
+		if (TryGetLiteralValue(node.Expression, out var instanceValue) 
+		    || TryGetLiteralValue(instance, out instanceValue))
 		{
 			var result = TryEvaluateElementAccess(node, instanceValue, constantArguments);
 
@@ -512,20 +514,16 @@ public partial class ConstExprPartialRewriter
 			if (semanticModel.TryGetSymbol(node, out IPropertySymbol? propertySymbol)
 			    && constantArguments.Length == propertySymbol.Parameters.Length)
 			{
-				try
+				if (loader.TryExecuteMethod(propertySymbol.GetMethod, instanceValue, new VariableItemDictionary(variables), constantArguments, out var value)
+				    && TryGetLiteral(value, out var literal))
 				{
-					if (loader.TryExecuteMethod(propertySymbol.GetMethod, instanceValue, new VariableItemDictionary(variables), constantArguments, out var value)
-					    && TryGetLiteral(value, out var literal))
-					{
-						return literal;
-					}
+					return literal;
 				}
-				catch { }
 
 				return node
 					.WithExpression(instance as ExpressionSyntax ?? node.Expression)
 					.WithArgumentList(node.ArgumentList
-						.WithArguments(SeparatedList(arguments.Select(s => Argument((ExpressionSyntax) s)))));
+						.WithArguments(SeparatedList(arguments.OfType<ExpressionSyntax>().Select(Argument))));
 			}
 		}
 
@@ -725,7 +723,7 @@ public partial class ConstExprPartialRewriter
 	public override SyntaxNode? VisitArgument(ArgumentSyntax node)
 	{
 		var expression = Visit(node.Expression);
-		
+
 		return node.WithExpression(expression as ExpressionSyntax ?? node.Expression);
 	}
 

@@ -11,7 +11,7 @@ public class SelectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 	public override bool TryOptimize(IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(method)
-		    || !TryGetLambda(invocation.ArgumentList.Arguments[0], out var lambda)
+		    || !TryGetLambda(parameters[0], out var lambda)
 		    || invocation.Expression is not MemberAccessExpressionSyntax memberAccess)
 		{
 			result = null;
@@ -26,7 +26,7 @@ public class SelectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		
 		// check if memberAccess.Expression is another Select call
 		if (memberAccess.Expression is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: nameof(Enumerable.Select) } innerMemberAccess, ArgumentList.Arguments.Count: 1 } innerInvocation 
-		    && TryGetLambda(innerInvocation.ArgumentList.Arguments[0], out var innerLambda))
+		    && TryGetLambda(innerInvocation.ArgumentList.Arguments[0].Expression, out var innerLambda))
 		{
 			// Combine the two lambdas: source.Select(inner).Select(outer) => source.Select(combined)
 			var combinedLambda = CombineLambdas(lambda, innerLambda);
@@ -36,13 +36,10 @@ public class SelectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 				SyntaxFactory.MemberAccessExpression(
 					SyntaxKind.SimpleMemberAccessExpression,
 					innerMemberAccess.Expression,
-					SyntaxFactory.IdentifierName(nameof(Enumerable.Select))
-				),
+					SyntaxFactory.IdentifierName(nameof(Enumerable.Select))),
 				SyntaxFactory.ArgumentList(
 					SyntaxFactory.SingletonSeparatedList(
-						SyntaxFactory.Argument(combinedLambda))
-				)
-			);
+						SyntaxFactory.Argument(combinedLambda))));
 			return true;
 		}
 		
