@@ -133,11 +133,10 @@ public partial class ConstExprPartialRewriter
 		return true;
 	}
 
-
 	/// <summary>
 	/// Extracts constant arguments from visited arguments.
 	/// </summary>
-	private List<object> ExtractConstantArguments(List<SyntaxNode?> arguments, SeparatedSyntaxList<ArgumentSyntax> originalArguments)
+	private List<object> ExtractConstantArguments(List<SyntaxNode> arguments, SeparatedSyntaxList<ArgumentSyntax> originalArguments)
 	{
 		var constantArguments = new List<object>(arguments.Count);
 
@@ -246,7 +245,7 @@ public partial class ConstExprPartialRewriter
 	/// <summary>
 	/// Tries to optimize a string method.
 	/// </summary>
-	private SyntaxNode? TryOptimizeStringMethod(IMethodSymbol targetMethod, InvocationExpressionSyntax node, MemberAccessExpressionSyntax memberAccess, List<SyntaxNode?> arguments)
+	private SyntaxNode? TryOptimizeStringMethod(IMethodSymbol targetMethod, InvocationExpressionSyntax node, MemberAccessExpressionSyntax memberAccess, List<SyntaxNode> arguments)
 	{
 		var instance = Visit(memberAccess.Expression);
 
@@ -274,7 +273,7 @@ public partial class ConstExprPartialRewriter
 	/// <summary>
 	/// Tries to optimize a math method.
 	/// </summary>
-	private SyntaxNode? TryOptimizeMathMethod(IMethodSymbol targetMethod, InvocationExpressionSyntax node, List<SyntaxNode?> arguments)
+	private SyntaxNode? TryOptimizeMathMethod(IMethodSymbol targetMethod, InvocationExpressionSyntax node, List<SyntaxNode> arguments)
 	{
 		return _mathOptimizers.Value
 			.Where(o => String.Equals(o.Name, targetMethod.Name, StringComparison.Ordinal)
@@ -286,7 +285,7 @@ public partial class ConstExprPartialRewriter
 	/// <summary>
 	/// Tries to optimize a linq method.
 	/// </summary>
-	private SyntaxNode? TryOptimizeLinqMethod(IMethodSymbol targetMethod, InvocationExpressionSyntax node, List<SyntaxNode?> arguments)
+	private SyntaxNode? TryOptimizeLinqMethod(IMethodSymbol targetMethod, InvocationExpressionSyntax node, List<SyntaxNode> arguments)
 	{
 		return _linqOptimizers.Value
 			.Where(o => String.Equals(o.Name, targetMethod.Name, StringComparison.Ordinal)
@@ -298,7 +297,7 @@ public partial class ConstExprPartialRewriter
 	/// <summary>
 	/// Converts arguments to char if there's a char overload available.
 	/// </summary>
-	private List<SyntaxNode?> ConvertToCharOverloadIfNeeded(IMethodSymbol targetMethod, List<SyntaxNode?> arguments)
+	private List<SyntaxNode> ConvertToCharOverloadIfNeeded(IMethodSymbol targetMethod, List<SyntaxNode> arguments)
 	{
 		var hasCharOverload = attribute.FloatingPointMode == FloatingPointEvaluationMode.FastMath
 		                      && TryGetCharOverload(targetMethod, arguments, out _);
@@ -324,7 +323,7 @@ public partial class ConstExprPartialRewriter
 	/// <summary>
 	/// Handles static method invocation.
 	/// </summary>
-	private SyntaxNode? HandleStaticMethodInvocation(InvocationExpressionSyntax node, IMethodSymbol targetMethod, List<SyntaxNode?> arguments)
+	private SyntaxNode? HandleStaticMethodInvocation(InvocationExpressionSyntax node, IMethodSymbol targetMethod, List<SyntaxNode> arguments)
 	{
 		// Check if method is empty (applies to local functions too)
 		if (IsEmptyMethod(targetMethod))
@@ -401,7 +400,7 @@ public partial class ConstExprPartialRewriter
 	/// <summary>
 	/// Handles instance method invocation.
 	/// </summary>
-	private SyntaxNode? HandleInstanceMethodInvocation(InvocationExpressionSyntax node, IMethodSymbol targetMethod, List<SyntaxNode?> arguments)
+	private SyntaxNode? HandleInstanceMethodInvocation(InvocationExpressionSyntax node, IMethodSymbol targetMethod, List<SyntaxNode> arguments)
 	{
 		// try check if method is empty
 		if (IsEmptyMethod(targetMethod))
