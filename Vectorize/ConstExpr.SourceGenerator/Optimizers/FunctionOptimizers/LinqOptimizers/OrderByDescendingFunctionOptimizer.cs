@@ -18,13 +18,8 @@ public class OrderByDescendingFunctionOptimizer() : BaseLinqFunctionOptimizer(na
 			result = null;
 			return false;
 		}
-		
-		result = SyntaxFactory.InvocationExpression(
-			SyntaxFactory.MemberAccessExpression(
-				SyntaxKind.SimpleMemberAccessExpression,
-				memberAccess.Expression,
-				SyntaxFactory.IdentifierName("OrderDescending")),
-			SyntaxFactory.ArgumentList());
+
+		result = CreateLinqMethodCall(memberAccess.Expression, "OrderDescending");
 		return true;
 	}
 }
