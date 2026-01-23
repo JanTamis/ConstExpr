@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
-public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Where), 2)
+public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Where), 1)
 {
 	public override bool TryOptimize(IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
@@ -48,14 +48,15 @@ public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 			// Combine the two predicates with &&
 			var combinedLambda = CombinePredicates(lambda, innerLambda);
 
-			result = SyntaxFactory.InvocationExpression(
-				SyntaxFactory.MemberAccessExpression(
+			result = invocation
+				.WithExpression(SyntaxFactory.MemberAccessExpression(
 					SyntaxKind.SimpleMemberAccessExpression,
 					innerMemberAccess.Expression,
-					SyntaxFactory.IdentifierName(nameof(Enumerable.Where))),
-				SyntaxFactory.ArgumentList(
+					SyntaxFactory.IdentifierName(nameof(Enumerable.Where))))
+				.WithArgumentList(SyntaxFactory.ArgumentList(
 					SyntaxFactory.SingletonSeparatedList(
 						SyntaxFactory.Argument(combinedLambda))));
+
 			return true;
 		}
 
@@ -72,7 +73,7 @@ public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 			_ => null
 		};
 
-		return body is LiteralExpressionSyntax { Token.Text: "true" };
+		return body is LiteralExpressionSyntax { Token.Value: true };
 	}
 
 	private static bool IsAlwaysFalseLambda(LambdaExpressionSyntax lambda)
@@ -84,7 +85,7 @@ public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 			_ => null
 		};
 
-		return body is LiteralExpressionSyntax { Token.Text: "false" };
+		return body is LiteralExpressionSyntax { Token.Value: false };
 	}
 
 	private LambdaExpressionSyntax CombinePredicates(LambdaExpressionSyntax outer, LambdaExpressionSyntax inner)

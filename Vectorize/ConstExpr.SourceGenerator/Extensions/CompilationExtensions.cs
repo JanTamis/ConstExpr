@@ -1230,6 +1230,11 @@ public static class CompilationExtensions
 		{
 			return idA.Identifier.ValueText == idB.Identifier.ValueText;
 		}
+		
+		if (node is LiteralExpressionSyntax litA && other is LiteralExpressionSyntax litB)
+		{
+			return litA.Token.Value?.Equals(litB.Token.Value) == true;
+		}
 
 		if (node.IsEquivalentTo(other))
 		{

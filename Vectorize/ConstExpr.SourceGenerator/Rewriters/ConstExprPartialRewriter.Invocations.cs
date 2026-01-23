@@ -34,6 +34,8 @@ public partial class ConstExprPartialRewriter
 		{
 			return VisitInvocationExpressionFallback(node);
 		}
+		
+		node = node.WithExpression(Visit(node.Expression) as ExpressionSyntax ?? node.Expression);
 
 		var arguments = node.ArgumentList.Arguments
 			.Select(arg => Visit(arg.Expression))
