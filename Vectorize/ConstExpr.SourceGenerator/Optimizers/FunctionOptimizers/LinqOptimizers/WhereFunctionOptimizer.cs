@@ -12,7 +12,7 @@ public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 	{
 		if (!IsValidLinqMethod(method)
 		    || !TryGetLambda(parameters[0], out var lambda)
-		    || invocation.Expression is not MemberAccessExpressionSyntax memberAccess)
+		    || !TryGetLinqSource(invocation, out var source))
 		{
 			result = null;
 			return false;
@@ -21,42 +21,27 @@ public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		// Optimize Where(v => true) - remove entirely
 		if (IsAlwaysTrueLambda(lambda))
 		{
-			result = memberAccess.Expression;
+			result = source;
 			return true;
 		}
 
 		// Optimize Where(v => false) - replace with Empty
 		if (IsAlwaysFalseLambda(lambda))
 		{
-			result = SyntaxFactory.InvocationExpression(
-				SyntaxFactory.MemberAccessExpression(
-					SyntaxKind.SimpleMemberAccessExpression,
-					SyntaxFactory.ParseTypeName("System.Linq.Enumerable"),
-					SyntaxFactory.GenericName(
-						SyntaxFactory.Identifier("Empty"))
-						.WithTypeArgumentList(
-							SyntaxFactory.TypeArgumentList(
-								SyntaxFactory.SingletonSeparatedList<TypeSyntax>(
-									SyntaxFactory.IdentifierName("T"))))));
+			result = CreateEmptyEnumerableCall(method.TypeArguments[0]);
 			return true;
 		}
 
 		// Combine consecutive Where calls: source.Where(a).Where(b) => source.Where(a && b)
-		if (memberAccess.Expression is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: nameof(Enumerable.Where) } innerMemberAccess, ArgumentList.Arguments.Count: 1 } innerInvocation
-		    && TryGetLambda(innerInvocation.ArgumentList.Arguments[0].Expression, out var innerLambda))
+		if (IsLinqMethodChain(source, nameof(Enumerable.Where), out var innerInvocation)
+		    && TryGetLambda(innerInvocation.ArgumentList.Arguments[0].Expression, out var innerLambda)
+		    && TryGetLinqSource(innerInvocation, out var innerSource))
 		{
 			// Combine the two predicates with &&
 			var combinedLambda = CombinePredicates(lambda, innerLambda);
 
-			result = invocation
-				.WithExpression(SyntaxFactory.MemberAccessExpression(
-					SyntaxKind.SimpleMemberAccessExpression,
-					innerMemberAccess.Expression,
-					SyntaxFactory.IdentifierName(nameof(Enumerable.Where))))
-				.WithArgumentList(SyntaxFactory.ArgumentList(
-					SyntaxFactory.SingletonSeparatedList(
-						SyntaxFactory.Argument(combinedLambda))));
-
+			// Create a new Where call with the combined lambda
+			result = CreateLinqMethodCall(innerSource, nameof(Enumerable.Where), SyntaxFactory.Argument(combinedLambda));
 			return true;
 		}
 

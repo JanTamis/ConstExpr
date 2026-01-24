@@ -53,11 +53,9 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 		// Recursively skip all operations that don't affect existence
 		var currentSource = source;
-		while (IsLinqMethodChain(currentSource, OperationsThatDontAffectExistence, out var chainInvocation)
-		       && TryGetLinqSource(chainInvocation, out var innerSource))
-		{
-			currentSource = innerSource;
-		}
+		
+		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectExistence, out source);
+		
 
 		// Now check if we have a Where at the end of the optimized chain
 		if (IsLinqMethodChain(currentSource, nameof(Enumerable.Where), out var whereInvocation)
@@ -66,33 +64,16 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		    && TryGetLinqSource(whereInvocation, out var whereSource))
 		{
 			// Continue skipping operations before Where as well
-			while (IsLinqMethodChain(whereSource, OperationsThatDontAffectExistence, out var beforeWhereInvocation)
-			       && TryGetLinqSource(beforeWhereInvocation, out var beforeWhereSource))
-			{
-				whereSource = beforeWhereSource;
-			}
+			TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectExistence, out whereSource);
 			
 			result = CreateLinqMethodCall(whereSource, nameof(Enumerable.Any), SyntaxFactory.Argument(predicate));
 			return true;
 		}
 
 		// If we skipped any operations, create optimized Any() call
-		if (currentSource != source)
+		if (isNewSource)
 		{
 			result = CreateLinqMethodCall(currentSource, nameof(Enumerable.Any));
-			return true;
-		}
-
-		result = null;
-		return false;
-	}
-
-	private bool TryOptimizeOperationThatDoesntAffectExistence(ExpressionSyntax source, out SyntaxNode? result)
-	{
-		if (IsLinqMethodChain(source, OperationsThatDontAffectExistence, out var invocation)
-		    && TryGetLinqSource(invocation, out var innerSource))
-		{
-			result = CreateLinqMethodCall(innerSource, nameof(Enumerable.Any));
 			return true;
 		}
 

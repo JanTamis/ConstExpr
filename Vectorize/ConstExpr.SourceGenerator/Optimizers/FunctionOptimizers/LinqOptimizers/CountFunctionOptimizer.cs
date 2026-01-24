@@ -24,7 +24,6 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 {
 	// Operations that don't affect element count (only order/form but not filtering)
 	// Note: We DON'T include Select, Distinct, ToList, ToArray because they might affect count
-	// - Select: could map to null values that get filtered
 	// - Distinct: reduces count by removing duplicates
 	// - ToList/ToArray: materialization could fail/filter
 	private static readonly HashSet<string> OperationsThatDontAffectCount =
@@ -50,6 +49,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 		// Recursively skip all operations that don't affect count
 		var currentSource = source;
+		
 		while (IsLinqMethodChain(currentSource, OperationsThatDontAffectCount, out var chainInvocation)
 		       && TryGetLinqSource(chainInvocation, out var innerSource))
 		{

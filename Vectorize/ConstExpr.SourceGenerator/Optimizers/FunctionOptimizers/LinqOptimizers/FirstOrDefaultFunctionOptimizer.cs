@@ -61,6 +61,32 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 			result = CreateLinqMethodCall(whereSource, nameof(Enumerable.FirstOrDefault), SyntaxFactory.Argument(predicate));
 			return true;
 		}
+		
+		// now check if we have a Reverse at the end of the optimized chain
+		if (IsLinqMethodChain(currentSource, nameof(Enumerable.Reverse), out var reverseInvocation)
+		    && TryGetLinqSource(reverseInvocation, out var reverseSource))
+		{
+			result = CreateLinqMethodCall(reverseSource, nameof(Enumerable.LastOrDefault));
+			return true;
+		}
+		
+		// now check if we have a Order at the end of the optimized chain
+		if (IsLinqMethodChain(currentSource, "Order", out var orderInvocation)
+		    && TryGetLinqSource(orderInvocation, out var orderSource))
+		{
+			result = CreateLinqMethodCall(orderSource, nameof(Enumerable.Min));
+			return true;
+		}
+		
+		// now check if we have a OrderDescending at the end of the optimized chain
+		if (IsLinqMethodChain(currentSource, "OrderDescending", out var orderDescInvocation)
+		    && TryGetLinqSource(orderDescInvocation, out var orderDescSource))
+		{
+			result = CreateLinqMethodCall(orderDescSource, nameof(Enumerable.Max));
+			return true;
+		}
+		
+		//
 
 		// If we skipped any operations, create optimized FirstOrDefault() call
 		if (currentSource != source)

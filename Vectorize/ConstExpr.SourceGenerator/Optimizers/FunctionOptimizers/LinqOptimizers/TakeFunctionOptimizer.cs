@@ -24,16 +24,7 @@ public class TakeFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 		}
 
 		// Optimize Take(0) => Enumerable.Empty<T>()
-		result = SyntaxFactory.InvocationExpression(
-			SyntaxFactory.MemberAccessExpression(
-				SyntaxKind.SimpleMemberAccessExpression,
-				SyntaxFactory.ParseTypeName("Enumerable"),
-				SyntaxFactory.GenericName(
-						SyntaxFactory.Identifier("Empty"))
-					.WithTypeArgumentList(
-						SyntaxFactory.TypeArgumentList(
-							SyntaxFactory.SingletonSeparatedList<TypeSyntax>(
-								SyntaxFactory.IdentifierName("T"))))));
+		result = CreateEmptyEnumerableCall(method.TypeArguments[0]);
 		return true;
 	}
 }

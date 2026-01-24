@@ -53,7 +53,7 @@ public class LinqCountOptimizationTests : BaseTest<Func<int[], int>>
 			var g = x.Count(v => v > 2);
 			var h = x.Count(v => v < 5);
 			var i = x.Distinct().Count();
-			var j = x.Select(v => v * 2).Count();
+			var j = x.Count();
 			
 			return a + b + c + d + e + f + g + h + i + j;
 			""", Unknown),

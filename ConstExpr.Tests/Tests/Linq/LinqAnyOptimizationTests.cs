@@ -38,7 +38,10 @@ public class LinqAnyOptimizationTests : BaseTest<Func<int[], int>>
 		// Where filters everything out
 		var j = x.Where(v => v > 100).Any() ? 1 : 0;
 
-		return a + b + c + d + e + f + g + h + i + j;
+		// Should be optimized to Contains
+		var k = x.Any(v => v == 2) ? 1 : 0;
+
+		return a + b + c + d + e + f + g + h + i + j + k;
 	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
@@ -54,6 +57,7 @@ public class LinqAnyOptimizationTests : BaseTest<Func<int[], int>>
 			var h = x.Any() ? 1 : 0;
 			var i = x.Any() ? 1 : 0;
 			var j = x.Any(v => v > 100) ? 1 : 0;
+			var k = x.Contains(2) ? 1 : 0;
 			
 			return a + b + c + d + e + f + g + h + i + j;
 			""", Unknown),

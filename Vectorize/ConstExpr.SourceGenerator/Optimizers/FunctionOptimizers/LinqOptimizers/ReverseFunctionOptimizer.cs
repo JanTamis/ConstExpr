@@ -15,16 +15,22 @@ public class ReverseFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 	public override bool TryOptimize(IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(method)
-		    || !TryGetLinqSource(invocation, out var source)
-		    || !IsLinqMethodChain(source, nameof(Enumerable.Reverse), out var reverseInvocation)
-		    || !TryGetLinqSource(reverseInvocation, out var originalSource))
+		    || !TryGetLinqSource(invocation, out var source))
 		{
 			result = null;
 			return false;
 		}
 
 		// Optimize Reverse().Reverse() => original collection (double reverse cancels out)
-		result = originalSource;
-		return true;
+		if (IsLinqMethodChain(source, nameof(Enumerable.Reverse), out var reverseInvocation)
+		    && TryGetLinqSource(reverseInvocation, out var reverseSource))
+		{
+			result = CreateLinqMethodCall(reverseSource, nameof(Enumerable.LastOrDefault));
+			return true;
+		}
+
+		
+		result = null;
+		return false;
 	}
 }

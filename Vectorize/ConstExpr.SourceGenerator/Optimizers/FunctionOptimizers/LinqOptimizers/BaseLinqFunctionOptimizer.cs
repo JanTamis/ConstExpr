@@ -25,7 +25,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		       && ParameterCounts.Contains(method.Parameters.Length)
 		       && method.ContainingType.ToString() is "System.Linq.Enumerable";
 	}
-	
+
 	/// <summary>
 	/// Attempts to extract a lambda expression from the given parameter.
 	/// </summary>
@@ -41,7 +41,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 
 		return false;
 	}
-	
+
 	/// <summary>
 	/// Checks if the given lambda is an identity lambda (e.g., x => x).
 	/// </summary>
@@ -49,9 +49,9 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	{
 		return lambda switch
 		{
-			SimpleLambdaExpressionSyntax { Body: IdentifierNameSyntax identifierName } simpleLambda 
+			SimpleLambdaExpressionSyntax { Body: IdentifierNameSyntax identifierName } simpleLambda
 				=> identifierName.Identifier.Text == simpleLambda.Parameter.Identifier.Text,
-			ParenthesizedLambdaExpressionSyntax { Body: IdentifierNameSyntax identifierName, ParameterList.Parameters.Count: 1 } parenthesizedLambda 
+			ParenthesizedLambdaExpressionSyntax { Body: IdentifierNameSyntax identifierName, ParameterList.Parameters.Count: 1 } parenthesizedLambda
 				=> identifierName.Identifier.Text == parenthesizedLambda.ParameterList.Parameters[0].Identifier.Text,
 			_ => false
 		};
@@ -112,7 +112,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	/// <summary>
 	/// Creates a new method invocation on the given source expression.
 	/// </summary>
-	protected InvocationExpressionSyntax CreateLinqMethodCall(ExpressionSyntax source, string methodName, params ArgumentSyntax[] arguments)
+	protected InvocationExpressionSyntax CreateLinqMethodCall(ExpressionSyntax source, string methodName, params IEnumerable<ArgumentSyntax> arguments)
 	{
 		return SyntaxFactory.InvocationExpression(
 			SyntaxFactory.MemberAccessExpression(
@@ -126,9 +126,9 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	/// <summary>
 	/// Attempts to match a LINQ method chain pattern and extract specific information.
 	/// </summary>
-	protected bool TryMatchLinqPattern(InvocationExpressionSyntax invocation, string expectedMethodName, 
-		[NotNullWhen(true)] out MemberAccessExpressionSyntax? memberAccess, 
-		[NotNullWhen(true)] out ArgumentListSyntax? argumentList)
+	protected bool TryMatchLinqPattern(InvocationExpressionSyntax invocation, string expectedMethodName,
+	                                   [NotNullWhen(true)] out MemberAccessExpressionSyntax? memberAccess,
+	                                   [NotNullWhen(true)] out ArgumentListSyntax? argumentList)
 	{
 		memberAccess = null;
 		argumentList = null;
@@ -282,12 +282,43 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 			_ => null
 		};
 
-		if (body is LiteralExpressionSyntax literal && literal.Token.Value is bool boolValue)
+		if (body is LiteralExpressionSyntax { Token.Value: bool boolValue })
 		{
 			value = boolValue;
 			return true;
 		}
 
 		return false;
+	}
+
+	protected InvocationExpressionSyntax CreateEmptyEnumerableCall(ITypeSymbol elementType)
+	{
+		return SyntaxFactory.InvocationExpression(
+			SyntaxFactory.MemberAccessExpression(
+				SyntaxKind.SimpleMemberAccessExpression,
+				SyntaxFactory.IdentifierName("Enumerable"),
+				SyntaxFactory.GenericName(
+						SyntaxFactory.Identifier("Empty"))
+					.WithTypeArgumentList(
+						SyntaxFactory.TypeArgumentList(
+							SyntaxFactory.SingletonSeparatedList(
+								SyntaxFactory.ParseTypeName(elementType.ToString()))))));
+	}
+
+	protected bool TryGetOptimizedChainExpression(ExpressionSyntax source, ISet<string> methodsToSkip, [NotNullWhen(true)] out ExpressionSyntax? optimizedSource)
+	{
+		optimizedSource = source;
+
+		var result = false;
+
+		// Skip operations that don't affect behavior
+		while (IsLinqMethodChain(optimizedSource, methodsToSkip, out var chainInvocation)
+		       && TryGetLinqSource(chainInvocation, out var innerSource))
+		{
+			optimizedSource = innerSource;
+			result = true;
+		}
+
+		return result;
 	}
 }

@@ -234,6 +234,12 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 						var rewriter = new ExpressionRewriter(semanticModel, loader, (_, _) => { }, variables, parameters, CancellationToken.None);
 						var body = rewriter.Visit(lambda.Body);
 
+						if (body is null)
+						{
+							value = null;
+							return false;
+						}
+
 						value = Expression.Lambda(body, parameters.Values).Compile();
 						return true;
 					}

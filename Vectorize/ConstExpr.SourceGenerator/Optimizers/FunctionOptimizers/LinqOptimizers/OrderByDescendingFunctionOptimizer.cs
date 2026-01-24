@@ -19,7 +19,7 @@ public class OrderByDescendingFunctionOptimizer() : BaseLinqFunctionOptimizer(na
 			return false;
 		}
 
-		result = CreateLinqMethodCall(memberAccess.Expression, "OrderDescending");
+		result = CreateSimpleLinqMethodCall(memberAccess.Expression, "OrderDescending");
 		return true;
 	}
 }

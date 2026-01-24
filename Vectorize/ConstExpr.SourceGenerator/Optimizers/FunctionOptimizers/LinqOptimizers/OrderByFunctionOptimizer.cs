@@ -11,20 +11,13 @@ public class OrderByFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 	public override bool TryOptimize(IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(method)
-		    || !TryGetLambda(parameters[0], out var lambda)
-		    || !IsIdentityLambda(lambda)
-		    || invocation.Expression is not MemberAccessExpressionSyntax memberAccess)
+		    || !TryGetLinqSource(invocation, out var source))
 		{
 			result = null;
 			return false;
 		}
 		
-		result = SyntaxFactory.InvocationExpression(
-			SyntaxFactory.MemberAccessExpression(
-				SyntaxKind.SimpleMemberAccessExpression,
-				memberAccess.Expression,
-				SyntaxFactory.IdentifierName("Order")),
-			SyntaxFactory.ArgumentList());
+		result = CreateSimpleLinqMethodCall(source, "Order");
 		return true;
 	}
 }

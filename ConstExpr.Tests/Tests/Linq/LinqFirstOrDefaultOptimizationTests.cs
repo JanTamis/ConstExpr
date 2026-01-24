@@ -51,7 +51,7 @@ public class LinqFirstOrDefaultOptimizationTests : BaseTest<Func<int[], int>>
 			var e = x.FirstOrDefault(v => v > 2);
 			var f = x.FirstOrDefault(v => v < 5);
 			var g = x.FirstOrDefault(v => v == 3);
-			var h = x.Order().FirstOrDefault();
+			var h = x.Min();
 			var i = x.LastOrDefault();
 			var j = x.FirstOrDefault();
 			
