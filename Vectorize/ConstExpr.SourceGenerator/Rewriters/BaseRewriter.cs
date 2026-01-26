@@ -108,9 +108,16 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 									var intVal = Convert.ToInt32(innerVal);
 									var ctor2 = indexType.GetConstructor([typeof(int), typeof(bool)]);
 									var ctor1 = indexType.GetConstructor([typeof(int)]);
-									if (ctor2 is not null) return ctor2.Invoke([intVal, false]);
-									if (ctor1 is not null) return ctor1.Invoke([intVal]);
-								}
+									if (ctor2 is not null)
+                  {
+                    return ctor2.Invoke([intVal, false]);
+                  }
+
+                  if (ctor1 is not null)
+                  {
+                    return ctor1.Invoke([intVal]);
+                  }
+                }
 							}
 							return null;
 						}
@@ -280,9 +287,11 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 
 						// normalize common C# keywords and System.* names
 						if (typeName.StartsWith("System.", StringComparison.OrdinalIgnoreCase))
-							typeName = typeName.Substring("System.".Length);
+            {
+              typeName = typeName.Substring("System.".Length);
+            }
 
-						typeName = typeName switch
+            typeName = typeName switch
 						{
 							"int" => "Int32",
 							"short" => "Int16",

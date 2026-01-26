@@ -16,9 +16,11 @@ public class ConditionalAndDeMorganStrategy()
 	public override bool TryOptimize(BinaryOptimizeContext<PrefixUnaryExpressionSyntax, PrefixUnaryExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!base.TryOptimize(context, out optimized))
-			return false;
+    {
+      return false;
+    }
 
-		optimized = PrefixUnaryExpression(SyntaxKind.LogicalNotExpression,
+    optimized = PrefixUnaryExpression(SyntaxKind.LogicalNotExpression,
 			ParenthesizedExpression(BinaryExpression(SyntaxKind.LogicalOrExpression,
 				context.Left.Syntax.Operand,
 				context.Right.Syntax.Operand)));

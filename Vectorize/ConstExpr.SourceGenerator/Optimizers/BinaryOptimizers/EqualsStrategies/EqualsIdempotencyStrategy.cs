@@ -14,9 +14,11 @@ public class EqualsIdempotencyStrategy : BooleanBinaryStrategy
 		if (!base.TryOptimize(context, out optimized)
 		    || !LeftEqualsRight(context)
 		    || !IsPure(context.Left.Syntax))
-			return false;
+    {
+      return false;
+    }
 
-		optimized = SyntaxHelpers.CreateLiteral(true);
+    optimized = SyntaxHelpers.CreateLiteral(true);
 		return true;
 	}
 }

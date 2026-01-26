@@ -16,9 +16,11 @@ public class ModuloIdempotencyStrategy() : IntegerBinaryStrategy<BinaryExpressio
 		if (!base.TryOptimize(context, out optimized)
 		    || context.Right.IsNumericZero()
 		    || !LeftEqualsRight(context.Left.Syntax.Right, context.Right.Syntax, context.Variables))
-			return false;
-		
-		optimized = context.Left.Syntax;
+    {
+      return false;
+    }
+
+    optimized = context.Left.Syntax;
 		return true;
 	}
 }

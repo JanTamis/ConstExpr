@@ -181,9 +181,12 @@ public class MaxFunctionOptimizer() : BaseMathFunctionOptimizer("Max", 2)
 			}
 
 			var args = minInv.ArgumentList.Arguments;
-			if (args.Count != 2) return false;
+			if (args.Count != 2)
+      {
+        return false;
+      }
 
-			var m0 = args[0].Expression;
+      var m0 = args[0].Expression;
 			var m1 = args[1].Expression;
 
 			var hasMaxC0 = TryGetConstantValue(paramType, m0, out var maxValA, out var maxExprA);
@@ -244,9 +247,12 @@ public class MaxFunctionOptimizer() : BaseMathFunctionOptimizer("Max", 2)
 			}
 
 			var args2 = minInv2.ArgumentList.Arguments;
-			if (args2.Count != 2) return false;
+			if (args2.Count != 2)
+      {
+        return false;
+      }
 
-			var mm0 = args2[0].Expression;
+      var mm0 = args2[0].Expression;
 			var mm1 = args2[1].Expression;
 
 			var hasMaxC0b = TryGetConstantValue(paramType, mm0, out var maxValA2, out var maxExprA2);
@@ -302,8 +308,12 @@ public class MaxFunctionOptimizer() : BaseMathFunctionOptimizer("Max", 2)
 				return value is not null && IsNumericLiteral(value);
 			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax opLit }:
 				var v = opLit.Token.Value;
-				if (v is null || !IsNumericLiteral(v)) return false;
-				value = NegateNumeric(v);
+				if (v is null || !IsNumericLiteral(v))
+        {
+          return false;
+        }
+
+        value = NegateNumeric(v);
 				constExpr = expr; // keep the original syntax including the minus
 				return true;
 			default:

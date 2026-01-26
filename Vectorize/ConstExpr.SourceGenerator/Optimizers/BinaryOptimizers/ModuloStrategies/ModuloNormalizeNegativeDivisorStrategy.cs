@@ -17,9 +17,11 @@ public class ModuloNormalizeNegativeDivisorStrategy() : IntegerBinaryStrategy<Ex
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, PrefixUnaryExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!base.TryOptimize(context, out optimized))
-			return false;
+    {
+      return false;
+    }
 
-		optimized = BinaryExpression(SyntaxKind.ModuloExpression, context.Left.Syntax, context.Right.Syntax.Operand);
+    optimized = BinaryExpression(SyntaxKind.ModuloExpression, context.Left.Syntax, context.Right.Syntax.Operand);
 		return true;
 	}
 }

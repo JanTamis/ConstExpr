@@ -11,10 +11,22 @@ internal sealed class UsingComparer : IComparer<string>
 	public static readonly UsingComparer Instance = new();
 	public int Compare(string? x, string? y)
 	{
-		if (ReferenceEquals(x, y)) return 0;
-		if (x is null) return -1;
-		if (y is null) return 1;
-		var xs = x.StartsWith("System", StringComparison.Ordinal);
+		if (ReferenceEquals(x, y))
+    {
+      return 0;
+    }
+
+    if (x is null)
+    {
+      return -1;
+    }
+
+    if (y is null)
+    {
+      return 1;
+    }
+
+    var xs = x.StartsWith("System", StringComparison.Ordinal);
 		var ys = y.StartsWith("System", StringComparison.Ordinal);
 		if (xs != ys)
 		{

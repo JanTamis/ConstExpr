@@ -15,9 +15,11 @@ public class ExclusiveOrSelfCancellationStrategy : NumericBinaryStrategy
 		if (!base.TryOptimize(context, out optimized)
 		    || !LeftEqualsRight(context)
 		    || !IsPure(context.Left.Syntax))
-			return false;
+    {
+      return false;
+    }
 
-		optimized = SyntaxHelpers.CreateLiteral(0.ToSpecialType(context.Type.SpecialType));
+    optimized = SyntaxHelpers.CreateLiteral(0.ToSpecialType(context.Type.SpecialType));
 		return true;
 	}
 }

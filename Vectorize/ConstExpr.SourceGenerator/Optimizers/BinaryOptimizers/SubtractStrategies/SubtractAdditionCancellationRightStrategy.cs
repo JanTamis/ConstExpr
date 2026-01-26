@@ -16,9 +16,11 @@ public class SubtractAdditionCancellationRightStrategy() : NumericBinaryStrategy
 		    || !LeftEqualsRight(context.Left.Syntax.Right, context.Right.Syntax, context.Variables)
 		    || !IsPure(context.Left.Syntax)
 		    || !IsPure(context.Right.Syntax))
-			return false;
-		
-		optimized = context.Left.Syntax.Left;
+    {
+      return false;
+    }
+
+    optimized = context.Left.Syntax.Left;
 		return true;
 	}
 }

@@ -17,9 +17,11 @@ public class ModuloNestedSimplificationStrategy() : IntegerBinaryStrategy<Binary
 		if (!base.TryOptimize(context, out optimized)
 		    || !context.TryGetValue(context.Left.Syntax.Right, out var innerRightValue)
 		    || !innerRightValue.Modulo(context.Right.Syntax.Token.Value).IsNumericZero())
-			return false;
-		
-		optimized = BinaryExpression(SyntaxKind.ModuloExpression, context.Left.Syntax.Left, context.Right.Syntax);
+    {
+      return false;
+    }
+
+    optimized = BinaryExpression(SyntaxKind.ModuloExpression, context.Left.Syntax.Left, context.Right.Syntax);
 		return true;
 	}
 }

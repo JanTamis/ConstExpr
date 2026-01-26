@@ -20,17 +20,21 @@ public class ModuloAlreadyMaskedStrategy() : UnsigedIntegerBinaryStrategy<Binary
 		if (!base.TryOptimize(context, out optimized)
 		    || !context.TryGetValue(context.Right.Syntax, out var rightValue) 
 		    || !rightValue.IsNumericPowerOfTwo(out _))
-			return false;
+    {
+      return false;
+    }
 
-		// Calculate m - 1
-		var one = 1.ToSpecialType(context.Type.SpecialType);
+    // Calculate m - 1
+    var one = 1.ToSpecialType(context.Type.SpecialType);
 		var mask = rightValue.Subtract(one);
 
 		if (mask == null)
-			return false;
+    {
+      return false;
+    }
 
-		// Check if either operand of the AND matches the mask
-		if (context.TryGetValue(context.Left.Syntax.Left, out var leftAndValue) 
+    // Check if either operand of the AND matches the mask
+    if (context.TryGetValue(context.Left.Syntax.Left, out var leftAndValue) 
 		    && EqualityComparer<object?>.Default.Equals(leftAndValue, mask)
 		    || context.TryGetValue(context.Left.Syntax.Right, out var rightAndValue)
 		    && EqualityComparer<object?>.Default.Equals(rightAndValue, mask))

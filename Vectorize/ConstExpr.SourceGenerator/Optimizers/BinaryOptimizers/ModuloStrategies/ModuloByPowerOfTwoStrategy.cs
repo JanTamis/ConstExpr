@@ -17,9 +17,11 @@ public class ModuloByPowerOfTwoStrategy : IntegerBinaryStrategy<ExpressionSyntax
 		if (!base.TryOptimize(context, out optimized)
 		    || !context.Right.Syntax.IsNumericPowerOfTwo(out var power)
 		    || !SyntaxHelpers.TryGetLiteral(((1 << power) - 1).ToSpecialType(context.Type.SpecialType), out var maskLiteral))
-			return false;
-		
-		optimized = BinaryExpression(SyntaxKind.BitwiseAndExpression, context.Left.Syntax, maskLiteral);
+    {
+      return false;
+    }
+
+    optimized = BinaryExpression(SyntaxKind.BitwiseAndExpression, context.Left.Syntax, maskLiteral);
 		return true;
 	}
 }

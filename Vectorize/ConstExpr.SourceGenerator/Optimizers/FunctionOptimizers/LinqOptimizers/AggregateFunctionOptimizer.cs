@@ -48,20 +48,20 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectAggregate, out source);
 
 		// First, try to optimize Aggregate to Sum if it's just adding values
-		if (TryOptimizeAggregateToSum(method, parameters, source, out result))
+		if (TryOptimizeAggregateToSum(method, parameters, source!, out result))
 		{
 			return true;
 		}
 
 		if (IsZeroLiteral(parameters[0]))
 		{
-			result = CreateLinqMethodCall(source, nameof(Enumerable.Aggregate), parameters.Skip(1).Select(SyntaxFactory.Argument));
+			result = CreateLinqMethodCall(source!, nameof(Enumerable.Aggregate), parameters.Skip(1).Select(SyntaxFactory.Argument));
 			return true;
 		}
 
 		if (isNewSource)
 		{
-			result = CreateLinqMethodCall(source, nameof(Enumerable.Aggregate), parameters.Select(SyntaxFactory.Argument));
+			result = CreateLinqMethodCall(source!, nameof(Enumerable.Aggregate), parameters.Select(SyntaxFactory.Argument));
 			return true;
 		}
 
@@ -81,34 +81,31 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		result = null;
 
 		// Check parameter count: 1 or 2 (we don't optimize the 3-parameter overload with result selector)
-		if (method.Parameters.Length != 1 && method.Parameters.Length != 2)
-			return false;
+		if (method.Parameters.Length is not 1 and not 2)
+    {
+      return false;
+    }
 
-		// For 2-parameter overload, check if seed is 0
-		// if (method.Parameters.Length == 2)
-		// {
-		// 	var seedArg = parameters[0];
-		// 	
-		// 	if (!IsZeroLiteral(seedArg))
-		// 		return false;
-		// }
-
-		// Get the lambda (last parameter)
-		var lambdaArg = parameters[method.Parameters.Length - 1];
+    // Get the lambda (last parameter)
+    var lambdaArg = parameters[^1];
 		
 		if (!TryGetLambda(lambdaArg, out var lambda))
-			return false;
+    {
+      return false;
+    }
 
-		// Check if lambda is addition: (acc, v) => acc + v
-		if (!IsAdditionLambda(lambda))
-			return false;
+    // Check if lambda is addition: (acc, v) => acc + v
+    if (!IsAdditionLambda(lambda))
+    {
+      return false;
+    }
 
-		// Optimize to Sum()
-		result = CreateLinqMethodCall(source, nameof(Enumerable.Sum));
+    // Optimize to Sum()
+    result = CreateLinqMethodCall(source, nameof(Enumerable.Sum));
 
 		if (method.Parameters.Length == 2 && !IsZeroLiteral(parameters[0]))
 		{
-			result = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, result as ExpressionSyntax, parameters[0]);
+			result = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, (ExpressionSyntax)result, parameters[0]);
 		}
 		
 		return true;
@@ -156,21 +153,27 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 
 		// Get body
 		if (!TryGetLambdaBody(lambda, out var body))
-			return false;
+    {
+      return false;
+    }
 
-		// Check if body is: acc + v (binary addition)
-		if (body is not BinaryExpressionSyntax { RawKind: (int)SyntaxKind.AddExpression } binaryExpr)
-			return false;
+    // Check if body is: acc + v (binary addition)
+    if (body is not BinaryExpressionSyntax { RawKind: (int)SyntaxKind.AddExpression } binaryExpr)
+    {
+      return false;
+    }
 
-		// Check if it's acc + v or v + acc
-		var isAccLeft = binaryExpr.Left is IdentifierNameSyntax leftId && leftId.Identifier.Text == accParam;
+    // Check if it's acc + v or v + acc
+    var isAccLeft = binaryExpr.Left is IdentifierNameSyntax leftId && leftId.Identifier.Text == accParam;
 		var isValueRight = binaryExpr.Right is IdentifierNameSyntax rightId && rightId.Identifier.Text == valueParam;
 
 		if (isAccLeft && isValueRight)
-			return true;
+    {
+      return true;
+    }
 
-		// Also check reverse: v + acc
-		var isValueLeft = binaryExpr.Left is IdentifierNameSyntax leftId2 && leftId2.Identifier.Text == valueParam;
+    // Also check reverse: v + acc
+    var isValueLeft = binaryExpr.Left is IdentifierNameSyntax leftId2 && leftId2.Identifier.Text == valueParam;
 		var isAccRight = binaryExpr.Right is IdentifierNameSyntax rightId2 && rightId2.Identifier.Text == accParam;
 
 		return isValueLeft && isAccRight;

@@ -13,9 +13,11 @@ public class RightShiftByZeroStrategy : IntegerBinaryStrategy<ExpressionSyntax, 
 	{
 		if (!base.TryOptimize(context, out optimized)
 		    || !context.Right.Syntax.IsNumericZero())
-			return false;
-		
-		optimized = context.Left.Syntax;
+    {
+      return false;
+    }
+
+    optimized = context.Left.Syntax;
 		return true;
 	}
 }

@@ -12,9 +12,11 @@ public class ConditionalAndLiteralStrategy : BooleanBinaryStrategy<LiteralExpres
 	public override bool TryOptimize(BinaryOptimizeContext<LiteralExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!base.TryOptimize(context, out optimized))
-			return false;
-		
-		optimized = context.Left.Syntax.Token.Value switch
+    {
+      return false;
+    }
+
+    optimized = context.Left.Syntax.Token.Value switch
 		{
 			// false && x = false
 			false => SyntaxHelpers.CreateLiteral(false),

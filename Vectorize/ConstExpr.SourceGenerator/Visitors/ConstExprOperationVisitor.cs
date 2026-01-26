@@ -563,9 +563,12 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 			foreach (var clause in clauses)
 			{
-				if (isValid) break;
+				if (isValid)
+        {
+          break;
+        }
 
-				switch (clause)
+        switch (clause)
 				{
 					case ISingleValueCaseClauseOperation singleValue:
 						{
@@ -709,9 +712,16 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		while (Visit(operation.Condition, argument) is true)
 		{
 			var loopResult = Visit(operation.Body, argument);
-			if (ReferenceEquals(loopResult, BreakSentinel)) break;
-			if (ReferenceEquals(loopResult, ContinueSentinel)) continue;
-		}
+			if (ReferenceEquals(loopResult, BreakSentinel))
+      {
+        break;
+      }
+
+      if (ReferenceEquals(loopResult, ContinueSentinel))
+      {
+        continue;
+      }
+    }
 
 		return null;
 	}
@@ -721,9 +731,16 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		for (VisitList(operation.Before, argument); Visit(operation.Condition, argument) is true; VisitList(operation.AtLoopBottom, argument))
 		{
 			var loopResult = Visit(operation.Body, argument);
-			if (ReferenceEquals(loopResult, BreakSentinel)) break;
-			if (ReferenceEquals(loopResult, ContinueSentinel)) continue;
-		}
+			if (ReferenceEquals(loopResult, BreakSentinel))
+      {
+        break;
+      }
+
+      if (ReferenceEquals(loopResult, ContinueSentinel))
+      {
+        continue;
+      }
+    }
 
 		return null;
 	}
@@ -739,9 +756,16 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 			var loopResult = Visit(operation.Body, argument);
 
-			if (ReferenceEquals(loopResult, BreakSentinel)) break;
-			if (ReferenceEquals(loopResult, ContinueSentinel)) continue;
-		}
+			if (ReferenceEquals(loopResult, BreakSentinel))
+      {
+        break;
+      }
+
+      if (ReferenceEquals(loopResult, ContinueSentinel))
+      {
+        continue;
+      }
+    }
 
 		return null;
 	}
@@ -1505,9 +1529,12 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 	public override object? VisitWith(IWithOperation operation, IDictionary<string, object?> argument)
 	{
 		var receiver = Visit(operation.Operand, argument);
-		if (receiver == null) return null;
+		if (receiver == null)
+    {
+      return null;
+    }
 
-		var type = receiver.GetType();
+    var type = receiver.GetType();
 		var copyCtor = type.GetConstructor([type]);
 		object clone;
 
@@ -1545,9 +1572,12 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 				if (declarationPattern.MatchedType != null && value != null)
 				{
 					var matchedType = loader.GetType(declarationPattern.MatchedType);
-					if (matchedType != null && !matchedType.IsInstanceOfType(value)) return false;
+					if (matchedType != null && !matchedType.IsInstanceOfType(value))
+          {
+            return false;
+          }
 
-					if (declarationPattern.DeclaredSymbol is { } decl)
+          if (declarationPattern.DeclaredSymbol is { } decl)
 					{
 						argument[decl.Name] = value;
 					}
@@ -1581,14 +1611,24 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			case INegatedPatternOperation negatedPattern:
 				return !MatchPattern(value, negatedPattern.Pattern, argument);
 			case IListPatternOperation listPattern:
-				if (value is not IEnumerable enumerable) return false;
-				var elements = enumerable.Cast<object?>().ToList();
-				if (elements.Count != listPattern.ChildOperations.Count) return false;
+				if (value is not IEnumerable enumerable)
+        {
+          return false;
+        }
 
-				foreach (var (index, child) in listPattern.ChildOperations.Index())
+        var elements = enumerable.Cast<object?>().ToList();
+				if (elements.Count != listPattern.ChildOperations.Count)
+        {
+          return false;
+        }
+
+        foreach (var (index, child) in listPattern.ChildOperations.Index())
 				{
-					if (!MatchPattern(elements[index], child as IPatternOperation, argument)) return false;
-				}
+					if (!MatchPattern(elements[index], child as IPatternOperation, argument))
+          {
+            return false;
+          }
+        }
 				return true;
 			default:
 				return false;
@@ -1615,7 +1655,10 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 		{
 			var loopResult = Visit(operation, argument);
 
-			if (ReferenceEquals(loopResult, BreakSentinel)) break;
-		}
+			if (ReferenceEquals(loopResult, BreakSentinel))
+      {
+        break;
+      }
+    }
 	}
 }

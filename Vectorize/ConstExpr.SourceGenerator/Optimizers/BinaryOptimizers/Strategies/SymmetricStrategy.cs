@@ -14,9 +14,11 @@ public abstract class SymmetricStrategy<TStrategy, TLeft, TRight>(SyntaxKind lef
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!_innerStrategy.TryOptimize(context, out optimized))
-			return false;
+    {
+      return false;
+    }
 
-		if (context.Left.Syntax is TLeft left 
+    if (context.Left.Syntax is TLeft left 
 		    && context.Right.Syntax is TRight right
 		    && (leftKind == SyntaxKind.None || left.IsKind(leftKind))
 		    && (rightKind == SyntaxKind.None || right.IsKind(rightKind)))

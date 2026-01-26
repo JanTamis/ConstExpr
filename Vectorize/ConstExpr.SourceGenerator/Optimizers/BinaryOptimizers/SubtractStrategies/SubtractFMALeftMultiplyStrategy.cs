@@ -16,9 +16,11 @@ public class SubtractFMALeftMultiplyStrategy() : NumericBinaryStrategy<BinaryExp
 	public override bool TryOptimize(BinaryOptimizeContext<BinaryExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!base.TryOptimize(context, out optimized))
-			return false;
+    {
+      return false;
+    }
 
-		var host = ParseName(context.Type.Name);
+    var host = ParseName(context.Type.Name);
 
 		var arguments = ArgumentList(SeparatedList(
 		[

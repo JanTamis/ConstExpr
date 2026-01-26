@@ -63,9 +63,11 @@ public static class ObjectExtensions
 		Func<Expression, Expression, BinaryExpression> operation)
 	{
 		if (left is null || right is null)
-			return null;
+    {
+      return null;
+    }
 
-		var lType = left.GetType();
+    var lType = left.GetType();
 		var rType = right.GetType();
 
 		try
@@ -74,20 +76,27 @@ public static class ObjectExtensions
 			if (lType == typeof(string) || rType == typeof(string))
 			{
 				if (operation == (Func<Expression, Expression, BinaryExpression>) Expression.Add)
-					return left?.ToString() + right?.ToString();
-				return null;
+        {
+          return left?.ToString() + right?.ToString();
+        }
+
+        return null;
 			}
 
 			// Check if both are numeric types
 			if (!IsNumericType(lType) || !IsNumericType(rType))
-				return null;
+      {
+        return null;
+      }
 
-			// Find common type according to C# numeric promotion rules
-			var common = GetCommonArithmeticType(lType, rType);
+      // Find common type according to C# numeric promotion rules
+      var common = GetCommonArithmeticType(lType, rType);
 			if (common is null)
-				return null;
+      {
+        return null;
+      }
 
-			var lc = Expression.Convert(Expression.Constant(left), common);
+      var lc = Expression.Convert(Expression.Constant(left), common);
 			var rc = Expression.Convert(Expression.Constant(right), common);
 			var expr = operation(lc, rc);
 
@@ -122,30 +131,48 @@ public static class ObjectExtensions
 		if (tl == TypeCode.Decimal || tr == TypeCode.Decimal)
 		{
 			if (tl == TypeCode.Single || tl == TypeCode.Double || tr == TypeCode.Single || tr == TypeCode.Double)
-				return null;
-			return typeof(decimal);
+      {
+        return null;
+      }
+
+      return typeof(decimal);
 		}
 
 		// Double: if either is double, result is double
 		if (tl == TypeCode.Double || tr == TypeCode.Double)
-			return typeof(double);
+    {
+      return typeof(double);
+    }
 
-		// Float: if either is float, result is float
-		if (tl == TypeCode.Single || tr == TypeCode.Single)
-			return typeof(float);
+    // Float: if either is float, result is float
+    if (tl == TypeCode.Single || tr == TypeCode.Single)
+    {
+      return typeof(float);
+    }
 
-		// Integral promotions
-		// Disallow long|ulong combination
-		if ((tl == TypeCode.UInt64 && tr == TypeCode.Int64) || (tl == TypeCode.Int64 && tr == TypeCode.UInt64))
-			return null;
+    // Integral promotions
+    // Disallow long|ulong combination
+    if ((tl == TypeCode.UInt64 && tr == TypeCode.Int64) || (tl == TypeCode.Int64 && tr == TypeCode.UInt64))
+    {
+      return null;
+    }
 
-		if (tl == TypeCode.UInt64 || tr == TypeCode.UInt64)
-			return typeof(ulong);
-		if (tl == TypeCode.Int64 || tr == TypeCode.Int64)
-			return typeof(long);
-		if (tl == TypeCode.UInt32 || tr == TypeCode.UInt32)
-			return typeof(uint);
-		return typeof(int);
+    if (tl == TypeCode.UInt64 || tr == TypeCode.UInt64)
+    {
+      return typeof(ulong);
+    }
+
+    if (tl == TypeCode.Int64 || tr == TypeCode.Int64)
+    {
+      return typeof(long);
+    }
+
+    if (tl == TypeCode.UInt32 || tr == TypeCode.UInt32)
+    {
+      return typeof(uint);
+    }
+
+    return typeof(int);
 	}
 
 	public static object? LeftShift(this object? left, object? right)
@@ -162,16 +189,20 @@ public static class ObjectExtensions
 	{
 		// Expression trees don't support >>> directly, so we handle it manually
 		if (left is null || right is null)
-			return null;
+    {
+      return null;
+    }
 
-		try
+    try
 		{
 			// Convert shift amount to int using expression tree
 			var shift = ConvertToInt32(right);
 			if (shift is null)
-				return null;
+      {
+        return null;
+      }
 
-			return left switch
+      return left switch
 			{
 				byte b => b >>> shift.Value,
 				sbyte sb => sb >>> shift.Value,
@@ -194,13 +225,17 @@ public static class ObjectExtensions
 	private static int? ConvertToInt32(object? value)
 	{
 		if (value is null)
-			return null;
+    {
+      return null;
+    }
 
-		var type = value.GetType();
+    var type = value.GetType();
 		if (!IsNumericType(type) && !IsIntegralType(type))
-			return null;
+    {
+      return null;
+    }
 
-		try
+    try
 		{
 			var constant = Expression.Constant(value);
 			var converted = Expression.Convert(constant, typeof(int));
@@ -220,13 +255,17 @@ public static class ObjectExtensions
 	public static long? ToLong(this object? value)
 	{
 		if (value is null)
-			return null;
+    {
+      return null;
+    }
 
-		var type = value.GetType();
+    var type = value.GetType();
 		if (!IsNumericType(type) && !IsIntegralType(type))
-			return null;
+    {
+      return null;
+    }
 
-		try
+    try
 		{
 			var constant = Expression.Constant(value);
 			var converted = Expression.Convert(constant, typeof(long));
@@ -246,22 +285,28 @@ public static class ObjectExtensions
 		Func<Expression, Expression, BinaryExpression> operation)
 	{
 		if (left is null || right is null)
-			return null;
+    {
+      return null;
+    }
 
-		var lType = left.GetType();
+    var lType = left.GetType();
 
 		try
 		{
 			if (!IsIntegralType(lType))
-				return null;
+      {
+        return null;
+      }
 
-			// Convert shift amount to int using expression tree
-			var shiftAmount = ConvertToInt32(right);
+      // Convert shift amount to int using expression tree
+      var shiftAmount = ConvertToInt32(right);
 			if (shiftAmount is null)
-				return null;
+      {
+        return null;
+      }
 
-			// C# promotes smaller types to int for shift operations
-			var promoted = GetPromotedType(lType);
+      // C# promotes smaller types to int for shift operations
+      var promoted = GetPromotedType(lType);
 
 			var lc = Expression.Convert(Expression.Constant(left), promoted);
 			var rc = Expression.Constant(shiftAmount.Value);
@@ -299,9 +344,11 @@ public static class ObjectExtensions
 		Func<Expression, Expression, BinaryExpression> operation)
 	{
 		if (left is null || right is null)
-			return null;
+    {
+      return null;
+    }
 
-		var lType = left.GetType();
+    var lType = left.GetType();
 		var rType = right.GetType();
 
 		try
@@ -310,9 +357,11 @@ public static class ObjectExtensions
 			if (lType.IsEnum && rType.IsEnum)
 			{
 				if (lType != rType)
-					return null;
+        {
+          return null;
+        }
 
-				var underlying = Enum.GetUnderlyingType(lType);
+        var underlying = Enum.GetUnderlyingType(lType);
 				var lConst = Expression.Constant(left);
 				var rConst = Expression.Constant(right);
 				var lToUnder = Expression.Convert(lConst, underlying);
@@ -333,14 +382,18 @@ public static class ObjectExtensions
 
 			// Check if both are integral types
 			if (!IsIntegralType(lType) || !IsIntegralType(rType))
-				return null;
+      {
+        return null;
+      }
 
-			// Find common type according to C# numeric promotion rules
-			var common = GetCommonBitwiseType(lType, rType);
+      // Find common type according to C# numeric promotion rules
+      var common = GetCommonBitwiseType(lType, rType);
 			if (common is null)
-				return null;
+      {
+        return null;
+      }
 
-			var lc = Expression.Convert(Expression.Constant(left), common);
+      var lc = Expression.Convert(Expression.Constant(left), common);
 			var rc = Expression.Convert(Expression.Constant(right), common);
 			var be = operation(lc, rc);
 
@@ -357,8 +410,12 @@ public static class ObjectExtensions
 
 	private static bool IsIntegralType(Type t)
 	{
-		if (t.IsEnum) return false;
-		return Type.GetTypeCode(t) switch
+		if (t.IsEnum)
+    {
+      return false;
+    }
+
+    return Type.GetTypeCode(t) switch
 		{
 			TypeCode.SByte or TypeCode.Byte or TypeCode.Int16 or TypeCode.UInt16 or
 				TypeCode.Int32 or TypeCode.UInt32 or TypeCode.Int64 or TypeCode.UInt64 or
@@ -384,40 +441,61 @@ public static class ObjectExtensions
 	private static Type? GetCommonBitwiseType(Type lt, Type rt)
 	{
 		if (lt.IsEnum || rt.IsEnum)
-			return null;
+    {
+      return null;
+    }
 
-		if (!IsIntegralType(lt) || !IsIntegralType(rt))
-			return null;
+    if (!IsIntegralType(lt) || !IsIntegralType(rt))
+    {
+      return null;
+    }
 
-		var tl = Type.GetTypeCode(lt);
+    var tl = Type.GetTypeCode(lt);
 		var tr = Type.GetTypeCode(rt);
 
 		// Disallow long|ulong combination (no implicit common type in C#)
 		if ((tl == TypeCode.UInt64 && tr == TypeCode.Int64) || (tl == TypeCode.Int64 && tr == TypeCode.UInt64))
-			return null;
+    {
+      return null;
+    }
 
-		// C# binary numeric promotions:
-		if (tl == TypeCode.UInt64 || tr == TypeCode.UInt64)
-			return typeof(ulong);
-		if (tl == TypeCode.Int64 || tr == TypeCode.Int64)
-			return typeof(long);
-		if (tl == TypeCode.UInt32 || tr == TypeCode.UInt32)
-			return typeof(uint);
-		return typeof(int);
+    // C# binary numeric promotions:
+    if (tl == TypeCode.UInt64 || tr == TypeCode.UInt64)
+    {
+      return typeof(ulong);
+    }
+
+    if (tl == TypeCode.Int64 || tr == TypeCode.Int64)
+    {
+      return typeof(long);
+    }
+
+    if (tl == TypeCode.UInt32 || tr == TypeCode.UInt32)
+    {
+      return typeof(uint);
+    }
+
+    return typeof(int);
 	}
 
 	public static object? ConditionalAnd(this object? left, object? right)
 	{
 		if (left is bool lb && right is bool rb)
-			return lb && rb;
-		return null;
+    {
+      return lb && rb;
+    }
+
+    return null;
 	}
 
 	public static object? ConditionalOr(this object? left, object? right)
 	{
 		if (left is bool lb && right is bool rb)
-			return lb || rb;
-		return null;
+    {
+      return lb || rb;
+    }
+
+    return null;
 	}
 
 	public static bool EqualsTo(this object? left, object? right)
@@ -745,9 +823,11 @@ public static class ObjectExtensions
 			p = 0;
 
 			if (m <= 0m || decimal.Truncate(m) != m)
-				return false;
+      {
+        return false;
+      }
 
-			while (m % 2m == 0m)
+      while (m % 2m == 0m)
 			{
 				m /= 2m;
 				p++;
@@ -859,19 +939,23 @@ public static class ObjectExtensions
 	public static IEnumerable<Cluster> GetClusterPatterns(this IList<object?> items)
 	{
 		if (items.Count == 0)
-			yield break;
+    {
+      yield break;
+    }
 
-		// Convert to non-nullable list for helper methods
-		var values = items
+    // Convert to non-nullable list for helper methods
+    var values = items
 			.Where(x => x != null)
 			.Distinct()
 			.Cast<object>()
 			.ToList();
 
 		if (values.Count == 0)
-			yield break;
+    {
+      yield break;
+    }
 
-		var i = 0;
+    var i = 0;
 
 		while (i < values.Count)
 		{
@@ -993,27 +1077,35 @@ public static class ObjectExtensions
 		step = null;
 
 		if (index >= values.Count)
-			return false;
+    {
+      return false;
+    }
 
-		var j = index + 1;
+    var j = index + 1;
 
 		if (j >= values.Count)
-			return false;
+    {
+      return false;
+    }
 
-		step = values[j].Subtract(values[index]);
+    step = values[j].Subtract(values[index]);
 		if (step == null)
-			return false;
+    {
+      return false;
+    }
 
-		var previous = values[index];
+    var previous = values[index];
 
 		while (j < values.Count)
 		{
 			var diff = values[j].Subtract(previous);
 
 			if (diff == null || !diff.EqualsTo(step))
-				break;
+      {
+        break;
+      }
 
-			previous = values[j];
+      previous = values[j];
 			j++;
 		}
 
@@ -1030,9 +1122,11 @@ public static class ObjectExtensions
 		endIndex = index;
 
 		if (index >= values.Count)
-			return false;
+    {
+      return false;
+    }
 
-		var j = index;
+    var j = index;
 
 		while (j < values.Count && values[j].IsPowerOfTwo())
 		{
@@ -1052,9 +1146,11 @@ public static class ObjectExtensions
 		endIndex = index;
 
 		if (index >= values.Count)
-			return false;
+    {
+      return false;
+    }
 
-		var current = values[index];
+    var current = values[index];
 		var j = index + 1;
 
 		while (j < values.Count)
@@ -1063,9 +1159,11 @@ public static class ObjectExtensions
 			var diff = next.Subtract(current);
 
 			if (diff == null || !diff.IsNumericOne())
-				break;
+      {
+        break;
+      }
 
-			current = next;
+      current = next;
 			j++;
 		}
 
@@ -1083,29 +1181,39 @@ public static class ObjectExtensions
 		endIndex = index;
 
 		if (index >= values.Count)
-			return false;
+    {
+      return false;
+    }
 
-		if (!values[index].IsEvenNumber())
-			return false;
+    if (!values[index].IsEvenNumber())
+    {
+      return false;
+    }
 
-		var j = index;
+    var j = index;
 		var current = values[j].ToLong();
 		if (current is null)
-			return false;
+    {
+      return false;
+    }
 
-		j++;
+    j++;
 
 		while (j < values.Count && values[j].IsEvenNumber())
 		{
 			var next = values[j].ToLong();
 			if (next is null)
-				break;
+      {
+        break;
+      }
 
-			// Check if consecutive even number (difference must be exactly 2)
-			if (next.Value - current.Value != 2)
-				break;
+      // Check if consecutive even number (difference must be exactly 2)
+      if (next.Value - current.Value != 2)
+      {
+        break;
+      }
 
-			current = next;
+      current = next;
 			j++;
 		}
 
@@ -1123,29 +1231,39 @@ public static class ObjectExtensions
 		endIndex = index;
 
 		if (index >= values.Count)
-			return false;
+    {
+      return false;
+    }
 
-		if (values[index].IsEvenNumber())
-			return false;
+    if (values[index].IsEvenNumber())
+    {
+      return false;
+    }
 
-		var j = index;
+    var j = index;
 		var current = values[j].ToLong();
 		if (current is null)
-			return false;
+    {
+      return false;
+    }
 
-		j++;
+    j++;
 
 		while (j < values.Count && !values[j].IsEvenNumber())
 		{
 			var next = values[j].ToLong();
 			if (next is null)
-				break;
+      {
+        break;
+      }
 
-			// Check if consecutive odd number (difference must be exactly 2)
-			if (next.Value - current.Value != 2)
-				break;
+      // Check if consecutive odd number (difference must be exactly 2)
+      if (next.Value - current.Value != 2)
+      {
+        break;
+      }
 
-			current = next;
+      current = next;
 			j++;
 		}
 
@@ -1162,9 +1280,11 @@ public static class ObjectExtensions
 		endIndex = index;
 
 		if (index >= values.Count)
-			return false;
+    {
+      return false;
+    }
 
-		var j = index;
+    var j = index;
 
 		while (j < values.Count && values[j].IsPositive())
 		{
@@ -1184,9 +1304,11 @@ public static class ObjectExtensions
 		endIndex = index;
 
 		if (index >= values.Count)
-			return false;
+    {
+      return false;
+    }
 
-		var j = index;
+    var j = index;
 
 		while (j < values.Count && values[j].IsNegative())
 		{
@@ -1206,9 +1328,11 @@ public static class ObjectExtensions
 		endIndex = index;
 
 		if (index >= values.Count)
-			return false;
+    {
+      return false;
+    }
 
-		var j = index;
+    var j = index;
 
 		while (j < values.Count)
 		{
@@ -1217,17 +1341,21 @@ public static class ObjectExtensions
 			var tooLarge = ExecuteBinaryOperation(BinaryOperatorKind.GreaterThan, value, max);
 
 			if (tooSmall is true || tooLarge is true)
-				break;
+      {
+        break;
+      }
 
-			j++;
+      j++;
 		}
 
 		endIndex = j - 1;
 
 		if (endIndex < index)
-			return false;
+    {
+      return false;
+    }
 
-		var firstValue = values[index];
+    var firstValue = values[index];
 		var firstTooSmall = ExecuteBinaryOperation(BinaryOperatorKind.LessThan, firstValue, min);
 		var firstTooLarge = ExecuteBinaryOperation(BinaryOperatorKind.GreaterThan, firstValue, max);
 
@@ -1244,9 +1372,11 @@ public static class ObjectExtensions
 		constant = null!;
 
 		if (index >= values.Count)
-			return false;
+    {
+      return false;
+    }
 
-		constant = values[index];
+    constant = values[index];
 		var j = index + 1;
 
 		while (j < values.Count && values[j].EqualsTo(constant))
@@ -1307,9 +1437,11 @@ public static class ObjectExtensions
 		endIndex = index;
 
 		if (index >= values.Count)
-			return false;
+    {
+      return false;
+    }
 
-		var j = index;
+    var j = index;
 
 		while (j < values.Count && !values[j].IsNumericZero())
 		{
@@ -1461,22 +1593,30 @@ public static class ObjectExtensions
 		foreach (var value in values)
 		{
 			if (value == null)
-				return false;
+      {
+        return false;
+      }
 
-			var lessThanMin = ExecuteBinaryOperation(BinaryOperatorKind.LessThan, value, min);
+      var lessThanMin = ExecuteBinaryOperation(BinaryOperatorKind.LessThan, value, min);
 			if (lessThanMin is true)
-				min = value;
+      {
+        min = value;
+      }
 
-			var greaterThanMax = ExecuteBinaryOperation(BinaryOperatorKind.GreaterThan, value, max);
+      var greaterThanMax = ExecuteBinaryOperation(BinaryOperatorKind.GreaterThan, value, max);
 			if (greaterThanMax is true)
-				max = value;
-		}
+      {
+        max = value;
+      }
+    }
 
 		var range = max.Subtract(min);
 		if (range == null)
-			return false;
+    {
+      return false;
+    }
 
-		try
+    try
 		{
 			var rangeInt = Convert.ToInt32(range);
 			var rangeSize = rangeInt + 1;
@@ -1498,13 +1638,17 @@ public static class ObjectExtensions
 		difference = null;
 
 		if (values.Count < 2)
-			return false;
+    {
+      return false;
+    }
 
-		difference = values[1].Subtract(values[0]);
+    difference = values[1].Subtract(values[0]);
 		if (difference == null)
-			return false;
+    {
+      return false;
+    }
 
-		for (var i = 2; i < values.Count; i++)
+    for (var i = 2; i < values.Count; i++)
 		{
 			var diff = values[i].Subtract(values[i - 1]);
 

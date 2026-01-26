@@ -24,9 +24,12 @@ public class OrAllBitsSetStrategy : SymmetricStrategy<IntegerBinaryStrategy, Exp
 
 	private static bool IsAllBitsSet(object? value, SpecialType type)
 	{
-		if (value == null) return false;
+		if (value == null)
+    {
+      return false;
+    }
 
-		return type switch
+    return type switch
 		{
 			SpecialType.System_Byte => value is byte.MaxValue,
 			SpecialType.System_SByte => value is sbyte b && unchecked((byte)b) == byte.MaxValue,

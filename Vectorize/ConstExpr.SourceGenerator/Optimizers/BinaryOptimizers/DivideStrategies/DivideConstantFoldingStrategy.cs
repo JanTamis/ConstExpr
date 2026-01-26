@@ -18,10 +18,12 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!base.TryOptimize(context, out optimized))
-			return false;
+    {
+      return false;
+    }
 
-		// Pattern 1: (x / C1) / C2 => x / (C1 * C2)
-		if (context.TryGetValue(context.Right.Syntax, out var c2)
+    // Pattern 1: (x / C1) / C2 => x / (C1 * C2)
+    if (context.TryGetValue(context.Right.Syntax, out var c2)
 		    && context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.DivideExpression } leftDiv
 		    && context.TryGetValue(leftDiv.Right, out var leftConstant))
 		{

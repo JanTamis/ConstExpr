@@ -4,6 +4,7 @@ using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
@@ -65,9 +66,11 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		source = null;
 
 		if (invocation.Expression is not MemberAccessExpressionSyntax memberAccess)
-			return false;
+    {
+      return false;
+    }
 
-		source = memberAccess.Expression;
+    source = memberAccess.Expression;
 		return true;
 	}
 
@@ -80,9 +83,11 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 
 		if (expression is not InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax memberAccess } inv
 		    || memberAccess.Name.Identifier.Text != methodName)
-			return false;
+    {
+      return false;
+    }
 
-		invocation = inv;
+    invocation = inv;
 		return true;
 	}
 
@@ -95,9 +100,11 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 
 		if (expression is not InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax memberAccess } inv
 		    || !methodNames.Contains(memberAccess.Name.Identifier.Text))
-			return false;
+    {
+      return false;
+    }
 
-		invocation = inv;
+    invocation = inv;
 		return true;
 	}
 
@@ -114,13 +121,12 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	/// </summary>
 	protected InvocationExpressionSyntax CreateLinqMethodCall(ExpressionSyntax source, string methodName, params IEnumerable<ArgumentSyntax> arguments)
 	{
-		return SyntaxFactory.InvocationExpression(
-			SyntaxFactory.MemberAccessExpression(
-				SyntaxKind.SimpleMemberAccessExpression,
+		return InvocationExpression(
+      MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
 				source,
-				SyntaxFactory.IdentifierName(methodName)),
-			SyntaxFactory.ArgumentList(
-				SyntaxFactory.SeparatedList(arguments)));
+        IdentifierName(methodName)),
+      ArgumentList(
+        SeparatedList(arguments)));
 	}
 
 	/// <summary>
@@ -134,12 +140,16 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		argumentList = null;
 
 		if (invocation.Expression is not MemberAccessExpressionSyntax memberAccessExpr)
-			return false;
+    {
+      return false;
+    }
 
-		if (memberAccessExpr.Name.Identifier.Text != expectedMethodName)
-			return false;
+    if (memberAccessExpr.Name.Identifier.Text != expectedMethodName)
+    {
+      return false;
+    }
 
-		memberAccess = memberAccessExpr;
+    memberAccess = memberAccessExpr;
 		argumentList = invocation.ArgumentList;
 		return true;
 	}
@@ -209,15 +219,21 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		invocation = null;
 
 		if (expression is not InvocationExpressionSyntax inv)
-			return false;
+    {
+      return false;
+    }
 
-		if (inv.Expression is not MemberAccessExpressionSyntax memberAccess)
-			return false;
+    if (inv.Expression is not MemberAccessExpressionSyntax memberAccess)
+    {
+      return false;
+    }
 
-		if (memberAccess.Name.Identifier.Text != methodName)
-			return false;
+    if (memberAccess.Name.Identifier.Text != methodName)
+    {
+      return false;
+    }
 
-		invocation = inv;
+    invocation = inv;
 		return true;
 	}
 
@@ -293,16 +309,16 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 
 	protected InvocationExpressionSyntax CreateEmptyEnumerableCall(ITypeSymbol elementType)
 	{
-		return SyntaxFactory.InvocationExpression(
-			SyntaxFactory.MemberAccessExpression(
+		return InvocationExpression(
+      MemberAccessExpression(
 				SyntaxKind.SimpleMemberAccessExpression,
-				SyntaxFactory.IdentifierName("Enumerable"),
-				SyntaxFactory.GenericName(
-						SyntaxFactory.Identifier("Empty"))
+        IdentifierName("Enumerable"),
+        GenericName(
+            Identifier("Empty"))
 					.WithTypeArgumentList(
-						SyntaxFactory.TypeArgumentList(
-							SyntaxFactory.SingletonSeparatedList(
-								SyntaxFactory.ParseTypeName(elementType.ToString()))))));
+            TypeArgumentList(
+              SingletonSeparatedList(
+                ParseTypeName(elementType.ToString()))))));
 	}
 
 	protected bool TryGetOptimizedChainExpression(ExpressionSyntax source, ISet<string> methodsToSkip, [NotNullWhen(true)] out ExpressionSyntax? optimizedSource)

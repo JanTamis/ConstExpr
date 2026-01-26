@@ -61,16 +61,20 @@ public class SelectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		};
 
 		if (body is not CastExpressionSyntax castExpression)
-			return false;
+    {
+      return false;
+    }
 
-		// Verify left side is the lambda parameter
-		var paramName = GetLambdaParameter(lambda);
+    // Verify left side is the lambda parameter
+    var paramName = GetLambdaParameter(lambda);
 		
 		if (castExpression.Expression is not IdentifierNameSyntax identifier || identifier.Identifier.Text != paramName)
-			return false;
+    {
+      return false;
+    }
 
-		// Extract the target type
-		castType = castExpression.Type;
+    // Extract the target type
+    castType = castExpression.Type;
 		return true;
 	}
 

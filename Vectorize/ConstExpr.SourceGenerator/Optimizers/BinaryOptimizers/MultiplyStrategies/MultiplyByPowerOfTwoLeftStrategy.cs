@@ -16,9 +16,11 @@ public class MultiplyByPowerOfTwoLeftStrategy : IntegerBinaryStrategy<LiteralExp
 	{
 		if (!base.TryOptimize(context, out optimized)
 		    || !context.Left.Syntax.IsNumericPowerOfTwo(out var power))
-			return false;
-		
-		optimized = BinaryExpression(SyntaxKind.LeftShiftExpression, 
+    {
+      return false;
+    }
+
+    optimized = BinaryExpression(SyntaxKind.LeftShiftExpression, 
 			context.Right.Syntax,
 			SyntaxHelpers.CreateLiteral(power)!);
 		return true;

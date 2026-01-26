@@ -13,9 +13,11 @@ public class ConditionalAndRightLiteralStrategy : BooleanBinaryStrategy<Expressi
 	{
 		if (!base.TryOptimize(context, out optimized)
 		    || !IsPure(context.Left.Syntax))
-			return false;
+    {
+      return false;
+    }
 
-		optimized = context.Right.Syntax.Token.Value switch
+    optimized = context.Right.Syntax.Token.Value switch
 		{
 			// x && true = x (only if x is pure)
 			true => context.Left.Syntax,

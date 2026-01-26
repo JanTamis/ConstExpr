@@ -590,7 +590,9 @@ public partial class ConstExprPartialRewriter
 						return rightExpr;
 					}
 				}
-				else switch (arg0)
+				else
+        {
+          switch (arg0)
 				{
 					case int i0:
 						arr.SetValue(rightValue, i0);
@@ -599,7 +601,8 @@ public partial class ConstExprPartialRewriter
 						arr.SetValue(rightValue, l0);
 						return rightExpr;
 				}
-			}
+        }
+      }
 			else
 			{
 				if (indexConsts.All(a => a is int))

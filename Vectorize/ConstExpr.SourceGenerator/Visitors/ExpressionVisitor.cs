@@ -220,9 +220,11 @@ public class ExpressionVisitor(Compilation compilation, MetadataLoader loader, I
 			.FirstOrDefault(c => c.GetParameters().Length == arguments.Length);
 
 		if (constructor == null)
-			throw new InvalidOperationException($"Constructor with {arguments.Length} parameters not found for type {type.FullName}");
+    {
+      throw new InvalidOperationException($"Constructor with {arguments.Length} parameters not found for type {type.FullName}");
+    }
 
-		return Expression.New(constructor, arguments);
+    return Expression.New(constructor, arguments);
 	}
 
 	public override Expression VisitInstanceReference(IInstanceReferenceOperation operation, IDictionary<string, object?> argument)
@@ -231,10 +233,12 @@ public class ExpressionVisitor(Compilation compilation, MetadataLoader loader, I
 		var thisParameter = parameters.FirstOrDefault(p => p.Name == "this");
 
 		if (thisParameter != null)
-			return thisParameter;
+    {
+      return thisParameter;
+    }
 
-		// If no 'this' parameter exists, throw an exception or handle appropriately
-		throw new InvalidOperationException("No 'this' parameter available in the current context.");
+    // If no 'this' parameter exists, throw an exception or handle appropriately
+    throw new InvalidOperationException("No 'this' parameter available in the current context.");
 	}
 
 	public override Expression VisitNameOf(INameOfOperation operation, IDictionary<string, object?> argument)

@@ -81,13 +81,21 @@ public partial class ConstExprPartialRewriter
 				case BlockSyntax block:
 					foreach (var inner in block.Statements)
 					{
-						if (inner is BreakStatementSyntax) continue;
-						statements.Add(inner);
+						if (inner is BreakStatementSyntax)
+            {
+              continue;
+            }
+
+            statements.Add(inner);
 					}
 					break;
 				case StatementSyntax stmt:
-					if (stmt is BreakStatementSyntax) break;
-					statements.Add(stmt);
+					if (stmt is BreakStatementSyntax)
+          {
+            break;
+          }
+
+          statements.Add(stmt);
 					break;
 				case ExpressionSyntax expr:
 					statements.Add(ExpressionStatement(expr));

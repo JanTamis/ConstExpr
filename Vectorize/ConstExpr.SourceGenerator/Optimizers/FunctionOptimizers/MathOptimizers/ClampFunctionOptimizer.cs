@@ -95,9 +95,12 @@ public class ClampFunctionOptimizer() : BaseMathFunctionOptimizer("Clamp", 3)
 		result = null;
 
 		var args = minInv.ArgumentList.Arguments;
-		if (args.Count != 2) return false;
+		if (args.Count != 2)
+    {
+      return false;
+    }
 
-		var m0 = args[0].Expression;
+    var m0 = args[0].Expression;
 		var m1 = args[1].Expression;
 
 		// Pattern: Clamp(Min(x, maxConst), minConst, maxConst) where maxConst in Min matches outerMax
@@ -137,9 +140,12 @@ public class ClampFunctionOptimizer() : BaseMathFunctionOptimizer("Clamp", 3)
 		result = null;
 
 		var args = maxInv.ArgumentList.Arguments;
-		if (args.Count != 2) return false;
+		if (args.Count != 2)
+    {
+      return false;
+    }
 
-		var m0 = args[0].Expression;
+    var m0 = args[0].Expression;
 		var m1 = args[1].Expression;
 
 		// Pattern: Clamp(Max(x, minConst), minConst, maxConst) where minConst in Max matches outerMin
@@ -192,8 +198,12 @@ public class ClampFunctionOptimizer() : BaseMathFunctionOptimizer("Clamp", 3)
 				return value is not null && IsNumericLiteral(value);
 			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax opLit }:
 				var v = opLit.Token.Value;
-				if (v is null || !IsNumericLiteral(v)) return false;
-				value = NegateNumeric(v);
+				if (v is null || !IsNumericLiteral(v))
+        {
+          return false;
+        }
+
+        value = NegateNumeric(v);
 				constExpr = expr;
 				return true;
 			default:

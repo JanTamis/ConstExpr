@@ -14,9 +14,11 @@ public class LeftShiftZeroStrategy : IntegerBinaryStrategy<LiteralExpressionSynt
 	{
 		if (!base.TryOptimize(context, out optimized)
 		    || !context.Left.Syntax.IsNumericZero())
-			return false;
-		
-		optimized = SyntaxHelpers.CreateLiteral(0.ToSpecialType(context.Type.SpecialType));
+    {
+      return false;
+    }
+
+    optimized = SyntaxHelpers.CreateLiteral(0.ToSpecialType(context.Type.SpecialType));
 		return true;
 	}
 }

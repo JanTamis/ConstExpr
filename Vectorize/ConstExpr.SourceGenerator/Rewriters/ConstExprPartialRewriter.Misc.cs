@@ -175,9 +175,11 @@ public partial class ConstExprPartialRewriter
 		foreach (var node in list)
 		{
 			if (shouldStop)
-				break;
+      {
+        break;
+      }
 
-			var visited = Visit(node);
+      var visited = Visit(node);
 
 			switch (visited)
 			{
@@ -220,9 +222,12 @@ public partial class ConstExprPartialRewriter
 
 		foreach (var node in list)
 		{
-			if (shouldStop) break;
+			if (shouldStop)
+      {
+        break;
+      }
 
-			var visited = Visit(node);
+      var visited = Visit(node);
 
 			switch (visited)
 			{

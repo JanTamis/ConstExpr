@@ -15,9 +15,11 @@ public class SubtractZeroMinusStrategy : NumericBinaryStrategy<LiteralExpression
 	{
 		if (base.TryOptimize(context, out optimized)
 		    || !context.Left.Syntax.IsNumericZero())
-			return false;
+    {
+      return false;
+    }
 
-		optimized = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression, context.Right.Syntax);
+    optimized = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression, context.Right.Syntax);
 		return true;
 	}
 }

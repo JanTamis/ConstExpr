@@ -16,9 +16,11 @@ public class AddDoubleNegatedStrategy() : NumericBinaryStrategy<PrefixUnaryExpre
 		if (!base.TryOptimize(context, out optimized)
 		    || !IsPure(context.Left.Syntax.Operand)
 		    || !IsPure(context.Right.Syntax.Operand))
-			return false;
-		
-		optimized = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
+    {
+      return false;
+    }
+
+    optimized = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
 			ParenthesizedExpression(BinaryExpression(SyntaxKind.AddExpression,
 					context.Left.Syntax.Operand,
 					context.Right.Syntax.Operand)));

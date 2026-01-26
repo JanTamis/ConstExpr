@@ -15,10 +15,12 @@ public class ConditionalOrDeMorganStrategy() : BooleanBinaryStrategy<PrefixUnary
 	public override bool TryOptimize(BinaryOptimizeContext<PrefixUnaryExpressionSyntax, PrefixUnaryExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!base.TryOptimize(context, out optimized))
-			return false;
+    {
+      return false;
+    }
 
-		// !a || !b → !(a && b)
-		optimized = PrefixUnaryExpression(SyntaxKind.LogicalNotExpression,
+    // !a || !b → !(a && b)
+    optimized = PrefixUnaryExpression(SyntaxKind.LogicalNotExpression,
 			ParenthesizedExpression(
 				BinaryExpression(SyntaxKind.LogicalAndExpression,
 					context.Left.Syntax.Operand,

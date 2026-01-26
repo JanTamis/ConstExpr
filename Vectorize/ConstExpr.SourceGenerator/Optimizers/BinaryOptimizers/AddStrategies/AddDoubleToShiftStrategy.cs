@@ -17,8 +17,11 @@ public class AddDoubleToShiftStrategy : IntegerBinaryStrategy
 		    || !LeftEqualsRight(context)
 		    || !IsPure(context.Left.Syntax)
 		    || !IsPure(context.Right.Syntax))
-			return false;
-		optimized = BinaryExpression(SyntaxKind.LeftShiftExpression, context.Left.Syntax, SyntaxHelpers.CreateLiteral(1)!);
+    {
+      return false;
+    }
+
+    optimized = BinaryExpression(SyntaxKind.LeftShiftExpression, context.Left.Syntax, SyntaxHelpers.CreateLiteral(1)!);
 		return true;
 
 	}

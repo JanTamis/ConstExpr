@@ -13,9 +13,11 @@ public class DivideByOneStrategy : NumericBinaryStrategy<ExpressionSyntax, Liter
 	{
 		if (!base.TryOptimize(context, out optimized)
 		    || !context.Right.Syntax.IsNumericOne())
-			return false;
-		
-		optimized = context.Left.Syntax;
+    {
+      return false;
+    }
+
+    optimized = context.Left.Syntax;
 		return true;
 	}
 }

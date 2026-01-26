@@ -17,9 +17,11 @@ public class SubtractFromAdditionConstantFoldingStrategy() : NumericBinaryStrate
 	public override bool TryOptimize(BinaryOptimizeContext<BinaryExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!base.TryOptimize(context, out optimized))
-			return false;
+    {
+      return false;
+    }
 
-		if (context.TryGetValue(context.Left.Syntax.Left, out var leftConstant))
+    if (context.TryGetValue(context.Left.Syntax.Left, out var leftConstant))
 		{
 			var result = leftConstant.Subtract(context.Right.Syntax.Token.Value);
 

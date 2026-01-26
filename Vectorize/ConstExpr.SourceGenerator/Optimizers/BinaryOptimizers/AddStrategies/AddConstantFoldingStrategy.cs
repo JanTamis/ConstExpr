@@ -19,9 +19,11 @@ public class AddConstantFoldingStrategy : NumericBinaryStrategy<BinaryExpression
 	public override bool TryOptimize(BinaryOptimizeContext<BinaryExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!base.TryOptimize(context, out optimized))
-			return false;
+    {
+      return false;
+    }
 
-		if (context.TryGetValue(context.Right.Syntax, out var c2)
+    if (context.TryGetValue(context.Right.Syntax, out var c2)
 		    && context.Left.Syntax.IsKind(SyntaxKind.AddExpression))
 		{
 			// Pattern 1: (x + C1) + C2 => x + (C1 + C2)

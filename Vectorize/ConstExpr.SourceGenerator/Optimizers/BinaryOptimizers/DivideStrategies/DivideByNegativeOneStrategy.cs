@@ -15,9 +15,11 @@ public class DivideByNegativeOneStrategy : NumericBinaryStrategy<ExpressionSynta
 	{
 		if (!base.TryOptimize(context, out optimized)
 		    || !context.Right.IsNumericNegativeOne())
-			return false;
-		
-		optimized = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression, context.Left.Syntax);
+    {
+      return false;
+    }
+
+    optimized = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression, context.Left.Syntax);
 		return true;
 	}
 }

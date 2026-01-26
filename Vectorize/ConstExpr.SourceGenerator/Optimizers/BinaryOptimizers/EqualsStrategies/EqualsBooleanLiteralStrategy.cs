@@ -13,9 +13,11 @@ public class EqualsBooleanLiteralStrategy : BooleanBinaryStrategy<ExpressionSynt
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!base.TryOptimize(context, out optimized))
-			return false;
+    {
+      return false;
+    }
 
-		switch (context.Right.Syntax.Token.Value)
+    switch (context.Right.Syntax.Token.Value)
 		{
 			case true:
 				optimized = context.Left.Syntax;

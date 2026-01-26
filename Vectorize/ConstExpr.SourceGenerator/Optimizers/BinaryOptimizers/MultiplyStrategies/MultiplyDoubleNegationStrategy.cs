@@ -15,9 +15,11 @@ public class MultiplyDoubleNegationStrategy()
 	public override bool TryOptimize(BinaryOptimizeContext<PrefixUnaryExpressionSyntax, PrefixUnaryExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!base.TryOptimize(context, out optimized))
-			return false;
-		
-		optimized = BinaryExpression(SyntaxKind.MultiplyExpression, context.Left.Syntax.Operand, context.Right.Syntax.Operand);
+    {
+      return false;
+    }
+
+    optimized = BinaryExpression(SyntaxKind.MultiplyExpression, context.Left.Syntax.Operand, context.Right.Syntax.Operand);
 		return true;
 	}
 }

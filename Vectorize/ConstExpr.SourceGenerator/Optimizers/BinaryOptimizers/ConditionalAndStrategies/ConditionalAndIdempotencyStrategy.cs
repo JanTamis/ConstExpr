@@ -13,9 +13,11 @@ public class ConditionalAndIdempotencyStrategy : BooleanBinaryStrategy
 		if (!base.TryOptimize(context, out optimized)
 		    || !LeftEqualsRight(context)
 		    || !IsPure(context.Left.Syntax))
-			return false;
+    {
+      return false;
+    }
 
-		optimized = context.Left.Syntax;
+    optimized = context.Left.Syntax;
 		return true;
 	}
 }

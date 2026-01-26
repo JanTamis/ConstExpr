@@ -17,9 +17,11 @@ public class MultiplyStrengthReductionRightStrategy : IntegerBinaryStrategy
 		    || !context.TryGetValue(context.Right.Syntax, out var rightValue)
 		    || !TryGetUInt(rightValue, out var rv)
 		    || !IsPure(context.Left.Syntax))
-			return false;
+    {
+      return false;
+    }
 
-		var down = RoundDownToPowerOf2(rv);
+    var down = RoundDownToPowerOf2(rv);
 		var up = RoundUpToPowerOf2(rv);
 
 		// Pattern: rv = down + 1 => (x << log2(down)) + x
@@ -59,9 +61,11 @@ public class MultiplyStrengthReductionRightStrategy : IntegerBinaryStrategy
 	private static uint RoundDownToPowerOf2(uint value)
 	{
 		if (value == 0)
-			return 0;
+    {
+      return 0;
+    }
 
-		value |= value >> 1;
+    value |= value >> 1;
 		value |= value >> 2;
 		value |= value >> 4;
 		value |= value >> 8;
@@ -72,9 +76,12 @@ public class MultiplyStrengthReductionRightStrategy : IntegerBinaryStrategy
 	private static bool TryGetUInt(object? value, out uint result)
 	{
 		result = 0;
-		if (value == null) return false;
+		if (value == null)
+    {
+      return false;
+    }
 
-		try
+    try
 		{
 			result = System.Convert.ToUInt32(value);
 			return true;

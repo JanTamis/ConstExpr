@@ -18,9 +18,11 @@ public class RightShiftCombineStrategy() : IntegerBinaryStrategy<BinaryExpressio
 		if (!base.TryOptimize(context, out optimized)
 		    || !context.TryGetValue(context.Left.Syntax.Right, out var leftShiftValue)
 		    || !SyntaxHelpers.TryGetLiteral(context.Right.Syntax.Token.Value.Add(leftShiftValue), out var combinedLiteral))
-			return false;
-		
-		optimized = BinaryExpression(SyntaxKind.RightShiftExpression, context.Left.Syntax.Left, combinedLiteral);
+    {
+      return false;
+    }
+
+    optimized = BinaryExpression(SyntaxKind.RightShiftExpression, context.Left.Syntax.Left, combinedLiteral);
 		return true;
 	}
 }

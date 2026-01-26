@@ -14,9 +14,11 @@ public class SubtractIdentityElementStrategy : NumericBinaryStrategy<ExpressionS
 	{
 		if (!base.TryOptimize(context, out optimized)
 		    || !context.Right.Syntax.IsNumericZero())
-			return false;
+    {
+      return false;
+    }
 
-		optimized = context.Left.Syntax;
+    optimized = context.Left.Syntax;
 		return true;
 	}
 }

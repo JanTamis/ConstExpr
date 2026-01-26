@@ -17,9 +17,11 @@ public class DivideByPowerOfTwoToShiftStrategy : IntegerBinaryStrategy<Expressio
 	{
 		if (!base.TryOptimize(context, out optimized)
 		    || !context.Right.Syntax.IsNumericPowerOfTwo(out var power))
-			return false;
+    {
+      return false;
+    }
 
-		var isPositive = IsPositive(context, context.Left.Syntax);
+    var isPositive = IsPositive(context, context.Left.Syntax);
 		
 		if (context.Type.IsUnsignedInteger() || isPositive)
 		{

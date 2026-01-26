@@ -222,19 +222,42 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 						switch (operation.OperatorKind)
 						{
 							case BinaryOperatorKind.Add:
-								if (hasRightValue && rightValue.IsNumericZero()) return leftExpr;
-								if (hasLeftValue && leftValue.IsNumericZero()) return rightExpr;
-								break;
-							case BinaryOperatorKind.Subtract:
-								if (hasRightValue && rightValue.IsNumericZero()) return leftExpr;
-								if (hasLeftValue && leftValue.IsNumericZero()) return SyntaxFactory.PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression, Parens(rightExpr));
-								break;
-							case BinaryOperatorKind.Multiply:
-								if (hasRightValue && rightValue.IsNumericOne()) return leftExpr;
-								if (hasLeftValue && leftValue.IsNumericOne()) return rightExpr;
+								if (hasRightValue && rightValue.IsNumericZero())
+                {
+                  return leftExpr;
+                }
 
-								// x * 0 => 0 and 0 * x => 0 (only for non-floating numeric types to avoid NaN/-0.0 semantics)
-								var nonFloating = IsNonFloatingNumeric(operation.LeftOperand.Type) && IsNonFloatingNumeric(operation.RightOperand.Type);
+                if (hasLeftValue && leftValue.IsNumericZero())
+                {
+                  return rightExpr;
+                }
+
+                break;
+							case BinaryOperatorKind.Subtract:
+								if (hasRightValue && rightValue.IsNumericZero())
+                {
+                  return leftExpr;
+                }
+
+                if (hasLeftValue && leftValue.IsNumericZero())
+                {
+                  return SyntaxFactory.PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression, Parens(rightExpr));
+                }
+
+                break;
+							case BinaryOperatorKind.Multiply:
+								if (hasRightValue && rightValue.IsNumericOne())
+                {
+                  return leftExpr;
+                }
+
+                if (hasLeftValue && leftValue.IsNumericOne())
+                {
+                  return rightExpr;
+                }
+
+                // x * 0 => 0 and 0 * x => 0 (only for non-floating numeric types to avoid NaN/-0.0 semantics)
+                var nonFloating = IsNonFloatingNumeric(operation.LeftOperand.Type) && IsNonFloatingNumeric(operation.RightOperand.Type);
 
 								if (nonFloating && hasRightValue && rightValue.IsNumericZero())
 								{
@@ -260,18 +283,38 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 								}
 								break;
 							case BinaryOperatorKind.Divide:
-								if (hasRightValue && rightValue.IsNumericOne()) return leftExpr;
-								break;
+								if (hasRightValue && rightValue.IsNumericOne())
+                {
+                  return leftExpr;
+                }
+
+                break;
 							case BinaryOperatorKind.ExclusiveOr:
 								// integral XOR 0 => x
-								if (hasRightValue && rightValue.IsNumericZero()) return leftExpr;
-								if (hasLeftValue && leftValue.IsNumericZero()) return rightExpr;
-								break;
+								if (hasRightValue && rightValue.IsNumericZero())
+                {
+                  return leftExpr;
+                }
+
+                if (hasLeftValue && leftValue.IsNumericZero())
+                {
+                  return rightExpr;
+                }
+
+                break;
 							case BinaryOperatorKind.Or:
 								// x | 0 => x
-								if (hasRightValue && rightValue.IsNumericZero()) return leftExpr;
-								if (hasLeftValue && leftValue.IsNumericZero()) return rightExpr;
-								break;
+								if (hasRightValue && rightValue.IsNumericZero())
+                {
+                  return leftExpr;
+                }
+
+                if (hasLeftValue && leftValue.IsNumericZero())
+                {
+                  return rightExpr;
+                }
+
+                break;
 						}
 					}
 
@@ -282,29 +325,85 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 						switch (operation.OperatorKind)
 						{
 							case BinaryOperatorKind.ConditionalAnd: // &&
-								if (hasRightValue && rightValue is true) return leftExpr; // x && true => x
-								if (hasLeftValue && leftValue is true) return rightExpr; // true && x => x
-								if (hasLeftValue && leftValue is false) return SyntaxHelpers.CreateLiteral(false); // false && x => false
-								break;
+								if (hasRightValue && rightValue is true)
+                {
+                  return leftExpr; // x && true => x
+                }
+
+                if (hasLeftValue && leftValue is true)
+                {
+                  return rightExpr; // true && x => x
+                }
+
+                if (hasLeftValue && leftValue is false)
+                {
+                  return SyntaxHelpers.CreateLiteral(false); // false && x => false
+                }
+
+                break;
 							case BinaryOperatorKind.ConditionalOr: // ||
-								if (hasRightValue && rightValue is false) return leftExpr; // x || false => x
-								if (hasLeftValue && leftValue is false) return rightExpr; // false || x => x
-								if (hasLeftValue && leftValue is true) return SyntaxHelpers.CreateLiteral(true); // true || x => true
-								break;
+								if (hasRightValue && rightValue is false)
+                {
+                  return leftExpr; // x || false => x
+                }
+
+                if (hasLeftValue && leftValue is false)
+                {
+                  return rightExpr; // false || x => x
+                }
+
+                if (hasLeftValue && leftValue is true)
+                {
+                  return SyntaxHelpers.CreateLiteral(true); // true || x => true
+                }
+
+                break;
 							case BinaryOperatorKind.And: // & (bool)
-								if (hasRightValue && rightValue is true) return leftExpr; // x & true => x
-								if (hasLeftValue && leftValue is true) return rightExpr; // true & x => x
-								break; // avoid collapsing to false to preserve evaluation of the other side
+								if (hasRightValue && rightValue is true)
+                {
+                  return leftExpr; // x & true => x
+                }
+
+                if (hasLeftValue && leftValue is true)
+                {
+                  return rightExpr; // true & x => x
+                }
+
+                break; // avoid collapsing to false to preserve evaluation of the other side
 							case BinaryOperatorKind.Or: // | (bool)
-								if (hasRightValue && rightValue is false) return leftExpr; // x | false => x
-								if (hasLeftValue && leftValue is false) return rightExpr; // false | x => x
-								break; // avoid collapsing to true to preserve evaluation of the other side
+								if (hasRightValue && rightValue is false)
+                {
+                  return leftExpr; // x | false => x
+                }
+
+                if (hasLeftValue && leftValue is false)
+                {
+                  return rightExpr; // false | x => x
+                }
+
+                break; // avoid collapsing to true to preserve evaluation of the other side
 							case BinaryOperatorKind.ExclusiveOr: // ^ (bool)
-								if (hasRightValue && rightValue is false) return leftExpr; // x ^ false => x
-								if (hasLeftValue && leftValue is false) return rightExpr; // false ^ x => x
-								if (hasRightValue && rightValue is true) return SyntaxFactory.PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, Parens(leftExpr)); // x ^ true => !x
-								if (hasLeftValue && leftValue is true) return SyntaxFactory.PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, Parens(rightExpr)); // true ^ x => !x
-								break;
+								if (hasRightValue && rightValue is false)
+                {
+                  return leftExpr; // x ^ false => x
+                }
+
+                if (hasLeftValue && leftValue is false)
+                {
+                  return rightExpr; // false ^ x => x
+                }
+
+                if (hasRightValue && rightValue is true)
+                {
+                  return SyntaxFactory.PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, Parens(leftExpr)); // x ^ true => !x
+                }
+
+                if (hasLeftValue && leftValue is true)
+                {
+                  return SyntaxFactory.PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, Parens(rightExpr)); // true ^ x => !x
+                }
+
+                break;
 							case BinaryOperatorKind.Equals:
 								if (hasRightValue && rightValue is bool rb)
 								{

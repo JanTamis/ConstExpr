@@ -277,10 +277,12 @@ public class ExpressionRewriter(
 				.Select((arg, index) => 
 				{
 					if (arg is ConstantExpression constExpr)
-						return constExpr.Value;
-					
-					// Try to get constant value from the original syntax
-					var originalArg = node.ArgumentList.Arguments[index].Expression;
+          {
+            return constExpr.Value;
+          }
+
+          // Try to get constant value from the original syntax
+          var originalArg = node.ArgumentList.Arguments[index].Expression;
 					return TryGetLiteralValue(originalArg, out var value) ? value : null;
 				})
 				.ToArray();
@@ -417,9 +419,11 @@ public class ExpressionRewriter(
 		var expression = Visit(node.Expression);
 		
 		if (expression == null)
-			return null;
+    {
+      return null;
+    }
 
-		if (semanticModel.TryGetSymbol(node.Type, out ITypeSymbol? targetType))
+    if (semanticModel.TryGetSymbol(node.Type, out ITypeSymbol? targetType))
 		{
 			var targetRuntimeType = loader.GetType(targetType) ?? typeof(object);
 			
@@ -489,10 +493,12 @@ public class ExpressionRewriter(
 		var operand = Visit(node.Operand);
 
 		if (operand == null)
-			return null;
+    {
+      return null;
+    }
 
-		// Handle unary operators
-		return node.OperatorToken.Kind() switch
+    // Handle unary operators
+    return node.OperatorToken.Kind() switch
 		{
 			SyntaxKind.PlusToken => Expression.UnaryPlus(operand),
 			SyntaxKind.MinusToken => Expression.Negate(operand),
@@ -509,9 +515,11 @@ public class ExpressionRewriter(
 		var operand = Visit(node.Operand);
 
 		if (operand == null)
-			return null;
+    {
+      return null;
+    }
 
-		return node.OperatorToken.Kind() switch
+    return node.OperatorToken.Kind() switch
 		{
 			SyntaxKind.PlusPlusToken => Expression.PostIncrementAssign(operand),
 			SyntaxKind.MinusMinusToken => Expression.PostDecrementAssign(operand),
@@ -525,9 +533,11 @@ public class ExpressionRewriter(
 		var right = Visit(node.Right);
 
 		if (left == null || right == null)
-			return null;
+    {
+      return null;
+    }
 
-		return node.OperatorToken.Kind() switch
+    return node.OperatorToken.Kind() switch
 		{
 			SyntaxKind.EqualsToken => Expression.Assign(left, right),
 			SyntaxKind.PlusEqualsToken => Expression.AddAssign(left, right),
@@ -552,10 +562,12 @@ public class ExpressionRewriter(
 			.ToArray();
 
 		if (expression == null || arguments.Any(arg => arg == null))
-			return null;
+    {
+      return null;
+    }
 
-		// Handle array access
-		if (arguments.Length == 1)
+    // Handle array access
+    if (arguments.Length == 1)
 		{
 			return Expression.ArrayIndex(expression, arguments[0]!);
 		}
