@@ -1,4 +1,5 @@
 extern alias sourcegen;
+using System.Collections;
 using System.Runtime.CompilerServices;
 using ConstExpr.Core.Attributes;
 using Microsoft.CodeAnalysis;
@@ -245,8 +246,8 @@ public abstract class BaseTest<TDelegate>(FloatingPointEvaluationMode evaluation
 		{
 			null => "null",
 			string s => $"\"{s}\"",
+			IEnumerable items => $"[{System.String.Join(", ", items.Cast<object?>().Select(ParseValue))}]",
 			_ => value.ToString()
 		};
-
 	}
 }
