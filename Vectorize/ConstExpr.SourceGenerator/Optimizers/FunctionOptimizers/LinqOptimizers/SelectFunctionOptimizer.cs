@@ -40,7 +40,7 @@ public class SelectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 			var combinedLambda = CombineLambdas(lambda, innerLambda);
 
 			// Create a new Select call with the combined lambda
-			result = CreateLinqMethodCall(innerSource, nameof(Enumerable.Select), SyntaxFactory.Argument(combinedLambda));
+			result = CreateLinqMethodCall(innerSource, nameof(Enumerable.Select), combinedLambda);
 			return true;
 		}
 

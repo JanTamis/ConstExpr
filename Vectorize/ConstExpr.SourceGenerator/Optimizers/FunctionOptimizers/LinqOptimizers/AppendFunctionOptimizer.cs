@@ -46,7 +46,7 @@ public class AppendFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		// If we skipped any operations (AsEnumerable/ToList/ToArray), create optimized Append call
 		if (source != originalSource)
 		{
-			result = CreateLinqMethodCall(source, nameof(Enumerable.Append), SyntaxFactory.Argument(appendedValue));
+			result = CreateLinqMethodCall(source, nameof(Enumerable.Append), appendedValue);
 			return true;
 		}
 

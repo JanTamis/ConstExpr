@@ -25,7 +25,7 @@ public class ReverseFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 		if (IsLinqMethodChain(source, nameof(Enumerable.Reverse), out var reverseInvocation)
 		    && TryGetLinqSource(reverseInvocation, out var reverseSource))
 		{
-			result = CreateLinqMethodCall(reverseSource, nameof(Enumerable.LastOrDefault));
+			result = reverseSource;
 			return true;
 		}
 

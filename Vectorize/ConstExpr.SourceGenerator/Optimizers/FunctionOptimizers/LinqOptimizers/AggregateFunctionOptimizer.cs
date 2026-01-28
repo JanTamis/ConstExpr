@@ -15,7 +15,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.ToArray().Aggregate(...) => collection.Aggregate(...)
 /// - collection.Aggregate((acc, v) => acc + v) => collection.Sum()
 /// - collection.Aggregate(0, (acc, v) => acc + v) => collection.Sum()
-/// Note: We do NOT optimize Select, Distinct, Where, OrderBy, etc. before Aggregate
+/// Note: We do NOT optimize Select, Distinct, Where, etc. before Aggregate
 /// because they change the elements/order being aggregated over.
 /// </summary>
 public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Aggregate), 1, 2, 3)
@@ -55,13 +55,13 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 
 		if (IsZeroLiteral(parameters[0]))
 		{
-			result = CreateLinqMethodCall(source!, nameof(Enumerable.Aggregate), parameters.Skip(1).Select(SyntaxFactory.Argument));
+			result = CreateLinqMethodCall(source!, nameof(Enumerable.Aggregate), parameters.Skip(1));
 			return true;
 		}
 
 		if (isNewSource)
 		{
-			result = CreateLinqMethodCall(source!, nameof(Enumerable.Aggregate), parameters.Select(SyntaxFactory.Argument));
+			result = CreateLinqMethodCall(source!, nameof(Enumerable.Aggregate), parameters);
 			return true;
 		}
 

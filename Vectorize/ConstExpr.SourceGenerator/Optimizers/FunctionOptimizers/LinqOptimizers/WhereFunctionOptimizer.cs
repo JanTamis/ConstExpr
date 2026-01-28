@@ -41,7 +41,7 @@ public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 			var combinedLambda = CombinePredicates(lambda, innerLambda);
 
 			// Create a new Where call with the combined lambda
-			result = CreateLinqMethodCall(innerSource, nameof(Enumerable.Where), SyntaxFactory.Argument(combinedLambda));
+			result = CreateLinqMethodCall(innerSource, nameof(Enumerable.Where), combinedLambda);
 			return true;
 		}
 

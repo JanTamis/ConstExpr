@@ -66,7 +66,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			// Continue skipping operations before Where as well
 			TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectExistence, out whereSource);
 			
-			result = CreateLinqMethodCall(whereSource, nameof(Enumerable.Any), SyntaxFactory.Argument(predicate));
+			result = CreateLinqMethodCall(whereSource, nameof(Enumerable.Any), predicate);
 			return true;
 		}
 

@@ -58,7 +58,7 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 				whereSource = beforeWhereSource;
 			}
 			
-			result = CreateLinqMethodCall(whereSource, nameof(Enumerable.FirstOrDefault), SyntaxFactory.Argument(predicate));
+			result = CreateLinqMethodCall(whereSource, nameof(Enumerable.FirstOrDefault), predicate);
 			return true;
 		}
 		

@@ -69,7 +69,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 				whereSource = beforeWhereSource;
 			}
 			
-			result = CreateLinqMethodCall(whereSource, nameof(Enumerable.Count), SyntaxFactory.Argument(predicate));
+			result = CreateLinqMethodCall(whereSource, nameof(Enumerable.Count), predicate);
 			return true;
 		}
 

@@ -52,7 +52,10 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		}
 
 		// Get the predicate from All(predicate)
-		var allPredicate = GetMethodArguments(invocation).FirstOrDefault()?.Expression;
+		var allPredicate = GetMethodArguments(invocation)
+			.Select(s => s.Expression)
+			.FirstOrDefault();
+
 		if (allPredicate == null || !TryGetLambda(allPredicate, out var allLambda))
 		{
 			result = null;
@@ -61,6 +64,7 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 		// Recursively skip all operations that don't affect all-check
 		var currentSource = source;
+
 		while (IsLinqMethodChain(currentSource, OperationsThatDontAffectAll, out var chainInvocation)
 		       && TryGetLinqSource(chainInvocation, out var innerSource))
 		{
@@ -81,15 +85,16 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			}
 			
 			// Keep the Where and just apply All on top with optimized source
-			var whereCall = CreateLinqMethodCall(whereSource, nameof(Enumerable.Where), SyntaxFactory.Argument(wherePredicate));
-			result = CreateLinqMethodCall(whereCall, nameof(Enumerable.All), SyntaxFactory.Argument(allLambda));
+			var whereCall = CreateLinqMethodCall(whereSource, nameof(Enumerable.Where), wherePredicate);
+
+			result = CreateLinqMethodCall(whereCall, nameof(Enumerable.All), allLambda);
 			return true;
 		}
 
 		// If we skipped any operations, create optimized All() call
 		if (currentSource != source)
 		{
-			result = CreateLinqMethodCall(currentSource, nameof(Enumerable.All), SyntaxFactory.Argument(allLambda));
+			result = CreateLinqMethodCall(currentSource, nameof(Enumerable.All), allLambda);
 			return true;
 		}
 
