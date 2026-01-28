@@ -119,14 +119,14 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	/// <summary>
 	/// Creates a new method invocation on the given source expression.
 	/// </summary>
-	protected InvocationExpressionSyntax CreateLinqMethodCall(ExpressionSyntax source, string methodName, params IEnumerable<SyntaxNode> arguments)
+	protected InvocationExpressionSyntax CreateLinqMethodCall(ExpressionSyntax source, string methodName, params IEnumerable<ExpressionSyntax> arguments)
 	{
 		return InvocationExpression(
       MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
 				source,
         IdentifierName(methodName)),
       ArgumentList(
-        SeparatedList(arguments.Select(s => s is ArgumentSyntax argument ? argument : Argument((ExpressionSyntax)s)))));
+        SeparatedList(arguments.Select(Argument))));
 	}
 
 	/// <summary>
