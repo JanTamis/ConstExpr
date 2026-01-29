@@ -142,12 +142,19 @@ public partial class ConstExprPartialRewriter
 	{
 		var constantArguments = new List<object>(arguments.Count);
 
-		for (var i = 0; i < arguments.Count; i++)
+		try
 		{
-			if (TryGetLiteralValue(arguments[i], out var value) || TryGetLiteralValue(originalArguments[i], out value))
+			for (var i = 0; i < arguments.Count; i++)
 			{
-				constantArguments.Add(value);
+				if (TryGetLiteralValue(arguments[i], out var value) || TryGetLiteralValue(originalArguments[i], out value))
+				{
+					constantArguments.Add(value);
+				}
 			}
+		}
+		catch (Exception e)
+		{
+			exceptionHandler(arguments[0], e);
 		}
 
 		return constantArguments;
@@ -158,13 +165,20 @@ public partial class ConstExprPartialRewriter
 	/// </summary>
 	private SyntaxNode? TryExecuteWithConstantArguments(InvocationExpressionSyntax node, IMethodSymbol targetMethod, List<object> constantArguments)
 	{
-		if (node.Expression is MemberAccessExpressionSyntax { Expression: var instanceName }
-		    && !targetMethod.ContainingType.EqualsType(semanticModel.Compilation.GetTypeByMetadataName("System.Random")))
+		try
 		{
-			return TryExecuteInstanceMethod(node, targetMethod, instanceName, constantArguments);
-		}
+			if (node.Expression is MemberAccessExpressionSyntax { Expression: var instanceName }
+			    && !targetMethod.ContainingType.EqualsType(semanticModel.Compilation.GetTypeByMetadataName("System.Random")))
+			{
+				return TryExecuteInstanceMethod(node, targetMethod, instanceName, constantArguments);
+			}
 
-		return TryExecuteViaOperationVisitor(targetMethod, constantArguments);
+			return TryExecuteViaOperationVisitor(targetMethod, constantArguments);
+		}
+		catch (Exception)
+		{
+			return null;
+		}
 	}
 
 	/// <summary>
