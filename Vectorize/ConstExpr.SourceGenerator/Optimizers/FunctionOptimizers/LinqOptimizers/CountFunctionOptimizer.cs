@@ -47,16 +47,10 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		}
 
 		// Recursively skip all operations that don't affect count
-		var currentSource = source;
-		
-		while (IsLinqMethodChain(currentSource, OperationsThatDontAffectCount, out var chainInvocation)
-		       && TryGetLinqSource(chainInvocation, out var innerSource))
-		{
-			currentSource = innerSource;
-		}
+		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectCount, out source);
 
 		// Now check if we have a Where at the end of the optimized chain
-		if (IsLinqMethodChain(currentSource, nameof(Enumerable.Where), out var whereInvocation)
+		if (IsLinqMethodChain(source, nameof(Enumerable.Where), out var whereInvocation)
 		    && GetMethodArguments(whereInvocation).FirstOrDefault() is { Expression: { } predicateArg }
 		    && TryGetLambda(predicateArg, out var predicate)
 		    && TryGetLinqSource(whereInvocation, out var whereSource))
@@ -73,9 +67,9 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		}
 
 		// If we skipped any operations, create optimized Count() call
-		if (currentSource != source)
+		if (isNewSource)
 		{
-			result = CreateInvocation(currentSource, nameof(Enumerable.Count));
+			result = CreateInvocation(source, nameof(Enumerable.Count));
 			return true;
 		}
 

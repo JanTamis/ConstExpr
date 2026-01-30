@@ -78,16 +78,10 @@ public class DistinctFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 			: OperationsThatDontAffectDistinctness;
 
 		// Recursively skip all allowed operations
-		var currentSource = source;
-		
-		while (IsLinqMethodChain(currentSource, allowedOperations, out var chainInvocation)
-		       && TryGetLinqSource(chainInvocation, out var innerSource))
-		{
-			currentSource = innerSource;
-		}
+		var isNewSource = TryGetOptimizedChainExpression(source, allowedOperations, out source);
 
 		// Check for identity Select
-		if (IsLinqMethodChain(currentSource, nameof(Enumerable.Select), out var selectInvocation)
+		if (IsLinqMethodChain(source, nameof(Enumerable.Select), out var selectInvocation)
 		    && GetMethodArguments(selectInvocation).FirstOrDefault() is { Expression: { } lambdaArg }
 		    && TryGetLambda(lambdaArg, out var lambda)
 		    && IsIdentityLambda(lambda)
@@ -105,9 +99,9 @@ public class DistinctFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		}
 
 		// If we skipped any operations, create optimized Distinct() call
-		if (currentSource != source)
+		if (isNewSource)
 		{
-			result = CreateInvocation(currentSource, nameof(Enumerable.Distinct));
+			result = CreateInvocation(source, nameof(Enumerable.Distinct));
 			return true;
 		}
 

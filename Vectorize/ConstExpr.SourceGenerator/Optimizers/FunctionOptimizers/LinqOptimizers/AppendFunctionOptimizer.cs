@@ -33,17 +33,9 @@ public class AppendFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		}
 
 		var appendedValue = parameters[0];
-		var originalSource = source;
-
-		// Skip operations that don't affect Append (AsEnumerable, ToList, ToArray)
-		while (IsLinqMethodChain(source, OperationsThatDontAffectAppend, out var chainInvocation)
-		       && TryGetLinqSource(chainInvocation, out var innerSource))
-		{
-			source = innerSource;
-		}
 
 		// If we skipped any operations (AsEnumerable/ToList/ToArray), create optimized Append call
-		if (source != originalSource)
+		if (TryGetOptimizedChainExpression(source, OperationsThatDontAffectAppend, out source))
 		{
 			result = CreateInvocation(source, nameof(Enumerable.Append), appendedValue);
 			return true;

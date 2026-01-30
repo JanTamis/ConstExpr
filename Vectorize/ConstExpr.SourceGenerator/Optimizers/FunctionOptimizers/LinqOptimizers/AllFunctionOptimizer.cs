@@ -61,16 +61,10 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		}
 
 		// Recursively skip all operations that don't affect all-check
-		var currentSource = source;
-
-		while (IsLinqMethodChain(currentSource, OperationsThatDontAffectAll, out var chainInvocation)
-		       && TryGetLinqSource(chainInvocation, out var innerSource))
-		{
-			currentSource = innerSource;
-		}
+		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectAll, out source);
 
 		// Now check if we have a Where at the end of the optimized chain
-		if (IsLinqMethodChain(currentSource, nameof(Enumerable.Where), out var whereInvocation)
+		if (IsLinqMethodChain(source, nameof(Enumerable.Where), out var whereInvocation)
 		    && GetMethodArguments(whereInvocation).FirstOrDefault() is { Expression: { } predicateArg }
 		    && TryGetLambda(predicateArg, out var wherePredicate)
 		    && TryGetLinqSource(whereInvocation, out var whereSource))
@@ -90,9 +84,9 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		}
 
 		// If we skipped any operations, create optimized All() call
-		if (currentSource != source)
+		if (isNewSource)
 		{
-			result = CreateInvocation(currentSource, nameof(Enumerable.All), allLambda);
+			result = CreateInvocation(source, nameof(Enumerable.All), allLambda);
 			return true;
 		}
 

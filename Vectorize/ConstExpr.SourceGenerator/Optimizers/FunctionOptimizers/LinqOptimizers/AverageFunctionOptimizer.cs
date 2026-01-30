@@ -31,28 +31,10 @@ public class AverageFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 			return false;
 		}
 
-		var originalSource = source;
-
-		// Skip operations that don't affect Average (AsEnumerable, ToList, ToArray)
-		while (IsLinqMethodChain(source, OperationsThatDontAffectAverage, out var chainInvocation)
-		       && TryGetLinqSource(chainInvocation, out var innerSource))
-		{
-			source = innerSource;
-		}
-
 		// If we skipped any operations (AsEnumerable/ToList/ToArray), create optimized Average call
-		if (source != originalSource)
+		if (TryGetOptimizedChainExpression(source, OperationsThatDontAffectAverage, out source))
 		{
-			// Preserve selector if it exists
-			if (parameters.Count > 0)
-			{
-				result = CreateInvocation(source, nameof(Enumerable.Average), parameters[0]);
-			}
-			else
-			{
-				result = CreateInvocation(source, nameof(Enumerable.Average));
-			}
-
+			result = CreateInvocation(source, nameof(Enumerable.Average), parameters);
 			return true;
 		}
 

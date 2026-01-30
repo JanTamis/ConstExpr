@@ -51,13 +51,11 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		}
 
 		// Recursively skip all operations that don't affect existence
-		var currentSource = source;
-		
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectExistence, out source);
 		
 
 		// Now check if we have a Where at the end of the optimized chain
-		if (IsLinqMethodChain(currentSource, nameof(Enumerable.Where), out var whereInvocation)
+		if (IsLinqMethodChain(source, nameof(Enumerable.Where), out var whereInvocation)
 		    && GetMethodArguments(whereInvocation).FirstOrDefault() is { Expression: { } predicateArg }
 		    && TryGetLambda(predicateArg, out var predicate)
 		    && TryGetLinqSource(whereInvocation, out var whereSource))
@@ -72,7 +70,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		// If we skipped any operations, create optimized Any() call
 		if (isNewSource)
 		{
-			result = CreateInvocation(currentSource, nameof(Enumerable.Any));
+			result = CreateInvocation(source, nameof(Enumerable.Any));
 			return true;
 		}
 
