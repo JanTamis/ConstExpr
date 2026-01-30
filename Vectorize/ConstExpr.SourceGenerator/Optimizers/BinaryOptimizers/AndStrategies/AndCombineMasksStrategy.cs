@@ -3,7 +3,6 @@ using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using ConstExpr.SourceGenerator.Helpers;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AndStrategies;
