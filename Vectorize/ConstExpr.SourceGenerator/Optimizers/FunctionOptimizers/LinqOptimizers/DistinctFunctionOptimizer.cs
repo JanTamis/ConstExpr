@@ -100,14 +100,14 @@ public class DistinctFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 				selectSource = beforeSelectSource;
 			}
 			
-			result = CreateLinqMethodCall(selectSource, nameof(Enumerable.Distinct));
+			result = CreateInvocation(selectSource, nameof(Enumerable.Distinct));
 			return true;
 		}
 
 		// If we skipped any operations, create optimized Distinct() call
 		if (currentSource != source)
 		{
-			result = CreateLinqMethodCall(currentSource, nameof(Enumerable.Distinct));
+			result = CreateInvocation(currentSource, nameof(Enumerable.Distinct));
 			return true;
 		}
 

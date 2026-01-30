@@ -68,14 +68,14 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 				whereSource = beforeWhereSource;
 			}
 			
-			result = CreateLinqMethodCall(whereSource, nameof(Enumerable.Count), predicate);
+			result = CreateInvocation(whereSource, nameof(Enumerable.Count), predicate);
 			return true;
 		}
 
 		// If we skipped any operations, create optimized Count() call
 		if (currentSource != source)
 		{
-			result = CreateLinqMethodCall(currentSource, nameof(Enumerable.Count));
+			result = CreateInvocation(currentSource, nameof(Enumerable.Count));
 			return true;
 		}
 

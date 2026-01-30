@@ -83,16 +83,16 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			}
 			
 			// Keep the Where and just apply All on top with optimized source
-			var whereCall = CreateLinqMethodCall(whereSource, nameof(Enumerable.Where), wherePredicate);
+			var whereCall = CreateInvocation(whereSource, nameof(Enumerable.Where), wherePredicate);
 
-			result = CreateLinqMethodCall(whereCall, nameof(Enumerable.All), allLambda);
+			result = CreateInvocation(whereCall, nameof(Enumerable.All), allLambda);
 			return true;
 		}
 
 		// If we skipped any operations, create optimized All() call
 		if (currentSource != source)
 		{
-			result = CreateLinqMethodCall(currentSource, nameof(Enumerable.All), allLambda);
+			result = CreateInvocation(currentSource, nameof(Enumerable.All), allLambda);
 			return true;
 		}
 

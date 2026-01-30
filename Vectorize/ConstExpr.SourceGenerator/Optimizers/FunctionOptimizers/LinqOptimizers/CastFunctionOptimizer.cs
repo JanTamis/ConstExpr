@@ -47,7 +47,7 @@ public class CastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 			}
 			else
 			{
-				result = CreateLinqMethodCall(source, nameof(Enumerable.Cast));
+				result = CreateInvocation(source, nameof(Enumerable.Cast));
 			}
 			
 			return true;

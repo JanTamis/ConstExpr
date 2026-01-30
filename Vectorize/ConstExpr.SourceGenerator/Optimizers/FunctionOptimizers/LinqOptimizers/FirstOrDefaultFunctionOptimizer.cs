@@ -57,7 +57,7 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 				whereSource = beforeWhereSource;
 			}
 			
-			result = CreateLinqMethodCall(whereSource, nameof(Enumerable.FirstOrDefault), predicate);
+			result = CreateInvocation(whereSource, nameof(Enumerable.FirstOrDefault), predicate);
 			return true;
 		}
 		
@@ -65,7 +65,7 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 		if (IsLinqMethodChain(currentSource, nameof(Enumerable.Reverse), out var reverseInvocation)
 		    && TryGetLinqSource(reverseInvocation, out var reverseSource))
 		{
-			result = CreateLinqMethodCall(reverseSource, nameof(Enumerable.LastOrDefault));
+			result = CreateInvocation(reverseSource, nameof(Enumerable.LastOrDefault));
 			return true;
 		}
 		
@@ -73,7 +73,7 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 		if (IsLinqMethodChain(currentSource, "Order", out var orderInvocation)
 		    && TryGetLinqSource(orderInvocation, out var orderSource))
 		{
-			result = CreateLinqMethodCall(orderSource, nameof(Enumerable.Min));
+			result = CreateInvocation(orderSource, nameof(Enumerable.Min));
 			return true;
 		}
 		
@@ -81,7 +81,7 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 		if (IsLinqMethodChain(currentSource, "OrderDescending", out var orderDescInvocation)
 		    && TryGetLinqSource(orderDescInvocation, out var orderDescSource))
 		{
-			result = CreateLinqMethodCall(orderDescSource, nameof(Enumerable.Max));
+			result = CreateInvocation(orderDescSource, nameof(Enumerable.Max));
 			return true;
 		}
 		
@@ -90,7 +90,7 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 		// If we skipped any operations, create optimized FirstOrDefault() call
 		if (currentSource != source)
 		{
-			result = CreateLinqMethodCall(currentSource, nameof(Enumerable.FirstOrDefault));
+			result = CreateInvocation(currentSource, nameof(Enumerable.FirstOrDefault));
 			return true;
 		}
 

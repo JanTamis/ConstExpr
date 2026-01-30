@@ -73,7 +73,7 @@ public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		// If we skipped any operations (AsEnumerable/ToList/ToArray), create optimized Concat call
 		if (isNewSource)
 		{
-			result = CreateLinqMethodCall(source, nameof(Enumerable.Concat), concatenatedCollection);
+			result = CreateInvocation(source, nameof(Enumerable.Concat), concatenatedCollection);
 			return true;
 		}
 
@@ -127,7 +127,7 @@ public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		}
 
 		// Create Append call: source.Append(element)
-		result = CreateLinqMethodCall(source, nameof(Enumerable.Append), expressionElement.Expression);
+		result = CreateInvocation(source, nameof(Enumerable.Append), expressionElement.Expression);
 		return true;
 	}
 
@@ -179,7 +179,7 @@ public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		}
 
 		// Create the optimized Concat call
-		result = CreateLinqMethodCall(baseSource, nameof(Enumerable.Concat), mergedCollection);
+		result = CreateInvocation(baseSource, nameof(Enumerable.Concat), mergedCollection);
 		return true;
 	}
 

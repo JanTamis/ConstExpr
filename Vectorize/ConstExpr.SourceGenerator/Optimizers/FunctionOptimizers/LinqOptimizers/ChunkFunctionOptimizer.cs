@@ -39,7 +39,7 @@ public class ChunkFunctionOptimizer() : BaseLinqFunctionOptimizer("Chunk", 1)
 
 			var lambda = SimpleLambdaExpression(parameter, lambdaBody);
 			
-			result = CreateLinqMethodCall(source, nameof(Enumerable.Select), lambda);
+			result = CreateInvocation(source, nameof(Enumerable.Select), lambda);
 			return true;
 		}
 

@@ -46,11 +46,11 @@ public class AverageFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 			// Preserve selector if it exists
 			if (parameters.Count > 0)
 			{
-				result = CreateLinqMethodCall(source, nameof(Enumerable.Average), parameters[0]);
+				result = CreateInvocation(source, nameof(Enumerable.Average), parameters[0]);
 			}
 			else
 			{
-				result = CreateLinqMethodCall(source, nameof(Enumerable.Average));
+				result = CreateInvocation(source, nameof(Enumerable.Average));
 			}
 
 			return true;

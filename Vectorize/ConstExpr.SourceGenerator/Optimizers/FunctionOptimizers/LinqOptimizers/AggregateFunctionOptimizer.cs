@@ -54,13 +54,13 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 
 		if (IsZeroLiteral(parameters[0]))
 		{
-			result = CreateLinqMethodCall(source!, nameof(Enumerable.Aggregate), parameters.Skip(1));
+			result = CreateInvocation(source!, nameof(Enumerable.Aggregate), parameters.Skip(1));
 			return true;
 		}
 
 		if (isNewSource)
 		{
-			result = CreateLinqMethodCall(source!, nameof(Enumerable.Aggregate), parameters);
+			result = CreateInvocation(source!, nameof(Enumerable.Aggregate), parameters);
 			return true;
 		}
 
@@ -100,7 +100,7 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
     }
 
     // Optimize to Sum()
-    result = CreateLinqMethodCall(source, nameof(Enumerable.Sum));
+    result = CreateInvocation(source, nameof(Enumerable.Sum));
 
 		if (method.Parameters.Length == 2 && !IsZeroLiteral(parameters[0]))
 		{
