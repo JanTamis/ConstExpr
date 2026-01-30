@@ -27,7 +27,6 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 	// Operations that don't affect the all-check (only order/form/duplicates/materialization)
 	private static readonly HashSet<string> OperationsThatDontAffectAll =
 	[
-		nameof(Enumerable.Select),           // Projection: transforms elements but doesn't filter
 		nameof(Enumerable.Distinct),         // Deduplication: may reduce count, but if all satisfy condition, All() is true
 		nameof(Enumerable.OrderBy),          // Ordering: changes order but not all-check
 		nameof(Enumerable.OrderByDescending),// Ordering: changes order but not all-check
