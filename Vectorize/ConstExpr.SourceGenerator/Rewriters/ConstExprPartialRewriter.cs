@@ -65,7 +65,7 @@ public partial class ConstExprPartialRewriter(
 		return typeof(BaseLinqFunctionOptimizer).Assembly
 			.GetTypes()
 			.Where(t => !t.IsAbstract && typeof(BaseLinqFunctionOptimizer).IsAssignableFrom(t))
-			.Select(t => Activator.CreateInstance(t) as BaseLinqFunctionOptimizer)
+			.Select(Activator.CreateInstance)
 			.OfType<BaseLinqFunctionOptimizer>()
 			.ToArray();
 	}, isThreadSafe: true);

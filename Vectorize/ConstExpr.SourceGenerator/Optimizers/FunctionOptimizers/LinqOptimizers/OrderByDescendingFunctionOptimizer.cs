@@ -7,9 +7,9 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 
 public class OrderByDescendingFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.OrderByDescending), 1)
 {
-	public override bool TryOptimize(IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(method)
+		if (!IsValidLinqMethod(model, method)
 		    || !TryGetLambda(parameters[0], out var lambda)
 		    || !IsIdentityLambda(lambda)
 		    || invocation.Expression is not MemberAccessExpressionSyntax memberAccess)
@@ -18,7 +18,7 @@ public class OrderByDescendingFunctionOptimizer() : BaseLinqFunctionOptimizer(na
 			return false;
 		}
 
-		result = CreateSimpleLinqMethodCall(memberAccess.Expression, "OrderDescending");
+		result = CreateSimpleInvocation(memberAccess.Expression, "OrderDescending");
 		return true;
 	}
 }

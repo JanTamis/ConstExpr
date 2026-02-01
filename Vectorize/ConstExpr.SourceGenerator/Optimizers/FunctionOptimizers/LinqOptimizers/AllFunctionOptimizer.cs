@@ -40,9 +40,9 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		nameof(Enumerable.ToArray),          // Materialization: creates array but doesn't filter
 	];
 
-	public override bool TryOptimize(IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(method)
+		if (!IsValidLinqMethod(model, method)
 		    || !TryGetLinqSource(invocation, out var source))
 		{
 			result = null;

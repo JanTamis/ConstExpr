@@ -1185,7 +1185,16 @@ public static class CompilationExtensions
 		}
 		catch (Exception e)
 		{
-
+			if (semanticModel.Compilation.TryGetSemanticModel(node, out var semantic))
+			{
+				var info = semantic.GetTypeInfo(node);
+				
+				if (info.Type is { } symbol)
+				{
+					typeSymbol = symbol;
+					return true;
+				}
+			}
 		}
 
 		typeSymbol = null;

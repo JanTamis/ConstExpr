@@ -1,9 +1,11 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using SourceGen.Utilities.Extensions;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
@@ -20,11 +22,11 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	/// <summary>
 	/// Validates if the given method is a valid LINQ Enumerable method matching this optimizer's criteria.
 	/// </summary>
-	protected bool IsValidLinqMethod(IMethodSymbol method)
+	protected bool IsValidLinqMethod(SemanticModel model, IMethodSymbol method)
 	{
 		return method.Name == Name
 		       && ParameterCounts.Contains(method.Parameters.Length)
-		       && method.ContainingType.ToString() is "System.Linq.Enumerable";
+		       && method.ContainingType.EqualsType(model.Compilation.GetTypeByMetadataName("System.Linq.Enumerable"));
 	}
 
 	/// <summary>
@@ -77,7 +79,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	/// <summary>
 	/// Checks if a method call is chained after another LINQ method (e.g., Where().Select()).
 	/// </summary>
-	protected bool IsLinqMethodChain(ExpressionSyntax expression, string methodName, [NotNullWhen(true)] out InvocationExpressionSyntax? invocation)
+	protected bool IsLinqMethodChain(ExpressionSyntax? expression, string methodName, [NotNullWhen(true)] out InvocationExpressionSyntax? invocation)
 	{
 		invocation = null;
 
@@ -245,8 +247,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		var chain = new List<(string, InvocationExpressionSyntax)>();
 		var current = expression;
 
-		while (current is InvocationExpressionSyntax invocation
-		       && invocation.Expression is MemberAccessExpressionSyntax memberAccess)
+		while (current is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax memberAccess } invocation)
 		{
 			chain.Insert(0, (memberAccess.Name.Identifier.Text, invocation));
 			current = memberAccess.Expression;
@@ -258,7 +259,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	/// <summary>
 	/// Creates a method call with no arguments on the given source expression.
 	/// </summary>
-	protected InvocationExpressionSyntax CreateSimpleLinqMethodCall(ExpressionSyntax source, string methodName)
+	protected InvocationExpressionSyntax CreateSimpleInvocation(ExpressionSyntax source, string methodName)
 	{
 		return CreateInvocation(source, methodName);
 	}
@@ -336,5 +337,116 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		}
 
 		return result;
+	}
+
+	/// <summary>
+	/// Checks if the invocation is made on a List&lt;T&gt; type.
+	/// </summary>
+	protected bool IsInvokedOnList(SemanticModel model, ExpressionSyntax? expression)
+	{
+		if (!model.TryGetTypeSymbol(expression, out var type)
+		    || type is not INamedTypeSymbol namedType)
+		{
+			return false;
+		}
+
+		// Check if the type is List<T>
+		if (namedType.OriginalDefinition.SpecialType == SpecialType.None
+		    && namedType.OriginalDefinition.ToString() == "System.Collections.Generic.List<T>")
+		{
+			return true;
+		}
+
+		return false;
+	}
+
+	/// <summary>
+	/// Checks if the invocation is made on an array type.
+	/// </summary>
+	protected bool IsInvokedOnArray(SemanticModel model, ExpressionSyntax? expression)
+	{
+		if (expression is null)
+		{
+			return false;
+		}
+		
+		return model.TryGetTypeSymbol(expression, out var type) && type is IArrayTypeSymbol;
+	}
+	
+	protected LambdaExpressionSyntax CombinePredicates(LambdaExpressionSyntax outer, LambdaExpressionSyntax inner)
+	{
+		// Get parameter names from both lambdas
+		var innerParam = GetLambdaParameter(inner);
+		var outerParam = GetLambdaParameter(outer);
+
+		// Get the body expressions
+		var innerBody = GetLambdaBody(inner);
+		var outerBody = GetLambdaBody(outer);
+
+		// If parameters are the same, we can directly combine with &&
+		// Otherwise, replace the outer parameter with the inner parameter
+		ExpressionSyntax combinedBody;
+		if (innerParam == outerParam)
+		{
+			// Both use the same parameter name: v => v > 1 && v < 5
+			combinedBody = BinaryExpression(
+				SyntaxKind.LogicalAndExpression,
+				ParenthesizedExpression(innerBody),
+				ParenthesizedExpression(outerBody));
+		}
+		else
+		{
+			// Different parameter names: replace outer parameter with inner parameter
+			var renamedOuterBody = ReplaceIdentifier(outerBody, outerParam, IdentifierName(innerParam));
+			combinedBody = BinaryExpression(
+				SyntaxKind.LogicalAndExpression,
+				ParenthesizedExpression(innerBody),
+				ParenthesizedExpression(renamedOuterBody));
+		}
+
+		// Create a new lambda with the inner parameter and the combined body
+		return SimpleLambdaExpression(
+			Parameter(Identifier(innerParam)),
+			combinedBody
+		);
+	}
+
+	private static string GetLambdaParameter(LambdaExpressionSyntax lambda)
+	{
+		return lambda switch
+		{
+			SimpleLambdaExpressionSyntax simpleLambda => simpleLambda.Parameter.Identifier.Text,
+			ParenthesizedLambdaExpressionSyntax { ParameterList.Parameters.Count: > 0 } parenthesizedLambda
+				=> parenthesizedLambda.ParameterList.Parameters[0].Identifier.Text,
+			_ => throw new System.InvalidOperationException("Unsupported lambda expression type")
+		};
+	}
+
+	private static ExpressionSyntax GetLambdaBody(LambdaExpressionSyntax lambda)
+	{
+		return lambda switch
+		{
+			SimpleLambdaExpressionSyntax { ExpressionBody: { } body } => body,
+			ParenthesizedLambdaExpressionSyntax { ExpressionBody: { } body } => body,
+			_ => throw new System.InvalidOperationException("Only expression-bodied lambdas are supported")
+		};
+	}
+
+	private static ExpressionSyntax ReplaceIdentifier(ExpressionSyntax expression, string oldIdentifier, ExpressionSyntax replacement)
+	{
+		return (ExpressionSyntax)new IdentifierReplacer(oldIdentifier, replacement).Visit(expression);
+	}
+
+	private class IdentifierReplacer(string identifier, ExpressionSyntax replacement) : CSharpSyntaxRewriter
+	{
+		public override SyntaxNode? VisitIdentifierName(IdentifierNameSyntax node)
+		{
+			if (node.Identifier.Text == identifier)
+			{
+				return replacement;
+			}
+
+			return base.VisitIdentifierName(node);
+		}
 	}
 }

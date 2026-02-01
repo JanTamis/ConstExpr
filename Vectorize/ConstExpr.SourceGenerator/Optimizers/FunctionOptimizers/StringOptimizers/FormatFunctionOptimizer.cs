@@ -17,7 +17,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 	/// <param name="instance">Optional syntax node instance provided by the optimizer infrastructure; may be null.</param>
 	public class FormatFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "Format")
 	{
-		public override bool TryOptimize(IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+		public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 		{
 			result = null;
 
@@ -32,7 +32,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 				return false;
 			}
 
-			var formatIndex = 0;
+			const int formatIndex = 0;
 
 			if (parameters.Count <= formatIndex)
 			{

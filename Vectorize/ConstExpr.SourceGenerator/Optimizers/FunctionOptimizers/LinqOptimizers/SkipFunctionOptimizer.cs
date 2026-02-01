@@ -7,9 +7,9 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 
 public class SkipFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Skip), 1)
 {
-	public override bool TryOptimize(IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(method)
+		if (!IsValidLinqMethod(model, method)
 		    || invocation.Expression is not MemberAccessExpressionSyntax memberAccess
 		    || parameters[0] is not LiteralExpressionSyntax { Token.Value: int count }
 		    || count > 0)

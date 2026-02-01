@@ -8,7 +8,7 @@ public class LinqAnyOptimizationTests : BaseTest<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
-		// Where(...).Any() => Any(predicate)
+		// Where(...).Any() => Array.Exists(...) for arrays
 		var a = x.Where(v => v > 3).Any() ? 1 : 0;
 
 		// Select(...).Any() => Any()
@@ -35,7 +35,7 @@ public class LinqAnyOptimizationTests : BaseTest<Func<int[], int>>
 		// ToArray().Any() => Any()
 		var i = x.ToArray().Any() ? 1 : 0;
 
-		// Where filters everything out
+		// Where filters everything out => Array.Exists(...) for arrays
 		var j = x.Where(v => v > 100).Any() ? 1 : 0;
 
 		// Should be optimized to Contains
@@ -47,7 +47,7 @@ public class LinqAnyOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.Any(v => v > 3) ? 1 : 0;
+			var a = Array.Exists(x, v => v > 3) ? 1 : 0;
 			var b = x.Any() ? 1 : 0;
 			var c = x.Any() ? 1 : 0;
 			var d = x.Any() ? 1 : 0;
@@ -56,12 +56,55 @@ public class LinqAnyOptimizationTests : BaseTest<Func<int[], int>>
 			var g = x.Any() ? 1 : 0;
 			var h = x.Any() ? 1 : 0;
 			var i = x.Any() ? 1 : 0;
-			var j = x.Any(v => v > 100) ? 1 : 0;
+			var j = Array.Exists(x, v => v > 100) ? 1 : 0;
 			var k = x.Contains(2) ? 1 : 0;
 			
-			return a + b + c + d + e + f + g + h + i + j;
+			return a + b + c + d + e + f + g + h + i + j + k;
 			""", Unknown),
-		Create("return 9;", new[] { 1, 2, 3, 4, 5 }),
+		Create("return 10;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new int[] { }),
 	];
 }
+
+/// <summary>
+/// Tests for Any() optimization on List - verify that List.Where().Any() is optimized to List.Exists()
+/// </summary>
+[InheritsTests]
+public class LinqAnyOptimizationListTests : BaseTest<Func<List<int>, int>>
+{
+	public override string TestMethod => GetString(x =>
+	{
+		// List.Where(...).Any() => List.Exists(...)
+		var a = x.Where(v => v > 3).Any() ? 1 : 0;
+
+		// List.Select(...).Any() => List.Any()
+		var b = x.Select(v => v * 2).Any() ? 1 : 0;
+
+		// List.OrderBy(...).Any() => List.Any()
+		var c = x.OrderBy(v => v).Any() ? 1 : 0;
+
+		// List.Where filters everything out => List.Exists(...)
+		var d = x.Where(v => v > 100).Any() ? 1 : 0;
+
+		// Should be optimized to Contains
+		var e = x.Any(v => v == 2) ? 1 : 0;
+
+		return a + b + c + d + e;
+	});
+
+	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	[
+		Create("""
+			var a = x.Exists(v => v > 3) ? 1 : 0;
+			var b = x.Any() ? 1 : 0;
+			var c = x.Any() ? 1 : 0;
+			var d = x.Exists(v => v > 100) ? 1 : 0;
+			var e = x.Contains(2) ? 1 : 0;
+			
+			return a + b + c + d + e;
+			""", Unknown),
+		Create("return 4;", new List<int> { 1, 2, 3, 4, 5 }),
+		Create("return 0;", new List<int>()),
+	];
+}
+

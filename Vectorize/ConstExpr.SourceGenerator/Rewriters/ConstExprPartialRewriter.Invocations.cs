@@ -58,7 +58,7 @@ public partial class ConstExprPartialRewriter
 		if (targetMethod.ContainingType.SpecialType == SpecialType.System_String
 		    && node.Expression is MemberAccessExpressionSyntax memberAccess)
 		{
-			var optimized = TryOptimizeStringMethod(targetMethod, node, memberAccess, arguments);
+			var optimized = TryOptimizeStringMethod(semanticModel, targetMethod, node, memberAccess, arguments);
 
 			if (optimized is not null)
 			{
@@ -68,7 +68,7 @@ public partial class ConstExprPartialRewriter
 		// Try math optimizers
 		else if (attribute.FloatingPointMode == FloatingPointEvaluationMode.FastMath)
 		{
-			var optimized = TryOptimizeMathMethod(targetMethod, node, arguments);
+			var optimized = TryOptimizeMathMethod(semanticModel, targetMethod, node, arguments);
 
 			if (optimized is not null)
 			{
@@ -77,7 +77,7 @@ public partial class ConstExprPartialRewriter
 		}
 
 		// Try linq optimizers
-		if (TryOptimizeLinqMethod(targetMethod, node, arguments) is { } optimizedLinq)
+		if (TryOptimizeLinqMethod(semanticModel, targetMethod, node, arguments) is { } optimizedLinq)
 		{
 			return Visit(optimizedLinq);
 		}
@@ -261,7 +261,7 @@ public partial class ConstExprPartialRewriter
 	/// <summary>
 	/// Tries to optimize a string method.
 	/// </summary>
-	private SyntaxNode? TryOptimizeStringMethod(IMethodSymbol targetMethod, InvocationExpressionSyntax node, MemberAccessExpressionSyntax memberAccess, List<SyntaxNode> arguments)
+	private SyntaxNode? TryOptimizeStringMethod(SemanticModel model, IMethodSymbol targetMethod, InvocationExpressionSyntax node, MemberAccessExpressionSyntax memberAccess, List<SyntaxNode> arguments)
 	{
 		var instance = Visit(memberAccess.Expression);
 
@@ -271,7 +271,7 @@ public partial class ConstExprPartialRewriter
 
 		foreach (var stringOptimizer in optimizers)
 		{
-			if (stringOptimizer!.TryOptimize(targetMethod, node, arguments.OfType<ExpressionSyntax>().ToArray(), additionalMethods, out var optimized))
+			if (stringOptimizer!.TryOptimize(model, targetMethod, node, arguments.OfType<ExpressionSyntax>().ToArray(), additionalMethods, out var optimized))
 			{
 				return optimized;
 			}
@@ -289,24 +289,24 @@ public partial class ConstExprPartialRewriter
 	/// <summary>
 	/// Tries to optimize a math method.
 	/// </summary>
-	private SyntaxNode? TryOptimizeMathMethod(IMethodSymbol targetMethod, InvocationExpressionSyntax node, List<SyntaxNode> arguments)
+	private SyntaxNode? TryOptimizeMathMethod(SemanticModel model, IMethodSymbol targetMethod, InvocationExpressionSyntax node, List<SyntaxNode> arguments)
 	{
 		return _mathOptimizers.Value
 			.Where(o => String.Equals(o.Name, targetMethod.Name, StringComparison.Ordinal)
 			            && o.ParameterCounts.Contains(targetMethod.Parameters.Length))
-			.WhereSelect<BaseMathFunctionOptimizer, SyntaxNode>((w, out optimized) => w.TryOptimize(targetMethod, node, arguments.OfType<ExpressionSyntax>().ToArray(), additionalMethods, out optimized))
+			.WhereSelect<BaseMathFunctionOptimizer, SyntaxNode>((w, out optimized) => w.TryOptimize(model, targetMethod, node, arguments.OfType<ExpressionSyntax>().ToArray(), additionalMethods, out optimized))
 			.FirstOrDefault();
 	}
 
 	/// <summary>
 	/// Tries to optimize a linq method.
 	/// </summary>
-	private SyntaxNode? TryOptimizeLinqMethod(IMethodSymbol targetMethod, InvocationExpressionSyntax node, List<SyntaxNode> arguments)
+	private SyntaxNode? TryOptimizeLinqMethod(SemanticModel model, IMethodSymbol targetMethod, InvocationExpressionSyntax node, List<SyntaxNode> arguments)
 	{
 		return _linqOptimizers.Value
 			.Where(o => String.Equals(o.Name, targetMethod.Name, StringComparison.Ordinal)
 			            && o.ParameterCounts.Contains(targetMethod.Parameters.Length))
-			.WhereSelect<BaseLinqFunctionOptimizer, SyntaxNode>((w, out optimized) => w.TryOptimize(targetMethod, node, arguments.OfType<ExpressionSyntax>().ToArray(), additionalMethods, out optimized))
+			.WhereSelect<BaseLinqFunctionOptimizer, SyntaxNode>((w, out optimized) => w.TryOptimize(model, targetMethod, node, arguments.OfType<ExpressionSyntax>().ToArray(), additionalMethods, out optimized))
 			.FirstOrDefault();
 	}
 

@@ -8,9 +8,9 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 
 public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Where), 1)
 {
-	public override bool TryOptimize(IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(method)
+		if (!IsValidLinqMethod(model, method)
 		    || !TryGetLambda(parameters[0], out var lambda)
 		    || !TryGetLinqSource(invocation, out var source))
 		{
@@ -73,80 +73,5 @@ public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		return body is LiteralExpressionSyntax { Token.Value: false };
 	}
 
-	private LambdaExpressionSyntax CombinePredicates(LambdaExpressionSyntax outer, LambdaExpressionSyntax inner)
-	{
-		// Get parameter names from both lambdas
-		var innerParam = GetLambdaParameter(inner);
-		var outerParam = GetLambdaParameter(outer);
-
-		// Get the body expressions
-		var innerBody = GetLambdaBody(inner);
-		var outerBody = GetLambdaBody(outer);
-
-		// If parameters are the same, we can directly combine with &&
-		// Otherwise, replace the outer parameter with the inner parameter
-		ExpressionSyntax combinedBody;
-		if (innerParam == outerParam)
-		{
-			// Both use the same parameter name: v => v > 1 && v < 5
-			combinedBody = SyntaxFactory.BinaryExpression(
-				SyntaxKind.LogicalAndExpression,
-				SyntaxFactory.ParenthesizedExpression(innerBody),
-				SyntaxFactory.ParenthesizedExpression(outerBody));
-		}
-		else
-		{
-			// Different parameter names: replace outer parameter with inner parameter
-			var renamedOuterBody = ReplaceIdentifier(outerBody, outerParam, SyntaxFactory.IdentifierName(innerParam));
-			combinedBody = SyntaxFactory.BinaryExpression(
-				SyntaxKind.LogicalAndExpression,
-				SyntaxFactory.ParenthesizedExpression(innerBody),
-				SyntaxFactory.ParenthesizedExpression(renamedOuterBody));
-		}
-
-		// Create a new lambda with the inner parameter and the combined body
-		return SyntaxFactory.SimpleLambdaExpression(
-			SyntaxFactory.Parameter(SyntaxFactory.Identifier(innerParam)),
-			combinedBody
-		);
-	}
-
-	private static string GetLambdaParameter(LambdaExpressionSyntax lambda)
-	{
-		return lambda switch
-		{
-			SimpleLambdaExpressionSyntax simpleLambda => simpleLambda.Parameter.Identifier.Text,
-			ParenthesizedLambdaExpressionSyntax { ParameterList.Parameters.Count: > 0 } parenthesizedLambda
-				=> parenthesizedLambda.ParameterList.Parameters[0].Identifier.Text,
-			_ => throw new System.InvalidOperationException("Unsupported lambda expression type")
-		};
-	}
-
-	private static ExpressionSyntax GetLambdaBody(LambdaExpressionSyntax lambda)
-	{
-		return lambda switch
-		{
-			SimpleLambdaExpressionSyntax { ExpressionBody: { } body } => body,
-			ParenthesizedLambdaExpressionSyntax { ExpressionBody: { } body } => body,
-			_ => throw new System.InvalidOperationException("Only expression-bodied lambdas are supported")
-		};
-	}
-
-	private static ExpressionSyntax ReplaceIdentifier(ExpressionSyntax expression, string oldIdentifier, ExpressionSyntax replacement)
-	{
-		return (ExpressionSyntax)new IdentifierReplacer(oldIdentifier, replacement).Visit(expression);
-	}
-
-	private class IdentifierReplacer(string identifier, ExpressionSyntax replacement) : CSharpSyntaxRewriter
-	{
-		public override SyntaxNode? VisitIdentifierName(IdentifierNameSyntax node)
-		{
-			if (node.Identifier.Text == identifier)
-			{
-				return replacement;
-			}
-
-			return base.VisitIdentifierName(node);
-		}
-	}
+	
 }
