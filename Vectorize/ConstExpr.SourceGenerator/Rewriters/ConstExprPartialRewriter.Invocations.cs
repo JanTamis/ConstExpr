@@ -35,7 +35,7 @@ public partial class ConstExprPartialRewriter
 			return VisitInvocationExpressionFallback(node);
 		}
 		
-		node = node.WithExpression(Visit(node.Expression) as ExpressionSyntax ?? node.Expression);
+		// node = node.WithExpression(Visit(node.Expression) as ExpressionSyntax ?? node.Expression);
 
 		var arguments = node.ArgumentList.Arguments
 			.Select(arg => Visit(arg.Expression))
@@ -62,7 +62,7 @@ public partial class ConstExprPartialRewriter
 
 			if (optimized is not null)
 			{
-				return optimized;
+				return Visit(optimized);
 			}
 		}
 		// Try math optimizers
@@ -72,7 +72,7 @@ public partial class ConstExprPartialRewriter
 
 			if (optimized is not null)
 			{
-				return optimized;
+				return Visit(optimized);
 			}
 		}
 
