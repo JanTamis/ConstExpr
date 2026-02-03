@@ -308,6 +308,60 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		return false;
 	}
 
+	/// <summary>
+	/// Checks if a lambda expression is a simple equality check (e.g., x => x == 2 or x => 2 == x).
+	/// If true, extracts the value being compared against.
+	/// </summary>
+	protected bool IsSimpleEqualityLambda(LambdaExpressionSyntax lambda, [NotNullWhen(true)] out ExpressionSyntax? equalityValue)
+	{
+		equalityValue = null;
+
+		// Get the lambda parameter name and body
+		var parameterName = lambda switch
+		{
+			SimpleLambdaExpressionSyntax simpleLambda => simpleLambda.Parameter.Identifier.Text,
+			ParenthesizedLambdaExpressionSyntax { ParameterList.Parameters.Count: 1 } parenthesizedLambda
+				=> parenthesizedLambda.ParameterList.Parameters[0].Identifier.Text,
+			_ => null
+		};
+
+		if (parameterName is null)
+		{
+			return false;
+		}
+
+		var body = lambda switch
+		{
+			SimpleLambdaExpressionSyntax { Body: ExpressionSyntax expr } => expr,
+			ParenthesizedLambdaExpressionSyntax { Body: ExpressionSyntax expr } => expr,
+			_ => null
+		};
+
+		// Check if body is a binary expression with equality operator
+		if (body is not BinaryExpressionSyntax { RawKind: (int)SyntaxKind.EqualsExpression } binaryExpression)
+		{
+			return false;
+		}
+
+		// Check if left side is the parameter and right side is the value (x => x == value)
+		if (binaryExpression.Left is IdentifierNameSyntax { } leftIdentifier
+		    && leftIdentifier.Identifier.Text == parameterName)
+		{
+			equalityValue = binaryExpression.Right;
+			return true;
+		}
+
+		// Check if right side is the parameter and left side is the value (x => value == x)
+		if (binaryExpression.Right is IdentifierNameSyntax { } rightIdentifier
+		    && rightIdentifier.Identifier.Text == parameterName)
+		{
+			equalityValue = binaryExpression.Left;
+			return true;
+		}
+
+		return false;
+	}
+
 	protected InvocationExpressionSyntax CreateEmptyEnumerableCall(ITypeSymbol elementType)
 	{
 		return InvocationExpression(
@@ -322,7 +376,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
                 ParseTypeName(elementType.ToString()))))));
 	}
 
-	protected bool TryGetOptimizedChainExpression(ExpressionSyntax source, ISet<string> methodsToSkip, [NotNullWhen(true)] out ExpressionSyntax? optimizedSource)
+	protected bool TryGetOptimizedChainExpression(ExpressionSyntax source, ISet<string> methodsToSkip, [NotNullWhen(true)] [NotNullIfNotNull(nameof(source))] out ExpressionSyntax? optimizedSource)
 	{
 		optimizedSource = source;
 
@@ -363,7 +417,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	/// <summary>
 	/// Checks if the invocation is made on an array type.
 	/// </summary>
-	protected bool IsInvokedOnArray(SemanticModel model, ExpressionSyntax? expression)
+	protected bool IsInvokedOnArray(SemanticModel model, [NotNullWhen(true)] ExpressionSyntax? expression)
 	{
 		if (expression is null)
 		{
@@ -371,6 +425,20 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		}
 		
 		return model.TryGetTypeSymbol(expression, out var type) && type is IArrayTypeSymbol;
+	}
+	
+	protected bool IsSpecialType(SemanticModel model, ExpressionSyntax? expression, params HashSet<SpecialType> specialTypes)
+	{
+		return model.TryGetTypeSymbol(expression, out var type) && specialTypes.Contains(type.SpecialType);
+	}
+	
+	protected bool IsCollectionType(SemanticModel model, ExpressionSyntax? expression)
+	{
+		return IsSpecialType(model, expression,
+			SpecialType.System_Collections_Generic_IList_T,
+			SpecialType.System_Collections_Generic_IReadOnlyList_T,
+			SpecialType.System_Collections_Generic_ICollection_T,
+			SpecialType.System_Collections_Generic_IReadOnlyCollection_T);
 	}
 	
 	protected LambdaExpressionSyntax CombinePredicates(LambdaExpressionSyntax outer, LambdaExpressionSyntax inner)

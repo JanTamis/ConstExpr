@@ -36,32 +36,36 @@ public class LinqAnyOptimizationTests : BaseTest<Func<int[], int>>
 		var i = x.ToArray().Any() ? 1 : 0;
 
 		// Where filters everything out => Array.Exists(...) for arrays
-		var j = x.Where(v => v > 100).Any() ? 1 : 0;
+		var j = x.Where(v => v == 100).Any() ? 1 : 0;
 
 		// Should be optimized to Contains
 		var k = x.Any(v => v == 2) ? 1 : 0;
 
-		return a + b + c + d + e + f + g + h + i + j + k;
+		// Direct Any() on array => x.Length > 0
+		var l = x.Any() ? 1 : 0;
+
+		return a + b + c + d + e + f + g + h + i + j + k + l;
 	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
 			var a = Array.Exists(x, v => v > 3) ? 1 : 0;
-			var b = x.Any() ? 1 : 0;
-			var c = x.Any() ? 1 : 0;
-			var d = x.Any() ? 1 : 0;
-			var e = x.Any() ? 1 : 0;
-			var f = x.Any() ? 1 : 0;
-			var g = x.Any() ? 1 : 0;
-			var h = x.Any() ? 1 : 0;
-			var i = x.Any() ? 1 : 0;
-			var j = Array.Exists(x, v => v > 100) ? 1 : 0;
+			var b = x.Length > 0 ? 1 : 0;
+			var c = x.Length > 0 ? 1 : 0;
+			var d = x.Length > 0 ? 1 : 0;
+			var e = x.Length > 0 ? 1 : 0;
+			var f = x.Length > 0 ? 1 : 0;
+			var g = x.Length > 0 ? 1 : 0;
+			var h = x.Length > 0 ? 1 : 0;
+			var i = x.Length > 0 ? 1 : 0;
+			var j = x.Contains(100) ? 1 : 0;
 			var k = x.Contains(2) ? 1 : 0;
+			var l = x.Length > 0 ? 1 : 0;
 			
-			return a + b + c + d + e + f + g + h + i + j + k;
+			return a + b + c + d + e + f + g + h + i + j + k + l;
 			""", Unknown),
-		Create("return 10;", new[] { 1, 2, 3, 4, 5 }),
+		Create("return 11;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new int[] { }),
 	];
 }
@@ -89,7 +93,10 @@ public class LinqAnyOptimizationListTests : BaseTest<Func<List<int>, int>>
 		// Should be optimized to Contains
 		var e = x.Any(v => v == 2) ? 1 : 0;
 
-		return a + b + c + d + e;
+		// Direct Any() on list => x.Count > 0
+		var f = x.Any() ? 1 : 0;
+
+		return a + b + c + d + e + f;
 	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
@@ -100,10 +107,11 @@ public class LinqAnyOptimizationListTests : BaseTest<Func<List<int>, int>>
 			var c = x.Any() ? 1 : 0;
 			var d = x.Exists(v => v > 100) ? 1 : 0;
 			var e = x.Contains(2) ? 1 : 0;
+			var f = x.Count > 0 ? 1 : 0;
 			
-			return a + b + c + d + e;
+			return a + b + c + d + e + f;
 			""", Unknown),
-		Create("return 4;", new List<int> { 1, 2, 3, 4, 5 }),
+		Create("return 5;", new List<int> { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new List<int>()),
 	];
 }

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
@@ -22,7 +23,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Count), 0)
 {
 	// Operations that don't affect element count (only order/form but not filtering)
-	// Note: We DON'T include Select, Distinct, ToList, ToArray because they might affect count
+	// Note: We DON'T include Distinct, ToList, ToArray because they might affect count
 	// - Distinct: reduces count by removing duplicates
 	// - ToList/ToArray: materialization could fail/filter
 	private static readonly HashSet<string> OperationsThatDontAffectCount =
@@ -35,6 +36,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		nameof(Enumerable.ThenByDescending), // Secondary ordering: changes order but not count
 		nameof(Enumerable.Reverse),          // Reversal: changes order but not count
 		nameof(Enumerable.AsEnumerable),     // Type cast: doesn't change the collection
+		nameof(Enumerable.Select)						 // Projection: doesn't change count for non-nullable types
 	];
 
 	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
@@ -55,14 +57,21 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		    && TryGetLambda(predicateArg, out var predicate)
 		    && TryGetLinqSource(whereInvocation, out var whereSource))
 		{
-			// Continue skipping operations before Where as well
-			while (IsLinqMethodChain(whereSource, OperationsThatDontAffectCount, out var beforeWhereInvocation)
-			       && TryGetLinqSource(beforeWhereInvocation, out var beforeWhereSource))
-			{
-				whereSource = beforeWhereSource;
-			}
+			TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectCount, out whereSource);
 			
 			result = CreateInvocation(whereSource, nameof(Enumerable.Count), predicate);
+			return true;
+		}
+
+		if (IsCollectionType(model, source))
+		{
+			result = SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, source, SyntaxFactory.IdentifierName("Count"));
+			return true;
+		}
+
+		if (IsInvokedOnArray(model, source))
+		{
+			result = SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, source, SyntaxFactory.IdentifierName("Length"));
 			return true;
 		}
 

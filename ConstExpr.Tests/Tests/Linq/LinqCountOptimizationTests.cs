@@ -35,7 +35,7 @@ public class LinqCountOptimizationTests : BaseTest<Func<int[], int>>
 		// Distinct should NOT be optimized (reduces count!)
 		var i = x.Distinct().Count();
 
-		// Select should NOT be optimized (might affect count)
+		// Select should be optimized away
 		var j = x.Select(v => v * 2).Count();
 
 		return a + b + c + d + e + f + g + h + i + j;
@@ -45,15 +45,15 @@ public class LinqCountOptimizationTests : BaseTest<Func<int[], int>>
 	[
 		Create("""
 			var a = x.Count(v => v > 3);
-			var b = x.Count();
-			var c = x.Count();
-			var d = x.Count();
-			var e = x.Count();
-			var f = x.Count();
+			var b = x.Length;
+			var c = x.Length;
+			var d = x.Length;
+			var e = x.Length;
+			var f = x.Length;
 			var g = x.Count(v => v > 2);
 			var h = x.Count(v => v < 5);
 			var i = x.Distinct().Count();
-			var j = x.Count();
+			var j = x.Length;
 			
 			return a + b + c + d + e + f + g + h + i + j;
 			""", Unknown),

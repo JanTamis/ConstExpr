@@ -70,6 +70,12 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 				predicate = CombinePredicates(predicate, anyPredicate);
 			}
 
+			if (IsSimpleEqualityLambda(predicate, out var equalityValue))
+			{
+				result = CreateInvocation(whereSource, nameof(Enumerable.Contains), equalityValue);
+				return true;
+			}
+
 			if (IsInvokedOnList(model, whereSource))
 			{
 				result = CreateInvocation(whereSource, "Exists", predicate);
@@ -83,6 +89,33 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			}
 
 			result = CreateInvocation(whereSource, nameof(Enumerable.Any), predicate);
+			return true;
+		}
+
+		if (parameters.Count == 0)
+		{
+			if (IsCollectionType(model, source))
+			{
+				result = BinaryExpression(SyntaxKind.GreaterThanExpression,
+					MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, source, IdentifierName("Count")),
+					LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)));
+
+				return true;
+			}
+
+			if (IsInvokedOnArray(model, source))
+			{
+				result = BinaryExpression(SyntaxKind.GreaterThanExpression,
+					MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, source, IdentifierName("Length")),
+					LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)));
+
+				return true;
+			}
+		}
+		else if (TryGetLambda(parameters[0], out var anyLambda)
+		         && IsSimpleEqualityLambda(anyLambda, out var equalityValue))
+		{
+			result = CreateInvocation(source, nameof(Enumerable.Contains), equalityValue);
 			return true;
 		}
 
