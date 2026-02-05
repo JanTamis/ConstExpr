@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -92,7 +93,7 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 
 				if (IsInvokedOnArray(model, selectSource))
 				{
-					result = CreateInvocation(SyntaxFactory.ParseTypeName(nameof(System.Array)), nameof(System.Array.Exists), selectSource, anyPredicate);
+					result = CreateInvocation(SyntaxFactory.ParseTypeName(nameof(Array)), nameof(Array.Exists), selectSource, anyPredicate);
 					return true;
 				}
 
@@ -137,7 +138,7 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 
 			if (IsInvokedOnArray(model, whereSource))
 			{
-				result = CreateInvocation(SyntaxFactory.ParseTypeName(nameof(System.Array)), nameof(System.Array.Exists), whereSource, anyPredicate);
+				result = CreateInvocation(SyntaxFactory.ParseTypeName(nameof(Array)), nameof(Array.Exists), whereSource, anyPredicate);
 				return true;
 			}
 
@@ -159,8 +160,8 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 			if (IsInvokedOnArray(model, source))
 			{
 				var indexOfCall = CreateInvocation(
-					SyntaxFactory.ParseTypeName(nameof(System.Array)),
-					nameof(System.Array.IndexOf),
+					SyntaxFactory.ParseTypeName(nameof(Array)),
+					nameof(Array.IndexOf),
 					source,
 					searchValue);
 
@@ -178,26 +179,5 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 
 		result = null;
 		return false;
-	}
-
-	private static string GetLambdaParameter(LambdaExpressionSyntax lambda)
-	{
-		return lambda switch
-		{
-			SimpleLambdaExpressionSyntax simpleLambda => simpleLambda.Parameter.Identifier.Text,
-			ParenthesizedLambdaExpressionSyntax { ParameterList.Parameters.Count: > 0 } parenthesizedLambda
-				=> parenthesizedLambda.ParameterList.Parameters[0].Identifier.Text,
-			_ => throw new System.InvalidOperationException("Unsupported lambda expression type")
-		};
-	}
-
-	private static ExpressionSyntax GetLambdaBody(LambdaExpressionSyntax lambda)
-	{
-		return lambda switch
-		{
-			SimpleLambdaExpressionSyntax { ExpressionBody: { } body } => body,
-			ParenthesizedLambdaExpressionSyntax { ExpressionBody: { } body } => body,
-			_ => throw new System.InvalidOperationException("Only expression-bodied lambdas are supported")
-		};
 	}
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -132,6 +133,32 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	}
 
 	/// <summary>
+	/// Creates a new method invocation on the given source expression.
+	/// </summary>
+	protected InvocationExpressionSyntax CreateInvocation(ExpressionSyntax source, Delegate method, params IEnumerable<ExpressionSyntax> arguments)
+	{
+		return InvocationExpression(
+			MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
+				source,
+				IdentifierName(method.Method.Name)),
+			ArgumentList(
+				SeparatedList(arguments.Select(Argument))));
+	}
+
+	/// <summary>
+	/// Creates a new method invocation on the given source expression.
+	/// </summary>
+	protected InvocationExpressionSyntax CreateInvocation(Delegate method, params IEnumerable<ExpressionSyntax> arguments)
+	{
+		return InvocationExpression(
+			MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
+				ParseTypeName(method.Method.DeclaringType?.ToString() ?? throw new InvalidOperationException("Method must have a declaring type")),
+				IdentifierName(method.Method.Name)),
+			ArgumentList(
+				SeparatedList(arguments.Select(Argument))));
+	}
+
+	/// <summary>
 	/// Attempts to match a LINQ method chain pattern and extract specific information.
 	/// </summary>
 	protected bool TryMatchLinqPattern(InvocationExpressionSyntax invocation, string expectedMethodName,
@@ -182,6 +209,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	protected bool IsConstantLambda(LambdaExpressionSyntax lambda, out ExpressionSyntax? constantValue)
 	{
 		constantValue = null;
+		
 		var body = lambda switch
 		{
 			SimpleLambdaExpressionSyntax { Body: ExpressionSyntax expr } => expr,
@@ -479,7 +507,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		);
 	}
 
-	private static string GetLambdaParameter(LambdaExpressionSyntax lambda)
+	protected static string GetLambdaParameter(LambdaExpressionSyntax lambda)
 	{
 		return lambda switch
 		{
@@ -490,7 +518,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		};
 	}
 
-	private static ExpressionSyntax GetLambdaBody(LambdaExpressionSyntax lambda)
+	protected static ExpressionSyntax GetLambdaBody(LambdaExpressionSyntax lambda)
 	{
 		return lambda switch
 		{
