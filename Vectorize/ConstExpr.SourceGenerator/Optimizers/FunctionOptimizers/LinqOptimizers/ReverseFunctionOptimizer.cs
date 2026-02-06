@@ -28,7 +28,6 @@ public class ReverseFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 			result = reverseSource;
 			return true;
 		}
-
 		
 		result = null;
 		return false;

@@ -65,13 +65,13 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 		if (IsCollectionType(model, source))
 		{
-			result = SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, source, SyntaxFactory.IdentifierName("Count"));
+			result = CreateMemberAccess(source, "Count");
 			return true;
 		}
 
 		if (IsInvokedOnArray(model, source))
 		{
-			result = SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, source, SyntaxFactory.IdentifierName("Length"));
+			result = CreateMemberAccess(source, "Length");
 			return true;
 		}
 

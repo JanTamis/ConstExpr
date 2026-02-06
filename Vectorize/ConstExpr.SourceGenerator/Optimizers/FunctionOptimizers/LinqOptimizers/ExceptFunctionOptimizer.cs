@@ -174,18 +174,6 @@ public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 
 		return false;
 	}
-
-	/// <summary>
-	/// Checks if two expressions are syntactically equivalent (simple text comparison).
-	/// This is a conservative check - it won't catch all semantic equivalences, but it's safe.
-	/// </summary>
-	private bool AreSyntacticallyEquivalent(ExpressionSyntax first, ExpressionSyntax second)
-	{
-		// Simple syntactic comparison by normalized text
-		var firstText = first.ToString().Replace(" ", "").Replace("\n", "").Replace("\r", "");
-		var secondText = second.ToString().Replace(" ", "").Replace("\n", "").Replace("\r", "");
-		return firstText == secondText;
-	}
 }
 
 

@@ -72,6 +72,4 @@ public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 		return body is LiteralExpressionSyntax { Token.Value: false };
 	}
-
-	
 }

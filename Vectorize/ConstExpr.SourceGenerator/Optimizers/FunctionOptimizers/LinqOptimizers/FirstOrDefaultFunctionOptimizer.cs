@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
@@ -59,32 +60,80 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 			return true;
 		}
 		
-		// now check if we have a Order at the end of the optimized chain
-		if (IsLinqMethodChain(source, "Order", out var orderInvocation)
-		    && TryGetLinqSource(orderInvocation, out var orderSource))
-		{
-			result = CreateInvocation(orderSource, nameof(Enumerable.Min));
-			return true;
-		}
-		
-		// now check if we have a OrderDescending at the end of the optimized chain
-		if (IsLinqMethodChain(source, "OrderDescending", out var orderDescInvocation)
-		    && TryGetLinqSource(orderDescInvocation, out var orderDescSource))
-		{
-			result = CreateInvocation(orderDescSource, nameof(Enumerable.Max));
-			return true;
-		}
-		
-		//
-
-		// If we skipped any operations, create optimized FirstOrDefault() call
-		if (isNewSource)
-		{
-			result = CreateInvocation(source, nameof(Enumerable.FirstOrDefault));
-			return true;
-		}
-
-		result = null;
-		return false;
+	// now check if we have a Order at the end of the optimized chain
+	if (IsLinqMethodChain(source, "Order", out var orderInvocation)
+	    && TryGetLinqSource(orderInvocation, out var orderSource))
+	{
+		result = CreateInvocation(orderSource, nameof(Enumerable.Min));
+		return true;
 	}
+	
+	// now check if we have a OrderDescending at the end of the optimized chain
+	if (IsLinqMethodChain(source, "OrderDescending", out var orderDescInvocation)
+	    && TryGetLinqSource(orderDescInvocation, out var orderDescSource))
+	{
+		result = CreateInvocation(orderDescSource, nameof(Enumerable.Max));
+		return true;
+	}
+	
+	// For arrays, use conditional: arr.Length > 0 ? arr[0] : default
+	if (IsInvokedOnArray(model, source))
+	{
+		result = SyntaxFactory.ConditionalExpression(
+			SyntaxFactory.BinaryExpression(
+				SyntaxKind.GreaterThanExpression,
+				SyntaxFactory.MemberAccessExpression(
+					SyntaxKind.SimpleMemberAccessExpression,
+					source,
+					SyntaxFactory.IdentifierName("Length")),
+				SyntaxFactory.LiteralExpression(
+					SyntaxKind.NumericLiteralExpression,
+					SyntaxFactory.Literal(0))),
+			SyntaxFactory.ElementAccessExpression(
+				source,
+				SyntaxFactory.BracketedArgumentList(
+					SyntaxFactory.SingletonSeparatedList(
+						SyntaxFactory.Argument(
+							SyntaxFactory.LiteralExpression(
+								SyntaxKind.NumericLiteralExpression,
+								SyntaxFactory.Literal(0)))))),
+			SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression));
+		return true;
+	}
+
+	// For List<T>, use conditional: list.Count > 0 ? list[0] : default
+	if (IsInvokedOnList(model, source))
+	{
+		result = SyntaxFactory.ConditionalExpression(
+			SyntaxFactory.BinaryExpression(
+				SyntaxKind.GreaterThanExpression,
+				SyntaxFactory.MemberAccessExpression(
+					SyntaxKind.SimpleMemberAccessExpression,
+					source,
+					SyntaxFactory.IdentifierName("Count")),
+				SyntaxFactory.LiteralExpression(
+					SyntaxKind.NumericLiteralExpression,
+					SyntaxFactory.Literal(0))),
+			SyntaxFactory.ElementAccessExpression(
+				source,
+				SyntaxFactory.BracketedArgumentList(
+					SyntaxFactory.SingletonSeparatedList(
+						SyntaxFactory.Argument(
+							SyntaxFactory.LiteralExpression(
+								SyntaxKind.NumericLiteralExpression,
+								SyntaxFactory.Literal(0)))))),
+			SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression));
+		return true;
+	}
+	
+	// If we skipped any operations, create optimized FirstOrDefault() call
+	if (isNewSource)
+	{
+		result = CreateInvocation(source, nameof(Enumerable.FirstOrDefault));
+		return true;
+	}
+
+	result = null;
+	return false;
+}
 }

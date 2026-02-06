@@ -64,30 +64,22 @@ public class DefaultIfEmptyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 		{
 			// Continue skipping operations before the inner DefaultIfEmpty
 			TryGetOptimizedChainExpression(innerSource, OperationsThatDontAffectEmpty, out innerSource);
-			
+
 			// Create new DefaultIfEmpty with current default value (outer one wins)
-			if (defaultValue != null)
-			{
-				result = CreateInvocation(innerSource, nameof(Enumerable.DefaultIfEmpty), defaultValue);
-			}
-			else
-			{
-				result = CreateInvocation(innerSource, nameof(Enumerable.DefaultIfEmpty));
-			}
+			result = defaultValue != null 
+				? CreateInvocation(innerSource, nameof(Enumerable.DefaultIfEmpty), defaultValue) 
+				: CreateInvocation(innerSource, nameof(Enumerable.DefaultIfEmpty));
+			
 			return true;
 		}
 
 		// If we skipped any operations, create optimized DefaultIfEmpty() call
 		if (isNewSource)
 		{
-			if (defaultValue != null)
-			{
-				result = CreateInvocation(source, nameof(Enumerable.DefaultIfEmpty), defaultValue);
-			}
-			else
-			{
-				result = CreateInvocation(source, nameof(Enumerable.DefaultIfEmpty));
-			}
+			result = defaultValue != null 
+				? CreateInvocation(source, nameof(Enumerable.DefaultIfEmpty), defaultValue) 
+				: CreateInvocation(source, nameof(Enumerable.DefaultIfEmpty));
+			
 			return true;
 		}
 

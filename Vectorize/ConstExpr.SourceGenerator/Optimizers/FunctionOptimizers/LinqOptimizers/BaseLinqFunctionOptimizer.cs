@@ -125,11 +125,20 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	protected InvocationExpressionSyntax CreateInvocation(ExpressionSyntax source, string methodName, params IEnumerable<ExpressionSyntax> arguments)
 	{
 		return InvocationExpression(
-      MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
-				source,
-        IdentifierName(methodName)),
+			CreateMemberAccess(source, methodName),
       ArgumentList(
         SeparatedList(arguments.Select(Argument))));
+	}
+
+	/// <summary>
+	/// Creates a new method invocation on the given source expression.
+	/// </summary>
+	protected InvocationExpressionSyntax CreateInvocation(ExpressionSyntax source, SimpleNameSyntax method, params IEnumerable<ExpressionSyntax> arguments)
+	{
+		return InvocationExpression(
+			CreateMemberAccess(source, method),
+			ArgumentList(
+				SeparatedList(arguments.Select(Argument))));
 	}
 
 	/// <summary>
@@ -138,9 +147,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	protected InvocationExpressionSyntax CreateInvocation(ExpressionSyntax source, Delegate method, params IEnumerable<ExpressionSyntax> arguments)
 	{
 		return InvocationExpression(
-			MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
-				source,
-				IdentifierName(method.Method.Name)),
+			CreateMemberAccess(source, method.Method.Name),
 			ArgumentList(
 				SeparatedList(arguments.Select(Argument))));
 	}
@@ -151,11 +158,19 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	protected InvocationExpressionSyntax CreateInvocation(Delegate method, params IEnumerable<ExpressionSyntax> arguments)
 	{
 		return InvocationExpression(
-			MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
-				ParseTypeName(method.Method.DeclaringType?.ToString() ?? throw new InvalidOperationException("Method must have a declaring type")),
-				IdentifierName(method.Method.Name)),
+			CreateMemberAccess(ParseTypeName(method.Method.DeclaringType?.ToString() ?? throw new InvalidOperationException("Method must have a declaring type")), method.Method.Name),
 			ArgumentList(
 				SeparatedList(arguments.Select(Argument))));
+	}
+	
+	protected MemberAccessExpressionSyntax CreateMemberAccess(ExpressionSyntax source, string memberName)
+	{
+		return MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, source, IdentifierName(memberName));
+	}
+
+	protected MemberAccessExpressionSyntax CreateMemberAccess(ExpressionSyntax source, SimpleNameSyntax name)
+	{
+		return MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, source, name);
 	}
 
 	/// <summary>
@@ -189,7 +204,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	protected bool TryGetLambdaParameterName(SimpleLambdaExpressionSyntax lambda, out string? parameterName)
 	{
 		parameterName = lambda.Parameter.Identifier.Text;
-		return !string.IsNullOrEmpty(parameterName);
+		return !String.IsNullOrEmpty(parameterName);
 	}
 
 	/// <summary>
@@ -542,6 +557,18 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 			},
 			ArgumentList.Arguments.Count: 0
 		} or CollectionExpressionSyntax { Elements.Count: 0 };
+	}
+
+	/// <summary>
+	/// Checks if two expressions are syntactically equivalent (simple text comparison).
+	/// This is a conservative check - it won't catch all semantic equivalences, but it's safe.
+	/// </summary>
+	protected bool AreSyntacticallyEquivalent(ExpressionSyntax first, ExpressionSyntax second)
+	{
+		// Simple syntactic comparison by normalized text
+		var firstText = first.ToString().Replace(" ", "").Replace("\n", "").Replace("\r", "");
+		var secondText = second.ToString().Replace(" ", "").Replace("\n", "").Replace("\r", "");
+		return firstText == secondText;
 	}
 
 	private static ExpressionSyntax ReplaceIdentifier(ExpressionSyntax expression, string oldIdentifier, ExpressionSyntax replacement)

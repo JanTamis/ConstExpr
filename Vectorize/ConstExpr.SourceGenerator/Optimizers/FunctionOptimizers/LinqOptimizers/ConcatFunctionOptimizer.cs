@@ -82,22 +82,6 @@ public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 	}
 
 	/// <summary>
-	/// Checks if the given expression is Enumerable.Empty&lt;T&gt;() or [].
-	/// </summary>
-	private bool IsEmptyEnumerable(ExpressionSyntax expression)
-	{
-		return expression is InvocationExpressionSyntax
-		{
-			Expression: MemberAccessExpressionSyntax
-			{
-				Name.Identifier.Text: nameof(Enumerable.Empty),
-				Expression: IdentifierNameSyntax { Identifier.Text: nameof(Enumerable) }
-			},
-			ArgumentList.Arguments.Count: 0
-		} or CollectionExpressionSyntax { Elements.Count: 0 };
-	}
-
-	/// <summary>
 	/// Tries to convert Concat with a single-element collection to Append.
 	/// E.g., collection.Concat([42]) => collection.Append(42)
 	/// </summary>

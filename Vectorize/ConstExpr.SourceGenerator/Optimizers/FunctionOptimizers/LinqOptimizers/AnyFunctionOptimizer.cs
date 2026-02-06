@@ -97,7 +97,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			if (IsCollectionType(model, source))
 			{
 				result = BinaryExpression(SyntaxKind.GreaterThanExpression,
-					MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, source, IdentifierName("Count")),
+					CreateMemberAccess(source, "Count"),
 					LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)));
 
 				return true;
@@ -106,7 +106,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			if (IsInvokedOnArray(model, source))
 			{
 				result = BinaryExpression(SyntaxKind.GreaterThanExpression,
-					MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, source, IdentifierName("Length")),
+					CreateMemberAccess(source, "Length"),
 					LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)));
 
 				return true;

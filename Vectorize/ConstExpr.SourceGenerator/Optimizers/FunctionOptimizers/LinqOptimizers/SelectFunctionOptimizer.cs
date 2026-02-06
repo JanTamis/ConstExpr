@@ -85,12 +85,7 @@ public class SelectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 			SyntaxFactory.TypeArgumentList(
 				SyntaxFactory.SingletonSeparatedList(targetType)));
 
-		return SyntaxFactory.InvocationExpression(
-			SyntaxFactory.MemberAccessExpression(
-				SyntaxKind.SimpleMemberAccessExpression,
-				source,
-				genericName),
-			SyntaxFactory.ArgumentList());
+		return CreateInvocation(source, genericName);
 	}
 
 	private LambdaExpressionSyntax CombineLambdas(LambdaExpressionSyntax outer, LambdaExpressionSyntax inner)

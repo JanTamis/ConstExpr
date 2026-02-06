@@ -38,26 +38,30 @@ public class LinqFirstOrDefaultOptimizationTests : BaseTest<Func<int[], int>>
 		// Distinct should NOT be optimized (first element might be duplicate!)
 		var j = x.Distinct().FirstOrDefault();
 
-		return a + b + c + d + e + f + g + h + i + j;
+		// Array conditional: x.FirstOrDefault() => x.Length > 0 ? x[0] : default
+		var k = x.FirstOrDefault();
+
+		return a + b + c + d + e + f + g + h + i + j + k;
 	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
 			var a = x.FirstOrDefault(v => v > 3);
-			var b = x.FirstOrDefault();
-			var c = x.FirstOrDefault();
-			var d = x.FirstOrDefault();
+			var b = x.Length > 0 ? x[0] : default;
+			var c = x.Length > 0 ? x[0] : default;
+			var d = x.Length > 0 ? x[0] : default;
 			var e = x.FirstOrDefault(v => v > 2);
 			var f = x.FirstOrDefault(v => v < 5);
 			var g = x.FirstOrDefault(v => v == 3);
 			var h = x.Min();
 			var i = x.LastOrDefault();
-			var j = x.FirstOrDefault();
-			
-			return a + b + c + d + e + f + g + h + i + j;
+			var j = x.Length > 0 ? x[0] : default;
+			var k = x.Length > 0 ? x[0] : default;
+
+			return a + b + c + d + e + f + g + h + i + j + k;
 			""", Unknown),
-		Create("return 28;", new[] { 1, 2, 3, 4, 5 }),
+		Create("return 29;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new int[] { }),
 	];
 }

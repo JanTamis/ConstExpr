@@ -38,12 +38,7 @@ public class CastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 			// Preserve the generic type argument from the original Cast<T>() call
 			if (invocation.Expression is MemberAccessExpressionSyntax { Name: GenericNameSyntax genericName })
 			{
-				result = SyntaxFactory.InvocationExpression(
-					SyntaxFactory.MemberAccessExpression(
-						SyntaxKind.SimpleMemberAccessExpression,
-						source,
-						genericName),
-					SyntaxFactory.ArgumentList());
+				result = CreateInvocation(source, genericName);
 			}
 			else
 			{
