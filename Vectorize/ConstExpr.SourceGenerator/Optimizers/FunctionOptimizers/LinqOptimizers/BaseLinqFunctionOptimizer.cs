@@ -514,7 +514,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 			SimpleLambdaExpressionSyntax simpleLambda => simpleLambda.Parameter.Identifier.Text,
 			ParenthesizedLambdaExpressionSyntax { ParameterList.Parameters.Count: > 0 } parenthesizedLambda
 				=> parenthesizedLambda.ParameterList.Parameters[0].Identifier.Text,
-			_ => throw new System.InvalidOperationException("Unsupported lambda expression type")
+			_ => throw new InvalidOperationException("Unsupported lambda expression type")
 		};
 	}
 
@@ -524,8 +524,24 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		{
 			SimpleLambdaExpressionSyntax { ExpressionBody: { } body } => body,
 			ParenthesizedLambdaExpressionSyntax { ExpressionBody: { } body } => body,
-			_ => throw new System.InvalidOperationException("Only expression-bodied lambdas are supported")
+			_ => throw new InvalidOperationException("Only expression-bodied lambdas are supported")
 		};
+	}
+
+	/// <summary>
+	/// Checks if the given expression is Enumerable.Empty&lt;T&gt;() or [].
+	/// </summary>
+	protected bool IsEmptyEnumerable(ExpressionSyntax expression)
+	{
+		return expression is InvocationExpressionSyntax
+		{
+			Expression: MemberAccessExpressionSyntax
+			{
+				Name.Identifier.Text: nameof(Enumerable.Empty),
+				Expression: IdentifierNameSyntax { Identifier.Text: nameof(Enumerable) }
+			},
+			ArgumentList.Arguments.Count: 0
+		} or CollectionExpressionSyntax { Elements.Count: 0 };
 	}
 
 	private static ExpressionSyntax ReplaceIdentifier(ExpressionSyntax expression, string oldIdentifier, ExpressionSyntax replacement)
