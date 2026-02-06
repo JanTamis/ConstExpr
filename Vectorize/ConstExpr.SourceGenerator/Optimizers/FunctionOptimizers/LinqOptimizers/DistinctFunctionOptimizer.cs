@@ -87,12 +87,7 @@ public class DistinctFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		    && IsIdentityLambda(lambda)
 		    && TryGetLinqSource(selectInvocation, out var selectSource))
 		{
-			// Continue skipping operations before identity Select as well
-			while (IsLinqMethodChain(selectSource, allowedOperations, out var beforeSelectInvocation)
-			       && TryGetLinqSource(beforeSelectInvocation, out var beforeSelectSource))
-			{
-				selectSource = beforeSelectSource;
-			}
+			TryGetOptimizedChainExpression(selectSource, allowedOperations, out selectSource);
 			
 			result = CreateInvocation(selectSource, nameof(Enumerable.Distinct));
 			return true;

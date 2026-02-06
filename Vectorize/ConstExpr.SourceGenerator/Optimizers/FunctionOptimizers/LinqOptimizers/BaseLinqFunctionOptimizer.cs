@@ -64,9 +64,9 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	/// <summary>
 	/// Attempts to extract the source expression from a LINQ method chain.
 	/// </summary>
-	protected bool TryGetLinqSource(InvocationExpressionSyntax invocation, [NotNullWhen(true)] out ExpressionSyntax? source)
+	protected bool TryGetLinqSource(InvocationExpressionSyntax invocation, [NotNullWhen(true)] [NotNullIfNotNull(nameof(invocation))] out ExpressionSyntax? source)
 	{
-		source = null;
+		source = invocation;
 
 		if (invocation.Expression is not MemberAccessExpressionSyntax memberAccess)
     {
