@@ -41,4 +41,3 @@ public class DistinctByFunctionOptimizer() : BaseLinqFunctionOptimizer("Distinct
 		return false;
 	}
 }
-

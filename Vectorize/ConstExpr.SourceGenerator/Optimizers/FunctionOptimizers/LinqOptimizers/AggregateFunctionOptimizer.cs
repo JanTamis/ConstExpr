@@ -49,6 +49,20 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		// First, try to optimize Aggregate to Sum if it's just adding values
 		if (TryOptimizeAggregateToSum(method, parameters, source!, out result))
 		{
+			if (IsLinqMethodChain(source, nameof(Enumerable.Select), out var innerInvocation)
+			    && TryGetLambda(innerInvocation.ArgumentList.Arguments[0].Expression, out var innerLambda)
+			    && TryGetLinqSource(innerInvocation, out var innerSource))
+			{
+				if (method.Parameters.Length == 2 && !IsZeroLiteral(parameters[0]))
+				{
+					result = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, CreateInvocation(innerSource, nameof(Enumerable.Count), innerLambda), parameters[0]);
+				}
+				else
+				{
+					result = CreateInvocation(innerSource, nameof(Enumerable.Count), innerLambda);
+				}
+			}
+			
 			return true;
 		}
 

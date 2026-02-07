@@ -72,7 +72,7 @@ public class LinqAggregateOptimizationTests : BaseTest<Func<int[], int>>
 			var g2 = x.Sum();
 			var h = x.Sum();
 			var i = x.Sum();
-			var j = x.Sum(v => v << 1);
+			var j = x.Sum(v => v * 2);
 			var k = x.Where(v => v > 2).Sum();
 			var l = x.Distinct().Sum();
 			var m = x.Aggregate((acc, v) => acc * v);
