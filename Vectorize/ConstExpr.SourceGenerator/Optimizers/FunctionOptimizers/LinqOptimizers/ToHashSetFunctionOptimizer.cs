@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -24,7 +25,7 @@ public class ToHashSetFunctionOptimizer() : BaseLinqFunctionOptimizer("ToHashSet
 		nameof(Enumerable.ToArray),
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(model, method)
 		    || !TryGetLinqSource(invocation, out var source))
@@ -36,7 +37,7 @@ public class ToHashSetFunctionOptimizer() : BaseLinqFunctionOptimizer("ToHashSet
 		// Skip all operations that don't affect ToHashSet result
 		if (TryGetOptimizedChainExpression(source, OperationsThatDontAffectToHashSet, out source))
 		{
-			result = CreateSimpleInvocation(source, "ToHashSet");
+			result = CreateSimpleInvocation(visit(source) ?? source, "ToHashSet");
 			return true;
 		}
 

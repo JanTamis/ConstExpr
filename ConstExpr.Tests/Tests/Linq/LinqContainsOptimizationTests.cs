@@ -156,9 +156,9 @@ public class LinqContainsOptimizationStringTests : BaseTest<Func<string[], int>>
 			
 			return a + b + c + d;
 			""", Unknown),
-		Create("return 4;", new[] { "hello", "world", "foo" }),
-		Create("return 0;", new string[] { }),
-		Create("return 1;", new[] { "hi", "world", "test" }), // Only b matches ("world")
+		Create("return 4;", "hello", "world", "foo"),
+		Create("return 0;"),
+		Create("return 1;", "hi", "world", "test"), // Only b matches ("world")
 	];
 }
 

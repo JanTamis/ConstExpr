@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -32,7 +33,7 @@ public class ShuffleFunctionOptimizer() : BaseLinqFunctionOptimizer("Shuffle", 0
 		nameof(Enumerable.Reverse),          // Reversing before shuffle is pointless
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(model, method)
 		    || !TryGetLinqSource(invocation, out var source))
@@ -47,7 +48,7 @@ public class ShuffleFunctionOptimizer() : BaseLinqFunctionOptimizer("Shuffle", 0
 		// If we skipped any operations, create optimized Shuffle() call
 		if (isNewSource)
 		{
-			result = CreateInvocation(source, "Shuffle");
+			result = CreateInvocation(visit(source) ?? source, "Shuffle");
 			return true;
 		}
 

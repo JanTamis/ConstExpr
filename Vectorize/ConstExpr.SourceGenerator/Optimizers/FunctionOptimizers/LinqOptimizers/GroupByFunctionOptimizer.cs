@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -12,7 +13,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// </summary>
 public class GroupByFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.GroupBy), 1, 2, 3)
 {
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(model, method)
 		    || !TryGetLinqSource(invocation, out var source))
@@ -22,7 +23,7 @@ public class GroupByFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 		}
 
 		// Optimize Enumerable.Empty<T>().GroupBy(selector) => Enumerable.Empty<IGrouping<TKey, T>>()
-		if (IsEmptyEnumerable(source) && method.ReturnType is INamedTypeSymbol { TypeArguments.Length: > 0 } returnType)
+		if (IsEmptyEnumerable(visit(source) ?? source) && method.ReturnType is INamedTypeSymbol { TypeArguments.Length: > 0 } returnType)
 		{
 			result = CreateEmptyEnumerableCall(returnType.TypeArguments[0]);
 			return true;

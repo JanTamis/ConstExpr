@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -22,22 +23,19 @@ public class AppendFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		nameof(Enumerable.ToArray),          // Materialization: preserves order and all elements
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(model, method)
-		    || !TryGetLinqSource(invocation, out var source)
-		    || parameters.Count == 0)
+		    || !TryGetLinqSource(invocation, out var source))
 		{
 			result = null;
 			return false;
 		}
 
-		var appendedValue = parameters[0];
-
 		// If we skipped any operations (AsEnumerable/ToList/ToArray), create optimized Append call
 		if (TryGetOptimizedChainExpression(source, OperationsThatDontAffectAppend, out source))
 		{
-			result = CreateInvocation(source, nameof(Enumerable.Append), appendedValue);
+			result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.Append), parameters[0]);
 			return true;
 		}
 

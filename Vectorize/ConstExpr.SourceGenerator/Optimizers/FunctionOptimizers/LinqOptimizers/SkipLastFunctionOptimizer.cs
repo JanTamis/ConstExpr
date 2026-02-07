@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -12,7 +13,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// </summary>
 public class SkipLastFunctionOptimizer() : BaseLinqFunctionOptimizer("SkipLast", 1)
 {
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(model, method)
 		    || invocation.Expression is not MemberAccessExpressionSyntax memberAccess
@@ -25,7 +26,7 @@ public class SkipLastFunctionOptimizer() : BaseLinqFunctionOptimizer("SkipLast",
 		// Optimize SkipLast(0) => source (skip nothing)
 		if (count <= 0)
 		{
-			result = memberAccess.Expression;
+			result = visit(memberAccess.Expression) ?? memberAccess.Expression;
 			return true;
 		}
 

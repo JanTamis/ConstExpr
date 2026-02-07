@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -12,7 +13,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// </summary>
 public class ReverseFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Reverse), 0)
 {
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(model, method)
 		    || !TryGetLinqSource(invocation, out var source))
@@ -25,7 +26,7 @@ public class ReverseFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 		if (IsLinqMethodChain(source, nameof(Enumerable.Reverse), out var reverseInvocation)
 		    && TryGetLinqSource(reverseInvocation, out var reverseSource))
 		{
-			result = reverseSource;
+			result = visit(reverseSource) ?? reverseSource;
 			return true;
 		}
 		

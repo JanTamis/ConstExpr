@@ -42,7 +42,7 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		nameof(Enumerable.ToArray), // Materialization: creates array but doesn't filter
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(model, method)
 		    || !TryGetLinqSource(invocation, out var source))
@@ -74,30 +74,63 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			// Continue skipping operations before Where as well
 			TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectAll, out source);
 
-			allLambda = CombinePredicates(allLambda, wherePredicate);
+			allLambda = CombinePredicates(visit(allLambda) as LambdaExpressionSyntax ?? allLambda, visit(wherePredicate) as LambdaExpressionSyntax ?? wherePredicate);
 			isNewSource = true;
+		}
+
+		// Now check if we have a Where at the end of the optimized chain
+		if (IsLinqMethodChain(source, nameof(Enumerable.Select), out var selectInvocation)
+		    && GetMethodArguments(selectInvocation).FirstOrDefault() is { Expression: { } selectpredicateArg }
+		    && TryGetLambda(selectpredicateArg, out var selectPredicate)
+		    && TryGetLinqSource(selectInvocation, out var selectSource))
+		{
+			// Continue skipping operations before Where as well
+			TryGetOptimizedChainExpression(selectSource, OperationsThatDontAffectAll, out source);
+
+			allLambda = CombineSelectLambdas(visit(allLambda) as LambdaExpressionSyntax ?? allLambda, visit(selectPredicate) as LambdaExpressionSyntax ?? selectPredicate);
+			isNewSource = true;
+		}
+
+		if (IsInvokedOnArray(model, source))
+		{
+			result = CreateInvocation(SyntaxFactory.ParseTypeName(nameof(Array)), nameof(Array.TrueForAll), visit(source) ?? source, visit(allLambda) ?? allLambda);
+			return true;
+		}
+
+		if (IsInvokedOnArray(model, source))
+		{
+			result = CreateInvocation(source, "TrueForAll", visit(allLambda) ?? allLambda);
+			return true;
 		}
 
 		// If we skipped any operations, create optimized All() call
 		if (isNewSource)
 		{
-			if (IsInvokedOnArray(model, source))
-			{
-				result = CreateInvocation(SyntaxFactory.ParseTypeName(nameof(Array)), nameof(Array.TrueForAll), source, allLambda);
-			}
-			else if (IsInvokedOnArray(model, source))
-			{
-				result = CreateInvocation(source, "TrueForAll", allLambda);
-			}
-			else
-			{
-				result = CreateInvocation(source!, nameof(Enumerable.All), allLambda);
-			}
-
+			result = CreateInvocation(source!, nameof(Enumerable.All), visit(allLambda) ?? allLambda);
 			return true;
 		}
 
 		result = null;
 		return false;
+	}
+
+	private LambdaExpressionSyntax CombineSelectLambdas(LambdaExpressionSyntax outer, LambdaExpressionSyntax inner)
+	{
+		// Get parameter names from both lambdas
+		var innerParam = GetLambdaParameter(inner);
+		var outerParam = GetLambdaParameter(outer);
+
+		// Get the body expressions
+		var innerBody = GetLambdaBody(inner);
+		var outerBody = GetLambdaBody(outer);
+
+		// Replace the outer lambda's parameter with the inner lambda's body
+		var combinedBody = ReplaceIdentifier(outerBody, outerParam, innerBody);
+
+		// Create a new lambda with the inner parameter and the combined body
+		return SyntaxFactory.SimpleLambdaExpression(
+			SyntaxFactory.Parameter(SyntaxFactory.Identifier(innerParam)),
+			combinedBody
+		);
 	}
 }

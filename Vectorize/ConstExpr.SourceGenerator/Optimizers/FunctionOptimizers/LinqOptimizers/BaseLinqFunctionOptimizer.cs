@@ -471,7 +471,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	
 	protected bool IsSpecialType(SemanticModel model, ExpressionSyntax? expression, params HashSet<SpecialType> specialTypes)
 	{
-		return model.TryGetTypeSymbol(expression, out var type) && specialTypes.Contains(type.SpecialType);
+		return model.TryGetTypeSymbol(expression, out var type) && type.AllInterfaces.Any(s => specialTypes.Contains(s.SpecialType));
 	}
 	
 	protected bool IsCollectionType(SemanticModel model, ExpressionSyntax? expression)
@@ -480,7 +480,8 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 			SpecialType.System_Collections_Generic_IList_T,
 			SpecialType.System_Collections_Generic_IReadOnlyList_T,
 			SpecialType.System_Collections_Generic_ICollection_T,
-			SpecialType.System_Collections_Generic_IReadOnlyCollection_T);
+			SpecialType.System_Collections_Generic_IReadOnlyCollection_T)
+			|| IsInvokedOnList(model, expression);
 	}
 	
 	protected LambdaExpressionSyntax CombinePredicates(LambdaExpressionSyntax outer, LambdaExpressionSyntax inner)
@@ -570,7 +571,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		return firstText == secondText;
 	}
 
-	private static ExpressionSyntax ReplaceIdentifier(ExpressionSyntax expression, string oldIdentifier, ExpressionSyntax replacement)
+	protected static ExpressionSyntax ReplaceIdentifier(ExpressionSyntax expression, string oldIdentifier, ExpressionSyntax replacement)
 	{
 		return (ExpressionSyntax)new IdentifierReplacer(oldIdentifier, replacement).Visit(expression);
 	}

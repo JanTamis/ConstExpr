@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -35,7 +36,7 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		nameof(Enumerable.Reverse),
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(model, method)
 		    || !TryGetLinqSource(invocation, out var source))
@@ -47,7 +48,7 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectAggregate, out source);
 
 		// First, try to optimize Aggregate to Sum if it's just adding values
-		if (TryOptimizeAggregateToSum(method, parameters, source!, out result))
+		if (TryOptimizeAggregateToSum(method, parameters, source!, visit, out result))
 		{
 			if (IsLinqMethodChain(source, nameof(Enumerable.Select), out var innerInvocation)
 			    && TryGetLambda(innerInvocation.ArgumentList.Arguments[0].Expression, out var innerLambda)
@@ -55,11 +56,11 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 			{
 				if (method.Parameters.Length == 2 && !IsZeroLiteral(parameters[0]))
 				{
-					result = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, CreateInvocation(innerSource, nameof(Enumerable.Count), innerLambda), parameters[0]);
+					result = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, CreateInvocation(visit(innerSource) ?? innerSource, nameof(Enumerable.Count), visit(innerLambda) ?? innerSource), parameters[0]);
 				}
 				else
 				{
-					result = CreateInvocation(innerSource, nameof(Enumerable.Count), innerLambda);
+					result = CreateInvocation(visit(innerSource) ?? innerSource, nameof(Enumerable.Count), visit(innerLambda) ?? innerSource);
 				}
 			}
 			
@@ -68,13 +69,13 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 
 		if (IsZeroLiteral(parameters[0]))
 		{
-			result = CreateInvocation(source!, nameof(Enumerable.Aggregate), parameters.Skip(1));
+			result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.Aggregate), parameters.Skip(1));
 			return true;
 		}
 
 		if (isNewSource)
 		{
-			result = CreateInvocation(source!, nameof(Enumerable.Aggregate), parameters);
+			result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.Aggregate), parameters);
 			return true;
 		}
 
@@ -89,7 +90,7 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 	/// - Aggregate(0, (acc, v) => acc + v) => Sum()
 	/// </summary>
 	private bool TryOptimizeAggregateToSum(IMethodSymbol method, 
-		IList<ExpressionSyntax> parameters, ExpressionSyntax source, out SyntaxNode? result)
+		IList<ExpressionSyntax> parameters, ExpressionSyntax source, Func<SyntaxNode, ExpressionSyntax?> visit, out SyntaxNode? result)
 	{
 		result = null;
 
@@ -114,7 +115,7 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
     }
 
     // Optimize to Sum()
-    result = CreateInvocation(source, nameof(Enumerable.Sum));
+    result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.Sum));
 
 		if (method.Parameters.Length == 2 && !IsZeroLiteral(parameters[0]))
 		{

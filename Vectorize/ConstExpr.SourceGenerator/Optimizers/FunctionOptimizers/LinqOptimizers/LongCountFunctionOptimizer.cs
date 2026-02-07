@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -39,7 +40,7 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		nameof(Enumerable.Select)            // Projection: doesn't change count for non-nullable types
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(model, method)
 		    || !TryGetLinqSource(invocation, out var source))
@@ -59,7 +60,7 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		{
 			TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectCount, out whereSource);
 			
-			result = CreateInvocation(whereSource, nameof(Enumerable.LongCount), predicate);
+			result = CreateInvocation(visit(whereSource) ?? whereSource, nameof(Enumerable.LongCount), visit(predicate) ?? predicate);
 			return true;
 		}
 
@@ -75,14 +76,14 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		{
 			result = SyntaxFactory.CastExpression(
 				SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.LongKeyword)),
-				CreateMemberAccess(source, "Length"));
+				CreateMemberAccess(visit(source) ?? source, "Length"));
 			return true;
 		}
 
 		// If we skipped any operations, create optimized LongCount() call
 		if (isNewSource)
 		{
-			result = CreateInvocation(source, nameof(Enumerable.LongCount));
+			result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.LongCount));
 			return true;
 		}
 

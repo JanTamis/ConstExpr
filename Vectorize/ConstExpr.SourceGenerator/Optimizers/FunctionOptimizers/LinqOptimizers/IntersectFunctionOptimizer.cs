@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -54,7 +55,7 @@ public class IntersectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		nameof(Enumerable.FirstOrDefault),
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(model, method)
 		    || !TryGetLinqSource(invocation, out var source)
@@ -67,14 +68,14 @@ public class IntersectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		var intersectCollection = parameters[0];
 
 		// Try simple optimizations first
-		if (TryOptimizeEmptySource(source, out result)
-		    || TryOptimizeEmptyIntersectCollection(method, intersectCollection, out result)
-		    || TryOptimizeSelfIntersect(source, intersectCollection, out result)
-		    || TryOptimizeChainedIntersect(source, intersectCollection, out result))
+		if (TryOptimizeEmptySource(visit(source) ?? source, out result)
+		    || TryOptimizeEmptyIntersectCollection(method, visit(intersectCollection) ?? intersectCollection, out result)
+		    || TryOptimizeSelfIntersect(visit(source) ?? source, visit(intersectCollection) ?? intersectCollection, out result)
+		    || TryOptimizeChainedIntersect(source, intersectCollection, visit, out result))
 			return true;
 
 		// Try to optimize by removing redundant operations
-		return TryOptimizeRedundantOperations(invocation, source, intersectCollection, out result);
+		return TryOptimizeRedundantOperations(invocation, source, intersectCollection, visit, out result);
 	}
 
 	private bool TryOptimizeEmptySource(ExpressionSyntax source, out SyntaxNode? result)
@@ -119,7 +120,7 @@ public class IntersectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		return false;
 	}
 
-	private bool TryOptimizeChainedIntersect(ExpressionSyntax source, ExpressionSyntax intersectCollection, out SyntaxNode? result)
+	private bool TryOptimizeChainedIntersect(ExpressionSyntax source, ExpressionSyntax intersectCollection, Func<SyntaxNode, ExpressionSyntax?> visit, out SyntaxNode? result)
 	{
 		// Optimization: collection.Intersect(other).Intersect(third) => collection.Intersect(other.Intersect(third))
 		// This is mathematically equivalent and may enable further optimizations
@@ -127,8 +128,8 @@ public class IntersectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		    && GetMethodArguments(intersectInvocation).FirstOrDefault() is { Expression: { } firstIntersectArg }
 		    && TryGetLinqSource(intersectInvocation, out var intersectSource))
 		{
-			var mergedIntersectCollection = CreateInvocation(firstIntersectArg, nameof(Enumerable.Intersect), intersectCollection);
-			result = CreateInvocation(intersectSource, nameof(Enumerable.Intersect), mergedIntersectCollection);
+			var mergedIntersectCollection = CreateInvocation(visit(firstIntersectArg) ?? firstIntersectArg, nameof(Enumerable.Intersect), visit(intersectCollection) ?? intersectCollection);
+			result = CreateInvocation(visit(intersectSource) ?? intersectSource, nameof(Enumerable.Intersect), mergedIntersectCollection);
 			return true;
 		}
 
@@ -136,7 +137,7 @@ public class IntersectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		return false;
 	}
 
-	private bool TryOptimizeRedundantOperations(InvocationExpressionSyntax invocation, ExpressionSyntax source, ExpressionSyntax intersectCollection, out SyntaxNode? result)
+	private bool TryOptimizeRedundantOperations(InvocationExpressionSyntax invocation, ExpressionSyntax source, ExpressionSyntax intersectCollection, Func<SyntaxNode, ExpressionSyntax?> visit, out SyntaxNode? result)
 	{
 		// Determine which operations can be skipped
 		var isFollowedBySetOperation = IsFollowedBySetBasedOperation(invocation);
@@ -151,7 +152,7 @@ public class IntersectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		// If we optimized anything, create optimized Intersect call
 		if (isNewSource || isNewIntersectCollection)
 		{
-			result = CreateInvocation(source, nameof(Enumerable.Intersect), intersectCollection);
+			result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.Intersect), visit(intersectCollection) ?? intersectCollection);
 			return true;
 		}
 

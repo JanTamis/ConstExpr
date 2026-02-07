@@ -51,18 +51,18 @@ public class LinqAllOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.All(v => (v > 0) && (v < 10)) ? 1 : 0;
-			var b = x.All(v => v > 0) ? 1 : 0;
-			var c = x.All(v => v > 0) ? 1 : 0;
-			var d = x.All(v => v > 0) ? 1 : 0;
-			var e = x.All(v => v > 0) ? 1 : 0;
-			var f = x.All(v => v > 0) ? 1 : 0;
-			var g = x.All(v => v > 0) ? 1 : 0;
-			var h = x.All(v => v > 0) ? 1 : 0;
-			var i = x.All(v => v > 0) ? 1 : 0;
-			var j = x.All(v => v > 0) ? 1 : 0;
-			var k = x.All(v => v > 100) ? 1 : 0;
-			var l = x.All(v => (v > 2) && (v < 8)) ? 1 : 0;
+			var a = Array.TrueForAll(x, v => v > 0 && v < 10) ? 1 : 0;
+			var b = Array.TrueForAll(x, v => v << 1 > 0) ? 1 : 0;
+			var c = Array.TrueForAll(x, v => v > 0) ? 1 : 0;
+			var d = Array.TrueForAll(x, v => v > 0) ? 1 : 0;
+			var e = Array.TrueForAll(x, v => v > 0) ? 1 : 0;
+			var f = Array.TrueForAll(x, v => v > 0) ? 1 : 0;
+			var g = Array.TrueForAll(x, v => v > 0) ? 1 : 0;
+			var h = Array.TrueForAll(x, v => v > 0) ? 1 : 0;
+			var i = Array.TrueForAll(x, v => v > 0) ? 1 : 0;
+			var j = Array.TrueForAll(x, v => v > 0) ? 1 : 0;
+			var k = Array.TrueForAll(x, v => v > 100) ? 1 : 0;
+			var l = Array.TrueForAll(x, v => v > 2 && v < 8) ? 1 : 0;
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l;
 			""", Unknown),

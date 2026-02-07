@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -31,7 +32,7 @@ public class MinFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		nameof(Enumerable.Reverse),
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(model, method)
 		    || !TryGetLinqSource(invocation, out var source))
@@ -46,9 +47,9 @@ public class MinFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		// Optimize Min(x => x) => Min() (identity lambda removal)
 		if (parameters.Count == 1
 		    && TryGetLambda(parameters[0], out var lambda)
-		    && IsIdentityLambda(lambda))
+		    && IsIdentityLambda(visit(lambda) as LambdaExpressionSyntax ?? lambda))
 		{
-			result = CreateSimpleInvocation(source, nameof(Enumerable.Min));
+			result = CreateSimpleInvocation(visit(source) ?? source, nameof(Enumerable.Min));
 			return true;
 		}
 
@@ -59,15 +60,16 @@ public class MinFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		    && selectInvocation.ArgumentList.Arguments.Count == 1)
 		{
 			TryGetOptimizedChainExpression(selectSource, OperationsThatDontAffectMin, out selectSource);
+			
 			var selector = selectInvocation.ArgumentList.Arguments[0].Expression;
-			result = CreateInvocation(selectSource, nameof(Enumerable.Min), selector);
+			result = CreateInvocation(visit(selectSource) ?? selectSource, nameof(Enumerable.Min), visit(selector) ?? selector);
 			return true;
 		}
 
 		// If we skipped any operations, create optimized Min() call
 		if (isNewSource && parameters.Count == 0)
 		{
-			result = CreateSimpleInvocation(source, nameof(Enumerable.Min));
+			result = CreateSimpleInvocation(visit(source) ?? source, nameof(Enumerable.Min));
 			return true;
 		}
 

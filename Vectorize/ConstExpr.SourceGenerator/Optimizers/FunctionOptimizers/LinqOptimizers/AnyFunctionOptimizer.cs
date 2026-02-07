@@ -44,7 +44,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		nameof(Enumerable.ToArray), // Materialization: creates array but doesn't filter
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(model, method)
 		    || !TryGetLinqSource(invocation, out var source))
@@ -67,7 +67,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 			if (parameters.Count == 1 && TryGetLambda(parameters[0], out var anyPredicate))
 			{
-				predicate = CombinePredicates(predicate, anyPredicate);
+				predicate = CombinePredicates(visit(predicate) as LambdaExpressionSyntax ?? predicate, visit(anyPredicate) as LambdaExpressionSyntax ?? anyPredicate);
 			}
 
 			if (IsSimpleEqualityLambda(predicate, out var equalityValue))
@@ -78,17 +78,17 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 			if (IsInvokedOnList(model, whereSource))
 			{
-				result = CreateInvocation(whereSource, "Exists", predicate);
+				result = CreateInvocation(visit(whereSource) ?? whereSource, "Exists", visit(predicate) ?? predicate);
 				return true;
 			}
 
 			if (IsInvokedOnArray(model, whereSource))
 			{
-				result = CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.Exists), whereSource, predicate);
+				result = CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.Exists), visit(whereSource) ?? whereSource, visit(predicate) ?? predicate);
 				return true;
 			}
 
-			result = CreateInvocation(whereSource, nameof(Enumerable.Any), predicate);
+			result = CreateInvocation(whereSource, nameof(Enumerable.Any), visit(predicate) ?? predicate);
 			return true;
 		}
 
@@ -97,7 +97,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			if (IsCollectionType(model, source))
 			{
 				result = BinaryExpression(SyntaxKind.GreaterThanExpression,
-					CreateMemberAccess(source, "Count"),
+					CreateMemberAccess(visit(source) ?? source, "Count"),
 					LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)));
 
 				return true;
@@ -106,7 +106,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			if (IsInvokedOnArray(model, source))
 			{
 				result = BinaryExpression(SyntaxKind.GreaterThanExpression,
-					CreateMemberAccess(source, "Length"),
+					CreateMemberAccess(visit(source) ?? source, "Length"),	
 					LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)));
 
 				return true;
@@ -115,14 +115,14 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		else if (TryGetLambda(parameters[0], out var anyLambda)
 		         && IsSimpleEqualityLambda(anyLambda, out var equalityValue))
 		{
-			result = CreateInvocation(source, nameof(Enumerable.Contains), equalityValue);
+			result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.Contains), equalityValue);
 			return true;
 		}
 
 		// If we skipped any operations, create optimized Any() call
 		if (isNewSource)
 		{
-			result = CreateInvocation(source, nameof(Enumerable.Any));
+			result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.Any));
 			return true;
 		}
 

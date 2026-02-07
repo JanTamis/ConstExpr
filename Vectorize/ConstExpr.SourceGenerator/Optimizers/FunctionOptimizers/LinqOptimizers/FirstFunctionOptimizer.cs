@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -23,12 +24,12 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 	// We CAN'T include Distinct because the first element might be a duplicate and get removed!
 	private static readonly HashSet<string> OperationsThatDontAffectFirst =
 	[
-		nameof(Enumerable.AsEnumerable),     // Type cast: doesn't change the collection
-		nameof(Enumerable.ToList),           // Materialization: preserves order and all elements
-		nameof(Enumerable.ToArray),          // Materialization: preserves order and all elements
+		nameof(Enumerable.AsEnumerable), // Type cast: doesn't change the collection
+		nameof(Enumerable.ToList), // Materialization: preserves order and all elements
+		nameof(Enumerable.ToArray), // Materialization: preserves order and all elements
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(model, method)
 		    || !TryGetLinqSource(invocation, out var source))
@@ -47,42 +48,42 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		    && TryGetLinqSource(whereInvocation, out var whereSource))
 		{
 			TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectFirst, out whereSource);
-			
-			result = CreateInvocation(whereSource, nameof(Enumerable.First), predicate);
+
+			result = CreateInvocation(visit(whereSource) ?? whereSource, nameof(Enumerable.First), visit(predicate));
 			return true;
 		}
-		
+
 		// now check if we have a Reverse at the end of the optimized chain
 		if (IsLinqMethodChain(source, nameof(Enumerable.Reverse), out var reverseInvocation)
 		    && TryGetLinqSource(reverseInvocation, out var reverseSource))
 		{
-			result = CreateInvocation(reverseSource, nameof(Enumerable.Last));
+			result = CreateInvocation(visit(reverseSource) ?? reverseSource, nameof(Enumerable.Last));
 			return true;
 		}
-		
+
 		// now check if we have a Order at the end of the optimized chain
 		if (IsLinqMethodChain(source, "Order", out var orderInvocation)
 		    && TryGetLinqSource(orderInvocation, out var orderSource))
 		{
-			result = CreateInvocation(orderSource, nameof(Enumerable.Min));
+			result = CreateInvocation(visit(orderSource) ?? orderSource, nameof(Enumerable.Min));
 			return true;
 		}
-		
+
 		// now check if we have a OrderDescending at the end of the optimized chain
 		if (IsLinqMethodChain(source, "OrderDescending", out var orderDescInvocation)
 		    && TryGetLinqSource(orderDescInvocation, out var orderDescSource))
 		{
-			result = CreateInvocation(orderDescSource, nameof(Enumerable.Max));
+			result = CreateInvocation(visit(orderDescSource) ?? orderDescSource, nameof(Enumerable.Max));
 			return true;
 		}
-		
+
 		// For arrays, use direct array indexing: arr[0]
 		// For List<T>, use direct indexing: list[0]
 		if (IsInvokedOnArray(model, source)
 		    || IsInvokedOnList(model, source))
 		{
 			result = SyntaxFactory.ElementAccessExpression(
-				source,
+				visit(source) ?? source,
 				SyntaxFactory.BracketedArgumentList(
 					SyntaxFactory.SingletonSeparatedList(
 						SyntaxFactory.Argument(
@@ -91,11 +92,11 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 								SyntaxFactory.Literal(0))))));
 			return true;
 		}
-		
+
 		// If we skipped any operations, create optimized First() call
 		if (isNewSource)
 		{
-			result = CreateInvocation(source, nameof(Enumerable.First));
+			result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.First));
 			return true;
 		}
 
@@ -103,5 +104,3 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		return false;
 	}
 }
-
-

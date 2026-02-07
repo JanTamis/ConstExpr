@@ -42,7 +42,7 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		nameof(Enumerable.ToArray),          // Materialization: creates array but doesn't filter
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(model, method)
 		    || !TryGetLinqSource(invocation, out var source)
@@ -67,6 +67,8 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		{
 			// Continue skipping operations before Select as well
 			TryGetOptimizedChainExpression(selectSource, OperationsThatDontAffectContainment, out selectSource);
+			
+			selector = visit(selector) as LambdaExpressionSyntax ?? selector;
 
 			// Try to convert to Any with equality check
 			// selector is: x => x.Prop
@@ -87,17 +89,17 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 				// Use appropriate method based on source type
 				if (IsInvokedOnList(model, selectSource))
 				{
-					result = CreateInvocation(selectSource, "Exists", anyPredicate);
+					result = CreateInvocation(visit(selectSource) ?? selectSource, "Exists", visit(anyPredicate) ?? anyPredicate);
 					return true;
 				}
 
 				if (IsInvokedOnArray(model, selectSource))
 				{
-					result = CreateInvocation(SyntaxFactory.ParseTypeName(nameof(Array)), nameof(Array.Exists), selectSource, anyPredicate);
+					result = CreateInvocation(SyntaxFactory.ParseTypeName(nameof(Array)), nameof(Array.Exists), visit(selectSource) ?? selectSource, visit(anyPredicate) ?? anyPredicate);
 					return true;
 				}
 
-				result = CreateInvocation(selectSource, nameof(Enumerable.Any), anyPredicate);
+				result = CreateInvocation(visit(selectSource) ?? selectSource, nameof(Enumerable.Any), visit(anyPredicate) ?? anyPredicate);
 				return true;
 			}
 		}
@@ -111,6 +113,8 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		{
 			// Continue skipping operations before Where as well
 			TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectContainment, out whereSource);
+			
+			wherePredicate = visit(wherePredicate) as LambdaExpressionSyntax ?? wherePredicate;
 
 			// Create a new lambda that combines the where predicate with equality check
 			var lambdaParam = GetLambdaParameter(wherePredicate);
@@ -132,48 +136,48 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 			// Use appropriate method based on source type
 			if (IsInvokedOnList(model, whereSource))
 			{
-				result = CreateInvocation(whereSource, "Exists", anyPredicate);
+				result = CreateInvocation(visit(whereSource) ?? whereSource, "Exists", visit(anyPredicate) ?? anyPredicate);
 				return true;
 			}
 
 			if (IsInvokedOnArray(model, whereSource))
 			{
-				result = CreateInvocation(SyntaxFactory.ParseTypeName(nameof(Array)), nameof(Array.Exists), whereSource, anyPredicate);
+				result = CreateInvocation(SyntaxFactory.ParseTypeName(nameof(Array)), nameof(Array.Exists), visit(whereSource) ?? whereSource, visit(anyPredicate) ?? anyPredicate);
 				return true;
 			}
 
-			result = CreateInvocation(whereSource, nameof(Enumerable.Any), anyPredicate);
+			result = CreateInvocation(visit(whereSource) ?? whereSource, nameof(Enumerable.Any), visit(anyPredicate) ?? anyPredicate);
+			return true;
+		}
+
+		// For List<T>, use the native Contains method
+		if (IsInvokedOnList(model, source))
+		{
+			result = CreateInvocation(visit(source) ?? source, "Contains", visit(searchValue) ?? searchValue);
+			return true;
+		}
+
+		// For arrays, use Array.IndexOf
+		if (IsInvokedOnArray(model, source))
+		{
+			var indexOfCall = CreateInvocation(
+				SyntaxFactory.ParseTypeName(nameof(Array)),
+				nameof(Array.IndexOf),
+				visit(source) ?? source,
+				visit(searchValue) ?? searchValue);
+
+			result = SyntaxFactory.BinaryExpression(
+				SyntaxKind.GreaterThanOrEqualExpression,
+				indexOfCall,
+				SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0)));
 			return true;
 		}
 
 		// If we skipped any operations, create optimized Contains() call
 		if (isNewSource)
 		{
-			// For List<T>, use the native Contains method
-			if (IsInvokedOnList(model, source))
-			{
-				result = CreateInvocation(source, "Contains", searchValue);
-				return true;
-			}
-
-			// For arrays, use Array.IndexOf
-			if (IsInvokedOnArray(model, source))
-			{
-				var indexOfCall = CreateInvocation(
-					SyntaxFactory.ParseTypeName(nameof(Array)),
-					nameof(Array.IndexOf),
-					source,
-					searchValue);
-
-				result = SyntaxFactory.BinaryExpression(
-					SyntaxKind.GreaterThanOrEqualExpression,
-					indexOfCall,
-					SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0)));
-				return true;
-			}
-
 			// Keep parameters (including optional comparer)
-			result = CreateInvocation(source, nameof(Enumerable.Contains), parameters);
+			result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.Contains), parameters);
 			return true;
 		}
 

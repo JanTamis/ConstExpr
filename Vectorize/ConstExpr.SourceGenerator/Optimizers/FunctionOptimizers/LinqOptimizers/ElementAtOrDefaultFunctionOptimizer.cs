@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -31,7 +32,7 @@ public class ElementAtOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(n
 		nameof(Enumerable.ToArray),          // Materialization: preserves order and all elements
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(model, method)
 		    || !TryGetLinqSource(invocation, out var source)
@@ -50,7 +51,7 @@ public class ElementAtOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(n
 		    && GetMethodArguments(skipInvocation).FirstOrDefault() is { Expression: { } skipCount })
 		{
 			if (indexParameter is LiteralExpressionSyntax { Token.Value: int indexValue }
-			    && skipCount is LiteralExpressionSyntax { Token.Value: int skipValue })
+			    && visit(skipCount) is LiteralExpressionSyntax { Token.Value: int skipValue })
 			{
 				// Both index and skip are constant integers, we can compute the new index at compile time
 				var newIndex = indexValue + skipValue;
@@ -69,14 +70,14 @@ public class ElementAtOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(n
 
 		if (indexParameter is LiteralExpressionSyntax { Token.Value: 0 })
 		{
-			result = CreateInvocation(source, nameof(Enumerable.FirstOrDefault));
+			result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.FirstOrDefault));
 			return true;
 		}
 
 		// If we skipped any operations, create optimized ElementAtOrDefault() call
 		if (isNewSource)
 		{
-			result = CreateInvocation(source, nameof(Enumerable.ElementAtOrDefault), indexParameter);
+			result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.ElementAtOrDefault), indexParameter);
 			return true;
 		}
 

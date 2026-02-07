@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -11,7 +12,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// </summary>
 public class OrderDescendingFunctionOptimizer() : BaseLinqFunctionOptimizer("OrderDescending", 0)
 {
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(model, method)
 		    || !TryGetLinqSource(invocation, out var source))
@@ -24,7 +25,7 @@ public class OrderDescendingFunctionOptimizer() : BaseLinqFunctionOptimizer("Ord
 		if (IsLinqMethodChain(source, "OrderDescending", out var innerInvocation)
 		    && TryGetLinqSource(innerInvocation, out _))
 		{
-			result = source;
+			result = visit(source) ?? source;
 			return true;
 		}
 
@@ -32,7 +33,7 @@ public class OrderDescendingFunctionOptimizer() : BaseLinqFunctionOptimizer("Ord
 		if (IsLinqMethodChain(source, "Order", out var orderInvocation)
 		    && TryGetLinqSource(orderInvocation, out var orderSource))
 		{
-			result = CreateSimpleInvocation(orderSource, "OrderDescending");
+			result = CreateSimpleInvocation(visit(orderSource) ?? orderSource, "OrderDescending");
 			return true;
 		}
 

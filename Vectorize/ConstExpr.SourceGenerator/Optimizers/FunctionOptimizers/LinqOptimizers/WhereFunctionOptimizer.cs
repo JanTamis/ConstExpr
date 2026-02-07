@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -7,7 +8,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 
 public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Where), 1)
 {
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(model, method)
 		    || !TryGetLambda(parameters[0], out var lambda)
@@ -20,7 +21,7 @@ public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		// Optimize Where(v => true) - remove entirely
 		if (IsAlwaysTrueLambda(lambda))
 		{
-			result = source;
+			result = visit(source) ?? source;
 			return true;
 		}
 
@@ -37,10 +38,10 @@ public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		    && TryGetLinqSource(innerInvocation, out var innerSource))
 		{
 			// Combine the two predicates with &&
-			var combinedLambda = CombinePredicates(lambda, innerLambda);
+			var combinedLambda = CombinePredicates(lambda, visit(innerLambda) as LambdaExpressionSyntax ?? innerLambda);
 
 			// Create a new Where call with the combined lambda
-			result = CreateInvocation(innerSource, nameof(Enumerable.Where), combinedLambda);
+			result = CreateInvocation(visit(innerSource) ?? innerSource, nameof(Enumerable.Where), combinedLambda);
 			return true;
 		}
 

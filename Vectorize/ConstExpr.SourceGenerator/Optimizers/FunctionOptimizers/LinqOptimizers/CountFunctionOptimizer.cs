@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -38,7 +39,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		nameof(Enumerable.Select)						 // Projection: doesn't change count for non-nullable types
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(model, method)
 		    || !TryGetLinqSource(invocation, out var source))
@@ -58,26 +59,26 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		{
 			TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectCount, out whereSource);
 			
-			result = CreateInvocation(whereSource, nameof(Enumerable.Count), predicate);
+			result = CreateInvocation(visit(whereSource) ?? whereSource, nameof(Enumerable.Count), visit(predicate) ?? predicate);
 			return true;
 		}
 
 		if (IsCollectionType(model, source))
 		{
-			result = CreateMemberAccess(source, "Count");
+			result = CreateMemberAccess(visit(source) ?? source, "Count");
 			return true;
 		}
 
 		if (IsInvokedOnArray(model, source))
 		{
-			result = CreateMemberAccess(source, "Length");
+			result = CreateMemberAccess(visit(source) ?? source, "Length");
 			return true;
 		}
 
 		// If we skipped any operations, create optimized Count() call
 		if (isNewSource)
 		{
-			result = CreateInvocation(source, nameof(Enumerable.Count));
+			result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.Count));
 			return true;
 		}
 

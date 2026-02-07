@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -23,12 +24,12 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 	// We CAN'T include Distinct because the first element might be a duplicate and get removed!
 	private static readonly HashSet<string> OperationsThatDontAffectFirst =
 	[
-		nameof(Enumerable.AsEnumerable),     // Type cast: doesn't change the collection
-		nameof(Enumerable.ToList),           // Materialization: preserves order and all elements
-		nameof(Enumerable.ToArray),          // Materialization: preserves order and all elements
+		nameof(Enumerable.AsEnumerable), // Type cast: doesn't change the collection
+		nameof(Enumerable.ToList), // Materialization: preserves order and all elements
+		nameof(Enumerable.ToArray), // Materialization: preserves order and all elements
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(model, method)
 		    || !TryGetLinqSource(invocation, out var source))
@@ -47,93 +48,97 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 		    && TryGetLinqSource(whereInvocation, out var whereSource))
 		{
 			TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectFirst, out whereSource);
-			
-			result = CreateInvocation(whereSource, nameof(Enumerable.FirstOrDefault), predicate);
+
+			result = CreateInvocation(visit(whereSource) ?? whereSource, nameof(Enumerable.FirstOrDefault), visit(predicate) ?? predicate);
 			return true;
 		}
-		
+
 		// now check if we have a Reverse at the end of the optimized chain
 		if (IsLinqMethodChain(source, nameof(Enumerable.Reverse), out var reverseInvocation)
 		    && TryGetLinqSource(reverseInvocation, out var reverseSource))
 		{
-			result = CreateInvocation(reverseSource, nameof(Enumerable.LastOrDefault));
+			result = CreateInvocation(visit(reverseSource) ?? reverseSource, nameof(Enumerable.LastOrDefault));
 			return true;
 		}
-		
-	// now check if we have a Order at the end of the optimized chain
-	if (IsLinqMethodChain(source, "Order", out var orderInvocation)
-	    && TryGetLinqSource(orderInvocation, out var orderSource))
-	{
-		result = CreateInvocation(orderSource, nameof(Enumerable.Min));
-		return true;
-	}
-	
-	// now check if we have a OrderDescending at the end of the optimized chain
-	if (IsLinqMethodChain(source, "OrderDescending", out var orderDescInvocation)
-	    && TryGetLinqSource(orderDescInvocation, out var orderDescSource))
-	{
-		result = CreateInvocation(orderDescSource, nameof(Enumerable.Max));
-		return true;
-	}
-	
-	// For arrays, use conditional: arr.Length > 0 ? arr[0] : default
-	if (IsInvokedOnArray(model, source))
-	{
-		result = SyntaxFactory.ConditionalExpression(
-			SyntaxFactory.BinaryExpression(
-				SyntaxKind.GreaterThanExpression,
-				SyntaxFactory.MemberAccessExpression(
-					SyntaxKind.SimpleMemberAccessExpression,
-					source,
-					SyntaxFactory.IdentifierName("Length")),
-				SyntaxFactory.LiteralExpression(
-					SyntaxKind.NumericLiteralExpression,
-					SyntaxFactory.Literal(0))),
-			SyntaxFactory.ElementAccessExpression(
-				source,
-				SyntaxFactory.BracketedArgumentList(
-					SyntaxFactory.SingletonSeparatedList(
-						SyntaxFactory.Argument(
-							SyntaxFactory.LiteralExpression(
-								SyntaxKind.NumericLiteralExpression,
-								SyntaxFactory.Literal(0)))))),
-			SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression));
-		return true;
-	}
 
-	// For List<T>, use conditional: list.Count > 0 ? list[0] : default
-	if (IsInvokedOnList(model, source))
-	{
-		result = SyntaxFactory.ConditionalExpression(
-			SyntaxFactory.BinaryExpression(
-				SyntaxKind.GreaterThanExpression,
-				SyntaxFactory.MemberAccessExpression(
-					SyntaxKind.SimpleMemberAccessExpression,
-					source,
-					SyntaxFactory.IdentifierName("Count")),
-				SyntaxFactory.LiteralExpression(
-					SyntaxKind.NumericLiteralExpression,
-					SyntaxFactory.Literal(0))),
-			SyntaxFactory.ElementAccessExpression(
-				source,
-				SyntaxFactory.BracketedArgumentList(
-					SyntaxFactory.SingletonSeparatedList(
-						SyntaxFactory.Argument(
-							SyntaxFactory.LiteralExpression(
-								SyntaxKind.NumericLiteralExpression,
-								SyntaxFactory.Literal(0)))))),
-			SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression));
-		return true;
-	}
-	
-	// If we skipped any operations, create optimized FirstOrDefault() call
-	if (isNewSource)
-	{
-		result = CreateInvocation(source, nameof(Enumerable.FirstOrDefault));
-		return true;
-	}
+		// now check if we have a Order at the end of the optimized chain
+		if (IsLinqMethodChain(source, "Order", out var orderInvocation)
+		    && TryGetLinqSource(orderInvocation, out var orderSource))
+		{
+			result = CreateInvocation(visit(orderSource) ?? orderSource, nameof(Enumerable.Min));
+			return true;
+		}
 
-	result = null;
-	return false;
-}
+		// now check if we have a OrderDescending at the end of the optimized chain
+		if (IsLinqMethodChain(source, "OrderDescending", out var orderDescInvocation)
+		    && TryGetLinqSource(orderDescInvocation, out var orderDescSource))
+		{
+			result = CreateInvocation(visit(orderDescSource) ?? orderDescSource, nameof(Enumerable.Max));
+			return true;
+		}
+
+		// For arrays, use conditional: arr.Length > 0 ? arr[0] : default
+		if (IsInvokedOnArray(model, source))
+		{
+			source = visit(source) ?? source;
+			
+			result = SyntaxFactory.ConditionalExpression(
+				SyntaxFactory.BinaryExpression(
+					SyntaxKind.GreaterThanExpression,
+					SyntaxFactory.MemberAccessExpression(
+						SyntaxKind.SimpleMemberAccessExpression,
+						source,
+						SyntaxFactory.IdentifierName("Length")),
+					SyntaxFactory.LiteralExpression(
+						SyntaxKind.NumericLiteralExpression,
+						SyntaxFactory.Literal(0))),
+				SyntaxFactory.ElementAccessExpression(
+					source,
+					SyntaxFactory.BracketedArgumentList(
+						SyntaxFactory.SingletonSeparatedList(
+							SyntaxFactory.Argument(
+								SyntaxFactory.LiteralExpression(
+									SyntaxKind.NumericLiteralExpression,
+									SyntaxFactory.Literal(0)))))),
+				SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression));
+			return true;
+		}
+
+		// For List<T>, use conditional: list.Count > 0 ? list[0] : default
+		if (IsInvokedOnList(model, source))
+		{
+			source = visit(source) ?? source;
+			
+			result = SyntaxFactory.ConditionalExpression(
+				SyntaxFactory.BinaryExpression(
+					SyntaxKind.GreaterThanExpression,
+					SyntaxFactory.MemberAccessExpression(
+						SyntaxKind.SimpleMemberAccessExpression,
+						source,
+						SyntaxFactory.IdentifierName("Count")),
+					SyntaxFactory.LiteralExpression(
+						SyntaxKind.NumericLiteralExpression,
+						SyntaxFactory.Literal(0))),
+				SyntaxFactory.ElementAccessExpression(
+					source,
+					SyntaxFactory.BracketedArgumentList(
+						SyntaxFactory.SingletonSeparatedList(
+							SyntaxFactory.Argument(
+								SyntaxFactory.LiteralExpression(
+									SyntaxKind.NumericLiteralExpression,
+									SyntaxFactory.Literal(0)))))),
+				SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression));
+			return true;
+		}
+
+		// If we skipped any operations, create optimized FirstOrDefault() call
+		if (isNewSource)
+		{
+			result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.FirstOrDefault));
+			return true;
+		}
+
+		result = null;
+		return false;
+	}
 }

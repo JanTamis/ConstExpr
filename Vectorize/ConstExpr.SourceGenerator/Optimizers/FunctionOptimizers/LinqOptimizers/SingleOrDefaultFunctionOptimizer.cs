@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -22,7 +23,7 @@ public class SingleOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(name
 		nameof(Enumerable.ToArray),
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(model, method)
 		    || !TryGetLinqSource(invocation, out var source))
@@ -43,14 +44,14 @@ public class SingleOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(name
 			TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectSingleOrDefault, out whereSource);
 			
 			var predicate = whereInvocation.ArgumentList.Arguments[0].Expression;
-			result = CreateInvocation(whereSource, nameof(Enumerable.SingleOrDefault), predicate);
+			result = CreateInvocation(visit(whereSource) ?? whereSource, nameof(Enumerable.SingleOrDefault), visit(predicate) ?? predicate);
 			return true;
 		}
 
 		// If we skipped any operations, create optimized SingleOrDefault() call
 		if (isNewSource && parameters.Count == 0)
 		{
-			result = CreateSimpleInvocation(source, nameof(Enumerable.SingleOrDefault));
+			result = CreateSimpleInvocation(visit(source) ?? source, nameof(Enumerable.SingleOrDefault));
 			return true;
 		}
 

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -22,7 +23,7 @@ public class CastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 		nameof(Enumerable.ToArray),          // Materialization: preserves order and all elements
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(model, method)
 		    || !TryGetLinqSource(invocation, out var source))
@@ -37,11 +38,11 @@ public class CastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 			// Preserve the generic type argument from the original Cast<T>() call
 			if (invocation.Expression is MemberAccessExpressionSyntax { Name: GenericNameSyntax genericName })
 			{
-				result = CreateInvocation(source, genericName);
+				result = CreateInvocation(visit(source) ?? source, genericName);
 			}
 			else
 			{
-				result = CreateInvocation(source, nameof(Enumerable.Cast));
+				result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.Cast));
 			}
 			
 			return true;

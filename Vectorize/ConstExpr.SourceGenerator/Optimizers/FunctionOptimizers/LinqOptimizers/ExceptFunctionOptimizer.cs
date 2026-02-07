@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -54,7 +55,7 @@ public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		nameof(Enumerable.FirstOrDefault),
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(model, method)
 		    || !TryGetLinqSource(invocation, out var source)
@@ -67,14 +68,14 @@ public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		var exceptCollection = parameters[0];
 
 		// Try simple optimizations first
-		if (TryOptimizeEmptySource(source, out result)
-		    || TryOptimizeEmptyExceptCollection(source, exceptCollection, out result)
-		    || TryOptimizeSelfExcept(method, source, exceptCollection, out result)
-		    || TryOptimizeChainedExcept(source, exceptCollection, out result))
+		if (TryOptimizeEmptySource(visit(source) ?? source, out result)
+		    || TryOptimizeEmptyExceptCollection(visit(source) ?? source, visit(exceptCollection) ?? exceptCollection, out result)
+		    || TryOptimizeSelfExcept(method, visit(source) ?? source, visit(exceptCollection) ?? exceptCollection, out result)
+		    || TryOptimizeChainedExcept(source, exceptCollection, visit, out result))
 			return true;
 
 		// Try to optimize by removing redundant operations
-		return TryOptimizeRedundantOperations(invocation, source, exceptCollection, out result);
+		return TryOptimizeRedundantOperations(invocation, source, exceptCollection, visit, out result);
 	}
 
 	private bool TryOptimizeEmptySource(ExpressionSyntax source, out SyntaxNode? result)
@@ -119,15 +120,15 @@ public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		return false;
 	}
 
-	private bool TryOptimizeChainedExcept(ExpressionSyntax source, ExpressionSyntax exceptCollection, out SyntaxNode? result)
+	private bool TryOptimizeChainedExcept(ExpressionSyntax source, ExpressionSyntax exceptCollection, Func<SyntaxNode, ExpressionSyntax?> visit, out SyntaxNode? result)
 	{
 		// Optimization: collection.Except(other).Except(third) => collection.Except(other.Concat(third))
 		if (IsLinqMethodChain(source, nameof(Enumerable.Except), out var exceptInvocation)
 		    && GetMethodArguments(exceptInvocation).FirstOrDefault() is { Expression: { } firstExceptArg }
 		    && TryGetLinqSource(exceptInvocation, out var exceptSource))
 		{
-			var mergedExceptCollection = CreateInvocation(firstExceptArg, nameof(Enumerable.Concat), exceptCollection);
-			result = CreateInvocation(exceptSource, nameof(Enumerable.Except), mergedExceptCollection);
+			var mergedExceptCollection = CreateInvocation(visit(firstExceptArg) ?? firstExceptArg, nameof(Enumerable.Concat), visit(exceptCollection));
+			result = CreateInvocation(visit(exceptSource) ?? exceptSource, nameof(Enumerable.Except), mergedExceptCollection);
 			return true;
 		}
 
@@ -135,7 +136,7 @@ public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		return false;
 	}
 
-	private bool TryOptimizeRedundantOperations(InvocationExpressionSyntax invocation, ExpressionSyntax source, ExpressionSyntax exceptCollection, out SyntaxNode? result)
+	private bool TryOptimizeRedundantOperations(InvocationExpressionSyntax invocation, ExpressionSyntax source, ExpressionSyntax exceptCollection, Func<SyntaxNode, ExpressionSyntax?> visit, out SyntaxNode? result)
 	{
 		// Determine which operations can be skipped
 		var isFollowedBySetOperation = IsFollowedBySetBasedOperation(invocation);
@@ -150,7 +151,7 @@ public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		// If we optimized anything, create optimized Except call
 		if (isNewSource || isNewExceptCollection)
 		{
-			result = CreateInvocation(source, nameof(Enumerable.Except), exceptCollection);
+			result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.Except), visit(exceptCollection) ?? exceptCollection);
 			return true;
 		}
 

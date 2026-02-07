@@ -35,8 +35,6 @@ public partial class ConstExprPartialRewriter
 			return VisitInvocationExpressionFallback(node);
 		}
 		
-		// node = node.WithExpression(Visit(node.Expression) as ExpressionSyntax ?? node.Expression);
-
 		var arguments = node.ArgumentList.Arguments
 			.Select(arg => Visit(arg.Expression))
 			.ToList();
@@ -58,6 +56,8 @@ public partial class ConstExprPartialRewriter
 		if (targetMethod.ContainingType.SpecialType == SpecialType.System_String
 		    && node.Expression is MemberAccessExpressionSyntax memberAccess)
 		{
+			node = node.WithExpression(Visit(node.Expression) as ExpressionSyntax ?? node.Expression);
+			
 			var optimized = TryOptimizeStringMethod(semanticModel, targetMethod, node, memberAccess, arguments);
 
 			if (optimized is not null)
@@ -68,6 +68,8 @@ public partial class ConstExprPartialRewriter
 		// Try math optimizers
 		else if (attribute.FloatingPointMode == FloatingPointEvaluationMode.FastMath)
 		{
+			node = node.WithExpression(Visit(node.Expression) as ExpressionSyntax ?? node.Expression);
+			
 			var optimized = TryOptimizeMathMethod(semanticModel, targetMethod, node, arguments);
 
 			if (optimized is not null)
@@ -81,6 +83,8 @@ public partial class ConstExprPartialRewriter
 		{
 			return Visit(optimizedLinq);
 		}
+
+		node = node.WithExpression(Visit(node.Expression) as ExpressionSyntax ?? node.Expression);
 
 		// Handle char overload conversion
 		arguments = ConvertToCharOverloadIfNeeded(targetMethod, arguments);

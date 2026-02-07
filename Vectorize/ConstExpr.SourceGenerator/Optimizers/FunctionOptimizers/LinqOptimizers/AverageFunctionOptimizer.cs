@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -31,7 +32,7 @@ public class AverageFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 		nameof(Enumerable.Reverse),
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(model, method)
 		    || !TryGetLinqSource(invocation, out var source))
@@ -43,7 +44,7 @@ public class AverageFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 		// If we skipped any operations, create optimized Average call
 		if (TryGetOptimizedChainExpression(source, OperationsThatDontAffectAverage, out source))
 		{
-			result = CreateInvocation(source, nameof(Enumerable.Average), parameters);
+			result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.Average), parameters);
 			return true;
 		}
 

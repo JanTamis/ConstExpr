@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -22,7 +23,7 @@ public class SingleFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		nameof(Enumerable.ToArray),
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(model, method)
 		    || !TryGetLinqSource(invocation, out var source))
@@ -43,14 +44,14 @@ public class SingleFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 			TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectSingle, out whereSource);
 			
 			var predicate = whereInvocation.ArgumentList.Arguments[0].Expression;
-			result = CreateInvocation(whereSource, nameof(Enumerable.Single), predicate);
+			result = CreateInvocation(visit(whereSource) ?? whereSource, nameof(Enumerable.Single), visit(predicate) ?? predicate);
 			return true;
 		}
 
 		// If we skipped any operations, create optimized Single() call
 		if (isNewSource)
 		{
-			result = CreateInvocation(source, nameof(Enumerable.Single), parameters);
+			result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.Single), parameters);
 			return true;
 		}
 

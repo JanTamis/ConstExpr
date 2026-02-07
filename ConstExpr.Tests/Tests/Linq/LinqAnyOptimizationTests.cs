@@ -103,8 +103,8 @@ public class LinqAnyOptimizationListTests : BaseTest<Func<List<int>, int>>
 	[
 		Create("""
 			var a = x.Exists(v => v > 3) ? 1 : 0;
-			var b = x.Any() ? 1 : 0;
-			var c = x.Any() ? 1 : 0;
+			var b = x.Count > 0 ? 1 : 0;
+			var c = x.Count > 0 ? 1 : 0;
 			var d = x.Exists(v => v > 100) ? 1 : 0;
 			var e = x.Contains(2) ? 1 : 0;
 			var f = x.Count > 0 ? 1 : 0;

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -52,7 +53,7 @@ public class DistinctFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		nameof(Enumerable.FirstOrDefault),
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(model, method)
 		    || !TryGetLinqSource(invocation, out var source))
@@ -84,19 +85,19 @@ public class DistinctFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		if (IsLinqMethodChain(source, nameof(Enumerable.Select), out var selectInvocation)
 		    && GetMethodArguments(selectInvocation).FirstOrDefault() is { Expression: { } lambdaArg }
 		    && TryGetLambda(lambdaArg, out var lambda)
-		    && IsIdentityLambda(lambda)
+		    && IsIdentityLambda(visit(lambda) as LambdaExpressionSyntax ?? lambda)
 		    && TryGetLinqSource(selectInvocation, out var selectSource))
 		{
 			TryGetOptimizedChainExpression(selectSource, allowedOperations, out selectSource);
 			
-			result = CreateInvocation(selectSource, nameof(Enumerable.Distinct));
+			result = CreateInvocation(visit(selectSource) ?? selectSource, nameof(Enumerable.Distinct));
 			return true;
 		}
 
 		// If we skipped any operations, create optimized Distinct() call
 		if (isNewSource)
 		{
-			result = CreateInvocation(source, nameof(Enumerable.Distinct));
+			result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.Distinct));
 			return true;
 		}
 

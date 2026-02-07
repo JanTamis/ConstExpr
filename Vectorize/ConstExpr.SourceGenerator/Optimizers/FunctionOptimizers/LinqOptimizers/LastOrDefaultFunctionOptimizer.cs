@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -28,7 +29,7 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 		nameof(Enumerable.ToArray),          // Materialization: preserves order and all elements
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(model, method)
 		    || !TryGetLinqSource(invocation, out var source))
@@ -48,7 +49,7 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 		{
 			TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectLast, out whereSource);
 			
-			result = CreateInvocation(whereSource, nameof(Enumerable.LastOrDefault), predicate);
+			result = CreateInvocation(visit(whereSource) ?? whereSource, nameof(Enumerable.LastOrDefault), visit(predicate) ?? predicate);
 			return true;
 		}
 		
@@ -56,7 +57,7 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 		if (IsLinqMethodChain(source, nameof(Enumerable.Reverse), out var reverseInvocation)
 		    && TryGetLinqSource(reverseInvocation, out var reverseSource))
 		{
-			result = CreateInvocation(reverseSource, nameof(Enumerable.FirstOrDefault));
+			result = CreateInvocation(visit(reverseSource) ?? reverseSource, nameof(Enumerable.FirstOrDefault));
 			return true;
 		}
 		
@@ -64,7 +65,7 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 		if (IsLinqMethodChain(source, "Order", out var orderInvocation)
 		    && TryGetLinqSource(orderInvocation, out var orderSource))
 		{
-			result = CreateInvocation(orderSource, nameof(Enumerable.Max));
+			result = CreateInvocation(visit(orderSource) ?? orderSource, nameof(Enumerable.Max));
 			return true;
 		}
 		
@@ -72,13 +73,15 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 		if (IsLinqMethodChain(source, "OrderDescending", out var orderDescInvocation)
 		    && TryGetLinqSource(orderDescInvocation, out var orderDescSource))
 		{
-			result = CreateInvocation(orderDescSource, nameof(Enumerable.Min));
+			result = CreateInvocation(visit(orderDescSource) ?? orderDescSource, nameof(Enumerable.Min));
 			return true;
 		}
 		
 		// For arrays, use conditional: arr.Length > 0 ? arr[^1] : default
 		if (IsInvokedOnArray(model, source))
 		{
+			source = visit(source) ?? source;
+			
 			result = SyntaxFactory.ConditionalExpression(
 				SyntaxFactory.BinaryExpression(
 					SyntaxKind.GreaterThanExpression,
@@ -106,6 +109,8 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 		// For List<T>, use conditional: list.Count > 0 ? list[^1] : default
 		if (IsInvokedOnList(model, source))
 		{
+			source = visit(source) ?? source;
+			
 			result = SyntaxFactory.ConditionalExpression(
 				SyntaxFactory.BinaryExpression(
 					SyntaxKind.GreaterThanExpression,
@@ -133,7 +138,7 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 		// If we skipped any operations, create optimized LastOrDefault() call
 		if (isNewSource)
 		{
-			result = CreateInvocation(source, nameof(Enumerable.LastOrDefault));
+			result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.LastOrDefault));
 			return true;
 		}
 

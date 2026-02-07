@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -21,7 +22,7 @@ public class ToArrayFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 		nameof(Enumerable.AsEnumerable),
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(model, method)
 		    || !TryGetLinqSource(invocation, out var source))
@@ -33,7 +34,7 @@ public class ToArrayFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 		// Skip all materializing/type-cast operations
 		if (TryGetOptimizedChainExpression(source, MaterializingMethods, out source))
 		{
-			result = CreateSimpleInvocation(source, nameof(Enumerable.ToArray));
+			result = CreateSimpleInvocation(visit(source) ?? source, nameof(Enumerable.ToArray));
 			return true;
 		}
 

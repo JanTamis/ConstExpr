@@ -40,7 +40,7 @@ public class LinqAverageOptimizationTests : BaseTest<Func<int[], double>>
 			var c = x.Average();
 			var d = x.Average();
 			var e = x.Average();
-			var f = x.Average(v => v * 2);
+			var f = x.Average(v => v << 1);
 			var g = x.Average(v => v * 3);
 			
 			return a + b + c + d + e + f + g;

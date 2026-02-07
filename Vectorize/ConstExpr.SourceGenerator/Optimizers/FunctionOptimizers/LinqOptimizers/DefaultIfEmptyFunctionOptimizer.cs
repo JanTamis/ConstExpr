@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -42,7 +43,7 @@ public class DefaultIfEmptyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 		nameof(Enumerable.ToArray),          // Materialization: preserves all elements
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(model, method)
 		    || !TryGetLinqSource(invocation, out var source))
@@ -67,8 +68,8 @@ public class DefaultIfEmptyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 
 			// Create new DefaultIfEmpty with current default value (outer one wins)
 			result = defaultValue != null 
-				? CreateInvocation(innerSource, nameof(Enumerable.DefaultIfEmpty), defaultValue) 
-				: CreateInvocation(innerSource, nameof(Enumerable.DefaultIfEmpty));
+				? CreateInvocation(visit(innerSource) ?? innerSource, nameof(Enumerable.DefaultIfEmpty), defaultValue) 
+				: CreateInvocation(visit(innerSource) ?? innerSource, nameof(Enumerable.DefaultIfEmpty));
 			
 			return true;
 		}
@@ -77,8 +78,8 @@ public class DefaultIfEmptyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 		if (isNewSource)
 		{
 			result = defaultValue != null 
-				? CreateInvocation(source, nameof(Enumerable.DefaultIfEmpty), defaultValue) 
-				: CreateInvocation(source, nameof(Enumerable.DefaultIfEmpty));
+				? CreateInvocation(visit(source) ?? source, nameof(Enumerable.DefaultIfEmpty), defaultValue) 
+				: CreateInvocation(visit(source) ?? source, nameof(Enumerable.DefaultIfEmpty));
 			
 			return true;
 		}

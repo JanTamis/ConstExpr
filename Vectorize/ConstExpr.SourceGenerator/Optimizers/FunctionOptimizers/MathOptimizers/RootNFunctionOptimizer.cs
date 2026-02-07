@@ -1,3 +1,4 @@
+using System;
 using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -8,7 +9,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers
 
 public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", 2)
 {
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		result = null;
 

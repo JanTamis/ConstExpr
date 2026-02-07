@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -9,7 +10,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 
 public class SelectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Select), 1)
 {
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(model, method)
 		    || !TryGetLambda(parameters[0], out var lambda)
@@ -21,14 +22,14 @@ public class SelectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 
 		if (IsIdentityLambda(lambda))
 		{
-			result = source;
+			result = visit(source) ?? source;
 			return true;
 		}
 
 		// Optimize .Select(x => (T)x) to .Cast<T>()
 		if (IsCastLambda(lambda, out var castType))
 		{
-			result = CreateCastMethodCall(source, castType);
+			result = CreateCastMethodCall(visit(source) ?? source, castType);
 			return true;
 		}
 
@@ -37,10 +38,10 @@ public class SelectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		    && TryGetLinqSource(innerInvocation, out var innerSource))
 		{
 			// Combine the two lambdas: source.Select(inner).Select(outer) => source.Select(combined)
-			var combinedLambda = CombineLambdas(lambda, innerLambda);
+			var combinedLambda = CombineLambdas(lambda, visit(innerLambda) as LambdaExpressionSyntax ?? innerLambda);
 
 			// Create a new Select call with the combined lambda
-			result = CreateInvocation(innerSource, nameof(Enumerable.Select), combinedLambda);
+			result = CreateInvocation(visit(innerSource) ?? innerSource, nameof(Enumerable.Select), combinedLambda);
 			return true;
 		}
 
@@ -106,23 +107,5 @@ public class SelectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 			SyntaxFactory.Parameter(SyntaxFactory.Identifier(innerParam)),
 			combinedBody
 		);
-	}
-
-	private static ExpressionSyntax ReplaceIdentifier(ExpressionSyntax expression, string oldIdentifier, ExpressionSyntax replacement)
-	{
-		return (ExpressionSyntax) new IdentifierReplacer(oldIdentifier, replacement).Visit(expression);
-	}
-
-	private class IdentifierReplacer(string identifier, ExpressionSyntax replacement) : CSharpSyntaxRewriter
-	{
-		public override SyntaxNode? VisitIdentifierName(IdentifierNameSyntax node)
-		{
-			if (node.Identifier.Text == identifier)
-			{
-				return replacement;
-			}
-
-			return base.VisitIdentifierName(node);
-		}
 	}
 }

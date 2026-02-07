@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -14,7 +15,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// </summary>
 public class OfTypeFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.OfType), 0)
 {
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(model, method)
 		    || !TryGetLinqSource(invocation, out var source))
@@ -28,26 +29,22 @@ public class OfTypeFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 
 		// Optimize source.OfType<T>().OfType<T>() => source.OfType<T>() (duplicate removal with same type)
 		if (IsLinqMethodChain(source, nameof(Enumerable.OfType), out var ofTypeInvocation)
-		    && TryGetLinqSource(ofTypeInvocation, out _))
+		    && TryGetLinqSource(ofTypeInvocation, out _)
+		    && model.GetSymbolInfo(ofTypeInvocation).Symbol is IMethodSymbol { TypeArguments.Length: > 0 } innerMethod
+		    && SymbolEqualityComparer.Default.Equals(innerMethod.TypeArguments[0], typeArg))
 		{
-			if (model.GetSymbolInfo(ofTypeInvocation).Symbol is IMethodSymbol { TypeArguments.Length: > 0 } innerMethod 
-			    && SymbolEqualityComparer.Default.Equals(innerMethod.TypeArguments[0], typeArg))
-			{
-				result = source;
-				return true;
-			}
+			result = visit(source) ?? source;
+			return true;
 		}
 
 		// Optimize source.Cast<T>().OfType<T>() => source.Cast<T>() (redundant OfType after Cast with same type)
 		if (IsLinqMethodChain(source, nameof(Enumerable.Cast), out var castInvocation)
-		    && TryGetLinqSource(castInvocation, out _))
+		    && TryGetLinqSource(castInvocation, out _)
+		    && model.GetSymbolInfo(castInvocation).Symbol is IMethodSymbol { TypeArguments.Length: > 0 } innerMethod1
+		    && SymbolEqualityComparer.Default.Equals(innerMethod1.TypeArguments[0], typeArg))
 		{
-			if (model.GetSymbolInfo(castInvocation).Symbol is IMethodSymbol { TypeArguments.Length: > 0 } innerMethod 
-			    && SymbolEqualityComparer.Default.Equals(innerMethod.TypeArguments[0], typeArg))
-			{
-				result = source;
-				return true;
-			}
+			result = visit(source) ?? source;
+			return true;
 		}
 
 		result = null;

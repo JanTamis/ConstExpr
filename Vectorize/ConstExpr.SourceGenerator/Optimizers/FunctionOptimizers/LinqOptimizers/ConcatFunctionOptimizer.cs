@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -28,7 +29,7 @@ public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		nameof(Enumerable.ToArray), // Materialization: preserves order and all elements
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(model, method)
 		    || !TryGetLinqSource(invocation, out var source))
@@ -43,7 +44,7 @@ public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		// Optimization: collection.Concat(Enumerable.Empty<T>()) => collection
 		if (IsEmptyEnumerable(concatenatedCollection))
 		{
-			result = source;
+			result = visit(source);
 			return true;
 		}
 
@@ -54,19 +55,19 @@ public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 			return true;
 		}
 
-		// Optimization: Merge multiple Concat calls with collection literals
-		// e.g., collection.Concat([1, 2]).Concat([3, 4]) => collection.Concat([1, 2, 3, 4])
-		if (TryMergeConcatChain(source, concatenatedCollection, out var mergedResult))
-		{
-			result = mergedResult;
-			return true;
-		}
-
 		// Optimization: collection.Concat([singleElement]) => collection.Append(singleElement)
 		// Only apply this if the merge optimization didn't trigger
-		if (TryConvertSingleElementConcatToAppend(source, concatenatedCollection, out var appendResult))
+		if (TryConvertSingleElementConcatToAppend(source, concatenatedCollection, visit, out var appendResult))
 		{
 			result = appendResult;
+			return true;
+		}
+		
+		// Optimization: Merge multiple Concat calls with collection literals
+		// e.g., collection.Concat([1, 2]).Concat([3, 4]) => collection.Concat([1, 2, 3, 4])
+		if (TryMergeConcatChain(source, concatenatedCollection, visit, out var mergedResult))
+		{
+			result = mergedResult;
 			return true;
 		}
 
@@ -85,7 +86,7 @@ public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 	/// Tries to convert Concat with a single-element collection to Append.
 	/// E.g., collection.Concat([42]) => collection.Append(42)
 	/// </summary>
-	private bool TryConvertSingleElementConcatToAppend(ExpressionSyntax source, ExpressionSyntax concatenatedCollection, out SyntaxNode? result)
+	private bool TryConvertSingleElementConcatToAppend(ExpressionSyntax source, ExpressionSyntax concatenatedCollection, Func<SyntaxNode, ExpressionSyntax?> visit, out SyntaxNode? result)
 	{
 		result = null;
 
@@ -111,7 +112,7 @@ public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		}
 
 		// Create Append call: source.Append(element)
-		result = CreateInvocation(source, nameof(Enumerable.Append), expressionElement.Expression);
+		result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.Append), visit(expressionElement.Expression) ?? expressionElement.Expression);;
 		return true;
 	}
 
@@ -119,7 +120,7 @@ public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 	/// Tries to merge a chain of Concat operations with collection literals.
 	/// E.g., collection.Concat([1, 2]).Concat([3, 4]) => collection.Concat([1, 2, 3, 4])
 	/// </summary>
-	private bool TryMergeConcatChain(ExpressionSyntax source, ExpressionSyntax currentCollection, out SyntaxNode? result)
+	private bool TryMergeConcatChain(ExpressionSyntax source, ExpressionSyntax currentCollection, Func<SyntaxNode, ExpressionSyntax?> visit, out SyntaxNode? result)
 	{
 		result = null;
 
@@ -163,7 +164,7 @@ public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		}
 
 		// Create the optimized Concat call
-		result = CreateInvocation(baseSource, nameof(Enumerable.Concat), mergedCollection);
+		result = CreateInvocation(visit(baseSource) ?? baseSource, nameof(Enumerable.Concat), mergedCollection);
 		return true;
 	}
 

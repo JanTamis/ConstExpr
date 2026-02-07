@@ -203,7 +203,10 @@ public abstract class BaseTest<TDelegate>(FloatingPointEvaluationMode evaluation
 
 		if (values.Length != delegateParams.Length)
 		{
-			throw new InvalidOperationException("Parameter count mismatch.");
+			throw new InvalidOperationException($"""
+				Parameter count mismatch.
+				{key}
+				""");
 		}
 
 		return KeyValuePair.Create(key, values);

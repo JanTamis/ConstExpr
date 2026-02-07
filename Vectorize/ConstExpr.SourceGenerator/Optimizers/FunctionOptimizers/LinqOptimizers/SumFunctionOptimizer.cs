@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -32,7 +33,7 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		nameof(Enumerable.Reverse),
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(model, method)
 		    || !TryGetLinqSource(invocation, out var source))
@@ -49,7 +50,7 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		    && TryGetLambda(parameters[0], out var lambda)
 		    && IsIdentityLambda(lambda))
 		{
-			result = CreateSimpleInvocation(source, nameof(Enumerable.Sum));
+			result = CreateSimpleInvocation(visit(source) ?? source, nameof(Enumerable.Sum));
 			return true;
 		}
 
@@ -62,14 +63,14 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			TryGetOptimizedChainExpression(selectSource, OperationsThatDontAffectSum, out selectSource);
 			
 			var selector = selectInvocation.ArgumentList.Arguments[0].Expression;
-			result = CreateInvocation(selectSource, nameof(Enumerable.Sum), selector);
+			result = CreateInvocation(visit(selectSource) ?? selectSource, nameof(Enumerable.Sum), visit(selector) ?? selector);
 			return true;
 		}
 
 		// If we skipped any operations, create optimized Sum() call
 		if (isNewSource)
 		{
-			result = CreateInvocation(source, nameof(Enumerable.Sum), parameters);
+			result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.Sum), parameters);
 			return true;
 		}
 

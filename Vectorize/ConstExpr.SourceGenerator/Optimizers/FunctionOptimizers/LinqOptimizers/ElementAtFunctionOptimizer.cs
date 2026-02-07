@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -31,7 +32,7 @@ public class ElementAtFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		nameof(Enumerable.ToArray),          // Materialization: preserves order and all elements
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(model, method)
 		    || !TryGetLinqSource(invocation, out var source)
@@ -50,7 +51,7 @@ public class ElementAtFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		    && GetMethodArguments(skipInvocation).FirstOrDefault() is { Expression: { } skipCount })
 		{
 			if (indexParameter is LiteralExpressionSyntax { Token.Value: int indexValue }
-			    && skipCount is LiteralExpressionSyntax { Token.Value: int skipValue })
+			    && visit(skipCount) is LiteralExpressionSyntax { Token.Value: int skipValue })
 			{
 				// Both index and skip are constant integers, we can compute the new index at compile time
 				var newIndex = indexValue + skipValue;
@@ -71,7 +72,7 @@ public class ElementAtFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		if (IsInvokedOnArray(model, source))
 		{
 			result = SyntaxFactory.ElementAccessExpression(
-				source,
+				visit(source) ?? source,
 				SyntaxFactory.BracketedArgumentList(
 					SyntaxFactory.SingletonSeparatedList(
 						SyntaxFactory.Argument(indexParameter))));
@@ -82,7 +83,7 @@ public class ElementAtFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		if (IsInvokedOnList(model, source))
 		{
 			result = SyntaxFactory.ElementAccessExpression(
-				source,
+				visit(source) ?? source,
 				SyntaxFactory.BracketedArgumentList(
 					SyntaxFactory.SingletonSeparatedList(
 						SyntaxFactory.Argument(indexParameter))));
@@ -91,14 +92,14 @@ public class ElementAtFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 
 		if (indexParameter is LiteralExpressionSyntax { Token.Value: 0 })
 		{
-			result = CreateInvocation(source, nameof(Enumerable.First));
+			result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.First));
 			return true;
 		}
 
 		// If we skipped any operations, create optimized ElementAt() call
 		if (isNewSource)
 		{
-			result = CreateInvocation(source, nameof(Enumerable.ElementAt), indexParameter);
+			result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.ElementAt), indexParameter);
 			return true;
 		}
 
