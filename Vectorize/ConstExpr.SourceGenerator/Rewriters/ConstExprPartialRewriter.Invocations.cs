@@ -275,7 +275,7 @@ public partial class ConstExprPartialRewriter
 
 		foreach (var stringOptimizer in optimizers)
 		{
-			if (stringOptimizer!.TryOptimize(model, targetMethod, node, arguments.OfType<ExpressionSyntax>().ToArray(), additionalMethods, out var optimized))
+			if (stringOptimizer!.TryOptimize(model, targetMethod, node, arguments.OfType<ExpressionSyntax>().ToArray(), x => Visit(x) as ExpressionSyntax, additionalMethods, out var optimized))
 			{
 				return optimized;
 			}
@@ -298,7 +298,7 @@ public partial class ConstExprPartialRewriter
 		return _mathOptimizers.Value
 			.Where(o => String.Equals(o.Name, targetMethod.Name, StringComparison.Ordinal)
 			            && o.ParameterCounts.Contains(targetMethod.Parameters.Length))
-			.WhereSelect<BaseMathFunctionOptimizer, SyntaxNode>((w, out optimized) => w.TryOptimize(model, targetMethod, node, arguments.OfType<ExpressionSyntax>().ToArray(), additionalMethods, out optimized))
+			.WhereSelect<BaseMathFunctionOptimizer, SyntaxNode>((w, out optimized) => w.TryOptimize(model, targetMethod, node, arguments.OfType<ExpressionSyntax>().ToArray(), x => Visit(x) as ExpressionSyntax, additionalMethods, out optimized))
 			.FirstOrDefault();
 	}
 
@@ -310,7 +310,7 @@ public partial class ConstExprPartialRewriter
 		return _linqOptimizers.Value
 			.Where(o => String.Equals(o.Name, targetMethod.Name, StringComparison.Ordinal)
 			            && o.ParameterCounts.Contains(targetMethod.Parameters.Length))
-			.WhereSelect<BaseLinqFunctionOptimizer, SyntaxNode>((w, out optimized) => w.TryOptimize(model, targetMethod, node, arguments.OfType<ExpressionSyntax>().ToArray(), additionalMethods, out optimized))
+			.WhereSelect<BaseLinqFunctionOptimizer, SyntaxNode>((w, out optimized) => w.TryOptimize(model, targetMethod, node, arguments.OfType<ExpressionSyntax>().ToArray(), x => Visit(x) as ExpressionSyntax, additionalMethods, out optimized))
 			.FirstOrDefault();
 	}
 
