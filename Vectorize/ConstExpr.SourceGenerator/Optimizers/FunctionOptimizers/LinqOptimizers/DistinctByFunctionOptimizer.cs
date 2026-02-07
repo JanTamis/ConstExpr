@@ -5,7 +5,13 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
-public class OrderByFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.OrderBy), 1)
+/// <summary>
+/// Optimizer for Enumerable.DistinctBy method.
+/// Optimizes patterns such as:
+/// - collection.DistinctBy(x => x) => collection.Distinct() (identity key selector)
+/// - Enumerable.Empty&lt;T&gt;().DistinctBy(selector) => Enumerable.Empty&lt;T&gt;()
+/// </summary>
+public class DistinctByFunctionOptimizer() : BaseLinqFunctionOptimizer("DistinctBy", 1)
 {
 	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
@@ -17,14 +23,22 @@ public class OrderByFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 			return false;
 		}
 
-		// Optimize OrderBy(x => x) => Order() (identity lambda)
+		// Optimize DistinctBy(x => x) => Distinct()
 		if (IsIdentityLambda(lambda))
 		{
-			result = CreateSimpleInvocation(source, "Order");
+			result = CreateSimpleInvocation(source, nameof(Enumerable.Distinct));
 			return true;
 		}
-		
+
+		// Optimize Enumerable.Empty<T>().DistinctBy(selector) => Enumerable.Empty<T>()
+		if (IsEmptyEnumerable(source))
+		{
+			result = source;
+			return true;
+		}
+
 		result = null;
 		return false;
 	}
 }
+

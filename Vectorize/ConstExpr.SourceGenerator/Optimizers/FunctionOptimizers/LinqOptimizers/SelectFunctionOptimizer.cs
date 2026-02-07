@@ -108,27 +108,6 @@ public class SelectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		);
 	}
 
-	private static string GetLambdaParameter(LambdaExpressionSyntax lambda)
-	{
-		return lambda switch
-		{
-			SimpleLambdaExpressionSyntax simpleLambda => simpleLambda.Parameter.Identifier.Text,
-			ParenthesizedLambdaExpressionSyntax { ParameterList.Parameters.Count: > 0 } parenthesizedLambda
-				=> parenthesizedLambda.ParameterList.Parameters[0].Identifier.Text,
-			_ => throw new System.InvalidOperationException("Unsupported lambda expression type")
-		};
-	}
-
-	private static ExpressionSyntax GetLambdaBody(LambdaExpressionSyntax lambda)
-	{
-		return lambda switch
-		{
-			SimpleLambdaExpressionSyntax { ExpressionBody: { } body } => body,
-			ParenthesizedLambdaExpressionSyntax { ExpressionBody: { } body } => body,
-			_ => throw new System.InvalidOperationException("Only expression-bodied lambdas are supported")
-		};
-	}
-
 	private static ExpressionSyntax ReplaceIdentifier(ExpressionSyntax expression, string oldIdentifier, ExpressionSyntax replacement)
 	{
 		return (ExpressionSyntax) new IdentifierReplacer(oldIdentifier, replacement).Visit(expression);
