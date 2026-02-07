@@ -60,7 +60,7 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 				}
 				else
 				{
-					result = CreateInvocation(visit(innerSource) ?? innerSource, nameof(Enumerable.Count), visit(innerLambda) ?? innerSource);
+					result = CreateInvocation(visit(innerSource) ?? innerSource, nameof(Enumerable.Aggregate), visit(innerLambda) ?? innerSource);
 				}
 			}
 			

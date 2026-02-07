@@ -51,7 +51,7 @@ public class LinqDistinctOptimizationTests : BaseTest<Func<int[], int>>
 			var e = x.Distinct().Count();
 			var f = x.Distinct().Count();
 			var g = x.Distinct().Count();
-			var h = x.Any() ? 1 : 0;
+			var h = x.Length > 0 ? 1 : 0;
 			var i = x.Distinct().Count();
 			var j = x.Distinct().Count();
 			

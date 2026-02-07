@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ConstExpr.SourceGenerator.Comparers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -129,6 +130,7 @@ public class IntersectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		    && TryGetLinqSource(intersectInvocation, out var intersectSource))
 		{
 			var mergedIntersectCollection = CreateInvocation(visit(firstIntersectArg) ?? firstIntersectArg, nameof(Enumerable.Intersect), visit(intersectCollection) ?? intersectCollection);
+			
 			result = CreateInvocation(visit(intersectSource) ?? intersectSource, nameof(Enumerable.Intersect), mergedIntersectCollection);
 			return true;
 		}

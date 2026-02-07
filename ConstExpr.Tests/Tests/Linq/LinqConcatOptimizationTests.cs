@@ -52,16 +52,16 @@ public class LinqConcatOptimizationTests : BaseTest<Func<int[], int>>
 		Create("""
 			var a = x.Sum();
 			var b = x.Sum();
-			var c = x.Concat(new[] { 10, 20 }).Sum();
-			var d = x.Append(5).Sum();
-			var e = x.Append(15).Sum();
-			var f = x.Append(25).Sum();
-			var g = x.Concat(new[] { 30, 40 }).Sum();
-			var h = x.Concat([1, 2, 3, 4]).Sum();
-			var i = x.Append(100).Append(200).Sum();
-			var j = x.Append(10).Append(20).Append(30).Sum();
-			var k = x.Append(99).Sum();
-			var l = x.Append(88).Sum();
+			var c = x.Sum() + 30;
+			var d = x.Sum() + 5;
+			var e = x.Sum() + 15;
+			var f = x.Sum() + 25;
+			var g = x.Sum() + 70;
+			var h = x.Sum() + 10;
+			var i = x.Sum() + 300;
+			var j = x.Sum() + 60;
+			var k = x.Sum() + 99;
+			var l = x.Sum() + 88;
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l;
 			""", Unknown),

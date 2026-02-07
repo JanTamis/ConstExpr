@@ -51,7 +51,7 @@ public class LinqAllOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = Array.TrueForAll(x, v => v > 0 && v < 10) ? 1 : 0;
+			var a = Array.TrueForAll(x, v => (uint)v < 10) ? 1 : 0;
 			var b = Array.TrueForAll(x, v => v << 1 > 0) ? 1 : 0;
 			var c = Array.TrueForAll(x, v => v > 0) ? 1 : 0;
 			var d = Array.TrueForAll(x, v => v > 0) ? 1 : 0;
@@ -62,7 +62,7 @@ public class LinqAllOptimizationTests : BaseTest<Func<int[], int>>
 			var i = Array.TrueForAll(x, v => v > 0) ? 1 : 0;
 			var j = Array.TrueForAll(x, v => v > 0) ? 1 : 0;
 			var k = Array.TrueForAll(x, v => v > 100) ? 1 : 0;
-			var l = Array.TrueForAll(x, v => v > 2 && v < 8) ? 1 : 0;
+			var l = Array.TrueForAll(x, v => (uint)v < 6) ? 1 : 0;
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l;
 			""", Unknown),

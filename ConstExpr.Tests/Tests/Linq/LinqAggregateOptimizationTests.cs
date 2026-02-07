@@ -53,7 +53,7 @@ public class LinqAggregateOptimizationTests : BaseTest<Func<int[], int>>
 		// Non-addition aggregate should NOT be optimized to Sum
 		var m = x.Aggregate((acc, v) => acc * v);
 
-		// Non-zero seed should NOT be optimized to Sum
+		// Non-zero seed should be optimized to Sum
 		var n = x.Aggregate(10, (acc, v) => acc + v);
 
 		return a + b + c + d + e + f + g1 + g2 + h + i + j + k + l + m + n;
@@ -67,12 +67,12 @@ public class LinqAggregateOptimizationTests : BaseTest<Func<int[], int>>
 			var c = x.Sum();
 			var d = x.Sum();
 			var e = x.Sum();
-			var f = x.Aggregate((acc, v) => acc + v, acc => acc << 1);
+			var f = x.Sum() << 1;
 			var g1 = x.Sum();
 			var g2 = x.Sum();
 			var h = x.Sum();
 			var i = x.Sum();
-			var j = x.Sum(v => v * 2);
+			var j = x.Count(v => v << 1);
 			var k = x.Where(v => v > 2).Sum();
 			var l = x.Distinct().Sum();
 			var m = x.Aggregate((acc, v) => acc * v);

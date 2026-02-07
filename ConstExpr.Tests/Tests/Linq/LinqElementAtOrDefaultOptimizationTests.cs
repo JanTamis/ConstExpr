@@ -39,10 +39,10 @@ public class LinqElementAtOrDefaultOptimizationTests : BaseTest<Func<int[], int>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.ElementAtOrDefault(0);
+			var a = x.FirstOrDefault();
 			var b = x.ElementAtOrDefault(1);
 			var c = x.ElementAtOrDefault(2);
-			var d = x.ElementAtOrDefault(0);
+			var d = x.FirstOrDefault();
 			var e = x.ElementAtOrDefault(1);
 			var f = x.ElementAtOrDefault(2);
 			var g = x.ElementAtOrDefault(10);
@@ -85,9 +85,9 @@ public class LinqElementAtOrDefaultOptimizationListTests : BaseTest<Func<List<in
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.ElementAtOrDefault(0);
+			var a = x.FirstOrDefault();
 			var b = x.ElementAtOrDefault(1);
-			var c = x.ElementAtOrDefault(0);
+			var c = x.FirstOrDefault();
 			var d = x.ElementAtOrDefault(1);
 			var e = x.ElementAtOrDefault(10);
 			
@@ -184,8 +184,8 @@ public class LinqElementAtOrDefaultNoOptimizationTests : BaseTest<Func<int[], in
 			var a = x.Min();
 			var b = x.Max();
 			var c = x.LastOrDefault();
-			var d = x.Where(v => v > 2).ElementAtOrDefault(0);
-			var e = x.Select(v => v * 2).ElementAtOrDefault(0);
+			var d = x.Where(v => v > 2).FirstOrDefault();
+			var e = x.Select(v => v * 2).FirstOrDefault();
 			var f = x.FirstOrDefault();
 			
 			return a + b + c + d + e + f;

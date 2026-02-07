@@ -60,8 +60,8 @@ public class LinqContainsOptimizationTests : BaseTest<Func<int[], int>>
 			var g = Array.IndexOf(x, 3) >= 0 ? 1 : 0;
 			var h = Array.IndexOf(x, 3) >= 0 ? 1 : 0;
 			var i = Array.IndexOf(x, 3) >= 0 ? 1 : 0;
-			var j = Array.Exists(x, v => v * 2 == 6) ? 1 : 0;
-			var k = Array.Exists(x, v => v > 2 && v == 3) ? 1 : 0;
+			var j = Array.IndexOf(x, 3) >= 0 ? 1 : 0;
+			var k = Array.IndexOf(x, 3) >= 0 ? 1 : 0;
 			var l = Array.IndexOf(x, 100) >= 0 ? 1 : 0;
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l;
@@ -111,8 +111,8 @@ public class LinqContainsOptimizationListTests : BaseTest<Func<List<int>, int>>
 			var b = x.Contains(3) ? 1 : 0;
 			var c = x.Contains(3) ? 1 : 0;
 			var d = x.Contains(3) ? 1 : 0;
-			var e = x.Exists(v => v * 2 == 6) ? 1 : 0;
-			var f = x.Exists(v => v > 2 && v == 3) ? 1 : 0;
+			var e = x.Contains(3) ? 1 : 0;
+			var f = x.Contains(3) ? 1 : 0;
 			var g = x.Contains(100) ? 1 : 0;
 			
 			return a + b + c + d + e + f + g;
@@ -151,8 +151,8 @@ public class LinqContainsOptimizationStringTests : BaseTest<Func<string[], int>>
 		Create("""
 			var a = Array.IndexOf(x, "hello") >= 0 ? 1 : 0;
 			var b = Array.IndexOf(x, "world") >= 0 ? 1 : 0;
-			var c = Array.Exists(x, v => v.ToUpper() == "HELLO") ? 1 : 0;
-			var d = Array.Exists(x, v => v.Length > 3 && v == "hello") ? 1 : 0;
+			var c = Array.Exists(x, v => String.Equals(v, "HELLO", StringComparer.CurrentCultureIgnoreCase)) ? 1 : 0;
+			var d = Array.IndexOf(x, "hello") >= 0 ? 1 : 0;
 			
 			return a + b + c + d;
 			""", Unknown),
@@ -188,10 +188,10 @@ public class LinqContainsOptimizationComplexTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = Array.Exists(x, v => v > 0 && v == 5) ? 1 : 0;
-			var b = Array.Exists(x, v => v + 10 == 15) ? 1 : 0;
-			var c = Array.Exists(x, v => v % 2 == 0 && v == 4) ? 1 : 0;
-			var d = Array.Exists(x, v => v < 10 && v == 5) ? 1 : 0;
+			var a = x.Contains(5); ? 1 : 0;
+			var b = x.Contains(5); ? 1 : 0;
+			var c = x.Contains(4); ? 1 : 0;
+			var d = x.Contains(5); ? 1 : 0;
 			
 			return a + b + c + d;
 			""", Unknown),

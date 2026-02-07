@@ -19,11 +19,7 @@ public class LinqTakeWhileOptimizationTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
-		Create("""
-			var a = x.Length;
-
-			return a;
-			""", Unknown),
+		Create("return a.Length;", Unknown),
 		Create("return 3;", new[] { 1, 2, 3 }),
 		Create("return 0;", new int[] { }),
 	];

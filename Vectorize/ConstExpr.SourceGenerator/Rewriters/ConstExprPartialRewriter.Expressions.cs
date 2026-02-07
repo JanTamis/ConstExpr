@@ -94,7 +94,7 @@ public partial class ConstExprPartialRewriter
 				{
 					if (node.Parent is not BinaryExpressionSyntax 
 					    && optimized is IsPatternExpressionSyntax pattern
-					    && TryOptmizePattern(pattern, out var result))
+					    && TryOptimizePattern(pattern, out var result))
 					{
 						return result;
 					}
@@ -779,7 +779,7 @@ public partial class ConstExprPartialRewriter
 		return interp.WithExpression(visited as ExpressionSyntax ?? interp.Expression);
 	}
 
-	private bool TryOptmizePattern(IsPatternExpressionSyntax pattern, out ExpressionSyntax? result)
+	private bool TryOptimizePattern(IsPatternExpressionSyntax pattern, out ExpressionSyntax? result)
 	{
 		result = null;
 

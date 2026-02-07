@@ -39,13 +39,13 @@ public class LinqWhereOptimizationTests : BaseTest<Func<int[], int>>
 	[
 		Create("""
 			var a = x.Count();
-			var b = System.Linq.Enumerable.Empty<T>().Count();
-			var c = x.Where(v => v > 1 && v < 5).Count();
-			var d = x.Where(a => a > 0 && a < 10).Count();
-			var e = x.Where(v => v > 0 && v < 10 && v % 2 == 0).Count();
+			var b = 0;
+			var c = x.Where(v => (uint)v < 4).Count();
+			var d = x.Where(a => (uint)a < 10).Count();
+			var e = x.Where(v => (uint)v < 10 && v & 1 == 0).Count();
 			var f = x.Where(v => v > 3).Count();
 			var g = 0;
-			var h = x.Where(v => v > 0 && v < 100 && v % 2 == 0).Count();
+			var h = x.Where(v => (uint)v < 100 && v & 1 == 0).Count();
 			
 			return a + b + c + d + e + f + g + h;
 			""", Unknown),

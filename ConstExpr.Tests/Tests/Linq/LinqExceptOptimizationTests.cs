@@ -73,57 +73,12 @@ public class LinqExceptOptimizationTests : BaseTest<Func<int[], int>>
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l + m + n;
 			""", Unknown),
-		Create("return 38;", new[] { 1, 2, 3, 4, 5 }), 
-		// a = 5 (distinct count)
-		// b = 0 (empty)
-		// c = 0 (self-except)
-		// d = 4 (2,3,4,5)
-		// e = 4 (1,3,4,5)
-		// f = 4 (1,2,4,5)
-		// g = 3 (3,4,5)
-		// h = 4 (1,2,3,5)
-		// i = 3 (3,4,5)
-		// j = 2 (4,5)
-		// k = 4 (2,3,4,5)
-		// l = 1 (has elements 1,2,3,4)
-		// m = 3 (3,4,5)
-		// n = 5 (all elements, 99 not in array)
-		// Total = 5+0+0+4+4+4+3+4+3+2+4+1+3+5 = 42
+		Create("return 38;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 42;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new int[] { }), 
 		Create("return 20;", new[] { 10, 20, 30 }),
-		// a = 3 (distinct count)
-		// b = 0 (empty)
-		// c = 0 (self-except)
-		// d = 3 (all, 1 not in array)
-		// e = 3 (all, 2 not in array)
-		// f = 3 (all, 3 not in array)
-		// g = 3 (all)
-		// h = 3 (all, 4 not in array)
-		// i = 3 (all)
-		// j = 3 (all)
-		// k = 3 (all, 1 not in array)
-		// l = 1 (has elements)
-		// m = 3 (all)
-		// n = 3 (all, 99 not in array)
-		// Total = 3+0+0+3+3+3+3+3+3+3+3+1+3+3 = 34
 		Create("return 34;", new[] { 10, 20, 30 }),
-		Create("return 28;", new[] { 1, 1, 2, 2, 3 }), 
-		// a = 3 (distinct: 1,2,3)
-		// b = 0 (empty)
-		// c = 0 (self-except)
-		// d = 2 (2,3)
-		// e = 2 (1,3)
-		// f = 2 (1,2)
-		// g = 1 (3)
-		// h = 3 (all, 4 not in array)
-		// i = 1 (3)
-		// j = 0 (nothing left)
-		// k = 2 (2,3)
-		// l = 1 (has elements 1,2,3)
-		// m = 1 (3)
-		// n = 3 (all distinct, 99 not in array)
-		// Total = 3+0+0+2+2+2+1+3+1+0+2+1+1+3 = 21
+		Create("return 28;", new[] { 1, 1, 2, 2, 3 }),
 		Create("return 21;", new[] { 1, 1, 2, 2, 3 }),
 	];
 }

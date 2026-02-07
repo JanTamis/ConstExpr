@@ -25,8 +25,8 @@ public class LinqOfTypeOptimizationTests : BaseTest<Func<object[], int>>
 
 			return a + b;
 			""", Unknown),
-		Create("return 6;", new object[] { 1, 2, 3 }),
-		Create("return 0;", new object[] { }),
+		Create("return 6;", new[] { 1, 2, 3 }),
+		Create("return 0;", new int[] { }),
 	];
 }
 

@@ -419,7 +419,7 @@ public partial class ConstExprPartialRewriter
 		}
 
 		// Try to optimize OR patterns into bitmask checks
-		if (TryOptmizePattern(node.WithExpression(exprToEvaluate as ExpressionSyntax ?? node.Expression), out var optimized))
+		if (TryOptimizePattern(node.WithExpression(exprToEvaluate as ExpressionSyntax ?? node.Expression), out var optimized))
 		{
 			return optimized;
 		}

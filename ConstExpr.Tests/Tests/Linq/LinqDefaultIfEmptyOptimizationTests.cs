@@ -44,16 +44,16 @@ public class LinqDefaultIfEmptyOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.DefaultIfEmpty().Count();
-			var b = x.DefaultIfEmpty().Count();
-			var c = x.DefaultIfEmpty().Count();
-			var d = x.DefaultIfEmpty().Count();
-			var e = x.DefaultIfEmpty().Count();
-			var f = x.DefaultIfEmpty().Count();
-			var g = x.DefaultIfEmpty().Count();
-			var h = x.DefaultIfEmpty().Count();
-			var i = x.DefaultIfEmpty().Count();
-			var j = x.DefaultIfEmpty().Count();
+			var a = Int32.Max(x.Length, 1);
+			var b = Int32.Max(x.Length, 1);
+			var c = Int32.Max(x.Length, 1);
+			var d = Int32.Max(x.Length, 1);
+			var e = Int32.Max(x.Length, 1);
+			var f = Int32.Max(x.Length, 1);
+			var g = Int32.Max(x.Length, 1);
+			var h = Int32.Max(x.Length, 1);
+			var i = Int32.Max(x.Length, 1);
+			var j = Int32.Max(x.Length, 1);
 			
 			return a + b + c + d + e + f + g + h + i + j;
 			""", Unknown),
@@ -129,10 +129,10 @@ public class LinqDefaultIfEmptyOptimizationListTests : BaseTest<Func<List<int>, 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.DefaultIfEmpty().Count();
-			var b = x.DefaultIfEmpty().Count();
-			var c = x.DefaultIfEmpty().Count();
-			var d = x.DefaultIfEmpty().Count();
+			var a = Int32.Max(x.Count, 1)
+			var b = Int32.Max(x.Count, 1)
+			var c = Int32.Max(x.Count, 1)
+			var d = Int32.Max(x.Count, 1)
 			var e = x.DefaultIfEmpty(100).First();
 			
 			return a + b + c + d + e;
@@ -167,7 +167,7 @@ public class LinqDefaultIfEmptyComplexTests : BaseTest<Func<int[], int>>
 		Create("""
 			var a = x.Where(v => v > 0).Distinct().OrderBy(v => v).DefaultIfEmpty(50).Sum();
 			var b = x.Where(v => v > 100).Select(v => v * 2).DefaultIfEmpty(25).Sum();
-			var c = x.DefaultIfEmpty(30).First();
+			var c = x.Length > 0 ? x[0] : 30;
 			
 			return a + b + c;
 			""", Unknown),

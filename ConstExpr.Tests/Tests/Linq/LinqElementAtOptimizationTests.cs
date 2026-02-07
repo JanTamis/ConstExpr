@@ -79,9 +79,9 @@ public class LinqElementAtOptimizationListTests : BaseTest<Func<List<int>, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.First();
+			var a = x[0];
 			var b = x[1];
-			var c = x.First();
+			var c = x[0];
 			var d = x[1];
 			
 			return a + b + c + d;
@@ -130,7 +130,7 @@ public class LinqElementAtSkipOptimizationTests : BaseTest<Func<int[], int>>
 			var c = x[3];
 			var d = x[1];
 			var e = x[2];
-			var f = x.First();
+			var f = x[0];
 			
 			return a + b + c + d + e + f;
 			""", Unknown),
@@ -149,25 +149,25 @@ public class LinqElementAtNoOptimizationTests : BaseTest<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
-		// OrderBy should NOT be optimized (changes element positions!)
+		// OrderBy should  be optimized (changes element positions!)
 		var a = x.OrderBy(v => v).ElementAt(0);
 
-		// OrderByDescending should NOT be optimized
+		// OrderByDescending should  be optimized
 		var b = x.OrderByDescending(v => v).ElementAt(0);
 
-		// Reverse should NOT be optimized
+		// Reverse should  be optimized
 		var c = x.Reverse().ElementAt(0);
 
-		// Where should NOT be optimized (changes collection size and indices)
+		// Where should  be optimized (changes collection size and indices)
 		var d = x.Where(v => v > 2).ElementAt(0);
 
-		// Select should NOT be optimized (transforms elements)
+		// Select should  be optimized (transforms elements)
 		var e = x.Select(v => v * 2).ElementAt(0);
 
-		// Distinct should NOT be optimized (removes duplicates, changes indices)
+		// Distinct should  be optimized (removes duplicates, changes indices)
 		var f = x.Distinct().ElementAt(0);
 
-		// Take should NOT be optimized (limits collection)
+		// Take should  be optimized (limits collection)
 		var g = x.Take(3).ElementAt(0);
 
 		return a + b + c + d + e + f + g;
@@ -179,10 +179,10 @@ public class LinqElementAtNoOptimizationTests : BaseTest<Func<int[], int>>
 			var a = x.Min();
 			var b = x.Max();
 			var c = x.LastOrDefault();
-			var d = x.Where(v => v > 2).ElementAt(0);
-			var e = x.Select(v => v * 2).ElementAt(0);
+			var d = x.Where(v => v > 2).First();
+			var e = x.Select(v => v * 2).First();
 			var f = x.FirstOrDefault();
-			var g = x.Take(3).ElementAt(0);
+			var g = x.First();
 			
 			return a + b + c + d + e + f + g;
 			""", Unknown),
