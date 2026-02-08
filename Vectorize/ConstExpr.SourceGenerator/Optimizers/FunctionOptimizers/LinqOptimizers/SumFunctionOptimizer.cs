@@ -63,8 +63,12 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			TryGetOptimizedChainExpression(selectSource, OperationsThatDontAffectSum, out selectSource);
 			
 			var selector = selectInvocation.ArgumentList.Arguments[0].Expression;
-			result = CreateInvocation(visit(selectSource) ?? selectSource, nameof(Enumerable.Sum), visit(selector) ?? selector);
-			return true;
+
+			if (!TryGetLambda(selector, out var selectorLambda) || !IsIdentityLambda(selectorLambda))
+			{
+				result = CreateInvocation(visit(selectSource) ?? selectSource, nameof(Enumerable.Sum), visit(selector) ?? selector);
+				return true;
+			}
 		}
 
 		// If we skipped any operations, create optimized Sum() call

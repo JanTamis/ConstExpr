@@ -619,7 +619,7 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 		return typeSymbol is not null;
 	}
 	
-	protected IEnumerable<BinaryExpressionSyntax>  GetBinaryExpressions(SyntaxNode node)
+	protected IEnumerable<BinaryExpressionSyntax> GetBinaryExpressions(SyntaxNode node)
 	{
 		return node.Ancestors()
 			.Where(w => w is BinaryExpressionSyntax or WhileStatementSyntax or IfStatementSyntax)

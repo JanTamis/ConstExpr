@@ -24,8 +24,8 @@ public class LinqSelectOptimizationTests : BaseTest<Func<IEnumerable<int>, int>>
 	[
 		Create("""
 			var a = x.Sum();
-			var b = x.Cast<int?>().Sum() ?? 0;
-			var c = x.Select(y => y << 1 + 1).Sum();
+			var b = x.Sum(y => (int?)y) ?? 0;
+			var c = x.Select(y => y << 1).Sum(z => z + 1);
 			
 			return a + b + c;
 			""", Unknown),

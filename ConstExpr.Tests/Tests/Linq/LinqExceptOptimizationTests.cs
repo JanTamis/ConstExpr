@@ -59,17 +59,17 @@ public class LinqExceptOptimizationTests : BaseTest<Func<int[], int>>
 			var a = x.Distinct().Count();
 			var b = 0;
 			var c = 0;
-			var d = x.Except([1]).Count();
-			var e = x.Except([2]).Count();
-			var f = x.Except([3]).Count();
-			var g = x.Except([1, 2]).Count();
-			var h = x.Except([4]).Count();
-			var i = x.Except([1].Concat([2])).Count();
-			var j = x.Except([1].Concat([2]).Concat([3])).Count();
-			var k = x.Except([1]).Count();
-			var l = x.Except([5]).Any() ? 1 : 0;
-			var m = x.Except([1, 2]).Count();
-			var n = x.Except([99]).Count();
+			var d = x.Distinct().Count(c => c != 1);
+			var e = x.Distinct().Count(c => c != 2);
+			var f = x.Distinct().Count(c => c != 3);
+			var g = x.Distinct().Count(c => (uint)c - 1 > 1); // Count of not 1 and not 2
+			var h = x.Distinct().Count(c => c != 4);
+			var i = x.Distinct().Count(c => (uint)c - 1 > 1); // Count of not 1 and not 2
+			var j = x.Distinct().Count(c => (uint)c - 1 > 2); // Count of not 1 and not 2 and not 3S
+			var k = x.Distinct().Count(c => c != 1);
+			var l = x.Any(a => a != 5) ? 1 : 0;
+			var m = x.Distinct().Count(c => (uint)c - 1 > 1);
+			var n = x.Distinct().Count(c => c != 99);
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l + m + n;
 			""", Unknown),

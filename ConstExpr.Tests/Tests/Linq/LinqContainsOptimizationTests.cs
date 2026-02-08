@@ -63,7 +63,7 @@ public class LinqContainsOptimizationTests : BaseTest<Func<int[], int>>
 			var j = Array.IndexOf(x, 3) >= 0 ? 1 : 0;
 			var k = Array.IndexOf(x, 3) >= 0 ? 1 : 0;
 			var l = Array.IndexOf(x, 100) >= 0 ? 1 : 0;
-			
+
 			return a + b + c + d + e + f + g + h + i + j + k + l;
 			""", Unknown),
 		Create("return 11;", new[] { 1, 2, 3, 4, 5 }),
@@ -114,7 +114,7 @@ public class LinqContainsOptimizationListTests : BaseTest<Func<List<int>, int>>
 			var e = x.Contains(3) ? 1 : 0;
 			var f = x.Contains(3) ? 1 : 0;
 			var g = x.Contains(100) ? 1 : 0;
-			
+
 			return a + b + c + d + e + f + g;
 			""", Unknown),
 		Create("return 6;", new List<int> { 1, 2, 3, 4, 5 }),
@@ -153,12 +153,12 @@ public class LinqContainsOptimizationStringTests : BaseTest<Func<string[], int>>
 			var b = Array.IndexOf(x, "world") >= 0 ? 1 : 0;
 			var c = Array.Exists(x, v => String.Equals(v, "HELLO", StringComparer.CurrentCultureIgnoreCase)) ? 1 : 0;
 			var d = Array.IndexOf(x, "hello") >= 0 ? 1 : 0;
-			
+
 			return a + b + c + d;
 			""", Unknown),
-		Create("return 4;", "hello", "world", "foo"),
-		Create("return 0;"),
-		Create("return 1;", "hi", "world", "test"), // Only b matches ("world")
+		Create("return 4;", new[] { new[] { "hello", "world", "foo" } }),
+		Create("return 0;", new[] { new string[] {} }),
+		Create("return 1;", new[] { new[] { "hi", "world", "test" } }), // Only b matches ("world")
 	];
 }
 
@@ -188,11 +188,11 @@ public class LinqContainsOptimizationComplexTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.Contains(5); ? 1 : 0;
-			var b = x.Contains(5); ? 1 : 0;
-			var c = x.Contains(4); ? 1 : 0;
-			var d = x.Contains(5); ? 1 : 0;
-			
+			var a = x.Contains(5) ? 1 : 0;
+			var b = x.Contains(5) ? 1 : 0;
+			var c = x.Contains(4) ? 1 : 0;
+			var d = x.Contains(5) ? 1 : 0;
+
 			return a + b + c + d;
 			""", Unknown),
 		Create("return 4;", new[] { 1, 2, 3, 4, 5, 6, 7, 8 }),

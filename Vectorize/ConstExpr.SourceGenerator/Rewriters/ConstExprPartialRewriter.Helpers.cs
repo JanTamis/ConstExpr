@@ -116,7 +116,7 @@ public partial class ConstExprPartialRewriter
 	/// <summary>
 	/// Try to apply registered binary optimization strategies for the given operator and operands.
 	/// </summary>
-	private bool TryOptimizeNode(BinaryOperatorKind kind, List<BinaryExpressionSyntax> expressions, ITypeSymbol type, ExpressionSyntax leftExpr, ITypeSymbol? leftType, ExpressionSyntax rightExpr, ITypeSymbol? rightType, SyntaxNode? parent, out SyntaxNode? syntaxNode)
+	private bool TryOptimizeNode(BinaryOperatorKind kind, List<BinaryExpressionSyntax> expressions, ITypeSymbol? type, ExpressionSyntax leftExpr, ITypeSymbol? leftType, ExpressionSyntax rightExpr, ITypeSymbol? rightType, SyntaxNode? parent, out SyntaxNode? syntaxNode)
 	{
 		if (_binaryOptimizers.TryGetValue(kind, out var optimizer))
 		{
@@ -145,7 +145,7 @@ public partial class ConstExprPartialRewriter
 	/// <summary>
 	/// Tries to optimize using a specific strategy by invoking GetContext and TryOptimize via reflection.
 	/// </summary>
-	private bool TryOptimizeWithStrategy(IBinaryStrategy strategy, List<BinaryExpressionSyntax> expressions, ITypeSymbol type, ExpressionSyntax leftExpr, ITypeSymbol? leftType, ExpressionSyntax rightExpr, ITypeSymbol? rightType, SyntaxNode? parent, out ExpressionSyntax? result)
+	private bool TryOptimizeWithStrategy(IBinaryStrategy strategy, List<BinaryExpressionSyntax> expressions, ITypeSymbol? type, ExpressionSyntax leftExpr, ITypeSymbol? leftType, ExpressionSyntax rightExpr, ITypeSymbol? rightType, SyntaxNode? parent, out ExpressionSyntax? result)
 	{
 		result = null;
 

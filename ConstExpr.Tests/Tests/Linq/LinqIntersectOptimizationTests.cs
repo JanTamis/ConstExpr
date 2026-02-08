@@ -56,8 +56,6 @@ public class LinqIntersectOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = 0;
-			var b = 0;
 			var c = x.Distinct().Count();
 			var d = x.Distinct().Count(c => c == 1);
 			var e = x.Distinct().Count(c => c == 2);
@@ -71,7 +69,7 @@ public class LinqIntersectOptimizationTests : BaseTest<Func<int[], int>>
 			var m = x.Distinct().Count(c => (uint)c - 1 <= 1); // Count of 1 or 2
 			var n = x.Distinct().Count(c => c == 99);
 			
-			return a + b + c + d + e + f + g + h + i + j + k + l + m + n;
+			return c + d + e + f + g + h + i + j + k + l + m + n;
 			""", Unknown),
 		Create("return 18;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new int[] { }),

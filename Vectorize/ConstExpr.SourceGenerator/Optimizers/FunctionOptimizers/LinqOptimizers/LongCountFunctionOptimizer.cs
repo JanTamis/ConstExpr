@@ -11,6 +11,8 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// Optimizer for Enumerable.LongCount method.
 /// Optimizes patterns such as:
 /// - collection.Where(predicate).LongCount() => collection.LongCount(predicate)
+/// - collection.Where(p1).Where(p2).LongCount() => collection.LongCount(p1 && p2) (multiple chained Where statements)
+/// - collection.Where(p1).Where(p2).Where(p3).LongCount() => collection.LongCount(p1 && p2 && p3)
 /// - collection.Select(...).LongCount() => collection.LongCount() (projection doesn't affect count for non-null elements)
 /// - collection.OrderBy(...).LongCount() => collection.LongCount() (ordering doesn't affect count)
 /// - collection.OrderByDescending(...).LongCount() => collection.LongCount() (ordering doesn't affect count)
@@ -20,8 +22,9 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.ThenByDescending(...).LongCount() => collection.LongCount() (secondary ordering doesn't affect count)
 /// - collection.Reverse().LongCount() => collection.LongCount() (reversing doesn't affect count)
 /// - collection.AsEnumerable().LongCount() => collection.LongCount() (type cast doesn't affect count)
+/// - collection.OrderBy(...).Where(p1).Where(p2).LongCount() => collection.LongCount(p1 && p2) (combining operations)
 /// </summary>
-public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.LongCount), 0)
+public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.LongCount), 0, 1)
 {
 	// Operations that don't affect element count (only order/form but not filtering)
 	// Note: We DON'T include Distinct, ToList, ToArray because they might affect count
@@ -52,38 +55,129 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		// Recursively skip all operations that don't affect count
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectCount, out source);
 
-		// Now check if we have a Where at the end of the optimized chain
-		if (IsLinqMethodChain(source, nameof(Enumerable.Where), out var whereInvocation)
-		    && GetMethodArguments(whereInvocation).FirstOrDefault() is { Expression: { } predicateArg }
-		    && TryGetLambda(predicateArg, out var predicate)
-		    && TryGetLinqSource(whereInvocation, out var whereSource))
+		// Collect all chained Where predicates
+		var wherePredicates = new List<LambdaExpressionSyntax>();
+		var currentSource = source;
+
+		// Walk through the chain and collect all Where statements
+		while (IsLinqMethodChain(currentSource, nameof(Enumerable.Where), out var whereInvocation)
+		       && GetMethodArguments(whereInvocation).FirstOrDefault() is { Expression: { } predicateArg }
+		       && TryGetLambda(predicateArg, out var predicate)
+		       && TryGetLinqSource(whereInvocation, out var whereSource))
 		{
-			TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectCount, out whereSource);
+			if (IsLiteralBooleanLambda(predicate, out var literalValue) && literalValue == true)
+			{
+				switch (literalValue)
+				{
+					case true:
+						TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectCount, out currentSource);
+						continue;
+					case false:
+						result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0L));
+						return true;
+				}
+			}
 			
-			result = CreateInvocation(visit(whereSource) ?? whereSource, nameof(Enumerable.LongCount), visit(predicate) ?? predicate);
+			wherePredicates.Add(predicate);
+			
+			// Skip operations that don't affect count before the next Where
+			TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectCount, out currentSource);
+		}
+
+		// If we found any Where predicates, combine them
+		if (wherePredicates.Count > 0)
+		{
+			// Start with the first predicate and combine with the rest
+			var combinedPredicate = visit(wherePredicates[^1]) as LambdaExpressionSyntax ?? wherePredicates[^1];
+			
+			// Combine from right to left (last to first)
+			for (var i = wherePredicates.Count - 2; i >= 0; i--)
+			{
+				var currentPredicate = visit(wherePredicates[i]) as LambdaExpressionSyntax ?? wherePredicates[i];
+				combinedPredicate = CombinePredicates(currentPredicate, combinedPredicate);
+			}
+
+			// If LongCount() has a predicate parameter, combine it as well
+			if (parameters is [ LambdaExpressionSyntax lambda ])
+			{
+				combinedPredicate = CombinePredicates(visit(lambda) as LambdaExpressionSyntax ?? lambda, combinedPredicate);
+			}
+			
+			combinedPredicate = visit(combinedPredicate) as LambdaExpressionSyntax ?? combinedPredicate;
+
+			if (IsLiteralBooleanLambda(combinedPredicate, out var literalValue))
+			{
+				switch (literalValue)
+				{
+					case true when IsCollectionType(model, currentSource):
+						result = SyntaxFactory.CastExpression(
+							SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.LongKeyword)),
+							CreateMemberAccess(visit(currentSource) ?? currentSource, "Count"));
+						return true;
+					case true when IsInvokedOnArray(model, currentSource):
+						result = SyntaxFactory.CastExpression(
+							SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.LongKeyword)),
+							CreateMemberAccess(visit(currentSource) ?? currentSource, "Length"));
+						return true;
+					case false:
+						result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0L));
+						return true;
+				}
+			}
+			
+			result = CreateInvocation(visit(currentSource) ?? currentSource, nameof(Enumerable.LongCount), combinedPredicate);
 			return true;
 		}
 
-		if (IsCollectionType(model, source))
+		if (parameters.Count == 0)
 		{
-			result = SyntaxFactory.CastExpression(
-				SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.LongKeyword)),
-				CreateMemberAccess(source, "Count"));
-			return true;
+			source = visit(source) ?? source;
+			
+			if (IsCollectionType(model, currentSource))
+			{
+				result = SyntaxFactory.CastExpression(
+					SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.LongKeyword)),
+					CreateMemberAccess(currentSource, "Count"));
+				return true;
+			}
+
+			if (IsCollectionType(model, source))
+			{
+				result = SyntaxFactory.CastExpression(
+					SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.LongKeyword)),
+					CreateMemberAccess(source, "Count"));
+				return true;
+			}
+
+			if (IsInvokedOnArray(model, currentSource))
+			{
+				result = SyntaxFactory.CastExpression(
+					SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.LongKeyword)),
+					CreateMemberAccess(currentSource, "Length"));
+				return true;
+			}
+
+			if (IsInvokedOnArray(model, source))
+			{
+				result = SyntaxFactory.CastExpression(
+					SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.LongKeyword)),
+					CreateMemberAccess(source, "Length"));
+				return true;
+			}
 		}
 
-		if (IsInvokedOnArray(model, source))
+		source = visit(currentSource) ?? currentSource;
+
+		if (IsEmptyEnumerable(source))
 		{
-			result = SyntaxFactory.CastExpression(
-				SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.LongKeyword)),
-				CreateMemberAccess(visit(source) ?? source, "Length"));
+			result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0L));
 			return true;
 		}
 
 		// If we skipped any operations, create optimized LongCount() call
 		if (isNewSource)
 		{
-			result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.LongCount));
+			result = CreateInvocation(source, nameof(Enumerable.LongCount), parameters);
 			return true;
 		}
 

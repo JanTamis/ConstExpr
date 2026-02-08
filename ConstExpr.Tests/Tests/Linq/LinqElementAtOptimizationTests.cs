@@ -179,7 +179,7 @@ public class LinqElementAtNoOptimizationTests : BaseTest<Func<int[], int>>
 			var a = x.Min();
 			var b = x.Max();
 			var c = x.LastOrDefault();
-			var d = x.Where(v => v > 2).First();
+			var d = x.First(v => v > 2);
 			var e = x.Select(v => v * 2).First();
 			var f = x.FirstOrDefault();
 			var g = x.First();

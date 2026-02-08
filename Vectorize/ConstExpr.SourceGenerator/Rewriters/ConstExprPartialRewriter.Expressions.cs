@@ -86,7 +86,8 @@ public partial class ConstExprPartialRewriter
 			}
 
 			// Try algebraic/logical simplifications when one side is a constant and operator is built-in
-			if (left is ExpressionSyntax leftExpr && right is ExpressionSyntax rightExpr)
+			if (left is ExpressionSyntax leftExpr 
+			    && right is ExpressionSyntax rightExpr)
 			{
 				var expressions = GetBinaryExpressions(node).ToList();
 				
@@ -106,6 +107,52 @@ public partial class ConstExprPartialRewriter
 				}
 
 				return node.WithLeft(leftExpr).WithRight(rightExpr);
+			}
+		}
+
+		// Try algebraic/logical simplifications when one side is a constant and operator is built-in
+		if (left is ExpressionSyntax nodeLeftExpr
+		    && right is ExpressionSyntax nodeRightExpr)
+		{
+			var expressions = GetBinaryExpressions(node).ToList();
+
+			if (TryOptimizeNode(node.OperatorToken.Kind().ToBinaryOperatorKind(), expressions, operation?.Type, nodeLeftExpr, operation?.LeftOperand.Type, nodeRightExpr, operation?.RightOperand.Type, node.Parent, out var optimizedNode))
+			{
+				if (node.Parent is not BinaryExpressionSyntax
+				    && optimizedNode is IsPatternExpressionSyntax pattern
+				    && TryOptimizePattern(pattern, out var result))
+				{
+					return result;
+				}
+
+				// Strip unnecessary parentheses from the optimized result
+				// since the context may have changed (e.g., (x + y) * 1 becomes just (x + y),
+				// but parens around x + y are no longer needed in assignment context)
+				return StripUnnecessaryParentheses(optimizedNode);
+			}
+
+			return node.WithLeft(nodeLeftExpr).WithRight(nodeRightExpr);
+		}
+
+		if (hasLeftValue)
+		{
+			switch (leftValue)
+			{
+				case true:
+					return right;
+				case false:
+					return CreateLiteral(false);
+			}
+		}
+
+		if (hasRightValue)
+		{
+			switch (rightValue)
+			{
+				case true:
+					return left;
+				case false:
+					return CreateLiteral(false);
 			}
 		}
 
@@ -784,17 +831,14 @@ public partial class ConstExprPartialRewriter
 		result = null;
 
 		// Only optimize binary patterns with OR
-		if (pattern.Pattern is not BinaryPatternSyntax binaryPattern
-		    || !TryGetTypeSymbol(pattern.Expression, out var type)
-		    || !semanticModel.Compilation.TryGetUnsignedType(type, out var unsignedType))
+		if (pattern.Pattern is not BinaryPatternSyntax binaryPattern)
 		{
 			return false;
 		}
 
 		var constants = new List<object?>();
-		var isUnsigedType = IsEqualSymbol(type, unsignedType);
 
-		// Extract all constant values from the OR pattern
+		// Extract all constant values from the OR pattern first
 		if (!TryExtractOrPatternConstants(binaryPattern, constants))
 		{
 			return false;
@@ -805,6 +849,25 @@ public partial class ConstExprPartialRewriter
 		{
 			return false;
 		}
+
+		// Try to get type from semantic model first
+		if (!TryGetTypeSymbol(pattern.Expression, out var type))
+		{
+			// Fallback: get type from the first constant value
+			type = GetTypeSymbolFromConstant(constants[0]);
+			
+			if (type is null)
+			{
+				return false;
+			}
+		}
+
+		if (!semanticModel.Compilation.TryGetUnsignedType(type, out var unsignedType))
+		{
+			return false;
+		}
+
+		var isUnsigedType = IsEqualSymbol(type, unsignedType);
 
 		constants = constants
 			.Distinct()
@@ -1075,5 +1138,42 @@ public partial class ConstExprPartialRewriter
 		}
 
 		return typeSymbol.GetDefaultValue();
+	}
+
+	/// <summary>
+	/// Gets the ITypeSymbol from a constant value's runtime type.
+	/// </summary>
+	private ITypeSymbol? GetTypeSymbolFromConstant(object? value)
+	{
+		if (value is null)
+		{
+			return null;
+		}
+
+		var specialType = value switch
+		{
+			bool => SpecialType.System_Boolean,
+			byte => SpecialType.System_Byte,
+			sbyte => SpecialType.System_SByte,
+			short => SpecialType.System_Int16,
+			ushort => SpecialType.System_UInt16,
+			int => SpecialType.System_Int32,
+			uint => SpecialType.System_UInt32,
+			long => SpecialType.System_Int64,
+			ulong => SpecialType.System_UInt64,
+			float => SpecialType.System_Single,
+			double => SpecialType.System_Double,
+			decimal => SpecialType.System_Decimal,
+			char => SpecialType.System_Char,
+			string => SpecialType.System_String,
+			_ => SpecialType.None
+		};
+
+		if (specialType == SpecialType.None)
+		{
+			return null;
+		}
+
+		return semanticModel.Compilation.GetSpecialType(specialType);
 	}
 }

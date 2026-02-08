@@ -38,7 +38,19 @@ public class LinqCountOptimizationTests : BaseTest<Func<int[], int>>
 		// Select should be optimized away
 		var j = x.Select(v => v * 2).Count();
 
-		return a + b + c + d + e + f + g + h + i + j;
+		// Multiple chained Where statements should be combined
+		var k = x.Where(v => v > 2).Where(v => v < 10).Count();
+
+		// Three chained Where statements
+		var l = x.Where(v => v > 1).Where(v => v < 8).Where(v => v % 2 == 0).Count();
+
+		// Where with operations that don't affect count
+		var m = x.OrderBy(v => v).Where(v => v > 2).Where(v => v < 10).Count();
+
+		// Complex chain with multiple Where statements
+		var n = x.Where(v => v > 1).OrderBy(v => v).Where(v => v < 8).Reverse().Where(v => v % 2 == 0).Count();
+
+		return a + b + c + d + e + f + g + h + i + j + k + l + m + n;
 	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
@@ -54,10 +66,14 @@ public class LinqCountOptimizationTests : BaseTest<Func<int[], int>>
 			var h = x.Count(v => v < 5);
 			var i = x.Distinct().Count();
 			var j = x.Length;
+			var k = x.Count(v => (v > 2) && (v < 10));
+			var l = x.Count(v => ((v > 1) && (v < 8)) && (v % 2 == 0));
+			var m = x.Count(v => (v > 2) && (v < 10));
+			var n = x.Count(v => ((v > 1) && (v < 8)) && (v % 2 == 0));
 			
-			return a + b + c + d + e + f + g + h + i + j;
+			return a + b + c + d + e + f + g + h + i + j + k + l + m + n;
 			""", Unknown),
-		Create("return 37;", new[] { 1, 2, 3, 4, 5 }),
+		Create("return 49;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new int[] { }),
 	];
 }

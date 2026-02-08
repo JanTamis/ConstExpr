@@ -129,11 +129,11 @@ public class LinqDefaultIfEmptyOptimizationListTests : BaseTest<Func<List<int>, 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = Int32.Max(x.Count, 1)
-			var b = Int32.Max(x.Count, 1)
-			var c = Int32.Max(x.Count, 1)
-			var d = Int32.Max(x.Count, 1)
-			var e = x.DefaultIfEmpty(100).First();
+			var a = Int32.Max(x.Count, 1);
+			var b = Int32.Max(x.Count, 1);
+			var c = Int32.Max(x.Count, 1);
+			var d = Int32.Max(x.Count, 1);
+			var e = x.Count > 0 ? x[0] : 100;
 			
 			return a + b + c + d + e;
 			""", Unknown),
