@@ -1,10 +1,12 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Tests.Linq;
 
 /// <summary>
 /// Tests for Count() optimization - verify that unnecessary operations before Count() are removed
 /// </summary>
 [InheritsTests]
-public class LinqCountOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqCountOptimizationTests() : BaseTest<Func<int[], int>>(FloatingPointEvaluationMode.FastMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -66,10 +68,10 @@ public class LinqCountOptimizationTests : BaseTest<Func<int[], int>>
 			var h = x.Count(v => v < 5);
 			var i = x.Distinct().Count();
 			var j = x.Length;
-			var k = x.Count(v => (v > 2) && (v < 10));
-			var l = x.Count(v => ((v > 1) && (v < 8)) && (v % 2 == 0));
-			var m = x.Count(v => (v > 2) && (v < 10));
-			var n = x.Count(v => ((v > 1) && (v < 8)) && (v % 2 == 0));
+			var k = x.Count(v => (uint)v < 8);
+			var l = x.Count(v => (uint)v < 7 && Int32.IsEvenInteger(v));
+			var m = x.Count(v => (uint)v < 8);
+			var n = x.Count(v => (uint)v < 7 && Int32.IsEvenInteger(v));
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l + m + n;
 			""", Unknown),

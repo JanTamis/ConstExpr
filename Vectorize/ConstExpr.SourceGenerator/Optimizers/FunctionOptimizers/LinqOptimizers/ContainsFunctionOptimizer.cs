@@ -45,8 +45,7 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(model, method)
-		    || !TryGetLinqSource(invocation, out var source)
-		    || parameters.Count == 0)
+		    || !TryGetLinqSource(invocation, out var source))
 		{
 			result = null;
 			return false;

@@ -38,6 +38,27 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		return base.VisitAssignmentExpression(node);
 	}
 
+	public override SyntaxNode? VisitIsPatternExpression(IsPatternExpressionSyntax node)
+	{
+		var visited = (IsPatternExpressionSyntax?) base.VisitIsPatternExpression(node);
+
+		if (visited is null)
+		{
+			return visited;
+		}
+
+		// Ensure there's a trailing space after the 'is' keyword
+		var isKeyword = visited.IsKeyword;
+
+		if (!isKeyword.TrailingTrivia.Any(SyntaxKind.WhitespaceTrivia))
+		{
+			// Add a single space after 'is'
+			visited = visited.WithIsKeyword(isKeyword.WithTrailingTrivia(SyntaxFactory.Space));
+		}
+
+		return visited;
+	}
+
 	public override SyntaxNode? VisitSimpleLambdaExpression(SimpleLambdaExpressionSyntax node)
 	{
 		var visited = (SimpleLambdaExpressionSyntax?) base.VisitSimpleLambdaExpression(node);

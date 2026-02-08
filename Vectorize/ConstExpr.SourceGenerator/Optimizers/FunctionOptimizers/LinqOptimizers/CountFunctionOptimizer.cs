@@ -81,7 +81,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 			wherePredicates.Add(predicate);
 			
 			// Skip operations that don't affect count before the next Where
-			TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectCount, out currentSource);
+			isNewSource = TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectCount, out currentSource) || isNewSource;
 		}
 
 		// If we found any Where predicates, combine them
@@ -127,29 +127,27 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 		if (parameters.Count == 0)
 		{
-			source = visit(source) ?? source;
-			
 			if (IsCollectionType(model, currentSource))
 			{
-				result = CreateMemberAccess(currentSource, "Count");
+				result = CreateMemberAccess(visit(currentSource) ?? currentSource, "Count");
 				return true;
 			}
 
 			if (IsCollectionType(model, source))
 			{
-				result = CreateMemberAccess(source, "Count");
+				result = CreateMemberAccess(visit(source) ?? source, "Count");
 				return true;
 			}
 
 			if (IsInvokedOnArray(model, currentSource))
 			{
-				result = CreateMemberAccess(currentSource, "Length");
+				result = CreateMemberAccess(visit(currentSource) ?? currentSource, "Length");
 				return true;
 			}
 
 			if (IsInvokedOnArray(model, source))
 			{
-				result = CreateMemberAccess(source, "Length");
+				result = CreateMemberAccess(visit(source) ?? source, "Length");
 				return true;
 			}
 		}

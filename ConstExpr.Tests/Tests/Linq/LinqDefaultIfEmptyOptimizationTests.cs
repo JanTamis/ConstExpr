@@ -88,10 +88,10 @@ public class LinqDefaultIfEmptyWithValueTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.DefaultIfEmpty(42).First();
-			var b = x.DefaultIfEmpty(99).First();
-			var c = x.DefaultIfEmpty(77).First();
-			var d = x.DefaultIfEmpty(20).First();
+			var a = x.Length > 0 ? x[0] : 42;
+			var b = x.Length > 0 ? x[0] : 99;
+			var c = x.Length > 0 ? x[0] : 77;
+			var d = x.Length > 0 ? x[0] : 20;
 			
 			return a + b + c + d;
 			""", Unknown),
@@ -167,7 +167,7 @@ public class LinqDefaultIfEmptyComplexTests : BaseTest<Func<int[], int>>
 		Create("""
 			var a = x.Where(v => v > 0).Distinct().OrderBy(v => v).DefaultIfEmpty(50).Sum();
 			var b = x.Where(v => v > 100).Select(v => v * 2).DefaultIfEmpty(25).Sum();
-			var c = x.Length > 0 ? x[0] : 30;
+			var c = x.Length > 0 ? x[0] : 10;
 			
 			return a + b + c;
 			""", Unknown),

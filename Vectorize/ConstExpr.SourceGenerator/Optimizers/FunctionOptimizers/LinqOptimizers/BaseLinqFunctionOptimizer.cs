@@ -25,8 +25,8 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	protected bool IsValidLinqMethod(SemanticModel model, IMethodSymbol method)
 	{
 		return method.Name == Name
-		       && ParameterCounts.Contains(method.Parameters.Length)
-		       && method.ContainingType.EqualsType(model.Compilation.GetTypeByMetadataName("System.Linq.Enumerable"));
+		       && ParameterCounts.Contains(method.Parameters.Length);
+		// && method.ContainingType.EqualsType(model.Compilation.GetTypeByMetadataName("System.Linq.Enumerable"));
 	}
 
 	/// <summary>

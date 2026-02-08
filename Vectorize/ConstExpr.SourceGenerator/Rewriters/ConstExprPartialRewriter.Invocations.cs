@@ -56,9 +56,8 @@ public partial class ConstExprPartialRewriter
 		if (targetMethod.ContainingType.SpecialType == SpecialType.System_String
 		    && node.Expression is MemberAccessExpressionSyntax memberAccess)
 		{
-			node = node.WithExpression(Visit(node.Expression) as ExpressionSyntax ?? node.Expression);
-			
-			var optimized = TryOptimizeStringMethod(semanticModel, targetMethod, node, memberAccess, arguments);
+			var tempNode = node.WithExpression(Visit(node.Expression) as ExpressionSyntax ?? node.Expression);
+			var optimized = TryOptimizeStringMethod(semanticModel, targetMethod, tempNode, memberAccess, arguments);
 
 			if (optimized is not null)
 			{
@@ -68,9 +67,8 @@ public partial class ConstExprPartialRewriter
 		// Try math optimizers
 		else if (attribute.FloatingPointMode == FloatingPointEvaluationMode.FastMath)
 		{
-			node = node.WithExpression(Visit(node.Expression) as ExpressionSyntax ?? node.Expression);
-			
-			var optimized = TryOptimizeMathMethod(semanticModel, targetMethod, node, arguments);
+			var tempNode = node.WithExpression(Visit(node.Expression) as ExpressionSyntax ?? node.Expression);
+			var optimized = TryOptimizeMathMethod(semanticModel, targetMethod, tempNode, arguments);
 
 			if (optimized is not null)
 			{

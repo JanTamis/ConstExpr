@@ -130,8 +130,6 @@ public partial class ConstExprPartialRewriter
 				// but parens around x + y are no longer needed in assignment context)
 				return StripUnnecessaryParentheses(optimizedNode);
 			}
-
-			return node.WithLeft(nodeLeftExpr).WithRight(nodeRightExpr);
 		}
 
 		if (hasLeftValue)
