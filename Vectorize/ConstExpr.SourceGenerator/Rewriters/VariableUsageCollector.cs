@@ -14,19 +14,19 @@ public sealed class VariableUsageCollector(IEnumerable<string> trackedVariables)
 	private readonly HashSet<string> _trackedVariables = new(trackedVariables);
 
 	/// <summary>
-	/// Variables that are read (used as values).
+	/// Variables that are read (used as values) with their read counts.
 	/// </summary>
-	public HashSet<string> ReadVariables { get; } = [];
+	public Dictionary<string, int> ReadVariables { get; } = [];
 
 	/// <summary>
-	/// Variables that are written to (assigned, incremented, etc.).
+	/// Variables that are written to (assigned, incremented, etc.) with their write counts.
 	/// </summary>
-	public HashSet<string> WrittenVariables { get; } = [];
+	public Dictionary<string, int> WrittenVariables { get; } = [];
 
 	/// <summary>
-	/// Variables that are passed by ref or out.
+	/// Variables that are passed by ref or out with their counts.
 	/// </summary>
-	public HashSet<string> RefVariables { get; } = [];
+	public Dictionary<string, int> RefVariables { get; } = [];
 
 	public override void VisitIdentifierName(IdentifierNameSyntax node)
 	{
@@ -34,20 +34,19 @@ public sealed class VariableUsageCollector(IEnumerable<string> trackedVariables)
 
 		if (!_trackedVariables.Contains(name))
 		{
-			base.VisitIdentifierName(node);
 			return;
 		}
 
 		if (IsWriteContext(node))
 		{
-			WrittenVariables.Add(name);
+			WrittenVariables.TryGetValue(name, out var writeCount);
+			WrittenVariables[name] = writeCount + 1;
 		}
 		else
 		{
-			ReadVariables.Add(name);
+			ReadVariables.TryGetValue(name, out var readCount);
+			ReadVariables[name] = readCount + 1;
 		}
-
-		base.VisitIdentifierName(node);
 	}
 
 	public override void VisitArgument(ArgumentSyntax node)
@@ -57,8 +56,13 @@ public sealed class VariableUsageCollector(IEnumerable<string> trackedVariables)
 		{
 			if (node.Expression is IdentifierNameSyntax id && _trackedVariables.Contains(id.Identifier.Text))
 			{
-				RefVariables.Add(id.Identifier.Text);
-				WrittenVariables.Add(id.Identifier.Text);
+				var name = id.Identifier.Text;
+
+				RefVariables.TryGetValue(name, out var refCount);
+				RefVariables[name] = refCount + 1;
+
+				WrittenVariables.TryGetValue(name, out var writeCount);
+				WrittenVariables[name] = writeCount + 1;
 			}
 		}
 
@@ -110,7 +114,7 @@ public sealed class VariableUsageCollector(IEnumerable<string> trackedVariables)
 	/// </summary>
 	public bool IsDeadStore(string variableName)
 	{
-		return WrittenVariables.Contains(variableName) && !ReadVariables.Contains(variableName);
+		return WrittenVariables.ContainsKey(variableName) && !ReadVariables.ContainsKey(variableName);
 	}
 
 	/// <summary>
@@ -118,7 +122,7 @@ public sealed class VariableUsageCollector(IEnumerable<string> trackedVariables)
 	/// </summary>
 	public bool IsUnused(string variableName)
 	{
-		return !ReadVariables.Contains(variableName) && !WrittenVariables.Contains(variableName);
+		return !ReadVariables.ContainsKey(variableName) && !WrittenVariables.ContainsKey(variableName);
 	}
 
 	/// <summary>
@@ -127,7 +131,31 @@ public sealed class VariableUsageCollector(IEnumerable<string> trackedVariables)
 	public bool CanBePruned(string variableName)
 	{
 		// Can prune if never read and not passed by ref/out
-		return !ReadVariables.Contains(variableName) && !RefVariables.Contains(variableName);
+		return !ReadVariables.ContainsKey(variableName) && !RefVariables.ContainsKey(variableName);
+	}
+
+	/// <summary>
+	/// Gets the number of times a variable was read.
+	/// </summary>
+	public int GetReadCount(string variableName)
+	{
+		return ReadVariables.TryGetValue(variableName, out var count) ? count : 0;
+	}
+
+	/// <summary>
+	/// Gets the number of times a variable was written to.
+	/// </summary>
+	public int GetWriteCount(string variableName)
+	{
+		return WrittenVariables.TryGetValue(variableName, out var count) ? count : 0;
+	}
+
+	/// <summary>
+	/// Gets the number of times a variable was passed by ref or out.
+	/// </summary>
+	public int GetRefCount(string variableName)
+	{
+		return RefVariables.TryGetValue(variableName, out var count) ? count : 0;
 	}
 }
 

@@ -147,8 +147,8 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 	private bool IsAdditionLambda(LambdaExpressionSyntax lambda)
 	{
 		// Get parameters
-		string? accParam = null;
-		string? valueParam = null;
+		string? accParam;
+		string? valueParam;
 
 		switch (lambda)
 		{

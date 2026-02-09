@@ -44,3 +44,4 @@
 /Vectorize/ConstExpr.Core/bin/Release
 /Vectorize/ConstExpr.Sample/bin/Release/net9.0
 /Vectorize/ConstExpr.Sample/bin/Debug/net10.0
+/ConstExpr.Tests/bin/Debug/net10.0
