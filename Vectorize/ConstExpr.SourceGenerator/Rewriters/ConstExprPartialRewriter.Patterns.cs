@@ -418,6 +418,12 @@ public partial class ConstExprPartialRewriter
 			}
 		}
 
+		// Try to optimize range check patterns: `v is > low and < high` -> `(uint)(v - (low + 1)) < (high - low - 1)`
+		if (TryOptimizeRangeCheckPattern(node, expression as ExpressionSyntax ?? node.Expression, out var rangeOptimized))
+		{
+			return rangeOptimized;
+		}
+
 		// Try to optimize OR patterns into bitmask checks
 		if (TryOptimizePattern(node.WithExpression(exprToEvaluate as ExpressionSyntax ?? node.Expression), out var optimized))
 		{
@@ -493,6 +499,180 @@ public partial class ConstExprPartialRewriter
 		return node
 			.WithGoverningExpression(governing as ExpressionSyntax ?? node.GoverningExpression)
 			.WithArms(SeparatedList(visitedArms));
+	}
+
+	/// <summary>
+	/// Tries to optimize range check patterns like <c>v is &gt; low and &lt; high</c> to <c>(uint)(v - (low + 1)) &lt; (high - low - 1)</c>.
+	/// This optimization uses a single unsigned comparison instead of two signed comparisons.
+	/// </summary>
+	private bool TryOptimizeRangeCheckPattern(IsPatternExpressionSyntax node, ExpressionSyntax expression, out ExpressionSyntax? result)
+	{
+		result = null;
+
+		// Only optimize AND binary patterns (range checks)
+		if (node.Pattern is not BinaryPatternSyntax { OperatorToken.RawKind: (int)SyntaxKind.AndKeyword } binaryPattern)
+		{
+			return false;
+		}
+
+		// Extract the lower and upper bounds from the pattern
+		if (!TryExtractRangeBounds(binaryPattern, out var lowerBound, out var upperBound, out var lowerInclusive, out var upperInclusive))
+		{
+			return false;
+		}
+
+		// Get the type of the expression for proper casting
+		if (!semanticModel.TryGetTypeSymbol(expression, out var type)
+		    && !semanticModel.Compilation.TryGetTypeByType(lowerBound.GetType(), out type)
+		    && !semanticModel.Compilation.TryGetTypeByType(upperBound.GetType(), out type)
+		    && !semanticModel.Compilation.TryGetTypeByType(lowerInclusive.GetType(), out type)
+		    && !semanticModel.Compilation.TryGetTypeByType(upperInclusive.GetType(), out type))
+		{
+			return false;
+		}
+
+		// Get the unsigned type for the cast
+		if (!semanticModel.Compilation.TryGetUnsignedType(type, out var unsignedType))
+		{
+			return false;
+		}
+
+		var isUnsignedType = IsEqualSymbol(type, unsignedType);
+
+		// Calculate the effective bounds based on inclusivity
+		// For `> low`: effective lower = low + 1
+		// For `>= low`: effective lower = low
+		// For `< high`: effective upper = high - 1
+		// For `<= high`: effective upper = high
+		// var effectiveLower = lowerInclusive ? lowerBound : lowerBound.Add(1.ToSpecialType(type.SpecialType));
+		// var effectiveUpper = upperInclusive ? upperBound : upperBound.Subtract(1.ToSpecialType(type.SpecialType));
+		var effectiveLower = lowerBound;
+		var effectiveUpper = upperBound;
+
+		// Range = effectiveUpper - effectiveLower
+		var range = effectiveUpper.Subtract(effectiveLower);
+
+		// Validate that the range is positive
+		if (range is IComparable comparableRange && comparableRange.CompareTo(0.ToSpecialType(type.SpecialType)) < 0)
+		{
+			return false;
+		}
+
+		// Build the optimized expression: (uint)(v - effectiveLower) < range
+		// Or if effectiveLower is 0: (uint)v < range
+		ExpressionSyntax optimizedExpr;
+
+		if (effectiveLower.IsNumericZero())
+		{
+			// No subtraction needed: (uint)v <= range
+			optimizedExpr = isUnsignedType
+				? expression
+				: CastExpression(
+					ParseTypeName(semanticModel.Compilation.GetMinimalString(unsignedType)),
+					expression);
+		}
+		else
+		{
+			// Subtraction needed: (uint)(v - effectiveLower) <= range
+			if (!TryGetLiteral(effectiveLower, out var lowerLiteral))
+			{
+				return false;
+			}
+
+			var subtraction = BinaryExpression(SyntaxKind.SubtractExpression, expression, lowerLiteral);
+
+			optimizedExpr = isUnsignedType
+				? subtraction
+				: CastExpression(
+					ParseTypeName(semanticModel.Compilation.GetMinimalString(unsignedType)),
+					subtraction);
+		}
+
+		if (!TryGetLiteral(range.ToSpecialType(unsignedType.SpecialType), out var rangeLiteral))
+		{
+			return false;
+		}
+
+		// Use LessThanOrEqual because the range includes both bounds
+		result = BinaryExpression(SyntaxKind.LessThanExpression, optimizedExpr, rangeLiteral);
+		return true;
+	}
+
+	/// <summary>
+	/// Extracts the lower and upper bounds from a range pattern.
+	/// Supports patterns like `> low and < high`, `>= low and <= high`, etc.
+	/// </summary>
+	private bool TryExtractRangeBounds(
+		BinaryPatternSyntax binaryPattern,
+		out object? lowerBound,
+		out object? upperBound,
+		out bool lowerInclusive,
+		out bool upperInclusive)
+	{
+		lowerBound = null;
+		upperBound = null;
+		lowerInclusive = false;
+		upperInclusive = false;
+
+		RelationalPatternSyntax? lowerPattern = null;
+		RelationalPatternSyntax? upperPattern = null;
+
+		// Determine which side is the lower bound (> or >=) and which is the upper bound (< or <=)
+		if (binaryPattern.Left is RelationalPatternSyntax leftRel)
+		{
+			var kind = leftRel.OperatorToken.Kind();
+
+			if (kind is SyntaxKind.GreaterThanToken or SyntaxKind.GreaterThanEqualsToken)
+			{
+				lowerPattern = leftRel;
+			}
+			else if (kind is SyntaxKind.LessThanToken or SyntaxKind.LessThanEqualsToken)
+			{
+				upperPattern = leftRel;
+			}
+		}
+
+		if (binaryPattern.Right is RelationalPatternSyntax rightRel)
+		{
+			var kind = rightRel.OperatorToken.Kind();
+
+			if (kind is SyntaxKind.GreaterThanToken or SyntaxKind.GreaterThanEqualsToken)
+			{
+				lowerPattern = rightRel;
+			}
+			else if (kind is SyntaxKind.LessThanToken or SyntaxKind.LessThanEqualsToken)
+			{
+				upperPattern = rightRel;
+			}
+		}
+
+		// Need both lower and upper bounds
+		if (lowerPattern is null || upperPattern is null)
+		{
+			return false;
+		}
+
+		// Get the constant values
+		var visitedLower = Visit(lowerPattern.Expression) ?? lowerPattern.Expression;
+		var visitedUpper = Visit(upperPattern.Expression) ?? upperPattern.Expression;
+
+		if (!TryGetConstantValue(semanticModel.Compilation, loader, visitedLower, new VariableItemDictionary(variables), token, out lowerBound)
+		    || !TryGetConstantValue(semanticModel.Compilation, loader, visitedUpper, new VariableItemDictionary(variables), token, out upperBound))
+		{
+			return false;
+		}
+
+		// Validate bounds are numeric
+		if (lowerBound is null || upperBound is null || !lowerBound.IsNumeric() || !upperBound.IsNumeric())
+		{
+			return false;
+		}
+
+		// Determine inclusivity
+		lowerInclusive = lowerPattern.OperatorToken.IsKind(SyntaxKind.GreaterThanEqualsToken);
+		upperInclusive = upperPattern.OperatorToken.IsKind(SyntaxKind.LessThanEqualsToken);
+
+		return true;
 	}
 }
 

@@ -601,23 +601,23 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 		return node is IdentifierNameSyntax identifier && CanBePruned(identifier.Identifier.Text);
 	}
 	
-	protected bool TryGetTypeSymbol(SyntaxNode? node, [NotNullWhen(true)] out ITypeSymbol? typeSymbol)
-	{
-		switch (node)
-		{
-			case null:
-				typeSymbol = null;
-				return false;
-			case IdentifierNameSyntax identifier when variables.TryGetValue(identifier.Identifier.Text, out var value):
-				typeSymbol = value.Type;
-				return true;
-		}
-
-		var typeInfo = semanticModel.GetTypeInfo(node);
-		typeSymbol = typeInfo.Type ?? typeInfo.ConvertedType;
-
-		return typeSymbol is not null;
-	}
+	// protected bool TryGetTypeSymbol(SyntaxNode? node, [NotNullWhen(true)] out ITypeSymbol? typeSymbol)
+	// {
+	// 	switch (node)
+	// 	{
+	// 		case null:
+	// 			typeSymbol = null;
+	// 			return false;
+	// 		case IdentifierNameSyntax identifier when variables.TryGetValue(identifier.Identifier.Text, out var value):
+	// 			typeSymbol = value.Type;
+	// 			return true;
+	// 	}
+	//
+	// 	var typeInfo = semanticModel.GetTypeInfo(node);
+	// 	typeSymbol = typeInfo.Type ?? typeInfo.ConvertedType;
+	//
+	// 	return typeSymbol is not null;
+	// }
 	
 	protected IEnumerable<BinaryExpressionSyntax> GetBinaryExpressions(SyntaxNode node)
 	{

@@ -657,7 +657,13 @@ public static class CompilationExtensions
 		return GetTypeByType(compilation, type.FullName, typeArguments);
 	}
 
-	public static ITypeSymbol GetTypeByType(this Compilation compilation, string typeName, params ITypeSymbol[] typeArguments)
+	public static bool TryGetTypeByType(this Compilation compilation, Type type, out ITypeSymbol result)
+	{
+		result = GetTypeByType(compilation, type.FullName);
+		return result != null;
+	}
+
+	public static ITypeSymbol? GetTypeByType(this Compilation compilation, string typeName, params ITypeSymbol[] typeArguments)
 	{
 		var typeSymbol = compilation.GetTypeByMetadataName(typeName);
 
@@ -1154,7 +1160,7 @@ public static class CompilationExtensions
 		value = default;
 		return false;
 	}
-	
+
 	public static bool TryGetTypeSymbol(this SemanticModel semanticModel, ExpressionSyntax? node, [NotNullWhen(true)] out ITypeSymbol? typeSymbol)
 	{
 		try
@@ -1188,7 +1194,7 @@ public static class CompilationExtensions
 			if (semanticModel.Compilation.TryGetSemanticModel(node, out var semantic))
 			{
 				var info = semantic.GetTypeInfo(node);
-				
+
 				if (info.Type is { } symbol)
 				{
 					typeSymbol = symbol;
@@ -1239,7 +1245,7 @@ public static class CompilationExtensions
 		{
 			return idA.Identifier.ValueText == idB.Identifier.ValueText;
 		}
-		
+
 		if (node is LiteralExpressionSyntax litA && other is LiteralExpressionSyntax litB)
 		{
 			return litA.Token.Value?.Equals(litB.Token.Value) == true;
@@ -1400,16 +1406,17 @@ public static class CompilationExtensions
 								var intVal = Convert.ToInt32(innerVal);
 								var ctor2 = indexType.GetConstructor([ typeof(int), typeof(bool) ]);
 								var ctor1 = indexType.GetConstructor([ typeof(int) ]);
-								if (ctor2 is not null)
-                  {
-                    return ctor2.Invoke([ intVal, false ]);
-                  }
 
-                  if (ctor1 is not null)
-                  {
-                    return ctor1.Invoke([ intVal ]);
-                  }
-                }
+								if (ctor2 is not null)
+								{
+									return ctor2.Invoke([ intVal, false ]);
+								}
+
+								if (ctor1 is not null)
+								{
+									return ctor1.Invoke([ intVal ]);
+								}
+							}
 						}
 						return null;
 					}
@@ -1465,11 +1472,11 @@ public static class CompilationExtensions
 
 					// normalize common C# keywords and System.* names
 					if (typeName.StartsWith("System.", StringComparison.OrdinalIgnoreCase))
-            {
-              typeName = typeName["System.".Length..];
-            }
+					{
+						typeName = typeName["System.".Length..];
+					}
 
-            typeName = typeName switch
+					typeName = typeName switch
 					{
 						"int" => "Int32",
 						"short" => "Int16",

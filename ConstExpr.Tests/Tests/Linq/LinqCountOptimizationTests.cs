@@ -68,10 +68,10 @@ public class LinqCountOptimizationTests() : BaseTest<Func<int[], int>>(FloatingP
 			var h = x.Count(v => v < 5);
 			var i = x.Distinct().Count();
 			var j = x.Length;
-			var k = x.Count(v => (uint)v < 8);
-			var l = x.Count(v => (uint)v < 7 && Int32.IsEvenInteger(v));
-			var m = x.Count(v => (uint)v < 8);
-			var n = x.Count(v => (uint)v < 7 && Int32.IsEvenInteger(v));
+			var k = x.Count(v => (uint)v - 2 < 8U);
+			var l = x.Count(v => (uint)v - 1 < 7U && Int32.IsEvenInteger(v));
+			var m = x.Count(v => (uint)v - 2 < 8U);
+			var n = x.Count(v => (uint)v - 1 < 7U && Int32.IsEvenInteger(v));
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l + m + n;
 			""", Unknown),

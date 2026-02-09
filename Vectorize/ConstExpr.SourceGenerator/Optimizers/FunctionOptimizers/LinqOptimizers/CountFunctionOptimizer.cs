@@ -154,6 +154,18 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 		source = visit(currentSource) ?? currentSource;
 
+		if (IsCollectionType(model, source))
+		{
+			result = CreateMemberAccess(source, "Count");
+			return true;
+		}
+
+		if (IsInvokedOnArray(model, source))
+		{
+			result = CreateMemberAccess(source, "Length");
+			return true;
+		}
+
 		if (IsEmptyEnumerable(source))
 		{
 			result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0));

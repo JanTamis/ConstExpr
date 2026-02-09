@@ -1,10 +1,12 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Tests.Linq;
 
 /// <summary>
 /// Tests for Where() optimization with multiple chained Where statements
 /// </summary>
 [InheritsTests]
-public class LinqWhereChainOptimizationTests : BaseTest<Func<int[], IEnumerable<int>>>
+public class LinqWhereChainOptimizationTests() : BaseTest<Func<int[], IEnumerable<int>>>(FloatingPointEvaluationMode.FastMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -32,11 +34,11 @@ public class LinqWhereChainOptimizationTests : BaseTest<Func<int[], IEnumerable<
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.Where(v => (uint)v - 2 < 8);
-			var b = x.Where(v => (uint)v - 1 < 7 && v & 1 == 0);
-			var c = x.Where(v => (uint)v < 50 && v % 3 == 0);
-			var d = x.Where(p => (uint)p - 5 < 10);
-			var e = x.Where(v => (uint)v - 3 < 4);
+			var a = x.Where(v => (uint)v - 2 < 8U);
+			var b = x.Where(v => (uint)v - 1 < 7U && Int32.IsEvenInteger(v));
+			var c = x.Where(v => (uint)v < 100U && v % 3 == 0 && v < 50);
+			var d = x.Where(p => (uint)p - 5 < 10U);
+			var e = x.Where(v => (uint)v - 3 < 4U);
 			var f = Enumerable.Empty<int>();
 			
 			return a.Concat(b).Concat(c).Concat(d).Concat(e).Concat(f);

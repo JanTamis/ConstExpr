@@ -111,6 +111,14 @@ public static class ObjectExtensions
 		}
 	}
 
+	/// <summary>
+	/// Checks if the value is a numeric type.
+	/// </summary>
+	public static bool IsNumeric(this object? value)
+	{
+		return value is not null && IsNumericType(value.GetType());
+	}
+
 	private static bool IsNumericType(Type t)
 	{
 		return Type.GetTypeCode(t) switch

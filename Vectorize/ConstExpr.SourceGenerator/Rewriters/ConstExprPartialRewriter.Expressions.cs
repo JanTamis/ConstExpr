@@ -849,7 +849,7 @@ public partial class ConstExprPartialRewriter
 		}
 
 		// Try to get type from semantic model first
-		if (!TryGetTypeSymbol(pattern.Expression, out var type))
+		if (!semanticModel.TryGetTypeSymbol(pattern.Expression, out var type))
 		{
 			// Fallback: get type from the first constant value
 			type = GetTypeSymbolFromConstant(constants[0]);
