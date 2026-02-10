@@ -2,6 +2,7 @@ using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -169,6 +170,12 @@ public class MetadataLoader
 
 		return GetType(fullTypeName);
 	}
+	
+	public bool TryGetType(ITypeSymbol? typeSymbol, [NotNullWhen(true)] out Type? type)
+	{
+		type = GetType(typeSymbol);
+		return type != null;
+	}
 
 	/// <summary>
 	/// Retrieves a <see cref="Type"/> from the loaded assemblies that corresponds to the provided type name.
@@ -181,6 +188,12 @@ public class MetadataLoader
 	public Type? GetType(string typeName)
 	{
 		return _typeCache.GetOrAdd(typeName, SearchForType);
+	}
+
+	public bool TryGetType(string typeName, [NotNullWhen(true)] out Type? type)
+	{
+		type = GetType(typeName);
+		return type != null;
 	}
 
 	/// <summary>

@@ -13,11 +13,11 @@ public abstract class SpecialTypeBinaryStrategy<TLeft, TRight>(SyntaxKind leftKi
 	public override bool TryOptimize(BinaryOptimizeContext<TLeft, TRight> context, out ExpressionSyntax? optimized)
 	{
 		optimized = null;
-		
-		return (IsValidSpecialType(context.Type.SpecialType)
-			|| context.Left.Type is not null && IsValidSpecialType(context.Left.Type.SpecialType)
-			|| context.Right.Type is not null && IsValidSpecialType(context.Right.Type.SpecialType))
-			&& (leftKind == SyntaxKind.None || context.Left.Syntax.IsKind(leftKind))
+
+		return (context.Type is not null && IsValidSpecialType(context.Type.SpecialType)
+		        || context.Left.Type is not null && IsValidSpecialType(context.Left.Type.SpecialType)
+		        || context.Right.Type is not null && IsValidSpecialType(context.Right.Type.SpecialType))
+		       && (leftKind == SyntaxKind.None || context.Left.Syntax.IsKind(leftKind))
 		       && (rightKind == SyntaxKind.None || context.Right.Syntax.IsKind(rightKind));
 	}
 }
@@ -26,6 +26,6 @@ public abstract class SpecialTypeBinaryStrategy(SyntaxKind leftKind = SyntaxKind
 {
 	public SpecialTypeBinaryStrategy() : this(SyntaxKind.None, SyntaxKind.None)
 	{
-		
+
 	}
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace SourceGen.Utilities.Extensions;
 
@@ -163,6 +164,43 @@ public static class CompilerExtensions
 			or SpecialType.System_Double
 			or SpecialType.System_Decimal
 			or SpecialType.System_Char;
+	}
+	
+	public static bool IsSimpleLambda(this LambdaExpressionSyntax lambda)
+	{
+		// check if parameters are only used one or none of them are used in the body, and if the body is a simple expression (not containing nested lambdas or local functions)
+		var parameterNames = lambda switch
+		{
+			SimpleLambdaExpressionSyntax s => new[] { s.Parameter.Identifier.Text },
+			ParenthesizedLambdaExpressionSyntax p => p.ParameterList.Parameters.Select(par => par.Identifier.Text).ToArray(),
+			_ => Array.Empty<string>()
+		};
+		
+		var parameterUsage = parameterNames.ToDictionary(name => name, _ => 0);
+		var isSimple = true;
 
+		AnalyzeNode(lambda.Body);
+		
+		return isSimple && parameterUsage.Values.All(count => count <= 1);
+		
+		void AnalyzeNode(SyntaxNode node)
+		{
+			switch (node)
+			{
+				case IdentifierNameSyntax id when parameterUsage.ContainsKey(id.Identifier.Text):
+					parameterUsage[id.Identifier.Text]++;
+					break;
+				case LambdaExpressionSyntax or LocalFunctionStatementSyntax:
+					// nested lambda/local function - not simple
+					isSimple = false;
+					return;
+			}
+
+			foreach (var child in node.ChildNodes())
+			{
+				if (!isSimple) return; // short-circuit if already determined to be not simple
+				AnalyzeNode(child);
+			}
+		}
 	}
 }

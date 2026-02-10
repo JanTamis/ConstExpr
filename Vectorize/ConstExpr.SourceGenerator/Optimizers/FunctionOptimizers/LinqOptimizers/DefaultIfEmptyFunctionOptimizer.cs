@@ -29,14 +29,14 @@ public class DefaultIfEmptyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 	// These operations preserve element count (if count > 0, result has count > 0)
 	private static readonly HashSet<string> OperationsThatDontAffectEmpty =
 	[
-		nameof(Enumerable.Distinct), // May reduce count, but if collection has elements, result has elements
-		nameof(Enumerable.OrderBy), // Ordering: changes order but not emptiness
-		nameof(Enumerable.OrderByDescending), // Ordering: changes order but not emptiness
-		"Order", // Ordering (.NET 6+): changes order but not emptiness
-		"OrderDescending", // Ordering (.NET 6+): changes order but not emptiness
-		nameof(Enumerable.ThenBy), // Secondary ordering: changes order but not emptiness
-		nameof(Enumerable.ThenByDescending), // Secondary ordering: changes order but not emptiness
-		nameof(Enumerable.Reverse), // Reversal: changes order but not emptiness
+		// nameof(Enumerable.Distinct), // May reduce count, but if collection has elements, result has elements
+		// nameof(Enumerable.OrderBy), // Ordering: changes order but not emptiness
+		// nameof(Enumerable.OrderByDescending), // Ordering: changes order but not emptiness
+		// "Order", // Ordering (.NET 6+): changes order but not emptiness
+		// "OrderDescending", // Ordering (.NET 6+): changes order but not emptiness
+		// nameof(Enumerable.ThenBy), // Secondary ordering: changes order but not emptiness
+		// nameof(Enumerable.ThenByDescending), // Secondary ordering: changes order but not emptiness
+		// nameof(Enumerable.Reverse), // Reversal: changes order but not emptiness
 		nameof(Enumerable.AsEnumerable), // Type cast: doesn't change the collection
 		nameof(Enumerable.ToList), // Materialization: preserves all elements
 		nameof(Enumerable.ToArray), // Materialization: preserves all elements

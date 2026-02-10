@@ -172,7 +172,7 @@ public partial class ConstExprPartialRewriter
 			if (node.Expression is MemberAccessExpressionSyntax { Expression: var instanceName }
 			    && !targetMethod.ContainingType.EqualsType(semanticModel.Compilation.GetTypeByMetadataName("System.Random")))
 			{
-				return TryExecuteInstanceMethod(node, targetMethod, instanceName, constantArguments);
+				return TryExecuteInstanceMethod(targetMethod, instanceName, constantArguments);
 			}
 
 			return TryExecuteViaOperationVisitor(targetMethod, constantArguments);
@@ -186,15 +186,16 @@ public partial class ConstExprPartialRewriter
 	/// <summary>
 	/// Tries to execute an instance method.
 	/// </summary>
-	private SyntaxNode? TryExecuteInstanceMethod(InvocationExpressionSyntax node, IMethodSymbol targetMethod, ExpressionSyntax instanceName, List<object> constantArguments)
+	private SyntaxNode? TryExecuteInstanceMethod(IMethodSymbol targetMethod, ExpressionSyntax instanceName, List<object> constantArguments)
 	{
-		var hasLiteral = TryGetLiteralValue(instanceName, out var instance) || TryGetLiteralValue(Visit(instanceName), out instance);
+		var hasLiteral = TryGetLiteralValue(instanceName, out var instance) 
+		                 || TryGetLiteralValue(Visit(instanceName), out instance);
 
-		if (hasLiteral)
+		if (hasLiteral && loader.TryGetType(targetMethod.ContainingType, out var type))
 		{
 			try
 			{
-				instance = Convert.ChangeType(instance, loader.GetType(targetMethod.ContainingType));
+				instance = Convert.ChangeType(instance, type);
 			}
 			catch (InvalidCastException) { }
 		}

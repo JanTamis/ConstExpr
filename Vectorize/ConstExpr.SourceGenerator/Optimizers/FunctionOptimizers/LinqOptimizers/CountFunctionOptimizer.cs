@@ -121,12 +121,26 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 				}
 			}
 			
-			result = CreateInvocation(visit(currentSource) ?? currentSource, nameof(Enumerable.Count), combinedPredicate);
+			currentSource = visit(currentSource) ?? currentSource;
+
+			if (IsEmptyEnumerable(currentSource))
+			{
+				result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0));
+				return true;
+			}
+			
+			result = CreateInvocation(currentSource, nameof(Enumerable.Count), combinedPredicate);
 			return true;
 		}
 
 		if (parameters.Count == 0)
 		{
+			if (IsEmptyEnumerable(visit(currentSource) ?? currentSource))
+			{
+				result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0));
+				return true;
+			}
+			
 			if (IsCollectionType(model, currentSource))
 			{
 				result = CreateMemberAccess(visit(currentSource) ?? currentSource, "Count");

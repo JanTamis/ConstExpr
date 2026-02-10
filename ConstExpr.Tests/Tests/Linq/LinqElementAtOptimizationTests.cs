@@ -178,10 +178,10 @@ public class LinqElementAtNoOptimizationTests : BaseTest<Func<int[], int>>
 		Create("""
 			var a = x.Min();
 			var b = x.Max();
-			var c = x.LastOrDefault();
+			var c = x.Last();
 			var d = x.First(v => v > 2);
 			var e = x.Select(v => v * 2).First();
-			var f = x.FirstOrDefault();
+			var f = x.First();
 			var g = x.First();
 			
 			return a + b + c + d + e + f + g;

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Linq.Expressions;
 using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -574,6 +575,40 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	protected static ExpressionSyntax ReplaceIdentifier(ExpressionSyntax expression, string oldIdentifier, ExpressionSyntax replacement)
 	{
 		return (ExpressionSyntax)new IdentifierReplacer(oldIdentifier, replacement).Visit(expression);
+	}
+
+	protected bool TryGetValues(SyntaxNode node, [NotNullWhen(true)] out IList<object?>? values)
+	{
+		if (node is CollectionExpressionSyntax collectionExpression)
+		{
+			var elements = collectionExpression.Elements;
+			var constantValues = new List<object?>();
+
+			foreach (var element in elements)
+			{
+				if (element is not ExpressionElementSyntax expressionElement)
+				{
+					values = null;
+					return false;
+				}
+
+				if (expressionElement.Expression is LiteralExpressionSyntax literal)
+				{
+					constantValues.Add(literal.Token.Value);
+				}
+				else
+				{
+					values = null;
+					return false;
+				}
+			}
+
+			values = constantValues;
+			return true;
+		}
+		
+		values = null;
+		return false;
 	}
 
 	private class IdentifierReplacer(string identifier, ExpressionSyntax replacement) : CSharpSyntaxRewriter

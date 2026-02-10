@@ -1,6 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using SourceGen.Utilities.Extensions;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers
 {
@@ -20,7 +21,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 		protected bool TryGetStringInstance(out string? result)
 		{
 			if (Instance is LiteralExpressionSyntax les 
-			    && les.Kind() is SyntaxKind.StringLiteralExpression or SyntaxKind.NullLiteralExpression)
+			    && les.IsKind(SyntaxKind.StringLiteralExpression, SyntaxKind.StringLiteralExpression))
 			{
 				result = les.Token.Value as string;
 				return true;
