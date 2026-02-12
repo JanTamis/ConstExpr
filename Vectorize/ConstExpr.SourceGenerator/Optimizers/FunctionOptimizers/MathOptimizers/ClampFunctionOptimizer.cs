@@ -4,23 +4,25 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq.Expressions;
+using ConstExpr.SourceGenerator.Models;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
 public class ClampFunctionOptimizer() : BaseMathFunctionOptimizer("Clamp", 3)
 {
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
 		result = null;
 
-		if (!IsValidMathMethod(method, out var paramType))
+		if (!IsValidMathMethod(context.Method, out var paramType))
 		{
 			return false;
 		}
 
-		var value = parameters[0];
-		var min = parameters[1];
-		var max = parameters[2];
+		var value = context.VisitedParameters[0];
+		var min = context.VisitedParameters[1];
+		var max = context.VisitedParameters[2];
 
 		// 1) Idempotence: Clamp(Clamp(x, min, max), min, max) -> Clamp(x, min, max)
 		if (value is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Clamp" or "ClampNative" } } innerClamp)

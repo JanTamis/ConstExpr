@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -8,7 +10,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.LongCount method.
+/// Optimizer for Enumerable.LongCount context.Method.
 /// Optimizes patterns such as:
 /// - collection.Where(predicate).LongCount() => collection.LongCount(predicate)
 /// - collection.Where(p1).Where(p2).LongCount() => collection.LongCount(p1 && p2) (multiple chained Where statements)
@@ -43,10 +45,10 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		nameof(Enumerable.Select)            // Projection: doesn't change count for non-nullable types
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(model, method)
-		    || !TryGetLinqSource(invocation, out var source))
+		if (!IsValidLinqMethod(context.Model, context.Method)
+		    || !TryGetLinqSource(context.Invocation, out var source))
 		{
 			result = null;
 			return false;
@@ -54,6 +56,11 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 
 		// Recursively skip all operations that don't affect count
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectCount, out source);
+
+		if (TryExecutePredicates(context, source, out result))
+		{
+			return true;
+		}
 
 		// Collect all chained Where predicates
 		var wherePredicates = new List<LambdaExpressionSyntax>();
@@ -88,36 +95,36 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		if (wherePredicates.Count > 0)
 		{
 			// Start with the first predicate and combine with the rest
-			var combinedPredicate = visit(wherePredicates[^1]) as LambdaExpressionSyntax ?? wherePredicates[^1];
+			var combinedPredicate = context.Visit(wherePredicates[^1]) as LambdaExpressionSyntax ?? wherePredicates[^1];
 			
 			// Combine from right to left (last to first)
 			for (var i = wherePredicates.Count - 2; i >= 0; i--)
 			{
-				var currentPredicate = visit(wherePredicates[i]) as LambdaExpressionSyntax ?? wherePredicates[i];
+				var currentPredicate = context.Visit(wherePredicates[i]) as LambdaExpressionSyntax ?? wherePredicates[i];
 				combinedPredicate = CombinePredicates(currentPredicate, combinedPredicate);
 			}
 
 			// If LongCount() has a predicate parameter, combine it as well
-			if (parameters is [ LambdaExpressionSyntax lambda ])
+			if (context.VisitedParameters is [ LambdaExpressionSyntax lambda ])
 			{
-				combinedPredicate = CombinePredicates(visit(lambda) as LambdaExpressionSyntax ?? lambda, combinedPredicate);
+				combinedPredicate = CombinePredicates(context.Visit(lambda) as LambdaExpressionSyntax ?? lambda, combinedPredicate);
 			}
 			
-			combinedPredicate = visit(combinedPredicate) as LambdaExpressionSyntax ?? combinedPredicate;
+			combinedPredicate = context.Visit(combinedPredicate) as LambdaExpressionSyntax ?? combinedPredicate;
 
 			if (IsLiteralBooleanLambda(combinedPredicate, out var literalValue))
 			{
 				switch (literalValue)
 				{
-					case true when IsCollectionType(model, currentSource):
+					case true when IsCollectionType(context.Model, currentSource):
 						result = SyntaxFactory.CastExpression(
 							SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.LongKeyword)),
-							CreateMemberAccess(visit(currentSource) ?? currentSource, "Count"));
+							CreateMemberAccess(context.Visit(currentSource) ?? currentSource, "Count"));
 						return true;
-					case true when IsInvokedOnArray(model, currentSource):
+					case true when IsInvokedOnArray(context.Model, currentSource):
 						result = SyntaxFactory.CastExpression(
 							SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.LongKeyword)),
-							CreateMemberAccess(visit(currentSource) ?? currentSource, "Length"));
+							CreateMemberAccess(context.Visit(currentSource) ?? currentSource, "Length"));
 						return true;
 					case false:
 						result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0L));
@@ -125,15 +132,15 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 				}
 			}
 			
-			result = CreateInvocation(visit(currentSource) ?? currentSource, nameof(Enumerable.LongCount), combinedPredicate);
+			result = CreateInvocation(context.Visit(currentSource) ?? currentSource, nameof(Enumerable.LongCount), combinedPredicate);
 			return true;
 		}
 
-		if (parameters.Count == 0)
+		if (context.VisitedParameters.Count == 0)
 		{
-			source = visit(source) ?? source;
+			source = context.Visit(source) ?? source;
 			
-			if (IsCollectionType(model, currentSource))
+			if (IsCollectionType(context.Model, currentSource))
 			{
 				result = SyntaxFactory.CastExpression(
 					SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.LongKeyword)),
@@ -141,7 +148,7 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 				return true;
 			}
 
-			if (IsCollectionType(model, source))
+			if (IsCollectionType(context.Model, source))
 			{
 				result = SyntaxFactory.CastExpression(
 					SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.LongKeyword)),
@@ -149,7 +156,7 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 				return true;
 			}
 
-			if (IsInvokedOnArray(model, currentSource))
+			if (IsInvokedOnArray(context.Model, currentSource))
 			{
 				result = SyntaxFactory.CastExpression(
 					SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.LongKeyword)),
@@ -157,7 +164,7 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 				return true;
 			}
 
-			if (IsInvokedOnArray(model, source))
+			if (IsInvokedOnArray(context.Model, source))
 			{
 				result = SyntaxFactory.CastExpression(
 					SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.LongKeyword)),
@@ -166,7 +173,7 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 			}
 		}
 
-		source = visit(currentSource) ?? currentSource;
+		source = context.Visit(currentSource) ?? currentSource;
 
 		if (IsEmptyEnumerable(source))
 		{
@@ -177,7 +184,7 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		// If we skipped any operations, create optimized LongCount() call
 		if (isNewSource)
 		{
-			result = CreateInvocation(source, nameof(Enumerable.LongCount), parameters);
+			result = CreateInvocation(source, nameof(Enumerable.LongCount), context.VisitedParameters);
 			return true;
 		}
 

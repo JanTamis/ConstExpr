@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -8,7 +10,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.FirstOrDefault method.
+/// Optimizer for Enumerable.FirstOrDefault context.Method.
 /// Optimizes patterns such as:
 /// - collection.Where(predicate).FirstOrDefault() => collection.FirstOrDefault(predicate)
 /// - collection.AsEnumerable().FirstOrDefault() => collection.FirstOrDefault() (type cast doesn't affect first)
@@ -17,7 +19,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// Note: OrderBy/OrderByDescending/Reverse DOES affect which element is first, so we don't optimize those!
 /// Note: Distinct might remove the first element if it's a duplicate, so we don't optimize that either!
 /// </summary>
-public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.FirstOrDefault), 0)
+public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.FirstOrDefault), 0, 1)
 {
 	// Operations that don't affect which element is "first"
 	// We CAN'T include ordering operations because they change which element comes first!
@@ -29,10 +31,10 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 		nameof(Enumerable.ToArray), // Materialization: preserves order and all elements
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(model, method)
-		    || !TryGetLinqSource(invocation, out var source))
+		if (!IsValidLinqMethod(context.Model, context.Method)
+		    || !TryGetLinqSource(context.Invocation, out var source))
 		{
 			result = null;
 			return false;
@@ -41,6 +43,11 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 		// Recursively skip all operations that don't affect which element is first
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectFirst, out source);
 
+		if (TryExecutePredicates(context, source, out result))
+		{
+			return true;
+		}
+		
 		// Now check if we have a Where at the end of the optimized chain
 		if (IsLinqMethodChain(source, nameof(Enumerable.Where), out var whereInvocation)
 		    && GetMethodArguments(whereInvocation).FirstOrDefault() is { Expression: { } predicateArg }
@@ -49,7 +56,7 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 		{
 			TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectFirst, out whereSource);
 
-			result = CreateInvocation(visit(whereSource) ?? whereSource, nameof(Enumerable.FirstOrDefault), visit(predicate) ?? predicate);
+			result = CreateInvocation(context.Visit(whereSource) ?? whereSource, nameof(Enumerable.FirstOrDefault), context.Visit(predicate) ?? predicate);
 			return true;
 		}
 
@@ -57,7 +64,7 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 		if (IsLinqMethodChain(source, nameof(Enumerable.Reverse), out var reverseInvocation)
 		    && TryGetLinqSource(reverseInvocation, out var reverseSource))
 		{
-			result = CreateInvocation(visit(reverseSource) ?? reverseSource, nameof(Enumerable.LastOrDefault));
+			result = CreateInvocation(context.Visit(reverseSource) ?? reverseSource, nameof(Enumerable.LastOrDefault));
 			return true;
 		}
 
@@ -65,7 +72,7 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 		if (IsLinqMethodChain(source, "Order", out var orderInvocation)
 		    && TryGetLinqSource(orderInvocation, out var orderSource))
 		{
-			result = CreateInvocation(visit(orderSource) ?? orderSource, nameof(Enumerable.Min));
+			result = CreateInvocation(context.Visit(orderSource) ?? orderSource, nameof(Enumerable.Min));
 			return true;
 		}
 
@@ -73,14 +80,14 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 		if (IsLinqMethodChain(source, "OrderDescending", out var orderDescInvocation)
 		    && TryGetLinqSource(orderDescInvocation, out var orderDescSource))
 		{
-			result = CreateInvocation(visit(orderDescSource) ?? orderDescSource, nameof(Enumerable.Max));
+			result = CreateInvocation(context.Visit(orderDescSource) ?? orderDescSource, nameof(Enumerable.Max));
 			return true;
 		}
 
 		// For arrays, use conditional: arr.Length > 0 ? arr[0] : default
-		if (IsInvokedOnArray(model, source))
+		if (IsInvokedOnArray(context.Model, source))
 		{
-			source = visit(source) ?? source;
+			source = context.Visit(source) ?? source;
 			
 			result = SyntaxFactory.ConditionalExpression(
 				SyntaxFactory.BinaryExpression(
@@ -105,9 +112,9 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 		}
 
 		// For List<T>, use conditional: list.Count > 0 ? list[0] : default
-		if (IsInvokedOnList(model, source))
+		if (IsInvokedOnList(context.Model, source))
 		{
-			source = visit(source) ?? source;
+			source = context.Visit(source) ?? source;
 			
 			result = SyntaxFactory.ConditionalExpression(
 				SyntaxFactory.BinaryExpression(
@@ -134,7 +141,7 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 		// If we skipped any operations, create optimized FirstOrDefault() call
 		if (isNewSource)
 		{
-			result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.FirstOrDefault));
+			result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.FirstOrDefault));
 			return true;
 		}
 

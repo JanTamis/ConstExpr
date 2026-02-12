@@ -3,6 +3,8 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
+using ConstExpr.SourceGenerator.Models;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 
@@ -13,11 +15,11 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 /// </summary>
 public class LastIndexOfFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "LastIndexOf")
 {
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
 		result = null;
 
-		if (!IsValidMethod(method, out _) || method.IsStatic || parameters.Count < 1)
+		if (!IsValidMethod(context.Method, out _) || context.Method.IsStatic || context.VisitedParameters.Count < 1)
 		{
 			return false;
 		}
@@ -27,7 +29,7 @@ public class LastIndexOfFunctionOptimizer(SyntaxNode? instance) : BaseStringFunc
 			return false;
 		}
 
-		if (parameters[0] is not LiteralExpressionSyntax literal)
+		if (context.VisitedParameters[0] is not LiteralExpressionSyntax literal)
 		{
 			return false;
 		}

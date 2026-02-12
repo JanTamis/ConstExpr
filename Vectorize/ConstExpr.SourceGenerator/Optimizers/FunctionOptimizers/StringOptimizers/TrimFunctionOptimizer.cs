@@ -2,6 +2,8 @@ using System;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
+using System.Linq.Expressions;
+using ConstExpr.SourceGenerator.Models;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 
@@ -13,18 +15,18 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 /// </summary>
 public class TrimFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "Trim")
 {
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
 		result = null;
 
-		var methodName = method.Name;
+		var methodName = context.Method.Name;
 
 		if (methodName is not ("Trim" or "TrimStart" or "TrimEnd"))
 		{
 			return false;
 		}
 
-		if (method.IsStatic || parameters.Count > 0)
+		if (context.Method.IsStatic || context.VisitedParameters.Count > 0)
 		{
 			return false;
 		}

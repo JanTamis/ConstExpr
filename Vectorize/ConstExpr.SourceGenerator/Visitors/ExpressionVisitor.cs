@@ -8,7 +8,7 @@ using Microsoft.CodeAnalysis.Operations;
 
 namespace ConstExpr.SourceGenerator.Visitors;
 
-public class ExpressionVisitor(Compilation compilation, MetadataLoader loader, IEnumerable<ParameterExpression> parameters) : OperationVisitor<IDictionary<string, object?>, Expression>
+public class ExpressionVisitor(SemanticModel model, MetadataLoader loader, IEnumerable<ParameterExpression> parameters) : OperationVisitor<IDictionary<string, object?>, Expression>
 {
 	public override Expression DefaultVisit(IOperation operation, IDictionary<string, object?> argument)
 	{
@@ -319,7 +319,7 @@ public class ExpressionVisitor(Compilation compilation, MetadataLoader loader, I
 
 		// Create a new visitor with the lambda parameters included
 		var allParams = parameters.Concat(lambdaParams);
-		var lambdaVisitor = new ExpressionVisitor(compilation, loader, allParams);
+		var lambdaVisitor = new ExpressionVisitor(model, loader, allParams);
 
 		// Visit the body with the new visitor
 		var body = lambdaVisitor.VisitBlock(operation.Body, argument);

@@ -1,28 +1,28 @@
-﻿using ConstExpr.SourceGenerator.Extensions;
+﻿using System;
+using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System;
-using System.Collections.Generic;
+using ConstExpr.SourceGenerator.Models;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
 public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", 1)
 {
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
 		result = null;
 
-		if (!IsValidMathMethod(method, out var paramType))
+		if (!IsValidMathMethod(context.Method, out var paramType))
 		{
 			return false;
 		}
 
-		var x = parameters[0];
+		var arg = context.VisitedParameters[0];
 
 		// Algebraic simplifications on literal values
-		if (TryGetNumericLiteral(x, out var value))
+		if (TryGetNumericLiteral(arg, out var value))
 		{
 			// AtanPi(0) => 0
 			if (IsApproximately(value, 0.0))
@@ -52,13 +52,13 @@ public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", 1)
 				? GenerateFastAtanPiMethodFloat()
 				: GenerateFastAtanPiMethodDouble();
 
-			additionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
 
-			result = CreateInvocation("FastAtanPi", parameters);
+			result = CreateInvocation("FastAtanPi", context.VisitedParameters);
 			return true;
 		}
 
-		result = CreateInvocation(paramType, Name, parameters);
+		result = CreateInvocation(paramType, Name, context.VisitedParameters);
 		return true;
 	}
 

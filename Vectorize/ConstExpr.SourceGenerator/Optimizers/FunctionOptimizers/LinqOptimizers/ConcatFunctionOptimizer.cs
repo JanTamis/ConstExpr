@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
@@ -8,7 +9,7 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Concat method.
+/// Optimizer for Enumerable.Concat context.Method.
 /// Optimizes patterns such as:
 /// - collection.Concat(Enumerable.Empty&lt;T&gt;()) => collection (concatenating empty is a no-op)
 /// - Enumerable.Empty&lt;T&gt;().Concat(collection) => collection (concatenating to empty)
@@ -29,22 +30,22 @@ public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		nameof(Enumerable.ToArray), // Materialization: preserves order and all elements
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(model, method)
-		    || !TryGetLinqSource(invocation, out var source))
+		if (!IsValidLinqMethod(context.Model, context.Method)
+		    || !TryGetLinqSource(context.Invocation, out var source))
 		{
 			result = null;
 			return false;
 		}
 
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectConcat, out source);
-		var concatenatedCollection = parameters[0];
+		var concatenatedCollection = context.VisitedParameters[0];
 
 		// Optimization: collection.Concat(Enumerable.Empty<T>()) => collection
 		if (IsEmptyEnumerable(concatenatedCollection))
 		{
-			result = visit(source);
+			result = context.Visit(source);
 			return true;
 		}
 
@@ -57,7 +58,7 @@ public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 
 		// Optimization: collection.Concat([singleElement]) => collection.Append(singleElement)
 		// Only apply this if the merge optimization didn't trigger
-		if (TryConvertSingleElementConcatToAppend(source, concatenatedCollection, visit, out var appendResult))
+		if (TryConvertSingleElementConcatToAppend(source, concatenatedCollection, context.Visit, out var appendResult))
 		{
 			result = appendResult;
 			return true;
@@ -65,7 +66,7 @@ public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		
 		// Optimization: Merge multiple Concat calls with collection literals
 		// e.g., collection.Concat([1, 2]).Concat([3, 4]) => collection.Concat([1, 2, 3, 4])
-		if (TryMergeConcatChain(source, concatenatedCollection, visit, out var mergedResult))
+		if (TryMergeConcatChain(source, concatenatedCollection, context.Visit, out var mergedResult))
 		{
 			result = mergedResult;
 			return true;
@@ -112,7 +113,7 @@ public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		}
 
 		// Create Append call: source.Append(element)
-		result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.Append), visit(expressionElement.Expression) ?? expressionElement.Expression);;
+		result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.Append), visit(expressionElement.Expression) ?? expressionElement.Expression);
 		return true;
 	}
 

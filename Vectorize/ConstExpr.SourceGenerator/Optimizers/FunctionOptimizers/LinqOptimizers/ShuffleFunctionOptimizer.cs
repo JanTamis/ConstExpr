@@ -1,13 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Shuffle method (.NET 9+).
+/// Optimizer for Enumerable.Shuffle context.Method (.NET 9+).
 /// Optimizes patterns such as:
 /// - collection.Shuffle().Shuffle() => collection.Shuffle() (multiple shuffles are redundant)
 /// - collection.OrderBy(...).Shuffle() => collection.Shuffle() (ordering before shuffle is pointless)
@@ -33,10 +35,10 @@ public class ShuffleFunctionOptimizer() : BaseLinqFunctionOptimizer("Shuffle", 0
 		nameof(Enumerable.Reverse),          // Reversing before shuffle is pointless
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(model, method)
-		    || !TryGetLinqSource(invocation, out var source))
+		if (!IsValidLinqMethod(context.Model, context.Method)
+		    || !TryGetLinqSource(context.Invocation, out var source))
 		{
 			result = null;
 			return false;
@@ -48,7 +50,7 @@ public class ShuffleFunctionOptimizer() : BaseLinqFunctionOptimizer("Shuffle", 0
 		// If we skipped any operations, create optimized Shuffle() call
 		if (isNewSource)
 		{
-			result = CreateInvocation(visit(source) ?? source, "Shuffle");
+			result = CreateInvocation(context.Visit(source) ?? source, "Shuffle");
 			return true;
 		}
 

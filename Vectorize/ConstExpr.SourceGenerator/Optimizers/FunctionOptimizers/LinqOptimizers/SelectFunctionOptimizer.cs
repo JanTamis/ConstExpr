@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Linq.Expressions;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -10,26 +12,31 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 
 public class SelectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Select), 1)
 {
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(model, method)
-		    || !TryGetLambda(parameters[0], out var lambda)
-		    || !TryGetLinqSource(invocation, out var source))
+		if (!IsValidLinqMethod(context.Model, context.Method)
+		    || !TryGetLambda(context.VisitedParameters[0], out var lambda)
+		    || !TryGetLinqSource(context.Invocation, out var source))
 		{
 			result = null;
 			return false;
 		}
 
+		if (TryExecutePredicates(context, source, out result))
+		{
+			return true;
+		}
+
 		if (IsIdentityLambda(lambda))
 		{
-			result = visit(source) ?? source;
+			result = context.Visit(source) ?? source;
 			return true;
 		}
 
 		// Optimize .Select(x => (T)x) to .Cast<T>()
 		if (IsCastLambda(lambda, out var castType))
 		{
-			result = CreateCastMethodCall(visit(source) ?? source, castType);
+			result = CreateCastMethodCall(context.Visit(source) ?? source, castType);
 			return true;
 		}
 
@@ -38,10 +45,10 @@ public class SelectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		    && TryGetLinqSource(innerInvocation, out var innerSource))
 		{
 			// Combine the two lambdas: source.Select(inner).Select(outer) => source.Select(combined)
-			var combinedLambda = CombineLambdas(lambda, visit(innerLambda) as LambdaExpressionSyntax ?? innerLambda);
+			var combinedLambda = CombineLambdas(lambda, context.Visit(innerLambda) as LambdaExpressionSyntax ?? innerLambda);
 
 			// Create a new Select call with the combined lambda
-			result = CreateInvocation(visit(innerSource) ?? innerSource, nameof(Enumerable.Select), combinedLambda);
+			result = CreateInvocation(context.Visit(innerSource) ?? innerSource, nameof(Enumerable.Select), combinedLambda);
 			return true;
 		}
 

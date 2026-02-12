@@ -1,26 +1,33 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.ThenByDescending method.
+/// Optimizer for Enumerable.ThenByDescending context.Method.
 /// Optimizes patterns such as:
 /// - OrderBy(x => x).ThenByDescending(y => y) => Order().ThenByDescending(y => y) (identity key for Order)
 /// </summary>
 public class ThenByDescendingFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.ThenByDescending), 1)
 {
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(model, method)
-		    || !TryGetLambda(parameters[0], out var lambda)
-		    || !TryGetLinqSource(invocation, out var source))
+		if (!IsValidLinqMethod(context.Model, context.Method)
+		    || !TryGetLambda(context.VisitedParameters[0], out var lambda)
+		    || !TryGetLinqSource(context.Invocation, out var source))
 		{
 			result = null;
 			return false;
+		}
+
+		if (TryExecutePredicates(context, source, out result))
+		{
+			return true;
 		}
 
 		// Optimize ThenByDescending(x => x) identity lambda - not much to optimize here

@@ -1,13 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.UnionBy method.
+/// Optimizer for Enumerable.UnionBy context.Method.
 /// Optimizes patterns such as:
 /// - collection.UnionBy(Enumerable.Empty&lt;T&gt;(), selector) => collection.DistinctBy(selector)
 /// - Enumerable.Empty&lt;T&gt;().UnionBy(collection, selector) => collection.DistinctBy(selector)
@@ -15,19 +17,19 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// </summary>
 public class UnionByFunctionOptimizer() : BaseLinqFunctionOptimizer("UnionBy", 2)
 {
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(model, method)
-		    || !TryGetLinqSource(invocation, out var source))
+		if (!IsValidLinqMethod(context.Model, context.Method)
+		    || !TryGetLinqSource(context.Invocation, out var source))
 		{
 			result = null;
 			return false;
 		}
 
-		var secondSource = parameters[0];
-		var keySelector = parameters[1];
+		var secondSource = context.VisitedParameters[0];
+		var keySelector = context.VisitedParameters[1];
 		
-		source = visit(source) ?? source;
+		source = context.Visit(source) ?? source;
 
 		// Optimize collection.UnionBy(Enumerable.Empty<T>(), selector) => collection.DistinctBy(selector)
 		if (IsEmptyEnumerable(secondSource))

@@ -312,6 +312,103 @@ public static class CompilationExtensions
 		return typeSymbol.GetMembers(name).OfType<TSymbol>().Any(predicate);
 	}
 
+	public static bool TryGetMethodByMethod(this MetadataLoader loader, [NotNullWhen(true)] IMethodSymbol? methodSymbol, [NotNullWhen(true)] out MethodBase? method)
+	{
+		if (methodSymbol is null)
+		{
+			method = null;
+			return false;
+		}
+
+		var isExtension = methodSymbol.IsExtensionMethod;
+
+		var originalParameterTypes = methodSymbol.Parameters
+			.Select(s => s.Type)
+			.Prepend(methodSymbol.IsExtensionMethod ? methodSymbol.ReceiverType : null)
+			.Where(w => w != null)
+			.ToImmutableArray();
+
+		var expectedParameterLength = originalParameterTypes.Length;
+		var methodName = methodSymbol.Name;
+		var type = loader.GetType(methodSymbol.ContainingType);
+
+		if (type == null)
+		{
+			method = null;
+			return false;
+		}
+
+		var methods = methodSymbol.MethodKind switch
+		{
+			MethodKind.Constructor => type.GetConstructors(BindingFlags.Public | BindingFlags.Instance),
+			MethodKind.StaticConstructor => type.GetConstructors(BindingFlags.Public | BindingFlags.Static),
+			MethodKind.PropertyGet or MethodKind.PropertySet => type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static)
+				.Select(p => methodSymbol.MethodKind == MethodKind.PropertyGet ? p.GetMethod : p.SetMethod),
+			_ => type.GetMethods(methodSymbol.IsStatic || isExtension
+				? BindingFlags.Public | BindingFlags.Static
+				: BindingFlags.Public | BindingFlags.Instance).Cast<MethodBase?>(),
+		};
+
+		// Filter candidates
+		var candidates = methods
+			.Where(m => m != null && m.Name == methodName && m.GetParameters().Length == expectedParameterLength);
+
+		foreach (var candidate in candidates)
+		{
+			var methodInfo = candidate! as MethodInfo;
+			var invokeBase = candidate!;
+
+			// Bind generics early so parameter types are closed (e.g. IEnumerable<double>)
+			if (methodInfo != null && methodInfo.IsGenericMethodDefinition)
+			{
+				var typeArgs = methodSymbol.TypeArguments.Select(loader.GetType).ToArray();
+
+				if (typeArgs.Any(a => a == null))
+				{
+					continue;
+				}
+
+				methodInfo = methodInfo.MakeGenericMethod(typeArgs);
+				invokeBase = methodInfo;
+			}
+
+			// Parameter type validation (stricter than namespace+name if possible)
+			var reflParams = invokeBase.GetParameters();
+			var compatible = true;
+
+			for (var i = 0; i < reflParams.Length; i++)
+			{
+				var reflParam = reflParams[i];
+				var symbolParam = originalParameterTypes[i];
+				var symbolParamType = loader.GetType(symbolParam);
+
+				if (symbolParamType == null)
+				{
+					compatible = false;
+					break;
+				}
+
+				if (!reflParam.ParameterType.IsGenericParameter 
+				    && !reflParam.ParameterType.IsAssignableFrom(symbolParamType))
+				{
+					compatible = false;
+					break;
+				}
+			}
+
+			if (!compatible)
+			{
+				continue;
+			}
+
+			method = invokeBase;
+			return true;
+		}
+
+		method = null;
+		return false;
+	}
+
 	public static bool TryExecuteMethod(this MetadataLoader loader, [NotNullWhen(true)] IMethodSymbol? methodSymbol, object? instance, IDictionary<string, object?>? arguments, IEnumerable<object?> parameters, out object? value)
 	{
 		if (methodSymbol is null)

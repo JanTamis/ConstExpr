@@ -1,13 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Except method.
+/// Optimizer for Enumerable.Except context.Method.
 /// Optimizes patterns such as:
 /// - collection.Except(Enumerable.Empty&lt;T&gt;()) => collection.Distinct() (removing nothing, but Except applies Distinct)
 /// - Enumerable.Empty&lt;T&gt;().Except(collection) => Enumerable.Empty&lt;T&gt;() (empty except anything is empty)
@@ -55,27 +56,27 @@ public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		nameof(Enumerable.FirstOrDefault),
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(model, method)
-		    || !TryGetLinqSource(invocation, out var source)
-		    || parameters.Count == 0)
+		if (!IsValidLinqMethod(context.Model, context.Method)
+		    || !TryGetLinqSource(context.Invocation, out var source)
+		    || context.VisitedParameters.Count == 0)
 		{
 			result = null;
 			return false;
 		}
 
-		var exceptCollection = parameters[0];
+		var exceptCollection = context.VisitedParameters[0];
 
 		// Try simple optimizations first
-		if (TryOptimizeEmptySource(visit(source) ?? source, out result)
-		    || TryOptimizeEmptyExceptCollection(visit(source) ?? source, visit(exceptCollection) ?? exceptCollection, out result)
-		    || TryOptimizeSelfExcept(method, visit(source) ?? source, visit(exceptCollection) ?? exceptCollection, out result)
-		    || TryOptimizeChainedExcept(source, exceptCollection, visit, out result))
+		if (TryOptimizeEmptySource(context.Visit(source) ?? source, out result)
+		    || TryOptimizeEmptyExceptCollection(context.Visit(source) ?? source, context.Visit(exceptCollection) ?? exceptCollection, out result)
+		    || TryOptimizeSelfExcept(context.Method, context.Visit(source) ?? source, context.Visit(exceptCollection) ?? exceptCollection, out result)
+		    || TryOptimizeChainedExcept(source, exceptCollection, context.Visit, out result))
 			return true;
 
 		// Try to optimize by removing redundant operations
-		return TryOptimizeRedundantOperations(invocation, source, exceptCollection, visit, out result);
+		return TryOptimizeRedundantOperations(context.Invocation, source, exceptCollection, context.Visit, out result);
 	}
 
 	private bool TryOptimizeEmptySource(ExpressionSyntax source, out SyntaxNode? result)

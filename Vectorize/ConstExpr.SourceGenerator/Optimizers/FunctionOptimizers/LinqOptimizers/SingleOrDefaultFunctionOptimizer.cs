@@ -1,13 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.SingleOrDefault method.
+/// Optimizer for Enumerable.SingleOrDefault context.Method.
 /// Optimizes patterns such as:
 /// - collection.Where(predicate).SingleOrDefault() => collection.SingleOrDefault(predicate)
 /// - collection.AsEnumerable().SingleOrDefault() => collection.SingleOrDefault()
@@ -23,10 +25,10 @@ public class SingleOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(name
 		nameof(Enumerable.ToArray),
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(model, method)
-		    || !TryGetLinqSource(invocation, out var source))
+		if (!IsValidLinqMethod(context.Model, context.Method)
+		    || !TryGetLinqSource(context.Invocation, out var source))
 		{
 			result = null;
 			return false;
@@ -35,8 +37,13 @@ public class SingleOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(name
 		// Recursively skip operations that don't affect singleOrDefault
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectSingleOrDefault, out source);
 
+		if (TryExecutePredicates(context, source, out result))
+		{
+			return true;
+		}
+
 		// Optimize source.Where(predicate).SingleOrDefault() => source.SingleOrDefault(predicate)
-		if (parameters.Count == 0
+		if (context.VisitedParameters.Count == 0
 		    && IsLinqMethodChain(source, nameof(Enumerable.Where), out var whereInvocation)
 		    && TryGetLinqSource(whereInvocation, out var whereSource)
 		    && whereInvocation.ArgumentList.Arguments.Count == 1)
@@ -44,14 +51,14 @@ public class SingleOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(name
 			TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectSingleOrDefault, out whereSource);
 			
 			var predicate = whereInvocation.ArgumentList.Arguments[0].Expression;
-			result = CreateInvocation(visit(whereSource) ?? whereSource, nameof(Enumerable.SingleOrDefault), visit(predicate) ?? predicate);
+			result = CreateInvocation(context.Visit(whereSource) ?? whereSource, nameof(Enumerable.SingleOrDefault), context.Visit(predicate) ?? predicate);
 			return true;
 		}
 
 		// If we skipped any operations, create optimized SingleOrDefault() call
-		if (isNewSource && parameters.Count == 0)
+		if (isNewSource && context.VisitedParameters.Count == 0)
 		{
-			result = CreateSimpleInvocation(visit(source) ?? source, nameof(Enumerable.SingleOrDefault));
+			result = CreateSimpleInvocation(context.Visit(source) ?? source, nameof(Enumerable.SingleOrDefault));
 			return true;
 		}
 

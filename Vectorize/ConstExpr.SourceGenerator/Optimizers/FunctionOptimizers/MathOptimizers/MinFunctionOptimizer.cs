@@ -3,50 +3,52 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
+using System.Linq.Expressions;
+using ConstExpr.SourceGenerator.Models;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
 public class MinFunctionOptimizer() : BaseMathFunctionOptimizer("Min", 2)
 {
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
 		result = null;
 
-		if (!IsValidMathMethod(method, out var paramType))
+		if (!IsValidMathMethod(context.Method, out var paramType))
 		{
 			return false;
 		}
 
 		// Idempotency: Min(x, x) → x (when x is pure)
-		if (parameters[0].IsEquivalentTo(parameters[1]) && IsPure(parameters[0]))
+		if (context.VisitedParameters[0].IsEquivalentTo(context.VisitedParameters[1]) && IsPure(context.VisitedParameters[0]))
 		{
-			result = parameters[0];
+			result = context.VisitedParameters[0];
 			return true;
 		}
 
-		var containingName = method.ContainingType?.Name;
+		var containingName = context.Method.ContainingType?.Name;
 
 		// Try to recognize Clamp pattern: Min(Max(X, min), max) -> Clamp(X, min, max)
-		if (TryRewriteClampFromMinMax(paramType, containingName, parameters[0], parameters[1], out var clamp))
+		if (TryRewriteClampFromMinMax(paramType, containingName, context.VisitedParameters[0], context.VisitedParameters[1], out var clamp))
 		{
 			result = clamp;
 			return true;
 		}
 
-		if (TryRewriteClampFromMinMax(paramType, containingName, parameters[1], parameters[0], out clamp))
+		if (TryRewriteClampFromMinMax(paramType, containingName, context.VisitedParameters[1], context.VisitedParameters[0], out clamp))
 		{
 			result = clamp;
 			return true;
 		}
 
 		// Try to flatten nested Min with constants: Min(C1, Min(X, C2)) -> Min(X, min(C1, C2)) and symmetrical forms
-		if (TryFlattenNestedMin(paramType, containingName, parameters[0], parameters[1], out var flattened))
+		if (TryFlattenNestedMin(paramType, containingName, context.VisitedParameters[0], context.VisitedParameters[1], out var flattened))
 		{
 			result = flattened;
 			return true;
 		}
 
-		if (TryFlattenNestedMin(paramType, containingName, parameters[1], parameters[0], out flattened))
+		if (TryFlattenNestedMin(paramType, containingName, context.VisitedParameters[1], context.VisitedParameters[0], out flattened))
 		{
 			result = flattened;
 			return true;
@@ -55,12 +57,12 @@ public class MinFunctionOptimizer() : BaseMathFunctionOptimizer("Min", 2)
 		if (HasMethod(paramType, "MinNative", 2))
 		{
 			// Use MaxNative if available on the numeric helper type
-			result = CreateInvocation(paramType, "MinNative", parameters);
+			result = CreateInvocation(paramType, "MinNative", context.VisitedParameters);
 			return true;
 		}
 
 		// Fallback: just re-target to the numeric helper (ensures nested Single.Max(...) is supported)
-		result = CreateInvocation(paramType!, Name, parameters);
+		result = CreateInvocation(paramType!, Name, context.VisitedParameters);
 		return true;
 	}
 
@@ -68,7 +70,7 @@ public class MinFunctionOptimizer() : BaseMathFunctionOptimizer("Min", 2)
 	{
 		result = null;
 
-		// We want pattern: first is constant, second is invocation of Min(...)
+		// We want pattern: first is constant, second is context.Invocation of Min(...)
 		if (!TryGetConstantValue(paramType, first, out var c1, out var c1Expr))
 		{
 			return false;
@@ -137,7 +139,7 @@ public class MinFunctionOptimizer() : BaseMathFunctionOptimizer("Min", 2)
 			return false; // cannot safely flatten if inner has two non-constants
 		}
 
-		// If both outer and inner become constants -> cannot produce an invocation here
+		// If both outer and inner become constants -> cannot produce an context.Invocation here
 		if (nonConst is null && innerConstExpr is not null)
 		{
 			var pickOuter = Compare(paramType, c1!, innerConstValue!) <= 0;

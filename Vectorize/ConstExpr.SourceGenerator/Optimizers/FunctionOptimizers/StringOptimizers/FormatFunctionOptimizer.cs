@@ -4,7 +4,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq.Expressions;
 using System.Text;
+using ConstExpr.SourceGenerator.Models;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers
 {
@@ -17,29 +19,29 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 	/// <param name="instance">Optional syntax node instance provided by the optimizer infrastructure; may be null.</param>
 	public class FormatFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "Format")
 	{
-		public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+		public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 		{
 			result = null;
 
-			if (!IsValidMethod(method, out var stringType) || !method.IsStatic)
+			if (!IsValidMethod(context.Method, out var stringType) || !context.Method.IsStatic)
 			{
 				return false;
 			}
 
 			// For simplicity, do not handle overloads that take an IFormatProvider
-			if (method.Parameters.Length > 0 && method.Parameters[0].Type.Name == "IFormatProvider")
+			if (context.Method.Parameters.Length > 0 && context.Method.Parameters[0].Type.Name == "IFormatProvider")
 			{
 				return false;
 			}
 
 			const int formatIndex = 0;
 
-			if (parameters.Count <= formatIndex)
+			if (context.VisitedParameters.Count <= formatIndex)
 			{
 				return false;
 			}
 
-			if (parameters[formatIndex] is not LiteralExpressionSyntax formatLiteral || !formatLiteral.IsKind(SyntaxKind.StringLiteralExpression))
+			if (context.VisitedParameters[formatIndex] is not LiteralExpressionSyntax formatLiteral || !formatLiteral.IsKind(SyntaxKind.StringLiteralExpression))
 			{
 				return false;
 			}
@@ -49,9 +51,9 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 			// Collect following expressions; require purity to avoid side-effects
 			var argExpressions = new List<ExpressionSyntax>();
 
-			for (var i = 1; i < parameters.Count; i++)
+			for (var i = 1; i < context.VisitedParameters.Count; i++)
 			{
-				argExpressions.Add(parameters[i]);
+				argExpressions.Add(context.VisitedParameters[i]);
 			}
 
 			// First pass: scan the format string to count placeholder usages

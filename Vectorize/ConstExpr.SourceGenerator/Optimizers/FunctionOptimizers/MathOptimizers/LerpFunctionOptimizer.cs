@@ -3,16 +3,18 @@ using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
+using System.Linq.Expressions;
+using ConstExpr.SourceGenerator.Models;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
 public class LerpFunctionOptimizer() : BaseMathFunctionOptimizer("Lerp", 3)
 {
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
 		result = null;
 
-		if (!IsValidMathMethod(method, out var paramType))
+		if (!IsValidMathMethod(context.Method, out var paramType))
 		{
 			return false;
 		}
@@ -23,13 +25,13 @@ public class LerpFunctionOptimizer() : BaseMathFunctionOptimizer("Lerp", 3)
 				? GenerateFastLerpMethodFloat()
 				: GenerateFastLerpMethodDouble();
 
-			additionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
 
-			result = CreateInvocation("FastLerp", parameters);
+			result = CreateInvocation("FastLerp", context.VisitedParameters);
 			return true;
 		}
 
-		result = CreateInvocation(paramType, Name, parameters);
+		result = CreateInvocation(paramType, Name, context.VisitedParameters);
 		return true;
 	}
 

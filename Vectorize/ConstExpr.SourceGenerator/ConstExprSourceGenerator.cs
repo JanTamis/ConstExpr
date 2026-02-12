@@ -313,7 +313,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 		var exceptions = new ConcurrentDictionary<SyntaxNode?, Exception>(SyntaxNodeComparer<SyntaxNode>.Instance);
 
-		var visitor = new ConstExprOperationVisitor(semanticModel.Compilation, loader, (operation, ex) =>
+		var visitor = new ConstExprOperationVisitor(semanticModel, loader, (operation, ex) =>
 		{
 			// exceptions.TryAdd(operation!.Syntax, ex);
 		}, token);

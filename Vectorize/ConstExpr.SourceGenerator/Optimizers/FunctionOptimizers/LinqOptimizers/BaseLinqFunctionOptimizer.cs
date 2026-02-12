@@ -4,6 +4,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
 using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Helpers;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -69,11 +71,11 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		source = invocation;
 
 		if (invocation.Expression is not MemberAccessExpressionSyntax memberAccess)
-    {
-      return false;
-    }
+		{
+			return false;
+		}
 
-    source = memberAccess.Expression;
+		source = memberAccess.Expression;
 		return true;
 	}
 
@@ -86,11 +88,11 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 
 		if (expression is not InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax memberAccess } inv
 		    || memberAccess.Name.Identifier.Text != methodName)
-    {
-      return false;
-    }
+		{
+			return false;
+		}
 
-    invocation = inv;
+		invocation = inv;
 		return true;
 	}
 
@@ -103,11 +105,11 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 
 		if (expression is not InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax memberAccess } inv
 		    || !methodNames.Contains(memberAccess.Name.Identifier.Text))
-    {
-      return false;
-    }
+		{
+			return false;
+		}
 
-    invocation = inv;
+		invocation = inv;
 		return true;
 	}
 
@@ -126,8 +128,8 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	{
 		return InvocationExpression(
 			CreateMemberAccess(source, methodName),
-      ArgumentList(
-        SeparatedList(arguments.Select(Argument))));
+			ArgumentList(
+				SeparatedList(arguments.Select(Argument))));
 	}
 
 	/// <summary>
@@ -162,7 +164,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 			ArgumentList(
 				SeparatedList(arguments.Select(Argument))));
 	}
-	
+
 	protected MemberAccessExpressionSyntax CreateMemberAccess(ExpressionSyntax source, string memberName)
 	{
 		return MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, source, IdentifierName(memberName));
@@ -184,16 +186,16 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		argumentList = null;
 
 		if (invocation.Expression is not MemberAccessExpressionSyntax memberAccessExpr)
-    {
-      return false;
-    }
+		{
+			return false;
+		}
 
-    if (memberAccessExpr.Name.Identifier.Text != expectedMethodName)
-    {
-      return false;
-    }
+		if (memberAccessExpr.Name.Identifier.Text != expectedMethodName)
+		{
+			return false;
+		}
 
-    memberAccess = memberAccessExpr;
+		memberAccess = memberAccessExpr;
 		argumentList = invocation.ArgumentList;
 		return true;
 	}
@@ -224,7 +226,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	protected bool IsConstantLambda(LambdaExpressionSyntax lambda, out ExpressionSyntax? constantValue)
 	{
 		constantValue = null;
-		
+
 		var body = lambda switch
 		{
 			SimpleLambdaExpressionSyntax { Body: ExpressionSyntax expr } => expr,
@@ -264,21 +266,21 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		invocation = null;
 
 		if (expression is not InvocationExpressionSyntax inv)
-    {
-      return false;
-    }
+		{
+			return false;
+		}
 
-    if (inv.Expression is not MemberAccessExpressionSyntax memberAccess)
-    {
-      return false;
-    }
+		if (inv.Expression is not MemberAccessExpressionSyntax memberAccess)
+		{
+			return false;
+		}
 
-    if (memberAccess.Name.Identifier.Text != methodName)
-    {
-      return false;
-    }
+		if (memberAccess.Name.Identifier.Text != methodName)
+		{
+			return false;
+		}
 
-    invocation = inv;
+		invocation = inv;
 		return true;
 	}
 
@@ -381,7 +383,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		};
 
 		// Check if body is a binary expression with equality operator
-		if (body is not BinaryExpressionSyntax { RawKind: (int)SyntaxKind.EqualsExpression } binaryExpression)
+		if (body is not BinaryExpressionSyntax { RawKind: (int) SyntaxKind.EqualsExpression } binaryExpression)
 		{
 			return false;
 		}
@@ -408,15 +410,15 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	protected InvocationExpressionSyntax CreateEmptyEnumerableCall(ITypeSymbol elementType)
 	{
 		return InvocationExpression(
-      MemberAccessExpression(
+			MemberAccessExpression(
 				SyntaxKind.SimpleMemberAccessExpression,
-        IdentifierName("Enumerable"),
-        GenericName(
-            Identifier("Empty"))
+				IdentifierName("Enumerable"),
+				GenericName(
+						Identifier("Empty"))
 					.WithTypeArgumentList(
-            TypeArgumentList(
-              SingletonSeparatedList(
-                ParseTypeName(elementType.ToString()))))));
+						TypeArgumentList(
+							SingletonSeparatedList(
+								ParseTypeName(elementType.ToString()))))));
 	}
 
 	protected bool TryGetOptimizedChainExpression(ExpressionSyntax source, ISet<string> methodsToSkip, [NotNullWhen(true)] [NotNullIfNotNull(nameof(source))] out ExpressionSyntax? optimizedSource)
@@ -466,25 +468,25 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		{
 			return false;
 		}
-		
+
 		return model.TryGetTypeSymbol(expression, out var type) && type is IArrayTypeSymbol;
 	}
-	
+
 	protected bool IsSpecialType(SemanticModel model, ExpressionSyntax? expression, params HashSet<SpecialType> specialTypes)
 	{
 		return model.TryGetTypeSymbol(expression, out var type) && type.AllInterfaces.Any(s => specialTypes.Contains(s.SpecialType));
 	}
-	
+
 	protected bool IsCollectionType(SemanticModel model, ExpressionSyntax? expression)
 	{
 		return IsSpecialType(model, expression,
-			SpecialType.System_Collections_Generic_IList_T,
-			SpecialType.System_Collections_Generic_IReadOnlyList_T,
-			SpecialType.System_Collections_Generic_ICollection_T,
-			SpecialType.System_Collections_Generic_IReadOnlyCollection_T)
-			|| IsInvokedOnList(model, expression);
+			       SpecialType.System_Collections_Generic_IList_T,
+			       SpecialType.System_Collections_Generic_IReadOnlyList_T,
+			       SpecialType.System_Collections_Generic_ICollection_T,
+			       SpecialType.System_Collections_Generic_IReadOnlyCollection_T)
+		       || IsInvokedOnList(model, expression);
 	}
-	
+
 	protected LambdaExpressionSyntax CombinePredicates(LambdaExpressionSyntax outer, LambdaExpressionSyntax inner)
 	{
 		// Get parameter names from both lambdas
@@ -498,6 +500,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		// If parameters are the same, we can directly combine with &&
 		// Otherwise, replace the outer parameter with the inner parameter
 		ExpressionSyntax combinedBody;
+
 		if (innerParam == outerParam)
 		{
 			// Both use the same parameter name: v => v > 1 && v < 5
@@ -574,7 +577,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 
 	protected static ExpressionSyntax ReplaceIdentifier(ExpressionSyntax expression, string oldIdentifier, ExpressionSyntax replacement)
 	{
-		return (ExpressionSyntax)new IdentifierReplacer(oldIdentifier, replacement).Visit(expression);
+		return (ExpressionSyntax) new IdentifierReplacer(oldIdentifier, replacement).Visit(expression);
 	}
 
 	protected bool TryGetValues(SyntaxNode node, [NotNullWhen(true)] out IList<object?>? values)
@@ -606,8 +609,58 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 			values = constantValues;
 			return true;
 		}
-		
+
 		values = null;
+		return false;
+	}
+	
+	protected bool TryCastToType(MetadataLoader loader, IEnumerable<object?> values, ITypeSymbol type, [NotNullWhen(true)] out object? result)
+	{
+		if (loader.TryGetType(type, out var elementType))
+		{
+			var castMethod = typeof(Enumerable).GetMethod(nameof(Enumerable.Cast))!
+				.MakeGenericMethod(elementType);
+
+			result = castMethod.Invoke(null, [ values ]);
+			return true;
+		}
+		
+		result = null;
+		return false;
+	}
+
+	protected bool TryExecutePredicates(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
+	{
+		if (context.OriginalParameters.Count == context.Method.Parameters.Length 
+		    && TryGetValues(context.Visit(source) ?? source, out var values)
+		    && context.Loader.TryGetMethodByMethod(context.Method, out var method)
+		    && TryCastToType(context.Loader, values, context.Method.TypeArguments[0], out var castedValues))
+		{
+			var predicates = context.OriginalParameters
+				.WhereSelect<ExpressionSyntax, LambdaExpression?>((x, out result) =>
+				{
+					if (TryGetLambda(x, out var originalLambda))
+					{
+						result = context.GetLambda(originalLambda);
+						return result is not null;
+					}
+					
+					result = null;
+					return false;
+				})
+				.ToArray();
+
+			if (predicates.Length == context.Method.Parameters.Length)
+			{
+				if (SyntaxHelpers.TryGetLiteral(method.Invoke(null, [ castedValues, ..predicates ]), out var tempResult))
+				{
+					result = tempResult;
+					return true;
+				}
+			}
+		}
+		
+		result = null;
 		return false;
 	}
 

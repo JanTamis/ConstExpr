@@ -5,21 +5,23 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
+using ConstExpr.SourceGenerator.Models;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
 public class AtanhFunctionOptimizer() : BaseMathFunctionOptimizer("Atanh", 1)
 {
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
 		result = null;
 
-		if (!IsValidMathMethod(method, out var paramType))
+		if (!IsValidMathMethod(context.Method, out var paramType))
 		{
 			return false;
 		}
 
-		var x = parameters[0];
+		var x = context.VisitedParameters[0];
 
 		// Algebraic simplifications on literal values
 		if (TryGetNumericLiteral(x, out var value))
@@ -48,13 +50,13 @@ public class AtanhFunctionOptimizer() : BaseMathFunctionOptimizer("Atanh", 1)
 				? GenerateFastAtanhMethodFloat()
 				: GenerateFastAtanhMethodDouble();
 
-			additionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
 
-			result = CreateInvocation("FastAtanh", parameters);
+			result = CreateInvocation("FastAtanh", context.VisitedParameters);
 			return true;
 		}
 
-		result = CreateInvocation(paramType, Name, parameters);
+		result = CreateInvocation(paramType, Name, context.VisitedParameters);
 		return true;
 	}
 
@@ -92,7 +94,7 @@ public class AtanhFunctionOptimizer() : BaseMathFunctionOptimizer("Atanh", 1)
 					// Taylor series: atanh(x) = x + x³/3 + x⁵/5 + x⁷/7 + x⁹/9
 					var x2 = x * x;
 					
-					// Horner's method with FMA: x * (1 + x²*(1/3 + x²*(1/5 + x²*(1/7 + x²/9))))
+					// Horner's context.Method with FMA: x * (1 + x²*(1/3 + x²*(1/5 + x²*(1/7 + x²/9))))
 					var poly = Single.FusedMultiplyAdd(x2, 1f / 9f, 1f / 7f); // 1/9, 1/7
 					poly = Single.FusedMultiplyAdd(poly, x2, 0.2f); // 1/5
 					poly = Single.FusedMultiplyAdd(poly, x2, 1f / 3f); // 1/3
@@ -127,7 +129,7 @@ public class AtanhFunctionOptimizer() : BaseMathFunctionOptimizer("Atanh", 1)
 					// Taylor series: atanh(x) = x + x³/3 + x⁵/5 + x⁷/7 + x⁹/9 + x¹¹/11
 					var x2 = x * x;
 					
-					// Horner's method with FMA: x * (1 + x²*(1/3 + x²*(1/5 + x²*(1/7 + x²*(1/9 + x²/11)))))
+					// Horner's context.Method with FMA: x * (1 + x²*(1/3 + x²*(1/5 + x²*(1/7 + x²*(1/9 + x²/11)))))
 					var poly = Double.FusedMultiplyAdd(x2, 1d / 11d, 1d / 9d); // 1/11, 1/9
 					poly = Double.FusedMultiplyAdd(poly, x2, 1d / 7d); // 1/7
 					poly = Double.FusedMultiplyAdd(poly, x2, 1d / 5d); // 1/5

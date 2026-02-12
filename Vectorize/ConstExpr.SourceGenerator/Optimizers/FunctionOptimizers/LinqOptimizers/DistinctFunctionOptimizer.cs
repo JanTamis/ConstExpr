@@ -1,13 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Distinct method.
+/// Optimizer for Enumerable.Distinct context.Method.
 /// Optimizes patterns such as:
 /// - collection.Distinct().Distinct() => collection.Distinct() (redundant Distinct calls)
 /// - collection.Select(x => x).Distinct() => collection.Distinct() (identity Select before Distinct)
@@ -53,17 +55,17 @@ public class DistinctFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		nameof(Enumerable.FirstOrDefault),
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(model, method)
-		    || !TryGetLinqSource(invocation, out var source))
+		if (!IsValidLinqMethod(context.Model, context.Method)
+		    || !TryGetLinqSource(context.Invocation, out var source))
 		{
 			result = null;
 			return false;
 		}
 
 		// Check if Distinct is followed by a set-based operation
-		var parent = invocation.Parent;
+		var parent = context.Invocation.Parent;
 		var isFollowedBySetOperation = false;
 		
 		if (parent is MemberAccessExpressionSyntax { Parent: InvocationExpressionSyntax parentInvocation } memberAccess
@@ -85,19 +87,19 @@ public class DistinctFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		if (IsLinqMethodChain(source, nameof(Enumerable.Select), out var selectInvocation)
 		    && GetMethodArguments(selectInvocation).FirstOrDefault() is { Expression: { } lambdaArg }
 		    && TryGetLambda(lambdaArg, out var lambda)
-		    && IsIdentityLambda(visit(lambda) as LambdaExpressionSyntax ?? lambda)
+		    && IsIdentityLambda(context.Visit(lambda) as LambdaExpressionSyntax ?? lambda)
 		    && TryGetLinqSource(selectInvocation, out var selectSource))
 		{
 			TryGetOptimizedChainExpression(selectSource, allowedOperations, out selectSource);
 			
-			result = CreateInvocation(visit(selectSource) ?? selectSource, nameof(Enumerable.Distinct));
+			result = CreateInvocation(context.Visit(selectSource) ?? selectSource, nameof(Enumerable.Distinct));
 			return true;
 		}
 
 		// If we skipped any operations, create optimized Distinct() call
 		if (isNewSource)
 		{
-			result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.Distinct));
+			result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.Distinct));
 			return true;
 		}
 

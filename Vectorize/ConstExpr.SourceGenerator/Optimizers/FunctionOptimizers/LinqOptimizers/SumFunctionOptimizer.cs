@@ -1,13 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Sum method.
+/// Optimizer for Enumerable.Sum context.Method.
 /// Optimizes patterns such as:
 /// - collection.Sum(x => x) => collection.Sum() (identity lambda removal)
 /// - collection.Select(x => x.Property).Sum() => collection.Sum(x => x.Property)
@@ -33,10 +35,10 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		nameof(Enumerable.Reverse),
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(model, method)
-		    || !TryGetLinqSource(invocation, out var source))
+		if (!IsValidLinqMethod(context.Model, context.Method)
+		    || !TryGetLinqSource(context.Invocation, out var source))
 		{
 			result = null;
 			return false;
@@ -45,17 +47,22 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		// Recursively skip operations that don't affect sum
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectSum, out source);
 
+		if (TryExecutePredicates(context, source, out result))
+		{
+			return true;
+		}
+
 		// Optimize Sum(x => x) => Sum() (identity lambda removal)
-		if (parameters.Count == 1
-		    && TryGetLambda(parameters[0], out var lambda)
+		if (context.VisitedParameters.Count == 1
+		    && TryGetLambda(context.VisitedParameters[0], out var lambda)
 		    && IsIdentityLambda(lambda))
 		{
-			result = CreateSimpleInvocation(visit(source) ?? source, nameof(Enumerable.Sum));
+			result = CreateSimpleInvocation(context.Visit(source) ?? source, nameof(Enumerable.Sum));
 			return true;
 		}
 
 		// Optimize source.Select(selector).Sum() => source.Sum(selector)
-		if (parameters.Count == 0
+		if (context.VisitedParameters.Count == 0
 		    && IsLinqMethodChain(source, nameof(Enumerable.Select), out var selectInvocation)
 		    && TryGetLinqSource(selectInvocation, out var selectSource)
 		    && selectInvocation.ArgumentList.Arguments.Count == 1)
@@ -66,7 +73,7 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 			if (!TryGetLambda(selector, out var selectorLambda) || !IsIdentityLambda(selectorLambda))
 			{
-				result = CreateInvocation(visit(selectSource) ?? selectSource, nameof(Enumerable.Sum), visit(selector) ?? selector);
+				result = CreateInvocation(context.Visit(selectSource) ?? selectSource, nameof(Enumerable.Sum), context.Visit(selector) ?? selector);
 				return true;
 			}
 		}
@@ -74,7 +81,7 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		// If we skipped any operations, create optimized Sum() call
 		if (isNewSource)
 		{
-			result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.Sum), parameters);
+			result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.Sum), context.VisitedParameters);
 			return true;
 		}
 

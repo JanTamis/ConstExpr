@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -8,42 +10,42 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.OfType method.
+/// Optimizer for Enumerable.OfType context.Method.
 /// Optimizes patterns such as:
 /// - collection.OfType&lt;T&gt;().OfType&lt;T&gt;() => collection.OfType&lt;T&gt;() (duplicate removal)
 /// - collection.Cast&lt;T&gt;().OfType&lt;T&gt;() => collection.Cast&lt;T&gt;() (redundant OfType after Cast)
 /// </summary>
 public class OfTypeFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.OfType), 0)
 {
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(model, method)
-		    || !TryGetLinqSource(invocation, out var source))
+		if (!IsValidLinqMethod(context.Model, context.Method)
+		    || !TryGetLinqSource(context.Invocation, out var source))
 		{
 			result = null;
 			return false;
 		}
 
 		// Get the type argument for this OfType call
-		var typeArg = method.TypeArguments[0];
+		var typeArg = context.Method.TypeArguments[0];
 
 		// Optimize source.OfType<T>().OfType<T>() => source.OfType<T>() (duplicate removal with same type)
 		if (IsLinqMethodChain(source, nameof(Enumerable.OfType), out var ofTypeInvocation)
 		    && TryGetLinqSource(ofTypeInvocation, out _)
-		    && model.GetSymbolInfo(ofTypeInvocation).Symbol is IMethodSymbol { TypeArguments.Length: > 0 } innerMethod
+		    && context.Model.GetSymbolInfo(ofTypeInvocation).Symbol is IMethodSymbol { TypeArguments.Length: > 0 } innerMethod
 		    && SymbolEqualityComparer.Default.Equals(innerMethod.TypeArguments[0], typeArg))
 		{
-			result = visit(source) ?? source;
+			result = context.Visit(source) ?? source;
 			return true;
 		}
 
 		// Optimize source.Cast<T>().OfType<T>() => source.Cast<T>() (redundant OfType after Cast with same type)
 		if (IsLinqMethodChain(source, nameof(Enumerable.Cast), out var castInvocation)
 		    && TryGetLinqSource(castInvocation, out _)
-		    && model.GetSymbolInfo(castInvocation).Symbol is IMethodSymbol { TypeArguments.Length: > 0 } innerMethod1
+		    && context.Model.GetSymbolInfo(castInvocation).Symbol is IMethodSymbol { TypeArguments.Length: > 0 } innerMethod1
 		    && SymbolEqualityComparer.Default.Equals(innerMethod1.TypeArguments[0], typeArg))
 		{
-			result = visit(source) ?? source;
+			result = context.Visit(source) ?? source;
 			return true;
 		}
 

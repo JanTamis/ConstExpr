@@ -4,7 +4,9 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 using System.Text;
+using ConstExpr.SourceGenerator.Models;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers
 {
@@ -12,22 +14,22 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 	/// Optimizes usages of <c>string.Concat</c>. This optimizer:
 	/// - Combines adjacent string literal arguments into a single literal (for example, <c>Concat("a", "b", x)</c> -> <c>Concat("ab", x)</c>).
 	/// - If the call reduces to a single expression, returns that expression directly.
-	/// - Rebuilds the invocation targeting the resolved string type/helper when changes are made.
+	/// - Rebuilds the context.Invocation targeting the resolved string type/helper when changes are made.
 	/// </summary>
 	/// <param name="instance">Optional syntax node instance provided by the optimizer infrastructure; may be null.</param>
 	public class ConcatFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "Concat")
 	{
-		public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+		public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 		{
 			result = null;
 
-			if (!IsValidMethod(method, out var stringType) || !method.IsStatic)
+			if (!IsValidMethod(context.Method, out var stringType) || !context.Method.IsStatic)
 			{
 				return false;
 			}
 
 			// If no arguments -> empty string
-			if (parameters.Count == 0)
+			if (context.VisitedParameters.Count == 0)
 			{
 				result = SyntaxHelpers.CreateLiteral(String.Empty);
 				return true;
@@ -37,7 +39,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 			var newParams = new List<ExpressionSyntax>();
 			var literalBuffer = new StringBuilder();
 
-			foreach (var p in parameters)
+			foreach (var p in context.VisitedParameters)
 			{
 				switch (p)
 				{
@@ -63,14 +65,14 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 			}
 
 			// If nothing changed, don't claim optimization
-			if (newParams.Count == parameters.Count)
+			if (newParams.Count == context.VisitedParameters.Count)
 			{
 				// Compare sequence elements by reference/simple kind - cheap heuristic
 				var changed = false;
 
-				for (var i = 0; i < parameters.Count; i++)
+				for (var i = 0; i < context.VisitedParameters.Count; i++)
 				{
-					if (!parameters[i].IsEquivalentTo(newParams[i]))
+					if (!context.VisitedParameters[i].IsEquivalentTo(newParams[i]))
 					{
 						changed = true;
 						break;
@@ -83,7 +85,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 				}
 			}
 
-			// Rebuild invocation targeting the string helper/type
+			// Rebuild context.Invocation targeting the string helper/type
 			result = CreateInvocation(stringType, Name, newParams);
 			return true;
 

@@ -1,29 +1,36 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.GroupBy method.
+/// Optimizer for Enumerable.GroupBy context.Method.
 /// Optimizes patterns such as:
 /// - Enumerable.Empty&lt;T&gt;().GroupBy(selector) => Enumerable.Empty&lt;IGrouping&lt;TKey, T&gt;&gt;()
 /// </summary>
 public class GroupByFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.GroupBy), 1, 2, 3)
 {
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(model, method)
-		    || !TryGetLinqSource(invocation, out var source))
+		if (!IsValidLinqMethod(context.Model, context.Method)
+		    || !TryGetLinqSource(context.Invocation, out var source))
 		{
 			result = null;
 			return false;
 		}
 
+		if (TryExecutePredicates(context, source, out result))
+		{
+			return true;
+		}
+
 		// Optimize Enumerable.Empty<T>().GroupBy(selector) => Enumerable.Empty<IGrouping<TKey, T>>()
-		if (IsEmptyEnumerable(visit(source) ?? source) && method.ReturnType is INamedTypeSymbol { TypeArguments.Length: > 0 } returnType)
+		if (IsEmptyEnumerable(context.Visit(source) ?? source) && context.Method.ReturnType is INamedTypeSymbol { TypeArguments.Length: > 0 } returnType)
 		{
 			result = CreateEmptyEnumerableCall(returnType.TypeArguments[0]);
 			return true;

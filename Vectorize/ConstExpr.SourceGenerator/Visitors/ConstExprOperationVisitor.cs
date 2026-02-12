@@ -20,7 +20,7 @@ using System.Threading.Tasks;
 
 namespace ConstExpr.SourceGenerator.Visitors;
 
-public partial class ConstExprOperationVisitor(Compilation compilation, MetadataLoader loader, Action<IOperation?, Exception> exceptionHandler, CancellationToken token) : OperationVisitor<IDictionary<string, object?>, object?>
+public partial class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loader, Action<IOperation?, Exception> exceptionHandler, CancellationToken token) : OperationVisitor<IDictionary<string, object?>, object?>
 {
 	public const string RETURNVARIABLENAME = "$return$";
 
@@ -396,7 +396,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			return instance;
 		}
 
-		if (compilation.TryGetIEnumerableType(operation.Type, false, out var type))
+		if (model.Compilation.TryGetIEnumerableType(operation.Type, false, out var type))
 		{
 			var elementType = loader.GetType(type);
 			var data = Array.CreateInstance(elementType, operation.Elements.Length);
@@ -509,7 +509,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 
 		if (SyntaxHelpers.IsInConstExprBody(targetMethod))
 		{
-			if (SyntaxHelpers.TryGetOperation<IOperation>(compilation, targetMethod, out var methodOperation))
+			if (SyntaxHelpers.TryGetOperation<IOperation>(model.Compilation, targetMethod, out var methodOperation))
 			{
 				var parameters = methodOperation.Syntax switch
 				{
@@ -526,7 +526,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 					variables.Add(parameterName, arguments[i]);
 				}
 
-				var visitor = new ConstExprOperationVisitor(compilation, loader, exceptionHandler, token);
+				var visitor = new ConstExprOperationVisitor(model, loader, exceptionHandler, token);
 
 				switch (methodOperation)
 				{
@@ -1269,7 +1269,7 @@ public partial class ConstExprOperationVisitor(Compilation compilation, Metadata
 			.Select(p => Expression.Parameter(loader.GetType(p.Type), p.Name))
 			.ToArray();
 
-		var body = new ExpressionVisitor(compilation, loader, parameters).VisitBlock(operation.Body, argument);
+		var body = new ExpressionVisitor(model, loader, parameters).VisitBlock(operation.Body, argument);
 		var lambda = Expression.Lambda(body, parameters);
 
 		// Compileer de lambda en retourneer de gedelegeerde

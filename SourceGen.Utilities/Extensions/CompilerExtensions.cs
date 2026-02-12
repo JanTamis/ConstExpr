@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -147,6 +148,12 @@ public static class CompilerExtensions
 		
 		operation = null;
 		return false;
+	}
+
+	public static bool TryGetOperation<TOperation>(this SemanticModel model, SyntaxNode node, [NotNullWhen(true)] out TOperation? operation) where TOperation : class, IOperation
+	{
+		operation = model.GetOperation(node) as TOperation;
+		return operation is not null;
 	}
 
 	public static bool IsPrimitiveType(this ITypeSymbol typeSymbol)

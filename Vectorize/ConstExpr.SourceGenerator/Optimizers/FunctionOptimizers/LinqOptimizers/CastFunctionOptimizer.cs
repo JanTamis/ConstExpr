@@ -1,13 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Cast method.
+/// Optimizer for Enumerable.Cast context.Method.
 /// Optimizes patterns such as:
 /// - collection.AsEnumerable().Cast&lt;T&gt;() =&gt; collection.Cast&lt;T&gt;() (skip type cast)
 /// - collection.ToList().Cast&lt;T&gt;() =&gt; collection.Cast&lt;T&gt;() (skip materialization)
@@ -23,10 +25,10 @@ public class CastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 		nameof(Enumerable.ToArray),          // Materialization: preserves order and all elements
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(model, method)
-		    || !TryGetLinqSource(invocation, out var source))
+		if (!IsValidLinqMethod(context.Model, context.Method)
+		    || !TryGetLinqSource(context.Invocation, out var source))
 		{
 			result = null;
 			return false;
@@ -36,13 +38,13 @@ public class CastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 		if (TryGetOptimizedChainExpression(source, OperationsThatDontAffectCast, out source))
 		{
 			// Preserve the generic type argument from the original Cast<T>() call
-			if (invocation.Expression is MemberAccessExpressionSyntax { Name: GenericNameSyntax genericName })
+			if (context.Invocation.Expression is MemberAccessExpressionSyntax { Name: GenericNameSyntax genericName })
 			{
-				result = CreateInvocation(visit(source) ?? source, genericName);
+				result = CreateInvocation(context.Visit(source) ?? source, genericName);
 			}
 			else
 			{
-				result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.Cast));
+				result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.Cast));
 			}
 			
 			return true;

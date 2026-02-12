@@ -2,22 +2,24 @@ using System;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.Collections.Generic;
+using ConstExpr.SourceGenerator.Models;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
 public class FloorFunctionOptimizer() : BaseMathFunctionOptimizer("Floor", 1)
 {
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
 		result = null;
 
-		if (!IsValidMathMethod(method, out var paramType))
+		if (!IsValidMathMethod(context.Method, out var paramType))
 		{
 			return false;
 		}
 
-		switch (parameters[0])
+		var arg = context.VisitedParameters[0];
+
+		switch (arg)
 		{
 			// 1) Idempotence: Floor(Floor(x)) -> Floor(x)
 			case InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Floor" } } innerInv:
@@ -36,10 +38,11 @@ public class FloorFunctionOptimizer() : BaseMathFunctionOptimizer("Floor", 1)
 			default:
 			{
 				// Default: keep as Floor call (target numeric helper type)
-				result = CreateInvocation(paramType, Name, parameters);
+				result = CreateInvocation(paramType, Name, context.VisitedParameters);
 				return true;
 			}
 		}
 
+		return false;
 	}
 }

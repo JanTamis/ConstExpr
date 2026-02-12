@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -8,7 +10,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.All method.
+/// Optimizer for Enumerable.All context.Method.
 /// Optimizes patterns such as:
 /// - collection.Where(predicate1).All(predicate2) => collection.All(x => predicate1(x) && predicate2(x))
 /// - collection.Select(...).All() => collection.All() (projection doesn't affect all-check)
@@ -42,17 +44,17 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		nameof(Enumerable.ToArray), // Materialization: creates array but doesn't filter
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(model, method)
-		    || !TryGetLinqSource(invocation, out var source))
+		if (!IsValidLinqMethod(context.Model, context.Method)
+		    || !TryGetLinqSource(context.Invocation, out var source))
 		{
 			result = null;
 			return false;
 		}
 
 		// Get the predicate from All(predicate)
-		var allPredicate = GetMethodArguments(invocation)
+		var allPredicate = GetMethodArguments(context.Invocation)
 			.Select(s => s.Expression)
 			.FirstOrDefault();
 
@@ -65,6 +67,11 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		// Recursively skip all operations that don't affect all-check
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectAll, out source);
 
+		if (TryExecutePredicates(context, source, out result))
+		{
+			return true;
+		}
+
 		// Now check if we have a Where at the end of the optimized chain
 		if (IsLinqMethodChain(source, nameof(Enumerable.Where), out var whereInvocation)
 		    && GetMethodArguments(whereInvocation).FirstOrDefault() is { Expression: { } predicateArg }
@@ -74,7 +81,7 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			// Continue skipping operations before Where as well
 			TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectAll, out source);
 
-			allLambda = CombinePredicates(visit(allLambda) as LambdaExpressionSyntax ?? allLambda, visit(wherePredicate) as LambdaExpressionSyntax ?? wherePredicate);
+			allLambda = CombinePredicates(context.Visit(allLambda) as LambdaExpressionSyntax ?? allLambda, context.Visit(wherePredicate) as LambdaExpressionSyntax ?? wherePredicate);
 			isNewSource = true;
 		}
 
@@ -87,26 +94,26 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			// Continue skipping operations before Where as well
 			TryGetOptimizedChainExpression(selectSource, OperationsThatDontAffectAll, out source);
 
-			allLambda = CombineSelectLambdas(visit(allLambda) as LambdaExpressionSyntax ?? allLambda, visit(selectPredicate) as LambdaExpressionSyntax ?? selectPredicate);
+			allLambda = CombineSelectLambdas(context.Visit(allLambda) as LambdaExpressionSyntax ?? allLambda, context.Visit(selectPredicate) as LambdaExpressionSyntax ?? selectPredicate);
 			isNewSource = true;
 		}
 
-		if (IsInvokedOnArray(model, source))
+		if (IsInvokedOnArray(context.Model, source))
 		{
-			result = CreateInvocation(SyntaxFactory.ParseTypeName(nameof(Array)), nameof(Array.TrueForAll), visit(source) ?? source, visit(allLambda) ?? allLambda);
+			result = CreateInvocation(SyntaxFactory.ParseTypeName(nameof(Array)), nameof(Array.TrueForAll), context.Visit(source) ?? source, context.Visit(allLambda) ?? allLambda);
 			return true;
 		}
 
-		if (IsInvokedOnArray(model, source))
+		if (IsInvokedOnArray(context.Model, source))
 		{
-			result = CreateInvocation(source, "TrueForAll", visit(allLambda) ?? allLambda);
+			result = CreateInvocation(source, "TrueForAll", context.Visit(allLambda) ?? allLambda);
 			return true;
 		}
 
 		// If we skipped any operations, create optimized All() call
 		if (isNewSource)
 		{
-			result = CreateInvocation(source!, nameof(Enumerable.All), visit(allLambda) ?? allLambda);
+			result = CreateInvocation(source!, nameof(Enumerable.All), context.Visit(allLambda) ?? allLambda);
 			return true;
 		}
 

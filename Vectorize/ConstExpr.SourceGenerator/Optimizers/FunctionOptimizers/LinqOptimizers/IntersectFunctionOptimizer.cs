@@ -1,14 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using ConstExpr.SourceGenerator.Comparers;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Intersect method.
+/// Optimizer for Enumerable.Intersect context.Method.
 /// Optimizes patterns such as:
 /// - collection.Intersect(collection) => collection.Distinct() (intersection with itself is just distinct values)
 /// - collection.Intersect(Enumerable.Empty&lt;T&gt;()) => Enumerable.Empty&lt;T&gt;() (intersection with empty is empty)
@@ -56,27 +56,27 @@ public class IntersectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		nameof(Enumerable.FirstOrDefault),
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(model, method)
-		    || !TryGetLinqSource(invocation, out var source)
-		    || parameters.Count == 0)
+		if (!IsValidLinqMethod(context.Model, context.Method)
+		    || !TryGetLinqSource(context.Invocation, out var source)
+		    || context.VisitedParameters.Count == 0)
 		{
 			result = null;
 			return false;
 		}
 
-		var intersectCollection = parameters[0];
+		var intersectCollection = context.VisitedParameters[0];
 
 		// Try simple optimizations first
-		if (TryOptimizeEmptySource(visit(source) ?? source, out result)
-		    || TryOptimizeEmptyIntersectCollection(method, visit(intersectCollection) ?? intersectCollection, out result)
-		    || TryOptimizeSelfIntersect(visit(source) ?? source, visit(intersectCollection) ?? intersectCollection, out result)
-		    || TryOptimizeChainedIntersect(source, intersectCollection, visit, out result))
+		if (TryOptimizeEmptySource(context.Visit(source) ?? source, out result)
+		    || TryOptimizeEmptyIntersectCollection(context.Method, context.Visit(intersectCollection) ?? intersectCollection, out result)
+		    || TryOptimizeSelfIntersect(context.Visit(source) ?? source, context.Visit(intersectCollection) ?? intersectCollection, out result)
+		    || TryOptimizeChainedIntersect(source, intersectCollection, context.Visit, out result))
 			return true;
 
 		// Try to optimize by removing redundant operations
-		return TryOptimizeRedundantOperations(invocation, source, intersectCollection, visit, out result);
+		return TryOptimizeRedundantOperations(context.Invocation, source, intersectCollection, context.Visit, out result);
 	}
 
 	private bool TryOptimizeEmptySource(ExpressionSyntax source, out SyntaxNode? result)

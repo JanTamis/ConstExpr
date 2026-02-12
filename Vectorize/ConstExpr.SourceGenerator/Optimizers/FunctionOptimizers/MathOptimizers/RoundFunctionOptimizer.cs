@@ -5,22 +5,24 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
+using ConstExpr.SourceGenerator.Models;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
 public class RoundFunctionOptimizer() : BaseMathFunctionOptimizer("Round", 1, 2, 3)
 {
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
 		result = null;
 
-		if (!IsValidMathMethod(method, out var paramType))
+		if (!IsValidMathMethod(context.Method, out var paramType))
 		{
 			return false;
 		}
 
 		// 1) If the inner expression already yields an integer-valued result, keep inner: Truncate/Floor/Ceiling/Round -> they return integer
-		if (parameters[0] is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Truncate" or "Floor" or "Ceiling" or "Round" } } inv)
+		if (context.VisitedParameters[0] is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Truncate" or "Floor" or "Ceiling" or "Round" } } inv)
 		{
 			result = inv;
 			return true;
@@ -29,12 +31,12 @@ public class RoundFunctionOptimizer() : BaseMathFunctionOptimizer("Round", 1, 2,
 		// 2) Integer types: Round(x) -> x (round has no effect on integers)
 		if (paramType.IsNonFloatingNumeric())
 		{
-			result = parameters[0];
+			result = context.VisitedParameters[0];
 			return true;
 		}
 
 		// 3) Unary minus: Round(-x) -> -Round(x)
-		if (parameters[0] is PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken } prefix)
+		if (context.VisitedParameters[0] is PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken } prefix)
 		{
 			// Keep sign and round the operand
 			var roundCall = CreateInvocation(paramType, "Round", prefix.Operand);
@@ -43,8 +45,8 @@ public class RoundFunctionOptimizer() : BaseMathFunctionOptimizer("Round", 1, 2,
 			return true;
 		}
 
-		// 4) check if parent of invocation is casting to integer type
-		if (invocation.Parent is CastExpressionSyntax
+		// 4) check if parent of context.Invocation is casting to integer type
+		if (context.Invocation.Parent is CastExpressionSyntax
 			{
 				Type: PredefinedTypeSyntax
 				{
@@ -59,12 +61,12 @@ public class RoundFunctionOptimizer() : BaseMathFunctionOptimizer("Round", 1, 2,
 						or (int)SyntaxKind.CharKeyword
 				}
 			}
-				&& parameters.Count == 2)
+				&& context.VisitedParameters.Count == 2)
 		{
 			// Check that the second argument is a compile-time MidpointRounding enum member
 			string? enumMember = null;
 
-			switch (parameters[1])
+			switch (context.VisitedParameters[1])
 			{
 				case MemberAccessExpressionSyntax mae:
 					{
@@ -88,19 +90,19 @@ public class RoundFunctionOptimizer() : BaseMathFunctionOptimizer("Round", 1, 2,
 			switch (enumMember)
 			{
 				case "ToZero":
-					result = CreateInvocation(paramType, "Truncate", parameters.Take(1));
+					result = CreateInvocation(paramType, "Truncate", context.VisitedParameters.Take(1));
 					return true;
 				case "ToPositiveInfinity":
-					result = CreateInvocation(paramType, "Ceiling", parameters.Take(1));
+					result = CreateInvocation(paramType, "Ceiling", context.VisitedParameters.Take(1));
 					return true;
 				case "ToNegativeInfinity":
-					result = CreateInvocation(paramType, "Floor", parameters.Take(1));
+					result = CreateInvocation(paramType, "Floor", context.VisitedParameters.Take(1));
 					return true;
 			}
 		}
 
 		// Default: keep as Round call (target numeric helper type)
-		result = CreateInvocation(paramType, Name, parameters);
+		result = CreateInvocation(paramType, Name, context.VisitedParameters);
 		return true;
 	}
 }

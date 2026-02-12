@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -9,7 +11,7 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Any method.
+/// Optimizer for Enumerable.Any context.Method.
 /// Optimizes patterns such as:
 /// - collection.Where(predicate).Any() => collection.Any(predicate)
 /// - collection.Select(...).Any() => collection.Any() (projection doesn't affect existence)
@@ -44,10 +46,10 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		nameof(Enumerable.ToArray), // Materialization: creates array but doesn't filter
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(model, method)
-		    || !TryGetLinqSource(invocation, out var source))
+		if (!IsValidLinqMethod(context.Model, context.Method)
+		    || !TryGetLinqSource(context.Invocation, out var source))
 		{
 			result = null;
 			return false;
@@ -55,6 +57,11 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 		// Recursively skip all operations that don't affect existence
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectExistence, out source);
+
+		if (TryExecutePredicates(context, source, out result))
+		{
+			return true;
+		}
 
 		// Now check if we have a Where at the end of the optimized chain
 		if (IsLinqMethodChain(source, nameof(Enumerable.Where), out var whereInvocation)
@@ -65,9 +72,9 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			// Continue skipping operations before Where as well
 			TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectExistence, out whereSource);
 
-			if (parameters.Count == 1 && TryGetLambda(parameters[0], out var anyPredicate))
+			if (context.VisitedParameters.Count == 1 && TryGetLambda(context.VisitedParameters[0], out var anyPredicate))
 			{
-				predicate = CombinePredicates(visit(predicate) as LambdaExpressionSyntax ?? predicate, visit(anyPredicate) as LambdaExpressionSyntax ?? anyPredicate);
+				predicate = CombinePredicates(context.Visit(predicate) as LambdaExpressionSyntax ?? predicate, context.Visit(anyPredicate) as LambdaExpressionSyntax ?? anyPredicate);
 			}
 
 			if (IsSimpleEqualityLambda(predicate, out var equalityValue))
@@ -76,53 +83,53 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 				return true;
 			}
 
-			if (IsInvokedOnList(model, whereSource))
+			if (IsInvokedOnList(context.Model, whereSource))
 			{
-				result = CreateInvocation(visit(whereSource) ?? whereSource, "Exists", visit(predicate) ?? predicate);
+				result = CreateInvocation(context.Visit(whereSource) ?? whereSource, "Exists", context.Visit(predicate) ?? predicate);
 				return true;
 			}
 
-			if (IsInvokedOnArray(model, whereSource))
+			if (IsInvokedOnArray(context.Model, whereSource))
 			{
-				result = CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.Exists), visit(whereSource) ?? whereSource, visit(predicate) ?? predicate);
+				result = CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.Exists), context.Visit(whereSource) ?? whereSource, context.Visit(predicate) ?? predicate);
 				return true;
 			}
 
-			result = CreateInvocation(whereSource, nameof(Enumerable.Any), visit(predicate) ?? predicate);
+			result = CreateInvocation(whereSource, nameof(Enumerable.Any), context.Visit(predicate) ?? predicate);
 			return true;
 		}
 
-		if (parameters.Count == 0)
+		if (context.VisitedParameters.Count == 0)
 		{
-			if (IsCollectionType(model, source))
+			if (IsCollectionType(context.Model, source))
 			{
 				result = BinaryExpression(SyntaxKind.GreaterThanExpression,
-					CreateMemberAccess(visit(source) ?? source, "Count"),
+					CreateMemberAccess(context.Visit(source) ?? source, "Count"),
 					LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)));
 
 				return true;
 			}
 
-			if (IsInvokedOnArray(model, source))
+			if (IsInvokedOnArray(context.Model, source))
 			{
 				result = BinaryExpression(SyntaxKind.GreaterThanExpression,
-					CreateMemberAccess(visit(source) ?? source, "Length"),	
+					CreateMemberAccess(context.Visit(source) ?? source, "Length"),	
 					LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)));
 
 				return true;
 			}
 		}
-		else if (TryGetLambda(parameters[0], out var anyLambda)
+		else if (TryGetLambda(context.VisitedParameters[0], out var anyLambda)
 		         && IsSimpleEqualityLambda(anyLambda, out var equalityValue))
 		{
-			result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.Contains), equalityValue);
+			result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.Contains), equalityValue);
 			return true;
 		}
 
 		// If we skipped any operations, create optimized Any() call
 		if (isNewSource)
 		{
-			result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.Any));
+			result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.Any));
 			return true;
 		}
 

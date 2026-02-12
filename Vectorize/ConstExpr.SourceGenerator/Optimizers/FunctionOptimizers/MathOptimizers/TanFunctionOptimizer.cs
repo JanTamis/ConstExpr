@@ -5,21 +5,23 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
+using ConstExpr.SourceGenerator.Models;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
 public class TanFunctionOptimizer() : BaseMathFunctionOptimizer("Tan", 1)
 {
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
 		result = null;
 
-		if (!IsValidMathMethod(method, out var paramType))
+		if (!IsValidMathMethod(context.Method, out var paramType))
 		{
 			return false;
 		}
 
-		var x = parameters[0];
+		var x = context.VisitedParameters[0];
 
 		// Algebraic simplifications on literal values
 		if (TryGetNumericLiteral(x, out var value))
@@ -66,13 +68,13 @@ public class TanFunctionOptimizer() : BaseMathFunctionOptimizer("Tan", 1)
 				? GenerateFastTanMethodFloat()
 				: GenerateFastTanMethodDouble();
 
-			additionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
 
-			result = CreateInvocation("FastTan", parameters);
+			result = CreateInvocation("FastTan", context.VisitedParameters);
 			return true;
 		}
 
-		result = CreateInvocation(paramType, Name, parameters);
+		result = CreateInvocation(paramType, Name, context.VisitedParameters);
 		return true;
 	}
 
@@ -101,7 +103,7 @@ public class TanFunctionOptimizer() : BaseMathFunctionOptimizer("Tan", 1)
 				if (Single.IsNaN(x)) return Single.NaN;
 				if (Single.IsInfinity(x)) return Single.NaN;
 				
-				// Range reduction using Cody-Waite method for better accuracy
+				// Range reduction using Cody-Waite context.Method for better accuracy
 				const float InvPi = 1.0f / Single.Pi
 				
 				// Reduce to [-π, π]
@@ -148,7 +150,7 @@ public class TanFunctionOptimizer() : BaseMathFunctionOptimizer("Tan", 1)
 				if (Double.IsNaN(x)) return Double.NaN;
 				if (Double.IsInfinity(x)) return Double.NaN;
 				
-				// Range reduction using Cody-Waite method for better accuracy
+				// Range reduction using Cody-Waite context.Method for better accuracy
 				const double InvPi = 1.0 / Double.Pi;
 				
 				// Reduce to [-π, π]

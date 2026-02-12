@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -9,7 +11,7 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Chunk method.
+/// Optimizer for Enumerable.Chunk context.Method.
 /// Optimizes patterns such as:
 /// - collection.Chunk(size).Count() => (collection.Count() + size - 1) / size (ceiling division)
 /// - collection.Chunk(n).First() => collection.Take(n).ToArray()
@@ -18,16 +20,16 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// </summary>
 public class ChunkFunctionOptimizer() : BaseLinqFunctionOptimizer("Chunk", 1)
 {
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(model, method)
-		    || !TryGetLinqSource(invocation, out var source))
+		if (!IsValidLinqMethod(context.Model, context.Method)
+		    || !TryGetLinqSource(context.Invocation, out var source))
 		{
 			result = null;
 			return false;
 		}
 
-		var chunkSize = parameters[0];
+		var chunkSize = context.VisitedParameters[0];
 
 		// Optimization: Chunk(1) => Select(x => new[] { x })
 		if (chunkSize is LiteralExpressionSyntax { Token.Value: 1 })
@@ -40,7 +42,7 @@ public class ChunkFunctionOptimizer() : BaseLinqFunctionOptimizer("Chunk", 1)
 
 			var lambda = SimpleLambdaExpression(parameter, lambdaBody);
 			
-			result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.Select), lambda);
+			result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.Select), lambda);
 			return true;
 		}
 

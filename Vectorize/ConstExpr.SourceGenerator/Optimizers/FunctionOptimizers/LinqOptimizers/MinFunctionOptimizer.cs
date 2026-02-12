@@ -1,13 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Min method.
+/// Optimizer for Enumerable.Min context.Method.
 /// Optimizes patterns such as:
 /// - collection.Min(x => x) => collection.Min() (identity lambda removal)
 /// - collection.Select(x => x.Property).Min() => collection.Min(x => x.Property)
@@ -32,10 +34,10 @@ public class MinFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		nameof(Enumerable.Reverse),
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(model, method)
-		    || !TryGetLinqSource(invocation, out var source))
+		if (!IsValidLinqMethod(context.Model, context.Method)
+		    || !TryGetLinqSource(context.Invocation, out var source))
 		{
 			result = null;
 			return false;
@@ -45,16 +47,16 @@ public class MinFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectMin, out source);
 
 		// Optimize Min(x => x) => Min() (identity lambda removal)
-		if (parameters.Count == 1
-		    && TryGetLambda(parameters[0], out var lambda)
-		    && IsIdentityLambda(visit(lambda) as LambdaExpressionSyntax ?? lambda))
+		if (context.VisitedParameters.Count == 1
+		    && TryGetLambda(context.VisitedParameters[0], out var lambda)
+		    && IsIdentityLambda(context.Visit(lambda) as LambdaExpressionSyntax ?? lambda))
 		{
-			result = CreateSimpleInvocation(visit(source) ?? source, nameof(Enumerable.Min));
+			result = CreateSimpleInvocation(context.Visit(source) ?? source, nameof(Enumerable.Min));
 			return true;
 		}
 
 		// Optimize source.Select(selector).Min() => source.Min(selector)
-		if (parameters.Count == 0
+		if (context.VisitedParameters.Count == 0
 		    && IsLinqMethodChain(source, nameof(Enumerable.Select), out var selectInvocation)
 		    && TryGetLinqSource(selectInvocation, out var selectSource)
 		    && selectInvocation.ArgumentList.Arguments.Count == 1)
@@ -62,14 +64,14 @@ public class MinFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			TryGetOptimizedChainExpression(selectSource, OperationsThatDontAffectMin, out selectSource);
 			
 			var selector = selectInvocation.ArgumentList.Arguments[0].Expression;
-			result = CreateInvocation(visit(selectSource) ?? selectSource, nameof(Enumerable.Min), visit(selector) ?? selector);
+			result = CreateInvocation(context.Visit(selectSource) ?? selectSource, nameof(Enumerable.Min), context.Visit(selector) ?? selector);
 			return true;
 		}
 
 		// If we skipped any operations, create optimized Min() call
-		if (isNewSource && parameters.Count == 0)
+		if (isNewSource && context.VisitedParameters.Count == 0)
 		{
-			result = CreateSimpleInvocation(visit(source) ?? source, nameof(Enumerable.Min));
+			result = CreateSimpleInvocation(context.Visit(source) ?? source, nameof(Enumerable.Min));
 			return true;
 		}
 

@@ -14,7 +14,7 @@ using System.Threading;
 
 namespace ConstExpr.SourceGenerator.Visitors;
 
-public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loader, Action<IOperation?, Exception> exceptionHandler, CancellationToken token) : OperationVisitor<IDictionary<string, VariableItem>, SyntaxNode>
+public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader, Action<IOperation?, Exception> exceptionHandler, CancellationToken token) : OperationVisitor<IDictionary<string, VariableItem>, SyntaxNode>
 {
 	public override SyntaxNode? DefaultVisit(IOperation operation, IDictionary<string, VariableItem> argument)
 	{
@@ -137,7 +137,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 				}
 
 				var indexValues = indices
-					.Select(i => SyntaxHelpers.GetConstantValue(compilation, loader, i, new VariableItemDictionary(argument), token))
+					.Select(i => SyntaxHelpers.GetConstantValue(model.Compilation, loader, i, new VariableItemDictionary(argument), token))
 					.ToArray();
 
 				return SyntaxHelpers.CreateLiteral(propertyInfo.GetValue(instance, indexValues));
@@ -193,8 +193,8 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 			var left = Visit(operation.LeftOperand, argument);
 			var right = Visit(operation.RightOperand, argument);
 
-			var hasLeftValue = SyntaxHelpers.TryGetConstantValue(compilation, loader, left, new VariableItemDictionary(argument), token, out var leftValue);
-			var hasRightValue = SyntaxHelpers.TryGetConstantValue(compilation, loader, right, new VariableItemDictionary(argument), token, out var rightValue);
+			var hasLeftValue = SyntaxHelpers.TryGetConstantValue(model.Compilation, loader, left, new VariableItemDictionary(argument), token, out var leftValue);
+			var hasRightValue = SyntaxHelpers.TryGetConstantValue(model.Compilation, loader, right, new VariableItemDictionary(argument), token, out var rightValue);
 
 			if (hasLeftValue && hasRightValue)
 			{
@@ -580,7 +580,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 				item.Value = local.Type.GetDefaultValue();
 				item.IsInitialized = false;
 			}
-			else if (SyntaxHelpers.TryGetConstantValue(compilation, loader, result?.Value, new VariableItemDictionary(argument), token, out var value))
+			else if (SyntaxHelpers.TryGetConstantValue(model.Compilation, loader, result?.Value, new VariableItemDictionary(argument), token, out var value))
 			{
 				item.Value = value;
 				item.IsInitialized = true;
@@ -612,7 +612,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 		var operand = Visit(operation.Operand, argument);
 		var conversion = operation.Type;
 
-		if (SyntaxHelpers.TryGetConstantValue(compilation, loader, operand, new VariableItemDictionary(argument), token, out var value))
+		if (SyntaxHelpers.TryGetConstantValue(model.Compilation, loader, operand, new VariableItemDictionary(argument), token, out var value))
 		{
 			if (loader.TryExecuteMethod(operation.OperatorMethod, null, new VariableItemDictionary(argument), [value], out value)
 			    && SyntaxHelpers.TryGetLiteral(value, out var literal))
@@ -663,15 +663,15 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 				.Select(arg => Visit(arg.Value, argument));
 
 			var constantArguments = arguments
-				.Where(w => SyntaxHelpers.TryGetConstantValue(compilation, loader, w, new VariableItemDictionary(argument), token, out _))
-				.Select(s => SyntaxHelpers.GetConstantValue(compilation, loader, s, new VariableItemDictionary(argument), token))
+				.Where(w => SyntaxHelpers.TryGetConstantValue(model.Compilation, loader, w, new VariableItemDictionary(argument), token, out _))
+				.Select(s => SyntaxHelpers.GetConstantValue(model.Compilation, loader, s, new VariableItemDictionary(argument), token))
 				.ToArray();
 
 			if (constantArguments.Length == operation.Arguments.Length)
 			{
 				try
 				{
-					SyntaxHelpers.TryGetConstantValue(compilation, loader, instance, new VariableItemDictionary(argument), token, out var instanceValue);
+					SyntaxHelpers.TryGetConstantValue(model.Compilation, loader, instance, new VariableItemDictionary(argument), token, out var instanceValue);
 						
 					if (loader.TryExecuteMethod(targetMethod, instanceValue, new VariableItemDictionary(argument), constantArguments, out var value)
 					    && SyntaxHelpers.TryGetLiteral(value, out var literal))
@@ -681,7 +681,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 				}
 				catch (Exception)
 				{
-					if (SyntaxHelpers.TryGetOperation<IOperation>(compilation, targetMethod, out var methodOperation))
+					if (SyntaxHelpers.TryGetOperation<IOperation>(model.Compilation, targetMethod, out var methodOperation))
 					{
 						var parameters = methodOperation.Syntax switch
 						{
@@ -698,7 +698,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 							variables.Add(parameterName, constantArguments[i]);
 						}
 
-						var visitor = new ConstExprOperationVisitor(compilation, loader, exceptionHandler, token);
+						var visitor = new ConstExprOperationVisitor(model, loader, exceptionHandler, token);
 
 						switch (methodOperation)
 						{
@@ -732,7 +732,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 		{
 			var condition = Visit(operation.Condition, argument);
 
-			if (SyntaxHelpers.TryGetConstantValue(compilation, loader, condition, new VariableItemDictionary(argument), token, out var value))
+			if (SyntaxHelpers.TryGetConstantValue(model.Compilation, loader, condition, new VariableItemDictionary(argument), token, out var value))
 			{
 				switch (value)
 				{
@@ -753,7 +753,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 		{
 			var visitedCondition = Visit(operation.Condition, argument);
 
-			if (SyntaxHelpers.TryGetConstantValue(compilation, loader, visitedCondition, new VariableItemDictionary(argument), token, out var condValue))
+			if (SyntaxHelpers.TryGetConstantValue(model.Compilation, loader, visitedCondition, new VariableItemDictionary(argument), token, out var condValue))
 			{
 				switch (condValue)
 				{
@@ -869,7 +869,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 						variable.Value = nameSyntax;
 						variable.HasValue = true;
 					}
-					else if (SyntaxHelpers.TryGetConstantValue(compilation, loader, rightExpr, new VariableItemDictionary(argument), token, out var value))
+					else if (SyntaxHelpers.TryGetConstantValue(model.Compilation, loader, rightExpr, new VariableItemDictionary(argument), token, out var value))
 					{
 						variable.Value = value;
 						variable.HasValue = true;
@@ -889,7 +889,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 					return result;
 				}
 
-				if (SyntaxHelpers.TryGetConstantValue(compilation, loader, rightExpr, new VariableItemDictionary(argument), token, out var tempValue))
+				if (SyntaxHelpers.TryGetConstantValue(model.Compilation, loader, rightExpr, new VariableItemDictionary(argument), token, out var tempValue))
 				{
 					variable.Value = tempValue;
 
@@ -933,12 +933,12 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 					leftValue = tempLeftValue?.Value;
 					break;
 				default:
-					hasLeftValue = SyntaxHelpers.TryGetConstantValue(compilation, loader, assignmentSyntax.Left, new VariableItemDictionary(argument), token, out leftValue);
+					hasLeftValue = SyntaxHelpers.TryGetConstantValue(model.Compilation, loader, assignmentSyntax.Left, new VariableItemDictionary(argument), token, out leftValue);
 					break;
 			}
 
 			// If both sides are constant, compute the result and update environment for locals/params
-			if (hasLeftValue && SyntaxHelpers.TryGetConstantValue(compilation, loader, rightExpr, new VariableItemDictionary(argument), token, out var rightValue))
+			if (hasLeftValue && SyntaxHelpers.TryGetConstantValue(model.Compilation, loader, rightExpr, new VariableItemDictionary(argument), token, out var rightValue))
 			{
 				var result = ObjectExtensions.ExecuteBinaryOperation(operation.OperatorKind, leftValue, rightValue);
 
@@ -975,7 +975,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 					{
 						var patNode = Visit(constPat.Value, argument);
 
-						if (SyntaxHelpers.TryGetConstantValue(compilation, loader, patNode, new VariableItemDictionary(argument), token, out var patValue))
+						if (SyntaxHelpers.TryGetConstantValue(model.Compilation, loader, patNode, new VariableItemDictionary(argument), token, out var patValue))
 						{
 							return Equals(governingValue, patValue);
 						}
@@ -985,7 +985,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 					{
 						var rightNode = Visit(relPat.Value, argument);
 
-						if (SyntaxHelpers.TryGetConstantValue(compilation, loader, rightNode, new VariableItemDictionary(argument), token, out var rightValue))
+						if (SyntaxHelpers.TryGetConstantValue(model.Compilation, loader, rightNode, new VariableItemDictionary(argument), token, out var rightValue))
 						{
 							var result = ObjectExtensions.ExecuteBinaryOperation(relPat.OperatorKind, governingValue, rightValue);
 							return result is true;
@@ -1030,7 +1030,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 			var visitedGoverning = Visit(operation.Value, argument);
 
 			// Try constant-folding the switch statement
-			if (SyntaxHelpers.TryGetConstantValue(compilation, loader, visitedGoverning, new VariableItemDictionary(argument), token, out var governingValue))
+			if (SyntaxHelpers.TryGetConstantValue(model.Compilation, loader, visitedGoverning, new VariableItemDictionary(argument), token, out var governingValue))
 			{
 				bool? MatchClause(ICaseClauseOperation clause)
 				{
@@ -1042,7 +1042,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 							{
 								var node = Visit(single.Value, argument);
 
-								if (SyntaxHelpers.TryGetConstantValue(compilation, loader, node, new VariableItemDictionary(argument), token, out var caseValue))
+								if (SyntaxHelpers.TryGetConstantValue(model.Compilation, loader, node, new VariableItemDictionary(argument), token, out var caseValue))
 								{
 									return Equals(governingValue, caseValue);
 								}
@@ -1052,7 +1052,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 							{
 								var rightNode = Visit(rel.Value, argument);
 
-								if (SyntaxHelpers.TryGetConstantValue(compilation, loader, rightNode, new VariableItemDictionary(argument), token, out var rightValue))
+								if (SyntaxHelpers.TryGetConstantValue(model.Compilation, loader, rightNode, new VariableItemDictionary(argument), token, out var rightValue))
 								{
 									var result = ObjectExtensions.ExecuteBinaryOperation(rel.Relation, governingValue, rightValue);
 									return result is true;
@@ -1072,7 +1072,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 								{
 									var guardVisited = Visit(patClause.Guard, argument);
 
-									if (!SyntaxHelpers.TryGetConstantValue(compilation, loader, guardVisited, new VariableItemDictionary(argument), token, out var guardVal))
+									if (!SyntaxHelpers.TryGetConstantValue(model.Compilation, loader, guardVisited, new VariableItemDictionary(argument), token, out var guardVal))
 									{
 										return null;
 									}
@@ -1219,7 +1219,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 			var visitedGoverning = Visit(operation.Value, argument);
 
 			// Try constant-folding the switch expression
-			if (SyntaxHelpers.TryGetConstantValue(compilation, loader, visitedGoverning, new VariableItemDictionary(argument), token, out var governingValue))
+			if (SyntaxHelpers.TryGetConstantValue(model.Compilation, loader, visitedGoverning, new VariableItemDictionary(argument), token, out var governingValue))
 			{
 				// Evaluate arms in order
 				for (var i = 0; i < operation.Arms.Length; i++)
@@ -1243,7 +1243,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 					{
 						var visitedGuard = Visit(arm.Guard, argument);
 
-						if (!SyntaxHelpers.TryGetConstantValue(compilation, loader, visitedGuard, new VariableItemDictionary(argument), token, out var guardVal))
+						if (!SyntaxHelpers.TryGetConstantValue(model.Compilation, loader, visitedGuard, new VariableItemDictionary(argument), token, out var guardVal))
 						{
 							goto ReBuild;
 						}
@@ -1257,7 +1257,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 					// Evaluate arm value
 					var visitedValue = Visit(arm.Value, argument);
 
-					if (SyntaxHelpers.TryGetConstantValue(compilation, loader, visitedValue, new VariableItemDictionary(argument), token, out var armValue))
+					if (SyntaxHelpers.TryGetConstantValue(model.Compilation, loader, visitedValue, new VariableItemDictionary(argument), token, out var armValue))
 					{
 						return SyntaxHelpers.CreateLiteral(armValue);
 					}
@@ -1424,7 +1424,7 @@ public class ConstExprPartialVisitor(Compilation compilation, MetadataLoader loa
 			var result = new List<SyntaxNode>();
 			var collection = Visit(operation.Collection, argument);
 
-			if (SyntaxHelpers.TryGetConstantValue(compilation, loader, collection, new VariableItemDictionary(argument), token, out var collectionValue) &&
+			if (SyntaxHelpers.TryGetConstantValue(model.Compilation, loader, collection, new VariableItemDictionary(argument), token, out var collectionValue) &&
 					collectionValue is IEnumerable enumerable)
 			{
 				if (operation.LoopControlVariable is IVariableDeclaratorOperation loopControlVariable)

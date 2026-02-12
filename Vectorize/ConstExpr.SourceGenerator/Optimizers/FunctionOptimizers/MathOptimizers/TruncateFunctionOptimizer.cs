@@ -4,22 +4,24 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
+using System.Linq.Expressions;
+using ConstExpr.SourceGenerator.Models;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
 public class TruncateFunctionOptimizer() : BaseMathFunctionOptimizer("Truncate", 1)
 {
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
 		result = null;
 
-		if (!IsValidMathMethod(method, out var paramType))
+		if (!IsValidMathMethod(context.Method, out var paramType))
 		{
 			return false;
 		}
 
 		// 1) Idempotence: Truncate(Truncate(x)) -> Truncate(x)
-		if (parameters[0] is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Truncate" } } innerInv)
+		if (context.VisitedParameters[0] is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Truncate" } } innerInv)
 		{
 			result = innerInv;
 			return true;
@@ -28,12 +30,12 @@ public class TruncateFunctionOptimizer() : BaseMathFunctionOptimizer("Truncate",
 		// 2) Integer types: Truncate(x) -> x (truncate has no effect on integers)
 		if (paramType.IsNonFloatingNumeric())
 		{
-			result = parameters[0];
+			result = context.VisitedParameters[0];
 			return true;
 		}
 
 		// 3) Unary minus: Truncate(-x) -> -Truncate(x)
-		if (parameters[0] is PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken } prefix)
+		if (context.VisitedParameters[0] is PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken } prefix)
 		{
 			var truncateCall = CreateInvocation(paramType, "Truncate", prefix.Operand);
 
@@ -42,21 +44,21 @@ public class TruncateFunctionOptimizer() : BaseMathFunctionOptimizer("Truncate",
 		}
 
 		// 4) Truncate(Floor(x)) -> Floor(x) (Floor already truncates towards negative infinity)
-		if (parameters[0] is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Floor" } } floorInv)
+		if (context.VisitedParameters[0] is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Floor" } } floorInv)
 		{
 			result = floorInv;
 			return true;
 		}
 
 		// 5) Truncate(Ceiling(x)) -> Ceiling(x) (Ceiling already returns an integer)
-		if (parameters[0] is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Ceiling" } } ceilingInv)
+		if (context.VisitedParameters[0] is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Ceiling" } } ceilingInv)
 		{
 			result = ceilingInv;
 			return true;
 		}
 
 		// 6) Truncate(Round(x)) -> Round(x) (Round already returns an integer value)
-		if (parameters[0] is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Round" } } roundInv)
+		if (context.VisitedParameters[0] is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Round" } } roundInv)
 		{
 			result = roundInv;
 			return true;
@@ -68,14 +70,14 @@ public class TruncateFunctionOptimizer() : BaseMathFunctionOptimizer("Truncate",
 				? GenerateFastTruncateMethodFloat()
 				: GenerateFastTruncateMethodDouble();
 
-			additionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
 
-			result = CreateInvocation("FastTruncate", parameters);
+			result = CreateInvocation("FastTruncate", context.VisitedParameters);
 			return true;
 		}
 
 		// Default: keep as Truncate call (target numeric helper type)
-		result = CreateInvocation(paramType, Name, parameters);
+		result = CreateInvocation(paramType, Name, context.VisitedParameters);
 		return true;
 	}
 

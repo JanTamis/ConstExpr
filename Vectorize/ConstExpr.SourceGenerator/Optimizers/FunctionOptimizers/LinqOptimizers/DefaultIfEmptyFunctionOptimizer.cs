@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -8,7 +10,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.DefaultIfEmpty method.
+/// Optimizer for Enumerable.DefaultIfEmpty context.Method.
 /// Optimizes patterns such as:
 /// - collection.Distinct().DefaultIfEmpty() => collection.DefaultIfEmpty() (distinctness doesn't affect empty check)
 /// - collection.OrderBy(...).DefaultIfEmpty() => collection.DefaultIfEmpty() (ordering doesn't affect empty check)
@@ -42,17 +44,17 @@ public class DefaultIfEmptyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 		nameof(Enumerable.ToArray), // Materialization: preserves all elements
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(model, method)
-		    || !TryGetLinqSource(invocation, out var source))
+		if (!IsValidLinqMethod(context.Model, context.Method)
+		    || !TryGetLinqSource(context.Invocation, out var source))
 		{
 			result = null;
 			return false;
 		}
 
 		// Get the default value parameter if provided
-		var defaultValue = parameters.FirstOrDefault();
+		var defaultValue = context.VisitedParameters.FirstOrDefault();
 
 		// Recursively skip all operations that don't affect emptiness
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectEmpty, out source);
@@ -73,8 +75,8 @@ public class DefaultIfEmptyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 		if (isNewSource)
 		{
 			result = defaultValue != null
-				? CreateInvocation(visit(source) ?? source, nameof(Enumerable.DefaultIfEmpty), defaultValue)
-				: CreateInvocation(visit(source) ?? source, nameof(Enumerable.DefaultIfEmpty));
+				? CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.DefaultIfEmpty), defaultValue)
+				: CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.DefaultIfEmpty));
 
 			return true;
 		}

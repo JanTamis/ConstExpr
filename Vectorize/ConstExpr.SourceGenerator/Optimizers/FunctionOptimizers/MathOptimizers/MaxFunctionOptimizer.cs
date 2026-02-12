@@ -2,52 +2,57 @@ using System;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using ConstExpr.SourceGenerator.Models;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq.Expressions;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
 public class MaxFunctionOptimizer() : BaseMathFunctionOptimizer("Max", 2)
 {
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
 		result = null;
 
-		if (!IsValidMathMethod(method, out var paramType))
+		if (!IsValidMathMethod(context.Method, out var paramType))
 		{
 			return false;
 		}
 
+		var left = context.VisitedParameters[0];
+		var right = context.VisitedParameters[1];
+
 		// Idempotency: Max(x, x) → x (when x is pure)
-		if (parameters[0].IsEquivalentTo(parameters[1]) && IsPure(parameters[0]))
+		if (left.IsEquivalentTo(right) && IsPure(left))
 		{
-			result = parameters[0];
+			result = left;
 			return true;
 		}
 
-		var containingName = method.ContainingType?.Name;
+		var containingName = context.Method.ContainingType?.Name;
 
 		// Try to recognize Clamp pattern: Max(Min(X, max), min) -> Clamp(X, min, max)
-		if (TryRewriteClampFromMaxMin(paramType, containingName, parameters[0], parameters[1], out var clamp))
+		if (TryRewriteClampFromMaxMin(paramType, containingName, left, right, out var clamp))
 		{
 			result = clamp;
 			return true;
 		}
 
-		if (TryRewriteClampFromMaxMin(paramType, containingName, parameters[1], parameters[0], out clamp))
+		if (TryRewriteClampFromMaxMin(paramType, containingName, right, left, out clamp))
 		{
 			result = clamp;
 			return true;
 		}
 
 		// Try to flatten nested Max with constants: Max(C1, Max(X, C2)) -> Max(X, max(C1, C2)) and symmetrical forms
-		if (TryFlattenNestedMax(paramType, containingName, parameters[0], parameters[1], out var flattened))
+		if (TryFlattenNestedMax(paramType, containingName, left, right, out var flattened))
 		{
 			result = flattened;
 			return true;
 		}
 
-		if (TryFlattenNestedMax(paramType, containingName, parameters[1], parameters[0], out flattened))
+		if (TryFlattenNestedMax(paramType, containingName, right, left, out flattened))
 		{
 			result = flattened;
 			return true;
@@ -56,12 +61,12 @@ public class MaxFunctionOptimizer() : BaseMathFunctionOptimizer("Max", 2)
 		if (HasMethod(paramType, "MaxNative", 2))
 		{
 			// Use MaxNative if available on the numeric helper type
-			result = CreateInvocation(paramType, "MaxNative", parameters);
+			result = CreateInvocation(paramType, "MaxNative", context.VisitedParameters);
 			return true;
 		}
 
 		// Fallback: just re-target to the numeric helper (ensures nested Single.Max(...) is supported)
-		result = CreateInvocation(paramType!, Name, parameters);
+		result = CreateInvocation(paramType!, Name, context.VisitedParameters);
 		return true;
 	}
 

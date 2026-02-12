@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -8,7 +10,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.ElementAt method.
+/// Optimizer for Enumerable.ElementAt context.Method.
 /// Optimizes patterns such as:
 /// - collection.AsEnumerable().ElementAt(index) => collection.ElementAt(index) (type cast doesn't affect indexing)
 /// - collection.ToList().ElementAt(index) => collection.ElementAt(index) (materialization doesn't affect indexing)
@@ -32,17 +34,17 @@ public class ElementAtFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		nameof(Enumerable.ToArray),          // Materialization: preserves order and all elements
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(model, method)
-		    || !TryGetLinqSource(invocation, out var source)
-		    || parameters.Count == 0)
+		if (!IsValidLinqMethod(context.Model, context.Method)
+		    || !TryGetLinqSource(context.Invocation, out var source)
+		    || context.VisitedParameters.Count == 0)
 		{
 			result = null;
 			return false;
 		}
 
-		var indexParameter = parameters[0];
+		var indexParameter = context.VisitedParameters[0];
 
 		// Recursively skip all operations that don't affect indexing
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectIndexing, out source);
@@ -51,7 +53,7 @@ public class ElementAtFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		    && GetMethodArguments(skipInvocation).FirstOrDefault() is { Expression: { } skipCount })
 		{
 			if (indexParameter is LiteralExpressionSyntax { Token.Value: int indexValue }
-			    && visit(skipCount) is LiteralExpressionSyntax { Token.Value: int skipValue })
+			    && context.Visit(skipCount) is LiteralExpressionSyntax { Token.Value: int skipValue })
 			{
 				// Both index and skip are constant integers, we can compute the new index at compile time
 				var newIndex = indexValue + skipValue;
@@ -69,10 +71,10 @@ public class ElementAtFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		}
 
 		// For arrays, use direct array indexing: arr[index]
-		if (IsInvokedOnArray(model, source))
+		if (IsInvokedOnArray(context.Model, source))
 		{
 			result = SyntaxFactory.ElementAccessExpression(
-				visit(source) ?? source,
+				context.Visit(source) ?? source,
 				SyntaxFactory.BracketedArgumentList(
 					SyntaxFactory.SingletonSeparatedList(
 						SyntaxFactory.Argument(indexParameter))));
@@ -80,10 +82,10 @@ public class ElementAtFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		}
 
 		// For List<T>, use direct indexing: list[index]
-		if (IsInvokedOnList(model, source))
+		if (IsInvokedOnList(context.Model, source))
 		{
 			result = SyntaxFactory.ElementAccessExpression(
-				visit(source) ?? source,
+				context.Visit(source) ?? source,
 				SyntaxFactory.BracketedArgumentList(
 					SyntaxFactory.SingletonSeparatedList(
 						SyntaxFactory.Argument(indexParameter))));
@@ -92,14 +94,14 @@ public class ElementAtFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 
 		if (indexParameter is LiteralExpressionSyntax { Token.Value: 0 })
 		{
-			result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.First));
+			result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.First));
 			return true;
 		}
 
 		// If we skipped any operations, create optimized ElementAt() call
 		if (isNewSource)
 		{
-			result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.ElementAt), indexParameter);
+			result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.ElementAt), indexParameter);
 			return true;
 		}
 

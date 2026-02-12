@@ -1,13 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.ToArray method.
+/// Optimizer for Enumerable.ToArray context.Method.
 /// Optimizes patterns such as:
 /// - collection.ToArray().ToArray() => collection.ToArray() (redundant ToArray)
 /// - collection.ToList().ToArray() => collection.ToArray()
@@ -22,10 +24,10 @@ public class ToArrayFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 		nameof(Enumerable.AsEnumerable),
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(model, method)
-		    || !TryGetLinqSource(invocation, out var source))
+		if (!IsValidLinqMethod(context.Model, context.Method)
+		    || !TryGetLinqSource(context.Invocation, out var source))
 		{
 			result = null;
 			return false;
@@ -34,7 +36,7 @@ public class ToArrayFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 		// Skip all materializing/type-cast operations
 		if (TryGetOptimizedChainExpression(source, MaterializingMethods, out source))
 		{
-			result = CreateSimpleInvocation(visit(source) ?? source, nameof(Enumerable.ToArray));
+			result = CreateSimpleInvocation(context.Visit(source) ?? source, nameof(Enumerable.ToArray));
 			return true;
 		}
 

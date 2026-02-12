@@ -1,40 +1,47 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.TakeWhile method.
+/// Optimizer for Enumerable.TakeWhile context.Method.
 /// Optimizes patterns such as:
 /// - collection.TakeWhile(x => true) => collection (take everything)
 /// - collection.TakeWhile(x => false) => Enumerable.Empty&lt;T&gt;() (take nothing)
 /// </summary>
 public class TakeWhileFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.TakeWhile), 1)
 {
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(model, method)
-		    || !TryGetLambda(parameters[0], out var lambda)
-		    || !TryGetLinqSource(invocation, out var source))
+		if (!IsValidLinqMethod(context.Model, context.Method)
+		    || !TryGetLambda(context.VisitedParameters[0], out var lambda)
+		    || !TryGetLinqSource(context.Invocation, out var source))
 		{
 			result = null;
 			return false;
 		}
 
+		if (TryExecutePredicates(context, source, out result))
+		{
+			return true;
+		}
+
 		// Optimize TakeWhile(x => true) => collection (take everything)
 		if (IsLiteralBooleanLambda(lambda, out var value) && value == true)
 		{
-			result = visit(source) ?? source;
+			result = context.Visit(source) ?? source;
 			return true;
 		}
 
 		// Optimize TakeWhile(x => false) => Enumerable.Empty<T>() (take nothing)
 		if (IsLiteralBooleanLambda(lambda, out value) && value == false)
 		{
-			result = CreateEmptyEnumerableCall(method.TypeArguments[0]);
+			result = CreateEmptyEnumerableCall(context.Method.TypeArguments[0]);
 			return true;
 		}
 

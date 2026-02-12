@@ -1,13 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Append method.
+/// Optimizer for Enumerable.Append context.Method.
 /// Optimizes patterns such as:
 /// - collection.AsEnumerable().Append(x) =&gt; collection.Append(x) (skip type cast)
 /// - collection.ToList().Append(x) =&gt; collection.Append(x) (skip materialization)
@@ -23,10 +25,10 @@ public class AppendFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		nameof(Enumerable.ToArray),          // Materialization: preserves order and all elements
 	];
 
-	public override bool TryOptimize(SemanticModel model, IMethodSymbol method, InvocationExpressionSyntax invocation, IList<ExpressionSyntax> parameters, Func<SyntaxNode, ExpressionSyntax?> visit, IDictionary<SyntaxNode, bool> additionalMethods, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(model, method)
-		    || !TryGetLinqSource(invocation, out var source))
+		if (!IsValidLinqMethod(context.Model, context.Method)
+		    || !TryGetLinqSource(context.Invocation, out var source))
 		{
 			result = null;
 			return false;
@@ -35,7 +37,7 @@ public class AppendFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		// If we skipped any operations (AsEnumerable/ToList/ToArray), create optimized Append call
 		if (TryGetOptimizedChainExpression(source, OperationsThatDontAffectAppend, out source))
 		{
-			result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.Append), parameters[0]);
+			result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.Append), context.VisitedParameters[0]);
 			return true;
 		}
 
