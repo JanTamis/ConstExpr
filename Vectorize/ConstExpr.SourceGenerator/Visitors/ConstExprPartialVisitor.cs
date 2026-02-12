@@ -1,16 +1,16 @@
-﻿using ConstExpr.SourceGenerator.Extensions;
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Linq;
+using System.Threading;
+using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Linq;
-using System.Threading;
 
 namespace ConstExpr.SourceGenerator.Visitors;
 
@@ -62,9 +62,6 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 					statements.Add(SyntaxFactory.ExpressionStatement(expr));
 					break;
 
-				default:
-					// Ignore anything that isn't a statement or expression
-					break;
 			}
 		}
 
@@ -1005,7 +1002,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 						{
 							BinaryOperatorKind.Or => left.Value || right.Value,
 							BinaryOperatorKind.And => left.Value && right.Value,
-							_ => (bool?)null
+							_ => null
 						};
 					}
 				case INegatedPatternOperation notPat:

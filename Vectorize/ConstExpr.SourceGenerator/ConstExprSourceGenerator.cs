@@ -1,3 +1,12 @@
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 using ConstExpr.Core.Attributes;
 using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Comparers;
@@ -13,15 +22,6 @@ using Microsoft.CodeAnalysis.Operations;
 using SGF;
 using SourceGen.Utilities.Extensions;
 using SourceGen.Utilities.Helpers;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 
 [assembly: InternalsVisibleTo("ConstExpr.Tests")]

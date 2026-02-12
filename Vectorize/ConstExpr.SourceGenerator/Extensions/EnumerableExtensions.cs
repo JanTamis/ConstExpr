@@ -1,8 +1,8 @@
-using ConstExpr.SourceGenerator.Comparers;
-using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ConstExpr.SourceGenerator.Comparers;
+using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Extensions;
 

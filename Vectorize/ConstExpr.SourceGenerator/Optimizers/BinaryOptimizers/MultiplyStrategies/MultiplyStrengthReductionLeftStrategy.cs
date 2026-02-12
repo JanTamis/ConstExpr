@@ -1,3 +1,4 @@
+using System;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -83,7 +84,7 @@ public class MultiplyStrengthReductionLeftStrategy : IntegerBinaryStrategy
 
     try
 		{
-			result = System.Convert.ToUInt32(value);
+			result = Convert.ToUInt32(value);
 			return true;
 		}
 		catch

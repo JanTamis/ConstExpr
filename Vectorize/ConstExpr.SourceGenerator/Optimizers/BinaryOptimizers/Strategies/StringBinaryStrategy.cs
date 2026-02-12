@@ -16,7 +16,7 @@ public class StringBinaryStrategy<TLeft, TRight>(SyntaxKind leftKind = SyntaxKin
 
 public class StringBinaryStrategy(SyntaxKind leftKind = SyntaxKind.None, SyntaxKind rightKind = SyntaxKind.None) : StringBinaryStrategy<ExpressionSyntax, ExpressionSyntax>(leftKind, rightKind)
 {
-	public StringBinaryStrategy() : this(SyntaxKind.None, SyntaxKind.None)
+	public StringBinaryStrategy() : this(SyntaxKind.None)
 	{
 		
 	}

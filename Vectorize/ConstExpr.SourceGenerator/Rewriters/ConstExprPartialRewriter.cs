@@ -1,16 +1,16 @@
-using ConstExpr.Core.Attributes;
-using ConstExpr.SourceGenerator.Helpers;
-using ConstExpr.SourceGenerator.Models;
-using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
-using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
+using ConstExpr.Core.Attributes;
+using ConstExpr.SourceGenerator.Helpers;
+using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
+using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
+using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 
 namespace ConstExpr.SourceGenerator.Rewriters;

@@ -1,3 +1,11 @@
+using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Threading;
 using ConstExpr.SourceGenerator.Enums;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
@@ -6,13 +14,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using SourceGen.Utilities.Extensions;
-using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Reflection;
-using System.Threading;
 using TypeInfo = Microsoft.CodeAnalysis.TypeInfo;
 
 namespace ConstExpr.SourceGenerator.Extensions;
@@ -220,7 +221,7 @@ public static class CompilationExtensions
 				var runtimeType = loader.GetType(type);
 
 				// Use System.Runtime.InteropServices.Marshal.SizeOf
-				var method = typeof(System.Runtime.InteropServices.Marshal).GetMethod("SizeOf", [ typeof(Type) ]);
+				var method = typeof(Marshal).GetMethod("SizeOf", [ typeof(Type) ]);
 				return (int) method?.Invoke(null, [ runtimeType ]);
 			}
 			catch
@@ -751,12 +752,12 @@ public static class CompilationExtensions
 
 	public static ITypeSymbol GetTypeByType(this Compilation compilation, Type type, params ITypeSymbol[] typeArguments)
 	{
-		return GetTypeByType(compilation, type.FullName, typeArguments);
+		return compilation.GetTypeByType(type.FullName, typeArguments);
 	}
 
 	public static bool TryGetTypeByType(this Compilation compilation, Type type, out ITypeSymbol result)
 	{
-		result = GetTypeByType(compilation, type.FullName);
+		result = compilation.GetTypeByType(type.FullName);
 		return result != null;
 	}
 
@@ -881,22 +882,22 @@ public static class CompilationExtensions
 				vectorSize = 0;
 				return VectorTypes.None;
 			case <= 8:
-				vector = GetCreateVector(compilation, VectorTypes.Vector64, elementType, loader, isRepeating, items);
+				vector = compilation.GetCreateVector(VectorTypes.Vector64, elementType, loader, isRepeating, items);
 				vectorSize = 8 / elementSize;
 
 				return VectorTypes.Vector64;
 			case <= 16:
-				vector = GetCreateVector(compilation, VectorTypes.Vector128, elementType, loader, isRepeating, items);
+				vector = compilation.GetCreateVector(VectorTypes.Vector128, elementType, loader, isRepeating, items);
 				vectorSize = 16 / elementSize;
 
 				return VectorTypes.Vector128;
 			case <= 32:
-				vector = GetCreateVector(compilation, VectorTypes.Vector256, elementType, loader, isRepeating, items);
+				vector = compilation.GetCreateVector(VectorTypes.Vector256, elementType, loader, isRepeating, items);
 				vectorSize = 32 / elementSize;
 
 				return VectorTypes.Vector256;
 			case <= 64:
-				vector = GetCreateVector(compilation, VectorTypes.Vector512, elementType, loader, isRepeating, items);
+				vector = compilation.GetCreateVector(VectorTypes.Vector512, elementType, loader, isRepeating, items);
 				vectorSize = 64 / elementSize;
 
 				return VectorTypes.Vector512;
@@ -916,22 +917,22 @@ public static class CompilationExtensions
 		switch (size)
 		{
 			case >= 64 when limit is VectorTypes.Vector512:
-				vector = GetCreateVector(compilation, VectorTypes.Vector512, elementType, loader, false, items);
+				vector = compilation.GetCreateVector(VectorTypes.Vector512, elementType, loader, false, items);
 				vectorSize = 64 / elementSize;
 
 				return VectorTypes.Vector512;
 			case >= 32 when limit is VectorTypes.Vector512 or VectorTypes.Vector256:
-				vector = GetCreateVector(compilation, VectorTypes.Vector256, elementType, loader, false, items);
+				vector = compilation.GetCreateVector(VectorTypes.Vector256, elementType, loader, false, items);
 				vectorSize = 32 / elementSize;
 
 				return VectorTypes.Vector256;
 			case >= 16 when limit is VectorTypes.Vector512 or VectorTypes.Vector256 or VectorTypes.Vector128:
-				vector = GetCreateVector(compilation, VectorTypes.Vector128, elementType, loader, false, items);
+				vector = compilation.GetCreateVector(VectorTypes.Vector128, elementType, loader, false, items);
 				vectorSize = 16 / elementSize;
 
 				return VectorTypes.Vector128;
 			case >= 8 when limit is VectorTypes.Vector512 or VectorTypes.Vector256 or VectorTypes.Vector128 or VectorTypes.Vector64:
-				vector = GetCreateVector(compilation, VectorTypes.Vector64, elementType, loader, false, items);
+				vector = compilation.GetCreateVector(VectorTypes.Vector64, elementType, loader, false, items);
 				vectorSize = 8 / elementSize;
 
 				return VectorTypes.Vector64;
@@ -950,10 +951,10 @@ public static class CompilationExtensions
 
 		return size switch
 		{
-			>= 64 when limit is VectorTypes.Vector512 => GetCreateVector(compilation, VectorTypes.Vector512, elementType, loader, false, items),
-			>= 32 when limit is VectorTypes.Vector512 or VectorTypes.Vector256 => GetCreateVector(compilation, VectorTypes.Vector256, elementType, loader, false, items),
-			>= 16 when limit is VectorTypes.Vector512 or VectorTypes.Vector256 or VectorTypes.Vector128 => GetCreateVector(compilation, VectorTypes.Vector128, elementType, loader, false, items),
-			>= 8 when limit is VectorTypes.Vector512 or VectorTypes.Vector256 or VectorTypes.Vector128 or VectorTypes.Vector64 => GetCreateVector(compilation, VectorTypes.Vector64, elementType, loader, false, items),
+			>= 64 when limit is VectorTypes.Vector512 => compilation.GetCreateVector(VectorTypes.Vector512, elementType, loader, false, items),
+			>= 32 when limit is VectorTypes.Vector512 or VectorTypes.Vector256 => compilation.GetCreateVector(VectorTypes.Vector256, elementType, loader, false, items),
+			>= 16 when limit is VectorTypes.Vector512 or VectorTypes.Vector256 or VectorTypes.Vector128 => compilation.GetCreateVector(VectorTypes.Vector128, elementType, loader, false, items),
+			>= 8 when limit is VectorTypes.Vector512 or VectorTypes.Vector256 or VectorTypes.Vector128 or VectorTypes.Vector64 => compilation.GetCreateVector(VectorTypes.Vector64, elementType, loader, false, items),
 			_ => String.Empty
 		};
 	}
@@ -1412,7 +1413,7 @@ public static class CompilationExtensions
 
 	public static bool IsNonFloatingNumeric(this ITypeSymbol? t)
 	{
-		return t is not null && IsNumericType(t)
+		return t is not null && t.IsNumericType()
 		                     && t.SpecialType is not SpecialType.System_Single and not SpecialType.System_Double;
 	}
 
@@ -1439,18 +1440,18 @@ public static class CompilationExtensions
 			case IdentifierNameSyntax identifier when variables.TryGetValue(identifier.Identifier.Text, out var variable) && variable.HasValue:
 				if (variable.Value is SyntaxNode sn)
 				{
-					return TryGetLiteralValue(sn, loader, variables, out value);
+					return sn.TryGetLiteralValue(loader, variables, out value);
 				}
 
 				value = variable.Value;
 				return true;
 			// unwrap ( ... )
 			case ParenthesizedExpressionSyntax paren:
-				return TryGetLiteralValue(paren.Expression, loader, variables, out value);
+				return paren.Expression.TryGetLiteralValue(loader, variables, out value);
 			// ^n => System.Index(n, fromEnd: true)
 			case PrefixUnaryExpressionSyntax prefix when prefix.OperatorToken.IsKind(SyntaxKind.CaretToken):
 			{
-				if (TryGetLiteralValue(prefix.Operand, loader, variables, out var inner) && inner is not null)
+				if (prefix.Operand.TryGetLiteralValue(loader, variables, out var inner) && inner is not null)
 				{
 					try
 					{
@@ -1489,7 +1490,7 @@ public static class CompilationExtensions
 
 					object? MakeIndex(ExpressionSyntax expr)
 					{
-						if (TryGetLiteralValue(expr, loader, variables, out var innerVal) && innerVal is not null)
+						if (expr.TryGetLiteralValue(loader, variables, out var innerVal) && innerVal is not null)
 						{
 							// Already an Index (e.g., ^n handled above)
 							if (innerVal.GetType().FullName == "System.Index")
@@ -1554,7 +1555,7 @@ public static class CompilationExtensions
 			}
 			case CastExpressionSyntax castExpressionSyntax:
 			{
-				if (TryGetLiteralValue(castExpressionSyntax.Expression, loader, variables, out var innerVal))
+				if (castExpressionSyntax.Expression.TryGetLiteralValue(loader, variables, out var innerVal))
 				{
 					// Try to resolve the *textual* type name from the syntax node (no semantic model)
 					var typeName = castExpressionSyntax.Type switch
@@ -1799,7 +1800,7 @@ public static class CompilationExtensions
 
 	public static bool IsFloatingPoint(this TypeInfo typeInfo)
 	{
-		return IsFloatingPoint(typeInfo) || IsFloatingPoint(typeInfo.ConvertedType);
+		return typeInfo.IsFloatingPoint() || IsFloatingPoint(typeInfo.ConvertedType);
 	}
 
 	public static bool IsMethod(this IMethodSymbol method, Type parentType, params IEnumerable<string> methodNames)

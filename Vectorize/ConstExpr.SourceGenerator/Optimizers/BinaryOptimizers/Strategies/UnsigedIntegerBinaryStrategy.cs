@@ -19,7 +19,7 @@ public class UnsigedIntegerBinaryStrategy<TLeft, TRight>(SyntaxKind leftKind = S
 
 public class UnsigedIntegerBinaryStrategy(SyntaxKind leftKind = SyntaxKind.None, SyntaxKind rightKind = SyntaxKind.None) : IntegerBinaryStrategy<ExpressionSyntax, ExpressionSyntax>(leftKind, rightKind)
 {
-	public UnsigedIntegerBinaryStrategy() : this(SyntaxKind.None, SyntaxKind.None)
+	public UnsigedIntegerBinaryStrategy() : this(SyntaxKind.None)
 	{
 		
 	}

@@ -1,11 +1,10 @@
 using System;
+using System.Collections.Generic;
+using System.Globalization;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using ConstExpr.SourceGenerator.Models;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq.Expressions;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
@@ -333,14 +332,14 @@ public class MaxFunctionOptimizer() : BaseMathFunctionOptimizer("Max", 2)
 	{
 		try
 		{
-			var dec = System.Convert.ToDecimal(v, CultureInfo.InvariantCulture);
+			var dec = Convert.ToDecimal(v, CultureInfo.InvariantCulture);
 			return -dec;
 		}
 		catch
 		{
 			try
 			{
-				var dbl = System.Convert.ToDouble(v, CultureInfo.InvariantCulture);
+				var dbl = Convert.ToDouble(v, CultureInfo.InvariantCulture);
 				return -dbl;
 			}
 			catch { return v; }
@@ -381,7 +380,7 @@ public class MaxFunctionOptimizer() : BaseMathFunctionOptimizer("Max", 2)
 
 	private static T ConvertTo<T>(object v)
 	{
-		try { return (T)System.Convert.ChangeType(v, typeof(T), CultureInfo.InvariantCulture); }
+		try { return (T)Convert.ChangeType(v, typeof(T), CultureInfo.InvariantCulture); }
 		catch { return default!; }
 	}
 }

@@ -1,4 +1,9 @@
-﻿using ConstExpr.Core.Attributes;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Threading;
+using ConstExpr.Core.Attributes;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
@@ -6,11 +11,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Threading;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 
 namespace ConstExpr.SourceGenerator.Rewriters;
@@ -349,7 +349,8 @@ public class ExpressionRewriter(
 					{
 						return Expression.Call(methodDeclaration, expArgs);
 					}
-					else if (node.Expression is MemberAccessExpressionSyntax memberAccess)
+
+					if (node.Expression is MemberAccessExpressionSyntax memberAccess)
 					{
 						var instanceExpr = Visit(memberAccess.Expression);
 						if (instanceExpr != null)
@@ -382,7 +383,8 @@ public class ExpressionRewriter(
 						{
 							return Expression.Field(null, fieldInfo);
 						}
-						else if (expression != null)
+
+						if (expression != null)
 						{
 							return Expression.Field(expression, fieldInfo);
 						}
@@ -401,7 +403,8 @@ public class ExpressionRewriter(
 							{
 								return Expression.Property(null, propertyInfo);
 							}
-							else if (expression != null)
+
+							if (expression != null)
 							{
 								return Expression.Property(expression, propertyInfo);
 							}

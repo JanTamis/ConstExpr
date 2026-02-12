@@ -1,7 +1,7 @@
 using System.Collections.Generic;
-using Microsoft.CodeAnalysis.Operations;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalAndStrategies;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
+using Microsoft.CodeAnalysis.Operations;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;
 

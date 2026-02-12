@@ -1,11 +1,11 @@
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.Operations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Operations;
 
 namespace ConstExpr.SourceGenerator.Extensions;
 
@@ -76,9 +76,9 @@ public static class ObjectExtensions
 			if (lType == typeof(string) || rType == typeof(string))
 			{
 				if (operation == (Func<Expression, Expression, BinaryExpression>) Expression.Add)
-        {
-          return left?.ToString() + right?.ToString();
-        }
+				{
+					return left?.ToString() + right?.ToString();
+				}
 
         return null;
 			}

@@ -1,10 +1,8 @@
-using System;
+using ConstExpr.SourceGenerator.Helpers;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.Collections.Generic;
-using System.Linq.Expressions;
-using ConstExpr.SourceGenerator.Models;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 
@@ -37,13 +35,13 @@ public class StartsWithFunctionOptimizer(SyntaxNode? instance) : BaseStringFunct
 		if (literal.IsKind(SyntaxKind.StringLiteralExpression))
 		{
 			var prefix = literal.Token.ValueText;
-			result = Helpers.SyntaxHelpers.CreateLiteral(str.StartsWith(prefix));
+			result = SyntaxHelpers.CreateLiteral(str.StartsWith(prefix));
 			return true;
 		}
 
 		if (literal.IsKind(SyntaxKind.CharacterLiteralExpression) && literal.Token.Value is char c)
 		{
-			result = Helpers.SyntaxHelpers.CreateLiteral(str.Length > 0 && str[0] == c);
+			result = SyntaxHelpers.CreateLiteral(str.Length > 0 && str[0] == c);
 			return true;
 		}
 

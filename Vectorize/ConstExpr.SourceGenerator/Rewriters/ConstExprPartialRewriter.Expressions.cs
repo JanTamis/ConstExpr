@@ -1,17 +1,18 @@
-using ConstExpr.Core.Enumerators;
-using ConstExpr.SourceGenerator.Extensions;
-using ConstExpr.SourceGenerator.Models;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Operations;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using ConstExpr.Core.Enumerators;
+using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Models;
+using ConstExpr.SourceGenerator.Optimizers.ConditionalOptimizers;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Operations;
+using SourceGen.Utilities.Extensions;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
-using SourceGen.Utilities.Extensions;
 
 namespace ConstExpr.SourceGenerator.Rewriters;
 
@@ -134,6 +135,17 @@ public partial class ConstExprPartialRewriter
 
 		if (hasLeftValue)
 		{
+			// Handle null-coalescing operator: if left is null, return right; otherwise return left
+			if (node.IsKind(SyntaxKind.QuestionQuestionToken, SyntaxKind.CoalesceExpression))
+			{
+				if (leftValue is null)
+				{
+					return right;
+				}
+				
+				return left;
+			}
+			
 			switch (leftValue)
 			{
 				case true:
@@ -657,7 +669,7 @@ public partial class ConstExprPartialRewriter
 		// Try optimization with the original node
 		if (semanticModel.GetTypeInfo(node).Type is { } type)
 		{
-			var optimizer = new Optimizers.ConditionalOptimizers.ConditionalExpressionOptimizer
+			var optimizer = new ConditionalExpressionOptimizer
 			{
 				Condition = node.Condition,
 				WhenTrue = node.WhenTrue,

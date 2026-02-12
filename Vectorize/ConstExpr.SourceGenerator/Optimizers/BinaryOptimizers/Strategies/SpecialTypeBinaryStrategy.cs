@@ -24,7 +24,7 @@ public abstract class SpecialTypeBinaryStrategy<TLeft, TRight>(SyntaxKind leftKi
 
 public abstract class SpecialTypeBinaryStrategy(SyntaxKind leftKind = SyntaxKind.None, SyntaxKind rightKind = SyntaxKind.None) : SpecialTypeBinaryStrategy<ExpressionSyntax, ExpressionSyntax>(leftKind, rightKind)
 {
-	public SpecialTypeBinaryStrategy() : this(SyntaxKind.None, SyntaxKind.None)
+	public SpecialTypeBinaryStrategy() : this(SyntaxKind.None)
 	{
 
 	}

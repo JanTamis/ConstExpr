@@ -1,10 +1,10 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using ConstExpr.SourceGenerator.Helpers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using SourceGen.Utilities.Extensions;
 
 namespace ConstExpr.SourceGenerator.Rewriters;
@@ -693,7 +693,6 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			}
 			else if (trailing[i].IsKind(SyntaxKind.WhitespaceTrivia))
 			{
-				continue;
 			}
 			else
 			{
@@ -855,5 +854,27 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 			_ => null
 		};
+	}
+
+	// New: normalize cast expression spacing so `(int? )` -> `(int?)`
+	public override SyntaxNode? VisitCastExpression(CastExpressionSyntax node)
+	{
+		var result = base.VisitCastExpression(node);
+
+		if (result is CastExpressionSyntax castExpr)
+		{
+			// Remove trailing whitespace from the type inside the cast
+			// This ensures casts like (int? ) become (int?)
+			var type = castExpr.Type;
+			
+			// Strip all trailing trivia from the type
+			var lastToken = type.GetLastToken();
+			var newLastToken = lastToken.WithTrailingTrivia(SyntaxFactory.TriviaList());
+			type = type.ReplaceToken(lastToken, newLastToken);
+			
+			return castExpr.WithType(type);
+		}
+
+		return result;
 	}
 }

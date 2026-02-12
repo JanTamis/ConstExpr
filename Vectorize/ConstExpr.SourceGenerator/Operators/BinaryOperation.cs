@@ -1,7 +1,7 @@
+using System.Collections.Generic;
 using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
-using System.Collections.Generic;
 
 namespace ConstExpr.SourceGenerator.Operators;
 

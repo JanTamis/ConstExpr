@@ -1,10 +1,11 @@
 ﻿using System;
+using System.Globalization;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using ConstExpr.SourceGenerator.Models;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
@@ -68,10 +69,10 @@ public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", 1)
 		switch (expr)
 		{
 			case LiteralExpressionSyntax { Token.Value: IConvertible c }:
-				value = c.ToDouble(System.Globalization.CultureInfo.InvariantCulture);
+				value = c.ToDouble(CultureInfo.InvariantCulture);
 				return true;
 			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
-				value = -c2.ToDouble(System.Globalization.CultureInfo.InvariantCulture);
+				value = -c2.ToDouble(CultureInfo.InvariantCulture);
 				return true;
 			default:
 				return false;

@@ -1,7 +1,5 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -136,7 +134,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 				return true;
 			}
 			
-			result = CreateInvocation(currentSource, nameof(Enumerable.Count), combinedPredicate);
+			result = context.Visit(CreateInvocation(currentSource, nameof(Enumerable.Count), combinedPredicate));
 			return true;
 		}
 

@@ -60,7 +60,7 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			result = CreateSimpleInvocation(context.Visit(source) ?? source, nameof(Enumerable.Sum));
 			return true;
 		}
-
+		
 		// Optimize source.Select(selector).Sum() => source.Sum(selector)
 		if (context.VisitedParameters.Count == 0
 		    && IsLinqMethodChain(source, nameof(Enumerable.Select), out var selectInvocation)
@@ -71,9 +71,11 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			
 			var selector = selectInvocation.ArgumentList.Arguments[0].Expression;
 
-			if (!TryGetLambda(selector, out var selectorLambda) || !IsIdentityLambda(selectorLambda))
+			if (!TryGetLambda(selector, out var selectorLambda)
+			    || !IsIdentityLambda(selectorLambda))
 			{
-				result = CreateInvocation(context.Visit(selectSource) ?? selectSource, nameof(Enumerable.Sum), context.Visit(selector) ?? selector);
+				var visitedSelector = context.Visit(selector) ?? selector;
+				result = CreateInvocation(context.Visit(selectSource) ?? selectSource, nameof(Enumerable.Sum), visitedSelector);
 				return true;
 			}
 		}

@@ -16,7 +16,7 @@ public class CharBinaryStrategy<TLeft, TRight>(SyntaxKind leftKind = SyntaxKind.
 
 public class CharBinaryStrategy(SyntaxKind leftKind = SyntaxKind.None, SyntaxKind rightKind = SyntaxKind.None) : CharBinaryStrategy<ExpressionSyntax, ExpressionSyntax>(leftKind, rightKind)
 {
-	public CharBinaryStrategy() : this(SyntaxKind.None, SyntaxKind.None)
+	public CharBinaryStrategy() : this(SyntaxKind.None)
 	{
 		
 	}

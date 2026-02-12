@@ -1,8 +1,8 @@
+using System;
+using System.Collections.Generic;
 using ConstExpr.SourceGenerator.Helpers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
-using System;
-using System.Collections.Generic;
 
 namespace ConstExpr.SourceGenerator.Operators;
 

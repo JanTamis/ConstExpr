@@ -23,7 +23,7 @@ public class IntegerBinaryStrategy<TLeft, TRight>(SyntaxKind leftKind = SyntaxKi
 
 public class IntegerBinaryStrategy(SyntaxKind leftKind = SyntaxKind.None, SyntaxKind rightKind = SyntaxKind.None) : IntegerBinaryStrategy<ExpressionSyntax, ExpressionSyntax>(leftKind, rightKind)
 {
-	public IntegerBinaryStrategy() : this(SyntaxKind.None, SyntaxKind.None)
+	public IntegerBinaryStrategy() : this(SyntaxKind.None)
 	{
 		
 	}

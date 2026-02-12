@@ -1,10 +1,9 @@
+using System;
+using ConstExpr.SourceGenerator.Helpers;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System;
-using System.Collections.Generic;
-using System.Linq.Expressions;
-using ConstExpr.SourceGenerator.Models;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 
@@ -37,13 +36,13 @@ public class LastIndexOfFunctionOptimizer(SyntaxNode? instance) : BaseStringFunc
 		if (literal.IsKind(SyntaxKind.StringLiteralExpression))
 		{
 			var substring = literal.Token.ValueText;
-			result = Helpers.SyntaxHelpers.CreateLiteral(str.LastIndexOf(substring, StringComparison.Ordinal));
+			result = SyntaxHelpers.CreateLiteral(str.LastIndexOf(substring, StringComparison.Ordinal));
 			return true;
 		}
 
 		if (literal.IsKind(SyntaxKind.CharacterLiteralExpression) && literal.Token.Value is char c)
 		{
-			result = Helpers.SyntaxHelpers.CreateLiteral(str.LastIndexOf(c));
+			result = SyntaxHelpers.CreateLiteral(str.LastIndexOf(c));
 			return true;
 		}
 

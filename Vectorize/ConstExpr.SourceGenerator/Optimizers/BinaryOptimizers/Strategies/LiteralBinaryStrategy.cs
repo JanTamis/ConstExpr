@@ -29,7 +29,7 @@ public class LiteralBinaryStrategy<TLeft, TRight>(SyntaxKind leftKind = SyntaxKi
 
 public class LiteralBinaryStrategy(SyntaxKind leftKind = SyntaxKind.None, SyntaxKind rightKind = SyntaxKind.None) : LiteralBinaryStrategy<ExpressionSyntax, ExpressionSyntax>(leftKind, rightKind)
 {
-	public LiteralBinaryStrategy() : this(SyntaxKind.None, SyntaxKind.None)
+	public LiteralBinaryStrategy() : this(SyntaxKind.None)
 	{
 
 	}

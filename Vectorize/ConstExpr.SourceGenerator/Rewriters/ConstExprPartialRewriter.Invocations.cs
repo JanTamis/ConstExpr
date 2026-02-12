@@ -1,17 +1,18 @@
-using ConstExpr.SourceGenerator.Models;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Operations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
+using ConstExpr.SourceGenerator.Visitors;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Operations;
 using SourceGen.Utilities.Extensions;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
@@ -244,7 +245,7 @@ public partial class ConstExprPartialRewriter
 			vars.Add(parameterName, constantArguments[i]);
 		}
 
-		var visitor = new Visitors.ConstExprOperationVisitor(semanticModel, loader, (_, _) => { }, token);
+		var visitor = new ConstExprOperationVisitor(semanticModel, loader, (_, _) => { }, token);
 
 		switch (methodOperation)
 		{
@@ -256,7 +257,7 @@ public partial class ConstExprPartialRewriter
 				break;
 		}
 
-		if (TryGetLiteral(vars[Visitors.ConstExprOperationVisitor.RETURNVARIABLENAME], out var result))
+		if (TryGetLiteral(vars[ConstExprOperationVisitor.RETURNVARIABLENAME], out var result))
 		{
 			return result;
 		}

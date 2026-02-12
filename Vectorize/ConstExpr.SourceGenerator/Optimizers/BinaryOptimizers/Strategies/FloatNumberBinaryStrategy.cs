@@ -18,7 +18,7 @@ public class FloatNumberBinaryStrategy<TLeft, TRight>(SyntaxKind leftKind = Synt
 
 public class FloatNumberBinaryStrategy(SyntaxKind leftKind = SyntaxKind.None, SyntaxKind rightKind = SyntaxKind.None) : FloatNumberBinaryStrategy<ExpressionSyntax, ExpressionSyntax>(leftKind, rightKind)
 {
-	public FloatNumberBinaryStrategy() : this(SyntaxKind.None, SyntaxKind.None)
+	public FloatNumberBinaryStrategy() : this(SyntaxKind.None)
 	{
 		
 	}

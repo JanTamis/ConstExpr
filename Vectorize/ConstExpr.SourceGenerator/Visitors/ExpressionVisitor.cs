@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.Linq.Expressions;
 using System.Linq;
+using System.Linq.Expressions;
+using System.Text;
+using System.Threading;
 using ConstExpr.SourceGenerator.Helpers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
@@ -257,7 +259,7 @@ public class ExpressionVisitor(SemanticModel model, MetadataLoader loader, IEnum
 
 	public override Expression VisitUtf8String(IUtf8StringOperation operation, IDictionary<string, object?> argument)
 	{
-		return Expression.Constant(System.Text.Encoding.UTF8.GetBytes(operation.Value));
+		return Expression.Constant(Encoding.UTF8.GetBytes(operation.Value));
 	}
 
 	public override Expression VisitAwait(IAwaitOperation operation, IDictionary<string, object?> argument)
@@ -294,12 +296,12 @@ public class ExpressionVisitor(SemanticModel model, MetadataLoader loader, IEnum
 			Expression.Assign(monitorVar, Expression.Constant(false)),
 			Expression.TryFinally(
 				Expression.Block(
-					Expression.Call(typeof(System.Threading.Monitor), "Enter", null, lockObj, monitorVar),
+					Expression.Call(typeof(Monitor), "Enter", null, lockObj, monitorVar),
 					body
 				),
 				Expression.IfThen(
 					monitorVar,
-					Expression.Call(typeof(System.Threading.Monitor), "Exit", null, lockObj)
+					Expression.Call(typeof(Monitor), "Exit", null, lockObj)
 				)
 			)
 		);

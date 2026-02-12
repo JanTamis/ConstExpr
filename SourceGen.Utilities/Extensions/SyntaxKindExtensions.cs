@@ -30,6 +30,7 @@ public static class SyntaxKindExtensions
 			SyntaxKind.GreaterThanEqualsToken or SyntaxKind.GreaterThanOrEqualExpression => BinaryOperatorKind.GreaterThanOrEqual,
 			SyntaxKind.EqualsEqualsToken or SyntaxKind.EqualsExpression => BinaryOperatorKind.Equals,
 			SyntaxKind.ExclamationEqualsToken or SyntaxKind.NotEqualsExpression => BinaryOperatorKind.NotEquals,
+			SyntaxKind.QuestionQuestionToken or SyntaxKind.CoalesceExpression => BinaryOperatorKind.None,
 			_ => throw new ArgumentException($"Unknown binary operator: {kind}", nameof(kind))
 		};
 	}

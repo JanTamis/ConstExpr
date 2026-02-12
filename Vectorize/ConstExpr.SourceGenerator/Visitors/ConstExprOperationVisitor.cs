@@ -1,9 +1,3 @@
-using ConstExpr.SourceGenerator.Extensions;
-using ConstExpr.SourceGenerator.Helpers;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.FlowAnalysis;
-using Microsoft.CodeAnalysis.Operations;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -17,14 +11,20 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Helpers;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.FlowAnalysis;
+using Microsoft.CodeAnalysis.Operations;
 
 namespace ConstExpr.SourceGenerator.Visitors;
 
-public partial class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loader, Action<IOperation?, Exception> exceptionHandler, CancellationToken token) : OperationVisitor<IDictionary<string, object?>, object?>
+public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loader, Action<IOperation?, Exception> exceptionHandler, CancellationToken token) : OperationVisitor<IDictionary<string, object?>, object?>
 {
 	public const string RETURNVARIABLENAME = "$return$";
 
-	private bool isYield = false;
+	private bool isYield;
 
 	private static readonly object BreakSentinel = new();
 	private static readonly object ContinueSentinel = new();
@@ -719,7 +719,6 @@ public partial class ConstExprOperationVisitor(SemanticModel model, MetadataLoad
 
       if (ReferenceEquals(loopResult, ContinueSentinel))
       {
-        continue;
       }
     }
 
@@ -738,7 +737,6 @@ public partial class ConstExprOperationVisitor(SemanticModel model, MetadataLoad
 
       if (ReferenceEquals(loopResult, ContinueSentinel))
       {
-        continue;
       }
     }
 
@@ -763,7 +761,6 @@ public partial class ConstExprOperationVisitor(SemanticModel model, MetadataLoad
 
       if (ReferenceEquals(loopResult, ContinueSentinel))
       {
-        continue;
       }
     }
 

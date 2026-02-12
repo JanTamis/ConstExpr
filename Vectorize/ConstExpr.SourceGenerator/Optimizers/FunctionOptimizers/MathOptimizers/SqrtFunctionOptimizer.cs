@@ -1,10 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Linq.Expressions;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using ConstExpr.SourceGenerator.Models;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory; 
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;

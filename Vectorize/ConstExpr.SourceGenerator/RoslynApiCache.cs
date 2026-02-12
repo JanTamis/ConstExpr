@@ -1,7 +1,7 @@
-using Microsoft.CodeAnalysis;
 using System.Collections.Concurrent;
 using System.Threading;
 using ConstExpr.SourceGenerator.Comparers;
+using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator;
 

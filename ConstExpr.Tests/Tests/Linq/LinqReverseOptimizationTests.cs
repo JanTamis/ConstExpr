@@ -16,9 +16,12 @@ public class LinqReverseOptimizationTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
-		Create("return a[0];", Unknown),
+		Create("""
+			var a = x[0];
+
+			return a;
+			""", Unknown),
 		Create("return 1;", new[] { 1, 2, 3 }),
 		Create("return 5;", new[] { 5 }),
 	];
 }
-

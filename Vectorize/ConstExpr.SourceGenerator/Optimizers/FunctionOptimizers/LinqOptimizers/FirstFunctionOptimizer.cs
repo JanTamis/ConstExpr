@@ -1,11 +1,8 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
@@ -47,9 +44,11 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		{
 			return true;
 		}
+		
+		var visitedSource = context.Visit(source) ?? source;
 
 		// Now check if we have a Where at the end of the optimized chain
-		if (IsLinqMethodChain(source, nameof(Enumerable.Where), out var whereInvocation)
+		if (IsLinqMethodChain(visitedSource, nameof(Enumerable.Where), out var whereInvocation)
 		    && GetMethodArguments(whereInvocation).FirstOrDefault() is { Expression: { } predicateArg }
 		    && TryGetLambda(predicateArg, out var predicate)
 		    && TryGetLinqSource(whereInvocation, out var whereSource))
@@ -61,7 +60,7 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		}
 
 		// now check if we have a Reverse at the end of the optimized chain
-		if (IsLinqMethodChain(source, nameof(Enumerable.Reverse), out var reverseInvocation)
+		if (IsLinqMethodChain(visitedSource, nameof(Enumerable.Reverse), out var reverseInvocation)
 		    && TryGetLinqSource(reverseInvocation, out var reverseSource))
 		{
 			result = CreateInvocation(context.Visit(reverseSource) ?? reverseSource, nameof(Enumerable.Last));
@@ -69,7 +68,7 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		}
 
 		// now check if we have a Order at the end of the optimized chain
-		if (IsLinqMethodChain(source, "Order", out var orderInvocation)
+		if (IsLinqMethodChain(visitedSource, "Order", out var orderInvocation)
 		    && TryGetLinqSource(orderInvocation, out var orderSource))
 		{
 			result = CreateInvocation(context.Visit(orderSource) ?? orderSource, nameof(Enumerable.Min));
@@ -77,7 +76,7 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		}
 
 		// now check if we have a OrderDescending at the end of the optimized chain
-		if (IsLinqMethodChain(source, "OrderDescending", out var orderDescInvocation)
+		if (IsLinqMethodChain(visitedSource, "OrderDescending", out var orderDescInvocation)
 		    && TryGetLinqSource(orderDescInvocation, out var orderDescSource))
 		{
 			result = CreateInvocation(context.Visit(orderDescSource) ?? orderDescSource, nameof(Enumerable.Max));
@@ -91,6 +90,22 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		{
 			result = SyntaxFactory.ElementAccessExpression(
 				context.Visit(source) ?? source,
+				SyntaxFactory.BracketedArgumentList(
+					SyntaxFactory.SingletonSeparatedList(
+						SyntaxFactory.Argument(
+							SyntaxFactory.LiteralExpression(
+								SyntaxKind.NumericLiteralExpression,
+								SyntaxFactory.Literal(0))))));
+			return true;
+		}
+
+		// For arrays, use direct array indexing: arr[0]
+		// For List<T>, use direct indexing: list[0]
+		if (IsInvokedOnArray(context.Model, visitedSource)
+		    || IsInvokedOnList(context.Model, visitedSource))
+		{
+			result = SyntaxFactory.ElementAccessExpression(
+				visitedSource,
 				SyntaxFactory.BracketedArgumentList(
 					SyntaxFactory.SingletonSeparatedList(
 						SyntaxFactory.Argument(

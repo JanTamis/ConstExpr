@@ -140,7 +140,7 @@ public class ValueOrCollectionEqualityComparer<T> : IEqualityComparer<T>
 		}
 	}
 
-	private static bool TryGetSpanLikeMembers(object obj, out PropertyInfo length, out PropertyInfo indexer, out System.Type elementType)
+	private static bool TryGetSpanLikeMembers(object obj, out PropertyInfo length, out PropertyInfo indexer, out Type elementType)
 	{
 		var type = obj.GetType();
 		if (type.IsGenericType && type.Namespace == "System" && (type.Name == "Span`1" || type.Name == "ReadOnlySpan`1"))

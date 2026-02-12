@@ -1,11 +1,10 @@
 using System;
+using System.Collections.Generic;
+using System.Globalization;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq.Expressions;
-using ConstExpr.SourceGenerator.Models;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
@@ -220,14 +219,14 @@ public class ClampFunctionOptimizer() : BaseMathFunctionOptimizer("Clamp", 3)
 	{
 		try
 		{
-			var dec = System.Convert.ToDecimal(v, CultureInfo.InvariantCulture);
+			var dec = Convert.ToDecimal(v, CultureInfo.InvariantCulture);
 			return -dec;
 		}
 		catch
 		{
 			try
 			{
-				var dbl = System.Convert.ToDouble(v, CultureInfo.InvariantCulture);
+				var dbl = Convert.ToDouble(v, CultureInfo.InvariantCulture);
 				return -dbl;
 			}
 			catch { return v; }
@@ -268,7 +267,7 @@ public class ClampFunctionOptimizer() : BaseMathFunctionOptimizer("Clamp", 3)
 
 	private static T ConvertTo<T>(object v)
 	{
-		try { return (T)System.Convert.ChangeType(v, typeof(T), CultureInfo.InvariantCulture); }
+		try { return (T)Convert.ChangeType(v, typeof(T), CultureInfo.InvariantCulture); }
 		catch { return default!; }
 	}
 }

@@ -1,9 +1,10 @@
-using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
+using ConstExpr.SourceGenerator.Comparers;
+using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
@@ -27,8 +28,19 @@ public class UnionFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		}
 
 		var secondSource = context.VisitedParameters[0];
-		
+
 		source = context.Visit(source) ?? source;
+
+		if (TryGetValues(source, out var sourceValues)
+		    && TryGetValues(secondSource, out var secondSourceValues)
+		    && TryCastToType(context.Loader, sourceValues, context.Method.TypeArguments[0], out var sourceCast)
+		    && TryCastToType(context.Loader, secondSourceValues, context.Method.TypeArguments[0], out var secondSourceCast)
+		    && context.Loader.TryGetMethodByMethod(context.Method, out var methodInfo)
+		    && SyntaxHelpers.TryGetLiteral(methodInfo.Invoke(null, [ sourceCast, secondSourceCast ]), out var literal))
+		{
+			result = literal;
+			return true;
+		}
 
 		// Optimize collection.Union(Enumerable.Empty<T>()) => collection.Distinct()
 		if (IsEmptyEnumerable(secondSource))
@@ -47,6 +59,17 @@ public class UnionFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		// Optimize collection.Union(collection) => collection.Distinct() (same reference)
 		if (AreSyntacticallyEquivalent(source, secondSource))
 		{
+			if (TryGetSyntaxes(source, out var values))
+			{
+				var tempValues = values.Distinct(SyntaxNodeComparer<ExpressionSyntax>.Instance);
+
+				result = SyntaxFactory.CollectionExpression(
+					SyntaxFactory.SeparatedList<CollectionElementSyntax>(
+						tempValues.Select(SyntaxFactory.ExpressionElement))
+				);
+				return true;
+			}
+
 			result = CreateSimpleInvocation(source, nameof(Enumerable.Distinct));
 			return true;
 		}
@@ -55,4 +78,3 @@ public class UnionFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		return false;
 	}
 }
-

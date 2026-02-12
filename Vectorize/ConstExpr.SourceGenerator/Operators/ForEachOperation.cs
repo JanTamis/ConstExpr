@@ -1,3 +1,4 @@
+using System.Collections;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 
@@ -10,7 +11,7 @@ public partial class OperatorHelper
 		var collection = GetConstantValue(compilation, forEachLoopOperation.Collection);
 		var variableName = GetVariableName(forEachLoopOperation.LoopControlVariable);
 
-		foreach (var element in (System.Collections.IEnumerable)collection)
+		foreach (var element in (IEnumerable)collection)
 		{
 			variables[variableName] = element;
 

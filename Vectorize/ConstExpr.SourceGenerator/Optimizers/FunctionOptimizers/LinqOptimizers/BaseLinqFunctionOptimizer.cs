@@ -613,6 +613,22 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		values = null;
 		return false;
 	}
+
+	protected bool TryGetSyntaxes(SyntaxNode node, [NotNullWhen(true)] out IList<ExpressionSyntax>? values)
+	{
+		if (node is CollectionExpressionSyntax collectionExpression)
+		{
+			values = collectionExpression.Elements
+				.OfType<ExpressionElementSyntax>()
+				.Select(s => s.Expression)
+				.ToList();
+
+			return values.Count == collectionExpression.Elements.Count;
+		}
+
+		values = null;
+		return false;
+	}
 	
 	protected bool TryCastToType(MetadataLoader loader, IEnumerable<object?> values, ITypeSymbol type, [NotNullWhen(true)] out object? result)
 	{
@@ -631,33 +647,39 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 
 	protected bool TryExecutePredicates(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
-		if (context.OriginalParameters.Count == context.Method.Parameters.Length 
-		    && TryGetValues(context.Visit(source) ?? source, out var values)
-		    && context.Loader.TryGetMethodByMethod(context.Method, out var method)
-		    && TryCastToType(context.Loader, values, context.Method.TypeArguments[0], out var castedValues))
+		try
 		{
-			var predicates = context.OriginalParameters
-				.WhereSelect<ExpressionSyntax, LambdaExpression?>((x, out result) =>
-				{
-					if (TryGetLambda(x, out var originalLambda))
-					{
-						result = context.GetLambda(originalLambda);
-						return result is not null;
-					}
-					
-					result = null;
-					return false;
-				})
-				.ToArray();
-
-			if (predicates.Length == context.Method.Parameters.Length)
+			if (context.OriginalParameters.Count == context.Method.Parameters.Length
+			    && TryGetValues(context.Visit(source) ?? source, out var values)
+			    && context.Loader.TryGetMethodByMethod(context.Method, out var method)
+			    && TryCastToType(context.Loader, values, context.Method.TypeArguments[0], out var castedValues))
 			{
-				if (SyntaxHelpers.TryGetLiteral(method.Invoke(null, [ castedValues, ..predicates ]), out var tempResult))
+				var predicates = context.OriginalParameters
+					.WhereSelect<ExpressionSyntax, LambdaExpression?>((x, out result) =>
+					{
+						if (TryGetLambda(x, out var originalLambda))
+						{
+							result = context.GetLambda(originalLambda);
+							return result is not null;
+						}
+
+						result = null;
+						return false;
+					})
+					.ToArray();
+
+				if (predicates.Length == context.Method.Parameters.Length)
 				{
-					result = tempResult;
-					return true;
+					if (SyntaxHelpers.TryGetLiteral(method.Invoke(null, [ castedValues, ..predicates ]), out var tempResult))
+					{
+						result = tempResult;
+						return true;
+					}
 				}
 			}
+		}
+		catch (Exception e)
+		{
 		}
 		
 		result = null;

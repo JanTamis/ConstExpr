@@ -477,12 +477,14 @@ public static class ParenthesizedExpressionSyntaxExtensions
 			// Association never changes if the expression's precedence is higher than its parent.
 			return false;
 		}
-		else if (precedence < parentPrecedence)
+
+		if (precedence < parentPrecedence)
 		{
 			// Association always changes if the expression's precedence is lower that its parent.
 			return true;
 		}
-		else if (precedence == parentPrecedence)
+
+		if (precedence == parentPrecedence)
 		{
 			// If the expression's precedence is the same as its parent, and both are binary expressions,
 			// check for associativity and commutability.
@@ -652,7 +654,8 @@ public static class ParenthesizedExpressionSyntaxExtensions
 
 					return false;
 				}
-				else if (binaryExpression.IsKind(SyntaxKind.GreaterThanExpression))
+
+				if (binaryExpression.IsKind(SyntaxKind.GreaterThanExpression))
 				{
 					if (binaryExpression.Left == node &&
 					    binaryExpression.Right.Kind() is SyntaxKind.ParenthesizedExpression or SyntaxKind.CastExpression)
