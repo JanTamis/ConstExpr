@@ -577,7 +577,12 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 
 	protected static ExpressionSyntax ReplaceIdentifier(ExpressionSyntax expression, string oldIdentifier, ExpressionSyntax replacement)
 	{
-		return (ExpressionSyntax) new IdentifierReplacer(oldIdentifier, replacement).Visit(expression);
+		// Wrap replacement in parentheses if it's a binary expression to preserve precedence
+		var wrappedReplacement = replacement is BinaryExpressionSyntax
+			? ParenthesizedExpression(replacement)
+			: replacement;
+		
+		return (ExpressionSyntax) new IdentifierReplacer(oldIdentifier, wrappedReplacement).Visit(expression);
 	}
 
 	protected bool TryGetValues(SyntaxNode node, [NotNullWhen(true)] out IList<object?>? values)

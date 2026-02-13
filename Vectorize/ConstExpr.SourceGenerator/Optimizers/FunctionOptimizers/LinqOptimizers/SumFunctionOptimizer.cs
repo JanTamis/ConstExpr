@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
@@ -51,19 +52,22 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		{
 			return true;
 		}
+		
+		var newSource = context.Visit(source) ?? source;
 
 		// Optimize Sum(x => x) => Sum() (identity lambda removal)
 		if (context.VisitedParameters.Count == 1
 		    && TryGetLambda(context.VisitedParameters[0], out var lambda)
 		    && IsIdentityLambda(lambda))
 		{
-			result = CreateSimpleInvocation(context.Visit(source) ?? source, nameof(Enumerable.Sum));
+			result = CreateSimpleInvocation(newSource, nameof(Enumerable.Sum));
 			return true;
 		}
 		
+		
 		// Optimize source.Select(selector).Sum() => source.Sum(selector)
 		if (context.VisitedParameters.Count == 0
-		    && IsLinqMethodChain(source, nameof(Enumerable.Select), out var selectInvocation)
+		    && IsLinqMethodChain(newSource, nameof(Enumerable.Select), out var selectInvocation)
 		    && TryGetLinqSource(selectInvocation, out var selectSource)
 		    && selectInvocation.ArgumentList.Arguments.Count == 1)
 		{
@@ -75,15 +79,16 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			    || !IsIdentityLambda(selectorLambda))
 			{
 				var visitedSelector = context.Visit(selector) ?? selector;
-				result = CreateInvocation(context.Visit(selectSource) ?? selectSource, nameof(Enumerable.Sum), visitedSelector);
+				result = CreateInvocation(selectSource, nameof(Enumerable.Sum), visitedSelector);
 				return true;
 			}
 		}
 
 		// If we skipped any operations, create optimized Sum() call
-		if (isNewSource)
+		if (isNewSource
+		    || !SyntaxFactory.AreEquivalent(source, newSource))
 		{
-			result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.Sum), context.VisitedParameters);
+			result = CreateInvocation(newSource, nameof(Enumerable.Sum), context.VisitedParameters);
 			return true;
 		}
 
