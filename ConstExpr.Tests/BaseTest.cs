@@ -73,9 +73,10 @@ public abstract class BaseTest<TDelegate>(FloatingPointEvaluationMode evaluation
 		var attribute = new ConstExprAttribute { FloatingPointMode = evaluationMode };
 		var visitedMethods = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
 		var additionalMethods = new Dictionary<SyntaxNode, bool>();
+		
+		var exceptionsDuringRewriting = new List<Exception>();
 
-		var rewriter = new ConstExprPartialRewriter(semanticModel, loader, (_, exception) => { }, parameters, additionalMethods, new HashSet<string>(), attribute, CancellationToken.None, visitedMethods);
-
+		var rewriter = new ConstExprPartialRewriter(semanticModel, loader, (_, exception) => exceptionsDuringRewriting.Add(exception), parameters, additionalMethods, new HashSet<string>(), attribute, CancellationToken.None, visitedMethods);
 		foreach (var result in Result)
 		{
 			var notParameters = parameters.Keys

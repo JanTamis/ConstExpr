@@ -30,6 +30,11 @@ public partial class ConstExprPartialRewriter
 
 		var name = operation.Symbol.Name;
 
+		if (value is ThrowExpressionSyntax)
+		{
+			return value;
+		}
+
 		if (!variables.TryGetValue(name, out var item))
 		{
 			return HandleNewVariableDeclaration(node, operation, name, value);
@@ -155,6 +160,9 @@ public partial class ConstExprPartialRewriter
 				case ExpressionStatementSyntax expressionStatement:
 					statements.Add(expressionStatement);
 					break;
+				case ThrowExpressionSyntax throwExpr:
+					statements.Add(ExpressionStatement(throwExpr));
+					return BuildVariableDeclarationResult(node, visitedVariables, statements);
 			}
 		}
 
@@ -201,6 +209,11 @@ public partial class ConstExprPartialRewriter
 		var rightExpr = visitedRight as ExpressionSyntax ?? node.Right;
 		var kind = node.OperatorToken.Kind();
 		var hasRightValue = TryGetLiteralValue(rightExpr, out var rightValue);
+
+		if (visitedRight is ThrowExpressionSyntax)
+		{
+			return visitedRight;
+		}
 
 		switch (node.Left)
 		{

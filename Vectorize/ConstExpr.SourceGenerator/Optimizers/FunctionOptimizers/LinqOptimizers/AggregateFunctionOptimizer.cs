@@ -99,7 +99,7 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		result = null;
 
 		// Check parameter count: 1 or 2 (we don't optimize the 3-parameter overload with result selector)
-		if (context.Method.Parameters.Length is not 1 and not 2)
+		if (context.Method.Parameters.Length == 0)
     {
       return false;
     }

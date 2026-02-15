@@ -57,7 +57,7 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			.Select(s => s.Expression)
 			.FirstOrDefault();
 
-		if (allPredicate == null || !TryGetLambda(allPredicate, out var allLambda))
+		if (!TryGetLambda(allPredicate, out var allLambda))
 		{
 			result = null;
 			return false;

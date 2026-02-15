@@ -329,7 +329,10 @@ public static class CompilationExtensions
 			.Where(w => w != null)
 			.ToImmutableArray();
 
-		var expectedParameterLength = originalParameterTypes.Length;
+		var expectedParameterLength = methodSymbol.IsExtensionMethod 
+			? methodSymbol.Parameters.Length + 1 
+			: methodSymbol.Parameters.Length;
+		
 		var methodName = methodSymbol.Name;
 		var type = loader.GetType(methodSymbol.ContainingType);
 

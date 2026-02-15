@@ -20,12 +20,13 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 {
 	// Operations that don't affect which element is "first"
 	// We CAN'T include ordering operations because they change which element comes first!
-	// We CAN'T include Distinct because the first element might be a duplicate and get removed!
 	private static readonly HashSet<string> OperationsThatDontAffectFirst =
 	[
 		nameof(Enumerable.AsEnumerable), // Type cast: doesn't change the collection
 		nameof(Enumerable.ToList), // Materialization: preserves order and all elements
 		nameof(Enumerable.ToArray), // Materialization: preserves order and all elements
+		nameof(Enumerable.Take), // Taking more elements doesn't change which one is first
+		nameof(Enumerable.Distinct), // Distinct might remove duplicates but doesn't change the order of remaining elements
 	];
 
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
@@ -55,7 +56,7 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		{
 			TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectFirst, out whereSource);
 
-			result = CreateInvocation(context.Visit(whereSource) ?? whereSource, nameof(Enumerable.First), context.Visit(predicate));
+			result = CreateInvocation(context.Visit(whereSource) ?? whereSource, nameof(Enumerable.First), context.Visit(predicate) ?? predicate);
 			return true;
 		}
 

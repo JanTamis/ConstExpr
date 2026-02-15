@@ -52,12 +52,37 @@ public static class EnumerableExtensions
 		});
 	}
 
+	public static object? Sum(this IEnumerable<object?> source, ITypeSymbol elementType)
+	{
+		return elementType.SpecialType switch
+		{
+			SpecialType.System_SByte => source.Cast<sbyte>().Sum(x => x),
+			SpecialType.System_Byte => source.Cast<byte>().Sum(x => x),
+			SpecialType.System_Int16 => source.Cast<short>().Sum(x => x),
+			SpecialType.System_UInt16 => source.Cast<ushort>().Sum(x => x),
+			SpecialType.System_Int32 => source.Cast<int>().Sum(),
+			SpecialType.System_UInt32 => source.Cast<uint>().Sum(x => x),
+			SpecialType.System_Int64 => source.Cast<long>().Sum(),
+			SpecialType.System_UInt64 => source.Cast<ulong>().Aggregate(0UL, (acc, x) => acc + x),
+			SpecialType.System_Single => source.Cast<float>().Sum(),
+			SpecialType.System_Double => source.Cast<double>().Sum(),
+			SpecialType.System_Decimal => source.Cast<decimal>().Sum(),
+			_ => null,
+		};
+	}
+
 	public static object? Average(this IEnumerable<object?> source, ITypeSymbol elementType)
 	{
 		return elementType.SpecialType switch
 		{
+			SpecialType.System_SByte => source.Cast<sbyte>().Average(x => (double)x),
+			SpecialType.System_Byte => source.Cast<byte>().Average(x => (double)x),
+			SpecialType.System_Int16 => source.Cast<short>().Average(x => (double)x),
+			SpecialType.System_UInt16 => source.Cast<ushort>().Average(x => (double)x),
 			SpecialType.System_Int32 => source.Cast<int>().Average(),
+			SpecialType.System_UInt32 => source.Cast<uint>().Average(x => (double)x),
 			SpecialType.System_Int64 => source.Cast<long>().Average(),
+			SpecialType.System_UInt64 => source.Cast<ulong>().Average(x => (double)x),
 			SpecialType.System_Single => source.Cast<float>().Average(),
 			SpecialType.System_Double => source.Cast<double>().Average(),
 			SpecialType.System_Decimal => source.Cast<decimal>().Average(),
@@ -74,13 +99,83 @@ public static class EnumerableExtensions
 
 		return elementType.SpecialType switch
 		{
+			SpecialType.System_SByte => AverageSByte(source),
+			SpecialType.System_Byte => AverageByte(source),
+			SpecialType.System_Int16 => AverageShort(source),
+			SpecialType.System_UInt16 => AverageUShort(source),
 			SpecialType.System_Int32 => AverageInt(source),
+			SpecialType.System_UInt32 => AverageUInt(source),
 			SpecialType.System_Int64 => AverageLong(source),
+			SpecialType.System_UInt64 => AverageULong(source),
 			SpecialType.System_Single => AverageFloat(source),
 			SpecialType.System_Double => AverageDouble(source),
 			SpecialType.System_Decimal => AverageDecimal(source),
 			_ => null,
 		};
+	}
+
+	private static double AverageSByte<T>(ReadOnlySpan<T> source)
+	{
+		long sum = 0;
+		var count = source.Length;
+
+		foreach (var item in source)
+		{
+			if (item is sbyte value)
+			{
+				sum += value;
+			}
+		}
+
+		return count > 0 ? (double)sum / count : 0;
+	}
+
+	private static double AverageByte<T>(ReadOnlySpan<T> source)
+	{
+		long sum = 0;
+		var count = source.Length;
+
+		foreach (var item in source)
+		{
+			if (item is byte value)
+			{
+				sum += value;
+			}
+		}
+
+		return count > 0 ? (double)sum / count : 0;
+	}
+
+	private static double AverageShort<T>(ReadOnlySpan<T> source)
+	{
+		long sum = 0;
+		var count = source.Length;
+
+		foreach (var item in source)
+		{
+			if (item is short value)
+			{
+				sum += value;
+			}
+		}
+
+		return count > 0 ? (double)sum / count : 0;
+	}
+
+	private static double AverageUShort<T>(ReadOnlySpan<T> source)
+	{
+		long sum = 0;
+		var count = source.Length;
+
+		foreach (var item in source)
+		{
+			if (item is ushort value)
+			{
+				sum += value;
+			}
+		}
+
+		return count > 0 ? (double)sum / count : 0;
 	}
 
 	private static double AverageInt<T>(ReadOnlySpan<T> source)
@@ -107,6 +202,38 @@ public static class EnumerableExtensions
 		foreach (var item in source)
 		{
 			if (item is long value)
+			{
+				sum += value;
+			}
+		}
+
+		return count > 0 ? (double)sum / count : 0;
+	}
+
+	private static double AverageUInt<T>(ReadOnlySpan<T> source)
+	{
+		long sum = 0;
+		var count = source.Length;
+
+		foreach (var item in source)
+		{
+			if (item is uint value)
+			{
+				sum += value;
+			}
+		}
+
+		return count > 0 ? (double)sum / count : 0;
+	}
+
+	private static double AverageULong<T>(ReadOnlySpan<T> source)
+	{
+		ulong sum = 0;
+		var count = source.Length;
+
+		foreach (var item in source)
+		{
+			if (item is ulong value)
 			{
 				sum += value;
 			}

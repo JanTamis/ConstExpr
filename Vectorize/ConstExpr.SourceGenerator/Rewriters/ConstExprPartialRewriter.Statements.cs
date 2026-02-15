@@ -364,10 +364,32 @@ public partial class ConstExprPartialRewriter
 	public override SyntaxNode VisitBlock(BlockSyntax node)
 	{
 		var visited = VisitList(node.Statements);
-		var combined = CombineConsecutiveIfStatements(visited);
+
+		var untilThrown = TakeUntilThrownStatements(visited);
+		var combined = CombineConsecutiveIfStatements(untilThrown);
 		var simplified = SimplifyIfReturnPatterns(combined);
 		
 		return node.WithStatements(simplified);
+	}
+
+	/// <summary>
+	/// Takes statements until a throw statement is encountered (inclusive).
+	/// Any code after a throw statement is unreachable and can be removed.
+	/// </summary>
+	private static SyntaxList<StatementSyntax> TakeUntilThrownStatements(SyntaxList<StatementSyntax> statements)
+	{
+		var result = new List<StatementSyntax>();
+
+		foreach (var statement in statements)
+		{
+			result.Add(statement);
+
+			// Stop after a throw statement since code after it is unreachable
+			if (statement is ThrowStatementSyntax or ExpressionStatementSyntax { Expression: ThrowExpressionSyntax })
+				break;
+		}
+
+		return SyntaxFactory.List(result);
 	}
 
 	/// <summary>

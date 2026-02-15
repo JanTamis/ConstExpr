@@ -40,12 +40,28 @@ public class AverageFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 			return false;
 		}
 
+		if (TryExecutePredicates(context, source, out result))
+		{
+			return true;
+		}
+
 		// If we skipped any operations, create optimized Average call
 		if (TryGetOptimizedChainExpression(source, OperationsThatDontAffectAverage, out source))
 		{
+			source = context.Visit(source) ?? source;
+		
+			if (IsEmptyEnumerable(source))
+			{
+				// Average of an empty sequence throws an exception, so we return a throw expression instead of optimizing to Average() which would be incorrect
+				result = CreateThrowExpression("InvalidOperationException", "Sequence contains no elements");
+				return true;
+			}
+			
 			result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.Average), context.VisitedParameters);
 			return true;
 		}
+		
+		
 
 		result = null;
 		return false;

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -55,7 +56,7 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		// Recursively skip all operations that don't affect count
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectCount, out source);
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, context.Visit(source) ?? source, out result))
 		{
 			return true;
 		}
@@ -93,7 +94,9 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		if (wherePredicates.Count > 0)
 		{
 			// Start with the first predicate and combine with the rest
-			var combinedPredicate = context.Visit(wherePredicates[^1]) as LambdaExpressionSyntax ?? wherePredicates[^1];
+			var combinedPredicate = wherePredicates.Count == 1 
+				? wherePredicates[0] 
+				: context.Visit(wherePredicates[^1]) as LambdaExpressionSyntax ?? wherePredicates[^1];
 			
 			// Combine from right to left (last to first)
 			for (var i = wherePredicates.Count - 2; i >= 0; i--)
@@ -137,6 +140,12 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		if (context.VisitedParameters.Count == 0)
 		{
 			source = context.Visit(source) ?? source;
+			
+			if (TryGetSyntaxes(source, out var values))
+			{
+				result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal((long)values.Count));
+				return true;
+			}
 			
 			if (IsCollectionType(context.Model, currentSource))
 			{

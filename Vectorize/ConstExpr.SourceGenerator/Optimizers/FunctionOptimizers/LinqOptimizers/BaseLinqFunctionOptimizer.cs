@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
@@ -35,7 +36,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	/// <summary>
 	/// Attempts to extract a lambda expression from the given parameter.
 	/// </summary>
-	protected bool TryGetLambda(ExpressionSyntax parameter, [NotNullWhen(true)] out LambdaExpressionSyntax? lambda)
+	protected bool TryGetLambda([NotNullWhen(true)] ExpressionSyntax? parameter, [NotNullWhen(true)] out LambdaExpressionSyntax? lambda)
 	{
 		lambda = null;
 
@@ -173,6 +174,26 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	protected MemberAccessExpressionSyntax CreateMemberAccess(ExpressionSyntax source, SimpleNameSyntax name)
 	{
 		return MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, source, name);
+	}
+
+	/// <summary>
+	/// Creates a throw expression for a specific exception type with a message.
+	/// </summary>
+	/// <param name="exceptionTypeName">The name of the exception type (e.g., "InvalidOperationException")</param>
+	/// <param name="message">The message to pass to the exception constructor</param>
+	/// <returns>A ThrowExpressionSyntax that throws the specified exception with the message</returns>
+	protected ThrowExpressionSyntax CreateThrowExpression(string exceptionTypeName, string message)
+	{
+		return ThrowExpression(
+			ObjectCreationExpression(
+				IdentifierName(exceptionTypeName))
+			.WithArgumentList(
+				ArgumentList(
+					SingletonSeparatedList(
+						Argument(
+							LiteralExpression(
+								SyntaxKind.StringLiteralExpression,
+								Literal(message)))))));
 	}
 
 	/// <summary>
@@ -657,14 +678,15 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 			if (context.OriginalParameters.Count == context.Method.Parameters.Length
 			    && TryGetValues(context.Visit(source) ?? source, out var values)
 			    && context.Loader.TryGetMethodByMethod(context.Method, out var method)
-			    && TryCastToType(context.Loader, values, context.Method.TypeArguments[0], out var castedValues))
+			    && context.Method.ReceiverType is INamedTypeSymbol receiverType
+			    && TryCastToType(context.Loader, values, receiverType.TypeArguments[0], out var castedValues))
 			{
 				var predicates = context.OriginalParameters
-					.WhereSelect<ExpressionSyntax, LambdaExpression?>((x, out result) =>
+					.WhereSelect<ExpressionSyntax, Delegate?>((x, out result) =>
 					{
 						if (TryGetLambda(x, out var originalLambda))
 						{
-							result = context.GetLambda(originalLambda);
+							result = context.GetLambda(originalLambda).Compile();
 							return result is not null;
 						}
 

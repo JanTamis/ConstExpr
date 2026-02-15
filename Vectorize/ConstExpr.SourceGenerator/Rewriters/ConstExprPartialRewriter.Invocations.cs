@@ -383,7 +383,8 @@ public partial class ConstExprPartialRewriter
 			return Expression.Lambda(body, lambdaParams);
 		});
 
-		var context = new FunctionOptimizerContext(model, loader, targetMethod, node, visitedArguments.OfType<ExpressionSyntax>().ToArray(), originalArguments.OfType<ExpressionSyntax>().ToArray(), x => Visit(x) as ExpressionSyntax, getLambda, additionalMethods);;
+		var context = new FunctionOptimizerContext(model, loader, targetMethod, node, visitedArguments.OfType<ExpressionSyntax>().ToArray(), originalArguments.OfType<ExpressionSyntax>().ToArray(), x => Visit(x) as ExpressionSyntax, getLambda, additionalMethods);
+		;
 
 		return _linqOptimizers.Value
 			.Where(o => String.Equals(o.Name, targetMethod.Name, StringComparison.Ordinal)
@@ -774,6 +775,94 @@ public partial class ConstExprPartialRewriter
 			if (result is not null)
 			{
 				return result;
+			}
+
+			// check if symbol is IList.Count
+			if (symbol is IPropertySymbol propertySymbol
+			    && expression is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name: IdentifierNameSyntax { Identifier.Text: { } methodName }, Expression: { } resultExpression } }
+			    && semanticModel.TryGetTypeSymbol(node.Expression, out var typeSymbol))
+			{
+				if (propertySymbol.Name == "Count"
+				    && propertySymbol.ContainingType.AllInterfaces.Any(i => i.OriginalDefinition.SpecialType is SpecialType.System_Collections_Generic_ICollection_T or SpecialType.System_Collections_Generic_IList_T))
+				{
+					switch (methodName)
+					{
+						// check if expression is Enumerable.ToList()
+						case "ToList" when typeSymbol is INamedTypeSymbol namedTypeSymbol:
+						{
+							// return Enumerable.Count() instead
+							var newInvocation = InvocationExpression(
+									MemberAccessExpression(
+										SyntaxKind.SimpleMemberAccessExpression,
+										resultExpression,
+										IdentifierName("Count")))
+								.WithArgumentList(ArgumentList());
+
+							var optimized = TryOptimizeLinqMethod(semanticModel, semanticModel.Compilation
+								.GetTypeByMetadataName("System.Linq.Enumerable")!
+								.GetMembers("Count")
+								.OfType<IMethodSymbol>()
+								.Select(s => s.Construct(namedTypeSymbol.TypeArguments[0]))
+								.First(m => m.Parameters.Length == 1), newInvocation, [ ], [ ]);
+
+							return optimized ?? newInvocation;
+						}
+						case "ToHashSet" when typeSymbol is INamedTypeSymbol namedTypeSymbol:
+						{
+							// return Enumerable.Distinct().Count() instead
+							var distinctInvocation = InvocationExpression(
+									MemberAccessExpression(
+										SyntaxKind.SimpleMemberAccessExpression,
+										resultExpression,
+										IdentifierName("Distinct")))
+								.WithArgumentList(ArgumentList());
+
+							var optimizedDistinct = TryOptimizeLinqMethod(semanticModel, semanticModel.Compilation
+								.GetTypeByMetadataName("System.Linq.Enumerable")!
+								.GetMembers("Count")
+								.OfType<IMethodSymbol>()
+								.Select(s => s.Construct(namedTypeSymbol.TypeArguments[0]))
+								.First(m => m.Parameters.Length == 1), distinctInvocation, [ ], [ ]);
+							
+							var countInvocation = InvocationExpression(
+									MemberAccessExpression(
+										SyntaxKind.SimpleMemberAccessExpression,
+										optimizedDistinct as ExpressionSyntax ?? distinctInvocation,
+										IdentifierName("Count")))
+								.WithArgumentList(ArgumentList());
+
+							var optimized = TryOptimizeLinqMethod(semanticModel, semanticModel.Compilation
+								.GetTypeByMetadataName("System.Linq.Enumerable")!
+								.GetMembers("Count")
+								.OfType<IMethodSymbol>()
+								.Select(s => s.Construct(namedTypeSymbol.TypeArguments[0]))
+								.First(m => m.Parameters.Length == 1), countInvocation, [ ], [ ]);
+
+							return optimized ?? countInvocation;
+						}
+					}
+				}
+
+				if (propertySymbol is { Name: "Length", ContainingType.SpecialType: SpecialType.System_Array }
+				    && typeSymbol is IArrayTypeSymbol arrayType)
+				{
+					// return Enumerable.Count() instead
+					var newInvocation = InvocationExpression(
+							MemberAccessExpression(
+								SyntaxKind.SimpleMemberAccessExpression,
+								resultExpression,
+								IdentifierName("Count")))
+						.WithArgumentList(ArgumentList());
+
+					var optimized = TryOptimizeLinqMethod(semanticModel, semanticModel.Compilation
+						.GetTypeByMetadataName("System.Linq.Enumerable")!
+						.GetMembers("Count")
+						.OfType<IMethodSymbol>()
+						.Select(s => s.Construct(arrayType.ElementType))
+						.First(m => m.Parameters.Length == 1), newInvocation, [ ], [ ]);
+
+					return optimized ?? newInvocation;
+				}
 			}
 		}
 

@@ -1153,7 +1153,7 @@ public partial class ConstExprPartialRewriter
 	/// <summary>
 	/// Gets the ITypeSymbol from a constant value's runtime type.
 	/// </summary>
-	private ITypeSymbol? GetTypeSymbolFromConstant(object? value)
+	private INamedTypeSymbol? GetTypeSymbolFromConstant(object? value)
 	{
 		if (value is null)
 		{

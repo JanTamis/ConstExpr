@@ -31,6 +31,11 @@ public class UnionFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 		source = context.Visit(source) ?? source;
 
+		if (TryExecutePredicates(context, source, out result))
+		{
+			return true;
+		}
+
 		if (TryGetValues(source, out var sourceValues)
 		    && TryGetValues(secondSource, out var secondSourceValues)
 		    && TryCastToType(context.Loader, sourceValues, context.Method.TypeArguments[0], out var sourceCast)
@@ -45,6 +50,15 @@ public class UnionFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		// Optimize collection.Union(Enumerable.Empty<T>()) => collection.Distinct()
 		if (IsEmptyEnumerable(secondSource))
 		{
+			if (TryGetSyntaxes(source, out var syntaxes))
+			{
+				var items = syntaxes.Distinct(SyntaxNodeComparer<ExpressionSyntax>.Instance)
+					.Select(SyntaxFactory.ExpressionElement);
+				
+				result = SyntaxFactory.CollectionExpression(SyntaxFactory.SeparatedList<CollectionElementSyntax>(items));
+				return true;
+			}
+			
 			result = CreateSimpleInvocation(source, nameof(Enumerable.Distinct));
 			return true;
 		}
@@ -52,6 +66,15 @@ public class UnionFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		// Optimize Enumerable.Empty<T>().Union(collection) => collection.Distinct()
 		if (IsEmptyEnumerable(source))
 		{
+			if (TryGetSyntaxes(secondSource, out var syntaxes))
+			{
+				var items = syntaxes.Distinct(SyntaxNodeComparer<ExpressionSyntax>.Instance)
+					.Select(SyntaxFactory.ExpressionElement);
+
+				result = SyntaxFactory.CollectionExpression(SyntaxFactory.SeparatedList<CollectionElementSyntax>(items));
+				return true;
+			}
+			
 			result = CreateSimpleInvocation(secondSource, nameof(Enumerable.Distinct));
 			return true;
 		}

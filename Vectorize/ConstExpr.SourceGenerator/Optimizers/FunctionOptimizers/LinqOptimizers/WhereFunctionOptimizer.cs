@@ -45,7 +45,7 @@ public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		}
 
 		// If we found multiple Where predicates, combine them
-		if (wherePredicates.Count > 1)
+		if (wherePredicates.Count > 0)
 		{
 			// Start with the last predicate and combine with the rest
 			var combinedPredicate = context.Visit(wherePredicates[^1]) as LambdaExpressionSyntax ?? wherePredicates[^1];
@@ -71,7 +71,7 @@ public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 						return true;
 				}
 			}
-
+			
 			// Create a new Where call with the combined lambda
 			result = CreateInvocation(context.Visit(currentSource) ?? currentSource, nameof(Enumerable.Where), combinedPredicate);
 			return true;
@@ -92,29 +92,5 @@ public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 		result = null;
 		return false;
-	}
-
-	private static bool IsAlwaysTrueLambda(LambdaExpressionSyntax lambda)
-	{
-		var body = lambda switch
-		{
-			SimpleLambdaExpressionSyntax { Body: ExpressionSyntax expr } => expr,
-			ParenthesizedLambdaExpressionSyntax { Body: ExpressionSyntax expr } => expr,
-			_ => null
-		};
-
-		return body is LiteralExpressionSyntax { Token.Value: true };
-	}
-
-	private static bool IsAlwaysFalseLambda(LambdaExpressionSyntax lambda)
-	{
-		var body = lambda switch
-		{
-			SimpleLambdaExpressionSyntax { Body: ExpressionSyntax expr } => expr,
-			ParenthesizedLambdaExpressionSyntax { Body: ExpressionSyntax expr } => expr,
-			_ => null
-		};
-
-		return body is LiteralExpressionSyntax { Token.Value: false };
 	}
 }

@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -64,7 +66,6 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			return true;
 		}
 		
-		
 		// Optimize source.Select(selector).Sum() => source.Sum(selector)
 		if (context.VisitedParameters.Count == 0
 		    && IsLinqMethodChain(newSource, nameof(Enumerable.Select), out var selectInvocation)
@@ -80,6 +81,19 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			{
 				var visitedSelector = context.Visit(selector) ?? selector;
 				result = CreateInvocation(selectSource, nameof(Enumerable.Sum), visitedSelector);
+				return true;
+			}
+		}
+
+		if (context.VisitedParameters.Count == 0
+		    && TryGetValues(newSource, out var values)
+		    && context.Method.ReceiverType is INamedTypeSymbol parameterType)
+		{
+			var sum = values.Sum(parameterType.TypeArguments[0]);
+
+			if (SyntaxHelpers.TryGetLiteral(sum, out var sumLiteral))
+			{
+				result = sumLiteral;
 				return true;
 			}
 		}

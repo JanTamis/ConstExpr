@@ -45,8 +45,8 @@ public class LinqAverageOptimizationTests : BaseTest<Func<int[], double>>
 			
 			return a + b + c + d + e + f + g;
 			""", Unknown),
-		Create("return 20.0;", new[] { 1, 2, 3 }), // avg=2, a=2, b=2, c=2, d=2, e=2, f=4 (avg*2), g=6 (avg*3) = 20
-		Create("return 0.0;", new int[] { }), // Empty array returns 0 for sum/count
-		Create("return 100.0;", new[] { 10 }), // avg=10, a=10, b=10, c=10, d=10, e=10, f=20, g=30 = 100
+		Create("return 20.0;", new[] { 1, 2, 3 }), 
+		Create("throw new InvalidOperationException(\"Sequence contains no elements\");", new int[] { }), 
+		Create("return 100.0;", new[] { 10 }), 
 	];
 }

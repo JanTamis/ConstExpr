@@ -140,9 +140,9 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 		if (context.VisitedParameters.Count == 0)
 		{
-			if (IsEmptyEnumerable(context.Visit(currentSource) ?? currentSource))
+			if (TryGetSyntaxes(context.Visit(currentSource) ?? currentSource, out var syntaxes))
 			{
-				result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0));
+				result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(syntaxes.Count));
 				return true;
 			}
 			

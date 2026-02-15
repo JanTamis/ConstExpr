@@ -62,6 +62,11 @@ public class DistinctFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 			return false;
 		}
 
+		if (TryExecutePredicates(context, source, out result))
+		{
+			return true;
+		}
+
 		// Check if Distinct is followed by a set-based operation
 		var parent = context.Invocation.Parent;
 		var isFollowedBySetOperation = false;

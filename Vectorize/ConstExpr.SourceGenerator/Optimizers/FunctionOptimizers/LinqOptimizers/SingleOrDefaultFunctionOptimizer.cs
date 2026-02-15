@@ -1,7 +1,12 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
@@ -48,6 +53,34 @@ public class SingleOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(name
 			TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectSingleOrDefault, out whereSource);
 			
 			var predicate = whereInvocation.ArgumentList.Arguments[0].Expression;
+			var tempSource = context.Visit(whereSource) ?? whereSource;
+
+			if (TryGetValues(tempSource, out var values))
+			{
+				var lambda = context.GetLambda(predicate as LambdaExpressionSyntax);
+				
+				if (lambda != null)
+				{
+					var compiledPredicate = lambda.Compile();
+					
+					// If we can evaluate the predicate at compile time, we can determine if SingleOrDefault will return a constant value
+					var matchingValues = values.Where(v => compiledPredicate.DynamicInvoke(v) is true).ToList();
+					
+					switch (matchingValues.Count)
+					{
+						case 0 or > 1:
+							// No matching elements, SingleOrDefault will return default(T)
+							result = context.Method.TypeArguments[0].GetDefaultValue();
+							return true;
+						case 1
+							when SyntaxHelpers.TryGetLiteral(matchingValues[0], out var literal):
+							result = literal;
+							return true;
+					}
+
+				}
+			}
+			
 			result = CreateInvocation(context.Visit(whereSource) ?? whereSource, nameof(Enumerable.SingleOrDefault), context.Visit(predicate) ?? predicate);
 			return true;
 		}

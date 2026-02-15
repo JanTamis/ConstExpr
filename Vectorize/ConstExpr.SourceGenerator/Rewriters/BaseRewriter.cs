@@ -25,7 +25,7 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 		return TryGetLiteralValue(node, null, out value, new HashSet<string>());
 	}
 
-	private bool TryGetLiteralValue(SyntaxNode? node, ITypeSymbol? typeSymbol, [NotNullWhen(true)] out object? value, HashSet<string> visitedVariables)
+	private bool TryGetLiteralValue([NotNullWhen(true)] SyntaxNode? node, ITypeSymbol? typeSymbol, out object? value, HashSet<string> visitedVariables)
 	{
 		switch (node)
 		{
@@ -498,6 +498,11 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 				}
 			case CollectionExpressionSyntax collectionExpressionSyntax:
 				{
+					if (semanticModel.TryGetTypeSymbol(collectionExpressionSyntax, out var typeSym))
+					{
+						
+					}
+					
 					var elements = new List<object?>();
 
 					foreach (var element in collectionExpressionSyntax.Elements.OfType<ExpressionElementSyntax>())
