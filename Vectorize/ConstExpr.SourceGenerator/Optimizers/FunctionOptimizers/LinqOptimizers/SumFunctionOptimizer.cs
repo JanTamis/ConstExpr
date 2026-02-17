@@ -8,6 +8,7 @@ using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.FlowAnalysis;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
@@ -54,7 +55,7 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		{
 			return true;
 		}
-		
+
 		var newSource = context.Visit(source) ?? source;
 
 		// Optimize Sum(x => x) => Sum() (identity lambda removal)
@@ -62,10 +63,10 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		    && TryGetLambda(context.VisitedParameters[0], out var lambda)
 		    && IsIdentityLambda(lambda))
 		{
-			result = CreateSimpleInvocation(newSource, nameof(Enumerable.Sum));
+			result = TryOptimizeAppend(context, newSource, CreateSimpleInvocation(newSource, nameof(Enumerable.Sum)));
 			return true;
 		}
-		
+
 		// Optimize source.Select(selector).Sum() => source.Sum(selector)
 		if (context.VisitedParameters.Count == 0
 		    && IsLinqMethodChain(newSource, nameof(Enumerable.Select), out var selectInvocation)
@@ -73,14 +74,14 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		    && selectInvocation.ArgumentList.Arguments.Count == 1)
 		{
 			TryGetOptimizedChainExpression(selectSource, OperationsThatDontAffectSum, out selectSource);
-			
+
 			var selector = selectInvocation.ArgumentList.Arguments[0].Expression;
 
 			if (!TryGetLambda(selector, out var selectorLambda)
 			    || !IsIdentityLambda(selectorLambda))
 			{
 				var visitedSelector = context.Visit(selector) ?? selector;
-				result = CreateInvocation(selectSource, nameof(Enumerable.Sum), visitedSelector);
+				result = TryOptimizeAppend(context, selectSource, CreateInvocation(selectSource, nameof(Enumerable.Sum), visitedSelector));
 				return true;
 			}
 		}
@@ -102,11 +103,29 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		if (isNewSource
 		    || !SyntaxFactory.AreEquivalent(source, newSource))
 		{
-			result = CreateInvocation(newSource, nameof(Enumerable.Sum), context.VisitedParameters);
+			result = TryOptimizeAppend(context, newSource, CreateInvocation(newSource, nameof(Enumerable.Sum), context.VisitedParameters));
 			return true;
 		}
 
-		result = null;
-		return false;
+		result = TryOptimizeAppend(context, newSource, context.Invocation);
+		return !SyntaxFactory.AreEquivalent(context.Invocation, result);
+	}
+
+	private ExpressionSyntax? TryOptimizeAppend(FunctionOptimizerContext context, ExpressionSyntax source, InvocationExpressionSyntax result)
+	{
+		if (IsLinqMethodChain(source, nameof(Enumerable.Append), out var appendInvocation)
+		    && TryGetLinqSource(appendInvocation, out var appendSource)
+		    && appendInvocation.ArgumentList.Arguments.Count == 1
+		    && result.Expression is MemberAccessExpressionSyntax access)
+		{
+			var appendedValue = appendInvocation.ArgumentList.Arguments[0].Expression;
+			var visitedAppendedValue = context.Visit(appendedValue) ?? appendedValue;
+
+			return SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, 
+				result.WithExpression(access.WithExpression(appendSource)), 
+				visitedAppendedValue);
+		}
+
+		return result;
 	}
 }
