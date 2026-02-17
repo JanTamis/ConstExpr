@@ -45,43 +45,39 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		{
 			return true;
 		}
-		
+
 		var visitedSource = context.Visit(source) ?? source;
 
-		// Now check if we have a Where at the end of the optimized chain
-		if (IsLinqMethodChain(visitedSource, nameof(Enumerable.Where), out var whereInvocation)
-		    && GetMethodArguments(whereInvocation).FirstOrDefault() is { Expression: { } predicateArg }
-		    && TryGetLambda(predicateArg, out var predicate)
-		    && TryGetLinqSource(whereInvocation, out var whereSource))
+		if (IsLinqMethodChain(visitedSource, out var methodName, out var invocation)
+		    && TryGetLinqSource(invocation, out var methodSource))
 		{
-			TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectFirst, out whereSource);
+			switch (methodName)
+			{
+				case nameof(Enumerable.Where)
+					when GetMethodArguments(invocation).FirstOrDefault() is { Expression: { } predicateArg }
+					     && TryGetLambda(predicateArg, out var predicate):
+				{
+					TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectFirst, out var innerInvocation);
 
-			result = CreateInvocation(context.Visit(whereSource) ?? whereSource, nameof(Enumerable.First), context.Visit(predicate) ?? predicate);
-			return true;
-		}
-
-		// now check if we have a Reverse at the end of the optimized chain
-		if (IsLinqMethodChain(visitedSource, nameof(Enumerable.Reverse), out var reverseInvocation)
-		    && TryGetLinqSource(reverseInvocation, out var reverseSource))
-		{
-			result = CreateInvocation(context.Visit(reverseSource) ?? reverseSource, nameof(Enumerable.Last));
-			return true;
-		}
-
-		// now check if we have a Order at the end of the optimized chain
-		if (IsLinqMethodChain(visitedSource, "Order", out var orderInvocation)
-		    && TryGetLinqSource(orderInvocation, out var orderSource))
-		{
-			result = CreateInvocation(context.Visit(orderSource) ?? orderSource, nameof(Enumerable.Min));
-			return true;
-		}
-
-		// now check if we have a OrderDescending at the end of the optimized chain
-		if (IsLinqMethodChain(visitedSource, "OrderDescending", out var orderDescInvocation)
-		    && TryGetLinqSource(orderDescInvocation, out var orderDescSource))
-		{
-			result = CreateInvocation(context.Visit(orderDescSource) ?? orderDescSource, nameof(Enumerable.Max));
-			return true;
+					result = CreateInvocation(context.Visit(innerInvocation) ?? innerInvocation, nameof(Enumerable.First), context.Visit(predicate) ?? predicate);
+					return true;
+				}
+				case nameof(Enumerable.Reverse):
+				{
+					result = CreateInvocation(context.Visit(methodSource) ?? methodSource, nameof(Enumerable.Last));
+					return true;
+				}
+				case "Order":
+				{
+					result = CreateInvocation(context.Visit(methodSource) ?? methodSource, nameof(Enumerable.Min));
+					return true;
+				}
+				case "OrderDescending":
+				{
+					result = CreateInvocation(context.Visit(methodSource) ?? methodSource, nameof(Enumerable.Max));
+					return true;
+				}
+			}
 		}
 
 		// For arrays, use direct array indexing: arr[0]

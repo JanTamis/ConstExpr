@@ -97,6 +97,21 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		return true;
 	}
 
+	protected bool IsLinqMethodChain(ExpressionSyntax? expression, [NotNullWhen(true)] out string? methodName, [NotNullWhen(true)] out InvocationExpressionSyntax? invocation)
+	{
+		invocation = null;
+		methodName = null;
+
+		if (expression is not InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax memberAccess } inv)
+		{
+			return false;
+		}
+
+		invocation = inv;
+		methodName = memberAccess.Name.Identifier.Text;
+		return true;
+	}
+
 	/// <summary>
 	/// Checks if a method call is chained after another LINQ method (e.g., Where().Select()).
 	/// </summary>

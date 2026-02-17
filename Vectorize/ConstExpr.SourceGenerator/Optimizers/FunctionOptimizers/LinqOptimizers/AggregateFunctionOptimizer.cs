@@ -55,6 +55,13 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		// First, try to optimize Aggregate to Sum if it's just adding values
 		if (TryOptimizeAggregateToSum(context, source, out result))
 		{
+			if (context.Method.Parameters.Length == 3
+			    && TryGetLambda(context.VisitedParameters[2], out var resultSelectorLambda))
+			{
+				result = ReplaceExpression(resultSelectorLambda, (ExpressionSyntax)result);
+			}
+			
+			
 			if (IsLinqMethodChain(source, nameof(Enumerable.Select), out var innerInvocation)
 			    && TryGetLambda(innerInvocation.ArgumentList.Arguments[0].Expression, out var innerLambda)
 			    && TryGetLinqSource(innerInvocation, out var innerSource))
@@ -105,7 +112,12 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
     }
 
     // Get the lambda (last parameter)
-    var lambdaArg = context.VisitedParameters[^1];
+    var lambdaArg = context.VisitedParameters.Count switch
+    {
+	    1 => context.VisitedParameters[0], // Aggregate(lambda)
+	    2 or 3 => context.VisitedParameters[1], // Aggregate(seed, lambda)
+	    _ => null
+    };
 		
 		if (!TryGetLambda(lambdaArg, out var lambda))
     {
@@ -195,5 +207,14 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		var isAccRight = binaryExpr.Right is IdentifierNameSyntax rightId2 && rightId2.Identifier.Text == accParam;
 
 		return isValueLeft && isAccRight;
+	}
+
+	private ExpressionSyntax ReplaceExpression(LambdaExpressionSyntax lambda, ExpressionSyntax expression)
+	{
+		var param = GetLambdaParameter(lambda);
+		var body = GetLambdaBody(lambda);
+
+		// Replace the outer lambda's parameter with the inner lambda's body
+		return ReplaceIdentifier(body, param, expression);
 	}
 }
