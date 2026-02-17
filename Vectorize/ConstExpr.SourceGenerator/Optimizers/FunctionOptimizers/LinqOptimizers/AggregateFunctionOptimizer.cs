@@ -4,6 +4,7 @@ using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using SourceGen.Utilities.Extensions;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
@@ -56,9 +57,11 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		if (TryOptimizeAggregateToSum(context, source, out result))
 		{
 			if (context.Method.Parameters.Length == 3
-			    && TryGetLambda(context.VisitedParameters[2], out var resultSelectorLambda))
+			    && TryGetLambda(context.VisitedParameters[2], out var resultSelectorLambda)
+			    && resultSelectorLambda.IsSimpleLambda()
+			    && result is ExpressionSyntax syntax)
 			{
-				result = ReplaceExpression(resultSelectorLambda, (ExpressionSyntax)result);
+				result = ReplaceExpression(resultSelectorLambda, syntax);
 			}
 			
 			
