@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Optimizers.ConditionalOptimizers;
 using Microsoft.CodeAnalysis;
@@ -130,6 +131,14 @@ public partial class ConstExprPartialRewriter
 				// since the context may have changed (e.g., (x + y) * 1 becomes just (x + y),
 				// but parens around x + y are no longer needed in assignment context)
 				return StripUnnecessaryParentheses(optimizedNode);
+			}
+
+			if (nodeLeftExpr is LiteralExpressionSyntax leftLiteral
+			    && nodeRightExpr is LiteralExpressionSyntax rightLiteral
+			    && TryGetLiteral(ObjectExtensions.ExecuteBinaryOperation(node.Kind(), leftLiteral.Token.Value, rightLiteral.Token.Value), out var literal))
+			{
+				return literal;
+
 			}
 		}
 

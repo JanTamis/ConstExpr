@@ -299,7 +299,19 @@ public partial class ConstExprPartialRewriter
 			return Expression.Lambda(body, lambdaParams);
 		});
 
-		var context = new FunctionOptimizerContext(model, loader, targetMethod, node, visitedArguments.OfType<ExpressionSyntax>().ToArray(), originalArguments.OfType<ExpressionSyntax>().ToArray(), x => Visit(x) as ExpressionSyntax, getLambda, additionalMethods);
+		var optimizeBinaryExpression = new Func<BinaryExpressionSyntax, ITypeSymbol, ITypeSymbol, ITypeSymbol, SyntaxNode>((binary, leftType, rightType, type) =>
+		{
+			var expressions = GetBinaryExpressions(node).ToList();
+
+			if (TryOptimizeNode(binary.Kind().ToBinaryOperatorKind(), expressions, type, binary.Left, leftType, binary.Right, rightType, node.Parent, out var optimizedNode))
+			{
+				return optimizedNode;
+			}
+
+			return binary;
+		});
+
+		var context = new FunctionOptimizerContext(model, loader, targetMethod, node, visitedArguments.OfType<ExpressionSyntax>().ToArray(), originalArguments.OfType<ExpressionSyntax>().ToArray(), x => Visit(x) as ExpressionSyntax, getLambda, optimizeBinaryExpression, additionalMethods);
 
 		foreach (var stringOptimizer in optimizers)
 		{
@@ -346,7 +358,19 @@ public partial class ConstExprPartialRewriter
 			return Expression.Lambda(body, lambdaParams);
 		});
 
-		var context = new FunctionOptimizerContext(model, loader, targetMethod, node, visitedArguments.OfType<ExpressionSyntax>().ToArray(), originalArguments.OfType<ExpressionSyntax>().ToArray(), x => Visit(x) as ExpressionSyntax, getLambda, additionalMethods);
+		var optimizeBinaryExpression = new Func<BinaryExpressionSyntax, ITypeSymbol, ITypeSymbol, ITypeSymbol, SyntaxNode>((binary, leftType, rightType, type) =>
+		{
+			var expressions = GetBinaryExpressions(node).ToList();
+
+			if (TryOptimizeNode(binary.Kind().ToBinaryOperatorKind(), expressions, type, binary.Left, leftType, binary.Right, rightType, node.Parent, out var optimizedNode))
+			{
+				return optimizedNode;
+			}
+
+			return binary;
+		});
+
+		var context = new FunctionOptimizerContext(model, loader, targetMethod, node, visitedArguments.OfType<ExpressionSyntax>().ToArray(), originalArguments.OfType<ExpressionSyntax>().ToArray(), x => Visit(x) as ExpressionSyntax, getLambda, optimizeBinaryExpression, additionalMethods);
 
 		return _mathOptimizers.Value
 			.Where(o => String.Equals(o.Name, targetMethod.Name, StringComparison.Ordinal)
@@ -382,9 +406,27 @@ public partial class ConstExprPartialRewriter
 			// Create the lambda expression
 			return Expression.Lambda(body, lambdaParams);
 		});
+		
+		var optimizeBinaryExpression = new Func<BinaryExpressionSyntax, ITypeSymbol, ITypeSymbol, ITypeSymbol, SyntaxNode>((binary, leftType, rightType, type) =>
+		{
+			if (binary.Left is LiteralExpressionSyntax leftLiteral
+			    && binary.Right is LiteralExpressionSyntax rightLiteral
+			    && TryGetLiteral(ObjectExtensions.ExecuteBinaryOperation(binary.Kind(), leftLiteral.Token.Value, rightLiteral.Token.Value), out var leftValue))
+			{
+				return leftValue;
+			}
+			
+			var expressions = GetBinaryExpressions(node).ToList();
 
-		var context = new FunctionOptimizerContext(model, loader, targetMethod, node, visitedArguments.OfType<ExpressionSyntax>().ToArray(), originalArguments.OfType<ExpressionSyntax>().ToArray(), x => Visit(x) as ExpressionSyntax, getLambda, additionalMethods);
-		;
+			if (TryOptimizeNode(binary.Kind().ToBinaryOperatorKind(), expressions, type, binary.Left, leftType, binary.Right, rightType, node.Parent, out var optimizedNode))
+			{
+				return optimizedNode;
+			}
+			
+			return binary;
+		});
+
+		var context = new FunctionOptimizerContext(model, loader, targetMethod, node, visitedArguments.OfType<ExpressionSyntax>().ToArray(), originalArguments.OfType<ExpressionSyntax>().ToArray(), x => Visit(x) as ExpressionSyntax, getLambda, optimizeBinaryExpression, additionalMethods);
 
 		return _linqOptimizers.Value
 			.Where(o => String.Equals(o.Name, targetMethod.Name, StringComparison.Ordinal)

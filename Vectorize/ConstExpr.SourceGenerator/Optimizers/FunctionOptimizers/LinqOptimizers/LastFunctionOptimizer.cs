@@ -3,6 +3,7 @@ using System.Linq;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
@@ -56,29 +57,57 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 			result = CreateInvocation(context.Visit(whereSource) ?? whereSource, nameof(Enumerable.Last), context.Visit(predicate) ?? predicate);
 			return true;
 		}
-		
-		// now check if we have a Reverse at the end of the optimized chain
-		if (IsLinqMethodChain(source, nameof(Enumerable.Reverse), out var reverseInvocation)
-		    && TryGetLinqSource(reverseInvocation, out var reverseSource))
+
+		if (IsLinqMethodChain(source, out var methodName, out var invocation)
+		    && TryGetLinqSource(invocation, out var methodSource))
 		{
-			result = CreateInvocation(context.Visit(reverseSource) ?? reverseSource, nameof(Enumerable.First));
-			return true;
-		}
-		
-		// now check if we have a Order at the end of the optimized chain
-		if (IsLinqMethodChain(source, "Order", out var orderInvocation)
-		    && TryGetLinqSource(orderInvocation, out var orderSource))
-		{
-			result = CreateInvocation(context.Visit(orderSource) ?? orderSource, nameof(Enumerable.Max));
-			return true;
-		}
-		
-		// now check if we have a OrderDescending at the end of the optimized chain
-		if (IsLinqMethodChain(source, "OrderDescending", out var orderDescInvocation)
-		    && TryGetLinqSource(orderDescInvocation, out var orderDescSource))
-		{
-			result = CreateInvocation(context.Visit(orderDescSource) ?? orderDescSource, nameof(Enumerable.Min));
-			return true;
+			switch (methodName)
+			{
+				case nameof(Enumerable.Reverse):
+				{
+					result = CreateInvocation(context.Visit(methodSource) ?? methodSource, nameof(Enumerable.First));
+					return true;
+				}
+				case "Order":
+				{
+					result = CreateInvocation(context.Visit(methodSource) ?? methodSource, nameof(Enumerable.Max));
+					return true;
+				}
+				case "OrderDescending":
+				{
+					result = CreateInvocation(context.Visit(methodSource) ?? methodSource, nameof(Enumerable.Min));
+					return true;
+				}
+				case "Chunk" when invocation.ArgumentList.Arguments is [ var chunkSizeArg ]:
+				{
+					var chunkSize = context.Visit(chunkSizeArg.Expression) ?? chunkSizeArg.Expression;
+
+					if (chunkSize is LiteralExpressionSyntax { Token.Value: 1 })
+					{
+						source = methodSource;
+					}
+					else
+					{
+						if (IsInvokedOnArray(context.Model, methodSource))
+						{
+							// For arrays, we can directly index the first chunk: source[..chunkSize]
+							result = SyntaxFactory.ElementAccessExpression(
+								context.Visit(methodSource) ?? methodSource,
+								SyntaxFactory.BracketedArgumentList(
+									SyntaxFactory.SingletonSeparatedList(
+										SyntaxFactory.Argument(
+											SyntaxFactory.ParseExpression($"^{chunkSize}..")))));
+							return true;
+						}
+
+						var takeInvocation = CreateInvocation(context.Visit(methodSource) ?? methodSource, "TakeLast", chunkSize);
+
+						result = CreateInvocation(takeInvocation, nameof(Enumerable.ToArray));
+						return true;
+					}
+					break;
+				}
+			}
 		}
 		
 		// For arrays, use direct array indexing: arr[^1]

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -140,48 +141,52 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 		if (context.VisitedParameters.Count == 0)
 		{
+			if (IsLinqMethodChain(currentSource, "Chunk", out var chunkInvocation)
+			    && TryGetLinqSource(chunkInvocation, out var chunkSource)
+			    && chunkInvocation.ArgumentList.Arguments is [var chunkSizeArg])
+			{
+				var chunkSize = context.Visit(chunkSizeArg.Expression) ?? chunkSizeArg.Expression;
+				
+				if (chunkSize is LiteralExpressionSyntax { Token.Value: 1 })
+				{
+					currentSource = chunkSource;
+				}
+				else
+				{
+					var intType = context.Model.Compilation.GetSpecialType(SpecialType.System_Int32);
+					var newChunkSource = context.Visit(chunkSource) ?? chunkSource;
+					
+					if (!TryOptimizeCollection(context, newChunkSource, out var invocation))
+					{
+						invocation = CreateInvocation(newChunkSource, nameof(Enumerable.Count));
+					}
+
+					var left = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression,
+						invocation as ExpressionSyntax,
+						context.OptimizeBinaryExpression(SyntaxFactory.BinaryExpression(SyntaxKind.SubtractExpression, chunkSize, SyntaxHelpers.CreateLiteral(1)!), intType, intType, intType) as ExpressionSyntax ?? chunkSize);
+
+					result = context.OptimizeBinaryExpression(SyntaxFactory.BinaryExpression(SyntaxKind.DivideExpression, SyntaxFactory.ParenthesizedExpression(context.OptimizeBinaryExpression(left, intType, intType, intType) as ExpressionSyntax ?? left), chunkSize), intType, intType, intType) as ExpressionSyntax ?? chunkSize;
+					return true;
+				}
+			}
+			
 			if (TryGetSyntaxes(context.Visit(currentSource) ?? currentSource, out var syntaxes))
 			{
 				result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(syntaxes.Count));
 				return true;
 			}
-			
-			if (IsCollectionType(context.Model, currentSource))
-			{
-				result = CreateMemberAccess(context.Visit(currentSource) ?? currentSource, "Count");
-				return true;
-			}
 
-			if (IsCollectionType(context.Model, source))
+			if (TryOptimizeCollection(context, currentSource, out result)
+			    || TryOptimizeCollection(context, source, out result))
 			{
-				result = CreateMemberAccess(context.Visit(source) ?? source, "Count");
-				return true;
-			}
-
-			if (IsInvokedOnArray(context.Model, currentSource))
-			{
-				result = CreateMemberAccess(context.Visit(currentSource) ?? currentSource, "Length");
-				return true;
-			}
-
-			if (IsInvokedOnArray(context.Model, source))
-			{
-				result = CreateMemberAccess(context.Visit(source) ?? source, "Length");
 				return true;
 			}
 		}
 
 		source = context.Visit(currentSource) ?? currentSource;
 
-		if (IsCollectionType(context.Model, source))
+		if (TryOptimizeCollection(context, source, out result))
 		{
-			result = CreateMemberAccess(source, "Count");
-			return true;
-		}
-
-		if (IsInvokedOnArray(context.Model, source))
-		{
-			result = CreateMemberAccess(source, "Length");
 			return true;
 		}
 
@@ -198,6 +203,23 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 			return true;
 		}
 
+		result = null;
+		return false;
+	}
+	
+	private bool TryOptimizeCollection(FunctionOptimizerContext context, ExpressionSyntax source, out SyntaxNode? result)
+	{
+		if (IsCollectionType(context.Model, source))
+		{
+			result = CreateMemberAccess(context.Visit(source) ?? source, "Count");
+			return true;
+		}
+
+		if (IsInvokedOnArray(context.Model, source))
+		{
+			result = CreateMemberAccess(context.Visit(source) ?? source, "Length");
+			return true;
+		}
 		result = null;
 		return false;
 	}

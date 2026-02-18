@@ -111,12 +111,12 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		return !SyntaxFactory.AreEquivalent(context.Invocation, result);
 	}
 
-	private ExpressionSyntax? TryOptimizeAppend(FunctionOptimizerContext context, ExpressionSyntax source, InvocationExpressionSyntax result)
+	private ExpressionSyntax? TryOptimizeAppend(FunctionOptimizerContext context, ExpressionSyntax source, InvocationExpressionSyntax? result)
 	{
 		if (IsLinqMethodChain(source, nameof(Enumerable.Append), out var appendInvocation)
 		    && TryGetLinqSource(appendInvocation, out var appendSource)
 		    && appendInvocation.ArgumentList.Arguments.Count == 1
-		    && result.Expression is MemberAccessExpressionSyntax access)
+		    && result?.Expression is MemberAccessExpressionSyntax access)
 		{
 			var appendedValue = appendInvocation.ArgumentList.Arguments[0].Expression;
 			var visitedAppendedValue = context.Visit(appendedValue) ?? appendedValue;

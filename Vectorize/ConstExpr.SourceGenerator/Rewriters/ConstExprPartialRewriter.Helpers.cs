@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
@@ -116,7 +117,7 @@ public partial class ConstExprPartialRewriter
 	/// <summary>
 	/// Try to apply registered binary optimization strategies for the given operator and operands.
 	/// </summary>
-	private bool TryOptimizeNode(BinaryOperatorKind kind, List<BinaryExpressionSyntax> expressions, ITypeSymbol? type, ExpressionSyntax leftExpr, ITypeSymbol? leftType, ExpressionSyntax rightExpr, ITypeSymbol? rightType, SyntaxNode? parent, out SyntaxNode? syntaxNode)
+	private bool TryOptimizeNode(BinaryOperatorKind kind, List<BinaryExpressionSyntax> expressions, ITypeSymbol? type, ExpressionSyntax leftExpr, ITypeSymbol? leftType, ExpressionSyntax rightExpr, ITypeSymbol? rightType, SyntaxNode? parent, [NotNullWhen(true)] out SyntaxNode? syntaxNode)
 	{
 		if (_binaryOptimizers.TryGetValue(kind, out var optimizer))
 		{

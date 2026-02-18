@@ -1,3 +1,5 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Tests.Linq;
 
 /// <summary>
@@ -5,7 +7,7 @@ namespace ConstExpr.Tests.Tests.Linq;
 /// Note: Chunk is only available in .NET 6+ so these tests are commented out for compatibility
 /// </summary>
 [InheritsTests]
-public class LinqChunkOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqChunkOptimizationTests() : BaseTest<Func<int[], int>>(FloatingPointEvaluationMode.FastMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -29,11 +31,11 @@ public class LinqChunkOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.Select(x => new[] { x }).Count();
-			var b = (x.Count() + 2) / 3;
-			var c = x.Chunk(2).Count();
-			var d = x.Take(5).ToArray();
-			var e = x.TakeLast(4).ToArray();
+			var a = x.Length;
+			var b = (x.Length + 2) / 3;
+			var c = (x.Length + 1) / 2;
+			var d = x[..5];
+			var e = x[^4..];
 			
 			return a + b + c + d.Length + e.Length;
 			""", Unknown),

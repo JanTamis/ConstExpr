@@ -39,6 +39,11 @@ public class AppendFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		// If we skipped any operations (AsEnumerable/ToList/ToArray), create optimized Append call
 		if (TryGetOptimizedChainExpression(source, OperationsThatDontAffectAppend, out source))
 		{
+			if (TryExecutePredicates(context, source, out result))
+			{
+				return true;
+			}
+			
 			result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.Append), context.VisitedParameters[0]);
 			return true;
 		}

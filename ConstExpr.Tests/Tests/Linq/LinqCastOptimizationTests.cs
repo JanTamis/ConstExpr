@@ -10,10 +10,10 @@ public class LinqCastOptimizationTests : BaseTest<Func<List<object>, int>>
 	{
 		// AsEnumerable().Cast<int>() => collection.Cast<int>() (skip AsEnumerable)
 		var a = x.AsEnumerable().Cast<int>().Sum();
-
+		
 		// ToList().Cast<int>() => collection.Cast<int>() (skip ToList)
 		var b = x.ToList().Cast<int>().Sum();
-
+		
 		// ToArray().Cast<int>() => collection.Cast<int>() (skip ToArray)
 		var c = x.ToArray().Cast<int>().Sum();
 

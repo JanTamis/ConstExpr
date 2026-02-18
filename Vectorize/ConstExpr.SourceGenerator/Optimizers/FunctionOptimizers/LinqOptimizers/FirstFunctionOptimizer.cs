@@ -1,8 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
+using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
@@ -48,7 +50,7 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 		var visitedSource = context.Visit(source) ?? source;
 
-		if (IsLinqMethodChain(visitedSource, out var methodName, out var invocation)
+		if (IsLinqMethodChain(source, out var methodName, out var invocation)
 		    && TryGetLinqSource(invocation, out var methodSource))
 		{
 			switch (methodName)
@@ -76,6 +78,35 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 				{
 					result = CreateInvocation(context.Visit(methodSource) ?? methodSource, nameof(Enumerable.Max));
 					return true;
+				}
+				case "Chunk" when invocation.ArgumentList.Arguments is [ var chunkSizeArg ]:
+				{
+					var chunkSize = context.Visit(chunkSizeArg.Expression) ?? chunkSizeArg.Expression;
+
+					if (chunkSize is LiteralExpressionSyntax { Token.Value: 1 })
+					{
+						source = methodSource;
+					}
+					else
+					{
+						if (IsInvokedOnArray(context.Model, methodSource))
+						{
+							// For arrays, we can directly index the first chunk: source[..chunkSize]
+							result = SyntaxFactory.ElementAccessExpression(
+								context.Visit(methodSource) ?? methodSource,
+								SyntaxFactory.BracketedArgumentList(
+									SyntaxFactory.SingletonSeparatedList(
+										SyntaxFactory.Argument(
+											SyntaxFactory.ParseExpression($"..{chunkSize}")))));
+							return true;
+						}
+						
+						var takeInvocation = CreateInvocation(context.Visit(methodSource) ?? methodSource, nameof(Enumerable.Take), chunkSize);
+						
+						result = CreateInvocation(takeInvocation, nameof(Enumerable.ToArray));
+						return true;
+					}
+					break;
 				}
 			}
 		}

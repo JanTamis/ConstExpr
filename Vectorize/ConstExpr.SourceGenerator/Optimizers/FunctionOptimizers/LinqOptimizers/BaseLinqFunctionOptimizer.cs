@@ -693,26 +693,34 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 			if (context.OriginalParameters.Count == context.Method.Parameters.Length
 			    && TryGetValues(context.Visit(source) ?? source, out var values)
 			    && context.Loader.TryGetMethodByMethod(context.Method, out var method)
-			    && context.Method.ReceiverType is INamedTypeSymbol receiverType
-			    && TryCastToType(context.Loader, values, receiverType.TypeArguments[0], out var castedValues))
+			    && context.Method.ReceiverType is INamedTypeSymbol receiverType)
 			{
-				var predicates = context.OriginalParameters
-					.WhereSelect<ExpressionSyntax, Delegate?>((x, out result) =>
-					{
-						if (TryGetLambda(x, out var originalLambda))
-						{
-							result = context.GetLambda(originalLambda).Compile();
-							return result is not null;
-						}
-
-						result = null;
-						return false;
-					})
-					.ToArray();
-
-				if (predicates.Length == context.Method.Parameters.Length)
+				var items = (object)values;
+				
+				if (receiverType.TypeArguments.Length > 0
+					&& TryCastToType(context.Loader, values, receiverType.TypeArguments[0], out var castedValues))
 				{
-					if (SyntaxHelpers.TryGetLiteral(method.Invoke(null, [ castedValues, ..predicates ]), out var tempResult))
+					items = castedValues;
+				}
+				
+				var parameters = new List<object?>();
+
+				for (int i = 0; i < context.OriginalParameters.Count; i++)
+				{
+					if (TryGetLambda(context.OriginalParameters[i], out var originalLambda))
+					{
+						parameters.Add(context.GetLambda(originalLambda).Compile());
+					}
+
+					if (context.VisitedParameters[i] is LiteralExpressionSyntax literal)
+					{
+						parameters.Add(literal.Token.Value);
+					}
+				}
+
+				if (parameters.Count == context.Method.Parameters.Length)
+				{
+					if (SyntaxHelpers.TryGetLiteral(method.Invoke(null, [ items, ..parameters ]), out var tempResult))
 					{
 						result = tempResult;
 						return true;
