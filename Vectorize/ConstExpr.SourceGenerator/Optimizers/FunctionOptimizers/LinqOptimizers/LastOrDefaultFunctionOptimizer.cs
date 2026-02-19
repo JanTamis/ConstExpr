@@ -1,8 +1,11 @@
 using System.Collections.Generic;
 using System.Linq;
+using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
@@ -45,40 +48,82 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 			return true;
 		}
 
-		// Now check if we have a Where at the end of the optimized chain
-		if (IsLinqMethodChain(source, nameof(Enumerable.Where), out var whereInvocation)
-		    && GetMethodArguments(whereInvocation).FirstOrDefault() is { Expression: { } predicateArg }
-		    && TryGetLambda(predicateArg, out var predicate)
-		    && TryGetLinqSource(whereInvocation, out var whereSource))
+		if (IsLinqMethodChain(source, out var methodName, out var invocation)
+		    && TryGetLinqSource(invocation, out var methodSource))
 		{
-			TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectLast, out whereSource);
-			
-			result = CreateInvocation(context.Visit(whereSource) ?? whereSource, nameof(Enumerable.LastOrDefault), context.Visit(predicate) ?? predicate);
-			return true;
-		}
-		
-		// now check if we have a Reverse at the end of the optimized chain
-		if (IsLinqMethodChain(source, nameof(Enumerable.Reverse), out var reverseInvocation)
-		    && TryGetLinqSource(reverseInvocation, out var reverseSource))
-		{
-			result = CreateInvocation(context.Visit(reverseSource) ?? reverseSource, nameof(Enumerable.FirstOrDefault));
-			return true;
-		}
-		
-		// now check if we have a Order at the end of the optimized chain
-		if (IsLinqMethodChain(source, "Order", out var orderInvocation)
-		    && TryGetLinqSource(orderInvocation, out var orderSource))
-		{
-			result = CreateInvocation(context.Visit(orderSource) ?? orderSource, nameof(Enumerable.Max));
-			return true;
-		}
-		
-		// now check if we have a OrderDescending at the end of the optimized chain
-		if (IsLinqMethodChain(source, "OrderDescending", out var orderDescInvocation)
-		    && TryGetLinqSource(orderDescInvocation, out var orderDescSource))
-		{
-			result = CreateInvocation(context.Visit(orderDescSource) ?? orderDescSource, nameof(Enumerable.Min));
-			return true;
+			switch (methodName)
+			{
+				case nameof(Enumerable.Where)
+					when GetMethodArguments(invocation).FirstOrDefault() is { Expression: { } predicateArg }
+					     && TryGetLambda(predicateArg, out var predicate):
+				{
+					TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectLast, out var innerInvocation);
+
+					result = CreateInvocation(context.Visit(innerInvocation) ?? innerInvocation, nameof(Enumerable.LastOrDefault), context.Visit(predicate) ?? predicate);
+					return true;
+				}
+				case nameof(Enumerable.Reverse):
+				{
+					TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectLast, out var innerInvocation);
+
+					result = CreateInvocation(context.Visit(innerInvocation) ?? innerInvocation, nameof(Enumerable.FirstOrDefault));
+					return true;
+				}
+				case "Order":
+				{
+					result = CreateInvocation(context.Visit(methodSource) ?? methodSource, nameof(Enumerable.Max));
+					return true;
+				}
+				case "OrderDescending":
+				{
+					result = CreateInvocation(context.Visit(methodSource) ?? methodSource, nameof(Enumerable.Min));
+					return true;
+				}
+				case nameof(Enumerable.DefaultIfEmpty):
+				{
+					TryGetOptimizedChainExpression(methodSource, (HashSet<string>) [ nameof(Enumerable.DefaultIfEmpty) ], out methodSource);
+
+					// optimize collection.DefaultIfEmpty() => collection.Length > 0 ? collection[0] : default
+					var collection = context.Visit(methodSource) ?? methodSource;
+
+					var defaultItem = invocation.ArgumentList.Arguments.Count == 0
+						? context.Method.ReturnType is INamedTypeSymbol namedType ? namedType.GetDefaultValue() : SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression)
+						: context.Visit(invocation.ArgumentList.Arguments[0].Expression) ?? invocation.ArgumentList.Arguments[0].Expression;
+
+					while (IsLinqMethodChain(source, nameof(Enumerable.DefaultIfEmpty), out var innerDefaultInvocation)
+					       && TryGetLinqSource(innerDefaultInvocation, out var innerSource))
+					{
+						// Continue skipping operations before the inner DefaultIfEmpty
+						TryGetOptimizedChainExpression(innerSource, OperationsThatDontAffectLast, out source);
+
+						defaultItem = innerDefaultInvocation.ArgumentList.Arguments
+							.Select(s => s.Expression)
+							.DefaultIfEmpty(SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression))
+							.First(); // Update default value to the last one to the last one
+
+						isNewSource = true; // We effectively skipped an operation, so we have a new source to optimize from
+					}
+
+					if (IsInvokedOnArray(context.Model, methodSource))
+					{
+						result = CreateDefaultIfEmptyConditional(collection, "Length", defaultItem);
+						return true;
+					}
+
+					if (IsCollectionType(context.Model, methodSource))
+					{
+						result = CreateDefaultIfEmptyConditional(collection, "Count", defaultItem);
+						return true;
+					}
+
+					break;
+				}
+				case nameof(Enumerable.Append) when GetMethodArguments(invocation).FirstOrDefault() is { Expression: { } appendArg }:
+				{
+					result = appendArg;
+					return true;
+				}
+			}
 		}
 		
 		// For arrays, use conditional: arr.Length > 0 ? arr[^1] : default
@@ -86,27 +131,7 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 		{
 			source = context.Visit(source) ?? source;
 			
-			result = SyntaxFactory.ConditionalExpression(
-				SyntaxFactory.BinaryExpression(
-					SyntaxKind.GreaterThanExpression,
-					SyntaxFactory.MemberAccessExpression(
-						SyntaxKind.SimpleMemberAccessExpression,
-						source,
-						SyntaxFactory.IdentifierName("Length")),
-					SyntaxFactory.LiteralExpression(
-						SyntaxKind.NumericLiteralExpression,
-						SyntaxFactory.Literal(0))),
-				SyntaxFactory.ElementAccessExpression(
-					source,
-					SyntaxFactory.BracketedArgumentList(
-						SyntaxFactory.SingletonSeparatedList(
-							SyntaxFactory.Argument(
-								SyntaxFactory.PrefixUnaryExpression(
-									SyntaxKind.IndexExpression,
-									SyntaxFactory.LiteralExpression(
-										SyntaxKind.NumericLiteralExpression,
-										SyntaxFactory.Literal(1))))))),
-				SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression));
+			result = CreateDefaultIfEmptyConditional(source, "Length", SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression));
 			return true;
 		}
 
@@ -115,27 +140,7 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 		{
 			source = context.Visit(source) ?? source;
 			
-			result = SyntaxFactory.ConditionalExpression(
-				SyntaxFactory.BinaryExpression(
-					SyntaxKind.GreaterThanExpression,
-					SyntaxFactory.MemberAccessExpression(
-						SyntaxKind.SimpleMemberAccessExpression,
-						source,
-						SyntaxFactory.IdentifierName("Count")),
-					SyntaxFactory.LiteralExpression(
-						SyntaxKind.NumericLiteralExpression,
-						SyntaxFactory.Literal(0))),
-				SyntaxFactory.ElementAccessExpression(
-					source,
-					SyntaxFactory.BracketedArgumentList(
-						SyntaxFactory.SingletonSeparatedList(
-							SyntaxFactory.Argument(
-								SyntaxFactory.PrefixUnaryExpression(
-									SyntaxKind.IndexExpression,
-									SyntaxFactory.LiteralExpression(
-										SyntaxKind.NumericLiteralExpression,
-										SyntaxFactory.Literal(1))))))),
-				SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression));
+			result = CreateDefaultIfEmptyConditional(source, "Count", SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression));
 			return true;
 		}
 		
@@ -148,6 +153,25 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 
 		result = null;
 		return false;
+	}
+
+	private SyntaxNode CreateDefaultIfEmptyConditional(ExpressionSyntax collection, string propertyName, ExpressionSyntax defaultItem)
+	{
+		return SyntaxFactory.ConditionalExpression(
+			SyntaxFactory.BinaryExpression(
+				SyntaxKind.GreaterThanExpression,
+				CreateMemberAccess(collection, propertyName),
+				SyntaxHelpers.CreateLiteral(0)!),
+			SyntaxFactory.ElementAccessExpression(
+				collection,
+				SyntaxFactory.BracketedArgumentList(
+					SyntaxFactory.SingletonSeparatedList(
+						SyntaxFactory.Argument(SyntaxFactory.PrefixUnaryExpression(
+							SyntaxKind.IndexExpression,
+							SyntaxFactory.LiteralExpression(
+								SyntaxKind.NumericLiteralExpression,
+								SyntaxFactory.Literal(1))))))),
+			defaultItem);
 	}
 }
 

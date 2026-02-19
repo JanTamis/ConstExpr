@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
@@ -100,13 +101,57 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 											SyntaxFactory.ParseExpression($"..{chunkSize}")))));
 							return true;
 						}
-						
+
 						var takeInvocation = CreateInvocation(context.Visit(methodSource) ?? methodSource, nameof(Enumerable.Take), chunkSize);
-						
+
 						result = CreateInvocation(takeInvocation, nameof(Enumerable.ToArray));
 						return true;
 					}
 					break;
+				}
+				case nameof(Enumerable.DefaultIfEmpty):
+				{
+					TryGetOptimizedChainExpression(methodSource, (HashSet<string>)[ nameof(Enumerable.DefaultIfEmpty) ], out methodSource);
+					
+					// optimize collection.DefaultIfEmpty() => collection.Length > 0 ? collection[0] : default
+					var collection = context.Visit(methodSource) ?? methodSource;
+					
+					var defaultItem = invocation.ArgumentList.Arguments.Count == 0
+						? context.Method.ReturnType is INamedTypeSymbol namedType ? namedType.GetDefaultValue() : SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression)
+						: context.Visit(invocation.ArgumentList.Arguments[0].Expression) ?? invocation.ArgumentList.Arguments[0].Expression;
+
+					while (IsLinqMethodChain(source, nameof(Enumerable.DefaultIfEmpty), out var innerDefaultInvocation)
+					       && TryGetLinqSource(innerDefaultInvocation, out var innerSource))
+					{
+						// Continue skipping operations before the inner DefaultIfEmpty
+						TryGetOptimizedChainExpression(innerSource, OperationsThatDontAffectFirst, out source);
+
+						defaultItem = innerDefaultInvocation.ArgumentList.Arguments
+							.Select(s => s.Expression)
+							.DefaultIfEmpty(SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression))
+							.First(); // Update default value to the last one to the last one
+						
+						isNewSource = true; // We effectively skipped an operation, so we have a new source to optimize from
+					}
+
+					if (IsInvokedOnArray(context.Model, methodSource))
+					{
+						result = CreateDefaultIfEmptyConditional(collection, "Length", defaultItem);
+						return true;
+					}
+
+					if (IsCollectionType(context.Model, methodSource))
+					{
+						result = CreateDefaultIfEmptyConditional(collection, "Count", defaultItem);
+						return true;
+					}
+
+					break;
+				}
+				case nameof(Enumerable.Prepend) when GetMethodArguments(invocation).FirstOrDefault() is { Expression: { } appendArg }:
+				{
+					result = appendArg;
+					return true;
 				}
 			}
 		}
@@ -152,5 +197,20 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 		result = null;
 		return false;
+	}
+
+	private SyntaxNode CreateDefaultIfEmptyConditional(ExpressionSyntax collection, string propertyName, ExpressionSyntax defaultItem)
+	{
+		return SyntaxFactory.ConditionalExpression(
+			SyntaxFactory.BinaryExpression(
+				SyntaxKind.GreaterThanExpression,
+				CreateMemberAccess(collection, propertyName),
+				SyntaxHelpers.CreateLiteral(0)!),
+			SyntaxFactory.ElementAccessExpression(
+				collection,
+				SyntaxFactory.BracketedArgumentList(
+					SyntaxFactory.SingletonSeparatedList(
+						SyntaxFactory.Argument(SyntaxHelpers.CreateLiteral(0)!)))),
+			defaultItem);
 	}
 }

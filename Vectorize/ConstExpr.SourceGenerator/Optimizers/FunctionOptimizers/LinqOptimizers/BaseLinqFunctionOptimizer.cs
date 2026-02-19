@@ -132,7 +132,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	/// <summary>
 	/// Extracts all arguments from a method invocation.
 	/// </summary>
-	protected IEnumerable<ArgumentSyntax> GetMethodArguments(InvocationExpressionSyntax invocation)
+	protected SeparatedSyntaxList<ArgumentSyntax> GetMethodArguments(InvocationExpressionSyntax invocation)
 	{
 		return invocation.ArgumentList.Arguments;
 	}

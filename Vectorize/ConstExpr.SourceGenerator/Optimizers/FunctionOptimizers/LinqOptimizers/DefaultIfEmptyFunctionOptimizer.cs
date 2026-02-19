@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
@@ -50,7 +51,9 @@ public class DefaultIfEmptyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 		}
 
 		// Get the default value parameter if provided
-		var defaultValue = context.VisitedParameters.FirstOrDefault();
+		var defaultValue = context.VisitedParameters
+			.DefaultIfEmpty(SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression))
+			.FirstOrDefault();
 
 		// Recursively skip all operations that don't affect emptiness
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectEmpty, out source);
@@ -63,7 +66,11 @@ public class DefaultIfEmptyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 			// Continue skipping operations before the inner DefaultIfEmpty
 			TryGetOptimizedChainExpression(innerSource, OperationsThatDontAffectEmpty, out source);
 
-			defaultValue = innerDefaultInvocation.ArgumentList.Arguments.Select(s => s.Expression).FirstOrDefault(); // Update default value to the last one to the last one
+			defaultValue = innerDefaultInvocation.ArgumentList.Arguments
+				.Select(s => s.Expression)
+				.DefaultIfEmpty(SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression))
+				.First(); // Update default value to the last one to the last one
+			
 			isNewSource = true; // We effectively skipped an operation, so we have a new source to optimize from
 		}
 
