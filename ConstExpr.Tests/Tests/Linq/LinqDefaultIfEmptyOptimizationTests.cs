@@ -158,18 +158,25 @@ public class LinqDefaultIfEmptyComplexTests : BaseTest<Func<int[], int>>
 
 		// Nested DefaultIfEmpty with different values
 		var c = x.DefaultIfEmpty(10).DefaultIfEmpty(20).DefaultIfEmpty(30).First();
+		var d = x.DefaultIfEmpty(10).DefaultIfEmpty(20).DefaultIfEmpty(30).FirstOrDefault();
+		
+		var e = x.DefaultIfEmpty(10).DefaultIfEmpty(20).DefaultIfEmpty(30).Last();
+		var f = x.DefaultIfEmpty(10).DefaultIfEmpty(20).DefaultIfEmpty(30).LastOrDefault();
 
-		return a + b + c;
+		return a + b + c + d + e + f;
 	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.Where(v => v > 0).Distinct().OrderBy(v => v).DefaultIfEmpty(50).Sum();
-			var b = x.Where(v => v > 100).Select(v => v * 2).DefaultIfEmpty(25).Sum();
+			var a = x.Where(v => v > 0).Distinct().Order().DefaultIfEmpty(50).Sum();
+			var b = x.Where(v => v > 100).Select(v => v << 1).DefaultIfEmpty(25).Sum();
 			var c = x.Length > 0 ? x[0] : 10;
+			var d = x.Length > 0 ? x[0] : 10;
+			var e = x.Length > 0 ? x[^1] : 10;
+			var f = x.Length > 0 ? x[^1] : 10;
 			
-			return a + b + c;
+			return a + b + c + d + e + f;
 			""", Unknown),
 		Create("return 41;", new[] { 1, 2, 3, 4, 5 }), // a=15 (sum of 1-5), b=25 (empty, default), c=1 (non-empty) = 41
 		Create("return 105;", new int[] { }), // a=50 (empty, default), b=25 (empty, default), c=30 (empty, default) = 105

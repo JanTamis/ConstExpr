@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
@@ -85,14 +86,29 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 			}
 			
 			wherePredicates.Add(predicate);
+
+			currentSource = whereSource;
 			
 			// Skip operations that don't affect count before the next Where
-			isNewSource = TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectCount, out currentSource) || isNewSource;
+			isNewSource = TryGetOptimizedChainExpression(currentSource, OperationsThatDontAffectCount, out currentSource) || isNewSource;
 		}
 
 		// If we found any Where predicates, combine them
 		if (wherePredicates.Count > 0)
 		{
+			// try to execute predicates directly if we can get the values at compile time (e.g. for arrays or collections with known contents)
+			if (TryGetValues(context.Visit(currentSource) ?? currentSource, out var values))
+			{
+				var lambdas = wherePredicates
+					.Select(s => context.GetLambda(s)?.Compile())
+					.ToList();
+				
+				var count = values.Count(value => lambdas.All(lambda => lambda?.DynamicInvoke(value) is true));
+				
+				result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(count));
+				return true;
+			}
+			
 			// Start with the first predicate and combine with the rest
 			var combinedPredicate = context.Visit(wherePredicates[^1]) as LambdaExpressionSyntax ?? wherePredicates[^1];
 			

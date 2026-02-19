@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
+using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ExclusiveOrStrategies;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -30,17 +32,17 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 	// Operations that don't affect element containment (only order/form/duplicates/materialization)
 	private static readonly HashSet<string> OperationsThatDontAffectContainment =
 	[
-		nameof(Enumerable.Distinct),         // Deduplication: may reduce count, but if element exists, Contains is true
-		nameof(Enumerable.OrderBy),          // Ordering: changes order but not containment
-		nameof(Enumerable.OrderByDescending),// Ordering: changes order but not containment
-		"Order",                             // Ordering (.NET 6+): changes order but not containment
-		"OrderDescending",                   // Ordering (.NET 6+): changes order but not containment
-		nameof(Enumerable.ThenBy),           // Secondary ordering: changes order but not containment
+		nameof(Enumerable.Distinct), // Deduplication: may reduce count, but if element exists, Contains is true
+		nameof(Enumerable.OrderBy), // Ordering: changes order but not containment
+		nameof(Enumerable.OrderByDescending), // Ordering: changes order but not containment
+		"Order", // Ordering (.NET 6+): changes order but not containment
+		"OrderDescending", // Ordering (.NET 6+): changes order but not containment
+		nameof(Enumerable.ThenBy), // Secondary ordering: changes order but not containment
 		nameof(Enumerable.ThenByDescending), // Secondary ordering: changes order but not containment
-		nameof(Enumerable.Reverse),          // Reversal: changes order but not containment
-		nameof(Enumerable.AsEnumerable),     // Type cast: doesn't change the collection
-		nameof(Enumerable.ToList),           // Materialization: creates list but doesn't filter
-		nameof(Enumerable.ToArray),          // Materialization: creates array but doesn't filter
+		nameof(Enumerable.Reverse), // Reversal: changes order but not containment
+		nameof(Enumerable.AsEnumerable), // Type cast: doesn't change the collection
+		nameof(Enumerable.ToList), // Materialization: creates list but doesn't filter
+		nameof(Enumerable.ToArray), // Materialization: creates array but doesn't filter
 	];
 
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
@@ -67,7 +69,7 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		{
 			// Continue skipping operations before Select as well
 			TryGetOptimizedChainExpression(selectSource, OperationsThatDontAffectContainment, out selectSource);
-			
+
 			selector = context.Visit(selector) as LambdaExpressionSyntax ?? selector;
 
 			// Try to convert to Any with equality check
@@ -113,41 +115,62 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		{
 			// Continue skipping operations before Where as well
 			TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectContainment, out whereSource);
-			
-			wherePredicate = context.Visit(wherePredicate) as LambdaExpressionSyntax ?? wherePredicate;
 
-			// Create a new lambda that combines the where predicate with equality check
-			var lambdaParam = GetLambdaParameter(wherePredicate);
-			var whereBody = GetLambdaBody(wherePredicate);
-			var equalityCheck = SyntaxFactory.BinaryExpression(
-				SyntaxKind.EqualsExpression,
-				SyntaxFactory.IdentifierName(lambdaParam),
-				searchValue);
-
-			var combinedBody = SyntaxFactory.BinaryExpression(
-				SyntaxKind.LogicalAndExpression,
-				SyntaxFactory.ParenthesizedExpression(whereBody),
-				SyntaxFactory.ParenthesizedExpression(equalityCheck));
-
-			var anyPredicate = SyntaxFactory.SimpleLambdaExpression(
-				SyntaxFactory.Parameter(SyntaxFactory.Identifier(lambdaParam)),
-				combinedBody);
-
-			// Use appropriate context.Method based on source type
-			if (IsInvokedOnList(context.Model, whereSource))
+			// TODO: do this recursively for multiple chained Where statements
+			if (searchValue is LiteralExpressionSyntax { Token.Value: { } literalValue }
+			    && context.GetLambda(wherePredicate) is { } lambda)
 			{
-				result = CreateInvocation(context.Visit(whereSource) ?? whereSource, "Exists", context.Visit(anyPredicate) ?? anyPredicate);
+				switch (lambda.Compile().DynamicInvoke(literalValue))
+				{
+					case false:
+					{
+						result = SyntaxFactory.LiteralExpression(SyntaxKind.FalseLiteralExpression);
+						return true;
+					}
+					case true:
+					{
+						TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectContainment, out source);
+						break;
+					}
+				}
+			}
+			else
+			{
+				wherePredicate = context.Visit(wherePredicate) as LambdaExpressionSyntax ?? wherePredicate;
+
+				// Create a new lambda that combines the where predicate with equality check
+				var lambdaParam = GetLambdaParameter(wherePredicate);
+				var whereBody = GetLambdaBody(wherePredicate);
+				var equalityCheck = SyntaxFactory.BinaryExpression(
+					SyntaxKind.EqualsExpression,
+					SyntaxFactory.IdentifierName(lambdaParam),
+					searchValue);
+
+				var combinedBody = SyntaxFactory.BinaryExpression(
+					SyntaxKind.LogicalAndExpression,
+					SyntaxFactory.ParenthesizedExpression(whereBody),
+					SyntaxFactory.ParenthesizedExpression(equalityCheck));
+
+				var anyPredicate = SyntaxFactory.SimpleLambdaExpression(
+					SyntaxFactory.Parameter(SyntaxFactory.Identifier(lambdaParam)),
+					combinedBody);
+
+				// Use appropriate context.Method based on source type
+				if (IsInvokedOnList(context.Model, whereSource))
+				{
+					result = CreateInvocation(context.Visit(whereSource) ?? whereSource, "Exists", context.Visit(anyPredicate) ?? anyPredicate);
+					return true;
+				}
+
+				if (IsInvokedOnArray(context.Model, whereSource))
+				{
+					result = CreateInvocation(SyntaxFactory.ParseTypeName(nameof(Array)), nameof(Array.Exists), context.Visit(whereSource) ?? whereSource, context.Visit(anyPredicate) ?? anyPredicate);
+					return true;
+				}
+
+				result = CreateInvocation(context.Visit(whereSource) ?? whereSource, nameof(Enumerable.Any), context.Visit(anyPredicate) ?? anyPredicate);
 				return true;
 			}
-
-			if (IsInvokedOnArray(context.Model, whereSource))
-			{
-				result = CreateInvocation(SyntaxFactory.ParseTypeName(nameof(Array)), nameof(Array.Exists), context.Visit(whereSource) ?? whereSource, context.Visit(anyPredicate) ?? anyPredicate);
-				return true;
-			}
-
-			result = CreateInvocation(context.Visit(whereSource) ?? whereSource, nameof(Enumerable.Any), context.Visit(anyPredicate) ?? anyPredicate);
-			return true;
 		}
 
 		// For List<T>, use the native Contains context.Method

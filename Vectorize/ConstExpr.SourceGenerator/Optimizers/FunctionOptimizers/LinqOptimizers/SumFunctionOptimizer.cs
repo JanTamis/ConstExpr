@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Net.Mime;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
@@ -113,19 +114,63 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 	private ExpressionSyntax? TryOptimizeAppend(FunctionOptimizerContext context, ExpressionSyntax source, InvocationExpressionSyntax? result)
 	{
-		if (IsLinqMethodChain(source, nameof(Enumerable.Append), out var appendInvocation)
-		    && TryGetLinqSource(appendInvocation, out var appendSource)
-		    && appendInvocation.ArgumentList.Arguments.Count == 1
-		    && result?.Expression is MemberAccessExpressionSyntax access)
+		var items = new List<ExpressionSyntax>
 		{
-			var appendedValue = appendInvocation.ArgumentList.Arguments[0].Expression;
-			var visitedAppendedValue = context.Visit(appendedValue) ?? appendedValue;
+			result!,
+		};
 
-			return SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, 
-				result.WithExpression(access.WithExpression(appendSource)), 
-				visitedAppendedValue);
+		while (IsLinqMethodChain(source, out var name, out var invocation)
+		       && TryGetLinqSource(invocation, out source))
+		{
+			switch (name)
+			{
+				case nameof(Enumerable.Append):
+				{
+					var appendedValue = invocation.ArgumentList.Arguments[0].Expression;
+					var visitedAppendedValue = context.Visit(appendedValue) ?? appendedValue;
+
+					items.Add(visitedAppendedValue);
+					break;
+				}
+				case nameof(Enumerable.Concat) when TryGetSyntaxes(invocation.ArgumentList.Arguments[0].Expression, out var syntaxes):
+				{
+					items.AddRange(syntaxes.Select(s => context.Visit(s) ?? s));
+					break;
+				}
+				default:
+				{
+					goto End;
+				}
+			}
+		}
+		
+		End:
+
+		if (items[0] is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax memberAccess } firstInvocation)
+		{
+			// update source of the Sum invocation to the final source after skipping Append chains
+			var newInvocation = firstInvocation.WithExpression(memberAccess.WithExpression(source));
+
+			if (TryExecutePredicates(context, source, out var optimizedResult))
+			{
+				items[0] = context.Visit(optimizedResult) ?? optimizedResult as ExpressionSyntax ?? newInvocation;
+			}
+			else
+			{
+				items[0] = newInvocation;
+			}
 		}
 
-		return result;
+		var type = context.Method.ReturnType;
+
+		// create add chain for all appended values: source.Sum() + appendedValue1 + appendedValue2 + ..., using aggregate to build the chain
+		var sumExpression = items[0];
+
+		foreach (var item in items.Skip(1))
+		{
+			sumExpression = context.OptimizeBinaryExpression(SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, sumExpression!, item), type, type, type) as ExpressionSyntax;
+		}
+
+		return sumExpression;
 	}
 }

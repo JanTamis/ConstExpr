@@ -201,14 +201,14 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	{
 		return ThrowExpression(
 			ObjectCreationExpression(
-				IdentifierName(exceptionTypeName))
-			.WithArgumentList(
-				ArgumentList(
-					SingletonSeparatedList(
-						Argument(
-							LiteralExpression(
-								SyntaxKind.StringLiteralExpression,
-								Literal(message)))))));
+					IdentifierName(exceptionTypeName))
+				.WithArgumentList(
+					ArgumentList(
+						SingletonSeparatedList(
+							Argument(
+								LiteralExpression(
+									SyntaxKind.StringLiteralExpression,
+									Literal(message)))))));
 	}
 
 	/// <summary>
@@ -617,7 +617,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		var wrappedReplacement = replacement is BinaryExpressionSyntax
 			? ParenthesizedExpression(replacement)
 			: replacement;
-		
+
 		return (ExpressionSyntax) new IdentifierReplacer(oldIdentifier, wrappedReplacement).Visit(expression);
 	}
 
@@ -650,6 +650,54 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 			values = constantValues;
 			return true;
 		}
+		
+		if (node is ArrayCreationExpressionSyntax arrayCreation)
+		{
+			if (arrayCreation.Initializer is null)
+			{
+				values = null;
+				return false;
+			}
+
+			var constantValues = new List<object?>();
+
+			foreach (var expression in arrayCreation.Initializer.Expressions)
+			{
+				if (expression is LiteralExpressionSyntax literal)
+				{
+					constantValues.Add(literal.Token.Value);
+				}
+				else
+				{
+					values = null;
+					return false;
+				}
+			}
+
+			values = constantValues;
+			return true;
+		}
+		
+		if (node is ImplicitArrayCreationExpressionSyntax implicitArrayCreation)
+		{
+			var constantValues = new List<object?>();
+
+			foreach (var expression in implicitArrayCreation.Initializer.Expressions)
+			{
+				if (expression is LiteralExpressionSyntax literal)
+				{
+					constantValues.Add(literal.Token.Value);
+				}
+				else
+				{
+					values = null;
+					return false;
+				}
+			}
+
+			values = constantValues;
+			return true;
+		}
 
 		values = null;
 		return false;
@@ -667,10 +715,28 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 			return values.Count == collectionExpression.Elements.Count;
 		}
 
+		if (node is ArrayCreationExpressionSyntax arrayCreation)
+		{
+			if (arrayCreation.Initializer is null)
+			{
+				values = null;
+				return false;
+			}
+
+			values = arrayCreation.Initializer.Expressions.ToList();
+			return true;
+		}
+
+		if (node is ImplicitArrayCreationExpressionSyntax implicitArrayCreation)
+		{
+			values = implicitArrayCreation.Initializer.Expressions.ToList();
+			return true;
+		}
+
 		values = null;
 		return false;
 	}
-	
+
 	protected bool TryCastToType(MetadataLoader loader, IEnumerable<object?> values, ITypeSymbol type, [NotNullWhen(true)] out object? result)
 	{
 		if (loader.TryGetType(type, out var elementType))
@@ -681,7 +747,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 			result = castMethod.Invoke(null, [ values ]);
 			return true;
 		}
-		
+
 		result = null;
 		return false;
 	}
@@ -695,14 +761,14 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 			    && context.Loader.TryGetMethodByMethod(context.Method, out var method)
 			    && context.Method.ReceiverType is INamedTypeSymbol receiverType)
 			{
-				var items = (object)values;
-				
+				var items = (object) values;
+
 				if (receiverType.TypeArguments.Length > 0
-					&& TryCastToType(context.Loader, values, receiverType.TypeArguments[0], out var castedValues))
+				    && TryCastToType(context.Loader, values, receiverType.TypeArguments[0], out var castedValues))
 				{
 					items = castedValues;
 				}
-				
+
 				var parameters = new List<object?>();
 
 				for (int i = 0; i < context.OriginalParameters.Count; i++)
@@ -731,7 +797,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		catch (Exception e)
 		{
 		}
-		
+
 		result = null;
 		return false;
 	}
