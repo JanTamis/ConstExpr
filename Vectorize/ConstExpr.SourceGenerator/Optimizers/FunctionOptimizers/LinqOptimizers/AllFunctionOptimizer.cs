@@ -71,30 +71,33 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			return true;
 		}
 
-		// Now check if we have a Where at the end of the optimized chain
-		if (IsLinqMethodChain(source, nameof(Enumerable.Where), out var whereInvocation)
-		    && GetMethodArguments(whereInvocation).FirstOrDefault() is { Expression: { } predicateArg }
-		    && TryGetLambda(predicateArg, out var wherePredicate)
-		    && TryGetLinqSource(whereInvocation, out var whereSource))
+		if (IsLinqMethodChain(source, out var methodName, out var invocation)
+		    && TryGetLinqSource(invocation, out var invocationSource))
 		{
-			// Continue skipping operations before Where as well
-			TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectAll, out source);
+			switch (methodName)
+			{
+				case nameof(Enumerable.Where) when GetMethodArguments(invocation).FirstOrDefault() is { Expression: { } predicateArg }
+					&& TryGetLambda(predicateArg, out var wherePredicate):
+				{
+					// Continue skipping operations before Where as well
+					TryGetOptimizedChainExpression(invocationSource, OperationsThatDontAffectAll, out source);
 
-			allLambda = CombinePredicates(context.Visit(allLambda) as LambdaExpressionSyntax ?? allLambda, context.Visit(wherePredicate) as LambdaExpressionSyntax ?? wherePredicate);
-			isNewSource = true;
-		}
+					allLambda = CombinePredicates(context.Visit(allLambda) as LambdaExpressionSyntax ?? allLambda, context.Visit(wherePredicate) as LambdaExpressionSyntax ?? wherePredicate);
+					isNewSource = true;
+					break;
+				}
 
-		// Now check if we have a Where at the end of the optimized chain
-		if (IsLinqMethodChain(source, nameof(Enumerable.Select), out var selectInvocation)
-		    && GetMethodArguments(selectInvocation).FirstOrDefault() is { Expression: { } selectpredicateArg }
-		    && TryGetLambda(selectpredicateArg, out var selectPredicate)
-		    && TryGetLinqSource(selectInvocation, out var selectSource))
-		{
-			// Continue skipping operations before Where as well
-			TryGetOptimizedChainExpression(selectSource, OperationsThatDontAffectAll, out source);
+				case nameof(Enumerable.Select) when GetMethodArguments(invocation).FirstOrDefault() is { Expression: { } selectpredicateArg }
+				                                    && TryGetLambda(selectpredicateArg, out var selectPredicate):
+				{
+					// Continue skipping operations before Select as well
+					TryGetOptimizedChainExpression(invocationSource, OperationsThatDontAffectAll, out source);
 
-			allLambda = CombineSelectLambdas(context.Visit(allLambda) as LambdaExpressionSyntax ?? allLambda, context.Visit(selectPredicate) as LambdaExpressionSyntax ?? selectPredicate);
-			isNewSource = true;
+					allLambda = CombineSelectLambdas(context.Visit(allLambda) as LambdaExpressionSyntax ?? allLambda, context.Visit(selectPredicate) as LambdaExpressionSyntax ?? selectPredicate);
+					isNewSource = true;
+					break;
+				}
+			}
 		}
 
 		if (IsInvokedOnArray(context.Model, source))
