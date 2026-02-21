@@ -119,8 +119,7 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			result!,
 		};
 
-		while (IsLinqMethodChain(source, out var name, out var invocation)
-		       && TryGetLinqSource(invocation, out source))
+		while (IsLinqMethodChain(source, out var name, out var invocation))
 		{
 			switch (name)
 			{

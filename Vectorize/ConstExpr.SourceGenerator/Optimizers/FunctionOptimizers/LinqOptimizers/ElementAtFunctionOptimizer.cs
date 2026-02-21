@@ -71,22 +71,14 @@ public class ElementAtFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		// For arrays, use direct array indexing: arr[index]
 		if (IsInvokedOnArray(context.Model, source))
 		{
-			result = SyntaxFactory.ElementAccessExpression(
-				context.Visit(source) ?? source,
-				SyntaxFactory.BracketedArgumentList(
-					SyntaxFactory.SingletonSeparatedList(
-						SyntaxFactory.Argument(indexParameter))));
+			result = CreateElementAccess(context.Visit(source) ?? source, indexParameter);
 			return true;
 		}
 
 		// For List<T>, use direct indexing: list[index]
 		if (IsInvokedOnList(context.Model, source))
 		{
-			result = SyntaxFactory.ElementAccessExpression(
-				context.Visit(source) ?? source,
-				SyntaxFactory.BracketedArgumentList(
-					SyntaxFactory.SingletonSeparatedList(
-						SyntaxFactory.Argument(indexParameter))));
+			result = CreateElementAccess(context.Visit(source) ?? source, indexParameter);
 			return true;
 		}
 

@@ -42,7 +42,9 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		nameof(Enumerable.ThenByDescending), // Secondary ordering: changes order but not count
 		nameof(Enumerable.Reverse),          // Reversal: changes order but not count
 		nameof(Enumerable.AsEnumerable),     // Type cast: doesn't change the collection
-		nameof(Enumerable.Select)						 // Projection: doesn't change count for non-nullable types
+		nameof(Enumerable.Select),					 // Projection: doesn't change count for non-nullable types
+		nameof(Enumerable.ToList),           // Materialization: creates list but doesn't filter
+		nameof(Enumerable.ToArray),          // Materialization: creates array but doesn't filter
 	];
 
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
@@ -142,6 +144,18 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 						return true;
 				}
 			}
+
+			if (IsLinqMethodChain(currentSource, nameof(Enumerable.DefaultIfEmpty), out var chunkInvocation))
+			{
+				TryGetOptimizedChainExpression(currentSource, OperationsThatDontAffectCount.Union([ nameof(Enumerable.DefaultIfEmpty) ]).ToSet(), out currentSource);
+				
+				currentSource = context.Visit(currentSource) ?? currentSource;
+				
+				var invocation = CreateInvocation(currentSource, nameof(Enumerable.Count), combinedPredicate);
+				
+				result = CreateInvocation(SyntaxFactory.ParseTypeName("Int32"), "Max", invocation, SyntaxHelpers.CreateLiteral(1)!);
+				return true;
+			}
 			
 			currentSource = context.Visit(currentSource) ?? currentSource;
 
@@ -151,38 +165,69 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 				return true;
 			}
 			
-			result = context.Visit(CreateInvocation(currentSource, nameof(Enumerable.Count), combinedPredicate));
+			result = CreateInvocation(currentSource, nameof(Enumerable.Count), combinedPredicate);
 			return true;
 		}
 
 		if (context.VisitedParameters.Count == 0)
 		{
-			if (IsLinqMethodChain(currentSource, "Chunk", out var chunkInvocation)
-			    && TryGetLinqSource(chunkInvocation, out var chunkSource)
-			    && chunkInvocation.ArgumentList.Arguments is [var chunkSizeArg])
+			if (IsLinqMethodChain(currentSource, out var methodName, out var invocation)
+			        && TryGetLinqSource(invocation, out var methodSource))
 			{
-				var chunkSize = context.Visit(chunkSizeArg.Expression) ?? chunkSizeArg.Expression;
-				
-				if (chunkSize is LiteralExpressionSyntax { Token.Value: 1 })
+				switch (methodName)
 				{
-					currentSource = chunkSource;
-				}
-				else
-				{
-					var intType = context.Model.Compilation.GetSpecialType(SpecialType.System_Int32);
-					var newChunkSource = context.Visit(chunkSource) ?? chunkSource;
-					
-					if (!TryOptimizeCollection(context, newChunkSource, out var invocation))
+					case "Chunk" when invocation.ArgumentList.Arguments is [var chunkSizeArg]:
 					{
-						invocation = CreateInvocation(newChunkSource, nameof(Enumerable.Count));
+						var chunkSize = context.Visit(chunkSizeArg.Expression) ?? chunkSizeArg.Expression;
+
+						if (chunkSize is LiteralExpressionSyntax { Token.Value: 1 })
+						{
+							currentSource = methodSource;
+						}
+						else
+						{
+							var intType = context.Model.Compilation.GetSpecialType(SpecialType.System_Int32);
+							var newChunkSource = context.Visit(methodSource) ?? methodSource;
+
+							if (!TryOptimizeCollection(context, newChunkSource, out var countInvocation))
+							{
+								countInvocation = CreateInvocation(newChunkSource, nameof(Enumerable.Count));
+							}
+
+							var left = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression,
+								countInvocation as ExpressionSyntax,
+								context.OptimizeBinaryExpression(SyntaxFactory.BinaryExpression(SyntaxKind.SubtractExpression, chunkSize, SyntaxHelpers.CreateLiteral(1)!), intType, intType, intType) as ExpressionSyntax ?? chunkSize);
+
+							result = context.OptimizeBinaryExpression(SyntaxFactory.BinaryExpression(SyntaxKind.DivideExpression, SyntaxFactory.ParenthesizedExpression(context.OptimizeBinaryExpression(left, intType, intType, intType) as ExpressionSyntax ?? left), chunkSize), intType, intType, intType) as ExpressionSyntax ?? chunkSize;
+							return true;
+						}
+						
+						break;
 					}
+					case nameof(Enumerable.DefaultIfEmpty):
+					{
+						TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectCount.Union([ nameof(Enumerable.DefaultIfEmpty) ]).ToSet(), out currentSource);
+						
+						if (!TryOptimizeCollection(context, currentSource, out var resultInvocation))
+						{
+							currentSource = context.Visit(currentSource) ?? currentSource;
 
-					var left = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression,
-						invocation as ExpressionSyntax,
-						context.OptimizeBinaryExpression(SyntaxFactory.BinaryExpression(SyntaxKind.SubtractExpression, chunkSize, SyntaxHelpers.CreateLiteral(1)!), intType, intType, intType) as ExpressionSyntax ?? chunkSize);
-
-					result = context.OptimizeBinaryExpression(SyntaxFactory.BinaryExpression(SyntaxKind.DivideExpression, SyntaxFactory.ParenthesizedExpression(context.OptimizeBinaryExpression(left, intType, intType, intType) as ExpressionSyntax ?? left), chunkSize), intType, intType, intType) as ExpressionSyntax ?? chunkSize;
-					return true;
+							resultInvocation = CreateInvocation(currentSource, nameof(Enumerable.Count));
+						}
+						
+						result = CreateInvocation(SyntaxFactory.ParseTypeName("Int32"), "Max", resultInvocation as ExpressionSyntax, SyntaxHelpers.CreateLiteral(1)!);
+						return true;
+					}
+					case nameof(Enumerable.Distinct):
+					{
+						TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectCount.Union([ nameof(Enumerable.Distinct) ]).ToSet(), out currentSource);
+						
+						currentSource = context.Visit(currentSource) ?? currentSource;
+						var distinctInvocation = CreateInvocation(currentSource, nameof(Enumerable.Distinct));
+						
+						result = CreateInvocation(distinctInvocation, nameof(Enumerable.Count));
+						return true;
+					}
 				}
 			}
 			
@@ -236,6 +281,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 			result = CreateMemberAccess(context.Visit(source) ?? source, "Length");
 			return true;
 		}
+		
 		result = null;
 		return false;
 	}

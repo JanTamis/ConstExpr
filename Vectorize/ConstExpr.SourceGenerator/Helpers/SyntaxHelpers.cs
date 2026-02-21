@@ -102,7 +102,7 @@ public static class SyntaxHelpers
 		return expression is not null;
 	}
 
-	public static ExpressionSyntax? CreateLiteral<T>(T? value, bool useExplicitByte = false)
+	public static ExpressionSyntax? CreateLiteral<T>( T? value, bool useExplicitByte = false)
 	{
 		switch (value)
 		{

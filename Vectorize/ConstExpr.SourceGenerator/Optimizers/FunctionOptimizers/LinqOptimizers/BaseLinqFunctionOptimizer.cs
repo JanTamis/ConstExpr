@@ -190,6 +190,14 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	{
 		return MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, source, name);
 	}
+	
+	protected ElementAccessExpressionSyntax CreateElementAccess(ExpressionSyntax source, params IEnumerable<ExpressionSyntax> arguments)
+	{
+		return ElementAccessExpression(
+			source,
+			BracketedArgumentList(
+				SeparatedList( arguments.Select(Argument))));
+	}
 
 	/// <summary>
 	/// Creates a throw expression for a specific exception type with a message.

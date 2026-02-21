@@ -181,8 +181,8 @@ public class LinqElementAtNoOptimizationTests : BaseTest<Func<int[], int>>
 			var c = x.Last();
 			var d = x.First(v => v > 2);
 			var e = x.Select(v => v * 2).First();
-			var f = x.First();
-			var g = x.First();
+			var f = x[0];
+			var g = x[0];
 			
 			return a + b + c + d + e + f + g;
 			""", Unknown),

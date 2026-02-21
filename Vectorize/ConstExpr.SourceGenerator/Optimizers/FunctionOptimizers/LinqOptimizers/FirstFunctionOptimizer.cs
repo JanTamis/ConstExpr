@@ -161,14 +161,7 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		if (IsInvokedOnArray(context.Model, source)
 		    || IsInvokedOnList(context.Model, source))
 		{
-			result = SyntaxFactory.ElementAccessExpression(
-				context.Visit(source) ?? source,
-				SyntaxFactory.BracketedArgumentList(
-					SyntaxFactory.SingletonSeparatedList(
-						SyntaxFactory.Argument(
-							SyntaxFactory.LiteralExpression(
-								SyntaxKind.NumericLiteralExpression,
-								SyntaxFactory.Literal(0))))));
+			result = CreateElementAccess(context.Visit(source) ?? source, SyntaxHelpers.CreateLiteral(0)!);
 			return true;
 		}
 
@@ -177,14 +170,7 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		if (IsInvokedOnArray(context.Model, visitedSource)
 		    || IsInvokedOnList(context.Model, visitedSource))
 		{
-			result = SyntaxFactory.ElementAccessExpression(
-				visitedSource,
-				SyntaxFactory.BracketedArgumentList(
-					SyntaxFactory.SingletonSeparatedList(
-						SyntaxFactory.Argument(
-							SyntaxFactory.LiteralExpression(
-								SyntaxKind.NumericLiteralExpression,
-								SyntaxFactory.Literal(0))))));
+			result = CreateElementAccess(context.Visit(source) ?? source, SyntaxHelpers.CreateLiteral(0)!);
 			return true;
 		}
 
