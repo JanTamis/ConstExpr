@@ -28,14 +28,9 @@ public class IntersectByFunctionOptimizer() : BaseLinqFunctionOptimizer("Interse
 		var secondSource = context.VisitedParameters[0];
 
 		// Optimize Enumerable.Empty<T>().IntersectBy(collection, selector) => Enumerable.Empty<T>()
-		if (IsEmptyEnumerable(source))
-		{
-			result = CreateEmptyEnumerableCall(context.Method.TypeArguments[0]);
-			return true;
-		}
-
 		// Optimize collection.IntersectBy(Enumerable.Empty<TKey>(), selector) => Enumerable.Empty<T>()
-		if (IsEmptyEnumerable(secondSource))
+		if (IsEmptyEnumerable(source)
+		    || IsEmptyEnumerable(secondSource))
 		{
 			result = CreateEmptyEnumerableCall(context.Method.TypeArguments[0]);
 			return true;

@@ -31,7 +31,8 @@ public class ZipFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		source = context.Visit(source) ?? source;
 
 		// If either source is empty, result is empty
-		if (IsEmptyEnumerable(source) || IsEmptyEnumerable(secondSource))
+		if (IsEmptyEnumerable(source) 
+		    || IsEmptyEnumerable(secondSource))
 		{
 			// Get the return type element from the context.Method
 			if (context.Method.ReturnType is INamedTypeSymbol { TypeArguments.Length: > 0 } returnType)

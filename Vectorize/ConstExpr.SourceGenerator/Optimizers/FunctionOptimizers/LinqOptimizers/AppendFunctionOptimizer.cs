@@ -43,8 +43,8 @@ public class AppendFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 			{
 				return true;
 			}
-			
-			result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.Append), context.VisitedParameters);
+
+			result = UpdateInvocation(context, source);
 			return true;
 		}
 

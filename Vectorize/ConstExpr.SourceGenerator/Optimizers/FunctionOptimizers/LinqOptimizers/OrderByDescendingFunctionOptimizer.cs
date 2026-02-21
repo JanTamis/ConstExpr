@@ -10,7 +10,6 @@ public class OrderByDescendingFunctionOptimizer() : BaseLinqFunctionOptimizer(na
 	{
 		if (!IsValidLinqMethod(context.Model, context.Method)
 		    || !TryGetLambda(context.VisitedParameters[0], out var lambda)
-		    || !IsIdentityLambda(lambda)
 		    || !TryGetLinqSource(context.Invocation, out var source))
 		{
 			result = null;
@@ -22,7 +21,13 @@ public class OrderByDescendingFunctionOptimizer() : BaseLinqFunctionOptimizer(na
 			return true;
 		}
 
-		result = CreateSimpleInvocation(context.Visit(source) ?? source, "OrderDescending");
-		return true;
+		if (IsIdentityLambda(lambda))
+		{
+			result = CreateSimpleInvocation(context.Visit(source) ?? source, "OrderDescending");
+			return true;
+		}
+
+		result = null;
+		return false;
 	}
 }

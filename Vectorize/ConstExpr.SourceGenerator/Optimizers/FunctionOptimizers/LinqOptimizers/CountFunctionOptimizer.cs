@@ -165,7 +165,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 				return true;
 			}
 			
-			result = CreateInvocation(currentSource, nameof(Enumerable.Count), combinedPredicate);
+			result = UpdateInvocation(context, currentSource, combinedPredicate);
 			return true;
 		}
 
@@ -260,7 +260,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		// If we skipped any operations, create optimized Count() call
 		if (isNewSource)
 		{
-			result = CreateInvocation(source, nameof(Enumerable.Count), context.VisitedParameters);
+			result = UpdateInvocation(context, source);
 			return true;
 		}
 

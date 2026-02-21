@@ -115,7 +115,7 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		// If we skipped any operations, create optimized All() call
 		if (isNewSource)
 		{
-			result = CreateInvocation(source!, nameof(Enumerable.All), context.Visit(allLambda) ?? allLambda);
+			result = UpdateInvocation(context, source, context.Visit(allLambda) ?? allLambda);
 			return true;
 		}
 

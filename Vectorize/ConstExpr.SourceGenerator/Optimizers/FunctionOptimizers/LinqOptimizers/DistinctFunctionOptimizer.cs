@@ -94,15 +94,15 @@ public class DistinctFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		    && TryGetLinqSource(selectInvocation, out var selectSource))
 		{
 			TryGetOptimizedChainExpression(selectSource, allowedOperations, out selectSource);
-			
-			result = CreateInvocation(context.Visit(selectSource) ?? selectSource, nameof(Enumerable.Distinct));
+
+			result = UpdateInvocation(context, selectSource);
 			return true;
 		}
 
 		// If we skipped any operations, create optimized Distinct() call
 		if (isNewSource)
 		{
-			result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.Distinct));
+			result = UpdateInvocation(context, source);
 			return true;
 		}
 

@@ -36,7 +36,7 @@ public class OrderDescendingFunctionOptimizer() : BaseLinqFunctionOptimizer("Ord
 				}
 				case "Order":
 				{
-					result = CreateSimpleInvocation(context.Visit(invocationSource) ?? invocationSource, "OrderDescending");
+					result = UpdateInvocation(context, invocationSource);
 					return true;
 				}
 			}

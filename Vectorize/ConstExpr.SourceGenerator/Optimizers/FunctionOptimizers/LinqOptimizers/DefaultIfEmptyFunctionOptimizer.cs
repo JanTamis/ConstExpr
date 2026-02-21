@@ -80,8 +80,8 @@ public class DefaultIfEmptyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 		if (isNewSource)
 		{
 			result = defaultValue != null
-				? CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.DefaultIfEmpty), defaultValue)
-				: CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.DefaultIfEmpty));
+				? UpdateInvocation(context, source, defaultValue)
+				: UpdateInvocation(context, source);
 
 			return true;
 		}

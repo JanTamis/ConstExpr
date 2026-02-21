@@ -28,7 +28,7 @@ public class MinByFunctionOptimizer() : BaseLinqFunctionOptimizer("MinBy", 1)
 
 		if (IsIdentityLambda(lambda))
 		{
-			result = CreateSimpleInvocation(context.Visit(source) ?? source, nameof(Enumerable.Min));
+			result = UpdateInvocation(context, source, []);
 			return true;
 		}
 		

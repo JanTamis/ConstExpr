@@ -52,7 +52,7 @@ public class ShuffleFunctionOptimizer() : BaseLinqFunctionOptimizer("Shuffle", 0
 		// If we skipped any operations, create optimized Shuffle() call
 		if (isNewSource)
 		{
-			result = CreateInvocation(context.Visit(source) ?? source, "Shuffle");
+			result = UpdateInvocation(context, source);
 			return true;
 		}
 

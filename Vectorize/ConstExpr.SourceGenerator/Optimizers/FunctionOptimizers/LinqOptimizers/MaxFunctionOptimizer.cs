@@ -56,7 +56,7 @@ public class MaxFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		    && TryGetLambda(context.VisitedParameters[0], out var lambda)
 		    && IsIdentityLambda(context.Visit(lambda) as LambdaExpressionSyntax ?? lambda ))
 		{
-			result = CreateSimpleInvocation(context.Visit(source) ?? source, nameof(Enumerable.Max));
+			result = UpdateInvocation(context, source, []);
 			return true;
 		}
 
@@ -69,14 +69,15 @@ public class MaxFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			TryGetOptimizedChainExpression(selectSource, OperationsThatDontAffectMax, out selectSource);
 			
 			var selector = selectInvocation.ArgumentList.Arguments[0].Expression;
-			result = CreateInvocation(context.Visit(selectSource) ?? selectSource, nameof(Enumerable.Max), context.Visit(selector) ?? selector);
+			
+			result = UpdateInvocation(context, selectSource, context.Visit(selector) ?? selector);
 			return true;
 		}
 
 		// If we skipped any operations, create optimized Max() call
 		if (isNewSource && context.VisitedParameters.Count == 0)
 		{
-			result = CreateSimpleInvocation(context.Visit(source) ?? source, nameof(Enumerable.Max));
+			result = UpdateInvocation(context, source);
 			return true;
 		}
 

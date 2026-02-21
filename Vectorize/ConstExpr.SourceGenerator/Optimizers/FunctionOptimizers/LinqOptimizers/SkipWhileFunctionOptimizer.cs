@@ -27,18 +27,17 @@ public class SkipWhileFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 			return true;
 		}
 
-		// Optimize SkipWhile(x => false) => collection (never skip anything)
-		if (IsLiteralBooleanLambda(lambda, out var value) && value == false)
+		if (IsLiteralBooleanLambda(lambda, out var value))
 		{
-			result = context.Visit(source) ?? source;
-			return true;
-		}
-
-		// Optimize SkipWhile(x => true) => Enumerable.Empty<T>() (skip everything)
-		if (IsLiteralBooleanLambda(lambda, out value) && value == true)
-		{
-			result = CreateEmptyEnumerableCall(context.Method.TypeArguments[0]);
-			return true;
+			switch (value)
+			{
+				case false:
+					result = context.Visit(source) ?? source;
+					return true;
+				case true:
+					result = CreateEmptyEnumerableCall(context.Method.TypeArguments[0]);
+					return true;
+			}
 		}
 
 		result = null;

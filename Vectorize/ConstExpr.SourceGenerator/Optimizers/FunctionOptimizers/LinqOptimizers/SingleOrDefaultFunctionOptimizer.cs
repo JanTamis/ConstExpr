@@ -51,21 +51,21 @@ public class SingleOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(name
 		    && whereInvocation.ArgumentList.Arguments.Count == 1)
 		{
 			TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectSingleOrDefault, out whereSource);
-			
+
 			var predicate = whereInvocation.ArgumentList.Arguments[0].Expression;
 			var tempSource = context.Visit(whereSource) ?? whereSource;
 
 			if (TryGetValues(tempSource, out var values))
 			{
 				var lambda = context.GetLambda(predicate as LambdaExpressionSyntax);
-				
+
 				if (lambda != null)
 				{
 					var compiledPredicate = lambda.Compile();
-					
+
 					// If we can evaluate the predicate at compile time, we can determine if SingleOrDefault will return a constant value
 					var matchingValues = values.Where(v => compiledPredicate.DynamicInvoke(v) is true).ToList();
-					
+
 					switch (matchingValues.Count)
 					{
 						case 0 or > 1:
@@ -80,15 +80,15 @@ public class SingleOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(name
 
 				}
 			}
-			
-			result = CreateInvocation(context.Visit(whereSource) ?? whereSource, nameof(Enumerable.SingleOrDefault), context.Visit(predicate) ?? predicate);
+
+			result = UpdateInvocation(context, whereSource, context.Visit(predicate) ?? predicate);
 			return true;
 		}
 
 		// If we skipped any operations, create optimized SingleOrDefault() call
-		if (isNewSource && context.VisitedParameters.Count == 0)
+		if (isNewSource)
 		{
-			result = CreateSimpleInvocation(context.Visit(source) ?? source, nameof(Enumerable.SingleOrDefault));
+			result = UpdateInvocation(context, source);
 			return true;
 		}
 

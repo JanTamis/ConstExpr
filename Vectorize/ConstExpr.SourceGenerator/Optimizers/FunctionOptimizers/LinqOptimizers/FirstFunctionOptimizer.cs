@@ -93,12 +93,7 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 						if (IsInvokedOnArray(context.Model, methodSource))
 						{
 							// For arrays, we can directly index the first chunk: source[..chunkSize]
-							result = SyntaxFactory.ElementAccessExpression(
-								context.Visit(methodSource) ?? methodSource,
-								SyntaxFactory.BracketedArgumentList(
-									SyntaxFactory.SingletonSeparatedList(
-										SyntaxFactory.Argument(
-											SyntaxFactory.ParseExpression($"..{chunkSize}")))));
+							result = CreateElementAccess(context.Visit(methodSource) ?? methodSource, SyntaxFactory.ParseExpression($"..{chunkSize}"));
 							return true;
 						}
 
@@ -177,7 +172,7 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		// If we skipped any operations, create optimized First() call
 		if (isNewSource)
 		{
-			result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.First));
+			result = UpdateInvocation(context, source);
 			return true;
 		}
 

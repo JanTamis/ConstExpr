@@ -59,7 +59,7 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 				{
 					TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectLast, out var innerInvocation);
 
-					result = CreateInvocation(context.Visit(innerInvocation) ?? innerInvocation, nameof(Enumerable.LastOrDefault), context.Visit(predicate) ?? predicate);
+					result = UpdateInvocation(context, innerInvocation, context.Visit(predicate) ?? predicate);
 					return true;
 				}
 				case nameof(Enumerable.Reverse):
@@ -147,7 +147,7 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 		// If we skipped any operations, create optimized LastOrDefault() call
 		if (isNewSource)
 		{
-			result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.LastOrDefault));
+			result = UpdateInvocation(context, source);
 			return true;
 		}
 
@@ -161,16 +161,8 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 			SyntaxFactory.BinaryExpression(
 				SyntaxKind.GreaterThanExpression,
 				CreateMemberAccess(collection, propertyName),
-				SyntaxHelpers.CreateLiteral(0)!),
-			SyntaxFactory.ElementAccessExpression(
-				collection,
-				SyntaxFactory.BracketedArgumentList(
-					SyntaxFactory.SingletonSeparatedList(
-						SyntaxFactory.Argument(SyntaxFactory.PrefixUnaryExpression(
-							SyntaxKind.IndexExpression,
-							SyntaxFactory.LiteralExpression(
-								SyntaxKind.NumericLiteralExpression,
-								SyntaxFactory.Literal(1))))))),
+				SyntaxHelpers.CreateLiteral(0)!), CreateElementAccess(collection, SyntaxFactory.PrefixUnaryExpression(
+				SyntaxKind.IndexExpression, SyntaxHelpers.CreateLiteral(1)!)),
 			defaultItem);
 	}
 }

@@ -43,7 +43,7 @@ public class ToHashSetFunctionOptimizer() : BaseLinqFunctionOptimizer("ToHashSet
 		// Skip all materializing/type-cast operations
 		if (isNewSource)
 		{
-			result = context.Invocation.WithExpression(context.Visit(source) ?? source);
+			result = UpdateInvocation(context, source);
 			return true;
 		}
 

@@ -37,12 +37,7 @@ public class ChunkFunctionOptimizer() : BaseLinqFunctionOptimizer("Chunk", 1)
 		if (chunkSize is LiteralExpressionSyntax { Token.Value: 1 })
 		{
 			var parameter = Parameter(Identifier("x"));
-			
-			var lambdaBody = ImplicitArrayCreationExpression(
-				InitializerExpression(SyntaxKind.ArrayInitializerExpression,
-					SingletonSeparatedList<ExpressionSyntax>(
-						IdentifierName("x"))));
-
+			var lambdaBody = CreateImplicitArray(IdentifierName("x"));
 			var lambda = SimpleLambdaExpression(parameter, lambdaBody);
 			
 			result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.Select), lambda);

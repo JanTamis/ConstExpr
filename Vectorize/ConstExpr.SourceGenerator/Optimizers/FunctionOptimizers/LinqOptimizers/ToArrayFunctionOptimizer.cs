@@ -40,7 +40,7 @@ public class ToArrayFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 		// Skip all materializing/type-cast operations
 		if (isNewSource)
 		{
-			result = context.Invocation.WithExpression(context.Visit(source) ?? source);
+			result = UpdateInvocation(context, source);
 			return true;
 		}
 

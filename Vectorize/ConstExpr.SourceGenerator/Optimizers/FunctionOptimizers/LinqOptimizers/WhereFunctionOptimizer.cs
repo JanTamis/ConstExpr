@@ -73,7 +73,7 @@ public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 			}
 			
 			// Create a new Where call with the combined lambda
-			result = CreateInvocation(context.Visit(currentSource) ?? currentSource, nameof(Enumerable.Where), combinedPredicate);
+			result = UpdateInvocation(context, currentSource, combinedPredicate);
 			return true;
 		}
 

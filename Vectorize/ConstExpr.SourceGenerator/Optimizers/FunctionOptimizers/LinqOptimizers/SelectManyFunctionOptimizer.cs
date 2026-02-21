@@ -37,16 +37,15 @@ public class SelectManyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(En
 		}
 
 		// Check if lambda always returns empty
-		if (context.VisitedParameters.Count >= 1 && TryGetLambda(context.VisitedParameters[0], out var lambda))
+		if (context.VisitedParameters.Count >= 1 
+		    && TryGetLambda(context.VisitedParameters[0], out var lambda) 
+		    && TryGetLambdaBody(lambda, out var body) && IsEmptyEnumerable(body) && context.Method.TypeArguments.Length > 0)
 		{
-			if (TryGetLambdaBody(lambda, out var body) && IsEmptyEnumerable(body) && context.Method.TypeArguments.Length > 0)
-			{
-				// selector always returns empty, so result is empty
-				var resultType = context.Method.TypeArguments[^1];
+			// selector always returns empty, so result is empty
+			var resultType = context.Method.TypeArguments[^1];
 				
-				result = CreateEmptyEnumerableCall(resultType);
-				return true;
-			}
+			result = CreateEmptyEnumerableCall(resultType);
+			return true;
 		}
 
 		result = null;

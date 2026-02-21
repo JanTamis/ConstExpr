@@ -90,12 +90,7 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 						if (IsInvokedOnArray(context.Model, methodSource))
 						{
 							// For arrays, we can directly index the first chunk: source[..chunkSize]
-							result = SyntaxFactory.ElementAccessExpression(
-								context.Visit(methodSource) ?? methodSource,
-								SyntaxFactory.BracketedArgumentList(
-									SyntaxFactory.SingletonSeparatedList(
-										SyntaxFactory.Argument(
-											SyntaxFactory.ParseExpression($"^{chunkSize}..")))));
+							result = CreateElementAccess(context.Visit(methodSource) ?? methodSource, SyntaxFactory.ParseTypeName($"^{chunkSize}.."));
 							return true;
 						}
 
@@ -157,23 +152,15 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 		// For List<T>, use direct indexing: list[^1]
 		if (IsInvokedOnArray(context.Model, source) || IsInvokedOnList(context.Model, source))
 		{
-			result = SyntaxFactory.ElementAccessExpression(
-				context.Visit(source) ?? source,
-				SyntaxFactory.BracketedArgumentList(
-					SyntaxFactory.SingletonSeparatedList(
-						SyntaxFactory.Argument(
-							SyntaxFactory.PrefixUnaryExpression(
-								SyntaxKind.IndexExpression,
-								SyntaxFactory.LiteralExpression(
-									SyntaxKind.NumericLiteralExpression,
-									SyntaxFactory.Literal(1)))))));
+			result = CreateElementAccess(context.Visit(source) ?? source, SyntaxFactory.PrefixUnaryExpression(
+				SyntaxKind.IndexExpression, SyntaxHelpers.CreateLiteral(1)!));
 			return true;
 		}
 		
 		// If we skipped any operations, create optimized Last() call
 		if (isNewSource)
 		{
-			result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.Last));
+			result = UpdateInvocation(context, source);
 			return true;
 		}
 

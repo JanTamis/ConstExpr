@@ -53,8 +53,6 @@ public class AverageFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 			{
 				return true;
 			}
-			
-			source = context.Visit(source) ?? source;
 		
 			if (IsEmptyEnumerable(source))
 			{
@@ -62,8 +60,8 @@ public class AverageFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 				result = CreateThrowExpression<InvalidOperationException>("Sequence contains no elements");
 				return true;
 			}
-			
-			result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.Average), context.VisitedParameters);
+
+			result = UpdateInvocation(context, source);
 			return true;
 		}
 

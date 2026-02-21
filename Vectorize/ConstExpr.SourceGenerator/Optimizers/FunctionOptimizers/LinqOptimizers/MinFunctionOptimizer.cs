@@ -56,7 +56,7 @@ public class MinFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		    && TryGetLambda(context.VisitedParameters[0], out var lambda)
 		    && IsIdentityLambda(context.Visit(lambda) as LambdaExpressionSyntax ?? lambda))
 		{
-			result = CreateSimpleInvocation(context.Visit(source) ?? source, nameof(Enumerable.Min));
+			result = UpdateInvocation(context, source, [ ]);
 			return true;
 		}
 
@@ -67,16 +67,17 @@ public class MinFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		    && selectInvocation.ArgumentList.Arguments.Count == 1)
 		{
 			TryGetOptimizedChainExpression(selectSource, OperationsThatDontAffectMin, out selectSource);
-			
+
 			var selector = selectInvocation.ArgumentList.Arguments[0].Expression;
-			result = CreateInvocation(context.Visit(selectSource) ?? selectSource, nameof(Enumerable.Min), context.Visit(selector) ?? selector);
+			
+			result = UpdateInvocation(context, selectSource, context.Visit(selector) ?? selector);
 			return true;
 		}
 
 		// If we skipped any operations, create optimized Min() call
-		if (isNewSource && context.VisitedParameters.Count == 0)
+		if (isNewSource)
 		{
-			result = CreateSimpleInvocation(context.Visit(source) ?? source, nameof(Enumerable.Min));
+			result = UpdateInvocation(context, source);
 			return true;
 		}
 

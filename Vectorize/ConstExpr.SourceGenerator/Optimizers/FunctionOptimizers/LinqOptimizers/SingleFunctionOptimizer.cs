@@ -48,14 +48,15 @@ public class SingleFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 			TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectSingle, out whereSource);
 			
 			var predicate = whereInvocation.ArgumentList.Arguments[0].Expression;
-			result = CreateInvocation(context.Visit(whereSource) ?? whereSource, nameof(Enumerable.Single), context.Visit(predicate) ?? predicate);
+
+			result = UpdateInvocation(context, whereSource, context.Visit(predicate) ?? predicate);
 			return true;
 		}
 
 		// If we skipped any operations, create optimized Single() call
 		if (isNewSource)
 		{
-			result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.Single), context.VisitedParameters);
+			result = UpdateInvocation(context, source);
 			return true;
 		}
 

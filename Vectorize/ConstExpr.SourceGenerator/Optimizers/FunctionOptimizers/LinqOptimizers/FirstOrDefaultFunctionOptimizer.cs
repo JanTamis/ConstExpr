@@ -147,7 +147,7 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 		// If we skipped any operations, create optimized FirstOrDefault() call
 		if (isNewSource)
 		{
-			result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.FirstOrDefault));
+			result = UpdateInvocation(context, source);
 			return true;
 		}
 

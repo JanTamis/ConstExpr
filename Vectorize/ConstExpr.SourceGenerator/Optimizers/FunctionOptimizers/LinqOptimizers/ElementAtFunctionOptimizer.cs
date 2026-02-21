@@ -96,7 +96,7 @@ public class ElementAtFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		// If we skipped any operations, create optimized ElementAt() call
 		if (isNewSource)
 		{
-			result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.ElementAt), indexParameter);
+			result = UpdateInvocation(context, source, indexParameter);
 			return true;
 		}
 

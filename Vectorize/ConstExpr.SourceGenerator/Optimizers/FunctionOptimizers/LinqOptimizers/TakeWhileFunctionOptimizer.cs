@@ -27,22 +27,22 @@ public class TakeWhileFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 			return true;
 		}
 
-		// Optimize TakeWhile(x => true) => collection (take everything)
-		if (IsLiteralBooleanLambda(lambda, out var value) && value == true)
+		if (IsLiteralBooleanLambda(lambda, out var value))
 		{
-			result = context.Visit(source) ?? source;
-			return true;
-		}
-
-		// Optimize TakeWhile(x => false) => Enumerable.Empty<T>() (take nothing)
-		if (IsLiteralBooleanLambda(lambda, out value) && value == false)
-		{
-			result = CreateEmptyEnumerableCall(context.Method.TypeArguments[0]);
-			return true;
+			switch (value)
+			{
+				// Optimize TakeWhile(x => true) => collection (take everything)
+				case true:
+					result = context.Visit(source) ?? source;
+					return true;
+				// Optimize TakeWhile(x => false) => Enumerable.Empty<T>() (take nothing)
+				case false:
+					result = CreateEmptyEnumerableCall(context.Method.TypeArguments[0]);
+					return true;
+			}
 		}
 
 		result = null;
 		return false;
 	}
 }
-

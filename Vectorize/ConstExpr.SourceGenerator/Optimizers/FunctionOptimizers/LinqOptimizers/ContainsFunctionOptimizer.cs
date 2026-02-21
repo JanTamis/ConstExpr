@@ -180,7 +180,7 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 			// For List<T>, use the native Contains context.Method
 			if (IsInvokedOnList(context.Model, source))
 			{
-				result = CreateInvocation(context.Visit(source) ?? source, "Contains", context.Visit(searchValue) ?? searchValue);
+				result = UpdateInvocation(context, source, context.Visit(searchValue) ?? searchValue);
 				return true;
 			}
 
@@ -204,7 +204,7 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 			if (isNewSource)
 			{
 				// Keep context.Parameters (including optional comparer)
-				result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.Contains), context.VisitedParameters);
+				result = UpdateInvocation(context, source);
 				return true;
 			}
 		}

@@ -199,6 +199,22 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 				SeparatedList( arguments.Select(Argument))));
 	}
 
+	protected InvocationExpressionSyntax UpdateInvocation(FunctionOptimizerContext context, ExpressionSyntax source)
+	{
+		return UpdateInvocation(context, source, context.VisitedParameters);
+	}
+
+	protected InvocationExpressionSyntax UpdateInvocation(FunctionOptimizerContext context, ExpressionSyntax source, params IEnumerable<ExpressionSyntax> arguments)
+	{
+		if (context.Invocation.Expression is MemberAccessExpressionSyntax memberAccess)
+		{
+			return context.Invocation.
+				Update(memberAccess.WithExpression(context.Visit(source) ?? source), ArgumentList(SeparatedList(arguments.Select(Argument))));
+		}
+		
+		throw new InvalidOperationException("Invocation expression must be a member access");
+	}
+
 	/// <summary>
 	/// Creates a throw expression for a specific exception type with a message.
 	/// </summary>

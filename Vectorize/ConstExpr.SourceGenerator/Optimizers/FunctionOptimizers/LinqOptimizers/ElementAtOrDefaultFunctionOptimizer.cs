@@ -82,7 +82,7 @@ public class ElementAtOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(n
 		// If we skipped any operations, create optimized ElementAtOrDefault() call
 		if (isNewSource)
 		{
-			result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.ElementAtOrDefault), indexParameter);
+			result = UpdateInvocation(context, source, indexParameter);
 			return true;
 		}
 

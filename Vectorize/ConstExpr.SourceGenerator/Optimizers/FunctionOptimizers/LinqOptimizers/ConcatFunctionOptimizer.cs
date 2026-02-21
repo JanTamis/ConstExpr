@@ -80,7 +80,7 @@ public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		// If we skipped any operations (AsEnumerable/ToList/ToArray), create optimized Concat call
 		if (isNewSource)
 		{
-			result = CreateInvocation(source, nameof(Enumerable.Concat), concatenatedCollection);
+			result = UpdateInvocation(context, source, concatenatedCollection);
 			return true;
 		}
 

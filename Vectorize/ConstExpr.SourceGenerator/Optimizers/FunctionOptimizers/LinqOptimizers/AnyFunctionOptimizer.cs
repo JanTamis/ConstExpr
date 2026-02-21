@@ -96,7 +96,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 						return true;
 					}
 
-					result = CreateInvocation(invocationSource, nameof(Enumerable.Any), context.Visit(predicate) ?? predicate);
+					result = UpdateInvocation(context, invocationSource, context.Visit(predicate) ?? predicate);
 					return true;
 				}
 			}
@@ -132,7 +132,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		// If we skipped any operations, create optimized Any() call
 		if (isNewSource)
 		{
-			result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.Any));
+			result = UpdateInvocation(context, source);
 			return true;
 		}
 

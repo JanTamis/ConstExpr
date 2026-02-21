@@ -82,7 +82,7 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			    || !IsIdentityLambda(selectorLambda))
 			{
 				var visitedSelector = context.Visit(selector) ?? selector;
-				result = TryOptimizeAppend(context, selectSource, CreateInvocation(selectSource, nameof(Enumerable.Sum), visitedSelector));
+				result = TryOptimizeAppend(context, selectSource, UpdateInvocation(context, selectSource, visitedSelector));
 				return true;
 			}
 		}
@@ -104,7 +104,7 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		if (isNewSource
 		    || !SyntaxFactory.AreEquivalent(source, newSource))
 		{
-			result = TryOptimizeAppend(context, newSource, CreateInvocation(newSource, nameof(Enumerable.Sum), context.VisitedParameters));
+			result = TryOptimizeAppend(context, newSource, UpdateInvocation(context, newSource));
 			return true;
 		}
 

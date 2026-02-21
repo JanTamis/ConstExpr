@@ -25,9 +25,9 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 	// These are essentially no-ops that just change the type or materialize
 	private static readonly HashSet<string> OperationsThatDontAffectAggregate =
 	[
-		nameof(Enumerable.AsEnumerable),     // Type cast: doesn't change the collection
-		nameof(Enumerable.ToList),           // Materialization: creates list but doesn't change elements
-		nameof(Enumerable.ToArray),          // Materialization: creates array but doesn't change elements
+		nameof(Enumerable.AsEnumerable), // Type cast: doesn't change the collection
+		nameof(Enumerable.ToList), // Materialization: creates list but doesn't change elements
+		nameof(Enumerable.ToArray), // Materialization: creates array but doesn't change elements
 		nameof(Enumerable.OrderBy),
 		nameof(Enumerable.OrderByDescending),
 		"Order",
@@ -77,25 +77,25 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 						}
 						else
 						{
-							result = CreateInvocation(context.Visit(invocationSource) ?? invocationSource, nameof(Enumerable.Aggregate), context.Visit(innerLambda) ?? invocationSource);
+							result = UpdateInvocation(context, invocationSource, context.Visit(innerLambda) ?? invocationSource);
 						}
 						break;
 					}
 				}
 			}
-			
+
 			return true;
 		}
 
 		if (IsZeroLiteral(context.VisitedParameters[0]))
 		{
-			result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.Aggregate), context.VisitedParameters.Skip(1));
+			result = UpdateInvocation(context, source, context.VisitedParameters.Skip(1));
 			return true;
 		}
 
 		if (isNewSource)
 		{
-			result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.Aggregate), context.VisitedParameters);
+			result = UpdateInvocation(context, source);
 			return true;
 		}
 
@@ -115,37 +115,37 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 
 		// Check parameter count: 1 or 2 (we don't optimize the 3-parameter overload with result selector)
 		if (context.Method.Parameters.Length == 0)
-    {
-      return false;
-    }
+		{
+			return false;
+		}
 
-    // Get the lambda (last parameter)
-    var lambdaArg = context.VisitedParameters.Count switch
-    {
-	    1 => context.VisitedParameters[0], // Aggregate(lambda)
-	    2 or 3 => context.VisitedParameters[1], // Aggregate(seed, lambda)
-	    _ => null
-    };
-		
+		// Get the lambda (last parameter)
+		var lambdaArg = context.VisitedParameters.Count switch
+		{
+			1 => context.VisitedParameters[0], // Aggregate(lambda)
+			2 or 3 => context.VisitedParameters[1], // Aggregate(seed, lambda)
+			_ => null
+		};
+
 		if (!TryGetLambda(lambdaArg, out var lambda))
-    {
-      return false;
-    }
+		{
+			return false;
+		}
 
-    // Check if lambda is addition: (acc, v) => acc + v
-    if (!IsAdditionLambda(lambda))
-    {
-      return false;
-    }
+		// Check if lambda is addition: (acc, v) => acc + v
+		if (!IsAdditionLambda(lambda))
+		{
+			return false;
+		}
 
-    // Optimize to Sum()
-    result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.Sum));
+		// Optimize to Sum()
+		result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.Sum));
 
 		if (context.Method.Parameters.Length == 2 && !IsZeroLiteral(context.VisitedParameters[0]))
 		{
-			result = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, (ExpressionSyntax)result, context.VisitedParameters[0]);
+			result = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, (ExpressionSyntax) result, context.VisitedParameters[0]);
 		}
-		
+
 		return true;
 	}
 
@@ -191,27 +191,27 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 
 		// Get body
 		if (!TryGetLambdaBody(lambda, out var body))
-    {
-      return false;
-    }
+		{
+			return false;
+		}
 
-    // Check if body is: acc + v (binary addition)
-    if (body is not BinaryExpressionSyntax { RawKind: (int)SyntaxKind.AddExpression } binaryExpr)
-    {
-      return false;
-    }
+		// Check if body is: acc + v (binary addition)
+		if (body is not BinaryExpressionSyntax { RawKind: (int) SyntaxKind.AddExpression } binaryExpr)
+		{
+			return false;
+		}
 
-    // Check if it's acc + v or v + acc
-    var isAccLeft = binaryExpr.Left is IdentifierNameSyntax leftId && leftId.Identifier.Text == accParam;
+		// Check if it's acc + v or v + acc
+		var isAccLeft = binaryExpr.Left is IdentifierNameSyntax leftId && leftId.Identifier.Text == accParam;
 		var isValueRight = binaryExpr.Right is IdentifierNameSyntax rightId && rightId.Identifier.Text == valueParam;
 
 		if (isAccLeft && isValueRight)
-    {
-      return true;
-    }
+		{
+			return true;
+		}
 
-    // Also check reverse: v + acc
-    var isValueLeft = binaryExpr.Left is IdentifierNameSyntax leftId2 && leftId2.Identifier.Text == valueParam;
+		// Also check reverse: v + acc
+		var isValueLeft = binaryExpr.Left is IdentifierNameSyntax leftId2 && leftId2.Identifier.Text == valueParam;
 		var isAccRight = binaryExpr.Right is IdentifierNameSyntax rightId2 && rightId2.Identifier.Text == accParam;
 
 		return isValueLeft && isAccRight;
