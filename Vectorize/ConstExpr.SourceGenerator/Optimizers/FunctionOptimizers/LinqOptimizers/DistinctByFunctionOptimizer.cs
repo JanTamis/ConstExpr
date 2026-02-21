@@ -34,13 +34,6 @@ public class DistinctByFunctionOptimizer() : BaseLinqFunctionOptimizer("Distinct
 			return true;
 		}
 
-		// Optimize Enumerable.Empty<T>().DistinctBy(selector) => Enumerable.Empty<T>()
-		if (IsEmptyEnumerable(source))
-		{
-			result = context.Visit(source);
-			return true;
-		}
-
 		result = null;
 		return false;
 	}

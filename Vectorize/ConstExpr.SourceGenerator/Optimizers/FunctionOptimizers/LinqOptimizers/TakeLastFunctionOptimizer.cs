@@ -14,14 +14,19 @@ public class TakeLastFunctionOptimizer() : BaseLinqFunctionOptimizer("TakeLast",
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(context.Model, context.Method)
-		    || context.VisitedParameters[0] is not LiteralExpressionSyntax { Token.Value: int count })
+		    || !TryGetLinqSource(context.Invocation, out var source))
 		{
 			result = null;
 			return false;
 		}
 
+		if (TryExecutePredicates(context, source, out result))
+		{
+			return true;
+		}
+
 		// Optimize TakeLast(0) => Enumerable.Empty<T>()
-		if (count <= 0)
+		if (context.VisitedParameters[0] is not LiteralExpressionSyntax { Token.Value: <= 0 })
 		{
 			result = CreateEmptyEnumerableCall(context.Method.TypeArguments[0]);
 			return true;

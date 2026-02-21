@@ -19,20 +19,27 @@ public class OrderDescendingFunctionOptimizer() : BaseLinqFunctionOptimizer("Ord
 			return false;
 		}
 
-		// Optimize OrderDescending().OrderDescending() => OrderDescending()
-		if (IsLinqMethodChain(source, "OrderDescending", out var innerInvocation)
-		    && TryGetLinqSource(innerInvocation, out _))
+		if (TryExecutePredicates(context, source, out result))
 		{
-			result = context.Visit(source) ?? source;
 			return true;
 		}
 
-		// Optimize Order().OrderDescending() => OrderDescending() (last one wins)
-		if (IsLinqMethodChain(source, "Order", out var orderInvocation)
-		    && TryGetLinqSource(orderInvocation, out var orderSource))
+		if (IsLinqMethodChain(source, out var methodName, out var invocation)
+		    && TryGetLinqSource(invocation, out var invocationSource))
 		{
-			result = CreateSimpleInvocation(context.Visit(orderSource) ?? orderSource, "OrderDescending");
-			return true;
+			switch (methodName)
+			{
+				case "OrderDescending":
+				{
+					result = context.Visit(invocationSource) ?? invocationSource;
+					return true;
+				}
+				case "Order":
+				{
+					result = CreateSimpleInvocation(context.Visit(invocationSource) ?? invocationSource, "OrderDescending");
+					return true;
+				}
+			}
 		}
 
 		result = null;

@@ -16,14 +16,24 @@ public class TakeFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(context.Model, context.Method)
-		    || context.VisitedParameters[0] is not LiteralExpressionSyntax { Token.Value: 0 })
+		    || !TryGetLinqSource(context.Invocation, out var source))
 		{
 			result = null;
 			return false;
 		}
 
-		// Optimize Take(0) => Enumerable.Empty<T>()
-		result = CreateEmptyEnumerableCall(context.Method.TypeArguments[0]);
-		return true;
+		if (TryExecutePredicates(context, source, out result))
+		{
+			return true;
+		}
+
+		if (context.VisitedParameters[0] is not LiteralExpressionSyntax { Token.Value: <= 0 })
+		{
+			result = CreateEmptyEnumerableCall(context.Method.TypeArguments[0]);
+			return true;
+		}
+
+		result = null;
+		return false;
 	}
 }

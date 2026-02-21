@@ -44,6 +44,11 @@ public class ShuffleFunctionOptimizer() : BaseLinqFunctionOptimizer("Shuffle", 0
 		// Recursively skip all pointless operations before shuffle
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsBeforeShuffleThatArePointless, out source);
 
+		if (TryExecutePredicates(context, source, out result))
+		{
+			return true;
+		}
+
 		// If we skipped any operations, create optimized Shuffle() call
 		if (isNewSource)
 		{

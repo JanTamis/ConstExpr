@@ -22,27 +22,32 @@ public class OfTypeFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 			return false;
 		}
 
-		// Get the type argument for this OfType call
-		var typeArg = context.Method.TypeArguments[0];
-
-		// Optimize source.OfType<T>().OfType<T>() => source.OfType<T>() (duplicate removal with same type)
-		if (IsLinqMethodChain(source, nameof(Enumerable.OfType), out var ofTypeInvocation)
-		    && TryGetLinqSource(ofTypeInvocation, out _)
-		    && context.Model.GetSymbolInfo(ofTypeInvocation).Symbol is IMethodSymbol { TypeArguments.Length: > 0 } innerMethod
-		    && SymbolEqualityComparer.Default.Equals(innerMethod.TypeArguments[0], typeArg))
+		if (TryExecutePredicates(context, source, out result))
 		{
-			result = context.Visit(source) ?? source;
 			return true;
 		}
 
-		// Optimize source.Cast<T>().OfType<T>() => source.Cast<T>() (redundant OfType after Cast with same type)
-		if (IsLinqMethodChain(source, nameof(Enumerable.Cast), out var castInvocation)
-		    && TryGetLinqSource(castInvocation, out _)
-		    && context.Model.GetSymbolInfo(castInvocation).Symbol is IMethodSymbol { TypeArguments.Length: > 0 } innerMethod1
-		    && SymbolEqualityComparer.Default.Equals(innerMethod1.TypeArguments[0], typeArg))
+		// Get the type argument for this OfType call
+		var typeArg = context.Method.TypeArguments[0];
+
+		if (IsLinqMethodChain(source, out var methodName, out var invocation)
+		    && TryGetLinqSource(invocation, out var invocationSource))
 		{
-			result = context.Visit(source) ?? source;
-			return true;
+			switch (methodName)
+			{
+				case nameof(Enumerable.OfType) when context.Model.GetSymbolInfo(invocation).Symbol is IMethodSymbol { TypeArguments.Length: > 0 } ofTypeMethod
+					&& SymbolEqualityComparer.Default.Equals(ofTypeMethod.TypeArguments[0], typeArg):
+				{
+					result = context.Visit(invocationSource) ?? invocationSource;
+					return true;
+				}
+				case nameof(Enumerable.Cast) when context.Model.GetSymbolInfo(invocation).Symbol is IMethodSymbol { TypeArguments.Length: > 0 } castMethod
+					&& SymbolEqualityComparer.Default.Equals(castMethod.TypeArguments[0], typeArg):
+				{
+					result = context.Visit(invocationSource) ?? invocationSource;
+					return true;
+				}
+			}
 		}
 
 		result = null;

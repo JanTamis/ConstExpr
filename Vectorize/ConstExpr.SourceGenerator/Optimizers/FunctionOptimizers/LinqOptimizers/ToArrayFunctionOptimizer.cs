@@ -29,11 +29,18 @@ public class ToArrayFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 			result = null;
 			return false;
 		}
+		
+		var isNewSource = TryGetOptimizedChainExpression(source, MaterializingMethods, out source);
+
+		if (TryExecutePredicates(context, source, out result))
+		{
+			return true;
+		}
 
 		// Skip all materializing/type-cast operations
-		if (TryGetOptimizedChainExpression(source, MaterializingMethods, out source))
+		if (isNewSource)
 		{
-			result = CreateSimpleInvocation(context.Visit(source) ?? source, nameof(Enumerable.ToArray));
+			result = context.Invocation.WithExpression(context.Visit(source) ?? source);
 			return true;
 		}
 

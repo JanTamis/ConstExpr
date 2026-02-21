@@ -66,6 +66,11 @@ public class IntersectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 			return false;
 		}
 
+		if (TryExecutePredicates(context, source, out result))
+		{
+			return true;
+		}
+
 		var intersectCollection = context.VisitedParameters[0];
 
 		// Try simple optimizations first

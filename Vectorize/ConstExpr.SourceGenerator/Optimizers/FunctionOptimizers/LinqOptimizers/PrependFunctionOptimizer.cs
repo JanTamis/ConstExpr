@@ -21,8 +21,15 @@ public class PrependFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 			return false;
 		}
 
-		// Check for empty source optimization is complex, we would need to ensure the source is actually empty
-		// For now, we'll skip complex optimizations and just return false
+		if (TryExecutePredicates(context, source, out result))
+		{
+			return true;
+		}
+
+		if (IsEmptyEnumerable(context.Visit(source) ?? source))
+		{
+			result = CreateImplicitArray(context.VisitedParameters[0]);
+		}
 
 		result = null;
 		return false;

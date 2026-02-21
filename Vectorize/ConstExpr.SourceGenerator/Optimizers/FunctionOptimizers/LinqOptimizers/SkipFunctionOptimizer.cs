@@ -10,15 +10,24 @@ public class SkipFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(context.Model, context.Method)
-		    || context.Invocation.Expression is not MemberAccessExpressionSyntax memberAccess
-		    || context.VisitedParameters[0] is not LiteralExpressionSyntax { Token.Value: int count }
-		    || count > 0)
+		    || !TryGetLinqSource(context.Invocation, out var source))
 		{
 			result = null;
 			return false;
 		}
-		
-		result = context.Visit(memberAccess.Expression) ?? memberAccess.Expression;
-		return true;
+
+		if (TryExecutePredicates(context, source, out result))
+		{
+			return true;
+		}
+
+		if (context.VisitedParameters[0] is LiteralExpressionSyntax { Token.Value: <= 0 })
+		{
+			result = context.Visit(source) ?? source;
+			return true;
+		}
+
+		result = null;
+		return false;
 	}
 }

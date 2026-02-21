@@ -20,6 +20,11 @@ public class ExceptByFunctionOptimizer() : BaseLinqFunctionOptimizer("DistinctBy
 			return false;
 		}
 
+		if (TryExecutePredicates(context, source, out result))
+		{
+			return true;
+		}
+
 		var secondSource = context.VisitedParameters[0];
 		var keySelector = context.VisitedParameters[1];
 

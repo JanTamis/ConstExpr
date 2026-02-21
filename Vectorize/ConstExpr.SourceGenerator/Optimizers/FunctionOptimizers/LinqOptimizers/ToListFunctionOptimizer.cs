@@ -30,10 +30,17 @@ public class ToListFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 			return false;
 		}
 
-		// Skip all materializing/type-cast operations
-		if (TryGetOptimizedChainExpression(source, MaterializingMethods, out source))
+		var isNewSource = TryGetOptimizedChainExpression(source, MaterializingMethods, out source);
+
+		if (TryExecutePredicates(context, source, out result))
 		{
-			result = CreateSimpleInvocation(context.Visit(source) ?? source, nameof(Enumerable.ToList));
+			return true;
+		}
+
+		// Skip all materializing/type-cast operations
+		if (isNewSource)
+		{
+			result = context.Invocation.WithExpression(context.Visit(source) ?? source);
 			return true;
 		}
 

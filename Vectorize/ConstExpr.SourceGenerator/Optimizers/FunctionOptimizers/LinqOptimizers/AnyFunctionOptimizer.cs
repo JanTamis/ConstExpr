@@ -62,40 +62,44 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			return true;
 		}
 
-		// Now check if we have a Where at the end of the optimized chain
-		if (IsLinqMethodChain(source, nameof(Enumerable.Where), out var whereInvocation)
-		    && GetMethodArguments(whereInvocation).FirstOrDefault() is { Expression: { } predicateArg }
-		    && TryGetLambda(predicateArg, out var predicate)
-		    && TryGetLinqSource(whereInvocation, out var whereSource))
+		if (IsLinqMethodChain(source, out var methodName, out var invocation)
+		    && TryGetLinqSource(invocation, out var invocationSource))
 		{
-			// Continue skipping operations before Where as well
-			TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectExistence, out whereSource);
-
-			if (context.VisitedParameters.Count == 1 && TryGetLambda(context.VisitedParameters[0], out var anyPredicate))
+			switch (methodName)
 			{
-				predicate = CombinePredicates(context.Visit(predicate) as LambdaExpressionSyntax ?? predicate, context.Visit(anyPredicate) as LambdaExpressionSyntax ?? anyPredicate);
-			}
+				case nameof(Enumerable.Where) when GetMethodArguments(invocation).FirstOrDefault() is { Expression: { } predicateArg }
+				                                   && TryGetLambda(predicateArg, out var predicate):
+				{
+					// Continue skipping operations before Where as well
+					TryGetOptimizedChainExpression(invocationSource, OperationsThatDontAffectExistence, out invocationSource);
+					
+					if (context.VisitedParameters.Count == 1 && TryGetLambda(context.VisitedParameters[0], out var anyPredicate))
+					{
+						predicate = CombinePredicates(context.Visit(predicate) as LambdaExpressionSyntax ?? predicate, context.Visit(anyPredicate) as LambdaExpressionSyntax ?? anyPredicate);
+					}
 
-			if (IsSimpleEqualityLambda(predicate, out var equalityValue))
-			{
-				result = CreateInvocation(whereSource, nameof(Enumerable.Contains), equalityValue);
-				return true;
-			}
+					if (IsSimpleEqualityLambda(predicate, out var equalityValue))
+					{
+						result = CreateInvocation(invocationSource, nameof(Enumerable.Contains), equalityValue);
+						return true;
+					}
 
-			if (IsInvokedOnList(context.Model, whereSource))
-			{
-				result = CreateInvocation(context.Visit(whereSource) ?? whereSource, "Exists", context.Visit(predicate) ?? predicate);
-				return true;
-			}
+					if (IsInvokedOnList(context.Model, invocationSource))
+					{
+						result = CreateInvocation(context.Visit(invocationSource) ?? invocationSource, "Exists", context.Visit(predicate) ?? predicate);
+						return true;
+					}
 
-			if (IsInvokedOnArray(context.Model, whereSource))
-			{
-				result = CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.Exists), context.Visit(whereSource) ?? whereSource, context.Visit(predicate) ?? predicate);
-				return true;
-			}
+					if (IsInvokedOnArray(context.Model, invocationSource))
+					{
+						result = CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.Exists), context.Visit(invocationSource) ?? invocationSource, context.Visit(predicate) ?? predicate);
+						return true;
+					}
 
-			result = CreateInvocation(whereSource, nameof(Enumerable.Any), context.Visit(predicate) ?? predicate);
-			return true;
+					result = CreateInvocation(invocationSource, nameof(Enumerable.Any), context.Visit(predicate) ?? predicate);
+					return true;
+				}
+			}
 		}
 
 		if (context.VisitedParameters.Count == 0)
@@ -112,7 +116,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			if (IsInvokedOnArray(context.Model, source))
 			{
 				result = BinaryExpression(SyntaxKind.GreaterThanExpression,
-					CreateMemberAccess(context.Visit(source) ?? source, "Length"),	
+					CreateMemberAccess(context.Visit(source) ?? source, "Length"),
 					LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)));
 
 				return true;

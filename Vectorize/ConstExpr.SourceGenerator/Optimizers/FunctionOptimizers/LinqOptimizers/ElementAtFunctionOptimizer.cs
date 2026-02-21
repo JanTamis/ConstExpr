@@ -47,6 +47,11 @@ public class ElementAtFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		// Recursively skip all operations that don't affect indexing
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectIndexing, out source);
 
+		if (TryExecutePredicates(context, source, out result))
+		{
+			return true;
+		}
+
 		if (IsLinqMethodChain(source, nameof(Enumerable.Skip), out var skipInvocation)
 		    && GetMethodArguments(skipInvocation).FirstOrDefault() is { Expression: { } skipCount })
 		{

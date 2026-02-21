@@ -21,6 +21,11 @@ public class ZipFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			return false;
 		}
 
+		if (TryExecutePredicates(context, source, out result))
+		{
+			return true;
+		}
+
 		var secondSource = context.VisitedParameters[0];
 		
 		source = context.Visit(source) ?? source;

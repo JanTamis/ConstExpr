@@ -42,10 +42,15 @@ public class MaxFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			result = null;
 			return false;
 		}
-
+		
 		// Recursively skip operations that don't affect max
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectMax, out source);
 
+		if (TryExecutePredicates(context, source, out result))
+		{
+			return true;
+		}
+		
 		// Optimize Max(x => x) => Max() (identity lambda removal)
 		if (context.VisitedParameters.Count == 1
 		    && TryGetLambda(context.VisitedParameters[0], out var lambda)

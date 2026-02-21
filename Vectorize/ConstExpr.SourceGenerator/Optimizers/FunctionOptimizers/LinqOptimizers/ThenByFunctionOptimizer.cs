@@ -26,8 +26,12 @@ public class ThenByFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 			return true;
 		}
 
-		// Optimize ThenBy(x => x) identity lambda - not much to optimize here
-		// ThenBy is usually semantically significant
+		if (IsIdentityLambda(lambda))
+		{
+			result = source;
+			return true;
+		}
+
 		result = null;
 		return false;
 	}

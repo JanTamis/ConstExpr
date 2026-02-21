@@ -1,3 +1,4 @@
+using System.Linq;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 
@@ -25,9 +26,12 @@ public class MaxByFunctionOptimizer() : BaseLinqFunctionOptimizer("MaxBy", 1)
 			return true;
 		}
 
-		// MaxBy with identity lambda can be optimized to just getting the Max
-		// However, MaxBy returns the element, not the key, so we need to be careful
-		// For now, no safe optimization
+		if (IsIdentityLambda(lambda))
+		{
+			result = CreateSimpleInvocation(context.Visit(source) ?? source, nameof(Enumerable.Max));
+			return true;
+		}
+		
 		result = null;
 		return false;
 	}

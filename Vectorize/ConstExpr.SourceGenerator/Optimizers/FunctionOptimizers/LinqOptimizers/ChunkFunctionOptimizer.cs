@@ -26,12 +26,18 @@ public class ChunkFunctionOptimizer() : BaseLinqFunctionOptimizer("Chunk", 1)
 			return false;
 		}
 
+		if (TryExecutePredicates(context, source, out result))
+		{
+			return true;
+		}
+
 		var chunkSize = context.VisitedParameters[0];
 
 		// Optimization: Chunk(1) => Select(x => new[] { x })
 		if (chunkSize is LiteralExpressionSyntax { Token.Value: 1 })
 		{
 			var parameter = Parameter(Identifier("x"));
+			
 			var lambdaBody = ImplicitArrayCreationExpression(
 				InitializerExpression(SyntaxKind.ArrayInitializerExpression,
 					SingletonSeparatedList<ExpressionSyntax>(

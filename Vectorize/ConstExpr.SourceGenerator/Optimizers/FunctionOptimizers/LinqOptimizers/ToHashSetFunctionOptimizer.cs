@@ -33,10 +33,17 @@ public class ToHashSetFunctionOptimizer() : BaseLinqFunctionOptimizer("ToHashSet
 			return false;
 		}
 
-		// Skip all operations that don't affect ToHashSet result
-		if (TryGetOptimizedChainExpression(source, OperationsThatDontAffectToHashSet, out source))
+		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectToHashSet, out source);
+
+		if (TryExecutePredicates(context, source, out result))
 		{
-			result = CreateSimpleInvocation(context.Visit(source) ?? source, "ToHashSet");
+			return true;
+		}
+
+		// Skip all materializing/type-cast operations
+		if (isNewSource)
+		{
+			result = context.Invocation.WithExpression(context.Visit(source) ?? source);
 			return true;
 		}
 

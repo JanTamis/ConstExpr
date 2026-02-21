@@ -42,6 +42,11 @@ public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectConcat, out source);
 		var concatenatedCollection = context.VisitedParameters[0];
 
+		if (TryExecutePredicates(context, source, out result))
+		{
+			return true;
+		}
+
 		// Optimization: collection.Concat(Enumerable.Empty<T>()) => collection
 		if (IsEmptyEnumerable(concatenatedCollection))
 		{

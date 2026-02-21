@@ -44,7 +44,7 @@ public class AppendFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 				return true;
 			}
 			
-			result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.Append), context.VisitedParameters[0]);
+			result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.Append), context.VisitedParameters);
 			return true;
 		}
 

@@ -26,8 +26,12 @@ public class ThenByDescendingFunctionOptimizer() : BaseLinqFunctionOptimizer(nam
 			return true;
 		}
 
-		// Optimize ThenByDescending(x => x) identity lambda - not much to optimize here
-		// ThenByDescending is usually semantically significant
+		if (IsIdentityLambda(lambda))
+		{
+			result = source;
+			return true;
+		}
+
 		result = null;
 		return false;
 	}

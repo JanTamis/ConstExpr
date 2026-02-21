@@ -20,6 +20,11 @@ public class IntersectByFunctionOptimizer() : BaseLinqFunctionOptimizer("Interse
 			return false;
 		}
 
+		if (TryExecutePredicates(context, source, out result))
+		{
+			return true;
+		}
+
 		var secondSource = context.VisitedParameters[0];
 
 		// Optimize Enumerable.Empty<T>().IntersectBy(collection, selector) => Enumerable.Empty<T>()

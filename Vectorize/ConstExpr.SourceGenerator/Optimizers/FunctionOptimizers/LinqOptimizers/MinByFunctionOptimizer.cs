@@ -1,3 +1,4 @@
+using System.Linq;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 
@@ -25,9 +26,12 @@ public class MinByFunctionOptimizer() : BaseLinqFunctionOptimizer("MinBy", 1)
 			return true;
 		}
 
-		// MinBy with identity lambda can be optimized to just getting the Min
-		// However, MinBy returns the element, not the key, so we need to be careful
-		// For now, no safe optimization
+		if (IsIdentityLambda(lambda))
+		{
+			result = CreateSimpleInvocation(context.Visit(source) ?? source, nameof(Enumerable.Min));
+			return true;
+		}
+		
 		result = null;
 		return false;
 	}

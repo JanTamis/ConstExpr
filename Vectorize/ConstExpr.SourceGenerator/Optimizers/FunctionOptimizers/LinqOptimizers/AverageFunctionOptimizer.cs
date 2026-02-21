@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using ConstExpr.SourceGenerator.Models;
@@ -48,20 +49,23 @@ public class AverageFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 		// If we skipped any operations, create optimized Average call
 		if (TryGetOptimizedChainExpression(source, OperationsThatDontAffectAverage, out source))
 		{
+			if (TryExecutePredicates(context, source, out result))
+			{
+				return true;
+			}
+			
 			source = context.Visit(source) ?? source;
 		
 			if (IsEmptyEnumerable(source))
 			{
 				// Average of an empty sequence throws an exception, so we return a throw expression instead of optimizing to Average() which would be incorrect
-				result = CreateThrowExpression("InvalidOperationException", "Sequence contains no elements");
+				result = CreateThrowExpression<InvalidOperationException>("Sequence contains no elements");
 				return true;
 			}
 			
 			result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.Average), context.VisitedParameters);
 			return true;
 		}
-		
-		
 
 		result = null;
 		return false;

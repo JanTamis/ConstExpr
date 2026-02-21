@@ -202,14 +202,13 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	/// <summary>
 	/// Creates a throw expression for a specific exception type with a message.
 	/// </summary>
-	/// <param name="exceptionTypeName">The name of the exception type (e.g., "InvalidOperationException")</param>
 	/// <param name="message">The message to pass to the exception constructor</param>
 	/// <returns>A ThrowExpressionSyntax that throws the specified exception with the message</returns>
-	protected ThrowExpressionSyntax CreateThrowExpression(string exceptionTypeName, string message)
+	protected ThrowExpressionSyntax CreateThrowExpression<TException>(string message) where TException : Exception	
 	{
 		return ThrowExpression(
 			ObjectCreationExpression(
-					IdentifierName(exceptionTypeName))
+					IdentifierName(typeof(TException).Name))
 				.WithArgumentList(
 					ArgumentList(
 						SingletonSeparatedList(
@@ -217,6 +216,13 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 								LiteralExpression(
 									SyntaxKind.StringLiteralExpression,
 									Literal(message)))))));
+	}
+	
+	protected ImplicitArrayCreationExpressionSyntax CreateImplicitArray(params IEnumerable<ExpressionSyntax> elements)
+	{
+		return ImplicitArrayCreationExpression(
+			InitializerExpression(SyntaxKind.ArrayInitializerExpression,
+				SeparatedList(elements)));
 	}
 
 	/// <summary>

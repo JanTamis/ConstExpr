@@ -56,6 +56,11 @@ public class DefaultIfEmptyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 		// Recursively skip all operations that don't affect emptiness
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectEmpty, out source);
 
+		if (TryExecutePredicates(context, source, out result))
+		{
+			return true;
+		}
+
 		// Special case: if source is also DefaultIfEmpty, we can skip it (idempotent)
 		// DefaultIfEmpty(x).DefaultIfEmpty(y) => DefaultIfEmpty(y) (last value wins)
 		while (IsLinqMethodChain(source, nameof(Enumerable.DefaultIfEmpty), out var innerDefaultInvocation)

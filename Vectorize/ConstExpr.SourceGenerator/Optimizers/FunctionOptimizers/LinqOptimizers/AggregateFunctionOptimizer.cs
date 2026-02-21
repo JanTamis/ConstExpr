@@ -63,19 +63,24 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 			{
 				result = ReplaceExpression(resultSelectorLambda, syntax);
 			}
-			
-			
-			if (IsLinqMethodChain(source, nameof(Enumerable.Select), out var innerInvocation)
-			    && TryGetLambda(innerInvocation.ArgumentList.Arguments[0].Expression, out var innerLambda)
-			    && TryGetLinqSource(innerInvocation, out var innerSource))
+
+			if (IsLinqMethodChain(source, out var methodName, out var invocation)
+			    && TryGetLinqSource(invocation, out var invocationSource))
 			{
-				if (context.Method.Parameters.Length == 2 && !IsZeroLiteral(context.VisitedParameters[0]))
+				switch (methodName)
 				{
-					result = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, CreateInvocation(context.Visit(innerSource) ?? innerSource, nameof(Enumerable.Count), context.Visit(innerLambda) ?? innerSource), context.VisitedParameters[0]);
-				}
-				else
-				{
-					result = CreateInvocation(context.Visit(innerSource) ?? innerSource, nameof(Enumerable.Aggregate), context.Visit(innerLambda) ?? innerSource);
+					case nameof(Enumerable.Select) when TryGetLambda(invocation.ArgumentList.Arguments[0].Expression, out var innerLambda):
+					{
+						if (context.Method.Parameters.Length == 2 && !IsZeroLiteral(context.VisitedParameters[0]))
+						{
+							result = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, CreateInvocation(context.Visit(invocationSource) ?? invocationSource, nameof(Enumerable.Count), context.Visit(innerLambda) ?? invocationSource), context.VisitedParameters[0]);
+						}
+						else
+						{
+							result = CreateInvocation(context.Visit(invocationSource) ?? invocationSource, nameof(Enumerable.Aggregate), context.Visit(innerLambda) ?? invocationSource);
+						}
+						break;
+					}
 				}
 			}
 			

@@ -23,6 +23,11 @@ public class SequenceEqualFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 			return false;
 		}
 
+		if (TryExecutePredicates(context, source, out result))
+		{
+			return true;
+		}
+
 		var secondSource = context.VisitedParameters[0];
 		
 		source = context.Visit(source) ?? source;
