@@ -59,8 +59,8 @@ public class LinqAnyOptimizationTests : BaseTest<Func<int[], int>>
 			var g = x.Length > 0 ? 1 : 0;
 			var h = x.Length > 0 ? 1 : 0;
 			var i = x.Length > 0 ? 1 : 0;
-			var j = x.Contains(100) ? 1 : 0;
-			var k = x.Contains(2) ? 1 : 0;
+			var j = Array.IndexOf(x, 100) >= 0 ? 1 : 0;
+			var k = Array.IndexOf(x, 2) >= 0 ? 1 : 0;
 			var l = x.Length > 0 ? 1 : 0;
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l;

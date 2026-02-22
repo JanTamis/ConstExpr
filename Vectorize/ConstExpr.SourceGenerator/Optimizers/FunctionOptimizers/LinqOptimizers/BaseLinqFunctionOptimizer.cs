@@ -920,17 +920,27 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 
 	protected SyntaxNode TryOptimizeByOptimizer<TOptimizer>(FunctionOptimizerContext context, InvocationExpressionSyntax invocation) where TOptimizer : BaseLinqFunctionOptimizer, new()
 	{
+		return TryOptimizeByOptimizer<TOptimizer>(context, invocation, context.Method.TypeArguments.ToArray());
+	}
+
+	protected SyntaxNode TryOptimizeByOptimizer<TOptimizer>(FunctionOptimizerContext context, InvocationExpressionSyntax invocation, params ITypeSymbol[] typeArguments) where TOptimizer : BaseLinqFunctionOptimizer, new()
+	{
 		var methodName = typeof(TOptimizer).Name.Substring(0, typeof(TOptimizer).Name.Length - "FunctionOptimizer".Length);
-		
+
 		var methodSymbol = context.Model.Compilation
 			.GetTypeByMetadataName(typeof(Enumerable).FullName)
 			.GetMembers(methodName)
 			.OfType<IMethodSymbol>()
-			.Select(s => s.Construct(context.Method.TypeArguments.ToArray()))
+			.Select(s => s.Construct(typeArguments))
 			.First(f => f.Parameters.Length == invocation.ArgumentList.Arguments.Count + 1); // +1 for the source parameter
+
+		var parameters = invocation.ArgumentList.Arguments
+			.Select(a => a.Expression)
+			.ToArray();
 		
-		var parameters = invocation.ArgumentList.Arguments.Select(a => a.Expression).ToArray();
-		var visitedParameters = parameters.Select(p => context.Visit(p) ?? p).ToArray();
+		var visitedParameters = parameters
+			.Select(p => context.Visit(p) ?? p)
+			.ToArray();
 
 		context = context.WithInvocationAndMethod(invocation, methodSymbol);
 		context.OriginalParameters = parameters;
@@ -942,7 +952,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		{
 			result = invocation;
 		}
-		
+
 		return result;
 	}
 

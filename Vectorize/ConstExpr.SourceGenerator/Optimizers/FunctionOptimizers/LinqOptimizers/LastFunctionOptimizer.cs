@@ -79,16 +79,18 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 				}
 				case nameof(Enumerable.OrderBy)
 					when GetMethodArguments(invocation).FirstOrDefault() is { Expression: { } predicateArg }
-					     && TryGetLambda(predicateArg, out var predicate):
+					     && TryGetLambda(predicateArg, out var predicate)
+					     && context.Model.TryGetTypeSymbol(predicate, out var predicateType):
 				{
-					result = TryOptimizeByOptimizer<MaxByFunctionOptimizer>(context, CreateInvocation(methodSource, "MaxBy", predicate));
+					result = TryOptimizeByOptimizer<MaxByFunctionOptimizer>(context, CreateInvocation(methodSource, "MaxBy", predicate), context.Method.TypeArguments[0], predicateType);
 					return true;
 				}
 				case nameof(Enumerable.OrderByDescending)
 					when GetMethodArguments(invocation).FirstOrDefault() is { Expression: { } predicateArg }
-					     && TryGetLambda(predicateArg, out var predicate):
+					     && TryGetLambda(predicateArg, out var predicate)
+					     && context.Model.TryGetTypeSymbol(predicate, out var predicateType):
 				{
-					result = TryOptimizeByOptimizer<MinByFunctionOptimizer>(context, CreateInvocation(methodSource, "MinBy", predicate));
+					result = TryOptimizeByOptimizer<MinByFunctionOptimizer>(context, CreateInvocation(methodSource, "MinBy", predicate), context.Method.TypeArguments[0], predicateType);
 					return true;
 				}
 				case "Chunk" when invocation.ArgumentList.Arguments is [ var chunkSizeArg ]:

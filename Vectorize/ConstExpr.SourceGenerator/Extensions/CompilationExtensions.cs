@@ -1288,6 +1288,12 @@ public static class CompilationExtensions
 					typeSymbol = symbol;
 					return true;
 				}
+
+				if (info.ConvertedType is not null)
+				{
+					typeSymbol = info.ConvertedType;
+					return true;
+				}
 			}
 		}
 		catch (Exception e)
@@ -1299,6 +1305,12 @@ public static class CompilationExtensions
 				if (info.Type is { } symbol)
 				{
 					typeSymbol = symbol;
+					return true;
+				}
+
+				if (info.ConvertedType is not null)
+				{
+					typeSymbol = info.ConvertedType;
 					return true;
 				}
 			}

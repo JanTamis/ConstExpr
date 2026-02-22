@@ -26,7 +26,7 @@ public class TakeLastFunctionOptimizer() : BaseLinqFunctionOptimizer("TakeLast",
 		}
 
 		// Optimize TakeLast(0) => Enumerable.Empty<T>()
-		if (context.VisitedParameters[0] is not LiteralExpressionSyntax { Token.Value: <= 0 })
+		if (context.VisitedParameters[0] is LiteralExpressionSyntax { Token.Value: <= 0 })
 		{
 			result = CreateEmptyEnumerableCall(context.Method.TypeArguments[0]);
 			return true;
