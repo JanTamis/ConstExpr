@@ -149,11 +149,8 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 			{
 				TryGetOptimizedChainExpression(currentSource, OperationsThatDontAffectCount.Union([ nameof(Enumerable.DefaultIfEmpty) ]).ToSet(), out currentSource);
 				
-				currentSource = context.Visit(currentSource) ?? currentSource;
-				
-				var invocation = CreateInvocation(currentSource, nameof(Enumerable.Count), combinedPredicate);
-				
-				result = CreateInvocation(SyntaxFactory.ParseTypeName("Int32"), "Max", invocation, SyntaxHelpers.CreateLiteral(1)!);
+				result = TryOptimizeByOptimizer<CountFunctionOptimizer>(context, CreateInvocation(currentSource, nameof(Enumerable.Count), combinedPredicate));
+				result = CreateInvocation(SyntaxFactory.ParseTypeName("Int32"), "Max", result as ExpressionSyntax, SyntaxHelpers.CreateLiteral(1)!);
 				return true;
 			}
 			
@@ -191,7 +188,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 							if (!TryOptimizeCollection(context, newChunkSource, out var countInvocation))
 							{
-								countInvocation = CreateInvocation(newChunkSource, nameof(Enumerable.Count));
+								countInvocation = CreateSimpleInvocation(newChunkSource, nameof(Enumerable.Count));
 							}
 
 							var left = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression,
@@ -210,9 +207,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 						
 						if (!TryOptimizeCollection(context, currentSource, out var resultInvocation))
 						{
-							currentSource = context.Visit(currentSource) ?? currentSource;
-
-							resultInvocation = CreateInvocation(currentSource, nameof(Enumerable.Count));
+							resultInvocation = TryOptimizeByOptimizer<CountFunctionOptimizer>(context, CreateSimpleInvocation(currentSource, nameof(Enumerable.Count)));
 						}
 						
 						result = CreateInvocation(SyntaxFactory.ParseTypeName("Int32"), "Max", resultInvocation as ExpressionSyntax, SyntaxHelpers.CreateLiteral(1)!);
@@ -222,10 +217,8 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 					{
 						TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectCount.Union([ nameof(Enumerable.Distinct) ]).ToSet(), out currentSource);
 						
-						currentSource = context.Visit(currentSource) ?? currentSource;
-						var distinctInvocation = CreateInvocation(currentSource, nameof(Enumerable.Distinct));
-						
-						result = CreateInvocation(distinctInvocation, nameof(Enumerable.Count));
+						result = TryOptimizeByOptimizer<DistinctFunctionOptimizer>(context, CreateSimpleInvocation(currentSource, nameof(Enumerable.Distinct)));
+						result = CreateSimpleInvocation(result as ExpressionSyntax, nameof(Enumerable.Count));
 						return true;
 					}
 				}

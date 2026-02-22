@@ -67,17 +67,17 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 				}
 				case nameof(Enumerable.Reverse):
 				{
-					result = TryOptimizeByOptimizer<LastFunctionOptimizer>(context, CreateInvocation(methodSource, nameof(Enumerable.Last)));
+					result = TryOptimizeByOptimizer<LastFunctionOptimizer>(context, CreateSimpleInvocation(methodSource, nameof(Enumerable.Last)));
 					return true;
 				}
 				case "Order":
 				{
-					result = TryOptimizeByOptimizer<MaxFunctionOptimizer>(context, CreateInvocation(source, nameof(Enumerable.Max)));
+					result = TryOptimizeByOptimizer<MaxFunctionOptimizer>(context, CreateSimpleInvocation(source, nameof(Enumerable.Max)));
 					return true;
 				}
 				case "OrderDescending":
 				{
-					result = TryOptimizeByOptimizer<MinFunctionOptimizer>(context, CreateInvocation(source, nameof(Enumerable.Min)));
+					result = TryOptimizeByOptimizer<MinFunctionOptimizer>(context, CreateSimpleInvocation(source, nameof(Enumerable.Min)));
 					return true;
 				}
 				case nameof(Enumerable.OrderBy)
@@ -125,7 +125,7 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 						var takeInvocation = TryOptimizeByOptimizer<TakeFunctionOptimizer>(context, CreateInvocation(source, nameof(Enumerable.Take), chunkSizeArg.Expression));
 
-						result = TryOptimizeByOptimizer<ToArrayFunctionOptimizer>(context, CreateInvocation(takeInvocation as ExpressionSyntax, nameof(Enumerable.ToArray)));
+						result = TryOptimizeByOptimizer<ToArrayFunctionOptimizer>(context, CreateSimpleInvocation(takeInvocation as ExpressionSyntax, nameof(Enumerable.ToArray)));
 						return true;
 					}
 					break;

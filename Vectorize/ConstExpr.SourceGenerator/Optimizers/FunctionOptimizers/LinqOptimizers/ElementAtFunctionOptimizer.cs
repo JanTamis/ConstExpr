@@ -87,7 +87,7 @@ public class ElementAtFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 
 		if (indexParameter is LiteralExpressionSyntax { Token.Value: 0 })
 		{
-			result = TryOptimizeByOptimizer<FirstFunctionOptimizer>(context, CreateInvocation(source, nameof(Enumerable.First)));
+			result = TryOptimizeByOptimizer<FirstFunctionOptimizer>(context, CreateSimpleInvocation(source, nameof(Enumerable.First)));
 			return true;
 		}
 

@@ -103,7 +103,7 @@ public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		// (removing nothing, but Except applies Distinct to the result)
 		if (IsEmptyEnumerable(exceptCollection))
 		{
-			result = CreateInvocation(source, nameof(Enumerable.Distinct));
+			result = CreateSimpleInvocation(source, nameof(Enumerable.Distinct));
 			return true;
 		}
 

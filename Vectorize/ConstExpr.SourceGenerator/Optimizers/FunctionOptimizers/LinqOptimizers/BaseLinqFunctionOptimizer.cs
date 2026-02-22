@@ -181,6 +181,16 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 				SeparatedList(arguments.Select(Argument))));
 	}
 
+	/// <summary>
+	/// Creates a method call with no arguments on the given source expression.
+	/// </summary>
+	protected InvocationExpressionSyntax CreateSimpleInvocation(ExpressionSyntax source, string methodName)
+	{
+		return InvocationExpression(
+			CreateMemberAccess(source, methodName),
+			ArgumentList());
+	}
+
 	protected MemberAccessExpressionSyntax CreateMemberAccess(ExpressionSyntax source, string memberName)
 	{
 		return MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, source, IdentifierName(memberName));
@@ -379,16 +389,6 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		}
 
 		return chain;
-	}
-
-	/// <summary>
-	/// Creates a method call with no arguments on the given source expression.
-	/// </summary>
-	protected InvocationExpressionSyntax CreateSimpleInvocation(ExpressionSyntax source, string methodName)
-	{
-		return InvocationExpression(
-			CreateMemberAccess(source, methodName),
-			ArgumentList());
 	}
 
 	/// <summary>

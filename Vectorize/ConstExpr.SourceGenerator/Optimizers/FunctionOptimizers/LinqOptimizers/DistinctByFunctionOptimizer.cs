@@ -30,7 +30,7 @@ public class DistinctByFunctionOptimizer() : BaseLinqFunctionOptimizer("Distinct
 		// Optimize DistinctBy(x => x) => Distinct()
 		if (IsIdentityLambda(lambda))
 		{
-			result = TryOptimizeByOptimizer<DistinctFunctionOptimizer>(context, CreateInvocation(source, nameof(Enumerable.Distinct)));
+			result = TryOptimizeByOptimizer<DistinctFunctionOptimizer>(context, CreateSimpleInvocation(source, nameof(Enumerable.Distinct)));
 			return true;
 		}
 

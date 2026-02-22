@@ -141,7 +141,7 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		}
 
 		// Optimize to Sum()
-		result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.Sum));
+		result = CreateSimpleInvocation(context.Visit(source) ?? source, nameof(Enumerable.Sum));
 
 		if (context.Method.Parameters.Length == 2 && !IsZeroLiteral(context.VisitedParameters[0]))
 		{

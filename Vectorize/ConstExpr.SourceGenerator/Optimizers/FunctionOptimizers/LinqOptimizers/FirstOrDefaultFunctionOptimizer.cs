@@ -68,17 +68,17 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 				{
 					TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectFirst, out var innerInvocation);
 					
-					result = TryOptimizeByOptimizer<LastOrDefaultFunctionOptimizer>(context, CreateInvocation(innerInvocation, nameof(Enumerable.LastOrDefault)));
+					result = TryOptimizeByOptimizer<LastOrDefaultFunctionOptimizer>(context, CreateSimpleInvocation(innerInvocation, nameof(Enumerable.LastOrDefault)));
 					return true;
 				}
 				case "Order":
 				{
-					result = TryOptimizeByOptimizer<MinFunctionOptimizer>(context, CreateInvocation(methodSource, nameof(Enumerable.Min)));
+					result = TryOptimizeByOptimizer<MinFunctionOptimizer>(context, CreateSimpleInvocation(methodSource, nameof(Enumerable.Min)));
 					return true;
 				}
 				case "OrderDescending":
 				{
-					result = TryOptimizeByOptimizer<MaxFunctionOptimizer>(context, CreateInvocation(methodSource, nameof(Enumerable.Max)));
+					result = TryOptimizeByOptimizer<MaxFunctionOptimizer>(context, CreateSimpleInvocation(methodSource, nameof(Enumerable.Max)));
 					return true;
 				}
 				case nameof(Enumerable.OrderBy)

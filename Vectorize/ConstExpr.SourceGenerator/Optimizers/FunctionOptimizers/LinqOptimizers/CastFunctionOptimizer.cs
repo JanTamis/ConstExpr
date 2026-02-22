@@ -52,7 +52,7 @@ public class CastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 			}
 			else
 			{
-				result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.Cast));
+				result = CreateSimpleInvocation(context.Visit(source) ?? source, nameof(Enumerable.Cast));
 			}
 			
 			return true;

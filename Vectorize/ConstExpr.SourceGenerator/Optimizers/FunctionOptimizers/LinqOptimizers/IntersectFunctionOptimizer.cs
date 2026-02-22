@@ -118,7 +118,7 @@ public class IntersectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		// Note: This is a simple syntactic check; semantic equality would be more complex
 		if (AreSyntacticallyEquivalent(source, intersectCollection))
 		{
-			result = TryOptimizeByOptimizer<DistinctFunctionOptimizer>(context, CreateInvocation(source, nameof(Enumerable.Distinct)));
+			result = TryOptimizeByOptimizer<DistinctFunctionOptimizer>(context, CreateSimpleInvocation(source, nameof(Enumerable.Distinct)));
 			return true;
 		}
 

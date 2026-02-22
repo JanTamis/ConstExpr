@@ -96,7 +96,7 @@ public class ElementAtOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(n
 
 		if (indexParameter is LiteralExpressionSyntax { Token.Value: 0 })
 		{
-			result = TryOptimizeByOptimizer<FirstOrDefaultFunctionOptimizer>(context, CreateInvocation(source, nameof(Enumerable.FirstOrDefault)));
+			result = TryOptimizeByOptimizer<FirstOrDefaultFunctionOptimizer>(context, CreateSimpleInvocation(source, nameof(Enumerable.FirstOrDefault)));
 			return true;
 		}
 
