@@ -188,10 +188,10 @@ public class LinqContainsOptimizationComplexTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.Contains(5) ? 1 : 0;
-			var b = x.Contains(5) ? 1 : 0;
-			var c = x.Contains(4) ? 1 : 0;
-			var d = x.Contains(5) ? 1 : 0;
+			var d = Array.IndexOf(x, 5) >= 0 ? 1 : 0;
+			var d = Array.IndexOf(x, 5) >= 0 ? 1 : 0;
+			var c = Array.IndexOf(x, 4) >= 0 ? 1 : 0;
+			var d = Array.IndexOf(x, 5) >= 0 ? 1 : 0;
 
 			return a + b + c + d;
 			""", Unknown),

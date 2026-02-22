@@ -26,7 +26,6 @@ public class ExceptByFunctionOptimizer() : BaseLinqFunctionOptimizer("DistinctBy
 		}
 
 		var secondSource = context.VisitedParameters[0];
-		var keySelector = context.VisitedParameters[1];
 
 		// Optimize Enumerable.Empty<T>().ExceptBy(collection, selector) => Enumerable.Empty<T>()
 		if (IsEmptyEnumerable(source))
@@ -39,7 +38,7 @@ public class ExceptByFunctionOptimizer() : BaseLinqFunctionOptimizer("DistinctBy
 		// (removing nothing means just keeping unique keys)
 		if (IsEmptyEnumerable(secondSource))
 		{
-			result = CreateInvocation(context.Visit(source) ?? source, "DistinctBy", keySelector);
+			result = TryOptimizeByOptimizer<DistinctByFunctionOptimizer>(context, CreateInvocation(source, "DistinctBy", context.OriginalParameters[1]));
 			return true;
 		}
 

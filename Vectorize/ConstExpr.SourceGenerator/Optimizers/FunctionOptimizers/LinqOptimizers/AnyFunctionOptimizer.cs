@@ -80,17 +80,17 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 					if (IsSimpleEqualityLambda(predicate, out var equalityValue))
 					{
-						result = CreateInvocation(invocationSource, nameof(Enumerable.Contains), equalityValue);
+						result = TryOptimizeByOptimizer<ContainsFunctionOptimizer>(context, CreateInvocation(invocationSource, nameof(Enumerable.Contains), equalityValue));
 						return true;
 					}
 
-					if (IsInvokedOnList(context.Model, invocationSource))
+					if (IsInvokedOnList(context, invocationSource))
 					{
 						result = CreateInvocation(context.Visit(invocationSource) ?? invocationSource, "Exists", context.Visit(predicate) ?? predicate);
 						return true;
 					}
 
-					if (IsInvokedOnArray(context.Model, invocationSource))
+					if (IsInvokedOnArray(context, invocationSource))
 					{
 						result = CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.Exists), context.Visit(invocationSource) ?? invocationSource, context.Visit(predicate) ?? predicate);
 						return true;
@@ -104,7 +104,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 		if (context.VisitedParameters.Count == 0)
 		{
-			if (IsCollectionType(context.Model, source))
+			if (IsCollectionType(context, source))
 			{
 				result = BinaryExpression(SyntaxKind.GreaterThanExpression,
 					CreateMemberAccess(context.Visit(source) ?? source, "Count"),
@@ -113,7 +113,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 				return true;
 			}
 
-			if (IsInvokedOnArray(context.Model, source))
+			if (IsInvokedOnArray(context, source))
 			{
 				result = BinaryExpression(SyntaxKind.GreaterThanExpression,
 					CreateMemberAccess(context.Visit(source) ?? source, "Length"),
@@ -125,7 +125,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		else if (TryGetLambda(context.VisitedParameters[0], out var anyLambda)
 		         && IsSimpleEqualityLambda(anyLambda, out var equalityValue))
 		{
-			result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.Contains), equalityValue);
+			result = TryOptimizeByOptimizer<ContainsFunctionOptimizer>(context, CreateInvocation(source, nameof(Enumerable.Contains), equalityValue));
 			return true;
 		}
 

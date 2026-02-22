@@ -137,7 +137,7 @@ public class LinqElementAtSkipOptimizationTests : BaseTest<Func<int[], int>>
 		// a = x[1] = 2, b = x[3] = 4, c = x[3] = 4, d = x[1] = 2, e = x[2] = 3, f = x[0] = 1
 		// Total: 2 + 4 + 4 + 2 + 3 + 1 = 16
 		Create("return 16;", new[] { 1, 2, 3, 4, 5 }),
-		Create("return 0;", new int[] { }),
+		Create("throw new ArgumentOutOfRangeException(\"Specified argument was out of the range of valid values. (Parameter 'index')\");", new int[] { }),
 	];
 }
 
@@ -166,8 +166,8 @@ public class LinqElementAtNoOptimizationTests : BaseTest<Func<int[], int>>
 
 		// Distinct should  be optimized (removes duplicates, changes indices)
 		var f = x.Distinct().ElementAt(0);
-
-		// Take should  be optimized (limits collection)
+		
+		// Take should be optimized (limits collection)
 		var g = x.Take(3).ElementAt(0);
 
 		return a + b + c + d + e + f + g;
@@ -180,13 +180,13 @@ public class LinqElementAtNoOptimizationTests : BaseTest<Func<int[], int>>
 			var b = x.Max();
 			var c = x.Last();
 			var d = x.First(v => v > 2);
-			var e = x.Select(v => v * 2).First();
+			var e = x.Select(v => v << 1).First();
 			var f = x[0];
 			var g = x[0];
 			
 			return a + b + c + d + e + f + g;
 			""", Unknown),
 		Create("return 18;", new[] { 1, 2, 3, 4, 5 }), // 1 + 5 + 5 + 3 + 2 + 1 + 1 = 18
-		Create("return 0;", new int[] { }),
+		Create("throw new ArgumentOutOfRangeException(\"Specified argument was out of the range of valid values. (Parameter 'index')\");", new int[] { }),
 	];
 }

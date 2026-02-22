@@ -141,6 +141,10 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 					goto End;
 				}
 			}
+
+			TryGetLinqSource(invocation, out source);
+
+			TryGetOptimizedChainExpression(source, OperationsThatDontAffectSum, out source);
 		}
 		
 		End:

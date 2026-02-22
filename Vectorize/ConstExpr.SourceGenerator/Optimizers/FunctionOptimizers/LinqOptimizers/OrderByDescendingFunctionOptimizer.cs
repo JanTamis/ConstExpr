@@ -23,7 +23,7 @@ public class OrderByDescendingFunctionOptimizer() : BaseLinqFunctionOptimizer(na
 
 		if (IsIdentityLambda(lambda))
 		{
-			result = CreateSimpleInvocation(context.Visit(source) ?? source, "OrderDescending");
+			result = TryOptimizeByOptimizer<OrderDescendingFunctionOptimizer>(context, CreateSimpleInvocation(source, "OrderDescending"));
 			return true;
 		}
 

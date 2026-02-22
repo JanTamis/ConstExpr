@@ -117,19 +117,25 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 			{
 				switch (literalValue)
 				{
-					case true when IsCollectionType(context.Model, currentSource):
+					case true when IsCollectionType(context, currentSource):
+					{
 						result = SyntaxFactory.CastExpression(
 							SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.LongKeyword)),
 							CreateMemberAccess(context.Visit(currentSource) ?? currentSource, "Count"));
 						return true;
-					case true when IsInvokedOnArray(context.Model, currentSource):
+					}
+					case true when IsInvokedOnArray(context, currentSource):
+					{
 						result = SyntaxFactory.CastExpression(
 							SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.LongKeyword)),
 							CreateMemberAccess(context.Visit(currentSource) ?? currentSource, "Length"));
 						return true;
+					}
 					case false:
+					{
 						result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0L));
 						return true;
+					}
 				}
 			}
 			
@@ -147,7 +153,7 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 				return true;
 			}
 			
-			if (IsCollectionType(context.Model, currentSource))
+			if (IsCollectionType(context, currentSource))
 			{
 				result = SyntaxFactory.CastExpression(
 					SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.LongKeyword)),
@@ -155,7 +161,7 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 				return true;
 			}
 
-			if (IsCollectionType(context.Model, source))
+			if (IsCollectionType(context, source))
 			{
 				result = SyntaxFactory.CastExpression(
 					SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.LongKeyword)),
@@ -163,7 +169,7 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 				return true;
 			}
 
-			if (IsInvokedOnArray(context.Model, currentSource))
+			if (IsInvokedOnArray(context, currentSource))
 			{
 				result = SyntaxFactory.CastExpression(
 					SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.LongKeyword)),
@@ -171,7 +177,7 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 				return true;
 			}
 
-			if (IsInvokedOnArray(context.Model, source))
+			if (IsInvokedOnArray(context, source))
 			{
 				result = SyntaxFactory.CastExpression(
 					SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.LongKeyword)),

@@ -66,17 +66,41 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 				{
 					TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectLast, out var innerInvocation);
 
-					result = CreateInvocation(context.Visit(innerInvocation) ?? innerInvocation, nameof(Enumerable.FirstOrDefault));
+					result = TryOptimizeByOptimizer<FirstOrDefaultFunctionOptimizer>(context, CreateInvocation(innerInvocation, nameof(Enumerable.FirstOrDefault)));
 					return true;
 				}
 				case "Order":
 				{
-					result = CreateInvocation(context.Visit(methodSource) ?? methodSource, nameof(Enumerable.Max));
+					result = TryOptimizeByOptimizer<MaxFunctionOptimizer>(context, CreateInvocation(methodSource, nameof(Enumerable.Max)));
 					return true;
 				}
 				case "OrderDescending":
 				{
-					result = CreateInvocation(context.Visit(methodSource) ?? methodSource, nameof(Enumerable.Min));
+					result = TryOptimizeByOptimizer<MinFunctionOptimizer>(context, CreateInvocation(methodSource, nameof(Enumerable.Min)));
+					return true;
+				}
+				case nameof(Enumerable.OrderBy)
+					when GetMethodArguments(invocation).FirstOrDefault() is { Expression: { } predicateArg }
+					     && TryGetLambda(predicateArg, out var predicate):
+				{
+					if (IsIdentityLambda(predicate))
+					{
+						goto case "Order";
+					}
+
+					result = CreateInvocation(context.Visit(methodSource) ?? methodSource, "MaxBy");
+					return true;
+				}
+				case nameof(Enumerable.OrderByDescending)
+					when GetMethodArguments(invocation).FirstOrDefault() is { Expression: { } predicateArg }
+					     && TryGetLambda(predicateArg, out var predicate):
+				{
+					if (IsIdentityLambda(predicate))
+					{
+						goto case "OrderDescending";
+					}
+
+					result = CreateInvocation(context.Visit(methodSource) ?? methodSource, "MinBy");
 					return true;
 				}
 				case nameof(Enumerable.DefaultIfEmpty):
@@ -87,7 +111,7 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 					var collection = context.Visit(methodSource) ?? methodSource;
 
 					var defaultItem = invocation.ArgumentList.Arguments.Count == 0
-						? context.Method.ReturnType is INamedTypeSymbol namedType ? namedType.GetDefaultValue() : SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression)
+						? context.Method.ReturnType.GetDefaultValue()
 						: context.Visit(invocation.ArgumentList.Arguments[0].Expression) ?? invocation.ArgumentList.Arguments[0].Expression;
 
 					while (IsLinqMethodChain(source, nameof(Enumerable.DefaultIfEmpty), out var innerDefaultInvocation)
@@ -98,19 +122,19 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 
 						defaultItem = innerDefaultInvocation.ArgumentList.Arguments
 							.Select(s => s.Expression)
-							.DefaultIfEmpty(SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression))
+							.DefaultIfEmpty(context.Method.ReturnType.GetDefaultValue())
 							.First(); // Update default value to the last one to the last one
 
 						isNewSource = true; // We effectively skipped an operation, so we have a new source to optimize from
 					}
 
-					if (IsInvokedOnArray(context.Model, methodSource))
+					if (IsInvokedOnArray(context, methodSource))
 					{
 						result = CreateDefaultIfEmptyConditional(collection, "Length", defaultItem);
 						return true;
 					}
 
-					if (IsCollectionType(context.Model, methodSource))
+					if (IsCollectionType(context, methodSource))
 					{
 						result = CreateDefaultIfEmptyConditional(collection, "Count", defaultItem);
 						return true;
@@ -127,20 +151,20 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 		}
 		
 		// For arrays, use conditional: arr.Length > 0 ? arr[^1] : default
-		if (IsInvokedOnArray(context.Model, source))
+		if (IsInvokedOnArray(context, source))
 		{
 			source = context.Visit(source) ?? source;
 			
-			result = CreateDefaultIfEmptyConditional(source, "Length", SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression));
+			result = CreateDefaultIfEmptyConditional(source, "Length", context.Method.ReturnType.GetDefaultValue());
 			return true;
 		}
 
 		// For List<T>, use conditional: list.Count > 0 ? list[^1] : default
-		if (IsInvokedOnList(context.Model, source))
+		if (IsInvokedOnList(context, source))
 		{
 			source = context.Visit(source) ?? source;
 			
-			result = CreateDefaultIfEmptyConditional(source, "Count", SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression));
+			result = CreateDefaultIfEmptyConditional(source, "Count", context.Method.ReturnType.GetDefaultValue());
 			return true;
 		}
 		

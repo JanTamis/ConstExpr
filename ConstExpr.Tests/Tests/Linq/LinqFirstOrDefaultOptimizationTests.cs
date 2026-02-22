@@ -48,17 +48,17 @@ public class LinqFirstOrDefaultOptimizationTests : BaseTest<Func<int[], int>>
 	[
 		Create("""
 			var a = x.FirstOrDefault(v => v > 3);
-			var b = x.Length > 0 ? x[0] : default;
-			var c = x.Length > 0 ? x[0] : default;
-			var d = x.Length > 0 ? x[0] : default;
+			var b = x.Length > 0 ? x[0] : 0;
+			var c = x.Length > 0 ? x[0] : 0;
+			var d = x.Length > 0 ? x[0] : 0;
 			var e = x.FirstOrDefault(v => v > 2);
 			var f = x.FirstOrDefault(v => v < 5);
 			var g = x.FirstOrDefault(v => v == 3);
 			var h = x.Min();
-			var i = x.Length > 0 ? x[^1] : default;
-			var j = x.Length > 0 ? x[0] : default;
-			var k = x.Length > 0 ? x[0] : default;
-
+			var i = x.Length > 0 ? x[^1] : 0;
+			var j = x.Length > 0 ? x[0] : 0;
+			var k = x.Length > 0 ? x[0] : 0;
+			
 			return a + b + c + d + e + f + g + h + i + j + k;
 			""", Unknown),
 		Create("return 29;", new[] { 1, 2, 3, 4, 5 }),

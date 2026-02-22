@@ -63,7 +63,7 @@ public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 
 		// Optimization: collection.Concat([singleElement]) => collection.Append(singleElement)
 		// Only apply this if the merge optimization didn't trigger
-		if (TryConvertSingleElementConcatToAppend(source, concatenatedCollection, context.Visit, out var appendResult))
+		if (TryConvertSingleElementConcatToAppend(context, source, concatenatedCollection, out var appendResult))
 		{
 			result = appendResult;
 			return true;
@@ -92,7 +92,7 @@ public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 	/// Tries to convert Concat with a single-element collection to Append.
 	/// E.g., collection.Concat([42]) => collection.Append(42)
 	/// </summary>
-	private bool TryConvertSingleElementConcatToAppend(ExpressionSyntax source, ExpressionSyntax concatenatedCollection, Func<SyntaxNode, ExpressionSyntax?> visit, out SyntaxNode? result)
+	private bool TryConvertSingleElementConcatToAppend(FunctionOptimizerContext context, ExpressionSyntax source, ExpressionSyntax concatenatedCollection, out SyntaxNode? result)
 	{
 		result = null;
 
@@ -118,7 +118,7 @@ public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		}
 
 		// Create Append call: source.Append(element)
-		result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.Append), visit(expressionElement.Expression) ?? expressionElement.Expression);
+		result = TryOptimizeByOptimizer<AppendFunctionOptimizer>(context, CreateInvocation(source, nameof(Enumerable.Append), expressionElement.Expression));
 		return true;
 	}
 

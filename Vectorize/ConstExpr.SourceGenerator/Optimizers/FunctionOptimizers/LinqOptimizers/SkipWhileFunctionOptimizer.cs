@@ -32,11 +32,15 @@ public class SkipWhileFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 			switch (value)
 			{
 				case false:
+				{
 					result = context.Visit(source) ?? source;
 					return true;
+				}
 				case true:
+				{
 					result = CreateEmptyEnumerableCall(context.Method.TypeArguments[0]);
 					return true;
+				}
 			}
 		}
 

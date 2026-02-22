@@ -233,6 +233,20 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 									SyntaxKind.StringLiteralExpression,
 									Literal(message)))))));
 	}
+
+	protected ThrowExpressionSyntax CreateThrowExpression(Exception ex)
+	{
+		return ThrowExpression(
+			ObjectCreationExpression(
+					IdentifierName(ex.GetType().Name))
+				.WithArgumentList(
+					ArgumentList(
+						SingletonSeparatedList(
+							Argument(
+								LiteralExpression(
+									SyntaxKind.StringLiteralExpression,
+									Literal(ex.Message)))))));
+	}
 	
 	protected ImplicitArrayCreationExpressionSyntax CreateImplicitArray(params IEnumerable<ExpressionSyntax> elements)
 	{
@@ -372,7 +386,9 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	/// </summary>
 	protected InvocationExpressionSyntax CreateSimpleInvocation(ExpressionSyntax source, string methodName)
 	{
-		return CreateInvocation(source, methodName);
+		return InvocationExpression(
+			CreateMemberAccess(source, methodName),
+			ArgumentList());
 	}
 
 	/// <summary>
@@ -507,12 +523,18 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	/// <summary>
 	/// Checks if the invocation is made on a List&lt;T&gt; type.
 	/// </summary>
-	protected bool IsInvokedOnList(SemanticModel model, ExpressionSyntax? expression)
+	protected bool IsInvokedOnList(FunctionOptimizerContext context, ExpressionSyntax? expression)
 	{
-		if (!model.TryGetTypeSymbol(expression, out var type)
+		if (!context.Model.TryGetTypeSymbol(expression, out var type)
 		    || type is not INamedTypeSymbol namedType)
 		{
 			return false;
+		}
+
+		if (expression is IdentifierNameSyntax identifier
+		    && context.Variables.TryGetValue(identifier.Identifier.Text, out var variable))
+		{
+			namedType = variable.Type as INamedTypeSymbol;
 		}
 
 		// Check if the type is List<T>
@@ -528,29 +550,41 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	/// <summary>
 	/// Checks if the invocation is made on an array type.
 	/// </summary>
-	protected bool IsInvokedOnArray(SemanticModel model, [NotNullWhen(true)] ExpressionSyntax? expression)
+	protected bool IsInvokedOnArray(FunctionOptimizerContext context, [NotNullWhen(true)] ExpressionSyntax? expression)
 	{
 		if (expression is null)
 		{
 			return false;
 		}
 
-		return model.TryGetTypeSymbol(expression, out var type) && type is IArrayTypeSymbol;
+		if (expression is IdentifierNameSyntax identifier
+		    && context.Variables.TryGetValue(identifier.Identifier.Text, out var variable))
+		{
+			return variable.Type is IArrayTypeSymbol;
+		}
+
+		return context.Model.TryGetTypeSymbol(expression, out var type) && type is IArrayTypeSymbol;
 	}
 
-	protected bool IsSpecialType(SemanticModel model, ExpressionSyntax? expression, params HashSet<SpecialType> specialTypes)
+	protected bool IsSpecialType(FunctionOptimizerContext context, ExpressionSyntax? expression, params HashSet<SpecialType> specialTypes)
 	{
-		return model.TryGetTypeSymbol(expression, out var type) && type.AllInterfaces.Any(s => specialTypes.Contains(s.SpecialType));
+		if (expression is IdentifierNameSyntax identifier
+		    && context.Variables.TryGetValue(identifier.Identifier.Text, out var variable))
+		{
+			return variable.Type.AllInterfaces.Any(s => specialTypes.Contains(s.SpecialType));
+		}
+		
+		return context.Model.TryGetTypeSymbol(expression, out var type) && type.AllInterfaces.Any(s => specialTypes.Contains(s.SpecialType));
 	}
 
-	protected bool IsCollectionType(SemanticModel model, ExpressionSyntax? expression)
+	protected bool IsCollectionType(FunctionOptimizerContext context, ExpressionSyntax? expression)
 	{
-		return IsSpecialType(model, expression,
+		return IsSpecialType(context, expression,
 			       SpecialType.System_Collections_Generic_IList_T,
 			       SpecialType.System_Collections_Generic_IReadOnlyList_T,
 			       SpecialType.System_Collections_Generic_ICollection_T,
 			       SpecialType.System_Collections_Generic_IReadOnlyCollection_T)
-		       || IsInvokedOnList(model, expression);
+		       || IsInvokedOnList(context, expression);
 	}
 
 	protected LambdaExpressionSyntax CombinePredicates(LambdaExpressionSyntax outer, LambdaExpressionSyntax inner)
@@ -830,6 +864,86 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 
 		result = null;
 		return false;
+	}
+
+	protected bool TryExecutePredicates(FunctionOptimizerContext context, ExpressionSyntax source, IList<ExpressionSyntax> parameters, [NotNullWhen(true)] out SyntaxNode? result)
+	{
+		try
+		{
+			if (parameters.Count == context.Method.Parameters.Length
+			    && TryGetValues(context.Visit(source) ?? source, out var values)
+			    && context.Loader.TryGetMethodByMethod(context.Method, out var method)
+			    && context.Method.ReceiverType is INamedTypeSymbol receiverType)
+			{
+				var items = (object) values;
+
+				if (receiverType.TypeArguments.Length > 0
+				    && TryCastToType(context.Loader, values, receiverType.TypeArguments[0], out var castedValues))
+				{
+					items = castedValues;
+				}
+
+				var resultParameters = new List<object?>();
+
+				for (int i = 0; i < parameters.Count; i++)
+				{
+					if (TryGetLambda(parameters[i], out var originalLambda))
+					{
+						resultParameters.Add(context.GetLambda(originalLambda).Compile());
+					}
+
+					if (parameters[i] is LiteralExpressionSyntax literal)
+					{
+						resultParameters.Add(literal.Token.Value);
+					}
+				}
+
+				if (resultParameters.Count == context.Method.Parameters.Length)
+				{
+					if (SyntaxHelpers.TryGetLiteral(method.Invoke(null, [ items, ..resultParameters ]), out var tempResult))
+					{
+						result = tempResult;
+						return true;
+					}
+				}
+			}
+		}
+		catch (TargetInvocationException e) when (e.InnerException != null)
+		{
+			result = CreateThrowExpression(e.InnerException);
+			return true;
+		}
+
+		result = null;
+		return false;
+	}
+
+	protected SyntaxNode TryOptimizeByOptimizer<TOptimizer>(FunctionOptimizerContext context, InvocationExpressionSyntax invocation) where TOptimizer : BaseLinqFunctionOptimizer, new()
+	{
+		var methodName = typeof(TOptimizer).Name.Substring(0, typeof(TOptimizer).Name.Length - "FunctionOptimizer".Length);
+		
+		var methodSymbol = context.Model.Compilation
+			.GetTypeByMetadataName(typeof(Enumerable).FullName)
+			.GetMembers(methodName)
+			.OfType<IMethodSymbol>()
+			.Select(s => s.Construct(context.Method.TypeArguments.ToArray()))
+			.First(f => f.Parameters.Length == invocation.ArgumentList.Arguments.Count + 1); // +1 for the source parameter
+		
+		var parameters = invocation.ArgumentList.Arguments.Select(a => a.Expression).ToArray();
+		var visitedParameters = parameters.Select(p => context.Visit(p) ?? p).ToArray();
+
+		context = context.WithInvocationAndMethod(invocation, methodSymbol);
+		context.OriginalParameters = parameters;
+		context.VisitedParameters = visitedParameters;
+
+		var firstOptimizer = new TOptimizer();
+
+		if (!firstOptimizer.TryOptimize(context, out var result))
+		{
+			result = invocation;
+		}
+		
+		return result;
 	}
 
 	private class IdentifierReplacer(string identifier, ExpressionSyntax replacement) : CSharpSyntaxRewriter

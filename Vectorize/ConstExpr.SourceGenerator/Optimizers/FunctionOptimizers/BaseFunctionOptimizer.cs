@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
@@ -10,7 +11,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers
 {
 	public abstract class BaseFunctionOptimizer
 	{
-		public abstract bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result);
+		public abstract bool TryOptimize(FunctionOptimizerContext context, [NotNullWhen(true)] out SyntaxNode? result);
 
 		protected InvocationExpressionSyntax CreateInvocation(ITypeSymbol type, string name, params IEnumerable<ExpressionSyntax> parameters)
 		{

@@ -62,22 +62,36 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 				{
 					TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectFirst, out var innerInvocation);
 
-					result = CreateInvocation(context.Visit(innerInvocation) ?? innerInvocation, nameof(Enumerable.First), context.Visit(predicate) ?? predicate);
+					result = TryOptimizeByOptimizer<FirstFunctionOptimizer>(context, CreateInvocation(innerInvocation, nameof(Enumerable.First), predicate));
 					return true;
 				}
 				case nameof(Enumerable.Reverse):
 				{
-					result = CreateInvocation(context.Visit(methodSource) ?? methodSource, nameof(Enumerable.Last));
+					result = TryOptimizeByOptimizer<LastFunctionOptimizer>(context, CreateInvocation(methodSource, nameof(Enumerable.Last)));
 					return true;
 				}
 				case "Order":
 				{
-					result = CreateInvocation(context.Visit(methodSource) ?? methodSource, nameof(Enumerable.Min));
+					result = TryOptimizeByOptimizer<MaxFunctionOptimizer>(context, CreateInvocation(source, nameof(Enumerable.Max)));
 					return true;
 				}
 				case "OrderDescending":
 				{
-					result = CreateInvocation(context.Visit(methodSource) ?? methodSource, nameof(Enumerable.Max));
+					result = TryOptimizeByOptimizer<MinFunctionOptimizer>(context, CreateInvocation(source, nameof(Enumerable.Min)));
+					return true;
+				}
+				case nameof(Enumerable.OrderBy)
+					when GetMethodArguments(invocation).FirstOrDefault() is { Expression: { } predicateArg }
+					     && TryGetLambda(predicateArg, out var predicate):
+				{
+					result = TryOptimizeByOptimizer<MinByFunctionOptimizer>(context, CreateInvocation(methodSource, "MinBy", predicate));
+					return true;
+				}
+				case nameof(Enumerable.OrderByDescending)
+					when GetMethodArguments(invocation).FirstOrDefault() is { Expression: { } predicateArg }
+					     && TryGetLambda(predicateArg, out var predicate):
+				{
+					result = TryOptimizeByOptimizer<MaxByFunctionOptimizer>(context, CreateInvocation(methodSource, "MaxBy", predicate));
 					return true;
 				}
 				case "Chunk" when invocation.ArgumentList.Arguments is [ var chunkSizeArg ]:
@@ -90,23 +104,35 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 					}
 					else
 					{
-						if (IsInvokedOnArray(context.Model, methodSource))
+						if (IsInvokedOnArray(context, methodSource))
 						{
+							if (TryGetSyntaxes(context.Visit(methodSource) ?? methodSource, out var sourceSyntaxes) 
+							    && chunkSize is LiteralExpressionSyntax { Token.Value: int chunkSizeValue })
+							{
+								var elements = sourceSyntaxes
+									.Take(chunkSizeValue)
+									.Select(SyntaxFactory.ExpressionElement);
+								
+								result = SyntaxFactory.CollectionExpression(
+									SyntaxFactory.SeparatedList<CollectionElementSyntax>(elements));
+								return true;
+							}
+							
 							// For arrays, we can directly index the first chunk: source[..chunkSize]
 							result = CreateElementAccess(context.Visit(methodSource) ?? methodSource, SyntaxFactory.ParseExpression($"..{chunkSize}"));
 							return true;
 						}
 
-						var takeInvocation = CreateInvocation(context.Visit(methodSource) ?? methodSource, nameof(Enumerable.Take), chunkSize);
+						var takeInvocation = TryOptimizeByOptimizer<TakeFunctionOptimizer>(context, CreateInvocation(source, nameof(Enumerable.Take), chunkSizeArg.Expression));
 
-						result = CreateInvocation(takeInvocation, nameof(Enumerable.ToArray));
+						result = TryOptimizeByOptimizer<ToArrayFunctionOptimizer>(context, CreateInvocation(takeInvocation as ExpressionSyntax, nameof(Enumerable.ToArray)));
 						return true;
 					}
 					break;
 				}
 				case nameof(Enumerable.DefaultIfEmpty):
 				{
-					TryGetOptimizedChainExpression(methodSource, (HashSet<string>)[ nameof(Enumerable.DefaultIfEmpty) ], out methodSource);
+					TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectFirst.Union([ nameof(Enumerable.DefaultIfEmpty) ]).ToSet(), out methodSource);
 					
 					// optimize collection.DefaultIfEmpty() => collection.Length > 0 ? collection[0] : default
 					var collection = context.Visit(methodSource) ?? methodSource;
@@ -129,13 +155,13 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 						isNewSource = true; // We effectively skipped an operation, so we have a new source to optimize from
 					}
 
-					if (IsInvokedOnArray(context.Model, methodSource))
+					if (IsInvokedOnArray(context, methodSource))
 					{
 						result = CreateDefaultIfEmptyConditional(collection, "Length", defaultItem);
 						return true;
 					}
 
-					if (IsCollectionType(context.Model, methodSource))
+					if (IsCollectionType(context, methodSource))
 					{
 						result = CreateDefaultIfEmptyConditional(collection, "Count", defaultItem);
 						return true;
@@ -153,8 +179,8 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 		// For arrays, use direct array indexing: arr[0]
 		// For List<T>, use direct indexing: list[0]
-		if (IsInvokedOnArray(context.Model, source)
-		    || IsInvokedOnList(context.Model, source))
+		if (IsInvokedOnArray(context, source)
+		    || IsInvokedOnList(context, source))
 		{
 			result = CreateElementAccess(context.Visit(source) ?? source, SyntaxHelpers.CreateLiteral(0)!);
 			return true;
@@ -162,8 +188,8 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 		// For arrays, use direct array indexing: arr[0]
 		// For List<T>, use direct indexing: list[0]
-		if (IsInvokedOnArray(context.Model, visitedSource)
-		    || IsInvokedOnList(context.Model, visitedSource))
+		if (IsInvokedOnArray(context, visitedSource)
+		    || IsInvokedOnList(context, visitedSource))
 		{
 			result = CreateElementAccess(context.Visit(source) ?? source, SyntaxHelpers.CreateLiteral(0)!);
 			return true;

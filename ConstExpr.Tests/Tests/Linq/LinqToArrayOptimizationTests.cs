@@ -23,10 +23,10 @@ public class LinqToArrayOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.Count();
-			var b = x.Count();
-			var c = x.Count();
-
+			var a = x.Length;
+			var b = x.Length;
+			var c = x.Length;
+			
 			return a + b + c;
 			""", Unknown),
 		Create("return 9;", new[] { 1, 2, 3 }),

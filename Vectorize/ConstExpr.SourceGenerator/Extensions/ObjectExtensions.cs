@@ -663,6 +663,7 @@ public static class ObjectExtensions
 			SyntaxKind.LessThanOrEqualExpression => Comparer<object?>.Default.Compare(left, right) <= 0,
 			SyntaxKind.GreaterThanExpression => Comparer<object?>.Default.Compare(left, right) > 0,
 			SyntaxKind.GreaterThanOrEqualExpression => Comparer<object?>.Default.Compare(left, right) >= 0,
+			SyntaxKind.CoalesceExpression => left ?? right,
 			_ => null,
 		};
 	}

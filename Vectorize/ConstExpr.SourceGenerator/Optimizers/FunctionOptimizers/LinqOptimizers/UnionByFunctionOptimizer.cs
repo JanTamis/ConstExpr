@@ -27,28 +27,27 @@ public class UnionByFunctionOptimizer() : BaseLinqFunctionOptimizer("UnionBy", 2
 		}
 
 		var secondSource = context.VisitedParameters[0];
-		var keySelector = context.VisitedParameters[1];
 		
 		source = context.Visit(source) ?? source;
 
 		// Optimize collection.UnionBy(Enumerable.Empty<T>(), selector) => collection.DistinctBy(selector)
 		if (IsEmptyEnumerable(secondSource))
 		{
-			result = CreateInvocation(source, "DistinctBy", keySelector);
+			result = TryOptimizeByOptimizer<DistinctByFunctionOptimizer>(context, CreateInvocation(source, "DistinctBy", context.OriginalParameters[1]));
 			return true;
 		}
 
 		// Optimize Enumerable.Empty<T>().UnionBy(collection, selector) => collection.DistinctBy(selector)
 		if (IsEmptyEnumerable(source))
 		{
-			result = CreateInvocation(secondSource, "DistinctBy", keySelector);
+			result = TryOptimizeByOptimizer<DistinctByFunctionOptimizer>(context, CreateInvocation(secondSource, "DistinctBy", context.OriginalParameters[1]));
 			return true;
 		}
 
 		// Optimize collection.UnionBy(collection, selector) => collection.DistinctBy(selector) (same reference)
 		if (AreSyntacticallyEquivalent(source, secondSource))
 		{
-			result = CreateInvocation(source, "DistinctBy", keySelector);
+			result = TryOptimizeByOptimizer<DistinctByFunctionOptimizer>(context, CreateInvocation(source, "DistinctBy", context.OriginalParameters[1]));
 			return true;
 		}
 

@@ -86,6 +86,11 @@ public class DistinctFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		// Recursively skip all allowed operations
 		var isNewSource = TryGetOptimizedChainExpression(source, allowedOperations, out source);
 
+		if (TryExecutePredicates(context, source, out result))
+		{
+			return true;
+		}
+
 		// Check for identity Select
 		if (IsLinqMethodChain(source, nameof(Enumerable.Select), out var selectInvocation)
 		    && GetMethodArguments(selectInvocation).FirstOrDefault() is { Expression: { } lambdaArg }
@@ -94,6 +99,11 @@ public class DistinctFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		    && TryGetLinqSource(selectInvocation, out var selectSource))
 		{
 			TryGetOptimizedChainExpression(selectSource, allowedOperations, out selectSource);
+
+			if (TryExecutePredicates(context, selectSource, out result))
+			{
+				return true;
+			}
 
 			result = UpdateInvocation(context, selectSource);
 			return true;

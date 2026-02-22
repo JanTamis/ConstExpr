@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -27,9 +28,9 @@ public class ElementAtOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(n
 	// We CAN'T include filtering/projection operations because they change the collection!
 	private static readonly HashSet<string> OperationsThatDontAffectIndexing =
 	[
-		nameof(Enumerable.AsEnumerable),     // Type cast: doesn't change the collection
-		nameof(Enumerable.ToList),           // Materialization: preserves order and all elements
-		nameof(Enumerable.ToArray),          // Materialization: preserves order and all elements
+		nameof(Enumerable.AsEnumerable), // Type cast: doesn't change the collection
+		nameof(Enumerable.ToList), // Materialization: preserves order and all elements
+		nameof(Enumerable.ToArray), // Materialization: preserves order and all elements
 	];
 
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
@@ -51,31 +52,51 @@ public class ElementAtOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(n
 		{
 			return true;
 		}
+		
+		var type = context.Method.ReturnType;
 
-		if (IsLinqMethodChain(source, nameof(Enumerable.Skip), out var skipInvocation)
-		    && GetMethodArguments(skipInvocation).FirstOrDefault() is { Expression: { } skipCount })
+		while (IsLinqMethodChain(source, nameof(Enumerable.Skip), out var skipInvocation)
+		       && TryGetLinqSource(skipInvocation, out source)
+		       && GetMethodArguments(skipInvocation).FirstOrDefault() is { Expression: { } skipCount })
 		{
-			if (indexParameter is LiteralExpressionSyntax { Token.Value: int indexValue }
-			    && context.Visit(skipCount) is LiteralExpressionSyntax { Token.Value: int skipValue })
-			{
-				// Both index and skip are constant integers, we can compute the new index at compile time
-				var newIndex = indexValue + skipValue;
+			var tempResult = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, indexParameter, skipCount);
+			
+			indexParameter = context.OptimizeBinaryExpression(tempResult, type, type, type) as ExpressionSyntax;
+			isNewSource = true;
 
-				indexParameter = SyntaxFactory.LiteralExpression(
-					SyntaxKind.NumericLiteralExpression,
-					SyntaxFactory.Literal(newIndex));
-			}
-			else
-			{
-				indexParameter = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, indexParameter, skipCount);
-			}
+			TryGetOptimizedChainExpression(source, OperationsThatDontAffectIndexing, out source);
+		}
 
-			TryGetLinqSource(skipInvocation, out source);
+		if (IsInvokedOnArray(context, source))
+		{
+			source = context.Visit(source) ?? source;
+			
+			// optimize to x.Length > 1 ? x[1] : 0;
+			result = SyntaxFactory.ConditionalExpression(
+				SyntaxFactory.BinaryExpression(
+					SyntaxKind.GreaterThanExpression, CreateMemberAccess(source, "Length"),
+					indexParameter!),
+				CreateElementAccess(source, indexParameter),
+				type.GetDefaultValue());
+			return true;
+		}
+
+		if (IsInvokedOnList(context, source))
+		{
+			source = context.Visit(source) ?? source;
+			
+			// optimize to x.Count > 1 ? x[1] : 0;
+			result = SyntaxFactory.ConditionalExpression(
+				SyntaxFactory.BinaryExpression(
+					SyntaxKind.GreaterThanExpression, CreateMemberAccess(source, "Count"),
+					indexParameter!),
+				CreateElementAccess(source, indexParameter),
+				type.GetDefaultValue());
 		}
 
 		if (indexParameter is LiteralExpressionSyntax { Token.Value: 0 })
 		{
-			result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.FirstOrDefault));
+			result = TryOptimizeByOptimizer<FirstOrDefaultFunctionOptimizer>(context, CreateInvocation(source, nameof(Enumerable.FirstOrDefault)));
 			return true;
 		}
 

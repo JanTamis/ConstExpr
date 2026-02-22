@@ -20,9 +20,9 @@ public class LinqOfTypeOptimizationTests : BaseTest<Func<object[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.OfType<int>().Count();
-			var b = x.Cast<int>().Count();
-
+			var a = x.Length;
+			var b = x.Length;
+			
 			return a + b;
 			""", Unknown),
 		Create("return 6;", new[] { 1, 2, 3 }),

@@ -53,6 +53,8 @@ public class AverageFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 			{
 				return true;
 			}
+
+			source = context.Visit(source) ?? source;
 		
 			if (IsEmptyEnumerable(source))
 			{

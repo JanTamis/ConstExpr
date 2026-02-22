@@ -81,7 +81,7 @@ public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 			return true;
 
 		// Try to optimize by removing redundant operations
-		return TryOptimizeRedundantOperations(context.Invocation, source, exceptCollection, context.Visit, out result);
+		return TryOptimizeRedundantOperations(context, context.Invocation, source, exceptCollection, out result);
 	}
 
 	private bool TryOptimizeEmptySource(ExpressionSyntax source, out SyntaxNode? result)
@@ -142,7 +142,7 @@ public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		return false;
 	}
 
-	private bool TryOptimizeRedundantOperations(InvocationExpressionSyntax invocation, ExpressionSyntax source, ExpressionSyntax exceptCollection, Func<SyntaxNode, ExpressionSyntax?> visit, out SyntaxNode? result)
+	private bool TryOptimizeRedundantOperations(FunctionOptimizerContext context, InvocationExpressionSyntax invocation, ExpressionSyntax source, ExpressionSyntax exceptCollection, out SyntaxNode? result)
 	{
 		// Determine which operations can be skipped
 		var isFollowedBySetOperation = IsFollowedBySetBasedOperation(invocation);
@@ -157,7 +157,7 @@ public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		// If we optimized anything, create optimized Except call
 		if (isNewSource || isNewExceptCollection)
 		{
-			result = CreateInvocation(visit(source) ?? source, nameof(Enumerable.Except), visit(exceptCollection) ?? exceptCollection);
+			result = TryOptimizeByOptimizer<ExceptFunctionOptimizer>(context, CreateInvocation(source, nameof(Enumerable.Except), exceptCollection));
 			return true;
 		}
 

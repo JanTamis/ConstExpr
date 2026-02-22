@@ -63,7 +63,7 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 			return true;
 		}
 
-		if (IsLinqMethodChain(source, out var methodName, out var invocation)
+		while (IsLinqMethodChain(source, out var methodName, out var invocation)
 		    && TryGetLinqSource(invocation, out var invocationSource))
 		{
 			switch (methodName)
@@ -88,6 +88,7 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 							case true:
 							{
 								TryGetOptimizedChainExpression(invocationSource, OperationsThatDontAffectContainment, out source);
+								isNewSource = true;
 								break;
 							}
 						}
@@ -114,19 +115,19 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 							combinedBody);
 
 						// Use appropriate context.Method based on source type
-						if (IsInvokedOnList(context.Model, invocationSource))
+						if (IsInvokedOnList(context, invocationSource))
 						{
 							result = CreateInvocation(context.Visit(invocationSource) ?? invocationSource, "Exists", context.Visit(anyPredicate) ?? anyPredicate);
 							return true;
 						}
 
-						if (IsInvokedOnArray(context.Model, invocationSource))
+						if (IsInvokedOnArray(context, invocationSource))
 						{
 							result = CreateInvocation(SyntaxFactory.ParseTypeName(nameof(Array)), nameof(Array.Exists), context.Visit(invocationSource) ?? invocationSource, context.Visit(anyPredicate) ?? anyPredicate);
 							return true;
 						}
 
-						result = CreateInvocation(context.Visit(invocationSource) ?? invocationSource, nameof(Enumerable.Any), context.Visit(anyPredicate) ?? anyPredicate);
+						result = TryOptimizeByOptimizer<AnyFunctionOptimizer>(context, CreateInvocation(invocationSource, nameof(Enumerable.Any), anyPredicate));
 						return true;
 					}
 
@@ -157,13 +158,13 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 							equalityCheck);
 
 						// Use appropriate context.Method based on source type
-						if (IsInvokedOnList(context.Model, invocationSource))
+						if (IsInvokedOnList(context, invocationSource))
 						{
 							result = CreateInvocation(context.Visit(invocationSource) ?? invocationSource, "Exists", context.Visit(anyPredicate) ?? anyPredicate);
 							return true;
 						}
 
-						if (IsInvokedOnArray(context.Model, invocationSource))
+						if (IsInvokedOnArray(context, invocationSource))
 						{
 							result = CreateInvocation(SyntaxFactory.ParseTypeName(nameof(Array)), nameof(Array.Exists), context.Visit(invocationSource) ?? invocationSource, context.Visit(anyPredicate) ?? anyPredicate);
 							return true;
@@ -176,37 +177,30 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 					break;
 				}
 			}
+		}
 
-			// For List<T>, use the native Contains context.Method
-			if (IsInvokedOnList(context.Model, source))
-			{
-				result = UpdateInvocation(context, source, context.Visit(searchValue) ?? searchValue);
-				return true;
-			}
+		// For arrays, use Array.IndexOf
+		if (IsInvokedOnArray(context, source))
+		{
+			var indexOfCall = CreateInvocation(
+				SyntaxFactory.ParseTypeName(nameof(Array)),
+				nameof(Array.IndexOf),
+				context.Visit(source) ?? source,
+				searchValue);
 
-			// For arrays, use Array.IndexOf
-			if (IsInvokedOnArray(context.Model, source))
-			{
-				var indexOfCall = CreateInvocation(
-					SyntaxFactory.ParseTypeName(nameof(Array)),
-					nameof(Array.IndexOf),
-					context.Visit(source) ?? source,
-					context.Visit(searchValue) ?? searchValue);
+			result = SyntaxFactory.BinaryExpression(
+				SyntaxKind.GreaterThanOrEqualExpression,
+				indexOfCall,
+				SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0)));
+			return true;
+		}
 
-				result = SyntaxFactory.BinaryExpression(
-					SyntaxKind.GreaterThanOrEqualExpression,
-					indexOfCall,
-					SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0)));
-				return true;
-			}
-
-			// If we skipped any operations, create optimized Contains() call
-			if (isNewSource)
-			{
-				// Keep context.Parameters (including optional comparer)
-				result = UpdateInvocation(context, source);
-				return true;
-			}
+		// If we skipped any operations, create optimized Contains() call
+		if (isNewSource)
+		{
+			// Keep context.Parameters (including optional comparer)
+			result = UpdateInvocation(context, source);
+			return true;
 		}
 
 		// No matching chain found

@@ -66,7 +66,7 @@ public class LinqDefaultIfEmptyOptimizationTests : BaseTest<Func<int[], int>>
 /// Tests for DefaultIfEmpty() with custom default value
 /// </summary>
 [InheritsTests]
-public class LinqDefaultIfEmptyWithValueTests : BaseTest<Func<int[], int>>
+public class  LinqDefaultIfEmptyWithValueTests : BaseTest<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{

@@ -22,14 +22,14 @@ public class LinqSelectOptimizationTests : BaseTest<Func<IEnumerable<int>, int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
-		// Create("""
-		// 	var a = x.Sum();
-		// 	var b = x.Cast<int?>().Sum() ?? 0;
-		// 	var c = x.Sum(y => (y << 1) + 1);
-		// 	
-		// 	return a + b + c;
-		// 	""", Unknown),
-		// Create("return 27;", new[] { 1, 2, 3 }), // a=6, b=6, c=(3)+(5)+(7)=15 = 27
+		Create("""
+			var a = x.Sum();
+			var b = x.Cast<int?>().Sum() ?? 0;
+			var c = x.Sum(y => (y << 1) + 1);
+			
+			return a + b + c;
+			""", Unknown),
+		Create("return 27;", new[] { 1, 2, 3 }), // a=6, b=6, c=(3)+(5)+(7)=15 = 27
 		Create("return 0;", Enumerable.Empty<int>()), // a=0, b=0, c=0 = 0
 		Create("return 21;", new[] { 5 }), // a=5, b=5, c=11 = 21
 	];

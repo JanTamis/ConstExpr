@@ -100,13 +100,13 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			}
 		}
 
-		if (IsInvokedOnArray(context.Model, source))
+		if (IsInvokedOnArray(context, source))
 		{
 			result = CreateInvocation(SyntaxFactory.ParseTypeName(nameof(Array)), nameof(Array.TrueForAll), context.Visit(source) ?? source, context.Visit(allLambda) ?? allLambda);
 			return true;
 		}
 
-		if (IsInvokedOnArray(context.Model, source))
+		if (IsInvokedOnArray(context, source))
 		{
 			result = CreateInvocation(source, "TrueForAll", context.Visit(allLambda) ?? allLambda);
 			return true;

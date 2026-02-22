@@ -311,7 +311,7 @@ public partial class ConstExprPartialRewriter
 			return binary;
 		});
 
-		var context = new FunctionOptimizerContext(model, loader, targetMethod, node, visitedArguments.OfType<ExpressionSyntax>().ToArray(), originalArguments.OfType<ExpressionSyntax>().ToArray(), x => Visit(x) as ExpressionSyntax, getLambda, optimizeBinaryExpression, additionalMethods);
+		var context = new FunctionOptimizerContext(model, loader, targetMethod, node, visitedArguments.OfType<ExpressionSyntax>().ToArray(), originalArguments.OfType<ExpressionSyntax>().ToArray(), x => Visit(x) as ExpressionSyntax, getLambda, optimizeBinaryExpression, additionalMethods, variables);
 
 		foreach (var stringOptimizer in optimizers)
 		{
@@ -370,7 +370,7 @@ public partial class ConstExprPartialRewriter
 			return binary;
 		});
 
-		var context = new FunctionOptimizerContext(model, loader, targetMethod, node, visitedArguments.OfType<ExpressionSyntax>().ToArray(), originalArguments.OfType<ExpressionSyntax>().ToArray(), x => Visit(x) as ExpressionSyntax, getLambda, optimizeBinaryExpression, additionalMethods);
+		var context = new FunctionOptimizerContext(model, loader, targetMethod, node, visitedArguments.OfType<ExpressionSyntax>().ToArray(), originalArguments.OfType<ExpressionSyntax>().ToArray(), x => Visit(x) as ExpressionSyntax, getLambda, optimizeBinaryExpression, additionalMethods, variables);
 
 		return _mathOptimizers.Value
 			.Where(o => String.Equals(o.Name, targetMethod.Name, StringComparison.Ordinal)
@@ -426,7 +426,7 @@ public partial class ConstExprPartialRewriter
 			return binary;
 		});
 
-		var context = new FunctionOptimizerContext(model, loader, targetMethod, node, visitedArguments.OfType<ExpressionSyntax>().ToArray(), originalArguments.OfType<ExpressionSyntax>().ToArray(), x => Visit(x) as ExpressionSyntax, getLambda, optimizeBinaryExpression, additionalMethods);
+		var context = new FunctionOptimizerContext(model, loader, targetMethod, node, visitedArguments.OfType<ExpressionSyntax>().ToArray(), originalArguments.OfType<ExpressionSyntax>().ToArray(), x => Visit(x) as ExpressionSyntax, getLambda, optimizeBinaryExpression, additionalMethods, variables);
 
 		return _linqOptimizers.Value
 			.Where(o => String.Equals(o.Name, targetMethod.Name, StringComparison.Ordinal)

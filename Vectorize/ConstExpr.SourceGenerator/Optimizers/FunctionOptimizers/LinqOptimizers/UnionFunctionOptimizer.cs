@@ -74,8 +74,8 @@ public class UnionFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 				result = SyntaxFactory.CollectionExpression(SyntaxFactory.SeparatedList<CollectionElementSyntax>(items));
 				return true;
 			}
-			
-			result = CreateSimpleInvocation(secondSource, nameof(Enumerable.Distinct));
+
+			result = TryOptimizeByOptimizer<DistinctFunctionOptimizer>(context, CreateSimpleInvocation(secondSource, nameof(Enumerable.Distinct)));
 			return true;
 		}
 
@@ -93,7 +93,7 @@ public class UnionFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 				return true;
 			}
 
-			result = CreateSimpleInvocation(source, nameof(Enumerable.Distinct));
+			result = TryOptimizeByOptimizer<DistinctFunctionOptimizer>(context, CreateSimpleInvocation(source, nameof(Enumerable.Distinct)));
 			return true;
 		}
 

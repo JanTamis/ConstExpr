@@ -73,7 +73,9 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 					{
 						if (context.Method.Parameters.Length == 2 && !IsZeroLiteral(context.VisitedParameters[0]))
 						{
-							result = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, CreateInvocation(context.Visit(invocationSource) ?? invocationSource, nameof(Enumerable.Count), context.Visit(innerLambda) ?? invocationSource), context.VisitedParameters[0]);
+							result = TryOptimizeByOptimizer<CountFunctionOptimizer>(context, CreateInvocation(invocationSource, nameof(Enumerable.Count), invocationSource));
+							
+							result = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, result as ExpressionSyntax, context.VisitedParameters[0]);
 						}
 						else
 						{

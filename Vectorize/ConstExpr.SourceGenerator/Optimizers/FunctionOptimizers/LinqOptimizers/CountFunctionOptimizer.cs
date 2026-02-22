@@ -133,10 +133,10 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 			{
 				switch (literalValue)
 				{
-					case true when IsCollectionType(context.Model, currentSource):
+					case true when IsCollectionType(context, currentSource):
 						result = CreateMemberAccess(context.Visit(currentSource) ?? currentSource, "Count");
 						return true;
-					case true when IsInvokedOnArray(context.Model, currentSource):
+					case true when IsInvokedOnArray(context, currentSource):
 						result = CreateMemberAccess(context.Visit(currentSource) ?? currentSource, "Length");
 						return true;
 					case false:
@@ -270,13 +270,13 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 	
 	private bool TryOptimizeCollection(FunctionOptimizerContext context, ExpressionSyntax source, out SyntaxNode? result)
 	{
-		if (IsCollectionType(context.Model, source))
+		if (IsCollectionType(context, source))
 		{
 			result = CreateMemberAccess(context.Visit(source) ?? source, "Count");
 			return true;
 		}
 
-		if (IsInvokedOnArray(context.Model, source))
+		if (IsInvokedOnArray(context, source))
 		{
 			result = CreateMemberAccess(context.Visit(source) ?? source, "Length");
 			return true;

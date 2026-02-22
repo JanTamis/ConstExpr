@@ -92,6 +92,11 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 	public override SyntaxNode? VisitLiteralExpression(LiteralExpressionSyntax node)
 	{
+		if (node.IsKind(SyntaxKind.DefaultLiteralExpression))
+		{
+			return node;
+		}
+
 		if (SyntaxHelpers.TryGetLiteral(node.Token.Value, out var expression))
 		{
 			return (node.Token.Value switch

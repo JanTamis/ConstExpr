@@ -52,36 +52,34 @@ public class ElementAtFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 			return true;
 		}
 
-		if (IsLinqMethodChain(source, nameof(Enumerable.Skip), out var skipInvocation)
-		    && GetMethodArguments(skipInvocation).FirstOrDefault() is { Expression: { } skipCount })
-		{
-			if (indexParameter is LiteralExpressionSyntax { Token.Value: int indexValue }
-			    && context.Visit(skipCount) is LiteralExpressionSyntax { Token.Value: int skipValue })
-			{
-				// Both index and skip are constant integers, we can compute the new index at compile time
-				var newIndex = indexValue + skipValue;
-				
-				indexParameter = SyntaxFactory.LiteralExpression(
-					SyntaxKind.NumericLiteralExpression,
-					SyntaxFactory.Literal(newIndex));
-			}
-			else
-			{
-				indexParameter = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, indexParameter, skipCount);
-			}
+		var type = context.Method.ReturnType;
 
-			TryGetLinqSource(skipInvocation, out source);
+		while (IsLinqMethodChain(source, nameof(Enumerable.Skip), out var skipInvocation)
+		       && TryGetLinqSource(skipInvocation, out source)
+		       && GetMethodArguments(skipInvocation).FirstOrDefault() is { Expression: { } skipCount })
+		{
+			var tempResult = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, indexParameter, skipCount);
+
+			indexParameter = context.OptimizeBinaryExpression(tempResult, type, type, type) as ExpressionSyntax;
+			isNewSource = true;
+
+			TryGetOptimizedChainExpression(source, OperationsThatDontAffectIndexing, out source);
+		}
+
+		if (TryExecutePredicates(context, source, [indexParameter], out result))
+		{
+			return true;
 		}
 
 		// For arrays, use direct array indexing: arr[index]
-		if (IsInvokedOnArray(context.Model, source))
+		if (IsInvokedOnArray(context, source))
 		{
 			result = CreateElementAccess(context.Visit(source) ?? source, indexParameter);
 			return true;
 		}
 
 		// For List<T>, use direct indexing: list[index]
-		if (IsInvokedOnList(context.Model, source))
+		if (IsInvokedOnList(context, source))
 		{
 			result = CreateElementAccess(context.Visit(source) ?? source, indexParameter);
 			return true;
@@ -89,7 +87,7 @@ public class ElementAtFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 
 		if (indexParameter is LiteralExpressionSyntax { Token.Value: 0 })
 		{
-			result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.First));
+			result = TryOptimizeByOptimizer<FirstFunctionOptimizer>(context, CreateInvocation(source, nameof(Enumerable.First)));
 			return true;
 		}
 

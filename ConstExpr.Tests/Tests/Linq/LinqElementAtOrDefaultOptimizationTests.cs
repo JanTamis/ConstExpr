@@ -39,14 +39,14 @@ public class LinqElementAtOrDefaultOptimizationTests : BaseTest<Func<int[], int>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.FirstOrDefault();
-			var b = x.ElementAtOrDefault(1);
-			var c = x.ElementAtOrDefault(2);
-			var d = x.FirstOrDefault();
-			var e = x.ElementAtOrDefault(1);
-			var f = x.ElementAtOrDefault(2);
-			var g = x.ElementAtOrDefault(10);
-			var h = x.ElementAtOrDefault(3);
+			var a = x.Length > 0 ? x[0] : 0;
+			var b = x.Length > 1 ? x[1] : 0;
+			var c = x.Length > 2 ? x[2] : 0;
+			var d = x.Length > 0 ? x[0] : 0;
+			var e = x.Length > 1 ? x[1] : 0;
+			var f = x.Length > 2 ? x[2] : 0;
+			var g = x.Length > 10 ? x[10] : 0;
+			var h = x.Length > 3 ? x[3] : 0;
 			
 			return a + b + c + d + e + f + g + h;
 			""", Unknown),
@@ -134,13 +134,13 @@ public class LinqElementAtOrDefaultSkipOptimizationTests : BaseTest<Func<int[], 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.ElementAtOrDefault(1);
-			var b = x.ElementAtOrDefault(3);
-			var c = x.ElementAtOrDefault(3);
-			var d = x.ElementAtOrDefault(1);
-			var e = x.ElementAtOrDefault(2);
-			var f = x.ElementAtOrDefault(11);
-			var g = x.FirstOrDefault();
+			var a = x.Length > 1 ? x[1] : 0;
+			var b = x.Length > 3 ? x[3] : 0;
+			var c = x.Length > 3 ? x[3] : 0;
+			var d = x.Length > 1 ? x[1] : 0;
+			var e = x.Length > 2 ? x[2] : 0;
+			var f = x.Length > 11 ? x[11] : 0;
+			var g = x.Length > 0 ? x[0] : 0;
 			
 			return a + b + c + d + e + f + g;
 			""", Unknown),
@@ -185,8 +185,8 @@ public class LinqElementAtOrDefaultNoOptimizationTests : BaseTest<Func<int[], in
 			var b = x.Max();
 			var c = x.LastOrDefault();
 			var d = x.FirstOrDefault(v => v > 2);
-			var e = x.Select(v => v * 2).FirstOrDefault();
-			var f = x.FirstOrDefault();
+			var e = x.Select(v => v << 1).FirstOrDefault();
+			var f = x.Length > 0 ? x[0] : 0;
 			
 			return a + b + c + d + e + f;
 			""", Unknown),

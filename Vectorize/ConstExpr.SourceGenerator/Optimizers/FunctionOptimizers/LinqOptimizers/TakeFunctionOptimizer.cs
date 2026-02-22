@@ -27,7 +27,7 @@ public class TakeFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 			return true;
 		}
 
-		if (context.VisitedParameters[0] is not LiteralExpressionSyntax { Token.Value: <= 0 })
+		if (context.VisitedParameters[0] is LiteralExpressionSyntax { Token.Value: <= 0 })
 		{
 			result = CreateEmptyEnumerableCall(context.Method.TypeArguments[0]);
 			return true;
