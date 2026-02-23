@@ -45,7 +45,7 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(context.Model, context.Method)
+		if (!IsValidLinqMethod(context)
 		    || !TryGetLinqSource(context.Invocation, out var source))
 		{
 			result = null;
@@ -156,21 +156,45 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 						var anyPredicate = SyntaxFactory.SimpleLambdaExpression(
 							SyntaxFactory.Parameter(SyntaxFactory.Identifier(lambdaParam)),
 							equalityCheck);
-
-						// Use appropriate context.Method based on source type
-						if (IsInvokedOnList(context, invocationSource))
-						{
-							result = CreateInvocation(context.Visit(invocationSource) ?? invocationSource, "Exists", context.Visit(anyPredicate) ?? anyPredicate);
-							return true;
-						}
+						
+						var resultPredicate = context.Visit(anyPredicate) as LambdaExpressionSyntax ?? anyPredicate;
+						
 
 						if (IsInvokedOnArray(context, invocationSource))
 						{
-							result = CreateInvocation(SyntaxFactory.ParseTypeName(nameof(Array)), nameof(Array.Exists), context.Visit(invocationSource) ?? invocationSource, context.Visit(anyPredicate) ?? anyPredicate);
+							if (IsSimpleEqualityLambda(resultPredicate, out var value))
+							{
+								var indexOfCall = CreateInvocation(
+									SyntaxFactory.ParseTypeName(nameof(Array)),
+									nameof(Array.IndexOf),
+									context.Visit(invocationSource) ?? invocationSource,
+									value);
+
+								result = SyntaxFactory.BinaryExpression(
+									SyntaxKind.GreaterThanOrEqualExpression,
+									indexOfCall,
+									SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0)));
+								return true;
+							}
+							
+							result = CreateInvocation(SyntaxFactory.ParseTypeName(nameof(Array)), nameof(Array.Exists), context.Visit(invocationSource) ?? invocationSource, resultPredicate);
 							return true;
 						}
 
-						result = CreateInvocation(context.Visit(invocationSource) ?? invocationSource, nameof(Enumerable.Any), context.Visit(anyPredicate) ?? anyPredicate);
+						if (IsSimpleEqualityLambda(resultPredicate, out var resultValue))
+						{
+							result = UpdateInvocation(context, invocationSource, resultValue);
+							return true;
+						}
+						
+						// Use appropriate context.Method based on source type
+						if (IsInvokedOnList(context, invocationSource))
+						{
+							result = CreateInvocation(context.Visit(invocationSource) ?? invocationSource, "Exists", resultPredicate);
+							return true;
+						}
+
+						result = CreateInvocation(context.Visit(invocationSource) ?? invocationSource, nameof(Enumerable.Any), resultPredicate);
 						return true;
 					}
 

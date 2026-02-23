@@ -13,7 +13,7 @@ public class ThenByDescendingFunctionOptimizer() : BaseLinqFunctionOptimizer(nam
 {
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(context.Model, context.Method)
+		if (!IsValidLinqMethod(context)
 		    || !TryGetLambda(context.VisitedParameters[0], out var lambda)
 		    || !TryGetLinqSource(context.Invocation, out var source))
 		{

@@ -58,7 +58,7 @@ public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(context.Model, context.Method)
+		if (!IsValidLinqMethod(context)
 		    || !TryGetLinqSource(context.Invocation, out var source)
 		    || context.VisitedParameters.Count == 0)
 		{

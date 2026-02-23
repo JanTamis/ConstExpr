@@ -19,5 +19,6 @@ public class BinaryEqualsOptimizer : BaseBinaryOptimizer
 		yield return new EqualsBitwiseAndOddStrategy();
 		yield return new ToLowerOptimizer();
 		yield return new ToToUpperOptimizer();
+		yield return new EqualsComparisonSimplifierStrategy();
 	}
 }

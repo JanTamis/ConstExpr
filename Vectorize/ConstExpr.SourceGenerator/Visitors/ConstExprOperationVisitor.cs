@@ -542,8 +542,6 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 			}
 		}
 
-
-
 		loader.TryExecuteMethod(targetMethod, instance, argument, arguments, out var value);
 		return value;
 	}

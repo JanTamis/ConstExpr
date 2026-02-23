@@ -26,10 +26,10 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	/// <summary>
 	/// Validates if the given method is a valid LINQ Enumerable method matching this optimizer's criteria.
 	/// </summary>
-	protected bool IsValidLinqMethod(SemanticModel model, IMethodSymbol method)
+	protected bool IsValidLinqMethod(FunctionOptimizerContext context)
 	{
-		return method.Name == Name
-		       && ParameterCounts.Contains(method.Parameters.Length);
+		return context.Method.Name == Name
+		       && ParameterCounts.Contains(context.OriginalParameters.Count);
 		// && method.ContainingType.EqualsType(model.Compilation.GetTypeByMetadataName("System.Linq.Enumerable"));
 	}
 

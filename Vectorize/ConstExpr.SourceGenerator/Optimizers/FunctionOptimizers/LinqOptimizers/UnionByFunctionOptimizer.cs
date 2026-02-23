@@ -14,7 +14,7 @@ public class UnionByFunctionOptimizer() : BaseLinqFunctionOptimizer("UnionBy", 2
 {
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(context.Model, context.Method)
+		if (!IsValidLinqMethod(context)
 		    || !TryGetLinqSource(context.Invocation, out var source))
 		{
 			result = null;
