@@ -48,7 +48,7 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 			return true;
 		}
 
-		if (IsLinqMethodChain(source, out var methodName, out var invocation)
+		if (IsLinqMethodChain(context.Visit(source) ?? source, out var methodName, out var invocation)
 		    && TryGetLinqSource(invocation, out var methodSource))
 		{
 			switch (methodName)

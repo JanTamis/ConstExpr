@@ -1,5 +1,5 @@
-using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using ConstExpr.SourceGenerator.Comparers;
 using ConstExpr.SourceGenerator.Models;
@@ -58,7 +58,7 @@ public class IntersectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		nameof(Enumerable.FirstOrDefault),
 	];
 
-	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(context)
 		    || !TryGetLinqSource(context.Invocation, out var source)
@@ -87,10 +87,38 @@ public class IntersectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 					.Intersect(innerIntersectCollectionSyntaxes, SyntaxNodeComparer<ExpressionSyntax>.Instance)
 					.ToList();
 
-				source = intersectSource;
 				intersectCollection = SyntaxFactory.CollectionExpression(SyntaxFactory.SeparatedList<CollectionElementSyntax>(intersectCollectionSyntaxes.Select(SyntaxFactory.ExpressionElement)));
 				hasNewCollection = true;
+
+				TryGetOptimizedChainExpression(intersectSource, OperationsThatDontAffectIntersect, out source);
 			}
+
+			if (intersectCollectionSyntaxes.All(a => a is LiteralExpressionSyntax))
+			{
+				if (intersectCollectionSyntaxes.Count == 0 
+				    && context.Method.ReturnType is INamedTypeSymbol { TypeArguments.Length: > 0 } returnType)
+				{
+					result = CreateEmptyEnumerableCall(returnType.TypeArguments[0]);
+					return true;
+				}
+				
+				// convert to x.Where(x => x is literal1 or literal2 or ...)
+				var orPattern = intersectCollectionSyntaxes
+					.Select(PatternSyntax (syntax) => SyntaxFactory.ConstantPattern(syntax))
+					.Aggregate((left, right) => SyntaxFactory.BinaryPattern(SyntaxKind.OrPattern, left, right));
+
+				var parameter = SyntaxFactory.Parameter(SyntaxFactory.Identifier("x"));
+				var isPatternExpression = SyntaxFactory.IsPatternExpression(SyntaxFactory.IdentifierName("x"), orPattern);
+				var lambda = SyntaxFactory.SimpleLambdaExpression(parameter, isPatternExpression);
+
+				var distinctSource = TryOptimizeByOptimizer<DistinctFunctionOptimizer>(context, CreateSimpleInvocation(source, nameof(Enumerable.Distinct))) as ExpressionSyntax
+				                     ?? CreateSimpleInvocation(source, nameof(Enumerable.Distinct));
+				
+				result = TryOptimizeByOptimizer<WhereFunctionOptimizer>(context, CreateInvocation(distinctSource, nameof(Enumerable.Where), lambda));
+				return true; 
+			}
+
+			
 		}
 
 		// Try simple optimizations first
@@ -98,7 +126,12 @@ public class IntersectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		    || TryOptimizeEmptyIntersectCollection(context.Method, context.Visit(intersectCollection) ?? intersectCollection, out result)
 		    || TryOptimizeSelfIntersect(context, context.Visit(source) ?? source, context.Visit(intersectCollection) ?? intersectCollection, out result)
 		    || TryOptimizeChainedIntersect(context, source, intersectCollection, out result))
-			return true;
+		{
+			if (result is not null)
+			{
+				return true;
+			}
+		}
 
 		if (hasNewCollection)
 		{
@@ -161,8 +194,9 @@ public class IntersectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		    && GetMethodArguments(intersectInvocation).FirstOrDefault() is { Expression: { } firstIntersectArg }
 		    && TryGetLinqSource(intersectInvocation, out var intersectSource))
 		{
-			result = TryOptimizeByOptimizer<IntersectFunctionOptimizer>(context, CreateInvocation(firstIntersectArg, nameof(Enumerable.Distinct), intersectCollection));
-			result = TryOptimizeByOptimizer<IntersectFunctionOptimizer>(context, CreateInvocation(intersectSource, nameof(Enumerable.Distinct), result as ExpressionSyntax));
+			var innerIntersect = CreateInvocation(firstIntersectArg, nameof(Enumerable.Intersect), intersectCollection);
+			var optimizedInner = TryOptimizeByOptimizer<IntersectFunctionOptimizer>(context, innerIntersect) as ExpressionSyntax ?? innerIntersect;
+			result = TryOptimizeByOptimizer<IntersectFunctionOptimizer>(context, CreateInvocation(intersectSource, nameof(Enumerable.Intersect), optimizedInner));
 			return true;
 		}
 
@@ -174,6 +208,7 @@ public class IntersectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 	{
 		// Determine which operations can be skipped
 		var isFollowedBySetOperation = IsFollowedBySetBasedOperation(invocation);
+
 		var allowedOperations = isFollowedBySetOperation
 			? new HashSet<string>(OperationsThatDontAffectIntersect.Union(OrderingOperations))
 			: OperationsThatDontAffectIntersect;
@@ -185,7 +220,7 @@ public class IntersectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		// If we optimized anything, create optimized Intersect call
 		if (isNewSource || isNewIntersectCollection)
 		{
-			result = TryOptimizeByOptimizer<IntersectFunctionOptimizer>(context, CreateInvocation(source, nameof(Enumerable.Distinct), intersectCollection));
+			result = TryOptimizeByOptimizer<IntersectFunctionOptimizer>(context, CreateInvocation(source, nameof(Enumerable.Intersect), intersectCollection));
 			return true;
 		}
 

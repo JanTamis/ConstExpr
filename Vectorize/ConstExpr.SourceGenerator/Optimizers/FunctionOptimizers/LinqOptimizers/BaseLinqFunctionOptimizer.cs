@@ -925,35 +925,42 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 
 	protected SyntaxNode TryOptimizeByOptimizer<TOptimizer>(FunctionOptimizerContext context, InvocationExpressionSyntax invocation, params ITypeSymbol[] typeArguments) where TOptimizer : BaseLinqFunctionOptimizer, new()
 	{
-		var methodName = typeof(TOptimizer).Name.Substring(0, typeof(TOptimizer).Name.Length - "FunctionOptimizer".Length);
-
-		var methodSymbol = context.Model.Compilation
-			.GetTypeByMetadataName(typeof(Enumerable).FullName)
-			.GetMembers(methodName)
-			.OfType<IMethodSymbol>()
-			.Select(s => s.Construct(typeArguments))
-			.First(f => f.Parameters.Length == invocation.ArgumentList.Arguments.Count + 1); // +1 for the source parameter
-
-		var parameters = invocation.ArgumentList.Arguments
-			.Select(a => a.Expression)
-			.ToArray();
-		
-		var visitedParameters = parameters
-			.Select(p => context.Visit(p) ?? p)
-			.ToArray();
-
-		context = context.WithInvocationAndMethod(invocation, methodSymbol);
-		context.OriginalParameters = parameters;
-		context.VisitedParameters = visitedParameters;
-
-		var firstOptimizer = new TOptimizer();
-
-		if (!firstOptimizer.TryOptimize(context, out var result))
+		try
 		{
-			result = invocation;
-		}
+			var methodName = typeof(TOptimizer).Name.Substring(0, typeof(TOptimizer).Name.Length - "FunctionOptimizer".Length);
 
-		return result;
+			var methodSymbol = context.Model.Compilation
+				.GetTypeByMetadataName(typeof(Enumerable).FullName)
+				.GetMembers(methodName)
+				.OfType<IMethodSymbol>()
+				.Select(s => s.Construct(typeArguments))
+				.First(f => f.Parameters.Length == invocation.ArgumentList.Arguments.Count + 1); // +1 for the source parameter
+
+			var parameters = invocation.ArgumentList.Arguments
+				.Select(a => a.Expression)
+				.ToArray();
+		
+			var visitedParameters = parameters
+				.Select(p => context.Visit(p) ?? p)
+				.ToArray();
+
+			context = context.WithInvocationAndMethod(invocation, methodSymbol);
+			context.OriginalParameters = parameters;
+			context.VisitedParameters = visitedParameters;
+
+			var firstOptimizer = new TOptimizer();
+
+			if (!firstOptimizer.TryOptimize(context, out var result))
+			{
+				result = invocation;
+			}
+
+			return result;
+		}
+		catch (Exception e)
+		{
+			return invocation;
+		}
 	}
 
 	private class IdentifierReplacer(string identifier, ExpressionSyntax replacement) : CSharpSyntaxRewriter

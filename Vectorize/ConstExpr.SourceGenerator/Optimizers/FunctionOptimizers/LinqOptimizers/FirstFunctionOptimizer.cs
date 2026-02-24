@@ -51,7 +51,7 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 		var visitedSource = context.Visit(source) ?? source;
 
-		if (IsLinqMethodChain(source, out var methodName, out var invocation)
+		if (IsLinqMethodChain(visitedSource, out var methodName, out var invocation)
 		    && TryGetLinqSource(invocation, out var methodSource))
 		{
 			switch (methodName)

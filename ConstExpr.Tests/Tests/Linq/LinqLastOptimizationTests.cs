@@ -47,17 +47,19 @@ public class LinqLastOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.Distinct(v => v > 3);
+			var a = x[^1];
 			var b = x[^1];
 			var c = x[^1];
 			var d = x[^1];
-			var e = x.Distinct(v => v > 2);
-			var f = x.Distinct(v => v < 5);
-			var g = x.Distinct(v => v == 3);
+			var e = x[^1];
+			var f = x[^1];
+			var g = x[^1];
 			var h = x[0];
 			var i = x.Max();
 			var j = x.Min();
 			var k = x[^1];
+			
+			return a + b + c + d + e + f + g + h + i + j + k;
 			""", Unknown),
 		Create("return 44;", new[] { 1, 2, 3, 4, 5 }),
 	];

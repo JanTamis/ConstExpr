@@ -57,7 +57,6 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		}
 
 		// Recursively skip all operations that don't affect count
-		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectCount, out source);
 
 		if (TryExecutePredicates(context, source, out result))
 		{
@@ -66,7 +65,9 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 		// Collect all chained Where predicates
 		var wherePredicates = new List<LambdaExpressionSyntax>();
-		var currentSource = source;
+		var currentSource = context.Visit(source) ?? source;
+		
+		var isNewSource = TryGetOptimizedChainExpression(currentSource, OperationsThatDontAffectCount, out currentSource);
 
 		// Walk through the chain and collect all Where statements
 		while (IsLinqMethodChain(currentSource, nameof(Enumerable.Where), out var whereInvocation)
@@ -168,7 +169,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 		if (context.VisitedParameters.Count == 0)
 		{
-			if (IsLinqMethodChain(currentSource, out var methodName, out var invocation)
+			if (IsLinqMethodChain(context.Visit(currentSource) ?? currentSource, out var methodName, out var invocation)
 			        && TryGetLinqSource(invocation, out var methodSource))
 			{
 				switch (methodName)

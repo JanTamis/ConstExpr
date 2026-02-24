@@ -62,7 +62,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			return true;
 		}
 
-		if (IsLinqMethodChain(source, out var methodName, out var invocation)
+		if (IsLinqMethodChain(context.Visit(source) ?? source, out var methodName, out var invocation)
 		    && TryGetLinqSource(invocation, out var invocationSource))
 		{
 			switch (methodName)
