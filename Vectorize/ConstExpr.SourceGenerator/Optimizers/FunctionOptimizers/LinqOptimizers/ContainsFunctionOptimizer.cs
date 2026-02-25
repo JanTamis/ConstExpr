@@ -159,7 +159,6 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 						
 						var resultPredicate = context.Visit(anyPredicate) as LambdaExpressionSyntax ?? anyPredicate;
 						
-
 						if (IsInvokedOnArray(context, invocationSource))
 						{
 							if (IsSimpleEqualityLambda(resultPredicate, out var value))
@@ -201,6 +200,11 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 					break;
 				}
 			}
+		}
+
+		if (TryExecutePredicates(context, source, out result))
+		{
+			return true;
 		}
 
 		// For arrays, use Array.IndexOf

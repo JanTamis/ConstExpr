@@ -11,14 +11,14 @@ public class BinaryEqualsOptimizer : BaseBinaryOptimizer
 
 	public override IEnumerable<IBinaryStrategy> GetStrategies()
 	{
+		yield return new ToLowerOptimizer();
+		yield return new ToUpperOptimizer();
 		yield return new EqualsIdempotencyStrategy();
 		yield return new EqualsBooleanLiteralStrategy();
 		yield return new EqualsModuloEvenStrategy();
 		yield return new EqualsModuloOddStrategy();
 		yield return new EqualsBitwiseAndEvenStrategy();
 		yield return new EqualsBitwiseAndOddStrategy();
-		yield return new ToLowerOptimizer();
-		yield return new ToToUpperOptimizer();
 		yield return new EqualsComparisonSimplifierStrategy();
 	}
 }

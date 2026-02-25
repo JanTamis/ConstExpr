@@ -9,12 +9,11 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.EqualsStrategies
 /// <summary>
 /// strategy for string.ToUpper() detection: x.ToUpper() == "constant" => x.Equals("constant", StringComparison.OrdinalIgnoreCase)
 /// </summary>
-public class ToToUpperOptimizer() : SymmetricStrategy<StringBinaryStrategy, MemberAccessExpressionSyntax, LiteralExpressionSyntax>(leftKind: SyntaxKind.SimpleMemberAccessExpression)
+public class ToUpperOptimizer() : SymmetricStrategy<InvocationExpressionSyntax, LiteralExpressionSyntax>(SyntaxKind.InvocationExpression, SyntaxKind.StringLiteralExpression)
 {
-	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<MemberAccessExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
+	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<InvocationExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (context.Right.Syntax.Token.Value is not string rightValue
-		    || !context.Left.Syntax.Name.Identifier.ValueText.Equals("ToUpper"))
+		if (context.Left.Syntax.Expression is not MemberAccessExpressionSyntax { Name.Identifier.Text: "ToUpper" } memberAccess)
 		{
 			optimized = null;
 			return false;
@@ -23,14 +22,16 @@ public class ToToUpperOptimizer() : SymmetricStrategy<StringBinaryStrategy, Memb
 		optimized = InvocationExpression(
 				MemberAccessExpression(
 					SyntaxKind.SimpleMemberAccessExpression,
-					context.Left.Syntax.Expression,
+					ParseTypeName("String"),
 					IdentifierName("Equals")))
 			.WithArgumentList(
 				ArgumentList(
 					SeparatedList<ArgumentSyntax>(
 						new SyntaxNodeOrToken[]
 						{
-							Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(rightValue))),
+							Argument(memberAccess.Expression),
+							Token(SyntaxKind.CommaToken),
+							Argument(context.Right.Syntax),
 							Token(SyntaxKind.CommaToken),
 							Argument(MemberAccessExpression(
 								SyntaxKind.SimpleMemberAccessExpression,

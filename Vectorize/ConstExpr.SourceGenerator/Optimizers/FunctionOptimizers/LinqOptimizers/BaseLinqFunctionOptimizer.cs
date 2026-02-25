@@ -200,13 +200,13 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	{
 		return MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, source, name);
 	}
-	
+
 	protected ElementAccessExpressionSyntax CreateElementAccess(ExpressionSyntax source, params IEnumerable<ExpressionSyntax> arguments)
 	{
 		return ElementAccessExpression(
 			source,
 			BracketedArgumentList(
-				SeparatedList( arguments.Select(Argument))));
+				SeparatedList(arguments.Select(Argument))));
 	}
 
 	protected InvocationExpressionSyntax UpdateInvocation(FunctionOptimizerContext context, ExpressionSyntax source)
@@ -218,10 +218,9 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	{
 		if (context.Invocation.Expression is MemberAccessExpressionSyntax memberAccess)
 		{
-			return context.Invocation.
-				Update(memberAccess.WithExpression(context.Visit(source) ?? source), ArgumentList(SeparatedList(arguments.Select(Argument))));
+			return context.Invocation.Update(memberAccess.WithExpression(context.Visit(source) ?? source), ArgumentList(SeparatedList(arguments.Select(Argument))));
 		}
-		
+
 		throw new InvalidOperationException("Invocation expression must be a member access");
 	}
 
@@ -230,7 +229,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	/// </summary>
 	/// <param name="message">The message to pass to the exception constructor</param>
 	/// <returns>A ThrowExpressionSyntax that throws the specified exception with the message</returns>
-	protected ThrowExpressionSyntax CreateThrowExpression<TException>(string message) where TException : Exception	
+	protected ThrowExpressionSyntax CreateThrowExpression<TException>(string message) where TException : Exception
 	{
 		return ThrowExpression(
 			ObjectCreationExpression(
@@ -257,7 +256,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 									SyntaxKind.StringLiteralExpression,
 									Literal(ex.Message)))))));
 	}
-	
+
 	protected ImplicitArrayCreationExpressionSyntax CreateImplicitArray(params IEnumerable<ExpressionSyntax> elements)
 	{
 		return ImplicitArrayCreationExpression(
@@ -573,7 +572,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		{
 			return variable.Type.AllInterfaces.Any(s => specialTypes.Contains(s.SpecialType));
 		}
-		
+
 		return context.Model.TryGetTypeSymbol(expression, out var type) && type.AllInterfaces.Any(s => specialTypes.Contains(s.SpecialType));
 	}
 
@@ -714,7 +713,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 			values = constantValues;
 			return true;
 		}
-		
+
 		if (node is ArrayCreationExpressionSyntax arrayCreation)
 		{
 			if (arrayCreation.Initializer is null)
@@ -741,7 +740,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 			values = constantValues;
 			return true;
 		}
-		
+
 		if (node is ImplicitArrayCreationExpressionSyntax implicitArrayCreation)
 		{
 			var constantValues = new List<object?>();
@@ -816,6 +815,36 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		return false;
 	}
 
+	protected bool TryChangeToArray(MetadataLoader loader, object values, ITypeSymbol type, [NotNullWhen(true)] out object? result)
+	{
+		if (loader.TryGetType(type, out var elementType))
+		{
+			var castMethod = typeof(Enumerable).GetMethod(nameof(Enumerable.ToArray))!
+				.MakeGenericMethod(elementType);
+
+			result = castMethod.Invoke(null, [ values ]);
+			return true;
+		}
+
+		result = null;
+		return false;
+	}
+
+	protected bool TryChangeToList(MetadataLoader loader, object values, ITypeSymbol type, [NotNullWhen(true)] out object? result)
+	{
+		if (loader.TryGetType(type, out var elementType))
+		{
+			var castMethod = typeof(Enumerable).GetMethod(nameof(Enumerable.ToList))!
+				.MakeGenericMethod(elementType);
+
+			result = castMethod.Invoke(null, [ values ]);
+			return true;
+		}
+
+		result = values;
+		return false;
+	}
+
 	protected bool TryExecutePredicates(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		try
@@ -833,9 +862,18 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 					items = castedValues;
 				}
 
+				if (receiverType is IArrayTypeSymbol)
+				{
+					TryChangeToArray(context.Loader, items, receiverType.TypeArguments[0], out items);
+				}
+				else if (receiverType is INamedTypeSymbol && receiverType.ConstructedFrom?.ToDisplayString() == "System.Collections.Generic.List<T>")
+				{
+					TryChangeToList(context.Loader, items, receiverType.TypeArguments[0], out items);
+				}
+
 				var parameters = new List<object?>();
 
-				for (int i = 0; i < context.OriginalParameters.Count; i++)
+				for (var i = 0; i < context.OriginalParameters.Count; i++)
 				{
 					if (TryGetLambda(context.OriginalParameters[i], out var originalLambda))
 					{
@@ -850,7 +888,9 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 
 				if (parameters.Count == context.Method.Parameters.Length)
 				{
-					if (SyntaxHelpers.TryGetLiteral(method.Invoke(null, [ items, ..parameters ]), out var tempResult))
+					if (context.Method.IsStatic
+					    && SyntaxHelpers.TryGetLiteral(method.Invoke(null, [ items, ..parameters ]), out var tempResult)
+					    || SyntaxHelpers.TryGetLiteral(method.Invoke(items, [ ..parameters ]), out tempResult))
 					{
 						result = tempResult;
 						return true;
@@ -881,6 +921,15 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 				    && TryCastToType(context.Loader, values, receiverType.TypeArguments[0], out var castedValues))
 				{
 					items = castedValues;
+				}
+
+				if (receiverType is IArrayTypeSymbol)
+				{
+					items = TryChangeToArray(context.Loader, values, receiverType.TypeArguments[0], out items);
+				}
+				else if (receiverType is INamedTypeSymbol && receiverType.ConstructedFrom?.ToDisplayString() == "System.Collections.Generic.List<T>")
+				{
+					items = TryChangeToList(context.Loader, values, receiverType.TypeArguments[0], out items);
 				}
 
 				var resultParameters = new List<object?>();
@@ -939,7 +988,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 			var parameters = invocation.ArgumentList.Arguments
 				.Select(a => a.Expression)
 				.ToArray();
-		
+
 			var visitedParameters = parameters
 				.Select(p => context.Visit(p) ?? p)
 				.ToArray();

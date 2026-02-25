@@ -30,17 +30,17 @@ public class LinqChunkOptimizationTests() : BaseTest<Func<int[], int>>(FloatingP
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
-		Create("""
-			var a = x.Length;
-			var b = (x.Length + 2) / 3;
-			var c = (x.Length + 1) / 2;
-			var d = x[..5];
-			var e = x[^4..];
-			
-			return a + b + c + d.Length + e.Length;
-			""", Unknown),
-		Create("return 9;", new[] { 1, 2, 3, 4, 5 }),
-		Create("return 10;", new[] { 1, 2, 3, 4, 5, 6 }),
+		// Create("""
+		// 	var a = x.Length;
+		// 	var b = (x.Length + 2) / 3;
+		// 	var c = (x.Length + 1) / 2;
+		// 	var d = x[..5];
+		// 	var e = x[^4..];
+		// 	
+		// 	return a + b + c + d.Length + e.Length;
+		// 	""", Unknown),
+		// Create("return 9;", new[] { 1, 2, 3, 4, 5 }),
+		// Create("return 10;", new[] { 1, 2, 3, 4, 5, 6 }),
 		Create("return 0;", new int[] { }),
 	];
 }

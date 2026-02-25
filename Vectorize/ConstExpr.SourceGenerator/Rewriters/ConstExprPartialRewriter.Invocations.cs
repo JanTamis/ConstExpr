@@ -386,25 +386,32 @@ public partial class ConstExprPartialRewriter
 	{
 		var getLambda = new Func<LambdaExpressionSyntax, LambdaExpression?>(lambda =>
 		{
-			if (!semanticModel.TryGetOperation<IAnonymousFunctionOperation>(lambda, out var operation))
+			try
+			{
+				if (!semanticModel.TryGetOperation<IAnonymousFunctionOperation>(lambda, out var operation))
+				{
+					return null;
+				}
+
+				// Create parameters for the lambda
+				var lambdaParams = operation.Symbol.Parameters
+					.Select(p => Expression.Parameter(loader.GetType(p.Type), p.Name))
+					.ToArray();
+
+				// Create a new visitor with the lambda parameters included
+				var allParams = variables.Select(s => Expression.Parameter(loader.GetType(s.Value.Type), s.Key)).Concat(lambdaParams);
+				var lambdaVisitor = new ExpressionVisitor(semanticModel, loader, allParams);
+
+				// Visit the body with the new visitor
+				var body = lambdaVisitor.VisitBlock(operation.Body, new VariableItemDictionary(variables));
+
+				// Create the lambda expression
+				return Expression.Lambda(body, lambdaParams);
+			}
+			catch (Exception e)
 			{
 				return null;
 			}
-
-			// Create parameters for the lambda
-			var lambdaParams = operation.Symbol.Parameters
-				.Select(p => Expression.Parameter(loader.GetType(p.Type), p.Name))
-				.ToArray();
-
-			// Create a new visitor with the lambda parameters included
-			var allParams = variables.Select(s => Expression.Parameter(loader.GetType(s.Value.Type), s.Key)).Concat(lambdaParams);
-			var lambdaVisitor = new ExpressionVisitor(semanticModel, loader, allParams);
-
-			// Visit the body with the new visitor
-			var body = lambdaVisitor.VisitBlock(operation.Body, new VariableItemDictionary(variables));
-
-			// Create the lambda expression
-			return Expression.Lambda(body, lambdaParams);
 		});
 		
 		var optimizeBinaryExpression = new Func<BinaryExpressionSyntax, ITypeSymbol, ITypeSymbol, ITypeSymbol, SyntaxNode>((binary, leftType, rightType, type) =>

@@ -104,12 +104,16 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 			{
 				var lambdas = wherePredicates
 					.Select(s => context.GetLambda(s)?.Compile())
+					.Where(w => w != null)
 					.ToList();
+
+				if (lambdas.Count == wherePredicates.Count)
+				{
+					var count = values.Count(value => lambdas.All(lambda => lambda?.DynamicInvoke(value) is true));
 				
-				var count = values.Count(value => lambdas.All(lambda => lambda?.DynamicInvoke(value) is true));
-				
-				result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(count));
-				return true;
+					result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(count));
+					return true;
+				}
 			}
 			
 			// Start with the first predicate and combine with the rest
