@@ -117,8 +117,6 @@ public class IntersectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 				result = TryOptimizeByOptimizer<WhereFunctionOptimizer>(context, CreateInvocation(distinctSource, nameof(Enumerable.Where), lambda));
 				return true; 
 			}
-
-			
 		}
 
 		// Try simple optimizations first

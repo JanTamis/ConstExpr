@@ -34,17 +34,17 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 	// - ToList/ToArray: materialization could fail/filter
 	private static readonly HashSet<string> OperationsThatDontAffectCount =
 	[
-		nameof(Enumerable.OrderBy),          // Ordering: changes order but not count
-		nameof(Enumerable.OrderByDescending),// Ordering: changes order but not count
-		"Order",                             // Ordering (.NET 6+): changes order but not count
-		"OrderDescending",                   // Ordering (.NET 6+): changes order but not count
-		nameof(Enumerable.ThenBy),           // Secondary ordering: changes order but not count
+		nameof(Enumerable.OrderBy), // Ordering: changes order but not count
+		nameof(Enumerable.OrderByDescending), // Ordering: changes order but not count
+		"Order", // Ordering (.NET 6+): changes order but not count
+		"OrderDescending", // Ordering (.NET 6+): changes order but not count
+		nameof(Enumerable.ThenBy), // Secondary ordering: changes order but not count
 		nameof(Enumerable.ThenByDescending), // Secondary ordering: changes order but not count
-		nameof(Enumerable.Reverse),          // Reversal: changes order but not count
-		nameof(Enumerable.AsEnumerable),     // Type cast: doesn't change the collection
-		nameof(Enumerable.Select),					 // Projection: doesn't change count for non-nullable types
-		nameof(Enumerable.ToList),           // Materialization: creates list but doesn't filter
-		nameof(Enumerable.ToArray),          // Materialization: creates array but doesn't filter
+		nameof(Enumerable.Reverse), // Reversal: changes order but not count
+		nameof(Enumerable.AsEnumerable), // Type cast: doesn't change the collection
+		nameof(Enumerable.Select), // Projection: doesn't change count for non-nullable types
+		nameof(Enumerable.ToList), // Materialization: creates list but doesn't filter
+		nameof(Enumerable.ToArray), // Materialization: creates array but doesn't filter
 	];
 
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
@@ -56,21 +56,19 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 			return false;
 		}
 
-		// Recursively skip all operations that don't affect count
+		// Collect all chained Where predicates
+		var wherePredicates = new List<LambdaExpressionSyntax>();
 
+		// Recursively skip all operations that don't affect count
+		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectCount, out source);
+		
 		if (TryExecutePredicates(context, source, out result))
 		{
 			return true;
 		}
 
-		// Collect all chained Where predicates
-		var wherePredicates = new List<LambdaExpressionSyntax>();
-		var currentSource = context.Visit(source) ?? source;
-		
-		var isNewSource = TryGetOptimizedChainExpression(currentSource, OperationsThatDontAffectCount, out currentSource);
-
 		// Walk through the chain and collect all Where statements
-		while (IsLinqMethodChain(currentSource, nameof(Enumerable.Where), out var whereInvocation)
+		while (IsLinqMethodChain(source, nameof(Enumerable.Where), out var whereInvocation)
 		       && GetMethodArguments(whereInvocation).FirstOrDefault() is { Expression: { } predicateArg }
 		       && TryGetLambda(predicateArg, out var predicate)
 		       && TryGetLinqSource(whereInvocation, out var whereSource))
@@ -80,21 +78,23 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 				switch (literalValue)
 				{
 					case true:
-						TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectCount, out currentSource);
+						TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectCount, out source);
 						continue;
 					case false:
 						result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0));
 						return true;
 				}
 			}
-			
+
 			wherePredicates.Add(predicate);
 
-			currentSource = whereSource;
-			
+			source = whereSource;
+
 			// Skip operations that don't affect count before the next Where
-			isNewSource = TryGetOptimizedChainExpression(currentSource, OperationsThatDontAffectCount, out currentSource) || isNewSource;
+			isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectCount, out source) || isNewSource;
 		}
+
+		var currentSource = context.Visit(source) ?? source;
 
 		// If we found any Where predicates, combine them
 		if (wherePredicates.Count > 0)
@@ -110,15 +110,15 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 				if (lambdas.Count == wherePredicates.Count)
 				{
 					var count = values.Count(value => lambdas.All(lambda => lambda?.DynamicInvoke(value) is true));
-				
+
 					result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(count));
 					return true;
 				}
 			}
-			
+
 			// Start with the first predicate and combine with the rest
 			var combinedPredicate = context.Visit(wherePredicates[^1]) as LambdaExpressionSyntax ?? wherePredicates[^1];
-			
+
 			// Combine from right to left (last to first)
 			for (var i = wherePredicates.Count - 2; i >= 0; i--)
 			{
@@ -131,7 +131,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 			{
 				combinedPredicate = CombinePredicates(context.Visit(lambda) as LambdaExpressionSyntax ?? lambda, combinedPredicate);
 			}
-			
+
 			combinedPredicate = context.Visit(combinedPredicate) as LambdaExpressionSyntax ?? combinedPredicate;
 
 			if (IsLiteralBooleanLambda(combinedPredicate, out var literalValue))
@@ -150,15 +150,15 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 				}
 			}
 
-			if (IsLinqMethodChain(currentSource, nameof(Enumerable.DefaultIfEmpty), out var chunkInvocation))
+			if (IsLinqMethodChain(currentSource, nameof(Enumerable.DefaultIfEmpty), out _))
 			{
 				TryGetOptimizedChainExpression(currentSource, OperationsThatDontAffectCount.Union([ nameof(Enumerable.DefaultIfEmpty) ]).ToSet(), out currentSource);
-				
+
 				result = TryOptimizeByOptimizer<CountFunctionOptimizer>(context, CreateInvocation(currentSource, nameof(Enumerable.Count), combinedPredicate));
 				result = CreateInvocation(SyntaxFactory.ParseTypeName("Int32"), "Max", result as ExpressionSyntax, SyntaxHelpers.CreateLiteral(1)!);
 				return true;
 			}
-			
+
 			currentSource = context.Visit(currentSource) ?? currentSource;
 
 			if (IsEmptyEnumerable(currentSource))
@@ -166,7 +166,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 				result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0));
 				return true;
 			}
-			
+
 			result = UpdateInvocation(context, currentSource, combinedPredicate);
 			return true;
 		}
@@ -174,11 +174,11 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		if (context.VisitedParameters.Count == 0)
 		{
 			if (IsLinqMethodChain(context.Visit(currentSource) ?? currentSource, out var methodName, out var invocation)
-			        && TryGetLinqSource(invocation, out var methodSource))
+			    && TryGetLinqSource(invocation, out var methodSource))
 			{
 				switch (methodName)
 				{
-					case "Chunk" when invocation.ArgumentList.Arguments is [var chunkSizeArg]:
+					case "Chunk" when invocation.ArgumentList.Arguments is [ var chunkSizeArg ]:
 					{
 						var chunkSize = context.Visit(chunkSizeArg.Expression) ?? chunkSizeArg.Expression;
 
@@ -203,32 +203,32 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 							result = context.OptimizeBinaryExpression(SyntaxFactory.BinaryExpression(SyntaxKind.DivideExpression, SyntaxFactory.ParenthesizedExpression(context.OptimizeBinaryExpression(left, intType, intType, intType) as ExpressionSyntax ?? left), chunkSize), intType, intType, intType) as ExpressionSyntax ?? chunkSize;
 							return true;
 						}
-						
+
 						break;
 					}
 					case nameof(Enumerable.DefaultIfEmpty):
 					{
 						TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectCount.Union([ nameof(Enumerable.DefaultIfEmpty) ]).ToSet(), out currentSource);
-						
+
 						if (!TryOptimizeCollection(context, currentSource, out var resultInvocation))
 						{
 							resultInvocation = TryOptimizeByOptimizer<CountFunctionOptimizer>(context, CreateSimpleInvocation(currentSource, nameof(Enumerable.Count)));
 						}
-						
+
 						result = CreateInvocation(SyntaxFactory.ParseTypeName("Int32"), "Max", resultInvocation as ExpressionSyntax, SyntaxHelpers.CreateLiteral(1)!);
 						return true;
 					}
 					case nameof(Enumerable.Distinct):
 					{
 						TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectCount.Union([ nameof(Enumerable.Distinct) ]).ToSet(), out currentSource);
-						
+
 						result = TryOptimizeByOptimizer<DistinctFunctionOptimizer>(context, CreateSimpleInvocation(currentSource, nameof(Enumerable.Distinct)));
 						result = CreateSimpleInvocation(result as ExpressionSyntax, nameof(Enumerable.Count));
 						return true;
 					}
 				}
 			}
-			
+
 			if (TryGetSyntaxes(context.Visit(currentSource) ?? currentSource, out var syntaxes))
 			{
 				result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(syntaxes.Count));
@@ -243,11 +243,6 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		}
 
 		source = context.Visit(currentSource) ?? currentSource;
-
-		if (TryOptimizeCollection(context, source, out result))
-		{
-			return true;
-		}
 
 		if (IsEmptyEnumerable(source))
 		{
@@ -265,7 +260,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		result = null;
 		return false;
 	}
-	
+
 	private bool TryOptimizeCollection(FunctionOptimizerContext context, ExpressionSyntax source, out SyntaxNode? result)
 	{
 		if (IsCollectionType(context, source))
@@ -279,9 +274,8 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 			result = CreateMemberAccess(context.Visit(source) ?? source, "Length");
 			return true;
 		}
-		
+
 		result = null;
 		return false;
 	}
 }
-

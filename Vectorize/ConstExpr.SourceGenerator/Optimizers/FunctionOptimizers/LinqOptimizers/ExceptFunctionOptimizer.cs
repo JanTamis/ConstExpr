@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ConstExpr.SourceGenerator.Comparers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
@@ -27,10 +29,10 @@ public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 	// Operations that don't affect the result of Except
 	private static readonly HashSet<string> OperationsThatDontAffectExcept =
 	[
-		nameof(Enumerable.Distinct),         // Except already applies Distinct
-		nameof(Enumerable.AsEnumerable),     // Type cast: doesn't change the collection
-		nameof(Enumerable.ToList),           // Materialization: preserves order and values
-		nameof(Enumerable.ToArray),          // Materialization: preserves order and values
+		nameof(Enumerable.Distinct), // Except already applies Distinct
+		nameof(Enumerable.AsEnumerable), // Type cast: doesn't change the collection
+		nameof(Enumerable.ToList), // Materialization: preserves order and values
+		nameof(Enumerable.ToArray), // Materialization: preserves order and values
 	];
 
 	// Operations that change order but can be skipped if followed by set-based operations
@@ -59,8 +61,7 @@ public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(context)
-		    || !TryGetLinqSource(context.Invocation, out var source)
-		    || context.VisitedParameters.Count == 0)
+		    || !TryGetLinqSource(context.Invocation, out var source))
 		{
 			result = null;
 			return false;
@@ -72,16 +73,100 @@ public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		}
 
 		var exceptCollection = context.VisitedParameters[0];
+		var isNewCollection = false;
+
+		source = context.Visit(source) ?? source;
+
+		if (TryOptimizeEmptySource(source, out result))
+		{
+			return true;
+		}
+
+		if (TryGetSyntaxes(exceptCollection, out var syntaxes))
+		{
+			while (IsLinqMethodChain(source, nameof(Enumerable.Except), out var exceptInvocation)
+			       && GetMethodArguments(exceptInvocation).FirstOrDefault() is { Expression: { } firstExceptArg }
+			       && TryGetLinqSource(exceptInvocation, out var exceptSource)
+			       && TryGetSyntaxes(context.Visit(firstExceptArg) ?? firstExceptArg, out var firstExceptSyntaxes))
+			{
+				foreach (var firstExceptSyntax in firstExceptSyntaxes)
+				{
+					syntaxes.Add(firstExceptSyntax);
+				}
+
+				var isFollowedBySetOperation = IsFollowedBySetBasedOperation(exceptInvocation);
+				var allowedOperations = isFollowedBySetOperation
+					? new HashSet<string>(OperationsThatDontAffectExcept.Union(OrderingOperations))
+					: OperationsThatDontAffectExcept;
+
+				TryGetOptimizedChainExpression(exceptSource, allowedOperations, out source);
+			}
+
+			if (syntaxes.All(a => a is LiteralExpressionSyntax))
+			{
+				if (syntaxes.Count == 0
+				    && context.Method.ReturnType is INamedTypeSymbol { TypeArguments.Length: > 0 } returnType)
+				{
+					result = CreateEmptyEnumerableCall(returnType.TypeArguments[0]);
+					return true;
+				}
+
+				// convert to x.Where(x => x is literal1 or literal2 or ...)
+				var andNotPattern = syntaxes
+					.Select(PatternSyntax (syntax) => SyntaxFactory.UnaryPattern(SyntaxFactory.Token(SyntaxKind.NotKeyword), SyntaxFactory.ConstantPattern(syntax)))
+					.Aggregate((left, right) => SyntaxFactory.BinaryPattern(SyntaxKind.AndPattern, left, right));
+
+				var parameter = SyntaxFactory.Parameter(SyntaxFactory.Identifier("x"));
+				var isPatternExpression = SyntaxFactory.IsPatternExpression(SyntaxFactory.IdentifierName("x"), andNotPattern);
+				
+				LambdaExpressionSyntax lambda = SyntaxFactory.SimpleLambdaExpression(parameter, isPatternExpression);
+
+				var isFollowedBySetOperation = IsFollowedBySetBasedOperation(context.Invocation);
+				var allowedOperations = isFollowedBySetOperation
+					? new HashSet<string>(OperationsThatDontAffectExcept.Union(OrderingOperations))
+					: OperationsThatDontAffectExcept;
+
+				// Recursively skip all allowed operations
+				TryGetOptimizedChainExpression(source, allowedOperations, out source);
+
+				while (IsLinqMethodChain(source, nameof(Enumerable.Where), out var whereInvocation)
+				       && GetMethodArguments(whereInvocation).FirstOrDefault() is { Expression: { } whereArg }
+				       && TryGetLinqSource(whereInvocation, out var whereSource)				       
+				       && TryGetLambda(whereArg, out var whereLambda))
+				{
+					lambda = CombinePredicates(lambda, whereLambda);
+					
+					isFollowedBySetOperation = IsFollowedBySetBasedOperation(whereInvocation);
+					allowedOperations = isFollowedBySetOperation
+						? new HashSet<string>(OperationsThatDontAffectExcept.Union(OrderingOperations))
+						: OperationsThatDontAffectExcept;
+
+					// Recursively skip all allowed operations
+					TryGetOptimizedChainExpression(whereSource, allowedOperations, out source);
+				}
+
+				var distinctSource = TryOptimizeByOptimizer<DistinctFunctionOptimizer>(context, CreateSimpleInvocation(source, nameof(Enumerable.Distinct))) as ExpressionSyntax
+				                     ?? CreateSimpleInvocation(source, nameof(Enumerable.Distinct));
+
+				result = TryOptimizeByOptimizer<WhereFunctionOptimizer>(context, CreateInvocation(distinctSource, nameof(Enumerable.Where), context.Visit(lambda) ?? lambda));
+				return true;
+			}
+
+			exceptCollection = CreateCollection(syntaxes.Distinct(SyntaxNodeComparer<ExpressionSyntax>.Instance));
+			isNewCollection = true;
+		}
 
 		// Try simple optimizations first
-		if (TryOptimizeEmptySource(context.Visit(source) ?? source, out result)
-		    || TryOptimizeEmptyExceptCollection(context.Visit(source) ?? source, context.Visit(exceptCollection) ?? exceptCollection, out result)
-		    || TryOptimizeSelfExcept(context.Method, context.Visit(source) ?? source, context.Visit(exceptCollection) ?? exceptCollection, out result)
+		if (TryOptimizeEmptySource(source, out result)
+		    || TryOptimizeEmptyExceptCollection(source, context.Visit(exceptCollection) ?? exceptCollection, out result)
+		    || TryOptimizeSelfExcept(context.Method, source, context.Visit(exceptCollection) ?? exceptCollection, out result)
 		    || TryOptimizeChainedExcept(source, exceptCollection, context.Visit, out result))
+		{
 			return true;
+		}
 
 		// Try to optimize by removing redundant operations
-		return TryOptimizeRedundantOperations(context, context.Invocation, source, exceptCollection, out result);
+		return TryOptimizeRedundantOperations(context, context.Invocation, source, exceptCollection, isNewCollection, out result);
 	}
 
 	private bool TryOptimizeEmptySource(ExpressionSyntax source, out SyntaxNode? result)
@@ -133,7 +218,7 @@ public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		    && GetMethodArguments(exceptInvocation).FirstOrDefault() is { Expression: { } firstExceptArg }
 		    && TryGetLinqSource(exceptInvocation, out var exceptSource))
 		{
-			var mergedExceptCollection = CreateInvocation(visit(firstExceptArg) ?? firstExceptArg, nameof(Enumerable.Concat), visit(exceptCollection));
+			var mergedExceptCollection = CreateInvocation(visit(firstExceptArg) ?? firstExceptArg, nameof(Enumerable.Concat), visit(exceptCollection) ?? exceptCollection);
 			result = CreateInvocation(visit(exceptSource) ?? exceptSource, nameof(Enumerable.Except), mergedExceptCollection);
 			return true;
 		}
@@ -142,7 +227,7 @@ public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		return false;
 	}
 
-	private bool TryOptimizeRedundantOperations(FunctionOptimizerContext context, InvocationExpressionSyntax invocation, ExpressionSyntax source, ExpressionSyntax exceptCollection, out SyntaxNode? result)
+	private bool TryOptimizeRedundantOperations(FunctionOptimizerContext context, InvocationExpressionSyntax invocation, ExpressionSyntax source, ExpressionSyntax exceptCollection, bool isNewCollection, out SyntaxNode? result)
 	{
 		// Determine which operations can be skipped
 		var isFollowedBySetOperation = IsFollowedBySetBasedOperation(invocation);
@@ -155,9 +240,9 @@ public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		var isNewExceptCollection = TryGetOptimizedChainExpression(exceptCollection, allowedOperations, out exceptCollection);
 
 		// If we optimized anything, create optimized Except call
-		if (isNewSource || isNewExceptCollection)
+		if (isNewSource || isNewExceptCollection || isNewCollection)
 		{
-			result = TryOptimizeByOptimizer<ExceptFunctionOptimizer>(context, CreateInvocation(source, nameof(Enumerable.Except), exceptCollection));
+			result = CreateInvocation(source, nameof(Enumerable.Except), exceptCollection);
 			return true;
 		}
 
@@ -182,5 +267,3 @@ public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		return false;
 	}
 }
-
-

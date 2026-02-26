@@ -52,6 +52,8 @@ public class ElementAtOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(n
 		{
 			return true;
 		}
+
+		source = context.Visit(source) ?? source;
 		
 		var type = context.Method.ReturnType;
 

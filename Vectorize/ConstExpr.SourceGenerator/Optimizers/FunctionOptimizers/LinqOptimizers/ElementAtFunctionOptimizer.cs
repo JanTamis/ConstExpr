@@ -52,9 +52,11 @@ public class ElementAtFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 			return true;
 		}
 
+		source = context.Visit(source) ?? source;
+
 		var type = context.Method.ReturnType;
 
-		while (IsLinqMethodChain(source, nameof(Enumerable.Skip), out var skipInvocation)
+		while (IsLinqMethodChain(context.Visit(source) ?? source, nameof(Enumerable.Skip), out var skipInvocation)
 		       && TryGetLinqSource(skipInvocation, out source)
 		       && GetMethodArguments(skipInvocation).FirstOrDefault() is { Expression: { } skipCount })
 		{

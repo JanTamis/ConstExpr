@@ -25,22 +25,29 @@ public partial class ConstExprPartialRewriter
 {
 	public override SyntaxNode? VisitLiteralExpression(LiteralExpressionSyntax node)
 	{
-		if (node.Token.Value is null)
+		try
 		{
-			return node;
-		}
-
-		if (TryGetLiteral(node.Token.Value, out var expression))
-		{
-			// Don't implicitly convert char literals to int - they should remain as char
-			// to preserve their representation in pattern matching contexts
-			if (semanticModel.GetOperation(node) is { Parent: IConversionOperation conversion }
-			    && (node.Token.Value is not char || conversion.Type?.SpecialType != SpecialType.System_Int32))
+			if (node.Token.Value is null)
 			{
-				TryGetLiteral(ExecuteConversion(conversion, node.Token.Value), out expression);
+				return node;
 			}
 
-			return expression;
+			if (TryGetLiteral(node.Token.Value, out var expression))
+			{
+				// Don't implicitly convert char literals to int - they should remain as char
+				// to preserve their representation in pattern matching contexts
+				if (semanticModel.GetOperation(node) is { Parent: IConversionOperation conversion }
+				    && (node.Token.Value is not char || conversion.Type?.SpecialType != SpecialType.System_Int32))
+				{
+					TryGetLiteral(ExecuteConversion(conversion, node.Token.Value), out expression);
+				}
+
+				return expression;
+			}
+		}
+		catch (Exception e)
+		{
+			return node;
 		}
 
 		return node;

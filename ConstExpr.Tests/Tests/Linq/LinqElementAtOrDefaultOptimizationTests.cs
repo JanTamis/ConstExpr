@@ -183,7 +183,7 @@ public class LinqElementAtOrDefaultNoOptimizationTests : BaseTest<Func<int[], in
 		Create("""
 			var a = x.Min();
 			var b = x.Max();
-			var c = x.LastOrDefault();
+			var c = x.Length > 0 ? x[^1] : 0;
 			var d = x.FirstOrDefault(v => v > 2);
 			var e = x.Select(v => v << 1).FirstOrDefault();
 			var f = x.Length > 0 ? x[0] : 0;

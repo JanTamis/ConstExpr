@@ -72,7 +72,7 @@ public class  LinqDefaultIfEmptyWithValueTests : BaseTest<Func<int[], int>>
 	{
 		// DefaultIfEmpty with custom value
 		var a = x.DefaultIfEmpty(42).First();
-
+		
 		// Distinct().DefaultIfEmpty(value) => DefaultIfEmpty(value)
 		var b = x.Distinct().DefaultIfEmpty(99).First();
 
@@ -90,7 +90,7 @@ public class  LinqDefaultIfEmptyWithValueTests : BaseTest<Func<int[], int>>
 		Create("""
 			var a = x.Length > 0 ? x[0] : 42;
 			var b = x.Length > 0 ? x[0] : 99;
-			var c = x.Length > 0 ? x.Max() : 77;
+			var c = x.Order().FirstOrDefault(77);
 			var d = x.Length > 0 ? x[0] : 10;
 			
 			return a + b + c + d;

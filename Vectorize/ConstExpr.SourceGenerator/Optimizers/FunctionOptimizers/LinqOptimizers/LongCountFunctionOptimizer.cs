@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -33,15 +34,15 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 	// - ToList/ToArray: materialization could fail/filter
 	private static readonly HashSet<string> OperationsThatDontAffectCount =
 	[
-		nameof(Enumerable.OrderBy),          // Ordering: changes order but not count
-		nameof(Enumerable.OrderByDescending),// Ordering: changes order but not count
-		"Order",                             // Ordering (.NET 6+): changes order but not count
-		"OrderDescending",                   // Ordering (.NET 6+): changes order but not count
-		nameof(Enumerable.ThenBy),           // Secondary ordering: changes order but not count
+		nameof(Enumerable.OrderBy), // Ordering: changes order but not count
+		nameof(Enumerable.OrderByDescending), // Ordering: changes order but not count
+		"Order", // Ordering (.NET 6+): changes order but not count
+		"OrderDescending", // Ordering (.NET 6+): changes order but not count
+		nameof(Enumerable.ThenBy), // Secondary ordering: changes order but not count
 		nameof(Enumerable.ThenByDescending), // Secondary ordering: changes order but not count
-		nameof(Enumerable.Reverse),          // Reversal: changes order but not count
-		nameof(Enumerable.AsEnumerable),     // Type cast: doesn't change the collection
-		nameof(Enumerable.Select)            // Projection: doesn't change count for non-nullable types
+		nameof(Enumerable.Reverse), // Reversal: changes order but not count
+		nameof(Enumerable.AsEnumerable), // Type cast: doesn't change the collection
+		nameof(Enumerable.Select) // Projection: doesn't change count for non-nullable types
 	];
 
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
@@ -53,20 +54,19 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 			return false;
 		}
 
+		// Collect all chained Where predicates
+		var wherePredicates = new List<LambdaExpressionSyntax>();
+
 		// Recursively skip all operations that don't affect count
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectCount, out source);
-
-		if (TryExecutePredicates(context, context.Visit(source) ?? source, out result))
+		
+		if (TryExecutePredicates(context, source, out result))
 		{
 			return true;
 		}
 
-		// Collect all chained Where predicates
-		var wherePredicates = new List<LambdaExpressionSyntax>();
-		var currentSource = source;
-
 		// Walk through the chain and collect all Where statements
-		while (IsLinqMethodChain(currentSource, nameof(Enumerable.Where), out var whereInvocation)
+		while (IsLinqMethodChain(source, nameof(Enumerable.Where), out var whereInvocation)
 		       && GetMethodArguments(whereInvocation).FirstOrDefault() is { Expression: { } predicateArg }
 		       && TryGetLambda(predicateArg, out var predicate)
 		       && TryGetLinqSource(whereInvocation, out var whereSource))
@@ -76,28 +76,47 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 				switch (literalValue)
 				{
 					case true:
-						TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectCount, out currentSource);
+						TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectCount, out source);
 						continue;
 					case false:
-						result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0L));
+						result = SyntaxHelpers.CreateLiteral(0L)!;
 						return true;
 				}
 			}
-			
+
 			wherePredicates.Add(predicate);
-			
+
+			source = whereSource;
+
 			// Skip operations that don't affect count before the next Where
-			TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectCount, out currentSource);
+			isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectCount, out source) || isNewSource;
 		}
+
+		var currentSource = context.Visit(source) ?? source;
 
 		// If we found any Where predicates, combine them
 		if (wherePredicates.Count > 0)
 		{
+			// try to execute predicates directly if we can get the values at compile time (e.g. for arrays or collections with known contents)
+			if (TryGetValues(context.Visit(currentSource) ?? currentSource, out var values))
+			{
+				var lambdas = wherePredicates
+					.Select(s => context.GetLambda(s)?.Compile())
+					.Where(w => w != null)
+					.ToList();
+
+				if (lambdas.Count == wherePredicates.Count)
+				{
+					var count = values.Count(value => lambdas.All(lambda => lambda?.DynamicInvoke(value) is true));
+
+					result = SyntaxHelpers.CreateLiteral((long) count)!;
+					return true;
+				}
+			}
+
 			// Start with the first predicate and combine with the rest
-			var combinedPredicate = wherePredicates.Count == 1 
-				? wherePredicates[0] 
-				: context.Visit(wherePredicates[^1]) as LambdaExpressionSyntax ?? wherePredicates[^1];
-			
+			var combinedPredicate = context.Visit(wherePredicates[^1]) as LambdaExpressionSyntax ?? wherePredicates[^1];
+
 			// Combine from right to left (last to first)
 			for (var i = wherePredicates.Count - 2; i >= 0; i--)
 			{
@@ -105,83 +124,114 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 				combinedPredicate = CombinePredicates(currentPredicate, combinedPredicate);
 			}
 
-			// If LongCount() has a predicate parameter, combine it as well
+			// If Count() has a predicate parameter, combine it as well
 			if (context.VisitedParameters is [ LambdaExpressionSyntax lambda ])
 			{
 				combinedPredicate = CombinePredicates(context.Visit(lambda) as LambdaExpressionSyntax ?? lambda, combinedPredicate);
 			}
-			
+
 			combinedPredicate = context.Visit(combinedPredicate) as LambdaExpressionSyntax ?? combinedPredicate;
 
 			if (IsLiteralBooleanLambda(combinedPredicate, out var literalValue))
 			{
 				switch (literalValue)
 				{
-					case true when IsCollectionType(context, currentSource):
-					{
-						result = SyntaxFactory.CastExpression(
-							SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.LongKeyword)),
-							CreateMemberAccess(context.Visit(currentSource) ?? currentSource, "Count"));
+					case true when TryOptimizeCollection(context, currentSource, out result):
 						return true;
-					}
-					case true when IsInvokedOnArray(context, currentSource):
-					{
-						result = SyntaxFactory.CastExpression(
-							SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.LongKeyword)),
-							CreateMemberAccess(context.Visit(currentSource) ?? currentSource, "Length"));
-						return true;
-					}
 					case false:
-					{
-						result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0L));
-						return true;
-					}
+						result = SyntaxHelpers.CreateLiteral(0L)!;
+						break;
 				}
 			}
-			
-			result = CreateInvocation(context.Visit(currentSource) ?? currentSource, nameof(Enumerable.LongCount), combinedPredicate);
+
+			if (IsLinqMethodChain(currentSource, nameof(Enumerable.DefaultIfEmpty), out _))
+			{
+				TryGetOptimizedChainExpression(currentSource, OperationsThatDontAffectCount.Union([ nameof(Enumerable.DefaultIfEmpty) ]).ToSet(), out currentSource);
+
+				result = TryOptimizeByOptimizer<LongCountFunctionOptimizer>(context, CreateInvocation(currentSource, nameof(Enumerable.LongCount), combinedPredicate));
+				result = CreateInvocation(SyntaxFactory.ParseTypeName("Int64"), "Max", result as ExpressionSyntax, SyntaxHelpers.CreateLiteral(1L)!);
+				return true;
+			}
+
+			currentSource = context.Visit(currentSource) ?? currentSource;
+
+			if (IsEmptyEnumerable(currentSource))
+			{
+				result = SyntaxHelpers.CreateLiteral(0L)!;
+				return true;
+			}
+
+			result = UpdateInvocation(context, currentSource, combinedPredicate);
 			return true;
 		}
 
 		if (context.VisitedParameters.Count == 0)
 		{
-			source = context.Visit(source) ?? source;
-			
-			if (TryGetSyntaxes(source, out var values))
+			if (IsLinqMethodChain(context.Visit(currentSource) ?? currentSource, out var methodName, out var invocation)
+			    && TryGetLinqSource(invocation, out var methodSource))
 			{
-				result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal((long)values.Count));
-				return true;
+				switch (methodName)
+				{
+					case "Chunk" when invocation.ArgumentList.Arguments is [ var chunkSizeArg ]:
+					{
+						var chunkSize = context.Visit(chunkSizeArg.Expression) ?? chunkSizeArg.Expression;
+
+						if (chunkSize is LiteralExpressionSyntax { Token.Value: 1 })
+						{
+							currentSource = methodSource;
+						}
+						else
+						{
+							var intType = context.Model.Compilation.GetSpecialType(SpecialType.System_Int64);
+							var newChunkSource = context.Visit(methodSource) ?? methodSource;
+
+							if (!TryOptimizeCollection(context, newChunkSource, out var countInvocation))
+							{
+								countInvocation = CreateSimpleInvocation(newChunkSource, nameof(Enumerable.LongCount));
+							}
+
+							var left = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression,
+								countInvocation as ExpressionSyntax,
+								context.OptimizeBinaryExpression(SyntaxFactory.BinaryExpression(SyntaxKind.SubtractExpression, chunkSize, SyntaxHelpers.CreateLiteral(1L)!), intType, intType, intType) as ExpressionSyntax ?? chunkSize);
+
+							result = context.OptimizeBinaryExpression(SyntaxFactory.BinaryExpression(SyntaxKind.DivideExpression, SyntaxFactory.ParenthesizedExpression(context.OptimizeBinaryExpression(left, intType, intType, intType) as ExpressionSyntax ?? left), chunkSize), intType, intType, intType) as ExpressionSyntax ?? chunkSize;
+							return true;
+						}
+
+						break;
+					}
+					case nameof(Enumerable.DefaultIfEmpty):
+					{
+						TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectCount.Union([ nameof(Enumerable.DefaultIfEmpty) ]).ToSet(), out currentSource);
+
+						if (!TryOptimizeCollection(context, currentSource, out var resultInvocation))
+						{
+							resultInvocation = TryOptimizeByOptimizer<CountFunctionOptimizer>(context, CreateSimpleInvocation(currentSource, nameof(Enumerable.LongCount)));
+						}
+
+						result = CreateInvocation(SyntaxFactory.ParseTypeName("Int64"), "Max", resultInvocation as ExpressionSyntax, SyntaxHelpers.CreateLiteral(1L)!);
+						return true;
+					}
+					case nameof(Enumerable.Distinct):
+					{
+						TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectCount.Union([ nameof(Enumerable.Distinct) ]).ToSet(), out currentSource);
+
+						result = TryOptimizeByOptimizer<DistinctFunctionOptimizer>(context, CreateSimpleInvocation(currentSource, nameof(Enumerable.Distinct)));
+						result = CreateSimpleInvocation(result as ExpressionSyntax, nameof(Enumerable.LongCount));
+						return true;
+					}
+				}
 			}
-			
-			if (IsCollectionType(context, currentSource))
+
+			if (TryGetSyntaxes(context.Visit(currentSource) ?? currentSource, out var syntaxes))
 			{
-				result = SyntaxFactory.CastExpression(
-					SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.LongKeyword)),
-					CreateMemberAccess(currentSource, "Count"));
+				result = SyntaxHelpers.CreateLiteral((long) syntaxes.Count)!;
 				return true;
 			}
 
-			if (IsCollectionType(context, source))
+			if (TryOptimizeCollection(context, currentSource, out result)
+			    || TryOptimizeCollection(context, source, out result))
 			{
-				result = SyntaxFactory.CastExpression(
-					SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.LongKeyword)),
-					CreateMemberAccess(source, "Count"));
-				return true;
-			}
-
-			if (IsInvokedOnArray(context, currentSource))
-			{
-				result = SyntaxFactory.CastExpression(
-					SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.LongKeyword)),
-					CreateMemberAccess(currentSource, "Length"));
-				return true;
-			}
-
-			if (IsInvokedOnArray(context, source))
-			{
-				result = SyntaxFactory.CastExpression(
-					SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.LongKeyword)),
-					CreateMemberAccess(source, "Length"));
 				return true;
 			}
 		}
@@ -190,14 +240,32 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 
 		if (IsEmptyEnumerable(source))
 		{
-			result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0L));
+			result = SyntaxHelpers.CreateLiteral(0L)!;
 			return true;
 		}
 
-		// If we skipped any operations, create optimized LongCount() call
+		// If we skipped any operations, create optimized Count() call
 		if (isNewSource)
 		{
-			result = CreateInvocation(source, nameof(Enumerable.LongCount), context.VisitedParameters);
+			result = UpdateInvocation(context, source);
+			return true;
+		}
+
+		result = null;
+		return false;
+	}
+
+	private bool TryOptimizeCollection(FunctionOptimizerContext context, ExpressionSyntax source, out SyntaxNode? result)
+	{
+		if (IsCollectionType(context, source))
+		{
+			result = SyntaxFactory.CastExpression(SyntaxFactory.ParseTypeName("long"), CreateMemberAccess(context.Visit(source) ?? source, "Count"));
+			return true;
+		}
+
+		if (IsInvokedOnArray(context, source))
+		{
+			result = result = SyntaxFactory.CastExpression(SyntaxFactory.ParseTypeName("long"), CreateMemberAccess(context.Visit(source) ?? source, "Length"));
 			return true;
 		}
 
@@ -205,4 +273,3 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		return false;
 	}
 }
-

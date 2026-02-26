@@ -61,7 +61,7 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 				{
 					TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectFirst, out methodSource);
 
-					result = TryOptimizeByOptimizer<FirstOrDefaultFunctionOptimizer>(context, CreateInvocation(methodSource, nameof(Enumerable.FirstOrDefault), predicate));
+					result = CreateInvocation(methodSource, nameof(Enumerable.FirstOrDefault), context.Visit(predicate) ?? predicate);
 					return true;
 				}
 				case nameof(Enumerable.Reverse):

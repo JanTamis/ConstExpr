@@ -54,11 +54,11 @@ public class LinqFirstOptimizationTests : BaseTest<Func<int[], int>>
 			var e = x.First(v => v > 2);
 			var f = x.First(v => v < 5);
 			var g = x.First(v => v == 3);
-			var h = x.Last();
+			var h = x[^1];
 			var i = x.Min();
 			var j = x.Max();
 			var k = x[0];
-
+			
 			return a + b + c + d + e + f + g + h + i + j + k;
 			""", Unknown),
 		Create("return 26;", new[] { 1, 2, 3, 4, 5 }),

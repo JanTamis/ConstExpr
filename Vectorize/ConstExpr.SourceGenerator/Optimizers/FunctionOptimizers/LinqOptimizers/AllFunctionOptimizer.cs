@@ -106,9 +106,9 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			return true;
 		}
 
-		if (IsInvokedOnArray(context, source))
+		if (IsInvokedOnList(context, source))
 		{
-			result = CreateInvocation(source, "TrueForAll", context.Visit(allLambda) ?? allLambda);
+			result = CreateInvocation(context.Visit(source) ?? source, "TrueForAll", context.Visit(allLambda) ?? allLambda);
 			return true;
 		}
 

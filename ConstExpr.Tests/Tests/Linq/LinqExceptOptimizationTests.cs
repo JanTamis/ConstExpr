@@ -56,22 +56,19 @@ public class LinqExceptOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.Distinct().Count();
-			var b = 0;
-			var c = 0;
-			var d = x.Distinct().Count(c => c != 1);
-			var e = x.Distinct().Count(c => c != 2);
-			var f = x.Distinct().Count(c => c != 3);
-			var g = x.Distinct().Count(c => (uint)c - 1 > 1); // Count of not 1 and not 2
-			var h = x.Distinct().Count(c => c != 4);
-			var i = x.Distinct().Count(c => (uint)c - 1 > 1); // Count of not 1 and not 2
-			var j = x.Distinct().Count(c => (uint)c - 1 > 2); // Count of not 1 and not 2 and not 3S
-			var k = x.Distinct().Count(c => c != 1);
-			var l = x.Any(a => a != 5) ? 1 : 0;
-			var m = x.Distinct().Count(c => (uint)c - 1 > 1);
-			var n = x.Distinct().Count(c => c != 99);
+			var d = x.Distinct().Count(x => x != 1);
+			var e = x.Distinct().Count(x => x != 2);
+			var f = x.Distinct().Count(x => x != 3);
+			var g = x.Distinct().Count(x => x is not 1 and not 2);
+			var h = x.Distinct().Count(x => x != 4);
+			var i = x.Distinct().Count(x => x is not 1 and not 2);
+			var j = x.Distinct().Count(x => x is not 1 and not 2 and not 3);
+			var k = x.Distinct().Count(x => x != 1);
+			var l = Array.Exists(x, x => x != 5) ? 1 : 0;
+			var m = x.Distinct().Count(x => x is not 1 and not 2);
+			var n = x.Distinct().Count(x => x != 99);
 			
-			return a + b + c + d + e + f + g + h + i + j + k + l + m + n;
+			return d + e + f + g + h + i + j + k + l + m + n;
 			""", Unknown),
 		Create("return 38;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 42;", new[] { 1, 2, 3, 4, 5 }),

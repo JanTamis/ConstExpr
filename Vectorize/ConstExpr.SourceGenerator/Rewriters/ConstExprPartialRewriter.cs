@@ -81,7 +81,7 @@ public partial class ConstExprPartialRewriter(
 		{
 			return base.Visit(node);
 		}
-		catch (Exception e)
+		catch (Exception e) when (node is not LiteralExpressionSyntax)
 		{
 			exceptionHandler(node, e);
 			return node;
