@@ -59,13 +59,13 @@ public class LinqExceptOptimizationTests : BaseTest<Func<int[], int>>
 			var d = x.Distinct().Count(x => x != 1);
 			var e = x.Distinct().Count(x => x != 2);
 			var f = x.Distinct().Count(x => x != 3);
-			var g = x.Distinct().Count(x => x is not 1 and not 2);
+			var g = x.Distinct().Count(x => x is not (1 or 2));
 			var h = x.Distinct().Count(x => x != 4);
-			var i = x.Distinct().Count(x => x is not 1 and not 2);
-			var j = x.Distinct().Count(x => x is not 1 and not 2 and not 3);
+			var i = x.Distinct().Count(x => x is not (1 or 2));
+			var j = x.Distinct().Count(x => x is not (1 or 2 or 3));
 			var k = x.Distinct().Count(x => x != 1);
 			var l = Array.Exists(x, x => x != 5) ? 1 : 0;
-			var m = x.Distinct().Count(x => x is not 1 and not 2);
+			var m = x.Distinct().Count(x => x is not (1 or 2));
 			var n = x.Distinct().Count(x => x != 99);
 			
 			return d + e + f + g + h + i + j + k + l + m + n;

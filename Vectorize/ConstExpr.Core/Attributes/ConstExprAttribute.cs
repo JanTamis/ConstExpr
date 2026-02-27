@@ -14,7 +14,9 @@ namespace ConstExpr.Core.Attributes;
 /// </remarks>
 /// <seealso cref="FloatingPointEvaluationMode"/>
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Class | AttributeTargets.Struct, Inherited = false)]
-public sealed class ConstExprAttribute(FloatingPointEvaluationMode floatingPointMode = FloatingPointEvaluationMode.Strict, uint maxUnrollIterations = 32) : Attribute
+public sealed class ConstExprAttribute(
+	FloatingPointEvaluationMode floatingPointMode = FloatingPointEvaluationMode.Strict, 
+	uint maxUnrollIterations = 32) : Attribute
 {
 	/// <summary>
 	/// Gets or sets the floating‑point evaluation mode used during constant expression processing.
