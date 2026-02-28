@@ -25,6 +25,11 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 		return TryGetLiteralValue(node, null, out value, new HashSet<string>());
 	}
 
+	protected bool TryGetLiteralValue([NotNullWhen(true)] SyntaxNode? node, ITypeSymbol? typeSymbol, out object? value)
+	{
+		return TryGetLiteralValue(node, typeSymbol, out value, new HashSet<string>());
+	}
+
 	private bool TryGetLiteralValue([NotNullWhen(true)] SyntaxNode? node, ITypeSymbol? typeSymbol, out object? value, HashSet<string> visitedVariables)
 	{
 		switch (node)

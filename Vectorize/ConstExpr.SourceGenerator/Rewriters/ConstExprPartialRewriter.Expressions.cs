@@ -4,7 +4,6 @@ using System.Globalization;
 using System.Linq;
 using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
-using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Optimizers.ConditionalOptimizers;
 using Microsoft.CodeAnalysis;
@@ -900,9 +899,11 @@ public partial class ConstExprPartialRewriter
 			.OrderBy(o => o)
 			.ToList();
 
-		var results = new List<ExpressionSyntax>();
 		var originalMinValue = constants[0];
 		
+		// Groups of expressions per cluster: within a cluster combine with &&, across clusters combine with ||
+		var clusterResults = new List<List<ExpressionSyntax>>();
+
 		foreach (var cluster in constants!.GetClusterPatterns())
 		{
 			var minValue = cluster.Start;
@@ -919,8 +920,10 @@ public partial class ConstExprPartialRewriter
 					ParseTypeName(semanticModel.Compilation.GetMinimalString(unsignedType)),
 					pattern.Expression);
 
-			if (!constants[0].IsNumericZero()
-			    && TryGetLiteral(constants[0], out var minLit))
+			// Use cluster.Start as the per-cluster minimum for the subtraction, not the global min (constants[0]).
+			// This ensures each cluster's range check is relative to its own start value.
+			if (!minValue.IsNumericZero()
+			    && TryGetLiteral(minValue, out var minLit))
 			{
 				expression = isUnsigedType
 					? BinaryExpression(SyntaxKind.SubtractExpression, pattern.Expression, minLit)
@@ -929,8 +932,11 @@ public partial class ConstExprPartialRewriter
 						ParenthesizedExpression(BinaryExpression(SyntaxKind.SubtractExpression, pattern.Expression, minLit)));
 			}
 
-			// add range check 
-			results.Add(BinaryExpression(SyntaxKind.LessThanOrEqualExpression, expression, unsigneddiff));
+			// Start a new group for this cluster; first entry is always the range check.
+			var clusterExprs = new List<ExpressionSyntax>
+			{
+				BinaryExpression(SyntaxKind.LessThanOrEqualExpression, expression, unsigneddiff)
+			};
 
 			if (!TryGetLiteral(cluster.Start, out var startExpression)
 			    || !TryGetLiteral(cluster.End, out var endExpression)
@@ -953,16 +959,17 @@ public partial class ConstExprPartialRewriter
 			{
 				case ObjectExtensions.ClusterType.Consecutive:
 				{
-					continue;
+					// Range check alone is sufficient for consecutive values.
+					break;
 				}
 				case ObjectExtensions.ClusterType.Step:
 				{
-					results.Add(GetStepSetExpression(cluster, zeroExpression));
+					clusterExprs.Add(GetStepSetExpression(cluster, zeroExpression));
 					break;
 				}
 				case ObjectExtensions.ClusterType.PowerOfTwo:
 				{
-					results.Add(GetPowerOfTwoExpression(cluster, oneExpression!, zeroExpression));
+					clusterExprs.Add(GetPowerOfTwoExpression(cluster, oneExpression!, zeroExpression));
 					break;
 				}
 				case ObjectExtensions.ClusterType.Odd or ObjectExtensions.ClusterType.Even:
@@ -973,7 +980,7 @@ public partial class ConstExprPartialRewriter
 						IdentifierName(cluster.Type == ObjectExtensions.ClusterType.Even ? "IsEvenInteger" : "IsOddInteger"));
 
 					// Generate optimized expression: int.IsEvenInteger(x) or int.IsOddInteger(x)
-					results.Add(InvocationExpression(memberAccess, ArgumentList([ Argument(pattern.Expression) ])));
+					clusterExprs.Add(InvocationExpression(memberAccess, ArgumentList([ Argument(pattern.Expression) ])));
 					break;
 				}
 				case ObjectExtensions.ClusterType.Bitmask:
@@ -997,7 +1004,7 @@ public partial class ConstExprPartialRewriter
 
 					// bitmask = bitmask.ToSpecialType(unsignedType.SpecialType);
 
-					results.Add(GetBitmaskExpression(cluster, bitmask, oneExpression!, type));
+					clusterExprs.Add(GetBitmaskExpression(cluster, bitmask, oneExpression!, type));
 					break;
 				}
 				default:
@@ -1005,13 +1012,20 @@ public partial class ConstExprPartialRewriter
 					return false;
 				}
 			}
+
+			clusterResults.Add(clusterExprs);
 		}
 
-		result = results[0];
+		// Combine: within each cluster use &&, then combine clusters with ||
+		var clusterNodes = clusterResults
+			.Select(exprs => exprs.Aggregate((a, b) => BinaryExpression(SyntaxKind.LogicalAndExpression, a, b)))
+			.ToList();
 
-		for (var i = 1; i < results.Count; i++)
+		result = clusterNodes[0];
+
+		for (var i = 1; i < clusterNodes.Count; i++)
 		{
-			result = BinaryExpression(i == 1 ? SyntaxKind.LogicalAndExpression : SyntaxKind.LogicalOrExpression, result, results[i]);
+			result = BinaryExpression(SyntaxKind.LogicalOrExpression, result, clusterNodes[i]);
 		}
 
 		return true;

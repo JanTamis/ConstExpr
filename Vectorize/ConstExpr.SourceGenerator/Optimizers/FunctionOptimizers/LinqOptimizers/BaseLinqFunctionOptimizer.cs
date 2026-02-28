@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Reflection;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
@@ -807,7 +806,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		return false;
 	}
 
-	protected bool TryCastToType(MetadataLoader loader, IEnumerable<object?> values, ITypeSymbol type, [NotNullWhen(true)] out object? result)
+	protected bool TryCastToType(MetadataLoader loader, object values, ITypeSymbol type, [NotNullWhen(true)] out object? result)
 	{
 		if (loader.TryGetType(type, out var elementType))
 		{
@@ -857,48 +856,26 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		try
 		{
 			if (context.OriginalParameters.Count == context.Method.Parameters.Length
-			    && TryGetValues(context.Visit(source) ?? source, out var values)
-			    && context.Loader.TryGetMethodByMethod(context.Method, out var method)
-			    && context.Method.ReceiverType is INamedTypeSymbol receiverType)
+			    && context.Method.ReceiverType is INamedTypeSymbol receiverType
+			    && TryGetLiteralValue(context.Visit(source) ?? source, context, receiverType, out var values)
+			    && context.Loader.TryGetMethodByMethod(context.Method, out var method))
 			{
-				var items = (object) values;
-
-				if (receiverType.TypeArguments.Length > 0
-				    && TryCastToType(context.Loader, values, receiverType.TypeArguments[0], out var castedValues))
-				{
-					items = castedValues;
-				}
-
-				switch (receiverType)
-				{
-					case IArrayTypeSymbol:
-						TryChangeToArray(context.Loader, items, receiverType.TypeArguments[0], out items);
-						break;
-					case INamedTypeSymbol when (receiverType.ConstructedFrom?.ToDisplayString() == "System.Collections.Generic.List<T>"):
-						TryChangeToList(context.Loader, items, receiverType.TypeArguments[0], out items);
-						break;
-				}
-
 				var parameters = new List<object?>();
 
 				for (var i = 0; i < context.OriginalParameters.Count; i++)
 				{
-					if (TryGetLambda(context.OriginalParameters[i], out var originalLambda))
+					if (TryGetLiteralValue(context.OriginalParameters[i], context, context.Method.Parameters[i].Type, out var value)
+					    || TryGetLiteralValue(context.VisitedParameters[i], context, context.Method.Parameters[i].Type, out value))
 					{
-						parameters.Add(context.GetLambda(originalLambda).Compile());
-					}
-
-					if (context.VisitedParameters[i] is LiteralExpressionSyntax literal)
-					{
-						parameters.Add(literal.Token.Value);
+						parameters.Add(value);
 					}
 				}
 
 				if (parameters.Count == context.Method.Parameters.Length)
 				{
 					if (method.IsStatic
-					    && SyntaxHelpers.TryGetLiteral(method.Invoke(null, [ items, ..parameters ]), out var tempResult)
-					    || SyntaxHelpers.TryGetLiteral(method.Invoke(items, [ ..parameters ]), out tempResult))
+					    && SyntaxHelpers.TryGetLiteral(method.Invoke(null, [ values, ..parameters ]), out var tempResult)
+					    || SyntaxHelpers.TryGetLiteral(method.Invoke(values, [ ..parameters ]), out tempResult))
 					{
 						result = tempResult;
 						return true;
@@ -920,49 +897,25 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	{
 		try
 		{
-			if (parameters.Count == context.Method.Parameters.Length
-			    && TryGetValues(context.Visit(source) ?? source, out var values)
-			    && context.Loader.TryGetMethodByMethod(context.Method, out var method)
-			    && context.Method.ReceiverType is INamedTypeSymbol receiverType)
+			if (context.OriginalParameters.Count == context.Method.Parameters.Length
+			    && context.Method.ReceiverType is INamedTypeSymbol receiverType
+			    && TryGetLiteralValue(context.Visit(source) ?? source, context, receiverType, out var values)
+			    && context.Loader.TryGetMethodByMethod(context.Method, out var method))
 			{
-				var items = (object) values;
-
-				if (receiverType.TypeArguments.Length > 0
-				    && TryCastToType(context.Loader, values, receiverType.TypeArguments[0], out var castedValues))
+				for (var i = 0; i < parameters.Count; i++)
 				{
-					items = castedValues;
-				}
-
-				switch (receiverType)
-				{
-					case IArrayTypeSymbol:
-						TryChangeToArray(context.Loader, values, receiverType.TypeArguments[0], out items);
-						break;
-					case INamedTypeSymbol when (receiverType.ConstructedFrom.ToDisplayString() == "System.Collections.Generic.List<T>"):
-						TryChangeToList(context.Loader, values, receiverType.TypeArguments[0], out items);
-						break;
-				}
-
-				var resultParameters = new List<object?>();
-
-				for (int i = 0; i < parameters.Count; i++)
-				{
-					if (TryGetLambda(parameters[i], out var originalLambda))
+					if (TryGetLiteralValue(context.OriginalParameters[i], context, context.Method.Parameters[i].Type, out var value)
+					    || TryGetLiteralValue(context.VisitedParameters[i], context, context.Method.Parameters[i].Type, out value))
 					{
-						resultParameters.Add(context.GetLambda(originalLambda).Compile());
-					}
-
-					if (parameters[i] is LiteralExpressionSyntax literal)
-					{
-						resultParameters.Add(literal.Token.Value);
+						parameters.Add(value);
 					}
 				}
 
-				if (resultParameters.Count == context.Method.Parameters.Length)
+				if (parameters.Count == context.Method.Parameters.Length)
 				{
 					if (context.Method.ReceiverType is not null
-					    && SyntaxHelpers.TryGetLiteral(method.Invoke(null, [ items, ..parameters ]), out var tempResult)
-					    || SyntaxHelpers.TryGetLiteral(method.Invoke(items, [ ..parameters ]), out tempResult))
+					    && SyntaxHelpers.TryGetLiteral(method.Invoke(null, [ values, ..parameters ]), out var tempResult)
+					    || SyntaxHelpers.TryGetLiteral(method.Invoke(values, [ ..parameters ]), out tempResult))
 					{
 						result = tempResult;
 						return true;

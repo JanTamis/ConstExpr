@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
@@ -96,15 +97,26 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 		var currentSource = context.Visit(source) ?? source;
 
+		// If visiting the source transformed it (e.g., Intersect → Distinct+Where),
+		// re-run the Count optimization on the new expression to fold Where+Count into Count(predicate)
+		if (wherePredicates.Count == 0
+		    && !AreSyntacticallyEquivalent(currentSource, source)
+		    && IsLinqMethodChain(currentSource, nameof(Enumerable.Where), out _))
+		{
+			var countInvocation = CreateInvocation(currentSource, nameof(Enumerable.Count), context.VisitedParameters);
+			result = TryOptimizeByOptimizer<CountFunctionOptimizer>(context, countInvocation);
+			return true;
+		}
+		
 		// If we found any Where predicates, combine them
 		if (wherePredicates.Count > 0)
 		{
 			// try to execute predicates directly if we can get the values at compile time (e.g. for arrays or collections with known contents)
-			if (TryGetValues(context.Visit(currentSource) ?? currentSource, out var values))
+			if (TryGetValues(currentSource, out var values))
 			{
 				var lambdas = wherePredicates
-					.Select(s => context.GetLambda(s)?.Compile())
-					.Where(w => w != null)
+					.WhereSelect<LambdaExpressionSyntax, object>((s, out result) => TryGetLiteralValue(s, context, null, out result))
+					.OfType<Delegate>()
 					.ToList();
 
 				if (lambdas.Count == wherePredicates.Count)
@@ -171,6 +183,8 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 			return true;
 		}
 
+		isNewSource = TryGetOptimizedChainExpression(currentSource, OperationsThatDontAffectCount, out currentSource) || isNewSource;
+
 		if (context.VisitedParameters.Count == 0)
 		{
 			if (IsLinqMethodChain(context.Visit(currentSource) ?? currentSource, out var methodName, out var invocation)
@@ -226,6 +240,21 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 						result = CreateSimpleInvocation(result as ExpressionSyntax, nameof(Enumerable.Count));
 						return true;
 					}
+					case nameof(Enumerable.SelectMany) when GetMethodArguments(invocation).FirstOrDefault() is { Expression: { } predicateArg }
+					                                        && TryGetLambda(predicateArg, out var predicate):
+					{
+						var body = predicate.Body as ExpressionSyntax;
+						
+						var countInvocation = CreateInvocation(body, nameof(Enumerable.Count), context.VisitedParameters);
+						var newCountInvocation = TryOptimizeByOptimizer<CountFunctionOptimizer>(context, countInvocation) as ExpressionSyntax ?? countInvocation;
+
+						predicate = predicate.WithBody(newCountInvocation);
+						
+						var sumInvocation = CreateInvocation(context.Visit(methodSource) ?? methodSource, nameof(Enumerable.Sum), predicate);
+						
+						result = TryOptimizeByOptimizer<SumFunctionOptimizer>(context, sumInvocation);
+						return true;
+					}
 				}
 			}
 
@@ -263,15 +292,15 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 	private bool TryOptimizeCollection(FunctionOptimizerContext context, ExpressionSyntax source, out SyntaxNode? result)
 	{
-		if (IsCollectionType(context, source))
-		{
-			result = CreateMemberAccess(context.Visit(source) ?? source, "Count");
-			return true;
-		}
-
 		if (IsInvokedOnArray(context, source))
 		{
 			result = CreateMemberAccess(context.Visit(source) ?? source, "Length");
+			return true;
+		}
+		
+		if (IsCollectionType(context, source))
+		{
+			result = CreateMemberAccess(context.Visit(source) ?? source, "Count");
 			return true;
 		}
 

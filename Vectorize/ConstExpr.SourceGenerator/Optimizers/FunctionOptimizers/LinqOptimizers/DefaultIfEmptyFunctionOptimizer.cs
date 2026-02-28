@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 

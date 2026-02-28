@@ -365,6 +365,25 @@ public partial class ConstExprPartialRewriter
 			return BinaryExpression(SyntaxKind.NotEqualsExpression, left, right);
 		}
 
+		// Handle unary "not" around OR patterns: `x is not (1 or 2 or 3)` -> `(uint)(x - 1) > 2u`
+		if (node.Pattern is UnaryPatternSyntax unaryNot && unaryNot.OperatorToken.IsKind(SyntaxKind.NotKeyword))
+		{
+			var innerPattern = unaryNot.Pattern is ParenthesizedPatternSyntax paren ? paren.Pattern : unaryNot.Pattern;
+
+			if (innerPattern is BinaryPatternSyntax { OperatorToken.RawKind: (int)SyntaxKind.OrKeyword } orPattern)
+			{
+				var baseExpr = expression as ExpressionSyntax ?? node.Expression;
+				var syntheticIsNode = node
+					.WithExpression(baseExpr)
+					.WithPattern(orPattern);
+
+				if (TryOptimizeNegatedOrPattern(syntheticIsNode, out var negatedOptimized))
+				{
+					return negatedOptimized;
+				}
+			}
+		}
+
 		// Handle unary "not" around relational patterns: `x is not > 0` -> `x <= 0` (negated operator)
 		if (node.Pattern is UnaryPatternSyntax unaryRel && unaryRel.OperatorToken.IsKind(SyntaxKind.NotKeyword) && unaryRel.Pattern is RelationalPatternSyntax relInner)
 		{
@@ -596,6 +615,75 @@ public partial class ConstExprPartialRewriter
 		// Use LessThanOrEqual because the range includes both bounds
 		result = BinaryExpression(SyntaxKind.LessThanExpression, optimizedExpr, rangeLiteral);
 		return true;
+	}
+
+	/// <summary>
+	/// Tries to optimize negated OR patterns like <c>x is not (1 or 2 or 3)</c> to
+	/// <c>(uint)(x - 1) &gt; 2u</c>.
+	/// Delegates to <see cref="TryOptimizePattern"/> to build the positive range expression and then
+	/// flips the comparison operator(s) to produce the negated form.
+	/// </summary>
+	private bool TryOptimizeNegatedOrPattern(IsPatternExpressionSyntax node, out ExpressionSyntax? result)
+	{
+		result = null;
+
+		// Reuse the positive-OR optimization to get: (uint)(x - min) <= range
+		if (!TryOptimizePattern(node, out var positiveResult) || positiveResult is null)
+		{
+			return false;
+		}
+
+		// Negate the result by flipping comparison operators.
+		// The positive optimization produces BinaryExpressions connected by && / ||.
+		// For a single consecutive cluster (the common case) it's just one <= or < comparison
+		// which we flip to > or >=.
+		result = NegateComparison(positiveResult);
+		return result is not null;
+
+		static ExpressionSyntax? NegateComparison(ExpressionSyntax expr)
+		{
+			if (expr is BinaryExpressionSyntax binary)
+			{
+				// Flip a leaf comparison operator
+				var flippedKind = binary.Kind() switch
+				{
+					SyntaxKind.LessThanOrEqualExpression  => SyntaxKind.GreaterThanExpression,          // <= -> >
+					SyntaxKind.LessThanExpression         => SyntaxKind.GreaterThanOrEqualExpression,   // < -> >=
+					SyntaxKind.GreaterThanOrEqualExpression => SyntaxKind.LessThanExpression,           // >= -> <
+					SyntaxKind.GreaterThanExpression      => SyntaxKind.LessThanOrEqualExpression,      // > -> <=
+					SyntaxKind.EqualsExpression           => SyntaxKind.NotEqualsExpression,            // == -> !=
+					SyntaxKind.NotEqualsExpression        => SyntaxKind.EqualsExpression,               // != -> ==
+					// For && / || we apply De Morgan: !(a && b) -> !a || !b, !(a || b) -> !a && !b
+					SyntaxKind.LogicalAndExpression => SyntaxKind.LogicalOrExpression,
+					SyntaxKind.LogicalOrExpression  => SyntaxKind.LogicalAndExpression,
+					_ => (SyntaxKind?)null,
+				};
+
+				if (flippedKind is null)
+				{
+					return null;
+				}
+
+				if (binary.Kind() is SyntaxKind.LogicalAndExpression or SyntaxKind.LogicalOrExpression)
+				{
+					// Recurse into both sides (De Morgan)
+					var left  = NegateComparison(binary.Left);
+					var right = NegateComparison(binary.Right);
+
+					if (left is null || right is null)
+					{
+						return null;
+					}
+
+					return BinaryExpression(flippedKind.Value, left, right);
+				}
+
+				// Leaf comparison – just flip the operator, keep operands as-is
+				return BinaryExpression(flippedKind.Value, binary.Left, binary.Right);
+			}
+
+			return null;
+		}
 	}
 
 	/// <summary>

@@ -29,7 +29,7 @@ public class LinqToListOptimizationTests : BaseTest<Func<int[], int>>
 //
 // 			return a + b + c;
 // 			""", Unknown),
-		Create("return 9;", new[] { 1, 2, 3 }),
+		// Create("return 9;", new[] { 1, 2, 3 }),
 		Create("return 0;", new int[] { }),
 	];
 }

@@ -101,6 +101,13 @@ public class IntersectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 					result = CreateEmptyEnumerableCall(returnType.TypeArguments[0]);
 					return true;
 				}
+
+				// Strip ordering operations when followed by set-based operations (Count, Any, etc.)
+				// since ordering doesn't affect set membership
+				if (IsFollowedBySetBasedOperation(context.Invocation))
+				{
+					TryGetOptimizedChainExpression(source, new HashSet<string>(OperationsThatDontAffectIntersect.Union(OrderingOperations)), out source);
+				}
 				
 				// convert to x.Where(x => x is literal1 or literal2 or ...)
 				var orPattern = intersectCollectionSyntaxes

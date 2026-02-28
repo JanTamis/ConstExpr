@@ -75,8 +75,6 @@ public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		var exceptCollection = context.VisitedParameters[0];
 		var isNewCollection = false;
 
-		source = context.Visit(source) ?? source;
-
 		if (TryOptimizeEmptySource(source, out result))
 		{
 			return true;
@@ -84,15 +82,19 @@ public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 
 		if (TryGetSyntaxes(exceptCollection, out var syntaxes))
 		{
+			// Collect syntaxes from chained Except calls BEFORE visiting source,
+			// so inner Except calls are not prematurely optimized into Where calls.
+			// Inner syntaxes are prepended so the final order mirrors the source:
+			// x.Except([1]).Except([2]) => x is not (1 or 2) (not (2 or 1)).
 			while (IsLinqMethodChain(source, nameof(Enumerable.Except), out var exceptInvocation)
 			       && GetMethodArguments(exceptInvocation).FirstOrDefault() is { Expression: { } firstExceptArg }
 			       && TryGetLinqSource(exceptInvocation, out var exceptSource)
 			       && TryGetSyntaxes(context.Visit(firstExceptArg) ?? firstExceptArg, out var firstExceptSyntaxes))
 			{
-				foreach (var firstExceptSyntax in firstExceptSyntaxes)
-				{
-					syntaxes.Add(firstExceptSyntax);
-				}
+				// Prepend inner syntaxes so the leftmost Except values appear first.
+				var combined = new List<ExpressionSyntax>(firstExceptSyntaxes);
+				combined.AddRange(syntaxes);
+				syntaxes = combined;
 
 				var isFollowedBySetOperation = IsFollowedBySetBasedOperation(exceptInvocation);
 				var allowedOperations = isFollowedBySetOperation
@@ -101,6 +103,9 @@ public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 
 				TryGetOptimizedChainExpression(exceptSource, allowedOperations, out source);
 			}
+
+			// Now visit the source after all chained Excepts have been collected.
+			source = context.Visit(source) ?? source;
 
 			if (syntaxes.All(a => a is LiteralExpressionSyntax))
 			{
@@ -111,13 +116,27 @@ public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 					return true;
 				}
 
-				// convert to x.Where(x => x is literal1 or literal2 or ...)
-				var andNotPattern = syntaxes
-					.Select(PatternSyntax (syntax) => SyntaxFactory.UnaryPattern(SyntaxFactory.Token(SyntaxKind.NotKeyword), SyntaxFactory.ConstantPattern(syntax)))
-					.Aggregate((left, right) => SyntaxFactory.BinaryPattern(SyntaxKind.AndPattern, left, right));
+				// convert to x.Where(x => x is not (literal1 or literal2 or ...))
+				// For a single literal, omit the parentheses so the rewriter can simplify x is not 1 to x != 1.
+				var constantPatterns = syntaxes
+					.Select(PatternSyntax (syntax) => SyntaxFactory.ConstantPattern(syntax));
+
+				PatternSyntax notPattern;
+
+				if (syntaxes.Count == 1)
+				{
+					// x is not literal  →  rewriter will simplify to x != literal
+					notPattern = SyntaxFactory.UnaryPattern(SyntaxFactory.Token(SyntaxKind.NotKeyword), constantPatterns.First());
+				}
+				else
+				{
+					var orPattern = constantPatterns
+						.Aggregate((left, right) => SyntaxFactory.BinaryPattern(SyntaxKind.OrPattern, left, right));
+					notPattern = SyntaxFactory.UnaryPattern(SyntaxFactory.Token(SyntaxKind.NotKeyword), SyntaxFactory.ParenthesizedPattern(orPattern));
+				}
 
 				var parameter = SyntaxFactory.Parameter(SyntaxFactory.Identifier("x"));
-				var isPatternExpression = SyntaxFactory.IsPatternExpression(SyntaxFactory.IdentifierName("x"), andNotPattern);
+				var isPatternExpression = SyntaxFactory.IsPatternExpression(SyntaxFactory.IdentifierName("x"), notPattern);
 				
 				LambdaExpressionSyntax lambda = SyntaxFactory.SimpleLambdaExpression(parameter, isPatternExpression);
 
@@ -155,6 +174,9 @@ public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 			exceptCollection = CreateCollection(syntaxes.Distinct(SyntaxNodeComparer<ExpressionSyntax>.Instance));
 			isNewCollection = true;
 		}
+
+		// Visit the source now that we are in the non-literal fallback path.
+		source = context.Visit(source) ?? source;
 
 		// Try simple optimizations first
 		if (TryOptimizeEmptySource(source, out result)

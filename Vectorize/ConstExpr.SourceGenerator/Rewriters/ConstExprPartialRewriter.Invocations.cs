@@ -413,7 +413,7 @@ public partial class ConstExprPartialRewriter
 				return null;
 			}
 		});
-		
+
 		var optimizeBinaryExpression = new Func<BinaryExpressionSyntax, ITypeSymbol, ITypeSymbol, ITypeSymbol, SyntaxNode>((binary, leftType, rightType, type) =>
 		{
 			if (binary.Left is LiteralExpressionSyntax leftLiteral
@@ -422,14 +422,14 @@ public partial class ConstExprPartialRewriter
 			{
 				return leftValue;
 			}
-			
+
 			var expressions = GetBinaryExpressions(node).ToList();
 
 			if (TryOptimizeNode(binary.Kind().ToBinaryOperatorKind(), expressions, type, binary.Left, leftType, binary.Right, rightType, node.Parent, out var optimizedNode))
 			{
 				return optimizedNode;
 			}
-			
+
 			return binary;
 		});
 
@@ -809,12 +809,14 @@ public partial class ConstExprPartialRewriter
 
 	public override SyntaxNode? VisitMemberAccessExpression(MemberAccessExpressionSyntax node)
 	{
+		semanticModel.TryGetTypeSymbol(node, out var typeSymbol);
+		
 		var expression = Visit(node.Expression);
-		var hasLiteral = TryGetLiteralValue(node.Expression, out var instanceValue);
+		var hasLiteral = TryGetLiteralValue(node.Expression, typeSymbol, out var instanceValue);
 
 		if (!hasLiteral)
 		{
-			hasLiteral = TryGetLiteralValue(expression, out instanceValue);
+			hasLiteral = TryGetLiteralValue(expression, typeSymbol, out instanceValue);
 		}
 
 		if (semanticModel.TryGetSymbol(node, out ISymbol? symbol))
@@ -827,97 +829,104 @@ public partial class ConstExprPartialRewriter
 			}
 
 			// check if symbol is IList.Count
-			if (symbol is IPropertySymbol propertySymbol
-			    && expression is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name: IdentifierNameSyntax { Identifier.Text: { } methodName }, Expression: { } resultExpression } }
-			    && semanticModel.TryGetTypeSymbol(node.Expression, out var typeSymbol))
+			if (symbol is IPropertySymbol propertySymbol)
 			{
-				if (propertySymbol.Name == "Count"
-				    && propertySymbol.ContainingType.AllInterfaces.Any(i => i.OriginalDefinition.SpecialType is SpecialType.System_Collections_Generic_ICollection_T or SpecialType.System_Collections_Generic_IList_T))
+				var isListCount = propertySymbol.Name == "Count"
+				                  && propertySymbol.ContainingType.AllInterfaces.Any(i => i.OriginalDefinition.SpecialType is SpecialType.System_Collections_Generic_ICollection_T or SpecialType.System_Collections_Generic_IList_T);
+
+				var isArrayLength = propertySymbol is { Name: "Length", ContainingType.SpecialType: SpecialType.System_Array };
+
+				if ((isListCount || isArrayLength)
+				    && expression is CollectionExpressionSyntax collectionExpression)
 				{
-					switch (methodName)
+					return CreateLiteral(collectionExpression.Elements.Count);
+				}
+
+				if (expression is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name: IdentifierNameSyntax { Identifier.Text: { } methodName }, Expression: { } resultExpression } })
+				{
+					if (isListCount)
 					{
-						// check if expression is Enumerable.ToList()
-						case "ToList" when typeSymbol is INamedTypeSymbol namedTypeSymbol:
+						switch (methodName)
 						{
-							// return Enumerable.Count() instead
-							var newInvocation = InvocationExpression(
-									MemberAccessExpression(
-										SyntaxKind.SimpleMemberAccessExpression,
-										resultExpression,
-										IdentifierName("Count")))
-								.WithArgumentList(ArgumentList());
+							// check if expression is Enumerable.ToList()
+							case "ToList" when typeSymbol is INamedTypeSymbol namedTypeSymbol:
+							{
+								// return Enumerable.Count() instead
+								var newInvocation = InvocationExpression(
+										MemberAccessExpression(
+											SyntaxKind.SimpleMemberAccessExpression,
+											resultExpression,
+											IdentifierName("Count")))
+									.WithArgumentList(ArgumentList());
 
-							var optimized = TryOptimizeLinqMethod(semanticModel, semanticModel.Compilation
-								.GetTypeByMetadataName("System.Linq.Enumerable")!
-								.GetMembers("Count")
-								.OfType<IMethodSymbol>()
-								.Select(s => s.Construct(namedTypeSymbol.TypeArguments[0]))
-								.First(m => m.Parameters.Length == 1), newInvocation, [ ], [ ]);
+								var optimized = TryOptimizeLinqMethod(semanticModel, semanticModel.Compilation
+									.GetTypeByMetadataName("System.Linq.Enumerable")!
+									.GetMembers("Count")
+									.OfType<IMethodSymbol>()
+									.Select(s => s.Construct(namedTypeSymbol.TypeArguments[0]))
+									.First(m => m.Parameters.Length == 1), newInvocation, [ ], [ ]);
 
-							return optimized ?? newInvocation;
-						}
-						case "ToHashSet" when typeSymbol is INamedTypeSymbol namedTypeSymbol:
-						{
-							// return Enumerable.Distinct().Count() instead
-							var distinctInvocation = InvocationExpression(
-									MemberAccessExpression(
-										SyntaxKind.SimpleMemberAccessExpression,
-										resultExpression,
-										IdentifierName("Distinct")))
-								.WithArgumentList(ArgumentList());
+								return optimized ?? newInvocation;
+							}
+							case "ToHashSet" when typeSymbol is INamedTypeSymbol namedTypeSymbol:
+							{
+								// return Enumerable.Distinct().Count() instead
+								var distinctInvocation = InvocationExpression(
+										MemberAccessExpression(
+											SyntaxKind.SimpleMemberAccessExpression,
+											resultExpression,
+											IdentifierName("Distinct")))
+									.WithArgumentList(ArgumentList());
 
-							var optimizedDistinct = TryOptimizeLinqMethod(semanticModel, semanticModel.Compilation
-								.GetTypeByMetadataName("System.Linq.Enumerable")!
-								.GetMembers("Count")
-								.OfType<IMethodSymbol>()
-								.Select(s => s.Construct(namedTypeSymbol.TypeArguments[0]))
-								.First(m => m.Parameters.Length == 1), distinctInvocation, [ ], [ ]);
-							
-							var countInvocation = InvocationExpression(
-									MemberAccessExpression(
-										SyntaxKind.SimpleMemberAccessExpression,
-										optimizedDistinct as ExpressionSyntax ?? distinctInvocation,
-										IdentifierName("Count")))
-								.WithArgumentList(ArgumentList());
+								var optimizedDistinct = TryOptimizeLinqMethod(semanticModel, semanticModel.Compilation
+									.GetTypeByMetadataName("System.Linq.Enumerable")!
+									.GetMembers("Count")
+									.OfType<IMethodSymbol>()
+									.Select(s => s.Construct(namedTypeSymbol.TypeArguments[0]))
+									.First(m => m.Parameters.Length == 1), distinctInvocation, [ ], [ ]);
 
-							var optimized = TryOptimizeLinqMethod(semanticModel, semanticModel.Compilation
-								.GetTypeByMetadataName("System.Linq.Enumerable")!
-								.GetMembers("Count")
-								.OfType<IMethodSymbol>()
-								.Select(s => s.Construct(namedTypeSymbol.TypeArguments[0]))
-								.First(m => m.Parameters.Length == 1), countInvocation, [ ], [ ]);
+								var countInvocation = InvocationExpression(
+										MemberAccessExpression(
+											SyntaxKind.SimpleMemberAccessExpression,
+											optimizedDistinct as ExpressionSyntax ?? distinctInvocation,
+											IdentifierName("Count")))
+									.WithArgumentList(ArgumentList());
 
-							return optimized ?? countInvocation;
+								var optimized = TryOptimizeLinqMethod(semanticModel, semanticModel.Compilation
+									.GetTypeByMetadataName("System.Linq.Enumerable")!
+									.GetMembers("Count")
+									.OfType<IMethodSymbol>()
+									.Select(s => s.Construct(namedTypeSymbol.TypeArguments[0]))
+									.First(m => m.Parameters.Length == 1), countInvocation, [ ], [ ]);
+
+								return optimized ?? countInvocation;
+							}
 						}
 					}
-				}
 
-				if (propertySymbol is { Name: "Length", ContainingType.SpecialType: SpecialType.System_Array }
-				    && typeSymbol is IArrayTypeSymbol arrayType)
-				{
-					// return Enumerable.Count() instead
-					var newInvocation = InvocationExpression(
-							MemberAccessExpression(
-								SyntaxKind.SimpleMemberAccessExpression,
-								resultExpression,
-								IdentifierName("Count")))
-						.WithArgumentList(ArgumentList());
+					if (isArrayLength
+					    && semanticModel.TryGetTypeSymbol(node.Expression, out typeSymbol) 
+					    && typeSymbol is IArrayTypeSymbol arrayType)
+					{
+						// return Enumerable.Count() instead
+						var newInvocation = InvocationExpression(
+								MemberAccessExpression(
+									SyntaxKind.SimpleMemberAccessExpression,
+									resultExpression,
+									IdentifierName("Count")))
+							.WithArgumentList(ArgumentList());
 
-					var optimized = TryOptimizeLinqMethod(semanticModel, semanticModel.Compilation
-						.GetTypeByMetadataName("System.Linq.Enumerable")!
-						.GetMembers("Count")
-						.OfType<IMethodSymbol>()
-						.Select(s => s.Construct(arrayType.ElementType))
-						.First(m => m.Parameters.Length == 1), newInvocation, [ ], [ ]);
+						var optimized = TryOptimizeLinqMethod(semanticModel, semanticModel.Compilation
+							.GetTypeByMetadataName("System.Linq.Enumerable")!
+							.GetMembers("Count")
+							.OfType<IMethodSymbol>()
+							.Select(s => s.Construct(arrayType.ElementType))
+							.First(m => m.Parameters.Length == 1), newInvocation, [ ], [ ]);
 
-					return optimized ?? newInvocation;
+						return optimized ?? newInvocation;
+					}
 				}
 			}
-		}
-
-		if (hasLiteral && instanceValue != null && TryGetLiteral(instanceValue, out var instanceLiteral))
-		{
-			return node.WithExpression(instanceLiteral);
 		}
 
 		return node.WithExpression(expression as ExpressionSyntax ?? node.Expression);
