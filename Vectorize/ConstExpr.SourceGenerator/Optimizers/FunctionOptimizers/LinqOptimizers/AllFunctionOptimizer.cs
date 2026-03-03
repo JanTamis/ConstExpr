@@ -30,17 +30,9 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 	// Operations that don't affect the all-check (only order/form/duplicates/materialization)
 	private static readonly HashSet<string> OperationsThatDontAffectAll =
 	[
+		..MaterializingMethods,
+		..OrderingOperations,
 		nameof(Enumerable.Distinct), // Deduplication: may reduce count, but if all satisfy condition, All() is true
-		nameof(Enumerable.OrderBy), // Ordering: changes order but not all-check
-		nameof(Enumerable.OrderByDescending), // Ordering: changes order but not all-check
-		"Order", // Ordering (.NET 6+): changes order but not all-check
-		"OrderDescending", // Ordering (.NET 6+): changes order but not all-check
-		nameof(Enumerable.ThenBy), // Secondary ordering: changes order but not all-check
-		nameof(Enumerable.ThenByDescending), // Secondary ordering: changes order but not all-check
-		nameof(Enumerable.Reverse), // Reversal: changes order but not all-check
-		nameof(Enumerable.AsEnumerable), // Type cast: doesn't change the collection
-		nameof(Enumerable.ToList), // Materialization: creates list but doesn't filter
-		nameof(Enumerable.ToArray), // Materialization: creates array but doesn't filter
 	];
 
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
@@ -66,7 +58,7 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		// Recursively skip all operations that don't affect all-check
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectAll, out source);
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out _))
 		{
 			return true;
 		}
@@ -99,16 +91,18 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 				}
 			}
 		}
+		
+		source = context.Visit(source) ?? source;
 
 		if (IsInvokedOnArray(context, source))
 		{
-			result = CreateInvocation(SyntaxFactory.ParseTypeName(nameof(Array)), nameof(Array.TrueForAll), context.Visit(source) ?? source, context.Visit(allLambda) ?? allLambda);
+			result = CreateInvocation(SyntaxFactory.ParseTypeName(nameof(Array)), nameof(Array.TrueForAll), source, context.Visit(allLambda) ?? allLambda);
 			return true;
 		}
 
 		if (IsInvokedOnList(context, source))
 		{
-			result = CreateInvocation(context.Visit(source) ?? source, "TrueForAll", context.Visit(allLambda) ?? allLambda);
+			result = CreateInvocation(source, "TrueForAll", context.Visit(allLambda) ?? allLambda);
 			return true;
 		}
 

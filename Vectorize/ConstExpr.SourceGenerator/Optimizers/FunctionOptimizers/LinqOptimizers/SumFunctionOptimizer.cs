@@ -24,16 +24,8 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 	// Operations that don't affect the sum
 	private static readonly HashSet<string> OperationsThatDontAffectSum =
 	[
-		nameof(Enumerable.AsEnumerable),
-		nameof(Enumerable.ToList),
-		nameof(Enumerable.ToArray),
-		nameof(Enumerable.OrderBy),
-		nameof(Enumerable.OrderByDescending),
-		"Order",
-		"OrderDescending",
-		nameof(Enumerable.ThenBy),
-		nameof(Enumerable.ThenByDescending),
-		nameof(Enumerable.Reverse),
+		..MaterializingMethods,
+		..OrderingOperations,
 	];
 
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
@@ -48,13 +40,11 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		// Recursively skip operations that don't affect sum
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectSum, out source);
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out var newSource))
 		{
 			return true;
 		}
-
-		var newSource = context.Visit(source) ?? source;
-
+		
 		// Optimize Sum(x => x) => Sum() (identity lambda removal)
 		if (context.VisitedParameters.Count == 1
 		    && TryGetLambda(context.VisitedParameters[0], out var lambda)
@@ -150,7 +140,7 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			// update source of the Sum invocation to the final source after skipping Append chains
 			var newInvocation = firstInvocation.WithExpression(memberAccess.WithExpression(source));
 
-			if (TryExecutePredicates(context, source, out var optimizedResult))
+			if (TryExecutePredicates(context, source, out var optimizedResult, out _))
 			{
 				items[0] = context.Visit(optimizedResult) ?? optimizedResult as ExpressionSyntax ?? newInvocation;
 			}

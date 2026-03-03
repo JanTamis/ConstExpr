@@ -22,7 +22,7 @@ public class SkipWhileFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 			return false;
 		}
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
@@ -33,7 +33,7 @@ public class SkipWhileFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 			{
 				case false:
 				{
-					result = context.Visit(source) ?? source;
+					result = source;
 					return true;
 				}
 				case true:

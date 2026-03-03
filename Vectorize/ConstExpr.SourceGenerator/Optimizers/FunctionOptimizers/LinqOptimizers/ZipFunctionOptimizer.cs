@@ -21,15 +21,13 @@ public class ZipFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			return false;
 		}
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
 
 		var secondSource = context.VisitedParameters[0];
 		
-		source = context.Visit(source) ?? source;
-
 		// If either source is empty, result is empty
 		if (IsEmptyEnumerable(source) 
 		    || IsEmptyEnumerable(secondSource))

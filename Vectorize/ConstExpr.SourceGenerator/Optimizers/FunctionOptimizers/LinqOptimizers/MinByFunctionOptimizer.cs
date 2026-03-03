@@ -21,14 +21,14 @@ public class MinByFunctionOptimizer() : BaseLinqFunctionOptimizer("MinBy", 1)
 			return false;
 		}
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
 
 		if (IsIdentityLambda(lambda))
 		{
-			result = CreateSimpleInvocation(context.Visit(source) ?? source, nameof(Enumerable.Min));
+			result = CreateSimpleInvocation(source, nameof(Enumerable.Min));
 			return true;
 		}
 		

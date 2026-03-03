@@ -21,14 +21,14 @@ public class MaxByFunctionOptimizer() : BaseLinqFunctionOptimizer("MaxBy", 1)
 			return false;
 		}
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
 
 		if (IsIdentityLambda(lambda))
 		{
-			result = CreateSimpleInvocation(context.Visit(source) ?? source, nameof(Enumerable.Max));
+			result = CreateSimpleInvocation(source, nameof(Enumerable.Max));
 			return true;
 		}
 		

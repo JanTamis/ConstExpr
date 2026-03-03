@@ -23,15 +23,13 @@ public class SequenceEqualFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 			return false;
 		}
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
 
 		var secondSource = context.VisitedParameters[0];
 		
-		source = context.Visit(source) ?? source;
-
 		// Optimize collection.SequenceEqual(collection) => true (same reference)
 		// Optimize Enumerable.Empty<T>().SequenceEqual(Enumerable.Empty<T>()) => true
 		if (AreSyntacticallyEquivalent(source, secondSource)

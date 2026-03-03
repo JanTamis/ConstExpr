@@ -20,7 +20,7 @@ public class TakeLastFunctionOptimizer() : BaseLinqFunctionOptimizer("TakeLast",
 			return false;
 		}
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out _))
 		{
 			return true;
 		}

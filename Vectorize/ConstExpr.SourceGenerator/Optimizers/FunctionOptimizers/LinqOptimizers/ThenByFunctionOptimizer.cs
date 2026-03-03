@@ -21,7 +21,7 @@ public class ThenByFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 			return false;
 		}
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}

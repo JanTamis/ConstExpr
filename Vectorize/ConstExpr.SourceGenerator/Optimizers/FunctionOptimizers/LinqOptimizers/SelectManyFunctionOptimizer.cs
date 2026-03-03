@@ -22,13 +22,13 @@ public class SelectManyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(En
 			return false;
 		}
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
 
 		// Optimize Enumerable.Empty<T>().SelectMany(selector) => Enumerable.Empty<TResult>()
-		if (IsEmptyEnumerable(context.Visit(source) ?? source) && context.Method.TypeArguments.Length > 0)
+		if (IsEmptyEnumerable(source) && context.Method.TypeArguments.Length > 0)
 		{
 			// Get the result type (last type argument)
 			var resultType = context.Method.TypeArguments[^1];
@@ -39,7 +39,9 @@ public class SelectManyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(En
 		// Check if lambda always returns empty
 		if (context.VisitedParameters.Count >= 1 
 		    && TryGetLambda(context.VisitedParameters[0], out var lambda) 
-		    && TryGetLambdaBody(lambda, out var body) && IsEmptyEnumerable(body) && context.Method.TypeArguments.Length > 0)
+		    && TryGetLambdaBody(lambda, out var body) 
+		    && IsEmptyEnumerable(body) 
+		    && context.Method.TypeArguments.Length > 0)
 		{
 			// selector always returns empty, so result is empty
 			var resultType = context.Method.TypeArguments[^1];

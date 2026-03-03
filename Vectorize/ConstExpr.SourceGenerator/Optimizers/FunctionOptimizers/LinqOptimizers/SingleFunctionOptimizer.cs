@@ -14,14 +14,6 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// </summary>
 public class SingleFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Single), 0, 1)
 {
-	// Operations that don't affect which element is "single"
-	private static readonly HashSet<string> OperationsThatDontAffectSingle =
-	[
-		nameof(Enumerable.AsEnumerable),
-		nameof(Enumerable.ToList),
-		nameof(Enumerable.ToArray),
-	];
-
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(context)
@@ -32,9 +24,9 @@ public class SingleFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		}
 
 		// Recursively skip operations that don't affect single
-		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectSingle, out source);
+		var isNewSource = TryGetOptimizedChainExpression(source, MaterializingMethods, out source);
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
@@ -45,11 +37,11 @@ public class SingleFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		    && TryGetLinqSource(whereInvocation, out var whereSource)
 		    && whereInvocation.ArgumentList.Arguments.Count == 1)
 		{
-			TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectSingle, out whereSource);
+			TryGetOptimizedChainExpression(whereSource, MaterializingMethods, out whereSource);
 			
 			var predicate = whereInvocation.ArgumentList.Arguments[0].Expression;
 
-			result = UpdateInvocation(context, whereSource, context.Visit(predicate) ?? predicate);
+			result = UpdateInvocation(context, whereSource, predicate);
 			return true;
 		}
 

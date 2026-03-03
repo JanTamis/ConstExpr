@@ -14,13 +14,6 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// </summary>
 public class ToListFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.ToList), 0)
 {
-	private static readonly HashSet<string> MaterializingMethods =
-	[
-		nameof(Enumerable.ToArray),
-		nameof(Enumerable.ToList),
-		nameof(Enumerable.AsEnumerable),
-	];
-
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(context)
@@ -32,7 +25,7 @@ public class ToListFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 
 		var isNewSource = TryGetOptimizedChainExpression(source, MaterializingMethods, out source);
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}

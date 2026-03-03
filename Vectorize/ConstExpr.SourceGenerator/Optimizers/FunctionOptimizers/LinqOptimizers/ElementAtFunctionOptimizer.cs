@@ -22,16 +22,6 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// </summary>
 public class ElementAtFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.ElementAt), 1)
 {
-	// Operations that don't affect element positions or indexing
-	// We CAN'T include ordering operations because they change element positions!
-	// We CAN'T include filtering/projection operations because they change the collection!
-	private static readonly HashSet<string> OperationsThatDontAffectIndexing =
-	[
-		nameof(Enumerable.AsEnumerable),     // Type cast: doesn't change the collection
-		nameof(Enumerable.ToList),           // Materialization: preserves order and all elements
-		nameof(Enumerable.ToArray),          // Materialization: preserves order and all elements
-	];
-
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(context)
@@ -45,14 +35,12 @@ public class ElementAtFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		var indexParameter = context.VisitedParameters[0];
 
 		// Recursively skip all operations that don't affect indexing
-		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectIndexing, out source);
+		var isNewSource = TryGetOptimizedChainExpression(source, MaterializingMethods, out source);
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
-
-		source = context.Visit(source) ?? source;
 
 		var type = context.Method.ReturnType;
 
@@ -65,7 +53,7 @@ public class ElementAtFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 			indexParameter = context.OptimizeBinaryExpression(tempResult, type, type, type) as ExpressionSyntax;
 			isNewSource = true;
 
-			TryGetOptimizedChainExpression(source, OperationsThatDontAffectIndexing, out source);
+			TryGetOptimizedChainExpression(source, MaterializingMethods, out source);
 		}
 
 		if (TryExecutePredicates(context, source, [indexParameter], out result))
@@ -76,14 +64,14 @@ public class ElementAtFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		// For arrays, use direct array indexing: arr[index]
 		if (IsInvokedOnArray(context, source))
 		{
-			result = CreateElementAccess(context.Visit(source) ?? source, indexParameter);
+			result = CreateElementAccess(source, indexParameter);
 			return true;
 		}
 
 		// For List<T>, use direct indexing: list[index]
 		if (IsInvokedOnList(context, source))
 		{
-			result = CreateElementAccess(context.Visit(source) ?? source, indexParameter);
+			result = CreateElementAccess(source, indexParameter);
 			return true;
 		}
 

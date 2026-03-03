@@ -23,22 +23,6 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// </summary>
 public class DefaultIfEmptyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.DefaultIfEmpty), 0, 1)
 {
-	// Operations that don't affect whether a collection is empty
-	// These operations preserve element count (if count > 0, result has count > 0)
-	private static readonly HashSet<string> OperationsThatDontAffectEmpty =
-	[
-		// nameof(Enumerable.Distinct), // May reduce count, but if collection has elements, result has elements
-		// nameof(Enumerable.OrderBy), // Ordering: changes order but not emptiness
-		// nameof(Enumerable.OrderByDescending), // Ordering: changes order but not emptiness
-		// "Order", // Ordering (.NET 6+): changes order but not emptiness
-		// "OrderDescending", // Ordering (.NET 6+): changes order but not emptiness
-		// nameof(Enumerable.ThenBy), // Secondary ordering: changes order but not emptiness
-		// nameof(Enumerable.ThenByDescending), // Secondary ordering: changes order but not emptiness
-		// nameof(Enumerable.Reverse), // Reversal: changes order but not emptiness
-		nameof(Enumerable.AsEnumerable), // Type cast: doesn't change the collection
-		nameof(Enumerable.ToList), // Materialization: preserves all elements
-		nameof(Enumerable.ToArray), // Materialization: preserves all elements
-	];
 
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
@@ -53,9 +37,9 @@ public class DefaultIfEmptyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 		var defaultValue = context.VisitedParameters.FirstOrDefault();
 
 		// Recursively skip all operations that don't affect emptiness
-		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectEmpty, out source);
+		var isNewSource = TryGetOptimizedChainExpression(source, MaterializingMethods, out source);
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
@@ -66,7 +50,7 @@ public class DefaultIfEmptyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 		       && TryGetLinqSource(innerDefaultInvocation, out var innerSource))
 		{
 			// Continue skipping operations before the inner DefaultIfEmpty
-			TryGetOptimizedChainExpression(innerSource, OperationsThatDontAffectEmpty, out source);
+			TryGetOptimizedChainExpression(innerSource, MaterializingMethods, out source);
 
 			defaultValue = innerDefaultInvocation.ArgumentList.Arguments
 				.Select(s => s.Expression)

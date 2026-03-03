@@ -22,7 +22,7 @@ public class TakeWhileFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 			return false;
 		}
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
@@ -33,7 +33,7 @@ public class TakeWhileFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 			{
 				// Optimize TakeWhile(x => true) => collection (take everything)
 				case true:
-					result = context.Visit(source) ?? source;
+					result = source;
 					return true;
 				// Optimize TakeWhile(x => false) => Enumerable.Empty<T>() (take nothing)
 				case false:

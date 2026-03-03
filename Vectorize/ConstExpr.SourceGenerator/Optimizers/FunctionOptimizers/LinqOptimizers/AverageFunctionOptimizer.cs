@@ -20,16 +20,8 @@ public class AverageFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 	// Operations that don't affect Average behavior
 	private static readonly HashSet<string> OperationsThatDontAffectAverage =
 	[
-		nameof(Enumerable.AsEnumerable),
-		nameof(Enumerable.ToList),
-		nameof(Enumerable.ToArray),
-		nameof(Enumerable.OrderBy),
-		nameof(Enumerable.OrderByDescending),
-		"Order",
-		"OrderDescending",
-		nameof(Enumerable.ThenBy),
-		nameof(Enumerable.ThenByDescending),
-		nameof(Enumerable.Reverse),
+		..MaterializingMethods,
+		..OrderingOperations,
 	];
 
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
@@ -41,7 +33,7 @@ public class AverageFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 			return false;
 		}
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
@@ -49,13 +41,11 @@ public class AverageFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 		// If we skipped any operations, create optimized Average call
 		if (TryGetOptimizedChainExpression(source, OperationsThatDontAffectAverage, out source))
 		{
-			if (TryExecutePredicates(context, source, out result))
+			if (TryExecutePredicates(context, source, out result, out _))
 			{
 				return true;
 			}
 
-			source = context.Visit(source) ?? source;
-		
 			if (IsEmptyEnumerable(source))
 			{
 				// Average of an empty sequence throws an exception, so we return a throw expression instead of optimizing to Average() which would be incorrect

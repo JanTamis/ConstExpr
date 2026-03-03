@@ -29,34 +29,10 @@ public class IntersectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 	// Operations that don't affect the result of Intersect
 	private static readonly HashSet<string> OperationsThatDontAffectIntersect =
 	[
+		..MaterializingMethods,
 		nameof(Enumerable.Distinct), // Intersect already applies Distinct
-		nameof(Enumerable.AsEnumerable), // Type cast: doesn't change the collection
-		nameof(Enumerable.ToList), // Materialization: preserves order and values
-		nameof(Enumerable.ToArray), // Materialization: preserves order and values
 	];
-
-	// Operations that change order but can be skipped if followed by set-based operations
-	private static readonly HashSet<string> OrderingOperations =
-	[
-		nameof(Enumerable.OrderBy),
-		nameof(Enumerable.OrderByDescending),
-		"Order",
-		"OrderDescending",
-		nameof(Enumerable.ThenBy),
-		nameof(Enumerable.ThenByDescending),
-		nameof(Enumerable.Reverse),
-	];
-
-	// Operations that only care about the SET of values, not the ORDER
-	private static readonly HashSet<string> SetBasedOperations =
-	[
-		nameof(Enumerable.Count),
-		nameof(Enumerable.Any),
-		nameof(Enumerable.Contains),
-		nameof(Enumerable.LongCount),
-		nameof(Enumerable.First),
-		nameof(Enumerable.FirstOrDefault),
-	];
+	
 
 	public override bool TryOptimize(FunctionOptimizerContext context, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -68,7 +44,7 @@ public class IntersectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 			return false;
 		}
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out _))
 		{
 			return true;
 		}
@@ -125,17 +101,17 @@ public class IntersectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 				return true; 
 			}
 		}
+		
+		source = context.Visit(source) ?? source;
 
 		// Try simple optimizations first
-		if (TryOptimizeEmptySource(context.Visit(source) ?? source, out result)
-		    || TryOptimizeEmptyIntersectCollection(context.Method, context.Visit(intersectCollection) ?? intersectCollection, out result)
-		    || TryOptimizeSelfIntersect(context, context.Visit(source) ?? source, context.Visit(intersectCollection) ?? intersectCollection, out result)
-		    || TryOptimizeChainedIntersect(context, source, intersectCollection, out result))
+		if ((TryOptimizeEmptySource(source, out result)
+		     || TryOptimizeEmptyIntersectCollection(context.Method, intersectCollection, out result)
+		     || TryOptimizeSelfIntersect(context, source, intersectCollection, out result)
+		     || TryOptimizeChainedIntersect(context, source, intersectCollection, out result)) 
+		    && result is not null)
 		{
-			if (result is not null)
-			{
-				return true;
-			}
+			return true;
 		}
 
 		if (hasNewCollection)

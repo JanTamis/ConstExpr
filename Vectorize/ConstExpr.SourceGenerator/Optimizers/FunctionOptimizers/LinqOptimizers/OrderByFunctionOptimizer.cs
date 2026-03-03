@@ -16,7 +16,7 @@ public class OrderByFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 			return false;
 		}
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
@@ -24,7 +24,7 @@ public class OrderByFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 		// Optimize OrderBy(x => x) => Order() (identity lambda)
 		if (IsIdentityLambda(lambda))
 		{
-			result = CreateSimpleInvocation(context.Visit(source) ?? source, "Order");
+			result = CreateSimpleInvocation(source, "Order");
 			return true;
 		}
 		

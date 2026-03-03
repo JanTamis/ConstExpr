@@ -23,16 +23,6 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// </summary>
 public class ElementAtOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.ElementAtOrDefault), 1)
 {
-	// Operations that don't affect element positions or indexing
-	// We CAN'T include ordering operations because they change element positions!
-	// We CAN'T include filtering/projection operations because they change the collection!
-	private static readonly HashSet<string> OperationsThatDontAffectIndexing =
-	[
-		nameof(Enumerable.AsEnumerable), // Type cast: doesn't change the collection
-		nameof(Enumerable.ToList), // Materialization: preserves order and all elements
-		nameof(Enumerable.ToArray), // Materialization: preserves order and all elements
-	];
-
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(context)
@@ -46,15 +36,13 @@ public class ElementAtOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(n
 		var indexParameter = context.VisitedParameters[0];
 
 		// Recursively skip all operations that don't affect indexing
-		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectIndexing, out source);
+		var isNewSource = TryGetOptimizedChainExpression(source, MaterializingMethods, out source);
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
 
-		source = context.Visit(source) ?? source;
-		
 		var type = context.Method.ReturnType;
 
 		while (IsLinqMethodChain(source, nameof(Enumerable.Skip), out var skipInvocation)
@@ -66,13 +54,11 @@ public class ElementAtOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(n
 			indexParameter = context.OptimizeBinaryExpression(tempResult, type, type, type) as ExpressionSyntax;
 			isNewSource = true;
 
-			TryGetOptimizedChainExpression(source, OperationsThatDontAffectIndexing, out source);
+			TryGetOptimizedChainExpression(source, MaterializingMethods, out source);
 		}
 
 		if (IsInvokedOnArray(context, source))
 		{
-			source = context.Visit(source) ?? source;
-			
 			// optimize to x.Length > 1 ? x[1] : 0;
 			result = SyntaxFactory.ConditionalExpression(
 				SyntaxFactory.BinaryExpression(
@@ -85,8 +71,6 @@ public class ElementAtOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(n
 
 		if (IsInvokedOnList(context, source))
 		{
-			source = context.Visit(source) ?? source;
-			
 			// optimize to x.Count > 1 ? x[1] : 0;
 			result = SyntaxFactory.ConditionalExpression(
 				SyntaxFactory.BinaryExpression(

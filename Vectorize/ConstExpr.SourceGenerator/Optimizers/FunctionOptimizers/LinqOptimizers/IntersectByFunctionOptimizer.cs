@@ -20,7 +20,7 @@ public class IntersectByFunctionOptimizer() : BaseLinqFunctionOptimizer("Interse
 			return false;
 		}
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}

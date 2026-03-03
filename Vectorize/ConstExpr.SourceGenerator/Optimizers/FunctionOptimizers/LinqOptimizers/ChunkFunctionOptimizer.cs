@@ -25,7 +25,7 @@ public class ChunkFunctionOptimizer() : BaseLinqFunctionOptimizer("Chunk", 1)
 			return false;
 		}
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
@@ -39,7 +39,7 @@ public class ChunkFunctionOptimizer() : BaseLinqFunctionOptimizer("Chunk", 1)
 			var lambdaBody = CreateImplicitArray(IdentifierName("x"));
 			var lambda = SimpleLambdaExpression(parameter, lambdaBody);
 			
-			result = CreateInvocation(context.Visit(source) ?? source, nameof(Enumerable.Select), lambda);
+			result = CreateInvocation(source, nameof(Enumerable.Select), lambda);
 			return true;
 		}
 

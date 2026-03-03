@@ -31,7 +31,7 @@ public class UnionFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 		source = context.Visit(source) ?? source;
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}

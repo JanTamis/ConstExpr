@@ -35,17 +35,9 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 	// - ToList/ToArray: materialization could fail/filter
 	private static readonly HashSet<string> OperationsThatDontAffectCount =
 	[
-		nameof(Enumerable.OrderBy), // Ordering: changes order but not count
-		nameof(Enumerable.OrderByDescending), // Ordering: changes order but not count
-		"Order", // Ordering (.NET 6+): changes order but not count
-		"OrderDescending", // Ordering (.NET 6+): changes order but not count
-		nameof(Enumerable.ThenBy), // Secondary ordering: changes order but not count
-		nameof(Enumerable.ThenByDescending), // Secondary ordering: changes order but not count
-		nameof(Enumerable.Reverse), // Reversal: changes order but not count
-		nameof(Enumerable.AsEnumerable), // Type cast: doesn't change the collection
-		nameof(Enumerable.Select), // Projection: doesn't change count for non-nullable types
-		nameof(Enumerable.ToList), // Materialization: creates list but doesn't filter
-		nameof(Enumerable.ToArray), // Materialization: creates array but doesn't filter
+		..MaterializingMethods,
+		..OrderingOperations,
+		nameof(Enumerable.Select),
 	];
 
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
@@ -63,7 +55,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		// Recursively skip all operations that don't affect count
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectCount, out source);
 		
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out _))
 		{
 			return true;
 		}
@@ -151,10 +143,10 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 				switch (literalValue)
 				{
 					case true when IsCollectionType(context, currentSource):
-						result = CreateMemberAccess(context.Visit(currentSource) ?? currentSource, "Count");
+						result = CreateMemberAccess(currentSource, "Count");
 						return true;
 					case true when IsInvokedOnArray(context, currentSource):
-						result = CreateMemberAccess(context.Visit(currentSource) ?? currentSource, "Length");
+						result = CreateMemberAccess(currentSource, "Length");
 						return true;
 					case false:
 						result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0));
@@ -171,8 +163,6 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 				return true;
 			}
 
-			currentSource = context.Visit(currentSource) ?? currentSource;
-
 			if (IsEmptyEnumerable(currentSource))
 			{
 				result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0));
@@ -187,14 +177,14 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 		if (context.VisitedParameters.Count == 0)
 		{
-			if (IsLinqMethodChain(context.Visit(currentSource) ?? currentSource, out var methodName, out var invocation)
+			if (IsLinqMethodChain(currentSource, out var methodName, out var invocation)
 			    && TryGetLinqSource(invocation, out var methodSource))
 			{
 				switch (methodName)
 				{
 					case "Chunk" when invocation.ArgumentList.Arguments is [ var chunkSizeArg ]:
 					{
-						var chunkSize = context.Visit(chunkSizeArg.Expression) ?? chunkSizeArg.Expression;
+						var chunkSize = chunkSizeArg.Expression;
 
 						if (chunkSize is LiteralExpressionSyntax { Token.Value: 1 })
 						{
@@ -203,7 +193,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 						else
 						{
 							var intType = context.Model.Compilation.GetSpecialType(SpecialType.System_Int32);
-							var newChunkSource = context.Visit(methodSource) ?? methodSource;
+							var newChunkSource = methodSource;
 
 							if (!TryOptimizeCollection(context, newChunkSource, out var countInvocation))
 							{
@@ -250,7 +240,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 						predicate = predicate.WithBody(newCountInvocation);
 						
-						var sumInvocation = CreateInvocation(context.Visit(methodSource) ?? methodSource, nameof(Enumerable.Sum), predicate);
+						var sumInvocation = CreateInvocation(methodSource, nameof(Enumerable.Sum), predicate);
 						
 						result = TryOptimizeByOptimizer<SumFunctionOptimizer>(context, sumInvocation);
 						return true;
@@ -277,7 +267,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 						break;
 					}
-					case nameof(Enumerable.Concat) when TryGetSyntaxes(context.Visit(invocation.ArgumentList.Arguments[0].Expression), out var concatSyntaxes):
+					case nameof(Enumerable.Concat) when TryGetSyntaxes(invocation.ArgumentList.Arguments[0].Expression, out var concatSyntaxes):
 					{
 						TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectCount, out currentSource);
 
@@ -285,7 +275,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 						while (IsLinqMethodChain(currentSource, nameof(Enumerable.Concat), out var concatInvocation)
 						       && TryGetLinqSource(concatInvocation, out var concatSource)
-						       && TryGetSyntaxes(context.Visit(invocation.ArgumentList.Arguments[0].Expression), out concatSyntaxes))
+						       && TryGetSyntaxes(invocation.ArgumentList.Arguments[0].Expression, out concatSyntaxes))
 						{
 							count++;
 
@@ -303,22 +293,19 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 				}
 			}
 
-			if (TryGetSyntaxes(context.Visit(currentSource) ?? currentSource, out var syntaxes))
+			if (TryGetSyntaxes(currentSource, out var syntaxes))
 			{
 				result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(syntaxes.Count));
 				return true;
 			}
 
-			if (TryOptimizeCollection(context, currentSource, out result)
-			    || TryOptimizeCollection(context, source, out result))
+			if (TryOptimizeCollection(context, currentSource, out result))
 			{
 				return true;
 			}
 		}
 
-		source = context.Visit(currentSource) ?? currentSource;
-
-		if (IsEmptyEnumerable(source))
+		if (IsEmptyEnumerable(currentSource))
 		{
 			result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0));
 			return true;
@@ -327,7 +314,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		// If we skipped any operations, create optimized Count() call
 		if (isNewSource)
 		{
-			result = UpdateInvocation(context, source);
+			result = UpdateInvocation(context, currentSource);
 			return true;
 		}
 
@@ -339,13 +326,13 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 	{
 		if (IsInvokedOnArray(context, source))
 		{
-			result = CreateMemberAccess(context.Visit(source) ?? source, "Length");
+			result = CreateMemberAccess(source, "Length");
 			return true;
 		}
 		
 		if (IsCollectionType(context, source))
 		{
-			result = CreateMemberAccess(context.Visit(source) ?? source, "Count");
+			result = CreateMemberAccess(source, "Count");
 			return true;
 		}
 

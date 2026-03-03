@@ -20,16 +20,8 @@ public class MinFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 	// Operations that don't affect the minimum value
 	private static readonly HashSet<string> OperationsThatDontAffectMin =
 	[
-		nameof(Enumerable.AsEnumerable),
-		nameof(Enumerable.ToList),
-		nameof(Enumerable.ToArray),
-		nameof(Enumerable.OrderBy),
-		nameof(Enumerable.OrderByDescending),
-		"Order",
-		"OrderDescending",
-		nameof(Enumerable.ThenBy),
-		nameof(Enumerable.ThenByDescending),
-		nameof(Enumerable.Reverse),
+		..MaterializingMethods,
+		..OrderingOperations,
 	];
 
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
@@ -44,7 +36,7 @@ public class MinFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		// Recursively skip operations that don't affect min
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectMin, out source);
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
@@ -52,7 +44,7 @@ public class MinFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		// Optimize Min(x => x) => Min() (identity lambda removal)
 		if (context.VisitedParameters.Count == 1
 		    && TryGetLambda(context.VisitedParameters[0], out var lambda)
-		    && IsIdentityLambda(context.Visit(lambda) as LambdaExpressionSyntax ?? lambda))
+		    && IsIdentityLambda(lambda))
 		{
 			result = UpdateInvocation(context, source, [ ]);
 			return true;
@@ -68,7 +60,7 @@ public class MinFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 			var selector = selectInvocation.ArgumentList.Arguments[0].Expression;
 			
-			result = UpdateInvocation(context, selectSource, context.Visit(selector) ?? selector);
+			result = UpdateInvocation(context, selectSource, selector);
 			return true;
 		}
 

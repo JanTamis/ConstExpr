@@ -20,13 +20,13 @@ public class GroupByFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 			return false;
 		}
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
 
 		// Optimize Enumerable.Empty<T>().GroupBy(selector) => Enumerable.Empty<IGrouping<TKey, T>>()
-		if (IsEmptyEnumerable(context.Visit(source) ?? source) && context.Method.ReturnType is INamedTypeSymbol { TypeArguments.Length: > 0 } returnType)
+		if (IsEmptyEnumerable(source) && context.Method.ReturnType is INamedTypeSymbol { TypeArguments.Length: > 0 } returnType)
 		{
 			result = CreateEmptyEnumerableCall(returnType.TypeArguments[0]);
 			return true;

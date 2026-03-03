@@ -30,17 +30,9 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 	// Operations that don't affect element containment (only order/form/duplicates/materialization)
 	private static readonly HashSet<string> OperationsThatDontAffectContainment =
 	[
+		..MaterializingMethods,
+		..OrderingOperations,
 		nameof(Enumerable.Distinct), // Deduplication: may reduce count, but if element exists, Contains is true
-		nameof(Enumerable.OrderBy), // Ordering: changes order but not containment
-		nameof(Enumerable.OrderByDescending), // Ordering: changes order but not containment
-		"Order", // Ordering (.NET 6+): changes order but not containment
-		"OrderDescending", // Ordering (.NET 6+): changes order but not containment
-		nameof(Enumerable.ThenBy), // Secondary ordering: changes order but not containment
-		nameof(Enumerable.ThenByDescending), // Secondary ordering: changes order but not containment
-		nameof(Enumerable.Reverse), // Reversal: changes order but not containment
-		nameof(Enumerable.AsEnumerable), // Type cast: doesn't change the collection
-		nameof(Enumerable.ToList), // Materialization: creates list but doesn't filter
-		nameof(Enumerable.ToArray), // Materialization: creates array but doesn't filter
 	];
 
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
@@ -58,7 +50,7 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		// Recursively skip all operations that don't affect containment
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectContainment, out source);
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out _))
 		{
 			return true;
 		}
@@ -186,14 +178,16 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 							return true;
 						}
 						
+						invocationSource = context.Visit(invocationSource) ?? invocationSource;
+						
 						// Use appropriate context.Method based on source type
 						if (IsInvokedOnList(context, invocationSource))
 						{
-							result = CreateInvocation(context.Visit(invocationSource) ?? invocationSource, "Exists", resultPredicate);
+							result = CreateInvocation(invocationSource, "Exists", resultPredicate);
 							return true;
 						}
 
-						result = CreateInvocation(context.Visit(invocationSource) ?? invocationSource, nameof(Enumerable.Any), resultPredicate);
+						result = CreateInvocation(invocationSource, nameof(Enumerable.Any), resultPredicate);
 						return true;
 					}
 
@@ -202,7 +196,7 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 			}
 		}
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
@@ -213,7 +207,7 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 			var indexOfCall = CreateInvocation(
 				SyntaxFactory.ParseTypeName(nameof(Array)),
 				nameof(Array.IndexOf),
-				context.Visit(source) ?? source,
+				source,
 				searchValue);
 
 			result = SyntaxFactory.BinaryExpression(

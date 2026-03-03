@@ -21,7 +21,7 @@ public class ThenByDescendingFunctionOptimizer() : BaseLinqFunctionOptimizer(nam
 			return false;
 		}
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}

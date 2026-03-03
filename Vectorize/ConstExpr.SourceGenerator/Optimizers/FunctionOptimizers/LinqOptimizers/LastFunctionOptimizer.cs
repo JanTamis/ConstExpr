@@ -21,16 +21,6 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// </summary>
 public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Last), 0, 1)
 {
-	// Operations that don't affect which element is "last"
-	// We CAN'T include ordering operations because they change which element comes last!
-	// We CAN'T include Distinct because the last element might be a duplicate and get removed!
-	private static readonly HashSet<string> OperationsThatDontAffectLast =
-	[
-		nameof(Enumerable.AsEnumerable),     // Type cast: doesn't change the collection
-		nameof(Enumerable.ToList),           // Materialization: preserves order and all elements
-		nameof(Enumerable.ToArray),          // Materialization: preserves order and all elements
-	];
-
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(context)
@@ -41,14 +31,14 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 		}
 
 		// Recursively skip all operations that don't affect which element is last
-		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectLast, out source);
+		var isNewSource = TryGetOptimizedChainExpression(source, MaterializingMethods, out source);
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
 
-		if (IsLinqMethodChain(context.Visit(source) ?? source, out var methodName, out var invocation)
+		if (IsLinqMethodChain(source, out var methodName, out var invocation)
 		    && TryGetLinqSource(invocation, out var methodSource))
 		{
 			switch (methodName)
@@ -57,7 +47,7 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 					when GetMethodArguments(invocation).FirstOrDefault() is { Expression: { } predicateArg }
 					     && TryGetLambda(predicateArg, out var predicate):
 				{
-					TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectLast, out var innerInvocation);
+					TryGetOptimizedChainExpression(methodSource, MaterializingMethods, out var innerInvocation);
 
 					result = TryOptimizeByOptimizer<LastFunctionOptimizer>(context, CreateInvocation(innerInvocation, nameof(Enumerable.Last), predicate));
 					return true;
@@ -95,7 +85,7 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 				}
 				case "Chunk" when invocation.ArgumentList.Arguments is [ var chunkSizeArg ]:
 				{
-					var chunkSize = context.Visit(chunkSizeArg.Expression) ?? chunkSizeArg.Expression;
+					var chunkSize = chunkSizeArg.Expression;
 
 					if (chunkSize is LiteralExpressionSyntax { Token.Value: 1 })
 					{
@@ -105,7 +95,7 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 					{
 						if (IsInvokedOnArray(context, methodSource))
 						{
-							if (TryGetSyntaxes(context.Visit(methodSource) ?? methodSource, out var sourceSyntaxes)
+							if (TryGetSyntaxes(methodSource, out var sourceSyntaxes)
 							    && chunkSize is LiteralExpressionSyntax { Token.Value: int chunkSizeValue })
 							{
 								var elements = sourceSyntaxes
@@ -121,7 +111,7 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 							var prefix = SyntaxFactory.PrefixUnaryExpression(SyntaxKind.IndexExpression, chunkSize);
 							var rangeExpression = SyntaxFactory.RangeExpression(prefix, null);
 							
-							result = CreateElementAccess(context.Visit(methodSource) ?? methodSource, rangeExpression);
+							result = CreateElementAccess(methodSource, rangeExpression);
 							return true;
 						}
 
@@ -136,18 +126,15 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 				{
 					TryGetOptimizedChainExpression(methodSource, (HashSet<string>) [ nameof(Enumerable.DefaultIfEmpty) ], out methodSource);
 
-					// optimize collection.DefaultIfEmpty() => collection.Length > 0 ? collection[0] : default
-					var collection = context.Visit(methodSource) ?? methodSource;
-
 					var defaultItem = invocation.ArgumentList.Arguments.Count == 0
 						? context.Method.ReturnType is INamedTypeSymbol namedType ? namedType.GetDefaultValue() : SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression)
-						: context.Visit(invocation.ArgumentList.Arguments[0].Expression) ?? invocation.ArgumentList.Arguments[0].Expression;
+						: invocation.ArgumentList.Arguments[0].Expression;
 
 					while (IsLinqMethodChain(source, nameof(Enumerable.DefaultIfEmpty), out var innerDefaultInvocation)
 					       && TryGetLinqSource(innerDefaultInvocation, out var innerSource))
 					{
 						// Continue skipping operations before the inner DefaultIfEmpty
-						TryGetOptimizedChainExpression(innerSource, OperationsThatDontAffectLast, out source);
+						TryGetOptimizedChainExpression(innerSource, MaterializingMethods, out source);
 
 						defaultItem = innerDefaultInvocation.ArgumentList.Arguments
 							.Select(s => s.Expression)
@@ -159,13 +146,13 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 
 					if (IsInvokedOnArray(context, methodSource))
 					{
-						result = CreateDefaultIfEmptyConditional(collection, "Length", defaultItem);
+						result = CreateDefaultIfEmptyConditional(methodSource, "Length", defaultItem);
 						return true;
 					}
 
 					if (IsCollectionType(context, methodSource))
 					{
-						result = CreateDefaultIfEmptyConditional(collection, "Count", defaultItem);
+						result = CreateDefaultIfEmptyConditional(methodSource, "Count", defaultItem);
 						return true;
 					}
 
@@ -184,7 +171,7 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 		if (context.Method.Parameters.Length is 0 or 1 
 		    && (IsInvokedOnArray(context, source) || IsInvokedOnList(context, source)))
 		{
-			result = CreateElementAccess(context.Visit(source) ?? source, SyntaxFactory.PrefixUnaryExpression(
+			result = CreateElementAccess(source, SyntaxFactory.PrefixUnaryExpression(
 				SyntaxKind.IndexExpression, SyntaxHelpers.CreateLiteral(1)!));
 			return true;
 		}

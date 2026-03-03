@@ -9,7 +9,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.ExceptBy(Enumerable.Empty&lt;T&gt;(), selector) => collection.DistinctBy(selector)
 /// - Enumerable.Empty&lt;T&gt;().ExceptBy(collection, selector) => Enumerable.Empty&lt;T&gt;()
 /// </summary>
-public class ExceptByFunctionOptimizer() : BaseLinqFunctionOptimizer("DistinctBy", 2)
+public class ExceptByFunctionOptimizer() : BaseLinqFunctionOptimizer("ExceptBy", 2)
 {
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
@@ -20,7 +20,7 @@ public class ExceptByFunctionOptimizer() : BaseLinqFunctionOptimizer("DistinctBy
 			return false;
 		}
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}

@@ -25,7 +25,7 @@ public class TakeFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 			return false;
 		}
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
@@ -40,7 +40,7 @@ public class TakeFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 		{
 			var argument = takeInvocation.ArgumentList.Arguments[0].Expression;
 			
-			amounts.Add(context.Visit(argument) ?? argument);
+			amounts.Add(argument);
 			
 			TryGetOptimizedChainExpression(takeSource, MaterializingMethods, out source);
 			isNewSource = true;

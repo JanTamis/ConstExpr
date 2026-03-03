@@ -22,7 +22,7 @@ public class OfTypeFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 			return false;
 		}
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
@@ -38,13 +38,13 @@ public class OfTypeFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 				case nameof(Enumerable.OfType) when context.Model.GetSymbolInfo(invocation).Symbol is IMethodSymbol { TypeArguments.Length: > 0 } ofTypeMethod
 					&& SymbolEqualityComparer.Default.Equals(ofTypeMethod.TypeArguments[0], typeArg):
 				{
-					result = context.Visit(invocationSource) ?? invocationSource;
+					result = invocationSource;
 					return true;
 				}
 				case nameof(Enumerable.Cast) when context.Model.GetSymbolInfo(invocation).Symbol is IMethodSymbol { TypeArguments.Length: > 0 } castMethod
 					&& SymbolEqualityComparer.Default.Equals(castMethod.TypeArguments[0], typeArg):
 				{
-					result = context.Visit(invocationSource) ?? invocationSource;
+					result = invocationSource;
 					return true;
 				}
 			}

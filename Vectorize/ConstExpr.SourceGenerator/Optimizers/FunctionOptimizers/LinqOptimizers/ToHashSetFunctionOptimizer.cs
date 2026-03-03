@@ -15,15 +15,6 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// </summary>
 public class ToHashSetFunctionOptimizer() : BaseLinqFunctionOptimizer("ToHashSet", 0)
 {
-	private static readonly HashSet<string> OperationsThatDontAffectToHashSet =
-	[
-		"ToHashSet",
-		nameof(Enumerable.Distinct),
-		nameof(Enumerable.AsEnumerable),
-		nameof(Enumerable.ToList),
-		nameof(Enumerable.ToArray),
-	];
-
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(context)
@@ -33,9 +24,9 @@ public class ToHashSetFunctionOptimizer() : BaseLinqFunctionOptimizer("ToHashSet
 			return false;
 		}
 
-		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectToHashSet, out source);
+		var isNewSource = TryGetOptimizedChainExpression(source, MaterializingMethods, out source);
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}

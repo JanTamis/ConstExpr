@@ -22,14 +22,6 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// </summary>
 public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Concat), 1)
 {
-	// Operations that don't affect Concat behavior (type casts and materializations)
-	private static readonly HashSet<string> OperationsThatDontAffectConcat =
-	[
-		nameof(Enumerable.AsEnumerable), // Type cast: doesn't change the collection
-		nameof(Enumerable.ToList), // Materialization: preserves order and all elements
-		nameof(Enumerable.ToArray), // Materialization: preserves order and all elements
-	];
-
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(context)
@@ -39,10 +31,10 @@ public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 			return false;
 		}
 
-		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectConcat, out source);
+		var isNewSource = TryGetOptimizedChainExpression(source, MaterializingMethods, out source);
 		var concatenatedCollection = context.VisitedParameters[0];
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
@@ -50,7 +42,7 @@ public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		// Optimization: collection.Concat(Enumerable.Empty<T>()) => collection
 		if (IsEmptyEnumerable(concatenatedCollection))
 		{
-			result = context.Visit(source);
+			result = source;
 			return true;
 		}
 

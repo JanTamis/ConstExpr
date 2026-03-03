@@ -19,7 +19,7 @@ public class OrderFunctionOptimizer() : BaseLinqFunctionOptimizer("Order", 0)
 			return false;
 		}
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
@@ -31,12 +31,12 @@ public class OrderFunctionOptimizer() : BaseLinqFunctionOptimizer("Order", 0)
 			{
 				case "Order":
 				{
-					result = context.Visit(invocationSource) ?? invocationSource;
+					result = invocationSource;
 					return true;
 				}
 				case "OrderDescending":
 				{
-					result = CreateSimpleInvocation(context.Visit(invocationSource) ?? invocationSource, "Order");
+					result = CreateSimpleInvocation(invocationSource, "Order");
 					return true;
 				}
 			}

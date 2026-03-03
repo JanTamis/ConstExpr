@@ -19,7 +19,7 @@ public class SkipFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 			return false;
 		}
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
@@ -40,7 +40,7 @@ public class SkipFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 
 		if (amount is LiteralExpressionSyntax { Token.Value: <= 0 })
 		{
-			result = context.Visit(source) ?? source;
+			result = source;
 			return true;
 		}
 

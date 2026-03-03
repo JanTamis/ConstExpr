@@ -29,33 +29,8 @@ public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 	// Operations that don't affect the result of Except
 	private static readonly HashSet<string> OperationsThatDontAffectExcept =
 	[
+		..MaterializingMethods,
 		nameof(Enumerable.Distinct), // Except already applies Distinct
-		nameof(Enumerable.AsEnumerable), // Type cast: doesn't change the collection
-		nameof(Enumerable.ToList), // Materialization: preserves order and values
-		nameof(Enumerable.ToArray), // Materialization: preserves order and values
-	];
-
-	// Operations that change order but can be skipped if followed by set-based operations
-	private static readonly HashSet<string> OrderingOperations =
-	[
-		nameof(Enumerable.OrderBy),
-		nameof(Enumerable.OrderByDescending),
-		"Order",
-		"OrderDescending",
-		nameof(Enumerable.ThenBy),
-		nameof(Enumerable.ThenByDescending),
-		nameof(Enumerable.Reverse),
-	];
-
-	// Operations that only care about the SET of values, not the ORDER
-	private static readonly HashSet<string> SetBasedOperations =
-	[
-		nameof(Enumerable.Count),
-		nameof(Enumerable.Any),
-		nameof(Enumerable.Contains),
-		nameof(Enumerable.LongCount),
-		nameof(Enumerable.First),
-		nameof(Enumerable.FirstOrDefault),
 	];
 
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
@@ -67,7 +42,7 @@ public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 			return false;
 		}
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out _))
 		{
 			return true;
 		}

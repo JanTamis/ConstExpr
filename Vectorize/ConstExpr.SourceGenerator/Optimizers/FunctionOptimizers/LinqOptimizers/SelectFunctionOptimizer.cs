@@ -19,21 +19,21 @@ public class SelectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 			return false;
 		}
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
 
 		if (IsIdentityLambda(lambda))
 		{
-			result = context.Visit(source) ?? source;
+			result = source;
 			return true;
 		}
 
 		// Optimize .Select(x => (T)x) to .Cast<T>()
 		if (IsCastLambda(lambda, out var castType))
 		{
-			result = CreateCastMethodCall(context.Visit(source) ?? source, castType);
+			result = CreateCastMethodCall(source, castType);
 			return true;
 		}
 
@@ -42,10 +42,10 @@ public class SelectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		    && TryGetLinqSource(innerInvocation, out var innerSource))
 		{
 			// Combine the two lambdas: source.Select(inner).Select(outer) => source.Select(combined)
-			var combinedLambda = CombineLambdas(lambda, context.Visit(innerLambda) as LambdaExpressionSyntax ?? innerLambda);
+			var combinedLambda = CombineLambdas(lambda, innerLambda);
 
 			// Create a new Select call with the combined lambda
-			result = UpdateInvocation(context, context.Visit(innerSource) ?? innerSource, combinedLambda);
+			result = UpdateInvocation(context, innerSource, combinedLambda);
 			return true;
 		}
 

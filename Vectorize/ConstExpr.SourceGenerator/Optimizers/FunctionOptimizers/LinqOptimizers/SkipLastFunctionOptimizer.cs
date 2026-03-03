@@ -21,7 +21,7 @@ public class SkipLastFunctionOptimizer() : BaseLinqFunctionOptimizer("SkipLast",
 			return false;
 		}
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
@@ -29,7 +29,7 @@ public class SkipLastFunctionOptimizer() : BaseLinqFunctionOptimizer("SkipLast",
 		// Optimize SkipLast(0) => source (skip nothing)
 		if (context.VisitedParameters[0] is LiteralExpressionSyntax { Token.Value: <= 0 })
 		{
-			result = context.Visit(source) ?? source;
+			result = source;
 			return true;
 		}
 

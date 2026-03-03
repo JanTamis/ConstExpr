@@ -27,6 +27,29 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		nameof(Enumerable.ToArray),
 		nameof(Enumerable.ToList),
 		nameof(Enumerable.AsEnumerable),
+		"ToHashSet",
+	];
+
+	protected static readonly HashSet<string> OrderingOperations =
+	[
+		nameof(Enumerable.OrderBy),
+		nameof(Enumerable.OrderByDescending),
+		"Order",
+		"OrderDescending",
+		nameof(Enumerable.ThenBy),
+		nameof(Enumerable.ThenByDescending),
+		nameof(Enumerable.Reverse),
+		"Shuffle",
+	];
+
+	protected static readonly HashSet<string> SetBasedOperations =
+	[
+		nameof(Enumerable.Count),
+		nameof(Enumerable.Any),
+		nameof(Enumerable.Contains),
+		nameof(Enumerable.LongCount),
+		nameof(Enumerable.First),
+		nameof(Enumerable.FirstOrDefault),
 	];
 
 	/// <summary>
@@ -598,11 +621,11 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 			       SpecialType.System_Collections_Generic_IReadOnlyCollection_T)
 		       || IsInvokedOnList(context, expression);
 	}
-	
+
 	protected bool IsEnumerableType(INamedTypeSymbol? type, ITypeSymbol elementType)
 	{
 		return type?.OriginalDefinition.SpecialType == SpecialType.System_Collections_Generic_IEnumerable_T
-	         && SymbolEqualityComparer.Default.Equals(type.TypeArguments[0], elementType);
+		       && SymbolEqualityComparer.Default.Equals(type.TypeArguments[0], elementType);
 	}
 
 	protected LambdaExpressionSyntax CombinePredicates(LambdaExpressionSyntax outer, LambdaExpressionSyntax inner)
@@ -864,13 +887,15 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		return false;
 	}
 
-	protected bool TryExecutePredicates(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
+	protected bool TryExecutePredicates(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result, out ExpressionSyntax visitedSource)
 	{
+		visitedSource = context.Visit(source) ?? source;
+
 		try
 		{
 			if (context.OriginalParameters.Count == context.Method.Parameters.Length
 			    && context.Method.ReceiverType is INamedTypeSymbol receiverType
-			    && TryGetLiteralValue(context.Visit(source) ?? source, context, receiverType, out var values)
+			    && TryGetLiteralValue(visitedSource, context, receiverType, out var values)
 			    && context.Loader.TryGetMethodByMethod(context.Method, out var method))
 			{
 				var parameters = new List<object?>();
@@ -918,7 +943,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 				var newParameters = parameters
 					.WhereSelect<ExpressionSyntax, object?>((s, out result) => TryGetLiteralValue(s, context, null, out result))
 					.ToList();
-				
+
 				// for (var i = 0; i < parameters.Count; i++)
 				// {
 				// 	if (TryGetLiteralValue(context.OriginalParameters[i], context, context.Method.Parameters[i].Type, out var value)

@@ -20,7 +20,7 @@ public class ReverseFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 			return false;
 		}
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
@@ -29,7 +29,7 @@ public class ReverseFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 		if (IsLinqMethodChain(source, nameof(Enumerable.Reverse), out var reverseInvocation)
 		    && TryGetLinqSource(reverseInvocation, out var reverseSource))
 		{
-			result = context.Visit(reverseSource) ?? reverseSource;
+			result = reverseSource;
 			return true;
 		}
 		

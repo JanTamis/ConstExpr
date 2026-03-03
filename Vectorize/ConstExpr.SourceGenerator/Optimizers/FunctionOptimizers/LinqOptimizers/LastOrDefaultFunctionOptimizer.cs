@@ -22,16 +22,6 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// </summary>
 public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.LastOrDefault), 0, 1)
 {
-	// Operations that don't affect which element is "last"
-	// We CAN'T include ordering operations because they change which element comes last!
-	// We CAN'T include Distinct because the last element might be a duplicate and get removed!
-	private static readonly HashSet<string> OperationsThatDontAffectLast =
-	[
-		nameof(Enumerable.AsEnumerable),     // Type cast: doesn't change the collection
-		nameof(Enumerable.ToList),           // Materialization: preserves order and all elements
-		nameof(Enumerable.ToArray),          // Materialization: preserves order and all elements
-	];
-
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(context)
@@ -42,14 +32,14 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 		}
 
 		// Recursively skip all operations that don't affect which element is last
-		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectLast, out source);
+		var isNewSource = TryGetOptimizedChainExpression(source, MaterializingMethods, out source);
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
 
-		if (IsLinqMethodChain(context.Visit(source) ?? source, out var methodName, out var invocation)
+		if (IsLinqMethodChain(source, out var methodName, out var invocation)
 		    && TryGetLinqSource(invocation, out var methodSource))
 		{
 			switch (methodName)
@@ -58,14 +48,14 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 					when GetMethodArguments(invocation).FirstOrDefault() is { Expression: { } predicateArg }
 					     && TryGetLambda(predicateArg, out var predicate):
 				{
-					TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectLast, out var innerInvocation);
+					TryGetOptimizedChainExpression(methodSource, MaterializingMethods, out var innerInvocation);
 
 					result = TryOptimizeByOptimizer<LastOrDefaultFunctionOptimizer>(context, CreateInvocation(innerInvocation, nameof(Enumerable.LastOrDefault), predicate));
 					return true;
 				}
 				case nameof(Enumerable.Reverse):
 				{
-					TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectLast, out var innerInvocation);
+					TryGetOptimizedChainExpression(methodSource, MaterializingMethods, out var innerInvocation);
 
 					result = TryOptimizeByOptimizer<FirstOrDefaultFunctionOptimizer>(context, CreateSimpleInvocation(innerInvocation, nameof(Enumerable.FirstOrDefault)));
 					return true;
@@ -89,7 +79,7 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 						goto case "Order";
 					}
 
-					result = CreateInvocation(context.Visit(methodSource) ?? methodSource, "MaxBy");
+					result = CreateInvocation(methodSource, "MaxBy");
 					return true;
 				}
 				case nameof(Enumerable.OrderByDescending)
@@ -101,25 +91,22 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 						goto case "OrderDescending";
 					}
 
-					result = CreateInvocation(context.Visit(methodSource) ?? methodSource, "MinBy");
+					result = CreateInvocation(methodSource, "MinBy");
 					return true;
 				}
 				case nameof(Enumerable.DefaultIfEmpty):
 				{
 					TryGetOptimizedChainExpression(methodSource, (HashSet<string>) [ nameof(Enumerable.DefaultIfEmpty) ], out methodSource);
 
-					// optimize collection.DefaultIfEmpty() => collection.Length > 0 ? collection[0] : default
-					var collection = context.Visit(methodSource) ?? methodSource;
-
 					var defaultItem = invocation.ArgumentList.Arguments.Count == 0
 						? context.Method.ReturnType.GetDefaultValue()
-						: context.Visit(invocation.ArgumentList.Arguments[0].Expression) ?? invocation.ArgumentList.Arguments[0].Expression;
+						: invocation.ArgumentList.Arguments[0].Expression;
 
 					while (IsLinqMethodChain(source, nameof(Enumerable.DefaultIfEmpty), out var innerDefaultInvocation)
 					       && TryGetLinqSource(innerDefaultInvocation, out var innerSource))
 					{
 						// Continue skipping operations before the inner DefaultIfEmpty
-						TryGetOptimizedChainExpression(innerSource, OperationsThatDontAffectLast, out source);
+						TryGetOptimizedChainExpression(innerSource, MaterializingMethods, out source);
 
 						defaultItem = innerDefaultInvocation.ArgumentList.Arguments
 							.Select(s => s.Expression)
@@ -131,13 +118,13 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 
 					if (IsInvokedOnArray(context, methodSource))
 					{
-						result = CreateDefaultIfEmptyConditional(collection, "Length", defaultItem);
+						result = CreateDefaultIfEmptyConditional(methodSource, "Length", defaultItem);
 						return true;
 					}
 
 					if (IsCollectionType(context, methodSource))
 					{
-						result = CreateDefaultIfEmptyConditional(collection, "Count", defaultItem);
+						result = CreateDefaultIfEmptyConditional(methodSource, "Count", defaultItem);
 						return true;
 					}
 

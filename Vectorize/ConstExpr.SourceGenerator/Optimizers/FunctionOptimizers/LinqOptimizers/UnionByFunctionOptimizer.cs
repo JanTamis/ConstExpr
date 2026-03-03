@@ -21,15 +21,13 @@ public class UnionByFunctionOptimizer() : BaseLinqFunctionOptimizer("UnionBy", 2
 			return false;
 		}
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
 
 		var secondSource = context.VisitedParameters[0];
 		
-		source = context.Visit(source) ?? source;
-
 		// Optimize collection.UnionBy(Enumerable.Empty<T>(), selector) => collection.DistinctBy(selector)
 		if (IsEmptyEnumerable(secondSource))
 		{

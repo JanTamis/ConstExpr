@@ -31,18 +31,10 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 	// Operations that don't affect element existence (only order/form/duplicates/materialization)
 	private static readonly HashSet<string> OperationsThatDontAffectExistence =
 	[
+		..MaterializingMethods,
+		..OrderingOperations,
 		nameof(Enumerable.Select), // Projection: transforms elements but doesn't filter
 		nameof(Enumerable.Distinct), // Deduplication: may reduce count, but if any exist, Any() is true
-		nameof(Enumerable.OrderBy), // Ordering: changes order but not existence
-		nameof(Enumerable.OrderByDescending), // Ordering: changes order but not existence
-		"Order", // Ordering (.NET 6+): changes order but not existence
-		"OrderDescending", // Ordering (.NET 6+): changes order but not existence
-		nameof(Enumerable.ThenBy), // Secondary ordering: changes order but not existence
-		nameof(Enumerable.ThenByDescending), // Secondary ordering: changes order but not existence
-		nameof(Enumerable.Reverse), // Reversal: changes order but not existence
-		nameof(Enumerable.AsEnumerable), // Type cast: doesn't change the collection
-		nameof(Enumerable.ToList), // Materialization: creates list but doesn't filter
-		nameof(Enumerable.ToArray), // Materialization: creates array but doesn't filter
 	];
 
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
@@ -57,12 +49,12 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		// Recursively skip all operations that don't affect existence
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectExistence, out source);
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
 
-		if (IsLinqMethodChain(context.Visit(source) ?? source, out var methodName, out var invocation)
+		if (IsLinqMethodChain(source, out var methodName, out var invocation)
 		    && TryGetLinqSource(invocation, out var invocationSource))
 		{
 			switch (methodName)
@@ -75,7 +67,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 					
 					if (context.VisitedParameters.Count == 1 && TryGetLambda(context.VisitedParameters[0], out var anyPredicate))
 					{
-						predicate = CombinePredicates(context.Visit(predicate) as LambdaExpressionSyntax ?? predicate, context.Visit(anyPredicate) as LambdaExpressionSyntax ?? anyPredicate);
+						predicate = CombinePredicates(predicate, anyPredicate);
 					}
 
 					if (IsSimpleEqualityLambda(predicate, out var equalityValue))
@@ -86,17 +78,17 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 					if (IsInvokedOnList(context, invocationSource))
 					{
-						result = CreateInvocation(context.Visit(invocationSource) ?? invocationSource, "Exists", context.Visit(predicate) ?? predicate);
+						result = CreateInvocation(context.Visit(invocationSource) ?? invocationSource, "Exists", predicate);
 						return true;
 					}
 
 					if (IsInvokedOnArray(context, invocationSource))
 					{
-						result = CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.Exists), context.Visit(invocationSource) ?? invocationSource, context.Visit(predicate) ?? predicate);
+						result = CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.Exists), context.Visit(invocationSource) ?? invocationSource, predicate);
 						return true;
 					}
 
-					result = UpdateInvocation(context, invocationSource, context.Visit(predicate) ?? predicate);
+					result = UpdateInvocation(context, invocationSource, predicate);
 					return true;
 				}
 			}
@@ -107,7 +99,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			if (IsCollectionType(context, source))
 			{
 				result = BinaryExpression(SyntaxKind.GreaterThanExpression,
-					CreateMemberAccess(context.Visit(source) ?? source, "Count"),
+					CreateMemberAccess(source, "Count"),
 					LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)));
 
 				return true;
@@ -116,7 +108,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			if (IsInvokedOnArray(context, source))
 			{
 				result = BinaryExpression(SyntaxKind.GreaterThanExpression,
-					CreateMemberAccess(context.Visit(source) ?? source, "Length"),
+					CreateMemberAccess(source, "Length"),
 					LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)));
 
 				return true;

@@ -27,10 +27,7 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 	// We CAN'T include Distinct because the first element might be a duplicate and get removed!
 	private static readonly HashSet<string> OperationsThatDontAffectFirst =
 	[
-		nameof(Enumerable.AsEnumerable), // Type cast: doesn't change the collection
-		nameof(Enumerable.ToList), // Materialization: preserves order and all elements
-		nameof(Enumerable.ToArray), // Materialization: preserves order and all elements
-		nameof(Enumerable.Take), // Taking more elements doesn't change which one is first
+		..MaterializingMethods,
 		nameof(Enumerable.Distinct), // Distinct might remove the first element if it's a duplicate, so we don't optimize that either!
 	];
 
@@ -46,7 +43,7 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 		// Recursively skip all operations that don't affect which element is first
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectFirst, out source);
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
@@ -103,11 +100,11 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 					TryGetOptimizedChainExpression(methodSource, (HashSet<string>) [ nameof(Enumerable.DefaultIfEmpty) ], out methodSource);
 
 					// optimize collection.DefaultIfEmpty() => collection.Length > 0 ? collection[0] : default
-					var collection = context.Visit(methodSource) ?? methodSource;
+					var collection = methodSource;
 
 					var defaultItem = invocation.ArgumentList.Arguments.Count == 0
 						? context.Method.TypeArguments[0] is INamedTypeSymbol namedType ? namedType.GetDefaultValue() : SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression)
-						: context.Visit(invocation.ArgumentList.Arguments[0].Expression) ?? invocation.ArgumentList.Arguments[0].Expression;
+						: invocation.ArgumentList.Arguments[0].Expression;
 
 					while (IsLinqMethodChain(source, nameof(Enumerable.DefaultIfEmpty), out var innerDefaultInvocation)
 					       && TryGetLinqSource(innerDefaultInvocation, out var innerSource))
@@ -144,8 +141,6 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 				}
 			}
 		}
-
-		source = context.Visit(source) ?? source;
 
 		// For arrays, use conditional: arr.Length > 0 ? arr[0] : default
 		if (IsInvokedOnArray(context, source))

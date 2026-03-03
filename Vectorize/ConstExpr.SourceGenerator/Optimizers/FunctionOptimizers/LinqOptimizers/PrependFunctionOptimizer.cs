@@ -21,12 +21,12 @@ public class PrependFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 			return false;
 		}
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
 
-		if (IsEmptyEnumerable(context.Visit(source) ?? source))
+		if (IsEmptyEnumerable(source))
 		{
 			result = CreateImplicitArray(context.VisitedParameters[0]);
 		}

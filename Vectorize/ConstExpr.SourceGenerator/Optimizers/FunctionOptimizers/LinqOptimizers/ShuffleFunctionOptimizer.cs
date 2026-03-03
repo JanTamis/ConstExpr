@@ -19,19 +19,6 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// </summary>
 public class ShuffleFunctionOptimizer() : BaseLinqFunctionOptimizer("Shuffle", 0)
 {
-	// Operations that are pointless before shuffling (since shuffle randomizes order anyway)
-	private static readonly HashSet<string> OperationsBeforeShuffleThatArePointless =
-	[
-		"Shuffle",                           // Multiple shuffles are redundant
-		nameof(Enumerable.OrderBy),          // Ordering before shuffle is pointless
-		nameof(Enumerable.OrderByDescending),// Ordering before shuffle is pointless
-		"Order",                             // Ordering (.NET 6+) before shuffle is pointless
-		"OrderDescending",                   // Ordering (.NET 6+) before shuffle is pointless
-		nameof(Enumerable.ThenBy),           // Secondary ordering before shuffle is pointless
-		nameof(Enumerable.ThenByDescending), // Secondary ordering before shuffle is pointless
-		nameof(Enumerable.Reverse),          // Reversing before shuffle is pointless
-	];
-
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(context)
@@ -42,9 +29,9 @@ public class ShuffleFunctionOptimizer() : BaseLinqFunctionOptimizer("Shuffle", 0
 		}
 
 		// Recursively skip all pointless operations before shuffle
-		var isNewSource = TryGetOptimizedChainExpression(source, OperationsBeforeShuffleThatArePointless, out source);
+		var isNewSource = TryGetOptimizedChainExpression(source, OrderingOperations, out source);
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}

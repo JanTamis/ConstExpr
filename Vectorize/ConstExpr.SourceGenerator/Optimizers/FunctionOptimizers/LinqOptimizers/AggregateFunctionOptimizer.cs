@@ -25,16 +25,8 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 	// These are essentially no-ops that just change the type or materialize
 	private static readonly HashSet<string> OperationsThatDontAffectAggregate =
 	[
-		nameof(Enumerable.AsEnumerable), // Type cast: doesn't change the collection
-		nameof(Enumerable.ToList), // Materialization: creates list but doesn't change elements
-		nameof(Enumerable.ToArray), // Materialization: creates array but doesn't change elements
-		nameof(Enumerable.OrderBy),
-		nameof(Enumerable.OrderByDescending),
-		"Order",
-		"OrderDescending",
-		nameof(Enumerable.ThenBy),
-		nameof(Enumerable.ThenByDescending),
-		nameof(Enumerable.Reverse),
+		..MaterializingMethods,
+		..OrderingOperations,
 	];
 
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
@@ -48,7 +40,7 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectAggregate, out source);
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
@@ -110,11 +102,8 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 			return false;
 		}
 
-		// Pre-visit the source so inner optimizations (e.g. Select(v => v * 2) => v << 1) are applied first
-		var visitedSource = context.Visit(source) ?? source;
-
 		// Optimize to Sum()
-		result = TryOptimizeByOptimizer<SumFunctionOptimizer>(context, CreateSimpleInvocation(visitedSource, nameof(Enumerable.Sum)), x => IsEnumerableType(x.Parameters[0].Type as INamedTypeSymbol, context.Method.TypeArguments[^1]), []);
+		result = TryOptimizeByOptimizer<SumFunctionOptimizer>(context, CreateSimpleInvocation(source, nameof(Enumerable.Sum)), x => IsEnumerableType(x.Parameters[0].Type as INamedTypeSymbol, context.Method.TypeArguments[^1]), []);
 
 		// For 2-arg overload with non-zero seed: Sum() + seed
 		if (context.VisitedParameters.Count == 2 && !IsZeroLiteral(context.VisitedParameters[0]))

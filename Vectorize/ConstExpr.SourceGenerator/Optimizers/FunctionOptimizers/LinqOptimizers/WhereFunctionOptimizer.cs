@@ -16,13 +16,6 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// </summary>
 public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Where), 1)
 {
-	private static readonly HashSet<string> OperationsThatDontAffectWhere =
-	[
-		nameof(Enumerable.AsEnumerable), // Type cast: doesn't change the collection
-		nameof(Enumerable.ToList), // Materialization: preserves all elements
-		nameof(Enumerable.ToArray), // Materialization: preserves all elements
-	];
-	
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(context)
@@ -37,12 +30,12 @@ public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		var wherePredicates = new List<LambdaExpressionSyntax> { lambda };
 		var currentSource = source;
 
-		if (TryExecutePredicates(context, currentSource, out result))
+		if (TryExecutePredicates(context, currentSource, out result, out _))
 		{
 			return true;
 		}
 
-		var isNewSource = TryGetOptimizedChainExpression(currentSource, OperationsThatDontAffectWhere, out currentSource);
+		var isNewSource = TryGetOptimizedChainExpression(currentSource, MaterializingMethods, out currentSource);
 
 		// Walk through the chain and collect all Where statements
 		while (IsLinqMethodChain(currentSource, nameof(Enumerable.Where), out var whereInvocation)
@@ -52,7 +45,7 @@ public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 			wherePredicates.Add(predicate);
 			currentSource = whereSource;
 
-			TryGetOptimizedChainExpression(source, OperationsThatDontAffectWhere, out source);
+			TryGetOptimizedChainExpression(source, MaterializingMethods, out source);
 			isNewSource = true;
 		}
 

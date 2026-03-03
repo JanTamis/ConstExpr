@@ -32,15 +32,15 @@ public class CastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 			return false;
 		}
 
-		if (TryExecutePredicates(context, source, out result))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
 
 		// If we skipped any operations (AsEnumerable/ToList/ToArray), create optimized Cast call
-		if (TryGetOptimizedChainExpression(source, OperationsThatDontAffectCast, out source))
+		if (TryGetOptimizedChainExpression(source, MaterializingMethods, out source))
 		{
-			if (TryExecutePredicates(context, source, out result))
+			if (TryExecutePredicates(context, source, out result, out _))
 			{
 				return true;
 			}
@@ -48,11 +48,11 @@ public class CastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 			// Preserve the generic type argument from the original Cast<T>() call
 			if (context.Invocation.Expression is MemberAccessExpressionSyntax { Name: GenericNameSyntax genericName })
 			{
-				result = CreateInvocation(context.Visit(source) ?? source, genericName);
+				result = CreateInvocation(source, genericName);
 			}
 			else
 			{
-				result = CreateSimpleInvocation(context.Visit(source) ?? source, nameof(Enumerable.Cast));
+				result = CreateSimpleInvocation(source, nameof(Enumerable.Cast));
 			}
 			
 			return true;
