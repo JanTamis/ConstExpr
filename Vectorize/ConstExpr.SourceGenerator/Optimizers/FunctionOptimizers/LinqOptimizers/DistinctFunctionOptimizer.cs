@@ -74,8 +74,7 @@ public class DistinctFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		if (parent is MemberAccessExpressionSyntax { Parent: InvocationExpressionSyntax parentInvocation } memberAccess
 		    && parentInvocation.Expression == memberAccess)
 		{
-			var methodName = memberAccess.Name.Identifier.Text;
-			isFollowedBySetOperation = SetBasedOperations.Contains(methodName);
+			isFollowedBySetOperation = SetBasedOperations.Contains(memberAccess.Name.Identifier.Text);
 		}
 
 		// Determine which operations can be skipped
@@ -88,6 +87,14 @@ public class DistinctFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 
 		if (TryExecutePredicates(context, source, out result))
 		{
+			return true;
+		}
+
+		if (IsLinqMethodChain(source, out var methodName, out var invocation)
+		    && SetBasedOperations.Contains(methodName)
+		    && TryGetLinqSource(invocation, out var invocationSource))
+		{
+			result = context.Visit(invocationSource) ?? invocationSource;
 			return true;
 		}
 

@@ -1,6 +1,9 @@
+using System.Collections.Generic;
 using System.Linq;
+using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
@@ -27,9 +30,47 @@ public class TakeFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 			return true;
 		}
 
-		if (context.VisitedParameters[0] is LiteralExpressionSyntax { Token.Value: <= 0 })
+		TryGetOptimizedChainExpression(source, MaterializingMethods, out source);
+
+		var isNewSource = false;
+		var amounts = new List<ExpressionSyntax> { context.VisitedParameters[0] };
+
+		while (IsLinqMethodChain(source, nameof(Enumerable.Take), out var takeInvocation)
+		       && TryGetLinqSource(takeInvocation, out var takeSource))
+		{
+			var argument = takeInvocation.ArgumentList.Arguments[0].Expression;
+			
+			amounts.Add(context.Visit(argument) ?? argument);
+			
+			TryGetOptimizedChainExpression(takeSource, MaterializingMethods, out source);
+			isNewSource = true;
+		}
+
+		var minAmount = amounts
+			.OfType<LiteralExpressionSyntax>()
+			.OrderBy(o => o.Token.Value)
+			.FirstOrDefault();
+
+		var noValues = amounts
+			.Where(w => w is not LiteralExpressionSyntax);
+		
+		var amount = noValues
+			.Aggregate<ExpressionSyntax, ExpressionSyntax>(minAmount, (acc, next) => CreateInvocation(SyntaxFactory.ParseTypeName("Int32"), "Min", acc, next));
+
+		if (amount is LiteralExpressionSyntax { Token.Value: <= 0 })
 		{
 			result = CreateEmptyEnumerableCall(context.Method.TypeArguments[0]);
+			return true;
+		}
+		
+		if (isNewSource)
+		{
+			if (TryExecutePredicates(context, source, [amount], out result))
+			{
+				return true;
+			}
+			
+			result = UpdateInvocation(context, source, amount);
 			return true;
 		}
 

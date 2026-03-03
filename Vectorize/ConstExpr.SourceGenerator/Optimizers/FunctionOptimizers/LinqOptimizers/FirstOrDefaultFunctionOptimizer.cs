@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
@@ -44,7 +45,7 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 
 		// Recursively skip all operations that don't affect which element is first
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectFirst, out source);
-		
+
 		if (TryExecutePredicates(context, source, out result))
 		{
 			return true;
@@ -61,13 +62,13 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 				{
 					TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectFirst, out methodSource);
 
-					result = CreateInvocation(methodSource, nameof(Enumerable.FirstOrDefault), context.Visit(predicate) ?? predicate);
+					result = TryOptimizeByOptimizer<FirstOrDefaultFunctionOptimizer>(context, CreateInvocation(methodSource, nameof(Enumerable.FirstOrDefault), predicate));
 					return true;
 				}
 				case nameof(Enumerable.Reverse):
 				{
 					TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectFirst, out var innerInvocation);
-					
+
 					result = TryOptimizeByOptimizer<LastOrDefaultFunctionOptimizer>(context, CreateSimpleInvocation(innerInvocation, nameof(Enumerable.LastOrDefault)));
 					return true;
 				}
@@ -144,21 +145,35 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 			}
 		}
 
+		source = context.Visit(source) ?? source;
+
 		// For arrays, use conditional: arr.Length > 0 ? arr[0] : default
 		if (IsInvokedOnArray(context, source))
 		{
-			source = context.Visit(source) ?? source;
+			if (context.Method.Parameters.Length == 2)
+			{
+				result = CreateInvocation(SyntaxFactory.ParseTypeName(nameof(Array)), nameof(Array.Find), source, context.VisitedParameters[0]);
+			}
+			else
+			{
+				result = CreateDefaultIfEmptyConditional(source, "Length", context.Method.TypeArguments[0].GetDefaultValue());
+			}
 
-			result = CreateDefaultIfEmptyConditional(source, "Length", context.Method.TypeArguments[0].GetDefaultValue());
 			return true;
 		}
 
 		// For List<T>, use conditional: list.Count > 0 ? list[0] : default
 		if (IsInvokedOnList(context, source))
 		{
-			source = context.Visit(source) ?? source;
+			if (context.Method.Parameters.Length == 2)
+			{
+				result = CreateInvocation(source, "Find", context.VisitedParameters[0]);
+			}
+			else
+			{
+				result = CreateDefaultIfEmptyConditional(source, "Count", context.Method.TypeArguments[0].GetDefaultValue());
+			}
 
-			result = CreateDefaultIfEmptyConditional(source, "Count", context.Method.TypeArguments[0].GetDefaultValue());
 			return true;
 		}
 

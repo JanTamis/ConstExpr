@@ -1,6 +1,9 @@
 using System.Linq;
+using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
@@ -21,9 +24,29 @@ public class SkipFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 			return true;
 		}
 
-		if (context.VisitedParameters[0] is LiteralExpressionSyntax { Token.Value: <= 0 })
+		var intType = context.Model.Compilation.GetSpecialType(SpecialType.System_Int32);
+
+		var amount = context.VisitedParameters[0];
+		var isNewSource = false;
+
+		while (IsLinqMethodChain(source, nameof(Enumerable.Skip), out var skipInvocation)
+		       && TryGetLinqSource(skipInvocation, out var skipSource))
+		{
+			amount = context.OptimizeBinaryExpression(SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, amount, skipInvocation.ArgumentList.Arguments[0].Expression), intType, intType, intType) as ExpressionSyntax;
+			
+			TryGetOptimizedChainExpression(skipSource, MaterializingMethods, out source);
+			isNewSource = true;
+		}
+
+		if (amount is LiteralExpressionSyntax { Token.Value: <= 0 })
 		{
 			result = context.Visit(source) ?? source;
+			return true;
+		}
+
+		if (isNewSource)
+		{
+			result = UpdateInvocation(context, source, amount);
 			return true;
 		}
 

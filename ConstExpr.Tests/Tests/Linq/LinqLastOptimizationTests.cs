@@ -47,13 +47,13 @@ public class LinqLastOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x[^1];
+			var a = x.Last(v => v > 3);
 			var b = x[^1];
 			var c = x[^1];
 			var d = x[^1];
-			var e = x[^1];
-			var f = x[^1];
-			var g = x[^1];
+			var e = x.Last(v => v > 2);
+			var f = x.Last(v => v < 5);
+			var g = x.Last(v => v == 3);
 			var h = x[0];
 			var i = x.Max();
 			var j = x.Min();

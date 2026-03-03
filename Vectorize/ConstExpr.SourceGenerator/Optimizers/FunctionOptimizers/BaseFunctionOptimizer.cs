@@ -105,7 +105,8 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers
 					return true;
 				// unwrap ( ... )
 				case ParenthesizedExpressionSyntax paren:
-					return TryGetLiteralValue(paren.Expression, context, typeSymbol, out value, visitedVariables) || TryGetLiteralValue(context.Visit(paren.Expression), context, typeSymbol, out value, visitedVariables);
+					return TryGetLiteralValue(paren.Expression, context, typeSymbol, out value, visitedVariables)
+					       || TryGetLiteralValue(context.Visit(paren.Expression), context, typeSymbol, out value, visitedVariables);
 				// ^n => System.Index(n, fromEnd: true)
 				case PrefixUnaryExpressionSyntax prefix when prefix.OperatorToken.IsKind(SyntaxKind.CaretToken):
 				{
@@ -735,28 +736,18 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers
 					var tupleTypes = elements.Select(e => e?.GetType() ?? typeof(object)).ToArray();
 					var tupleType = context.Loader.GetTupleType(tupleTypes.Length);
 
-					if (tupleType != null)
-					{
-						var genericTupleType = tupleType.MakeGenericType(tupleTypes);
-						var ctor = genericTupleType.GetConstructor(tupleTypes);
+					var genericTupleType = tupleType.MakeGenericType(tupleTypes);
+					var ctor = genericTupleType.GetConstructor(tupleTypes);
 
-						if (ctor != null)
-						{
-							value = ctor.Invoke(elements.ToArray());
-							return true;
-						}
+					if (ctor != null)
+					{
+						value = ctor.Invoke(elements.ToArray());
+						return true;
 					}
 
 					break;
 				}
 			}
-
-			// Fallback to semantic constant evaluation
-			// if (TryGetConstantValue(semanticModel.Compilation, loader, node, new VariableItemDictionary(variables), token, out var constVal))
-			// {
-			// 	value = constVal;
-			// 	return true;
-			// }
 
 			value = null;
 			return false;

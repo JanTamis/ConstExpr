@@ -59,7 +59,7 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 				{
 					TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectLast, out var innerInvocation);
 
-					result = TryOptimizeByOptimizer<LastFunctionOptimizer>(context, CreateInvocation(innerInvocation, nameof(Enumerable.Distinct), predicate));
+					result = TryOptimizeByOptimizer<LastFunctionOptimizer>(context, CreateInvocation(innerInvocation, nameof(Enumerable.Last), predicate));
 					return true;
 				}
 				case nameof(Enumerable.Reverse):
@@ -181,7 +181,8 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 		
 		// For arrays, use direct array indexing: arr[^1]
 		// For List<T>, use direct indexing: list[^1]
-		if (IsInvokedOnArray(context, source) || IsInvokedOnList(context, source))
+		if (context.Method.Parameters.Length is 0 or 1 
+		    && (IsInvokedOnArray(context, source) || IsInvokedOnList(context, source)))
 		{
 			result = CreateElementAccess(context.Visit(source) ?? source, SyntaxFactory.PrefixUnaryExpression(
 				SyntaxKind.IndexExpression, SyntaxHelpers.CreateLiteral(1)!));

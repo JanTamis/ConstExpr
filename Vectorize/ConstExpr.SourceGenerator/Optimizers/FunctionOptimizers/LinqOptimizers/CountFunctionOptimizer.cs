@@ -255,6 +255,51 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 						result = TryOptimizeByOptimizer<SumFunctionOptimizer>(context, sumInvocation);
 						return true;
 					}
+					case nameof(Enumerable.Append):
+					{
+						TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectCount, out currentSource);
+
+						var count = 1;
+						
+						while (IsLinqMethodChain(currentSource, nameof(Enumerable.Append), out var appendInvocation)
+						       && TryGetLinqSource(appendInvocation, out var appendSource))
+						{
+							count++;
+
+							TryGetOptimizedChainExpression(appendSource, OperationsThatDontAffectCount, out currentSource);
+						}
+
+						if (TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, currentSource), context.Method), out result))
+						{
+							result = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, result as ExpressionSyntax,  SyntaxHelpers.CreateLiteral(count));
+							return true;
+						}
+
+						break;
+					}
+					case nameof(Enumerable.Concat) when TryGetSyntaxes(context.Visit(invocation.ArgumentList.Arguments[0].Expression), out var concatSyntaxes):
+					{
+						TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectCount, out currentSource);
+
+						var count = concatSyntaxes.Count;
+
+						while (IsLinqMethodChain(currentSource, nameof(Enumerable.Concat), out var concatInvocation)
+						       && TryGetLinqSource(concatInvocation, out var concatSource)
+						       && TryGetSyntaxes(context.Visit(invocation.ArgumentList.Arguments[0].Expression), out concatSyntaxes))
+						{
+							count++;
+
+							TryGetOptimizedChainExpression(concatSource, OperationsThatDontAffectCount, out currentSource);
+						}
+
+						if (TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, currentSource), context.Method), out result))
+						{
+							result = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, result as ExpressionSyntax, SyntaxHelpers.CreateLiteral(count));
+							return true;
+						}
+
+						break;
+					}
 				}
 			}
 

@@ -56,36 +56,6 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		// First, try to optimize Aggregate to Sum if it's just adding values
 		if (TryOptimizeAggregateToSum(context, source, out result))
 		{
-			if (context.Method.Parameters.Length == 3
-			    && TryGetLambda(context.VisitedParameters[2], out var resultSelectorLambda)
-			    && resultSelectorLambda.IsSimpleLambda()
-			    && result is ExpressionSyntax syntax)
-			{
-				result = ReplaceExpression(resultSelectorLambda, syntax);
-			}
-
-			if (IsLinqMethodChain(source, out var methodName, out var invocation)
-			    && TryGetLinqSource(invocation, out var invocationSource))
-			{
-				switch (methodName)
-				{
-					case nameof(Enumerable.Select) when TryGetLambda(invocation.ArgumentList.Arguments[0].Expression, out var innerLambda):
-					{
-						if (context.Method.Parameters.Length == 2 && !IsZeroLiteral(context.VisitedParameters[0]))
-						{
-							result = TryOptimizeByOptimizer<CountFunctionOptimizer>(context, CreateInvocation(invocationSource, nameof(Enumerable.Count), invocationSource));
-							
-							result = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, result as ExpressionSyntax, context.VisitedParameters[0]);
-						}
-						else
-						{
-							result = UpdateInvocation(context, invocationSource, context.Visit(innerLambda) ?? invocationSource);
-						}
-						break;
-					}
-				}
-			}
-
 			return true;
 		}
 
@@ -110,22 +80,22 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 	/// Patterns:
 	/// - Aggregate((acc, v) => acc + v) => Sum()
 	/// - Aggregate(0, (acc, v) => acc + v) => Sum()
+	/// - Aggregate(0, (acc, v) => acc + v, acc => acc * 2) => Sum() << 1
 	/// </summary>
 	private bool TryOptimizeAggregateToSum(FunctionOptimizerContext context, ExpressionSyntax source, out SyntaxNode? result)
 	{
 		result = null;
 
-		// Check parameter count: 1 or 2 (we don't optimize the 3-parameter overload with result selector)
 		if (context.Method.Parameters.Length == 0)
 		{
 			return false;
 		}
 
-		// Get the lambda (last parameter)
+		// Get the accumulator lambda (second parameter for 2/3-arg overloads, first for 1-arg)
 		var lambdaArg = context.VisitedParameters.Count switch
 		{
 			1 => context.VisitedParameters[0], // Aggregate(lambda)
-			2 or 3 => context.VisitedParameters[1], // Aggregate(seed, lambda)
+			2 or 3 => context.VisitedParameters[1], // Aggregate(seed, lambda) or Aggregate(seed, lambda, resultSelector)
 			_ => null
 		};
 
@@ -140,12 +110,35 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 			return false;
 		}
 
-		// Optimize to Sum()
-		result = CreateSimpleInvocation(context.Visit(source) ?? source, nameof(Enumerable.Sum));
+		// Pre-visit the source so inner optimizations (e.g. Select(v => v * 2) => v << 1) are applied first
+		var visitedSource = context.Visit(source) ?? source;
 
-		if (context.Method.Parameters.Length == 2 && !IsZeroLiteral(context.VisitedParameters[0]))
+		// Optimize to Sum()
+		result = TryOptimizeByOptimizer<SumFunctionOptimizer>(context, CreateSimpleInvocation(visitedSource, nameof(Enumerable.Sum)), x => IsEnumerableType(x.Parameters[0].Type as INamedTypeSymbol, context.Method.TypeArguments[^1]), []);
+
+		// For 2-arg overload with non-zero seed: Sum() + seed
+		if (context.VisitedParameters.Count == 2 && !IsZeroLiteral(context.VisitedParameters[0]))
 		{
-			result = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, (ExpressionSyntax) result, context.VisitedParameters[0]);
+			var type = context.Method.TypeArguments[^1];
+			result = context.OptimizeBinaryExpression(SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, (ExpressionSyntax) result, context.VisitedParameters[0]), type, type, type);
+		}
+
+		// For 3-arg overload: apply the result selector to the sum result
+		if (context.VisitedParameters.Count == 3)
+		{
+			// For non-zero seed, add the seed first
+			if (!IsZeroLiteral(context.VisitedParameters[0]))
+			{
+				var type = context.Method.TypeArguments[^1];
+				result = context.OptimizeBinaryExpression(SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, (ExpressionSyntax) result, context.VisitedParameters[0]), type, type, type);
+			}
+
+			// Apply the result selector lambda: e.g. acc => acc * 2 applied to Sum() gives Sum() * 2 => Sum() << 1
+			if (TryGetLambda(context.VisitedParameters[2], out var resultSelectorLambda))
+			{
+				result = ReplaceExpression(resultSelectorLambda, (ExpressionSyntax) result);
+				result = context.Visit((ExpressionSyntax) result) ?? result;
+			}
 		}
 
 		return true;

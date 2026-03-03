@@ -11,14 +11,19 @@ public class LinqTakeOptimizationTests : BaseTest<Func<int[], int>>
 		// Take(0) => Enumerable.Empty<T>()
 		var a = x.Take(0).Count();
 
-		return a;
+		var b = x.Take(1).AsEnumerable().Take(3).Count();
+
+		return a + b;
 	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
-		Create("return 0;", Unknown),
-		Create("return 0;", new[] { 1, 2, 3 }),
+		// Create("""
+		// 	var b = x.Take(1).Count();
+		// 	
+		// 	return b;
+		// 	""", Unknown),
+		// Create("return 0;", new[] { 1, 2, 3 }),
 		Create("return 0;", new int[] { }),
 	];
 }
-

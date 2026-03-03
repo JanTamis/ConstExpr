@@ -47,13 +47,13 @@ public class LinqFirstOrDefaultOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.FirstOrDefault(v => v > 3);
+			var a = Array.Find(x, v => v > 3);
 			var b = x.Length > 0 ? x[0] : 0;
 			var c = x.Length > 0 ? x[0] : 0;
 			var d = x.Length > 0 ? x[0] : 0;
-			var e = x.FirstOrDefault(v => v > 2);
-			var f = x.FirstOrDefault(v => v < 5);
-			var g = x.FirstOrDefault(v => v == 3);
+			var e = Array.Find(x, v => v > 2);
+			var f = Array.Find(x, v => v < 5);
+			var g = Array.Find(x, v => v == 3);
 			var h = x.Min();
 			var i = x.Length > 0 ? x[^1] : 0;
 			var j = x.Length > 0 ? x[0] : 0;

@@ -44,17 +44,17 @@ public class LinqLastOrDefaultOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.LastOrDefault(v => v > 3);
+			var a = Array.FindLast(x, v => v > 3);
 			var b = x.Length > 0 ? x[^1] : 0;
 			var c = x.Length > 0 ? x[^1] : 0;
 			var d = x.Length > 0 ? x[^1] : 0;
-			var e = x.LastOrDefault(v => v > 2);
-			var f = x.LastOrDefault(v => v < 5);
-			var g = x.LastOrDefault(v => v == 3);
+			var e = Array.FindLast(x, v => v > 2);
+			var f = Array.FindLast(x, v => v < 5);
+			var g = Array.FindLast(x, v => v == 3);
 			var h = x.Max();
 			var i = x.Length > 0 ? x[0] : 0;
 			var j = x.Length > 0 ? x[^1] : 0;
-
+			
 			return a + b + c + d + e + f + g + h + i + j;
 			""", Unknown),
 		Create("return 43;", new[] { 1, 2, 3, 4, 5 }),

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
@@ -59,7 +60,7 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 				{
 					TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectLast, out var innerInvocation);
 
-					result = UpdateInvocation(context, innerInvocation, context.Visit(predicate) ?? predicate);
+					result = TryOptimizeByOptimizer<LastOrDefaultFunctionOptimizer>(context, CreateInvocation(innerInvocation, nameof(Enumerable.LastOrDefault), predicate));
 					return true;
 				}
 				case nameof(Enumerable.Reverse):
@@ -149,22 +150,34 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 				}
 			}
 		}
-		
-		// For arrays, use conditional: arr.Length > 0 ? arr[^1] : default
+
 		if (IsInvokedOnArray(context, source))
 		{
-			source = context.Visit(source) ?? source;
-			
-			result = CreateDefaultIfEmptyConditional(source, "Length", context.Method.ReturnType.GetDefaultValue());
+			if (context.Method.Parameters.Length == 2)
+			{
+				result = CreateInvocation(SyntaxFactory.ParseTypeName(nameof(Array)), nameof(Array.FindLast), source, context.VisitedParameters[0]);
+			}
+			else
+			{
+				// For arrays, use conditional: arr.Length > 0 ? arr[^1] : default
+				result = CreateDefaultIfEmptyConditional(source, "Length", context.Method.ReturnType.GetDefaultValue());
+			}
+
 			return true;
 		}
 
-		// For List<T>, use conditional: list.Count > 0 ? list[^1] : default
 		if (IsInvokedOnList(context, source))
 		{
-			source = context.Visit(source) ?? source;
-			
-			result = CreateDefaultIfEmptyConditional(source, "Count", context.Method.ReturnType.GetDefaultValue());
+			if (context.Method.Parameters.Length == 2)
+			{
+				result = CreateInvocation(source, "FindLast", context.VisitedParameters[0]);
+			}
+			else
+			{
+				// For List<T>, use conditional: list.Count > 0 ? list[^1] : default
+				result = CreateDefaultIfEmptyConditional(source, "Count", context.Method.ReturnType.GetDefaultValue());
+			}
+
 			return true;
 		}
 		

@@ -22,8 +22,14 @@ public class LinqAppendOptimizationTests : BaseTest<Func<int[], int>>
 
 		// Regular Append (should not be optimized)
 		var e = x.Append(10).Sum();
+		
+		// Append followed by Count should be optimized to Length + number of appends
+		var f = x.Append(20).Append(30).Append(40).Append(50).Append(10).Count();
 
-		return a + b + c + d + e;
+		// concat followed by Count should be optimized to Length + number of concatenated elements
+		var g = x.Concat([ 1, 2, 3, 4 ]).Count();
+
+		return a + b + c + d + e + f + g;
 	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
@@ -34,8 +40,10 @@ public class LinqAppendOptimizationTests : BaseTest<Func<int[], int>>
 			var c = x.Sum() + 40;
 			var d = x.Sum() + 50;
 			var e = x.Sum() + 10;
+			var f = x.Length + 5;
+			var g = x.Length + 4;
 			
-			return a + b + c + d + e;
+			return a + b + c + d + e + f + g;
 			""", Unknown),
 		Create("return 180;", new[] { 1, 2, 3 }), // a=26, b=36, c=46, d=56, e=16 = 180
 		Create("return 150;", new int[] { }), // a=20, b=30, c=40, d=50, e=10 = 150

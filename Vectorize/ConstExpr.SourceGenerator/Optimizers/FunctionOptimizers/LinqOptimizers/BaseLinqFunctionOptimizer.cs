@@ -22,6 +22,13 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	public string Name { get; } = name;
 	public HashSet<int> ParameterCounts { get; } = parameterCounts;
 
+	protected static readonly HashSet<string> MaterializingMethods =
+	[
+		nameof(Enumerable.ToArray),
+		nameof(Enumerable.ToList),
+		nameof(Enumerable.AsEnumerable),
+	];
+
 	/// <summary>
 	/// Validates if the given method is a valid LINQ Enumerable method matching this optimizer's criteria.
 	/// </summary>
@@ -578,7 +585,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 			return variable.Type.AllInterfaces.Any(s => specialTypes.Contains(s.SpecialType) || specialTypes.Contains(s.OriginalDefinition.SpecialType));
 		}
 
-		return context.Model.TryGetTypeSymbol(expression, out var type) 
+		return context.Model.TryGetTypeSymbol(expression, out var type)
 		       && type.AllInterfaces.Any(s => specialTypes.Contains(s.SpecialType) || specialTypes.Contains(s.OriginalDefinition.SpecialType));
 	}
 
@@ -590,6 +597,12 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 			       SpecialType.System_Collections_Generic_ICollection_T,
 			       SpecialType.System_Collections_Generic_IReadOnlyCollection_T)
 		       || IsInvokedOnList(context, expression);
+	}
+	
+	protected bool IsEnumerableType(INamedTypeSymbol? type, ITypeSymbol elementType)
+	{
+		return type?.OriginalDefinition.SpecialType == SpecialType.System_Collections_Generic_IEnumerable_T
+	         && SymbolEqualityComparer.Default.Equals(type.TypeArguments[0], elementType);
 	}
 
 	protected LambdaExpressionSyntax CombinePredicates(LambdaExpressionSyntax outer, LambdaExpressionSyntax inner)
@@ -772,7 +785,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		return false;
 	}
 
-	protected bool TryGetSyntaxes(SyntaxNode node, [NotNullWhen(true)] out IList<ExpressionSyntax>? values)
+	protected bool TryGetSyntaxes([NotNullWhen(true)] SyntaxNode? node, [NotNullWhen(true)] out IList<ExpressionSyntax>? values)
 	{
 		if (node is CollectionExpressionSyntax collectionExpression)
 		{
@@ -902,20 +915,24 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 			    && TryGetLiteralValue(context.Visit(source) ?? source, context, receiverType, out var values)
 			    && context.Loader.TryGetMethodByMethod(context.Method, out var method))
 			{
-				for (var i = 0; i < parameters.Count; i++)
-				{
-					if (TryGetLiteralValue(context.OriginalParameters[i], context, context.Method.Parameters[i].Type, out var value)
-					    || TryGetLiteralValue(context.VisitedParameters[i], context, context.Method.Parameters[i].Type, out value))
-					{
-						parameters.Add(value);
-					}
-				}
+				var newParameters = parameters
+					.WhereSelect<ExpressionSyntax, object?>((s, out result) => TryGetLiteralValue(s, context, null, out result))
+					.ToList();
+				
+				// for (var i = 0; i < parameters.Count; i++)
+				// {
+				// 	if (TryGetLiteralValue(context.OriginalParameters[i], context, context.Method.Parameters[i].Type, out var value)
+				// 	    || TryGetLiteralValue(context.VisitedParameters[i], context, context.Method.Parameters[i].Type, out value))
+				// 	{
+				// 		parameters.Add(value);
+				// 	}
+				// }
 
 				if (parameters.Count == context.Method.Parameters.Length)
 				{
 					if (context.Method.ReceiverType is not null
-					    && SyntaxHelpers.TryGetLiteral(method.Invoke(null, [ values, ..parameters ]), out var tempResult)
-					    || SyntaxHelpers.TryGetLiteral(method.Invoke(values, [ ..parameters ]), out tempResult))
+					    && SyntaxHelpers.TryGetLiteral(method.Invoke(null, [ values, ..newParameters ]), out var tempResult)
+					    || SyntaxHelpers.TryGetLiteral(method.Invoke(values, [ ..newParameters ]), out tempResult))
 					{
 						result = tempResult;
 						return true;
@@ -935,21 +952,19 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 
 	protected SyntaxNode TryOptimizeByOptimizer<TOptimizer>(FunctionOptimizerContext context, InvocationExpressionSyntax invocation) where TOptimizer : BaseLinqFunctionOptimizer, new()
 	{
-		return TryOptimizeByOptimizer<TOptimizer>(context, invocation, context.Method.TypeArguments.ToArray());
+		return TryOptimizeByOptimizer<TOptimizer>(context, invocation, _ => true, context.Method.TypeArguments.ToArray());
 	}
 
 	protected SyntaxNode TryOptimizeByOptimizer<TOptimizer>(FunctionOptimizerContext context, InvocationExpressionSyntax invocation, params ITypeSymbol[] typeArguments) where TOptimizer : BaseLinqFunctionOptimizer, new()
 	{
+		return TryOptimizeByOptimizer<TOptimizer>(context, invocation, _ => true, typeArguments);
+	}
+
+	protected SyntaxNode TryOptimizeByOptimizer<TOptimizer>(FunctionOptimizerContext context, InvocationExpressionSyntax invocation, Func<IMethodSymbol, bool> selector, params ITypeSymbol[] typeArguments) where TOptimizer : BaseLinqFunctionOptimizer, new()
+	{
 		try
 		{
 			var methodName = typeof(TOptimizer).Name.Substring(0, typeof(TOptimizer).Name.Length - "FunctionOptimizer".Length);
-
-			var methodSymbol = context.Model.Compilation
-				.GetTypeByMetadataName(typeof(Enumerable).FullName)
-				.GetMembers(methodName)
-				.OfType<IMethodSymbol>()
-				.Select(s => s.Construct(typeArguments))
-				.First(f => f.Parameters.Length == invocation.ArgumentList.Arguments.Count + 1); // +1 for the source parameter
 
 			var parameters = invocation.ArgumentList.Arguments
 				.Select(a => a.Expression)
@@ -958,6 +973,14 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 			var visitedParameters = parameters
 				.Select(p => context.Visit(p) ?? p)
 				.ToArray();
+
+			var methodSymbol = context.Model.Compilation
+				.GetTypeByMetadataName(typeof(Enumerable).FullName)
+				.GetMembers(methodName)
+				.OfType<IMethodSymbol>()
+				.Where(f => f.Parameters.Length == invocation.ArgumentList.Arguments.Count + 1) // +1 for the source parameter
+				.Select(s => s.TypeArguments.Length == 0 ? s : s.Construct(typeArguments))
+				.First(selector);
 
 			context = context.WithInvocationAndMethod(invocation, methodSymbol);
 			context.OriginalParameters = parameters;
