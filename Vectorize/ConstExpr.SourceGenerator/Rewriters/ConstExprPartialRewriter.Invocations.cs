@@ -92,12 +92,10 @@ public partial class ConstExprPartialRewriter
 		arguments = ConvertToCharOverloadIfNeeded(targetMethod, arguments);
 
 		// Handle static methods and local functions
-		if (targetMethod.IsStatic || targetMethod.MethodKind == MethodKind.LocalFunction)
-		{
-			return HandleStaticMethodInvocation(node, targetMethod, arguments);
-		}
+		return targetMethod.IsStatic || targetMethod.MethodKind == MethodKind.LocalFunction 
+			? HandleStaticMethodInvocation(node, targetMethod, arguments) 
+			: HandleInstanceMethodInvocation(node, targetMethod, arguments);
 
-		return HandleInstanceMethodInvocation(node, targetMethod, arguments);
 	}
 
 	/// <summary>

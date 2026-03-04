@@ -267,24 +267,35 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 						break;
 					}
-					case nameof(Enumerable.Concat) when TryGetSyntaxes(invocation.ArgumentList.Arguments[0].Expression, out var concatSyntaxes):
+					case nameof(Enumerable.Concat):
 					{
 						TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectCount, out currentSource);
 
-						var count = concatSyntaxes.Count;
-
-						while (IsLinqMethodChain(currentSource, nameof(Enumerable.Concat), out var concatInvocation)
-						       && TryGetLinqSource(concatInvocation, out var concatSource)
-						       && TryGetSyntaxes(invocation.ArgumentList.Arguments[0].Expression, out concatSyntaxes))
+						if (TryGetSyntaxes(invocation.ArgumentList.Arguments[0].Expression, out var concatSyntaxes))
 						{
-							count++;
+							var count = concatSyntaxes.Count;
 
-							TryGetOptimizedChainExpression(concatSource, OperationsThatDontAffectCount, out currentSource);
+							while (IsLinqMethodChain(currentSource, nameof(Enumerable.Concat), out var concatInvocation)
+							       && TryGetLinqSource(concatInvocation, out var concatSource)
+							       && TryGetSyntaxes(invocation.ArgumentList.Arguments[0].Expression, out concatSyntaxes))
+							{
+								count++;
+
+								TryGetOptimizedChainExpression(concatSource, OperationsThatDontAffectCount, out currentSource);
+							}
+
+							if (TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, currentSource), context.Method), out result))
+							{
+								result = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, result as ExpressionSyntax, SyntaxHelpers.CreateLiteral(count));
+								return true;
+							}
 						}
-
-						if (TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, currentSource), context.Method), out result))
+						else
 						{
-							result = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, result as ExpressionSyntax, SyntaxHelpers.CreateLiteral(count));
+							var left = TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, currentSource), context.Method), out var leftResult) ? leftResult as ExpressionSyntax : null;
+							var right = TryOptimize(context.WithInvocationAndMethod(CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, nameof(Enumerable.Count)), context.Method), out var rightResult) ? rightResult as ExpressionSyntax : null;
+							
+							result = SyntaxFactory. BinaryExpression(SyntaxKind.AddExpression, left ?? CreateInvocation(currentSource, nameof(Enumerable.Count), context.VisitedParameters), right ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, nameof(Enumerable.Count), context.VisitedParameters));
 							return true;
 						}
 

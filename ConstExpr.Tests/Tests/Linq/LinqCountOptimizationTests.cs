@@ -35,7 +35,7 @@ public class LinqCountOptimizationTests() : BaseTest<Func<int[], int>>(FloatingP
 		var h = x.OrderBy(v => v).ThenBy(v => v * 2).Reverse().Where(v => v < 5).Count();
 
 		// Distinct should NOT be optimized (reduces count!)
-		var i = x.Distinct().Count();
+		var i = x.Distinct().Concat(x).Concat(x).Count();
 		
 		// Select should be optimized away
 		var j = x.Select(v => v * 2).Count();
@@ -66,7 +66,7 @@ public class LinqCountOptimizationTests() : BaseTest<Func<int[], int>>(FloatingP
 			var f = x.Length;
 			var g = x.Count(v => v > 2);
 			var h = x.Count(v => v < 5);
-			var i = x.Distinct().Count();
+			var i = x.Distinct().Count() + x.Length + x.Length;
 			var j = x.Length;
 			var k = x.Count(v => (uint)v - 2 < 8U);
 			var l = x.Count(v => (uint)v - 1 < 7U && Int32.IsEvenInteger(v));

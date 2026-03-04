@@ -9,7 +9,7 @@ public class LinqAnyOptimizationTests : BaseTest<Func<int[], int>>
 	public override string TestMethod => GetString(x =>
 	{
 		// Where(...).Any() => Array.Exists(...) for arrays
-		var a = x.Where(v => v > 3).Any() ? 1 : 0;
+		var a = x.Where(v => v > 3).Concat(x).Any() ? 1 : 0;
 
 		// Select(...).Any() => Any()
 		var b = x.Select(v => v * 2).Any() ? 1 : 0;
@@ -30,7 +30,7 @@ public class LinqAnyOptimizationTests : BaseTest<Func<int[], int>>
 		var g = x.AsEnumerable().Any() ? 1 : 0;
 
 		// ToList().Any() => Any()
-		var h = x.ToList().Any() ? 1 : 0;
+		var h = x.ToList().Concat(x).Any() ? 1 : 0;
 
 		// ToArray().Any() => Any()
 		var i = x.ToArray().Any() ? 1 : 0;

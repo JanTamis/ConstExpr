@@ -344,7 +344,7 @@ public partial class ConstExprPartialRewriter
 	public override SyntaxNode? VisitIsPatternExpression(IsPatternExpressionSyntax node)
 	{
 		var expression = Visit(node.Expression);
-		var exprToEvaluate = expression ?? node.Expression;
+		var exprToEvaluate = expression;
 
 		if (TryGetConstantValue(semanticModel.Compilation, loader, exprToEvaluate, new VariableItemDictionary(variables), token, out var value))
 		{

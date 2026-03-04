@@ -37,22 +37,41 @@ public class AverageFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 		{
 			return true;
 		}
+		
+		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectAverage, out source);
 
-		// If we skipped any operations, create optimized Average call
-		if (TryGetOptimizedChainExpression(source, OperationsThatDontAffectAverage, out source))
+		if (IsEmptyEnumerable(source))
 		{
-			if (TryExecutePredicates(context, source, out result, out _))
-			{
-				return true;
-			}
+			// Average of an empty sequence throws an exception, so we return a throw expression instead of optimizing to Average() which would be incorrect
+			result = CreateThrowExpression<InvalidOperationException>("Sequence contains no elements");
+			return true;
+		}
 
-			if (IsEmptyEnumerable(source))
-			{
-				// Average of an empty sequence throws an exception, so we return a throw expression instead of optimizing to Average() which would be incorrect
-				result = CreateThrowExpression<InvalidOperationException>("Sequence contains no elements");
-				return true;
-			}
+		// check for x.Average(a => a) pattern and optimize to x.Average() since the selector is just the identity function and doesn't affect the average result
+		if (context.VisitedParameters.Count > 0 
+		    && TryGetLambda(context.VisitedParameters[0], out var selector)
+		    && IsIdentityLambda(selector))
+		{
+			result = UpdateInvocation(context, source, [ ]);
+			return true;
+		}
 
+		if (IsLinqMethodChain(source, out var methodName, out var invocation)
+		    && TryGetLinqSource(invocation, out var invocationSource))
+		{
+			switch (methodName)
+			{
+				case nameof(Enumerable.Select) when GetMethodArguments(invocation).FirstOrDefault() is { Expression: { } selectorArg }
+				                                    && TryGetLambda(selectorArg, out selector):
+				{
+					result = UpdateInvocation(context, invocationSource, selector);
+					return true;
+				}
+			}
+		}
+
+		if (isNewSource)
+		{
 			result = UpdateInvocation(context, source);
 			return true;
 		}

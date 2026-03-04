@@ -30,9 +30,7 @@ public class TakeFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 			return true;
 		}
 
-		TryGetOptimizedChainExpression(source, MaterializingMethods, out source);
-
-		var isNewSource = false;
+		var isNewSource = TryGetOptimizedChainExpression(source, MaterializingMethods, out source);
 		var amounts = new List<ExpressionSyntax> { context.VisitedParameters[0] };
 
 		while (IsLinqMethodChain(source, nameof(Enumerable.Take), out var takeInvocation)

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -90,6 +91,18 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 					result = UpdateInvocation(context, invocationSource, predicate);
 					return true;
+				}
+				case nameof(Enumerable.Concat):
+				{
+					TryGetOptimizedChainExpression(invocationSource, OperationsThatDontAffectExistence, out invocationSource);
+
+					var left = TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, invocationSource), context.Method), out var leftResult) ? leftResult as ExpressionSyntax : null;
+					var right = TryOptimize(context.WithInvocationAndMethod(CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, nameof(Enumerable.Any)), context.Method), out var rightResult) ? rightResult as ExpressionSyntax : null;
+
+					result = BinaryExpression(SyntaxKind.LogicalAndExpression, left ?? CreateInvocation(invocationSource, nameof(Enumerable.Any), context.VisitedParameters), right ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, nameof(Enumerable.Any), context.VisitedParameters));
+					return true;
+
+					break;
 				}
 			}
 		}

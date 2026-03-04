@@ -21,7 +21,7 @@ public class LinqAverageOptimizationTests : BaseTest<Func<int[], double>>
 		var d = x.AsEnumerable().ToList().Average();
 
 		// Regular Average (should not be optimized)
-		var e = x.Average();
+		var e = x.Average(v => v);
 
 		// Average with selector - AsEnumerable
 		var f = x.AsEnumerable().Average(v => v * 2);
@@ -29,7 +29,9 @@ public class LinqAverageOptimizationTests : BaseTest<Func<int[], double>>
 		// Average with selector - ToList
 		var g = x.ToList().Average(v => v * 3);
 
-		return a + b + c + d + e + f + g;
+		var h = x.Select(s => s * 2).Average();
+
+		return a + b + c + d + e + f + g + h;
 	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
@@ -42,8 +44,9 @@ public class LinqAverageOptimizationTests : BaseTest<Func<int[], double>>
 			var e = x.Average();
 			var f = x.Average(v => v << 1);
 			var g = x.Average(v => v * 3);
+			var h = x.Average(s => s << 1);
 			
-			return a + b + c + d + e + f + g;
+			return a + b + c + d + e + f + g + h;
 			""", Unknown),
 		Create("return 20.0;", new[] { 1, 2, 3 }), 
 		Create("throw new InvalidOperationException(\"Sequence contains no elements\");", new int[] { }), 
