@@ -200,10 +200,9 @@ public partial class ConstExprPartialRewriter
 			return CreateLiteral(result);
 		}
 		
-		var leftType = semanticModel.GetTypeInfo(node.Left, token).Type;
-		var rightType = semanticModel.GetTypeInfo(node.Right, token).Type;
-
-		if (!IsTypeCompatibleForOfType(leftType, rightType))
+		if (semanticModel.TryGetTypeSymbol(node.Left, out var leftType)
+		    && semanticModel.TryGetTypeSymbol(node.Right, out var rightType)
+		    && !IsTypeCompatibleForOfType(leftType, rightType))
 		{
 			return CreateLiteral(false);
 		}
