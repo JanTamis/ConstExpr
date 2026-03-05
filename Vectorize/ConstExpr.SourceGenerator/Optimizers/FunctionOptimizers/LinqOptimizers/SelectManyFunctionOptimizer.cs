@@ -1,4 +1,5 @@
 using System.Linq;
+using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 
@@ -28,7 +29,8 @@ public class SelectManyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(En
 		}
 
 		// Optimize Enumerable.Empty<T>().SelectMany(selector) => Enumerable.Empty<TResult>()
-		if (IsEmptyEnumerable(source) && context.Method.TypeArguments.Length > 0)
+		if (IsEmptyEnumerable(source)
+		    && context.Method.TypeArguments.Length > 0)
 		{
 			// Get the result type (last type argument)
 			var resultType = context.Method.TypeArguments[^1];
@@ -37,21 +39,22 @@ public class SelectManyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(En
 		}
 
 		// Check if lambda always returns empty
-		if (context.VisitedParameters.Count >= 1 
-		    && TryGetLambda(context.VisitedParameters[0], out var lambda) 
-		    && TryGetLambdaBody(lambda, out var body) 
-		    && IsEmptyEnumerable(body) 
-		    && context.Method.TypeArguments.Length > 0)
+		if (context.VisitedParameters.Count >= 1
+		    && TryGetLambda(context.VisitedParameters[0], out var lambda)
+		    && TryGetLambdaBody(lambda, out var body))
 		{
-			// selector always returns empty, so result is empty
-			var resultType = context.Method.TypeArguments[^1];
-				
-			result = CreateEmptyEnumerableCall(resultType);
-			return true;
+			if (IsEmptyEnumerable(body)
+			    && context.Method.TypeArguments.Length > 0)
+			{
+				// selector always returns empty, so result is empty
+				var resultType = context.Method.TypeArguments[^1];
+
+				result = CreateEmptyEnumerableCall(resultType);
+				return true;
+			}
 		}
 
 		result = null;
 		return false;
 	}
 }
-

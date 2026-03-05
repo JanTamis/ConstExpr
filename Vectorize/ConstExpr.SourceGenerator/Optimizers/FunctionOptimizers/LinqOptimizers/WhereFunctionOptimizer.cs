@@ -79,7 +79,7 @@ public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 				}
 			}
 
-			// Replace Where(x => x is T) with OfType<T>() when the conversion is safe
+			// Replace Where(x => x is T) with OfType<T>()
 			if (IsTypeCheckLambda(combinedPredicate, out var typeCheckType))
 			{
 				var visitedSource = context.Visit(currentSource) ?? currentSource;
