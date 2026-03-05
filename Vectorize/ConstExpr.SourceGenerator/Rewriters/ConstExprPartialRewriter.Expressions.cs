@@ -70,8 +70,9 @@ public partial class ConstExprPartialRewriter
 		{
 			// Don't implicitly convert char values to int - they should remain as char
 			// to preserve their representation in pattern matching contexts
-			if (hasLeftValue && operation.LeftOperand is IConversionOperation leftConversion
-			                 && !(leftValue is char && leftConversion.Type?.SpecialType == SpecialType.System_Int32))
+			if (hasLeftValue 
+			    && operation.LeftOperand is IConversionOperation leftConversion
+			    && leftValue is char && leftConversion.Type?.SpecialType == SpecialType.System_Int32)
 			{
 				leftValue = ExecuteConversion(leftConversion, leftValue);
 			}
@@ -153,12 +154,10 @@ public partial class ConstExprPartialRewriter
 			// Handle null-coalescing operator: if left is null, return right; otherwise return left
 			if (node.IsKind(SyntaxKind.QuestionQuestionToken, SyntaxKind.CoalesceExpression))
 			{
-				if (leftValue is null)
-				{
-					return right;
-				}
-				
-				return left;
+				return leftValue is null 
+					? right 
+					: left;
+
 			}
 			
 			switch (leftValue)
@@ -192,7 +191,7 @@ public partial class ConstExprPartialRewriter
 	private SyntaxNode? VisitIsTypeExpression(BinaryExpressionSyntax node)
 	{
 		var visitedLeft = Visit(node.Left);
-		var exprToEvaluate = visitedLeft ?? node.Left;
+		var exprToEvaluate = visitedLeft;
 
 		if (TryGetConstantValue(semanticModel.Compilation, loader, exprToEvaluate, new VariableItemDictionary(variables), token, out var value)
 		    && GetTypeFromRightSide(node.Right) is { } typeInfo
@@ -200,8 +199,30 @@ public partial class ConstExprPartialRewriter
 		{
 			return CreateLiteral(result);
 		}
+		
+		var leftType = semanticModel.GetTypeInfo(node.Left, token).Type;
+		var rightType = semanticModel.GetTypeInfo(node.Right, token).Type;
+
+		if (!IsTypeCompatibleForOfType(leftType, rightType))
+		{
+			return CreateLiteral(false);
+		}
 
 		return node.WithLeft(visitedLeft as ExpressionSyntax ?? node.Left);
+
+		bool IsTypeCompatibleForOfType(ITypeSymbol leftType, ITypeSymbol rightType)
+		{
+			// Classify the conversion from elementType -> targetType
+			var conversion = semanticModel.Compilation.ClassifyConversion(leftType, rightType);
+
+			// Only allow identity, reference, or boxing conversions.
+			// Numeric/implicit user-defined conversions (e.g. int -> double) must be rejected because
+			// OfType<T>() uses 'is' semantics (runtime type check), not implicit cast semantics.
+			return conversion.IsIdentity
+			       || conversion.IsReference
+			       || conversion.IsBoxing
+			       || conversion.IsUnboxing;
+		}
 	}
 
 	/// <summary>
@@ -332,6 +353,7 @@ public partial class ConstExprPartialRewriter
 			{
 				return true;
 			}
+			
 			baseType = baseType.BaseType;
 		}
 

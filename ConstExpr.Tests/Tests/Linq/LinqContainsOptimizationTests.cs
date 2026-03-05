@@ -174,7 +174,7 @@ public class LinqContainsOptimizationComplexTests : BaseTest<Func<int[], int>>
 		var a = x.Where(v => v > 0).Distinct().OrderBy(v => v).Contains(5) ? 1 : 0;
 
 		// Select with more complex expression
-		var b = x.Select(v => v + 10).Contains(15) ? 1 : 0;
+		var b = x.Select(v => v + 10).Concat(x).Contains(15) ? 1 : 0;
 
 		// Where with complex predicate
 		var c = x.Where(v => v % 2 == 0).Contains(4) ? 1 : 0;
@@ -188,11 +188,11 @@ public class LinqContainsOptimizationComplexTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var d = Array.IndexOf(x, 5) >= 0 ? 1 : 0;
-			var d = Array.IndexOf(x, 5) >= 0 ? 1 : 0;
+			var a = Array.IndexOf(x, 5) >= 0 ? 1 : 0;
+			var b = Array.IndexOf(x, 5) >= 0 || Array.IndexOf(x, 15) >= 0 ? 1 : 0;
 			var c = Array.IndexOf(x, 4) >= 0 ? 1 : 0;
 			var d = Array.IndexOf(x, 5) >= 0 ? 1 : 0;
-
+			
 			return a + b + c + d;
 			""", Unknown),
 		Create("return 4;", new[] { 1, 2, 3, 4, 5, 6, 7, 8 }),

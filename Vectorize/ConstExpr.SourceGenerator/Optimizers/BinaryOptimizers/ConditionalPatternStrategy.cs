@@ -28,7 +28,15 @@ public class ConditionalPatternStrategy(BinaryOperatorKind operatorKind) : BaseB
 			optimized = null;
 			return false;
 		}
-		
+
+		// If both expressions are identical, the combination is redundant (idempotency).
+		// Return the original expression instead of creating e.g. `x is > 0 and > 0`.
+		if (context.Left.Syntax.IsEquivalentTo(context.Right.Syntax))
+		{
+			optimized = context.Left.Syntax;
+			return true;
+		}
+
 		var andPattern = SyntaxFactory.BinaryPattern(GetRelationalPatternKind(), leftPattern, rightPattern);
 		
 		optimized = SyntaxFactory.IsPatternExpression(context.Left.Syntax.Left, andPattern);

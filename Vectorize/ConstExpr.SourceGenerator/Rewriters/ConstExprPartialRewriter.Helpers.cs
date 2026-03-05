@@ -22,7 +22,7 @@ namespace ConstExpr.SourceGenerator.Rewriters;
 /// </summary>
 public partial class ConstExprPartialRewriter
 {
-	private static FrozenDictionary<BinaryOperatorKind, BaseBinaryOptimizer> _binaryOptimizers = typeof(BaseBinaryOptimizer).Assembly
+	private static readonly FrozenDictionary<BinaryOperatorKind, BaseBinaryOptimizer> _binaryOptimizers = typeof(BaseBinaryOptimizer).Assembly
 		.GetTypes()
 		.Where(t => !t.IsAbstract && typeof(BaseBinaryOptimizer).IsAssignableFrom(t))
 		.Select(t => Activator.CreateInstance(t) as BaseBinaryOptimizer)

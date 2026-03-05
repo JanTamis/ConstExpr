@@ -95,8 +95,10 @@ public partial class ConstExprPartialRewriter
 			switch (e)
 			{
 				case LiteralExpressionSyntax cle when cle.IsKind(SyntaxKind.CharacterLiteralExpression) && cle.Token.Value is char ch:
+				{
 					chars.Add(ch);
 					continue;
+				}
 				case LiteralExpressionSyntax sle when sle.IsKind(SyntaxKind.StringLiteralExpression):
 				{
 					var text = sle.Token.ValueText;
@@ -184,8 +186,11 @@ public partial class ConstExprPartialRewriter
 			switch (visited)
 			{
 				case null:
+				{
 					continue;
+				}
 				case BlockSyntax block:
+				{
 					foreach (var st in block.Statements)
 					{
 						if (st is TNode t)
@@ -200,7 +205,9 @@ public partial class ConstExprPartialRewriter
 						}
 					}
 					break;
+				}
 				case TNode t:
+				{
 					result.Add(t);
 
 					if (visited is ReturnStatementSyntax)
@@ -209,6 +216,7 @@ public partial class ConstExprPartialRewriter
 					}
 
 					break;
+				}
 			}
 		}
 
@@ -232,8 +240,11 @@ public partial class ConstExprPartialRewriter
 			switch (visited)
 			{
 				case null:
+				{
 					continue;
+				}
 				case BlockSyntax block:
+				{
 					foreach (var st in block.Statements)
 					{
 						if (st is TNode t)
@@ -248,7 +259,9 @@ public partial class ConstExprPartialRewriter
 						}
 					}
 					break;
+				}
 				case TNode t:
+				{
 					result.Add(t);
 
 					if (visited is ReturnStatementSyntax)
@@ -257,6 +270,7 @@ public partial class ConstExprPartialRewriter
 					}
 
 					break;
+				}
 			}
 		}
 

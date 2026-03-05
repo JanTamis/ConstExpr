@@ -12,29 +12,31 @@ public class LinqWhereOptimizationTests() : BaseTest<Func<int[], int>>(FloatingP
 	{
 		// Where(v => true) - should be removed entirely
 		var a = x.Where(v => true).Count();
-
+		
 		// Where(v => false) - should be replaced with Empty
 		var b = x.Where(v => false).Count();
-
+		
 		// Consecutive Where calls with same parameter - should combine with &&
 		var c = x.Where(v => v > 1).Where(v => v < 5).Count();
-
+		
 		// Consecutive Where calls with different parameters - should still combine
 		var d = x.Where(v => v > 0).Where(r => r < 10).Count();
-
+		
 		// Multiple consecutive Where calls - should combine all
 		var e = x.Where(v => v > 0).Where(v => v < 10).Where(v => v % 2 == 0).Count();
-
+		
 		// Where(v => true) in chain - should be removed
 		var f = x.Where(v => true).Where(v => v > 3).Count();
-
+		
 		// Where(v => false) in chain - result should be empty
 		var g = x.Where(v => v > 1).Where(v => false).Count();
-
+		
 		// Complex predicates
 		var h = x.Where(v => v > 0 && v < 100).Where(v => v % 2 == 0).Count();
 
-		return a + b + c + d + e + f + g + h;
+		var i = x.Where(x => x is double).Sum();
+
+		return a + b + c + d + e + f + g + h + i;
 	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>

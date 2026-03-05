@@ -470,6 +470,66 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	}
 
 	/// <summary>
+	/// Checks if a lambda expression is a type-check pattern (e.g., x => x is SomeType).
+	/// If true, extracts the type being checked against, enabling replacement with OfType&lt;T&gt;().
+	/// </summary>
+	protected bool IsTypeCheckLambda(LambdaExpressionSyntax lambda, [NotNullWhen(true)] out TypeSyntax? typeCheckType)
+	{
+		typeCheckType = null;
+
+		var (paramName, body) = lambda switch
+		{
+			SimpleLambdaExpressionSyntax { Parameter.Identifier.Text: var p, Body: ExpressionSyntax b } => (p, b),
+			ParenthesizedLambdaExpressionSyntax { ParameterList.Parameters.Count: 1, Body: ExpressionSyntax b } pl
+				=> (pl.ParameterList.Parameters[0].Identifier.Text, b),
+			_ => (null, (ExpressionSyntax?)null)
+		};
+
+		if (paramName is null || body is null)
+		{
+			return false;
+		}
+
+		if (body is not BinaryExpressionSyntax
+		    {
+			    RawKind: (int)SyntaxKind.IsExpression,
+			    Left: IdentifierNameSyntax { Identifier.Text: var identName },
+			    Right: TypeSyntax type
+		    } || identName != paramName)
+		{
+			return false;
+		}
+
+		typeCheckType = type;
+		return true;
+	}
+
+	/// <summary>
+	/// Checks whether replacing <c>Where(x => x is T)</c> with <c>OfType&lt;T&gt;()</c> is semantically safe.
+	/// The optimization is only valid when the conversion from the element type to <paramref name="typeCheckType"/>
+	/// is a reference, identity, or boxing conversion — never a numeric or user-defined implicit conversion
+	/// (e.g. <c>int</c> to <c>double</c> would not be a valid replacement).
+	/// </summary>
+	protected bool IsTypeCompatibleForOfType(FunctionOptimizerContext context, TypeSyntax typeCheckType, ITypeSymbol elementType)
+	{
+		// Resolve the TypeSyntax to an ITypeSymbol via the semantic model
+		if (context.Model.GetSymbolInfo(typeCheckType).Symbol is not ITypeSymbol targetTypeSymbol)
+		{
+			return false;
+		}
+
+		// Classify the conversion from elementType -> targetType
+		var conversion = context.Model.Compilation.ClassifyConversion(elementType, targetTypeSymbol);
+
+		// Only allow identity, reference, or boxing conversions.
+		// Numeric/implicit user-defined conversions (e.g. int -> double) must be rejected because
+		// OfType<T>() uses 'is' semantics (runtime type check), not implicit cast semantics.
+		return conversion.IsIdentity 
+		       || conversion.IsReference 
+		       || conversion.IsBoxing;
+	}
+
+	/// <summary>
 	/// Checks if a lambda expression is a simple equality check (e.g., x => x == 2 or x => 2 == x).
 	/// If true, extracts the value being compared against.
 	/// </summary>

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
@@ -50,18 +51,33 @@ public class MaxFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			return true;
 		}
 
-		// Optimize source.Select(selector).Max() => source.Max(selector)
 		if (context.VisitedParameters.Count == 0
-		    && IsLinqMethodChain(source, nameof(Enumerable.Select), out var selectInvocation)
-		    && TryGetLinqSource(selectInvocation, out var selectSource)
-		    && selectInvocation.ArgumentList.Arguments.Count == 1)
+		    && IsLinqMethodChain(source, out var methodName, out var invocation)
+		    && TryGetLinqSource(invocation, out var invocationSource))
 		{
-			TryGetOptimizedChainExpression(selectSource, OperationsThatDontAffectMax, out selectSource);
-			
-			var selector = selectInvocation.ArgumentList.Arguments[0].Expression;
-			
-			result = UpdateInvocation(context, selectSource, selector);
-			return true;
+			switch (methodName)
+			{
+				// Optimize source.Select(selector).Max() => source.Max(selector)
+				case nameof(Enumerable.Select) when invocation.ArgumentList.Arguments.Count == 1:
+				{
+					TryGetOptimizedChainExpression(invocationSource, OperationsThatDontAffectMax, out invocationSource);
+
+					var selector = invocation.ArgumentList.Arguments[0].Expression;
+
+					result = UpdateInvocation(context, invocationSource, selector);
+					return true;
+				}
+				case nameof(Enumerable.Concat):
+				{
+					TryGetOptimizedChainExpression(invocationSource, OperationsThatDontAffectMax, out invocationSource);
+
+					var left = TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, invocationSource), context.Method), out var leftResult) ? leftResult as ExpressionSyntax : null;
+					var right = TryOptimize(context.WithInvocationAndMethod(CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters), context.Method), out var rightResult) ? rightResult as ExpressionSyntax : null;
+
+					result = CreateInvocation(context.Method.ReturnType, Name, left ?? CreateInvocation(invocationSource, Name, context.VisitedParameters), right ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters));
+					return true;
+				}
+			}
 		}
 
 		// If we skipped any operations, create optimized Max() call

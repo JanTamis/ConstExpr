@@ -212,6 +212,16 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 						result = CreateSimpleInvocation(result as ExpressionSyntax, nameof(Enumerable.LongCount));
 						return true;
 					}
+					case nameof(Enumerable.Concat):
+					{
+						TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectCount, out methodSource);
+
+						var left = TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, methodSource), context.Method), out var leftResult) ? leftResult as ExpressionSyntax : null;
+						var right = TryOptimize(context.WithInvocationAndMethod(CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters), context.Method), out var rightResult) ? rightResult as ExpressionSyntax : null;
+
+						result = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, left ?? CreateInvocation(methodSource, Name, context.VisitedParameters), right ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters));
+						return true;
+					}
 				}
 			}
 

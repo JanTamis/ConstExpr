@@ -21,7 +21,7 @@ public class LinqMaxOptimizationTests : BaseTest<Func<int[], int>>
 		var d = x.AsEnumerable().ToList().Max();
 
 		// Reverse().Max() => Max()
-		var e = x.Reverse().Max();
+		var e = x.Reverse().Concat(x).Max();
 
 		return a + b + c + d + e;
 	});
@@ -33,7 +33,7 @@ public class LinqMaxOptimizationTests : BaseTest<Func<int[], int>>
 			var b = x.Max(v => v << 1);
 			var c = x.Max();
 			var d = x.Max();
-			var e = x.Max();
+			var e = Int32.Max(x.Max(), x.Max());
 
 			return a + b + c + d + e;
 			""", Unknown),

@@ -33,7 +33,7 @@ public class LinqLongCountOptimizationTests : BaseTest<Func<int[], long>>
 		var h = x.OrderBy(v => v).ThenBy(v => v * 2).Reverse().Where(v => v < 5).LongCount();
 
 		// Distinct should NOT be optimized (reduces count!)
-		var i = x.Distinct().LongCount();
+		var i = x.Distinct().Concat(x).LongCount();
 
 		// Select should be optimized away
 		var j = x.Select(v => v * 2).LongCount();
@@ -52,7 +52,7 @@ public class LinqLongCountOptimizationTests : BaseTest<Func<int[], long>>
 			var f = (long)x.Length;
 			var g = x.LongCount(v => v > 2);
 			var h = x.LongCount(v => v < 5);
-			var i = x.Distinct().LongCount();
+			var i = x.Distinct().LongCount() + (long)x.Count;
 			var j = (long)x.Length;
 			
 			return a + b + c + d + e + f + g + h + i + j;

@@ -54,22 +54,44 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			return true;
 		}
 
+		if (IsEmptyEnumerable(newSource))
+		{
+			result = SyntaxHelpers.CreateLiteral(0);
+			return true;
+		}
+
 		// Optimize source.Select(selector).Sum() => source.Sum(selector)
 		if (context.VisitedParameters.Count == 0
-		    && IsLinqMethodChain(newSource, nameof(Enumerable.Select), out var selectInvocation)
-		    && TryGetLinqSource(selectInvocation, out var selectSource)
-		    && selectInvocation.ArgumentList.Arguments.Count == 1)
+		    && IsLinqMethodChain(newSource, out var methodName, out var methodInvocation)
+		    && TryGetLinqSource(methodInvocation, out var methodSource))
 		{
-			TryGetOptimizedChainExpression(selectSource, OperationsThatDontAffectSum, out selectSource);
-
-			var selector = selectInvocation.ArgumentList.Arguments[0].Expression;
-
-			if (!TryGetLambda(selector, out var selectorLambda)
-			    || !IsIdentityLambda(selectorLambda))
+			switch (methodName)
 			{
-				var visitedSelector = context.Visit(selector) ?? selector;
-				result = TryOptimizeAppend(context, selectSource, UpdateInvocation(context, selectSource, visitedSelector));
-				return true;
+				case nameof(Enumerable.Select) when methodInvocation.ArgumentList.Arguments.Count == 1:
+				{
+					TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectSum, out methodSource);
+
+					var selector = methodInvocation.ArgumentList.Arguments[0].Expression;
+
+					if (!TryGetLambda(selector, out var selectorLambda)
+					    || !IsIdentityLambda(selectorLambda))
+					{
+						var visitedSelector = context.Visit(selector) ?? selector;
+						result = TryOptimizeAppend(context, methodSource, UpdateInvocation(context, methodSource, visitedSelector));
+						return true;
+					}
+					break;
+				}
+				case nameof(Enumerable.Concat):
+				{
+					TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectSum, out methodSource);
+
+					var left = TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, methodSource), context.Method), out var leftResult) ? leftResult as ExpressionSyntax : null;
+					var right = TryOptimize(context.WithInvocationAndMethod(CreateInvocation(methodInvocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters), context.Method), out var rightResult) ? rightResult as ExpressionSyntax : null;
+
+					result = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, left ?? CreateInvocation(methodSource, Name, context.VisitedParameters), right ?? CreateInvocation(methodInvocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters));
+					return true;
+				}
 			}
 		}
 
@@ -84,6 +106,12 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 				result = sumLiteral;
 				return true;
 			}
+		}
+
+		if (IsEmptyEnumerable(source))
+		{
+			result = SyntaxHelpers.CreateLiteral(0);
+			return true;
 		}
 
 		// If we skipped any operations, create optimized Sum() call

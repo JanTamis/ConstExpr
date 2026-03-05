@@ -12,7 +12,7 @@ public class LinqMinOptimizationTests : BaseTest<Func<int[], int>>
 		var a = x.Min(v => v);
 
 		// Select(selector).Min() => Min(selector)
-		var b = x.Select(v => v * 2).Min();
+		var b = x.Select(v => v * 2).Concat(x).Min();
 
 		// OrderBy().Min() => Min() (ordering doesn't affect min)
 		var c = x.OrderBy(v => v).Min();
@@ -30,7 +30,7 @@ public class LinqMinOptimizationTests : BaseTest<Func<int[], int>>
 	[
 		Create("""
 			var a = x.Min();
-			var b = x.Min(v => v << 1);
+			var b = Int32.Min(x.Min(v => v << 1), x.Min());
 			var c = x.Min();
 			var d = x.Min();
 			var e = x.Min();

@@ -92,8 +92,8 @@ public partial class ConstExprPartialRewriter
 		arguments = ConvertToCharOverloadIfNeeded(targetMethod, arguments);
 
 		// Handle static methods and local functions
-		return targetMethod.IsStatic || targetMethod.MethodKind == MethodKind.LocalFunction 
-			? HandleStaticMethodInvocation(node, targetMethod, arguments) 
+		return targetMethod.IsStatic || targetMethod.MethodKind == MethodKind.LocalFunction
+			? HandleStaticMethodInvocation(node, targetMethod, arguments)
 			: HandleInstanceMethodInvocation(node, targetMethod, arguments);
 
 	}
@@ -582,7 +582,8 @@ public partial class ConstExprPartialRewriter
 
 		return node
 			.WithExpression(expression)
-			.WithArgumentList(node.ArgumentList.WithArguments(SeparatedList(arguments.OfType<ExpressionSyntax>().Select(Argument))));
+			.WithArgumentList(node.ArgumentList
+				.WithArguments(SeparatedList(arguments.OfType<ExpressionSyntax>().Select(Argument))));
 	}
 
 	/// <summary>
@@ -614,10 +615,12 @@ public partial class ConstExprPartialRewriter
 
 		if (TryGetLiteral(result, out var literal))
 		{
-			if (node.Expression is IdentifierNameSyntax id && variables.TryGetValue(id.Identifier.Text, out var v))
+			if (node.Expression is IdentifierNameSyntax id
+			    && variables.TryGetValue(id.Identifier.Text, out var v))
 			{
 				v.IsAccessed = false;
 			}
+			
 			return literal;
 		}
 
@@ -808,7 +811,7 @@ public partial class ConstExprPartialRewriter
 	public override SyntaxNode? VisitMemberAccessExpression(MemberAccessExpressionSyntax node)
 	{
 		semanticModel.TryGetTypeSymbol(node, out var typeSymbol);
-		
+
 		var expression = Visit(node.Expression);
 		var hasLiteral = TryGetLiteralValue(node.Expression, typeSymbol, out var instanceValue);
 
@@ -903,7 +906,7 @@ public partial class ConstExprPartialRewriter
 					}
 
 					if (isArrayLength
-					    && semanticModel.TryGetTypeSymbol(node.Expression, out typeSymbol) 
+					    && semanticModel.TryGetTypeSymbol(node.Expression, out typeSymbol)
 					    && typeSymbol is IArrayTypeSymbol arrayType)
 					{
 						// return Enumerable.Count() instead

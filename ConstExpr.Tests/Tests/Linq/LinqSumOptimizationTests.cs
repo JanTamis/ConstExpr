@@ -12,7 +12,7 @@ public class LinqSumOptimizationTests : BaseTest<Func<int[], int>>
 		var a = x.Sum(v => v);
 
 		// Select(selector).Sum() => Sum(selector)
-		var b = x.Select(v => v * 2).Sum();
+		var b = x.Select(v => v * 2).Concat(x).Sum();
 
 		// OrderBy().Sum() => Sum() (ordering doesn't affect sum)
 		var c = x.OrderBy(v => v).Sum();
@@ -30,7 +30,7 @@ public class LinqSumOptimizationTests : BaseTest<Func<int[], int>>
 	[
 		Create("""
 			var a = x.Sum();
-			var b = x.Sum(v => v << 1);
+			var b = x.Sum(v => v << 1) + x.Sum();
 			var c = x.Sum();
 			var d = x.Sum();
 			var e = x.Sum();

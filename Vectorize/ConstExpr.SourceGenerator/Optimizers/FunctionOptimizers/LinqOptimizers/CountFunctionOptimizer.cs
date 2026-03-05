@@ -293,9 +293,9 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 						else
 						{
 							var left = TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, currentSource), context.Method), out var leftResult) ? leftResult as ExpressionSyntax : null;
-							var right = TryOptimize(context.WithInvocationAndMethod(CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, nameof(Enumerable.Count)), context.Method), out var rightResult) ? rightResult as ExpressionSyntax : null;
+							var right = TryOptimize(context.WithInvocationAndMethod(CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters), context.Method), out var rightResult) ? rightResult as ExpressionSyntax : null;
 							
-							result = SyntaxFactory. BinaryExpression(SyntaxKind.AddExpression, left ?? CreateInvocation(currentSource, nameof(Enumerable.Count), context.VisitedParameters), right ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, nameof(Enumerable.Count), context.VisitedParameters));
+							result = SyntaxFactory. BinaryExpression(SyntaxKind.AddExpression, left ?? CreateInvocation(currentSource, Name, context.VisitedParameters), right ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters));
 							return true;
 						}
 

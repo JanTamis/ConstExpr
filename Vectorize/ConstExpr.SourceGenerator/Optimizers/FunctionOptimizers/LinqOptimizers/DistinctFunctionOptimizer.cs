@@ -66,29 +66,31 @@ public class DistinctFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		}
 
 		if (IsLinqMethodChain(source, out var methodName, out var invocation)
-		    && SetBasedOperations.Contains(methodName)
 		    && TryGetLinqSource(invocation, out var invocationSource))
 		{
-			result = context.Visit(invocationSource) ?? invocationSource;
-			return true;
-		}
-
-		// Check for identity Select
-		if (IsLinqMethodChain(source, nameof(Enumerable.Select), out var selectInvocation)
-		    && GetMethodArguments(selectInvocation).FirstOrDefault() is { Expression: { } lambdaArg }
-		    && TryGetLambda(lambdaArg, out var lambda)
-		    && IsIdentityLambda(context.Visit(lambda) as LambdaExpressionSyntax ?? lambda)
-		    && TryGetLinqSource(selectInvocation, out var selectSource))
-		{
-			TryGetOptimizedChainExpression(selectSource, allowedOperations, out selectSource);
-
-			if (TryExecutePredicates(context, selectSource, out result, out _))
+			switch (methodName)
 			{
-				return true;
-			}
+				case var name when SetBasedOperations.Contains(name):
+				{
+					result = context.Visit(invocationSource) ?? invocationSource;
+					return true;
+				}
+				// Check for identity Select
+				case nameof(Enumerable.Select) when GetMethodArguments(invocation).FirstOrDefault() is { Expression: { } lambdaArg }
+				                                    && TryGetLambda(lambdaArg, out var lambda)
+				                                    && IsIdentityLambda(context.Visit(lambda) as LambdaExpressionSyntax ?? lambda):
+				{
+					TryGetOptimizedChainExpression(invocationSource, allowedOperations, out invocationSource);
 
-			result = UpdateInvocation(context, selectSource);
-			return true;
+					if (TryExecutePredicates(context, invocationSource, out result, out _))
+					{
+						return true;
+					}
+
+					result = UpdateInvocation(context, invocationSource);
+					return true;
+				}
+			}
 		}
 
 		// If we skipped any operations, create optimized Distinct() call

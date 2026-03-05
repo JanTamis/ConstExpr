@@ -239,22 +239,22 @@ public partial class ConstExprPartialRewriter
 		var expressions = GetBinaryExpressions(node).ToList();
 
 		// Try compound assignment optimization for non-tracked variables
-		if (TryGetOperation(semanticModel, node, out ICompoundAssignmentOperation? compOp) 
+		if (TryGetOperation(semanticModel, node, out ICompoundAssignmentOperation? compOp)
 		    && TryOptimizeNode(compOp.OperatorKind, expressions, compOp.Type, node.Left, compOp.Target.Type, rightExpr, compOp.Value.Type, node.Parent, out var syntaxNode))
 		{
 			// If the optimized node is a binary expression where left matches the assignment target,
 			// try to convert it to a compound assignment (e.g., x << 1 becomes x <<= 1)
-			if (syntaxNode is BinaryExpressionSyntax binaryExpr 
+			if (syntaxNode is BinaryExpressionSyntax binaryExpr
 			    && binaryExpr.Left.ToString() == node.Left.ToString())
 			{
 				var compoundKind = TryGetCompoundAssignmentKind(binaryExpr.Kind());
-				
+
 				if (compoundKind != SyntaxKind.None)
 				{
 					return AssignmentExpression(compoundKind, node.Left, binaryExpr.Right);
 				}
 			}
-				
+
 			return AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, node.Left, syntaxNode as ExpressionSyntax);
 		}
 
@@ -441,7 +441,7 @@ public partial class ConstExprPartialRewriter
 		{
 			variable.HasValue = false;
 			variable.IsAltered = true;
-			
+
 			return node
 				.WithLeft(Visit(node.Left) as ExpressionSyntax ?? node.Left)
 				.WithRight(rightExpr);
@@ -457,7 +457,7 @@ public partial class ConstExprPartialRewriter
 			{
 				return node.WithRight(literal);
 			}
-			
+
 			return node
 				.WithLeft(Visit(node.Left) as ExpressionSyntax ?? node.Left)
 				.WithRight(rightExpr);
@@ -468,29 +468,29 @@ public partial class ConstExprPartialRewriter
 		{
 			variable.HasValue = false;
 			variable.IsAltered = true;
-			
+
 			var expressions = GetBinaryExpressions(node).ToList();
-			
+
 			// Try compound assignment optimization even when variable value is unknown
 			if (TryGetOperation(semanticModel, node, out ICompoundAssignmentOperation? compOp)
 			    && TryOptimizeNode(compOp.OperatorKind, expressions, compOp.Type, node.Left, compOp.Target.Type, rightExpr, compOp.Value.Type, node.Parent, out var optimizedNode))
 			{
 				// If the optimized node is a binary expression where left matches the assignment target,
 				// convert it to a compound assignment (e.g., x << 1 becomes x <<= 1)
-				if (optimizedNode is BinaryExpressionSyntax binaryExpr 
+				if (optimizedNode is BinaryExpressionSyntax binaryExpr
 				    && binaryExpr.Left.ToString() == node.Left.ToString())
 				{
 					var compoundKind = TryGetCompoundAssignmentKind(binaryExpr.Kind());
-					
+
 					if (compoundKind != SyntaxKind.None)
 					{
 						return AssignmentExpression(compoundKind, node.Left, binaryExpr.Right);
 					}
 				}
-				
+
 				return AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, node.Left, optimizedNode as ExpressionSyntax ?? rightExpr);
 			}
-			
+
 			return node
 				.WithLeft(Visit(node.Left) as ExpressionSyntax ?? node.Left)
 				.WithRight(rightExpr);
@@ -498,12 +498,12 @@ public partial class ConstExprPartialRewriter
 
 		// Compute the new value using the compound operation
 		var newValue = ObjectExtensions.ExecuteBinaryOperation(kind, variable.Value, tempValue);
-		
+
 		if (newValue is not null)
 		{
 			variable.Value = newValue;
 			variable.HasValue = true;
-			
+
 			// The assignment can be removed since we've computed the value
 			return null;
 		}
@@ -511,7 +511,7 @@ public partial class ConstExprPartialRewriter
 		// Could not compute, mark as altered
 		variable.HasValue = false;
 		variable.IsAltered = true;
-		
+
 		return node
 			.WithLeft(Visit(node.Left) as ExpressionSyntax ?? node.Left)
 			.WithRight(rightExpr);
@@ -594,8 +594,8 @@ public partial class ConstExprPartialRewriter
 				// Handle System.Index
 				if (arg0 is not null && (arg0.GetType().FullName == "System.Index" || arg0.GetType().Name == "Index"))
 				{
-					var getOffset = arg0.GetType().GetMethod("GetOffset", [typeof(int)]);
-					var offset = getOffset?.Invoke(arg0, [arr.Length]);
+					var getOffset = arg0.GetType().GetMethod("GetOffset", [ typeof(int) ]);
+					var offset = getOffset?.Invoke(arg0, [ arr.Length ]);
 
 					if (offset is int idx)
 					{
@@ -604,18 +604,18 @@ public partial class ConstExprPartialRewriter
 					}
 				}
 				else
-        {
-          switch (arg0)
 				{
-					case int i0:
-						arr.SetValue(rightValue, i0);
-						return rightExpr;
-					case long l0:
-						arr.SetValue(rightValue, l0);
-						return rightExpr;
+					switch (arg0)
+					{
+						case int i0:
+							arr.SetValue(rightValue, i0);
+							return rightExpr;
+						case long l0:
+							arr.SetValue(rightValue, l0);
+							return rightExpr;
+					}
 				}
-        }
-      }
+			}
 			else
 			{
 				if (indexConsts.All(a => a is int))
@@ -636,4 +636,3 @@ public partial class ConstExprPartialRewriter
 		return null;
 	}
 }
-

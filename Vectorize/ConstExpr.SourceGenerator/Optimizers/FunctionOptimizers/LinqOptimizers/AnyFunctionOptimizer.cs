@@ -97,12 +97,10 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 					TryGetOptimizedChainExpression(invocationSource, OperationsThatDontAffectExistence, out invocationSource);
 
 					var left = TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, invocationSource), context.Method), out var leftResult) ? leftResult as ExpressionSyntax : null;
-					var right = TryOptimize(context.WithInvocationAndMethod(CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, nameof(Enumerable.Any)), context.Method), out var rightResult) ? rightResult as ExpressionSyntax : null;
+					var right = TryOptimize(context.WithInvocationAndMethod(CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters), context.Method), out var rightResult) ? rightResult as ExpressionSyntax : null;
 
-					result = BinaryExpression(SyntaxKind.LogicalAndExpression, left ?? CreateInvocation(invocationSource, nameof(Enumerable.Any), context.VisitedParameters), right ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, nameof(Enumerable.Any), context.VisitedParameters));
+					result = BinaryExpression(SyntaxKind.LogicalOrExpression, left ?? CreateInvocation(invocationSource, Name, context.VisitedParameters), right ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters));
 					return true;
-
-					break;
 				}
 			}
 		}

@@ -37,16 +37,22 @@ public class SelectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 			return true;
 		}
 
-		if (IsLinqMethodChain(source, nameof(Enumerable.Select), out var innerInvocation)
-		    && TryGetLambda(innerInvocation.ArgumentList.Arguments[0].Expression, out var innerLambda)
+		if (IsLinqMethodChain(source, out var methodName, out var innerInvocation)
 		    && TryGetLinqSource(innerInvocation, out var innerSource))
 		{
-			// Combine the two lambdas: source.Select(inner).Select(outer) => source.Select(combined)
-			var combinedLambda = CombineLambdas(lambda, innerLambda);
+			switch (methodName)
+			{
+				case nameof(Enumerable.Select) when innerInvocation.ArgumentList.Arguments.Count > 0
+				                                    && TryGetLambda(innerInvocation.ArgumentList.Arguments[0].Expression, out var innerLambda):
+				{
+					// Combine the two lambdas: source.Select(inner).Select(outer) => source.Select(combined)
+					var combinedLambda = CombineLambdas(lambda, innerLambda);
 
-			// Create a new Select call with the combined lambda
-			result = UpdateInvocation(context, innerSource, combinedLambda);
-			return true;
+					// Create a new Select call with the combined lambda
+					result = UpdateInvocation(context, innerSource, combinedLambda);
+					return true;
+				}
+			}
 		}
 
 		result = null;

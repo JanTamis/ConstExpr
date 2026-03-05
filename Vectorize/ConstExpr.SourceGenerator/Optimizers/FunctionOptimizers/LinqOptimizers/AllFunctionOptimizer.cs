@@ -89,11 +89,19 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 					isNewSource = true;
 					break;
 				}
+				case nameof(Enumerable.Concat):
+				{
+					TryGetOptimizedChainExpression(invocationSource, OperationsThatDontAffectAll, out invocationSource);
+
+					var left = TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, invocationSource), context.Method), out var leftResult) ? leftResult as ExpressionSyntax : null;
+					var right = TryOptimize(context.WithInvocationAndMethod(CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters), context.Method), out var rightResult) ? rightResult as ExpressionSyntax : null;
+
+					result = SyntaxFactory.BinaryExpression(SyntaxKind.LogicalAndExpression, left ?? CreateInvocation(invocationSource, Name, context.VisitedParameters), right ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters));
+					return true;
+				}
 			}
 		}
 		
-		source = context.Visit(source) ?? source;
-
 		if (IsInvokedOnArray(context, source))
 		{
 			result = CreateInvocation(SyntaxFactory.ParseTypeName(nameof(Array)), nameof(Array.TrueForAll), source, context.Visit(allLambda) ?? allLambda);

@@ -50,18 +50,33 @@ public class MinFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			return true;
 		}
 
-		// Optimize source.Select(selector).Min() => source.Min(selector)
 		if (context.VisitedParameters.Count == 0
-		    && IsLinqMethodChain(source, nameof(Enumerable.Select), out var selectInvocation)
-		    && TryGetLinqSource(selectInvocation, out var selectSource)
-		    && selectInvocation.ArgumentList.Arguments.Count == 1)
+		    && IsLinqMethodChain(source, out var methodName, out var invocation)
+		    && TryGetLinqSource(invocation, out var invocationSource))
 		{
-			TryGetOptimizedChainExpression(selectSource, OperationsThatDontAffectMin, out selectSource);
+			switch (methodName)
+			{
+				// Optimize source.Select(selector).Min() => source.Min(selector)
+				case nameof(Enumerable.Select) when invocation.ArgumentList.Arguments.Count == 1:
+				{
+					TryGetOptimizedChainExpression(invocationSource, OperationsThatDontAffectMin, out invocationSource);
 
-			var selector = selectInvocation.ArgumentList.Arguments[0].Expression;
-			
-			result = UpdateInvocation(context, selectSource, selector);
-			return true;
+					var selector = invocation.ArgumentList.Arguments[0].Expression;
+
+					result = UpdateInvocation(context, invocationSource, selector);
+					return true;
+				}
+				case nameof(Enumerable.Concat):
+				{
+					TryGetOptimizedChainExpression(invocationSource, OperationsThatDontAffectMin, out invocationSource);
+
+					var left = TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, invocationSource), context.Method), out var leftResult) ? leftResult as ExpressionSyntax : null;
+					var right = TryOptimize(context.WithInvocationAndMethod(CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters), context.Method), out var rightResult) ? rightResult as ExpressionSyntax : null;
+
+					result = CreateInvocation(context.Method.ReturnType, Name, left ?? CreateInvocation(invocationSource, Name, context.VisitedParameters), right ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters));
+					return true;
+				}
+			}
 		}
 
 		// If we skipped any operations, create optimized Min() call

@@ -2,7 +2,9 @@ using System.Collections.Generic;
 using System.Linq;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
@@ -54,14 +56,14 @@ public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		{
 			// Start with the last predicate and combine with the rest
 			var combinedPredicate = context.Visit(wherePredicates[^1]) as LambdaExpressionSyntax ?? wherePredicates[^1];
-			
+
 			// Combine from right to left (last to first)
 			for (var i = wherePredicates.Count - 2; i >= 0; i--)
 			{
 				var currentPredicate = context.Visit(wherePredicates[i]) as LambdaExpressionSyntax ?? wherePredicates[i];
 				combinedPredicate = CombinePredicates(currentPredicate, combinedPredicate);
 			}
-			
+
 			combinedPredicate = context.Visit(combinedPredicate) as LambdaExpressionSyntax ?? combinedPredicate;
 
 			if (IsLiteralBooleanLambda(combinedPredicate, out var literalValue))
@@ -76,7 +78,23 @@ public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 						return true;
 				}
 			}
-			
+
+			// Replace Where(x => x is T) with OfType<T>() when the conversion is safe
+			if (IsTypeCheckLambda(combinedPredicate, out var typeCheckType))
+			{
+				var visitedSource = context.Visit(currentSource) ?? currentSource;
+	
+				result = InvocationExpression(
+					MemberAccessExpression(
+						SyntaxKind.SimpleMemberAccessExpression,
+						visitedSource,
+						GenericName(Identifier("OfType"))
+							.WithTypeArgumentList(
+								TypeArgumentList(
+									SingletonSeparatedList(typeCheckType)))));
+				return true;
+			}
+
 			// Create a new Where call with the combined lambda
 			result = UpdateInvocation(context, currentSource, combinedPredicate);
 			return true;
@@ -94,7 +112,7 @@ public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 					return true;
 			}
 		}
-		
+
 		if (isNewSource)
 		{
 			result = UpdateInvocation(context, source, lambda);

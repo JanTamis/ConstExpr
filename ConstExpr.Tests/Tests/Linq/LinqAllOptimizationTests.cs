@@ -40,7 +40,7 @@ public class LinqAllOptimizationTests : BaseTest<Func<int[], int>>
 		var j = x.All(v => v > 0) ? 1 : 0;
 
 		// No elements satisfy condition
-		var k = x.All(v => v > 100) ? 1 : 0;
+		var k = x.Concat(x).All(v => v > 100) ? 1 : 0;
 		
 		// Complex: OrderBy().Where().All() => All(combined)
 		var l = x.OrderBy(v => v).Where(v => v > 2).All(v => v < 8) ? 1 : 0;
@@ -61,7 +61,7 @@ public class LinqAllOptimizationTests : BaseTest<Func<int[], int>>
 			var h = Array.TrueForAll(x, v => v > 0) ? 1 : 0;
 			var i = Array.TrueForAll(x, v => v > 0) ? 1 : 0;
 			var j = Array.TrueForAll(x, v => v > 0) ? 1 : 0;
-			var k = Array.TrueForAll(x, v => v > 100) ? 1 : 0;
+			var k = Array.TrueForAll(x, v => v > 100) && Array.TrueForAll(x, v => v > 100) ? 1 : 0;
 			var l = Array.TrueForAll(x, v => (uint)v - 2 < 6U) ? 1 : 0;
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l;

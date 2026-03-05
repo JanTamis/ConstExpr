@@ -23,7 +23,7 @@ public partial class ConstExprPartialRewriter
 	{
 		var visitedGoverning = Visit(node.Expression);
 
-		if (TryGetLiteralValue(visitedGoverning ?? node.Expression, out var governingValue))
+		if (TryGetLiteralValue(visitedGoverning, out var governingValue))
 		{
 			return EvaluateSwitchAtCompileTime(node, governingValue);
 		}
@@ -79,27 +79,33 @@ public partial class ConstExprPartialRewriter
 			switch (visited)
 			{
 				case BlockSyntax block:
+				{
 					foreach (var inner in block.Statements)
 					{
 						if (inner is BreakStatementSyntax)
-            {
-              continue;
-            }
+						{
+							continue;
+						}
 
-            statements.Add(inner);
+						statements.Add(inner);
 					}
 					break;
+				}
 				case StatementSyntax stmt:
+				{
 					if (stmt is BreakStatementSyntax)
-          {
-            break;
-          }
+					{
+						break;
+					}
 
-          statements.Add(stmt);
+					statements.Add(stmt);
 					break;
+				}
 				case ExpressionSyntax expr:
+				{
 					statements.Add(ExpressionStatement(expr));
 					break;
+				}
 			}
 		}
 
@@ -127,14 +133,20 @@ public partial class ConstExprPartialRewriter
 				switch (visited)
 				{
 					case BlockSyntax block:
+					{
 						newStatements.AddRange(block.Statements);
 						break;
+					}
 					case StatementSyntax stmt:
+					{
 						newStatements.Add(stmt);
 						break;
+					}
 					case ExpressionSyntax expr:
+					{
 						newStatements.Add(ExpressionStatement(expr));
 						break;
+					}
 				}
 			}
 
@@ -155,7 +167,7 @@ public partial class ConstExprPartialRewriter
 		{
 			DefaultSwitchLabelSyntax => true,
 			CaseSwitchLabelSyntax constCase =>
-				TryGetConstantValue(semanticModel.Compilation, loader, Visit(constCase.Value) ?? constCase.Value, new VariableItemDictionary(variables), token, out var caseValue)
+				TryGetConstantValue(semanticModel.Compilation, loader, Visit(constCase.Value), new VariableItemDictionary(variables), token, out var caseValue)
 					? Equals(governingValue, caseValue)
 					: null,
 			CasePatternSwitchLabelSyntax patCase =>
@@ -217,7 +229,7 @@ public partial class ConstExprPartialRewriter
 	/// </summary>
 	private bool? EvaluateRelationalPattern(RelationalPatternSyntax relPat, object? value)
 	{
-		var visited = Visit(relPat.Expression) ?? relPat.Expression;
+		var visited = Visit(relPat.Expression);
 
 		if (!TryGetConstantValue(semanticModel.Compilation, loader, visited, new VariableItemDictionary(variables), token, out var rightVal))
 		{
@@ -335,7 +347,7 @@ public partial class ConstExprPartialRewriter
 	/// </summary>
 	private bool? EvaluateWhen(WhenClauseSyntax when)
 	{
-		var visited = Visit(when.Condition) ?? when.Condition;
+		var visited = Visit(when.Condition);
 		return TryGetConstantValue(semanticModel.Compilation, loader, visited, new VariableItemDictionary(variables), token, out var val)
 			? val is true
 			: null;
@@ -457,7 +469,7 @@ public partial class ConstExprPartialRewriter
 		var governing = Visit(node.GoverningExpression);
 
 		// Try to evaluate switch at compile time when governing expression is constant
-		if (TryGetLiteralValue(governing ?? node.GoverningExpression, out var governingValue))
+		if (TryGetLiteralValue(governing, out var governingValue))
 		{
 			foreach (var arm in node.Arms)
 			{
@@ -664,7 +676,7 @@ public partial class ConstExprPartialRewriter
 					return null;
 				}
 
-				if (binary.Kind() is SyntaxKind.LogicalAndExpression or SyntaxKind.LogicalOrExpression)
+				if (binary.IsKind(SyntaxKind.LogicalAndExpression, SyntaxKind.LogicalOrExpression))	
 				{
 					// Recurse into both sides (De Morgan)
 					var left  = NegateComparison(binary.Left);
@@ -710,13 +722,14 @@ public partial class ConstExprPartialRewriter
 		{
 			var kind = leftRel.OperatorToken.Kind();
 
-			if (kind is SyntaxKind.GreaterThanToken or SyntaxKind.GreaterThanEqualsToken)
+			switch (kind)
 			{
-				lowerPattern = leftRel;
-			}
-			else if (kind is SyntaxKind.LessThanToken or SyntaxKind.LessThanEqualsToken)
-			{
-				upperPattern = leftRel;
+				case SyntaxKind.GreaterThanToken or SyntaxKind.GreaterThanEqualsToken:
+					lowerPattern = leftRel;
+					break;
+				case SyntaxKind.LessThanToken or SyntaxKind.LessThanEqualsToken:
+					upperPattern = leftRel;
+					break;
 			}
 		}
 
@@ -724,13 +737,14 @@ public partial class ConstExprPartialRewriter
 		{
 			var kind = rightRel.OperatorToken.Kind();
 
-			if (kind is SyntaxKind.GreaterThanToken or SyntaxKind.GreaterThanEqualsToken)
+			switch (kind)
 			{
-				lowerPattern = rightRel;
-			}
-			else if (kind is SyntaxKind.LessThanToken or SyntaxKind.LessThanEqualsToken)
-			{
-				upperPattern = rightRel;
+				case SyntaxKind.GreaterThanToken or SyntaxKind.GreaterThanEqualsToken:
+					lowerPattern = rightRel;
+					break;
+				case SyntaxKind.LessThanToken or SyntaxKind.LessThanEqualsToken:
+					upperPattern = rightRel;
+					break;
 			}
 		}
 
@@ -741,8 +755,8 @@ public partial class ConstExprPartialRewriter
 		}
 
 		// Get the constant values
-		var visitedLower = Visit(lowerPattern.Expression) ?? lowerPattern.Expression;
-		var visitedUpper = Visit(upperPattern.Expression) ?? upperPattern.Expression;
+		var visitedLower = Visit(lowerPattern.Expression);
+		var visitedUpper = Visit(upperPattern.Expression);
 
 		if (!TryGetConstantValue(semanticModel.Compilation, loader, visitedLower, new VariableItemDictionary(variables), token, out lowerBound)
 		    || !TryGetConstantValue(semanticModel.Compilation, loader, visitedUpper, new VariableItemDictionary(variables), token, out upperBound))

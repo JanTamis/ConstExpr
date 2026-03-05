@@ -185,6 +185,7 @@ public partial class ConstExprPartialRewriter
 		}
 
 		InvalidateAssignedVariables(node);
+		
 		return base.VisitDoStatement(node);
 	}
 
