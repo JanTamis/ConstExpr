@@ -1,7 +1,8 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
@@ -14,7 +15,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// </summary>
 public class SelectManyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.SelectMany), 1, 2)
 {
-	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
+	public override bool TryOptimize(FunctionOptimizerContext context, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(context)
 		    || !TryGetLinqSource(context.Invocation, out var source))
@@ -41,17 +42,15 @@ public class SelectManyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(En
 		// Check if lambda always returns empty
 		if (context.VisitedParameters.Count >= 1
 		    && TryGetLambda(context.VisitedParameters[0], out var lambda)
-		    && TryGetLambdaBody(lambda, out var body))
+		    && TryGetLambdaBody(lambda, out var body)
+		    && IsEmptyEnumerable(body)
+		    && context.Method.TypeArguments.Length > 0)
 		{
-			if (IsEmptyEnumerable(body)
-			    && context.Method.TypeArguments.Length > 0)
-			{
-				// selector always returns empty, so result is empty
-				var resultType = context.Method.TypeArguments[^1];
+			// selector always returns empty, so result is empty
+			var resultType = context.Method.TypeArguments[^1];
 
-				result = CreateEmptyEnumerableCall(resultType);
-				return true;
-			}
+			result = CreateEmptyEnumerableCall(resultType);
+			return true;
 		}
 
 		result = null;

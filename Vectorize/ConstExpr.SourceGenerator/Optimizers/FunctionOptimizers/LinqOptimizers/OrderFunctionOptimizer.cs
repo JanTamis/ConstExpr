@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 
@@ -10,6 +12,15 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// </summary>
 public class OrderFunctionOptimizer() : BaseLinqFunctionOptimizer("Order", 0)
 {
+	private static readonly HashSet<string> OrderingOperations =
+	[
+		..MaterializingMethods,
+		nameof(Enumerable.OrderBy),
+		nameof(Enumerable.OrderByDescending),
+		"Order",
+		"OrderDescending"
+	];
+	
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(context)
@@ -23,6 +34,8 @@ public class OrderFunctionOptimizer() : BaseLinqFunctionOptimizer("Order", 0)
 		{
 			return true;
 		}
+		
+		var isNewSource = TryGetOptimizedChainExpression(source, OrderingOperations, out source);
 
 		if (IsLinqMethodChain(source, out var methodName, out var invocation)
 		    && TryGetLinqSource(invocation, out var invocationSource))
@@ -40,6 +53,12 @@ public class OrderFunctionOptimizer() : BaseLinqFunctionOptimizer("Order", 0)
 					return true;
 				}
 			}
+		}
+		
+		if (isNewSource)
+		{
+			result = CreateSimpleInvocation(source, "Order");
+			return true;
 		}
 
 		result = null;

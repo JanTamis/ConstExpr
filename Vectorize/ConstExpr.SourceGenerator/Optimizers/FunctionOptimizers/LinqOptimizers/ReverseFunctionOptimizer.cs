@@ -36,6 +36,26 @@ public class ReverseFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
           result = invocationSource;
           return true;
         }
+        case "Order":
+        {
+          result = CreateInvocation(invocationSource, "OrderDescending");
+          return true;
+        }
+        case nameof(Enumerable.OrderBy):
+        {
+          result = CreateInvocation(invocationSource, nameof(Enumerable.OrderByDescending), invocation.ArgumentList.Arguments.Select(s => s.Expression));
+          return true;
+        }
+        case "OrderDescending":
+        {
+          result = CreateInvocation(invocationSource, "Order");
+          return true;
+        }
+        case nameof(Enumerable.OrderByDescending):
+        {
+          result = CreateInvocation(invocationSource, nameof(Enumerable.OrderBy), invocation.ArgumentList.Arguments.Select(s => s.Expression));
+          return true;
+        }
       }
     }
 
