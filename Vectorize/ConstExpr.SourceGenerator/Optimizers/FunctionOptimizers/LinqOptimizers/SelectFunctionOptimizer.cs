@@ -98,24 +98,4 @@ public class SelectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 
 		return CreateInvocation(source, genericName);
 	}
-
-	private LambdaExpressionSyntax CombineLambdas(LambdaExpressionSyntax outer, LambdaExpressionSyntax inner)
-	{
-		// Get parameter names from both lambdas
-		var innerParam = GetLambdaParameter(inner);
-		var outerParam = GetLambdaParameter(outer);
-
-		// Get the body expressions
-		var innerBody = GetLambdaBody(inner);
-		var outerBody = GetLambdaBody(outer);
-
-		// Replace the outer lambda's parameter with the inner lambda's body
-		var combinedBody = ReplaceIdentifier(outerBody, outerParam, innerBody);
-
-		// Create a new lambda with the inner parameter and the combined body
-		return SyntaxFactory.SimpleLambdaExpression(
-			SyntaxFactory.Parameter(SyntaxFactory.Identifier(innerParam)),
-			combinedBody
-		);
-	}
 }

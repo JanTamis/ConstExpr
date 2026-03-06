@@ -740,6 +740,27 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		);
 	}
 
+	/// <summary>
+	/// Combines two lambdas by composing them: outer(inner(x)) => x => outer(inner(x)).
+	/// The outer lambda's parameter is replaced by the inner lambda's body.
+	/// </summary>
+	protected LambdaExpressionSyntax CombineLambdas(LambdaExpressionSyntax outer, LambdaExpressionSyntax inner)
+	{
+		var innerParam = GetLambdaParameter(inner);
+		var outerParam = GetLambdaParameter(outer);
+
+		var innerBody = GetLambdaBody(inner);
+		var outerBody = GetLambdaBody(outer);
+
+		// Replace the outer lambda's parameter with the inner lambda's body
+		var combinedBody = ReplaceIdentifier(outerBody, outerParam, innerBody);
+
+		return SimpleLambdaExpression(
+			Parameter(Identifier(innerParam)),
+			combinedBody
+		);
+	}
+
 	protected static string GetLambdaParameter(LambdaExpressionSyntax lambda)
 	{
 		return lambda switch
@@ -1084,9 +1105,9 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 			context.OriginalParameters = parameters;
 			context.VisitedParameters = visitedParameters;
 
-			var firstOptimizer = new TOptimizer();
+			var optimizer = new TOptimizer();
 
-			if (!firstOptimizer.TryOptimize(context, out var result))
+			if (!optimizer.TryOptimize(context, out var result))
 			{
 				result = invocation;
 			}
@@ -1101,7 +1122,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	
 	protected bool TryGetElementType(FunctionOptimizerContext context, [NotNullWhen(true)] out ITypeSymbol? elementType)
 	{
-		if (context.Method.ReceiverType is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Collections_Generic_IEnumerable_T } receiverType)
+		if (context.Method.ReceiverType is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Collections_Generic_IEnumerable_T, TypeArguments.Length: 1 } receiverType)
 		{
 			elementType = receiverType.TypeArguments[0];
 			return true;

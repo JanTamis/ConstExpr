@@ -58,7 +58,8 @@ public class UnionFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		{
 			if (TryGetSyntaxes(source, out var syntaxes))
 			{
-				var items = syntaxes.Distinct(SyntaxNodeComparer<ExpressionSyntax>.Instance)
+				var items = syntaxes
+					.Distinct(SyntaxNodeComparer<ExpressionSyntax>.Instance)
 					.Select(SyntaxFactory.ExpressionElement);
 				
 				result = SyntaxFactory.CollectionExpression(SyntaxFactory.SeparatedList<CollectionElementSyntax>(items));
@@ -74,7 +75,8 @@ public class UnionFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		{
 			if (TryGetSyntaxes(secondSource, out var syntaxes))
 			{
-				var items = syntaxes.Distinct(SyntaxNodeComparer<ExpressionSyntax>.Instance)
+				var items = syntaxes
+					.Distinct(SyntaxNodeComparer<ExpressionSyntax>.Instance)
 					.Select(SyntaxFactory.ExpressionElement);
 
 				result = SyntaxFactory.CollectionExpression(SyntaxFactory.SeparatedList<CollectionElementSyntax>(items));
@@ -94,8 +96,7 @@ public class UnionFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 				result = SyntaxFactory.CollectionExpression(
 					SyntaxFactory.SeparatedList<CollectionElementSyntax>(
-						tempValues.Select(SyntaxFactory.ExpressionElement))
-				);
+						tempValues.Select(SyntaxFactory.ExpressionElement)));
 				return true;
 			}
 
