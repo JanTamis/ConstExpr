@@ -134,18 +134,6 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 					var defaultItem = invocation.ArgumentList.Arguments.Count == 0
 						? context.Method.ReturnType is INamedTypeSymbol namedType ? namedType.GetDefaultValue() : SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression)
 						: invocation.ArgumentList.Arguments[0].Expression;
-
-					while (IsLinqMethodChain(methodSource, nameof(Enumerable.DefaultIfEmpty), out var innerDefaultInvocation)
-					       && TryGetLinqSource(innerDefaultInvocation, out var innerSource))
-					{
-						// Continue skipping operations before the inner DefaultIfEmpty
-						TryGetOptimizedChainExpression(innerSource, OperationsThatDontAffectFirst, out methodSource);
-
-						defaultItem = innerDefaultInvocation.ArgumentList.Arguments
-							.Select(s => s.Expression)
-							.DefaultIfEmpty(SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression))
-							.First(); // Update default value to the last one to the last one
-					}
 					
 					if (IsInvokedOnArray(context, methodSource))
 					{

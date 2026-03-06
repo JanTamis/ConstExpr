@@ -57,7 +57,7 @@ public class OrderDescendingFunctionOptimizer() : BaseLinqFunctionOptimizer("Ord
 		
 		if (isNewSource)
 		{
-			result = CreateSimpleInvocation(source, "OrderDescending");
+			result = CreateSimpleInvocation(source, Name);
 			return true;
 		}
 

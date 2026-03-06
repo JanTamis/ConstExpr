@@ -381,6 +381,19 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 
 		return body is not null;
 	}
+	
+	protected bool TryGetSimpleLambdaParameter(LambdaExpressionSyntax lambda, [NotNullWhen(true)] out ParameterSyntax? parameterName)
+	{
+		parameterName = null;
+
+		if (lambda is SimpleLambdaExpressionSyntax { Parameter: var paramName })
+		{
+			parameterName = paramName;
+			return true;
+		}
+
+		return false;
+	}
 
 	/// <summary>
 	/// Checks if the expression is a direct method invocation on a collection.
@@ -1084,6 +1097,18 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		{
 			return invocation;
 		}
+	}
+	
+	protected bool TryGetElementType(FunctionOptimizerContext context, [NotNullWhen(true)] out ITypeSymbol? elementType)
+	{
+		if (context.Method.ReceiverType is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Collections_Generic_IEnumerable_T } receiverType)
+		{
+			elementType = receiverType.TypeArguments[0];
+			return true;
+		}
+		
+		elementType = null;
+		return false;
 	}
 
 	private class IdentifierReplacer(string identifier, ExpressionSyntax replacement) : CSharpSyntaxRewriter

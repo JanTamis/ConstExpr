@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using ConstExpr.SourceGenerator.Comparers;
 using ConstExpr.SourceGenerator.Extensions;
@@ -18,6 +19,12 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// </summary>
 public class UnionFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Union), 1)
 {
+	private static readonly HashSet<string> OperationsThatDontAffectUnion =
+	[
+		..MaterializingMethods,
+		nameof(Enumerable.Distinct), // union already applies Distinct
+	];
+	
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(context)
@@ -28,8 +35,7 @@ public class UnionFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		}
 
 		var secondSource = context.VisitedParameters[0];
-
-		source = context.Visit(source) ?? source;
+		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectUnion, out source);
 
 		if (TryExecutePredicates(context, source, out result, out source))
 		{
@@ -94,6 +100,12 @@ public class UnionFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 			}
 
 			result = TryOptimizeByOptimizer<DistinctFunctionOptimizer>(context, CreateSimpleInvocation(source, nameof(Enumerable.Distinct)));
+			return true;
+		}
+		
+		if (isNewSource)
+		{
+			result = UpdateInvocation(context, source);
 			return true;
 		}
 

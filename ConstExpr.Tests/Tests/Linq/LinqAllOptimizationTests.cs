@@ -45,7 +45,15 @@ public class LinqAllOptimizationTests : BaseTest<Func<int[], int>>
 		// Complex: OrderBy().Where().All() => All(combined)
 		var l = x.OrderBy(v => v).Where(v => v > 2).All(v => v < 8) ? 1 : 0;
 
-		return a + b + c + d + e + f + g + h + i + j + k + l;
+		var m = x.Append(5).All(v => v > 3) ? 1 : 0;
+
+		var n = x.Prepend(5).All(v => v > 3) ? 1 : 0;
+
+		var o = x.DefaultIfEmpty().All(v => v > 3) ? 1 : 0;
+
+		var p = x.DefaultIfEmpty(5).All(v => v > 3) ? 1 : 0;
+
+		return a + b + c + d + e + f + g + h + i + j + k + l + m + n + o + p;
 	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
@@ -63,8 +71,11 @@ public class LinqAllOptimizationTests : BaseTest<Func<int[], int>>
 			var j = Array.TrueForAll(x, v => v > 0) ? 1 : 0;
 			var k = Array.TrueForAll(x, v => v > 100) && Array.TrueForAll(x, v => v > 100) ? 1 : 0;
 			var l = Array.TrueForAll(x, v => (uint)v - 2 < 6U) ? 1 : 0;
+			var m = Array.TrueForAll(x, v => v > 3) ? 1 : 0;
+			var n = Array.TrueForAll(x, v => v > 3) ? 1 : 0;
+			var p = Array.TrueForAll(x, v => v > 3) ? 1 : 0;
 			
-			return a + b + c + d + e + f + g + h + i + j + k + l;
+			return a + b + c + d + e + f + g + h + i + j + k + l + m + n + p;
 			""", Unknown),
 		Create("return 10;", new[] { 1, 2, 3, 4, 5 }), // a=1, b-j=1 each (9 total), k=0, l=0 (1,2 fail v>2) = 10
 		Create("return 12;", new int[] { }), // All() returns true for empty collection, so all return 1 = 12

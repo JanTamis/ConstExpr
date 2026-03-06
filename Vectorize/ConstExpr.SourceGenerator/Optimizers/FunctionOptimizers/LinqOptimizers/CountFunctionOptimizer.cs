@@ -202,9 +202,9 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 							var left = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression,
 								countInvocation as ExpressionSyntax,
-								context.OptimizeBinaryExpression(SyntaxFactory.BinaryExpression(SyntaxKind.SubtractExpression, chunkSize, SyntaxHelpers.CreateLiteral(1)!), intType, intType, intType) as ExpressionSyntax ?? chunkSize);
+								context.OptimizeBinaryExpression(SyntaxFactory.BinaryExpression(SyntaxKind.SubtractExpression, chunkSize, SyntaxHelpers.CreateLiteral(1)!), intType, intType, intType) ?? chunkSize);
 
-							result = context.OptimizeBinaryExpression(SyntaxFactory.BinaryExpression(SyntaxKind.DivideExpression, SyntaxFactory.ParenthesizedExpression(context.OptimizeBinaryExpression(left, intType, intType, intType) as ExpressionSyntax ?? left), chunkSize), intType, intType, intType) as ExpressionSyntax ?? chunkSize;
+							result = context.OptimizeBinaryExpression(SyntaxFactory.BinaryExpression(SyntaxKind.DivideExpression, SyntaxFactory.ParenthesizedExpression(context.OptimizeBinaryExpression(left, intType, intType, intType) ?? left), chunkSize), intType, intType, intType) ?? chunkSize;
 							return true;
 						}
 
@@ -323,7 +323,8 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		}
 
 		// If we skipped any operations, create optimized Count() call
-		if (isNewSource)
+		if (isNewSource
+		    || !AreSyntacticallyEquivalent(currentSource, source))
 		{
 			result = UpdateInvocation(context, currentSource);
 			return true;

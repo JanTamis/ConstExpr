@@ -43,8 +43,16 @@ public class LinqAnyOptimizationTests : BaseTest<Func<int[], int>>
 
 		// Direct Any() on array => x.Length > 0
 		var l = x.Any() ? 1 : 0;
+		
+		var m = x.Append(5).Any(v => v > 3) ? 1 : 0;
+		
+		var n = x.Prepend(5).Any(v => v > 3) ? 1 : 0;
+		
+		var o = x.DefaultIfEmpty().Any(v => v > 3) ? 1 : 0;
+		
+		var p = x.DefaultIfEmpty(5).Any(v => v > 3) ? 1 : 0;
 
-		return a + b + c + d + e + f + g + h + i + j + k + l;
+		return a + b + c + d + e + f + g + h + i + j + k + l + m + n + o + p;
 	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
@@ -62,8 +70,9 @@ public class LinqAnyOptimizationTests : BaseTest<Func<int[], int>>
 			var j = Array.IndexOf(x, 100) >= 0 ? 1 : 0;
 			var k = Array.IndexOf(x, 2) >= 0 ? 1 : 0;
 			var l = x.Count > 0 ? 1 : 0;
+			var o = Array.Exists(x, v => v > 3) ? 1 : 0;
 			
-			return a + b + c + d + e + f + g + h + i + j + k + l;
+			return a + b + c + d + e + f + g + h + i + j + k + l + 2 + o + 1;
 			""", Unknown),
 		Create("return 11;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new int[] { }),

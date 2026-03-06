@@ -16,7 +16,7 @@ public sealed class FunctionOptimizerContext(
 	IList<ExpressionSyntax> originalParameters,
 	Func<SyntaxNode, ExpressionSyntax?> visit,
 	Func<LambdaExpressionSyntax, LambdaExpression?> getLambda,
-	Func<BinaryExpressionSyntax, ITypeSymbol, ITypeSymbol, ITypeSymbol, SyntaxNode> optimizeBinaryExpression,
+	Func<BinaryExpressionSyntax, ITypeSymbol, ITypeSymbol, ITypeSymbol, ExpressionSyntax> optimizeBinaryExpression,
 	IDictionary<SyntaxNode, bool> additionalMethods,
 	IDictionary<string, VariableItem> variables)
 {
@@ -28,7 +28,7 @@ public sealed class FunctionOptimizerContext(
 	public IList<ExpressionSyntax> OriginalParameters { get; set; } = originalParameters;
 	public Func<SyntaxNode, ExpressionSyntax?> Visit { get; } = visit;
 	public Func<LambdaExpressionSyntax, LambdaExpression?> GetLambda { get; } = getLambda;
-	public Func<BinaryExpressionSyntax, ITypeSymbol, ITypeSymbol, ITypeSymbol, SyntaxNode> OptimizeBinaryExpression { get; set; } = optimizeBinaryExpression;
+	public Func<BinaryExpressionSyntax, ITypeSymbol, ITypeSymbol, ITypeSymbol, ExpressionSyntax> OptimizeBinaryExpression { get; set; } = optimizeBinaryExpression;
 	public IDictionary<SyntaxNode, bool> AdditionalMethods { get; } = additionalMethods;
 	public IDictionary<string, VariableItem> Variables { get; } = variables;
 

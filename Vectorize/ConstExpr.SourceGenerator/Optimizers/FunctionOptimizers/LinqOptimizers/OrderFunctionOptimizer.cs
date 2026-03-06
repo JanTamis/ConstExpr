@@ -49,7 +49,7 @@ public class OrderFunctionOptimizer() : BaseLinqFunctionOptimizer("Order", 0)
 				}
 				case "OrderDescending":
 				{
-					result = CreateSimpleInvocation(invocationSource, "Order");
+					result = CreateSimpleInvocation(invocationSource, Name);
 					return true;
 				}
 			}
@@ -57,7 +57,7 @@ public class OrderFunctionOptimizer() : BaseLinqFunctionOptimizer("Order", 0)
 		
 		if (isNewSource)
 		{
-			result = CreateSimpleInvocation(source, "Order");
+			result = CreateSimpleInvocation(source, Name);
 			return true;
 		}
 

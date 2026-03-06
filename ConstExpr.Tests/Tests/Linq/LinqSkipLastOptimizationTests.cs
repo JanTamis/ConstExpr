@@ -10,16 +10,20 @@ public class LinqSkipLastOptimizationTests : BaseTest<Func<int[], int>>
 	{
 		// SkipLast(0) => source
 		var a = x.SkipLast(0).Count();
+		
+		var b = x.SkipLast(1).SkipLast(5).Count();
 
-		return a;
+		return a + b;
 	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
 			var a = x.Length;
+			
+			var b = x.SkipLast(6).Count();
 
-			return a;
+			return a + b;
 			""", Unknown),
 		Create("return 3;", new[] { 1, 2, 3 }),
 		Create("return 0;", new int[] { }),

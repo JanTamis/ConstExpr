@@ -42,7 +42,7 @@ public class OrderByFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 		
 		if (isNewSource)
 		{
-			result = CreateInvocation(source, nameof(Enumerable.OrderBy), lambda);
+			result = CreateInvocation(source, Name, lambda);
 			return true;
 		}
 		

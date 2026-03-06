@@ -297,13 +297,14 @@ public partial class ConstExprPartialRewriter
 			return Expression.Lambda(body, lambdaParams);
 		});
 
-		var optimizeBinaryExpression = new Func<BinaryExpressionSyntax, ITypeSymbol, ITypeSymbol, ITypeSymbol, SyntaxNode>((binary, leftType, rightType, type) =>
+		var optimizeBinaryExpression = new Func<BinaryExpressionSyntax, ITypeSymbol, ITypeSymbol, ITypeSymbol, ExpressionSyntax>((binary, leftType, rightType, type) =>
 		{
 			var expressions = GetBinaryExpressions(node).ToList();
 
-			if (TryOptimizeNode(binary.Kind().ToBinaryOperatorKind(), expressions, type, binary.Left, leftType, binary.Right, rightType, node.Parent, out var optimizedNode))
+			if (TryOptimizeNode(binary.Kind().ToBinaryOperatorKind(), expressions, type, binary.Left, leftType, binary.Right, rightType, node.Parent, out var optimizedNode)
+			    && optimizedNode is ExpressionSyntax optimizedExpr)
 			{
-				return optimizedNode;
+				return optimizedExpr;
 			}
 
 			return binary;
@@ -356,13 +357,14 @@ public partial class ConstExprPartialRewriter
 			return Expression.Lambda(body, lambdaParams);
 		});
 
-		var optimizeBinaryExpression = new Func<BinaryExpressionSyntax, ITypeSymbol, ITypeSymbol, ITypeSymbol, SyntaxNode>((binary, leftType, rightType, type) =>
+		var optimizeBinaryExpression = new Func<BinaryExpressionSyntax, ITypeSymbol, ITypeSymbol, ITypeSymbol, ExpressionSyntax>((binary, leftType, rightType, type) =>
 		{
 			var expressions = GetBinaryExpressions(node).ToList();
 
-			if (TryOptimizeNode(binary.Kind().ToBinaryOperatorKind(), expressions, type, binary.Left, leftType, binary.Right, rightType, node.Parent, out var optimizedNode))
+			if (TryOptimizeNode(binary.Kind().ToBinaryOperatorKind(), expressions, type, binary.Left, leftType, binary.Right, rightType, node.Parent, out var optimizedNode)
+			    && optimizedNode is ExpressionSyntax optimizedExpr)
 			{
-				return optimizedNode;
+				return optimizedExpr;
 			}
 
 			return binary;
@@ -412,7 +414,7 @@ public partial class ConstExprPartialRewriter
 			}
 		});
 
-		var optimizeBinaryExpression = new Func<BinaryExpressionSyntax, ITypeSymbol, ITypeSymbol, ITypeSymbol, SyntaxNode>((binary, leftType, rightType, type) =>
+		var optimizeBinaryExpression = new Func<BinaryExpressionSyntax, ITypeSymbol, ITypeSymbol, ITypeSymbol, ExpressionSyntax>((binary, leftType, rightType, type) =>
 		{
 			if (binary.Left is LiteralExpressionSyntax leftLiteral
 			    && binary.Right is LiteralExpressionSyntax rightLiteral
@@ -423,9 +425,10 @@ public partial class ConstExprPartialRewriter
 
 			var expressions = GetBinaryExpressions(node).ToList();
 
-			if (TryOptimizeNode(binary.Kind().ToBinaryOperatorKind(), expressions, type, binary.Left, leftType, binary.Right, rightType, node.Parent, out var optimizedNode))
+			if (TryOptimizeNode(binary.Kind().ToBinaryOperatorKind(), expressions, type, binary.Left, leftType, binary.Right, rightType, node.Parent, out var optimizedNode)
+			    && optimizedNode is ExpressionSyntax optimizedExpr)
 			{
-				return optimizedNode;
+				return optimizedExpr;
 			}
 
 			return binary;

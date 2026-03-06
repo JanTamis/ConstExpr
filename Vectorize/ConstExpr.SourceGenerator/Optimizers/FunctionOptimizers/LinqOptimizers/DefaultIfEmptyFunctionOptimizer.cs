@@ -45,7 +45,7 @@ public class DefaultIfEmptyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 		}
 
 		// Special case: if source is also DefaultIfEmpty, we can skip it (idempotent)
-		// DefaultIfEmpty(x).DefaultIfEmpty(y) => DefaultIfEmpty(y) (last value wins)
+		// DefaultIfEmpty(x).DefaultIfEmpty(y) => DefaultIfEmpty(y) (first value wins)
 		while (IsLinqMethodChain(source, nameof(Enumerable.DefaultIfEmpty), out var innerDefaultInvocation)
 		       && TryGetLinqSource(innerDefaultInvocation, out var innerSource))
 		{

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -98,6 +100,82 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 					result = SyntaxFactory.BinaryExpression(SyntaxKind.LogicalAndExpression, left ?? CreateInvocation(invocationSource, Name, context.VisitedParameters), right ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters));
 					return true;
+				}
+				case nameof(Enumerable.Append) or nameof(Enumerable.Prepend):
+				{
+					if (context.VisitedParameters.Count == 0)
+					{
+						result = SyntaxHelpers.CreateLiteral(true);
+						return true;
+					}
+
+					if (context.VisitedParameters.Count == 1
+					    && TryGetLambda(context.VisitedParameters[0], out var anyPredicate)
+					    && TryGetLambdaBody(anyPredicate, out var anyPredicateBody)
+					    && TryGetSimpleLambdaParameter(anyPredicate, out var anyPredicateParam)
+					    && TryGetElementType(context, out var elementType))
+					{
+						var boolType = context.Model.Compilation.GetSpecialType(SpecialType.System_Boolean);
+
+						// collect all the append arguments in case of multiple appends in a chain, e.g. source.Append(x).Append(y).Any()
+						var appendValues = new List<ExpressionSyntax> { context.Visit(ReplaceIdentifier(anyPredicateBody, anyPredicateParam.Identifier.Text, invocation.ArgumentList.Arguments[0].Expression)) };
+
+						while (IsLinqMethodChain(invocationSource, out methodName, out var currentMethodInvocation)
+						       && methodName is nameof(Enumerable.Append) or nameof(Enumerable.Prepend)
+						       && TryGetLinqSource(currentMethodInvocation, out invocationSource))
+						{
+							if (currentMethodInvocation.ArgumentList.Arguments.Count == 0)
+							{
+								result = SyntaxHelpers.CreateLiteral(true);
+								return true;
+							}
+
+							appendValues.Add(context.Visit(ReplaceIdentifier(anyPredicateBody, anyPredicateParam.Identifier.Text, currentMethodInvocation.ArgumentList.Arguments[0].Expression)));
+						}
+
+						var updatedInvocation = UpdateInvocation(context, invocationSource);
+
+						appendValues.Add(TryOptimize(context.WithInvocationAndMethod(updatedInvocation, context.Method), out var rightResult) ? rightResult as ExpressionSyntax : updatedInvocation);
+
+						result = appendValues.Skip(1).Aggregate(appendValues[0], (result, value)
+							=> context.OptimizeBinaryExpression(SyntaxFactory.BinaryExpression(SyntaxKind.LogicalAndExpression, result, value), elementType, elementType, boolType));
+
+						return true;
+					}
+
+					break;
+				}
+				case nameof(Enumerable.DefaultIfEmpty):
+				{
+					if (context.VisitedParameters.Count == 0)
+					{
+						result = SyntaxHelpers.CreateLiteral(true);
+						return true;
+					}
+
+					if (TryGetElementType(context, out var elementType))
+					{
+						var defaultValue = invocation.ArgumentList.Arguments.Count == 0
+							? elementType.GetDefaultValue()
+							: invocation.ArgumentList.Arguments[0].Expression;
+
+						if (context.VisitedParameters.Count == 1
+						    && TryGetLambda(context.VisitedParameters[0], out var anyPredicate)
+						    && TryGetLambdaBody(anyPredicate, out var anyPredicateBody)
+						    && TryGetSimpleLambdaParameter(anyPredicate, out var anyPredicateParam))
+						{
+							var boolType = context.Model.Compilation.GetSpecialType(SpecialType.System_Boolean);
+							var updatedInvocation = UpdateInvocation(context, invocationSource);
+
+							var left = context.Visit(ReplaceIdentifier(anyPredicateBody, anyPredicateParam.Identifier.Text, defaultValue)) ?? defaultValue;
+							var right = TryOptimize(context.WithInvocationAndMethod(updatedInvocation, context.Method), out var rightResult) ? rightResult as ExpressionSyntax : updatedInvocation;
+
+							result = context.OptimizeBinaryExpression(SyntaxFactory.BinaryExpression(SyntaxKind.LogicalAndExpression, left, right), elementType, elementType, boolType);
+							return true;
+						}
+					}
+
+					break;
 				}
 			}
 		}

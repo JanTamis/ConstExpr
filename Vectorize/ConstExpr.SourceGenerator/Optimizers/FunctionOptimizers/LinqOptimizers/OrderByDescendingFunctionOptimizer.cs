@@ -41,7 +41,7 @@ public class OrderByDescendingFunctionOptimizer() : BaseLinqFunctionOptimizer(na
 		
 		if (isNewSource)
 		{
-			result = CreateInvocation(source, nameof(Enumerable.OrderByDescending), lambda);
+			result = CreateInvocation(source, Name, lambda);
 			return true;
 		}
 
