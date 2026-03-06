@@ -437,17 +437,70 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		return visited;
 	}
 
-	// New: normalize object creation spacing so `new Type (` -> `new Type(`
+	// Normalize object creation spacing so `new Type (` -> `new Type(`
+	// and flatten collection initializers onto a single line.
 	public override SyntaxNode? VisitObjectCreationExpression(ObjectCreationExpressionSyntax node)
 	{
-		var result = base.VisitObjectCreationExpression(node);
+		var result = base.VisitObjectCreationExpression(node) as ObjectCreationExpressionSyntax ?? node;
 
-		if (result is ObjectCreationExpressionSyntax)
+		// Remove trailing trivia from the type name (e.g. `new Dictionary<int, int> (` -> `new Dictionary<int, int>(`)
+		result = result.WithType(result.Type.WithTrailingTrivia());
+
+		// Flatten collection initializer onto a single line: { { k, v }, ... }
+		if (result.Initializer is { RawKind: (int)SyntaxKind.CollectionInitializerExpression } initializer)
 		{
-			return node.WithType(node.Type.WithTrailingTrivia());
+			var flat = FlattenInitializer(initializer);
+
+			// Ensure no newline between the closing ) and the opening {
+			result = result
+				.WithInitializer(flat.WithLeadingTrivia());
+
+			if (result.ArgumentList is not null)
+			{
+				result = result.WithArgumentList(result.ArgumentList.WithTrailingTrivia(SyntaxFactory.Space));
+			}
 		}
 
 		return result;
+	}
+
+	private static InitializerExpressionSyntax FlattenInitializer(InitializerExpressionSyntax initializer)
+	{
+		var flatElements = initializer.Expressions
+			.Select(expr =>
+			{
+				ExpressionSyntax flat;
+
+				if (expr is InitializerExpressionSyntax innerInit)
+				{
+					var innerComma = SyntaxFactory.Token(SyntaxKind.CommaToken).WithTrailingTrivia(SyntaxFactory.Space);
+					var innerCommas = Enumerable.Repeat(innerComma, Math.Max(0, innerInit.Expressions.Count - 1)).ToArray();
+					var innerItems = innerInit.Expressions.Select(e => e.WithoutTrivia()).ToArray();
+
+					flat = innerInit
+						.WithOpenBraceToken(SyntaxFactory.Token(SyntaxKind.OpenBraceToken)
+							.WithLeadingTrivia(SyntaxFactory.Space))
+						.WithCloseBraceToken(SyntaxFactory.Token(SyntaxKind.CloseBraceToken))
+						.WithExpressions(SyntaxFactory.SeparatedList(innerItems, innerCommas));
+				}
+				else
+				{
+					flat = expr.WithoutTrivia();
+				}
+
+				return flat.WithLeadingTrivia(SyntaxFactory.Space);
+			})
+			.ToArray();
+
+		var commas = Enumerable.Repeat(
+			SyntaxFactory.Token(SyntaxKind.CommaToken).WithTrailingTrivia(),
+			Math.Max(0, flatElements.Length - 1)).ToArray();
+
+		return initializer
+			.WithOpenBraceToken(SyntaxFactory.Token(SyntaxKind.OpenBraceToken).WithTrailingTrivia())
+			.WithCloseBraceToken(SyntaxFactory.Token(SyntaxKind.CloseBraceToken)
+				.WithLeadingTrivia(SyntaxFactory.Space))
+			.WithExpressions(SyntaxFactory.SeparatedList(flatElements, commas));
 	}
 
 	public override SyntaxNode? VisitInvocationExpression(InvocationExpressionSyntax node)

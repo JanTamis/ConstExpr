@@ -102,7 +102,7 @@ public static class SyntaxHelpers
 		return expression is not null;
 	}
 
-	public static ExpressionSyntax? CreateLiteral<T>( T? value, bool useExplicitByte = false)
+	public static ExpressionSyntax? CreateLiteral<T>(T? value, bool useExplicitByte = false)
 	{
 		switch (value)
 		{
@@ -257,6 +257,48 @@ public static class SyntaxHelpers
 			return SyntaxFactory.TupleExpression(SyntaxFactory.SeparatedList(tupleItems));
 		}
 
+		// Support for IDictionary – emit new Dictionary<K, V> { { k, v }, ... }
+		if (value is IDictionary dictionary)
+		{
+			var type = value.GetType();
+			var typeArgs = type.GetGenericArguments();
+			var keyTypeSyntax = typeArgs.Length > 0 ? GetTypeSyntax(typeArgs[0]) : SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.ObjectKeyword));
+			var valueTypeSyntax = typeArgs.Length > 1 ? GetTypeSyntax(typeArgs[1]) : SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.ObjectKeyword));
+
+			var initializerExpressions = new List<ExpressionSyntax>();
+
+			foreach (DictionaryEntry entry in dictionary)
+			{
+				var keyExpr = CreateLiteral(entry.Key);
+				var valExpr = CreateLiteral(entry.Value);
+
+				if (keyExpr is null || valExpr is null)
+				{
+					return null;
+				}
+
+				initializerExpressions.Add(
+					SyntaxFactory.InitializerExpression(
+						SyntaxKind.ComplexElementInitializerExpression,
+						SyntaxFactory.SeparatedList<ExpressionSyntax>([keyExpr, valExpr])));
+			}
+
+			var dictionaryType = SyntaxFactory.GenericName(
+					SyntaxFactory.Identifier("Dictionary"))
+				.WithTypeArgumentList(SyntaxFactory.TypeArgumentList(
+					SyntaxFactory.SeparatedList<TypeSyntax>([
+						keyTypeSyntax,
+						valueTypeSyntax
+					])));
+
+			return SyntaxFactory.ObjectCreationExpression(dictionaryType)
+				.WithArgumentList(SyntaxFactory.ArgumentList(
+					SyntaxFactory.SeparatedList<ArgumentSyntax>([SyntaxFactory.Argument(CreateLiteral(initializerExpressions.Count))])))
+				.WithInitializer(SyntaxFactory.InitializerExpression(
+					SyntaxKind.CollectionInitializerExpression,
+					SyntaxFactory.SeparatedList(initializerExpressions)));
+		}
+
 		if (value is IEnumerable enumerable)
 		{
 			return SyntaxFactory.CollectionExpression(SyntaxFactory.SeparatedList<CollectionElementSyntax>(enumerable
@@ -265,6 +307,33 @@ public static class SyntaxHelpers
 		}
 
 		return null; // SyntaxFactory.ParseExpression(value.ToString());
+	}
+
+	private static TypeSyntax GetTypeSyntax(Type type)
+	{
+		var keyword = type == typeof(bool) ? SyntaxKind.BoolKeyword
+			: type == typeof(byte) ? SyntaxKind.ByteKeyword
+			: type == typeof(sbyte) ? SyntaxKind.SByteKeyword
+			: type == typeof(short) ? SyntaxKind.ShortKeyword
+			: type == typeof(ushort) ? SyntaxKind.UShortKeyword
+			: type == typeof(int) ? SyntaxKind.IntKeyword
+			: type == typeof(uint) ? SyntaxKind.UIntKeyword
+			: type == typeof(long) ? SyntaxKind.LongKeyword
+			: type == typeof(ulong) ? SyntaxKind.ULongKeyword
+			: type == typeof(float) ? SyntaxKind.FloatKeyword
+			: type == typeof(double) ? SyntaxKind.DoubleKeyword
+			: type == typeof(decimal) ? SyntaxKind.DecimalKeyword
+			: type == typeof(char) ? SyntaxKind.CharKeyword
+			: type == typeof(string) ? SyntaxKind.StringKeyword
+			: type == typeof(object) ? SyntaxKind.ObjectKeyword
+			: SyntaxKind.None;
+
+		if (keyword != SyntaxKind.None)
+		{
+			return SyntaxFactory.PredefinedType(SyntaxFactory.Token(keyword));
+		}
+
+		return SyntaxFactory.IdentifierName(type.Name);
 	}
 
 	private static bool IsSpanLike(object obj)

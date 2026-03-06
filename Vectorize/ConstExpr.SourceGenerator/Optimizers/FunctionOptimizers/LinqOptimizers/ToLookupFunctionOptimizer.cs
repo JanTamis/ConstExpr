@@ -81,17 +81,8 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 					// Compose keySelector ∘ selectLambda
 					var composedKey = CombineLambdas(keyLambda, selectLambda);
 
-					if (IsIdentityLambda(selectLambda))
-					{
-						// Select(x => x).ToLookup(keySelector) => ToLookup(keySelector)
-						result = UpdateInvocation(context, invocationSource, composedKey);
-					}
-					else
-					{
-						// Select(selector).ToLookup(keySelector) => ToLookup(composedKey, selector)
-						result = UpdateInvocation(context, invocationSource, composedKey, context.Visit(selectorArg) ?? selectorArg);
-					}
-
+					// Select(selector).ToLookup(keySelector) => ToLookup(composedKey, selector)
+					result = UpdateInvocation(context, invocationSource, composedKey, selectorArg);
 					return true;
 				}
 			}

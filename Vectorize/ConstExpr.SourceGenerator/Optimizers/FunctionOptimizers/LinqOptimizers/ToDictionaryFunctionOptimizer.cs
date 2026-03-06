@@ -91,17 +91,8 @@ public class ToDictionaryFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(
 					// Compose keySelector ∘ selectLambda
 					var composedKey = CombineLambdas(keyLambda, selectLambda);
 
-					if (IsIdentityLambda(selectLambda))
-					{
-						// Select(x => x).ToDictionary(keySelector) => ToDictionary(keySelector)
-						result = UpdateInvocation(context, invocationSource, composedKey);
-					}
-					else
-					{
-						// Select(selector).ToDictionary(keySelector) => ToDictionary(composedKey, selector)
-						result = UpdateInvocation(context, invocationSource, composedKey, context.Visit(selectorArg) ?? selectorArg);
-					}
-
+					// Select(selector).ToDictionary(keySelector) => ToDictionary(composedKey, selector)
+					result = UpdateInvocation(context, invocationSource, composedKey, selectorArg);
 					return true;
 				}
 
@@ -123,7 +114,7 @@ public class ToDictionaryFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(
 								return true;
 						}
 					}
-					
+
 					break;
 				}
 
@@ -173,6 +164,3 @@ public class ToDictionaryFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(
 			.WithArgumentList(ArgumentList());
 	}
 }
-
-
-
