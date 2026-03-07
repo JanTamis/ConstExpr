@@ -46,11 +46,29 @@ public class SelectManyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(En
 		    && IsEmptyEnumerable(body)
 		    && context.Method.TypeArguments.Length > 0)
 		{
-			// selector always returns empty, so result is empty
-			var resultType = context.Method.TypeArguments[^1];
+			if (IsEmptyEnumerable(body))
+			{
+				// selector always returns empty, so result is empty
+				var resultType = context.Method.TypeArguments[^1];
 
-			result = CreateEmptyEnumerableCall(resultType);
-			return true;
+				result = CreateEmptyEnumerableCall(resultType);
+				return true;
+			}
+
+			if (IsLinqMethodChain(source, out var methodName, out var invocation)
+			    && TryGetLinqSource(invocation, out var invocationSource))
+			{
+				switch (methodName)
+				{
+					case nameof(Enumerable.Select) when context.VisitedParameters.Count == 1
+					                                    && TryGetLambda(context.VisitedParameters[0], out var selectLambda)
+					                                    && IsIdentityLambda(selectLambda):
+					{
+						result = UpdateInvocation(context, invocationSource, CombineLambdas(lambda, selectLambda));
+						return true;
+					}
+				}
+			}
 		}
 
 		result = null;

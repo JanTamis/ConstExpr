@@ -39,7 +39,7 @@ public class LinqConcatOptimizationTests : BaseTest<Func<int[], int>>
 		var j = x.Concat(new[] { 10 }).Concat(new[] { 20 }).Concat(new[] { 30 }).Sum();
 
 		// Single element Concat => Append
-		var k = x.Concat([99]).Sum();
+		var k = new[] { 99 }.Concat(x).Sum();
 
 		// Single element Concat with array syntax => Append
 		var l = x.Concat(new[] { 88 }).Sum();

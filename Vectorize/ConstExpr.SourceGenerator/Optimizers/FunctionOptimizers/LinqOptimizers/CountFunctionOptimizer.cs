@@ -54,7 +54,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 		// Recursively skip all operations that don't affect count
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectCount, out source);
-		
+
 		if (TryExecutePredicates(context, source, out result, out _))
 		{
 			return true;
@@ -99,7 +99,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 			result = TryOptimizeByOptimizer<CountFunctionOptimizer>(context, countInvocation);
 			return true;
 		}
-		
+
 		// If we found any Where predicates, combine them
 		if (wherePredicates.Count > 0)
 		{
@@ -234,24 +234,22 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 					                                        && TryGetLambda(predicateArg, out var predicate):
 					{
 						var body = predicate.Body as ExpressionSyntax;
-						
+
 						var countInvocation = CreateInvocation(body, nameof(Enumerable.Count), context.VisitedParameters);
 						var newCountInvocation = TryOptimizeByOptimizer<CountFunctionOptimizer>(context, countInvocation) as ExpressionSyntax ?? countInvocation;
 
 						predicate = predicate.WithBody(newCountInvocation);
-						
+
 						var sumInvocation = CreateInvocation(methodSource, nameof(Enumerable.Sum), predicate);
-						
+
 						result = TryOptimizeByOptimizer<SumFunctionOptimizer>(context, sumInvocation);
 						return true;
 					}
-					case nameof(Enumerable.Append):
+					case nameof(Enumerable.Append) or nameof(Enumerable.Prepend):
 					{
-						TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectCount, out currentSource);
-
 						var count = 1;
-						
-						while (IsLinqMethodChain(currentSource, nameof(Enumerable.Append), out var appendInvocation)
+
+						while (IsLinqMethodChain(currentSource, methodName, out var appendInvocation)
 						       && TryGetLinqSource(appendInvocation, out var appendSource))
 						{
 							count++;
@@ -261,7 +259,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 						if (TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, currentSource), context.Method), out result))
 						{
-							result = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, result as ExpressionSyntax,  SyntaxHelpers.CreateLiteral(count));
+							result = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, result as ExpressionSyntax, SyntaxHelpers.CreateLiteral(count));
 							return true;
 						}
 
@@ -269,8 +267,6 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 					}
 					case nameof(Enumerable.Concat):
 					{
-						TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectCount, out currentSource);
-
 						if (TryGetSyntaxes(invocation.ArgumentList.Arguments[0].Expression, out var concatSyntaxes))
 						{
 							var count = concatSyntaxes.Count;
@@ -292,14 +288,26 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 						}
 						else
 						{
-							var left = TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, currentSource), context.Method), out var leftResult) ? leftResult as ExpressionSyntax : null;
+							var left = TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, methodSource), context.Method), out var leftResult) ? leftResult as ExpressionSyntax : null;
 							var right = TryOptimize(context.WithInvocationAndMethod(CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters), context.Method), out var rightResult) ? rightResult as ExpressionSyntax : null;
-							
-							result = SyntaxFactory. BinaryExpression(SyntaxKind.AddExpression, left ?? CreateInvocation(currentSource, Name, context.VisitedParameters), right ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters));
+
+							result = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, 
+								left ?? CreateInvocation(currentSource, Name, context.VisitedParameters), 
+								right ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters));
 							return true;
 						}
 
 						break;
+					}
+					case nameof(Enumerable.Zip) when invocation.ArgumentList.Arguments.Count == 1:
+					{
+						var left = TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, methodSource), context.Method), out var leftResult) ? leftResult as ExpressionSyntax : null;
+						var right = TryOptimize(context.WithInvocationAndMethod(CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters), context.Method), out var rightResult) ? rightResult as ExpressionSyntax : null;
+
+						result = CreateInvocation(context.Model.Compilation.CreateInt32(), "Min", 
+							left ?? CreateInvocation(currentSource, Name, context.VisitedParameters), 
+							right ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters));
+						return true;
 					}
 				}
 			}
@@ -341,7 +349,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 			result = CreateMemberAccess(source, "Length");
 			return true;
 		}
-		
+
 		if (IsCollectionType(context, source))
 		{
 			result = CreateMemberAccess(source, "Count");

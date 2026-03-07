@@ -2,6 +2,7 @@ using System.Linq;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
@@ -27,15 +28,43 @@ public class SequenceEqualFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 		{
 			return true;
 		}
-
+		
+		var isNewSource = TryGetOptimizedChainExpression(source, MaterializingMethods, out source);
 		var secondSource = context.VisitedParameters[0];
 		
 		// Optimize collection.SequenceEqual(collection) => true (same reference)
-		// Optimize Enumerable.Empty<T>().SequenceEqual(Enumerable.Empty<T>()) => true
-		if (AreSyntacticallyEquivalent(source, secondSource)
-		    || IsEmptyEnumerable(source) && IsEmptyEnumerable(secondSource))
+		if (AreSyntacticallyEquivalent(source, secondSource))
 		{
 			result = LiteralExpression(SyntaxKind.TrueLiteralExpression);
+			return true;
+		}
+
+		if (TryGetEnumerableMethod(context, nameof(Enumerable.Any), 0, out var anyMethod))
+		{
+			// Optimize Enumerable.Empty<T>().SequenceEqual(collection) => !collection.Any()
+			if (IsEmptyEnumerable(source))
+			{
+				var invocation = CreateInvocation(secondSource, nameof(Enumerable.Any));
+				var tempResource = TryOptimizeByOptimizer<AnyFunctionOptimizer>(context.WithInvocationAndMethod(invocation, anyMethod), invocation);
+				
+				result = InvertSyntax(tempResource as ExpressionSyntax ?? invocation);
+				return true;
+			}
+
+			// Optimize collection.SequenceEqual(Enumerable.Empty<T>()) => !collection.Any()
+			if (IsEmptyEnumerable(secondSource))
+			{
+				var invocation = CreateInvocation(source, nameof(Enumerable.Any));
+				var tempResource = TryOptimizeByOptimizer<AnyFunctionOptimizer>(context.WithInvocationAndMethod(invocation, anyMethod), invocation);
+
+				result = InvertSyntax(tempResource as ExpressionSyntax ?? invocation);
+				return true;
+			}
+		}
+
+		if (isNewSource)
+		{
+			result = UpdateInvocation(context, source);
 			return true;
 		}
 		

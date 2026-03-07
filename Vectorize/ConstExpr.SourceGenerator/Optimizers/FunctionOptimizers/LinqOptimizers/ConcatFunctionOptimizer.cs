@@ -60,6 +60,14 @@ public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 			result = appendResult;
 			return true;
 		}
+
+		// Optimization: collection.Concat([singleElement]) => collection.Append(singleElement)
+		// Only apply this if the merge optimization didn't trigger
+		if (TryConvertSingleElementConcatToPrepend(context, source, concatenatedCollection, out var prependResult))
+		{
+			result = prependResult;
+			return true;
+		}
 		
 		// Optimization: Merge multiple Concat calls with collection literals
 		// e.g., collection.Concat([1, 2]).Concat([3, 4]) => collection.Concat([1, 2, 3, 4])
@@ -111,6 +119,40 @@ public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 
 		// Create Append call: source.Append(element)
 		result = TryOptimizeByOptimizer<AppendFunctionOptimizer>(context, CreateInvocation(source, nameof(Enumerable.Append), expressionElement.Expression));
+		return true;
+	}
+
+	/// <summary>
+	/// Tries to convert Concat with a single-element collection to Prepend.
+	/// E.g., [42].Concat(collection) => collection.Prepend(42)
+	/// </summary>
+	private bool TryConvertSingleElementConcatToPrepend(FunctionOptimizerContext context, ExpressionSyntax source, ExpressionSyntax concatenatedCollection, out SyntaxNode? result)
+	{
+		result = null;
+
+		// Try to get the collection elements
+		if (!TryGetCollectionElements(source, out var elements))
+		{
+			return false;
+		}
+
+		// Check if there's exactly one element
+		if (elements.Count != 1)
+		{
+			return false;
+		}
+
+		// Extract the single element
+		var singleElement = elements[0];
+
+		// The element must be an ExpressionElement (not a spread element like ..other)
+		if (singleElement is not ExpressionElementSyntax expressionElement)
+		{
+			return false;
+		}
+
+		// Create Append call: source.Append(element)
+		result = TryOptimizeByOptimizer<AppendFunctionOptimizer>(context, CreateInvocation(concatenatedCollection, nameof(Enumerable.Prepend), expressionElement.Expression));
 		return true;
 	}
 

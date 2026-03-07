@@ -145,6 +145,14 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 					items.Add(visitedAppendedValue);
 					break;
 				}
+				case nameof(Enumerable.Prepend):
+				{
+					var appendedValue = invocation.ArgumentList.Arguments[0].Expression;
+					var visitedAppendedValue = context.Visit(appendedValue) ?? appendedValue;
+
+					items.Add(visitedAppendedValue);
+					break;
+				}
 				case nameof(Enumerable.Concat) when TryGetSyntaxes(invocation.ArgumentList.Arguments[0].Expression, out var syntaxes):
 				{
 					items.AddRange(syntaxes.Select(s => context.Visit(s) ?? s));

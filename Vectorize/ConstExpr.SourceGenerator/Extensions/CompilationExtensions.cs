@@ -73,6 +73,12 @@ public static class CompilationExtensions
 			.Construct(keyType, valueType);
 	}
 
+	public static INamedTypeSymbol? CreateValueTuple(this Compilation compilation, params ITypeSymbol[] elementTypes)
+	{
+		return compilation.GetTypeByMetadataName($"System.ValueTuple`{elementTypes.Length}")?
+			.Construct(elementTypes);
+	}
+
 	public static INamedTypeSymbol? CreateEqualityComparer(this Compilation compilation, ITypeSymbol keyType)
 	{
 		return compilation.GetTypeByMetadataName("System.Collections.Generic.IEqualityComparer`1")?

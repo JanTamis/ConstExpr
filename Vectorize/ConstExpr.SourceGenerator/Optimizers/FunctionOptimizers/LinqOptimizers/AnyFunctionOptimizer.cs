@@ -37,6 +37,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		..OrderingOperations,
 		nameof(Enumerable.Select), // Projection: transforms elements but doesn't filter
 		nameof(Enumerable.Distinct), // Deduplication: may reduce count, but if any exist, Any() is true
+		"Chunk", // Chunking: groups elements but doesn't filter them out, so it doesn't affect whether any elements exist
 	];
 
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)

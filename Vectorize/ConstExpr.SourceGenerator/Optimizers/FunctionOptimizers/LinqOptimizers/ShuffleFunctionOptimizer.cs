@@ -19,6 +19,12 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// </summary>
 public class ShuffleFunctionOptimizer() : BaseLinqFunctionOptimizer("Shuffle", 0)
 {
+	private static readonly HashSet<string> OperationsThatDontAffectShuffle =
+	[
+		..MaterializingMethods,
+		..OrderingOperations,
+	];
+	
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(context)
@@ -27,19 +33,12 @@ public class ShuffleFunctionOptimizer() : BaseLinqFunctionOptimizer("Shuffle", 0
 			result = null;
 			return false;
 		}
-
-		// Recursively skip all pointless operations before shuffle
-		var isNewSource = TryGetOptimizedChainExpression(source, OrderingOperations, out source);
-
-		if (TryExecutePredicates(context, source, out result, out source))
-		{
-			return true;
-		}
-
+		
 		// If we skipped any operations, create optimized Shuffle() call
-		if (isNewSource)
+		if (TryGetOptimizedChainExpression(context.Visit(source) ?? source, OperationsThatDontAffectShuffle, out var newSource) 
+		    || !AreSyntacticallyEquivalent(newSource, source))
 		{
-			result = UpdateInvocation(context, source);
+			result = UpdateInvocation(context, newSource);
 			return true;
 		}
 

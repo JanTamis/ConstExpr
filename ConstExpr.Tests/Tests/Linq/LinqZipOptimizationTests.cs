@@ -14,14 +14,22 @@ public class LinqZipOptimizationTests : BaseTest<Func<int[], int>>
 		// Empty.Zip(collection) => empty
 		var b = Enumerable.Empty<int>().Zip(x).Count();
 
-		return a + b;
+		var c = x.Zip(x).Count();
+		
+		var d = x.Zip(x.Where(w => w > 0)).Count();
+
+		return a + b + c + d;
 	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
-		Create("return 0;", Unknown),
-		Create("return 0;", new[] { 1, 2, 3 }),
+		Create("""
+			var c = x.Length;
+			var d = Int32.Min(x.Length, x.Count(w => w > 0));
+			
+			return c + d;
+			""", Unknown),
+		Create("return 6;", new[] { 1, 2, 3 }),
 		Create("return 0;", new int[] { }),
 	];
 }
-

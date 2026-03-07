@@ -1131,6 +1131,39 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		elementType = null;
 		return false;
 	}
+	
+	protected bool TryGetEnumerableMethod(FunctionOptimizerContext context, string methodName, int parameterCount, [NotNullWhen(true)] out IMethodSymbol? methodSymbol)
+	{
+		methodSymbol = context.Model.Compilation
+			.GetTypeByMetadataName(typeof(Enumerable).FullName)
+			.GetMembers(methodName)
+			.OfType<IMethodSymbol>()
+			.FirstOrDefault(m => m.Parameters.Length == parameterCount + 1); // +1 for the source parameter
+
+		return methodSymbol is not null;
+	}
+
+	protected ExpressionSyntax InvertSyntax(ExpressionSyntax node)
+	{
+		// invert binary expressions with logical operators
+		if (node is BinaryExpressionSyntax binary)
+		{
+			return binary.Kind() switch
+			{
+				SyntaxKind.LogicalAndExpression => BinaryExpression(SyntaxKind.LogicalOrExpression, InvertSyntax(binary.Left), InvertSyntax(binary.Right)),
+				SyntaxKind.LogicalOrExpression => BinaryExpression(SyntaxKind.LogicalAndExpression, InvertSyntax(binary.Left), InvertSyntax(binary.Right)),
+				SyntaxKind.EqualsExpression => BinaryExpression(SyntaxKind.NotEqualsExpression, binary.Left, binary.Right),
+				SyntaxKind.NotEqualsExpression => BinaryExpression(SyntaxKind.EqualsExpression, binary.Left, binary.Right),
+				SyntaxKind.GreaterThanExpression => BinaryExpression(SyntaxKind.LessThanOrEqualExpression, binary.Left, binary.Right),
+				SyntaxKind.GreaterThanOrEqualExpression => BinaryExpression(SyntaxKind.LessThanExpression, binary.Left, binary.Right),
+				SyntaxKind.LessThanExpression => BinaryExpression(SyntaxKind.GreaterThanOrEqualExpression, binary.Left, binary.Right),
+				SyntaxKind.LessThanOrEqualExpression => BinaryExpression(SyntaxKind.GreaterThanExpression, binary.Left, binary.Right),
+				_ => PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, ParenthesizedExpression(node))
+			};
+		}
+
+		return PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, node);
+	}
 
 	private class IdentifierReplacer(string identifier, ExpressionSyntax replacement) : CSharpSyntaxRewriter
 	{

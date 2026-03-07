@@ -1,6 +1,8 @@
 using System.Linq;
+using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
+using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
@@ -38,6 +40,24 @@ public class ZipFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 				result = CreateEmptyEnumerableCall(returnType.TypeArguments[0]);
 				return true;
 			}
+		}
+
+		// Optimize collection.Zip(collection) => collection.Select(x => (x, x)) (zip of a collection with itself is just pairs of the same element)
+		if (AreSyntacticallyEquivalent(source, secondSource)
+		    && TryGetEnumerableMethod(context, nameof(Enumerable.Select), 1, out var selectMethod)
+		    && TryGetElementType(context, out var elementType))
+		{
+			var identfier = Identifier("x");
+			var parameter = Parameter(identfier);
+			
+			var invocation = CreateInvocation(source, nameof(Enumerable.Select), SimpleLambdaExpression(parameter, null, TupleExpression(SeparatedList([ Argument(IdentifierName(identfier)), Argument(IdentifierName(identfier)) ]))));
+
+			selectMethod = selectMethod.Construct(elementType, context.Model.Compilation.CreateValueTuple(elementType, elementType));
+			
+			context = context.WithInvocationAndMethod(invocation, selectMethod);
+
+			result = TryOptimizeByOptimizer<SelectFunctionOptimizer>(context, invocation);
+			return true;
 		}
 
 		result = null;

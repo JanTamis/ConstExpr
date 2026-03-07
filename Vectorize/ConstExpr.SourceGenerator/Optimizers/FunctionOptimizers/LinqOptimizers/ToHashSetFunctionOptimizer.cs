@@ -17,7 +17,8 @@ public class ToHashSetFunctionOptimizer() : BaseLinqFunctionOptimizer("ToHashSet
 {
 	private static readonly HashSet<string> OperationsThatDontAffectExistence =
 	[
-		..MaterializingMethods,
+		..MaterializingMethods, // Materialization doesn't affect existence in a HashSet
+		..OrderingOperations, // Ordering doesn't affect existence in a HashSet
 		nameof(Enumerable.Distinct), // Distinct is implicit in HashSet, so we can skip it
 	];
 	
