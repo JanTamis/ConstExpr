@@ -173,13 +173,19 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 					var arguments = objectCreationExpression.ArgumentList?.Arguments
 														.Select(s => Visit(s.Expression))
 														.WhereSelect<SyntaxNode, object?>(TryGetLiteralValue)
-													?? Enumerable.Empty<object?>();
+														.ToList()
+													?? [ ];
 
 					if (semanticModel.TryGetSymbol(objectCreationExpression, out IMethodSymbol? constructor)
 							&& loader.TryExecuteMethod(constructor, null, null, arguments, out var result))
 					{
-						value = result;
-						return true;
+						if (TryApplyInitializer(objectCreationExpression.Initializer, result, typeSymbol, visitedVariables) 
+						    || objectCreationExpression.Initializer is null)
+						{
+							value = result;
+							return true;
+						}
+
 					}
 
 					if (semanticModel.TryGetSymbol(objectCreationExpression.Type, out typeSymbol))
@@ -197,8 +203,14 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 							{
 								try
 								{
-									value = ctorInfo.Invoke(argumentsArray);
-									return true;
+									var instance = ctorInfo.Invoke(argumentsArray);
+
+									if (TryApplyInitializer(objectCreationExpression.Initializer, instance, typeSymbol, visitedVariables) 
+									    || objectCreationExpression.Initializer is null)
+									{
+										value = instance;
+										return true;
+									}
 								}
 								catch
 								{
@@ -210,7 +222,7 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 
 					// Fallback for SyntaxFactory-created nodes without semantic binding
 					var typeName = objectCreationExpression.Type.ToString();
-					var fallbackType = loader.GetType(typeName) ?? loader.GetType($"System.{typeName}");
+					var fallbackType = loader.GetType(typeName) ?? loader.GetType($"System.{typeName}") ?? loader.GetType($"System.Collections.Generic.{typeName}");
 
 					if (fallbackType != null)
 					{
@@ -223,8 +235,19 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 						{
 							try
 							{
-								value = ctorInfo.Invoke(argumentsArray);
-								return true;
+								var instance = ctorInfo.Invoke(argumentsArray);
+
+								if (TryApplyInitializer(objectCreationExpression.Initializer, instance, typeSymbol, visitedVariables))
+								{
+									value = instance;
+									return true;
+								}
+
+								if (objectCreationExpression.Initializer is null)
+								{
+									value = instance;
+									return true;
+								}
 							}
 							catch
 							{
@@ -578,6 +601,167 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 		// }
 
 		value = null;
+		return false;
+	}
+
+	/// <summary>
+	/// Applies an object/collection/dictionary initializer to an already-constructed instance.
+	/// Returns true when the initializer was absent (nothing to apply) or successfully applied.
+	/// Returns false when the initializer was present but could not be fully applied.
+	/// </summary>
+	private bool TryApplyInitializer([NotNullWhen(true)] InitializerExpressionSyntax? initializer, [NotNullWhen(true)] object? instance, ITypeSymbol? typeSymbol, HashSet<string> visitedVariables)
+	{
+		if (initializer is null)
+		{
+			return false;
+		}
+
+		if (instance is null)
+		{
+			return false;
+		}
+
+		var instanceType = instance.GetType();
+
+		// Object initializer: { Prop = value, ... }
+		if (initializer.IsKind(SyntaxKind.ObjectInitializerExpression))
+		{
+			foreach (var expr in initializer.Expressions)
+			{
+				if (expr is not AssignmentExpressionSyntax assignment)
+				{
+					return false;
+				}
+
+				var memberName = (assignment.Left as IdentifierNameSyntax)?.Identifier.Text;
+
+				if (memberName is null)
+				{
+					return false;
+				}
+
+				if (!TryGetLiteralValue(assignment.Right, typeSymbol, out var memberValue, visitedVariables))
+				{
+					return false;
+				}
+
+				var prop = instanceType.GetProperty(memberName, BindingFlags.Public | BindingFlags.Instance);
+
+				if (prop is not null && prop.CanWrite)
+				{
+					try
+					{
+						prop.SetValue(instance, memberValue is IConvertible && prop.PropertyType != memberValue.GetType()
+							? Convert.ChangeType(memberValue, prop.PropertyType)
+							: memberValue);
+					}
+					catch
+					{
+						return false;
+					}
+
+					continue;
+				}
+
+				var field = instanceType.GetField(memberName, BindingFlags.Public | BindingFlags.Instance);
+
+				if (field is not null)
+				{
+					try
+					{
+						field.SetValue(instance, memberValue is IConvertible && field.FieldType != memberValue.GetType()
+							? Convert.ChangeType(memberValue, field.FieldType)
+							: memberValue);
+					}
+					catch
+					{
+						return false;
+					}
+
+					continue;
+				}
+
+				return false;
+			}
+
+			return true;
+		}
+
+		// Collection initializer: { item, item, ... } or { { key, value }, ... }
+		if (initializer.IsKind(SyntaxKind.CollectionInitializerExpression))
+		{
+			// Resolve the Add method(s) once
+			var addMethods = instanceType
+				.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+				.Where(m => m.Name == "Add")
+				.ToList();
+
+			if (addMethods.Count == 0)
+			{
+				return false;
+			}
+
+			foreach (var expr in initializer.Expressions)
+			{
+				// Dictionary-style: { key, value } as nested initializer
+				if (expr is InitializerExpressionSyntax nestedInit
+					&& nestedInit.IsKind(SyntaxKind.ComplexElementInitializerExpression))
+				{
+					var addArgs = nestedInit.Expressions
+						.Select(e => TryGetLiteralValue(e, typeSymbol, out var v, visitedVariables) ? (true, v) : (false, (object?)null))
+						.ToList();
+
+					if (addArgs.Any(a => !a.Item1))
+					{
+						return false;
+					}
+
+					var argValues = addArgs.Select(a => a.Item2).ToArray();
+					var addMethod = addMethods.FirstOrDefault(m => m.GetParameters().Length == argValues.Length);
+
+					if (addMethod is null)
+					{
+						return false;
+					}
+
+					try
+					{
+						addMethod.Invoke(instance, argValues);
+					}
+					catch
+					{
+						return false;
+					}
+				}
+				else
+				{
+					// List-style: single element
+					if (!TryGetLiteralValue(expr, typeSymbol, out var elemVal, visitedVariables))
+					{
+						return false;
+					}
+
+					var addMethod = addMethods.FirstOrDefault(m => m.GetParameters().Length == 1);
+
+					if (addMethod is null)
+					{
+						return false;
+					}
+
+					try
+					{
+						addMethod.Invoke(instance, [elemVal]);
+					}
+					catch
+					{
+						return false;
+					}
+				}
+			}
+
+			return true;
+		}
+
 		return false;
 	}
 

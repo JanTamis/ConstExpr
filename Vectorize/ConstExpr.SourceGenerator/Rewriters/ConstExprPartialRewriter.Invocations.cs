@@ -986,3 +986,9 @@ public partial class ConstExprPartialRewriter
 		return node.Right;
 	}
 }
+
+
+
+
+
+

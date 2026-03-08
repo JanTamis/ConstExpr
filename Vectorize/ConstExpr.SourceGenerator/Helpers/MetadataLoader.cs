@@ -150,7 +150,19 @@ public class MetadataLoader
 			{
 				var constructedFrom = GetType(namedType.ConstructedFrom);
 
-				return constructedFrom?.MakeGenericType(namedType.TypeArguments.Select(GetType).ToArray());
+				if (constructedFrom == null)
+				{
+					return null;
+				}
+
+				var typeArgs = namedType.TypeArguments.Select(GetType).ToArray();
+
+				if (typeArgs.Any(t => t == null))
+				{
+					return null;
+				}
+
+				return constructedFrom.MakeGenericType(typeArgs);
 			}
 			case IArrayTypeSymbol arrayType:
 			{
@@ -180,6 +192,8 @@ public class MetadataLoader
 	/// <summary>
 	/// Retrieves a <see cref="Type"/> from the loaded assemblies that corresponds to the provided type name.
 	/// Uses lazy loading: searches preloaded assemblies first, then loads others on-demand.
+	/// Supports both CLR-style names (e.g. System.Collections.Generic.Dictionary`2) and
+	/// C#-style generic names (e.g. Dictionary&lt;int, int&gt;).
 	/// </summary>
 	/// <param name="typeName">The fully qualified name of the type to find.</param>
 	/// <returns>
@@ -187,7 +201,140 @@ public class MetadataLoader
 	/// </returns>
 	public Type? GetType(string typeName)
 	{
-		return _typeCache.GetOrAdd(typeName, SearchForType);
+		return _typeCache.GetOrAdd(typeName, name =>
+		{
+			// If the type name contains C#-style generic syntax, try to resolve it
+			if (name.Contains('<'))
+			{
+				return TryResolveCSharpGenericType(name);
+			}
+
+			return SearchForType(name);
+		});
+	}
+
+	/// <summary>
+	/// Resolves a C#-style generic type name like "Dictionary&lt;int, int&gt;" or
+	/// "System.Collections.Generic.Dictionary&lt;int, int&gt;" to a runtime Type.
+	/// </summary>
+	private Type? TryResolveCSharpGenericType(string csharpTypeName)
+	{
+		var angleBracketIndex = csharpTypeName.IndexOf('<');
+
+		if (angleBracketIndex < 0 || !csharpTypeName.EndsWith(">"))
+		{
+			return null;
+		}
+
+		var rawName = csharpTypeName.Substring(0, angleBracketIndex);
+		var typeArgsString = csharpTypeName.Substring(angleBracketIndex + 1, csharpTypeName.Length - angleBracketIndex - 2);
+
+		// Parse type arguments, respecting nested generics
+		var typeArgNames = SplitGenericArguments(typeArgsString);
+		var arity = typeArgNames.Count;
+
+		// Build CLR generic type name (e.g. Dictionary`2)
+		var clrName = $"{rawName}`{arity}";
+
+		// Try to resolve the open generic type definition
+		var openGenericType = SearchForType(clrName);
+
+		// If not found with the raw name, try common namespace prefixes
+		if (openGenericType == null && !rawName.Contains('.'))
+		{
+			openGenericType = SearchForType($"System.{clrName}")
+			                  ?? SearchForType($"System.Collections.Generic.{clrName}");
+		}
+
+		if (openGenericType == null)
+		{
+			return null;
+		}
+
+		// Resolve each type argument recursively
+		var typeArgs = new Type[arity];
+
+		for (var i = 0; i < arity; i++)
+		{
+			var argName = typeArgNames[i].Trim();
+
+			// Resolve C# keyword aliases to CLR names
+			var resolvedArgName = ResolveCSharpTypeAlias(argName);
+			var argType = GetType(resolvedArgName);
+
+			if (argType == null)
+			{
+				return null;
+			}
+
+			typeArgs[i] = argType;
+		}
+
+		try
+		{
+			return openGenericType.MakeGenericType(typeArgs);
+		}
+		catch
+		{
+			return null;
+		}
+	}
+
+	/// <summary>
+	/// Splits generic arguments respecting nested angle brackets.
+	/// E.g. "int, Dictionary&lt;string, int&gt;" => ["int", "Dictionary&lt;string, int&gt;"]
+	/// </summary>
+	private static List<string> SplitGenericArguments(string typeArgsString)
+	{
+		var result = new List<string>();
+		var depth = 0;
+		var start = 0;
+
+		for (var i = 0; i < typeArgsString.Length; i++)
+		{
+			switch (typeArgsString[i])
+			{
+				case '<':
+					depth++;
+					break;
+				case '>':
+					depth--;
+					break;
+				case ',' when depth == 0:
+					result.Add(typeArgsString.Substring(start, i - start));
+					start = i + 1;
+					break;
+			}
+		}
+
+		result.Add(typeArgsString.Substring(start));
+		return result;
+	}
+
+	/// <summary>
+	/// Resolves C# keyword type aliases to their fully qualified CLR type names.
+	/// </summary>
+	private static string ResolveCSharpTypeAlias(string typeName)
+	{
+		return typeName switch
+		{
+			"bool" => "System.Boolean",
+			"byte" => "System.Byte",
+			"sbyte" => "System.SByte",
+			"char" => "System.Char",
+			"decimal" => "System.Decimal",
+			"double" => "System.Double",
+			"float" => "System.Single",
+			"int" => "System.Int32",
+			"uint" => "System.UInt32",
+			"long" => "System.Int64",
+			"ulong" => "System.UInt64",
+			"short" => "System.Int16",
+			"ushort" => "System.UInt16",
+			"string" => "System.String",
+			"object" => "System.Object",
+			_ => typeName
+		};
 	}
 
 	public bool TryGetType(string typeName, [NotNullWhen(true)] out Type? type)

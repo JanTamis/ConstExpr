@@ -335,10 +335,10 @@ public static class CompilationExtensions
 			.Where(w => w != null)
 			.ToImmutableArray();
 
-		var expectedParameterLength = methodSymbol.IsExtensionMethod 
-			? methodSymbol.Parameters.Length + 1 
+		var expectedParameterLength = methodSymbol.IsExtensionMethod
+			? methodSymbol.Parameters.Length + 1
 			: methodSymbol.Parameters.Length;
-		
+
 		var methodName = methodSymbol.Name;
 		var type = loader.GetType(methodSymbol.ContainingType);
 
@@ -359,9 +359,21 @@ public static class CompilationExtensions
 				: BindingFlags.Public | BindingFlags.Instance).Cast<MethodBase?>(),
 		};
 
+		var typeArgs = methodSymbol.TypeArguments.Select(loader.GetType).ToArray();
+
+		if (typeArgs.Any(a => a == null))
+		{
+			method = null;
+			return false;
+		}
+		
 		// Filter candidates
 		var candidates = methods
-			.Where(m => m != null && m.Name == methodName && m.GetParameters().Length == expectedParameterLength);
+			.OfType<MethodBase>()
+			.Where(m => m.Name == methodName 
+			            && m.GetParameters().Length == expectedParameterLength
+			            && m.GetGenericArguments().Length == typeArgs.Length);
+
 
 		foreach (var candidate in candidates)
 		{
@@ -371,13 +383,6 @@ public static class CompilationExtensions
 			// Bind generics early so parameter types are closed (e.g. IEnumerable<double>)
 			if (methodInfo != null && methodInfo.IsGenericMethodDefinition)
 			{
-				var typeArgs = methodSymbol.TypeArguments.Select(loader.GetType).ToArray();
-
-				if (typeArgs.Any(a => a == null))
-				{
-					continue;
-				}
-
 				methodInfo = methodInfo.MakeGenericMethod(typeArgs);
 				invokeBase = methodInfo;
 			}
@@ -392,18 +397,13 @@ public static class CompilationExtensions
 				var symbolParam = originalParameterTypes[i];
 				var symbolParamType = loader.GetType(symbolParam);
 
-				if (symbolParamType == null)
+				if (symbolParamType == null 
+				    || !reflParam.ParameterType.IsGenericParameter && !reflParam.ParameterType.IsAssignableFrom(symbolParamType))
 				{
 					compatible = false;
 					break;
 				}
 
-				if (!reflParam.ParameterType.IsGenericParameter 
-				    && !reflParam.ParameterType.IsAssignableFrom(symbolParamType))
-				{
-					compatible = false;
-					break;
-				}
 			}
 
 			if (!compatible)

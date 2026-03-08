@@ -1,3 +1,5 @@
+using System.Collections;
+
 namespace ConstExpr.Tests.Tests.Linq;
 
 /// <summary>
@@ -61,26 +63,26 @@ public class LinqToDictionaryOptimizationTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
-		// Create("""
-		// 	var a = x.ToDictionary(v => v).Count;
-		// 	var b = x.ToDictionary(v => v).Count;
-		// 	var c = x.ToDictionary(v => v).Count;
-		// 	var d = x.ToDictionary(v => v).Count;
-		// 	var e = x.ToDictionary(v => v, v => v << 1).Count;
-		// 	var f = x.ToDictionary(v => v, v => v << 1).Count;
-		// 	var g = x.ToDictionary(v => v).Count;
-		// 	var h = x.ToDictionary(v => v).Count;
-		// 	var i = x.ToDictionary(v => v).Count;
-		// 	var j = x.ToDictionary(v => v).Count;
-		// 	var k = x.ToDictionary(v => v).Count;
-		// 	var l = x.ToDictionary(v => v).Count;
-		// 	var m = x.ToDictionary(v => v * 10, v => v * 10).Count;
-		// 	var n = x.Where(v => v > 0).ToDictionary(v => v).Count;
-		// 	var o = x.Where(v => (uint)v < 10U).ToDictionary(v => v).Count;
-		// 	var p = x.Distinct().ToDictionary(v => v).Count;
-		// 	
-		// 	return a + b + c + d + e + f + g + h + i + j + k + l + m + n + o + p;
-		// 	""", Unknown),
+// 		Create("""
+// 			var a = x.ToDictionary(v => v).Count;
+// 			var b = x.ToDictionary(v => v).Count;
+// 			var c = x.ToDictionary(v => v).Count;
+// 			var d = x.ToDictionary(v => v).Count;
+// 			var e = x.ToDictionary(v => v, v => v << 1).Count;
+// 			var f = x.ToDictionary(v => v, v => v << 1).Count;
+// 			var g = x.ToDictionary(v => v).Count;
+// 			var h = x.ToDictionary(v => v).Count;
+// 			var i = x.ToDictionary(v => v).Count;
+// 			var j = x.ToDictionary(v => v).Count;
+// 			var k = x.ToDictionary(v => v).Count;
+// 			var l = x.ToDictionary(v => v).Count;
+// 			var m = x.ToDictionary(v => v * 10, v => v * 10).Count;
+// 			var n = x.Where(v => v > 0).ToDictionary(v => v).Count;
+// 			var o = x.Where(v => (uint)v < 10U).ToDictionary(v => v).Count;
+// 			var p = x.Distinct().ToDictionary(v => v).Count;
+//
+// 			return a + b + c + d + e + f + g + h + i + j + k + l + m + n + o + p;
+// 			""", Unknown),
 		Create("return 36;", new[] { 1, 2, 3 }),
 		Create("return 0;", new int[] { }),
 	];
