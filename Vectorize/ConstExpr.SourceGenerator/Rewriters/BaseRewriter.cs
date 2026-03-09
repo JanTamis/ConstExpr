@@ -61,173 +61,139 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 				return TryGetLiteralValue(paren.Expression, typeSymbol, out value, visitedVariables) || TryGetLiteralValue(Visit(paren.Expression), typeSymbol, out value, visitedVariables);
 			// ^n => System.Index(n, fromEnd: true)
 			case PrefixUnaryExpressionSyntax prefix when prefix.OperatorToken.IsKind(SyntaxKind.CaretToken):
-				{
-					if (TryGetLiteralValue(prefix.Operand, typeSymbol, out var inner, visitedVariables) && inner is not null)
-					{
-						try
-						{
-							var indexType = loader.GetType("System.Index");
-
-							var ctor = indexType?.GetConstructor([typeof(int), typeof(bool)]);
-
-							if (ctor != null)
-							{
-								var intVal = Convert.ToInt32(inner);
-
-								value = ctor.Invoke([intVal, true]);
-								return true;
-							}
-						}
-						catch { }
-					}
-					value = null;
-					return false;
-				}
-			// a..b => System.Range
-			case RangeExpressionSyntax rangeSyntax:
+			{
+				if (TryGetLiteralValue(prefix.Operand, typeSymbol, out var inner, visitedVariables) && inner is not null)
 				{
 					try
 					{
 						var indexType = loader.GetType("System.Index");
-						var rangeType = loader.GetType("System.Range");
 
-						if (indexType is null || rangeType is null)
+						var ctor = indexType?.GetConstructor([ typeof(int), typeof(bool) ]);
+
+						if (ctor != null)
 						{
-							value = null;
-							return false;
-						}
+							var intVal = Convert.ToInt32(inner);
 
-						object? MakeIndex(ExpressionSyntax expr)
-						{
-							if (TryGetLiteralValue(Visit(expr), typeSymbol, out var innerVal, visitedVariables) && innerVal is not null)
-							{
-								// Already an Index (e.g., ^n handled above)
-								if (innerVal.GetType().FullName == "System.Index")
-								{
-									return innerVal;
-								}
-
-								// Wrap int as FromStart
-								if (innerVal is IConvertible)
-								{
-									var intVal = Convert.ToInt32(innerVal);
-									var ctor2 = indexType.GetConstructor([typeof(int), typeof(bool)]);
-									var ctor1 = indexType.GetConstructor([typeof(int)]);
-									if (ctor2 is not null)
-                  {
-                    return ctor2.Invoke([intVal, false]);
-                  }
-
-                  if (ctor1 is not null)
-                  {
-                    return ctor1.Invoke([intVal]);
-                  }
-                }
-							}
-							return null;
-						}
-
-						var leftIdx = rangeSyntax.LeftOperand is null ? null : MakeIndex(rangeSyntax.LeftOperand);
-						var rightIdx = rangeSyntax.RightOperand is null ? null : MakeIndex(rangeSyntax.RightOperand);
-
-						if (leftIdx is null && rightIdx is null)
-						{
-							var allProp = rangeType.GetProperty("All", BindingFlags.Public | BindingFlags.Static);
-							value = allProp?.GetValue(null);
-							return value is not null;
-						}
-
-						if (leftIdx is not null && rightIdx is null)
-						{
-							var startAt = rangeType.GetMethod("StartAt", BindingFlags.Public | BindingFlags.Static, null, [indexType], null);
-							value = startAt?.Invoke(null, [leftIdx]);
-							return value is not null;
-						}
-
-						if (leftIdx is null && rightIdx is not null)
-						{
-							var endAt = rangeType.GetMethod("EndAt", BindingFlags.Public | BindingFlags.Static, null, [indexType], null);
-							value = endAt?.Invoke(null, [rightIdx]);
-							return value is not null;
-						}
-
-						var ctorRange = rangeType.GetConstructor([indexType, indexType]);
-						value = ctorRange?.Invoke([leftIdx, rightIdx]);
-						return value is not null;
-					}
-					catch
-					{
-						value = null;
-						return false;
-					}
-				}
-			case ObjectCreationExpressionSyntax objectCreationExpression:
-				{
-					if (semanticModel.TryGetSymbol(objectCreationExpression.Type, out ITypeSymbol? randomType)
-							&& randomType.EqualsType(semanticModel.Compilation.GetTypeByMetadataName("System.Random")))
-					{
-						value = null;
-						return false;
-					}
-
-					var arguments = objectCreationExpression.ArgumentList?.Arguments
-														.Select(s => Visit(s.Expression))
-														.WhereSelect<SyntaxNode, object?>(TryGetLiteralValue)
-														.ToList()
-													?? [ ];
-
-					if (semanticModel.TryGetSymbol(objectCreationExpression, out IMethodSymbol? constructor)
-							&& loader.TryExecuteMethod(constructor, null, null, arguments, out var result))
-					{
-						if (TryApplyInitializer(objectCreationExpression.Initializer, result, typeSymbol, visitedVariables) 
-						    || objectCreationExpression.Initializer is null)
-						{
-							value = result;
+							value = ctor.Invoke([ intVal, true ]);
 							return true;
 						}
+					}
+					catch { }
+				}
+				value = null;
+				return false;
+			}
+			// a..b => System.Range
+			case RangeExpressionSyntax rangeSyntax:
+			{
+				try
+				{
+					var indexType = loader.GetType("System.Index");
+					var rangeType = loader.GetType("System.Range");
 
+					if (indexType is null || rangeType is null)
+					{
+						value = null;
+						return false;
 					}
 
-					if (semanticModel.TryGetSymbol(objectCreationExpression.Type, out typeSymbol))
+					object? MakeIndex(ExpressionSyntax expr)
 					{
-						var type = loader.GetType(typeSymbol);
-
-						if (type != null)
+						if (TryGetLiteralValue(Visit(expr), typeSymbol, out var innerVal, visitedVariables) && innerVal is not null)
 						{
-							var argumentsArray = arguments.ToArray();
-							var ctorInfos = type.GetConstructors()
-								.Where(c => c.GetParameters().Length == argumentsArray.Length)
-								.ToList();
-
-							foreach (var ctorInfo in ctorInfos)
+							// Already an Index (e.g., ^n handled above)
+							if (innerVal.GetType().FullName == "System.Index")
 							{
-								try
-								{
-									var instance = ctorInfo.Invoke(argumentsArray);
+								return innerVal;
+							}
 
-									if (TryApplyInitializer(objectCreationExpression.Initializer, instance, typeSymbol, visitedVariables) 
-									    || objectCreationExpression.Initializer is null)
-									{
-										value = instance;
-										return true;
-									}
-								}
-								catch
+							// Wrap int as FromStart
+							if (innerVal is IConvertible)
+							{
+								var intVal = Convert.ToInt32(innerVal);
+								var ctor2 = indexType.GetConstructor([ typeof(int), typeof(bool) ]);
+								var ctor1 = indexType.GetConstructor([ typeof(int) ]);
+
+								if (ctor2 is not null)
 								{
-									// Try next
+									return ctor2.Invoke([ intVal, false ]);
+								}
+
+								if (ctor1 is not null)
+								{
+									return ctor1.Invoke([ intVal ]);
 								}
 							}
 						}
+						return null;
 					}
 
-					// Fallback for SyntaxFactory-created nodes without semantic binding
-					var typeName = objectCreationExpression.Type.ToString();
-					var fallbackType = loader.GetType(typeName) ?? loader.GetType($"System.{typeName}") ?? loader.GetType($"System.Collections.Generic.{typeName}");
+					var leftIdx = rangeSyntax.LeftOperand is null ? null : MakeIndex(rangeSyntax.LeftOperand);
+					var rightIdx = rangeSyntax.RightOperand is null ? null : MakeIndex(rangeSyntax.RightOperand);
 
-					if (fallbackType != null)
+					if (leftIdx is null && rightIdx is null)
+					{
+						var allProp = rangeType.GetProperty("All", BindingFlags.Public | BindingFlags.Static);
+						value = allProp?.GetValue(null);
+						return value is not null;
+					}
+
+					if (leftIdx is not null && rightIdx is null)
+					{
+						var startAt = rangeType.GetMethod("StartAt", BindingFlags.Public | BindingFlags.Static, null, [ indexType ], null);
+						value = startAt?.Invoke(null, [ leftIdx ]);
+						return value is not null;
+					}
+
+					if (leftIdx is null && rightIdx is not null)
+					{
+						var endAt = rangeType.GetMethod("EndAt", BindingFlags.Public | BindingFlags.Static, null, [ indexType ], null);
+						value = endAt?.Invoke(null, [ rightIdx ]);
+						return value is not null;
+					}
+
+					var ctorRange = rangeType.GetConstructor([ indexType, indexType ]);
+					value = ctorRange?.Invoke([ leftIdx, rightIdx ]);
+					return value is not null;
+				}
+				catch
+				{
+					value = null;
+					return false;
+				}
+			}
+			case ObjectCreationExpressionSyntax objectCreationExpression:
+			{
+				if (semanticModel.TryGetSymbol(objectCreationExpression.Type, out ITypeSymbol? randomType)
+				    && randomType.EqualsType(semanticModel.Compilation.GetTypeByMetadataName("System.Random")))
+				{
+					value = null;
+					return false;
+				}
+
+				var arguments = objectCreationExpression.ArgumentList?.Arguments
+					                .Select(s => Visit(s.Expression))
+					                .WhereSelect<SyntaxNode, object?>(TryGetLiteralValue)
+					                .ToList()
+				                ?? [ ];
+
+				if (semanticModel.TryGetSymbol(objectCreationExpression, out IMethodSymbol? constructor)
+				    && loader.TryExecuteMethod(constructor, null, null, arguments, out var result)
+				    && (TryApplyInitializer(objectCreationExpression.Initializer, result, typeSymbol, visitedVariables)
+				        || objectCreationExpression.Initializer is null))
+				{
+					value = result;
+					return true;
+				}
+
+				if (semanticModel.TryGetSymbol(objectCreationExpression.Type, out typeSymbol))
+				{
+					var type = loader.GetType(typeSymbol);
+
+					if (type != null)
 					{
 						var argumentsArray = arguments.ToArray();
-						var ctorInfos = fallbackType.GetConstructors()
+						var ctorInfos = type.GetConstructors()
 							.Where(c => c.GetParameters().Length == argumentsArray.Length)
 							.ToList();
 
@@ -237,13 +203,8 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 							{
 								var instance = ctorInfo.Invoke(argumentsArray);
 
-								if (TryApplyInitializer(objectCreationExpression.Initializer, instance, typeSymbol, visitedVariables))
-								{
-									value = instance;
-									return true;
-								}
-
-								if (objectCreationExpression.Initializer is null)
+								if (TryApplyInitializer(objectCreationExpression.Initializer, instance, typeSymbol, visitedVariables)
+								    || objectCreationExpression.Initializer is null)
 								{
 									value = instance;
 									return true;
@@ -255,216 +216,231 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 							}
 						}
 					}
-
-					break;
 				}
-			case SimpleLambdaExpressionSyntax lambda:
+
+				// Fallback for SyntaxFactory-created nodes without semantic binding
+				var typeName = objectCreationExpression.Type.ToString();
+				var fallbackType = loader.GetType(typeName) ?? loader.GetType($"System.{typeName}") ?? loader.GetType($"System.Collections.Generic.{typeName}");
+
+				if (fallbackType != null)
 				{
-					if (semanticModel.TryGetSymbol(lambda, out IMethodSymbol symbol))
+					var argumentsArray = arguments.ToArray();
+					var ctorInfos = fallbackType.GetConstructors()
+						.Where(c => c.GetParameters().Length == argumentsArray.Length)
+						.ToList();
+
+					foreach (var ctorInfo in ctorInfos)
 					{
-						var parameters = symbol.Parameters
-							.Select(p => Expression.Parameter(loader.GetType(p.Type), p.Name))
-							.ToDictionary(t => t.Name);
-
-						var rewriter = new ExpressionRewriter(semanticModel, loader, (_, _) => { }, variables, parameters, CancellationToken.None);
-						var body = rewriter.Visit(lambda.Body);
-
-						if (body is null)
+						try
 						{
-							value = null;
-							return false;
+							var instance = ctorInfo.Invoke(argumentsArray);
+
+							if (TryApplyInitializer(objectCreationExpression.Initializer, instance, typeSymbol, visitedVariables))
+							{
+								value = instance;
+								return true;
+							}
+
+							if (objectCreationExpression.Initializer is null)
+							{
+								value = instance;
+								return true;
+							}
 						}
+						catch
+						{
+							// Try next
+						}
+					}
+				}
 
-						value = Expression.Lambda(body, parameters.Values).Compile();
-						return true;
+				break;
+			}
+			case SimpleLambdaExpressionSyntax lambda:
+			{
+				if (semanticModel.TryGetSymbol(lambda, out IMethodSymbol symbol))
+				{
+					var parameters = symbol.Parameters
+						.Select(p => Expression.Parameter(loader.GetType(p.Type), p.Name))
+						.ToDictionary(t => t.Name);
+
+					var rewriter = new ExpressionRewriter(semanticModel, loader, (_, _) => { }, variables, parameters, CancellationToken.None);
+					var body = rewriter.Visit(lambda.Body);
+
+					if (body is null)
+					{
+						value = null;
+						return false;
 					}
 
-					break;
+					value = Expression.Lambda(body, parameters.Values).Compile();
+					return true;
 				}
+
+				break;
+			}
 			case ParenthesizedLambdaExpressionSyntax parenthesizedLambdaExpressionSyntax:
+			{
+				if (semanticModel.TryGetSymbol(parenthesizedLambdaExpressionSyntax, out IMethodSymbol symbol))
 				{
-					if (semanticModel.TryGetSymbol(parenthesizedLambdaExpressionSyntax, out IMethodSymbol symbol))
-					{
-						var parameters = symbol.Parameters
-							.Select(p => Expression.Parameter(loader.GetType(p.Type), p.Name))
-							.ToDictionary(t => t.Name);
+					var parameters = symbol.Parameters
+						.Select(p => Expression.Parameter(loader.GetType(p.Type), p.Name))
+						.ToDictionary(t => t.Name);
 
-						var rewriter = new ExpressionRewriter(semanticModel, loader, (_, _) => { }, variables, parameters, CancellationToken.None);
-						var body = rewriter.Visit(parenthesizedLambdaExpressionSyntax.Body);
+					var rewriter = new ExpressionRewriter(semanticModel, loader, (_, _) => { }, variables, parameters, CancellationToken.None);
+					var body = rewriter.Visit(parenthesizedLambdaExpressionSyntax.Body);
 
-						value = Expression.Lambda(body, parameters.Values).Compile();
-						return true;
-					}
-
-					break;
+					value = Expression.Lambda(body, parameters.Values).Compile();
+					return true;
 				}
+
+				break;
+			}
 			case CastExpressionSyntax castExpressionSyntax:
+			{
+				if (TryGetLiteralValue(castExpressionSyntax.Expression, typeSymbol, out var innerVal, visitedVariables))
 				{
-					if (TryGetLiteralValue(castExpressionSyntax.Expression, typeSymbol, out var innerVal, visitedVariables))
+					// Try to resolve the *textual* type name from the syntax node (no semantic model)
+					string typeName = castExpressionSyntax.Type switch
 					{
-						// Try to resolve the *textual* type name from the syntax node (no semantic model)
-						string typeName = castExpressionSyntax.Type switch
-						{
-							PredefinedTypeSyntax p => p.Keyword.ValueText,
-							IdentifierNameSyntax id => id.Identifier.Text,
-							QualifiedNameSyntax q => q.ToString(), // preserve qualification for System.* cases
-							GenericNameSyntax g => g.Identifier.Text,
-							NullableTypeSyntax n => (n.ElementType as PredefinedTypeSyntax)?.Keyword.ValueText ?? n.ElementType.ToString(),
-							_ => castExpressionSyntax.Type.ToString()
-						};
+						PredefinedTypeSyntax p => p.Keyword.ValueText,
+						IdentifierNameSyntax id => id.Identifier.Text,
+						QualifiedNameSyntax q => q.ToString(), // preserve qualification for System.* cases
+						GenericNameSyntax g => g.Identifier.Text,
+						NullableTypeSyntax n => (n.ElementType as PredefinedTypeSyntax)?.Keyword.ValueText ?? n.ElementType.ToString(),
+						_ => castExpressionSyntax.Type.ToString()
+					};
 
-						// normalize common C# keywords and System.* names
-						if (typeName.StartsWith("System.", StringComparison.OrdinalIgnoreCase))
-            {
-              typeName = typeName.Substring("System.".Length);
-            }
-
-            typeName = typeName switch
-						{
-							"int" => "Int32",
-							"short" => "Int16",
-							"long" => "Int64",
-							"uint" => "UInt32",
-							"ushort" => "UInt16",
-							"ulong" => "UInt64",
-							"float" => "Single",
-							"double" => "Double",
-							"bool" => "Boolean",
-							"string" => "String",
-							"char" => "Char",
-							"decimal" => "Decimal",
-							"sbyte" => "SByte",
-							"byte" => "Byte",
-							_ => typeName
-						};
-
-						value = typeName switch
-						{
-							"Boolean" => Convert.ToBoolean(innerVal),
-							"Byte" => Convert.ToByte(innerVal),
-							"Char" => Convert.ToChar(innerVal),
-							"DateTime" => Convert.ToDateTime(innerVal),
-							"Decimal" => Convert.ToDecimal(innerVal),
-							"Double" => Convert.ToDouble(innerVal),
-							"Int16" => Convert.ToInt16(innerVal),
-							"Int32" => Convert.ToInt32(innerVal),
-							"Int64" => Convert.ToInt64(innerVal),
-							"SByte" => Convert.ToSByte(innerVal),
-							"Single" => Convert.ToSingle(innerVal),
-							"String" => Convert.ToString(innerVal),
-							"UInt16" => Convert.ToUInt16(innerVal),
-							"UInt32" => Convert.ToUInt32(innerVal),
-							"UInt64" => Convert.ToUInt64(innerVal),
-							_ => innerVal
-						};
-
-						return true;
+					// normalize common C# keywords and System.* names
+					if (typeName.StartsWith("System.", StringComparison.OrdinalIgnoreCase))
+					{
+						typeName = typeName.Substring("System.".Length);
 					}
-					break;
-				}
-			case MemberAccessExpressionSyntax memberAccessExpressionSyntax:
-				{
-					if (semanticModel.TryGetSymbol(memberAccessExpressionSyntax, out ISymbol? symbol))
+
+					typeName = typeName switch
 					{
-						var parentType = symbol.ContainingType;
+						"int" => "Int32",
+						"short" => "Int16",
+						"long" => "Int64",
+						"uint" => "UInt32",
+						"ushort" => "UInt16",
+						"ulong" => "UInt64",
+						"float" => "Single",
+						"double" => "Double",
+						"bool" => "Boolean",
+						"string" => "String",
+						"char" => "Char",
+						"decimal" => "Decimal",
+						"sbyte" => "SByte",
+						"byte" => "Byte",
+						_ => typeName
+					};
 
-						TryGetLiteralValue(Visit(memberAccessExpressionSyntax.Expression), parentType, out var instanceValue, visitedVariables);
+					value = typeName switch
+					{
+						"Boolean" => Convert.ToBoolean(innerVal),
+						"Byte" => Convert.ToByte(innerVal),
+						"Char" => Convert.ToChar(innerVal),
+						"DateTime" => Convert.ToDateTime(innerVal),
+						"Decimal" => Convert.ToDecimal(innerVal),
+						"Double" => Convert.ToDouble(innerVal),
+						"Int16" => Convert.ToInt16(innerVal),
+						"Int32" => Convert.ToInt32(innerVal),
+						"Int64" => Convert.ToInt64(innerVal),
+						"SByte" => Convert.ToSByte(innerVal),
+						"Single" => Convert.ToSingle(innerVal),
+						"String" => Convert.ToString(innerVal),
+						"UInt16" => Convert.ToUInt16(innerVal),
+						"UInt32" => Convert.ToUInt32(innerVal),
+						"UInt64" => Convert.ToUInt64(innerVal),
+						_ => innerVal
+					};
 
-						switch (symbol)
+					return true;
+				}
+				break;
+			}
+			case MemberAccessExpressionSyntax memberAccessExpressionSyntax:
+			{
+				if (semanticModel.TryGetSymbol(memberAccessExpressionSyntax, out ISymbol? symbol))
+				{
+					var parentType = symbol.ContainingType;
+
+					TryGetLiteralValue(Visit(memberAccessExpressionSyntax.Expression), parentType, out var instanceValue, visitedVariables);
+
+					switch (symbol)
+					{
+						case IFieldSymbol fieldSymbol:
 						{
-							case IFieldSymbol fieldSymbol:
-								if (loader.TryGetFieldValue(fieldSymbol, instanceValue, out value))
+							if (loader.TryGetFieldValue(fieldSymbol, instanceValue, out value))
+							{
+								return true;
+							}
+							
+							break;
+						}
+						case IPropertySymbol propertySymbol:
+						{
+							if (propertySymbol.Parameters.Length == 0)
+							{
+								if (loader.TryExecuteMethod(propertySymbol.GetMethod, instanceValue, new VariableItemDictionary(variables), [ ], out value))
 								{
 									return true;
 								}
-								break;
-							case IPropertySymbol propertySymbol:
-								if (propertySymbol.Parameters.Length == 0)
-								{
-									if (loader.TryExecuteMethod(propertySymbol.GetMethod, instanceValue, new VariableItemDictionary(variables), [], out value))
-									{
-										return true;
-									}
-								}
-								break;
+							}
+							
+							break;
 						}
 					}
-
-					break;
 				}
+
+				break;
+			}
 			case ArrayCreationExpressionSyntax arrayCreationExpression:
+			{
+				// Handle multidimensional arrays like new int[2,3] or new int[2,3,4]
+				if (arrayCreationExpression.Initializer is null && arrayCreationExpression.Type.RankSpecifiers.Count > 0)
 				{
-					// Handle multidimensional arrays like new int[2,3] or new int[2,3,4]
-					if (arrayCreationExpression.Initializer is null && arrayCreationExpression.Type.RankSpecifiers.Count > 0)
+					var rankSpecifier = arrayCreationExpression.Type.RankSpecifiers[0];
+					var dimensions = rankSpecifier.Sizes.Count;
+
+					if (dimensions > 1)
 					{
-						var rankSpecifier = arrayCreationExpression.Type.RankSpecifiers[0];
-						var dimensions = rankSpecifier.Sizes.Count;
+						// Multidimensional array
+						var dimensionLengths = new List<int>();
 
-						if (dimensions > 1)
+						foreach (var size in rankSpecifier.Sizes)
 						{
-							// Multidimensional array
-							var dimensionLengths = new List<int>();
-
-							foreach (var size in rankSpecifier.Sizes)
+							if (TryGetLiteralValue(Visit(size), typeSymbol, out var dimValue, visitedVariables) && dimValue is not null)
 							{
-								if (TryGetLiteralValue(Visit(size), typeSymbol, out var dimValue, visitedVariables) && dimValue is not null)
+								try
 								{
-									try
-									{
-										dimensionLengths.Add(Convert.ToInt32(dimValue));
-									}
-									catch
-									{
-										value = null;
-										return false;
-									}
+									dimensionLengths.Add(Convert.ToInt32(dimValue));
 								}
-								else
+								catch
 								{
 									value = null;
 									return false;
 								}
 							}
-
-							// Create multidimensional array
-							if (semanticModel.TryGetSymbol(arrayCreationExpression.Type.ElementType, out ITypeSymbol? elementTypeSymbol))
+							else
 							{
-								var elementType = loader.GetType(elementTypeSymbol);
-
-								if (elementType is not null)
-								{
-									try
-									{
-										value = Array.CreateInstance(elementType, dimensionLengths.ToArray());
-										return true;
-									}
-									catch
-									{
-										value = null;
-										return false;
-									}
-								}
+								value = null;
+								return false;
 							}
 						}
-						else if (dimensions == 1)
+
+						// Create multidimensional array
+						if (semanticModel.TryGetSymbol(arrayCreationExpression.Type.ElementType, out ITypeSymbol? elementTypeSymbol))
 						{
-							// Single-dimensional array with explicit size
-							if (TryGetLiteralValue(rankSpecifier.Sizes[0], typeSymbol, out var sizeVal, visitedVariables) && sizeVal is not null)
+							var elementType = loader.GetType(elementTypeSymbol);
+
+							if (elementType is not null)
 							{
 								try
 								{
-									var arraySize = Convert.ToInt32(sizeVal);
-
-									if (semanticModel.TryGetSymbol(arrayCreationExpression.Type.ElementType, out ITypeSymbol? elementTypeSymbol))
-									{
-										var elementType = loader.GetType(elementTypeSymbol);
-
-										if (elementType is not null)
-										{
-											value = Array.CreateInstance(elementType, arraySize);
-											return true;
-										}
-									}
+									value = Array.CreateInstance(elementType, dimensionLengths.ToArray());
+									return true;
 								}
 								catch
 								{
@@ -474,123 +450,151 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 							}
 						}
 					}
-
-					// Handle array initialization like new int[] { 1, 2, 3 } or new[] { 1, 2, 3 }
-					if (arrayCreationExpression.Initializer is not null)
+					else if (dimensions == 1)
 					{
-						var elements = new List<object?>();
-
-						foreach (var element in arrayCreationExpression.Initializer.Expressions)
+						// Single-dimensional array with explicit size
+						if (TryGetLiteralValue(rankSpecifier.Sizes[0], typeSymbol, out var sizeVal, visitedVariables) && sizeVal is not null)
 						{
-							if (TryGetLiteralValue(element, typeSymbol, out var elemVal, visitedVariables))
+							try
 							{
-								elements.Add(elemVal);
+								var arraySize = Convert.ToInt32(sizeVal);
+
+								if (semanticModel.TryGetSymbol(arrayCreationExpression.Type.ElementType, out ITypeSymbol? elementTypeSymbol))
+								{
+									var elementType = loader.GetType(elementTypeSymbol);
+
+									if (elementType is not null)
+									{
+										value = Array.CreateInstance(elementType, arraySize);
+										return true;
+									}
+								}
 							}
-							else
+							catch
 							{
 								value = null;
 								return false;
 							}
 						}
+					}
+				}
 
-						if (elements.Count == 0)
+				// Handle array initialization like new int[] { 1, 2, 3 } or new[] { 1, 2, 3 }
+				if (arrayCreationExpression.Initializer is not null)
+				{
+					var elements = new List<object?>();
+
+					foreach (var element in arrayCreationExpression.Initializer.Expressions)
+					{
+						if (TryGetLiteralValue(element, typeSymbol, out var elemVal, visitedVariables))
 						{
-							// Empty array
-							if (semanticModel.TryGetSymbol(arrayCreationExpression.Type.ElementType, out ITypeSymbol? elementTypeSymbol))
-							{
-								var elementType = loader.GetType(elementTypeSymbol);
-
-								if (elementType is not null)
-								{
-									value = Array.CreateInstance(elementType, 0);
-									return true;
-								}
-							}
+							elements.Add(elemVal);
 						}
 						else
 						{
-							var elementType = elements[0]?.GetType() ?? typeof(object);
-							var array = Array.CreateInstance(elementType, elements.Count);
-
-							for (var i = 0; i < elements.Count; i++)
-							{
-								array.SetValue(Convert.ChangeType(elements[i], elementType), i);
-							}
-
-							value = array;
-							return true;
+							value = null;
+							return false;
 						}
 					}
 
-					break;
+					if (elements.Count == 0)
+					{
+						// Empty array
+						if (semanticModel.TryGetSymbol(arrayCreationExpression.Type.ElementType, out ITypeSymbol? elementTypeSymbol))
+						{
+							var elementType = loader.GetType(elementTypeSymbol);
+
+							if (elementType is not null)
+							{
+								value = Array.CreateInstance(elementType, 0);
+								return true;
+							}
+						}
+					}
+					else
+					{
+						var elementType = elements[0]?.GetType() ?? typeof(object);
+						var array = Array.CreateInstance(elementType, elements.Count);
+
+						for (var i = 0; i < elements.Count; i++)
+						{
+							array.SetValue(Convert.ChangeType(elements[i], elementType), i);
+						}
+
+						value = array;
+						return true;
+					}
 				}
+
+				break;
+			}
 			case CollectionExpressionSyntax collectionExpressionSyntax:
+			{
+				if (semanticModel.TryGetTypeSymbol(collectionExpressionSyntax, out var typeSym))
 				{
-					if (semanticModel.TryGetTypeSymbol(collectionExpressionSyntax, out var typeSym))
-					{
-						
-					}
-					
-					var elements = new List<object?>();
 
-					foreach (var element in collectionExpressionSyntax.Elements.OfType<ExpressionElementSyntax>())
-					{
-						if (TryGetLiteralValue(element.Expression, typeSymbol, out var elemVal, visitedVariables))
-						{
-							elements.Add(elemVal);
-						}
-						else
-						{
-							value = null;
-							return false;
-						}
-					}
-
-					var type = elements.Count > 0 ? elements[0].GetType() : loader.GetType(typeSymbol);
-					var array = Array.CreateInstance(type, elements.Count);
-
-					for (var i = 0; i < elements.Count; i++)
-					{
-						array.SetValue(Convert.ChangeType(elements[i], type), i);
-					}
-
-					value = array;
-					return true;
 				}
+
+				var elements = new List<object?>();
+
+				foreach (var element in collectionExpressionSyntax.Elements.OfType<ExpressionElementSyntax>())
+				{
+					if (TryGetLiteralValue(element.Expression, typeSymbol, out var elemVal, visitedVariables))
+					{
+						elements.Add(elemVal);
+					}
+					else
+					{
+						value = null;
+						return false;
+					}
+				}
+
+				var type = elements.Count > 0 ? elements[0].GetType() : loader.GetType(typeSymbol);
+				var array = Array.CreateInstance(type, elements.Count);
+
+				for (var i = 0; i < elements.Count; i++)
+				{
+					array.SetValue(Convert.ChangeType(elements[i], type), i);
+				}
+
+				value = array;
+				return true;
+			}
 			case TupleExpressionSyntax tupleExpressionSyntax:
+			{
+				var elements = new List<object?>();
+
+				foreach (var element in tupleExpressionSyntax.Arguments)
 				{
-					var elements = new List<object?>();
-
-					foreach (var element in tupleExpressionSyntax.Arguments)
+					if (TryGetLiteralValue(element.Expression, typeSymbol, out var elemVal, visitedVariables))
 					{
-						if (TryGetLiteralValue(element.Expression, typeSymbol, out var elemVal, visitedVariables))
-						{
-							elements.Add(elemVal);
-						}
-						else
-						{
-							value = null;
-							return false;
-						}
+						elements.Add(elemVal);
 					}
-
-					var tupleTypes = elements.Select(e => e?.GetType() ?? typeof(object)).ToArray();
-					var tupleType = loader.GetTupleType(tupleTypes.Length);
-
-					if (tupleType != null)
+					else
 					{
-						var genericTupleType = tupleType.MakeGenericType(tupleTypes);
-						var ctor = genericTupleType.GetConstructor(tupleTypes);
-
-						if (ctor != null)
-						{
-							value = ctor.Invoke(elements.ToArray());
-							return true;
-						}
+						value = null;
+						return false;
 					}
-
-					break;
 				}
+
+				var tupleTypes = elements.Select(e => e?.GetType() ?? typeof(object)).ToArray();
+				var tupleType = loader.GetTupleType(tupleTypes.Length);
+
+				if (tupleType != null)
+				{
+					var genericTupleType = tupleType.MakeGenericType(tupleTypes);
+					var ctor = genericTupleType.GetConstructor(tupleTypes);
+
+					if (ctor != null)
+					{
+						value = ctor.Invoke(elements.ToArray());
+						return true;
+					}
+				}
+
+				break;
+			}
 		}
 
 		// Fallback to semantic constant evaluation
@@ -705,10 +709,10 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 			{
 				// Dictionary-style: { key, value } as nested initializer
 				if (expr is InitializerExpressionSyntax nestedInit
-					&& nestedInit.IsKind(SyntaxKind.ComplexElementInitializerExpression))
+				    && nestedInit.IsKind(SyntaxKind.ComplexElementInitializerExpression))
 				{
 					var addArgs = nestedInit.Expressions
-						.Select(e => TryGetLiteralValue(e, typeSymbol, out var v, visitedVariables) ? (true, v) : (false, (object?)null))
+						.Select(e => TryGetLiteralValue(e, typeSymbol, out var v, visitedVariables) ? (true, v) : (false, (object?) null))
 						.ToList();
 
 					if (addArgs.Any(a => !a.Item1))
@@ -750,7 +754,7 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 
 					try
 					{
-						addMethod.Invoke(instance, [elemVal]);
+						addMethod.Invoke(instance, [ elemVal ]);
 					}
 					catch
 					{
@@ -794,7 +798,7 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 	{
 		return node is IdentifierNameSyntax identifier && CanBePruned(identifier.Identifier.Text);
 	}
-	
+
 	// protected bool TryGetTypeSymbol(SyntaxNode? node, [NotNullWhen(true)] out ITypeSymbol? typeSymbol)
 	// {
 	// 	switch (node)
@@ -812,11 +816,10 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 	//
 	// 	return typeSymbol is not null;
 	// }
-	
+
 	protected IEnumerable<BinaryExpressionSyntax> GetBinaryExpressions(SyntaxNode node)
 	{
 		return node.Ancestors()
-			.Where(w => w is BinaryExpressionSyntax or WhileStatementSyntax or IfStatementSyntax)
 			.Select(s => s switch
 			{
 				BinaryExpressionSyntax binary => binary,
@@ -827,7 +830,7 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 			})
 			.OfType<BinaryExpressionSyntax>()
 			.SelectMany(GetInnerBinaryExpressions);
-		
+
 		IEnumerable<BinaryExpressionSyntax> GetInnerBinaryExpressions(ExpressionSyntax expr)
 		{
 			if (expr is BinaryExpressionSyntax binary)
