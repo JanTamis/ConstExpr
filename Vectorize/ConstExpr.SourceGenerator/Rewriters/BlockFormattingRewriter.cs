@@ -90,6 +90,50 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		return visited;
 	}
 
+	public override SyntaxNode? VisitParenthesizedLambdaExpression(ParenthesizedLambdaExpressionSyntax node)
+	{
+		var visited = (ParenthesizedLambdaExpressionSyntax?) base.VisitParenthesizedLambdaExpression(node);
+
+		if (visited is null)
+		{
+			return visited;
+		}
+
+		// Check if the lambda body is a simple invocation where all parameters are passed as arguments in the same order
+		// Pattern: (x) => Method(x) -> Method
+		// Pattern: (x, y) => Method(x, y) -> Method
+		if (visited.ExpressionBody is InvocationExpressionSyntax invocation &&
+		    invocation.ArgumentList.Arguments.Count == visited.ParameterList.Parameters.Count)
+		{
+			var allMatch = true;
+
+			for (var i = 0; i < visited.ParameterList.Parameters.Count; i++)
+			{
+				var param = visited.ParameterList.Parameters[i];
+				var arg = invocation.ArgumentList.Arguments[i];
+
+				if (arg.Expression is not IdentifierNameSyntax identifier ||
+				    identifier.Identifier.ValueText != param.Identifier.ValueText ||
+				    arg.NameColon is not null ||
+				    !arg.RefKindKeyword.IsKind(SyntaxKind.None))
+				{
+					allMatch = false;
+					break;
+				}
+			}
+
+			if (allMatch)
+			{
+				// Return just the method expression (e.g., Double.IsOddInteger)
+				return invocation.Expression
+					.WithLeadingTrivia(visited.GetLeadingTrivia())
+					.WithTrailingTrivia(visited.GetTrailingTrivia());
+			}
+		}
+
+		return visited;
+	}
+
 	public override SyntaxNode? VisitLiteralExpression(LiteralExpressionSyntax node)
 	{
 		if (node.IsKind(SyntaxKind.DefaultLiteralExpression))
@@ -181,8 +225,167 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 	public override SyntaxNode? VisitMethodDeclaration(MethodDeclarationSyntax node)
 	{
-		return base.VisitMethodDeclaration(node)
-			.WithoutLeadingTrivia();
+		var visited = base.VisitMethodDeclaration(node);
+
+		// Only strip leading trivia for top-level methods; preserve indentation for methods inside type declarations
+		if (node.Parent is not TypeDeclarationSyntax)
+		{
+			visited = visited?.WithoutLeadingTrivia();
+		}
+
+		return visited;
+	}
+
+	public override SyntaxNode? VisitPropertyDeclaration(PropertyDeclarationSyntax node)
+	{
+		var visited = base.VisitPropertyDeclaration(node);
+
+		// Only strip leading trivia for top-level properties; preserve indentation inside type declarations
+		if (node.Parent is not TypeDeclarationSyntax)
+		{
+			visited = visited?.WithoutLeadingTrivia();
+		}
+
+		return visited;
+	}
+
+	public override SyntaxNode? VisitIndexerDeclaration(IndexerDeclarationSyntax node)
+	{
+		var visited = base.VisitIndexerDeclaration(node);
+
+		// Only strip leading trivia for top-level indexers; preserve indentation inside type declarations
+		if (node.Parent is not TypeDeclarationSyntax)
+		{
+			visited = visited?.WithoutLeadingTrivia();
+		}
+
+		return visited;
+	}
+
+	public override SyntaxNode? VisitOperatorDeclaration(OperatorDeclarationSyntax node)
+	{
+		var visited = base.VisitOperatorDeclaration(node);
+
+		// Only strip leading trivia for top-level operators; preserve indentation inside type declarations
+		if (node.Parent is not TypeDeclarationSyntax)
+		{
+			visited = visited?.WithoutLeadingTrivia();
+		}
+
+		return visited;
+	}
+
+	public override SyntaxNode? VisitConversionOperatorDeclaration(ConversionOperatorDeclarationSyntax node)
+	{
+		var visited = base.VisitConversionOperatorDeclaration(node);
+
+		// Only strip leading trivia for top-level conversion operators; preserve indentation inside type declarations
+		if (node.Parent is not TypeDeclarationSyntax)
+		{
+			visited = visited?.WithoutLeadingTrivia();
+		}
+
+		return visited;
+	}
+
+	public override SyntaxNode? VisitStructDeclaration(StructDeclarationSyntax node)
+	{
+		var visited = (StructDeclarationSyntax?) base.VisitStructDeclaration(node);
+
+		if (visited is null || visited.Members.Count <= 1)
+		{
+			return visited;
+		}
+
+		return visited.WithMembers(NormalizeMemberSpacing(visited.Members));
+	}
+
+	public override SyntaxNode? VisitRecordDeclaration(RecordDeclarationSyntax node)
+	{
+		var visited = (RecordDeclarationSyntax?) base.VisitRecordDeclaration(node);
+
+		if (visited is null || visited.Members.Count <= 1)
+		{
+			return visited;
+		}
+
+		return visited.WithMembers(NormalizeMemberSpacing(visited.Members));
+	}
+
+	private static SyntaxList<MemberDeclarationSyntax> NormalizeMemberSpacing(SyntaxList<MemberDeclarationSyntax> members)
+	{
+		if (members.Count <= 1)
+		{
+			return members;
+		}
+
+		var newMembers = new SyntaxList<MemberDeclarationSyntax>();
+
+		for (var i = 0; i < members.Count; i++)
+		{
+			var member = members[i];
+
+			if (i > 0)
+			{
+				// Normalize: strip all leading EOLs from this member, then add exactly 1
+				var leading = member.GetLeadingTrivia();
+				var nonEolStart = 0;
+
+				while (nonEolStart < leading.Count && leading[nonEolStart].IsKind(SyntaxKind.EndOfLineTrivia))
+				{
+					nonEolStart++;
+				}
+
+				// Build new leading trivia: exactly 1 EOL + rest (whitespace/indentation)
+				var newLeading = SyntaxFactory.TriviaList(SyntaxFactory.EndOfLine("\n"));
+
+				for (var j = nonEolStart; j < leading.Count; j++)
+				{
+					newLeading = newLeading.Add(leading[j]);
+				}
+
+				member = member.WithLeadingTrivia(newLeading);
+
+				// Also normalize trailing trivia of the *previous* member to have exactly 1 EOL
+				var prev = newMembers[i - 1];
+				var trailing = prev.GetTrailingTrivia();
+				var newTrailing = SyntaxFactory.TriviaList();
+				var foundEol = false;
+
+				foreach (var trivia in trailing)
+				{
+					if (trivia.IsKind(SyntaxKind.EndOfLineTrivia))
+					{
+						if (!foundEol)
+						{
+							newTrailing = newTrailing.Add(trivia);
+							foundEol = true;
+						}
+
+						// Skip additional EOLs
+					}
+					else if (trivia.IsKind(SyntaxKind.WhitespaceTrivia) && foundEol)
+					{
+						// Skip trailing whitespace after EOL
+					}
+					else
+					{
+						newTrailing = newTrailing.Add(trivia);
+					}
+				}
+
+				if (!foundEol)
+				{
+					newTrailing = newTrailing.Add(SyntaxFactory.EndOfLine("\n"));
+				}
+
+				newMembers = newMembers.Replace(newMembers[i - 1], prev.WithTrailingTrivia(newTrailing));
+			}
+
+			newMembers = newMembers.Add(member);
+		}
+
+		return newMembers;
 	}
 
 	public override SyntaxNode VisitBlock(BlockSyntax node)

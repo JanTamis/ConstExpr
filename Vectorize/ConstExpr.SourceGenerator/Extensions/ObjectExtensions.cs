@@ -1629,7 +1629,9 @@ public static class ObjectExtensions
 		{
 			var rangeInt = Convert.ToInt32(range);
 			var rangeSize = rangeInt + 1;
+			
 			density = (double) values.Count / rangeSize;
+			
 			return true;
 		}
 		catch
@@ -1652,6 +1654,7 @@ public static class ObjectExtensions
     }
 
     difference = values[1].Subtract(values[0]);
+    
 		if (difference == null)
     {
       return false;

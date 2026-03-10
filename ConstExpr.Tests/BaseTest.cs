@@ -7,6 +7,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using sourcegen::ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.Core.Enumerators;
+using sourcegen::ConstExpr.SourceGenerator.Comparers;
 using sourcegen::ConstExpr.SourceGenerator.Helpers;
 using sourcegen::ConstExpr.SourceGenerator.Models;
 using sourcegen::ConstExpr.SourceGenerator.Rewriters;
@@ -72,11 +73,12 @@ public abstract class BaseTest<TDelegate>(FloatingPointEvaluationMode evaluation
 		var loader = MetadataLoader.GetLoader(compilation);
 		var attribute = new ConstExprAttribute { FloatingPointMode = evaluationMode };
 		var visitedMethods = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
-		var additionalMethods = new Dictionary<SyntaxNode, bool>();
+		var additionalMethods = new Dictionary<SyntaxNode, bool>(SyntaxNodeComparer<SyntaxNode>.Instance);
 		
 		var exceptionsDuringRewriting = new List<Exception>();
 
 		var rewriter = new ConstExprPartialRewriter(semanticModel, loader, (_, exception) => exceptionsDuringRewriting.Add(exception), parameters, additionalMethods, new HashSet<string>(), attribute, CancellationToken.None, visitedMethods);
+		
 		foreach (var result in Result)
 		{
 			var notParameters = parameters.Keys
@@ -144,6 +146,9 @@ public abstract class BaseTest<TDelegate>(FloatingPointEvaluationMode evaluation
 
 						Generated body:
 						{FormattingHelper.Render(newBody) ?? "(null)"}
+						
+						Additional Items:
+						{string.Join("\n\n", additionalMethods.OrderBy(o => o.Value).Select(s => FormattingHelper.Render(s.Key) ?? "(null)"))}
 						""");
 				}
 			}
@@ -165,6 +170,9 @@ public abstract class BaseTest<TDelegate>(FloatingPointEvaluationMode evaluation
 
 						Generated body:
 						{FormattingHelper.Render(newBody) ?? "(null)"}
+						
+						Additional Items:
+						{string.Join("\n\n", additionalMethods.OrderBy(o => o.Value).Select(s => FormattingHelper.Render(s.Key) ?? "(null)"))}
 						""");
 				}
 			}

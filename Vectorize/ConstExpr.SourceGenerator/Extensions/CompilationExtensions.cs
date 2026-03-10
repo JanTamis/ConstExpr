@@ -1338,6 +1338,13 @@ public static class CompilationExtensions
 			.Replace('/', '_');
 	}
 
+	public static string GetDeterministicHashString(int hash)
+	{
+		return Convert.ToBase64String(BitConverter.GetBytes(hash)).TrimEnd('=')
+			.Replace('+', '_')
+			.Replace('/', '_');
+	}
+
 	public static ulong GetDeterministicHash(this SyntaxNode? node)
 	{
 		if (node is null)
@@ -1359,15 +1366,17 @@ public static class CompilationExtensions
 			return false;
 		}
 
-		// Fast path: if both are identifiers, compare their names directly
-		if (node is IdentifierNameSyntax idA && other is IdentifierNameSyntax idB)
+		switch (node)
 		{
-			return idA.Identifier.ValueText == idB.Identifier.ValueText;
-		}
-
-		if (node is LiteralExpressionSyntax litA && other is LiteralExpressionSyntax litB)
-		{
-			return litA.Token.Value?.Equals(litB.Token.Value) == true;
+			// Fast path: if both are identifiers, compare their names directly
+			case IdentifierNameSyntax idA when other is IdentifierNameSyntax idB:
+			{
+				return idA.Identifier.ValueText == idB.Identifier.ValueText;
+			}
+			case LiteralExpressionSyntax litA when other is LiteralExpressionSyntax litB:
+			{
+				return litA.Token.Value?.Equals(litB.Token.Value) == true;
+			}
 		}
 
 		if (node.IsEquivalentTo(other))
@@ -1396,7 +1405,43 @@ public static class CompilationExtensions
 			.Select(a => a.Value)
 			.ToArray();
 
-		var attribute = (TAttribute?) Activator.CreateInstance(type, constructorArgs);
+		TAttribute? attribute;
+
+		try
+		{
+			attribute = constructorArgs.Length > 0
+				? (TAttribute?) Activator.CreateInstance(type, constructorArgs)
+				: null;
+		}
+		catch (MissingMethodException)
+		{
+			attribute = null;
+		}
+
+		// Fallback: find a constructor whose parameters all have default values and fill in missing args
+		if (attribute == null)
+		{
+			var constructor = type.GetConstructors()
+				.Where(c => c.GetParameters().Length >= constructorArgs.Length
+				            && c.GetParameters().Skip(constructorArgs.Length).All(p => p.HasDefaultValue))
+				.OrderBy(c => c.GetParameters().Length)
+				.FirstOrDefault();
+
+			if (constructor != null)
+			{
+				var parameters = constructor.GetParameters();
+				var fullArgs = new object?[parameters.Length];
+
+				for (var i = 0; i < parameters.Length; i++)
+				{
+					fullArgs[i] = i < constructorArgs.Length
+						? constructorArgs[i]
+						: parameters[i].DefaultValue;
+				}
+
+				attribute = (TAttribute?) constructor.Invoke(fullArgs);
+			}
+		}
 
 		if (attribute == null)
 		{
