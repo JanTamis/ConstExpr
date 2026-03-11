@@ -2,6 +2,7 @@ using System.Linq;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using MathMinOptimizer = ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers.MinFunctionOptimizer;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
@@ -46,7 +47,10 @@ public class MinByFunctionOptimizer() : BaseLinqFunctionOptimizer("MinBy", 1)
 					var left = TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, invocationSource), context.Method), out var leftResult) ? leftResult as ExpressionSyntax : null;
 					var right = TryOptimize(context.WithInvocationAndMethod(CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters), context.Method), out var rightResult) ? rightResult as ExpressionSyntax : null;
 
-					result = CreateInvocation(context.Method.ReturnType, nameof(Enumerable.Min), left ?? CreateInvocation(invocationSource, Name, context.VisitedParameters), right ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters));
+					var leftExpr = left ?? CreateInvocation(invocationSource, Name, context.VisitedParameters);
+					var rightExpr = right ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters);
+
+					result = OptimizeAsMathPairwise<MathMinOptimizer>(context, leftExpr, rightExpr);
 					return true;
 				}
 			}

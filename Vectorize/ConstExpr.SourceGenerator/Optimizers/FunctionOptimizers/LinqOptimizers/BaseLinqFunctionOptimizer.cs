@@ -6,6 +6,7 @@ using System.Reflection;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
+using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -1120,6 +1121,58 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		}
 	}
 	
+	/// <summary>
+	/// Optimizes a pairwise Min/Max scalar comparison by delegating to the corresponding Math optimizer.
+	/// Used when a LINQ Min/Max over a Concat source is reduced to a two-argument scalar call so that
+	/// Math-level optimizations (idempotency, clamp pattern, constant folding) are automatically applied.
+	/// </summary>
+	protected ExpressionSyntax OptimizeAsMathPairwise<TOptimizer>(
+		FunctionOptimizerContext context,
+		ExpressionSyntax left,
+		ExpressionSyntax right)
+		where TOptimizer : BaseMathFunctionOptimizer, new()
+	{
+		var optimizer = new TOptimizer();
+		var returnType = context.Method.ReturnType;
+
+		// Synthetic fallback invocation: ReturnType.Max/Min(left, right)
+		var syntheticInvocation = CreateInvocation(returnType, optimizer.Name, left, right);
+
+		try
+		{
+			// Prefer a method from System.Math so IsValidMathMethod passes
+			var mathType = context.Model.Compilation.GetTypeByMetadataName("System.Math");
+			IMethodSymbol? mathMethod = mathType
+				?.GetMembers(optimizer.Name)
+				.OfType<IMethodSymbol>()
+				.FirstOrDefault(m => m.Parameters.Length == 2
+				                     && SymbolEqualityComparer.Default.Equals(m.Parameters[0].Type, returnType));
+
+			// Fall back to a static method on the numeric type itself (e.g., int.Max in .NET 7+)
+			mathMethod ??= returnType
+				?.GetMembers(optimizer.Name)
+				.OfType<IMethodSymbol>()
+				.FirstOrDefault(m => m.Parameters.Length == 2);
+
+			if (mathMethod is null)
+			{
+				return syntheticInvocation;
+			}
+
+			var mathContext = context.WithInvocationAndMethod(syntheticInvocation, mathMethod);
+			mathContext.VisitedParameters = [left, right];
+			mathContext.OriginalParameters = [left, right];
+
+			return optimizer.TryOptimize(mathContext, out var result) && result is ExpressionSyntax expr
+				? expr
+				: syntheticInvocation;
+		}
+		catch
+		{
+			return syntheticInvocation;
+		}
+	}
+
 	protected bool TryGetElementType(FunctionOptimizerContext context, [NotNullWhen(true)] out ITypeSymbol? elementType)
 	{
 		if (context.Method.ReceiverType is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Collections_Generic_IEnumerable_T, TypeArguments.Length: 1 } receiverType)

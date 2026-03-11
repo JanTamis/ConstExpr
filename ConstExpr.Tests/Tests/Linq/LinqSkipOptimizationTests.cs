@@ -20,8 +20,7 @@ public class LinqSkipOptimizationTests : BaseTest<Func<int[], int>>
 	[
 		Create("""
 			var a = x.Length;
-			
-			var b = x.Skip(4).Count();
+			var b = Int32.Max(0, x.Length - 4);
 
 			return a + b;
 			""", Unknown),

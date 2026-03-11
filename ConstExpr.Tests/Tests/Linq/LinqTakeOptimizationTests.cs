@@ -18,12 +18,12 @@ public class LinqTakeOptimizationTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
-		// Create("""
-		// 	var b = x.Take(1).Count();
-		// 	
-		// 	return b;
-		// 	""", Unknown),
-		// Create("return 0;", new[] { 1, 2, 3 }),
+		Create("""
+			var b = Int32.Min(1, x.Length);
+
+			return b;
+			""", Unknown),
+		Create("return 1;", new[] { 1, 2, 3 }),
 		Create("return 0;", new int[] { }),
 	];
 }

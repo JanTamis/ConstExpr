@@ -26,6 +26,8 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.Reverse().Count() => collection.Count() (reversing doesn't affect count)
 /// - collection.AsEnumerable().Count() => collection.Count() (type cast doesn't affect count)
 /// - collection.OrderBy(...).Where(p1).Where(p2).Count() => collection.Count(p1 && p2) (combining operations)
+/// - collection.Take(n).Count() => Int32.Min(n, collection.Count()) (take limits count)
+/// - collection.Skip(n).Count() => Int32.Max(0, collection.Count() - n) (skip reduces count)
 /// </summary>
 public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Count), 0, 1)
 {
@@ -38,6 +40,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		..MaterializingMethods,
 		..OrderingOperations,
 		nameof(Enumerable.Select),
+		"Index",
 	];
 
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
@@ -291,8 +294,8 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 							var left = TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, methodSource), context.Method), out var leftResult) ? leftResult as ExpressionSyntax : null;
 							var right = TryOptimize(context.WithInvocationAndMethod(CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters), context.Method), out var rightResult) ? rightResult as ExpressionSyntax : null;
 
-							result = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, 
-								left ?? CreateInvocation(currentSource, Name, context.VisitedParameters), 
+							result = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression,
+								left ?? CreateInvocation(currentSource, Name, context.VisitedParameters),
 								right ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters));
 							return true;
 						}
@@ -304,9 +307,40 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 						var left = TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, methodSource), context.Method), out var leftResult) ? leftResult as ExpressionSyntax : null;
 						var right = TryOptimize(context.WithInvocationAndMethod(CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters), context.Method), out var rightResult) ? rightResult as ExpressionSyntax : null;
 
-						result = CreateInvocation(context.Model.Compilation.CreateInt32(), "Min", 
-							left ?? CreateInvocation(currentSource, Name, context.VisitedParameters), 
+						result = CreateInvocation(context.Model.Compilation.CreateInt32(), "Min",
+							left ?? CreateInvocation(currentSource, Name, context.VisitedParameters),
 							right ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters));
+						return true;
+					}
+					case nameof(Enumerable.Take) when invocation.ArgumentList.Arguments is [ var takeArg ]:
+					{
+						var takeAmount = takeArg.Expression;
+
+						// Resolve source.Count() as optimally as possible
+						var sourceCount = TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, methodSource), context.Method), out var countResult)
+							? countResult as ExpressionSyntax ?? CreateSimpleInvocation(methodSource, nameof(Enumerable.Count))
+							: CreateSimpleInvocation(methodSource, nameof(Enumerable.Count));
+
+						result = CreateInvocation(context.Model.Compilation.CreateInt32(), "Min", takeAmount, sourceCount);
+						return true;
+					}
+					case nameof(Enumerable.Skip) when invocation.ArgumentList.Arguments is [ var skipArg ]:
+					{
+						var skipAmount = skipArg.Expression;
+						var intType = context.Model.Compilation.GetSpecialType(SpecialType.System_Int32);
+
+						// Resolve source.Count() as optimally as possible
+						var sourceCount = TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, methodSource), context.Method), out var countResult)
+							? countResult as ExpressionSyntax ?? CreateSimpleInvocation(methodSource, nameof(Enumerable.Count))
+							: CreateSimpleInvocation(methodSource, nameof(Enumerable.Count));
+
+						// source.Count() - skipAmount  (fold to literal when both are constant)
+						var subtracted = context.OptimizeBinaryExpression(
+							                 SyntaxFactory.BinaryExpression(SyntaxKind.SubtractExpression, sourceCount, skipAmount),
+							                 intType, intType, intType) as ExpressionSyntax
+						                 ?? SyntaxFactory.BinaryExpression(SyntaxKind.SubtractExpression, sourceCount, skipAmount);
+
+						result = CreateInvocation(context.Model.Compilation.CreateInt32(), "Max", SyntaxHelpers.CreateLiteral(0)!, subtracted);
 						return true;
 					}
 				}
