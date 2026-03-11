@@ -104,6 +104,12 @@ public static class SyntaxHelpers
 
 	public static ExpressionSyntax? CreateLiteral<T>(T? value, bool useExplicitByte = false)
 	{
+		// check if value is lookup and skip if it is
+		if (value?.GetType().GetInterface("System.Linq.ILookup`2") is not null)
+		{
+			return null;
+		}
+		
 		switch (value)
 		{
 			case byte bb:

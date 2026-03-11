@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using ConstExpr.SourceGenerator.Rewriters;
 using Microsoft.CodeAnalysis;
 
@@ -12,7 +13,7 @@ internal static class FormattingHelper
 		return rewriter.Visit(node.NormalizeWhitespace("\t"));
 	}
 	
-	public static string? Render(SyntaxNode? node)
+	public static string? Render([NotNullIfNotNull(nameof(node))] SyntaxNode? node)
 	{
 		if (node is null)
 		{

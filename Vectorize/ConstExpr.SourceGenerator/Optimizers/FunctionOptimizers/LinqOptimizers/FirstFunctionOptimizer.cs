@@ -155,6 +155,11 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 					result = appendArg;
 					return true;
 				}
+				case nameof(Enumerable.Skip) when GetMethodArguments(invocation).FirstOrDefault() is { Expression: { } skipArg }:
+				{
+					result = TryOptimizeByOptimizer<ElementAtFunctionOptimizer>(context, CreateInvocation(methodSource, nameof(Enumerable.ElementAt), skipArg));
+					return true;
+				}
 			}
 		}
 

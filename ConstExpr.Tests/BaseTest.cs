@@ -115,6 +115,8 @@ public abstract class BaseTest<TDelegate>(FloatingPointEvaluationMode evaluation
 				parameters[parameterNames[i]].IsInitialized = true;
 			}
 
+			additionalMethods.Clear();
+
 			var newBody = rewriter.VisitBlock(method.Body!) as BlockSyntax;
 
 			foreach (var parameter in parameters)

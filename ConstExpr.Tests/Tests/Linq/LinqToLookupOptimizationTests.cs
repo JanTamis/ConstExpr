@@ -58,28 +58,59 @@ public class LinqToLookupOptimizationTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
-// 		Create("""
-// 			var a = x.ToLookup(v => v).Count;
-// 			var b = x.ToLookup(v => v).Count;
-// 			var c = x.ToLookup(v => v).Count;
-// 			var d = x.ToLookup(v => v).Count;
-// 			var e = x.ToLookup(v => v, v => v << 1).Count;
-// 			var f = x.ToLookup(v => v, v => v << 1).Count;
-// 			var g = x.ToLookup(v => v).Count;
-// 			var h = x.ToLookup(v => v).Count;
-// 			var i = x.ToLookup(v => v).Count;
-// 			var j = x.ToLookup(v => v).Count;
-// 			var k = x.ToLookup(v => v).Count;
-// 			var l = x.ToLookup(v => v * 10, v => v * 10).Count;
-// 			var m = x.Where(v => v > 0).ToLookup(v => v).Count;
-// 			var n = x.Where(v => (uint)v < 10U).ToLookup(v => v).Count;
-//
-// 			return a + b + c + d + e + f + g + h + i + j + k + l + m + n;
-// 			""", Unknown),
-		Create("return 42;", new[] { 1, 2, 3 }),
-		Create("return 0;", new int[] { }),
+		Create("""
+			var a = x.ToLookup(v => v).Count;
+			var b = x.ToLookup(v => v).Count;
+			var c = x.ToLookup(v => v).Count;
+			var d = x.ToLookup(v => v).Count;
+			var e = x.ToLookup(v => v, v => v << 1).Count;
+			var f = x.ToLookup(v => v, v => v << 1).Count;
+			var g = x.ToLookup(v => v).Count;
+			var h = x.ToLookup(v => v).Count;
+			var i = x.ToLookup(v => v).Count;
+			var j = x.ToLookup(v => v).Count;
+			var k = x.ToLookup(v => v).Count;
+			var l = x.ToLookup(v => v * 10, v => v * 10).Count;
+			var m = x.Where(v => v > 0).ToLookup(v => v).Count;
+			var n = x.Where(v => (uint)v < 10U).ToLookup(v => v).Count;
+
+			return a + b + c + d + e + f + g + h + i + j + k + l + m + n;
+			""", Unknown),
+		Create("""
+			var a = new Lookup_4jhdag().Count;
+			var b = new Lookup_4jhdag().Count;
+			var c = new Lookup_4jhdag().Count;
+			var d = new Lookup_4jhdag().Count;
+			var e = new Lookup_sMxTiw().Count;
+			var f = new Lookup_sMxTiw().Count;
+			var g = new Lookup_4jhdag().Count;
+			var h = new Lookup_4jhdag().Count;
+			var i = new Lookup_4jhdag().Count;
+			var j = new Lookup_4jhdag().Count;
+			var k = new Lookup_4jhdag().Count;
+			var l = new Lookup_slRS_g().Count;
+			var m = new Lookup_4jhdag().Count;
+			var n = new Lookup_4jhdag().Count;
+
+			return a + b + c + d + e + f + g + h + i + j + k + l + m + n;
+			""", new[] { 1, 2, 3 }),
+		Create("""
+			var a = new Lookup_aQuaZw().Count;
+			var b = new Lookup_aQuaZw().Count;
+			var c = new Lookup_aQuaZw().Count;
+			var d = new Lookup_aQuaZw().Count;
+			var e = new Lookup_aQuaZw().Count;
+			var f = new Lookup_aQuaZw().Count;
+			var g = new Lookup_aQuaZw().Count;
+			var h = new Lookup_aQuaZw().Count;
+			var i = new Lookup_aQuaZw().Count;
+			var j = new Lookup_aQuaZw().Count;
+			var k = new Lookup_aQuaZw().Count;
+			var l = new Lookup_aQuaZw().Count;
+			var m = new Lookup_aQuaZw().Count;
+			var n = new Lookup_aQuaZw().Count;
+
+			return a + b + c + d + e + f + g + h + i + j + k + l + m + n;
+			""", new int[] { }),
 	];
 }
-
-
-

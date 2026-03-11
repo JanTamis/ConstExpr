@@ -94,8 +94,17 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 					// Compose keySelector ∘ selectLambda
 					var composedKey = CombineLambdas(keyLambda, selectLambda);
 
-					// Select(selector).ToLookup(keySelector) => ToLookup(composedKey, selector)
-					result = UpdateInvocation(context, invocationSource, composedKey, selectorArg);
+					// If the Select lambda is identity, the element-selector would also be identity → drop it
+					if (IsIdentityLambda(selectLambda))
+					{
+						result = CreateInvocation(invocationSource, nameof(Enumerable.ToLookup), composedKey);
+					}
+					else
+					{
+						// Select(selector).ToLookup(keySelector) => ToLookup(composedKey, selector)
+						result = UpdateInvocation(context, invocationSource, composedKey, selectorArg);
+					}
+
 					return true;
 				}
 			}
@@ -152,11 +161,11 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 
 			if (method.IsStatic)
 			{
-				lookupResult = method.Invoke(null, [values, ..parameters]);
+				lookupResult = method.Invoke(null, [ values, ..parameters ]);
 			}
 			else
 			{
-				lookupResult = method.Invoke(values, [..parameters]);
+				lookupResult = method.Invoke(values, [ ..parameters ]);
 			}
 
 			if (lookupResult is null)
@@ -185,28 +194,36 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 			}
 
 			var hash = new HashCode();
-			hash.Add(visitedSource.GetDeterministicHash());
 
-			foreach (var visitedParameter in context.VisitedParameters)
+			// Also hash the actual groups content so the struct name reflects the computed lookup data
+			foreach (var (key, elements) in groups)
 			{
-				hash.Add(visitedParameter.GetDeterministicHash());
+				hash.Add(FormatLiteral(key));
+
+				foreach (var element in elements)
+				{
+					hash.Add(FormatLiteral(element));
+				}
 			}
 
 			// Generate a unique struct name based on the content
 			var structName = $"Lookup_{CompilationExtensions.GetDeterministicHashString(hash.ToHashCode())}";
 
-			// Generate the Grouping helper struct (shared across all lookups)
-			var groupingStruct = ParseStructFromString("""
-				file readonly struct Grouping<TKey, TElement>(TKey key, params IEnumerable<TElement> elements) : IGrouping<TKey, TElement>
-				{
-					public TKey Key => key;
-					
-					public IEnumerator<TElement> GetEnumerator() => elements.GetEnumerator();
-					IEnumerator IEnumerable.GetEnumerator() => elements.GetEnumerator();
-				}
-				""");
+			if (groups.Count > 0)
+			{
+				// Generate the Grouping helper struct (shared across all lookups)
+				var groupingStruct = ParseStructFromString("""
+					file readonly struct Grouping<TKey, TElement>(TKey key, params IEnumerable<TElement> elements) : IGrouping<TKey, TElement>
+					{
+						public TKey Key => key;
+						
+						public IEnumerator<TElement> GetEnumerator() => elements.GetEnumerator();
+						IEnumerator IEnumerable.GetEnumerator() => elements.GetEnumerator();
+					}
+					""");
 
-			context.AdditionalMethods.TryAdd(groupingStruct, true);
+				context.AdditionalMethods.TryAdd(groupingStruct, true);
+			}
 
 			// Build the Contains body as a `key is x or y or z` pattern expression and run through context.Visit
 			var containsExpression = BuildContainsPatternExpression(groups, context);
@@ -319,18 +336,27 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		sb.AppendLine($"\tpublic int Count => {groups.Count};");
 		sb.AppendLine();
 
-		// Indexer
-		sb.AppendLine($"\tpublic IEnumerable<{elementTypeName}> this[{keyTypeName} key] => key switch");
-		sb.AppendLine("\t{");
-
-		foreach (var (key, elements) in groups)
+		if (groups.Count == 0)
 		{
-			var elementsStr = string.Join(", ", elements.Select(FormatLiteral));
-			sb.AppendLine($"\t\t{FormatLiteral(key)} => [{elementsStr}],");
+			// Indexer
+			sb.AppendLine($"\tpublic IEnumerable<{elementTypeName}> this[{keyTypeName} key] => [];");
+		}
+		else
+		{
+			// Indexer
+			sb.AppendLine($"\tpublic IEnumerable<{elementTypeName}> this[{keyTypeName} key] => key switch");
+			sb.AppendLine("\t{");
+
+			foreach (var (key, elements) in groups)
+			{
+				var elementsStr = string.Join(", ", elements.Select(FormatLiteral));
+				sb.AppendLine($"\t\t{FormatLiteral(key)} => [{elementsStr}],");
+			}
+
+			sb.AppendLine("\t\t_ => []");
+			sb.AppendLine("\t};");
 		}
 
-		sb.AppendLine("\t\t_ => []");
-		sb.AppendLine("\t};");
 		sb.AppendLine();
 
 		// Contains method – body is the (possibly further-optimised) pattern expression
@@ -341,10 +367,17 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		sb.AppendLine($"\tpublic IEnumerator<IGrouping<{keyTypeName}, {elementTypeName}>> GetEnumerator()");
 		sb.AppendLine("\t{");
 
-		foreach (var (key, elements) in groups)
+		if (groups.Count == 0)
 		{
-			var elementsStr = string.Join(", ", elements.Select(FormatLiteral));
-			sb.AppendLine($"\t\tyield return new Grouping<{keyTypeName}, {elementTypeName}>({FormatLiteral(key)}, {elementsStr});");
+			sb.AppendLine($"\t\treturn Enumerable.Empty<IGrouping<{keyTypeName}, {elementTypeName}>>().GetEnumerator();");
+		}
+		else
+		{
+			foreach (var (key, elements) in groups)
+			{
+				var elementsStr = string.Join(", ", elements.Select(FormatLiteral));
+				sb.AppendLine($"\t\tyield return new Grouping<{keyTypeName}, {elementTypeName}>({FormatLiteral(key)}, {elementsStr});");
+			}
 		}
 
 		sb.AppendLine("\t}");
@@ -389,7 +422,7 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 			using System.Collections;
 			using System.Collections.Generic;
 			using System.Linq;
-			
+
 			public class TempClass
 			{
 			{{structString}}
