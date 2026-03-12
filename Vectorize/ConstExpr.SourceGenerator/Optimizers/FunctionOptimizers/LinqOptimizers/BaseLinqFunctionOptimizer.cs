@@ -988,7 +988,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 
 		try
 		{
-			if (context.OriginalParameters.Count == context.Method.Parameters.Length
+			if (context.OriginalParameters.Count <= context.Method.Parameters.Length
 			    && context.Method.ReceiverType is INamedTypeSymbol receiverType
 			    && TryGetLiteralValue(visitedSource, context, receiverType, out var values)
 			    && context.Loader.TryGetMethodByMethod(context.Method, out var method))
@@ -1001,6 +1001,17 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 					    || TryGetLiteralValue(context.VisitedParameters[i], context, context.Method.Parameters[i].Type, out value))
 					{
 						parameters.Add(value);
+					}
+				}
+
+				// Fill in default values for parameters not explicitly provided in the call.
+				for (var i = context.OriginalParameters.Count; i < context.Method.Parameters.Length; i++)
+				{
+					var param = context.Method.Parameters[i];
+					
+					if (param.HasExplicitDefaultValue)
+					{
+						parameters.Add(param.ExplicitDefaultValue);
 					}
 				}
 
@@ -1030,7 +1041,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	{
 		try
 		{
-			if (context.OriginalParameters.Count == context.Method.Parameters.Length
+			if (context.OriginalParameters.Count <= context.Method.Parameters.Length
 			    && context.Method.ReceiverType is INamedTypeSymbol receiverType
 			    && TryGetLiteralValue(context.Visit(source) ?? source, context, receiverType, out var values)
 			    && context.Loader.TryGetMethodByMethod(context.Method, out var method))
@@ -1039,16 +1050,18 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 					.WhereSelect<ExpressionSyntax, object?>((s, out result) => TryGetLiteralValue(s, context, null, out result))
 					.ToList();
 
-				// for (var i = 0; i < parameters.Count; i++)
-				// {
-				// 	if (TryGetLiteralValue(context.OriginalParameters[i], context, context.Method.Parameters[i].Type, out var value)
-				// 	    || TryGetLiteralValue(context.VisitedParameters[i], context, context.Method.Parameters[i].Type, out value))
-				// 	{
-				// 		parameters.Add(value);
-				// 	}
-				// }
+				// Fill in default values for parameters not explicitly provided in the call.
+				for (var i = parameters.Count; i < context.Method.Parameters.Length; i++)
+				{
+					var param = context.Method.Parameters[i];
+					
+					if (param.HasExplicitDefaultValue)
+					{
+						newParameters.Add(param.ExplicitDefaultValue);
+					}
+				}
 
-				if (parameters.Count == context.Method.Parameters.Length)
+				if (newParameters.Count == context.Method.Parameters.Length)
 				{
 					if (context.Method.ReceiverType is not null
 					    && SyntaxHelpers.TryGetLiteral(method.Invoke(null, [ values, ..newParameters ]), out var tempResult)

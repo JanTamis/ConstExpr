@@ -34,7 +34,9 @@ public class LinqCountByOptimizationTests : BaseTest<Func<int[], int>>
 		// Where(v => false).CountBy() => Enumerable.Empty<KeyValuePair<TKey,int>>() => Count() = 0
 		var h = x.Where(v => false).CountBy(v => v % 2).Count();
 
-		return a + b + c + d + e + f + g + h;
+		var i = x.CountBy(v => v).Count();
+
+		return a + b + c + d + e + f + g + h + i;
 	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
@@ -42,17 +44,18 @@ public class LinqCountByOptimizationTests : BaseTest<Func<int[], int>>
 		// e (Empty source) and h (Where false) fold to 0 and are pruned from the return sum.
 		// v % 2 in key selectors is also optimised to v & 1 by the arithmetic optimizer.
 		Create("""
-			var a = x.CountBy(v => v & 1).Count();
-			var b = x.CountBy(v => v & 1).Count();
-			var c = x.CountBy(v => v & 1).Count();
-			var d = x.CountBy(v => v & 1).Count();
-			var f = x.CountBy(v => v & 1).Count();
-			var g = x.CountBy(v => v & 1).Count();
+			var a = x.DistinctBy(v => v & 1).Count();
+			var b = x.DistinctBy(v => v & 1).Count();
+			var c = x.DistinctBy(v => v & 1).Count();
+			var d = x.DistinctBy(v => v & 1).Count();
+			var f = x.DistinctBy(v => v & 1).Count();
+			var g = x.DistinctBy(v => v & 1).Count();
+			var i = x.Distinct().Count();
 
-			return a + b + c + d + f + g;
+			return a + b + c + d + f + g + i;
 			""", Unknown),
 		Create("return 12;", new[] { 1, 2, 3, 4, 5 }),  // 6 calls × 2 keys each; e=0, h=0
-		Create("return 0;",  new int[] { }),              // all groups empty
+		Create("return 0;",  new int[] { }),            // all groups empty
 	];
 }
 

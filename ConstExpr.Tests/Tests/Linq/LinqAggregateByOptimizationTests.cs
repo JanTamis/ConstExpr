@@ -54,9 +54,9 @@ public class LinqAggregateByOptimizationTests : BaseTest<Func<int[], int>>
 			var e = x.OrderBy(v => v + 1).AggregateBy(v => v & 1, 0, (acc, v) => acc + v).Count();
 			var f = x.Where(v => v > 0).AggregateBy(v => v & 1, 0, (acc, v) => acc + v).Count();
 			var h = x.AggregateBy(v => v & 1, 0, (acc, v) => acc + v, EqualityComparer<int>.Default).Count();
-			var i = x.CountBy(v => v & 1).Count();
-			var j = x.CountBy(v => v & 1, EqualityComparer<int>.Default).Count();
-
+			var i = x.DistinctBy(v => v & 1).Count();
+			var j = x.DistinctBy(v => v & 1).Count();
+			
 			return a + b + c + d + e + f + h + i + j;
 			""", Unknown),
 	];

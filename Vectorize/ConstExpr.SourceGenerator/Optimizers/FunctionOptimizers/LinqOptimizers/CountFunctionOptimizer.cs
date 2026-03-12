@@ -337,7 +337,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 						// source.Count() - skipAmount  (fold to literal when both are constant)
 						var subtracted = context.OptimizeBinaryExpression(
 							                 SyntaxFactory.BinaryExpression(SyntaxKind.SubtractExpression, sourceCount, skipAmount),
-							                 intType, intType, intType) as ExpressionSyntax
+							                 intType, intType, intType)
 						                 ?? SyntaxFactory.BinaryExpression(SyntaxKind.SubtractExpression, sourceCount, skipAmount);
 
 						result = CreateInvocation(context.Model.Compilation.CreateInt32(), "Max", SyntaxHelpers.CreateLiteral(0)!, subtracted);
@@ -358,18 +358,44 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 			}
 		}
 
-		if (IsEmptyEnumerable(currentSource))
+		if (IsLinqMethodChain(currentSource, out var chainMethodName, out var chainInvocation)
+		    && TryGetLinqSource(chainInvocation, out var chainSource))
 		{
-			result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0));
-			return true;
-		}
+			switch (chainMethodName)
+			{
+				case "CountBy" when GetMethodArguments(chainInvocation).FirstOrDefault() is { Expression: { } predicateArg }
+				                    && TryGetLambda(predicateArg, out var predicate):
+				{
+					if (IsIdentityLambda(predicate))
+					{
+						var distinctInvocation = CreateSimpleInvocation(chainSource, nameof(Enumerable.Distinct));
+						var newCountInvocation = TryOptimizeByOptimizer<DistinctFunctionOptimizer>(context, distinctInvocation) as ExpressionSyntax ?? distinctInvocation;
 
-		// If we skipped any operations, create optimized Count() call
-		if (isNewSource
-		    || !AreSyntacticallyEquivalent(currentSource, source))
-		{
-			result = UpdateInvocation(context, currentSource);
-			return true;
+						result = UpdateInvocation(context, newCountInvocation);
+						return true;
+					}
+
+					var distinctByInvocation = CreateInvocation(chainSource, "DistinctBy", predicate);
+					var newDistinctByCountInvocation = TryOptimizeByOptimizer<DistinctByFunctionOptimizer>(context, distinctByInvocation) as ExpressionSyntax ?? distinctByInvocation;
+
+					result = UpdateInvocation(context, newDistinctByCountInvocation);
+					return true;
+				}
+			}
+
+			if (IsEmptyEnumerable(currentSource))
+			{
+				result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0));
+				return true;
+			}
+
+			// If we skipped any operations, create optimized Count() call
+			if (isNewSource
+			    || !AreSyntacticallyEquivalent(currentSource, source))
+			{
+				result = UpdateInvocation(context, currentSource);
+				return true;
+			}
 		}
 
 		result = null;

@@ -70,7 +70,7 @@ public class DistinctFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		{
 			switch (methodName)
 			{
-				case var name when SetBasedOperations.Contains(name):
+				case var _ when SetBasedOperations.Contains(methodName):
 				{
 					result = context.Visit(invocationSource) ?? invocationSource;
 					return true;

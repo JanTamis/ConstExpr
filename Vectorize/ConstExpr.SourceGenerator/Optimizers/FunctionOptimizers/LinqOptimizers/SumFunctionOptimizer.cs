@@ -73,12 +73,18 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 					var selector = methodInvocation.ArgumentList.Arguments[0].Expression;
 
-					if (!TryGetLambda(selector, out var selectorLambda)
-					    || !IsIdentityLambda(selectorLambda))
+					if (TryGetLambda(selector, out var selectLambda))
 					{
-						var visitedSelector = context.Visit(selector) ?? selector;
-						result = TryOptimizeAppend(context, methodSource, UpdateInvocation(context, methodSource, visitedSelector));
-						return true;
+						if (!IsIdentityLambda(selectLambda))
+						{
+							result = TryOptimizeAppend(context, methodSource, UpdateInvocation(context, methodSource, selector));
+							return true;
+						}
+
+						if (IsConstantLambda(selectLambda, out var constantValue))
+						{
+							
+						}
 					}
 					break;
 				}

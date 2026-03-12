@@ -312,6 +312,31 @@ public static class SyntaxHelpers
 				.Select(s => SyntaxFactory.ExpressionElement(CreateLiteral(s)))));
 		}
 
+		if (value.GetType().Name == "KeyValuePair`2")
+		{
+			var type = value.GetType();
+			var keyProp = type.GetProperty("Key");
+			var valueProp = type.GetProperty("Value");
+
+			var keyExpr = CreateLiteral(keyProp?.GetValue(value));
+			var valueExpr = CreateLiteral(valueProp?.GetValue(value));
+
+			if (keyExpr is null || valueExpr is null)
+			{
+				return null;
+			}
+
+			return SyntaxFactory.InvocationExpression(
+					SyntaxFactory.MemberAccessExpression(
+						SyntaxKind.SimpleMemberAccessExpression,
+						SyntaxFactory.IdentifierName("KeyValuePair"),
+						SyntaxFactory.IdentifierName("Create")))
+				.WithArgumentList(SyntaxFactory.ArgumentList(SyntaxFactory.SeparatedList([
+					SyntaxFactory.Argument(keyExpr),
+					SyntaxFactory.Argument(valueExpr)
+				])));
+		}
+
 		return null; // SyntaxFactory.ParseExpression(value.ToString());
 	}
 

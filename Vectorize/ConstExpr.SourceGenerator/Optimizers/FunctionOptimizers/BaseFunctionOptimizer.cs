@@ -51,6 +51,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers
 				ParenthesizedExpressionSyntax par => IsPure(par.Expression),
 				PrefixUnaryExpressionSyntax u => IsPure(u.Operand),
 				BinaryExpressionSyntax b => IsPure(b.Left) && IsPure(b.Right),
+				CastExpressionSyntax c => IsPure(c.Expression),
 				_ => false
 			};
 		}
