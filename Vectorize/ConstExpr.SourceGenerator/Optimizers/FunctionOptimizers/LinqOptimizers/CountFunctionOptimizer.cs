@@ -69,7 +69,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		       && TryGetLambda(predicateArg, out var predicate)
 		       && TryGetLinqSource(whereInvocation, out var whereSource))
 		{
-			if (IsLiteralBooleanLambda(predicate, out var literalValue) && literalValue == true)
+			if (IsLiteralBooleanLambda(predicate, out var literalValue))
 			{
 				switch (literalValue)
 				{
@@ -203,11 +203,10 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 								countInvocation = CreateSimpleInvocation(newChunkSource, nameof(Enumerable.Count));
 							}
 
-							var left = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression,
-								countInvocation as ExpressionSyntax,
-								context.OptimizeBinaryExpression(SyntaxFactory.BinaryExpression(SyntaxKind.SubtractExpression, chunkSize, SyntaxHelpers.CreateLiteral(1)!), intType, intType, intType) ?? chunkSize);
+							var chunkMinus1 = OptimizeArithmetic(context, SyntaxKind.SubtractExpression, chunkSize, SyntaxHelpers.CreateLiteral(1)!, intType);
+							var left = OptimizeArithmetic(context, SyntaxKind.AddExpression, countInvocation as ExpressionSyntax, chunkMinus1, intType);
 
-							result = context.OptimizeBinaryExpression(SyntaxFactory.BinaryExpression(SyntaxKind.DivideExpression, SyntaxFactory.ParenthesizedExpression(context.OptimizeBinaryExpression(left, intType, intType, intType) ?? left), chunkSize), intType, intType, intType) ?? chunkSize;
+							result = OptimizeArithmetic(context, SyntaxKind.DivideExpression, SyntaxFactory.ParenthesizedExpression(left), chunkSize, intType);
 							return true;
 						}
 
@@ -252,7 +251,10 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 					{
 						var count = 1;
 
-						while (IsLinqMethodChain(currentSource, methodName, out var appendInvocation)
+						TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectCount, out currentSource);
+
+						while (IsLinqMethodChain(currentSource, out var innerMethodName, out var appendInvocation)
+						       && innerMethodName is nameof(Enumerable.Append) or nameof(Enumerable.Prepend)
 						       && TryGetLinqSource(appendInvocation, out var appendSource))
 						{
 							count++;
@@ -262,7 +264,8 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 						if (TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, currentSource), context.Method), out result))
 						{
-							result = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, result as ExpressionSyntax, SyntaxHelpers.CreateLiteral(count));
+							var intType2 = context.Model.Compilation.CreateInt32();
+							result = OptimizeArithmetic(context, SyntaxKind.AddExpression, result as ExpressionSyntax, SyntaxHelpers.CreateLiteral(count)!, intType2);
 							return true;
 						}
 
@@ -274,18 +277,21 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 						{
 							var count = concatSyntaxes.Count;
 
+							TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectCount, out currentSource);
+
 							while (IsLinqMethodChain(currentSource, nameof(Enumerable.Concat), out var concatInvocation)
-							       && TryGetLinqSource(concatInvocation, out var concatSource)
-							       && TryGetSyntaxes(invocation.ArgumentList.Arguments[0].Expression, out concatSyntaxes))
+						       && TryGetLinqSource(concatInvocation, out var concatSource)
+						       && TryGetSyntaxes(concatInvocation.ArgumentList.Arguments[0].Expression, out concatSyntaxes))
 							{
-								count++;
+								count += concatSyntaxes.Count;
 
 								TryGetOptimizedChainExpression(concatSource, OperationsThatDontAffectCount, out currentSource);
 							}
 
 							if (TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, currentSource), context.Method), out result))
 							{
-								result = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, result as ExpressionSyntax, SyntaxHelpers.CreateLiteral(count));
+								var intType2 = context.Model.Compilation.CreateInt32();
+								result = OptimizeArithmetic(context, SyntaxKind.AddExpression, result as ExpressionSyntax, SyntaxHelpers.CreateLiteral(count)!, intType2);
 								return true;
 							}
 						}
@@ -294,9 +300,10 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 							var left = TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, methodSource), context.Method), out var leftResult) ? leftResult as ExpressionSyntax : null;
 							var right = TryOptimize(context.WithInvocationAndMethod(CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters), context.Method), out var rightResult) ? rightResult as ExpressionSyntax : null;
 
-							result = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression,
+							var intType2 = context.Model.Compilation.CreateInt32();
+							result = OptimizeArithmetic(context, SyntaxKind.AddExpression,
 								left ?? CreateInvocation(currentSource, Name, context.VisitedParameters),
-								right ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters));
+								right ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters), intType2);
 							return true;
 						}
 
@@ -335,10 +342,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 							: CreateSimpleInvocation(methodSource, nameof(Enumerable.Count));
 
 						// source.Count() - skipAmount  (fold to literal when both are constant)
-						var subtracted = context.OptimizeBinaryExpression(
-							                 SyntaxFactory.BinaryExpression(SyntaxKind.SubtractExpression, sourceCount, skipAmount),
-							                 intType, intType, intType)
-						                 ?? SyntaxFactory.BinaryExpression(SyntaxKind.SubtractExpression, sourceCount, skipAmount);
+						var subtracted = OptimizeArithmetic(context, SyntaxKind.SubtractExpression, sourceCount, skipAmount, intType);
 
 						result = CreateInvocation(context.Model.Compilation.CreateInt32(), "Max", SyntaxHelpers.CreateLiteral(0)!, subtracted);
 						return true;

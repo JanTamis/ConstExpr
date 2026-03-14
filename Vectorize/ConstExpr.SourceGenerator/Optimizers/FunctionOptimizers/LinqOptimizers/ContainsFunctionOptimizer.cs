@@ -90,19 +90,19 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 					else
 					{
 						wherePredicate = context.Visit(wherePredicate) as LambdaExpressionSyntax ?? wherePredicate;
+						
+						var boolType = context.Model.Compilation.CreateBoolean();
 
 						// Create a new lambda that combines the where predicate with equality check
 						var lambdaParam = GetLambdaParameter(wherePredicate);
 						var whereBody = GetLambdaBody(wherePredicate);
-						var equalityCheck = SyntaxFactory.BinaryExpression(
-							SyntaxKind.EqualsExpression,
+						var equalityCheck = OptimizeComparison(context, SyntaxKind.EqualsExpression,
 							SyntaxFactory.IdentifierName(lambdaParam),
-							searchValue);
+							searchValue, boolType);
 
-						var combinedBody = SyntaxFactory.BinaryExpression(
-							SyntaxKind.LogicalAndExpression,
+						var combinedBody = OptimizeComparison(context, SyntaxKind.LogicalAndExpression,
 							SyntaxFactory.ParenthesizedExpression(whereBody),
-							SyntaxFactory.ParenthesizedExpression(equalityCheck));
+							SyntaxFactory.ParenthesizedExpression(equalityCheck), boolType);
 
 						var anyPredicate = SyntaxFactory.SimpleLambdaExpression(
 							SyntaxFactory.Parameter(SyntaxFactory.Identifier(lambdaParam)),
@@ -142,10 +142,9 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 					if (TryGetLambdaBody(selector, out var selectorBody))
 					{
 						var lambdaParam = GetLambdaParameter(selector);
-						var equalityCheck = SyntaxFactory.BinaryExpression(
-							SyntaxKind.EqualsExpression,
+						var equalityCheck = OptimizeComparison(context, SyntaxKind.EqualsExpression,
 							selectorBody,
-							searchValue);
+							searchValue, context.Model.Compilation.CreateBoolean());
 
 						var anyPredicate = SyntaxFactory.SimpleLambdaExpression(
 							SyntaxFactory.Parameter(SyntaxFactory.Identifier(lambdaParam)),
@@ -163,10 +162,10 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 									context.Visit(invocationSource) ?? invocationSource,
 									value);
 
-								result = SyntaxFactory.BinaryExpression(
-									SyntaxKind.GreaterThanOrEqualExpression,
+								result = OptimizeComparison(context, SyntaxKind.GreaterThanOrEqualExpression,
 									indexOfCall,
-									SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0)));
+									SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0)),
+									context.Model.Compilation.GetSpecialType(SpecialType.System_Int32));
 								return true;
 							}
 
@@ -202,7 +201,8 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 					var left = TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, invocationSource), context.Method), out var leftResult) ? leftResult as ExpressionSyntax : null;
 					var right = TryOptimize(context.WithInvocationAndMethod(CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters), context.Method), out var rightResult) ? rightResult as ExpressionSyntax : null;
 
-					result = SyntaxFactory.BinaryExpression(SyntaxKind.LogicalOrExpression, left ?? CreateInvocation(invocationSource, Name, context.VisitedParameters), right ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters));
+					var boolType = context.Model.Compilation.CreateBoolean();
+					result = OptimizeComparison(context, SyntaxKind.LogicalOrExpression, left ?? CreateInvocation(invocationSource, Name, context.VisitedParameters), right ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters), boolType);
 					return true;
 				}
 				case nameof(Enumerable.Range) when invocation.ArgumentList.Arguments is [ var startArg, var countArg ]:
@@ -224,7 +224,7 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 
 					// Repeat(element, count).Contains(x) => count > 0 && element == x
 					var countPositive = OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, SyntaxHelpers.CreateLiteral(0)!, intType);
-					var elementEquals = OptimizeComparison(context, SyntaxKind.EqualsExpression, repeatElementArg.Expression, searchValue, boolType);
+					var elementEquals = OptimizeComparison(context, SyntaxKind.EqualsExpression, repeatElementArg.Expression, searchValue, intType);
 					
 					result = OptimizeComparison(context, SyntaxKind.LogicalAndExpression, countPositive, elementEquals, boolType);
 					return true;
@@ -237,6 +237,23 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 			return true;
 		}
 
+		// Literal collection: [1, 2, 3].Contains(x) → x is 1 or 2 or 3
+		// This is more efficient than Array.IndexOf when the collection is a small constant set.
+		const int maxIsPatternElements = 8;
+		
+		if (TryGetSyntaxes(source, out var litSyntaxes)
+		    && litSyntaxes.Count is > 0 and <= maxIsPatternElements
+		    && litSyntaxes.All(s => s is LiteralExpressionSyntax)
+		    && searchValue is not LiteralExpressionSyntax)
+		{
+			var orPattern = litSyntaxes
+				.Select(PatternSyntax (syntax) => SyntaxFactory.ConstantPattern(syntax))
+				.Aggregate((left, right) => SyntaxFactory.BinaryPattern(SyntaxKind.OrPattern, left, right));
+			
+			result = SyntaxFactory.IsPatternExpression(searchValue, orPattern);
+			return true;
+		}
+
 		// For arrays, use Array.IndexOf
 		if (IsInvokedOnArray(context, source))
 		{
@@ -246,10 +263,10 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 				source,
 				searchValue);
 
-			result = SyntaxFactory.BinaryExpression(
-				SyntaxKind.GreaterThanOrEqualExpression,
+			result = OptimizeComparison(context, SyntaxKind.GreaterThanOrEqualExpression,
 				indexOfCall,
-				SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0)));
+				SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0)),
+				context.Model.Compilation.GetSpecialType(SpecialType.System_Int32));
 			return true;
 		}
 

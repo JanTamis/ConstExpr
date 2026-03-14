@@ -99,8 +99,11 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 							if (TryGetSyntaxes(methodSource, out var sourceSyntaxes)
 							    && chunkSize is LiteralExpressionSyntax { Token.Value: int chunkSizeValue })
 							{
+								var lastChunkSize = sourceSyntaxes.Count % chunkSizeValue;
+								if (lastChunkSize == 0) lastChunkSize = chunkSizeValue;
+								
 								var elements = sourceSyntaxes
-									.Skip(sourceSyntaxes.Count - chunkSizeValue)
+									.Skip(sourceSyntaxes.Count - lastChunkSize)
 									.Select(SyntaxFactory.ExpressionElement);
 
 								result = SyntaxFactory.CollectionExpression(
@@ -147,13 +150,13 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 
 					if (IsInvokedOnArray(context, methodSource))
 					{
-						result = CreateDefaultIfEmptyConditional(methodSource, "Length", defaultItem);
+						result = CreateDefaultIfEmptyConditional(context, methodSource, "Length", defaultItem);
 						return true;
 					}
 
 					if (IsCollectionType(context, methodSource))
 					{
-						result = CreateDefaultIfEmptyConditional(methodSource, "Count", defaultItem);
+						result = CreateDefaultIfEmptyConditional(context, methodSource, "Count", defaultItem);
 						return true;
 					}
 
@@ -198,7 +201,7 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 					{
 						// Repeat(element, count).FirstOrDefault() => count > 0 ? element : throw exception
 						result = SyntaxFactory.ConditionalExpression(
-							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, SyntaxHelpers.CreateLiteral(0)!, context.Model.Compilation.GetSpecialType(SpecialType.System_Boolean)),
+							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, SyntaxHelpers.CreateLiteral(0)!, context.Model.Compilation.CreateInt32()),
 							repeatElementArg.Expression,
 							CreateThrowExpression<InvalidOperationException>("Sequence contains no elements"));
 						return true;
@@ -230,13 +233,14 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 		return false;
 	}
 
-	private SyntaxNode CreateDefaultIfEmptyConditional(ExpressionSyntax collection, string propertyName, ExpressionSyntax defaultItem)
+	private SyntaxNode CreateDefaultIfEmptyConditional(FunctionOptimizerContext context, ExpressionSyntax collection, string propertyName, ExpressionSyntax defaultItem)
 	{
+		var intType = context.Model.Compilation.CreateInt32();
+
 		return SyntaxFactory.ConditionalExpression(
-			SyntaxFactory.BinaryExpression(
-				SyntaxKind.GreaterThanExpression,
+			OptimizeComparison(context, SyntaxKind.GreaterThanExpression,
 				CreateMemberAccess(collection, propertyName),
-				SyntaxHelpers.CreateLiteral(0)!),
+				SyntaxHelpers.CreateLiteral(0)!, intType),
 			SyntaxFactory.ElementAccessExpression(
 				collection,
 				SyntaxFactory.BracketedArgumentList(

@@ -46,9 +46,9 @@ public class SkipLastFunctionOptimizer() : BaseLinqFunctionOptimizer("SkipLast",
 					var argument = invocation.ArgumentList.Arguments[0].Expression;
 					var intType = context.Model.Compilation.GetSpecialType(SpecialType.System_Int32);
 
-					var newArgument = context.OptimizeBinaryExpression(SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, argument, context.VisitedParameters[0]), intType, intType, intType);
+					var newArgument = OptimizeArithmetic(context, SyntaxKind.AddExpression, argument, context.VisitedParameters[0], intType);
 					
-					result = CreateInvocation(invocationSource, Name, newArgument as ExpressionSyntax);
+					result = CreateInvocation(invocationSource, Name, newArgument);
 					return true;
 				}
 			}

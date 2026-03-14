@@ -10,10 +10,10 @@ namespace ConstExpr.Tests.Tests.Linq;
 /// <item><description><c>Range(start, count).Contains(x)</c> => <c>x &gt;= start &amp;&amp; x &lt; start + count</c></description></item>
 /// <item><description><c>Range(start, count).First()</c> => <c>start</c></description></item>
 /// <item><description><c>Range(start, count).Last()</c> => <c>start + count - 1</c></description></item>
-/// <item><description><c>Range(start, count).ElementAt(n)</c> => <c>start + n</c></description></item>
-/// <item><description><c>Range(start, count).Average()</c> => <c>Double.MultiplyAddEstimate(count - 1, 0.5, start)</c></description></item>
-/// <item><description><c>Range(start, count).Min()</c> => <c>start</c></description></item>
-/// <item><description><c>Range(start, count).Max()</c> => <c>start + count - 1</c></description></item>
+/// <item><description><c>Range(start, count).ElementAt(n)</c> => <c>n &lt; count ? start + n : throw</c></description></item>
+/// <item><description><c>Range(start, count).Average()</c> => <c>count &gt; 0 ? Double.MultiplyAddEstimate(count - 1, 0.5, start) : throw</c></description></item>
+/// <item><description><c>Range(start, count).Min()</c> => <c>count &gt; 0 ? start : throw</c></description></item>
+/// <item><description><c>Range(start, count).Max()</c> => <c>count &gt; 0 ? start + count - 1 : throw</c></description></item>
 /// <item><description><c>Range(start, count).Skip(n).Count()</c> => <c>Int32.Max(0, count - n)</c></description></item>
 /// <item><description><c>Range(start, count).Take(n).Count()</c> => <c>Int32.Min(n, count)</c></description></item>
 /// <item><description><c>Range(start, count).All(predicate)</c> => constant folding via <c>TryExecutePredicates</c> when arguments are known; no structural rewrite for unknown inputs</description></item>
@@ -74,10 +74,10 @@ public class LinqRangeOptimizationTests : BaseTest<Func<int, int, double>>
 			var c = count > 0 ? 1 : 0;
 			var d = 5 >= start && 5 < count + start ? 1 : 0;
 			var f = start + count - 1;
-			var g = start + 2;
-			var h = Double.MultiplyAddEstimate(count - 1, 0.5, start);
-			var i = start > 0 ? start : throw new InvalidOperationException("Sequence contains no elements");
-			var j = start + count - 1;
+			var g = 2 < count ? start + 2 : throw new ArgumentOutOfRangeException("");
+			var h = count > 0 ? Double.MultiplyAddEstimate((count - 1), 0.5, start) : throw new InvalidOperationException("Sequence contains no elements");
+			var i = count > 0 ? start : throw new InvalidOperationException("Sequence contains no elements");
+			var j = count > 0 ? start + count - 1 : throw new InvalidOperationException("Sequence contains no elements");
 			var k = Int32.Max(0, count - 2);
 			var l = Int32.Min(2, count);
 			var m = Enumerable.Range(start, count).All(x => x >= 0) ? 1 : 0;

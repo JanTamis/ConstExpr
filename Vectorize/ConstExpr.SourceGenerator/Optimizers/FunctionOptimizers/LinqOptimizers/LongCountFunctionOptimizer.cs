@@ -65,7 +65,7 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		       && TryGetLambda(predicateArg, out var predicate)
 		       && TryGetLinqSource(whereInvocation, out var whereSource))
 		{
-			if (IsLiteralBooleanLambda(predicate, out var literalValue) && literalValue == true)
+			if (IsLiteralBooleanLambda(predicate, out var literalValue))
 			{
 				switch (literalValue)
 				{
@@ -182,11 +182,10 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 								countInvocation = CreateSimpleInvocation(newChunkSource, nameof(Enumerable.LongCount));
 							}
 
-							var left = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression,
-								countInvocation as ExpressionSyntax,
-								context.OptimizeBinaryExpression(SyntaxFactory.BinaryExpression(SyntaxKind.SubtractExpression, chunkSize, SyntaxHelpers.CreateLiteral(1L)!), intType, intType, intType) as ExpressionSyntax ?? chunkSize);
+							var chunkMinus1 = OptimizeArithmetic(context, SyntaxKind.SubtractExpression, chunkSize, SyntaxHelpers.CreateLiteral(1L)!, intType);
+							var left = OptimizeArithmetic(context, SyntaxKind.AddExpression, countInvocation as ExpressionSyntax, chunkMinus1, intType);
 
-							result = context.OptimizeBinaryExpression(SyntaxFactory.BinaryExpression(SyntaxKind.DivideExpression, SyntaxFactory.ParenthesizedExpression(context.OptimizeBinaryExpression(left, intType, intType, intType) as ExpressionSyntax ?? left), chunkSize), intType, intType, intType) as ExpressionSyntax ?? chunkSize;
+							result = OptimizeArithmetic(context, SyntaxKind.DivideExpression, SyntaxFactory.ParenthesizedExpression(left), chunkSize, intType);
 							return true;
 						}
 
@@ -198,7 +197,7 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 
 						if (!TryOptimizeCollection(context, currentSource, out var resultInvocation))
 						{
-							resultInvocation = TryOptimizeByOptimizer<CountFunctionOptimizer>(context, CreateSimpleInvocation(currentSource, nameof(Enumerable.LongCount)));
+							resultInvocation = TryOptimizeByOptimizer<LongCountFunctionOptimizer>(context, CreateSimpleInvocation(currentSource, nameof(Enumerable.LongCount)));
 						}
 
 						result = CreateInvocation(SyntaxFactory.ParseTypeName("Int64"), "Max", resultInvocation as ExpressionSyntax, SyntaxHelpers.CreateLiteral(1L)!);
@@ -219,7 +218,8 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 						var left = TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, methodSource), context.Method), out var leftResult) ? leftResult as ExpressionSyntax : null;
 						var right = TryOptimize(context.WithInvocationAndMethod(CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters), context.Method), out var rightResult) ? rightResult as ExpressionSyntax : null;
 
-						result = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, left ?? CreateInvocation(methodSource, Name, context.VisitedParameters), right ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters));
+						var longType = context.Model.Compilation.CreateInt64();
+						result = OptimizeArithmetic(context, SyntaxKind.AddExpression, left ?? CreateInvocation(methodSource, Name, context.VisitedParameters), right ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters), longType);
 						return true;
 					}
 				}
@@ -264,7 +264,7 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 
 		if (IsInvokedOnArray(context, source))
 		{
-			result = result = SyntaxFactory.CastExpression(SyntaxFactory.ParseTypeName("long"), CreateMemberAccess(source, "Length"));
+			result = SyntaxFactory.CastExpression(SyntaxFactory.ParseTypeName("long"), CreateMemberAccess(source, "Length"));
 			return true;
 		}
 

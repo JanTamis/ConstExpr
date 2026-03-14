@@ -109,7 +109,7 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		if (context.VisitedParameters.Count == 2 && !IsZeroLiteral(context.VisitedParameters[0]))
 		{
 			var type = context.Method.TypeArguments[^1];
-			result = context.OptimizeBinaryExpression(SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, (ExpressionSyntax) result, context.VisitedParameters[0]), type, type, type);
+			result = OptimizeArithmetic(context, SyntaxKind.AddExpression, (ExpressionSyntax) result, context.VisitedParameters[0], type);
 		}
 
 		// For 3-arg overload: apply the result selector to the sum result
@@ -119,7 +119,7 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 			if (!IsZeroLiteral(context.VisitedParameters[0]))
 			{
 				var type = context.Method.TypeArguments[^1];
-				result = context.OptimizeBinaryExpression(SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, (ExpressionSyntax) result, context.VisitedParameters[0]), type, type, type);
+				result = OptimizeArithmetic(context, SyntaxKind.AddExpression, (ExpressionSyntax) result, context.VisitedParameters[0], type);
 			}
 
 			// Apply the result selector lambda: e.g. acc => acc * 2 applied to Sum() gives Sum() * 2 => Sum() << 1

@@ -100,7 +100,8 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 					var left = TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, invocationSource), context.Method), out var leftResult) ? leftResult as ExpressionSyntax : null;
 					var right = TryOptimize(context.WithInvocationAndMethod(CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters), context.Method), out var rightResult) ? rightResult as ExpressionSyntax : null;
 
-					result = SyntaxFactory.BinaryExpression(SyntaxKind.LogicalAndExpression, left ?? CreateInvocation(invocationSource, Name, context.VisitedParameters), right ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters));
+					var boolType = context.Model.Compilation.CreateBoolean();
+					result = OptimizeComparison(context, SyntaxKind.LogicalAndExpression, left ?? CreateInvocation(invocationSource, Name, context.VisitedParameters), right ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters), boolType);
 					return true;
 				}
 				case nameof(Enumerable.Append) or nameof(Enumerable.Prepend):
@@ -140,7 +141,7 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 						appendValues.Add(TryOptimize(context.WithInvocationAndMethod(updatedInvocation, context.Method), out var rightResult) ? rightResult as ExpressionSyntax : updatedInvocation);
 
 						result = appendValues.Skip(1).Aggregate(appendValues[0], (result, value)
-							=> context.OptimizeBinaryExpression(SyntaxFactory.BinaryExpression(SyntaxKind.LogicalAndExpression, result, value), elementType, elementType, boolType));
+							=> OptimizeComparison(context, SyntaxKind.LogicalAndExpression, result, value, boolType));
 
 						return true;
 					}
@@ -172,7 +173,7 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 						var left = context.Visit(ReplaceIdentifier(anyPredicateBody, anyPredicateParam.Identifier.Text, defaultValue)) ?? defaultValue;
 						var right = TryOptimize(context.WithInvocationAndMethod(updatedInvocation, context.Method), out var rightResult) ? rightResult as ExpressionSyntax : updatedInvocation;
 
-						result = context.OptimizeBinaryExpression(SyntaxFactory.BinaryExpression(SyntaxKind.LogicalAndExpression, left, right), elementType, elementType, boolType);
+						result = OptimizeComparison(context, SyntaxKind.LogicalAndExpression, left, right, boolType);
 						return true;
 					}
 				}

@@ -85,16 +85,27 @@ public class AverageFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 					var halfOffset = OptimizeArithmetic(context, SyntaxKind.DivideExpression,
 						countMinusOne, SyntaxHelpers.CreateLiteral(2.0)!, doubleType);
 
-					result = OptimizeArithmetic(context, SyntaxKind.AddExpression,
+					var averageValue = OptimizeArithmetic(context, SyntaxKind.AddExpression,
 						startArg.Expression, halfOffset, doubleType);
+
+					// Guard against empty range (count == 0)
+					result = SyntaxFactory.ConditionalExpression(
+						OptimizeComparison(context, SyntaxKind.GreaterThanExpression, countArg.Expression, SyntaxHelpers.CreateLiteral(0)!, intType),
+						averageValue,
+						CreateThrowExpression<InvalidOperationException>("Sequence contains no elements"));
 					return true;
 				}
 				case nameof(Enumerable.Repeat) when invocation.ArgumentList.Arguments is [ var repeatElementArg, var repeatCountArg ]:
 				{
-					// Repeat(element, count).Average() => (double)element (all elements are identical)
-					result = SyntaxFactory.CastExpression(
+					// Repeat(element, count).Average() => count > 0 ? (T)element : throw
+					var castExpr = SyntaxFactory.CastExpression(
 						SyntaxFactory.ParseName(context.Model.Compilation.GetMinimalString(context.Method.TypeArguments[0])),
 						repeatElementArg.Expression);
+
+					result = SyntaxFactory.ConditionalExpression(
+						OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, SyntaxHelpers.CreateLiteral(0)!, context.Model.Compilation.CreateInt32()),
+						castExpr,
+						CreateThrowExpression<InvalidOperationException>("Sequence contains no elements"));
 					return true;
 				}
 			}

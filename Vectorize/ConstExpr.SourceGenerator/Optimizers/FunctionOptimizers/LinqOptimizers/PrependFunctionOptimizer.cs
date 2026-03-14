@@ -29,6 +29,7 @@ public class PrependFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 		if (IsEmptyEnumerable(source))
 		{
 			result = CreateImplicitArray(context.VisitedParameters[0]);
+			return true;
 		}
 
 		result = null;

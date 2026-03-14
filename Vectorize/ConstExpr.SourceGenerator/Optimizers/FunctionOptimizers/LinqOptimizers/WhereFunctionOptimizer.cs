@@ -18,6 +18,14 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// </summary>
 public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Where), 1)
 {
+	// Sorting operations whose relative element membership is unchanged by reordering Where before them
+	private static readonly HashSet<string> SortingOperationsForFilterFirst =
+	[
+		nameof(Enumerable.OrderBy),
+		nameof(Enumerable.OrderByDescending),
+		"Order",
+		"OrderDescending",
+	];
 	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(context)
@@ -92,6 +100,23 @@ public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 							.WithTypeArgumentList(
 								TypeArgumentList(
 									SingletonSeparatedList(typeCheckType)))));
+				return true;
+			}
+
+			// Filter-first: source.OrderBy(f).Where(p) → source.Where(p).OrderBy(f)
+			// Moving Where before an ordering reduces the number of elements to sort, which is always faster.
+			if (IsLinqMethodChain(currentSource, SortingOperationsForFilterFirst, out var orderingInvocation)
+			    && TryGetLinqSource(orderingInvocation, out var orderingSource)
+			    && orderingInvocation.Expression is MemberAccessExpressionSyntax orderingMemberAccess)
+			{
+				var filteredSource = CreateInvocation(
+					context.Visit(orderingSource) ?? orderingSource,
+					nameof(Enumerable.Where),
+					combinedPredicate);
+				
+				result = orderingInvocation.Update(
+					orderingMemberAccess.WithExpression(filteredSource),
+					orderingInvocation.ArgumentList);
 				return true;
 			}
 

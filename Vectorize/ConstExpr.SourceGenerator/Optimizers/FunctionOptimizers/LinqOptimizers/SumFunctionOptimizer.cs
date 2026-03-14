@@ -83,7 +83,7 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 							var type = context.Method.ReturnType;
 
-							result = context.OptimizeBinaryExpression(SyntaxFactory.BinaryExpression(SyntaxKind.MultiplyExpression, left!, constantValue), type, type, type);
+							result = OptimizeArithmetic(context, SyntaxKind.MultiplyExpression, left!, constantValue, type);
 							return true;
 						}
 
@@ -103,7 +103,8 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 					var left = TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, methodSource), context.Method), out var leftResult) ? leftResult as ExpressionSyntax : null;
 					var right = TryOptimize(context.WithInvocationAndMethod(CreateInvocation(methodInvocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters), context.Method), out var rightResult) ? rightResult as ExpressionSyntax : null;
 
-					result = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, left ?? CreateInvocation(methodSource, Name, context.VisitedParameters), right ?? CreateInvocation(methodInvocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters));
+					var sumType = context.Method.ReturnType;
+					result = OptimizeArithmetic(context, SyntaxKind.AddExpression, left ?? CreateInvocation(methodSource, Name, context.VisitedParameters), right ?? CreateInvocation(methodInvocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters), sumType);
 					return true;
 				}
 				case nameof(Enumerable.Range) when methodInvocation.ArgumentList.Arguments is [ var startArg, var countArg ]:
@@ -238,7 +239,7 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 		foreach (var item in items.Skip(1))
 		{
-			sumExpression = context.OptimizeBinaryExpression(SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, sumExpression!, item), type, type, type) as ExpressionSyntax;
+			sumExpression = OptimizeArithmetic(context, SyntaxKind.AddExpression, sumExpression!, item, type);
 		}
 
 		return sumExpression;

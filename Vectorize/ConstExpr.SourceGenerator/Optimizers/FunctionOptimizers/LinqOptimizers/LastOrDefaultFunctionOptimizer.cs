@@ -79,7 +79,7 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 						goto case "Order";
 					}
 
-					result = CreateInvocation(methodSource, "MaxBy");
+					result = TryOptimizeByOptimizer<MaxByFunctionOptimizer>(context, CreateInvocation(methodSource, "MaxBy", predicate));
 					return true;
 				}
 				case nameof(Enumerable.OrderByDescending)
@@ -91,7 +91,7 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 						goto case "OrderDescending";
 					}
 
-					result = CreateInvocation(methodSource, "MinBy");
+					result = TryOptimizeByOptimizer<MinByFunctionOptimizer>(context, CreateInvocation(methodSource, "MinBy", predicate));
 					return true;
 				}
 				case nameof(Enumerable.DefaultIfEmpty):
@@ -118,13 +118,13 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 
 					if (IsInvokedOnArray(context, methodSource))
 					{
-						result = CreateDefaultIfEmptyConditional(methodSource, "Length", defaultItem);
+						result = CreateDefaultIfEmptyConditional(context, methodSource, "Length", defaultItem);
 						return true;
 					}
 
 					if (IsCollectionType(context, methodSource))
 					{
-						result = CreateDefaultIfEmptyConditional(methodSource, "Count", defaultItem);
+						result = CreateDefaultIfEmptyConditional(context, methodSource, "Count", defaultItem);
 						return true;
 					}
 
@@ -155,9 +155,12 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 					{
 						var intType = context.Model.Compilation.CreateInt32();
 
-						result = OptimizeArithmetic(context, SyntaxKind.SubtractExpression,
-							OptimizeArithmetic(context, SyntaxKind.AddExpression, startArg.Expression, countArg.Expression, intType),
-							SyntaxHelpers.CreateLiteral(1)!, intType);
+						result = SyntaxFactory.ConditionalExpression(
+							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, countArg.Expression, SyntaxHelpers.CreateLiteral(0)!, intType),
+							OptimizeArithmetic(context, SyntaxKind.SubtractExpression,
+								OptimizeArithmetic(context, SyntaxKind.AddExpression, startArg.Expression, countArg.Expression, intType),
+								SyntaxHelpers.CreateLiteral(1)!, intType),
+							context.Method.TypeArguments[0].GetDefaultValue());
 						return true;
 					}
 
@@ -169,7 +172,7 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 					{
 						// Repeat(element, count).FirstOrDefault() => count > 0 ? element : default
 						result = SyntaxFactory.ConditionalExpression(
-							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, SyntaxHelpers.CreateLiteral(0)!, context.Model.Compilation.GetSpecialType(SpecialType.System_Boolean)),
+							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, SyntaxHelpers.CreateLiteral(0)!, context.Model.Compilation.CreateInt32()),
 							repeatElementArg.Expression,
 							context.Method.TypeArguments[0].GetDefaultValue());
 						return true;
@@ -189,7 +192,7 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 			else
 			{
 				// For arrays, use conditional: arr.Length > 0 ? arr[^1] : default
-				result = CreateDefaultIfEmptyConditional(source, "Length", context.Method.ReturnType.GetDefaultValue());
+				result = CreateDefaultIfEmptyConditional(context, source, "Length", context.Method.ReturnType.GetDefaultValue());
 			}
 
 			return true;
@@ -204,7 +207,7 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 			else
 			{
 				// For List<T>, use conditional: list.Count > 0 ? list[^1] : default
-				result = CreateDefaultIfEmptyConditional(source, "Count", context.Method.ReturnType.GetDefaultValue());
+				result = CreateDefaultIfEmptyConditional(context, source, "Count", context.Method.ReturnType.GetDefaultValue());
 			}
 
 			return true;
@@ -221,13 +224,14 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 		return false;
 	}
 
-	private SyntaxNode CreateDefaultIfEmptyConditional(ExpressionSyntax collection, string propertyName, ExpressionSyntax defaultItem)
+	private SyntaxNode CreateDefaultIfEmptyConditional(FunctionOptimizerContext context, ExpressionSyntax collection, string propertyName, ExpressionSyntax defaultItem)
 	{
+		var intType = context.Model.Compilation.CreateInt32();
+
 		return SyntaxFactory.ConditionalExpression(
-			SyntaxFactory.BinaryExpression(
-				SyntaxKind.GreaterThanExpression,
+			OptimizeComparison(context, SyntaxKind.GreaterThanExpression,
 				CreateMemberAccess(collection, propertyName),
-				SyntaxHelpers.CreateLiteral(0)!), CreateElementAccess(collection, SyntaxFactory.PrefixUnaryExpression(
+				SyntaxHelpers.CreateLiteral(0)!, intType), CreateElementAccess(collection, SyntaxFactory.PrefixUnaryExpression(
 				SyntaxKind.IndexExpression, SyntaxHelpers.CreateLiteral(1)!)),
 			defaultItem);
 	}

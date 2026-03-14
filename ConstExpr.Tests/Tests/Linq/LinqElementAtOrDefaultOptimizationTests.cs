@@ -85,11 +85,11 @@ public class LinqElementAtOrDefaultOptimizationListTests : BaseTest<Func<List<in
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.FirstOrDefault();
-			var b = x.ElementAtOrDefault(1);
-			var c = x.FirstOrDefault();
-			var d = x.ElementAtOrDefault(1);
-			var e = x.ElementAtOrDefault(10);
+			var a = x.Count > 0 ? x[0] : 0;
+			var b = x.Count > 1 ? x[1] : 0;
+			var c = x.Count > 0 ? x[0] : 0;
+			var d = x.Count > 1 ? x[1] : 0;
+			var e = x.Count > 10 ? x[10] : 0;
 			
 			return a + b + c + d + e;
 			""", Unknown),

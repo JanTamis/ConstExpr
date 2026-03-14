@@ -46,14 +46,13 @@ public class ElementAtFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		}
 
 		var type = context.Method.ReturnType;
+		var intType = context.Model.Compilation.CreateInt32();
 
 		while (IsLinqMethodChain(context.Visit(source) ?? source, nameof(Enumerable.Skip), out var skipInvocation)
 		       && TryGetLinqSource(skipInvocation, out source)
 		       && GetMethodArguments(skipInvocation).FirstOrDefault() is { Expression: { } skipCount })
 		{
-			var tempResult = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, indexParameter, skipCount);
-
-			indexParameter = context.OptimizeBinaryExpression(tempResult, type, type, type) as ExpressionSyntax;
+			indexParameter = OptimizeArithmetic(context, SyntaxKind.AddExpression, indexParameter, skipCount, intType);
 			isNewSource = true;
 
 			TryGetOptimizedChainExpression(source, MaterializingMethods, out source);
@@ -73,19 +72,16 @@ public class ElementAtFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 				{
 					// Range(start, count).ElementAt(n) => start + n (if n < count) else throw exception
 					result = SyntaxFactory.ConditionalExpression(
-						SyntaxFactory.BinaryExpression(SyntaxKind.LessThanExpression, indexParameter, countArg.Expression),
-						OptimizeArithmetic(context, SyntaxKind.AddExpression, startArg.Expression, indexParameter, type),
+						OptimizeComparison(context, SyntaxKind.LessThanExpression, indexParameter, countArg.Expression, intType),
+						OptimizeArithmetic(context, SyntaxKind.AddExpression, startArg.Expression, indexParameter, intType),
 						CreateThrowExpression<ArgumentOutOfRangeException>());
-
-					result = OptimizeArithmetic(context, SyntaxKind.AddExpression, startArg.Expression, indexParameter, type);
-
 					return true;
 				}
 				case nameof(Enumerable.Repeat) when invocation.ArgumentList.Arguments is [ var repeatElementArg, var repeatCountArg ]:
 				{
 					// Repeat(element, count).ElementAt(n) => n < count ? element : throw exception
 					result = SyntaxFactory.ConditionalExpression(
-						SyntaxFactory.BinaryExpression(SyntaxKind.LessThanExpression, indexParameter, repeatCountArg.Expression),
+						OptimizeComparison(context, SyntaxKind.LessThanExpression, indexParameter, repeatCountArg.Expression, intType),
 						repeatElementArg.Expression,
 						CreateThrowExpression<ArgumentOutOfRangeException>());
 					return true;

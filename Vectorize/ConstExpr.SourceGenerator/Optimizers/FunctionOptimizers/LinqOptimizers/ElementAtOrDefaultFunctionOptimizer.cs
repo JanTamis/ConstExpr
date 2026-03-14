@@ -47,14 +47,13 @@ public class ElementAtOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(n
 		}
 
 		var type = context.Method.ReturnType;
+		var intType = context.Model.Compilation.CreateInt32();
 
 		while (IsLinqMethodChain(source, nameof(Enumerable.Skip), out var skipInvocation)
 		       && TryGetLinqSource(skipInvocation, out source)
 		       && GetMethodArguments(skipInvocation).FirstOrDefault() is { Expression: { } skipCount })
 		{
-			var tempResult = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, indexParameter, skipCount);
-
-			indexParameter = context.OptimizeBinaryExpression(tempResult, type, type, type) as ExpressionSyntax;
+			indexParameter = OptimizeArithmetic(context, SyntaxKind.AddExpression, indexParameter, skipCount, intType);
 			isNewSource = true;
 
 			TryGetOptimizedChainExpression(source, MaterializingMethods, out source);
@@ -68,7 +67,6 @@ public class ElementAtOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(n
 		if (IsLinqMethodChain(source, out var methodName, out var invocation)
 		    && TryGetLinqSource(invocation, out _))
 		{
-			var intType = context.Model.Compilation.CreateInt32();
 			var boolType = context.Model.Compilation.CreateBoolean();
 
 			switch (methodName)
@@ -103,9 +101,8 @@ public class ElementAtOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(n
 		{
 			// optimize to x.Length > n ? x[n] : default
 			result = SyntaxFactory.ConditionalExpression(
-				SyntaxFactory.BinaryExpression(
-					SyntaxKind.GreaterThanExpression, CreateMemberAccess(source, "Length"),
-					indexParameter!),
+				OptimizeComparison(context, SyntaxKind.GreaterThanExpression, CreateMemberAccess(source, "Length"),
+					indexParameter!, intType),
 				CreateElementAccess(source, indexParameter),
 				type.GetDefaultValue());
 			return true;
@@ -113,13 +110,14 @@ public class ElementAtOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(n
 
 		if (IsInvokedOnList(context, source))
 		{
+
 			// optimize to x.Count > n ? x[n] : default
 			result = SyntaxFactory.ConditionalExpression(
-				SyntaxFactory.BinaryExpression(
-					SyntaxKind.GreaterThanExpression, CreateMemberAccess(source, "Count"),
-					indexParameter!),
+				OptimizeComparison(context, SyntaxKind.GreaterThanExpression, CreateMemberAccess(source, "Count"),
+					indexParameter!, intType),
 				CreateElementAccess(source, indexParameter),
 				type.GetDefaultValue());
+			return true;
 		}
 
 		if (indexParameter is LiteralExpressionSyntax { Token.Value: 0 })

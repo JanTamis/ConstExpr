@@ -623,7 +623,7 @@ public partial class ConstExprPartialRewriter
 			{
 				v.IsAccessed = false;
 			}
-			
+
 			return literal;
 		}
 
@@ -853,7 +853,8 @@ public partial class ConstExprPartialRewriter
 						switch (methodName)
 						{
 							// check if expression is Enumerable.ToList()
-							case "ToList" when typeSymbol is INamedTypeSymbol namedTypeSymbol:
+							case "ToList" when semanticModel.TryGetTypeSymbol(node.Expression, out var collectionType)
+							                   && collectionType is INamedTypeSymbol namedTypeSymbol:
 							{
 								// return Enumerable.Count() instead
 								var newInvocation = InvocationExpression(
@@ -872,7 +873,8 @@ public partial class ConstExprPartialRewriter
 
 								return optimized ?? newInvocation;
 							}
-							case "ToHashSet" when typeSymbol is INamedTypeSymbol namedTypeSymbol:
+							case "ToHashSet" when semanticModel.TryGetTypeSymbol(node.Expression, out var collectionType)
+							                      && collectionType is INamedTypeSymbol namedTypeSymbol:
 							{
 								// return Enumerable.Distinct().Count() instead
 								var distinctInvocation = InvocationExpression(
@@ -909,6 +911,7 @@ public partial class ConstExprPartialRewriter
 					}
 
 					if (isArrayLength
+					    && methodName == nameof(Enumerable.ToArray)
 					    && semanticModel.TryGetTypeSymbol(node.Expression, out typeSymbol)
 					    && typeSymbol is IArrayTypeSymbol arrayType)
 					{
@@ -986,9 +989,3 @@ public partial class ConstExprPartialRewriter
 		return node.Right;
 	}
 }
-
-
-
-
-
-

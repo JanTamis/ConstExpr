@@ -102,7 +102,8 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 					var left = TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, invocationSource), context.Method), out var leftResult) ? leftResult as ExpressionSyntax : null;
 					var right = TryOptimize(context.WithInvocationAndMethod(CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters), context.Method), out var rightResult) ? rightResult as ExpressionSyntax : null;
 
-					result = BinaryExpression(SyntaxKind.LogicalOrExpression, left ?? CreateInvocation(invocationSource, Name, context.VisitedParameters), right ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters));
+					var boolType = context.Model.Compilation.CreateBoolean();
+					result = OptimizeComparison(context, SyntaxKind.LogicalOrExpression, left ?? CreateInvocation(invocationSource, Name, context.VisitedParameters), right ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters), boolType);
 					return true;
 				}
 				case nameof(Enumerable.Append) or nameof(Enumerable.Prepend):
@@ -141,8 +142,8 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 						appendValues.Add(TryOptimize(context.WithInvocationAndMethod(updatedInvocation, context.Method), out var rightResult) ? rightResult as ExpressionSyntax : updatedInvocation);
 
-						result = appendValues.Skip(1).Aggregate(appendValues[0], (result, value)
-							=> context.OptimizeBinaryExpression(BinaryExpression(SyntaxKind.LogicalOrExpression, result, value), elementType, elementType, boolType));
+					result = appendValues.Skip(1).Aggregate(appendValues[0], (result, value)
+						=> OptimizeComparison(context, SyntaxKind.LogicalOrExpression, result, value, boolType));
 
 						return true;
 					}
@@ -174,7 +175,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 							var left = context.Visit(ReplaceIdentifier(anyPredicateBody, anyPredicateParam.Identifier.Text, defaultValue)) ?? defaultValue;
 							var right = TryOptimize(context.WithInvocationAndMethod(updatedInvocation, context.Method), out var rightResult) ? rightResult as ExpressionSyntax : updatedInvocation;
 
-							result = context.OptimizeBinaryExpression(BinaryExpression(SyntaxKind.LogicalOrExpression, left, right), elementType, elementType, boolType);
+							result = OptimizeComparison(context, SyntaxKind.LogicalOrExpression, left, right, boolType);
 							return true;
 						}
 					}
@@ -213,18 +214,20 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		{
 			if (IsCollectionType(context, source))
 			{
-				result = BinaryExpression(SyntaxKind.GreaterThanExpression,
+				var intType = context.Model.Compilation.CreateInt32();
+				result = OptimizeComparison(context, SyntaxKind.GreaterThanExpression,
 					CreateMemberAccess(source, "Count"),
-					LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)));
+					SyntaxHelpers.CreateLiteral(0)!, intType);
 
 				return true;
 			}
 
 			if (IsInvokedOnArray(context, source))
 			{
-				result = BinaryExpression(SyntaxKind.GreaterThanExpression,
+				var intType = context.Model.Compilation.CreateInt32();
+				result = OptimizeComparison(context, SyntaxKind.GreaterThanExpression,
 					CreateMemberAccess(source, "Length"),
-					LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)));
+					SyntaxHelpers.CreateLiteral(0)!, intType);
 
 				return true;
 			}

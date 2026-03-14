@@ -122,13 +122,13 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 
 					if (IsInvokedOnArray(context, methodSource))
 					{
-						result = CreateDefaultIfEmptyConditional(collection, "Length", defaultItem);
+						result = CreateDefaultIfEmptyConditional(context, collection, "Length", defaultItem);
 						return true;
 					}
 
 					if (IsCollectionType(context, methodSource))
 					{
-						result = CreateDefaultIfEmptyConditional(collection, "Count", defaultItem);
+						result = CreateDefaultIfEmptyConditional(context, collection, "Count", defaultItem);
 						return true;
 					}
 
@@ -163,8 +163,8 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 					if (context.VisitedParameters.Count == 0)
 					{
 						result = SyntaxFactory.ConditionalExpression(
-							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, countArg.Expression, SyntaxHelpers.CreateLiteral(0)!, context.Model.Compilation.GetSpecialType(SpecialType.System_Boolean)),
-							countArg.Expression,
+							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, countArg.Expression, SyntaxHelpers.CreateLiteral(0)!, context.Model.Compilation.CreateInt32()),
+							startArg.Expression,
 							context.Method.TypeArguments[0].GetDefaultValue());
 						return true;
 					}
@@ -177,7 +177,7 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 					{
 						// Repeat(element, count).FirstOrDefault() => count > 0 ? element : default
 						result = SyntaxFactory.ConditionalExpression(
-							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, SyntaxHelpers.CreateLiteral(0)!, context.Model.Compilation.GetSpecialType(SpecialType.System_Boolean)),
+							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, SyntaxHelpers.CreateLiteral(0)!, context.Model.Compilation.CreateInt32()),
 							repeatElementArg.Expression,
 							context.Method.TypeArguments[0].GetDefaultValue());
 						return true;
@@ -197,7 +197,7 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 			}
 			else
 			{
-				result = CreateDefaultIfEmptyConditional(source, "Length", context.Method.TypeArguments[0].GetDefaultValue());
+				result = CreateDefaultIfEmptyConditional(context, source, "Length", context.Method.TypeArguments[0].GetDefaultValue());
 			}
 
 			return true;
@@ -212,7 +212,7 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 			}
 			else
 			{
-				result = CreateDefaultIfEmptyConditional(source, "Count", context.Method.TypeArguments[0].GetDefaultValue());
+				result = CreateDefaultIfEmptyConditional(context, source, "Count", context.Method.TypeArguments[0].GetDefaultValue());
 			}
 
 			return true;
@@ -229,13 +229,14 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 		return false;
 	}
 
-	private SyntaxNode CreateDefaultIfEmptyConditional(ExpressionSyntax collection, string propertyName, ExpressionSyntax defaultItem)
+	private SyntaxNode CreateDefaultIfEmptyConditional(FunctionOptimizerContext context, ExpressionSyntax collection, string propertyName, ExpressionSyntax defaultItem)
 	{
+		var intType = context.Model.Compilation.CreateInt32();
+
 		return SyntaxFactory.ConditionalExpression(
-			SyntaxFactory.BinaryExpression(
-				SyntaxKind.GreaterThanExpression,
+			OptimizeComparison(context, SyntaxKind.GreaterThanExpression,
 				CreateMemberAccess(collection, propertyName),
-				SyntaxHelpers.CreateLiteral(0)!),
+				SyntaxHelpers.CreateLiteral(0)!, intType),
 			SyntaxFactory.ElementAccessExpression(
 				collection,
 				SyntaxFactory.BracketedArgumentList(

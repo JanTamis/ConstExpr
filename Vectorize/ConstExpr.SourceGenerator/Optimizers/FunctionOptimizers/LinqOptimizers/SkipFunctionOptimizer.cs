@@ -32,7 +32,7 @@ public class SkipFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 		while (IsLinqMethodChain(source, nameof(Enumerable.Skip), out var skipInvocation)
 		       && TryGetLinqSource(skipInvocation, out var skipSource))
 		{
-			amount = context.OptimizeBinaryExpression(SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, amount, skipInvocation.ArgumentList.Arguments[0].Expression), intType, intType, intType) as ExpressionSyntax;
+			amount = OptimizeArithmetic(context, SyntaxKind.AddExpression, amount, skipInvocation.ArgumentList.Arguments[0].Expression, intType);
 			
 			TryGetOptimizedChainExpression(skipSource, MaterializingMethods, out source);
 			isNewSource = true;
