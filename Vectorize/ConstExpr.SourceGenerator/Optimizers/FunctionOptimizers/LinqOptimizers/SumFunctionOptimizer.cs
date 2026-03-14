@@ -128,6 +128,15 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 						numerator, SyntaxHelpers.CreateLiteral(2)!, intType);
 					return true;
 				}
+				case "Repeat" when methodInvocation.ArgumentList.Arguments is [ var repeatElementArg, var repeatCountArg ]:
+				{
+					// Repeat(element, count).Sum() => element * count
+					var elementType = context.Method.ReturnType;
+					
+					result = OptimizeArithmetic(context, SyntaxKind.MultiplyExpression,
+						repeatElementArg.Expression, repeatCountArg.Expression, elementType);
+					return true;
+				}
 			}
 		}
 

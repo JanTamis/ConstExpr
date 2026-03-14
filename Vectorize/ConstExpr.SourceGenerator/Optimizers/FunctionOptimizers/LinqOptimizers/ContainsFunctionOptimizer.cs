@@ -217,6 +217,18 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 					result = OptimizeComparison(context, SyntaxKind.LogicalAndExpression, left, right, context.Model.Compilation.CreateBoolean());
 					return true;
 				}
+				case nameof(Enumerable.Repeat) when invocation.ArgumentList.Arguments is [ var repeatElementArg, var repeatCountArg ]:
+				{
+					var boolType = context.Model.Compilation.CreateBoolean();
+					var intType = context.Model.Compilation.CreateInt32();
+
+					// Repeat(element, count).Contains(x) => count > 0 && element == x
+					var countPositive = OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, SyntaxHelpers.CreateLiteral(0)!, intType);
+					var elementEquals = OptimizeComparison(context, SyntaxKind.EqualsExpression, repeatElementArg.Expression, searchValue, boolType);
+					
+					result = OptimizeComparison(context, SyntaxKind.LogicalAndExpression, countPositive, elementEquals, boolType);
+					return true;
+				}
 			}
 		}
 

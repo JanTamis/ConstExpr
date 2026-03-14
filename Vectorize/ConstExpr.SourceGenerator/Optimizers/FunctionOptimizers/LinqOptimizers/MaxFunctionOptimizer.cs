@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
@@ -90,6 +91,14 @@ public class MaxFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 					result = OptimizeArithmetic(context, SyntaxKind.SubtractExpression,
 						OptimizeArithmetic(context, SyntaxKind.AddExpression, startArg.Expression, countArg.Expression, intType),
 						SyntaxHelpers.CreateLiteral(1)!, intType);
+					return true;
+				}
+				case nameof(Enumerable.Repeat) when invocation.ArgumentList.Arguments is [ var repeatElementArg, var repeatCountArg ]:
+				{
+					result = SyntaxFactory.ConditionalExpression(
+						OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, SyntaxHelpers.CreateLiteral(0)!, context.Model.Compilation.GetSpecialType(SpecialType.System_Boolean)),
+						repeatElementArg.Expression,
+						CreateThrowExpression<InvalidOperationException>("Sequence contains no elements"));
 					return true;
 				}
 			}

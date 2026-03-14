@@ -7,6 +7,7 @@ using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using SourceGen.Utilities.Extensions;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
@@ -86,6 +87,14 @@ public class AverageFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 
 					result = OptimizeArithmetic(context, SyntaxKind.AddExpression,
 						startArg.Expression, halfOffset, doubleType);
+					return true;
+				}
+				case nameof(Enumerable.Repeat) when invocation.ArgumentList.Arguments is [ var repeatElementArg, var repeatCountArg ]:
+				{
+					// Repeat(element, count).Average() => (double)element (all elements are identical)
+					result = SyntaxFactory.CastExpression(
+						SyntaxFactory.ParseName(context.Model.Compilation.GetMinimalString(context.Method.TypeArguments[0])),
+						repeatElementArg.Expression);
 					return true;
 				}
 			}

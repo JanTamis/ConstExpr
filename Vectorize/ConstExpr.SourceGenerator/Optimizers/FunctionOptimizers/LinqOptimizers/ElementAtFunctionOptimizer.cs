@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
@@ -58,7 +59,7 @@ public class ElementAtFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 			TryGetOptimizedChainExpression(source, MaterializingMethods, out source);
 		}
 
-		if (TryExecutePredicates(context, source, [indexParameter], out result))
+		if (TryExecutePredicates(context, source, [ indexParameter ], out result))
 		{
 			return true;
 		}
@@ -70,7 +71,23 @@ public class ElementAtFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 			{
 				case nameof(Enumerable.Range) when invocation.ArgumentList.Arguments is [ var startArg, var countArg ]:
 				{
+					// Range(start, count).ElementAt(n) => start + n (if n < count) else throw exception
+					result = SyntaxFactory.ConditionalExpression(
+						SyntaxFactory.BinaryExpression(SyntaxKind.LessThanExpression, indexParameter, countArg.Expression),
+						OptimizeArithmetic(context, SyntaxKind.AddExpression, startArg.Expression, indexParameter, type),
+						CreateThrowExpression<ArgumentOutOfRangeException>());
+
 					result = OptimizeArithmetic(context, SyntaxKind.AddExpression, startArg.Expression, indexParameter, type);
+
+					return true;
+				}
+				case nameof(Enumerable.Repeat) when invocation.ArgumentList.Arguments is [ var repeatElementArg, var repeatCountArg ]:
+				{
+					// Repeat(element, count).ElementAt(n) => n < count ? element : throw exception
+					result = SyntaxFactory.ConditionalExpression(
+						SyntaxFactory.BinaryExpression(SyntaxKind.LessThanExpression, indexParameter, repeatCountArg.Expression),
+						repeatElementArg.Expression,
+						CreateThrowExpression<ArgumentOutOfRangeException>());
 					return true;
 				}
 			}

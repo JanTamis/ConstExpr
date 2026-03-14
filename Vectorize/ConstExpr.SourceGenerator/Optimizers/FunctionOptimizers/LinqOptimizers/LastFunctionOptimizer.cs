@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
@@ -186,6 +187,20 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 						result = OptimizeArithmetic(context, SyntaxKind.SubtractExpression, 
 							OptimizeArithmetic(context, SyntaxKind.AddExpression, startArg.Expression, countArg.Expression, intType), 
 							SyntaxHelpers.CreateLiteral(1)!, intType);
+						return true;
+					}
+
+					break;
+				}
+				case nameof(Enumerable.Repeat) when invocation.ArgumentList.Arguments is [ var repeatElementArg, var repeatCountArg ]:
+				{
+					if (context.VisitedParameters.Count == 0)
+					{
+						// Repeat(element, count).FirstOrDefault() => count > 0 ? element : throw exception
+						result = SyntaxFactory.ConditionalExpression(
+							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, SyntaxHelpers.CreateLiteral(0)!, context.Model.Compilation.GetSpecialType(SpecialType.System_Boolean)),
+							repeatElementArg.Expression,
+							CreateThrowExpression<InvalidOperationException>("Sequence contains no elements"));
 						return true;
 					}
 

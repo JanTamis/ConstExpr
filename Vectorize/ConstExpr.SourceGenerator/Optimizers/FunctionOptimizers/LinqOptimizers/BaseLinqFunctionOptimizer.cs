@@ -259,7 +259,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	/// </summary>
 	/// <param name="message">The message to pass to the exception constructor</param>
 	/// <returns>A ThrowExpressionSyntax that throws the specified exception with the message</returns>
-	protected ThrowExpressionSyntax CreateThrowExpression<TException>(string message) where TException : Exception
+	protected ThrowExpressionSyntax CreateThrowExpression<TException>(string message = "") where TException : Exception
 	{
 		return ThrowExpression(
 			ObjectCreationExpression(

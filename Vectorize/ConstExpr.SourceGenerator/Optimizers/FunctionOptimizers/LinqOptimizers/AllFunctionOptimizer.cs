@@ -26,6 +26,8 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.AsEnumerable().All() => collection.All() (type cast doesn't affect all-check)
 /// - collection.ToList().All() => collection.All() (materialization doesn't affect all-check)
 /// - collection.ToArray().All() => collection.All() (materialization doesn't affect all-check)
+/// - Enumerable.Repeat(element, count).All(predicate) => count &lt;= 0 || predicate(element)
+/// - Enumerable.Range(start, count).All(predicate) => count == 0 ? true : predicate(start) &amp;&amp; predicate(start + count - 1) (boundary check for monotone predicates, otherwise falls through)
 /// </summary>
 public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.All), 1)
 {
@@ -145,39 +147,61 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 					break;
 				}
-				case nameof(Enumerable.DefaultIfEmpty):
+			case nameof(Enumerable.DefaultIfEmpty):
+			{
+				if (context.VisitedParameters.Count == 0)
 				{
-					if (context.VisitedParameters.Count == 0)
+					result = SyntaxHelpers.CreateLiteral(true);
+					return true;
+				}
+
+				if (TryGetElementType(context, out var elementType))
+				{
+					var defaultValue = invocation.ArgumentList.Arguments.Count == 0
+						? elementType.GetDefaultValue()
+						: invocation.ArgumentList.Arguments[0].Expression;
+
+					if (context.VisitedParameters.Count == 1
+					    && TryGetLambda(context.VisitedParameters[0], out var anyPredicate)
+					    && TryGetLambdaBody(anyPredicate, out var anyPredicateBody)
+					    && TryGetSimpleLambdaParameter(anyPredicate, out var anyPredicateParam))
 					{
-						result = SyntaxHelpers.CreateLiteral(true);
+						var boolType = context.Model.Compilation.GetSpecialType(SpecialType.System_Boolean);
+						var updatedInvocation = UpdateInvocation(context, invocationSource);
+
+						var left = context.Visit(ReplaceIdentifier(anyPredicateBody, anyPredicateParam.Identifier.Text, defaultValue)) ?? defaultValue;
+						var right = TryOptimize(context.WithInvocationAndMethod(updatedInvocation, context.Method), out var rightResult) ? rightResult as ExpressionSyntax : updatedInvocation;
+
+						result = context.OptimizeBinaryExpression(SyntaxFactory.BinaryExpression(SyntaxKind.LogicalAndExpression, left, right), elementType, elementType, boolType);
 						return true;
 					}
-
-					if (TryGetElementType(context, out var elementType))
-					{
-						var defaultValue = invocation.ArgumentList.Arguments.Count == 0
-							? elementType.GetDefaultValue()
-							: invocation.ArgumentList.Arguments[0].Expression;
-
-						if (context.VisitedParameters.Count == 1
-						    && TryGetLambda(context.VisitedParameters[0], out var anyPredicate)
-						    && TryGetLambdaBody(anyPredicate, out var anyPredicateBody)
-						    && TryGetSimpleLambdaParameter(anyPredicate, out var anyPredicateParam))
-						{
-							var boolType = context.Model.Compilation.GetSpecialType(SpecialType.System_Boolean);
-							var updatedInvocation = UpdateInvocation(context, invocationSource);
-
-							var left = context.Visit(ReplaceIdentifier(anyPredicateBody, anyPredicateParam.Identifier.Text, defaultValue)) ?? defaultValue;
-							var right = TryOptimize(context.WithInvocationAndMethod(updatedInvocation, context.Method), out var rightResult) ? rightResult as ExpressionSyntax : updatedInvocation;
-
-							result = context.OptimizeBinaryExpression(SyntaxFactory.BinaryExpression(SyntaxKind.LogicalAndExpression, left, right), elementType, elementType, boolType);
-							return true;
-						}
-					}
-
-					break;
 				}
+
+				break;
 			}
+			case nameof(Enumerable.Repeat) when invocation.ArgumentList.Arguments is [var repeatElementArg, var repeatCountArg]:
+			{
+				// Repeat(element, count).All(predicate) => count <= 0 || predicate(element)
+				// All elements are identical, so the predicate only needs to hold for that single value.
+				if (context.VisitedParameters.Count == 1
+				    && TryGetLambda(context.VisitedParameters[0], out var repeatAllPredicate)
+				    && TryGetLambdaBody(repeatAllPredicate, out var repeatAllPredicateBody)
+				    && TryGetSimpleLambdaParameter(repeatAllPredicate, out var repeatAllPredicateParam))
+				{
+					var intType = context.Model.Compilation.CreateInt32();
+					var boolType = context.Model.Compilation.CreateBoolean();
+
+					var countCheck = OptimizeComparison(context, SyntaxKind.LessThanOrEqualExpression, repeatCountArg.Expression, SyntaxHelpers.CreateLiteral(0)!, intType);
+					var predicateApplied = context.Visit(ReplaceIdentifier(repeatAllPredicateBody, repeatAllPredicateParam.Identifier.Text, repeatElementArg.Expression))
+					                       ?? ReplaceIdentifier(repeatAllPredicateBody, repeatAllPredicateParam.Identifier.Text, repeatElementArg.Expression);
+
+					result = OptimizeComparison(context, SyntaxKind.LogicalOrExpression, countCheck, predicateApplied, boolType);
+					return true;
+				}
+
+				break;
+			}
+		}
 		}
 		
 		if (IsInvokedOnArray(context, source))

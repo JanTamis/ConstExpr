@@ -1,7 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using MathMinOptimizer = ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers.MinFunctionOptimizer;
 
@@ -84,11 +87,22 @@ public class MinFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 				{
 					if (context.VisitedParameters.Count == 0)
 					{
-						result = startArg.Expression;
+						result = SyntaxFactory.ConditionalExpression(
+							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, startArg.Expression, SyntaxHelpers.CreateLiteral(0)!, context.Model.Compilation.GetSpecialType(SpecialType.System_Boolean)),
+							startArg.Expression,
+							CreateThrowExpression<InvalidOperationException>("Sequence contains no elements"));
 						return true;
 					}
 
 					break;
+				}
+				case nameof(Enumerable.Repeat) when invocation.ArgumentList.Arguments is [ var repeatElementArg, var repeatCountArg ]:
+				{
+					result = SyntaxFactory.ConditionalExpression(
+						OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, SyntaxHelpers.CreateLiteral(0)!, context.Model.Compilation.GetSpecialType(SpecialType.System_Boolean)),
+						repeatElementArg.Expression,
+						CreateThrowExpression<InvalidOperationException>("Sequence contains no elements"));
+					return true;
 				}
 			}
 		}

@@ -348,6 +348,12 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 						result = countArg.Expression;
 						return true;
 					}
+					case nameof(Enumerable.Repeat) when invocation.ArgumentList.Arguments is [ var elementArg, var repeatCountArg ]:
+					{
+						// Repeat(element, count).Count() => count
+						result = repeatCountArg.Expression;
+						return true;
+					}
 				}
 			}
 

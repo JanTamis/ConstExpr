@@ -16,6 +16,7 @@ namespace ConstExpr.Tests.Tests.Linq;
 /// <item><description><c>Range(start, count).Max()</c> => <c>start + count - 1</c></description></item>
 /// <item><description><c>Range(start, count).Skip(n).Count()</c> => <c>Int32.Max(0, count - n)</c></description></item>
 /// <item><description><c>Range(start, count).Take(n).Count()</c> => <c>Int32.Min(n, count)</c></description></item>
+/// <item><description><c>Range(start, count).All(predicate)</c> => constant folding via <c>TryExecutePredicates</c> when arguments are known; no structural rewrite for unknown inputs</description></item>
 /// </list>
 /// When all arguments are constant, all expressions fold to a single numeric literal.
 /// </summary>
@@ -60,7 +61,10 @@ public class LinqRangeOptimizationTests : BaseTest<Func<int, int, double>>
 		// Range(start, count).Take(n).Count() => Int32.Min(n, count)
 		var l = Enumerable.Range(start, count).Take(2).Count();
 
-		return a + b + c + d + e + f + g + h + i + j + k + l;
+		// Range(start, count).All(x => x >= 0) - constant folding for known inputs; no structural rewrite for unknown inputs
+		var m = Enumerable.Range(start, count).All(x => x >= 0) ? 1 : 0;
+
+		return a + b + c + d + e + f + g + h + i + j + k + l + m;
 	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
@@ -72,13 +76,14 @@ public class LinqRangeOptimizationTests : BaseTest<Func<int, int, double>>
 			var f = start + count - 1;
 			var g = start + 2;
 			var h = Double.MultiplyAddEstimate(count - 1, 0.5, start);
+			var i = start > 0 ? start : throw new InvalidOperationException("Sequence contains no elements");
 			var j = start + count - 1;
 			var k = Int32.Max(0, count - 2);
 			var l = Int32.Min(2, count);
+			var m = Enumerable.Range(start, count).All(x => x >= 0) ? 1 : 0;
 			
-			return count + b + c + d + start + f + g + h + start + j + k + l;
+			return count + b + c + d + start + f + g + h + i + j + k + l + m;
 			""", Unknown, Unknown),
-		Create("return 56D;", 2, 5),
+		Create("return 57D;", 2, 5),
 	];
 }
-

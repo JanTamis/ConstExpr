@@ -163,6 +163,20 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 
 					break;
 				}
+				case nameof(Enumerable.Repeat) when invocation.ArgumentList.Arguments is [ var repeatElementArg, var repeatCountArg ]:
+				{
+					if (context.VisitedParameters.Count == 0)
+					{
+						// Repeat(element, count).FirstOrDefault() => count > 0 ? element : default
+						result = SyntaxFactory.ConditionalExpression(
+							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, SyntaxHelpers.CreateLiteral(0)!, context.Model.Compilation.GetSpecialType(SpecialType.System_Boolean)),
+							repeatElementArg.Expression,
+							context.Method.TypeArguments[0].GetDefaultValue());
+						return true;
+					}
+
+					break;
+				}
 			}
 		}
 

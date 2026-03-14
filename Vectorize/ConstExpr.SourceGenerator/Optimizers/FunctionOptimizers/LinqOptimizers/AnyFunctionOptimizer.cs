@@ -193,6 +193,19 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 					break;
 				}
+				case nameof(Enumerable.Repeat) when invocation.ArgumentList.Arguments is [ var repeatElementArg, var repeatCountArg ]:
+				{
+					if (context.VisitedParameters.Count == 0)
+					{
+						var intType = context.Model.Compilation.CreateInt32();
+
+						// Repeat(element, count).Any() => count > 0
+						result = OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, SyntaxHelpers.CreateLiteral(0)!, intType);
+						return true;
+					}
+
+					break;
+				}
 			}
 		}
 
