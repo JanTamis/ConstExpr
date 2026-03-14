@@ -9,12 +9,12 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.MultiplyStrategi
 /// <summary>
 /// Strategy for power of two optimization: x * (power of two) => x << n (integer)
 /// </summary>
-public class MultiplyByPowerOfTwoRightStrategy : IntegerBinaryStrategy<LiteralExpressionSyntax, ExpressionSyntax>
+public class MultiplyByPowerOfTwoRightStrategy : IntegerBinaryStrategy<ExpressionSyntax, LiteralExpressionSyntax>
 {
-	public override bool TryOptimize(BinaryOptimizeContext<LiteralExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
+	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!base.TryOptimize(context, out optimized)
-		    || !context.Left.Syntax.IsNumericPowerOfTwo(out var power))
+		    || !context.Right.Syntax.IsNumericPowerOfTwo(out var power))
     {
       return false;
     }

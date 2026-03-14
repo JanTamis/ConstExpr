@@ -23,7 +23,9 @@ public class LinqSumOptimizationTests : BaseTest<Func<int[], int>>
 		// Reverse().Sum() => Sum()
 		var e = x.Reverse().Sum();
 
-		return a + b + c + d + e;
+		var f = x.Select(v => 4).Sum();
+
+		return a + b + c + d + e + f;
 	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
@@ -34,8 +36,9 @@ public class LinqSumOptimizationTests : BaseTest<Func<int[], int>>
 			var c = x.Sum();
 			var d = x.Sum();
 			var e = x.Sum();
-
-			return a + b + c + d + e;
+			var f = x.Sum() << 2;
+			
+			return a + b + c + d + e + f;
 			""", Unknown),
 		Create("return 36;", new[] { 1, 2, 3 }),
 		Create("return 25;", new[] { 5 }),

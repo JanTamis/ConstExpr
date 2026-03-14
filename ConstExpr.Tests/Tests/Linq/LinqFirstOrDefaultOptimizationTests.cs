@@ -41,7 +41,9 @@ public class LinqFirstOrDefaultOptimizationTests : BaseTest<Func<int[], int>>
 		// Array conditional: x.FirstOrDefault() => x.Length > 0 ? x[0] : default
 		var k = x.FirstOrDefault();
 
-		return a + b + c + d + e + f + g + h + i + j + k;
+		var l = x.Where(v => v > 0).Select(s => s * 2).FirstOrDefault();
+
+		return a + b + c + d + e + f + g + h + i + j + k + l;
 	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
@@ -58,8 +60,9 @@ public class LinqFirstOrDefaultOptimizationTests : BaseTest<Func<int[], int>>
 			var i = x.Length > 0 ? x[^1] : 0;
 			var j = x.Length > 0 ? x[0] : 0;
 			var k = x.Length > 0 ? x[0] : 0;
+			var l = Array.Find(x, v => v > 0) << 1;
 			
-			return a + b + c + d + e + f + g + h + i + j + k;
+			return a + b + c + d + e + f + g + h + i + j + k + l;
 			""", Unknown),
 		Create("return 29;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new int[] { }),

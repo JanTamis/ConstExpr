@@ -177,7 +177,7 @@ public class LinqElementAtNoOptimizationTests : BaseTest<Func<int[], int>>
 			var b = x.Max();
 			var c = x[^1];
 			var d = x.First(v => v > 2);
-			var e = x.Select(v => v << 1).First();
+			var e = x[0] << 1;
 			var f = x[0];
 			
 			return a + b + c + d + e + f;

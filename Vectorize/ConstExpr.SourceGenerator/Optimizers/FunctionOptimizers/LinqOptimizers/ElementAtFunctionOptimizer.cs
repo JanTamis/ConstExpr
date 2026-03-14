@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
+using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -59,6 +61,19 @@ public class ElementAtFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		if (TryExecutePredicates(context, source, [indexParameter], out result))
 		{
 			return true;
+		}
+
+		if (IsLinqMethodChain(source, out var methodName, out var invocation)
+		    && TryGetLinqSource(invocation, out var invocationSource))
+		{
+			switch (methodName)
+			{
+				case nameof(Enumerable.Range) when invocation.ArgumentList.Arguments is [ var startArg, var countArg ]:
+				{
+					result = OptimizeArithmetic(context, SyntaxKind.AddExpression, startArg.Expression, indexParameter, type);
+					return true;
+				}
+			}
 		}
 
 		// For arrays, use direct array indexing: arr[index]

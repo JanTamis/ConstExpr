@@ -80,6 +80,16 @@ public class MinFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 					result = OptimizeAsMathPairwise<MathMinOptimizer>(context, leftExpr, rightExpr);
 					return true;
 				}
+				case nameof(Enumerable.Range) when invocation.ArgumentList.Arguments is [ var startArg, var countArg ]:
+				{
+					if (context.VisitedParameters.Count == 0)
+					{
+						result = startArg.Expression;
+						return true;
+					}
+
+					break;
+				}
 			}
 		}
 

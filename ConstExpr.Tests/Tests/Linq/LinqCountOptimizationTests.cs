@@ -51,8 +51,10 @@ public class LinqCountOptimizationTests() : BaseTest<Func<int[], int>>(FloatingP
 		
 		// Complex chain with multiple Where statements
 		var n = x.Where(v => v > 1).OrderBy(v => v).Where(v => v < 8).Reverse().Where(v => v % 2 == 0).Count();
+		
+		var o = x.GroupBy(v => v % 3).Count();
 
-		return a + b + c + d + e + f + g + h + i + j + k + l + m + n;
+		return a + b + c + d + e + f + g + h + i + j + k + l + m + n + o;
 	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
@@ -72,10 +74,11 @@ public class LinqCountOptimizationTests() : BaseTest<Func<int[], int>>(FloatingP
 			var l = x.Count(v => (uint)v - 1 < 7U && Int32.IsEvenInteger(v));
 			var m = x.Count(v => (uint)v - 2 < 8U);
 			var n = x.Count(v => (uint)v - 1 < 7U && Int32.IsEvenInteger(v));
+			var o = x.DistinctBy(v => v % 3).Count();
 			
-			return a + b + c + d + e + f + g + h + i + j + k + l + m + n;
+			return a + b + c + d + e + f + g + h + i + j + k + l + m + n + o;
 			""", Unknown),
-		Create("return 49;", new[] { 1, 2, 3, 4, 5 }),
+		Create("return 67;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new int[] { }),
 	];
 }

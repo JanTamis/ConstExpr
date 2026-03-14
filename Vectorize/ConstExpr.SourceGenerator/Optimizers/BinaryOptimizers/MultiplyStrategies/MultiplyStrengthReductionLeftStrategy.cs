@@ -10,9 +10,9 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.MultiplyStrategi
 /// Strategy for strength reduction: C * x => use (x << n) +/- x when applicable
 /// e.g. 3 => (x << 1) + x, 5 => (x << 2) + x, 7 => (x << 3) - x, 9 => (x << 3) + x
 /// </summary>
-public class MultiplyStrengthReductionLeftStrategy : IntegerBinaryStrategy
+public class MultiplyStrengthReductionLeftStrategy : IntegerBinaryStrategy<LiteralExpressionSyntax, ExpressionSyntax>
 {
-	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
+	public override bool TryOptimize(BinaryOptimizeContext<LiteralExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!base.TryOptimize(context, out optimized)
 		    || !context.TryGetValue(context.Left.Syntax, out var leftValue)
@@ -77,6 +77,7 @@ public class MultiplyStrengthReductionLeftStrategy : IntegerBinaryStrategy
 	private static bool TryGetUInt(object? value, out uint result)
 	{
 		result = 0;
+		
 		if (value == null)
     {
       return false;

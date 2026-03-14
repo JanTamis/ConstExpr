@@ -109,6 +109,12 @@ public static class SyntaxHelpers
 		{
 			return null;
 		}
+
+		// check if value is lookup and skip if it is
+		if (value?.GetType().GetInterface("System.Linq.IGrouping`2") is not null)
+		{
+			return null;
+		}
 		
 		switch (value)
 		{

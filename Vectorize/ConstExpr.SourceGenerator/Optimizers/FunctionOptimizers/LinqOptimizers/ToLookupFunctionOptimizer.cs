@@ -212,11 +212,11 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 			if (groups.Count > 0)
 			{
 				// Generate the Grouping helper struct (shared across all lookups)
-				var groupingStruct = ParseStructFromString("""
+				var groupingStruct = ParseTypeFromString<StructDeclarationSyntax>("""
 					file readonly struct Grouping<TKey, TElement>(TKey key, params IEnumerable<TElement> elements) : IGrouping<TKey, TElement>
 					{
 						public TKey Key => key;
-						
+
 						public IEnumerator<TElement> GetEnumerator() => elements.GetEnumerator();
 						IEnumerator IEnumerable.GetEnumerator() => elements.GetEnumerator();
 					}
@@ -230,7 +230,7 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 
 			// Build the lookup struct source
 			var lookupStructSource = BuildLookupStructSource(structName, keyTypeName, elementTypeName, groups, containsExpression);
-			var lookupStruct = ParseStructFromString(lookupStructSource);
+			var lookupStruct = ParseTypeFromString<StructDeclarationSyntax>(lookupStructSource);
 
 			context.AdditionalMethods.TryAdd(lookupStruct, true);
 
@@ -410,31 +410,5 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 			uint ui => $"{ui}U",
 			_ => value.ToString()
 		};
-	}
-
-	/// <summary>
-	/// Parses a struct declaration from a source code string.
-	/// </summary>
-	private static StructDeclarationSyntax ParseStructFromString(string structString)
-	{
-		var wrappedCode = $$"""
-			using System;
-			using System.Collections;
-			using System.Collections.Generic;
-			using System.Linq;
-
-			public class TempClass
-			{
-			{{structString}}
-			}
-			""";
-
-		var syntaxTree = CSharpSyntaxTree.ParseText(wrappedCode);
-
-		return syntaxTree.GetRoot()
-			.DescendantNodes()
-			.Select(s => s.NormalizeWhitespace("\t"))
-			.OfType<StructDeclarationSyntax>()
-			.First();
 	}
 }

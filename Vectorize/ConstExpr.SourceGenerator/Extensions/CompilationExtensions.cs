@@ -55,6 +55,12 @@ public static class CompilationExtensions
 			.CreateSpecialType(SpecialType.System_String);
 	}
 
+	public static INamedTypeSymbol CreateDouble(this Compilation compilation)
+	{
+		return compilation
+			.CreateSpecialType(SpecialType.System_Double);
+	}
+
 	public static INamedTypeSymbol? CreateFunc(this Compilation compilation, params ITypeSymbol[] typeArguments)
 	{
 		return compilation.GetTypeByMetadataName($"System.Func`{typeArguments.Length}")?

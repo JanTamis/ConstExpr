@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -56,7 +58,7 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		}
 
 		while (IsLinqMethodChain(source, out var methodName, out var invocation)
-		    && TryGetLinqSource(invocation, out var invocationSource))
+		       && TryGetLinqSource(invocation, out var invocationSource))
 		{
 			switch (methodName)
 			{
@@ -148,9 +150,9 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 						var anyPredicate = SyntaxFactory.SimpleLambdaExpression(
 							SyntaxFactory.Parameter(SyntaxFactory.Identifier(lambdaParam)),
 							equalityCheck);
-						
+
 						var resultPredicate = context.Visit(anyPredicate) as LambdaExpressionSyntax ?? anyPredicate;
-						
+
 						if (IsInvokedOnArray(context, invocationSource))
 						{
 							if (IsSimpleEqualityLambda(resultPredicate, out var value))
@@ -167,7 +169,7 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 									SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0)));
 								return true;
 							}
-							
+
 							result = CreateInvocation(SyntaxFactory.ParseTypeName(nameof(Array)), nameof(Array.Exists), context.Visit(invocationSource) ?? invocationSource, resultPredicate);
 							return true;
 						}
@@ -177,9 +179,9 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 							result = UpdateInvocation(context, invocationSource, resultValue);
 							return true;
 						}
-						
+
 						invocationSource = context.Visit(invocationSource) ?? invocationSource;
-						
+
 						// Use appropriate context.Method based on source type
 						if (IsInvokedOnList(context, invocationSource))
 						{
@@ -201,6 +203,18 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 					var right = TryOptimize(context.WithInvocationAndMethod(CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters), context.Method), out var rightResult) ? rightResult as ExpressionSyntax : null;
 
 					result = SyntaxFactory.BinaryExpression(SyntaxKind.LogicalOrExpression, left ?? CreateInvocation(invocationSource, Name, context.VisitedParameters), right ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters));
+					return true;
+				}
+				case nameof(Enumerable.Range) when invocation.ArgumentList.Arguments is [ var startArg, var countArg ]:
+				{
+					var intType = context.Model.Compilation.CreateInt32();
+					
+					var left = OptimizeComparison(context, SyntaxKind.GreaterThanOrEqualExpression, searchValue, startArg.Expression, intType);
+					var right = OptimizeComparison(context, SyntaxKind.LessThanExpression, searchValue, 
+						 OptimizeArithmetic(context, SyntaxKind.AddExpression, countArg.Expression, startArg.Expression, intType), intType);
+					
+					// searchValue >= start && searchValue < count + start
+					result = OptimizeComparison(context, SyntaxKind.LogicalAndExpression, left, right, context.Model.Compilation.CreateBoolean());
 					return true;
 				}
 			}

@@ -185,7 +185,7 @@ public class LinqElementAtOrDefaultNoOptimizationTests : BaseTest<Func<int[], in
 			var b = x.Max();
 			var c = x.Length > 0 ? x[^1] : 0;
 			var d = Array.Find(x, v => v > 2);
-			var e = x.Select(v => v << 1).FirstOrDefault();
+			var e = (x.Length > 0 ? x[0] : 0) << 1;
 			var f = x.Length > 0 ? x[0] : 0;
 			
 			return a + b + c + d + e + f;

@@ -37,8 +37,10 @@ public class LinqLastOrDefaultOptimizationTests : BaseTest<Func<int[], int>>
 
 		// Array conditional: x.LastOrDefault() => x.Length > 0 ? x[^1] : default
 		var j = x.LastOrDefault();
+		
+		var k = x.Where(v => v > 0).Select(s => s * 2).LastOrDefault();
 
-		return a + b + c + d + e + f + g + h + i + j;
+		return a + b + c + d + e + f + g + h + i + j + k;
 	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
@@ -54,8 +56,9 @@ public class LinqLastOrDefaultOptimizationTests : BaseTest<Func<int[], int>>
 			var h = x.Max();
 			var i = x.Length > 0 ? x[0] : 0;
 			var j = x.Length > 0 ? x[^1] : 0;
+			var k = Array.FindLast(x, v => v > 0) << 1;
 			
-			return a + b + c + d + e + f + g + h + i + j;
+			return a + b + c + d + e + f + g + h + i + j + k;
 			""", Unknown),
 		Create("return 43;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new int[] { }),

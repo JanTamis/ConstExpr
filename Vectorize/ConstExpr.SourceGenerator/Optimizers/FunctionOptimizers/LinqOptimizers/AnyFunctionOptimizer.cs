@@ -37,6 +37,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		..OrderingOperations,
 		nameof(Enumerable.Select), // Projection: transforms elements but doesn't filter
 		nameof(Enumerable.Distinct), // Deduplication: may reduce count, but if any exist, Any() is true
+		nameof(Enumerable.GroupBy), // Grouping: groups elements but doesn't filter them out, so it doesn't affect whether any elements exist
 		"Chunk", // Chunking: groups elements but doesn't filter them out, so it doesn't affect whether any elements exist
 	];
 
@@ -141,7 +142,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 						appendValues.Add(TryOptimize(context.WithInvocationAndMethod(updatedInvocation, context.Method), out var rightResult) ? rightResult as ExpressionSyntax : updatedInvocation);
 
 						result = appendValues.Skip(1).Aggregate(appendValues[0], (result, value)
-							=> context.OptimizeBinaryExpression(SyntaxFactory.BinaryExpression(SyntaxKind.LogicalOrExpression, result, value), elementType, elementType, boolType));
+							=> context.OptimizeBinaryExpression(BinaryExpression(SyntaxKind.LogicalOrExpression, result, value), elementType, elementType, boolType));
 
 						return true;
 					}
@@ -176,6 +177,18 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 							result = context.OptimizeBinaryExpression(BinaryExpression(SyntaxKind.LogicalOrExpression, left, right), elementType, elementType, boolType);
 							return true;
 						}
+					}
+
+					break;
+				}
+				case nameof(Enumerable.Range) when invocation.ArgumentList.Arguments is [ var startArg, var countArg ]:
+				{
+					if (context.VisitedParameters.Count == 0)
+					{
+						var intType = context.Model.Compilation.CreateInt32();
+						
+						result = OptimizeComparison(context, SyntaxKind.GreaterThanExpression, countArg.Expression, SyntaxHelpers.CreateLiteral(0)!, intType);
+						return true;
 					}
 
 					break;

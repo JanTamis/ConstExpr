@@ -41,7 +41,10 @@ public class LinqLastOptimizationTests : BaseTest<Func<int[], int>>
 		// Array direct indexing: x.Last() => x[^1]
 		var k = x.Last();
 
-		return a + b + c + d + e + f + g + h + i + j + k;
+		// x.Select(s => s * 2).Last() => x[^1] << 1
+		var l = x.Where(v => v > 0).Select(s => s * 2).Last();
+
+		return a + b + c + d + e + f + g + h + i + j + k + l;
 	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
@@ -58,10 +61,11 @@ public class LinqLastOptimizationTests : BaseTest<Func<int[], int>>
 			var i = x.Max();
 			var j = x.Min();
 			var k = x[^1];
+			var l = x.Last(v => v > 0) << 1;
 			
-			return a + b + c + d + e + f + g + h + i + j + k;
+			return a + b + c + d + e + f + g + h + i + j + k + l;
 			""", Unknown),
-		Create("return 44;", new[] { 1, 2, 3, 4, 5 }),
+		Create("return 54;", new[] { 1, 2, 3, 4, 5 }),
 	];
 }
 

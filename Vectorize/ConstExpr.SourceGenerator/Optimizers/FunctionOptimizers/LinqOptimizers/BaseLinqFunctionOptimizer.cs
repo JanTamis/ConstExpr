@@ -813,8 +813,10 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 
 	protected static ExpressionSyntax ReplaceIdentifier(ExpressionSyntax expression, string oldIdentifier, ExpressionSyntax replacement)
 	{
-		// Wrap replacement in parentheses if it's a binary expression to preserve precedence
-		var wrappedReplacement = replacement is BinaryExpressionSyntax
+		// Wrap replacement in parentheses if it's a binary or conditional expression to preserve precedence.
+		// ConditionalExpressionSyntax (?:) has very low precedence and must be parenthesized when used
+		// as an operand in a binary expression (e.g., (x.Length > 0 ? x[0] : 0) << 1).
+		var wrappedReplacement = replacement is BinaryExpressionSyntax or ConditionalExpressionSyntax
 			? ParenthesizedExpression(replacement)
 			: replacement;
 
@@ -1229,6 +1231,44 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		}
 
 		return PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, node);
+	}
+
+	/// <summary>
+	/// Parses a struct declaration from a source code string.
+	/// </summary>
+	protected static TType ParseTypeFromString<TType>(string structString) where TType : TypeDeclarationSyntax
+	{
+		var wrappedCode = $$"""
+			using System;
+			using System.Collections;
+			using System.Collections.Generic;
+			using System.Linq;
+
+			public class TempClass
+			{
+			{{structString}}
+			}
+			""";
+
+		var syntaxTree = CSharpSyntaxTree.ParseText(wrappedCode);
+
+		return syntaxTree.GetRoot()
+			.DescendantNodes()
+			.Select(s => s.NormalizeWhitespace("\t"))
+			.OfType<TType>()
+			.First();
+	}
+
+	protected ExpressionSyntax OptimizeComparison(FunctionOptimizerContext context, SyntaxKind kind, ExpressionSyntax left, ExpressionSyntax right, ITypeSymbol type)
+	{
+		var boolType = context.Model.Compilation.CreateBoolean();
+		
+		return context.OptimizeBinaryExpression(BinaryExpression(kind, left, right), type, type, boolType);
+	}
+
+	protected ExpressionSyntax OptimizeArithmetic(FunctionOptimizerContext context, SyntaxKind kind, ExpressionSyntax left, ExpressionSyntax right, ITypeSymbol type)
+	{
+		return context.OptimizeBinaryExpression(BinaryExpression(kind, left, right), type, type, type);
 	}
 
 	private class IdentifierReplacer(string identifier, ExpressionSyntax replacement) : CSharpSyntaxRewriter

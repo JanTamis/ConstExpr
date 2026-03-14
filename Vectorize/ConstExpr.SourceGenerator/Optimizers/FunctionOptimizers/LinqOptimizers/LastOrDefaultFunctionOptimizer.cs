@@ -135,6 +135,34 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 					result = appendArg;
 					return true;
 				}
+				case nameof(Enumerable.Select) when GetMethodArguments(invocation).FirstOrDefault() is { Expression: { } selectorArg }
+				                                    && TryGetLambda(selectorArg, out var selector)
+				                                    && TryGetSimpleLambdaParameter(selector, out var parameter)
+				                                    && TryGetLambdaBody(selector, out var body):
+				{
+					var newInvocation = UpdateInvocation(context, methodSource);
+
+					var optimizedFirst = TryOptimize(context.WithInvocationAndMethod(newInvocation, context.Method), out var optimizedFirstResult)
+						? optimizedFirstResult
+						: newInvocation;
+
+					result = ReplaceIdentifier(body, parameter.Identifier.Text, optimizedFirst as ExpressionSyntax);
+					return true;
+				}
+				case nameof(Enumerable.Range) when invocation.ArgumentList.Arguments is [ var startArg, var countArg ]:
+				{
+					if (context.VisitedParameters.Count == 0)
+					{
+						var intType = context.Model.Compilation.CreateInt32();
+
+						result = OptimizeArithmetic(context, SyntaxKind.SubtractExpression,
+							OptimizeArithmetic(context, SyntaxKind.AddExpression, startArg.Expression, countArg.Expression, intType),
+							SyntaxHelpers.CreateLiteral(1)!, intType);
+						return true;
+					}
+
+					break;
+				}
 			}
 		}
 

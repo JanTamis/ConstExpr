@@ -1,7 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
+using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using MathMaxOptimizer = ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers.MaxFunctionOptimizer;
 
@@ -33,7 +36,7 @@ public class MaxFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			result = null;
 			return false;
 		}
-		
+
 		// Recursively skip operations that don't affect max
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectMax, out source);
 
@@ -41,13 +44,13 @@ public class MaxFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		{
 			return true;
 		}
-		
+
 		// Optimize Max(x => x) => Max() (identity lambda removal)
 		if (context.VisitedParameters.Count == 1
 		    && TryGetLambda(context.VisitedParameters[0], out var lambda)
 		    && IsIdentityLambda(lambda))
 		{
-			result = UpdateInvocation(context, source, []);
+			result = UpdateInvocation(context, source, [ ]);
 			return true;
 		}
 
@@ -78,6 +81,15 @@ public class MaxFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 					var rightExpr = right ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters);
 
 					result = OptimizeAsMathPairwise<MathMaxOptimizer>(context, leftExpr, rightExpr);
+					return true;
+				}
+				case nameof(Enumerable.Range) when invocation.ArgumentList.Arguments is [ var startArg, var countArg ]:
+				{
+					var intType = context.Model.Compilation.CreateInt32();
+
+					result = OptimizeArithmetic(context, SyntaxKind.SubtractExpression,
+						OptimizeArithmetic(context, SyntaxKind.AddExpression, startArg.Expression, countArg.Expression, intType),
+						SyntaxHelpers.CreateLiteral(1)!, intType);
 					return true;
 				}
 			}

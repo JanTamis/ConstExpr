@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -39,7 +41,7 @@ public class AverageFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 		{
 			return true;
 		}
-		
+
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectAverage, out source);
 
 		if (IsEmptyEnumerable(source))
@@ -50,7 +52,7 @@ public class AverageFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 		}
 
 		// check for x.Average(a => a) pattern and optimize to x.Average() since the selector is just the identity function and doesn't affect the average result
-		if (context.VisitedParameters.Count > 0 
+		if (context.VisitedParameters.Count > 0
 		    && TryGetLambda(context.VisitedParameters[0], out var selector)
 		    && IsIdentityLambda(selector))
 		{
@@ -67,6 +69,23 @@ public class AverageFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 				                                    && TryGetLambda(selectorArg, out selector):
 				{
 					result = UpdateInvocation(context, invocationSource, selector);
+					return true;
+				}
+				case nameof(Enumerable.Range) when invocation.ArgumentList.Arguments is [ var startArg, var countArg ]:
+				{
+					var intType = context.Model.Compilation.CreateInt32();
+					var doubleType = context.Model.Compilation.CreateDouble();
+
+					// start + (count - 1) / 2.0
+					var countMinusOne = SyntaxFactory.ParenthesizedExpression(
+						OptimizeArithmetic(context, SyntaxKind.SubtractExpression,
+							countArg.Expression, SyntaxHelpers.CreateLiteral(1)!, intType));
+
+					var halfOffset = OptimizeArithmetic(context, SyntaxKind.DivideExpression,
+						countMinusOne, SyntaxHelpers.CreateLiteral(2.0)!, doubleType);
+
+					result = OptimizeArithmetic(context, SyntaxKind.AddExpression,
+						startArg.Expression, halfOffset, doubleType);
 					return true;
 				}
 			}

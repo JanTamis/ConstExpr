@@ -44,7 +44,7 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		{
 			return true;
 		}
-		
+
 		// Optimize Sum(x => x) => Sum() (identity lambda removal)
 		if (context.VisitedParameters.Count == 1
 		    && TryGetLambda(context.VisitedParameters[0], out var lambda)
@@ -75,17 +75,25 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 					if (TryGetLambda(selector, out var selectLambda))
 					{
+						if (IsConstantLambda(selectLambda, out var constantValue))
+						{
+							var left = TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, methodSource), context.Method), out var leftResult)
+								? leftResult as ExpressionSyntax
+								: UpdateInvocation(context, methodSource);
+
+							var type = context.Method.ReturnType;
+
+							result = context.OptimizeBinaryExpression(SyntaxFactory.BinaryExpression(SyntaxKind.MultiplyExpression, left!, constantValue), type, type, type);
+							return true;
+						}
+
 						if (!IsIdentityLambda(selectLambda))
 						{
 							result = TryOptimizeAppend(context, methodSource, UpdateInvocation(context, methodSource, selector));
 							return true;
 						}
-
-						if (IsConstantLambda(selectLambda, out var constantValue))
-						{
-							
-						}
 					}
+
 					break;
 				}
 				case nameof(Enumerable.Concat):
@@ -96,6 +104,28 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 					var right = TryOptimize(context.WithInvocationAndMethod(CreateInvocation(methodInvocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters), context.Method), out var rightResult) ? rightResult as ExpressionSyntax : null;
 
 					result = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, left ?? CreateInvocation(methodSource, Name, context.VisitedParameters), right ?? CreateInvocation(methodInvocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters));
+					return true;
+				}
+				case nameof(Enumerable.Range) when methodInvocation.ArgumentList.Arguments is [ var startArg, var countArg ]:
+				{
+					var intType = context.Model.Compilation.CreateInt32();
+
+					// count * (2 * start + count - 1) / 2
+					var twoTimesStart = OptimizeArithmetic(context, SyntaxKind.MultiplyExpression,
+						SyntaxHelpers.CreateLiteral(2)!, startArg.Expression, intType);
+
+					var twoStartPlusCount = OptimizeArithmetic(context, SyntaxKind.AddExpression,
+						twoTimesStart, countArg.Expression, intType);
+
+					var inner = SyntaxFactory.ParenthesizedExpression(
+						OptimizeArithmetic(context, SyntaxKind.SubtractExpression,
+							twoStartPlusCount, SyntaxHelpers.CreateLiteral(1)!, intType));
+
+					var numerator = OptimizeArithmetic(context, SyntaxKind.MultiplyExpression,
+						countArg.Expression, inner, intType);
+
+					result = OptimizeArithmetic(context, SyntaxKind.DivideExpression,
+						numerator, SyntaxHelpers.CreateLiteral(2)!, intType);
 					return true;
 				}
 			}
@@ -174,7 +204,7 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 			TryGetOptimizedChainExpression(source, OperationsThatDontAffectSum, out source);
 		}
-		
+
 		End:
 
 		if (items[0] is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax memberAccess } firstInvocation)

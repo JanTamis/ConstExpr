@@ -343,6 +343,11 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 						result = CreateInvocation(context.Model.Compilation.CreateInt32(), "Max", SyntaxHelpers.CreateLiteral(0)!, subtracted);
 						return true;
 					}
+					case nameof(Enumerable.Range) when invocation.ArgumentList.Arguments is [ var startArg, var countArg ]:
+					{
+						result = countArg.Expression;
+						return true;
+					}
 				}
 			}
 
@@ -375,6 +380,16 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 						return true;
 					}
 
+					var distinctByInvocation = CreateInvocation(chainSource, "DistinctBy", predicate);
+					var newDistinctByCountInvocation = TryOptimizeByOptimizer<DistinctByFunctionOptimizer>(context, distinctByInvocation) as ExpressionSyntax ?? distinctByInvocation;
+
+					result = UpdateInvocation(context, newDistinctByCountInvocation);
+					return true;
+				}
+
+				case "GroupBy" when GetMethodArguments(chainInvocation).FirstOrDefault() is { Expression: { } predicateArg }
+				                    && TryGetLambda(predicateArg, out var predicate):
+				{
 					var distinctByInvocation = CreateInvocation(chainSource, "DistinctBy", predicate);
 					var newDistinctByCountInvocation = TryOptimizeByOptimizer<DistinctByFunctionOptimizer>(context, distinctByInvocation) as ExpressionSyntax ?? distinctByInvocation;
 

@@ -6,6 +6,7 @@ using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Operations;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
@@ -103,18 +104,18 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 					{
 						if (IsInvokedOnArray(context, methodSource))
 						{
-							if (TryGetSyntaxes(methodSource, out var sourceSyntaxes) 
+							if (TryGetSyntaxes(methodSource, out var sourceSyntaxes)
 							    && chunkSize is LiteralExpressionSyntax { Token.Value: int chunkSizeValue })
 							{
 								var elements = sourceSyntaxes
 									.Take(chunkSizeValue)
 									.Select(SyntaxFactory.ExpressionElement);
-								
+
 								result = SyntaxFactory.CollectionExpression(
 									SyntaxFactory.SeparatedList<CollectionElementSyntax>(elements));
 								return true;
 							}
-							
+
 							// For arrays, we can directly index the first chunk: source[..chunkSize]
 							result = CreateElementAccess(methodSource, SyntaxFactory.ParseExpression($"..{chunkSize}"));
 							return true;
@@ -130,11 +131,11 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 				case nameof(Enumerable.DefaultIfEmpty):
 				{
 					TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectFirst.Union([ nameof(Enumerable.DefaultIfEmpty) ]).ToSet(), out methodSource);
-					
+
 					var defaultItem = invocation.ArgumentList.Arguments.Count == 0
 						? context.Method.ReturnType is INamedTypeSymbol namedType ? namedType.GetDefaultValue() : SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression)
 						: invocation.ArgumentList.Arguments[0].Expression;
-					
+
 					if (IsInvokedOnArray(context, methodSource))
 					{
 						result = CreateDefaultIfEmptyConditional(methodSource, "Length", defaultItem);
@@ -146,7 +147,7 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 						result = CreateDefaultIfEmptyConditional(methodSource, "Count", defaultItem);
 						return true;
 					}
-					
+
 					result = CreateInvocation(methodSource, nameof(Enumerable.DefaultIfEmpty), defaultItem);
 					return true;
 				}
@@ -159,6 +160,30 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 				{
 					result = TryOptimizeByOptimizer<ElementAtFunctionOptimizer>(context, CreateInvocation(methodSource, nameof(Enumerable.ElementAt), skipArg));
 					return true;
+				}
+				case nameof(Enumerable.Select) when GetMethodArguments(invocation).FirstOrDefault() is { Expression: { } selectorArg }
+				                                    && TryGetLambda(selectorArg, out var selector)
+				                                    && TryGetSimpleLambdaParameter(selector, out var parameter)
+				                                    && TryGetLambdaBody(selector, out var body):
+				{
+					var newInvocation = UpdateInvocation(context, methodSource);
+
+					var optimizedFirst = TryOptimize(context.WithInvocationAndMethod(newInvocation, context.Method), out var optimizedFirstResult)
+						? optimizedFirstResult
+						: newInvocation;
+
+					result = ReplaceIdentifier(body, parameter.Identifier.Text, optimizedFirst as ExpressionSyntax);
+					return true;
+				}
+				case nameof(Enumerable.Range) when invocation.ArgumentList.Arguments is [ var startArg, var countArg ]:
+				{
+					if (context.VisitedParameters.Count == 0)
+					{
+						result = startArg.Expression;
+						return true;
+					}
+
+					break;
 				}
 			}
 		}
