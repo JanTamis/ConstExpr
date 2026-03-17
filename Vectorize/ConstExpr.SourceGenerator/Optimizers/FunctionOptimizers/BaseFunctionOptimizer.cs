@@ -21,10 +21,28 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers
 
 		protected InvocationExpressionSyntax CreateInvocation(ITypeSymbol type, string name, params IEnumerable<ExpressionSyntax> parameters)
 		{
+			var typeResult = type.SpecialType switch
+			{
+				SpecialType.System_Single => PredefinedType(Token(SyntaxKind.FloatKeyword)),
+				SpecialType.System_Boolean => PredefinedType(Token(SyntaxKind.BoolKeyword)),
+				SpecialType.System_String => PredefinedType(Token(SyntaxKind.StringKeyword)),
+				SpecialType.System_Char => PredefinedType(Token(SyntaxKind.CharKeyword)),
+				SpecialType.System_Double => PredefinedType(Token(SyntaxKind.DoubleKeyword)),
+				SpecialType.System_Decimal => PredefinedType(Token(SyntaxKind.DecimalKeyword)),
+				SpecialType.System_Int32 => PredefinedType(Token(SyntaxKind.IntKeyword)),
+				SpecialType.System_Int64 => PredefinedType(Token(SyntaxKind.LongKeyword)),
+				SpecialType.System_SByte => PredefinedType(Token(SyntaxKind.SByteKeyword)),
+				SpecialType.System_Byte => PredefinedType(Token(SyntaxKind.ByteKeyword)),
+				SpecialType.System_UInt16 => PredefinedType(Token(SyntaxKind.UShortKeyword)),
+				SpecialType.System_UInt32 => PredefinedType(Token(SyntaxKind.UIntKeyword)),
+				SpecialType.System_UInt64 => PredefinedType(Token(SyntaxKind.ULongKeyword)),
+				_ => ParseTypeName(type.Name)
+			};
+			
 			return InvocationExpression(
 					MemberAccessExpression(
 						SyntaxKind.SimpleMemberAccessExpression,
-						ParseTypeName(type.Name),
+						typeResult,
 						IdentifierName(name)))
 				.WithArgumentList(
 					ArgumentList(

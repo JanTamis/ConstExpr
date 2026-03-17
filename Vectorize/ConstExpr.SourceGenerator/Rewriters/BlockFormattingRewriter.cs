@@ -640,6 +640,56 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		return visited;
 	}
 
+	public override SyntaxNode? VisitImplicitArrayCreationExpression(ImplicitArrayCreationExpressionSyntax node)
+	{
+		var visited = base.VisitImplicitArrayCreationExpression(node) as ImplicitArrayCreationExpressionSyntax ?? node;
+
+		if (visited.Initializer.Expressions.Count == 1)
+		{
+			// Strip trailing trivia from `]` so there's no newline before `{`
+			visited = visited
+				.WithCloseBracketToken(visited.CloseBracketToken.WithTrailingTrivia(SyntaxFactory.TriviaList()))
+				.WithInitializer(FlattenSingleElementArrayInitializer(visited.Initializer));
+		}
+
+		return visited;
+	}
+
+	public override SyntaxNode? VisitArrayCreationExpression(ArrayCreationExpressionSyntax node)
+	{
+		var visited = base.VisitArrayCreationExpression(node) as ArrayCreationExpressionSyntax ?? node;
+
+		if (visited.Initializer?.Expressions.Count == 1)
+		{
+			// Strip trailing trivia from the last `]` of the type so there's no newline before `{`
+			var lastTypeToken = visited.Type.GetLastToken();
+			var cleanedType = visited.Type.ReplaceToken(
+				lastTypeToken,
+				lastTypeToken.WithTrailingTrivia(SyntaxFactory.TriviaList()));
+			visited = visited
+				.WithType(cleanedType)
+				.WithInitializer(FlattenSingleElementArrayInitializer(visited.Initializer));
+		}
+
+		return visited;
+	}
+
+	private static InitializerExpressionSyntax FlattenSingleElementArrayInitializer(InitializerExpressionSyntax initializer)
+	{
+		var expr = initializer.Expressions[0].WithoutTrivia();
+
+		return initializer
+			.WithOpenBraceToken(
+				SyntaxFactory.Token(SyntaxKind.OpenBraceToken)
+					.WithLeadingTrivia(SyntaxFactory.Space)
+					.WithTrailingTrivia(SyntaxFactory.Space))
+			.WithCloseBraceToken(
+				SyntaxFactory.Token(SyntaxKind.CloseBraceToken)
+					.WithLeadingTrivia(SyntaxFactory.Space)
+					.WithTrailingTrivia(SyntaxFactory.TriviaList()))
+			.WithExpressions(SyntaxFactory.SingletonSeparatedList(expr));
+	}
+
 	// Normalize object creation spacing so `new Type (` -> `new Type(`
 	// and flatten collection initializers onto a single line.
 	public override SyntaxNode? VisitObjectCreationExpression(ObjectCreationExpressionSyntax node)

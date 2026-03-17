@@ -23,7 +23,7 @@ public class LinqSelectManyOptimizationTests : BaseTest<Func<int[][], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var c = x.Sum(s => s.Count());
+			var c = x.Sum(s => s.Length);
 			
 			return c;
 			""", Unknown),

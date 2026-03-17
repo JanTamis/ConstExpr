@@ -5,6 +5,7 @@ using System.Linq.Expressions;
 using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
+using ConstExpr.SourceGenerator.Optimizers;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
@@ -83,6 +84,12 @@ public partial class ConstExprPartialRewriter
 		// Try linq optimizers
 		if (TryOptimizeLinqMethod(semanticModel, targetMethod, node, arguments, node.ArgumentList.Arguments.Select(s => s.Expression)) is { } optimizedLinq)
 		{
+			if (node.Parent is not InvocationExpressionSyntax
+			    && node.Parent is not MemberAccessExpressionSyntax)
+			{
+				return LinqUnroller.TryUnrollLinqChain(Visit(optimizedLinq) as ExpressionSyntax ?? optimizedLinq, targetMethod, additionalMethods, variables);
+			}
+			
 			return Visit(optimizedLinq);
 		}
 

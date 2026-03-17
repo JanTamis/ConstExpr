@@ -33,10 +33,10 @@ namespace ConstExpr.SourceGenerator.Sample.Tests
 			// BytesToHex - mixed
 			Console.WriteLine($"[MIXED] BytesToHex(varByte,255,128): {CryptographyOperations.BytesToHex(varByte, 255, 128)}");
 
-			// PolynomialHash - alleen constanten
-			Console.WriteLine($"[CONST] PolynomialHash(\"hello\"): {CryptographyOperations.PolynomialHash("hello")}");
-			// PolynomialHash - mixed
-			Console.WriteLine($"[MIXED] PolynomialHash(varString): {CryptographyOperations.PolynomialHash(varString)}");
+			// // PolynomialHash - alleen constanten
+			// Console.WriteLine($"[CONST] PolynomialHash(\"hello\"): {CryptographyOperations.PolynomialHash("hello")}");
+			// // PolynomialHash - mixed
+			// Console.WriteLine($"[MIXED] PolynomialHash(varString): {CryptographyOperations.PolynomialHash(varString)}");
 
 			Console.WriteLine();
 		}

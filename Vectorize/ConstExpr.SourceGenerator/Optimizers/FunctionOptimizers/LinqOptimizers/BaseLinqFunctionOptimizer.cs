@@ -1230,7 +1230,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 			};
 		}
 
-		return PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, node);
+		return PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, ParenthesizedExpression(node));
 	}
 
 	/// <summary>
