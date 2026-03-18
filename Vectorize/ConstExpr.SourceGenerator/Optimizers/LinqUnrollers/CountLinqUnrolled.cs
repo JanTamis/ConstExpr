@@ -11,10 +11,10 @@ public class CountLinqUnrolled : BaseLinqUnroller
 {
 	private const string ResultName = "result";
 	
-	public override void UnrollAboveLoop(UnrolledLinqMethod method, IMethodSymbol methodSymbol, List<StatementSyntax> statements)
+	public override void UnrollAboveLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
 		statements.Add(LocalDeclarationStatement(VariableDeclaration(IdentifierName("var"))
-			.WithVariables(SingletonSeparatedList(VariableDeclarator(ResultName).WithInitializer(EqualsValueClause(methodSymbol.ReturnType.GetDefaultValue()))))));
+			.WithVariables(SingletonSeparatedList(VariableDeclarator(ResultName).WithInitializer(EqualsValueClause(method.MethodSymbol.ReturnType.GetDefaultValue()))))));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)

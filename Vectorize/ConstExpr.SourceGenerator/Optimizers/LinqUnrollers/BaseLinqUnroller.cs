@@ -10,7 +10,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 public abstract class BaseLinqUnroller
 {
-	public abstract void UnrollAboveLoop(UnrolledLinqMethod method, IMethodSymbol methodSymbol, List<StatementSyntax> statements);
+	public abstract void UnrollAboveLoop(UnrolledLinqMethod method, List<StatementSyntax> statements);
 	
 	public abstract void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName);
 
@@ -18,21 +18,34 @@ public abstract class BaseLinqUnroller
 
 	protected static ExpressionSyntax InvertSyntax(ExpressionSyntax node)
 	{
-		// invert binary expressions with logical operators
-		if (node is BinaryExpressionSyntax binary)
+		switch (node)
 		{
-			return binary.Kind() switch
+			// invert binary expressions with logical operators
+			case BinaryExpressionSyntax binary:
 			{
-				SyntaxKind.LogicalAndExpression => BinaryExpression(SyntaxKind.LogicalOrExpression, InvertSyntax(binary.Left), InvertSyntax(binary.Right)),
-				SyntaxKind.LogicalOrExpression => BinaryExpression(SyntaxKind.LogicalAndExpression, InvertSyntax(binary.Left), InvertSyntax(binary.Right)),
-				SyntaxKind.EqualsExpression => BinaryExpression(SyntaxKind.NotEqualsExpression, binary.Left, binary.Right),
-				SyntaxKind.NotEqualsExpression => BinaryExpression(SyntaxKind.EqualsExpression, binary.Left, binary.Right),
-				SyntaxKind.GreaterThanExpression => BinaryExpression(SyntaxKind.LessThanOrEqualExpression, binary.Left, binary.Right),
-				SyntaxKind.GreaterThanOrEqualExpression => BinaryExpression(SyntaxKind.LessThanExpression, binary.Left, binary.Right),
-				SyntaxKind.LessThanExpression => BinaryExpression(SyntaxKind.GreaterThanOrEqualExpression, binary.Left, binary.Right),
-				SyntaxKind.LessThanOrEqualExpression => BinaryExpression(SyntaxKind.GreaterThanExpression, binary.Left, binary.Right),
-				_ => PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, node)
-			};
+				return binary.Kind() switch
+				{
+					SyntaxKind.LogicalAndExpression => BinaryExpression(SyntaxKind.LogicalOrExpression, InvertSyntax(binary.Left), InvertSyntax(binary.Right)),
+					SyntaxKind.LogicalOrExpression => BinaryExpression(SyntaxKind.LogicalAndExpression, InvertSyntax(binary.Left), InvertSyntax(binary.Right)),
+					SyntaxKind.EqualsExpression => BinaryExpression(SyntaxKind.NotEqualsExpression, binary.Left, binary.Right),
+					SyntaxKind.NotEqualsExpression => BinaryExpression(SyntaxKind.EqualsExpression, binary.Left, binary.Right),
+					SyntaxKind.GreaterThanExpression => BinaryExpression(SyntaxKind.LessThanOrEqualExpression, binary.Left, binary.Right),
+					SyntaxKind.GreaterThanOrEqualExpression => BinaryExpression(SyntaxKind.LessThanExpression, binary.Left, binary.Right),
+					SyntaxKind.LessThanExpression => BinaryExpression(SyntaxKind.GreaterThanOrEqualExpression, binary.Left, binary.Right),
+					SyntaxKind.LessThanOrEqualExpression => BinaryExpression(SyntaxKind.GreaterThanExpression, binary.Left, binary.Right),
+					SyntaxKind.IsExpression => IsPatternExpression(binary.Left, UnaryPattern(Token(SyntaxKind.NotKeyword), TypePattern((TypeSyntax)binary.Right))),
+					_ => PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, node)
+				};
+			}
+			case LiteralExpressionSyntax literal:
+			{
+				return literal.Kind() switch
+				{
+					SyntaxKind.FalseLiteralExpression => LiteralExpression(SyntaxKind.TrueLiteralExpression),
+					SyntaxKind.TrueLiteralExpression => LiteralExpression(SyntaxKind.FalseLiteralExpression),
+					_ => PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, node)
+				};
+			}
 		}
 
 		return PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, node);

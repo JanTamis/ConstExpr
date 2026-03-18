@@ -8,7 +8,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 public class CastLinqUnroller : BaseLinqUnroller
 {
-	public override void UnrollAboveLoop(UnrolledLinqMethod method, IMethodSymbol methodSymbol, List<StatementSyntax> statements)
+	public override void UnrollAboveLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
 		
 	}
@@ -29,7 +29,7 @@ public class CastLinqUnroller : BaseLinqUnroller
 			.WithVariables(SingletonSeparatedList(VariableDeclarator(newName).WithInitializer(EqualsValueClause(replacedBody))))));
 	}
 
-	public override void UnrollUnderLoop(UnrolledLinqMethod method, List<StatementSyntax> statementSyntaxes)
+	public override void UnrollUnderLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
 		
 	}

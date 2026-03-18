@@ -8,12 +8,12 @@ namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 public class ContainsLinqUnroller : BaseLinqUnroller
 {
-	public override void UnrollAboveLoop(UnrolledLinqMethod method, IMethodSymbol methodSymbol, List<StatementSyntax> statements)
+	public override void UnrollAboveLoop(UnrolledLinqMethod method, List<StatementSyntax> statementSyntaxes)
 	{
 		
 	}
 
-	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax?> statements, ref ExpressionSyntax elementName)
+	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
 	{
 		if (method.Parameters.Length != 1)
 		{
@@ -24,8 +24,8 @@ public class ContainsLinqUnroller : BaseLinqUnroller
 		statements.Add(ReturnStatement(LiteralExpression(SyntaxKind.TrueLiteralExpression)));
 	}
 
-	public override void UnrollUnderLoop(UnrolledLinqMethod method, List<StatementSyntax> statementSyntaxes)
+	public override void UnrollUnderLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
-		
+		statements.Add(ReturnStatement(LiteralExpression(SyntaxKind.FalseLiteralExpression)));
 	}
 }

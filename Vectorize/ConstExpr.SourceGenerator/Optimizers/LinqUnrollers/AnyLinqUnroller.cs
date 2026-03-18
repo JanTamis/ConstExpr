@@ -8,7 +8,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 public class AnyLinqUnroller : BaseLinqUnroller
 {
-	public override void UnrollAboveLoop(UnrolledLinqMethod method, IMethodSymbol methodSymbol, List<StatementSyntax> statements)
+	public override void UnrollAboveLoop(UnrolledLinqMethod method, List<StatementSyntax> statementSyntaxes)
 	{
 		
 	}

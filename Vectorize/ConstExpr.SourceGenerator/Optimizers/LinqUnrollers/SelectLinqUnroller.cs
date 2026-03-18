@@ -8,7 +8,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 public class SelectLinqUnroller : BaseLinqUnroller 
 {
-	public override void UnrollAboveLoop(UnrolledLinqMethod method, IMethodSymbol methodSymbol, List<StatementSyntax> statements)
+	public override void UnrollAboveLoop(UnrolledLinqMethod method, List<StatementSyntax> statement)
 	{
 		
 	}
@@ -22,7 +22,7 @@ public class SelectLinqUnroller : BaseLinqUnroller
 
 		var predicate = method.Parameters[0];
 
-		if (!TryGetLambda(predicate, out var lambda))
+		if (!TryGetLambda(method.Visit(predicate) as ExpressionSyntax, out var lambda))
 		{
 			return;
 		}

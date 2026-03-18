@@ -81,14 +81,24 @@ public partial class ConstExprPartialRewriter
 			}
 		}
 
+		if (targetMethod.ContainingType.EqualsType(semanticModel.Compilation.GetTypeByMetadataName("System.Linq.Enumerable")))
+		{
+			// check if parent is also a linq method to prevent partial unrolling which can cause issues with optimizations
+			if (node.Parent is not (InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Expression: InvocationExpressionSyntax } } or MemberAccessExpressionSyntax { Expression: InvocationExpressionSyntax }))
+			{
+				return LinqUnroller.TryUnrollLinqChain(node, Visit, semanticModel, additionalMethods, variables);
+			}
+		}
+
+
 		// Try linq optimizers
 		if (TryOptimizeLinqMethod(semanticModel, targetMethod, node, arguments, node.ArgumentList.Arguments.Select(s => s.Expression)) is { } optimizedLinq)
 		{
-			if (node.Parent is not InvocationExpressionSyntax
-			    && node.Parent is not MemberAccessExpressionSyntax)
-			{
-				return LinqUnroller.TryUnrollLinqChain(Visit(optimizedLinq) as ExpressionSyntax ?? optimizedLinq, targetMethod, additionalMethods, variables);
-			}
+			// if (node.Parent is not InvocationExpressionSyntax
+			//     && node.Parent is not MemberAccessExpressionSyntax)
+			// {
+			// 	return LinqUnroller.TryUnrollLinqChain(Visit(optimizedLinq) as ExpressionSyntax ?? optimizedLinq, semanticModel, additionalMethods, variables);
+			// }
 			
 			return Visit(optimizedLinq);
 		}

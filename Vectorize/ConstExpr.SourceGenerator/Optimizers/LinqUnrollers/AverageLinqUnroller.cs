@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Helpers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -7,14 +8,18 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
-public class SumLinqUnroller : BaseLinqUnroller
+public class AverageLinqUnroller : BaseLinqUnroller
 {
 	private const string ResultName = "result";
+	private const string CountName = "count";
 	
 	public override void UnrollAboveLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
 		statements.Add(LocalDeclarationStatement(VariableDeclaration(IdentifierName("var"))
 			.WithVariables(SingletonSeparatedList(VariableDeclarator(ResultName).WithInitializer(EqualsValueClause(method.MethodSymbol.ReturnType.GetDefaultValue()))))));
+
+		statements.Add(LocalDeclarationStatement(VariableDeclaration(IdentifierName("var"))
+			.WithVariables(SingletonSeparatedList(VariableDeclarator(CountName).WithInitializer(EqualsValueClause(SyntaxHelpers.CreateLiteral(0)!))))));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
@@ -27,10 +32,12 @@ public class SumLinqUnroller : BaseLinqUnroller
 		{
 			statements.Add(ExpressionStatement(AssignmentExpression(SyntaxKind.AddAssignmentExpression, IdentifierName(ResultName), elementName)));
 		}
+		
+		statements.Add(ExpressionStatement(PostfixUnaryExpression(SyntaxKind.PostIncrementExpression, IdentifierName(CountName))));
 	}
 
 	public override void UnrollUnderLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
-		statements.Add(ReturnStatement(IdentifierName(ResultName)));
+		statements.Add(ReturnStatement(BinaryExpression(SyntaxKind.DivideExpression, IdentifierName(ResultName), IdentifierName(CountName))));
 	}
 }
