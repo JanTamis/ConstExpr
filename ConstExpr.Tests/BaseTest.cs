@@ -178,6 +178,8 @@ public abstract class BaseTest<TDelegate>(FloatingPointEvaluationMode evaluation
 						""");
 				}
 			}
+
+			SymbolAnnotation.Clear();
 		}
 	}
 

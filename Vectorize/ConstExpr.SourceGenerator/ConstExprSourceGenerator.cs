@@ -161,6 +161,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				// Clear caches to free memory after processing
 				roslynApiCache.Clear();
 				callGraphAnalyzer.ClearCache();
+				SymbolAnnotation.Clear();
 			}
 		});
 	}
