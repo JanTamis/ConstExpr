@@ -21,7 +21,7 @@ public class AndIdentityElementStrategy : SymmetricStrategy<NumericOrBooleanBina
 		switch (context.Right.Syntax.Token.Value)
 		{
 			case false:
-				optimized = SyntaxHelpers.CreateLiteral(false);
+				optimized = CreateLiteral(false);
 				return true;
 			case true:
 				optimized = context.Left.Syntax;

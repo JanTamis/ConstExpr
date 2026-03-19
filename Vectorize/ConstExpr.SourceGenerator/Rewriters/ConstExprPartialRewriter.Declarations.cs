@@ -8,8 +8,6 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 using SourceGen.Utilities.Extensions;
-using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
-using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Rewriters;
 
@@ -269,6 +267,16 @@ public partial class ConstExprPartialRewriter
 			if (rightValue.IsNumericOne())
 			{
 				return PostfixUnaryExpression(SyntaxKind.PostIncrementExpression, node.Left);
+			}
+		}
+
+		if (node.Right is BinaryExpressionSyntax binary)
+		{
+			var compoundKind = TryGetCompoundAssignmentKind(binary.Kind());
+
+			if (compoundKind != SyntaxKind.None)
+			{
+				return AssignmentExpression(compoundKind, node.Left, binary.Right);
 			}
 		}
 

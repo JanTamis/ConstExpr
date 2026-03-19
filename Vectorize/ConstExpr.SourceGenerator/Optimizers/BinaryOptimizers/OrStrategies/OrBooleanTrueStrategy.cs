@@ -17,7 +17,7 @@ public class OrBooleanTrueStrategy : SymmetricStrategy<BooleanBinaryStrategy, Li
 			return false;
 		}
 
-		optimized = SyntaxHelpers.CreateLiteral(true);
+		optimized = CreateLiteral(true);
 		return true;
 	}
 }

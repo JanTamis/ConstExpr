@@ -319,7 +319,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 
 			try
 			{
-				var parsed = SyntaxFactory.ParseExpression(exprTextFull);
+				var parsed = ParseExpression(exprTextFull);
 
 				if (parsed is InterpolatedStringExpressionSyntax)
 				{

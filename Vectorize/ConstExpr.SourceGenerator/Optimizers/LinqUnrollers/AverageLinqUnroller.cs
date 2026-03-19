@@ -1,10 +1,8 @@
 using System.Collections.Generic;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
@@ -19,14 +17,14 @@ public class AverageLinqUnroller : BaseLinqUnroller
 			.WithVariables(SingletonSeparatedList(VariableDeclarator(ResultName).WithInitializer(EqualsValueClause(method.MethodSymbol.ReturnType.GetDefaultValue()))))));
 
 		statements.Add(LocalDeclarationStatement(VariableDeclaration(IdentifierName("var"))
-			.WithVariables(SingletonSeparatedList(VariableDeclarator(CountName).WithInitializer(EqualsValueClause(SyntaxHelpers.CreateLiteral(0)!))))));
+			.WithVariables(SingletonSeparatedList(VariableDeclarator(CountName).WithInitializer(EqualsValueClause(CreateLiteral(0)!))))));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
 	{
 		if (method.Parameters.Length == 1 && TryGetLambda(method.Parameters[0], out var lambda))
 		{
-			statements.Add(ExpressionStatement(AssignmentExpression(SyntaxKind.AddAssignmentExpression, IdentifierName(ResultName), ReplaceLambda(lambda, elementName)!)));
+			statements.Add(ExpressionStatement(AssignmentExpression(SyntaxKind.AddAssignmentExpression, IdentifierName(ResultName), ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, elementName)!)));
 		}
 		else
 		{

@@ -507,9 +507,9 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 			.Select(s => Visit(s.Value, argument))
 			.ToArray();
 
-		if (SyntaxHelpers.IsInConstExprBody(targetMethod))
+		if (IsInConstExprBody(targetMethod))
 		{
-			if (SyntaxHelpers.TryGetOperation<IOperation>(model.Compilation, targetMethod, out var methodOperation))
+			if (TryGetOperation<IOperation>(model.Compilation, targetMethod, out var methodOperation))
 			{
 				var parameters = methodOperation.Syntax switch
 				{

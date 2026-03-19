@@ -155,11 +155,11 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 					{
 						var intType = context.Model.Compilation.CreateInt32();
 
-						result = SyntaxFactory.ConditionalExpression(
-							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, countArg.Expression, SyntaxHelpers.CreateLiteral(0)!, intType),
+						result = ConditionalExpression(
+							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, countArg.Expression, CreateLiteral(0)!, intType),
 							OptimizeArithmetic(context, SyntaxKind.SubtractExpression,
 								OptimizeArithmetic(context, SyntaxKind.AddExpression, startArg.Expression, countArg.Expression, intType),
-								SyntaxHelpers.CreateLiteral(1)!, intType),
+								CreateLiteral(1)!, intType),
 							context.Method.TypeArguments[0].GetDefaultValue());
 						return true;
 					}
@@ -171,8 +171,8 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 					if (context.VisitedParameters.Count == 0)
 					{
 						// Repeat(element, count).FirstOrDefault() => count > 0 ? element : default
-						result = SyntaxFactory.ConditionalExpression(
-							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, SyntaxHelpers.CreateLiteral(0)!, context.Model.Compilation.CreateInt32()),
+						result = ConditionalExpression(
+							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, CreateLiteral(0)!, context.Model.Compilation.CreateInt32()),
 							repeatElementArg.Expression,
 							context.Method.TypeArguments[0].GetDefaultValue());
 						return true;
@@ -187,7 +187,7 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 		{
 			if (context.Method.Parameters.Length == 2)
 			{
-				result = CreateInvocation(SyntaxFactory.ParseTypeName(nameof(Array)), nameof(Array.FindLast), source, context.VisitedParameters[0]);
+				result = CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.FindLast), source, context.VisitedParameters[0]);
 			}
 			else
 			{
@@ -228,11 +228,11 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 	{
 		var intType = context.Model.Compilation.CreateInt32();
 
-		return SyntaxFactory.ConditionalExpression(
+		return ConditionalExpression(
 			OptimizeComparison(context, SyntaxKind.GreaterThanExpression,
 				CreateMemberAccess(collection, propertyName),
-				SyntaxHelpers.CreateLiteral(0)!, intType), CreateElementAccess(collection, SyntaxFactory.PrefixUnaryExpression(
-				SyntaxKind.IndexExpression, SyntaxHelpers.CreateLiteral(1)!)),
+				CreateLiteral(0)!, intType), CreateElementAccess(collection, PrefixUnaryExpression(
+				SyntaxKind.IndexExpression, CreateLiteral(1)!)),
 			defaultItem);
 	}
 }

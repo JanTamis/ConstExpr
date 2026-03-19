@@ -94,26 +94,26 @@ public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 				// convert to x.Where(x => x is not (literal1 or literal2 or ...))
 				// For a single literal, omit the parentheses so the rewriter can simplify x is not 1 to x != 1.
 				var constantPatterns = syntaxes
-					.Select(PatternSyntax (syntax) => SyntaxFactory.ConstantPattern(syntax));
+					.Select(PatternSyntax (syntax) => ConstantPattern(syntax));
 
 				PatternSyntax notPattern;
 
 				if (syntaxes.Count == 1)
 				{
 					// x is not literal  →  rewriter will simplify to x != literal
-					notPattern = SyntaxFactory.UnaryPattern(SyntaxFactory.Token(SyntaxKind.NotKeyword), constantPatterns.First());
+					notPattern = UnaryPattern(Token(SyntaxKind.NotKeyword), constantPatterns.First());
 				}
 				else
 				{
 					var orPattern = constantPatterns
-						.Aggregate((left, right) => SyntaxFactory.BinaryPattern(SyntaxKind.OrPattern, left, right));
-					notPattern = SyntaxFactory.UnaryPattern(SyntaxFactory.Token(SyntaxKind.NotKeyword), SyntaxFactory.ParenthesizedPattern(orPattern));
+						.Aggregate((left, right) => BinaryPattern(SyntaxKind.OrPattern, left, right));
+					notPattern = UnaryPattern(Token(SyntaxKind.NotKeyword), ParenthesizedPattern(orPattern));
 				}
 
-				var parameter = SyntaxFactory.Parameter(SyntaxFactory.Identifier("x"));
-				var isPatternExpression = SyntaxFactory.IsPatternExpression(SyntaxFactory.IdentifierName("x"), notPattern);
+				var parameter = Parameter(Identifier("x"));
+				var isPatternExpression = IsPatternExpression(IdentifierName("x"), notPattern);
 				
-				LambdaExpressionSyntax lambda = SyntaxFactory.SimpleLambdaExpression(parameter, isPatternExpression);
+				LambdaExpressionSyntax lambda = SimpleLambdaExpression(parameter, isPatternExpression);
 
 				var isFollowedBySetOperation = IsFollowedBySetBasedOperation(context.Invocation);
 				var allowedOperations = isFollowedBySetOperation

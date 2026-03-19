@@ -55,7 +55,7 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 			return null;
 		}
 
-		return node.WithVariables(SyntaxFactory.SeparatedList(result));
+		return node.WithVariables(SeparatedList(result));
 	}
 
 	public override SyntaxNode? VisitVariableDeclarator(VariableDeclaratorSyntax node)
@@ -97,13 +97,13 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 				switch (visited)
 				{
 					case ExpressionStatementSyntax expressionStatement:
-						result.Add(SyntaxFactory.ExpressionStatement(expressionStatement.Expression));
+						result.Add(ExpressionStatement(expressionStatement.Expression));
 						break;
 					case StatementSyntax statementSyntax:
 						result.Add(statementSyntax);
 						break;
 					case ExpressionSyntax expressionSyntax:
-						result.Add(SyntaxFactory.ExpressionStatement(expressionSyntax));
+						result.Add(ExpressionStatement(expressionSyntax));
 						break;
 				}
 
@@ -122,7 +122,7 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 			}
 		}
 
-		return node.WithStatements(SyntaxFactory.List(result));
+		return node.WithStatements(List(result));
 	}
 
 	// Critical: if a variable declaration becomes empty after pruning, remove the whole local declaration statement
@@ -374,7 +374,7 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 
 			if (!hasWhitespace && !hasNewLine)
 			{
-				trailing = trailing.Add(SyntaxFactory.Space);
+				trailing = trailing.Add(Space);
 			}
 		}
 
@@ -400,7 +400,7 @@ public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataL
 
 	private static SyntaxTriviaList FilterTrivia(SyntaxTriviaList triviaList)
 	{
-		return SyntaxFactory.TriviaList(GetFiltered(triviaList));
+		return TriviaList(GetFiltered(triviaList));
 
 		static IEnumerable<SyntaxTrivia> GetFiltered(SyntaxTriviaList triviaList)
 		{

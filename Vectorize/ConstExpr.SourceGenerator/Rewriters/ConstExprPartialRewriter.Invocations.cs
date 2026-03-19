@@ -15,8 +15,6 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 using SourceGen.Utilities.Extensions;
-using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
-using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 using ExpressionVisitor = ConstExpr.SourceGenerator.Visitors.ExpressionVisitor;
 
 namespace ConstExpr.SourceGenerator.Rewriters;
@@ -81,26 +79,21 @@ public partial class ConstExprPartialRewriter
 			}
 		}
 
-		if (targetMethod.ContainingType.EqualsType(semanticModel.Compilation.GetTypeByMetadataName("System.Linq.Enumerable")))
-		{
-			// check if parent is also a linq method to prevent partial unrolling which can cause issues with optimizations
-			if (node.Parent is not (InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Expression: InvocationExpressionSyntax } } or MemberAccessExpressionSyntax { Expression: InvocationExpressionSyntax }))
-			{
-				return LinqUnroller.TryUnrollLinqChain(node, Visit, semanticModel, additionalMethods, variables);
-			}
-		}
+		// if (targetMethod.ContainingType.EqualsType(semanticModel.Compilation.GetTypeByMetadataName("System.Linq.Enumerable")))
+		// {
+		// 	// For outermost LINQ calls: try unrolling first (preserves original behavior)
+		// 	if (node.Parent is not (InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Expression: InvocationExpressionSyntax } } or MemberAccessExpressionSyntax { Expression: InvocationExpressionSyntax }))
+		// 	{
+		// 		return LinqUnroller.TryUnrollLinqChain(node, Visit, semanticModel, additionalMethods);
+		// 	}
+		// }
 
-
-		// Try linq optimizers
+		// Try LINQ optimizers (for inner calls, or when unrolling was skipped).
+		// The optimized result is annotated with symbol info so it can be unrolled
+		// when it re-enters the rewriter through Visit.
 		if (TryOptimizeLinqMethod(semanticModel, targetMethod, node, arguments, node.ArgumentList.Arguments.Select(s => s.Expression)) is { } optimizedLinq)
 		{
-			// if (node.Parent is not InvocationExpressionSyntax
-			//     && node.Parent is not MemberAccessExpressionSyntax)
-			// {
-			// 	return LinqUnroller.TryUnrollLinqChain(Visit(optimizedLinq) as ExpressionSyntax ?? optimizedLinq, semanticModel, additionalMethods, variables);
-			// }
-			
-			return Visit(optimizedLinq);
+			return LinqUnroller.TryUnrollLinqChain(optimizedLinq, Visit, semanticModel, additionalMethods); Visit(optimizedLinq);
 		}
 
 		node = node.WithExpression(Visit(node.Expression) as ExpressionSyntax ?? node.Expression);
@@ -460,7 +453,6 @@ public partial class ConstExprPartialRewriter
 			.FirstOrDefault();
 	}
 
-	/// <summary>
 	/// Converts arguments to char if there's a char overload available.
 	/// </summary>
 	private List<SyntaxNode> ConvertToCharOverloadIfNeeded(IMethodSymbol targetMethod, List<SyntaxNode> arguments)

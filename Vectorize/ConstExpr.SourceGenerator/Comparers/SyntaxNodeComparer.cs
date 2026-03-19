@@ -10,7 +10,7 @@ public class SyntaxNodeComparer<TNode> : IEqualityComparer<TNode?> where TNode :
 	
 	public bool Equals(TNode? x, TNode? y)
 	{
-		return SyntaxFactory.AreEquivalent(x, y);
+		return AreEquivalent(x, y);
 	}
 
 	public int GetHashCode(TNode? obj)

@@ -1,8 +1,6 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
-using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -71,7 +69,7 @@ public class ElementAtFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 				case nameof(Enumerable.Range) when invocation.ArgumentList.Arguments is [ var startArg, var countArg ]:
 				{
 					// Range(start, count).ElementAt(n) => start + n (if n < count) else throw exception
-					result = SyntaxFactory.ConditionalExpression(
+					result = ConditionalExpression(
 						OptimizeComparison(context, SyntaxKind.LessThanExpression, indexParameter, countArg.Expression, intType),
 						OptimizeArithmetic(context, SyntaxKind.AddExpression, startArg.Expression, indexParameter, intType),
 						CreateThrowExpression<ArgumentOutOfRangeException>());
@@ -80,7 +78,7 @@ public class ElementAtFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 				case nameof(Enumerable.Repeat) when invocation.ArgumentList.Arguments is [ var repeatElementArg, var repeatCountArg ]:
 				{
 					// Repeat(element, count).ElementAt(n) => n < count ? element : throw exception
-					result = SyntaxFactory.ConditionalExpression(
+					result = ConditionalExpression(
 						OptimizeComparison(context, SyntaxKind.LessThanExpression, indexParameter, repeatCountArg.Expression, intType),
 						repeatElementArg.Expression,
 						CreateThrowExpression<ArgumentOutOfRangeException>());

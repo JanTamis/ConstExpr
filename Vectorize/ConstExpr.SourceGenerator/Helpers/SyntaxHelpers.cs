@@ -121,46 +121,46 @@ public static class SyntaxHelpers
 			case byte bb:
 				if (useExplicitByte)
 				{
-					return SyntaxFactory.CastExpression(
-						SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.ByteKeyword)),
-						SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(bb)));
+					return CastExpression(
+						PredefinedType(Token(SyntaxKind.ByteKeyword)),
+						LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(bb)));
 				}
 
-				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(bb));
+				return LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(bb));
 
 			case int i:
-				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(i));
+				return LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(i));
 			case uint ui:
-				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(ui));
+				return LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(ui));
 			case float f:
-				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal($"{f.ToString(CultureInfo.InvariantCulture)}F", f));
+				return LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal($"{f.ToString(CultureInfo.InvariantCulture)}F", f));
 			case double d:
 			{
 				if (Math.Abs(d - Math.Round(d)) < Double.Epsilon)
 				{
-					return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal($"{d.ToString(CultureInfo.InvariantCulture)}D", d));
+					return LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal($"{d.ToString(CultureInfo.InvariantCulture)}D", d));
 				}
 
-				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(d));
+				return LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(d));
 			}
 			case long l:
-				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(l));
+				return LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(l));
 			case ulong ul:
-				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(ul));
+				return LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(ul));
 			case decimal dec:
-				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(dec));
+				return LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(dec));
 			case string s1:
 				// if (s1.Length == 0)
 				// {
 				// 	return SyntaxFactory.ParseExpression("String.Empty");
 				// }
 
-				return SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(s1));
+				return LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(s1));
 			case char c:
-				return SyntaxFactory.LiteralExpression(SyntaxKind.CharacterLiteralExpression, SyntaxFactory.Literal(c));
+				return LiteralExpression(SyntaxKind.CharacterLiteralExpression, Literal(c));
 			case bool b:
 			{
-				return SyntaxFactory.LiteralExpression(b
+				return LiteralExpression(b
 					? SyntaxKind.TrueLiteralExpression
 					: SyntaxKind.FalseLiteralExpression);
 			}
@@ -171,33 +171,33 @@ public static class SyntaxHelpers
 
 				if (enumValue is not null)
 				{
-					return SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
-						SyntaxFactory.IdentifierName(enumType.Name),
-						SyntaxFactory.IdentifierName(enumValue));
+					return MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
+						IdentifierName(enumType.Name),
+						IdentifierName(enumValue));
 				}
 				return null;
 			}
 			case null:
-				return SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression);
+				return LiteralExpression(SyntaxKind.NullLiteralExpression);
 			case DateTime dt:
 			{
-				return SyntaxFactory.ObjectCreationExpression(
-						SyntaxFactory.IdentifierName("DateTime"))
-					.WithArgumentList(SyntaxFactory.ArgumentList(SyntaxFactory.SeparatedList([
-						SyntaxFactory.Argument(CreateLiteral(dt.Ticks)),
-						SyntaxFactory.Argument(
-							SyntaxFactory.MemberAccessExpression(
+				return ObjectCreationExpression(
+						IdentifierName("DateTime"))
+					.WithArgumentList(ArgumentList(SeparatedList([
+						Argument(CreateLiteral(dt.Ticks)),
+						Argument(
+							MemberAccessExpression(
 								SyntaxKind.SimpleMemberAccessExpression,
-								SyntaxFactory.IdentifierName("DateTimeKind"),
-								SyntaxFactory.IdentifierName(dt.Kind.ToString())))
+								IdentifierName("DateTimeKind"),
+								IdentifierName(dt.Kind.ToString())))
 					])));
 			}
 			case TimeSpan ts:
 			{
-				return SyntaxFactory.ObjectCreationExpression(
-						SyntaxFactory.IdentifierName("TimeSpan"))
-					.WithArgumentList(SyntaxFactory.ArgumentList(SyntaxFactory.SeparatedList([
-						SyntaxFactory.Argument(CreateLiteral(ts.Ticks))
+				return ObjectCreationExpression(
+						IdentifierName("TimeSpan"))
+					.WithArgumentList(ArgumentList(SeparatedList([
+						Argument(CreateLiteral(ts.Ticks))
 					])));
 			}
 		}
@@ -215,7 +215,7 @@ public static class SyntaxHelpers
 				if (elemType == typeof(char))
 				{
 					var chars = (char[]) array;
-					return SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(new string(chars)));
+					return LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(new string(chars)));
 				}
 
 				if (elemType == typeof(byte))
@@ -229,12 +229,12 @@ public static class SyntaxHelpers
 						.Replace("\n", "\\n")
 						.Replace("\t", "\\t");
 
-					return SyntaxFactory.ParseExpression($"\"{escaped}\"u8");
+					return ParseExpression($"\"{escaped}\"u8");
 				}
 
-				return SyntaxFactory.CollectionExpression(SyntaxFactory.SeparatedList<CollectionElementSyntax>(array
+				return CollectionExpression(SeparatedList<CollectionElementSyntax>(array
 					.Cast<object?>()
-					.Select(s => SyntaxFactory.ExpressionElement(CreateLiteral(s, true)))));
+					.Select(s => ExpressionElement(CreateLiteral(s, true)))));
 			}
 		}
 
@@ -251,7 +251,7 @@ public static class SyntaxHelpers
 				foreach (var field in fields)
 				{
 					var itemValue = field.GetValue(value);
-					tupleItems.Add(SyntaxFactory.Argument(CreateLiteral(itemValue)));
+					tupleItems.Add(Argument(CreateLiteral(itemValue)));
 				}
 			}
 			else
@@ -262,11 +262,11 @@ public static class SyntaxHelpers
 				foreach (var prop in properties)
 				{
 					var itemValue = prop.GetValue(value);
-					tupleItems.Add(SyntaxFactory.Argument(CreateLiteral(itemValue)));
+					tupleItems.Add(Argument(CreateLiteral(itemValue)));
 				}
 			}
 
-			return SyntaxFactory.TupleExpression(SyntaxFactory.SeparatedList(tupleItems));
+			return TupleExpression(SeparatedList(tupleItems));
 		}
 
 		// Support for IDictionary – emit new Dictionary<K, V> { { k, v }, ... }
@@ -274,8 +274,8 @@ public static class SyntaxHelpers
 		{
 			var type = value.GetType();
 			var typeArgs = type.GetGenericArguments();
-			var keyTypeSyntax = typeArgs.Length > 0 ? GetTypeSyntax(typeArgs[0]) : SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.ObjectKeyword));
-			var valueTypeSyntax = typeArgs.Length > 1 ? GetTypeSyntax(typeArgs[1]) : SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.ObjectKeyword));
+			var keyTypeSyntax = typeArgs.Length > 0 ? GetTypeSyntax(typeArgs[0]) : PredefinedType(Token(SyntaxKind.ObjectKeyword));
+			var valueTypeSyntax = typeArgs.Length > 1 ? GetTypeSyntax(typeArgs[1]) : PredefinedType(Token(SyntaxKind.ObjectKeyword));
 
 			var initializerExpressions = new List<ExpressionSyntax>();
 
@@ -290,32 +290,32 @@ public static class SyntaxHelpers
 				}
 
 				initializerExpressions.Add(
-					SyntaxFactory.InitializerExpression(
+					InitializerExpression(
 						SyntaxKind.ComplexElementInitializerExpression,
-						SyntaxFactory.SeparatedList<ExpressionSyntax>([keyExpr, valExpr])));
+						SeparatedList<ExpressionSyntax>([keyExpr, valExpr])));
 			}
 
-			var dictionaryType = SyntaxFactory.GenericName(
-					SyntaxFactory.Identifier("Dictionary"))
-				.WithTypeArgumentList(SyntaxFactory.TypeArgumentList(
-					SyntaxFactory.SeparatedList<TypeSyntax>([
+			var dictionaryType = GenericName(
+					Identifier("Dictionary"))
+				.WithTypeArgumentList(TypeArgumentList(
+					SeparatedList<TypeSyntax>([
 						keyTypeSyntax,
 						valueTypeSyntax
 					])));
 
-			return SyntaxFactory.ObjectCreationExpression(dictionaryType)
-				.WithArgumentList(SyntaxFactory.ArgumentList(
-					SyntaxFactory.SeparatedList<ArgumentSyntax>([SyntaxFactory.Argument(CreateLiteral(initializerExpressions.Count))])))
-				.WithInitializer(SyntaxFactory.InitializerExpression(
+			return ObjectCreationExpression(dictionaryType)
+				.WithArgumentList(ArgumentList(
+					SeparatedList<ArgumentSyntax>([Argument(CreateLiteral(initializerExpressions.Count))])))
+				.WithInitializer(InitializerExpression(
 					SyntaxKind.CollectionInitializerExpression,
-					SyntaxFactory.SeparatedList(initializerExpressions)));
+					SeparatedList(initializerExpressions)));
 		}
 
 		if (value is IEnumerable enumerable)
 		{
-			return SyntaxFactory.CollectionExpression(SyntaxFactory.SeparatedList<CollectionElementSyntax>(enumerable
+			return CollectionExpression(SeparatedList<CollectionElementSyntax>(enumerable
 				.Cast<object?>()
-				.Select(s => SyntaxFactory.ExpressionElement(CreateLiteral(s)))));
+				.Select(s => ExpressionElement(CreateLiteral(s)))));
 		}
 
 		if (value.GetType().Name == "KeyValuePair`2")
@@ -332,14 +332,14 @@ public static class SyntaxHelpers
 				return null;
 			}
 
-			return SyntaxFactory.InvocationExpression(
-					SyntaxFactory.MemberAccessExpression(
+			return InvocationExpression(
+					MemberAccessExpression(
 						SyntaxKind.SimpleMemberAccessExpression,
-						SyntaxFactory.IdentifierName("KeyValuePair"),
-						SyntaxFactory.IdentifierName("Create")))
-				.WithArgumentList(SyntaxFactory.ArgumentList(SyntaxFactory.SeparatedList([
-					SyntaxFactory.Argument(keyExpr),
-					SyntaxFactory.Argument(valueExpr)
+						IdentifierName("KeyValuePair"),
+						IdentifierName("Create")))
+				.WithArgumentList(ArgumentList(SeparatedList([
+					Argument(keyExpr),
+					Argument(valueExpr)
 				])));
 		}
 
@@ -367,10 +367,10 @@ public static class SyntaxHelpers
 
 		if (keyword != SyntaxKind.None)
 		{
-			return SyntaxFactory.PredefinedType(SyntaxFactory.Token(keyword));
+			return PredefinedType(Token(keyword));
 		}
 
-		return SyntaxFactory.IdentifierName(type.Name);
+		return IdentifierName(type.Name);
 	}
 
 	private static bool IsSpanLike(object obj)

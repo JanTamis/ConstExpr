@@ -22,10 +22,10 @@ public class DivideToMultiplyReciprocalStrategy : FloatNumberBinaryStrategy<Expr
 		var reciprocal = 1.ToSpecialType(context.Type.SpecialType)
 			.Divide(context.Right.Syntax.Token.Value.ToSpecialType(context.Type.SpecialType));
 
-		optimized = SyntaxFactory.BinaryExpression(
+		optimized = BinaryExpression(
 			SyntaxKind.MultiplyExpression, 
 			context.Left.Syntax, 
-			SyntaxHelpers.CreateLiteral(reciprocal)!);
+			CreateLiteral(reciprocal)!);
 
 		return true;
 	}

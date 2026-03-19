@@ -30,7 +30,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 			// If no arguments -> empty string
 			if (context.VisitedParameters.Count == 0)
 			{
-				result = SyntaxHelpers.CreateLiteral(String.Empty);
+				result = CreateLiteral(String.Empty);
 				return true;
 			}
 
@@ -95,7 +95,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 					return;
 				}
 
-				var lit = SyntaxHelpers.CreateLiteral(literalBuffer.ToString());
+				var lit = CreateLiteral(literalBuffer.ToString());
 
 				newParams.Add(lit!);
 				literalBuffer.Clear();

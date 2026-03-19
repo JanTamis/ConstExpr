@@ -2,17 +2,11 @@ using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 public class WhereLinqUnroller : BaseLinqUnroller
 {
-	public override void UnrollAboveLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
-	{
-
-	}
-
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
 	{
 		if (method.Parameters.Length != 1
@@ -21,7 +15,7 @@ public class WhereLinqUnroller : BaseLinqUnroller
 			return;
 		}
 
-		var replacedBody = InvertSyntax(ReplaceLambda(lambda, elementName)!);
+		var replacedBody = InvertSyntax(ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, elementName)!);
 
 		if (replacedBody.IsKind(SyntaxKind.TrueLiteralExpression))
 		{
@@ -31,10 +25,5 @@ public class WhereLinqUnroller : BaseLinqUnroller
 		{
 			statements.Add(IfStatement(replacedBody, ContinueStatement()));
 		}
-	}
-
-	public override void UnrollUnderLoop(UnrolledLinqMethod method, List<StatementSyntax> statementSyntaxes)
-	{
-
 	}
 }

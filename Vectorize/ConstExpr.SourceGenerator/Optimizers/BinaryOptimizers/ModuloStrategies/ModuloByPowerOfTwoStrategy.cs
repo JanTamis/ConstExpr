@@ -3,7 +3,6 @@ using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ModuloStrategies;
 
@@ -16,7 +15,7 @@ public class ModuloByPowerOfTwoStrategy : IntegerBinaryStrategy<ExpressionSyntax
 	{
 		if (!base.TryOptimize(context, out optimized)
 		    || !context.Right.Syntax.IsNumericPowerOfTwo(out var power)
-		    || !SyntaxHelpers.TryGetLiteral(((1 << power) - 1).ToSpecialType(context.Type.SpecialType), out var maskLiteral))
+		    || !TryGetLiteral(((1 << power) - 1).ToSpecialType(context.Type.SpecialType), out var maskLiteral))
     {
       return false;
     }

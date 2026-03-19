@@ -21,7 +21,7 @@ public class ConditionalAndContradictionStrategy : SymmetricStrategy<BooleanBina
 			return false;
 		}
 		
-		optimized = SyntaxHelpers.CreateLiteral(false);
+		optimized = CreateLiteral(false);
 		return true;
 	}
 }

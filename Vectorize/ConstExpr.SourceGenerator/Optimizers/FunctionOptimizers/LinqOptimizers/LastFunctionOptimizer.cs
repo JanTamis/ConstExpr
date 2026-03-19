@@ -104,16 +104,16 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 								
 								var elements = sourceSyntaxes
 									.Skip(sourceSyntaxes.Count - lastChunkSize)
-									.Select(SyntaxFactory.ExpressionElement);
+									.Select(ExpressionElement);
 
-								result = SyntaxFactory.CollectionExpression(
-									SyntaxFactory.SeparatedList<CollectionElementSyntax>(elements));
+								result = CollectionExpression(
+									SeparatedList<CollectionElementSyntax>(elements));
 								return true;
 							}
 							
 							// For arrays, we can directly index the first chunk: source[^chunkSize..]
-							var prefix = SyntaxFactory.PrefixUnaryExpression(SyntaxKind.IndexExpression, chunkSize);
-							var rangeExpression = SyntaxFactory.RangeExpression(prefix, null);
+							var prefix = PrefixUnaryExpression(SyntaxKind.IndexExpression, chunkSize);
+							var rangeExpression = RangeExpression(prefix, null);
 							
 							result = CreateElementAccess(methodSource, rangeExpression);
 							return true;
@@ -131,7 +131,7 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 					TryGetOptimizedChainExpression(methodSource, (HashSet<string>) [ nameof(Enumerable.DefaultIfEmpty) ], out methodSource);
 
 					var defaultItem = invocation.ArgumentList.Arguments.Count == 0
-						? context.Method.ReturnType is INamedTypeSymbol namedType ? namedType.GetDefaultValue() : SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression)
+						? context.Method.ReturnType is INamedTypeSymbol namedType ? namedType.GetDefaultValue() : LiteralExpression(SyntaxKind.DefaultLiteralExpression)
 						: invocation.ArgumentList.Arguments[0].Expression;
 
 					while (IsLinqMethodChain(source, nameof(Enumerable.DefaultIfEmpty), out var innerDefaultInvocation)
@@ -142,7 +142,7 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 
 						defaultItem = innerDefaultInvocation.ArgumentList.Arguments
 							.Select(s => s.Expression)
-							.DefaultIfEmpty(SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression))
+							.DefaultIfEmpty(LiteralExpression(SyntaxKind.DefaultLiteralExpression))
 							.First(); // Update default value to the last one to the last one
 
 						isNewSource = true; // We effectively skipped an operation, so we have a new source to optimize from
@@ -189,7 +189,7 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 						
 						result = OptimizeArithmetic(context, SyntaxKind.SubtractExpression, 
 							OptimizeArithmetic(context, SyntaxKind.AddExpression, startArg.Expression, countArg.Expression, intType), 
-							SyntaxHelpers.CreateLiteral(1)!, intType);
+							CreateLiteral(1)!, intType);
 						return true;
 					}
 
@@ -200,8 +200,8 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 					if (context.VisitedParameters.Count == 0)
 					{
 						// Repeat(element, count).FirstOrDefault() => count > 0 ? element : throw exception
-						result = SyntaxFactory.ConditionalExpression(
-							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, SyntaxHelpers.CreateLiteral(0)!, context.Model.Compilation.CreateInt32()),
+						result = ConditionalExpression(
+							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, CreateLiteral(0)!, context.Model.Compilation.CreateInt32()),
 							repeatElementArg.Expression,
 							CreateThrowExpression<InvalidOperationException>("Sequence contains no elements"));
 						return true;
@@ -217,8 +217,8 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 		if (context.Method.Parameters.Length is 0 or 1 
 		    && (IsInvokedOnArray(context, source) || IsInvokedOnList(context, source)))
 		{
-			result = CreateElementAccess(source, SyntaxFactory.PrefixUnaryExpression(
-				SyntaxKind.IndexExpression, SyntaxHelpers.CreateLiteral(1)!));
+			result = CreateElementAccess(source, PrefixUnaryExpression(
+				SyntaxKind.IndexExpression, CreateLiteral(1)!));
 			return true;
 		}
 		
@@ -237,19 +237,19 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 	{
 		var intType = context.Model.Compilation.CreateInt32();
 
-		return SyntaxFactory.ConditionalExpression(
+		return ConditionalExpression(
 			OptimizeComparison(context, SyntaxKind.GreaterThanExpression,
 				CreateMemberAccess(collection, propertyName),
-				SyntaxHelpers.CreateLiteral(0)!, intType),
-			SyntaxFactory.ElementAccessExpression(
+				CreateLiteral(0)!, intType),
+			ElementAccessExpression(
 				collection,
-				SyntaxFactory.BracketedArgumentList(
-					SyntaxFactory.SingletonSeparatedList(
-						SyntaxFactory.Argument(SyntaxFactory.PrefixUnaryExpression(
+				BracketedArgumentList(
+					SingletonSeparatedList(
+						Argument(PrefixUnaryExpression(
 							SyntaxKind.IndexExpression,
-							SyntaxFactory.LiteralExpression(
+							LiteralExpression(
 								SyntaxKind.NumericLiteralExpression,
-								SyntaxFactory.Literal(1))))))),
+								Literal(1))))))),
 			defaultItem);
 	}
 }

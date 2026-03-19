@@ -3,7 +3,6 @@ using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.MultiplyStrategies;
 
@@ -17,14 +16,14 @@ public class MultiplyConstantFoldingStrategy() : SymmetricStrategy<NumericBinary
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<BinaryExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (context.TryGetValue(context.Left.Syntax.Left, out var leftConstant)
-		    && SyntaxHelpers.TryGetLiteral(leftConstant.Multiply(context.Right.Syntax.Token.Value), out var combinedLiteral))
+		    && TryGetLiteral(leftConstant.Multiply(context.Right.Syntax.Token.Value), out var combinedLiteral))
 		{
 			optimized = BinaryExpression(SyntaxKind.MultiplyExpression, context.Left.Syntax.Right, combinedLiteral);
 			return true;
 		}
 		
 		if (context.TryGetValue(context.Left.Syntax.Right, out var leftConstant2)
-		    && SyntaxHelpers.TryGetLiteral(leftConstant2.Multiply(context.Right.Syntax.Token.Value), out var combinedLiteral2))
+		    && TryGetLiteral(leftConstant2.Multiply(context.Right.Syntax.Token.Value), out var combinedLiteral2))
 		{
 			optimized = BinaryExpression(SyntaxKind.MultiplyExpression, context.Left.Syntax.Left, combinedLiteral2);
 			return true;

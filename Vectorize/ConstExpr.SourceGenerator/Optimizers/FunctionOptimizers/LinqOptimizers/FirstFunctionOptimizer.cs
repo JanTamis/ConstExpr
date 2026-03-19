@@ -7,7 +7,6 @@ using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Operations;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
@@ -110,15 +109,15 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 							{
 								var elements = sourceSyntaxes
 									.Take(chunkSizeValue)
-									.Select(SyntaxFactory.ExpressionElement);
+									.Select(ExpressionElement);
 
-								result = SyntaxFactory.CollectionExpression(
-									SyntaxFactory.SeparatedList<CollectionElementSyntax>(elements));
+								result = CollectionExpression(
+									SeparatedList<CollectionElementSyntax>(elements));
 								return true;
 							}
 
 							// For arrays, we can directly index the first chunk: source[..chunkSize]
-							result = CreateElementAccess(methodSource, SyntaxFactory.ParseExpression($"..{chunkSize}"));
+							result = CreateElementAccess(methodSource, ParseExpression($"..{chunkSize}"));
 							return true;
 						}
 
@@ -134,7 +133,7 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 					TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectFirst.Union([ nameof(Enumerable.DefaultIfEmpty) ]).ToSet(), out methodSource);
 
 					var defaultItem = invocation.ArgumentList.Arguments.Count == 0
-						? context.Method.ReturnType is INamedTypeSymbol namedType ? namedType.GetDefaultValue() : SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression)
+						? context.Method.ReturnType is INamedTypeSymbol namedType ? namedType.GetDefaultValue() : LiteralExpression(SyntaxKind.DefaultLiteralExpression)
 						: invocation.ArgumentList.Arguments[0].Expression;
 
 					if (IsInvokedOnArray(context, methodSource))
@@ -191,8 +190,8 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 					if (context.VisitedParameters.Count == 0)
 					{
 						// Repeat(element, count).FirstOrDefault() => count > 0 ? element : throw exception
-						result = SyntaxFactory.ConditionalExpression(
-							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, SyntaxHelpers.CreateLiteral(0)!, context.Model.Compilation.CreateInt32()),
+						result = ConditionalExpression(
+							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, CreateLiteral(0)!, context.Model.Compilation.CreateInt32()),
 							repeatElementArg.Expression,
 							CreateThrowExpression<InvalidOperationException>("Sequence contains no elements"));
 						return true;
@@ -208,7 +207,7 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		if (IsInvokedOnArray(context, source)
 		    || IsInvokedOnList(context, source))
 		{
-			result = CreateElementAccess(source, SyntaxHelpers.CreateLiteral(0)!);
+			result = CreateElementAccess(source, CreateLiteral(0)!);
 			return true;
 		}
 
@@ -227,15 +226,15 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 	{
 		var intType = context.Model.Compilation.CreateInt32();
 
-		return SyntaxFactory.ConditionalExpression(
+		return ConditionalExpression(
 			OptimizeComparison(context, SyntaxKind.GreaterThanExpression,
 				CreateMemberAccess(collection, propertyName),
-				SyntaxHelpers.CreateLiteral(0)!, intType),
-			SyntaxFactory.ElementAccessExpression(
+				CreateLiteral(0)!, intType),
+			ElementAccessExpression(
 				collection,
-				SyntaxFactory.BracketedArgumentList(
-					SyntaxFactory.SingletonSeparatedList(
-						SyntaxFactory.Argument(SyntaxHelpers.CreateLiteral(0)!)))),
+				BracketedArgumentList(
+					SingletonSeparatedList(
+						Argument(CreateLiteral(0)!)))),
 			defaultItem);
 	}
 }

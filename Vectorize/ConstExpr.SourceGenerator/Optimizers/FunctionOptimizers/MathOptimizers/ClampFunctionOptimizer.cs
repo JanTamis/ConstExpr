@@ -184,7 +184,7 @@ public class ClampFunctionOptimizer() : BaseMathFunctionOptimizer("Clamp", 3)
 
 	private static bool AreSyntacticallyEqual(ExpressionSyntax a, ExpressionSyntax b)
 	{
-		return SyntaxFactory.AreEquivalent(a, b);
+		return AreEquivalent(a, b);
 	}
 
 	private static bool TryGetConstantValue(ITypeSymbol _, ExpressionSyntax expr, out object? value, out ExpressionSyntax? constExpr)

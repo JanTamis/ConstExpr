@@ -27,14 +27,14 @@ public class IsNullOrEmptyFunctionOptimizer(SyntaxNode? instance) : BaseStringFu
 
 		if (literal.IsKind(SyntaxKind.NullLiteralExpression))
 		{
-			result = SyntaxHelpers.CreateLiteral(true);
+			result = CreateLiteral(true);
 			return true;
 		}
 
 		if (literal.IsKind(SyntaxKind.StringLiteralExpression))
 		{
 			var str = literal.Token.ValueText;
-			result = SyntaxHelpers.CreateLiteral(string.IsNullOrEmpty(str));
+			result = CreateLiteral(string.IsNullOrEmpty(str));
 			return true;
 		}
 

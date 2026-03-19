@@ -3,7 +3,6 @@ using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies;
 
@@ -28,7 +27,7 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 		{
 			var result = leftConstant.Multiply(c2);
 
-			if (result != null && SyntaxHelpers.TryGetLiteral(result, out var newConstant))
+			if (result != null && TryGetLiteral(result, out var newConstant))
 			{
 				optimized = BinaryExpression(
 					SyntaxKind.DivideExpression,
@@ -46,7 +45,7 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 		{
 			var result = leftConstant2.Divide(c2);
 
-			if (result != null && SyntaxHelpers.TryGetLiteral(result, out var newConstant))
+			if (result != null && TryGetLiteral(result, out var newConstant))
 			{
 				optimized = BinaryExpression(
 					SyntaxKind.DivideExpression,
@@ -64,7 +63,7 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 		{
 			var result = c1.Multiply(rightConstant);
 
-			if (result != null && SyntaxHelpers.TryGetLiteral(result, out var newConstant))
+			if (result != null && TryGetLiteral(result, out var newConstant))
 			{
 				optimized = BinaryExpression(
 					SyntaxKind.DivideExpression,
@@ -82,7 +81,7 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 		{
 			var result = c1.Divide(rightConstant2);
 
-			if (result != null && SyntaxHelpers.TryGetLiteral(result, out var newConstant))
+			if (result != null && TryGetLiteral(result, out var newConstant))
 			{
 				optimized = BinaryExpression(
 					SyntaxKind.MultiplyExpression,
@@ -100,7 +99,7 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 		{
 			var result = mulConstant.Divide(c2);
 
-			if (result != null && SyntaxHelpers.TryGetLiteral(result, out var newConstant))
+			if (result != null && TryGetLiteral(result, out var newConstant))
 			{
 				optimized = BinaryExpression(
 					SyntaxKind.MultiplyExpression,
@@ -118,7 +117,7 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 		{
 			var result = mulConstant2.Divide(c2);
 
-			if (result != null && SyntaxHelpers.TryGetLiteral(result, out var newConstant))
+			if (result != null && TryGetLiteral(result, out var newConstant))
 			{
 				optimized = BinaryExpression(
 					SyntaxKind.MultiplyExpression,

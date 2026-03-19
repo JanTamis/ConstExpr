@@ -141,20 +141,20 @@ public class GroupByFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 				{
 					var args = new List<SyntaxNodeOrToken>
 					{
-						SyntaxFactory.Argument(SyntaxHelpers.CreateLiteral(g.Key))
+						Argument(CreateLiteral(g.Key))
 					};
 
 					foreach (var element in g.Elements)
 					{
-						args.Add(SyntaxFactory.Token(SyntaxKind.CommaToken));
-						args.Add(SyntaxFactory.Argument(SyntaxHelpers.CreateLiteral(element)));
+						args.Add(Token(SyntaxKind.CommaToken));
+						args.Add(Argument(CreateLiteral(element)));
 					}
 
-					return SyntaxFactory.ObjectCreationExpression(
-							SyntaxFactory.ParseTypeName($"Grouping<{keyTypeName}, {elementTypeName}>"))
+					return ObjectCreationExpression(
+							ParseTypeName($"Grouping<{keyTypeName}, {elementTypeName}>"))
 						.WithArgumentList(
-							SyntaxFactory.ArgumentList(
-								SyntaxFactory.SeparatedList<ArgumentSyntax>(args)));
+							ArgumentList(
+								SeparatedList<ArgumentSyntax>(args)));
 				});
 
 				result = CreateCollection(groupExpressions);

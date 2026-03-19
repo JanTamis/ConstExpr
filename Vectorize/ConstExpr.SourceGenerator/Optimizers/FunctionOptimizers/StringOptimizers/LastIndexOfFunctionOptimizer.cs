@@ -36,13 +36,13 @@ public class LastIndexOfFunctionOptimizer(SyntaxNode? instance) : BaseStringFunc
 		if (literal.IsKind(SyntaxKind.StringLiteralExpression))
 		{
 			var substring = literal.Token.ValueText;
-			result = SyntaxHelpers.CreateLiteral(str.LastIndexOf(substring, StringComparison.Ordinal));
+			result = CreateLiteral(str.LastIndexOf(substring, StringComparison.Ordinal));
 			return true;
 		}
 
 		if (literal.IsKind(SyntaxKind.CharacterLiteralExpression) && literal.Token.Value is char c)
 		{
-			result = SyntaxHelpers.CreateLiteral(str.LastIndexOf(c));
+			result = CreateLiteral(str.LastIndexOf(c));
 			return true;
 		}
 

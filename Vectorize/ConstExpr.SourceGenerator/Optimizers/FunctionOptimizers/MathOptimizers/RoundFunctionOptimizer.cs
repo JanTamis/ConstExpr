@@ -38,7 +38,7 @@ public class RoundFunctionOptimizer() : BaseMathFunctionOptimizer("Round", 1, 2,
 			// Keep sign and round the operand
 			var roundCall = CreateInvocation(paramType, "Round", prefix.Operand);
 
-			result = SyntaxFactory.PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression, SyntaxFactory.ParenthesizedExpression(roundCall));
+			result = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression, ParenthesizedExpression(roundCall));
 			return true;
 		}
 

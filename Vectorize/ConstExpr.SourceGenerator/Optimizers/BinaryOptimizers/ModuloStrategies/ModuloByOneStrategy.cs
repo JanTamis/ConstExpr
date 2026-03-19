@@ -15,6 +15,6 @@ public class ModuloByOneStrategy : IntegerBinaryStrategy<ExpressionSyntax, Liter
 		optimized = null;
 
 		return context.Right.Syntax.IsNumericOne()
-		       && SyntaxHelpers.TryGetLiteral(0.ToSpecialType(context.Type.SpecialType), out optimized);
+		       && TryGetLiteral(0.ToSpecialType(context.Type.SpecialType), out optimized);
 	}
 }

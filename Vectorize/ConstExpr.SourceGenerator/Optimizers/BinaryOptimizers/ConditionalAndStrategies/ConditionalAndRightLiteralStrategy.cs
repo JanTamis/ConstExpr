@@ -22,7 +22,7 @@ public class ConditionalAndRightLiteralStrategy : BooleanBinaryStrategy<Expressi
 			// x && true = x (only if x is pure)
 			true => context.Left.Syntax,
 			// x && false = false (only if x is pure)
-			false => SyntaxHelpers.CreateLiteral(false),
+			false => CreateLiteral(false),
 			_ => null,
 		};
 

@@ -56,7 +56,7 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 		if (IsEmptyEnumerable(newSource))
 		{
-			result = SyntaxHelpers.CreateLiteral(0);
+			result = CreateLiteral(0);
 			return true;
 		}
 
@@ -113,20 +113,20 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 					// count * (2 * start + count - 1) / 2
 					var twoTimesStart = OptimizeArithmetic(context, SyntaxKind.MultiplyExpression,
-						SyntaxHelpers.CreateLiteral(2)!, startArg.Expression, intType);
+						CreateLiteral(2)!, startArg.Expression, intType);
 
 					var twoStartPlusCount = OptimizeArithmetic(context, SyntaxKind.AddExpression,
 						twoTimesStart, countArg.Expression, intType);
 
-					var inner = SyntaxFactory.ParenthesizedExpression(
+					var inner = ParenthesizedExpression(
 						OptimizeArithmetic(context, SyntaxKind.SubtractExpression,
-							twoStartPlusCount, SyntaxHelpers.CreateLiteral(1)!, intType));
+							twoStartPlusCount, CreateLiteral(1)!, intType));
 
 					var numerator = OptimizeArithmetic(context, SyntaxKind.MultiplyExpression,
 						countArg.Expression, inner, intType);
 
 					result = OptimizeArithmetic(context, SyntaxKind.DivideExpression,
-						numerator, SyntaxHelpers.CreateLiteral(2)!, intType);
+						numerator, CreateLiteral(2)!, intType);
 					return true;
 				}
 				case "Repeat" when methodInvocation.ArgumentList.Arguments is [ var repeatElementArg, var repeatCountArg ]:
@@ -147,7 +147,7 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		{
 			var sum = values.Sum(parameterType.TypeArguments[0]);
 
-			if (SyntaxHelpers.TryGetLiteral(sum, out var sumLiteral))
+			if (TryGetLiteral(sum, out var sumLiteral))
 			{
 				result = sumLiteral;
 				return true;
@@ -156,20 +156,20 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 		if (IsEmptyEnumerable(source))
 		{
-			result = SyntaxHelpers.CreateLiteral(0);
+			result = CreateLiteral(0);
 			return true;
 		}
 
 		// If we skipped any operations, create optimized Sum() call
 		if (isNewSource
-		    || !SyntaxFactory.AreEquivalent(source, newSource))
+		    || !AreEquivalent(source, newSource))
 		{
 			result = TryOptimizeAppend(context, newSource, UpdateInvocation(context, newSource));
 			return true;
 		}
 
 		result = TryOptimizeAppend(context, newSource, context.Invocation);
-		return !SyntaxFactory.AreEquivalent(context.Invocation, result);
+		return !AreEquivalent(context.Invocation, result);
 	}
 
 	private ExpressionSyntax? TryOptimizeAppend(FunctionOptimizerContext context, ExpressionSyntax source, InvocationExpressionSyntax? result)

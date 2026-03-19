@@ -88,18 +88,18 @@ public class MaxFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 				{
 					var intType = context.Model.Compilation.CreateInt32();
 
-					result = SyntaxFactory.ConditionalExpression(
-						OptimizeComparison(context, SyntaxKind.GreaterThanExpression, countArg.Expression, SyntaxHelpers.CreateLiteral(0)!, intType),
+					result = ConditionalExpression(
+						OptimizeComparison(context, SyntaxKind.GreaterThanExpression, countArg.Expression, CreateLiteral(0)!, intType),
 						OptimizeArithmetic(context, SyntaxKind.SubtractExpression,
 							OptimizeArithmetic(context, SyntaxKind.AddExpression, startArg.Expression, countArg.Expression, intType),
-							SyntaxHelpers.CreateLiteral(1)!, intType),
+							CreateLiteral(1)!, intType),
 						CreateThrowExpression<InvalidOperationException>("Sequence contains no elements"));
 					return true;
 				}
 				case nameof(Enumerable.Repeat) when invocation.ArgumentList.Arguments is [ var repeatElementArg, var repeatCountArg ]:
 				{
-					result = SyntaxFactory.ConditionalExpression(
-						OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, SyntaxHelpers.CreateLiteral(0)!, context.Model.Compilation.CreateInt32()),
+					result = ConditionalExpression(
+						OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, CreateLiteral(0)!, context.Model.Compilation.CreateInt32()),
 						repeatElementArg.Expression,
 						CreateThrowExpression<InvalidOperationException>("Sequence contains no elements"));
 					return true;

@@ -6,7 +6,6 @@ using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using SourceGen.Utilities.Extensions;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
@@ -78,19 +77,19 @@ public class AverageFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 					var doubleType = context.Model.Compilation.CreateDouble();
 
 					// start + (count - 1) / 2.0
-					var countMinusOne = SyntaxFactory.ParenthesizedExpression(
+					var countMinusOne = ParenthesizedExpression(
 						OptimizeArithmetic(context, SyntaxKind.SubtractExpression,
-							countArg.Expression, SyntaxHelpers.CreateLiteral(1)!, intType));
+							countArg.Expression, CreateLiteral(1)!, intType));
 
 					var halfOffset = OptimizeArithmetic(context, SyntaxKind.DivideExpression,
-						countMinusOne, SyntaxHelpers.CreateLiteral(2.0)!, doubleType);
+						countMinusOne, CreateLiteral(2.0)!, doubleType);
 
 					var averageValue = OptimizeArithmetic(context, SyntaxKind.AddExpression,
 						startArg.Expression, halfOffset, doubleType);
 
 					// Guard against empty range (count == 0)
-					result = SyntaxFactory.ConditionalExpression(
-						OptimizeComparison(context, SyntaxKind.GreaterThanExpression, countArg.Expression, SyntaxHelpers.CreateLiteral(0)!, intType),
+					result = ConditionalExpression(
+						OptimizeComparison(context, SyntaxKind.GreaterThanExpression, countArg.Expression, CreateLiteral(0)!, intType),
 						averageValue,
 						CreateThrowExpression<InvalidOperationException>("Sequence contains no elements"));
 					return true;
@@ -98,12 +97,12 @@ public class AverageFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 				case nameof(Enumerable.Repeat) when invocation.ArgumentList.Arguments is [ var repeatElementArg, var repeatCountArg ]:
 				{
 					// Repeat(element, count).Average() => count > 0 ? (T)element : throw
-					var castExpr = SyntaxFactory.CastExpression(
-						SyntaxFactory.ParseName(context.Model.Compilation.GetMinimalString(context.Method.TypeArguments[0])),
+					var castExpr = CastExpression(
+						ParseName(context.Model.Compilation.GetMinimalString(context.Method.TypeArguments[0])),
 						repeatElementArg.Expression);
 
-					result = SyntaxFactory.ConditionalExpression(
-						OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, SyntaxHelpers.CreateLiteral(0)!, context.Model.Compilation.CreateInt32()),
+					result = ConditionalExpression(
+						OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, CreateLiteral(0)!, context.Model.Compilation.CreateInt32()),
 						castExpr,
 						CreateThrowExpression<InvalidOperationException>("Sequence contains no elements"));
 					return true;

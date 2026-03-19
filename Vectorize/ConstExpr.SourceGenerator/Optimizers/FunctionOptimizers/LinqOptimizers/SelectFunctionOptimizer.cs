@@ -91,10 +91,10 @@ public class SelectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 
 	private InvocationExpressionSyntax CreateCastMethodCall(ExpressionSyntax source, TypeSyntax targetType)
 	{
-		var genericName = SyntaxFactory.GenericName(
-			SyntaxFactory.Identifier(nameof(Enumerable.Cast)),
-			SyntaxFactory.TypeArgumentList(
-				SyntaxFactory.SingletonSeparatedList(targetType)));
+		var genericName = GenericName(
+			Identifier(nameof(Enumerable.Cast)),
+			TypeArgumentList(
+				SingletonSeparatedList(targetType)));
 
 		return CreateInvocation(source, genericName);
 	}

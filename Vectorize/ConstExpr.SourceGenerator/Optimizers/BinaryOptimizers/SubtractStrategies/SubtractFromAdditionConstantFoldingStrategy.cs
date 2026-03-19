@@ -3,7 +3,6 @@ using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.SubtractStrategies;
 
@@ -24,7 +23,7 @@ public class SubtractFromAdditionConstantFoldingStrategy() : NumericBinaryStrate
 		{
 			var result = leftConstant.Subtract(context.Right.Syntax.Token.Value);
 
-			if (SyntaxHelpers.TryGetLiteral(result, out var newConstant))
+			if (TryGetLiteral(result, out var newConstant))
 			{
 				optimized = BinaryExpression(SyntaxKind.AddExpression, context.Left.Syntax.Right, newConstant);
 				return true;
@@ -35,7 +34,7 @@ public class SubtractFromAdditionConstantFoldingStrategy() : NumericBinaryStrate
 		{
 			var result = leftConstant2.Subtract(context.Right.Syntax.Token.Value);
 
-			if (SyntaxHelpers.TryGetLiteral(result, out var newConstant))
+			if (TryGetLiteral(result, out var newConstant))
 			{
 				optimized = BinaryExpression(SyntaxKind.AddExpression, context.Left.Syntax.Left, newConstant);
 				return true;

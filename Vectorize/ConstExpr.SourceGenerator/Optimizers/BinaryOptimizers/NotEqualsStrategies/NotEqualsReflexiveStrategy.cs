@@ -18,7 +18,7 @@ public class NotEqualsReflexiveStrategy : BaseBinaryStrategy
 			return false;
 		}
 
-		optimized = SyntaxHelpers.CreateLiteral(false);
+		optimized = CreateLiteral(false);
 		return true;
 	}
 }

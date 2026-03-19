@@ -77,7 +77,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 						TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectCount, out source);
 						continue;
 					case false:
-						result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0));
+						result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0));
 						return true;
 				}
 			}
@@ -118,7 +118,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 				{
 					var count = values.Count(value => lambdas.All(lambda => lambda?.DynamicInvoke(value) is true));
 
-					result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(count));
+					result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(count));
 					return true;
 				}
 			}
@@ -152,7 +152,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 						result = CreateMemberAccess(currentSource, "Length");
 						return true;
 					case false:
-						result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0));
+						result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0));
 						return true;
 				}
 			}
@@ -162,13 +162,13 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 				TryGetOptimizedChainExpression(currentSource, OperationsThatDontAffectCount.Union([ nameof(Enumerable.DefaultIfEmpty) ]).ToSet(), out currentSource);
 
 				result = TryOptimizeByOptimizer<CountFunctionOptimizer>(context, CreateInvocation(currentSource, nameof(Enumerable.Count), combinedPredicate));
-				result = CreateInvocation(SyntaxFactory.ParseTypeName("Int32"), "Max", result as ExpressionSyntax, SyntaxHelpers.CreateLiteral(1)!);
+				result = CreateInvocation(ParseTypeName("Int32"), "Max", result as ExpressionSyntax, CreateLiteral(1)!);
 				return true;
 			}
 
 			if (IsEmptyEnumerable(currentSource))
 			{
-				result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0));
+				result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0));
 				return true;
 			}
 
@@ -203,10 +203,10 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 								countInvocation = CreateSimpleInvocation(newChunkSource, nameof(Enumerable.Count));
 							}
 
-							var chunkMinus1 = OptimizeArithmetic(context, SyntaxKind.SubtractExpression, chunkSize, SyntaxHelpers.CreateLiteral(1)!, intType);
+							var chunkMinus1 = OptimizeArithmetic(context, SyntaxKind.SubtractExpression, chunkSize, CreateLiteral(1)!, intType);
 							var left = OptimizeArithmetic(context, SyntaxKind.AddExpression, countInvocation as ExpressionSyntax, chunkMinus1, intType);
 
-							result = OptimizeArithmetic(context, SyntaxKind.DivideExpression, SyntaxFactory.ParenthesizedExpression(left), chunkSize, intType);
+							result = OptimizeArithmetic(context, SyntaxKind.DivideExpression, ParenthesizedExpression(left), chunkSize, intType);
 							return true;
 						}
 
@@ -221,7 +221,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 							resultInvocation = TryOptimizeByOptimizer<CountFunctionOptimizer>(context, CreateSimpleInvocation(currentSource, nameof(Enumerable.Count)));
 						}
 
-						result = CreateInvocation(SyntaxFactory.ParseTypeName("Int32"), "Max", resultInvocation as ExpressionSyntax, SyntaxHelpers.CreateLiteral(1)!);
+						result = CreateInvocation(ParseTypeName("Int32"), "Max", resultInvocation as ExpressionSyntax, CreateLiteral(1)!);
 						return true;
 					}
 					case nameof(Enumerable.Distinct):
@@ -265,7 +265,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 						if (TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, currentSource), context.Method), out result))
 						{
 							var intType2 = context.Model.Compilation.CreateInt32();
-							result = OptimizeArithmetic(context, SyntaxKind.AddExpression, result as ExpressionSyntax, SyntaxHelpers.CreateLiteral(count)!, intType2);
+							result = OptimizeArithmetic(context, SyntaxKind.AddExpression, result as ExpressionSyntax, CreateLiteral(count)!, intType2);
 							return true;
 						}
 
@@ -291,7 +291,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 							if (TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, currentSource), context.Method), out result))
 							{
 								var intType2 = context.Model.Compilation.CreateInt32();
-								result = OptimizeArithmetic(context, SyntaxKind.AddExpression, result as ExpressionSyntax, SyntaxHelpers.CreateLiteral(count)!, intType2);
+								result = OptimizeArithmetic(context, SyntaxKind.AddExpression, result as ExpressionSyntax, CreateLiteral(count)!, intType2);
 								return true;
 							}
 						}
@@ -344,7 +344,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 						// source.Count() - skipAmount  (fold to literal when both are constant)
 						var subtracted = OptimizeArithmetic(context, SyntaxKind.SubtractExpression, sourceCount, skipAmount, intType);
 
-						result = CreateInvocation(context.Model.Compilation.CreateInt32(), "Max", SyntaxHelpers.CreateLiteral(0)!, subtracted);
+						result = CreateInvocation(context.Model.Compilation.CreateInt32(), "Max", CreateLiteral(0)!, subtracted);
 						return true;
 					}
 					case nameof(Enumerable.Range) when invocation.ArgumentList.Arguments is [ var startArg, var countArg ]:
@@ -363,7 +363,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 			if (TryGetSyntaxes(currentSource, out var syntaxes))
 			{
-				result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(syntaxes.Count));
+				result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(syntaxes.Count));
 				return true;
 			}
 
@@ -410,7 +410,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 			if (IsEmptyEnumerable(currentSource))
 			{
-				result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0));
+				result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0));
 				return true;
 			}
 

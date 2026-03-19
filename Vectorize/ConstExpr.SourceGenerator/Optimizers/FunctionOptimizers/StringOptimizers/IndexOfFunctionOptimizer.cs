@@ -36,13 +36,13 @@ public class IndexOfFunctionOptimizer(SyntaxNode? instance) : BaseStringFunction
 		if (literal.IsKind(SyntaxKind.StringLiteralExpression))
 		{
 			var substring = literal.Token.ValueText;
-			result = SyntaxHelpers.CreateLiteral(str.IndexOf(substring, StringComparison.Ordinal));
+			result = CreateLiteral(str.IndexOf(substring, StringComparison.Ordinal));
 			return true;
 		}
 
 		if (literal.IsKind(SyntaxKind.CharacterLiteralExpression) && literal.Token.Value is char c)
 		{
-			result = SyntaxHelpers.CreateLiteral(str.IndexOf(c));
+			result = CreateLiteral(str.IndexOf(c));
 			return true;
 		}
 

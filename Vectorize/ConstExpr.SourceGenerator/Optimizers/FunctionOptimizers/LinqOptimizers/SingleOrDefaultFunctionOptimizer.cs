@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
@@ -68,7 +67,7 @@ public class SingleOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(name
 							result = CreateThrowExpression<InvalidOperationException>("Sequence contains more than one matching element");
 							return true;
 						case 1
-							when SyntaxHelpers.TryGetLiteral(matchingValues[0], out var literal):
+							when TryGetLiteral(matchingValues[0], out var literal):
 							result = literal;
 							return true;
 					}

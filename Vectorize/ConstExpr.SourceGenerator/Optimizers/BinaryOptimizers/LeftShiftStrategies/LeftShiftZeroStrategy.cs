@@ -18,7 +18,7 @@ public class LeftShiftZeroStrategy : IntegerBinaryStrategy<LiteralExpressionSynt
       return false;
     }
 
-    optimized = SyntaxHelpers.CreateLiteral(0.ToSpecialType(context.Type.SpecialType));
+    optimized = CreateLiteral(0.ToSpecialType(context.Type.SpecialType));
 		return true;
 	}
 }

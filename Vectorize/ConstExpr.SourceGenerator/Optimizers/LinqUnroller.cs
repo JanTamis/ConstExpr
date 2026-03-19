@@ -1,15 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
-using ConstExpr.SourceGenerator.Helpers;
-using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers;
 
@@ -25,8 +21,11 @@ public static class LinqUnroller
 		{ PossibleLinqMethod.Count, new CountLinqUnrolled() },
 		{ PossibleLinqMethod.Any, new AnyLinqUnroller() },
 		{ PossibleLinqMethod.Average, new AverageLinqUnroller() },
+		{ PossibleLinqMethod.Aggregate, new AggregateLinqUnroller() },
+		{ PossibleLinqMethod.Distinct, new DistinctLinqUnroller() },
+		{ PossibleLinqMethod.DistinctBy, new DistinctByLinqUnroller() },
 	};
-	
+
 	/// <summary>
 	/// Walks a LINQ method-chain rooted at <paramref name="node"/> and returns every
 	/// recognised <see cref="PossibleLinqMethod"/> step together with its argument
@@ -52,8 +51,8 @@ public static class LinqUnroller
 
 			var typeArguments = memberAccess.Name is GenericNameSyntax genericName
 				? genericName.TypeArgumentList.Arguments.ToArray()
-				: [];
-			
+				: [ ];
+
 			// check if memberAccess.Expression is not a Type e.g Int32 or Int64
 			if (memberAccess.Expression is IdentifierNameSyntax identifier
 			    && Type.GetType($"System.{identifier.Identifier.Text}") != null)
@@ -63,7 +62,16 @@ public static class LinqUnroller
 
 			if (!model.TryGetSymbol<IMethodSymbol>(invocation, out var method))
 			{
-				return [ ];
+				// Fallback: try to resolve from Compilation for optimized/synthetic nodes
+				method = TryResolveLinqMethodFromCompilation(
+					model.Compilation,
+					memberAccess.Name.Identifier.Text,
+					invocation.ArgumentList.Arguments.Count + 1);
+
+				if (method is null)
+				{
+					return [ ];
+				}
 			}
 
 			methods.Add(new UnrolledLinqMethod(linqMethod, method, visit, parameters, typeArguments));
@@ -75,7 +83,7 @@ public static class LinqUnroller
 		// Append the source expression last (before reversal) so it becomes element 0.
 		if (current is not null)
 		{
-			methods.Add(new UnrolledLinqMethod(PossibleLinqMethod.Source, null!, visit, [ current ], []));
+			methods.Add(new UnrolledLinqMethod(PossibleLinqMethod.Source, null!, visit, [ current ], [ ]));
 		}
 
 		// We collected from outermost → innermost; reverse so callers get call order.
@@ -84,74 +92,59 @@ public static class LinqUnroller
 		return methods.ToArray();
 	}
 
-	public static SyntaxNode TryUnrollLinqChain(SyntaxNode node, Func<SyntaxNode?, SyntaxNode?> visit, SemanticModel model, IDictionary<SyntaxNode, bool> additionalMethods, IDictionary<string, VariableItem> variables)
+	/// <summary>
+	/// Attempts to resolve a LINQ extension method symbol from the compilation
+	/// when the semantic model cannot resolve it (e.g., for synthetic/optimized nodes).
+	/// </summary>
+	private static IMethodSymbol? TryResolveLinqMethodFromCompilation(Compilation compilation, string methodName, int parameterCount)
+	{
+		var enumerable = compilation.GetTypeByMetadataName("System.Linq.Enumerable");
+
+		return enumerable?.GetMembers(methodName)
+			.OfType<IMethodSymbol>()
+			.FirstOrDefault(m => m.Parameters.Length == parameterCount);
+	}
+
+	public static SyntaxNode TryUnrollLinqChain(SyntaxNode node, Func<SyntaxNode?, SyntaxNode?> visit, SemanticModel model, IDictionary<SyntaxNode, bool> additionalMethods)
 	{
 		var chain = ParseLinqChain(model, visit, node);
 
-		if (chain.Length <= 1)
+		if (chain.Length <= 1
+		    || !model.TryGetTypeSymbol(chain[0].Parameters[0], out var type))
 		{
 			return node;
 		}
 
-		const string collectionName = "collection";
-
-		ExpressionSyntax elementName = IdentifierName("item");
-
-		var isArray = IsInvokedOnArray(chain[0].Parameters[0], variables, out var arrayTypeSymbol);
-		var isList = IsInvokedOnList(chain[0].Parameters[0], variables, out var listType);
-
-		var elements = new List<StatementSyntax>();
-
-		if (isArray || isList)
+		for (var i = 0; i < chain.Length; i++)
 		{
-			// if (chain.Length > 2 || chain[^1].Method is not (PossibleLinqMethod.Sum or PossibleLinqMethod.Count))
-			// {
-			// 	// add variable creation var item = collection[i];
-			// 	elements.Add(LocalDeclarationStatement(VariableDeclaration(IdentifierName("var"))
-			// 		.WithVariables(SingletonSeparatedList(VariableDeclarator("item").WithInitializer(EqualsValueClause(ElementAccessExpression(IdentifierName(collectionName))
-			// 			.WithArgumentList(BracketedArgumentList(SingletonSeparatedList(Argument(IdentifierName("i")))))))))));
-			// }
-			// else
-			// {
-			// 	// just use indexer directly in elementName
-			// 	elementName = ElementAccessExpression(IdentifierName(collectionName))
-			// 		.WithArgumentList(BracketedArgumentList(SingletonSeparatedList(Argument(IdentifierName("i")))));
-			// }
-
-			// just use indexer directly in elementName
-			elementName = ElementAccessExpression(IdentifierName(collectionName))
-				.WithArgumentList(BracketedArgumentList(SingletonSeparatedList(Argument(IdentifierName("i")))));
+			chain[i].CollectionType = type;
 		}
+
+		if (!Unrollers.TryGetValue(chain[^1].Method, out var lastUnroller))
+		{
+			return node;
+		}
+
+		var collectionName = "collection";
+
+		var elementName = lastUnroller.GetCollectionElement(chain[^1], collectionName);
+		var elements = new List<StatementSyntax>();
 
 		ParseLoopBody(chain, elements, ref elementName);
 
 		// under loop
 		var statements = ParseAboveLoop(chain);
 
-		if (isArray || isList)
-		{
-			// add for loop
-			statements.Add(ForStatement(Block(elements))
-				.WithDeclaration(VariableDeclaration(IdentifierName("var"))
-					.WithVariables(SingletonSeparatedList(VariableDeclarator("i").WithInitializer(EqualsValueClause(SyntaxHelpers.CreateLiteral(0)!))))
-				)
-				.WithCondition(BinaryExpression(SyntaxKind.LessThanExpression, IdentifierName("i"), MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName(collectionName), IdentifierName(isArray ? "Length" : "Count"))))
-				.WithIncrementors(SingletonSeparatedList<ExpressionSyntax>(PostfixUnaryExpression(SyntaxKind.PostIncrementExpression, IdentifierName("i"))))
-			);
-		}
+		lastUnroller.CreateLoop(chain[^1], type, elements, collectionName, statements);
 
 		ParsePossibleReturnStatement(chain, statements);
 
 		// create localmethod with statements
 		TypeSyntax parameterType;
 
-		if (isArray)
+		if (model.TryGetTypeSymbol(chain[0].Parameters[0], out var returnType))
 		{
-			parameterType = arrayTypeSymbol!.GetTypeSyntax(false);
-		}
-		else if (isList)
-		{
-			parameterType = listType!.GetTypeSyntax(false);
+			parameterType = returnType.GetTypeSyntax(false);
 		}
 		else
 		{
@@ -164,8 +157,8 @@ public static class LinqUnroller
 		var localMethod = LocalFunctionStatement(chain[^1].MethodSymbol.ReturnType.GetTypeSyntax(false), Identifier($"{chain[^1].Method}_{body.GetDeterministicHashString()}"))
 			.WithParameterList(ParameterList(SingletonSeparatedList(Parameter(Identifier("collection")).WithType(parameterType))))
 			.WithBody(body);
-		
-		additionalMethods[localMethod] = true;
+
+		additionalMethods.TryAdd(localMethod, true);
 
 		return InvocationExpression(IdentifierName(localMethod.Identifier))
 			.WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(chain[0].Parameters[0]))));
@@ -183,11 +176,14 @@ public static class LinqUnroller
 	{
 		var statements = new List<StatementSyntax>();
 
-		if (Unrollers.TryGetValue(chain[^1].Method, out var unroller))
+		foreach (var chainMethod in chain)
 		{
-			unroller.UnrollAboveLoop(chain[^1], statements);
+			if (Unrollers.TryGetValue(chainMethod.Method, out var unroller))
+			{
+				unroller.UnrollAboveLoop(chainMethod, statements);
+			}
 		}
-		
+
 		return statements;
 	}
 
@@ -200,7 +196,7 @@ public static class LinqUnroller
 			{
 				continue;
 			}
-			
+
 			if (Unrollers.TryGetValue(chain[i].Method, out var unroller))
 			{
 				unroller.UnrollLoopBody(chain[i], elements, ref elementName);
@@ -210,44 +206,6 @@ public static class LinqUnroller
 				elements.Add(YieldStatement(SyntaxKind.YieldReturnStatement, elementName));
 			}
 		}
-	}
-
-	/// <summary>
-	/// Checks if the invocation is made on an array type.
-	/// </summary>
-	private static bool IsInvokedOnArray(ExpressionSyntax? expression, IDictionary<string, VariableItem> variables, [NotNullWhen(true)] out IArrayTypeSymbol? elementType)
-	{
-		elementType = null;
-
-		if (expression is IdentifierNameSyntax identifier
-		    && variables.TryGetValue(identifier.Identifier.Text, out var variable)
-		    && variable.Type is IArrayTypeSymbol arrType)
-		{
-			elementType = arrType;
-			return true;
-		}
-
-		return false;
-	}
-
-	/// <summary>
-	/// Checks if the invocation is made on a List&lt;T&gt; type.
-	/// </summary>
-	private static bool IsInvokedOnList(ExpressionSyntax? expression, IDictionary<string, VariableItem> variables, [NotNullWhen(true)] out INamedTypeSymbol? elementType)
-	{
-		elementType = null;
-
-		if (expression is IdentifierNameSyntax identifier
-		    && variables.TryGetValue(identifier.Identifier.Text, out var variable))
-		{
-			elementType = variable.Type as INamedTypeSymbol;
-
-			return elementType is not null
-			       && elementType.OriginalDefinition.SpecialType == SpecialType.None
-			       && elementType.OriginalDefinition.ToString() == "System.Collections.Generic.List<T>";
-		}
-
-		return false;
 	}
 }
 
@@ -326,7 +284,7 @@ public enum PossibleLinqMethod
 	Zip,
 }
 
-public readonly record struct UnrolledLinqMethod(PossibleLinqMethod Method, IMethodSymbol MethodSymbol, Func<SyntaxNode?, SyntaxNode?> Visit, ExpressionSyntax[] Parameters, TypeSyntax[] TypeArguments)
+public struct UnrolledLinqMethod(PossibleLinqMethod Method, IMethodSymbol MethodSymbol, Func<SyntaxNode?, SyntaxNode?> Visit, ExpressionSyntax[] Parameters, TypeSyntax[] TypeArguments)
 {
 	public override string ToString()
 	{
@@ -335,12 +293,21 @@ public readonly record struct UnrolledLinqMethod(PossibleLinqMethod Method, IMet
 			: string.Empty;
 		return $"{Method}{typeArgs}({string.Join(", ", Parameters.Select(p => p.ToString()))})";
 	}
-}
 
-file sealed class IdentifierReplacer(string identifier, ExpressionSyntax replacement) : CSharpSyntaxRewriter
-{
-	public override SyntaxNode? VisitIdentifierName(IdentifierNameSyntax node)
+	public PossibleLinqMethod Method { get; set; } = Method;
+	public IMethodSymbol MethodSymbol { get; set; } = MethodSymbol;
+	public ITypeSymbol CollectionType { get; set; }
+	public Func<SyntaxNode?, SyntaxNode?> Visit { get; set; } = Visit;
+	public ExpressionSyntax[] Parameters { get; set; } = Parameters;
+	public TypeSyntax[] TypeArguments { get; set; } = TypeArguments;
+
+	public readonly void Deconstruct(out PossibleLinqMethod Method, out IMethodSymbol MethodSymbol, out ITypeSymbol CollectionType, out Func<SyntaxNode?, SyntaxNode?> Visit, out ExpressionSyntax[] Parameters, out TypeSyntax[] TypeArguments)
 	{
-		return node.Identifier.Text == identifier ? replacement : base.VisitIdentifierName(node);
+		Method = this.Method;
+		MethodSymbol = this.MethodSymbol;
+		CollectionType = this.CollectionType;
+		Visit = this.Visit;
+		Parameters = this.Parameters;
+		TypeArguments = this.TypeArguments;
 	}
 }

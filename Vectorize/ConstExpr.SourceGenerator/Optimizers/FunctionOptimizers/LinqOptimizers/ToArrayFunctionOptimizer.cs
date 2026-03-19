@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
@@ -57,7 +56,7 @@ public class ToArrayFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 					var fusedLambda = CombineLambdas(wherePredicate, selector);
 					var visitedFused = context.Visit(fusedLambda) as LambdaExpressionSyntax ?? fusedLambda;
 					result = CreateInvocation(
-						SyntaxFactory.ParseTypeName(nameof(Array)),
+						ParseTypeName(nameof(Array)),
 						nameof(Array.FindAll),
 						selectSource,
 						visitedFused);
@@ -71,7 +70,7 @@ public class ToArrayFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 				var visitedPredicate = context.Visit(wherePredicate) as LambdaExpressionSyntax ?? wherePredicate;
 				
 				result = CreateInvocation(
-					SyntaxFactory.ParseTypeName(nameof(Array)),
+					ParseTypeName(nameof(Array)),
 					nameof(Array.FindAll),
 					whereSource,
 					visitedPredicate);

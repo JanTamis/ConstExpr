@@ -2,7 +2,6 @@ using System;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 
@@ -32,7 +31,7 @@ public class EndsWithFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctio
 				return true;
 			}
 			
-			result = SyntaxFactory.BinaryExpression(SyntaxKind.EqualsExpression, CreateLiteral(instanceString[^1]), context.VisitedParameters[0]);
+			result = BinaryExpression(SyntaxKind.EqualsExpression, CreateLiteral(instanceString[^1]), context.VisitedParameters[0]);
 			return true;
 		}
 

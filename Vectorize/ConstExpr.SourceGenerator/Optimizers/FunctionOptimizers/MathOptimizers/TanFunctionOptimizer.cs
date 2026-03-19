@@ -28,35 +28,35 @@ public class TanFunctionOptimizer() : BaseMathFunctionOptimizer("Tan", 1)
 			// Tan(0) => 0
 			if (IsApproximately(value, 0.0))
 			{
-				result = SyntaxHelpers.CreateLiteral(0.0.ToSpecialType(paramType.SpecialType));
+				result = CreateLiteral(0.0.ToSpecialType(paramType.SpecialType));
 				return true;
 			}
 
 			// Tan(π/4) => 1
 			if (IsApproximately(value, Math.PI / 4.0))
 			{
-				result = SyntaxHelpers.CreateLiteral(1.0.ToSpecialType(paramType.SpecialType));
+				result = CreateLiteral(1.0.ToSpecialType(paramType.SpecialType));
 				return true;
 			}
 
 			// Tan(-π/4) => -1
 			if (IsApproximately(value, -Math.PI / 4.0))
 			{
-				result = SyntaxHelpers.CreateLiteral((-1.0).ToSpecialType(paramType.SpecialType));
+				result = CreateLiteral((-1.0).ToSpecialType(paramType.SpecialType));
 				return true;
 			}
 
 			// Tan(π) => 0
 			if (IsApproximately(value, Math.PI))
 			{
-				result = SyntaxHelpers.CreateLiteral(0.0.ToSpecialType(paramType.SpecialType));
+				result = CreateLiteral(0.0.ToSpecialType(paramType.SpecialType));
 				return true;
 			}
 
 			// Tan(-π) => 0
 			if (IsApproximately(value, -Math.PI))
 			{
-				result = SyntaxHelpers.CreateLiteral(0.0.ToSpecialType(paramType.SpecialType));
+				result = CreateLiteral(0.0.ToSpecialType(paramType.SpecialType));
 				return true;
 			}
 		}

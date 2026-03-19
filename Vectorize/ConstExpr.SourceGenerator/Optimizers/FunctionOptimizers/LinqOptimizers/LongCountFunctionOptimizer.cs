@@ -73,7 +73,7 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 						TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectCount, out source);
 						continue;
 					case false:
-						result = SyntaxHelpers.CreateLiteral(0L)!;
+						result = CreateLiteral(0L)!;
 						return true;
 				}
 			}
@@ -103,7 +103,7 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 				{
 					var count = values.Count(value => lambdas.All(lambda => lambda?.DynamicInvoke(value) is true));
 
-					result = SyntaxHelpers.CreateLiteral((long) count)!;
+					result = CreateLiteral((long) count)!;
 					return true;
 				}
 			}
@@ -133,7 +133,7 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 					case true when TryOptimizeCollection(context, currentSource, out result):
 						return true;
 					case false:
-						result = SyntaxHelpers.CreateLiteral(0L)!;
+						result = CreateLiteral(0L)!;
 						break;
 				}
 			}
@@ -143,13 +143,13 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 				TryGetOptimizedChainExpression(currentSource, OperationsThatDontAffectCount.Union([ nameof(Enumerable.DefaultIfEmpty) ]).ToSet(), out currentSource);
 
 				result = TryOptimizeByOptimizer<LongCountFunctionOptimizer>(context, CreateInvocation(currentSource, nameof(Enumerable.LongCount), combinedPredicate));
-				result = CreateInvocation(SyntaxFactory.ParseTypeName("Int64"), "Max", result as ExpressionSyntax, SyntaxHelpers.CreateLiteral(1L)!);
+				result = CreateInvocation(ParseTypeName("Int64"), "Max", result as ExpressionSyntax, CreateLiteral(1L)!);
 				return true;
 			}
 
 			if (IsEmptyEnumerable(currentSource))
 			{
-				result = SyntaxHelpers.CreateLiteral(0L)!;
+				result = CreateLiteral(0L)!;
 				return true;
 			}
 
@@ -182,10 +182,10 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 								countInvocation = CreateSimpleInvocation(newChunkSource, nameof(Enumerable.LongCount));
 							}
 
-							var chunkMinus1 = OptimizeArithmetic(context, SyntaxKind.SubtractExpression, chunkSize, SyntaxHelpers.CreateLiteral(1L)!, intType);
+							var chunkMinus1 = OptimizeArithmetic(context, SyntaxKind.SubtractExpression, chunkSize, CreateLiteral(1L)!, intType);
 							var left = OptimizeArithmetic(context, SyntaxKind.AddExpression, countInvocation as ExpressionSyntax, chunkMinus1, intType);
 
-							result = OptimizeArithmetic(context, SyntaxKind.DivideExpression, SyntaxFactory.ParenthesizedExpression(left), chunkSize, intType);
+							result = OptimizeArithmetic(context, SyntaxKind.DivideExpression, ParenthesizedExpression(left), chunkSize, intType);
 							return true;
 						}
 
@@ -200,7 +200,7 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 							resultInvocation = TryOptimizeByOptimizer<LongCountFunctionOptimizer>(context, CreateSimpleInvocation(currentSource, nameof(Enumerable.LongCount)));
 						}
 
-						result = CreateInvocation(SyntaxFactory.ParseTypeName("Int64"), "Max", resultInvocation as ExpressionSyntax, SyntaxHelpers.CreateLiteral(1L)!);
+						result = CreateInvocation(ParseTypeName("Int64"), "Max", resultInvocation as ExpressionSyntax, CreateLiteral(1L)!);
 						return true;
 					}
 					case nameof(Enumerable.Distinct):
@@ -227,7 +227,7 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 
 			if (TryGetSyntaxes(currentSource, out var syntaxes))
 			{
-				result = SyntaxHelpers.CreateLiteral((long) syntaxes.Count)!;
+				result = CreateLiteral((long) syntaxes.Count)!;
 				return true;
 			}
 
@@ -239,7 +239,7 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 
 		if (IsEmptyEnumerable(currentSource))
 		{
-			result = SyntaxHelpers.CreateLiteral(0L)!;
+			result = CreateLiteral(0L)!;
 			return true;
 		}
 
@@ -258,13 +258,13 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 	{
 		if (IsCollectionType(context, source))
 		{
-			result = SyntaxFactory.CastExpression(SyntaxFactory.ParseTypeName("long"), CreateMemberAccess(source, "Count"));
+			result = CastExpression(ParseTypeName("long"), CreateMemberAccess(source, "Count"));
 			return true;
 		}
 
 		if (IsInvokedOnArray(context, source))
 		{
-			result = SyntaxFactory.CastExpression(SyntaxFactory.ParseTypeName("long"), CreateMemberAccess(source, "Length"));
+			result = CastExpression(ParseTypeName("long"), CreateMemberAccess(source, "Length"));
 			return true;
 		}
 

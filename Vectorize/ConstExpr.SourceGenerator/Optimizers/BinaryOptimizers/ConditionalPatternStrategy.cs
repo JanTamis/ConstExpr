@@ -37,9 +37,9 @@ public class ConditionalPatternStrategy(BinaryOperatorKind operatorKind) : BaseB
 			return true;
 		}
 
-		var andPattern = SyntaxFactory.BinaryPattern(GetRelationalPatternKind(), leftPattern, rightPattern);
+		var andPattern = BinaryPattern(GetRelationalPatternKind(), leftPattern, rightPattern);
 		
-		optimized = SyntaxFactory.IsPatternExpression(context.Left.Syntax.Left, andPattern);
+		optimized = IsPatternExpression(context.Left.Syntax.Left, andPattern);
 		return true;
 	}
 	

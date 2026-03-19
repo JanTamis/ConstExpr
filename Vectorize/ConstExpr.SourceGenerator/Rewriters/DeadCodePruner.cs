@@ -73,11 +73,11 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 			case 0:
 				return null;
 			case 1:
-				node = node.WithType(SyntaxFactory.ParseTypeName("var"));
+				node = node.WithType(ParseTypeName("var"));
 				break;
 		}
 
-		return node.WithVariables(SyntaxFactory.SeparatedList(remainingVariables));
+		return node.WithVariables(SeparatedList(remainingVariables));
 	}
 
 	public override SyntaxNode? VisitExpressionStatement(ExpressionStatementSyntax node)
@@ -129,7 +129,7 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 			}
 		}
 
-		return node.WithStatements(SyntaxFactory.List(statements));
+		return node.WithStatements(List(statements));
 	}
 
 	public override SyntaxNode? VisitIfStatement(IfStatementSyntax node)
@@ -272,7 +272,7 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 		{
 			if (!trailing.Any(t => t.IsKind(SyntaxKind.WhitespaceTrivia, SyntaxKind.EndOfLineTrivia)))
 			{
-				trailing = trailing.Add(SyntaxFactory.Space);
+				trailing = trailing.Add(Space);
 			}
 		}
 
@@ -295,7 +295,7 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 			_ => true
 		});
 
-		return SyntaxFactory.TriviaList(filtered);
+		return TriviaList(filtered);
 	}
 
 	#endregion

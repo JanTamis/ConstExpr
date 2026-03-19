@@ -29,7 +29,7 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", 2)
 			// x^0 => 1
 			if (IsApproximately(exp, 0.0))
 			{
-				result = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(1.0));
+				result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(1.0));
 				return true;
 			}
 
@@ -42,10 +42,10 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", 2)
 					return true;
 				}
 
-				var div = SyntaxFactory.BinaryExpression(SyntaxKind.DivideExpression,
-					SyntaxHelpers.CreateLiteral(1.0.ToSpecialType(paramType.SpecialType)), x);
+				var div = BinaryExpression(SyntaxKind.DivideExpression,
+					CreateLiteral(1.0.ToSpecialType(paramType.SpecialType)), x);
 
-				result = SyntaxFactory.ParenthesizedExpression(div);
+				result = ParenthesizedExpression(div);
 				return true;
 			}
 
@@ -57,16 +57,16 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", 2)
 
 				for (var i = 1; i < Math.Abs(n); i++)
 				{
-					acc = SyntaxFactory.BinaryExpression(SyntaxKind.MultiplyExpression, acc, x);
+					acc = BinaryExpression(SyntaxKind.MultiplyExpression, acc, x);
 				}
 
 				if (n < 0)
 				{
-					acc = SyntaxFactory.BinaryExpression(SyntaxKind.DivideExpression,
-						SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(1.0)), acc);
+					acc = BinaryExpression(SyntaxKind.DivideExpression,
+						LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(1.0)), acc);
 				}
 
-				result = SyntaxFactory.ParenthesizedExpression(acc);
+				result = ParenthesizedExpression(acc);
 				return true;
 			}
 
@@ -80,8 +80,8 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", 2)
 			// x^2 => (x * x) when x is pure (no side-effects)
 			if (IsApproximately(exp, 2.0) && IsPure(x))
 			{
-				var mul = SyntaxFactory.BinaryExpression(SyntaxKind.MultiplyExpression, x, x);
-				result = SyntaxFactory.ParenthesizedExpression(mul);
+				var mul = BinaryExpression(SyntaxKind.MultiplyExpression, x, x);
+				result = ParenthesizedExpression(mul);
 				return true;
 			}
 
@@ -102,7 +102,7 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", 2)
 			// x^(1 / n) => RootN(x, n) for small integer n
 			if (IsApproximately(1 / exp, Math.Floor(1 / exp)))
 			{
-				result = CreateInvocation(paramType, "RootN", x, SyntaxHelpers.CreateLiteral((int)Math.Round(1 / exp)));
+				result = CreateInvocation(paramType, "RootN", x, CreateLiteral((int)Math.Round(1 / exp)));
 				return true;
 			}
 		}

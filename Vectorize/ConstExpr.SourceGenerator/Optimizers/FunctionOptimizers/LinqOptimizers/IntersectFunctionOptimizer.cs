@@ -63,7 +63,7 @@ public class IntersectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 					.Intersect(innerIntersectCollectionSyntaxes, SyntaxNodeComparer<ExpressionSyntax>.Instance)
 					.ToList();
 
-				intersectCollection = SyntaxFactory.CollectionExpression(SyntaxFactory.SeparatedList<CollectionElementSyntax>(intersectCollectionSyntaxes.Select(SyntaxFactory.ExpressionElement)));
+				intersectCollection = CollectionExpression(SeparatedList<CollectionElementSyntax>(intersectCollectionSyntaxes.Select(ExpressionElement)));
 				hasNewCollection = true;
 
 				TryGetOptimizedChainExpression(intersectSource, OperationsThatDontAffectIntersect, out source);
@@ -87,12 +87,12 @@ public class IntersectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 				
 				// convert to x.Where(x => x is literal1 or literal2 or ...)
 				var orPattern = intersectCollectionSyntaxes
-					.Select(PatternSyntax (syntax) => SyntaxFactory.ConstantPattern(syntax))
-					.Aggregate((left, right) => SyntaxFactory.BinaryPattern(SyntaxKind.OrPattern, left, right));
+					.Select(PatternSyntax (syntax) => ConstantPattern(syntax))
+					.Aggregate((left, right) => BinaryPattern(SyntaxKind.OrPattern, left, right));
 
-				var parameter = SyntaxFactory.Parameter(SyntaxFactory.Identifier("x"));
-				var isPatternExpression = SyntaxFactory.IsPatternExpression(SyntaxFactory.IdentifierName("x"), orPattern);
-				var lambda = SyntaxFactory.SimpleLambdaExpression(parameter, isPatternExpression);
+				var parameter = Parameter(Identifier("x"));
+				var isPatternExpression = IsPatternExpression(IdentifierName("x"), orPattern);
+				var lambda = SimpleLambdaExpression(parameter, isPatternExpression);
 
 				var distinctSource = TryOptimizeByOptimizer<DistinctFunctionOptimizer>(context, CreateSimpleInvocation(source, nameof(Enumerable.Distinct))) as ExpressionSyntax
 				                     ?? CreateSimpleInvocation(source, nameof(Enumerable.Distinct));

@@ -22,7 +22,6 @@ using Microsoft.CodeAnalysis.Operations;
 using SGF;
 using SourceGen.Utilities.Extensions;
 using SourceGen.Utilities.Helpers;
-using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 
 [assembly: InternalsVisibleTo("ConstExpr.Tests")]
 
@@ -369,7 +368,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 					Usings = usings!,
 					OriginalMethod = methodDecl,
 					Method = FormattingHelper.Format(methodDecl
-						.WithIdentifier(SyntaxFactory.Identifier($"{methodDecl.Identifier.Text}_{result2.GetDeterministicHashString()}")
+						.WithIdentifier(Identifier($"{methodDecl.Identifier.Text}_{result2.GetDeterministicHashString()}")
 							.WithLeadingTrivia(methodDecl.Identifier.LeadingTrivia)
 							.WithTrailingTrivia(methodDecl.Identifier.TrailingTrivia))
 						.WithBody((BlockSyntax) result2)) as MethodDeclarationSyntax ?? methodDecl,

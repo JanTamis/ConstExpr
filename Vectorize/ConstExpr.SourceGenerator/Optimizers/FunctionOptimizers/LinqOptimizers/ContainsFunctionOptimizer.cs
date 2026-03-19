@@ -76,7 +76,7 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 						{
 							case false:
 							{
-								result = SyntaxFactory.LiteralExpression(SyntaxKind.FalseLiteralExpression);
+								result = LiteralExpression(SyntaxKind.FalseLiteralExpression);
 								return true;
 							}
 							case true:
@@ -97,15 +97,15 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 						var lambdaParam = GetLambdaParameter(wherePredicate);
 						var whereBody = GetLambdaBody(wherePredicate);
 						var equalityCheck = OptimizeComparison(context, SyntaxKind.EqualsExpression,
-							SyntaxFactory.IdentifierName(lambdaParam),
+							IdentifierName(lambdaParam),
 							searchValue, boolType);
 
 						var combinedBody = OptimizeComparison(context, SyntaxKind.LogicalAndExpression,
-							SyntaxFactory.ParenthesizedExpression(whereBody),
-							SyntaxFactory.ParenthesizedExpression(equalityCheck), boolType);
+							ParenthesizedExpression(whereBody),
+							ParenthesizedExpression(equalityCheck), boolType);
 
-						var anyPredicate = SyntaxFactory.SimpleLambdaExpression(
-							SyntaxFactory.Parameter(SyntaxFactory.Identifier(lambdaParam)),
+						var anyPredicate = SimpleLambdaExpression(
+							Parameter(Identifier(lambdaParam)),
 							combinedBody);
 
 						// Use appropriate context.Method based on source type
@@ -117,7 +117,7 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 
 						if (IsInvokedOnArray(context, invocationSource))
 						{
-							result = CreateInvocation(SyntaxFactory.ParseTypeName(nameof(Array)), nameof(Array.Exists), context.Visit(invocationSource) ?? invocationSource, context.Visit(anyPredicate) ?? anyPredicate);
+							result = CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.Exists), context.Visit(invocationSource) ?? invocationSource, context.Visit(anyPredicate) ?? anyPredicate);
 							return true;
 						}
 
@@ -146,8 +146,8 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 							selectorBody,
 							searchValue, context.Model.Compilation.CreateBoolean());
 
-						var anyPredicate = SyntaxFactory.SimpleLambdaExpression(
-							SyntaxFactory.Parameter(SyntaxFactory.Identifier(lambdaParam)),
+						var anyPredicate = SimpleLambdaExpression(
+							Parameter(Identifier(lambdaParam)),
 							equalityCheck);
 
 						var resultPredicate = context.Visit(anyPredicate) as LambdaExpressionSyntax ?? anyPredicate;
@@ -157,19 +157,19 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 							if (IsSimpleEqualityLambda(resultPredicate, out var value))
 							{
 								var indexOfCall = CreateInvocation(
-									SyntaxFactory.ParseTypeName(nameof(Array)),
+									ParseTypeName(nameof(Array)),
 									nameof(Array.IndexOf),
 									context.Visit(invocationSource) ?? invocationSource,
 									value);
 
 								result = OptimizeComparison(context, SyntaxKind.GreaterThanOrEqualExpression,
 									indexOfCall,
-									SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0)),
+									LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)),
 									context.Model.Compilation.GetSpecialType(SpecialType.System_Int32));
 								return true;
 							}
 
-							result = CreateInvocation(SyntaxFactory.ParseTypeName(nameof(Array)), nameof(Array.Exists), context.Visit(invocationSource) ?? invocationSource, resultPredicate);
+							result = CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.Exists), context.Visit(invocationSource) ?? invocationSource, resultPredicate);
 							return true;
 						}
 
@@ -223,7 +223,7 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 					var intType = context.Model.Compilation.CreateInt32();
 
 					// Repeat(element, count).Contains(x) => count > 0 && element == x
-					var countPositive = OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, SyntaxHelpers.CreateLiteral(0)!, intType);
+					var countPositive = OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, CreateLiteral(0)!, intType);
 					var elementEquals = OptimizeComparison(context, SyntaxKind.EqualsExpression, repeatElementArg.Expression, searchValue, intType);
 					
 					result = OptimizeComparison(context, SyntaxKind.LogicalAndExpression, countPositive, elementEquals, boolType);
@@ -247,10 +247,10 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		    && searchValue is not LiteralExpressionSyntax)
 		{
 			var orPattern = litSyntaxes
-				.Select(PatternSyntax (syntax) => SyntaxFactory.ConstantPattern(syntax))
-				.Aggregate((left, right) => SyntaxFactory.BinaryPattern(SyntaxKind.OrPattern, left, right));
+				.Select(PatternSyntax (syntax) => ConstantPattern(syntax))
+				.Aggregate((left, right) => BinaryPattern(SyntaxKind.OrPattern, left, right));
 			
-			result = SyntaxFactory.IsPatternExpression(searchValue, orPattern);
+			result = IsPatternExpression(searchValue, orPattern);
 			return true;
 		}
 
@@ -258,14 +258,14 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		if (IsInvokedOnArray(context, source))
 		{
 			var indexOfCall = CreateInvocation(
-				SyntaxFactory.ParseTypeName(nameof(Array)),
+				ParseTypeName(nameof(Array)),
 				nameof(Array.IndexOf),
 				source,
 				searchValue);
 
 			result = OptimizeComparison(context, SyntaxKind.GreaterThanOrEqualExpression,
 				indexOfCall,
-				SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0)),
+				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)),
 				context.Model.Compilation.GetSpecialType(SpecialType.System_Int32));
 			return true;
 		}

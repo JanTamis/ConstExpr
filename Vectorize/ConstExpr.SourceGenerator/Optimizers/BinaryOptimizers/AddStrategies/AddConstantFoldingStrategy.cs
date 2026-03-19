@@ -4,7 +4,6 @@ using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AddStrategies;
 
@@ -30,7 +29,7 @@ public class AddConstantFoldingStrategy : NumericBinaryStrategy<BinaryExpression
 			if (context.TryGetValue(context.Left.Syntax.Right, out var leftConstant))
 			{
 				var result = leftConstant.Add(c2);
-				var newConstant = SyntaxHelpers.CreateLiteral(result);
+				var newConstant = CreateLiteral(result);
 
 				optimized = BinaryExpression(SyntaxKind.AddExpression,
 					context.Left.Syntax.Left,
@@ -44,7 +43,7 @@ public class AddConstantFoldingStrategy : NumericBinaryStrategy<BinaryExpression
 			{
 				var result = leftConstant2.Add(c2);
 
-				var newConstant = SyntaxHelpers.CreateLiteral(result);
+				var newConstant = CreateLiteral(result);
 				optimized = BinaryExpression(SyntaxKind.AddExpression,
 					context.Left.Syntax.Right,
 					newConstant!);

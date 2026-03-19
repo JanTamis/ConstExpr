@@ -18,7 +18,7 @@ public class GreaterThanOrEqualReflexiveStrategy : BaseBinaryStrategy
 			return false;
 		}
 
-		optimized = SyntaxHelpers.CreateLiteral(true);
+		optimized = CreateLiteral(true);
 		return true;
 	}
 }

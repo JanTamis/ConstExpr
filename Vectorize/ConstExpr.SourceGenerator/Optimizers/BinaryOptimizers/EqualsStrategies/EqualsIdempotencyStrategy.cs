@@ -18,7 +18,7 @@ public class EqualsIdempotencyStrategy : BooleanBinaryStrategy
       return false;
     }
 
-    optimized = SyntaxHelpers.CreateLiteral(true);
+    optimized = CreateLiteral(true);
 		return true;
 	}
 }

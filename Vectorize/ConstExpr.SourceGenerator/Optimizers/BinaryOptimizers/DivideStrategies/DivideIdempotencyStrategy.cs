@@ -15,6 +15,6 @@ public class DivideIdempotencyStrategy : NumericBinaryStrategy
 		return base.TryOptimize(context, out optimized)
 		       && LeftEqualsRight(context)
 		       && IsPure(context.Left.Syntax)
-		       && SyntaxHelpers.TryGetLiteral(1.ToSpecialType(context.Left.Type!.SpecialType), out optimized);
+		       && TryGetLiteral(1.ToSpecialType(context.Left.Type!.SpecialType), out optimized);
 	}
 }

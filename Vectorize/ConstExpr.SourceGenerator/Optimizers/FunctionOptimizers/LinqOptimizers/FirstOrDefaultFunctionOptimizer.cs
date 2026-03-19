@@ -103,7 +103,7 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 					var collection = methodSource;
 
 					var defaultItem = invocation.ArgumentList.Arguments.Count == 0
-						? context.Method.TypeArguments[0] is INamedTypeSymbol namedType ? namedType.GetDefaultValue() : SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression)
+						? context.Method.TypeArguments[0] is INamedTypeSymbol namedType ? namedType.GetDefaultValue() : LiteralExpression(SyntaxKind.DefaultLiteralExpression)
 						: invocation.ArgumentList.Arguments[0].Expression;
 
 					while (IsLinqMethodChain(source, nameof(Enumerable.DefaultIfEmpty), out var innerDefaultInvocation)
@@ -162,8 +162,8 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 				{
 					if (context.VisitedParameters.Count == 0)
 					{
-						result = SyntaxFactory.ConditionalExpression(
-							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, countArg.Expression, SyntaxHelpers.CreateLiteral(0)!, context.Model.Compilation.CreateInt32()),
+						result = ConditionalExpression(
+							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, countArg.Expression, CreateLiteral(0)!, context.Model.Compilation.CreateInt32()),
 							startArg.Expression,
 							context.Method.TypeArguments[0].GetDefaultValue());
 						return true;
@@ -176,8 +176,8 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 					if (context.VisitedParameters.Count == 0)
 					{
 						// Repeat(element, count).FirstOrDefault() => count > 0 ? element : default
-						result = SyntaxFactory.ConditionalExpression(
-							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, SyntaxHelpers.CreateLiteral(0)!, context.Model.Compilation.CreateInt32()),
+						result = ConditionalExpression(
+							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, CreateLiteral(0)!, context.Model.Compilation.CreateInt32()),
 							repeatElementArg.Expression,
 							context.Method.TypeArguments[0].GetDefaultValue());
 						return true;
@@ -193,7 +193,7 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 		{
 			if (context.Method.Parameters.Length == 2)
 			{
-				result = CreateInvocation(SyntaxFactory.ParseTypeName(nameof(Array)), nameof(Array.Find), source, context.VisitedParameters[0]);
+				result = CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.Find), source, context.VisitedParameters[0]);
 			}
 			else
 			{
@@ -233,15 +233,15 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 	{
 		var intType = context.Model.Compilation.CreateInt32();
 
-		return SyntaxFactory.ConditionalExpression(
+		return ConditionalExpression(
 			OptimizeComparison(context, SyntaxKind.GreaterThanExpression,
 				CreateMemberAccess(collection, propertyName),
-				SyntaxHelpers.CreateLiteral(0)!, intType),
-			SyntaxFactory.ElementAccessExpression(
+				CreateLiteral(0)!, intType),
+			ElementAccessExpression(
 				collection,
-				SyntaxFactory.BracketedArgumentList(
-					SyntaxFactory.SingletonSeparatedList(
-						SyntaxFactory.Argument(SyntaxHelpers.CreateLiteral(0)!)))),
+				BracketedArgumentList(
+					SingletonSeparatedList(
+						Argument(CreateLiteral(0)!)))),
 			defaultItem);
 	}
 }

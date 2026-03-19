@@ -3,7 +3,6 @@ using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.RightShiftStrategies;
 
@@ -16,7 +15,7 @@ public class RightShiftCombineStrategy() : IntegerBinaryStrategy<BinaryExpressio
 	{ 
 		if (!base.TryOptimize(context, out optimized)
 		    || !context.TryGetValue(context.Left.Syntax.Right, out var leftShiftValue)
-		    || !SyntaxHelpers.TryGetLiteral(context.Right.Syntax.Token.Value.Add(leftShiftValue), out var combinedLiteral))
+		    || !TryGetLiteral(context.Right.Syntax.Token.Value.Add(leftShiftValue), out var combinedLiteral))
     {
       return false;
     }

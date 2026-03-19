@@ -102,15 +102,15 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 	{
 		return operatorKind switch
 		{
-			SyntaxKind.EqualsEqualsToken => SyntaxFactory.ConstantPattern(expression),
-			SyntaxKind.ExclamationEqualsToken => SyntaxFactory.UnaryPattern(
-				SyntaxFactory.Token(SyntaxKind.NotKeyword),
-				SyntaxFactory.ConstantPattern(expression)),
+			SyntaxKind.EqualsEqualsToken => ConstantPattern(expression),
+			SyntaxKind.ExclamationEqualsToken => UnaryPattern(
+				Token(SyntaxKind.NotKeyword),
+				ConstantPattern(expression)),
 			SyntaxKind.LessThanToken or
 				SyntaxKind.LessThanEqualsToken or
 				SyntaxKind.GreaterThanToken or
 				SyntaxKind.GreaterThanEqualsToken =>
-				SyntaxFactory.RelationalPattern(SyntaxFactory.Token(operatorKind), expression),
+				RelationalPattern(Token(operatorKind), expression),
 			_ => null
 		};
 	}

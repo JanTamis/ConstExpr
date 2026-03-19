@@ -53,18 +53,18 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", 2)
 					return true;
 				}
 
-				var div = SyntaxFactory.BinaryExpression(SyntaxKind.DivideExpression,
-					SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(1.0)), x);
+				var div = BinaryExpression(SyntaxKind.DivideExpression,
+					LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(1.0)), x);
 
-				result = SyntaxFactory.ParenthesizedExpression(div);
+				result = ParenthesizedExpression(div);
 				return true;
 			}
 
 			// For negative n: RootN(x, -n) => Reciprocal(RootN(x, n)) if available and fast-math, otherwise 1 / RootN(x, n)
 			if (nValue < 0)
 			{
-				var positiveN = SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression,
-					SyntaxFactory.Literal(-nValue));
+				var positiveN = LiteralExpression(SyntaxKind.NumericLiteralExpression,
+					Literal(-nValue));
 
 				var rootInvocation = CreateInvocation(paramType, "RootN", x, positiveN);
 
@@ -74,11 +74,11 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", 2)
 					return true;
 				}
 
-				var div = SyntaxFactory.BinaryExpression(SyntaxKind.DivideExpression,
-					SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(1.0)),
+				var div = BinaryExpression(SyntaxKind.DivideExpression,
+					LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(1.0)),
 					rootInvocation);
 
-				result = SyntaxFactory.ParenthesizedExpression(div);
+				result = ParenthesizedExpression(div);
 				return true;
 			}
 		}

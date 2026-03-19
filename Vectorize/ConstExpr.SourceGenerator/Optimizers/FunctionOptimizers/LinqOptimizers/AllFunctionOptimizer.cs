@@ -108,7 +108,7 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 				{
 					if (context.VisitedParameters.Count == 0)
 					{
-						result = SyntaxHelpers.CreateLiteral(true);
+						result = CreateLiteral(true);
 						return true;
 					}
 
@@ -129,7 +129,7 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 						{
 							if (currentMethodInvocation.ArgumentList.Arguments.Count == 0)
 							{
-								result = SyntaxHelpers.CreateLiteral(true);
+								result = CreateLiteral(true);
 								return true;
 							}
 
@@ -152,7 +152,7 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			{
 				if (context.VisitedParameters.Count == 0)
 				{
-					result = SyntaxHelpers.CreateLiteral(true);
+					result = CreateLiteral(true);
 					return true;
 				}
 
@@ -192,7 +192,7 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 					var intType = context.Model.Compilation.CreateInt32();
 					var boolType = context.Model.Compilation.CreateBoolean();
 
-					var countCheck = OptimizeComparison(context, SyntaxKind.LessThanOrEqualExpression, repeatCountArg.Expression, SyntaxHelpers.CreateLiteral(0)!, intType);
+					var countCheck = OptimizeComparison(context, SyntaxKind.LessThanOrEqualExpression, repeatCountArg.Expression, CreateLiteral(0)!, intType);
 					var predicateApplied = context.Visit(ReplaceIdentifier(repeatAllPredicateBody, repeatAllPredicateParam.Identifier.Text, repeatElementArg.Expression))
 					                       ?? ReplaceIdentifier(repeatAllPredicateBody, repeatAllPredicateParam.Identifier.Text, repeatElementArg.Expression);
 
@@ -207,7 +207,7 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		
 		if (IsInvokedOnArray(context, source))
 		{
-			result = CreateInvocation(SyntaxFactory.ParseTypeName(nameof(Array)), nameof(Array.TrueForAll), source, context.Visit(allLambda) ?? allLambda);
+			result = CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.TrueForAll), source, context.Visit(allLambda) ?? allLambda);
 			return true;
 		}
 
@@ -242,8 +242,8 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		var combinedBody = ReplaceIdentifier(outerBody, outerParam, innerBody);
 
 		// Create a new lambda with the inner parameter and the combined body
-		return SyntaxFactory.SimpleLambdaExpression(
-			SyntaxFactory.Parameter(SyntaxFactory.Identifier(innerParam)),
+		return SimpleLambdaExpression(
+			Parameter(Identifier(innerParam)),
 			combinedBody
 		);
 	}

@@ -3,7 +3,6 @@ using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.MultiplyStrategies;
 
@@ -22,7 +21,7 @@ public class MultiplyByPowerOfTwoLeftStrategy : IntegerBinaryStrategy<LiteralExp
 
     optimized = BinaryExpression(SyntaxKind.LeftShiftExpression, 
 			context.Right.Syntax,
-			SyntaxHelpers.CreateLiteral(power)!);
+			CreateLiteral(power)!);
 		return true;
 	}
 }

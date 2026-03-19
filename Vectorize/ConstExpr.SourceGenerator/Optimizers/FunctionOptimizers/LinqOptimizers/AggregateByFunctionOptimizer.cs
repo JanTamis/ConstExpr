@@ -6,7 +6,6 @@ using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
@@ -66,8 +65,7 @@ public class AggregateByFunctionOptimizer() : BaseLinqFunctionOptimizer("Aggrega
 		}
 
 		// Null comparer removal: AggregateBy(k, s, f, null) => AggregateBy(k, s, f)
-		if (context.VisitedParameters.Count == 4
-		    && context.VisitedParameters[3] is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NullLiteralExpression })
+		if (context.VisitedParameters is [ _, _, _, LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NullLiteralExpression } ])
 		{
 			result = UpdateInvocation(context, source, context.VisitedParameters.Take(3));
 			return true;
@@ -142,6 +140,7 @@ public class AggregateByFunctionOptimizer() : BaseLinqFunctionOptimizer("Aggrega
 						case true:
 							// x.Where(v => true).AggregateBy(...) => x.AggregateBy(...)
 							TryGetOptimizedChainExpression(chainSource, OperationsThatDontAffectAggregateBy, out chainSource);
+							
 							result = UpdateInvocation(context, chainSource);
 							return true;
 

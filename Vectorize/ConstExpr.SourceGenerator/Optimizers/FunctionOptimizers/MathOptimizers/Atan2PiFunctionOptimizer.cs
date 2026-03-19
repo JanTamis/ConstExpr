@@ -29,35 +29,35 @@ public class Atan2PiFunctionOptimizer() : BaseMathFunctionOptimizer("Atan2Pi", 2
 			// Atan2Pi(0, x) where x > 0 => 0
 			if (IsApproximately(yValue, 0.0) && xValue > 0.0)
 			{
-				result = SyntaxHelpers.CreateLiteral(0.0.ToSpecialType(paramType.SpecialType));
+				result = CreateLiteral(0.0.ToSpecialType(paramType.SpecialType));
 				return true;
 			}
 
 			// Atan2Pi(0, x) where x < 0 => 1 (π/π = 1)
 			if (IsApproximately(yValue, 0.0) && xValue < 0.0)
 			{
-				result = SyntaxHelpers.CreateLiteral(1.0.ToSpecialType(paramType.SpecialType));
+				result = CreateLiteral(1.0.ToSpecialType(paramType.SpecialType));
 				return true;
 			}
 
 			// Atan2Pi(y, 0) where y > 0 => 0.5 (π/2 / π = 0.5)
 			if (IsApproximately(xValue, 0.0) && yValue > 0.0)
 			{
-				result = SyntaxHelpers.CreateLiteral(0.5.ToSpecialType(paramType.SpecialType));
+				result = CreateLiteral(0.5.ToSpecialType(paramType.SpecialType));
 				return true;
 			}
 
 			// Atan2Pi(y, 0) where y < 0 => -0.5
 			if (IsApproximately(xValue, 0.0) && yValue < 0.0)
 			{
-				result = SyntaxHelpers.CreateLiteral((-0.5).ToSpecialType(paramType.SpecialType));
+				result = CreateLiteral((-0.5).ToSpecialType(paramType.SpecialType));
 				return true;
 			}
 
 			// Atan2Pi(y, x) where y == x and x > 0 => 0.25 (π/4 / π = 0.25)
 			if (IsApproximately(yValue, xValue) && xValue > 0.0)
 			{
-				result = SyntaxHelpers.CreateLiteral(0.25.ToSpecialType(paramType.SpecialType));
+				result = CreateLiteral(0.25.ToSpecialType(paramType.SpecialType));
 				return true;
 			}
 		}

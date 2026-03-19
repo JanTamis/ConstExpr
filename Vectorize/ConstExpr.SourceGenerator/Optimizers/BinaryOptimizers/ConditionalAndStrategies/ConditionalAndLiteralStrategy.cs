@@ -19,7 +19,7 @@ public class ConditionalAndLiteralStrategy : BooleanBinaryStrategy<LiteralExpres
     optimized = context.Left.Syntax.Token.Value switch
 		{
 			// false && x = false
-			false => SyntaxHelpers.CreateLiteral(false),
+			false => CreateLiteral(false),
 			// true && x = x
 			true => context.Right.Syntax,
 			_ => null,

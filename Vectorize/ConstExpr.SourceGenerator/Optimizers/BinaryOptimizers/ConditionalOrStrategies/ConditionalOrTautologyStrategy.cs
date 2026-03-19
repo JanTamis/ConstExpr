@@ -21,7 +21,7 @@ public class ConditionalOrTautologyStrategy : SymmetricStrategy<BooleanBinaryStr
 			return false;
 		}
 		
-		optimized = SyntaxHelpers.CreateLiteral(true);
+		optimized = CreateLiteral(true);
 		return true;
 	}
 }

@@ -10,7 +10,6 @@ using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
@@ -221,6 +220,49 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 			ArgumentList());
 	}
 
+	/// <summary>
+	/// Creates a new method invocation on the given source expression, annotated with the
+	/// resolved LINQ method symbol from the compilation so that the LinqUnroller can process it.
+	/// </summary>
+	protected InvocationExpressionSyntax CreateAnnotatedInvocation(FunctionOptimizerContext context, ExpressionSyntax source, string methodName, params IEnumerable<ExpressionSyntax> arguments)
+	{
+		var argList = arguments as ICollection<ExpressionSyntax> ?? arguments.ToArray();
+		var invocation = CreateInvocation(source, methodName, argList);
+		return AnnotateLinqInvocation(context, invocation, methodName, argList.Count);
+	}
+
+	/// <summary>
+	/// Creates a method call with no arguments on the given source expression, annotated with the
+	/// resolved LINQ method symbol from the compilation so that the LinqUnroller can process it.
+	/// </summary>
+	protected InvocationExpressionSyntax CreateAnnotatedSimpleInvocation(FunctionOptimizerContext context, ExpressionSyntax source, string methodName)
+	{
+		var invocation = CreateSimpleInvocation(source, methodName);
+		return AnnotateLinqInvocation(context, invocation, methodName, 0);
+	}
+
+	/// <summary>
+	/// Resolves the LINQ extension method symbol from the compilation and annotates the invocation node.
+	/// </summary>
+	private static InvocationExpressionSyntax AnnotateLinqInvocation(FunctionOptimizerContext context, InvocationExpressionSyntax invocation, string methodName, int lambdaArgCount)
+	{
+		var enumerable = context.Model.Compilation.GetTypeByMetadataName("System.Linq.Enumerable");
+
+		if (enumerable is not null)
+		{
+			var method = enumerable.GetMembers(methodName)
+				.OfType<IMethodSymbol>()
+				.FirstOrDefault(m => m.Parameters.Length == lambdaArgCount + 1);
+
+			if (method is not null)
+			{
+				return invocation.WithMethodSymbolAnnotation(method);
+			}
+		}
+
+		return invocation;
+	}
+
 	protected MemberAccessExpressionSyntax CreateMemberAccess(ExpressionSyntax source, string memberName)
 	{
 		return MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, source, IdentifierName(memberName));
@@ -248,7 +290,9 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	{
 		if (context.Invocation.Expression is MemberAccessExpressionSyntax memberAccess)
 		{
-			return context.Invocation.Update(memberAccess.WithExpression(context.Visit(source) ?? source), ArgumentList(SeparatedList(arguments.Select(Argument))));
+			return context.Invocation
+				.Update(memberAccess.WithExpression(context.Visit(source) ?? source), ArgumentList(SeparatedList(arguments.Select(Argument))))
+				.WithMethodSymbolAnnotation(context.Method);
 		}
 
 		throw new InvalidOperationException("Invocation expression must be a member access");
@@ -1020,8 +1064,8 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 				if (parameters.Count == context.Method.Parameters.Length)
 				{
 					if (method.IsStatic
-					    && SyntaxHelpers.TryGetLiteral(method.Invoke(null, [ values, ..parameters ]), out var tempResult)
-					    || SyntaxHelpers.TryGetLiteral(method.Invoke(values, [ ..parameters ]), out tempResult))
+					    && TryGetLiteral(method.Invoke(null, [ values, ..parameters ]), out var tempResult)
+					    || TryGetLiteral(method.Invoke(values, [ ..parameters ]), out tempResult))
 					{
 						result = tempResult;
 						return true;
@@ -1066,8 +1110,8 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 				if (newParameters.Count == context.Method.Parameters.Length)
 				{
 					if (context.Method.ReceiverType is not null
-					    && SyntaxHelpers.TryGetLiteral(method.Invoke(null, [ values, ..newParameters ]), out var tempResult)
-					    || SyntaxHelpers.TryGetLiteral(method.Invoke(values, [ ..newParameters ]), out tempResult))
+					    && TryGetLiteral(method.Invoke(null, [ values, ..newParameters ]), out var tempResult)
+					    || TryGetLiteral(method.Invoke(values, [ ..newParameters ]), out tempResult))
 					{
 						result = tempResult;
 						return true;

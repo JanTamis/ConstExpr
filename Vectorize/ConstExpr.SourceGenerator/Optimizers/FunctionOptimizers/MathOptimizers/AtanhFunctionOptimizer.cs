@@ -28,7 +28,7 @@ public class AtanhFunctionOptimizer() : BaseMathFunctionOptimizer("Atanh", 1)
 			// Atanh(0) => 0
 			if (IsApproximately(value, 0.0))
 			{
-				result = SyntaxHelpers.CreateLiteral(0.0.ToSpecialType(paramType.SpecialType));
+				result = CreateLiteral(0.0.ToSpecialType(paramType.SpecialType));
 				return true;
 			}
 
@@ -38,7 +38,7 @@ public class AtanhFunctionOptimizer() : BaseMathFunctionOptimizer("Atanh", 1)
 				var inf = value > 0
 					? paramType.SpecialType == SpecialType.System_Single ? float.PositiveInfinity : double.PositiveInfinity
 					: paramType.SpecialType == SpecialType.System_Single ? float.NegativeInfinity : double.NegativeInfinity;
-				result = SyntaxHelpers.CreateLiteral(inf.ToSpecialType(paramType.SpecialType));
+				result = CreateLiteral(inf.ToSpecialType(paramType.SpecialType));
 				return true;
 			}
 		}

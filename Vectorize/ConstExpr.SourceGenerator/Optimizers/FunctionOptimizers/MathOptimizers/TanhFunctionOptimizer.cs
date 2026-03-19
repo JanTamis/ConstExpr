@@ -28,21 +28,21 @@ public class TanhFunctionOptimizer() : BaseMathFunctionOptimizer("Tanh", 1)
 			// Tanh(0) => 0
 			if (IsApproximately(value, 0.0))
 			{
-				result = SyntaxHelpers.CreateLiteral(0.0.ToSpecialType(paramType.SpecialType));
+				result = CreateLiteral(0.0.ToSpecialType(paramType.SpecialType));
 				return true;
 			}
 
 			// Tanh(Infinity) => 1
 			if (double.IsPositiveInfinity(value))
 			{
-				result = SyntaxHelpers.CreateLiteral(1.0.ToSpecialType(paramType.SpecialType));
+				result = CreateLiteral(1.0.ToSpecialType(paramType.SpecialType));
 				return true;
 			}
 
 			// Tanh(-Infinity) => -1
 			if (double.IsNegativeInfinity(value))
 			{
-				result = SyntaxHelpers.CreateLiteral((-1.0).ToSpecialType(paramType.SpecialType));
+				result = CreateLiteral((-1.0).ToSpecialType(paramType.SpecialType));
 				return true;
 			}
 		}

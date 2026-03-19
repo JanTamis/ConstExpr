@@ -28,21 +28,21 @@ public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", 1)
 			// TanPi(0) => 0
 			if (IsApproximately(value, 0.0))
 			{
-				result = SyntaxHelpers.CreateLiteral(0.0.ToSpecialType(paramType.SpecialType));
+				result = CreateLiteral(0.0.ToSpecialType(paramType.SpecialType));
 				return true;
 			}
 
 			// TanPi(0.25) => 1 (tan(?/4) = 1)
 			if (IsApproximately(value, 0.25))
 			{
-				result = SyntaxHelpers.CreateLiteral(1.0.ToSpecialType(paramType.SpecialType));
+				result = CreateLiteral(1.0.ToSpecialType(paramType.SpecialType));
 				return true;
 			}
 
 			// TanPi(-0.25) => -1 (tan(-?/4) = -1)
 			if (IsApproximately(value, -0.25))
 			{
-				result = SyntaxHelpers.CreateLiteral((-1.0).ToSpecialType(paramType.SpecialType));
+				result = CreateLiteral((-1.0).ToSpecialType(paramType.SpecialType));
 				return true;
 			}
 
@@ -50,14 +50,14 @@ public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", 1)
 			// TanPi(1.0) => 0 (tan(?) = 0)
 			if (IsApproximately(value, 1.0))
 			{
-				result = SyntaxHelpers.CreateLiteral(0.0.ToSpecialType(paramType.SpecialType));
+				result = CreateLiteral(0.0.ToSpecialType(paramType.SpecialType));
 				return true;
 			}
 
 			// TanPi(-1.0) => 0 (tan(-?) = 0)
 			if (IsApproximately(value, -1.0))
 			{
-				result = SyntaxHelpers.CreateLiteral(0.0.ToSpecialType(paramType.SpecialType));
+				result = CreateLiteral(0.0.ToSpecialType(paramType.SpecialType));
 				return true;
 			}
 		}

@@ -1,20 +1,30 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 public abstract class BaseLinqUnroller
 {
-	public abstract void UnrollAboveLoop(UnrolledLinqMethod method, List<StatementSyntax> statements);
-	
-	public abstract void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName);
+	public virtual void UnrollAboveLoop(UnrolledLinqMethod method, List<StatementSyntax> statements) { }
 
-	public abstract void UnrollUnderLoop(UnrolledLinqMethod method, List<StatementSyntax> statements);
+	public virtual void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName) { }
+
+	public virtual void UnrollUnderLoop(UnrolledLinqMethod method, List<StatementSyntax> statements) { }
+
+	public virtual void CreateLoop(UnrolledLinqMethod method, ITypeSymbol collectionType, IList<StatementSyntax> statements, string collectionName, IList<StatementSyntax> resultStatements)
+	{
+		resultStatements.Add(ForEachStatement(IdentifierName("var"), "item", IdentifierName(collectionName), Block(statements)));
+	}
+
+	public virtual ExpressionSyntax GetCollectionElement(UnrolledLinqMethod method, string collectionName)
+	{
+		return IdentifierName("item");
+	}
 
 	protected static ExpressionSyntax InvertSyntax(ExpressionSyntax node)
 	{
@@ -33,7 +43,7 @@ public abstract class BaseLinqUnroller
 					SyntaxKind.GreaterThanOrEqualExpression => BinaryExpression(SyntaxKind.LessThanExpression, binary.Left, binary.Right),
 					SyntaxKind.LessThanExpression => BinaryExpression(SyntaxKind.GreaterThanOrEqualExpression, binary.Left, binary.Right),
 					SyntaxKind.LessThanOrEqualExpression => BinaryExpression(SyntaxKind.GreaterThanExpression, binary.Left, binary.Right),
-					SyntaxKind.IsExpression => IsPatternExpression(binary.Left, UnaryPattern(Token(SyntaxKind.NotKeyword), TypePattern((TypeSyntax)binary.Right))),
+					SyntaxKind.IsExpression => IsPatternExpression(binary.Left, UnaryPattern(Token(SyntaxKind.NotKeyword), TypePattern((TypeSyntax) binary.Right))),
 					_ => PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, node)
 				};
 			}
@@ -95,6 +105,32 @@ public abstract class BaseLinqUnroller
 			: replacement;
 
 		return new IdentifierReplacer(oldIdentifier, wrappedReplacement).Visit(body)!;
+	}
+
+	/// <summary>
+	/// Checks if the invocation is made on an array type.
+	/// </summary>
+	protected static bool IsInvokedOnArray(ITypeSymbol type)
+	{
+		return type is IArrayTypeSymbol;
+	}
+
+	/// <summary>
+	/// Checks if the invocation is made on a List&lt;T&gt; type.
+	/// </summary>
+	protected static bool IsInvokedOnCollection(ITypeSymbol type)
+	{
+		return type.AllInterfaces.Any(a => a.OriginalDefinition.SpecialType == SpecialType.System_Collections_Generic_IList_T);
+	}
+
+	protected ForStatementSyntax CreateForLoop(string collectionName, string indexName, string lengthName, BlockSyntax body, ExpressionSyntax initialElement)
+	{
+		return ForStatement(body)
+			.WithDeclaration(VariableDeclaration(IdentifierName("var"))
+				.WithVariables(SingletonSeparatedList(VariableDeclarator(indexName).WithInitializer(EqualsValueClause(initialElement))))
+			)
+			.WithCondition(BinaryExpression(SyntaxKind.LessThanExpression, IdentifierName(indexName), MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName(collectionName), IdentifierName(lengthName))))
+			.WithIncrementors(SingletonSeparatedList<ExpressionSyntax>(PostfixUnaryExpression(SyntaxKind.PostIncrementExpression, IdentifierName(indexName))));
 	}
 }
 

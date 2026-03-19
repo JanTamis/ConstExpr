@@ -644,7 +644,7 @@ public static class CompilationExtensions
 
 	public static object? GetPropertyValue(this MetadataLoader loader, ISymbol propertySymbol, object? instance)
 	{
-		var fullyQualifiedTypeName = $"{SyntaxHelpers.GetFullNamespace(propertySymbol.ContainingNamespace)}.{propertySymbol.ContainingType.MetadataName}";
+		var fullyQualifiedTypeName = $"{GetFullNamespace(propertySymbol.ContainingNamespace)}.{propertySymbol.ContainingType.MetadataName}";
 		var type = loader.GetType(propertySymbol.ContainingType);
 
 		if (type == null)
@@ -821,8 +821,8 @@ public static class CompilationExtensions
 		if (!items.IsEmpty && items.IsSame(items[0]))
 		{
 			return elementType.NeedsCast()
-				? $"{vectorType}.Create(({elementType}){SyntaxHelpers.CreateLiteral(items[0])})"
-				: $"{vectorType}.Create({SyntaxHelpers.CreateLiteral(items[0])})";
+				? $"{vectorType}.Create(({elementType}){CreateLiteral(items[0])})"
+				: $"{vectorType}.Create({CreateLiteral(items[0])})";
 		}
 
 		if (items.Length == elementCount)
@@ -857,32 +857,32 @@ public static class CompilationExtensions
 				if (isSequence && step != null)
 				{
 					return elementType.NeedsCast()
-						? $"{vectorType}.CreateSequence(({elementType}){SyntaxHelpers.CreateLiteral(items[0])}, ({elementType}){SyntaxHelpers.CreateLiteral(step)})"
-						: $"{vectorType}.CreateSequence({SyntaxHelpers.CreateLiteral(items[0])}, {SyntaxHelpers.CreateLiteral(step)})";
+						? $"{vectorType}.CreateSequence(({elementType}){CreateLiteral(items[0])}, ({elementType}){CreateLiteral(step)})"
+						: $"{vectorType}.CreateSequence({CreateLiteral(items[0])}, {CreateLiteral(step)})";
 				}
 			}
 
 			return elementType.NeedsCast()
-				? $"{vectorType}.Create({items.Join<T, object?>(", ", s => s is string ? s : $"({compilation.GetMinimalString(elementType)}){SyntaxHelpers.CreateLiteral(s)}")})"
-				: $"{vectorType}.Create({items.Join<T, object?>(", ", s => s is string ? s : SyntaxHelpers.CreateLiteral(s))})";
+				? $"{vectorType}.Create({items.Join<T, object?>(", ", s => s is string ? s : $"({compilation.GetMinimalString(elementType)}){CreateLiteral(s)}")})"
+				: $"{vectorType}.Create({items.Join<T, object?>(", ", s => s is string ? s : CreateLiteral(s))})";
 		}
 
 		if (isRepeating)
 		{
 			if (elementType.NeedsCast())
 			{
-				return $"{vectorType}.Create({items.Join<T, object?>(", ", elementCount, s => s is string ? s : $"({compilation.GetMinimalString(elementType)}){SyntaxHelpers.CreateLiteral(s)}")})";
+				return $"{vectorType}.Create({items.Join<T, object?>(", ", elementCount, s => s is string ? s : $"({compilation.GetMinimalString(elementType)}){CreateLiteral(s)}")})";
 			}
 
-			return $"{vectorType}.Create({items.Join<T, object?>(", ", elementCount, s => s is string ? s : SyntaxHelpers.CreateLiteral(s))})";
+			return $"{vectorType}.Create({items.Join<T, object?>(", ", elementCount, s => s is string ? s : CreateLiteral(s))})";
 		}
 
 		if (elementType.NeedsCast())
 		{
-			return $"{vectorType}.Create({items.JoinWithPadding<T, object?>(", ", elementCount, (T) 0.ToSpecialType(elementType.SpecialType), s => s is string ? s : $"({compilation.GetMinimalString(elementType)}){SyntaxHelpers.CreateLiteral(s)}")})";
+			return $"{vectorType}.Create({items.JoinWithPadding<T, object?>(", ", elementCount, (T) 0.ToSpecialType(elementType.SpecialType), s => s is string ? s : $"({compilation.GetMinimalString(elementType)}){CreateLiteral(s)}")})";
 		}
 
-		return $"{vectorType}.Create({items.JoinWithPadding<T, object?>(", ", elementCount, (T) 0.ToSpecialType(elementType.SpecialType), s => s is string ? s : SyntaxHelpers.CreateLiteral(s))})";
+		return $"{vectorType}.Create({items.JoinWithPadding<T, object?>(", ", elementCount, (T) 0.ToSpecialType(elementType.SpecialType), s => s is string ? s : CreateLiteral(s))})";
 	}
 
 	public static VectorTypes GetVector<T>(this Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, ReadOnlySpan<T> items, bool isRepeating, out string vector, out int vectorSize)
@@ -1080,25 +1080,25 @@ public static class CompilationExtensions
 	{
 		if (type.IsReferenceType)
 		{
-			return SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression);
+			return LiteralExpression(SyntaxKind.NullLiteralExpression);
 		}
 
 		return type.SpecialType switch
 		{
-			SpecialType.System_Boolean => SyntaxFactory.LiteralExpression(SyntaxKind.FalseLiteralExpression),
-			SpecialType.System_Byte => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0)),
-			SpecialType.System_SByte => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0)),
-			SpecialType.System_Int16 => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0)),
-			SpecialType.System_UInt16 => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0)),
-			SpecialType.System_Int32 => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0)),
-			SpecialType.System_UInt32 => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0U)),
-			SpecialType.System_Int64 => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0L)),
-			SpecialType.System_UInt64 => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0UL)),
-			SpecialType.System_Single => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0f)),
-			SpecialType.System_Double => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0d)),
-			SpecialType.System_Decimal => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(0m)),
-			SpecialType.System_Char => SyntaxFactory.LiteralExpression(SyntaxKind.CharacterLiteralExpression, SyntaxFactory.Literal(0)),
-			_ => SyntaxFactory.DefaultExpression(SyntaxFactory.ParseTypeName(type.ToDisplayString())),
+			SpecialType.System_Boolean => LiteralExpression(SyntaxKind.FalseLiteralExpression),
+			SpecialType.System_Byte => LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)),
+			SpecialType.System_SByte => LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)),
+			SpecialType.System_Int16 => LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)),
+			SpecialType.System_UInt16 => LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)),
+			SpecialType.System_Int32 => LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)),
+			SpecialType.System_UInt32 => LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0U)),
+			SpecialType.System_Int64 => LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0L)),
+			SpecialType.System_UInt64 => LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0UL)),
+			SpecialType.System_Single => LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0f)),
+			SpecialType.System_Double => LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0d)),
+			SpecialType.System_Decimal => LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0m)),
+			SpecialType.System_Char => LiteralExpression(SyntaxKind.CharacterLiteralExpression, Literal(0)),
+			_ => DefaultExpression(ParseTypeName(type.ToDisplayString())),
 		};
 	}
 
@@ -1215,7 +1215,7 @@ public static class CompilationExtensions
 		var format = fullyQualified ? SymbolDisplayFormat.FullyQualifiedFormat : SymbolDisplayFormat.MinimallyQualifiedFormat;
 		var typeText = typeSymbol.ToDisplayString(format);
 
-		return SyntaxFactory.ParseTypeName(typeText);
+		return ParseTypeName(typeText);
 	}
 
 	public static bool TryGetParentOfType<T>(this SyntaxNode node, [NotNullWhen(true)] out T? parent) where T : SyntaxNode
@@ -1251,6 +1251,12 @@ public static class CompilationExtensions
 					{
 						info = semantic.GetSymbolInfo(node);
 					}
+					else if (node.TryGetMethodSymbolAnnotation(out var annotatedMethod) && annotatedMethod is TSymbol annotatedSymbol)
+					{
+						// Fallback: check for symbol annotation on synthetic/optimized nodes
+						value = annotatedSymbol;
+						return true;
+					}
 					else
 					{
 						value = default;
@@ -1270,6 +1276,13 @@ public static class CompilationExtensions
 
 		}
 
+		// Final fallback: check annotations for synthetic nodes created by optimizers
+		if (node is not null && node.TryGetMethodSymbolAnnotation(out var fallbackMethod) && fallbackMethod is TSymbol fallbackSymbol)
+		{
+			value = fallbackSymbol;
+			return true;
+		}
+
 		value = default;
 		return false;
 	}
@@ -1287,6 +1300,12 @@ public static class CompilationExtensions
 					if (semanticModel.Compilation.TryGetSemanticModel(node, out var semantic))
 					{
 						info = semantic.GetTypeInfo(node);
+					}
+					else if (node.TryGetTypeSymbolAnnotation(out var annotatedType))
+					{
+						// Fallback: check for type annotation on synthetic/optimized nodes
+						typeSymbol = annotatedType;
+						return true;
 					}
 					else
 					{
@@ -1326,6 +1345,13 @@ public static class CompilationExtensions
 					return true;
 				}
 			}
+		}
+
+		// Final fallback: check annotations for synthetic nodes created by optimizers
+		if (node is not null && node.TryGetTypeSymbolAnnotation(out var fallbackType))
+		{
+			typeSymbol = fallbackType;
+			return true;
 		}
 
 		typeSymbol = null;

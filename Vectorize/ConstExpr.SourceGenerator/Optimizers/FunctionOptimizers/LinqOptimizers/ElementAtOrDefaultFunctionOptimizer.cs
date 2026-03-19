@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
@@ -74,11 +73,11 @@ public class ElementAtOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(n
 				case nameof(Enumerable.Range) when invocation.ArgumentList.Arguments is [ var startArg, var countArg ]:
 				{
 					// Range(start, count).ElementAtOrDefault(n) => n >= 0 && n < count ? start + n : default(int)
-					var indexNonNeg = OptimizeComparison(context, SyntaxKind.GreaterThanOrEqualExpression, indexParameter, SyntaxHelpers.CreateLiteral(0)!, intType);
+					var indexNonNeg = OptimizeComparison(context, SyntaxKind.GreaterThanOrEqualExpression, indexParameter, CreateLiteral(0)!, intType);
 					var indexInBounds = OptimizeComparison(context, SyntaxKind.LessThanExpression, indexParameter, countArg.Expression, intType);
 					var condition = OptimizeComparison(context, SyntaxKind.LogicalAndExpression, indexNonNeg, indexInBounds, boolType);
 
-					result = SyntaxFactory.ConditionalExpression(
+					result = ConditionalExpression(
 						condition,
 						OptimizeArithmetic(context, SyntaxKind.AddExpression, startArg.Expression, indexParameter, intType),
 						type.GetDefaultValue());
@@ -87,11 +86,11 @@ public class ElementAtOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(n
 				case nameof(Enumerable.Repeat) when invocation.ArgumentList.Arguments is [ var repeatElementArg, var repeatCountArg ]:
 				{
 					// Repeat(element, count).ElementAtOrDefault(n) => n >= 0 && n < count ? element : default(T)
-					var indexNonNeg = OptimizeComparison(context, SyntaxKind.GreaterThanOrEqualExpression, indexParameter, SyntaxHelpers.CreateLiteral(0)!, intType);
+					var indexNonNeg = OptimizeComparison(context, SyntaxKind.GreaterThanOrEqualExpression, indexParameter, CreateLiteral(0)!, intType);
 					var indexInBounds = OptimizeComparison(context, SyntaxKind.LessThanExpression, indexParameter, repeatCountArg.Expression, intType);
 					var condition = OptimizeComparison(context, SyntaxKind.LogicalAndExpression, indexNonNeg, indexInBounds, boolType);
 
-					result = SyntaxFactory.ConditionalExpression(condition, repeatElementArg.Expression, type.GetDefaultValue());
+					result = ConditionalExpression(condition, repeatElementArg.Expression, type.GetDefaultValue());
 					return true;
 				}
 			}
@@ -100,7 +99,7 @@ public class ElementAtOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(n
 		if (IsInvokedOnArray(context, source))
 		{
 			// optimize to x.Length > n ? x[n] : default
-			result = SyntaxFactory.ConditionalExpression(
+			result = ConditionalExpression(
 				OptimizeComparison(context, SyntaxKind.GreaterThanExpression, CreateMemberAccess(source, "Length"),
 					indexParameter!, intType),
 				CreateElementAccess(source, indexParameter),
@@ -112,7 +111,7 @@ public class ElementAtOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(n
 		{
 
 			// optimize to x.Count > n ? x[n] : default
-			result = SyntaxFactory.ConditionalExpression(
+			result = ConditionalExpression(
 				OptimizeComparison(context, SyntaxKind.GreaterThanExpression, CreateMemberAccess(source, "Count"),
 					indexParameter!, intType),
 				CreateElementAccess(source, indexParameter),

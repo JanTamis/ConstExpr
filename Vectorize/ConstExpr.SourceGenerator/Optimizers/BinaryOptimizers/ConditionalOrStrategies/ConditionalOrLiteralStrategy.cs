@@ -16,7 +16,7 @@ public class ConditionalOrLiteralStrategy : SymmetricStrategy<BooleanBinaryStrat
 			case true:
 			{
 				// true || x = true
-				optimized = SyntaxHelpers.CreateLiteral(true);
+				optimized = CreateLiteral(true);
 				return true;
 			}
 			case false:

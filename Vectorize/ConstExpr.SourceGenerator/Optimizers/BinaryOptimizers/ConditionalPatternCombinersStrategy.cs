@@ -15,12 +15,12 @@ public class ConditionalPatternCombinersStrategy(BinaryOperatorKind operatorKind
 			return false;
 		}
 		
-		var combinedPattern = SyntaxFactory.BinaryPattern(
+		var combinedPattern = BinaryPattern(
 			GetRelationalPatternKind(operatorKind),
 			context.Left.Syntax.Pattern,
 			context.Right.Syntax.Pattern);
 		
-		optimized = SyntaxFactory.IsPatternExpression(context.Left.Syntax.Expression, combinedPattern);
+		optimized = IsPatternExpression(context.Left.Syntax.Expression, combinedPattern);
 		return true;
 	}
 

@@ -27,14 +27,14 @@ public class IsNullOrWhiteSpaceFunctionOptimizer(SyntaxNode? instance) : BaseStr
 
 		if (literal.IsKind(SyntaxKind.NullLiteralExpression))
 		{
-			result = SyntaxHelpers.CreateLiteral(true);
+			result = CreateLiteral(true);
 			return true;
 		}
 
 		if (literal.IsKind(SyntaxKind.StringLiteralExpression))
 		{
 			var str = literal.Token.ValueText;
-			result = SyntaxHelpers.CreateLiteral(string.IsNullOrWhiteSpace(str));
+			result = CreateLiteral(string.IsNullOrWhiteSpace(str));
 			return true;
 		}
 

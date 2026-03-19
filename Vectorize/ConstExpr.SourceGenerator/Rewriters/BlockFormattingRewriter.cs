@@ -53,7 +53,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		if (!isKeyword.TrailingTrivia.Any(SyntaxKind.WhitespaceTrivia))
 		{
 			// Add a single space after 'is'
-			visited = visited.WithIsKeyword(isKeyword.WithTrailingTrivia(SyntaxFactory.Space));
+			visited = visited.WithIsKeyword(isKeyword.WithTrailingTrivia(Space));
 		}
 
 		return visited;
@@ -141,18 +141,18 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			return node;
 		}
 
-		if (SyntaxHelpers.TryGetLiteral(node.Token.Value, out var expression))
+		if (TryGetLiteral(node.Token.Value, out var expression))
 		{
 			return (node.Token.Value switch
 			{
-				Math.PI => SyntaxFactory.ParseExpression("Double.Pi"),
-				Math.PI * 2 => SyntaxFactory.ParseExpression("Double.Tau"),
-				Math.E => SyntaxFactory.ParseExpression("Double.E"),
-				MathF.PI => SyntaxFactory.ParseExpression("Single.Pi"),
-				MathF.PI * 2 => SyntaxFactory.ParseExpression("Single.Tau"),
-				MathF.E => SyntaxFactory.ParseExpression("Single.E"),
-				Double.Epsilon => SyntaxFactory.ParseExpression("Double.Epsilon"),
-				Single.Epsilon => SyntaxFactory.ParseExpression("Single.Epsilon"),
+				Math.PI => ParseExpression("Double.Pi"),
+				Math.PI * 2 => ParseExpression("Double.Tau"),
+				Math.E => ParseExpression("Double.E"),
+				MathF.PI => ParseExpression("Single.Pi"),
+				MathF.PI * 2 => ParseExpression("Single.Tau"),
+				MathF.E => ParseExpression("Single.E"),
+				Double.Epsilon => ParseExpression("Double.Epsilon"),
+				Single.Epsilon => ParseExpression("Single.Epsilon"),
 				_ => IsHexOrBinaryLiteral(node.Token) ? node : expression,
 			}).WithLeadingTrivia(node.GetLeadingTrivia()).WithTrailingTrivia(node.GetTrailingTrivia());
 		}
@@ -337,7 +337,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 				}
 
 				// Build new leading trivia: exactly 1 EOL + rest (whitespace/indentation)
-				var newLeading = SyntaxFactory.TriviaList(SyntaxFactory.EndOfLine("\n"));
+				var newLeading = TriviaList(EndOfLine("\n"));
 
 				for (var j = nonEolStart; j < leading.Count; j++)
 				{
@@ -349,7 +349,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 				// Also normalize trailing trivia of the *previous* member to have exactly 1 EOL
 				var prev = newMembers[i - 1];
 				var trailing = prev.GetTrailingTrivia();
-				var newTrailing = SyntaxFactory.TriviaList();
+				var newTrailing = TriviaList();
 				var foundEol = false;
 
 				foreach (var trivia in trailing)
@@ -376,7 +376,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 				if (!foundEol)
 				{
-					newTrailing = newTrailing.Add(SyntaxFactory.EndOfLine("\n"));
+					newTrailing = newTrailing.Add(EndOfLine("\n"));
 				}
 
 				newMembers = newMembers.Replace(newMembers[i - 1], prev.WithTrailingTrivia(newTrailing));
@@ -400,10 +400,10 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		{
 			if (node.Parent is LocalFunctionStatementSyntax or MethodDeclarationSyntax)
 			{
-				return node.WithStatements(SyntaxFactory.List(visited));
+				return node.WithStatements(List(visited));
 			}
 
-			return null;
+			return node;
 		}
 
 		// Combine simple patterns: single-variable local declaration without initializer
@@ -449,7 +449,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 									if (idx > 0)
 									{
-										var newLeading = SyntaxFactory.TriviaList();
+										var newLeading = TriviaList();
 
 										for (var k = idx; k < leading.Count; k++)
 										{
@@ -460,8 +460,8 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 										rightExpr = rightExpr.ReplaceToken(firstToken, newFirstToken);
 									}
 
-									var newVar = decl.Variables[0].WithInitializer(SyntaxFactory.EqualsValueClause(rightExpr));
-									var newDecl = decl.WithVariables(SyntaxFactory.SingletonSeparatedList(newVar));
+									var newVar = decl.Variables[0].WithInitializer(EqualsValueClause(rightExpr));
+									var newDecl = decl.WithVariables(SingletonSeparatedList(newVar));
 
 									// Preserve any trivia from the assignment's statement (e.g. trailing comments) by moving trailing trivia
 									// from the exprStmt to the new declaration's semicolon/trailing trivia.
@@ -568,7 +568,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		// Geen blanco regel voor de eerste statement
 		visited[0] = TrimLeadingBlankLinesTo(visited[0], 0);
 
-		var newNode = node.WithStatements(SyntaxFactory.List(visited));
+		var newNode = node.WithStatements(List(visited));
 		newNode = NormalizeOpenBraceTrailing(newNode);
 
 		return newNode;
@@ -605,7 +605,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		if (!hasWhitespace && !hasEol)
 		{
 			// Voeg spatie toe
-			rk = rk.WithTrailingTrivia(trailing.Add(SyntaxFactory.Space));
+			rk = rk.WithTrailingTrivia(trailing.Add(Space));
 			visited = visited.WithReturnKeyword(rk);
 
 			// Verwijder leading whitespace van eerste token van de expressie (anders dubbele spatie)
@@ -620,7 +620,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 			if (idx > 0)
 			{
-				var newLeading = SyntaxFactory.TriviaList();
+				var newLeading = TriviaList();
 
 				for (var i = idx; i < leading.Count; i++)
 				{
@@ -648,7 +648,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		{
 			// Strip trailing trivia from `]` so there's no newline before `{`
 			visited = visited
-				.WithCloseBracketToken(visited.CloseBracketToken.WithTrailingTrivia(SyntaxFactory.TriviaList()))
+				.WithCloseBracketToken(visited.CloseBracketToken.WithTrailingTrivia(TriviaList()))
 				.WithInitializer(FlattenSingleElementArrayInitializer(visited.Initializer));
 		}
 
@@ -665,7 +665,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			var lastTypeToken = visited.Type.GetLastToken();
 			var cleanedType = visited.Type.ReplaceToken(
 				lastTypeToken,
-				lastTypeToken.WithTrailingTrivia(SyntaxFactory.TriviaList()));
+				lastTypeToken.WithTrailingTrivia(TriviaList()));
 			visited = visited
 				.WithType(cleanedType)
 				.WithInitializer(FlattenSingleElementArrayInitializer(visited.Initializer));
@@ -680,14 +680,14 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 		return initializer
 			.WithOpenBraceToken(
-				SyntaxFactory.Token(SyntaxKind.OpenBraceToken)
-					.WithLeadingTrivia(SyntaxFactory.Space)
-					.WithTrailingTrivia(SyntaxFactory.Space))
+				Token(SyntaxKind.OpenBraceToken)
+					.WithLeadingTrivia(Space)
+					.WithTrailingTrivia(Space))
 			.WithCloseBraceToken(
-				SyntaxFactory.Token(SyntaxKind.CloseBraceToken)
-					.WithLeadingTrivia(SyntaxFactory.Space)
-					.WithTrailingTrivia(SyntaxFactory.TriviaList()))
-			.WithExpressions(SyntaxFactory.SingletonSeparatedList(expr));
+				Token(SyntaxKind.CloseBraceToken)
+					.WithLeadingTrivia(Space)
+					.WithTrailingTrivia(TriviaList()))
+			.WithExpressions(SingletonSeparatedList(expr));
 	}
 
 	// Normalize object creation spacing so `new Type (` -> `new Type(`
@@ -710,7 +710,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 			if (result.ArgumentList is not null)
 			{
-				result = result.WithArgumentList(result.ArgumentList.WithTrailingTrivia(SyntaxFactory.Space));
+				result = result.WithArgumentList(result.ArgumentList.WithTrailingTrivia(Space));
 			}
 		}
 
@@ -726,34 +726,34 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 				if (expr is InitializerExpressionSyntax innerInit)
 				{
-					var innerComma = SyntaxFactory.Token(SyntaxKind.CommaToken).WithTrailingTrivia(SyntaxFactory.Space);
+					var innerComma = Token(SyntaxKind.CommaToken).WithTrailingTrivia(Space);
 					var innerCommas = Enumerable.Repeat(innerComma, Math.Max(0, innerInit.Expressions.Count - 1)).ToArray();
 					var innerItems = innerInit.Expressions.Select(e => e.WithoutTrivia()).ToArray();
 
 					flat = innerInit
-						.WithOpenBraceToken(SyntaxFactory.Token(SyntaxKind.OpenBraceToken)
-							.WithLeadingTrivia(SyntaxFactory.Space))
-						.WithCloseBraceToken(SyntaxFactory.Token(SyntaxKind.CloseBraceToken))
-						.WithExpressions(SyntaxFactory.SeparatedList(innerItems, innerCommas));
+						.WithOpenBraceToken(Token(SyntaxKind.OpenBraceToken)
+							.WithLeadingTrivia(Space))
+						.WithCloseBraceToken(Token(SyntaxKind.CloseBraceToken))
+						.WithExpressions(SeparatedList(innerItems, innerCommas));
 				}
 				else
 				{
 					flat = expr.WithoutTrivia();
 				}
 
-				return flat.WithLeadingTrivia(SyntaxFactory.Space);
+				return flat.WithLeadingTrivia(Space);
 			})
 			.ToArray();
 
 		var commas = Enumerable.Repeat(
-			SyntaxFactory.Token(SyntaxKind.CommaToken).WithTrailingTrivia(),
+			Token(SyntaxKind.CommaToken).WithTrailingTrivia(),
 			Math.Max(0, flatElements.Length - 1)).ToArray();
 
 		return initializer
-			.WithOpenBraceToken(SyntaxFactory.Token(SyntaxKind.OpenBraceToken).WithTrailingTrivia())
-			.WithCloseBraceToken(SyntaxFactory.Token(SyntaxKind.CloseBraceToken)
-				.WithLeadingTrivia(SyntaxFactory.Space))
-			.WithExpressions(SyntaxFactory.SeparatedList(flatElements, commas));
+			.WithOpenBraceToken(Token(SyntaxKind.OpenBraceToken).WithTrailingTrivia())
+			.WithCloseBraceToken(Token(SyntaxKind.CloseBraceToken)
+				.WithLeadingTrivia(Space))
+			.WithExpressions(SeparatedList(flatElements, commas));
 	}
 
 	public override SyntaxNode? VisitInvocationExpression(InvocationExpressionSyntax node)
@@ -785,7 +785,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 			if (fullTypeName is not null)
 			{
-				return result.WithExpression(memberAccess.WithExpression(SyntaxFactory.ParseTypeName(fullTypeName)));
+				return result.WithExpression(memberAccess.WithExpression(ParseTypeName(fullTypeName)));
 			}
 		}
 
@@ -954,7 +954,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 		for (var k = 0; k < 2 - newlineCount; k++)
 		{
-			list = list.Add(SyntaxFactory.ElasticCarriageReturnLineFeed);
+			list = list.Add(ElasticCarriageReturnLineFeed);
 		}
 
 		return statement.WithTrailingTrivia(list);
@@ -981,7 +981,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 		for (var i = 0; i < maxEols; i++)
 		{
-			newLeading.Add(SyntaxFactory.ElasticCarriageReturnLineFeed);
+			newLeading.Add(ElasticCarriageReturnLineFeed);
 		}
 
 		for (var i = idx; i < leading.Count; i++)
@@ -989,7 +989,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			newLeading.Add(leading[i]);
 		}
 
-		return statement.WithLeadingTrivia(SyntaxFactory.TriviaList(newLeading));
+		return statement.WithLeadingTrivia(TriviaList(newLeading));
 	}
 
 	private static int CountTrailingNewLines(SyntaxTriviaList trailing)
@@ -1036,9 +1036,9 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			newTrailing.Add(trailing[i]);
 		}
 
-		newTrailing.Add(SyntaxFactory.ElasticCarriageReturnLineFeed);
+		newTrailing.Add(ElasticCarriageReturnLineFeed);
 
-		return block.WithOpenBraceToken(open.WithTrailingTrivia(SyntaxFactory.TriviaList(newTrailing)));
+		return block.WithOpenBraceToken(open.WithTrailingTrivia(TriviaList(newTrailing)));
 	}
 
 	private static bool HasLeadingComment(StatementSyntax statement)
@@ -1099,7 +1099,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 					// For comparisons: invert the operator (e.g., > becomes <=)
 					if (IsComparisonOperator(binary.Kind()))
 					{
-						return SyntaxFactory.BinaryExpression(
+						return BinaryExpression(
 							negatedKind.Value,
 							binary.Left,
 							binary.Right
@@ -1111,7 +1111,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 					// !(a || b) -> !a && !b
 					if (binary.IsKind(SyntaxKind.LogicalAndExpression, SyntaxKind.LogicalOrExpression))
 					{
-						return SyntaxFactory.BinaryExpression(
+						return BinaryExpression(
 							negatedKind.Value,
 							NegateCondition(binary.Left),
 							NegateCondition(binary.Right)
@@ -1129,12 +1129,12 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			case InvocationExpressionSyntax:
 			case IdentifierNameSyntax:
 			case MemberAccessExpressionSyntax:
-				return SyntaxFactory.PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, condition);
+				return PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, condition);
 		}
 
 		// Default: wrap in parentheses and add !
-		var parenthesizedCondition = SyntaxFactory.ParenthesizedExpression(condition);
-		return SyntaxFactory.PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, parenthesizedCondition);
+		var parenthesizedCondition = ParenthesizedExpression(condition);
+		return PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, parenthesizedCondition);
 	}
 
 	private static bool IsComparisonOperator(SyntaxKind kind)
@@ -1180,7 +1180,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			
 			// Strip all trailing trivia from the type
 			var lastToken = type.GetLastToken();
-			var newLastToken = lastToken.WithTrailingTrivia(SyntaxFactory.TriviaList());
+			var newLastToken = lastToken.WithTrailingTrivia(TriviaList());
 			type = type.ReplaceToken(lastToken, newLastToken);
 			
 			return castExpr.WithType(type);

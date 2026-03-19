@@ -235,9 +235,9 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 			context.AdditionalMethods.TryAdd(lookupStruct, true);
 
 			// Return new StructName() as the replacement expression
-			result = SyntaxFactory.ObjectCreationExpression(
-					SyntaxFactory.IdentifierName(structName))
-				.WithArgumentList(SyntaxFactory.ArgumentList());
+			result = ObjectCreationExpression(
+					IdentifierName(structName))
+				.WithArgumentList(ArgumentList());
 
 			return true;
 		}
@@ -300,20 +300,20 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		}
 
 		// Build: key is <lit1> or <lit2> or ...
-		PatternSyntax pattern = SyntaxFactory.ConstantPattern(
-			SyntaxFactory.ParseExpression(FormatLiteral(groups[0].Key)));
+		PatternSyntax pattern = ConstantPattern(
+			ParseExpression(FormatLiteral(groups[0].Key)));
 
 		for (var i = 1; i < groups.Count; i++)
 		{
-			pattern = SyntaxFactory.BinaryPattern(
+			pattern = BinaryPattern(
 				SyntaxKind.OrPattern,
 				pattern,
-				SyntaxFactory.ConstantPattern(
-					SyntaxFactory.ParseExpression(FormatLiteral(groups[i].Key))));
+				ConstantPattern(
+					ParseExpression(FormatLiteral(groups[i].Key))));
 		}
 
-		ExpressionSyntax isExpression = SyntaxFactory.IsPatternExpression(
-			SyntaxFactory.IdentifierName("key"),
+		ExpressionSyntax isExpression = IsPatternExpression(
+			IdentifierName("key"),
 			pattern);
 
 		// Let context.Visit optimise the expression (e.g. range checks)

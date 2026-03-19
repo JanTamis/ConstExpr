@@ -21,12 +21,12 @@ public class ConditionalPatternCombinerStrategy(BinaryOperatorKind operatorKind)
 				return false;
 			}
 
-			var combinedPattern = SyntaxFactory.BinaryPattern(
+			var combinedPattern = BinaryPattern(
 				patternKind,
 				context.Left.Syntax.Pattern,
 				rightPattern);
 
-			optimized = SyntaxFactory.IsPatternExpression(context.Left.Syntax.Expression, combinedPattern);
+			optimized = IsPatternExpression(context.Left.Syntax.Expression, combinedPattern);
 			return true;
 		}
 
@@ -40,12 +40,12 @@ public class ConditionalPatternCombinerStrategy(BinaryOperatorKind operatorKind)
 				return false;
 			}
 
-			var combinedPattern = SyntaxFactory.BinaryPattern(
+			var combinedPattern = BinaryPattern(
 				patternKind,
 				context.Left.Syntax.Pattern,
 				rightPattern);
 
-			optimized = SyntaxFactory.IsPatternExpression(context.Left.Syntax.Expression, combinedPattern);
+			optimized = IsPatternExpression(context.Left.Syntax.Expression, combinedPattern);
 			return true;
 		}
 

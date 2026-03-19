@@ -3,7 +3,6 @@ using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 
@@ -29,7 +28,7 @@ public class ToCharArrayFunctionOptimizer(SyntaxNode? instance) : BaseStringFunc
 
 		// Create collection expression with char literals
 		var elements = str
-			.Select(c => SyntaxHelpers.CreateLiteral(c))
+			.Select(c => CreateLiteral(c))
 			.Where(e => e is not null)
 			.Select(e => ExpressionElement(e!))
 			.Cast<CollectionElementSyntax>()

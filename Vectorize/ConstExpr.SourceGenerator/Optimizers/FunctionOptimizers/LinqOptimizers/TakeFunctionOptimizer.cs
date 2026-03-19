@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -53,7 +52,7 @@ public class TakeFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 			.Where(w => w is not LiteralExpressionSyntax);
 		
 		var amount = noValues
-			.Aggregate<ExpressionSyntax, ExpressionSyntax>(minAmount, (acc, next) => CreateInvocation(SyntaxFactory.ParseTypeName("Int32"), "Min", acc, next));
+			.Aggregate<ExpressionSyntax, ExpressionSyntax>(minAmount, (acc, next) => CreateInvocation(ParseTypeName("Int32"), "Min", acc, next));
 
 		if (amount is LiteralExpressionSyntax { Token.Value: <= 0 })
 		{

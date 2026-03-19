@@ -28,7 +28,7 @@ public class AtanFunctionOptimizer() : BaseMathFunctionOptimizer("Atan", 1)
 			// Atan(0) => 0
 			if (IsApproximately(value, 0.0))
 			{
-				result = SyntaxHelpers.CreateLiteral(0.0.ToSpecialType(paramType.SpecialType));
+				result = CreateLiteral(0.0.ToSpecialType(paramType.SpecialType));
 				return true;
 			}
 
@@ -36,7 +36,7 @@ public class AtanFunctionOptimizer() : BaseMathFunctionOptimizer("Atan", 1)
 			if (IsApproximately(value, 1.0))
 			{
 				var piOver4 = Math.PI / 4.0;
-				result = SyntaxHelpers.CreateLiteral(piOver4.ToSpecialType(paramType.SpecialType));
+				result = CreateLiteral(piOver4.ToSpecialType(paramType.SpecialType));
 				return true;
 			}
 
@@ -44,7 +44,7 @@ public class AtanFunctionOptimizer() : BaseMathFunctionOptimizer("Atan", 1)
 			if (IsApproximately(value, -1.0))
 			{
 				var negPiOver4 = -Math.PI / 4.0;
-				result = SyntaxHelpers.CreateLiteral(negPiOver4.ToSpecialType(paramType.SpecialType));
+				result = CreateLiteral(negPiOver4.ToSpecialType(paramType.SpecialType));
 				return true;
 			}
 		}

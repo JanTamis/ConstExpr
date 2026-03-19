@@ -6,7 +6,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
-using static ConstExpr.SourceGenerator.Helpers.SyntaxHelpers;
 
 namespace ConstExpr.SourceGenerator.Rewriters;
 
@@ -390,7 +389,7 @@ public partial class ConstExprPartialRewriter
 				break;
 		}
 
-		return SyntaxFactory.List(result);
+		return List(result);
 	}
 
 	/// <summary>
@@ -423,7 +422,7 @@ public partial class ConstExprPartialRewriter
 			result.Add(statements[i]);
 		}
 
-		return SyntaxFactory.List(result);
+		return List(result);
 	}
 
 	/// <summary>
@@ -467,20 +466,20 @@ public partial class ConstExprPartialRewriter
 		if (ifReturnValue)
 		{
 			// return cond;
-			simplified = SyntaxFactory.ReturnStatement(condition);
+			simplified = ReturnStatement(condition);
 		}
 		else
 		{
 			// return !cond; (only add parentheses if needed)
 			var negatedCondition = NeedsParenthesesForNegation(condition)
-				? SyntaxFactory.PrefixUnaryExpression(
+				? PrefixUnaryExpression(
 					SyntaxKind.LogicalNotExpression,
-					SyntaxFactory.ParenthesizedExpression(condition))
-				: SyntaxFactory.PrefixUnaryExpression(
+					ParenthesizedExpression(condition))
+				: PrefixUnaryExpression(
 					SyntaxKind.LogicalNotExpression,
 					condition);
 
-			simplified = SyntaxFactory.ReturnStatement(negatedCondition);
+			simplified = ReturnStatement(negatedCondition);
 		}
 
 		return true;
@@ -612,7 +611,7 @@ public partial class ConstExprPartialRewriter
 			}
 		}
 
-		return SyntaxFactory.List(result);
+		return List(result);
 	}
 
 	/// <summary>
@@ -622,19 +621,19 @@ public partial class ConstExprPartialRewriter
 	private static ExpressionSyntax CreateIsOrPattern(string targetIdentifier, List<LiteralExpressionSyntax> literals)
 	{
 		// Build pattern: 1 or 5 or 10 or ...
-		PatternSyntax pattern = SyntaxFactory.ConstantPattern(literals[0]);
+		PatternSyntax pattern = ConstantPattern(literals[0]);
 
 		for (var k = 1; k < literals.Count; k++)
 		{
-			pattern = SyntaxFactory.BinaryPattern(
+			pattern = BinaryPattern(
 				SyntaxKind.OrPattern,
 				pattern,
-				SyntaxFactory.ConstantPattern(literals[k]));
+				ConstantPattern(literals[k]));
 		}
 
 		// Create: target is <pattern>
-		return SyntaxFactory.IsPatternExpression(
-			SyntaxFactory.IdentifierName(targetIdentifier),
+		return IsPatternExpression(
+			IdentifierName(targetIdentifier),
 			pattern);
 	}
 

@@ -47,7 +47,7 @@ public class UnionFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		    && TryCastToType(context.Loader, sourceValues, context.Method.TypeArguments[0], out var sourceCast)
 		    && TryCastToType(context.Loader, secondSourceValues, context.Method.TypeArguments[0], out var secondSourceCast)
 		    && context.Loader.TryGetMethodByMethod(context.Method, out var methodInfo)
-		    && SyntaxHelpers.TryGetLiteral(methodInfo.Invoke(null, [ sourceCast, secondSourceCast ]), out var literal))
+		    && TryGetLiteral(methodInfo.Invoke(null, [ sourceCast, secondSourceCast ]), out var literal))
 		{
 			result = literal;
 			return true;
@@ -60,9 +60,9 @@ public class UnionFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 			{
 				var items = syntaxes
 					.Distinct(SyntaxNodeComparer<ExpressionSyntax>.Instance)
-					.Select(SyntaxFactory.ExpressionElement);
+					.Select(ExpressionElement);
 				
-				result = SyntaxFactory.CollectionExpression(SyntaxFactory.SeparatedList<CollectionElementSyntax>(items));
+				result = CollectionExpression(SeparatedList<CollectionElementSyntax>(items));
 				return true;
 			}
 			
@@ -77,9 +77,9 @@ public class UnionFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 			{
 				var items = syntaxes
 					.Distinct(SyntaxNodeComparer<ExpressionSyntax>.Instance)
-					.Select(SyntaxFactory.ExpressionElement);
+					.Select(ExpressionElement);
 
-				result = SyntaxFactory.CollectionExpression(SyntaxFactory.SeparatedList<CollectionElementSyntax>(items));
+				result = CollectionExpression(SeparatedList<CollectionElementSyntax>(items));
 				return true;
 			}
 
@@ -94,9 +94,9 @@ public class UnionFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 			{
 				var tempValues = values.Distinct(SyntaxNodeComparer<ExpressionSyntax>.Instance);
 
-				result = SyntaxFactory.CollectionExpression(
-					SyntaxFactory.SeparatedList<CollectionElementSyntax>(
-						tempValues.Select(SyntaxFactory.ExpressionElement)));
+				result = CollectionExpression(
+					SeparatedList<CollectionElementSyntax>(
+						tempValues.Select(ExpressionElement)));
 				return true;
 			}
 

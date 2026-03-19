@@ -25,9 +25,9 @@ public class EqualsComparisonSimplifierStrategy
 			var result = method(context.Right.Syntax.Token.Value, leftLiteral.Token.Value);
 
 			if (result != null
-			    && SyntaxHelpers.TryGetLiteral(result, out var optimizedLiteral))
+			    && TryGetLiteral(result, out var optimizedLiteral))
 			{
-				optimized = SyntaxFactory.BinaryExpression(SyntaxKind.EqualsExpression, context.Left.Syntax.Right, optimizedLiteral);
+				optimized = BinaryExpression(SyntaxKind.EqualsExpression, context.Left.Syntax.Right, optimizedLiteral);
 				return true;
 			}
 		}
@@ -37,9 +37,9 @@ public class EqualsComparisonSimplifierStrategy
 			var result = method(context.Right.Syntax.Token.Value, rightLiteral.Token.Value);
 
 			if (result != null
-			    && SyntaxHelpers.TryGetLiteral(result, out var optimizedLiteral))
+			    && TryGetLiteral(result, out var optimizedLiteral))
 			{
-				optimized = SyntaxFactory.BinaryExpression(SyntaxKind.EqualsExpression, context.Left.Syntax.Left, optimizedLiteral);
+				optimized = BinaryExpression(SyntaxKind.EqualsExpression, context.Left.Syntax.Left, optimizedLiteral);
 				return true;
 			}
 		}

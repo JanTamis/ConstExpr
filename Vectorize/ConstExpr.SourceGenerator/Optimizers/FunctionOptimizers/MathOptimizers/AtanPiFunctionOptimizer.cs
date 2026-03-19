@@ -28,21 +28,21 @@ public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", 1)
 			// AtanPi(0) => 0
 			if (IsApproximately(value, 0.0))
 			{
-				result = SyntaxHelpers.CreateLiteral(0.0.ToSpecialType(paramType.SpecialType));
+				result = CreateLiteral(0.0.ToSpecialType(paramType.SpecialType));
 				return true;
 			}
 
 			// AtanPi(1) => 0.25 (π/4 / π = 0.25)
 			if (IsApproximately(value, 1.0))
 			{
-				result = SyntaxHelpers.CreateLiteral(0.25.ToSpecialType(paramType.SpecialType));
+				result = CreateLiteral(0.25.ToSpecialType(paramType.SpecialType));
 				return true;
 			}
 
 			// AtanPi(-1) => -0.25
 			if (IsApproximately(value, -1.0))
 			{
-				result = SyntaxHelpers.CreateLiteral((-0.25).ToSpecialType(paramType.SpecialType));
+				result = CreateLiteral((-0.25).ToSpecialType(paramType.SpecialType));
 				return true;
 			}
 		}
