@@ -49,10 +49,6 @@ public static class LinqUnroller
 				.Select(arg => arg.Expression)
 				.ToArray();
 
-			var typeArguments = memberAccess.Name is GenericNameSyntax genericName
-				? genericName.TypeArgumentList.Arguments.ToArray()
-				: [ ];
-
 			// check if memberAccess.Expression is not a Type e.g Int32 or Int64
 			if (memberAccess.Expression is IdentifierNameSyntax identifier
 			    && Type.GetType($"System.{identifier.Identifier.Text}") != null)
@@ -74,7 +70,7 @@ public static class LinqUnroller
 				}
 			}
 
-			methods.Add(new UnrolledLinqMethod(linqMethod, method, visit, parameters, typeArguments));
+			methods.Add(new UnrolledLinqMethod(linqMethod, method, visit, parameters));
 
 			// Move inward to the receiver of this call
 			current = memberAccess.Expression;
@@ -83,7 +79,7 @@ public static class LinqUnroller
 		// Append the source expression last (before reversal) so it becomes element 0.
 		if (current is not null)
 		{
-			methods.Add(new UnrolledLinqMethod(PossibleLinqMethod.Source, null!, visit, [ current ], [ ]));
+			methods.Add(new UnrolledLinqMethod(PossibleLinqMethod.Source, null!, visit, [ current ]));
 		}
 
 		// We collected from outermost → innermost; reverse so callers get call order.
@@ -284,14 +280,11 @@ public enum PossibleLinqMethod
 	Zip,
 }
 
-public struct UnrolledLinqMethod(PossibleLinqMethod Method, IMethodSymbol MethodSymbol, Func<SyntaxNode?, SyntaxNode?> Visit, ExpressionSyntax[] Parameters, TypeSyntax[] TypeArguments)
+public struct UnrolledLinqMethod(PossibleLinqMethod Method, IMethodSymbol MethodSymbol, Func<SyntaxNode?, SyntaxNode?> Visit, ExpressionSyntax[] Parameters)
 {
 	public override string ToString()
 	{
-		var typeArgs = TypeArguments.Length > 0
-			? $"<{string.Join(", ", TypeArguments.Select(t => t.ToString()))}>"
-			: string.Empty;
-		return $"{Method}{typeArgs}({string.Join(", ", Parameters.Select(p => p.ToString()))})";
+		return $"{Method}({string.Join(", ", Parameters.Select(p => p.ToString()))})";
 	}
 
 	public PossibleLinqMethod Method { get; set; } = Method;
@@ -299,15 +292,13 @@ public struct UnrolledLinqMethod(PossibleLinqMethod Method, IMethodSymbol Method
 	public ITypeSymbol CollectionType { get; set; }
 	public Func<SyntaxNode?, SyntaxNode?> Visit { get; set; } = Visit;
 	public ExpressionSyntax[] Parameters { get; set; } = Parameters;
-	public TypeSyntax[] TypeArguments { get; set; } = TypeArguments;
 
-	public readonly void Deconstruct(out PossibleLinqMethod Method, out IMethodSymbol MethodSymbol, out ITypeSymbol CollectionType, out Func<SyntaxNode?, SyntaxNode?> Visit, out ExpressionSyntax[] Parameters, out TypeSyntax[] TypeArguments)
+	public readonly void Deconstruct(out PossibleLinqMethod Method, out IMethodSymbol MethodSymbol, out ITypeSymbol CollectionType, out Func<SyntaxNode?, SyntaxNode?> Visit, out ExpressionSyntax[] Parameters)
 	{
 		Method = this.Method;
 		MethodSymbol = this.MethodSymbol;
 		CollectionType = this.CollectionType;
 		Visit = this.Visit;
 		Parameters = this.Parameters;
-		TypeArguments = this.TypeArguments;
 	}
 }

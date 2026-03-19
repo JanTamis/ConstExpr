@@ -52,7 +52,6 @@ public class ZipFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			var invocation = CreateInvocation(source, nameof(Enumerable.Select), SimpleLambdaExpression(parameter, null, TupleExpression(SeparatedList([ Argument(IdentifierName(identfier)), Argument(IdentifierName(identfier)) ]))));
 
 			selectMethod = selectMethod.Construct(elementType, context.Model.Compilation.CreateValueTuple(elementType, elementType));
-			
 			context = context.WithInvocationAndMethod(invocation, selectMethod);
 
 			result = TryOptimizeByOptimizer<SelectFunctionOptimizer>(context, invocation);

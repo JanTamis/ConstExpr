@@ -1169,7 +1169,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 
 			if (!optimizer.TryOptimize(context, out var result))
 			{
-				result = invocation;
+				result = invocation.WithMethodSymbolAnnotation(methodSymbol);
 			}
 
 			return result;

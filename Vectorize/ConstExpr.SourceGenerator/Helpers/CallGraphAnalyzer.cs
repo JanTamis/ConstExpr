@@ -11,16 +11,9 @@ namespace ConstExpr.SourceGenerator.Helpers;
 /// Analyzes the call graph to determine which methods are actually invoked in a compilation.
 /// Results are cached for performance. Uses recursive analysis to trace through call chains.
 /// </summary>
-public sealed class CallGraphAnalyzer
+public sealed class CallGraphAnalyzer(Compilation compilation)
 {
-	private readonly ConcurrentDictionary<IMethodSymbol, bool> _invocationCache;
-	private readonly Compilation _compilation;
-
-	public CallGraphAnalyzer(Compilation compilation)
-	{
-		_compilation = compilation;
-		_invocationCache = new ConcurrentDictionary<IMethodSymbol, bool>(SymbolEqualityComparer.Default);
-	}
+	private readonly ConcurrentDictionary<IMethodSymbol, bool> _invocationCache = new(SymbolEqualityComparer.Default);
 
 	/// <summary>
 	/// Checks if a method is invoked anywhere in the compilation (recursively through call chain), with caching.
@@ -84,12 +77,12 @@ public sealed class CallGraphAnalyzer
 		SyntaxNode nodeToCheck = (SyntaxNode?)containingMethod ?? localFunction!;
 		var tree = nodeToCheck.SyntaxTree;
 
-		if (!_compilation.SyntaxTrees.Contains(tree))
+		if (!compilation.SyntaxTrees.Contains(tree))
 		{
 			return true;
 		}
 
-		var semanticModel = _compilation.GetSemanticModel(tree);
+		var semanticModel = compilation.GetSemanticModel(tree);
 		var methodSymbol = semanticModel.GetDeclaredSymbol(nodeToCheck, token) as IMethodSymbol;
 		if (methodSymbol == null)
 		{
@@ -152,19 +145,19 @@ public sealed class CallGraphAnalyzer
 	{
 		var callers = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
 
-		foreach (var tree in _compilation.SyntaxTrees)
+		foreach (var tree in compilation.SyntaxTrees)
 		{
 			if (token.IsCancellationRequested)
 			{
 				yield break;
 			}
 
-			if (!_compilation.SyntaxTrees.Contains(tree))
+			if (!compilation.SyntaxTrees.Contains(tree))
 			{
 				continue;
 			}
 
-			var semanticModel = _compilation.GetSemanticModel(tree);
+			var semanticModel = compilation.GetSemanticModel(tree);
 			var root = tree.GetRoot(token);
 			
 			// Find all invocations in this tree
@@ -192,7 +185,7 @@ public sealed class CallGraphAnalyzer
 					{
 						// Global statements are top-level code, so we treat them as entry points
 						// Return the entry point method to represent the global scope
-						var entryPoint = _compilation.GetEntryPoint(token);
+						var entryPoint = compilation.GetEntryPoint(token);
 						if (entryPoint != null && callers.Add(entryPoint))
 						{
 							yield return entryPoint;

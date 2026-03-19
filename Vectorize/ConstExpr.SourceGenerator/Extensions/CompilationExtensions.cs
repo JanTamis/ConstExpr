@@ -122,6 +122,71 @@ public static class CompilationExtensions
 			or SpecialType.System_String;
 	}
 
+	/// <summary>
+	/// Converts an <see cref="ITypeSymbol"/> to the corresponding <see cref="TypeSyntax"/>.
+	/// Handles predefined types, arrays, nullable value types, and generic named types.
+	/// </summary>
+	public static TypeSyntax AsTypeSyntax(this ITypeSymbol typeSymbol)
+	{
+		// Map well-known special types to their C# keyword equivalents.
+		var keyword = typeSymbol.SpecialType switch
+		{
+			SpecialType.System_Boolean => SyntaxKind.BoolKeyword,
+			SpecialType.System_Byte    => SyntaxKind.ByteKeyword,
+			SpecialType.System_SByte   => SyntaxKind.SByteKeyword,
+			SpecialType.System_Int16   => SyntaxKind.ShortKeyword,
+			SpecialType.System_UInt16  => SyntaxKind.UShortKeyword,
+			SpecialType.System_Int32   => SyntaxKind.IntKeyword,
+			SpecialType.System_UInt32  => SyntaxKind.UIntKeyword,
+			SpecialType.System_Int64   => SyntaxKind.LongKeyword,
+			SpecialType.System_UInt64  => SyntaxKind.ULongKeyword,
+			SpecialType.System_Single  => SyntaxKind.FloatKeyword,
+			SpecialType.System_Double  => SyntaxKind.DoubleKeyword,
+			SpecialType.System_Decimal => SyntaxKind.DecimalKeyword,
+			SpecialType.System_Char    => SyntaxKind.CharKeyword,
+			SpecialType.System_String  => SyntaxKind.StringKeyword,
+			SpecialType.System_Object  => SyntaxKind.ObjectKeyword,
+			SpecialType.System_Void    => SyntaxKind.VoidKeyword,
+			_                          => SyntaxKind.None
+		};
+
+		if (keyword != SyntaxKind.None)
+		{
+			return PredefinedType(Token(keyword));
+		}
+
+		// Array types: recursively convert the element type.
+		if (typeSymbol is IArrayTypeSymbol arrayType)
+		{
+			var elementSyntax = arrayType.ElementType.AsTypeSyntax();
+			var rankSpecifier = ArrayRankSpecifier(
+				SeparatedList(
+					Enumerable.Repeat<ExpressionSyntax>(OmittedArraySizeExpression(), arrayType.Rank)));
+			return ArrayType(elementSyntax, SingletonList(rankSpecifier));
+		}
+
+		// Nullable value types: T? → NullableType(T)
+		if (typeSymbol is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullableSymbol)
+		{
+			return NullableType(nullableSymbol.TypeArguments[0].AsTypeSyntax());
+		}
+
+		// Generic named types: convert each type argument recursively.
+		if (typeSymbol is INamedTypeSymbol { Arity: > 0 } genericSymbol)
+		{
+			var typeArgs = genericSymbol.TypeArguments
+				.Select(t => t.AsTypeSyntax())
+				.ToArray();
+
+			return GenericName(
+				Identifier(genericSymbol.Name),
+				TypeArgumentList(SeparatedList(typeArgs)));
+		}
+
+		// Fall back to a simple identifier for non-generic named types and type parameters.
+		return IdentifierName(typeSymbol.Name);
+	}
+
 	public static bool IsSpanLikeType(this Compilation compilation, ITypeSymbol typeSymbol, ITypeSymbol elementType)
 	{
 		return typeSymbol is INamedTypeSymbol { Arity: 1 } namedTypeSymbol

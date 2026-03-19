@@ -8,12 +8,12 @@ public class CastLinqUnroller : BaseLinqUnroller
 {
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
 	{
-		if (method.TypeArguments.Length != 1)
+		if (method.MethodSymbol.TypeArguments.Length != 1)
 		{
 			return;
 		}
 
-		var replacedBody = CastExpression(method.TypeArguments[0], elementName);
+		var replacedBody = CastExpression(method.MethodSymbol.TypeArguments[0].AsTypeSyntax(), elementName);
 		var newName = $"item_{replacedBody.GetDeterministicHashString()}";
 
 		elementName = IdentifierName(newName);
