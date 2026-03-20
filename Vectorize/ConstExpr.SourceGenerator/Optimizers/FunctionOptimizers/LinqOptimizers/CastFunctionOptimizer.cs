@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -48,7 +49,7 @@ public class CastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 			// Preserve the generic type argument from the original Cast<T>() call
 			if (context.Invocation.Expression is MemberAccessExpressionSyntax { Name: GenericNameSyntax genericName })
 			{
-				result = CreateInvocation(source, genericName);
+				result = CreateInvocation(source, genericName).WithMethodSymbolAnnotation(context.Method);
 			}
 			else
 			{

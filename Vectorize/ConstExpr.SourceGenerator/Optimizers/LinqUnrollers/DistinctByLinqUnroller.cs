@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -13,7 +14,7 @@ public class DistinctByLinqUnroller : BaseLinqUnroller
 		statements.Add(LocalDeclarationStatement(VariableDeclaration(IdentifierName("var"))
 			.WithVariables(
 				SingletonSeparatedList(VariableDeclarator(SetName)
-					.WithInitializer(EqualsValueClause(ObjectCreationExpression(IdentifierName($"HashSet<{method.MethodSymbol.TypeArguments[^1].ToDisplayString()}>"))
+					.WithInitializer(EqualsValueClause(ObjectCreationExpression(IdentifierName($"HashSet<{method.Model.Compilation.GetMinimalString(method.MethodSymbol.TypeArguments[^1])}>"))
 						.WithArgumentList(ArgumentList())))))));
 	}
 

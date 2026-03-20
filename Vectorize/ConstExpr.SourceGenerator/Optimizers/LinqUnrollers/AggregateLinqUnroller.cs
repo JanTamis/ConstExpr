@@ -64,8 +64,6 @@ public class AggregateLinqUnroller : BaseLinqUnroller
 			return;
 		}
 
-		var visitedLambda = method.Visit(lambda) as LambdaExpressionSyntax ?? lambda;
-
 		// For the 1-param enumerator path (non-array, non-IList), the current element is e.Current
 		var element = method.Parameters.Length == 1
 		              && !IsInvokedOnArray(method.CollectionType)
@@ -74,7 +72,7 @@ public class AggregateLinqUnroller : BaseLinqUnroller
 			: elementName;
 
 		// Replace the first lambda param (accumulator) with "result"
-		var bodyWithResult = ReplaceLambda(visitedLambda, IdentifierName(ResultName));
+		var bodyWithResult = ReplaceLambda(lambda, IdentifierName(ResultName));
 
 		if (bodyWithResult == null)
 			return;
@@ -82,7 +80,7 @@ public class AggregateLinqUnroller : BaseLinqUnroller
 		// Replace the second lambda param (element) with the element expression
 		var finalBody = bodyWithResult;
 
-		if (visitedLambda is ParenthesizedLambdaExpressionSyntax { ParameterList.Parameters.Count: >= 2 } pl)
+		if (lambda is ParenthesizedLambdaExpressionSyntax { ParameterList.Parameters.Count: >= 2 } pl)
 		{
 			var secondParam = pl.ParameterList.Parameters[1].Identifier.Text;
 			var identifiers = bodyWithResult

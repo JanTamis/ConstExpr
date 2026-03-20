@@ -390,14 +390,19 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 						return true;
 					}
 
-					var distinctByInvocation = CreateInvocation(chainSource, "DistinctBy", predicate);
-					var newDistinctByCountInvocation = TryOptimizeByOptimizer<DistinctByFunctionOptimizer>(context, distinctByInvocation) as ExpressionSyntax ?? distinctByInvocation;
+					if (currentSource.TryGetMethodSymbolAnnotation(out var methodSymbol))
+					{
+						var distinctByInvocation = CreateInvocation(chainSource, "DistinctBy", predicate);
+						var newDistinctByCountInvocation = TryOptimizeByOptimizer<DistinctByFunctionOptimizer>(context, distinctByInvocation, methodSymbol.TypeArguments.ToArray()) as ExpressionSyntax ?? distinctByInvocation;
 
-					result = UpdateInvocation(context, newDistinctByCountInvocation);
-					return true;
+						result = UpdateInvocation(context, newDistinctByCountInvocation);
+						return true;
+					}
+
+					break;
 				}
 
-				case "GroupBy" when GetMethodArguments(chainInvocation).FirstOrDefault() is { Expression: { } predicateArg }
+				case nameof(Enumerable.GroupBy) when GetMethodArguments(chainInvocation).FirstOrDefault() is { Expression: { } predicateArg }
 				                    && TryGetLambda(predicateArg, out var predicate):
 				{
 					var distinctByInvocation = CreateInvocation(chainSource, "DistinctBy", predicate);

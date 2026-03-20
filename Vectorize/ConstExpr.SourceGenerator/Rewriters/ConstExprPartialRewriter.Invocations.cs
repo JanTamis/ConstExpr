@@ -79,21 +79,17 @@ public partial class ConstExprPartialRewriter
 			}
 		}
 
-		// if (targetMethod.ContainingType.EqualsType(semanticModel.Compilation.GetTypeByMetadataName("System.Linq.Enumerable")))
-		// {
-		// 	// For outermost LINQ calls: try unrolling first (preserves original behavior)
-		// 	if (node.Parent is not (InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Expression: InvocationExpressionSyntax } } or MemberAccessExpressionSyntax { Expression: InvocationExpressionSyntax }))
-		// 	{
-		// 		return LinqUnroller.TryUnrollLinqChain(node, Visit, semanticModel, additionalMethods);
-		// 	}
-		// }
-
 		// Try LINQ optimizers (for inner calls, or when unrolling was skipped).
 		// The optimized result is annotated with symbol info so it can be unrolled
 		// when it re-enters the rewriter through Visit.
 		if (TryOptimizeLinqMethod(semanticModel, targetMethod, node, arguments, node.ArgumentList.Arguments.Select(s => s.Expression)) is { } optimizedLinq)
 		{
-			return LinqUnroller.TryUnrollLinqChain(optimizedLinq, Visit, semanticModel, additionalMethods); Visit(optimizedLinq);
+			if (node.Parent is InvocationExpressionSyntax or MemberAccessExpressionSyntax)
+			{
+				return optimizedLinq;
+			}
+			
+			return LinqUnroller.TryUnrollLinqChain(optimizedLinq, Visit, semanticModel, additionalMethods);
 		}
 
 		node = node.WithExpression(Visit(node.Expression) as ExpressionSyntax ?? node.Expression);
@@ -453,6 +449,80 @@ public partial class ConstExprPartialRewriter
 			.FirstOrDefault();
 	}
 
+	/// <summary>
+	/// Walks an optimized LINQ result chain (from outermost to innermost) and annotates
+	/// each <see cref="InvocationExpressionSyntax"/> with the resolved <see cref="IMethodSymbol"/>
+	/// from the compilation. This allows the <see cref="LinqUnroller"/> to process synthetic
+	/// nodes that are not in the original syntax tree.
+	/// Also annotates the innermost source expression with its <see cref="ITypeSymbol"/>.
+	/// </summary>
+	private SyntaxNode AnnotateOptimizedLinqChain(SyntaxNode result)
+	{
+		if (result is not InvocationExpressionSyntax)
+		{
+			return result;
+		}
+
+		var enumerable = semanticModel.Compilation.GetTypeByMetadataName("System.Linq.Enumerable");
+
+		if (enumerable is null)
+		{
+			return result;
+		}
+
+		// Collect the chain from outermost to innermost so we can rebuild from inside out
+		var chain = new List<InvocationExpressionSyntax>();
+		var current = result as ExpressionSyntax;
+
+		while (current is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax } invocation)
+		{
+			chain.Add(invocation);
+			current = ((MemberAccessExpressionSyntax)invocation.Expression).Expression;
+		}
+
+		if (chain.Count == 0)
+		{
+			return result;
+		}
+
+		// Annotate the innermost source with its type if we can resolve it
+		var source = current;
+
+		if (source is not null && !source.TryGetTypeSymbolAnnotation(out _) && semanticModel.TryGetTypeSymbol(source, out var sourceType))
+		{
+			source = source.WithTypeSymbolAnnotation(sourceType);
+		}
+
+		// Rebuild from innermost to outermost, annotating each invocation
+		for (var i = chain.Count - 1; i >= 0; i--)
+		{
+			var invocation = chain[i];
+			var memberAccess = (MemberAccessExpressionSyntax)invocation.Expression;
+			var methodName = memberAccess.Name.Identifier.Text;
+			var argCount = invocation.ArgumentList.Arguments.Count + 1; // +1 for extension method's 'this' parameter
+
+			// Replace the inner expression with the (potentially annotated) source/previous invocation
+			var updatedMemberAccess = memberAccess.WithExpression(source ?? memberAccess.Expression);
+			var updatedInvocation = invocation.WithExpression(updatedMemberAccess);
+
+			// Try to resolve and annotate the method symbol
+			if (!updatedInvocation.TryGetMethodSymbolAnnotation(out _))
+			{
+				var method = enumerable.GetMembers(methodName)
+					.OfType<IMethodSymbol>()
+					.FirstOrDefault(m => m.Parameters.Length == argCount);
+
+				if (method is not null)
+				{
+					updatedInvocation = updatedInvocation.WithMethodSymbolAnnotation(method);
+				}
+			}
+
+			source = updatedInvocation;
+		}
+
+		return source ?? result;
+	}
 	/// Converts arguments to char if there's a char overload available.
 	/// </summary>
 	private List<SyntaxNode> ConvertToCharOverloadIfNeeded(IMethodSymbol targetMethod, List<SyntaxNode> arguments)

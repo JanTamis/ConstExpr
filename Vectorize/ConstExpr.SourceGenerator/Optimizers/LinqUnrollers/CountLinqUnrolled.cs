@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis.CSharp;
@@ -20,7 +21,7 @@ public class CountLinqUnrolled : BaseLinqUnroller
 		if (method.Parameters.Length == 1
 		    && TryGetLambda(method.Parameters[0], out var lambda))
 		{
-			statements.Add(IfStatement(InvertSyntax(ReplaceLambda(lambda, elementName)!), ContinueStatement()));
+			statements.Add(IfStatement(InvertSyntax( ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, elementName)!), ContinueStatement()));
 		}
 
 		statements.Add(ExpressionStatement(PostfixUnaryExpression(SyntaxKind.PostIncrementExpression, IdentifierName(ResultName))));

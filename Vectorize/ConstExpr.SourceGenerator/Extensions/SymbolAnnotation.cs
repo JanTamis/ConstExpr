@@ -27,7 +27,6 @@ public static class SymbolAnnotation
 	{
 		var id = Guid.NewGuid().ToString("N");
 		SymbolStore[id] = symbol;
-		
 		return node.WithAdditionalAnnotations(new SyntaxAnnotation(MethodSymbolKind, id));
 	}
 

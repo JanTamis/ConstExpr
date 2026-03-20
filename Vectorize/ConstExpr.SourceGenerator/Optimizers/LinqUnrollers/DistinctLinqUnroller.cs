@@ -13,7 +13,7 @@ public class DistinctLinqUnroller : BaseLinqUnroller
 		statements.Add(LocalDeclarationStatement(VariableDeclaration(IdentifierName("var"))
 			.WithVariables(
 				SingletonSeparatedList(VariableDeclarator(SetName)
-					.WithInitializer(EqualsValueClause(ObjectCreationExpression(IdentifierName($"HashSet<{method.MethodSymbol.TypeArguments[0].ToDisplayString()}>"))
+					.WithInitializer(EqualsValueClause(ObjectCreationExpression(IdentifierName($"HashSet<{ method.Model.Compilation.GetMinimalString(method.MethodSymbol.TypeArguments[0])}>"))
 						.WithArgumentList(ArgumentList())))))));
 	}
 	
