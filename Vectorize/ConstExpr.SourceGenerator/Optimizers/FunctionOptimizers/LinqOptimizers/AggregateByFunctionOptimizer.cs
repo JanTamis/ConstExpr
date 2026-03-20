@@ -27,13 +27,6 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// </summary>
 public class AggregateByFunctionOptimizer() : BaseLinqFunctionOptimizer("AggregateBy", 3, 4, 5)
 {
-	// Only strip materializing operations — ordering is preserved because element order
-	// within each key group matters for non-commutative accumulator functions.
-	private static readonly HashSet<string> OperationsThatDontAffectAggregateBy =
-	[
-		..MaterializingMethods,
-	];
-
 	public override bool TryOptimize(FunctionOptimizerContext context, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		if (!IsValidLinqMethod(context)
@@ -43,7 +36,7 @@ public class AggregateByFunctionOptimizer() : BaseLinqFunctionOptimizer("Aggrega
 			return false;
 		}
 
-		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectAggregateBy, out source);
+		var isNewSource = TryGetOptimizedChainExpression(source, MaterializingMethods, out source);
 
 		if (TryExecutePredicates(context, source, out result, out source))
 		{
@@ -87,7 +80,7 @@ public class AggregateByFunctionOptimizer() : BaseLinqFunctionOptimizer("Aggrega
 					     && TryGetLambda(context.VisitedParameters[2], out var funcLambda)
 					     && funcLambda is ParenthesizedLambdaExpressionSyntax { ParameterList.Parameters.Count: 2 } pFuncLambda:
 				{
-					TryGetOptimizedChainExpression(chainSource, OperationsThatDontAffectAggregateBy, out chainSource);
+					TryGetOptimizedChainExpression(chainSource, MaterializingMethods, out chainSource);
 
 					if (IsIdentityLambda(selectLambda))
 					{
@@ -139,7 +132,7 @@ public class AggregateByFunctionOptimizer() : BaseLinqFunctionOptimizer("Aggrega
 					{
 						case true:
 							// x.Where(v => true).AggregateBy(...) => x.AggregateBy(...)
-							TryGetOptimizedChainExpression(chainSource, OperationsThatDontAffectAggregateBy, out chainSource);
+							TryGetOptimizedChainExpression(chainSource, MaterializingMethods, out chainSource);
 							
 							result = UpdateInvocation(context, chainSource);
 							return true;
