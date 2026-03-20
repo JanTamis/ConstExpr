@@ -140,22 +140,14 @@ public static class LinqUnroller
 		ParsePossibleReturnStatement(chain, statements);
 
 		// create localmethod with statements
-		TypeSyntax parameterType;
-
-		if (model.TryGetTypeSymbol(chain[0].Parameters[0], out var returnType))
-		{
-			parameterType = returnType.GetTypeSyntax(false);
-		}
-		else
-		{
-			// Fallback to object type if neither array nor list
-			parameterType = PredefinedType(Token(SyntaxKind.ObjectKeyword));
-		}
+		var parameterType = model.TryGetTypeSymbol(chain[0].Parameters[0], out var returnType) 
+			? returnType.GetTypeSyntax(false) 
+			: PredefinedType(Token(SyntaxKind.ObjectKeyword));
 
 		var body = Block(statements);
 
 		var localMethod = LocalFunctionStatement(chain[^1].MethodSymbol.ReturnType.GetTypeSyntax(false), Identifier($"{chain[^1].Method}_{body.GetDeterministicHashString()}"))
-			.WithParameterList(ParameterList(SingletonSeparatedList(Parameter(Identifier("collection")).WithType(parameterType))))
+			.WithParameterList(ParameterList(SingletonSeparatedList(Parameter(Identifier(collectionName)).WithType(parameterType))))
 			.WithBody(body);
 
 		additionalMethods.TryAdd(localMethod, true);
@@ -284,7 +276,7 @@ public enum PossibleLinqMethod
 	Zip,
 }
 
-public struct UnrolledLinqMethod(SemanticModel model, PossibleLinqMethod Method, IMethodSymbol MethodSymbol, Func<SyntaxNode?, SyntaxNode?> Visit, ExpressionSyntax[] Parameters, TypeSyntax[] TypeArguments)
+public struct UnrolledLinqMethod(SemanticModel model, PossibleLinqMethod method, IMethodSymbol methodSymbol, Func<SyntaxNode?, SyntaxNode?> visit, ExpressionSyntax[] parameters, TypeSyntax[] typeArguments)
 {
 	public override string ToString()
 	{
@@ -295,12 +287,12 @@ public struct UnrolledLinqMethod(SemanticModel model, PossibleLinqMethod Method,
 	}
 
 	public SemanticModel Model { get; } = model;
-	public PossibleLinqMethod Method { get; set; } = Method;
-	public IMethodSymbol MethodSymbol { get; set; } = MethodSymbol;
+	public PossibleLinqMethod Method { get; set; } = method;
+	public IMethodSymbol MethodSymbol { get; set; } = methodSymbol;
 	public ITypeSymbol CollectionType { get; set; }
-	public Func<SyntaxNode?, SyntaxNode?> Visit { get; set; } = Visit;
-	public ExpressionSyntax[] Parameters { get; set; } = Parameters;
-	public TypeSyntax[] TypeArguments { get; set; } = TypeArguments;
+	public Func<SyntaxNode?, SyntaxNode?> Visit { get; set; } = visit;
+	public ExpressionSyntax[] Parameters { get; set; } = parameters;
+	public TypeSyntax[] TypeArguments { get; set; } = typeArguments;
 
 	public readonly void Deconstruct(out PossibleLinqMethod Method, out IMethodSymbol MethodSymbol, out ITypeSymbol CollectionType, out Func<SyntaxNode?, SyntaxNode?> Visit, out ExpressionSyntax[] Parameters, out TypeSyntax[] TypeArguments)
 	{
