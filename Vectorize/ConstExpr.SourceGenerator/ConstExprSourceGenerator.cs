@@ -343,7 +343,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				// visitor.VisitBlock(blockOperation.BlockBody!, variables);
 
 				var result = partialVisitor.VisitBlock(methodDecl.Body); // partialVisitor.VisitBlock(blockOperation.BlockBody!, variablesPartial);
-				var result2 = DeadCodePruner.Prune(result!, variablesPartial, semanticModel);
+				var result2 = DeadCodePruner.Prune(result, variablesPartial, semanticModel);
 
 				// Format using Roslyn formatter instead of NormalizeWhitespace
 				// var text = FormattingHelper.Render(methodDecl.WithBody((BlockSyntax)result));

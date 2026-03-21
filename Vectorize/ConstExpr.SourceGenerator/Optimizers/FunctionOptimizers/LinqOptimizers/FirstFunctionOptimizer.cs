@@ -191,7 +191,7 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 					{
 						// Repeat(element, count).FirstOrDefault() => count > 0 ? element : throw exception
 						result = ConditionalExpression(
-							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, CreateLiteral(0)!, context.Model.Compilation.CreateInt32()),
+							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, CreateLiteral(0), context.Model.Compilation.CreateInt32()),
 							repeatElementArg.Expression,
 							CreateThrowExpression<InvalidOperationException>("Sequence contains no elements"));
 						return true;
@@ -207,7 +207,7 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		if (IsInvokedOnArray(context, source)
 		    || IsInvokedOnList(context, source))
 		{
-			result = CreateElementAccess(source, CreateLiteral(0)!);
+			result = CreateElementAccess(source, CreateLiteral(0));
 			return true;
 		}
 
@@ -229,12 +229,12 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		return ConditionalExpression(
 			OptimizeComparison(context, SyntaxKind.GreaterThanExpression,
 				CreateMemberAccess(collection, propertyName),
-				CreateLiteral(0)!, intType),
+				CreateLiteral(0), intType),
 			ElementAccessExpression(
 				collection,
 				BracketedArgumentList(
 					SingletonSeparatedList(
-						Argument(CreateLiteral(0)!)))),
+						Argument(CreateLiteral(0))))),
 			defaultItem);
 	}
 }

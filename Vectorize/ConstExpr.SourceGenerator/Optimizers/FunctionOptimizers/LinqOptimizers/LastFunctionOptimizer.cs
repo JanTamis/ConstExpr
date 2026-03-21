@@ -189,7 +189,7 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 						
 						result = OptimizeArithmetic(context, SyntaxKind.SubtractExpression, 
 							OptimizeArithmetic(context, SyntaxKind.AddExpression, startArg.Expression, countArg.Expression, intType), 
-							CreateLiteral(1)!, intType);
+							CreateLiteral(1), intType);
 						return true;
 					}
 
@@ -201,7 +201,7 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 					{
 						// Repeat(element, count).FirstOrDefault() => count > 0 ? element : throw exception
 						result = ConditionalExpression(
-							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, CreateLiteral(0)!, context.Model.Compilation.CreateInt32()),
+							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, CreateLiteral(0), context.Model.Compilation.CreateInt32()),
 							repeatElementArg.Expression,
 							CreateThrowExpression<InvalidOperationException>("Sequence contains no elements"));
 						return true;
@@ -218,7 +218,7 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 		    && (IsInvokedOnArray(context, source) || IsInvokedOnList(context, source)))
 		{
 			result = CreateElementAccess(source, PrefixUnaryExpression(
-				SyntaxKind.IndexExpression, CreateLiteral(1)!));
+				SyntaxKind.IndexExpression, CreateLiteral(1)));
 			return true;
 		}
 		
@@ -240,7 +240,7 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 		return ConditionalExpression(
 			OptimizeComparison(context, SyntaxKind.GreaterThanExpression,
 				CreateMemberAccess(collection, propertyName),
-				CreateLiteral(0)!, intType),
+				CreateLiteral(0), intType),
 			ElementAccessExpression(
 				collection,
 				BracketedArgumentList(

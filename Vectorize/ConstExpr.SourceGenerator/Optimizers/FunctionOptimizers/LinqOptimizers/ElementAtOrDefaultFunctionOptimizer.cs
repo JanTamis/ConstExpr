@@ -73,7 +73,7 @@ public class ElementAtOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(n
 				case nameof(Enumerable.Range) when invocation.ArgumentList.Arguments is [ var startArg, var countArg ]:
 				{
 					// Range(start, count).ElementAtOrDefault(n) => n >= 0 && n < count ? start + n : default(int)
-					var indexNonNeg = OptimizeComparison(context, SyntaxKind.GreaterThanOrEqualExpression, indexParameter, CreateLiteral(0)!, intType);
+					var indexNonNeg = OptimizeComparison(context, SyntaxKind.GreaterThanOrEqualExpression, indexParameter, CreateLiteral(0), intType);
 					var indexInBounds = OptimizeComparison(context, SyntaxKind.LessThanExpression, indexParameter, countArg.Expression, intType);
 					var condition = OptimizeComparison(context, SyntaxKind.LogicalAndExpression, indexNonNeg, indexInBounds, boolType);
 
@@ -86,7 +86,7 @@ public class ElementAtOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(n
 				case nameof(Enumerable.Repeat) when invocation.ArgumentList.Arguments is [ var repeatElementArg, var repeatCountArg ]:
 				{
 					// Repeat(element, count).ElementAtOrDefault(n) => n >= 0 && n < count ? element : default(T)
-					var indexNonNeg = OptimizeComparison(context, SyntaxKind.GreaterThanOrEqualExpression, indexParameter, CreateLiteral(0)!, intType);
+					var indexNonNeg = OptimizeComparison(context, SyntaxKind.GreaterThanOrEqualExpression, indexParameter, CreateLiteral(0), intType);
 					var indexInBounds = OptimizeComparison(context, SyntaxKind.LessThanExpression, indexParameter, repeatCountArg.Expression, intType);
 					var condition = OptimizeComparison(context, SyntaxKind.LogicalAndExpression, indexNonNeg, indexInBounds, boolType);
 

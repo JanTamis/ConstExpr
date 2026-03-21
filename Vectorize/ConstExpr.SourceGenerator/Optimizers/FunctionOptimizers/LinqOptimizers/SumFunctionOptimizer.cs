@@ -113,20 +113,20 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 					// count * (2 * start + count - 1) / 2
 					var twoTimesStart = OptimizeArithmetic(context, SyntaxKind.MultiplyExpression,
-						CreateLiteral(2)!, startArg.Expression, intType);
+						CreateLiteral(2), startArg.Expression, intType);
 
 					var twoStartPlusCount = OptimizeArithmetic(context, SyntaxKind.AddExpression,
 						twoTimesStart, countArg.Expression, intType);
 
 					var inner = ParenthesizedExpression(
 						OptimizeArithmetic(context, SyntaxKind.SubtractExpression,
-							twoStartPlusCount, CreateLiteral(1)!, intType));
+							twoStartPlusCount, CreateLiteral(1), intType));
 
 					var numerator = OptimizeArithmetic(context, SyntaxKind.MultiplyExpression,
 						countArg.Expression, inner, intType);
 
 					result = OptimizeArithmetic(context, SyntaxKind.DivideExpression,
-						numerator, CreateLiteral(2)!, intType);
+						numerator, CreateLiteral(2), intType);
 					return true;
 				}
 				case "Repeat" when methodInvocation.ArgumentList.Arguments is [ var repeatElementArg, var repeatCountArg ]:

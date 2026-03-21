@@ -25,7 +25,6 @@ public class SelectLinqUnroller : BaseLinqUnroller
 
 		elementName = IdentifierName(newName);
 
-		statements.Add(LocalDeclarationStatement(VariableDeclaration(IdentifierName("var"))
-			.WithVariables(SingletonSeparatedList(VariableDeclarator(newName).WithInitializer(EqualsValueClause(replacedBody))))));
+		statements.Add(CreateLocalDeclaration(newName, replacedBody));
 	}
 }

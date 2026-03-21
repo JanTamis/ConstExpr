@@ -97,7 +97,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 
 				var lit = CreateLiteral(literalBuffer.ToString());
 
-				newParams.Add(lit!);
+				newParams.Add(lit);
 				literalBuffer.Clear();
 			}
 		}

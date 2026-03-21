@@ -65,7 +65,7 @@ public class MaxFunctionOptimizer() : BaseMathFunctionOptimizer("Max", 2)
 		}
 
 		// Fallback: just re-target to the numeric helper (ensures nested Single.Max(...) is supported)
-		result = CreateInvocation(paramType!, Name, context.VisitedParameters);
+		result = CreateInvocation(paramType, Name, context.VisitedParameters);
 		return true;
 	}
 
@@ -223,11 +223,11 @@ public class MaxFunctionOptimizer() : BaseMathFunctionOptimizer("Max", 2)
 			{
 				if (HasMethod(paramType, "ClampNative", 3))
 				{
-					result = CreateInvocation(paramType, "ClampNative", valueExpr!, minConstExpr!, maxExpr!);
+					result = CreateInvocation(paramType, "ClampNative", valueExpr, minConstExpr!, maxExpr!);
 					return true;
 				}
 
-				result = CreateInvocation(paramType!, "Clamp", valueExpr!, minConstExpr!, maxExpr!);
+				result = CreateInvocation(paramType, "Clamp", valueExpr, minConstExpr!, maxExpr!);
 				return true;
 			}
 		}
@@ -288,11 +288,11 @@ public class MaxFunctionOptimizer() : BaseMathFunctionOptimizer("Max", 2)
 			{
 				if (HasMethod(paramType, "ClampNative", 3))
 				{
-					result = CreateInvocation(paramType, "ClampNative", valueExpr2!, minConstExpr2!, maxExpr2!);
+					result = CreateInvocation(paramType, "ClampNative", valueExpr2, minConstExpr2!, maxExpr2!);
 					return true;
 				}
 
-				result = CreateInvocation(paramType!, "Clamp", valueExpr2!, minConstExpr2!, maxExpr2!);
+				result = CreateInvocation(paramType, "Clamp", valueExpr2, minConstExpr2!, maxExpr2!);
 				return true;
 			}
 		}

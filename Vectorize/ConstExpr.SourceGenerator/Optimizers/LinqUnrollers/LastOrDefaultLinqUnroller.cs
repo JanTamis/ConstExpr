@@ -5,10 +5,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
-public class SumLinqUnroller : BaseLinqUnroller
+public class LastOrDefaultLinqUnroller : BaseLinqUnroller
 {
 	private const string ResultName = "result";
-	
+
 	public override void UnrollAboveLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
 		statements.Add(CreateLocalDeclaration(ResultName, method.MethodSymbol.ReturnType.GetDefaultValue()));
@@ -16,14 +16,14 @@ public class SumLinqUnroller : BaseLinqUnroller
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
 	{
-		if (method.Parameters.Length == 1 && TryGetLambda(method.Parameters[0], out var lambda))
+		if (method.Parameters.Length == 1
+		    && TryGetLambda(method.Parameters[0], out var lambda))
 		{
-			statements.Add(ExpressionStatement(AssignmentExpression(SyntaxKind.AddAssignmentExpression, IdentifierName(ResultName), ReplaceLambda(lambda, elementName)!)));
+			statements.Add(IfStatement(InvertSyntax(ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, elementName)!), 
+				ContinueStatement()));
 		}
-		else
-		{
-			statements.Add(ExpressionStatement(AssignmentExpression(SyntaxKind.AddAssignmentExpression, IdentifierName(ResultName), elementName)));
-		}
+
+		statements.Add(CreateAssignment(ResultName, elementName));
 	}
 
 	public override void UnrollUnderLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
@@ -31,3 +31,4 @@ public class SumLinqUnroller : BaseLinqUnroller
 		statements.Add(ReturnStatement(IdentifierName(ResultName)));
 	}
 }
+

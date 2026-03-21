@@ -23,7 +23,8 @@ public class WhereLinqUnroller : BaseLinqUnroller
 		}
 		else if (!replacedBody.IsKind(SyntaxKind.FalseLiteralExpression))
 		{
-			statements.Add(IfStatement(replacedBody, ContinueStatement()));
+			statements.Add(IfStatement(replacedBody, 
+				ContinueStatement()));
 		}
 	}
 }

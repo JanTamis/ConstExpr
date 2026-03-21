@@ -16,14 +16,30 @@ public static class LinqUnroller
 		{ PossibleLinqMethod.Where, new WhereLinqUnroller() },
 		{ PossibleLinqMethod.Select, new SelectLinqUnroller() },
 		{ PossibleLinqMethod.Cast, new CastLinqUnroller() },
+		{ PossibleLinqMethod.OfType, new OfTypeLinqUnroller() },
 		{ PossibleLinqMethod.Contains, new ContainsLinqUnroller() },
 		{ PossibleLinqMethod.Sum, new SumLinqUnroller() },
 		{ PossibleLinqMethod.Count, new CountLinqUnrolled() },
 		{ PossibleLinqMethod.Any, new AnyLinqUnroller() },
+		{ PossibleLinqMethod.All, new AllLinqUnroller() },
 		{ PossibleLinqMethod.Average, new AverageLinqUnroller() },
 		{ PossibleLinqMethod.Aggregate, new AggregateLinqUnroller() },
 		{ PossibleLinqMethod.Distinct, new DistinctLinqUnroller() },
 		{ PossibleLinqMethod.DistinctBy, new DistinctByLinqUnroller() },
+		{ PossibleLinqMethod.First, new FirstLinqUnroller() },
+		{ PossibleLinqMethod.FirstOrDefault, new FirstOrDefaultLinqUnroller() },
+		{ PossibleLinqMethod.Last, new LastLinqUnroller() },
+		{ PossibleLinqMethod.LastOrDefault, new LastOrDefaultLinqUnroller() },
+		{ PossibleLinqMethod.Single, new SingleLinqUnroller() },
+		{ PossibleLinqMethod.SingleOrDefault, new SingleOrDefaultLinqUnroller() },
+		{ PossibleLinqMethod.Min, new MinLinqUnroller() },
+		{ PossibleLinqMethod.Max, new MaxLinqUnroller() },
+		{ PossibleLinqMethod.MinBy, new MinByLinqUnroller() },
+		{ PossibleLinqMethod.MaxBy, new MaxByLinqUnroller() },
+		{ PossibleLinqMethod.Skip, new SkipLinqUnroller() },
+		{ PossibleLinqMethod.SkipWhile, new SkipWhileLinqUnroller() },
+		{ PossibleLinqMethod.Take, new TakeLinqUnroller() },
+		{ PossibleLinqMethod.TakeWhile, new TakeWhileLinqUnroller() },
 	};
 
 	/// <summary>
@@ -89,7 +105,12 @@ public static class LinqUnroller
 		// We collected from outermost → innermost; reverse so callers get call order.
 		methods.Reverse();
 
-		return methods.ToArray();
+		if (IsResultMethod(methods[^1].Method))
+		{
+			return methods.ToArray();
+		}
+		
+		return [ ];
 	}
 
 	/// <summary>
@@ -109,10 +130,12 @@ public static class LinqUnroller
 	{
 		var chain = ParseLinqChain(model, visit, node);
 
-		if (chain.Length <= 1
+		// A chain of [Source, TerminalMethod] (length 2) is already well-handled
+		// by the FunctionOptimizers — only unroll when intermediate steps exist.
+		if (chain.Length < 2
 		    || !model.TryGetTypeSymbol(chain[0].Parameters[0], out var type))
 		{
-			return node;
+			return visit(node) ?? node;
 		}
 
 		for (var i = 0; i < chain.Length; i++)
@@ -140,8 +163,8 @@ public static class LinqUnroller
 		ParsePossibleReturnStatement(chain, statements);
 
 		// create localmethod with statements
-		var parameterType = model.TryGetTypeSymbol(chain[0].Parameters[0], out var returnType) 
-			? returnType.GetTypeSyntax(false) 
+		var parameterType = model.TryGetTypeSymbol(chain[0].Parameters[0], out var returnType)
+			? returnType.GetTypeSyntax(false)
 			: PredefinedType(Token(SyntaxKind.ObjectKeyword));
 
 		var body = Block(statements);
@@ -198,6 +221,27 @@ public static class LinqUnroller
 				elements.Add(YieldStatement(SyntaxKind.YieldReturnStatement, elementName));
 			}
 		}
+	}
+
+	private static bool IsResultMethod(PossibleLinqMethod method)
+	{
+		return method is PossibleLinqMethod.Aggregate
+			or PossibleLinqMethod.Average
+			or PossibleLinqMethod.Count
+			or PossibleLinqMethod.Max
+			or PossibleLinqMethod.MaxBy
+			or PossibleLinqMethod.Min
+			or PossibleLinqMethod.MinBy
+			or PossibleLinqMethod.Sum
+			or PossibleLinqMethod.Single
+			or PossibleLinqMethod.SingleOrDefault
+			or PossibleLinqMethod.First
+			or PossibleLinqMethod.FirstOrDefault
+			or PossibleLinqMethod.Last
+			or PossibleLinqMethod.LastOrDefault
+			or PossibleLinqMethod.All
+			or PossibleLinqMethod.Any
+			or PossibleLinqMethod.Contains;
 	}
 }
 

@@ -247,7 +247,7 @@ public partial class ConstExprPartialRewriter
 			LiteralExpressionSyntax { RawKind: (int)SyntaxKind.StringLiteralExpression } stringLiteral =>
 				stringLiteral.Token.ValueText
 					.Select(s => CreateLiteral(s) as CSharpSyntaxNode)
-					.ToList()!,
+					.ToList(),
 			_ => null
 		};
 	}

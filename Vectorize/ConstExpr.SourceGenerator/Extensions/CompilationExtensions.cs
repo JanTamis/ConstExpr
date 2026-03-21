@@ -567,7 +567,7 @@ public static class CompilationExtensions
 					continue;
 				}
 
-				methodInfo = methodInfo.MakeGenericMethod(typeArgs!);
+				methodInfo = methodInfo.MakeGenericMethod(typeArgs);
 				invokeBase = methodInfo;
 			}
 

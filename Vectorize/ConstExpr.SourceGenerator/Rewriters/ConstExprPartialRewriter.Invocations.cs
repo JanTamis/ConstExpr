@@ -84,11 +84,6 @@ public partial class ConstExprPartialRewriter
 		// when it re-enters the rewriter through Visit.
 		if (TryOptimizeLinqMethod(semanticModel, targetMethod, node, arguments, node.ArgumentList.Arguments.Select(s => s.Expression)) is { } optimizedLinq)
 		{
-			if (node.Parent is InvocationExpressionSyntax or MemberAccessExpressionSyntax)
-			{
-				return optimizedLinq;
-			}
-			
 			return LinqUnroller.TryUnrollLinqChain(optimizedLinq, Visit, semanticModel, additionalMethods);
 		}
 

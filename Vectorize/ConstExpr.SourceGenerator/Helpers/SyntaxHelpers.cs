@@ -102,7 +102,7 @@ public static class SyntaxHelpers
 		return expression is not null;
 	}
 
-	public static ExpressionSyntax? CreateLiteral<T>(T? value, bool useExplicitByte = false)
+	public static ExpressionSyntax CreateLiteral<T>(T? value, bool useExplicitByte = false)
 	{
 		// check if value is lookup and skip if it is
 		if (value?.GetType().GetInterface("System.Linq.ILookup`2") is not null)
@@ -343,7 +343,7 @@ public static class SyntaxHelpers
 				])));
 		}
 
-		return null; // SyntaxFactory.ParseExpression(value.ToString());
+		return ParseExpression(value.ToString());
 	}
 
 	private static TypeSyntax GetTypeSyntax(Type type)

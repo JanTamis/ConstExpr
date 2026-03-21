@@ -25,7 +25,7 @@ public class DivideToMultiplyReciprocalStrategy : FloatNumberBinaryStrategy<Expr
 		optimized = BinaryExpression(
 			SyntaxKind.MultiplyExpression, 
 			context.Left.Syntax, 
-			CreateLiteral(reciprocal)!);
+			CreateLiteral(reciprocal));
 
 		return true;
 	}

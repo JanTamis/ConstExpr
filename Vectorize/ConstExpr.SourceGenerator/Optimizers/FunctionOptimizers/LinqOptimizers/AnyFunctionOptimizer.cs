@@ -187,7 +187,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 					{
 						var intType = context.Model.Compilation.CreateInt32();
 						
-						result = OptimizeComparison(context, SyntaxKind.GreaterThanExpression, countArg.Expression, CreateLiteral(0)!, intType);
+						result = OptimizeComparison(context, SyntaxKind.GreaterThanExpression, countArg.Expression, CreateLiteral(0), intType);
 						return true;
 					}
 
@@ -200,7 +200,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 						var intType = context.Model.Compilation.CreateInt32();
 
 						// Repeat(element, count).Any() => count > 0
-						result = OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, CreateLiteral(0)!, intType);
+						result = OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, CreateLiteral(0), intType);
 						return true;
 					}
 
@@ -216,7 +216,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 				var intType = context.Model.Compilation.CreateInt32();
 				result = OptimizeComparison(context, SyntaxKind.GreaterThanExpression,
 					CreateMemberAccess(source, "Count"),
-					CreateLiteral(0)!, intType);
+					CreateLiteral(0), intType);
 
 				return true;
 			}
@@ -226,7 +226,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 				var intType = context.Model.Compilation.CreateInt32();
 				result = OptimizeComparison(context, SyntaxKind.GreaterThanExpression,
 					CreateMemberAccess(source, "Length"),
-					CreateLiteral(0)!, intType);
+					CreateLiteral(0), intType);
 
 				return true;
 			}

@@ -163,7 +163,7 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 					if (context.VisitedParameters.Count == 0)
 					{
 						result = ConditionalExpression(
-							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, countArg.Expression, CreateLiteral(0)!, context.Model.Compilation.CreateInt32()),
+							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, countArg.Expression, CreateLiteral(0), context.Model.Compilation.CreateInt32()),
 							startArg.Expression,
 							context.Method.TypeArguments[0].GetDefaultValue());
 						return true;
@@ -177,7 +177,7 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 					{
 						// Repeat(element, count).FirstOrDefault() => count > 0 ? element : default
 						result = ConditionalExpression(
-							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, CreateLiteral(0)!, context.Model.Compilation.CreateInt32()),
+							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, CreateLiteral(0), context.Model.Compilation.CreateInt32()),
 							repeatElementArg.Expression,
 							context.Method.TypeArguments[0].GetDefaultValue());
 						return true;
@@ -236,12 +236,12 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 		return ConditionalExpression(
 			OptimizeComparison(context, SyntaxKind.GreaterThanExpression,
 				CreateMemberAccess(collection, propertyName),
-				CreateLiteral(0)!, intType),
+				CreateLiteral(0), intType),
 			ElementAccessExpression(
 				collection,
 				BracketedArgumentList(
 					SingletonSeparatedList(
-						Argument(CreateLiteral(0)!)))),
+						Argument(CreateLiteral(0))))),
 			defaultItem);
 	}
 }

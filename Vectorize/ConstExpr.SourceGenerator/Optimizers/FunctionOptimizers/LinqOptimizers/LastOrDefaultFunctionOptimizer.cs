@@ -156,10 +156,10 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 						var intType = context.Model.Compilation.CreateInt32();
 
 						result = ConditionalExpression(
-							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, countArg.Expression, CreateLiteral(0)!, intType),
+							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, countArg.Expression, CreateLiteral(0), intType),
 							OptimizeArithmetic(context, SyntaxKind.SubtractExpression,
 								OptimizeArithmetic(context, SyntaxKind.AddExpression, startArg.Expression, countArg.Expression, intType),
-								CreateLiteral(1)!, intType),
+								CreateLiteral(1), intType),
 							context.Method.TypeArguments[0].GetDefaultValue());
 						return true;
 					}
@@ -172,7 +172,7 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 					{
 						// Repeat(element, count).FirstOrDefault() => count > 0 ? element : default
 						result = ConditionalExpression(
-							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, CreateLiteral(0)!, context.Model.Compilation.CreateInt32()),
+							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, CreateLiteral(0), context.Model.Compilation.CreateInt32()),
 							repeatElementArg.Expression,
 							context.Method.TypeArguments[0].GetDefaultValue());
 						return true;
@@ -231,8 +231,8 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 		return ConditionalExpression(
 			OptimizeComparison(context, SyntaxKind.GreaterThanExpression,
 				CreateMemberAccess(collection, propertyName),
-				CreateLiteral(0)!, intType), CreateElementAccess(collection, PrefixUnaryExpression(
-				SyntaxKind.IndexExpression, CreateLiteral(1)!)),
+				CreateLiteral(0), intType), CreateElementAccess(collection, PrefixUnaryExpression(
+				SyntaxKind.IndexExpression, CreateLiteral(1))),
 			defaultItem);
 	}
 }

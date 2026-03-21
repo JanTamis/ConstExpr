@@ -13,22 +13,25 @@ public class AverageLinqUnroller : BaseLinqUnroller
 	
 	public override void UnrollAboveLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
-		statements.Add(LocalDeclarationStatement(VariableDeclaration(IdentifierName("var"))
-			.WithVariables(SingletonSeparatedList(VariableDeclarator(ResultName).WithInitializer(EqualsValueClause(method.MethodSymbol.ReturnType.GetDefaultValue()))))));
-
-		statements.Add(LocalDeclarationStatement(VariableDeclaration(IdentifierName("var"))
-			.WithVariables(SingletonSeparatedList(VariableDeclarator(CountName).WithInitializer(EqualsValueClause(CreateLiteral(0)!))))));
+		statements.Add(CreateLocalDeclaration(ResultName, method.MethodSymbol.ReturnType.GetDefaultValue()));
+		statements.Add(CreateLocalDeclaration(CountName, CreateLiteral(0)));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
 	{
 		if (method.Parameters.Length == 1 && TryGetLambda(method.Parameters[0], out var lambda))
 		{
-			statements.Add(ExpressionStatement(AssignmentExpression(SyntaxKind.AddAssignmentExpression, IdentifierName(ResultName), ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, elementName)!)));
+			statements.Add(ExpressionStatement(AssignmentExpression(
+				SyntaxKind.AddAssignmentExpression,
+				IdentifierName(ResultName),
+				ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, elementName)!)));
 		}
 		else
 		{
-			statements.Add(ExpressionStatement(AssignmentExpression(SyntaxKind.AddAssignmentExpression, IdentifierName(ResultName), elementName)));
+			statements.Add(ExpressionStatement(AssignmentExpression(
+				SyntaxKind.AddAssignmentExpression,
+				IdentifierName(ResultName),
+				elementName)));
 		}
 		
 		statements.Add(ExpressionStatement(PostfixUnaryExpression(SyntaxKind.PostIncrementExpression, IdentifierName(CountName))));

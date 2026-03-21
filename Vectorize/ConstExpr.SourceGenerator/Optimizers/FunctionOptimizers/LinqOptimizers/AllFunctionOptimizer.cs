@@ -192,7 +192,7 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 					var intType = context.Model.Compilation.CreateInt32();
 					var boolType = context.Model.Compilation.CreateBoolean();
 
-					var countCheck = OptimizeComparison(context, SyntaxKind.LessThanOrEqualExpression, repeatCountArg.Expression, CreateLiteral(0)!, intType);
+					var countCheck = OptimizeComparison(context, SyntaxKind.LessThanOrEqualExpression, repeatCountArg.Expression, CreateLiteral(0), intType);
 					var predicateApplied = context.Visit(ReplaceIdentifier(repeatAllPredicateBody, repeatAllPredicateParam.Identifier.Text, repeatElementArg.Expression))
 					                       ?? ReplaceIdentifier(repeatAllPredicateBody, repeatAllPredicateParam.Identifier.Text, repeatElementArg.Expression);
 

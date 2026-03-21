@@ -79,17 +79,17 @@ public class AverageFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 					// start + (count - 1) / 2.0
 					var countMinusOne = ParenthesizedExpression(
 						OptimizeArithmetic(context, SyntaxKind.SubtractExpression,
-							countArg.Expression, CreateLiteral(1)!, intType));
+							countArg.Expression, CreateLiteral(1), intType));
 
 					var halfOffset = OptimizeArithmetic(context, SyntaxKind.DivideExpression,
-						countMinusOne, CreateLiteral(2.0)!, doubleType);
+						countMinusOne, CreateLiteral(2.0), doubleType);
 
 					var averageValue = OptimizeArithmetic(context, SyntaxKind.AddExpression,
 						startArg.Expression, halfOffset, doubleType);
 
 					// Guard against empty range (count == 0)
 					result = ConditionalExpression(
-						OptimizeComparison(context, SyntaxKind.GreaterThanExpression, countArg.Expression, CreateLiteral(0)!, intType),
+						OptimizeComparison(context, SyntaxKind.GreaterThanExpression, countArg.Expression, CreateLiteral(0), intType),
 						averageValue,
 						CreateThrowExpression<InvalidOperationException>("Sequence contains no elements"));
 					return true;
@@ -102,7 +102,7 @@ public class AverageFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 						repeatElementArg.Expression);
 
 					result = ConditionalExpression(
-						OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, CreateLiteral(0)!, context.Model.Compilation.CreateInt32()),
+						OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, CreateLiteral(0), context.Model.Compilation.CreateInt32()),
 						castExpr,
 						CreateThrowExpression<InvalidOperationException>("Sequence contains no elements"));
 					return true;

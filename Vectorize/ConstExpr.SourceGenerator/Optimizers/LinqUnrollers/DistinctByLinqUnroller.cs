@@ -11,19 +11,17 @@ public class DistinctByLinqUnroller : BaseLinqUnroller
 
 	public override void UnrollAboveLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
-		statements.Add(LocalDeclarationStatement(VariableDeclaration(IdentifierName("var"))
-			.WithVariables(
-				SingletonSeparatedList(VariableDeclarator(SetName)
-					.WithInitializer(EqualsValueClause(ObjectCreationExpression(IdentifierName($"HashSet<{method.Model.Compilation.GetMinimalString(method.MethodSymbol.TypeArguments[^1])}>"))
-						.WithArgumentList(ArgumentList())))))));
+		statements.Add(CreateLocalDeclaration(SetName, ObjectCreationExpression(IdentifierName($"HashSet<{method.Model.Compilation.GetMinimalString(method.MethodSymbol.TypeArguments[^1])}>"))
+			.WithArgumentList(ArgumentList())));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
 	{
 		if (TryGetLambda(method.Parameters[0], out var lambda))
 		{
-			statements.Add(IfStatement(PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, InvocationExpression(MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName(SetName), IdentifierName("Add")))
-				.WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, IdentifierName(elementName.ToString()))))))), ContinueStatement()));
+			statements.Add(IfStatement(PrefixUnaryExpression(SyntaxKind.LogicalNotExpression,
+				CreateMethodInvocation(IdentifierName(SetName), "Add", ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, IdentifierName(elementName.ToString())))), 
+				ContinueStatement()));
 
 		}
 	}

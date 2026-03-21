@@ -923,7 +923,7 @@ public partial class ConstExprPartialRewriter
 		// Groups of expressions per cluster: within a cluster combine with &&, across clusters combine with ||
 		var clusterResults = new List<List<ExpressionSyntax>>();
 
-		foreach (var cluster in constants!.GetClusterPatterns())
+		foreach (var cluster in constants.GetClusterPatterns())
 		{
 			var minValue = cluster.Start;
 			var maxValue = cluster.End;
@@ -988,7 +988,7 @@ public partial class ConstExprPartialRewriter
 				}
 				case ObjectExtensions.ClusterType.PowerOfTwo:
 				{
-					clusterExprs.Add(GetPowerOfTwoExpression(cluster, oneExpression!, zeroExpression));
+					clusterExprs.Add(GetPowerOfTwoExpression(cluster, oneExpression, zeroExpression));
 					break;
 				}
 				case ObjectExtensions.ClusterType.Odd or ObjectExtensions.ClusterType.Even:
@@ -1023,7 +1023,7 @@ public partial class ConstExprPartialRewriter
 
 					// bitmask = bitmask.ToSpecialType(unsignedType.SpecialType);
 
-					clusterExprs.Add(GetBitmaskExpression(cluster, bitmask, oneExpression!, type));
+					clusterExprs.Add(GetBitmaskExpression(cluster, bitmask, oneExpression, type));
 					break;
 				}
 				default:

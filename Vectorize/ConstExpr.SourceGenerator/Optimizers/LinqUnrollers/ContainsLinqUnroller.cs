@@ -13,12 +13,14 @@ public class ContainsLinqUnroller : BaseLinqUnroller
 			return;
 		}
 
-		statements.Add(IfStatement(BinaryExpression(SyntaxKind.NotEqualsExpression, elementName, method.Parameters[0]), ContinueStatement()));
-		statements.Add(ReturnStatement(LiteralExpression(SyntaxKind.TrueLiteralExpression)));
+		statements.Add(IfStatement(BinaryExpression(SyntaxKind.NotEqualsExpression, elementName, method.Parameters[0]), 
+			ContinueStatement()));
+		
+		statements.Add(ReturnStatement(CreateLiteral(true)));
 	}
 
 	public override void UnrollUnderLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
-		statements.Add(ReturnStatement(LiteralExpression(SyntaxKind.FalseLiteralExpression)));
+		statements.Add(ReturnStatement(CreateLiteral(false)));
 	}
 }

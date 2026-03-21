@@ -62,7 +62,7 @@ public class MinFunctionOptimizer() : BaseMathFunctionOptimizer("Min", 2)
 		}
 
 		// Fallback: just re-target to the numeric helper (ensures nested Single.Max(...) is supported)
-		result = CreateInvocation(paramType!, Name, context.VisitedParameters);
+		result = CreateInvocation(paramType, Name, context.VisitedParameters);
 		return true;
 	}
 
@@ -221,12 +221,12 @@ public class MinFunctionOptimizer() : BaseMathFunctionOptimizer("Min", 2)
 				if (HasMethod(paramType, "ClampNative", 2))
 				{
 					// Use MaxNative if available on the numeric helper type
-					result = CreateInvocation(paramType, "ClampNative", valueExpr!, minExpr!, maxConstExpr!);
+					result = CreateInvocation(paramType, "ClampNative", valueExpr, minExpr!, maxConstExpr!);
 					return true;
 				}
 
 				// Fallback: just re-target to the numeric helper (ensures nested Single.Max(...) is supported)
-				result = CreateInvocation(paramType!, "Clamp", valueExpr!, minExpr!, maxConstExpr!);
+				result = CreateInvocation(paramType, "Clamp", valueExpr, minExpr!, maxConstExpr!);
 				return true;
 			}
 		}
@@ -288,12 +288,12 @@ public class MinFunctionOptimizer() : BaseMathFunctionOptimizer("Min", 2)
 				if (HasMethod(paramType, "ClampNative", 2))
 				{
 					// Use MaxNative if available on the numeric helper type
-					result = CreateInvocation(paramType, "ClampNative", valueExpr2!, minExpr2!, maxConstExpr2!);
+					result = CreateInvocation(paramType, "ClampNative", valueExpr2, minExpr2!, maxConstExpr2!);
 					return true;
 				}
 
 				// Fallback: just re-target to the numeric helper (ensures nested Single.Max(...) is supported)
-				result = CreateInvocation(paramType!, "Clamp", valueExpr2!, minExpr2!, maxConstExpr2!);
+				result = CreateInvocation(paramType, "Clamp", valueExpr2, minExpr2!, maxConstExpr2!);
 				return true;
 			}
 		}

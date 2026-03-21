@@ -33,7 +33,7 @@ public class AddConstantFoldingStrategy : NumericBinaryStrategy<BinaryExpression
 
 				optimized = BinaryExpression(SyntaxKind.AddExpression,
 					context.Left.Syntax.Left,
-					newConstant!);
+					newConstant);
 
 				return true;
 			}
@@ -46,7 +46,7 @@ public class AddConstantFoldingStrategy : NumericBinaryStrategy<BinaryExpression
 				var newConstant = CreateLiteral(result);
 				optimized = BinaryExpression(SyntaxKind.AddExpression,
 					context.Left.Syntax.Right,
-					newConstant!);
+					newConstant);
 
 				return true;
 			}

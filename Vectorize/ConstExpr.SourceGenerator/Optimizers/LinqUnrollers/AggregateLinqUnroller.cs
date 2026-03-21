@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using ConstExpr.SourceGenerator.Helpers;
@@ -20,36 +21,27 @@ public class AggregateLinqUnroller : BaseLinqUnroller
 			{
 				// var result = collection[0];
 				var elementAccess = ElementAccessExpression(IdentifierName("collection"))
-					.WithArgumentList(BracketedArgumentList(SingletonSeparatedList(Argument(LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0))))));
+					.WithArgumentList(BracketedArgumentList(SingletonSeparatedList(Argument(CreateLiteral(0)))));
 
-				statements.Add(LocalDeclarationStatement(VariableDeclaration(IdentifierName("var"))
-					.WithVariables(SingletonSeparatedList(VariableDeclarator(ResultName)
-						.WithInitializer(EqualsValueClause(elementAccess))))));
+				statements.Add(CreateLocalDeclaration(ResultName, elementAccess));
 			}
 			else
 			{
 				// using var e = collection.GetEnumerator();
-				statements.Add(LocalDeclarationStatement(VariableDeclaration(IdentifierName("var"))
-					.WithVariables(SingletonSeparatedList(VariableDeclarator("e")
-						.WithInitializer(EqualsValueClause(InvocationExpression(MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName("collection"), IdentifierName("GetEnumerator")))))))));
+				statements.Add(CreateLocalDeclaration("e", CreateMethodInvocation(IdentifierName("collection"), "GetEnumerator")));
 
 				// if (!e.MoveNext()) throw new InvalidOperationException("Sequence contains no elements");
-				statements.Add(IfStatement(PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, InvocationExpression(MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName("e"), IdentifierName("MoveNext")))),
-					ThrowStatement(ObjectCreationExpression(IdentifierName("InvalidOperationException"))
-						.WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal("Sequence contains no elements")))))))));
+				statements.Add(IfStatement(PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, CreateMethodInvocation(IdentifierName("e"), "MoveNext")),
+					CreateThrowExpression<InvalidOperationException>("Sequence contains no elements")));
 
 				// var result = e.Current;
-				statements.Add(LocalDeclarationStatement(VariableDeclaration(IdentifierName("var"))
-					.WithVariables(SingletonSeparatedList(VariableDeclarator(ResultName)
-						.WithInitializer(EqualsValueClause(MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName("e"), IdentifierName("Current"))))))));
+				statements.Add(CreateLocalDeclaration(ResultName, MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName("e"), IdentifierName("Current"))));
 			}
 
 			return;
 		}
 
-		statements.Add(LocalDeclarationStatement(VariableDeclaration(IdentifierName("var"))
-			.WithVariables(SingletonSeparatedList(VariableDeclarator(ResultName)
-				.WithInitializer(EqualsValueClause(method.Parameters[0]))))));
+		statements.Add(CreateLocalDeclaration(ResultName, method.Parameters[0]));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
@@ -92,7 +84,7 @@ public class AggregateLinqUnroller : BaseLinqUnroller
 			finalBody = bodyWithResult.ReplaceNodes(identifiers, (_, _) => element);
 		}
 
-		statements.Add(ExpressionStatement(method.Visit(AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, IdentifierName(ResultName), finalBody)) as ExpressionSyntax));
+		statements.Add(ExpressionStatement(method.Visit(CreateAssignment(ResultName, finalBody)) as ExpressionSyntax));
 	}
 
 	public override void UnrollUnderLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
@@ -118,12 +110,12 @@ public class AggregateLinqUnroller : BaseLinqUnroller
 			{
 				var countProperty = IsInvokedOnArray(collectionType) ? "Length" : "Count";
 
-				resultStatements.Add(CreateForLoop(collectionName, "i", countProperty, Block(statements), CreateLiteral(1)!));
+				resultStatements.Add(CreateForLoop(collectionName, "i", countProperty, Block(statements), CreateLiteral(1)));
 			}
 			else
 			{
 				resultStatements.Add(WhileStatement(
-					InvocationExpression(MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName("e"), IdentifierName("MoveNext"))),
+					CreateMethodInvocation(IdentifierName("e"), "MoveNext"),
 					Block(statements)));
 			}
 		}
@@ -143,10 +135,10 @@ public class AggregateLinqUnroller : BaseLinqUnroller
 				return ElementAccessExpression(IdentifierName(collectionName))
 					.WithArgumentList(BracketedArgumentList(SingletonSeparatedList(Argument(IdentifierName("i")))));
 			}
-			
+
 			return MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName("e"), IdentifierName("Current"));
 		}
-		
+
 		return base.GetCollectionElement(method, collectionName);
 	}
 }

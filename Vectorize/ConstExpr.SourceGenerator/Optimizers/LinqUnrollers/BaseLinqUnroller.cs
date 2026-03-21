@@ -63,7 +63,7 @@ public abstract class BaseLinqUnroller
 
 	protected static ExpressionSyntax? ReplaceLambda(LambdaExpressionSyntax lambda, ExpressionSyntax replacement)
 	{
-		var lambdaParam = GetLambdaParameter(lambda!);
+		var lambdaParam = GetLambdaParameter(lambda);
 
 		var body = lambda switch
 		{
@@ -104,7 +104,7 @@ public abstract class BaseLinqUnroller
 			? ParenthesizedExpression(replacement)
 			: replacement;
 
-		return new IdentifierReplacer(oldIdentifier, wrappedReplacement).Visit(body)!;
+		return new IdentifierReplacer(oldIdentifier, wrappedReplacement).Visit(body);
 	}
 
 	/// <summary>
@@ -131,6 +131,61 @@ public abstract class BaseLinqUnroller
 			)
 			.WithCondition(BinaryExpression(SyntaxKind.LessThanExpression, IdentifierName(indexName), MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName(collectionName), IdentifierName(lengthName))))
 			.WithIncrementors(SingletonSeparatedList<ExpressionSyntax>(PostfixUnaryExpression(SyntaxKind.PostIncrementExpression, IdentifierName(indexName))));
+	}
+
+	protected ThrowStatementSyntax CreateThrowExpression<TException>(string message = "") where TException : Exception
+	{
+		return ThrowStatement(
+			ObjectCreationExpression(
+					IdentifierName(typeof(TException).Name))
+				.WithArgumentList(
+					ArgumentList(
+						SingletonSeparatedList(
+							Argument(
+								LiteralExpression(
+									SyntaxKind.StringLiteralExpression,
+									Literal(message)))))));
+	}
+	
+	protected LocalDeclarationStatementSyntax CreateLocalDeclaration(string variableName, TypeSyntax type, ExpressionSyntax initializer)
+	{
+		return LocalDeclarationStatement(
+			VariableDeclaration(type)
+				.WithVariables(
+					SingletonSeparatedList(
+						VariableDeclarator(variableName)
+							.WithInitializer(EqualsValueClause(initializer)))));
+	}
+
+	protected LocalDeclarationStatementSyntax CreateLocalDeclaration(string variableName, ExpressionSyntax initializer)
+	{
+		return LocalDeclarationStatement(
+			VariableDeclaration(IdentifierName("var"))
+				.WithVariables(
+					SingletonSeparatedList(
+						VariableDeclarator(variableName)
+							.WithInitializer(EqualsValueClause(initializer)))));
+	}
+	
+	protected ExpressionStatementSyntax CreateAssignment(string variableName, ExpressionSyntax value)
+	{
+		return ExpressionStatement(
+			AssignmentExpression(
+				SyntaxKind.SimpleAssignmentExpression,
+				IdentifierName(variableName),
+				value));
+	}
+	
+	protected InvocationExpressionSyntax CreateMethodInvocation(ExpressionSyntax target, string methodName, params ExpressionSyntax[] arguments)
+	{
+		return InvocationExpression(
+			MemberAccessExpression(
+				SyntaxKind.SimpleMemberAccessExpression,
+				target,
+				IdentifierName(methodName)))
+			.WithArgumentList(
+				ArgumentList(
+					SeparatedList(arguments.Select(Argument))));
 	}
 }
 

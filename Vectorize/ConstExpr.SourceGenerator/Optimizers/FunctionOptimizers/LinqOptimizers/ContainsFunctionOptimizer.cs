@@ -223,7 +223,7 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 					var intType = context.Model.Compilation.CreateInt32();
 
 					// Repeat(element, count).Contains(x) => count > 0 && element == x
-					var countPositive = OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, CreateLiteral(0)!, intType);
+					var countPositive = OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, CreateLiteral(0), intType);
 					var elementEquals = OptimizeComparison(context, SyntaxKind.EqualsExpression, repeatElementArg.Expression, searchValue, intType);
 					
 					result = OptimizeComparison(context, SyntaxKind.LogicalAndExpression, countPositive, elementEquals, boolType);
