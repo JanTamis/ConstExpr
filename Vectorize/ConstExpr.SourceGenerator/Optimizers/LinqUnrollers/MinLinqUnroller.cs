@@ -13,12 +13,10 @@ public class MinLinqUnroller : BaseLinqUnroller
 	public override void UnrollAboveLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
 		// var result = default(T);
-		statements.Add(LocalDeclarationStatement(VariableDeclaration(IdentifierName("var"))
-			.WithVariables(SingletonSeparatedList(VariableDeclarator(ResultName).WithInitializer(EqualsValueClause(method.MethodSymbol.ReturnType.GetDefaultValue()))))));
+		statements.Add(CreateLocalDeclaration(ResultName, method.MethodSymbol.ReturnType.GetDefaultValue()));
 
 		// var first = true;
-		statements.Add(LocalDeclarationStatement(VariableDeclaration(IdentifierName("var"))
-			.WithVariables(SingletonSeparatedList(VariableDeclarator(FirstName).WithInitializer(EqualsValueClause(CreateLiteral(true)))))));
+		statements.Add(CreateLocalDeclaration(FirstName, CreateLiteral(true)));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
@@ -41,8 +39,8 @@ public class MinLinqUnroller : BaseLinqUnroller
 			BinaryExpression(SyntaxKind.LessThanExpression, value, IdentifierName(ResultName)));
 
 		statements.Add(IfStatement(condition, Block(
-			ExpressionStatement(AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, IdentifierName(ResultName), value)),
-			ExpressionStatement(AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, IdentifierName(FirstName), CreateLiteral(false))))));
+			CreateAssignment(ResultName, value),
+			CreateAssignment(FirstName, CreateLiteral(false)))));
 	}
 
 	public override void UnrollUnderLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)

@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -22,7 +21,6 @@ public class DistinctByLinqUnroller : BaseLinqUnroller
 			statements.Add(IfStatement(PrefixUnaryExpression(SyntaxKind.LogicalNotExpression,
 				CreateMethodInvocation(IdentifierName(SetName), "Add", ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, IdentifierName(elementName.ToString())))), 
 				ContinueStatement()));
-
 		}
 	}
 }

@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
@@ -27,7 +26,8 @@ public class SkipWhileLinqUnroller : BaseLinqUnroller
 		// if (skipping) { if (predicate(item)) continue; skipping = false; }
 		statements.Add(IfStatement(IdentifierName(SkippingName),
 			Block(
-				IfStatement(predicateBody, ContinueStatement()),
+				IfStatement(predicateBody, 
+					ContinueStatement()),
 				CreateAssignment(SkippingName, CreateLiteral(false)))));
 	}
 }

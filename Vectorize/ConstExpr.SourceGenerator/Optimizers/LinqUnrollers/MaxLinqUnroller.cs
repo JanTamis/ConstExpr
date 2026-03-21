@@ -16,7 +16,7 @@ public class MaxLinqUnroller : BaseLinqUnroller
 		statements.Add(CreateLocalDeclaration(ResultName, method.MethodSymbol.ReturnType.GetDefaultValue()));
 
 		// var first = true;
-		statements.Add(CreateLocalDeclaration(FirstName, IdentifierName("var"), CreateLiteral(true)));
+		statements.Add(CreateLocalDeclaration(FirstName, CreateLiteral(true)));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
