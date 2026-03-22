@@ -63,16 +63,9 @@ public class MinLinqUnroller : BaseLinqUnroller
 			? MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName("e"), IdentifierName("Current"))
 			: elementName;
 
-		ExpressionSyntax candidate;
-
-		if (method.Parameters.Length == 1 && TryGetLambda(method.Parameters[0], out var lambda))
-		{
-			candidate = ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, element)!;
-		}
-		else
-		{
-			candidate = element;
-		}
+		var candidate = method.Parameters.Length == 1 && TryGetLambda(method.Parameters[0], out var lambda) 
+			? ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, element)! 
+			: element;
 
 		// if (candidate < value) { value = candidate; }
 		var condition = BinaryExpression(SyntaxKind.LessThanExpression, candidate, IdentifierName(ResultName));

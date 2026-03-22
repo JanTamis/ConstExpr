@@ -28,7 +28,7 @@ public class MaxByLinqUnroller : BaseLinqUnroller
 					CreateLiteral(0)),
 				CreateThrowExpression<InvalidOperationException>("Sequence contains no elements")));
 
-			ExpressionSyntax firstElement = ElementAccessExpression(IdentifierName("collection"))
+			var firstElement = ElementAccessExpression(IdentifierName("collection"))
 				.WithArgumentList(BracketedArgumentList(SingletonSeparatedList(Argument(CreateLiteral(0)))));
 
 			// var result = collection[0];
@@ -48,7 +48,7 @@ public class MaxByLinqUnroller : BaseLinqUnroller
 				PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, CreateMethodInvocation(IdentifierName("e"), "MoveNext")),
 				CreateThrowExpression<InvalidOperationException>("Sequence contains no elements")));
 
-			ExpressionSyntax firstCurrent = MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName("e"), IdentifierName("Current"));
+			var firstCurrent = MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName("e"), IdentifierName("Current"));
 
 			// var result = e.Current;
 			statements.Add(CreateLocalDeclaration(ResultName, firstCurrent));

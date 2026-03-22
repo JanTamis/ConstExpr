@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
+using ConstExpr.SourceGenerator.Rewriters;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -221,6 +222,12 @@ public static class LinqUnroller
 				elements.Add(YieldStatement(SyntaxKind.YieldReturnStatement, elementName));
 			}
 		}
+
+		// Combine consecutive if-statements with identical jump bodies into a single if using ||.
+		// e.g. if (!set.Add(x)) continue; if (x == 1) continue; => if (!set.Add(x) || x == 1) continue;
+		var combined = ConstExprPartialRewriter.CombineConsecutiveIfStatements(List(elements));
+		elements.Clear();
+		elements.AddRange(combined);
 	}
 
 	private static bool IsResultMethod(PossibleLinqMethod method)

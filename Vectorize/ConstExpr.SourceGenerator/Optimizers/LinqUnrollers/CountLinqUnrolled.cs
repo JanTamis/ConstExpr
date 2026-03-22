@@ -8,7 +8,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 public class CountLinqUnrolled : BaseLinqUnroller
 {
 	private const string ResultName = "result";
-	
+
 	public override void UnrollAboveLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
 		statements.Add(CreateLocalDeclaration(ResultName, method.MethodSymbol.ReturnType.GetDefaultValue()));
@@ -19,7 +19,7 @@ public class CountLinqUnrolled : BaseLinqUnroller
 		if (method.Parameters.Length == 1
 		    && TryGetLambda(method.Parameters[0], out var lambda))
 		{
-			statements.Add(IfStatement(InvertSyntax( ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, elementName)!), 
+			statements.Add(IfStatement(InvertSyntax(ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, elementName)!),
 				ContinueStatement()));
 		}
 

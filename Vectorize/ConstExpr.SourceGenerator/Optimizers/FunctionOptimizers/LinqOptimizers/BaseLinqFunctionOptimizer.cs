@@ -1274,6 +1274,17 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 			};
 		}
 
+		// handle 'x is T' (pattern form) and 'x is not T'
+		if (node is IsPatternExpressionSyntax isPattern)
+		{
+			// x is not T  →  x is T  (strip the negation)
+			if (isPattern.Pattern.Kind() == SyntaxKind.NotPattern && isPattern.Pattern is UnaryPatternSyntax negated)
+				return IsPatternExpression(isPattern.Expression, negated.Pattern);
+
+			// x is T  →  x is not T  (add negation)
+			return IsPatternExpression(isPattern.Expression, UnaryPattern(Token(SyntaxKind.NotKeyword), isPattern.Pattern));
+		}
+
 		return PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, ParenthesizedExpression(node));
 	}
 

@@ -21,7 +21,8 @@ public class SingleOrDefaultLinqUnroller : BaseLinqUnroller
 		if (method.Parameters.Length == 1
 		    && TryGetLambda(method.Parameters[0], out var lambda))
 		{
-			statements.Add(IfStatement(InvertSyntax(ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, elementName)!), ContinueStatement()));
+			statements.Add(IfStatement(InvertSyntax(ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, elementName)!), 
+				ContinueStatement()));
 		}
 
 		// if (found) throw new InvalidOperationException("Sequence contains more than one matching element");

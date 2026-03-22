@@ -18,21 +18,21 @@ public class DistinctLinqUnroller : BaseLinqUnroller
 		switch (elementType.SpecialType)
 		{
 			case SpecialType.System_Boolean:
-				statements.Add(CreateLocalDeclaration(SeenTrue, LiteralExpression(SyntaxKind.FalseLiteralExpression)));
-				statements.Add(CreateLocalDeclaration(SeenFalse, LiteralExpression(SyntaxKind.FalseLiteralExpression)));
+				statements.Add(CreateLocalDeclaration(SeenTrue, CreateLiteral(false)));
+				statements.Add(CreateLocalDeclaration(SeenFalse, CreateLiteral(false)));
 				break;
 
 			case SpecialType.System_Byte:
 			case SpecialType.System_SByte:
 				// Span<bool> distinctSet = stackalloc bool[256];
-				statements.Add(CreateStackAllocSpan(SetName, PredefinedType(Token(SyntaxKind.BoolKeyword)), 256));
+				statements.Add(CreateStackAllocSpan<bool>(SetName, 256));
 				break;
 
 			case SpecialType.System_Int16:
 			case SpecialType.System_UInt16:
 			case SpecialType.System_Char:
 				// Span<ulong> distinctSet = stackalloc ulong[1024]; (8 KB bitset for 65 536 values)
-				statements.Add(CreateStackAllocSpan(SetName, PredefinedType(Token(SyntaxKind.ULongKeyword)), 1024));
+				statements.Add(CreateStackAllocSpan<ulong>(SetName, 1024));
 				break;
 
 			default:

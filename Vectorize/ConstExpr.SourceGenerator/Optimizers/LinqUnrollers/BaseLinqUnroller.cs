@@ -47,6 +47,18 @@ public abstract class BaseLinqUnroller
 					_ => PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, node)
 				};
 			}
+			// handle 'x is T' (pattern form) and 'x is not T'
+			case IsPatternExpressionSyntax isPattern:
+			{
+				// x is not T  →  x is T  (strip the negation)
+				if (isPattern.Pattern.IsKind(SyntaxKind.NotPattern) && isPattern.Pattern is UnaryPatternSyntax negated)
+				{
+					return IsPatternExpression(isPattern.Expression, negated.Pattern);
+				}
+
+				// x is T  →  x is not T  (add negation)
+				return IsPatternExpression(isPattern.Expression, UnaryPattern(Token(SyntaxKind.NotKeyword), isPattern.Pattern));
+			}
 			case LiteralExpressionSyntax literal:
 			{
 				return literal.Kind() switch
@@ -185,6 +197,15 @@ public abstract class BaseLinqUnroller
 									.WithRankSpecifiers(SingletonList(
 										ArrayRankSpecifier(SingletonSeparatedList(
 											CreateLiteral(size)))))))))));
+	}
+
+	/// <summary>
+	/// Generates a <c>Span&lt;T&gt;</c> local backed by <c>stackalloc</c>.
+	/// Example: <c>Span&lt;bool&gt; name = stackalloc bool[size];</c>
+	/// </summary>
+	protected static LocalDeclarationStatementSyntax CreateStackAllocSpan<T>(string name, int size)
+	{
+		return CreateStackAllocSpan(name, CreateTypeSyntax<T>(), size);
 	}
 
 	/// <summary>

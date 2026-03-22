@@ -526,12 +526,18 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Combines consecutive if statements that have identical bodies and use equality comparisons
-	/// against the same target variable into a single if statement with OR conditions.
-	/// Example: if (1 == x) { return true; } if (5 == x) { return true; }
-	///       => if (x is 1 or 5) { return true; }
+	/// Combines consecutive if statements that have identical bodies into a single if statement.
+	/// Two strategies are applied in order:
+	/// 1. Equality pattern: conditions of the form <c>x == literal</c> against the same variable
+	///    are combined into <c>if (x is 1 or 5) { … }</c>.
+	/// 2. General ||: when the body ends with a jump statement (return / break / continue / throw),
+	///    any consecutive if statements with an identical body are combined using <c>||</c>.
+	/// Example (strategy 1): if (1 == x) { return true; } if (5 == x) { return true; }
+	///                     => if (x is 1 or 5) { return true; }
+	/// Example (strategy 2): if (x &gt; 5) { return; } if (y &lt; 3) { return; }
+	///                     => if (x &gt; 5 || y &lt; 3) { return; }
 	/// </summary>
-	private SyntaxList<StatementSyntax> CombineConsecutiveIfStatements(SyntaxList<StatementSyntax> statements)
+	internal static SyntaxList<StatementSyntax> CombineConsecutiveIfStatements(SyntaxList<StatementSyntax> statements)
 	{
 		if (statements.Count < 2)
 		{
@@ -543,7 +549,7 @@ public partial class ConstExprPartialRewriter
 
 		while (i < statements.Count)
 		{
-			// Check if current statement is an if statement that can be combined
+			// Only process if statements without an else clause
 			if (statements[i] is not IfStatementSyntax currentIf || currentIf.Else is not null)
 			{
 				result.Add(statements[i]);
@@ -552,67 +558,119 @@ public partial class ConstExprPartialRewriter
 				continue;
 			}
 
-			// Try to extract the comparison target and literal value
-			if (!TryGetEqualityComparisonInfo(currentIf.Condition, out var targetIdentifier, out var firstLiteral))
+			// Strategy 1: equality (is or) combination
+			if (TryGetEqualityComparisonInfo(currentIf.Condition, out var targetIdentifier, out var firstLiteral))
 			{
-				result.Add(statements[i]);
-				i++;
-				
-				continue;
-			}
+				var bodyString = currentIf.Statement.NormalizeWhitespace().ToFullString();
+				var literals = new List<LiteralExpressionSyntax> { firstLiteral! };
+				var j = i + 1;
 
-			// Collect all consecutive if statements with the same body and target
-			var bodyString = currentIf.Statement.NormalizeWhitespace().ToFullString();
-			var literals = new List<LiteralExpressionSyntax> { firstLiteral! };
-			var j = i + 1;
-
-			while (j < statements.Count)
-			{
-				if (statements[j] is not IfStatementSyntax { Else: null } nextIf)
+				while (j < statements.Count)
 				{
-					break;
+					if (statements[j] is not IfStatementSyntax { Else: null } nextIf)
+					{
+						break;
+					}
+
+					if (nextIf.Statement.NormalizeWhitespace().ToFullString() != bodyString)
+					{
+						break;
+					}
+
+					if (!TryGetEqualityComparisonInfo(nextIf.Condition, out var nextTarget, out var nextLiteral) ||
+					    nextTarget != targetIdentifier)
+					{
+						break;
+					}
+
+					literals.Add(nextLiteral!);
+					j++;
 				}
 
-				// Check if the body matches
-				var nextBodyString = nextIf.Statement.NormalizeWhitespace().ToFullString();
-				
-				if (bodyString != nextBodyString)
+				if (literals.Count > 1)
 				{
-					break;
+					// e.g. target is 1 or 5 or 10
+					var combinedCondition = CreateIsOrPattern(targetIdentifier!, literals);
+					result.Add(currentIf.WithCondition(combinedCondition));
+					i = j;
+					continue;
+				}
+			}
+
+			// Strategy 2: general || combination when body ends with a jump statement
+			if (ContainsJumpStatement(currentIf.Statement))
+			{
+				var bodyString = currentIf.Statement.NormalizeWhitespace().ToFullString();
+				var conditions = new List<ExpressionSyntax> { currentIf.Condition };
+				var j = i + 1;
+
+				while (j < statements.Count)
+				{
+					if (statements[j] is not IfStatementSyntax { Else: null } nextIf)
+					{
+						break;
+					}
+
+					if (nextIf.Statement.NormalizeWhitespace().ToFullString() != bodyString)
+					{
+						break;
+					}
+
+					conditions.Add(nextIf.Condition);
+					j++;
 				}
 
-				// Check if the target matches and get the literal
-				if (!TryGetEqualityComparisonInfo(nextIf.Condition, out var nextTarget, out var nextLiteral) ||
-				    nextTarget != targetIdentifier)
+				if (conditions.Count > 1)
 				{
-					break;
+					var combinedCondition = conditions[0];
+
+					for (var k = 1; k < conditions.Count; k++)
+					{
+						combinedCondition = BinaryExpression(
+							SyntaxKind.LogicalOrExpression,
+							NeedsParenthesesInOrContext(combinedCondition)
+								? ParenthesizedExpression(combinedCondition)
+								: combinedCondition,
+							NeedsParenthesesInOrContext(conditions[k])
+								? ParenthesizedExpression(conditions[k])
+								: conditions[k]);
+					}
+
+					result.Add(currentIf.WithCondition(combinedCondition));
+					i = j;
+					continue;
 				}
-
-				literals.Add(nextLiteral!);
-				j++;
 			}
 
-			// If we found multiple if statements to combine
-			if (literals.Count > 1)
-			{
-				// Create optimized condition using 'is' pattern with 'or'
-				// e.g., target is 1 or 5 or 10
-				var combinedCondition = CreateIsOrPattern(targetIdentifier!, literals);
-
-				// Create combined if statement
-				var combinedIf = currentIf.WithCondition(combinedCondition);
-				result.Add(combinedIf);
-				i = j;
-			}
-			else
-			{
-				result.Add(statements[i]);
-				i++;
-			}
+			result.Add(statements[i]);
+			i++;
 		}
 
 		return List(result);
 	}
+
+	/// <summary>
+	/// Returns <see langword="true"/> when a statement unconditionally ends with a jump
+	/// (return, break, continue, or throw), making it safe to combine consecutive if
+	/// statements with identical bodies using <c>||</c>.
+	/// </summary>
+	private static bool ContainsJumpStatement(StatementSyntax statement) =>
+		statement switch
+		{
+			ReturnStatementSyntax => true,
+			BreakStatementSyntax => true,
+			ContinueStatementSyntax => true,
+			ThrowStatementSyntax => true,
+			BlockSyntax block => block.Statements.Count > 0 && ContainsJumpStatement(block.Statements.Last()),
+			_ => false
+		};
+
+	/// <summary>
+	/// Returns <see langword="true"/> when an expression needs parentheses when used as an
+	/// operand of <c>||</c> (i.e., its precedence is lower than logical-or).
+	/// </summary>
+	private static bool NeedsParenthesesInOrContext(ExpressionSyntax expression) =>
+		expression is ConditionalExpressionSyntax or AssignmentExpressionSyntax;
 
 	/// <summary>
 	/// Creates an 'is' pattern expression with 'or' for multiple values.

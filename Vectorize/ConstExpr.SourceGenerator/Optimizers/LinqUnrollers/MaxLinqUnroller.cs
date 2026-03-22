@@ -40,14 +40,14 @@ public class MaxLinqUnroller : BaseLinqUnroller
 			statements.Add(CreateLocalDeclaration("e", CreateMethodInvocation(IdentifierName("collection"), "GetEnumerator")));
 
 			// if (!e.MoveNext()) throw new InvalidOperationException("Sequence contains no elements");
-			statements.Add(IfStatement(
-				PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, CreateMethodInvocation(IdentifierName("e"), "MoveNext")),
+			statements.Add(IfStatement(PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, CreateMethodInvocation(IdentifierName("e"), "MoveNext")),
 				CreateThrowExpression<InvalidOperationException>("Sequence contains no elements")));
 
 			// var value = e.Current; (or lambda(e.Current) when selector is present)
 			ExpressionSyntax firstCurrent = MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName("e"), IdentifierName("Current"));
 
-			if (method.Parameters.Length == 1 && TryGetLambda(method.Parameters[0], out var initLambda))
+			if (method.Parameters.Length == 1 
+			    && TryGetLambda(method.Parameters[0], out var initLambda))
 			{
 				firstCurrent = ReplaceLambda(method.Visit(initLambda) as LambdaExpressionSyntax ?? initLambda, firstCurrent)!;
 			}
@@ -63,16 +63,9 @@ public class MaxLinqUnroller : BaseLinqUnroller
 			? MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName("e"), IdentifierName("Current"))
 			: elementName;
 
-		ExpressionSyntax candidate;
-
-		if (method.Parameters.Length == 1 && TryGetLambda(method.Parameters[0], out var lambda))
-		{
-			candidate = ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, element)!;
-		}
-		else
-		{
-			candidate = element;
-		}
+		var candidate = method.Parameters.Length == 1 && TryGetLambda(method.Parameters[0], out var lambda) 
+			? ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, element)! 
+			: element;
 
 		// if (candidate > value) { value = candidate; }
 		var condition = BinaryExpression(SyntaxKind.GreaterThanExpression, candidate, IdentifierName(ResultName));

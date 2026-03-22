@@ -22,8 +22,7 @@ public class SkipLinqUnroller : BaseLinqUnroller
 		}
 
 		// if (skipCount < n) { skipCount++; continue; }
-		statements.Add(IfStatement(
-			BinaryExpression(SyntaxKind.LessThanExpression, IdentifierName(SkipCountName), method.Parameters[0]),
+		statements.Add(IfStatement(BinaryExpression(SyntaxKind.LessThanExpression, IdentifierName(SkipCountName), method.Parameters[0]),
 			Block(
 				ExpressionStatement(PostfixUnaryExpression(SyntaxKind.PostIncrementExpression, IdentifierName(SkipCountName))),
 				ContinueStatement())));
