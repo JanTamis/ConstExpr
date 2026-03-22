@@ -370,7 +370,7 @@ public static class SyntaxHelpers
 			return PredefinedType(Token(keyword));
 		}
 
-		return IdentifierName(type.Name);
+		return ParseTypeName(type.Name);
 	}
 
 	private static bool IsSpanLike(object obj)
@@ -1123,6 +1123,20 @@ public static class SyntaxHelpers
 		return node.DescendantNodes()
 			.OfType<IdentifierNameSyntax>()
 			.Any(id => id.Identifier.Text == identifier);
+	}
+
+	public static TypeSyntax CreateTypeSyntax<T>()
+	{
+		var type = typeof(T);
+
+		return GetTypeSyntax(type);
+	}
+
+	public static CastExpressionSyntax CreateCastSyntax<T>(ExpressionSyntax expression)
+	{
+		var type = typeof(T);
+
+		return CastExpression(GetTypeSyntax(type), expression);
 	}
 
 	/// <summary>

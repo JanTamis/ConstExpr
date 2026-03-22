@@ -129,7 +129,7 @@ public abstract class BaseLinqUnroller
 			.WithDeclaration(VariableDeclaration(IdentifierName("var"))
 				.WithVariables(SingletonSeparatedList(VariableDeclarator(indexName).WithInitializer(EqualsValueClause(initialElement))))
 			)
-			.WithCondition(BinaryExpression(SyntaxKind.LessThanExpression, IdentifierName(indexName), MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName(collectionName), IdentifierName(lengthName))))
+			.WithCondition(BinaryExpression(SyntaxKind.LessThanExpression, CreateCastSyntax<uint>(IdentifierName(indexName)), CreateCastSyntax<uint>(MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName(collectionName), IdentifierName(lengthName)))))
 			.WithIncrementors(SingletonSeparatedList<ExpressionSyntax>(PostfixUnaryExpression(SyntaxKind.PostIncrementExpression, IdentifierName(indexName))));
 	}
 
@@ -167,7 +167,129 @@ public abstract class BaseLinqUnroller
 							.WithInitializer(EqualsValueClause(initializer)))));
 	}
 	
-	protected ExpressionStatementSyntax CreateAssignment(string variableName, ExpressionSyntax value)
+	/// <summary>
+	/// Generates a <c>Span&lt;T&gt;</c> local backed by <c>stackalloc</c>.
+	/// Example: <c>Span&lt;bool&gt; name = stackalloc bool[size];</c>
+	/// </summary>
+	protected static LocalDeclarationStatementSyntax CreateStackAllocSpan(string name, TypeSyntax elementType, int size)
+	{
+		return LocalDeclarationStatement(
+			VariableDeclaration(
+					GenericName("Span")
+						.WithTypeArgumentList(TypeArgumentList(SingletonSeparatedList(elementType))))
+				.WithVariables(SingletonSeparatedList(
+					VariableDeclarator(name)
+						.WithInitializer(EqualsValueClause(
+							StackAllocArrayCreationExpression(
+								ArrayType(elementType)
+									.WithRankSpecifiers(SingletonList(
+										ArrayRankSpecifier(SingletonSeparatedList(
+											CreateLiteral(size)))))))))));
+	}
+
+	/// <summary>
+	/// Returns a size expression for the source collection: <c>collection.Length</c> for arrays,
+	/// <c>collection.Count</c> for <c>IList&lt;T&gt;</c>-implementing collections, or <c>null</c>
+	/// for plain <c>IEnumerable&lt;T&gt;</c> where the size is unknown at compile time.
+	/// </summary>
+	protected static ExpressionSyntax? GetCollectionSizeExpression(ITypeSymbol collectionType, string collectionParamName = "collection")
+	{
+		if (IsInvokedOnArray(collectionType))
+		{
+			return MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
+				IdentifierName(collectionParamName), IdentifierName("Length"));
+		}
+
+		if (IsInvokedOnCollection(collectionType))
+		{
+			return MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
+				IdentifierName(collectionParamName), IdentifierName("Count"));
+		}
+
+		return null;
+	}
+
+	/// <summary>
+	/// Emits a two-flag distinct check for <c>bool</c> elements.
+	/// <code>
+	/// if (element) { if (seenTrue) continue; seenTrue = true; }
+	/// else         { if (seenFalse) continue; seenFalse = true; }
+	/// </code>
+	/// </summary>
+	protected static void AddBoolDistinctBody(List<StatementSyntax> statements, ExpressionSyntax element, string seenTrueName, string seenFalseName)
+	{
+		statements.Add(IfStatement(element,
+			Block(
+				IfStatement(IdentifierName(seenTrueName), ContinueStatement()),
+				CreateAssignment(seenTrueName, CreateLiteral(true))),
+			ElseClause(Block(
+				IfStatement(IdentifierName(seenFalseName), ContinueStatement()),
+				CreateAssignment(seenFalseName, CreateLiteral(true))))));
+	}
+
+	/// <summary>
+	/// Emits a direct-index distinct check against a <c>Span&lt;bool&gt;</c> for 8-bit types.
+	/// <code>
+	/// if (span[index]) continue;
+	/// span[index] = true;
+	/// </code>
+	/// </summary>
+	protected static void AddSpanIndexDistinctBody(List<StatementSyntax> statements, ExpressionSyntax element, string spanName, bool castToByte)
+	{
+		ExpressionSyntax IndexExpression()
+		{
+			var index = castToByte
+				? CastExpression(PredefinedType(Token(SyntaxKind.ByteKeyword)), element)
+				: element;
+			return ElementAccessExpression(IdentifierName(spanName))
+				.WithArgumentList(BracketedArgumentList(SingletonSeparatedList(Argument(index))));
+		}
+
+		statements.Add(IfStatement(IndexExpression(), ContinueStatement()));
+		statements.Add(ExpressionStatement(AssignmentExpression(SyntaxKind.SimpleAssignmentExpression,
+			IndexExpression(), CreateLiteral(true))));
+	}
+
+	/// <summary>
+	/// Emits a bitset distinct check against a <c>Span&lt;ulong&gt;</c> for 16-bit types.
+	/// <code>
+	/// if ((span[index &gt;&gt; 6] &amp; (1UL &lt;&lt; (index &amp; 63))) != 0UL) continue;
+	/// span[index &gt;&gt; 6] |= 1UL &lt;&lt; (index &amp; 63);
+	/// </code>
+	/// </summary>
+	protected static void AddBitSetDistinctBody(List<StatementSyntax> statements, ExpressionSyntax element, string spanName, bool castToUShort)
+	{
+		statements.Add(IfStatement(
+			BinaryExpression(SyntaxKind.NotEqualsExpression,
+				ParenthesizedExpression(BinaryExpression(SyntaxKind.BitwiseAndExpression,
+					BucketAccess(), BitMask())),
+				CreateLiteral(0UL)),
+			ContinueStatement()));
+
+		statements.Add(ExpressionStatement(
+			AssignmentExpression(SyntaxKind.OrAssignmentExpression,
+				BucketAccess(), BitMask())));
+		
+		return;
+
+		ExpressionSyntax IndexExpr() => castToUShort
+			? CreateCastSyntax<ushort>(element)
+			: element;
+
+		ExpressionSyntax BucketAccess() => ElementAccessExpression(IdentifierName(spanName))
+			.WithArgumentList(BracketedArgumentList(SingletonSeparatedList(Argument(
+				BinaryExpression(SyntaxKind.RightShiftExpression,
+					IndexExpr(),
+					 CreateLiteral(6))))));
+
+		ExpressionSyntax BitMask() => BinaryExpression(SyntaxKind.LeftShiftExpression,
+			CreateLiteral(1UL),
+			ParenthesizedExpression(BinaryExpression(SyntaxKind.BitwiseAndExpression,
+				IndexExpr(),
+				CreateLiteral(63))));
+	}
+
+	protected static ExpressionStatementSyntax CreateAssignment(string variableName, ExpressionSyntax value)
 	{
 		return ExpressionStatement(
 			AssignmentExpression(
@@ -176,7 +298,7 @@ public abstract class BaseLinqUnroller
 				value));
 	}
 	
-	protected InvocationExpressionSyntax CreateMethodInvocation(ExpressionSyntax target, string methodName, params ExpressionSyntax[] arguments)
+	protected static InvocationExpressionSyntax CreateMethodInvocation(ExpressionSyntax target, string methodName, params ExpressionSyntax[] arguments)
 	{
 		return InvocationExpression(
 			MemberAccessExpression(
