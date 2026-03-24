@@ -1129,12 +1129,12 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			case InvocationExpressionSyntax:
 			case IdentifierNameSyntax:
 			case MemberAccessExpressionSyntax:
-				return PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, condition);
+				return LogicalNotExpression(condition);
 		}
 
 		// Default: wrap in parentheses and add !
 		var parenthesizedCondition = ParenthesizedExpression(condition);
-		return PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, parenthesizedCondition);
+		return LogicalNotExpression(parenthesizedCondition);
 	}
 
 	private static bool IsComparisonOperator(SyntaxKind kind)

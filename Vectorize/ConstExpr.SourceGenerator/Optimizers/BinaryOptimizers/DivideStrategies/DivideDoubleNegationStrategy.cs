@@ -19,7 +19,7 @@ public class DivideDoubleNegationStrategy()
 			return false;
 		}
 
-		optimized = BinaryExpression(SyntaxKind.DivideExpression, context.Left.Syntax.Operand, context.Right.Syntax.Operand);
+		optimized = DivideExpression(context.Left.Syntax.Operand, context.Right.Syntax.Operand);
 		return true;
 	}
 }

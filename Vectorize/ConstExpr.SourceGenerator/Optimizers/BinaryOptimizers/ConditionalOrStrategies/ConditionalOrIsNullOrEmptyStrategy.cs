@@ -17,7 +17,7 @@ public class ConditionalOrIsNullOrEmptyStrategy()
 		}
 
 		optimized = InvocationExpression(
-			MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
+			MemberAccessExpression(
 				IdentifierName("String"),
 				IdentifierName("IsNullOrEmpty")))
 			.WithArgumentList(

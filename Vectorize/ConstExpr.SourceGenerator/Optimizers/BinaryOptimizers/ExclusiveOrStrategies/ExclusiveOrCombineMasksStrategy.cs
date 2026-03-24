@@ -20,7 +20,7 @@ public class ExclusiveOrCombineMasksStrategy() : NumericOrBooleanBinaryStrategy<
       return false;
     }
 
-    optimized = BinaryExpression(SyntaxKind.ExclusiveOrExpression, context.Left.Syntax.Left, combinedLiteral);
+    optimized = ExclusiveOrExpression(context.Left.Syntax.Left, combinedLiteral);
 		return true;
 	}
 }

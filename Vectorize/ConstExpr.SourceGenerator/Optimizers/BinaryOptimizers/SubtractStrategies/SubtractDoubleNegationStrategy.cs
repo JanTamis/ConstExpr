@@ -18,7 +18,7 @@ public class SubtractDoubleNegationStrategy() : NumericBinaryStrategy<Expression
       return false;
     }
 
-    optimized = BinaryExpression(SyntaxKind.AddExpression, context.Left.Syntax, context.Right.Syntax.Operand);
+    optimized = AddExpression(context.Left.Syntax, context.Right.Syntax.Operand);
 		return true;
 	}
 }

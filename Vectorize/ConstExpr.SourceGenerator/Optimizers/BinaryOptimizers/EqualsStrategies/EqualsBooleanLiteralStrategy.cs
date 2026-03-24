@@ -22,7 +22,7 @@ public class EqualsBooleanLiteralStrategy : BooleanBinaryStrategy<ExpressionSynt
 				optimized = context.Left.Syntax;
 				break;
 			case false:
-				optimized = PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, ParenthesizedExpression(context.Left.Syntax));
+				optimized = LogicalNotExpression(ParenthesizedExpression(context.Left.Syntax));
 				break;
 			default:
 				return false;

@@ -18,7 +18,7 @@ public class ExclusiveOrAllBitsSetStrategy : SymmetricStrategy<IntegerBinaryStra
 			return false;
 		}
 
-		optimized = PrefixUnaryExpression(SyntaxKind.BitwiseNotExpression, context.Left.Syntax);
+		optimized = BitwiseNotExpression(context.Left.Syntax);
 		return true;
 	}
 

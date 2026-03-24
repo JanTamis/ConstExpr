@@ -238,7 +238,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 
                 if (hasLeftValue && leftValue.IsNumericZero())
                 {
-                  return PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression, Parens(rightExpr));
+                  return UnaryMinusExpression(Parens(rightExpr));
                 }
 
                 break;
@@ -269,13 +269,13 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 								// 2 * x => (x + x), x * 2 => (x + x) when x is safe to duplicate
 								if (hasLeftValue && leftValue.IsNumericTwo() && IsSafeToDuplicate(operation.RightOperand))
 								{
-									var dup = BinaryExpression(SyntaxKind.AddExpression, rightExpr, rightExpr);
+									var dup = AddExpression(rightExpr, rightExpr);
 									return Parens(dup);
 								}
 
 								if (hasRightValue && rightValue.IsNumericTwo() && IsSafeToDuplicate(operation.LeftOperand))
 								{
-									var dup = BinaryExpression(SyntaxKind.AddExpression, leftExpr, leftExpr);
+									var dup = AddExpression(leftExpr, leftExpr);
 									return Parens(dup);
 								}
 								break;
@@ -392,12 +392,12 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 
                 if (hasRightValue && rightValue is true)
                 {
-                  return PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, Parens(leftExpr)); // x ^ true => !x
+                  return LogicalNotExpression(Parens(leftExpr)); // x ^ true => !x
                 }
 
                 if (hasLeftValue && leftValue is true)
                 {
-                  return PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, Parens(rightExpr)); // true ^ x => !x
+                  return LogicalNotExpression(Parens(rightExpr)); // true ^ x => !x
                 }
 
                 break;
@@ -406,28 +406,28 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 								{
 									return rb
 										? leftExpr // x == true => x
-										: PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, Parens(leftExpr)); // x == false => !x
+										: LogicalNotExpression(Parens(leftExpr)); // x == false => !x
 								}
 
 								if (hasLeftValue && leftValue is bool lb)
 								{
 									return lb
 										? rightExpr // true == x => x
-										: PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, Parens(rightExpr)); // false == x => !x
+										: LogicalNotExpression(Parens(rightExpr)); // false == x => !x
 								}
 								break;
 							case BinaryOperatorKind.NotEquals:
 								if (hasRightValue && rightValue is bool rbn)
 								{
 									return rbn
-										? PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, Parens(leftExpr)) // x != true => !x
+										? LogicalNotExpression(Parens(leftExpr)) // x != true => !x
 										: leftExpr; // x != false => x
 								}
 
 								if (hasLeftValue && leftValue is bool lbn)
 								{
 									return lbn
-										? PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, Parens(rightExpr)) // true != x => !x
+										? LogicalNotExpression(Parens(rightExpr)) // true != x => !x
 										: rightExpr; // false != x => x
 								}
 								break;

@@ -25,7 +25,7 @@ public class SqrtFunctionOptimizer() : BaseMathFunctionOptimizer("Sqrt", 1)
 		{
 			var mathType = ParseTypeName(paramType.Name);
 			result = InvocationExpression(
-					MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, mathType, IdentifierName("Abs")))
+					MemberAccessExpression(mathType, IdentifierName("Abs")))
 				.WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(mul.Left))));
 			return true;
 		}

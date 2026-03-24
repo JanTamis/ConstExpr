@@ -42,7 +42,7 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", 2)
 					return true;
 				}
 
-				var div = BinaryExpression(SyntaxKind.DivideExpression,
+				var div = DivideExpression(
 					CreateLiteral(1.0.ToSpecialType(paramType.SpecialType)), x);
 
 				result = ParenthesizedExpression(div);
@@ -57,12 +57,12 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", 2)
 
 				for (var i = 1; i < Math.Abs(n); i++)
 				{
-					acc = BinaryExpression(SyntaxKind.MultiplyExpression, acc, x);
+					acc = MultiplyExpression(acc, x);
 				}
 
 				if (n < 0)
 				{
-					acc = BinaryExpression(SyntaxKind.DivideExpression,
+					acc = DivideExpression(
 						LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(1.0)), acc);
 				}
 
@@ -80,7 +80,7 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", 2)
 			// x^2 => (x * x) when x is pure (no side-effects)
 			if (IsApproximately(exp, 2.0) && IsPure(x))
 			{
-				var mul = BinaryExpression(SyntaxKind.MultiplyExpression, x, x);
+				var mul = MultiplyExpression(x, x);
 				result = ParenthesizedExpression(mul);
 				return true;
 			}

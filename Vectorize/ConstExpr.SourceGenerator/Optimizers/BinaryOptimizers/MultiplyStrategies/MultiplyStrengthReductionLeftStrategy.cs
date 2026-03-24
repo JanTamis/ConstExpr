@@ -27,8 +27,8 @@ public class MultiplyStrengthReductionLeftStrategy : IntegerBinaryStrategy<Liter
 		// Pattern: lv = down + 1 => (x << log2(down)) + x
 		if (down != 0 && lv == down + 1)
 		{
-			optimized = ParenthesizedExpression(BinaryExpression(SyntaxKind.AddExpression, 
-				BinaryExpression(SyntaxKind.LeftShiftExpression, context.Right.Syntax,
+			optimized = ParenthesizedExpression(AddExpression( 
+				LeftShiftExpression(context.Right.Syntax,
 				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(Log2(down)))), context.Right.Syntax));
 			
 			return true;
@@ -37,8 +37,8 @@ public class MultiplyStrengthReductionLeftStrategy : IntegerBinaryStrategy<Liter
 		// Pattern: lv = up - 1 => (x << log2(up)) - x
 		if (up != 0 && lv == up - 1)
 		{
-			optimized = ParenthesizedExpression(BinaryExpression(SyntaxKind.SubtractExpression, 
-				BinaryExpression(SyntaxKind.LeftShiftExpression, context.Right.Syntax,
+			optimized = ParenthesizedExpression(SubtractExpression( 
+				LeftShiftExpression(context.Right.Syntax,
 				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(Log2(up)))), context.Right.Syntax));
 			
 			return true;

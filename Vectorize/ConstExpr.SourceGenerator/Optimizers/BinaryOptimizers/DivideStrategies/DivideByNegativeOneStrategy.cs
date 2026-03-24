@@ -18,7 +18,7 @@ public class DivideByNegativeOneStrategy : NumericBinaryStrategy<ExpressionSynta
       return false;
     }
 
-    optimized = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression, context.Left.Syntax);
+    optimized = UnaryMinusExpression(context.Left.Syntax);
 		return true;
 	}
 }

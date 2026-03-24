@@ -18,14 +18,13 @@ public class MinLinqUnroller : BaseLinqUnroller
 
 			// if (collection.Length == 0) throw new InvalidOperationException("Sequence contains no elements");
 			statements.Add(IfStatement(
-				BinaryExpression(SyntaxKind.EqualsExpression,
-					MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName("collection"), IdentifierName(countProperty)),
-					CreateLiteral(0)),
+				EqualsExpression(
+					MemberAccessExpression(IdentifierName("collection"), IdentifierName(countProperty)),
+					CreateLiteral(0)!),
 				CreateThrowExpression<InvalidOperationException>("Sequence contains no elements")));
 
 			// var value = collection[0]; (or lambda(collection[0]) when selector is present)
-			ExpressionSyntax firstElement = ElementAccessExpression(IdentifierName("collection"))
-				.WithArgumentList(BracketedArgumentList(SingletonSeparatedList(Argument(CreateLiteral(0)))));
+			ExpressionSyntax firstElement = ElementAccessExpression(IdentifierName("collection"), CreateLiteral(0)!);
 
 			if (method.Parameters.Length == 1 && TryGetLambda(method.Parameters[0], out var initLambda))
 			{
@@ -41,11 +40,11 @@ public class MinLinqUnroller : BaseLinqUnroller
 
 			// if (!e.MoveNext()) throw new InvalidOperationException("Sequence contains no elements");
 			statements.Add(IfStatement(
-				PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, CreateMethodInvocation(IdentifierName("e"), "MoveNext")),
+				LogicalNotExpression(CreateMethodInvocation(IdentifierName("e"), "MoveNext")),
 				CreateThrowExpression<InvalidOperationException>("Sequence contains no elements")));
 
 			// var value = e.Current; (or lambda(e.Current) when selector is present)
-			ExpressionSyntax firstCurrent = MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName("e"), IdentifierName("Current"));
+			ExpressionSyntax firstCurrent = MemberAccessExpression(IdentifierName("e"), IdentifierName("Current"));
 
 			if (method.Parameters.Length == 1 && TryGetLambda(method.Parameters[0], out var initLambda))
 			{
@@ -59,8 +58,8 @@ public class MinLinqUnroller : BaseLinqUnroller
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
 	{
 		// For the enumerator path the element is e.Current, not the foreach loop variable.
-		var element = (!IsInvokedOnArray(method.CollectionType) && !IsInvokedOnCollection(method.CollectionType))
-			? MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName("e"), IdentifierName("Current"))
+		var element = !IsInvokedOnArray(method.CollectionType) && !IsInvokedOnCollection(method.CollectionType)
+			? MemberAccessExpression(IdentifierName("e"), IdentifierName("Current"))
 			: elementName;
 
 		var candidate = method.Parameters.Length == 1 && TryGetLambda(method.Parameters[0], out var lambda) 
@@ -68,7 +67,7 @@ public class MinLinqUnroller : BaseLinqUnroller
 			: element;
 
 		// if (candidate < value) { value = candidate; }
-		var condition = BinaryExpression(SyntaxKind.LessThanExpression, candidate, IdentifierName(ResultName));
+		var condition = LessThanExpression(candidate, IdentifierName(ResultName));
 		statements.Add(IfStatement(condition, CreateAssignment(ResultName, candidate)));
 	}
 
@@ -82,7 +81,7 @@ public class MinLinqUnroller : BaseLinqUnroller
 		if (IsInvokedOnArray(collectionType) || IsInvokedOnCollection(collectionType))
 		{
 			var countProperty = IsInvokedOnArray(collectionType) ? "Length" : "Count";
-			resultStatements.Add(CreateForLoop(collectionName, "i", countProperty, Block(statements), CreateLiteral(1)));
+			resultStatements.Add(CreateForLoop(collectionName, "i", countProperty, Block(statements), CreateLiteral(1)!));
 		}
 		else
 		{
@@ -97,10 +96,9 @@ public class MinLinqUnroller : BaseLinqUnroller
 	{
 		if (IsInvokedOnArray(method.CollectionType) || IsInvokedOnCollection(method.CollectionType))
 		{
-			return ElementAccessExpression(IdentifierName(collectionName))
-				.WithArgumentList(BracketedArgumentList(SingletonSeparatedList(Argument(IdentifierName("i")))));
+			return ElementAccessExpression(IdentifierName(collectionName), IdentifierName("i"));
 		}
 
-		return MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName("e"), IdentifierName("Current"));
+		return MemberAccessExpression(IdentifierName("e"), IdentifierName("Current"));
 	}
 }

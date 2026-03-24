@@ -894,12 +894,15 @@ public partial class ConstExprPartialRewriter
 			return false;
 		}
 
-		// Try to get type from semantic model first
-		if (!semanticModel.TryGetTypeSymbol(pattern.Expression, out var type))
+		// Try to get type from semantic model first; if it returns a non-numeric type
+		// (e.g. int[] due to a lambda-parameter name collision with an outer variable),
+		// fall back to inferring the type from the first constant value.
+		if (!semanticModel.TryGetTypeSymbol(pattern.Expression, out var type)
+		    || !semanticModel.Compilation.TryGetUnsignedType(type, out _))
 		{
 			// Fallback: get type from the first constant value
 			type = GetTypeSymbolFromConstant(constants[0]);
-			
+
 			if (type is null)
 			{
 				return false;
@@ -945,16 +948,16 @@ public partial class ConstExprPartialRewriter
 			    && TryGetLiteral(minValue, out var minLit))
 			{
 				expression = isUnsigedType
-					? BinaryExpression(SyntaxKind.SubtractExpression, pattern.Expression, minLit)
+					? SubtractExpression(pattern.Expression, minLit)
 					: CastExpression(
 						ParseTypeName(semanticModel.Compilation.GetMinimalString(unsignedType)),
-						ParenthesizedExpression(BinaryExpression(SyntaxKind.SubtractExpression, pattern.Expression, minLit)));
+						ParenthesizedExpression(SubtractExpression(pattern.Expression, minLit)));
 			}
 
 			// Start a new group for this cluster; first entry is always the range check.
 			var clusterExprs = new List<ExpressionSyntax>
 			{
-				BinaryExpression(SyntaxKind.LessThanOrEqualExpression, expression, unsigneddiff)
+				LessThanOrEqualExpression(expression, unsigneddiff)
 			};
 
 			if (!TryGetLiteral(cluster.Start, out var startExpression)
@@ -1037,14 +1040,14 @@ public partial class ConstExprPartialRewriter
 
 		// Combine: within each cluster use &&, then combine clusters with ||
 		var clusterNodes = clusterResults
-			.Select(exprs => exprs.Aggregate((a, b) => BinaryExpression(SyntaxKind.LogicalAndExpression, a, b)))
+			.Select(exprs => exprs.Aggregate((a, b) => LogicalAndExpression(a, b)))
 			.ToList();
 
 		result = clusterNodes[0];
 
 		for (var i = 1; i < clusterNodes.Count; i++)
 		{
-			result = BinaryExpression(SyntaxKind.LogicalOrExpression, result, clusterNodes[i]);
+			result = LogicalOrExpression(result, clusterNodes[i]);
 		}
 
 		return true;

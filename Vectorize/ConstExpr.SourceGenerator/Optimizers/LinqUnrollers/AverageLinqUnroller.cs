@@ -13,7 +13,7 @@ public class AverageLinqUnroller : BaseLinqUnroller
 	public override void UnrollAboveLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
 		statements.Add(CreateLocalDeclaration(ResultName, method.MethodSymbol.ReturnType.GetDefaultValue()));
-		statements.Add(CreateLocalDeclaration(CountName, CreateLiteral(0)));
+		statements.Add(CreateLocalDeclaration(CountName, CreateLiteral(0)!));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
@@ -33,11 +33,11 @@ public class AverageLinqUnroller : BaseLinqUnroller
 				elementName)));
 		}
 		
-		statements.Add(ExpressionStatement(PostfixUnaryExpression(SyntaxKind.PostIncrementExpression, IdentifierName(CountName))));
+		statements.Add(ExpressionStatement(PostIncrementExpression(IdentifierName(CountName))));
 	}
 
 	public override void UnrollUnderLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
-		statements.Add(ReturnStatement(BinaryExpression(SyntaxKind.DivideExpression, IdentifierName(ResultName), IdentifierName(CountName))));
+		statements.Add(ReturnStatement(DivideExpression(IdentifierName(ResultName), IdentifierName(CountName))));
 	}
 }

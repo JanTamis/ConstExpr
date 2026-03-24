@@ -23,7 +23,7 @@ public class AddFusedMultiplyAddStrategy() : SymmetricStrategy<NumericBinaryStra
 		if (ContainsMultiplyAddEstimate(context.Type))
 		{
 			optimized = InvocationExpression(
-				MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, 
+				MemberAccessExpression(
 					host, 
 					IdentifierName("MultiplyAddEstimate")),
 				arguments);
@@ -34,7 +34,7 @@ public class AddFusedMultiplyAddStrategy() : SymmetricStrategy<NumericBinaryStra
 		if (ContainsFusedMultiplyAdd(context.Type))
 		{
 			optimized = InvocationExpression(
-				MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
+				MemberAccessExpression(
 					host,
 					IdentifierName("FusedMultiplyAdd")),
 				arguments);

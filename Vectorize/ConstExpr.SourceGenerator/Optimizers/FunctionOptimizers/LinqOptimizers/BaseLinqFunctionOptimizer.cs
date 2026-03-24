@@ -265,12 +265,12 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 
 	protected MemberAccessExpressionSyntax CreateMemberAccess(ExpressionSyntax source, string memberName)
 	{
-		return MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, source, IdentifierName(memberName));
+		return MemberAccessExpression(source, IdentifierName(memberName));
 	}
 
 	protected MemberAccessExpressionSyntax CreateMemberAccess(ExpressionSyntax source, SimpleNameSyntax name)
 	{
-		return MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, source, name);
+		return MemberAccessExpression(source, name);
 	}
 
 	protected ElementAccessExpressionSyntax CreateElementAccess(ExpressionSyntax source, params IEnumerable<ExpressionSyntax> arguments)
@@ -1262,15 +1262,15 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		{
 			return binary.Kind() switch
 			{
-				SyntaxKind.LogicalAndExpression => BinaryExpression(SyntaxKind.LogicalOrExpression, InvertSyntax(binary.Left), InvertSyntax(binary.Right)),
-				SyntaxKind.LogicalOrExpression => BinaryExpression(SyntaxKind.LogicalAndExpression, InvertSyntax(binary.Left), InvertSyntax(binary.Right)),
-				SyntaxKind.EqualsExpression => BinaryExpression(SyntaxKind.NotEqualsExpression, binary.Left, binary.Right),
-				SyntaxKind.NotEqualsExpression => BinaryExpression(SyntaxKind.EqualsExpression, binary.Left, binary.Right),
-				SyntaxKind.GreaterThanExpression => BinaryExpression(SyntaxKind.LessThanOrEqualExpression, binary.Left, binary.Right),
-				SyntaxKind.GreaterThanOrEqualExpression => BinaryExpression(SyntaxKind.LessThanExpression, binary.Left, binary.Right),
-				SyntaxKind.LessThanExpression => BinaryExpression(SyntaxKind.GreaterThanOrEqualExpression, binary.Left, binary.Right),
-				SyntaxKind.LessThanOrEqualExpression => BinaryExpression(SyntaxKind.GreaterThanExpression, binary.Left, binary.Right),
-				_ => PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, ParenthesizedExpression(node))
+				SyntaxKind.LogicalAndExpression => LogicalOrExpression(InvertSyntax(binary.Left), InvertSyntax(binary.Right)),
+				SyntaxKind.LogicalOrExpression => LogicalAndExpression(InvertSyntax(binary.Left), InvertSyntax(binary.Right)),
+				SyntaxKind.EqualsExpression => NotEqualsExpression(binary.Left, binary.Right),
+				SyntaxKind.NotEqualsExpression => EqualsExpression(binary.Left, binary.Right),
+				SyntaxKind.GreaterThanExpression => LessThanOrEqualExpression(binary.Left, binary.Right),
+				SyntaxKind.GreaterThanOrEqualExpression => LessThanExpression(binary.Left, binary.Right),
+				SyntaxKind.LessThanExpression => GreaterThanOrEqualExpression(binary.Left, binary.Right),
+				SyntaxKind.LessThanOrEqualExpression => GreaterThanExpression(binary.Left, binary.Right),
+				_ => LogicalNotExpression(ParenthesizedExpression(node))
 			};
 		}
 
@@ -1285,7 +1285,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 			return IsPatternExpression(isPattern.Expression, UnaryPattern(Token(SyntaxKind.NotKeyword), isPattern.Pattern));
 		}
 
-		return PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, ParenthesizedExpression(node));
+		return LogicalNotExpression(ParenthesizedExpression(node));
 	}
 
 	/// <summary>

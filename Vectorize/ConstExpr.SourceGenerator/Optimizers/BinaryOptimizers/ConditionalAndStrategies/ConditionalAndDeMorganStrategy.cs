@@ -18,8 +18,8 @@ public class ConditionalAndDeMorganStrategy()
       return false;
     }
 
-    optimized = PrefixUnaryExpression(SyntaxKind.LogicalNotExpression,
-			ParenthesizedExpression(BinaryExpression(SyntaxKind.LogicalOrExpression,
+    optimized = LogicalNotExpression(
+			ParenthesizedExpression(LogicalOrExpression(
 				context.Left.Syntax.Operand,
 				context.Right.Syntax.Operand)));
 

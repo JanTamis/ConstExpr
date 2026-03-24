@@ -35,16 +35,16 @@ public abstract class BaseLinqUnroller
 			{
 				return binary.Kind() switch
 				{
-					SyntaxKind.LogicalAndExpression => BinaryExpression(SyntaxKind.LogicalOrExpression, InvertSyntax(binary.Left), InvertSyntax(binary.Right)),
-					SyntaxKind.LogicalOrExpression => BinaryExpression(SyntaxKind.LogicalAndExpression, InvertSyntax(binary.Left), InvertSyntax(binary.Right)),
-					SyntaxKind.EqualsExpression => BinaryExpression(SyntaxKind.NotEqualsExpression, binary.Left, binary.Right),
-					SyntaxKind.NotEqualsExpression => BinaryExpression(SyntaxKind.EqualsExpression, binary.Left, binary.Right),
-					SyntaxKind.GreaterThanExpression => BinaryExpression(SyntaxKind.LessThanOrEqualExpression, binary.Left, binary.Right),
-					SyntaxKind.GreaterThanOrEqualExpression => BinaryExpression(SyntaxKind.LessThanExpression, binary.Left, binary.Right),
-					SyntaxKind.LessThanExpression => BinaryExpression(SyntaxKind.GreaterThanOrEqualExpression, binary.Left, binary.Right),
-					SyntaxKind.LessThanOrEqualExpression => BinaryExpression(SyntaxKind.GreaterThanExpression, binary.Left, binary.Right),
+					SyntaxKind.LogicalAndExpression => LogicalOrExpression(InvertSyntax(binary.Left), InvertSyntax(binary.Right)),
+					SyntaxKind.LogicalOrExpression => LogicalAndExpression(InvertSyntax(binary.Left), InvertSyntax(binary.Right)),
+					SyntaxKind.EqualsExpression => NotEqualsExpression(binary.Left, binary.Right),
+					SyntaxKind.NotEqualsExpression => EqualsExpression(binary.Left, binary.Right),
+					SyntaxKind.GreaterThanExpression => LessThanOrEqualExpression(binary.Left, binary.Right),
+					SyntaxKind.GreaterThanOrEqualExpression => LessThanExpression(binary.Left, binary.Right),
+					SyntaxKind.LessThanExpression => GreaterThanOrEqualExpression(binary.Left, binary.Right),
+					SyntaxKind.LessThanOrEqualExpression => GreaterThanExpression(binary.Left, binary.Right),
 					SyntaxKind.IsExpression => IsPatternExpression(binary.Left, UnaryPattern(Token(SyntaxKind.NotKeyword), TypePattern((TypeSyntax) binary.Right))),
-					_ => PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, node)
+					_ => LogicalNotExpression(node)
 				};
 			}
 			// handle 'x is T' (pattern form) and 'x is not T'
@@ -65,12 +65,12 @@ public abstract class BaseLinqUnroller
 				{
 					SyntaxKind.FalseLiteralExpression => LiteralExpression(SyntaxKind.TrueLiteralExpression),
 					SyntaxKind.TrueLiteralExpression => LiteralExpression(SyntaxKind.FalseLiteralExpression),
-					_ => PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, node)
+					_ => LogicalNotExpression(node)
 				};
 			}
 		}
 
-		return PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, node);
+		return LogicalNotExpression(node);
 	}
 
 	protected static ExpressionSyntax? ReplaceLambda(LambdaExpressionSyntax lambda, ExpressionSyntax replacement)
@@ -141,22 +141,18 @@ public abstract class BaseLinqUnroller
 			.WithDeclaration(VariableDeclaration(IdentifierName("var"))
 				.WithVariables(SingletonSeparatedList(VariableDeclarator(indexName).WithInitializer(EqualsValueClause(initialElement))))
 			)
-			.WithCondition(BinaryExpression(SyntaxKind.LessThanExpression, CreateCastSyntax<uint>(IdentifierName(indexName)), CreateCastSyntax<uint>(MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName(collectionName), IdentifierName(lengthName)))))
-			.WithIncrementors(SingletonSeparatedList<ExpressionSyntax>(PostfixUnaryExpression(SyntaxKind.PostIncrementExpression, IdentifierName(indexName))));
+			.WithCondition(LessThanExpression(CreateCastSyntax<uint>(IdentifierName(indexName)), CreateCastSyntax<uint>(MemberAccessExpression(IdentifierName(collectionName), IdentifierName(lengthName)))))
+			.WithIncrementors(SingletonSeparatedList<ExpressionSyntax>(PostIncrementExpression(IdentifierName(indexName))));
 	}
 
-	protected ThrowStatementSyntax CreateThrowExpression<TException>(string message = "") where TException : Exception
+	protected ThrowStatementSyntax CreateThrowExpression<TException>(params string[] parameters) where TException : Exception
 	{
 		return ThrowStatement(
 			ObjectCreationExpression(
 					IdentifierName(typeof(TException).Name))
 				.WithArgumentList(
 					ArgumentList(
-						SingletonSeparatedList(
-							Argument(
-								LiteralExpression(
-									SyntaxKind.StringLiteralExpression,
-									Literal(message)))))));
+						SeparatedList(parameters.Select(s => Argument(CreateLiteral(s)!))))));
 	}
 	
 	protected LocalDeclarationStatementSyntax CreateLocalDeclaration(string variableName, TypeSyntax type, ExpressionSyntax initializer)
@@ -217,14 +213,12 @@ public abstract class BaseLinqUnroller
 	{
 		if (IsInvokedOnArray(collectionType))
 		{
-			return MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
-				IdentifierName(collectionParamName), IdentifierName("Length"));
+			return MemberAccessExpression(IdentifierName(collectionParamName), IdentifierName("Length"));
 		}
 
 		if (IsInvokedOnCollection(collectionType))
 		{
-			return MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
-				IdentifierName(collectionParamName), IdentifierName("Count"));
+			return MemberAccessExpression(IdentifierName(collectionParamName), IdentifierName("Count"));
 		}
 
 		return null;
@@ -242,10 +236,10 @@ public abstract class BaseLinqUnroller
 		statements.Add(IfStatement(element,
 			Block(
 				IfStatement(IdentifierName(seenTrueName), ContinueStatement()),
-				CreateAssignment(seenTrueName, CreateLiteral(true))),
+				CreateAssignment(seenTrueName, CreateLiteral(true)!)),
 			ElseClause(Block(
 				IfStatement(IdentifierName(seenFalseName), ContinueStatement()),
-				CreateAssignment(seenFalseName, CreateLiteral(true))))));
+				CreateAssignment(seenFalseName, CreateLiteral(true)!)))));
 	}
 
 	/// <summary>
@@ -268,7 +262,7 @@ public abstract class BaseLinqUnroller
 
 		statements.Add(IfStatement(IndexExpression(), ContinueStatement()));
 		statements.Add(ExpressionStatement(AssignmentExpression(SyntaxKind.SimpleAssignmentExpression,
-			IndexExpression(), CreateLiteral(true))));
+			IndexExpression(), CreateLiteral(true)!)));
 	}
 
 	/// <summary>
@@ -281,10 +275,10 @@ public abstract class BaseLinqUnroller
 	protected static void AddBitSetDistinctBody(List<StatementSyntax> statements, ExpressionSyntax element, string spanName, bool castToUShort)
 	{
 		statements.Add(IfStatement(
-			BinaryExpression(SyntaxKind.NotEqualsExpression,
-				ParenthesizedExpression(BinaryExpression(SyntaxKind.BitwiseAndExpression,
+			NotEqualsExpression(
+				ParenthesizedExpression(BitwiseAndExpression(
 					BucketAccess(), BitMask())),
-				CreateLiteral(0UL)),
+				CreateLiteral(0UL)!),
 			ContinueStatement()));
 
 		statements.Add(ExpressionStatement(
@@ -299,15 +293,15 @@ public abstract class BaseLinqUnroller
 
 		ExpressionSyntax BucketAccess() => ElementAccessExpression(IdentifierName(spanName))
 			.WithArgumentList(BracketedArgumentList(SingletonSeparatedList(Argument(
-				BinaryExpression(SyntaxKind.RightShiftExpression,
+				RightShiftExpression(
 					IndexExpr(),
-					 CreateLiteral(6))))));
+					 CreateLiteral(6)!)))));
 
-		ExpressionSyntax BitMask() => BinaryExpression(SyntaxKind.LeftShiftExpression,
-			CreateLiteral(1UL),
-			ParenthesizedExpression(BinaryExpression(SyntaxKind.BitwiseAndExpression,
+		ExpressionSyntax BitMask() => LeftShiftExpression(
+			CreateLiteral(1UL)!,
+			ParenthesizedExpression(BitwiseAndExpression(
 				IndexExpr(),
-				CreateLiteral(63))));
+				CreateLiteral(63)!)));
 	}
 
 	protected static ExpressionStatementSyntax CreateAssignment(string variableName, ExpressionSyntax value)

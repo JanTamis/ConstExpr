@@ -21,11 +21,11 @@ public class SubtractFMARightMultiplyStrategy() : NumericBinaryStrategy<Expressi
 
     var host = ParseName(context.Type.Name);
 
-		var arguments = ArgumentList(SeparatedList([ Argument(PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression, context.Right.Syntax.Left)), Argument(context.Right.Syntax.Right), Argument(context.Left.Syntax) ]));
+		var arguments = ArgumentList(SeparatedList([ Argument(UnaryMinusExpression(context.Right.Syntax.Left)), Argument(context.Right.Syntax.Right), Argument(context.Left.Syntax) ]));
 
 		if (ContainsMultiplyAddEstimate(context.Type))
 		{
-			optimized = InvocationExpression(MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, host, IdentifierName("MultiplyAddEstimate")),
+			optimized = InvocationExpression(MemberAccessExpression(host, IdentifierName("MultiplyAddEstimate")),
 				arguments);
 			
 			return true;
@@ -33,7 +33,7 @@ public class SubtractFMARightMultiplyStrategy() : NumericBinaryStrategy<Expressi
 
 		if (ContainsFusedMultiplyAdd(context.Type))
 		{
-			optimized = InvocationExpression(MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, host, IdentifierName("FusedMultiplyAdd")),
+			optimized = InvocationExpression(MemberAccessExpression(host, IdentifierName("FusedMultiplyAdd")),
 				arguments);
 			
 			return true;

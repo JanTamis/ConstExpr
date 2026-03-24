@@ -19,7 +19,7 @@ public class MultiplyByTwoToAdditionStrategy : SymmetricStrategy<NumericBinarySt
 			return false;
 		}
 
-		optimized = ParenthesizedExpression(BinaryExpression(SyntaxKind.AddExpression, 
+		optimized = ParenthesizedExpression(AddExpression(
 			context.Right.Syntax, 
 			context.Right.Syntax));
 		

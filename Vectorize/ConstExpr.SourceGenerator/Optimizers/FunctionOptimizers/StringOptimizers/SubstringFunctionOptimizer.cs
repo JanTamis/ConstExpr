@@ -52,7 +52,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 				var start = context.VisitedParameters[0];
 				var length = context.VisitedParameters[1];
 
-				var toExpr = BinaryExpression(SyntaxKind.AddExpression, length, start);
+				var toExpr = AddExpression(length, start);
 				var range = RangeExpression(start, ParenthesizedExpression(toExpr));
 
 				// If length is a constant 0, return empty string literal

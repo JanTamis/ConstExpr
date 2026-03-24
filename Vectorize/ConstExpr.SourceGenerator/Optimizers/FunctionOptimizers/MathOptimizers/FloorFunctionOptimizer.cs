@@ -31,7 +31,7 @@ public class FloorFunctionOptimizer() : BaseMathFunctionOptimizer("Floor", 1)
 			{
 				var ceilingCall = CreateInvocation(paramType, "Ceiling", prefix.Operand);
 
-				result = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression, ParenthesizedExpression(ceilingCall));
+				result = UnaryMinusExpression(ParenthesizedExpression(ceilingCall));
 				return true;
 			}
 			default:

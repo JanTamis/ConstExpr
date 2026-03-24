@@ -20,7 +20,7 @@ public class AndCombineMasksStrategy() : SymmetricStrategy<NumericOrBooleanBinar
 			return false;
 		}
 		
-		optimized = BinaryExpression(SyntaxKind.BitwiseAndExpression, context.Left.Syntax.Left, combinedLiteral);
+		optimized = BitwiseAndExpression(context.Left.Syntax.Left, combinedLiteral);
 		return true;
 	}
 }

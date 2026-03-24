@@ -25,7 +25,7 @@ public class SubtractFromAdditionConstantFoldingStrategy() : NumericBinaryStrate
 
 			if (TryGetLiteral(result, out var newConstant))
 			{
-				optimized = BinaryExpression(SyntaxKind.AddExpression, context.Left.Syntax.Right, newConstant);
+				optimized = AddExpression(context.Left.Syntax.Right, newConstant);
 				return true;
 			}
 		}
@@ -36,7 +36,7 @@ public class SubtractFromAdditionConstantFoldingStrategy() : NumericBinaryStrate
 
 			if (TryGetLiteral(result, out var newConstant))
 			{
-				optimized = BinaryExpression(SyntaxKind.AddExpression, context.Left.Syntax.Left, newConstant);
+				optimized = AddExpression(context.Left.Syntax.Left, newConstant);
 				return true;
 			}
 		}

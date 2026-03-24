@@ -13,7 +13,7 @@ public class ContainsLinqUnroller : BaseLinqUnroller
 			return;
 		}
 
-		statements.Add(IfStatement(BinaryExpression(SyntaxKind.NotEqualsExpression, elementName, method.Parameters[0]), 
+		statements.Add(IfStatement(NotEqualsExpression(elementName, method.Parameters[0]), 
 			ContinueStatement()));
 		
 		statements.Add(ReturnStatement(CreateLiteral(true)));

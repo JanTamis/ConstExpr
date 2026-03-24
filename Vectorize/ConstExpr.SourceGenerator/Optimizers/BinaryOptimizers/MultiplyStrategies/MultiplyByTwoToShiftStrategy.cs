@@ -18,7 +18,7 @@ public class MultiplyByTwoToShiftStrategy : SymmetricStrategy<UnsigedIntegerBina
 			return false;
 		}
 		
-		optimized = BinaryExpression(SyntaxKind.LeftShiftExpression, 
+		optimized = LeftShiftExpression(
 			context.Right.Syntax,
 			LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(1)));
 		

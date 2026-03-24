@@ -21,7 +21,7 @@ public class AndOrMaskIntersectionZeroStrategy() : SymmetricStrategy<NumericBina
 			return false;
 		}
 		
-		optimized = BinaryExpression(SyntaxKind.BitwiseAndExpression, context.Left.Syntax.Left, context.Right.Syntax);
+		optimized = BitwiseAndExpression(context.Left.Syntax.Left, context.Right.Syntax);
 		return true;
 	}
 }

@@ -18,8 +18,8 @@ public class DistinctLinqUnroller : BaseLinqUnroller
 		switch (elementType.SpecialType)
 		{
 			case SpecialType.System_Boolean:
-				statements.Add(CreateLocalDeclaration(SeenTrue, CreateLiteral(false)));
-				statements.Add(CreateLocalDeclaration(SeenFalse, CreateLiteral(false)));
+				statements.Add(CreateLocalDeclaration(SeenTrue, CreateLiteral(false)!));
+				statements.Add(CreateLocalDeclaration(SeenFalse, CreateLiteral(false)!));
 				break;
 
 			case SpecialType.System_Byte:
@@ -39,13 +39,9 @@ public class DistinctLinqUnroller : BaseLinqUnroller
 			{
 				var typeName = method.Model.Compilation.GetMinimalString(elementType);
 				var capacityArg = GetCollectionSizeExpression(method.CollectionType);
-				var args = capacityArg is not null
-					? ArgumentList(SingletonSeparatedList(Argument(capacityArg)))
-					: ArgumentList();
 
 				statements.Add(CreateLocalDeclaration(SetName,
-					ObjectCreationExpression(IdentifierName($"HashSet<{typeName}>"))
-						.WithArgumentList(args)));
+					ObjectCreationExpression(IdentifierName($"HashSet<{typeName}>"), capacityArg)));
 				break;
 			}
 		}
@@ -80,7 +76,7 @@ public class DistinctLinqUnroller : BaseLinqUnroller
 
 			default:
 				statements.Add(IfStatement(
-					PrefixUnaryExpression(SyntaxKind.LogicalNotExpression,
+					LogicalNotExpression(
 						CreateMethodInvocation(IdentifierName(SetName), "Add", element)),
 					ContinueStatement()));
 				break;

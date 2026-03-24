@@ -266,7 +266,7 @@ public partial class ConstExprPartialRewriter
 
 			if (rightValue.IsNumericOne())
 			{
-				return PostfixUnaryExpression(SyntaxKind.PostIncrementExpression, node.Left);
+				return PostIncrementExpression(node.Left);
 			}
 		}
 

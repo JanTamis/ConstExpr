@@ -20,7 +20,7 @@ public class AddNegatedSubtractionStrategy() : SymmetricStrategy<NumericBinarySt
 			return false;
 		}
 
-		optimized = BinaryExpression(SyntaxKind.SubtractExpression, context.Left.Syntax, context.Right.Syntax.Operand);
+		optimized = SubtractExpression(context.Left.Syntax, context.Right.Syntax.Operand);
 		return true;
 	}
 }

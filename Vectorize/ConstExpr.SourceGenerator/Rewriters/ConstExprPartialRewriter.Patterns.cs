@@ -372,7 +372,7 @@ public partial class ConstExprPartialRewriter
 			var left = expression as ExpressionSyntax ?? node.Expression;
 			var right = Visit(constInner.Expression) as ExpressionSyntax ?? constInner.Expression;
 
-			return BinaryExpression(SyntaxKind.NotEqualsExpression, left, right);
+			return NotEqualsExpression(left, right);
 		}
 
 		// Handle unary "not" around OR patterns: `x is not (1 or 2 or 3)` -> `(uint)(x - 1) > 2u`
@@ -390,6 +390,37 @@ public partial class ConstExprPartialRewriter
 				if (TryOptimizeNegatedOrPattern(syntheticIsNode, out var negatedOptimized))
 				{
 					return negatedOptimized;
+				}
+			}
+		}
+
+		// Handle unary "not" around AND range-check patterns: `x is not (> low and < high)` → negated range check
+		if (node.Pattern is UnaryPatternSyntax unaryNotAnd && unaryNotAnd.OperatorToken.IsKind(SyntaxKind.NotKeyword))
+		{
+			var innerPattern = unaryNotAnd.Pattern is ParenthesizedPatternSyntax parenAnd ? parenAnd.Pattern : unaryNotAnd.Pattern;
+
+			if (innerPattern is BinaryPatternSyntax { OperatorToken.RawKind: (int)SyntaxKind.AndKeyword } andPattern)
+			{
+				var baseExpr = expression as ExpressionSyntax ?? node.Expression;
+				var syntheticIsNode = node
+					.WithExpression(baseExpr)
+					.WithPattern(andPattern);
+
+				if (TryOptimizeRangeCheckPattern(syntheticIsNode, baseExpr, out var rangeResult) && rangeResult is BinaryExpressionSyntax rangeBinary)
+				{
+					var negatedKind = rangeBinary.Kind() switch
+					{
+						SyntaxKind.LessThanExpression           => SyntaxKind.GreaterThanOrEqualExpression,
+						SyntaxKind.LessThanOrEqualExpression    => SyntaxKind.GreaterThanExpression,
+						SyntaxKind.GreaterThanExpression        => SyntaxKind.LessThanOrEqualExpression,
+						SyntaxKind.GreaterThanOrEqualExpression => SyntaxKind.LessThanExpression,
+						_ => (SyntaxKind?)null,
+					};
+
+					if (negatedKind.HasValue)
+					{
+						return BinaryExpression(negatedKind.Value, rangeBinary.Left, rangeBinary.Right);
+					}
 				}
 			}
 		}
@@ -421,7 +452,7 @@ public partial class ConstExprPartialRewriter
 			var left = expression as ExpressionSyntax ?? node.Expression;
 			var right = Visit(constPat.Expression) as ExpressionSyntax ?? constPat.Expression;
 
-			return BinaryExpression(SyntaxKind.EqualsExpression, left, right);
+			return EqualsExpression(left, right);
 		}
 
 		// If the pattern is a relational pattern (e.g. `x is > 0`), rewrite it to a binary
@@ -608,7 +639,7 @@ public partial class ConstExprPartialRewriter
 				return false;
 			}
 
-			var subtraction = BinaryExpression(SyntaxKind.SubtractExpression, expression, lowerLiteral);
+			var subtraction = SubtractExpression(expression, lowerLiteral);
 
 			optimizedExpr = isUnsignedType
 				? subtraction
@@ -623,7 +654,7 @@ public partial class ConstExprPartialRewriter
 		}
 
 		// Use LessThanOrEqual because the range includes both bounds
-		result = BinaryExpression(SyntaxKind.LessThanExpression, optimizedExpr, rangeLiteral);
+		result = LessThanExpression(optimizedExpr, rangeLiteral);
 		return true;
 	}
 

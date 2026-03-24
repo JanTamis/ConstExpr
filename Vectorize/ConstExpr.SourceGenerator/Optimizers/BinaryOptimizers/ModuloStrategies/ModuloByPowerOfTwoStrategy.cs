@@ -20,7 +20,7 @@ public class ModuloByPowerOfTwoStrategy : IntegerBinaryStrategy<ExpressionSyntax
       return false;
     }
 
-    optimized = BinaryExpression(SyntaxKind.BitwiseAndExpression, context.Left.Syntax, maskLiteral);
+    optimized = BitwiseAndExpression(context.Left.Syntax, maskLiteral);
 		return true;
 	}
 }

@@ -27,7 +27,7 @@ public class EqualsComparisonSimplifierStrategy
 			if (result != null
 			    && TryGetLiteral(result, out var optimizedLiteral))
 			{
-				optimized = BinaryExpression(SyntaxKind.EqualsExpression, context.Left.Syntax.Right, optimizedLiteral);
+				optimized = EqualsExpression(context.Left.Syntax.Right, optimizedLiteral);
 				return true;
 			}
 		}
@@ -39,7 +39,7 @@ public class EqualsComparisonSimplifierStrategy
 			if (result != null
 			    && TryGetLiteral(result, out var optimizedLiteral))
 			{
-				optimized = BinaryExpression(SyntaxKind.EqualsExpression, context.Left.Syntax.Left, optimizedLiteral);
+				optimized = EqualsExpression(context.Left.Syntax.Left, optimizedLiteral);
 				return true;
 			}
 		}

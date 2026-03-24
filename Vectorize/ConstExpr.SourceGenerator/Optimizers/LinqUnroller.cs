@@ -41,6 +41,14 @@ public static class LinqUnroller
 		{ PossibleLinqMethod.SkipWhile, new SkipWhileLinqUnroller() },
 		{ PossibleLinqMethod.Take, new TakeLinqUnroller() },
 		{ PossibleLinqMethod.TakeWhile, new TakeWhileLinqUnroller() },
+		{ PossibleLinqMethod.LongCount, new LongCountLinqUnroller() },
+		{ PossibleLinqMethod.ElementAt, new ElementAtLinqUnroller() },
+		{ PossibleLinqMethod.ElementAtOrDefault, new ElementAtOrDefaultLinqUnroller() },
+		{ PossibleLinqMethod.Except, new ExceptLinqUnroller() },
+		{ PossibleLinqMethod.ExceptBy, new ExceptByLinqUnroller() },
+		{ PossibleLinqMethod.Intersect, new IntersectLinqUnroller() },
+		{ PossibleLinqMethod.IntersectBy, new IntersectByLinqUnroller() },
+		{ PossibleLinqMethod.SequenceEqual, new SequenceEqualLinqUnroller() },
 	};
 
 	/// <summary>
@@ -235,6 +243,9 @@ public static class LinqUnroller
 		return method is PossibleLinqMethod.Aggregate
 			or PossibleLinqMethod.Average
 			or PossibleLinqMethod.Count
+			or PossibleLinqMethod.LongCount
+			or PossibleLinqMethod.ElementAt
+			or PossibleLinqMethod.ElementAtOrDefault
 			or PossibleLinqMethod.Max
 			or PossibleLinqMethod.MaxBy
 			or PossibleLinqMethod.Min
@@ -248,7 +259,8 @@ public static class LinqUnroller
 			or PossibleLinqMethod.LastOrDefault
 			or PossibleLinqMethod.All
 			or PossibleLinqMethod.Any
-			or PossibleLinqMethod.Contains;
+			or PossibleLinqMethod.Contains
+			or PossibleLinqMethod.SequenceEqual;
 	}
 }
 

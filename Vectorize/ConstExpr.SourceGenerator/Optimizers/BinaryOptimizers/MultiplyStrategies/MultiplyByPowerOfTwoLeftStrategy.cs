@@ -19,7 +19,7 @@ public class MultiplyByPowerOfTwoLeftStrategy : IntegerBinaryStrategy<LiteralExp
       return false;
     }
 
-    optimized = BinaryExpression(SyntaxKind.LeftShiftExpression, 
+    optimized = LeftShiftExpression(
 			context.Right.Syntax,
 			CreateLiteral(power));
 		return true;

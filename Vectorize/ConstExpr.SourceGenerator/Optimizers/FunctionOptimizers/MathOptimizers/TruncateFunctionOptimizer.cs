@@ -36,7 +36,7 @@ public class TruncateFunctionOptimizer() : BaseMathFunctionOptimizer("Truncate",
 		{
 			var truncateCall = CreateInvocation(paramType, "Truncate", prefix.Operand);
 
-			result = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression, ParenthesizedExpression(truncateCall));
+			result = UnaryMinusExpression(ParenthesizedExpression(truncateCall));
 			return true;
 		}
 

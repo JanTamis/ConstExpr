@@ -25,12 +25,12 @@ public class SubtractFMALeftMultiplyStrategy() : NumericBinaryStrategy<BinaryExp
 		[
 			Argument(context.Left.Syntax.Left),
 			Argument(context.Left.Syntax.Right),
-			Argument(PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression, context.Right.Syntax))
+			Argument(UnaryMinusExpression(context.Right.Syntax))
 		]));
 
 		if (ContainsMultiplyAddEstimate(context.Type))
 		{
-			optimized = InvocationExpression(MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, host, IdentifierName("MultiplyAddEstimate")),
+			optimized = InvocationExpression(MemberAccessExpression(host, IdentifierName("MultiplyAddEstimate")),
 				arguments);
 			
 			return true;
@@ -38,7 +38,7 @@ public class SubtractFMALeftMultiplyStrategy() : NumericBinaryStrategy<BinaryExp
 
 		if (ContainsFusedMultiplyAdd(context.Type))
 		{
-			optimized = InvocationExpression(MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, host, IdentifierName("FusedMultiplyAdd")),
+			optimized = InvocationExpression(MemberAccessExpression(host, IdentifierName("FusedMultiplyAdd")),
 				arguments);
 			
 			return true;

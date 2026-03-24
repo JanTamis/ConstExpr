@@ -22,14 +22,12 @@ public class MaxByLinqUnroller : BaseLinqUnroller
 			var countProperty = IsInvokedOnArray(method.CollectionType) ? "Length" : "Count";
 
 			// if (collection.Length == 0) throw new InvalidOperationException("Sequence contains no elements");
-			statements.Add(IfStatement(
-				BinaryExpression(SyntaxKind.EqualsExpression,
-					MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName("collection"), IdentifierName(countProperty)),
-					CreateLiteral(0)),
+			statements.Add(IfStatement(EqualsExpression(
+					MemberAccessExpression(IdentifierName("collection"), IdentifierName(countProperty)),
+					CreateLiteral(0)!),
 				CreateThrowExpression<InvalidOperationException>("Sequence contains no elements")));
 
-			var firstElement = ElementAccessExpression(IdentifierName("collection"))
-				.WithArgumentList(BracketedArgumentList(SingletonSeparatedList(Argument(CreateLiteral(0)))));
+			var firstElement = ElementAccessExpression(IdentifierName("collection"), CreateLiteral(0)!);
 
 			// var result = collection[0];
 			statements.Add(CreateLocalDeclaration(ResultName, firstElement));
@@ -45,10 +43,10 @@ public class MaxByLinqUnroller : BaseLinqUnroller
 
 			// if (!e.MoveNext()) throw new InvalidOperationException("Sequence contains no elements");
 			statements.Add(IfStatement(
-				PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, CreateMethodInvocation(IdentifierName("e"), "MoveNext")),
+				LogicalNotExpression(CreateMethodInvocation(IdentifierName("e"), "MoveNext")),
 				CreateThrowExpression<InvalidOperationException>("Sequence contains no elements")));
 
-			var firstCurrent = MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName("e"), IdentifierName("Current"));
+			var firstCurrent = MemberAccessExpression(IdentifierName("e"), IdentifierName("Current"));
 
 			// var result = e.Current;
 			statements.Add(CreateLocalDeclaration(ResultName, firstCurrent));
@@ -66,7 +64,7 @@ public class MaxByLinqUnroller : BaseLinqUnroller
 
 		// For the enumerator path the element is e.Current, not the foreach loop variable.
 		var element = (!IsInvokedOnArray(method.CollectionType) && !IsInvokedOnCollection(method.CollectionType))
-			? MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName("e"), IdentifierName("Current"))
+			? MemberAccessExpression(IdentifierName("e"), IdentifierName("Current"))
 			: elementName;
 
 		// var key = selector(item);
@@ -74,7 +72,7 @@ public class MaxByLinqUnroller : BaseLinqUnroller
 			ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, element)!));
 
 		// if (key > bestKey) { result = item; bestKey = key; }
-		var condition = BinaryExpression(SyntaxKind.GreaterThanExpression, IdentifierName(KeyName), IdentifierName(BestKeyName));
+		var condition = GreaterThanExpression(IdentifierName(KeyName), IdentifierName(BestKeyName));
 		statements.Add(IfStatement(condition, Block(
 			CreateAssignment(ResultName, element),
 			CreateAssignment(BestKeyName, IdentifierName(KeyName)))));
@@ -90,7 +88,7 @@ public class MaxByLinqUnroller : BaseLinqUnroller
 		if (IsInvokedOnArray(collectionType) || IsInvokedOnCollection(collectionType))
 		{
 			var countProperty = IsInvokedOnArray(collectionType) ? "Length" : "Count";
-			resultStatements.Add(CreateForLoop(collectionName, "i", countProperty, Block(statements), CreateLiteral(1)));
+			resultStatements.Add(CreateForLoop(collectionName, "i", countProperty, Block(statements), CreateLiteral(1)!));
 		}
 		else
 		{
@@ -109,6 +107,6 @@ public class MaxByLinqUnroller : BaseLinqUnroller
 				.WithArgumentList(BracketedArgumentList(SingletonSeparatedList(Argument(IdentifierName("i")))));
 		}
 
-		return MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName("e"), IdentifierName("Current"));
+		return MemberAccessExpression(IdentifierName("e"), IdentifierName("Current"));
 	}
 }

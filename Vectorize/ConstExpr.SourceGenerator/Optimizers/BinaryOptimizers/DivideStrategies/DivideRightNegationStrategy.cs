@@ -18,9 +18,9 @@ public class DivideRightNegationStrategy() : NumericBinaryStrategy<ExpressionSyn
 			return false;
 		}
 
-		optimized = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
+		optimized = UnaryMinusExpression(
 			ParenthesizedExpression(
-				BinaryExpression(SyntaxKind.DivideExpression, 
+				DivideExpression(
 					context.Left.Syntax, 
 					context.Right.Syntax.Operand)));
 			

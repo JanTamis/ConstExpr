@@ -20,7 +20,7 @@ public class RightShiftCombineStrategy() : IntegerBinaryStrategy<BinaryExpressio
       return false;
     }
 
-    optimized = BinaryExpression(SyntaxKind.RightShiftExpression, context.Left.Syntax.Left, combinedLiteral);
+    optimized = RightShiftExpression(context.Left.Syntax.Left, combinedLiteral);
 		return true;
 	}
 }

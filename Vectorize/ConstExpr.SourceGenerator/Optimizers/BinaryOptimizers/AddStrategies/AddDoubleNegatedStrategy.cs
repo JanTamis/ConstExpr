@@ -18,8 +18,8 @@ public class AddDoubleNegatedStrategy() : NumericBinaryStrategy<PrefixUnaryExpre
       return false;
     }
 
-    optimized = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
-			ParenthesizedExpression(BinaryExpression(SyntaxKind.AddExpression,
+    optimized = UnaryMinusExpression(
+			ParenthesizedExpression(AddExpression(
 					context.Left.Syntax.Operand,
 					context.Right.Syntax.Operand)));
 

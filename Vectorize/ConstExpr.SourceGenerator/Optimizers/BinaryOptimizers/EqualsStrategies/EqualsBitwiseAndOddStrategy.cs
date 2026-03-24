@@ -27,7 +27,7 @@ public class EqualsBitwiseAndOddStrategy()
 		}
 
 		optimized = InvocationExpression(
-				MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
+				MemberAccessExpression(
 					ParseTypeName(context.Left.Type!.Name),
 					IdentifierName("IsOddInteger")))
 			.WithArgumentList(

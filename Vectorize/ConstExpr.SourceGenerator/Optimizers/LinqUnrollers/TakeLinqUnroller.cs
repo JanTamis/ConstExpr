@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
@@ -11,7 +10,7 @@ public class TakeLinqUnroller : BaseLinqUnroller
 	public override void UnrollAboveLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
 		// var takeCount = 0;
-		statements.Add(CreateLocalDeclaration(TakeCountName, CreateLiteral(0)));
+		statements.Add(CreateLocalDeclaration(TakeCountName, CreateLiteral(0)!));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
@@ -23,11 +22,11 @@ public class TakeLinqUnroller : BaseLinqUnroller
 
 		// if (takeCount >= n) break;
 		statements.Add(IfStatement(
-			BinaryExpression(SyntaxKind.GreaterThanOrEqualExpression, IdentifierName(TakeCountName), method.Parameters[0]),
+			GreaterThanOrEqualExpression(IdentifierName(TakeCountName), method.Parameters[0]),
 			BreakStatement()));
 
 		// takeCount++;
-		statements.Add(ExpressionStatement(PostfixUnaryExpression(SyntaxKind.PostIncrementExpression, IdentifierName(TakeCountName))));
+		statements.Add(ExpressionStatement(PostIncrementExpression(IdentifierName(TakeCountName))));
 	}
 }
 

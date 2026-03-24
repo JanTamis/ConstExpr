@@ -1,16 +1,16 @@
 using System.Collections.Generic;
-using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
-public class CountLinqUnrolled : BaseLinqUnroller
+public class LongCountLinqUnroller : BaseLinqUnroller
 {
 	private const string ResultName = "result";
 
 	public override void UnrollAboveLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
-		statements.Add(CreateLocalDeclaration(ResultName, method.MethodSymbol.ReturnType.GetDefaultValue()));
+		// var result = 0L;
+		statements.Add(CreateLocalDeclaration(ResultName, CreateLiteral(0L)!));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
@@ -22,6 +22,7 @@ public class CountLinqUnrolled : BaseLinqUnroller
 				ContinueStatement()));
 		}
 
+		// result++;
 		statements.Add(ExpressionStatement(PostIncrementExpression(IdentifierName(ResultName))));
 	}
 
@@ -30,3 +31,5 @@ public class CountLinqUnrolled : BaseLinqUnroller
 		statements.Add(ReturnStatement(IdentifierName(ResultName)));
 	}
 }
+
+

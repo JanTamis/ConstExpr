@@ -53,7 +53,7 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", 2)
 					return true;
 				}
 
-				var div = BinaryExpression(SyntaxKind.DivideExpression,
+				var div = DivideExpression(
 					LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(1.0)), x);
 
 				result = ParenthesizedExpression(div);
@@ -74,7 +74,7 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", 2)
 					return true;
 				}
 
-				var div = BinaryExpression(SyntaxKind.DivideExpression,
+				var div = DivideExpression(
 					LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(1.0)),
 					rootInvocation);
 

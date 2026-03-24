@@ -17,7 +17,7 @@ public class ExclusiveOrBooleanTrueStrategy : SymmetricStrategy<BooleanBinaryStr
 			return false;
 		}
 
-		optimized = PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, context.Right.Syntax);
+		optimized = LogicalNotExpression(context.Right.Syntax);
 		return true;
 	}
 }

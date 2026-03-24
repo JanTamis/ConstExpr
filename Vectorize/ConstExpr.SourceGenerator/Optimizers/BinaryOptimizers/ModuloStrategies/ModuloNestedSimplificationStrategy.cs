@@ -19,7 +19,7 @@ public class ModuloNestedSimplificationStrategy() : IntegerBinaryStrategy<Binary
       return false;
     }
 
-    optimized = BinaryExpression(SyntaxKind.ModuloExpression, context.Left.Syntax.Left, context.Right.Syntax);
+    optimized = ModuloExpression(context.Left.Syntax.Left, context.Right.Syntax);
 		return true;
 	}
 }

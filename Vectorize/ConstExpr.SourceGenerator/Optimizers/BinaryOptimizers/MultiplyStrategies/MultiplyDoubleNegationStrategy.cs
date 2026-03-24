@@ -17,7 +17,7 @@ public class MultiplyDoubleNegationStrategy()
       return false;
     }
 
-    optimized = BinaryExpression(SyntaxKind.MultiplyExpression, context.Left.Syntax.Operand, context.Right.Syntax.Operand);
+    optimized = MultiplyExpression(context.Left.Syntax.Operand, context.Right.Syntax.Operand);
 		return true;
 	}
 }

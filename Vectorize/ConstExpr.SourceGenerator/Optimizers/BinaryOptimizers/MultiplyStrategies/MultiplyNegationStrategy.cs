@@ -11,8 +11,8 @@ public class MultiplyNegationStrategy() : SymmetricStrategy<NumericBinaryStrateg
 {
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<PrefixUnaryExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		optimized = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
-			ParenthesizedExpression(BinaryExpression(SyntaxKind.MultiplyExpression,
+		optimized = UnaryMinusExpression(
+			ParenthesizedExpression(MultiplyExpression(
 				context.Left.Syntax.Operand,
 				context.Right.Syntax)));
 		

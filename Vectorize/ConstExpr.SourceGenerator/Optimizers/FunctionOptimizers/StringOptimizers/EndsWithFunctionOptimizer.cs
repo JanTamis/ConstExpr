@@ -31,7 +31,7 @@ public class EndsWithFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctio
 				return true;
 			}
 			
-			result = BinaryExpression(SyntaxKind.EqualsExpression, CreateLiteral(instanceString[^1]), context.VisitedParameters[0]);
+			result = EqualsExpression(CreateLiteral(instanceString[^1]), context.VisitedParameters[0]);
 			return true;
 		}
 

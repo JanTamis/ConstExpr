@@ -20,7 +20,7 @@ public class AddDoubleToShiftStrategy : IntegerBinaryStrategy
       return false;
     }
 
-    optimized = BinaryExpression(SyntaxKind.LeftShiftExpression, context.Left.Syntax, CreateLiteral(1));
+    optimized = LeftShiftExpression(context.Left.Syntax, CreateLiteral(1));
 		return true;
 
 	}

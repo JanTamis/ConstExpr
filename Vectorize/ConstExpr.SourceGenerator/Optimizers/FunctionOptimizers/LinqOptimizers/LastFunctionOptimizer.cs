@@ -112,7 +112,7 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 							}
 							
 							// For arrays, we can directly index the first chunk: source[^chunkSize..]
-							var prefix = PrefixUnaryExpression(SyntaxKind.IndexExpression, chunkSize);
+							var prefix = IndexFromEndExpression(chunkSize);
 							var rangeExpression = RangeExpression(prefix, null);
 							
 							result = CreateElementAccess(methodSource, rangeExpression);
