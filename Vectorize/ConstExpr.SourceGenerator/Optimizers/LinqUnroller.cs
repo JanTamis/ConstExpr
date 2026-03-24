@@ -137,6 +137,13 @@ public static class LinqUnroller
 
 	public static SyntaxNode TryUnrollLinqChain(SyntaxNode node, Func<SyntaxNode?, SyntaxNode?> visit, SemanticModel model, IDictionary<SyntaxNode, bool> additionalMethods)
 	{
+		if (node is BinaryExpressionSyntax binary)
+		{
+			return binary
+				.WithLeft(TryUnrollLinqChain(binary.Left, visit, model, additionalMethods) as ExpressionSyntax ?? binary.Left)
+				.WithRight(TryUnrollLinqChain(binary.Right, visit, model, additionalMethods) as ExpressionSyntax ?? binary.Right);
+		}
+
 		var chain = ParseLinqChain(model, visit, node);
 
 		// A chain of [Source, TerminalMethod] (length 2) is already well-handled
@@ -144,6 +151,18 @@ public static class LinqUnroller
 		if (chain.Length < 2
 		    || !model.TryGetTypeSymbol(chain[0].Parameters[0], out var type))
 		{
+			// If this is a non-LINQ invocation (e.g. Int32.Min(a.Min(), b.Min())),
+			// recursively unroll any LINQ chains that appear in its arguments first,
+			// then re-visit the resulting node so further optimizations can apply.
+			if (node is InvocationExpressionSyntax invocation)
+			{
+				var newNode = invocation.WithArgumentList(invocation.ArgumentList
+					.WithArguments(SeparatedList(invocation.ArgumentList.Arguments.Select(arg =>
+						Argument(TryUnrollLinqChain(arg.Expression, visit, model, additionalMethods) as ExpressionSyntax ?? arg.Expression)))));
+
+				return visit(newNode) ?? newNode;
+			}
+
 			return visit(node) ?? node;
 		}
 

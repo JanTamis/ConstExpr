@@ -17,8 +17,8 @@ public class LinqOrderByDescendingOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.Max();
-
+			var a = Max_xQiULA(x);
+			
 			return a;
 			""", Unknown),
 		Create("return 3;", new[] { 3, 1, 2 }),

@@ -50,18 +50,18 @@ public class LinqConcatOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.Sum();
-			var b = x.Sum();
-			var c = x.Sum() + 30;
-			var d = x.Sum() + 5;
-			var e = x.Sum() + 15;
-			var f = x.Sum() + 25;
-			var g = x.Sum() + 70;
-			var h = x.Sum() + 10;
-			var i = x.Sum() + 300;
-			var j = x.Sum() + 60;
-			var k = x.Sum() + 99;
-			var l = x.Sum() + 88;
+			var a = Sum_ezMquQ(x);
+			var b = Sum_ezMquQ(x);
+			var c = Sum_ezMquQ(x) + 30;
+			var d = Sum_ezMquQ(x) + 5;
+			var e = Sum_ezMquQ(x) + 15;
+			var f = Sum_ezMquQ(x) + 25;
+			var g = Sum_ezMquQ(x) + 70;
+			var h = Sum_ezMquQ(x) + 10;
+			var i = Sum_ezMquQ(x) + 300;
+			var j = Sum_ezMquQ(x) + 60;
+			var k = Sum_ezMquQ(x) + 99;
+			var l = Sum_ezMquQ(x) + 88;
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l;
 			""", Unknown),

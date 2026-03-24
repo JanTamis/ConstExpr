@@ -75,11 +75,14 @@ public class MinFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 				{
 					TryGetOptimizedChainExpression(invocationSource, OperationsThatDontAffectMin, out invocationSource);
 
+					var concatArg = invocation.ArgumentList.Arguments[0].Expression;
+					var visitedConcatArg = context.Visit(concatArg) ?? concatArg;
+
 					var left = TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, invocationSource), context.Method), out var leftResult) ? leftResult as ExpressionSyntax : null;
-					var right = TryOptimize(context.WithInvocationAndMethod(CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters), context.Method), out var rightResult) ? rightResult as ExpressionSyntax : null;
+					var right = TryOptimize(context.WithInvocationAndMethod(CreateInvocation(visitedConcatArg, Name, context.VisitedParameters), context.Method), out var rightResult) ? rightResult as ExpressionSyntax : null;
 
 					var leftExpr = left ?? CreateInvocation(invocationSource, Name, context.VisitedParameters);
-					var rightExpr = right ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters);
+					var rightExpr = right ?? CreateInvocation(visitedConcatArg, Name, context.VisitedParameters);
 
 					result = OptimizeAsMathPairwise<MathMinOptimizer>(context, leftExpr, rightExpr);
 					return true;

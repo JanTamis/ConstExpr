@@ -181,8 +181,8 @@ public class LinqElementAtOrDefaultNoOptimizationTests : BaseTest<Func<int[], in
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.Min();
-			var b = x.Max();
+			var a = Min_BJMt_Q(x);
+			var b = Max_xQiULA(x);
 			var c = x.Length > 0 ? x[^1] : 0;
 			var d = Array.Find(x, v => v > 2);
 			var e = (x.Length > 0 ? x[0] : 0) << 1;

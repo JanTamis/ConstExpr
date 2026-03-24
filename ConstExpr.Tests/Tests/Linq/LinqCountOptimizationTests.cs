@@ -60,21 +60,21 @@ public class LinqCountOptimizationTests() : BaseTest<Func<int[], int>>(FloatingP
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.Count(v => v > 3);
+			var a = Count_FDQQ2g(x);
 			var b = x.Length;
 			var c = x.Length;
 			var d = x.Length;
 			var e = x.Length;
 			var f = x.Length;
-			var g = x.Count(v => v > 2);
-			var h = x.Count(v => v < 5);
-			var i = x.Distinct().Count() + x.Length + x.Length;
+			var g = Count_FDQQ2g(x);
+			var h = Count_kCjlEw(x);
+			var i = Count__rroWA(x) + x.Length + x.Length;
 			var j = x.Length;
-			var k = x.Count(v => (uint)v - 2 < 8U);
-			var l = x.Count(v => (uint)v - 1 < 7U && Int32.IsEvenInteger(v));
-			var m = x.Count(v => (uint)v - 2 < 8U);
-			var n = x.Count(v => (uint)v - 1 < 7U && Int32.IsEvenInteger(v));
-			var o = x.DistinctBy(v => v % 3).Count();
+			var k = Count_6aBddw(x);
+			var l = Count_mNkfmg(x);
+			var m = Count_6aBddw(x);
+			var n = Count_mNkfmg(x);
+			var o = Count_h3sqxw(x);
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l + m + n + o;
 			""", Unknown),

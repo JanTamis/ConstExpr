@@ -38,10 +38,9 @@ public class DistinctLinqUnroller : BaseLinqUnroller
 			default:
 			{
 				var typeName = method.Model.Compilation.GetMinimalString(elementType);
-				var capacityArg = GetCollectionSizeExpression(method.CollectionType);
 
 				statements.Add(CreateLocalDeclaration(SetName,
-					ObjectCreationExpression(IdentifierName($"HashSet<{typeName}>"), capacityArg)));
+					ObjectCreationExpression(IdentifierName($"HashSet<{typeName}>"), [])));
 				break;
 			}
 		}

@@ -22,6 +22,11 @@ public class OfTypeFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 			return false;
 		}
 
+		// Save the original source (from the unmodified syntax tree) before TryExecutePredicates
+		// replaces it with a visited copy.  GetSymbolInfo only works on nodes that belong to the
+		// original compilation's syntax tree, so we must use this reference for symbol lookups below.
+		var originalSource = source;
+
 		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
@@ -30,7 +35,8 @@ public class OfTypeFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		// Get the type argument for this OfType call
 		var typeArg = context.Method.TypeArguments[0];
 
-		if (IsLinqMethodChain(source, out var methodName, out var invocation)
+		// Use originalSource (original tree node) so that GetSymbolInfo resolves correctly.
+		if (IsLinqMethodChain(originalSource, out var methodName, out var invocation)
 		    && TryGetLinqSource(invocation, out var invocationSource))
 		{
 			switch (methodName)

@@ -29,12 +29,12 @@ public class LinqMinOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.Min();
-			var b = Int32.Min(x.Min(v => v << 1), x.Min());
-			var c = x.Min();
-			var d = x.Min();
-			var e = x.Min();
-
+			var a = Min_BJMt_Q(x);
+			var b = Int32.Min(Min_xOvLpw(x), Min_BJMt_Q(x));
+			var c = Min_BJMt_Q(x);
+			var d = Min_BJMt_Q(x);
+			var e = Min_BJMt_Q(x);
+			
 			return a + b + c + d + e;
 			""", Unknown),
 		Create("return 7;", new[] { 1, 2, 3 }),

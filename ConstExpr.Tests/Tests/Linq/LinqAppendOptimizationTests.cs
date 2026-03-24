@@ -35,11 +35,11 @@ public class LinqAppendOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.Sum() + 20;
-			var b = x.Sum() + 30;
-			var c = x.Sum() + 40;
-			var d = x.Sum() + 50;
-			var e = x.Sum() + 10;
+			var a = Sum_ezMquQ(x) + 20;
+			var b = Sum_ezMquQ(x) + 30;
+			var c = Sum_ezMquQ(x) + 40;
+			var d = Sum_ezMquQ(x) + 50;
+			var e = Sum_ezMquQ(x) + 10;
 			var f = x.Length + 5;
 			var g = x.Length + 4;
 			

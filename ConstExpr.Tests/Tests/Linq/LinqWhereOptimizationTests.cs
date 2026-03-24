@@ -43,11 +43,11 @@ public class LinqWhereOptimizationTests() : BaseTest<Func<int[], int>>(FloatingP
 	[
 		Create("""
 			var a = x.Length;
-			var c = x.Count(v => (uint)v - 1 < 4U);
-			var d = x.Count(v => (uint)v < 10U);
-			var e = x.Count(v => (uint)v < 10U && Int32.IsEvenInteger(v));
-			var f = x.Count(v => v > 3);
-			var h = x.Count(v => (uint)v < 100U && Int32.IsEvenInteger(v));
+			var c = Count_6aBddw(x);
+			var d = Count_0C_yVQ(x);
+			var e = Count_lfFt2w(x);
+			var f = Count_FDQQ2g(x);
+			var h = Count_lfFt2w(x);
 			
 			return a + c + d + e + f + h;
 			""", Unknown),

@@ -56,18 +56,18 @@ public class LinqExceptOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var d = x.Distinct().Count(x => x != 1);
-			var e = x.Distinct().Count(x => x != 2);
-			var f = x.Distinct().Count(x => x != 3);
-			var g = x.Distinct().Count(x => (uint)(x - 1) > 1U);
-			var h = x.Distinct().Count(x => x != 4);
-			var i = x.Distinct().Count(x => (uint)(x - 1) > 1U);
-			var j = x.Distinct().Count(x => (uint)(x - 1) > 2U);
-			var k = x.Distinct().Count(x => x != 1);
+			var d = Count_VTK1rQ(x);
+			var e = Count_VTK1rQ(x);
+			var f = Count_VTK1rQ(x);
+			var g = Count__3ZIMA(x);
+			var h = Count_VTK1rQ(x);
+			var i = Count__3ZIMA(x);
+			var j = Count__3ZIMA(x);
+			var k = Count_VTK1rQ(x);
 			var l = Array.Exists(x, x => x != 5) ? 1 : 0;
-			var m = x.Distinct().Count(x => (uint)(x - 1) > 1U);
-			var n = x.Distinct().Count(x => x != 99);
-
+			var m = Count__3ZIMA(x);
+			var n = Count_VTK1rQ(x);
+			
 			return d + e + f + g + h + i + j + k + l + m + n;
 			""", Unknown),
 		Create("return 38;", new[] { 1, 2, 3, 4, 5 }),

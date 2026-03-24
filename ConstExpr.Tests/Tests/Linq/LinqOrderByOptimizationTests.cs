@@ -17,8 +17,8 @@ public class LinqOrderByOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.Min();
-
+			var a = Min_BJMt_Q(x);
+			
 			return a;
 			""", Unknown),
 		Create("return 1;", new[] { 3, 1, 2 }),

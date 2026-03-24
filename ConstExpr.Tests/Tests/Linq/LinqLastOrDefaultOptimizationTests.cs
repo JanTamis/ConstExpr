@@ -53,7 +53,7 @@ public class LinqLastOrDefaultOptimizationTests : BaseTest<Func<int[], int>>
 			var e = Array.FindLast(x, v => v > 2);
 			var f = Array.FindLast(x, v => v < 5);
 			var g = Array.FindLast(x, v => v == 3);
-			var h = x.Max();
+			var h = Max_xQiULA(x);
 			var i = x.Length > 0 ? x[0] : 0;
 			var j = x.Length > 0 ? x[^1] : 0;
 			var k = Array.FindLast(x, v => v > 0) << 1;

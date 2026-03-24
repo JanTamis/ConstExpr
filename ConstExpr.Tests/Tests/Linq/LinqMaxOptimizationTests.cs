@@ -29,12 +29,12 @@ public class LinqMaxOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.Max();
-			var b = x.Max(v => v << 1);
-			var c = x.Max();
-			var d = x.Max();
-			var e = Int32.Max(x.Max(), x.Max());
-
+			var a = Max_xQiULA(x);
+			var b = Max_C0rLmg(x);
+			var c = Max_xQiULA(x);
+			var d = Max_xQiULA(x);
+			var e = Int32.Max(Max_xQiULA(x), Max_xQiULA(x));
+			
 			return a + b + c + d + e;
 			""", Unknown),
 		Create("return 21;", new[] { 1, 2, 3 }),

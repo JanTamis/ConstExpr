@@ -37,14 +37,14 @@ public class LinqAverageOptimizationTests : BaseTest<Func<int[], double>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.Average();
-			var b = x.Average();
-			var c = x.Average();
-			var d = x.Average();
-			var e = x.Average();
-			var f = x.Average(v => v << 1);
-			var g = x.Average(v => v << 1 + v);
-			var h = x.Average(s => s << 1);
+			var a = Average_cnpjgw(x);
+			var b = Average_cnpjgw(x);
+			var c = Average_cnpjgw(x);
+			var d = Average_cnpjgw(x);
+			var e = Average_cnpjgw(x);
+			var f = Average_Ra0CPg(x);
+			var g = Average_Jo5e5A(x);
+			var h = Average_Ra0CPg(x);
 			
 			return a + b + c + d + e + f + g + h;
 			""", Unknown),

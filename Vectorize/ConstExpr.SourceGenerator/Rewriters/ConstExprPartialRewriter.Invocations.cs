@@ -84,6 +84,13 @@ public partial class ConstExprPartialRewriter
 		// when it re-enters the rewriter through Visit.
 		if (TryOptimizeLinqMethod(semanticModel, targetMethod, node, arguments, node.ArgumentList.Arguments.Select(s => s.Expression)) is { } optimizedLinq)
 		{
+			if (optimizedLinq is BinaryExpressionSyntax binary)
+			{
+				return binary
+					.WithLeft(LinqUnroller.TryUnrollLinqChain(binary.Left, Visit, semanticModel, additionalMethods) as ExpressionSyntax ?? binary.Left)
+					.WithRight(LinqUnroller.TryUnrollLinqChain(binary.Right, Visit, semanticModel, additionalMethods) as ExpressionSyntax ?? binary.Right);
+			}
+			
 			return LinqUnroller.TryUnrollLinqChain(optimizedLinq, Visit, semanticModel, additionalMethods);
 		}
 

@@ -20,9 +20,9 @@ public class LinqUnionOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.Distinct().Count();
-			var b = x.Distinct().Count();
-
+			var a = Count__rroWA(x);
+			var b = Count__rroWA(x);
+			
 			return a + b;
 			""", Unknown),
 		Create("return 6;", new[] { 1, 2, 3 }),

@@ -44,16 +44,16 @@ public class LinqDistinctOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.Distinct().Count();
-			var b = x.Distinct().Count();
-			var c = x.Distinct().Count();
-			var d = x.Distinct().Count();
-			var e = x.Distinct().Count();
-			var f = x.Distinct().Count();
-			var g = x.Distinct().Count();
-			var h = x.Length > 0 ? 1 : 0;
-			var i = x.Distinct().Count();
-			var j = x.Distinct().Count();
+			var a = Count__qaQFQ(x);
+			var b = Count__qaQFQ(x);
+			var c = Count__qaQFQ(x);
+			var d = Count__qaQFQ(x);
+			var e = Count__qaQFQ(x);
+			var f = Count__qaQFQ(x);
+			var g = Count__qaQFQ(x);
+			var h = x.Count > 0 ? 1 : 0;
+			var i = Count__qaQFQ(x);
+			var j = Count__qaQFQ(x);
 			
 			return a + b + c + d + e + f + g + h + i + j;
 			""", Unknown),
