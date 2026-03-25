@@ -20,9 +20,9 @@ public class LinqSingleOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.Single(v => v == 3);
-			var b = x.Single(v => v == 2);
-
+			var a = Single_UeGPpQ(x);
+			var b = Single_UeGPpQ(x);
+			
 			return a + b;
 			""", Unknown),
 		Create("return 5;", new[] { 1, 2, 3, 4, 5 }),

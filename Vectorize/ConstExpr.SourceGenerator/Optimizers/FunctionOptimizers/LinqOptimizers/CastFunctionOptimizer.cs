@@ -45,17 +45,8 @@ public class CastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 			{
 				return true;
 			}
-			
-			// Preserve the generic type argument from the original Cast<T>() call
-			if (context.Invocation.Expression is MemberAccessExpressionSyntax { Name: GenericNameSyntax genericName })
-			{
-				result = CreateInvocation(source, genericName).WithMethodSymbolAnnotation(context.Method);
-			}
-			else
-			{
-				result = CreateSimpleInvocation(source, nameof(Enumerable.Cast));
-			}
-			
+
+			result = UpdateInvocation(context, source);
 			return true;
 		}
 

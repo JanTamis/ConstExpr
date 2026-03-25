@@ -650,7 +650,9 @@ public partial class ConstExprPartialRewriter
 				return expression;
 			}
 
-			return node.WithExpression(expression as ExpressionSyntax ?? node.Expression);
+			return node
+				.WithExpression(expression as ExpressionSyntax ?? node.Expression)
+				.WithType(node.Type.WithTypeSymbolAnnotation(type));
 		}
 
 		return base.VisitCastExpression(node);

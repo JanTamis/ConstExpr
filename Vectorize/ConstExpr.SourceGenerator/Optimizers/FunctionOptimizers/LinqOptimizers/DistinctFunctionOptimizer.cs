@@ -37,7 +37,7 @@ public class DistinctFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 			return false;
 		}
 
-		if (TryExecutePredicates(context, source, out result, out source))
+		if (TryExecutePredicates(context, source, out result, out var newSource))
 		{
 			return true;
 		}
@@ -58,14 +58,14 @@ public class DistinctFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 			: OperationsThatDontAffectDistinctness;
 
 		// Recursively skip all allowed operations
-		var isNewSource = TryGetOptimizedChainExpression(source, allowedOperations, out source);
+		var isNewSource = TryGetOptimizedChainExpression(newSource, allowedOperations, out newSource);
 
-		if (TryExecutePredicates(context, source, out result, out _))
+		if (TryExecutePredicates(context, source, out result, out newSource))
 		{
 			return true;
 		}
 
-		if (IsLinqMethodChain(source, out var methodName, out var invocation)
+		if (IsLinqMethodChain(newSource, out var methodName, out var invocation)
 		    && TryGetLinqSource(invocation, out var invocationSource))
 		{
 			switch (methodName)
@@ -94,7 +94,7 @@ public class DistinctFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		}
 
 		// If we skipped any operations, create optimized Distinct() call
-		if (isNewSource)
+		if (isNewSource || !AreEquivalent(source, newSource))
 		{
 			result = UpdateInvocation(context, source);
 			return true;

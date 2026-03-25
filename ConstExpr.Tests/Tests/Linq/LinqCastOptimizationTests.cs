@@ -29,11 +29,11 @@ public class LinqCastOptimizationTests : BaseTest<Func<List<object>, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.Cast<int>().Sum();
-			var b = x.Cast<int>().Sum();
-			var c = x.Cast<int>().Sum();
-			var d = x.Cast<int>().Sum();
-			var e = x.Cast<int>().Sum();
+			var a = Sum_Zgtz4g(x);
+			var b = Sum_Zgtz4g(x);
+			var c = Sum_Zgtz4g(x);
+			var d = Sum_Zgtz4g(x);
+			var e = Sum_Zgtz4g(x);
 			
 			return a + b + c + d + e;
 			""", Unknown),

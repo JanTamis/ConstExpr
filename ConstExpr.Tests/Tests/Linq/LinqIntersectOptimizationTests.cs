@@ -56,18 +56,18 @@ public class LinqIntersectOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var c = x.Distinct().Count();
-			var d = x.Distinct().Count(x => x == 1);
-			var e = x.Distinct().Count(x => x == 2);
-			var f = x.Distinct().Count(x => x == 3);
-			var g = x.Distinct().Count(x => (uint)(x - 1) <= 1U);
-			var h = x.Distinct().Count(x => x == 4);
-			var i = x.Distinct().Count(x => (uint)(x - 2) <= 1U);
-			var j = x.Distinct().Count(x => x == 3);
-			var k = x.Distinct().Count(x => x == 1);
+			var c = Count__qaQFQ(x);
+			var d = Count_KUIMow(x);
+			var e = Count_KUIMow(x);
+			var f = Count_KUIMow(x);
+			var g = Count_tFiigw(x);
+			var h = Count_KUIMow(x);
+			var i = Count_tFiigw(x);
+			var j = Count_KUIMow(x);
+			var k = Count_KUIMow(x);
 			var l = Array.IndexOf(x, 5) >= 0 ? 1 : 0;
-			var m = x.Distinct().Count(x => (uint)(x - 1) <= 1U);
-			var n = x.Distinct().Count(x => x == 99);
+			var m = Count_tFiigw(x);
+			var n = Count_KUIMow(x);
 			
 			return c + d + e + f + g + h + i + j + k + l + m + n;
 			""", Unknown),

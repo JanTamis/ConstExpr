@@ -14,7 +14,7 @@ using sourcegen::ConstExpr.SourceGenerator.Rewriters;
 
 namespace ConstExpr.Tests;
 
-public abstract class BaseTest<TDelegate>(FloatingPointEvaluationMode evaluationMode = FloatingPointEvaluationMode.Strict)
+public abstract class BaseTest<TDelegate>(FloatingPointEvaluationMode evaluationMode = FloatingPointEvaluationMode.Strict, LinqOptimisationMode linqOptimisationMode = LinqOptimisationMode.Unroll)
 	where TDelegate : Delegate
 {
 	// the generated method bodies to be expected
@@ -71,7 +71,7 @@ public abstract class BaseTest<TDelegate>(FloatingPointEvaluationMode evaluation
 
 		var semanticModel = compilation.GetSemanticModel(method.SyntaxTree);
 		var loader = MetadataLoader.GetLoader(compilation);
-		var attribute = new ConstExprAttribute { FloatingPointMode = evaluationMode };
+		var attribute = new ConstExprAttribute { FloatingPointMode = evaluationMode, LinqOptimisationMode = linqOptimisationMode };
 		var visitedMethods = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
 		var additionalMethods = new Dictionary<SyntaxNode, bool>(SyntaxNodeComparer<SyntaxNode>.Instance);
 		

@@ -115,7 +115,7 @@ public class LinqAnyOptimizationListTests : BaseTest<Func<List<int>, int>>
 			var b = x.Count > 0 ? 1 : 0;
 			var c = x.Count > 0 ? 1 : 0;
 			var d = x.Exists(v => v > 100) ? 1 : 0;
-			var e = x.Contains(2) ? 1 : 0;
+			var e = Contains_XnObxg(x) ? 1 : 0;
 			var f = x.Count > 0 ? 1 : 0;
 			
 			return a + b + c + d + e + f;

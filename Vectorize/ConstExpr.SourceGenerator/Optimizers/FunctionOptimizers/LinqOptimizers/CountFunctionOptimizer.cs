@@ -280,8 +280,8 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 							TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectCount, out currentSource);
 
 							while (IsLinqMethodChain(currentSource, nameof(Enumerable.Concat), out var concatInvocation)
-						       && TryGetLinqSource(concatInvocation, out var concatSource)
-						       && TryGetSyntaxes(concatInvocation.ArgumentList.Arguments[0].Expression, out concatSyntaxes))
+							       && TryGetLinqSource(concatInvocation, out var concatSource)
+							       && TryGetSyntaxes(concatInvocation.ArgumentList.Arguments[0].Expression, out concatSyntaxes))
 							{
 								count += concatSyntaxes.Count;
 
@@ -358,6 +358,27 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 						result = repeatCountArg.Expression;
 						return true;
 					}
+					case "CountBy" when GetMethodArguments(invocation).FirstOrDefault() is { Expression: { } predicateArg }
+					                    && TryGetLambda(predicateArg, out var predicate):
+					{
+						if (IsIdentityLambda(predicate))
+						{
+							result = TryOptimizeByOptimizer<CountFunctionOptimizer>(context, CreateSimpleInvocation(methodSource, nameof(Enumerable.Count)));
+							return true;
+						}
+
+						if (context.Model.TryGetSymbol<IMethodSymbol>(invocation, out var methodSymbol))
+						{
+							var distinctByInvocation = CreateInvocation(methodSource, "DistinctBy", predicate);
+							var newDistinctByCountInvocation = TryOptimizeByOptimizer<DistinctByFunctionOptimizer>(context, distinctByInvocation, methodSymbol.TypeArguments.ToArray()) as ExpressionSyntax ?? distinctByInvocation;
+
+							result = UpdateInvocation(context, newDistinctByCountInvocation);
+							return true;
+
+						}
+
+						break;
+					}
 				}
 			}
 
@@ -390,7 +411,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 						return true;
 					}
 
-					if (currentSource.TryGetMethodSymbolAnnotation(out var methodSymbol))
+					if (context.Model.TryGetSymbol<IMethodSymbol>(currentSource, out var methodSymbol))
 					{
 						var distinctByInvocation = CreateInvocation(chainSource, "DistinctBy", predicate);
 						var newDistinctByCountInvocation = TryOptimizeByOptimizer<DistinctByFunctionOptimizer>(context, distinctByInvocation, methodSymbol.TypeArguments.ToArray()) as ExpressionSyntax ?? distinctByInvocation;
@@ -403,7 +424,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 				}
 
 				case nameof(Enumerable.GroupBy) when GetMethodArguments(chainInvocation).FirstOrDefault() is { Expression: { } predicateArg }
-				                    && TryGetLambda(predicateArg, out var predicate):
+				                                     && TryGetLambda(predicateArg, out var predicate):
 				{
 					var distinctByInvocation = CreateInvocation(chainSource, "DistinctBy", predicate);
 					var newDistinctByCountInvocation = TryOptimizeByOptimizer<DistinctByFunctionOptimizer>(context, distinctByInvocation) as ExpressionSyntax ?? distinctByInvocation;

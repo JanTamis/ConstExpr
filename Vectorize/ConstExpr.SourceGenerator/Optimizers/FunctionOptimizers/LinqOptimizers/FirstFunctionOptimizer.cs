@@ -56,9 +56,7 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 					when GetMethodArguments(invocation).FirstOrDefault() is { Expression: { } predicateArg }
 					     && TryGetLambda(predicateArg, out var predicate):
 				{
-					TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectFirst, out var innerInvocation);
-
-					result = CreateInvocation(innerInvocation, nameof(Enumerable.First), predicate);
+					result = TryOptimizeByOptimizer<FirstFunctionOptimizer>(context, CreateInvocation(methodSource, nameof(Enumerable.First), predicate));
 					return true;
 				}
 				case nameof(Enumerable.Reverse):
@@ -204,10 +202,11 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 		// For arrays, use direct array indexing: arr[0]
 		// For List<T>, use direct indexing: list[0]
-		if (IsInvokedOnArray(context, source)
-		    || IsInvokedOnList(context, source))
+		if (context.VisitedParameters.Count == 0
+		    && (IsInvokedOnArray(context, source)
+		    || IsInvokedOnList(context, source)))
 		{
-			result = CreateElementAccess(source, CreateLiteral(0));
+			result = CreateElementAccess(source, CreateLiteral(0)!);
 			return true;
 		}
 

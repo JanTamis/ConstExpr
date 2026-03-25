@@ -108,13 +108,13 @@ public class LinqContainsOptimizationListTests : BaseTest<Func<List<int>, int>>
 	[
 		Create("""
 			var a = x.Contains(3) ? 1 : 0;
-			var b = x.Contains(3) ? 1 : 0;
-			var c = x.Contains(3) ? 1 : 0;
-			var d = x.Contains(3) ? 1 : 0;
-			var e = x.Contains(3) ? 1 : 0;
-			var f = x.Contains(3) ? 1 : 0;
+			var b = Contains_XnObxg(x) ? 1 : 0;
+			var c = Contains_XnObxg(x) ? 1 : 0;
+			var d = Contains_XnObxg(x) ? 1 : 0;
+			var e = Contains_XnObxg(x) ? 1 : 0;
+			var f = Contains_XnObxg(x) ? 1 : 0;
 			var g = x.Contains(100) ? 1 : 0;
-
+			
 			return a + b + c + d + e + f + g;
 			""", Unknown),
 		Create("return 6;", new List<int> { 1, 2, 3, 4, 5 }),

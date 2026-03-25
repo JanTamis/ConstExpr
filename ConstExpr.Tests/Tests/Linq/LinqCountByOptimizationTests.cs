@@ -12,19 +12,19 @@ public class LinqCountByOptimizationTests : BaseTest<Func<int[], int>>
 	{
 		// AsEnumerable().CountBy() => CountBy() (no-op materialisation stripped)
 		var a = x.AsEnumerable().CountBy(v => v % 2).Count();
-
+		
 		// ToList().CountBy() => CountBy() (materialisation stripped)
 		var b = x.ToList().CountBy(v => v % 2).Count();
-
+		
 		// ToArray().CountBy() => CountBy() (materialisation stripped)
 		var c = x.ToArray().CountBy(v => v % 2).Count();
-
+		
 		// OrderBy().CountBy() => CountBy() (ordering doesn't affect key counts)
 		var d = x.OrderBy(v => v).CountBy(v => v % 2).Count();
-
+		
 		// Enumerable.Empty<T>().CountBy() => Enumerable.Empty<KeyValuePair<TKey,int>>() => Count() = 0
 		var e = Enumerable.Empty<int>().CountBy(v => v % 2).Count();
-
+		
 		// CountBy(keySelector, null) => CountBy(keySelector) (null comparer removed)
 		var f = x.CountBy(v => v % 2, null).Count();
 
@@ -33,7 +33,7 @@ public class LinqCountByOptimizationTests : BaseTest<Func<int[], int>>
 
 		// Where(v => false).CountBy() => Enumerable.Empty<KeyValuePair<TKey,int>>() => Count() = 0
 		var h = x.Where(v => false).CountBy(v => v % 2).Count();
-
+		
 		var i = x.CountBy(v => v).Count();
 
 		return a + b + c + d + e + f + g + h + i;
@@ -44,14 +44,14 @@ public class LinqCountByOptimizationTests : BaseTest<Func<int[], int>>
 		// e (Empty source) and h (Where false) fold to 0 and are pruned from the return sum.
 		// v % 2 in key selectors is also optimised to v & 1 by the arithmetic optimizer.
 		Create("""
-			var a = x.DistinctBy(v => v & 1).Count();
-			var b = x.DistinctBy(v => v & 1).Count();
-			var c = x.DistinctBy(v => v & 1).Count();
-			var d = x.DistinctBy(v => v & 1).Count();
-			var f = x.DistinctBy(v => v & 1).Count();
-			var g = x.DistinctBy(v => v & 1).Count();
-			var i = x.Distinct().Count();
-
+			var a = Count_ezf0Og(x);
+			var b = Count_ezf0Og(x);
+			var c = Count_ezf0Og(x);
+			var d = Count_ezf0Og(x);
+			var f = Count_ezf0Og(x);
+			var g = Count_ezf0Og(x);
+			var i = x.Length;
+			
 			return a + b + c + d + f + g + i;
 			""", Unknown),
 		Create("return 12;", new[] { 1, 2, 3, 4, 5 }),  // 6 calls × 2 keys each; e=0, h=0

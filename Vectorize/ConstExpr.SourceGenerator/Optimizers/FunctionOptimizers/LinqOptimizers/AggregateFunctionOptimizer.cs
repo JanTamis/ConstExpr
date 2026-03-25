@@ -37,28 +37,28 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 			return false;
 		}
 
-		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectAggregate, out source);
+		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectAggregate, out var currentSource);
 
-		if (TryExecutePredicates(context, source, out result, out source))
+		if (TryExecutePredicates(context, currentSource, out result, out currentSource))
 		{
 			return true;
 		}
 
 		// First, try to optimize Aggregate to Sum if it's just adding values
-		if (TryOptimizeAggregateToSum(context, source, out result))
+		if (TryOptimizeAggregateToSum(context, currentSource, out result))
 		{
 			return true;
 		}
 
 		if (IsZeroLiteral(context.VisitedParameters[0]))
 		{
-			result = UpdateInvocation(context, source, context.VisitedParameters.Skip(1));
+			result = UpdateInvocation(context, currentSource, context.VisitedParameters.Skip(1));
 			return true;
 		}
 
-		if (isNewSource)
+		if (isNewSource || !AreEquivalent(source, currentSource))
 		{
-			result = UpdateInvocation(context, source);
+			result = UpdateInvocation(context, currentSource);
 			return true;
 		}
 

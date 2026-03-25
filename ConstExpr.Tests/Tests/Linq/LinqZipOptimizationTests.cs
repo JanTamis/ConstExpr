@@ -25,7 +25,7 @@ public class LinqZipOptimizationTests : BaseTest<Func<int[], int>>
 	[
 		Create("""
 			var c = x.Length;
-			var d = Int32.Min(x.Length, x.Count(w => w > 0));
+			var d = Int32.Min(x.Length, Count_FDQQ2g(x));
 			
 			return c + d;
 			""", Unknown),

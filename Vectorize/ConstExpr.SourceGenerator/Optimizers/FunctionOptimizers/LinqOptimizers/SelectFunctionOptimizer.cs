@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -33,7 +34,15 @@ public class SelectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		// Optimize .Select(x => (T)x) to .Cast<T>()
 		if (IsCastLambda(lambda, out var castType))
 		{
-			result = CreateCastMethodCall(source, castType);
+			var invocation = CreateCastMethodCall(source, castType);
+			
+			if (context.Model.TryGetTypeSymbol(castType, out var castTypeSymbol))
+			{
+				result = TryOptimizeByOptimizer<CastFunctionOptimizer>(context, invocation, castTypeSymbol);
+				return true;
+			}
+			
+			result = invocation;
 			return true;
 		}
 

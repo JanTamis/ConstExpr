@@ -40,13 +40,13 @@ public class CountByFunctionOptimizer() : BaseLinqFunctionOptimizer("CountBy", 1
 
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectCountBy, out source);
 
-		if (TryExecutePredicates(context, source, out result, out source))
+		if (TryExecutePredicates(context, source, out result, out var currentSource))
 		{
 			return true;
 		}
 
 		// Enumerable.Empty<T>().CountBy(keySelector) => Enumerable.Empty<KeyValuePair<TKey, int>>()
-		if (IsEmptyEnumerable(source)
+		if (IsEmptyEnumerable(currentSource)
 		    && context.Method.ReturnType is INamedTypeSymbol { TypeArguments.Length: > 0 } returnType)
 		{
 			result = CreateEmptyEnumerableCall(returnType.TypeArguments[0]);
@@ -56,12 +56,12 @@ public class CountByFunctionOptimizer() : BaseLinqFunctionOptimizer("CountBy", 1
 		// Null comparer removal: CountBy(keySelector, null) => CountBy(keySelector)
 		if (context.VisitedParameters is [ _, LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NullLiteralExpression } ])
 		{
-			result = UpdateInvocation(context, source, context.VisitedParameters.Take(1));
+			result = UpdateInvocation(context, currentSource, context.VisitedParameters.Take(1));
 			return true;
 		}
 
 		// Chain walk for literal-predicate Where folding
-		if (IsLinqMethodChain(source, out var methodName, out var chainInvocation)
+		if (IsLinqMethodChain(currentSource, out var methodName, out var chainInvocation)
 		    && TryGetLinqSource(chainInvocation, out var chainSource))
 		{
 			switch (methodName)
@@ -94,7 +94,7 @@ public class CountByFunctionOptimizer() : BaseLinqFunctionOptimizer("CountBy", 1
 			}
 		}
 
-		if (isNewSource)
+		if (isNewSource || !AreEquivalent(source, currentSource))
 		{
 			result = UpdateInvocation(context, source);
 			return true;

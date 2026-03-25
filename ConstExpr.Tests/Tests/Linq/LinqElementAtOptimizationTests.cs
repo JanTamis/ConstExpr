@@ -173,10 +173,10 @@ public class LinqElementAtNoOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.Min();
-			var b = x.Max();
+			var a = Min_BJMt_Q(x);
+			var b = Max_xQiULA(x);
 			var c = x[^1];
-			var d = x.First(v => v > 2);
+			var d = First_HBY_mg(x);
 			var e = x[0] << 1;
 			var f = x[0];
 			

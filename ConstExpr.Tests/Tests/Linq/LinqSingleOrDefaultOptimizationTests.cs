@@ -20,9 +20,9 @@ public class LinqSingleOrDefaultOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.SingleOrDefault(v => v == 3);
-			var b = x.SingleOrDefault(v => v == 99);
-
+			var a = SingleOrDefault_8gQvSw(x);
+			var b = SingleOrDefault_8gQvSw(x);
+			
 			return a + b;
 			""", Unknown),
 		Create("return 3;", new[] { 1, 2, 3, 4, 5 }),
