@@ -25,7 +25,7 @@ public class EqualsComparisonSimplifierStrategy
 			var result = method(context.Right.Syntax.Token.Value, leftLiteral.Token.Value);
 
 			if (result != null
-			    && TryGetLiteral(result, out var optimizedLiteral))
+			    && TryCreateLiteral(result, out var optimizedLiteral))
 			{
 				optimized = EqualsExpression(context.Left.Syntax.Right, optimizedLiteral);
 				return true;
@@ -37,7 +37,7 @@ public class EqualsComparisonSimplifierStrategy
 			var result = method(context.Right.Syntax.Token.Value, rightLiteral.Token.Value);
 
 			if (result != null
-			    && TryGetLiteral(result, out var optimizedLiteral))
+			    && TryCreateLiteral(result, out var optimizedLiteral))
 			{
 				optimized = EqualsExpression(context.Left.Syntax.Left, optimizedLiteral);
 				return true;

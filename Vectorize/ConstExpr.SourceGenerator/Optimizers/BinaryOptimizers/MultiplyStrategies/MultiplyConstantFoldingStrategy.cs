@@ -16,14 +16,14 @@ public class MultiplyConstantFoldingStrategy() : SymmetricStrategy<NumericBinary
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<BinaryExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (context.TryGetValue(context.Left.Syntax.Left, out var leftConstant)
-		    && TryGetLiteral(leftConstant.Multiply(context.Right.Syntax.Token.Value), out var combinedLiteral))
+		    && TryCreateLiteral(leftConstant.Multiply(context.Right.Syntax.Token.Value), out var combinedLiteral))
 		{
 			optimized = MultiplyExpression(context.Left.Syntax.Right, combinedLiteral);
 			return true;
 		}
 		
 		if (context.TryGetValue(context.Left.Syntax.Right, out var leftConstant2)
-		    && TryGetLiteral(leftConstant2.Multiply(context.Right.Syntax.Token.Value), out var combinedLiteral2))
+		    && TryCreateLiteral(leftConstant2.Multiply(context.Right.Syntax.Token.Value), out var combinedLiteral2))
 		{
 			optimized = MultiplyExpression(context.Left.Syntax.Left, combinedLiteral2);
 			return true;

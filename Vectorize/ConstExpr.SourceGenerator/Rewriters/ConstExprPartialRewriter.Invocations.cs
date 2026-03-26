@@ -225,7 +225,7 @@ public partial class ConstExprPartialRewriter
 		if ((targetMethod.IsStatic || hasLiteral
 			    && (instanceName is not IdentifierNameSyntax identifier || CanBePruned(identifier.Identifier.Text)))
 		    && loader.TryExecuteMethod(targetMethod, instance, new VariableItemDictionary(variables), constantArguments, out var value)
-		    && TryGetLiteral(value, out var literal))
+		    && TryCreateLiteral(value, out var literal))
 		{
 			if (targetMethod.ReturnsVoid)
 			{
@@ -275,7 +275,7 @@ public partial class ConstExprPartialRewriter
 				break;
 		}
 
-		if (TryGetLiteral(vars[ConstExprOperationVisitor.RETURNVARIABLENAME], out var result))
+		if (TryCreateLiteral(vars[ConstExprOperationVisitor.RETURNVARIABLENAME], out var result))
 		{
 			return result;
 		}
@@ -438,7 +438,7 @@ public partial class ConstExprPartialRewriter
 		{
 			if (binary.Left is LiteralExpressionSyntax leftLiteral
 			    && binary.Right is LiteralExpressionSyntax rightLiteral
-			    && TryGetLiteral(ObjectExtensions.ExecuteBinaryOperation(binary.Kind(), leftLiteral.Token.Value, rightLiteral.Token.Value), out var leftValue))
+			    && TryCreateLiteral(ObjectExtensions.ExecuteBinaryOperation(binary.Kind(), leftLiteral.Token.Value, rightLiteral.Token.Value), out var leftValue))
 			{
 				return leftValue;
 			}
@@ -645,7 +645,7 @@ public partial class ConstExprPartialRewriter
 			return null;
 		}
 
-		if (TryGetLiteral(result, out var literal))
+		if (TryCreateLiteral(result, out var literal))
 		{
 			if (node.Expression is IdentifierNameSyntax id
 			    && variables.TryGetValue(id.Identifier.Text, out var v))
@@ -695,7 +695,7 @@ public partial class ConstExprPartialRewriter
 			    && constantArguments.Length == propertySymbol.Parameters.Length)
 			{
 				if (loader.TryExecuteMethod(propertySymbol.GetMethod, instanceValue, new VariableItemDictionary(variables), constantArguments, out var value)
-				    && TryGetLiteral(value, out var literal))
+				    && TryCreateLiteral(value, out var literal))
 				{
 					return literal;
 				}
@@ -728,7 +728,7 @@ public partial class ConstExprPartialRewriter
 			IPropertyReferenceOperation { Property.IsIndexer: true } propOp when instanceValue is not null
 			                                                                     && constantArguments.Length == propOp.Arguments.Length
 			                                                                     && loader.TryExecuteMethod(propOp.Property.GetMethod, instanceValue, new VariableItemDictionary(variables), constantArguments, out var value)
-			                                                                     && TryGetLiteral(value, out var literal) => literal,
+			                                                                     && TryCreateLiteral(value, out var literal) => literal,
 			_ => null
 		};
 
@@ -768,7 +768,7 @@ public partial class ConstExprPartialRewriter
 			{
 				var value = arr.GetValue(constantArguments.OfType<int>().ToArray());
 
-				if (TryGetLiteral(value, out var literal))
+				if (TryCreateLiteral(value, out var literal))
 				{
 					return literal;
 				}
@@ -777,7 +777,7 @@ public partial class ConstExprPartialRewriter
 			{
 				var value = arr.GetValue(constantArguments.OfType<long>().ToArray());
 
-				if (TryGetLiteral(value, out var literal))
+				if (TryCreateLiteral(value, out var literal))
 				{
 					return literal;
 				}
@@ -810,7 +810,7 @@ public partial class ConstExprPartialRewriter
 			var slice = Array.CreateInstance(type?.GetElementType() ?? typeof(object), length);
 			Array.Copy(arr, offset, slice, 0, length);
 
-			if (TryGetLiteral(slice, out var result))
+			if (TryCreateLiteral(slice, out var result))
 			{
 				return result;
 			}
@@ -831,7 +831,7 @@ public partial class ConstExprPartialRewriter
 		{
 			var value = arr.GetValue(idx);
 
-			if (TryGetLiteral(value, out var literal))
+			if (TryCreateLiteral(value, out var literal))
 			{
 				return literal;
 			}
@@ -982,7 +982,7 @@ public partial class ConstExprPartialRewriter
 				}
 
 				if (loader.TryGetFieldValue(fieldSymbol, instanceValue, out var value)
-				    && TryGetLiteral(value, out var literal))
+				    && TryCreateLiteral(value, out var literal))
 				{
 					return literal;
 				}
@@ -990,7 +990,7 @@ public partial class ConstExprPartialRewriter
 
 			case IPropertySymbol { Parameters.Length: 0 } propertySymbol:
 				if (loader.TryExecuteMethod(propertySymbol.GetMethod, instanceValue, new VariableItemDictionary(variables), [ ], out value)
-				    && TryGetLiteral(value, out literal))
+				    && TryCreateLiteral(value, out literal))
 				{
 					return literal;
 				}

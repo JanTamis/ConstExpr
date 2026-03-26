@@ -29,14 +29,14 @@ public partial class ConstExprPartialRewriter
 				return node;
 			}
 
-			if (TryGetLiteral(node.Token.Value, out var expression))
+			if (TryCreateLiteral(node.Token.Value, out var expression))
 			{
 				// Don't implicitly convert char literals to int - they should remain as char
 				// to preserve their representation in pattern matching contexts
 				if (semanticModel.GetOperation(node) is { Parent: IConversionOperation conversion }
 				    && (node.Token.Value is not char || conversion.Type?.SpecialType != SpecialType.System_Int32))
 				{
-					TryGetLiteral(ExecuteConversion(conversion, node.Token.Value), out expression);
+					TryCreateLiteral(ExecuteConversion(conversion, node.Token.Value), out expression);
 				}
 
 				return expression;
@@ -113,7 +113,10 @@ public partial class ConstExprPartialRewriter
 					return StripUnnecessaryParentheses(optimized);
 				}
 
-				return node.WithLeft(leftExpr).WithRight(rightExpr);
+				return node
+					.WithLeft(leftExpr.WithTypeSymbolAnnotation(operation.LeftOperand.Type))
+					.WithRight(rightExpr.WithTypeSymbolAnnotation(operation.RightOperand.Type))
+					.WithTypeSymbolAnnotation(operation.Type);
 			}
 		}
 
@@ -139,7 +142,7 @@ public partial class ConstExprPartialRewriter
 
 			if (nodeLeftExpr is LiteralExpressionSyntax leftLiteral
 			    && nodeRightExpr is LiteralExpressionSyntax rightLiteral
-			    && TryGetLiteral(ObjectExtensions.ExecuteBinaryOperation(node.Kind(), leftLiteral.Token.Value, rightLiteral.Token.Value), out var literal))
+			    && TryCreateLiteral(ObjectExtensions.ExecuteBinaryOperation(node.Kind(), leftLiteral.Token.Value, rightLiteral.Token.Value), out var literal))
 			{
 				return literal;
 
@@ -154,7 +157,6 @@ public partial class ConstExprPartialRewriter
 				return leftValue is null 
 					? right 
 					: left;
-
 			}
 			
 			switch (leftValue)
@@ -430,7 +432,7 @@ public partial class ConstExprPartialRewriter
 		{
 			var negated = NegateValue(numValue);
 
-			if (negated != null && TryGetLiteral(negated, out var lit))
+			if (negated != null && TryCreateLiteral(negated, out var lit))
 			{
 				return lit;
 			}
@@ -441,7 +443,7 @@ public partial class ConstExprPartialRewriter
 		{
 			var complemented = BitwiseComplement(bitwiseValue);
 
-			if (complemented != null && TryGetLiteral(complemented, out var lit))
+			if (complemented != null && TryCreateLiteral(complemented, out var lit))
 			{
 				return lit;
 			}
@@ -449,7 +451,7 @@ public partial class ConstExprPartialRewriter
 
 		if (semanticModel.GetOperation(node) is IUnaryOperation { ConstantValue.HasValue: true } operation
 		    && (operation.Parent is IConversionOperation conversionOperation
-			    && TryGetLiteral(conversionOperation.ConstantValue.Value, out var lit1) || TryGetLiteral(operation.ConstantValue.Value, out lit1)))
+			    && TryCreateLiteral(conversionOperation.ConstantValue.Value, out var lit1) || TryCreateLiteral(operation.ConstantValue.Value, out lit1)))
 		{
 			return lit1;
 		}
@@ -498,7 +500,7 @@ public partial class ConstExprPartialRewriter
 				variable.HasValue = true;
 
 				// Prefix returns the updated value
-				return TryGetLiteral(updated, out var lit) ? lit : node.WithOperand(id);
+				return TryCreateLiteral(updated, out var lit) ? lit : node.WithOperand(id);
 			}
 
 			variable.IsAltered = true;
@@ -589,7 +591,7 @@ public partial class ConstExprPartialRewriter
 				variable.Value = updated;
 				variable.HasValue = true;
 
-				return TryGetLiteral(current, out var lit) ? lit : node.WithOperand(id);
+				return TryCreateLiteral(current, out var lit) ? lit : node.WithOperand(id);
 			}
 
 			variable.IsAltered = true;
@@ -628,7 +630,7 @@ public partial class ConstExprPartialRewriter
 			{
 				var result = ConvertToSpecialType(type.SpecialType, value);
 
-				if (result is not null && TryGetLiteral(result, out var literal))
+				if (result is not null && TryCreateLiteral(result, out var literal))
 				{
 					return literal;
 				}
@@ -637,7 +639,7 @@ public partial class ConstExprPartialRewriter
 				if (type.SpecialType == SpecialType.None
 				    && TryGetOperation(semanticModel, node, out IConversionOperation? operation)
 				    && loader.TryExecuteMethod(operation.OperatorMethod, null, new VariableItemDictionary(variables), [ value ], out var opResult)
-				    && TryGetLiteral(opResult, out literal))
+				    && TryCreateLiteral(opResult, out literal))
 				{
 					return literal;
 				}
@@ -932,7 +934,7 @@ public partial class ConstExprPartialRewriter
 			var minValue = cluster.Start;
 			var maxValue = cluster.End;
 
-			if (!TryGetLiteral(maxValue.Subtract(minValue).ToSpecialType(unsignedType.SpecialType), out var unsigneddiff))
+			if (!TryCreateLiteral(maxValue.Subtract(minValue).ToSpecialType(unsignedType.SpecialType), out var unsigneddiff))
 			{
 				return false;
 			}
@@ -946,7 +948,7 @@ public partial class ConstExprPartialRewriter
 			// Use cluster.Start as the per-cluster minimum for the subtraction, not the global min (constants[0]).
 			// This ensures each cluster's range check is relative to its own start value.
 			if (!minValue.IsNumericZero()
-			    && TryGetLiteral(minValue, out var minLit))
+			    && TryCreateLiteral(minValue, out var minLit))
 			{
 				expression = isUnsigedType
 					? SubtractExpression(pattern.Expression, minLit)
@@ -961,10 +963,10 @@ public partial class ConstExprPartialRewriter
 				LessThanOrEqualExpression(expression, unsigneddiff)
 			};
 
-			if (!TryGetLiteral(cluster.Start, out var startExpression)
-			    || !TryGetLiteral(cluster.End, out var endExpression)
-			    || !TryGetLiteral(cluster.Step, out var stepExpression)
-			    || !TryGetLiteral(cluster.Diff, out var diffExpression))
+			if (!TryCreateLiteral(cluster.Start, out var startExpression)
+			    || !TryCreateLiteral(cluster.End, out var endExpression)
+			    || !TryCreateLiteral(cluster.Step, out var stepExpression)
+			    || !TryCreateLiteral(cluster.Diff, out var diffExpression))
 			{
 				throw new InvalidOperationException("Failed to get literals for cluster optimization.");
 			}

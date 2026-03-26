@@ -634,7 +634,7 @@ public partial class ConstExprPartialRewriter
 		else
 		{
 			// Subtraction needed: (uint)(v - effectiveLower) <= range
-			if (!TryGetLiteral(effectiveLower, out var lowerLiteral))
+			if (!TryCreateLiteral(effectiveLower, out var lowerLiteral))
 			{
 				return false;
 			}
@@ -648,7 +648,7 @@ public partial class ConstExprPartialRewriter
 					subtraction);
 		}
 
-		if (!TryGetLiteral(range.ToSpecialType(unsignedType.SpecialType), out var rangeLiteral))
+		if (!TryCreateLiteral(range.ToSpecialType(unsignedType.SpecialType), out var rangeLiteral))
 		{
 			return false;
 		}

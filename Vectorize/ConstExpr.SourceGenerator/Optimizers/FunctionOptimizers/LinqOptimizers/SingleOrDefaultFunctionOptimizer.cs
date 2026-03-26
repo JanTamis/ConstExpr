@@ -67,7 +67,7 @@ public class SingleOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(name
 							result = CreateThrowExpression<InvalidOperationException>("Sequence contains more than one matching element");
 							return true;
 						case 1
-							when TryGetLiteral(matchingValues[0], out var literal):
+							when TryCreateLiteral(matchingValues[0], out var literal):
 							result = literal;
 							return true;
 					}

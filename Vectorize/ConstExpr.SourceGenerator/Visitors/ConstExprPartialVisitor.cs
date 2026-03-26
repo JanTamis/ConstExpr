@@ -18,7 +18,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 {
 	public override SyntaxNode? DefaultVisit(IOperation operation, IDictionary<string, VariableItem> argument)
 	{
-		if (operation.ConstantValue is { HasValue: true, Value: var value } && TryGetLiteral(value, out var expression))
+		if (operation.ConstantValue is { HasValue: true, Value: var value } && TryCreateLiteral(value, out var expression))
 		{
 			return expression;
 		}
@@ -70,7 +70,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 
 	public override SyntaxNode? VisitParameterReference(IParameterReferenceOperation operation, IDictionary<string, VariableItem> argument)
 	{
-		if (argument.TryGetValue(operation.Parameter.Name, out var value) && value.HasValue && TryGetLiteral(value.Value, out var expression))
+		if (argument.TryGetValue(operation.Parameter.Name, out var value) && value.HasValue && TryCreateLiteral(value.Value, out var expression))
 		{
 			return expression;
 		}
@@ -83,7 +83,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 		if (argument.TryGetValue(operation.Local.Name, out var value)
 				&& value.HasValue)
 		{
-			if (TryGetLiteral(value.Value, out var expression))
+			if (TryCreateLiteral(value.Value, out var expression))
 			{
 				return expression;
 			}
@@ -612,7 +612,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 		if (TryGetConstantValue(model.Compilation, loader, operand, new VariableItemDictionary(argument), token, out var value))
 		{
 			if (loader.TryExecuteMethod(operation.OperatorMethod, null, new VariableItemDictionary(argument), [value], out value)
-			    && TryGetLiteral(value, out var literal))
+			    && TryCreateLiteral(value, out var literal))
 			{
 				// If there's a conversion method, use it and produce a literal syntax node
 				return literal;
@@ -671,7 +671,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 					TryGetConstantValue(model.Compilation, loader, instance, new VariableItemDictionary(argument), token, out var instanceValue);
 						
 					if (loader.TryExecuteMethod(targetMethod, instanceValue, new VariableItemDictionary(argument), constantArguments, out var value)
-					    && TryGetLiteral(value, out var literal))
+					    && TryCreateLiteral(value, out var literal))
 					{
 						return literal;
 					}
@@ -707,7 +707,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 								break;
 						}
 
-						if (TryGetLiteral(variables[ConstExprOperationVisitor.RETURNVARIABLENAME], out var result))
+						if (TryCreateLiteral(variables[ConstExprOperationVisitor.RETURNVARIABLENAME], out var result))
 						{
 							return result;
 						}
@@ -890,7 +890,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 				{
 					variable.Value = tempValue;
 
-					if (TryGetLiteral(tempValue, out var literal))
+					if (TryCreateLiteral(tempValue, out var literal))
 					{
 						rightExpr = literal;
 					}
@@ -1373,7 +1373,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 				_ => variable.Value,
 			};
 
-			if (TryGetLiteral(variable.Value, out var literal))
+			if (TryCreateLiteral(variable.Value, out var literal))
 			{
 				return literal;
 			}
@@ -1397,7 +1397,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 				_ => variable.Value,
 			};
 
-			if (TryGetLiteral(variable.Value, out var literal))
+			if (TryCreateLiteral(variable.Value, out var literal))
 			{
 				return literal;
 			}

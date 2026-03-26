@@ -47,7 +47,7 @@ public class UnionFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		    && TryCastToType(context.Loader, sourceValues, context.Method.TypeArguments[0], out var sourceCast)
 		    && TryCastToType(context.Loader, secondSourceValues, context.Method.TypeArguments[0], out var secondSourceCast)
 		    && context.Loader.TryGetMethodByMethod(context.Method, out var methodInfo)
-		    && TryGetLiteral(methodInfo.Invoke(null, [ sourceCast, secondSourceCast ]), out var literal))
+		    && TryCreateLiteral(methodInfo.Invoke(null, [ sourceCast, secondSourceCast ]), out var literal))
 		{
 			result = literal;
 			return true;

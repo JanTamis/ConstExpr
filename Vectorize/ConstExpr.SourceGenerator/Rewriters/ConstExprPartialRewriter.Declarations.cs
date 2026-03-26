@@ -393,7 +393,7 @@ public partial class ConstExprPartialRewriter
 			{
 				rightValues[i] = rightVar.Value;
 
-				if (TryGetLiteral(rightVar.Value, out var literal))
+				if (TryCreateLiteral(rightVar.Value, out var literal))
 				{
 					newRightArgs[i] = Argument(literal);
 					hasOptimization = true;
@@ -461,7 +461,7 @@ public partial class ConstExprPartialRewriter
 			variable.Value = tempValue;
 			variable.HasValue = true;
 
-			if (TryGetLiteral(tempValue, out var literal))
+			if (TryCreateLiteral(tempValue, out var literal))
 			{
 				return node.WithRight(literal);
 			}

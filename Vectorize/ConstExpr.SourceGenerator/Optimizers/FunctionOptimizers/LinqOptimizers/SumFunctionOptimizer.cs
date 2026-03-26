@@ -151,7 +151,7 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		{
 			var sum = values.Sum(context.Method.ReturnType);
 
-			if (TryGetLiteral(sum, out var sumLiteral))
+			if (TryCreateLiteral(sum, out var sumLiteral))
 			{
 				result = sumLiteral;
 				return true;

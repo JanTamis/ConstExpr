@@ -154,7 +154,7 @@ public partial class ConstExprPartialRewriter
 
 			var constructedObject = matchingConstructor.Invoke(argumentValues.ToArray());
 
-			if (TryGetLiteral(constructedObject, out var literalExpression))
+			if (TryCreateLiteral(constructedObject, out var literalExpression))
 			{
 				return literalExpression;
 			}

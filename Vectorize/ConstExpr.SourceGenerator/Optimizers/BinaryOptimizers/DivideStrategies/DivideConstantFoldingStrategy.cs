@@ -27,7 +27,7 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 		{
 			var result = leftConstant.Multiply(c2);
 
-			if (result != null && TryGetLiteral(result, out var newConstant))
+			if (result != null && TryCreateLiteral(result, out var newConstant))
 			{
 				optimized = BinaryExpression(
 					SyntaxKind.DivideExpression,
@@ -45,7 +45,7 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 		{
 			var result = leftConstant2.Divide(c2);
 
-			if (result != null && TryGetLiteral(result, out var newConstant))
+			if (result != null && TryCreateLiteral(result, out var newConstant))
 			{
 				optimized = BinaryExpression(
 					SyntaxKind.DivideExpression,
@@ -63,7 +63,7 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 		{
 			var result = c1.Multiply(rightConstant);
 
-			if (result != null && TryGetLiteral(result, out var newConstant))
+			if (result != null && TryCreateLiteral(result, out var newConstant))
 			{
 				optimized = BinaryExpression(
 					SyntaxKind.DivideExpression,
@@ -81,7 +81,7 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 		{
 			var result = c1.Divide(rightConstant2);
 
-			if (result != null && TryGetLiteral(result, out var newConstant))
+			if (result != null && TryCreateLiteral(result, out var newConstant))
 			{
 				optimized = BinaryExpression(
 					SyntaxKind.MultiplyExpression,
@@ -99,7 +99,7 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 		{
 			var result = mulConstant.Divide(c2);
 
-			if (result != null && TryGetLiteral(result, out var newConstant))
+			if (result != null && TryCreateLiteral(result, out var newConstant))
 			{
 				optimized = BinaryExpression(
 					SyntaxKind.MultiplyExpression,
@@ -117,7 +117,7 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 		{
 			var result = mulConstant2.Divide(c2);
 
-			if (result != null && TryGetLiteral(result, out var newConstant))
+			if (result != null && TryCreateLiteral(result, out var newConstant))
 			{
 				optimized = BinaryExpression(
 					SyntaxKind.MultiplyExpression,

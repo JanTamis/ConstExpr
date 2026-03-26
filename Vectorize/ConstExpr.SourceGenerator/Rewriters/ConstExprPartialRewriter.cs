@@ -104,7 +104,7 @@ public partial class ConstExprPartialRewriter(
 		if (variable.HasValue && !variable.IsAltered)
 		{
 			// Try to convert to a literal
-			if (TryGetLiteral(variable.Value, out var literal))
+			if (TryCreateLiteral(variable.Value, out var literal))
 			{
 				return literal;
 			}

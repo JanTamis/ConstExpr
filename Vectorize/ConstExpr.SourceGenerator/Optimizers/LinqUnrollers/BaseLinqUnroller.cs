@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Linq.Expressions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -16,6 +17,20 @@ public abstract class BaseLinqUnroller
 
 	public virtual void UnrollUnderLoop(UnrolledLinqMethod method, List<StatementSyntax> statements) { }
 
+	/// <summary>
+	/// Called before the main loop is added to the result statements.
+	/// Receives the partial loop body (chain steps after this one) so that extra elements
+	/// can be processed through subsequent steps. Used by Prepend.
+	/// </summary>
+	public virtual void UnrollBeforeMainLoop(UnrolledLinqMethod method, IList<StatementSyntax> partialLoopBody, List<StatementSyntax> resultStatements) { }
+
+	/// <summary>
+	/// Called after the main loop is added to the result statements.
+	/// Receives the partial loop body (chain steps after this one) so that extra elements
+	/// can be processed through subsequent steps. Used by Append, Concat, Union, DefaultIfEmpty.
+	/// </summary>
+	public virtual void UnrollAfterMainLoop(UnrolledLinqMethod method, IList<StatementSyntax> partialLoopBody, List<StatementSyntax> resultStatements) { }
+
 	public virtual void CreateLoop(UnrolledLinqMethod method, ITypeSymbol collectionType, IList<StatementSyntax> statements, string collectionName, IList<StatementSyntax> resultStatements)
 	{
 		resultStatements.Add(ForEachStatement(IdentifierName("var"), "item", IdentifierName(collectionName), Block(statements)));
@@ -28,49 +43,30 @@ public abstract class BaseLinqUnroller
 
 	protected static ExpressionSyntax InvertSyntax(ExpressionSyntax node)
 	{
-		switch (node)
+		return node switch
 		{
 			// invert binary expressions with logical operators
-			case BinaryExpressionSyntax binary:
+			BinaryExpressionSyntax binary => binary.Kind() switch
 			{
-				return binary.Kind() switch
-				{
-					SyntaxKind.LogicalAndExpression => LogicalOrExpression(InvertSyntax(binary.Left), InvertSyntax(binary.Right)),
-					SyntaxKind.LogicalOrExpression => LogicalAndExpression(InvertSyntax(binary.Left), InvertSyntax(binary.Right)),
-					SyntaxKind.EqualsExpression => NotEqualsExpression(binary.Left, binary.Right),
-					SyntaxKind.NotEqualsExpression => EqualsExpression(binary.Left, binary.Right),
-					SyntaxKind.GreaterThanExpression => LessThanOrEqualExpression(binary.Left, binary.Right),
-					SyntaxKind.GreaterThanOrEqualExpression => LessThanExpression(binary.Left, binary.Right),
-					SyntaxKind.LessThanExpression => GreaterThanOrEqualExpression(binary.Left, binary.Right),
-					SyntaxKind.LessThanOrEqualExpression => GreaterThanExpression(binary.Left, binary.Right),
-					SyntaxKind.IsExpression => IsPatternExpression(binary.Left, UnaryPattern(Token(SyntaxKind.NotKeyword), TypePattern((TypeSyntax) binary.Right))),
-					_ => LogicalNotExpression(node)
-				};
-			}
+				SyntaxKind.LogicalAndExpression => LogicalOrExpression(InvertSyntax(binary.Left), InvertSyntax(binary.Right)),
+				SyntaxKind.LogicalOrExpression => LogicalAndExpression(InvertSyntax(binary.Left), InvertSyntax(binary.Right)),
+				SyntaxKind.EqualsExpression => NotEqualsExpression(binary.Left, binary.Right),
+				SyntaxKind.NotEqualsExpression => EqualsExpression(binary.Left, binary.Right),
+				SyntaxKind.GreaterThanExpression => LessThanOrEqualExpression(binary.Left, binary.Right),
+				SyntaxKind.GreaterThanOrEqualExpression => LessThanExpression(binary.Left, binary.Right),
+				SyntaxKind.LessThanExpression => GreaterThanOrEqualExpression(binary.Left, binary.Right),
+				SyntaxKind.LessThanOrEqualExpression => GreaterThanExpression(binary.Left, binary.Right),
+				_ => LogicalNotExpression(ParenthesizedExpression(node))
+			},
+			PrefixUnaryExpressionSyntax prefixUnary when prefixUnary.IsKind(SyntaxKind.LogicalNotExpression) => prefixUnary.Operand,
 			// handle 'x is T' (pattern form) and 'x is not T'
-			case IsPatternExpressionSyntax isPattern:
-			{
-				// x is not T  →  x is T  (strip the negation)
-				if (isPattern.Pattern.IsKind(SyntaxKind.NotPattern) && isPattern.Pattern is UnaryPatternSyntax negated)
-				{
-					return IsPatternExpression(isPattern.Expression, negated.Pattern);
-				}
-
-				// x is T  →  x is not T  (add negation)
-				return IsPatternExpression(isPattern.Expression, UnaryPattern(Token(SyntaxKind.NotKeyword), isPattern.Pattern));
-			}
-			case LiteralExpressionSyntax literal:
-			{
-				return literal.Kind() switch
-				{
-					SyntaxKind.FalseLiteralExpression => LiteralExpression(SyntaxKind.TrueLiteralExpression),
-					SyntaxKind.TrueLiteralExpression => LiteralExpression(SyntaxKind.FalseLiteralExpression),
-					_ => LogicalNotExpression(node)
-				};
-			}
-		}
-
-		return LogicalNotExpression(node);
+			// x is not T  →  x is T  (strip the negation)
+			IsPatternExpressionSyntax isPattern when isPattern.Pattern.Kind() == SyntaxKind.NotPattern && isPattern.Pattern is UnaryPatternSyntax negated => IsPatternExpression(isPattern.Expression, negated.Pattern),
+			// x is T  →  x is not T  (add negation)
+			IsPatternExpressionSyntax isPattern => IsPatternExpression(isPattern.Expression, UnaryPattern(Token(SyntaxKind.NotKeyword), isPattern.Pattern)),
+			InvocationExpressionSyntax or MemberAccessExpressionSyntax or ElementAccessExpressionSyntax => LogicalNotExpression(node),
+			_ => LogicalNotExpression(ParenthesizedExpression(node))
+		};
 	}
 
 	protected static ExpressionSyntax? ReplaceLambda(LambdaExpressionSyntax lambda, ExpressionSyntax replacement)

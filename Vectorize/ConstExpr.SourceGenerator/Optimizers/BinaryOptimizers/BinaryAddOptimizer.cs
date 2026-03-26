@@ -12,6 +12,7 @@ public class BinaryAddOptimizer : BaseBinaryOptimizer
 	public override IEnumerable<IBinaryStrategy> GetStrategies()
 	{
 		yield return new AddConstantFoldingStrategy();
+		yield return new AddSubtractionConstantFoldingStrategy();
 		yield return new AddDoubleNegatedStrategy();
 		yield return new AddDoubleToShiftStrategy();
 		yield return new AddFusedMultiplyAddStrategy();

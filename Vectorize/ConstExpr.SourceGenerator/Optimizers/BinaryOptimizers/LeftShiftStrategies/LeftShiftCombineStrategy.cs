@@ -15,7 +15,7 @@ public class LeftShiftCombineStrategy() : IntegerBinaryStrategy<BinaryExpression
 	{
 		if (!base.TryOptimize(context, out optimized)
 		    || !context.TryGetValue(context.Left.Syntax.Right, out var leftShiftValue)
-		    || !TryGetLiteral(leftShiftValue.Add(context.Right.Syntax.Token.Value), out var combinedLiteral))
+		    || !TryCreateLiteral(leftShiftValue.Add(context.Right.Syntax.Token.Value), out var combinedLiteral))
 		{
 			return false;
 		}

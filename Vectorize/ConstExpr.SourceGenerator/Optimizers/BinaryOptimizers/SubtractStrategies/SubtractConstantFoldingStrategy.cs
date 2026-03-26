@@ -16,14 +16,14 @@ public class SubtractConstantFoldingStrategy() : SymmetricStrategy<NumericBinary
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<BinaryExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (context.TryGetValue(context.Left.Syntax.Left, out var leftConstant)
-		    && TryGetLiteral(leftConstant.Subtract(context.Right.Syntax.Token.Value), out var combinedLiteral))
+		    && TryCreateLiteral(leftConstant.Subtract(context.Right.Syntax.Token.Value), out var combinedLiteral))
 		{
 			optimized = SubtractExpression(context.Left.Syntax.Right, combinedLiteral);
 			return true;
 		}
 
 		if (context.TryGetValue(context.Left.Syntax.Right, out var leftConstant2)
-		    && TryGetLiteral(leftConstant2.Subtract(context.Right.Syntax.Token.Value), out var combinedLiteral2))
+		    && TryCreateLiteral(leftConstant2.Subtract(context.Right.Syntax.Token.Value), out var combinedLiteral2))
 		{
 			optimized = SubtractExpression(context.Left.Syntax.Left, combinedLiteral2);
 			return true;

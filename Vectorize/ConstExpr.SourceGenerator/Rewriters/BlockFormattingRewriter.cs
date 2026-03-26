@@ -141,7 +141,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			return node;
 		}
 
-		if (TryGetLiteral(node.Token.Value, out var expression))
+		if (TryCreateLiteral(node.Token.Value, out var expression))
 		{
 			return (node.Token.Value switch
 			{

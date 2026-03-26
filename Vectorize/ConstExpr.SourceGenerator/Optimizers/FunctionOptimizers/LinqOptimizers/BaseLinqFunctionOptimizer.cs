@@ -1064,8 +1064,8 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 				if (parameters.Count == context.Method.Parameters.Length)
 				{
 					if (method.IsStatic
-					    && TryGetLiteral(method.Invoke(null, [ values, ..parameters ]), out var tempResult)
-					    || TryGetLiteral(method.Invoke(values, [ ..parameters ]), out tempResult))
+					    && TryCreateLiteral(method.Invoke(null, [ values, ..parameters ]), out var tempResult)
+					    || TryCreateLiteral(method.Invoke(values, [ ..parameters ]), out tempResult))
 					{
 						result = tempResult;
 						return true;
@@ -1110,8 +1110,8 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 				if (newParameters.Count == context.Method.Parameters.Length)
 				{
 					if (context.Method.ReceiverType is not null
-					    && TryGetLiteral(method.Invoke(null, [ values, ..newParameters ]), out var tempResult)
-					    || TryGetLiteral(method.Invoke(values, [ ..newParameters ]), out tempResult))
+					    && TryCreateLiteral(method.Invoke(null, [ values, ..newParameters ]), out var tempResult)
+					    || TryCreateLiteral(method.Invoke(values, [ ..newParameters ]), out tempResult))
 					{
 						result = tempResult;
 						return true;
@@ -1257,10 +1257,10 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 
 	protected ExpressionSyntax InvertSyntax(ExpressionSyntax node)
 	{
-		// invert binary expressions with logical operators
-		if (node is BinaryExpressionSyntax binary)
+		return node switch
 		{
-			return binary.Kind() switch
+			// invert binary expressions with logical operators
+			BinaryExpressionSyntax binary => binary.Kind() switch
 			{
 				SyntaxKind.LogicalAndExpression => LogicalOrExpression(InvertSyntax(binary.Left), InvertSyntax(binary.Right)),
 				SyntaxKind.LogicalOrExpression => LogicalAndExpression(InvertSyntax(binary.Left), InvertSyntax(binary.Right)),
@@ -1271,21 +1271,16 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 				SyntaxKind.LessThanExpression => GreaterThanOrEqualExpression(binary.Left, binary.Right),
 				SyntaxKind.LessThanOrEqualExpression => GreaterThanExpression(binary.Left, binary.Right),
 				_ => LogicalNotExpression(ParenthesizedExpression(node))
-			};
-		}
-
-		// handle 'x is T' (pattern form) and 'x is not T'
-		if (node is IsPatternExpressionSyntax isPattern)
-		{
+			},
+			PrefixUnaryExpressionSyntax prefixUnary when prefixUnary.IsKind(SyntaxKind.LogicalNotExpression) => prefixUnary.Operand,
+			// handle 'x is T' (pattern form) and 'x is not T'
 			// x is not T  →  x is T  (strip the negation)
-			if (isPattern.Pattern.Kind() == SyntaxKind.NotPattern && isPattern.Pattern is UnaryPatternSyntax negated)
-				return IsPatternExpression(isPattern.Expression, negated.Pattern);
-
+			IsPatternExpressionSyntax isPattern when isPattern.Pattern.Kind() == SyntaxKind.NotPattern && isPattern.Pattern is UnaryPatternSyntax negated => IsPatternExpression(isPattern.Expression, negated.Pattern),
 			// x is T  →  x is not T  (add negation)
-			return IsPatternExpression(isPattern.Expression, UnaryPattern(Token(SyntaxKind.NotKeyword), isPattern.Pattern));
-		}
-
-		return LogicalNotExpression(ParenthesizedExpression(node));
+			IsPatternExpressionSyntax isPattern => IsPatternExpression(isPattern.Expression, UnaryPattern(Token(SyntaxKind.NotKeyword), isPattern.Pattern)),
+			InvocationExpressionSyntax or MemberAccessExpressionSyntax or ElementAccessExpressionSyntax => LogicalNotExpression(node),
+			_ => LogicalNotExpression(ParenthesizedExpression(node))
+		};
 	}
 
 	/// <summary>

@@ -15,7 +15,7 @@ public class ModuloByPowerOfTwoStrategy : IntegerBinaryStrategy<ExpressionSyntax
 	{
 		if (!base.TryOptimize(context, out optimized)
 		    || !context.Right.Syntax.IsNumericPowerOfTwo(out var power)
-		    || !TryGetLiteral(((1 << power) - 1).ToSpecialType(context.Type.SpecialType), out var maskLiteral))
+		    || !TryCreateLiteral(((1 << power) - 1).ToSpecialType(context.Type.SpecialType), out var maskLiteral))
     {
       return false;
     }

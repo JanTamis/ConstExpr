@@ -50,6 +50,12 @@ public static class LinqUnroller
 		{ PossibleLinqMethod.Intersect, new IntersectLinqUnroller() },
 		{ PossibleLinqMethod.IntersectBy, new IntersectByLinqUnroller() },
 		{ PossibleLinqMethod.SequenceEqual, new SequenceEqualLinqUnroller() },
+		{ PossibleLinqMethod.Append, new AppendLinqUnroller() },
+		{ PossibleLinqMethod.Prepend, new PrependLinqUnroller() },
+		{ PossibleLinqMethod.Concat, new ConcatLinqUnroller() },
+		{ PossibleLinqMethod.Union, new UnionLinqUnroller() },
+		{ PossibleLinqMethod.UnionBy, new UnionByLinqUnroller() },
+		{ PossibleLinqMethod.DefaultIfEmpty, new DefaultIfEmptyLinqUnroller() },
 	};
 
 	/// <summary>
@@ -119,7 +125,7 @@ public static class LinqUnroller
 		{
 			return methods.ToArray();
 		}
-		
+
 		return [ ];
 	}
 
@@ -170,7 +176,11 @@ public static class LinqUnroller
 		// under loop
 		var statements = ParseAboveLoop(chain);
 
+		ParseBeforeMainLoop(chain, statements);
+
 		lastUnroller.CreateLoop(chain[^1], type, elements, collectionName, statements);
+
+		ParseAfterMainLoop(chain, statements);
 
 		ParsePossibleReturnStatement(chain, statements);
 
@@ -183,11 +193,13 @@ public static class LinqUnroller
 
 		var localMethod = LocalFunctionStatement(chain[^1].MethodSymbol.ReturnType.GetTypeSyntax(false), Identifier($"{chain[^1].Method}_{body.GetDeterministicHashString()}"))
 			.WithParameterList(ParameterList(SingletonSeparatedList(Parameter(Identifier(collectionName)).WithType(parameterType))))
+			.AddModifiers(Token(SyntaxKind.PrivateKeyword))
+			.AddModifiers(Token(SyntaxKind.StaticKeyword))
 			.WithBody(body);
 
 		additionalMethods.TryAdd(localMethod, true);
 
-		result =  InvocationExpression(IdentifierName(localMethod.Identifier))
+		result = InvocationExpression(IdentifierName(localMethod.Identifier))
 			.WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(chain[0].Parameters[0]))));
 		return true;
 	}
@@ -198,6 +210,70 @@ public static class LinqUnroller
 		{
 			unroller.UnrollUnderLoop(chain[^1], statements);
 		}
+	}
+
+	/// <summary>
+	/// Calls <see cref="BaseLinqUnroller.UnrollBeforeMainLoop"/> for each chain step,
+	/// passing a partial loop body that starts from the step after the current one.
+	/// Used by Prepend to add elements before the main loop.
+	/// </summary>
+	private static void ParseBeforeMainLoop(UnrolledLinqMethod[] chain, List<StatementSyntax> resultStatements)
+	{
+		for (var i = 1; i < chain.Length; i++)
+		{
+			if (Unrollers.TryGetValue(chain[i].Method, out var unroller))
+			{
+				var partialBody = BuildPartialLoopBody(chain, i + 1);
+				unroller.UnrollBeforeMainLoop(chain[i], partialBody, resultStatements);
+			}
+		}
+	}
+
+	/// <summary>
+	/// Calls <see cref="BaseLinqUnroller.UnrollAfterMainLoop"/> for each chain step,
+	/// passing a partial loop body that starts from the step after the current one.
+	/// Used by Append, Concat, Union, and DefaultIfEmpty to add elements after the main loop.
+	/// </summary>
+	private static void ParseAfterMainLoop(UnrolledLinqMethod[] chain, List<StatementSyntax> resultStatements)
+	{
+		for (var i = 1; i < chain.Length; i++)
+		{
+			if (Unrollers.TryGetValue(chain[i].Method, out var unroller))
+			{
+				var partialBody = BuildPartialLoopBody(chain, i + 1);
+				unroller.UnrollAfterMainLoop(chain[i], partialBody, resultStatements);
+			}
+		}
+	}
+
+	/// <summary>
+	/// Builds a partial loop body by replaying <see cref="BaseLinqUnroller.UnrollLoopBody"/>
+	/// for chain steps starting from <paramref name="fromIndex"/>. The element name starts
+	/// as <c>item</c> (matching the foreach loop variable in extra iterations).
+	/// </summary>
+	internal static List<StatementSyntax> BuildPartialLoopBody(UnrolledLinqMethod[] chain, int fromIndex)
+	{
+		var elementName = (ExpressionSyntax) IdentifierName("item");
+		var elements = new List<StatementSyntax>();
+
+		for (var i = fromIndex; i < chain.Length; i++)
+		{
+			if (i < chain.Length - 1
+			    && chain[i].Method is PossibleLinqMethod.ToList or PossibleLinqMethod.ToArray or PossibleLinqMethod.AsEnumerable)
+			{
+				continue;
+			}
+
+			if (Unrollers.TryGetValue(chain[i].Method, out var unroller))
+			{
+				unroller.UnrollLoopBody(chain[i], elements, ref elementName);
+			}
+		}
+
+		var combined = ConstExprPartialRewriter.CombineConsecutiveIfStatements(List(elements));
+		elements.Clear();
+		elements.AddRange(combined);
+		return elements;
 	}
 
 	private static List<StatementSyntax> ParseAboveLoop(UnrolledLinqMethod[] chain)

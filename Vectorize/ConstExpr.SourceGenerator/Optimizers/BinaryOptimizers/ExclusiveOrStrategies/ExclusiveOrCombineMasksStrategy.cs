@@ -15,7 +15,7 @@ public class ExclusiveOrCombineMasksStrategy() : NumericOrBooleanBinaryStrategy<
 	{
 		if (!base.TryOptimize(context, out optimized)
 		    || !context.TryGetValue(context.Left.Syntax.Right, out var leftXorRightValue)
-		    || !TryGetLiteral(leftXorRightValue.ExclusiveOr(context.Right.Syntax.Token.Value), out var combinedLiteral))
+		    || !TryCreateLiteral(leftXorRightValue.ExclusiveOr(context.Right.Syntax.Token.Value), out var combinedLiteral))
     {
       return false;
     }

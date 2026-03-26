@@ -77,86 +77,119 @@ public static class SyntaxHelpers
 		};
 	}
 
-	public static bool TryGetLiteral<T>(T? value, [NotNullWhen(true)] out ExpressionSyntax? expression)
+	public static bool TryCreateLiteral<T>(T? value, [NotNullWhen(true)] out ExpressionSyntax? result)
 	{
-		expression = CreateLiteral(value);
-		return expression is not null;
+		return TryCreateLiteral(value, false, out result);
 	}
 
-	public static ExpressionSyntax? CreateLiteral<T>(T? value, bool useExplicitByte = false)
+	public static bool TryCreateLiteral<T>(T? value, bool useExplicitByte, [NotNullWhen(true)] out ExpressionSyntax? result)
 	{
+		var valueType = value?.GetType();
+		
 		// check if value is lookup and skip if it is
 		// check if value is IGrouping and skip if it is
-		if (value?.GetType().GetInterface("System.Linq.ILookup`2") is not null
-		    || value?.GetType().GetInterface("System.Linq.IGrouping`2") is not null)
+		if (valueType?.GetInterface("System.Linq.ILookup`2") is not null
+		    || valueType?.GetInterface("System.Linq.IGrouping`2") is not null)
 		{
-			return null;
+			result = null;
+			return false;
 		}
 		
 		switch (value)
 		{
 			case byte bb:
+			{
 				if (useExplicitByte)
 				{
-					return CastExpression(
+					result = CastExpression(
 						PredefinedType(Token(SyntaxKind.ByteKeyword)),
 						LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(bb)));
+					return true;
 				}
 
-				return LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(bb));
-
+				result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(bb));
+				return true;
+			}
 			case int i:
-				return LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(i));
+			{
+				result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(i));
+				return true;
+			}
 			case uint ui:
-				return LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(ui));
+			{
+				result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(ui));
+				return true;
+			}
 			case float f:
-				return LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal($"{f.ToString(CultureInfo.InvariantCulture)}F", f));
+			{
+				result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal($"{f.ToString(CultureInfo.InvariantCulture)}F", f));
+				return true;
+			}
 			case double d:
 			{
 				if (Math.Abs(d - Math.Round(d)) < Double.Epsilon)
 				{
-					return LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal($"{d.ToString(CultureInfo.InvariantCulture)}D", d));
+					result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal($"{d.ToString(CultureInfo.InvariantCulture)}D", d));
+					return true;
 				}
 
-				return LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(d));
+				result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(d));
+				return true;
 			}
 			case long l:
-				return LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(l));
+			{
+				result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(l));
+				return true;
+			}
 			case ulong ul:
-				return LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(ul));
+			{
+				result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(ul));
+				return true;
+			}
 			case decimal dec:
-				return LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(dec));
+			{
+				result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(dec));
+				return true;
+			}
 			case string s1:
-				// if (s1.Length == 0)
-				// {
-				// 	return SyntaxFactory.ParseExpression("String.Empty");
-				// }
-
-				return LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(s1));
+			{
+				result = LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(s1));
+				return true;
+			}
 			case char c:
-				return LiteralExpression(SyntaxKind.CharacterLiteralExpression, Literal(c));
+			{
+				result = LiteralExpression(SyntaxKind.CharacterLiteralExpression, Literal(c));
+				return true;
+			}
 			case bool b:
 			{
-				return LiteralExpression(b
+				result = LiteralExpression(b
 					? SyntaxKind.TrueLiteralExpression
 					: SyntaxKind.FalseLiteralExpression);
+				return true;
 			}
 			case Enum e:
 			{
 				var enumType = e.GetType();
 				var enumValue = Enum.GetName(enumType, e);
 
-				if (enumValue is not null)
+				if (enumValue is null)
 				{
-					return MemberAccessExpression(IdentifierName(enumType.Name), IdentifierName(enumValue));
+					result = null;
+					return false;
 				}
-				return null;
+
+				result = MemberAccessExpression(IdentifierName(enumType.Name), IdentifierName(enumValue));
+				return true;
 			}
 			case null:
-				return LiteralExpression(SyntaxKind.NullLiteralExpression);
+			{
+				result = LiteralExpression(SyntaxKind.NullLiteralExpression);
+				return true;
+			}
 			case DateTime dt:
 			{
-				return ObjectCreationExpression(
+				result = ObjectCreationExpression(
 						IdentifierName("DateTime"))
 					.WithArgumentList(ArgumentList(SeparatedList([
 						Argument(CreateLiteral(dt.Ticks)!),
@@ -165,14 +198,16 @@ public static class SyntaxHelpers
 								IdentifierName("DateTimeKind"),
 								IdentifierName(dt.Kind.ToString())))
 					])));
+				return true;
 			}
 			case TimeSpan ts:
 			{
-				return ObjectCreationExpression(
+				result = ObjectCreationExpression(
 						IdentifierName("TimeSpan"))
 					.WithArgumentList(ArgumentList(SeparatedList([
 						Argument(CreateLiteral(ts.Ticks)!)
 					])));
+				return true;
 			}
 		}
 
@@ -189,7 +224,9 @@ public static class SyntaxHelpers
 				if (elemType == typeof(char))
 				{
 					var chars = (char[]) array;
-					return LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(new string(chars)));
+					
+					result = CreateLiteral(new string(chars));
+					return true;
 				}
 
 				if (elemType == typeof(byte))
@@ -203,22 +240,23 @@ public static class SyntaxHelpers
 						.Replace("\n", "\\n")
 						.Replace("\t", "\\t");
 
-					return ParseExpression($"\"{escaped}\"u8");
+					result = ParseExpression($"\"{escaped}\"u8");
+					return true;
 				}
 
-				return CollectionExpression(SeparatedList<CollectionElementSyntax>(array
+				result = CollectionExpression(SeparatedList<CollectionElementSyntax>(array
 					.Cast<object?>()
 					.Select(s => ExpressionElement(CreateLiteral(s, true)))));
+				return true;
 			}
 		}
 
-		if (value.GetType().Name.Contains("Tuple"))
+		if (valueType!.Name.Contains("Tuple"))
 		{
 			var tupleItems = new List<ArgumentSyntax>();
-			var type = value.GetType();
 
 			// Check for ValueTuple fields (Item1, Item2, etc.)
-			var fields = type.GetFields().Where(f => f.Name.StartsWith("Item")).ToArray();
+			var fields = valueType.GetFields().Where(f => f.Name.StartsWith("Item")).ToArray();
 
 			if (fields.Length > 0)
 			{
@@ -231,7 +269,7 @@ public static class SyntaxHelpers
 			else
 			{
 				// Check for Tuple properties (Item1, Item2, etc.)
-				var properties = type.GetProperties().Where(p => p.Name.StartsWith("Item")).ToArray();
+				var properties = valueType.GetProperties().Where(p => p.Name.StartsWith("Item")).ToArray();
 
 				foreach (var prop in properties)
 				{
@@ -240,27 +278,26 @@ public static class SyntaxHelpers
 				}
 			}
 
-			return TupleExpression(SeparatedList(tupleItems));
+			result = TupleExpression(SeparatedList(tupleItems));
+			return true;
 		}
 
 		// Support for IDictionary – emit new Dictionary<K, V> { { k, v }, ... }
 		if (value is IDictionary dictionary)
 		{
-			var type = value.GetType();
-			var typeArgs = type.GetGenericArguments();
-			var keyTypeSyntax = typeArgs.Length > 0 ? GetTypeSyntax(typeArgs[0]) : PredefinedType(Token(SyntaxKind.ObjectKeyword));
-			var valueTypeSyntax = typeArgs.Length > 1 ? GetTypeSyntax(typeArgs[1]) : PredefinedType(Token(SyntaxKind.ObjectKeyword));
+			var typeArgs = valueType.GetGenericArguments();
+			var keyTypeSyntax = typeArgs.Length > 0 ? CreateTypeSyntax(typeArgs[0]) : PredefinedType(Token(SyntaxKind.ObjectKeyword));
+			var valueTypeSyntax = typeArgs.Length > 1 ? CreateTypeSyntax(typeArgs[1]) : PredefinedType(Token(SyntaxKind.ObjectKeyword));
 
 			var initializerExpressions = new List<ExpressionSyntax>();
 
 			foreach (DictionaryEntry entry in dictionary)
 			{
-				var keyExpr = CreateLiteral(entry.Key);
-				var valExpr = CreateLiteral(entry.Value);
-
-				if (keyExpr is null || valExpr is null)
+				if (!TryCreateLiteral(entry.Key, out var keyExpr)
+				    || !TryCreateLiteral(entry.Value, out var valExpr))
 				{
-					return null;
+					result = null;
+					return false;
 				}
 
 				initializerExpressions.Add(
@@ -277,36 +314,31 @@ public static class SyntaxHelpers
 						valueTypeSyntax
 					])));
 
-			return ObjectCreationExpression(dictionaryType)
-				.WithArgumentList(ArgumentList(
-					SeparatedList<ArgumentSyntax>([Argument(CreateLiteral(initializerExpressions.Count))])))
+			result = ObjectCreationExpression(dictionaryType, CreateLiteral(initializerExpressions.Count))
 				.WithInitializer(InitializerExpression(
 					SyntaxKind.CollectionInitializerExpression,
 					SeparatedList(initializerExpressions)));
+			return true;
 		}
 
 		if (value is IEnumerable enumerable)
 		{
-			return CollectionExpression(SeparatedList<CollectionElementSyntax>(enumerable
+			result = CollectionExpression(SeparatedList<CollectionElementSyntax>(enumerable
 				.Cast<object?>()
 				.Select(s => ExpressionElement(CreateLiteral(s)))));
+			return true;
 		}
 
-		if (value.GetType().Name == "KeyValuePair`2")
+		if (valueType.Name == "KeyValuePair`2")
 		{
-			var type = value.GetType();
-			var keyProp = type.GetProperty("Key");
-			var valueProp = type.GetProperty("Value");
-
-			var keyExpr = CreateLiteral(keyProp?.GetValue(value));
-			var valueExpr = CreateLiteral(valueProp?.GetValue(value));
-
-			if (keyExpr is null || valueExpr is null)
+			if (!TryCreateLiteral(valueType.GetProperty("Key"), out var keyExpr)
+			    || !TryCreateLiteral(valueType.GetProperty("Value"), out var valueExpr))
 			{
-				return null;
+				result = null;
+				return false;
 			}
 
-			return InvocationExpression(
+			result = InvocationExpression(
 					MemberAccessExpression(
 						IdentifierName("KeyValuePair"),
 						IdentifierName("Create")))
@@ -314,12 +346,24 @@ public static class SyntaxHelpers
 					Argument(keyExpr),
 					Argument(valueExpr)
 				])));
+			return true;
 		}
 
-		return null;
+		result = null;
+		return false;
 	}
 
-	private static TypeSyntax GetTypeSyntax(Type type)
+	public static ExpressionSyntax CreateLiteral<T>(T? value, bool useExplicitByte = false)
+	{
+		if (!TryCreateLiteral(value, useExplicitByte, out var result))
+		{
+			throw new NotSupportedException($"Type {typeof(T)} is not supported for literal creation.");
+		}
+		
+		return result;
+	}
+
+	public static TypeSyntax CreateTypeSyntax(Type type)
 	{
 		var keyword = type == typeof(bool) ? SyntaxKind.BoolKeyword
 			: type == typeof(byte) ? SyntaxKind.ByteKeyword
@@ -1102,14 +1146,14 @@ public static class SyntaxHelpers
 	{
 		var type = typeof(T);
 
-		return GetTypeSyntax(type);
+		return CreateTypeSyntax(type);
 	}
 
 	public static CastExpressionSyntax CreateCastSyntax<T>(ExpressionSyntax expression)
 	{
 		var type = typeof(T);
 
-		return CastExpression(GetTypeSyntax(type), expression);
+		return CastExpression(CreateTypeSyntax(type), expression);
 	}
 
 	public static BinaryExpressionSyntax EqualsExpression(ExpressionSyntax left, ExpressionSyntax right)

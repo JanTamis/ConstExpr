@@ -19,5 +19,7 @@ public class BinaryModuloOptimizer : BaseBinaryOptimizer
 		yield return new ModuloNestedSimplificationStrategy();
 		yield return new ModuloAlreadyMaskedStrategy();
 		yield return new ModuloByPowerOfTwoStrategy();
+		// yield return new ModuloBarrettUnsignedStrategy();
+		// yield return new ModuloBarrettSignedStrategy();
 	}
 }

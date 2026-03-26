@@ -88,7 +88,7 @@ public class ExpressionRewriter(
 	/// </summary>
 	private ExpressionSyntax? CreateLiteral(object? value)
 	{
-		if (TryGetLiteral(value, out var expression))
+		if (TryCreateLiteral(value, out var expression))
 		{
 			return expression;
 		}

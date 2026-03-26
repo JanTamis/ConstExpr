@@ -14,7 +14,7 @@ public class AndCombineMasksStrategy() : SymmetricStrategy<NumericOrBooleanBinar
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<BinaryExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!context.TryGetValue(context.Left.Syntax.Right, out var leftMask)
-		    || !TryGetLiteral(leftMask.And(context.Right.Syntax.Token.Value), out var combinedLiteral))
+		    || !TryCreateLiteral(leftMask.And(context.Right.Syntax.Token.Value), out var combinedLiteral))
 		{
 			optimized = null;
 			return false;

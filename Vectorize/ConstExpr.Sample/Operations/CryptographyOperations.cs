@@ -1,3 +1,4 @@
+using System;
 using ConstExpr.Core.Attributes;
 using ConstExpr.Core.Enumerators;
 using System.Linq;
@@ -31,25 +32,31 @@ public static class CryptographyOperations
 			return text;
 		}
 
-		var result = new System.Text.StringBuilder();
+		var result = new System.Text.StringBuilder(text.Length);
 		var normalizedShift = ((shift % 26) + 26) % 26;
-
-		foreach (var c in text)
+		
+		return String.Create(text.Length, (text, normalizedShift), (span, state) =>
 		{
-			if (char.IsLetter(c))
-			{
-				var baseChar = char.IsUpper(c) ? 'A' : 'a';
-				var charIndex = c - baseChar;
-				var newIndex = (charIndex + normalizedShift) % 26;
-				result.Append((char) (baseChar + newIndex));
-			}
-			else
-			{
-				result.Append(c);
-			}
-		}
+			var (input, shift) = state;
 
-		return result.ToString();
+			for (var i = 0; i < input.Length; i++)
+			{
+				var c = input[i];
+				
+				if (char.IsLetter(c))
+				{
+					var baseChar = char.IsUpper(c) ? 'A' : 'a';
+					var charIndex = c - baseChar;
+					var newIndex = (charIndex + shift) % 26;
+					
+					span[i] = (char) (baseChar + newIndex);
+				}
+				else
+				{
+					span[i] = c;
+				}
+			}
+		});
 	}
 
 	/// <summary>
