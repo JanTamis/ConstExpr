@@ -73,7 +73,7 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			switch (methodName)
 			{
 				case nameof(Enumerable.Where) when GetMethodArguments(invocation).FirstOrDefault() is { Expression: { } predicateArg }
-					&& TryGetLambda(predicateArg, out var wherePredicate):
+				                                   && TryGetLambda(predicateArg, out var wherePredicate):
 				{
 					// Continue skipping operations before Where as well
 					TryGetOptimizedChainExpression(invocationSource, OperationsThatDontAffectAll, out source);
@@ -148,63 +148,63 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 					break;
 				}
-			case nameof(Enumerable.DefaultIfEmpty):
-			{
-				if (context.VisitedParameters.Count == 0)
+				case nameof(Enumerable.DefaultIfEmpty):
 				{
-					result = CreateLiteral(true);
-					return true;
-				}
-
-				if (TryGetElementType(context, out var elementType))
-				{
-					var defaultValue = invocation.ArgumentList.Arguments.Count == 0
-						? elementType.GetDefaultValue()
-						: invocation.ArgumentList.Arguments[0].Expression;
-
-					if (context.VisitedParameters.Count == 1
-					    && TryGetLambda(context.VisitedParameters[0], out var anyPredicate)
-					    && TryGetLambdaBody(anyPredicate, out var anyPredicateBody)
-					    && TryGetSimpleLambdaParameter(anyPredicate, out var anyPredicateParam))
+					if (context.VisitedParameters.Count == 0)
 					{
-						var boolType = context.Model.Compilation.GetSpecialType(SpecialType.System_Boolean);
-						var updatedInvocation = UpdateInvocation(context, invocationSource);
-
-						var left = context.Visit(ReplaceIdentifier(anyPredicateBody, anyPredicateParam.Identifier.Text, defaultValue)) ?? defaultValue;
-						var right = TryOptimize(context.WithInvocationAndMethod(updatedInvocation, context.Method), out var rightResult) ? rightResult as ExpressionSyntax : updatedInvocation;
-
-						result = OptimizeComparison(context, SyntaxKind.LogicalAndExpression, left, right, boolType);
+						result = CreateLiteral(true);
 						return true;
 					}
-				}
 
-				break;
-			}
-			case nameof(Enumerable.Repeat) when invocation.ArgumentList.Arguments is [var repeatElementArg, var repeatCountArg]:
-			{
-				// Repeat(element, count).All(predicate) => count <= 0 || predicate(element)
-				// All elements are identical, so the predicate only needs to hold for that single value.
-				if (context.VisitedParameters.Count == 1
-				    && TryGetLambda(context.VisitedParameters[0], out var repeatAllPredicate)
-				    && TryGetLambdaBody(repeatAllPredicate, out var repeatAllPredicateBody)
-				    && TryGetSimpleLambdaParameter(repeatAllPredicate, out var repeatAllPredicateParam))
+					if (TryGetElementType(context, out var elementType))
+					{
+						var defaultValue = invocation.ArgumentList.Arguments.Count == 0
+							? elementType.GetDefaultValue()
+							: invocation.ArgumentList.Arguments[0].Expression;
+
+						if (context.VisitedParameters.Count == 1
+						    && TryGetLambda(context.VisitedParameters[0], out var anyPredicate)
+						    && TryGetLambdaBody(anyPredicate, out var anyPredicateBody)
+						    && TryGetSimpleLambdaParameter(anyPredicate, out var anyPredicateParam))
+						{
+							var boolType = context.Model.Compilation.GetSpecialType(SpecialType.System_Boolean);
+							var updatedInvocation = UpdateInvocation(context, invocationSource);
+
+							var left = context.Visit(ReplaceIdentifier(anyPredicateBody, anyPredicateParam.Identifier.Text, defaultValue)) ?? defaultValue;
+							var right = TryOptimize(context.WithInvocationAndMethod(updatedInvocation, context.Method), out var rightResult) ? rightResult as ExpressionSyntax : updatedInvocation;
+
+							result = OptimizeComparison(context, SyntaxKind.LogicalAndExpression, left, right, boolType);
+							return true;
+						}
+					}
+
+					break;
+				}
+				case nameof(Enumerable.Repeat) when invocation.ArgumentList.Arguments is [ var repeatElementArg, var repeatCountArg ]:
 				{
-					var intType = context.Model.Compilation.CreateInt32();
-					var boolType = context.Model.Compilation.CreateBoolean();
+					// Repeat(element, count).All(predicate) => count <= 0 || predicate(element)
+					// All elements are identical, so the predicate only needs to hold for that single value.
+					if (context.VisitedParameters.Count == 1
+					    && TryGetLambda(context.VisitedParameters[0], out var repeatAllPredicate)
+					    && TryGetLambdaBody(repeatAllPredicate, out var repeatAllPredicateBody)
+					    && TryGetSimpleLambdaParameter(repeatAllPredicate, out var repeatAllPredicateParam))
+					{
+						var intType = context.Model.Compilation.CreateInt32();
+						var boolType = context.Model.Compilation.CreateBoolean();
 
-					var countCheck = OptimizeComparison(context, SyntaxKind.LessThanOrEqualExpression, repeatCountArg.Expression, CreateLiteral(0), intType);
-					var predicateApplied = context.Visit(ReplaceIdentifier(repeatAllPredicateBody, repeatAllPredicateParam.Identifier.Text, repeatElementArg.Expression))
-					                       ?? ReplaceIdentifier(repeatAllPredicateBody, repeatAllPredicateParam.Identifier.Text, repeatElementArg.Expression);
+						var countCheck = OptimizeComparison(context, SyntaxKind.LessThanOrEqualExpression, repeatCountArg.Expression, CreateLiteral(0), intType);
+						var predicateApplied = context.Visit(ReplaceIdentifier(repeatAllPredicateBody, repeatAllPredicateParam.Identifier.Text, repeatElementArg.Expression))
+						                       ?? ReplaceIdentifier(repeatAllPredicateBody, repeatAllPredicateParam.Identifier.Text, repeatElementArg.Expression);
 
-					result = OptimizeComparison(context, SyntaxKind.LogicalOrExpression, countCheck, predicateApplied, boolType);
-					return true;
+						result = OptimizeComparison(context, SyntaxKind.LogicalOrExpression, countCheck, predicateApplied, boolType);
+						return true;
+					}
+
+					break;
 				}
-
-				break;
 			}
 		}
-		}
-		
+
 		if (IsInvokedOnArray(context, source))
 		{
 			result = CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.TrueForAll), source, context.Visit(allLambda) ?? allLambda);

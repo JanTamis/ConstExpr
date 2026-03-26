@@ -173,12 +173,9 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 				                                    && TryGetLambdaBody(selector, out var body):
 				{
 					var newInvocation = UpdateInvocation(context, methodSource);
+					var optimizedFirstResult = TryOptimizeByOptimizer<LastFunctionOptimizer>(context, newInvocation);
 
-					var optimizedFirst = TryOptimize(context.WithInvocationAndMethod(newInvocation, context.Method), out var optimizedFirstResult)
-						? optimizedFirstResult
-						: newInvocation;
-
-					result = ReplaceIdentifier(body, parameter.Identifier.Text, optimizedFirst as ExpressionSyntax);
+					result = ReplaceIdentifier(body, parameter.Identifier.Text, context.Visit(optimizedFirstResult) ?? optimizedFirstResult as ExpressionSyntax);
 					return true;
 				}
 				case nameof(Enumerable.Range) when invocation.ArgumentList.Arguments is [ var startArg, var countArg ]:

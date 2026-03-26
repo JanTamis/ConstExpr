@@ -65,7 +65,9 @@ public class AggregateLinqUnroller : BaseLinqUnroller
 		var bodyWithResult = ReplaceLambda(lambda, IdentifierName(ResultName));
 
 		if (bodyWithResult == null)
+		{
 			return;
+		}
 
 		// Replace the second lambda param (element) with the element expression
 		var finalBody = bodyWithResult;
@@ -82,7 +84,7 @@ public class AggregateLinqUnroller : BaseLinqUnroller
 			finalBody = bodyWithResult.ReplaceNodes(identifiers, (_, _) => element);
 		}
 
-		statements.Add(ExpressionStatement(method.Visit(CreateAssignment(ResultName, finalBody)) as ExpressionSyntax));
+		statements.Add(method.Visit(CreateAssignment(ResultName, finalBody)) as ExpressionStatementSyntax);
 	}
 
 	public override void UnrollUnderLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)

@@ -83,7 +83,7 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 							var type = context.Method.ReturnType;
 
-							result = OptimizeArithmetic(context, SyntaxKind.MultiplyExpression, left!, constantValue, type);
+							result = OptimizeArithmetic(context, SyntaxKind.MultiplyExpression, context.Visit(left) ?? left, context.Visit(constantValue) ?? constantValue, type);
 							return true;
 						}
 
@@ -100,11 +100,15 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 				{
 					TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectSum, out methodSource);
 
-					var left = TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, methodSource), context.Method), out var leftResult) ? leftResult as ExpressionSyntax : null;
-					var right = TryOptimize(context.WithInvocationAndMethod(CreateInvocation(methodInvocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters), context.Method), out var rightResult) ? rightResult as ExpressionSyntax : null;
+					var leftInvocation = UpdateInvocation(context, methodSource);
+					var rightInvocation = CreateInvocation(methodInvocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters);
+
+					var left = TryOptimizeByOptimizer<SumFunctionOptimizer>(context, leftInvocation);
+					var right = TryOptimizeByOptimizer<SumFunctionOptimizer>(context, rightInvocation);
 
 					var sumType = context.Method.ReturnType;
-					result = OptimizeArithmetic(context, SyntaxKind.AddExpression, left ?? CreateInvocation(methodSource, Name, context.VisitedParameters), right ?? CreateInvocation(methodInvocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters), sumType);
+					
+					result = OptimizeArithmetic(context, SyntaxKind.AddExpression, context.Visit(left) ?? leftInvocation, context.Visit(right) ?? rightInvocation, sumType);
 					return true;
 				}
 				case nameof(Enumerable.Range) when methodInvocation.ArgumentList.Arguments is [ var startArg, var countArg ]:
@@ -145,7 +149,7 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		    && TryGetValues(newSource, out var values)
 		    && context.Method.ReceiverType is INamedTypeSymbol parameterType)
 		{
-			var sum = values.Sum(parameterType.TypeArguments[0]);
+			var sum = values.Sum(context.Method.ReturnType);
 
 			if (TryGetLiteral(sum, out var sumLiteral))
 			{
@@ -220,7 +224,8 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		if (items[0] is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax memberAccess } firstInvocation)
 		{
 			// update source of the Sum invocation to the final source after skipping Append chains
-			var newInvocation = firstInvocation.WithExpression(memberAccess.WithExpression(source));
+			var newInvocation = firstInvocation.WithExpression(memberAccess.WithExpression(source))
+				.WithMethodSymbolAnnotation(context.Method);
 
 			if (TryExecutePredicates(context, source, out var optimizedResult, out _))
 			{
@@ -228,7 +233,7 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			}
 			else
 			{
-				items[0] = newInvocation;
+				items[0] = context.Visit(newInvocation) ?? newInvocation;
 			}
 		}
 

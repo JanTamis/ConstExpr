@@ -81,7 +81,7 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
     // Recursively hash all children
     foreach (var child in node.ChildNodes())
     {
-      hash = HashCombine(hash, Visit(child));
+      hash = HashCombine(hash, base.Visit(child));
     }
 
     return hash;

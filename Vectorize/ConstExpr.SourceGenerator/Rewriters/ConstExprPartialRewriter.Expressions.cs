@@ -126,10 +126,9 @@ public partial class ConstExprPartialRewriter
 			if (TryOptimizeNode(node.OperatorToken.Kind().ToBinaryOperatorKind(), expressions, operation?.Type, nodeLeftExpr, operation?.LeftOperand.Type, nodeRightExpr, operation?.RightOperand.Type, node.Parent, out var optimizedNode))
 			{
 				if (node.Parent is not BinaryExpressionSyntax
-				    && optimizedNode is IsPatternExpressionSyntax pattern
-				    && TryOptimizePattern(pattern, out var result))
+				    && optimizedNode is IsPatternExpressionSyntax pattern)
 				{
-					return result;
+					return VisitIsPatternExpression(pattern);
 				}
 
 				// Strip unnecessary parentheses from the optimized result

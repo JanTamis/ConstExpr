@@ -15,7 +15,9 @@ public class MaxByLinqUnroller : BaseLinqUnroller
 	public override void UnrollAboveLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
 		if (method.Parameters.Length < 1 || !TryGetLambda(method.Parameters[0], out var lambda))
+		{
 			return;
+		}
 
 		if (IsInvokedOnArray(method.CollectionType) || IsInvokedOnCollection(method.CollectionType))
 		{
@@ -60,7 +62,9 @@ public class MaxByLinqUnroller : BaseLinqUnroller
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
 	{
 		if (method.Parameters.Length < 1 || !TryGetLambda(method.Parameters[0], out var lambda))
+		{
 			return;
+		}
 
 		// For the enumerator path the element is e.Current, not the foreach loop variable.
 		var element = (!IsInvokedOnArray(method.CollectionType) && !IsInvokedOnCollection(method.CollectionType))

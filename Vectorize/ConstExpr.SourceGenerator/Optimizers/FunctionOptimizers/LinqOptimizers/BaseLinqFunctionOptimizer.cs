@@ -1172,7 +1172,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 				result = invocation.WithMethodSymbolAnnotation(methodSymbol);
 			}
 
-			return result;
+			return result.WithMethodSymbolAnnotation(methodSymbol);
 		}
 		catch (Exception e)
 		{

@@ -78,13 +78,13 @@ public class MinFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 					var concatArg = invocation.ArgumentList.Arguments[0].Expression;
 					var visitedConcatArg = context.Visit(concatArg) ?? concatArg;
 
-					var left = TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, invocationSource), context.Method), out var leftResult) ? leftResult as ExpressionSyntax : null;
-					var right = TryOptimize(context.WithInvocationAndMethod(CreateInvocation(visitedConcatArg, Name, context.VisitedParameters), context.Method), out var rightResult) ? rightResult as ExpressionSyntax : null;
+					var leftInvocation = UpdateInvocation(context, invocationSource);
+					var rightInvocation = CreateInvocation(visitedConcatArg, Name, context.VisitedParameters);
 
-					var leftExpr = left ?? CreateInvocation(invocationSource, Name, context.VisitedParameters);
-					var rightExpr = right ?? CreateInvocation(visitedConcatArg, Name, context.VisitedParameters);
+					var left = TryOptimizeByOptimizer<MinFunctionOptimizer>(context, leftInvocation) ?? leftInvocation;
+					var right = TryOptimizeByOptimizer<MinFunctionOptimizer>(context, rightInvocation) ?? rightInvocation;
 
-					result = OptimizeAsMathPairwise<MathMinOptimizer>(context, leftExpr, rightExpr);
+					result = OptimizeAsMathPairwise<MathMinOptimizer>(context, context.Visit(left) ?? leftInvocation, context.Visit(right) ?? rightInvocation);
 					return true;
 				}
 				case nameof(Enumerable.Range) when invocation.ArgumentList.Arguments is [ var startArg, var countArg ]:

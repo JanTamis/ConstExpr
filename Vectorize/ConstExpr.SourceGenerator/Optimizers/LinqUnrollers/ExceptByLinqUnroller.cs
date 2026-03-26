@@ -17,7 +17,9 @@ public class ExceptByLinqUnroller : BaseLinqUnroller
 	public override void UnrollAboveLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
 		if (method.Parameters.Length < 2)
+		{
 			return;
+		}
 
 		// TypeArguments: [TSource, TKey] — we need TKey for the HashSet
 		var keyType = method.MethodSymbol.TypeArguments[^1];
@@ -37,7 +39,9 @@ public class ExceptByLinqUnroller : BaseLinqUnroller
 		var keyExpr = ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, elementName);
 
 		if (keyExpr is null)
+		{
 			return;
+		}
 
 		// if (!exceptBySet.Add(keySelector(item))) continue;
 		statements.Add(IfStatement(LogicalNotExpression(CreateMethodInvocation(IdentifierName(SetName), "Add", keyExpr)),

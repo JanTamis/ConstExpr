@@ -102,7 +102,7 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 					else
 					{
 						// Select(selector).ToLookup(keySelector) => ToLookup(composedKey, selector)
-						result = UpdateInvocation(context, invocationSource, composedKey, selectorArg);
+						result = UpdateInvocation(context, invocationSource, context.Visit(composedKey) ?? composedKey, context.Visit(selectorArg) ?? selectorArg);
 					}
 
 					return true;

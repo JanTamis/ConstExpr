@@ -221,7 +221,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 							resultInvocation = TryOptimizeByOptimizer<CountFunctionOptimizer>(context, CreateSimpleInvocation(currentSource, nameof(Enumerable.Count)));
 						}
 
-						result = CreateInvocation(ParseTypeName("Int32"), "Max", resultInvocation as ExpressionSyntax, CreateLiteral(1));
+						result = CreateInvocation(ParseTypeName("Int32"), "Max", context.Visit(resultInvocation), CreateLiteral(1));
 						return true;
 					}
 					case nameof(Enumerable.Distinct):
@@ -297,13 +297,17 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 						}
 						else
 						{
-							var left = TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, methodSource), context.Method), out var leftResult) ? leftResult as ExpressionSyntax : null;
-							var right = TryOptimize(context.WithInvocationAndMethod(CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters), context.Method), out var rightResult) ? rightResult as ExpressionSyntax : null;
+							TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectCount, out methodSource);
 
-							var intType2 = context.Model.Compilation.CreateInt32();
-							result = OptimizeArithmetic(context, SyntaxKind.AddExpression,
-								left ?? CreateInvocation(currentSource, Name, context.VisitedParameters),
-								right ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters), intType2);
+							var leftInvocation = UpdateInvocation(context, methodSource);
+							var rightInvocation = CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters);
+
+							var left = TryOptimizeByOptimizer<CountFunctionOptimizer>(context, leftInvocation) ?? leftInvocation;
+							var right = TryOptimizeByOptimizer<CountFunctionOptimizer>(context, rightInvocation) ?? rightInvocation;
+
+							var intType = context.Model.Compilation.CreateInt32();
+
+							result = OptimizeArithmetic(context, SyntaxKind.AddExpression, context.Visit(left) ?? leftInvocation, context.Visit(right) ?? rightInvocation, intType);
 							return true;
 						}
 
@@ -315,8 +319,8 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 						var right = TryOptimize(context.WithInvocationAndMethod(CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters), context.Method), out var rightResult) ? rightResult as ExpressionSyntax : null;
 
 						result = CreateInvocation(context.Model.Compilation.CreateInt32(), "Min",
-							left ?? CreateInvocation(currentSource, Name, context.VisitedParameters),
-							right ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters));
+							context.Visit(left) ?? CreateInvocation(currentSource, Name, context.VisitedParameters),
+							context.Visit(right) ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters));
 						return true;
 					}
 					case nameof(Enumerable.Take) when invocation.ArgumentList.Arguments is [ var takeArg ]:

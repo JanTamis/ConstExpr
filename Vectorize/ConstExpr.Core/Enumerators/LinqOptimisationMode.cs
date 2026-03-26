@@ -3,7 +3,6 @@ namespace ConstExpr.Core.Enumerators;
 /// <summary>
 /// Controls how LINQ method calls are handled during compile-time constant expression evaluation.
 /// </summary>
-/// <seealso cref="ConstExpr.Core.Attributes.ConstExprAttribute.LinqOptimisationMode"/>
 public enum LinqOptimisationMode
 {
 	/// <summary>

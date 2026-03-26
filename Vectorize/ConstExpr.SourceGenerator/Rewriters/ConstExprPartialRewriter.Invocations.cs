@@ -83,15 +83,23 @@ public partial class ConstExprPartialRewriter
 		// Try LINQ optimizers (for inner calls, or when unrolling was skipped).
 		// The optimized result is annotated with symbol info so it can be unrolled
 		// when it re-enters the rewriter through Visit.
-		if (attribute.LinqOptimisationMode != LinqOptimisationMode.None
-		    && TryOptimizeLinqMethod(semanticModel, targetMethod, node, arguments, node.ArgumentList.Arguments.Select(s => s.Expression)) is { } optimizedLinq)
+		if (attribute.LinqOptimisationMode != LinqOptimisationMode.None)
 		{
-			if (attribute.LinqOptimisationMode == LinqOptimisationMode.Unroll)
+			if (TryOptimizeLinqMethod(semanticModel, targetMethod, node, arguments, node.ArgumentList.Arguments.Select(s => s.Expression)) is { } optimizedLinq)
 			{
-				return LinqUnroller.TryUnrollLinqChain(optimizedLinq, Visit, semanticModel, additionalMethods);
+				if (attribute.LinqOptimisationMode == LinqOptimisationMode.Unroll
+				    && LinqUnroller.TryUnrollLinqChain(optimizedLinq, Visit, semanticModel, additionalMethods, out var unrolled))
+				{
+					return unrolled;
+				}
+
+				return optimizedLinq;
 			}
 
-			return optimizedLinq;
+			if (LinqUnroller.TryUnrollLinqChain(node, Visit, semanticModel, additionalMethods, out var unrolledNode))
+			{
+				return unrolledNode;
+			}
 		}
 
 		node = node.WithExpression(Visit(node.Expression) as ExpressionSyntax ?? node.Expression);
@@ -606,7 +614,8 @@ public partial class ConstExprPartialRewriter
 		return node
 			.WithExpression(expression)
 			.WithArgumentList(node.ArgumentList
-				.WithArguments(SeparatedList(arguments.OfType<ExpressionSyntax>().Select(Argument))));
+				.WithArguments(SeparatedList(arguments.OfType<ExpressionSyntax>().Select(Argument))))
+			.WithMethodSymbolAnnotation(targetMethod);
 	}
 
 	/// <summary>

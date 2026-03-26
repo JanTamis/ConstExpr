@@ -154,6 +154,17 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 					result = appendArg;
 					return true;
 				}
+				case nameof(Enumerable.Select) when GetMethodArguments(invocation).FirstOrDefault() is { Expression: { } selectorArg }
+				                                    && TryGetLambda(selectorArg, out var selector)
+				                                    && TryGetSimpleLambdaParameter(selector, out var parameter)
+				                                    && TryGetLambdaBody(selector, out var body):
+				{
+					var newInvocation = UpdateInvocation(context, methodSource);
+					var optimizedFirstResult = TryOptimizeByOptimizer<FirstFunctionOptimizer>(context, newInvocation);
+
+					result = ReplaceIdentifier(body, parameter.Identifier.Text, context.Visit(optimizedFirstResult) ?? optimizedFirstResult as ExpressionSyntax);
+					return true;
+				}
 				case nameof(Enumerable.Skip) when GetMethodArguments(invocation).FirstOrDefault() is { Expression: { } skipArg }:
 				{
 					result = TryOptimizeByOptimizer<ElementAtFunctionOptimizer>(context, CreateInvocation(methodSource, nameof(Enumerable.ElementAt), skipArg));

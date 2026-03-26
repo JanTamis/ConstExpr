@@ -17,7 +17,9 @@ public class ExceptLinqUnroller : BaseLinqUnroller
 	public override void UnrollAboveLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
 		if (method.Parameters.Length < 1)
+		{
 			return;
+		}
 
 		var elementType = method.MethodSymbol.TypeArguments[0];
 		var typeName = method.Model.Compilation.GetMinimalString(elementType);

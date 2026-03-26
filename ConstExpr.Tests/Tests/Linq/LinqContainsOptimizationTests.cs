@@ -107,13 +107,13 @@ public class LinqContainsOptimizationListTests : BaseTest<Func<List<int>, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
 	[
 		Create("""
-			var a = x.Contains(3) ? 1 : 0;
-			var b = Contains_XnObxg(x) ? 1 : 0;
-			var c = Contains_XnObxg(x) ? 1 : 0;
-			var d = Contains_XnObxg(x) ? 1 : 0;
-			var e = Contains_XnObxg(x) ? 1 : 0;
-			var f = Contains_XnObxg(x) ? 1 : 0;
-			var g = x.Contains(100) ? 1 : 0;
+			var a = Contains_n4h27g(x) ? 1 : 0;
+			var b = Contains_n4h27g(x) ? 1 : 0;
+			var c = Contains_n4h27g(x) ? 1 : 0;
+			var d = Contains_n4h27g(x) ? 1 : 0;
+			var e = Contains_n4h27g(x) ? 1 : 0;
+			var f = Contains_n4h27g(x) ? 1 : 0;
+			var g = Contains_ukLdaQ(x) ? 1 : 0;
 			
 			return a + b + c + d + e + f + g;
 			""", Unknown),

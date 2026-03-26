@@ -1450,8 +1450,8 @@ public static class CompilationExtensions
 		}
 
 		// Normalize for comparison to ensure trivia-independent and structure-independent hash
-		var normalized = DeteministicHashVisitor.NormalizeForComparison(node);
-		return DeteministicHashVisitor.Instance.Visit(normalized);
+		// var normalized = DeteministicHashVisitor.NormalizeForComparison(node);
+		return DeteministicHashVisitor.Instance.Visit(node);
 	}
 
 	public static bool EqualsTo<TLeft, TRight>(this TLeft? node, TRight? other)

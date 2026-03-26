@@ -357,6 +357,24 @@ public partial class ConstExprPartialRewriter
 		};
 	}
 
+	/// <summary>
+	/// Returns <see langword="true"/> when <paramref name="method"/> is a LINQ extension method
+	/// declared on <see cref="System.Linq.Enumerable"/> or <see cref="System.Linq.Queryable"/>.
+	/// </summary>
+	private static bool IsLinqMethod(IMethodSymbol method)
+	{
+		var containingType = method.ContainingType;
+
+		if (containingType is null)
+		{
+			return false;
+		}
+
+		var fullName = $"{containingType.ContainingNamespace}.{containingType.Name}";
+
+		return fullName == "System.Linq.Enumerable";
+	}
+
 	private bool IsEmptyMethod(IMethodSymbol method)
 	{
 		if (!method.ReturnsVoid || method.IsAbstract)

@@ -51,11 +51,15 @@ public class DistinctByLinqUnroller : BaseLinqUnroller
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
 	{
 		if (!TryGetLambda(method.Parameters[0], out var lambda))
+		{
 			return;
+		}
 
 		var keyExpr = ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, IdentifierName(elementName.ToString()));
 		if (keyExpr is null)
+		{
 			return;
+		}
 
 		var keyType = method.MethodSymbol.TypeArguments[^1];
 

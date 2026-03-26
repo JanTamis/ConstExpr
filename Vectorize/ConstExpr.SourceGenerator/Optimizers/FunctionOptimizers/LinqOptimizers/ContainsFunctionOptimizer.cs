@@ -250,7 +250,7 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 				.Select(PatternSyntax (syntax) => ConstantPattern(syntax))
 				.Aggregate((left, right) => BinaryPattern(SyntaxKind.OrPattern, left, right));
 			
-			result = IsPatternExpression(searchValue, orPattern);
+			result = context.Visit(IsPatternExpression(searchValue, orPattern));
 			return true;
 		}
 

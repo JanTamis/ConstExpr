@@ -17,7 +17,9 @@ public class SequenceEqualLinqUnroller : BaseLinqUnroller
 	public override void UnrollAboveLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
 		if (method.Parameters.Length < 1)
+		{
 			return;
+		}
 
 		// using var seqEnum = other.GetEnumerator();
 		statements.Add(CreateLocalDeclaration(EnumeratorName, CreateMethodInvocation(method.Parameters[0], "GetEnumerator"))

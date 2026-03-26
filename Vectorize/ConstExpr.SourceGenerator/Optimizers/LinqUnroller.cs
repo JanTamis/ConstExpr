@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
@@ -135,15 +136,8 @@ public static class LinqUnroller
 			.FirstOrDefault(m => m.Parameters.Length == parameterCount);
 	}
 
-	public static SyntaxNode TryUnrollLinqChain(SyntaxNode node, Func<SyntaxNode?, SyntaxNode?> visit, SemanticModel model, IDictionary<SyntaxNode, bool> additionalMethods)
+	public static bool TryUnrollLinqChain(SyntaxNode node, Func<SyntaxNode?, SyntaxNode?> visit, SemanticModel model, IDictionary<SyntaxNode, bool> additionalMethods, [NotNullWhen(true)] out SyntaxNode? result)
 	{
-		if (node is BinaryExpressionSyntax binary)
-		{
-			return binary
-				.WithLeft(TryUnrollLinqChain(binary.Left, visit, model, additionalMethods) as ExpressionSyntax ?? binary.Left)
-				.WithRight(TryUnrollLinqChain(binary.Right, visit, model, additionalMethods) as ExpressionSyntax ?? binary.Right);
-		}
-
 		var chain = ParseLinqChain(model, visit, node);
 
 		// A chain of [Source, TerminalMethod] (length 2) is already well-handled
@@ -151,19 +145,8 @@ public static class LinqUnroller
 		if (chain.Length < 2
 		    || !model.TryGetTypeSymbol(chain[0].Parameters[0], out var type))
 		{
-			// If this is a non-LINQ invocation (e.g. Int32.Min(a.Min(), b.Min())),
-			// recursively unroll any LINQ chains that appear in its arguments first,
-			// then re-visit the resulting node so further optimizations can apply.
-			if (node is InvocationExpressionSyntax invocation)
-			{
-				var newNode = invocation.WithArgumentList(invocation.ArgumentList
-					.WithArguments(SeparatedList(invocation.ArgumentList.Arguments.Select(arg =>
-						Argument(TryUnrollLinqChain(arg.Expression, visit, model, additionalMethods) as ExpressionSyntax ?? arg.Expression)))));
-
-				return visit(newNode) ?? newNode;
-			}
-
-			return visit(node) ?? node;
+			result = null;
+			return false;
 		}
 
 		for (var i = 0; i < chain.Length; i++)
@@ -173,7 +156,8 @@ public static class LinqUnroller
 
 		if (!Unrollers.TryGetValue(chain[^1].Method, out var lastUnroller))
 		{
-			return node;
+			result = null;
+			return false;
 		}
 
 		var collectionName = "collection";
@@ -203,8 +187,9 @@ public static class LinqUnroller
 
 		additionalMethods.TryAdd(localMethod, true);
 
-		return InvocationExpression(IdentifierName(localMethod.Identifier))
+		result =  InvocationExpression(IdentifierName(localMethod.Identifier))
 			.WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(chain[0].Parameters[0]))));
+		return true;
 	}
 
 	private static void ParsePossibleReturnStatement(UnrolledLinqMethod[] chain, List<StatementSyntax> statements)

@@ -215,11 +215,15 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 					{
 						TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectCount, out methodSource);
 
-						var left = TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, methodSource), context.Method), out var leftResult) ? leftResult as ExpressionSyntax : null;
-						var right = TryOptimize(context.WithInvocationAndMethod(CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters), context.Method), out var rightResult) ? rightResult as ExpressionSyntax : null;
+						var leftInvocation = UpdateInvocation(context, methodSource);
+						var rightInvocation = CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters);
+
+						var left = TryOptimizeByOptimizer<LongCountFunctionOptimizer>(context, leftInvocation) ?? leftInvocation;
+						var right = TryOptimizeByOptimizer<LongCountFunctionOptimizer>(context, rightInvocation) ?? rightInvocation;
 
 						var longType = context.Model.Compilation.CreateInt64();
-						result = OptimizeArithmetic(context, SyntaxKind.AddExpression, left ?? CreateInvocation(methodSource, Name, context.VisitedParameters), right ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters), longType);
+
+						result = OptimizeArithmetic(context, SyntaxKind.AddExpression, context.Visit(left) ?? leftInvocation, context.Visit(right) ?? rightInvocation, longType);
 						return true;
 					}
 				}
