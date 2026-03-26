@@ -96,7 +96,8 @@ public partial class ConstExprPartialRewriter
 				return optimizedLinq;
 			}
 
-			if (LinqUnroller.TryUnrollLinqChain(node, Visit, semanticModel, additionalMethods, out var unrolledNode))
+			if (attribute.LinqOptimisationMode == LinqOptimisationMode.Unroll
+			    && LinqUnroller.TryUnrollLinqChain(node, Visit, semanticModel, additionalMethods, out var unrolledNode))
 			{
 				return unrolledNode;
 			}

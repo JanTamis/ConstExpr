@@ -4,7 +4,9 @@ using System;
 
 namespace ConstExpr.SourceGenerator.Sample.Operations;
 
-[ConstExpr(FloatingPointEvaluationMode.FastMath)]
+[ConstExpr(
+	FloatingPointMode = FloatingPointEvaluationMode.FastMath,
+	LinqOptimisationMode = LinqOptimisationMode.Unroll)]
 public static class ArrayOperations
 {
 	/// <summary>

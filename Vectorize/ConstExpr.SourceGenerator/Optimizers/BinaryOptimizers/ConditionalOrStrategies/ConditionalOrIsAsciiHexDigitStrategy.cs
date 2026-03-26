@@ -103,15 +103,21 @@ public class ConditionalOrAsciiCharRangeStrategy : BaseBinaryStrategy
 		switch (expr)
 		{
 			case BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LogicalOrExpression } binary:
+			{
 				FlattenOrChain(binary.Left, parts);
 				FlattenOrChain(binary.Right, parts);
 				break;
+			}
 			case ParenthesizedExpressionSyntax paren:
+			{
 				FlattenOrChain(paren.Expression, parts);
 				break;
+			}
 			default:
+			{
 				parts.Add(expr);
 				break;
+			}
 		}
 	}
 

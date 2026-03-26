@@ -4,7 +4,9 @@ using System.Text;
 
 namespace ConstExpr.SourceGenerator.Sample.Operations;
 
-[ConstExpr(FloatingPointMode = FloatingPointEvaluationMode.FastMath)]
+[ConstExpr(
+	FloatingPointMode = FloatingPointEvaluationMode.FastMath, 
+	LinqOptimisationMode = LinqOptimisationMode.Unroll)]
 public static class StringOperations
 {
 	/// <summary>
