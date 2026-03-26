@@ -19,6 +19,7 @@ public class BinaryConditionalOrOptimizer : BaseBinaryOptimizer
 		yield return new ConditionalOrTautologyStrategy();
 		yield return new ConditionalOrDeMorganStrategy();
 		yield return new ConditionalOrIsNullOrEmptyStrategy();
+		yield return new ConditionalOrAsciiCharRangeStrategy();
 
 		yield return new ConditionalPatternStrategy(Kind);
 		yield return new ConditionalPatternCombinerStrategy(Kind);

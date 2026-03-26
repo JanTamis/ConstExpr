@@ -27,6 +27,7 @@ namespace ConstExpr.SourceGenerator.Sample.Tests
 			// IsValidHex - alleen constanten
 			Console.WriteLine($"[CONST] IsValidHex(\"1A2F3C\"): {CryptographyOperations.IsValidHex("1A2F3C")}");
 			Console.WriteLine($"[CONST] IsValidHex(\"XYZ\"): {CryptographyOperations.IsValidHex("XYZ")}");
+			Console.WriteLine($"[MIXED] IsValidHex(varString): {CryptographyOperations.IsValidHex(varString)}");
 
 			// BytesToHex - alleen constanten
 			Console.WriteLine($"[CONST] BytesToHex(255,128,64,32): {CryptographyOperations.BytesToHex(255, 128, 64, 32)}");
