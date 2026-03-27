@@ -242,6 +242,32 @@ public abstract class BaseTest<TDelegate>(FloatingPointEvaluationMode evaluation
 		return KeyValuePair.Create(expectedBody, parameters);
 	}
 
+	/// <summary>
+	/// Helper method to create test cases where the expected body is expressed as a lambda delegate instead of a raw string.
+	/// The lambda source is captured via <see cref="CallerArgumentExpressionAttribute"/> and its body is extracted automatically.
+	/// </summary>
+	/// <param name="expectedBody">A delegate whose lambda body represents the expected optimized method body.</param>
+	/// <param name="parameters">The values for the parameters of the test case. Use <see cref="Unknown"/> for unknown parameters.</param>
+	/// <param name="lambdaSource">Auto-captured source of <paramref name="expectedBody"/> — do not pass explicitly.</param>
+	/// <returns>A key-value pair representing the test case.</returns>
+	/// <exception cref="InvalidOperationException">Thrown when the number of <see cref="parameters"/> does not match the number of parameters of <see cref="TDelegate"/>.</exception>
+	protected static KeyValuePair<string?, object?[]> Create(TDelegate expectedBody, object?[] parameters, [CallerArgumentExpression(nameof(expectedBody))] string? lambdaSource = null)
+	{
+		var delegateParams = typeof(TDelegate).GetMethod("Invoke")!.GetParameters();
+
+		if (parameters.Length != delegateParams.Length)
+		{
+			throw new InvalidOperationException($"""
+				Parameter count mismatch.
+				{lambdaSource}
+				""");
+		}
+
+		var body = TestMethodHelper.ExtractLambdaBody(lambdaSource);
+
+		return KeyValuePair.Create<string?, object?[]>(body, parameters);
+	}
+
 	protected string GetString(TDelegate method, [CallerArgumentExpression(nameof(method))] string? lambdaSource = null)
 	{
 		var returnType = TestMethodHelper.GetTypeName(method.Method.ReturnType);
