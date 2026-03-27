@@ -18,7 +18,7 @@ public class ContainsElementTest() : BaseTest<Func<int[], int, bool>>(FloatingPo
 		return false;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown, Unknown),
 		Create("return true;", new[] { 1, 2, 3, 4, 5 }, 3),

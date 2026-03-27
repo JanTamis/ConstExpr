@@ -30,7 +30,7 @@ public class FibonacciTest() : BaseTest<Func<int, long>>(FloatingPointEvaluation
 		return curr;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown),
 		Create("return 5L;", 5),

@@ -57,7 +57,7 @@ public class LinqCountOptimizationTests() : BaseTest<Func<int[], int>>(FloatingP
 		return a + b + c + d + e + f + g + h + i + j + k + l + m + n + o;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var a = Count_FDQQ2g(x);

@@ -20,7 +20,7 @@ public class IsLeapYearTest() : BaseTest<Func<int, bool>>(FloatingPointEvaluatio
 		return year % 400 == 0;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			if (year & 3 != 0)

@@ -30,7 +30,7 @@ public class CountPrimeFactorsTest() : BaseTest<Func<int, int>>(FloatingPointEva
 		return count;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var count = 0;

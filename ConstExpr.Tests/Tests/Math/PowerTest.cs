@@ -34,7 +34,7 @@ public class PowerTest() : BaseTest<Func<int, int, long>>(FloatingPointEvaluatio
 		return result;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			if (exponent < 0)

@@ -7,7 +7,7 @@ public class MaxOfTwoTest() : BaseTest<Func<int, int, int>>(FloatingPointEvaluat
 {
 	public override string TestMethod => GetString((a, b) => a > b ? a : b);
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Int32.Max(a, b);", Unknown, Unknown),
 		Create("return 10;", 5, 10),

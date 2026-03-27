@@ -18,7 +18,7 @@ public class VisitTupleExpressionTests : BaseTest<Func<int, int, string, ((int, 
 		return (t1, t2, t4, t6);
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var t4 = (x + y, s);

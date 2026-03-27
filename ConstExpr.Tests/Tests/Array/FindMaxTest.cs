@@ -25,7 +25,7 @@ public class FindMaxTest() : BaseTest<Func<int[], int>>(FloatingPointEvaluationM
 		return max;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown),
 		Create("return 50;", new[] { 10, 20, 50, 30 }),

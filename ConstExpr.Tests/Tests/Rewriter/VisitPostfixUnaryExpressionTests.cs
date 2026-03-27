@@ -15,7 +15,7 @@ public class VisitPostfixUnaryExpressionTests : BaseTest<Func<int, int>>
 		return a;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return x;", Unknown),
 		Create("return 7;", 7),

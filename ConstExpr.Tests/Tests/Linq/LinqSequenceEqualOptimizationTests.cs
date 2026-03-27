@@ -18,7 +18,7 @@ public class LinqSequenceEqualOptimizationTests : BaseTest<Func<int[], bool>>
 		return a && b && c;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var b = x.Count <= 0;

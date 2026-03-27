@@ -22,7 +22,7 @@ public class VisitBlockTests : BaseTest<Func<int, int, int>>
 		return result;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var result;

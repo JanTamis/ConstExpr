@@ -39,7 +39,7 @@ public class LinqWhereOptimizationTests() : BaseTest<Func<int[], int>>(FloatingP
 		return a + b + c + d + e + f + g + h + i;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var a = x.Length;

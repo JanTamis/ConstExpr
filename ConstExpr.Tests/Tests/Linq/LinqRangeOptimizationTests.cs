@@ -67,7 +67,7 @@ public class LinqRangeOptimizationTests : BaseTest<Func<int, int, double>>
 		return a + b + c + d + e + f + g + h + i + j + k + l + m;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var b = count * (start << 1 + count - 1) / 2;

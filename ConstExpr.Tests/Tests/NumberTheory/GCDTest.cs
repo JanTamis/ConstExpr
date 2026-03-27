@@ -20,7 +20,7 @@ public class GCDTest() : BaseTest<Func<int, int, int>>(FloatingPointEvaluationMo
 		return a;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			a = Int32.Abs(a);

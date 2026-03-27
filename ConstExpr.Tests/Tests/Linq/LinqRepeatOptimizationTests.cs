@@ -67,7 +67,7 @@ public class LinqRepeatOptimizationTests : BaseTest<Func<int, int, int>>
 		return a + b + c + d + e + f + g + l + h + i + j + k + m;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var b = element * count;

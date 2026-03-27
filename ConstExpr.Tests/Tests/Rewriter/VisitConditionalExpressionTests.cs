@@ -17,7 +17,7 @@ public class VisitConditionalExpressionTests : BaseTest<Func<bool, int, int, (in
 		return (a, b, c, d, e);
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var d = condition ? x : y;

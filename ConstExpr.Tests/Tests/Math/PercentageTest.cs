@@ -7,7 +7,7 @@ public class PercentageTest() : BaseTest<Func<double, double, double>>(FloatingP
 {
 	public override string TestMethod => GetString((value, percentage) => value * percentage / 100);
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return value * percentage * 0.01;", Unknown, Unknown),
 		Create("return 25D;", 100.0, 25.0),

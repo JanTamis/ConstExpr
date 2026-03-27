@@ -18,7 +18,7 @@ public class SumRangeTest() : BaseTest<Func<int, int, long>>(FloatingPointEvalua
 		return (long) n * (start + end) / 2L;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown, Unknown),
 		Create("return 55L;", 1, 10),

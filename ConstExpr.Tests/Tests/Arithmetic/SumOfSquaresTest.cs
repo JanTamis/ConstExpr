@@ -22,7 +22,7 @@ public class SumOfSquaresTest() : BaseTest<Func<int, int>>(FloatingPointEvaluati
 		return total;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown),
 		Create("return 55;", 5),

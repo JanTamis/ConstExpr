@@ -835,9 +835,15 @@ public static class CompilationExtensions
 		return compilation.GetTypeByType(type.FullName, typeArguments);
 	}
 
-	public static bool TryGetTypeByType(this Compilation compilation, Type type, out ITypeSymbol result)
+	public static bool TryGetTypeByType(this Compilation compilation, [NotNullWhen(true)] Type? type, [NotNullWhen(true)] out ITypeSymbol? result)
 	{
-		result = compilation.GetTypeByType(type.FullName);
+		if (type is null)
+		{
+			result = null;
+			return false;
+		}
+		
+		result = compilation.GetTypeByType(type.FullName!);
 		return result != null;
 	}
 

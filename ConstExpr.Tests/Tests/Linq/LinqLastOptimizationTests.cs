@@ -47,7 +47,7 @@ public class LinqLastOptimizationTests : BaseTest<Func<int[], int>>
 		return a + b + c + d + e + f + g + h + i + j + k + l;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var a = Last_7YwEKA(x);

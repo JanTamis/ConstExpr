@@ -25,7 +25,7 @@ public class DigitalRootTest() : BaseTest<Func<int, int>>(FloatingPointEvaluatio
 		return num;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var num = Int32.Abs(n);

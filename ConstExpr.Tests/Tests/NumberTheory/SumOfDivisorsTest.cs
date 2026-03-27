@@ -28,7 +28,7 @@ public class SumOfDivisorsTest() : BaseTest<Func<int, int>>(FloatingPointEvaluat
 		return sum;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown),
 		Create("return 28;", 12),

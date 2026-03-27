@@ -61,10 +61,10 @@ namespace ConstExpr.SourceGenerator.Sample.Tests
 			Console.WriteLine($"[CONST] ToAlternatingCase(\"Hello World\"): {StringOperations.ToAlternatingCase("Hello World")}");
 			Console.WriteLine($"[CONST] ToAlternatingCase(\"ABC123xyz\"): {StringOperations.ToAlternatingCase("ABC123xyz")}");
 
-			// AreAnagrams - alleen constanten
-			Console.WriteLine($"[CONST] AreAnagrams(\"listen\", \"silent\"): {StringOperations.AreAnagrams("listen", "silent")}");
-			Console.WriteLine($"[CONST] AreAnagrams(\"hello\", \"world\"): {StringOperations.AreAnagrams("hello", "world")}");
-			Console.WriteLine($"[CONST] AreAnagrams(\"The Eyes\", \"They See\"): {StringOperations.AreAnagrams("The Eyes", "They See")}");
+			// // AreAnagrams - alleen constanten
+			// Console.WriteLine($"[CONST] AreAnagrams(\"listen\", \"silent\"): {StringOperations.AreAnagrams("listen", "silent")}");
+			// Console.WriteLine($"[CONST] AreAnagrams(\"hello\", \"world\"): {StringOperations.AreAnagrams("hello", "world")}");
+			// Console.WriteLine($"[CONST] AreAnagrams(\"The Eyes\", \"They See\"): {StringOperations.AreAnagrams("The Eyes", "They See")}");
 
 			Console.WriteLine();
 		}

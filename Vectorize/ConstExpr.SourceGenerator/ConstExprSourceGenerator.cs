@@ -108,7 +108,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 						}
 						catch (Exception ex)
 						{
-							Logger.Error(ex, $"Error processing invocation {model.Invocation}: {ex.Message}");
+							Logger.Warning(ex, $"Error processing invocation {model.Invocation}: {ex.Message}");
 						}
 					});
 
@@ -135,6 +135,10 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 						""");
 				}
 
+				// Generate source code in parallel but collect results first
+				// spc.AddSource is NOT thread-safe, so we must add sources sequentially
+				var generatedSources = new ConcurrentBag<(string FileName, string Source)>();
+
 				Parallel.ForEach(
 					methodGroups,
 					new ParallelOptions
@@ -144,17 +148,27 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 						MaxDegreeOfParallelism = -1
 					},
 					methodGroup =>
-
 					{
 						try
 						{
-							GenerateMethodImplementations(spc, compilation, methodGroup, loader);
+							var result = GenerateMethodSource(compilation, methodGroup, loader);
+
+							if (result != null)
+							{
+								generatedSources.Add(result.Value);
+							}
 						}
 						catch (Exception ex)
 						{
 							Logger.Error(ex, $"Error generating implementations for {methodGroup.Key.Identifier}: {ex.Message}");
 						}
 					});
+
+				// Add all generated sources sequentially (thread-safe)
+				foreach (var (fileName, source) in generatedSources)
+				{
+					spc.AddSource(fileName, source);
+				}
 
 				ReportExceptions(spc, processedModels);
 
@@ -166,7 +180,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		});
 	}
 
-	private void GenerateMethodImplementations(SgfSourceProductionContext spc, Compilation compilation, IGrouping<MethodDeclarationSyntax, InvocationModel?> methodGroup, MetadataLoader loader)
+	private (string FileName, string Source)? GenerateMethodSource(Compilation compilation, IGrouping<MethodDeclarationSyntax, InvocationModel?> methodGroup, MetadataLoader loader)
 	{
 		var code = new IndentedCodeWriter(compilation);
 
@@ -225,7 +239,8 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 		var result = StringBuilderCache.GetStringAndRelease(sb);
 
-		spc.AddSource($"{methodGroup.First().ParentType.Identifier}_{methodGroup.Key.Identifier}.g.cs", result);
+		var fileName = $"{methodGroup.First().ParentType.Identifier}_{methodGroup.Key.Identifier}.g.cs";
+		return (fileName, result);
 	}
 
 	#region Emission Helpers

@@ -39,7 +39,7 @@ public class LinqCountByOptimizationTests : BaseTest<Func<int[], int>>
 		return a + b + c + d + e + f + g + h + i;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		// e (Empty source) and h (Where false) fold to 0 and are pruned from the return sum.
 		// v % 2 in key selectors is also optimised to v & 1 by the arithmetic optimizer.

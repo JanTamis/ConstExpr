@@ -33,7 +33,7 @@ public class BinarySearchTest() : BaseTest<Func<int[], int, int>>(FloatingPointE
 		return -1;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var left = 0;

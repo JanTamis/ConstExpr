@@ -24,7 +24,7 @@ public class ReverseStringTest() : BaseTest<Func<string, string>>(FloatingPointE
 		return new string(chars);
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown),
 		Create("return \"olleh\";", "hello"),

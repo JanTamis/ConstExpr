@@ -32,6 +32,9 @@ namespace ConstExpr.SourceGenerator.Sample.Tests
 			Console.WriteLine($"[CONST] IsSorted(1, 3, 2, 4, 5): {ArrayOperations.IsSorted(1, 3, 2, 4, 5)}");
 			Console.WriteLine($"[CONST] IsSorted(5, 10, 15, 20, 25): {ArrayOperations.IsSorted(5, 10, 15, 20, 25)}");
 
+			// IsSorted - mixed
+			Console.WriteLine($"[MIXED] IsSorted(varInt, varInt2, varInt3): {ArrayOperations.IsSorted(varInt, varInt2, varInt3)}");
+
 			// CountOccurrences - alleen constanten
 			Console.WriteLine($"[CONST] CountOccurrences(3, [1, 2, 3, 3, 4, 3, 5]): {ArrayOperations.CountOccurrences(3, 1, 2, 3, 3, 4, 3, 5)}");
 			Console.WriteLine($"[CONST] CountOccurrences(7, [1, 2, 3, 4, 5]): {ArrayOperations.CountOccurrences(7, 1, 2, 3, 4, 5)}");

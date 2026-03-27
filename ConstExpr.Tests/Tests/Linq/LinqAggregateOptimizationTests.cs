@@ -59,7 +59,7 @@ public class LinqAggregateOptimizationTests : BaseTest<Func<int[], int>>
 		return a + b + c + d + e + f + g1 + g2 + h + i + j + k + l + m + n;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var a = Sum_iNfOtw(x);

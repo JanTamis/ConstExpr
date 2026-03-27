@@ -27,7 +27,7 @@ public class FactorialTest() : BaseTest<Func<int, long>>(FloatingPointEvaluation
 		return result;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			if (n < 0)

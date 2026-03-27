@@ -43,7 +43,7 @@ public class VisitParenthesizedExpressionTests : BaseTest<Func<int, int, (int, i
 		return (a, b, c, d, e, f, g, j);
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var d = x + y;

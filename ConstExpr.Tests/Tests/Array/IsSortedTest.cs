@@ -23,7 +23,7 @@ public class IsSortedTest() : BaseTest<Func<int[], bool>>(FloatingPointEvaluatio
 		return true;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown),
 		Create("return true;", new[] { 1, 2, 3, 4, 5 }),

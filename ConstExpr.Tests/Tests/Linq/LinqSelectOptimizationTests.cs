@@ -20,7 +20,7 @@ public class LinqSelectOptimizationTests : BaseTest<Func<IEnumerable<int>, int>>
 		return a + b + c;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var a = Sum_ezMquQ(x);

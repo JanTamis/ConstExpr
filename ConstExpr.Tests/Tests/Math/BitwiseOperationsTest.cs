@@ -7,7 +7,7 @@ public class BitwiseOperationsTest() : BaseTest<Func<int, int, int>>(FloatingPoi
 {
 	public override string TestMethod => GetString((a, b) => a & b | a ^ b);
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return a & b | a ^ b;", Unknown, Unknown),
 		Create("return 14;", 12, 10),

@@ -15,7 +15,7 @@ public class IsEvenTest() : BaseTest<Func<int, bool>>(FloatingPointEvaluationMod
 		return (n & 1) == 0;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown),
 		Create("return true;", 4),

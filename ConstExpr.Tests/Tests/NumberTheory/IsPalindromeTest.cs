@@ -20,7 +20,7 @@ public class IsPalindromeTest() : BaseTest<Func<int, bool>>(FloatingPointEvaluat
 		return original == reversed;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var original = Int32.Abs(n);

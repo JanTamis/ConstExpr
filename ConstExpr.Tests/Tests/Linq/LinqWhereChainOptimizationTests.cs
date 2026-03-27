@@ -31,7 +31,7 @@ public class LinqWhereChainOptimizationTests() : BaseTest<Func<int[], IEnumerabl
 		return a.Concat(b).Concat(c).Concat(d).Concat(e).Concat(f);
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var a = x.Where(v => (uint)v - 2 < 8U);

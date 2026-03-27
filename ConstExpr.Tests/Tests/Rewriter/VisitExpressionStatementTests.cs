@@ -15,7 +15,7 @@ public class VisitExpressionStatementTests : BaseTest<Func<int, int>>
 		return x;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown),
 		Create("return 6;", 6)

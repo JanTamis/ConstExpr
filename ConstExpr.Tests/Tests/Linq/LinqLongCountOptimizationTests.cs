@@ -41,7 +41,7 @@ public class LinqLongCountOptimizationTests : BaseTest<Func<int[], long>>
 		return a + b + c + d + e + f + g + h + i + j;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var a = LongCount_FDQQ2g(x);

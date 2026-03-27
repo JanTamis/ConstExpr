@@ -22,7 +22,7 @@ public class AverageTest() : BaseTest<Func<int[], double>>(FloatingPointEvaluati
 		return (double) sum / numbers.Length;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown),
 		Create("return 30D;", new[] { 10, 20, 30, 40, 50 }),

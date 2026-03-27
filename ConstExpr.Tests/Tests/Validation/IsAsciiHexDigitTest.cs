@@ -12,7 +12,7 @@ public class IsAsciiHexDigitTest() : BaseTest<Func<char, bool>>(FloatingPointEva
 	public override string TestMethod => GetString(c =>
 		(c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'));
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		// Unknown char → three-range check collapsed into Char.IsAsciiHexDigit
 		Create("return Char.IsAsciiHexDigit(c);", Unknown),

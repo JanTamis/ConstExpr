@@ -16,7 +16,7 @@ public class VisitElementAccessExpressionTests : BaseTest<Func<int[], int, int, 
 		return (a, b, c, d);
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown, Unknown, Unknown),
 		Create("return (10, 30, 10, 50);", new[] { 10, 20, 30, 40, 50 }, 0, 4),

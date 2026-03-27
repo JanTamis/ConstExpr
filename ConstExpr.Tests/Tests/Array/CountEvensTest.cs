@@ -20,7 +20,7 @@ public class CountEvensTest() : BaseTest<Func<int[], int>>(FloatingPointEvaluati
 		return count;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var count = 0;

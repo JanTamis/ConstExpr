@@ -26,7 +26,7 @@ public class LinqCastOptimizationTests : BaseTest<Func<List<object>, int>>
 		return a + b + c + d + e;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var a = Sum_Zgtz4g(x);

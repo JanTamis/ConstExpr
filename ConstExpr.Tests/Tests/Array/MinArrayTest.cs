@@ -25,7 +25,7 @@ public class MinArrayTest() : BaseTest<Func<int[], int>>(FloatingPointEvaluation
 		return min;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			if (values.Length == 0)

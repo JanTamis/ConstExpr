@@ -41,7 +41,7 @@ public class LinqDefaultIfEmptyOptimizationTests : BaseTest<Func<int[], int>>
 		return a + b + c + d + e + f + g + h + i + j;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var a = Int32.Max(x.Length, 1);
@@ -85,7 +85,7 @@ public class  LinqDefaultIfEmptyWithValueTests : BaseTest<Func<int[], int>>
 		return a + b + c + d;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var a = x.Length > 0 ? x[0] : 42;
@@ -126,7 +126,7 @@ public class LinqDefaultIfEmptyOptimizationListTests : BaseTest<Func<List<int>, 
 		return a + b + c + d + e;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var a = Int32.Max(x.Count, 1);
@@ -166,7 +166,7 @@ public class LinqDefaultIfEmptyComplexTests : BaseTest<Func<int[], int>>
 		return a + b + c + d + e + f;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var a = x.Where(v => v > 0).Distinct().Order().DefaultIfEmpty(50).Sum();

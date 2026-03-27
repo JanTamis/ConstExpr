@@ -36,7 +36,9 @@ internal static class StringBuilderCache
 	{
 		var result = sb.ToString();
 
-		// Limit retained capacity to avoid holding onto very large buffers
+		// Clear the content first, then limit retained capacity to avoid holding onto very large buffers
+		sb.Clear();
+
 		if (sb.Capacity > 4096)
 		{
 			sb.Capacity = 4096;

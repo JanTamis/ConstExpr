@@ -22,7 +22,7 @@ public class ModuloTest() : BaseTest<Func<int, int, int>>(FloatingPointEvaluatio
 		return result;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown, Unknown),
 		Create("return 3;", 13, 10),

@@ -21,7 +21,7 @@ public class LinqZipOptimizationTests : BaseTest<Func<int[], int>>
 		return a + b + c + d;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var c = x.Length;

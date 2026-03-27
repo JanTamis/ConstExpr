@@ -61,7 +61,7 @@ public class LinqToDictionaryOptimizationTests : BaseTest<Func<int[], int>>
 		return a + b + c + d + e + f + g + h + i + j + k + l + m + n + o + p;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 // 		Create("""
 // 			var a = x.ToDictionary(v => v).Count;

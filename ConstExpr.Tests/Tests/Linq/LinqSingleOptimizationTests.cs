@@ -17,7 +17,7 @@ public class LinqSingleOptimizationTests : BaseTest<Func<int[], int>>
 		return a + b;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var a = Single_UeGPpQ(x);

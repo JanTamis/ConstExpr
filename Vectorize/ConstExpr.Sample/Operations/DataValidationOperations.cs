@@ -114,6 +114,7 @@ public static class DataValidationOperations
 		}
 
 		var nonNullCount = values.Count(v => !double.IsNaN(v) && !double.IsInfinity(v));
+		
 		return (double) nonNullCount / values.Length;
 	}
 
@@ -235,8 +236,10 @@ public static class DataValidationOperations
 			{
 				break;
 			}
+			
 			count++;
 		}
+		
 		return count;
 	}
 
@@ -270,6 +273,7 @@ public static class DataValidationOperations
 			{
 				break;
 			}
+			
 			index++;
 		}
 		return index;
@@ -291,6 +295,7 @@ public static class DataValidationOperations
 				{
 					break;
 				}
+				
 				count++;
 			}
 
@@ -299,6 +304,7 @@ public static class DataValidationOperations
 				break;
 			}
 		}
+		
 		return count;
 	}
 
@@ -319,6 +325,7 @@ public static class DataValidationOperations
 			{
 				return sum;
 			}
+			
 			i++;
 		}
 	}

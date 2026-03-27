@@ -48,7 +48,7 @@ public class LinqContainsOptimizationTests : BaseTest<Func<int[], int>>
 		return a + b + c + d + e + f + g + h + i + j + k + l;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var a = Array.IndexOf(x, 3) >= 0 ? 1 : 0;
@@ -104,7 +104,7 @@ public class LinqContainsOptimizationListTests : BaseTest<Func<List<int>, int>>
 		return a + b + c + d + e + f + g;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var a = Contains_n4h27g(x) ? 1 : 0;
@@ -146,7 +146,7 @@ public class LinqContainsOptimizationStringTests : BaseTest<Func<string[], int>>
 		return a + b + c + d;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var a = Array.IndexOf(x, "hello") >= 0 ? 1 : 0;
@@ -185,7 +185,7 @@ public class LinqContainsOptimizationComplexTests : BaseTest<Func<int[], int>>
 		return a + b + c + d;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var a = Array.IndexOf(x, 5) >= 0 ? 1 : 0;
@@ -214,7 +214,7 @@ public class LinqContainsLiteralCollectionTests : BaseTest<Func<int[], int, bool
 		return values.Contains(x);
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		// The is-pattern x is 1 or 2 or 3 gets further optimized by the is-pattern optimizer
 		// to a range check since 1, 2, 3 are consecutive integers: (uint)(x - 1) <= 2U

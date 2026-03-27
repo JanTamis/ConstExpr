@@ -14,7 +14,7 @@ public class LinqOrderByOptimizationTests : BaseTest<Func<int[], int>>
 		return a;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var a = Min_BJMt_Q(x);
@@ -44,7 +44,7 @@ public class LinqFilterFirstOptimizationTests : BaseTest<Func<int[], IEnumerable
 		return a.Concat(b);
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var a = x.Where(v => v > 4).OrderBy(v => v * 2);

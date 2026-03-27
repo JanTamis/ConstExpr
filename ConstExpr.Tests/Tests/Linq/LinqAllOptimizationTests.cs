@@ -56,7 +56,7 @@ public class LinqAllOptimizationTests : BaseTest<Func<int[], int>>
 		return a + b + c + d + e + f + g + h + i + j + k + l + m + n + o + p;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var a = Array.TrueForAll(x, v => (uint)v < 10U) ? 1 : 0;

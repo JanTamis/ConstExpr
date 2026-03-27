@@ -7,7 +7,7 @@ public class StartsWithTest() : BaseTest<Func<string, string, bool>>(FloatingPoi
 {
 	public override string TestMethod => GetString((s, prefix) => s.StartsWith(prefix));
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown, Unknown),
 		Create("return true;", "hello", "hel"),

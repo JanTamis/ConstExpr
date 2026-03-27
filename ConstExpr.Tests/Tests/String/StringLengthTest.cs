@@ -15,7 +15,7 @@ public class StringLengthTest() : BaseTest<Func<string?, int>>(FloatingPointEval
 		return s.Length;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			if (s == null)

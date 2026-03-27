@@ -21,7 +21,7 @@ public class VisitIsPatternExpressionTests : BaseTest<Func<int, int, object, cha
 		return [a, b, c, d, e, f, g, h, i];
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var c = x == 0;

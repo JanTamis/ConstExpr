@@ -19,7 +19,7 @@ public class ProductOfDigitsTest() : BaseTest<Func<int, int>>(FloatingPointEvalu
 		return product;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var product = 1;

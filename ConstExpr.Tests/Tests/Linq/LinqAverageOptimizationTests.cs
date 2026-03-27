@@ -34,7 +34,7 @@ public class LinqAverageOptimizationTests : BaseTest<Func<int[], double>>
 		return a + b + c + d + e + f + g + h;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var a = Average_cnpjgw(x);

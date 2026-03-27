@@ -33,7 +33,7 @@ public class IsPerfectNumberTest() : BaseTest<Func<int, bool>>(FloatingPointEval
 		return sum == n;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown),
 		Create("return true;", 6),

@@ -24,7 +24,7 @@ public class IsPalindromeNumberTest() : BaseTest<Func<int, bool>>(FloatingPointE
 		return original == reversed;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown),
 		Create("return true;", 121),

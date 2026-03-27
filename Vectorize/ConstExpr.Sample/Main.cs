@@ -43,3 +43,4 @@ DataValidationTests.RunTests(varDouble, varString, varInt);
 LoopBreakReturnTests.RunTests(varInt2, varString, varInt);
 MathOperationsTests.RunTests(varInt, varInt2, varInt3, varInt4);
 StringOperationsTests.RunTests(varString);
+ArrayOperationsTests.RunTests(varInt, varInt2, varInt3);

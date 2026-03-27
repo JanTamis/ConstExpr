@@ -16,7 +16,7 @@ public class LinqTakeOptimizationTests : BaseTest<Func<int[], int>>
 		return a + b;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var b = Int32.Min(1, x.Length);

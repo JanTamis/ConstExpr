@@ -20,7 +20,7 @@ public class VisitLiteralExpressionTests : BaseTest<Func<int, double, (int, doub
 		}
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var f = 42 + x;

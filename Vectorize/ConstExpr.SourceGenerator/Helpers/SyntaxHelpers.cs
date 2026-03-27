@@ -85,7 +85,7 @@ public static class SyntaxHelpers
 	public static bool TryCreateLiteral<T>(T? value, bool useExplicitByte, [NotNullWhen(true)] out ExpressionSyntax? result)
 	{
 		var valueType = value?.GetType();
-		
+
 		// check if value is lookup and skip if it is
 		// check if value is IGrouping and skip if it is
 		if (valueType?.GetInterface("System.Linq.ILookup`2") is not null
@@ -94,7 +94,7 @@ public static class SyntaxHelpers
 			result = null;
 			return false;
 		}
-		
+
 		switch (value)
 		{
 			case byte bb:
@@ -224,7 +224,7 @@ public static class SyntaxHelpers
 				if (elemType == typeof(char))
 				{
 					var chars = (char[]) array;
-					
+
 					result = CreateLiteral(new string(chars));
 					return true;
 				}
@@ -303,7 +303,7 @@ public static class SyntaxHelpers
 				initializerExpressions.Add(
 					InitializerExpression(
 						SyntaxKind.ComplexElementInitializerExpression,
-						SeparatedList<ExpressionSyntax>([keyExpr, valExpr])));
+						SeparatedList<ExpressionSyntax>([ keyExpr, valExpr ])));
 			}
 
 			var dictionaryType = GenericName(
@@ -359,7 +359,7 @@ public static class SyntaxHelpers
 		{
 			throw new NotSupportedException($"Type {typeof(T)} is not supported for literal creation.");
 		}
-		
+
 		return result;
 	}
 
@@ -1160,17 +1160,17 @@ public static class SyntaxHelpers
 	{
 		return BinaryExpression(SyntaxKind.EqualsExpression, left, right);
 	}
-	
+
 	public static BinaryExpressionSyntax NotEqualsExpression(ExpressionSyntax left, ExpressionSyntax right)
 	{
 		return BinaryExpression(SyntaxKind.NotEqualsExpression, left, right);
 	}
-	
+
 	public static BinaryExpressionSyntax AddExpression(ExpressionSyntax left, ExpressionSyntax right)
 	{
 		return BinaryExpression(SyntaxKind.AddExpression, left, right);
 	}
-	
+
 	public static BinaryExpressionSyntax SubtractExpression(ExpressionSyntax left, ExpressionSyntax right)
 	{
 		return BinaryExpression(SyntaxKind.SubtractExpression, left, right);
@@ -1185,27 +1185,27 @@ public static class SyntaxHelpers
 	{
 		return BinaryExpression(SyntaxKind.DivideExpression, left, right);
 	}
-	
+
 	public static BinaryExpressionSyntax ModuloExpression(ExpressionSyntax left, ExpressionSyntax right)
 	{
 		return BinaryExpression(SyntaxKind.ModuloExpression, left, right);
 	}
-	
+
 	public static BinaryExpressionSyntax GreaterThanExpression(ExpressionSyntax left, ExpressionSyntax right)
 	{
 		return BinaryExpression(SyntaxKind.GreaterThanExpression, left, right);
 	}
-	
+
 	public static BinaryExpressionSyntax GreaterThanOrEqualExpression(ExpressionSyntax left, ExpressionSyntax right)
 	{
 		return BinaryExpression(SyntaxKind.GreaterThanOrEqualExpression, left, right);
 	}
-	
+
 	public static BinaryExpressionSyntax LessThanExpression(ExpressionSyntax left, ExpressionSyntax right)
 	{
 		return BinaryExpression(SyntaxKind.LessThanExpression, left, right);
 	}
-	
+
 	public static BinaryExpressionSyntax LessThanOrEqualExpression(ExpressionSyntax left, ExpressionSyntax right)
 	{
 		return BinaryExpression(SyntaxKind.LessThanOrEqualExpression, left, right);
@@ -1275,18 +1275,18 @@ public static class SyntaxHelpers
 	{
 		return SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, expression, name);
 	}
-	
+
 	public static ElementAccessExpressionSyntax ElementAccessExpression(ExpressionSyntax expression, params ExpressionSyntax[] arguments)
 	{
 		return SyntaxFactory.ElementAccessExpression(expression)
 			.WithArgumentList(BracketedArgumentList(SeparatedList(arguments.Select(Argument))));
 	}
-	
+
 	public static PrefixUnaryExpressionSyntax LogicalNotExpression(ExpressionSyntax operand)
 	{
 		return PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, operand);
 	}
-	
+
 	public static ObjectCreationExpressionSyntax ObjectCreationExpression(TypeSyntax type, params ExpressionSyntax[] arguments)
 	{
 		return SyntaxFactory.ObjectCreationExpression(type)

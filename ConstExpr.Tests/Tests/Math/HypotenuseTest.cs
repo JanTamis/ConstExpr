@@ -8,7 +8,7 @@ public class HypotenuseTest() : BaseTest<Func<int, int, double>>(FloatingPointEv
 {
 	public override string TestMethod => GetString((a, b) => System.Math.Sqrt(a * a + b * b));
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Double.Sqrt(a * a + b * b);", Unknown, Unknown),
 		Create("return 5D;", 3, 4),

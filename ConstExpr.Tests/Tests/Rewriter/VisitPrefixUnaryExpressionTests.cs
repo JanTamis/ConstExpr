@@ -19,7 +19,7 @@ public class VisitPrefixUnaryExpressionTests : BaseTest<Func<int, bool, (int, in
 		return (a, b2, d, c, g, 0, f);
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var f = !b;

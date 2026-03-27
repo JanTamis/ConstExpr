@@ -7,7 +7,7 @@ public class NthTriangularNumberTest() : BaseTest<Func<int, int>>(FloatingPointE
 {
 	public override string TestMethod => GetString(n => n * (n + 1) / 2);
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown),
 		Create("return 15;", 5),

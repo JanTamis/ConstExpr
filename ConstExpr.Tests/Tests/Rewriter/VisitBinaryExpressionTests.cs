@@ -20,7 +20,7 @@ public class VisitBinaryExpressionTests : BaseTest<Func<int, int, bool, bool, (i
 		return (a, b, c, d, e, f, g, h);
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown, Unknown, Unknown, Unknown),
 		Create("return (3, -1, 2, 0, 1, false, false, true);", 1, 2, true, false),

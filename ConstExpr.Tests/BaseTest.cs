@@ -14,14 +14,24 @@ using sourcegen::ConstExpr.SourceGenerator.Rewriters;
 
 namespace ConstExpr.Tests;
 
+
 public abstract class BaseTest<TDelegate>(FloatingPointEvaluationMode evaluationMode = FloatingPointEvaluationMode.Strict, LinqOptimisationMode linqOptimisationMode = LinqOptimisationMode.Unroll)
 	where TDelegate : Delegate
 {
-	// the generated method bodies to be expected
-	public abstract IEnumerable<KeyValuePair<string?, object?[]>> Result { get; }
+	
+	/// <summary>
+	/// A collection of test cases, where each test case consists of an expected method body (as a string) and an array of parameter values. The expected method body can be null to indicate that the body should not change. The parameter values can be set to <see cref="Unknown"/> to indicate that the value is not known at compile time. The source generator will optimize <see cref="TestMethod"/> based on the provided parameter values, and the resulting body will be compared against the expected body for each test case.
+	/// </summary>
+	public abstract IEnumerable<KeyValuePair<string?, object?[]>> TestCases { get; }
 
+	/// <summary>
+	/// The method to be tested, represented as a string. Use the <see cref="GetString"/> helper method to generate this string from a lambda expression. The method should be defined as a local function within the generated source code, and should match the signature of <typeparamref name="TDelegate"/>. The body of the method will be optimized by the source generator, and the resulting body will be compared against the expected bodies defined in <see cref="TestCases"/>.
+	/// </summary>
 	public abstract string TestMethod { get; }
 
+	/// <summary>
+	/// A marker object to represent unknown parameter values in test cases. This indicates that a parameter's value is not known at compile time, and the optimizer should treat it as such.
+	/// </summary>
 	protected static readonly object Unknown = new();
 
 	[Test]
@@ -79,7 +89,7 @@ public abstract class BaseTest<TDelegate>(FloatingPointEvaluationMode evaluation
 
 		var rewriter = new ConstExprPartialRewriter(semanticModel, loader, (_, exception) => exceptionsDuringRewriting.Add(exception), parameters, additionalMethods, new HashSet<string>(), attribute, CancellationToken.None, visitedMethods);
 		
-		foreach (var result in Result)
+		foreach (var result in TestCases)
 		{
 			var notParameters = parameters.Keys
 				.Except(parameterNames)
@@ -209,20 +219,27 @@ public abstract class BaseTest<TDelegate>(FloatingPointEvaluationMode evaluation
 			"""";
 	}
 
-	protected static KeyValuePair<string?, object?[]> Create(string? key, params object?[] values)
+	/// <summary>
+	/// Helper method to create test cases with a specific expected body and parameter values.
+	/// </summary>
+	/// <param name="expectedBody">The expected body of the test case. Use null for no changed body</param>
+	/// <param name="parameters">The values for the parameters of the test case. Use <see cref="Unknown"/> for unknown parameter</param>
+	/// <returns>A key-value pair representing the test case.</returns>
+	/// <exception cref="InvalidOperationException">Thrown when the number of <see cref="parameters"/> does not match the number of parameters of <see cref="TDelegate"/>.</exception>
+	protected static KeyValuePair<string?, object?[]> Create(string? expectedBody, params object?[] parameters)
 	{
 		// test if length of values matches delegate parameters
 		var delegateParams = typeof(TDelegate).GetMethod("Invoke")!.GetParameters();
 
-		if (values.Length != delegateParams.Length)
+		if (parameters.Length != delegateParams.Length)
 		{
 			throw new InvalidOperationException($"""
 				Parameter count mismatch.
-				{key}
+				{expectedBody}
 				""");
 		}
 
-		return KeyValuePair.Create(key, values);
+		return KeyValuePair.Create(expectedBody, parameters);
 	}
 
 	protected string GetString(TDelegate method, [CallerArgumentExpression(nameof(method))] string? lambdaSource = null)

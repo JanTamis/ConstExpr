@@ -22,7 +22,7 @@ public class MaxOfThreeTest() : BaseTest<Func<int, int, int, int>>(FloatingPoint
 		return max;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown, Unknown, Unknown),
 		Create("return 10;", 5, 10, 3),

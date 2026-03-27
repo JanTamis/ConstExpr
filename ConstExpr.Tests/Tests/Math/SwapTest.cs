@@ -14,7 +14,7 @@ public class SwapTest() : BaseTest<Func<int, int, (int, int)>>(FloatingPointEval
 		return (a, b);
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown, Unknown),
 		Create("return (20, 10);", 10, 20),

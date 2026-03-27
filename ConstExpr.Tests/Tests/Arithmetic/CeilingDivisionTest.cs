@@ -15,7 +15,7 @@ public class CeilingDivisionTest() : BaseTest<Func<int, int, int>>(FloatingPoint
 		return (numerator + divisor - 1) / divisor;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown, Unknown),
 		Create("return 3;", 10, 4),

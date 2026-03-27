@@ -34,11 +34,17 @@ namespace ConstExpr.SourceGenerator.Sample.Tests
 			Console.WriteLine($"[CONST] IsValidEmail(\"test@example.com\"): {DataValidationOperations.IsValidEmail("test@example.com")}");
 			Console.WriteLine($"[CONST] IsValidEmail(\"invalid.email\"): {DataValidationOperations.IsValidEmail("invalid.email")}");
 			Console.WriteLine($"[CONST] IsValidEmail(\"user@domain.co.uk\"): {DataValidationOperations.IsValidEmail("user@domain.co.uk")}");
+			
+			// IsValidEmail - mixed
+			Console.WriteLine($"[MIXED] IsValidEmail(varString): {DataValidationOperations.IsValidEmail(varString)}");
 
 			// IsValidPhoneNumber - alleen constanten
 			Console.WriteLine($"[CONST] IsValidPhoneNumber(\"06-12345678\"): {DataValidationOperations.IsValidPhoneNumber("06-12345678")}");
 			Console.WriteLine($"[CONST] IsValidPhoneNumber(\"+31 6 1234 5678\"): {DataValidationOperations.IsValidPhoneNumber("+31 6 1234 5678")}");
 			Console.WriteLine($"[CONST] IsValidPhoneNumber(\"123\"): {DataValidationOperations.IsValidPhoneNumber("123")}");
+			
+			// IsValidPhoneNumber - mixed
+			Console.WriteLine($"[MIXED] IsValidPhoneNumber(varString): {DataValidationOperations.IsValidPhoneNumber(varString)}");
 
 			// CalculateDataQuality - alleen constanten
 			Console.WriteLine($"[CONST] CalculateDataQuality(1, 2, 3, 4, 5): {DataValidationOperations.CalculateDataQuality(1, 2, 3, 4, 5):F2}");
@@ -50,11 +56,17 @@ namespace ConstExpr.SourceGenerator.Sample.Tests
 			Console.WriteLine($"[CONST] HasBalancedParentheses(\"((()))\"): {DataValidationOperations.HasBalancedParentheses("((()))")}");
 			Console.WriteLine($"[CONST] HasBalancedParentheses(\"(()\"): {DataValidationOperations.HasBalancedParentheses("(())")}");
 			Console.WriteLine($"[CONST] HasBalancedParentheses(\"()()()\"): {DataValidationOperations.HasBalancedParentheses("()()()")}");
+			
+			// HasBalancedParentheses - mixed
+			Console.WriteLine($"[MIXED] HasBalancedParentheses(varString): {DataValidationOperations.HasBalancedParentheses(varString)}");
 
 			// IsValidCreditCard - alleen constanten (test met geldige Luhn-nummers)
 			Console.WriteLine($"[CONST] IsValidCreditCard(\"4532015112830366\"): {DataValidationOperations.IsValidCreditCard("4532015112830366")}");
 			Console.WriteLine($"[CONST] IsValidCreditCard(\"1234567890123456\"): {DataValidationOperations.IsValidCreditCard("1234567890123456")}");
 			Console.WriteLine($"[CONST] IsValidCreditCard(\"12345\"): {DataValidationOperations.IsValidCreditCard("12345")}");
+			
+			// IsValidCreditCard - mixed
+			Console.WriteLine($"[MIXED] IsValidCreditCard(varString): {DataValidationOperations.IsValidCreditCard(varString)}");
 
 			Console.WriteLine();
 		}

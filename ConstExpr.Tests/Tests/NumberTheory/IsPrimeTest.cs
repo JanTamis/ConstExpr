@@ -33,7 +33,7 @@ public class IsPrimeTest() : BaseTest<Func<int, bool>>(FloatingPointEvaluationMo
 		return true;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			if (n <= 1)

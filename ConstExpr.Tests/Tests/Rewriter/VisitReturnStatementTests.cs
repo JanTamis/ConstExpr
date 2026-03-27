@@ -8,7 +8,7 @@ public class VisitReturnStatementTests : BaseTest<Func<int>>
 {
 	public override string TestMethod => GetString(() => 1 + 2);
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return 3;")
 	];

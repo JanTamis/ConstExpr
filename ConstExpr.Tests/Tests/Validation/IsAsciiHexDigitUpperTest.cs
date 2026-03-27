@@ -12,7 +12,7 @@ public class IsAsciiHexDigitUpperTest() : BaseTest<Func<char, bool>>(FloatingPoi
 	public override string TestMethod => GetString(c =>
 		(c >= '0' && c <= '9') || (c >= 'A' && c <= 'F'));
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Char.IsAsciiHexDigitUpper(c);", Unknown),
 		Create("return Char.IsAsciiHexDigitUpper(c);", '7'),

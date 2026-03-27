@@ -16,7 +16,7 @@ public class AbsoluteValueTest() : BaseTest<Func<int, int>>(FloatingPointEvaluat
 		return n;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown),
 		Create("return 42;", -42),

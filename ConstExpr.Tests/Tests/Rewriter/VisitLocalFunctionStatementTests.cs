@@ -13,7 +13,7 @@ public class VisitLocalFunctionStatementTests : BaseTest<Func<int, int>>
 		return Add(x, 2);
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Add(x, 2);", Unknown),
 		Create("return 3;", 1),

@@ -13,7 +13,7 @@ public class VisitSimpleLambdaExpressionTests : BaseTest<Func<int, int>>
 		return func(y);
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown),
 		Create("return 7;", 6),

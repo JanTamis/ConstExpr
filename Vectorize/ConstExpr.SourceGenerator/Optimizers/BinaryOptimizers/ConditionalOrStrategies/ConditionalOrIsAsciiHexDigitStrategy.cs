@@ -31,6 +31,11 @@ public class ConditionalOrAsciiCharRangeStrategy : BaseBinaryStrategy
 	/// <summary>Known range-set → Char method name mappings.</summary>
 	private static readonly (HashSet<(char Low, char High)> Ranges, string Method)[] KnownPatterns =
 	[
+		// single range patterns
+		([ ('\x00', '\x7F') ], "IsAscii"),
+		([ ('0', '9') ], "IsAsciiDigit"),
+		([ ('a', 'z') ], "IsAsciiLetterLower"),
+		([ ('A', 'Z') ], "IsAsciiLetterUpper"),
 		// 2-range patterns
 		([ ('0', '9'), ('a', 'f') ], "IsAsciiHexDigitLower"),
 		([ ('0', '9'), ('A', 'F') ], "IsAsciiHexDigitUpper"),
@@ -40,9 +45,7 @@ public class ConditionalOrAsciiCharRangeStrategy : BaseBinaryStrategy
 		([ ('0', '9'), ('A', 'Z'), ('a', 'z') ], "IsAsciiLetterOrDigit"),
 	];
 
-	public override bool TryOptimize(
-		BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context,
-		out ExpressionSyntax? optimized)
+	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		// Flatten both sides of the || into individual leaf expressions.
 		var parts = new List<ExpressionSyntax>();
@@ -133,15 +136,11 @@ public class ConditionalOrAsciiCharRangeStrategy : BaseBinaryStrategy
 	///   <item>Arbitrary: <c>Char.IsBetween(c, low, high)</c></item>
 	/// </list>
 	/// </summary>
-	private static bool TryExtractCharRanges(
-		ExpressionSyntax expr,
-		out ExpressionSyntax? charExpr,
-		List<(char Low, char High)> ranges)
+	private static bool TryExtractCharRanges(ExpressionSyntax expr, out ExpressionSyntax? charExpr, List<(char Low, char High)> ranges)
 	{
 		charExpr = null;
 
-		if (expr is not InvocationExpressionSyntax invocation
-		    || invocation.Expression is not MemberAccessExpressionSyntax memberAccess)
+		if (expr is not InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax memberAccess } invocation)
 		{
 			return false;
 		}
@@ -206,7 +205,7 @@ public class ConditionalOrAsciiCharRangeStrategy : BaseBinaryStrategy
 
 		// IsBetween(c, low, high)  — used for ranges without a dedicated named method
 		if (methodName == "IsBetween"
-		    && invocation.ArgumentList.Arguments is 
+		    && invocation.ArgumentList.Arguments is
 			    [ _, { Expression: LiteralExpressionSyntax { Token.Value: char lowChar } }, { Expression: LiteralExpressionSyntax { Token.Value: char highChar } } ])
 		{
 			charExpr = invocation.ArgumentList.Arguments[0].Expression;

@@ -216,7 +216,7 @@ public partial class ConstExprPartialRewriter
 	private bool? EvaluateConstantPattern(ConstantPatternSyntax constPat, object? value)
 	{
 		var visited = constPat.Expression;
-		
+
 		return TryGetConstantValue(semanticModel.Compilation, loader, visited, new VariableItemDictionary(variables), token, out var patVal)
 			? Equals(value, patVal)
 			: null;
@@ -365,7 +365,7 @@ public partial class ConstExprPartialRewriter
 				return CreateLiteral(result.Value);
 			}
 		}
-		
+
 		// Handle unary "not" around constant patterns: `x is not 0` -> `x != 0`
 		if (node.Pattern is UnaryPatternSyntax unary && unary.OperatorToken.IsKind(SyntaxKind.NotKeyword) && unary.Pattern is ConstantPatternSyntax constInner)
 		{
@@ -380,7 +380,7 @@ public partial class ConstExprPartialRewriter
 		{
 			var innerPattern = unaryNot.Pattern is ParenthesizedPatternSyntax paren ? paren.Pattern : unaryNot.Pattern;
 
-			if (innerPattern is BinaryPatternSyntax { OperatorToken.RawKind: (int)SyntaxKind.OrKeyword } orPattern)
+			if (innerPattern is BinaryPatternSyntax { OperatorToken.RawKind: (int) SyntaxKind.OrKeyword } orPattern)
 			{
 				var baseExpr = expression as ExpressionSyntax ?? node.Expression;
 				var syntheticIsNode = node
@@ -399,7 +399,7 @@ public partial class ConstExprPartialRewriter
 		{
 			var innerPattern = unaryNotAnd.Pattern is ParenthesizedPatternSyntax parenAnd ? parenAnd.Pattern : unaryNotAnd.Pattern;
 
-			if (innerPattern is BinaryPatternSyntax { OperatorToken.RawKind: (int)SyntaxKind.AndKeyword } andPattern)
+			if (innerPattern is BinaryPatternSyntax { OperatorToken.RawKind: (int) SyntaxKind.AndKeyword } andPattern)
 			{
 				var baseExpr = expression as ExpressionSyntax ?? node.Expression;
 				var syntheticIsNode = node
@@ -410,11 +410,11 @@ public partial class ConstExprPartialRewriter
 				{
 					var negatedKind = rangeBinary.Kind() switch
 					{
-						SyntaxKind.LessThanExpression           => SyntaxKind.GreaterThanOrEqualExpression,
-						SyntaxKind.LessThanOrEqualExpression    => SyntaxKind.GreaterThanExpression,
-						SyntaxKind.GreaterThanExpression        => SyntaxKind.LessThanOrEqualExpression,
+						SyntaxKind.LessThanExpression => SyntaxKind.GreaterThanOrEqualExpression,
+						SyntaxKind.LessThanOrEqualExpression => SyntaxKind.GreaterThanExpression,
+						SyntaxKind.GreaterThanExpression => SyntaxKind.LessThanOrEqualExpression,
 						SyntaxKind.GreaterThanOrEqualExpression => SyntaxKind.LessThanExpression,
-						_ => (SyntaxKind?)null,
+						_ => (SyntaxKind?) null,
 					};
 
 					if (negatedKind.HasValue)
@@ -437,7 +437,7 @@ public partial class ConstExprPartialRewriter
 				SyntaxKind.LessThanEqualsToken => SyntaxKind.GreaterThanExpression, // !(x <= y) -> x > y
 				SyntaxKind.GreaterThanToken => SyntaxKind.LessThanOrEqualExpression, // !(x > y) -> x <= y
 				SyntaxKind.GreaterThanEqualsToken => SyntaxKind.LessThanExpression, // !(x >= y) -> x < y
-				_ => (SyntaxKind?)null,
+				_ => (SyntaxKind?) null,
 			};
 
 			if (negatedKind.HasValue)
@@ -469,7 +469,7 @@ public partial class ConstExprPartialRewriter
 				SyntaxKind.LessThanEqualsToken => SyntaxKind.LessThanOrEqualExpression,
 				SyntaxKind.GreaterThanToken => SyntaxKind.GreaterThanExpression,
 				SyntaxKind.GreaterThanEqualsToken => SyntaxKind.GreaterThanOrEqualExpression,
-				_ => (SyntaxKind?)null,
+				_ => (SyntaxKind?) null,
 			};
 
 			if (binaryKind.HasValue)
@@ -537,10 +537,10 @@ public partial class ConstExprPartialRewriter
 		if (node.Arms.Count == 2 &&
 		    semanticModel.GetTypeInfo(node.GoverningExpression).Type?.SpecialType == SpecialType.System_Boolean)
 		{
-			var trueArm = node.Arms.FirstOrDefault(a => a.Pattern is ConstantPatternSyntax { Expression: LiteralExpressionSyntax { RawKind: (int)SyntaxKind.TrueLiteralExpression } });
-			var falseArm = node.Arms.FirstOrDefault(a => a.Pattern is ConstantPatternSyntax { Expression: LiteralExpressionSyntax { RawKind: (int)SyntaxKind.FalseLiteralExpression } });
+			var trueArm = node.Arms.FirstOrDefault(a => a.Pattern is ConstantPatternSyntax { Expression: LiteralExpressionSyntax { RawKind: (int) SyntaxKind.TrueLiteralExpression } });
+			var falseArm = node.Arms.FirstOrDefault(a => a.Pattern is ConstantPatternSyntax { Expression: LiteralExpressionSyntax { RawKind: (int) SyntaxKind.FalseLiteralExpression } });
 
-			if (trueArm is { WhenClause: null } 
+			if (trueArm is { WhenClause: null }
 			    && falseArm is { WhenClause: null })
 			{
 				return ConditionalExpression(
@@ -570,7 +570,7 @@ public partial class ConstExprPartialRewriter
 		result = null;
 
 		// Only optimize AND binary patterns (range checks)
-		if (node.Pattern is not BinaryPatternSyntax { OperatorToken.RawKind: (int)SyntaxKind.AndKeyword } binaryPattern)
+		if (node.Pattern is not BinaryPatternSyntax { OperatorToken.RawKind: (int) SyntaxKind.AndKeyword } binaryPattern)
 		{
 			return false;
 		}
@@ -581,12 +581,35 @@ public partial class ConstExprPartialRewriter
 			return false;
 		}
 
+		// check if lowerbound is smaller than upperbound, if both are present
+		if (lowerBound != null && upperBound != null)
+		{
+			var comparison = ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.LessThan, lowerBound, upperBound);
+
+			if (comparison is not true)
+			{
+				result = CreateLiteral(false);
+				return true;
+			}
+		}
+		
+		// check if range is in negative space, if both bounds are present
+		if (lowerBound != null && upperBound != null)
+		{
+			var comparison = ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.LessThan, lowerBound, 0);
+
+			if (comparison is true)
+			{
+				result = CreateLiteral(false);
+				return true;
+			}
+		}
+		
+
 		// Get the type of the expression for proper casting
 		if (!semanticModel.TryGetTypeSymbol(expression, out var type)
-		    && !semanticModel.Compilation.TryGetTypeByType(lowerBound.GetType(), out type)
-		    && !semanticModel.Compilation.TryGetTypeByType(upperBound.GetType(), out type)
-		    && !semanticModel.Compilation.TryGetTypeByType(lowerInclusive.GetType(), out type)
-		    && !semanticModel.Compilation.TryGetTypeByType(upperInclusive.GetType(), out type))
+		    && !semanticModel.Compilation.TryGetTypeByType(lowerBound?.GetType(), out type)
+		    && !semanticModel.Compilation.TryGetTypeByType(upperBound?.GetType(), out type))
 		{
 			return false;
 		}
@@ -645,7 +668,7 @@ public partial class ConstExprPartialRewriter
 				? subtraction
 				: CastExpression(
 					ParseTypeName(semanticModel.Compilation.GetMinimalString(unsignedType)),
-					subtraction);
+					ParenthesizedExpression(subtraction));
 		}
 
 		if (!TryCreateLiteral(range.ToSpecialType(unsignedType.SpecialType), out var rangeLiteral))
@@ -688,16 +711,16 @@ public partial class ConstExprPartialRewriter
 				// Flip a leaf comparison operator
 				var flippedKind = binary.Kind() switch
 				{
-					SyntaxKind.LessThanOrEqualExpression  => SyntaxKind.GreaterThanExpression,          // <= -> >
-					SyntaxKind.LessThanExpression         => SyntaxKind.GreaterThanOrEqualExpression,   // < -> >=
-					SyntaxKind.GreaterThanOrEqualExpression => SyntaxKind.LessThanExpression,           // >= -> <
-					SyntaxKind.GreaterThanExpression      => SyntaxKind.LessThanOrEqualExpression,      // > -> <=
-					SyntaxKind.EqualsExpression           => SyntaxKind.NotEqualsExpression,            // == -> !=
-					SyntaxKind.NotEqualsExpression        => SyntaxKind.EqualsExpression,               // != -> ==
+					SyntaxKind.LessThanOrEqualExpression => SyntaxKind.GreaterThanExpression, // <= -> >
+					SyntaxKind.LessThanExpression => SyntaxKind.GreaterThanOrEqualExpression, // < -> >=
+					SyntaxKind.GreaterThanOrEqualExpression => SyntaxKind.LessThanExpression, // >= -> <
+					SyntaxKind.GreaterThanExpression => SyntaxKind.LessThanOrEqualExpression, // > -> <=
+					SyntaxKind.EqualsExpression => SyntaxKind.NotEqualsExpression, // == -> !=
+					SyntaxKind.NotEqualsExpression => SyntaxKind.EqualsExpression, // != -> ==
 					// For && / || we apply De Morgan: !(a && b) -> !a || !b, !(a || b) -> !a && !b
 					SyntaxKind.LogicalAndExpression => SyntaxKind.LogicalOrExpression,
-					SyntaxKind.LogicalOrExpression  => SyntaxKind.LogicalAndExpression,
-					_ => (SyntaxKind?)null,
+					SyntaxKind.LogicalOrExpression => SyntaxKind.LogicalAndExpression,
+					_ => (SyntaxKind?) null,
 				};
 
 				if (flippedKind is null)
@@ -705,10 +728,10 @@ public partial class ConstExprPartialRewriter
 					return null;
 				}
 
-				if (binary.IsKind(SyntaxKind.LogicalAndExpression, SyntaxKind.LogicalOrExpression))	
+				if (binary.IsKind(SyntaxKind.LogicalAndExpression, SyntaxKind.LogicalOrExpression))
 				{
 					// Recurse into both sides (De Morgan)
-					var left  = NegateComparison(binary.Left);
+					var left = NegateComparison(binary.Left);
 					var right = NegateComparison(binary.Right);
 
 					if (left is null || right is null)
@@ -793,8 +816,9 @@ public partial class ConstExprPartialRewriter
 			return false;
 		}
 
-		// Validate bounds are numeric
-		if (lowerBound is null || upperBound is null || !lowerBound.IsNumeric() || !upperBound.IsNumeric())
+		// Validate bounds are numeric and are positive (we only optimize numeric range checks)
+		if (!lowerBound.IsNumeric() 
+		    || !upperBound.IsNumeric())
 		{
 			return false;
 		}
@@ -806,4 +830,3 @@ public partial class ConstExprPartialRewriter
 		return true;
 	}
 }
-

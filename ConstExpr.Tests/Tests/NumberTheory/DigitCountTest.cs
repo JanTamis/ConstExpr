@@ -24,7 +24,7 @@ public class DigitCountTest() : BaseTest<Func<int, int>>(FloatingPointEvaluation
 		return count;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			if (n == 0)

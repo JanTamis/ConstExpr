@@ -27,7 +27,7 @@ public class LCMTest() : BaseTest<Func<int, int, int>>(FloatingPointEvaluationMo
 		return System.Math.Abs(a * b) / gcd;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			if (a == 0 || b == 0)

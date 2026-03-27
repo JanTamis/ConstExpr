@@ -12,7 +12,7 @@ public class IsAsciiLetterOrDigitTest() : BaseTest<Func<char, bool>>(FloatingPoi
 	public override string TestMethod => GetString(c =>
 		(c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'));
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Char.IsAsciiLetterOrDigit(c);", Unknown),
 		Create("return Char.IsAsciiLetterOrDigit(c);", '4'),

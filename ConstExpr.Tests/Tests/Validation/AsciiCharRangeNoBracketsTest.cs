@@ -15,7 +15,7 @@ public class AsciiCharRangeNoBracketsTest() : BaseTest<Func<char, bool>>(Floatin
 	public override string TestMethod => GetString(c =>
 		c >= '0' && c <= '9' || c >= 'a' && c <= 'f' || c >= 'A' && c <= 'F');
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Char.IsAsciiHexDigit(c);", Unknown),
 		Create("return Char.IsAsciiHexDigit(c);", '5'),
@@ -32,7 +32,7 @@ public class AsciiLetterNoBracketsTest() : BaseTest<Func<char, bool>>(FloatingPo
 	public override string TestMethod => GetString(c =>
 		c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z');
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Char.IsAsciiLetter(c);", Unknown),
 		Create("return Char.IsAsciiLetter(c);", 'm'),
@@ -48,7 +48,7 @@ public class AsciiLetterOrDigitNoBracketsTest() : BaseTest<Func<char, bool>>(Flo
 	public override string TestMethod => GetString(c =>
 		c >= '0' && c <= '9' || c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z');
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Char.IsAsciiLetterOrDigit(c);", Unknown),
 		Create("return Char.IsAsciiLetterOrDigit(c);", '7'),

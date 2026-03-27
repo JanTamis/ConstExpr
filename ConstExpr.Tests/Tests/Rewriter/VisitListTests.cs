@@ -14,7 +14,7 @@ public class VisitListTests : BaseTest<Action>
 		var c = 3;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return;")
 	];

@@ -16,7 +16,7 @@ public class PatternBitmaskTest() : BaseTest<Func<int, bool>>(FloatingPointEvalu
 		return n is 1 or 5 or 10 or 15 or 20;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return (uint)(n - 1) <= 19U && (0x84211 >> n - 1 & 1) != 0;", Unknown), // Unknown value
 		Create("return true;", 1),   // Match
@@ -42,7 +42,7 @@ public class PatternBitmaskLargeTest() : BaseTest<Func<int, bool>>(FloatingPoint
 		return n is 0 or 10 or 20 or 30 or 40 or 50 or 60;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return (uint)n <= 60U && (0x1004010040100401UL >> n & 1) != 0;", Unknown),
 		Create("return true;", 0),
@@ -68,7 +68,7 @@ public class PatternBitmaskSmallTest() : BaseTest<Func<int, bool>>(FloatingPoint
 		return n is 2 or 4 or 8;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return (uint)(n - 2) <= 6U && n & (n - 1) == 0;", Unknown),
 		Create("return true;", 2),
@@ -91,7 +91,7 @@ public class PatternBitmaskConsecutiveTest() : BaseTest<Func<int, bool>>(Floatin
 		return n is 5 or 6 or 7 or 8;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return (uint)(n - 5) <= 3U;", Unknown),
 		Create("return true;", 5),
@@ -114,7 +114,7 @@ public class PatternBitmaskByteTest() : BaseTest<Func<byte, bool>>(FloatingPoint
 		return n is 1 or 3 or 7;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return n - 1 <= 6 && (0x45 >> n - 1 & 1) != 0;", Unknown),
 		Create("return true;", (byte)1),

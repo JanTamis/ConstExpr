@@ -14,7 +14,7 @@ public class VisitInterpolatedStringExpressionTests : BaseTest<Func<int, (string
 		return (s, t);
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var s = $"Value: {x}";

@@ -7,7 +7,7 @@ public class ToUpperCaseTest() : BaseTest<Func<string, string>>(FloatingPointEva
 {
 	public override string TestMethod => GetString(s => s.ToUpper());
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown),
 		Create("return \"HELLO\";", "hello"),

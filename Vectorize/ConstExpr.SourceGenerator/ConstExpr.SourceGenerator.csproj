@@ -8,6 +8,7 @@
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 		<!--		<CompilerVisibleProperty Include="SgfAddModuleInitializerAttribute"/>-->
 		<IsRoslynAnalyzer>true</IsRoslynAnalyzer>
+<!--		<IsRoslynComponent>true</IsRoslynComponent>-->
 		<PolySharpExcludeGeneratedTypes>System.Runtime.CompilerServices.ModuleInitializerAttribute</PolySharpExcludeGeneratedTypes>
 		<RootNamespace>ConstExpr.SourceGenerator</RootNamespace>
 
@@ -24,6 +25,7 @@
 		<AssemblyName>ConstExpr.SourceGenerator</AssemblyName>
 		<IncludeBuildOutput>false</IncludeBuildOutput>
 		<PackageType>Analyzer</PackageType>
+		<UserSecretsId>74d4738d-412b-448f-ad36-cddd27e5d1ff</UserSecretsId>
 	</PropertyGroup>
 
 	<ItemGroup>

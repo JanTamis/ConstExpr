@@ -7,7 +7,7 @@ public class SquareTest() : BaseTest<Func<int, int>>(FloatingPointEvaluationMode
 {
 	public override string TestMethod => GetString(n => n * n);
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown),
 		Create("return 25;", 5),

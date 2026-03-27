@@ -8,7 +8,7 @@ public class VisitArgumentTests : BaseTest<Func<string, string, string, string>>
 {
 	public override string TestMethod => GetString((a, b, c) => System.String.Concat(a, b, c));
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return String.Concat(a, b, c);", Unknown, Unknown, Unknown),
 		Create("return \"abc\";", "a", "b", "c"),

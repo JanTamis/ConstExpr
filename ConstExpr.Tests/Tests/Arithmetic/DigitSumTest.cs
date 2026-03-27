@@ -23,7 +23,7 @@ public class DigitSumTest() : BaseTest<Func<int, int>>(FloatingPointEvaluationMo
 		return sum;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown),
 		Create("return 6;", 123),

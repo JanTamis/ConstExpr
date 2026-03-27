@@ -36,7 +36,7 @@ public class LinqElementAtOrDefaultOptimizationTests : BaseTest<Func<int[], int>
 		return a + b + c + d + e + f + g + h;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var a = x.Length > 0 ? x[0] : 0;
@@ -82,7 +82,7 @@ public class LinqElementAtOrDefaultOptimizationListTests : BaseTest<Func<List<in
 		return a + b + c + d + e;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var a = x.Count > 0 ? x[0] : 0;
@@ -131,7 +131,7 @@ public class LinqElementAtOrDefaultSkipOptimizationTests : BaseTest<Func<int[], 
 		return a + b + c + d + e + f + g;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var a = x.Length > 1 ? x[1] : 0;
@@ -178,7 +178,7 @@ public class LinqElementAtOrDefaultNoOptimizationTests : BaseTest<Func<int[], in
 		return a + b + c + d + e + f;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var a = Min_BJMt_Q(x);

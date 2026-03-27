@@ -16,7 +16,7 @@ public class VisitLocalDeclarationStatementTests : BaseTest<Func<int, int, (int,
 		return (a, b, c, d);
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var d = 6 + x;

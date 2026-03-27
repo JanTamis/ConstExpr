@@ -17,7 +17,7 @@ public class VisitIdentifierNameTests : BaseTest<Func<int, int, (int, int, int, 
 		return (a, b, c, d, e);
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var c = x + 1;

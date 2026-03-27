@@ -7,7 +7,7 @@ public class MinOfTwoTest() : BaseTest<Func<int, int, int>>(FloatingPointEvaluat
 {
 	public override string TestMethod => GetString((a, b) => a < b ? a : b);
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Int32.Min(a, b);", Unknown, Unknown),
 		Create("return 5;", 5, 10),

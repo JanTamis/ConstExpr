@@ -17,7 +17,7 @@ public class ArraySumTest() : BaseTest<Func<int[], int>>(FloatingPointEvaluation
 		return sum;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown),
 		Create("return 15;", new[] { 1, 2, 3, 4, 5 }),

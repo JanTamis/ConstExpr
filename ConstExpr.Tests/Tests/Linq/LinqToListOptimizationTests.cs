@@ -20,7 +20,7 @@ public class LinqToListOptimizationTests : BaseTest<Func<int[], int>>
 		return a + b + c;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var a = x.Length;
@@ -48,7 +48,7 @@ public class LinqWhereToListOptimizationTests : BaseTest<Func<List<int>, int>>
 		return a;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var a = x.FindAll(v => v > 2).Count;
@@ -74,7 +74,7 @@ public class LinqSelectWhereToListOptimizationTests : BaseTest<Func<List<int>, i
 		return a;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var a = x.FindAll(v => v << 1 > 4).Count;

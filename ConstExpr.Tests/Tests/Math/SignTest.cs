@@ -20,7 +20,7 @@ public class SignTest() : BaseTest<Func<int, int>>(FloatingPointEvaluationMode.F
 		return 0;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown),
 		Create("return 1;", 100),

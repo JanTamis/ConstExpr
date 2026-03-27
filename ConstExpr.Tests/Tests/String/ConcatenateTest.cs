@@ -7,7 +7,7 @@ public class ConcatenateTest() : BaseTest<Func<string, string, string>>(Floating
 {
 	public override string TestMethod => GetString((a, b) => a + b);
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown, Unknown),
 		Create("return \"helloworld\";", "hello", "world"),

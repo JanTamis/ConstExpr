@@ -22,7 +22,7 @@ public class ArrayReverseTest() : BaseTest<Func<int[], int[]>>(FloatingPointEval
 		return arr;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown),
 		Create("return [5, 4, 3, 2, 1];", new[] { 1, 2, 3, 4, 5 }),

@@ -7,7 +7,7 @@ public class SumOfFirstNTest() : BaseTest<Func<int, int>>(FloatingPointEvaluatio
 {
 	public override string TestMethod => GetString(n => n * (n + 1) / 2);
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown),
 		Create("return 55;", 10),

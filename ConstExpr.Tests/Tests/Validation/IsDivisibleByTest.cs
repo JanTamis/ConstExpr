@@ -7,7 +7,7 @@ public class IsDivisibleByTest() : BaseTest<Func<int, int, bool>>(FloatingPointE
 {
 	public override string TestMethod => GetString((n, divisor) => divisor != 0 && n % divisor == 0);
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown, Unknown),
 		Create("return true;", 10, 5),

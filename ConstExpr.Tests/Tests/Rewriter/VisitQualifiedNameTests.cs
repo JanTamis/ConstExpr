@@ -8,7 +8,7 @@ public class VisitQualifiedNameTests : BaseTest<Func<string>>
 {
 	public override string TestMethod => GetString(() => System.String.Empty);
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return \"\";")
 	];

@@ -7,7 +7,7 @@ public class DivideByPowerOfTwoTest() : BaseTest<Func<int, int, int>>(FloatingPo
 {
 	public override string TestMethod => GetString((n, power) => n >> power);
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown, Unknown),
 		Create("return 2;", 10, 2),

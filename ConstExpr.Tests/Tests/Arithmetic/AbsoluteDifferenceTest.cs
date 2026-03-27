@@ -12,7 +12,7 @@ public class AbsoluteDifferenceTest() : BaseTest<Func<int, int, int>>(FloatingPo
 		return diff < 0 ? -diff : diff;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown, Unknown),
 		Create("return 5;", 10, 5),

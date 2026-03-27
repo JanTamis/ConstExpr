@@ -28,7 +28,7 @@ public class CountDigitsTest() : BaseTest<Func<int, int>>(FloatingPointEvaluatio
 		return count;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown),
 		Create("return 3;", 123),

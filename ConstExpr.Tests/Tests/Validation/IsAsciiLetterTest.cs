@@ -12,7 +12,7 @@ public class IsAsciiLetterTest() : BaseTest<Func<char, bool>>(FloatingPointEvalu
 	public override string TestMethod => GetString(c =>
 		(c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'));
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Char.IsAsciiLetter(c);", Unknown),
 		Create("return Char.IsAsciiLetter(c);", 'm'),

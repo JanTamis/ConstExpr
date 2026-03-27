@@ -26,7 +26,7 @@ public class LinqMinOptimizationTests : BaseTest<Func<int[], int>>
 		return a + b + c + d + e;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var a = Min_BJMt_Q(x);

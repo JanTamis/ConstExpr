@@ -34,7 +34,7 @@ public class LinqElementAtOptimizationTests : BaseTest<Func<int[], int>>
 		return a + b + c + d + e + f + g;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var a = x[0];
@@ -76,7 +76,7 @@ public class LinqElementAtOptimizationListTests : BaseTest<Func<List<int>, int>>
 		return a + b + c + d;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var a = x[0];
@@ -122,7 +122,7 @@ public class LinqElementAtSkipOptimizationTests : BaseTest<Func<int[], int>>
 		return a + b + c + d + e + f;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var a = x[1];
@@ -170,7 +170,7 @@ public class LinqElementAtNoOptimizationTests : BaseTest<Func<int[], int>>
 		return a + b + c + d + e + f;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var a = Min_BJMt_Q(x);

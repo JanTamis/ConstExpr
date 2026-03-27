@@ -35,7 +35,7 @@ public class VisitIfStatementTests : BaseTest<Func<bool, int, int, (int, int, in
 		return (a, b, c, d);
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var c;

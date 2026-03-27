@@ -55,7 +55,7 @@ public class LinqAnyOptimizationTests : BaseTest<Func<int[], int>>
 		return a + b + c + d + e + f + g + h + i + j + k + l + m + n + o + p;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var a = Array.Exists(x, v => v > 3) || x.Count > 0 ? 1 : 0;
@@ -108,7 +108,7 @@ public class LinqAnyOptimizationListTests : BaseTest<Func<List<int>, int>>
 		return a + b + c + d + e + f;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var a = x.Exists(v => v > 3) ? 1 : 0;

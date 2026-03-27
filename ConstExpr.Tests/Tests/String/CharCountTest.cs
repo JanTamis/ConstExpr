@@ -25,7 +25,7 @@ public class CharCountTest() : BaseTest<Func<string?, char, int>>(FloatingPointE
 		return count;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			if (String.IsNullOrEmpty(text))

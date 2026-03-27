@@ -7,7 +7,7 @@ public class CubeTest() : BaseTest<Func<int, int>>(FloatingPointEvaluationMode.F
 {
 	public override string TestMethod => GetString(n => n * n * n);
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown),
 		Create("return 125;", 5),

@@ -15,7 +15,7 @@ public class IsPowerOfTwoTest() : BaseTest<Func<int, bool>>(FloatingPointEvaluat
 		return (n & n - 1) == 0;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			if (n <= 0)

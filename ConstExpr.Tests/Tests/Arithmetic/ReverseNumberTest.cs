@@ -21,7 +21,7 @@ public class ReverseNumberTest() : BaseTest<Func<int, int>>(FloatingPointEvaluat
 		return Int32.CopySign(reversed, originalN);
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
 			var originalN = n;

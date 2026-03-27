@@ -20,7 +20,7 @@ public class ClampTest() : BaseTest<Func<int, int, int, int>>(FloatingPointEvalu
 		return value;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown, Unknown, Unknown),
 		Create("return 5;", 5, 0, 10),

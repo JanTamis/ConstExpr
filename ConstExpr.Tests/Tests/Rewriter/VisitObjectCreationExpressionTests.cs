@@ -14,7 +14,7 @@ public class VisitObjectCreationExpressionTests : BaseTest<Func<int, char[], (st
 		return (s1, s2);
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		// When values are unknown, keep the original code unchanged
 		Create(null, Unknown, Unknown),

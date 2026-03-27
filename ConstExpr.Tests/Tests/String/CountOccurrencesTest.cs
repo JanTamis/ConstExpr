@@ -20,7 +20,7 @@ public class CountOccurrencesTest() : BaseTest<Func<int, int[], int>>(FloatingPo
 		return count;
 	});
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown, Unknown),
 		Create("return 4;", 5, new[] { 5, 5, 10, 5, 20, 5 }),

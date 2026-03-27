@@ -7,7 +7,7 @@ public class CelsiusToFahrenheitTest() : BaseTest<Func<double, double>>(Floating
 {
 	public override string TestMethod => GetString(celsius => celsius * 9 / 5 + 32);
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> Result =>
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Double.MultiplyAddEstimate(celsius, 1.8, 32D);", Unknown),
 		Create("return 32D;", 0.0),

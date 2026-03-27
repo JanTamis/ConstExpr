@@ -84,9 +84,10 @@ public partial class ConstExprPartialRewriter
 			if (hasLeftValue && hasRightValue)
 			{
 				if (operation.OperatorMethod is not null
-				    && loader.TryExecuteMethod(operation.OperatorMethod, null, new VariableItemDictionary(variables), [ leftValue, rightValue ], out var result))
+				    && loader.TryExecuteMethod(operation.OperatorMethod, null, new VariableItemDictionary(variables), [ leftValue, rightValue ], out var result)
+				    && TryCreateLiteral(result, out var literal))
 				{
-					return CreateLiteral(result);
+					return literal;
 				}
 
 				return CreateLiteral(ObjectExtensions.ExecuteBinaryOperation(node.Kind(), leftValue, rightValue));
@@ -100,17 +101,17 @@ public partial class ConstExprPartialRewriter
 				
 				if (TryOptimizeBinaryExpression(operation, expressions, leftExpr, rightExpr, node.Parent, out var optimized))
 				{
-					if (node.Parent is not BinaryExpressionSyntax 
-					    && optimized is IsPatternExpressionSyntax pattern
-					    && TryOptimizePattern(pattern, out var result))
-					{
-						return result;
-					}
-
-					// Strip unnecessary parentheses from the optimized result
-					// since the context may have changed (e.g., (x + y) * 1 becomes just (x + y),
-					// but parens around x + y are no longer needed in assignment context)
-					return StripUnnecessaryParentheses(optimized);
+					return Visit(optimized);
+					// if (node.Parent is not BinaryExpressionSyntax 
+					//     && optimized is IsPatternExpressionSyntax pattern)
+					// {
+					// 	return VisitIsPatternExpression(pattern);
+					// }
+					//
+					// // Strip unnecessary parentheses from the optimized result
+					// // since the context may have changed (e.g., (x + y) * 1 becomes just (x + y),
+					// // but parens around x + y are no longer needed in assignment context)
+					// return StripUnnecessaryParentheses(optimized);
 				}
 
 				return node
@@ -145,7 +146,6 @@ public partial class ConstExprPartialRewriter
 			    && TryCreateLiteral(ObjectExtensions.ExecuteBinaryOperation(node.Kind(), leftLiteral.Token.Value, rightLiteral.Token.Value), out var literal))
 			{
 				return literal;
-
 			}
 		}
 
@@ -187,12 +187,11 @@ public partial class ConstExprPartialRewriter
 	/// <summary>
 	/// Handles the "is" type expression (e.g., obj is int).
 	/// </summary>
-	private SyntaxNode? VisitIsTypeExpression(BinaryExpressionSyntax node)
+	private SyntaxNode VisitIsTypeExpression(BinaryExpressionSyntax node)
 	{
 		var visitedLeft = Visit(node.Left);
-		var exprToEvaluate = visitedLeft;
 
-		if (TryGetConstantValue(semanticModel.Compilation, loader, exprToEvaluate, new VariableItemDictionary(variables), token, out var value)
+		if (TryGetConstantValue(semanticModel.Compilation, loader, visitedLeft, new VariableItemDictionary(variables), token, out var value)
 		    && GetTypeFromRightSide(node.Right) is { } typeInfo
 		    && IsTypeMatchForBinaryIs(typeInfo, value) is { } result)
 		{
@@ -1057,12 +1056,7 @@ public partial class ConstExprPartialRewriter
 
 		object? GetOneLiteral(ITypeSymbol typeSymbol)
 		{
-			if (typeSymbol.SpecialType == SpecialType.System_Char)
-			{
-				return 1;
-			}
-
-			return 1.ToSpecialType(typeSymbol.SpecialType);
+			return typeSymbol.SpecialType == SpecialType.System_Char ? 1 : 1.ToSpecialType(typeSymbol.SpecialType);
 		}
 	}
 
