@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using ConstExpr.SourceGenerator.Models;
@@ -49,6 +50,18 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 		// For tracked variables, must have a constant value and not be altered
 		return variable.HasValue && !variable.IsAltered;
 	}
+
+  public override SyntaxNode? Visit(SyntaxNode? node)
+  {
+		try
+		{
+			return base.Visit(node);
+		}
+		catch (Exception)
+		{
+			return node;
+		}
+  }
 
 	#region Statement Pruning
 

@@ -21,6 +21,7 @@ public static class CryptographyOperations
 		{
 			checksum ^= b;
 		}
+
 		return checksum;
 	}
 
