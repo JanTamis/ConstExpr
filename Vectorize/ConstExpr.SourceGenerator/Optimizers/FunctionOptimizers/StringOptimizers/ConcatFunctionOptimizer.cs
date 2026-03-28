@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
-using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -16,17 +16,12 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 	/// - Rebuilds the context.Invocation targeting the resolved string type/helper when changes are made.
 	/// </summary>
 	/// <param name="instance">Optional syntax node instance provided by the optimizer infrastructure; may be null.</param>
-	public class ConcatFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "Concat")
+	public class ConcatFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "Concat", true, 0, 1, 2, 3, 4)
 	{
-		public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
+		protected override bool TryOptimizeString(FunctionOptimizerContext context, ITypeSymbol stringType, [NotNullWhen(true)] out SyntaxNode? result)
 		{
 			result = null;
-
-			if (!IsValidMethod(context.Method, out var stringType) || !context.Method.IsStatic)
-			{
-				return false;
-			}
-
+			
 			// If no arguments -> empty string
 			if (context.VisitedParameters.Count == 0)
 			{
@@ -43,14 +38,18 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 				switch (p)
 				{
 					case LiteralExpressionSyntax les when les.IsKind(SyntaxKind.StringLiteralExpression):
+					{
 						// Use Token.ValueText to get unescaped text
 						literalBuffer.Append(les.Token.ValueText);
 						break;
+					}
 					default:
+					{
 						// Non-literal: flush buffer and add parameter as-is
 						FlushBuffer();
 						newParams.Add(p);
 						break;
+					}
 				}
 			}
 

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -12,7 +13,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 /// - s.ToUpperInvariant().ToUpperInvariant() → s.ToUpperInvariant()
 /// - s.ToLowerInvariant().ToLowerInvariant() → s.ToLowerInvariant()
 /// </summary>
-public class CaseFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "ToUpper")
+public class CaseFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "ToUpper", false, 0)
 {
 	private static readonly HashSet<string> CaseMethods =
 	[
@@ -22,10 +23,10 @@ public class CaseFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOpt
 		"ToLowerInvariant"
 	];
 
-	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
+	protected override bool TryOptimizeString(FunctionOptimizerContext context, ITypeSymbol stringType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		result = null;
-
+		
 		var methodName = context.Method.Name;
 
 		if (!CaseMethods.Contains(methodName))
@@ -33,16 +34,10 @@ public class CaseFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOpt
 			return false;
 		}
 
-		if (context.Method.IsStatic || context.VisitedParameters.Count > 0)
-		{
-			return false;
-		}
-
 		// Check if instance is already a case conversion call of the same type
-		if (Instance is InvocationExpressionSyntax innerInvocation &&
-		    innerInvocation.Expression is MemberAccessExpressionSyntax innerMemberAccess &&
-		    innerMemberAccess.Name.Identifier.Text == methodName &&
-		    innerInvocation.ArgumentList.Arguments.Count == 0)
+		if (Instance is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax innerMemberAccess } innerInvocation
+		    && innerMemberAccess.Name.Identifier.Text == methodName
+		    && innerInvocation.ArgumentList.Arguments.Count == 0)
 		{
 			// s.ToUpper().ToUpper() → s.ToUpper()
 			result = innerInvocation;

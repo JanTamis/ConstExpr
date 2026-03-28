@@ -1,4 +1,3 @@
-using System.Numerics;
 using ConstExpr.Core.Enumerators;
 
 namespace ConstExpr.Tests.Optimization;

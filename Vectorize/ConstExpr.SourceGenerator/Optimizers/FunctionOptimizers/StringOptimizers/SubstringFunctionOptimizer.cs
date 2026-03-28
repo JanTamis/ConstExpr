@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -13,74 +14,73 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 	/// - Rewrites the context.Invocation to use range/element access expressions when appropriate while preserving semantics.
 	/// </summary>
 	/// <param name="instance">Optional syntax node instance provided by the optimizer infrastructure; may be null.</param>
-	public class SubstringFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "Substring")
+	public class SubstringFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "Substring", false, 1, 2)
 	{
-		public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
+		protected override bool TryOptimizeString(FunctionOptimizerContext context, ITypeSymbol stringType, [NotNullWhen(true)] out SyntaxNode? result)
 		{
 			result = null;
 
-			if (!IsValidMethod(context.Method, out var stringType))
+			switch (context.Method.Parameters.Length)
 			{
-				return false;
-			}
+				case 1:
+				{
+					var targetExpr = instance as ExpressionSyntax ?? (context.Invocation.Expression is MemberAccessExpressionSyntax m ? m.Expression : null);
 
-			if (context.Method.Parameters.Length == 1)
-			{
-				var targetExpr = instance as ExpressionSyntax ?? (context.Invocation.Expression is MemberAccessExpressionSyntax m ? m.Expression : null);
+					if (targetExpr == null)
+					{
+						return false;
+					}
 
-				if (targetExpr == null)
+					var range = RangeExpression(context.VisitedParameters[0], null);
+					var bracketedArgs = BracketedArgumentList(SingletonSeparatedList(Argument(range)));
+
+					result = ElementAccessExpression(targetExpr, bracketedArgs);
+					return true;
+				}
+				case 2:
+				{
+					var targetExpr = instance as ExpressionSyntax ?? (context.Invocation.Expression is MemberAccessExpressionSyntax m ? m.Expression : null);
+
+					if (targetExpr == null)
+					{
+						return false;
+					}
+
+					var start = context.VisitedParameters[0];
+					var length = context.VisitedParameters[1];
+
+					var toExpr = AddExpression(length, start);
+					var range = RangeExpression(start, ParenthesizedExpression(toExpr));
+
+					// If length is a constant 0, return empty string literal
+					if (length is LiteralExpressionSyntax lengthLit && lengthLit.IsKind(SyntaxKind.NumericLiteralExpression))
+					{
+						if (lengthLit.Token.Value is 0)
+						{
+							result = LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(String.Empty));
+							return true;
+						}
+					}
+
+					// If start is a constant 0, use the `..to` range form
+					if (start is LiteralExpressionSyntax startLit && startLit.IsKind(SyntaxKind.NumericLiteralExpression))
+					{
+						if (startLit.Token.Value is 0)
+						{
+							range = RangeExpression(null, length);
+						}
+					}
+
+					var bracketedArgs = BracketedArgumentList(SingletonSeparatedList(Argument(range)));
+
+					result = ElementAccessExpression(targetExpr, bracketedArgs);
+					return true;
+				}
+				default:
 				{
 					return false;
 				}
-
-				var range = RangeExpression(context.VisitedParameters[0], null);
-				var bracketedArgs = BracketedArgumentList(SingletonSeparatedList(Argument(range)));
-
-				result = ElementAccessExpression(targetExpr, bracketedArgs);
-				return true;
 			}
-
-			if (context.Method.Parameters.Length == 2)
-			{
-				var targetExpr = instance as ExpressionSyntax ?? (context.Invocation.Expression is MemberAccessExpressionSyntax m ? m.Expression : null);
-
-				if (targetExpr == null)
-				{
-					return false;
-				}
-
-				var start = context.VisitedParameters[0];
-				var length = context.VisitedParameters[1];
-
-				var toExpr = AddExpression(length, start);
-				var range = RangeExpression(start, ParenthesizedExpression(toExpr));
-
-				// If length is a constant 0, return empty string literal
-				if (length is LiteralExpressionSyntax lengthLit && lengthLit.IsKind(SyntaxKind.NumericLiteralExpression))
-				{
-					if (lengthLit.Token.Value is 0)
-					{
-						result = LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(String.Empty));
-						return true;
-					}
-				}
-			
-				// If start is a constant 0, use the `..to` range form
-				if (start is LiteralExpressionSyntax startLit && startLit.IsKind(SyntaxKind.NumericLiteralExpression))
-				{
-					if (startLit.Token.Value is 0)
-					{
-						range = RangeExpression(null, length);
-					}
-				}
-			
-				var bracketedArgs = BracketedArgumentList(SingletonSeparatedList(Argument(range)));
-
-				result = ElementAccessExpression(targetExpr, bracketedArgs);
-				return true;
-			}
-
-			return false;
 		}
 	}
 }

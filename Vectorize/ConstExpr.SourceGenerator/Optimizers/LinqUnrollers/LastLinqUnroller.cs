@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using ConstExpr.SourceGenerator.Extensions;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;

@@ -1,24 +1,21 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 
-public class EndsWithFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "EndsWith")
+/// <summary>
+/// Optimizer for string.EndsWith(char) calls.
+/// </summary>
+public class EndsWithFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "EndsWith", false, 1)
 {
-	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
+	protected override bool TryOptimizeString(FunctionOptimizerContext context, ITypeSymbol stringType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		result = null;
 
-		if (!IsValidMethod(context.Method, out var stringType))
-		{
-			return false;
-		}
-
 		// Check for instance string
-		if (!TryGetStringInstance(out var instanceString) 
-		    || context.VisitedParameters.Count != 1)
+		if (!TryGetStringInstance(out var instanceString))
 		{
 			return false;
 		}
@@ -30,8 +27,8 @@ public class EndsWithFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctio
 				result = CreateLiteral(false);
 				return true;
 			}
-			
-			result = EqualsExpression(CreateLiteral(instanceString[^1]), context.VisitedParameters[0]);
+
+			result = EqualsExpression(CreateLiteral(instanceString![^1]), context.VisitedParameters[0]);
 			return true;
 		}
 

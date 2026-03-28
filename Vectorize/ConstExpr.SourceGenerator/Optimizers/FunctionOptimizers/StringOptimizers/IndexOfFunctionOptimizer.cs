@@ -1,5 +1,5 @@
 using System;
-using ConstExpr.SourceGenerator.Helpers;
+using System.Diagnostics.CodeAnalysis;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -12,16 +12,11 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 /// - "hello".IndexOf("ell") → 1
 /// - "hello".IndexOf("world") → -1
 /// </summary>
-public class IndexOfFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "IndexOf")
+public class IndexOfFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "IndexOf", false, 1)
 {
-	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
+	protected override bool TryOptimizeString(FunctionOptimizerContext context, ITypeSymbol stringType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		result = null;
-
-		if (!IsValidMethod(context.Method, out _) || context.Method.IsStatic || context.VisitedParameters.Count < 1)
-		{
-			return false;
-		}
 
 		if (!TryGetStringInstance(out var str) || str is null)
 		{
@@ -35,12 +30,12 @@ public class IndexOfFunctionOptimizer(SyntaxNode? instance) : BaseStringFunction
 
 		if (literal.IsKind(SyntaxKind.StringLiteralExpression))
 		{
-			var substring = literal.Token.ValueText;
-			result = CreateLiteral(str.IndexOf(substring, StringComparison.Ordinal));
+			result = CreateLiteral(str.IndexOf(literal.Token.ValueText, StringComparison.Ordinal));
 			return true;
 		}
 
-		if (literal.IsKind(SyntaxKind.CharacterLiteralExpression) && literal.Token.Value is char c)
+		if (literal.IsKind(SyntaxKind.CharacterLiteralExpression) 
+		    && literal.Token.Value is char c)
 		{
 			result = CreateLiteral(str.IndexOf(c));
 			return true;

@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using ConstExpr.Core.Enumerators;
 
 namespace ConstExpr.Tests.Math;

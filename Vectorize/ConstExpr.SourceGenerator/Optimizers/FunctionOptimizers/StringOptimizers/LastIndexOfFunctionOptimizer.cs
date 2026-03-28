@@ -1,5 +1,5 @@
 using System;
-using ConstExpr.SourceGenerator.Helpers;
+using System.Diagnostics.CodeAnalysis;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -12,17 +12,12 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 /// - "hello".LastIndexOf("l") → 3
 /// - "hello".LastIndexOf("world") → -1
 /// </summary>
-public class LastIndexOfFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "LastIndexOf")
+public class LastIndexOfFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "LastIndexOf", false, 1)
 {
-	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
+	protected override bool TryOptimizeString(FunctionOptimizerContext context, ITypeSymbol stringType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		result = null;
-
-		if (!IsValidMethod(context.Method, out _) || context.Method.IsStatic || context.VisitedParameters.Count < 1)
-		{
-			return false;
-		}
-
+		
 		if (!TryGetStringInstance(out var str) || str is null)
 		{
 			return false;
@@ -35,8 +30,7 @@ public class LastIndexOfFunctionOptimizer(SyntaxNode? instance) : BaseStringFunc
 
 		if (literal.IsKind(SyntaxKind.StringLiteralExpression))
 		{
-			var substring = literal.Token.ValueText;
-			result = CreateLiteral(str.LastIndexOf(substring, StringComparison.Ordinal));
+			result = CreateLiteral(str.LastIndexOf(literal.Token.ValueText, StringComparison.Ordinal));
 			return true;
 		}
 

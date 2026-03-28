@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
 using ConstExpr.SourceGenerator.Models;
@@ -16,19 +17,14 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 	/// - If conversion to an interpolated string is not possible or safe, the optimizer will not claim a change.
 	/// </summary>
 	/// <param name="instance">Optional syntax node instance provided by the optimizer infrastructure; may be null.</param>
-	public class FormatFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "Format")
+	public class FormatFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "Format", true, 2, 3, 4, 5)
 	{
-		public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
+		protected override bool TryOptimizeString(FunctionOptimizerContext context, ITypeSymbol stringType, [NotNullWhen(true)] out SyntaxNode? result)
 		{
 			result = null;
 
-			if (!IsValidMethod(context.Method, out var stringType) || !context.Method.IsStatic)
-			{
-				return false;
-			}
-
 			// For simplicity, do not handle overloads that take an IFormatProvider
-			if (context.Method.Parameters.Length > 0 && context.Method.Parameters[0].Type.Name == "IFormatProvider")
+			if (context.Method.Parameters[0].Type.Name == "IFormatProvider")
 			{
 				return false;
 			}
@@ -40,7 +36,8 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 				return false;
 			}
 
-			if (context.VisitedParameters[formatIndex] is not LiteralExpressionSyntax formatLiteral || !formatLiteral.IsKind(SyntaxKind.StringLiteralExpression))
+			if (context.VisitedParameters[formatIndex] is not LiteralExpressionSyntax formatLiteral 
+			    || !formatLiteral.IsKind(SyntaxKind.StringLiteralExpression))
 			{
 				return false;
 			}
@@ -187,9 +184,9 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 			{
 				var ch = formatString[pos];
 
-				if (ch == '{')
+				switch (ch)
 				{
-					if (pos + 1 < formatString.Length && formatString[pos + 1] == '{')
+					case '{' when pos + 1 < formatString.Length && formatString[pos + 1] == '{':
 					{
 						// Escaped open brace
 						contentBuilder.Append('{');
@@ -197,118 +194,118 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 
 						continue;
 					}
-
 					// Placeholder
-					pos++;
-					var startIdx = pos;
-
-					while (pos < formatString.Length && Char.IsDigit(formatString[pos]))
+					case '{':
 					{
 						pos++;
-					}
+						var startIdx = pos;
 
-					if (pos == startIdx)
-					{
-						return false; // invalid placeholder
-					}
-
-					var idxText = formatString.Substring(startIdx, pos - startIdx);
-
-					if (!Int32.TryParse(idxText, NumberStyles.None, CultureInfo.InvariantCulture, out var argIndex))
-					{
-						return false;
-					}
-
-					// optional alignment
-					var alignmentPart = String.Empty;
-
-					if (pos < formatString.Length && formatString[pos] == ',')
-					{
-						var alignStart = pos;
-
-						pos++; // skip comma
-
-						while (pos < formatString.Length && formatString[pos] != ':' && formatString[pos] != '}')
+						while (pos < formatString.Length && Char.IsDigit(formatString[pos]))
 						{
 							pos++;
 						}
 
-						alignmentPart = formatString.Substring(alignStart, pos - alignStart);
-					}
-
-					// optional format
-					var formatPart = string.Empty;
-
-					if (pos < formatString.Length && formatString[pos] == ':')
-					{
-						pos++; // skip ':'
-						var fmtStart = pos;
-
-						while (pos < formatString.Length && formatString[pos] != '}')
+						if (pos == startIdx)
 						{
-							pos++;
+							return false; // invalid placeholder
 						}
 
-						if (pos >= formatString.Length)
+						var idxText = formatString.Substring(startIdx, pos - startIdx);
+
+						if (!Int32.TryParse(idxText, NumberStyles.None, CultureInfo.InvariantCulture, out var argIndex))
 						{
 							return false;
 						}
 
-						formatPart = formatString.Substring(fmtStart, pos - fmtStart);
+						// optional alignment
+						var alignmentPart = String.Empty;
+
+						if (pos < formatString.Length && formatString[pos] == ',')
+						{
+							var alignStart = pos;
+
+							pos++; // skip comma
+
+							while (pos < formatString.Length && formatString[pos] != ':' && formatString[pos] != '}')
+							{
+								pos++;
+							}
+
+							alignmentPart = formatString.Substring(alignStart, pos - alignStart);
+						}
+
+						// optional format
+						var formatPart = string.Empty;
+
+						if (pos < formatString.Length && formatString[pos] == ':')
+						{
+							pos++; // skip ':'
+							var fmtStart = pos;
+
+							while (pos < formatString.Length && formatString[pos] != '}')
+							{
+								pos++;
+							}
+
+							if (pos >= formatString.Length)
+							{
+								return false;
+							}
+
+							formatPart = formatString.Substring(fmtStart, pos - fmtStart);
+						}
+
+						if (pos >= formatString.Length || formatString[pos] != '}')
+						{
+							return false;
+						}
+
+						pos++; // skip '}'
+
+						if (argIndex < 0 || argIndex >= argExpressions.Count)
+						{
+							return false; // invalid index
+						}
+
+						var exprText = argExpressions[argIndex].ToFullString().Trim();
+
+						contentBuilder.Append('{');
+						contentBuilder.Append(exprText);
+
+						if (!String.IsNullOrEmpty(alignmentPart))
+						{
+							contentBuilder.Append(alignmentPart);
+						}
+
+						if (!String.IsNullOrEmpty(formatPart))
+						{
+							contentBuilder.Append(':');
+							// formatPart may contain '"' or '\\', we'll escape later when building the literal
+							contentBuilder.Append(formatPart);
+						}
+
+						contentBuilder.Append('}');
+						continue;
 					}
-
-					if (pos >= formatString.Length || formatString[pos] != '}')
-					{
-						return false;
-					}
-
-					pos++; // skip '}'
-
-					if (argIndex < 0 || argIndex >= argExpressions.Count)
-					{
-						return false; // invalid index
-					}
-
-					var exprText = argExpressions[argIndex].ToFullString().Trim();
-
-					contentBuilder.Append('{');
-					contentBuilder.Append(exprText);
-
-					if (!String.IsNullOrEmpty(alignmentPart))
-					{
-						contentBuilder.Append(alignmentPart);
-					}
-
-					if (!String.IsNullOrEmpty(formatPart))
-					{
-						contentBuilder.Append(':');
-						// formatPart may contain '"' or '\\', we'll escape later when building the literal
-						contentBuilder.Append(formatPart);
-					}
-
-					contentBuilder.Append('}');
-					continue;
-				}
-
-				if (ch == '}')
-				{
-					if (pos + 1 < formatString.Length && formatString[pos + 1] == '}')
+					case '}' when pos + 1 < formatString.Length && formatString[pos + 1] == '}':
 					{
 						contentBuilder.Append('}');
 						pos += 2;
 
 						continue;
 					}
-
-					return false; // unmatched '}'
+					case '}':
+					{
+						return false; // unmatched '}'
+					}
+					// regular char: escape backslash and double-quote for inclusion in a double-quoted string
+					case '"' or '\\':
+					{
+						contentBuilder.Append('\\');
+						break;
+					}
 				}
 
-				// regular char: escape backslash and double-quote for inclusion in a double-quoted string
-				if (ch is '"' or '\\')
-				{
-					contentBuilder.Append('\\');
-				}
-				
 				contentBuilder.Append(ch);
 
 				pos++;

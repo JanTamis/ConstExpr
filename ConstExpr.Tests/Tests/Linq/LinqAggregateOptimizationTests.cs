@@ -1,5 +1,3 @@
-using ConstExpr.Core.Attributes;
-
 namespace ConstExpr.Tests.Tests.Linq;
 
 /// <summary>

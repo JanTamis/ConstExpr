@@ -1,4 +1,4 @@
-using ConstExpr.SourceGenerator.Helpers;
+using System.Diagnostics.CodeAnalysis;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -9,16 +9,11 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 /// <summary>
 /// Optimizes string.IsNullOrWhiteSpace(literal) to true/false.
 /// </summary>
-public class IsNullOrWhiteSpaceFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "IsNullOrWhiteSpace")
+public class IsNullOrWhiteSpaceFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "IsNullOrWhiteSpace", true, 1)
 {
-	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
+	protected override bool TryOptimizeString(FunctionOptimizerContext context, ITypeSymbol stringType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		result = null;
-
-		if (!IsValidMethod(context.Method, out _) || !context.Method.IsStatic || context.VisitedParameters.Count != 1)
-		{
-			return false;
-		}
 
 		if (context.VisitedParameters[0] is not LiteralExpressionSyntax literal)
 		{
@@ -33,8 +28,7 @@ public class IsNullOrWhiteSpaceFunctionOptimizer(SyntaxNode? instance) : BaseStr
 
 		if (literal.IsKind(SyntaxKind.StringLiteralExpression))
 		{
-			var str = literal.Token.ValueText;
-			result = CreateLiteral(string.IsNullOrWhiteSpace(str));
+			result = CreateLiteral(string.IsNullOrWhiteSpace(literal.Token.ValueText));
 			return true;
 		}
 

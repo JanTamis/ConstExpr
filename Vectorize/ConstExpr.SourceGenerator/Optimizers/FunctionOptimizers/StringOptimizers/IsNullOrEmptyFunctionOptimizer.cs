@@ -1,4 +1,5 @@
-using ConstExpr.SourceGenerator.Helpers;
+using System;
+using System.Diagnostics.CodeAnalysis;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -9,16 +10,11 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 /// <summary>
 /// Optimizes string.IsNullOrEmpty(literal) to true/false.
 /// </summary>
-public class IsNullOrEmptyFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "IsNullOrEmpty")
+public class IsNullOrEmptyFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "IsNullOrEmpty", true, 1)
 {
-	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
+	protected override bool TryOptimizeString(FunctionOptimizerContext context, ITypeSymbol stringType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		result = null;
-
-		if (!IsValidMethod(context.Method, out _) || !context.Method.IsStatic || context.VisitedParameters.Count != 1)
-		{
-			return false;
-		}
 
 		if (context.VisitedParameters[0] is not LiteralExpressionSyntax literal)
 		{
@@ -33,8 +29,7 @@ public class IsNullOrEmptyFunctionOptimizer(SyntaxNode? instance) : BaseStringFu
 
 		if (literal.IsKind(SyntaxKind.StringLiteralExpression))
 		{
-			var str = literal.Token.ValueText;
-			result = CreateLiteral(string.IsNullOrEmpty(str));
+			result = CreateLiteral(String.IsNullOrEmpty(literal.Token.ValueText));
 			return true;
 		}
 

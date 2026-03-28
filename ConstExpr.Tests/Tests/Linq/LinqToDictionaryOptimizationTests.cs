@@ -1,5 +1,3 @@
-using System.Collections;
-
 namespace ConstExpr.Tests.Tests.Linq;
 
 /// <summary>

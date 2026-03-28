@@ -1,6 +1,5 @@
 using ConstExpr.SourceGenerator.Sample.Tests;
 using System;
-using System.Runtime.CompilerServices;
 
 Console.WriteLine("╔═══════════════════════════════════════════════════════════════════╗");
 Console.WriteLine("║  ConstExpr Test Suite - Alle functies met constanten & vars       ║");

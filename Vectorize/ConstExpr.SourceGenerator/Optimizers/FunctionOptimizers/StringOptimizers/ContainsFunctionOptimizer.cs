@@ -1,4 +1,4 @@
-using ConstExpr.SourceGenerator.Helpers;
+using System.Diagnostics.CodeAnalysis;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -11,16 +11,11 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 /// - "hello".Contains("ell") → true
 /// - "hello".Contains("world") → false
 /// </summary>
-public class ContainsFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "Contains")
+public class ContainsFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "Contains", false, 1)
 {
-	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
+	protected override bool TryOptimizeString(FunctionOptimizerContext context, ITypeSymbol stringType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		result = null;
-
-		if (!IsValidMethod(context.Method, out _) || context.Method.IsStatic || context.VisitedParameters.Count < 1)
-		{
-			return false;
-		}
 
 		if (!TryGetStringInstance(out var str) || str is null)
 		{
@@ -34,12 +29,12 @@ public class ContainsFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctio
 
 		if (literal.IsKind(SyntaxKind.StringLiteralExpression))
 		{
-			var substring = literal.Token.ValueText;
-			result = CreateLiteral(str.Contains(substring));
+			result = CreateLiteral(str.Contains(literal.Token.ValueText));
 			return true;
 		}
 
-		if (literal.IsKind(SyntaxKind.CharacterLiteralExpression) && literal.Token.Value is char c)
+		if (literal.IsKind(SyntaxKind.CharacterLiteralExpression) 
+		    && literal.Token.Value is char c)
 		{
 			result = CreateLiteral(str.IndexOf(c) >= 0);
 			return true;
