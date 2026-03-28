@@ -325,6 +325,18 @@ public partial class ConstExprPartialRewriter
 	/// </summary>
 	private SyntaxNode? TryOptimizeMathMethod(SemanticModel model, IMethodSymbol targetMethod, InvocationExpressionSyntax node, IEnumerable<SyntaxNode> visitedArguments, IEnumerable<SyntaxNode> originalArguments)
 	{
+		var type = targetMethod.Parameters
+			.Select(s => s.Type)
+			.FirstOrDefault();
+
+		if (targetMethod.ContainingType.ToString() is not ("System.Math" or "System.MathF")
+		    && (!targetMethod.ContainingType.EqualsType(type)
+		        || !type.IsNumericType()))
+		{
+			return null;
+		}
+
+
 		var context = GetFunctionOptimizerContext(model, targetMethod, node, visitedArguments, originalArguments);
 
 		return _mathOptimizers.Value
@@ -332,6 +344,7 @@ public partial class ConstExprPartialRewriter
 			            && o.ParameterCounts.Contains(targetMethod.Parameters.Length))
 			.WhereSelect<BaseMathFunctionOptimizer, SyntaxNode>((optimizer, out optimized) => optimizer.TryOptimize(context, out optimized))
 			.FirstOrDefault();
+
 	}
 
 	/// <summary>

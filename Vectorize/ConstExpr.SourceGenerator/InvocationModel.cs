@@ -26,12 +26,7 @@ public class InvocationModel
 	
 	public IEnumerable<SyntaxNode>? AdditionalMethods { get; set; }
 
-	// public object? Value { get; set; }
-
 	public HashSet<string>? Usings { get; set; }
 
 	public IReadOnlyDictionary<SyntaxNode, Exception>? Exceptions { get; set; }
-	
-
-	// public GenerationLevel GenerationLevel { get; set; } = GenerationLevel.Balanced;
 }

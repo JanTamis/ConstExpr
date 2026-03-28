@@ -28,9 +28,7 @@ public abstract class BaseMathFunctionOptimizer(string name, params HashSet<int>
 			.FirstOrDefault();
 
 		return method.Name == Name
-			&& type.IsNumericType()
-			&& ParameterCounts.Contains(method.Parameters.Length)
-			&& method.ContainingType.ToString() is "System.Math" or "System.MathF" || method.ContainingType.EqualsType(type);
+		       && ParameterCounts.Contains(method.Parameters.Length);
 	}
 
 	protected bool IsApproximately(double a, double b)

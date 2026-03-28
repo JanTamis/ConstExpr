@@ -1,3 +1,4 @@
+using System;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
@@ -14,49 +15,15 @@ public class DegreesToRadiansFunctionOptimizer() : BaseMathFunctionOptimizer("De
 		{
 			return false;
 		}
-
+		
 		// DegreesToRadians(x) = x * (π / 180)
-		// Add optimized conversion context.Method
-		if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
+		result = paramType.SpecialType switch
 		{
-			var methodString = paramType.SpecialType == SpecialType.System_Single
-				? GenerateDegreesToRadiansMethodFloat()
-				: GenerateDegreesToRadiansMethodDouble();
+			SpecialType.System_Single => MultiplyExpression(context.VisitedParameters[0], CreateLiteral(MathF.PI / 180)),
+			SpecialType.System_Double => MultiplyExpression(context.VisitedParameters[0], CreateLiteral(Math.PI / 180)),
+			_ => CreateInvocation(paramType, Name, context.VisitedParameters)
+		};
 
-			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
-
-			result = CreateInvocation("FastDegreesToRadians", context.VisitedParameters);
-			return true;
-		}
-
-		// For other numeric types, fall back to standard context.Method call
-		result = CreateInvocation(paramType, Name, context.VisitedParameters);
 		return true;
-	}
-
-	private static string GenerateDegreesToRadiansMethodFloat()
-	{
-		return """
-			private static float FastDegreesToRadians(float degrees)
-			{
-				// degrees * (π / 180)
-				// Using precise constant: π / 180 = 0.017453292519943295
-				const float DegToRad = 0.017453292f;
-				return degrees * DegToRad;
-			}
-			""";
-	}
-
-	private static string GenerateDegreesToRadiansMethodDouble()
-	{
-		return """
-			private static double FastDegreesToRadians(double degrees)
-			{
-				// degrees * (π / 180)
-				// Using precise constant: π / 180 = 0.017453292519943295
-				const double DegToRad = 0.017453292519943295;
-				return degrees * DegToRad;
-			}
-			""";
 	}
 }
