@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
@@ -10,15 +11,8 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers
 
 public class ClampFunctionOptimizer() : BaseMathFunctionOptimizer("Clamp", 3)
 {
-	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
+	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
-		result = null;
-
-		if (!IsValidMathMethod(context.Method, out var paramType))
-		{
-			return false;
-		}
-
 		var value = context.VisitedParameters[0];
 		var min = context.VisitedParameters[1];
 		var max = context.VisitedParameters[2];

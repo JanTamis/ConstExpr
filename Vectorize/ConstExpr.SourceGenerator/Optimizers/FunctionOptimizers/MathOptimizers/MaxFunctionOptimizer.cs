@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
@@ -10,15 +11,8 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers
 
 public class MaxFunctionOptimizer() : BaseMathFunctionOptimizer("Max", 2)
 {
-	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
+	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
-		result = null;
-
-		if (!IsValidMathMethod(context.Method, out var paramType))
-		{
-			return false;
-		}
-
 		var left = context.VisitedParameters[0];
 		var right = context.VisitedParameters[1];
 

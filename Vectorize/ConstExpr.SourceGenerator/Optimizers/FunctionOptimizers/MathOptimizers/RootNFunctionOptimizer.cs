@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
@@ -8,15 +9,8 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers
 
 public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", 2)
 {
-	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
+	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
-		result = null;
-
-		if (!IsValidMathMethod(context.Method, out var paramType))
-		{
-			return false;
-		}
-
 		var x = context.VisitedParameters[0];
 		var n = context.VisitedParameters[1];
 

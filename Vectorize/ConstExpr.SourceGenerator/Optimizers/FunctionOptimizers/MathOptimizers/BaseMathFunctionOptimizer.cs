@@ -3,12 +3,26 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
 public abstract class BaseMathFunctionOptimizer(string name, params HashSet<int> parameterCounts) : BaseFunctionOptimizer
 {
+	protected abstract bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result);
+
+	public override bool TryOptimize(FunctionOptimizerContext context, [NotNullWhen(true)] out SyntaxNode? result)
+	{
+		if (!IsValidMathMethod(context.Method, out var paramType))
+		{
+			result = null;
+			return false;
+		}
+
+		return TryOptimizeMath(context, paramType, out result);
+	}
+
 	public string Name { get; } = name;
 	public HashSet<int> ParameterCounts { get; } = parameterCounts;
 
@@ -21,7 +35,12 @@ public abstract class BaseMathFunctionOptimizer(string name, params HashSet<int>
 								&& SymbolEqualityComparer.Default.Equals(type, m.ContainingType));
 	}
 
-	protected bool IsValidMathMethod(IMethodSymbol method, [NotNullWhen(true)] out ITypeSymbol? type)
+	protected bool IsApproximately(double a, double b)
+	{
+		return Math.Abs(a - b) <= double.Epsilon;
+	}
+
+	private bool IsValidMathMethod(IMethodSymbol method, [NotNullWhen(true)] out ITypeSymbol? type)
 	{
 		type = method.Parameters
 			.Select(s => s.Type)
@@ -29,10 +48,5 @@ public abstract class BaseMathFunctionOptimizer(string name, params HashSet<int>
 
 		return method.Name == Name
 		       && ParameterCounts.Contains(method.Parameters.Length);
-	}
-
-	protected bool IsApproximately(double a, double b)
-	{
-		return Math.Abs(a - b) <= double.Epsilon;
 	}
 }

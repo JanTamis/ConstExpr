@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -7,15 +8,8 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers
 
 public class CeilingFunctionOptimizer() : BaseMathFunctionOptimizer("Ceiling", 1)
 {
-	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
+	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
-		result = null;
-
-		if (!IsValidMathMethod(context.Method, out var paramType))
-		{
-			return false;
-		}
-
 		// 1) Idempotence: Ceiling(Ceiling(x)) -> Ceiling(x)
 		if (context.VisitedParameters[0] is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Ceiling" } } innerInv)
 		{

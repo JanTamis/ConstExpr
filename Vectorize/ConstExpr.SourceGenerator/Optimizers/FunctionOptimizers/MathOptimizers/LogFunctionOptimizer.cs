@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -6,15 +7,8 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers
 
 public class LogFunctionOptimizer() : BaseMathFunctionOptimizer("Log", 1, 2)
 {
-	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
+	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
-		result = null;
-
-		if (!IsValidMathMethod(context.Method, out var paramType))
-		{
-			return false;
-		}
-
 		var arg = context.VisitedParameters[0];
 
 		// Log(Exp(x)) => x (inverse operation)
@@ -25,6 +19,7 @@ public class LogFunctionOptimizer() : BaseMathFunctionOptimizer("Log", 1, 2)
 			return true;
 		}
 
+		result = null;
 		return false;
 	}
 }
