@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -39,34 +40,40 @@ public class Avx2SimdFunctionOptimizer() : BaseSimdFunctionOptimizer("Avx2")
 					// Arithmetic operators
 					case "Add":
 					{
-						result = AddExpression(context.VisitedParameters[0], context.VisitedParameters[1]);
+						result = AddExpression(context.VisitedParameters[0], context.VisitedParameters[1])
+							.WithTypeSymbolAnnotation(vectorType);
 						return true;
 					}
 					case "Subtract":
 					{
-						result = SubtractExpression(context.VisitedParameters[0], context.VisitedParameters[1]);
+						result = SubtractExpression(context.VisitedParameters[0], context.VisitedParameters[1])
+							.WithTypeSymbolAnnotation(vectorType);
 						return true;
 					}
 
 					// Bitwise operators
 					case "And":
 					{
-						result = BitwiseAndExpression(context.VisitedParameters[0], context.VisitedParameters[1]);
+						result = BitwiseAndExpression(context.VisitedParameters[0], context.VisitedParameters[1])
+							.WithTypeSymbolAnnotation(vectorType);
 						return true;
 					}
 					case "Or":
 					{
-						result = BitwiseOrExpression(context.VisitedParameters[0], context.VisitedParameters[1]);
+						result = BitwiseOrExpression(context.VisitedParameters[0], context.VisitedParameters[1])
+							.WithTypeSymbolAnnotation(vectorType);
 						return true;
 					}
 					case "Xor":
 					{
-						result = ExclusiveOrExpression(context.VisitedParameters[0], context.VisitedParameters[1]);
+						result = ExclusiveOrExpression(context.VisitedParameters[0], context.VisitedParameters[1])
+							.WithTypeSymbolAnnotation(vectorType);
 						return true;
 					}
 					case "AndNot":
 					{
-						result = BitwiseAndExpression(context.VisitedParameters[0], BitwiseNotExpression(context.VisitedParameters[1]));
+						result = BitwiseAndExpression(context.VisitedParameters[0], BitwiseNotExpression(context.VisitedParameters[1]))
+							.WithTypeSymbolAnnotation(vectorType);
 						return true;
 					}
 

@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 
@@ -39,42 +40,50 @@ public class SseSimdFunctionOptimizer() : BaseSimdFunctionOptimizer("Sse")
 				{
 					case "Add":
 					{
-						result = AddExpression(context.VisitedParameters[0], context.VisitedParameters[1]);
+						result = AddExpression(context.VisitedParameters[0], context.VisitedParameters[1])
+							.WithTypeSymbolAnnotation(vectorType);
 						return true;
 					}
 					case "Subtract":
 					{
-						result = SubtractExpression(context.VisitedParameters[0], context.VisitedParameters[1]);
+						result = SubtractExpression(context.VisitedParameters[0], context.VisitedParameters[1])
+							.WithTypeSymbolAnnotation(vectorType);
 						return true;
 					}
 					case "Multiply":
 					{
-						result = MultiplyExpression(context.VisitedParameters[0], context.VisitedParameters[1]);
+						result = MultiplyExpression(context.VisitedParameters[0], context.VisitedParameters[1])
+							.WithTypeSymbolAnnotation(vectorType);
 						return true;
 					}
 					case "Divide":
 					{
-						result = DivideExpression(context.VisitedParameters[0], context.VisitedParameters[1]);
+						result = DivideExpression(context.VisitedParameters[0], context.VisitedParameters[1])
+							.WithTypeSymbolAnnotation(vectorType);
 						return true;
 					}
 					case "And":
 					{
-						result = BitwiseAndExpression(context.VisitedParameters[0], context.VisitedParameters[1]);
+						result = BitwiseAndExpression(context.VisitedParameters[0], context.VisitedParameters[1])
+							.WithTypeSymbolAnnotation(vectorType);
 						return true;
 					}
 					case "Or":
 					{
-						result = BitwiseOrExpression(context.VisitedParameters[0], context.VisitedParameters[1]);
+						result = BitwiseOrExpression(context.VisitedParameters[0], context.VisitedParameters[1])
+							.WithTypeSymbolAnnotation(vectorType);
 						return true;
 					}
 					case "Xor":
 					{
-						result = ExclusiveOrExpression(context.VisitedParameters[0], context.VisitedParameters[1]);
+						result = ExclusiveOrExpression(context.VisitedParameters[0], context.VisitedParameters[1])
+							.WithTypeSymbolAnnotation(vectorType);
 						return true;
 					}
 					case "AndNot":
 					{
-						result = BitwiseAndExpression(context.VisitedParameters[0], BitwiseNotExpression(context.VisitedParameters[1]));
+						result = BitwiseAndExpression(context.VisitedParameters[0], BitwiseNotExpression(context.VisitedParameters[1]))
+							.WithTypeSymbolAnnotation(vectorType);
 						return true;
 					}
 					// Comparisons with different names — must use vectorType so the generated

@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 
@@ -18,13 +19,15 @@ public class AdvSimdFunctionOptimizer() : BaseSimdFunctionOptimizer("AdvSimd", "
 					// Not → OnesComplement (~a)
 					case "Not":
 					{
-						result = BitwiseNotExpression(context.VisitedParameters[0]);
+						result = BitwiseNotExpression(context.VisitedParameters[0])
+							.WithTypeSymbolAnnotation(vectorType);
 						return true;
 					}
 					// Negate → unary minus (-a)
 					case "Negate":
 					{
-						result = UnaryMinusExpression(context.VisitedParameters[0]);
+						result = UnaryMinusExpression(context.VisitedParameters[0])
+							.WithTypeSymbolAnnotation(vectorType);
 						return true;
 					}
 					// Load with different name
@@ -43,46 +46,54 @@ public class AdvSimdFunctionOptimizer() : BaseSimdFunctionOptimizer("AdvSimd", "
 					// Arithmetic operators
 					case "Add":
 					{
-						result = AddExpression(context.VisitedParameters[0], context.VisitedParameters[1]);
+						result = AddExpression(context.VisitedParameters[0], context.VisitedParameters[1])
+							.WithTypeSymbolAnnotation(vectorType);
 						return true;
 					}
 					case "Subtract":
 					{
-						result = SubtractExpression(context.VisitedParameters[0], context.VisitedParameters[1]);
+						result = SubtractExpression(context.VisitedParameters[0], context.VisitedParameters[1])
+							.WithTypeSymbolAnnotation(vectorType);
 						return true;
 					}
 					case "Multiply":
 					{
-						result = MultiplyExpression(context.VisitedParameters[0], context.VisitedParameters[1]);
+						result = MultiplyExpression(context.VisitedParameters[0], context.VisitedParameters[1])
+							.WithTypeSymbolAnnotation(vectorType);
 						return true;
 					}
 
 					// Bitwise operators
 					case "And":
 					{
-						result = BitwiseAndExpression(context.VisitedParameters[0], context.VisitedParameters[1]);
+						result = BitwiseAndExpression(context.VisitedParameters[0], context.VisitedParameters[1])
+							.WithTypeSymbolAnnotation(vectorType);
 						return true;
 					}
 					case "Or":
 					{
-						result = BitwiseOrExpression(context.VisitedParameters[0], context.VisitedParameters[1]);
+						result = BitwiseOrExpression(context.VisitedParameters[0], context.VisitedParameters[1])
+							.WithTypeSymbolAnnotation(vectorType);
 						return true;
 					}
 					case "Xor":
 					{
-						result = ExclusiveOrExpression(context.VisitedParameters[0], context.VisitedParameters[1]);
+						result = ExclusiveOrExpression(context.VisitedParameters[0], context.VisitedParameters[1])
+							.WithTypeSymbolAnnotation(vectorType);
 						return true;
 					}
 					// BitwiseClear(a, b) = a & ~b → maps to Vector128.AndNot
 					case "BitwiseClear":
 					{
-						result = BitwiseAndExpression(context.VisitedParameters[0], BitwiseNotExpression(context.VisitedParameters[1]));
+						result = BitwiseAndExpression(context.VisitedParameters[0], BitwiseNotExpression(context.VisitedParameters[1]))
+							.WithTypeSymbolAnnotation(vectorType);
 						return true;
 					}
 					// OrNot(a, b) = a | ~b
 					case "OrNot":
 					{
-						result = BitwiseOrExpression(context.VisitedParameters[0], BitwiseNotExpression(context.VisitedParameters[1]));
+						result = BitwiseOrExpression(context.VisitedParameters[0], BitwiseNotExpression(context.VisitedParameters[1]))
+							.WithTypeSymbolAnnotation(vectorType);
 						return true;
 					}
 
