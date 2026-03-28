@@ -23,8 +23,13 @@ public static class SymbolAnnotation
 	/// Annotates a syntax node with an <see cref="IMethodSymbol"/>.
 	/// Returns a new node with the annotation attached.
 	/// </summary>
-	public static T WithMethodSymbolAnnotation<T>(this T node, IMethodSymbol symbol) where T : SyntaxNode
+	public static T WithMethodSymbolAnnotation<T>(this T node, IMethodSymbol? symbol) where T : SyntaxNode
 	{
+		if (symbol is null)
+		{
+			return node;
+		}
+		
 		var id = Guid.NewGuid().ToString("N");
 		SymbolStore[id] = symbol;
 		return node.WithAdditionalAnnotations(new SyntaxAnnotation(MethodSymbolKind, id));

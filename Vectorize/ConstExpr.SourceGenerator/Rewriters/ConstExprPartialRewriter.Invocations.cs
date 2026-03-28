@@ -9,6 +9,7 @@ using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Optimizers;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
+using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.SimdOptimizers;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
@@ -101,6 +102,11 @@ public partial class ConstExprPartialRewriter
 			{
 				return unrolledNode;
 			}
+		}
+
+		if (TryOptimizeSimdMethod(semanticModel, targetMethod, node, arguments, node.ArgumentList.Arguments.Select(s => s.Expression)) is { } optimizedSimd)
+		{
+			return Visit(optimizedSimd);
 		}
 
 		node = node.WithExpression(Visit(node.Expression) as ExpressionSyntax ?? node.Expression);
@@ -295,43 +301,7 @@ public partial class ConstExprPartialRewriter
 			.Select(s => Activator.CreateInstance(s, instance) as BaseStringFunctionOptimizer)
 			.Where(o => string.Equals(o?.Name, targetMethod.Name, StringComparison.Ordinal));
 
-		var getLambda = new Func<LambdaExpressionSyntax, LambdaExpression?>(lambda =>
-		{
-			if (!semanticModel.TryGetOperation<IAnonymousFunctionOperation>(lambda, out var operation))
-			{
-				return null;
-			}
-
-			// Create parameters for the lambda
-			var lambdaParams = operation.Symbol.Parameters
-				.Select(p => Expression.Parameter(loader.GetType(p.Type), p.Name))
-				.ToArray();
-
-			// Create a new visitor with the lambda parameters included
-			var allParams = variables.Select(s => Expression.Parameter(loader.GetType(s.Value.Type), s.Key)).Concat(lambdaParams);
-			var lambdaVisitor = new ExpressionVisitor(semanticModel, loader, allParams);
-
-			// Visit the body with the new visitor
-			var body = lambdaVisitor.VisitBlock(operation.Body, new VariableItemDictionary(variables));
-
-			// Create the lambda expression
-			return Expression.Lambda(body, lambdaParams);
-		});
-
-		var optimizeBinaryExpression = new Func<BinaryExpressionSyntax, ITypeSymbol, ITypeSymbol, ITypeSymbol, ExpressionSyntax>((binary, leftType, rightType, type) =>
-		{
-			var expressions = GetBinaryExpressions(node).ToList();
-
-			if (TryOptimizeNode(binary.Kind().ToBinaryOperatorKind(), expressions, type, binary.Left, leftType, binary.Right, rightType, node.Parent, out var optimizedNode)
-			    && optimizedNode is ExpressionSyntax optimizedExpr)
-			{
-				return optimizedExpr;
-			}
-
-			return binary;
-		});
-
-		var context = new FunctionOptimizerContext(model, loader, targetMethod, node, visitedArguments.OfType<ExpressionSyntax>().ToArray(), originalArguments.OfType<ExpressionSyntax>().ToArray(), x => Visit(x) as ExpressionSyntax, getLambda, optimizeBinaryExpression, additionalMethods, variables);
+		var context = GetFunctionOptimizerContext(model, targetMethod, node, visitedArguments, originalArguments);
 
 		foreach (var stringOptimizer in optimizers)
 		{
@@ -355,43 +325,7 @@ public partial class ConstExprPartialRewriter
 	/// </summary>
 	private SyntaxNode? TryOptimizeMathMethod(SemanticModel model, IMethodSymbol targetMethod, InvocationExpressionSyntax node, IEnumerable<SyntaxNode> visitedArguments, IEnumerable<SyntaxNode> originalArguments)
 	{
-		var getLambda = new Func<LambdaExpressionSyntax, LambdaExpression?>(lambda =>
-		{
-			if (!semanticModel.TryGetOperation<IAnonymousFunctionOperation>(lambda, out var operation))
-			{
-				return null;
-			}
-
-			// Create parameters for the lambda
-			var lambdaParams = operation.Symbol.Parameters
-				.Select(p => Expression.Parameter(loader.GetType(p.Type), p.Name))
-				.ToArray();
-
-			// Create a new visitor with the lambda parameters included
-			var allParams = variables.Select(s => Expression.Parameter(loader.GetType(s.Value.Type), s.Key)).Concat(lambdaParams);
-			var lambdaVisitor = new ExpressionVisitor(semanticModel, loader, allParams);
-
-			// Visit the body with the new visitor
-			var body = lambdaVisitor.VisitBlock(operation.Body, new VariableItemDictionary(variables));
-
-			// Create the lambda expression
-			return Expression.Lambda(body, lambdaParams);
-		});
-
-		var optimizeBinaryExpression = new Func<BinaryExpressionSyntax, ITypeSymbol, ITypeSymbol, ITypeSymbol, ExpressionSyntax>((binary, leftType, rightType, type) =>
-		{
-			var expressions = GetBinaryExpressions(node).ToList();
-
-			if (TryOptimizeNode(binary.Kind().ToBinaryOperatorKind(), expressions, type, binary.Left, leftType, binary.Right, rightType, node.Parent, out var optimizedNode)
-			    && optimizedNode is ExpressionSyntax optimizedExpr)
-			{
-				return optimizedExpr;
-			}
-
-			return binary;
-		});
-
-		var context = new FunctionOptimizerContext(model, loader, targetMethod, node, visitedArguments.OfType<ExpressionSyntax>().ToArray(), originalArguments.OfType<ExpressionSyntax>().ToArray(), x => Visit(x) as ExpressionSyntax, getLambda, optimizeBinaryExpression, additionalMethods, variables);
+		var context = GetFunctionOptimizerContext(model, targetMethod, node, visitedArguments, originalArguments);
 
 		return _mathOptimizers.Value
 			.Where(o => String.Equals(o.Name, targetMethod.Name, StringComparison.Ordinal)
@@ -404,6 +338,30 @@ public partial class ConstExprPartialRewriter
 	/// Tries to optimize a linq method.
 	/// </summary>
 	private SyntaxNode? TryOptimizeLinqMethod(SemanticModel model, IMethodSymbol targetMethod, InvocationExpressionSyntax node, IEnumerable<SyntaxNode> visitedArguments, IEnumerable<SyntaxNode> originalArguments)
+	{
+		var context = GetFunctionOptimizerContext(model, targetMethod, node, visitedArguments, originalArguments);
+
+		var result = _linqOptimizers.Value
+			.Where(o => String.Equals(o.Name, targetMethod.Name, StringComparison.Ordinal)
+			            && o.ParameterCounts.Contains(targetMethod.Parameters.Length))
+			.WhereSelect<BaseLinqFunctionOptimizer, SyntaxNode>((optimizer, out optimized) => optimizer.TryOptimize(context, out optimized))
+			.FirstOrDefault();
+
+		return result;
+	}
+
+	private SyntaxNode? TryOptimizeSimdMethod(SemanticModel model, IMethodSymbol targetMethod, InvocationExpressionSyntax node, IEnumerable<SyntaxNode> visitedArguments, IEnumerable<SyntaxNode> originalArguments)
+	{
+		var context = GetFunctionOptimizerContext(model, targetMethod, node, visitedArguments, originalArguments);
+
+		var result = _simdOptimizers.Value
+			.WhereSelect<BaseSimdFunctionOptimizer, SyntaxNode>((optimizer, out optimized) => optimizer.TryOptimize(context, out optimized))
+			.FirstOrDefault();
+
+		return result;
+	}
+
+	private FunctionOptimizerContext GetFunctionOptimizerContext(SemanticModel model, IMethodSymbol targetMethod, InvocationExpressionSyntax node, IEnumerable<SyntaxNode> visitedArguments, IEnumerable<SyntaxNode> originalArguments)
 	{
 		var getLambda = new Func<LambdaExpressionSyntax, LambdaExpression?>(lambda =>
 		{
@@ -455,15 +413,7 @@ public partial class ConstExprPartialRewriter
 			return binary;
 		});
 
-		var context = new FunctionOptimizerContext(model, loader, targetMethod, node, visitedArguments.OfType<ExpressionSyntax>().ToArray(), originalArguments.OfType<ExpressionSyntax>().ToArray(), x => Visit(x) as ExpressionSyntax, getLambda, optimizeBinaryExpression, additionalMethods, variables);
-
-		var result = _linqOptimizers.Value
-			.Where(o => String.Equals(o.Name, targetMethod.Name, StringComparison.Ordinal)
-			            && o.ParameterCounts.Contains(targetMethod.Parameters.Length))
-			.WhereSelect<BaseLinqFunctionOptimizer, SyntaxNode>((optimizer, out optimized) => optimizer.TryOptimize(context, out optimized))
-			.FirstOrDefault();
-
-		return result;
+		return new FunctionOptimizerContext(model, loader, targetMethod, node, visitedArguments.OfType<ExpressionSyntax>().ToArray(), originalArguments.OfType<ExpressionSyntax>().ToArray(), x => Visit(x) as ExpressionSyntax, getLambda, optimizeBinaryExpression, additionalMethods, variables);
 	}
 
 	/// <summary>

@@ -9,6 +9,7 @@ using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
+using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.SimdOptimizers;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -67,6 +68,16 @@ public partial class ConstExprPartialRewriter(
 			.Where(t => !t.IsAbstract && typeof(BaseLinqFunctionOptimizer).IsAssignableFrom(t))
 			.Select(Activator.CreateInstance)
 			.OfType<BaseLinqFunctionOptimizer>()
+			.ToArray();
+	}, isThreadSafe: true);
+
+	private readonly Lazy<BaseSimdFunctionOptimizer[]> _simdOptimizers = new(() =>
+	{
+		return typeof(BaseSimdFunctionOptimizer).Assembly
+			.GetTypes()
+			.Where(t => !t.IsAbstract && typeof(BaseSimdFunctionOptimizer).IsAssignableFrom(t))
+			.Select(Activator.CreateInstance)
+			.OfType<BaseSimdFunctionOptimizer>()
 			.ToArray();
 	}, isThreadSafe: true);
 
