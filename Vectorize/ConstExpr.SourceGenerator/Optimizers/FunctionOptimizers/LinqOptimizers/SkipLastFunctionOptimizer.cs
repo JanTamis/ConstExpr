@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -13,15 +14,8 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// </summary>
 public class SkipLastFunctionOptimizer() : BaseLinqFunctionOptimizer("SkipLast", 1)
 {
-	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
+	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(context)
-		    || !TryGetLinqSource(context.Invocation, out var source))
-		{
-			result = null;
-			return false;
-		}
-
 		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
@@ -37,15 +38,8 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		nameof(Enumerable.Distinct), // Deduplication: may reduce count, but if element exists, Contains is true
 	];
 
-	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
+	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(context)
-		    || !TryGetLinqSource(context.Invocation, out var source))
-		{
-			result = null;
-			return false;
-		}
-
 		// Get the value to search for from Contains(value) or Contains(value, comparer)
 		var searchValue = context.VisitedParameters[0];
 

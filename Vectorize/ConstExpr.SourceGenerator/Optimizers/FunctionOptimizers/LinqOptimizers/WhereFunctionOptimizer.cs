@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
@@ -25,11 +26,9 @@ public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		"Order",
 		"OrderDescending",
 	];
-	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
+	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(context)
-		    || !TryGetLambda(context.VisitedParameters[0], out var lambda)
-		    || !TryGetLinqSource(context.Invocation, out var source))
+		if (!TryGetLambda(context.VisitedParameters[0], out var lambda))
 		{
 			result = null;
 			return false;

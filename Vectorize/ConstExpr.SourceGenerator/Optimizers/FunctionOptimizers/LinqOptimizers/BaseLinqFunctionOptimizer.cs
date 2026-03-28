@@ -51,6 +51,20 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		nameof(Enumerable.First),
 		nameof(Enumerable.FirstOrDefault),
 	];
+	
+	protected abstract bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result);
+
+	public override bool TryOptimize(FunctionOptimizerContext context, [NotNullWhen(true)] out SyntaxNode? result)
+	{
+		if (!IsValidLinqMethod(context) 
+		    || !TryGetLinqSource(context.Invocation, out var source))
+		{
+			result = null;
+			return false;
+		}
+
+		return TryOptimizeLinq(context, source, out result);
+	}
 
 	/// <summary>
 	/// Validates if the given method is a valid LINQ Enumerable method matching this optimizer's criteria.

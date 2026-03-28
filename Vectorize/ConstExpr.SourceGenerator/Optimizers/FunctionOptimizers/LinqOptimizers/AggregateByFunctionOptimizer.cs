@@ -27,15 +27,8 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// </summary>
 public class AggregateByFunctionOptimizer() : BaseLinqFunctionOptimizer("AggregateBy", 3, 4, 5)
 {
-	public override bool TryOptimize(FunctionOptimizerContext context, [NotNullWhen(true)] out SyntaxNode? result)
+	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(context)
-		    || !TryGetLinqSource(context.Invocation, out var source))
-		{
-			result = null;
-			return false;
-		}
-
 		var isNewSource = TryGetOptimizedChainExpression(source, MaterializingMethods, out source);
 
 		if (TryExecutePredicates(context, source, out result, out source))

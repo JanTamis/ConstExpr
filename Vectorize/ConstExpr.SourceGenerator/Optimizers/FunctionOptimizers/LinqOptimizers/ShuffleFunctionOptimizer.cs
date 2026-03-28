@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
@@ -24,15 +26,8 @@ public class ShuffleFunctionOptimizer() : BaseLinqFunctionOptimizer("Shuffle", 0
 		..OrderingOperations,
 	];
 	
-	public override bool TryOptimize(FunctionOptimizerContext context, out SyntaxNode? result)
-	{
-		if (!IsValidLinqMethod(context)
-		    || !TryGetLinqSource(context.Invocation, out var source))
-		{
-			result = null;
-			return false;
-		}
-		
+	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
+	{		
 		// If we skipped any operations, create optimized Shuffle() call
 		if (TryGetOptimizedChainExpression(context.Visit(source) ?? source, OperationsThatDontAffectShuffle, out var newSource) 
 		    || !AreSyntacticallyEquivalent(newSource, source))

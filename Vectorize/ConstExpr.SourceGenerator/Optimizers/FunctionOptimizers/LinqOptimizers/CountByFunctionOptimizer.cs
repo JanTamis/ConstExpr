@@ -29,15 +29,8 @@ public class CountByFunctionOptimizer() : BaseLinqFunctionOptimizer("CountBy", 1
 		..OrderingOperations,
 	];
 
-	public override bool TryOptimize(FunctionOptimizerContext context, [NotNullWhen(true)] out SyntaxNode? result)
+	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(context)
-		    || !TryGetLinqSource(context.Invocation, out var source))
-		{
-			result = null;
-			return false;
-		}
-
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectCountBy, out source);
 
 		if (TryExecutePredicates(context, source, out result, out var currentSource))

@@ -32,18 +32,9 @@ public class IntersectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		..MaterializingMethods,
 		nameof(Enumerable.Distinct), // Intersect already applies Distinct
 	];
-	
 
-	public override bool TryOptimize(FunctionOptimizerContext context, [NotNullWhen(true)] out SyntaxNode? result)
+	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(context)
-		    || !TryGetLinqSource(context.Invocation, out var source)
-		    || context.VisitedParameters.Count == 0)
-		{
-			result = null;
-			return false;
-		}
-
 		if (TryExecutePredicates(context, source, out result, out _))
 		{
 			return true;
