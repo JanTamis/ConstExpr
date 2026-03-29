@@ -40,11 +40,15 @@ public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", 1)
 			context.Usings.Add("System.Numerics");
 			
 			var method = ParseMethodFromString("""
+				/// <summary>
+				/// Computes absolute value using branchless bit manipulation.
+				/// Note: Does NOT work correctly for <c>T.MinValue</c> due to two's complement overflow.
+				/// </summary>
 				private static T AbsFast<T>(T x) where T : IBinaryInteger<T>
 				{
 					var bits = Unsafe.SizeOf<T>() * 8 - 1;
 					var mask = x >> bits;
-
+				
 					return (x + mask) ^ mask;
 				}
 				""");
