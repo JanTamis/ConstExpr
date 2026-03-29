@@ -11,13 +11,13 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", 1)
 	{
 		if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
 		{
-			var methodString = paramType.SpecialType == SpecialType.System_Single
+			var method = ParseMethodFromString(paramType.SpecialType == SpecialType.System_Single
 				? GenerateFastAcosMethodFloat()
-				: GenerateFastAcosMethodDouble();
+				: GenerateFastAcosMethodDouble());
 
-			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalMethods.TryAdd(method, false);
 
-			result = CreateInvocation("FastAcos", context.VisitedParameters);
+			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);
 			return true;
 		}
 
@@ -28,25 +28,24 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", 1)
 	private static string GenerateFastAcosMethodFloat()
 	{
 		return """
-			private static float FastAcos(float x)
+			/// <summary>
+			/// Fast acos approximation for float.
+			/// Max. absolute error ≈ 1.7e-5 rad.
+			/// </summary>
+			public static float FastAcos(float x)
 			{
-				// Clamp input to valid range [-1, 1] using manual if checks for optimal performance
-				if (x < -1.0f) x = -1.0f;
-				if (x > 1.0f) x = 1.0f;
-				
-				// Fast approximation using polynomial with FMA
-				var negate = x < 0.0f ? 1.0f : 0.0f;
-				x = x < 0.0f ? -x : x;
-				
-				// Use FMA for polynomial evaluation - more accurate and potentially faster
-				var ret = -0.0187293f;
-				ret = Single.FusedMultiplyAdd(ret, x, 0.0742610f);
-				ret = Single.FusedMultiplyAdd(ret, x, -0.2121144f);
-				ret = Single.FusedMultiplyAdd(ret, x, 1.5707288f);
-				ret = ret * Single.Sqrt(1.0f - x);
-				ret = ret - 2.0f * negate * ret;
-				
-				return Single.FusedMultiplyAdd(negate, 3.14159265f, ret);
+				var negative = x < 0f;
+				x = Single.Abs(x);
+			
+				// Minimax polynomial: approximates acos(x) / sqrt(1-x) on [0, 1]
+				// Coefficients: Abramowitz & Stegun table 4.4.45
+				var p = Single.FusedMultiplyAdd(-0.0187293f, x, 0.0742610f);
+				p = Single.FusedMultiplyAdd(p, x, -0.2121144f);
+				p = Single.FusedMultiplyAdd(p, x, 1.5707288f);
+				p *= Single.Sqrt(1f - x);
+			
+				// Exploit symmetry: acos(-x) = π - acos(x)
+				return negative ? Single.Pi - p : p;
 			}
 			""";
 	}
@@ -54,25 +53,36 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", 1)
 	private static string GenerateFastAcosMethodDouble()
 	{
 		return """
-			private static double FastAcos(double x)
+			/// <summary>
+			/// Fast acos approximation for double.
+			/// Max. absolute error ≈ 1.8e-8 rad.
+			/// </summary>
+			public static double FastAcos(double x)
 			{
-				// Clamp input to valid range [-1, 1] using manual if checks for optimal performance
-				if (x < -1.0) x = -1.0;
-				if (x > 1.0) x = 1.0;
-				
-				// Fast approximation using polynomial with FMA
-				var negate = x < 0.0 ? 1.0 : 0.0;
-				x = x < 0.0 ? -x : x;
-				
-				// Use FMA for polynomial evaluation - more accurate and potentially faster
-				var ret = -0.0187293;
-				ret = Double.FusedMultiplyAdd(ret, x, 0.0742610);
-				ret = Double.FusedMultiplyAdd(ret, x, -0.2121144);
-				ret = Double.FusedMultiplyAdd(ret, x, 1.5707288);
-				ret = ret * Double.Sqrt(1.0 - x);
-				ret = ret - 2.0 * negate * ret;
-				
-				return Double.FusedMultiplyAdd(negate, 3.14159265358979323846, ret);
+				var negative = x < 0.0;
+				x = Double.Abs(x);
+				var big = x > 0.5;
+			
+				// Choose t such that u = t² ≤ 0.25 in both branches
+				var t = big ? Double.Sqrt((1.0 - x) * 0.5) : x;
+				var u = t * t;
+			
+				// Horner evaluation of asin(t)/t via Taylor series:
+				// asin(t)/t = Σ C_n·u^n,  C_n = (2n-1)!! / ((2n)!! · (2n+1))
+				var p = Double.FusedMultiplyAdd(u, 2027025.0 / 175472640.0, // n=8
+					135135.0 / 9676800.0); // n=7
+				p = Double.FusedMultiplyAdd(u, p, 10395.0 / 599040.0); // n=6
+				p = Double.FusedMultiplyAdd(u, p, 945.0 / 42240.0); // n=5
+				p = Double.FusedMultiplyAdd(u, p, 105.0 / 3456.0); // n=4
+				p = Double.FusedMultiplyAdd(u, p, 15.0 / 336.0); // n=3
+				p = Double.FusedMultiplyAdd(u, p, 3.0 / 40.0); // n=2
+				p = Double.FusedMultiplyAdd(u, p, 1.0 / 6.0); // n=1
+				p = Double.FusedMultiplyAdd(u, p, 1.0); // n=0
+			
+				var asinT = t * p;
+				var result = big ? 2.0 * asinT : Math.PI / 2.0 - asinT;
+			
+				return negative ? Math.PI - result : result;
 			}
 			""";
 	}

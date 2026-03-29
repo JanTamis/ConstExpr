@@ -28,9 +28,30 @@ public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", 1)
 		}
 
 		// 3) Unary minus: Abs(-x) -> Abs(x)
-		if (arg is PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken } prefix)
+		if (arg is PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken } prefix)
 		{
 			result = CreateInvocation(paramType, Name, prefix.Operand);
+			return true;
+		}
+
+		if (paramType.IsInteger())
+		{
+			context.Usings.Add("System.Runtime.CompilerServices");
+			context.Usings.Add("System.Numerics");
+			
+			var method = ParseMethodFromString("""
+				private static T AbsFast<T>(T x) where T : IBinaryInteger<T>
+				{
+					var bits = Unsafe.SizeOf<T>() * 8 - 1;
+					var mask = x >> bits;
+
+					return (x + mask) ^ mask;
+				}
+				""");
+
+			context.AdditionalMethods.TryAdd(method, false);
+
+			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);
 			return true;
 		}
 
