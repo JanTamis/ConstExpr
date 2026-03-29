@@ -59,10 +59,12 @@ public class ExpFunctionOptimizer() : BaseMathFunctionOptimizer("Exp", 1)
 				var poly = 1.0f / 6.0f; // 1/6
 				poly = MathF.FusedMultiplyAdd(poly, r, 0.5f); // -> 1/6*r + 1/2
 				poly = MathF.FusedMultiplyAdd(poly, r, 1.0f); // -> (...)*r + 1
+				
 				var expR = MathF.FusedMultiplyAdd(poly, r, 1.0f);
 
 				var bits = (k + 127) << 23;
 				var scale = BitConverter.Int32BitsToSingle(bits);
+				
 				return scale * expR;
 			}
 			""";
@@ -74,25 +76,30 @@ public class ExpFunctionOptimizer() : BaseMathFunctionOptimizer("Exp", 1)
 			private static double FastExp(double x)
 			{
 				// Safe bounds
-				if (x >= 709.0) return double.PositiveInfinity;
-				if (x <= -708.0) return 0.0;
+				if (x >= 709.0) 
+					return Double.PositiveInfinity;
+					
+				if (x <= -708.0) 
+					return 0.0;
 
 				const double LN2 = 0.6931471805599453094172321214581766;
 				const double INV_LN2 = 1.4426950408889634073599246810018921;
 
 				var kf = x * INV_LN2;
 				var k = (long)(kf + (kf >= 0.0 ? 0.5 : -0.5));
-				var r = System.Math.FusedMultiplyAdd(-k, LN2, x);
+				var r = Double.FusedMultiplyAdd(-k, LN2, x);
 
 				// Order-4 Taylor: exp(r) ≈ 1 + r + r^2/2 + r^3/6 + r^4/24
 				var poly = 1.0 / 24.0; // 1/24
-				poly = System.Math.FusedMultiplyAdd(poly, r, 1.0 / 6.0);
-				poly = System.Math.FusedMultiplyAdd(poly, r, 0.5);
-				poly = System.Math.FusedMultiplyAdd(poly, r, 1.0);
-				var expR = System.Math.FusedMultiplyAdd(poly, r, 1.0);
+				poly = Double.FusedMultiplyAdd(poly, r, 1.0 / 6.0);
+				poly = Double.FusedMultiplyAdd(poly, r, 0.5);
+				poly = Double.FusedMultiplyAdd(poly, r, 1.0);
+				
+				var expR = Double.FusedMultiplyAdd(poly, r, 1.0);
 
 				var bits = (ulong)((k + 1023L) << 52);
 				var scale = BitConverter.UInt64BitsToDouble(bits);
+				
 				return scale * expR;
 			}
 			""";

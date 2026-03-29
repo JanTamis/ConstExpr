@@ -124,28 +124,25 @@ public static class StringOperations
 			return input;
 		}
 
-		var result = new StringBuilder();
+		var result = input.ToCharArray();
 		var capitalizeNext = true;
-
-		foreach (var c in input)
+		
+		for (var i = 0; i < result.Length; i++)
 		{
+			var c = result[i];
+			
 			if (char.IsWhiteSpace(c))
 			{
-				result.Append(c);
 				capitalizeNext = true;
 			}
 			else if (capitalizeNext)
 			{
-				result.Append(char.ToUpper(c));
+				result[i] = char.ToUpper(c);
 				capitalizeNext = false;
-			}
-			else
-			{
-				result.Append(char.ToLower(c));
 			}
 		}
 
-		return result.ToString();
+		return new string(result);
 	}
 
 	/// <summary>
@@ -274,25 +271,23 @@ public static class StringOperations
 			return input;
 		}
 
-		var result = new StringBuilder();
-
-		foreach (var c in input)
+		var result = input.ToCharArray();
+		
+		for (var i = 0; i < result.Length; i++)
 		{
+			var c = result[i];
+			
 			if (char.IsUpper(c))
 			{
-				result.Append(char.ToLower(c));
+				result[i] = char.ToLower(c);
 			}
 			else if (char.IsLower(c))
 			{
-				result.Append(char.ToUpper(c));
-			}
-			else
-			{
-				result.Append(c);
+				result[i] = char.ToUpper(c);
 			}
 		}
 
-		return result.ToString();
+		return new string(result);
 	}
 
 	/// <summary>

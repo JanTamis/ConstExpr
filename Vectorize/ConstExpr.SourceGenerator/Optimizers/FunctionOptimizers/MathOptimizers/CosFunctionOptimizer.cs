@@ -33,9 +33,9 @@ public class CosFunctionOptimizer() : BaseMathFunctionOptimizer("Cos", 1)
 				// Fast cosine approximation using minimax polynomial
 				// Range reduction: bring x to [-π, π]
 				// Normalize to [-π, π]
-				x = x - Single.Floor(x / Double.Tau) * Double.Tau;
-				if (x > Double.Pi) x -= Double.Tau;
-				if (x < -Double.Pi) x += Double.Tau;
+				x = x - Single.Floor(x / Single.Tau) * Single.Tau;
+				if (x > Single.Pi) x -= Single.Tau;
+				if (x < -Single.Pi) x += Single.Tau;
 				
 				// Use symmetry: cos(-x) = cos(x)
 				x = Single.Abs(x);
@@ -65,9 +65,9 @@ public class CosFunctionOptimizer() : BaseMathFunctionOptimizer("Cos", 1)
 				// Fast cosine approximation using minimax polynomial
 				// Range reduction: bring x to [-π, π]
 				// Normalize to [-π, π]
-				x = x - Double.Floor(x / Single.Tau) * Single.Tau;
-				if (x > Single.Pi) x -= Single.Tau;
-				if (x < -Single.Pi) x += Single.Tau;
+				x = x - Double.Floor(x / Double.Tau) * Double.Tau;
+				if (x > Double.Pi) x -= Double.Tau;
+				if (x < -Double.Pi) x += Double.Tau;
 				
 				// Use symmetry: cos(-x) = cos(x)
 				x = Double.Abs(x);

@@ -426,7 +426,7 @@ public partial class ConstExprPartialRewriter
 			return binary;
 		});
 
-		return new FunctionOptimizerContext(model, loader, targetMethod, node, visitedArguments.OfType<ExpressionSyntax>().ToArray(), originalArguments.OfType<ExpressionSyntax>().ToArray(), x => Visit(x) as ExpressionSyntax, getLambda, optimizeBinaryExpression, additionalMethods, variables);
+		return new FunctionOptimizerContext(model, loader, targetMethod, node, visitedArguments.OfType<ExpressionSyntax>().ToArray(), originalArguments.OfType<ExpressionSyntax>().ToArray(), x => Visit(x) as ExpressionSyntax, getLambda, optimizeBinaryExpression, additionalMethods, variables, usings);
 	}
 
 	/// <summary>

@@ -18,7 +18,8 @@ public sealed class FunctionOptimizerContext(
 	Func<LambdaExpressionSyntax, LambdaExpression?> getLambda,
 	Func<BinaryExpressionSyntax, ITypeSymbol, ITypeSymbol, ITypeSymbol, ExpressionSyntax> optimizeBinaryExpression,
 	IDictionary<SyntaxNode, bool> additionalMethods,
-	IDictionary<string, VariableItem> variables)
+	IDictionary<string, VariableItem> variables,
+	ISet<string> usings)
 {
 	public SemanticModel Model { get; } = model;
 	public MetadataLoader Loader { get; } = loader;
@@ -31,9 +32,10 @@ public sealed class FunctionOptimizerContext(
 	public Func<BinaryExpressionSyntax, ITypeSymbol, ITypeSymbol, ITypeSymbol, ExpressionSyntax> OptimizeBinaryExpression { get; set; } = optimizeBinaryExpression;
 	public IDictionary<SyntaxNode, bool> AdditionalMethods { get; } = additionalMethods;
 	public IDictionary<string, VariableItem> Variables { get; } = variables;
+	public ISet<string> Usings { get; } = usings;
 
 	public FunctionOptimizerContext WithInvocationAndMethod(InvocationExpressionSyntax invocation, IMethodSymbol method)
 	{
-		return new FunctionOptimizerContext(Model, Loader, method, invocation, VisitedParameters, OriginalParameters, Visit, GetLambda, OptimizeBinaryExpression, AdditionalMethods, Variables);
+		return new FunctionOptimizerContext(Model, Loader, method, invocation, VisitedParameters, OriginalParameters, Visit, GetLambda, OptimizeBinaryExpression, AdditionalMethods, Variables, Usings);
 	}
 }

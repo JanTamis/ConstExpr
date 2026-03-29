@@ -78,6 +78,12 @@ namespace ConstExpr.SourceGenerator.Sample.Tests
 			Console.WriteLine($"[CONST] BinomialCoefficient(20, 5): {MathOperations.BinomialCoefficient(20, 5)}");
 			// BinomialCoefficient - mixed
 			Console.WriteLine($"[MIXED] BinomialCoefficient(varInt, varInt2): {MathOperations.BinomialCoefficient(varInt, varInt2)}");
+			
+			// ComplexFunction - alleen constanten
+			Console.WriteLine($"[CONST] ComplexFunction(5): {MathOperations.ComplexFunction(5)}");
+			Console.WriteLine($"[CONST] ComplexFunction(10): {MathOperations.ComplexFunction(10)}");
+			// ComplexFunction - mixed
+			Console.WriteLine($"[MIXED] ComplexFunction(varInt): {MathOperations.ComplexFunction(varInt)}");
 
 			Console.WriteLine();
 		}

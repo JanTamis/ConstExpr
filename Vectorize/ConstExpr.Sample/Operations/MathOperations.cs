@@ -160,8 +160,9 @@ public static class MathOperations
 	/// </summary>
 	public static int SumOfDigits(int n)
 	{
-		n = Math.Abs(n);
 		var sum = 0;
+		
+		n = Math.Abs(n);
 
 		while (n > 0)
 		{
@@ -214,9 +215,9 @@ public static class MathOperations
 	public static int ReverseNumber(int n)
 	{
 		var originalN = n;
-		n = Math.Abs(n);
-
 		var reversed = 0;
+		
+		n = Math.Abs(n);
 
 		while (n > 0)
 		{
@@ -272,5 +273,21 @@ public static class MathOperations
 		}
 
 		return result;
+	}
+
+	public static double ComplexFunction(double x)
+	{
+		var x2 = x * x;
+
+		var term1 =
+			(Math.Exp(-x2) * Math.Sin(3 * x) +
+			 Math.Log(x2 + 1) * Math.Cos(2 * x))
+			/ Math.Sqrt(x2 + 4);
+
+		var term2 =
+			(x2 * x2 - 3 * x2 + 2) /
+			(x2 + 1);
+
+		return term1 + term2;
 	}
 }
