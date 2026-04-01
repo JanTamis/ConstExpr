@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class ClampTest() : BaseTest<Func<int, int, int, int>>(FloatingPointEvaluationMode.FastMath)
+public class ClampTest() : BaseTest<Func<int, int, int, int>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString((value, min, max) =>
 	{

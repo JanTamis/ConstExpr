@@ -70,7 +70,7 @@ public partial class ConstExprPartialRewriter
 			}
 		}
 		// Try math optimizers
-		else if (attribute.FloatingPointMode == FloatingPointEvaluationMode.FastMath)
+		else if (attribute.MathOptimizations.HasFlag(FastMathFlags.NoNaN))
 		{
 			var tempNode = node.WithExpression(Visit(node.Expression) as ExpressionSyntax ?? node.Expression);
 			var optimized = TryOptimizeMathMethod(semanticModel, targetMethod, tempNode, arguments, node.ArgumentList.Arguments.Select(s => s.Expression));
@@ -426,7 +426,19 @@ public partial class ConstExprPartialRewriter
 			return binary;
 		});
 
-		return new FunctionOptimizerContext(model, loader, targetMethod, node, visitedArguments.OfType<ExpressionSyntax>().ToArray(), originalArguments.OfType<ExpressionSyntax>().ToArray(), x => Visit(x) as ExpressionSyntax, getLambda, optimizeBinaryExpression, additionalMethods, variables, usings);
+		return new FunctionOptimizerContext(model, 
+			loader, 
+			targetMethod, 
+			node, 
+			visitedArguments.OfType<ExpressionSyntax>().ToArray(), 
+			originalArguments.OfType<ExpressionSyntax>().ToArray(), 
+			x => Visit(x) as ExpressionSyntax, 
+			getLambda, 
+			optimizeBinaryExpression, 
+			additionalMethods, 
+			variables, 
+			usings, 
+			attribute.MathOptimizations);
 	}
 
 	/// <summary>
@@ -434,7 +446,7 @@ public partial class ConstExprPartialRewriter
 	/// </summary>
 	private bool ConvertToCharOverloadIfNeeded(IMethodSymbol targetMethod, List<SyntaxNode> arguments, [NotNullWhen(true)] out List<SyntaxNode>? newArguments, [NotNullWhen(true)] out IMethodSymbol? charMethod)
 	{
-		if (attribute.FloatingPointMode != FloatingPointEvaluationMode.FastMath
+		if (attribute.MathOptimizations == FastMathFlags.Strict
 		    || !TryGetCharOverload(targetMethod, arguments, out charMethod))
 		{
 			charMethod = null;

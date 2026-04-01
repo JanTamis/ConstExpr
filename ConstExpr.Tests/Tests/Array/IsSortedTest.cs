@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Array;
 
 [InheritsTests]
-public class IsSortedTest() : BaseTest<Func<int[], bool>>(FloatingPointEvaluationMode.FastMath)
+public class IsSortedTest() : BaseTest<Func<int[], bool>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString(numbers =>
 	{

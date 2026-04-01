@@ -1,3 +1,4 @@
+using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis.CSharp;
@@ -9,9 +10,12 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.MultiplyStrategi
 /// Strategy for constant folding in chained multiplications: (x * C1) * C2 => x * (C1 * C2)
 /// Also handles: C1 * (x * C2) => x * (C1 * C2) and C1 * (C2 * x) => x * (C1 * C2)
 /// Additionally handles: (C1 * x) * C2 => x * (C1 * C2) and (C1 * x) * C2 when C1 is on the left
+/// Requires AssociativeMath for floating-point safety.
 /// </summary>
 public class MultiplyConstantFoldingStrategy() : SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, LiteralExpressionSyntax>(leftKind: SyntaxKind.MultiplyExpression)
 {
+	public override FastMathFlags RequiredFlags => FastMathFlags.AssociativeMath;
+
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<BinaryExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (context.TryGetValue(context.Left.Syntax.Left, out var leftConstant)

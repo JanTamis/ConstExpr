@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class ModuloTest() : BaseTest<Func<int, int, int>>(FloatingPointEvaluationMode.FastMath)
+public class ModuloTest() : BaseTest<Func<int, int, int>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString((dividend, divisor) =>
 	{

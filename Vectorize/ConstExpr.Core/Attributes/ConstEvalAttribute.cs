@@ -10,29 +10,30 @@ namespace ConstExpr.Core.Attributes;
 /// <remarks>
 /// <c>[ConstEval]</c> and <c>[ConstExpr]</c> are interchangeable — both trigger the same
 /// compile-time evaluation pipeline.
-/// Use <see cref="FloatingPointMode"/> to control floating‑point semantics (strict vs fast).
+/// Use <see cref="MathOptimizations"/> to control floating‑point semantics (strict vs fast).
 /// Use <see cref="LinqOptimisationMode"/> to control whether LINQ calls are folded, unrolled,
 /// or left unchanged.
 /// Use <see cref="MaxUnrollIterations"/> to cap the number of loop iterations that may be unrolled.
 /// </remarks>
 /// <seealso cref="ConstExprAttribute"/>
-/// <seealso cref="FloatingPointEvaluationMode"/>
+/// <seealso cref="FastMathFlags"/>
 /// <seealso cref="LinqOptimisationMode"/>
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Class | AttributeTargets.Struct, Inherited = false)]
 public sealed class ConstEvalAttribute(
-  FloatingPointEvaluationMode floatingPointMode = FloatingPointEvaluationMode.Strict,
+  FastMathFlags mathOptimizations = FastMathFlags.Strict,
   LinqOptimisationMode linqOptimisationMode = LinqOptimisationMode.Optimize,
   uint maxUnrollIterations = 32) : Attribute
 {
 	/// <summary>
-	/// Gets or sets the floating‑point evaluation mode used during constant expression processing.
+	/// Gets or sets the fast-math flags used during constant expression processing.
 	/// </summary>
 	/// <value>
-	/// Defaults to <see cref="FloatingPointEvaluationMode.Strict"/>.
-	/// When set to <see cref="FloatingPointEvaluationMode.FastMath"/>, additional math optimisations
+	/// Defaults to <see cref="FastMathFlags.Strict"/>.
+	/// When set to <see cref="FastMathFlags.FastMath"/>, additional math optimisations
 	/// are applied (e.g. char-overload promotion and fast math method folding).
+	/// Individual flags from <see cref="FastMathFlags"/> can also be combined for fine-grained control.
 	/// </value>
-	public FloatingPointEvaluationMode FloatingPointMode { get; set; } = floatingPointMode;
+	public FastMathFlags MathOptimizations { get; set; } = mathOptimizations;
 
 	/// <summary>
 	/// Gets or sets the maximum number of loop iterations to unroll during constant expression evaluation.

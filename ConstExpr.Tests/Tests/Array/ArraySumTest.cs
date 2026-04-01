@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Array;
 
 [InheritsTests]
-public class ArraySumTest() : BaseTest<Func<int[], int>>(FloatingPointEvaluationMode.FastMath)
+public class ArraySumTest() : BaseTest<Func<int[], int>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString(arr =>
 	{

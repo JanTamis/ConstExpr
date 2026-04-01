@@ -1,4 +1,5 @@
 using System.Linq;
+using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis;
@@ -9,9 +10,12 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies
 
 /// <summary>
 /// Strategy for reciprocal optimization: 1 / x => ReciprocalEstimate(x)
+/// Requires ReciprocalMath flag as reciprocal approximation may differ from IEEE 754.
 /// </summary>
 public class DivideOneToReciprocalStrategy : BaseBinaryStrategy<LiteralExpressionSyntax, ExpressionSyntax>
 {
+	public override FastMathFlags RequiredFlags => FastMathFlags.ReciprocalMath;
+
 	public override bool TryOptimize(BinaryOptimizeContext<LiteralExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!context.Left.Syntax.IsNumericOne()

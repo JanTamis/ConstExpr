@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class SignTest() : BaseTest<Func<int, int>>(FloatingPointEvaluationMode.FastMath)
+public class SignTest() : BaseTest<Func<int, int>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString(n =>
 	{

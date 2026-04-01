@@ -34,6 +34,7 @@ public class CosFunctionOptimizer() : BaseMathFunctionOptimizer("Cos", 1)
 				// Branchless range reduction to [-π, π]:
 				// Round(x/τ) compiles to a single FRINTN (ARM64) / ROUNDSS (x64) —
 				// avoids FDIV and conditional branches of the Floor-based approach.
+				if (Single.IsNaN(x)) return Single.NaN;
 				x -= Single.Round(x * (1f / Single.Tau)) * Single.Tau;
 				
 				// Use symmetry: cos(-x) = cos(x): fold to [0, π]
@@ -61,6 +62,7 @@ public class CosFunctionOptimizer() : BaseMathFunctionOptimizer("Cos", 1)
 				// Branchless range reduction to [-π, π]:
 				// Round(x/τ) compiles to a single FRINTA (ARM64) / ROUNDSD (x64) —
 				// avoids FDIV and conditional branches of the Floor-based approach.
+				if (Double.IsNaN(x)) return Double.NaN;
 				x -= Double.Round(x * (1.0 / Double.Tau)) * Double.Tau;
 				
 				// Use symmetry: cos(-x) = cos(x): fold to [0, π]

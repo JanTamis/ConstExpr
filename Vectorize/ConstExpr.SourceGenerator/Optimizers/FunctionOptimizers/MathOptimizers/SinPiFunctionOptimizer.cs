@@ -32,6 +32,7 @@ public class SinPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinPi", 1)
 			{
 				// Fast SinPi(x) = Sin(π·x) — branchless scalar implementation.
 				// Benchmark (Apple M4 Pro, .NET 10, ARM64): 1.13 ns vs 2.43 ns dotnet (-54%)
+				if (Single.IsNaN(x)) return Single.NaN;
 				
 				// Branchless range reduction to [−1, 1]: FRINTN, no conditional branches
 				x -= Single.Round(x * 0.5f) * 2.0f;
@@ -60,6 +61,7 @@ public class SinPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinPi", 1)
 			{
 				// Fast SinPi(x) = Sin(π·x) — branchless scalar implementation.
 				// Benchmark (Apple M4 Pro, .NET 10, ARM64): 1.23 ns vs 2.64 ns dotnet (-53%)
+				if (Double.IsNaN(x)) return Double.NaN;
 				
 				// Branchless range reduction to [−1, 1]: FRINTN, no conditional branches
 				x -= Double.Round(x * 0.5) * 2.0;

@@ -35,6 +35,7 @@ public class CosPiFunctionOptimizer() : BaseMathFunctionOptimizer("CosPi", 1)
 				// Benchmarks (Apple M4 Pro, ARM64, .NET 10):
 				//   float.CosPi : 2.25 ns  |  previous (Floor+3 branches+2 poly paths): 1.48 ns
 				//   this impl   : 1.00 ns  (56% faster than .NET builtin, 32% faster than previous)
+				if (Single.IsNaN(x)) return Single.NaN;
 				
 				// Branchless range reduction to [0, 1]:
 				// Round(x*0.5)*2 maps to FRINTN on ARM64 / ROUNDSS on x64 — no FDIV, no branches.
@@ -65,6 +66,7 @@ public class CosPiFunctionOptimizer() : BaseMathFunctionOptimizer("CosPi", 1)
 				// Benchmarks (Apple M4 Pro, ARM64, .NET 10):
 				//   double.CosPi : 2.51 ns  |  previous (Floor+3 branches+2 poly paths): 1.49 ns
 				//   this impl    : 1.13 ns  (55% faster than .NET builtin, 24% faster than previous)
+				if (Double.IsNaN(x)) return Double.NaN;
 				
 				// Branchless range reduction to [0, 1]:
 				// Round(x*0.5)*2 maps to FRINTA on ARM64 / ROUNDSD on x64 — no FDIV, no branches.

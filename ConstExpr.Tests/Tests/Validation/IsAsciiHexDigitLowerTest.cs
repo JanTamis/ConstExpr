@@ -7,7 +7,7 @@ namespace ConstExpr.Tests.Validation;
 /// is collapsed into <c>Char.IsAsciiHexDigitLower(c)</c>.
 /// </summary>
 [InheritsTests]
-public class IsAsciiHexDigitLowerTest() : BaseTest<Func<char, bool>>(FloatingPointEvaluationMode.FastMath)
+public class IsAsciiHexDigitLowerTest() : BaseTest<Func<char, bool>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString(c =>
 		(c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'));

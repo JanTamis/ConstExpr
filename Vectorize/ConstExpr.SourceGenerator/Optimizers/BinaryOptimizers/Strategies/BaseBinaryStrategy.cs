@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
@@ -13,6 +14,13 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 	where TLeft : ExpressionSyntax
 	where TRight : ExpressionSyntax
 {
+	/// <summary>
+	/// Gets the FastMathFlags required for this optimization strategy to be applied.
+	/// Strategies that don't require fast-math flags should return <see cref="FastMathFlags.Strict"/>.
+	/// Override this property in derived classes to specify required flags.
+	/// </summary>
+	public virtual FastMathFlags RequiredFlags => FastMathFlags.Strict;
+
 	public abstract bool TryOptimize(BinaryOptimizeContext<TLeft, TRight> context, out ExpressionSyntax? optimized);
 
 	public BinaryOptimizeContext<TLeft, TRight>? GetContext(

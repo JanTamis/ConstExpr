@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Validation;
 
 [InheritsTests]
-public class IsPositiveTest() : BaseTest<Func<int, bool>>(FloatingPointEvaluationMode.FastMath)
+public class IsPositiveTest() : BaseTest<Func<int, bool>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString(n => n > 0);
 

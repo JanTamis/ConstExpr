@@ -31,6 +31,7 @@ public class CoshFunctionOptimizer() : BaseMathFunctionOptimizer("Cosh", 1)
 			private static float FastCosh(float x)
 			{
 				// cosh(x) = (e^x + e^-x) / 2, with cosh(-x) = cosh(x)
+				if (Single.IsNaN(x)) return Single.NaN;
 				x = Single.Abs(x);
 				
 				// exp overflows to +Inf for x > ~88.72; return +Inf immediately
@@ -56,6 +57,7 @@ public class CoshFunctionOptimizer() : BaseMathFunctionOptimizer("Cosh", 1)
 			private static double FastCosh(double x)
 			{
 				// cosh(x) = (e^x + e^-x) / 2, with cosh(-x) = cosh(x)
+				if (Double.IsNaN(x)) return Double.NaN;
 				x = Double.Abs(x);
 				
 				// exp overflows to +Inf for x > ~709.78; return +Inf immediately

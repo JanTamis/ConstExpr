@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Arithmetic;
 
 [InheritsTests]
-public class SumOfFirstNTest() : BaseTest<Func<int, int>>(FloatingPointEvaluationMode.FastMath)
+public class SumOfFirstNTest() : BaseTest<Func<int, int>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString(n => n * (n + 1) / 2);
 

@@ -37,6 +37,7 @@ public class SinhFunctionOptimizer() : BaseMathFunctionOptimizer("Sinh", 1)
 				// This implementation uses a single Exp(|x|) + one Newton-Raphson refinement step.
 				// Benchmarks (Apple M4 Pro, .NET 10, ARM64 RyuJIT):
 				//   DotNet=2.139 ns | FastSinh(old)=1.902 ns | FastSinh(V2)=1.764 ns (−18%) | FastSinhV3(two-exp)=3.29 ns
+				if (Single.IsNaN(x)) return Single.NaN;
 				
 				var sign = x;
 				x = Single.Abs(x);
@@ -70,6 +71,7 @@ public class SinhFunctionOptimizer() : BaseMathFunctionOptimizer("Sinh", 1)
 				// This implementation uses a single Exp(|x|) + FDIV for full double precision.
 				// Benchmarks (Apple M4 Pro, .NET 10, ARM64 RyuJIT):
 				//   DotNet=2.942 ns | FastSinh(old)=2.182 ns | FastSinh(V2)=2.119 ns (−28%) | FastSinhV3(two-exp)=6.11 ns
+				if (Double.IsNaN(x)) return Double.NaN;
 				
 				var sign = x;
 				x = Double.Abs(x);

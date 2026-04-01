@@ -375,7 +375,7 @@ public partial class ConstExprPartialRewriter
 
 		if (isBuiltIn
 		    && operation.Type is not null
-		    && (isBooleanOp || isIntegerOp || attribute.FloatingPointMode == FloatingPointEvaluationMode.FastMath)
+		    && (isBooleanOp || isIntegerOp || attribute.MathOptimizations.HasFlag(FastMathFlags.AssociativeMath))
 		    && TryOptimizeNode(operation.OperatorKind, expressions, operation.Type, leftExpr, operation.LeftOperand.Type, rightExpr, operation.RightOperand.Type, parent, out result))
 		{
 			return true;

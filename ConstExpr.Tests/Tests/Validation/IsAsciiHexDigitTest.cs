@@ -7,7 +7,7 @@ namespace ConstExpr.Tests.Validation;
 /// <c>Char.IsAsciiLetterOrDigit(c)</c> by the binary optimizer.
 /// </summary>
 [InheritsTests]
-public class IsAsciiHexDigitTest() : BaseTest<Func<char, bool>>(FloatingPointEvaluationMode.FastMath)
+public class IsAsciiHexDigitTest() : BaseTest<Func<char, bool>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString(c =>
 		(c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'));

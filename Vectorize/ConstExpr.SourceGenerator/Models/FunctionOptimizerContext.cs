@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Helpers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -19,7 +20,8 @@ public sealed class FunctionOptimizerContext(
 	Func<BinaryExpressionSyntax, ITypeSymbol, ITypeSymbol, ITypeSymbol, ExpressionSyntax> optimizeBinaryExpression,
 	IDictionary<SyntaxNode, bool> additionalMethods,
 	IDictionary<string, VariableItem> variables,
-	ISet<string> usings)
+	ISet<string> usings,
+	FastMathFlags fastMathFlags)
 {
 	public SemanticModel Model { get; } = model;
 	public MetadataLoader Loader { get; } = loader;
@@ -33,9 +35,10 @@ public sealed class FunctionOptimizerContext(
 	public IDictionary<SyntaxNode, bool> AdditionalMethods { get; } = additionalMethods;
 	public IDictionary<string, VariableItem> Variables { get; } = variables;
 	public ISet<string> Usings { get; } = usings;
+	public FastMathFlags FastMathFlags { get; set; } = fastMathFlags;
 
 	public FunctionOptimizerContext WithInvocationAndMethod(InvocationExpressionSyntax invocation, IMethodSymbol method)
 	{
-		return new FunctionOptimizerContext(Model, Loader, method, invocation, VisitedParameters, OriginalParameters, Visit, GetLambda, OptimizeBinaryExpression, AdditionalMethods, Variables, Usings);
+		return new FunctionOptimizerContext(Model, Loader, method, invocation, VisitedParameters, OriginalParameters, Visit, GetLambda, OptimizeBinaryExpression, AdditionalMethods, Variables, Usings, FastMathFlags);
 	}
 }

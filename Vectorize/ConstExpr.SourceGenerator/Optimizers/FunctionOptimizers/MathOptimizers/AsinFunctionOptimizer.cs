@@ -36,6 +36,7 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", 1)
 				// Benchmark result (Apple M4 Pro, .NET 10, ARM64):
 				//   MathF.Asin : 2.3 ns   FastAsin (this) : 1.0 ns  (2.3× faster)
 				//   branchless A&S : 1.04 ns  Horner 8-term : 2.0 ns
+				if (Single.IsNaN(x)) return Single.NaN;
 				if (x < -1.0f) x = -1.0f;
 				if (x > 1.0f)  x =  1.0f;
 				var xa = Single.Abs(x);
@@ -74,6 +75,7 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", 1)
 				// Benchmark result (Apple M4 Pro, .NET 10, ARM64):
 				//   Math.Asin  : 3.1 ns   FastAsin (this) : 0.95 ns  (3.2× faster)
 				//   branchless A&S : 1.04 ns  Horner 8-term : 2.0 ns
+				if (Double.IsNaN(x)) return Double.NaN;
 				if (x < -1.0) x = -1.0;
 				if (x > 1.0)  x =  1.0;
 				var xa = Double.Abs(x);

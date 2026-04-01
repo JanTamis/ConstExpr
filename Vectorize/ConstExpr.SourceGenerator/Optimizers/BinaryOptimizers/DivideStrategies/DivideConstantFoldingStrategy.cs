@@ -1,3 +1,4 @@
+using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis.CSharp;
@@ -9,9 +10,12 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies
 /// Strategy for constant folding in chained divisions: (x / C1) / C2 => x / (C1 * C2)
 /// Also handles: (C1 / x) / C2 => (C1 / C2) / x and C1 / (x / C2) => (C1 * C2) / x
 /// Note: division is not commutative, so patterns must preserve order carefully
+/// Requires AssociativeMath for floating-point safety.
 /// </summary>
 public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 {
+	public override FastMathFlags RequiredFlags => FastMathFlags.AssociativeMath;
+
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!base.TryOptimize(context, out optimized))

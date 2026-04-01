@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Validation;
 
 [InheritsTests]
-public class IsInRangeTest() : BaseTest<Func<int, int, int, bool>>(FloatingPointEvaluationMode.FastMath)
+public class IsInRangeTest() : BaseTest<Func<int, int, int, bool>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString((value, min, max) => value >= min && value <= max);
 

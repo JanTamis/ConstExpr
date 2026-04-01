@@ -30,6 +30,7 @@ public class AcoshFunctionOptimizer() : BaseMathFunctionOptimizer("Acosh", 1)
 		return """
 			private static float FastAcosh(float x)
 			{
+				if (Single.IsNaN(x)) return Single.NaN;
 				if (x < 1.0f) x = 1.0f;
 				
 				if (x > 1e7f)
@@ -60,6 +61,7 @@ public class AcoshFunctionOptimizer() : BaseMathFunctionOptimizer("Acosh", 1)
 		return """
 			private static double FastAcosh(double x)
 			{
+				if (Double.IsNaN(x)) return Double.NaN;
 				if (x < 1.0) x = 1.0;
 				
 				if (x > 1e15)

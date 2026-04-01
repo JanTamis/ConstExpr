@@ -93,9 +93,9 @@ public class TanFunctionOptimizer() : BaseMathFunctionOptimizer("Tan", 1)
 			{
 				// Fast tan approximation — rational P/Q on (−π/2, π/2) with cotangent
 				// identity for inputs near the asymptote (|x| > 1.4).
-				// No NaN/Inf guards: IEEE 754 propagates NaN/Inf correctly through the P/Q form.
 				// No Single.Tan() fallback: the cotangent reciprocal uses the same polynomial.
 				// Benchmarked at ~0.85 ns vs MathF.Tan at ~2.65 ns on ARM64 M4 Pro (−68%).
+				if (Single.IsNaN(x)) return Single.NaN;
 				
 				const float InvPi  = 1.0f / Single.Pi;
 				const float HalfPi = Single.Pi * 0.5f;
@@ -140,9 +140,9 @@ public class TanFunctionOptimizer() : BaseMathFunctionOptimizer("Tan", 1)
 			{
 				// Fast tan approximation — rational P/Q on (−π/2, π/2) with cotangent
 				// identity for inputs near the asymptote (|x| > 1.4).
-				// No NaN/Inf guards: IEEE 754 propagates NaN/Inf correctly through the P/Q form.
 				// No Double.Tan() fallback: the cotangent reciprocal uses the same polynomial.
 				// Benchmarked at ~1.1 ns vs Math.Tan at ~2.86 ns on ARM64 M4 Pro (−62%).
+				if (Double.IsNaN(x)) return Double.NaN;
 				
 				const double InvPi  = 1.0 / Double.Pi;
 				const double HalfPi = Double.Pi * 0.5;

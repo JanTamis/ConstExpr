@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.String;
 
 [InheritsTests]
-public class StartsWithTest() : BaseTest<Func<string, string, bool>>(FloatingPointEvaluationMode.FastMath)
+public class StartsWithTest() : BaseTest<Func<string, string, bool>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString((s, prefix) => s.StartsWith(prefix));
 

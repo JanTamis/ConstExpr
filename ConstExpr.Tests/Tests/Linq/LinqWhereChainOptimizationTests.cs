@@ -6,7 +6,7 @@ namespace ConstExpr.Tests.Tests.Linq;
 /// Tests for Where() optimization with multiple chained Where statements
 /// </summary>
 [InheritsTests]
-public class LinqWhereChainOptimizationTests() : BaseTest<Func<int[], IEnumerable<int>>>(FloatingPointEvaluationMode.FastMath)
+public class LinqWhereChainOptimizationTests() : BaseTest<Func<int[], IEnumerable<int>>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString(x =>
 	{

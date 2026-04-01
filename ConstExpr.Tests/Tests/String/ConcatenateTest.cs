@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.String;
 
 [InheritsTests]
-public class ConcatenateTest() : BaseTest<Func<string, string, string>>(FloatingPointEvaluationMode.FastMath)
+public class ConcatenateTest() : BaseTest<Func<string, string, string>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString((a, b) => a + b);
 

@@ -3,6 +3,7 @@ using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;
@@ -115,6 +116,8 @@ public partial class ConstExprPartialRewriter
 
 	/// <summary>
 	/// Try to apply registered binary optimization strategies for the given operator and operands.
+	/// Only strategies whose <see cref="IBinaryStrategy.RequiredFlags"/> are satisfied by the
+	/// current <see cref="attribute"/> <c>MathOptimizations</c> flags are considered.
 	/// </summary>
 	private bool TryOptimizeNode(BinaryOperatorKind kind, List<BinaryExpressionSyntax> expressions, ITypeSymbol? type, ExpressionSyntax leftExpr, ITypeSymbol? leftType, ExpressionSyntax rightExpr, ITypeSymbol? rightType, SyntaxNode? parent, [NotNullWhen(true)] out SyntaxNode? syntaxNode)
 	{
@@ -122,6 +125,13 @@ public partial class ConstExprPartialRewriter
 		{
 			foreach (var strategy in optimizer.GetStrategies())
 			{
+				// Skip strategy if its required flags are not satisfied by the current math mode.
+				// FastMathFlags.Strict (= 0) is always satisfied, so integer/boolean strategies run unconditionally.
+				if (!attribute.MathOptimizations.HasFlag(strategy.RequiredFlags))
+				{
+					continue;
+				}
+
 				if (TryOptimizeWithStrategy(strategy, expressions, type, leftExpr, leftType, rightExpr, rightType, parent, out var result)
 				    && result != null)
 				{

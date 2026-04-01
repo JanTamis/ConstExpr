@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Validation;
 
 [InheritsTests]
-public class IsLeapYearTest() : BaseTest<Func<int, bool>>(FloatingPointEvaluationMode.FastMath)
+public class IsLeapYearTest() : BaseTest<Func<int, bool>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString(year =>
 	{

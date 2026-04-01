@@ -45,6 +45,7 @@ public class ExpFunctionOptimizer() : BaseMathFunctionOptimizer("Exp", 1)
 			private static float FastExp(float x)
 			{
 				// Safe bounds
+				if (Single.IsNaN(x)) return Single.NaN;
 				if (x >= 88.0f) return Single.PositiveInfinity;
 				if (x <= -87.0f) return 0.0f;
 
@@ -75,6 +76,7 @@ public class ExpFunctionOptimizer() : BaseMathFunctionOptimizer("Exp", 1)
 			private static double FastExp(double x)
 			{
 				// Safe bounds
+				if (Double.IsNaN(x)) return Double.NaN;
 				if (x >= 709.0) 
 					return Double.PositiveInfinity;
 					

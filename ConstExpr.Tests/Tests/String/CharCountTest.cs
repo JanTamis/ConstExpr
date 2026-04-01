@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.String;
 
 [InheritsTests]
-public class CharCountTest() : BaseTest<Func<string?, char, int>>(FloatingPointEvaluationMode.FastMath)
+public class CharCountTest() : BaseTest<Func<string?, char, int>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString((text, target) =>
 	{

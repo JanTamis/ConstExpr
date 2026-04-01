@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.NumberTheory;
 
 [InheritsTests]
-public class FactorialTest() : BaseTest<Func<int, long>>(FloatingPointEvaluationMode.FastMath)
+public class FactorialTest() : BaseTest<Func<int, long>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString(n =>
 	{

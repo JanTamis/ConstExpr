@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.NumberTheory;
 
 [InheritsTests]
-public class LCMTest() : BaseTest<Func<int, int, int>>(FloatingPointEvaluationMode.FastMath)
+public class LCMTest() : BaseTest<Func<int, int, int>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString((a, b) =>
 	{

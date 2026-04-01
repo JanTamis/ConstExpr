@@ -1,3 +1,4 @@
+using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis.CSharp;
@@ -12,9 +13,12 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AddStrategies;
 /// Both patterns also apply symmetrically: C2 + (C1 - x) and C2 + (x - C1)
 /// Example: (1 - start) + 1 => 2 - start
 /// Example: (start - 3) + 5 => start + 2
+/// Requires AssociativeMath for floating-point safety.
 /// </summary>
 public class AddSubtractionConstantFoldingStrategy() : SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, LiteralExpressionSyntax>(leftKind: SyntaxKind.SubtractExpression)
 {
+	public override FastMathFlags RequiredFlags => FastMathFlags.AssociativeMath;
+
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<BinaryExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		var c2 = context.Right.Syntax.Token.Value;

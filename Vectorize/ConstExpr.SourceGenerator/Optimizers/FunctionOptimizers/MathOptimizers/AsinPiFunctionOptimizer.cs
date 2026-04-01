@@ -35,6 +35,7 @@ public class AsinPiFunctionOptimizer() : BaseMathFunctionOptimizer("AsinPi", 1)
 				// Average cost ≈ 50% × Taylor + 50% × A&S, beating the always-sqrt branchless approach.
 				// Benchmarks (Apple M4 Pro): 1.098 ns vs 2.601 ns for float.AsinPi (58% faster).
 				// Small branch accuracy: ≈2.8e-3 at |x|=0.5 (acceptable for FastMath mode).
+				if (Single.IsNaN(x)) return Single.NaN;
 				if (x < -1.0f) x = -1.0f;
 				if (x > 1.0f) x = 1.0f;
 				
@@ -78,6 +79,7 @@ public class AsinPiFunctionOptimizer() : BaseMathFunctionOptimizer("AsinPi", 1)
 				// Average cost ≈ 50% × Taylor + 50% × A&S, beating the always-sqrt branchless approach.
 				// Benchmarks (Apple M4 Pro): 1.001 ns vs 3.316 ns for double.AsinPi (70% faster).
 				// Small branch accuracy: ≈2.8e-3 at |x|=0.5 (acceptable for FastMath mode).
+				if (Double.IsNaN(x)) return Double.NaN;
 				if (x < -1.0) x = -1.0;
 				if (x > 1.0) x = 1.0;
 				

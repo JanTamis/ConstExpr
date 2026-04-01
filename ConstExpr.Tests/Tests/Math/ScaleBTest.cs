@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class ScaleBTest() : BaseTest<Func<double, int, double>>(FloatingPointEvaluationMode.FastMath)
+public class ScaleBTest() : BaseTest<Func<double, int, double>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString((x, n) => System.Math.ScaleB(x, n));
 

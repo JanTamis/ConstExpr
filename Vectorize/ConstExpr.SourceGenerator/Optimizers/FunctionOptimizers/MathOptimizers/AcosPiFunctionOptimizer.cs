@@ -30,6 +30,7 @@ public class AcosPiFunctionOptimizer() : BaseMathFunctionOptimizer("AcosPi", 1)
 		return """
 			private static float FastAcosPi(float x)
 			{
+				if (Single.IsNaN(x)) return Single.NaN;
 				var negative = x < 0f;
 				x = Single.Abs(x);
 				if (x > 1.0f) x = 1.0f;
@@ -52,6 +53,7 @@ public class AcosPiFunctionOptimizer() : BaseMathFunctionOptimizer("AcosPi", 1)
 		return """
 			private static double FastAcosPi(double x)
 			{
+				if (Double.IsNaN(x)) return Double.NaN;
 				var negative = x < 0.0;
 				x = Double.Abs(x);
 				if (x > 1.0) x = 1.0;

@@ -34,6 +34,7 @@ public class SinFunctionOptimizer() : BaseMathFunctionOptimizer("Sin", 1)
 				// Benchmarked faster than the branched deg-7 version on ARM64 and x64:
 				//   FastSinV3=0.889ns vs FastSin(branched deg-7)=0.938ns (-5.3%).
 				// Max absolute error ≈ 1.3e-4 near x=π/2 (acceptable for FastMath).
+				if (Single.IsNaN(x)) return Single.NaN;
 				
 				// Store original sign for CopySign
 				var originalX = x;
@@ -69,6 +70,7 @@ public class SinFunctionOptimizer() : BaseMathFunctionOptimizer("Sin", 1)
 				// The conditional branch for the π/2 symmetry fold is intentionally kept:
 				// branchless double.Min was benchmarked 3% slower (1.12ns) on ARM64 because
 				// the M4 Pro branch predictor handles this ~50%-taken branch efficiently.
+				if (Double.IsNaN(x)) return Double.NaN;
 				
 				// Store original sign for CopySign
 				var originalX = x;

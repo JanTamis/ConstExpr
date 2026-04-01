@@ -1,3 +1,4 @@
+using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis;
@@ -10,9 +11,12 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AddStrategies;
 /// Strategy for constant folding in chained additions: (x + C1) + C2 => x + (C1 + C2)
 /// Also handles: C1 + (x + C2) => x + (C1 + C2) and C1 + (C2 + x) => x + (C1 + C2)
 /// Additionally handles: (C1 + x) + C2 => x + (C1 + C2) when C1 is on the left
+/// This optimization requires AssociativeMath flag for floating-point safety.
 /// </summary>
 public class AddConstantFoldingStrategy : NumericBinaryStrategy<BinaryExpressionSyntax, ExpressionSyntax>
 {
+	public override FastMathFlags RequiredFlags => FastMathFlags.AssociativeMath;
+
 	// TODO Add symmerty
 	public override bool TryOptimize(BinaryOptimizeContext<BinaryExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{

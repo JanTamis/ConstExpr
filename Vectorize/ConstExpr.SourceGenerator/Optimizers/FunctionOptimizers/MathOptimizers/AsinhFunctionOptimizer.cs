@@ -34,6 +34,7 @@ public class AsinhFunctionOptimizer() : BaseMathFunctionOptimizer("Asinh", 1)
 				// FMA(|x|,|x|,1) = x²+1 is always ≥ 1, so sqrt is always real.
 				// No conditional branches — avoids misprediction overhead.
 				// Benchmarks (Apple M4 Pro): 2.003 ns vs 2.287 ns for MathF.Asinh (12% faster).
+				if (Single.IsNaN(x)) return Single.NaN;
 				var ax = Single.Abs(x);
 				var r = Single.Log(ax + Single.Sqrt(Single.FusedMultiplyAdd(ax, ax, 1.0f)));
 				return Single.CopySign(r, x);
@@ -50,6 +51,7 @@ public class AsinhFunctionOptimizer() : BaseMathFunctionOptimizer("Asinh", 1)
 				// FMA(|x|,|x|,1) = x²+1 is always ≥ 1, so sqrt is always real.
 				// No conditional branches — avoids misprediction overhead.
 				// Benchmarks (Apple M4 Pro): 2.737 ns vs 4.161 ns for Math.Asinh (34% faster).
+				if (Double.IsNaN(x)) return Double.NaN;
 				var ax = Double.Abs(x);
 				var r = Double.Log(ax + Double.Sqrt(Double.FusedMultiplyAdd(ax, ax, 1.0)));
 				return Double.CopySign(r, x);

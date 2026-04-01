@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Arithmetic;
 
 [InheritsTests]
-public class CountDigitsTest() : BaseTest<Func<int, int>>(FloatingPointEvaluationMode.FastMath)
+public class CountDigitsTest() : BaseTest<Func<int, int>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString(n =>
 	{

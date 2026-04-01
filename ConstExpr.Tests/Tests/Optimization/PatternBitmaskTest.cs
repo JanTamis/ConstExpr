@@ -8,7 +8,7 @@ namespace ConstExpr.Tests.Optimization;
 /// into efficient bitmask checks.
 /// </summary>
 [InheritsTests]
-public class PatternBitmaskTest() : BaseTest<Func<int, bool>>(FloatingPointEvaluationMode.FastMath)
+public class PatternBitmaskTest() : BaseTest<Func<int, bool>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -34,7 +34,7 @@ public class PatternBitmaskTest() : BaseTest<Func<int, bool>>(FloatingPointEvalu
 /// Test with larger set of values
 /// </summary>
 [InheritsTests]
-public class PatternBitmaskLargeTest() : BaseTest<Func<int, bool>>(FloatingPointEvaluationMode.FastMath)
+public class PatternBitmaskLargeTest() : BaseTest<Func<int, bool>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -60,7 +60,7 @@ public class PatternBitmaskLargeTest() : BaseTest<Func<int, bool>>(FloatingPoint
 /// Test with small set (powers of 2)
 /// </summary>
 [InheritsTests]
-public class PatternBitmaskSmallTest() : BaseTest<Func<int, bool>>(FloatingPointEvaluationMode.FastMath)
+public class PatternBitmaskSmallTest() : BaseTest<Func<int, bool>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -83,7 +83,7 @@ public class PatternBitmaskSmallTest() : BaseTest<Func<int, bool>>(FloatingPoint
 /// Test with consecutive values
 /// </summary>
 [InheritsTests]
-public class PatternBitmaskConsecutiveTest() : BaseTest<Func<int, bool>>(FloatingPointEvaluationMode.FastMath)
+public class PatternBitmaskConsecutiveTest() : BaseTest<Func<int, bool>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -106,7 +106,7 @@ public class PatternBitmaskConsecutiveTest() : BaseTest<Func<int, bool>>(Floatin
 /// Test with byte values
 /// </summary>
 [InheritsTests]
-public class PatternBitmaskByteTest() : BaseTest<Func<byte, bool>>(FloatingPointEvaluationMode.FastMath)
+public class PatternBitmaskByteTest() : BaseTest<Func<byte, bool>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString(n =>
 	{

@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.NumberTheory;
 
 [InheritsTests]
-public class SumOfDivisorsTest() : BaseTest<Func<int, int>>(FloatingPointEvaluationMode.FastMath)
+public class SumOfDivisorsTest() : BaseTest<Func<int, int>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString(n =>
 	{

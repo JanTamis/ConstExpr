@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Validation;
 
 [InheritsTests]
-public class IsMultipleOfTest() : BaseTest<Func<int, int, bool>>(FloatingPointEvaluationMode.FastMath)
+public class IsMultipleOfTest() : BaseTest<Func<int, int, bool>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString((n, divisor) => divisor != 0 && n % divisor == 0);
 

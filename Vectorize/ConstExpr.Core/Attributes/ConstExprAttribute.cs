@@ -10,26 +10,27 @@ namespace ConstExpr.Core.Attributes;
 /// <remarks>
 /// Applying this attribute signals that the annotated member (or all members inside an
 /// annotated type) should be considered for compile-time evaluation when possible.
-/// Use <see cref="FloatingPointMode"/> to control floating‑point semantics (strict vs fast).
+/// Use <see cref="MathOptimizations"/> to control floating‑point semantics (strict vs fast).
 /// Use <see cref="LinqOptimisationMode"/> to control whether LINQ calls are folded, unrolled
 /// </remarks>
-/// <seealso cref="FloatingPointEvaluationMode"/>
+/// <seealso cref="FastMathFlags"/>
 /// <seealso cref="LinqOptimisationMode"/>
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Class | AttributeTargets.Struct, Inherited = false)]
 public sealed class ConstExprAttribute(
-	FloatingPointEvaluationMode floatingPointMode = FloatingPointEvaluationMode.Strict,
+	FastMathFlags mathOptimizations = FastMathFlags.Strict,
 	LinqOptimisationMode linqOptimisationMode = LinqOptimisationMode.Optimize,
 	uint maxUnrollIterations = 32) : Attribute
 {
 	/// <summary>
-	/// Gets or sets the floating‑point evaluation mode used during constant expression processing.
+	/// Gets or sets the fast-math flags used during constant expression processing.
 	/// </summary>
 	/// <value>
-	/// Defaults to <see cref="FloatingPointEvaluationMode.Strict"/>.
-	/// When set to <see cref="FloatingPointEvaluationMode.FastMath"/>, additional math optimisations
+	/// Defaults to <see cref="FastMathFlags.Strict"/>.
+	/// When set to <see cref="FastMathFlags.FastMath"/>, additional math optimisations
 	/// are applied (e.g. char-overload promotion and fast math method folding).
+	/// Individual flags from <see cref="FastMathFlags"/> can also be combined for fine-grained control.
 	/// </value>
-	public FloatingPointEvaluationMode FloatingPointMode { get; set; } = floatingPointMode;
+	public FastMathFlags MathOptimizations { get; set; } = mathOptimizations;
 
 	/// <summary>
 	/// Gets or sets the maximum number of loop iterations to unroll during constant expression evaluation.

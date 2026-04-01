@@ -35,6 +35,7 @@ public class SinCosFunctionOptimizer() : BaseMathFunctionOptimizer("SinCos", 1)
 				// V2 changes vs previous: multiply instead of divide (no FDIV), removed dead
 				// "if (absX > Pi)" branch, one branchless FCSEL instead of two if-branches,
 				// single CopySign for sin sign instead of the nested double-CopySign form.
+				if (Single.IsNaN(x)) return (Single.NaN, Single.NaN);
 				
 				const float Tau    = 6.283185307179586f;
 				const float Pi     = 3.141592653589793f;
@@ -85,6 +86,7 @@ public class SinCosFunctionOptimizer() : BaseMathFunctionOptimizer("SinCos", 1)
 				//   Math.SinCos  = 5.33 ns  |  previous FastSinCos = 1.84 ns  |  this V2 = 1.62 ns
 				// V2 changes: multiply instead of divide (no FDIV), removed dead "if (absX > Pi)"
 				// branch, one branchless FCSEL instead of two if-branches, single CopySign.
+				if (Double.IsNaN(x)) return (Double.NaN, Double.NaN);
 				
 				const double Tau    = 6.283185307179586476925;
 				const double Pi     = 3.141592653589793238462;

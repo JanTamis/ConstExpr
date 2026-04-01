@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class BitwiseOperationsTest() : BaseTest<Func<int, int, int>>(FloatingPointEvaluationMode.FastMath)
+public class BitwiseOperationsTest() : BaseTest<Func<int, int, int>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString((a, b) => a & b | a ^ b);
 

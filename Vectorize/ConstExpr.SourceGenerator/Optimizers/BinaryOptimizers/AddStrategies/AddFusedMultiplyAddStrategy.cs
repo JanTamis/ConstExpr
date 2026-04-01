@@ -1,4 +1,5 @@
 using System.Linq;
+using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis;
@@ -11,9 +12,12 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AddStrategies;
 /// Strategy for Fused Multiply-Add (FMA) optimization:
 /// (a * b) + c => FMA(a, b, c)
 /// c + (a * b) => FMA(a, b, c)
+/// Requires FusedMultiplyAdd flag as FMA has different rounding behavior.
 /// </summary>
 public class AddFusedMultiplyAddStrategy() : SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, ExpressionSyntax>(leftKind: SyntaxKind.MultiplyExpression)
 {
+	public override FastMathFlags RequiredFlags => FastMathFlags.FusedMultiplyAdd;
+
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<BinaryExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		var host = ParseName(context.Type.Name);

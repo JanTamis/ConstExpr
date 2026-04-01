@@ -6,7 +6,7 @@ using System.Linq;
 namespace ConstExpr.SourceGenerator.Sample.Operations;
 
 [ConstExpr(
-	FloatingPointMode = FloatingPointEvaluationMode.FastMath,
+	MathOptimizations = FastMathFlags.FastMath,
 	LinqOptimisationMode = LinqOptimisationMode.Unroll)]
 public static class CryptographyOperations
 {

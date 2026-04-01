@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Arithmetic;
 
 [InheritsTests]
-public class CeilingDivisionTest() : BaseTest<Func<int, int, int>>(FloatingPointEvaluationMode.FastMath)
+public class CeilingDivisionTest() : BaseTest<Func<int, int, int>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString((numerator, divisor) =>
 	{

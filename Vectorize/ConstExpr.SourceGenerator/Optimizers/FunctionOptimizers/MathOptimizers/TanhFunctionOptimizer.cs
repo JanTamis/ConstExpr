@@ -107,6 +107,7 @@ public class TanhFunctionOptimizer() : BaseMathFunctionOptimizer("Tanh", 1)
 		return """
 			private static float FastTanh(float x)
 			{
+				if (Single.IsNaN(x)) return Single.NaN;
 				if (x >= 5.0f) return 1.0f;
 				if (x <= -5.0f) return -1.0f;
 				
@@ -144,6 +145,7 @@ public class TanhFunctionOptimizer() : BaseMathFunctionOptimizer("Tanh", 1)
 		return """
 			private static double FastTanh(double x)
 			{
+				if (Double.IsNaN(x)) return Double.NaN;
 				if (x >= 19.0) return 1.0;
 				if (x <= -19.0) return -1.0;
 				

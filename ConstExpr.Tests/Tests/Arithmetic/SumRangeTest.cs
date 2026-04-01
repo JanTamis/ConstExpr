@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Arithmetic;
 
 [InheritsTests]
-public class SumRangeTest() : BaseTest<Func<int, int, long>>(FloatingPointEvaluationMode.FastMath)
+public class SumRangeTest() : BaseTest<Func<int, int, long>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString((start, end) =>
 	{

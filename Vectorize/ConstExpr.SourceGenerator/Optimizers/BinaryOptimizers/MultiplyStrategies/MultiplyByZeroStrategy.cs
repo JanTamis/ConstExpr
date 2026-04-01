@@ -1,3 +1,4 @@
+using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -6,9 +7,12 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.MultiplyStrategi
 
 /// <summary>
 /// Strategy for multiplication by zero: x * 0 = 0 (pure)
+/// Requires NoInfinity and NoSignedZero for floating-point safety (allows replacing x*0.0 with 0.0).
 /// </summary>
 public class MultiplyByZeroStrategy : SymmetricStrategy<NumericBinaryStrategy, ExpressionSyntax, LiteralExpressionSyntax>
 {
+	public override FastMathFlags RequiredFlags => FastMathFlags.NoInfinity | FastMathFlags.NoSignedZero;
+
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<ExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!context.Right.Syntax.IsNumericZero()

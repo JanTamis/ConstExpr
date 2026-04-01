@@ -34,6 +34,7 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", 1)
 			/// </summary>
 			public static float FastAcos(float x)
 			{
+				if (Single.IsNaN(x)) return Single.NaN;
 				var negative = x < 0f;
 				x = Single.Abs(x);
 			
@@ -61,6 +62,7 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", 1)
 			/// </summary>
 			public static double FastAcos(double x)
 			{
+				if (Double.IsNaN(x)) return Double.NaN;
 				var negative = x < 0.0;
 				x = Double.Abs(x);
 				var big = x > 0.5;

@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class PercentageTest() : BaseTest<Func<double, double, double>>(FloatingPointEvaluationMode.FastMath)
+public class PercentageTest() : BaseTest<Func<double, double, double>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString((value, percentage) => value * percentage / 100);
 

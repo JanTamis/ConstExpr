@@ -31,7 +31,8 @@ public class Exp2FunctionOptimizer() : BaseMathFunctionOptimizer("Exp2", 1)
 		return """
 			private static float FastExp2(float x)
 			{
-				if (x >= 128.0f) return float.IsNaN(x) ? float.NaN : float.PositiveInfinity;
+				if (Single.IsNaN(x)) return Single.NaN;
+				if (x >= 128.0f) return float.PositiveInfinity;
 				if (x < -150.0f) return 0.0f;
 
 				// Round to nearest integer; r = fractional part in [-0.5, 0.5]
@@ -64,7 +65,8 @@ public class Exp2FunctionOptimizer() : BaseMathFunctionOptimizer("Exp2", 1)
 		return """
 			private static double FastExp2(double x)
 			{
-				if (x >= 1024.0) return double.IsNaN(x) ? double.NaN : double.PositiveInfinity;
+				if (Double.IsNaN(x)) return Double.NaN;
+				if (x >= 1024.0) return Double.PositiveInfinity;
 				if (x < -1100.0) return 0.0;
 
 				var k = (long)(x + (x >= 0.0 ? 0.5 : -0.5));

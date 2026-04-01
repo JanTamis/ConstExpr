@@ -6,7 +6,7 @@ namespace ConstExpr.Tests.Tests.Linq;
 /// Tests for Count() optimization - verify that unnecessary operations before Count() are removed
 /// </summary>
 [InheritsTests]
-public class LinqCountOptimizationTests() : BaseTest<Func<int[], int>>(FloatingPointEvaluationMode.FastMath)
+public class LinqCountOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString(x =>
 	{

@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Arithmetic;
 
 [InheritsTests]
-public class DivideByPowerOfTwoTest() : BaseTest<Func<int, int, int>>(FloatingPointEvaluationMode.FastMath)
+public class DivideByPowerOfTwoTest() : BaseTest<Func<int, int, int>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString((n, power) => n >> power);
 

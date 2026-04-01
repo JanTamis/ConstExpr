@@ -121,6 +121,7 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", 2)
 		return """
 			private static float FastRootN(float x, int n)
 			{
+				if (Single.IsNaN(x)) return Single.NaN;
 				if (n == 0)
 					return float.NaN;
 				
@@ -172,6 +173,7 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", 2)
 		return """
 			private static double FastRootN(double x, int n)
 			{
+				if (Double.IsNaN(x)) return Double.NaN;
 				if (n == 0)
 					return double.NaN;
 				

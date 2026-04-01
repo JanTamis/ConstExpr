@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.NumberTheory;
 
 [InheritsTests]
-public class IsPowerOfTwoTest() : BaseTest<Func<int, bool>>(FloatingPointEvaluationMode.FastMath)
+public class IsPowerOfTwoTest() : BaseTest<Func<int, bool>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString(n =>
 	{

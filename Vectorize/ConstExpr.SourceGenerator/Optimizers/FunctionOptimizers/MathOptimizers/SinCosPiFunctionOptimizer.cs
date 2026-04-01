@@ -32,6 +32,7 @@ public class SinCosPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinCosPi",
 			{
 				// Fast simultaneous sine(π*x) and cosine(π*x) calculation
 				// Uses optimized polynomial approximation with branchless operations
+				if (Single.IsNaN(x)) return (Single.NaN, Single.NaN);
 				
 				// Range reduction: bring x to [-1, 1]
 				x -= Single.Round(x * 0.5f) * 2.0f;
@@ -79,6 +80,7 @@ public class SinCosPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinCosPi",
 			{
 				// Fast simultaneous sine(π*x) and cosine(π*x) calculation
 				// Uses optimized polynomial approximation with branchless operations
+				if (Double.IsNaN(x)) return (Double.NaN, Double.NaN);
 				
 				// Range reduction: bring x to [-1, 1]
 				x -= Double.Round(x * 0.5) * 2.0;

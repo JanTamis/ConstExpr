@@ -1,3 +1,4 @@
+using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis.CSharp;
@@ -7,9 +8,12 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AddStrategies;
 
 /// <summary>
 /// Strategy for negation cancellation: x + (-x) => 0 and (-x) + x => 0
+/// Safe under Strict (pure algebraic identity).
 /// </summary>
 public class AddNegationStrategy() : SymmetricStrategy<NumericBinaryStrategy, ExpressionSyntax, PrefixUnaryExpressionSyntax>(rightKind: SyntaxKind.UnaryMinusExpression)
 {
+	public override FastMathFlags RequiredFlags => FastMathFlags.Strict;
+
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<ExpressionSyntax, PrefixUnaryExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (LeftEqualsRight(context.Right.Syntax.Operand, context.Left.Syntax, context.Variables)

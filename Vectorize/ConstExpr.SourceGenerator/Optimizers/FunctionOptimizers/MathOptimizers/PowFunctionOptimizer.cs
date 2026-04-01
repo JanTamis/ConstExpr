@@ -124,6 +124,7 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", 2)
 		return """
 			private static double FastPow(double x, double y)
 			{
+				if (Double.IsNaN(x) || Double.IsNaN(y)) return Double.NaN;
 				if (y == 0.0 || x == 1.0) return 1.0;
 				if (x <= 0.0) return Double.NaN;
 
@@ -174,6 +175,7 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", 2)
 		return """
 			private static float FastPow(float x, float y)
 			{
+				if (Single.IsNaN(x) || Single.IsNaN(y)) return Single.NaN;
 				if (y == 0.0f || x == 1.0f) return 1.0f;
 				if (x <= 0.0f) return Single.NaN;
 

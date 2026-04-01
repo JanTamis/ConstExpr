@@ -8,7 +8,7 @@ namespace ConstExpr.Tests.Validation;
 /// as the parenthesized versions, so all patterns should still be recognized.
 /// </summary>
 [InheritsTests]
-public class AsciiCharRangeNoBracketsTest() : BaseTest<Func<char, bool>>(FloatingPointEvaluationMode.FastMath)
+public class AsciiCharRangeNoBracketsTest() : BaseTest<Func<char, bool>>(FastMathFlags.FastMath)
 {
 	// No parentheses — &&-precedence groups identically to the parenthesized form.
 	// ReSharper disable ArrangeRedundantParentheses
@@ -26,7 +26,7 @@ public class AsciiCharRangeNoBracketsTest() : BaseTest<Func<char, bool>>(Floatin
 }
 
 [InheritsTests]
-public class AsciiLetterNoBracketsTest() : BaseTest<Func<char, bool>>(FloatingPointEvaluationMode.FastMath)
+public class AsciiLetterNoBracketsTest() : BaseTest<Func<char, bool>>(FastMathFlags.FastMath)
 {
 	// ReSharper disable ArrangeRedundantParentheses
 	public override string TestMethod => GetString(c =>
@@ -42,7 +42,7 @@ public class AsciiLetterNoBracketsTest() : BaseTest<Func<char, bool>>(FloatingPo
 }
 
 [InheritsTests]
-public class AsciiLetterOrDigitNoBracketsTest() : BaseTest<Func<char, bool>>(FloatingPointEvaluationMode.FastMath)
+public class AsciiLetterOrDigitNoBracketsTest() : BaseTest<Func<char, bool>>(FastMathFlags.FastMath)
 {
 	// ReSharper disable ArrangeRedundantParentheses
 	public override string TestMethod => GetString(c =>

@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Array;
 
 [InheritsTests]
-public class ContainsElementTest() : BaseTest<Func<int[], int, bool>>(FloatingPointEvaluationMode.FastMath)
+public class ContainsElementTest() : BaseTest<Func<int[], int, bool>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString((arr, value) =>
 	{

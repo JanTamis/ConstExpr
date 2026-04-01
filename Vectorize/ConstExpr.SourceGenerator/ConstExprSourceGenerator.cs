@@ -263,7 +263,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 			wroteFirstGroup = true;
 
-			if (invocationsByValue.Any(a => a?.AttributeData.FloatingPointMode == FloatingPointEvaluationMode.FastMath))
+			if (invocationsByValue.Any(a => a?.AttributeData.MathOptimizations != FastMathFlags.Strict))
 			{
 				// code.WriteLine("[MethodImpl(MethodImplOptions.AggressiveOptimization)]");
 			}
@@ -374,7 +374,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 				GetUsings(methodSymbol, usings);
 
-				if (attribute.FloatingPointMode == FloatingPointEvaluationMode.FastMath)
+				if (attribute.MathOptimizations != FastMathFlags.Strict)
 				{
 					usings.Add("System.Runtime.CompilerServices");
 				}

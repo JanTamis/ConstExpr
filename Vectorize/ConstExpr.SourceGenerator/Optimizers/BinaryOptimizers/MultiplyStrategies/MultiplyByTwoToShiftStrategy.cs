@@ -1,3 +1,4 @@
+using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis.CSharp;
@@ -7,9 +8,12 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.MultiplyStrategi
 
 /// <summary>
 /// Strategy for multiplication by two to shift: 2 * x => x << 1 (integer)
+/// Safe under Strict (integer shift arithmetic).
 /// </summary>
 public class MultiplyByTwoToShiftStrategy : SymmetricStrategy<UnsigedIntegerBinaryStrategy, LiteralExpressionSyntax, ExpressionSyntax>
 {
+	public override FastMathFlags RequiredFlags => FastMathFlags.Strict;
+
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<LiteralExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!context.Left.Syntax.IsNumericTwo())

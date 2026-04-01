@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Array;
 
 [InheritsTests]
-public class ArrayReverseTest() : BaseTest<Func<int[], int[]>>(FloatingPointEvaluationMode.FastMath)
+public class ArrayReverseTest() : BaseTest<Func<int[], int[]>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString(arr =>
 	{

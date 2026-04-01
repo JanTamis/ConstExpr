@@ -99,6 +99,7 @@ public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", 1)
 			private static float FastTanPi(float x)
 			{
 				// Range reduce to [-0.5, 0.5] — TanPi period is 1
+				if (Single.IsNaN(x)) return Single.NaN;
 				x -= Single.Round(x);
 				
 				var signX = x;
@@ -142,6 +143,7 @@ public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", 1)
 			private static double FastTanPi(double x)
 			{
 				// Range reduce to [-0.5, 0.5] — TanPi period is 1
+				if (Double.IsNaN(x)) return Double.NaN;
 				x -= Double.Round(x);
 				
 				var signX = x;

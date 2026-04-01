@@ -27,11 +27,12 @@ public class CbrtFunctionOptimizer() : BaseMathFunctionOptimizer("Cbrt", 1)
 		return true;
 	}
 
-	private static string GenerateFastCbrtMethodFloat()
+		private static string GenerateFastCbrtMethodFloat()
 	{
 		return """
 			private static float FastCbrt(float x)
 			{
+				if (Single.IsNaN(x)) return Single.NaN;
 				if (x == 0.0f)
 					return 0.0f;
 				
@@ -55,11 +56,12 @@ public class CbrtFunctionOptimizer() : BaseMathFunctionOptimizer("Cbrt", 1)
 			""";
 	}
 
-	private static string GenerateFastCbrtMethodDouble()
+		private static string GenerateFastCbrtMethodDouble()
 	{
 		return """
 			private static double FastCbrt(double x)
 			{
+				if (Double.IsNaN(x)) return Double.NaN;
 				if (x == 0.0)
 					return 0.0;
 				

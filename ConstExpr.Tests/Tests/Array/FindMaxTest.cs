@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Array;
 
 [InheritsTests]
-public class FindMaxTest() : BaseTest<Func<int[], int>>(FloatingPointEvaluationMode.FastMath)
+public class FindMaxTest() : BaseTest<Func<int[], int>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString(numbers =>
 	{
