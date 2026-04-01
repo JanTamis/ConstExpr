@@ -55,82 +55,10 @@ public class TruncateFunctionOptimizer() : BaseMathFunctionOptimizer("Truncate",
 			return true;
 		}
 
-		if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
-		{
-			var methodString = paramType.SpecialType == SpecialType.System_Single
-				? GenerateFastTruncateMethodFloat()
-				: GenerateFastTruncateMethodDouble();
-
-			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
-
-			result = CreateInvocation("FastTruncate", context.VisitedParameters);
-			return true;
-		}
-
-		// Default: keep as Truncate call (target numeric helper type)
+		// Default: float.Truncate / double.Truncate / Math.Truncate — all lower to a single FRINTZ/ROUNDSS
+		// hardware instruction. The former FastTruncate bit-manipulation was 16–24% slower on ARM64
+		// (see TruncateBenchmark). Let the JIT emit the optimal instruction directly.
 		result = CreateInvocation(paramType, Name, context.VisitedParameters);
 		return true;
-	}
-
-	private static string GenerateFastTruncateMethodFloat()
-	{
-		return """
-			private static float FastTruncate(float x)
-			{
-				// Fast truncation using bit manipulation
-				// This avoids the expensive conversion to int and back
-				const uint signMask = 0x80000000u;
-				const uint exponentMask = 0x7F800000u;
-				const uint mantissaMask = 0x007FFFFFu;
-				const int exponentBias = 127;
-				
-				var bits = BitConverter.SingleToUInt32Bits(x);
-				var sign = bits & signMask;
-				var exponent = (int)((bits & exponentMask) >> 23) - exponentBias;
-				
-				// Handle special cases
-				if (exponent < 0)
-					return BitConverter.UInt32BitsToSingle(sign); // Return +0.0f or -0.0f
-				if (exponent >= 23)
-					return x; // Already an integer or special value (Inf/NaN)
-				
-				// Clear fractional bits
-				var mask = mantissaMask >> exponent;
-				bits &= ~mask;
-				
-				return BitConverter.UInt32BitsToSingle(bits);
-			}
-			""";
-	}
-
-	private static string GenerateFastTruncateMethodDouble()
-	{
-		return """
-			private static double FastTruncate(double x)
-			{
-				// Fast truncation using bit manipulation
-				// This avoids the expensive conversion to long and back
-				const ulong signMask = 0x8000000000000000ul;
-				const ulong exponentMask = 0x7FF0000000000000ul;
-				const ulong mantissaMask = 0x000FFFFFFFFFFFFFul;
-				const int exponentBias = 1023;
-				
-				var bits = BitConverter.DoubleToUInt64Bits(x);
-				var sign = bits & signMask;
-				var exponent = (int)((bits & exponentMask) >> 52) - exponentBias;
-				
-				// Handle special cases
-				if (exponent < 0)
-					return BitConverter.UInt64BitsToDouble(sign); // Return +0.0 or -0.0
-				if (exponent >= 52)
-					return x; // Already an integer or special value (Inf/NaN)
-				
-				// Clear fractional bits
-				var mask = mantissaMask >> exponent;
-				bits &= ~mask;
-				
-				return BitConverter.UInt64BitsToDouble(bits);
-			}
-			""";
 	}
 }

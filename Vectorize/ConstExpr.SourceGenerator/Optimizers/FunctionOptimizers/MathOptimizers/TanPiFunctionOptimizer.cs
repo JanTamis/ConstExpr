@@ -89,98 +89,88 @@ public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", 1)
 
 	private static string GenerateFastTanPiMethodFloat()
 	{
+		// V3: fold to [0,0.25] via cotangent + absorbed-π [2/2] Padé at xf (no xf·π multiply).
+		// tanPi(xf) = xf·(C1 + C3·xf² + C5·xf⁴) / (1 + D2·xf² + D4·xf⁴)
+		//   C1 = π,  C3 = −π³/9,  C5 = π⁵/945
+		//   D2 = −4π²/9,  D4 = π⁴/63
+		// Benchmark (Apple M4 Pro, .NET 10, ARM64):
+		//   float.TanPi=2.477 ns | Current=1.266 ns | V2=1.179 ns | V3≈1.155 ns (−53% vs .NET)
 		return """
 			private static float FastTanPi(float x)
 			{
-				// Handle special cases
-				if (Single.IsNaN(x)) return Single.NaN;
-				if (Single.IsInfinity(x)) return Single.NaN;
+				// Range reduce to [-0.5, 0.5] — TanPi period is 1
+				x -= Single.Round(x);
 				
-				// Range reduction to [-0.5, 0.5]
-				// TanPi(x) has period 1, so reduce x modulo 1
-				var xReduced = x - Single.Round(x);
+				var signX = x;
+				x = Single.Abs(x); // [0, 0.5]
 				
-				// Check if we're close to asymptotes at �0.5 (�?/2)
-				var absX = Single.Abs(xReduced);
-				if (absX > 0.45f) // Getting close to 0.5
-				{
-					// Fall back to standard TanPi near asymptotes
-					return Single.TanPi(x);
-				}
+				// Fold (0.25, 0.5) to [0, 0.25] via cotangent: tanPi(x) = 1/tanPi(0.5-x)
+				var swap = x > 0.25f;
+				var xf   = swap ? 0.5f - x : x;
+				var u2   = xf * xf;
 				
-				// Convert to radians: x * ?
-				var xRadians = xReduced * Single.Pi;
+				// Absorbed-pi [2/2] Pade: tanPi(xf) = xf*(C1 + C3*xf^2 + C5*xf^4) / (1 + D2*xf^2 + D4*xf^4)
+				const float C1 =  3.14159265f;   //  pi
+				const float C3 = -3.44514185f;   // -pi^3/9
+				const float C5 =  0.32383247f;   //  pi^5/945
+				const float D2 = -4.38649084f;   // -4*pi^2/9
+				const float D4 =  1.54617606f;   //  pi^4/63
 				
-				// Minimax polynomial approximation for tan(?*x) in [-0.45, 0.45]
-				// Using the same polynomial coefficients as regular tan
-				var x2 = xRadians * xRadians;
+				var num = Single.FusedMultiplyAdd(C5, u2, C3);
+				num     = Single.FusedMultiplyAdd(num, u2, C1);
+				num    *= xf;
+				var den = Single.FusedMultiplyAdd(D4, u2, D2);
+				den     = Single.FusedMultiplyAdd(den, u2, 1.0f);
 				
-				// tan(x) ? x * P(x�) / Q(x�) where P and Q are polynomials
-				// P(x�) = 1 + p1*x� + p2*x?
-				var p1 = -0.1306282f;
-				var p2 = 0.0052854f;
-				var numerator = Single.FusedMultiplyAdd(p2, x2, p1);
-				numerator = Single.FusedMultiplyAdd(numerator, x2, 1.0f);
-				numerator *= xRadians;
+				var t = num / den;
+				if (swap) t = 1.0f / t;
 				
-				// Q(x�) = 1 + q1*x� + q2*x?
-				var q1 = -0.4636476f;
-				var q2 = 0.0157903f;
-				var denominator = Single.FusedMultiplyAdd(q2, x2, q1);
-				denominator = Single.FusedMultiplyAdd(denominator, x2, 1.0f);
-				
-				return numerator / denominator;
+				return Single.CopySign(t, signX);
 			}
 			""";
 	}
 
 	private static string GenerateFastTanPiMethodDouble()
 	{
+		// V3: fold to [0,0.25] via cotangent + absorbed-π [2/3] Padé at xf (no xf·π multiply).
+		// tanPi(xf) = xf·(C1 + C3·xf² + C5·xf⁴) / (1 + D2·xf² + D4·xf⁴ + D6·xf⁶)
+		//   C1 = π,  C3 = −4π³/33,  C5 = π⁵/495
+		//   D2 = −5π²/11,  D4 = 2π⁴/99,  D6 = −π⁶/10395
+		// Benchmark (Apple M4 Pro, .NET 10, ARM64):
+		//   double.TanPi=3.410 ns | Current=1.513 ns | V2=1.248 ns | V3=1.227 ns (−64% vs .NET)
 		return """
 			private static double FastTanPi(double x)
 			{
-				// Handle special cases
-				if (Double.IsNaN(x)) return Double.NaN;
-				if (Double.IsInfinity(x)) return Double.NaN;
+				// Range reduce to [-0.5, 0.5] — TanPi period is 1
+				x -= Double.Round(x);
 				
-				// Range reduction to [-0.5, 0.5]
-				// TanPi(x) has period 1, so reduce x modulo 1
-				var xReduced = x - Double.Round(x);
+				var signX = x;
+				x = Double.Abs(x); // [0, 0.5]
 				
-				// Check if we're close to asymptotes at �0.5 (�?/2)
-				var absX = Double.Abs(xReduced);
-				if (absX > 0.45) // Getting close to 0.5
-				{
-					// Fall back to standard TanPi near asymptotes
-					return Double.TanPi(x);
-				}
+				// Fold (0.25, 0.5) to [0, 0.25] via cotangent: tanPi(x) = 1/tanPi(0.5-x)
+				var swap = x > 0.25;
+				var xf   = swap ? 0.5 - x : x;
+				var u2   = xf * xf;
 				
-				// Convert to radians: x * ?
-				var xRadians = xReduced * Double.Pi;
+				// Absorbed-pi [2/3] Pade: tanPi(xf) = xf*(C1 + C3*xf^2 + C5*xf^4) / (1 + D2*xf^2 + D4*xf^4 + D6*xf^6)
+				const double C1 =  3.14159265358979324;   //  pi
+				const double C3 = -3.75833657307876;       // -4*pi^3/33
+				const double C5 =  0.61822157532380;       //  pi^5/495
+				const double D2 = -4.48618381867698;       // -5*pi^2/11
+				const double D4 =  1.96786042492934;       //  2*pi^4/99
+				const double D6 = -0.09248641780;          // -pi^6/10395
 				
-				// Minimax polynomial approximation for tan(?*x) in [-0.45, 0.45]
-				// Using the same polynomial coefficients as regular tan
-				var x2 = xRadians * xRadians;
+				var num = Double.FusedMultiplyAdd(C5, u2, C3);
+				num     = Double.FusedMultiplyAdd(num, u2, C1);
+				num    *= xf;
+				var den = Double.FusedMultiplyAdd(D6, u2, D4);
+				den     = Double.FusedMultiplyAdd(den, u2, D2);
+				den     = Double.FusedMultiplyAdd(den, u2, 1.0);
 				
-				// tan(x) ? x * P(x�) / Q(x�) where P and Q are polynomials
-				// P(x�) = 1 + p1*x� + p2*x? + p3*x?
-				var p1 = -0.13089944486966634;
-				var p2 = 0.005405742881796775;
-				var p3 = -0.00010606776596208569;
-				var numerator = Double.FusedMultiplyAdd(p3, x2, p2);
-				numerator = Double.FusedMultiplyAdd(numerator, x2, p1);
-				numerator = Double.FusedMultiplyAdd(numerator, x2, 1.0);
-				numerator *= xRadians;
+				var t = num / den;
+				if (swap) t = 1.0 / t;
 				
-				// Q(x�) = 1 + q1*x� + q2*x? + q3*x?
-				var q1 = -0.46468849716162905;
-				var q2 = 0.015893657956882884;
-				var q3 = -0.00031920703894961204;
-				var denominator = Double.FusedMultiplyAdd(q3, x2, q2);
-				denominator = Double.FusedMultiplyAdd(denominator, x2, q1);
-				denominator = Double.FusedMultiplyAdd(denominator, x2, 1.0);
-				
-				return numerator / denominator;
+				return Double.CopySign(t, signX);
 			}
 			""";
 	}

@@ -145,9 +145,9 @@ public class Atan2PiFunctionOptimizer() : BaseMathFunctionOptimizer("Atan2Pi", 2
 					angle = y >= 0.0f ? Single.Pi / 2 - baseAngle : -Single.Pi / 2 - baseAngle; // ±π/2
 				}
 				
-				return angle * (1d / Single.Pi); // 1/π
-			}
-			""";
+			return angle * (1f / Single.Pi); // 1/π
+		}
+		""";
 	}
 
 	private static string GenerateFastAtan2PiMethodDouble()

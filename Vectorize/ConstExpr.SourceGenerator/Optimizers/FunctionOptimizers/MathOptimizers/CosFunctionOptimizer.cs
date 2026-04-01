@@ -31,26 +31,21 @@ public class CosFunctionOptimizer() : BaseMathFunctionOptimizer("Cos", 1)
 			private static float FastCos(float x)
 			{
 				// Fast cosine approximation using minimax polynomial
-				// Range reduction: bring x to [-π, π]
-				// Normalize to [-π, π]
-				x = x - Single.Floor(x / Single.Tau) * Single.Tau;
-				if (x > Single.Pi) x -= Single.Tau;
-				if (x < -Single.Pi) x += Single.Tau;
+				// Branchless range reduction to [-π, π]:
+				// Round(x/τ) compiles to a single FRINTN (ARM64) / ROUNDSS (x64) —
+				// avoids FDIV and conditional branches of the Floor-based approach.
+				x -= Single.Round(x * (1f / Single.Tau)) * Single.Tau;
 				
-				// Use symmetry: cos(-x) = cos(x)
+				// Use symmetry: cos(-x) = cos(x): fold to [0, π]
 				x = Single.Abs(x);
 				
-				// For x in [0, π], use polynomial approximation
-				// cos(x) ≈ 1 - x²/2 + x⁴/24 - x⁶/720 (Taylor series based)
-				// Optimized with minimax polynomial for better accuracy
+				// Degree-8 minimax polynomial for cos(x) on [0, π], evaluated in x² (4 FMA)
 				var x2 = x * x;
-				
-				// Minimax polynomial coefficients for better accuracy
-				var ret = 0.0003538394f;  // x^8 term (small correction)
-				ret = Single.FusedMultiplyAdd(ret, x2, -0.0041666418f);  // x^6 term
-				ret = Single.FusedMultiplyAdd(ret, x2, 0.041666666f);     // x^4 term  
-				ret = Single.FusedMultiplyAdd(ret, x2, -0.5f);            // x^2 term
-				ret = Single.FusedMultiplyAdd(ret, x2, 1.0f);             // constant term
+				var ret = 0.0003538394f;                                        // x^8 term
+				ret = Single.FusedMultiplyAdd(ret, x2, -0.0041666418f);        // x^6 term
+				ret = Single.FusedMultiplyAdd(ret, x2,  0.041666666f);         // x^4 term
+				ret = Single.FusedMultiplyAdd(ret, x2, -0.5f);                 // x^2 term
+				ret = Single.FusedMultiplyAdd(ret, x2,  1.0f);                 // constant term
 				
 				return ret;
 			}
@@ -63,26 +58,22 @@ public class CosFunctionOptimizer() : BaseMathFunctionOptimizer("Cos", 1)
 			private static double FastCos(double x)
 			{
 				// Fast cosine approximation using minimax polynomial
-				// Range reduction: bring x to [-π, π]
-				// Normalize to [-π, π]
-				x = x - Double.Floor(x / Double.Tau) * Double.Tau;
-				if (x > Double.Pi) x -= Double.Tau;
-				if (x < -Double.Pi) x += Double.Tau;
+				// Branchless range reduction to [-π, π]:
+				// Round(x/τ) compiles to a single FRINTA (ARM64) / ROUNDSD (x64) —
+				// avoids FDIV and conditional branches of the Floor-based approach.
+				x -= Double.Round(x * (1.0 / Double.Tau)) * Double.Tau;
 				
-				// Use symmetry: cos(-x) = cos(x)
+				// Use symmetry: cos(-x) = cos(x): fold to [0, π]
 				x = Double.Abs(x);
 				
-				// For x in [0, π], use polynomial approximation
-				// Higher precision minimax polynomial for double
+				// Degree-10 minimax polynomial for cos(x) on [0, π], evaluated in x² (5 FMA)
 				var x2 = x * x;
-				
-				// Minimax polynomial coefficients optimized for double precision
-				var ret = -1.1940250944959890e-7;  // x^10 term
-				ret = Double.FusedMultiplyAdd(ret, x2, 2.0876755527587203e-5);   // x^8 term
-				ret = Double.FusedMultiplyAdd(ret, x2, -0.0013888888888739916);  // x^6 term
-				ret = Double.FusedMultiplyAdd(ret, x2, 0.041666666666666602);     // x^4 term
-				ret = Double.FusedMultiplyAdd(ret, x2, -0.5);                     // x^2 term
-				ret = Double.FusedMultiplyAdd(ret, x2, 1.0);                      // constant term
+				var ret = -1.1940250944959890e-7;                                         // x^10 term
+				ret = Double.FusedMultiplyAdd(ret, x2,  2.0876755527587203e-5);           // x^8 term
+				ret = Double.FusedMultiplyAdd(ret, x2, -0.0013888888888739916);           // x^6 term
+				ret = Double.FusedMultiplyAdd(ret, x2,  0.041666666666666602);            // x^4 term
+				ret = Double.FusedMultiplyAdd(ret, x2, -0.5);                             // x^2 term
+				ret = Double.FusedMultiplyAdd(ret, x2,  1.0);                             // constant term
 				
 				return ret;
 			}

@@ -30,33 +30,22 @@ public class CoshFunctionOptimizer() : BaseMathFunctionOptimizer("Cosh", 1)
 		return """
 			private static float FastCosh(float x)
 			{
-				// Fast hyperbolic cosine approximation
-				// cosh(x) = (e^x + e^-x) / 2
-				// For small |x|, use polynomial approximation
-				// For large |x|, use exp-based formula with safeguards
+				// cosh(x) = (e^x + e^-x) / 2, with cosh(-x) = cosh(x)
+				x = Single.Abs(x);
 				
-				x = Single.Abs(x);  // cosh is even: cosh(-x) = cosh(x)
-				
-				// For small values, use Taylor series: cosh(x) ≈ 1 + x²/2 + x⁴/24 + x⁶/720
-				if (x < 1.0f)
-				{
-					var x2 = x * x;
-					var ret = 0.0013888889f;  // 1/720 (x^6 coefficient)
-					ret = Single.FusedMultiplyAdd(ret, x2, 0.041666667f);  // 1/24 (x^4 coefficient)
-					ret = Single.FusedMultiplyAdd(ret, x2, 0.5f);          // 1/2 (x^2 coefficient)
-					ret = Single.FusedMultiplyAdd(ret, x2, 1.0f);          // constant term
-					return ret;
-				}
-				
-				// For larger values, use: cosh(x) ≈ e^x / 2 (since e^-x becomes negligible)
-				// But clamp to avoid overflow
-				if (x > 88.0f) // exp(88) is near float max
-				{
-					return Single.PositiveInfinity;
-				}
+				// exp overflows to +Inf for x > ~88.72; return +Inf immediately
+				if (x > 88.0f)
+					return float.PositiveInfinity;
 				
 				var ex = Single.Exp(x);
-				return (ex + Single.ReciprocalEstimate(ex)) * 0.5f;
+				
+				// One Newton-Raphson step on ReciprocalEstimate restores ~24-bit precision
+				// (raw estimate is only ~12-bit accurate, which causes ~375× worse error than float epsilon)
+				// r' = r * (2 - ex * r)
+				var r = Single.ReciprocalEstimate(ex);
+				r *= Single.FusedMultiplyAdd(-ex, r, 2.0f);
+				
+				return (ex + r) * 0.5f;
 			}
 			""";
 	}
@@ -66,34 +55,19 @@ public class CoshFunctionOptimizer() : BaseMathFunctionOptimizer("Cosh", 1)
 		return """
 			private static double FastCosh(double x)
 			{
-				// Fast hyperbolic cosine approximation for double precision
-				// cosh(x) = (e^x + e^-x) / 2
+				// cosh(x) = (e^x + e^-x) / 2, with cosh(-x) = cosh(x)
+				x = Double.Abs(x);
 				
-				x = Double.Abs(x);  // cosh is even: cosh(-x) = cosh(x)
-				
-				// For small values, use minimax polynomial approximation
-				if (x < 1.0)
-				{
-					var x2 = x * x;
-					// Higher order polynomial for better accuracy with double
-					var ret = 2.0876756987868099e-8;     // x^8 coefficient
-					ret = Double.FusedMultiplyAdd(ret, x2, 2.4801587301587302e-7);   // x^6 coefficient
-					ret = Double.FusedMultiplyAdd(ret, x2, 0.0013888888888888889);   // x^4 coefficient (1/720)
-					ret = Double.FusedMultiplyAdd(ret, x2, 0.041666666666666664);    // x^4 coefficient (1/24)
-					ret = Double.FusedMultiplyAdd(ret, x2, 0.5);                     // x^2 coefficient (1/2)
-					ret = Double.FusedMultiplyAdd(ret, x2, 1.0);                     // constant term
-					return ret;
-				}
-				
-				// For larger values, use exponential formula
-				// Clamp to avoid overflow (exp(709) is near double max)
+				// exp overflows to +Inf for x > ~709.78; return +Inf immediately
 				if (x > 709.0)
-				{
-					return Double.PositiveInfinity;
-				}
+					return double.PositiveInfinity;
 				
 				var ex = Double.Exp(x);
-				return (ex + Double.ReciprocalEstimate(ex)) * 0.5;
+				
+				// Division gives full double precision for 1/ex.
+				// Double.ReciprocalEstimate is only ~14-bit accurate, causing catastrophic
+				// precision loss — using FDIV here is both correct and comparable in cost.
+				return (ex + 1.0 / ex) * 0.5;
 			}
 			""";
 	}

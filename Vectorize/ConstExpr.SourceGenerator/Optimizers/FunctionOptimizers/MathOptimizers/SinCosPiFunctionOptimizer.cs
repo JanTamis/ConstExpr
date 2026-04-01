@@ -9,9 +9,6 @@ public class SinCosPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinCosPi",
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
-		var arg = context.VisitedParameters[0];
-
-		// When FastMath is enabled, add a fast sincospi approximation method
 		if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
 		{
 			var methodString = paramType.SpecialType == SpecialType.System_Single
@@ -37,38 +34,35 @@ public class SinCosPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinCosPi",
 				// Uses optimized polynomial approximation with branchless operations
 				
 				// Range reduction: bring x to [-1, 1]
-				x = x - Single.Round(x / 2.0f) * 2.0f;
+				x -= Single.Round(x * 0.5f) * 2.0f;
 				
 				// Store original sign for sine and work with absolute value
 				var originalSign = x;
 				var absX = Single.Abs(x);
 				
 				// Determine if we're in upper or lower half [0, 0.5] vs (0.5, 1]
+				// For upper half: sin(π*x) = sin(π*(1-x)), cos(π*x) = -cos(π*(1-x))
 				var inUpperHalf = absX > 0.5f;
+				var u = inUpperHalf ? (1.0f - absX) : absX;
 				
-				// For upper half, use symmetry: sin(π*x) = sin(π*(1-x)), cos(π*x) = -cos(π*(1-x))
-				var xReduced = inUpperHalf ? (1.0f - absX) : absX;
+				// u² shared for both polynomials — π absorbed into coefficients (saves 1 FMUL vs px = u*π)
+				var u2 = u * u;
 				
-				// Compute π*x and its square
-				var px = xReduced * Single.Pi;
-				var px2 = px * px;
-				
-				// Sin: Taylor series with minimax coefficients
-				var sinVal = -0.00019840874f;
-				sinVal = Single.FusedMultiplyAdd(sinVal, px2, 0.0083333310f);
-				sinVal = Single.FusedMultiplyAdd(sinVal, px2, -0.16666667f);
-				sinVal = Single.FusedMultiplyAdd(sinVal, px2, 1.0f);
-				sinVal = sinVal * px;
+				// sinpi(u) = u·(π + u²·(−π³/6 + u²·(π⁵/120 + u²·(−π⁷/5040))))
+				var sinVal = -0.5992645f;                                 // −π⁷/5040
+				sinVal = Single.FusedMultiplyAdd(sinVal, u2,  2.5501640f); //  π⁵/120
+				sinVal = Single.FusedMultiplyAdd(sinVal, u2, -5.1677128f); // −π³/6
+				sinVal = Single.FusedMultiplyAdd(sinVal, u2,  3.1415927f); //  π
+				sinVal = sinVal * u;
 				
 				// Apply original sign using CopySign (branchless)
 				sinVal = Single.CopySign(sinVal, originalSign);
 				
-				// Cos: Taylor series with minimax coefficients
-				// cos(x) ≈ 1 + x²*(-0.5 + x²*(0.041666667 + x²*(-0.0013888889)))
-				var cosVal = -0.0013888397f;
-				cosVal = Single.FusedMultiplyAdd(cosVal, px2, 0.041666418f);
-				cosVal = Single.FusedMultiplyAdd(cosVal, px2, -0.5f);
-				cosVal = Single.FusedMultiplyAdd(cosVal, px2, 1.0f);
+				// cospi(u) = 1 + u²·(−π²/2 + u²·(π⁴/24 + u²·(−π⁶/720)))
+				var cosVal = -1.3352627f;                                  // −π⁶/720
+				cosVal = Single.FusedMultiplyAdd(cosVal, u2,  4.0587121f); //  π⁴/24
+				cosVal = Single.FusedMultiplyAdd(cosVal, u2, -4.9348022f); // −π²/2
+				cosVal = Single.FusedMultiplyAdd(cosVal, u2,  1.0f);
 				
 				// For upper half, negate cosine
 				cosVal = inUpperHalf ? -cosVal : cosVal;
@@ -87,40 +81,37 @@ public class SinCosPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinCosPi",
 				// Uses optimized polynomial approximation with branchless operations
 				
 				// Range reduction: bring x to [-1, 1]
-				x = x - Double.Round(x / 2.0) * 2.0;
+				x -= Double.Round(x * 0.5) * 2.0;
 				
 				// Store original sign for sine and work with absolute value
 				var originalSign = x;
 				var absX = Double.Abs(x);
 				
 				// Determine if we're in upper or lower half [0, 0.5] vs (0.5, 1]
+				// For upper half: sin(π*x) = sin(π*(1-x)), cos(π*x) = -cos(π*(1-x))
 				var inUpperHalf = absX > 0.5;
+				var u = inUpperHalf ? (1.0 - absX) : absX;
 				
-				// For upper half, use symmetry: sin(π*x) = sin(π*(1-x)), cos(π*x) = -cos(π*(1-x))
-				var xReduced = inUpperHalf ? (1.0 - absX) : absX;
+				// u² shared for both polynomials — π absorbed into coefficients (saves 1 FMUL vs px = u*π)
+				var u2 = u * u;
 				
-				// Compute π*x and its square
-				var px = xReduced * Double.Pi;
-				var px2 = px * px;
-				
-				// Sin: Taylor series with higher precision minimax coefficients
-				var sinVal = 2.7557313707070068e-6;
-				sinVal = Double.FusedMultiplyAdd(sinVal, px2, -0.00019841269841201856);
-				sinVal = Double.FusedMultiplyAdd(sinVal, px2, 0.0083333333333331650);
-				sinVal = Double.FusedMultiplyAdd(sinVal, px2, -0.16666666666666666);
-				sinVal = Double.FusedMultiplyAdd(sinVal, px2, 1.0);
-				sinVal = sinVal * px;
+				// sinpi(u) = u·(π + u²·(−π³/6 + u²·(π⁵/120 + u²·(−π⁷/5040 + u²·(π⁹/362880)))))
+				var sinVal = 0.08214588661112823;                                    //  π⁹/362880
+				sinVal = Double.FusedMultiplyAdd(sinVal, u2, -0.5992645293218801);   // −π⁷/5040
+				sinVal = Double.FusedMultiplyAdd(sinVal, u2,  2.5501640398773455);   //  π⁵/120
+				sinVal = Double.FusedMultiplyAdd(sinVal, u2, -5.1677127800499706);   // −π³/6
+				sinVal = Double.FusedMultiplyAdd(sinVal, u2,  3.1415926535897932);   //  π
+				sinVal = sinVal * u;
 				
 				// Apply original sign using CopySign (branchless)
 				sinVal = Double.CopySign(sinVal, originalSign);
 				
-				// Cos: Taylor series with higher precision minimax coefficients
-				// cos(x) ≈ 1 + x²*(-0.5 + x²*(0.041666667 + x²*(-0.000013888889 + x²*(0.0000002480159))))
-				var cosVal = 2.6051615464872668e-5;
-				cosVal = Double.FusedMultiplyAdd(cosVal, px2, -0.0013888888888887398);
-				cosVal = Double.FusedMultiplyAdd(cosVal, px2, 0.041666666666666664);
-				cosVal = Double.FusedMultiplyAdd(cosVal, px2, -0.5);
-				cosVal = Double.FusedMultiplyAdd(cosVal, px2, 1.0);
+				// cospi(u) = 1 + u²·(−π²/2 + u²·(π⁴/24 + u²·(−π⁶/720 + u²·(π⁸/40320))))
+				var cosVal = 0.23533075157732439;                                    //  π⁸/40320
+				cosVal = Double.FusedMultiplyAdd(cosVal, u2, -1.3352627312227247);   // −π⁶/720
+				cosVal = Double.FusedMultiplyAdd(cosVal, u2,  4.0587121264167682);   //  π⁴/24
+				cosVal = Double.FusedMultiplyAdd(cosVal, u2, -4.9348022005446793);   // −π²/2
+				cosVal = Double.FusedMultiplyAdd(cosVal, u2,  1.0);
 				
 				// For upper half, negate cosine
 				cosVal = inUpperHalf ? -cosVal : cosVal;

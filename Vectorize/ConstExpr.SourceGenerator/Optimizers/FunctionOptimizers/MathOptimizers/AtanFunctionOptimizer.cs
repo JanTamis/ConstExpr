@@ -79,38 +79,25 @@ public class AtanFunctionOptimizer() : BaseMathFunctionOptimizer("Atan", 1)
 		return """
 			private static float FastAtan(float x)
 			{
-				// Handle special cases
+				// NaN propagates naturally through the polynomial; ±Inf is handled correctly
+				// because 1/±Inf = 0, giving atan(±Inf) = ±π/2 without an explicit branch.
 				if (Single.IsNaN(x)) return Single.NaN;
-				if (Single.IsPositiveInfinity(x)) return Single.Pi / 2; // π/2
-				if (Single.IsNegativeInfinity(x)) return -Single.Pi / 2; // -π/2
-
 				var absX = Single.Abs(x);
-				var sign = Single.Sign(x);
-				
-				var useReciprocal = absX > 1.0f;
-				var z = useReciprocal ? Single.ReciprocalEstimate(absX) : absX;
-				
-				// Padé approximant coefficients (inlined)
-				var z2 = z * z;
-				var z4 = z2 * z2;
-				
-				// numerator = z * (15 + 4*z^2)
-				var numerator = Single.FusedMultiplyAdd(4.0f, z2, 15.0f);
-				numerator *= z;
-				
-				// denominator = 15 + 9*z^2 + z^4
-				var denominator = Single.FusedMultiplyAdd(9.0f, z2, 15.0f);
-				denominator = z4 + denominator;
+				var swap = absX > 1.0f;
+				var a = swap ? 1.0f / absX : absX; // exact reciprocal — no ReciprocalEstimate loss
 
-				var result = numerator / denominator;
-				
-				// Adjust for reciprocal transformation
-				if (useReciprocal)
-				{
-					result = Single.Pi / 2 - result; // π/2 - result
-				}
-				
-				return sign * result;
+				// A&S §4.4.43 minimax polynomial: atan(a)/a ≈ c₁ + u*(c₃ + u*(c₅ + u*(c₇ + u*c₉)))
+				// 4 FMAs + 1 mul; max absolute error ≈ 1.1e-5 rad (~2000× better than Padé [2/2]).
+				var u = a * a;
+				var p = Single.FusedMultiplyAdd(u,  0.0208351f, -0.0851330f);
+				p      = Single.FusedMultiplyAdd(u, p,           0.1801410f);
+				p      = Single.FusedMultiplyAdd(u, p,          -0.3302995f);
+				p      = Single.FusedMultiplyAdd(u, p,           0.9998660f);
+				p     *= a;
+
+				// atan(x) = π/2 − atan(1/|x|) when |x| > 1; restore original sign
+				p = swap ? Single.Pi / 2 - p : p;
+				return Single.IsNegative(x) ? -p : p;
 			}
 			""";
 	}
@@ -120,38 +107,25 @@ public class AtanFunctionOptimizer() : BaseMathFunctionOptimizer("Atan", 1)
 		return """
 			private static double FastAtan(double x)
 			{
-				// Handle special cases
+				// NaN propagates naturally through the polynomial; ±Inf is handled correctly
+				// because 1/±Inf = 0, giving atan(±Inf) = ±π/2 without an explicit branch.
 				if (Double.IsNaN(x)) return Double.NaN;
-				if (Double.IsPositiveInfinity(x)) return Double.Pi / 2; // π/2
-				if (Double.IsNegativeInfinity(x)) return -Double.Pi / 2; // -π/2
-
 				var absX = Double.Abs(x);
-				var sign = Double.Sign(x);
-				
-				var useReciprocal = absX > 1.0;
-				var z = useReciprocal ? Double.ReciprocalEstimate(absX) : absX;
+				var swap = absX > 1.0;
+				var a = swap ? 1.0 / absX : absX; // exact reciprocal — no ReciprocalEstimate loss
 
-				// Padé approximant coefficients (inlined)
-				var z2 = z * z;
-				var z4 = z2 * z2;
-				
-				// numerator = z * (15 + 4*z^2)
-				var numerator = Double.FusedMultiplyAdd(4.0, z2, 15.0);
-				numerator *= z;
-				
-				// denominator = 15 + 9*z^2 + z^4
-				var denominator = Double.FusedMultiplyAdd(9.0, z2, 15.0);
-				denominator = z4 + denominator;
+				// A&S §4.4.43 minimax polynomial: atan(a)/a ≈ c₁ + u*(c₃ + u*(c₅ + u*(c₇ + u*c₉)))
+				// 4 FMAs + 1 mul; max absolute error ≈ 1.1e-5 rad (~2000× better than Padé [2/2]).
+				var u = a * a;
+				var p = Double.FusedMultiplyAdd(u,  0.0208351, -0.0851330);
+				p      = Double.FusedMultiplyAdd(u, p,          0.1801410);
+				p      = Double.FusedMultiplyAdd(u, p,         -0.3302995);
+				p      = Double.FusedMultiplyAdd(u, p,          0.9998660);
+				p     *= a;
 
-				var result = numerator / denominator;
-				
-				// Adjust for reciprocal transformation
-				if (useReciprocal)
-				{
-					result = Double.Pi / 2 - result; // π/2 - result
-				}
-				
-				return sign * result;
+				// atan(x) = π/2 − atan(1/|x|) when |x| > 1; restore original sign
+				p = swap ? Double.Pi / 2 - p : p;
+				return Double.IsNegative(x) ? -p : p;
 			}
 			""";
 	}

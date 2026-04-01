@@ -77,38 +77,21 @@ public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", 1)
 		return """
 			private static float FastAtanPi(float x)
 			{
-				// Handle special cases
+				// NaN propagates; +/-Inf → +/-0.5 via swap path (1/Inf = 0 → p=0 → 0.5)
 				if (Single.IsNaN(x)) return Single.NaN;
-				if (Single.IsPositiveInfinity(x)) return 0.5f; // π/2 / π = 0.5
-				if (Single.IsNegativeInfinity(x)) return -0.5f;
-
-				// Range reduction for better accuracy
 				var absX = Single.Abs(x);
-				
-				var useReciprocal = absX > 1.0f;
-				var z = useReciprocal ? Single.Reciprocal(absX) : absX;
+				var swap = absX > 1.0f;
+				var a = swap ? 1.0f / absX : absX;
 
-				// Padé approximant (inlined constants)
-				var z2 = z * z;
-				var z4 = z2 * z2;
-				
-				// numerator = z * (15 + 4*z^2) using FMA
-				var numerator = Single.FusedMultiplyAdd(4.0f, z2, 15.0f);
-				numerator *= z;
-				
-				// denominator = 15 + 9*z^2 + z^4 using FMA
-				var denominator = Single.FusedMultiplyAdd(9.0f, z2, 15.0f);
-				denominator = z4 + denominator;
-				
-				var result = numerator / denominator;
-				
-				// Adjust for reciprocal transformation
-				if (useReciprocal)
-				{
-					result = Single.Pi / 2f - result; // π/2 - result
-				}
-				
-				return Single.CopySign(result * (1f / Single.Pi), x);
+				// Steinmetz 2-term: atanpi(a) ≈ a*(0.25 + (0.273/π)*(1−a))
+				// = FMA(−0.273/π, a, 0.25+0.273/π) * a  — 1 FMA + 1 mul
+				// 0.273/π ≈ 0.086916; 0.25 + 0.086916 = 0.336916
+				// atanpi(0)=0 and atanpi(1)=0.25 hold exactly.
+				// Max absolute error ≈ 1.6e-3.
+				var p = Single.FusedMultiplyAdd(-0.086916f, a, 0.336916f) * a;
+
+				p = swap ? 0.5f - p : p;
+				return Single.IsNegative(x) ? -p : p;
 			}
 			""";
 	}
@@ -118,38 +101,23 @@ public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", 1)
 		return """
 			private static double FastAtanPi(double x)
 			{
-				// Handle special cases
+				// NaN propagates; +/-Inf → +/-0.5 via swap path (1/Inf = 0 → p=0 → 0.5)
 				if (Double.IsNaN(x)) return Double.NaN;
-				if (Double.IsPositiveInfinity(x)) return 0.5; // π/2 / π = 0.5
-				if (Double.IsNegativeInfinity(x)) return -0.5;
-
-				// Range reduction for better accuracy
 				var absX = Double.Abs(x);
-				
-				var useReciprocal = absX > 1.0;
-				var z = useReciprocal ? Double.Reciprocal(absX) : absX;
+				var swap = absX > 1.0;
+				var a = swap ? 1.0 / absX : absX;
+				var u = a * a;
 
-				// Padé approximant (inlined constants)
-				var z2 = z * z;
-				var z4 = z2 * z2;
-				
-				// numerator = z * (15 + 4*z^2) using FMA
-				var numerator = Double.FusedMultiplyAdd(4.0, z2, 15.0);
-				numerator *= z;
-				
-				// denominator = 15 + 9*z^2 + z^4 using FMA
-				var denominator = Double.FusedMultiplyAdd(9.0, z2, 15.0);
-				denominator = z4 + denominator;
-				
-				var result = numerator / denominator;
-				
-				// Adjust for reciprocal transformation
-				if (useReciprocal)
-				{
-					result = Double.Pi / 2 - result; // π/2 - result
-				}
+				// A&S §4.4.43 minimax coefficients pre-divided by π — saves the final 1/π multiply.
+				// Quadrant correction uses 0.5 (= π/2 / π). Max absolute error ≈ 3.5e-6.
+				var p = Double.FusedMultiplyAdd(u,  0.00663222, -0.02710107);
+				p      = Double.FusedMultiplyAdd(u, p,           0.05733014);
+				p      = Double.FusedMultiplyAdd(u, p,          -0.10510700);
+				p      = Double.FusedMultiplyAdd(u, p,           0.31826720);
+				p     *= a;
 
-				return Single.CopySign(result * (1f / Single.Pi), x);
+				p = swap ? 0.5 - p : p;
+				return Double.IsNegative(x) ? -p : p;
 			}
 			""";
 	}

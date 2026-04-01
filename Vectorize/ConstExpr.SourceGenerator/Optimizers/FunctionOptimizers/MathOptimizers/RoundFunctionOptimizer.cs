@@ -8,35 +8,38 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
+/// <summary>
+/// Optimizer for Math.Round / MathF.Round.
+///
+/// Benchmark findings (Apple M4 Pro, .NET 10.0.1, ARM64 — RoundBenchmark):
+///   Math.Round / MathF.Round  → ~0.530 ns  (single FRINTN instruction) ← optimal
+///   double.Round / float.Round → ~0.547 ns  (+3%  — same instruction via IFloatingPoint&lt;T&gt;)
+///   Math.Floor(x + 0.5)        → ~0.589 ns  (+11% — 2 FP ops; avoid)
+///   long/int-cast tricks       → ~0.672 ns  (+27% — FP/int domain crossing; never use)
+///
+///   Unary-minus rewrite Round(-x) → -Round(x): ratio 0.99 — within measurement noise,
+///   no meaningful benefit. The rewrite has been removed to keep generated code simple.
+/// </summary>
 public class RoundFunctionOptimizer() : BaseMathFunctionOptimizer("Round", 1, 2, 3)
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
-		// 1) If the inner expression already yields an integer-valued result, keep inner: Truncate/Floor/Ceiling/Round -> they return integer
+		// 1) If the inner expression already yields an integer-valued result, keep inner:
+		//    Truncate/Floor/Ceiling/Round all return an integral-valued float → Round is a no-op.
 		if (context.VisitedParameters[0] is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Truncate" or "Floor" or "Ceiling" or "Round" } } inv)
 		{
 			result = inv;
 			return true;
 		}
 
-		// 2) Integer types: Round(x) -> x (round has no effect on integers)
+		// 2) Integer types: Round(x) → x (rounding has no effect on integers)
 		if (paramType.IsNonFloatingNumeric())
 		{
 			result = context.VisitedParameters[0];
 			return true;
 		}
 
-		// 3) Unary minus: Round(-x) -> -Round(x)
-		if (context.VisitedParameters[0] is PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken } prefix)
-		{
-			// Keep sign and round the operand
-			var roundCall = CreateInvocation(paramType, "Round", prefix.Operand);
-
-			result = UnaryMinusExpression(ParenthesizedExpression(roundCall));
-			return true;
-		}
-
-		// 4) check if parent of context.Invocation is casting to integer type
+		// 3) Check if parent of context.Invocation is casting to an integer type.
 		if (context.Invocation.Parent is CastExpressionSyntax
 			{
 				Type: PredefinedTypeSyntax
@@ -92,7 +95,7 @@ public class RoundFunctionOptimizer() : BaseMathFunctionOptimizer("Round", 1, 2,
 			}
 		}
 
-		// Default: keep as Round call (target numeric helper type)
+		// Default: emit Round call directly — already the optimal scalar implementation.
 		result = CreateInvocation(paramType, Name, context.VisitedParameters);
 		return true;
 	}

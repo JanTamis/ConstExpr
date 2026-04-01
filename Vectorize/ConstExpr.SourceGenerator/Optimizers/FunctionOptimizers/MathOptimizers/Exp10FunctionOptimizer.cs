@@ -32,31 +32,35 @@ public class Exp10FunctionOptimizer() : BaseMathFunctionOptimizer("Exp10", 1)
 			private static float FastExp10(float x)
 			{
 				// Preserve special cases like MathF.Pow does
-				if (float.IsNaN(x)) return float.NaN;
-				if (float.IsPositiveInfinity(x)) return float.PositiveInfinity;
-				if (float.IsNegativeInfinity(x)) return 0.0f;
+				if (Single.IsNaN(x)) return Single.NaN;
+				if (Single.IsPositiveInfinity(x)) return Single.PositiveInfinity;
+				if (Single.IsNegativeInfinity(x)) return 0.0f;
 				if (x == 0.0f) return 1.0f; // handles +0 and -0
 
-				// Safe bounds for 10^x to avoid overflow/underflow
-				if (x >= 38.53f) return float.PositiveInfinity;
+				if (x >= 38.53f) return Single.PositiveInfinity;
 				if (x <= -38.53f) return 0.0f;
 
-				const float LN10 = 2.302585092994046f;
-				const float INV_LN2 = 1.4426950408889634f;
+				// Reduce: k = round(x * log₂10), r = x − k * log₁₀2
+				// So 10^x = 2^k * 10^r,  r ∈ [−log₁₀2/2, log₁₀2/2] ≈ [−0.151, 0.151].
+				// Saves one MUL compared to first computing y = x * LN10 separately.
+				const float LOG2_10 = 3.321928094887362f;    // log₂(10)
+				const float LOG10_2 = 0.30102999566398120f;  // log₁₀(2) = 1/log₂(10)
 
-				// Compute y = x * ln(10) and use fast exp approximation on y
-				var y = x * LN10;
+				var kf = x * LOG2_10;
+				var k  = (int)(kf + (kf >= 0.0f ? 0.5f : -0.5f));
+				var r  = Single.FusedMultiplyAdd(-k, LOG10_2, x);
 
-				var kf = y * INV_LN2;
-				var k = (int)(kf + (kf >= 0.0f ? 0.5f : -0.5f));
-				var r = MathF.FusedMultiplyAdd(-k, 0.6931471805599453f, y);
+				// Degree-4 Horner for 10^r: cₙ = ln(10)ⁿ / n!
+				// Max relative error ≈ 4e-5 (fast-math trade-off).
+				const float c4 = 1.1712551f;  // ln(10)⁴ / 24
+				const float c3 = 2.0346786f;  // ln(10)³ / 6
+				const float c2 = 2.6509491f;  // ln(10)² / 2
+				const float c1 = 2.3025851f;  // ln(10)
 
-				// Order-4 Taylor for exp(r): 1 + r + r^2/2 + r^3/6 + r^4/24
-				var poly = 1.0f / 24.0f;
-				poly = MathF.FusedMultiplyAdd(poly, r, 1.0f / 6.0f);
-				poly = MathF.FusedMultiplyAdd(poly, r, 0.5f);
-				poly = MathF.FusedMultiplyAdd(poly, r, 1.0f);
-				var expR = MathF.FusedMultiplyAdd(poly, r, 1.0f);
+				var poly = Single.FusedMultiplyAdd(c4, r, c3);
+				poly = Single.FusedMultiplyAdd(poly, r, c2);
+				poly = Single.FusedMultiplyAdd(poly, r, c1);
+				var expR = Single.FusedMultiplyAdd(poly, r, 1.0f);
 
 				var bits = (k + 127) << 23;
 				var scale = BitConverter.Int32BitsToSingle(bits);
@@ -71,30 +75,35 @@ public class Exp10FunctionOptimizer() : BaseMathFunctionOptimizer("Exp10", 1)
 			private static double FastExp10(double x)
 			{
 				// Preserve special cases like Math.Pow does
-				if (double.IsNaN(x)) return double.NaN;
-				if (double.IsPositiveInfinity(x)) return double.PositiveInfinity;
-				if (double.IsNegativeInfinity(x)) return 0.0;
+				if (Double.IsNaN(x)) return Double.NaN;
+				if (Double.IsPositiveInfinity(x)) return Double.PositiveInfinity;
+				if (Double.IsNegativeInfinity(x)) return 0.0;
 				if (x == 0.0) return 1.0; // handles +0 and -0
 
-				// Safe bounds for 10^x to avoid overflow/underflow
-				if (x >= 309.0) return double.PositiveInfinity;
+				if (x >= 309.0) return Double.PositiveInfinity;
 				if (x <= -309.0) return 0.0;
 
-				const double LN10 = 2.3025850929940456840179914546843642;
-				const double INV_LN2 = 1.4426950408889634073599246810018921;
+				// Reduce: k = round(x * log₂10), r = x − k * log₁₀2
+				// So 10^x = 2^k * 10^r,  r ∈ [−log₁₀2/2, log₁₀2/2] ≈ [−0.151, 0.151].
+				// Saves one MUL compared to first computing y = x * LN10 separately.
+				const double LOG2_10 = 3.321928094887362347870319429489390;
+				const double LOG10_2 = 0.30102999566398119521373889472449303;
 
-				var y = x * LN10;
+				var kf = x * LOG2_10;
+				var k  = (long)(kf + (kf >= 0.0 ? 0.5 : -0.5));
+				var r  = System.Math.FusedMultiplyAdd(-k, LOG10_2, x);
 
-				var kf = y * INV_LN2;
-				var k = (long)(kf + (kf >= 0.0 ? 0.5 : -0.5));
-				var r = System.Math.FusedMultiplyAdd(-k, 0.6931471805599453094172321214581766, y);
+				// Degree-4 Horner for 10^r: cₙ = ln(10)ⁿ / n!
+				// Max relative error ≈ 4e-5 (fast-math trade-off).
+				const double c4 = 1.1712551489122673;  // ln(10)⁴ / 24
+				const double c3 = 2.0346785922934770;  // ln(10)³ / 6
+				const double c2 = 2.6509490552391997;  // ln(10)² / 2
+				const double c1 = 2.302585092994046;   // ln(10)
 
-				// Order-4 Taylor for exp(r)
-				var poly = 1.0 / 24.0;
-				poly = System.Math.FusedMultiplyAdd(poly, r, 1.0 / 6.0);
-				poly = System.Math.FusedMultiplyAdd(poly, r, 0.5);
-				poly = System.Math.FusedMultiplyAdd(poly, r, 1.0);
-				var expR = System.Math.FusedMultiplyAdd(poly, r, 1.0);
+				var poly = Double.FusedMultiplyAdd(c4, r, c3);
+				poly = Double.FusedMultiplyAdd(poly, r, c2);
+				poly = Double.FusedMultiplyAdd(poly, r, c1);
+				var expR = Double.FusedMultiplyAdd(poly, r, 1.0);
 
 				var bits = (ulong)((k + 1023L) << 52);
 				var scale = BitConverter.UInt64BitsToDouble(bits);
