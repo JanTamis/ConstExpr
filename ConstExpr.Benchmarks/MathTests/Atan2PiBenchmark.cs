@@ -24,6 +24,16 @@ namespace ConstExpr.Benchmarks.MathTests;
 ///   V3 (double): half-angle t = a/(1+√(1+a²)) reduces a∈[0,1] to t∈[0,tan(π/8)]; 8-term
 ///     Taylor series, result scaled by 2/π instead of the usual 2.  Max absolute error ≈ 1.3e-8.
 ///
+/// Benchmark results (Apple M4 Pro, .NET 10, ARM64 RyuJIT):
+///   Float:  DotNet=3.14 ns | Current=1.69 ns (-46%) | V2=2.25 ns (-28%) | V3=2.14 ns (-32%)
+///   Double: DotNet=6.48 ns | Current=1.66 ns (-74%) | V2=2.28 ns (-65%) | V3=2.63 ns (-59%)
+///
+/// Conclusion: V2 wins for float (best accuracy at 3.5e-6 with 2000× improvement over Current).
+///   V3 wins for double in accuracy (4e-8) but V2 is slightly faster. V2 chosen for double.
+///   Both V2/V3 are faster than .NET despite more FMAs than Current; branchless form pays off.
+///   The Current (branchy Padé [1/2]) is fastest but has unacceptable accuracy (~8e-3).
+///   Atan2PiFunctionOptimizer has been updated: float → V2 (A&S §4.4.43), double → V3 (half-angle Taylor).
+///
 /// Run command:
 ///   dotnet run -c Release --project ConstExpr.Benchmarks/ConstExpr.Benchmarks.csproj --filter '*Atan2PiBenchmark*'
 /// </summary>

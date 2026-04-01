@@ -83,12 +83,14 @@ public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", 1)
 				var swap = absX > 1.0f;
 				var a = swap ? 1.0f / absX : absX;
 
-				// Steinmetz 2-term: atanpi(a) ≈ a*(0.25 + (0.273/π)*(1−a))
-				// = FMA(−0.273/π, a, 0.25+0.273/π) * a  — 1 FMA + 1 mul
-				// 0.273/π ≈ 0.086916; 0.25 + 0.086916 = 0.336916
-				// atanpi(0)=0 and atanpi(1)=0.25 hold exactly.
-				// Max absolute error ≈ 1.6e-3.
-				var p = Single.FusedMultiplyAdd(-0.086916f, a, 0.336916f) * a;
+				// A&S §4.4.43 minimax polynomial coefficients pre-divided by π.
+				// 4 FMAs + 1 mul. Max absolute error ≈ 3.5e-6 (vs 1.6e-3 for Steinmetz 2-term).
+				var u = a * a;
+				var p = Single.FusedMultiplyAdd(u,  0.00663222f, -0.02710107f);
+				p      = Single.FusedMultiplyAdd(u, p,            0.05733014f);
+				p      = Single.FusedMultiplyAdd(u, p,           -0.10510700f);
+				p      = Single.FusedMultiplyAdd(u, p,            0.31826720f);
+				p     *= a;
 
 				p = swap ? 0.5f - p : p;
 				return Single.IsNegative(x) ? -p : p;

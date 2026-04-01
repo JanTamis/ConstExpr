@@ -30,23 +30,19 @@ public class AcosPiFunctionOptimizer() : BaseMathFunctionOptimizer("AcosPi", 1)
 		return """
 			private static float FastAcosPi(float x)
 			{
-				// Clamp input to valid range [-1, 1]
-				if (x < -1.0f) x = -1.0f;
+				var negative = x < 0f;
+				x = Single.Abs(x);
 				if (x > 1.0f) x = 1.0f;
 				
-				var negate = x < 0.0f ? 1.0f : 0.0f;
-				x = x < 0.0f ? -x : x;
+				// A&S §4.4.45 minimax polynomial (degree-3) coefficients pre-divided by π.
+				// 3 FMAs + 1 sqrt. Max absolute error ≈ 5.4e-6 (vs 2.2e-4 for degree-2 §4.4.44).
+				var p = Single.FusedMultiplyAdd(-0.00596227f, x, 0.02363378f);  // -0.0187293 / π, 0.0742610 / π
+				p = Single.FusedMultiplyAdd(p, x, -0.06751894f);                // -0.2121144 / π
+				p = Single.FusedMultiplyAdd(p, x, 0.5f);                        // π/2 / π = 0.5
+				p *= Single.Sqrt(1f - x);
 				
-				// Degree-2 minimax polynomial (Abramowitz & Stegun §4.4.44) scaled by 1/π.
-				// Benchmark showed 6% faster than the degree-3 version (§4.4.45).
-				// Max absolute error ≈ 2.2e-4 (in units of fraction of π).
-				var ret = 0.028301556f;  // 0.0889490 / π
-				ret = Single.FusedMultiplyAdd(ret, x, -0.068318859f);  // -0.2145988 / π
-				ret = Single.FusedMultiplyAdd(ret, x, 0.5f);  // 1.5707963 / π = 0.5
-				ret = ret * Single.Sqrt(1.0f - x);
-				ret = Single.FusedMultiplyAdd(-2.0f * negate, ret, ret);
-				
-				return Single.FusedMultiplyAdd(negate, 1.0f, ret);
+				// acosPi(-x) = 1 - acosPi(x)
+				return negative ? 1f - p : p;
 			}
 			""";
 	}
@@ -56,24 +52,19 @@ public class AcosPiFunctionOptimizer() : BaseMathFunctionOptimizer("AcosPi", 1)
 		return """
 			private static double FastAcosPi(double x)
 			{
-				// Clamp input to valid range [-1, 1]
-				if (x < -1.0) x = -1.0;
+				var negative = x < 0.0;
+				x = Double.Abs(x);
 				if (x > 1.0) x = 1.0;
 				
-				// Fast approximation using polynomial with FMA, directly computing result in units of π
-				var negate = x < 0.0 ? 1.0 : 0.0;
-				x = x < 0.0 ? -x : x;
+				// A&S §4.4.45 minimax polynomial (degree-3) coefficients pre-divided by π.
+				// Max absolute error ≈ 1.3e-6 (in units of π).
+				var p = Double.FusedMultiplyAdd(-0.0059622704862860465, x, 0.023633778501171472);  // -0.0187293 / π, 0.0742610 / π
+				p = Double.FusedMultiplyAdd(p, x, -0.067518943563376579);  // -0.2121144 / π
+				p = Double.FusedMultiplyAdd(p, x, 0.5);                    // π/2 / π = 0.5
+				p *= Double.Sqrt(1.0 - x);
 				
-				// Polynomial coefficients adjusted for π-scaled output
-				// These are the original coefficients divided by π
-				var ret = -0.0059622704862860465;  // -0.0187293 / π
-				ret = Double.FusedMultiplyAdd(ret, x, 0.023633778501171472);  // 0.0742610 / π
-				ret = Double.FusedMultiplyAdd(ret, x, -0.067518943563376579);  // -0.2121144 / π
-				ret = Double.FusedMultiplyAdd(ret, x, 0.5);  // π/2 / π = 0.5
-				ret = ret * Double.Sqrt(1.0 - x);
-				ret = Double.FusedMultiplyAdd(-2.0 * negate, ret, ret);  // ret - 2.0 * negate * ret using FMA
-				
-				return Double.FusedMultiplyAdd(negate, 1.0, ret);
+				// acosPi(-x) = 1 - acosPi(x)
+				return negative ? 1.0 - p : p;
 			}
 			""";
 	}

@@ -38,10 +38,11 @@ namespace ConstExpr.Benchmarks.MathTests;
 ///   Float:  DotNet=3.694 ns | CurrentFastAtanPi=1.578 ns (-57%) | V2=1.242 ns (-66%) | V3=1.238 ns (-66%) ← FASTEST
 ///   Double: DotNet=3.800 ns | CurrentFastAtanPi=1.475 ns (-61%) | V2=1.258 ns (-67%) ← FASTEST | V3=2.039 ns (-46%)
 ///
-/// Conclusion: V3 wins for float (1 FMA + 1 mul, fewest ops, ties V2 within noise).
+/// Conclusion: V2 wins for float (A&S §4.4.43, 3.5e-6 error) — ties V3 within noise at ~1.24 ns,
+///   with 450× better accuracy than V3 (Steinmetz, 1.6e-3 error). Free accuracy upgrade.
 ///   V2 wins for double (V3 pays a sqrt that costs more than the extra polynomial terms).
-///   Both winners are ~3× faster than the .NET built-in and outperform the current Padé optimizer.
-///   AtanPiFunctionOptimizer has been updated to emit these winning implementations.
+///   Both winners are ~3× faster than the .NET built-in.
+///   AtanPiFunctionOptimizer emits V2 for both float and double.
 ///
 /// Run command:
 ///   dotnet run -c Release --project ConstExpr.Benchmarks/ConstExpr.Benchmarks.csproj --filter '*AtanPiBenchmark*'
