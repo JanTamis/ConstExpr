@@ -92,15 +92,18 @@ public static class CryptographyOperations
 		{
 			return string.Empty;
 		}
+		
+		var result = new char[data.Length * 2];
 
-		var result = new System.Text.StringBuilder(data.Length * 2);
+		var index = 0;
 
-		foreach (var b in data)
+		while (index < data.Length)
 		{
-			result.Append(b.ToString("X2"));
+			data[index].TryFormat(result.AsSpan(index * 2, 2), out var charsWritten, "X2");
+			index += charsWritten;
 		}
-
-		return result.ToString();
+		
+		return new string(result);
 	}
 
 	/// <summary>
