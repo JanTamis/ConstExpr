@@ -124,6 +124,47 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 	}
 
 	/// <summary>
+	/// Tries to interpret an expression as a pattern over some target expression.
+	/// Handles binary comparisons (<c>expr op lit</c> and <c>lit op expr</c>) and
+	/// existing is-pattern expressions, so callers don't need separate branches per type.
+	/// </summary>
+	/// <returns>
+	/// A <c>(Target, Pattern)</c> pair when the expression can be turned into a pattern,
+	/// or <c>null</c> otherwise.
+	/// </returns>
+	protected static (ExpressionSyntax Target, PatternSyntax Pattern)? TryParseAsPattern(
+		ExpressionSyntax expression)
+	{
+		switch (expression)
+		{
+			// Already a pattern — keep the expression and its pattern verbatim.
+			case IsPatternExpressionSyntax { Expression: var expr } ip when IsPure(expr):
+				return (expr, ip.Pattern);
+
+			case BinaryExpressionSyntax b:
+				// expr op literal  (e.g.  x > 0)
+				if (b.Right is LiteralExpressionSyntax && IsPure(b.Left))
+				{
+					var pattern = ConvertToPattern(b.OperatorToken.Kind(), b.Right);
+					if (pattern is not null)
+						return (b.Left, pattern);
+				}
+
+				// literal op expr  (e.g.  0 < x) — flip the operator so it reads as  x > 0
+				if (b.Left is LiteralExpressionSyntax && IsPure(b.Right))
+				{
+					var pattern = ConvertToPattern(SwapCondition(b.OperatorToken.Kind()), b.Left);
+					if (pattern is not null)
+						return (b.Right, pattern);
+				}
+
+				break;
+		}
+
+		return null;
+	}
+
+	/// <summary>
 	/// Checks if an expression is simple enough to duplicate without performance penalty.
 	/// Simple expressions include: identifiers, literals, and member access.
 	/// Complex expressions include: binary operations, invocations, etc.

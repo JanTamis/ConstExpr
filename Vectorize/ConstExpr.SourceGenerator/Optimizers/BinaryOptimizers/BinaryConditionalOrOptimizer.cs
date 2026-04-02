@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalAndStrategies;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalOrStrategies;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis.Operations;
@@ -21,8 +20,6 @@ public class BinaryConditionalOrOptimizer : BaseBinaryOptimizer
 		yield return new ConditionalOrIsNullOrEmptyStrategy();
 		yield return new ConditionalOrAsciiCharRangeStrategy();
 
-		yield return new ConditionalPatternStrategy(Kind);
-		yield return new ConditionalPatternCombinerStrategy(Kind);
-		yield return new ConditionalPatternCombinersStrategy(Kind);
+		yield return new PatternCombineStrategy(Kind);
 	}
 }

@@ -6,6 +6,7 @@ using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Optimizers.ConditionalOptimizers;
+using ConstExpr.SourceGenerator.Refactorers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -39,6 +40,14 @@ public partial class ConstExprPartialRewriter
 					TryCreateLiteral(ExecuteConversion(conversion, node.Token.Value), out expression);
 				}
 
+				// Upgrade regular string literals with escape sequences to raw string literals
+				// for more readable generated code.
+				if (expression is LiteralExpressionSyntax literalExpr
+				    && ConvertStringToRawStringRefactoring.TryConvertToRawString(literalExpr, out var rawExpr))
+				{
+					return rawExpr;
+				}
+
 				return expression;
 			}
 		}
@@ -68,7 +77,7 @@ public partial class ConstExprPartialRewriter
 		{
 			// Don't implicitly convert char values to int - they should remain as char
 			// to preserve their representation in pattern matching contexts
-			if (hasLeftValue 
+			if (hasLeftValue
 			    && operation.LeftOperand is IConversionOperation leftConversion
 			    && leftValue is char && leftConversion.Type?.SpecialType == SpecialType.System_Int32)
 			{
@@ -94,11 +103,11 @@ public partial class ConstExprPartialRewriter
 			}
 
 			// Try algebraic/logical simplifications when one side is a constant and operator is built-in
-			if (left is ExpressionSyntax leftExpr 
+			if (left is ExpressionSyntax leftExpr
 			    && right is ExpressionSyntax rightExpr)
 			{
 				var expressions = GetBinaryExpressions(node).ToList();
-				
+
 				if (TryOptimizeBinaryExpression(operation, expressions, leftExpr, rightExpr, node.Parent, out var optimized))
 				{
 					return Visit(optimized);
@@ -154,11 +163,11 @@ public partial class ConstExprPartialRewriter
 			// Handle null-coalescing operator: if left is null, return right; otherwise return left
 			if (node.IsKind(SyntaxKind.QuestionQuestionToken, SyntaxKind.CoalesceExpression))
 			{
-				return leftValue is null 
-					? right 
+				return leftValue is null
+					? right
 					: left;
 			}
-			
+
 			switch (leftValue)
 			{
 				case true:
@@ -197,7 +206,7 @@ public partial class ConstExprPartialRewriter
 		{
 			return CreateLiteral(result);
 		}
-		
+
 		if (semanticModel.TryGetTypeSymbol(node.Left, out var leftType)
 		    && semanticModel.TryGetTypeSymbol(node.Right, out var rightType)
 		    && !IsTypeCompatibleForOfType(leftType, rightType))
@@ -350,7 +359,7 @@ public partial class ConstExprPartialRewriter
 			{
 				return true;
 			}
-			
+
 			baseType = baseType.BaseType;
 		}
 
@@ -924,7 +933,7 @@ public partial class ConstExprPartialRewriter
 			.ToList();
 
 		var originalMinValue = constants[0];
-		
+
 		// Groups of expressions per cluster: within a cluster combine with &&, across clusters combine with ||
 		var clusterResults = new List<List<ExpressionSyntax>>();
 
