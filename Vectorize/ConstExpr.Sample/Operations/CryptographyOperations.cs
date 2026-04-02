@@ -35,31 +35,24 @@ public static class CryptographyOperations
 			return text;
 		}
 
-		var result = new System.Text.StringBuilder(text.Length);
 		var normalizedShift = ((shift % 26) + 26) % 26;
+		var data = text.ToCharArray();
 		
-		return String.Create(text.Length, (text, normalizedShift), (span, state) =>
+		for (var i = 0; i < data.Length; i++)
 		{
-			var (input, shift) = state;
+			var c = data[i];
 
-			for (var i = 0; i < input.Length; i++)
+			if (char.IsLetter(c))
 			{
-				var c = input[i];
-				
-				if (char.IsLetter(c))
-				{
-					var baseChar = char.IsUpper(c) ? 'A' : 'a';
-					var charIndex = c - baseChar;
-					var newIndex = (charIndex + shift) % 26;
-					
-					span[i] = (char) (baseChar + newIndex);
-				}
-				else
-				{
-					span[i] = c;
-				}
+				var baseChar = char.IsUpper(c) ? 'A' : 'a';
+				var charIndex = c - baseChar;
+				var newIndex = (charIndex + normalizedShift) % 26;
+
+				data[i] = (char) (baseChar + newIndex);
 			}
-		});
+		}
+		
+		return new string(data);
 	}
 
 	/// <summary>
