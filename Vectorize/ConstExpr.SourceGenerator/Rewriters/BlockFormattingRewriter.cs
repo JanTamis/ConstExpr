@@ -1166,6 +1166,70 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		};
 	}
 
+	public override SyntaxNode? VisitSwitchSection(SwitchSectionSyntax node)
+	{
+		var visited = (SwitchSectionSyntax?) base.VisitSwitchSection(node);
+
+		if (visited is null)
+		{
+			return null;
+		}
+
+		// Already wrapped in a single block — nothing to do.
+		if (visited.Statements is [BlockSyntax])
+		{
+			return visited;
+		}
+
+		if (visited.Statements.Count == 0)
+		{
+			return visited;
+		}
+
+		// Derive indentation from the case label so braces align with the case keyword.
+		var labelIndent = TriviaList();
+
+		if (visited.Labels.Count > 0)
+		{
+			foreach (var trivia in visited.Labels[0].GetLeadingTrivia())
+			{
+				if (trivia.IsKind(SyntaxKind.WhitespaceTrivia))
+				{
+					labelIndent = labelIndent.Add(trivia);
+				}
+			}
+		}
+
+		// Build open brace: same indentation as case label (the case label's colon
+		// token already carries a trailing newline, so we only need whitespace here).
+		var openBraceLeading = TriviaList();
+
+		foreach (var t in labelIndent)
+		{
+			openBraceLeading = openBraceLeading.Add(t);
+		}
+
+		var openBrace = Token(SyntaxKind.OpenBraceToken)
+			.WithLeadingTrivia(openBraceLeading)
+			.WithTrailingTrivia(EndOfLine("\n"));
+
+		// Build close brace: newline + same indentation as case label
+		var closeBraceLeading = TriviaList();
+
+		foreach (var t in labelIndent)
+		{
+			closeBraceLeading = closeBraceLeading.Add(t);
+		}
+
+		var closeBrace = Token(SyntaxKind.CloseBraceToken)
+			.WithLeadingTrivia(closeBraceLeading)
+			.WithTrailingTrivia(EndOfLine("\n"));
+
+		var block = VisitBlock(Block(openBrace, List(visited.Statements), closeBrace));
+
+		return visited.WithStatements(SingletonList<StatementSyntax>(block as BlockSyntax));
+	}
+
 	// New: normalize cast expression spacing so `(int? )` -> `(int?)`
 	public override SyntaxNode? VisitCastExpression(CastExpressionSyntax node)
 	{
