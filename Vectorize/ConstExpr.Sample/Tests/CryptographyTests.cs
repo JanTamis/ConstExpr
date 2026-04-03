@@ -29,10 +29,10 @@ namespace ConstExpr.SourceGenerator.Sample.Tests
 			Console.WriteLine($"[CONST] IsValidHex(\"XYZ\"): {CryptographyOperations.IsValidHex("XYZ")}");
 			Console.WriteLine($"[MIXED] IsValidHex(varString): {CryptographyOperations.IsValidHex(varString)}");
 
-			// BytesToHex - alleen constanten
-			Console.WriteLine($"[CONST] BytesToHex(255,128,64,32): {CryptographyOperations.BytesToHex(255, 128, 64, 32)}");
-			// BytesToHex - mixed
-			Console.WriteLine($"[MIXED] BytesToHex(varByte,255,128): {CryptographyOperations.BytesToHex(varByte, 255, 128)}");
+			//// BytesToHex - alleen constanten
+			//Console.WriteLine($"[CONST] BytesToHex(255,128,64,32): {CryptographyOperations.BytesToHex(255, 128, 64, 32)}");
+			//// BytesToHex - mixed
+			//Console.WriteLine($"[MIXED] BytesToHex(varByte,255,128): {CryptographyOperations.BytesToHex(varByte, 255, 128)}");
 
 			// // PolynomialHash - alleen constanten
 			// Console.WriteLine($"[CONST] PolynomialHash(\"hello\"): {CryptographyOperations.PolynomialHash("hello")}");

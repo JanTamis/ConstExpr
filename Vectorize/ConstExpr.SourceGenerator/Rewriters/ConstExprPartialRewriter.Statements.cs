@@ -324,7 +324,7 @@ public partial class ConstExprPartialRewriter
 		    && resultBlock.Statements.All(s => s is not IfStatementSyntax ifStmt
 			    || ContainsJumpStatement(ifStmt.Statement)))
 		{
-			var combined = CombineConsecutiveIfStatements(resultBlock.Statements);
+			var combined = VisitList(CombineConsecutiveIfStatements(resultBlock.Statements));
 			result = combined.Count == 1 ? combined[0] : Block(combined);
 		}
 
@@ -399,7 +399,7 @@ public partial class ConstExprPartialRewriter
 		var visited = VisitList(node.Statements);
 
 		var untilThrown = TakeUntilThrownStatements(visited);
-		var combined = CombineConsecutiveIfStatements(untilThrown);
+		var combined = VisitList(CombineConsecutiveIfStatements(untilThrown));
 		var simplified = SimplifyIfReturnPatterns(combined);
 		
 		return node.WithStatements(simplified);
