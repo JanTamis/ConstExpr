@@ -44,7 +44,7 @@ public static class WrapArgumentsRefactoring
 
 			if (i > 0)
 			{
-				arg = arg.WithLeadingTrivia(EndOfLine("\n"), Whitespace("\t"));
+				arg = arg.WithLeadingTrivia(LineFeed, Tab);
 			}
 
 			newArguments.Add(arg);
@@ -118,7 +118,7 @@ public static class WrapArgumentsRefactoring
 
 			if (i > 0)
 			{
-				param = param.WithLeadingTrivia(EndOfLine("\n"), Whitespace("\t"));
+				param = param.WithLeadingTrivia(LineFeed, Tab);
 			}
 
 			newParameters.Add(param);
@@ -172,7 +172,7 @@ public static class WrapArgumentsRefactoring
 				memberAccess.Name)
 				.WithOperatorToken(
 					memberAccess.OperatorToken.WithLeadingTrivia(
-						EndOfLine("\n"), Whitespace("\t")));
+						LineFeed, Tab));
 
 			root = InvocationExpression(newMemberAccess, call.ArgumentList);
 		}
