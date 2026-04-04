@@ -28,21 +28,21 @@ public class DigitalRootTest() : BaseTest<Func<int, int>>(FastMathFlags.FastMath
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var num = Int32.Abs(n);
-
+			var num = AbsFast(n);
+			
 			while (num >= 10)
 			{
-			  var sum = 0;
-
-			  while (num > 0)
-			  {
-			    sum += num % 10;
-			    num /= 10;
-			  }
-
-			  num = sum;
+				var sum = 0;
+			
+				while (num > 0)
+				{
+					sum += num % 10;
+					num /= 10;
+				}
+			
+				num = sum;
 			}
-
+			
 			return num;
 			""", Unknown),
 		Create("return 2;", 38),

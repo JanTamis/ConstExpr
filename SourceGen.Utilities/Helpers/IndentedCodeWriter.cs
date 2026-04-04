@@ -760,47 +760,104 @@ public sealed class IndentedCodeWriter : IDisposable
 		switch (value)
 		{
 			case byte bb:
+			{
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(bb));
+			}
 			case sbyte sb:
+			{
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(sb));
+			}
+			case int i and < 0 when i != int.MinValue:
+			{
+				return SyntaxFactory.PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
+					SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(-i)));
+			}
 			case int i:
+			{
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(i));
+			}
 			case uint ui:
+			{
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(ui));
+			}
+			case float f and < 0:
+			{
+				return SyntaxFactory.PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
+					SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(-f)));
+			}
 			case float f:
+			{
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(f));
+			}
+			case double d and < 0:
+			{
+				return SyntaxFactory.PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
+					SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(-d)));
+			}
 			case double d:
+			{
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(d));
+			}
+			case long l and < 0 when l != long.MinValue:
+			{
+				return SyntaxFactory.PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
+					SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(-l)));
+			}
 			case long l:
+			{
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(l));
+			}
 			case ulong ul:
+			{
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(ul));
+			}
+			case decimal dec and < 0:
+			{
+				return SyntaxFactory.PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
+					SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(-dec)));
+			}
 			case decimal dec:
+			{
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(dec));
+			}
 			case string s1:
+			{
 				return SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(s1));
+			}
 			case char c:
+			{
 				return SyntaxFactory.LiteralExpression(SyntaxKind.CharacterLiteralExpression, SyntaxFactory.Literal(c));
+			}
 			case bool b:
+			{
 				return SyntaxFactory.LiteralExpression(b
 					? SyntaxKind.TrueLiteralExpression
 					: SyntaxKind.FalseLiteralExpression);
+			}
 			case Enum e:
+			{
 				return SyntaxFactory.MemberAccessExpression(
 					SyntaxKind.SimpleMemberAccessExpression,
 					SyntaxFactory.IdentifierName(e.GetType().Name),
 					SyntaxFactory.IdentifierName(e.ToString()));
+			}
 			case DateTime dt:
+			{
 				return SyntaxFactory.ObjectCreationExpression(
-					SyntaxFactory.IdentifierName(nameof(DateTime)))
+						SyntaxFactory.IdentifierName(nameof(DateTime)))
 					.WithArgumentList(
 						SyntaxFactory.ArgumentList(
 							SyntaxFactory.SingletonSeparatedList(
 								SyntaxFactory.Argument(CreateLiteral(dt.Ticks)))));
+			}
 			case null:
+			{
 				return SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression);
+			}
 			case ExpressionSyntax expression:
+			{
 				return expression.NormalizeWhitespace(DefaultIndentation);
+			}
 		}
 
 		if (value.GetType().Name.Contains("Tuple"))

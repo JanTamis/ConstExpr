@@ -147,7 +147,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			{
 				var expectedBody = FormattingHelper.Format(method.Body!) as BlockSyntax;
 
-				if (!expectedBody.EqualsTo(newBody))
+				if (!SyntaxNodeComparer<BlockSyntax>.Instance.Equals(expectedBody, newBody))
 				{
 					throw new InvalidOperationException($"""
 						Generated method body does not match expected body.
@@ -171,7 +171,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 				expectedBody = FormattingHelper.Format(expectedBody) as BlockSyntax;
 
 				// Use Roslyn structural equivalence which ignores trivia differences
-				if (newBody == null || expectedBody == null || !expectedBody.EqualsTo(newBody))
+				if (newBody == null || expectedBody == null || !SyntaxNodeComparer<BlockSyntax>.Instance.Equals(expectedBody, newBody))
 				{
 					throw new InvalidOperationException($"""
 						Generated method body does not match expected body.

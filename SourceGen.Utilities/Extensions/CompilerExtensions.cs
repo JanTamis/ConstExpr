@@ -178,7 +178,7 @@ public static class CompilerExtensions
 		// check if parameters are only used one or none of them are used in the body, and if the body is a simple expression (not containing nested lambdas or local functions)
 		var parameterNames = lambda switch
 		{
-			SimpleLambdaExpressionSyntax s => new[] { s.Parameter.Identifier.Text },
+			SimpleLambdaExpressionSyntax s => [ s.Parameter.Identifier.Text ],
 			ParenthesizedLambdaExpressionSyntax p => p.ParameterList.Parameters.Select(par => par.Identifier.Text).ToArray(),
 			_ => Array.Empty<string>()
 		};

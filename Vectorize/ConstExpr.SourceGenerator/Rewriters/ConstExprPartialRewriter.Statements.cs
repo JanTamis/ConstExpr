@@ -44,7 +44,7 @@ public partial class ConstExprPartialRewriter
 		// Try to convert an if-else-if chain to a switch statement / switch expression.
 		// Only attempt this when there is at least one else branch (otherwise a single-case
 		// switch would be noisier than the original if).
-		if (result.Else is not null && ConvertIfToSwitchCodeRefactoring.TryConvertIfElseChainToSwitch(result, out var switchNode))
+		if (ConvertIfToSwitchCodeRefactoring.TryConvertIfElseChainToSwitch(result, out var switchNode))
 		{
 			return switchNode;
 		}

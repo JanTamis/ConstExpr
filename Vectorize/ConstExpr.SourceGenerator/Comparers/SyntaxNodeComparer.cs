@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Comparers;
@@ -9,7 +10,7 @@ public class SyntaxNodeComparer<TNode> : IEqualityComparer<TNode?> where TNode :
 	
 	public bool Equals(TNode? x, TNode? y)
 	{
-		return AreEquivalent(x, y);
+		return DeteministicHashVisitor.Instance.Visit(x) == DeteministicHashVisitor.Instance.Visit(y);
 	}
 
 	public int GetHashCode(TNode? obj)

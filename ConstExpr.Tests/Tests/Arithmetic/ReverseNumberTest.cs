@@ -25,17 +25,17 @@ public class ReverseNumberTest() : BaseTest<Func<int, int>>(FastMathFlags.FastMa
 	[
 		Create("""
 			var originalN = n;
-
-			n = Int32.Abs(n);
-
+			
+			n = AbsFast(n);
+			
 			var reversed = 0;
-
+			
 			while (n > 0)
 			{
 				reversed = reversed * 10 + n % 10;
 				n /= 10;
 			}
-
+			
 			return Int32.CopySign(reversed, originalN);
 			""", Unknown),
 		Create("return 321;", 123),

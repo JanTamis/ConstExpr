@@ -442,4 +442,18 @@ public partial class ConstExprPartialRewriter
 			});
 		}
 	}
+
+	private static bool IsPure(SyntaxNode node)
+	{
+		return node switch
+		{
+			IdentifierNameSyntax or LiteralExpressionSyntax => true,
+			ParenthesizedExpressionSyntax par => IsPure(par.Expression),
+			PrefixUnaryExpressionSyntax u => IsPure(u.Operand),
+			BinaryExpressionSyntax b => IsPure(b.Left) && IsPure(b.Right),
+			MemberAccessExpressionSyntax m => IsPure(m.Expression),
+			ElementAccessExpressionSyntax e => IsPure(e.Expression) && e.ArgumentList.Arguments.All(a => IsPure(a.Expression)),
+			_ => false
+		};
+	}
 }
