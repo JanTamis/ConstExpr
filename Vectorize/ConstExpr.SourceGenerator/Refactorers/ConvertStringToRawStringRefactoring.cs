@@ -47,14 +47,15 @@ public static class ConvertStringToRawStringRefactoring
 		var token = node.Token;
 
 		// Already a raw string — nothing to do.
-		if (token.IsKind(SyntaxKind.SingleLineRawStringLiteralToken) ||
-		    token.IsKind(SyntaxKind.MultiLineRawStringLiteralToken))
+		if (token.IsKind(SyntaxKind.SingleLineRawStringLiteralToken) 
+		    || token.IsKind(SyntaxKind.MultiLineRawStringLiteralToken))
 		{
 			return false;
 		}
 
 		// Skip verbatim strings (@"...") — they are already human-friendly.
 		var text = token.Text;
+		
 		if (text.Length > 0 && text[0] == '@')
 		{
 			return false;
@@ -104,7 +105,7 @@ public static class ConvertStringToRawStringRefactoring
 	/// </summary>
 	private static bool ContainsNewline(string value)
 	{
-		return value.IndexOf('\n') >= 0 || value.IndexOf('\r') >= 0;
+		return value.IndexOfAny([ '\n', '\r' ]) >= 0;
 	}
 
 	/// <summary>

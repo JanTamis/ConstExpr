@@ -174,7 +174,8 @@ public static class ConvertIfToSwitchCodeRefactoring
 		labels = null;
 		var collected = new List<ExpressionSyntax>();
 
-		if (!TryCollectLabels(condition, ref switchTarget, collected) || collected.Count == 0)
+		if (!TryCollectLabels(condition, ref switchTarget, collected) 
+		    || collected.Count == 0)
 		{
 			return false;
 		}
@@ -189,14 +190,14 @@ public static class ConvertIfToSwitchCodeRefactoring
 		List<ExpressionSyntax> labels)
 	{
 		// x == a || x == b
-		if (condition is BinaryExpressionSyntax orExpr && orExpr.IsKind(SyntaxKind.LogicalOrExpression))
+		if (condition is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LogicalOrExpression } orExpr)
 		{
 			return TryCollectLabels(orExpr.Left, ref switchTarget, labels)
 			       && TryCollectLabels(orExpr.Right, ref switchTarget, labels);
 		}
 
 		// x == constant  /  constant == x
-		if (condition is BinaryExpressionSyntax eq && eq.IsKind(SyntaxKind.EqualsExpression))
+		if (condition is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.EqualsExpression } eq)
 		{
 			string? target = null;
 			ExpressionSyntax? label = null;
@@ -254,18 +255,26 @@ public static class ConvertIfToSwitchCodeRefactoring
 		switch (pattern)
 		{
 			case ConstantPatternSyntax constPat:
+			{
 				labels.Add(constPat.Expression);
 				return true;
+			}
 
 			case BinaryPatternSyntax orPat when orPat.IsKind(SyntaxKind.OrPattern):
+			{
 				return TryCollectPatternLabels(orPat.Left, labels)
 				       && TryCollectPatternLabels(orPat.Right, labels);
+			}
 
 			case ParenthesizedPatternSyntax paren:
+			{
 				return TryCollectPatternLabels(paren.Pattern, labels);
+			}
 
 			default:
+			{
 				return false;
+			}
 		}
 	}
 
@@ -273,10 +282,13 @@ public static class ConvertIfToSwitchCodeRefactoring
 	/// Returns <see langword="true"/> when the expression is constant-like and therefore safe
 	/// to use as a switch case label (literal, negative literal, enum member access).
 	/// </summary>
-	private static bool IsConstantLike(ExpressionSyntax expr) =>
-		expr is LiteralExpressionSyntax
+	private static bool IsConstantLike(ExpressionSyntax expr)
+	{
+		return expr is LiteralExpressionSyntax
 			or MemberAccessExpressionSyntax // e.g. Color.Red
-			or PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken }; // -1
+			or PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken };
+		// -1
+	}
 
 	/// <summary>
 	/// Builds the statement list for a single switch section, automatically appending a
