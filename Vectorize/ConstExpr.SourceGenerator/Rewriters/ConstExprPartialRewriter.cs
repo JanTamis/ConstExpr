@@ -9,6 +9,7 @@ using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
+using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.RegexOptimizers;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.SimdOptimizers;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 using Microsoft.CodeAnalysis;
@@ -78,6 +79,16 @@ public partial class ConstExprPartialRewriter(
 			.Where(t => !t.IsAbstract && typeof(BaseSimdFunctionOptimizer).IsAssignableFrom(t))
 			.Select(Activator.CreateInstance)
 			.OfType<BaseSimdFunctionOptimizer>()
+			.ToArray();
+	}, isThreadSafe: true);
+
+	private readonly Lazy<BaseRegexFunctionOptimizer[]> _regexOptimizers = new(() =>
+	{
+		return typeof(BaseRegexFunctionOptimizer).Assembly
+			.GetTypes()
+			.Where(t => !t.IsAbstract && typeof(BaseRegexFunctionOptimizer).IsAssignableFrom(t))
+			.Select(Activator.CreateInstance)
+			.OfType<BaseRegexFunctionOptimizer>()
 			.ToArray();
 	}, isThreadSafe: true);
 

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Refactorers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -42,6 +43,61 @@ public partial class ConstExprPartialRewriter
 
 		// Try to create the object and convert it to a literal
 		return TryCreateObjectLiteral(node, type) ?? base.VisitObjectCreationExpression(node);
+	}
+
+	/// <summary>
+	/// Converts anonymous type creation expressions to value tuple expressions in generated code.
+	/// This is safe when the anonymous type is used as an intermediate value.
+	/// Skipped when the return type of the enclosing method is <c>dynamic</c>, because value tuple
+	/// element names are compiler metadata only — <c>((dynamic)result).Name</c> would fail at runtime
+	/// on a <c>ValueTuple</c> since it has no actual <c>Name</c> property.
+	/// </summary>
+	public override SyntaxNode VisitAnonymousObjectCreationExpression(AnonymousObjectCreationExpressionSyntax node)
+	{
+		// Visit nested expressions first so constant folding is applied to initializer values
+		var visitedInitializers = node.Initializers
+			.Select(init => (init.NameEquals, Expression: Visit(init.Expression) as ExpressionSyntax ?? init.Expression))
+			.ToList();
+
+		var updatedNode = node.WithInitializers(
+			SeparatedList(visitedInitializers.Select(init =>
+				AnonymousObjectMemberDeclarator(init.NameEquals, init.Expression))));
+
+		// Skip the conversion when the enclosing method returns dynamic — runtime property access via
+		// dynamic dispatch on a ValueTuple would fail because named tuple elements are not real properties.
+		if (IsInsideDynamicReturnMethod())
+		{
+			return updatedNode;
+		}
+
+		return ConvertAnonymousTypeToTupleRefactoring.TryConvertAnonymousTypeToTuple(updatedNode, out var tuple)
+			? tuple
+			: updatedNode;
+
+		bool IsInsideDynamicReturnMethod()
+		{
+			// Walk up the syntax tree to find the enclosing method-like declaration
+			SyntaxNode? current = node.Parent;
+
+			while (current is not null)
+			{
+				if (current is MethodDeclarationSyntax method)
+				{
+					return method.ReturnType is IdentifierNameSyntax { Identifier.Text: "dynamic" }
+					       || semanticModel.GetTypeInfo(method.ReturnType).Type?.TypeKind == TypeKind.Dynamic;
+				}
+
+				if (current is LocalFunctionStatementSyntax localFunc)
+				{
+					return localFunc.ReturnType is IdentifierNameSyntax { Identifier.Text: "dynamic" }
+					       || semanticModel.GetTypeInfo(localFunc.ReturnType).Type?.TypeKind == TypeKind.Dynamic;
+				}
+
+				current = current.Parent;
+			}
+
+			return false;
+		}
 	}
 
 	/// <summary>

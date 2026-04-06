@@ -1,6 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -89,7 +87,7 @@ public static class MergeNestedIfStatementsRefactoring
 				return true;
 			}
 
-			case BlockSyntax { Statements: [IfStatementSyntax blockIf] }:
+			case BlockSyntax { Statements: [ IfStatementSyntax blockIf ] }:
 			{
 				innerIf = blockIf;
 				return true;
@@ -107,12 +105,11 @@ public static class MergeNestedIfStatementsRefactoring
 	/// </summary>
 	private static ExpressionSyntax ParenthesizeIfNeeded(ExpressionSyntax expr)
 	{
-		return expr switch
+		if (expr is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LogicalOrExpression })
 		{
-			BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LogicalOrExpression }
-				=> ParenthesizedExpression(expr),
-			_ => expr
-		};
+			return ParenthesizedExpression(expr);
+		}
+		
+		return expr;
 	}
 }
-

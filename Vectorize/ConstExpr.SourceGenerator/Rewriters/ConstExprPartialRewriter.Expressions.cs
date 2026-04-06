@@ -43,7 +43,7 @@ public partial class ConstExprPartialRewriter
 				// Upgrade regular string literals with escape sequences to raw string literals
 				// for more readable generated code.
 				if (expression is LiteralExpressionSyntax literalExpr
-				    && ConvertStringToRawStringRefactoring.TryConvertToRawString(literalExpr, out var rawExpr, semanticModel))
+				    && ConvertStringToRawStringRefactoring.TryConvertToRawString(literalExpr, out var rawExpr))
 				{
 					return rawExpr;
 				}

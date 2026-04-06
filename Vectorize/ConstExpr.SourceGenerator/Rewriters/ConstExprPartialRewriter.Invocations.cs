@@ -9,6 +9,7 @@ using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Optimizers;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
+using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.RegexOptimizers;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.SimdOptimizers;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 using ConstExpr.SourceGenerator.Visitors;
@@ -107,6 +108,11 @@ public partial class ConstExprPartialRewriter
 		if (TryOptimizeSimdMethod(semanticModel, targetMethod, node, arguments, node.ArgumentList.Arguments.Select(s => s.Expression)) is { } optimizedSimd)
 		{
 			return Visit(optimizedSimd);
+		}
+
+		if (TryOptimizeRegexMethod(semanticModel, targetMethod, node, arguments, node.ArgumentList.Arguments.Select(s => s.Expression)) is { } optimizedRegex)
+		{
+			return optimizedRegex;
 		}
 
 		node = node.WithExpression(Visit(node.Expression) as ExpressionSyntax ?? node.Expression);
@@ -374,6 +380,25 @@ public partial class ConstExprPartialRewriter
 		return result;
 	}
 
+	/// <summary>
+	/// Tries to optimize a Regex method (e.g. Regex.IsMatch) by converting the constant pattern to inline C# code.
+	/// </summary>
+	private SyntaxNode? TryOptimizeRegexMethod(SemanticModel model, IMethodSymbol targetMethod, InvocationExpressionSyntax node, IEnumerable<SyntaxNode> visitedArguments, IEnumerable<SyntaxNode> originalArguments)
+	{
+		if (targetMethod.ContainingType?.ToString() != "System.Text.RegularExpressions.Regex")
+		{
+			return null;
+		}
+
+		var context = GetFunctionOptimizerContext(model, targetMethod, node, visitedArguments, originalArguments);
+
+		return _regexOptimizers.Value
+			.Where(o => String.Equals(o.Name, targetMethod.Name, StringComparison.Ordinal)
+			            && o.ParameterCounts.Contains(targetMethod.Parameters.Length))
+			.WhereSelect<BaseRegexFunctionOptimizer, SyntaxNode>((optimizer, out optimized) => optimizer.TryOptimize(context, out optimized))
+			.FirstOrDefault();
+	}
+
 	private FunctionOptimizerContext GetFunctionOptimizerContext(SemanticModel model, IMethodSymbol targetMethod, InvocationExpressionSyntax node, IEnumerable<SyntaxNode> visitedArguments, IEnumerable<SyntaxNode> originalArguments)
 	{
 		var getLambda = new Func<LambdaExpressionSyntax, LambdaExpression?>(lambda =>
@@ -432,7 +457,8 @@ public partial class ConstExprPartialRewriter
 			node, 
 			visitedArguments.OfType<ExpressionSyntax>().ToArray(), 
 			originalArguments.OfType<ExpressionSyntax>().ToArray(), 
-			x => Visit(x) as ExpressionSyntax, 
+			x => Visit(x) as ExpressionSyntax,
+			x => Visit(x) as StatementSyntax, 
 			getLambda, 
 			optimizeBinaryExpression, 
 			additionalMethods, 

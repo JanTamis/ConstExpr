@@ -1,5 +1,6 @@
 using ConstExpr.SourceGenerator.Sample.Tests;
 using System;
+using System.Globalization;
 
 Console.WriteLine("╔═══════════════════════════════════════════════════════════════════╗");
 Console.WriteLine("║  ConstExpr Test Suite - Alle functies met constanten & vars       ║");
@@ -43,3 +44,4 @@ LoopBreakReturnTests.RunTests(varInt2, varString, varInt);
 MathOperationsTests.RunTests(varInt, varInt2, varInt3, varInt4);
 StringOperationsTests.RunTests(varString);
 ArrayOperationsTests.RunTests(varInt, varInt2, varInt3);
+RegexOperationsTests.RunTests(varString, varInt);

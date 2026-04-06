@@ -4,6 +4,7 @@
 		<TargetFramework>netstandard2.0</TargetFramework>
 		<Nullable>enable</Nullable>
 		<LangVersion>preview</LangVersion>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<AssemblySearchPath_UseOutDir>true</AssemblySearchPath_UseOutDir>
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 		<!--		<CompilerVisibleProperty Include="SgfAddModuleInitializerAttribute"/>-->

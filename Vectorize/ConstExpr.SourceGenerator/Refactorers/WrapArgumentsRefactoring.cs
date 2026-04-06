@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -144,12 +143,12 @@ public static class WrapArgumentsRefactoring
 
 		// Collect the chain
 		var chain = new List<InvocationExpressionSyntax>();
-		ExpressionSyntax? current = invocation;
+		ExpressionSyntax current = invocation;
 
-		while (current is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax } inv)
+		while (current is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax memberAccessExpression } inv)
 		{
 			chain.Add(inv);
-			current = ((MemberAccessExpressionSyntax)inv.Expression).Expression;
+			current = memberAccessExpression.Expression;
 		}
 
 		if (chain.Count < 2)
@@ -161,7 +160,7 @@ public static class WrapArgumentsRefactoring
 		chain.Reverse();
 
 		// Build from the root outward, adding newlines before each dot
-		var root = current!;
+		var root = current;
 
 		foreach (var call in chain)
 		{
