@@ -466,7 +466,8 @@ public partial class ConstExprPartialRewriter
 
 		// Get the return statement from the if body
 		var ifBody = ifStatement.Statement;
-		ReturnStatementSyntax? ifReturn = ifBody switch
+		
+		var ifReturn = ifBody switch
 		{
 			ReturnStatementSyntax ret => ret,
 			BlockSyntax { Statements: [ ReturnStatementSyntax ret ] } => ret,
@@ -500,36 +501,12 @@ public partial class ConstExprPartialRewriter
 			// return cond;
 			simplified = ReturnStatement(condition);
 		}
-		else
+		else if (InvertLogicalRefactoring.TryInvertLogical(condition as BinaryExpressionSyntax, out var inverted))
 		{
-			// return !cond; (only add parentheses if needed)
-			var negatedCondition = NeedsParenthesesForNegation(condition)
-				? PrefixUnaryExpression(
-					SyntaxKind.LogicalNotExpression,
-					ParenthesizedExpression(condition))
-				: PrefixUnaryExpression(
-					SyntaxKind.LogicalNotExpression,
-					condition);
-
-			simplified = ReturnStatement(negatedCondition);
+			simplified = ReturnStatement(inverted);
 		}
 
-		return true;
-	}
-
-	/// <summary>
-	/// Determines if an expression needs parentheses when negated.
-	/// </summary>
-	private static bool NeedsParenthesesForNegation(ExpressionSyntax expression)
-	{
-		// These expression types don't need parentheses when negated
-		return expression is not (IdentifierNameSyntax 
-			or LiteralExpressionSyntax 
-			or IsPatternExpressionSyntax 
-			or InvocationExpressionSyntax 
-			or MemberAccessExpressionSyntax 
-			or ParenthesizedExpressionSyntax 
-			or PrefixUnaryExpressionSyntax);
+		return simplified is not null;
 	}
 
 	/// <summary>
@@ -582,7 +559,7 @@ public partial class ConstExprPartialRewriter
 		while (i < statements.Count)
 		{
 			// Only process if statements without an else clause
-			if (statements[i] is not IfStatementSyntax currentIf || currentIf.Else is not null)
+			if (statements[i] is not IfStatementSyntax { Else: null } currentIf)
 			{
 				result.Add(statements[i]);
 				i++;
@@ -609,8 +586,8 @@ public partial class ConstExprPartialRewriter
 						break;
 					}
 
-					if (!TryGetEqualityComparisonInfo(nextIf.Condition, out var nextTarget, out var nextLiteral) ||
-					    nextTarget != targetIdentifier)
+					if (!TryGetEqualityComparisonInfo(nextIf.Condition, out var nextTarget, out var nextLiteral) 
+					    || nextTarget != targetIdentifier)
 					{
 						break;
 					}
@@ -658,8 +635,7 @@ public partial class ConstExprPartialRewriter
 
 					for (var k = 1; k < conditions.Count; k++)
 					{
-						combinedCondition = BinaryExpression(
-							SyntaxKind.LogicalOrExpression,
+						combinedCondition = LogicalOrExpression(
 							NeedsParenthesesInOrContext(combinedCondition)
 								? ParenthesizedExpression(combinedCondition)
 								: combinedCondition,

@@ -17,7 +17,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.RegexOptimizer
 /// by parsing the constant pattern at compile time and emitting an equivalent inline C# method
 /// that operates on <c>ReadOnlySpan&lt;char&gt;</c>.
 /// </summary>
-public class IsMatchFunctionOptimizer() : BaseRegexFunctionOptimizer("IsMatch", [2, 3])
+public class IsMatchFunctionOptimizer() : BaseRegexFunctionOptimizer("IsMatch", 2, 3)
 {
 	protected override bool TryOptimizeRegex(FunctionOptimizerContext context, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -41,13 +41,11 @@ public class IsMatchFunctionOptimizer() : BaseRegexFunctionOptimizer("IsMatch", 
 		// ── extract options (if present) ──
 		var options = RegexOptions.None;
 
-		if (context.VisitedParameters.Count >= 3)
+		if (context.VisitedParameters.Count >= 3
+		    && !TryResolveRegexOptions(context, context.VisitedParameters[2], out options))
 		{
-			if (!TryResolveRegexOptions(context, context.VisitedParameters[2], out options))
-			{
-				// Options are not a compile-time constant — bail out
-				return false;
-			}
+			// Options are not a compile-time constant — bail out
+			return false;
 		}
 
 		// ── safety: reject patterns / options we cannot yet handle ──

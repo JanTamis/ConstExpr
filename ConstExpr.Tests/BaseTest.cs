@@ -149,7 +149,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 
 				if (!SyntaxNodeComparer<BlockSyntax>.Instance.Equals(expectedBody, newBody))
 				{
-					throw new InvalidOperationException($"""
+					exceptions.Add(new InvalidOperationException($"""
 						Generated method body does not match expected body.
 						Parameters: {string.Join(", ", parameterNames.Select(p => $"{p} = {(parameters[p].HasValue ? ParseValue(parameters[p].Value) : "Unknown")}"))}
 
@@ -161,7 +161,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 						
 						Additional Items:
 						{string.Join("\n\n", additionalMethods.OrderBy(o => o.Value).Select(s => FormattingHelper.Render(s.Key) ?? "(null)"))}
-						""");
+						"""));
 				}
 			}
 			else
@@ -173,7 +173,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 				// Use Roslyn structural equivalence which ignores trivia differences
 				if (newBody == null || expectedBody == null || !SyntaxNodeComparer<BlockSyntax>.Instance.Equals(expectedBody, newBody))
 				{
-					throw new InvalidOperationException($"""
+					exceptions.Add(new InvalidOperationException($"""
 						Generated method body does not match expected body.
 						Parameters: {string.Join(", ", parameterNames.Select(p => $"{p} = {(parameters[p].HasValue ? ParseValue(parameters[p].Value) : "Unknown")}"))}
 
@@ -185,11 +185,22 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 						
 						Additional Items:
 						{string.Join("\n\n", additionalMethods.OrderBy(o => o.Value).Select(s => FormattingHelper.Render(s.Key) ?? "(null)"))}
-						""");
+						"""));
 				}
 			}
 
 			SymbolAnnotation.Clear();
+		}
+
+		if (exceptions.Count > 0)
+		{
+			switch (exceptions.Count)
+			{
+				case 1:
+					throw exceptions.First();
+				case > 1:
+					throw new AggregateException(exceptions);
+			}
 		}
 	}
 

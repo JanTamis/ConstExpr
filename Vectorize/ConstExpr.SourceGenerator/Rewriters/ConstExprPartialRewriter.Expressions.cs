@@ -456,6 +456,13 @@ public partial class ConstExprPartialRewriter
 				return lit;
 			}
 		}
+		
+		// handle !(condition) where condition is a binary expression
+		if (node.OperatorToken.IsKind(SyntaxKind.ExclamationToken) && operand is ParenthesizedExpressionSyntax parenthesizedSyntax
+		    && InvertLogicalRefactoring.TryInvertLogical(parenthesizedSyntax.Expression as BinaryExpressionSyntax, out var optimized))
+		{
+			return optimized;
+		}
 
 		if (semanticModel.GetOperation(node) is IUnaryOperation { ConstantValue.HasValue: true } operation
 		    && (operation.Parent is IConversionOperation conversionOperation

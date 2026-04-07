@@ -27,10 +27,15 @@ public static class InvertLogicalRefactoring
 	/// operand negated, wrapped in an outer <c>!(…)</c>.
 	/// </summary>
 	public static bool TryInvertLogical(
-		BinaryExpressionSyntax node,
+		BinaryExpressionSyntax? node,
 		[NotNullWhen(true)] out ExpressionSyntax? result)
 	{
 		result = null;
+
+		if (node is null)
+		{
+			return false;
+		}
 
 		if (!node.IsKind(SyntaxKind.LogicalAndExpression) 
 		    && !node.IsKind(SyntaxKind.LogicalOrExpression))
@@ -47,10 +52,12 @@ public static class InvertLogicalRefactoring
 
 		var inner = BinaryExpression(flippedKind, negatedLeft, negatedRight);
 
-		// Wrap in !(...) to preserve overall truth value.
-		result = PrefixUnaryExpression(
-			SyntaxKind.LogicalNotExpression,
-			ParenthesizedExpression(inner));
+		result = inner;
+
+		// // Wrap in !(...) to preserve overall truth value.
+		// result = PrefixUnaryExpression(
+		// 	SyntaxKind.LogicalNotExpression,
+		// 	ParenthesizedExpression(inner));
 
 		return true;
 	}

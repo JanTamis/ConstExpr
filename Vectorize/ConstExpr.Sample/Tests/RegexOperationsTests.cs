@@ -20,7 +20,7 @@ namespace ConstExpr.SourceGenerator.Sample.Tests
 			Console.WriteLine($"[CONST] CountSubstringMatches(\"abcabcabc\", \"abc\"): {RegexOperations.CountSubstringMatches("abcabcabc", "abc")}");
 			Console.WriteLine($"[CONST] CountSubstringMatches(\"Mississippi\", \"ss\"): {RegexOperations.CountSubstringMatches("Mississippi", "ss")}");
 			// CountSubstringMatches - mixed
-			Console.WriteLine($"[MIXED] CountSubstringMatches(varString, \"Test\"): {RegexOperations.CountSubstringMatches(varString, "Test")}");
+			// Console.WriteLine($"[MIXED] CountSubstringMatches(varString, \"Test\"): {RegexOperations.CountSubstringMatches(varString, "Test")}");
 
 			// IsValidIpAddress - alleen constanten
 			Console.WriteLine($"[CONST] IsValidIpAddress(\"192.168.1.1\"): {RegexOperations.IsValidIpAddress("192.168.1.1")}");
@@ -48,7 +48,7 @@ namespace ConstExpr.SourceGenerator.Sample.Tests
 			Console.WriteLine($"[CONST] CountDigitGroups(\"hello\"): {RegexOperations.CountDigitGroups("hello")}");
 			Console.WriteLine($"[CONST] CountDigitGroups(\"1 plus 2 equals 3\"): {RegexOperations.CountDigitGroups("1 plus 2 equals 3")}");
 			// CountDigitGroups - mixed
-			Console.WriteLine($"[MIXED] CountDigitGroups(varString): {RegexOperations.CountDigitGroups(varString)}");
+			// Console.WriteLine($"[MIXED] CountDigitGroups(varString): {RegexOperations.CountDigitGroups(varString)}");
 
 			// ExtractDigits - alleen constanten
 			Console.WriteLine($"[CONST] ExtractDigits(\"abc123def456\"): {RegexOperations.ExtractDigits("abc123def456")}");

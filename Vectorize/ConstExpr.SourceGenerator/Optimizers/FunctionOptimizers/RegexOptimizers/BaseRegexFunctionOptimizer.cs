@@ -30,6 +30,7 @@ public abstract class BaseRegexFunctionOptimizer(string name, params HashSet<int
 	private bool IsRegexMethod(IMethodSymbol method)
 	{
 		return method.Name == Name
+		       && method.IsStatic
 		       && method.ContainingType.ToString() == "System.Text.RegularExpressions.Regex"
 		       && ParameterCounts.Contains(method.Parameters.Length);
 	}

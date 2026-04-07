@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
+using ConstExpr.SourceGenerator.Refactorers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -346,7 +347,7 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 		var negated = RegexCharClass.IsNegated(set);
 
 		// ── well-known classes ──
-		if (set == RegexCharClass.DigitClass || set == RegexCharClass.NegatedDigitClass)
+		if (set is RegexCharClass.DigitClass or RegexCharClass.NegatedDigitClass)
 		{
 			var isDigit = CharMethodCall("IsDigit", charExpr);
 			return set == RegexCharClass.DigitClass
@@ -354,7 +355,7 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 				: isDigit;
 		}
 
-		if (set == RegexCharClass.WordClass || set == RegexCharClass.NegatedWordClass)
+		if (set is RegexCharClass.WordClass or RegexCharClass.NegatedWordClass)
 		{
 			// \w = [A-Za-z0-9_]
 			var isWord = EmitIsWordChar(charExpr);
@@ -363,7 +364,7 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 				: isWord;
 		}
 
-		if (set == RegexCharClass.SpaceClass || set == RegexCharClass.NegatedSpaceClass)
+		if (set is RegexCharClass.SpaceClass or RegexCharClass.NegatedSpaceClass)
 		{
 			var isSpace = CharMethodCall("IsWhiteSpace", charExpr);
 			return set == RegexCharClass.SpaceClass
@@ -386,7 +387,7 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 			return EmitIsWordChar(charExpr);
 		}
 
-		if (set == RegexCharClass.LetterClass || set == RegexCharClass.NotLetterClass)
+		if (set is RegexCharClass.LetterClass or RegexCharClass.NotLetterClass)
 		{
 			var isLetter = CharMethodCall("IsLetter", charExpr);
 			return set == RegexCharClass.LetterClass
@@ -394,7 +395,7 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 				: isLetter;
 		}
 
-		if (set == RegexCharClass.LetterOrDigitClass || set == RegexCharClass.NotLetterOrDigitClass)
+		if (set is RegexCharClass.LetterOrDigitClass or RegexCharClass.NotLetterOrDigitClass)
 		{
 			var isLetterOrDigit = CharMethodCall("IsLetterOrDigit", charExpr);
 			return set == RegexCharClass.LetterOrDigitClass
@@ -402,7 +403,7 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 				: isLetterOrDigit;
 		}
 
-		if (set == RegexCharClass.LowerClass || set == RegexCharClass.NotLowerClass)
+		if (set is RegexCharClass.LowerClass or RegexCharClass.NotLowerClass)
 		{
 			var isLower = CharMethodCall("IsLower", charExpr);
 			return set == RegexCharClass.LowerClass
@@ -410,7 +411,7 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 				: isLower;
 		}
 
-		if (set == RegexCharClass.UpperClass || set == RegexCharClass.NotUpperClass)
+		if (set is RegexCharClass.UpperClass or RegexCharClass.NotUpperClass)
 		{
 			var isUpper = CharMethodCall("IsUpper", charExpr);
 			return set == RegexCharClass.UpperClass
@@ -418,7 +419,7 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 				: isUpper;
 		}
 
-		if (set == RegexCharClass.ControlClass || set == RegexCharClass.NotControlClass)
+		if (set is RegexCharClass.ControlClass or RegexCharClass.NotControlClass)
 		{
 			var isControl = CharMethodCall("IsControl", charExpr);
 			return set == RegexCharClass.ControlClass
@@ -452,7 +453,19 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 				OptimizedGreaterThanOrEqual(charExpr, CreateLiteral(lo)),
 				OptimizedLessThanOrEqual(charExpr, CreateLiteral(hi)));
 
-			return negated ? inRange : PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, ParenthesizedExpression(inRange));
+			if (!negated)
+			{
+				if (InvertLogicalRefactoring.TryInvertLogical(inRange as BinaryExpressionSyntax, out var newInRange))
+				{
+					inRange = newInRange;
+				}
+				else
+				{
+					inRange = LogicalNotExpression(ParenthesizedExpression(inRange));
+				}
+			}
+
+			return inRange;
 		}
 
 		// ── double range [A-Za-z] ──
@@ -468,14 +481,26 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 
 			var inEither = OptimizedLogicalOr(range0, range1);
 
-			return negated ? inEither : PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, ParenthesizedExpression(inEither));
+			if (!negated)
+			{
+				if (InvertLogicalRefactoring.TryInvertLogical(inEither as BinaryExpressionSyntax, out var newInEither))
+				{
+					inEither = newInEither;
+				}
+				else
+				{
+					inEither = LogicalNotExpression(ParenthesizedExpression(inEither));
+				}
+			}
+
+			return inEither;
 		}
 
 		// ── small enumerable set — expand to OR-chain ──
 		Span<char> chars = stackalloc char[5];
 		var count = RegexCharClass.GetSetChars(set, chars);
 
-		if (count > 0 && count <= 5)
+		if (count is > 0 and <= 5)
 		{
 			ExpressionSyntax? matchExpr = null;
 
@@ -539,7 +564,19 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 				: LiteralExpression(SyntaxKind.TrueLiteralExpression);
 		}
 
-		return negated ? matchExpr : PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, ParenthesizedExpression(matchExpr));
+		if (!negated)
+		{
+			if (InvertLogicalRefactoring.TryInvertLogical(matchExpr as BinaryExpressionSyntax, out var newMatchExpr))
+			{
+				matchExpr = newMatchExpr;
+			}
+			else
+			{
+				matchExpr = LogicalNotExpression(ParenthesizedExpression(matchExpr));
+			}
+		}
+
+		return matchExpr;
 	}
 
 	// ──────────────────────────── greedy loop emitters ────────────────────────────
@@ -547,7 +584,7 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 	private void EmitOneLoop(RegexNode node, List<StatementSyntax> statements)
 	{
 		var countVar = NextVar("count");
-		var max = node.N == int.MaxValue ? InputLength() : (ExpressionSyntax)CreateLiteral(node.N);
+		var max = node.N == int.MaxValue ? InputLength() : CreateLiteral(node.N);
 
 		// int countN = 0;
 		statements.Add(DeclareIntVar(countVar, 0));
@@ -572,7 +609,7 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 	private void EmitNotoneLoop(RegexNode node, List<StatementSyntax> statements)
 	{
 		var countVar = NextVar("count");
-		var max = node.N == int.MaxValue ? InputLength() : (ExpressionSyntax)CreateLiteral(node.N);
+		var max = node.N == int.MaxValue ? InputLength() : CreateLiteral(node.N);
 
 		statements.Add(DeclareIntVar(countVar, 0));
 		statements.Add(WhileStatement(
@@ -593,7 +630,7 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 	private void EmitSetLoop(RegexNode node, List<StatementSyntax> statements)
 	{
 		var countVar = NextVar("count");
-		var max = node.N == int.MaxValue ? InputLength() : (ExpressionSyntax)CreateLiteral(node.N);
+		var max = node.N == int.MaxValue ? InputLength() : CreateLiteral(node.N);
 		var charAtExpr = InputCharAt(AddExpression(Pos(), IdentifierName(countVar)));
 
 		// The condition for MATCHING is the negation of the "return false" condition
@@ -681,7 +718,7 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 		bodyStatements.Add(ExpressionStatement(PostfixUnaryExpression(SyntaxKind.PostIncrementExpression, IdentifierName(iterVar))));
 
 		var maxExpr = node.N == int.MaxValue
-			? (ExpressionSyntax)MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
+			? MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
 				PredefinedType(Token(SyntaxKind.IntKeyword)), IdentifierName("MaxValue"))
 			: CreateLiteral(node.N);
 
@@ -877,7 +914,12 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 			// if (!condition(input[pos])) return false;
 			var charExpr = InputCharAt(Pos());
 			var matches = charCondition(charExpr);
-			statements.Add(IfReturnFalse(PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, ParenthesizedExpression(matches))));
+
+			matches = InvertLogicalRefactoring.TryInvertLogical(matches as BinaryExpressionSyntax, out var newMatches) 
+				? newMatches 
+				: LogicalNotExpression(ParenthesizedExpression(matches));
+
+			statements.Add(IfReturnFalse(matches));
 			statements.Add(ExpressionStatement(PostfixUnaryExpression(SyntaxKind.PostIncrementExpression, Pos())));
 		}
 	}
