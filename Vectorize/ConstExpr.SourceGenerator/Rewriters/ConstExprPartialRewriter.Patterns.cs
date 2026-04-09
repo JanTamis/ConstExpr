@@ -442,7 +442,7 @@ public partial class ConstExprPartialRewriter
 
 			if (negatedKind.HasValue)
 			{
-				return BinaryExpression(negatedKind.Value, left, right);
+				return VisitBinaryExpression(BinaryExpression(negatedKind.Value, left, right));
 			}
 		}
 
@@ -452,7 +452,7 @@ public partial class ConstExprPartialRewriter
 			var left = expression as ExpressionSyntax ?? node.Expression;
 			var right = Visit(constPat.Expression) as ExpressionSyntax ?? constPat.Expression;
 
-			return EqualsExpression(left, right);
+			return VisitBinaryExpression(EqualsExpression(left, right));
 		}
 
 		// If the pattern is a relational pattern (e.g. `x is > 0`), rewrite it to a binary
@@ -474,7 +474,7 @@ public partial class ConstExprPartialRewriter
 
 			if (binaryKind.HasValue)
 			{
-				return BinaryExpression(binaryKind.Value, left, right);
+				return VisitBinaryExpression(BinaryExpression(binaryKind.Value, left, right));
 			}
 		}
 
@@ -592,19 +592,19 @@ public partial class ConstExprPartialRewriter
 				return true;
 			}
 		}
-		
-		// check if range is in negative space, if both bounds are present
-		if (lowerBound != null && upperBound != null)
-		{
-			var comparison = ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.LessThan, lowerBound, 0);
 
-			if (comparison is true)
-			{
-				result = CreateLiteral(false);
-				return true;
-			}
-		}
-		
+		// check if range is in negative space, if both bounds are present
+		// if (lowerBound != null && upperBound != null)
+		// {
+		// 	var comparison = ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.LessThan, lowerBound, 0);
+		//
+		// 	if (comparison is true)
+		// 	{
+		// 		result = CreateLiteral(false);
+		// 		return true;
+		// 	}
+		// }
+
 
 		// Get the type of the expression for proper casting
 		if (!semanticModel.TryGetTypeSymbol(expression, out var type)
@@ -662,7 +662,9 @@ public partial class ConstExprPartialRewriter
 				return false;
 			}
 
-			var subtraction = SubtractExpression(expression, lowerLiteral);
+			var subtraction = lowerLiteral is PrefixUnaryExpressionSyntax prefix 
+				? AddExpression(expression, prefix.Operand) 
+				: SubtractExpression(expression, lowerLiteral);
 
 			optimizedExpr = isUnsignedType
 				? subtraction
@@ -677,7 +679,7 @@ public partial class ConstExprPartialRewriter
 		}
 
 		// Use LessThanOrEqual because the range includes both bounds
-		result = LessThanExpression(optimizedExpr, rangeLiteral);
+		result = LessThanOrEqualExpression(optimizedExpr, rangeLiteral);
 		return true;
 	}
 
@@ -810,14 +812,14 @@ public partial class ConstExprPartialRewriter
 		var visitedLower = Visit(lowerPattern.Expression);
 		var visitedUpper = Visit(upperPattern.Expression);
 
-		if (!TryGetConstantValue(semanticModel.Compilation, loader, visitedLower, new VariableItemDictionary(variables), token, out lowerBound)
-		    || !TryGetConstantValue(semanticModel.Compilation, loader, visitedUpper, new VariableItemDictionary(variables), token, out upperBound))
+		if (!TryGetLiteralValue(visitedLower, out lowerBound)
+		    || !TryGetLiteralValue(visitedUpper, out upperBound))
 		{
 			return false;
 		}
 
 		// Validate bounds are numeric and are positive (we only optimize numeric range checks)
-		if (!lowerBound.IsNumeric() 
+		if (!lowerBound.IsNumeric()
 		    || !upperBound.IsNumeric())
 		{
 			return false;

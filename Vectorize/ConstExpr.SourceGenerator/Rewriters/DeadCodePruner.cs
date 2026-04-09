@@ -57,9 +57,10 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 		{
 			return base.Visit(node);
 		}
-		catch (Exception)
+		catch (Exception e)
 		{
-			return node;
+			return null;
+			// return node;
 		}
   }
 
@@ -136,10 +137,17 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 					break;
 				}
 				case true when visited is LocalFunctionStatementSyntax localFunc:
+				{
 					// Keep local functions even after terminal statements
 					statements.Add(localFunc);
 					break;
+				}
 			}
+		}
+
+		if (statements.Count == 0)
+		{
+			return null;
 		}
 
 		return node.WithStatements(List(statements));
@@ -153,13 +161,8 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 		// If the body is empty and there's no else, remove the entire if
 		if (statement is null or BlockSyntax { Statements.Count: 0 })
 		{
-			if (elseClause is null)
-			{
-				return null;
-			}
-
 			// Just the else remains - return its body
-			return elseClause.Statement;
+			return elseClause?.Statement;
 		}
 
 		var result = node.WithStatement(statement as StatementSyntax ?? node.Statement);

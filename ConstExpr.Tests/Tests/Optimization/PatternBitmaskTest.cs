@@ -69,7 +69,7 @@ public class PatternBitmaskSmallTest() : BaseTest<Func<int, bool>>(FastMathFlags
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return (uint)(n - 2) <= 6U && n & (n - 1) == 0;", Unknown),
+		Create("return (uint)(n - 2) <= 6U && (n & n - 1) == 0;", Unknown),
 		Create("return true;", 2),
 		Create("return true;", 4),
 		Create("return true;", 8),

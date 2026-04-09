@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -53,7 +54,7 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
       if (parsedBlock != null)
       {
         // Strip trivia AFTER parsing to get clean comparison
-        return (StripAllTrivia(parsedBlock) as T) ?? node;
+        return StripAllTrivia(parsedBlock) as T ?? node;
       }
     }
     
@@ -63,7 +64,7 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
     
     if (result != null)
     {
-      return (StripAllTrivia(result) as T) ?? node;
+      return StripAllTrivia(result) as T ?? node;
     }
     
     return node;
@@ -73,36 +74,21 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
   {
     if (node is null)
     {
-      return FnvOffsetBasis;
+      return 0;
     }
-
-    var hash = HashCombine(FnvOffsetBasis, (ulong)node.RawKind);
-
-    // Recursively hash all children
-    foreach (var child in node.ChildNodes())
-    {
-      hash = HashCombine(hash, base.Visit(child));
-    }
-
-    return hash;
+    
+    return HashCombine((ulong)node.RawKind, base.Visit(node));
   }
 
   public override ulong VisitIdentifierName(IdentifierNameSyntax node)
   {
     // Include node RawKind to differentiate from pure string hashes
-    return HashCombine((ulong)node.RawKind, HashString(node.Identifier.ValueText));
+    return HashString(node.Identifier.ValueText);
   }
 
   public override ulong VisitBlock(BlockSyntax node)
   {
-    var hash = FnvOffsetBasis;
-
-    foreach (var statement in node.Statements)
-    {
-      hash = HashCombine(hash, Visit(statement));
-    }
-
-    return hash;
+    return HashCombine(node.Statements.Select(Visit));
   }
 
   public override ulong VisitLiteralExpression(LiteralExpressionSyntax node)
@@ -134,14 +120,7 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
 
   public override ulong VisitArgumentList(ArgumentListSyntax node)
   {
-    var hash = FnvOffsetBasis;
-    
-    foreach (var argument in node.Arguments)
-    {
-      hash = HashCombine(hash, Visit(argument));
-    }
-    
-    return hash;
+    return HashCombine(node.Arguments.Select(Visit));
   }
 
   public override ulong VisitArgument(ArgumentSyntax node)
@@ -564,14 +543,7 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
 
   public override ulong VisitAnonymousObjectCreationExpression(AnonymousObjectCreationExpressionSyntax node)
   {
-    var hash = FnvOffsetBasis;
-    
-    foreach (var initializer in node.Initializers)
-    {
-      hash = HashCombine(hash, Visit(initializer));
-    }
-    
-    return hash;
+    return HashCombine(node.Initializers.Select(Visit));
   }
 
   public override ulong VisitAnonymousObjectMemberDeclarator(AnonymousObjectMemberDeclaratorSyntax node)
@@ -584,16 +556,6 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
   public override ulong VisitNameEquals(NameEqualsSyntax node)
   {
     return Visit(node.Name);
-  }
-
-  public override ulong VisitThisExpression(ThisExpressionSyntax node)
-  {
-    return 0;
-  }
-
-  public override ulong VisitBaseExpression(BaseExpressionSyntax node)
-  {
-    return 0;
   }
 
   public override ulong VisitDefaultExpression(DefaultExpressionSyntax node)
@@ -643,11 +605,6 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
     return HashString(node.Identifier.ValueText);
   }
 
-  public override ulong VisitDiscardDesignation(DiscardDesignationSyntax node)
-  {
-    return 0;
-  }
-
   public override ulong VisitTupleExpression(TupleExpressionSyntax node)
   {
     var hash = FnvOffsetBasis;
@@ -657,7 +614,7 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
       hash = HashCombine(hash, Visit(argument));
     }
     
-    return hash;
+    return HashCombine(node.Arguments.Select(Visit));
   }
 
   public override ulong VisitTupleType(TupleTypeSyntax node)
@@ -679,14 +636,7 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
 
   public override ulong VisitInterpolatedStringExpression(InterpolatedStringExpressionSyntax node)
   {
-    var hash = FnvOffsetBasis;
-    
-    foreach (var content in node.Contents)
-    {
-      hash = HashCombine(hash, Visit(content));
-    }
-    
-    return hash;
+    return HashCombine(node.Contents.Select(Visit));
   }
 
   public override ulong VisitInterpolatedStringText(InterpolatedStringTextSyntax node)
@@ -741,11 +691,6 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
     return Visit(node.ElementType);
   }
 
-  public override ulong VisitOmittedArraySizeExpression(OmittedArraySizeExpressionSyntax node)
-  {
-    return 0;
-  }
-
   public override ulong VisitStackAllocArrayCreationExpression(StackAllocArrayCreationExpressionSyntax node)
   {
     return node.Initializer != null
@@ -777,12 +722,7 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
 
   public override ulong VisitQueryBody(QueryBodySyntax node)
   {
-    var hash = FnvOffsetBasis;
-    
-    foreach (var clause in node.Clauses)
-    {
-      hash = HashCombine(hash, Visit(clause));
-    }
+    var hash = HashCombine(node.Clauses.Select(Visit));
     
     hash = HashCombine(hash, Visit(node.SelectOrGroup));
     
@@ -806,14 +746,7 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
 
   public override ulong VisitOrderByClause(OrderByClauseSyntax node)
   {
-    var hash = FnvOffsetBasis;
-    
-    foreach (var ordering in node.Orderings)
-    {
-      hash = HashCombine(hash, Visit(ordering));
-    }
-    
-    return hash;
+    return HashCombine(node.Orderings.Select(Visit));
   }
 
   public override ulong VisitOrdering(OrderingSyntax node)
@@ -851,14 +784,7 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
 
   public override ulong VisitSwitchExpression(SwitchExpressionSyntax node)
   {
-    var hash = Visit(node.GoverningExpression);
-    
-    foreach (var arm in node.Arms)
-    {
-      hash = HashCombine(hash, Visit(arm));
-    }
-    
-    return hash;
+    return HashCombine([ Visit(node.GoverningExpression), ..node.Arms.Select(Visit) ]);
   }
 
   public override ulong VisitSwitchExpressionArm(SwitchExpressionArmSyntax node)
@@ -909,19 +835,12 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
 
   public override ulong VisitGotoStatement(GotoStatementSyntax node)
   {
-    return node.Expression != null
-      ? Visit(node.Expression)
-      : 0;
+    return Visit(node.Expression);
   }
 
   public override ulong VisitLabeledStatement(LabeledStatementSyntax node)
   {
     return HashCombine(HashString(node.Identifier.ValueText), Visit(node.Statement));
-  }
-
-  public override ulong VisitEmptyStatement(EmptyStatementSyntax node)
-  {
-    return 0;
   }
 
   public override ulong VisitUnsafeStatement(UnsafeStatementSyntax node)
@@ -979,11 +898,6 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
     return Visit(node.Pattern);
   }
 
-  public override ulong VisitDiscardPattern(DiscardPatternSyntax node)
-  {
-    return 0;
-  }
-
   public override ulong VisitAnonymousMethodExpression(AnonymousMethodExpressionSyntax node)
   {
     return node.ParameterList != null
@@ -1013,14 +927,7 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
 
   public override ulong VisitParenthesizedVariableDesignation(ParenthesizedVariableDesignationSyntax node)
   {
-    var hash = FnvOffsetBasis;
-    
-    foreach (var variable in node.Variables)
-    {
-      hash = HashCombine(hash, Visit(variable));
-    }
-    
-    return hash;
+    return HashCombine(node.Variables.Select(Visit));
   }
 
   public override ulong VisitThrowExpression(ThrowExpressionSyntax node)
@@ -1030,8 +937,7 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
 
   public override ulong VisitLocalFunctionStatement(LocalFunctionStatementSyntax node)
   {
-    var hash = HashCombine(Visit(node.ReturnType),
-			HashString(node.Identifier.ValueText), Visit(node.ParameterList));
+    var hash = HashCombine(Visit(node.ReturnType), HashString(node.Identifier.ValueText), Visit(node.ParameterList));
     
     if (node.Body != null)
     {
@@ -1059,11 +965,6 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
   public override ulong VisitJoinIntoClause(JoinIntoClauseSyntax node)
   {
     return HashString(node.Identifier.ValueText);
-  }
-
-  public override ulong VisitOmittedTypeArgument(OmittedTypeArgumentSyntax node)
-  {
-    return 0;
   }
 
   public override ulong VisitVarPattern(VarPatternSyntax node)
@@ -1100,26 +1001,12 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
 
   public override ulong VisitPositionalPatternClause(PositionalPatternClauseSyntax node)
   {
-    var hash = FnvOffsetBasis;
-    
-    foreach (var subpattern in node.Subpatterns)
-    {
-      hash = HashCombine(hash, Visit(subpattern));
-    }
-    
-    return hash;
+    return HashCombine(node.Subpatterns.Select(Visit));
   }
 
   public override ulong VisitPropertyPatternClause(PropertyPatternClauseSyntax node)
   {
-    var hash = FnvOffsetBasis;
-    
-    foreach (var subpattern in node.Subpatterns)
-    {
-      hash = HashCombine(hash, Visit(subpattern));
-    }
-    
-    return hash;
+    return HashCombine(node.Subpatterns.Select(Visit));
   }
 
   public override ulong VisitSubpattern(SubpatternSyntax node)
@@ -1148,14 +1035,7 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
 
   public override ulong VisitFunctionPointerParameterList(FunctionPointerParameterListSyntax node)
   {
-    var hash = FnvOffsetBasis;
-    
-    foreach (var parameter in node.Parameters)
-    {
-      hash = HashCombine(hash, Visit(parameter));
-    }
-    
-    return hash;
+    return HashCombine(node.Parameters.Select(Visit));
   }
 
   public override ulong VisitFunctionPointerParameter(FunctionPointerParameterSyntax node)
@@ -1165,21 +1045,12 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
 
   public override ulong VisitFunctionPointerCallingConvention(FunctionPointerCallingConventionSyntax node)
   {
-    return node.UnmanagedCallingConventionList != null
-      ? Visit(node.UnmanagedCallingConventionList)
-      : 0;
+    return Visit(node.UnmanagedCallingConventionList);
   }
 
   public override ulong VisitFunctionPointerUnmanagedCallingConventionList(FunctionPointerUnmanagedCallingConventionListSyntax node)
   {
-    var hash = FnvOffsetBasis;
-    
-    foreach (var convention in node.CallingConventions)
-    {
-      hash = HashCombine(hash, Visit(convention));
-    }
-    
-    return hash;
+    return HashCombine(node.CallingConventions.Select(Visit));
   }
 
   public override ulong VisitFunctionPointerUnmanagedCallingConvention(FunctionPointerUnmanagedCallingConventionSyntax node)
@@ -1204,14 +1075,7 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
 
   public override ulong VisitCollectionExpression(CollectionExpressionSyntax node)
   {
-    var hash = FnvOffsetBasis;
-    
-    foreach (var element in node.Elements)
-    {
-      hash = HashCombine(hash, Visit(element));
-    }
-    
-    return hash;
+    return HashCombine(node.Elements.Select(Visit));
   }
 
   public override ulong VisitExpressionElement(ExpressionElementSyntax node)
@@ -1231,26 +1095,12 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
 
   public override ulong VisitListPattern(ListPatternSyntax node)
   {
-    var hash = FnvOffsetBasis;
-    
-    foreach (var pattern in node.Patterns)
-    {
-      hash = HashCombine(hash, Visit(pattern));
-    }
-    
-    if (node.Designation != null)
-    {
-      hash = HashCombine(hash, Visit(node.Designation));
-    }
-    
-    return hash;
+    return HashCombine([..node.Patterns.Select(Visit), Visit(node.Designation)]);
   }
 
   public override ulong VisitSlicePattern(SlicePatternSyntax node)
   {
-    return node.Pattern != null
-      ? Visit(node.Pattern)
-      : 0;
+    return Visit(node.Pattern);
   }
 
   public override ulong VisitPrimaryConstructorBaseType(PrimaryConstructorBaseTypeSyntax node)
@@ -1272,14 +1122,7 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
 
   public override ulong VisitAttributeList(AttributeListSyntax node)
   {
-    var hash = FnvOffsetBasis;
-    
-    foreach (var attribute in node.Attributes)
-    {
-      hash = HashCombine(hash, Visit(attribute));
-    }
-    
-    return hash;
+    return HashCombine(node.Attributes.Select(Visit));
   }
 
   public override ulong VisitAttributeArgument(AttributeArgumentSyntax node)
@@ -1301,14 +1144,7 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
 
   public override ulong VisitAttributeArgumentList(AttributeArgumentListSyntax node)
   {
-    var hash = FnvOffsetBasis;
-    
-    foreach (var argument in node.Arguments)
-    {
-      hash = HashCombine(hash, Visit(argument));
-    }
-    
-    return hash;
+    return HashCombine(node.Arguments.Select(Visit));
   }
 
   public override ulong VisitNullableDirectiveTrivia(NullableDirectiveTriviaSyntax node)
@@ -1333,12 +1169,14 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
   {
     hash1 ^= hash2;
     hash1 *= FnvPrime;
+    
     return hash1;
   }
 
   private ulong HashCombine(ulong hash1, ulong hash2, ulong hash3)
   {
     hash1 = HashCombine(hash1, hash2);
+    
     return HashCombine(hash1, hash3);
   }
 
@@ -1346,6 +1184,26 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
   {
     hash1 = HashCombine(hash1, hash2);
     hash1 = HashCombine(hash1, hash3);
+    
     return HashCombine(hash1, hash4);
+  }
+  
+  private ulong HashCombine(params IEnumerable<ulong> hashes)
+  {
+    using var enumerator = hashes.GetEnumerator();
+    
+    if (!enumerator.MoveNext())
+    {
+      return 0;
+    }
+
+    var hash = enumerator.Current;
+    
+    while (enumerator.MoveNext())
+    {
+      hash = HashCombine(hash, enumerator.Current);
+    }
+
+    return hash;
   }
 }

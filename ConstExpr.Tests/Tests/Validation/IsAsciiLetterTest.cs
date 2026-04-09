@@ -15,9 +15,9 @@ public class IsAsciiLetterTest() : BaseTest<Func<char, bool>>(FastMathFlags.Fast
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Char.IsAsciiLetter(c);", Unknown),
-		Create("return Char.IsAsciiLetter(c);", 'm'),
-		Create("return Char.IsAsciiLetter(c);", 'M'),
-		Create("return Char.IsAsciiLetter(c);", '5'),
+		Create("return true;", 'm'),
+		Create("return true;", 'M'),
+		Create("return false;", '5'),
 	];
 }
 

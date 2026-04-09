@@ -31,6 +31,21 @@ public class ConditionalAndCharOptimizer()
 
 		if (!String.IsNullOrEmpty(memberName))
 		{
+			if (context.TryGetValue(context.Left.Syntax.Left, out var charValue))
+			{
+				// get method via reflection and invoke it on the constant char value to fold the entire expression to a bool constant
+				var charType = typeof(char);
+				var charMethod = charType.GetMethod(memberName, [ charType ]);
+
+				if (charMethod is null)
+				{
+					optimized = null;
+					return false;
+				}
+
+				return TryCreateLiteral(charMethod.Invoke(null, [ charValue ]), out optimized);
+			}
+			
 			optimized =  InvocationExpression(
 				MemberAccessExpression(
 					SyntaxKind.SimpleMemberAccessExpression,
@@ -45,6 +60,21 @@ public class ConditionalAndCharOptimizer()
 
 		if (leftValue.LessThan(rightValue))
 		{
+			if (context.TryGetValue(context.Left.Syntax.Left, out var charValue))
+			{
+				// get method via reflection and invoke it on the constant char value to fold the entire expression to a bool constant
+				var charType = typeof(char);
+				var charMethod = charType.GetMethod("IsBetween", [ charType, charType, charType ]);
+
+				if (charMethod is null)
+				{
+					optimized = null;
+					return false;
+				}
+
+				return TryCreateLiteral(charMethod.Invoke(null, [ charValue, leftValue, rightValue ]), out optimized);
+			}
+			
 			optimized = InvocationExpression(
 				MemberAccessExpression(
 					SyntaxKind.SimpleMemberAccessExpression,

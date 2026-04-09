@@ -149,19 +149,8 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 
 				if (!SyntaxNodeComparer<BlockSyntax>.Instance.Equals(expectedBody, newBody))
 				{
-					exceptions.Add(new InvalidOperationException($"""
-						Generated method body does not match expected body.
-						Parameters: {string.Join(", ", parameterNames.Select(p => $"{p} = {(parameters[p].HasValue ? ParseValue(parameters[p].Value) : "Unknown")}"))}
-
-						Expected body:
-						{FormattingHelper.Render(expectedBody) ?? "(null)"}
-
-						Generated body:
-						{FormattingHelper.Render(newBody) ?? "(null)"}
-						
-						Additional Items:
-						{string.Join("\n\n", additionalMethods.OrderBy(o => o.Value).Select(s => FormattingHelper.Render(s.Key) ?? "(null)"))}
-						"""));
+					exceptions.Add(FormatMismatchException(
+						parameterNames, parameters, expectedBody, newBody, additionalMethods));
 				}
 			}
 			else
@@ -173,19 +162,8 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 				// Use Roslyn structural equivalence which ignores trivia differences
 				if (newBody == null || expectedBody == null || !SyntaxNodeComparer<BlockSyntax>.Instance.Equals(expectedBody, newBody))
 				{
-					exceptions.Add(new InvalidOperationException($"""
-						Generated method body does not match expected body.
-						Parameters: {string.Join(", ", parameterNames.Select(p => $"{p} = {(parameters[p].HasValue ? ParseValue(parameters[p].Value) : "Unknown")}"))}
-
-						Expected body:
-						{FormattingHelper.Render(expectedBody) ?? "(null)"}
-
-						Generated body:
-						{FormattingHelper.Render(newBody) ?? "(null)"}
-						
-						Additional Items:
-						{string.Join("\n\n", additionalMethods.OrderBy(o => o.Value).Select(s => FormattingHelper.Render(s.Key) ?? "(null)"))}
-						"""));
+					exceptions.Add(FormatMismatchException(
+						parameterNames, parameters, expectedBody, newBody, additionalMethods));
 				}
 			}
 
@@ -199,7 +177,12 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 				case 1:
 					throw exceptions.First();
 				case > 1:
-					throw new AggregateException(exceptions);
+					var formattedException = new AggregateException(
+						$"Test failed with {exceptions.Count} test cases:\n\n" +
+						string.Join("\n" + new string('─', 80) + "\n\n", exceptions.Select((e, i) => 
+							$"Test Case {i + 1}:\n{e.Message}")),
+						exceptions);
+					throw formattedException;
 			}
 		}
 	}
@@ -225,6 +208,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			using System;
 			using System.Collections.Generic;
 			using System.Linq;
+			using System.Text.RegularExpressions;
 
 			{TestMethod}
 			"""";
@@ -319,5 +303,52 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			IEnumerable items => $"[{System.String.Join(", ", items.Cast<object?>().Select(ParseValue))}]",
 			_ => value.ToString()
 		};
+	}
+
+	private InvalidOperationException FormatMismatchException(
+		List<string> parameterNames,
+		Dictionary<string, VariableItem> parameters,
+		BlockSyntax? expectedBody,
+		BlockSyntax? newBody,
+		Dictionary<SyntaxNode, bool> additionalMethods)
+	{
+		var parametersStr = string.Join(", ", parameterNames.Select(p =>
+			$"{p} = {(parameters[p].HasValue ? ParseValue(parameters[p].Value) : "Unknown")}"));
+		
+		var expectedStr = FormattingHelper.Render(expectedBody) ?? "(null)";
+		var generatedStr = FormattingHelper.Render(newBody) ?? "(null)";
+		var additionalStr = additionalMethods.Count > 0
+			? string.Join("\n\n", additionalMethods
+				.OrderBy(o => o.Value)
+				.Select(s => FormattingHelper.Render(s.Key) ?? "(null)"))
+			: "(none)";
+
+		if (additionalMethods.Count > 0)
+		{
+			return new InvalidOperationException($"""
+				Generated method body does not match expected body.
+				Parameters: {parametersStr}
+
+				Expected body:
+				{expectedStr}
+
+				Generated body:
+				{generatedStr}
+
+				Additional Items:
+				{additionalStr}
+				""");
+		}
+
+		return new InvalidOperationException($"""
+			Generated method body does not match expected body.
+			Parameters: {parametersStr}
+
+			Expected body:
+			{expectedStr}
+
+			Generated body:
+			{generatedStr}
+			""");
 	}
 }

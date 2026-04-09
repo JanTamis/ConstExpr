@@ -131,7 +131,7 @@ public partial class ConstExprPartialRewriter
 			item.Value = local.Type.GetDefaultValue();
 			item.IsInitialized = false;
 		}
-		else if (TryGetLiteralValue(initializerValue, out var result) || TryGetLiteralValue(value, out result))
+		else if (TryGetLiteralValue(value, out var result) || TryGetLiteralValue(initializerValue, out result))
 		{
 			item.Value = result;
 			item.IsInitialized = true;

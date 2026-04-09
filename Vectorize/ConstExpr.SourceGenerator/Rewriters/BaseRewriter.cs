@@ -35,13 +35,20 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 		switch (node)
 		{
 			case LiteralExpressionSyntax { Token.Value: var v }:
+			{
 				value = v;
 				return true;
+			}
 			case ArgumentSyntax argumentSyntax:
+			{
 				return TryGetLiteralValue(argumentSyntax.Expression, typeSymbol, out value, visitedVariables);
+			}
 			case ExpressionElementSyntax elementSyntax:
+			{
 				return TryGetLiteralValue(elementSyntax.Expression, typeSymbol, out value, visitedVariables);
+			}
 			case IdentifierNameSyntax identifier when variables.TryGetValue(identifier.Identifier.Text, out var variable) && variable.HasValue:
+			{
 				// Prevent infinite recursion from circular variable references
 				if (!visitedVariables.Add(identifier.Identifier.Text))
 				{
@@ -56,32 +63,32 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 
 				value = variable.Value;
 				return true;
+			}
 			// unwrap ( ... )
 			case ParenthesizedExpressionSyntax paren:
-				return TryGetLiteralValue(paren.Expression, typeSymbol, out value, visitedVariables) || TryGetLiteralValue(Visit(paren.Expression), typeSymbol, out value, visitedVariables);
-			// ^n => System.Index(n, fromEnd: true)
-			case PrefixUnaryExpressionSyntax prefix when prefix.OperatorToken.IsKind(SyntaxKind.CaretToken):
 			{
-				if (TryGetLiteralValue(prefix.Operand, typeSymbol, out var inner, visitedVariables) && inner is not null)
+				return TryGetLiteralValue(paren.Expression, typeSymbol, out value, visitedVariables) || TryGetLiteralValue(Visit(paren.Expression), typeSymbol, out value, visitedVariables);
+			}
+			// ^n => System.Index(n, fromEnd: true)
+			case PrefixUnaryExpressionSyntax prefix when TryGetLiteralValue(prefix.Operand, typeSymbol, out var inner, visitedVariables) && inner is not null:
+			{
+				if (prefix.OperatorToken.IsKind(SyntaxKind.CaretToken))
 				{
-					try
+					var indexType = loader.GetType("System.Index");
+
+					var ctor = indexType?.GetConstructor([ typeof(int), typeof(bool) ]);
+
+					if (ctor != null)
 					{
-						var indexType = loader.GetType("System.Index");
+						var intVal = Convert.ToInt32(inner);
 
-						var ctor = indexType?.GetConstructor([ typeof(int), typeof(bool) ]);
-
-						if (ctor != null)
-						{
-							var intVal = Convert.ToInt32(inner);
-
-							value = ctor.Invoke([ intVal, true ]);
-							return true;
-						}
+						value = ctor.Invoke([ intVal, true ]);
+						return true;
 					}
-					catch { }
 				}
-				value = null;
-				return false;
+
+				value = inner.Negate();
+				return true;
 			}
 			// a..b => System.Range
 			case RangeExpressionSyntax rangeSyntax:

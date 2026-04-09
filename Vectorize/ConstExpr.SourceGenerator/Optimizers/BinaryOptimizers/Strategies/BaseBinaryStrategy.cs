@@ -143,7 +143,7 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 
 			case BinaryExpressionSyntax b:
 				// expr op literal  (e.g.  x > 0)
-				if (b.Right is LiteralExpressionSyntax && IsPure(b.Left))
+				if (CanBeUsedAsPattern(b.Right) && IsPure(b.Left))
 				{
 					var pattern = ConvertToPattern(b.OperatorToken.Kind(), b.Right);
 					if (pattern is not null)
@@ -151,7 +151,7 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 				}
 
 				// literal op expr  (e.g.  0 < x) — flip the operator so it reads as  x > 0
-				if (b.Left is LiteralExpressionSyntax && IsPure(b.Right))
+				if (CanBeUsedAsPattern(b.Left) && IsPure(b.Right))
 				{
 					var pattern = ConvertToPattern(SwapCondition(b.OperatorToken.Kind()), b.Left);
 					if (pattern is not null)
@@ -162,6 +162,11 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 		}
 
 		return null;
+
+		bool CanBeUsedAsPattern(ExpressionSyntax expr)
+		{
+			return expr is LiteralExpressionSyntax or PrefixUnaryExpressionSyntax { Operand: LiteralExpressionSyntax };
+		}
 	}
 
 	/// <summary>

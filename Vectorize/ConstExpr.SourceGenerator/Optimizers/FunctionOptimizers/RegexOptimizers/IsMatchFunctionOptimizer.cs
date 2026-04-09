@@ -79,7 +79,7 @@ public class IsMatchFunctionOptimizer() : BaseRegexFunctionOptimizer("IsMatch", 
 		try
 		{
 			method = emitter.EmitIsMatchMethod(pattern, options);
-			
+
 			method = method.WithBody(context.VisitStatement(method.Body) as BlockSyntax ?? method.Body);
 		}
 		catch

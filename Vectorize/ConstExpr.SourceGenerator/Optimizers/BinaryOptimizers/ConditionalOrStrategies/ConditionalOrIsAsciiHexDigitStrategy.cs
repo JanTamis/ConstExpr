@@ -85,6 +85,21 @@ public class ConditionalOrAsciiCharRangeStrategy : BaseBinaryStrategy
 			return false;
 		}
 
+		if (context.TryGetValue(charExpr, out var charValue))
+		{
+			// get method via reflection and invoke it on the constant char value to fold the entire expression to a bool constant
+			var charType = typeof(char);
+			var charMethod = charType.GetMethod(method, [ charType ]);
+
+			if (charMethod is null)
+			{
+				optimized = null;
+				return false;
+			}
+
+			return TryCreateLiteral(charMethod.Invoke(null, [ charValue ]), out optimized);
+		}
+
 		// Emit: Char.IsXxx(c)
 		optimized = InvocationExpression(
 				MemberAccessExpression(

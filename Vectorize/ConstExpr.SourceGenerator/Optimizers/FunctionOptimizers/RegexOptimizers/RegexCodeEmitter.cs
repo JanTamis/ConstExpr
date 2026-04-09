@@ -91,11 +91,12 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 
 			case RegexNodeKind.EndZ:
 				// Matches end of string or before \n at end
+				// Fail when: pos < input.Length && (pos < input.Length - 1 || input[pos] != '\n')
 				statements.Add(IfReturnFalse(
 					LogicalAndExpression(
-						LessThanExpression(Pos(), SubtractExpression(InputLength(), One())),
+						LessThanExpression(Pos(), InputLength()),
 						LogicalOrExpression(
-							GreaterThanExpression(Pos(), InputLength()),
+							LessThanExpression(Pos(), SubtractExpression(InputLength(), One())),
 							NotEqualsExpression(InputCharAt(Pos()), CreateLiteral('\n'))))));
 				break;
 
@@ -233,7 +234,7 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 		var ch = node.Ch;
 		// if (pos >= input.Length || input[pos] != 'X') return false;
 		statements.Add(IfReturnFalse(
-			LogicalAndExpression(
+			LogicalOrExpression(
 				GreaterThanOrEqualExpression(Pos(), InputLength()),
 				NotEqualsExpression(InputCharAt(Pos()), CreateLiteral(ch)))));
 		// pos++;
@@ -526,7 +527,8 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 
 	/// <summary>
 	/// Fallback for character classes that are not a well-known class, singleton, or simple range.
-	/// Enumerates the raw range pairs from the set string and builds an OR-of-range-checks expression.
+	/// Enumerates the raw range pairs from the set string, then also handles any Unicode categories
+	/// present in the class (e.g. <c>\s</c>, <c>\d</c> combined with literal ranges).
 	/// </summary>
 	private ExpressionSyntax EmitSetRangesFallback(string set, ExpressionSyntax charExpr, bool negated)
 	{
@@ -556,6 +558,13 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 			matchExpr = matchExpr is null ? rangeCheck : OptimizedLogicalOr(matchExpr, rangeCheck);
 		}
 
+		// Also handle categories (e.g. \s, \d) that are part of the class
+		var categoryExpr = EmitCategoryMatchExpression(set, charExpr);
+		if (categoryExpr is not null)
+		{
+			matchExpr = matchExpr is null ? categoryExpr : OptimizedLogicalOr(matchExpr, categoryExpr);
+		}
+
 		if (matchExpr is null)
 		{
 			// Empty set: nothing matches
@@ -579,6 +588,136 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 		return matchExpr;
 	}
 
+	/// <summary>
+	/// Emits an expression that evaluates to <c>true</c> when the character matches the
+	/// category portion of a character class string. Returns <c>null</c> if the class has
+	/// no categories.
+	/// </summary>
+	/// <remarks>
+	/// Handles the <c>SpaceConst</c> pseudo-category (<c>\s</c>), individual Unicode categories,
+	/// and category groups (e.g. <c>\w</c> which is a group of letter + digit + connector categories).
+	/// </remarks>
+	private ExpressionSyntax? EmitCategoryMatchExpression(string set, ExpressionSyntax charExpr)
+	{
+		var setLength = (int)set[RegexCharClass.SetLengthIndex];
+		var categoryLength = (int)set[RegexCharClass.CategoryLengthIndex];
+
+		if (categoryLength == 0)
+			return null;
+
+		var categoryStart = RegexCharClass.SetStartIndex + setLength;
+		var categoryEnd = categoryStart + categoryLength;
+		ExpressionSyntax? result = null;
+
+		for (var i = categoryStart; i < categoryEnd; i++)
+		{
+			var curcat = (short)set[i];
+
+			if (curcat == 0)
+			{
+				// Category group — read until next 0 delimiter
+				i++;
+				if (i >= categoryEnd) break;
+
+				var first = (short)set[i];
+				if (first > 0)
+				{
+					// Positive group: char must be in ANY of the categories → OR
+					ExpressionSyntax? groupExpr = null;
+					while (i < categoryEnd && (short)set[i] != 0)
+					{
+						var check = EmitSingleCategoryMatch(charExpr, (short)set[i]);
+						groupExpr = groupExpr is null ? check : OptimizedLogicalOr(groupExpr, check);
+						i++;
+					}
+
+					if (groupExpr is not null)
+						result = result is null ? groupExpr : OptimizedLogicalOr(result, ParenthesizedExpression(groupExpr));
+				}
+				else
+				{
+					// Negative group: char must be in NONE of the categories → AND of !=
+					ExpressionSyntax? groupExpr = null;
+					while (i < categoryEnd && (short)set[i] != 0)
+					{
+						var cat = -1 - (short)set[i];
+						var check = EmitUnicodeCategoryNotEquals(charExpr, cat);
+						groupExpr = groupExpr is null ? check : OptimizedLogicalAnd(groupExpr, check);
+						i++;
+					}
+
+					if (groupExpr is not null)
+						result = result is null ? groupExpr : OptimizedLogicalOr(result, ParenthesizedExpression(groupExpr));
+				}
+			}
+			else if (curcat == RegexCharClass.SpaceConst)
+			{
+				var check = CharMethodCall("IsWhiteSpace", charExpr);
+				result = result is null ? check : OptimizedLogicalOr(result, check);
+			}
+			else if (curcat == -RegexCharClass.SpaceConst)
+			{
+				var check = PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, CharMethodCall("IsWhiteSpace", charExpr));
+				result = result is null ? check : OptimizedLogicalOr(result, check);
+			}
+			else if (curcat > 0)
+			{
+				var check = EmitSingleCategoryMatch(charExpr, curcat);
+				result = result is null ? check : OptimizedLogicalOr(result, check);
+			}
+			else // curcat < 0
+			{
+				var cat = -1 - curcat;
+				var check = EmitUnicodeCategoryNotEquals(charExpr, cat);
+				result = result is null ? check : OptimizedLogicalOr(result, check);
+			}
+		}
+
+		return result;
+	}
+
+	/// <summary>
+	/// Emits an expression for a single positive Unicode category match.
+	/// Uses <c>char.IsDigit</c>, <c>char.IsLetter</c>, etc. for common categories,
+	/// and falls back to <c>(int)char.GetUnicodeCategory(ch) == N</c> for others.
+	/// </summary>
+	private ExpressionSyntax EmitSingleCategoryMatch(ExpressionSyntax charExpr, short curcat)
+	{
+		var unicodeCategory = curcat - 1;
+		return unicodeCategory switch
+		{
+			0 => CharMethodCall("IsUpper", charExpr),           // UppercaseLetter
+			1 => CharMethodCall("IsLower", charExpr),           // LowercaseLetter
+			8 => CharMethodCall("IsDigit", charExpr),           // DecimalDigitNumber
+			14 => CharMethodCall("IsControl", charExpr),        // OtherControl → Control
+			_ => EmitUnicodeCategoryEquals(charExpr, unicodeCategory)
+		};
+	}
+
+	private ExpressionSyntax EmitUnicodeCategoryEquals(ExpressionSyntax charExpr, int categoryValue)
+	{
+		return OptimizedEqual(
+			CastExpression(PredefinedType(Token(SyntaxKind.IntKeyword)),
+				InvocationExpression(
+						MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
+							PredefinedType(Token(SyntaxKind.CharKeyword)),
+							IdentifierName("GetUnicodeCategory")))
+					.WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(charExpr))))),
+			CreateLiteral(categoryValue));
+	}
+
+	private ExpressionSyntax EmitUnicodeCategoryNotEquals(ExpressionSyntax charExpr, int categoryValue)
+	{
+		return OptimizedNotEqual(
+			CastExpression(PredefinedType(Token(SyntaxKind.IntKeyword)),
+				InvocationExpression(
+						MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
+							PredefinedType(Token(SyntaxKind.CharKeyword)),
+							IdentifierName("GetUnicodeCategory")))
+					.WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(charExpr))))),
+			CreateLiteral(categoryValue));
+	}
+
 	// ──────────────────────────── greedy loop emitters ────────────────────────────
 
 	private void EmitOneLoop(RegexNode node, List<StatementSyntax> statements)
@@ -596,7 +735,7 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 					LessThanExpression(IdentifierName(countVar), max),
 					LessThanExpression(AddExpression(Pos(), IdentifierName(countVar)), InputLength())),
 				EqualsExpression(InputCharAt(AddExpression(Pos(), IdentifierName(countVar))), CreateLiteral(node.Ch))),
-			ExpressionStatement(PostfixUnaryExpression(SyntaxKind.PostIncrementExpression, IdentifierName(countVar)))));
+			Block(ExpressionStatement(PostfixUnaryExpression(SyntaxKind.PostIncrementExpression, IdentifierName(countVar))))));
 
 		if (node.M > 0)
 			statements.Add(IfReturnFalse(LessThanExpression(IdentifierName(countVar), CreateLiteral(node.M))));
@@ -618,7 +757,7 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 					LessThanExpression(IdentifierName(countVar), max),
 					LessThanExpression(AddExpression(Pos(), IdentifierName(countVar)), InputLength())),
 				NotEqualsExpression(InputCharAt(AddExpression(Pos(), IdentifierName(countVar))), CreateLiteral(node.Ch))),
-			ExpressionStatement(PostfixUnaryExpression(SyntaxKind.PostIncrementExpression, IdentifierName(countVar)))));
+			Block(ExpressionStatement(PostfixUnaryExpression(SyntaxKind.PostIncrementExpression, IdentifierName(countVar))))));
 
 		if (node.M > 0)
 			statements.Add(IfReturnFalse(LessThanExpression(IdentifierName(countVar), CreateLiteral(node.M))));
@@ -645,7 +784,7 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 					LessThanExpression(IdentifierName(countVar), max),
 					LessThanExpression(AddExpression(Pos(), IdentifierName(countVar)), InputLength())),
 				loopCondition),
-			ExpressionStatement(PostfixUnaryExpression(SyntaxKind.PostIncrementExpression, IdentifierName(countVar)))));
+			Block(ExpressionStatement(PostfixUnaryExpression(SyntaxKind.PostIncrementExpression, IdentifierName(countVar))))));
 
 		if (node.M > 0)
 			statements.Add(IfReturnFalse(LessThanExpression(IdentifierName(countVar), CreateLiteral(node.M))));
@@ -1001,14 +1140,14 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 
 	private static LocalDeclarationStatementSyntax DeclareIntVar(string name, int value) =>
 		LocalDeclarationStatement(
-			VariableDeclaration(PredefinedType(Token(SyntaxKind.VarKeyword)))
+			VariableDeclaration(IdentifierName("var"))
 				.WithVariables(SingletonSeparatedList(
 					VariableDeclarator(Identifier(name))
 						.WithInitializer(EqualsValueClause(CreateLiteral(value))))));
 
 	private static LocalDeclarationStatementSyntax DeclareIntVar(string name, ExpressionSyntax value) =>
 		LocalDeclarationStatement(
-			VariableDeclaration(PredefinedType(Token(SyntaxKind.VarKeyword)))
+			VariableDeclaration(IdentifierName("var"))
 				.WithVariables(SingletonSeparatedList(
 					VariableDeclarator(Identifier(name))
 						.WithInitializer(EqualsValueClause(value)))));

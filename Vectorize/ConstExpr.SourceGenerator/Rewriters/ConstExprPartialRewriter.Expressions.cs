@@ -67,6 +67,12 @@ public partial class ConstExprPartialRewriter
 			return VisitIsTypeExpression(node);
 		}
 
+		if (UsePatternMatchingRefactoring.TryConvertOrEqualityChainToOrPattern(node, semanticModel, syntax => Visit(syntax) as ExpressionSyntax, out var orPattern)
+		    && !TryGetLiteralValue(orPattern.Expression, out _))
+		{
+			return VisitIsPatternExpression(orPattern);
+		}
+
 		var left = Visit(node.Left);
 		var right = Visit(node.Right);
 
@@ -150,9 +156,9 @@ public partial class ConstExprPartialRewriter
 				return StripUnnecessaryParentheses(optimizedNode);
 			}
 
-			if (nodeLeftExpr is LiteralExpressionSyntax leftLiteral
-			    && nodeRightExpr is LiteralExpressionSyntax rightLiteral
-			    && TryCreateLiteral(ObjectExtensions.ExecuteBinaryOperation(node.Kind(), leftLiteral.Token.Value, rightLiteral.Token.Value), out var literal))
+			if (TryGetLiteralValue(nodeLeftExpr, out var leftLiteralValue)
+			    && TryGetLiteralValue(nodeRightExpr, out var rightLiteralValue)
+			    && TryCreateLiteral(ObjectExtensions.ExecuteBinaryOperation(node.Kind(), leftLiteralValue, rightLiteralValue), out var literal))
 			{
 				return literal;
 			}
@@ -456,10 +462,10 @@ public partial class ConstExprPartialRewriter
 				return lit;
 			}
 		}
-		
+
 		// handle !(condition) where condition is a binary expression
 		if (node.OperatorToken.IsKind(SyntaxKind.ExclamationToken) && operand is ParenthesizedExpressionSyntax parenthesizedSyntax
-		    && InvertLogicalRefactoring.TryInvertLogical(parenthesizedSyntax.Expression as BinaryExpressionSyntax, out var optimized))
+		                                                           && InvertLogicalRefactoring.TryInvertLogical(parenthesizedSyntax.Expression as BinaryExpressionSyntax, out var optimized))
 		{
 			return optimized;
 		}
@@ -643,9 +649,7 @@ public partial class ConstExprPartialRewriter
 
 			if (TryGetLiteralValue(expression, out var value) || TryGetLiteralValue(node.Expression, out value))
 			{
-				var result = ConvertToSpecialType(type.SpecialType, value);
-
-				if (result is not null && TryCreateLiteral(result, out var literal))
+				if (loader.TryGetType(type, out var runtimeType) && TryCreateLiteral(value.Cast(runtimeType), out var literal))
 				{
 					return literal;
 				}
@@ -719,7 +723,7 @@ public partial class ConstExprPartialRewriter
 		}
 
 		// Try optimization with the original node
-		if (semanticModel.GetTypeInfo(node).Type is { } type)
+		if (semanticModel.TryGetTypeSymbol(node, out var type))
 		{
 			var optimizer = new ConditionalExpressionOptimizer
 			{
@@ -1145,19 +1149,15 @@ public partial class ConstExprPartialRewriter
 			zeroExpression);
 	}
 
-	// ({expression} & ({expression} - 1)) == 0
+	// ({expression} & {expression} - 1) == 0
 	private ExpressionSyntax GetPowerOfTwoExpression(ObjectExtensions.Cluster cluster, ExpressionSyntax OneExpression, ExpressionSyntax zeroExpression)
 	{
-		return BinaryExpression(
-			SyntaxKind.EqualsExpression,
-			BinaryExpression(
-				SyntaxKind.BitwiseAndExpression,
+		return EqualsExpression(
+			ParenthesizedExpression(BitwiseAndExpression(
 				cluster.Expression,
-				ParenthesizedExpression(
-					BinaryExpression(
-						SyntaxKind.SubtractExpression,
-						cluster.Expression,
-						OneExpression))),
+				SubtractExpression(
+					cluster.Expression,
+					OneExpression))),
 			zeroExpression);
 	}
 

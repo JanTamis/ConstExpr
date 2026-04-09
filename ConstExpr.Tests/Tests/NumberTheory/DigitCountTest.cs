@@ -33,7 +33,7 @@ public class DigitCountTest() : BaseTest<Func<int, int>>(FastMathFlags.FastMath)
 			}
 			
 			var count = 0;
-			var num = Int32.Abs(n);
+			var num = AbsFast(n);
 			
 			while (num > 0)
 			{

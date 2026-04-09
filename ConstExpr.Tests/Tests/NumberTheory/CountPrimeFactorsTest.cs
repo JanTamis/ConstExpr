@@ -34,7 +34,7 @@ public class CountPrimeFactorsTest() : BaseTest<Func<int, int>>(FastMathFlags.Fa
 	[
 		Create("""
 			var count = 0;
-			var num = Int32.Abs(n);
+			var num = AbsFast(n);
 			var i = 2;
 			
 			while (i * i <= num)

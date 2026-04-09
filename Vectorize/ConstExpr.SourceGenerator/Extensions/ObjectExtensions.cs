@@ -32,6 +32,21 @@ public static class ObjectExtensions
 		};
 	}
 
+	public static object? Cast(this object? value, Type? targetType)
+	{
+		if (value is null || targetType is null)
+		{
+			return null;
+		}
+		
+		var source = Expression.Constant(value, value.GetType());
+		var converted = Expression.Convert(source, targetType);
+		var boxed = Expression.Convert(converted, typeof(object));
+		var lambda = Expression.Lambda<Func<object>>(boxed);
+		
+		return lambda.Compile().Invoke();
+	}
+
 	public static T Add<T>(this T left, T right)
 	{
 		return (T) ExecuteArithmeticOperation(left, right, Expression.Add)!;
@@ -613,6 +628,51 @@ public static class ObjectExtensions
 		};
 	}
 
+	/// <summary>
+	/// Returns the arithmetic negation of a numeric value (-value).
+	/// Follows C# unary minus promotion rules:
+	/// byte/sbyte/short/ushort → int, uint → long, ulong → not supported.
+	/// </summary>
+	public static object? Negate(this object? value)
+	{
+		if (value is null)
+		{
+			return null;
+		}
+
+		try
+		{
+			// Determine the promoted type according to C# unary minus rules
+			var promotedType = value switch
+			{
+				byte or sbyte or short or ushort => typeof(int),
+				int => typeof(int),
+				uint => typeof(long),
+				long => typeof(long),
+				ulong => null, // ulong cannot be negated
+				float => typeof(float),
+				double => typeof(double),
+				decimal => typeof(decimal),
+				_ => null,
+			};
+
+			if (promotedType is null)
+			{
+				return null;
+			}
+
+			var converted = Expression.Convert(Expression.Constant(value), promotedType);
+			var negated = Expression.Negate(converted);
+			var boxed = Expression.Convert(negated, typeof(object));
+			var lambda = Expression.Lambda<Func<object>>(boxed);
+			return lambda.Compile().Invoke();
+		}
+		catch
+		{
+			return null;
+		}
+	}
+
 	public static object? ExecuteBinaryOperation(BinaryOperatorKind operatorKind, object? left, object? right)
 	{
 		return operatorKind switch
@@ -791,9 +851,9 @@ public static class ObjectExtensions
 		short s => s < 0,
 		int i => i < 0,
 		long l => l < 0,
-		float f => !float.IsNaN(f) && f < 0f,
-		double d => !double.IsNaN(d) && d < 0d,
-		decimal m => m < 0m,
+		float f => !float.IsNaN(f) && f < 0,
+		double d => !double.IsNaN(d) && d < 0,
+		decimal m => m < 0,
 		char => false,
 		_ => false,
 	};

@@ -23,8 +23,8 @@ public class GCDTest() : BaseTest<Func<int, int, int>>(FastMathFlags.FastMath)
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			a = Int32.Abs(a);
-			b = Int32.Abs(b);
+			a = AbsFast(a);
+			b = AbsFast(b);
 			
 			while (b != 0)
 			{

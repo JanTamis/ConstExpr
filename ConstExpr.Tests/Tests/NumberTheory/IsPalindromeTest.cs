@@ -23,7 +23,7 @@ public class IsPalindromeTest() : BaseTest<Func<int, bool>>(FastMathFlags.FastMa
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var original = Int32.Abs(n);
+			var original = AbsFast(n);
 			var reversed = 0;
 			var temp = original;
 			

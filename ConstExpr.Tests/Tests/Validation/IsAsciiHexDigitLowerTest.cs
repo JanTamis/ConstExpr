@@ -15,9 +15,9 @@ public class IsAsciiHexDigitLowerTest() : BaseTest<Func<char, bool>>(FastMathFla
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Char.IsAsciiHexDigitLower(c);", Unknown),
-		Create("return Char.IsAsciiHexDigitLower(c);", '3'),
-		Create("return Char.IsAsciiHexDigitLower(c);", 'b'),
-		Create("return Char.IsAsciiHexDigitLower(c);", 'g'),
+		Create("return true;", '3'),
+		Create("return true;", 'b'),
+		Create("return false;", 'g'),
 	];
 }
 

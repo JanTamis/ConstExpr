@@ -35,8 +35,8 @@ public class LCMTest() : BaseTest<Func<int, int, int>>(FastMathFlags.FastMath)
 				return 0;
 			}
 			
-			var aa = Int32.Abs(a);
-			var bb = Int32.Abs(b);
+			var aa = AbsFast(a);
+			var bb = AbsFast(b);
 			
 			while (bb != 0)
 			{
@@ -48,7 +48,7 @@ public class LCMTest() : BaseTest<Func<int, int, int>>(FastMathFlags.FastMath)
 			
 			var gcd = aa;
 			
-			return Int32.Abs(a * b) / gcd;
+			return AbsFast(a * b) / gcd;
 			""", Unknown, Unknown),
 		Create("return 12;", 4, 6),
 		Create("return 0;", 0, 5),
