@@ -31,16 +31,16 @@ public class LinqSumOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = Sum_ezMquQ(x);
-			var b = Sum_uErzdg(x) + Sum_ezMquQ(x);
-			var c = Sum_ezMquQ(x);
-			var d = Sum_ezMquQ(x);
-			var e = Sum_ezMquQ(x);
-			var f = Sum_ezMquQ(x) << 2;
+			var a = Sum_7Ump6A(x);
+			var b = Sum_LNDHMA(x) + Sum_7Ump6A(x);
+			var c = Sum_7Ump6A(x);
+			var d = Sum_7Ump6A(x);
+			var e = Sum_7Ump6A(x);
+			var f = Sum_7Ump6A(x) << 2;
 			
 			return a + b + c + d + e + f;
 			""", Unknown),
-		Create("return 36;", new[] { 1, 2, 3 }),
-		Create("return 25;", new[] { 5 }),
+		Create("return 54;", new[] { 1, 2, 3 }),
+		Create("return 39;", new[] { 5 }),
 	];
 }

@@ -58,24 +58,24 @@ public class LinqAnyOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = Array.Exists(x, v => v > 3) || x.Count > 0 ? 1 : 0;
-			var b = x.Count > 0 ? 1 : 0;
-			var c = x.Count > 0 ? 1 : 0;
-			var d = x.Count > 0 ? 1 : 0;
-			var e = x.Count > 0 ? 1 : 0;
-			var f = x.Count > 0 ? 1 : 0;
-			var g = x.Count > 0 ? 1 : 0;
-			var h = x.Count > 0 ? 1 : 0;
-			var i = x.Count > 0 ? 1 : 0;
+			var a = Array.Exists(x, v => v > 3) || x.Length > 0 ? 1 : 0;
+			var b = x.Length > 0 ? 1 : 0;
+			var c = x.Length > 0 ? 1 : 0;
+			var d = x.Length > 0 ? 1 : 0;
+			var e = x.Length > 0 ? 1 : 0;
+			var f = x.Length > 0 ? 1 : 0;
+			var g = x.Length > 0 ? 1 : 0;
+			var h = x.Length > 0 ? 1 : 0;
+			var i = x.Length > 0 ? 1 : 0;
 			var j = Array.IndexOf(x, 100) >= 0 ? 1 : 0;
 			var k = Array.IndexOf(x, 2) >= 0 ? 1 : 0;
-			var l = x.Count > 0 ? 1 : 0;
+			var l = x.Length > 0 ? 1 : 0;
 			var o = Array.Exists(x, v => v > 3) ? 1 : 0;
 			
-			return a + b + c + d + e + f + g + h + i + j + k + l + 2 + o + 1;
+			return a + b + c + d + e + f + g + h + i + j + k + l + o + 3;
 			""", Unknown),
-		Create("return 11;", new[] { 1, 2, 3, 4, 5 }),
-		Create("return 0;", new int[] { }),
+		Create("return 15;", new[] { 1, 2, 3, 4, 5 }),
+		Create("return 3;", new int[] { }),
 	];
 }
 
@@ -115,7 +115,7 @@ public class LinqAnyOptimizationListTests : BaseTest<Func<List<int>, int>>
 			var b = x.Count > 0 ? 1 : 0;
 			var c = x.Count > 0 ? 1 : 0;
 			var d = x.Exists(v => v > 100) ? 1 : 0;
-			var e = Contains_XnObxg(x) ? 1 : 0;
+			var e = Contains_aDaspA(x) ? 1 : 0;
 			var f = x.Count > 0 ? 1 : 0;
 			
 			return a + b + c + d + e + f;

@@ -1152,6 +1152,69 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
     return HashString(node.SettingToken.ValueText);
   }
 
+  public override ulong VisitStructDeclaration(StructDeclarationSyntax node)
+  {
+    var hash = HashString(node.Identifier.ValueText);
+    
+    if (node.TypeParameterList != null)
+    {
+      hash = HashCombine(hash, Visit(node.TypeParameterList));
+    }
+    
+    if (node.BaseList != null)
+    {
+      hash = HashCombine(hash, Visit(node.BaseList));
+    }
+    
+    if (node.ConstraintClauses.Count > 0)
+    {
+      hash = HashCombine(hash, HashCombine(node.ConstraintClauses.Select(Visit)));
+    }
+    
+    if (node.Members.Count > 0)
+    {
+      hash = HashCombine(hash, HashCombine(node.Members.Select(Visit)));
+    }
+    
+    return hash;
+  }
+
+  public override ulong VisitTypeParameterList(TypeParameterListSyntax node)
+  {
+    return HashCombine(node.Parameters.Select(Visit));
+  }
+
+  public override ulong VisitTypeParameter(TypeParameterSyntax node)
+  {
+    return HashString(node.Identifier.ValueText);
+  }
+
+  public override ulong VisitBaseList(BaseListSyntax node)
+  {
+    return HashCombine(node.Types.Select(Visit));
+  }
+
+  public override ulong VisitSimpleBaseType(SimpleBaseTypeSyntax node)
+  {
+    return Visit(node.Type);
+  }
+
+  public override ulong VisitTypeParameterConstraintClause(TypeParameterConstraintClauseSyntax node)
+  {
+    return HashCombine(HashString(node.Name.Identifier.ValueText), 
+      HashCombine(node.Constraints.Select(Visit)));
+  }
+
+  public override ulong VisitTypeConstraint(TypeConstraintSyntax node)
+  {
+    return Visit(node.Type);
+  }
+
+  public override ulong VisitDefaultConstraint(DefaultConstraintSyntax node)
+  {
+    return 0;
+  }
+
   private ulong HashString(string value)
   {
     var hash = FnvOffsetBasis;

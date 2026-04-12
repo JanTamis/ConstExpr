@@ -53,14 +53,14 @@ public class LinqLastOrDefaultOptimizationTests : BaseTest<Func<int[], int>>
 			var e = Array.FindLast(x, v => v > 2);
 			var f = Array.FindLast(x, v => v < 5);
 			var g = Array.FindLast(x, v => v == 3);
-			var h = Max_xQiULA(x);
+			var h = Max_dZD6IQ(x);
 			var i = x.Length > 0 ? x[0] : 0;
 			var j = x.Length > 0 ? x[^1] : 0;
 			var k = Array.FindLast(x, v => v > 0) << 1;
 			
 			return a + b + c + d + e + f + g + h + i + j + k;
 			""", Unknown),
-		Create("return 43;", new[] { 1, 2, 3, 4, 5 }),
+		Create("return 53;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new int[] { }),
 	];
 }

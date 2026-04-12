@@ -7,6 +7,7 @@ using System.Text;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
+using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -186,21 +187,6 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 				return false;
 			}
 
-			var hash = new HashCode();
-
-			// Also hash the actual groups content so the struct name reflects the computed lookup data
-			foreach (var (key, elements) in groups)
-			{
-				hash.Add(FormatLiteral(key));
-
-				foreach (var element in elements)
-				{
-					hash.Add(FormatLiteral(element));
-				}
-			}
-
-			// Generate a unique struct name based on the content
-			var structName = $"Lookup_{CompilationExtensions.GetDeterministicHashString(hash.ToHashCode())}";
 
 			if (groups.Count > 0)
 			{
@@ -222,14 +208,16 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 			var containsExpression = BuildContainsPatternExpression(groups, context);
 
 			// Build the lookup struct source
-			var lookupStructSource = BuildLookupStructSource(structName, keyTypeName, elementTypeName, groups, containsExpression);
+			var lookupStructSource = BuildLookupStructSource("Lookup", keyTypeName, elementTypeName, groups, containsExpression);
 			var lookupStruct = ParseTypeFromString<StructDeclarationSyntax>(lookupStructSource);
+
+			lookupStruct = lookupStruct.WithIdentifier(Identifier($"Lookup_{lookupStructSource.GetDeterministicHashString()}"));
 
 			context.AdditionalMethods.TryAdd(lookupStruct, true);
 
 			// Return new StructName() as the replacement expression
 			result = ObjectCreationExpression(
-					IdentifierName(structName))
+					IdentifierName(lookupStruct.Identifier.Text))
 				.WithArgumentList(ArgumentList());
 
 			return true;

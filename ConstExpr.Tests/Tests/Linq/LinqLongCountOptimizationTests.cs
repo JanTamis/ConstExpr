@@ -44,20 +44,20 @@ public class LinqLongCountOptimizationTests : BaseTest<Func<int[], long>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = LongCount_FDQQ2g(x);
+			var a = LongCount_YEOoVA(x);
 			var b = (long)x.Count;
 			var c = (long)x.Count;
 			var d = (long)x.Count;
 			var e = (long)x.Count;
 			var f = (long)x.Count;
-			var g = LongCount_FDQQ2g(x);
-			var h = LongCount_kCjlEw(x);
-			var i = LongCount__qaQFQ(x) + (long)x.Count;
+			var g = LongCount_ZKr__A(x);
+			var h = LongCount_5UQwMQ(x);
+			var i = LongCount_4OhS1w(x) + (long)x.Count;
 			var j = (long)x.Count;
 			
 			return a + b + c + d + e + f + g + h + i + j;
 			""", Unknown),
-		Create("return 37L;", new[] { 1, 2, 3, 4, 5 }),
+		Create("return 49L;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0L;", new int[] { }),
 	];
 }

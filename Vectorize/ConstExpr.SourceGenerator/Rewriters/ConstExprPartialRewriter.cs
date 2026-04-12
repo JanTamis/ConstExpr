@@ -104,7 +104,7 @@ public partial class ConstExprPartialRewriter(
 		{
 			return base.Visit(node);
 		}
-		catch (Exception e) when (node is not LiteralExpressionSyntax)
+		catch (Exception e)
 		{
 			exceptionHandler(node, e);
 			return node;

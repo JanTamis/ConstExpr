@@ -1441,6 +1441,24 @@ public static class CompilationExtensions
 			.Replace('/', '_');
 	}
 
+	public static string GetDeterministicHashString(this string node)
+	{
+		var hash = 14695981039346656037UL;
+
+		foreach (var ch in node)
+		{
+			hash ^= ch;
+			hash *= 1099511628211UL;
+		}
+
+		// Fold to 32-bit to keep identifier suffix short (similar length as previous implementation).
+		var folded = (uint) (hash ^ (hash >> 32));
+
+		return Convert.ToBase64String(BitConverter.GetBytes(folded)).TrimEnd('=')
+			.Replace('+', '_')
+			.Replace('/', '_');
+	}
+	
 	public static string GetDeterministicHashString(int hash)
 	{
 		return Convert.ToBase64String(BitConverter.GetBytes(hash)).TrimEnd('=')

@@ -134,8 +134,8 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 						appendValues.Add(TryOptimize(context.WithInvocationAndMethod(updatedInvocation, context.Method), out var rightResult) ? rightResult as ExpressionSyntax : updatedInvocation);
 
-					result = appendValues.Skip(1).Aggregate(appendValues[0], (result, value)
-						=> OptimizeComparison(context, SyntaxKind.LogicalOrExpression, result, value, boolType));
+						result = appendValues.Skip(1).Aggregate(appendValues[0], (result, value)
+							=> OptimizeComparison(context, SyntaxKind.LogicalOrExpression, result, value, boolType));
 
 						return true;
 					}
@@ -179,7 +179,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 					if (context.VisitedParameters.Count == 0)
 					{
 						var intType = context.Model.Compilation.CreateInt32();
-						
+
 						result = OptimizeComparison(context, SyntaxKind.GreaterThanExpression, countArg.Expression, CreateLiteral(0), intType);
 						return true;
 					}
@@ -204,21 +204,21 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 		if (context.VisitedParameters.Count == 0)
 		{
-			if (IsCollectionType(context, source))
+			var intType = context.Model.Compilation.CreateInt32();
+
+			if (IsInvokedOnArray(context, source))
 			{
-				var intType = context.Model.Compilation.CreateInt32();
 				result = OptimizeComparison(context, SyntaxKind.GreaterThanExpression,
-					CreateMemberAccess(source, "Count"),
+					CreateMemberAccess(source, "Length"),
 					CreateLiteral(0), intType);
 
 				return true;
 			}
 
-			if (IsInvokedOnArray(context, source))
+			if (IsCollectionType(context, source))
 			{
-				var intType = context.Model.Compilation.CreateInt32();
 				result = OptimizeComparison(context, SyntaxKind.GreaterThanExpression,
-					CreateMemberAccess(source, "Length"),
+					CreateMemberAccess(source, "Count"),
 					CreateLiteral(0), intType);
 
 				return true;

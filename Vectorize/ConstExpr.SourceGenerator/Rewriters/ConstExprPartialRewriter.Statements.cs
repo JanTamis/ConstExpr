@@ -1,8 +1,10 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using ConstExpr.SourceGenerator.Comparers;
 using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Refactorers;
+using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -80,6 +82,7 @@ public partial class ConstExprPartialRewriter
 	{
 		if (attribute.MaxUnrollIterations == 0)
 		{
+			InvalidateAssignedVariables(node);
 			return base.VisitForStatement(node);
 		}
 
@@ -323,7 +326,7 @@ public partial class ConstExprPartialRewriter
 		    && resultBlock.Statements.All(s => s is not IfStatementSyntax ifStmt
 			    || ContainsJumpStatement(ifStmt.Statement)))
 		{
-			var combined = VisitList(CombineConsecutiveIfStatements(resultBlock.Statements));
+			var combined = CombineConsecutiveIfStatements(resultBlock.Statements);
 			result = combined.Count == 1 ? combined[0] : Block(combined);
 		}
 
@@ -398,7 +401,7 @@ public partial class ConstExprPartialRewriter
 		var visited = VisitList(node.Statements);
 
 		var untilThrown = TakeUntilThrownStatements(visited);
-		var combined = VisitList(CombineConsecutiveIfStatements(untilThrown));
+		var combined = CombineConsecutiveIfStatements(untilThrown);
 		var simplified = SimplifyIfReturnPatterns(combined);
 		
 		return node.WithStatements(simplified);
@@ -570,7 +573,6 @@ public partial class ConstExprPartialRewriter
 			// Strategy 1: equality (is or) combination
 			if (TryGetEqualityComparisonInfo(currentIf.Condition, out var targetIdentifier, out var firstLiteral))
 			{
-				var bodyString = currentIf.Statement.NormalizeWhitespace().ToFullString();
 				var literals = new List<LiteralExpressionSyntax> { firstLiteral! };
 				var j = i + 1;
 
@@ -581,7 +583,7 @@ public partial class ConstExprPartialRewriter
 						break;
 					}
 
-					if (nextIf.Statement.NormalizeWhitespace().ToFullString() != bodyString)
+					if (!SyntaxNodeComparer.Get<StatementSyntax>().Equals(nextIf.Statement, currentIf.Statement))
 					{
 						break;
 					}
@@ -609,7 +611,6 @@ public partial class ConstExprPartialRewriter
 			// Strategy 2: general || combination when body ends with a jump statement
 			if (ContainsJumpStatement(currentIf.Statement))
 			{
-				var bodyString = currentIf.Statement.NormalizeWhitespace().ToFullString();
 				var conditions = new List<ExpressionSyntax> { currentIf.Condition };
 				var j = i + 1;
 
@@ -620,7 +621,8 @@ public partial class ConstExprPartialRewriter
 						break;
 					}
 
-					if (nextIf.Statement.NormalizeWhitespace().ToFullString() != bodyString)
+					if (!SyntaxNodeComparer.Get<StatementSyntax>().Equals(nextIf.Statement, currentIf.Statement))
+						
 					{
 						break;
 					}

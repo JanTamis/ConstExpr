@@ -140,7 +140,7 @@ public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 				return true;
 			}
 
-			exceptCollection = CreateCollection(syntaxes.Distinct(SyntaxNodeComparer<ExpressionSyntax>.Instance));
+			exceptCollection = CreateCollection(syntaxes.Distinct(SyntaxNodeComparer.Get<ExpressionSyntax>()));
 			isNewCollection = true;
 		}
 

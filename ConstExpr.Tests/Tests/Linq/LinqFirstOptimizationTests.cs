@@ -49,18 +49,18 @@ public class LinqFirstOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = First_HBY_mg(x);
+			var a = First_3UDIQw(x);
 			var b = x[0];
 			var c = x[0];
 			var d = x[0];
-			var e = First_HBY_mg(x);
-			var f = First_3AdKPw(x);
-			var g = First_BMVkyw(x);
+			var e = First_KQy6fA(x);
+			var f = First_yBW6LQ(x);
+			var g = First_Mw8fww(x);
 			var h = x[^1];
-			var i = Min_BJMt_Q(x);
-			var j = Max_xQiULA(x);
+			var i = Min_BeESfw(x);
+			var j = Max_dZD6IQ(x);
 			var k = x[0];
-			var l = First_HBY_mg(x) << 1;
+			var l = First_iM4awA(x) << 1;
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l;
 			""", Unknown),

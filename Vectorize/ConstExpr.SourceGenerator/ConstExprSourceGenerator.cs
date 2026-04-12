@@ -113,7 +113,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 					});
 
 				// Parallel processing of method group code generation
-				var methodGroups = processedModels.GroupBy(m => m.OriginalMethod, SyntaxNodeComparer<MethodDeclarationSyntax>.Instance);
+				var methodGroups = processedModels.GroupBy(m => m.OriginalMethod, SyntaxNodeComparer.Get<MethodDeclarationSyntax?>());
 
 				if (modelAndCompilation.Left.Right.GetTypeByMetadataName("System.Runtime.CompilerServices.InterceptsLocationAttribute") is null
 				    && methodGroups.Any())
@@ -190,7 +190,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 		var distinctAdditionalMethods = methodGroup
 			.SelectMany(m => m?.AdditionalMethods)
-			.Distinct(SyntaxNodeComparer<SyntaxNode>.Instance);
+			.Distinct(SyntaxNodeComparer.Get());
 
 		code.WriteLine();
 		code.WriteLine("namespace ConstantExpression.Generated;");
@@ -326,7 +326,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			return null;
 		}
 
-		var exceptions = new ConcurrentDictionary<SyntaxNode?, Exception>(SyntaxNodeComparer<SyntaxNode>.Instance);
+		var exceptions = new ConcurrentDictionary<SyntaxNode?, Exception>(SyntaxNodeComparer.Get());
 
 		var visitor = new ConstExprOperationVisitor(semanticModel, loader, (operation, ex) =>
 		{
@@ -346,7 +346,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 				// var variables = ProcessArguments(visitor, context.SemanticModel.Compilation, invocation, loader, token);
 				var variablesPartial = ProcessArguments(visitor, semanticModel, invocation, loader, apiCache, token);
-				var additionalMethods = new Dictionary<SyntaxNode, bool>(SyntaxNodeComparer<SyntaxNode>.Instance);
+				var additionalMethods = new Dictionary<SyntaxNode, bool>(SyntaxNodeComparer.Get());
 
 				var partialVisitor = new ConstExprPartialRewriter(model, loader, (node, ex) =>
 				{
@@ -529,7 +529,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		var exceptions = models
 			.Where(m => m?.Location == null)
 			.SelectMany(m => m.Exceptions.Select(s => s.Key))
-			.Distinct(SyntaxNodeComparer<SyntaxNode>.Instance);
+			.Distinct(SyntaxNodeComparer.Get());
 
 		var exceptionDescriptor = new DiagnosticDescriptor(
 			"CEA005",

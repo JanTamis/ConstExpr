@@ -10,8 +10,8 @@ namespace ConstExpr.SourceGenerator;
 /// </summary>
 public sealed class RoslynApiCache
 {
-	private readonly ConcurrentDictionary<SyntaxNode, SymbolInfo> _symbolInfoCache = new(SyntaxNodeComparer<SyntaxNode>.Instance);
-	private readonly ConcurrentDictionary<SyntaxNode, IOperation?> _operationCache = new(SyntaxNodeComparer<SyntaxNode>.Instance);
+	private readonly ConcurrentDictionary<SyntaxNode, SymbolInfo> _symbolInfoCache = new(SyntaxNodeComparer.Get());
+	private readonly ConcurrentDictionary<SyntaxNode, IOperation?> _operationCache = new(SyntaxNodeComparer.Get());
 
 	public SymbolInfo GetOrAddSymbolInfo(SyntaxNode node, SemanticModel semanticModel, CancellationToken token)
 	{

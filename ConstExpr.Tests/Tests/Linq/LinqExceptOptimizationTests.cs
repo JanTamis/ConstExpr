@@ -56,26 +56,23 @@ public class LinqExceptOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var d = Count_VTK1rQ(x);
-			var e = Count_VTK1rQ(x);
-			var f = Count_VTK1rQ(x);
-			var g = Count__3ZIMA(x);
-			var h = Count_VTK1rQ(x);
-			var i = Count__3ZIMA(x);
-			var j = Count__3ZIMA(x);
-			var k = Count_VTK1rQ(x);
+			var d = Count_UwS9iA(x);
+			var e = Count_49nb_g(x);
+			var f = Count_1RLETg(x);
+			var g = Count_oVB2jQ(x);
+			var h = Count_YUMbMw(x);
+			var i = Count_oVB2jQ(x);
+			var j = Count_OgJ_Aw(x);
+			var k = Count_UwS9iA(x);
 			var l = Array.Exists(x, x => x != 5) ? 1 : 0;
-			var m = Count__3ZIMA(x);
-			var n = Count_VTK1rQ(x);
+			var m = Count_oVB2jQ(x);
+			var n = Count__cbrew(x);
 			
 			return d + e + f + g + h + i + j + k + l + m + n;
 			""", Unknown),
-		Create("return 38;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 42;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new int[] { }),
-		Create("return 20;", new[] { 10, 20, 30 }),
 		Create("return 34;", new[] { 10, 20, 30 }),
-		Create("return 28;", new[] { 1, 1, 2, 2, 3 }),
 		Create("return 21;", new[] { 1, 1, 2, 2, 3 }),
 	];
 }

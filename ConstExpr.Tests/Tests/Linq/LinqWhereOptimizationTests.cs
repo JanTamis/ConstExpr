@@ -43,16 +43,16 @@ public class LinqWhereOptimizationTests() : BaseTest<Func<int[], int>>(FastMathF
 	[
 		Create("""
 			var a = x.Length;
-			var c = Count_6aBddw(x);
-			var d = Count_0C_yVQ(x);
-			var e = Count_lfFt2w(x);
-			var f = Count_FDQQ2g(x);
-			var h = Count_lfFt2w(x);
+			var c = Count_PMYiUA(x);
+			var d = Count_MByphw(x);
+			var e = Count_pHGz0w(x);
+			var f = Count_YEOoVA(x);
+			var h = Count_yA7QMA(x);
 			
 			return a + c + d + e + f + h;
 			""", Unknown),
-		Create("return 17;", new[] { 1, 2, 3, 4, 5 }),
+		Create("return 19;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new int[] { }),
-		Create("return 30;", new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }),
+		Create("return 38;", new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }),
 	];
 }

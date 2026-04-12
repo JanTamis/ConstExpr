@@ -56,18 +56,18 @@ public class LinqIntersectOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var c = Count__qaQFQ(x);
-			var d = Count_KUIMow(x);
-			var e = Count_KUIMow(x);
-			var f = Count_KUIMow(x);
-			var g = Count_tFiigw(x);
-			var h = Count_KUIMow(x);
-			var i = Count_tFiigw(x);
-			var j = Count_KUIMow(x);
-			var k = Count_KUIMow(x);
+			var c = Count_4OhS1w(x);
+			var d = Count_MciOhA(x);
+			var e = Count_IlcuZw(x);
+			var f = Count_W7Muhw(x);
+			var g = Count_aXltQQ(x);
+			var h = Count_baWOcQ(x);
+			var i = Count_7gCTVg(x);
+			var j = Count_W7Muhw(x);
+			var k = Count_MciOhA(x);
 			var l = Array.IndexOf(x, 5) >= 0 ? 1 : 0;
-			var m = Count_tFiigw(x);
-			var n = Count_KUIMow(x);
+			var m = Count_AY9imA(x);
+			var n = Count_Oio79Q(x);
 			
 			return c + d + e + f + g + h + i + j + k + l + m + n;
 			""", Unknown),

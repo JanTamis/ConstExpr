@@ -51,7 +51,7 @@ public class IntersectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 			       && TryGetSyntaxes(firstIntersectArg, out var innerIntersectCollectionSyntaxes))
 			{
 				intersectCollectionSyntaxes = intersectCollectionSyntaxes
-					.Intersect(innerIntersectCollectionSyntaxes, SyntaxNodeComparer<ExpressionSyntax>.Instance)
+					.Intersect(innerIntersectCollectionSyntaxes, SyntaxNodeComparer.Get<ExpressionSyntax>())
 					.ToList();
 
 				intersectCollection = CollectionExpression(SeparatedList<CollectionElementSyntax>(intersectCollectionSyntaxes.Select(ExpressionElement)));

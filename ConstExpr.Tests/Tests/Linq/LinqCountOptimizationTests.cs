@@ -60,21 +60,21 @@ public class LinqCountOptimizationTests() : BaseTest<Func<int[], int>>(FastMathF
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = Count_FDQQ2g(x);
+			var a = Count_YEOoVA(x);
 			var b = x.Length;
 			var c = x.Length;
 			var d = x.Length;
 			var e = x.Length;
 			var f = x.Length;
-			var g = Count_FDQQ2g(x);
-			var h = Count_kCjlEw(x);
-			var i = Count__rroWA(x) + x.Length + x.Length;
+			var g = Count_ZKr__A(x);
+			var h = Count_5UQwMQ(x);
+			var i = Count_4OhS1w(x) + x.Length + x.Length;
 			var j = x.Length;
-			var k = Count_6aBddw(x);
-			var l = Count_mNkfmg(x);
-			var m = Count_6aBddw(x);
-			var n = Count_mNkfmg(x);
-			var o = Count_h3sqxw(x);
+			var k = Count_SzY_Mw(x);
+			var l = Count_lj8aiA(x);
+			var m = Count_SzY_Mw(x);
+			var n = Count_lj8aiA(x);
+			var o = Count_T6dSbQ(x);
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l + m + n + o;
 			""", Unknown),

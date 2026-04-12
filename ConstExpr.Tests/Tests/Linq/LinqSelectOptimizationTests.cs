@@ -23,9 +23,9 @@ public class LinqSelectOptimizationTests : BaseTest<Func<IEnumerable<int>, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = Sum_ezMquQ(x);
-			var b = Sum_4f3iwQ(x) ?? 0;
-			var c = Sum_5Nnuyg(x);
+			var a = Sum_7Ump6A(x);
+			var b = Sum_QM1oxw(x) ?? 0;
+			var c = Sum_aeFN6Q(x);
 			
 			return a + b + c;
 			""", Unknown),

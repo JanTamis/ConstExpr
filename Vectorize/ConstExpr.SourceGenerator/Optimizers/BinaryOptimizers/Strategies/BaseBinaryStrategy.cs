@@ -220,6 +220,16 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 			       && IsNegative(a.Left, context.Variables);
 		});
 	}
+	
+	protected ExpressionSyntax RemoveParentheses(ExpressionSyntax expr)
+	{
+		while (expr is ParenthesizedExpressionSyntax paren)
+		{
+			expr = paren.Expression;
+		}
+
+		return expr;
+	}
 }
 
 public abstract class BaseBinaryStrategy : BaseBinaryStrategy<ExpressionSyntax, ExpressionSyntax>;

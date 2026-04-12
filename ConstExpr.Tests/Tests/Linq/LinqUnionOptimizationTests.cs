@@ -20,8 +20,8 @@ public class LinqUnionOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = Count__rroWA(x);
-			var b = Count__rroWA(x);
+			var a = Count_4OhS1w(x);
+			var b = Count_4OhS1w(x);
 			
 			return a + b;
 			""", Unknown),

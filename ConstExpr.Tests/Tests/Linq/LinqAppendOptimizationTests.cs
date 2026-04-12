@@ -35,18 +35,18 @@ public class LinqAppendOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = Sum_ezMquQ(x) + 20;
-			var b = Sum_ezMquQ(x) + 30;
-			var c = Sum_ezMquQ(x) + 40;
-			var d = Sum_ezMquQ(x) + 50;
-			var e = Sum_ezMquQ(x) + 10;
+			var a = Sum_7Ump6A(x) + 20;
+			var b = Sum_7Ump6A(x) + 30;
+			var c = Sum_7Ump6A(x) + 40;
+			var d = Sum_7Ump6A(x) + 50;
+			var e = Sum_7Ump6A(x) + 10;
 			var f = x.Length + 5;
 			var g = x.Length + 4;
 			
 			return a + b + c + d + e + f + g;
 			""", Unknown),
-		Create("return 180;", new[] { 1, 2, 3 }), // a=26, b=36, c=46, d=56, e=16 = 180
-		Create("return 150;", new int[] { }), // a=20, b=30, c=40, d=50, e=10 = 150
-		Create("return 200;", new[] { 10 }), // a=30, b=40, c=50, d=60, e=20 = 200
+		Create("return 195;", new[] { 1, 2, 3 }), // a=26, b=36, c=46, d=56, e=16 = 195
+		Create("return 159;", new int[] { }), // a=20, b=30, c=40, d=50, e=10 = 159
+		Create("return 211;", new[] { 10 }), // a=30, b=40, c=50, d=60, e=20 = 211
 	];
 }

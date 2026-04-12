@@ -20,8 +20,8 @@ public class LinqSingleOrDefaultOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = SingleOrDefault_8gQvSw(x);
-			var b = SingleOrDefault_8gQvSw(x);
+			var a = SingleOrDefault_CgkNEA(x);
+			var b = SingleOrDefault_5ILzdg(x);
 			
 			return a + b;
 			""", Unknown),

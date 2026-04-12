@@ -50,18 +50,18 @@ public class LinqLastOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = Last_7YwEKA(x);
+			var a = Last_qnOBqg(x);
 			var b = x[^1];
 			var c = x[^1];
 			var d = x[^1];
-			var e = Last_7YwEKA(x);
-			var f = Last_TPkzSg(x);
-			var g = Last_HaS_hg(x);
+			var e = Last_SBLSow(x);
+			var f = Last_9t5QHQ(x);
+			var g = Last_ONbDDg(x);
 			var h = x[0];
-			var i = Max_xQiULA(x);
-			var j = Min_BJMt_Q(x);
+			var i = Max_dZD6IQ(x);
+			var j = Min_BeESfw(x);
 			var k = x[^1];
-			var l = Last_7YwEKA(x) << 1;
+			var l = Last_MNYv3Q(x) << 1;
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l;
 			""", Unknown),

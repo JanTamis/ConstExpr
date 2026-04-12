@@ -21,7 +21,7 @@ public class VisitInterpolatedStringExpressionTests : BaseTest<Func<int, (string
 
 			return (s, "Hello  world");
 			""", Unknown),
-		Create("return (\"Value: 42\", \"Hello world\");", 42),
+		Create("return (\"Value: 42\", \"Hello  world\");", 42),
 		Create("return (\"Value: 50\", \"Hello  world\");", 50)
 	];
 }

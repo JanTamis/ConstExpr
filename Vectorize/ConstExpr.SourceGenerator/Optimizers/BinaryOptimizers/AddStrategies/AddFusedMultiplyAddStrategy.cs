@@ -22,7 +22,7 @@ public class AddFusedMultiplyAddStrategy() : SymmetricStrategy<NumericBinaryStra
 	{
 		var host = ParseName(context.Type.Name);
 
-		var arguments = ArgumentList(SeparatedList([ Argument(context.Left.Syntax.Left), Argument(context.Left.Syntax.Right), Argument(context.Right.Syntax) ]));
+		var arguments = ArgumentList(SeparatedList([ Argument(RemoveParentheses(context.Left.Syntax.Left)), Argument(RemoveParentheses(context.Left.Syntax.Right)), Argument(RemoveParentheses(context.Right.Syntax)) ]));
 
 		if (ContainsMultiplyAddEstimate(context.Type))
 		{

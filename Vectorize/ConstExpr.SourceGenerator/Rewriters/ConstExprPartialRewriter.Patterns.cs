@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -636,7 +637,8 @@ public partial class ConstExprPartialRewriter
 		var range = effectiveUpper.Subtract(effectiveLower);
 
 		// Validate that the range is positive
-		if (range is IComparable comparableRange && comparableRange.CompareTo(0.ToSpecialType(type.SpecialType)) < 0)
+		if (range is IComparable comparableRange 
+		    && comparableRange.CompareTo(0.ToSpecialType(type.SpecialType)) < 0)
 		{
 			return false;
 		}
@@ -679,7 +681,9 @@ public partial class ConstExprPartialRewriter
 		}
 
 		// Use LessThanOrEqual because the range includes both bounds
-		result = LessThanOrEqualExpression(optimizedExpr, rangeLiteral);
+		result = upperInclusive 
+			? LessThanOrEqualExpression(optimizedExpr, rangeLiteral) 
+			: LessThanExpression(optimizedExpr, rangeLiteral);
 		return true;
 	}
 

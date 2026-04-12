@@ -35,14 +35,14 @@ public class LinqReverseOptimizationTests : BaseTest<Func<int[], int>>
 	[
 		Create("""
 			var a = x[0];
-			var b = Max_xQiULA(x);
-			var c = Max_xQiULA(x);
-			var d = Min_BJMt_Q(x);
-			var e = Min_BJMt_Q(x);
+			var b = Max_dZD6IQ(x);
+			var c = Max_dZD6IQ(x);
+			var d = Min_BeESfw(x);
+			var e = Min_BeESfw(x);
 			
 			return a + b + c + d + e;
 			""", Unknown),
-		Create("return 11;", new[] { 1, 2, 3 }),
+		Create("return 9;", new[] { 1, 2, 3 }),
 		Create("return 25;", new[] { 5 }),
 	];
 }

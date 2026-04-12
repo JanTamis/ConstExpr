@@ -18,7 +18,7 @@ public class ModuloByPowerOfTwoStrategy : IntegerBinaryStrategy<ExpressionSyntax
       return false;
     }
 
-    optimized = BitwiseAndExpression(context.Left.Syntax, maskLiteral);
+    optimized = ParenthesizedExpression(BitwiseAndExpression(context.Left.Syntax, maskLiteral));
 		return true;
 	}
 }

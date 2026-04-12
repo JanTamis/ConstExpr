@@ -22,9 +22,9 @@ public class VisitForStatementTests : BaseTest<Func<int, int>>
 	[
 		Create(null, Unknown),
 		Create("return 0;", 0),
-		Create("return 1;", 1),
-		Create("return 3;", 2),
+		Create("return 0;", 1),
+		Create("return 1;", 2),
 		Create("return 6;", 4),
-		Create("return 10;", 5)
+		Create("return 10;", 5),
 	];
 }

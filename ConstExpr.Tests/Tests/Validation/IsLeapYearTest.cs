@@ -23,7 +23,7 @@ public class IsLeapYearTest() : BaseTest<Func<int, bool>>(FastMathFlags.FastMath
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			if (year & 3 != 0)
+			if ((year & 3) != 0)
 			{
 				return false;
 			}

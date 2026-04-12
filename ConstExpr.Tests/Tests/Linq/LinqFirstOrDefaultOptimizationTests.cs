@@ -56,7 +56,7 @@ public class LinqFirstOrDefaultOptimizationTests : BaseTest<Func<int[], int>>
 			var e = Array.Find(x, v => v > 2);
 			var f = Array.Find(x, v => v < 5);
 			var g = Array.Find(x, v => v == 3);
-			var h = Min_BJMt_Q(x);
+			var h = Min_BeESfw(x);
 			var i = x.Length > 0 ? x[^1] : 0;
 			var j = x.Length > 0 ? x[0] : 0;
 			var k = x.Length > 0 ? x[0] : 0;
@@ -64,7 +64,7 @@ public class LinqFirstOrDefaultOptimizationTests : BaseTest<Func<int[], int>>
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l;
 			""", Unknown),
-		Create("return 29;", new[] { 1, 2, 3, 4, 5 }),
+		Create("return 24;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new int[] { }),
 	];
 }

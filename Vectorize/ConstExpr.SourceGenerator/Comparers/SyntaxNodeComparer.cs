@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Comparers;
 
-public class SyntaxNodeComparer<TNode> : IEqualityComparer<TNode?> where TNode : SyntaxNode
+file class SyntaxNodeComparer<TNode> : IEqualityComparer<TNode?> where TNode : SyntaxNode
 {
 	public static SyntaxNodeComparer<TNode> Instance { get; } = new SyntaxNodeComparer<TNode>();
 	
@@ -17,4 +17,10 @@ public class SyntaxNodeComparer<TNode> : IEqualityComparer<TNode?> where TNode :
 	{
 		return (int)DeteministicHashVisitor.Instance.Visit(obj);
 	}
+}
+
+public static class SyntaxNodeComparer
+{
+	public static IEqualityComparer<TNode> Get<TNode>() where TNode : SyntaxNode => SyntaxNodeComparer<TNode>.Instance;
+	public static IEqualityComparer<SyntaxNode> Get() => SyntaxNodeComparer<SyntaxNode>.Instance;
 }

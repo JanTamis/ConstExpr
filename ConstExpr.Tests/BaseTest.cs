@@ -83,7 +83,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		var loader = MetadataLoader.GetLoader(compilation);
 		var attribute = new ConstExprAttribute { MathOptimizations = mathOptimizations, LinqOptimisationMode = linqOptimisationMode };
 		var visitedMethods = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
-		var additionalMethods = new Dictionary<SyntaxNode, bool>(SyntaxNodeComparer<SyntaxNode>.Instance);
+		var additionalMethods = new Dictionary<SyntaxNode, bool>(SyntaxNodeComparer.Get());
 		
 		var exceptionsDuringRewriting = new List<Exception>();
 
@@ -147,7 +147,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			{
 				var expectedBody = FormattingHelper.Format(method.Body!) as BlockSyntax;
 
-				if (!SyntaxNodeComparer<BlockSyntax>.Instance.Equals(expectedBody, newBody))
+				if (!SyntaxNodeComparer.Get<BlockSyntax>().Equals(expectedBody, newBody))
 				{
 					exceptions.Add(FormatMismatchException(
 						parameterNames, parameters, expectedBody, newBody, additionalMethods));
@@ -160,7 +160,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 				expectedBody = FormattingHelper.Format(expectedBody) as BlockSyntax;
 
 				// Use Roslyn structural equivalence which ignores trivia differences
-				if (newBody == null || expectedBody == null || !SyntaxNodeComparer<BlockSyntax>.Instance.Equals(expectedBody, newBody))
+				if (newBody == null || expectedBody == null || !SyntaxNodeComparer.Get<BlockSyntax>().Equals(expectedBody, newBody))
 				{
 					exceptions.Add(FormatMismatchException(
 						parameterNames, parameters, expectedBody, newBody, additionalMethods));

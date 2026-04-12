@@ -23,11 +23,11 @@ public class LinqSelectManyOptimizationTests : BaseTest<Func<int[][], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var c = Sum_yjAELA(x);
+			var c = Sum_NFEtOQ(x);
 			
 			return c;
 			""", Unknown),
-		Create("return 0;", [ new[] { new[] { 1, 2, 3 } } ]),
+		Create("return 3;", [ new[] { new[] { 1, 2, 3 } } ]),
 		Create("return 0;", new int[] { }),
 	];
 }

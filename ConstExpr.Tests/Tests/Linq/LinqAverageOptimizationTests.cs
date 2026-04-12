@@ -37,19 +37,19 @@ public class LinqAverageOptimizationTests : BaseTest<Func<int[], double>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = Average_cnpjgw(x);
-			var b = Average_cnpjgw(x);
-			var c = Average_cnpjgw(x);
-			var d = Average_cnpjgw(x);
-			var e = Average_cnpjgw(x);
-			var f = Average_Ra0CPg(x);
-			var g = Average_Jo5e5A(x);
-			var h = Average_Ra0CPg(x);
+			var a = Average_rZxIuA(x);
+			var b = Average_rZxIuA(x);
+			var c = Average_rZxIuA(x);
+			var d = Average_rZxIuA(x);
+			var e = Average_rZxIuA(x);
+			var f = Average_XH2brA(x);
+			var g = Average_8Pzflw(x);
+			var h = Average_XH2brA(x);
 			
 			return a + b + c + d + e + f + g + h;
 			""", Unknown),
-		Create("return 20.0;", new[] { 1, 2, 3 }), 
+		Create("return 24D;", new[] { 1, 2, 3 }), 
 		Create("throw new InvalidOperationException(\"Sequence contains no elements\");", new int[] { }), 
-		Create("return 100.0;", new[] { 10 }), 
+		Create("return 120D;", new[] { 10 }), 
 	];
 }

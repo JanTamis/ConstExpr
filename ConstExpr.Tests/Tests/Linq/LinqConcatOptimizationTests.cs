@@ -50,18 +50,18 @@ public class LinqConcatOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = Sum_ezMquQ(x);
-			var b = Sum_ezMquQ(x);
-			var c = Sum_ezMquQ(x) + 30;
-			var d = Sum_ezMquQ(x) + 5;
-			var e = Sum_ezMquQ(x) + 15;
-			var f = Sum_ezMquQ(x) + 25;
-			var g = Sum_ezMquQ(x) + 70;
-			var h = Sum_ezMquQ(x) + 10;
-			var i = Sum_ezMquQ(x) + 300;
-			var j = Sum_ezMquQ(x) + 60;
-			var k = Sum_ezMquQ(x) + 99;
-			var l = Sum_ezMquQ(x) + 88;
+			var a = Sum_7Ump6A(x);
+			var b = Sum_7Ump6A(x);
+			var c = Sum_7Ump6A(x) + 30;
+			var d = Sum_7Ump6A(x) + 5;
+			var e = Sum_7Ump6A(x) + 15;
+			var f = Sum_7Ump6A(x) + 25;
+			var g = Sum_7Ump6A(x) + 70;
+			var h = Sum_7Ump6A(x) + 10;
+			var i = Sum_7Ump6A(x) + 300;
+			var j = Sum_7Ump6A(x) + 60;
+			var k = Sum_7Ump6A(x) + 99;
+			var l = Sum_7Ump6A(x) + 88;
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l;
 			""", Unknown),

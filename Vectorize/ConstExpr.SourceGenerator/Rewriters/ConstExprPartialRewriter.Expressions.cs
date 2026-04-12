@@ -81,6 +81,18 @@ public partial class ConstExprPartialRewriter
 
 		if (TryGetOperation(semanticModel, node, out IBinaryOperation? operation))
 		{
+			if (hasLeftValue && hasRightValue)
+			{
+				if (operation.OperatorMethod is not null
+				    && loader.TryExecuteMethod(operation.OperatorMethod, null, new VariableItemDictionary(variables), [ leftValue, rightValue ], out var result)
+				    && TryCreateLiteral(result, out var literal))
+				{
+					return literal;
+				}
+
+				return CreateLiteral(ObjectExtensions.ExecuteBinaryOperation(node.Kind(), leftValue, rightValue));
+			}
+			
 			// Don't implicitly convert char values to int - they should remain as char
 			// to preserve their representation in pattern matching contexts
 			if (hasLeftValue
@@ -626,8 +638,7 @@ public partial class ConstExprPartialRewriter
 		var visitedExpression = Visit(node.Expression) as ExpressionSyntax ?? node.Expression;
 
 		// Try to remove parentheses if possible
-		if (node.CanRemoveParentheses(semanticModel, token)
-		    || visitedExpression is ParenthesizedExpressionSyntax
+		if (node.CanRemoveParentheses(semanticModel, token) || visitedExpression is ParenthesizedExpressionSyntax
 			    or IdentifierNameSyntax
 			    or LiteralExpressionSyntax
 			    or InvocationExpressionSyntax

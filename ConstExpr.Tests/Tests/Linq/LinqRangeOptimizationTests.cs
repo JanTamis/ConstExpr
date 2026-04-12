@@ -1,3 +1,5 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Tests.Linq;
 
 /// <summary>
@@ -21,7 +23,7 @@ namespace ConstExpr.Tests.Tests.Linq;
 /// When all arguments are constant, all expressions fold to a single numeric literal.
 /// </summary>
 [InheritsTests]
-public class LinqRangeOptimizationTests : BaseTest<Func<int, int, double>>
+public class LinqRangeOptimizationTests() : BaseTest<Func<int, int, double>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString((start, count) =>
 	{
@@ -75,7 +77,7 @@ public class LinqRangeOptimizationTests : BaseTest<Func<int, int, double>>
 			var d = 5 >= start && 5 < count + start ? 1 : 0;
 			var f = start + count - 1;
 			var g = 2 < count ? start + 2 : throw new ArgumentOutOfRangeException("");
-			var h = count > 0 ? Double.MultiplyAddEstimate((count - 1), 0.5, start) : throw new InvalidOperationException("Sequence contains no elements");
+			var h = count > 0 ? Double.MultiplyAddEstimate(count - 1, 0.5, start) : throw new InvalidOperationException("Sequence contains no elements");
 			var i = count > 0 ? start : throw new InvalidOperationException("Sequence contains no elements");
 			var j = count > 0 ? start + count - 1 : throw new InvalidOperationException("Sequence contains no elements");
 			var k = Int32.Max(0, count - 2);

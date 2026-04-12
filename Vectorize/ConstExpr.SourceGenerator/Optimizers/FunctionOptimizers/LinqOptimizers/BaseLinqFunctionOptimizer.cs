@@ -878,7 +878,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 			? ParenthesizedExpression(replacement)
 			: replacement;
 
-		return (ExpressionSyntax) new IdentifierReplacer(oldIdentifier, wrappedReplacement).Visit(expression);
+		return (ExpressionSyntax) new IdentifierReplacer(oldIdentifier, replacement).Visit(expression);
 	}
 
 	protected bool TryGetValues(SyntaxNode node, [NotNullWhen(true)] out IList<object?>? values)

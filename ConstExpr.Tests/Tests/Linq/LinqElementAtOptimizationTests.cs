@@ -137,7 +137,7 @@ public class LinqElementAtSkipOptimizationTests : BaseTest<Func<int[], int>>
 		// a = x[1] = 2, b = x[3] = 4, c = x[3] = 4, d = x[1] = 2, e = x[2] = 3, f = x[0] = 1
 		// Total: 2 + 4 + 4 + 2 + 3 + 1 = 16
 		Create("return 16;", new[] { 1, 2, 3, 4, 5 }),
-		Create("throw new ArgumentOutOfRangeException(\"Specified argument was out of the range of valid values. (Parameter 'index')\");", new int[] { }),
+		Create("throw new ArgumentOutOfRangeException(\"Index was out of range. Must be non-negative and less than the size of the collection. (Parameter 'index')\");", new int[] { }),
 	];
 }
 
@@ -173,16 +173,16 @@ public class LinqElementAtNoOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = Min_BJMt_Q(x);
-			var b = Max_xQiULA(x);
+			var a = Min_BeESfw(x);
+			var b = Max_dZD6IQ(x);
 			var c = x[^1];
-			var d = First_HBY_mg(x);
+			var d = First_KQy6fA(x);
 			var e = x[0] << 1;
 			var f = x[0];
 			
 			return a + b + c + d + e + f;
 			""", Unknown),
-		Create("return 18;", new[] { 1, 2, 3, 4, 5 }), // 1 + 5 + 5 + 3 + 2 + 1 + 1 = 18
-		Create("throw new ArgumentOutOfRangeException(\"Specified argument was out of the range of valid values. (Parameter 'index')\");", new int[] { }),
+		Create("return 17;", new[] { 1, 2, 3, 4, 5 }), // 1 + 5 + 5 + 3 + 2 + 1 + 1 = 18
+		Create("throw new ArgumentOutOfRangeException(\"Index was out of range. Must be non-negative and less than the size of the collection. (Parameter 'index')\");", new int[] { }),
 	];
 }

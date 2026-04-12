@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using ConstExpr.SourceGenerator.Comparers;
+using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -26,7 +28,7 @@ public static class ConvertIfToSwitchCodeRefactoring
 		[NotNullWhen(true)] out SyntaxNode? result)
 	{
 		result = null;
-		string? switchTarget = null;
+		ExpressionSyntax? switchTarget = null;
 		var sections = new List<(List<ExpressionSyntax> Labels, StatementSyntax Body)>();
 
 		// Walk the if / else-if chain.
@@ -84,7 +86,7 @@ public static class ConvertIfToSwitchCodeRefactoring
 				List(BuildSwitchSectionStatements(defaultBody))));
 		}
 
-		result = SwitchStatement(IdentifierName(switchTarget), List(switchSections));
+		result = SwitchStatement(switchTarget, List(switchSections));
 		return true;
 	}
 
@@ -94,7 +96,7 @@ public static class ConvertIfToSwitchCodeRefactoring
 	/// <c>return expr;</c> statement.
 	/// </summary>
 	private static bool TryBuildSwitchExpression(
-		string switchTarget,
+		ExpressionSyntax switchTarget,
 		List<(List<ExpressionSyntax> Labels, StatementSyntax Body)> sections,
 		StatementSyntax defaultBody,
 		[NotNullWhen(true)] out StatementSyntax? result)
@@ -131,7 +133,7 @@ public static class ConvertIfToSwitchCodeRefactoring
 
 		result = ReturnStatement(
 			SwitchExpression(
-				IdentifierName(switchTarget),
+				switchTarget,
 				SeparatedList(arms)));
 
 		return true;
@@ -168,7 +170,7 @@ public static class ConvertIfToSwitchCodeRefactoring
 	/// </summary>
 	private static bool TryExtractSwitchLabels(
 		ExpressionSyntax condition,
-		ref string? switchTarget,
+		ref ExpressionSyntax? switchTarget,
 		[NotNullWhen(true)] out List<ExpressionSyntax>? labels)
 	{
 		labels = null;
@@ -186,7 +188,7 @@ public static class ConvertIfToSwitchCodeRefactoring
 
 	private static bool TryCollectLabels(
 		ExpressionSyntax condition,
-		ref string? switchTarget,
+		ref ExpressionSyntax? switchTarget,
 		List<ExpressionSyntax> labels)
 	{
 		// x == a || x == b
@@ -199,17 +201,17 @@ public static class ConvertIfToSwitchCodeRefactoring
 		// x == constant  /  constant == x
 		if (condition is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.EqualsExpression } eq)
 		{
-			string? target = null;
+			ExpressionSyntax? target = null;
 			ExpressionSyntax? label = null;
 
-			if (eq.Left is IdentifierNameSyntax leftId && IsConstantLike(eq.Right))
+			if (IsConstantLike(eq.Right))
 			{
-				target = leftId.Identifier.Text;
+				target = eq.Left;
 				label = eq.Right;
 			}
-			else if (eq.Right is IdentifierNameSyntax rightId && IsConstantLike(eq.Left))
+			else if (IsConstantLike(eq.Left))
 			{
-				target = rightId.Identifier.Text;
+				target = eq.Right;
 				label = eq.Left;
 			}
 
@@ -218,7 +220,7 @@ public static class ConvertIfToSwitchCodeRefactoring
 				return false;
 			}
 
-			if (switchTarget is not null && switchTarget != target)
+			if (switchTarget is not null && !SyntaxNodeComparer.Get().Equals(switchTarget, target))
 			{
 				return false;
 			}
@@ -231,9 +233,7 @@ public static class ConvertIfToSwitchCodeRefactoring
 		// x is constant  /  x is (A or B)
 		if (condition is IsPatternExpressionSyntax { Expression: IdentifierNameSyntax targetExpr } isExpr)
 		{
-			var target = targetExpr.Identifier.Text;
-
-			if (switchTarget is not null && switchTarget != target)
+			if (switchTarget is not null && !SyntaxNodeComparer.Get().Equals(switchTarget, targetExpr))
 			{
 				return false;
 			}
@@ -243,7 +243,7 @@ public static class ConvertIfToSwitchCodeRefactoring
 				return false;
 			}
 
-			switchTarget = target;
+			switchTarget = targetExpr;
 			return true;
 		}
 
