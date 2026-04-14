@@ -45,7 +45,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		// Recursively skip all operations that don't affect existence
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectExistence, out source);
 
-		if (TryExecutePredicates(context, source, out result, out source))
+		if (TryExecutePredicates(context, source, context.SymbolStore, out result, out source))
 		{
 			return true;
 		}

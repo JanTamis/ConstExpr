@@ -5,7 +5,6 @@ using ConstExpr.Core.Attributes;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using sourcegen::ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.Core.Enumerators;
 using sourcegen::ConstExpr.SourceGenerator.Comparers;
 using sourcegen::ConstExpr.SourceGenerator.Helpers;
@@ -14,11 +13,9 @@ using sourcegen::ConstExpr.SourceGenerator.Rewriters;
 
 namespace ConstExpr.Tests;
 
-
 public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = FastMathFlags.Strict, LinqOptimisationMode linqOptimisationMode = LinqOptimisationMode.Unroll)
 	where TDelegate : Delegate
 {
-	
 	/// <summary>
 	/// A collection of test cases, where each test case consists of an expected method body (as a string) and an array of parameter values. The expected method body can be null to indicate that the body should not change. The parameter values can be set to <see cref="Unknown"/> to indicate that the value is not known at compile time. The source generator will optimize <see cref="TestMethod"/> based on the provided parameter values, and the resulting body will be compared against the expected body for each test case.
 	/// </summary>
@@ -32,157 +29,146 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 	/// <summary>
 	/// A marker object to represent unknown parameter values in test cases. This indicates that a parameter's value is not known at compile time, and the optimizer should treat it as such.
 	/// </summary>
-	protected static readonly object Unknown = new();
+	public static readonly object Unknown = new();
 
-	[Test]
-	public void RunTest()
+	private static Compilation _compilation;
+	private static List<string> _parameterNames = null!;
+	private static SemanticModel _semanticModel = null!;
+	private static MetadataLoader _loader = null!;
+	private static LocalFunctionStatementSyntax _method;
+
+	[Before(Class)]
+	public static async Task SetupAsync(ClassHookContext context)
 	{
-		var compilation = CreateCompilation(BuildSource());
+		// Get the test method from the test class instance
+		// We need to create an instance to access the abstract property
+		var testType = context.ClassType;
+		var instance = Activator.CreateInstance(testType);
+		var testMethodProperty = testType.GetProperty(nameof(TestMethod), System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.IgnoreCase);
+		var testMethodValue = (string) testMethodProperty?.GetValue(instance) ?? throw new InvalidOperationException("TestMethod not found");
 
-		var exceptions = compilation
+		_compilation = CreateCompilation(BuildSourceWithMethod(testMethodValue));
+
+		var compilationErrors = _compilation
 			.GetDiagnostics()
 			.Where(w => w.Severity == DiagnosticSeverity.Error)
 			.Select(s => new InvalidOperationException(s.ToString()))
 			.ToList();
 
-		if (exceptions.Count > 0)
+		if (compilationErrors.Count > 0)
 		{
-			switch (exceptions.Count)
+			switch (compilationErrors.Count)
 			{
 				case 1:
-					throw exceptions.First();
+					throw compilationErrors.First();
 				case > 1:
-					throw new AggregateException(exceptions);
+					throw new AggregateException(compilationErrors);
 			}
 		}
 
-		var method = compilation.SyntaxTrees
+		_method = _compilation.SyntaxTrees
 			.SelectMany(s => s.GetRoot()
 				.DescendantNodes()
 				.OfType<LocalFunctionStatementSyntax>())
 			.First();
 
-		var parameterNames = method.ParameterList.Parameters
+		_parameterNames = _method.ParameterList.Parameters
 			.Select(s => s.Identifier.Text)
 			.ToList();
 
-		var parameters = new Dictionary<string, VariableItem>(parameterNames.Count);
+		_semanticModel = _compilation.GetSemanticModel(_method.SyntaxTree);
+		_loader = MetadataLoader.GetLoader(_compilation);
+	}
 
-		foreach (var param in parameterNames)
+	[Test]
+	[TestName]
+	[MethodDataSource(nameof(TestCases))]
+	// [ArgumentDisplayFormatter<SyntaxFormatter>]
+	public void RunTest(KeyValuePair<string?, object?[]> testCase)
+	{
+		if (testCase.Value.Length != _parameterNames.Count)
 		{
+			throw new InvalidOperationException("Parameter count mismatch.");
+		}
+
+		var attribute = new ConstExprAttribute { MathOptimizations = mathOptimizations, LinqOptimisationMode = linqOptimisationMode };
+
+		var visitedMethods = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+		var additionalMethods = new Dictionary<SyntaxNode, bool>(SyntaxNodeComparer.Get());
+
+		var parameters = new Dictionary<string, VariableItem>(_parameterNames.Count);
+
+		foreach (var param in _parameterNames)
+		{
+
 			parameters[param] = new VariableItem(
-				type: compilation.GetSemanticModel(method.SyntaxTree).GetTypeInfo(
-					method.ParameterList.Parameters
+				type: _semanticModel.GetTypeInfo(
+					_method.ParameterList.Parameters
 						.First(p => p.Identifier.Text == param)
 						.Type!).Type!,
 				hasValue: false,
 				value: null);
 		}
 
-		var semanticModel = compilation.GetSemanticModel(method.SyntaxTree);
-		var loader = MetadataLoader.GetLoader(compilation);
-		var attribute = new ConstExprAttribute { MathOptimizations = mathOptimizations, LinqOptimisationMode = linqOptimisationMode };
-		var visitedMethods = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
-		var additionalMethods = new Dictionary<SyntaxNode, bool>(SyntaxNodeComparer.Get());
-		
 		var exceptionsDuringRewriting = new List<Exception>();
 
-		var rewriter = new ConstExprPartialRewriter(semanticModel, loader, (_, exception) => exceptionsDuringRewriting.Add(exception), parameters, additionalMethods, new HashSet<string>(), attribute, CancellationToken.None, visitedMethods);
-		
-		foreach (var result in TestCases)
+		var rewriter = new ConstExprPartialRewriter(_semanticModel, _loader, (_, exception) => exceptionsDuringRewriting.Add(exception), parameters, additionalMethods, new HashSet<string>(), attribute, new(), CancellationToken.None, visitedMethods);
+
+		for (var i = 0; i < testCase.Value.Length; i++)
 		{
-			var notParameters = parameters.Keys
-				.Except(parameterNames)
-				.ToList();
+			var value = testCase.Value[i];
 
-			foreach (var notParam in notParameters)
+			if (value == Unknown)
 			{
-				parameters.Remove(notParam);
-			}
-
-			if (result.Value.Length != parameterNames.Count)
-			{
-				throw new InvalidOperationException("Parameter count mismatch.");
-			}
-
-			for (var i = 0; i < result.Value.Length; i++)
-			{
-				var value = result.Value[i];
-
-				if (value == Unknown)
-				{
-					parameters[parameterNames[i]].HasValue = false;
-					parameters[parameterNames[i]].Value = null;
-				}
-				else
-				{
-					parameters[parameterNames[i]].HasValue = true;
-					parameters[parameterNames[i]].Value = value;
-				}
-
-				parameters[parameterNames[i]].IsAccessed = false;
-				parameters[parameterNames[i]].IsAltered = false;
-				parameters[parameterNames[i]].IsInitialized = true;
-			}
-
-			additionalMethods.Clear();
-
-			var newBody = rewriter.VisitBlock(method.Body!) as BlockSyntax;
-
-			foreach (var parameter in parameters)
-			{
-				if (!newBody.HasIdentifier(parameter.Key))
-				{
-					parameter.Value.HasValue = true;
-					parameter.Value.IsAccessed = false;
-					parameter.Value.IsAltered = false;
-					parameter.Value.IsInitialized = true;
-				}
-			}
-
-			newBody = DeadCodePruner.Prune(newBody, parameters, semanticModel) as BlockSyntax;
-			newBody = FormattingHelper.Format(newBody!) as BlockSyntax;
-
-			if (result.Key is null)
-			{
-				var expectedBody = FormattingHelper.Format(method.Body!) as BlockSyntax;
-
-				if (!SyntaxNodeComparer.Get<BlockSyntax>().Equals(expectedBody, newBody))
-				{
-					exceptions.Add(FormatMismatchException(
-						parameterNames, parameters, expectedBody, newBody, additionalMethods));
-				}
+				parameters[_parameterNames[i]].HasValue = false;
+				parameters[_parameterNames[i]].Value = null;
 			}
 			else
 			{
-				var expectedBody = ParseBlock(result.Key);
-
-				expectedBody = FormattingHelper.Format(expectedBody) as BlockSyntax;
-
-				// Use Roslyn structural equivalence which ignores trivia differences
-				if (newBody == null || expectedBody == null || !SyntaxNodeComparer.Get<BlockSyntax>().Equals(expectedBody, newBody))
-				{
-					exceptions.Add(FormatMismatchException(
-						parameterNames, parameters, expectedBody, newBody, additionalMethods));
-				}
+				parameters[_parameterNames[i]].HasValue = true;
+				parameters[_parameterNames[i]].Value = value;
 			}
 
-			SymbolAnnotation.Clear();
+			parameters[_parameterNames[i]].IsAccessed = false;
+			parameters[_parameterNames[i]].IsAltered = false;
+			parameters[_parameterNames[i]].IsInitialized = true;
 		}
 
-		if (exceptions.Count > 0)
+		var newBody = rewriter.VisitBlock(_method.Body!) as BlockSyntax;
+
+		foreach (var parameter in parameters)
 		{
-			switch (exceptions.Count)
+			if (!newBody.HasIdentifier(parameter.Key))
 			{
-				case 1:
-					throw exceptions.First();
-				case > 1:
-					var formattedException = new AggregateException(
-						$"Test failed with {exceptions.Count} test cases:\n\n" +
-						string.Join("\n" + new string('─', 80) + "\n\n", exceptions.Select((e, i) => 
-							$"Test Case {i + 1}:\n{e.Message}")),
-						exceptions);
-					throw formattedException;
+				parameter.Value.HasValue = true;
+				parameter.Value.IsAccessed = false;
+				parameter.Value.IsAltered = false;
+				parameter.Value.IsInitialized = true;
+			}
+		}
+
+		newBody = DeadCodePruner.Prune(newBody, parameters, _semanticModel) as BlockSyntax;
+		newBody = FormattingHelper.Format(newBody!) as BlockSyntax;
+
+		if (testCase.Key is null)
+		{
+			var expectedBody = FormattingHelper.Format(_method.Body!) as BlockSyntax;
+
+			if (!SyntaxNodeComparer.Get<BlockSyntax>().Equals(expectedBody, newBody))
+			{
+				throw FormatMismatchException(_parameterNames, parameters, expectedBody, newBody, additionalMethods, exceptionsDuringRewriting);
+			}
+		}
+		else
+		{
+			var expectedBody = ParseBlock(testCase.Key);
+
+			expectedBody = FormattingHelper.Format(expectedBody) as BlockSyntax;
+
+			// Use Roslyn structural equivalence which ignores trivia differences
+			if (newBody == null || expectedBody == null || !SyntaxNodeComparer.Get<BlockSyntax>().Equals(expectedBody, newBody))
+			{
+				throw FormatMismatchException(_parameterNames, parameters, expectedBody, newBody, additionalMethods, exceptionsDuringRewriting);
 			}
 		}
 	}
@@ -201,17 +187,16 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			new CSharpCompilationOptions(OutputKind.ConsoleApplication));
 	}
 
-	// Builds the final source passed to Roslyn
-	protected string BuildSource()
+	private static string BuildSourceWithMethod(string testMethod)
 	{
-		return $""""
+		return $"""
 			using System;
 			using System.Collections.Generic;
 			using System.Linq;
 			using System.Text.RegularExpressions;
 
-			{TestMethod}
-			"""";
+			{testMethod}
+			""";
 	}
 
 	/// <summary>
@@ -220,7 +205,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 	/// <param name="expectedBody">The expected body of the test case. Use null for no changed body</param>
 	/// <param name="parameters">The values for the parameters of the test case. Use <see cref="Unknown"/> for unknown parameter</param>
 	/// <returns>A key-value pair representing the test case.</returns>
-	/// <exception cref="InvalidOperationException">Thrown when the number of <see cref="parameters"/> does not match the number of parameters of <see cref="TDelegate"/>.</exception>
+	/// <exception cref="InvalidOperationException">Thrown when the number of <see cref="_parameters"/> does not match the number of parameters of <see cref="TDelegate"/>.</exception>
 	protected static KeyValuePair<string?, object?[]> Create(string? expectedBody, params object?[] parameters)
 	{
 		// test if length of values matches delegate parameters
@@ -245,7 +230,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 	/// <param name="parameters">The values for the parameters of the test case. Use <see cref="Unknown"/> for unknown parameters.</param>
 	/// <param name="lambdaSource">Auto-captured source of <paramref name="expectedBody"/> — do not pass explicitly.</param>
 	/// <returns>A key-value pair representing the test case.</returns>
-	/// <exception cref="InvalidOperationException">Thrown when the number of <see cref="parameters"/> does not match the number of parameters of <see cref="TDelegate"/>.</exception>
+	/// <exception cref="InvalidOperationException">Thrown when the number of <see cref="_parameters"/> does not match the number of parameters of <see cref="TDelegate"/>.</exception>
 	protected static KeyValuePair<string?, object?[]> Create(TDelegate expectedBody, object?[] parameters, [CallerArgumentExpression(nameof(expectedBody))] string? lambdaSource = null)
 	{
 		var delegateParams = typeof(TDelegate).GetMethod("Invoke")!.GetParameters();
@@ -263,7 +248,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		return KeyValuePair.Create<string?, object?[]>(body, parameters);
 	}
 
-	protected string GetString(TDelegate method, [CallerArgumentExpression(nameof(method))] string? lambdaSource = null)
+	protected static string GetString(TDelegate method, [CallerArgumentExpression(nameof(method))] string? lambdaSource = null)
 	{
 		var returnType = TestMethodHelper.GetTypeName(method.Method.ReturnType);
 		var parameters = method.Method.GetParameters();
@@ -310,37 +295,22 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		Dictionary<string, VariableItem> parameters,
 		BlockSyntax? expectedBody,
 		BlockSyntax? newBody,
-		Dictionary<SyntaxNode, bool> additionalMethods)
+		Dictionary<SyntaxNode, bool> additionalMethods,
+		List<Exception> exceptionsDuringRewriting)
 	{
 		var parametersStr = string.Join(", ", parameterNames.Select(p =>
 			$"{p} = {(parameters[p].HasValue ? ParseValue(parameters[p].Value) : "Unknown")}"));
-		
+
 		var expectedStr = FormattingHelper.Render(expectedBody) ?? "(null)";
 		var generatedStr = FormattingHelper.Render(newBody) ?? "(null)";
+		
 		var additionalStr = additionalMethods.Count > 0
 			? string.Join("\n\n", additionalMethods
 				.OrderBy(o => o.Value)
 				.Select(s => FormattingHelper.Render(s.Key) ?? "(null)"))
 			: "(none)";
 
-		if (additionalMethods.Count > 0)
-		{
-			return new InvalidOperationException($"""
-				Generated method body does not match expected body.
-				Parameters: {parametersStr}
-
-				Expected body:
-				{expectedStr}
-
-				Generated body:
-				{generatedStr}
-
-				Additional Items:
-				{additionalStr}
-				""");
-		}
-
-		return new InvalidOperationException($"""
+		var errorText = $"""
 			Generated method body does not match expected body.
 			Parameters: {parametersStr}
 
@@ -349,6 +319,60 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 
 			Generated body:
 			{generatedStr}
-			""");
+			""";
+
+		if (additionalMethods.Count > 0)
+		{
+			errorText += $"""
+
+				
+				Additional Items:
+				{additionalStr}
+				""";
+		}
+		
+		if (exceptionsDuringRewriting.Count > 0)
+		{
+			var exceptionsStr = string.Join("\n\n", exceptionsDuringRewriting.Select(e => e.ToString()));
+			
+			errorText += $"""
+
+				
+				Exceptions during rewriting:
+				{exceptionsStr}
+				""";
+		}
+
+		return new InvalidOperationException(errorText);
+	}
+}
+
+public class TestNameAttribute : DisplayNameFormatterAttribute
+{
+	protected override string FormatDisplayName(DiscoveredTestContext context)
+	{
+		var className = context.TestDetails.ClassType.Name;
+		var args = context.TestDetails.TestMethodArguments;
+
+		if (args is { Length: > 0 } && args[0] is KeyValuePair<string?, object?[]> pair)
+		{
+			var values = new string[pair.Value.Length];
+
+			for (var i = 0; i < pair.Value.Length; i++)
+			{
+				if (SyntaxHelpers.TryCreateLiteral(pair.Value[i], out var literal))
+				{
+					values[i] = literal.ToString()!;
+				}
+				else
+				{
+					values[i] = "Unknown";
+				}
+			}
+
+			return $"{className}({string.Join(", ", values)})";
+		}
+
+		return className;
 	}
 }

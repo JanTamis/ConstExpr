@@ -47,7 +47,7 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 	{
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectLookup, out source);
 
-		// if (TryExecutePredicates(context, source, out result, out source))
+		// if (TryExecutePredicates(context, source, context.SymbolStore, out result, out source))
 		// {
 		// 	return true;
 		// }
@@ -128,7 +128,7 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 
 			if (context.OriginalParameters.Count != context.Method.Parameters.Length
 			    || context.Method.ReceiverType is not INamedTypeSymbol receiverType
-			    || !TryGetLiteralValue(visitedSource, context, receiverType, out var values)
+			    || !TryGetLiteralValue(visitedSource, context, receiverType, context.SymbolStore, out var values)
 			    || !context.Loader.TryGetMethodByMethod(context.Method, out var method))
 			{
 				return false;
@@ -138,8 +138,8 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 
 			for (var i = 0; i < context.OriginalParameters.Count; i++)
 			{
-				if (TryGetLiteralValue(context.OriginalParameters[i], context, context.Method.Parameters[i].Type, out var value)
-				    || TryGetLiteralValue(context.VisitedParameters[i], context, context.Method.Parameters[i].Type, out value))
+				if (TryGetLiteralValue(context.OriginalParameters[i], context, context.Method.Parameters[i].Type, context.SymbolStore, out var value)
+				    || TryGetLiteralValue(context.VisitedParameters[i], context, context.Method.Parameters[i].Type, context.SymbolStore, out value))
 				{
 					parameters.Add(value);
 				}

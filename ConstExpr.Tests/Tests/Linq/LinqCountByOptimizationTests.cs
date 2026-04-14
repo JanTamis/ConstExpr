@@ -54,7 +54,7 @@ public class LinqCountByOptimizationTests : BaseTest<Func<int[], int>>
 			
 			return a + b + c + d + f + g + i;
 			""", Unknown),
-		Create("return 12;", new[] { 1, 2, 3, 4, 5 }),  // 6 calls × 2 keys each; e=0, h=0
+		Create("return 17;", new[] { 1, 2, 3, 4, 5 }),  // 6 calls × 2 keys each; e=0, h=0
 		Create("return 0;",  new int[] { }),            // all groups empty
 	];
 }

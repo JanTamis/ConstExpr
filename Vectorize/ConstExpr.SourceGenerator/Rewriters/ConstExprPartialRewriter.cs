@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -38,9 +39,10 @@ public partial class ConstExprPartialRewriter(
 	IDictionary<SyntaxNode, bool> additionalMethods,
 	ISet<string> usings,
 	ConstExprAttribute attribute,
+	ConcurrentDictionary<string, ISymbol> symbolStore,
 	CancellationToken token,
 	HashSet<IMethodSymbol>? visitingMethods = null)
-	: BaseRewriter(semanticModel, loader, variables)
+	: BaseRewriter(semanticModel, loader, variables, symbolStore)
 {
 	#region Fields and Lazy Initializers
 
@@ -149,7 +151,7 @@ public partial class ConstExprPartialRewriter(
 			return variableNode;
 		}
 
-		return node.WithTypeSymbolAnnotation(variable.Type);
+		return node.WithTypeSymbolAnnotation(variable.Type, symbolStore);
 	}
 
 	public override SyntaxNode? VisitExpressionStatement(ExpressionStatementSyntax node)

@@ -142,9 +142,9 @@ public partial class ConstExprPartialRewriter
 				}
 
 				return node
-					.WithLeft(leftExpr.WithTypeSymbolAnnotation(operation.LeftOperand.Type))
-					.WithRight(rightExpr.WithTypeSymbolAnnotation(operation.RightOperand.Type))
-					.WithTypeSymbolAnnotation(operation.Type);
+					.WithLeft(leftExpr.WithTypeSymbolAnnotation(operation.LeftOperand.Type, symbolStore))
+					.WithRight(rightExpr.WithTypeSymbolAnnotation(operation.RightOperand.Type, symbolStore))
+					.WithTypeSymbolAnnotation(operation.Type, symbolStore);
 			}
 		}
 
@@ -225,8 +225,8 @@ public partial class ConstExprPartialRewriter
 			return CreateLiteral(result);
 		}
 
-		if (semanticModel.TryGetTypeSymbol(node.Left, out var leftType)
-		    && semanticModel.TryGetTypeSymbol(node.Right, out var rightType)
+		if (semanticModel.TryGetTypeSymbol(node.Left, symbolStore, out var leftType)
+		    && semanticModel.TryGetTypeSymbol(node.Right, symbolStore, out var rightType)
 		    && !IsTypeCompatibleForOfType(leftType, rightType))
 		{
 			return CreateLiteral(false);
@@ -654,7 +654,7 @@ public partial class ConstExprPartialRewriter
 
 	public override SyntaxNode? VisitCastExpression(CastExpressionSyntax node)
 	{
-		if (semanticModel.TryGetTypeSymbol(node.Type, out var type))
+		if (semanticModel.TryGetTypeSymbol(node.Type, symbolStore, out var type))
 		{
 			var expression = Visit(node.Expression);
 
@@ -675,7 +675,7 @@ public partial class ConstExprPartialRewriter
 				}
 			}
 
-			if (semanticModel.TryGetTypeSymbol(node.Expression, out var expressionType)
+			if (semanticModel.TryGetTypeSymbol(node.Expression, symbolStore, out var expressionType)
 			    && SymbolEqualityComparer.Default.Equals(type, expressionType))
 			{
 				return expression;
@@ -683,7 +683,7 @@ public partial class ConstExprPartialRewriter
 
 			return node
 				.WithExpression(expression as ExpressionSyntax ?? node.Expression)
-				.WithType(node.Type.WithTypeSymbolAnnotation(type));
+				.WithType(node.Type.WithTypeSymbolAnnotation(type, symbolStore));
 		}
 
 		return base.VisitCastExpression(node);
@@ -734,7 +734,7 @@ public partial class ConstExprPartialRewriter
 		}
 
 		// Try optimization with the original node
-		if (semanticModel.TryGetTypeSymbol(node, out var type))
+		if (semanticModel.TryGetTypeSymbol(node, symbolStore, out var type))
 		{
 			var optimizer = new ConditionalExpressionOptimizer
 			{
@@ -930,7 +930,7 @@ public partial class ConstExprPartialRewriter
 		// Try to get type from semantic model first; if it returns a non-numeric type
 		// (e.g. int[] due to a lambda-parameter name collision with an outer variable),
 		// fall back to inferring the type from the first constant value.
-		if (!semanticModel.TryGetTypeSymbol(pattern.Expression, out var type)
+		if (!semanticModel.TryGetTypeSymbol(pattern.Expression, symbolStore, out var type)
 		    || !semanticModel.Compilation.TryGetUnsignedType(type, out _))
 		{
 			// Fallback: get type from the first constant value

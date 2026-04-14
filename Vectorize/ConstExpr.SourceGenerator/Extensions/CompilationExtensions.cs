@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
@@ -1308,7 +1309,7 @@ public static class CompilationExtensions
 		return false;
 	}
 
-	public static bool TryGetSymbol<TSymbol>(this SemanticModel semanticModel, ExpressionSyntax? node, [NotNullWhen(true)] out TSymbol? value) where TSymbol : ISymbol
+	public static bool TryGetSymbol<TSymbol>(this SemanticModel semanticModel, ExpressionSyntax? node, ConcurrentDictionary<string, ISymbol> symbolStore, [NotNullWhen(true)] out TSymbol? value) where TSymbol : ISymbol
 	{
 		try
 		{
@@ -1322,7 +1323,7 @@ public static class CompilationExtensions
 					{
 						info = semantic.GetSymbolInfo(node);
 					}
-					else if (node.TryGetMethodSymbolAnnotation(out var annotatedMethod) && annotatedMethod is TSymbol annotatedSymbol)
+					else if (node.TryGetMethodSymbolAnnotation(symbolStore, out var annotatedMethod) && annotatedMethod is TSymbol annotatedSymbol)
 					{
 						// Fallback: check for symbol annotation on synthetic/optimized nodes
 						value = annotatedSymbol;
@@ -1348,7 +1349,7 @@ public static class CompilationExtensions
 		}
 
 		// Final fallback: check annotations for synthetic nodes created by optimizers
-		if (node is not null && node.TryGetMethodSymbolAnnotation(out var fallbackMethod) && fallbackMethod is TSymbol fallbackSymbol)
+		if (node is not null && node.TryGetMethodSymbolAnnotation(symbolStore, out var fallbackMethod) && fallbackMethod is TSymbol fallbackSymbol)
 		{
 			value = fallbackSymbol;
 			return true;
@@ -1358,7 +1359,7 @@ public static class CompilationExtensions
 		return false;
 	}
 
-	public static bool TryGetTypeSymbol(this SemanticModel semanticModel, ExpressionSyntax? node, [NotNullWhen(true)] out ITypeSymbol? typeSymbol)
+	public static bool TryGetTypeSymbol(this SemanticModel semanticModel, ExpressionSyntax? node, ConcurrentDictionary<string, ISymbol> symbolStore, [NotNullWhen(true)] out ITypeSymbol? typeSymbol)
 	{
 		try
 		{
@@ -1372,7 +1373,7 @@ public static class CompilationExtensions
 					{
 						info = semantic.GetTypeInfo(node);
 					}
-					else if (node.TryGetTypeSymbolAnnotation(out var annotatedType))
+					else if (node.TryGetTypeSymbolAnnotation(symbolStore, out var annotatedType))
 					{
 						// Fallback: check for type annotation on synthetic/optimized nodes
 						typeSymbol = annotatedType;
@@ -1419,7 +1420,7 @@ public static class CompilationExtensions
 		}
 
 		// Final fallback: check annotations for synthetic nodes created by optimizers
-		if (node is not null && node.TryGetTypeSymbolAnnotation(out var fallbackType))
+		if (node is not null && node.TryGetTypeSymbolAnnotation(symbolStore, out var fallbackType))
 		{
 			typeSymbol = fallbackType;
 			return true;

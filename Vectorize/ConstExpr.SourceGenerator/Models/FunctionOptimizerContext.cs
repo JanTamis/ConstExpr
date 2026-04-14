@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using ConstExpr.Core.Enumerators;
@@ -22,7 +23,8 @@ public sealed class FunctionOptimizerContext(
 	IDictionary<SyntaxNode, bool> additionalMethods,
 	IDictionary<string, VariableItem> variables,
 	ISet<string> usings,
-	FastMathFlags fastMathFlags)
+	FastMathFlags fastMathFlags,
+	ConcurrentDictionary<string, ISymbol> symbolStore)
 {
 	public SemanticModel Model { get; } = model;
 	public MetadataLoader Loader { get; } = loader;
@@ -39,10 +41,11 @@ public sealed class FunctionOptimizerContext(
 	public IDictionary<SyntaxNode, bool> AdditionalMethods { get; } = additionalMethods;
 	public IDictionary<string, VariableItem> Variables { get; } = variables;
 	public ISet<string> Usings { get; } = usings;
-	public FastMathFlags FastMathFlags { get; set; } = fastMathFlags;
+	public FastMathFlags FastMathFlags { get; } = fastMathFlags;
+	public ConcurrentDictionary<string, ISymbol> SymbolStore { get; } = symbolStore;
 
 	public FunctionOptimizerContext WithInvocationAndMethod(InvocationExpressionSyntax invocation, IMethodSymbol method)
 	{
-		return new FunctionOptimizerContext(Model, Loader, method, invocation, VisitedParameters, OriginalParameters, Visit, VisitStatement, GetLambda, OptimizeBinaryExpression, AdditionalMethods, Variables, Usings, FastMathFlags);
+		return new FunctionOptimizerContext(Model, Loader, method, invocation, VisitedParameters, OriginalParameters, Visit, VisitStatement, GetLambda, OptimizeBinaryExpression, AdditionalMethods, Variables, Usings, FastMathFlags, SymbolStore);
 	}
 }

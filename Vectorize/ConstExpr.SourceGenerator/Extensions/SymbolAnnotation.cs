@@ -17,13 +17,13 @@ public static class SymbolAnnotation
 	private const string MethodSymbolKind = "ConstExpr_MethodSymbol";
 	private const string TypeSymbolKind = "ConstExpr_TypeSymbol";
 
-	private static readonly ConcurrentDictionary<string, ISymbol> SymbolStore = new();
+	// private static readonly ConcurrentDictionary<string, ISymbol> SymbolStore = new();
 
 	/// <summary>
 	/// Annotates a syntax node with an <see cref="IMethodSymbol"/>.
 	/// Returns a new node with the annotation attached.
 	/// </summary>
-	public static T WithMethodSymbolAnnotation<T>(this T node, IMethodSymbol? symbol) where T : SyntaxNode
+	public static T WithMethodSymbolAnnotation<T>(this T node, IMethodSymbol? symbol, ConcurrentDictionary<string, ISymbol> symbolStore) where T : SyntaxNode
 	{
 		if (symbol is null)
 		{
@@ -31,7 +31,7 @@ public static class SymbolAnnotation
 		}
 		
 		var id = Guid.NewGuid().ToString("N");
-		SymbolStore[id] = symbol;
+		symbolStore[id] = symbol;
 		return node.WithAdditionalAnnotations(new SyntaxAnnotation(MethodSymbolKind, id));
 	}
 
@@ -39,7 +39,7 @@ public static class SymbolAnnotation
 	/// Annotates a syntax node with an <see cref="ITypeSymbol"/>.
 	/// Returns a new node with the annotation attached.
 	/// </summary>
-	public static T WithTypeSymbolAnnotation<T>(this T node, ITypeSymbol? symbol) where T : SyntaxNode
+	public static T WithTypeSymbolAnnotation<T>(this T node, ITypeSymbol? symbol, ConcurrentDictionary<string, ISymbol> symbolStore) where T : SyntaxNode
 	{
 		if (symbol is null)
 		{
@@ -47,14 +47,14 @@ public static class SymbolAnnotation
 		}
 		
 		var id = Guid.NewGuid().ToString("N");
-		SymbolStore[id] = symbol;
+		symbolStore[id] = symbol;
 		return node.WithAdditionalAnnotations(new SyntaxAnnotation(TypeSymbolKind, id));
 	}
 
 	/// <summary>
 	/// Tries to retrieve an annotated <see cref="IMethodSymbol"/> from a syntax node.
 	/// </summary>
-	public static bool TryGetMethodSymbolAnnotation(this SyntaxNode? node, [NotNullWhen(true)] out IMethodSymbol? symbol)
+	public static bool TryGetMethodSymbolAnnotation(this SyntaxNode? node, ConcurrentDictionary<string, ISymbol> symbolStore, [NotNullWhen(true)] out IMethodSymbol? symbol)
 	{
 		symbol = null;
 
@@ -66,7 +66,7 @@ public static class SymbolAnnotation
 		var annotation = node.GetAnnotations(MethodSymbolKind).FirstOrDefault();
 
 		if (annotation?.Data is not null
-		    && SymbolStore.TryGetValue(annotation.Data, out var s)
+		    && symbolStore.TryGetValue(annotation.Data, out var s)
 		    && s is IMethodSymbol method)
 		{
 			symbol = method;
@@ -79,7 +79,7 @@ public static class SymbolAnnotation
 	/// <summary>
 	/// Tries to retrieve an annotated <see cref="ITypeSymbol"/> from a syntax node.
 	/// </summary>
-	public static bool TryGetTypeSymbolAnnotation(this SyntaxNode? node, [NotNullWhen(true)] out ITypeSymbol? symbol)
+	public static bool TryGetTypeSymbolAnnotation(this SyntaxNode? node, ConcurrentDictionary<string, ISymbol> symbolStore, [NotNullWhen(true)] out ITypeSymbol? symbol)
 	{
 		symbol = null;
 
@@ -91,7 +91,7 @@ public static class SymbolAnnotation
 		var annotation = node.GetAnnotations(TypeSymbolKind).FirstOrDefault();
 
 		if (annotation?.Data is not null
-		    && SymbolStore.TryGetValue(annotation.Data, out var s)
+		    && symbolStore.TryGetValue(annotation.Data, out var s)
 		    && s is ITypeSymbol type)
 		{
 			symbol = type;
@@ -99,15 +99,6 @@ public static class SymbolAnnotation
 		}
 
 		return false;
-	}
-
-	/// <summary>
-	/// Clears the symbol annotation store. Should be called at the end of a generation pass
-	/// to prevent memory leaks from accumulated symbol references.
-	/// </summary>
-	public static void Clear()
-	{
-		SymbolStore.Clear();
 	}
 }
 

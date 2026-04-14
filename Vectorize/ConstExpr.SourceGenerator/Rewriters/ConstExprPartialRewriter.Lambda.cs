@@ -64,7 +64,7 @@ public partial class ConstExprPartialRewriter
 	{
 		var addedParameters = new List<string>();
 
-		if (!semanticModel.TryGetSymbol(node, out IMethodSymbol? method))
+		if (!semanticModel.TryGetSymbol(node, symbolStore, out IMethodSymbol? method))
 		{
 			return addedParameters;
 		}

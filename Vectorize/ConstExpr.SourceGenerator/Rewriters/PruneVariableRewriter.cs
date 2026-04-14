@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -10,8 +11,14 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Rewriters;
 
-public sealed class PruneVariableRewriter(SemanticModel semanticModel, MetadataLoader loader, IDictionary<string, VariableItem> variables, RoslynApiCache? apiCache = null, CancellationToken cancellationToken = default)
-	: BaseRewriter(semanticModel, loader, variables)
+public sealed class PruneVariableRewriter(
+	SemanticModel semanticModel, 
+	MetadataLoader loader, 
+	IDictionary<string, VariableItem> variables,
+	ConcurrentDictionary<string, ISymbol> symbolStore,
+	RoslynApiCache? apiCache = null, 
+	CancellationToken cancellationToken = default)
+	: BaseRewriter(semanticModel, loader, variables, symbolStore)
 {
 	public override SyntaxNode? Visit(SyntaxNode? node)
 	{

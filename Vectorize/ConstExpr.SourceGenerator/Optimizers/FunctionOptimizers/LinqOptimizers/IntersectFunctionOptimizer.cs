@@ -35,7 +35,7 @@ public class IntersectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
-		if (TryExecutePredicates(context, source, out result, out _))
+		if (TryExecutePredicates(context, source, context.SymbolStore, out result, out _))
 		{
 			return true;
 		}

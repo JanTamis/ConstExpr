@@ -301,7 +301,14 @@ public static class SyntaxHelpers
 				foreach (var field in fields)
 				{
 					var itemValue = field.GetValue(value);
-					tupleItems.Add(Argument(CreateLiteral(itemValue)));
+
+					if (!TryCreateLiteral(itemValue, out var itemExpr))
+					{
+						result = null;
+						return false;
+					}
+
+					tupleItems.Add(Argument(itemExpr));
 				}
 			}
 			else
@@ -312,7 +319,14 @@ public static class SyntaxHelpers
 				foreach (var prop in properties)
 				{
 					var itemValue = prop.GetValue(value);
-					tupleItems.Add(Argument(CreateLiteral(itemValue)));
+
+					if (!TryCreateLiteral(itemValue, out var itemExpr))
+					{
+						result = null;
+						return false;
+					}
+
+					tupleItems.Add(Argument(itemExpr));
 				}
 			}
 
@@ -361,16 +375,30 @@ public static class SyntaxHelpers
 
 		if (value is IEnumerable enumerable)
 		{
-			result = CollectionExpression(SeparatedList<CollectionElementSyntax>(enumerable
-				.Cast<object?>()
-				.Select(s => ExpressionElement(CreateLiteral(s)))));
+			var elements = new List<CollectionElementSyntax>();
+
+			foreach (var item in enumerable.Cast<object?>())
+			{
+				if (!TryCreateLiteral(item, out var itemExpr))
+				{
+					result = null;
+					return false;
+				}
+
+				elements.Add(ExpressionElement(itemExpr));
+			}
+
+			result = CollectionExpression(SeparatedList<CollectionElementSyntax>(elements));
 			return true;
 		}
 
 		if (valueType.Name == "KeyValuePair`2")
 		{
-			if (!TryCreateLiteral(valueType.GetProperty("Key"), out var keyExpr)
-			    || !TryCreateLiteral(valueType.GetProperty("Value"), out var valueExpr))
+			var keyProperty = valueType.GetProperty("Key");
+			var valueProperty = valueType.GetProperty("Value");
+			
+			if (!TryCreateLiteral(keyProperty.GetValue(value), out var keyExpr)
+			    || !TryCreateLiteral(valueProperty.GetValue(value), out var valueExpr))
 			{
 				result = null;
 				return false;

@@ -41,13 +41,13 @@ public class Avx2SimdFunctionOptimizer() : BaseSimdFunctionOptimizer("Avx2")
 					case "Add":
 					{
 						result = AddExpression(context.VisitedParameters[0], context.VisitedParameters[1])
-							.WithTypeSymbolAnnotation(vectorType);
+							.WithTypeSymbolAnnotation(vectorType, context.SymbolStore);
 						return true;
 					}
 					case "Subtract":
 					{
 						result = SubtractExpression(context.VisitedParameters[0], context.VisitedParameters[1])
-							.WithTypeSymbolAnnotation(vectorType);
+							.WithTypeSymbolAnnotation(vectorType, context.SymbolStore);
 						return true;
 					}
 
@@ -55,25 +55,25 @@ public class Avx2SimdFunctionOptimizer() : BaseSimdFunctionOptimizer("Avx2")
 					case "And":
 					{
 						result = BitwiseAndExpression(context.VisitedParameters[0], context.VisitedParameters[1])
-							.WithTypeSymbolAnnotation(vectorType);
+							.WithTypeSymbolAnnotation(vectorType, context.SymbolStore);
 						return true;
 					}
 					case "Or":
 					{
 						result = BitwiseOrExpression(context.VisitedParameters[0], context.VisitedParameters[1])
-							.WithTypeSymbolAnnotation(vectorType);
+							.WithTypeSymbolAnnotation(vectorType, context.SymbolStore);
 						return true;
 					}
 					case "Xor":
 					{
 						result = ExclusiveOrExpression(context.VisitedParameters[0], context.VisitedParameters[1])
-							.WithTypeSymbolAnnotation(vectorType);
+							.WithTypeSymbolAnnotation(vectorType, context.SymbolStore);
 						return true;
 					}
 					case "AndNot":
 					{
 						result = BitwiseAndExpression(context.VisitedParameters[0], BitwiseNotExpression(context.VisitedParameters[1]))
-							.WithTypeSymbolAnnotation(vectorType);
+							.WithTypeSymbolAnnotation(vectorType, context.SymbolStore);
 						return true;
 					}
 

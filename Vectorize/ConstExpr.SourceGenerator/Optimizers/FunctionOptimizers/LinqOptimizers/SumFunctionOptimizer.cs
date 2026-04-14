@@ -33,7 +33,7 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		// Recursively skip operations that don't affect sum
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectSum, out source);
 
-		if (TryExecutePredicates(context, source, out result, out var newSource))
+		if (TryExecutePredicates(context, source, context.SymbolStore, out result, out var newSource))
 		{
 			return true;
 		}
@@ -218,9 +218,9 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		{
 			// update source of the Sum invocation to the final source after skipping Append chains
 			var newInvocation = firstInvocation.WithExpression(memberAccess.WithExpression(source))
-				.WithMethodSymbolAnnotation(context.Method);
+				.WithMethodSymbolAnnotation(context.Method, context.SymbolStore);
 
-			if (TryExecutePredicates(context, source, out var optimizedResult, out _))
+			if (TryExecutePredicates(context, source, context.SymbolStore, out var optimizedResult, out _))
 			{
 				items[0] = context.Visit(optimizedResult) ?? optimizedResult as ExpressionSyntax ?? newInvocation;
 			}

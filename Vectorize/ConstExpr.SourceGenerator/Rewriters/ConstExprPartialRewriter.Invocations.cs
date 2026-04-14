@@ -36,7 +36,7 @@ public partial class ConstExprPartialRewriter
 			return nameofResult;
 		}
 
-		if (!semanticModel.TryGetSymbol(node, out IMethodSymbol? targetMethod))
+		if (!semanticModel.TryGetSymbol(node, symbolStore, out IMethodSymbol? targetMethod))
 		{
 			return VisitInvocationExpressionFallback(node);
 		}
@@ -90,7 +90,7 @@ public partial class ConstExprPartialRewriter
 			if (TryOptimizeLinqMethod(semanticModel, targetMethod, node, arguments, node.ArgumentList.Arguments.Select(s => s.Expression)) is { } optimizedLinq)
 			{
 				if (attribute.LinqOptimisationMode == LinqOptimisationMode.Unroll
-				    && LinqUnroller.TryUnrollLinqChain(optimizedLinq, Visit, semanticModel, additionalMethods, out var unrolled))
+				    && LinqUnroller.TryUnrollLinqChain(optimizedLinq, Visit, semanticModel, additionalMethods, symbolStore, out var unrolled))
 				{
 					return unrolled;
 				}
@@ -99,7 +99,7 @@ public partial class ConstExprPartialRewriter
 			}
 
 			if (attribute.LinqOptimisationMode == LinqOptimisationMode.Unroll
-			    && LinqUnroller.TryUnrollLinqChain(node, Visit, semanticModel, additionalMethods, out var unrolledNode))
+			    && LinqUnroller.TryUnrollLinqChain(node, Visit, semanticModel, additionalMethods, symbolStore, out var unrolledNode))
 			{
 				return unrolledNode;
 			}
@@ -146,7 +146,7 @@ public partial class ConstExprPartialRewriter
 		var arg = node.ArgumentList.Arguments[0].Expression;
 		string? name = null;
 
-		if (semanticModel.TryGetSymbol(arg, out ISymbol? sym))
+		if (semanticModel.TryGetSymbol(arg, symbolStore, out ISymbol? sym))
 		{
 			name = sym.Name;
 		}
@@ -464,7 +464,8 @@ public partial class ConstExprPartialRewriter
 			additionalMethods, 
 			variables, 
 			usings, 
-			attribute.MathOptimizations);
+			attribute.MathOptimizations,
+			symbolStore);
 	}
 
 	/// <summary>
@@ -513,7 +514,7 @@ public partial class ConstExprPartialRewriter
 
 			return node
 				.WithArgumentList(node.ArgumentList.WithArguments(SeparatedList(arguments.OfType<ExpressionSyntax>().Select(Argument))))
-				.WithMethodSymbolAnnotation(targetMethod);
+				.WithMethodSymbolAnnotation(targetMethod, symbolStore);
 		}
 
 		var syntax = GetInlinedMethodSyntax(targetMethod);
@@ -529,7 +530,7 @@ public partial class ConstExprPartialRewriter
 
 		return node
 			.WithArgumentList(node.ArgumentList.WithArguments(SeparatedList(arguments.OfType<ExpressionSyntax>().Select(Argument))))
-			.WithMethodSymbolAnnotation(targetMethod);
+			.WithMethodSymbolAnnotation(targetMethod, symbolStore);
 	}
 
 	/// <summary>
@@ -551,7 +552,7 @@ public partial class ConstExprPartialRewriter
 							.ToDictionary(d => d.Identifier.Text, d => new VariableItem(semanticModel.GetTypeInfo(d.Type).Type ?? semanticModel.Compilation.ObjectType, false, null));
 
 						visitingMethods?.Add(targetMethod);
-						var visitor = new ConstExprPartialRewriter(semanticModel, loader, (_, _) => { }, parameters, additionalMethods, usings, attribute, token, visitingMethods);
+						var visitor = new ConstExprPartialRewriter(semanticModel, loader, (_, _) => { }, parameters, additionalMethods, usings, attribute, symbolStore, token, visitingMethods);
 						var body = visitor.Visit(method.Body) as BlockSyntax;
 						visitingMethods?.Remove(targetMethod);
 
@@ -563,7 +564,7 @@ public partial class ConstExprPartialRewriter
 							.ToDictionary(d => d.Identifier.Text, d => new VariableItem(semanticModel.GetTypeInfo(d.Type).Type ?? semanticModel.Compilation.ObjectType, false, null));
 
 						visitingMethods?.Add(targetMethod);
-						var visitor = new ConstExprPartialRewriter(semanticModel, loader, (_, _) => { }, parameters, additionalMethods, usings, attribute, token, visitingMethods);
+						var visitor = new ConstExprPartialRewriter(semanticModel, loader, (_, _) => { }, parameters, additionalMethods, usings, attribute, symbolStore, token, visitingMethods);
 						var body = visitor.Visit(localFunc.Body) as BlockSyntax;
 						visitingMethods?.Remove(targetMethod);
 
@@ -617,7 +618,7 @@ public partial class ConstExprPartialRewriter
 			.WithExpression(expression)
 			.WithArgumentList(node.ArgumentList
 				.WithArguments(SeparatedList(arguments.OfType<ExpressionSyntax>().Select(Argument))))
-			.WithMethodSymbolAnnotation(targetMethod);
+			.WithMethodSymbolAnnotation(targetMethod, symbolStore);
 	}
 
 	/// <summary>
@@ -693,7 +694,7 @@ public partial class ConstExprPartialRewriter
 				return result;
 			}
 
-			if (semanticModel.TryGetSymbol(node, out IPropertySymbol? propertySymbol)
+			if (semanticModel.TryGetSymbol(node, symbolStore, out IPropertySymbol? propertySymbol)
 			    && constantArguments.Length == propertySymbol.Parameters.Length)
 			{
 				if (loader.TryExecuteMethod(propertySymbol.GetMethod, instanceValue, new VariableItemDictionary(variables), constantArguments, out var value)
@@ -844,17 +845,17 @@ public partial class ConstExprPartialRewriter
 
 	public override SyntaxNode? VisitMemberAccessExpression(MemberAccessExpressionSyntax node)
 	{
-		semanticModel.TryGetTypeSymbol(node, out var typeSymbol);
+		semanticModel.TryGetTypeSymbol(node, symbolStore, out var typeSymbol);
 
 		var expression = Visit(node.Expression);
-		var hasLiteral = TryGetLiteralValue(node.Expression, typeSymbol, out var instanceValue);
+		var hasLiteral = TryGetLiteralValue(node.Expression, out var instanceValue);
 
 		if (!hasLiteral)
 		{
-			hasLiteral = TryGetLiteralValue(expression, typeSymbol, out instanceValue);
+			hasLiteral = TryGetLiteralValue(expression, out instanceValue);
 		}
 
-		if (semanticModel.TryGetSymbol(node, out ISymbol? symbol))
+		if (semanticModel.TryGetSymbol(node, symbolStore, out ISymbol? symbol))
 		{
 			var result = TryEvaluateMemberAccess(symbol, instanceValue);
 
@@ -884,7 +885,7 @@ public partial class ConstExprPartialRewriter
 						switch (methodName)
 						{
 							// check if expression is Enumerable.ToList()
-							case "ToList" when semanticModel.TryGetTypeSymbol(node.Expression, out var collectionType)
+							case "ToList" when semanticModel.TryGetTypeSymbol(node.Expression, symbolStore, out var collectionType)
 							                   && collectionType is INamedTypeSymbol namedTypeSymbol:
 							{
 								// return Enumerable.Count() instead
@@ -904,7 +905,7 @@ public partial class ConstExprPartialRewriter
 
 								return optimized ?? newInvocation;
 							}
-							case "ToHashSet" when semanticModel.TryGetTypeSymbol(node.Expression, out var collectionType)
+							case "ToHashSet" when semanticModel.TryGetTypeSymbol(node.Expression, symbolStore, out var collectionType)
 							                      && collectionType is INamedTypeSymbol namedTypeSymbol:
 							{
 								// return Enumerable.Distinct().Count() instead
@@ -943,7 +944,7 @@ public partial class ConstExprPartialRewriter
 
 					if (isArrayLength
 					    && methodName == nameof(Enumerable.ToArray)
-					    && semanticModel.TryGetTypeSymbol(node.Expression, out typeSymbol)
+					    && semanticModel.TryGetTypeSymbol(node.Expression, symbolStore, out typeSymbol)
 					    && typeSymbol is IArrayTypeSymbol arrayType)
 					{
 						// return Enumerable.Count() instead

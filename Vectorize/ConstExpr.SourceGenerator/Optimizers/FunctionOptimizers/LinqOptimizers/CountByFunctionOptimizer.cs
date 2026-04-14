@@ -33,7 +33,7 @@ public class CountByFunctionOptimizer() : BaseLinqFunctionOptimizer("CountBy", 1
 	{
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectCountBy, out source);
 
-		if (TryExecutePredicates(context, source, out result, out var currentSource))
+		if (TryExecutePredicates(context, source, context.SymbolStore, out result, out var currentSource))
 		{
 			return true;
 		}

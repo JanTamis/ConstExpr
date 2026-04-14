@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -64,7 +65,7 @@ public static class LinqUnroller
 	/// expressions, ordered from the first (innermost) call to the last (outermost).
 	/// Stops as soon as a call with an unrecognised method name is encountered.
 	/// </summary>
-	public static UnrolledLinqMethod[] ParseLinqChain(SemanticModel model, Func<SyntaxNode?, SyntaxNode?> visit, SyntaxNode node)
+	public static UnrolledLinqMethod[] ParseLinqChain(SemanticModel model, Func<SyntaxNode?, SyntaxNode?> visit, SyntaxNode node, ConcurrentDictionary<string, ISymbol> symbolStore)
 	{
 		var methods = new List<UnrolledLinqMethod>();
 		var current = node as ExpressionSyntax;
@@ -92,7 +93,7 @@ public static class LinqUnroller
 				return [ ];
 			}
 
-			if (!model.TryGetSymbol<IMethodSymbol>(invocation, out var method))
+			if (!model.TryGetSymbol<IMethodSymbol>(invocation, symbolStore, out var method))
 			{
 				// Fallback: try to resolve from Compilation for optimized/synthetic nodes
 				method = TryResolveLinqMethodFromCompilation(
@@ -142,14 +143,14 @@ public static class LinqUnroller
 			.FirstOrDefault(m => m.Parameters.Length == parameterCount);
 	}
 
-	public static bool TryUnrollLinqChain(SyntaxNode node, Func<SyntaxNode?, SyntaxNode?> visit, SemanticModel model, IDictionary<SyntaxNode, bool> additionalMethods, [NotNullWhen(true)] out SyntaxNode? result)
+	public static bool TryUnrollLinqChain(SyntaxNode node, Func<SyntaxNode?, SyntaxNode?> visit, SemanticModel model, IDictionary<SyntaxNode, bool> additionalMethods, ConcurrentDictionary<string, ISymbol> symbolStore, [NotNullWhen(true)] out SyntaxNode? result)
 	{
-		var chain = ParseLinqChain(model, visit, node);
+		var chain = ParseLinqChain(model, visit, node, symbolStore);
 
 		// A chain of [Source, TerminalMethod] (length 2) is already well-handled
 		// by the FunctionOptimizers — only unroll when intermediate steps exist.
 		if (chain.Length < 2
-		    || !model.TryGetTypeSymbol(chain[0].Parameters[0], out var type))
+		    || !model.TryGetTypeSymbol(chain[0].Parameters[0], symbolStore, out var type))
 		{
 			result = null;
 			return false;
@@ -185,7 +186,7 @@ public static class LinqUnroller
 		ParsePossibleReturnStatement(chain, statements);
 
 		// create localmethod with statements
-		var parameterType = model.TryGetTypeSymbol(chain[0].Parameters[0], out var returnType)
+		var parameterType = model.TryGetTypeSymbol(chain[0].Parameters[0], symbolStore, out var returnType)
 			? returnType.GetTypeSyntax(false)
 			: PredefinedType(Token(SyntaxKind.ObjectKeyword));
 

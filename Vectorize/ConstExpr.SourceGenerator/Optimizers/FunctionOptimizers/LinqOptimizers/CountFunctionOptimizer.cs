@@ -51,7 +51,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		// Recursively skip all operations that don't affect count
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectCount, out source);
 
-		if (TryExecutePredicates(context, source, out result, out _))
+		if (TryExecutePredicates(context, source, context.SymbolStore, out result, out _))
 		{
 			return true;
 		}
@@ -103,7 +103,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 			if (TryGetValues(currentSource, out var values))
 			{
 				var lambdas = wherePredicates
-					.WhereSelect<LambdaExpressionSyntax, object>((s, out result) => TryGetLiteralValue(s, context, null, out result))
+					.WhereSelect<LambdaExpressionSyntax, object>((s, out result) => TryGetLiteralValue(s, context, null, context.SymbolStore, out result))
 					.OfType<Delegate>()
 					.ToList();
 
@@ -364,7 +364,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 							return true;
 						}
 
-						if (context.Model.TryGetSymbol<IMethodSymbol>(invocation, out var methodSymbol))
+						if (context.Model.TryGetSymbol<IMethodSymbol>(invocation, context.SymbolStore, out var methodSymbol))
 						{
 							var distinctByInvocation = CreateInvocation(methodSource, "DistinctBy", predicate);
 							var newDistinctByCountInvocation = TryOptimizeByOptimizer<DistinctByFunctionOptimizer>(context, distinctByInvocation, methodSymbol.TypeArguments.ToArray()) as ExpressionSyntax ?? distinctByInvocation;
@@ -408,7 +408,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 						return true;
 					}
 
-					if (context.Model.TryGetSymbol<IMethodSymbol>(currentSource, out var methodSymbol))
+					if (context.Model.TryGetSymbol<IMethodSymbol>(currentSource, context.SymbolStore, out var methodSymbol))
 					{
 						var distinctByInvocation = CreateInvocation(chainSource, "DistinctBy", predicate);
 						var newDistinctByCountInvocation = TryOptimizeByOptimizer<DistinctByFunctionOptimizer>(context, distinctByInvocation, methodSymbol.TypeArguments.ToArray()) as ExpressionSyntax ?? distinctByInvocation;

@@ -43,7 +43,7 @@ public abstract class BaseSimdFunctionOptimizer(string typeName, string platform
 		}
 
 		var invocation = CreateInvocation(methodSymbol.ContainingType, methodSymbol.Name, context.VisitedParameters)
-			.WithMethodSymbolAnnotation(methodSymbol);
+			.WithMethodSymbolAnnotation(methodSymbol, context.SymbolStore);
 
 		result = invocation;
 		return true;
@@ -61,6 +61,6 @@ public abstract class BaseSimdFunctionOptimizer(string typeName, string platform
 			.FirstOrDefault(f => SymbolEqualityComparer.Default.Equals(f.ReturnType, vectorType));
 		
 		return CreateInvocation(staticVectorType, methodName, arguments)
-			.WithMethodSymbolAnnotation(methodSymbol);
+			.WithMethodSymbolAnnotation(methodSymbol, context.SymbolStore);
 	}
 }

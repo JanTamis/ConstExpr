@@ -20,7 +20,7 @@ public class SingleFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		// Recursively skip operations that don't affect single
 		var isNewSource = TryGetOptimizedChainExpression(source, MaterializingMethods, out source);
 
-		if (TryExecutePredicates(context, source, out result, out source))
+		if (TryExecutePredicates(context, source, context.SymbolStore, out result, out source))
 		{
 			return true;
 		}

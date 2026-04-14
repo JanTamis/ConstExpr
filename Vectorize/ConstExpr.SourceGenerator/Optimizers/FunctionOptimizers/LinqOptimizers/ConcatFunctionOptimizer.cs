@@ -27,7 +27,17 @@ public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		var isNewSource = TryGetOptimizedChainExpression(source, MaterializingMethods, out source);
 		var concatenatedCollection = context.VisitedParameters[0];
 
-		if (TryExecutePredicates(context, source, out result, out source))
+		// Optimization: Merge multiple Concat calls with collection literals
+		// MUST run BEFORE visiting (TryExecutePredicates) so that inner Concat calls
+		// haven't been transformed to Append yet. Uses the original (unvisited) source.
+		// e.g., collection.Concat([1, 2]).Concat([3, 4]) => collection.Concat([1, 2, 3, 4])
+		if (TryMergeConcatChain(source, context.OriginalParameters[0], context.Visit, out var mergedResult))
+		{
+			result = mergedResult;
+			return true;
+		}
+
+		if (TryExecutePredicates(context, source, context.SymbolStore, out result, out source))
 		{
 			return true;
 		}
@@ -59,14 +69,6 @@ public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		if (TryConvertSingleElementConcatToPrepend(context, source, concatenatedCollection, out var prependResult))
 		{
 			result = prependResult;
-			return true;
-		}
-		
-		// Optimization: Merge multiple Concat calls with collection literals
-		// e.g., collection.Concat([1, 2]).Concat([3, 4]) => collection.Concat([1, 2, 3, 4])
-		if (TryMergeConcatChain(source, concatenatedCollection, context.Visit, out var mergedResult))
-		{
-			result = mergedResult;
 			return true;
 		}
 
@@ -151,53 +153,63 @@ public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 
 	/// <summary>
 	/// Tries to merge a chain of Concat operations with collection literals.
-	/// E.g., collection.Concat([1, 2]).Concat([3, 4]) => collection.Concat([1, 2, 3, 4])
+	/// Walks the entire chain recursively to handle 3+ Concat operations.
+	/// E.g., collection.Concat([1]).Concat([2]).Concat([3]) => collection.Concat([1, 2, 3])
 	/// </summary>
 	private bool TryMergeConcatChain(ExpressionSyntax source, ExpressionSyntax currentCollection, Func<SyntaxNode, ExpressionSyntax?> visit, out SyntaxNode? result)
 	{
 		result = null;
 
-		// Check if source is another Concat call
-		if (!IsLinqMethodChain(source, nameof(Enumerable.Concat), out var previousConcatInvocation))
-		{
-			return false;
-		}
-
-		// Get the collection from the previous Concat call
-		if (previousConcatInvocation.ArgumentList.Arguments.Count != 1)
-		{
-			return false;
-		}
-
-		var previousCollection = previousConcatInvocation.ArgumentList.Arguments[0].Expression;
-
-		// Check if both collections are collection literals (array initializers or collection expressions)
-		if (!TryGetCollectionElements(previousCollection, out var previousElements))
-		{
-			return false;
-		}
-
+		// The current collection must be a collection literal
 		if (!TryGetCollectionElements(currentCollection, out var currentElements))
 		{
 			return false;
 		}
 
-		// Merge the elements
-		var mergedElements = new List<CollectionElementSyntax>();
-		mergedElements.AddRange(previousElements);
-		mergedElements.AddRange(currentElements);
+		// Walk backwards through the Concat chain, collecting all collection literals
+		var chainCollections = new List<List<CollectionElementSyntax>> { currentElements };
+		var currentSource = source;
 
-		// Create a new collection expression with merged elements
-		var mergedCollection = CollectionExpression(SeparatedList(mergedElements));
+		while (IsLinqMethodChain(currentSource, nameof(Enumerable.Concat), out var previousConcatInvocation))
+		{
+			if (previousConcatInvocation.ArgumentList.Arguments.Count != 1)
+			{
+				break;
+			}
 
-		// Get the base source (before the first Concat)
-		if (!TryGetLinqSource(previousConcatInvocation, out var baseSource))
+			var previousCollection = previousConcatInvocation.ArgumentList.Arguments[0].Expression;
+
+			if (!TryGetCollectionElements(previousCollection, out var previousElements))
+			{
+				break;
+			}
+
+			chainCollections.Insert(0, previousElements);
+
+			if (!TryGetLinqSource(previousConcatInvocation, out currentSource))
+			{
+				break;
+			}
+		}
+
+		// Need at least 2 Concat calls with collection literals to merge
+		if (chainCollections.Count < 2)
 		{
 			return false;
 		}
 
-		// Create the optimized Concat call
-		result = CreateInvocation(visit(baseSource) ?? baseSource, nameof(Enumerable.Concat), mergedCollection);
+		// Merge all elements into a single collection
+		var mergedElements = new List<CollectionElementSyntax>();
+
+		foreach (var elements in chainCollections)
+		{
+			mergedElements.AddRange(elements);
+		}
+
+		var mergedCollection = CollectionExpression(SeparatedList(mergedElements));
+
+		// Create the optimized Concat call with the base source (before the chain)
+		result = CreateInvocation(visit(currentSource) ?? currentSource, nameof(Enumerable.Concat), mergedCollection);
 		return true;
 	}
 

@@ -22,7 +22,7 @@ public class ToListFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 	{
 		var isNewSource = TryGetOptimizedChainExpression(source, MaterializingMethods, out source);
 
-		if (TryExecutePredicates(context, source, out result, out source))
+		if (TryExecutePredicates(context, source, context.SymbolStore, out result, out source))
 		{
 			return true;
 		}
@@ -106,7 +106,7 @@ public class ToListFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		// Fall back to semantic model for non-identifier expressions
 		if (type is null)
 		{
-			context.Model.TryGetTypeSymbol(expression, out type);
+			context.Model.TryGetTypeSymbol(expression, context.SymbolStore, out type);
 		}
 
 		return type is INamedTypeSymbol namedType

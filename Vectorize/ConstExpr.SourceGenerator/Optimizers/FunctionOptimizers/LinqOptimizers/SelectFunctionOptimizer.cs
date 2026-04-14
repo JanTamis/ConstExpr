@@ -17,7 +17,7 @@ public class SelectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 			return false;
 		}
 
-		if (TryExecutePredicates(context, source, out result, out source))
+		if (TryExecutePredicates(context, source, context.SymbolStore, out result, out source))
 		{
 			return true;
 		}
@@ -33,7 +33,7 @@ public class SelectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		{
 			var invocation = CreateCastMethodCall(source, castType);
 			
-			if (context.Model.TryGetTypeSymbol(castType, out var castTypeSymbol))
+			if (context.Model.TryGetTypeSymbol(castType, context.SymbolStore, out var castTypeSymbol))
 			{
 				result = TryOptimizeByOptimizer<CastFunctionOptimizer>(context, invocation, castTypeSymbol);
 				return true;

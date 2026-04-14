@@ -608,7 +608,7 @@ public partial class ConstExprPartialRewriter
 
 
 		// Get the type of the expression for proper casting
-		if (!semanticModel.TryGetTypeSymbol(expression, out var type)
+		if (!semanticModel.TryGetTypeSymbol(expression, symbolStore, out var type)
 		    && !semanticModel.Compilation.TryGetTypeByType(lowerBound?.GetType(), out type)
 		    && !semanticModel.Compilation.TryGetTypeByType(upperBound?.GetType(), out type))
 		{

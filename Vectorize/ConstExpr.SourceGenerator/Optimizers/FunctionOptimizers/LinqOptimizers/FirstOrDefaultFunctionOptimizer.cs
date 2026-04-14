@@ -36,7 +36,7 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 		// Recursively skip all operations that don't affect which element is first
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectFirst, out source);
 
-		if (TryExecutePredicates(context, source, out result, out source))
+		if (TryExecutePredicates(context, source, context.SymbolStore, out result, out source))
 		{
 			return true;
 		}
@@ -75,7 +75,7 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 				case nameof(Enumerable.OrderBy)
 					when GetMethodArguments(invocation).FirstOrDefault() is { Expression: { } predicateArg }
 					     && TryGetLambda(predicateArg, out var predicate)
-					     && context.Model.TryGetTypeSymbol(predicate, out var predicateType):
+					     && context.Model.TryGetTypeSymbol(predicate, context.SymbolStore, out var predicateType):
 				{
 					result = TryOptimizeByOptimizer<MinByFunctionOptimizer>(context, CreateInvocation(methodSource, "MinBy", predicate), context.Method.TypeArguments[0], predicateType);
 					return true;
@@ -83,7 +83,7 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 				case nameof(Enumerable.OrderByDescending)
 					when GetMethodArguments(invocation).FirstOrDefault() is { Expression: { } predicateArg }
 					     && TryGetLambda(predicateArg, out var predicate)
-					     && context.Model.TryGetTypeSymbol(predicate, out var predicateType):
+					     && context.Model.TryGetTypeSymbol(predicate, context.SymbolStore, out var predicateType):
 				{
 					result = TryOptimizeByOptimizer<MaxByFunctionOptimizer>(context, CreateInvocation(methodSource, "MaxBy", predicate), context.Method.TypeArguments[0], predicateType);
 					return true;

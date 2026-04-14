@@ -28,7 +28,7 @@ public partial class ConstExprPartialRewriter
 
 		var name = operation.Symbol.Name;
 
-		if (value is ThrowExpressionSyntax)
+		if (value is ThrowExpressionSyntax or ThrowStatementSyntax)
 		{
 			return value;
 		}
@@ -153,14 +153,20 @@ public partial class ConstExprPartialRewriter
 			switch (visited)
 			{
 				case VariableDeclaratorSyntax declarator:
+				{
 					visitedVariables.Add(declarator);
 					break;
+				}
 				case ExpressionStatementSyntax expressionStatement:
+				{
 					statements.Add(expressionStatement);
 					break;
+				}
 				case ThrowExpressionSyntax throwExpr:
+				{
 					statements.Add(ExpressionStatement(throwExpr));
 					return BuildVariableDeclarationResult(node, visitedVariables, statements);
+				}
 			}
 		}
 

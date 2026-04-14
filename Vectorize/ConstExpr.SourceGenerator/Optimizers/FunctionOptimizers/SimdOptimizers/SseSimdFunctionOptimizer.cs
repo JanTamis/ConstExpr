@@ -41,49 +41,49 @@ public class SseSimdFunctionOptimizer() : BaseSimdFunctionOptimizer("Sse")
 					case "Add":
 					{
 						result = AddExpression(context.VisitedParameters[0], context.VisitedParameters[1])
-							.WithTypeSymbolAnnotation(vectorType);
+							.WithTypeSymbolAnnotation(vectorType, context.SymbolStore);
 						return true;
 					}
 					case "Subtract":
 					{
 						result = SubtractExpression(context.VisitedParameters[0], context.VisitedParameters[1])
-							.WithTypeSymbolAnnotation(vectorType);
+							.WithTypeSymbolAnnotation(vectorType, context.SymbolStore);
 						return true;
 					}
 					case "Multiply":
 					{
 						result = MultiplyExpression(context.VisitedParameters[0], context.VisitedParameters[1])
-							.WithTypeSymbolAnnotation(vectorType);
+							.WithTypeSymbolAnnotation(vectorType, context.SymbolStore);
 						return true;
 					}
 					case "Divide":
 					{
 						result = DivideExpression(context.VisitedParameters[0], context.VisitedParameters[1])
-							.WithTypeSymbolAnnotation(vectorType);
+							.WithTypeSymbolAnnotation(vectorType, context.SymbolStore);
 						return true;
 					}
 					case "And":
 					{
 						result = BitwiseAndExpression(context.VisitedParameters[0], context.VisitedParameters[1])
-							.WithTypeSymbolAnnotation(vectorType);
+							.WithTypeSymbolAnnotation(vectorType, context.SymbolStore);
 						return true;
 					}
 					case "Or":
 					{
 						result = BitwiseOrExpression(context.VisitedParameters[0], context.VisitedParameters[1])
-							.WithTypeSymbolAnnotation(vectorType);
+							.WithTypeSymbolAnnotation(vectorType, context.SymbolStore);
 						return true;
 					}
 					case "Xor":
 					{
 						result = ExclusiveOrExpression(context.VisitedParameters[0], context.VisitedParameters[1])
-							.WithTypeSymbolAnnotation(vectorType);
+							.WithTypeSymbolAnnotation(vectorType, context.SymbolStore);
 						return true;
 					}
 					case "AndNot":
 					{
 						result = BitwiseAndExpression(context.VisitedParameters[0], BitwiseNotExpression(context.VisitedParameters[1]))
-							.WithTypeSymbolAnnotation(vectorType);
+							.WithTypeSymbolAnnotation(vectorType, context.SymbolStore);
 						return true;
 					}
 					// Comparisons with different names — must use vectorType so the generated

@@ -34,7 +34,7 @@ public class MaxFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		// Recursively skip operations that don't affect max
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectMax, out source);
 
-		if (TryExecutePredicates(context, source, out result, out source))
+		if (TryExecutePredicates(context, source, context.SymbolStore, out result, out source))
 		{
 			return true;
 		}

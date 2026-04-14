@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -21,6 +22,7 @@ public class ExpressionRewriter(
 	IDictionary<string, VariableItem> variables, 
 	IDictionary<string, ParameterExpression> parameters, 
 	CancellationToken token,
+	ConcurrentDictionary<string, ISymbol> symbolStore,
 	IDictionary<SyntaxNode, bool>? additionalMethods = null,
 	ISet<string>? usings = null,
 	ConstExprAttribute? attribute = null,
@@ -108,7 +110,7 @@ public class ExpressionRewriter(
 
 	public override Expression? VisitArrayCreationExpression(ArrayCreationExpressionSyntax node)
 	{
-		if (semanticModel.TryGetSymbol(node.Type, out IArrayTypeSymbol? arrayType))
+		if (semanticModel.TryGetSymbol(node.Type, symbolStore, out IArrayTypeSymbol? arrayType))
 		{
 			return Expression.NewArrayInit(loader.GetType(arrayType.ElementType), node.Initializer?.Expressions.Select(Visit) ?? [ ]);
 		}
@@ -177,7 +179,7 @@ public class ExpressionRewriter(
 
 	public override Expression? VisitIdentifierName(IdentifierNameSyntax node)
 	{
-		if (semanticModel.TryGetSymbol(node, out ISymbol symbol))
+		if (semanticModel.TryGetSymbol(node, symbolStore, out ISymbol symbol))
 		{
 			switch (symbol)
 			{
@@ -246,7 +248,7 @@ public class ExpressionRewriter(
 			var arg = node.ArgumentList.Arguments[0].Expression;
 			string? name = null;
 
-			if (semanticModel.TryGetSymbol(arg, out ISymbol? sym))
+			if (semanticModel.TryGetSymbol(arg, symbolStore, out ISymbol? sym))
 			{
 				name = sym.Name;
 			}
@@ -267,7 +269,7 @@ public class ExpressionRewriter(
 			}
 		}
 
-		if (semanticModel.TryGetSymbol(node, out IMethodSymbol? targetMethod))
+		if (semanticModel.TryGetSymbol(node, symbolStore, out IMethodSymbol? targetMethod))
 		{
 			var arguments = node.ArgumentList.Arguments
 				.Select(arg => Visit(arg.Expression))
@@ -369,7 +371,7 @@ public class ExpressionRewriter(
 	{
 		var expression = Visit(node.Expression);
 
-		if (semanticModel.TryGetSymbol(node, out ISymbol? symbol))
+		if (semanticModel.TryGetSymbol(node, symbolStore, out ISymbol? symbol))
 		{
 			switch (symbol)
 			{
@@ -426,7 +428,7 @@ public class ExpressionRewriter(
       return null;
     }
 
-    if (semanticModel.TryGetSymbol(node.Type, out ITypeSymbol? targetType))
+    if (semanticModel.TryGetSymbol(node.Type, symbolStore, out ITypeSymbol? targetType))
 		{
 			var targetRuntimeType = loader.GetType(targetType) ?? typeof(object);
 			
@@ -581,7 +583,7 @@ public class ExpressionRewriter(
 
 	public override Expression? VisitObjectCreationExpression(ObjectCreationExpressionSyntax node)
 	{
-		if (semanticModel.TryGetSymbol(node.Type, out ITypeSymbol? type))
+		if (semanticModel.TryGetSymbol(node.Type, symbolStore, out ITypeSymbol? type))
 		{
 			var runtimeType = loader.GetType(type);
 			if (runtimeType != null)

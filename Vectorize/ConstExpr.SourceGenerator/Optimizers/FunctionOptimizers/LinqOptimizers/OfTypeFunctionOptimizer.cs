@@ -22,7 +22,7 @@ public class OfTypeFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		// original compilation's syntax tree, so we must use this reference for symbol lookups below.
 		var originalSource = source;
 
-		if (TryExecutePredicates(context, source, out result, out source))
+		if (TryExecutePredicates(context, source, context.SymbolStore, out result, out source))
 		{
 			return true;
 		}

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -14,7 +15,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Rewriters;
 
-public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, IDictionary<string, VariableItem> variables) : CSharpSyntaxRewriter
+public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, IDictionary<string, VariableItem> variables, ConcurrentDictionary<string, ISymbol> symbolStore) : CSharpSyntaxRewriter
 {
 	protected readonly SemanticModel semanticModel = semanticModel;
 	protected readonly MetadataLoader loader = loader;
@@ -67,7 +68,8 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 			// unwrap ( ... )
 			case ParenthesizedExpressionSyntax paren:
 			{
-				return TryGetLiteralValue(paren.Expression, typeSymbol, out value, visitedVariables) || TryGetLiteralValue(Visit(paren.Expression), typeSymbol, out value, visitedVariables);
+				return TryGetLiteralValue(paren.Expression, typeSymbol, out value, visitedVariables)
+				       || TryGetLiteralValue(Visit(paren.Expression), typeSymbol, out value, visitedVariables);
 			}
 			// ^n => System.Index(n, fromEnd: true)
 			case PrefixUnaryExpressionSyntax prefix when TryGetLiteralValue(prefix.Operand, typeSymbol, out var inner, visitedVariables) && inner is not null:
@@ -171,7 +173,7 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 			}
 			case ObjectCreationExpressionSyntax objectCreationExpression:
 			{
-				if (semanticModel.TryGetSymbol(objectCreationExpression.Type, out ITypeSymbol? randomType)
+				if (semanticModel.TryGetSymbol(objectCreationExpression.Type, symbolStore, out ITypeSymbol? randomType)
 				    && randomType.EqualsType(semanticModel.Compilation.GetTypeByMetadataName("System.Random")))
 				{
 					value = null;
@@ -180,11 +182,11 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 
 				var arguments = objectCreationExpression.ArgumentList?.Arguments
 					                .Select(s => Visit(s.Expression))
-					                .WhereSelect<SyntaxNode, object?>(TryGetLiteralValue)
+					                .WhereSelect<SyntaxNode, object?>((s, out result) => TryGetLiteralValue(s, null, out result, new HashSet<string>()))
 					                .ToList()
 				                ?? [ ];
 
-				if (semanticModel.TryGetSymbol(objectCreationExpression, out IMethodSymbol? constructor)
+				if (semanticModel.TryGetSymbol(objectCreationExpression, symbolStore, out IMethodSymbol? constructor)
 				    && loader.TryExecuteMethod(constructor, null, null, arguments, out var result)
 				    && (TryApplyInitializer(objectCreationExpression.Initializer, result, typeSymbol, visitedVariables)
 				        || objectCreationExpression.Initializer is null))
@@ -193,7 +195,7 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 					return true;
 				}
 
-				if (semanticModel.TryGetSymbol(objectCreationExpression.Type, out typeSymbol))
+				if (semanticModel.TryGetSymbol(objectCreationExpression.Type, symbolStore, out typeSymbol))
 				{
 					var type = loader.GetType(typeSymbol);
 
@@ -265,13 +267,13 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 			}
 			case SimpleLambdaExpressionSyntax lambda:
 			{
-				if (semanticModel.TryGetSymbol(lambda, out IMethodSymbol symbol))
+				if (semanticModel.TryGetSymbol(lambda, symbolStore, out IMethodSymbol symbol))
 				{
 					var parameters = symbol.Parameters
 						.Select(p => Expression.Parameter(loader.GetType(p.Type), p.Name))
 						.ToDictionary(t => t.Name);
 
-					var rewriter = new ExpressionRewriter(semanticModel, loader, (_, _) => { }, variables, parameters, CancellationToken.None);
+					var rewriter = new ExpressionRewriter(semanticModel, loader, (_, _) => { }, variables, parameters, CancellationToken.None, symbolStore);
 					var body = rewriter.Visit(lambda.Body);
 
 					if (body is null)
@@ -288,13 +290,13 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 			}
 			case ParenthesizedLambdaExpressionSyntax parenthesizedLambdaExpressionSyntax:
 			{
-				if (semanticModel.TryGetSymbol(parenthesizedLambdaExpressionSyntax, out IMethodSymbol symbol))
+				if (semanticModel.TryGetSymbol(parenthesizedLambdaExpressionSyntax, symbolStore, out IMethodSymbol symbol))
 				{
 					var parameters = symbol.Parameters
 						.Select(p => Expression.Parameter(loader.GetType(p.Type), p.Name))
 						.ToDictionary(t => t.Name);
 
-					var rewriter = new ExpressionRewriter(semanticModel, loader, (_, _) => { }, variables, parameters, CancellationToken.None);
+					var rewriter = new ExpressionRewriter(semanticModel, loader, (_, _) => { }, variables, parameters, CancellationToken.None, symbolStore);
 					var body = rewriter.Visit(parenthesizedLambdaExpressionSyntax.Body);
 
 					value = Expression.Lambda(body, parameters.Values).Compile();
@@ -308,7 +310,7 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 				if (TryGetLiteralValue(castExpressionSyntax.Expression, typeSymbol, out var innerVal, visitedVariables))
 				{
 					// Try to resolve the *textual* type name from the syntax node (no semantic model)
-					string typeName = castExpressionSyntax.Type switch
+					var typeName = castExpressionSyntax.Type switch
 					{
 						PredefinedTypeSyntax p => p.Keyword.ValueText,
 						IdentifierNameSyntax id => id.Identifier.Text,
@@ -369,7 +371,7 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 			}
 			case MemberAccessExpressionSyntax memberAccessExpressionSyntax:
 			{
-				if (semanticModel.TryGetSymbol(memberAccessExpressionSyntax, out ISymbol? symbol))
+				if (semanticModel.TryGetSymbol(memberAccessExpressionSyntax, symbolStore, out ISymbol? symbol))
 				{
 					var parentType = symbol.ContainingType;
 
@@ -383,7 +385,7 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 							{
 								return true;
 							}
-							
+
 							break;
 						}
 						case IPropertySymbol propertySymbol:
@@ -395,7 +397,7 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 									return true;
 								}
 							}
-							
+
 							break;
 						}
 					}
@@ -438,7 +440,7 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 						}
 
 						// Create multidimensional array
-						if (semanticModel.TryGetSymbol(arrayCreationExpression.Type.ElementType, out ITypeSymbol? elementTypeSymbol))
+						if (semanticModel.TryGetSymbol(arrayCreationExpression.Type.ElementType, symbolStore, out ITypeSymbol? elementTypeSymbol))
 						{
 							var elementType = loader.GetType(elementTypeSymbol);
 
@@ -466,7 +468,7 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 							{
 								var arraySize = Convert.ToInt32(sizeVal);
 
-								if (semanticModel.TryGetSymbol(arrayCreationExpression.Type.ElementType, out ITypeSymbol? elementTypeSymbol))
+								if (semanticModel.TryGetSymbol(arrayCreationExpression.Type.ElementType, symbolStore, out ITypeSymbol? elementTypeSymbol))
 								{
 									var elementType = loader.GetType(elementTypeSymbol);
 
@@ -507,7 +509,7 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 					if (elements.Count == 0)
 					{
 						// Empty array
-						if (semanticModel.TryGetSymbol(arrayCreationExpression.Type.ElementType, out ITypeSymbol? elementTypeSymbol))
+						if (semanticModel.TryGetSymbol(arrayCreationExpression.Type.ElementType, symbolStore, out ITypeSymbol? elementTypeSymbol))
 						{
 							var elementType = loader.GetType(elementTypeSymbol);
 
@@ -535,30 +537,36 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 
 				break;
 			}
-			case CollectionExpressionSyntax collectionExpressionSyntax:
+		case CollectionExpressionSyntax collectionExpressionSyntax:
+		{
+			semanticModel.TryGetTypeSymbol(collectionExpressionSyntax, symbolStore, out var typeSym);
+
+			var elements = new List<object?>();
+
+			foreach (var element in collectionExpressionSyntax.Elements.OfType<ExpressionElementSyntax>())
 			{
-				if (semanticModel.TryGetTypeSymbol(collectionExpressionSyntax, out var typeSym))
+				if (TryGetLiteralValue(element.Expression, typeSymbol, out var elemVal, visitedVariables))
 				{
-
+					elements.Add(elemVal);
 				}
-
-				var elements = new List<object?>();
-
-				foreach (var element in collectionExpressionSyntax.Elements.OfType<ExpressionElementSyntax>())
+				else
 				{
-					if (TryGetLiteralValue(element.Expression, typeSymbol, out var elemVal, visitedVariables))
-					{
-						elements.Add(elemVal);
-					}
-					else
-					{
-						value = null;
-						return false;
-					}
+					value = null;
+					return false;
 				}
+			}
 
-				var type = elements.Count > 0 ? elements[0].GetType() : loader.GetType(typeSymbol);
-				var array = Array.CreateInstance(type, elements.Count);
+			var type = elements.Count > 0
+				? elements[0]?.GetType()
+				: loader.GetType(typeSym ?? typeSymbol);
+
+			if (type is null)
+			{
+				value = null;
+				return false;
+			}
+
+			var array = Array.CreateInstance(type, elements.Count);
 
 				for (var i = 0; i < elements.Count; i++)
 				{

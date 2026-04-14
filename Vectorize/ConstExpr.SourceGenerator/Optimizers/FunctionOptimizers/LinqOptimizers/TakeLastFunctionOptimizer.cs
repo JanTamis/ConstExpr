@@ -16,7 +16,7 @@ public class TakeLastFunctionOptimizer() : BaseLinqFunctionOptimizer("TakeLast",
 {
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
-		if (TryExecutePredicates(context, source, out result, out source))
+		if (TryExecutePredicates(context, source, context.SymbolStore, out result, out source))
 		{
 			return true;
 		}
@@ -54,7 +54,7 @@ public class TakeLastFunctionOptimizer() : BaseLinqFunctionOptimizer("TakeLast",
 
 		if (isNewSource)
 		{
-			if (TryExecutePredicates(context, source, [ amount ], out result))
+			if (TryExecutePredicates(context, source, [ amount ], context.SymbolStore, out result))
 			{
 				return true;
 			}

@@ -45,7 +45,7 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		// Recursively skip all operations that don't affect containment
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectContainment, out source);
 
-		if (TryExecutePredicates(context, source, out result, out _))
+		if (TryExecutePredicates(context, source, context.SymbolStore, out result, out _))
 		{
 			return true;
 		}
@@ -225,7 +225,7 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 			}
 		}
 
-		if (TryExecutePredicates(context, source, out result, out source))
+		if (TryExecutePredicates(context, source, context.SymbolStore, out result, out source))
 		{
 			return true;
 		}

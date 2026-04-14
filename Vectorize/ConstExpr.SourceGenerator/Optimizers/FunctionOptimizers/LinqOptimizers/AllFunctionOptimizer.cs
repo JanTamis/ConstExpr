@@ -55,7 +55,7 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		// Recursively skip all operations that don't affect all-check
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectAll, out source);
 
-		if (TryExecutePredicates(context, source, out result, out _))
+		if (TryExecutePredicates(context, source, context.SymbolStore, out result, out _))
 		{
 			return true;
 		}

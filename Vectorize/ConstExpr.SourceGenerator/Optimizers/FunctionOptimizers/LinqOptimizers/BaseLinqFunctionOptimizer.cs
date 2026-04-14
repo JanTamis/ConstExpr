@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -270,7 +271,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 
 			if (method is not null)
 			{
-				return invocation.WithMethodSymbolAnnotation(method);
+				return invocation.WithMethodSymbolAnnotation(method, context.SymbolStore);
 			}
 		}
 
@@ -306,7 +307,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		{
 			return context.Invocation
 				.Update(memberAccess.WithExpression(context.Visit(source) ?? source), ArgumentList(SeparatedList(arguments.Select(Argument))))
-				.WithMethodSymbolAnnotation(context.Method);
+				.WithMethodSymbolAnnotation(context.Method, context.SymbolStore);
 		}
 
 		throw new InvalidOperationException("Invocation expression must be a member access");
@@ -691,7 +692,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	/// </summary>
 	protected bool IsInvokedOnList(FunctionOptimizerContext context, ExpressionSyntax? expression)
 	{
-		if (!context.Model.TryGetTypeSymbol(expression, out var type)
+		if (!context.Model.TryGetTypeSymbol(expression, context.SymbolStore, out var type)
 		    || type is not INamedTypeSymbol namedType)
 		{
 			return false;
@@ -729,7 +730,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 			return variable.Type is IArrayTypeSymbol;
 		}
 
-		return context.Model.TryGetTypeSymbol(expression, out var type) && type is IArrayTypeSymbol;
+		return context.Model.TryGetTypeSymbol(expression, context.SymbolStore, out var type) && type is IArrayTypeSymbol;
 	}
 
 	protected bool IsSpecialType(FunctionOptimizerContext context, ExpressionSyntax? expression, params HashSet<SpecialType> specialTypes)
@@ -740,7 +741,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 			return variable.Type.AllInterfaces.Any(s => specialTypes.Contains(s.SpecialType) || specialTypes.Contains(s.OriginalDefinition.SpecialType));
 		}
 
-		return context.Model.TryGetTypeSymbol(expression, out var type)
+		return context.Model.TryGetTypeSymbol(expression, context.SymbolStore, out var type)
 		       && type.AllInterfaces.Any(s => specialTypes.Contains(s.SpecialType) || specialTypes.Contains(s.OriginalDefinition.SpecialType));
 	}
 
@@ -1042,7 +1043,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		return false;
 	}
 
-	protected bool TryExecutePredicates(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result, out ExpressionSyntax visitedSource)
+	protected bool TryExecutePredicates(FunctionOptimizerContext context, ExpressionSyntax source, ConcurrentDictionary<string, ISymbol> symbolStore, [NotNullWhen(true)] out SyntaxNode? result, out ExpressionSyntax visitedSource)
 	{
 		visitedSource = context.Visit(source) ?? source;
 
@@ -1050,15 +1051,15 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		{
 			if (context.OriginalParameters.Count <= context.Method.Parameters.Length
 			    && context.Method.ReceiverType is INamedTypeSymbol receiverType
-			    && TryGetLiteralValue(visitedSource, context, receiverType, out var values)
+			    && TryGetLiteralValue(visitedSource, context, receiverType, symbolStore, out var values)
 			    && context.Loader.TryGetMethodByMethod(context.Method, out var method))
 			{
 				var parameters = new List<object?>();
 
 				for (var i = 0; i < context.OriginalParameters.Count; i++)
 				{
-					if (TryGetLiteralValue(context.OriginalParameters[i], context, context.Method.Parameters[i].Type, out var value)
-					    || TryGetLiteralValue(context.VisitedParameters[i], context, context.Method.Parameters[i].Type, out value))
+					if (TryGetLiteralValue(context.OriginalParameters[i], context, context.Method.Parameters[i].Type, symbolStore, out var value)
+					    || TryGetLiteralValue(context.VisitedParameters[i], context, context.Method.Parameters[i].Type, symbolStore, out value))
 					{
 						parameters.Add(value);
 					}
@@ -1097,17 +1098,17 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		return false;
 	}
 
-	protected bool TryExecutePredicates(FunctionOptimizerContext context, ExpressionSyntax source, IList<ExpressionSyntax> parameters, [NotNullWhen(true)] out SyntaxNode? result)
+	protected bool TryExecutePredicates(FunctionOptimizerContext context, ExpressionSyntax source, IList<ExpressionSyntax> parameters, ConcurrentDictionary<string, ISymbol> symbolStore, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		try
 		{
 			if (context.OriginalParameters.Count <= context.Method.Parameters.Length
 			    && context.Method.ReceiverType is INamedTypeSymbol receiverType
-			    && TryGetLiteralValue(context.Visit(source) ?? source, context, receiverType, out var values)
+			    && TryGetLiteralValue(context.Visit(source) ?? source, context, receiverType, symbolStore, out var values)
 			    && context.Loader.TryGetMethodByMethod(context.Method, out var method))
 			{
 				var newParameters = parameters
-					.WhereSelect<ExpressionSyntax, object?>((s, out result) => TryGetLiteralValue(s, context, null, out result))
+					.WhereSelect<ExpressionSyntax, object?>((s, out result) => TryGetLiteralValue(s, context, null, symbolStore, out result))
 					.ToList();
 
 				// Fill in default values for parameters not explicitly provided in the call.
@@ -1183,10 +1184,10 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 
 			if (!optimizer.TryOptimize(context, out var result))
 			{
-				result = invocation.WithMethodSymbolAnnotation(methodSymbol);
+				result = invocation.WithMethodSymbolAnnotation(methodSymbol, context.SymbolStore);
 			}
 
-			return result.WithMethodSymbolAnnotation(methodSymbol);
+			return result.WithMethodSymbolAnnotation(methodSymbol, context.SymbolStore);
 		}
 		catch (Exception e)
 		{

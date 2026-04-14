@@ -151,9 +151,9 @@ public class LinqContainsOptimizationStringTests : BaseTest<Func<string[], int>>
 		Create("""
 			var a = Array.IndexOf(x, "hello") >= 0 ? 1 : 0;
 			var b = Array.IndexOf(x, "world") >= 0 ? 1 : 0;
-			var c = Array.Exists(x, v => String.Equals(v, "HELLO", StringComparer.CurrentCultureIgnoreCase)) ? 1 : 0;
+			var c = Array.Exists(x, v => String.Equals(v, "HELLO", StringComparison.CurrentCultureIgnoreCase)) ? 1 : 0;
 			var d = Array.IndexOf(x, "hello") >= 0 ? 1 : 0;
-
+			
 			return a + b + c + d;
 			""", Unknown),
 		Create("return 4;", new[] { new[] { "hello", "world", "foo" } }),

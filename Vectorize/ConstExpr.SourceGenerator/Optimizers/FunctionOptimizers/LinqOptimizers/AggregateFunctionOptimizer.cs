@@ -33,7 +33,7 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 	{
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectAggregate, out var currentSource);
 
-		if (TryExecutePredicates(context, currentSource, out result, out currentSource))
+		if (TryExecutePredicates(context, currentSource, context.SymbolStore, out result, out currentSource))
 		{
 			return true;
 		}

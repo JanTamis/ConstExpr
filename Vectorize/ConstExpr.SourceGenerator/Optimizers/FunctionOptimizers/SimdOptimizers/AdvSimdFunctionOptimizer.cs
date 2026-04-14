@@ -20,14 +20,14 @@ public class AdvSimdFunctionOptimizer() : BaseSimdFunctionOptimizer("AdvSimd", "
 					case "Not":
 					{
 						result = BitwiseNotExpression(context.VisitedParameters[0])
-							.WithTypeSymbolAnnotation(vectorType);
+							.WithTypeSymbolAnnotation(vectorType, context.SymbolStore);
 						return true;
 					}
 					// Negate → unary minus (-a)
 					case "Negate":
 					{
 						result = UnaryMinusExpression(context.VisitedParameters[0])
-							.WithTypeSymbolAnnotation(vectorType);
+							.WithTypeSymbolAnnotation(vectorType, context.SymbolStore);
 						return true;
 					}
 					// Load with different name
@@ -47,19 +47,19 @@ public class AdvSimdFunctionOptimizer() : BaseSimdFunctionOptimizer("AdvSimd", "
 					case "Add":
 					{
 						result = AddExpression(context.VisitedParameters[0], context.VisitedParameters[1])
-							.WithTypeSymbolAnnotation(vectorType);
+							.WithTypeSymbolAnnotation(vectorType, context.SymbolStore);
 						return true;
 					}
 					case "Subtract":
 					{
 						result = SubtractExpression(context.VisitedParameters[0], context.VisitedParameters[1])
-							.WithTypeSymbolAnnotation(vectorType);
+							.WithTypeSymbolAnnotation(vectorType, context.SymbolStore);
 						return true;
 					}
 					case "Multiply":
 					{
 						result = MultiplyExpression(context.VisitedParameters[0], context.VisitedParameters[1])
-							.WithTypeSymbolAnnotation(vectorType);
+							.WithTypeSymbolAnnotation(vectorType, context.SymbolStore);
 						return true;
 					}
 
@@ -67,33 +67,33 @@ public class AdvSimdFunctionOptimizer() : BaseSimdFunctionOptimizer("AdvSimd", "
 					case "And":
 					{
 						result = BitwiseAndExpression(context.VisitedParameters[0], context.VisitedParameters[1])
-							.WithTypeSymbolAnnotation(vectorType);
+							.WithTypeSymbolAnnotation(vectorType, context.SymbolStore);
 						return true;
 					}
 					case "Or":
 					{
 						result = BitwiseOrExpression(context.VisitedParameters[0], context.VisitedParameters[1])
-							.WithTypeSymbolAnnotation(vectorType);
+							.WithTypeSymbolAnnotation(vectorType, context.SymbolStore);
 						return true;
 					}
 					case "Xor":
 					{
 						result = ExclusiveOrExpression(context.VisitedParameters[0], context.VisitedParameters[1])
-							.WithTypeSymbolAnnotation(vectorType);
+							.WithTypeSymbolAnnotation(vectorType, context.SymbolStore);
 						return true;
 					}
 					// BitwiseClear(a, b) = a & ~b → maps to Vector128.AndNot
 					case "BitwiseClear":
 					{
 						result = BitwiseAndExpression(context.VisitedParameters[0], BitwiseNotExpression(context.VisitedParameters[1]))
-							.WithTypeSymbolAnnotation(vectorType);
+							.WithTypeSymbolAnnotation(vectorType, context.SymbolStore);
 						return true;
 					}
 					// OrNot(a, b) = a | ~b
 					case "OrNot":
 					{
 						result = BitwiseOrExpression(context.VisitedParameters[0], BitwiseNotExpression(context.VisitedParameters[1]))
-							.WithTypeSymbolAnnotation(vectorType);
+							.WithTypeSymbolAnnotation(vectorType, context.SymbolStore);
 						return true;
 					}
 

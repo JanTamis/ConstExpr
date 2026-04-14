@@ -17,7 +17,7 @@ public partial class ConstExprPartialRewriter
 {
 	public override SyntaxNode? VisitObjectCreationExpression(ObjectCreationExpressionSyntax node)
 	{
-		if (!semanticModel.TryGetSymbol(node.Type, out ITypeSymbol? type))
+		if (!semanticModel.TryGetSymbol(node.Type, symbolStore, out ITypeSymbol? type))
 		{
 			return base.VisitObjectCreationExpression(node);
 		}

@@ -65,11 +65,8 @@ public class LinqConcatOptimizationTests : BaseTest<Func<int[], int>>
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l;
 			""", Unknown),
-		Create("return 762;", new[] { 1, 2, 3 }),
 		Create("return 774;", new[] { 1, 2, 3 }),
 		Create("return 702;", new int[] { }),
-		Create("return 702;", new int[] { }),
-		Create("return 852;", new[] { 5, 10 }),
 		Create("return 882;", new[] { 5, 10 }),
 	];
 }

@@ -175,7 +175,6 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				// Clear caches to free memory after processing
 				roslynApiCache.Clear();
 				callGraphAnalyzer.ClearCache();
-				SymbolAnnotation.Clear();
 			}
 		});
 	}
@@ -351,7 +350,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				var partialVisitor = new ConstExprPartialRewriter(model, loader, (node, ex) =>
 				{
 					exceptions.TryAdd(node, ex);
-				}, variablesPartial, additionalMethods, usings, attribute, token);
+				}, variablesPartial, additionalMethods, usings, attribute, new(), token);
 
 				var timer = Stopwatch.StartNew();
 
