@@ -42,7 +42,7 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 		{
 			// int pos = 0;
 			LocalDeclarationStatement(
-				VariableDeclaration(PredefinedType(Token(SyntaxKind.IntKeyword)))
+				VariableDeclaration(IdentifierName("var"))
 					.WithVariables(SingletonSeparatedList(
 						VariableDeclarator(Identifier(PosVar))
 							.WithInitializer(EqualsValueClause(
