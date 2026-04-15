@@ -76,7 +76,7 @@ public class LinqToDictionaryOptimizationTests : BaseTest<Func<int[], int>>
 			var l = x.ToDictionary(v => v).Count;
 			var m = x.ToDictionary(v => v * 10, v => v * 10).Count;
 			var n = x.Where(v => v > 0).ToDictionary(v => v).Count;
-			var o = x.Where(v => (uint)v <= 10U).ToDictionary(v => v).Count;
+			var o = x.Where(v => (uint)(v - 1) <= 8U).ToDictionary(v => v).Count;
 			var p = x.Distinct().ToDictionary(v => v).Count;
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l + m + n + o + p;

@@ -33,19 +33,17 @@ public class DefaultIfEmptyLinqUnroller : BaseLinqUnroller
 			? method.Parameters[0]
 			: method.MethodSymbol.TypeArguments[0].GetDefaultValue();
 
+		var body = Block(partialLoopBody);
+		
+		body = body.ReplaceIdentifier("item", defaultValue) as BlockSyntax ?? body;
+
 		// if (!hasElements)
 		// {
 		//     foreach (var item in new[] { defaultValue }) { <partialLoopBody> }
 		// }
 		resultStatements.Add(IfStatement(
 			LogicalNotExpression(IdentifierName(HasElementsName)),
-			Block(ForEachStatement(
-				IdentifierName("var"),
-				"item",
-				ImplicitArrayCreationExpression(
-					InitializerExpression(SyntaxKind.ArrayInitializerExpression,
-						SingletonSeparatedList(defaultValue))),
-				Block(partialLoopBody)))));
+			body));
 	}
 }
 

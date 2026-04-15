@@ -247,6 +247,7 @@ public partial class ConstExprPartialRewriter
 		}
 
 		InvalidateAssignedVariablesForForEach(node, names);
+		
 		return base.VisitForEachStatement(node);
 	}
 
@@ -735,7 +736,6 @@ public partial class ConstExprPartialRewriter
 			default:
 				return false;
 		}
-
 	}
 	
 	public override SyntaxNode? VisitReturnStatement(ReturnStatementSyntax node)
@@ -753,6 +753,7 @@ public partial class ConstExprPartialRewriter
 			BlockSyntax block => block,
 			VariableDeclarationSyntax declaration => node.WithDeclaration(declaration),
 			ExpressionStatementSyntax expressionStatement => expressionStatement,
+			ThrowStatementSyntax throwStatement => throwStatement,
 			_ => node
 		};
 	}

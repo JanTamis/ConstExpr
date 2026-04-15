@@ -57,6 +57,29 @@ public static class LinqUnroller
 		{ PossibleLinqMethod.Union, new UnionLinqUnroller() },
 		{ PossibleLinqMethod.UnionBy, new UnionByLinqUnroller() },
 		{ PossibleLinqMethod.DefaultIfEmpty, new DefaultIfEmptyLinqUnroller() },
+		{ PossibleLinqMethod.SelectMany, new SelectManyLinqUnroller() },
+		{ PossibleLinqMethod.SkipLast, new SkipLastLinqUnroller() },
+		{ PossibleLinqMethod.TakeLast, new TakeLastLinqUnroller() },
+		{ PossibleLinqMethod.Reverse, new ReverseLinqUnroller() },
+		{ PossibleLinqMethod.Zip, new ZipLinqUnroller() },
+		{ PossibleLinqMethod.Order, new OrderLinqUnroller() },
+		{ PossibleLinqMethod.OrderDescending, new OrderDescendingLinqUnroller() },
+		{ PossibleLinqMethod.OrderBy, new OrderByLinqUnroller() },
+		{ PossibleLinqMethod.OrderByDescending, new OrderByDescendingLinqUnroller() },
+		{ PossibleLinqMethod.Index, new IndexLinqUnroller() },
+		{ PossibleLinqMethod.Chunk, new ChunkLinqUnroller() },
+		{ PossibleLinqMethod.GroupBy, new GroupByLinqUnroller() },
+		{ PossibleLinqMethod.ToDictionary, new ToDictionaryLinqUnroller() },
+		{ PossibleLinqMethod.ToHashSet, new ToHashSetLinqUnroller() },
+		{ PossibleLinqMethod.ToLookup, new ToLookupLinqUnroller() },
+		{ PossibleLinqMethod.AggregateBy, new AggregateByLinqUnroller() },
+		{ PossibleLinqMethod.CountBy, new CountByLinqUnroller() },
+		{ PossibleLinqMethod.Join, new JoinLinqUnroller() },
+		{ PossibleLinqMethod.GroupJoin, new GroupJoinLinqUnroller() },
+		{ PossibleLinqMethod.LeftJoin, new LeftJoinLinqUnroller() },
+		{ PossibleLinqMethod.RightJoin, new RightJoinLinqUnroller() },
+		{ PossibleLinqMethod.ThenBy, new ThenByLinqUnroller() },
+		{ PossibleLinqMethod.ThenByDescending, new ThenByDescendingLinqUnroller() },
 	};
 
 	/// <summary>
@@ -196,7 +219,7 @@ public static class LinqUnroller
 			.WithParameterList(ParameterList(SingletonSeparatedList(Parameter(Identifier(collectionName)).WithType(parameterType))))
 			.AddModifiers(Token(SyntaxKind.PrivateKeyword))
 			.AddModifiers(Token(SyntaxKind.StaticKeyword))
-			.WithBody(body);
+			.WithBody(visit(body) as BlockSyntax ?? body);
 
 		additionalMethods.TryAdd(localMethod, true);
 
@@ -341,7 +364,10 @@ public static class LinqUnroller
 			or PossibleLinqMethod.All
 			or PossibleLinqMethod.Any
 			or PossibleLinqMethod.Contains
-			or PossibleLinqMethod.SequenceEqual;
+			or PossibleLinqMethod.SequenceEqual
+			or PossibleLinqMethod.ToDictionary
+			or PossibleLinqMethod.ToHashSet
+			or PossibleLinqMethod.ToLookup;
 	}
 }
 

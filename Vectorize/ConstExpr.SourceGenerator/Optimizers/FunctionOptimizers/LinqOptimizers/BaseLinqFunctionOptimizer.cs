@@ -875,11 +875,15 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		// Wrap replacement in parentheses if it's a binary or conditional expression to preserve precedence.
 		// ConditionalExpressionSyntax (?:) has very low precedence and must be parenthesized when used
 		// as an operand in a binary expression (e.g., (x.Length > 0 ? x[0] : 0) << 1).
-		var wrappedReplacement = replacement is BinaryExpressionSyntax or ConditionalExpressionSyntax
+		// However, when the entire expression is just the identifier being replaced, no wrapping is needed
+		// because the replacement becomes the whole result, not a subexpression.
+		var isWholeExpression = expression is IdentifierNameSyntax id && id.Identifier.Text == oldIdentifier;
+		
+		var wrappedReplacement = !isWholeExpression && replacement is BinaryExpressionSyntax or ConditionalExpressionSyntax
 			? ParenthesizedExpression(replacement)
 			: replacement;
 
-		return (ExpressionSyntax) new IdentifierReplacer(oldIdentifier, replacement).Visit(expression);
+		return (ExpressionSyntax) new IdentifierReplacer(oldIdentifier, wrappedReplacement).Visit(expression);
 	}
 
 	protected bool TryGetValues(SyntaxNode node, [NotNullWhen(true)] out IList<object?>? values)
@@ -1093,6 +1097,14 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 			result = CreateThrowExpression(e.InnerException);
 			return true;
 		}
+		catch (ArgumentException)
+		{
+			// Argument type mismatch during reflection invocation (e.g. int[] passed where
+			// IOrderedEnumerable<T> is expected). This is not a runtime error in the user's
+			// code — it simply means we cannot constant-fold this call.
+			result = null;
+			return false;
+		}
 
 		result = null;
 		return false;
@@ -1138,6 +1150,12 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		{
 			result = CreateThrowExpression(e.InnerException);
 			return true;
+		}
+		catch (ArgumentException)
+		{
+			// Argument type mismatch during reflection invocation — cannot constant-fold.
+			result = null;
+			return false;
 		}
 
 		result = null;

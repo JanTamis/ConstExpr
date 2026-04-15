@@ -139,8 +139,9 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 						return true;
 					}
 
-					result = CreateInvocation(methodSource, nameof(Enumerable.DefaultIfEmpty), defaultItem);
-					return true;
+					// result = CreateInvocation(methodSource, nameof(Enumerable.DefaultIfEmpty), defaultItem);
+					// return true;
+					break;
 				}
 				case nameof(Enumerable.Prepend) when GetMethodArguments(invocation).FirstOrDefault() is { Expression: { } appendArg }:
 				{

@@ -70,10 +70,10 @@ public class LinqCountOptimizationTests() : BaseTest<Func<int[], int>>(FastMathF
 			var h = Count_5UQwMQ(x);
 			var i = Count_4OhS1w(x) + x.Length + x.Length;
 			var j = x.Length;
-			var k = Count_SzY_Mw(x);
-			var l = Count_lj8aiA(x);
-			var m = Count_SzY_Mw(x);
-			var n = Count_lj8aiA(x);
+			var k = Count_DCoT9A(x);
+			var l = Count_lc3V4A(x);
+			var m = Count_DCoT9A(x);
+			var n = Count_lc3V4A(x);
 			var o = Count_T6dSbQ(x);
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l + m + n + o;

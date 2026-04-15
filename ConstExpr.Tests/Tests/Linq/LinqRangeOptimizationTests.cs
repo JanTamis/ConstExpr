@@ -72,7 +72,7 @@ public class LinqRangeOptimizationTests() : BaseTest<Func<int, int, double>>(Fas
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var b = count * (start << 1 + count - 1) / 2;
+			var b = count * ((start << 1) + count - 1) / 2;
 			var c = count > 0 ? 1 : 0;
 			var d = 5 >= start && 5 < count + start ? 1 : 0;
 			var f = start + count - 1;

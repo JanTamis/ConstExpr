@@ -79,7 +79,7 @@ public abstract class BaseLinqUnroller
 			_ => throw new InvalidOperationException("Unsupported lambda expression type")
 		};
 
-		return ReplaceIdentifier(body, lambdaParam, replacement) as ExpressionSyntax;
+		return body.ReplaceIdentifier(lambdaParam, replacement) as ExpressionSyntax;
 	}
 
 	protected static bool TryGetLambda(ExpressionSyntax? parameter, [NotNullWhen(true)] out LambdaExpressionSyntax? lambda)
@@ -103,15 +103,6 @@ public abstract class BaseLinqUnroller
 				=> parenthesizedLambda.ParameterList.Parameters[0].Identifier.Text,
 			_ => throw new InvalidOperationException("Unsupported lambda expression type")
 		};
-	}
-
-	private static SyntaxNode ReplaceIdentifier(CSharpSyntaxNode body, string oldIdentifier, ExpressionSyntax replacement)
-	{
-		var wrappedReplacement = replacement is BinaryExpressionSyntax or ConditionalExpressionSyntax
-			? ParenthesizedExpression(replacement)
-			: replacement;
-
-		return new IdentifierReplacer(oldIdentifier, wrappedReplacement).Visit(body);
 	}
 
 	/// <summary>
@@ -318,13 +309,5 @@ public abstract class BaseLinqUnroller
 			.WithArgumentList(
 				ArgumentList(
 					SeparatedList(arguments.Select(Argument))));
-	}
-}
-
-file sealed class IdentifierReplacer(string identifier, ExpressionSyntax replacement) : CSharpSyntaxRewriter
-{
-	public override SyntaxNode? VisitIdentifierName(IdentifierNameSyntax node)
-	{
-		return node.Identifier.Text == identifier ? replacement : base.VisitIdentifierName(node);
 	}
 }

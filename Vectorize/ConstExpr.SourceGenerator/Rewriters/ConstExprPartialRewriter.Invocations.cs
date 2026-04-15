@@ -207,10 +207,12 @@ public partial class ConstExprPartialRewriter
 			if (node.Expression is MemberAccessExpressionSyntax { Expression: var instanceName }
 			    && !targetMethod.ContainingType.EqualsType(semanticModel.Compilation.GetTypeByMetadataName("System.Random")))
 			{
-				return TryExecuteInstanceMethod(targetMethod, instanceName, constantArguments);
+				return TryExecuteInstanceMethod(targetMethod, instanceName, constantArguments)
+					.WithTypeSymbolAnnotation(targetMethod.ReturnType, symbolStore);
 			}
 
-			return TryExecuteViaOperationVisitor(targetMethod, constantArguments);
+			return TryExecuteViaOperationVisitor(targetMethod, constantArguments)
+				.WithTypeSymbolAnnotation(targetMethod.ReturnType, symbolStore);
 		}
 		catch (Exception)
 		{

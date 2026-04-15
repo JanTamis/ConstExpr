@@ -25,7 +25,7 @@ public class LinqSelectOptimizationTests : BaseTest<Func<IEnumerable<int>, int>>
 		Create("""
 			var a = Sum_7Ump6A(x);
 			var b = Sum_QM1oxw(x) ?? 0;
-			var c = Sum_aeFN6Q(x);
+			var c = Sum_DVZBFA(x);
 			
 			return a + b + c;
 			""", Unknown),

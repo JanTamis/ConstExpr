@@ -90,13 +90,13 @@ public class  LinqDefaultIfEmptyWithValueTests : BaseTest<Func<int[], int>>
 		Create("""
 			var a = x.Length > 0 ? x[0] : 42;
 			var b = x.Length > 0 ? x[0] : 99;
-			var c = x.Order().FirstOrDefault(77);
+			var c = First_YjeONw(x);
 			var d = x.Length > 0 ? x[0] : 10;
 			
 			return a + b + c + d;
 			""", Unknown),
 		Create("return 4;", new[] { 1 }), // Non-empty: returns first element (1) four times = 1+1+1+1 = 4
-		Create("return 238;", new int[] { }), // Empty: returns default values 42+99+77+20 = 238
+		Create("return 228;", new int[] { }), // Empty: returns default values 42+99+77+20 = 238
 	];
 }
 

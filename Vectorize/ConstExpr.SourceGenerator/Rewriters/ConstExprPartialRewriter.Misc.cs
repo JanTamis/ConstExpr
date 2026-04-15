@@ -249,9 +249,14 @@ public partial class ConstExprPartialRewriter
 					{
 						if (st is TNode t)
 						{
+							if (st is ContinueStatementSyntax)
+							{
+								return List(result);
+							}
+							
 							result.Add(t);
 
-							if (st is ReturnStatementSyntax)
+							if (st is ReturnStatementSyntax or BreakStatementSyntax)
 							{
 								shouldStop = true;
 								break;
@@ -262,9 +267,14 @@ public partial class ConstExprPartialRewriter
 				}
 				case TNode t:
 				{
+					if (t is ContinueStatementSyntax)
+					{
+						return List(result);
+					}
+
 					result.Add(t);
 
-					if (visited is ReturnStatementSyntax)
+					if (visited is ReturnStatementSyntax or BreakStatementSyntax)
 					{
 						shouldStop = true;
 					}
@@ -303,9 +313,14 @@ public partial class ConstExprPartialRewriter
 					{
 						if (st is TNode t)
 						{
+							if (st is ContinueStatementSyntax)
+							{
+								return SeparatedList(result);
+							}
+							
 							result.Add(t);
 
-							if (st is ReturnStatementSyntax)
+							if (st is ReturnStatementSyntax or BreakStatementSyntax)
 							{
 								shouldStop = true;
 								break;
@@ -316,9 +331,14 @@ public partial class ConstExprPartialRewriter
 				}
 				case TNode t:
 				{
+					if (t is ContinueStatementSyntax)
+					{
+						return SeparatedList(result);
+					}
+
 					result.Add(t);
 
-					if (visited is ReturnStatementSyntax)
+					if (visited is ReturnStatementSyntax or BreakStatementSyntax)
 					{
 						shouldStop = true;
 					}

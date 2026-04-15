@@ -21,9 +21,9 @@ public class LinqSequenceEqualOptimizationTests : BaseTest<Func<int[], bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var b = x.Count <= 0;
-			var c = x.Count <= 0;
-
+			var b = x.Length <= 0;
+			var c = x.Length <= 0;
+			
 			return b && c;
 			""", Unknown),
 		Create("return false;", new[] { 1, 2, 3 }),

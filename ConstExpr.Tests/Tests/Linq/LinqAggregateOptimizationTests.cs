@@ -60,25 +60,25 @@ public class LinqAggregateOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = Sum_iNfOtw(x);
-			var b = Sum_iNfOtw(x);
-			var c = Sum_iNfOtw(x);
-			var d = Sum_iNfOtw(x);
-			var e = Sum_iNfOtw(x);
-			var f = Sum_iNfOtw(x) << 1;
-			var g1 = Sum_iNfOtw(x);
-			var g2 = Sum_iNfOtw(x);
-			var h = Sum_iNfOtw(x);
-			var i = Sum_iNfOtw(x);
-			var j = Sum_ig9eyw(x);
-			var k = Sum_osOtag(x);
-			var l = Sum_905m0Q(x);
-			var m = Aggregate_LJtebg(x);
-			var n = Sum_iNfOtw(x) + 10;
+			var a = Sum_7Ump6A(x);
+			var b = Sum_7Ump6A(x);
+			var c = Sum_7Ump6A(x);
+			var d = Sum_7Ump6A(x);
+			var e = Sum_7Ump6A(x);
+			var f = Sum_7Ump6A(x) << 1;
+			var g1 = Sum_7Ump6A(x);
+			var g2 = Sum_7Ump6A(x);
+			var h = Sum_7Ump6A(x);
+			var i = Sum_7Ump6A(x);
+			var j = Sum_LNDHMA(x);
+			var k = Sum_IIPQMQ(x);
+			var l = Sum_8A1xYA(x);
+			var m = Aggregate_lFA6IA(x);
+			var n = Sum_7Ump6A(x) + 10;
 			
 			return a + b + c + d + e + f + g1 + g2 + h + i + j + k + l + m + n;
 			""", Unknown),
-		Create("return 315;", new[] { 1, 2, 3, 4, 5 }),
-		Create("return 441;", new[] { 1, 2, 3, 4, 5, 6 }),
+		Create("return 367;", new[] { 1, 2, 3, 4, 5 }),
+		Create("return 1063;", new[] { 1, 2, 3, 4, 5, 6 }),
 	];
 }

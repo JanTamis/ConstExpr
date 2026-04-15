@@ -164,7 +164,7 @@ public partial class ConstExprPartialRewriter
 				}
 				case ThrowExpressionSyntax throwExpr:
 				{
-					statements.Add(ExpressionStatement(throwExpr));
+					statements.Add(ThrowStatement(throwExpr.Expression));
 					return BuildVariableDeclarationResult(node, visitedVariables, statements);
 				}
 			}

@@ -329,19 +329,24 @@ public partial class ConstExprPartialRewriter
 			return [ ];
 		}
 
-		var data = semanticModel.AnalyzeDataFlow(block, block);
-
-		if (!data.Succeeded)
+		if (semanticModel.Compilation.TryGetSemanticModel(block, out var model))
 		{
-			return [ ];
+			var data = semanticModel.AnalyzeDataFlow(block, block);
+
+			if (!data.Succeeded)
+			{
+				return [ ];
+			}
+
+			// Get all variables that are written to within the block
+			var assignedVariables = data.WrittenInside
+				.Where(symbol => symbol is ILocalSymbol or IParameterSymbol)
+				.Select(symbol => symbol.Name);
+
+			return assignedVariables;
 		}
 
-		// Get all variables that are written to within the block
-		var assignedVariables = data.WrittenInside
-			.Where(symbol => symbol is ILocalSymbol or IParameterSymbol)
-			.Select(symbol => symbol.Name);
-
-		return assignedVariables;
+		return [ ];
 	}
 
 	/// <summary>

@@ -47,15 +47,15 @@ public class LinqAggregateByOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = x.AggregateBy(v => v & 1, 0, (acc, v) => acc + v).Count();
-			var b = x.AggregateBy(v => v & 1, 0, (acc, v) => acc + v).Count();
-			var c = x.AggregateBy(v => v & 1, 0, (acc, v) => acc + v).Count();
-			var d = x.AggregateBy(v => v & 1, 0, (acc, v) => acc + v).Count();
-			var e = x.OrderBy(v => v + 1).AggregateBy(v => v & 1, 0, (acc, v) => acc + v).Count();
-			var f = x.Where(v => v > 0).AggregateBy(v => v & 1, 0, (acc, v) => acc + v).Count();
-			var h = x.AggregateBy(v => v & 1, 0, (acc, v) => acc + v, EqualityComparer<int>.Default).Count();
-			var i = x.DistinctBy(v => v & 1).Count();
-			var j = x.DistinctBy(v => v & 1).Count();
+			var a = Count_MCCfkQ(x);
+			var b = Count_MCCfkQ(x);
+			var c = Count_MCCfkQ(x);
+			var d = Count_MCCfkQ(x);
+			var e = Count_4x_qdA(x);
+			var f = Count_0vAttQ(x);
+			var h = Count_MCCfkQ(x);
+			var i = x.CountBy(v => v & 1).Count();
+			var j = Count_z525XA(x);
 			
 			return a + b + c + d + e + f + h + i + j;
 			""", Unknown),

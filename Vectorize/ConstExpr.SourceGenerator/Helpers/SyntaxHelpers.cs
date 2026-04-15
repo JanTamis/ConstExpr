@@ -1359,6 +1359,15 @@ public static class SyntaxHelpers
 			.WithArgumentList(ArgumentList(SeparatedList(arguments.Select(Argument))));
 	}
 
+	public static SyntaxNode ReplaceIdentifier(this SyntaxNode body, string oldIdentifier, ExpressionSyntax replacement)
+	{
+		var wrappedReplacement = replacement is BinaryExpressionSyntax or ConditionalExpressionSyntax
+			? ParenthesizedExpression(replacement)
+			: replacement;
+
+		return new IdentifierReplacer(oldIdentifier, wrappedReplacement).Visit(body);
+	}
+
 	/// <summary>
 	/// Recursively checks if a method is invoked, following the call chain up to entry points.
 	/// </summary>
@@ -1522,5 +1531,13 @@ public static class SyntaxHelpers
 		}
 
 		return false;
+	}
+
+	private sealed class IdentifierReplacer(string identifier, ExpressionSyntax replacement) : CSharpSyntaxRewriter
+	{
+		public override SyntaxNode? VisitIdentifierName(IdentifierNameSyntax node)
+		{
+			return node.Identifier.Text == identifier ? replacement : base.VisitIdentifierName(node);
+		}
 	}
 }

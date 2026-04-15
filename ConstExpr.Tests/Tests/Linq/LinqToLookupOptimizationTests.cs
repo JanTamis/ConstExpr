@@ -72,7 +72,7 @@ public class LinqToLookupOptimizationTests : BaseTest<Func<int[], int>>
 			var k = x.ToLookup(v => v).Count;
 			var l = x.ToLookup(v => v * 10, v => v * 10).Count;
 			var m = x.Where(v => v > 0).ToLookup(v => v).Count;
-			var n = x.Where(v => (uint)v <= 10U).ToLookup(v => v).Count;
+			var n = x.Where(v => (uint)(v - 1) <= 8U).ToLookup(v => v).Count;
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l + m + n;
 			""", Unknown),

@@ -112,6 +112,13 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 					var twoTimesStart = OptimizeArithmetic(context, SyntaxKind.MultiplyExpression,
 						CreateLiteral(2), startArg.Expression, intType);
 
+					// Shift operators (<<, >>) have lower precedence than + and -, so wrap in parens
+					// to avoid `start << 1 + count` being parsed as `start << (1 + count)`.
+					if (twoTimesStart is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LeftShiftExpression or (int)SyntaxKind.RightShiftExpression })
+					{
+						twoTimesStart = ParenthesizedExpression(twoTimesStart);
+					}
+
 					var twoStartPlusCount = OptimizeArithmetic(context, SyntaxKind.AddExpression,
 						twoTimesStart, countArg.Expression, intType);
 

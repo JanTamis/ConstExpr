@@ -20,9 +20,8 @@ public class LinqSkipLastOptimizationTests : BaseTest<Func<int[], int>>
 	[
 		Create("""
 			var a = x.Length;
+			var b = Count_2QIgkw(x);
 			
-			var b = x.SkipLast(6).Count();
-
 			return a + b;
 			""", Unknown),
 		Create("return 3;", new[] { 1, 2, 3 }),
