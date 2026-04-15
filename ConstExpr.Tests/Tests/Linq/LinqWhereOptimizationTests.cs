@@ -43,11 +43,11 @@ public class LinqWhereOptimizationTests() : BaseTest<Func<int[], int>>(FastMathF
 	[
 		Create("""
 			var a = x.Length;
-			var c = Count_PMYiUA(x);
-			var d = Count_MByphw(x);
-			var e = Count_pHGz0w(x);
+			var c = Count_Teno0g(x);
+			var d = Count_GYM_uw(x);
+			var e = Count_vGdPZA(x);
 			var f = Count_YEOoVA(x);
-			var h = Count_yA7QMA(x);
+			var h = Count_oNuv2g(x);
 			
 			return a + c + d + e + f + h;
 			""", Unknown),

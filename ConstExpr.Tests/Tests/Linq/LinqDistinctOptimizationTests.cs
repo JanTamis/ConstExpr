@@ -51,7 +51,7 @@ public class LinqDistinctOptimizationTests : BaseTest<Func<int[], int>>
 			var e = Count_4OhS1w(x);
 			var f = Count_4OhS1w(x);
 			var g = Count_4OhS1w(x);
-			var h = x.Count > 0 ? 1 : 0;
+			var h = x.Length > 0 ? 1 : 0;
 			var i = Count_4OhS1w(x);
 			var j = Count_4OhS1w(x);
 			

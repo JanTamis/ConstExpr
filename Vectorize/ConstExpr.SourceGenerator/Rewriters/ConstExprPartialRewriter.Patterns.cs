@@ -628,19 +628,18 @@ public partial class ConstExprPartialRewriter
 		// For `>= low`: effective lower = low
 		// For `< high`: effective upper = high - 1
 		// For `<= high`: effective upper = high
-		// var effectiveLower = lowerInclusive ? lowerBound : lowerBound.Add(1.ToSpecialType(type.SpecialType));
-		// var effectiveUpper = upperInclusive ? upperBound : upperBound.Subtract(1.ToSpecialType(type.SpecialType));
-		var effectiveLower = lowerBound;
-		var effectiveUpper = upperBound;
+		var effectiveLower = lowerInclusive ? lowerBound : lowerBound.Add(1.ToSpecialType(type.SpecialType));
+		var effectiveUpper = upperInclusive ? upperBound : upperBound.Subtract(1.ToSpecialType(type.SpecialType));
 
-		// Range = effectiveUpper - effectiveLower
+		// Range = effectiveUpper - effectiveLower (both bounds are now inclusive)
 		var range = effectiveUpper.Subtract(effectiveLower);
 
-		// Validate that the range is positive
+		// Validate that the range is non-negative (empty range means predicate is always false)
 		if (range is IComparable comparableRange 
 		    && comparableRange.CompareTo(0.ToSpecialType(type.SpecialType)) < 0)
 		{
-			return false;
+			result = CreateLiteral(false);
+			return true;
 		}
 
 		// Build the optimized expression: (uint)(v - effectiveLower) < range
@@ -680,10 +679,8 @@ public partial class ConstExprPartialRewriter
 			return false;
 		}
 
-		// Use LessThanOrEqual because the range includes both bounds
-		result = upperInclusive 
-			? LessThanOrEqualExpression(optimizedExpr, rangeLiteral) 
-			: LessThanExpression(optimizedExpr, rangeLiteral);
+		// Use LessThanOrEqual because both effective bounds are inclusive after adjustment
+		result = LessThanOrEqualExpression(optimizedExpr, rangeLiteral);
 		return true;
 	}
 
