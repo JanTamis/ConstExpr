@@ -256,10 +256,16 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		return AnnotateLinqInvocation(context, invocation, methodName, 0);
 	}
 
+	protected InvocationExpressionSyntax CreateAnnotatedSimpleInvocation(FunctionOptimizerContext context, ExpressionSyntax source, string methodName, ITypeSymbol[] typeArguments)
+	{
+		var invocation = CreateSimpleInvocation(source, methodName);
+		return AnnotateLinqInvocation(context, invocation, methodName, 0, typeArguments);
+	}
+
 	/// <summary>
 	/// Resolves the LINQ extension method symbol from the compilation and annotates the invocation node.
 	/// </summary>
-	private static InvocationExpressionSyntax AnnotateLinqInvocation(FunctionOptimizerContext context, InvocationExpressionSyntax invocation, string methodName, int lambdaArgCount)
+	private static InvocationExpressionSyntax AnnotateLinqInvocation(FunctionOptimizerContext context, InvocationExpressionSyntax invocation, string methodName, int lambdaArgCount, ITypeSymbol[]? typeArguments = null)
 	{
 		var enumerable = context.Model.Compilation.GetTypeByMetadataName("System.Linq.Enumerable");
 
@@ -267,10 +273,15 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		{
 			var method = enumerable.GetMembers(methodName)
 				.OfType<IMethodSymbol>()
-				.FirstOrDefault(m => m.Parameters.Length == lambdaArgCount + 1);
+				.FirstOrDefault(m => m.Parameters.Length == lambdaArgCount + 1 && typeArguments is null || m.Arity == typeArguments.Length);
 
 			if (method is not null)
 			{
+				if (typeArguments is not null)
+				{
+					return invocation.WithMethodSymbolAnnotation(method.Construct(typeArguments), context.SymbolStore);
+				}
+
 				return invocation.WithMethodSymbolAnnotation(method, context.SymbolStore);
 			}
 		}
@@ -1286,34 +1297,6 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 			.FirstOrDefault(m => m.Parameters.Length == parameterCount + 1); // +1 for the source parameter
 
 		return methodSymbol is not null;
-	}
-
-	protected ExpressionSyntax InvertSyntax(ExpressionSyntax node)
-	{
-		return node switch
-		{
-			// invert binary expressions with logical operators
-			BinaryExpressionSyntax binary => binary.Kind() switch
-			{
-				SyntaxKind.LogicalAndExpression => LogicalOrExpression(InvertSyntax(binary.Left), InvertSyntax(binary.Right)),
-				SyntaxKind.LogicalOrExpression => LogicalAndExpression(InvertSyntax(binary.Left), InvertSyntax(binary.Right)),
-				SyntaxKind.EqualsExpression => NotEqualsExpression(binary.Left, binary.Right),
-				SyntaxKind.NotEqualsExpression => EqualsExpression(binary.Left, binary.Right),
-				SyntaxKind.GreaterThanExpression => LessThanOrEqualExpression(binary.Left, binary.Right),
-				SyntaxKind.GreaterThanOrEqualExpression => LessThanExpression(binary.Left, binary.Right),
-				SyntaxKind.LessThanExpression => GreaterThanOrEqualExpression(binary.Left, binary.Right),
-				SyntaxKind.LessThanOrEqualExpression => GreaterThanExpression(binary.Left, binary.Right),
-				_ => LogicalNotExpression(ParenthesizedExpression(node))
-			},
-			PrefixUnaryExpressionSyntax prefixUnary when prefixUnary.IsKind(SyntaxKind.LogicalNotExpression) => prefixUnary.Operand,
-			// handle 'x is T' (pattern form) and 'x is not T'
-			// x is not T  →  x is T  (strip the negation)
-			IsPatternExpressionSyntax isPattern when isPattern.Pattern.Kind() == SyntaxKind.NotPattern && isPattern.Pattern is UnaryPatternSyntax negated => IsPatternExpression(isPattern.Expression, negated.Pattern),
-			// x is T  →  x is not T  (add negation)
-			IsPatternExpressionSyntax isPattern => IsPatternExpression(isPattern.Expression, UnaryPattern(Token(SyntaxKind.NotKeyword), isPattern.Pattern)),
-			InvocationExpressionSyntax or MemberAccessExpressionSyntax or ElementAccessExpressionSyntax => LogicalNotExpression(node),
-			_ => LogicalNotExpression(ParenthesizedExpression(node))
-		};
 	}
 
 	/// <summary>

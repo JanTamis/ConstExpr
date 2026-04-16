@@ -190,7 +190,7 @@ public static class LinqUnroller
 			return false;
 		}
 
-		var collectionName = "collection";
+		const string collectionName = "collection";
 
 		var elementName = lastUnroller.GetCollectionElement(chain[^1], collectionName);
 		var elements = new List<StatementSyntax>();
@@ -277,7 +277,7 @@ public static class LinqUnroller
 	/// </summary>
 	internal static List<StatementSyntax> BuildPartialLoopBody(UnrolledLinqMethod[] chain, int fromIndex)
 	{
-		var elementName = (ExpressionSyntax) IdentifierName("item");
+		ExpressionSyntax elementName = IdentifierName("item");
 		var elements = new List<StatementSyntax>();
 
 		for (var i = fromIndex; i < chain.Length; i++)
@@ -332,6 +332,17 @@ public static class LinqUnroller
 			else
 			{
 				elements.Add(YieldStatement(SyntaxKind.YieldReturnStatement, elementName));
+			}
+
+			if (elements[^1] is ContinueStatementSyntax)
+			{
+				elements.RemoveAt(elements.Count - 1);
+				break;
+			}
+
+			if (elements.Any(a => a is BreakStatementSyntax or ReturnStatementSyntax))
+			{
+				break;
 			}
 		}
 

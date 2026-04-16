@@ -1210,9 +1210,7 @@ public static class SyntaxHelpers
 
 	public static TypeSyntax CreateTypeSyntax<T>()
 	{
-		var type = typeof(T);
-
-		return CreateTypeSyntax(type);
+		return CreateTypeSyntax(typeof(T));
 	}
 
 	public static CastExpressionSyntax CreateCastSyntax<T>(ExpressionSyntax expression)
@@ -1342,6 +1340,16 @@ public static class SyntaxHelpers
 		return SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, expression, name);
 	}
 
+	public static AssignmentExpressionSyntax AssignmentExpression(ExpressionSyntax left, SimpleNameSyntax name)
+	{
+		return SyntaxFactory.AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, left, name);
+	}
+
+	public static AssignmentExpressionSyntax AssignmentExpression(ExpressionSyntax left, ExpressionSyntax right)
+	{
+		return SyntaxFactory.AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, left, right);
+	}
+
 	public static ElementAccessExpressionSyntax ElementAccessExpression(ExpressionSyntax expression, params ExpressionSyntax[] arguments)
 	{
 		return SyntaxFactory.ElementAccessExpression(expression)
@@ -1366,6 +1374,34 @@ public static class SyntaxHelpers
 			: replacement;
 
 		return new IdentifierReplacer(oldIdentifier, wrappedReplacement).Visit(body);
+	}
+
+	public static ExpressionSyntax InvertSyntax(this ExpressionSyntax node)
+	{
+		return node switch
+		{
+			// invert binary expressions with logical operators
+			BinaryExpressionSyntax binary => binary.Kind() switch
+			{
+				SyntaxKind.LogicalAndExpression => LogicalOrExpression(InvertSyntax(binary.Left), InvertSyntax(binary.Right)),
+				SyntaxKind.LogicalOrExpression => LogicalAndExpression(InvertSyntax(binary.Left), InvertSyntax(binary.Right)),
+				SyntaxKind.EqualsExpression => NotEqualsExpression(binary.Left, binary.Right),
+				SyntaxKind.NotEqualsExpression => EqualsExpression(binary.Left, binary.Right),
+				SyntaxKind.GreaterThanExpression => LessThanOrEqualExpression(binary.Left, binary.Right),
+				SyntaxKind.GreaterThanOrEqualExpression => LessThanExpression(binary.Left, binary.Right),
+				SyntaxKind.LessThanExpression => GreaterThanOrEqualExpression(binary.Left, binary.Right),
+				SyntaxKind.LessThanOrEqualExpression => GreaterThanExpression(binary.Left, binary.Right),
+				_ => LogicalNotExpression(ParenthesizedExpression(node))
+			},
+			PrefixUnaryExpressionSyntax prefixUnary when prefixUnary.IsKind(SyntaxKind.LogicalNotExpression) => prefixUnary.Operand,
+			// handle 'x is T' (pattern form) and 'x is not T'
+			// x is not T  →  x is T  (strip the negation)
+			IsPatternExpressionSyntax isPattern when isPattern.Pattern.Kind() == SyntaxKind.NotPattern && isPattern.Pattern is UnaryPatternSyntax negated => IsPatternExpression(isPattern.Expression, negated.Pattern),
+			// x is T  →  x is not T  (add negation)
+			IsPatternExpressionSyntax isPattern => IsPatternExpression(isPattern.Expression, UnaryPattern(Token(SyntaxKind.NotKeyword), isPattern.Pattern)),
+			InvocationExpressionSyntax or MemberAccessExpressionSyntax or ElementAccessExpressionSyntax => LogicalNotExpression(node),
+			_ => LogicalNotExpression(ParenthesizedExpression(node))
+		};
 	}
 
 	/// <summary>

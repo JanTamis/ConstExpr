@@ -40,7 +40,7 @@ public class SequenceEqualFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 				var invocation = CreateInvocation(secondSource, nameof(Enumerable.Any));
 				var tempResource = TryOptimizeByOptimizer<AnyFunctionOptimizer>(context.WithInvocationAndMethod(invocation, anyMethod), invocation);
 				
-				result = InvertSyntax(tempResource as ExpressionSyntax ?? invocation);
+				result = (tempResource as ExpressionSyntax ?? invocation).InvertSyntax();
 				return true;
 			}
 
@@ -50,7 +50,7 @@ public class SequenceEqualFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 				var invocation = CreateInvocation(source, nameof(Enumerable.Any));
 				var tempResource = TryOptimizeByOptimizer<AnyFunctionOptimizer>(context.WithInvocationAndMethod(invocation, anyMethod), invocation);
 
-				result = InvertSyntax(tempResource as ExpressionSyntax ?? invocation);
+				result = (tempResource as ExpressionSyntax ?? invocation).InvertSyntax();
 				return true;
 			}
 		}

@@ -90,7 +90,7 @@ public class  LinqDefaultIfEmptyWithValueTests : BaseTest<Func<int[], int>>
 		Create("""
 			var a = x.Length > 0 ? x[0] : 42;
 			var b = x.Length > 0 ? x[0] : 99;
-			var c = First_YjeONw(x);
+			var c = First_NkNrmA(x);
 			var d = x.Length > 0 ? x[0] : 10;
 			
 			return a + b + c + d;
@@ -153,7 +153,8 @@ public class LinqDefaultIfEmptyComplexTests : BaseTest<Func<int[], int>>
 		// Multiple chained operations before DefaultIfEmpty
 		var a = x.Where(v => v > 0).Distinct().OrderBy(v => v).DefaultIfEmpty(50).Sum();
 
-		// DefaultIfEmpty after Select (Select can create empty collection)
+		
+// DefaultIfEmpty after Select (Select can create empty collection)
 		var b = x.Where(v => v > 100).Select(v => v * 2).DefaultIfEmpty(25).Sum();
 
 		// Nested DefaultIfEmpty with different values
@@ -162,15 +163,14 @@ public class LinqDefaultIfEmptyComplexTests : BaseTest<Func<int[], int>>
 		
 		var e = x.DefaultIfEmpty(10).DefaultIfEmpty(20).DefaultIfEmpty(30).Last();
 		var f = x.DefaultIfEmpty(10).DefaultIfEmpty(20).DefaultIfEmpty(30).LastOrDefault();
-
 		return a + b + c + d + e + f;
 	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = Sum_lO_PkQ(x);
-			var b = Sum_SOfGdQ(x);
+			var a = Sum_odpwGg(x);
+			var b = Sum_VXwljg(x);
 			var c = x.Length > 0 ? x[0] : 10;
 			var d = x.Length > 0 ? x[0] : 10;
 			var e = x.Length > 0 ? x[^1] : 10;

@@ -509,6 +509,10 @@ public partial class ConstExprPartialRewriter
 		{
 			simplified = ReturnStatement(inverted);
 		}
+		else if (condition is { } expr)
+		{
+			simplified = ReturnStatement(NegateExpressionRefactoring.Negate(expr));
+		}
 
 		return simplified is not null;
 	}

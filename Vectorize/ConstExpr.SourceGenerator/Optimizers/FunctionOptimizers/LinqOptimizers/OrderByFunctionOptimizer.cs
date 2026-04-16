@@ -36,13 +36,13 @@ public class OrderByFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 		// Optimize OrderBy(x => x) => Order() (identity lambda)
 		if (IsIdentityLambda(lambda))
 		{
-			result = CreateSimpleInvocation(source, "Order");
+			result = CreateAnnotatedSimpleInvocation(context, source, "Order", context.Method.TypeArguments.Take(1).ToArray());
 			return true;
 		}
 		
 		if (isNewSource)
 		{
-			result = CreateInvocation(source, Name, lambda);
+			result = UpdateInvocation(context, source, lambda);
 			return true;
 		}
 		

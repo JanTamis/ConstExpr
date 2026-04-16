@@ -47,13 +47,13 @@ public class LinqAggregateByOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = Count_MCCfkQ(x);
-			var b = Count_MCCfkQ(x);
-			var c = Count_MCCfkQ(x);
-			var d = Count_MCCfkQ(x);
-			var e = Count_4x_qdA(x);
-			var f = Count_0vAttQ(x);
-			var h = Count_MCCfkQ(x);
+			var a = Count_NyUH3g(x);
+			var b = Count_NyUH3g(x);
+			var c = Count_NyUH3g(x);
+			var d = Count_NyUH3g(x);
+			var e = Count_YxDIXg(x);
+			var f = Count_2M2oWw(x);
+			var h = Count_NyUH3g(x);
 			var i = x.CountBy(v => v & 1).Count();
 			var j = Count_z525XA(x);
 			

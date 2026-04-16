@@ -52,7 +52,7 @@ public class OrderFunctionOptimizer() : BaseLinqFunctionOptimizer("Order", 0)
 		
 		if (isNewSource)
 		{
-			result = CreateSimpleInvocation(source, Name);
+			result = UpdateInvocation(context, source);
 			return true;
 		}
 

@@ -62,22 +62,22 @@ public class LinqToDictionaryOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = x.ToDictionary(v => v).Count;
-			var b = x.ToDictionary(v => v).Count;
-			var c = x.ToDictionary(v => v).Count;
-			var d = x.ToDictionary(v => v).Count;
-			var e = x.ToDictionary(v => v, v => v << 1).Count;
-			var f = x.ToDictionary(v => v, v => v << 1).Count;
-			var g = x.ToDictionary(v => v).Count;
-			var h = x.ToDictionary(v => v).Count;
-			var i = x.ToDictionary(v => v).Count;
-			var j = x.ToDictionary(v => v).Count;
-			var k = x.ToDictionary(v => v).Count;
-			var l = x.ToDictionary(v => v).Count;
-			var m = x.ToDictionary(v => v * 10, v => v * 10).Count;
-			var n = x.Where(v => v > 0).ToDictionary(v => v).Count;
-			var o = x.Where(v => (uint)(v - 1) <= 8U).ToDictionary(v => v).Count;
-			var p = x.Distinct().ToDictionary(v => v).Count;
+			var a = ToDictionary_pGYHOA(x).Count;
+			var b = ToDictionary_pGYHOA(x).Count;
+			var c = ToDictionary_pGYHOA(x).Count;
+			var d = ToDictionary_pGYHOA(x).Count;
+			var e = ToDictionary_H6P76A(x).Count;
+			var f = ToDictionary_H6P76A(x).Count;
+			var g = ToDictionary_pGYHOA(x).Count;
+			var h = ToDictionary_pGYHOA(x).Count;
+			var i = ToDictionary_pGYHOA(x).Count;
+			var j = ToDictionary_pGYHOA(x).Count;
+			var k = ToDictionary_r9ak7g(x).Count;
+			var l = ToDictionary_qnDGnw(x).Count;
+			var m = ToDictionary_pGYHOA(x).Count;
+			var n = ToDictionary_HBnvag(x).Count;
+			var o = ToDictionary_Ky6jwg(x).Count;
+			var p = ToDictionary_Tle2rw(x).Count;
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l + m + n + o + p;
 			""", Unknown),

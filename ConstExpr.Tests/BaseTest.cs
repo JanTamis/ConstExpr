@@ -80,6 +80,16 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		_loader = MetadataLoader.GetLoader(_compilation);
 	}
 
+	[After(Class)]
+	public static void TearDown()
+	{
+		_compilation = null!;
+		_parameterNames = null!;
+		_semanticModel = null!;
+		_loader = null!;
+		_method = null!;
+	}
+
 	[Test]
 	[TestName]
 	[MethodDataSource(nameof(TestCases))]

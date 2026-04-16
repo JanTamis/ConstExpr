@@ -1,6 +1,7 @@
 using ConstExpr.SourceGenerator.Sample.Tests;
 using System;
 using System.Globalization;
+using System.Text.RegularExpressions;
 
 Console.WriteLine("╔═══════════════════════════════════════════════════════════════════╗");
 Console.WriteLine("║  ConstExpr Test Suite - Alle functies met constanten & vars       ║");
@@ -45,3 +46,4 @@ MathOperationsTests.RunTests(varInt, varInt2, varInt3, varInt4);
 StringOperationsTests.RunTests(varString);
 ArrayOperationsTests.RunTests(varInt, varInt2, varInt3);
 RegexOperationsTests.RunTests(varString, varInt);
+

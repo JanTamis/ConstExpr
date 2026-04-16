@@ -117,7 +117,7 @@ public class IsMatchFunctionOptimizer() : BaseRegexFunctionOptimizer("IsMatch", 
 
 		switch (expr)
 		{
-			case LiteralExpressionSyntax literal when literal.Token.Value is int intVal:
+			case LiteralExpressionSyntax { Token.Value: int intVal }:
 				options = (RegexOptions)intVal;
 				return true;
 
