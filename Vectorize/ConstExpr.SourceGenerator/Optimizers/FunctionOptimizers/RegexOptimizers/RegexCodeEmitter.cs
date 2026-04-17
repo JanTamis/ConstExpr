@@ -38,25 +38,64 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 	{
 		var tree = RegexParser.Parse(pattern, options, CultureInfo.InvariantCulture);
 
-		var statements = new List<StatementSyntax>
+		var leadingAnchor = RegexPrefixAnalyzer.FindLeadingAnchor(tree.Root);
+		var isAnchored = leadingAnchor is RegexNodeKind.Beginning or RegexNodeKind.Start;
+
+		List<StatementSyntax> statements;
+
+		if (isAnchored)
 		{
-			// // int pos = 0;
-			// LocalDeclarationStatement(
-			// 	VariableDeclaration(IdentifierName("var"))
-			// 		.WithVariables(SingletonSeparatedList(
-			// 			VariableDeclarator(Identifier(PosVar))
-			// 				.WithInitializer(EqualsValueClause(
-			// 					LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)))))))
-		};
+			statements = new List<StatementSyntax>();
 
-		var pos = (int?) 0;
+			var pos = (int?) 0;
 
-		EmitNode(tree.Root, statements, ref pos);
+			EmitNode(tree.Root, statements, ref pos);
 
-		// return true;
-		statements.Add(ReturnStatement(LiteralExpression(SyntaxKind.TrueLiteralExpression)));
+			// return true;
+			statements.Add(ReturnStatement(LiteralExpression(SyntaxKind.TrueLiteralExpression)));
+		}
+		else
+		{
+			// Non-anchored: try matching at each position
+			var startVar = NextVar("start");
 
-		var methodName = $"IsMatch_{Math.Abs(pattern.GetHashCode()):X8}";
+			var matchStatements = new List<StatementSyntax>();
+			int? pos = null;
+
+			matchStatements.Add(CreatePosDeclaration(IdentifierName(startVar)));
+
+			EmitNode(tree.Root, matchStatements, ref pos);
+
+			matchStatements.Add(ReturnStatement(LiteralExpression(SyntaxKind.TrueLiteralExpression)));
+
+			var (nestedIfs, okVar) = WrapInNestedIfs(matchStatements);
+
+			var forBody = new List<StatementSyntax>
+			{
+				DeclareBoolVar(okVar, false),
+			};
+			forBody.AddRange(nestedIfs);
+			forBody.Add(IfStatement(
+				IdentifierName(okVar),
+				Block(ReturnStatement(LiteralExpression(SyntaxKind.TrueLiteralExpression)))));
+
+			statements = new List<StatementSyntax>
+			{
+				ForStatement(Block(forBody))
+					.WithDeclaration(
+						VariableDeclaration(IdentifierName("var"))
+							.WithVariables(SingletonSeparatedList(
+								VariableDeclarator(Identifier(startVar))
+									.WithInitializer(EqualsValueClause(Zero())))))
+					.WithCondition(LessThanOrEqualExpression(IdentifierName(startVar), InputLength()))
+					.WithIncrementors(SingletonSeparatedList<ExpressionSyntax>(
+						PostfixUnaryExpression(SyntaxKind.PostIncrementExpression, IdentifierName(startVar)))),
+
+				ReturnStatement(LiteralExpression(SyntaxKind.FalseLiteralExpression))
+			};
+		}
+
+		var methodName = $"IsMatch_{DeterministicHash(pattern):X8}";
 
 		return MethodDeclaration(PredefinedType(Token(SyntaxKind.BoolKeyword)), Identifier(methodName))
 			.WithModifiers(TokenList(Token(SyntaxKind.PrivateKeyword), Token(SyntaxKind.StaticKeyword)))
@@ -876,18 +915,18 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 		var charAtExpr = InputCharAt(AddWithPos(pos, IdentifierName(countVar)));
 
 		// The condition for MATCHING is the negation of the "return false" condition
-		var matchesCondition = EmitSetCondition(node.Str!, charAtExpr);
-		// EmitSetCondition returns "does NOT match" → negate to get "does match"
-		var loopCondition = PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, ParenthesizedExpression(matchesCondition));
+		var doesNotMatchCondition = EmitSetCondition(node.Str!, charAtExpr);
 
+		// Instead of negating the condition (which can lose parentheses in the rewriter),
+		// use a while loop with bounds check and break on mismatch.
 		statements.Add(DeclareIntVar(countVar, 0));
 		statements.Add(WhileStatement(
-			LogicalAndExpression(
-				OptimizedLogicalAnd(
-					LessThanExpression(IdentifierName(countVar), max),
-					LessThanExpression(AddWithPos(pos, IdentifierName(countVar)), InputLength())),
-				loopCondition),
-			Block(ExpressionStatement(PostfixUnaryExpression(SyntaxKind.PostIncrementExpression, IdentifierName(countVar))))));
+			OptimizedLogicalAnd(
+				LessThanExpression(IdentifierName(countVar), max),
+				LessThanExpression(AddWithPos(pos, IdentifierName(countVar)), InputLength())),
+			Block(
+				IfStatement(doesNotMatchCondition, BreakStatement()),
+				ExpressionStatement(PostfixUnaryExpression(SyntaxKind.PostIncrementExpression, IdentifierName(countVar))))));
 
 		if (node.M > 0)
 		{
@@ -951,31 +990,25 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 
 		statements.Add(DeclareIntVar(iterVar, 0));
 
-		// Build the loop body: try to match child, if success increment iter
-		var bodyStatements = new List<StatementSyntax>();
 		var savedPosVar = NextVar("savedPos");
-		bodyStatements.Add(DeclareIntVar(savedPosVar, Pos(pos)));
 
 		var childStatements = new List<StatementSyntax>();
 		EmitNode(child, childStatements, ref pos);
+		childStatements.Add(ReturnStatement(LiteralExpression(SyntaxKind.TrueLiteralExpression)));
 
-		// We wrap child matching in a block. If any "return false" fires, we break.
-		// Approach: use a local function to test child, break on failure.
-		var testMethodName = NextVar("TryMatchChild");
+		var (nestedIfs, okVar) = WrapInNestedIfs(childStatements);
 
-		var testMethod = LocalFunctionStatement(
-				PredefinedType(Token(SyntaxKind.BoolKeyword)),
-				Identifier(testMethodName))
-			.WithBody(Block(childStatements.Append(ReturnStatement(LiteralExpression(SyntaxKind.TrueLiteralExpression)))));
-
-		bodyStatements.Add(testMethod);
+		var bodyStatements = new List<StatementSyntax>
+		{
+			DeclareIntVar(savedPosVar, Pos(pos)),
+			DeclareBoolVar(okVar, false),
+		};
+		bodyStatements.AddRange(nestedIfs);
 		bodyStatements.Add(IfStatement(
-			PrefixUnaryExpression(SyntaxKind.LogicalNotExpression,
-				InvocationExpression(IdentifierName(testMethodName))),
+			PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, IdentifierName(okVar)),
 			Block(
 				ExpressionStatement(AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, Pos(pos), IdentifierName(savedPosVar))),
 				BreakStatement())));
-
 		bodyStatements.Add(ExpressionStatement(PostfixUnaryExpression(SyntaxKind.PostIncrementExpression, IdentifierName(iterVar))));
 
 		var maxExpr = node.N == int.MaxValue
@@ -1005,39 +1038,16 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 			return;
 		}
 
-		// Save position and try each branch; on success, jump past the alternation.
-		// We generate a local function per branch for cleanness.
+		// Save position and try each branch using do-while(false) blocks.
 		var savedPosVar = NextVar("altPos");
 		statements.Add(DeclareIntVar(savedPosVar, Pos(pos)));
 
 		var matchedVar = NextVar("altMatched");
-		statements.Add(LocalDeclarationStatement(
-			VariableDeclaration(PredefinedType(Token(SyntaxKind.BoolKeyword)))
-				.WithVariables(SingletonSeparatedList(
-					VariableDeclarator(Identifier(matchedVar))
-						.WithInitializer(EqualsValueClause(LiteralExpression(SyntaxKind.FalseLiteralExpression)))))));
+		statements.Add(DeclareBoolVar(matchedVar, false));
 
 		for (var i = 0; i < childCount; i++)
 		{
-			var branchStatements = new List<StatementSyntax>();
-			EmitNode(node.Child(i), branchStatements, ref pos);
-			// If we reach here, the branch succeeded
-			branchStatements.Add(ExpressionStatement(
-				AssignmentExpression(SyntaxKind.SimpleAssignmentExpression,
-					IdentifierName(matchedVar),
-					LiteralExpression(SyntaxKind.TrueLiteralExpression))));
-
-			var branchMethodName = NextVar("TryBranch");
-			var branchFunc = LocalFunctionStatement(
-					PredefinedType(Token(SyntaxKind.BoolKeyword)),
-					Identifier(branchMethodName))
-				.WithBody(Block(branchStatements.Append(ReturnStatement(LiteralExpression(SyntaxKind.TrueLiteralExpression)))));
-
-			statements.Add(branchFunc);
-
-			// pos = altPosN; if (TryBranchN()) goto done;
-
-			// pos += count;
+			// Reset pos to saved position before each branch
 			if (pos.HasValue)
 			{
 				statements.Add(CreatePosDeclaration(IdentifierName(savedPosVar)));
@@ -1049,19 +1059,35 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 					AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, Pos(pos), IdentifierName(savedPosVar))));
 			}
 
-			statements.Add(IfStatement(
-				InvocationExpression(IdentifierName(branchMethodName)),
-				Block(
-					ExpressionStatement(
-						AssignmentExpression(SyntaxKind.SimpleAssignmentExpression,
-							IdentifierName(matchedVar),
-							LiteralExpression(SyntaxKind.TrueLiteralExpression))))));
+			var branchStatements = new List<StatementSyntax>();
+			EmitNode(node.Child(i), branchStatements, ref pos);
+			// Append return true (success marker)
+			branchStatements.Add(ReturnStatement(LiteralExpression(SyntaxKind.TrueLiteralExpression)));
 
-			// If matched, skip remaining branches
+			var (nestedIfs, okVar) = WrapInNestedIfs(branchStatements);
+
+			var branchBlock = new List<StatementSyntax>
+			{
+				DeclareBoolVar(okVar, false),
+			};
+			branchBlock.AddRange(nestedIfs);
+			branchBlock.Add(IfStatement(
+				IdentifierName(okVar),
+				Block(ExpressionStatement(
+					AssignmentExpression(SyntaxKind.SimpleAssignmentExpression,
+						IdentifierName(matchedVar),
+						LiteralExpression(SyntaxKind.TrueLiteralExpression))))));
+
 			if (i < childCount - 1)
 			{
-				// Wrap remaining branches in if (!matched) { ... }
-				// For simplicity we just check at the beginning of each subsequent iteration
+				// Wrap in if (!altMatched) { ... } to skip if already matched
+				statements.Add(IfStatement(
+					PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, IdentifierName(matchedVar)),
+					Block(branchBlock)));
+			}
+			else
+			{
+				statements.AddRange(branchBlock);
 			}
 		}
 
@@ -1079,19 +1105,16 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 
 		var childStatements = new List<StatementSyntax>();
 		EmitNode(node.Child(0), childStatements, ref pos);
+		childStatements.Add(ReturnStatement(LiteralExpression(SyntaxKind.TrueLiteralExpression)));
 
-		var testName = NextVar("Lookahead");
-		var testFunc = LocalFunctionStatement(
-				PredefinedType(Token(SyntaxKind.BoolKeyword)),
-				Identifier(testName))
-			.WithBody(Block(childStatements.Append(ReturnStatement(LiteralExpression(SyntaxKind.TrueLiteralExpression)))));
+		var (nestedIfs, okVar) = WrapInNestedIfs(childStatements);
 
-		statements.Add(testFunc);
+		statements.Add(DeclareBoolVar(okVar, false));
+		statements.AddRange(nestedIfs);
 
-		// if (!Lookahead()) return false;
+		// if (!ok) return false;
 		statements.Add(IfReturnFalse(
-			PrefixUnaryExpression(SyntaxKind.LogicalNotExpression,
-				InvocationExpression(IdentifierName(testName)))));
+			PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, IdentifierName(okVar))));
 
 		// Restore position (lookahead doesn't consume)
 		if (pos.HasValue)
@@ -1113,17 +1136,15 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 
 		var childStatements = new List<StatementSyntax>();
 		EmitNode(node.Child(0), childStatements, ref pos);
+		childStatements.Add(ReturnStatement(LiteralExpression(SyntaxKind.TrueLiteralExpression)));
 
-		var testName = NextVar("NegLookahead");
-		var testFunc = LocalFunctionStatement(
-				PredefinedType(Token(SyntaxKind.BoolKeyword)),
-				Identifier(testName))
-			.WithBody(Block(childStatements.Append(ReturnStatement(LiteralExpression(SyntaxKind.TrueLiteralExpression)))));
+		var (nestedIfs, okVar) = WrapInNestedIfs(childStatements);
 
-		statements.Add(testFunc);
+		statements.Add(DeclareBoolVar(okVar, false));
+		statements.AddRange(nestedIfs);
 
-		// if (NegLookahead()) return false; — if it DID match, the negative lookahead fails
-		statements.Add(IfReturnFalse(InvocationExpression(IdentifierName(testName))));
+		// if (ok) return false; — if it DID match, the negative lookahead fails
+		statements.Add(IfReturnFalse(IdentifierName(okVar)));
 
 		// Restore position
 		if (pos.HasValue)
@@ -1181,9 +1202,9 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 	/// </summary>
 	private ExpressionSyntax EmitIsWordChar(ExpressionSyntax charExpr)
 	{
-		return OptimizedLogicalOr(
+		return ParenthesizedExpression(OptimizedLogicalOr(
 			CharMethodCall("IsLetterOrDigit", charExpr),
-			OptimizedEqual(charExpr, CreateLiteral('_')));
+			OptimizedEqual(charExpr, CreateLiteral('_'))));
 	}
 
 	// ────────────────────────── helper: fixed repeat ─────────────────────────────
@@ -1226,6 +1247,18 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 	}
 
 	// ══════════════════════════ Syntax Factory Helpers ════════════════════════════
+
+	private static uint DeterministicHash(string text)
+	{
+		// FNV-1a 32-bit
+		var hash = 2166136261u;
+		foreach (var c in text)
+		{
+			hash ^= c;
+			hash *= 16777619u;
+		}
+		return hash;
+	}
 
 	private string NextVar(string prefix) => $"{prefix}{_tempVarCounter++}";
 
@@ -1339,10 +1372,95 @@ internal sealed class RegexCodeEmitter(FunctionOptimizerContext context)
 					VariableDeclarator(Identifier(name))
 						.WithInitializer(EqualsValueClause(CreateLiteral(value))))));
 
+	private static LocalDeclarationStatementSyntax DeclareBoolVar(string name, bool value) =>
+		LocalDeclarationStatement(
+			VariableDeclaration(IdentifierName("var"))
+				.WithVariables(SingletonSeparatedList(
+					VariableDeclarator(Identifier(name))
+						.WithInitializer(EqualsValueClause(LiteralExpression(
+							value ? SyntaxKind.TrueLiteralExpression : SyntaxKind.FalseLiteralExpression))))));
+
 	private static LocalDeclarationStatementSyntax DeclareIntVar(string name, ExpressionSyntax value) =>
 		LocalDeclarationStatement(
 			VariableDeclaration(IdentifierName("var"))
 				.WithVariables(SingletonSeparatedList(
 					VariableDeclarator(Identifier(name))
 						.WithInitializer(EqualsValueClause(value)))));
+
+	/// <summary>
+	/// Transforms a list of statements that use <c>return false</c> / <c>return true</c>
+	/// into a nested if-chain with a success variable.
+	/// <c>if (cond) return false;</c> becomes <c>if (!cond) { ...rest... }</c>.
+	/// Trailing <c>return true;</c> is replaced by setting the success variable to <c>true</c>.
+	/// Returns (statements to insert, successVarName).
+	/// </summary>
+	private (List<StatementSyntax> Statements, string SuccessVar) WrapInNestedIfs(List<StatementSyntax> childStatements)
+	{
+		var successVar = NextVar("ok");
+
+		var setSuccess = ExpressionStatement(
+			AssignmentExpression(SyntaxKind.SimpleAssignmentExpression,
+				IdentifierName(successVar),
+				LiteralExpression(SyntaxKind.TrueLiteralExpression)));
+
+		var result = BuildNestedIfs(childStatements, 0, successVar, setSuccess);
+		return (result, successVar);
+	}
+
+	private static List<StatementSyntax> BuildNestedIfs(
+		List<StatementSyntax> stmts, int index, string successVar, StatementSyntax setSuccess)
+	{
+		var result = new List<StatementSyntax>();
+
+		for (var i = index; i < stmts.Count; i++)
+		{
+			var stmt = stmts[i];
+
+			// `return false;` → stop (don't set success)
+			if (stmt is ReturnStatementSyntax { Expression: LiteralExpressionSyntax { RawKind: (int)SyntaxKind.FalseLiteralExpression } })
+				return result;
+
+			// `return true;` → set success and stop
+			if (stmt is ReturnStatementSyntax { Expression: LiteralExpressionSyntax { RawKind: (int)SyntaxKind.TrueLiteralExpression } })
+			{
+				result.Add(setSuccess);
+				return result;
+			}
+
+			// `if (cond) { return false; }` → `if (!cond) { ...remaining... }`
+			if (stmt is IfStatementSyntax ifStmt
+				&& ifStmt.Else is null
+				&& IsReturnFalseBlock(ifStmt.Statement))
+			{
+				var remaining = BuildNestedIfs(stmts, i + 1, successVar, setSuccess);
+				if (remaining.Count > 0)
+				{
+					result.Add(IfStatement(
+						PrefixUnaryExpression(SyntaxKind.LogicalNotExpression,
+							ParenthesizedExpression(ifStmt.Condition)),
+						Block(remaining)));
+				}
+				return result;
+			}
+
+			result.Add(stmt);
+		}
+
+		// Fell through without return true/false — set success
+		result.Add(setSuccess);
+		return result;
+	}
+
+	private static bool IsReturnFalseBlock(StatementSyntax stmt)
+	{
+		if (stmt is ReturnStatementSyntax { Expression: LiteralExpressionSyntax { RawKind: (int)SyntaxKind.FalseLiteralExpression } })
+			return true;
+
+		if (stmt is BlockSyntax block
+			&& block.Statements.Count == 1
+			&& block.Statements[0] is ReturnStatementSyntax { Expression: LiteralExpressionSyntax { RawKind: (int)SyntaxKind.FalseLiteralExpression } })
+			return true;
+
+		return false;
+	}
 }
