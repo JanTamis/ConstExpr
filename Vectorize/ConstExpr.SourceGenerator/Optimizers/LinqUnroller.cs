@@ -195,16 +195,16 @@ public static class LinqUnroller
 		var elementName = lastUnroller.GetCollectionElement(chain[^1], collectionName);
 		var elements = new List<StatementSyntax>();
 
-		ParseLoopBody(chain, elements, ref elementName);
+		ParseLoopBody(chain, elements, ref elementName, visit);
 
 		// under loop
 		var statements = ParseAboveLoop(chain);
 
-		ParseBeforeMainLoop(chain, statements);
+		ParseBeforeMainLoop(chain, statements, visit);
 
 		lastUnroller.CreateLoop(chain[^1], type, elements, collectionName, statements);
 
-		ParseAfterMainLoop(chain, statements);
+		ParseAfterMainLoop(chain, statements, visit);
 
 		ParsePossibleReturnStatement(chain, statements);
 
@@ -215,7 +215,7 @@ public static class LinqUnroller
 
 		var body = Block(statements);
 
-		var localMethod = LocalFunctionStatement(chain[^1].MethodSymbol.ReturnType.GetTypeSyntax(false), Identifier($"{chain[^1].Method}_{body.GetDeterministicHashString()}"))
+		var localMethod = MethodDeclaration(chain[^1].MethodSymbol.ReturnType.GetTypeSyntax(false), Identifier($"{chain[^1].Method}_{body.GetDeterministicHashString()}"))
 			.WithParameterList(ParameterList(SingletonSeparatedList(Parameter(Identifier(collectionName)).WithType(parameterType))))
 			.AddModifiers(Token(SyntaxKind.PrivateKeyword))
 			.AddModifiers(Token(SyntaxKind.StaticKeyword))
@@ -241,13 +241,13 @@ public static class LinqUnroller
 	/// passing a partial loop body that starts from the step after the current one.
 	/// Used by Prepend to add elements before the main loop.
 	/// </summary>
-	private static void ParseBeforeMainLoop(UnrolledLinqMethod[] chain, List<StatementSyntax> resultStatements)
+	private static void ParseBeforeMainLoop(UnrolledLinqMethod[] chain, List<StatementSyntax> resultStatements, Func<SyntaxNode?, SyntaxNode?> visit)
 	{
 		for (var i = 1; i < chain.Length; i++)
 		{
 			if (Unrollers.TryGetValue(chain[i].Method, out var unroller))
 			{
-				var partialBody = BuildPartialLoopBody(chain, i + 1);
+				var partialBody = BuildPartialLoopBody(chain, i + 1, visit);
 				unroller.UnrollBeforeMainLoop(chain[i], partialBody, resultStatements);
 			}
 		}
@@ -258,13 +258,13 @@ public static class LinqUnroller
 	/// passing a partial loop body that starts from the step after the current one.
 	/// Used by Append, Concat, Union, and DefaultIfEmpty to add elements after the main loop.
 	/// </summary>
-	private static void ParseAfterMainLoop(UnrolledLinqMethod[] chain, List<StatementSyntax> resultStatements)
+	private static void ParseAfterMainLoop(UnrolledLinqMethod[] chain, List<StatementSyntax> resultStatements, Func<SyntaxNode?, SyntaxNode?> visit)
 	{
 		for (var i = 1; i < chain.Length; i++)
 		{
 			if (Unrollers.TryGetValue(chain[i].Method, out var unroller))
 			{
-				var partialBody = BuildPartialLoopBody(chain, i + 1);
+				var partialBody = BuildPartialLoopBody(chain, i + 1, visit);
 				unroller.UnrollAfterMainLoop(chain[i], partialBody, resultStatements);
 			}
 		}
@@ -275,7 +275,7 @@ public static class LinqUnroller
 	/// for chain steps starting from <paramref name="fromIndex"/>. The element name starts
 	/// as <c>item</c> (matching the foreach loop variable in extra iterations).
 	/// </summary>
-	internal static List<StatementSyntax> BuildPartialLoopBody(UnrolledLinqMethod[] chain, int fromIndex)
+	internal static List<StatementSyntax> BuildPartialLoopBody(UnrolledLinqMethod[] chain, int fromIndex, Func<SyntaxNode?, SyntaxNode?> visit)
 	{
 		ExpressionSyntax elementName = IdentifierName("item");
 		var elements = new List<StatementSyntax>();
@@ -294,7 +294,7 @@ public static class LinqUnroller
 			}
 		}
 
-		var combined = ConstExprPartialRewriter.CombineConsecutiveIfStatements(List(elements));
+		var combined = ConstExprPartialRewriter.CombineConsecutiveIfStatements(List(elements), visit);
 		elements.Clear();
 		elements.AddRange(combined);
 		return elements;
@@ -315,7 +315,7 @@ public static class LinqUnroller
 		return statements;
 	}
 
-	private static void ParseLoopBody(UnrolledLinqMethod[] chain, List<StatementSyntax> elements, ref ExpressionSyntax elementName)
+	private static void ParseLoopBody(UnrolledLinqMethod[] chain, List<StatementSyntax> elements, ref ExpressionSyntax elementName, Func<SyntaxNode?, SyntaxNode?> visit)
 	{
 		for (var i = 1; i < chain.Length; i++)
 		{
@@ -348,7 +348,7 @@ public static class LinqUnroller
 
 		// Combine consecutive if-statements with identical jump bodies into a single if using ||.
 		// e.g. if (!set.Add(x)) continue; if (x == 1) continue; => if (!set.Add(x) || x == 1) continue;
-		var combined = ConstExprPartialRewriter.CombineConsecutiveIfStatements(List(elements));
+		var combined = ConstExprPartialRewriter.CombineConsecutiveIfStatements(List(elements), visit);
 		elements.Clear();
 		elements.AddRange(combined);
 	}

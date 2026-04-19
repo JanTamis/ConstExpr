@@ -48,7 +48,7 @@ public class AtanFunctionOptimizer() : BaseMathFunctionOptimizer("Atan", 1)
 				? GenerateFastAtanMethodFloat()
 				: GenerateFastAtanMethodDouble();
 
-			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
 
 			result = CreateInvocation("FastAtan", context.VisitedParameters);
 			return true;

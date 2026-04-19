@@ -46,7 +46,7 @@ public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", 1)
 				? GenerateFastAtanPiMethodFloat()
 				: GenerateFastAtanPiMethodDouble();
 
-			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
 
 			result = CreateInvocation("FastAtanPi", context.VisitedParameters);
 			return true;

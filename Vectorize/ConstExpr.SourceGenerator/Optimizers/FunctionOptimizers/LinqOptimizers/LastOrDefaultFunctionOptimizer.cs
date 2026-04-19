@@ -27,7 +27,7 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 		// Recursively skip all operations that don't affect which element is last
 		var isNewSource = TryGetOptimizedChainExpression(source, MaterializingMethods, out source);
 
-		if (TryExecutePredicates(context, source, context.SymbolStore, out result, out source))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}

@@ -64,7 +64,7 @@ public class Atan2FunctionOptimizer() : BaseMathFunctionOptimizer("Atan2", 2)
 				? GenerateFastAtan2MethodFloat()
 				: GenerateFastAtan2MethodDouble();
 
-			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
 
 			result = CreateInvocation("FastAtan2", context.VisitedParameters);
 			return true;

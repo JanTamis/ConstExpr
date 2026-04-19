@@ -15,7 +15,7 @@ public class SinFunctionOptimizer() : BaseMathFunctionOptimizer("Sin", 1)
 				? GenerateFastSinMethodFloat()
 				: GenerateFastSinMethodDouble();
 
-			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
 
 			result = CreateInvocation("FastSin", context.VisitedParameters);
 			return true;

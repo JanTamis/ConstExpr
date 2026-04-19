@@ -31,7 +31,7 @@ public class ElementAtFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		// Recursively skip all operations that don't affect indexing
 		var isNewSource = TryGetOptimizedChainExpression(source, MaterializingMethods, out source);
 
-		if (TryExecutePredicates(context, source, context.SymbolStore, out result, out source))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
@@ -49,7 +49,7 @@ public class ElementAtFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 			TryGetOptimizedChainExpression(source, MaterializingMethods, out source);
 		}
 
-		if (TryExecutePredicates(context, source, [ indexParameter ], context.SymbolStore, out result))
+		if (TryExecutePredicates(context, source, [ indexParameter ], out result))
 		{
 			return true;
 		}

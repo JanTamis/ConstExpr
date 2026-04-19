@@ -810,7 +810,6 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 			YieldStatementSyntax yieldStatementSyntax => yieldStatementSyntax.WithExpression((ExpressionSyntax?)Visit(operation.ReturnedValue, argument)),
 			_ => operation.Syntax
 		};
-
 	}
 
 	public override SyntaxNode? VisitTuple(ITupleOperation operation, IDictionary<string, VariableItem> argument)

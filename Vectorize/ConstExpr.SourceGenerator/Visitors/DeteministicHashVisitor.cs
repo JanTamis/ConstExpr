@@ -1147,6 +1147,28 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
     return HashCombine(node.Arguments.Select(Visit));
   }
 
+  public override ulong VisitMethodDeclaration(MethodDeclarationSyntax node)
+  {
+    var hash = HashCombine(Visit(node.ReturnType), HashString(node.Identifier.ValueText), Visit(node.ParameterList));
+
+    if (node.TypeParameterList != null)
+    {
+      hash = HashCombine(hash, Visit(node.TypeParameterList));
+    }
+
+    if (node.Body != null)
+    {
+      hash = HashCombine(hash, Visit(node.Body));
+    }
+
+    if (node.ExpressionBody != null)
+    {
+      hash = HashCombine(hash, Visit(node.ExpressionBody));
+    }
+
+    return hash;
+  }
+
   public override ulong VisitNullableDirectiveTrivia(NullableDirectiveTriviaSyntax node)
   {
     return HashString(node.SettingToken.ValueText);

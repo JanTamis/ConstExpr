@@ -22,7 +22,7 @@ public class ToArrayFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 	{
 		var isNewSource = TryGetOptimizedChainExpression(source, MaterializingMethods, out source);
 
-		if (TryExecutePredicates(context, source, context.SymbolStore, out result, out source))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}

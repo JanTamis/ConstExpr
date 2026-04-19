@@ -22,21 +22,21 @@ public class CountEvensTest() : BaseTest<Func<int[], int>>(FastMathFlags.FastMat
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-// 		Create("""
-// 			var count = 0;
-//
-// 			foreach (var num in arr)
-// 			{
-// 				if (Int32.IsEvenInteger(num))
-// 				{
-// 					count++;
-// 				}
-// 			}
-//
-// 			return count;
-// 			""", Unknown),
+		Create("""
+			var count = 0;
+
+			foreach (var num in arr)
+			{
+				if (Int32.IsEvenInteger(num))
+				{
+					count++;
+				}
+			}
+
+			return count;
+			""", Unknown),
 		Create("return 3;", new[] { 1, 2, 3, 4, 5, 6 }),
-		// Create("return 0;", System.Array.Empty<int>()),
-		// Create("return 4;", new[] { 2, 4, 6, 8 })
+		Create("return 0;", System.Array.Empty<int>()),
+		Create("return 4;", new[] { 2, 4, 6, 8 })
 	];
 }

@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -6,34 +5,35 @@ using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.RegexOptimizers;
 
 /// <summary>
-/// Base class for optimizers that target <c>System.Text.RegularExpressions.Regex</c> methods.
-/// Subclasses are discovered via reflection (same pattern as Math/Linq/Simd optimizers).
+/// Optimizes <c>Regex.Matches(input, pattern)</c> and <c>Regex.Matches(input, pattern, options)</c>
+/// by caching a compiled <see cref="Regex"/> instance as a private static readonly field and
+/// replacing the static call with the equivalent instance method call.
 /// </summary>
-public abstract class BaseRegexFunctionOptimizer(string name, params HashSet<int> parameterCounts) : BaseFunctionOptimizer
+public class MatchesFunctionOptimizer() : BaseRegexFunctionOptimizer("Matches", 2, 3)
 {
-	public string Name { get; } = name;
-	public HashSet<int> ParameterCounts { get; } = parameterCounts;
-
-	public override bool TryOptimize(FunctionOptimizerContext context, [NotNullWhen(true)] out SyntaxNode? result)
+	protected override bool TryOptimizeRegex(FunctionOptimizerContext context, [NotNullWhen(true)] out SyntaxNode? result)
 	{
-		if (!IsRegexMethod(context.Method))
+		result = null;
+
+		// Pattern (and optional options) must be constant; only input may be a runtime value.
+		if (!TryGetLiteralValue(context.VisitedParameters[1], context, out _))
 		{
-			result = null;
 			return false;
 		}
 
-		return TryOptimizeRegex(context, out result);
-	}
+		var literalParameterCount = context.VisitedParameters
+			.Skip(1)
+			.Count(x => TryGetLiteralValue(x, context, out _));
 
-	protected abstract bool TryOptimizeRegex(FunctionOptimizerContext context, [NotNullWhen(true)] out SyntaxNode? result);
-	
-	protected InvocationExpressionSyntax GetRegexInvocation(FunctionOptimizerContext context)
-	{
+		if (literalParameterCount != context.VisitedParameters.Count - 1)
+		{
+			return false;
+		}
+
 		// Build a deterministic field name from the constant constructor arguments.
 		var patternKey = string.Concat(
 			context.VisitedParameters
@@ -56,15 +56,10 @@ public abstract class BaseRegexFunctionOptimizer(string name, params HashSet<int
 		context.AdditionalSyntax.Add(field, true);
 		context.Usings.Add("System.Text.RegularExpressions");
 
-		return InvocationExpression(MemberAccessExpression(IdentifierName(variableName), IdentifierName(context.Method.Name)))
+		result = InvocationExpression(MemberAccessExpression(IdentifierName(variableName), IdentifierName(context.Method.Name)))
 			.WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(context.VisitedParameters[0]))));
-	}
 
-	private bool IsRegexMethod(IMethodSymbol method)
-	{
-		return method.Name == Name
-		       && method.IsStatic
-		       && method.ContainingType.ToString() == "System.Text.RegularExpressions.Regex"
-		       && ParameterCounts.Contains(method.Parameters.Length);
+		return true;
 	}
 }
+

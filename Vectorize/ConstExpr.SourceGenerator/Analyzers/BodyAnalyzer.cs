@@ -1,10 +1,15 @@
+using System;
 using System.Linq;
 using System.Threading;
 using ConstExpr.Core.Attributes;
 using ConstExpr.SourceGenerator.Attributes;
+using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Helpers;
+using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.Operations;
 
 namespace ConstExpr.SourceGenerator.Analyzers;
 
@@ -33,23 +38,23 @@ public class BodyAnalyzer : BaseAnalyzer<InvocationExpressionSyntax, IMethodSymb
 
 	protected override void AnalyzeSyntax(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax node, IMethodSymbol symbol, CancellationToken token)
 	{
-		// var loader = MetadataLoader.GetLoader(context.SemanticModel.Compilation);
-		//
-		// var visitor = new ConstExprOperationVisitor(context.SemanticModel.Compilation, loader, (operation, ex) =>
-		// {
-		// 	ReportDiagnostic(context, operation.Syntax.GetLocation(), operation.Syntax.ToString());
-		// }, token);
-		//
-		// var variables = ConstExprSourceGenerator.ProcessArguments(visitor, context.SemanticModel.Compilation, node, loader, token);
-		//
-		// if (variables == null)
-		// {
-		// 	return;
-		// }
-		//
-		// if (TryGetOperation<IMethodBodyOperation>(context.Compilation, symbol, out var operation))
-		// {
-		// 	visitor.VisitBlock(operation.BlockBody, variables);
-		// }
+		var loader = MetadataLoader.GetLoader(context.SemanticModel.Compilation);
+		var cache = new RoslynApiCache();
+
+		var attributes = symbol.GetAttributes()
+			.Concat(symbol.ContainingType?.GetAttributes() ?? Enumerable.Empty<AttributeData>())
+			.Concat(symbol.ContainingAssembly.GetAttributes());
+
+		var attribute = attributes.FirstOrDefault(IsAttribute<ConstEvalAttribute>)
+		                ?? attributes.FirstOrDefault(IsAttribute<ConstExprAttribute>);
+
+		try
+		{
+			ConstExprSourceGenerator.GenerateExpression(context.SemanticModel, loader, node, symbol, attribute!.ToAttribute<ConstExprAttribute>(), cache, token);
+		}
+		catch (Exception e)
+		{
+			ReportDiagnostic(context, node, e.Message);
+		}
 	}
 }

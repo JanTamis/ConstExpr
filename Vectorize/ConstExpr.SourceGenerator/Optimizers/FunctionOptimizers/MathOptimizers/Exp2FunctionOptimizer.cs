@@ -15,7 +15,7 @@ public class Exp2FunctionOptimizer() : BaseMathFunctionOptimizer("Exp2", 1)
 				? GenerateFastExp2MethodFloat()
 				: GenerateFastExp2MethodDouble();
 
-			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
 
 			result = CreateInvocation("FastExp2", context.VisitedParameters);
 			return true;

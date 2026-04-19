@@ -60,7 +60,7 @@ public class TanFunctionOptimizer() : BaseMathFunctionOptimizer("Tan", 1)
 				? GenerateFastTanMethodFloat()
 				: GenerateFastTanMethodDouble();
 
-			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
 
 			result = CreateInvocation("FastTan", context.VisitedParameters);
 			return true;

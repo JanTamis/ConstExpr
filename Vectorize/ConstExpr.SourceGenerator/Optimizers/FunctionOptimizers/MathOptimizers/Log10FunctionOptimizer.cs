@@ -33,7 +33,7 @@ public class Log10FunctionOptimizer() : BaseMathFunctionOptimizer("Log10", 1)
 				? GenerateFastLog10MethodFloat()
 				: GenerateFastLog10MethodDouble();
 
-			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
 
 			result = CreateInvocation("FastLog10", context.VisitedParameters);
 			return true;

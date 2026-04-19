@@ -15,7 +15,7 @@ public class SinhFunctionOptimizer() : BaseMathFunctionOptimizer("Sinh", 1)
 				? GenerateFastSinhMethodFloat()
 				: GenerateFastSinhMethodDouble();
 
-			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
 
 			result = CreateInvocation("FastSinh", context.VisitedParameters);
 			return true;

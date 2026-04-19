@@ -51,7 +51,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		// Recursively skip all operations that don't affect count
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectCount, out source);
 
-		if (TryExecutePredicates(context, source, context.SymbolStore, out result, out _))
+		if (TryExecutePredicates(context, source, out result, out _))
 		{
 			return true;
 		}
@@ -103,7 +103,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 			if (TryGetValues(currentSource, out var values))
 			{
 				var lambdas = wherePredicates
-					.WhereSelect<LambdaExpressionSyntax, object>((s, out result) => TryGetLiteralValue(s, context, null, context.SymbolStore, out result))
+					.WhereSelect<LambdaExpressionSyntax, object>((s, out result) => TryGetLiteralValue(s, context, out result))
 					.OfType<Delegate>()
 					.ToList();
 

@@ -42,7 +42,7 @@ public class ScaleBFunctionOptimizer() : BaseMathFunctionOptimizer("ScaleB", 2)
 				? GenerateFastScaleBMethodFloat()
 				: GenerateFastScaleBMethodDouble();
 
-			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
 
 			result = CreateInvocation("FastScaleB", context.VisitedParameters);
 			return true;

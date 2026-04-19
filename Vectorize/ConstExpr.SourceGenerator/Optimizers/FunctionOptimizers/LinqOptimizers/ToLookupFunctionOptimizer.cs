@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -7,7 +6,6 @@ using System.Text;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
-using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -47,7 +45,7 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 	{
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectLookup, out source);
 
-		// if (TryExecutePredicates(context, source, context.SymbolStore, out result, out source))
+		// if (TryExecutePredicates(context, source, out result, out source))
 		// {
 		// 	return true;
 		// }
@@ -128,7 +126,7 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 
 			if (context.OriginalParameters.Count != context.Method.Parameters.Length
 			    || context.Method.ReceiverType is not INamedTypeSymbol receiverType
-			    || !TryGetLiteralValue(visitedSource, context, receiverType, context.SymbolStore, out var values)
+			    || !TryGetLiteralValue(visitedSource, context, receiverType, out var values)
 			    || !context.Loader.TryGetMethodByMethod(context.Method, out var method))
 			{
 				return false;
@@ -138,8 +136,8 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 
 			for (var i = 0; i < context.OriginalParameters.Count; i++)
 			{
-				if (TryGetLiteralValue(context.OriginalParameters[i], context, context.Method.Parameters[i].Type, context.SymbolStore, out var value)
-				    || TryGetLiteralValue(context.VisitedParameters[i], context, context.Method.Parameters[i].Type, context.SymbolStore, out value))
+				if (TryGetLiteralValue(context.OriginalParameters[i], context, context.Method.Parameters[i].Type, out var value)
+				    || TryGetLiteralValue(context.VisitedParameters[i], context, context.Method.Parameters[i].Type, out value))
 				{
 					parameters.Add(value);
 				}
@@ -201,7 +199,7 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 					}
 					""");
 
-				context.AdditionalMethods.TryAdd(groupingStruct, true);
+				context.AdditionalSyntax.TryAdd(groupingStruct, true);
 			}
 
 			// Build the Contains body as a `key is x or y or z` pattern expression and run through context.Visit
@@ -213,7 +211,7 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 
 			lookupStruct = lookupStruct.WithIdentifier(Identifier($"Lookup_{lookupStructSource.GetDeterministicHashString()}"));
 
-			context.AdditionalMethods.TryAdd(lookupStruct, true);
+			context.AdditionalSyntax.TryAdd(lookupStruct, true);
 
 			// Return new StructName() as the replacement expression
 			result = ObjectCreationExpression(

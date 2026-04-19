@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using ConstExpr.Core.Attributes;
 using ConstExpr.Core.Enumerators;
+using ConstExpr.SourceGenerator.Analyzers;
 using ConstExpr.SourceGenerator.Comparers;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
@@ -36,7 +37,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		{
 			return null;
 		};
-		
+
 		// Use WithComparer for incremental generation caching
 		// This prevents reprocessing invocations that haven't changed
 		var invocations = context.SyntaxProvider
@@ -108,6 +109,8 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 						}
 						catch (Exception ex)
 						{
+							// spc.ReportDiagnostic(Diagnostic.Create(new BodyAnalyzer().SupportedDiagnostics[0], model.Invocation.GetLocation(), ex.Message));
+
 							Logger.Warning(ex, $"Error processing invocation {model.Invocation}: {ex.Message}");
 						}
 					});
@@ -189,7 +192,8 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 		var distinctAdditionalMethods = methodGroup
 			.SelectMany(m => m?.AdditionalMethods)
-			.Distinct(SyntaxNodeComparer.Get());
+			.Distinct(SyntaxNodeComparer.Get())
+			.ToList();
 
 		code.WriteLine();
 		code.WriteLine("namespace ConstantExpression.Generated;");
@@ -198,9 +202,19 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		// Emit top-level generated methods grouped by value.
 		using (code.WriteBlock($"file static class {methodGroup.First().ParentType.Identifier:literal}"))
 		{
+			foreach (var additionalMethod in distinctAdditionalMethods.OfType<FieldDeclarationSyntax>().GroupBy(g => g.Declaration.Type, comparer: SyntaxNodeComparer.Get<TypeSyntax>()))
+			{
+				foreach (var item in additionalMethod)
+				{
+					code.WriteLine(FormattingHelper.Render(item), true);
+				}
+				
+				code.WriteLine();
+			}
+			
 			EmitGeneratedMethodsForValueGroups(code, compilation, methodGroup, loader);
 
-			foreach (var additionalMethod in distinctAdditionalMethods)
+			foreach (var additionalMethod in distinctAdditionalMethods.Where(w => w is MethodDeclarationSyntax))
 			{
 				code.WriteLine();
 				// Format at emission time to avoid expensive NormalizeWhitespace during processing
@@ -315,7 +329,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		return null;
 	}
 
-	private InvocationModel? GenerateExpression(SemanticModel semanticModel, MetadataLoader loader, InvocationExpressionSyntax invocation,
+	public static InvocationModel? GenerateExpression(SemanticModel semanticModel, MetadataLoader loader, InvocationExpressionSyntax invocation,
 	                                            IMethodSymbol methodSymbol, ConstExprAttribute attribute, RoslynApiCache apiCache, CancellationToken token)
 	{
 		var methodDecl = GetMethodSyntaxNode(methodSymbol);
@@ -332,76 +346,70 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			// exceptions.TryAdd(operation!.Syntax, ex);
 		}, token);
 
-		try
+		if ( //exceptions.IsEmpty
+		    semanticModel.Compilation.TryGetSemanticModel(methodDecl, out var model))
 		{
-			if ( //exceptions.IsEmpty
-			    semanticModel.Compilation.TryGetSemanticModel(methodDecl, out var model))
+			var usings = new HashSet<string?>
 			{
-				var usings = new HashSet<string?>
-				{
-					"System.Runtime.CompilerServices",
-					"System",
-				};
+				"System.Runtime.CompilerServices",
+				"System",
+			};
 
-				// var variables = ProcessArguments(visitor, context.SemanticModel.Compilation, invocation, loader, token);
-				var variablesPartial = ProcessArguments(visitor, semanticModel, invocation, loader, apiCache, token);
-				var additionalMethods = new Dictionary<SyntaxNode, bool>(SyntaxNodeComparer.Get());
+			// var variables = ProcessArguments(visitor, context.SemanticModel.Compilation, invocation, loader, token);
+			var variablesPartial = ProcessArguments(visitor, semanticModel, invocation, loader, apiCache, token);
+			var additionalMethods = new Dictionary<SyntaxNode, bool>(SyntaxNodeComparer.Get());
 
-				var partialVisitor = new ConstExprPartialRewriter(model, loader, (node, ex) =>
-				{
-					exceptions.TryAdd(node, ex);
-				}, variablesPartial, additionalMethods, usings, attribute, new(), token);
+			var partialVisitor = new ConstExprPartialRewriter(model, loader, (node, ex) =>
+			{
+				exceptions.TryAdd(node, ex);
+			}, variablesPartial, additionalMethods, usings, attribute, new(), token);
 
-				var timer = Stopwatch.StartNew();
+			var timer = Stopwatch.StartNew();
 
-				// visitor.VisitBlock(blockOperation.BlockBody!, variables);
+			// visitor.VisitBlock(blockOperation.BlockBody!, variables);
 
-				var result = partialVisitor.VisitBlock(methodDecl.Body); // partialVisitor.VisitBlock(blockOperation.BlockBody!, variablesPartial);
-				var result2 = DeadCodePruner.Prune(result, variablesPartial, semanticModel);
+			var result = partialVisitor.VisitBlock(methodDecl.Body); // partialVisitor.VisitBlock(blockOperation.BlockBody!, variablesPartial);
+			var result2 = DeadCodePruner.Prune(result, variablesPartial, semanticModel);
 
-				// Format using Roslyn formatter instead of NormalizeWhitespace
-				// var text = FormattingHelper.Render(methodDecl.WithBody((BlockSyntax)result));
-				// var text2 = FormattingHelper.Render(methodDecl.WithBody((BlockSyntax)result2));
+			// Format using Roslyn formatter instead of NormalizeWhitespace
+			// var text = FormattingHelper.Render(methodDecl.WithBody((BlockSyntax)result));
+			// var text2 = FormattingHelper.Render(methodDecl.WithBody((BlockSyntax)result2));
 
-				timer.Stop();
+			timer.Stop();
 
-				if (result2 is BlockSyntax blockSyntax
-				    && blockSyntax.GetDeterministicHash() == methodDecl.Body.GetDeterministicHash())
-				{
-					return null;
-				}
-
-				GetUsings(methodSymbol, usings);
-
-				if (attribute.MathOptimizations != FastMathFlags.Strict)
-				{
-					usings.Add("System.Runtime.CompilerServices");
-				}
-
-				return new InvocationModel
-				{
-					Usings = usings!,
-					OriginalMethod = methodDecl,
-					Method = FormattingHelper.Format(methodDecl
-						.WithIdentifier(Identifier($"{methodDecl.Identifier.Text}_{result2.GetDeterministicHashString()}")
-							.WithLeadingTrivia(methodDecl.Identifier.LeadingTrivia)
-							.WithTrailingTrivia(methodDecl.Identifier.TrailingTrivia))
-						.WithBody((BlockSyntax) result2)) as MethodDeclarationSyntax ?? methodDecl,
-					// Defer formatting to emission time to avoid expensive NormalizeWhitespace calls
-					AdditionalMethods = additionalMethods
-						.OrderByDescending(o => o.Value)
-						.Select(s => s.Key),
-					ParentType = methodDecl.Parent as TypeDeclarationSyntax,
-					Invocation = invocation,
-					Location = semanticModel.GetInterceptableLocation(invocation, token),
-					Exceptions = exceptions!,
-					AttributeData = attribute,
-				};
+			if (result2 is BlockSyntax blockSyntax
+			    && blockSyntax.GetDeterministicHash() == methodDecl.Body.GetDeterministicHash())
+			{
+				return null;
 			}
-		}
-		catch (Exception e)
-		{
-			Logger.Error(e, $"Error processing {invocation}: {e.Message}");
+
+			GetUsings(methodSymbol, usings);
+
+			if (attribute.MathOptimizations != FastMathFlags.Strict)
+			{
+				usings.Add("System.Runtime.CompilerServices");
+			}
+
+			return new InvocationModel
+			{
+				Usings = usings!,
+				OriginalMethod = methodDecl,
+				Method = FormattingHelper.Format(methodDecl
+					.WithoutLeadingTrivia()
+					.WithIdentifier(Identifier($"{methodDecl.Identifier.Text}_{result2.GetDeterministicHashString()}")
+						.WithLeadingTrivia(methodDecl.Identifier.LeadingTrivia)
+						.WithTrailingTrivia(methodDecl.Identifier.TrailingTrivia))
+					.WithBody((BlockSyntax) result2)) as MethodDeclarationSyntax ?? methodDecl,
+				// Defer formatting to emission time to avoid expensive NormalizeWhitespace calls
+				AdditionalMethods = additionalMethods
+					.OrderByDescending(o => o.Value)
+					.Select(s => s.Key),
+				ParentType = methodDecl.Parent as TypeDeclarationSyntax,
+				Invocation = invocation,
+				Location = semanticModel.GetInterceptableLocation(invocation, token),
+				Exceptions = exceptions!,
+				AttributeData = attribute,
+			};
 		}
 
 		return null;

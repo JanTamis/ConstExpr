@@ -1466,7 +1466,7 @@ public static class CompilationExtensions
 			.Replace('/', '_');
 	}
 	
-	public static string GetDeterministicHashString(int hash)
+	public static string GetDeterministicHashString(this int hash)
 	{
 		return Convert.ToBase64String(BitConverter.GetBytes(hash)).TrimEnd('=')
 			.Replace('+', '_')

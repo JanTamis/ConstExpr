@@ -26,7 +26,7 @@ public class CastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
-		if (TryExecutePredicates(context, source, context.SymbolStore, out result, out source))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
@@ -34,7 +34,7 @@ public class CastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 		// If we skipped any operations (AsEnumerable/ToList/ToArray), create optimized Cast call
 		if (TryGetOptimizedChainExpression(source, MaterializingMethods, out source))
 		{
-			if (TryExecutePredicates(context, source, context.SymbolStore, out result, out _))
+			if (TryExecutePredicates(context, source, out result, out _))
 			{
 				return true;
 			}

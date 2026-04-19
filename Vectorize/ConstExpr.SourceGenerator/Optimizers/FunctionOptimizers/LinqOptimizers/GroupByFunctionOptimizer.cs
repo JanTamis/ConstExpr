@@ -25,7 +25,7 @@ public class GroupByFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 			return true;
 		}
 
-		// if (TryExecutePredicates(context, source, context.SymbolStore, out result, out source))
+		// if (TryExecutePredicates(context, source, out result, out source))
 		// {
 		// 	return true;
 		// }
@@ -54,7 +54,7 @@ public class GroupByFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 
 			if (context.OriginalParameters.Count != context.Method.Parameters.Length
 			    || context.Method.ReceiverType is not INamedTypeSymbol receiverType
-			    || !TryGetLiteralValue(visitedSource, context, receiverType, context.SymbolStore, out var values)
+			    || !TryGetLiteralValue(visitedSource, context, receiverType, out var values)
 			    || !context.Loader.TryGetMethodByMethod(context.Method, out var method))
 			{
 				return false;
@@ -64,8 +64,8 @@ public class GroupByFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 
 			for (var i = 0; i < context.OriginalParameters.Count; i++)
 			{
-				if (TryGetLiteralValue(context.OriginalParameters[i], context, context.Method.Parameters[i].Type, context.SymbolStore, out var value)
-				    || TryGetLiteralValue(context.VisitedParameters[i], context, context.Method.Parameters[i].Type, context.SymbolStore, out value))
+				if (TryGetLiteralValue(context.OriginalParameters[i], context, context.Method.Parameters[i].Type, out var value)
+				    || TryGetLiteralValue(context.VisitedParameters[i], context, context.Method.Parameters[i].Type, out value))
 				{
 					parameters.Add(value);
 				}
@@ -126,7 +126,7 @@ public class GroupByFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 					}
 					""");
 
-				context.AdditionalMethods.TryAdd(groupingStruct, true);
+				context.AdditionalSyntax.TryAdd(groupingStruct, true);
 
 				// Generate an collection expression of Grouping<TKey, TElement> instances for each group
 				var groupExpressions = groups.Select(g =>

@@ -110,7 +110,7 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", 2)
 				? GenerateFastPowMethodFloat()
 				: GenerateFastPowMethodDouble();
 
-			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
 			result = CreateInvocation("FastPow", context.VisitedParameters);
 			return true;
 		}

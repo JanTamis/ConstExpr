@@ -22,7 +22,7 @@ public class DistinctByFunctionOptimizer() : BaseLinqFunctionOptimizer("Distinct
 			return false;
 		}
 
-		if (TryExecutePredicates(context, source, context.SymbolStore, out result, out source))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}

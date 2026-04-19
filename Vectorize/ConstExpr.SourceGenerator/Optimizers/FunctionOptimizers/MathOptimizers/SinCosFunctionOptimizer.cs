@@ -15,7 +15,7 @@ public class SinCosFunctionOptimizer() : BaseMathFunctionOptimizer("SinCos", 1)
 				? GenerateFastSinCosMethodFloat()
 				: GenerateFastSinCosMethodDouble();
 
-			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
 
 			result = CreateInvocation("FastSinCos", context.VisitedParameters);
 			return true;

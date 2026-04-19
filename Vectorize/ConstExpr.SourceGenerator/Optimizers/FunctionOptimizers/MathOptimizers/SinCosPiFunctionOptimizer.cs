@@ -15,7 +15,7 @@ public class SinCosPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinCosPi",
 				? GenerateFastSinCosPiMethodFloat()
 				: GenerateFastSinCosPiMethodDouble();
 
-			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
 
 			result = CreateInvocation("FastSinCosPi", context.VisitedParameters);
 			return true;

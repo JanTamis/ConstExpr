@@ -104,7 +104,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		var attribute = new ConstExprAttribute { MathOptimizations = mathOptimizations, LinqOptimisationMode = linqOptimisationMode };
 
 		var visitedMethods = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
-		var additionalMethods = new Dictionary<SyntaxNode, bool>(SyntaxNodeComparer.Get());
+		var additionalSyntax = new Dictionary<SyntaxNode, bool>(SyntaxNodeComparer.Get());
 
 		var parameters = new Dictionary<string, VariableItem>(_parameterNames.Count);
 
@@ -122,7 +122,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 
 		var exceptionsDuringRewriting = new List<Exception>();
 
-		var rewriter = new ConstExprPartialRewriter(_semanticModel, _loader, (_, exception) => exceptionsDuringRewriting.Add(exception), parameters, additionalMethods, new HashSet<string>(), attribute, new(), CancellationToken.None, visitedMethods);
+		var rewriter = new ConstExprPartialRewriter(_semanticModel, _loader, (_, exception) => exceptionsDuringRewriting.Add(exception), parameters, additionalSyntax, new HashSet<string>(), attribute, new(), CancellationToken.None, visitedMethods);
 
 		for (var i = 0; i < testCase.Value.Length; i++)
 		{
@@ -166,7 +166,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 
 			if (!SyntaxNodeComparer.Get<BlockSyntax>().Equals(expectedBody, newBody))
 			{
-				throw FormatMismatchException(_parameterNames, parameters, expectedBody, newBody, additionalMethods, exceptionsDuringRewriting);
+				throw FormatMismatchException(_parameterNames, parameters, expectedBody, newBody, additionalSyntax, exceptionsDuringRewriting);
 			}
 		}
 		else
@@ -178,7 +178,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			// Use Roslyn structural equivalence which ignores trivia differences
 			if (newBody == null || expectedBody == null || !SyntaxNodeComparer.Get<BlockSyntax>().Equals(expectedBody, newBody))
 			{
-				throw FormatMismatchException(_parameterNames, parameters, expectedBody, newBody, additionalMethods, exceptionsDuringRewriting);
+				throw FormatMismatchException(_parameterNames, parameters, expectedBody, newBody, additionalSyntax, exceptionsDuringRewriting);
 			}
 		}
 	}

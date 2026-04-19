@@ -50,7 +50,7 @@ public class CopySignFunctionOptimizer() : BaseMathFunctionOptimizer("CopySign",
 		{
 			context.Usings.Add("System");
 			
-			context.AdditionalMethods.TryAdd(
+			context.AdditionalSyntax.TryAdd(
 				ParseMethodFromString("""
 					/// <summary>
 					/// Bit-manipulation CopySign for float — ~10% faster than MathF.CopySign on ARM64.
@@ -77,7 +77,7 @@ public class CopySignFunctionOptimizer() : BaseMathFunctionOptimizer("CopySign",
 		{
 			context.Usings.Add("System");
 			
-			context.AdditionalMethods.TryAdd(
+			context.AdditionalSyntax.TryAdd(
 				ParseMethodFromString("""
 					/// <summary>
 					/// Bit-manipulation CopySign for double — ~10% faster than Math.CopySign on ARM64.

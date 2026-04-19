@@ -15,7 +15,7 @@ public class CosPiFunctionOptimizer() : BaseMathFunctionOptimizer("CosPi", 1)
 				? GenerateFastCosPiMethodFloat()
 				: GenerateFastCosPiMethodDouble();
 
-			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
 
 			result = CreateInvocation("FastCosPi", context.VisitedParameters);
 			return true;

@@ -34,7 +34,7 @@ public class MinFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		// Recursively skip operations that don't affect min
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectMin, out source);
 
-		if (TryExecutePredicates(context, source, context.SymbolStore, out result, out source))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}

@@ -25,7 +25,7 @@ public class BitDecrementFunctionOptimizer() : BaseMathFunctionOptimizer("BitDec
 				? GenerateFastBitDecrementMethodFloat()
 				: GenerateFastBitDecrementMethodDouble();
 
-			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
 
 			result = CreateInvocation("FastBitDecrement", context.VisitedParameters);
 			return true;

@@ -15,7 +15,7 @@ public class Exp10FunctionOptimizer() : BaseMathFunctionOptimizer("Exp10", 1)
 				? GenerateFastExp10MethodFloat()
 				: GenerateFastExp10MethodDouble();
 
-			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
 
 			result = CreateInvocation("FastExp10", context.VisitedParameters);
 			return true;

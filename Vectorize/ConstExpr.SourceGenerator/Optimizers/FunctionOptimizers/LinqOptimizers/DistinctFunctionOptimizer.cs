@@ -31,7 +31,7 @@ public class DistinctFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
-		if (TryExecutePredicates(context, source, context.SymbolStore, out result, out var newSource))
+		if (TryExecutePredicates(context, source, out result, out var newSource))
 		{
 			return true;
 		}
@@ -54,7 +54,7 @@ public class DistinctFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		// Recursively skip all allowed operations
 		var isNewSource = TryGetOptimizedChainExpression(newSource, allowedOperations, out newSource);
 
-		if (TryExecutePredicates(context, source, context.SymbolStore, out result, out newSource))
+		if (TryExecutePredicates(context, source, out result, out newSource))
 		{
 			return true;
 		}
@@ -76,7 +76,7 @@ public class DistinctFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 				{
 					TryGetOptimizedChainExpression(invocationSource, allowedOperations, out invocationSource);
 
-					if (TryExecutePredicates(context, invocationSource, context.SymbolStore, out result, out _))
+					if (TryExecutePredicates(context, invocationSource, out result, out _))
 					{
 						return true;
 					}

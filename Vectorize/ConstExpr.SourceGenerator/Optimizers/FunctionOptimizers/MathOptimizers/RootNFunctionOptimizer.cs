@@ -83,7 +83,7 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", 2)
 				? GenerateFastRootNMethodFloat()
 				: GenerateFastRootNMethodDouble();
 
-			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
 
 			result = CreateInvocation("FastRootN", context.VisitedParameters);
 			return true;

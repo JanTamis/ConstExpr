@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -1058,7 +1057,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		return false;
 	}
 
-	protected bool TryExecutePredicates(FunctionOptimizerContext context, ExpressionSyntax source, ConcurrentDictionary<string, ISymbol> symbolStore, [NotNullWhen(true)] out SyntaxNode? result, out ExpressionSyntax visitedSource)
+	protected bool TryExecutePredicates(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result, out ExpressionSyntax visitedSource)
 	{
 		visitedSource = context.Visit(source) ?? source;
 
@@ -1066,15 +1065,15 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		{
 			if (context.OriginalParameters.Count <= context.Method.Parameters.Length
 			    && context.Method.ReceiverType is INamedTypeSymbol receiverType
-			    && TryGetLiteralValue(visitedSource, context, receiverType, symbolStore, out var values)
+			    && TryGetLiteralValue(visitedSource, context, receiverType, out var values)
 			    && context.Loader.TryGetMethodByMethod(context.Method, out var method))
 			{
 				var parameters = new List<object?>();
 
 				for (var i = 0; i < context.OriginalParameters.Count; i++)
 				{
-					if (TryGetLiteralValue(context.OriginalParameters[i], context, context.Method.Parameters[i].Type, symbolStore, out var value)
-					    || TryGetLiteralValue(context.VisitedParameters[i], context, context.Method.Parameters[i].Type, symbolStore, out value))
+					if (TryGetLiteralValue(context.OriginalParameters[i], context, context.Method.Parameters[i].Type, out var value)
+					    || TryGetLiteralValue(context.VisitedParameters[i], context, context.Method.Parameters[i].Type, out value))
 					{
 						parameters.Add(value);
 					}
@@ -1121,17 +1120,17 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		return false;
 	}
 
-	protected bool TryExecutePredicates(FunctionOptimizerContext context, ExpressionSyntax source, IList<ExpressionSyntax> parameters, ConcurrentDictionary<string, ISymbol> symbolStore, [NotNullWhen(true)] out SyntaxNode? result)
+	protected bool TryExecutePredicates(FunctionOptimizerContext context, ExpressionSyntax source, IList<ExpressionSyntax> parameters, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		try
 		{
 			if (context.OriginalParameters.Count <= context.Method.Parameters.Length
 			    && context.Method.ReceiverType is INamedTypeSymbol receiverType
-			    && TryGetLiteralValue(context.Visit(source) ?? source, context, receiverType, symbolStore, out var values)
+			    && TryGetLiteralValue(context.Visit(source) ?? source, context, receiverType, out var values)
 			    && context.Loader.TryGetMethodByMethod(context.Method, out var method))
 			{
 				var newParameters = parameters
-					.WhereSelect<ExpressionSyntax, object?>((s, out result) => TryGetLiteralValue(s, context, null, symbolStore, out result))
+					.WhereSelect<ExpressionSyntax, object?>((s, out result) => TryGetLiteralValue(s, context, null, out result))
 					.ToList();
 
 				// Fill in default values for parameters not explicitly provided in the call.

@@ -39,7 +39,7 @@ public static class SymbolAnnotation
 	/// Annotates a syntax node with an <see cref="ITypeSymbol"/>.
 	/// Returns a new node with the annotation attached.
 	/// </summary>
-	public static T WithTypeSymbolAnnotation<T>(this T node, ITypeSymbol? symbol, ConcurrentDictionary<string, ISymbol> symbolStore) where T : SyntaxNode
+	public static T? WithTypeSymbolAnnotation<T>(this T node, ITypeSymbol? symbol, ConcurrentDictionary<string, ISymbol> symbolStore) where T : SyntaxNode
 	{
 		if (symbol is null)
 		{

@@ -11,7 +11,7 @@ Console.WriteLine("╚═══════════════════�
 var varInt = 10;
 var varDouble = 5.5;
 var varFloat = 3.14f;
-var varByte = (byte)128;
+var varByte = (byte) 128;
 var varString = "TestString";
 var varYear = 2024;
 var varMonth = 6;
@@ -44,6 +44,5 @@ DataValidationTests.RunTests(varDouble, varString, varInt);
 LoopBreakReturnTests.RunTests(varInt2, varString, varInt);
 MathOperationsTests.RunTests(varInt, varInt2, varInt3, varInt4);
 StringOperationsTests.RunTests(varString);
-ArrayOperationsTests.RunTests(varInt, varInt2, varInt3);
+ArrayOperationsTests.RunTests(varInt, varInt2, varInt3, new[] { varInt, varInt2, varInt3, varInt4, varInt5 });
 RegexOperationsTests.RunTests(varString, varInt);
-

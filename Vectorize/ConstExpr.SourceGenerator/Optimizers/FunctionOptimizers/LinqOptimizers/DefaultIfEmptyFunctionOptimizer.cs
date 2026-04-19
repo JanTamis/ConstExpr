@@ -33,7 +33,7 @@ public class DefaultIfEmptyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 		// Recursively skip all operations that don't affect emptiness
 		var isNewSource = TryGetOptimizedChainExpression(source, MaterializingMethods, out source);
 
-		if (TryExecutePredicates(context, source, context.SymbolStore, out result, out source))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}

@@ -44,7 +44,7 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 		if (!variables.TryGetValue(variableName, out var variable))
 		{
 			// Variable not in our tracking dictionary - if it's not read, it can be pruned
-			return true;
+			return false;
 		}
 
 		// For tracked variables, must have a constant value and not be altered

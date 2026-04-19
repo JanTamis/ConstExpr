@@ -5,10 +5,10 @@ namespace ConstExpr.SourceGenerator.Sample.Tests
 {
 	internal class ArrayOperationsTests
 	{
-		public static void RunTests(int varInt, int varInt2, int varInt3)
+		public static void RunTests(int varInt, int varInt2, int varInt3, int[] data)
 		{
 			Console.WriteLine("??? ARRAY OPERATIONS ???\n");
-
+			
 			// FindMax - alleen constanten
 			Console.WriteLine($"[CONST] FindMax(5, 12, 3, 18, 7): {ArrayOperations.FindMax(5, 12, 3, 18, 7)}");
 			Console.WriteLine($"[CONST] FindMax(100, 50, 200, 25): {ArrayOperations.FindMax(100, 50, 200, 25)}");
@@ -25,7 +25,7 @@ namespace ConstExpr.SourceGenerator.Sample.Tests
 			Console.WriteLine($"[CONST] Average(10, 20, 30, 40, 50): {ArrayOperations.Average(10, 20, 30, 40, 50):F2}");
 			Console.WriteLine($"[CONST] Average(5, 15, 25): {ArrayOperations.Average(5, 15, 25):F2}");
 			// Average - mixed
-			Console.WriteLine($"[MIXED] Average(varInt, varInt2, varInt3): {ArrayOperations.Average(varInt, varInt2, varInt3):F2}");
+			Console.WriteLine($"[MIXED] Average(varInt, varInt2, varInt3): {ArrayOperations.Average(data):F2}");
 
 			// IsSorted - alleen constanten
 			Console.WriteLine($"[CONST] IsSorted(1, 2, 3, 4, 5): {ArrayOperations.IsSorted(1, 2, 3, 4, 5)}");

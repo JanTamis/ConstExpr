@@ -69,7 +69,7 @@ public class TanhFunctionOptimizer() : BaseMathFunctionOptimizer("Tanh", 1)
 				? GenerateFastTanhMethodFloat()
 				: GenerateFastTanhMethodDouble();
 
-			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
 
 			result = CreateInvocation("FastTanh", context.VisitedParameters);
 			return true;

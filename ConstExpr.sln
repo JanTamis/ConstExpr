@@ -18,8 +18,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SourceGen.Utilities", "Sour
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConstExpr.Core", "Vectorize\ConstExpr.Core\ConstExpr.Core.csproj", "{E052C217-7D49-4E29-85B4-B1EA386753BE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConstExpr.Benchmarks", "ConstExpr.Benchmarks\ConstExpr.Benchmarks.csproj", "{769BE88D-FFFF-4BD9-A8A4-1C18592A0E32}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -90,18 +88,6 @@ Global
 		{E052C217-7D49-4E29-85B4-B1EA386753BE}.Release|x64.Build.0 = Release|Any CPU
 		{E052C217-7D49-4E29-85B4-B1EA386753BE}.Release|x86.ActiveCfg = Release|Any CPU
 		{E052C217-7D49-4E29-85B4-B1EA386753BE}.Release|x86.Build.0 = Release|Any CPU
-		{769BE88D-FFFF-4BD9-A8A4-1C18592A0E32}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{769BE88D-FFFF-4BD9-A8A4-1C18592A0E32}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{769BE88D-FFFF-4BD9-A8A4-1C18592A0E32}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{769BE88D-FFFF-4BD9-A8A4-1C18592A0E32}.Debug|x64.Build.0 = Debug|Any CPU
-		{769BE88D-FFFF-4BD9-A8A4-1C18592A0E32}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{769BE88D-FFFF-4BD9-A8A4-1C18592A0E32}.Debug|x86.Build.0 = Debug|Any CPU
-		{769BE88D-FFFF-4BD9-A8A4-1C18592A0E32}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{769BE88D-FFFF-4BD9-A8A4-1C18592A0E32}.Release|Any CPU.Build.0 = Release|Any CPU
-		{769BE88D-FFFF-4BD9-A8A4-1C18592A0E32}.Release|x64.ActiveCfg = Release|Any CPU
-		{769BE88D-FFFF-4BD9-A8A4-1C18592A0E32}.Release|x64.Build.0 = Release|Any CPU
-		{769BE88D-FFFF-4BD9-A8A4-1C18592A0E32}.Release|x86.ActiveCfg = Release|Any CPU
-		{769BE88D-FFFF-4BD9-A8A4-1C18592A0E32}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

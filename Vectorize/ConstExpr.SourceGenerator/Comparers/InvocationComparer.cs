@@ -36,7 +36,7 @@ public class InvocationModelEqualityComparer : IEqualityComparer<InvocationModel
 
 	public int GetHashCode(InvocationModel? obj)
 	{
-		if (obj is null || obj.Invocation is null)
+		if (obj?.Invocation is null)
     {
       return 0;
     }

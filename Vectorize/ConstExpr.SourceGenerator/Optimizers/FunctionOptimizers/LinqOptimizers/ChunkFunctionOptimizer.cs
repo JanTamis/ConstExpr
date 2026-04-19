@@ -18,7 +18,7 @@ public class ChunkFunctionOptimizer() : BaseLinqFunctionOptimizer("Chunk", 1)
 {
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
-		if (TryExecutePredicates(context, source, context.SymbolStore, out result, out source))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}

@@ -58,43 +58,14 @@ public static class NegateExpressionRefactoring
 				=> ParenthesizedExpression(Negate(paren.Expression)).WithTriviaFrom(expression),
 
 			// Relational & equality operators
-			BinaryExpressionSyntax binary when TryGetNegatedBinaryKind(binary.Kind(), out var negatedKind)
-				=> BinaryExpression(negatedKind, binary.Left, binary.Right)
-					.WithTriviaFrom(expression),
-
-			// De Morgan: !(a && b) → !a || !b
-			BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LogicalAndExpression } and
-				=>  LogicalOrExpression(Negate(and.Left), Negate(and.Right))
-					.WithTriviaFrom(expression),
-
-			// De Morgan: !(a || b) → !a && !b
-			BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LogicalOrExpression } or
-				=> LogicalAndExpression(Negate(or.Left), Negate(or.Right))
-					.WithTriviaFrom(expression),
+			BinaryExpressionSyntax binary when InvertLogicalRefactoring.TryInvertLogical(binary, out var inverted)
+				=> inverted.WithTriviaFrom(expression),
+			
+			LiteralExpressionSyntax or IdentifierNameSyntax or ElementAccessExpressionSyntax => expression,
 
 			// Fallback: !expr
 			_ => LogicalNotExpression(ParenthesizeIfNeeded(expression)).WithTriviaFrom(expression)
 		};
-	}
-
-	/// <summary>
-	/// Returns <see langword="true"/> and the negated <see cref="SyntaxKind"/> when the
-	/// given binary expression kind has a direct negation (e.g. <c>==</c> ↔ <c>!=</c>).
-	/// </summary>
-	private static bool TryGetNegatedBinaryKind(SyntaxKind kind, out SyntaxKind negated)
-	{
-		negated = kind switch
-		{
-			SyntaxKind.EqualsExpression => SyntaxKind.NotEqualsExpression,
-			SyntaxKind.NotEqualsExpression => SyntaxKind.EqualsExpression,
-			SyntaxKind.LessThanExpression => SyntaxKind.GreaterThanOrEqualExpression,
-			SyntaxKind.GreaterThanOrEqualExpression => SyntaxKind.LessThanExpression,
-			SyntaxKind.GreaterThanExpression => SyntaxKind.LessThanOrEqualExpression,
-			SyntaxKind.LessThanOrEqualExpression => SyntaxKind.GreaterThanExpression,
-			_ => default
-		};
-
-		return negated != default;
 	}
 
 	/// <summary>

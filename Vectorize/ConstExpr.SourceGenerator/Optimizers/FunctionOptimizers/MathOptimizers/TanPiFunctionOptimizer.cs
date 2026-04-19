@@ -61,7 +61,7 @@ public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", 1)
 				? GenerateFastTanPiMethodFloat()
 				: GenerateFastTanPiMethodDouble();
 
-			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
 
 			result = CreateInvocation("FastTanPi", context.VisitedParameters);
 			return true;

@@ -15,7 +15,7 @@ public class CoshFunctionOptimizer() : BaseMathFunctionOptimizer("Cosh", 1)
 				? GenerateFastCoshMethodFloat()
 				: GenerateFastCoshMethodDouble();
 
-			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
 
 			result = CreateInvocation("FastCosh", context.VisitedParameters);
 			return true;

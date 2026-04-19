@@ -15,7 +15,7 @@ public class CosFunctionOptimizer() : BaseMathFunctionOptimizer("Cos", 1)
 				? GenerateFastCosMethodFloat()
 				: GenerateFastCosMethodDouble();
 
-			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
 
 			result = CreateInvocation("FastCos", context.VisitedParameters);
 			return true;

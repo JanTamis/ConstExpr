@@ -28,7 +28,7 @@ public class ToHashSetFunctionOptimizer() : BaseLinqFunctionOptimizer("ToHashSet
 	{
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectExistence, out source);
 
-		if (TryExecutePredicates(context, source, context.SymbolStore, out result, out source))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}

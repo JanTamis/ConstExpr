@@ -15,7 +15,7 @@ public class AsinPiFunctionOptimizer() : BaseMathFunctionOptimizer("AsinPi", 1)
 				? GenerateFastAsinPiMethodFloat()
 				: GenerateFastAsinPiMethodDouble();
 
-			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
 
 			result = CreateInvocation("FastAsinPi", context.VisitedParameters);
 			return true;

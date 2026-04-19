@@ -15,7 +15,7 @@ public class AcosPiFunctionOptimizer() : BaseMathFunctionOptimizer("AcosPi", 1)
 				? GenerateFastAcosPiMethodFloat()
 				: GenerateFastAcosPiMethodDouble();
 
-			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
 
 			result = CreateInvocation("FastAcosPi", context.VisitedParameters);
 			return true;

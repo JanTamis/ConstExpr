@@ -15,7 +15,7 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", 1)
 				? GenerateFastAcosMethodFloat()
 				: GenerateFastAcosMethodDouble());
 
-			context.AdditionalMethods.TryAdd(method, false);
+			context.AdditionalSyntax.TryAdd(method, false);
 
 			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);
 			return true;

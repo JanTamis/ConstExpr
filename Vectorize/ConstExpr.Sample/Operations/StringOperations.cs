@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using ConstExpr.Core.Attributes;
 using ConstExpr.Core.Enumerators;
 using System.Text;
@@ -5,7 +6,7 @@ using System.Text;
 namespace ConstExpr.SourceGenerator.Sample.Operations;
 
 [ConstExpr(
-	MathOptimizations = FastMathFlags.FastMath, 
+	MathOptimizations = FastMathFlags.FastMath,
 	LinqOptimisationMode = LinqOptimisationMode.Unroll)]
 public static class StringOperations
 {
@@ -126,11 +127,11 @@ public static class StringOperations
 
 		var result = input.ToCharArray();
 		var capitalizeNext = true;
-		
+
 		for (var i = 0; i < result.Length; i++)
 		{
 			var c = result[i];
-			
+
 			if (char.IsWhiteSpace(c))
 			{
 				capitalizeNext = true;
@@ -178,17 +179,18 @@ public static class StringOperations
 			return input;
 		}
 
-		var result = new StringBuilder();
+		var result = new char[input.Length];
+		var index = 0;
 
 		foreach (var c in input)
 		{
 			if (!char.IsWhiteSpace(c))
 			{
-				result.Append(c);
+				result[index++] = c;
 			}
 		}
 
-		return result.ToString();
+		return new string(result, 0, index);
 	}
 
 	/// <summary>
@@ -272,11 +274,11 @@ public static class StringOperations
 		}
 
 		var result = input.ToCharArray();
-		
+
 		for (var i = 0; i < result.Length; i++)
 		{
 			var c = result[i];
-			
+
 			if (char.IsUpper(c))
 			{
 				result[i] = char.ToLower(c);

@@ -15,7 +15,7 @@ public class LerpFunctionOptimizer() : BaseMathFunctionOptimizer("Lerp", 3)
 				? GenerateFastLerpMethodFloat()
 				: GenerateFastLerpMethodDouble();
 
-			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
 
 			result = CreateInvocation("FastLerp", context.VisitedParameters);
 			return true;

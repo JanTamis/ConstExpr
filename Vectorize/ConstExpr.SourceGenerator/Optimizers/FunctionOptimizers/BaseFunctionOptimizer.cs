@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -91,23 +90,35 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers
 				.First();
 		}
 
-		protected bool TryGetLiteralValue([NotNullWhen(true)] SyntaxNode? node, FunctionOptimizerContext context, ITypeSymbol? typeSymbol, ConcurrentDictionary<string, ISymbol> symbolStore, out object? value)
+		protected bool TryGetLiteralValue([NotNullWhen(true)] SyntaxNode? node, FunctionOptimizerContext context, out object? value)
 		{
-			return TryGetLiteralValue(node, context, typeSymbol, symbolStore, out value, [ ]);
+			return TryGetLiteralValue(node, context, null, out value, new HashSet<string>());
 		}
 
-		protected bool TryGetLiteralValue([NotNullWhen(true)] SyntaxNode? node, FunctionOptimizerContext context, ITypeSymbol? typeSymbol, ConcurrentDictionary<string, ISymbol> symbolStore, out object? value, HashSet<string> visitedVariables)
+		protected bool TryGetLiteralValue([NotNullWhen(true)] SyntaxNode? node, FunctionOptimizerContext context, ITypeSymbol? typeSymbol, out object? value)
+		{
+			return TryGetLiteralValue(node, context, typeSymbol, out value, [ ]);
+		}
+
+		protected bool TryGetLiteralValue([NotNullWhen(true)] SyntaxNode? node, FunctionOptimizerContext context, ITypeSymbol? typeSymbol, out object? value, HashSet<string> visitedVariables)
 		{
 			switch (node)
 			{
 				case LiteralExpressionSyntax { Token.Value: var v }:
+				{
 					value = v;
 					return true;
+				}
 				case ArgumentSyntax argumentSyntax:
-					return TryGetLiteralValue(argumentSyntax.Expression, context, typeSymbol, symbolStore, out value, visitedVariables);
+				{
+					return TryGetLiteralValue(argumentSyntax.Expression, context, typeSymbol, out value, visitedVariables);
+				}
 				case ExpressionElementSyntax elementSyntax:
-					return TryGetLiteralValue(elementSyntax.Expression, context, typeSymbol, symbolStore, out value, visitedVariables);
+				{
+					return TryGetLiteralValue(elementSyntax.Expression, context, typeSymbol, out value, visitedVariables);
+				}
 				case IdentifierNameSyntax identifier when context.Variables.TryGetValue(identifier.Identifier.Text, out var variable) && variable.HasValue:
+				{
 					// Prevent infinite recursion from circular variable references
 					if (!visitedVariables.Add(identifier.Identifier.Text))
 					{
@@ -117,19 +128,22 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers
 
 					if (variable.Value is SyntaxNode sn)
 					{
-						return TryGetLiteralValue(sn, context, variable.Type, symbolStore, out value, visitedVariables);
+						return TryGetLiteralValue(sn, context, variable.Type, out value, visitedVariables);
 					}
 
 					value = variable.Value;
 					return true;
+				}
 				// unwrap ( ... )
 				case ParenthesizedExpressionSyntax paren:
-					return TryGetLiteralValue(paren.Expression, context, typeSymbol, symbolStore, out value, visitedVariables)
-					       || TryGetLiteralValue(context.Visit(paren.Expression), context, typeSymbol, symbolStore, out value, visitedVariables);
+				{
+					return TryGetLiteralValue(paren.Expression, context, typeSymbol, out value, visitedVariables)
+					       || TryGetLiteralValue(context.Visit(paren.Expression), context, typeSymbol, out value, visitedVariables);
+				}
 				// ^n => System.Index(n, fromEnd: true)
 				case PrefixUnaryExpressionSyntax prefix when prefix.OperatorToken.IsKind(SyntaxKind.CaretToken):
 				{
-					if (TryGetLiteralValue(prefix.Operand, context, typeSymbol, symbolStore, out var inner, visitedVariables) && inner is not null)
+					if (TryGetLiteralValue(prefix.Operand, context, typeSymbol, out var inner, visitedVariables) && inner is not null)
 					{
 						try
 						{
@@ -166,7 +180,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers
 
 						object? MakeIndex(ExpressionSyntax expr)
 						{
-							if (TryGetLiteralValue(context.Visit(expr), context, typeSymbol, symbolStore, out var innerVal, visitedVariables) && innerVal is not null)
+							if (TryGetLiteralValue(context.Visit(expr), context, typeSymbol, out var innerVal, visitedVariables) && innerVal is not null)
 							{
 								// Already an Index (e.g., ^n handled above)
 								if (innerVal.GetType().FullName == "System.Index")
@@ -240,7 +254,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers
 
 					var arguments = objectCreationExpression.ArgumentList?.Arguments
 						                .Select(s => context.Visit(s.Expression))
-						                .WhereSelect<SyntaxNode, object?>((syntaxNode, out o) => TryGetLiteralValue(syntaxNode, context, typeSymbol, symbolStore, out o, visitedVariables))
+						                .WhereSelect<SyntaxNode, object?>((syntaxNode, out o) => TryGetLiteralValue(syntaxNode, context, typeSymbol, out o, visitedVariables))
 					                ?? Enumerable.Empty<object?>();
 
 					if (context.Model.TryGetSymbol(objectCreationExpression, context.SymbolStore, out IMethodSymbol? constructor)
@@ -311,7 +325,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers
 							.Select(p => Expression.Parameter(context.Loader.GetType(p.Type), p.Name))
 							.ToDictionary(t => t.Name);
 
-						var rewriter = new ExpressionRewriter(context.Model, context.Loader, (_, _) => { }, context.Variables, parameters, CancellationToken.None, symbolStore);
+						var rewriter = new ExpressionRewriter(context.Model, context.Loader, (_, _) => { }, context.Variables, parameters, CancellationToken.None, context.SymbolStore);
 						var body = rewriter.Visit(lambda.Body);
 
 						if (body is null)
@@ -334,7 +348,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers
 							.Select(p => Expression.Parameter(context.Loader.GetType(p.Type), p.Name))
 							.ToDictionary(t => t.Name);
 
-						var rewriter = new ExpressionRewriter(context.Model, context.Loader, (_, _) => { }, context.Variables, parameters, CancellationToken.None, symbolStore);
+						var rewriter = new ExpressionRewriter(context.Model, context.Loader, (_, _) => { }, context.Variables, parameters, CancellationToken.None, context.SymbolStore);
 						var body = rewriter.Visit(parenthesizedLambdaExpressionSyntax.Body);
 
 						value = Expression.Lambda(body, parameters.Values).Compile();
@@ -345,7 +359,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers
 				}
 				case CastExpressionSyntax castExpressionSyntax:
 				{
-					if (TryGetLiteralValue(castExpressionSyntax.Expression, context, typeSymbol, symbolStore, out var innerVal, visitedVariables))
+					if (TryGetLiteralValue(castExpressionSyntax.Expression, context, typeSymbol, out var innerVal, visitedVariables))
 					{
 						// Try to resolve the *textual* type name from the syntax node (no semantic model)
 						var typeName = castExpressionSyntax.Type switch
@@ -413,17 +427,20 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers
 					{
 						var parentType = symbol.ContainingType;
 
-						TryGetLiteralValue(context.Visit(memberAccessExpressionSyntax.Expression), context, parentType, symbolStore, out var instanceValue, visitedVariables);
+						TryGetLiteralValue(context.Visit(memberAccessExpressionSyntax.Expression), context, parentType, out var instanceValue, visitedVariables);
 
 						switch (symbol)
 						{
 							case IFieldSymbol fieldSymbol:
+							{
 								if (context.Loader.TryGetFieldValue(fieldSymbol, instanceValue, out value))
 								{
 									return true;
 								}
 								break;
+							}
 							case IPropertySymbol propertySymbol:
+							{
 								if (propertySymbol.Parameters.Length == 0)
 								{
 									if (context.Loader.TryExecuteMethod(propertySymbol.GetMethod, instanceValue, new VariableItemDictionary(context.Variables), [ ], out value))
@@ -432,6 +449,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers
 									}
 								}
 								break;
+							}
 						}
 					}
 
@@ -452,7 +470,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers
 
 							foreach (var size in rankSpecifier.Sizes)
 							{
-								if (TryGetLiteralValue(context.Visit(size), context, typeSymbol, symbolStore, out var dimValue, visitedVariables) && dimValue is not null)
+								if (TryGetLiteralValue(context.Visit(size), context, typeSymbol, out var dimValue, visitedVariables) && dimValue is not null)
 								{
 									try
 									{
@@ -494,7 +512,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers
 						else if (dimensions == 1)
 						{
 							// Single-dimensional array with explicit size
-							if (TryGetLiteralValue(rankSpecifier.Sizes[0], context, typeSymbol, symbolStore, out var sizeVal, visitedVariables) && sizeVal is not null)
+							if (TryGetLiteralValue(rankSpecifier.Sizes[0], context, typeSymbol, out var sizeVal, visitedVariables) && sizeVal is not null)
 							{
 								try
 								{
@@ -527,7 +545,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers
 
 						foreach (var element in arrayCreationExpression.Initializer.Expressions)
 						{
-							if (TryGetLiteralValue(element, context, typeSymbol, symbolStore, out var elemVal, visitedVariables))
+							if (TryGetLiteralValue(element, context, typeSymbol, out var elemVal, visitedVariables))
 							{
 								elements.Add(elemVal);
 							}
@@ -575,7 +593,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers
 
 					foreach (var element in implicitArrayCreationExpressionSyntax.Initializer.Expressions)
 					{
-						if (TryGetLiteralValue(element, context, typeSymbol, symbolStore, out var elemVal, visitedVariables))
+						if (TryGetLiteralValue(element, context, typeSymbol, out var elemVal, visitedVariables))
 						{
 							elements.Add(elemVal);
 						}
@@ -658,7 +676,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers
 
 					foreach (var element in collectionExpressionSyntax.Elements.OfType<ExpressionElementSyntax>())
 					{
-						if (TryGetLiteralValue(element.Expression, context, typeSymbol, symbolStore, out var elemVal, visitedVariables))
+						if (TryGetLiteralValue(element.Expression, context, typeSymbol, out var elemVal, visitedVariables))
 						{
 							elements.Add(elemVal);
 						}
@@ -741,7 +759,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers
 
 					foreach (var element in tupleExpressionSyntax.Arguments)
 					{
-						if (TryGetLiteralValue(element.Expression, context, typeSymbol, symbolStore, out var elemVal, visitedVariables))
+						if (TryGetLiteralValue(element.Expression, context, typeSymbol, out var elemVal, visitedVariables))
 						{
 							elements.Add(elemVal);
 						}

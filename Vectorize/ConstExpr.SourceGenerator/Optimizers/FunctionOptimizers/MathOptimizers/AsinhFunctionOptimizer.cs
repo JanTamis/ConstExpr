@@ -15,7 +15,7 @@ public class AsinhFunctionOptimizer() : BaseMathFunctionOptimizer("Asinh", 1)
 				? GenerateFastAsinhMethodFloat()
 				: GenerateFastAsinhMethodDouble();
 
-			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
 
 			result = CreateInvocation("FastAsinh", context.VisitedParameters);
 			return true;

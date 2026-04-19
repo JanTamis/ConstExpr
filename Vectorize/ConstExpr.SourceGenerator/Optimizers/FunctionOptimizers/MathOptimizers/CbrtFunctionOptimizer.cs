@@ -17,7 +17,7 @@ public class CbrtFunctionOptimizer() : BaseMathFunctionOptimizer("Cbrt", 1)
 				? GenerateFastCbrtMethodFloat()
 				: GenerateFastCbrtMethodDouble();
 
-			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
 
 			result = CreateInvocation("FastCbrt", context.VisitedParameters);
 			return true;

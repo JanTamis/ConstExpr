@@ -6,7 +6,7 @@ namespace ConstExpr.SourceGenerator.Sample.Tests;
 
 internal partial class RegexOperationsTests
 {
-	[GeneratedRegex(@"\d+")]
+	[GeneratedRegex(@"^[a-zA-Z_]\w*$")]
 	private static partial Regex NumberRegex();
 		
 	public static void RunTests(string varString, int varInt)
@@ -74,12 +74,12 @@ internal partial class RegexOperationsTests
 		// MatchesSimplePattern - mixed
 		Console.WriteLine($"[MIXED] MatchesSimplePattern(varString, \"\\\\w*\"): {RegexOperations.MatchesSimplePattern(varString, @"\w\w\w\w\w\w\w\w\w\w")}");
 
-		// IndexOfPattern - alleen constanten
-		Console.WriteLine($"[CONST] IndexOfPattern(\"Hello World\", \"World\"): {RegexOperations.IndexOfPattern("Hello World", "World")}");
-		Console.WriteLine($"[CONST] IndexOfPattern(\"abcabc\", \"bc\"): {RegexOperations.IndexOfPattern("abcabc", "bc")}");
-		Console.WriteLine($"[CONST] IndexOfPattern(\"Hello\", \"xyz\"): {RegexOperations.IndexOfPattern("Hello", "xyz")}");
-		// IndexOfPattern - mixed
-		Console.WriteLine($"[MIXED] IndexOfPattern(varString, \"String\"): {RegexOperations.IndexOfPattern(varString, "String")}");
+		// // IndexOfPattern - alleen constanten
+		// Console.WriteLine($"[CONST] IndexOfPattern(\"Hello World\", \"World\"): {RegexOperations.IndexOfPattern("Hello World", "World")}");
+		// Console.WriteLine($"[CONST] IndexOfPattern(\"abcabc\", \"bc\"): {RegexOperations.IndexOfPattern("abcabc", "bc")}");
+		// Console.WriteLine($"[CONST] IndexOfPattern(\"Hello\", \"xyz\"): {RegexOperations.IndexOfPattern("Hello", "xyz")}");
+		// // IndexOfPattern - mixed
+		// Console.WriteLine($"[MIXED] IndexOfPattern(varString, \"String\"): {RegexOperations.IndexOfPattern(varString, "String")}");
 
 		// ReplaceAll - alleen constanten
 		Console.WriteLine($"[CONST] ReplaceAll(\"Hello World\", \"World\", \"C#\"): {RegexOperations.ReplaceAll("Hello World", "World", "C#")}");

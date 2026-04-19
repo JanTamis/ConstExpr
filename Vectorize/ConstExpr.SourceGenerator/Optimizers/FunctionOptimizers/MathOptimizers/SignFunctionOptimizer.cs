@@ -15,7 +15,7 @@ public class SignFunctionOptimizer() : BaseMathFunctionOptimizer("Sign", 1)
 				? GenerateFastSignMethodFloat()
 				: GenerateFastSignMethodDouble();
 
-			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
 
 			result = CreateInvocation("FastSign", context.VisitedParameters);
 			return true;

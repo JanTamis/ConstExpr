@@ -1,10 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using ConstExpr.SourceGenerator.Comparers;
 using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Refactorers;
-using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -36,6 +36,27 @@ public partial class ConstExprPartialRewriter
 
 		var statement = Visit(node.Statement);
 		var @else = Visit(node.Else);
+
+		if (@else is null)
+		{
+			switch (statement)
+			{
+				case IfStatementSyntax { Else: null } nestedIf:
+				{
+					condition = Visit(ParenthesizedExpression(LogicalOrExpression(condition as ExpressionSyntax ?? node.Condition, nestedIf.Condition)));
+					statement = nestedIf.Statement;
+
+					break;
+				}
+				case BlockSyntax { Statements: [ IfStatementSyntax { Else: null } nestedBlockIf ] }:
+				{
+					condition = Visit(ParenthesizedExpression(LogicalOrExpression(condition as ExpressionSyntax ?? node.Condition, nestedBlockIf.Condition)));
+					statement = nestedBlockIf.Statement;
+
+					break;
+				}
+			}
+		}
 
 		var result = node
 			.WithCondition(condition as ExpressionSyntax ?? node.Condition)
@@ -198,7 +219,7 @@ public partial class ConstExprPartialRewriter
 		}
 
 		InvalidateAssignedVariables(node);
-		
+
 		return base.VisitDoStatement(node);
 	}
 
@@ -247,7 +268,7 @@ public partial class ConstExprPartialRewriter
 		}
 
 		InvalidateAssignedVariablesForForEach(node, names);
-		
+
 		return base.VisitForEachStatement(node);
 	}
 
@@ -259,7 +280,7 @@ public partial class ConstExprPartialRewriter
 		return collection switch
 		{
 			CollectionExpressionSyntax collectionExpression => collectionExpression.Elements,
-			LiteralExpressionSyntax { RawKind: (int)SyntaxKind.StringLiteralExpression } stringLiteral =>
+			LiteralExpressionSyntax { RawKind: (int) SyntaxKind.StringLiteralExpression } stringLiteral =>
 				stringLiteral.Token.ValueText
 					.Select(s => CreateLiteral(s) as CSharpSyntaxNode)
 					.ToList(),
@@ -325,9 +346,9 @@ public partial class ConstExprPartialRewriter
 		// incorrectly merged into a single conditional that increments count only once.
 		if (result is BlockSyntax resultBlock
 		    && resultBlock.Statements.All(s => s is not IfStatementSyntax ifStmt
-			    || ContainsJumpStatement(ifStmt.Statement)))
+		                                       || ContainsJumpStatement(ifStmt.Statement)))
 		{
-			var combined = CombineConsecutiveIfStatements(resultBlock.Statements);
+			var combined = CombineConsecutiveIfStatements(resultBlock.Statements, Visit);
 			result = combined.Count == 1 ? combined[0] : Block(combined);
 		}
 
@@ -402,7 +423,7 @@ public partial class ConstExprPartialRewriter
 		var visited = VisitList(node.Statements);
 
 		var untilThrown = TakeUntilThrownStatements(visited);
-		var combined = CombineConsecutiveIfStatements(untilThrown);
+		var combined = CombineConsecutiveIfStatements(untilThrown, Visit);
 		var simplified = SimplifyIfReturnPatterns(combined);
 		
 		return node.WithStatements(simplified);
@@ -445,9 +466,9 @@ public partial class ConstExprPartialRewriter
 		for (var i = 0; i < statements.Count; i++)
 		{
 			// Check for pattern: if (cond) { return <bool>; } followed by return <opposite bool>;
-			if (i + 1 < statements.Count 
-			    && statements[i] is IfStatementSyntax { Else: null } ifStatement 
-			    && statements[i + 1] is ReturnStatementSyntax followingReturn 
+			if (i + 1 < statements.Count
+			    && statements[i] is IfStatementSyntax { Else: null } ifStatement
+			    && statements[i + 1] is ReturnStatementSyntax followingReturn
 			    && TryGetIfReturnBoolPattern(ifStatement, followingReturn, out var simplifiedReturn))
 			{
 				result.Add(simplifiedReturn!);
@@ -470,7 +491,7 @@ public partial class ConstExprPartialRewriter
 
 		// Get the return statement from the if body
 		var ifBody = ifStatement.Statement;
-		
+
 		var ifReturn = ifBody switch
 		{
 			ReturnStatementSyntax ret => ret,
@@ -484,14 +505,13 @@ public partial class ConstExprPartialRewriter
 		}
 
 		// Check if both returns are boolean literals
-		if (!TryGetBoolLiteral(ifReturn.Expression, out var ifReturnValue) 
-		    || !TryGetBoolLiteral(followingReturn.Expression, out var followingReturnValue))
+		if (!TryGetBoolLiteral(ifReturn.Expression, out var ifReturnValue))
 		{
 			return false;
 		}
 
 		// Only simplify if they return opposite values
-		if (ifReturnValue == followingReturnValue)
+		if (SyntaxNodeComparer.Get().Equals(ifReturn.Expression, followingReturn.Expression))
 		{
 			return false;
 		}
@@ -502,16 +522,23 @@ public partial class ConstExprPartialRewriter
 
 		if (ifReturnValue)
 		{
-			// return cond;
-			simplified = ReturnStatement(condition);
+			if (followingReturn.Expression is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.FalseLiteralExpression })
+			{
+				// return cond;
+				simplified = ReturnStatement(condition);
+			}
+			else
+			{
+				simplified = ReturnStatement(LogicalAndExpression(condition, followingReturn.Expression));
+			}
 		}
 		else if (InvertLogicalRefactoring.TryInvertLogical(condition as BinaryExpressionSyntax, out var inverted))
 		{
-			simplified = ReturnStatement(inverted);
+			simplified = ReturnStatement(LogicalAndExpression(inverted, followingReturn.Expression));
 		}
 		else if (condition is { } expr)
 		{
-			simplified = ReturnStatement(NegateExpressionRefactoring.Negate(expr));
+			simplified = ReturnStatement(LogicalAndExpression(NegateExpressionRefactoring.Negate(expr), followingReturn.Expression));
 		}
 
 		return simplified is not null;
@@ -554,7 +581,7 @@ public partial class ConstExprPartialRewriter
 	/// Example (strategy 2): if (x &gt; 5) { return; } if (y &lt; 3) { return; }
 	///                     => if (x &gt; 5 || y &lt; 3) { return; }
 	/// </summary>
-	internal static SyntaxList<StatementSyntax> CombineConsecutiveIfStatements(SyntaxList<StatementSyntax> statements)
+	internal static SyntaxList<StatementSyntax> CombineConsecutiveIfStatements(SyntaxList<StatementSyntax> statements, Func<SyntaxNode?, SyntaxNode?> visit)
 	{
 		if (statements.Count < 2)
 		{
@@ -571,7 +598,7 @@ public partial class ConstExprPartialRewriter
 			{
 				result.Add(statements[i]);
 				i++;
-				
+
 				continue;
 			}
 
@@ -593,7 +620,7 @@ public partial class ConstExprPartialRewriter
 						break;
 					}
 
-					if (!TryGetEqualityComparisonInfo(nextIf.Condition, out var nextTarget, out var nextLiteral) 
+					if (!TryGetEqualityComparisonInfo(nextIf.Condition, out var nextTarget, out var nextLiteral)
 					    || nextTarget != targetIdentifier)
 					{
 						break;
@@ -606,7 +633,7 @@ public partial class ConstExprPartialRewriter
 				if (literals.Count > 1)
 				{
 					// e.g. target is 1 or 5 or 10
-					var combinedCondition = CreateIsOrPattern(targetIdentifier!, literals);
+					var combinedCondition = visit(CreateIsOrPattern(targetIdentifier!, literals)) as ExpressionSyntax;
 					result.Add(currentIf.WithCondition(combinedCondition));
 					i = j;
 					continue;
@@ -627,7 +654,7 @@ public partial class ConstExprPartialRewriter
 					}
 
 					if (!SyntaxNodeComparer.Get<StatementSyntax>().Equals(nextIf.Statement, currentIf.Statement))
-						
+
 					{
 						break;
 					}
@@ -719,7 +746,7 @@ public partial class ConstExprPartialRewriter
 		targetIdentifier = null;
 		literal = null;
 
-		if (condition is not BinaryExpressionSyntax binary 
+		if (condition is not BinaryExpressionSyntax binary
 		    || !binary.IsKind(SyntaxKind.EqualsExpression))
 		{
 			return false;
@@ -741,7 +768,7 @@ public partial class ConstExprPartialRewriter
 				return false;
 		}
 	}
-	
+
 	public override SyntaxNode? VisitReturnStatement(ReturnStatementSyntax node)
 	{
 		return node.WithExpression(Visit(node.Expression) as ExpressionSyntax);
@@ -762,4 +789,3 @@ public partial class ConstExprPartialRewriter
 		};
 	}
 }
-

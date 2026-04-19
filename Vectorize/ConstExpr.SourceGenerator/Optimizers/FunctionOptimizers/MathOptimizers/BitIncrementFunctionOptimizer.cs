@@ -25,7 +25,7 @@ public class BitIncrementFunctionOptimizer() : BaseMathFunctionOptimizer("BitInc
 				? GenerateFastBitIncrementMethodFloat()
 				: GenerateFastBitIncrementMethodDouble();
 
-			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
 
 			result = CreateInvocation("FastBitIncrement", context.VisitedParameters);
 			return true;

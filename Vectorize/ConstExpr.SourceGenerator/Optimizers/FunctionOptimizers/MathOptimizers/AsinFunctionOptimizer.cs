@@ -15,7 +15,7 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", 1)
 				? GenerateFastAsinMethodFloat()
 				: GenerateFastAsinMethodDouble();
 
-			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
 
 			result = CreateInvocation("FastAsin", context.VisitedParameters);
 			return true;

@@ -20,7 +20,7 @@ public sealed class FunctionOptimizerContext(
 	Func<SyntaxNode, StatementSyntax?> visitStatement,
 	Func<LambdaExpressionSyntax, LambdaExpression?> getLambda,
 	Func<BinaryExpressionSyntax, ITypeSymbol, ITypeSymbol, ITypeSymbol, ExpressionSyntax> optimizeBinaryExpression,
-	IDictionary<SyntaxNode, bool> additionalMethods,
+	IDictionary<SyntaxNode, bool> additionalSyntax,
 	IDictionary<string, VariableItem> variables,
 	ISet<string> usings,
 	FastMathFlags fastMathFlags,
@@ -38,7 +38,7 @@ public sealed class FunctionOptimizerContext(
 	
 	public Func<LambdaExpressionSyntax, LambdaExpression?> GetLambda { get; } = getLambda;
 	public Func<BinaryExpressionSyntax, ITypeSymbol, ITypeSymbol, ITypeSymbol, ExpressionSyntax> OptimizeBinaryExpression { get; set; } = optimizeBinaryExpression;
-	public IDictionary<SyntaxNode, bool> AdditionalMethods { get; } = additionalMethods;
+	public IDictionary<SyntaxNode, bool> AdditionalSyntax { get; } = additionalSyntax;
 	public IDictionary<string, VariableItem> Variables { get; } = variables;
 	public ISet<string> Usings { get; } = usings;
 	public FastMathFlags FastMathFlags { get; } = fastMathFlags;
@@ -46,6 +46,6 @@ public sealed class FunctionOptimizerContext(
 
 	public FunctionOptimizerContext WithInvocationAndMethod(InvocationExpressionSyntax invocation, IMethodSymbol method)
 	{
-		return new FunctionOptimizerContext(Model, Loader, method, invocation, VisitedParameters, OriginalParameters, Visit, VisitStatement, GetLambda, OptimizeBinaryExpression, AdditionalMethods, Variables, Usings, FastMathFlags, SymbolStore);
+		return new FunctionOptimizerContext(Model, Loader, method, invocation, VisitedParameters, OriginalParameters, Visit, VisitStatement, GetLambda, OptimizeBinaryExpression, AdditionalSyntax, Variables, Usings, FastMathFlags, SymbolStore);
 	}
 }

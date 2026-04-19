@@ -36,7 +36,7 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 		// Recursively skip all operations that don't affect which element is first
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectFirst, out source);
 
-		if (TryExecutePredicates(context, source, context.SymbolStore, out result, out source))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}

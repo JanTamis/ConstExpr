@@ -15,7 +15,7 @@ public class SinPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinPi", 1)
 				? GenerateFastSinPiMethodFloat()
 				: GenerateFastSinPiMethodDouble();
 
-			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
 
 			result = CreateInvocation("FastSinPi", context.VisitedParameters);
 			return true;

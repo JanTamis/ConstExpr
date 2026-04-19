@@ -22,7 +22,7 @@ public class MinByFunctionOptimizer() : BaseLinqFunctionOptimizer("MinBy", 1)
 			return false;
 		}
 
-		if (TryExecutePredicates(context, source, context.SymbolStore, out result, out source))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}

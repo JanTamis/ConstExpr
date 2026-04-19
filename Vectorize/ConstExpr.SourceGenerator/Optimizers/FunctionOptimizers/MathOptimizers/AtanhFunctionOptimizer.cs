@@ -42,7 +42,7 @@ public class AtanhFunctionOptimizer() : BaseMathFunctionOptimizer("Atanh", 1)
 				? GenerateFastAtanhMethodFloat()
 				: GenerateFastAtanhMethodDouble();
 
-			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
 
 			result = CreateInvocation("FastAtanh", context.VisitedParameters);
 			return true;

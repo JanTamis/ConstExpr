@@ -37,7 +37,7 @@ public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 			return true;
 		}
 
-		if (TryExecutePredicates(context, source, context.SymbolStore, out result, out source))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}

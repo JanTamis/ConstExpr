@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -37,28 +36,22 @@ public static class InvertLogicalRefactoring
 			return false;
 		}
 
-		if (!node.IsKind(SyntaxKind.LogicalAndExpression) 
-		    && !node.IsKind(SyntaxKind.LogicalOrExpression))
-		{
-			return false;
-		}
-
 		var negatedLeft = NegateExpressionRefactoring.Negate(node.Left);
 		var negatedRight = NegateExpressionRefactoring.Negate(node.Right);
 
-		var flippedKind = node.IsKind(SyntaxKind.LogicalAndExpression)
-			? SyntaxKind.LogicalOrExpression
-			: SyntaxKind.LogicalAndExpression;
-
-		var inner = BinaryExpression(flippedKind, negatedLeft, negatedRight);
-
-		result = inner;
-
-		// // Wrap in !(...) to preserve overall truth value.
-		// result = PrefixUnaryExpression(
-		// 	SyntaxKind.LogicalNotExpression,
-		// 	ParenthesizedExpression(inner));
-
+		result = node.Kind() switch
+		{
+			SyntaxKind.LogicalAndExpression => ParenthesizedExpression(LogicalOrExpression(negatedLeft, negatedRight)),
+			SyntaxKind.LogicalOrExpression => LogicalAndExpression(negatedLeft, negatedRight),
+			SyntaxKind.EqualsExpression => NotEqualsExpression(negatedLeft, negatedRight),
+			SyntaxKind.NotEqualsExpression => EqualsExpression(negatedLeft, negatedRight),
+			SyntaxKind.GreaterThanExpression => LessThanOrEqualExpression(node.Left, node.Right),
+			SyntaxKind.GreaterThanOrEqualExpression => LessThanExpression(node.Left, node.Right),
+			SyntaxKind.LessThanExpression => GreaterThanOrEqualExpression(node.Left, node.Right),
+			SyntaxKind.LessThanOrEqualExpression => GreaterThanExpression(node.Left, node.Right),
+			_ => node,
+		};
+		
 		return true;
 	}
 }

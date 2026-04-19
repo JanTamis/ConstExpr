@@ -15,7 +15,7 @@ public class AcoshFunctionOptimizer() : BaseMathFunctionOptimizer("Acosh", 1)
 				? GenerateFastAcoshMethodFloat()
 				: GenerateFastAcoshMethodDouble();
 
-			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
 
 			result = CreateInvocation("FastAcosh", context.VisitedParameters);
 			return true;

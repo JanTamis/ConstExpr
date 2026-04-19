@@ -53,7 +53,7 @@ public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", 1)
 				}
 				""");
 
-			context.AdditionalMethods.TryAdd(method, false);
+			context.AdditionalSyntax.TryAdd(method, false);
 
 			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);
 			return true;

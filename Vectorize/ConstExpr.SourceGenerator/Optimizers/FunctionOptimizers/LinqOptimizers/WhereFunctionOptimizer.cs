@@ -38,7 +38,7 @@ public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		var wherePredicates = new List<LambdaExpressionSyntax> { lambda };
 		var currentSource = source;
 
-		if (TryExecutePredicates(context, currentSource, context.SymbolStore, out result, out _))
+		if (TryExecutePredicates(context, currentSource, out result, out _))
 		{
 			return true;
 		}

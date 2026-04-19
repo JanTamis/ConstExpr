@@ -33,7 +33,7 @@ public class LogFunctionOptimizer() : BaseMathFunctionOptimizer("Log", 1, 2)
 				? GenerateFastLogMethodFloat()
 				: GenerateFastLogMethodDouble();
 
-			context.AdditionalMethods.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
 
 			if (context.VisitedParameters.Count == 1)
 			{

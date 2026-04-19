@@ -29,7 +29,7 @@ public class UnionFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		var secondSource = context.VisitedParameters[0];
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectUnion, out source);
 
-		if (TryExecutePredicates(context, source, context.SymbolStore, out result, out source))
+		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
