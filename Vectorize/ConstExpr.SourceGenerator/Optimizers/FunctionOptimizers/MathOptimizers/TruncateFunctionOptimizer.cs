@@ -19,7 +19,7 @@ public class TruncateFunctionOptimizer() : BaseMathFunctionOptimizer("Truncate",
 		}
 
 		// 2) Integer types: Truncate(x) -> x (truncate has no effect on integers)
-		if (paramType.IsNonFloatingNumeric())
+		if (!paramType.IsFloatingNumeric())
 		{
 			result = context.VisitedParameters[0];
 			return true;

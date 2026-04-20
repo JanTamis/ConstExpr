@@ -33,7 +33,7 @@ public class RoundFunctionOptimizer() : BaseMathFunctionOptimizer("Round", 1, 2,
 		}
 
 		// 2) Integer types: Round(x) → x (rounding has no effect on integers)
-		if (paramType.IsNonFloatingNumeric())
+		if (!paramType.IsFloatingNumeric())
 		{
 			result = context.VisitedParameters[0];
 			return true;
