@@ -614,14 +614,6 @@ public partial class ConstExprPartialRewriter
 			return false;
 		}
 
-		// Get the unsigned type for the cast
-		if (!semanticModel.Compilation.TryGetUnsignedType(type, out var unsignedType))
-		{
-			return false;
-		}
-
-		var isUnsignedType = IsEqualSymbol(type, unsignedType);
-
 		// Calculate the effective bounds based on inclusivity
 		// For `> low`: effective lower = low + 1
 		// For `>= low`: effective lower = low
@@ -629,6 +621,34 @@ public partial class ConstExprPartialRewriter
 		// For `<= high`: effective upper = high
 		var effectiveLower = lowerInclusive ? lowerBound : lowerBound.Add(1.ToSpecialType(type.SpecialType));
 		var effectiveUpper = upperInclusive ? upperBound : upperBound.Subtract(1.ToSpecialType(type.SpecialType));
+
+		// Get the unsigned type for the cast
+		if (!semanticModel.Compilation.TryGetUnsignedType(type, out var unsignedType))
+		{
+			if (type.IsFloatingNumeric())
+			{
+				var mid = effectiveLower.Add(effectiveUpper).Divide(2.ToSpecialType(type.SpecialType));
+				var half = effectiveUpper.Subtract(effectiveLower).Divide(2.ToSpecialType(type.SpecialType));
+				
+				var argument = mid.IsNegative() 
+					? AddExpression(expression, CreateLiteral(mid.Negate())) 
+					: mid.IsNumericZero() 
+						? expression 
+						: SubtractExpression(expression, CreateLiteral(mid));
+
+				var invocation = InvocationExpression(MemberAccessExpression(
+						type.AsTypeSyntax(), IdentifierName("Abs")),
+					ArgumentList(SingletonSeparatedList(Argument(argument))));
+
+				result = LessThanOrEqualExpression(invocation, CreateLiteral(half));
+				return true;
+			}
+			
+			
+			return false;
+		}
+
+		var isUnsignedType = IsEqualSymbol(type, unsignedType);
 
 		// Range = effectiveUpper - effectiveLower (both bounds are now inclusive)
 		var range = effectiveUpper.Subtract(effectiveLower);
