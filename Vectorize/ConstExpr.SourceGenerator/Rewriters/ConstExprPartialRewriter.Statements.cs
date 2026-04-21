@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using ConstExpr.SourceGenerator.Comparers;
+using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Refactorers;
 using Microsoft.CodeAnalysis;
@@ -454,7 +455,7 @@ public partial class ConstExprPartialRewriter
 	/// - if (cond) { return true; } return false; => return cond;
 	/// - if (cond) { return false; } return true; => return !cond;
 	/// </summary>
-	private static SyntaxList<StatementSyntax> SimplifyIfReturnPatterns(SyntaxList<StatementSyntax> statements)
+	private SyntaxList<StatementSyntax> SimplifyIfReturnPatterns(SyntaxList<StatementSyntax> statements)
 	{
 		if (statements.Count < 2)
 		{
@@ -485,7 +486,7 @@ public partial class ConstExprPartialRewriter
 	/// <summary>
 	/// Tries to simplify if-return-bool patterns.
 	/// </summary>
-	private static bool TryGetIfReturnBoolPattern(IfStatementSyntax ifStatement, ReturnStatementSyntax followingReturn, out ReturnStatementSyntax? simplified)
+	private bool TryGetIfReturnBoolPattern(IfStatementSyntax ifStatement, ReturnStatementSyntax followingReturn, out ReturnStatementSyntax? simplified)
 	{
 		simplified = null;
 
@@ -529,16 +530,42 @@ public partial class ConstExprPartialRewriter
 			}
 			else
 			{
-				simplified = ReturnStatement(LogicalAndExpression(condition, followingReturn.Expression));
+				var newCondition = LogicalAndExpression(condition, followingReturn.Expression);
+				var booleanType = semanticModel.Compilation.CreateBoolean();
+				
+				if (TryOptimizeNode(BinaryOperatorKind.ConditionalAnd, [], booleanType, condition, booleanType, followingReturn.Expression, booleanType, null, out var result))
+				{
+					simplified = ReturnStatement(result as ExpressionSyntax ?? condition);
+					return true;
+				}
+				
+				simplified = ReturnStatement(newCondition);
 			}
 		}
 		else if (InvertLogicalRefactoring.TryInvertLogical(condition as BinaryExpressionSyntax, out var inverted))
 		{
+			var booleanType = semanticModel.Compilation.CreateBoolean();
+			
+			if (TryOptimizeNode(BinaryOperatorKind.ConditionalAnd, [ ], booleanType, inverted, booleanType, followingReturn.Expression, booleanType, null, out var result))
+			{
+				simplified = ReturnStatement(result as ExpressionSyntax ?? condition);
+				return true;
+			}
+			
 			simplified = ReturnStatement(LogicalAndExpression(inverted, followingReturn.Expression));
 		}
-		else if (condition is { } expr)
+		else
 		{
-			simplified = ReturnStatement(LogicalAndExpression(NegateExpressionRefactoring.Negate(expr), followingReturn.Expression));
+			var booleanType = semanticModel.Compilation.CreateBoolean();
+			var invertedCondition = NegateExpressionRefactoring.Negate(condition);
+			
+			if (TryOptimizeNode(BinaryOperatorKind.ConditionalAnd, [ ], booleanType, invertedCondition, booleanType, followingReturn.Expression, booleanType, null, out var result))
+			{
+				simplified = ReturnStatement(result as ExpressionSyntax ?? condition);
+				return true;
+			}
+			
+			simplified = ReturnStatement(LogicalAndExpression(invertedCondition, followingReturn.Expression));
 		}
 
 		return simplified is not null;
