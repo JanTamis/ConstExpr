@@ -460,4 +460,41 @@ public partial class ConstExprPartialRewriter
 			_ => false
 		};
 	}
+
+	/// <summary>
+	/// Snapshots the current value of every tracked variable so it can be restored later.
+	/// </summary>
+	private Dictionary<string, (bool HasValue, object? Value, bool IsAltered, bool IsInitialized, object? MinValue, object? MaxValue)> SaveVariableState()
+	{
+		return variables.ToDictionary(
+			kvp => kvp.Key,
+			kvp => (kvp.Value.HasValue, kvp.Value.Value, kvp.Value.IsAltered, kvp.Value.IsInitialized, kvp.Value.MinValue, kvp.Value.MaxValue));
+	}
+
+	/// <summary>
+	/// Restores a previously saved variable snapshot, removing any variables that were
+	/// introduced after the snapshot was taken.
+	/// </summary>
+	private void RestoreVariableState(Dictionary<string, (bool HasValue, object? Value, bool IsAltered, bool IsInitialized, object? MinValue, object? MaxValue)> snapshot)
+	{
+		// Remove variables that were added since the snapshot
+		foreach (var key in variables.Keys.Except(snapshot.Keys).ToList())
+		{
+			variables.Remove(key);
+		}
+
+		// Restore each variable to its snapshotted state
+		foreach (var kvp in snapshot)
+		{
+			if (variables.TryGetValue(kvp.Key, out var variable))
+			{
+				variable.HasValue = kvp.Value.HasValue;
+				variable.Value = kvp.Value.Value;
+				variable.IsAltered = kvp.Value.IsAltered;
+				variable.IsInitialized = kvp.Value.IsInitialized;
+				variable.MinValue = kvp.Value.MinValue;
+				variable.MaxValue = kvp.Value.MaxValue;
+			}
+		}
+	}
 }

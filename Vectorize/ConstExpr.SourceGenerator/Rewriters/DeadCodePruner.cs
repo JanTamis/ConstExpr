@@ -31,6 +31,7 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 
 	/// <summary>
 	/// Determines if a variable can be pruned based on collected usage data and variable state.
+	/// Used for assignments and other non-declaration contexts; untracked variables are kept.
 	/// </summary>
 	private bool CanBePruned(string variableName)
 	{
@@ -40,16 +41,53 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 			return false;
 		}
 
-		// If variable is not tracked (e.g., local in nested scope), it can be pruned if not read
+		// If variable is not tracked, keep it (we don't know enough about it to prune safely)
 		if (!variables.TryGetValue(variableName, out var variable))
 		{
-			// Variable not in our tracking dictionary - if it's not read, it can be pruned
 			return false;
 		}
 
 		// For tracked variables, must have a constant value and not be altered
 		return variable.HasValue && !variable.IsAltered;
 	}
+
+	/// <summary>
+	/// Determines if a variable declaration can be pruned. Unlike <see cref="CanBePruned(string)"/>,
+	/// this overload also handles variables that are not in the tracking dictionary by checking
+	/// whether the initializer is a pure constant expression (no side effects).
+	/// This covers block-local variables introduced inside if/else branches whose scope does not
+	/// extend beyond the branch.
+	/// </summary>
+	private bool CanBePrunedDeclaration(string variableName, ExpressionSyntax? initializer)
+	{
+		if (!usageCollector.CanBePruned(variableName))
+		{
+			return false;
+		}
+
+		if (!variables.TryGetValue(variableName, out var variable))
+		{
+			// Variable not in tracking dictionary (e.g., was block-local to a branch).
+			// Safe to prune only when the initializer is a side-effect-free constant.
+			return IsConstantExpression(initializer);
+		}
+
+		return variable.HasValue && !variable.IsAltered;
+	}
+
+	/// <summary>
+	/// Returns <see langword="true"/> when the expression is guaranteed to be a side-effect-free
+	/// constant (literal, default, or a unary minus applied to a literal).
+	/// </summary>
+	private static bool IsConstantExpression(ExpressionSyntax? expr) =>
+		expr switch
+		{
+			null => true,
+			LiteralExpressionSyntax => true,
+			DefaultExpressionSyntax => true,
+			PrefixUnaryExpressionSyntax { Operand: LiteralExpressionSyntax } => true,
+			_ => false
+		};
 
   public override SyntaxNode? Visit(SyntaxNode? node)
   {
@@ -79,7 +117,7 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 	public override SyntaxNode? VisitVariableDeclaration(VariableDeclarationSyntax node)
 	{
 		var remainingVariables = node.Variables
-			.Where(v => !CanBePruned(v.Identifier.Text))
+			.Where(v => !CanBePrunedDeclaration(v.Identifier.Text, v.Initializer?.Value))
 			.ToList();
 
 		switch (remainingVariables.Count)

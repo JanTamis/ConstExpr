@@ -35,8 +35,29 @@ public partial class ConstExprPartialRewriter
 				: null;
 		}
 
+		// Save variable state before visiting either branch. The condition is unknown so we
+		// cannot tell which branch will execute at runtime. Each branch must be visited with
+		// the pre-if state, and afterwards any variable written in either branch must be
+		// marked as unknown so downstream code doesn't rely on a specific branch's value.
+		var savedState = SaveVariableState();
+
 		var statement = Visit(node.Statement);
+
+		// Restore to pre-if state before visiting the else branch so it doesn't pick up
+		// mutations that were made inside the then branch (e.g., h = 0 leaking into else).
+		RestoreVariableState(savedState);
+
 		var @else = Visit(node.Else);
+
+		// After both branches: restore original state and invalidate every variable that
+		// could have been written in either branch.
+		RestoreVariableState(savedState);
+		InvalidateAssignedVariables(node.Statement);
+
+		if (node.Else is not null)
+		{
+			InvalidateAssignedVariables(node.Else.Statement);
+		}
 
 		if (@else is null)
 		{
