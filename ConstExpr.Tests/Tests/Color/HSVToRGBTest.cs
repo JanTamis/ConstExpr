@@ -95,15 +95,14 @@ public class HSVToRGBTest() : BaseTest<Func<double, double, double, (byte, byte,
 				}
 				else
 				{
-					h *= 0.016666666666666666;
+					h = h * 0.016666666666666666;
 				}
 			
 				var i = (int)Double.Truncate(h);
 				var f = h - i;
-			
 				var p = v * (1D - s);
-				var q = v * (1D - s * f);
-				var t = v * (1D - s * (1D - f));
+				var q = v * Double.MultiplyAddEstimate(-s, f, 1D);
+				var t = v * Double.MultiplyAddEstimate(-s, f - 1D, 1D);
 			
 				switch (i)
 				{
