@@ -61,7 +61,7 @@ public class VisitWhileStatementTests : BaseTest<Func<int, bool, (int, int, int,
 			}
 
 			return (0, 11, c, d);
-			""", Unknown, Unknown),
+			"""),
 		Create("return (0, 11, 3, 4);", 3, true),
 		Create("return (0, 11, 0, 4);", 0, true),
 		Create("return (0, 11, 5, 5);", 5, false),

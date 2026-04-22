@@ -36,7 +36,7 @@ public class LinqCastOptimizationTests : BaseTest<Func<List<object>, int>>
 			var e = Sum_FYSr7g(x);
 			
 			return a + b + c + d + e;
-			""", Unknown),
+			"""),
 		Create("return 30;", new List<object> { 1, 2, 3 }), // sum=6, a=6, b=6, c=6, d=6, e=6 = 30
 		Create("return 0;", new List<object>()), // Empty array
 		Create("return 50;", new List<object> { 10 }), // sum=10, a=10, b=10, c=10, d=10, e=10 = 50

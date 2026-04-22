@@ -47,7 +47,7 @@ public class LinqAverageOptimizationTests : BaseTest<Func<int[], double>>
 			var h = Average_XH2brA(x);
 			
 			return a + b + c + d + e + f + g + h;
-			""", Unknown),
+			"""),
 		Create("return 24D;", new[] { 1, 2, 3 }), 
 		Create("throw new InvalidOperationException(\"Sequence contains no elements\");", new int[] { }), 
 		Create("return 120D;", new[] { 10 }), 

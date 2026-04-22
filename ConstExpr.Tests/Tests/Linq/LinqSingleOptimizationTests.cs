@@ -24,7 +24,7 @@ public class LinqSingleOptimizationTests : BaseTest<Func<int[], int>>
 			var b = Single_5pWsaA(x);
 			
 			return a + b;
-			""", Unknown),
+			"""),
 		Create("return 5;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 5;", new[] { 2, 3 }),
 	];

@@ -15,7 +15,7 @@ public class VisitSimpleLambdaExpressionTests : BaseTest<Func<int, int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null, Unknown),
+		Create(null),
 		Create("return 7;", 6),
 		Create("return 12;", 11),
 		Create("return 2;", 1),

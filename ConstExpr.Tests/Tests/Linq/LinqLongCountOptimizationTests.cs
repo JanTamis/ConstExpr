@@ -56,7 +56,7 @@ public class LinqLongCountOptimizationTests : BaseTest<Func<int[], long>>
 			var j = (long)x.Count;
 			
 			return a + b + c + d + e + f + g + h + i + j;
-			""", Unknown),
+			"""),
 		Create("return 49L;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0L;", new int[] { }),
 	];

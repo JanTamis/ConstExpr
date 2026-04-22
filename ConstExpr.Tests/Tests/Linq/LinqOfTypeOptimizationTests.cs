@@ -24,7 +24,7 @@ public class LinqOfTypeOptimizationTests : BaseTest<Func<object[], int>>
 			var b = x.Length;
 			
 			return a + b;
-			""", Unknown),
+			"""),
 		Create("return 6;", new[] { 1, 2, 3 }),
 		Create("return 0;", new int[] { }),
 	];

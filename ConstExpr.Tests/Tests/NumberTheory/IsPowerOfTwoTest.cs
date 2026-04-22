@@ -17,7 +17,7 @@ public class IsPowerOfTwoTest() : BaseTest<Func<int, bool>>(FastMathFlags.FastMa
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return n > 0 && (n & n - 1) == 0;", Unknown),
+		Create("return n > 0 && (n & n - 1) == 0;"),
 		Create("return true;", 16),
 		Create("return false;", 18)
 	];

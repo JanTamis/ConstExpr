@@ -24,7 +24,7 @@ public class LinqUnionOptimizationTests : BaseTest<Func<int[], int>>
 			var b = Count_4OhS1w(x);
 			
 			return a + b;
-			""", Unknown),
+			"""),
 		Create("return 6;", new[] { 1, 2, 3 }),
 		Create("return 0;", new int[] { }),
 	];

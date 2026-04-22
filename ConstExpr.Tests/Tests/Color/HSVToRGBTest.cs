@@ -146,7 +146,7 @@ public class HSVToRGBTest() : BaseTest<Func<double, double, double, (byte, byte,
 			}
 
 			return ((byte)(r * 255D), (byte)(g * 255D), (byte)(b * 255D));
-			""", Unknown, Unknown, Unknown),
+			"""),
 		Create("""
 			double r = 0D, g = 0D, b = 0D;
 

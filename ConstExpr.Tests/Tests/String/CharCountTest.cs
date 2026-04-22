@@ -44,7 +44,7 @@ public class CharCountTest() : BaseTest<Func<string?, char, int>>(FastMathFlags.
 			}
 
 			return count;
-			""", Unknown, Unknown),
+			"""),
 		Create("return 3;", "ababa", 'a'),
 		Create("return 2;", "aaXXa", 'X'),
 		Create("return 0;", "", 'a')

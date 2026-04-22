@@ -22,7 +22,7 @@ public class SignTest() : BaseTest<Func<int, int>>(FastMathFlags.FastMath)
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null, Unknown),
+		Create(null),
 		Create("return 1;", 100),
 		Create("return -1;", -50),
 		Create("return 0;", 0)

@@ -76,7 +76,7 @@ public class LinqAllOptimizationTests : BaseTest<Func<int[], int>>
 			var p = Array.TrueForAll(x, v => v > 3) ? 1 : 0;
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l + m + n + p;
-			""", Unknown),
+			"""),
 		Create("return 11;", new[] { 1, 2, 3, 4, 5 }), // a=1, b-j=1 each (10), k=0, l=1 (Where(v>2)→{3,4,5} All(v<8)→true), m=0, n=0, p=0 = 11
 		Create("return 15;", new int[] { }), // All() returns true for empty collection, so all return 1 = 12
 		Create("return 9;", new[] { 1, 2, 3, 4, 5, 100 }), // a=0 (100>=10), b-j=1 (9 total), k=0, l=0 (100≥8), m=0, n=0, p=0 = 9

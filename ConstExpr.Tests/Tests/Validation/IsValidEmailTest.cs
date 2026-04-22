@@ -70,7 +70,7 @@ public class IsValidEmailTest() : BaseTest<Func<string, bool>>(FastMathFlags.Fas
 			}
 			
 			return atCount == 1 && dotCount >= 1 && atIndex > 0 && atIndex < email.Length - 1 && lastDotIndex > atIndex + 1 && lastDotIndex < email.Length - 1;
-			""", Unknown), // Unknown input → body unchanged
+			"""), // Unknown input → body unchanged
 		Create("return false;", ""),                  // Empty string → guard fires
 		Create("return false;", "a@b"),               // Too short (length < 5) → guard fires
 		Create("return false;", "invalid"),            // No @ or dot → returns false

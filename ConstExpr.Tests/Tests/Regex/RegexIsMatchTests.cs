@@ -14,7 +14,7 @@ public class RegexIsMatchTests() : BaseTest<Func<string, string, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		// Unknown value - both parameters unknown: body remains unchanged
-		Create(null, Unknown, Unknown),
+		Create(null),
 		
 		// Cijfers
 		Create("return Regex_ab3uPQ.IsMatch(value);", Unknown, @"^\d+$"),

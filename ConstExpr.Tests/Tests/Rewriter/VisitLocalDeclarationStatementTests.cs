@@ -22,7 +22,7 @@ public class VisitLocalDeclarationStatementTests : BaseTest<Func<int, int, (int,
 			var d = 6 + x;
 
 			return (1, 2, 3, d);
-			""", Unknown, Unknown),
+			"""),
 		Create("return (1, 2, 3, 16);", 10, 5),
 		Create("return (1, 2, 3, 1);", -5, 0),
 		Create("return (1, 2, 3, 6);", 0, 100),

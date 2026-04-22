@@ -20,7 +20,7 @@ public class LinqOrderByOptimizationTests : BaseTest<Func<int[], int>>
 			var a = Min_BeESfw(x);
 			
 			return a;
-			""", Unknown),
+			"""),
 		Create("return 1;", new[] { 3, 1, 2 }),
 		Create("return 5;", new[] { 5 }),
 	];
@@ -51,7 +51,7 @@ public class LinqFilterFirstOptimizationTests : BaseTest<Func<int[], IEnumerable
 			var b = x.Where(v => v > 4).OrderByDescending(v => v * 2);
 			
 			return a.Concat(b);
-			""", Unknown),
+			"""),
 	];
 }
 

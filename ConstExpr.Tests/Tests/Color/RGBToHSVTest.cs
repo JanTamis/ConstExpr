@@ -92,6 +92,6 @@ public class RGBToHSVTest() : BaseTest<Func<byte, byte, byte, (double, double, d
 			}
 			
 			return (h, s, v * 0.00392156862745098);
-			""", Unknown, Unknown, Unknown),
+			"""),
 	];
 }

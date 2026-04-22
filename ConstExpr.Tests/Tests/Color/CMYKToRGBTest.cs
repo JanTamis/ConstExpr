@@ -16,7 +16,7 @@ public class CMYKToRGBTest() : BaseTest<Func<double, double, double, double, (by
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null, Unknown, Unknown, Unknown, Unknown),
+		Create(null),
 		Create("""
 			var r = (byte)((c - 1D) * 153D);
 			var g = (byte)((m - 1D) * 153D);

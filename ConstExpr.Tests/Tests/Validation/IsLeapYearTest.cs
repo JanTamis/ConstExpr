@@ -29,7 +29,7 @@ public class IsLeapYearTest() : BaseTest<Func<int, bool>>(FastMathFlags.FastMath
 			}
 			
 			return year % 100 != 0 && year % 400 == 0;
-			""", Unknown),
+			"""),
 		Create("return true;", 2000),
 		Create("return false;", 1900)
 	];

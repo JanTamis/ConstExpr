@@ -9,7 +9,7 @@ public class MultiplyByPowerOfTwoTest() : BaseTest<Func<int, int, int>>(FastMath
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null, Unknown, Unknown),
+		Create(null),
 		Create("return 40;", 10, 2),
 		Create("return 0;", 0, 5),
 		Create("return 128;", 4, 5)

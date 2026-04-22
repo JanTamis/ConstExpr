@@ -42,7 +42,7 @@ public class LinqWhereChainOptimizationTests() : BaseTest<Func<int[], IEnumerabl
 			var f = Enumerable.Empty<int>();
 			
 			return a.Concat(b).Concat(c).Concat(d).Concat(e).Concat(f);
-			""", Unknown),
+			"""),
 	];
 }
 

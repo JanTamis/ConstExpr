@@ -24,7 +24,7 @@ public class StringLengthTest() : BaseTest<Func<string?, int>>(FastMathFlags.Fas
 			}
 
 			return s.Length;
-			""", Unknown),
+			"""),
 		Create("return 0;", ""),
 		Create("return 11;", "hello world"),
 		Create("return -1;", (string?) null)

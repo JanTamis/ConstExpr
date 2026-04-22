@@ -35,7 +35,7 @@ public class VisitBlockTests : BaseTest<Func<int, int, int>>
 			result = result + c;
 
 			return result;
-			""", Unknown, Unknown),
+			"""),
 		Create("return 21;", 5, 3),
 		Create("return 35;", 10, 5),
 		Create("return 7;", 0, 1),

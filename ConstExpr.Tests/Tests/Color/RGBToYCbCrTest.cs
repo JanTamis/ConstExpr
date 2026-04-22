@@ -29,6 +29,6 @@ public class RGBToYCbCrTest() : BaseTest<Func<byte, byte, byte, (double, double,
 			var cr = Double.MultiplyAddEstimate(-0.0816, fb, Double.MultiplyAddEstimate(0.5, fr, -0.4184 * fg));
 			
 			return (y, cb, cr);
-			""", Unknown, Unknown, Unknown),
+			"""),
 	];
 }

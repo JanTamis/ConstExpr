@@ -9,7 +9,7 @@ public class IsMultipleOfTest() : BaseTest<Func<int, int, bool>>(FastMathFlags.F
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null, Unknown, Unknown),
+		Create(null),
 		Create("return true;", 15, 5),
 		Create("return false;", 17, 3),
 		Create("return true;", 0, 5)

@@ -34,7 +34,7 @@ public class IsPalindromeTest() : BaseTest<Func<int, bool>>(FastMathFlags.FastMa
 			}
 			
 			return original == reversed;
-			""", Unknown),
+			"""),
 		Create("return true;", 121),
 		Create("return false;", 123)
 	];

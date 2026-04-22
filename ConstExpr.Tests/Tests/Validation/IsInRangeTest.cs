@@ -26,7 +26,7 @@ public class IsInRangeDoubleTest() : BaseTest<Func<double, double, double, bool>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null, Unknown, Unknown, Unknown),
+		Create(null),
 		Create("return Double.Abs(value - 5.5) <= 4.5;", Unknown, 1D, 10D),
 		Create("return false;", Unknown, 10D, 1D),
 		Create("return false;", Unknown, -1D, -10D),

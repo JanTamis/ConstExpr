@@ -26,7 +26,7 @@ public class IsPalindromeNumberTest() : BaseTest<Func<int, bool>>(FastMathFlags.
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null, Unknown),
+		Create(null),
 		Create("return true;", 121),
 		Create("return false;", 123)
 	];

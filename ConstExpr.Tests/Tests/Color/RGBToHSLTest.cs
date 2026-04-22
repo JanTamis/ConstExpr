@@ -103,6 +103,6 @@ public class RGBToHSLTest() : BaseTest<Func<byte, byte, byte, (int, double, doub
 			}
 
 			return (h, s, l);
-			""", Unknown, Unknown, Unknown),
+			"""),
 	];
 }

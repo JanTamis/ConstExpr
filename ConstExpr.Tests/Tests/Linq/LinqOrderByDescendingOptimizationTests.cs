@@ -20,7 +20,7 @@ public class LinqOrderByDescendingOptimizationTests : BaseTest<Func<int[], int>>
 			var a = Max_dZD6IQ(x);
 			
 			return a;
-			""", Unknown),
+			"""),
 		Create("return 3;", new[] { 3, 1, 2 }),
 		Create("return 5;", new[] { 5 }),
 	];

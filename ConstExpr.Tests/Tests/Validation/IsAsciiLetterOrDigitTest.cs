@@ -14,7 +14,7 @@ public class IsAsciiLetterOrDigitTest() : BaseTest<Func<char, bool>>(FastMathFla
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return Char.IsAsciiLetterOrDigit(c);", Unknown),
+		Create("return Char.IsAsciiLetterOrDigit(c);"),
 		Create("return true;", '4'),
 		Create("return true;", 'q'),
 		Create("return true;", 'Q'),

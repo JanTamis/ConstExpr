@@ -49,7 +49,7 @@ public class LinqElementAtOrDefaultOptimizationTests : BaseTest<Func<int[], int>
 			var h = x.Length > 3 ? x[3] : 0;
 			
 			return a + b + c + d + e + f + g + h;
-			""", Unknown),
+			"""),
 		Create("return 16;", new[] { 1, 2, 3, 4, 5 }), // 1 + 2 + 3 + 1 + 2 + 3 + 0 + 4 = 16
 		Create("return 0;", new int[] { }), // All return 0 (default)
 		Create("return 0;", new[] { 0, 0, 0, 0, 0 }),
@@ -92,7 +92,7 @@ public class LinqElementAtOrDefaultOptimizationListTests : BaseTest<Func<List<in
 			var e = x.Count > 10 ? x[10] : 0;
 			
 			return a + b + c + d + e;
-			""", Unknown),
+			"""),
 		Create("return 6;", new List<int> { 1, 2, 3, 4, 5 }), // 1 + 2 + 1 + 2 + 0 = 6
 		Create("return 0;", new List<int>()), // All return 0 (default)
 	];
@@ -143,7 +143,7 @@ public class LinqElementAtOrDefaultSkipOptimizationTests : BaseTest<Func<int[], 
 			var g = x.Length > 0 ? x[0] : 0;
 			
 			return a + b + c + d + e + f + g;
-			""", Unknown),
+			"""),
 		Create("return 16;", new[] { 1, 2, 3, 4, 5 }), // 2 + 4 + 4 + 2 + 3 + 0 + 1 = 16
 		Create("return 0;", new int[] { }), // All return 0 (default)
 	];
@@ -189,7 +189,7 @@ public class LinqElementAtOrDefaultNoOptimizationTests : BaseTest<Func<int[], in
 			var f = x.Length > 0 ? x[0] : 0;
 			
 			return a + b + c + d + e + f;
-			""", Unknown),
+			"""),
 		Create("return 17;", new[] { 1, 2, 3, 4, 5 }), // 1 + 5 + 5 + 3 + 2 + 1 = 17
 		Create("return 0;", new int[] { }),
 	];

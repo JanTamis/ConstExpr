@@ -51,7 +51,7 @@ public class VisitParenthesizedExpressionTests : BaseTest<Func<int, int, (int, i
 			var j = x.ToString();
 
 			return (3, 9, 5, d, e, 1, 6, j);
-			""", Unknown, Unknown),
+			"""),
 		Create("return (3, 9, 5, 15, 15, 1, 6, \"10\");", 10, 5),
 		Create("return (3, 9, 5, -5, -5, 1, 6, \"-10\");", -10, 5),
 		Create("return (3, 9, 5, 0, 0, 1, 6, \"0\");", 0, 0),

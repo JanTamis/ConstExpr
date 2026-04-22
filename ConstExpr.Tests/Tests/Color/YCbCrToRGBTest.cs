@@ -22,6 +22,6 @@ public class YCbCrToRGBTest() : BaseTest<Func<double, double, double, (byte, byt
 			var b = Double.ClampNative(Double.MultiplyAddEstimate(1.771, cb, y), 0D, 1D);
 			
 			return ((byte)(r * 255D), (byte)(g * 255D), (byte)(b * 255D));
-			""", Unknown, Unknown, Unknown),
+			"""),
 	];
 }

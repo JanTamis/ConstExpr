@@ -24,7 +24,7 @@ public class VisitVariableDeclaratorTests : BaseTest<Func<int, int, (int, int, i
 			var e = d - 10;
 
 			return (10, 15, 30, d, e);
-			""", Unknown, Unknown),
+			"""),
 		Create("return (10, 15, 30, 15, 5);", 10, 5),
 		Create("return (10, 15, 30, 25, 15);", 15, 10),
 		Create("return (10, 15, 30, 0, -10);", 0, 0),

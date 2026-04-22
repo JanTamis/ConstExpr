@@ -22,7 +22,7 @@ public class VisitVariableDeclarationTests : BaseTest<Func<int, int, (int, int, 
 			var e = x << 1;
 
 			return (1, 2, 3, d, e);
-			""", Unknown, Unknown),
+			"""),
 		Create("return (1, 2, 3, 15, 20);", 10, 5),
 		Create("return (1, 2, 3, 15, -40);", -20, 35),
 		Create("return (1, 2, 3, 0, 0);", 0, 0),

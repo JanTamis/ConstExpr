@@ -25,7 +25,7 @@ public class VisitTupleExpressionTests : BaseTest<Func<int, int, string, ((int, 
 			var t6 = (15, x << 1);
 
 			return ((1, 2), (3, 12), t4, t6);
-			""", Unknown, Unknown, Unknown),
+			"""),
 		Create("return ((1, 2), (3, 12), (15, \"hello\"), (15, 20));", 10, 5, "hello"),
 		Create("return ((1, 2), (3, 12), (15, \"test\"), (15, -10));", -5, 20, "test"),
 		Create("return ((1, 2), (3, 12), (0, \"\"), (15, 0));", 0, 0, ""),

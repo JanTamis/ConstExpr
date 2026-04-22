@@ -22,6 +22,6 @@ public class YUVToRGBTest() : BaseTest<Func<double, double, double, (byte, byte,
 			var b = (byte)Double.MultiplyAddEstimate(1.779, u - 128D, y);
 			
 			return (r, g, b);
-			""", Unknown, Unknown, Unknown),
+			"""),
 	];
 }

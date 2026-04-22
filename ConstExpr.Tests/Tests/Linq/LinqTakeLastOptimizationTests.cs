@@ -22,7 +22,7 @@ public class LinqTakeLastOptimizationTests : BaseTest<Func<int[], int>>
 			var b = Count_BVeycw(x);
 			
 			return b;
-			""", Unknown),
+			"""),
 		Create("return 1;", new[] { 1, 2, 3 }),
 		Create("return 0;", new int[] { }),
 	];

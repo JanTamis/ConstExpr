@@ -44,7 +44,7 @@ public class DigitalRootTest() : BaseTest<Func<int, int>>(FastMathFlags.FastMath
 			}
 			
 			return num;
-			""", Unknown),
+			"""),
 		Create("return 2;", 38),
 		Create("return 6;", 942),
 		Create("return 0;", 0)

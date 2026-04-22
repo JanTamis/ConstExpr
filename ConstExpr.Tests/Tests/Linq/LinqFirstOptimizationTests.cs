@@ -63,7 +63,7 @@ public class LinqFirstOptimizationTests : BaseTest<Func<int[], int>>
 			var l = First_iM4awA(x) << 1;
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l;
-			""", Unknown),
+			"""),
 		Create("return 28;", new[] { 1, 2, 3, 4, 5 }),
 	];
 }

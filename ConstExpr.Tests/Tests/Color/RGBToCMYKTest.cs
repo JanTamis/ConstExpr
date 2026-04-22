@@ -32,6 +32,6 @@ public class RGBToCMYKTest() : BaseTest<Func<byte, byte, byte, (double, double, 
 			var y = (1D - db - k) / (1D - k);
 
 			return (c, m, y, k);
-			""", Unknown, Unknown, Unknown),
+			"""),
 	];
 }

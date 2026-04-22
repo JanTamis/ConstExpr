@@ -64,7 +64,7 @@ public class LinqConcatOptimizationTests : BaseTest<Func<int[], int>>
 			var l = Sum_7Ump6A(x) + 88;
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l;
-			""", Unknown),
+			"""),
 		Create("return 774;", new[] { 1, 2, 3 }),
 		Create("return 702;", new int[] { }),
 		Create("return 882;", new[] { 5, 10 }),

@@ -44,7 +44,7 @@ public class MinArrayTest() : BaseTest<Func<int[], int>>(FastMathFlags.FastMath)
 			}
 
 			return min;
-			""", Unknown),
+			"""),
 		Create("return 3;", new[] { 5, 4, 3, 9 }),
 		Create("return 1;", new[] { 7, 2, 1, 8 }),
 		Create("return 2147483647;", System.Array.Empty<int>())

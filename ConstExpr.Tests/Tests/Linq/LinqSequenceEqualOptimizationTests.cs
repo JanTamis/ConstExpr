@@ -25,7 +25,7 @@ public class LinqSequenceEqualOptimizationTests : BaseTest<Func<int[], bool>>
 			var c = x.Length <= 0;
 			
 			return b && c;
-			""", Unknown),
+			"""),
 		Create("return false;", new[] { 1, 2, 3 }),
 		Create("return true;", new int[] { }),
 	];

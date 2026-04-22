@@ -9,7 +9,7 @@ public class NthTriangularNumberTest() : BaseTest<Func<int, int>>(FastMathFlags.
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null, Unknown),
+		Create(null),
 		Create("return 15;", 5),
 		Create("return 1;", 1),
 		Create("return 55;", 10)

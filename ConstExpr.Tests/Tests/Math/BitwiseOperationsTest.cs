@@ -9,7 +9,7 @@ public class BitwiseOperationsTest() : BaseTest<Func<int, int, int>>(FastMathFla
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return a & b | a ^ b;", Unknown, Unknown),
+		Create(null),
 		Create("return 14;", 12, 10),
 		Create("return 8;", 8, 8),
 		Create("return 5;", 5, 0)

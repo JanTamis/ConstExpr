@@ -15,7 +15,7 @@ public class IsAsciiHexDigitTest() : BaseTest<Func<char, bool>>(FastMathFlags.Fa
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		// Unknown char → three-range check collapsed into Char.IsAsciiHexDigit
-		Create("return Char.IsAsciiHexDigit(c);", Unknown),
+		Create("return Char.IsAsciiHexDigit(c);"),
 		// Known char constants: char comparisons bypass full constant folding
 		// (implicit char→int conversion causes the per-range &&s to fall back to
 		// Char.IsAsciiDigit / Char.IsBetween, which are then combined by this optimizer)

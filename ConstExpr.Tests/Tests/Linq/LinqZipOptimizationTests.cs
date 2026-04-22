@@ -28,7 +28,7 @@ public class LinqZipOptimizationTests : BaseTest<Func<int[], int>>
 			var d = Int32.Min(x.Length, Count_NWOfpA(x));
 			
 			return c + d;
-			""", Unknown),
+			"""),
 		Create("return 6;", new[] { 1, 2, 3 }),
 		Create("return 0;", new int[] { }),
 	];

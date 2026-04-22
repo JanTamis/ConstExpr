@@ -58,7 +58,7 @@ public class LinqAggregateByOptimizationTests : BaseTest<Func<int[], int>>
 			var j = Count_z525XA(x);
 			
 			return a + b + c + d + e + f + h + i + j;
-			""", Unknown),
+			"""),
 	];
 }
 

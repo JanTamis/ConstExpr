@@ -63,7 +63,7 @@ public class LinqFirstOrDefaultOptimizationTests : BaseTest<Func<int[], int>>
 			var l = Array.Find(x, v => v > 0) << 1;
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l;
-			""", Unknown),
+			"""),
 		Create("return 24;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new int[] { }),
 	];

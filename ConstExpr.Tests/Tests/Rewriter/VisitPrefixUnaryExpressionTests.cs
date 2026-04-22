@@ -26,7 +26,7 @@ public class VisitPrefixUnaryExpressionTests : BaseTest<Func<int, bool, (int, in
 			var g = -x;
 
 			return (-5, 10, false, -5, g, 0, f);
-			""", Unknown, Unknown),
+			"""),
 		Create("return (-5, 10, false, -5, -10, 0, false);", 10, true),
 		Create("return (-5, 10, false, -5, 20, 0, true);", -20, false),
 		Create("return (-5, 10, false, -5, 0, 0, true);", 0, false),

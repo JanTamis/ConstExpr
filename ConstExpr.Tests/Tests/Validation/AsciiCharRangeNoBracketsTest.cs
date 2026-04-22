@@ -17,7 +17,7 @@ public class AsciiCharRangeNoBracketsTest() : BaseTest<Func<char, bool>>(FastMat
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases => 
 	[
-		Create("return Char.IsAsciiHexDigit(c);", Unknown),
+		Create("return Char.IsAsciiHexDigit(c);"),
 		Create("return true;", '5'),
 		Create("return true;", 'b'),
 		Create("return true;", 'E'),
@@ -34,7 +34,7 @@ public class AsciiLetterNoBracketsTest() : BaseTest<Func<char, bool>>(FastMathFl
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return Char.IsAsciiLetter(c);", Unknown),
+		Create("return Char.IsAsciiLetter(c);"),
 		Create("return true;", 'm'),
 		Create("return true;", 'M'),
 		Create("return false;", '5'),
@@ -50,7 +50,7 @@ public class AsciiLetterOrDigitNoBracketsTest() : BaseTest<Func<char, bool>>(Fas
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return Char.IsAsciiLetterOrDigit(c);", Unknown),
+		Create("return Char.IsAsciiLetterOrDigit(c);"),
 		Create("return true;", '7'),
 		Create("return true;", 'x'),
 		Create("return true;", 'X'),

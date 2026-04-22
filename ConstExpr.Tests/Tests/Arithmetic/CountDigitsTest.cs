@@ -30,9 +30,9 @@ public class CountDigitsTest() : BaseTest<Func<int, int>>(FastMathFlags.FastMath
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		// Create(null, Unknown),
+		Create(null),
 		Create("return 3;", 123),
-		// Create("return 1;", 0),
-		// Create("return 4;", -4567)
+		Create("return 1;", 0),
+		Create("return 4;", -4567)
 	];
 }

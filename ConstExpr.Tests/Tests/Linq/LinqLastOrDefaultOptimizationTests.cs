@@ -59,7 +59,7 @@ public class LinqLastOrDefaultOptimizationTests : BaseTest<Func<int[], int>>
 			var k = Array.FindLast(x, v => v > 0) << 1;
 			
 			return a + b + c + d + e + f + g + h + i + j + k;
-			""", Unknown),
+			"""),
 		Create("return 53;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new int[] { }),
 	];

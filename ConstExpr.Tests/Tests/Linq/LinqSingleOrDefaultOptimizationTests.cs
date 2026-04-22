@@ -24,7 +24,7 @@ public class LinqSingleOrDefaultOptimizationTests : BaseTest<Func<int[], int>>
 			var b = SingleOrDefault_5ILzdg(x);
 			
 			return a + b;
-			""", Unknown),
+			"""),
 		Create("return 3;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new[] { 1, 2, 4, 5 }),
 	];

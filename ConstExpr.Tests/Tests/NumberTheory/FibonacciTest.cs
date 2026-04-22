@@ -32,7 +32,7 @@ public class FibonacciTest() : BaseTest<Func<int, long>>(FastMathFlags.FastMath)
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null, Unknown),
+		Create(null),
 		Create("return 5L;", 5),
 		Create("return 1L;", 1),
 		Create("return 0L;", 0),

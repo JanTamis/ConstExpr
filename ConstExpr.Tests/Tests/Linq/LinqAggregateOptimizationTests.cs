@@ -77,7 +77,7 @@ public class LinqAggregateOptimizationTests : BaseTest<Func<int[], int>>
 			var n = Sum_7Ump6A(x) + 10;
 			
 			return a + b + c + d + e + f + g1 + g2 + h + i + j + k + l + m + n;
-			""", Unknown),
+			"""),
 		Create("return 367;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 1063;", new[] { 1, 2, 3, 4, 5, 6 }),
 	];
