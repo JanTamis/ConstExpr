@@ -93,6 +93,40 @@ public partial class ConstExprPartialRewriter
 			return switchNode;
 		}
 
+		switch (statement)
+		{
+			case ExpressionStatementSyntax { Expression: AssignmentExpressionSyntax assignment }
+				when assignment.IsKind(SyntaxKind.SimpleAssignmentExpression)
+				     && assignment.Left is IdentifierNameSyntax assignedIdentifier
+				     && @else is ElseClauseSyntax { Statement: ExpressionStatementSyntax { Expression: AssignmentExpressionSyntax elseAssignment } }
+				     && elseAssignment.IsKind(SyntaxKind.SimpleAssignmentExpression)
+				     && elseAssignment.Left is IdentifierNameSyntax elseAssignedIdentifier
+				     && assignedIdentifier.Identifier.Text == elseAssignedIdentifier.Identifier.Text:
+			{
+				return ExpressionStatement(
+					assignment.WithRight(
+						ConditionalExpression(
+							condition as ExpressionSyntax ?? node.Condition,
+							assignment.Right,
+							elseAssignment.Right)));
+			}
+			case BlockSyntax { Statements: [ ExpressionStatementSyntax { Expression: AssignmentExpressionSyntax assignment } ] }
+				when assignment.IsKind(SyntaxKind.SimpleAssignmentExpression)
+				     && assignment.Left is IdentifierNameSyntax assignedIdentifier
+				     && @else is ElseClauseSyntax { Statement: BlockSyntax { Statements: [ ExpressionStatementSyntax { Expression: AssignmentExpressionSyntax elseAssignment } ] } }
+				     && elseAssignment.IsKind(SyntaxKind.SimpleAssignmentExpression)
+				     && elseAssignment.Left is IdentifierNameSyntax elseAssignedIdentifier
+				     && assignedIdentifier.Identifier.Text == elseAssignedIdentifier.Identifier.Text:
+			{
+				return ExpressionStatement(
+					assignment.WithRight(
+						ConditionalExpression(
+							condition as ExpressionSyntax ?? node.Condition,
+							assignment.Right,
+							elseAssignment.Right)));
+			}
+		}
+
 		return result;
 	}
 
@@ -447,7 +481,7 @@ public partial class ConstExprPartialRewriter
 		var untilThrown = TakeUntilThrownStatements(visited);
 		var combined = CombineConsecutiveIfStatements(untilThrown, Visit);
 		var simplified = SimplifyIfReturnPatterns(combined);
-		
+
 		return node.WithStatements(simplified);
 	}
 
@@ -553,39 +587,39 @@ public partial class ConstExprPartialRewriter
 			{
 				var newCondition = LogicalAndExpression(condition, followingReturn.Expression);
 				var booleanType = semanticModel.Compilation.CreateBoolean();
-				
-				if (TryOptimizeNode(BinaryOperatorKind.ConditionalAnd, [], booleanType, condition, booleanType, followingReturn.Expression, booleanType, null, out var result))
+
+				if (TryOptimizeNode(BinaryOperatorKind.ConditionalAnd, [ ], booleanType, condition, booleanType, followingReturn.Expression, booleanType, null, out var result))
 				{
 					simplified = ReturnStatement(result as ExpressionSyntax ?? condition);
 					return true;
 				}
-				
+
 				simplified = ReturnStatement(newCondition);
 			}
 		}
 		else if (InvertLogicalRefactoring.TryInvertLogical(condition as BinaryExpressionSyntax, out var inverted))
 		{
 			var booleanType = semanticModel.Compilation.CreateBoolean();
-			
+
 			if (TryOptimizeNode(BinaryOperatorKind.ConditionalAnd, [ ], booleanType, inverted, booleanType, followingReturn.Expression, booleanType, null, out var result))
 			{
 				simplified = ReturnStatement(result as ExpressionSyntax ?? condition);
 				return true;
 			}
-			
+
 			simplified = ReturnStatement(LogicalAndExpression(inverted, followingReturn.Expression));
 		}
 		else
 		{
 			var booleanType = semanticModel.Compilation.CreateBoolean();
 			var invertedCondition = NegateExpressionRefactoring.Negate(condition);
-			
+
 			if (TryOptimizeNode(BinaryOperatorKind.ConditionalAnd, [ ], booleanType, invertedCondition, booleanType, followingReturn.Expression, booleanType, null, out var result))
 			{
 				simplified = ReturnStatement(result as ExpressionSyntax ?? condition);
 				return true;
 			}
-			
+
 			simplified = ReturnStatement(LogicalAndExpression(invertedCondition, followingReturn.Expression));
 		}
 

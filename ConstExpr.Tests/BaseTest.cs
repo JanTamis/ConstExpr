@@ -45,7 +45,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		var testType = context.ClassType;
 		var instance = Activator.CreateInstance(testType);
 		var testMethodProperty = testType.GetProperty(nameof(TestMethod), System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.IgnoreCase);
-		var testMethodValue = (string) testMethodProperty?.GetValue(instance) ?? throw new InvalidOperationException("TestMethod not found");
+		var testMethodValue = testMethodProperty?.GetValue(instance) as string ?? throw new InvalidOperationException("TestMethod not found");
 
 		_compilation = CreateCompilation(BuildSourceWithMethod(testMethodValue));
 
@@ -228,6 +228,25 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 				{expectedBody}
 				""");
 		}
+
+		return KeyValuePair.Create(expectedBody, parameters);
+	}
+
+	/// <summary>
+	/// Helper method to create test cases with a specific expected body and parameter values.
+	/// </summary>
+	/// <param name="expectedBody">The expected body of the test case. Use null for no changed body</param>
+	/// <returns>A key-value pair representing the test case.</returns>
+	protected static KeyValuePair<string?, object?[]> Create(string? expectedBody)
+	{
+		// test if length of values matches delegate parameters
+		var delegateParams = typeof(TDelegate).GetMethod("Invoke")!.GetParameters();
+		var parameters = new object[delegateParams.Length];
+
+		 for (var i = 0; i < parameters.Length; i++)
+		 {
+			 parameters[i] = Unknown;
+		 }
 
 		return KeyValuePair.Create(expectedBody, parameters);
 	}

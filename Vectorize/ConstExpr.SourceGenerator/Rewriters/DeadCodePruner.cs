@@ -21,7 +21,14 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 	public static SyntaxNode Prune(SyntaxNode node, IDictionary<string, VariableItem> variables, SemanticModel model)
 	{
 		// Phase 1: Mark - collect all variable usages
-		var collector = new VariableUsageCollector(variables.Keys);
+		// Include both tracked variables and any local variable declarators found in the node
+		// (some locals are introduced during rewriting and are not present in the variables dictionary).
+		var declaredLocals = node.DescendantNodes().OfType<VariableDeclaratorSyntax>()
+			.Select(v => v.Identifier.Text);
+
+		var allTracked = variables.Keys.Concat(declaredLocals).Distinct();
+
+		var collector = new VariableUsageCollector(allTracked);
 		collector.Visit(node);
 
 		// Phase 2: Sweep - rewrite and prune dead code
@@ -52,6 +59,38 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 	}
 
 	/// <summary>
+	/// Determines if an assignment expression to a variable can be pruned.
+	/// In addition to the standard <see cref="CanBePruned(string)"/> check, this also
+	/// handles the case where <see cref="VariableItem.HasValue"/> was cleared by
+	/// <c>InvalidateAssignedVariables</c> (after an if/else branch) even though the
+	/// actual RHS is a side-effect-free constant literal. A dead write with no side
+	/// effects is always safe to remove.
+	/// </summary>
+	private bool CanBePrunedAssignment(string variableName, ExpressionSyntax rhs)
+	{
+		if (!usageCollector.CanBePruned(variableName))
+		{
+			return false;
+		}
+
+		if (!variables.TryGetValue(variableName, out var variable))
+		{
+			return false;
+		}
+
+		// Standard path: the variable still carries its known constant value.
+		if (variable.HasValue && !variable.IsAltered)
+		{
+			return true;
+		}
+
+		// Fallback: HasValue may have been cleared by InvalidateAssignedVariables after an
+		// if/else with an unknown condition, even though the rewritten RHS is a literal.
+		// Pruning a dead literal write is always safe regardless of HasValue.
+		return IsConstantExpression(rhs);
+	}
+
+	/// <summary>
 	/// Determines if a variable declaration can be pruned. Unlike <see cref="CanBePruned(string)"/>,
 	/// this overload also handles variables that are not in the tracking dictionary by checking
 	/// whether the initializer is a pure constant expression (no side effects).
@@ -72,7 +111,9 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 			return IsConstantExpression(initializer);
 		}
 
-		return variable.HasValue && !variable.IsAltered;
+		// IsAltered is intentionally not checked: if the variable is never read, the
+		// assignment (even after a re-assignment) is still dead code.
+		return variable.HasValue;
 	}
 
 	/// <summary>
@@ -277,7 +318,7 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 		switch (assignment.Left)
 		{
 			// Assignment to prunable variable
-			case IdentifierNameSyntax id when CanBePruned(id.Identifier.Text):
+			case IdentifierNameSyntax id when CanBePrunedAssignment(id.Identifier.Text, assignment.Right):
 			{
 				return true;
 			}
