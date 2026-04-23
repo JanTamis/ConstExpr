@@ -12,7 +12,6 @@ public class BinaryConditionalAndOptimizer : BaseBinaryOptimizer
 	public override IEnumerable<IBinaryStrategy> GetStrategies()
 	{
 		yield return new ConditionalAndLiteralStrategy();
-		yield return new ConditionalAndRightLiteralStrategy();
 		yield return new ConditionalAndAbsorptionStrategy();
 		yield return new ConditionalAndRedundancyStrategy();
 		yield return new ConditionalAndContradictionStrategy();
