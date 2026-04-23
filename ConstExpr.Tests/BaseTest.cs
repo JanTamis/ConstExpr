@@ -10,6 +10,7 @@ using sourcegen::ConstExpr.SourceGenerator.Comparers;
 using sourcegen::ConstExpr.SourceGenerator.Helpers;
 using sourcegen::ConstExpr.SourceGenerator.Models;
 using sourcegen::ConstExpr.SourceGenerator.Rewriters;
+using sourcegen::ConstExpr.SourceGenerator.Visitors;
 
 namespace ConstExpr.Tests;
 
@@ -178,7 +179,28 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			// Use Roslyn structural equivalence which ignores trivia differences
 			if (newBody == null || expectedBody == null || !SyntaxNodeComparer.Get<BlockSyntax>().Equals(expectedBody, newBody))
 			{
-				throw FormatMismatchException(_parameterNames, parameters, expectedBody, newBody, additionalSyntax, exceptionsDuringRewriting);
+				// Debug: find which statement differs
+				var debugInfo = new System.Text.StringBuilder();
+				
+				if (expectedBody != null && newBody != null)
+				{
+					var visitor = DeteministicHashVisitor.Instance;
+					
+					for (var si = 0; si < System.Math.Min(expectedBody.Statements.Count, newBody.Statements.Count); si++)
+					{
+						var expHash = visitor.Visit(expectedBody.Statements[si]);
+						var genHash = visitor.Visit(newBody.Statements[si]);
+						
+						if (expHash != genHash)
+						{
+							debugInfo.AppendLine($"Statement {si} differs:");
+							debugInfo.AppendLine($"  Expected ({expHash}): {expectedBody.Statements[si]}");
+							debugInfo.AppendLine($"  Generated ({genHash}): {newBody.Statements[si]}");
+						}
+					}
+				}
+				
+				throw FormatMismatchException(_parameterNames, parameters, expectedBody, newBody, additionalSyntax, exceptionsDuringRewriting, debugInfo.ToString());
 			}
 		}
 	}
@@ -322,7 +344,8 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		BlockSyntax? expectedBody,
 		BlockSyntax? newBody,
 		Dictionary<SyntaxNode, bool> additionalMethods,
-		List<Exception> exceptionsDuringRewriting)
+		List<Exception> exceptionsDuringRewriting,
+		string debugInfo = "")
 	{
 		var parametersStr = string.Join(", ", parameterNames.Select(p =>
 			$"{p} = {(parameters[p].HasValue ? ParseValue(parameters[p].Value) : "Unknown")}"));
@@ -345,6 +368,9 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 
 			Generated body:
 			{generatedStr}
+			
+			Debug:
+			{debugInfo}
 			""";
 
 		if (additionalMethods.Count > 0)
