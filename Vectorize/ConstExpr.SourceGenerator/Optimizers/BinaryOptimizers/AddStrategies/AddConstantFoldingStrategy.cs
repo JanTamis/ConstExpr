@@ -13,7 +13,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AddStrategies;
 /// Additionally handles: (C1 + x) + C2 => x + (C1 + C2) when C1 is on the left
 /// This optimization requires AssociativeMath flag for floating-point safety.
 /// </summary>
-public class AddConstantFoldingStrategy : NumericBinaryStrategy<BinaryExpressionSyntax, ExpressionSyntax>
+public class AddConstantFoldingStrategy() : NumericBinaryStrategy<BinaryExpressionSyntax, ExpressionSyntax>(leftKind: SyntaxKind.AddExpression)
 {
 	public override FastMathFlags RequiredFlags => FastMathFlags.AssociativeMath;
 
@@ -25,8 +25,7 @@ public class AddConstantFoldingStrategy : NumericBinaryStrategy<BinaryExpression
       return false;
     }
 
-    if (context.TryGetValue(context.Right.Syntax, out var c2)
-		    && context.Left.Syntax.IsKind(SyntaxKind.AddExpression))
+    if (context.TryGetValue(context.Right.Syntax, out var c2))
 		{
 			// Pattern 1: (x + C1) + C2 => x + (C1 + C2)
 			if (context.TryGetValue(context.Left.Syntax.Right, out var leftConstant))

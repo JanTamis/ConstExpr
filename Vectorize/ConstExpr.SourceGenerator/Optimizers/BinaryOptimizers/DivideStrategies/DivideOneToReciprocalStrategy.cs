@@ -29,10 +29,7 @@ public class DivideOneToReciprocalStrategy : BaseBinaryStrategy<LiteralExpressio
 		}
 
 		optimized = InvocationExpression(
-			MemberAccessExpression(
-				SyntaxKind.SimpleMemberAccessExpression,
-				ParseName(context.Type.Name),
-				IdentifierName("ReciprocalEstimate")),
+			MemberAccessExpression(ParseName(context.Type.Name), IdentifierName("ReciprocalEstimate")),
 			ArgumentList(SingletonSeparatedList(Argument(context.Right.Syntax))));
 
 		return true;

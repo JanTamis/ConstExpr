@@ -14,7 +14,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AddStrategies;
 ///   Pattern 1b: (C1 + x) + C2       => x + (C1 + C2)
 ///   Pattern 2:  ((x + C1) + y) + C2 => (x + y) + (C1 + C2)  — collects non-adjacent constants
 /// </summary>
-public class AddIntegerConstantFoldingStrategy : NumericBinaryStrategy<BinaryExpressionSyntax, ExpressionSyntax>
+public class AddIntegerConstantFoldingStrategy() : NumericBinaryStrategy<BinaryExpressionSyntax, ExpressionSyntax>(leftKind: SyntaxKind.AddExpression)
 {
 	public override bool TryOptimize(BinaryOptimizeContext<BinaryExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
@@ -24,8 +24,7 @@ public class AddIntegerConstantFoldingStrategy : NumericBinaryStrategy<BinaryExp
 		}
 
 		// Right operand must be a constant and the left operand must be an addition chain.
-		if (!context.TryGetValue(context.Right.Syntax, out var c2)
-		    || !context.Left.Syntax.IsKind(SyntaxKind.AddExpression))
+		if (!context.TryGetValue(context.Right.Syntax, out var c2))
 		{
 			return false;
 		}

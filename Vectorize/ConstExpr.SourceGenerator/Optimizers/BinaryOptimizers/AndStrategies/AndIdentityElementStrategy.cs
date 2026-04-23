@@ -20,14 +20,20 @@ public class AndIdentityElementStrategy : SymmetricStrategy<NumericOrBooleanBina
 		switch (context.Right.Syntax.Token.Value)
 		{
 			case false:
+			{
 				optimized = CreateLiteral(false);
 				return true;
+			}
 			case true:
+			{
 				optimized = context.Left.Syntax;
 				return true;
+			}
 			default:
+			{
 				optimized = null;
 				return false;
+			}
 		}
 	}
 }

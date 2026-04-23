@@ -33,7 +33,7 @@ public class MultiplyStrengthReductionRightStrategy : IntegerBinaryStrategy<Expr
 		{
 			optimized = ParenthesizedExpression(AddExpression( 
 				LeftShiftExpression(context.Left.Syntax,
-				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(Log2(down)))), context.Left.Syntax));
+				CreateLiteral(Log2(down))), context.Left.Syntax));
 			
 			return true;
 		}
@@ -43,7 +43,7 @@ public class MultiplyStrengthReductionRightStrategy : IntegerBinaryStrategy<Expr
 		{
 			optimized = ParenthesizedExpression(SubtractExpression( 
 				LeftShiftExpression(context.Left.Syntax,
-				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(Log2(up)))), context.Left.Syntax));
+				CreateLiteral(Log2(up))), context.Left.Syntax));
 			
 			return true;
 		}

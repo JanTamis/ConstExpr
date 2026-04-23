@@ -12,13 +12,6 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.EqualsStrategies
 /// </summary>
 public class EqualsModuloEvenStrategy() : SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, LiteralExpressionSyntax>(leftKind: SyntaxKind.ModuloExpression)
 {
-	private static ExpressionSyntax UnwrapParentheses(ExpressionSyntax expression)
-	{
-		while (expression is ParenthesizedExpressionSyntax parenthesized)
-			expression = parenthesized.Expression;
-		return expression;
-	}
-
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		var leftUnwrapped = UnwrapParentheses(context.Left.Syntax);
@@ -55,15 +48,22 @@ public class EqualsModuloEvenStrategy() : SymmetricStrategy<NumericBinaryStrateg
 		}
 
 		optimized = InvocationExpression(
-				MemberAccessExpression(
-					SyntaxKind.SimpleMemberAccessExpression,
-					ParseTypeName(context.Left.Type!.Name),
-					IdentifierName("IsEvenInteger")))
+				MemberAccessExpression(ParseTypeName(context.Left.Type!.Name), IdentifierName("IsEvenInteger")))
 			.WithArgumentList(
 				ArgumentList(
 					SingletonSeparatedList(
 						Argument(context.Left.Syntax.Left))));
 
 		return true;
+	}
+
+	private static ExpressionSyntax UnwrapParentheses(ExpressionSyntax expression)
+	{
+		while (expression is ParenthesizedExpressionSyntax parenthesized)
+		{
+			expression = parenthesized.Expression;
+		}
+
+		return expression;
 	}
 }

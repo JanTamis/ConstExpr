@@ -25,16 +25,14 @@ public class SubtractFMARightMultiplyStrategy() : NumericBinaryStrategy<Expressi
 
 		if (ContainsMultiplyAddEstimate(context.Type))
 		{
-			optimized = InvocationExpression(MemberAccessExpression(host, IdentifierName("MultiplyAddEstimate")),
-				arguments);
+			optimized = InvocationExpression(MemberAccessExpression(host, IdentifierName("MultiplyAddEstimate")), arguments);
 			
 			return true;
 		}
 
 		if (ContainsFusedMultiplyAdd(context.Type))
 		{
-			optimized = InvocationExpression(MemberAccessExpression(host, IdentifierName("FusedMultiplyAdd")),
-				arguments);
+			optimized = InvocationExpression(MemberAccessExpression(host, IdentifierName("FusedMultiplyAdd")), arguments);
 			
 			return true;
 		}

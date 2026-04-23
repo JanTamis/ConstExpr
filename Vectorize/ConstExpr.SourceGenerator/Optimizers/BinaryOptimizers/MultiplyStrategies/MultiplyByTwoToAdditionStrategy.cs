@@ -22,10 +22,7 @@ public class MultiplyByTwoToAdditionStrategy : SymmetricStrategy<NumericBinarySt
 			return false;
 		}
 
-		optimized = ParenthesizedExpression(AddExpression(
-			context.Right.Syntax, 
-			context.Right.Syntax));
-		
+		optimized = ParenthesizedExpression(AddExpression(context.Right.Syntax, context.Right.Syntax));
 		return true;
 	}
 }

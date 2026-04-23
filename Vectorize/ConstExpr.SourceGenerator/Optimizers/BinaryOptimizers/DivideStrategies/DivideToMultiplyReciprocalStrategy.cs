@@ -25,11 +25,7 @@ public class DivideToMultiplyReciprocalStrategy : FloatNumberBinaryStrategy<Expr
 		var reciprocal = 1.ToSpecialType(context.Type.SpecialType)
 			.Divide(context.Right.Syntax.Token.Value.ToSpecialType(context.Type.SpecialType));
 
-		optimized = BinaryExpression(
-			SyntaxKind.MultiplyExpression, 
-			context.Left.Syntax, 
-			CreateLiteral(reciprocal));
-
+		optimized = MultiplyExpression(context.Left.Syntax, CreateLiteral(reciprocal));
 		return true;
 	}
 }

@@ -6,16 +6,11 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalAndSt
 /// <summary>
 /// Strategy for literal boolean optimization: false && x = false, true && x = x
 /// </summary>
-public class ConditionalAndLiteralStrategy : BooleanBinaryStrategy<LiteralExpressionSyntax, ExpressionSyntax>
+public class ConditionalAndLiteralStrategy : SymmetricStrategy<BooleanBinaryStrategy, LiteralExpressionSyntax, ExpressionSyntax>
 {
-	public override bool TryOptimize(BinaryOptimizeContext<LiteralExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
+	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<LiteralExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (!base.TryOptimize(context, out optimized))
-    {
-      return false;
-    }
-
-    optimized = context.Left.Syntax.Token.Value switch
+		optimized = context.Left.Syntax.Token.Value switch
 		{
 			// false && x = false
 			false => CreateLiteral(false),
@@ -24,6 +19,6 @@ public class ConditionalAndLiteralStrategy : BooleanBinaryStrategy<LiteralExpres
 			_ => null,
 		};
 			
-		return true;
+		return optimized != null;
 	}
 }

@@ -10,7 +10,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.EqualsStrategies
 /// <summary>
 /// Strategy for bitwise AND even detection: (x & 1) == 0 => T.IsEvenInteger(x)
 /// </summary>
-public class EqualsBitwiseAndEvenStrategy() 
+public class EqualsBitwiseAndEvenStrategy()
 	: SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, LiteralExpressionSyntax>(leftKind: SyntaxKind.BitwiseAndExpression)
 {
 	private static ExpressionSyntax UnwrapParentheses(ExpressionSyntax expression)
@@ -55,10 +55,7 @@ public class EqualsBitwiseAndEvenStrategy()
 		}
 
 		optimized = InvocationExpression(
-				MemberAccessExpression(
-					SyntaxKind.SimpleMemberAccessExpression,
-					ParseTypeName(context.Left.Type!.Name),
-					IdentifierName("IsEvenInteger")))
+				MemberAccessExpression(ParseTypeName(context.Left.Type!.Name), IdentifierName("IsEvenInteger")))
 			.WithArgumentList(
 				ArgumentList(
 					SingletonSeparatedList(

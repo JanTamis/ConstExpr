@@ -4,6 +4,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalOrStrategies;
 
+/// <summary>
+/// Strategy for optimizing null or empty string checks: (str == null || str.Length == 0) => String.IsNullOrEmpty(str)
+/// </summary>
 public class ConditionalOrIsNullOrEmptyStrategy() 
 	: SymmetricStrategy<BooleanBinaryStrategy, BinaryExpressionSyntax, BinaryExpressionSyntax>(SyntaxKind.EqualsExpression, SyntaxKind.EqualsExpression)
 {
@@ -17,9 +20,7 @@ public class ConditionalOrIsNullOrEmptyStrategy()
 		}
 
 		optimized = InvocationExpression(
-			MemberAccessExpression(
-				IdentifierName("String"),
-				IdentifierName("IsNullOrEmpty")))
+			MemberAccessExpression(IdentifierName("String"), IdentifierName("IsNullOrEmpty")))
 			.WithArgumentList(
 				ArgumentList(
 					SingletonSeparatedList(

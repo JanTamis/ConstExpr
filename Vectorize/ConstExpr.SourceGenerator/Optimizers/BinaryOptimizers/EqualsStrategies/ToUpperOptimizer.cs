@@ -19,10 +19,7 @@ public class ToUpperOptimizer() : SymmetricStrategy<InvocationExpressionSyntax, 
 		}
 		
 		optimized = InvocationExpression(
-				MemberAccessExpression(
-					SyntaxKind.SimpleMemberAccessExpression,
-					ParseTypeName("String"),
-					IdentifierName("Equals")))
+				MemberAccessExpression(ParseTypeName("String"), IdentifierName("Equals")))
 			.WithArgumentList(
 				ArgumentList(
 					SeparatedList<ArgumentSyntax>(
@@ -32,10 +29,7 @@ public class ToUpperOptimizer() : SymmetricStrategy<InvocationExpressionSyntax, 
 							Token(SyntaxKind.CommaToken),
 							Argument(context.Right.Syntax),
 							Token(SyntaxKind.CommaToken),
-							Argument(MemberAccessExpression(
-								SyntaxKind.SimpleMemberAccessExpression,
-								IdentifierName("StringComparison"),
-								IdentifierName("CurrentCultureIgnoreCase")))
+							Argument(MemberAccessExpression(IdentifierName("StringComparison"), IdentifierName("CurrentCultureIgnoreCase")))
 						})));
 		return true;
 	}

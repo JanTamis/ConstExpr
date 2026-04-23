@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AddStrategies;
 
 /// <summary>
-/// Strategy for double-to-shift optimization: x + x => x << 1 (integer, pure)
+/// Strategy for double-to-shift optimization: x + x => x &lt;&lt; 1 (integer, pure)
 /// Requires AssociativeMath for floating-point (treats as associative rearrangement).
 /// </summary>
 public class AddDoubleToShiftStrategy : IntegerBinaryStrategy

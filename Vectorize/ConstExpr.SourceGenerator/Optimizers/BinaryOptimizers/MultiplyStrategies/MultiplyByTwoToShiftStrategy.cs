@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.MultiplyStrategies;
 
 /// <summary>
-/// Strategy for multiplication by two to shift: 2 * x => x << 1 (integer)
+/// Strategy for multiplication by two to shift: 2 * x => x &lt;&lt; 1 (integer)
 /// Safe under Strict (integer shift arithmetic).
 /// </summary>
 public class MultiplyByTwoToShiftStrategy : SymmetricStrategy<UnsigedIntegerBinaryStrategy, LiteralExpressionSyntax, ExpressionSyntax>
@@ -22,10 +22,7 @@ public class MultiplyByTwoToShiftStrategy : SymmetricStrategy<UnsigedIntegerBina
 			return false;
 		}
 		
-		optimized = LeftShiftExpression(
-			context.Right.Syntax,
-			LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(1)));
-		
+		optimized = LeftShiftExpression(context.Right.Syntax, CreateLiteral(1));
 		return true;
 	}
 }
