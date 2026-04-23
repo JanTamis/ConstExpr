@@ -30,13 +30,13 @@ public abstract class BaseMathFunctionOptimizer(string name, Func<int, bool> isV
 		return type.GetMembers(name)
 			.OfType<IMethodSymbol>()
 			.Any(m => m.Parameters.Length == parameterCount
-								&& m.DeclaredAccessibility == Accessibility.Public
-								&& SymbolEqualityComparer.Default.Equals(type, m.ContainingType));
+			          && m.DeclaredAccessibility == Accessibility.Public
+			          && SymbolEqualityComparer.Default.Equals(type, m.ContainingType));
 	}
 
 	protected bool IsApproximately(double a, double b)
 	{
-		return Math.Abs(a - b) <= double.Epsilon;
+		return Math.Abs(a - b) <= Double.Epsilon;
 	}
 
 	private bool IsValidMathMethod(IMethodSymbol method, [NotNullWhen(true)] out ITypeSymbol? type)

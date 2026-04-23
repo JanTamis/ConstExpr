@@ -15,9 +15,9 @@ public class ReplaceFunctionOptimizer(SyntaxNode? instance) : BaseStringFunction
 	protected override bool TryOptimizeString(FunctionOptimizerContext context, ITypeSymbol stringType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		result = null;
-		
+
 		// Check if both context.Parameters are the same literal
-		if (context.VisitedParameters[0] is LiteralExpressionSyntax first 
+		if (context.VisitedParameters[0] is LiteralExpressionSyntax first
 		    && context.VisitedParameters[1] is LiteralExpressionSyntax second)
 		{
 			var firstValue = first.Token.Value;
@@ -34,4 +34,3 @@ public class ReplaceFunctionOptimizer(SyntaxNode? instance) : BaseStringFunction
 		return false;
 	}
 }
-

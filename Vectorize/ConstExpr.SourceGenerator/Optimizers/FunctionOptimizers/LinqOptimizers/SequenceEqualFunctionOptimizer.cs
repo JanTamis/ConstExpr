@@ -21,10 +21,10 @@ public class SequenceEqualFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 		{
 			return true;
 		}
-		
+
 		var isNewSource = TryGetOptimizedChainExpression(source, MaterializingMethods, out source);
 		var secondSource = context.VisitedParameters[0];
-		
+
 		// Optimize collection.SequenceEqual(collection) => true (same reference)
 		if (AreSyntacticallyEquivalent(source, secondSource))
 		{
@@ -39,7 +39,7 @@ public class SequenceEqualFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 			{
 				var invocation = CreateInvocation(secondSource, nameof(Enumerable.Any));
 				var tempResource = TryOptimizeByOptimizer<AnyFunctionOptimizer>(context.WithInvocationAndMethod(invocation, anyMethod), invocation);
-				
+
 				result = (tempResource as ExpressionSyntax ?? invocation).InvertSyntax();
 				return true;
 			}
@@ -60,9 +60,8 @@ public class SequenceEqualFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 			result = UpdateInvocation(context, source);
 			return true;
 		}
-		
+
 		result = null;
 		return false;
 	}
 }
-

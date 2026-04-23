@@ -27,7 +27,7 @@ public class CbrtFunctionOptimizer() : BaseMathFunctionOptimizer("Cbrt", n => n 
 		return true;
 	}
 
-		private static string GenerateFastCbrtMethodFloat()
+	private static string GenerateFastCbrtMethodFloat()
 	{
 		return """
 			private static float FastCbrt(float x)
@@ -56,7 +56,7 @@ public class CbrtFunctionOptimizer() : BaseMathFunctionOptimizer("Cbrt", n => n 
 			""";
 	}
 
-		private static string GenerateFastCbrtMethodDouble()
+	private static string GenerateFastCbrtMethodDouble()
 	{
 		return """
 			private static double FastCbrt(double x)

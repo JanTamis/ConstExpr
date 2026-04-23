@@ -23,9 +23,9 @@ public class ZipFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		}
 
 		var secondSource = context.VisitedParameters[0];
-		
+
 		// If either source is empty, result is empty
-		if (IsEmptyEnumerable(source) 
+		if (IsEmptyEnumerable(source)
 		    || IsEmptyEnumerable(secondSource))
 		{
 			// Get the return type element from the context.Method
@@ -43,7 +43,7 @@ public class ZipFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		{
 			var identfier = Identifier("x");
 			var parameter = Parameter(identfier);
-			
+
 			var invocation = CreateInvocation(source, nameof(Enumerable.Select), SimpleLambdaExpression(parameter, null, TupleExpression(SeparatedList([ Argument(IdentifierName(identfier)), Argument(IdentifierName(identfier)) ]))));
 
 			selectMethod = selectMethod.Construct(elementType, context.Model.Compilation.CreateValueTuple(elementType, elementType));
@@ -57,4 +57,3 @@ public class ZipFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		return false;
 	}
 }
-

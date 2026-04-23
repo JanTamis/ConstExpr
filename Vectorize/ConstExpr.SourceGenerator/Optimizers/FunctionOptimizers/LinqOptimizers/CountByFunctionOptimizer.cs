@@ -26,7 +26,7 @@ public class CountByFunctionOptimizer() : BaseLinqFunctionOptimizer("CountBy", n
 	private static readonly HashSet<string> OperationsThatDontAffectCountBy =
 	[
 		..MaterializingMethods,
-		..OrderingOperations,
+		..OrderingOperations
 	];
 
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)

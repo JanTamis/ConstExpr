@@ -29,9 +29,9 @@ public class TakeFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 		       && TryGetLinqSource(takeInvocation, out var takeSource))
 		{
 			var argument = takeInvocation.ArgumentList.Arguments[0].Expression;
-			
+
 			amounts.Add(argument);
-			
+
 			TryGetOptimizedChainExpression(takeSource, MaterializingMethods, out source);
 			isNewSource = true;
 		}
@@ -43,7 +43,7 @@ public class TakeFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 
 		var noValues = amounts
 			.Where(w => w is not LiteralExpressionSyntax);
-		
+
 		var amount = noValues
 			.Aggregate<ExpressionSyntax, ExpressionSyntax>(minAmount, (acc, next) => CreateInvocation(ParseTypeName("Int32"), "Min", acc, next));
 
@@ -52,14 +52,14 @@ public class TakeFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 			result = CreateEmptyEnumerableCall(context.Method.TypeArguments[0]);
 			return true;
 		}
-		
+
 		if (isNewSource)
 		{
-			if (TryExecutePredicates(context, source, [amount], out result))
+			if (TryExecutePredicates(context, source, [ amount ], out result))
 			{
 				return true;
 			}
-			
+
 			result = UpdateInvocation(context, source, amount);
 			return true;
 		}

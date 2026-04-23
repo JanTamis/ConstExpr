@@ -26,7 +26,7 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 	private static readonly HashSet<string> OperationsThatDontAffectAggregate =
 	[
 		..MaterializingMethods,
-		..OrderingOperations,
+		..OrderingOperations
 	];
 
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
@@ -96,7 +96,7 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		}
 
 		// Optimize to Sum()
-		result = TryOptimizeByOptimizer<SumFunctionOptimizer>(context, CreateSimpleInvocation(source, nameof(Enumerable.Sum)), x => IsEnumerableType(x.Parameters[0].Type as INamedTypeSymbol, context.Method.TypeArguments[^1]), []);
+		result = TryOptimizeByOptimizer<SumFunctionOptimizer>(context, CreateSimpleInvocation(source, nameof(Enumerable.Sum)), x => IsEnumerableType(x.Parameters[0].Type as INamedTypeSymbol, context.Method.TypeArguments[^1]), [ ]);
 
 		// For 2-arg overload with non-zero seed: Sum() + seed
 		if (context.VisitedParameters.Count == 2 && !IsZeroLiteral(context.VisitedParameters[0]))

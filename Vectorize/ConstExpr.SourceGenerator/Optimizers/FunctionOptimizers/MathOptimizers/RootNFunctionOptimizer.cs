@@ -96,12 +96,13 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", n => 
 	private static bool TryGetIntegerLiteral(ExpressionSyntax expr, out int value)
 	{
 		value = 0;
+
 		switch (expr)
 		{
 			case LiteralExpressionSyntax { Token.Value: int i }:
 				value = i;
 				return true;
-			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: int i2 } }:
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: int i2 } }:
 				value = -i2;
 				return true;
 			default:

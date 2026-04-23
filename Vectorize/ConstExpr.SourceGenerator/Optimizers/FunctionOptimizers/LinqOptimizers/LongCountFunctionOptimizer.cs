@@ -46,7 +46,7 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 
 		// Recursively skip all operations that don't affect count
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectCount, out source);
-		
+
 		if (TryExecutePredicates(context, source, out result, out _))
 		{
 			return true;

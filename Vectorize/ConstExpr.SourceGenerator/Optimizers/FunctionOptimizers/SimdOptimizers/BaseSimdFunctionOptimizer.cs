@@ -48,18 +48,18 @@ public abstract class BaseSimdFunctionOptimizer(string typeName, string platform
 		result = invocation;
 		return true;
 	}
-	
+
 	protected InvocationExpressionSyntax CreateSimdInvocation(FunctionOptimizerContext context, INamedTypeSymbol vectorType, string methodName, params IEnumerable<ExpressionSyntax> arguments)
 	{
 		var staticVectorType = context.Model.Compilation.GetTypeByMetadataName($"System.Runtime.Intrinsics.{vectorType.Name}");
-		
+
 		var methodSymbol = staticVectorType?
 			.GetMembers(context.Method.Name)
 			.OfType<IMethodSymbol>()
 			.Where(m => m.Arity == context.Method.Arity && m.Parameters.Length == context.Method.Parameters.Length)
 			.Select(s => s.Construct(vectorType.TypeArguments[0]))
 			.FirstOrDefault(f => SymbolEqualityComparer.Default.Equals(f.ReturnType, vectorType));
-		
+
 		return CreateInvocation(staticVectorType, methodName, arguments)
 			.WithMethodSymbolAnnotation(methodSymbol, context.SymbolStore);
 	}

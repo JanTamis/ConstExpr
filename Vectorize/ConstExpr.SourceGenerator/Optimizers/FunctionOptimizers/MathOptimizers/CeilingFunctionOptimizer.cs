@@ -19,7 +19,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers
 /// ARM64: a negation plus a round instruction). The rewrite has been removed to keep the
 /// generated code simple and to avoid the marginal latency of an extra negation in loop contexts.
 /// </summary>
-public class CeilingFunctionOptimizer() : BaseMathFunctionOptimizer("Ceiling",n => n is 1)
+public class CeilingFunctionOptimizer() : BaseMathFunctionOptimizer("Ceiling", n => n is 1)
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{

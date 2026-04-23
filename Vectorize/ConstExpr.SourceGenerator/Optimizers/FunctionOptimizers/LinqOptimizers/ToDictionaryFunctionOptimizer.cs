@@ -33,7 +33,7 @@ public class ToDictionaryFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(
 	[
 		..MaterializingMethods,
 		..OrderingOperations,
-		nameof(Enumerable.Distinct),
+		nameof(Enumerable.Distinct)
 	];
 
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
@@ -151,7 +151,7 @@ public class ToDictionaryFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(
 							SeparatedList<TypeSyntax>(
 							[
 								ParseTypeName(keyType.ToString()),
-								ParseTypeName(valueType.ToString()),
+								ParseTypeName(valueType.ToString())
 							]))))
 			.WithArgumentList(ArgumentList());
 	}

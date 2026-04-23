@@ -48,4 +48,3 @@ public class SkipWhileFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		return false;
 	}
 }
-

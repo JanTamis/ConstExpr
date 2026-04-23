@@ -25,8 +25,8 @@ public class TrimFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOpt
 		}
 
 		// Check if instance is already a Trim call of the same type
-		if (Instance is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax innerMemberAccess } innerInvocation 
-		    && innerMemberAccess.Name.Identifier.Text == methodName 
+		if (Instance is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax innerMemberAccess } innerInvocation
+		    && innerMemberAccess.Name.Identifier.Text == methodName
 		    && innerInvocation.ArgumentList.Arguments.Count == 0)
 		{
 			// s.Trim().Trim() → s.Trim()
@@ -37,4 +37,3 @@ public class TrimFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOpt
 		return false;
 	}
 }
-

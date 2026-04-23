@@ -61,7 +61,7 @@ public class ToArrayFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 			if (IsInvokedOnArray(context, whereSource))
 			{
 				var visitedPredicate = context.Visit(wherePredicate) as LambdaExpressionSyntax ?? wherePredicate;
-				
+
 				result = CreateInvocation(
 					ParseTypeName(nameof(Array)),
 					nameof(Array.FindAll),

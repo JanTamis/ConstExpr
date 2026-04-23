@@ -17,7 +17,7 @@ public class LastIndexOfFunctionOptimizer(SyntaxNode? instance) : BaseStringFunc
 	protected override bool TryOptimizeString(FunctionOptimizerContext context, ITypeSymbol stringType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		result = null;
-		
+
 		if (!TryGetStringInstance(out var str) || str is null)
 		{
 			return false;
@@ -43,4 +43,3 @@ public class LastIndexOfFunctionOptimizer(SyntaxNode? instance) : BaseStringFunc
 		return false;
 	}
 }
-

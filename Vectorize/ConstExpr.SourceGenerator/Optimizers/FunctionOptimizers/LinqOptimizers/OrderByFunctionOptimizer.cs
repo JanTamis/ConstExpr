@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
-public class OrderByFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.OrderBy),n => n is 1)
+public class OrderByFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.OrderBy), n => n is 1)
 {
 	private static readonly HashSet<string> OrderingOperations =
 	[
@@ -17,7 +17,7 @@ public class OrderByFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 		"Order",
 		"OrderDescending"
 	];
-	
+
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		if (!TryGetLambda(context.VisitedParameters[0], out var lambda))
@@ -39,13 +39,13 @@ public class OrderByFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 			result = CreateAnnotatedSimpleInvocation(context, source, "Order", context.Method.TypeArguments.Take(1).ToArray());
 			return true;
 		}
-		
+
 		if (isNewSource)
 		{
 			result = UpdateInvocation(context, source, lambda);
 			return true;
 		}
-		
+
 		result = null;
 		return false;
 	}

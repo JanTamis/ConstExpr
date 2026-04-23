@@ -22,14 +22,14 @@ public class OrderDescendingFunctionOptimizer() : BaseLinqFunctionOptimizer("Ord
 		"Order",
 		"OrderDescending"
 	];
-	
+
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
-		
+
 		var isNewSource = TryGetOptimizedChainExpression(source, OrderingOperations, out source);
 
 		if (IsLinqMethodChain(source, out var methodName, out var invocation)
@@ -49,7 +49,7 @@ public class OrderDescendingFunctionOptimizer() : BaseLinqFunctionOptimizer("Ord
 				}
 			}
 		}
-		
+
 		if (isNewSource)
 		{
 			result = CreateSimpleInvocation(source, Name);
@@ -60,5 +60,3 @@ public class OrderDescendingFunctionOptimizer() : BaseLinqFunctionOptimizer("Ord
 		return false;
 	}
 }
-
-

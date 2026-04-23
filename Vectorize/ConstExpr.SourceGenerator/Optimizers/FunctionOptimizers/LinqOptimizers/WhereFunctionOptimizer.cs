@@ -24,8 +24,9 @@ public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		nameof(Enumerable.OrderBy),
 		nameof(Enumerable.OrderByDescending),
 		"Order",
-		"OrderDescending",
+		"OrderDescending"
 	];
+
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		if (!TryGetLambda(context.VisitedParameters[0], out var lambda))
@@ -89,7 +90,7 @@ public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 			if (IsTypeCheckLambda(combinedPredicate, out var typeCheckType))
 			{
 				var visitedSource = context.Visit(currentSource) ?? currentSource;
-	
+
 				result = InvocationExpression(
 					MemberAccessExpression(
 						SyntaxKind.SimpleMemberAccessExpression,
@@ -111,7 +112,7 @@ public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 					context.Visit(orderingSource) ?? orderingSource,
 					nameof(Enumerable.Where),
 					combinedPredicate);
-				
+
 				result = orderingInvocation.Update(
 					orderingMemberAccess.WithExpression(filteredSource),
 					orderingInvocation.ArgumentList);

@@ -32,7 +32,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers
 ///   OldFastTanh         1.942 ns  0.91x   2.647 ns  1.02x  ← was SLOWER for double
 ///   FastTanh (new)      1.753 ns  0.83x   2.496 ns  0.96x  ← production
 /// </summary>
-public class TanhFunctionOptimizer() : BaseMathFunctionOptimizer("Tanh",n => n is 1)
+public class TanhFunctionOptimizer() : BaseMathFunctionOptimizer("Tanh", n => n is 1)
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -49,14 +49,14 @@ public class TanhFunctionOptimizer() : BaseMathFunctionOptimizer("Tanh",n => n i
 			}
 
 			// Tanh(Infinity) => 1
-			if (double.IsPositiveInfinity(value))
+			if (Double.IsPositiveInfinity(value))
 			{
 				result = CreateLiteral(1.0.ToSpecialType(paramType.SpecialType));
 				return true;
 			}
 
 			// Tanh(-Infinity) => -1
-			if (double.IsNegativeInfinity(value))
+			if (Double.IsNegativeInfinity(value))
 			{
 				result = CreateLiteral((-1.0).ToSpecialType(paramType.SpecialType));
 				return true;
@@ -82,12 +82,13 @@ public class TanhFunctionOptimizer() : BaseMathFunctionOptimizer("Tanh",n => n i
 	private static bool TryGetNumericLiteral(ExpressionSyntax expr, out double value)
 	{
 		value = 0;
+
 		switch (expr)
 		{
 			case LiteralExpressionSyntax { Token.Value: IConvertible c }:
 				value = c.ToDouble(CultureInfo.InvariantCulture);
 				return true;
-			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
 				value = -c2.ToDouble(CultureInfo.InvariantCulture);
 				return true;
 			default:

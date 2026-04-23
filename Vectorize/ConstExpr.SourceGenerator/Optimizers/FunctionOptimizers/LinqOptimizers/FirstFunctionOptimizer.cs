@@ -27,7 +27,7 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 	private static readonly HashSet<string> OperationsThatDontAffectFirst =
 	[
 		..MaterializingMethods,
-		nameof(Enumerable.Distinct), // Distinct might remove duplicates but doesn't change the order of remaining elements
+		nameof(Enumerable.Distinct) // Distinct might remove duplicates but doesn't change the order of remaining elements
 	];
 
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
@@ -209,7 +209,7 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		// For List<T>, use direct indexing: list[0]
 		if (context.VisitedParameters.Count == 0
 		    && (IsInvokedOnArray(context, source)
-		    || IsInvokedOnList(context, source)))
+		        || IsInvokedOnList(context, source)))
 		{
 			result = CreateElementAccess(source, CreateLiteral(0)!);
 			return true;

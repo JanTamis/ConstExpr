@@ -12,7 +12,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// Optimizes patterns such as:
 /// - Enumerable.Empty&lt;T&gt;().MinBy(selector) - cannot optimize (throws exception)
 /// </summary>
-public class MinByFunctionOptimizer() : BaseLinqFunctionOptimizer("MinBy",n => n is 1)
+public class MinByFunctionOptimizer() : BaseLinqFunctionOptimizer("MinBy", n => n is 1)
 {
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{

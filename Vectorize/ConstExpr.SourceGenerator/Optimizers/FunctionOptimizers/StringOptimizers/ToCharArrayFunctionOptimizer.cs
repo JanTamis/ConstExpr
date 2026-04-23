@@ -15,7 +15,7 @@ public class ToCharArrayFunctionOptimizer(SyntaxNode? instance) : BaseStringFunc
 	protected override bool TryOptimizeString(FunctionOptimizerContext context, ITypeSymbol stringType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		result = null;
-		
+
 		if (!TryGetStringInstance(out var str) || str is null)
 		{
 			return false;
@@ -33,4 +33,3 @@ public class ToCharArrayFunctionOptimizer(SyntaxNode? instance) : BaseStringFunc
 		return true;
 	}
 }
-

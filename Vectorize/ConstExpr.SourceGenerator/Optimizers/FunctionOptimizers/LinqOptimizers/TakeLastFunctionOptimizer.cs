@@ -67,4 +67,3 @@ public class TakeLastFunctionOptimizer() : BaseLinqFunctionOptimizer("TakeLast",
 		return false;
 	}
 }
-

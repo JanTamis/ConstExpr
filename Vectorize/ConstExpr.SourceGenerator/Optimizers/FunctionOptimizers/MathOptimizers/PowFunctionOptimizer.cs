@@ -43,9 +43,9 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is
 			}
 
 			// x^n => x * x * ... * x for small integer n
-			if (Math.Abs(exp) > 1.0 && Math.Abs(exp) <= 5.0 && IsPure(x) && Math.Abs(exp - Math.Round(exp)) < double.Epsilon)
+			if (Math.Abs(exp) > 1.0 && Math.Abs(exp) <= 5.0 && IsPure(x) && Math.Abs(exp - Math.Round(exp)) < Double.Epsilon)
 			{
-				var n = (int)Math.Round(exp);
+				var n = (int) Math.Round(exp);
 				var acc = x;
 
 				for (var i = 1; i < Math.Abs(n); i++)
@@ -95,7 +95,7 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is
 			// x^(1 / n) => RootN(x, n) for small integer n
 			if (IsApproximately(1 / exp, Math.Floor(1 / exp)))
 			{
-				result = CreateInvocation(paramType, "RootN", x, CreateLiteral((int)Math.Round(1 / exp)));
+				result = CreateInvocation(paramType, "RootN", x, CreateLiteral((int) Math.Round(1 / exp)));
 				return true;
 			}
 		}
@@ -227,12 +227,11 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is
 			case LiteralExpressionSyntax { Token.Value: IConvertible c }:
 				value = c.ToDouble(CultureInfo.InvariantCulture);
 				return true;
-			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
 				value = -c2.ToDouble(CultureInfo.InvariantCulture);
 				return true;
 			default:
 				return false;
 		}
 	}
-
 }

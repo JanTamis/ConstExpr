@@ -13,7 +13,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.ToList().Append(x) =&gt; collection.Append(x) (skip materialization)
 /// - collection.ToArray().Append(x) =&gt; collection.Append(x) (skip materialization)
 /// </summary>
-public class AppendFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Append),n => n is 1)
+public class AppendFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Append), n => n is 1)
 {
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{

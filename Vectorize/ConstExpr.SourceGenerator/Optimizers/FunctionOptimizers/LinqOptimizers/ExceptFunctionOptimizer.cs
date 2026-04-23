@@ -25,13 +25,13 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// Note: OrderBy/Reverse don't affect set membership, but may affect result order - we can skip them when
 ///       followed by set-based operations
 /// </summary>
-public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Except),n => n is 1)
+public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Except), n => n is 1)
 {
 	// Operations that don't affect the result of Except
 	private static readonly HashSet<string> OperationsThatDontAffectExcept =
 	[
 		..MaterializingMethods,
-		nameof(Enumerable.Distinct), // Except already applies Distinct
+		nameof(Enumerable.Distinct) // Except already applies Distinct
 	];
 
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
@@ -106,7 +106,7 @@ public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 
 				var parameter = Parameter(Identifier("x"));
 				var isPatternExpression = IsPatternExpression(IdentifierName("x"), notPattern);
-				
+
 				LambdaExpressionSyntax lambda = SimpleLambdaExpression(parameter, isPatternExpression);
 
 				var isFollowedBySetOperation = IsFollowedBySetBasedOperation(context.Invocation);
@@ -119,11 +119,11 @@ public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 
 				while (IsLinqMethodChain(source, nameof(Enumerable.Where), out var whereInvocation)
 				       && GetMethodArguments(whereInvocation).FirstOrDefault() is { Expression: { } whereArg }
-				       && TryGetLinqSource(whereInvocation, out var whereSource)				       
+				       && TryGetLinqSource(whereInvocation, out var whereSource)
 				       && TryGetLambda(whereArg, out var whereLambda))
 				{
 					lambda = CombinePredicates(lambda, whereLambda);
-					
+
 					isFollowedBySetOperation = IsFollowedBySetBasedOperation(whereInvocation);
 					allowedOperations = isFollowedBySetOperation
 						? new HashSet<string>(OperationsThatDontAffectExcept.Union(OrderingOperations))

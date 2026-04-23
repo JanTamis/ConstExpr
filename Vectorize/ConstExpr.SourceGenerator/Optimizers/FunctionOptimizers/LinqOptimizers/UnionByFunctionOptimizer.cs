@@ -22,7 +22,7 @@ public class UnionByFunctionOptimizer() : BaseLinqFunctionOptimizer("UnionBy", n
 		}
 
 		var secondSource = context.VisitedParameters[0];
-		
+
 		// Optimize collection.UnionBy(Enumerable.Empty<T>(), selector) => collection.DistinctBy(selector)
 		if (IsEmptyEnumerable(secondSource))
 		{
@@ -48,4 +48,3 @@ public class UnionByFunctionOptimizer() : BaseLinqFunctionOptimizer("UnionBy", n
 		return false;
 	}
 }
-

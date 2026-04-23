@@ -38,7 +38,7 @@ public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", n => n is
 		{
 			context.Usings.Add("System.Runtime.CompilerServices");
 			context.Usings.Add("System.Numerics");
-			
+
 			var method = ParseMethodFromString("""
 				/// <summary>
 				/// Computes absolute value using branchless bit manipulation.
@@ -48,7 +48,7 @@ public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", n => n is
 				{
 					var bits = Unsafe.SizeOf<T>() * 8 - 1;
 					var mask = x >> bits;
-				
+
 					return (x + mask) ^ mask;
 				}
 				""");

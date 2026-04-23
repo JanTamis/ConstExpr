@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -26,7 +27,7 @@ public class IsMatchFunctionOptimizer() : BaseRegexFunctionOptimizer("IsMatch", 
 		{
 			return false;
 		}
-		
+
 		var literalParameterCount = context.VisitedParameters
 			.Skip(1)
 			.Count(x => TryGetLiteralValue(x, context, out _));
@@ -37,13 +38,13 @@ public class IsMatchFunctionOptimizer() : BaseRegexFunctionOptimizer("IsMatch", 
 		}
 
 		// Use the literal string values to build a stable deterministic hash.
-		var patternKey = string.Concat(
+		var patternKey = String.Concat(
 			context.VisitedParameters
 				.Skip(1)
 				.Select(s => TryGetLiteralValue(s, context, out var lit) && lit is string str ? str : s.ToFullString())
 		);
 		var variableName = $"Regex_{patternKey.GetDeterministicHashString()}";
-		
+
 		var field = FieldDeclaration(VariableDeclaration(IdentifierName(nameof(Regex)))
 				.WithVariables(
 					SingletonSeparatedList(
@@ -57,7 +58,7 @@ public class IsMatchFunctionOptimizer() : BaseRegexFunctionOptimizer("IsMatch", 
 
 		context.AdditionalSyntax.Add(field, true);
 		context.Usings.Add("System.Text.RegularExpressions");
-		
+
 		result = InvocationExpression(MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName(variableName), IdentifierName(context.Method.Name)))
 			.WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(context.VisitedParameters[0]))));
 

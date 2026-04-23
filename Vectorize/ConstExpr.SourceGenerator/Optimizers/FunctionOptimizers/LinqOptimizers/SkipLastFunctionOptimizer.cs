@@ -20,7 +20,7 @@ public class SkipLastFunctionOptimizer() : BaseLinqFunctionOptimizer("SkipLast",
 		{
 			return true;
 		}
-		
+
 		var isNewSource = TryGetOptimizedChainExpression(source, OrderingOperations, out source);
 
 		// Optimize SkipLast(0) => source (skip nothing)
@@ -29,7 +29,7 @@ public class SkipLastFunctionOptimizer() : BaseLinqFunctionOptimizer("SkipLast",
 			result = source;
 			return true;
 		}
-		
+
 		if (IsLinqMethodChain(source, out var methodName, out var invocation)
 		    && TryGetLinqSource(invocation, out var invocationSource))
 		{
@@ -41,7 +41,7 @@ public class SkipLastFunctionOptimizer() : BaseLinqFunctionOptimizer("SkipLast",
 					var intType = context.Model.Compilation.GetSpecialType(SpecialType.System_Int32);
 
 					var newArgument = OptimizeArithmetic(context, SyntaxKind.AddExpression, argument, context.VisitedParameters[0], intType);
-					
+
 					result = CreateInvocation(invocationSource, Name, newArgument);
 					return true;
 				}
@@ -58,4 +58,3 @@ public class SkipLastFunctionOptimizer() : BaseLinqFunctionOptimizer("SkipLast",
 		return false;
 	}
 }
-

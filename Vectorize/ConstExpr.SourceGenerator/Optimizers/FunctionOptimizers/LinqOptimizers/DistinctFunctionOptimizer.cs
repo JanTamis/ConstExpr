@@ -26,7 +26,7 @@ public class DistinctFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 	private static readonly HashSet<string> OperationsThatDontAffectDistinctness =
 	[
 		..MaterializingMethods,
-		nameof(Enumerable.Distinct),         // Redundant Distinct calls
+		nameof(Enumerable.Distinct) // Redundant Distinct calls
 	];
 
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
@@ -39,7 +39,7 @@ public class DistinctFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		// Check if Distinct is followed by a set-based operation
 		var parent = context.Invocation.Parent;
 		var isFollowedBySetOperation = false;
-		
+
 		if (parent is MemberAccessExpressionSyntax { Parent: InvocationExpressionSyntax parentInvocation } memberAccess
 		    && parentInvocation.Expression == memberAccess)
 		{

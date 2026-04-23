@@ -101,7 +101,7 @@ public class AggregateByFunctionOptimizer() : BaseLinqFunctionOptimizer("Aggrega
 						ParameterList(SeparatedList<ParameterSyntax>(
 						[
 							Parameter(Identifier(accParam)),
-							Parameter(Identifier(selectParam)),
+							Parameter(Identifier(selectParam))
 						])),
 						foldedFuncBody);
 
@@ -125,7 +125,7 @@ public class AggregateByFunctionOptimizer() : BaseLinqFunctionOptimizer("Aggrega
 						case true:
 							// x.Where(v => true).AggregateBy(...) => x.AggregateBy(...)
 							TryGetOptimizedChainExpression(chainSource, MaterializingMethods, out chainSource);
-							
+
 							result = UpdateInvocation(context, chainSource);
 							return true;
 
@@ -182,7 +182,7 @@ public class AggregateByFunctionOptimizer() : BaseLinqFunctionOptimizer("Aggrega
 		var elemParam = pFuncLambda.ParameterList.Parameters[1].Identifier.Text;
 
 		// Body must be acc + 1 (or 1 + acc) and the element parameter must not appear in the body
-		if (!IsIncrementBody(funcBody, accParam) 
+		if (!IsIncrementBody(funcBody, accParam)
 		    || funcBody.HasIdentifier(elemParam))
 		{
 			return false;

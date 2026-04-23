@@ -29,4 +29,3 @@ public class Sse42SimdFunctionOptimizer() : BaseSimdFunctionOptimizer("Sse42")
 		return false;
 	}
 }
-

@@ -36,4 +36,3 @@ public class IsNullOrEmptyFunctionOptimizer(SyntaxNode? instance) : BaseStringFu
 		return false;
 	}
 }
-

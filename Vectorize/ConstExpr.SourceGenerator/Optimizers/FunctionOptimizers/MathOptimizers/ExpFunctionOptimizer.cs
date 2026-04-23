@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class ExpFunctionOptimizer() : BaseMathFunctionOptimizer("Exp",n => n is 1)
+public class ExpFunctionOptimizer() : BaseMathFunctionOptimizer("Exp", n => n is 1)
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{

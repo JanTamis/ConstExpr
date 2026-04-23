@@ -32,7 +32,7 @@ public class SingleFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		    && whereInvocation.ArgumentList.Arguments.Count == 1)
 		{
 			TryGetOptimizedChainExpression(whereSource, MaterializingMethods, out whereSource);
-			
+
 			var predicate = whereInvocation.ArgumentList.Arguments[0].Expression;
 
 			result = UpdateInvocation(context, whereSource, predicate);

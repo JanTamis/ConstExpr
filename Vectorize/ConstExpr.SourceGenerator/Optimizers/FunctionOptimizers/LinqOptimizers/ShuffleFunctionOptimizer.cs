@@ -23,13 +23,13 @@ public class ShuffleFunctionOptimizer() : BaseLinqFunctionOptimizer("Shuffle", n
 	private static readonly HashSet<string> OperationsThatDontAffectShuffle =
 	[
 		..MaterializingMethods,
-		..OrderingOperations,
+		..OrderingOperations
 	];
-	
+
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
-	{		
+	{
 		// If we skipped any operations, create optimized Shuffle() call
-		if (TryGetOptimizedChainExpression(context.Visit(source) ?? source, OperationsThatDontAffectShuffle, out var newSource) 
+		if (TryGetOptimizedChainExpression(context.Visit(source) ?? source, OperationsThatDontAffectShuffle, out var newSource)
 		    || !AreSyntacticallyEquivalent(newSource, source))
 		{
 			result = UpdateInvocation(context, newSource);
@@ -40,4 +40,3 @@ public class ShuffleFunctionOptimizer() : BaseLinqFunctionOptimizer("Shuffle", n
 		return false;
 	}
 }
-

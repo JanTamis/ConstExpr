@@ -21,9 +21,9 @@ public class ToHashSetFunctionOptimizer() : BaseLinqFunctionOptimizer("ToHashSet
 	[
 		..MaterializingMethods, // Materialization doesn't affect existence in a HashSet
 		..OrderingOperations, // Ordering doesn't affect existence in a HashSet
-		nameof(Enumerable.Distinct), // Distinct is implicit in HashSet, so we can skip it
+		nameof(Enumerable.Distinct) // Distinct is implicit in HashSet, so we can skip it
 	];
-	
+
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectExistence, out source);
@@ -44,4 +44,3 @@ public class ToHashSetFunctionOptimizer() : BaseLinqFunctionOptimizer("ToHashSet
 		return false;
 	}
 }
-

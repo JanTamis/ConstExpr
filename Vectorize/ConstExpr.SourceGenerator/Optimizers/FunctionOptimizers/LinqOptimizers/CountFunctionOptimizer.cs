@@ -40,7 +40,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		..MaterializingMethods,
 		..OrderingOperations,
 		nameof(Enumerable.Select),
-		"Index",
+		"Index"
 	];
 
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
@@ -217,21 +217,21 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 						result = CreateInvocation(ParseTypeName("Int32"), "Max", context.Visit(resultInvocation), CreateLiteral(1));
 						return true;
 					}
-				case nameof(Enumerable.Distinct):
-				{
-					TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectCount.Union([ nameof(Enumerable.Distinct) ]).ToSet(), out currentSource);
-
-					// When the source is a literal collection, evaluate Distinct().Count() directly.
-					if (TryGetValues(currentSource, out var distinctValues))
+					case nameof(Enumerable.Distinct):
 					{
-						result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(distinctValues.Distinct().Count()));
+						TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectCount.Union([ nameof(Enumerable.Distinct) ]).ToSet(), out currentSource);
+
+						// When the source is a literal collection, evaluate Distinct().Count() directly.
+						if (TryGetValues(currentSource, out var distinctValues))
+						{
+							result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(distinctValues.Distinct().Count()));
+							return true;
+						}
+
+						var distinctResult = TryOptimizeByOptimizer<DistinctFunctionOptimizer>(context, CreateSimpleInvocation(currentSource, nameof(Enumerable.Distinct)));
+						result = CreateSimpleInvocation(distinctResult as ExpressionSyntax, nameof(Enumerable.Count));
 						return true;
 					}
-
-					var distinctResult = TryOptimizeByOptimizer<DistinctFunctionOptimizer>(context, CreateSimpleInvocation(currentSource, nameof(Enumerable.Distinct)));
-					result = CreateSimpleInvocation(distinctResult as ExpressionSyntax, nameof(Enumerable.Count));
-					return true;
-				}
 					case nameof(Enumerable.SelectMany) when GetMethodArguments(invocation).FirstOrDefault() is { Expression: { } predicateArg }
 					                                        && TryGetLambda(predicateArg, out var predicate):
 					{

@@ -29,8 +29,10 @@ public class AtanhFunctionOptimizer() : BaseMathFunctionOptimizer("Atanh", n => 
 			if (IsApproximately(Math.Abs(value), 1.0))
 			{
 				var inf = value > 0
-					? paramType.SpecialType == SpecialType.System_Single ? float.PositiveInfinity : double.PositiveInfinity
-					: paramType.SpecialType == SpecialType.System_Single ? float.NegativeInfinity : double.NegativeInfinity;
+					? paramType.SpecialType == SpecialType.System_Single ? Single.PositiveInfinity : Double.PositiveInfinity
+					: paramType.SpecialType == SpecialType.System_Single
+						? Single.NegativeInfinity
+						: Double.NegativeInfinity;
 				result = CreateLiteral(inf.ToSpecialType(paramType.SpecialType));
 				return true;
 			}
@@ -55,12 +57,13 @@ public class AtanhFunctionOptimizer() : BaseMathFunctionOptimizer("Atanh", n => 
 	private static bool TryGetNumericLiteral(ExpressionSyntax expr, out double value)
 	{
 		value = 0;
+
 		switch (expr)
 		{
 			case LiteralExpressionSyntax { Token.Value: IConvertible c }:
 				value = c.ToDouble(CultureInfo.InvariantCulture);
 				return true;
-			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
 				value = -c2.ToDouble(CultureInfo.InvariantCulture);
 				return true;
 			default:

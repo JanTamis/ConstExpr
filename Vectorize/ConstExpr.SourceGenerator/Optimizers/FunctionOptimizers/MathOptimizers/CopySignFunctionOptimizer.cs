@@ -49,7 +49,7 @@ public class CopySignFunctionOptimizer() : BaseMathFunctionOptimizer("CopySign",
 		if (paramType.SpecialType == SpecialType.System_Single)
 		{
 			context.Usings.Add("System");
-			
+
 			context.AdditionalSyntax.TryAdd(
 				ParseMethodFromString("""
 					/// <summary>
@@ -76,7 +76,7 @@ public class CopySignFunctionOptimizer() : BaseMathFunctionOptimizer("CopySign",
 		if (paramType.SpecialType == SpecialType.System_Double)
 		{
 			context.Usings.Add("System");
-			
+
 			context.AdditionalSyntax.TryAdd(
 				ParseMethodFromString("""
 					/// <summary>
@@ -104,12 +104,13 @@ public class CopySignFunctionOptimizer() : BaseMathFunctionOptimizer("CopySign",
 	private static bool TryGetNumericLiteral(ExpressionSyntax expr, out double value)
 	{
 		value = 0;
+
 		switch (expr)
 		{
 			case LiteralExpressionSyntax { Token.Value: IConvertible c }:
 				value = c.ToDouble(CultureInfo.InvariantCulture);
 				return true;
-			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
 				value = -c2.ToDouble(CultureInfo.InvariantCulture);
 				return true;
 			default:

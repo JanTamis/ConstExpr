@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
-public class OrderByDescendingFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.OrderByDescending),n => n is 1)
+public class OrderByDescendingFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.OrderByDescending), n => n is 1)
 {
 	private static readonly HashSet<string> OrderingOperations =
 	[
@@ -17,7 +17,7 @@ public class OrderByDescendingFunctionOptimizer() : BaseLinqFunctionOptimizer(na
 		"Order",
 		"OrderDescending"
 	];
-	
+
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		if (!TryGetLambda(context.VisitedParameters[0], out var lambda))
@@ -30,7 +30,7 @@ public class OrderByDescendingFunctionOptimizer() : BaseLinqFunctionOptimizer(na
 		{
 			return true;
 		}
-		
+
 		var isNewSource = TryGetOptimizedChainExpression(source, OrderingOperations, out source);
 
 		if (IsIdentityLambda(lambda))
@@ -38,7 +38,7 @@ public class OrderByDescendingFunctionOptimizer() : BaseLinqFunctionOptimizer(na
 			result = TryOptimizeByOptimizer<OrderDescendingFunctionOptimizer>(context, CreateSimpleInvocation(source, "OrderDescending"));
 			return true;
 		}
-		
+
 		if (isNewSource)
 		{
 			result = CreateInvocation(source, Name, lambda);

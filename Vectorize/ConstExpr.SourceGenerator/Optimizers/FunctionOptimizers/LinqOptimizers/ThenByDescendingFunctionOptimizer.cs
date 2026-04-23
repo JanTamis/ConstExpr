@@ -36,4 +36,3 @@ public class ThenByDescendingFunctionOptimizer() : BaseLinqFunctionOptimizer(nam
 		return false;
 	}
 }
-

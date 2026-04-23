@@ -32,11 +32,11 @@ public abstract class BaseRegexFunctionOptimizer(string name, Func<int, bool> is
 	}
 
 	protected abstract bool TryOptimizeRegex(FunctionOptimizerContext context, [NotNullWhen(true)] out SyntaxNode? result);
-	
+
 	protected InvocationExpressionSyntax GetRegexInvocation(FunctionOptimizerContext context)
 	{
 		// Build a deterministic field name from the constant constructor arguments.
-		var patternKey = string.Concat(
+		var patternKey = String.Concat(
 			context.VisitedParameters
 				.Skip(1)
 				.Select(s => TryGetLiteralValue(s, context, out var lit) && lit is string str ? str : s.ToFullString())

@@ -26,7 +26,7 @@ public class CaseFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOpt
 	protected override bool TryOptimizeString(FunctionOptimizerContext context, ITypeSymbol stringType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		result = null;
-		
+
 		var methodName = context.Method.Name;
 
 		if (!CaseMethods.Contains(methodName))
@@ -47,4 +47,3 @@ public class CaseFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOpt
 		return false;
 	}
 }
-

@@ -42,4 +42,3 @@ public class RepeatFunctionOptimizer() : BaseLinqFunctionOptimizer("Repeat", n =
 		return false;
 	}
 }
-

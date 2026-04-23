@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -35,7 +36,7 @@ public class CountFunctionOptimizer() : BaseRegexFunctionOptimizer("Count", n =>
 		}
 
 		// Build a deterministic field name from the constant constructor arguments.
-		var patternKey = string.Concat(
+		var patternKey = String.Concat(
 			context.VisitedParameters
 				.Skip(1)
 				.Select(s => TryGetLiteralValue(s, context, out var lit) && lit is string str ? str : s.ToFullString())
@@ -62,4 +63,3 @@ public class CountFunctionOptimizer() : BaseRegexFunctionOptimizer("Count", n =>
 		return true;
 	}
 }
-

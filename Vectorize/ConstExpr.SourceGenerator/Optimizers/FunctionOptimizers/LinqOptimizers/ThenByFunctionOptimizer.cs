@@ -36,4 +36,3 @@ public class ThenByFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		return false;
 	}
 }
-

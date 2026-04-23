@@ -21,9 +21,9 @@ public class UnionFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 	private static readonly HashSet<string> OperationsThatDontAffectUnion =
 	[
 		..MaterializingMethods,
-		nameof(Enumerable.Distinct), // union already applies Distinct
+		nameof(Enumerable.Distinct) // union already applies Distinct
 	];
-	
+
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		var secondSource = context.VisitedParameters[0];
@@ -53,11 +53,11 @@ public class UnionFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 				var items = syntaxes
 					.Distinct(SyntaxNodeComparer.Get<ExpressionSyntax>())
 					.Select(ExpressionElement);
-				
+
 				result = CollectionExpression(SeparatedList<CollectionElementSyntax>(items));
 				return true;
 			}
-			
+
 			result = CreateSimpleInvocation(source, nameof(Enumerable.Distinct));
 			return true;
 		}
@@ -95,7 +95,7 @@ public class UnionFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 			result = TryOptimizeByOptimizer<DistinctFunctionOptimizer>(context, CreateSimpleInvocation(source, nameof(Enumerable.Distinct)));
 			return true;
 		}
-		
+
 		if (isNewSource)
 		{
 			result = UpdateInvocation(context, source);

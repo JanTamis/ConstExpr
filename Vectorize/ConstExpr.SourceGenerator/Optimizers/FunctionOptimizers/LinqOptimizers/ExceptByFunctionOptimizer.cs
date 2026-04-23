@@ -41,4 +41,3 @@ public class ExceptByFunctionOptimizer() : BaseLinqFunctionOptimizer("ExceptBy",
 		return false;
 	}
 }
-

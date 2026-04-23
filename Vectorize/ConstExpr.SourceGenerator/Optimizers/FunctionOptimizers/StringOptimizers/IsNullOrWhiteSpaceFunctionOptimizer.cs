@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics.CodeAnalysis;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
@@ -28,11 +29,10 @@ public class IsNullOrWhiteSpaceFunctionOptimizer(SyntaxNode? instance) : BaseStr
 
 		if (literal.IsKind(SyntaxKind.StringLiteralExpression))
 		{
-			result = CreateLiteral(string.IsNullOrWhiteSpace(literal.Token.ValueText));
+			result = CreateLiteral(String.IsNullOrWhiteSpace(literal.Token.ValueText));
 			return true;
 		}
 
 		return false;
 	}
 }
-

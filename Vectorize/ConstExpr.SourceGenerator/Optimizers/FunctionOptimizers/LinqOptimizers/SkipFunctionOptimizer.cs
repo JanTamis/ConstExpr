@@ -25,7 +25,7 @@ public class SkipFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 		       && TryGetLinqSource(skipInvocation, out var skipSource))
 		{
 			amount = OptimizeArithmetic(context, SyntaxKind.AddExpression, amount, skipInvocation.ArgumentList.Arguments[0].Expression, intType);
-			
+
 			TryGetOptimizedChainExpression(skipSource, MaterializingMethods, out source);
 			isNewSource = true;
 		}

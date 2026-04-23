@@ -12,7 +12,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.DistinctBy(x => x) => collection.Distinct() (identity key selector)
 /// - Enumerable.Empty&lt;T&gt;().DistinctBy(selector) => Enumerable.Empty&lt;T&gt;()
 /// </summary>
-public class DistinctByFunctionOptimizer() : BaseLinqFunctionOptimizer("DistinctBy",n => n is 1)
+public class DistinctByFunctionOptimizer() : BaseLinqFunctionOptimizer("DistinctBy", n => n is 1)
 {
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{

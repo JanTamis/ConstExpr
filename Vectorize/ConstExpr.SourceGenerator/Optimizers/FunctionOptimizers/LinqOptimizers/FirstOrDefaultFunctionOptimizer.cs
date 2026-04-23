@@ -28,7 +28,7 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 	private static readonly HashSet<string> OperationsThatDontAffectFirst =
 	[
 		..MaterializingMethods,
-		nameof(Enumerable.Distinct), // Distinct might remove the first element if it's a duplicate, so we don't optimize that either!
+		nameof(Enumerable.Distinct) // Distinct might remove the first element if it's a duplicate, so we don't optimize that either!
 	];
 
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)

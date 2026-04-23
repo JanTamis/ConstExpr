@@ -48,8 +48,8 @@ public class LogFunctionOptimizer() : BaseMathFunctionOptimizer("Log", n => n is
 			//   float  ≈ 2.2×  (4.541 ns → 2.021 ns)
 			//   double ≈ 2.1×  (4.250 ns → 2.000 ns)
 			result = DivideExpression(
-				CreateInvocation("FastLog", [context.VisitedParameters[0]]),
-				CreateInvocation("FastLog", [context.VisitedParameters[1]]));
+				CreateInvocation("FastLog", [ context.VisitedParameters[0] ]),
+				CreateInvocation("FastLog", [ context.VisitedParameters[1] ]));
 			return true;
 		}
 

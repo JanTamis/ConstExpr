@@ -205,7 +205,7 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 
 			return true;
 		}
-		
+
 		// If we skipped any operations, create optimized LastOrDefault() call
 		if (isNewSource)
 		{
@@ -229,5 +229,3 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 			defaultItem);
 	}
 }
-
-

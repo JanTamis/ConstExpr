@@ -33,7 +33,7 @@ public class ContainsFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctio
 			return true;
 		}
 
-		if (literal.IsKind(SyntaxKind.CharacterLiteralExpression) 
+		if (literal.IsKind(SyntaxKind.CharacterLiteralExpression)
 		    && literal.Token.Value is char c)
 		{
 			result = CreateLiteral(str.IndexOf(c) >= 0);
@@ -43,4 +43,3 @@ public class ContainsFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctio
 		return false;
 	}
 }
-

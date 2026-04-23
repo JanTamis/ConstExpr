@@ -24,7 +24,6 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// </summary>
 public class DefaultIfEmptyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.DefaultIfEmpty), n => n is 0 or 1)
 {
-
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		// Get the default value parameter if provided
@@ -49,7 +48,7 @@ public class DefaultIfEmptyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 			defaultValue = innerDefaultInvocation.ArgumentList.Arguments
 				.Select(s => s.Expression)
 				.FirstOrDefault(); // Update default value to the last one to the last one
-			
+
 			isNewSource = true; // We effectively skipped an operation, so we have a new source to optimize from
 		}
 

@@ -35,4 +35,3 @@ public class IntersectByFunctionOptimizer() : BaseLinqFunctionOptimizer("Interse
 		return false;
 	}
 }
-
