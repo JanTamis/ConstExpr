@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public abstract class BaseMathFunctionOptimizer(string name, params HashSet<int> parameterCounts) : BaseFunctionOptimizer
+public abstract class BaseMathFunctionOptimizer(string name, Func<int, bool> isValidParameterCount) : BaseFunctionOptimizer
 {
 	protected abstract bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result);
 
@@ -23,7 +23,7 @@ public abstract class BaseMathFunctionOptimizer(string name, params HashSet<int>
 	}
 
 	public string Name { get; } = name;
-	public HashSet<int> ParameterCounts { get; } = parameterCounts;
+	public Func<int, bool> IsValidParameterCount { get; } = isValidParameterCount;
 
 	protected bool HasMethod(ITypeSymbol type, string name, int parameterCount)
 	{
@@ -46,6 +46,6 @@ public abstract class BaseMathFunctionOptimizer(string name, params HashSet<int>
 			.FirstOrDefault();
 
 		return method.Name == Name
-		       && ParameterCounts.Contains(method.Parameters.Length);
+		       && IsValidParameterCount(method.Parameters.Length);
 	}
 }

@@ -17,7 +17,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 	/// - If conversion to an interpolated string is not possible or safe, the optimizer will not claim a change.
 	/// </summary>
 	/// <param name="instance">Optional syntax node instance provided by the optimizer infrastructure; may be null.</param>
-	public class FormatFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "Format", true, 2, 3, 4, 5)
+	public class FormatFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "Format", true, n => n is 2 or 3 or 4 or 5)
 	{
 		protected override bool TryOptimizeString(FunctionOptimizerContext context, ITypeSymbol stringType, [NotNullWhen(true)] out SyntaxNode? result)
 		{

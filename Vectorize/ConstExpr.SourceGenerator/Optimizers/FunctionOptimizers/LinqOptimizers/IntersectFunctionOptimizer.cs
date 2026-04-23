@@ -24,7 +24,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// Note: OrderBy/Reverse don't affect set membership, but may affect result order - we can skip them when
 ///       followed by set-based operations
 /// </summary>
-public class IntersectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Intersect), 1)
+public class IntersectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Intersect),n => n is 1)
 {
 	// Operations that don't affect the result of Intersect
 	private static readonly HashSet<string> OperationsThatDontAffectIntersect =

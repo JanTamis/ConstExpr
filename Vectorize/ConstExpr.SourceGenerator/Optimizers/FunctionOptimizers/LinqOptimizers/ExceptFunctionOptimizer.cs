@@ -25,7 +25,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// Note: OrderBy/Reverse don't affect set membership, but may affect result order - we can skip them when
 ///       followed by set-based operations
 /// </summary>
-public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Except), 1)
+public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Except),n => n is 1)
 {
 	// Operations that don't affect the result of Except
 	private static readonly HashSet<string> OperationsThatDontAffectExcept =

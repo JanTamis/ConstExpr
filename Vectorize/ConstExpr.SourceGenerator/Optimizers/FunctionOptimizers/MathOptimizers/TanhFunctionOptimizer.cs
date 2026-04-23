@@ -32,7 +32,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers
 ///   OldFastTanh         1.942 ns  0.91x   2.647 ns  1.02x  ← was SLOWER for double
 ///   FastTanh (new)      1.753 ns  0.83x   2.496 ns  0.96x  ← production
 /// </summary>
-public class TanhFunctionOptimizer() : BaseMathFunctionOptimizer("Tanh", 1)
+public class TanhFunctionOptimizer() : BaseMathFunctionOptimizer("Tanh",n => n is 1)
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{

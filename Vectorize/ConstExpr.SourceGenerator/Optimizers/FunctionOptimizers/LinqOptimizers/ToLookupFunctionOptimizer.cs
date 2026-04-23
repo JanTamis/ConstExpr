@@ -30,7 +30,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// Note: Unlike ToDictionary, Distinct is NOT redundant before ToLookup because ToLookup groups
 /// duplicate keys rather than throwing, so removing Distinct could change group sizes.
 /// </summary>
-public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.ToLookup), 1, 2, 3)
+public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.ToLookup), n => n is 1 or 2 or 3)
 {
 	// Operations that don't affect the content of the resulting lookup
 	// Note: We do NOT include Distinct here because ToLookup groups duplicates —

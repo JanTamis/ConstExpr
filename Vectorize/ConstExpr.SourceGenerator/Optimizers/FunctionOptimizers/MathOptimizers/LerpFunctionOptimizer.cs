@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class LerpFunctionOptimizer() : BaseMathFunctionOptimizer("Lerp", 3)
+public class LerpFunctionOptimizer() : BaseMathFunctionOptimizer("Lerp", n => n is 3)
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{

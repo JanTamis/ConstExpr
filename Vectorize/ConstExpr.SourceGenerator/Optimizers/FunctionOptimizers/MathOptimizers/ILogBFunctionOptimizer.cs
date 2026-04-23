@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class ILogBFunctionOptimizer() : BaseMathFunctionOptimizer("ILogB", 1)
+public class ILogBFunctionOptimizer() : BaseMathFunctionOptimizer("ILogB",n => n is 1)
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{

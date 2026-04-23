@@ -20,7 +20,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers
 ///   Unary-minus rewrite Round(-x) → -Round(x): ratio 0.99 — within measurement noise,
 ///   no meaningful benefit. The rewrite has been removed to keep generated code simple.
 /// </summary>
-public class RoundFunctionOptimizer() : BaseMathFunctionOptimizer("Round", 1, 2, 3)
+public class RoundFunctionOptimizer() : BaseMathFunctionOptimizer("Round", n => n is 1 or 2 or 3)
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{

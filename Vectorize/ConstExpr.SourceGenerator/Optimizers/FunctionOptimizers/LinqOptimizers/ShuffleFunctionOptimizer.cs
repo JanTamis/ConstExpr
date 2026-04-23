@@ -18,7 +18,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.ThenByDescending(...).Shuffle() => collection.Shuffle() (secondary ordering before shuffle is pointless)
 /// - collection.Reverse().Shuffle() => collection.Shuffle() (reversing before shuffle is pointless)
 /// </summary>
-public class ShuffleFunctionOptimizer() : BaseLinqFunctionOptimizer("Shuffle", 0)
+public class ShuffleFunctionOptimizer() : BaseLinqFunctionOptimizer("Shuffle", n => n is 0)
 {
 	private static readonly HashSet<string> OperationsThatDontAffectShuffle =
 	[

@@ -20,7 +20,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// Note: OrderBy/OrderByDescending/Reverse DOES affect which element is last, so we don't optimize those!
 /// Note: Distinct might remove the last element if it's a duplicate, so we don't optimize that either!
 /// </summary>
-public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Last), 0, 1)
+public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Last), n => n is 0 or 1)
 {
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{

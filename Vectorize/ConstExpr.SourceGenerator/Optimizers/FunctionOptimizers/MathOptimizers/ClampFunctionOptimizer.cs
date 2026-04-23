@@ -9,7 +9,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class ClampFunctionOptimizer() : BaseMathFunctionOptimizer("Clamp", 3)
+public class ClampFunctionOptimizer() : BaseMathFunctionOptimizer("Clamp", n => n is 3)
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{

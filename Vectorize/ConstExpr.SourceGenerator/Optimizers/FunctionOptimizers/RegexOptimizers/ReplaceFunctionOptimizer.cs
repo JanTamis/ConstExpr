@@ -22,7 +22,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.RegexOptimizer
 /// </list>
 /// The <c>input</c> and <c>replacement</c>/<c>evaluator</c> arguments may be runtime values.
 /// </summary>
-public class ReplaceFunctionOptimizer() : BaseRegexFunctionOptimizer("Replace", 3, 4)
+public class ReplaceFunctionOptimizer() : BaseRegexFunctionOptimizer("Replace", n => n is 3 or 4)
 {
 	protected override bool TryOptimizeRegex(FunctionOptimizerContext context, [NotNullWhen(true)] out SyntaxNode? result)
 	{

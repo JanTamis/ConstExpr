@@ -13,7 +13,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.RegexOptimizer
 /// by caching a compiled <see cref="Regex"/> instance as a private static readonly field and
 /// replacing the static call with the equivalent instance method call.
 /// </summary>
-public class MatchesFunctionOptimizer() : BaseRegexFunctionOptimizer("Matches", 2, 3)
+public class MatchesFunctionOptimizer() : BaseRegexFunctionOptimizer("Matches", n => n is 2 or 3)
 {
 	protected override bool TryOptimizeRegex(FunctionOptimizerContext context, [NotNullWhen(true)] out SyntaxNode? result)
 	{

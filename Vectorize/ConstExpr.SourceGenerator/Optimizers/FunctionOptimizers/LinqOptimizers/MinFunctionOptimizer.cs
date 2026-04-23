@@ -20,7 +20,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.AsEnumerable().Min() => collection.Min()
 /// - collection.ToList().Min() => collection.Min()
 /// </summary>
-public class MinFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Min), 0, 1)
+public class MinFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Min), n => n is 0 or 1)
 {
 	// Operations that don't affect the minimum value
 	private static readonly HashSet<string> OperationsThatDontAffectMin =

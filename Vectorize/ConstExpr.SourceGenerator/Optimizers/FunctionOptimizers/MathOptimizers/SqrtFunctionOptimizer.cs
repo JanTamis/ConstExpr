@@ -30,7 +30,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers
 /// saves the entire <c>SQRTSS</c> latency (~10–14 cycles vs 1 cycle for <c>FABS</c>),
 /// and it exposes further source-level optimisation opportunities.
 /// </summary>
-public class SqrtFunctionOptimizer() : BaseMathFunctionOptimizer("Sqrt", 1)
+public class SqrtFunctionOptimizer() : BaseMathFunctionOptimizer("Sqrt",n => n is 1)
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{

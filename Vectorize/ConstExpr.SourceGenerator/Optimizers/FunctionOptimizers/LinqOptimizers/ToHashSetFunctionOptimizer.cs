@@ -15,7 +15,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.AsEnumerable().ToHashSet() => collection.ToHashSet()
 /// - collection.ToList().ToHashSet() => collection.ToHashSet()
 /// </summary>
-public class ToHashSetFunctionOptimizer() : BaseLinqFunctionOptimizer("ToHashSet", 0)
+public class ToHashSetFunctionOptimizer() : BaseLinqFunctionOptimizer("ToHashSet", n => n is 0)
 {
 	private static readonly HashSet<string> OperationsThatDontAffectExistence =
 	[

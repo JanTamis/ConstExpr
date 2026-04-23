@@ -19,7 +19,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// Note: We do NOT optimize Select, Distinct, Where, etc. before Aggregate
 /// because they change the elements/order being aggregated over.
 /// </summary>
-public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Aggregate), 1, 2, 3)
+public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Aggregate), n => n is 1 or 2 or 3)
 {
 	// Only operations that don't change elements, order, or filtering
 	// These are essentially no-ops that just change the type or materialize

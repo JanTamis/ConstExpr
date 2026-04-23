@@ -29,7 +29,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.Take(n).Count() => Int32.Min(n, collection.Count()) (take limits count)
 /// - collection.Skip(n).Count() => Int32.Max(0, collection.Count() - n) (skip reduces count)
 /// </summary>
-public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Count), 0, 1)
+public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Count), n => n is 0 or 1)
 {
 	// Operations that don't affect element count (only order/form but not filtering)
 	// Note: We DON'T include Distinct, ToList, ToArray because they might affect count

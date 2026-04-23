@@ -13,7 +13,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.RegexOptimizer
 /// by parsing the constant pattern at compile time and emitting an equivalent inline C# method
 /// that operates on <c>ReadOnlySpan&lt;char&gt;</c>.
 /// </summary>
-public class IsMatchFunctionOptimizer() : BaseRegexFunctionOptimizer("IsMatch", 2, 3)
+public class IsMatchFunctionOptimizer() : BaseRegexFunctionOptimizer("IsMatch", n => n is 2 or 3)
 {
 	protected override bool TryOptimizeRegex(FunctionOptimizerContext context, [NotNullWhen(true)] out SyntaxNode? result)
 	{

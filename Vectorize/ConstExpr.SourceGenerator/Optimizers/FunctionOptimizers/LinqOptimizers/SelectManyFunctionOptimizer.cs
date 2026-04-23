@@ -13,7 +13,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.SelectMany(x => new[] { x }) => collection (identity flattening)
 /// - Enumerable.Empty&lt;T&gt;().SelectMany(selector) => Enumerable.Empty&lt;TResult&gt;()
 /// </summary>
-public class SelectManyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.SelectMany), 1, 2)
+public class SelectManyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.SelectMany), n => n is 1 or 2)
 {
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{

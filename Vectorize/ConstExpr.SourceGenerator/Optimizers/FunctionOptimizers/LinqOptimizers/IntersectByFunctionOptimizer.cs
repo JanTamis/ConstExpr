@@ -11,7 +11,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.IntersectBy(Enumerable.Empty&lt;TKey&gt;(), selector) => Enumerable.Empty&lt;T&gt;()
 /// - Enumerable.Empty&lt;T&gt;().IntersectBy(collection, selector) => Enumerable.Empty&lt;T&gt;()
 /// </summary>
-public class IntersectByFunctionOptimizer() : BaseLinqFunctionOptimizer("IntersectBy", 2)
+public class IntersectByFunctionOptimizer() : BaseLinqFunctionOptimizer("IntersectBy", n => n is 2)
 {
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{

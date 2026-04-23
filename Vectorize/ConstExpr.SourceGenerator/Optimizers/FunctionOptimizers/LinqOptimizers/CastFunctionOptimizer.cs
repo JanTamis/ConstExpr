@@ -14,7 +14,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.ToList().Cast&lt;T&gt;() =&gt; collection.Cast&lt;T&gt;() (skip materialization)
 /// - collection.ToArray().Cast&lt;T&gt;() =&gt; collection.Cast&lt;T&gt;() (skip materialization)
 /// </summary>
-public class CastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Cast), 0)
+public class CastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Cast), n => n is 0)
 {
 	// Operations that don't affect Cast behavior (type casts and materializations)
 	private static readonly HashSet<string> OperationsThatDontAffectCast =

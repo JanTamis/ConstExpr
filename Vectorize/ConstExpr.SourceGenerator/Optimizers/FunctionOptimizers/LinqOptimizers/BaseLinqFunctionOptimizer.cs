@@ -17,10 +17,11 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// Base class for LINQ function optimizers that handle Enumerable method optimizations.
 /// Provides common helper methods for analyzing and transforming LINQ expressions.
 /// </summary>
-public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int> parameterCounts) : BaseFunctionOptimizer
+public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isValidParameterCount) : BaseFunctionOptimizer
 {
 	public string Name { get; } = name;
-	public HashSet<int> ParameterCounts { get; } = parameterCounts;
+	
+	public Func<int, bool> IsValidParameterCount { get; } = isValidParameterCount;
 
 	protected static readonly HashSet<string> MaterializingMethods =
 	[
@@ -72,7 +73,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	protected bool IsValidLinqMethod(FunctionOptimizerContext context)
 	{
 		return context.Method.Name == Name
-		       && ParameterCounts.Contains(context.OriginalParameters.Count);
+		       && IsValidParameterCount(context.OriginalParameters.Count);
 		// && method.ContainingType.EqualsType(model.Compilation.GetTypeByMetadataName("System.Linq.Enumerable"));
 	}
 

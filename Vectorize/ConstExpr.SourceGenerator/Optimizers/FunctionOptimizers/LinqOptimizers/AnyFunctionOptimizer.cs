@@ -27,7 +27,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.ToList().Any() => collection.Any() (materialization doesn't affect existence)
 /// - collection.ToArray().Any() => collection.Any() (materialization doesn't affect existence)
 /// </summary>
-public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Any), 0, 1)
+public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Any), n => n is 0 or 1)
 {
 	// Operations that don't affect element existence (only order/form/duplicates/materialization)
 	private static readonly HashSet<string> OperationsThatDontAffectExistence =

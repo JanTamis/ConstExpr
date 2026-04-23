@@ -17,7 +17,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers
 /// paths cost the same 2 FP ops on ARM64). The rewrite has been removed to keep generated
 /// code simple.
 /// </summary>
-public class FloorFunctionOptimizer() : BaseMathFunctionOptimizer("Floor", 1)
+public class FloorFunctionOptimizer() : BaseMathFunctionOptimizer("Floor",n => n is 1)
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{

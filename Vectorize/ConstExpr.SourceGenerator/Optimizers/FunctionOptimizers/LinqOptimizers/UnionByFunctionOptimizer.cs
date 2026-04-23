@@ -12,7 +12,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - Enumerable.Empty&lt;T&gt;().UnionBy(collection, selector) => collection.DistinctBy(selector)
 /// - collection.UnionBy(collection, selector) => collection.DistinctBy(selector) (same source)
 /// </summary>
-public class UnionByFunctionOptimizer() : BaseLinqFunctionOptimizer("UnionBy", 2)
+public class UnionByFunctionOptimizer() : BaseLinqFunctionOptimizer("UnionBy", n => n is 2)
 {
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{

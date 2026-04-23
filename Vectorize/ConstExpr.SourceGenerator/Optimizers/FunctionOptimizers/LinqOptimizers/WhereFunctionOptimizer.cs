@@ -16,7 +16,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.Where(p1).Where(p2) => collection.Where(p1 && p2) (two chained Where statements)
 /// - collection.Where(p1).Where(p2).Where(p3) => collection.Where(p1 && p2 && p3) (multiple chained Where statements)
 /// </summary>
-public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Where), 1)
+public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Where), n => n is 1)
 {
 	// Sorting operations whose relative element membership is unchanged by reordering Where before them
 	private static readonly HashSet<string> SortingOperationsForFilterFirst =

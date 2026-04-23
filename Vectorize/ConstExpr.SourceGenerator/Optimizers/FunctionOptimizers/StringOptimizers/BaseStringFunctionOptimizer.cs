@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
@@ -8,11 +9,13 @@ using SourceGen.Utilities.Extensions;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers
 {
-	public abstract class BaseStringFunctionOptimizer(SyntaxNode? instance, string name, bool isStatic, params HashSet<int> parameterCounts) : BaseFunctionOptimizer
+	public abstract class BaseStringFunctionOptimizer(SyntaxNode? instance, string name, bool isStatic, Func<int, bool> isValidParameterCount) : BaseFunctionOptimizer
 	{
 		public string Name { get; } = name;
 
 		public SyntaxNode? Instance { get; } = instance;
+		
+		public  Func<int, bool> IsValidParameterCount { get; } = isValidParameterCount;
 
 		public override bool TryOptimize(FunctionOptimizerContext context, [NotNullWhen(true)] out SyntaxNode? result)
 		{
@@ -34,7 +37,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 			return method.Name == Name 
 			       && type.SpecialType == SpecialType.System_String 
 			       && method.IsStatic == isStatic
-			       && parameterCounts.Contains(method.Parameters.Length);
+			       && IsValidParameterCount(method.Parameters.Length);
 		}
 
 		protected bool TryGetStringInstance(out string? result)

@@ -348,8 +348,6 @@ public partial class ConstExprPartialRewriter
 		var context = GetFunctionOptimizerContext(model, targetMethod, node, visitedArguments, originalArguments);
 
 		return _mathOptimizers.Value
-			.Where(o => String.Equals(o.Name, targetMethod.Name, StringComparison.Ordinal)
-			            && o.ParameterCounts.Contains(targetMethod.Parameters.Length))
 			.WhereSelect<BaseMathFunctionOptimizer, SyntaxNode>((optimizer, out optimized) => optimizer.TryOptimize(context, out optimized))
 			.FirstOrDefault();
 
@@ -364,7 +362,7 @@ public partial class ConstExprPartialRewriter
 
 		var result = _linqOptimizers.Value
 			.Where(o => String.Equals(o.Name, targetMethod.Name, StringComparison.Ordinal)
-			            && o.ParameterCounts.Contains(targetMethod.Parameters.Length))
+			            && o.IsValidParameterCount(targetMethod.Parameters.Length))
 			.WhereSelect<BaseLinqFunctionOptimizer, SyntaxNode>((optimizer, out optimized) => optimizer.TryOptimize(context, out optimized))
 			.FirstOrDefault();
 
@@ -396,7 +394,7 @@ public partial class ConstExprPartialRewriter
 
 		return _regexOptimizers.Value
 			.Where(o => String.Equals(o.Name, targetMethod.Name, StringComparison.Ordinal)
-			            && o.ParameterCounts.Contains(targetMethod.Parameters.Length))
+			            && o.IsValidParameterCount(targetMethod.Parameters.Length))
 			.WhereSelect<BaseRegexFunctionOptimizer, SyntaxNode>((optimizer, out optimized) => optimizer.TryOptimize(context, out optimized))
 			.FirstOrDefault();
 	}

@@ -24,7 +24,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// Note: Ordering operations are NOT stripped because the accumulator function is applied to elements
 /// in the order they appear within each key group, so ordering can affect non-commutative accumulators.
 /// </summary>
-public class AggregateByFunctionOptimizer() : BaseLinqFunctionOptimizer("AggregateBy", 3, 4, 5)
+public class AggregateByFunctionOptimizer() : BaseLinqFunctionOptimizer("AggregateBy", n => n is 3 or 4 or 5)
 {
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{

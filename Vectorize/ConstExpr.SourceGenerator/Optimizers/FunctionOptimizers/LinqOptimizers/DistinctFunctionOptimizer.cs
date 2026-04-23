@@ -19,7 +19,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// Note: OrderBy/Reverse DOES affect the ORDER of distinct results, so we only optimize when followed by
 ///       operations that don't care about order (Count, Any, Contains, etc.)
 /// </summary>
-public class DistinctFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Distinct), 0)
+public class DistinctFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Distinct), n => n is 0)
 {
 	// Operations that don't affect the result of Distinct (both values AND order)
 	// We CANNOT include ordering operations because they change the ORDER of distinct results!

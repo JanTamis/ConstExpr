@@ -19,7 +19,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.ToList().Sum() => collection.Sum()
 /// - collection.Reverse().Sum() => collection.Sum()
 /// </summary>
-public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Sum), 0, 1)
+public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Sum), n => n is 0 or 1)
 {
 	// Operations that don't affect the sum
 	private static readonly HashSet<string> OperationsThatDontAffectSum =

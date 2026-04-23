@@ -20,7 +20,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.Where(v => true).CountBy(keySelector) => collection.CountBy(keySelector)
 /// - collection.Where(v => false).CountBy(keySelector) => Enumerable.Empty&lt;KeyValuePair&lt;TKey, int&gt;&gt;()
 /// </summary>
-public class CountByFunctionOptimizer() : BaseLinqFunctionOptimizer("CountBy", 1, 2)
+public class CountByFunctionOptimizer() : BaseLinqFunctionOptimizer("CountBy", n => n is 1 or 2)
 {
 	// Ordering doesn't affect which keys appear or how many times they're counted.
 	private static readonly HashSet<string> OperationsThatDontAffectCountBy =

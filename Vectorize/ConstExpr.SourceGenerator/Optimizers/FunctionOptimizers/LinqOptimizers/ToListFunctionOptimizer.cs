@@ -16,7 +16,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - list.Where(p).ToList() => list.FindAll(p) (direct BCL call, no LINQ pipeline)
 /// - list.Select(f).Where(p).ToList() => list.FindAll(x => p(f(x))) (fused selector+predicate)
 /// </summary>
-public class ToListFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.ToList), 0)
+public class ToListFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.ToList), n => n is 0)
 {
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{

@@ -14,7 +14,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.Chunk(n).Last() => collection.TakeLast(n).ToArray()
 /// - collection.Chunk(1) => collection.Select(x => new[] { x })
 /// </summary>
-public class ChunkFunctionOptimizer() : BaseLinqFunctionOptimizer("Chunk", 1)
+public class ChunkFunctionOptimizer() : BaseLinqFunctionOptimizer("Chunk",n => n is 1)
 {
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -14,10 +15,10 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.RegexOptimizer
 /// Base class for optimizers that target <c>System.Text.RegularExpressions.Regex</c> methods.
 /// Subclasses are discovered via reflection (same pattern as Math/Linq/Simd optimizers).
 /// </summary>
-public abstract class BaseRegexFunctionOptimizer(string name, params HashSet<int> parameterCounts) : BaseFunctionOptimizer
+public abstract class BaseRegexFunctionOptimizer(string name, Func<int, bool> isValidParameterCount) : BaseFunctionOptimizer
 {
 	public string Name { get; } = name;
-	public HashSet<int> ParameterCounts { get; } = parameterCounts;
+	public Func<int, bool> IsValidParameterCount { get; } = isValidParameterCount;
 
 	public override bool TryOptimize(FunctionOptimizerContext context, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -65,6 +66,6 @@ public abstract class BaseRegexFunctionOptimizer(string name, params HashSet<int
 		return method.Name == Name
 		       && method.IsStatic
 		       && method.ContainingType.ToString() == "System.Text.RegularExpressions.Regex"
-		       && ParameterCounts.Contains(method.Parameters.Length);
+		       && IsValidParameterCount(method.Parameters.Length);
 	}
 }

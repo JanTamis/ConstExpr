@@ -12,7 +12,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - Enumerable.Empty&lt;T&gt;().Prepend(x) => new[] { x } or simplified form
 /// - collection.Append(a).Prepend(b) => can be optimized for specific cases
 /// </summary>
-public class PrependFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Prepend), 1)
+public class PrependFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Prepend),n => n is 1)
 {
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{

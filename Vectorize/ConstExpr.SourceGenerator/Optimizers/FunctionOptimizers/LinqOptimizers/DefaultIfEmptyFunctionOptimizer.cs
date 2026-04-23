@@ -22,7 +22,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.ToArray().DefaultIfEmpty() => collection.DefaultIfEmpty() (materialization doesn't affect empty check)
 /// Note: Select, Where, Skip, Take DO affect which elements are present and whether collection is empty!
 /// </summary>
-public class DefaultIfEmptyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.DefaultIfEmpty), 0, 1)
+public class DefaultIfEmptyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.DefaultIfEmpty), n => n is 0 or 1)
 {
 
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)

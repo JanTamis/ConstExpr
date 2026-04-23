@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class CosPiFunctionOptimizer() : BaseMathFunctionOptimizer("CosPi", 1)
+public class CosPiFunctionOptimizer() : BaseMathFunctionOptimizer("CosPi",n => n is 1)
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{

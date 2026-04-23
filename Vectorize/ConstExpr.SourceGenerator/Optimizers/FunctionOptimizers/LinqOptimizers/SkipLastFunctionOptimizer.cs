@@ -12,7 +12,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.SkipLast(0) => collection (skip nothing)
 /// - collection.SkipLast(n).SkipLast(m) => collection.SkipLast(n + m)
 /// </summary>
-public class SkipLastFunctionOptimizer() : BaseLinqFunctionOptimizer("SkipLast", 1)
+public class SkipLastFunctionOptimizer() : BaseLinqFunctionOptimizer("SkipLast", n => n is 1)
 {
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{

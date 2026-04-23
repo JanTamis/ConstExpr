@@ -16,7 +16,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - Enumerable.Empty&lt;T&gt;().Union(collection) => collection.Distinct()
 /// - collection.Union(collection) => collection.Distinct() (same source)
 /// </summary>
-public class UnionFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Union), 1)
+public class UnionFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Union), n => n is 1)
 {
 	private static readonly HashSet<string> OperationsThatDontAffectUnion =
 	[

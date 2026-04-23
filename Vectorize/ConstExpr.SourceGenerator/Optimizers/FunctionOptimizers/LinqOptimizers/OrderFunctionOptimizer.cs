@@ -12,7 +12,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// Optimizes patterns such as:
 /// - collection.Order().Order() => collection.Order() (redundant order)
 /// </summary>
-public class OrderFunctionOptimizer() : BaseLinqFunctionOptimizer("Order", 0)
+public class OrderFunctionOptimizer() : BaseLinqFunctionOptimizer("Order", n => n is 0)
 {
 	private static readonly HashSet<string> OrderingOperations =
 	[

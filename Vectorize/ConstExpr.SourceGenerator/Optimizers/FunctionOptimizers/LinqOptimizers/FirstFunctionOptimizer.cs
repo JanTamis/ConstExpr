@@ -20,7 +20,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// Note: OrderBy/OrderByDescending/Reverse DOES affect which element is first, so we don't optimize those!
 /// Note: Distinct might remove the first element if it's a duplicate, so we don't optimize that either!
 /// </summary>
-public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.First), 0, 1)
+public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.First), n => n is 0 or 1)
 {
 	// Operations that don't affect which element is "first"
 	// We CAN'T include ordering operations because they change which element comes first!

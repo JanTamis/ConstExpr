@@ -25,7 +25,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.Where(p1).Where(p2).ToDictionary(keySelector) => collection.Where(p1 &amp;&amp; p2).ToDictionary(keySelector) (merge chained Where predicates)
 /// - collection.DistinctBy(selector).ToDictionary(keySelector) => collection.ToDictionary(keySelector) (when keySelector matches selector, DistinctBy is redundant since dictionary keys are unique)
 /// </summary>
-public class ToDictionaryFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.ToDictionary), 1, 2, 3)
+public class ToDictionaryFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.ToDictionary), n => n is 1 or 2 or 3)
 {
 	// Ordering and deduplication operations that don't affect the content of the resulting dictionary
 	// (Dictionary keys are already unique; ordering has no effect on an unordered collection)

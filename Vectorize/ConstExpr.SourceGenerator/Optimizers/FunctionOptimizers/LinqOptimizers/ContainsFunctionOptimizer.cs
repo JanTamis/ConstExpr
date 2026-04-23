@@ -27,7 +27,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.ToList().Contains(value) => collection.Contains(value) (materialization doesn't affect containment)
 /// - collection.ToArray().Contains(value) => collection.Contains(value) (materialization doesn't affect containment)
 /// </summary>
-public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Contains), 1, 2)
+public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Contains), n => n is 1 or 2)
 {
 	// Operations that don't affect element containment (only order/form/duplicates/materialization)
 	private static readonly HashSet<string> OperationsThatDontAffectContainment =

@@ -9,7 +9,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", 1)
+public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", n => n is 1)
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
