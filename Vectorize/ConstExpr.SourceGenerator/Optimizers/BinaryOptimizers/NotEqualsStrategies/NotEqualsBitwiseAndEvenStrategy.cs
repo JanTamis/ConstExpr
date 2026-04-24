@@ -26,10 +26,7 @@ public class NotEqualsBitwiseAndEvenStrategy() : SymmetricStrategy<NumericBinary
 		}
 		
 		optimized = InvocationExpression(
-				MemberAccessExpression(
-					SyntaxKind.SimpleMemberAccessExpression,
-					ParseTypeName(context.Left.Type!.Name),
-					IdentifierName("IsEvenInteger")))
+				MemberAccessExpression(ParseTypeName(context.Left.Type!.Name), IdentifierName("IsEvenInteger")))
 			.WithArgumentList(
 				ArgumentList(
 					SingletonSeparatedList(

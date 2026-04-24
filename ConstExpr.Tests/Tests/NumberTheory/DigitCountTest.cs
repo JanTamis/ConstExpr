@@ -42,7 +42,7 @@ public class DigitCountTest() : BaseTest<Func<int, int>>(FastMathFlags.FastMath)
 			}
 			
 			return count;
-			""", Unknown),
+			"""),
 		Create("return 3;", 123),
 		Create("return 1;", 0),
 		Create("return 4;", -1234)

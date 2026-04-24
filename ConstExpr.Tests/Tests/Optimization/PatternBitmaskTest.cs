@@ -17,7 +17,7 @@ public class PatternBitmaskTest() : BaseTest<Func<int, bool>>(FastMathFlags.Fast
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return (uint)(n - 1) <= 19U && (0x84211 >> n - 1 & 1) != 0;", Unknown), // Unknown value
+		Create("return (uint)(n - 1) <= 19U && (0x84211 >> n - 1 & 1) != 0;"), // Unknown value
 		Create("return true;", 1),   // Match
 		Create("return true;", 5),   // Match
 		Create("return true;", 10),  // Match
@@ -43,7 +43,7 @@ public class PatternBitmaskLargeTest() : BaseTest<Func<int, bool>>(FastMathFlags
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return (uint)n <= 60U && (0x1004010040100401UL >> n & 1) != 0;", Unknown),
+		Create("return (uint)n <= 60U && (0x1004010040100401UL >> n & 1) != 0;"),
 		Create("return true;", 0),
 		Create("return true;", 10),
 		Create("return true;", 20),
@@ -69,7 +69,7 @@ public class PatternBitmaskSmallTest() : BaseTest<Func<int, bool>>(FastMathFlags
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return (uint)(n - 2) <= 6U && (n & n - 1) == 0;", Unknown),
+		Create("return (uint)(n - 2) <= 6U && (n & n - 1) == 0;"),
 		Create("return true;", 2),
 		Create("return true;", 4),
 		Create("return true;", 8),
@@ -92,7 +92,7 @@ public class PatternBitmaskConsecutiveTest() : BaseTest<Func<int, bool>>(FastMat
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return (uint)(n - 5) <= 3U;", Unknown),
+		Create("return (uint)(n - 5) <= 3U;"),
 		Create("return true;", 5),
 		Create("return true;", 6),
 		Create("return true;", 7),
@@ -115,7 +115,7 @@ public class PatternBitmaskByteTest() : BaseTest<Func<byte, bool>>(FastMathFlags
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return n - 1 <= 6 && (0x45 >> n - 1 & 1) != 0;", Unknown),
+		Create("return n - 1 <= 6 && (0x45 >> n - 1 & 1) != 0;"),
 		Create("return true;", (byte)1),
 		Create("return true;", (byte)3),
 		Create("return true;", (byte)7),

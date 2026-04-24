@@ -16,7 +16,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.Where(p1).Where(p2) => collection.Where(p1 && p2) (two chained Where statements)
 /// - collection.Where(p1).Where(p2).Where(p3) => collection.Where(p1 && p2 && p3) (multiple chained Where statements)
 /// </summary>
-public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Where), 1)
+public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Where), n => n is 1)
 {
 	// Sorting operations whose relative element membership is unchanged by reordering Where before them
 	private static readonly HashSet<string> SortingOperationsForFilterFirst =
@@ -24,8 +24,9 @@ public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		nameof(Enumerable.OrderBy),
 		nameof(Enumerable.OrderByDescending),
 		"Order",
-		"OrderDescending",
+		"OrderDescending"
 	];
+
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		if (!TryGetLambda(context.VisitedParameters[0], out var lambda))
@@ -89,7 +90,7 @@ public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 			if (IsTypeCheckLambda(combinedPredicate, out var typeCheckType))
 			{
 				var visitedSource = context.Visit(currentSource) ?? currentSource;
-	
+
 				result = InvocationExpression(
 					MemberAccessExpression(
 						SyntaxKind.SimpleMemberAccessExpression,
@@ -111,7 +112,7 @@ public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 					context.Visit(orderingSource) ?? orderingSource,
 					nameof(Enumerable.Where),
 					combinedPredicate);
-				
+
 				result = orderingInvocation.Update(
 					orderingMemberAccess.WithExpression(filteredSource),
 					orderingInvocation.ArgumentList);

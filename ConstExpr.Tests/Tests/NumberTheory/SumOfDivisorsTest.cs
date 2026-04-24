@@ -30,7 +30,7 @@ public class SumOfDivisorsTest() : BaseTest<Func<int, int>>(FastMathFlags.FastMa
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null, Unknown),
+		Create(null),
 		Create("return 28;", 12),
 		Create("return 1;", 1),
 		Create("return 0;", 0)

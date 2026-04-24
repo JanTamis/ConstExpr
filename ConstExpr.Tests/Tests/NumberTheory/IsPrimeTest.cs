@@ -60,7 +60,7 @@ public class IsPrimeTest() : BaseTest<Func<int, bool>>(FastMathFlags.FastMath)
 			}
 
 			return true;
-			""", Unknown),
+			"""),
 		Create("return true;", 17),
 		Create("return true;", 29),
 		Create("return false;", 1),

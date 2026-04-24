@@ -9,7 +9,7 @@ public class HypotenuseTest() : BaseTest<Func<int, int, double>>(FastMathFlags.F
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return Double.Sqrt(a * a + b * b);", Unknown, Unknown),
+		Create("return Double.Sqrt(a * a + b * b);"),
 		Create("return 5D;", 3, 4),
 		Create("return 13D;", 5, 12),
 		Create("return 10D;", 0, 10)

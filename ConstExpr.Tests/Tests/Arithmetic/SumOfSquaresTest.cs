@@ -24,7 +24,7 @@ public class SumOfSquaresTest() : BaseTest<Func<int, int>>(FastMathFlags.FastMat
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null, Unknown),
+		Create(null),
 		Create("return 55;", 5),
 		Create("return 0;", 0),
 		Create("return 14;", 3)

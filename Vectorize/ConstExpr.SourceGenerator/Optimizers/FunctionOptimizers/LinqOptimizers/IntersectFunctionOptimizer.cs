@@ -24,13 +24,13 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// Note: OrderBy/Reverse don't affect set membership, but may affect result order - we can skip them when
 ///       followed by set-based operations
 /// </summary>
-public class IntersectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Intersect), 1)
+public class IntersectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Intersect), n => n is 1)
 {
 	// Operations that don't affect the result of Intersect
 	private static readonly HashSet<string> OperationsThatDontAffectIntersect =
 	[
 		..MaterializingMethods,
-		nameof(Enumerable.Distinct), // Intersect already applies Distinct
+		nameof(Enumerable.Distinct) // Intersect already applies Distinct
 	];
 
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
@@ -62,7 +62,7 @@ public class IntersectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 
 			if (intersectCollectionSyntaxes.All(a => a is LiteralExpressionSyntax))
 			{
-				if (intersectCollectionSyntaxes.Count == 0 
+				if (intersectCollectionSyntaxes.Count == 0
 				    && context.Method.ReturnType is INamedTypeSymbol { TypeArguments.Length: > 0 } returnType)
 				{
 					result = CreateEmptyEnumerableCall(returnType.TypeArguments[0]);
@@ -75,7 +75,7 @@ public class IntersectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 				{
 					TryGetOptimizedChainExpression(source, new HashSet<string>(OperationsThatDontAffectIntersect.Union(OrderingOperations)), out source);
 				}
-				
+
 				// convert to x.Where(x => x is literal1 or literal2 or ...)
 				var orPattern = intersectCollectionSyntaxes
 					.Select(PatternSyntax (syntax) => ConstantPattern(syntax))
@@ -87,19 +87,19 @@ public class IntersectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 
 				var distinctSource = TryOptimizeByOptimizer<DistinctFunctionOptimizer>(context, CreateSimpleInvocation(source, nameof(Enumerable.Distinct))) as ExpressionSyntax
 				                     ?? CreateSimpleInvocation(source, nameof(Enumerable.Distinct));
-				
+
 				result = TryOptimizeByOptimizer<WhereFunctionOptimizer>(context, CreateInvocation(distinctSource, nameof(Enumerable.Where), lambda));
-				return true; 
+				return true;
 			}
 		}
-		
+
 		source = context.Visit(source) ?? source;
 
 		// Try simple optimizations first
 		if ((TryOptimizeEmptySource(source, out result)
 		     || TryOptimizeEmptyIntersectCollection(context.Method, intersectCollection, out result)
 		     || TryOptimizeSelfIntersect(context, source, intersectCollection, out result)
-		     || TryOptimizeChainedIntersect(context, source, intersectCollection, out result)) 
+		     || TryOptimizeChainedIntersect(context, source, intersectCollection, out result))
 		    && result is not null)
 		{
 			return true;

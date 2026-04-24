@@ -65,7 +65,7 @@ public class LinqContainsOptimizationTests : BaseTest<Func<int[], int>>
 			var l = Array.IndexOf(x, 100) >= 0 ? 1 : 0;
 
 			return a + b + c + d + e + f + g + h + i + j + k + l;
-			""", Unknown),
+			"""),
 		Create("return 11;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new int[] { }),
 		Create("return 0;", new[] { 1, 2, 4, 5, 6 }), // No 3, all tests fail

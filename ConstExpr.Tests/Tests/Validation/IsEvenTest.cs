@@ -24,7 +24,7 @@ public class IsEvenTest() : BaseTest<Func<int, bool>>(FastMathFlags.FastMath)
 			}
 
 			return Int32.IsEvenInteger(n);
-			""", Unknown),
+			"""),
 		Create("return true;", 4),
 		Create("return false;", 5)
 	];

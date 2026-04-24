@@ -85,7 +85,7 @@ public class LinqRangeOptimizationTests() : BaseTest<Func<int, int, double>>(Fas
 			var m = Enumerable.Range(start, count).All(x => x >= 0) ? 1 : 0;
 			
 			return count + b + c + d + start + f + g + h + i + j + k + l + m;
-			""", Unknown, Unknown),
+			"""),
 		Create("return 57D;", 2, 5),
 	];
 }

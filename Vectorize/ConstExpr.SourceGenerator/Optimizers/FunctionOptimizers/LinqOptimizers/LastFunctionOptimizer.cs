@@ -20,7 +20,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// Note: OrderBy/OrderByDescending/Reverse DOES affect which element is last, so we don't optimize those!
 /// Note: Distinct might remove the last element if it's a duplicate, so we don't optimize that either!
 /// </summary>
-public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Last), 0, 1)
+public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Last), n => n is 0 or 1)
 {
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -37,7 +37,7 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 		{
 			switch (methodName)
 			{
-				case nameof(Enumerable.Where) 
+				case nameof(Enumerable.Where)
 					when GetMethodArguments(invocation).FirstOrDefault() is { Expression: { } predicateArg }
 					     && TryGetLambda(predicateArg, out var predicate):
 				{
@@ -94,7 +94,7 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 							{
 								var lastChunkSize = sourceSyntaxes.Count % chunkSizeValue;
 								if (lastChunkSize == 0) lastChunkSize = chunkSizeValue;
-								
+
 								var elements = sourceSyntaxes
 									.Skip(sourceSyntaxes.Count - lastChunkSize)
 									.Select(ExpressionElement);
@@ -103,11 +103,11 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 									SeparatedList<CollectionElementSyntax>(elements));
 								return true;
 							}
-							
+
 							// For arrays, we can directly index the first chunk: source[^chunkSize..]
 							var prefix = IndexFromEndExpression(chunkSize);
 							var rangeExpression = RangeExpression(prefix, null);
-							
+
 							result = CreateElementAccess(methodSource, rangeExpression);
 							return true;
 						}
@@ -176,9 +176,9 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 					if (context.VisitedParameters.Count == 0)
 					{
 						var intType = context.Model.Compilation.CreateInt32();
-						
-						result = OptimizeArithmetic(context, SyntaxKind.SubtractExpression, 
-							OptimizeArithmetic(context, SyntaxKind.AddExpression, startArg.Expression, countArg.Expression, intType), 
+
+						result = OptimizeArithmetic(context, SyntaxKind.SubtractExpression,
+							OptimizeArithmetic(context, SyntaxKind.AddExpression, startArg.Expression, countArg.Expression, intType),
 							CreateLiteral(1), intType);
 						return true;
 					}
@@ -201,17 +201,17 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 				}
 			}
 		}
-		
+
 		// For arrays, use direct array indexing: arr[^1]
 		// For List<T>, use direct indexing: list[^1]
-		if (context.Method.Parameters.Length is 0 or 1 
+		if (context.Method.Parameters.Length is 0 or 1
 		    && (IsInvokedOnArray(context, source) || IsInvokedOnList(context, source)))
 		{
 			result = CreateElementAccess(source, PrefixUnaryExpression(
 				SyntaxKind.IndexExpression, CreateLiteral(1)));
 			return true;
 		}
-		
+
 		// If we skipped any operations, create optimized Last() call
 		if (isNewSource)
 		{
@@ -243,5 +243,3 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 			defaultItem);
 	}
 }
-
-

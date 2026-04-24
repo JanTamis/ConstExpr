@@ -70,7 +70,7 @@ public class LinqIntersectOptimizationTests : BaseTest<Func<int[], int>>
 			var n = Count_Oio79Q(x);
 			
 			return c + d + e + f + g + h + i + j + k + l + m + n;
-			""", Unknown),
+			"""),
 		Create("return 18;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new int[] { }),
 		Create("return 3;", new[] { 10, 20, 30 }),

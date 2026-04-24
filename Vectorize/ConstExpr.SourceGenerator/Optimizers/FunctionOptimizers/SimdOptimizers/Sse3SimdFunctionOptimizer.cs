@@ -30,4 +30,3 @@ public class Sse3SimdFunctionOptimizer() : BaseSimdFunctionOptimizer("Sse3")
 		return false;
 	}
 }
-

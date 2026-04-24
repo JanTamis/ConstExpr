@@ -59,9 +59,7 @@ public class ModuloBarrettSignedStrategy : IntegerBinaryStrategy<ExpressionSynta
 		var quotient = SubtractExpression(castInt, signBit);
 
 		// d * ((int)(...) - (x >> 31))
-		var quotMul = MultiplyExpression(
-			context.Right.Syntax,
-			ParenthesizedExpression(quotient));
+		var quotMul = MultiplyExpression(context.Right.Syntax, ParenthesizedExpression(quotient));
 
 		// x - d * (...)
 		optimized = SubtractExpression(x, quotMul);

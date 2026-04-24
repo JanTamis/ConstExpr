@@ -19,14 +19,14 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// Note: OrderBy/Reverse DOES affect the ORDER of distinct results, so we only optimize when followed by
 ///       operations that don't care about order (Count, Any, Contains, etc.)
 /// </summary>
-public class DistinctFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Distinct), 0)
+public class DistinctFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Distinct), n => n is 0)
 {
 	// Operations that don't affect the result of Distinct (both values AND order)
 	// We CANNOT include ordering operations because they change the ORDER of distinct results!
 	private static readonly HashSet<string> OperationsThatDontAffectDistinctness =
 	[
 		..MaterializingMethods,
-		nameof(Enumerable.Distinct),         // Redundant Distinct calls
+		nameof(Enumerable.Distinct) // Redundant Distinct calls
 	];
 
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
@@ -39,7 +39,7 @@ public class DistinctFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		// Check if Distinct is followed by a set-based operation
 		var parent = context.Invocation.Parent;
 		var isFollowedBySetOperation = false;
-		
+
 		if (parent is MemberAccessExpressionSyntax { Parent: InvocationExpressionSyntax parentInvocation } memberAccess
 		    && parentInvocation.Expression == memberAccess)
 		{

@@ -14,7 +14,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.Chunk(n).Last() => collection.TakeLast(n).ToArray()
 /// - collection.Chunk(1) => collection.Select(x => new[] { x })
 /// </summary>
-public class ChunkFunctionOptimizer() : BaseLinqFunctionOptimizer("Chunk", 1)
+public class ChunkFunctionOptimizer() : BaseLinqFunctionOptimizer("Chunk", n => n is 1)
 {
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -31,7 +31,7 @@ public class ChunkFunctionOptimizer() : BaseLinqFunctionOptimizer("Chunk", 1)
 			var parameter = Parameter(Identifier("x"));
 			var lambdaBody = CreateImplicitArray(IdentifierName("x"));
 			var lambda = SimpleLambdaExpression(parameter, lambdaBody);
-			
+
 			result = CreateInvocation(source, nameof(Enumerable.Select), lambda);
 			return true;
 		}

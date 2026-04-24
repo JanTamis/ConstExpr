@@ -77,7 +77,7 @@ public class LinqCountOptimizationTests() : BaseTest<Func<int[], int>>(FastMathF
 			var o = Count_T6dSbQ(x);
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l + m + n + o;
-			""", Unknown),
+			"""),
 		Create("return 67;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new int[] { }),
 	];

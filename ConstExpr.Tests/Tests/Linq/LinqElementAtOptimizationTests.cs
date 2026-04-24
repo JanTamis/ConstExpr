@@ -46,7 +46,7 @@ public class LinqElementAtOptimizationTests : BaseTest<Func<int[], int>>
 			var g = x[3];
 			
 			return a + b + c + d + e + f + g;
-			""", Unknown),
+			"""),
 		Create("return 16;", new[] { 1, 2, 3, 4, 5 }), // 1 + 2 + 3 + 1 + 2 + 3 + 4 = 16
 		Create("return 0;", new[] { 0, 0, 0, 0, 0 }),
 	];
@@ -85,7 +85,7 @@ public class LinqElementAtOptimizationListTests : BaseTest<Func<List<int>, int>>
 			var d = x[1];
 			
 			return a + b + c + d;
-			""", Unknown),
+			"""),
 		Create("return 6;", new List<int> { 1, 2, 3, 4, 5 }), // 1 + 2 + 1 + 2 = 6
 		Create("return 0;", new List<int> { 0, 0, 0, 0, 0 }),
 	];
@@ -133,7 +133,7 @@ public class LinqElementAtSkipOptimizationTests : BaseTest<Func<int[], int>>
 			var f = x[0];
 			
 			return a + b + c + d + e + f;
-			""", Unknown),
+			"""),
 		// a = x[1] = 2, b = x[3] = 4, c = x[3] = 4, d = x[1] = 2, e = x[2] = 3, f = x[0] = 1
 		// Total: 2 + 4 + 4 + 2 + 3 + 1 = 16
 		Create("return 16;", new[] { 1, 2, 3, 4, 5 }),
@@ -181,7 +181,7 @@ public class LinqElementAtNoOptimizationTests : BaseTest<Func<int[], int>>
 			var f = x[0];
 			
 			return a + b + c + d + e + f;
-			""", Unknown),
+			"""),
 		Create("return 17;", new[] { 1, 2, 3, 4, 5 }), // 1 + 5 + 5 + 3 + 2 + 1 + 1 = 18
 		Create("throw new ArgumentOutOfRangeException(\"Index was out of range. Must be non-negative and less than the size of the collection. (Parameter 'index')\");", new int[] { }),
 	];

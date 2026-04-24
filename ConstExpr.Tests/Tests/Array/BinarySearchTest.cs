@@ -60,7 +60,7 @@ public class BinarySearchTest() : BaseTest<Func<int[], int, int>>(FastMathFlags.
 			}
 
 			return -1;
-			""", Unknown, Unknown),
+			"""),
 		Create("return 2;", new[] { 1, 3, 5, 7, 9 }, 5),
 		Create("return 4;", new[] { 0, 2, 4, 6, 8, 10 }, 8),
 		Create("return -1;", new[] { 2, 4, 6, 8 }, 5)

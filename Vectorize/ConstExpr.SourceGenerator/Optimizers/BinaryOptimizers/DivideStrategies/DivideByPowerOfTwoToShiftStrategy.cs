@@ -27,11 +27,7 @@ public class DivideByPowerOfTwoToShiftStrategy : IntegerBinaryStrategy<Expressio
 		
 		if (context.Type.IsUnsignedInteger() || isPositive)
 		{
-			optimized = BinaryExpression(
-				SyntaxKind.RightShiftExpression,
-				context.Left.Syntax,
-				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(power)));
-			
+			optimized = RightShiftExpression(context.Left.Syntax, CreateLiteral(power));
 			return true;
 		}
 
@@ -51,46 +47,28 @@ public class DivideByPowerOfTwoToShiftStrategy : IntegerBinaryStrategy<Expressio
 		}
 
 		// x >> (bitSize - 1) - extracts sign bit (0 for positive, -1 for negative)
-		var signExtract = BinaryExpression(
-			SyntaxKind.RightShiftExpression,
-			context.Left.Syntax,
-			LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(bitSize - 1)));
+		var signExtract = RightShiftExpression(context.Left.Syntax, CreateLiteral(bitSize - 1));
 
 		// (2^n - 1) - bias mask
 		var bias = (1 << power) - 1;
-		var biasLiteral = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(bias));
+		var biasLiteral = CreateLiteral(bias);
 
 		if (bias == 1)
 		{
-			var adjusted = BinaryExpression(
-				SyntaxKind.AddExpression,
-				context.Left.Syntax,
-				ParenthesizedExpression(signExtract));
+			var adjusted = AddExpression(context.Left.Syntax, ParenthesizedExpression(signExtract));
 
-			optimized = BinaryExpression(
-				SyntaxKind.RightShiftExpression,
-				ParenthesizedExpression(adjusted),
-				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(power)));
+			optimized = RightShiftExpression(ParenthesizedExpression(adjusted), CreateLiteral(power));
 		}
 		else
 		{
 			// (x >> (bitSize - 1)) & (2^n - 1)
-			var maskedSign = BinaryExpression(
-				SyntaxKind.BitwiseAndExpression,
-				ParenthesizedExpression(signExtract),
-				biasLiteral);
+			var maskedSign = BitwiseAndExpression(ParenthesizedExpression(signExtract), biasLiteral);
 
 			// x + ((x >> (bitSize - 1)) & (2^n - 1))
-			var adjusted = BinaryExpression(
-				SyntaxKind.AddExpression,
-				context.Left.Syntax,
-				ParenthesizedExpression(maskedSign));
+			var adjusted = AddExpression(context.Left.Syntax, ParenthesizedExpression(maskedSign));
 
 			// (x + ((x >> (bitSize - 1)) & (2^n - 1))) >> n
-			optimized = BinaryExpression(
-				SyntaxKind.RightShiftExpression,
-				ParenthesizedExpression(adjusted),
-				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(power)));
+			optimized = RightShiftExpression(ParenthesizedExpression(adjusted), CreateLiteral(power));
 		}
 		
 		return true;

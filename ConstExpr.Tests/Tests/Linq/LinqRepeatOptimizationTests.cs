@@ -84,7 +84,7 @@ public class LinqRepeatOptimizationTests : BaseTest<Func<int, int, int>>
 			var m = count <= 0 || element > 0 ? 1 : 0;
 			
 			return count + b + c + d + e + f + g + l + h + i + j + k + m;
-			""", Unknown, Unknown),
+			"""),
 		Create("return 40;", 3, 4),
 	];
 }

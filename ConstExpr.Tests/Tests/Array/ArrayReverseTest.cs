@@ -24,7 +24,7 @@ public class ArrayReverseTest() : BaseTest<Func<int[], int[]>>(FastMathFlags.Fas
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null, Unknown),
+		Create(null),
 		Create("return [5, 4, 3, 2, 1];", new[] { 1, 2, 3, 4, 5 }),
 		Create("return [];", System.Array.Empty<int>()),
 		Create("return [42];", new[] { 42 })

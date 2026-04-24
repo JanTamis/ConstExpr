@@ -17,7 +17,7 @@ public class VisitObjectCreationExpressionTests : BaseTest<Func<int, char[], (st
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		// When values are unknown, keep the original code unchanged
-		Create(null, Unknown, Unknown),
+		Create(null),
 		// When values are known and constant, they get inlined into the return statement
 		Create("return (\"aaaaa\", \"hello\");", 5, new[] { 'h', 'e', 'l', 'l', 'o' }),
 		Create("return (\"\", \"\");", 0, new char[] { }),

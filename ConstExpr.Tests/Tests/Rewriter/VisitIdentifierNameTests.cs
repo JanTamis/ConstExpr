@@ -24,7 +24,7 @@ public class VisitIdentifierNameTests : BaseTest<Func<int, int, (int, int, int, 
 			var e = x + y;
 
 			return (x, x, c, y, e);
-			""", Unknown, Unknown),
+			"""),
 		Create("return (5, 5, 6, 10, 15);", 5, 10),
 		Create("return (100, 100, 101, 200, 300);", 100, 200),
 		Create("return (-10, -10, -9, 25, 15);", -10, 25),

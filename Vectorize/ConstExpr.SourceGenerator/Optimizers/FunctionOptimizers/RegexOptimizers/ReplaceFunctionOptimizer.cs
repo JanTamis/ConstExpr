@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -22,7 +23,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.RegexOptimizer
 /// </list>
 /// The <c>input</c> and <c>replacement</c>/<c>evaluator</c> arguments may be runtime values.
 /// </summary>
-public class ReplaceFunctionOptimizer() : BaseRegexFunctionOptimizer("Replace", 3, 4)
+public class ReplaceFunctionOptimizer() : BaseRegexFunctionOptimizer("Replace", n => n is 3 or 4)
 {
 	protected override bool TryOptimizeRegex(FunctionOptimizerContext context, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -46,7 +47,7 @@ public class ReplaceFunctionOptimizer() : BaseRegexFunctionOptimizer("Replace", 
 			: new List<ExpressionSyntax> { context.VisitedParameters[1] };
 
 		// Build a deterministic field name from the constant constructor arguments.
-		var patternKey = string.Concat(
+		var patternKey = String.Concat(
 			ctorArgs.Select(s => TryGetLiteralValue(s, context, out var lit) && lit is string str ? str : s.ToFullString())
 		);
 		var variableName = $"Regex_{patternKey.GetDeterministicHashString()}";
@@ -72,10 +73,9 @@ public class ReplaceFunctionOptimizer() : BaseRegexFunctionOptimizer("Replace", 
 					IdentifierName(context.Method.Name)))
 			.WithArgumentList(ArgumentList(SeparatedList([
 				Argument(context.VisitedParameters[0]), // input
-				Argument(context.VisitedParameters[2])  // replacement or MatchEvaluator
+				Argument(context.VisitedParameters[2]) // replacement or MatchEvaluator
 			])));
 
 		return true;
 	}
 }
-

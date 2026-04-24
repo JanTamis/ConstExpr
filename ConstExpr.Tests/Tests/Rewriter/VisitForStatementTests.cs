@@ -20,7 +20,7 @@ public class VisitForStatementTests : BaseTest<Func<int, int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null, Unknown),
+		Create(null),
 		Create("return 0;", 0),
 		Create("return 0;", 1),
 		Create("return 1;", 2),

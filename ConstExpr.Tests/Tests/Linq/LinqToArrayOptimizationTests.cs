@@ -28,7 +28,7 @@ public class LinqToArrayOptimizationTests : BaseTest<Func<int[], int>>
 			var c = x.Length;
 			
 			return a + b + c;
-			""", Unknown),
+			"""),
 		Create("return 9;", new[] { 1, 2, 3 }),
 		Create("return 0;", new int[] { }),
 	];
@@ -58,7 +58,7 @@ public class LinqWhereToArrayOptimizationTests : BaseTest<Func<int[], int>>
 			var b = Array.FindAll(x, v => v > 2).Length;
 			
 			return a + b;
-			""", Unknown),
+			"""),
 		Create("return 6;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new int[] { }),
 	];
@@ -84,7 +84,7 @@ public class LinqSelectWhereToArrayOptimizationTests : BaseTest<Func<int[], int>
 			var a = Array.FindAll(x, v => v << 1 > 4).Length;
 			
 			return a;
-			""", Unknown),
+			"""),
 		Create("return 3;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new int[] { }),
 	];

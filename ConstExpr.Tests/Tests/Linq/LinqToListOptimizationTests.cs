@@ -28,7 +28,7 @@ public class LinqToListOptimizationTests : BaseTest<Func<int[], int>>
 			var c = x.Length;
 
 			return a + b + c;
-			""", Unknown),
+			"""),
 		Create("return 9;", new[] { 1, 2, 3 }),
 		Create("return 0;", new int[] { }),
 	];
@@ -54,7 +54,7 @@ public class LinqWhereToListOptimizationTests : BaseTest<Func<List<int>, int>>
 			var a = x.FindAll(v => v > 2).Count;
 			
 			return a;
-			""", Unknown),
+			"""),
 		Create("return 3;", new List<int> { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new List<int>()),
 	];
@@ -80,7 +80,7 @@ public class LinqSelectWhereToListOptimizationTests : BaseTest<Func<List<int>, i
 			var a = x.FindAll(v => v << 1 > 4).Count;
 			
 			return a;
-			""", Unknown),
+			"""),
 		Create("return 3;", new List<int> { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new List<int>()),
 	];

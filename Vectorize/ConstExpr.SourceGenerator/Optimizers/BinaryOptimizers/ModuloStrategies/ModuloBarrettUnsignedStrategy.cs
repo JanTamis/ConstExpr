@@ -47,9 +47,7 @@ public class ModuloBarrettUnsignedStrategy : UnsigedIntegerBinaryStrategy<Expres
 		var shifted  = RightShiftExpression(innerMul, CreateLiteral(shift));
 
 		// d * (uint)((ulong)x * MAGIC >> SHIFT)
-		var quotMul = MultiplyExpression(
-			context.Right.Syntax,
-			CreateCastSyntax<uint>(ParenthesizedExpression(shifted)));
+		var quotMul = MultiplyExpression(context.Right.Syntax, CreateCastSyntax<uint>(ParenthesizedExpression(shifted)));
 
 		// x - d * (uint)(...)
 		optimized = SubtractExpression(x, quotMul);

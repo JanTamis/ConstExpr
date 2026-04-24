@@ -88,4 +88,3 @@ public class Avx512BwSimdFunctionOptimizer() : BaseSimdFunctionOptimizer("Avx512
 		return false;
 	}
 }
-

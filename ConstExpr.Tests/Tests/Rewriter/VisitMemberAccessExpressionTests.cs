@@ -25,7 +25,7 @@ public class VisitMemberAccessExpressionTests : BaseTest<Func<string, bool, (int
 			var isEmpty = target == "";
 
 			return (len, 5, "", isEmpty);
-			""", Unknown, Unknown),
+			"""),
 		Create("return (5, 5, \"\", false);", "hello", false),
 		Create("return (0, 5, \"\", true);", "ignored", true),
 		Create("return (3, 5, \"\", false);", "cat", false),

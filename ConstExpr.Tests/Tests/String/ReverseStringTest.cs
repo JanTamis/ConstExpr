@@ -26,7 +26,7 @@ public class ReverseStringTest() : BaseTest<Func<string, string>>(FastMathFlags.
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null, Unknown),
+		Create(null),
 		Create("return \"olleh\";", "hello"),
 		Create("return \"\";", ""),
 		Create("return \"a\";", "a")

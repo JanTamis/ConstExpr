@@ -11,7 +11,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.ExceptBy(Enumerable.Empty&lt;T&gt;(), selector) => collection.DistinctBy(selector)
 /// - Enumerable.Empty&lt;T&gt;().ExceptBy(collection, selector) => Enumerable.Empty&lt;T&gt;()
 /// </summary>
-public class ExceptByFunctionOptimizer() : BaseLinqFunctionOptimizer("ExceptBy", 2)
+public class ExceptByFunctionOptimizer() : BaseLinqFunctionOptimizer("ExceptBy", n => n is 2)
 {
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -41,4 +41,3 @@ public class ExceptByFunctionOptimizer() : BaseLinqFunctionOptimizer("ExceptBy",
 		return false;
 	}
 }
-

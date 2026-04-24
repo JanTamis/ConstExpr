@@ -1605,10 +1605,9 @@ public static class CompilationExtensions
 			SpecialType.System_Single or SpecialType.System_Double or SpecialType.System_Decimal;
 	}
 
-	public static bool IsNonFloatingNumeric(this ITypeSymbol? t)
+	public static bool IsFloatingNumeric(this ITypeSymbol? t)
 	{
-		return t is not null && t.IsNumericType()
-		                     && t.SpecialType is not SpecialType.System_Single and not SpecialType.System_Double;
+		return t?.SpecialType is SpecialType.System_Single or SpecialType.System_Double;
 	}
 
 	public static bool IsBoolType(this ITypeSymbol? t)

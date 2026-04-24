@@ -9,7 +9,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class MinFunctionOptimizer() : BaseMathFunctionOptimizer("Min", 2)
+public class MinFunctionOptimizer() : BaseMathFunctionOptimizer("Min", n => n is 2)
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -158,7 +158,7 @@ public class MinFunctionOptimizer() : BaseMathFunctionOptimizer("Min", 2)
 
 		// Pattern 1: Min(Max(X, minConst), maxConst)
 		if (first is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Max" or "MaxNative" } maxMember } maxInv
-				&& TryGetConstantValue(paramType, second, out var maxConstVal, out var maxConstExpr))
+		    && TryGetConstantValue(paramType, second, out var maxConstVal, out var maxConstExpr))
 		{
 			// Ensure the inner Max belongs to the same numeric helper
 			if (outerContainingName is not null)
@@ -177,12 +177,13 @@ public class MinFunctionOptimizer() : BaseMathFunctionOptimizer("Min", 2)
 			}
 
 			var args = maxInv.ArgumentList.Arguments;
-			if (args.Count != 2)
-      {
-        return false;
-      }
 
-      var m0 = args[0].Expression;
+			if (args.Count != 2)
+			{
+				return false;
+			}
+
+			var m0 = args[0].Expression;
 			var m1 = args[1].Expression;
 
 			var hasMinC0 = TryGetConstantValue(paramType, m0, out var minValA, out var minExprA);
@@ -227,7 +228,7 @@ public class MinFunctionOptimizer() : BaseMathFunctionOptimizer("Min", 2)
 
 		// Pattern 2: Min(maxConst, Max(X, minConst))
 		if (second is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Max" or "MaxNative" } maxMember2 } maxInv2
-				&& TryGetConstantValue(paramType, first, out var maxConstVal2, out var maxConstExpr2))
+		    && TryGetConstantValue(paramType, first, out var maxConstVal2, out var maxConstExpr2))
 		{
 			if (outerContainingName is not null)
 			{
@@ -245,12 +246,13 @@ public class MinFunctionOptimizer() : BaseMathFunctionOptimizer("Min", 2)
 			}
 
 			var args2 = maxInv2.ArgumentList.Arguments;
-			if (args2.Count != 2)
-      {
-        return false;
-      }
 
-      var mm0 = args2[0].Expression;
+			if (args2.Count != 2)
+			{
+				return false;
+			}
+
+			var mm0 = args2[0].Expression;
 			var mm1 = args2[1].Expression;
 
 			var hasMinC0b = TryGetConstantValue(paramType, mm0, out var minValA2, out var minExprA2);
@@ -306,14 +308,15 @@ public class MinFunctionOptimizer() : BaseMathFunctionOptimizer("Min", 2)
 				value = lit.Token.Value;
 				constExpr = expr;
 				return value is not null && IsNumericLiteral(value);
-			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax opLit }:
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax opLit }:
 				var v = opLit.Token.Value;
-				if (v is null || !IsNumericLiteral(v))
-        {
-          return false;
-        }
 
-        value = NegateNumeric(v);
+				if (v is null || !IsNumericLiteral(v))
+				{
+					return false;
+				}
+
+				value = NegateNumeric(v);
 				constExpr = expr; // keep the original syntax including the minus
 				return true;
 			default:
@@ -321,7 +324,10 @@ public class MinFunctionOptimizer() : BaseMathFunctionOptimizer("Min", 2)
 		}
 	}
 
-	private static bool IsNumericLiteral(object v) => v is sbyte or byte or short or ushort or int or uint or long or ulong or float or double or decimal;
+	private static bool IsNumericLiteral(object v)
+	{
+		return v is sbyte or byte or short or ushort or int or uint or long or ulong or float or double or decimal;
+	}
 
 	private static object NegateNumeric(object v)
 	{
@@ -378,7 +384,7 @@ public class MinFunctionOptimizer() : BaseMathFunctionOptimizer("Min", 2)
 
 	private static T ConvertTo<T>(object v)
 	{
-		try { return (T)Convert.ChangeType(v, typeof(T), CultureInfo.InvariantCulture); }
+		try { return (T) Convert.ChangeType(v, typeof(T), CultureInfo.InvariantCulture); }
 		catch { return default!; }
 	}
 }

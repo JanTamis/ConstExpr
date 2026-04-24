@@ -17,17 +17,18 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// Base class for LINQ function optimizers that handle Enumerable method optimizations.
 /// Provides common helper methods for analyzing and transforming LINQ expressions.
 /// </summary>
-public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int> parameterCounts) : BaseFunctionOptimizer
+public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isValidParameterCount) : BaseFunctionOptimizer
 {
 	public string Name { get; } = name;
-	public HashSet<int> ParameterCounts { get; } = parameterCounts;
+
+	public Func<int, bool> IsValidParameterCount { get; } = isValidParameterCount;
 
 	protected static readonly HashSet<string> MaterializingMethods =
 	[
 		nameof(Enumerable.ToArray),
 		nameof(Enumerable.ToList),
 		nameof(Enumerable.AsEnumerable),
-		"ToHashSet",
+		"ToHashSet"
 	];
 
 	protected static readonly HashSet<string> OrderingOperations =
@@ -39,7 +40,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		nameof(Enumerable.ThenBy),
 		nameof(Enumerable.ThenByDescending),
 		nameof(Enumerable.Reverse),
-		"Shuffle",
+		"Shuffle"
 	];
 
 	protected static readonly HashSet<string> SetBasedOperations =
@@ -49,14 +50,14 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		nameof(Enumerable.Contains),
 		nameof(Enumerable.LongCount),
 		nameof(Enumerable.First),
-		nameof(Enumerable.FirstOrDefault),
+		nameof(Enumerable.FirstOrDefault)
 	];
-	
+
 	protected abstract bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result);
 
 	public override bool TryOptimize(FunctionOptimizerContext context, [NotNullWhen(true)] out SyntaxNode? result)
 	{
-		if (!IsValidLinqMethod(context) 
+		if (!IsValidLinqMethod(context)
 		    || !TryGetLinqSource(context.Invocation, out var source))
 		{
 			result = null;
@@ -72,7 +73,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	protected bool IsValidLinqMethod(FunctionOptimizerContext context)
 	{
 		return context.Method.Name == Name
-		       && ParameterCounts.Contains(context.OriginalParameters.Count);
+		       && IsValidParameterCount(context.OriginalParameters.Count);
 		// && method.ContainingType.EqualsType(model.Compilation.GetTypeByMetadataName("System.Linq.Enumerable"));
 	}
 
@@ -110,7 +111,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	/// <summary>
 	/// Attempts to extract the source expression from a LINQ method chain.
 	/// </summary>
-	protected bool TryGetLinqSource(InvocationExpressionSyntax invocation, [NotNullWhen(true)] [NotNullIfNotNull(nameof(invocation))] out ExpressionSyntax? source)
+	protected bool TryGetLinqSource(InvocationExpressionSyntax invocation, [NotNullWhen(true), NotNullIfNotNull(nameof(invocation))]  out ExpressionSyntax? source)
 	{
 		source = invocation;
 
@@ -451,7 +452,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 
 		return body is not null;
 	}
-	
+
 	protected bool TryGetSimpleLambdaParameter(LambdaExpressionSyntax lambda, [NotNullWhen(true)] out ParameterSyntax? parameterName)
 	{
 		parameterName = null;
@@ -565,7 +566,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 			SimpleLambdaExpressionSyntax { Parameter.Identifier.Text: var p, Body: ExpressionSyntax b } => (p, b),
 			ParenthesizedLambdaExpressionSyntax { ParameterList.Parameters.Count: 1, Body: ExpressionSyntax b } pl
 				=> (pl.ParameterList.Parameters[0].Identifier.Text, b),
-			_ => (null, (ExpressionSyntax?)null)
+			_ => (null, (ExpressionSyntax?) null)
 		};
 
 		if (paramName is null || body is null)
@@ -575,7 +576,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 
 		if (body is not BinaryExpressionSyntax
 		    {
-			    RawKind: (int)SyntaxKind.IsExpression,
+			    RawKind: (int) SyntaxKind.IsExpression,
 			    Left: IdentifierNameSyntax { Identifier.Text: var identName },
 			    Right: TypeSyntax type
 		    } || identName != paramName)
@@ -607,8 +608,8 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		// Only allow identity, reference, or boxing conversions.
 		// Numeric/implicit user-defined conversions (e.g. int -> double) must be rejected because
 		// OfType<T>() uses 'is' semantics (runtime type check), not implicit cast semantics.
-		return conversion.IsIdentity 
-		       || conversion.IsReference 
+		return conversion.IsIdentity
+		       || conversion.IsReference
 		       || conversion.IsBoxing;
 	}
 
@@ -680,7 +681,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 								ParseTypeName(elementType.ToString()))))));
 	}
 
-	protected bool TryGetOptimizedChainExpression(ExpressionSyntax source, ISet<string> methodsToSkip, [NotNullWhen(true)] [NotNullIfNotNull(nameof(source))] out ExpressionSyntax? optimizedSource)
+	protected bool TryGetOptimizedChainExpression(ExpressionSyntax source, ISet<string> methodsToSkip, [NotNullWhen(true), NotNullIfNotNull(nameof(source))]  out ExpressionSyntax? optimizedSource)
 	{
 		optimizedSource = source;
 
@@ -888,7 +889,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		// However, when the entire expression is just the identifier being replaced, no wrapping is needed
 		// because the replacement becomes the whole result, not a subexpression.
 		var isWholeExpression = expression is IdentifierNameSyntax id && id.Identifier.Text == oldIdentifier;
-		
+
 		var wrappedReplacement = !isWholeExpression && replacement is BinaryExpressionSyntax or ConditionalExpressionSyntax
 			? ParenthesizedExpression(replacement)
 			: replacement;
@@ -1083,7 +1084,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 				for (var i = context.OriginalParameters.Count; i < context.Method.Parameters.Length; i++)
 				{
 					var param = context.Method.Parameters[i];
-					
+
 					if (param.HasExplicitDefaultValue)
 					{
 						parameters.Add(param.ExplicitDefaultValue);
@@ -1137,7 +1138,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 				for (var i = parameters.Count; i < context.Method.Parameters.Length; i++)
 				{
 					var param = context.Method.Parameters[i];
-					
+
 					if (param.HasExplicitDefaultValue)
 					{
 						newParameters.Add(param.ExplicitDefaultValue);
@@ -1222,7 +1223,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 			return invocation;
 		}
 	}
-	
+
 	/// <summary>
 	/// Optimizes a pairwise Min/Max scalar comparison by delegating to the corresponding Math optimizer.
 	/// Used when a LINQ Min/Max over a Concat source is reduced to a two-argument scalar call so that
@@ -1244,7 +1245,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 		{
 			// Prefer a method from System.Math so IsValidMathMethod passes
 			var mathType = context.Model.Compilation.GetTypeByMetadataName("System.Math");
-			IMethodSymbol? mathMethod = mathType
+			var mathMethod = mathType
 				?.GetMembers(optimizer.Name)
 				.OfType<IMethodSymbol>()
 				.FirstOrDefault(m => m.Parameters.Length == 2
@@ -1262,8 +1263,8 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 			}
 
 			var mathContext = context.WithInvocationAndMethod(syntheticInvocation, mathMethod);
-			mathContext.VisitedParameters = [left, right];
-			mathContext.OriginalParameters = [left, right];
+			mathContext.VisitedParameters = [ left, right ];
+			mathContext.OriginalParameters = [ left, right ];
 
 			return optimizer.TryOptimize(mathContext, out var result) && result is ExpressionSyntax expr
 				? expr
@@ -1282,11 +1283,11 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 			elementType = receiverType.TypeArguments[0];
 			return true;
 		}
-		
+
 		elementType = null;
 		return false;
 	}
-	
+
 	protected bool TryGetEnumerableMethod(FunctionOptimizerContext context, string methodName, int parameterCount, [NotNullWhen(true)] out IMethodSymbol? methodSymbol)
 	{
 		methodSymbol = context.Model.Compilation
@@ -1327,7 +1328,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, params HashSet<int>
 	protected ExpressionSyntax OptimizeComparison(FunctionOptimizerContext context, SyntaxKind kind, ExpressionSyntax left, ExpressionSyntax right, ITypeSymbol type)
 	{
 		var boolType = context.Model.Compilation.CreateBoolean();
-		
+
 		return context.OptimizeBinaryExpression(BinaryExpression(kind, left, right), type, type, boolType);
 	}
 

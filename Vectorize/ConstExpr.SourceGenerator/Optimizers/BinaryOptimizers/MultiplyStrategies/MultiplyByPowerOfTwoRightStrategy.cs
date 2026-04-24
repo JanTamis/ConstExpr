@@ -22,8 +22,7 @@ public class MultiplyByPowerOfTwoRightStrategy : IntegerBinaryStrategy<Expressio
       return false;
     }
 
-    optimized = LeftShiftExpression(context.Left.Syntax,
-			LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(power)));
+    optimized = LeftShiftExpression(context.Left.Syntax, CreateLiteral(power));
 		return true;
 	}
 }

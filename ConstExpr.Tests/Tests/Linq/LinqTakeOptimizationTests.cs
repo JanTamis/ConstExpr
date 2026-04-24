@@ -22,7 +22,7 @@ public class LinqTakeOptimizationTests : BaseTest<Func<int[], int>>
 			var b = Int32.Min(1, x.Length);
 
 			return b;
-			""", Unknown),
+			"""),
 		Create("return 1;", new[] { 1, 2, 3 }),
 		Create("return 0;", new int[] { }),
 	];

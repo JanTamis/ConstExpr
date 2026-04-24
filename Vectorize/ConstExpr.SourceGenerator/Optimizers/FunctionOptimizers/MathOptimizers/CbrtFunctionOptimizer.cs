@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class CbrtFunctionOptimizer() : BaseMathFunctionOptimizer("Cbrt", 1)
+public class CbrtFunctionOptimizer() : BaseMathFunctionOptimizer("Cbrt", n => n is 1)
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -27,7 +27,7 @@ public class CbrtFunctionOptimizer() : BaseMathFunctionOptimizer("Cbrt", 1)
 		return true;
 	}
 
-		private static string GenerateFastCbrtMethodFloat()
+	private static string GenerateFastCbrtMethodFloat()
 	{
 		return """
 			private static float FastCbrt(float x)
@@ -56,7 +56,7 @@ public class CbrtFunctionOptimizer() : BaseMathFunctionOptimizer("Cbrt", 1)
 			""";
 	}
 
-		private static string GenerateFastCbrtMethodDouble()
+	private static string GenerateFastCbrtMethodDouble()
 	{
 		return """
 			private static double FastCbrt(double x)

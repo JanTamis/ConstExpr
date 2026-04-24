@@ -20,13 +20,13 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.OrderBy(...).Average() =&gt; collection.Average() (ordering doesn't affect average)
 /// - collection.Reverse().Average() =&gt; collection.Average() (reversing doesn't affect average)
 /// </summary>
-public class AverageFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Average), 0, 1)
+public class AverageFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Average), n => n is 0 or 1)
 {
 	// Operations that don't affect Average behavior
 	private static readonly HashSet<string> OperationsThatDontAffectAverage =
 	[
 		..MaterializingMethods,
-		..OrderingOperations,
+		..OrderingOperations
 	];
 
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)

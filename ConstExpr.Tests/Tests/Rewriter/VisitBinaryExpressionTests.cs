@@ -22,7 +22,7 @@ public class VisitBinaryExpressionTests : BaseTest<Func<int, int, bool, bool, (i
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null, Unknown, Unknown, Unknown, Unknown),
+		Create(null),
 		Create("return (3, -1, 2, 0, 1, false, false, true);", 1, 2, true, false),
 		Create("return (13, 3, 40, 1, 3, true, false, false);", 8, 5, false, false),
 		Create("return (25, 5, 150, 1, 5, true, true, true);", 15, 10, true, true),

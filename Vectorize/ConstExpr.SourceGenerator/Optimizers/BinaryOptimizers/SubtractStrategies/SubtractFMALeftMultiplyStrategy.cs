@@ -19,11 +19,11 @@ public class SubtractFMALeftMultiplyStrategy() : NumericBinaryStrategy<BinaryExp
 	public override bool TryOptimize(BinaryOptimizeContext<BinaryExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!base.TryOptimize(context, out optimized))
-    {
-      return false;
-    }
+		{
+			return false;
+		}
 
-    var host = ParseName(context.Type.Name);
+		var host = ParseName(context.Type.Name);
 
 		var arguments = ArgumentList(SeparatedList(
 		[
@@ -34,17 +34,13 @@ public class SubtractFMALeftMultiplyStrategy() : NumericBinaryStrategy<BinaryExp
 
 		if (ContainsMultiplyAddEstimate(context.Type))
 		{
-			optimized = InvocationExpression(MemberAccessExpression(host, IdentifierName("MultiplyAddEstimate")),
-				arguments);
-			
+			optimized = InvocationExpression(MemberAccessExpression(host, IdentifierName("MultiplyAddEstimate")), arguments);
 			return true;
 		}
 
 		if (ContainsFusedMultiplyAdd(context.Type))
 		{
-			optimized = InvocationExpression(MemberAccessExpression(host, IdentifierName("FusedMultiplyAdd")),
-				arguments);
-			
+			optimized = InvocationExpression(MemberAccessExpression(host, IdentifierName("FusedMultiplyAdd")), arguments);
 			return true;
 		}
 

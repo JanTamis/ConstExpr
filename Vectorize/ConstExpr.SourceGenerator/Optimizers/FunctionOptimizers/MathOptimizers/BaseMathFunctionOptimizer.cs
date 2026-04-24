@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public abstract class BaseMathFunctionOptimizer(string name, params HashSet<int> parameterCounts) : BaseFunctionOptimizer
+public abstract class BaseMathFunctionOptimizer(string name, Func<int, bool> isValidParameterCount) : BaseFunctionOptimizer
 {
 	protected abstract bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result);
 
@@ -23,20 +23,20 @@ public abstract class BaseMathFunctionOptimizer(string name, params HashSet<int>
 	}
 
 	public string Name { get; } = name;
-	public HashSet<int> ParameterCounts { get; } = parameterCounts;
+	public Func<int, bool> IsValidParameterCount { get; } = isValidParameterCount;
 
 	protected bool HasMethod(ITypeSymbol type, string name, int parameterCount)
 	{
 		return type.GetMembers(name)
 			.OfType<IMethodSymbol>()
 			.Any(m => m.Parameters.Length == parameterCount
-								&& m.DeclaredAccessibility == Accessibility.Public
-								&& SymbolEqualityComparer.Default.Equals(type, m.ContainingType));
+			          && m.DeclaredAccessibility == Accessibility.Public
+			          && SymbolEqualityComparer.Default.Equals(type, m.ContainingType));
 	}
 
 	protected bool IsApproximately(double a, double b)
 	{
-		return Math.Abs(a - b) <= double.Epsilon;
+		return Math.Abs(a - b) <= Double.Epsilon;
 	}
 
 	private bool IsValidMathMethod(IMethodSymbol method, [NotNullWhen(true)] out ITypeSymbol? type)
@@ -46,6 +46,6 @@ public abstract class BaseMathFunctionOptimizer(string name, params HashSet<int>
 			.FirstOrDefault();
 
 		return method.Name == Name
-		       && ParameterCounts.Contains(method.Parameters.Length);
+		       && IsValidParameterCount(method.Parameters.Length);
 	}
 }

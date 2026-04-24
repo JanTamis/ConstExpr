@@ -13,7 +13,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.Zip(Enumerable.Empty&lt;T&gt;()) => Enumerable.Empty&lt;ValueTuple&lt;...&gt;&gt;()
 /// - Enumerable.Empty&lt;T&gt;().Zip(collection) => Enumerable.Empty&lt;ValueTuple&lt;...&gt;&gt;()
 /// </summary>
-public class ZipFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Zip), 1, 2)
+public class ZipFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Zip), n => n is 1 or 2)
 {
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -23,9 +23,9 @@ public class ZipFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		}
 
 		var secondSource = context.VisitedParameters[0];
-		
+
 		// If either source is empty, result is empty
-		if (IsEmptyEnumerable(source) 
+		if (IsEmptyEnumerable(source)
 		    || IsEmptyEnumerable(secondSource))
 		{
 			// Get the return type element from the context.Method
@@ -43,7 +43,7 @@ public class ZipFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		{
 			var identfier = Identifier("x");
 			var parameter = Parameter(identfier);
-			
+
 			var invocation = CreateInvocation(source, nameof(Enumerable.Select), SimpleLambdaExpression(parameter, null, TupleExpression(SeparatedList([ Argument(IdentifierName(identfier)), Argument(IdentifierName(identfier)) ]))));
 
 			selectMethod = selectMethod.Construct(elementType, context.Model.Compilation.CreateValueTuple(elementType, elementType));
@@ -57,4 +57,3 @@ public class ZipFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		return false;
 	}
 }
-

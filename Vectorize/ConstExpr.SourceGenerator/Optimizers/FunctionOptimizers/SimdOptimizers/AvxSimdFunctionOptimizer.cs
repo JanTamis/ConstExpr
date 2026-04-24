@@ -133,7 +133,7 @@ public class AvxSimdFunctionOptimizer() : BaseSimdFunctionOptimizer("Avx")
 
 						for (var i = 0; i < 4; i++)
 						{
-							indexes[i] = (byte)(shuffleConst >> i * 2 & 0b11);
+							indexes[i] = (byte) (shuffleConst >> i * 2 & 0b11);
 						}
 
 						result = CreateSimdInvocation(context, vectorType, "Shuffle", context.VisitedParameters.Take(2).Append(CreateInvocation("Create", indexes.Select(s => CreateLiteral(s)))));
@@ -148,6 +148,3 @@ public class AvxSimdFunctionOptimizer() : BaseSimdFunctionOptimizer("Avx")
 		return false;
 	}
 }
-
-
-

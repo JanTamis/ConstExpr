@@ -16,7 +16,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - arr.Where(p).ToArray() => Array.FindAll(arr, p) (direct BCL call, no LINQ pipeline)
 /// - arr.Select(f).Where(p).ToArray() => Array.FindAll(arr, x => p(f(x))) (fused selector+predicate)
 /// </summary>
-public class ToArrayFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.ToArray), 0)
+public class ToArrayFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.ToArray), n => n is 0)
 {
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -61,7 +61,7 @@ public class ToArrayFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 			if (IsInvokedOnArray(context, whereSource))
 			{
 				var visitedPredicate = context.Visit(wherePredicate) as LambdaExpressionSyntax ?? wherePredicate;
-				
+
 				result = CreateInvocation(
 					ParseTypeName(nameof(Array)),
 					nameof(Array.FindAll),

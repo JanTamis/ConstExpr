@@ -12,7 +12,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// Optimizes patterns such as:
 /// - Enumerable.Empty&lt;T&gt;().MaxBy(selector) - cannot optimize (throws exception)
 /// </summary>
-public class MaxByFunctionOptimizer() : BaseLinqFunctionOptimizer("MaxBy", 1)
+public class MaxByFunctionOptimizer() : BaseLinqFunctionOptimizer("MaxBy", n => n is 1)
 {
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{

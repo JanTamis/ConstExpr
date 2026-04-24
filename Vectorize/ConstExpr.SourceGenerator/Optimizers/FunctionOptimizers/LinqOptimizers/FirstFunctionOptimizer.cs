@@ -20,14 +20,14 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// Note: OrderBy/OrderByDescending/Reverse DOES affect which element is first, so we don't optimize those!
 /// Note: Distinct might remove the first element if it's a duplicate, so we don't optimize that either!
 /// </summary>
-public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.First), 0, 1)
+public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.First), n => n is 0 or 1)
 {
 	// Operations that don't affect which element is "first"
 	// We CAN'T include ordering operations because they change which element comes first!
 	private static readonly HashSet<string> OperationsThatDontAffectFirst =
 	[
 		..MaterializingMethods,
-		nameof(Enumerable.Distinct), // Distinct might remove duplicates but doesn't change the order of remaining elements
+		nameof(Enumerable.Distinct) // Distinct might remove duplicates but doesn't change the order of remaining elements
 	];
 
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
@@ -209,7 +209,7 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		// For List<T>, use direct indexing: list[0]
 		if (context.VisitedParameters.Count == 0
 		    && (IsInvokedOnArray(context, source)
-		    || IsInvokedOnList(context, source)))
+		        || IsInvokedOnList(context, source)))
 		{
 			result = CreateElementAccess(source, CreateLiteral(0)!);
 			return true;

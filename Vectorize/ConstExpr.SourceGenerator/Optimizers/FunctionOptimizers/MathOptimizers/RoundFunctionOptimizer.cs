@@ -20,7 +20,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers
 ///   Unary-minus rewrite Round(-x) → -Round(x): ratio 0.99 — within measurement noise,
 ///   no meaningful benefit. The rewrite has been removed to keep generated code simple.
 /// </summary>
-public class RoundFunctionOptimizer() : BaseMathFunctionOptimizer("Round", 1, 2, 3)
+public class RoundFunctionOptimizer() : BaseMathFunctionOptimizer("Round", n => n is 1 or 2 or 3)
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -33,7 +33,7 @@ public class RoundFunctionOptimizer() : BaseMathFunctionOptimizer("Round", 1, 2,
 		}
 
 		// 2) Integer types: Round(x) → x (rounding has no effect on integers)
-		if (paramType.IsNonFloatingNumeric())
+		if (!paramType.IsFloatingNumeric())
 		{
 			result = context.VisitedParameters[0];
 			return true;
@@ -41,21 +41,21 @@ public class RoundFunctionOptimizer() : BaseMathFunctionOptimizer("Round", 1, 2,
 
 		// 3) Check if parent of context.Invocation is casting to an integer type.
 		if (context.Invocation.Parent is CastExpressionSyntax
-			{
-				Type: PredefinedTypeSyntax
-				{
-					Keyword.RawKind: (int)SyntaxKind.IntKeyword
-						or (int)SyntaxKind.UIntKeyword
-						or (int)SyntaxKind.LongKeyword
-						or (int)SyntaxKind.ULongKeyword
-						or (int)SyntaxKind.ShortKeyword
-						or (int)SyntaxKind.UShortKeyword
-						or (int)SyntaxKind.ByteKeyword
-						or (int)SyntaxKind.SByteKeyword
-						or (int)SyntaxKind.CharKeyword
-				}
-			}
-				&& context.VisitedParameters.Count == 2)
+		    {
+			    Type: PredefinedTypeSyntax
+			    {
+				    Keyword.RawKind: (int) SyntaxKind.IntKeyword
+				    or (int) SyntaxKind.UIntKeyword
+				    or (int) SyntaxKind.LongKeyword
+				    or (int) SyntaxKind.ULongKeyword
+				    or (int) SyntaxKind.ShortKeyword
+				    or (int) SyntaxKind.UShortKeyword
+				    or (int) SyntaxKind.ByteKeyword
+				    or (int) SyntaxKind.SByteKeyword
+				    or (int) SyntaxKind.CharKeyword
+			    }
+		    }
+		    && context.VisitedParameters.Count == 2)
 		{
 			// Check that the second argument is a compile-time MidpointRounding enum member
 			string? enumMember = null;
@@ -63,14 +63,14 @@ public class RoundFunctionOptimizer() : BaseMathFunctionOptimizer("Round", 1, 2,
 			switch (context.VisitedParameters[1])
 			{
 				case MemberAccessExpressionSyntax mae:
+				{
+					// e.g. MidpointRounding.AwayFromZero or System.MidpointRounding.AwayFromZero
+					if (mae.Name is IdentifierNameSyntax idName)
 					{
-						// e.g. MidpointRounding.AwayFromZero or System.MidpointRounding.AwayFromZero
-						if (mae.Name is IdentifierNameSyntax idName)
-						{
-							enumMember = idName.Identifier.Text;
-						}
-						break;
+						enumMember = idName.Identifier.Text;
 					}
+					break;
+				}
 				case IdentifierNameSyntax id:
 					// e.g. AwayFromZero when using a using static or same-namespace alias
 					enumMember = id.Identifier.Text;

@@ -13,4 +13,3 @@ public class Ssse3SimdFunctionOptimizer() : BaseSimdFunctionOptimizer("Ssse3")
 		return false;
 	}
 }
-

@@ -26,7 +26,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.AsEnumerable().LongCount() => collection.LongCount() (type cast doesn't affect count)
 /// - collection.OrderBy(...).Where(p1).Where(p2).LongCount() => collection.LongCount(p1 && p2) (combining operations)
 /// </summary>
-public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.LongCount), 0, 1)
+public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.LongCount), n => n is 0 or 1)
 {
 	// Operations that don't affect element count (only order/form but not filtering)
 	// Note: We DON'T include Distinct, ToList, ToArray because they might affect count
@@ -46,7 +46,7 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 
 		// Recursively skip all operations that don't affect count
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectCount, out source);
-		
+
 		if (TryExecutePredicates(context, source, out result, out _))
 		{
 			return true;

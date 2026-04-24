@@ -14,7 +14,7 @@ public class IsAsciiHexDigitUpperTest() : BaseTest<Func<char, bool>>(FastMathFla
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return Char.IsAsciiHexDigitUpper(c);", Unknown),
+		Create("return Char.IsAsciiHexDigitUpper(c);"),
 		Create("return true;", '7'),
 		Create("return true;", 'C'),
 		Create("return false;", 'G'),

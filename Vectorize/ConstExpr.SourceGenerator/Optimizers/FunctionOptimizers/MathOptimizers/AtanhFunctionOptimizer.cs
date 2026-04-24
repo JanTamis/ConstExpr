@@ -9,7 +9,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class AtanhFunctionOptimizer() : BaseMathFunctionOptimizer("Atanh", 1)
+public class AtanhFunctionOptimizer() : BaseMathFunctionOptimizer("Atanh", n => n is 1)
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -29,8 +29,10 @@ public class AtanhFunctionOptimizer() : BaseMathFunctionOptimizer("Atanh", 1)
 			if (IsApproximately(Math.Abs(value), 1.0))
 			{
 				var inf = value > 0
-					? paramType.SpecialType == SpecialType.System_Single ? float.PositiveInfinity : double.PositiveInfinity
-					: paramType.SpecialType == SpecialType.System_Single ? float.NegativeInfinity : double.NegativeInfinity;
+					? paramType.SpecialType == SpecialType.System_Single ? Single.PositiveInfinity : Double.PositiveInfinity
+					: paramType.SpecialType == SpecialType.System_Single
+						? Single.NegativeInfinity
+						: Double.NegativeInfinity;
 				result = CreateLiteral(inf.ToSpecialType(paramType.SpecialType));
 				return true;
 			}
@@ -55,12 +57,13 @@ public class AtanhFunctionOptimizer() : BaseMathFunctionOptimizer("Atanh", 1)
 	private static bool TryGetNumericLiteral(ExpressionSyntax expr, out double value)
 	{
 		value = 0;
+
 		switch (expr)
 		{
 			case LiteralExpressionSyntax { Token.Value: IConvertible c }:
 				value = c.ToDouble(CultureInfo.InvariantCulture);
 				return true;
-			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
 				value = -c2.ToDouble(CultureInfo.InvariantCulture);
 				return true;
 			default:

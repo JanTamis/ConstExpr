@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -30,7 +31,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// Note: Unlike ToDictionary, Distinct is NOT redundant before ToLookup because ToLookup groups
 /// duplicate keys rather than throwing, so removing Distinct could change group sizes.
 /// </summary>
-public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.ToLookup), 1, 2, 3)
+public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.ToLookup), n => n is 1 or 2 or 3)
 {
 	// Operations that don't affect the content of the resulting lookup
 	// Note: We do NOT include Distinct here because ToLookup groups duplicates —
@@ -38,7 +39,7 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 	private static readonly HashSet<string> OperationsThatDontAffectLookup =
 	[
 		..MaterializingMethods,
-		..OrderingOperations,
+		..OrderingOperations
 	];
 
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
@@ -328,7 +329,7 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 
 			foreach (var (key, elements) in groups)
 			{
-				var elementsStr = string.Join(", ", elements.Select(FormatLiteral));
+				var elementsStr = String.Join(", ", elements.Select(FormatLiteral));
 				sb.AppendLine($"\t\t{FormatLiteral(key)} => [{elementsStr}],");
 			}
 
@@ -354,7 +355,7 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		{
 			foreach (var (key, elements) in groups)
 			{
-				var elementsStr = string.Join(", ", elements.Select(FormatLiteral));
+				var elementsStr = String.Join(", ", elements.Select(FormatLiteral));
 				sb.AppendLine($"\t\tyield return new Grouping<{keyTypeName}, {elementTypeName}>({FormatLiteral(key)}, {elementsStr});");
 			}
 		}

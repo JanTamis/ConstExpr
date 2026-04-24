@@ -13,7 +13,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.SequenceEqual(collection) => true (same reference)
 /// - Enumerable.Empty&lt;T&gt;().SequenceEqual(Enumerable.Empty&lt;T&gt;()) => true
 /// </summary>
-public class SequenceEqualFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.SequenceEqual), 1)
+public class SequenceEqualFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.SequenceEqual), n => n is 1)
 {
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -21,10 +21,10 @@ public class SequenceEqualFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 		{
 			return true;
 		}
-		
+
 		var isNewSource = TryGetOptimizedChainExpression(source, MaterializingMethods, out source);
 		var secondSource = context.VisitedParameters[0];
-		
+
 		// Optimize collection.SequenceEqual(collection) => true (same reference)
 		if (AreSyntacticallyEquivalent(source, secondSource))
 		{
@@ -39,7 +39,7 @@ public class SequenceEqualFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 			{
 				var invocation = CreateInvocation(secondSource, nameof(Enumerable.Any));
 				var tempResource = TryOptimizeByOptimizer<AnyFunctionOptimizer>(context.WithInvocationAndMethod(invocation, anyMethod), invocation);
-				
+
 				result = (tempResource as ExpressionSyntax ?? invocation).InvertSyntax();
 				return true;
 			}
@@ -60,9 +60,8 @@ public class SequenceEqualFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 			result = UpdateInvocation(context, source);
 			return true;
 		}
-		
+
 		result = null;
 		return false;
 	}
 }
-

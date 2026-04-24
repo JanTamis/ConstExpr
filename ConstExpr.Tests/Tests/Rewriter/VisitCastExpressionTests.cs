@@ -24,7 +24,7 @@ public class VisitCastExpressionTests : BaseTest<Func<double, int, int, (int, do
 			var c = (char)z;
 
 			return (a, b, c, 3);
-			""", Unknown, Unknown, Unknown),
+			"""),
 		Create("return (3, 42.0, 'A', 3);", 3.14, 42, 65),
 		Create("return (10, 100.0, 'Z', 3);", 10.5, 100, 90),
 		Create("return (-5, -10.0, ' ', 3);", -5.8, -10, 32)

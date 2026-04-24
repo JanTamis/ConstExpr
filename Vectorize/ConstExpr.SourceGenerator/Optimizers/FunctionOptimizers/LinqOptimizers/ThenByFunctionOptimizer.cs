@@ -11,7 +11,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// Optimizes patterns such as:
 /// - OrderBy(x => x).ThenBy(y => y) => Order().ThenBy(y => y) (identity key for Order)
 /// </summary>
-public class ThenByFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.ThenBy), 1)
+public class ThenByFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.ThenBy), n => n is 1)
 {
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -36,4 +36,3 @@ public class ThenByFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		return false;
 	}
 }
-

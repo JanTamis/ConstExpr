@@ -33,7 +33,7 @@ public class VisitIsPatternExpressionTests : BaseTest<Func<int, int, object, cha
 			var i = (uint)(x - 1) <= 9U && (0x28D >> x - 1 & 1) != 0;
 			
 			return [true, false, c, d, e, f, g, h, i];
-			""", Unknown, Unknown, Unknown, Unknown),
+			"""),
 		Create("return [true, false, true, false, true, false, true, false, false];", 0, -5, 42, 'b'),
 		Create("return [true, false, false, true, true, false, false, false, true];", 10, 20, 100, 'c'),
 		Create("return [true, false, false, true, false, false, false, true, false];", 5, 15, "hello", 'd'),

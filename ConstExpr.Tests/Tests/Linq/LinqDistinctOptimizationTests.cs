@@ -56,7 +56,7 @@ public class LinqDistinctOptimizationTests : BaseTest<Func<int[], int>>
 			var j = Count_4OhS1w(x);
 			
 			return a + b + c + d + e + f + g + h + i + j;
-			""", Unknown),
+			"""),
 		Create("return 46;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new int[] { }),
 		Create("return 28;", new[] { 1, 1, 2, 2, 3 }), // 3 distinct values

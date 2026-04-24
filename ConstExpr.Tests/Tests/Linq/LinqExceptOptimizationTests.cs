@@ -69,7 +69,7 @@ public class LinqExceptOptimizationTests : BaseTest<Func<int[], int>>
 			var n = Count__cbrew(x);
 			
 			return d + e + f + g + h + i + j + k + l + m + n;
-			""", Unknown),
+			"""),
 		Create("return 42;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new int[] { }),
 		Create("return 34;", new[] { 10, 20, 30 }),

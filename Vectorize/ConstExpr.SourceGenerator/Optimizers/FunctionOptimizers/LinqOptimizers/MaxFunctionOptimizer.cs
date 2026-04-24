@@ -20,13 +20,13 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.AsEnumerable().Max() => collection.Max()
 /// - collection.ToList().Max() => collection.Max()
 /// </summary>
-public class MaxFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Max), 0, 1)
+public class MaxFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Max), n => n is 0 or 1)
 {
 	// Operations that don't affect the maximum value
 	private static readonly HashSet<string> OperationsThatDontAffectMax =
 	[
 		..MaterializingMethods,
-		..OrderingOperations,
+		..OrderingOperations
 	];
 
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)

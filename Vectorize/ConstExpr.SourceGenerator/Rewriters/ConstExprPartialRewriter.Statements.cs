@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using ConstExpr.SourceGenerator.Comparers;
+using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Refactorers;
 using Microsoft.CodeAnalysis;
@@ -34,8 +35,29 @@ public partial class ConstExprPartialRewriter
 				: null;
 		}
 
+		// Save variable state before visiting either branch. The condition is unknown so we
+		// cannot tell which branch will execute at runtime. Each branch must be visited with
+		// the pre-if state, and afterwards any variable written in either branch must be
+		// marked as unknown so downstream code doesn't rely on a specific branch's value.
+		var savedState = SaveVariableState();
+
 		var statement = Visit(node.Statement);
+
+		// Restore to pre-if state before visiting the else branch so it doesn't pick up
+		// mutations that were made inside the then branch (e.g., h = 0 leaking into else).
+		RestoreVariableState(savedState);
+
 		var @else = Visit(node.Else);
+
+		// After both branches: restore original state and invalidate every variable that
+		// could have been written in either branch.
+		RestoreVariableState(savedState);
+		InvalidateAssignedVariables(node.Statement);
+
+		if (node.Else is not null)
+		{
+			InvalidateAssignedVariables(node.Else.Statement);
+		}
 
 		if (@else is null)
 		{
@@ -69,6 +91,40 @@ public partial class ConstExprPartialRewriter
 		if (ConvertIfToSwitchCodeRefactoring.TryConvertIfElseChainToSwitch(result, out var switchNode))
 		{
 			return switchNode;
+		}
+
+		switch (statement)
+		{
+			case ExpressionStatementSyntax { Expression: AssignmentExpressionSyntax assignment }
+				when assignment.IsKind(SyntaxKind.SimpleAssignmentExpression)
+				     && assignment.Left is IdentifierNameSyntax assignedIdentifier
+				     && @else is ElseClauseSyntax { Statement: ExpressionStatementSyntax { Expression: AssignmentExpressionSyntax elseAssignment } }
+				     && elseAssignment.IsKind(SyntaxKind.SimpleAssignmentExpression)
+				     && elseAssignment.Left is IdentifierNameSyntax elseAssignedIdentifier
+				     && assignedIdentifier.Identifier.Text == elseAssignedIdentifier.Identifier.Text:
+			{
+				return ExpressionStatement(
+					assignment.WithRight(
+						ConditionalExpression(
+							condition as ExpressionSyntax ?? node.Condition,
+							assignment.Right,
+							elseAssignment.Right)));
+			}
+			case BlockSyntax { Statements: [ ExpressionStatementSyntax { Expression: AssignmentExpressionSyntax assignment } ] }
+				when assignment.IsKind(SyntaxKind.SimpleAssignmentExpression)
+				     && assignment.Left is IdentifierNameSyntax assignedIdentifier
+				     && @else is ElseClauseSyntax { Statement: BlockSyntax { Statements: [ ExpressionStatementSyntax { Expression: AssignmentExpressionSyntax elseAssignment } ] } }
+				     && elseAssignment.IsKind(SyntaxKind.SimpleAssignmentExpression)
+				     && elseAssignment.Left is IdentifierNameSyntax elseAssignedIdentifier
+				     && assignedIdentifier.Identifier.Text == elseAssignedIdentifier.Identifier.Text:
+			{
+				return ExpressionStatement(
+					assignment.WithRight(
+						ConditionalExpression(
+							condition as ExpressionSyntax ?? node.Condition,
+							assignment.Right,
+							elseAssignment.Right)));
+			}
 		}
 
 		return result;
@@ -425,7 +481,7 @@ public partial class ConstExprPartialRewriter
 		var untilThrown = TakeUntilThrownStatements(visited);
 		var combined = CombineConsecutiveIfStatements(untilThrown, Visit);
 		var simplified = SimplifyIfReturnPatterns(combined);
-		
+
 		return node.WithStatements(simplified);
 	}
 
@@ -454,7 +510,7 @@ public partial class ConstExprPartialRewriter
 	/// - if (cond) { return true; } return false; => return cond;
 	/// - if (cond) { return false; } return true; => return !cond;
 	/// </summary>
-	private static SyntaxList<StatementSyntax> SimplifyIfReturnPatterns(SyntaxList<StatementSyntax> statements)
+	private SyntaxList<StatementSyntax> SimplifyIfReturnPatterns(SyntaxList<StatementSyntax> statements)
 	{
 		if (statements.Count < 2)
 		{
@@ -485,7 +541,7 @@ public partial class ConstExprPartialRewriter
 	/// <summary>
 	/// Tries to simplify if-return-bool patterns.
 	/// </summary>
-	private static bool TryGetIfReturnBoolPattern(IfStatementSyntax ifStatement, ReturnStatementSyntax followingReturn, out ReturnStatementSyntax? simplified)
+	private bool TryGetIfReturnBoolPattern(IfStatementSyntax ifStatement, ReturnStatementSyntax followingReturn, out ReturnStatementSyntax? simplified)
 	{
 		simplified = null;
 
@@ -529,16 +585,42 @@ public partial class ConstExprPartialRewriter
 			}
 			else
 			{
-				simplified = ReturnStatement(LogicalAndExpression(condition, followingReturn.Expression));
+				var newCondition = LogicalAndExpression(condition, followingReturn.Expression);
+				var booleanType = semanticModel.Compilation.CreateBoolean();
+
+				if (TryOptimizeNode(BinaryOperatorKind.ConditionalAnd, [ ], booleanType, condition, booleanType, followingReturn.Expression, booleanType, null, out var result))
+				{
+					simplified = ReturnStatement(result as ExpressionSyntax ?? condition);
+					return true;
+				}
+
+				simplified = ReturnStatement(newCondition);
 			}
 		}
 		else if (InvertLogicalRefactoring.TryInvertLogical(condition as BinaryExpressionSyntax, out var inverted))
 		{
+			var booleanType = semanticModel.Compilation.CreateBoolean();
+
+			if (TryOptimizeNode(BinaryOperatorKind.ConditionalAnd, [ ], booleanType, inverted, booleanType, followingReturn.Expression, booleanType, null, out var result))
+			{
+				simplified = ReturnStatement(result as ExpressionSyntax ?? condition);
+				return true;
+			}
+
 			simplified = ReturnStatement(LogicalAndExpression(inverted, followingReturn.Expression));
 		}
-		else if (condition is { } expr)
+		else
 		{
-			simplified = ReturnStatement(LogicalAndExpression(NegateExpressionRefactoring.Negate(expr), followingReturn.Expression));
+			var booleanType = semanticModel.Compilation.CreateBoolean();
+			var invertedCondition = NegateExpressionRefactoring.Negate(condition);
+
+			if (TryOptimizeNode(BinaryOperatorKind.ConditionalAnd, [ ], booleanType, invertedCondition, booleanType, followingReturn.Expression, booleanType, null, out var result))
+			{
+				simplified = ReturnStatement(result as ExpressionSyntax ?? condition);
+				return true;
+			}
+
+			simplified = ReturnStatement(LogicalAndExpression(invertedCondition, followingReturn.Expression));
 		}
 
 		return simplified is not null;

@@ -36,7 +36,7 @@ public class LinqMaxOptimizationTests : BaseTest<Func<int[], int>>
 			var e = Int32.Max(Max_dZD6IQ(x), Max_dZD6IQ(x));
 			
 			return a + b + c + d + e;
-			""", Unknown),
+			"""),
 		Create("return 18;", new[] { 1, 2, 3 }),
 		Create("return 30;", new[] { 5 }),
 	];

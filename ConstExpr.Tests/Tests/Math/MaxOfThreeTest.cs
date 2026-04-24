@@ -38,7 +38,7 @@ public class MaxOfThreeTest() : BaseTest<Func<int, int, int, int>>(FastMathFlags
 			}
 
 			return max;
-			""", Unknown, Unknown, Unknown),
+			"""),
 		Create("return 10;", 5, 10, 3),
 		Create("return 5;", 5, 5, 5)
 	];

@@ -29,14 +29,14 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - Enumerable.Repeat(element, count).All(predicate) => count &lt;= 0 || predicate(element)
 /// - Enumerable.Range(start, count).All(predicate) => count == 0 ? true : predicate(start) &amp;&amp; predicate(start + count - 1) (boundary check for monotone predicates, otherwise falls through)
 /// </summary>
-public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.All), 1)
+public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.All), n => n is 1)
 {
 	// Operations that don't affect the all-check (only order/form/duplicates/materialization)
 	private static readonly HashSet<string> OperationsThatDontAffectAll =
 	[
 		..MaterializingMethods,
 		..OrderingOperations,
-		nameof(Enumerable.Distinct), // Deduplication: may reduce count, but if all satisfy condition, All() is true
+		nameof(Enumerable.Distinct) // Deduplication: may reduce count, but if all satisfy condition, All() is true
 	];
 
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)

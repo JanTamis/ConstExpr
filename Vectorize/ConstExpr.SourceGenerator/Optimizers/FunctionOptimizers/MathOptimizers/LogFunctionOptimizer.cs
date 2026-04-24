@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class LogFunctionOptimizer() : BaseMathFunctionOptimizer("Log", 1, 2)
+public class LogFunctionOptimizer() : BaseMathFunctionOptimizer("Log", n => n is 1 or 2)
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -48,8 +48,8 @@ public class LogFunctionOptimizer() : BaseMathFunctionOptimizer("Log", 1, 2)
 			//   float  ≈ 2.2×  (4.541 ns → 2.021 ns)
 			//   double ≈ 2.1×  (4.250 ns → 2.000 ns)
 			result = DivideExpression(
-				CreateInvocation("FastLog", [context.VisitedParameters[0]]),
-				CreateInvocation("FastLog", [context.VisitedParameters[1]]));
+				CreateInvocation("FastLog", [ context.VisitedParameters[0] ]),
+				CreateInvocation("FastLog", [ context.VisitedParameters[1] ]));
 			return true;
 		}
 

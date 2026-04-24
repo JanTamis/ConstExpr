@@ -24,7 +24,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// Note: Ordering operations are NOT stripped because the accumulator function is applied to elements
 /// in the order they appear within each key group, so ordering can affect non-commutative accumulators.
 /// </summary>
-public class AggregateByFunctionOptimizer() : BaseLinqFunctionOptimizer("AggregateBy", 3, 4, 5)
+public class AggregateByFunctionOptimizer() : BaseLinqFunctionOptimizer("AggregateBy", n => n is 3 or 4 or 5)
 {
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -101,7 +101,7 @@ public class AggregateByFunctionOptimizer() : BaseLinqFunctionOptimizer("Aggrega
 						ParameterList(SeparatedList<ParameterSyntax>(
 						[
 							Parameter(Identifier(accParam)),
-							Parameter(Identifier(selectParam)),
+							Parameter(Identifier(selectParam))
 						])),
 						foldedFuncBody);
 
@@ -125,7 +125,7 @@ public class AggregateByFunctionOptimizer() : BaseLinqFunctionOptimizer("Aggrega
 						case true:
 							// x.Where(v => true).AggregateBy(...) => x.AggregateBy(...)
 							TryGetOptimizedChainExpression(chainSource, MaterializingMethods, out chainSource);
-							
+
 							result = UpdateInvocation(context, chainSource);
 							return true;
 
@@ -182,7 +182,7 @@ public class AggregateByFunctionOptimizer() : BaseLinqFunctionOptimizer("Aggrega
 		var elemParam = pFuncLambda.ParameterList.Parameters[1].Identifier.Text;
 
 		// Body must be acc + 1 (or 1 + acc) and the element parameter must not appear in the body
-		if (!IsIncrementBody(funcBody, accParam) 
+		if (!IsIncrementBody(funcBody, accParam)
 		    || funcBody.HasIdentifier(elemParam))
 		{
 			return false;

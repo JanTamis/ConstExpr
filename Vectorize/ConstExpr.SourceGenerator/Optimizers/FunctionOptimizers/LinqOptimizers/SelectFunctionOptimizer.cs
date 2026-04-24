@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
-public class SelectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Select), 1)
+public class SelectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Select), n => n is 1)
 {
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -32,13 +32,13 @@ public class SelectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		if (IsCastLambda(lambda, out var castType))
 		{
 			var invocation = CreateCastMethodCall(source, castType);
-			
+
 			if (context.Model.TryGetTypeSymbol(castType, context.SymbolStore, out var castTypeSymbol))
 			{
 				result = TryOptimizeByOptimizer<CastFunctionOptimizer>(context, invocation, castTypeSymbol);
 				return true;
 			}
-			
+
 			result = invocation;
 			return true;
 		}
@@ -78,20 +78,20 @@ public class SelectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		};
 
 		if (body is not CastExpressionSyntax castExpression)
-    {
-      return false;
-    }
+		{
+			return false;
+		}
 
-    // Verify left side is the lambda parameter
-    var paramName = GetLambdaParameter(lambda);
-		
+		// Verify left side is the lambda parameter
+		var paramName = GetLambdaParameter(lambda);
+
 		if (castExpression.Expression is not IdentifierNameSyntax identifier || identifier.Identifier.Text != paramName)
-    {
-      return false;
-    }
+		{
+			return false;
+		}
 
-    // Extract the target type
-    castType = castExpression.Type;
+		// Extract the target type
+		castType = castExpression.Type;
 		return true;
 	}
 

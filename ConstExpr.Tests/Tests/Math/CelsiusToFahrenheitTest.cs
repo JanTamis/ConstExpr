@@ -9,7 +9,7 @@ public class CelsiusToFahrenheitTest() : BaseTest<Func<double, double>>(FastMath
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return Double.MultiplyAddEstimate(celsius, 1.8, 32D);", Unknown),
+		Create("return Double.MultiplyAddEstimate(celsius, 1.8, 32D);"),
 		Create("return 32D;", 0.0),
 		Create("return 212D;", 100.0),
 		Create("return 77D;", 25.0)

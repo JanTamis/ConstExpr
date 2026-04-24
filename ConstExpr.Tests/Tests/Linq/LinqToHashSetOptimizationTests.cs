@@ -22,13 +22,13 @@ public class LinqToHashSetOptimizationTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-// 		Create("""
-// 			var a = x.Disctinct().Count();
-// 			var b = x.Disctinct().Count();
-// 			var c = x.Disctinct().Count();
-//
-// 			return a + b + c;
-// 			""", Unknown),
+		Create("""
+			var a = ToHashSet_GW0cjw(x).Count;
+			var b = ToHashSet_GW0cjw(x).Count;
+			var c = ToHashSet_GW0cjw(x).Count;
+			
+			return a + b + c;
+			"""),
 		Create("return 9;", new[] { 1, 2, 3 }),
 		Create("return 0;", new int[] { }),
 	];

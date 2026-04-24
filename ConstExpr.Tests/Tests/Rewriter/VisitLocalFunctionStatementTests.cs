@@ -15,7 +15,7 @@ public class VisitLocalFunctionStatementTests : BaseTest<Func<int, int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return Add(x, 2);", Unknown),
+		Create("return Add(x, 2);"),
 		Create("return 3;", 1),
 		Create("return 10;", 8),
 		Create("return -5;", -7),

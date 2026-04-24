@@ -9,7 +9,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class ClampFunctionOptimizer() : BaseMathFunctionOptimizer("Clamp", 3)
+public class ClampFunctionOptimizer() : BaseMathFunctionOptimizer("Clamp", n => n is 3)
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -38,7 +38,7 @@ public class ClampFunctionOptimizer() : BaseMathFunctionOptimizer("Clamp", 3)
 
 		// 2) Constant bounds: if min == max, return that constant (wrapped in appropriate context)
 		if (TryGetConstantValue(paramType, min, out var minVal, out var minExpr) &&
-				TryGetConstantValue(paramType, max, out var maxVal, out _))
+		    TryGetConstantValue(paramType, max, out var maxVal, out _))
 		{
 			if (Compare(paramType, minVal!, maxVal!) == 0)
 			{
@@ -91,12 +91,13 @@ public class ClampFunctionOptimizer() : BaseMathFunctionOptimizer("Clamp", 3)
 		result = null;
 
 		var args = minInv.ArgumentList.Arguments;
-		if (args.Count != 2)
-    {
-      return false;
-    }
 
-    var m0 = args[0].Expression;
+		if (args.Count != 2)
+		{
+			return false;
+		}
+
+		var m0 = args[0].Expression;
 		var m1 = args[1].Expression;
 
 		// Pattern: Clamp(Min(x, maxConst), minConst, maxConst) where maxConst in Min matches outerMax
@@ -136,12 +137,13 @@ public class ClampFunctionOptimizer() : BaseMathFunctionOptimizer("Clamp", 3)
 		result = null;
 
 		var args = maxInv.ArgumentList.Arguments;
-		if (args.Count != 2)
-    {
-      return false;
-    }
 
-    var m0 = args[0].Expression;
+		if (args.Count != 2)
+		{
+			return false;
+		}
+
+		var m0 = args[0].Expression;
 		var m1 = args[1].Expression;
 
 		// Pattern: Clamp(Max(x, minConst), minConst, maxConst) where minConst in Max matches outerMin
@@ -192,14 +194,15 @@ public class ClampFunctionOptimizer() : BaseMathFunctionOptimizer("Clamp", 3)
 				value = lit.Token.Value;
 				constExpr = expr;
 				return value is not null && IsNumericLiteral(value);
-			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax opLit }:
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax opLit }:
 				var v = opLit.Token.Value;
-				if (v is null || !IsNumericLiteral(v))
-        {
-          return false;
-        }
 
-        value = NegateNumeric(v);
+				if (v is null || !IsNumericLiteral(v))
+				{
+					return false;
+				}
+
+				value = NegateNumeric(v);
 				constExpr = expr;
 				return true;
 			default:
@@ -207,7 +210,10 @@ public class ClampFunctionOptimizer() : BaseMathFunctionOptimizer("Clamp", 3)
 		}
 	}
 
-	private static bool IsNumericLiteral(object v) => v is sbyte or byte or short or ushort or int or uint or long or ulong or float or double or decimal;
+	private static bool IsNumericLiteral(object v)
+	{
+		return v is sbyte or byte or short or ushort or int or uint or long or ulong or float or double or decimal;
+	}
 
 	private static object NegateNumeric(object v)
 	{
@@ -261,7 +267,7 @@ public class ClampFunctionOptimizer() : BaseMathFunctionOptimizer("Clamp", 3)
 
 	private static T ConvertTo<T>(object v)
 	{
-		try { return (T)Convert.ChangeType(v, typeof(T), CultureInfo.InvariantCulture); }
+		try { return (T) Convert.ChangeType(v, typeof(T), CultureInfo.InvariantCulture); }
 		catch { return default!; }
 	}
 }

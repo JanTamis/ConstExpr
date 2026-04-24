@@ -9,7 +9,7 @@ public class IsDivisibleByTest() : BaseTest<Func<int, int, bool>>(FastMathFlags.
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null, Unknown, Unknown),
+		Create(null),
 		Create("return true;", 10, 5),
 		Create("return false;", 10, 3),
 		Create("return false;", 0, 0)

@@ -28,7 +28,7 @@ public class VisitSwitchStatementTests : BaseTest<Func<int, int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null, Unknown),
+		Create(null),
 		Create("return 10;", 1),
 		Create("return 20;", 2),
 		Create("return 30;", 3)

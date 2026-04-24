@@ -102,8 +102,9 @@ public partial class ConstExprPartialRewriter
 				leftValue = ExecuteConversion(leftConversion, leftValue);
 			}
 
-			if (hasRightValue && operation.RightOperand is IConversionOperation rightConversion
-			                  && (rightValue is not char || rightConversion.Type?.SpecialType != SpecialType.System_Int32))
+			if (hasRightValue 
+			    && operation.RightOperand is IConversionOperation rightConversion
+			    && (rightValue is not char || rightConversion.Type?.SpecialType != SpecialType.System_Int32))
 			{
 				rightValue = ExecuteConversion(rightConversion, rightValue);
 			}
@@ -495,7 +496,8 @@ public partial class ConstExprPartialRewriter
 			return optimized;
 		}
 
-		if (semanticModel.GetOperation(node) is IUnaryOperation { ConstantValue.HasValue: true } operation
+		if (TryGetOperation(semanticModel, node, out IUnaryOperation? operation)
+		    && operation.ConstantValue.HasValue
 		    && (operation.Parent is IConversionOperation conversionOperation
 			    && TryCreateLiteral(conversionOperation.ConstantValue.Value, out var lit1) || TryCreateLiteral(operation.ConstantValue.Value, out lit1)))
 		{

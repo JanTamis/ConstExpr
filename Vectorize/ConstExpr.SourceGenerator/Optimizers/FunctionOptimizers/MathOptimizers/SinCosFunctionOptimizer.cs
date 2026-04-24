@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class SinCosFunctionOptimizer() : BaseMathFunctionOptimizer("SinCos", 1)
+public class SinCosFunctionOptimizer() : BaseMathFunctionOptimizer("SinCos", n => n is 1)
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -129,4 +129,3 @@ public class SinCosFunctionOptimizer() : BaseMathFunctionOptimizer("SinCos", 1)
 			""";
 	}
 }
-

@@ -27,10 +27,7 @@ public class NotEqualsModuloEvenStrategy() : SymmetricStrategy<NumericBinaryStra
 		}
 
 		optimized = InvocationExpression(
-				MemberAccessExpression(
-					SyntaxKind.SimpleMemberAccessExpression,
-					ParseTypeName(context.Left.Type!.Name),
-					IdentifierName("IsEvenInteger")))
+				MemberAccessExpression(ParseTypeName(context.Left.Type!.Name), IdentifierName("IsEvenInteger")))
 			.WithArgumentList(
 				ArgumentList(
 					SingletonSeparatedList(

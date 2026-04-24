@@ -50,7 +50,7 @@ public class LinqWhereOptimizationTests() : BaseTest<Func<int[], int>>(FastMathF
 			var h = Count_oNuv2g(x);
 			
 			return a + c + d + e + f + h;
-			""", Unknown),
+			"""),
 		Create("return 19;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new int[] { }),
 		Create("return 38;", new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }),

@@ -80,7 +80,7 @@ public class LinqToDictionaryOptimizationTests : BaseTest<Func<int[], int>>
 			var p = ToDictionary_Tle2rw(x).Count;
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l + m + n + o + p;
-			""", Unknown),
+			"""),
 		Create("return 48;", new[] { 1, 2, 3 }),
 		Create("return 0;", new int[] { }),
 	];

@@ -39,7 +39,7 @@ public class LinqSumOptimizationTests : BaseTest<Func<int[], int>>
 			var f = Sum_7Ump6A(x) << 2;
 			
 			return a + b + c + d + e + f;
-			""", Unknown),
+			"""),
 		Create("return 54;", new[] { 1, 2, 3 }),
 		Create("return 39;", new[] { 5 }),
 	];

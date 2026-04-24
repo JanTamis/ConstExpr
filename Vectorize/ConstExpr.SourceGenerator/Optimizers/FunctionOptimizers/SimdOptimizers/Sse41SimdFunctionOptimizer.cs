@@ -77,4 +77,3 @@ public class Sse41SimdFunctionOptimizer() : BaseSimdFunctionOptimizer("Sse41")
 		return false;
 	}
 }
-

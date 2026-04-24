@@ -11,7 +11,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - Enumerable.Repeat(element, 0) => [] (empty sequence, regardless of element value)
 /// - Enumerable.Repeat(element, 1) => [element] (single-element collection expression)
 /// </summary>
-public class RepeatFunctionOptimizer() : BaseLinqFunctionOptimizer("Repeat", 2)
+public class RepeatFunctionOptimizer() : BaseLinqFunctionOptimizer("Repeat", n => n is 2)
 {
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -42,4 +42,3 @@ public class RepeatFunctionOptimizer() : BaseLinqFunctionOptimizer("Repeat", 2)
 		return false;
 	}
 }
-

@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class CosFunctionOptimizer() : BaseMathFunctionOptimizer("Cos", 1)
+public class CosFunctionOptimizer() : BaseMathFunctionOptimizer("Cos", n => n is 1)
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -82,4 +82,3 @@ public class CosFunctionOptimizer() : BaseMathFunctionOptimizer("Cos", 1)
 			""";
 	}
 }
-

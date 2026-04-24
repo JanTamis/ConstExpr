@@ -11,50 +11,50 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// Optimizes patterns such as:
 /// - collection.Reverse().Reverse() => collection (double reverse cancels out)
 /// </summary>
-public class ReverseFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Reverse), 0)
+public class ReverseFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Reverse), n => n is 0)
 {
-  protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
+	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
-    if (TryExecutePredicates(context, source, out result, out source))
-    {
-      return true;
-    }
+		if (TryExecutePredicates(context, source, out result, out source))
+		{
+			return true;
+		}
 
-    // Optimize Reverse().Reverse() => original collection (double reverse cancels out)
-    if (IsLinqMethodChain(source, out var methodName, out var invocation)
-        && TryGetLinqSource(invocation, out var invocationSource))
-    {
-      switch (methodName)
-      {
-        case nameof(Enumerable.Reverse):
-        {
-          result = invocationSource;
-          return true;
-        }
-        case "Order":
-        {
-          result = CreateInvocation(invocationSource, "OrderDescending");
-          return true;
-        }
-        case nameof(Enumerable.OrderBy):
-        {
-          result = CreateInvocation(invocationSource, nameof(Enumerable.OrderByDescending), invocation.ArgumentList.Arguments.Select(s => s.Expression));
-          return true;
-        }
-        case "OrderDescending":
-        {
-          result = CreateInvocation(invocationSource, "Order");
-          return true;
-        }
-        case nameof(Enumerable.OrderByDescending):
-        {
-          result = CreateInvocation(invocationSource, nameof(Enumerable.OrderBy), invocation.ArgumentList.Arguments.Select(s => s.Expression));
-          return true;
-        }
-      }
-    }
+		// Optimize Reverse().Reverse() => original collection (double reverse cancels out)
+		if (IsLinqMethodChain(source, out var methodName, out var invocation)
+		    && TryGetLinqSource(invocation, out var invocationSource))
+		{
+			switch (methodName)
+			{
+				case nameof(Enumerable.Reverse):
+				{
+					result = invocationSource;
+					return true;
+				}
+				case "Order":
+				{
+					result = CreateInvocation(invocationSource, "OrderDescending");
+					return true;
+				}
+				case nameof(Enumerable.OrderBy):
+				{
+					result = CreateInvocation(invocationSource, nameof(Enumerable.OrderByDescending), invocation.ArgumentList.Arguments.Select(s => s.Expression));
+					return true;
+				}
+				case "OrderDescending":
+				{
+					result = CreateInvocation(invocationSource, "Order");
+					return true;
+				}
+				case nameof(Enumerable.OrderByDescending):
+				{
+					result = CreateInvocation(invocationSource, nameof(Enumerable.OrderBy), invocation.ArgumentList.Arguments.Select(s => s.Expression));
+					return true;
+				}
+			}
+		}
 
-    result = null;
-    return false;
-  }
+		result = null;
+		return false;
+	}
 }

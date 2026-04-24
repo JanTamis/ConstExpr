@@ -29,7 +29,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.Take(n).Count() => Int32.Min(n, collection.Count()) (take limits count)
 /// - collection.Skip(n).Count() => Int32.Max(0, collection.Count() - n) (skip reduces count)
 /// </summary>
-public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Count), 0, 1)
+public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Count), n => n is 0 or 1)
 {
 	// Operations that don't affect element count (only order/form but not filtering)
 	// Note: We DON'T include Distinct, ToList, ToArray because they might affect count
@@ -40,7 +40,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		..MaterializingMethods,
 		..OrderingOperations,
 		nameof(Enumerable.Select),
-		"Index",
+		"Index"
 	];
 
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
@@ -217,21 +217,21 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 						result = CreateInvocation(ParseTypeName("Int32"), "Max", context.Visit(resultInvocation), CreateLiteral(1));
 						return true;
 					}
-				case nameof(Enumerable.Distinct):
-				{
-					TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectCount.Union([ nameof(Enumerable.Distinct) ]).ToSet(), out currentSource);
-
-					// When the source is a literal collection, evaluate Distinct().Count() directly.
-					if (TryGetValues(currentSource, out var distinctValues))
+					case nameof(Enumerable.Distinct):
 					{
-						result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(distinctValues.Distinct().Count()));
+						TryGetOptimizedChainExpression(methodSource, OperationsThatDontAffectCount.Union([ nameof(Enumerable.Distinct) ]).ToSet(), out currentSource);
+
+						// When the source is a literal collection, evaluate Distinct().Count() directly.
+						if (TryGetValues(currentSource, out var distinctValues))
+						{
+							result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(distinctValues.Distinct().Count()));
+							return true;
+						}
+
+						var distinctResult = TryOptimizeByOptimizer<DistinctFunctionOptimizer>(context, CreateSimpleInvocation(currentSource, nameof(Enumerable.Distinct)));
+						result = CreateSimpleInvocation(distinctResult as ExpressionSyntax, nameof(Enumerable.Count));
 						return true;
 					}
-
-					var distinctResult = TryOptimizeByOptimizer<DistinctFunctionOptimizer>(context, CreateSimpleInvocation(currentSource, nameof(Enumerable.Distinct)));
-					result = CreateSimpleInvocation(distinctResult as ExpressionSyntax, nameof(Enumerable.Count));
-					return true;
-				}
 					case nameof(Enumerable.SelectMany) when GetMethodArguments(invocation).FirstOrDefault() is { Expression: { } predicateArg }
 					                                        && TryGetLambda(predicateArg, out var predicate):
 					{

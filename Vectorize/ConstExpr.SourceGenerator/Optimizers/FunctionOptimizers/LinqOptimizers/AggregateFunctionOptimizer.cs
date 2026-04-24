@@ -19,14 +19,14 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// Note: We do NOT optimize Select, Distinct, Where, etc. before Aggregate
 /// because they change the elements/order being aggregated over.
 /// </summary>
-public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Aggregate), 1, 2, 3)
+public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Aggregate), n => n is 1 or 2 or 3)
 {
 	// Only operations that don't change elements, order, or filtering
 	// These are essentially no-ops that just change the type or materialize
 	private static readonly HashSet<string> OperationsThatDontAffectAggregate =
 	[
 		..MaterializingMethods,
-		..OrderingOperations,
+		..OrderingOperations
 	];
 
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
@@ -96,7 +96,7 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		}
 
 		// Optimize to Sum()
-		result = TryOptimizeByOptimizer<SumFunctionOptimizer>(context, CreateSimpleInvocation(source, nameof(Enumerable.Sum)), x => IsEnumerableType(x.Parameters[0].Type as INamedTypeSymbol, context.Method.TypeArguments[^1]), []);
+		result = TryOptimizeByOptimizer<SumFunctionOptimizer>(context, CreateSimpleInvocation(source, nameof(Enumerable.Sum)), x => IsEnumerableType(x.Parameters[0].Type as INamedTypeSymbol, context.Method.TypeArguments[^1]), [ ]);
 
 		// For 2-arg overload with non-zero seed: Sum() + seed
 		if (context.VisitedParameters.Count == 2 && !IsZeroLiteral(context.VisitedParameters[0]))

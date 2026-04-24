@@ -73,7 +73,7 @@ public class LinqAnyOptimizationTests : BaseTest<Func<int[], int>>
 			var o = Array.Exists(x, v => v > 3) ? 1 : 0;
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l + o + 3;
-			""", Unknown),
+			"""),
 		Create("return 15;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 3;", new int[] { }),
 	];

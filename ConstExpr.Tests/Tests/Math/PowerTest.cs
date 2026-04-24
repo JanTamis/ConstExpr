@@ -62,7 +62,7 @@ public class PowerTest() : BaseTest<Func<int, int, long>>(FastMathFlags.FastMath
 			}
 
 			return result;
-			""", Unknown, Unknown),
+			"""),
 		Create("return 32L;", 2, 5),
 		Create("return 1L;", 5, 0),
 		Create("return 0L;", 2, -3),

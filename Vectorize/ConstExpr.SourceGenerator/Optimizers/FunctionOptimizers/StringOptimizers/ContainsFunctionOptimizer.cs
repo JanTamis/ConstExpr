@@ -11,7 +11,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 /// - "hello".Contains("ell") → true
 /// - "hello".Contains("world") → false
 /// </summary>
-public class ContainsFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "Contains", false, 1)
+public class ContainsFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "Contains", false, n => n is 1)
 {
 	protected override bool TryOptimizeString(FunctionOptimizerContext context, ITypeSymbol stringType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -33,7 +33,7 @@ public class ContainsFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctio
 			return true;
 		}
 
-		if (literal.IsKind(SyntaxKind.CharacterLiteralExpression) 
+		if (literal.IsKind(SyntaxKind.CharacterLiteralExpression)
 		    && literal.Token.Value is char c)
 		{
 			result = CreateLiteral(str.IndexOf(c) >= 0);
@@ -43,4 +43,3 @@ public class ContainsFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctio
 		return false;
 	}
 }
-

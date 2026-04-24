@@ -23,7 +23,7 @@ public class VisitAssignmentExpressionTests : BaseTest<Func<int, int, int, (int,
 			c <<= 1;
 
 			return (a, b, c);
-			""", Unknown, Unknown, Unknown),
+			"""),
 		Create("return (8, 8, 8);", 5, 10, 4),
 		Create("return (3, -2, 0);", 0, 0, 0),
 		Create("return (2, 0, -6);", -1, 2, -3),

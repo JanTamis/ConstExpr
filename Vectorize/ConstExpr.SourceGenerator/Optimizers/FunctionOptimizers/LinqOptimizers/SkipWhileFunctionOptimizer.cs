@@ -12,7 +12,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.SkipWhile(x => false) => collection (skip nothing)
 /// - collection.SkipWhile(x => true) => Enumerable.Empty&lt;T&gt;() (skip everything)
 /// </summary>
-public class SkipWhileFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.SkipWhile), 1)
+public class SkipWhileFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.SkipWhile), n => n is 1)
 {
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -48,4 +48,3 @@ public class SkipWhileFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		return false;
 	}
 }
-

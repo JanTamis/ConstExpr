@@ -38,22 +38,11 @@ public class VisitIfStatementTests : BaseTest<Func<bool, int, int, (int, int, in
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var c;
-
-			if (condition)
-				c = x;
-			else
-				c = y;
-
-			var d;
-
-			if (x > y)
-				d = x;
-			else
-				d = y;
+			var c = condition ? x : y;
+			var d = x > y ? x : y;
 
 			return (1, 4, c, d);
-			""", Unknown, Unknown, Unknown),
+			"""),
 		Create("return (1, 4, 10, 10);", true, 10, 5),
 		Create("return (1, 4, 30, 30);", false, 20, 30),
 		Create("return (1, 4, 100, 200);", true, 100, 200),

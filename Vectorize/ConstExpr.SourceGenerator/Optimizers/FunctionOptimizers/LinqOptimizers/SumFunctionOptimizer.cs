@@ -19,13 +19,13 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.ToList().Sum() => collection.Sum()
 /// - collection.Reverse().Sum() => collection.Sum()
 /// </summary>
-public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Sum), 0, 1)
+public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Sum), n => n is 0 or 1)
 {
 	// Operations that don't affect the sum
 	private static readonly HashSet<string> OperationsThatDontAffectSum =
 	[
 		..MaterializingMethods,
-		..OrderingOperations,
+		..OrderingOperations
 	];
 
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
@@ -100,7 +100,7 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 					var right = TryOptimizeByOptimizer<SumFunctionOptimizer>(context, rightInvocation);
 
 					var sumType = context.Method.ReturnType;
-					
+
 					result = OptimizeArithmetic(context, SyntaxKind.AddExpression, context.Visit(left) ?? leftInvocation, context.Visit(right) ?? rightInvocation, sumType);
 					return true;
 				}
@@ -114,7 +114,7 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 					// Shift operators (<<, >>) have lower precedence than + and -, so wrap in parens
 					// to avoid `start << 1 + count` being parsed as `start << (1 + count)`.
-					if (twoTimesStart is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LeftShiftExpression or (int)SyntaxKind.RightShiftExpression })
+					if (twoTimesStart is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LeftShiftExpression or (int) SyntaxKind.RightShiftExpression })
 					{
 						twoTimesStart = ParenthesizedExpression(twoTimesStart);
 					}
@@ -137,7 +137,7 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 				{
 					// Repeat(element, count).Sum() => element * count
 					var elementType = context.Method.ReturnType;
-					
+
 					result = OptimizeArithmetic(context, SyntaxKind.MultiplyExpression,
 						repeatElementArg.Expression, repeatCountArg.Expression, elementType);
 					return true;
@@ -180,7 +180,7 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 	{
 		var items = new List<ExpressionSyntax>
 		{
-			result!,
+			result!
 		};
 
 		while (IsLinqMethodChain(source, out var name, out var invocation))

@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -13,7 +14,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.RegexOptimizer
 /// by caching a compiled <see cref="Regex"/> instance as a private static readonly field and
 /// replacing the static call with the equivalent instance method call.
 /// </summary>
-public class MatchesFunctionOptimizer() : BaseRegexFunctionOptimizer("Matches", 2, 3)
+public class MatchesFunctionOptimizer() : BaseRegexFunctionOptimizer("Matches", n => n is 2 or 3)
 {
 	protected override bool TryOptimizeRegex(FunctionOptimizerContext context, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -35,7 +36,7 @@ public class MatchesFunctionOptimizer() : BaseRegexFunctionOptimizer("Matches", 
 		}
 
 		// Build a deterministic field name from the constant constructor arguments.
-		var patternKey = string.Concat(
+		var patternKey = String.Concat(
 			context.VisitedParameters
 				.Skip(1)
 				.Select(s => TryGetLiteralValue(s, context, out var lit) && lit is string str ? str : s.ToFullString())
@@ -62,4 +63,3 @@ public class MatchesFunctionOptimizer() : BaseRegexFunctionOptimizer("Matches", 
 		return true;
 	}
 }
-

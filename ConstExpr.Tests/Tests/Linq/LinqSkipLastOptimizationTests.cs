@@ -23,7 +23,7 @@ public class LinqSkipLastOptimizationTests : BaseTest<Func<int[], int>>
 			var b = Count_2QIgkw(x);
 			
 			return a + b;
-			""", Unknown),
+			"""),
 		Create("return 3;", new[] { 1, 2, 3 }),
 		Create("return 0;", new int[] { }),
 	];

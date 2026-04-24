@@ -56,7 +56,7 @@ public class LinqDefaultIfEmptyOptimizationTests : BaseTest<Func<int[], int>>
 			var j = Int32.Max(x.Length, 1);
 			
 			return a + b + c + d + e + f + g + h + i + j;
-			""", Unknown),
+			"""),
 		Create("return 50;", new[] { 1, 2, 3, 4, 5 }), // Non-empty: each DefaultIfEmpty returns 5 elements, so 5*10 = 50
 		Create("return 10;", new int[] { }), // Empty: each DefaultIfEmpty returns 1 element (default), so 1*10 = 10
 	];
@@ -94,7 +94,7 @@ public class  LinqDefaultIfEmptyWithValueTests : BaseTest<Func<int[], int>>
 			var d = x.Length > 0 ? x[0] : 10;
 			
 			return a + b + c + d;
-			""", Unknown),
+			"""),
 		Create("return 4;", new[] { 1 }), // Non-empty: returns first element (1) four times = 1+1+1+1 = 4
 		Create("return 228;", new int[] { }), // Empty: returns default values 42+99+77+20 = 238
 	];
@@ -136,7 +136,7 @@ public class LinqDefaultIfEmptyOptimizationListTests : BaseTest<Func<List<int>, 
 			var e = x.Count > 0 ? x[0] : 100;
 			
 			return a + b + c + d + e;
-			""", Unknown),
+			"""),
 		Create("return 21;", new List<int> { 1, 2, 3, 4, 5 }), // Non-empty: 5+5+5+5+1 = 21
 		Create("return 104;", new List<int>()), // Empty: 1+1+1+1+100 = 104
 	];
@@ -177,7 +177,7 @@ public class LinqDefaultIfEmptyComplexTests : BaseTest<Func<int[], int>>
 			var f = x.Length > 0 ? x[^1] : 10;
 			
 			return a + b + c + d + e + f;
-			""", Unknown),
+			"""),
 		Create("return 52;", new[] { 1, 2, 3, 4, 5 }), // a=15 (sum of 1-5), b=25 (empty, default), c=1 (non-empty) = 41
 		Create("return 115;", new int[] { }), // a=50 (empty, default), b=25 (empty, default), c=30 (empty, default) = 105
 	];

@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", 1)
+public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n is 1)
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -37,14 +37,14 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", 1)
 				if (Single.IsNaN(x)) return Single.NaN;
 				var negative = x < 0f;
 				x = Single.Abs(x);
-			
+
 				// Minimax polynomial: approximates acos(x) / sqrt(1-x) on [0, 1]
 				// Coefficients: Abramowitz & Stegun table 4.4.45
 				var p = Single.FusedMultiplyAdd(-0.0187293f, x, 0.0742610f);
 				p = Single.FusedMultiplyAdd(p, x, -0.2121144f);
 				p = Single.FusedMultiplyAdd(p, x, 1.5707288f);
 				p *= Single.Sqrt(1f - x);
-			
+
 				// Exploit symmetry: acos(-x) = π - acos(x)
 				return negative ? Single.Pi - p : p;
 			}
@@ -66,11 +66,11 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", 1)
 				var negative = x < 0.0;
 				x = Double.Abs(x);
 				var big = x > 0.5;
-			
+
 				// Choose t such that u = t² ≤ 0.25 in both branches
 				var t = big ? Double.Sqrt((1.0 - x) * 0.5) : x;
 				var u = t * t;
-			
+
 				// Horner evaluation of asin(t)/t via Taylor series:
 				// asin(t)/t = Σ C_n·u^n,  C_n = (2n-1)!! / ((2n)!! · (2n+1))
 				// Terms n=6,7,8 are omitted — their combined contribution at u_max=0.25 is < 4.2e-6 rad.
@@ -79,10 +79,10 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", 1)
 				p = Double.FusedMultiplyAdd(u, p, 3.0 / 40.0);    // n=2
 				p = Double.FusedMultiplyAdd(u, p, 1.0 / 6.0);     // n=1
 				p = Double.FusedMultiplyAdd(u, p, 1.0);            // n=0
-			
+
 				var asinT = t * p;
 				var result = big ? 2.0 * asinT : Math.PI / 2.0 - asinT;
-			
+
 				return negative ? Math.PI - result : result;
 			}
 			""";

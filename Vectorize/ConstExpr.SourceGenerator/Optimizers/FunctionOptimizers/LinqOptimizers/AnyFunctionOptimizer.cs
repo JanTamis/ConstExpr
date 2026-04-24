@@ -27,7 +27,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.ToList().Any() => collection.Any() (materialization doesn't affect existence)
 /// - collection.ToArray().Any() => collection.Any() (materialization doesn't affect existence)
 /// </summary>
-public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Any), 0, 1)
+public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Any), n => n is 0 or 1)
 {
 	// Operations that don't affect element existence (only order/form/duplicates/materialization)
 	private static readonly HashSet<string> OperationsThatDontAffectExistence =
@@ -37,7 +37,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		nameof(Enumerable.Select), // Projection: transforms elements but doesn't filter
 		nameof(Enumerable.Distinct), // Deduplication: may reduce count, but if any exist, Any() is true
 		nameof(Enumerable.GroupBy), // Grouping: groups elements but doesn't filter them out, so it doesn't affect whether any elements exist
-		"Chunk", // Chunking: groups elements but doesn't filter them out, so it doesn't affect whether any elements exist
+		"Chunk" // Chunking: groups elements but doesn't filter them out, so it doesn't affect whether any elements exist
 	];
 
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)

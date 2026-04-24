@@ -36,7 +36,7 @@ public class LinqMinOptimizationTests : BaseTest<Func<int[], int>>
 			var e = Min_BeESfw(x);
 			
 			return a + b + c + d + e;
-			""", Unknown),
+			"""),
 		Create("return 5;", new[] { 1, 2, 3 }),
 		Create("return 25;", new[] { 5 }),
 	];

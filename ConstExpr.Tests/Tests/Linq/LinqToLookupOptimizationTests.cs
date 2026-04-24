@@ -75,7 +75,7 @@ public class LinqToLookupOptimizationTests : BaseTest<Func<int[], int>>
 			var n = ToLookup_7h7V_Q(x).Count;
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l + m + n;
-			""", Unknown),
+			"""),
 		Create("""
 			var a = new Lookup_tdV2Ug().Count;
 			var b = new Lookup_tdV2Ug().Count;

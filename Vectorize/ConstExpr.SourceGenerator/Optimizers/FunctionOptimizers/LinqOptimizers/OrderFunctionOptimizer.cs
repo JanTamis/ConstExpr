@@ -12,7 +12,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// Optimizes patterns such as:
 /// - collection.Order().Order() => collection.Order() (redundant order)
 /// </summary>
-public class OrderFunctionOptimizer() : BaseLinqFunctionOptimizer("Order", 0)
+public class OrderFunctionOptimizer() : BaseLinqFunctionOptimizer("Order", n => n is 0)
 {
 	private static readonly HashSet<string> OrderingOperations =
 	[
@@ -22,14 +22,14 @@ public class OrderFunctionOptimizer() : BaseLinqFunctionOptimizer("Order", 0)
 		"Order",
 		"OrderDescending"
 	];
-	
+
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		if (TryExecutePredicates(context, source, out result, out source))
 		{
 			return true;
 		}
-		
+
 		var isNewSource = TryGetOptimizedChainExpression(source, OrderingOperations, out source);
 
 		if (IsLinqMethodChain(source, out var methodName, out var invocation)
@@ -49,7 +49,7 @@ public class OrderFunctionOptimizer() : BaseLinqFunctionOptimizer("Order", 0)
 				}
 			}
 		}
-		
+
 		if (isNewSource)
 		{
 			result = UpdateInvocation(context, source);

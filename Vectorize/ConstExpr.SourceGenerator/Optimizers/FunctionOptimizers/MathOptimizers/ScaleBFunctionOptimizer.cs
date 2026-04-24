@@ -9,7 +9,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class ScaleBFunctionOptimizer() : BaseMathFunctionOptimizer("ScaleB", 2)
+public class ScaleBFunctionOptimizer() : BaseMathFunctionOptimizer("ScaleB", n => n is 2)
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -56,12 +56,13 @@ public class ScaleBFunctionOptimizer() : BaseMathFunctionOptimizer("ScaleB", 2)
 	private static bool TryGetIntegerLiteral(ExpressionSyntax expr, out int value)
 	{
 		value = 0;
+
 		switch (expr)
 		{
 			case LiteralExpressionSyntax { Token.Value: int i }:
 				value = i;
 				return true;
-			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: int i2 } }:
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: int i2 } }:
 				value = -i2;
 				return true;
 			default:
@@ -72,12 +73,13 @@ public class ScaleBFunctionOptimizer() : BaseMathFunctionOptimizer("ScaleB", 2)
 	private static bool TryGetNumericLiteral(ExpressionSyntax expr, out double value)
 	{
 		value = 0;
+
 		switch (expr)
 		{
 			case LiteralExpressionSyntax { Token.Value: IConvertible c }:
 				value = c.ToDouble(CultureInfo.InvariantCulture);
 				return true;
-			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
 				value = -c2.ToDouble(CultureInfo.InvariantCulture);
 				return true;
 			default:
@@ -131,6 +133,3 @@ public class ScaleBFunctionOptimizer() : BaseMathFunctionOptimizer("ScaleB", 2)
 			""";
 	}
 }
-
-
-

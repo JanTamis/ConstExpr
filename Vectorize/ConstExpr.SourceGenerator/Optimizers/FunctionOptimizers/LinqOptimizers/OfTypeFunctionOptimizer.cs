@@ -13,7 +13,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.OfType&lt;T&gt;().OfType&lt;T&gt;() => collection.OfType&lt;T&gt;() (duplicate removal)
 /// - collection.Cast&lt;T&gt;().OfType&lt;T&gt;() => collection.Cast&lt;T&gt;() (redundant OfType after Cast)
 /// </summary>
-public class OfTypeFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.OfType), 0)
+public class OfTypeFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.OfType), n => n is 0)
 {
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -37,13 +37,13 @@ public class OfTypeFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 			switch (methodName)
 			{
 				case nameof(Enumerable.OfType) when context.Model.GetSymbolInfo(invocation).Symbol is IMethodSymbol { TypeArguments.Length: > 0 } ofTypeMethod
-					&& SymbolEqualityComparer.Default.Equals(ofTypeMethod.TypeArguments[0], typeArg):
+				                                    && SymbolEqualityComparer.Default.Equals(ofTypeMethod.TypeArguments[0], typeArg):
 				{
 					result = invocationSource;
 					return true;
 				}
 				case nameof(Enumerable.Cast) when context.Model.GetSymbolInfo(invocation).Symbol is IMethodSymbol { TypeArguments.Length: > 0 } castMethod
-					&& SymbolEqualityComparer.Default.Equals(castMethod.TypeArguments[0], typeArg):
+				                                  && SymbolEqualityComparer.Default.Equals(castMethod.TypeArguments[0], typeArg):
 				{
 					result = invocationSource;
 					return true;
@@ -55,4 +55,3 @@ public class OfTypeFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		return false;
 	}
 }
-

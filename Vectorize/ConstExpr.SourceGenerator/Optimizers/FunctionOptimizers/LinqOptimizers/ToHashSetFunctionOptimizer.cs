@@ -15,15 +15,15 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.AsEnumerable().ToHashSet() => collection.ToHashSet()
 /// - collection.ToList().ToHashSet() => collection.ToHashSet()
 /// </summary>
-public class ToHashSetFunctionOptimizer() : BaseLinqFunctionOptimizer("ToHashSet", 0)
+public class ToHashSetFunctionOptimizer() : BaseLinqFunctionOptimizer("ToHashSet", n => n is 0)
 {
 	private static readonly HashSet<string> OperationsThatDontAffectExistence =
 	[
 		..MaterializingMethods, // Materialization doesn't affect existence in a HashSet
 		..OrderingOperations, // Ordering doesn't affect existence in a HashSet
-		nameof(Enumerable.Distinct), // Distinct is implicit in HashSet, so we can skip it
+		nameof(Enumerable.Distinct) // Distinct is implicit in HashSet, so we can skip it
 	];
-	
+
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectExistence, out source);
@@ -44,4 +44,3 @@ public class ToHashSetFunctionOptimizer() : BaseLinqFunctionOptimizer("ToHashSet
 		return false;
 	}
 }
-

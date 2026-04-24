@@ -8,12 +8,11 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalAndSt
 /// <summary>
 /// Strategy for contradiction: a && !a => false and !a && a => false (pure)
 /// </summary>
-public class ConditionalAndContradictionStrategy : SymmetricStrategy<BooleanBinaryStrategy, ExpressionSyntax, PrefixUnaryExpressionSyntax>
+public class ConditionalAndContradictionStrategy() : SymmetricStrategy<BooleanBinaryStrategy, ExpressionSyntax, PrefixUnaryExpressionSyntax>(rightKind: SyntaxKind.LogicalNotExpression)
 {
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<ExpressionSyntax, PrefixUnaryExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (!context.Right.Syntax.IsKind(SyntaxKind.LogicalNotExpression)
-		    || !LeftEqualsRight(context.Right.Syntax.Operand, context.Left.Syntax, context.Variables)
+		if (LeftEqualsRight(context.Right.Syntax.Operand, context.Left.Syntax, context.Variables)
 		    || !IsPure(context.Left.Syntax))
 		{
 			optimized = null;

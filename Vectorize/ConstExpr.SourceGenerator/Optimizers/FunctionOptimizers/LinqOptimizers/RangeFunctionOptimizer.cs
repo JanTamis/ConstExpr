@@ -11,7 +11,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// Optimizes patterns such as:
 /// - Enumerable.Range(start, 0) => [] (empty range, regardless of start value)
 /// </summary>
-public class RangeFunctionOptimizer() : BaseLinqFunctionOptimizer("Range", 2)
+public class RangeFunctionOptimizer() : BaseLinqFunctionOptimizer("Range", n => n is 2)
 {
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -35,6 +35,3 @@ public class RangeFunctionOptimizer() : BaseLinqFunctionOptimizer("Range", 2)
 		return false;
 	}
 }
-
-
-

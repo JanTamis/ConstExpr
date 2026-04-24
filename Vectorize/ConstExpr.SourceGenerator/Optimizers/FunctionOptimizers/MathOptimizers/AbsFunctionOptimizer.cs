@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", 1)
+public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", n => n is 1)
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -38,7 +38,7 @@ public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", 1)
 		{
 			context.Usings.Add("System.Runtime.CompilerServices");
 			context.Usings.Add("System.Numerics");
-			
+
 			var method = ParseMethodFromString("""
 				/// <summary>
 				/// Computes absolute value using branchless bit manipulation.
@@ -48,7 +48,7 @@ public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", 1)
 				{
 					var bits = Unsafe.SizeOf<T>() * 8 - 1;
 					var mask = x >> bits;
-				
+
 					return (x + mask) ^ mask;
 				}
 				""");

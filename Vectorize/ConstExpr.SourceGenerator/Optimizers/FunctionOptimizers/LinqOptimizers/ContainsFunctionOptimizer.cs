@@ -27,14 +27,14 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.ToList().Contains(value) => collection.Contains(value) (materialization doesn't affect containment)
 /// - collection.ToArray().Contains(value) => collection.Contains(value) (materialization doesn't affect containment)
 /// </summary>
-public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Contains), 1, 2)
+public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Contains), n => n is 1 or 2)
 {
 	// Operations that don't affect element containment (only order/form/duplicates/materialization)
 	private static readonly HashSet<string> OperationsThatDontAffectContainment =
 	[
 		..MaterializingMethods,
 		..OrderingOperations,
-		nameof(Enumerable.Distinct), // Deduplication: may reduce count, but if element exists, Contains is true
+		nameof(Enumerable.Distinct) // Deduplication: may reduce count, but if element exists, Contains is true
 	];
 
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
@@ -83,7 +83,7 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 					else
 					{
 						wherePredicate = context.Visit(wherePredicate) as LambdaExpressionSyntax ?? wherePredicate;
-						
+
 						var boolType = context.Model.Compilation.CreateBoolean();
 
 						// Create a new lambda that combines the where predicate with equality check
@@ -201,11 +201,11 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 				case nameof(Enumerable.Range) when invocation.ArgumentList.Arguments is [ var startArg, var countArg ]:
 				{
 					var intType = context.Model.Compilation.CreateInt32();
-					
+
 					var left = OptimizeComparison(context, SyntaxKind.GreaterThanOrEqualExpression, searchValue, startArg.Expression, intType);
-					var right = OptimizeComparison(context, SyntaxKind.LessThanExpression, searchValue, 
-						 OptimizeArithmetic(context, SyntaxKind.AddExpression, countArg.Expression, startArg.Expression, intType), intType);
-					
+					var right = OptimizeComparison(context, SyntaxKind.LessThanExpression, searchValue,
+						OptimizeArithmetic(context, SyntaxKind.AddExpression, countArg.Expression, startArg.Expression, intType), intType);
+
 					// searchValue >= start && searchValue < count + start
 					result = OptimizeComparison(context, SyntaxKind.LogicalAndExpression, left, right, context.Model.Compilation.CreateBoolean());
 					return true;
@@ -218,7 +218,7 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 					// Repeat(element, count).Contains(x) => count > 0 && element == x
 					var countPositive = OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, CreateLiteral(0), intType);
 					var elementEquals = OptimizeComparison(context, SyntaxKind.EqualsExpression, repeatElementArg.Expression, searchValue, intType);
-					
+
 					result = OptimizeComparison(context, SyntaxKind.LogicalAndExpression, countPositive, elementEquals, boolType);
 					return true;
 				}
@@ -233,7 +233,7 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		// Literal collection: [1, 2, 3].Contains(x) → x is 1 or 2 or 3
 		// This is more efficient than Array.IndexOf when the collection is a small constant set.
 		const int maxIsPatternElements = 8;
-		
+
 		if (TryGetSyntaxes(source, out var litSyntaxes)
 		    && litSyntaxes.Count is > 0 and <= maxIsPatternElements
 		    && litSyntaxes.All(s => s is LiteralExpressionSyntax)
@@ -242,7 +242,7 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 			var orPattern = litSyntaxes
 				.Select(PatternSyntax (syntax) => ConstantPattern(syntax))
 				.Aggregate((left, right) => BinaryPattern(SyntaxKind.OrPattern, left, right));
-			
+
 			result = context.Visit(IsPatternExpression(searchValue, orPattern));
 			return true;
 		}

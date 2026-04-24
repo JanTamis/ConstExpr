@@ -12,7 +12,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// Optimizes patterns such as:
 /// - collection.TakeLast(0) => Enumerable.Empty&lt;T&gt;() (take nothing)
 /// </summary>
-public class TakeLastFunctionOptimizer() : BaseLinqFunctionOptimizer("TakeLast", 1)
+public class TakeLastFunctionOptimizer() : BaseLinqFunctionOptimizer("TakeLast", n => n is 1)
 {
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -67,4 +67,3 @@ public class TakeLastFunctionOptimizer() : BaseLinqFunctionOptimizer("TakeLast",
 		return false;
 	}
 }
-

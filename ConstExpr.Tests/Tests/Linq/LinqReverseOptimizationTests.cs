@@ -41,7 +41,7 @@ public class LinqReverseOptimizationTests : BaseTest<Func<int[], int>>
 			var e = Min_BeESfw(x);
 			
 			return a + b + c + d + e;
-			""", Unknown),
+			"""),
 		Create("return 9;", new[] { 1, 2, 3 }),
 		Create("return 25;", new[] { 5 }),
 	];

@@ -49,7 +49,7 @@ public class LCMTest() : BaseTest<Func<int, int, int>>(FastMathFlags.FastMath)
 			var gcd = aa;
 			
 			return AbsFast(a * b) / gcd;
-			""", Unknown, Unknown),
+			"""),
 		Create("return 12;", 4, 6),
 		Create("return 0;", 0, 5),
 		Create("return 42;", 21, 6)

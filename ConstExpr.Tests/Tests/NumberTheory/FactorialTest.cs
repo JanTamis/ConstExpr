@@ -48,7 +48,7 @@ public class FactorialTest() : BaseTest<Func<int, long>>(FastMathFlags.FastMath)
 			}
 
 			return result;
-			""", Unknown),
+			"""),
 		Create("return 120L;", 5),
 		Create("return 1L;", 1),
 		Create("return -1L;", -5),

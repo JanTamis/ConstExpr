@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class BitDecrementFunctionOptimizer() : BaseMathFunctionOptimizer("BitDecrement", 1)
+public class BitDecrementFunctionOptimizer() : BaseMathFunctionOptimizer("BitDecrement", n => n is 1)
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{

@@ -20,7 +20,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// Note: OrderBy/OrderByDescending/Reverse DOES affect which element is first, so we don't optimize those!
 /// Note: Distinct might remove the first element if it's a duplicate, so we don't optimize that either!
 /// </summary>
-public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.FirstOrDefault), 0, 1)
+public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.FirstOrDefault), n => n is 0 or 1)
 {
 	// Operations that don't affect which element is "first"
 	// We CAN'T include ordering operations because they change which element comes first!
@@ -28,7 +28,7 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 	private static readonly HashSet<string> OperationsThatDontAffectFirst =
 	[
 		..MaterializingMethods,
-		nameof(Enumerable.Distinct), // Distinct might remove the first element if it's a duplicate, so we don't optimize that either!
+		nameof(Enumerable.Distinct) // Distinct might remove the first element if it's a duplicate, so we don't optimize that either!
 	];
 
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)

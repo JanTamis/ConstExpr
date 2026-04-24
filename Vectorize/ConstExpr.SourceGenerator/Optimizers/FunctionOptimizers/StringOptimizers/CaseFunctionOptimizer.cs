@@ -13,7 +13,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 /// - s.ToUpperInvariant().ToUpperInvariant() → s.ToUpperInvariant()
 /// - s.ToLowerInvariant().ToLowerInvariant() → s.ToLowerInvariant()
 /// </summary>
-public class CaseFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "ToUpper", false, 0)
+public class CaseFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "ToUpper", false, n => n is 0)
 {
 	private static readonly HashSet<string> CaseMethods =
 	[
@@ -26,7 +26,7 @@ public class CaseFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOpt
 	protected override bool TryOptimizeString(FunctionOptimizerContext context, ITypeSymbol stringType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		result = null;
-		
+
 		var methodName = context.Method.Name;
 
 		if (!CaseMethods.Contains(methodName))
@@ -47,4 +47,3 @@ public class CaseFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOpt
 		return false;
 	}
 }
-

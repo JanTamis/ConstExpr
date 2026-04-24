@@ -9,7 +9,7 @@ public class PercentageTest() : BaseTest<Func<double, double, double>>(FastMathF
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return value * percentage * 0.01;", Unknown, Unknown),
+		Create("return value * percentage * 0.01;"),
 		Create("return 25D;", 100.0, 25.0),
 		Create("return 0D;", 50.0, 0.0),
 		Create("return 7.5D;", 50.0, 15.0)

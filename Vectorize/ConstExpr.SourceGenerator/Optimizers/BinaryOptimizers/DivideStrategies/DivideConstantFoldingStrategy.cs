@@ -32,11 +32,7 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 
 			if (result != null && TryCreateLiteral(result, out var newConstant))
 			{
-				optimized = BinaryExpression(
-					SyntaxKind.DivideExpression,
-					leftDiv.Left,
-					newConstant);
-
+				optimized = DivideExpression(leftDiv.Left, newConstant);
 				return true;
 			}
 		}
@@ -50,11 +46,7 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 
 			if (result != null && TryCreateLiteral(result, out var newConstant))
 			{
-				optimized = BinaryExpression(
-					SyntaxKind.DivideExpression,
-					newConstant,
-					leftDiv2.Right);
-
+				optimized = DivideExpression(newConstant, leftDiv2.Right);
 				return true;
 			}
 		}
@@ -68,11 +60,7 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 
 			if (result != null && TryCreateLiteral(result, out var newConstant))
 			{
-				optimized = BinaryExpression(
-					SyntaxKind.DivideExpression,
-					newConstant,
-					rightDiv.Left);
-
+				optimized = DivideExpression(newConstant, rightDiv.Left);
 				return true;
 			}
 		}
@@ -86,11 +74,7 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 
 			if (result != null && TryCreateLiteral(result, out var newConstant))
 			{
-				optimized = BinaryExpression(
-					SyntaxKind.MultiplyExpression,
-					newConstant,
-					rightDiv2.Right);
-				
+				optimized = MultiplyExpression(newConstant, rightDiv2.Right);
 				return true;
 			}
 		}
@@ -104,11 +88,7 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 
 			if (result != null && TryCreateLiteral(result, out var newConstant))
 			{
-				optimized = BinaryExpression(
-					SyntaxKind.MultiplyExpression,
-					leftMul.Left,
-					newConstant);
-
+				optimized = MultiplyExpression(leftMul.Left, newConstant);
 				return true;
 			}
 		}
@@ -122,11 +102,7 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 
 			if (result != null && TryCreateLiteral(result, out var newConstant))
 			{
-				optimized = BinaryExpression(
-					SyntaxKind.MultiplyExpression,
-					leftMul2.Right,
-					newConstant);
-
+				optimized = MultiplyExpression(leftMul2.Right, newConstant);
 				return true;
 			}
 		}

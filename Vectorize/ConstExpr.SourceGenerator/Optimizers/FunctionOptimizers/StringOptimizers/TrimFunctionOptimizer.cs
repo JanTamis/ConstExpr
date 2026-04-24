@@ -11,7 +11,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 /// - s.TrimStart().TrimStart() → s.TrimStart()
 /// - s.TrimEnd().TrimEnd() → s.TrimEnd()
 /// </summary>
-public class TrimFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "Trim", false, 1)
+public class TrimFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "Trim", false, n => n is 1)
 {
 	protected override bool TryOptimizeString(FunctionOptimizerContext context, ITypeSymbol stringType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -25,8 +25,8 @@ public class TrimFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOpt
 		}
 
 		// Check if instance is already a Trim call of the same type
-		if (Instance is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax innerMemberAccess } innerInvocation 
-		    && innerMemberAccess.Name.Identifier.Text == methodName 
+		if (Instance is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax innerMemberAccess } innerInvocation
+		    && innerMemberAccess.Name.Identifier.Text == methodName
 		    && innerInvocation.ArgumentList.Arguments.Count == 0)
 		{
 			// s.Trim().Trim() → s.Trim()
@@ -37,4 +37,3 @@ public class TrimFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOpt
 		return false;
 	}
 }
-

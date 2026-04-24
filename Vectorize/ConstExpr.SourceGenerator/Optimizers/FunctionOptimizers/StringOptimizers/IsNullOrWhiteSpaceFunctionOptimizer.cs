@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics.CodeAnalysis;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
@@ -9,7 +10,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 /// <summary>
 /// Optimizes string.IsNullOrWhiteSpace(literal) to true/false.
 /// </summary>
-public class IsNullOrWhiteSpaceFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "IsNullOrWhiteSpace", true, 1)
+public class IsNullOrWhiteSpaceFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "IsNullOrWhiteSpace", true, n => n is 1)
 {
 	protected override bool TryOptimizeString(FunctionOptimizerContext context, ITypeSymbol stringType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -28,11 +29,10 @@ public class IsNullOrWhiteSpaceFunctionOptimizer(SyntaxNode? instance) : BaseStr
 
 		if (literal.IsKind(SyntaxKind.StringLiteralExpression))
 		{
-			result = CreateLiteral(string.IsNullOrWhiteSpace(literal.Token.ValueText));
+			result = CreateLiteral(String.IsNullOrWhiteSpace(literal.Token.ValueText));
 			return true;
 		}
 
 		return false;
 	}
 }
-

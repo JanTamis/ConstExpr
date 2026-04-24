@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class Exp10FunctionOptimizer() : BaseMathFunctionOptimizer("Exp10", 1)
+public class Exp10FunctionOptimizer() : BaseMathFunctionOptimizer("Exp10", n => n is 1)
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{

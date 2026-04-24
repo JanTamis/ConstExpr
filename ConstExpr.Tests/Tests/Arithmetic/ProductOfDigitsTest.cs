@@ -32,7 +32,7 @@ public class ProductOfDigitsTest() : BaseTest<Func<int, int>>(FastMathFlags.Fast
 			}
 			
 			return product;
-			""", Unknown),
+			"""),
 		Create("return 24;", 234),
 		Create("return 0;", 105),
 		Create("return 5;", 5)

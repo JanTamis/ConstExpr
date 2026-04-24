@@ -9,7 +9,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class Atan2FunctionOptimizer() : BaseMathFunctionOptimizer("Atan2", 2)
+public class Atan2FunctionOptimizer() : BaseMathFunctionOptimizer("Atan2", n => n is 2)
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -77,12 +77,13 @@ public class Atan2FunctionOptimizer() : BaseMathFunctionOptimizer("Atan2", 2)
 	private static bool TryGetNumericLiteral(ExpressionSyntax expr, out double value)
 	{
 		value = 0;
+
 		switch (expr)
 		{
 			case LiteralExpressionSyntax { Token.Value: IConvertible c }:
 				value = c.ToDouble(CultureInfo.InvariantCulture);
 				return true;
-			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
 				value = -c2.ToDouble(CultureInfo.InvariantCulture);
 				return true;
 			default:

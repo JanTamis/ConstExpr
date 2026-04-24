@@ -13,7 +13,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// - collection.Take(0) =&gt; Enumerable.Empty&lt;T&gt;() (replace with empty collection)
 /// - collection.Skip(n).Take(m) =&gt; potential range optimization
 /// </summary>
-public class TakeFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Take), 1)
+public class TakeFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Take), n => n is 1)
 {
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -29,9 +29,9 @@ public class TakeFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 		       && TryGetLinqSource(takeInvocation, out var takeSource))
 		{
 			var argument = takeInvocation.ArgumentList.Arguments[0].Expression;
-			
+
 			amounts.Add(argument);
-			
+
 			TryGetOptimizedChainExpression(takeSource, MaterializingMethods, out source);
 			isNewSource = true;
 		}
@@ -43,7 +43,7 @@ public class TakeFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 
 		var noValues = amounts
 			.Where(w => w is not LiteralExpressionSyntax);
-		
+
 		var amount = noValues
 			.Aggregate<ExpressionSyntax, ExpressionSyntax>(minAmount, (acc, next) => CreateInvocation(ParseTypeName("Int32"), "Min", acc, next));
 
@@ -52,14 +52,14 @@ public class TakeFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 			result = CreateEmptyEnumerableCall(context.Method.TypeArguments[0]);
 			return true;
 		}
-		
+
 		if (isNewSource)
 		{
-			if (TryExecutePredicates(context, source, [amount], out result))
+			if (TryExecutePredicates(context, source, [ amount ], out result))
 			{
 				return true;
 			}
-			
+
 			result = UpdateInvocation(context, source, amount);
 			return true;
 		}

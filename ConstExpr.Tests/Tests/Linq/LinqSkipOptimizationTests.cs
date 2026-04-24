@@ -23,7 +23,7 @@ public class LinqSkipOptimizationTests : BaseTest<Func<int[], int>>
 			var b = Int32.Max(0, x.Length - 4);
 
 			return a + b;
-			""", Unknown),
+			"""),
 		Create("return 3;", new[] { 1, 2, 3 }),
 		Create("return 0;", new int[] { }),
 	];
