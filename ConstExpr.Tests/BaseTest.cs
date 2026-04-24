@@ -1,5 +1,6 @@
 extern alias sourcegen;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using ConstExpr.Core.Attributes;
 using Microsoft.CodeAnalysis;
@@ -32,25 +33,30 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 	/// </summary>
 	public static readonly object Unknown = new();
 
-	private static Compilation _compilation;
-	private static List<string> _parameterNames = null!;
-	private static SemanticModel _semanticModel = null!;
-	private static MetadataLoader _loader = null!;
-	private static LocalFunctionStatementSyntax _method;
+	private sealed class ClassState
+	{
+		public Compilation Compilation { get; init; } = null!;
+		public List<string> ParameterNames { get; init; } = null!;
+		public SemanticModel SemanticModel { get; init; } = null!;
+		public MetadataLoader Loader { get; init; } = null!;
+		public LocalFunctionStatementSyntax Method { get; init; } = null!;
+	}
+
+	private static readonly ConcurrentDictionary<Type, ClassState> _stateByType = new();
+
+	private ClassState GetState() => _stateByType[GetType()];
 
 	[Before(Class)]
 	public static async Task SetupAsync(ClassHookContext context)
 	{
-		// Get the test method from the test class instance
-		// We need to create an instance to access the abstract property
 		var testType = context.ClassType;
 		var instance = Activator.CreateInstance(testType);
 		var testMethodProperty = testType.GetProperty(nameof(TestMethod), System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.IgnoreCase);
 		var testMethodValue = testMethodProperty?.GetValue(instance) as string ?? throw new InvalidOperationException("TestMethod not found");
 
-		_compilation = CreateCompilation(BuildSourceWithMethod(testMethodValue));
+		var compilation = CreateCompilation(BuildSourceWithMethod(testMethodValue));
 
-		var compilationErrors = _compilation
+		var compilationErrors = compilation
 			.GetDiagnostics()
 			.Where(w => w.Severity == DiagnosticSeverity.Error)
 			.Select(s => new InvalidOperationException(s.ToString()))
@@ -67,28 +73,30 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			}
 		}
 
-		_method = _compilation.SyntaxTrees
+		var method = compilation.SyntaxTrees
 			.SelectMany(s => s.GetRoot()
 				.DescendantNodes()
 				.OfType<LocalFunctionStatementSyntax>())
 			.First();
 
-		_parameterNames = _method.ParameterList.Parameters
-			.Select(s => s.Identifier.Text)
-			.ToList();
+		var state = new ClassState
+		{
+			Compilation = compilation,
+			Method = method,
+			ParameterNames = method.ParameterList.Parameters
+				.Select(s => s.Identifier.Text)
+				.ToList(),
+			SemanticModel = compilation.GetSemanticModel(method.SyntaxTree),
+			Loader = MetadataLoader.GetLoader(compilation),
+		};
 
-		_semanticModel = _compilation.GetSemanticModel(_method.SyntaxTree);
-		_loader = MetadataLoader.GetLoader(_compilation);
+		_stateByType[testType] = state;
 	}
 
 	[After(Class)]
-	public static void TearDown()
+	public static void TearDown(ClassHookContext context)
 	{
-		_compilation = null!;
-		_parameterNames = null!;
-		_semanticModel = null!;
-		_loader = null!;
-		_method = null!;
+		_stateByType.TryRemove(context.ClassType, out _);
 	}
 
 	[Test]
@@ -97,7 +105,9 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 	// [ArgumentDisplayFormatter<SyntaxFormatter>]
 	public void RunTest(KeyValuePair<string?, object?[]> testCase)
 	{
-		if (testCase.Value.Length != _parameterNames.Count)
+		var state = GetState();
+
+		if (testCase.Value.Length != state.ParameterNames.Count)
 		{
 			throw new InvalidOperationException("Parameter count mismatch.");
 		}
@@ -107,14 +117,14 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		var visitedMethods = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
 		var additionalSyntax = new Dictionary<SyntaxNode, bool>(SyntaxNodeComparer.Get());
 
-		var parameters = new Dictionary<string, VariableItem>(_parameterNames.Count);
+		var parameters = new Dictionary<string, VariableItem>(state.ParameterNames.Count);
 
-		foreach (var param in _parameterNames)
+		foreach (var param in state.ParameterNames)
 		{
 
 			parameters[param] = new VariableItem(
-				type: _semanticModel.GetTypeInfo(
-					_method.ParameterList.Parameters
+				type: state.SemanticModel.GetTypeInfo(
+					state.Method.ParameterList.Parameters
 						.First(p => p.Identifier.Text == param)
 						.Type!).Type!,
 				hasValue: false,
@@ -123,7 +133,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 
 		var exceptionsDuringRewriting = new List<Exception>();
 
-		var rewriter = new ConstExprPartialRewriter(_semanticModel, _loader, (_, exception) => exceptionsDuringRewriting.Add(exception), parameters, additionalSyntax, new HashSet<string>(), attribute, new(), CancellationToken.None, visitedMethods);
+		var rewriter = new ConstExprPartialRewriter(state.SemanticModel, state.Loader, (_, exception) => exceptionsDuringRewriting.Add(exception), parameters, additionalSyntax, new HashSet<string>(), attribute, new(), CancellationToken.None, visitedMethods);
 
 		for (var i = 0; i < testCase.Value.Length; i++)
 		{
@@ -131,21 +141,21 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 
 			if (value == Unknown)
 			{
-				parameters[_parameterNames[i]].HasValue = false;
-				parameters[_parameterNames[i]].Value = null;
+				parameters[state.ParameterNames[i]].HasValue = false;
+				parameters[state.ParameterNames[i]].Value = null;
 			}
 			else
 			{
-				parameters[_parameterNames[i]].HasValue = true;
-				parameters[_parameterNames[i]].Value = value;
+				parameters[state.ParameterNames[i]].HasValue = true;
+				parameters[state.ParameterNames[i]].Value = value;
 			}
 
-			parameters[_parameterNames[i]].IsAccessed = false;
-			parameters[_parameterNames[i]].IsAltered = false;
-			parameters[_parameterNames[i]].IsInitialized = true;
+			parameters[state.ParameterNames[i]].IsAccessed = false;
+			parameters[state.ParameterNames[i]].IsAltered = false;
+			parameters[state.ParameterNames[i]].IsInitialized = true;
 		}
 
-		var newBody = rewriter.VisitBlock(_method.Body!) as BlockSyntax;
+		var newBody = rewriter.VisitBlock(state.Method.Body!) as BlockSyntax;
 
 		foreach (var parameter in parameters)
 		{
@@ -158,16 +168,16 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			}
 		}
 
-		newBody = DeadCodePruner.Prune(newBody, parameters, _semanticModel) as BlockSyntax;
+		newBody = DeadCodePruner.Prune(newBody, parameters, state.SemanticModel) as BlockSyntax;
 		newBody = FormattingHelper.Format(newBody!) as BlockSyntax;
 
 		if (testCase.Key is null)
 		{
-			var expectedBody = FormattingHelper.Format(_method.Body!) as BlockSyntax;
+			var expectedBody = FormattingHelper.Format(state.Method.Body!) as BlockSyntax;
 
 			if (!SyntaxNodeComparer.Get<BlockSyntax>().Equals(expectedBody, newBody))
 			{
-				throw FormatMismatchException(_parameterNames, parameters, expectedBody, newBody, additionalSyntax, exceptionsDuringRewriting);
+				throw FormatMismatchException(state.ParameterNames, parameters, expectedBody, newBody, additionalSyntax, exceptionsDuringRewriting);
 			}
 		}
 		else
@@ -181,16 +191,16 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			{
 				// Debug: find which statement differs
 				var debugInfo = new System.Text.StringBuilder();
-				
+
 				if (expectedBody != null && newBody != null)
 				{
 					var visitor = DeteministicHashVisitor.Instance;
-					
+
 					for (var si = 0; si < System.Math.Min(expectedBody.Statements.Count, newBody.Statements.Count); si++)
 					{
 						var expHash = visitor.Visit(expectedBody.Statements[si]);
 						var genHash = visitor.Visit(newBody.Statements[si]);
-						
+
 						if (expHash != genHash)
 						{
 							debugInfo.AppendLine($"Statement {si} differs:");
@@ -199,8 +209,8 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 						}
 					}
 				}
-				
-				throw FormatMismatchException(_parameterNames, parameters, expectedBody, newBody, additionalSyntax, exceptionsDuringRewriting, debugInfo.ToString());
+
+				throw FormatMismatchException(state.ParameterNames, parameters, expectedBody, newBody, additionalSyntax, exceptionsDuringRewriting, debugInfo.ToString());
 			}
 		}
 	}

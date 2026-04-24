@@ -25,11 +25,15 @@ public class SubtractFMALeftMultiplyStrategy() : NumericBinaryStrategy<BinaryExp
 
 		var host = ParseName(context.Type.Name);
 
+		var negatedRightOperand = context.Right.Syntax is BinaryExpressionSyntax or PrefixUnaryExpressionSyntax
+			? UnaryMinusExpression(ParenthesizedExpression(context.Right.Syntax))
+			: UnaryMinusExpression(context.Right.Syntax);
+
 		var arguments = ArgumentList(SeparatedList(
 		[
 			Argument(context.Left.Syntax.Left),
 			Argument(context.Left.Syntax.Right),
-			Argument(UnaryMinusExpression(context.Right.Syntax))
+			Argument(negatedRightOperand)
 		]));
 
 		if (ContainsMultiplyAddEstimate(context.Type))

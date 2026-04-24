@@ -77,39 +77,39 @@ public class LinqToLookupOptimizationTests : BaseTest<Func<int[], int>>
 			return a + b + c + d + e + f + g + h + i + j + k + l + m + n;
 			"""),
 		Create("""
-			var a = new Lookup_tdV2Ug().Count;
-			var b = new Lookup_tdV2Ug().Count;
-			var c = new Lookup_tdV2Ug().Count;
-			var d = new Lookup_tdV2Ug().Count;
-			var e = new Lookup_Z4CZww().Count;
-			var f = new Lookup_Z4CZww().Count;
-			var g = new Lookup_tdV2Ug().Count;
-			var h = new Lookup_tdV2Ug().Count;
-			var i = new Lookup_tdV2Ug().Count;
-			var j = new Lookup_tdV2Ug().Count;
-			var k = new Lookup_tdV2Ug().Count;
-			var l = new Lookup_r3gMMA().Count;
-			var m = new Lookup_tdV2Ug().Count;
-			var n = new Lookup_tdV2Ug().Count;
+			var a = new Lookup_Y1kvJw().Count;
+			var b = new Lookup_Y1kvJw().Count;
+			var c = new Lookup_Y1kvJw().Count;
+			var d = new Lookup_Y1kvJw().Count;
+			var e = new Lookup_5h3Mcg().Count;
+			var f = new Lookup_5h3Mcg().Count;
+			var g = new Lookup_Y1kvJw().Count;
+			var h = new Lookup_Y1kvJw().Count;
+			var i = new Lookup_Y1kvJw().Count;
+			var j = new Lookup_Y1kvJw().Count;
+			var k = new Lookup_Y1kvJw().Count;
+			var l = new Lookup_52wNyA().Count;
+			var m = new Lookup_Y1kvJw().Count;
+			var n = new Lookup_Y1kvJw().Count;
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l + m + n;
 			""", new[] { 1, 2, 3 }),
 		Create("""
-			var a = new Lookup_Pu_yfg().Count;
-			var b = new Lookup_Pu_yfg().Count;
-			var c = new Lookup_Pu_yfg().Count;
-			var d = new Lookup_Pu_yfg().Count;
-			var e = new Lookup_Pu_yfg().Count;
-			var f = new Lookup_Pu_yfg().Count;
-			var g = new Lookup_Pu_yfg().Count;
-			var h = new Lookup_Pu_yfg().Count;
-			var i = new Lookup_Pu_yfg().Count;
-			var j = new Lookup_Pu_yfg().Count;
-			var k = new Lookup_Pu_yfg().Count;
-			var l = new Lookup_Pu_yfg().Count;
-			var m = new Lookup_Pu_yfg().Count;
-			var n = new Lookup_Pu_yfg().Count;
-			
+			var a = new Lookup_0D3RIw().Count;
+			var b = new Lookup_0D3RIw().Count;
+			var c = new Lookup_0D3RIw().Count;
+			var d = new Lookup_0D3RIw().Count;
+			var e = new Lookup_0D3RIw().Count;
+			var f = new Lookup_0D3RIw().Count;
+			var g = new Lookup_0D3RIw().Count;
+			var h = new Lookup_0D3RIw().Count;
+			var i = new Lookup_0D3RIw().Count;
+			var j = new Lookup_0D3RIw().Count;
+			var k = new Lookup_0D3RIw().Count;
+			var l = new Lookup_0D3RIw().Count;
+			var m = new Lookup_0D3RIw().Count;
+			var n = new Lookup_0D3RIw().Count;
+
 			return a + b + c + d + e + f + g + h + i + j + k + l + m + n;
 			""", new int[] { }),
 	];
