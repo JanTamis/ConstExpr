@@ -331,7 +331,7 @@ public partial class ConstExprPartialRewriter
 
 		if (semanticModel.Compilation.TryGetSemanticModel(block, out var model))
 		{
-			var data = semanticModel.AnalyzeDataFlow(block, block);
+			var data = model.AnalyzeDataFlow(block, block);
 
 			if (!data.Succeeded)
 			{

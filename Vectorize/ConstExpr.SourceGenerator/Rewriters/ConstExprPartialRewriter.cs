@@ -84,9 +84,6 @@ public partial class ConstExprPartialRewriter(
 			.ToArray();
 	}, isThreadSafe: true);
 
-	#endregion
-
-
 	private readonly Lazy<BaseRegexFunctionOptimizer[]> _regexOptimizers = new(() =>
 	{
 		return typeof(BaseRegexFunctionOptimizer).Assembly
@@ -96,7 +93,9 @@ public partial class ConstExprPartialRewriter(
 			.OfType<BaseRegexFunctionOptimizer>()
 			.ToArray();
 	}, isThreadSafe: true);
-	
+
+	#endregion
+
 	#region Base Visit Overrides
 
 	[return: NotNullIfNotNull(nameof(node))]

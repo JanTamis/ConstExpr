@@ -425,7 +425,7 @@ public partial class ConstExprPartialRewriter
 				// Create the lambda expression
 				return Expression.Lambda(body, lambdaParams);
 			}
-			catch (Exception e)
+			catch (Exception)
 			{
 				return null;
 			}

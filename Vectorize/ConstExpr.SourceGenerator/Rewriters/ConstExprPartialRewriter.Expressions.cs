@@ -53,6 +53,7 @@ public partial class ConstExprPartialRewriter
 		}
 		catch (Exception e)
 		{
+			exceptionHandler(node, e);
 			return node;
 		}
 
@@ -130,16 +131,6 @@ public partial class ConstExprPartialRewriter
 				if (TryOptimizeBinaryExpression(operation, expressions, leftExpr, rightExpr, node.Parent, out var optimized))
 				{
 					return Visit(optimized);
-					// if (node.Parent is not BinaryExpressionSyntax 
-					//     && optimized is IsPatternExpressionSyntax pattern)
-					// {
-					// 	return VisitIsPatternExpression(pattern);
-					// }
-					//
-					// // Strip unnecessary parentheses from the optimized result
-					// // since the context may have changed (e.g., (x + y) * 1 becomes just (x + y),
-					// // but parens around x + y are no longer needed in assignment context)
-					// return StripUnnecessaryParentheses(optimized);
 				}
 
 				return node
@@ -703,40 +694,7 @@ public partial class ConstExprPartialRewriter
 
 		return base.VisitCastExpression(node);
 	}
-
-	/// <summary>
-	/// Converts a value to the specified special type.
-	/// </summary>
-	private static object? ConvertToSpecialType(SpecialType specialType, object? value)
-	{
-		try
-		{
-			return specialType switch
-			{
-				SpecialType.System_Boolean => Convert.ToBoolean(value),
-				SpecialType.System_Byte => Convert.ToByte(value),
-				SpecialType.System_Char => Convert.ToChar(value),
-				SpecialType.System_DateTime => Convert.ToDateTime(value),
-				SpecialType.System_Decimal => Convert.ToDecimal(value),
-				SpecialType.System_Double => Convert.ToDouble(value),
-				SpecialType.System_Int16 => Convert.ToInt16(value),
-				SpecialType.System_Int32 => Convert.ToInt32(value),
-				SpecialType.System_Int64 => Convert.ToInt64(value),
-				SpecialType.System_SByte => Convert.ToSByte(value),
-				SpecialType.System_Single => Convert.ToSingle(value),
-				SpecialType.System_String => Convert.ToString(value),
-				SpecialType.System_UInt16 => Convert.ToUInt16(value),
-				SpecialType.System_UInt32 => Convert.ToUInt32(value),
-				SpecialType.System_UInt64 => Convert.ToUInt64(value),
-				_ => null
-			};
-		}
-		catch
-		{
-			return null;
-		}
-	}
-
+	
 	public override SyntaxNode? VisitConditionalExpression(ConditionalExpressionSyntax node)
 	{
 		var condition = Visit(node.Condition);
