@@ -15,7 +15,4 @@ public class VariableItem(ITypeSymbol type, bool hasValue, object? value, bool i
 	public bool IsAccessed { get; set; }
 
 	public bool IsAltered { get; set; }
-
-	public object? MinValue { get; set; }
-	public object? MaxValue { get; set; }
 }

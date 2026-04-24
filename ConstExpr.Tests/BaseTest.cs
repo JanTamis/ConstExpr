@@ -273,7 +273,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 	{
 		// test if length of values matches delegate parameters
 		var delegateParams = typeof(TDelegate).GetMethod("Invoke")!.GetParameters();
-		var parameters = new object[delegateParams.Length];
+		var parameters = new object?[delegateParams.Length];
 		
 		System.Array.Fill(parameters, Unknown);
 

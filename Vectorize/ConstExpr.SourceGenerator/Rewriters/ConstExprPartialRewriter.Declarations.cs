@@ -48,12 +48,6 @@ public partial class ConstExprPartialRewriter
 	{
 		var item = new VariableItem(operation.Type ?? operation.Symbol.Type, true, value);
 
-		if (operation.Type.TryGetMinMaxValue(out var min, out var max))
-		{
-			item.MinValue = min;
-			item.MaxValue = max;
-		}
-
 		variables.Add(name, item);
 
 		UpdateVariableValue(item, operation, value, node.Initializer?.Value);

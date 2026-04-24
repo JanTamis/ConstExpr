@@ -40,7 +40,6 @@ public partial class ConstExprPartialRewriter
 		// the pre-if state, and afterwards any variable written in either branch must be
 		// marked as unknown so downstream code doesn't rely on a specific branch's value.
 		var savedState = SaveVariableState();
-
 		var statement = Visit(node.Statement);
 
 		// Restore to pre-if state before visiting the else branch so it doesn't pick up
@@ -124,6 +123,24 @@ public partial class ConstExprPartialRewriter
 							condition as ExpressionSyntax ?? node.Condition,
 							assignment.Right,
 							elseAssignment.Right)));
+			}
+			case ReturnStatementSyntax { Expression: { } ifReturn }
+				when @else is ElseClauseSyntax { Statement: ReturnStatementSyntax { Expression: { } elseReturn } }:
+			{
+				return ReturnStatement(
+					ConditionalExpression(
+						condition as ExpressionSyntax ?? node.Condition,
+						ifReturn,
+						elseReturn));
+			}
+			case BlockSyntax { Statements: [ ReturnStatementSyntax { Expression: { } ifReturn } ] }
+				when @else is ElseClauseSyntax { Statement: BlockSyntax { Statements: [ ReturnStatementSyntax { Expression: { } elseReturn } ] } }:
+			{
+				return ReturnStatement(
+					ConditionalExpression(
+						condition as ExpressionSyntax ?? node.Condition,
+						ifReturn,
+						elseReturn));
 			}
 		}
 
@@ -219,14 +236,16 @@ public partial class ConstExprPartialRewriter
 
 		if (TryGetLiteralValue(condition, out var value))
 		{
-			if (value is false)
+			switch (value)
 			{
-				return null;
-			}
-
-			if (value is true && attribute.MaxUnrollIterations > 0)
-			{
-				return TryUnrollWhileLoop(node);
+				case false:
+				{
+					return null;
+				}
+				case true when attribute.MaxUnrollIterations > 0:
+				{
+					return TryUnrollWhileLoop(node);
+				}
 			}
 		}
 
