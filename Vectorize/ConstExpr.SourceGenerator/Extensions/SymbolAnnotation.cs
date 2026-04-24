@@ -48,7 +48,7 @@ public static class SymbolAnnotation
 		
 		var id = Guid.NewGuid().ToString("N");
 		symbolStore[id] = symbol;
-		return node.WithAdditionalAnnotations(new SyntaxAnnotation(TypeSymbolKind, id));
+		return node?.WithAdditionalAnnotations(new SyntaxAnnotation(TypeSymbolKind, id));
 	}
 
 	/// <summary>

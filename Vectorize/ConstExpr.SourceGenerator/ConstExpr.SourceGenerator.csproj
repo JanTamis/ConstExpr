@@ -9,7 +9,7 @@
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 		<!--		<CompilerVisibleProperty Include="SgfAddModuleInitializerAttribute"/>-->
 		<IsRoslynAnalyzer>true</IsRoslynAnalyzer>
-<!--		<IsRoslynComponent>true</IsRoslynComponent>-->
+		<!--		<IsRoslynComponent>true</IsRoslynComponent>-->
 		<PolySharpExcludeGeneratedTypes>System.Runtime.CompilerServices.ModuleInitializerAttribute</PolySharpExcludeGeneratedTypes>
 		<RootNamespace>ConstExpr.SourceGenerator</RootNamespace>
 
@@ -43,7 +43,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <None Remove="D:\source\repos\JanTamis\Vectorize\Vectorize\ConstExpr.SourceGenerator\bin\Debug\netstandard2.0\ConstExpr.SourceGenerator.dll" />
+		<None Remove="D:\source\repos\JanTamis\Vectorize\Vectorize\ConstExpr.SourceGenerator\bin\Debug\netstandard2.0\ConstExpr.SourceGenerator.dll" />
 	</ItemGroup>
 
 	<!-- Analyzer dll include AFTER removal so it isn't excluded -->
@@ -95,6 +95,6 @@
 		</ProjectReference>
 		<!-- New Core reference (public so NuGet picks it up as dependency) -->
 		<ProjectReference Include="..\ConstExpr.Core\ConstExpr.Core.csproj" />
-		
+
 	</ItemGroup>
 </Project>

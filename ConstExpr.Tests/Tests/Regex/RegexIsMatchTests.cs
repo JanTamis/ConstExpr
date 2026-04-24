@@ -3,9 +3,6 @@ namespace ConstExpr.Tests.Tests.Regex;
 [InheritsTests]
 public class RegexIsMatchTests() : BaseTest<Func<string, string, bool>>
 {
-	// Force the assembly to be loaded so CreateCompilation can find it
-	private static readonly Type RegexType = typeof(System.Text.RegularExpressions.Regex);
-
 	public override string TestMethod => GetString((value, pattern) =>
 	{
 		return System.Text.RegularExpressions.Regex.IsMatch(value, pattern);
