@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using ConstExpr.SourceGenerator.Comparers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -41,7 +42,7 @@ public class SqrtFunctionOptimizer() : BaseMathFunctionOptimizer("Sqrt", n => n 
 		// Saves the entire SQRTSS/fsqrt on x86; on ARM64 the JIT folds this anyway,
 		// but the rewrite improves source clarity and enables further optimisations.
 		if (arg is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.MultiplyExpression } mul
-		    && mul.Left.IsEquivalentTo(mul.Right)
+		    && SyntaxNodeComparer.Get().Equals(mul.Left, mul.Right)
 		    && IsPure(mul.Left))
 		{
 			var mathType = ParseTypeName(paramType.Name);

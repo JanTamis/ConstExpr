@@ -22,8 +22,8 @@ public class StringReplaceWithDifferentArgsTest() : BaseTest<Func<string, string
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null),
+		Create("return s.Replace('a', 'b');"),
 		Create("return \"hello\";", "hello"),
-		Create("return \"bonono\";", "banana"),
+		Create("return \"bbnbnb\";", "banana"),
 	];
 }
