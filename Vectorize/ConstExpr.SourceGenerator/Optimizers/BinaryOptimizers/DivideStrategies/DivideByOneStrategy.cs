@@ -11,7 +11,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies
 /// </summary>
 public class DivideByOneStrategy : NumericBinaryStrategy<ExpressionSyntax, LiteralExpressionSyntax>
 {
-	public override FastMathFlags RequiredFlags => FastMathFlags.Strict;
+	public override FastMathFlags[] RequiredFlags => [ FastMathFlags.Strict ];
 
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{

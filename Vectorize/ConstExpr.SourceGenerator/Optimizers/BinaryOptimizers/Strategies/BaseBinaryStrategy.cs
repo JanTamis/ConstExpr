@@ -19,16 +19,16 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 	/// Strategies that don't require fast-math flags should return <see cref="FastMathFlags.Strict"/>.
 	/// Override this property in derived classes to specify required flags.
 	/// </summary>
-	public virtual FastMathFlags RequiredFlags => FastMathFlags.Strict;
+	public virtual FastMathFlags[] RequiredFlags => [ FastMathFlags.Strict ];
 
 	public abstract bool TryOptimize(BinaryOptimizeContext<TLeft, TRight> context, out ExpressionSyntax? optimized);
 
 	public BinaryOptimizeContext<TLeft, TRight>? GetContext(
-		List<BinaryExpressionSyntax> expressions, 
-		ITypeSymbol type, 
-		ExpressionSyntax leftExpr, 
-		ITypeSymbol? leftType, 
-		ExpressionSyntax rightExpr, 
+		List<BinaryExpressionSyntax> expressions,
+		ITypeSymbol type,
+		ExpressionSyntax leftExpr,
+		ITypeSymbol? leftType,
+		ExpressionSyntax rightExpr,
 		ITypeSymbol? rightType,
 		IDictionary<string, VariableItem> variables,
 		TryGetValueDelegate tryGetValue,
@@ -220,7 +220,7 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 			       && IsNegative(a.Left, context.Variables);
 		});
 	}
-	
+
 	protected ExpressionSyntax RemoveParentheses(ExpressionSyntax expr)
 	{
 		while (expr is ParenthesizedExpressionSyntax paren)

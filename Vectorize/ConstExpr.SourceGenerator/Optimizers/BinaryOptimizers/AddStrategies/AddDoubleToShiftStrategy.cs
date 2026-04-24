@@ -10,7 +10,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AddStrategies;
 /// </summary>
 public class AddDoubleToShiftStrategy : IntegerBinaryStrategy
 {
-	public override FastMathFlags RequiredFlags => FastMathFlags.Strict;
+	public override FastMathFlags[] RequiredFlags => [ FastMathFlags.Strict ];
 
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{

@@ -11,7 +11,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.MultiplyStrategi
 /// </summary>
 public class MultiplyNegationStrategy() : SymmetricStrategy<NumericBinaryStrategy, PrefixUnaryExpressionSyntax, ExpressionSyntax>(leftKind: SyntaxKind.UnaryMinusExpression)
 {
-	public override FastMathFlags RequiredFlags => FastMathFlags.AssociativeMath;
+	public override FastMathFlags[] RequiredFlags => [ FastMathFlags.AssociativeMath ];
 
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<PrefixUnaryExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{

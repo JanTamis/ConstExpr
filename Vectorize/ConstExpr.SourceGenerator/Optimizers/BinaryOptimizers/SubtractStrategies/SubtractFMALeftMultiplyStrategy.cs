@@ -14,7 +14,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.SubtractStrategi
 /// </summary>
 public class SubtractFMALeftMultiplyStrategy() : NumericBinaryStrategy<BinaryExpressionSyntax, ExpressionSyntax>(leftKind: SyntaxKind.MultiplyExpression)
 {
-	public override FastMathFlags RequiredFlags => FastMathFlags.FusedMultiplyAdd;
+	public override FastMathFlags[] RequiredFlags => [ FastMathFlags.FusedMultiplyAdd ];
 
 	public override bool TryOptimize(BinaryOptimizeContext<BinaryExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{

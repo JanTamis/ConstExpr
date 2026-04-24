@@ -13,7 +13,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.MultiplyStrategi
 /// </summary>
 public class MultiplyStrengthReductionLeftStrategy : IntegerBinaryStrategy<LiteralExpressionSyntax, ExpressionSyntax>
 {
-	public override FastMathFlags RequiredFlags => FastMathFlags.Strict;
+	public override FastMathFlags[] RequiredFlags => [ FastMathFlags.Strict ];
 
 	public override bool TryOptimize(BinaryOptimizeContext<LiteralExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{

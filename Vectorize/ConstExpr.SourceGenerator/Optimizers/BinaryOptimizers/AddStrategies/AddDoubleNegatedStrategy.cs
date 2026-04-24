@@ -11,7 +11,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AddStrategies;
 /// </summary>
 public class AddDoubleNegatedStrategy() : NumericBinaryStrategy<PrefixUnaryExpressionSyntax, PrefixUnaryExpressionSyntax>(SyntaxKind.UnaryMinusExpression, SyntaxKind.UnaryMinusExpression)
 {
-	public override FastMathFlags RequiredFlags => FastMathFlags.AssociativeMath;
+	public override FastMathFlags[] RequiredFlags => [ FastMathFlags.AssociativeMath ];
 
 	public override bool TryOptimize(BinaryOptimizeContext<PrefixUnaryExpressionSyntax, PrefixUnaryExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{

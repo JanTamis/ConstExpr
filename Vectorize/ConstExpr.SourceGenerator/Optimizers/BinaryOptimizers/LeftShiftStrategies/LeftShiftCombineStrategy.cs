@@ -12,7 +12,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.LeftShiftStrateg
 /// </summary>
 public class LeftShiftCombineStrategy() : IntegerBinaryStrategy<BinaryExpressionSyntax, LiteralExpressionSyntax>(leftKind: SyntaxKind.LeftShiftExpression)
 {
-	public override FastMathFlags RequiredFlags => FastMathFlags.Strict;
+	public override FastMathFlags[] RequiredFlags => [ FastMathFlags.Strict ];
 
 	public override bool TryOptimize(BinaryOptimizeContext<BinaryExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{

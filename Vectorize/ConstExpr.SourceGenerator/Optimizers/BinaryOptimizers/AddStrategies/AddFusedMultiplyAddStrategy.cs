@@ -16,7 +16,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AddStrategies;
 /// </summary>
 public class AddFusedMultiplyAddStrategy() : SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, ExpressionSyntax>(leftKind: SyntaxKind.MultiplyExpression)
 {
-	public override FastMathFlags RequiredFlags => FastMathFlags.FusedMultiplyAdd;
+	public override FastMathFlags[] RequiredFlags => [ FastMathFlags.FusedMultiplyAdd ];
 
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<BinaryExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{

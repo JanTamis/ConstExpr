@@ -11,7 +11,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.MultiplyStrategi
 /// </summary>
 public class MultiplyByTwoToAdditionStrategy : SymmetricStrategy<NumericBinaryStrategy, LiteralExpressionSyntax, ExpressionSyntax>
 {
-	public override FastMathFlags RequiredFlags => FastMathFlags.AssociativeMath;
+	public override FastMathFlags[] RequiredFlags => [ FastMathFlags.AssociativeMath ];
 
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<LiteralExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{

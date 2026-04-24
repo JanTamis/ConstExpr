@@ -13,7 +13,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies
 /// </summary>
 public class DivideByPowerOfTwoToShiftStrategy : IntegerBinaryStrategy<ExpressionSyntax, LiteralExpressionSyntax>
 {
-	public override FastMathFlags RequiredFlags => FastMathFlags.Strict;
+	public override FastMathFlags[] RequiredFlags => [ FastMathFlags.Strict ];
 
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{

@@ -41,6 +41,7 @@ public class CountFunctionOptimizer() : BaseRegexFunctionOptimizer("Count", n =>
 				.Skip(1)
 				.Select(s => TryGetLiteralValue(s, context, out var lit) && lit is string str ? str : s.ToFullString())
 		);
+		
 		var variableName = $"Regex_{patternKey.GetDeterministicHashString()}";
 
 		var field = FieldDeclaration(VariableDeclaration(IdentifierName(nameof(Regex)))

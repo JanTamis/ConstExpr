@@ -11,7 +11,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 /// - s.TrimStart().TrimStart() → s.TrimStart()
 /// - s.TrimEnd().TrimEnd() → s.TrimEnd()
 /// </summary>
-public class TrimFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "Trim", false, n => n is 1)
+public class TrimFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "Trim", false, n => n is 0)
 {
 	protected override bool TryOptimizeString(FunctionOptimizerContext context, ITypeSymbol stringType, [NotNullWhen(true)] out SyntaxNode? result)
 	{

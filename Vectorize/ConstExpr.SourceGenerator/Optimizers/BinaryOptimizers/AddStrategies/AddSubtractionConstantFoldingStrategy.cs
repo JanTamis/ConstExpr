@@ -17,7 +17,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AddStrategies;
 /// </summary>
 public class AddSubtractionConstantFoldingStrategy() : SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, LiteralExpressionSyntax>(leftKind: SyntaxKind.SubtractExpression)
 {
-	public override FastMathFlags RequiredFlags => FastMathFlags.AssociativeMath;
+	public override FastMathFlags[] RequiredFlags => [ FastMathFlags.AssociativeMath ];
 
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<BinaryExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{

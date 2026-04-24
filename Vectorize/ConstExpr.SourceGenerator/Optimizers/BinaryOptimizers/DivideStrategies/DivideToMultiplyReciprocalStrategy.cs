@@ -12,7 +12,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies
 /// </summary>
 public class DivideToMultiplyReciprocalStrategy : FloatNumberBinaryStrategy<ExpressionSyntax, LiteralExpressionSyntax>
 {
-	public override FastMathFlags RequiredFlags => FastMathFlags.ReciprocalMath;
+	public override FastMathFlags[] RequiredFlags => [ FastMathFlags.ReciprocalMath ];
 
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{

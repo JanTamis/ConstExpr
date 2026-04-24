@@ -3,6 +3,7 @@ using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;
@@ -126,7 +127,9 @@ public partial class ConstExprPartialRewriter
 			{
 				// Skip strategy if its required flags are not satisfied by the current math mode.
 				// FastMathFlags.Strict (= 0) is always satisfied, so integer/boolean strategies run unconditionally.
-				if (!attribute.MathOptimizations.HasFlag(strategy.RequiredFlags))
+				var reqFlags = strategy.RequiredFlags;
+
+				if (!reqFlags.Contains(FastMathFlags.Strict) && !reqFlags.Any(f => attribute.MathOptimizations.HasFlag(f)))
 				{
 					continue;
 				}

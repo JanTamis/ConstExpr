@@ -82,6 +82,16 @@ public partial class ConstExprPartialRewriter
 			}
 		}
 
+		if (TryOptimizeSimdMethod(semanticModel, targetMethod, node, arguments, node.ArgumentList.Arguments.Select(s => s.Expression)) is { } optimizedSimd)
+		{
+			return Visit(optimizedSimd);
+		}
+
+		if (TryOptimizeRegexMethod(semanticModel, targetMethod, node, arguments, node.ArgumentList.Arguments.Select(s => s.Expression)) is { } optimizedRegex)
+		{
+			return optimizedRegex;
+		}
+
 		// Try LINQ optimizers (for inner calls, or when unrolling was skipped).
 		// The optimized result is annotated with symbol info so it can be unrolled
 		// when it re-enters the rewriter through Visit.
@@ -103,16 +113,6 @@ public partial class ConstExprPartialRewriter
 			{
 				return unrolledNode;
 			}
-		}
-
-		if (TryOptimizeSimdMethod(semanticModel, targetMethod, node, arguments, node.ArgumentList.Arguments.Select(s => s.Expression)) is { } optimizedSimd)
-		{
-			return Visit(optimizedSimd);
-		}
-
-		if (TryOptimizeRegexMethod(semanticModel, targetMethod, node, arguments, node.ArgumentList.Arguments.Select(s => s.Expression)) is { } optimizedRegex)
-		{
-			return optimizedRegex;
 		}
 
 		node = node.WithExpression(Visit(node.Expression) as ExpressionSyntax ?? node.Expression);
@@ -392,11 +392,18 @@ public partial class ConstExprPartialRewriter
 
 		var context = GetFunctionOptimizerContext(model, targetMethod, node, visitedArguments, originalArguments);
 
-		return _regexOptimizers.Value
+		var result = _regexOptimizers.Value
 			.Where(o => String.Equals(o.Name, targetMethod.Name, StringComparison.Ordinal)
 			            && o.IsValidParameterCount(targetMethod.Parameters.Length))
 			.WhereSelect<BaseRegexFunctionOptimizer, SyntaxNode>((optimizer, out optimized) => optimizer.TryOptimize(context, out optimized))
 			.FirstOrDefault();
+
+		if (result is not null)
+		{
+			return result;
+		}
+
+		return node;
 	}
 
 	private FunctionOptimizerContext GetFunctionOptimizerContext(SemanticModel model, IMethodSymbol targetMethod, InvocationExpressionSyntax node, IEnumerable<SyntaxNode> visitedArguments, IEnumerable<SyntaxNode> originalArguments)

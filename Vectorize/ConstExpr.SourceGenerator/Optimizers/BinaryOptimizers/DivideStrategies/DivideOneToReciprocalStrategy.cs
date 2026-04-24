@@ -14,7 +14,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies
 /// </summary>
 public class DivideOneToReciprocalStrategy : BaseBinaryStrategy<LiteralExpressionSyntax, ExpressionSyntax>
 {
-	public override FastMathFlags RequiredFlags => FastMathFlags.ReciprocalMath;
+	public override FastMathFlags[] RequiredFlags => [ FastMathFlags.ReciprocalMath ];
 
 	public override bool TryOptimize(BinaryOptimizeContext<LiteralExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{

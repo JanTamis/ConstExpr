@@ -16,5 +16,5 @@ public interface IBinaryStrategy
 	/// Gets the FastMathFlags required for this optimization strategy to be applied.
 	/// Strategies that don't require fast-math flags should return <see cref="FastMathFlags.Strict"/>.
 	/// </summary>
-	FastMathFlags RequiredFlags { get; }
+	FastMathFlags[] RequiredFlags { get; }
 }

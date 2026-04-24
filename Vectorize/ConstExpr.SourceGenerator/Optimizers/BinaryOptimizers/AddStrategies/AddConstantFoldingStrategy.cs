@@ -15,7 +15,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AddStrategies;
 /// </summary>
 public class AddConstantFoldingStrategy() : NumericBinaryStrategy<BinaryExpressionSyntax, ExpressionSyntax>(leftKind: SyntaxKind.AddExpression)
 {
-	public override FastMathFlags RequiredFlags => FastMathFlags.AssociativeMath;
+	public override FastMathFlags[] RequiredFlags => [ FastMathFlags.AssociativeMath ];
 
 	// TODO Add symmerty
 	public override bool TryOptimize(BinaryOptimizeContext<BinaryExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)

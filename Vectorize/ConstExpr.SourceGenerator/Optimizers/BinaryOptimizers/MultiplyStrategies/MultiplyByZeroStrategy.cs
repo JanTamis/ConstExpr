@@ -11,7 +11,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.MultiplyStrategi
 /// </summary>
 public class MultiplyByZeroStrategy : SymmetricStrategy<NumericBinaryStrategy, ExpressionSyntax, LiteralExpressionSyntax>
 {
-	public override FastMathFlags RequiredFlags => FastMathFlags.NoInfinity | FastMathFlags.NoSignedZero;
+	public override FastMathFlags[] RequiredFlags => [ FastMathFlags.Strict ];
 
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<ExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
@@ -22,7 +22,7 @@ public class MultiplyByZeroStrategy : SymmetricStrategy<NumericBinaryStrategy, E
 			return false;
 		}
 
-		optimized = CreateLiteral(0.ToSpecialType(context.Type.SpecialType));
+		optimized = context.Right.Syntax;
 		return true;
 	}
 }

@@ -872,7 +872,15 @@ public partial class ConstExprPartialRewriter
 
 	public override SyntaxNode? VisitReturnStatement(ReturnStatementSyntax node)
 	{
-		return node.WithExpression(Visit(node.Expression) as ExpressionSyntax);
+		var visitedExpression = Visit(node.Expression);
+
+		// If the return expression is parenthesized, unwrap it to avoid returning nested parentheses that can interfere with pattern matching and other optimizations.
+		if (visitedExpression is ParenthesizedExpressionSyntax parenthesized)
+		{
+			visitedExpression = parenthesized.Expression;
+		}
+		
+		return node.WithExpression(visitedExpression as ExpressionSyntax);
 	}
 
 	public override SyntaxNode? VisitLocalDeclarationStatement(LocalDeclarationStatementSyntax node)
