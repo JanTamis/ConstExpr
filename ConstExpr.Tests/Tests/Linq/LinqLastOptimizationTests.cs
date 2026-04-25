@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for Last() optimization - verify that unnecessary operations before Last() are removed
@@ -50,18 +50,18 @@ public class LinqLastOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = Last_qnOBqg(x);
+			var a = Last_2dXLhA(x);
 			var b = x[^1];
 			var c = x[^1];
 			var d = x[^1];
-			var e = Last_SBLSow(x);
-			var f = Last_9t5QHQ(x);
-			var g = Last_ONbDDg(x);
+			var e = Last_wNj_fg(x);
+			var f = Last_ExAmKQ(x);
+			var g = Last_VGrzDg(x);
 			var h = x[0];
-			var i = Max_dZD6IQ(x);
-			var j = Min_BeESfw(x);
+			var i = Max_uzcZ3A(x);
+			var j = Min_zgmZ3g(x);
 			var k = x[^1];
-			var l = Last_MNYv3Q(x) << 1;
+			var l = Last_pD59cg(x) << 1;
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l;
 			"""),

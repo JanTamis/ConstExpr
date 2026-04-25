@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Rewriter;
+namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
 /// Tests for VisitReturnStatement - constant return value folding

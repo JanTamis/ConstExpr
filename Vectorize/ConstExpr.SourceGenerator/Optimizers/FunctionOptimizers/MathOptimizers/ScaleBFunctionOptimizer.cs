@@ -34,14 +34,15 @@ public class ScaleBFunctionOptimizer() : BaseMathFunctionOptimizer("ScaleB", n =
 		// Benchmark (Apple M4 Pro, ARM64, .NET 10):
 		//   Math.ScaleB  ≈ 0.55 ns  — hardware intrinsic
 		//   FastScaleB   ≈ 0.68 ns  — bit-manipulation, useful on platforms without the intrinsic
-		if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
+		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			context.Usings.Add("System");
+			SpecialType.System_Single => GenerateFastScaleBMethodFloat(),
+			SpecialType.System_Double => GenerateFastScaleBMethodDouble(),
+			_ => null
+		});
 
-			var method = ParseMethodFromString(paramType.SpecialType == SpecialType.System_Single
-				? GenerateFastScaleBMethodFloat()
-				: GenerateFastScaleBMethodDouble());
-
+		if (method is not null)
+		{
 			context.AdditionalSyntax.TryAdd(method, false);
 
 			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);

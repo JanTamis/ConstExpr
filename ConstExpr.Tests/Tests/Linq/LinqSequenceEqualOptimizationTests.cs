@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for SequenceEqual() optimization - verify same sequence returns true

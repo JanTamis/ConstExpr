@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for Append() optimization - verify that AsEnumerable, ToList, ToArray are skipped
@@ -35,11 +35,11 @@ public class LinqAppendOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = Sum_7Ump6A(x) + 20;
-			var b = Sum_7Ump6A(x) + 30;
-			var c = Sum_7Ump6A(x) + 40;
-			var d = Sum_7Ump6A(x) + 50;
-			var e = Sum_7Ump6A(x) + 10;
+			var a = Sum_xcpydQ(x) + 20;
+			var b = Sum_xcpydQ(x) + 30;
+			var c = Sum_xcpydQ(x) + 40;
+			var d = Sum_xcpydQ(x) + 50;
+			var e = Sum_xcpydQ(x) + 10;
 			var f = x.Length + 5;
 			var g = x.Length + 4;
 			

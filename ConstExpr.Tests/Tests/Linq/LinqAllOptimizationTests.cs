@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for All() optimization - verify that unnecessary operations before All() are removed

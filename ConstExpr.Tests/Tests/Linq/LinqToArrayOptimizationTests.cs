@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for ToArray() optimization - verify redundant materialization removal and chain optimization

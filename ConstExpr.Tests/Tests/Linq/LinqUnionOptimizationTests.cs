@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for Union() optimization - verify empty collection handling and same source removal
@@ -20,8 +20,8 @@ public class LinqUnionOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = Count_4OhS1w(x);
-			var b = Count_4OhS1w(x);
+			var a = Count_w6J_9Q(x);
+			var b = Count_w6J_9Q(x);
 			
 			return a + b;
 			"""),

@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for Distinct() optimization - verify that unnecessary operations before Distinct() are removed
@@ -44,16 +44,16 @@ public class LinqDistinctOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = Count_4OhS1w(x);
-			var b = Count_4OhS1w(x);
-			var c = Count_4OhS1w(x);
-			var d = Count_4OhS1w(x);
-			var e = Count_4OhS1w(x);
-			var f = Count_4OhS1w(x);
-			var g = Count_4OhS1w(x);
+			var a = Count_w6J_9Q(x);
+			var b = Count_w6J_9Q(x);
+			var c = Count_w6J_9Q(x);
+			var d = Count_w6J_9Q(x);
+			var e = Count_w6J_9Q(x);
+			var f = Count_w6J_9Q(x);
+			var g = Count_w6J_9Q(x);
 			var h = x.Length > 0 ? 1 : 0;
-			var i = Count_4OhS1w(x);
-			var j = Count_4OhS1w(x);
+			var i = Count_w6J_9Q(x);
+			var j = Count_w6J_9Q(x);
 			
 			return a + b + c + d + e + f + g + h + i + j;
 			"""),

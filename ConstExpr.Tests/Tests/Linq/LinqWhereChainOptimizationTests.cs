@@ -1,6 +1,6 @@
 using ConstExpr.Core.Enumerators;
 
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for Where() optimization with multiple chained Where statements

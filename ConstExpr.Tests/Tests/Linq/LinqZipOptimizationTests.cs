@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for Zip() optimization - verify empty collection handling
@@ -25,7 +25,7 @@ public class LinqZipOptimizationTests : BaseTest<Func<int[], int>>
 	[
 		Create("""
 			var c = x.Length;
-			var d = Int32.Min(x.Length, Count_NWOfpA(x));
+			var d = Int32.Min(x.Length, Count_Pdf8bA(x));
 			
 			return c + d;
 			"""),

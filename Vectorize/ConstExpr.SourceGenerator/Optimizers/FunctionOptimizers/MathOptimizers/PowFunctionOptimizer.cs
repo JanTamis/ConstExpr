@@ -104,13 +104,17 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is
 		//   Double: FastPow 2.965 ns vs Math.Pow 4.943 ns → 1.67× faster   ← inject FastPow
 		//   Float:  FastPow 2.707 ns vs MathF.Pow 2.508 ns → 7.5 % slower on ARM64;
 		//           inject anyway for x86/x64 portability where powf is heavier.
-		if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
+		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			var method = ParseMethodFromString(paramType.SpecialType == SpecialType.System_Single
-				? GenerateFastPowMethodFloat()
-				: GenerateFastPowMethodDouble());
+			SpecialType.System_Single => GenerateFastPowMethodFloat(),
+			SpecialType.System_Double => GenerateFastPowMethodDouble(),
+			_ => null
+		});
 
+		if (method is not null)
+		{
 			context.AdditionalSyntax.TryAdd(method, false);
+			
 			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);
 			return true;
 		}

@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for ToLookup() optimization - verify redundant materialization removal, ordering removal,
@@ -59,20 +59,20 @@ public class LinqToLookupOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = ToLookup_TpWc7Q(x).Count;
-			var b = ToLookup_TpWc7Q(x).Count;
-			var c = ToLookup_TpWc7Q(x).Count;
-			var d = ToLookup_TpWc7Q(x).Count;
-			var e = ToLookup_pP_3lg(x).Count;
-			var f = ToLookup_pP_3lg(x).Count;
-			var g = ToLookup_TpWc7Q(x).Count;
-			var h = ToLookup_TpWc7Q(x).Count;
-			var i = ToLookup_TpWc7Q(x).Count;
+			var a = ToLookup_MVa_MQ(x).Count;
+			var b = ToLookup_MVa_MQ(x).Count;
+			var c = ToLookup_MVa_MQ(x).Count;
+			var d = ToLookup_MVa_MQ(x).Count;
+			var e = ToLookup_sloNHA(x).Count;
+			var f = ToLookup_sloNHA(x).Count;
+			var g = ToLookup_MVa_MQ(x).Count;
+			var h = ToLookup_MVa_MQ(x).Count;
+			var i = ToLookup_MVa_MQ(x).Count;
 			var j = x.ToLookup(v => v).Count;
 			var k = x.ToLookup(v => v).Count;
-			var l = ToLookup_m0g30w(x).Count;
-			var m = ToLookup_MHSOcQ(x).Count;
-			var n = ToLookup_7h7V_Q(x).Count;
+			var l = ToLookup_i0qdOA(x).Count;
+			var m = ToLookup_VYmdsA(x).Count;
+			var n = ToLookup_BusWaA(x).Count;
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l + m + n;
 			"""),

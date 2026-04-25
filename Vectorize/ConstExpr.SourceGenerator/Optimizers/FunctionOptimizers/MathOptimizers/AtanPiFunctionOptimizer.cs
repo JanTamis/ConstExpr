@@ -40,12 +40,15 @@ public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", n =
 			}
 		}
 
-		if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
+		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			var method = ParseMethodFromString(paramType.SpecialType == SpecialType.System_Single
-				? GenerateFastAtanPiMethodFloat()
-				: GenerateFastAtanPiMethodDouble());
+			SpecialType.System_Single => GenerateFastAtanPiMethodFloat(),
+			SpecialType.System_Double => GenerateFastAtanPiMethodDouble(),
+			_ => null
+		});
 
+		if (method is not null)
+		{
 			context.AdditionalSyntax.TryAdd(method, false);
 
 			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);

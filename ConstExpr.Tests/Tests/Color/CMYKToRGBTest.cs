@@ -1,6 +1,6 @@
 using ConstExpr.Core.Enumerators;
 
-namespace ConstExpr.Tests.Tests.Color;
+namespace ConstExpr.Tests.Color;
 
 [InheritsTests]
 public class CMYKToRGBTest() : BaseTest<Func<double, double, double, double, (byte, byte, byte)>>(FastMathFlags.FastMath)

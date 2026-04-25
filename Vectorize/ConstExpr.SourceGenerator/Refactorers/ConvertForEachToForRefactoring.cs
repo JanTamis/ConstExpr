@@ -96,8 +96,7 @@ public static class ConvertForEachToForRefactoring
 						LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0))))));
 
 		// i < collection.Length
-		var condition = BinaryExpression(
-			SyntaxKind.LessThanExpression,
+		var condition = LessThanExpression(
 			IdentifierName(indexName),
 			MemberAccessExpression(
 				SyntaxKind.SimpleMemberAccessExpression,

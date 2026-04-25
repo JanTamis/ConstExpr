@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for DefaultIfEmpty() optimization - verify that unnecessary operations before DefaultIfEmpty() are removed
@@ -45,14 +45,14 @@ public class LinqDefaultIfEmptyOptimizationTests : BaseTest<Func<int[], int>>
 	[
 		Create("""
 			var a = Int32.Max(x.Length, 1);
-			var b = Int32.Max(Count_4OhS1w(x), 1);
+			var b = Int32.Max(Count_w6J_9Q(x), 1);
 			var c = Int32.Max(x.Length, 1);
 			var d = Int32.Max(x.Length, 1);
 			var e = Int32.Max(x.Length, 1);
 			var f = Int32.Max(x.Length, 1);
 			var g = Int32.Max(x.Length, 1);
 			var h = Int32.Max(x.Length, 1);
-			var i = Int32.Max(Count_4OhS1w(x), 1);
+			var i = Int32.Max(Count_w6J_9Q(x), 1);
 			var j = Int32.Max(x.Length, 1);
 			
 			return a + b + c + d + e + f + g + h + i + j;
@@ -90,7 +90,7 @@ public class  LinqDefaultIfEmptyWithValueTests : BaseTest<Func<int[], int>>
 		Create("""
 			var a = x.Length > 0 ? x[0] : 42;
 			var b = x.Length > 0 ? x[0] : 99;
-			var c = First_NkNrmA(x);
+			var c = First_mA5pFw(x);
 			var d = x.Length > 0 ? x[0] : 10;
 			
 			return a + b + c + d;
@@ -130,7 +130,7 @@ public class LinqDefaultIfEmptyOptimizationListTests : BaseTest<Func<List<int>, 
 	[
 		Create("""
 			var a = Int32.Max(x.Count, 1);
-			var b = Int32.Max(Count_4OhS1w(x), 1);
+			var b = Int32.Max(Count_w6J_9Q(x), 1);
 			var c = Int32.Max(x.Count, 1);
 			var d = Int32.Max(x.Count, 1);
 			var e = x.Count > 0 ? x[0] : 100;
@@ -168,8 +168,8 @@ public class LinqDefaultIfEmptyComplexTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = Sum_odpwGg(x);
-			var b = Sum_VXwljg(x);
+			var a = Sum_HI9NYg(x);
+			var b = Sum_swQo7g(x);
 			var c = x.Length > 0 ? x[0] : 10;
 			var d = x.Length > 0 ? x[0] : 10;
 			var e = x.Length > 0 ? x[^1] : 10;

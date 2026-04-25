@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for OrderByDescending() optimization - verify identity lambda conversion
@@ -17,7 +17,7 @@ public class LinqOrderByDescendingOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = Max_dZD6IQ(x);
+			var a = Max_uzcZ3A(x);
 			
 			return a;
 			"""),

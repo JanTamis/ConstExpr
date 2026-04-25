@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for Max() optimization - verify identity lambda removal, Select fusion, and chain optimization
@@ -29,11 +29,11 @@ public class LinqMaxOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = Max_dZD6IQ(x);
-			var b = Max_GdxbTA(x);
-			var c = Max_dZD6IQ(x);
-			var d = Max_dZD6IQ(x);
-			var e = Int32.Max(Max_dZD6IQ(x), Max_dZD6IQ(x));
+			var a = Max_uzcZ3A(x);
+			var b = Max_JcFfKg(x);
+			var c = Max_uzcZ3A(x);
+			var d = Max_uzcZ3A(x);
+			var e = Int32.Max(Max_uzcZ3A(x), Max_uzcZ3A(x));
 			
 			return a + b + c + d + e;
 			"""),

@@ -73,8 +73,13 @@ public abstract class BaseFunctionOptimizer
 		};
 	}
 
-	protected static MethodDeclarationSyntax ParseMethodFromString(string methodString)
+	protected static MethodDeclarationSyntax? ParseMethodFromString([NotNullIfNotNull(nameof(methodString))] string? methodString)
 	{
+		if (methodString is null)
+		{
+			return null;
+		}
+
 		var wrappedCode = $$"""
 			public class TempClass
 			{

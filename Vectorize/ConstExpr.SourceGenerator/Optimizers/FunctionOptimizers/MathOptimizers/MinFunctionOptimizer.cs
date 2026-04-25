@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using ConstExpr.SourceGenerator.Comparers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -14,7 +15,7 @@ public class MinFunctionOptimizer() : BaseMathFunctionOptimizer("Min", n => n is
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		// Idempotency: Min(x, x) → x (when x is pure)
-		if (context.VisitedParameters[0].IsEquivalentTo(context.VisitedParameters[1]) && IsPure(context.VisitedParameters[0]))
+		if (SyntaxNodeComparer.Get().Equals(context.VisitedParameters[0], context.VisitedParameters[1]) && IsPure(context.VisitedParameters[0]))
 		{
 			result = context.VisitedParameters[0];
 			return true;

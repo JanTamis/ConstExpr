@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for Single() optimization - verify Where fusion and chain optimization
@@ -20,8 +20,8 @@ public class LinqSingleOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = Single_RO9UHA(x);
-			var b = Single_5pWsaA(x);
+			var a = Single_nJEiIg(x);
+			var b = Single_A6_ZQQ(x);
 			
 			return a + b;
 			"""),

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using ConstExpr.Core.Enumerators;
+using ConstExpr.SourceGenerator.Comparers;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
@@ -79,7 +80,7 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 
 	protected static bool LeftEqualsRight(SyntaxNode left, SyntaxNode right, IDictionary<string, VariableItem> variables)
 	{
-		return left.IsEquivalentTo(right)
+		return SyntaxNodeComparer.Get().Equals(left, right)
 		       || left is IdentifierNameSyntax leftIdentifier
 		       && right is IdentifierNameSyntax rightIdentifier
 		       && (leftIdentifier.Identifier.Text == rightIdentifier.Identifier.Text
@@ -87,7 +88,7 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 		           && variables.TryGetValue(rightIdentifier.Identifier.Text, out var rightVar)
 		           && leftVar.Value is ArgumentSyntax leftArgument
 		           && rightVar.Value is ArgumentSyntax rightArgument
-		           && leftArgument.Expression.IsEquivalentTo(rightArgument.Expression));
+		           && SyntaxNodeComparer.Get().Equals(leftArgument.Expression, rightArgument.Expression));
 	}
 
 	protected static SyntaxKind SwapCondition(SyntaxKind kind)

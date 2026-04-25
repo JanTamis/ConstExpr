@@ -27,12 +27,15 @@ public class Log10FunctionOptimizer() : BaseMathFunctionOptimizer("Log10", n => 
 		//   float  ≈ 2.0×  (1.782 ns → 0.897 ns, Apple M4 Pro / ARM64 RyuJIT)
 		//   double ≈ 2.3×  (2.020 ns → 0.892 ns)
 		// Max relative error ≈ 8.7e-5 (fast-math trade-off).
-		if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
+		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			var method = ParseMethodFromString(paramType.SpecialType == SpecialType.System_Single
-				? GenerateFastLog10MethodFloat()
-				: GenerateFastLog10MethodDouble());
+			SpecialType.System_Single => GenerateFastLog10MethodFloat(),
+			SpecialType.System_Double => GenerateFastLog10MethodDouble(),
+			_ => null
+		});
 
+		if (method is not null)
+		{
 			context.AdditionalSyntax.TryAdd(method, false);
 
 			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);

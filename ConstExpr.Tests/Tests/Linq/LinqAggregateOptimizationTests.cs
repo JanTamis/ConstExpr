@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for Aggregate() optimization - verify that unnecessary operations before Aggregate() are removed
@@ -60,21 +60,21 @@ public class LinqAggregateOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = Sum_7Ump6A(x);
-			var b = Sum_7Ump6A(x);
-			var c = Sum_7Ump6A(x);
-			var d = Sum_7Ump6A(x);
-			var e = Sum_7Ump6A(x);
-			var f = Sum_7Ump6A(x) << 1;
-			var g1 = Sum_7Ump6A(x);
-			var g2 = Sum_7Ump6A(x);
-			var h = Sum_7Ump6A(x);
-			var i = Sum_7Ump6A(x);
-			var j = Sum_LNDHMA(x);
-			var k = Sum_IIPQMQ(x);
-			var l = Sum_8A1xYA(x);
-			var m = Aggregate_lFA6IA(x);
-			var n = Sum_7Ump6A(x) + 10;
+			var a = Sum_xcpydQ(x);
+			var b = Sum_xcpydQ(x);
+			var c = Sum_xcpydQ(x);
+			var d = Sum_xcpydQ(x);
+			var e = Sum_xcpydQ(x);
+			var f = Sum_xcpydQ(x) << 1;
+			var g1 = Sum_xcpydQ(x);
+			var g2 = Sum_xcpydQ(x);
+			var h = Sum_xcpydQ(x);
+			var i = Sum_xcpydQ(x);
+			var j = Sum_dcMRsA(x);
+			var k = Sum_GrzDbA(x);
+			var l = Sum_CY7UDw(x);
+			var m = Aggregate_7Y1Tug(x);
+			var n = Sum_xcpydQ(x) + 10;
 			
 			return a + b + c + d + e + f + g1 + g2 + h + i + j + k + l + m + n;
 			"""),

@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Regex;
+namespace ConstExpr.Tests.Regex;
 
 [InheritsTests]
 public class RegexIsMatchTests() : BaseTest<Func<string, string, bool>>

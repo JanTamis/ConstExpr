@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for Reverse() optimization:
@@ -35,10 +35,10 @@ public class LinqReverseOptimizationTests : BaseTest<Func<int[], int>>
 	[
 		Create("""
 			var a = x[0];
-			var b = Max_dZD6IQ(x);
-			var c = Max_dZD6IQ(x);
-			var d = Min_BeESfw(x);
-			var e = Min_BeESfw(x);
+			var b = Max_uzcZ3A(x);
+			var c = Max_uzcZ3A(x);
+			var d = Min_zgmZ3g(x);
+			var e = Min_zgmZ3g(x);
 			
 			return a + b + c + d + e;
 			"""),

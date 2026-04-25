@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for LastOrDefault() optimization - verify that unnecessary operations before LastOrDefault() are removed
@@ -53,7 +53,7 @@ public class LinqLastOrDefaultOptimizationTests : BaseTest<Func<int[], int>>
 			var e = Array.FindLast(x, v => v > 2);
 			var f = Array.FindLast(x, v => v < 5);
 			var g = Array.FindLast(x, v => v == 3);
-			var h = Max_dZD6IQ(x);
+			var h = Max_uzcZ3A(x);
 			var i = x.Length > 0 ? x[0] : 0;
 			var j = x.Length > 0 ? x[^1] : 0;
 			var k = Array.FindLast(x, v => v > 0) << 1;

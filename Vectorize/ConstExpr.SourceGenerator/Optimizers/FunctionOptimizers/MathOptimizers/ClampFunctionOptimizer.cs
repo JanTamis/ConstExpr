@@ -54,20 +54,18 @@ public class ClampFunctionOptimizer() : BaseMathFunctionOptimizer("Clamp", n => 
 			}
 		}
 
-		// 3) Nested Min/Max patterns: Clamp(Min(x, maxConst), minConst, maxConst) -> Clamp(x, minConst, maxConst)
-		if (value is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Min" or "MinNative" } } minInv)
+		switch (value)
 		{
-			if (TrySimplifyClampWithMin(paramType, minInv, min, max, out var simplified))
+			// 3) Nested Min/Max patterns: Clamp(Min(x, maxConst), minConst, maxConst) -> Clamp(x, minConst, maxConst)
+			case InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Min" or "MinNative" } } minInv
+				when TrySimplifyClampWithMin(paramType, minInv, min, max, out var simplified1):
 			{
-				result = simplified;
+				result = simplified1;
 				return true;
 			}
-		}
-
-		// 4) Nested Max patterns: Clamp(Max(x, minConst), minConst, maxConst) -> Clamp(x, minConst, maxConst)
-		if (value is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Max" or "MaxNative" } } maxInv)
-		{
-			if (TrySimplifyClampWithMax(paramType, maxInv, min, max, out var simplified))
+			// 4) Nested Max patterns: Clamp(Max(x, minConst), minConst, maxConst) -> Clamp(x, minConst, maxConst)
+			case InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Max" or "MaxNative" } } maxInv
+				when TrySimplifyClampWithMax(paramType, maxInv, min, max, out var simplified):
 			{
 				result = simplified;
 				return true;
@@ -107,19 +105,24 @@ public class ClampFunctionOptimizer() : BaseMathFunctionOptimizer("Clamp", n => 
 		ExpressionSyntax? valueExpr;
 		ExpressionSyntax? innerMaxExpr;
 
-		if (hasC0 && !hasC1)
+		switch (hasC0)
 		{
-			valueExpr = m1;
-			innerMaxExpr = c0Expr;
-		}
-		else if (!hasC0 && hasC1)
-		{
-			valueExpr = m0;
-			innerMaxExpr = c1Expr;
-		}
-		else
-		{
-			return false;
+			case true when !hasC1:
+			{
+				valueExpr = m1;
+				innerMaxExpr = c0Expr;
+				break;
+			}
+			case false when hasC1:
+			{
+				valueExpr = m0;
+				innerMaxExpr = c1Expr;
+				break;
+			}
+			default:
+			{
+				return false;
+			}
 		}
 
 		// Check if innerMaxExpr matches outerMax
@@ -153,19 +156,24 @@ public class ClampFunctionOptimizer() : BaseMathFunctionOptimizer("Clamp", n => 
 		ExpressionSyntax? valueExpr;
 		ExpressionSyntax? innerMinExpr;
 
-		if (hasC0 && !hasC1)
+		switch (hasC0)
 		{
-			valueExpr = m1;
-			innerMinExpr = c0Expr;
-		}
-		else if (!hasC0 && hasC1)
-		{
-			valueExpr = m0;
-			innerMinExpr = c1Expr;
-		}
-		else
-		{
-			return false;
+			case true when !hasC1:
+			{
+				valueExpr = m1;
+				innerMinExpr = c0Expr;
+				break;
+			}
+			case false when hasC1:
+			{
+				valueExpr = m0;
+				innerMinExpr = c1Expr;
+				break;
+			}
+			default:
+			{
+				return false;
+			}
 		}
 
 		// Check if innerMinExpr matches outerMin

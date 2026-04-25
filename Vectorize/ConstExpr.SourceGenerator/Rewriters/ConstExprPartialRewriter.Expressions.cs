@@ -1136,12 +1136,8 @@ public partial class ConstExprPartialRewriter
 	// ({expression}) % {step} == 0
 	private ExpressionSyntax GetStepSetExpression(ObjectExtensions.Cluster cluster, ExpressionSyntax zeroExpression)
 	{
-		return BinaryExpression(
-			SyntaxKind.EqualsExpression,
-			BinaryExpression(
-				SyntaxKind.ModuloExpression,
-				cluster.Expression,
-				cluster.StepExpression),
+		return EqualsExpression(
+			ModuloExpression(cluster.Expression, cluster.StepExpression),
 			zeroExpression);
 	}
 
@@ -1164,10 +1160,7 @@ public partial class ConstExprPartialRewriter
 
 		if (!cluster.Start.IsNumericZero())
 		{
-			shiftTargetExpr = BinaryExpression(
-				SyntaxKind.SubtractExpression,
-				cluster.Expression,
-				cluster.StartExpression);
+			shiftTargetExpr = SubtractExpression(cluster.Expression, cluster.StartExpression);
 		}
 
 		var maskLiteral = LiteralExpression(SyntaxKind.NumericLiteralExpression, bitmaskValue switch
@@ -1185,20 +1178,11 @@ public partial class ConstExprPartialRewriter
 		});
 
 		// bitmask check: ({mask} >> {shiftExpression} & 1) != 0;
-		var shiftRight = BinaryExpression(
-			SyntaxKind.RightShiftExpression,
-			maskLiteral,
-			shiftTargetExpr);
+		var shiftRight = RightShiftExpression(maskLiteral, shiftTargetExpr);
 
-		var andMask = BinaryExpression(
-			SyntaxKind.BitwiseAndExpression,
-			shiftRight,
-			oneLiteral);
+		var andMask = BitwiseAndExpression(shiftRight, oneLiteral);
 
-		return BinaryExpression(
-			SyntaxKind.NotEqualsExpression,
-			ParenthesizedExpression(andMask),
-			GetDefault(maskType));
+		return NotEqualsExpression(ParenthesizedExpression(andMask), GetDefault(maskType));
 	}
 
 	private ExpressionSyntax GetDefault(ITypeSymbol typeSymbol)

@@ -789,8 +789,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 		if (innerParam == outerParam)
 		{
 			// Both use the same parameter name: v => v > 1 && v < 5
-			combinedBody = BinaryExpression(
-				SyntaxKind.LogicalAndExpression,
+			combinedBody = LogicalAndExpression(
 				ParenthesizedExpression(innerBody),
 				ParenthesizedExpression(outerBody));
 		}
@@ -798,10 +797,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 		{
 			// Different parameter names: replace outer parameter with inner parameter
 			var renamedOuterBody = ReplaceIdentifier(outerBody, outerParam, IdentifierName(innerParam));
-			combinedBody = BinaryExpression(
-				SyntaxKind.LogicalAndExpression,
-				ParenthesizedExpression(innerBody),
-				ParenthesizedExpression(renamedOuterBody));
+			combinedBody = LogicalAndExpression(ParenthesizedExpression(innerBody), ParenthesizedExpression(renamedOuterBody));
 		}
 
 		// Create a new lambda with the inner parameter and the combined body

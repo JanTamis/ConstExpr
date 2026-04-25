@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for SkipLast() optimization - verify SkipLast(0) removal
@@ -20,7 +20,7 @@ public class LinqSkipLastOptimizationTests : BaseTest<Func<int[], int>>
 	[
 		Create("""
 			var a = x.Length;
-			var b = Count_2QIgkw(x);
+			var b = Count_89mObA(x);
 			
 			return a + b;
 			"""),

@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics.CodeAnalysis;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
@@ -9,12 +10,15 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
-		if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
+		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			var method = ParseMethodFromString(paramType.SpecialType == SpecialType.System_Single
-				? GenerateFastAcosMethodFloat()
-				: GenerateFastAcosMethodDouble());
+			SpecialType.System_Single => GenerateFastAcosMethodFloat(),
+			SpecialType.System_Double => GenerateFastAcosMethodDouble(),
+			_ => null,
+		});
 
+		if (method is not null)
+		{
 			context.AdditionalSyntax.TryAdd(method, false);
 
 			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);

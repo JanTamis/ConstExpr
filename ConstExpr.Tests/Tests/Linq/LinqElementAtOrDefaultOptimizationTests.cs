@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for ElementAtOrDefault() optimization - verify that unnecessary operations before ElementAtOrDefault() are removed
@@ -181,8 +181,8 @@ public class LinqElementAtOrDefaultNoOptimizationTests : BaseTest<Func<int[], in
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = Min_BeESfw(x);
-			var b = Max_dZD6IQ(x);
+			var a = Min_zgmZ3g(x);
+			var b = Max_uzcZ3A(x);
 			var c = x.Length > 0 ? x[^1] : 0;
 			var d = Array.Find(x, v => v > 2);
 			var e = (x.Length > 0 ? x[0] : 0) << 1;

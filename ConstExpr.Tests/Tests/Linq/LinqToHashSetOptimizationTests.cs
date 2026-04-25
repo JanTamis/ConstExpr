@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for ToHashSet() optimization - verify redundant operations removal and chain optimization
@@ -23,9 +23,9 @@ public class LinqToHashSetOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = ToHashSet_GW0cjw(x).Count;
-			var b = ToHashSet_GW0cjw(x).Count;
-			var c = ToHashSet_GW0cjw(x).Count;
+			var a = ToHashSet_JgdI5A(x).Count;
+			var b = ToHashSet_JgdI5A(x).Count;
+			var c = ToHashSet_JgdI5A(x).Count;
 			
 			return a + b + c;
 			"""),

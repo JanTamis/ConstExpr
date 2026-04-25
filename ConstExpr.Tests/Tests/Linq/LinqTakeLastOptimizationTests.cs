@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for TakeLast() optimization - verify TakeLast(0) returns Empty
@@ -19,7 +19,7 @@ public class LinqTakeLastOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var b = Count_BVeycw(x);
+			var b = Count_XgBl1Q(x);
 			
 			return b;
 			"""),

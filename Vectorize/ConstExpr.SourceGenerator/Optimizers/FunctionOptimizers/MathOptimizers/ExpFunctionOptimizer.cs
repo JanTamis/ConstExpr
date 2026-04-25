@@ -20,14 +20,15 @@ public class ExpFunctionOptimizer() : BaseMathFunctionOptimizer("Exp", n => n is
 			return true;
 		}
 
-		if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
+		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			// Use order-3 polynomial for float (fastest option tested)
-			// Use order-4 polynomial for double (fastest option tested)
-			var method = ParseMethodFromString(paramType.SpecialType == SpecialType.System_Single
-				? GenerateFastExpMethodFloat()
-				: GenerateFastExpMethodDouble());
+			SpecialType.System_Single => GenerateFastExpMethodFloat(),
+			SpecialType.System_Double => GenerateFastExpMethodDouble(),
+			_ => null
+		});
 
+		if (method is not null)
+		{
 			context.AdditionalSyntax.TryAdd(method, false);
 
 			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);
@@ -41,6 +42,7 @@ public class ExpFunctionOptimizer() : BaseMathFunctionOptimizer("Exp", n => n is
 
 	private static string GenerateFastExpMethodFloat()
 	{
+		// Use order-3 polynomial for float (fastest option tested)
 		return """
 			private static float FastExp(float x)
 			{
@@ -72,6 +74,7 @@ public class ExpFunctionOptimizer() : BaseMathFunctionOptimizer("Exp", n => n is
 
 	private static string GenerateFastExpMethodDouble()
 	{
+		// Use order-4 polynomial for double (fastest option tested)
 		return """
 			private static double FastExp(double x)
 			{

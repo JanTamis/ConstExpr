@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for ElementAt() optimization - verify that unnecessary operations before ElementAt() are removed
@@ -173,10 +173,10 @@ public class LinqElementAtNoOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = Min_BeESfw(x);
-			var b = Max_dZD6IQ(x);
+			var a = Min_zgmZ3g(x);
+			var b = Max_uzcZ3A(x);
 			var c = x[^1];
-			var d = First_KQy6fA(x);
+			var d = First_O1a9Fw(x);
 			var e = x[0] << 1;
 			var f = x[0];
 			

@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for SelectMany() optimization - verify empty collection handling
@@ -23,7 +23,7 @@ public class LinqSelectManyOptimizationTests : BaseTest<Func<int[][], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var c = Sum_NFEtOQ(x);
+			var c = Sum_TMdy0g(x);
 			
 			return c;
 			"""),

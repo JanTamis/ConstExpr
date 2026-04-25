@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for Except() optimization - verify that redundant operations and special cases are optimized
@@ -56,17 +56,17 @@ public class LinqExceptOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var d = Count_UwS9iA(x);
-			var e = Count_49nb_g(x);
-			var f = Count_1RLETg(x);
-			var g = Count_oVB2jQ(x);
-			var h = Count_YUMbMw(x);
-			var i = Count_oVB2jQ(x);
-			var j = Count_OgJ_Aw(x);
-			var k = Count_UwS9iA(x);
+			var d = Count_wX25Rw(x);
+			var e = Count_IyhE7Q(x);
+			var f = Count_lIg1kw(x);
+			var g = Count_vFVZUg(x);
+			var h = Count_4oc4tg(x);
+			var i = Count_vFVZUg(x);
+			var j = Count_87tGZw(x);
+			var k = Count_wX25Rw(x);
 			var l = Array.Exists(x, x => x != 5) ? 1 : 0;
-			var m = Count_oVB2jQ(x);
-			var n = Count__cbrew(x);
+			var m = Count_vFVZUg(x);
+			var n = Count_uLsNyg(x);
 			
 			return d + e + f + g + h + i + j + k + l + m + n;
 			"""),

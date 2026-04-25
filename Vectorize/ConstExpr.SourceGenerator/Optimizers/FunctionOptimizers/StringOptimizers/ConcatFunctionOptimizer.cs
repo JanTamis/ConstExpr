@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using ConstExpr.SourceGenerator.Comparers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -70,7 +71,7 @@ public class ConcatFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionO
 
 			for (var i = 0; i < context.VisitedParameters.Count; i++)
 			{
-				if (!context.VisitedParameters[i].IsEquivalentTo(newParams[i]))
+				if (!SyntaxNodeComparer.Get().Equals(context.VisitedParameters[i], newParams[i]))
 				{
 					changed = true;
 					break;

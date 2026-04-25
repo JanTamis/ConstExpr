@@ -54,12 +54,15 @@ public class TanFunctionOptimizer() : BaseMathFunctionOptimizer("Tan", n => n is
 			}
 		}
 
-		if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
+		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			var method = ParseMethodFromString(paramType.SpecialType == SpecialType.System_Single
-				? GenerateFastTanMethodFloat()
-				: GenerateFastTanMethodDouble());
+			SpecialType.System_Single => GenerateFastTanMethodFloat(),
+			SpecialType.System_Double => GenerateFastTanMethodDouble(),
+			_ => null
+		});
 
+		if (method is not null)
+		{
 			context.AdditionalSyntax.TryAdd(method, false);
 
 			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);

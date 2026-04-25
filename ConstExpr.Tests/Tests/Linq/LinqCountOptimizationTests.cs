@@ -1,6 +1,6 @@
 using ConstExpr.Core.Enumerators;
 
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for Count() optimization - verify that unnecessary operations before Count() are removed
@@ -60,21 +60,21 @@ public class LinqCountOptimizationTests() : BaseTest<Func<int[], int>>(FastMathF
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = Count_YEOoVA(x);
+			var a = Count_LJMk4Q(x);
 			var b = x.Length;
 			var c = x.Length;
 			var d = x.Length;
 			var e = x.Length;
 			var f = x.Length;
-			var g = Count_ZKr__A(x);
-			var h = Count_5UQwMQ(x);
-			var i = Count_4OhS1w(x) + x.Length + x.Length;
+			var g = Count_JzD3Jw(x);
+			var h = Count_taQp6w(x);
+			var i = Count_w6J_9Q(x) + x.Length + x.Length;
 			var j = x.Length;
-			var k = Count_DCoT9A(x);
-			var l = Count_lc3V4A(x);
-			var m = Count_DCoT9A(x);
-			var n = Count_lc3V4A(x);
-			var o = Count_T6dSbQ(x);
+			var k = Count_j3VDQQ(x);
+			var l = Count_nSeGiQ(x);
+			var m = Count_j3VDQQ(x);
+			var n = Count_nSeGiQ(x);
+			var o = Count_cdonHg(x);
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l + m + n + o;
 			"""),

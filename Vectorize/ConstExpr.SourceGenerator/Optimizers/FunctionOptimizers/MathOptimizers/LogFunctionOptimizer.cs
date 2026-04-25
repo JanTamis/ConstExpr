@@ -27,12 +27,15 @@ public class LogFunctionOptimizer() : BaseMathFunctionOptimizer("Log", n => n is
 		//   float  ≈ 2.0×  (1.764 ns → 0.888 ns)
 		//   double ≈ 2.2×  (2.003 ns → 0.904 ns)
 		// Max relative error ≈ 8.7e-5 (fast-math trade-off).
-		if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
+		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			var method = ParseMethodFromString(paramType.SpecialType == SpecialType.System_Single
-				? GenerateFastLogMethodFloat()
-				: GenerateFastLogMethodDouble());
+			SpecialType.System_Single => GenerateFastLogMethodFloat(),
+			SpecialType.System_Double => GenerateFastLogMethodDouble(),
+			_ => null
+		});
 
+		if (method is not null)
+		{
 			context.AdditionalSyntax.TryAdd(method, false);
 
 			if (context.VisitedParameters.Count == 1)

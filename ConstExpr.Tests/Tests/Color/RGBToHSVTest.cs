@@ -1,6 +1,6 @@
 using ConstExpr.Core.Enumerators;
 
-namespace ConstExpr.Tests.Tests.Color;
+namespace ConstExpr.Tests.Color;
 
 [InheritsTests]
 public class RGBToHSVTest() : BaseTest<Func<byte, byte, byte, (double, double, double)>>(FastMathFlags.FastMath)

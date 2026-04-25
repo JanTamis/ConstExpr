@@ -9,12 +9,15 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n 
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
-		if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
+		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			var method = ParseMethodFromString(paramType.SpecialType == SpecialType.System_Single
-				? GenerateFastAsinMethodFloat()
-				: GenerateFastAsinMethodDouble());
+			SpecialType.System_Single => GenerateFastAsinMethodFloat(),
+			SpecialType.System_Double => GenerateFastAsinMethodDouble(),
+			_ => null,
+		});
 
+		if (method is not null)
+		{
 			context.AdditionalSyntax.TryAdd(method, false);
 
 			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);

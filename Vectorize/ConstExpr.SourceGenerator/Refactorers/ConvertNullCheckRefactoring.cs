@@ -39,10 +39,7 @@ public static class ConvertNullCheckRefactoring
 		var right = coalescing.Right;
 
 		// Build: left != null ? left : right
-		var condition = BinaryExpression(
-			SyntaxKind.NotEqualsExpression,
-			left,
-			LiteralExpression(SyntaxKind.NullLiteralExpression));
+		var condition = NotEqualsExpression(left, LiteralExpression(SyntaxKind.NullLiteralExpression));
 
 		result = ConditionalExpression(condition, left, right);
 		return true;

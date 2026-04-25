@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for Intersect() optimization - verify that redundant operations and special cases are optimized
@@ -56,18 +56,18 @@ public class LinqIntersectOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var c = Count_4OhS1w(x);
-			var d = Count_MciOhA(x);
-			var e = Count_IlcuZw(x);
-			var f = Count_W7Muhw(x);
-			var g = Count_aXltQQ(x);
-			var h = Count_baWOcQ(x);
-			var i = Count_7gCTVg(x);
-			var j = Count_W7Muhw(x);
-			var k = Count_MciOhA(x);
+			var c = Count_w6J_9Q(x);
+			var d = Count_AEkyLw(x);
+			var e = Count_VBWycg(x);
+			var f = Count_FQoOgw(x);
+			var g = Count_utUoqA(x);
+			var h = Count_w7iHXw(x);
+			var i = Count_MK3tdQ(x);
+			var j = Count_FQoOgw(x);
+			var k = Count_AEkyLw(x);
 			var l = Array.IndexOf(x, 5) >= 0 ? 1 : 0;
-			var m = Count_AY9imA(x);
-			var n = Count_Oio79Q(x);
+			var m = Count_N_W_CA(x);
+			var n = Count_0S7iQA(x);
 			
 			return c + d + e + f + g + h + i + j + k + l + m + n;
 			"""),

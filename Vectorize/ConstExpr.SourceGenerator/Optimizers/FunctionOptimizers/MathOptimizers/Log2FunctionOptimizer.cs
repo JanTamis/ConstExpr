@@ -26,12 +26,15 @@ public class Log2FunctionOptimizer() : BaseMathFunctionOptimizer("Log2", n => n 
 		// pre-multiplied by log2(e) = 1/ln(2), so no post-division is needed.
 		// log2(x) = e + log2(m)  where x = m * 2^e
 		// Max relative error ≈ 8.7e-5 (fast-math trade-off).
-		if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
+		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			var method = ParseMethodFromString(paramType.SpecialType == SpecialType.System_Single
-				? GenerateFastLog2MethodFloat()
-				: GenerateFastLog2MethodDouble());
+			SpecialType.System_Single => GenerateFastLog2MethodFloat(),
+			SpecialType.System_Double => GenerateFastLog2MethodDouble(),
+			_ => null
+		});
 
+		if (method is not null)
+		{
 			context.AdditionalSyntax.TryAdd(method, false);
 
 			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);

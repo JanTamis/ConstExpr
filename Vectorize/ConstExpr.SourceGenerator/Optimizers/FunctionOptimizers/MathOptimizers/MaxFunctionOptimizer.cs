@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using ConstExpr.SourceGenerator.Comparers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -17,7 +18,7 @@ public class MaxFunctionOptimizer() : BaseMathFunctionOptimizer("Max", n => n is
 		var right = context.VisitedParameters[1];
 
 		// Idempotency: Max(x, x) → x (when x is pure)
-		if (left.IsEquivalentTo(right) && IsPure(left))
+		if (SyntaxNodeComparer.Get().Equals(left, right) && IsPure(left))
 		{
 			result = left;
 			return true;

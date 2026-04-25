@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for Average() optimization - verify that AsEnumerable, ToList, ToArray are skipped
@@ -37,14 +37,14 @@ public class LinqAverageOptimizationTests : BaseTest<Func<int[], double>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = Average_rZxIuA(x);
-			var b = Average_rZxIuA(x);
-			var c = Average_rZxIuA(x);
-			var d = Average_rZxIuA(x);
-			var e = Average_rZxIuA(x);
-			var f = Average_XH2brA(x);
-			var g = Average_8Pzflw(x);
-			var h = Average_XH2brA(x);
+			var a = Average_YxQu4A(x);
+			var b = Average_YxQu4A(x);
+			var c = Average_YxQu4A(x);
+			var d = Average_YxQu4A(x);
+			var e = Average_YxQu4A(x);
+			var f = Average_5JubKw(x);
+			var g = Average_8ptrxg(x);
+			var h = Average_5JubKw(x);
 			
 			return a + b + c + d + e + f + g + h;
 			"""),

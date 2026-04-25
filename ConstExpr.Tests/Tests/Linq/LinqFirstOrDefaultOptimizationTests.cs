@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for FirstOrDefault() optimization - verify that unnecessary operations before FirstOrDefault() are removed
@@ -56,7 +56,7 @@ public class LinqFirstOrDefaultOptimizationTests : BaseTest<Func<int[], int>>
 			var e = Array.Find(x, v => v > 2);
 			var f = Array.Find(x, v => v < 5);
 			var g = Array.Find(x, v => v == 3);
-			var h = Min_BeESfw(x);
+			var h = Min_zgmZ3g(x);
 			var i = x.Length > 0 ? x[^1] : 0;
 			var j = x.Length > 0 ? x[0] : 0;
 			var k = x.Length > 0 ? x[0] : 0;

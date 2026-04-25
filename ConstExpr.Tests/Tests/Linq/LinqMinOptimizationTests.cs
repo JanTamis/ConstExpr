@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for Min() optimization - verify identity lambda removal, Select fusion, and chain optimization
@@ -29,11 +29,11 @@ public class LinqMinOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = Min_BeESfw(x);
-			var b = Int32.Min(Min_k4ULPQ(x), Min_BeESfw(x));
-			var c = Min_BeESfw(x);
-			var d = Min_BeESfw(x);
-			var e = Min_BeESfw(x);
+			var a = Min_zgmZ3g(x);
+			var b = Int32.Min(Min_lB3pdg(x), Min_zgmZ3g(x));
+			var c = Min_zgmZ3g(x);
+			var d = Min_zgmZ3g(x);
+			var e = Min_zgmZ3g(x);
 			
 			return a + b + c + d + e;
 			"""),

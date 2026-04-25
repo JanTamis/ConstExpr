@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for Select() optimization - verify identity lambdas, cast optimizations, and lambda fusion
@@ -23,9 +23,9 @@ public class LinqSelectOptimizationTests : BaseTest<Func<IEnumerable<int>, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = Sum_7Ump6A(x);
-			var b = Sum_QM1oxw(x) ?? 0;
-			var c = Sum_DVZBFA(x);
+			var a = Sum_xcpydQ(x);
+			var b = Sum_2MT2Cw(x) ?? 0;
+			var c = Sum_I5kOlg(x);
 			
 			return a + b + c;
 			"""),

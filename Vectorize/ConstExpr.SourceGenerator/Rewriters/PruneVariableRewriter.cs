@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using ConstExpr.SourceGenerator.Comparers;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
@@ -110,12 +111,12 @@ public sealed class PruneVariableRewriter(
 	public override SyntaxNode? VisitIfStatement(IfStatementSyntax node)
 	{
 		var statement = Visit(node.Statement);
-		var elseClause = node.Else is not null ? Visit(node.Else) as ElseClauseSyntax : null;
+		var elseClause = Visit(node.Else) as ElseClauseSyntax;
 
 		// Body is empty — either remove the whole if, or keep only the else body.
 		if (statement is null or BlockSyntax { Statements.Count: 0 })
 		{
-			return elseClause is null ? null : elseClause.Statement;
+			return elseClause?.Statement;
 		}
 
 		var result = node.WithStatement(statement as StatementSyntax ?? node.Statement);
@@ -213,8 +214,9 @@ public sealed class PruneVariableRewriter(
 
 	private bool ShouldPruneAssignment(AssignmentExpressionSyntax assignment)
 	{
-		// Self-assignment: x = x
-		if (assignment.Left.IsEquivalentTo(assignment.Right))
+		// Self-assignment: x = x — only applies to simple assignment (=), not compound ops like x *= x
+		if (assignment.IsKind(SyntaxKind.SimpleAssignmentExpression)
+		    && SyntaxNodeComparer.Get().Equals(assignment.Left, assignment.Right))
 		{
 			return true;
 		}

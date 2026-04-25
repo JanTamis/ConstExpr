@@ -9,14 +9,15 @@ public class CbrtFunctionOptimizer() : BaseMathFunctionOptimizer("Cbrt", n => n 
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
-		var arg = context.VisitedParameters[0];
-
-		if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
+		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			var method = ParseMethodFromString(paramType.SpecialType == SpecialType.System_Single
-				? GenerateFastCbrtMethodFloat()
-				: GenerateFastCbrtMethodDouble());
+			SpecialType.System_Single => GenerateFastCbrtMethodFloat(),
+			SpecialType.System_Double => GenerateFastCbrtMethodDouble(),
+			_ => null
+		});
 
+		if (method is not null)
+		{
 			context.AdditionalSyntax.TryAdd(method, false);
 
 			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);

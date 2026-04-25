@@ -9,12 +9,15 @@ public class SinhFunctionOptimizer() : BaseMathFunctionOptimizer("Sinh", n => n 
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
+		var method = ParseMethodFromString(paramType.SpecialType switch
+		{
+			SpecialType.System_Single => GenerateFastSinhMethodFloat(),
+			SpecialType.System_Double => GenerateFastSinhMethodDouble(),
+			_ => null
+		});
+
 		if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
 		{
-			var method = ParseMethodFromString(paramType.SpecialType == SpecialType.System_Single
-				? GenerateFastSinhMethodFloat()
-				: GenerateFastSinhMethodDouble());
-
 			context.AdditionalSyntax.TryAdd(method, false);
 
 			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);

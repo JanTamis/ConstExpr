@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for ToDictionary() optimization - verify redundant materialization removal and empty source optimization.
@@ -62,22 +62,22 @@ public class LinqToDictionaryOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = ToDictionary_pGYHOA(x).Count;
-			var b = ToDictionary_pGYHOA(x).Count;
-			var c = ToDictionary_pGYHOA(x).Count;
-			var d = ToDictionary_pGYHOA(x).Count;
-			var e = ToDictionary_H6P76A(x).Count;
-			var f = ToDictionary_H6P76A(x).Count;
-			var g = ToDictionary_pGYHOA(x).Count;
-			var h = ToDictionary_pGYHOA(x).Count;
-			var i = ToDictionary_pGYHOA(x).Count;
-			var j = ToDictionary_pGYHOA(x).Count;
-			var k = ToDictionary_r9ak7g(x).Count;
-			var l = ToDictionary_qnDGnw(x).Count;
-			var m = ToDictionary_pGYHOA(x).Count;
-			var n = ToDictionary_HBnvag(x).Count;
-			var o = ToDictionary_Ky6jwg(x).Count;
-			var p = ToDictionary_Tle2rw(x).Count;
+			var a = ToDictionary_1EegoQ(x).Count;
+			var b = ToDictionary_1EegoQ(x).Count;
+			var c = ToDictionary_1EegoQ(x).Count;
+			var d = ToDictionary_1EegoQ(x).Count;
+			var e = ToDictionary_sCunBg(x).Count;
+			var f = ToDictionary_sCunBg(x).Count;
+			var g = ToDictionary_1EegoQ(x).Count;
+			var h = ToDictionary_1EegoQ(x).Count;
+			var i = ToDictionary_1EegoQ(x).Count;
+			var j = ToDictionary_1EegoQ(x).Count;
+			var k = ToDictionary_3VBgJQ(x).Count;
+			var l = ToDictionary___qgkw(x).Count;
+			var m = ToDictionary_at7ziQ(x).Count;
+			var n = ToDictionary_XXbqPA(x).Count;
+			var o = ToDictionary_nBFL_A(x).Count;
+			var p = ToDictionary_vxO49g(x).Count;
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l + m + n + o + p;
 			"""),

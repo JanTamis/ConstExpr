@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for Any() optimization - verify that unnecessary operations before Any() are removed
@@ -115,7 +115,7 @@ public class LinqAnyOptimizationListTests : BaseTest<Func<List<int>, int>>
 			var b = x.Count > 0 ? 1 : 0;
 			var c = x.Count > 0 ? 1 : 0;
 			var d = x.Exists(v => v > 100) ? 1 : 0;
-			var e = Contains_aDaspA(x) ? 1 : 0;
+			var e = Contains_zFeL6A(x) ? 1 : 0;
 			var f = x.Count > 0 ? 1 : 0;
 			
 			return a + b + c + d + e + f;

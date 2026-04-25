@@ -1,6 +1,6 @@
 using ConstExpr.Core.Enumerators;
 
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for Where() optimization - verify constant folding and combining of Where clauses
@@ -43,11 +43,11 @@ public class LinqWhereOptimizationTests() : BaseTest<Func<int[], int>>(FastMathF
 	[
 		Create("""
 			var a = x.Length;
-			var c = Count_Teno0g(x);
-			var d = Count_GYM_uw(x);
-			var e = Count_vGdPZA(x);
-			var f = Count_YEOoVA(x);
-			var h = Count_oNuv2g(x);
+			var c = Count__kPdYA(x);
+			var d = Count_JkeiXw(x);
+			var e = Count_qwYgug(x);
+			var f = Count_LJMk4Q(x);
+			var h = Count_4BnjXQ(x);
 			
 			return a + c + d + e + f + h;
 			"""),

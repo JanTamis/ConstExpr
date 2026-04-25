@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for LongCount() optimization - verify that unnecessary operations before LongCount() are removed
@@ -44,15 +44,15 @@ public class LinqLongCountOptimizationTests : BaseTest<Func<int[], long>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = LongCount_YEOoVA(x);
+			var a = LongCount_LJMk4Q(x);
 			var b = (long)x.Count;
 			var c = (long)x.Count;
 			var d = (long)x.Count;
 			var e = (long)x.Count;
 			var f = (long)x.Count;
-			var g = LongCount_ZKr__A(x);
-			var h = LongCount_5UQwMQ(x);
-			var i = LongCount_4OhS1w(x) + (long)x.Count;
+			var g = LongCount_JzD3Jw(x);
+			var h = LongCount_taQp6w(x);
+			var i = LongCount_w6J_9Q(x) + (long)x.Count;
 			var j = (long)x.Count;
 			
 			return a + b + c + d + e + f + g + h + i + j;

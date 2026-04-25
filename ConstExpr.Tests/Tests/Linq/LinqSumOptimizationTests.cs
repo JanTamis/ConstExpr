@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for Sum() optimization - verify identity lambda removal, Select fusion, and chain optimization
@@ -31,12 +31,12 @@ public class LinqSumOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = Sum_7Ump6A(x);
-			var b = Sum_LNDHMA(x) + Sum_7Ump6A(x);
-			var c = Sum_7Ump6A(x);
-			var d = Sum_7Ump6A(x);
-			var e = Sum_7Ump6A(x);
-			var f = Sum_7Ump6A(x) << 2;
+			var a = Sum_xcpydQ(x);
+			var b = Sum_dcMRsA(x) + Sum_xcpydQ(x);
+			var c = Sum_xcpydQ(x);
+			var d = Sum_xcpydQ(x);
+			var e = Sum_xcpydQ(x);
+			var f = Sum_xcpydQ(x) << 2;
 			
 			return a + b + c + d + e + f;
 			"""),

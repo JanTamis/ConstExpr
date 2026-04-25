@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for Cast() optimization - verify that AsEnumerable, ToList, ToArray are skipped
@@ -29,11 +29,11 @@ public class LinqCastOptimizationTests : BaseTest<Func<List<object>, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = Sum_FYSr7g(x);
-			var b = Sum_FYSr7g(x);
-			var c = Sum_FYSr7g(x);
-			var d = Sum_FYSr7g(x);
-			var e = Sum_FYSr7g(x);
+			var a = Sum_gqdmOQ(x);
+			var b = Sum_gqdmOQ(x);
+			var c = Sum_gqdmOQ(x);
+			var d = Sum_gqdmOQ(x);
+			var e = Sum_gqdmOQ(x);
 			
 			return a + b + c + d + e;
 			"""),

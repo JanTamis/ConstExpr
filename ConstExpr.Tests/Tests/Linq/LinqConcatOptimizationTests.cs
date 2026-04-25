@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for Concat() optimization - verify that Empty enumerables and unnecessary operations are optimized
@@ -50,18 +50,18 @@ public class LinqConcatOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = Sum_7Ump6A(x);
-			var b = Sum_7Ump6A(x);
-			var c = Sum_7Ump6A(x) + 30;
-			var d = Sum_7Ump6A(x) + 5;
-			var e = Sum_7Ump6A(x) + 15;
-			var f = Sum_7Ump6A(x) + 25;
-			var g = Sum_7Ump6A(x) + 70;
-			var h = Sum_7Ump6A(x) + 10;
-			var i = Sum_7Ump6A(x) + 300;
-			var j = Sum_7Ump6A(x) + 60;
-			var k = Sum_7Ump6A(x) + 99;
-			var l = Sum_7Ump6A(x) + 88;
+			var a = Sum_xcpydQ(x);
+			var b = Sum_xcpydQ(x);
+			var c = Sum_xcpydQ(x) + 30;
+			var d = Sum_xcpydQ(x) + 5;
+			var e = Sum_xcpydQ(x) + 15;
+			var f = Sum_xcpydQ(x) + 25;
+			var g = Sum_xcpydQ(x) + 70;
+			var h = Sum_xcpydQ(x) + 10;
+			var i = Sum_xcpydQ(x) + 300;
+			var j = Sum_xcpydQ(x) + 60;
+			var k = Sum_xcpydQ(x) + 99;
+			var l = Sum_xcpydQ(x) + 88;
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l;
 			"""),

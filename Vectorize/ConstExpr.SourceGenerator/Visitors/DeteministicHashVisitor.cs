@@ -98,17 +98,17 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
 
   public override ulong VisitBinaryExpression(BinaryExpressionSyntax node)
   {
-    return HashCombine(Visit(node.Left), Visit(node.Right));
+    return HashCombine(Visit(node.Left), HashString(node.OperatorToken.ValueText), Visit(node.Right));
   }
 
   public override ulong VisitPrefixUnaryExpression(PrefixUnaryExpressionSyntax node)
   {
-    return Visit(node.Operand);
+    return HashCombine(HashString(node.OperatorToken.ValueText), Visit(node.Operand));
   }
 
   public override ulong VisitPostfixUnaryExpression(PostfixUnaryExpressionSyntax node)
   {
-    return Visit(node.Operand);
+    return HashCombine(Visit(node.Operand), HashString(node.OperatorToken.ValueText));
   }
 
   public override ulong VisitInvocationExpression(InvocationExpressionSyntax node)
@@ -1252,10 +1252,12 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
 
   private ulong HashCombine(ulong hash1, ulong hash2)
   {
-    hash1 ^= hash2;
-    hash1 *= FnvPrime;
-    
-    return hash1;
+    // Multiply first, then XOR — avoids hash1 ^ hash2 = 0 when hash1 == hash2,
+    // which previously caused any "expr OP expr" (identical operands) to collapse to 0.
+    unchecked
+    {
+      return hash1 * FnvPrime ^ hash2;
+    }
   }
 
   private ulong HashCombine(ulong hash1, ulong hash2, ulong hash3)

@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using ConstExpr.SourceGenerator.Comparers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 
@@ -12,7 +13,7 @@ public class MinMagnitudeFunctionOptimizer() : BaseMathFunctionOptimizer("MinMag
 		var right = context.VisitedParameters[1];
 
 		// Idempotency: MinMagnitude(x, x) → x
-		if (left.IsEquivalentTo(right) && IsPure(left))
+		if (SyntaxNodeComparer.Get().Equals(left, right) && IsPure(left))
 		{
 			result = left;
 			return true;

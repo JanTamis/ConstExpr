@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for CountBy() optimization — verify that redundant materialisation and ordering
@@ -44,12 +44,12 @@ public class LinqCountByOptimizationTests : BaseTest<Func<int[], int>>
 		// e (Empty source) and h (Where false) fold to 0 and are pruned from the return sum.
 		// v % 2 in key selectors is also optimised to v & 1 by the arithmetic optimizer.
 		Create("""
-			var a = Count_z525XA(x);
-			var b = Count_z525XA(x);
-			var c = Count_z525XA(x);
-			var d = Count_z525XA(x);
-			var f = Count_z525XA(x);
-			var g = Count_z525XA(x);
+			var a = Count_fDCnXg(x);
+			var b = Count_fDCnXg(x);
+			var c = Count_fDCnXg(x);
+			var d = Count_fDCnXg(x);
+			var f = Count_fDCnXg(x);
+			var g = Count_fDCnXg(x);
 			var i = x.Length;
 			
 			return a + b + c + d + f + g + i;

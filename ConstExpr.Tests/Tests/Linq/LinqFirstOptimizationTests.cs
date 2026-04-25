@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for First() optimization - verify that unnecessary operations before First() are removed
@@ -49,18 +49,18 @@ public class LinqFirstOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = First_3UDIQw(x);
+			var a = First_x5lKxQ(x);
 			var b = x[0];
 			var c = x[0];
 			var d = x[0];
-			var e = First_KQy6fA(x);
-			var f = First_yBW6LQ(x);
-			var g = First_Mw8fww(x);
+			var e = First_O1a9Fw(x);
+			var f = First_NyySEw(x);
+			var g = First_BgmaKg(x);
 			var h = x[^1];
-			var i = Min_BeESfw(x);
-			var j = Max_dZD6IQ(x);
+			var i = Min_zgmZ3g(x);
+			var j = Max_uzcZ3A(x);
 			var k = x[0];
-			var l = First_iM4awA(x) << 1;
+			var l = First_zVpC_g(x) << 1;
 			
 			return a + b + c + d + e + f + g + h + i + j + k + l;
 			"""),

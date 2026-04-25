@@ -1,4 +1,4 @@
-namespace ConstExpr.Tests.Tests.Linq;
+namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for AggregateBy() optimization — verify that redundant materialization before
@@ -47,15 +47,15 @@ public class LinqAggregateByOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = Count_NyUH3g(x);
-			var b = Count_NyUH3g(x);
-			var c = Count_NyUH3g(x);
-			var d = Count_NyUH3g(x);
-			var e = Count_YxDIXg(x);
-			var f = Count_2M2oWw(x);
-			var h = Count_NyUH3g(x);
+			var a = Count_Ch2WLg(x);
+			var b = Count_Ch2WLg(x);
+			var c = Count_Ch2WLg(x);
+			var d = Count_Ch2WLg(x);
+			var e = Count_GXoNZg(x);
+			var f = Count_e2olnw(x);
+			var h = Count_Ch2WLg(x);
 			var i = x.CountBy(v => v & 1).Count();
-			var j = Count_z525XA(x);
+			var j = Count_fDCnXg(x);
 			
 			return a + b + c + d + e + f + h + i + j;
 			"""),
