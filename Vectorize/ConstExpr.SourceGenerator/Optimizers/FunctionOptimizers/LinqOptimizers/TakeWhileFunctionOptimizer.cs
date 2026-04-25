@@ -33,12 +33,16 @@ public class TakeWhileFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 			{
 				// Optimize TakeWhile(x => true) => collection (take everything)
 				case true:
+				{
 					result = source;
 					return true;
+				}
 				// Optimize TakeWhile(x => false) => Enumerable.Empty<T>() (take nothing)
 				case false:
+				{
 					result = CreateEmptyEnumerableCall(context.Method.TypeArguments[0]);
 					return true;
+				}
 			}
 		}
 

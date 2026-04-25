@@ -37,17 +37,22 @@ public class DefaultIfEmptyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 			return true;
 		}
 
-		// Special case: if source is also DefaultIfEmpty, we can skip it (idempotent)
-		// DefaultIfEmpty(x).DefaultIfEmpty(y) => DefaultIfEmpty(y) (first value wins)
+		// Special case: if source is also DefaultIfEmpty, collapse nested calls.
+		// The innermost (first) default value wins, because:
+		//   coll.DefaultIfEmpty(x).DefaultIfEmpty(y)
+		//   => when coll is empty: DefaultIfEmpty(x) => [x]; DefaultIfEmpty(y) on [x] => [x]
+		//   => result is DefaultIfEmpty(x), i.e. the first/inner default x is preserved.
 		while (IsLinqMethodChain(source, nameof(Enumerable.DefaultIfEmpty), out var innerDefaultInvocation)
 		       && TryGetLinqSource(innerDefaultInvocation, out var innerSource))
 		{
-			// Continue skipping operations before the inner DefaultIfEmpty
+			// Peel off the innermost DefaultIfEmpty and record its default value.
 			TryGetOptimizedChainExpression(innerSource, MaterializingMethods, out source);
 
+			// Capture the inner default — each iteration moves one level deeper,
+			// so at the end defaultValue holds the innermost (first) default.
 			defaultValue = innerDefaultInvocation.ArgumentList.Arguments
 				.Select(s => s.Expression)
-				.FirstOrDefault(); // Update default value to the last one to the last one
+				.FirstOrDefault();
 
 			isNewSource = true; // We effectively skipped an operation, so we have a new source to optimize from
 		}

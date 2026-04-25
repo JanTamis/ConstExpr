@@ -11,13 +11,13 @@ public class SinCosFunctionOptimizer() : BaseMathFunctionOptimizer("SinCos", n =
 	{
 		if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
 		{
-			var methodString = paramType.SpecialType == SpecialType.System_Single
+			var method = ParseMethodFromString(paramType.SpecialType == SpecialType.System_Single
 				? GenerateFastSinCosMethodFloat()
-				: GenerateFastSinCosMethodDouble();
+				: GenerateFastSinCosMethodDouble());
 
-			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(method, false);
 
-			result = CreateInvocation("FastSinCos", context.VisitedParameters);
+			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);
 			return true;
 		}
 

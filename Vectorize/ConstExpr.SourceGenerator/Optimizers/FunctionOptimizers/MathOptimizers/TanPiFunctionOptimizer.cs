@@ -57,13 +57,13 @@ public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", n => 
 
 		if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
 		{
-			var methodString = paramType.SpecialType == SpecialType.System_Single
+			var method = ParseMethodFromString(paramType.SpecialType == SpecialType.System_Single
 				? GenerateFastTanPiMethodFloat()
-				: GenerateFastTanPiMethodDouble();
+				: GenerateFastTanPiMethodDouble());
 
-			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(method, false);
 
-			result = CreateInvocation("FastTanPi", context.VisitedParameters);
+			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);
 			return true;
 		}
 
@@ -78,13 +78,19 @@ public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", n => 
 		switch (expr)
 		{
 			case LiteralExpressionSyntax { Token.Value: IConvertible c }:
+			{
 				value = c.ToDouble(CultureInfo.InvariantCulture);
 				return true;
+			}
 			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
+			{
 				value = -c2.ToDouble(CultureInfo.InvariantCulture);
 				return true;
+			}
 			default:
+			{
 				return false;
+			}
 		}
 	}
 

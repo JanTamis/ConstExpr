@@ -799,11 +799,15 @@ public partial class ConstExprPartialRewriter
 			switch (kind)
 			{
 				case SyntaxKind.GreaterThanToken or SyntaxKind.GreaterThanEqualsToken:
+				{
 					lowerPattern = leftRel;
 					break;
+				}
 				case SyntaxKind.LessThanToken or SyntaxKind.LessThanEqualsToken:
+				{
 					upperPattern = leftRel;
 					break;
+				}
 			}
 		}
 
@@ -814,11 +818,15 @@ public partial class ConstExprPartialRewriter
 			switch (kind)
 			{
 				case SyntaxKind.GreaterThanToken or SyntaxKind.GreaterThanEqualsToken:
+				{
 					lowerPattern = rightRel;
 					break;
+				}
 				case SyntaxKind.LessThanToken or SyntaxKind.LessThanEqualsToken:
+				{
 					upperPattern = rightRel;
 					break;
+				}
 			}
 		}
 

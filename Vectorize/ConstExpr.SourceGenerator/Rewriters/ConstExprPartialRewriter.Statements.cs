@@ -160,9 +160,13 @@ public partial class ConstExprPartialRewriter
 			switch (value)
 			{
 				case false:
+				{
 					return null;
+				}
 				case true:
+				{
 					return TryUnrollForLoop(node);
+				}
 			}
 		}
 
@@ -857,16 +861,22 @@ public partial class ConstExprPartialRewriter
 		{
 			// Check if left side is identifier and right side is literal
 			case { Left: IdentifierNameSyntax leftId, Right: LiteralExpressionSyntax rightLit }:
+			{
 				targetIdentifier = leftId.Identifier.Text;
 				literal = rightLit;
 				return true;
+			}
 			// Check if right side is identifier and left side is literal
 			case { Right: IdentifierNameSyntax rightId, Left: LiteralExpressionSyntax leftLit }:
+			{
 				targetIdentifier = rightId.Identifier.Text;
 				literal = leftLit;
 				return true;
+			}
 			default:
+			{
 				return false;
+			}
 		}
 	}
 

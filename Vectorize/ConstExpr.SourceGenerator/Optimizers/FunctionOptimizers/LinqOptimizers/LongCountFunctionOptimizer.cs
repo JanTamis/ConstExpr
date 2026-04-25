@@ -63,11 +63,15 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 				switch (literalValue)
 				{
 					case true:
+					{
 						TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectCount, out source);
 						continue;
+					}
 					case false:
+					{
 						result = CreateLiteral(0L);
 						return true;
+					}
 				}
 			}
 
@@ -124,10 +128,14 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 				switch (literalValue)
 				{
 					case true when TryOptimizeCollection(context, currentSource, out result):
+					{
 						return true;
+					}
 					case false:
+					{
 						result = CreateLiteral(0L);
 						break;
+					}
 				}
 			}
 

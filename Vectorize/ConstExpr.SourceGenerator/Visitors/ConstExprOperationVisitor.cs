@@ -531,11 +531,15 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 				switch (methodOperation)
 				{
 					case ILocalFunctionOperation localFunction:
+					{
 						visitor.VisitBlock(localFunction.Body, variables);
 						break;
+					}
 					case IMethodBodyOperation methodBody:
+					{
 						visitor.VisitBlock(methodBody.BlockBody, variables);
 						break;
+					}
 				}
 
 				return variables[RETURNVARIABLENAME];
@@ -678,8 +682,11 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 		switch (operation.Kind)
 		{
 			case OperationKind.Return:
+			{
 				return argument[RETURNVARIABLENAME] = Visit(operation.ReturnedValue, argument);
+			}
 			case OperationKind.YieldReturn:
+			{
 				if (!argument.TryGetValue(RETURNVARIABLENAME, out var list) || list is not IList data)
 				{
 					data = new List<object?>();
@@ -690,8 +697,11 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 
 				data.Add(Visit(operation.ReturnedValue, argument));
 				return null;
+			}
 			default:
+			{
 				return null;
+			}
 		}
 	}
 
@@ -796,9 +806,12 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 			switch (part)
 			{
 				case IInterpolatedStringTextOperation textPart:
+				{
 					builder.Append(Visit(textPart.Text, argument) as string);
 					break;
+				}
 				case IInterpolationOperation interpolationPart:
+				{
 					var value = Visit(interpolationPart.Expression, argument);
 					var format = Visit(interpolationPart.FormatString, argument)?.ToString();
 
@@ -822,6 +835,7 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 
 					builder.Append(formatted);
 					break;
+				}
 			}
 		}
 
@@ -1562,25 +1576,32 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 		switch (pattern)
 		{
 			case IConstantPatternOperation constantPattern:
+			{
 				return Equals(value, Visit(constantPattern.Value, argument));
+			}
 			case IDeclarationPatternOperation declarationPattern:
+			{
 				if (declarationPattern.MatchedType != null && value != null)
 				{
 					var matchedType = loader.GetType(declarationPattern.MatchedType);
 					if (matchedType != null && !matchedType.IsInstanceOfType(value))
-          {
-            return false;
-          }
+					{
+						return false;
+					}
 
-          if (declarationPattern.DeclaredSymbol is { } decl)
+					if (declarationPattern.DeclaredSymbol is { } decl)
 					{
 						argument[decl.Name] = value;
 					}
 				}
 				return value == null;
+			}
 			case IDiscardPatternOperation:
+			{
 				return true;
+			}
 			case IRelationalPatternOperation relationalPattern:
+			{
 				if (value is IComparable cmp && relationalPattern.Value.ConstantValue is { HasValue: true, Value: var relVal })
 				{
 					var res = cmp.CompareTo(relVal);
@@ -1594,7 +1615,9 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 					};
 				}
 				return false;
+			}
 			case IBinaryPatternOperation binaryPattern:
+			{
 				var left = MatchPattern(value, binaryPattern.LeftPattern, argument);
 				var right = MatchPattern(value, binaryPattern.RightPattern, argument);
 				return binaryPattern.OperatorKind switch
@@ -1603,30 +1626,37 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 					BinaryOperatorKind.Or => left || right,
 					_ => false
 				};
+			}
 			case INegatedPatternOperation negatedPattern:
+			{
 				return !MatchPattern(value, negatedPattern.Pattern, argument);
+			}
 			case IListPatternOperation listPattern:
+			{
 				if (value is not IEnumerable enumerable)
-        {
-          return false;
-        }
+				{
+					return false;
+				}
 
-        var elements = enumerable.Cast<object?>().ToList();
+				var elements = enumerable.Cast<object?>().ToList();
 				if (elements.Count != listPattern.ChildOperations.Count)
-        {
-          return false;
-        }
+				{
+					return false;
+				}
 
-        foreach (var (index, child) in listPattern.ChildOperations.Index())
+				foreach (var (index, child) in listPattern.ChildOperations.Index())
 				{
 					if (!MatchPattern(elements[index], child as IPatternOperation, argument))
-          {
-            return false;
-          }
-        }
+					{
+						return false;
+					}
+				}
 				return true;
+			}
 			default:
+			{
 				return false;
+			}
 		}
 	}
 

@@ -79,7 +79,7 @@ public class  LinqDefaultIfEmptyWithValueTests : BaseTest<Func<int[], int>>
 		// OrderBy().DefaultIfEmpty(value) => DefaultIfEmpty(value)
 		var c = x.OrderBy(v => v).DefaultIfEmpty(77).First();
 
-		// DefaultIfEmpty(10).DefaultIfEmpty(20) => DefaultIfEmpty(20) (last wins)
+		// DefaultIfEmpty(10).DefaultIfEmpty(20) => DefaultIfEmpty(10) (inner/first value wins)
 		var d = x.DefaultIfEmpty(10).DefaultIfEmpty(20).First();
 
 		return a + b + c + d;
@@ -153,8 +153,7 @@ public class LinqDefaultIfEmptyComplexTests : BaseTest<Func<int[], int>>
 		// Multiple chained operations before DefaultIfEmpty
 		var a = x.Where(v => v > 0).Distinct().OrderBy(v => v).DefaultIfEmpty(50).Sum();
 
-		
-// DefaultIfEmpty after Select (Select can create empty collection)
+		// DefaultIfEmpty after Select (Select can create empty collection)
 		var b = x.Where(v => v > 100).Select(v => v * 2).DefaultIfEmpty(25).Sum();
 
 		// Nested DefaultIfEmpty with different values
@@ -178,7 +177,7 @@ public class LinqDefaultIfEmptyComplexTests : BaseTest<Func<int[], int>>
 			
 			return a + b + c + d + e + f;
 			"""),
-		Create("return 52;", new[] { 1, 2, 3, 4, 5 }), // a=15 (sum of 1-5), b=25 (empty, default), c=1 (non-empty) = 41
-		Create("return 115;", new int[] { }), // a=50 (empty, default), b=25 (empty, default), c=30 (empty, default) = 105
+		Create("return 52;", new[] { 1, 2, 3, 4, 5 }), // a=15 (sum 1-5), b=25 (empty→default), c=1, d=1 (first), e=5, f=5 (last) = 52
+		Create("return 115;", new int[] { }), // a=50 (empty→default), b=25 (empty→default), c=d=e=f=10 (empty→innermost default) = 115
 	];
 }

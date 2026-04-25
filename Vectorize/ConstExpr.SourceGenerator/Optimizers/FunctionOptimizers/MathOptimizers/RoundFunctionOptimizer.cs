@@ -72,26 +72,36 @@ public class RoundFunctionOptimizer() : BaseMathFunctionOptimizer("Round", n => 
 					break;
 				}
 				case IdentifierNameSyntax id:
+				{
 					// e.g. AwayFromZero when using a using static or same-namespace alias
 					enumMember = id.Identifier.Text;
 					break;
+				}
 				case QualifiedNameSyntax { Right: IdentifierNameSyntax right }:
+				{
 					// e.g. System.MidpointRounding.AwayFromZero could be parsed as a qualified name
 					enumMember = right.Identifier.Text;
 					break;
+				}
 			}
 
 			switch (enumMember)
 			{
 				case "ToZero":
+				{
 					result = CreateInvocation(paramType, "Truncate", context.VisitedParameters.Take(1));
 					return true;
+				}
 				case "ToPositiveInfinity":
+				{
 					result = CreateInvocation(paramType, "Ceiling", context.VisitedParameters.Take(1));
 					return true;
+				}
 				case "ToNegativeInfinity":
+				{
 					result = CreateInvocation(paramType, "Floor", context.VisitedParameters.Take(1));
 					return true;
+				}
 			}
 		}
 

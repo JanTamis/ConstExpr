@@ -11,13 +11,13 @@ public class CoshFunctionOptimizer() : BaseMathFunctionOptimizer("Cosh", n => n 
 	{
 		if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
 		{
-			var methodString = paramType.SpecialType == SpecialType.System_Single
+			var method = ParseMethodFromString(paramType.SpecialType == SpecialType.System_Single
 				? GenerateFastCoshMethodFloat()
-				: GenerateFastCoshMethodDouble();
+				: GenerateFastCoshMethodDouble());
 
-			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(method, false);
 
-			result = CreateInvocation("FastCosh", context.VisitedParameters);
+			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);
 			return true;
 		}
 

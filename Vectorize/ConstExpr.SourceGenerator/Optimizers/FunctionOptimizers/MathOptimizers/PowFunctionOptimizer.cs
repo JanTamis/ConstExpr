@@ -106,12 +106,12 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is
 		//           inject anyway for x86/x64 portability where powf is heavier.
 		if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
 		{
-			var methodString = paramType.SpecialType == SpecialType.System_Single
+			var method = ParseMethodFromString(paramType.SpecialType == SpecialType.System_Single
 				? GenerateFastPowMethodFloat()
-				: GenerateFastPowMethodDouble();
+				: GenerateFastPowMethodDouble());
 
-			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
-			result = CreateInvocation("FastPow", context.VisitedParameters);
+			context.AdditionalSyntax.TryAdd(method, false);
+			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);
 			return true;
 		}
 
@@ -225,13 +225,19 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is
 		switch (expr)
 		{
 			case LiteralExpressionSyntax { Token.Value: IConvertible c }:
+			{
 				value = c.ToDouble(CultureInfo.InvariantCulture);
 				return true;
+			}
 			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
+			{
 				value = -c2.ToDouble(CultureInfo.InvariantCulture);
 				return true;
+			}
 			default:
+			{
 				return false;
+			}
 		}
 	}
 }

@@ -164,10 +164,14 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 		switch (remainingVariables.Count)
 		{
 			case 0:
+			{
 				return null;
+			}
 			case 1:
+			{
 				node = node.WithType(ParseTypeName("var"));
 				break;
+			}
 		}
 
 		return node.WithVariables(SeparatedList(remainingVariables));
@@ -184,7 +188,9 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 				when CanBePruned(postfixId.Identifier.Text):
 			case PrefixUnaryExpressionSyntax { Operand: IdentifierNameSyntax prefixId }
 				when CanBePruned(prefixId.Identifier.Text):
+			{
 				return null;
+			}
 			default:
 			{
 				var visited = Visit(node.Expression);

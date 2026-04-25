@@ -65,13 +65,13 @@ public class TanhFunctionOptimizer() : BaseMathFunctionOptimizer("Tanh", n => n 
 
 		if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
 		{
-			var methodString = paramType.SpecialType == SpecialType.System_Single
+			var method = ParseMethodFromString(paramType.SpecialType == SpecialType.System_Single
 				? GenerateFastTanhMethodFloat()
-				: GenerateFastTanhMethodDouble();
+				: GenerateFastTanhMethodDouble());
 
-			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(method, false);
 
-			result = CreateInvocation("FastTanh", context.VisitedParameters);
+			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);
 			return true;
 		}
 
@@ -86,13 +86,19 @@ public class TanhFunctionOptimizer() : BaseMathFunctionOptimizer("Tanh", n => n 
 		switch (expr)
 		{
 			case LiteralExpressionSyntax { Token.Value: IConvertible c }:
+			{
 				value = c.ToDouble(CultureInfo.InvariantCulture);
 				return true;
+			}
 			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
+			{
 				value = -c2.ToDouble(CultureInfo.InvariantCulture);
 				return true;
+			}
 			default:
+			{
 				return false;
+			}
 		}
 	}
 

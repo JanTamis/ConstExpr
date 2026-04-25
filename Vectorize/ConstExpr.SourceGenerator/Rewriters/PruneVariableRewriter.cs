@@ -223,7 +223,9 @@ public sealed class PruneVariableRewriter(
 		{
 			// Direct assignment to a prunable variable.
 			case IdentifierNameSyntax id when CanBePruned(id.Identifier.Text):
+			{
 				return true;
+			}
 
 			// Tuple deconstruction where every element is prunable: (a, b) = (1, 2)
 			case TupleExpressionSyntax tuple

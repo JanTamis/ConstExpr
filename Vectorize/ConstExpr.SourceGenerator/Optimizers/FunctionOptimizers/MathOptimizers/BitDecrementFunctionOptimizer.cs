@@ -21,13 +21,13 @@ public class BitDecrementFunctionOptimizer() : BaseMathFunctionOptimizer("BitDec
 		// IsFinite guard + branchless sign trick is ~35% faster than the BCL built-in on ARM64.
 		if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
 		{
-			var methodString = paramType.SpecialType == SpecialType.System_Single
+			var method = ParseMethodFromString(paramType.SpecialType == SpecialType.System_Single
 				? GenerateFastBitDecrementMethodFloat()
-				: GenerateFastBitDecrementMethodDouble();
+				: GenerateFastBitDecrementMethodDouble());
 
-			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(method, false);
 
-			result = CreateInvocation("FastBitDecrement", context.VisitedParameters);
+			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);
 			return true;
 		}
 

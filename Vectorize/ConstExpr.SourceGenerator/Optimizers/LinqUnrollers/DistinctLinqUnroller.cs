@@ -17,22 +17,28 @@ public class DistinctLinqUnroller : BaseLinqUnroller
 		switch (elementType.SpecialType)
 		{
 			case SpecialType.System_Boolean:
+			{
 				statements.Add(CreateLocalDeclaration(SeenTrue, CreateLiteral(false)!));
 				statements.Add(CreateLocalDeclaration(SeenFalse, CreateLiteral(false)!));
 				break;
+			}
 
 			case SpecialType.System_Byte:
 			case SpecialType.System_SByte:
+			{
 				// Span<bool> distinctSet = stackalloc bool[256];
 				statements.Add(CreateStackAllocSpan<bool>(SetName, 256));
 				break;
+			}
 
 			case SpecialType.System_Int16:
 			case SpecialType.System_UInt16:
 			case SpecialType.System_Char:
+			{
 				// Span<ulong> distinctSet = stackalloc ulong[1024]; (8 KB bitset for 65 536 values)
 				statements.Add(CreateStackAllocSpan<ulong>(SetName, 1024));
 				break;
+			}
 
 			default:
 			{
@@ -52,32 +58,44 @@ public class DistinctLinqUnroller : BaseLinqUnroller
 		switch (method.MethodSymbol.TypeArguments[0].SpecialType)
 		{
 			case SpecialType.System_Boolean:
+			{
 				AddBoolDistinctBody(statements, element, SeenTrue, SeenFalse);
 				break;
+			}
 
 			case SpecialType.System_Byte:
+			{
 				AddSpanIndexDistinctBody(statements, element, SetName, castToByte: false);
 				break;
+			}
 
 			case SpecialType.System_SByte:
+			{
 				AddSpanIndexDistinctBody(statements, element, SetName, castToByte: true);
 				break;
+			}
 
 			case SpecialType.System_UInt16:
 			case SpecialType.System_Char:
+			{
 				AddBitSetDistinctBody(statements, element, SetName, castToUShort: false);
 				break;
+			}
 
 			case SpecialType.System_Int16:
+			{
 				AddBitSetDistinctBody(statements, element, SetName, castToUShort: true);
 				break;
+			}
 
 			default:
+			{
 				statements.Add(IfStatement(
 					LogicalNotExpression(
 						CreateMethodInvocation(IdentifierName(SetName), "Add", element)),
 					ContinueStatement()));
 				break;
+			}
 		}
 	}
 }

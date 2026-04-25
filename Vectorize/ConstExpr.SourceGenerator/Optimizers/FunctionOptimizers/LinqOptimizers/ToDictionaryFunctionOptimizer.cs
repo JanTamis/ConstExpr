@@ -102,8 +102,10 @@ public class ToDictionaryFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(
 						switch (literalValue)
 						{
 							case false when context.Method.ReturnType is INamedTypeSymbol { TypeArguments.Length: 2 } emptyReturnType:
+							{
 								result = CreateEmptyDictionaryCreation(emptyReturnType.TypeArguments[0], emptyReturnType.TypeArguments[1]);
 								return true;
+							}
 						}
 					}
 

@@ -37,12 +37,30 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 	{
 		public Compilation Compilation { get; init; } = null!;
 		public List<string> ParameterNames { get; init; } = null!;
+		public List<ITypeSymbol> ParameterTypes { get; init; } = null!;
+		public BlockSyntax FormattedOriginalBody { get; init; } = null!;
 		public SemanticModel SemanticModel { get; init; } = null!;
 		public MetadataLoader Loader { get; init; } = null!;
 		public LocalFunctionStatementSyntax Method { get; init; } = null!;
 	}
 
 	private static readonly ConcurrentDictionary<Type, ClassState> _stateByType = new();
+	private static readonly ConcurrentDictionary<Type, int> _delegateParameterCount = new();
+	private static readonly Lazy<IReadOnlyList<MetadataReference>> _metadataReferences = new(() =>
+		AppDomain.CurrentDomain.GetAssemblies()
+			.Where(a => !a.IsDynamic && !string.IsNullOrWhiteSpace(a.Location))
+			.Select(a => a.Location)
+			.Distinct(StringComparer.Ordinal)
+			.Select(a => MetadataReference.CreateFromFile(a))
+			.ToArray(),
+		isThreadSafe: true);
+
+	private static int GetDelegateParameterCount()
+	{
+		return _delegateParameterCount.GetOrAdd(typeof(TDelegate), static delegateType =>
+			delegateType.GetMethod("Invoke")?.GetParameters().Length
+			?? throw new InvalidOperationException($"Could not resolve Invoke on delegate type '{delegateType.FullName}'."));
+	}
 
 	private ClassState GetState() => _stateByType[GetType()];
 
@@ -79,14 +97,23 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 				.OfType<LocalFunctionStatementSyntax>())
 			.First();
 
+		var parameterNames = method.ParameterList.Parameters
+			.Select(s => s.Identifier.Text)
+			.ToList();
+
+		var parameterTypes = method.ParameterList.Parameters
+			.Select(p => compilation.GetSemanticModel(method.SyntaxTree).GetTypeInfo(p.Type!).Type ?? compilation.ObjectType)
+			.ToList();
+
+		var semanticModel = compilation.GetSemanticModel(method.SyntaxTree);
 		var state = new ClassState
 		{
 			Compilation = compilation,
 			Method = method,
-			ParameterNames = method.ParameterList.Parameters
-				.Select(s => s.Identifier.Text)
-				.ToList(),
-			SemanticModel = compilation.GetSemanticModel(method.SyntaxTree),
+			ParameterNames = parameterNames,
+			ParameterTypes = parameterTypes,
+			FormattedOriginalBody = FormattingHelper.Format(method.Body!) as BlockSyntax ?? method.Body!,
+			SemanticModel = semanticModel,
 			Loader = MetadataLoader.GetLoader(compilation),
 		};
 
@@ -117,16 +144,12 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		var visitedMethods = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
 		var additionalSyntax = new Dictionary<SyntaxNode, bool>(SyntaxNodeComparer.Get());
 
-		var parameters = new Dictionary<string, VariableItem>(state.ParameterNames.Count);
+		var parameters = new Dictionary<string, VariableItem>(state.ParameterNames.Count, StringComparer.Ordinal);
 
-		foreach (var param in state.ParameterNames)
+		for (var i = 0; i < state.ParameterNames.Count; i++)
 		{
-
-			parameters[param] = new VariableItem(
-				type: state.SemanticModel.GetTypeInfo(
-					state.Method.ParameterList.Parameters
-						.First(p => p.Identifier.Text == param)
-						.Type!).Type!,
+			parameters[state.ParameterNames[i]] = new VariableItem(
+				type: state.ParameterTypes[i],
 				hasValue: false,
 				value: null);
 		}
@@ -137,22 +160,24 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 
 		for (var i = 0; i < testCase.Value.Length; i++)
 		{
+			var name = state.ParameterNames[i];
+			var parameter = parameters[name];
 			var value = testCase.Value[i];
 
-			if (value == Unknown)
+			if (ReferenceEquals(value, Unknown))
 			{
-				parameters[state.ParameterNames[i]].HasValue = false;
-				parameters[state.ParameterNames[i]].Value = null;
+				parameter.HasValue = false;
+				parameter.Value = null;
 			}
 			else
 			{
-				parameters[state.ParameterNames[i]].HasValue = true;
-				parameters[state.ParameterNames[i]].Value = value;
+				parameter.HasValue = true;
+				parameter.Value = value;
 			}
 
-			parameters[state.ParameterNames[i]].IsAccessed = false;
-			parameters[state.ParameterNames[i]].IsAltered = false;
-			parameters[state.ParameterNames[i]].IsInitialized = true;
+			parameter.IsAccessed = false;
+			parameter.IsAltered = false;
+			parameter.IsInitialized = true;
 		}
 
 		var newBody = rewriter.VisitBlock(state.Method.Body!) as BlockSyntax;
@@ -173,7 +198,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 
 		if (testCase.Key is null)
 		{
-			var expectedBody = FormattingHelper.Format(state.Method.Body!) as BlockSyntax;
+			var expectedBody = state.FormattedOriginalBody;
 
 			if (!SyntaxNodeComparer.Get<BlockSyntax>().Equals(expectedBody, newBody))
 			{
@@ -217,15 +242,10 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 
 	private static CSharpCompilation CreateCompilation(string source)
 	{
-		var references = AppDomain.CurrentDomain.GetAssemblies()
-			.Where(a => !a.IsDynamic && !string.IsNullOrWhiteSpace(a.Location))
-			.Select(a => MetadataReference.CreateFromFile(a.Location))
-			.ToList();
-
 		return CSharpCompilation.Create(
 			"TestAssembly",
 			[ CSharpSyntaxTree.ParseText(source) ],
-			references,
+			_metadataReferences.Value,
 			new CSharpCompilationOptions(OutputKind.ConsoleApplication));
 	}
 
@@ -250,10 +270,9 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 	/// <exception cref="InvalidOperationException">Thrown when the number of <see cref="_parameters"/> does not match the number of parameters of <see cref="TDelegate"/>.</exception>
 	protected static KeyValuePair<string?, object?[]> Create(string? expectedBody, params object?[] parameters)
 	{
-		// test if length of values matches delegate parameters
-		var delegateParams = typeof(TDelegate).GetMethod("Invoke")!.GetParameters();
+		var delegateParamCount = GetDelegateParameterCount();
 
-		if (parameters.Length != delegateParams.Length)
+		if (parameters.Length != delegateParamCount)
 		{
 			throw new InvalidOperationException($"""
 				Parameter count mismatch.
@@ -271,9 +290,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 	/// <returns>A key-value pair representing the test case.</returns>
 	protected static KeyValuePair<string?, object?[]> Create(string? expectedBody)
 	{
-		// test if length of values matches delegate parameters
-		var delegateParams = typeof(TDelegate).GetMethod("Invoke")!.GetParameters();
-		var parameters = new object?[delegateParams.Length];
+		var parameters = new object?[GetDelegateParameterCount()];
 		
 		System.Array.Fill(parameters, Unknown);
 
@@ -291,9 +308,9 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 	/// <exception cref="InvalidOperationException">Thrown when the number of <see cref="_parameters"/> does not match the number of parameters of <see cref="TDelegate"/>.</exception>
 	protected static KeyValuePair<string?, object?[]> Create(TDelegate expectedBody, object?[] parameters, [CallerArgumentExpression(nameof(expectedBody))] string? lambdaSource = null)
 	{
-		var delegateParams = typeof(TDelegate).GetMethod("Invoke")!.GetParameters();
+		var delegateParamCount = GetDelegateParameterCount();
 
-		if (parameters.Length != delegateParams.Length)
+		if (parameters.Length != delegateParamCount)
 		{
 			throw new InvalidOperationException($"""
 				Parameter count mismatch.

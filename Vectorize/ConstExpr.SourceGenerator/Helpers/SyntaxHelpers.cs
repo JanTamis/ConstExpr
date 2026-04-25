@@ -674,42 +674,67 @@ public static class SyntaxHelpers
 							switch (kind)
 							{
 								case SyntaxKind.SByteKeyword:
+								{
 									value = Convert.ToSByte(inner, CultureInfo.InvariantCulture);
 									return true;
+								}
 								case SyntaxKind.ByteKeyword:
+								{
 									value = Convert.ToByte(inner, CultureInfo.InvariantCulture);
 									return true;
+								}
 								case SyntaxKind.ShortKeyword:
+								{
 									value = Convert.ToInt16(inner, CultureInfo.InvariantCulture);
 									return true;
+								}
 								case SyntaxKind.UShortKeyword:
+								{
 									value = Convert.ToUInt16(inner, CultureInfo.InvariantCulture);
 									return true;
+								}
 								case SyntaxKind.IntKeyword:
+								{
 									value = Convert.ToInt32(inner, CultureInfo.InvariantCulture);
 									return true;
+								}
 								case SyntaxKind.UIntKeyword:
+								{
 									value = Convert.ToUInt32(inner, CultureInfo.InvariantCulture);
 									return true;
+								}
 								case SyntaxKind.LongKeyword:
+								{
 									value = Convert.ToInt64(inner, CultureInfo.InvariantCulture);
 									return true;
+								}
 								case SyntaxKind.ULongKeyword:
+								{
 									value = Convert.ToUInt64(inner, CultureInfo.InvariantCulture);
 									return true;
+								}
 								case SyntaxKind.FloatKeyword:
+								{
 									value = Convert.ToSingle(inner, CultureInfo.InvariantCulture);
 									return true;
+								}
 								case SyntaxKind.DoubleKeyword:
+								{
 									value = Convert.ToDouble(inner, CultureInfo.InvariantCulture);
 									return true;
+								}
 								case SyntaxKind.DecimalKeyword:
+								{
 									value = Convert.ToDecimal(inner, CultureInfo.InvariantCulture);
 									return true;
+								}
 								case SyntaxKind.CharKeyword:
+								{
 									value = inner is char ch ? ch : Convert.ToChar(inner, CultureInfo.InvariantCulture);
 									return true;
+								}
 								case SyntaxKind.StringKeyword:
+								{
 									if (inner is string s)
 									{
 										value = s;
@@ -717,7 +742,9 @@ public static class SyntaxHelpers
 									}
 									value = null;
 									return false;
+								}
 								case SyntaxKind.BoolKeyword:
+								{
 									if (inner is bool b)
 									{
 										value = b;
@@ -725,9 +752,12 @@ public static class SyntaxHelpers
 									}
 									value = null;
 									return false;
+								}
 								case SyntaxKind.ObjectKeyword:
+								{
 									value = inner;
 									return true;
+								}
 							}
 						}
 						catch
@@ -754,9 +784,13 @@ public static class SyntaxHelpers
 				}
 				// for unit tests
 				case ReturnStatementSyntax returnStatement:
+				{
 					return TryGetConstantValue(compilation, loader, returnStatement.Expression, variables, token, out value);
+				}
 				case YieldStatementSyntax yieldStatement:
+				{
 					return TryGetConstantValue(compilation, loader, yieldStatement.Expression, variables, token, out value);
+				}
 				default:
 				{
 					if (compilation.TryGetSemanticModel(expression, out var semanticModel) && semanticModel.GetConstantValue(expression, token) is { HasValue: true, Value: var temp })
@@ -896,6 +930,7 @@ public static class SyntaxHelpers
 		switch (node)
 		{
 			case MethodDeclarationSyntax method:
+			{
 				if (compilation.TryGetSemanticModel(method, out var model)
 				    && model.GetDeclaredSymbol(method) is IMethodSymbol methodSymbol
 				    && IsInConstEvalBody(methodSymbol))
@@ -904,6 +939,7 @@ public static class SyntaxHelpers
 				}
 
 				break;
+			}
 		}
 
 		if (node.Parent is null)
@@ -923,6 +959,7 @@ public static class SyntaxHelpers
 		switch (node)
 		{
 			case MethodDeclarationSyntax method:
+			{
 				if (compilation.TryGetSemanticModel(method, out var model)
 				    && model.GetDeclaredSymbol(method) is IMethodSymbol methodSymbol
 				    && IsInConstExprBody(methodSymbol))
@@ -931,6 +968,7 @@ public static class SyntaxHelpers
 				}
 
 				break;
+			}
 		}
 
 		if (node.Parent is null)

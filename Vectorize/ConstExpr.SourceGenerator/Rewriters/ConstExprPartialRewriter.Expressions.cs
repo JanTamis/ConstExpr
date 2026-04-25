@@ -181,9 +181,13 @@ public partial class ConstExprPartialRewriter
 			switch (leftValue)
 			{
 				case true:
+				{
 					return right;
+				}
 				case false:
+				{
 					return CreateLiteral(false);
+				}
 			}
 			
 			var leftExpression = left as ExpressionSyntax ?? node.Left;
@@ -205,9 +209,13 @@ public partial class ConstExprPartialRewriter
 			switch (rightValue)
 			{
 				case true:
+				{
 					return left;
+				}
 				case false:
+				{
 					return CreateLiteral(false);
+				}
 			}
 		}
 
@@ -822,11 +830,15 @@ public partial class ConstExprPartialRewriter
 			switch (content)
 			{
 				case InterpolatedStringTextSyntax text:
+				{
 					result.Add(text);
 					break;
+				}
 				case InterpolationSyntax interp:
+				{
 					result.Add(ProcessInterpolation(interp));
 					break;
+				}
 			}
 		}
 

@@ -139,9 +139,12 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 		{
 			// Already a pattern — keep the expression and its pattern verbatim.
 			case IsPatternExpressionSyntax { Expression: var expr } ip when IsPure(expr):
+			{
 				return (expr, ip.Pattern);
+			}
 
 			case BinaryExpressionSyntax b:
+			{
 				// expr op literal  (e.g.  x > 0)
 				if (CanBeUsedAsPattern(b.Right) && IsPure(b.Left))
 				{
@@ -159,6 +162,7 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 				}
 
 				break;
+			}
 		}
 
 		return null;

@@ -501,8 +501,10 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				break;
 			}
 			case IArrayTypeSymbol arrayType:
+			{
 				SetUsings(arrayType.ElementType, usings);
 				break;
+			}
 		}
 	}
 

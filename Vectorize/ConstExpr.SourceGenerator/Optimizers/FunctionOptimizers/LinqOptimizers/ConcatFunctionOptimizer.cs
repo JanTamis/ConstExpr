@@ -225,21 +225,29 @@ public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		{
 			// Collection expression syntax: [1, 2, 3]
 			case CollectionExpressionSyntax collectionExpr:
+			{
 				elements.AddRange(collectionExpr.Elements);
 				return true;
+			}
 
 			// Implicit array creation: new[] { 1, 2, 3 }
 			case ImplicitArrayCreationExpressionSyntax { Initializer: { } initializer }:
+			{
 				elements.AddRange(initializer.Expressions.Select(ExpressionElement));
 				return true;
+			}
 
 			// Explicit array creation: new int[] { 1, 2, 3 }
 			case ArrayCreationExpressionSyntax { Initializer: { } initializer }:
+			{
 				elements.AddRange(initializer.Expressions.Select(ExpressionElement));
 				return true;
+			}
 
 			default:
+			{
 				return false;
+			}
 		}
 	}
 }

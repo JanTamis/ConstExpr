@@ -819,13 +819,18 @@ public static class ParenthesizedExpressionSyntaxExtensions
 			case RecursivePatternSyntax:
 			case TypePatternSyntax:
 			case VarPatternSyntax:
+			{
 				return OperatorPrecedence.Primary;
+			}
 
 			case UnaryPatternSyntax:
 			case RelationalPatternSyntax:
+			{
 				return OperatorPrecedence.Unary;
+			}
 
 			case BinaryPatternSyntax binaryPattern:
+			{
 				if (binaryPattern.IsKind(SyntaxKind.AndPattern))
 				{
 					return OperatorPrecedence.ConditionalAnd;
@@ -837,6 +842,7 @@ public static class ParenthesizedExpressionSyntaxExtensions
 				}
 
 				break;
+			}
 		}
 
 		Debug.Fail("Unhandled pattern type");
@@ -864,10 +870,12 @@ public static class ParenthesizedExpressionSyntaxExtensions
 			// unsafe code
 			case SyntaxKind.SizeOfExpression:
 			case SyntaxKind.PointerMemberAccessExpression:
+			{
 				// From C# spec, 7.3.1:
 				// Primary: x.y  x?.y  x?[y]  f(x)  a[x]  x++  x--  new  typeof  default  checked  unchecked  delegate  x! 
 
 				return OperatorPrecedence.Primary;
+			}
 
 			case SyntaxKind.UnaryPlusExpression:
 			case SyntaxKind.UnaryMinusExpression:
@@ -880,39 +888,48 @@ public static class ParenthesizedExpressionSyntaxExtensions
 			// unsafe code.
 			case SyntaxKind.PointerIndirectionExpression:
 			case SyntaxKind.AddressOfExpression:
-
+			{
 				// From C# spec, 7.3.1:
 				// Unary: +  -  !  ~  ++x  --x  (T)x  await Task
 
 				return OperatorPrecedence.Unary;
+			}
 
 			case SyntaxKind.RangeExpression:
+			{
 				// From C# spec, https://github.com/dotnet/csharplang/blob/main/proposals/csharp-8.0/ranges.md#systemrange
 				// Range: ..
 
 				return OperatorPrecedence.Range;
+			}
 
 			case SyntaxKind.MultiplyExpression:
 			case SyntaxKind.DivideExpression:
 			case SyntaxKind.ModuloExpression:
+			{
 				// From C# spec, 7.3.1:
 				// Multiplicative: *  /  %
 
 				return OperatorPrecedence.Multiplicative;
+			}
 
 			case SyntaxKind.AddExpression:
 			case SyntaxKind.SubtractExpression:
+			{
 				// From C# spec, 7.3.1:
 				// Additive: +  -
 
 				return OperatorPrecedence.Additive;
+			}
 
 			case SyntaxKind.LeftShiftExpression:
 			case SyntaxKind.RightShiftExpression:
+			{
 				// From C# spec, 7.3.1:
 				// Shift: <<  >>
 
 				return OperatorPrecedence.Shift;
+			}
 
 			case SyntaxKind.LessThanExpression:
 			case SyntaxKind.GreaterThanExpression:
@@ -921,59 +938,77 @@ public static class ParenthesizedExpressionSyntaxExtensions
 			case SyntaxKind.IsExpression:
 			case SyntaxKind.AsExpression:
 			case SyntaxKind.IsPatternExpression:
+			{
 				// From C# spec, 7.3.1:
 				// Relational and type testing: <  >  <=  >=  is  as
 
 				return OperatorPrecedence.RelationalAndTypeTesting;
+			}
 
 			case SyntaxKind.EqualsExpression:
 			case SyntaxKind.NotEqualsExpression:
+			{
 				// From C# spec, 7.3.1:
 				// Equality: ==  !=
 
 				return OperatorPrecedence.Equality;
+			}
 
 			case SyntaxKind.BitwiseAndExpression:
+			{
 				// From C# spec, 7.3.1:
 				// Logical AND: &
 
 				return OperatorPrecedence.LogicalAnd;
+			}
 
 			case SyntaxKind.ExclusiveOrExpression:
+			{
 				// From C# spec, 7.3.1:
 				// Logical XOR: ^
 
 				return OperatorPrecedence.LogicalXor;
+			}
 
 			case SyntaxKind.BitwiseOrExpression:
+			{
 				// From C# spec, 7.3.1:
 				// Logical OR: |
 
 				return OperatorPrecedence.LogicalOr;
+			}
 
 			case SyntaxKind.LogicalAndExpression:
+			{
 				// From C# spec, 7.3.1:
 				// Conditional AND: &&
 
 				return OperatorPrecedence.ConditionalAnd;
+			}
 
 			case SyntaxKind.LogicalOrExpression:
+			{
 				// From C# spec, 7.3.1:
 				// Conditional AND: ||
 
 				return OperatorPrecedence.ConditionalOr;
+			}
 
 			case SyntaxKind.CoalesceExpression:
+			{
 				// From C# spec, 7.3.1:
 				// Null coalescing: ??
 
 				return OperatorPrecedence.NullCoalescing;
+			}
 
 			case SyntaxKind.ConditionalExpression:
+			{
 				// From C# spec, 7.3.1:
 				// Conditional: ?:
 
 				return OperatorPrecedence.Conditional;
+			}
 
 			case SyntaxKind.SimpleAssignmentExpression:
 			case SyntaxKind.MultiplyAssignmentExpression:
@@ -988,16 +1023,22 @@ public static class ParenthesizedExpressionSyntaxExtensions
 			case SyntaxKind.OrAssignmentExpression:
 			case SyntaxKind.SimpleLambdaExpression:
 			case SyntaxKind.ParenthesizedLambdaExpression:
+			{
 				// From C# spec, 7.3.1:
 				// Conditional: ?:
 
 				return OperatorPrecedence.AssignmentAndLambdaExpression;
+			}
 
 			case SyntaxKind.SwitchExpression:
+			{
 				return OperatorPrecedence.Switch;
+			}
 
 			default:
+			{
 				return OperatorPrecedence.None;
+			}
 		}
 	}
 

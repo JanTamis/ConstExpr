@@ -49,18 +49,24 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 			switch (visited)
 			{
 				case BlockSyntax block:
+				{
 					// Flatten nested blocks
 					statements.AddRange(block.Statements);
 					break;
+				}
 
 				case StatementSyntax stmt:
+				{
 					statements.Add(stmt);
 					break;
+				}
 
 				case ExpressionSyntax expr:
+				{
 					// Ensure expressions become statements inside blocks
 					statements.Add(ExpressionStatement(expr));
 					break;
+				}
 
 			}
 		}
@@ -219,42 +225,47 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 						switch (operation.OperatorKind)
 						{
 							case BinaryOperatorKind.Add:
+							{
 								if (hasRightValue && rightValue.IsNumericZero())
-                {
-                  return leftExpr;
-                }
+								{
+									return leftExpr;
+								}
 
-                if (hasLeftValue && leftValue.IsNumericZero())
-                {
-                  return rightExpr;
-                }
+								if (hasLeftValue && leftValue.IsNumericZero())
+								{
+									return rightExpr;
+								}
 
-                break;
+								break;
+							}
 							case BinaryOperatorKind.Subtract:
+							{
 								if (hasRightValue && rightValue.IsNumericZero())
-                {
-                  return leftExpr;
-                }
+								{
+									return leftExpr;
+								}
 
-                if (hasLeftValue && leftValue.IsNumericZero())
-                {
-                  return UnaryMinusExpression(Parens(rightExpr));
-                }
+								if (hasLeftValue && leftValue.IsNumericZero())
+								{
+									return UnaryMinusExpression(Parens(rightExpr));
+								}
 
-                break;
+								break;
+							}
 							case BinaryOperatorKind.Multiply:
+							{
 								if (hasRightValue && rightValue.IsNumericOne())
-                {
-                  return leftExpr;
-                }
+								{
+									return leftExpr;
+								}
 
-                if (hasLeftValue && leftValue.IsNumericOne())
-                {
-                  return rightExpr;
-                }
+								if (hasLeftValue && leftValue.IsNumericOne())
+								{
+									return rightExpr;
+								}
 
-                // x * 0 => 0 and 0 * x => 0 (only for non-floating numeric types to avoid NaN/-0.0 semantics)
-                var nonFloating = IsNonFloatingNumeric(operation.LeftOperand.Type) && IsNonFloatingNumeric(operation.RightOperand.Type);
+								// x * 0 => 0 and 0 * x => 0 (only for non-floating numeric types to avoid NaN/-0.0 semantics)
+								var nonFloating = IsNonFloatingNumeric(operation.LeftOperand.Type) && IsNonFloatingNumeric(operation.RightOperand.Type);
 
 								if (nonFloating && hasRightValue && rightValue.IsNumericZero())
 								{
@@ -279,39 +290,46 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 									return Parens(dup);
 								}
 								break;
+							}
 							case BinaryOperatorKind.Divide:
+							{
 								if (hasRightValue && rightValue.IsNumericOne())
-                {
-                  return leftExpr;
-                }
+								{
+									return leftExpr;
+								}
 
-                break;
+								break;
+							}
 							case BinaryOperatorKind.ExclusiveOr:
+							{
 								// integral XOR 0 => x
 								if (hasRightValue && rightValue.IsNumericZero())
-                {
-                  return leftExpr;
-                }
+								{
+									return leftExpr;
+								}
 
-                if (hasLeftValue && leftValue.IsNumericZero())
-                {
-                  return rightExpr;
-                }
+								if (hasLeftValue && leftValue.IsNumericZero())
+								{
+									return rightExpr;
+								}
 
-                break;
+								break;
+							}
 							case BinaryOperatorKind.Or:
+							{
 								// x | 0 => x
 								if (hasRightValue && rightValue.IsNumericZero())
-                {
-                  return leftExpr;
-                }
+								{
+									return leftExpr;
+								}
 
-                if (hasLeftValue && leftValue.IsNumericZero())
-                {
-                  return rightExpr;
-                }
+								if (hasLeftValue && leftValue.IsNumericZero())
+								{
+									return rightExpr;
+								}
 
-                break;
+								break;
+							}
 						}
 					}
 
@@ -322,86 +340,97 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 						switch (operation.OperatorKind)
 						{
 							case BinaryOperatorKind.ConditionalAnd: // &&
+							{
 								if (hasRightValue && rightValue is true)
-                {
-                  return leftExpr; // x && true => x
-                }
+								{
+									return leftExpr; // x && true => x
+								}
 
-                if (hasLeftValue && leftValue is true)
-                {
-                  return rightExpr; // true && x => x
-                }
+								if (hasLeftValue && leftValue is true)
+								{
+									return rightExpr; // true && x => x
+								}
 
-                if (hasLeftValue && leftValue is false)
-                {
-                  return CreateLiteral(false); // false && x => false
-                }
+								if (hasLeftValue && leftValue is false)
+								{
+									return CreateLiteral(false); // false && x => false
+								}
 
-                break;
+								break;
+							}
 							case BinaryOperatorKind.ConditionalOr: // ||
+							{
 								if (hasRightValue && rightValue is false)
-                {
-                  return leftExpr; // x || false => x
-                }
+								{
+									return leftExpr; // x || false => x
+								}
 
-                if (hasLeftValue && leftValue is false)
-                {
-                  return rightExpr; // false || x => x
-                }
+								if (hasLeftValue && leftValue is false)
+								{
+									return rightExpr; // false || x => x
+								}
 
-                if (hasLeftValue && leftValue is true)
-                {
-                  return CreateLiteral(true); // true || x => true
-                }
+								if (hasLeftValue && leftValue is true)
+								{
+									return CreateLiteral(true); // true || x => true
+								}
 
-                break;
+								break;
+							}
 							case BinaryOperatorKind.And: // & (bool)
+							{
 								if (hasRightValue && rightValue is true)
-                {
-                  return leftExpr; // x & true => x
-                }
+								{
+									return leftExpr; // x & true => x
+								}
 
-                if (hasLeftValue && leftValue is true)
-                {
-                  return rightExpr; // true & x => x
-                }
+								if (hasLeftValue && leftValue is true)
+								{
+									return rightExpr; // true & x => x
+								}
 
-                break; // avoid collapsing to false to preserve evaluation of the other side
+								break; // avoid collapsing to false to preserve evaluation of the other side
+							}
 							case BinaryOperatorKind.Or: // | (bool)
+							{
 								if (hasRightValue && rightValue is false)
-                {
-                  return leftExpr; // x | false => x
-                }
+								{
+									return leftExpr; // x | false => x
+								}
 
-                if (hasLeftValue && leftValue is false)
-                {
-                  return rightExpr; // false | x => x
-                }
+								if (hasLeftValue && leftValue is false)
+								{
+									return rightExpr; // false | x => x
+								}
 
-                break; // avoid collapsing to true to preserve evaluation of the other side
+								break; // avoid collapsing to true to preserve evaluation of the other side
+							}
 							case BinaryOperatorKind.ExclusiveOr: // ^ (bool)
+							{
 								if (hasRightValue && rightValue is false)
-                {
-                  return leftExpr; // x ^ false => x
-                }
+								{
+									return leftExpr; // x ^ false => x
+								}
 
-                if (hasLeftValue && leftValue is false)
-                {
-                  return rightExpr; // false ^ x => x
-                }
+								if (hasLeftValue && leftValue is false)
+								{
+									return rightExpr; // false ^ x => x
+								}
 
-                if (hasRightValue && rightValue is true)
-                {
-                  return LogicalNotExpression(Parens(leftExpr)); // x ^ true => !x
-                }
+								if (hasRightValue && rightValue is true)
+								{
+									return LogicalNotExpression(Parens(leftExpr)); // x ^ true => !x
+								}
 
-                if (hasLeftValue && leftValue is true)
-                {
-                  return LogicalNotExpression(Parens(rightExpr)); // true ^ x => !x
-                }
+								if (hasLeftValue && leftValue is true)
+								{
+									return LogicalNotExpression(Parens(rightExpr)); // true ^ x => !x
+								}
 
-                break;
+								break;
+							}
 							case BinaryOperatorKind.Equals:
+							{
 								if (hasRightValue && rightValue is bool rb)
 								{
 									return rb
@@ -416,7 +445,9 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 										: LogicalNotExpression(Parens(rightExpr)); // false == x => !x
 								}
 								break;
+							}
 							case BinaryOperatorKind.NotEquals:
+							{
 								if (hasRightValue && rightValue is bool rbn)
 								{
 									return rbn
@@ -431,6 +462,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 										: rightExpr; // false != x => x
 								}
 								break;
+							}
 						}
 					}
 				}
@@ -457,13 +489,21 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 				case ILocalReferenceOperation:
 				case IParameterReferenceOperation:
 				case ILiteralOperation:
+				{
 					return true;
+				}
 				case IParenthesizedOperation p:
+				{
 					return p.Operand is not null && IsVarOrLiteralOperation(p.Operand);
+				}
 				case IConversionOperation c:
+				{
 					return c.Operand is not null && IsVarOrLiteralOperation(c.Operand);
+				}
 				default:
+				{
 					return false;
+				}
 			}
 		}
 
@@ -475,11 +515,17 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 				case ILocalReferenceOperation:
 				case IParameterReferenceOperation:
 				case ILiteralOperation:
+				{
 					return true;
+				}
 				case IParenthesizedOperation p:
+				{
 					return p.Operand is not null && IsSafeToDuplicate(p.Operand);
+				}
 				default:
+				{
 					return false;
+				}
 			}
 		}
 
@@ -700,11 +746,15 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 						switch (methodOperation)
 						{
 							case ILocalFunctionOperation localFunction:
+							{
 								visitor.VisitBlock(localFunction.Body, variables);
 								break;
+							}
 							case IMethodBodyOperation methodBody:
+							{
 								visitor.VisitBlock(methodBody.BlockBody, variables);
 								break;
+							}
 						}
 
 						if (TryCreateLiteral(variables[ConstExprOperationVisitor.RETURNVARIABLENAME], out var result))
@@ -734,9 +784,13 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 				switch (value)
 				{
 					case true:
+					{
 						return Visit(operation.WhenTrue, argument);
+					}
 					case false:
+					{
 						return Visit(operation.WhenFalse, argument);
+					}
 				}
 			}
 
@@ -755,8 +809,10 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 				switch (condValue)
 				{
 					case true:
+					{
 						// Return only the 'then' part
 						return Visit(operation.WhenTrue, argument);
+					}
 					case false:
 						{
 							// Return only the 'else' part (if present); otherwise drop the whole if
@@ -921,16 +977,22 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 			switch (operation.Target)
 			{
 				case ILocalReferenceOperation localRef:
+				{
 					hasLeftValue = argument.TryGetValue(localRef.Local.Name, out var tempLeftValue) && tempLeftValue.HasValue;
 					leftValue = tempLeftValue?.Value;
 					break;
+				}
 				case IParameterReferenceOperation paramRef:
-					hasLeftValue = argument.TryGetValue(paramRef.Parameter.Name, out tempLeftValue) && tempLeftValue.HasValue;
+				{
+					hasLeftValue = argument.TryGetValue(paramRef.Parameter.Name, out var tempLeftValue) && tempLeftValue.HasValue;
 					leftValue = tempLeftValue?.Value;
 					break;
+				}
 				default:
+				{
 					hasLeftValue = TryGetConstantValue(model.Compilation, loader, assignmentSyntax.Left, new VariableItemDictionary(argument), token, out leftValue);
 					break;
+				}
 			}
 
 			// If both sides are constant, compute the result and update environment for locals/params
@@ -941,11 +1003,15 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 				switch (operation.Target)
 				{
 					case ILocalReferenceOperation localRef:
+					{
 						argument[localRef.Local.Name].Value = result;
 						break;
+					}
 					case IParameterReferenceOperation paramRef:
+					{
 						argument[paramRef.Parameter.Name].Value = result;
 						break;
+					}
 				}
 
 				return AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, assignmentSyntax.Left, CreateLiteral(result));
@@ -966,7 +1032,9 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 			switch (pattern)
 			{
 				case IDiscardPatternOperation:
+				{
 					return true; // matches anything
+				}
 				case IConstantPatternOperation constPat:
 					{
 						var patNode = Visit(constPat.Value, argument);
@@ -1010,7 +1078,9 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 						return inner is null ? null : !inner.Value;
 					}
 				default:
+				{
 					return null; // unsupported pattern kinds -> unknown
+				}
 			}
 		}
 		catch
@@ -1033,7 +1103,9 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 					switch (clause)
 					{
 						case IDefaultCaseClauseOperation:
+						{
 							return true;
+						}
 						case ISingleValueCaseClauseOperation single:
 							{
 								var node = Visit(single.Value, argument);
@@ -1077,7 +1149,9 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 								return true;
 							}
 						default:
+						{
 							return null;
+						}
 					}
 				}
 
@@ -1119,6 +1193,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 							switch (visited)
 							{
 								case BlockSyntax block:
+								{
 									foreach (var st in block.Statements)
 									{
 										if (st is BreakStatementSyntax)
@@ -1128,16 +1203,21 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 										statements.Add(st);
 									}
 									break;
+								}
 								case StatementSyntax stmt:
+								{
 									if (stmt is BreakStatementSyntax)
 									{
 										break;
 									}
 									statements.Add(stmt);
 									break;
+								}
 								case ExpressionSyntax expr:
+								{
 									statements.Add(ExpressionStatement(expr));
 									break;
+								}
 							}
 						}
 
@@ -1185,14 +1265,20 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 						switch (visited)
 						{
 							case BlockSyntax block:
+							{
 								newStatements.AddRange(block.Statements);
 								break;
+							}
 							case StatementSyntax stmt:
+							{
 								newStatements.Add(stmt);
 								break;
+							}
 							case ExpressionSyntax expr:
+							{
 								newStatements.Add(ExpressionStatement(expr));
 								break;
+							}
 						}
 					}
 

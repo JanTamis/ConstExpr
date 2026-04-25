@@ -193,8 +193,10 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		{
 			// If the entire if statement is empty (if body empty and no else, or if body empty and else empty)
 			case true when (visited.Else is null || elseClauseEmpty):
+			{
 				// Remove the entire if statement
 				return null;
+			}
 			// If if body is empty but else exists and is not empty
 			case true when visited.Else is not null && !elseClauseEmpty:
 			{
@@ -1087,7 +1089,9 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		{
 			// Handle logical NOT: !x -> x
 			case PrefixUnaryExpressionSyntax prefix when prefix.IsKind(SyntaxKind.LogicalNotExpression):
+			{
 				return prefix.Operand;
+			}
 			// Handle binary expressions (comparisons and logical operators)
 			case BinaryExpressionSyntax binary:
 			{
@@ -1122,13 +1126,17 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			}
 			// Handle parenthesized expressions: move negation inside
 			case ParenthesizedExpressionSyntax paren:
+			{
 				return NegateCondition(paren.Expression);
+			}
 			// Handle method calls that return bool (like IsNullOrEmpty, Any, etc.)
 			// Keep them simple with ! prefix
 			case InvocationExpressionSyntax:
 			case IdentifierNameSyntax:
 			case MemberAccessExpressionSyntax:
+			{
 				return LogicalNotExpression(condition);
+			}
 		}
 
 		// Default: wrap in parentheses and add !

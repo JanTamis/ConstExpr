@@ -51,8 +51,10 @@ public partial class ConstExprPartialRewriter
 					or InterpolatedStringExpressionSyntax
 					or ParenthesizedExpressionSyntax
 					or BinaryExpressionSyntax:
+				{
 					node = inner;
 					continue;
+				}
 			}
 
 			// Keep parentheses for other expression types
@@ -410,24 +412,34 @@ public partial class ConstExprPartialRewriter
 			switch (syntax)
 			{
 				case MethodDeclarationSyntax { Body: { } body }:
+				{
 					if (!IsBlockEffectivelyEmpty(body))
 					{
 						allEmpty = false;
 					}
 					break;
+				}
 				case MethodDeclarationSyntax { ExpressionBody: not null }:
+				{
 					return false;
+				}
 				case LocalFunctionStatementSyntax { Body: { } body }:
+				{
 					if (!IsBlockEffectivelyEmpty(body))
 					{
 						allEmpty = false;
 					}
 					break;
+				}
 				case LocalFunctionStatementSyntax { ExpressionBody: not null }:
+				{
 					return false;
+				}
 				default:
+				{
 					allEmpty = false;
 					break;
+				}
 			}
 		}
 

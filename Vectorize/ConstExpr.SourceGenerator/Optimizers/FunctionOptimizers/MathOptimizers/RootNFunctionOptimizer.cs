@@ -17,75 +17,74 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", n => 
 		// Try to get the n value if it's a literal
 		if (TryGetIntegerLiteral(n, out var nValue))
 		{
-			// RootN(x, 1) => x
-			if (nValue == 1)
+			switch (nValue)
 			{
-				result = x;
-				return true;
-			}
-
-			// RootN(x, 2) => Sqrt(x)
-			if (nValue == 2 && HasMethod(paramType, "Sqrt", 1))
-			{
-				result = CreateInvocation(paramType, "Sqrt", x);
-				return true;
-			}
-
-			// RootN(x, 3) => Cbrt(x)
-			if (nValue == 3 && HasMethod(paramType, "Cbrt", 1))
-			{
-				result = CreateInvocation(paramType, "Cbrt", x);
-				return true;
-			}
-
-			// RootN(x, -1) => Reciprocal(x) or 1/x
-			if (nValue == -1)
-			{
-				if (HasMethod(paramType, "Reciprocal", 1))
+				// RootN(x, 1) => x
+				case 1:
+				{
+					result = x;
+					return true;
+				}
+				// RootN(x, 2) => Sqrt(x)
+				case 2 when HasMethod(paramType, "Sqrt", 1):
+				{
+					result = CreateInvocation(paramType, "Sqrt", x);
+					return true;
+				}
+				// RootN(x, 3) => Cbrt(x)
+				case 3 when HasMethod(paramType, "Cbrt", 1):
+				{
+					result = CreateInvocation(paramType, "Cbrt", x);
+					return true;
+				}
+				// RootN(x, -1) => Reciprocal(x) or 1/x
+				case -1 when HasMethod(paramType, "Reciprocal", 1):
 				{
 					result = CreateInvocation(paramType, "Reciprocal", x);
 					return true;
 				}
-
-				var div = DivideExpression(
-					LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(1.0)), x);
-
-				result = ParenthesizedExpression(div);
-				return true;
-			}
-
-			// For negative n: RootN(x, -n) => Reciprocal(RootN(x, n)) if available and fast-math, otherwise 1 / RootN(x, n)
-			if (nValue < 0)
-			{
-				var positiveN = LiteralExpression(SyntaxKind.NumericLiteralExpression,
-					Literal(-nValue));
-
-				var rootInvocation = CreateInvocation(paramType, "RootN", x, positiveN);
-
-				if (HasMethod(paramType, "Reciprocal", 1))
+				case -1:
 				{
-					result = CreateInvocation(paramType, "Reciprocal", rootInvocation);
+					var div = DivideExpression(
+						LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(1.0)), x);
+
+					result = ParenthesizedExpression(div);
 					return true;
 				}
+				// For negative n: RootN(x, -n) => Reciprocal(RootN(x, n)) if available and fast-math, otherwise 1 / RootN(x, n)
+				case < 0:
+				{
+					var positiveN = LiteralExpression(SyntaxKind.NumericLiteralExpression,
+						Literal(-nValue));
 
-				var div = DivideExpression(
-					LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(1.0)),
-					rootInvocation);
+					var rootInvocation = CreateInvocation(paramType, "RootN", x, positiveN);
 
-				result = ParenthesizedExpression(div);
-				return true;
+					if (HasMethod(paramType, "Reciprocal", 1))
+					{
+						result = CreateInvocation(paramType, "Reciprocal", rootInvocation);
+						return true;
+					}
+
+					var div = DivideExpression(
+						LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(1.0)),
+						rootInvocation);
+
+					result = ParenthesizedExpression(div);
+					return true;
+				}
 			}
+
 		}
 
 		if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
 		{
-			var methodString = paramType.SpecialType == SpecialType.System_Single
+			var method = ParseMethodFromString(paramType.SpecialType == SpecialType.System_Single
 				? GenerateFastRootNMethodFloat()
-				: GenerateFastRootNMethodDouble();
+				: GenerateFastRootNMethodDouble());
 
-			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(method, false);
 
-			result = CreateInvocation("FastRootN", context.VisitedParameters);
+			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);
 			return true;
 		}
 
@@ -100,13 +99,19 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", n => 
 		switch (expr)
 		{
 			case LiteralExpressionSyntax { Token.Value: int i }:
+			{
 				value = i;
 				return true;
+			}
 			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: int i2 } }:
+			{
 				value = -i2;
 				return true;
+			}
 			default:
+			{
 				return false;
+			}
 		}
 	}
 

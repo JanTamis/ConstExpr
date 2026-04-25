@@ -59,9 +59,12 @@ public class ExpressionRewriter(
 		switch (node)
 		{
 			case LiteralExpressionSyntax { Token.Value: var v }:
+			{
 				value = v;
 				return true;
+			}
 			case IdentifierNameSyntax identifier when variables.TryGetValue(identifier.Identifier.Text, out var variable) && variable.HasValue:
+			{
 				// Prevent infinite recursion from circular variable references
 				if (!visitedVariables.Add(identifier.Identifier.Text))
 				{
@@ -76,12 +79,17 @@ public class ExpressionRewriter(
 
 				value = variable.Value;
 				return true;
+			}
 			// unwrap ( ... )
 			case ParenthesizedExpressionSyntax paren:
+			{
 				return TryGetLiteralValue(paren.Expression, out value, visitedVariables);
+			}
 			default:
+			{
 				value = null;
 				return false;
+			}
 		}
 	}
 
@@ -184,14 +192,18 @@ public class ExpressionRewriter(
 			switch (symbol)
 			{
 				case IParameterSymbol parameter:
+				{
 					return parameters[parameter.Name];
+				}
 				case ILocalSymbol local:
+				{
 					if (variables.TryGetValue(local.Name, out var variable) && variable.HasValue)
 					{
 						return Expression.Constant(variable.Value, loader.GetType(local.Type) ?? typeof(object));
 					}
 
 					return Expression.Parameter(loader.GetType(local.Type) ?? typeof(object), local.Name);
+				}
 				case IFieldSymbol field:
 				{
 					var containingType = loader.GetType(field.ContainingType) ?? typeof(object);
@@ -256,10 +268,22 @@ public class ExpressionRewriter(
 			{
 				switch (arg)
 				{
-					case IdentifierNameSyntax id: name = id.Identifier.Text; break;
-					case MemberAccessExpressionSyntax { Name: IdentifierNameSyntax last }: name = last.Identifier.Text; break;
-					case QualifiedNameSyntax qn: name = qn.Right.Identifier.Text; break;
-					case GenericNameSyntax gen: name = gen.Identifier.Text; break;
+					case IdentifierNameSyntax id:
+					{
+						name = id.Identifier.Text; break;
+					}
+					case MemberAccessExpressionSyntax { Name: IdentifierNameSyntax last }:
+					{
+						name = last.Identifier.Text; break;
+					}
+					case QualifiedNameSyntax qn:
+					{
+						name = qn.Right.Identifier.Text; break;
+					}
+					case GenericNameSyntax gen:
+					{
+						name = gen.Identifier.Text; break;
+					}
 				}
 			}
 
@@ -376,6 +400,7 @@ public class ExpressionRewriter(
 			switch (symbol)
 			{
 				case IFieldSymbol fieldSymbol:
+				{
 					var containingType = loader.GetType(fieldSymbol.ContainingType) ?? typeof(object);
 					var fieldInfo = containingType.GetField(fieldSymbol.Name);
 
@@ -392,8 +417,10 @@ public class ExpressionRewriter(
 						}
 					}
 					break;
+				}
 
 				case IPropertySymbol propertySymbol:
+				{
 					if (propertySymbol.Parameters.Length == 0)
 					{
 						var propContainingType = loader.GetType(propertySymbol.ContainingType) ?? typeof(object);
@@ -413,6 +440,7 @@ public class ExpressionRewriter(
 						}
 					}
 					break;
+				}
 			}
 		}
 
@@ -622,10 +650,13 @@ public class ExpressionRewriter(
 			switch (content)
 			{
 				case InterpolatedStringTextSyntax text:
+				{
 					constantParts.Add(text.TextToken.ValueText);
 					parts.Add(Expression.Constant(text.TextToken.ValueText));
 					break;
+				}
 				case InterpolationSyntax interp:
+				{
 					var visited = Visit(interp.Expression);
 					if (visited == null)
 					{
@@ -653,6 +684,7 @@ public class ExpressionRewriter(
 						}
 					}
 					break;
+				}
 			}
 		}
 

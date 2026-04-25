@@ -78,11 +78,15 @@ public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 				switch (literalValue)
 				{
 					case true:
+					{
 						result = context.Visit(currentSource) ?? currentSource;
 						return true;
+					}
 					case false:
+					{
 						result = CreateEmptyEnumerableCall(context.Method.TypeArguments[0]);
 						return true;
+					}
 				}
 			}
 
@@ -129,11 +133,15 @@ public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 			switch (parameterValue)
 			{
 				case true:
+				{
 					result = context.Visit(source) ?? source;
 					return true;
+				}
 				case false:
+				{
 					result = CreateEmptyEnumerableCall(context.Method.TypeArguments[0]);
 					return true;
+				}
 			}
 		}
 

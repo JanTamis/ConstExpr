@@ -154,16 +154,22 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		switch (lambda)
 		{
 			case SimpleLambdaExpressionSyntax:
+			{
 				// Simple lambda has only 1 parameter, we need 2
 				return false;
+			}
 
 			case ParenthesizedLambdaExpressionSyntax { ParameterList.Parameters.Count: 2 } parenthesized:
+			{
 				accParam = parenthesized.ParameterList.Parameters[0].Identifier.Text;
 				valueParam = parenthesized.ParameterList.Parameters[1].Identifier.Text;
 				break;
+			}
 
 			default:
+			{
 				return false;
+			}
 		}
 
 		// Get body

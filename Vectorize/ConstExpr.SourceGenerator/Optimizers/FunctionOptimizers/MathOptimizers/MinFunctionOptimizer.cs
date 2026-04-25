@@ -305,10 +305,13 @@ public class MinFunctionOptimizer() : BaseMathFunctionOptimizer("Min", n => n is
 		switch (expr)
 		{
 			case LiteralExpressionSyntax lit:
+			{
 				value = lit.Token.Value;
 				constExpr = expr;
 				return value is not null && IsNumericLiteral(value);
+			}
 			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax opLit }:
+			{
 				var v = opLit.Token.Value;
 
 				if (v is null || !IsNumericLiteral(v))
@@ -319,8 +322,11 @@ public class MinFunctionOptimizer() : BaseMathFunctionOptimizer("Min", n => n is
 				value = NegateNumeric(v);
 				constExpr = expr; // keep the original syntax including the minus
 				return true;
+			}
 			default:
+			{
 				return false;
+			}
 		}
 	}
 
@@ -355,30 +361,54 @@ public class MinFunctionOptimizer() : BaseMathFunctionOptimizer("Min", n => n is
 		switch (paramType.SpecialType)
 		{
 			case SpecialType.System_Single:
+			{
 				return Comparer<float>.Default.Compare(ConvertTo<float>(a), ConvertTo<float>(b));
+			}
 			case SpecialType.System_Double:
+			{
 				return Comparer<double>.Default.Compare(ConvertTo<double>(a), ConvertTo<double>(b));
+			}
 			case SpecialType.System_Decimal:
+			{
 				return Comparer<decimal>.Default.Compare(ConvertTo<decimal>(a), ConvertTo<decimal>(b));
+			}
 			case SpecialType.System_SByte:
+			{
 				return Comparer<sbyte>.Default.Compare(ConvertTo<sbyte>(a), ConvertTo<sbyte>(b));
+			}
 			case SpecialType.System_Int16:
+			{
 				return Comparer<short>.Default.Compare(ConvertTo<short>(a), ConvertTo<short>(b));
+			}
 			case SpecialType.System_Int32:
+			{
 				return Comparer<int>.Default.Compare(ConvertTo<int>(a), ConvertTo<int>(b));
+			}
 			case SpecialType.System_Int64:
+			{
 				return Comparer<long>.Default.Compare(ConvertTo<long>(a), ConvertTo<long>(b));
+			}
 			case SpecialType.System_Byte:
+			{
 				return Comparer<byte>.Default.Compare(ConvertTo<byte>(a), ConvertTo<byte>(b));
+			}
 			case SpecialType.System_UInt16:
+			{
 				return Comparer<ushort>.Default.Compare(ConvertTo<ushort>(a), ConvertTo<ushort>(b));
+			}
 			case SpecialType.System_UInt32:
+			{
 				return Comparer<uint>.Default.Compare(ConvertTo<uint>(a), ConvertTo<uint>(b));
+			}
 			case SpecialType.System_UInt64:
+			{
 				return Comparer<ulong>.Default.Compare(ConvertTo<ulong>(a), ConvertTo<ulong>(b));
+			}
 			default:
+			{
 				// Fallback: compare as double
 				return Comparer<double>.Default.Compare(ConvertTo<double>(a), ConvertTo<double>(b));
+			}
 		}
 	}
 

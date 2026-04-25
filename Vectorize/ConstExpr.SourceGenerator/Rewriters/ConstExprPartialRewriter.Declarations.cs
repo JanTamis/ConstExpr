@@ -217,10 +217,14 @@ public partial class ConstExprPartialRewriter
 		{
 			// Handle Tuple deconstruction assignments
 			case TupleExpressionSyntax leftTuple when kind == SyntaxKind.EqualsToken:
+			{
 				return HandleTupleAssignment(node, leftTuple, rightExpr, hasRightValue, rightValue);
+			}
 			// Handle identifier assignments
 			case IdentifierNameSyntax { Identifier.Text: var name } when variables.TryGetValue(name, out var variable):
+			{
 				return HandleIdentifierAssignment(node, variable, rightExpr, kind);
+			}
 			// Handle element access assignments
 			case ElementAccessExpressionSyntax elementAccess:
 			{
@@ -569,15 +573,19 @@ public partial class ConstExprPartialRewriter
 		switch (op)
 		{
 			case IArrayElementReferenceOperation arrayOp:
+			{
 				return HandleArrayElementAssignment(instanceVal as Array, indexConsts, arrayOp.Indices.Length, rightValue, rightExpr);
+			}
 
 			case IPropertyReferenceOperation propOp:
+			{
 				if (propOp.Property.IsIndexer && instanceVal is not null && indexConsts.Length == propOp.Arguments.Length
 				    && loader.TryExecuteMethod(propOp.Property.SetMethod, instanceVal, new VariableItemDictionary(variables), indexConsts.Append(rightValue), out _))
 				{
 					return null;
 				}
 				break;
+			}
 		}
 
 		return null;
@@ -616,11 +624,15 @@ public partial class ConstExprPartialRewriter
 					switch (arg0)
 					{
 						case int i0:
+						{
 							arr.SetValue(rightValue, i0);
 							return rightExpr;
+						}
 						case long l0:
+						{
 							arr.SetValue(rightValue, l0);
 							return rightExpr;
+						}
 					}
 				}
 			}

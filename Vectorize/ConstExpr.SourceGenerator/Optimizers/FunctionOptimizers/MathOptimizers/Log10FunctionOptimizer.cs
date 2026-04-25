@@ -29,13 +29,13 @@ public class Log10FunctionOptimizer() : BaseMathFunctionOptimizer("Log10", n => 
 		// Max relative error ≈ 8.7e-5 (fast-math trade-off).
 		if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
 		{
-			var methodString = paramType.SpecialType == SpecialType.System_Single
+			var method = ParseMethodFromString(paramType.SpecialType == SpecialType.System_Single
 				? GenerateFastLog10MethodFloat()
-				: GenerateFastLog10MethodDouble();
+				: GenerateFastLog10MethodDouble());
 
-			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(method, false);
 
-			result = CreateInvocation("FastLog10", context.VisitedParameters);
+			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);
 			return true;
 		}
 

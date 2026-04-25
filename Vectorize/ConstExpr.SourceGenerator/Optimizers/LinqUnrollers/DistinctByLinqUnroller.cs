@@ -19,22 +19,28 @@ public class DistinctByLinqUnroller : BaseLinqUnroller
 		switch (keyType.SpecialType)
 		{
 			case SpecialType.System_Boolean:
+			{
 				statements.Add(CreateLocalDeclaration(SeenTrue, CreateLiteral(false)!));
 				statements.Add(CreateLocalDeclaration(SeenFalse, CreateLiteral(false)!));
 				break;
+			}
 
 			case SpecialType.System_Byte:
 			case SpecialType.System_SByte:
+			{
 				// Span<bool> distinctBySet = stackalloc bool[256];
 				statements.Add(CreateStackAllocSpan<bool>(SetName, 256));
 				break;
+			}
 
 			case SpecialType.System_Int16:
 			case SpecialType.System_UInt16:
 			case SpecialType.System_Char:
+			{
 				// Span<ulong> distinctBySet = stackalloc ulong[1024]; (8 KB bitset for 65 536 values)
 				statements.Add(CreateStackAllocSpan<ulong>(SetName, 1024));
 				break;
+			}
 
 			default:
 			{
@@ -65,37 +71,49 @@ public class DistinctByLinqUnroller : BaseLinqUnroller
 		switch (keyType.SpecialType)
 		{
 			case SpecialType.System_Boolean:
+			{
 				// var distinctByKey = <keyExpr>;  — cache to avoid double evaluation
 				statements.Add(CreateLocalDeclaration(KeyName, keyExpr));
 				AddBoolDistinctBody(statements, IdentifierName(KeyName), SeenTrue, SeenFalse);
 				break;
+			}
 
 			case SpecialType.System_Byte:
+			{
 				statements.Add(CreateLocalDeclaration(KeyName, keyExpr));
 				AddSpanIndexDistinctBody(statements, IdentifierName(KeyName), SetName, castToByte: false);
 				break;
+			}
 
 			case SpecialType.System_SByte:
+			{
 				statements.Add(CreateLocalDeclaration(KeyName, keyExpr));
 				AddSpanIndexDistinctBody(statements, IdentifierName(KeyName), SetName, castToByte: true);
 				break;
+			}
 
 			case SpecialType.System_UInt16:
 			case SpecialType.System_Char:
+			{
 				statements.Add(CreateLocalDeclaration(KeyName, keyExpr));
 				AddBitSetDistinctBody(statements, IdentifierName(KeyName), SetName, castToUShort: false);
 				break;
+			}
 
 			case SpecialType.System_Int16:
+			{
 				statements.Add(CreateLocalDeclaration(KeyName, keyExpr));
 				AddBitSetDistinctBody(statements, IdentifierName(KeyName), SetName, castToUShort: true);
 				break;
+			}
 
 			default:
+			{
 				// HashSet.Add fallback — keyExpr evaluated only once
 				statements.Add(IfStatement(LogicalNotExpression(CreateMethodInvocation(IdentifierName(SetName), "Add", keyExpr)),
 					ContinueStatement()));
 				break;
+			}
 		}
 	}
 }

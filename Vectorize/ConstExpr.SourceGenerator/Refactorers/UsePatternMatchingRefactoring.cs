@@ -241,7 +241,9 @@ public static class UsePatternMatchingRefactoring
 			}
 
 			default:
+			{
 				return false;
+			}
 		}
 	}
 
@@ -823,31 +825,41 @@ public static class UsePatternMatchingRefactoring
 			// expr == constant  →  constant
 			case SyntaxKind.EqualsExpression
 				when TryNormalizeBinaryLeaf(binaryLeaf, semanticModel, out tested, out var eqConst):
+			{
 				leafPat = ConstantPattern(eqConst.WithoutTrivia());
 				break;
+			}
 
 			// expr != constant  →  not constant
 			case SyntaxKind.NotEqualsExpression
 				when TryNormalizeBinaryLeaf(binaryLeaf, semanticModel, out tested, out var neqConst):
+			{
 				leafPat = UnaryPattern(
 					Token(SyntaxKind.NotKeyword).WithTrailingTrivia(ElasticSpace),
 					ConstantPattern(neqConst.WithoutTrivia()));
 				break;
+			}
 
 			// expr >= / <= / > / < constant  →  relational pattern
 			case SyntaxKind.GreaterThanExpression or SyntaxKind.GreaterThanOrEqualExpression
 				or SyntaxKind.LessThanExpression or SyntaxKind.LessThanOrEqualExpression
 				when TryBuildRelationalPattern(binaryLeaf, semanticModel, out tested, out leafPat):
+			{
 				break;
+			}
 
 			// expr is T  →  TypePattern(T)
 			case SyntaxKind.IsExpression when binaryLeaf.Right is TypeSyntax isType:
+			{
 				tested = binaryLeaf.Left;
 				leafPat = TypePattern(isType.WithoutTrivia());
 				break;
+			}
 
 			default:
+			{
 				return false;
+			}
 		}
 
 		return TryRecordLeaf(tested, leafPat, ref testedExpr, out pattern);
@@ -980,7 +992,9 @@ public static class UsePatternMatchingRefactoring
 				when leftId.Identifier.ValueText == variableName
 				     && binary.Right is LiteralExpressionSyntax rightLit
 				     && rightLit.IsKind(SyntaxKind.NullLiteralExpression):
+			{
 				return true;
+			}
 			case BinaryExpressionSyntax { RawKind: (int) SyntaxKind.NotEqualsExpression, Right: IdentifierNameSyntax rightId } binary
 				when rightId.Identifier.ValueText == variableName
 				     && binary.Left is LiteralExpressionSyntax leftLit
@@ -992,9 +1006,13 @@ public static class UsePatternMatchingRefactoring
 				     && notPattern.IsKind(SyntaxKind.NotPattern)
 				     && notPattern.Pattern is ConstantPatternSyntax constPattern
 				     && constPattern.Expression.IsKind(SyntaxKind.NullLiteralExpression):
+			{
 				return true;
+			}
 			default:
+			{
 				return false;
+			}
 		}
 
 	}

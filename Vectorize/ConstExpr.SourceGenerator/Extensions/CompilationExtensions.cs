@@ -231,26 +231,38 @@ public static class CompilationExtensions
 		{
 			case SpecialType.System_SByte:
 			case SpecialType.System_Byte:
+			{
 				unsignedType = compilation.GetSpecialType(SpecialType.System_Byte);
 				return true;
+			}
 			case SpecialType.System_Int16:
 			case SpecialType.System_UInt16:
+			{
 				unsignedType = compilation.GetSpecialType(SpecialType.System_UInt16);
 				return true;
+			}
 			case SpecialType.System_Int32:
 			case SpecialType.System_UInt32:
+			{
 				unsignedType = compilation.GetSpecialType(SpecialType.System_UInt32);
 				return true;
+			}
 			case SpecialType.System_Int64:
 			case SpecialType.System_UInt64:
+			{
 				unsignedType = compilation.GetSpecialType(SpecialType.System_UInt64);
 				return true;
+			}
 			case SpecialType.System_Char:
+			{
 				unsignedType = typeSymbol;
 				return true;
+			}
 			default:
+			{
 				unsignedType = null;
 				return false;
+			}
 		}
 	}
 
@@ -971,34 +983,46 @@ public static class CompilationExtensions
 		switch (size)
 		{
 			case 0:
+			{
 				vector = String.Empty;
 				vectorSize = 0;
 				return VectorTypes.None;
+			}
 			case <= 8:
+			{
 				vector = compilation.GetCreateVector(VectorTypes.Vector64, elementType, loader, isRepeating, items);
 				vectorSize = 8 / elementSize;
 
 				return VectorTypes.Vector64;
+			}
 			case <= 16:
+			{
 				vector = compilation.GetCreateVector(VectorTypes.Vector128, elementType, loader, isRepeating, items);
 				vectorSize = 16 / elementSize;
 
 				return VectorTypes.Vector128;
+			}
 			case <= 32:
+			{
 				vector = compilation.GetCreateVector(VectorTypes.Vector256, elementType, loader, isRepeating, items);
 				vectorSize = 32 / elementSize;
 
 				return VectorTypes.Vector256;
+			}
 			case <= 64:
+			{
 				vector = compilation.GetCreateVector(VectorTypes.Vector512, elementType, loader, isRepeating, items);
 				vectorSize = 64 / elementSize;
 
 				return VectorTypes.Vector512;
+			}
 			default:
+			{
 				vector = null;
 				vectorSize = 0;
 
 				return VectorTypes.None;
+			}
 		}
 	}
 
@@ -1010,30 +1034,40 @@ public static class CompilationExtensions
 		switch (size)
 		{
 			case >= 64 when limit is VectorTypes.Vector512:
+			{
 				vector = compilation.GetCreateVector(VectorTypes.Vector512, elementType, loader, false, items);
 				vectorSize = 64 / elementSize;
 
 				return VectorTypes.Vector512;
+			}
 			case >= 32 when limit is VectorTypes.Vector512 or VectorTypes.Vector256:
+			{
 				vector = compilation.GetCreateVector(VectorTypes.Vector256, elementType, loader, false, items);
 				vectorSize = 32 / elementSize;
 
 				return VectorTypes.Vector256;
+			}
 			case >= 16 when limit is VectorTypes.Vector512 or VectorTypes.Vector256 or VectorTypes.Vector128:
+			{
 				vector = compilation.GetCreateVector(VectorTypes.Vector128, elementType, loader, false, items);
 				vectorSize = 16 / elementSize;
 
 				return VectorTypes.Vector128;
+			}
 			case >= 8 when limit is VectorTypes.Vector512 or VectorTypes.Vector256 or VectorTypes.Vector128 or VectorTypes.Vector64:
+			{
 				vector = compilation.GetCreateVector(VectorTypes.Vector64, elementType, loader, false, items);
 				vectorSize = 8 / elementSize;
 
 				return VectorTypes.Vector64;
+			}
 			default:
+			{
 				vector = null;
 				vectorSize = 0;
 
 				return VectorTypes.None;
+			}
 		}
 	}
 
@@ -1628,9 +1662,12 @@ public static class CompilationExtensions
 		switch (node)
 		{
 			case LiteralExpressionSyntax { Token.Value: var v }:
+			{
 				value = v;
 				return true;
+			}
 			case IdentifierNameSyntax identifier when variables.TryGetValue(identifier.Identifier.Text, out var variable) && variable.HasValue:
+			{
 				if (variable.Value is SyntaxNode sn)
 				{
 					return sn.TryGetLiteralValue(loader, variables, out value);
@@ -1638,9 +1675,12 @@ public static class CompilationExtensions
 
 				value = variable.Value;
 				return true;
+			}
 			// unwrap ( ... )
 			case ParenthesizedExpressionSyntax paren:
+			{
 				return paren.Expression.TryGetLiteralValue(loader, variables, out value);
+			}
 			// ^n => System.Index(n, fromEnd: true)
 			case PrefixUnaryExpressionSyntax prefix when prefix.OperatorToken.IsKind(SyntaxKind.CaretToken):
 			{
@@ -1836,47 +1876,75 @@ public static class CompilationExtensions
 		switch (type.SpecialType)
 		{
 			case SpecialType.System_Boolean:
+			{
 				minValue = false;
 				return true;
+			}
 			case SpecialType.System_Byte:
+			{
 				minValue = byte.MinValue;
 				return true;
+			}
 			case SpecialType.System_SByte:
+			{
 				minValue = sbyte.MinValue;
 				return true;
+			}
 			case SpecialType.System_Int16:
+			{
 				minValue = short.MinValue;
 				return true;
+			}
 			case SpecialType.System_UInt16:
+			{
 				minValue = ushort.MinValue;
 				return true;
+			}
 			case SpecialType.System_Int32:
+			{
 				minValue = int.MinValue;
 				return true;
+			}
 			case SpecialType.System_UInt32:
+			{
 				minValue = uint.MinValue;
 				return true;
+			}
 			case SpecialType.System_Int64:
+			{
 				minValue = long.MinValue;
 				return true;
+			}
 			case SpecialType.System_UInt64:
+			{
 				minValue = ulong.MinValue;
 				return true;
+			}
 			case SpecialType.System_Single:
+			{
 				minValue = float.MinValue;
 				return true;
+			}
 			case SpecialType.System_Double:
+			{
 				minValue = double.MinValue;
 				return true;
+			}
 			case SpecialType.System_Decimal:
+			{
 				minValue = decimal.MinValue;
 				return true;
+			}
 			case SpecialType.System_Char:
+			{
 				minValue = char.MinValue;
 				return true;
+			}
 			default:
+			{
 				minValue = null;
 				return false;
+			}
 		}
 	}
 
@@ -1892,47 +1960,75 @@ public static class CompilationExtensions
 		switch (type.SpecialType)
 		{
 			case SpecialType.System_Boolean:
+			{
 				maxValue = true;
 				return true;
+			}
 			case SpecialType.System_Byte:
+			{
 				maxValue = byte.MaxValue;
 				return true;
+			}
 			case SpecialType.System_SByte:
+			{
 				maxValue = sbyte.MaxValue;
 				return true;
+			}
 			case SpecialType.System_Int16:
+			{
 				maxValue = short.MaxValue;
 				return true;
+			}
 			case SpecialType.System_UInt16:
+			{
 				maxValue = ushort.MaxValue;
 				return true;
+			}
 			case SpecialType.System_Int32:
+			{
 				maxValue = int.MaxValue;
 				return true;
+			}
 			case SpecialType.System_UInt32:
+			{
 				maxValue = uint.MaxValue;
 				return true;
+			}
 			case SpecialType.System_Int64:
+			{
 				maxValue = long.MaxValue;
 				return true;
+			}
 			case SpecialType.System_UInt64:
+			{
 				maxValue = ulong.MaxValue;
 				return true;
+			}
 			case SpecialType.System_Single:
+			{
 				maxValue = float.MaxValue;
 				return true;
+			}
 			case SpecialType.System_Double:
+			{
 				maxValue = double.MaxValue;
 				return true;
+			}
 			case SpecialType.System_Decimal:
+			{
 				maxValue = decimal.MaxValue;
 				return true;
+			}
 			case SpecialType.System_Char:
+			{
 				maxValue = char.MaxValue;
 				return true;
+			}
 			default:
+			{
 				maxValue = null;
 				return false;
+			}
 		}
 	}
 

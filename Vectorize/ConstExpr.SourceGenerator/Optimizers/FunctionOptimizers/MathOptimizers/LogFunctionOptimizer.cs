@@ -29,16 +29,16 @@ public class LogFunctionOptimizer() : BaseMathFunctionOptimizer("Log", n => n is
 		// Max relative error ≈ 8.7e-5 (fast-math trade-off).
 		if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
 		{
-			var methodString = paramType.SpecialType == SpecialType.System_Single
+			var method = ParseMethodFromString(paramType.SpecialType == SpecialType.System_Single
 				? GenerateFastLogMethodFloat()
-				: GenerateFastLogMethodDouble();
+				: GenerateFastLogMethodDouble());
 
-			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(method, false);
 
 			if (context.VisitedParameters.Count == 1)
 			{
 				// Log(x) => FastLog(x)
-				result = CreateInvocation("FastLog", context.VisitedParameters);
+				result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);
 				return true;
 			}
 
@@ -48,8 +48,8 @@ public class LogFunctionOptimizer() : BaseMathFunctionOptimizer("Log", n => n is
 			//   float  ≈ 2.2×  (4.541 ns → 2.021 ns)
 			//   double ≈ 2.1×  (4.250 ns → 2.000 ns)
 			result = DivideExpression(
-				CreateInvocation("FastLog", [ context.VisitedParameters[0] ]),
-				CreateInvocation("FastLog", [ context.VisitedParameters[1] ]));
+				CreateInvocation(method.Identifier.Text, context.VisitedParameters[0]),
+				CreateInvocation(method.Identifier.Text, context.VisitedParameters[1]));
 			return true;
 		}
 

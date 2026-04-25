@@ -20,18 +20,20 @@ public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", n => n is
 			return true;
 		}
 
-		// 2) Idempotence: Abs(Abs(x)) -> Abs(x)
-		if (arg is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Abs" } } innerInv)
+		switch (arg)
 		{
-			result = innerInv;
-			return true;
-		}
-
-		// 3) Unary minus: Abs(-x) -> Abs(x)
-		if (arg is PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken } prefix)
-		{
-			result = CreateInvocation(paramType, Name, prefix.Operand);
-			return true;
+			// 2) Idempotence: Abs(Abs(x)) -> Abs(x)
+			case InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Abs" } } innerInv:
+			{
+				result = innerInv;
+				return true;
+			}
+			// 3) Unary minus: Abs(-x) -> Abs(x)
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken } prefix:
+			{
+				result = CreateInvocation(paramType, Name, prefix.Operand);
+				return true;
+			}
 		}
 
 		if (paramType.IsInteger())

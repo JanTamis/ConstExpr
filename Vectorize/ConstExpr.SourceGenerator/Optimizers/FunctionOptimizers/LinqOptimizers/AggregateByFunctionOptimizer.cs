@@ -123,16 +123,20 @@ public class AggregateByFunctionOptimizer() : BaseLinqFunctionOptimizer("Aggrega
 					switch (literalBool)
 					{
 						case true:
+						{
 							// x.Where(v => true).AggregateBy(...) => x.AggregateBy(...)
 							TryGetOptimizedChainExpression(chainSource, MaterializingMethods, out chainSource);
 
 							result = UpdateInvocation(context, chainSource);
 							return true;
+						}
 
 						case false when context.Method.ReturnType is INamedTypeSymbol { TypeArguments.Length: > 0 } emptyType:
+						{
 							// x.Where(v => false).AggregateBy(...) => Enumerable.Empty<KeyValuePair<TKey, TAccumulate>>()
 							result = CreateEmptyEnumerableCall(emptyType.TypeArguments[0]);
 							return true;
+						}
 					}
 
 					break;

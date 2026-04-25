@@ -295,15 +295,21 @@ public class MetadataLoader
 			switch (typeArgsString[i])
 			{
 				case '<':
+				{
 					depth++;
 					break;
+				}
 				case '>':
+				{
 					depth--;
 					break;
+				}
 				case ',' when depth == 0:
+				{
 					result.Add(typeArgsString.Substring(start, i - start));
 					start = i + 1;
 					break;
+				}
 			}
 		}
 

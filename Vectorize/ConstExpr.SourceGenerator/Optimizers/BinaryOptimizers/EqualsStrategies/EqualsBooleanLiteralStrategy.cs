@@ -18,13 +18,19 @@ public class EqualsBooleanLiteralStrategy : BooleanBinaryStrategy<ExpressionSynt
     switch (context.Right.Syntax.Token.Value)
 		{
 			case true:
+			{
 				optimized = context.Left.Syntax;
 				break;
+			}
 			case false:
+			{
 				optimized = LogicalNotExpression(ParenthesizedExpression(context.Left.Syntax));
 				break;
+			}
 			default:
+			{
 				return false;
+			}
 		}
 
 		return true;

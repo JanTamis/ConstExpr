@@ -283,11 +283,15 @@ public partial class ConstExprPartialRewriter
 		switch (methodOperation)
 		{
 			case ILocalFunctionOperation { Body: not null } localFunction:
+			{
 				visitor.VisitBlock(localFunction.Body, vars);
 				break;
+			}
 			case IMethodBodyOperation { BlockBody: not null } methodBody:
+			{
 				visitor.VisitBlock(methodBody.BlockBody, vars);
 				break;
+			}
 		}
 
 		if (TryCreateLiteral(vars[ConstExprOperationVisitor.RETURNVARIABLENAME], out var result))
@@ -578,7 +582,9 @@ public partial class ConstExprPartialRewriter
 						return localFunc.WithBody(body).WithModifiers(mods);
 					}
 					default:
+					{
 						return null;
+					}
 				}
 			})
 			.FirstOrDefault(f => f is not null);
@@ -986,6 +992,7 @@ public partial class ConstExprPartialRewriter
 		switch (symbol)
 		{
 			case IFieldSymbol fieldSymbol:
+			{
 				if (fieldSymbol.ContainingType.EnumUnderlyingType is not null)
 				{
 					return null;
@@ -997,14 +1004,17 @@ public partial class ConstExprPartialRewriter
 					return literal;
 				}
 				break;
+			}
 
 			case IPropertySymbol { Parameters.Length: 0 } propertySymbol:
-				if (loader.TryExecuteMethod(propertySymbol.GetMethod, instanceValue, new VariableItemDictionary(variables), [ ], out value)
-				    && TryCreateLiteral(value, out literal))
+			{
+				if (loader.TryExecuteMethod(propertySymbol.GetMethod, instanceValue, new VariableItemDictionary(variables), [ ], out var value)
+				    && TryCreateLiteral(value, out var literal))
 				{
 					return literal;
 				}
 				break;
+			}
 		}
 
 		return null;

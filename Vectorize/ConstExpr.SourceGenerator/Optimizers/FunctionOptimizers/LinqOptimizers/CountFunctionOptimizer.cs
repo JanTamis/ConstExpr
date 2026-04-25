@@ -67,11 +67,15 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 				switch (literalValue)
 				{
 					case true:
+					{
 						TryGetOptimizedChainExpression(whereSource, OperationsThatDontAffectCount, out source);
 						continue;
+					}
 					case false:
+					{
 						result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0));
 						return true;
+					}
 				}
 			}
 
@@ -139,14 +143,20 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 				switch (literalValue)
 				{
 					case true when IsCollectionType(context, currentSource):
+					{
 						result = CreateMemberAccess(currentSource, "Count");
 						return true;
+					}
 					case true when IsInvokedOnArray(context, currentSource):
+					{
 						result = CreateMemberAccess(currentSource, "Length");
 						return true;
+					}
 					case false:
+					{
 						result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0));
 						return true;
+					}
 				}
 			}
 

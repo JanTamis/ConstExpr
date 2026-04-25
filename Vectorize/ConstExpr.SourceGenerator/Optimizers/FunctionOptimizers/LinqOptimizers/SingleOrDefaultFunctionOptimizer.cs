@@ -52,17 +52,23 @@ public class SingleOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(name
 					switch (matchingValues.Count)
 					{
 						case 0:
+						{
 							// No matching elements, SingleOrDefault will return default(T)
 							result = context.Method.TypeArguments[0].GetDefaultValue();
 							return true;
+						}
 						case > 1:
+						{
 							// More than one matching element, SingleOrDefault will throw
 							result = CreateThrowExpression<InvalidOperationException>("Sequence contains more than one matching element");
 							return true;
+						}
 						case 1
 							when TryCreateLiteral(matchingValues[0], out var literal):
+						{
 							result = literal;
 							return true;
+						}
 					}
 				}
 			}

@@ -11,13 +11,18 @@
 		<UseNewTestRunner>true</UseNewTestRunner>
 		<!-- Explicitly opt into Microsoft Testing Platform -->
 		<UseMicrosoftTestingPlatform>true</UseMicrosoftTestingPlatform>
+		<!-- Keep coverage tooling opt-in so local runs start faster. -->
+		<EnableCoverage>false</EnableCoverage>
 	</PropertyGroup>
 
-	<ItemGroup>
+	<ItemGroup Condition="'$(EnableCoverage)' == 'true'">
 		<PackageReference Include="coverlet.collector" Version="6.0.4">
 		  <PrivateAssets>all</PrivateAssets>
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
+	</ItemGroup>
+
+	<ItemGroup>
 		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.14.0" />

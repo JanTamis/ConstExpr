@@ -38,13 +38,13 @@ public class ScaleBFunctionOptimizer() : BaseMathFunctionOptimizer("ScaleB", n =
 		{
 			context.Usings.Add("System");
 
-			var methodString = paramType.SpecialType == SpecialType.System_Single
+			var method = ParseMethodFromString(paramType.SpecialType == SpecialType.System_Single
 				? GenerateFastScaleBMethodFloat()
-				: GenerateFastScaleBMethodDouble();
+				: GenerateFastScaleBMethodDouble());
 
-			context.AdditionalSyntax.TryAdd(ParseMethodFromString(methodString), false);
+			context.AdditionalSyntax.TryAdd(method, false);
 
-			result = CreateInvocation("FastScaleB", context.VisitedParameters);
+			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);
 			return true;
 		}
 
@@ -60,13 +60,19 @@ public class ScaleBFunctionOptimizer() : BaseMathFunctionOptimizer("ScaleB", n =
 		switch (expr)
 		{
 			case LiteralExpressionSyntax { Token.Value: int i }:
+			{
 				value = i;
 				return true;
+			}
 			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: int i2 } }:
+			{
 				value = -i2;
 				return true;
+			}
 			default:
+			{
 				return false;
+			}
 		}
 	}
 
@@ -77,13 +83,19 @@ public class ScaleBFunctionOptimizer() : BaseMathFunctionOptimizer("ScaleB", n =
 		switch (expr)
 		{
 			case LiteralExpressionSyntax { Token.Value: IConvertible c }:
+			{
 				value = c.ToDouble(CultureInfo.InvariantCulture);
 				return true;
+			}
 			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
+			{
 				value = -c2.ToDouble(CultureInfo.InvariantCulture);
 				return true;
+			}
 			default:
+			{
 				return false;
+			}
 		}
 	}
 
