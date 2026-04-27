@@ -18,13 +18,7 @@ public class VisitCastExpressionTests : BaseTest<Func<double, int, int, (int, do
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = (int)x;
-			var b = (double)y;
-			var c = (char)z;
-
-			return (a, b, c, 3);
-			"""),
+		Create("return ((int)x, (double)y, (char)z, 3);"),
 		Create("return (3, 42.0, 'A', 3);", 3.14, 42, 65),
 		Create("return (10, 100.0, 'Z', 3);", 10.5, 100, 90),
 		Create("return (-5, -10.0, ' ', 3);", -5.8, -10, 32)

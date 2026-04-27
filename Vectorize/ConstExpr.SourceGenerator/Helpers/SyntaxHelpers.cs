@@ -1241,9 +1241,9 @@ public static class SyntaxHelpers
 
 	public static bool HasIdentifier(this SyntaxNode node, string identifier)
 	{
-		return node.DescendantNodes()
+		return node?.DescendantNodes()
 			.OfType<IdentifierNameSyntax>()
-			.Any(id => id.Identifier.Text == identifier);
+			.Any(id => id.Identifier.Text == identifier) ?? false;
 	}
 
 	public static TypeSyntax CreateTypeSyntax<T>()

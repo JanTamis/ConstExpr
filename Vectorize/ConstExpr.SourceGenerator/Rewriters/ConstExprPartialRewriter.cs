@@ -105,7 +105,7 @@ public partial class ConstExprPartialRewriter(
 		{
 			return base.Visit(node);
 		}
-		catch (Exception e)
+		catch (Exception e) when (node is not LiteralExpressionSyntax)
 		{
 			exceptionHandler(node, e);
 			return node;
@@ -145,11 +145,24 @@ public partial class ConstExprPartialRewriter(
 			return variable.Value as SyntaxNode ?? node;
 		}
 
-		if (variable is { HasValue: true, Value: SyntaxNode variableNode })
+		if (variable is { Value: ExpressionSyntax expr, IsAltered: false, CanBeInlined: true } && CanBeInlined(expr))
 		{
-			return variableNode;
-		}
+			var result = ParenthesizedExpression(expr);
+			var parent = node.Parent;
 
+			if (parent is ArgumentSyntax)
+			{
+				parent = parent.Parent;
+			}
+
+			if (result.CanRemoveParentheses(parent, semanticModel, CancellationToken.None))
+			{
+				return Visit(result.Expression.WithTypeSymbolAnnotation(variable.Type, symbolStore));
+			}
+
+			return Visit(result).WithTypeSymbolAnnotation(variable.Type, symbolStore);
+		}
+		
 		return node.WithTypeSymbolAnnotation(variable.Type, symbolStore);
 	}
 

@@ -19,11 +19,7 @@ public class LinqSkipWhileOptimizationTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = x.Length;
-
-			return a;
-			"""),
+		Create("return x.Length;"),
 		Create("return 3;", new[] { 1, 2, 3 }),
 		Create("return 0;", new int[] { }),
 	];

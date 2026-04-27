@@ -18,12 +18,7 @@ public class LinqSkipLastOptimizationTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = x.Length;
-			var b = Count_89mObA(x);
-			
-			return a + b;
-			"""),
+		Create("return x.Length + Count_89mObA(x);"),
 		Create("return 3;", new[] { 1, 2, 3 }),
 		Create("return 0;", new int[] { }),
 	];

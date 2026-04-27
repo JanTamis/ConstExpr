@@ -1,10 +1,12 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for Sum() optimization - verify identity lambda removal, Select fusion, and chain optimization
 /// </summary>
 [InheritsTests]
-public class LinqSumOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqSumOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -30,16 +32,7 @@ public class LinqSumOptimizationTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = Sum_xcpydQ(x);
-			var b = Sum_dcMRsA(x) + Sum_xcpydQ(x);
-			var c = Sum_xcpydQ(x);
-			var d = Sum_xcpydQ(x);
-			var e = Sum_xcpydQ(x);
-			var f = Sum_xcpydQ(x) << 2;
-			
-			return a + b + c + d + e + f;
-			"""),
+		Create("return Sum_xcpydQ(x) * 9 + Sum_dcMRsA(x);"),
 		Create("return 54;", new[] { 1, 2, 3 }),
 		Create("return 39;", new[] { 5 }),
 	];

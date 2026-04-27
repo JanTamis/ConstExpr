@@ -1,3 +1,5 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
@@ -5,7 +7,7 @@ namespace ConstExpr.Tests.Linq;
 /// Note: ElementAtOrDefault cannot be optimized to direct indexing because it returns default instead of throwing
 /// </summary>
 [InheritsTests]
-public class LinqElementAtOrDefaultOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqElementAtOrDefaultOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -38,18 +40,7 @@ public class LinqElementAtOrDefaultOptimizationTests : BaseTest<Func<int[], int>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = x.Length > 0 ? x[0] : 0;
-			var b = x.Length > 1 ? x[1] : 0;
-			var c = x.Length > 2 ? x[2] : 0;
-			var d = x.Length > 0 ? x[0] : 0;
-			var e = x.Length > 1 ? x[1] : 0;
-			var f = x.Length > 2 ? x[2] : 0;
-			var g = x.Length > 10 ? x[10] : 0;
-			var h = x.Length > 3 ? x[3] : 0;
-			
-			return a + b + c + d + e + f + g + h;
-			"""),
+		Create("return (x.Length > 0 ? x[0] * 2 : 0) + (x.Length > 1 ? x[1] * 2 : 0) + (x.Length > 2 ? x[2] * 2 : 0) + (x.Length > 10 ? x[10] : 0) + (x.Length > 3 ? x[3] : 0);"),
 		Create("return 16;", new[] { 1, 2, 3, 4, 5 }), // 1 + 2 + 3 + 1 + 2 + 3 + 0 + 4 = 16
 		Create("return 0;", new int[] { }), // All return 0 (default)
 		Create("return 0;", new[] { 0, 0, 0, 0, 0 }),
@@ -60,7 +51,7 @@ public class LinqElementAtOrDefaultOptimizationTests : BaseTest<Func<int[], int>
 /// Tests for ElementAtOrDefault() optimization on List
 /// </summary>
 [InheritsTests]
-public class LinqElementAtOrDefaultOptimizationListTests : BaseTest<Func<List<int>, int>>
+public class LinqElementAtOrDefaultOptimizationListTests() : BaseTest<Func<List<int>, int>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -84,15 +75,7 @@ public class LinqElementAtOrDefaultOptimizationListTests : BaseTest<Func<List<in
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = x.Count > 0 ? x[0] : 0;
-			var b = x.Count > 1 ? x[1] : 0;
-			var c = x.Count > 0 ? x[0] : 0;
-			var d = x.Count > 1 ? x[1] : 0;
-			var e = x.Count > 10 ? x[10] : 0;
-			
-			return a + b + c + d + e;
-			"""),
+		Create("return (x.Count > 0 ? x[0] * 2 : 0) + (x.Count > 1 ? x[1] * 2 : 0) + (x.Count > 10 ? x[10] : 0);"),
 		Create("return 6;", new List<int> { 1, 2, 3, 4, 5 }), // 1 + 2 + 1 + 2 + 0 = 6
 		Create("return 0;", new List<int>()), // All return 0 (default)
 	];
@@ -103,7 +86,7 @@ public class LinqElementAtOrDefaultOptimizationListTests : BaseTest<Func<List<in
 /// When Skip results in ElementAtOrDefault(0), it should further optimize to FirstOrDefault()
 /// </summary>
 [InheritsTests]
-public class LinqElementAtOrDefaultSkipOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqElementAtOrDefaultSkipOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -133,17 +116,7 @@ public class LinqElementAtOrDefaultSkipOptimizationTests : BaseTest<Func<int[], 
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = x.Length > 1 ? x[1] : 0;
-			var b = x.Length > 3 ? x[3] : 0;
-			var c = x.Length > 3 ? x[3] : 0;
-			var d = x.Length > 1 ? x[1] : 0;
-			var e = x.Length > 2 ? x[2] : 0;
-			var f = x.Length > 11 ? x[11] : 0;
-			var g = x.Length > 0 ? x[0] : 0;
-			
-			return a + b + c + d + e + f + g;
-			"""),
+		Create("return (x.Length > 1 ? x[1] * 2 : 0) + (x.Length > 3 ? x[3] * 2 : 0) + (x.Length > 2 ? x[2] : 0) + (x.Length > 11 ? x[11] : 0) + (x.Length > 0 ? x[0] : 0);"),
 		Create("return 16;", new[] { 1, 2, 3, 4, 5 }), // 2 + 4 + 4 + 2 + 3 + 0 + 1 = 16
 		Create("return 0;", new int[] { }), // All return 0 (default)
 	];
@@ -153,7 +126,7 @@ public class LinqElementAtOrDefaultSkipOptimizationTests : BaseTest<Func<int[], 
 /// Tests that operations which affect element positions are NOT optimized for ElementAtOrDefault
 /// </summary>
 [InheritsTests]
-public class LinqElementAtOrDefaultNoOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqElementAtOrDefaultNoOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -181,14 +154,9 @@ public class LinqElementAtOrDefaultNoOptimizationTests : BaseTest<Func<int[], in
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = Min_zgmZ3g(x);
-			var b = Max_uzcZ3A(x);
-			var c = x.Length > 0 ? x[^1] : 0;
 			var d = Array.Find(x, v => v > 2);
-			var e = (x.Length > 0 ? x[0] : 0) << 1;
-			var f = x.Length > 0 ? x[0] : 0;
 			
-			return a + b + c + d + e + f;
+			return (x.Length > 0 ? x[0] * 3 : 0) + Min_zgmZ3g(x) + Max_uzcZ3A(x) + (x.Length > 0 ? x[^1] : 0) + d;
 			"""),
 		Create("return 17;", new[] { 1, 2, 3, 4, 5 }), // 1 + 5 + 5 + 3 + 2 + 1 = 17
 		Create("return 0;", new int[] { }),

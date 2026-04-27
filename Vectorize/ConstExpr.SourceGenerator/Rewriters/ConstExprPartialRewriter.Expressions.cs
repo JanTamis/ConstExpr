@@ -34,7 +34,7 @@ public partial class ConstExprPartialRewriter
 			{
 				// Don't implicitly convert char literals to int - they should remain as char
 				// to preserve their representation in pattern matching contexts
-				if (semanticModel.GetOperation(node) is { Parent: IConversionOperation conversion }
+				if (semanticModel.TryGetOperation<IOperation>(node, out var operation) && operation is { Parent: IConversionOperation conversion }
 				    && (node.Token.Value is not char || conversion.Type?.SpecialType != SpecialType.System_Int32))
 				{
 					TryCreateLiteral(ExecuteConversion(conversion, node.Token.Value), out expression);
@@ -189,19 +189,22 @@ public partial class ConstExprPartialRewriter
 					return CreateLiteral(false);
 				}
 			}
-			
-			var leftExpression = left as ExpressionSyntax ?? node.Left;
-			var rightExpression = right as ExpressionSyntax ?? node.Right;
-			
-			// invert syntax
-			return node.Kind() switch
+
+			if (node.Kind() is not (SyntaxKind.SubtractExpression or SyntaxKind.DivideExpression or SyntaxKind.LeftShiftExpression or SyntaxKind.RightShiftExpression))
 			{
-				SyntaxKind.GreaterThanExpression => LessThanExpression(rightExpression, leftExpression),
-				SyntaxKind.GreaterThanOrEqualExpression => LessThanOrEqualExpression(rightExpression, leftExpression),
-				SyntaxKind.LessThanExpression => GreaterThanExpression(rightExpression, leftExpression),
-				SyntaxKind.LessThanOrEqualExpression => GreaterThanOrEqualExpression(rightExpression, leftExpression),
-				_ => node.WithLeft(rightExpression).WithRight(leftExpression)
-			};
+				var leftExpression = left as ExpressionSyntax ?? node.Left;
+				var rightExpression = right as ExpressionSyntax ?? node.Right;
+
+				// invert syntax
+				return node.Kind() switch
+				{
+					SyntaxKind.GreaterThanExpression => LessThanExpression(rightExpression, leftExpression),
+					SyntaxKind.GreaterThanOrEqualExpression => LessThanOrEqualExpression(rightExpression, leftExpression),
+					SyntaxKind.LessThanExpression => GreaterThanExpression(rightExpression, leftExpression),
+					SyntaxKind.LessThanOrEqualExpression => GreaterThanOrEqualExpression(rightExpression, leftExpression),
+					_ => node.WithLeft(rightExpression).WithRight(leftExpression)
+				};
+			}
 		}
 
 		if (hasRightValue)
@@ -411,11 +414,19 @@ public partial class ConstExprPartialRewriter
 		var isBooleanOp = operation.OperatorKind is BinaryOperatorKind.ConditionalAnd or BinaryOperatorKind.ConditionalOr;
 
 		// Integer optimizations are also always safe (no floating-point concerns)
-		var isIntegerOp = operation.Type?.IsInteger() ?? false;
+		var isIntegerOp = operation.Type?.IsNumericType() ?? false;
+
+		// Comparison/equality operators (==, !=, <, >, <=, >=) produce a bool result but operate on
+		// numeric operands. Strategies such as EqualsBitwiseAndEvenStrategy need these to be attempted.
+		var isComparisonWithNumericOperands =
+			operation.OperatorKind is BinaryOperatorKind.Equals or BinaryOperatorKind.NotEquals
+				or BinaryOperatorKind.LessThan or BinaryOperatorKind.LessThanOrEqual
+				or BinaryOperatorKind.GreaterThan or BinaryOperatorKind.GreaterThanOrEqual
+			&& (operation.LeftOperand.Type?.IsNumericType() ?? false);
 
 		if (isBuiltIn
 		    && operation.Type is not null
-		    && (isBooleanOp || isIntegerOp || attribute.MathOptimizations.HasFlag(FastMathFlags.AssociativeMath))
+		    && (isBooleanOp || isIntegerOp || isComparisonWithNumericOperands)
 		    && TryOptimizeNode(operation.OperatorKind, expressions, operation.Type, leftExpr, operation.LeftOperand.Type, rightExpr, operation.RightOperand.Type, parent, out result))
 		{
 			return true;

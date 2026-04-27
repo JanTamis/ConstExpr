@@ -18,11 +18,7 @@ public class LinqTakeLastOptimizationTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var b = Count_XgBl1Q(x);
-			
-			return b;
-			"""),
+		Create("return Count_XgBl1Q(x);"),
 		Create("return 1;", new[] { 1, 2, 3 }),
 		Create("return 0;", new int[] { }),
 	];

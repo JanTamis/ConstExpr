@@ -20,7 +20,17 @@ public class SumRangeTest() : BaseTest<Func<int, int, long>>(FastMathFlags.FastM
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null),
+		Create("""
+			if (start > end)
+			{
+				var temp = start;
+
+				start = end;
+				end = temp;
+			}
+
+			return (long)(end - start + 1) * (start + end) / 2L;
+			"""),
 		Create("return 55L;", 1, 10),
 		Create("return 5050L;", 1, 100),
 		Create("return 25L;", 3, 7)

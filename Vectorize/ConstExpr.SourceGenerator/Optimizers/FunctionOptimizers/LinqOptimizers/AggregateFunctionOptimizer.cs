@@ -25,8 +25,7 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 	// These are essentially no-ops that just change the type or materialize
 	private static readonly HashSet<string> OperationsThatDontAffectAggregate =
 	[
-		..MaterializingMethods,
-		..OrderingOperations
+		..MaterializingMethods
 	];
 
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)

@@ -14,36 +14,39 @@ public class MinFunctionOptimizer() : BaseMathFunctionOptimizer("Min", n => n is
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
+		var left = context.VisitedParameters[0];
+		var right = context.VisitedParameters[1];
+		
 		// Idempotency: Min(x, x) → x (when x is pure)
-		if (SyntaxNodeComparer.Get().Equals(context.VisitedParameters[0], context.VisitedParameters[1]) && IsPure(context.VisitedParameters[0]))
+		if (SyntaxNodeComparer.Get().Equals(left, right) && IsPure(left))
 		{
-			result = context.VisitedParameters[0];
+			result = left;
 			return true;
 		}
 
 		var containingName = context.Method.ContainingType?.Name;
 
 		// Try to recognize Clamp pattern: Min(Max(X, min), max) -> Clamp(X, min, max)
-		if (TryRewriteClampFromMinMax(paramType, containingName, context.VisitedParameters[0], context.VisitedParameters[1], out var clamp))
+		if (TryRewriteClampFromMinMax(paramType, containingName, left, right, out var clamp))
 		{
 			result = clamp;
 			return true;
 		}
 
-		if (TryRewriteClampFromMinMax(paramType, containingName, context.VisitedParameters[1], context.VisitedParameters[0], out clamp))
+		if (TryRewriteClampFromMinMax(paramType, containingName, right, left, out clamp))
 		{
 			result = clamp;
 			return true;
 		}
 
 		// Try to flatten nested Min with constants: Min(C1, Min(X, C2)) -> Min(X, min(C1, C2)) and symmetrical forms
-		if (TryFlattenNestedMin(paramType, containingName, context.VisitedParameters[0], context.VisitedParameters[1], out var flattened))
+		if (TryFlattenNestedMin(paramType, containingName, left, right, out var flattened))
 		{
 			result = flattened;
 			return true;
 		}
 
-		if (TryFlattenNestedMin(paramType, containingName, context.VisitedParameters[1], context.VisitedParameters[0], out flattened))
+		if (TryFlattenNestedMin(paramType, containingName, right, left, out flattened))
 		{
 			result = flattened;
 			return true;
@@ -51,7 +54,7 @@ public class MinFunctionOptimizer() : BaseMathFunctionOptimizer("Min", n => n is
 
 		if (HasMethod(paramType, "MinNative", 2))
 		{
-			// Use MaxNative if available on the numeric helper type
+			// Use MinNative if available on the numeric helper type
 			result = CreateInvocation(paramType, "MinNative", context.VisitedParameters);
 			return true;
 		}

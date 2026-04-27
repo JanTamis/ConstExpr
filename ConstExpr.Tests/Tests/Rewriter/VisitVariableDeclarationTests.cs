@@ -17,12 +17,7 @@ public class VisitVariableDeclarationTests : BaseTest<Func<int, int, (int, int, 
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var d = x + y;
-			var e = x << 1;
-
-			return (1, 2, 3, d, e);
-			"""),
+		Create("return (1, 2, 3, x + y, x << 1);"),
 		Create("return (1, 2, 3, 15, 20);", 10, 5),
 		Create("return (1, 2, 3, 15, -40);", -20, 35),
 		Create("return (1, 2, 3, 0, 0);", 0, 0),

@@ -1,3 +1,5 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
@@ -7,7 +9,7 @@ namespace ConstExpr.Tests.Linq;
 /// and removing Distinct would change the group sizes.
 /// </summary>
 [InheritsTests]
-public class LinqToLookupOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqToLookupOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -59,22 +61,10 @@ public class LinqToLookupOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = ToLookup_MVa_MQ(x).Count;
-			var b = ToLookup_MVa_MQ(x).Count;
-			var c = ToLookup_MVa_MQ(x).Count;
-			var d = ToLookup_MVa_MQ(x).Count;
-			var e = ToLookup_sloNHA(x).Count;
-			var f = ToLookup_sloNHA(x).Count;
-			var g = ToLookup_MVa_MQ(x).Count;
-			var h = ToLookup_MVa_MQ(x).Count;
-			var i = ToLookup_MVa_MQ(x).Count;
 			var j = x.ToLookup(v => v).Count;
 			var k = x.ToLookup(v => v).Count;
-			var l = ToLookup_i0qdOA(x).Count;
-			var m = ToLookup_VYmdsA(x).Count;
-			var n = ToLookup_BusWaA(x).Count;
 			
-			return a + b + c + d + e + f + g + h + i + j + k + l + m + n;
+			return ToLookup_MVa_MQ(x).Count * 7 + ToLookup_sloNHA(x).Count * 2 + j + k + ToLookup_i0qdOA(x).Count + ToLookup_VYmdsA(x).Count + ToLookup_BusWaA(x).Count;
 			"""),
 		Create("""
 			var a = new Lookup_tdV2Ug().Count;

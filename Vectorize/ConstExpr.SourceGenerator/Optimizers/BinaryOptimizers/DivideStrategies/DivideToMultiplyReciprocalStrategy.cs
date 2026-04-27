@@ -1,6 +1,7 @@
 using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -24,6 +25,20 @@ public class DivideToMultiplyReciprocalStrategy : FloatNumberBinaryStrategy<Expr
 		
 		var reciprocal = 1.ToSpecialType(context.Type.SpecialType)
 			.Divide(context.Right.Syntax.Token.Value.ToSpecialType(context.Type.SpecialType));
+
+		if (context.Left.Syntax is CastExpressionSyntax cast)
+		{
+			switch (context.Type.SpecialType)
+			{
+				case SpecialType.System_Double when cast.Type is PredefinedTypeSyntax { Keyword.RawKind: (int) SyntaxKind.DoubleKeyword }:
+				case SpecialType.System_Single when cast.Type is PredefinedTypeSyntax { Keyword.RawKind: (int) SyntaxKind.FloatKeyword }:
+				case SpecialType.System_Decimal when cast.Type is PredefinedTypeSyntax { Keyword.RawKind: (int) SyntaxKind.DecimalKeyword }:
+				{
+					optimized = MultiplyExpression(cast.Expression, CreateLiteral(reciprocal));
+					return true;
+				}
+			}
+		}
 
 		optimized = MultiplyExpression(context.Left.Syntax, CreateLiteral(reciprocal));
 		return true;

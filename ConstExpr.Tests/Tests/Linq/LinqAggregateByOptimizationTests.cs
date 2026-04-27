@@ -1,3 +1,5 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
@@ -7,7 +9,7 @@ namespace ConstExpr.Tests.Linq;
 /// and the order in which the accumulator is applied).
 /// </summary>
 [InheritsTests]
-public class LinqAggregateByOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqAggregateByOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -47,17 +49,9 @@ public class LinqAggregateByOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var a = Count_Ch2WLg(x);
-			var b = Count_Ch2WLg(x);
-			var c = Count_Ch2WLg(x);
-			var d = Count_Ch2WLg(x);
-			var e = Count_GXoNZg(x);
-			var f = Count_e2olnw(x);
-			var h = Count_Ch2WLg(x);
 			var i = x.CountBy(v => v & 1).Count();
-			var j = Count_fDCnXg(x);
 			
-			return a + b + c + d + e + f + h + i + j;
+			return Count_Ch2WLg(x) * 5 + Count_GXoNZg(x) + Count_e2olnw(x) + i + Count_fDCnXg(x);
 			"""),
 	];
 }

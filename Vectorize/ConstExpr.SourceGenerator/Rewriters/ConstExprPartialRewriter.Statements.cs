@@ -6,6 +6,7 @@ using ConstExpr.SourceGenerator.Comparers;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Refactorers;
+using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -79,6 +80,16 @@ public partial class ConstExprPartialRewriter
 			}
 		}
 
+		var writtenVariables = AssignmentWalker.GetAssignedVariables(node, semanticModel);
+
+		foreach (var writtenVariable in writtenVariables)
+		{
+			if (variables.TryGetValue(writtenVariable, out var variable))
+			{
+				variable.CanBeInlined = false;
+			}
+		}
+
 		var result = node
 			.WithCondition(condition as ExpressionSyntax ?? node.Condition)
 			.WithStatement(statement as StatementSyntax ?? node.Statement)
@@ -103,11 +114,11 @@ public partial class ConstExprPartialRewriter
 				     && assignedIdentifier.Identifier.Text == elseAssignedIdentifier.Identifier.Text:
 			{
 				return ExpressionStatement(
-					assignment.WithRight(
+					Visit(assignment.WithRight(
 						ConditionalExpression(
 							condition as ExpressionSyntax ?? node.Condition,
 							assignment.Right,
-							elseAssignment.Right)));
+							elseAssignment.Right))) as ExpressionSyntax);
 			}
 			case BlockSyntax { Statements: [ ExpressionStatementSyntax { Expression: AssignmentExpressionSyntax assignment } ] }
 				when assignment.IsKind(SyntaxKind.SimpleAssignmentExpression)
@@ -118,29 +129,29 @@ public partial class ConstExprPartialRewriter
 				     && assignedIdentifier.Identifier.Text == elseAssignedIdentifier.Identifier.Text:
 			{
 				return ExpressionStatement(
-					assignment.WithRight(
+					 Visit(assignment.WithRight(
 						ConditionalExpression(
 							condition as ExpressionSyntax ?? node.Condition,
 							assignment.Right,
-							elseAssignment.Right)));
+							elseAssignment.Right))) as ExpressionSyntax);
 			}
 			case ReturnStatementSyntax { Expression: { } ifReturn }
 				when @else is ElseClauseSyntax { Statement: ReturnStatementSyntax { Expression: { } elseReturn } }:
 			{
 				return ReturnStatement(
-					ConditionalExpression(
+					 Visit(ConditionalExpression(
 						condition as ExpressionSyntax ?? node.Condition,
 						ifReturn,
-						elseReturn));
+						elseReturn)) as ExpressionSyntax);
 			}
 			case BlockSyntax { Statements: [ ReturnStatementSyntax { Expression: { } ifReturn } ] }
 				when @else is ElseClauseSyntax { Statement: BlockSyntax { Statements: [ ReturnStatementSyntax { Expression: { } elseReturn } ] } }:
 			{
 				return ReturnStatement(
-					ConditionalExpression(
+					Visit(ConditionalExpression(
 						condition as ExpressionSyntax ?? node.Condition,
 						ifReturn,
-						elseReturn));
+						elseReturn)) as ExpressionSyntax);
 			}
 		}
 
@@ -223,9 +234,34 @@ public partial class ConstExprPartialRewriter
 		{
 			variables.Remove(name);
 		}
-
+		
 		var declaration = Visit(node.Declaration);
 		InvalidateAssignedVariables(node);
+
+		var writtenVariables = AssignmentWalker.GetAssignedVariables(node, semanticModel);
+
+		// Variables declared in the for-loop initializer are loop-private: they shadow any outer
+		// variable with the same name and their mutations must not disqualify the outer variable
+		// from being inlined. This matters when generated for-loops (e.g. from LinqUnroller) use
+		// a counter name like "i" that coincides with a user-declared variable.
+		var loopPrivateVarsSet = node.Declaration != null
+			? new HashSet<string>(
+				node.Declaration.Variables.Select(v => v.Identifier.Text),
+				StringComparer.Ordinal)
+			: new HashSet<string>(StringComparer.Ordinal);
+
+		foreach (var writtenVariable in writtenVariables)
+		{
+			if (loopPrivateVarsSet.Contains(writtenVariable))
+			{
+				continue;
+			}
+
+			if (variables.TryGetValue(writtenVariable, out var variable))
+			{
+				variable.CanBeInlined = false;
+			}
+		}
 
 		return node
 			.WithInitializers(VisitList(node.Initializers))
@@ -254,6 +290,17 @@ public partial class ConstExprPartialRewriter
 		}
 
 		InvalidateAssignedVariables(node);
+
+		var writtenVariables = AssignmentWalker.GetAssignedVariables(node, semanticModel);
+		
+		foreach (var writtenVariable in writtenVariables)
+		{
+			if (variables.TryGetValue(writtenVariable, out var variable))
+			{
+				variable.CanBeInlined = false;
+			}
+		}
+		
 		return base.VisitWhileStatement(node);
 	}
 

@@ -1,8 +1,10 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>Tests for binary shift strategies.</summary>
 [InheritsTests]
-public class ShiftByZeroTests : BaseTest<Func<int, int>>
+public class ShiftByZeroTests() : BaseTest<Func<int, int>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString(x =>
 	{

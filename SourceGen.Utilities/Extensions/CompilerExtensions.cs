@@ -152,8 +152,16 @@ public static class CompilerExtensions
 
 	public static bool TryGetOperation<TOperation>(this SemanticModel model, SyntaxNode node, [NotNullWhen(true)] out TOperation? operation) where TOperation : class, IOperation
 	{
-		operation = model.GetOperation(node) as TOperation;
-		return operation is not null;
+		try
+		{
+			operation = model.GetOperation(node) as TOperation;
+			return operation is not null;
+		}
+		catch (Exception)
+		{
+			operation = null;
+			return false;
+		}
 	}
 
 	public static bool IsPrimitiveType(this ITypeSymbol typeSymbol)

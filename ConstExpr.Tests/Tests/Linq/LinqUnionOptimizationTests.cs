@@ -19,12 +19,7 @@ public class LinqUnionOptimizationTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = Count_w6J_9Q(x);
-			var b = Count_w6J_9Q(x);
-			
-			return a + b;
-			"""),
+		Create("return Count_w6J_9Q(x) + Count_w6J_9Q(x);"),
 		Create("return 6;", new[] { 1, 2, 3 }),
 		Create("return 0;", new int[] { }),
 	];

@@ -1,10 +1,12 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for First() optimization - verify that unnecessary operations before First() are removed
 /// </summary>
 [InheritsTests]
-public class LinqFirstOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqFirstOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -48,22 +50,7 @@ public class LinqFirstOptimizationTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = First_x5lKxQ(x);
-			var b = x[0];
-			var c = x[0];
-			var d = x[0];
-			var e = First_O1a9Fw(x);
-			var f = First_NyySEw(x);
-			var g = First_BgmaKg(x);
-			var h = x[^1];
-			var i = Min_zgmZ3g(x);
-			var j = Max_uzcZ3A(x);
-			var k = x[0];
-			var l = First_zVpC_g(x) << 1;
-			
-			return a + b + c + d + e + f + g + h + i + j + k + l;
-			"""),
+		Create("return x[0] * 4 + First_zVpC_g(x) * 2 + First_x5lKxQ(x) + First_O1a9Fw(x) + First_NyySEw(x) + First_BgmaKg(x) + x[^1] + Min_zgmZ3g(x) + Max_uzcZ3A(x);"),
 		Create("return 28;", new[] { 1, 2, 3, 4, 5 }),
 	];
 }

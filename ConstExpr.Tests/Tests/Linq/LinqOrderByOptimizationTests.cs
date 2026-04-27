@@ -16,11 +16,7 @@ public class LinqOrderByOptimizationTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = Min_zgmZ3g(x);
-			
-			return a;
-			"""),
+		Create("return Min_zgmZ3g(x);"),
 		Create("return 1;", new[] { 3, 1, 2 }),
 		Create("return 5;", new[] { 5 }),
 	];

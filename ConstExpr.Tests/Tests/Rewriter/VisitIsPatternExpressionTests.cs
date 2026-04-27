@@ -24,15 +24,7 @@ public class VisitIsPatternExpressionTests : BaseTest<Func<int, int, object, cha
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var c = x == 0;
-			var d = y > 0;
-			var e = obj is int;
-			var g = (uint)x <= 80U && x % 20 == 0;
-			var f = ch - 'a' <= '\u0014' && (0x104111 >> ch - 'a' & 1) != 0;
-			var h = (uint)(x - 1) <= 4U;
-			var i = (uint)(x - 1) <= 9U && (0x28D >> x - 1 & 1) != 0;
-			
-			return [true, false, c, d, e, f, g, h, i];
+			return [true, false, x == 0, y > 0, obj is int, ch - 'a' <= '\u0014' && (0x104111u >> ch - 'a' & 1) != 0, (uint)x <= 80U && x % 20 == 0, (uint)(x - 1) <= 4U, (uint)(x - 1) <= 9U && (0x28Du >> x - 1 & 1) != 0];
 			"""),
 		Create("return [true, false, true, false, true, false, true, false, false];", 0, -5, 42, 'b'),
 		Create("return [true, false, false, true, true, false, false, false, true];", 10, 20, 100, 'c'),

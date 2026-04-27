@@ -1,3 +1,5 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
@@ -6,7 +8,7 @@ namespace ConstExpr.Tests.Linq;
 /// Note: ElementAt(0) is optimized to First() which is more idiomatic
 /// </summary>
 [InheritsTests]
-public class LinqElementAtOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqElementAtOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -36,17 +38,7 @@ public class LinqElementAtOptimizationTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = x[0];
-			var b = x[1];
-			var c = x[2];
-			var d = x[0];
-			var e = x[1];
-			var f = x[2];
-			var g = x[3];
-			
-			return a + b + c + d + e + f + g;
-			"""),
+		Create("return x[0] * 2 + x[1] * 2 + x[2] * 2 + x[3];"),
 		Create("return 16;", new[] { 1, 2, 3, 4, 5 }), // 1 + 2 + 3 + 1 + 2 + 3 + 4 = 16
 		Create("return 0;", new[] { 0, 0, 0, 0, 0 }),
 	];
@@ -57,7 +49,7 @@ public class LinqElementAtOptimizationTests : BaseTest<Func<int[], int>>
 /// ElementAt(0) becomes First()
 /// </summary>
 [InheritsTests]
-public class LinqElementAtOptimizationListTests : BaseTest<Func<List<int>, int>>
+public class LinqElementAtOptimizationListTests() : BaseTest<Func<List<int>, int>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -78,14 +70,7 @@ public class LinqElementAtOptimizationListTests : BaseTest<Func<List<int>, int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = x[0];
-			var b = x[1];
-			var c = x[0];
-			var d = x[1];
-			
-			return a + b + c + d;
-			"""),
+		Create("return x[0] * 2 + x[1] * 2;"),
 		Create("return 6;", new List<int> { 1, 2, 3, 4, 5 }), // 1 + 2 + 1 + 2 = 6
 		Create("return 0;", new List<int> { 0, 0, 0, 0, 0 }),
 	];
@@ -97,7 +82,7 @@ public class LinqElementAtOptimizationListTests : BaseTest<Func<List<int>, int>>
 /// we already have direct indexing. Direct ElementAt(0) without Skip DOES become First().
 /// </summary>
 [InheritsTests]
-public class LinqElementAtSkipOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqElementAtSkipOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -124,16 +109,7 @@ public class LinqElementAtSkipOptimizationTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = x[1];
-			var b = x[3];
-			var c = x[3];
-			var d = x[1];
-			var e = x[2];
-			var f = x[0];
-			
-			return a + b + c + d + e + f;
-			"""),
+		Create("return x[1] * 2 + x[3] * 2 + x[2] + x[0];"),
 		// a = x[1] = 2, b = x[3] = 4, c = x[3] = 4, d = x[1] = 2, e = x[2] = 3, f = x[0] = 1
 		// Total: 2 + 4 + 4 + 2 + 3 + 1 = 16
 		Create("return 16;", new[] { 1, 2, 3, 4, 5 }),
@@ -145,7 +121,7 @@ public class LinqElementAtSkipOptimizationTests : BaseTest<Func<int[], int>>
 /// Tests that operations which affect element positions are NOT optimized
 /// </summary>
 [InheritsTests]
-public class LinqElementAtNoOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqElementAtNoOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -172,16 +148,7 @@ public class LinqElementAtNoOptimizationTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = Min_zgmZ3g(x);
-			var b = Max_uzcZ3A(x);
-			var c = x[^1];
-			var d = First_O1a9Fw(x);
-			var e = x[0] << 1;
-			var f = x[0];
-			
-			return a + b + c + d + e + f;
-			"""),
+		Create("return x[0] * 3 + Min_zgmZ3g(x) + Max_uzcZ3A(x) + x[^1] + First_O1a9Fw(x);"),
 		Create("return 17;", new[] { 1, 2, 3, 4, 5 }), // 1 + 5 + 5 + 3 + 2 + 1 + 1 = 18
 		Create("throw new ArgumentOutOfRangeException(\"Index was out of range. Must be non-negative and less than the size of the collection. (Parameter 'index')\");", new int[] { }),
 	];

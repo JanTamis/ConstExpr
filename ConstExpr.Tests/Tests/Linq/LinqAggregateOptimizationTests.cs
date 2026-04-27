@@ -1,3 +1,5 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
@@ -5,7 +7,7 @@ namespace ConstExpr.Tests.Linq;
 /// and Aggregate patterns are optimized to Sum when appropriate
 /// </summary>
 [InheritsTests]
-public class LinqAggregateOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqAggregateOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -59,25 +61,7 @@ public class LinqAggregateOptimizationTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = Sum_xcpydQ(x);
-			var b = Sum_xcpydQ(x);
-			var c = Sum_xcpydQ(x);
-			var d = Sum_xcpydQ(x);
-			var e = Sum_xcpydQ(x);
-			var f = Sum_xcpydQ(x) << 1;
-			var g1 = Sum_xcpydQ(x);
-			var g2 = Sum_xcpydQ(x);
-			var h = Sum_xcpydQ(x);
-			var i = Sum_xcpydQ(x);
-			var j = Sum_dcMRsA(x);
-			var k = Sum_GrzDbA(x);
-			var l = Sum_CY7UDw(x);
-			var m = Aggregate_7Y1Tug(x);
-			var n = Sum_xcpydQ(x) + 10;
-			
-			return a + b + c + d + e + f + g1 + g2 + h + i + j + k + l + m + n;
-			"""),
+		Create("return Sum_xcpydQ(x) * 12 + Sum_dcMRsA(x) + Sum_GrzDbA(x) + Sum_CY7UDw(x) + Aggregate_7Y1Tug(x) + 10;"),
 		Create("return 367;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 1063;", new[] { 1, 2, 3, 4, 5, 6 }),
 	];

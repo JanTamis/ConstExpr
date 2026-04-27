@@ -155,7 +155,6 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		}
 
 		var exceptionsDuringRewriting = new List<Exception>();
-
 		var rewriter = new ConstExprPartialRewriter(state.SemanticModel, state.Loader, (_, exception) => exceptionsDuringRewriting.Add(exception), parameters, additionalSyntax, new HashSet<string>(), attribute, new(), CancellationToken.None, visitedMethods);
 
 		for (var i = 0; i < testCase.Value.Length; i++)

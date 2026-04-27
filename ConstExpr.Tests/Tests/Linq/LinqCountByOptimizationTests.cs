@@ -1,3 +1,5 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
@@ -6,7 +8,7 @@ namespace ConstExpr.Tests.Linq;
 /// Enumerable.Empty&lt;T&gt;() is short-circuited, and that literal Where predicates are folded.
 /// </summary>
 [InheritsTests]
-public class LinqCountByOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqCountByOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -43,17 +45,7 @@ public class LinqCountByOptimizationTests : BaseTest<Func<int[], int>>
 	[
 		// e (Empty source) and h (Where false) fold to 0 and are pruned from the return sum.
 		// v % 2 in key selectors is also optimised to v & 1 by the arithmetic optimizer.
-		Create("""
-			var a = Count_fDCnXg(x);
-			var b = Count_fDCnXg(x);
-			var c = Count_fDCnXg(x);
-			var d = Count_fDCnXg(x);
-			var f = Count_fDCnXg(x);
-			var g = Count_fDCnXg(x);
-			var i = x.Length;
-			
-			return a + b + c + d + f + g + i;
-			"""),
+		Create("return Count_fDCnXg(x) * 6 + x.Length;"),
 		Create("return 17;", new[] { 1, 2, 3, 4, 5 }),  // 6 calls × 2 keys each; e=0, h=0
 		Create("return 0;",  new int[] { }),            // all groups empty
 	];

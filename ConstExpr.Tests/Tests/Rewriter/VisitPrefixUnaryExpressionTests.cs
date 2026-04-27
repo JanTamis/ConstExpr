@@ -21,12 +21,7 @@ public class VisitPrefixUnaryExpressionTests : BaseTest<Func<int, bool, (int, in
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var f = !b;
-			var g = -x;
-
-			return (-5, 10, false, -5, g, 0, f);
-			"""),
+		Create("return (-5, 10, false, -5, -x, 0, !b);"),
 		Create("return (-5, 10, false, -5, -10, 0, false);", 10, true),
 		Create("return (-5, 10, false, -5, 20, 0, true);", -20, false),
 		Create("return (-5, 10, false, -5, 0, 0, true);", 0, false),

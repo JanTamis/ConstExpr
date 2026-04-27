@@ -228,6 +228,14 @@ public partial class ConstExprPartialRewriter
 			// Handle element access assignments
 			case ElementAccessExpressionSyntax elementAccess:
 			{
+				// After mutating arr[i], any tracked variable whose stored value is
+				// an element access on the same receiver (e.g. temp = arr[left]) must
+				// not be inlined. Inlining would re-evaluate arr[left] AFTER the
+				// assignment, reading the mutated value instead of the captured one.
+				// This prevents incorrect substitution in swap patterns:
+				//   var temp = arr[left]; arr[left] = arr[right]; arr[right] = temp;
+				InvalidateElementAccessSnapshots(elementAccess.Expression);
+
 				var result = HandleElementAccessAssignment(node, elementAccess, rightExpr, hasRightValue, rightValue);
 
 				if (result is not null)
@@ -589,6 +597,27 @@ public partial class ConstExprPartialRewriter
 		}
 
 		return null;
+	}
+
+	/// <summary>
+	/// After an element assignment to a collection (e.g. <c>arr[i] = value</c>),
+	/// marks every tracked variable whose stored proxy expression is an element
+	/// access on the same receiver as non-inlineable.
+	/// This prevents incorrect substitution in swap patterns such as:
+	/// <c>var temp = arr[left]; arr[left] = arr[right]; arr[right] = temp;</c>
+	/// </summary>
+	private void InvalidateElementAccessSnapshots(ExpressionSyntax receiver)
+	{
+		var receiverText = receiver.ToString();
+
+		foreach (var variable in variables.Values)
+		{
+			if (variable.Value is ElementAccessExpressionSyntax elementAccess
+			    && elementAccess.Expression.ToString() == receiverText)
+			{
+				variable.CanBeInlined = false;
+			}
+		}
 	}
 
 	/// <summary>

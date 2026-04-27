@@ -1,3 +1,5 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
@@ -21,7 +23,7 @@ namespace ConstExpr.Tests.Linq;
 /// When all arguments are constant, all expressions fold to a single numeric literal.
 /// </summary>
 [InheritsTests]
-public class LinqRepeatOptimizationTests : BaseTest<Func<int, int, int>>
+public class LinqRepeatOptimizationTests() : BaseTest<Func<int, int, int>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString((element, count) =>
 	{
@@ -70,20 +72,13 @@ public class LinqRepeatOptimizationTests : BaseTest<Func<int, int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var b = element * count;
-			var c = count > 0 ? 1 : 0;
-			var d = count > 0 && element == 5 ? 1 : 0;
 			var e = count > 0 ? element : throw new InvalidOperationException("Sequence contains no elements");
 			var f = count > 0 ? element : throw new InvalidOperationException("Sequence contains no elements");
 			var g = 2 < count ? element : throw new ArgumentOutOfRangeException("");
-			var l = 2 < count ? element : 0;
 			var h = count > 0 ? element : throw new InvalidOperationException("Sequence contains no elements");
 			var i = count > 0 ? element : throw new InvalidOperationException("Sequence contains no elements");
-			var j = Int32.Max(0, count - 2);
-			var k = Int32.Min(2, count);
-			var m = count <= 0 || element > 0 ? 1 : 0;
 			
-			return count + b + c + d + e + f + g + l + h + i + j + k + m;
+			return count + element * count + (count > 0 ? 1 : 0) + (count > 0 && element == 5 ? 1 : 0) + e + f + g + (2 < count ? element : 0) + h + i + Int32.Max(0, count - 2) + Int32.Min(2, count) + (count <= 0 || element > 0 ? 1 : 0);
 			"""),
 		Create("return 40;", 3, 4),
 	];

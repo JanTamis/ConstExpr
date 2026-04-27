@@ -19,12 +19,7 @@ public class LinqSingleOrDefaultOptimizationTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = SingleOrDefault_BowQCQ(x);
-			var b = SingleOrDefault_PHBkLg(x);
-			
-			return a + b;
-			"""),
+		Create("return SingleOrDefault_BowQCQ(x) + SingleOrDefault_PHBkLg(x);"),
 		Create("return 3;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new[] { 1, 2, 4, 5 }),
 	];

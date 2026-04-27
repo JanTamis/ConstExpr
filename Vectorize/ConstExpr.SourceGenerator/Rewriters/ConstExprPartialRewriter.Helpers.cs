@@ -8,6 +8,7 @@ using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
+using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -60,7 +61,7 @@ public partial class ConstExprPartialRewriter
 			// Keep parentheses for other expression types
 			break;
 		}
-		
+
 		return node;
 	}
 
@@ -176,7 +177,7 @@ public partial class ConstExprPartialRewriter
 			}
 
 			// Call GetContext with all required parameters
-			var context = getContextMethod.Invoke(strategy, 
+			var context = getContextMethod.Invoke(strategy,
 			[
 				expressions,
 				type,
@@ -509,5 +510,13 @@ public partial class ConstExprPartialRewriter
 				variable.IsInitialized = kvp.Value.IsInitialized;
 			}
 		}
+	}
+
+	private bool CanBeInlined(SyntaxNode expr)
+	{
+		var visitor = new ComplexityVisitor(variables);
+		var complexity = visitor.Visit(expr);
+		
+		return complexity <= 10;
 	}
 }

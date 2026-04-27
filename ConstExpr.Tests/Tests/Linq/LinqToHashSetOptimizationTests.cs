@@ -1,10 +1,12 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for ToHashSet() optimization - verify redundant operations removal and chain optimization
 /// </summary>
 [InheritsTests]
-public class LinqToHashSetOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqToHashSetOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -22,13 +24,7 @@ public class LinqToHashSetOptimizationTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = ToHashSet_JgdI5A(x).Count;
-			var b = ToHashSet_JgdI5A(x).Count;
-			var c = ToHashSet_JgdI5A(x).Count;
-			
-			return a + b + c;
-			"""),
+		Create("return ToHashSet_JgdI5A(x).Count * 3;"),
 		Create("return 9;", new[] { 1, 2, 3 }),
 		Create("return 0;", new int[] { }),
 	];

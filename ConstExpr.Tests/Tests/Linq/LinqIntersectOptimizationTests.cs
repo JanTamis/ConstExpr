@@ -1,10 +1,12 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for Intersect() optimization - verify that redundant operations and special cases are optimized
 /// </summary>
 [InheritsTests]
-public class LinqIntersectOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqIntersectOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -55,22 +57,7 @@ public class LinqIntersectOptimizationTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var c = Count_w6J_9Q(x);
-			var d = Count_AEkyLw(x);
-			var e = Count_VBWycg(x);
-			var f = Count_FQoOgw(x);
-			var g = Count_utUoqA(x);
-			var h = Count_w7iHXw(x);
-			var i = Count_MK3tdQ(x);
-			var j = Count_FQoOgw(x);
-			var k = Count_AEkyLw(x);
-			var l = Array.IndexOf(x, 5) >= 0 ? 1 : 0;
-			var m = Count_N_W_CA(x);
-			var n = Count_0S7iQA(x);
-			
-			return c + d + e + f + g + h + i + j + k + l + m + n;
-			"""),
+		Create("return Count_AEkyLw(x) * 2 + Count_FQoOgw(x) * 2 + Count_w6J_9Q(x) + Count_VBWycg(x) + Count_utUoqA(x) + Count_w7iHXw(x) + Count_MK3tdQ(x) + (Array.IndexOf(x, 5) >= 0 ? 1 : 0) + Count_N_W_CA(x) + Count_0S7iQA(x);"),
 		Create("return 18;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new int[] { }),
 		Create("return 3;", new[] { 10, 20, 30 }),

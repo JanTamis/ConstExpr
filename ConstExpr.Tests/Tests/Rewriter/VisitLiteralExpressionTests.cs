@@ -22,11 +22,7 @@ public class VisitLiteralExpressionTests : BaseTest<Func<int, double, (int, doub
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var f = 42 + x;
-
-			return (42, 3.14, "hello", 'x', true, f);
-			"""),
+		Create("return (42, 3.14, \"hello\", 'x', true, x + 42);"),
 		Create("return (42, 3.14, \"hello\", 'x', true, 52);", 10, 1.5),
 		Create("return (42, 3.14, \"hello\", 'x', true, 142);", 100, 2.5),
 		Create("return (42, 3.14, \"hello\", 'x', true, 32);", -10, 0.0),

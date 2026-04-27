@@ -1,10 +1,12 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for ToList() optimization - verify redundant materialization removal and chain optimization
 /// </summary>
 [InheritsTests]
-public class LinqToListOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqToListOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -22,13 +24,7 @@ public class LinqToListOptimizationTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = x.Length;
-			var b = x.Length;
-			var c = x.Length;
-
-			return a + b + c;
-			"""),
+		Create("return (x.Length << 1) + x.Length;"),
 		Create("return 9;", new[] { 1, 2, 3 }),
 		Create("return 0;", new int[] { }),
 	];
@@ -52,7 +48,7 @@ public class LinqWhereToListOptimizationTests : BaseTest<Func<List<int>, int>>
 	[
 		Create("""
 			var a = x.FindAll(v => v > 2).Count;
-			
+
 			return a;
 			"""),
 		Create("return 3;", new List<int> { 1, 2, 3, 4, 5 }),
@@ -78,7 +74,7 @@ public class LinqSelectWhereToListOptimizationTests : BaseTest<Func<List<int>, i
 	[
 		Create("""
 			var a = x.FindAll(v => v << 1 > 4).Count;
-			
+
 			return a;
 			"""),
 		Create("return 3;", new List<int> { 1, 2, 3, 4, 5 }),

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
+using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -149,6 +150,16 @@ public partial class ConstExprPartialRewriter
 			}
 
 			newSections.Add(section.WithStatements(List(newStatements)));
+		}
+
+		var writtenVariables = AssignmentWalker.GetAssignedVariables(node, semanticModel);
+
+		foreach (var writtenVariable in writtenVariables)
+		{
+			if (variables.TryGetValue(writtenVariable, out var variable))
+			{
+				variable.CanBeInlined = false;
+			}
 		}
 
 		return node

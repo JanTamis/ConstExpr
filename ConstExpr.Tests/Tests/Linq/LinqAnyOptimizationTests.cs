@@ -1,10 +1,12 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for Any() optimization - verify that unnecessary operations before Any() are removed
 /// </summary>
 [InheritsTests]
-public class LinqAnyOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqAnyOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -59,20 +61,9 @@ public class LinqAnyOptimizationTests : BaseTest<Func<int[], int>>
 	[
 		Create("""
 			var a = Array.Exists(x, v => v > 3) || x.Length > 0 ? 1 : 0;
-			var b = x.Length > 0 ? 1 : 0;
-			var c = x.Length > 0 ? 1 : 0;
-			var d = x.Length > 0 ? 1 : 0;
-			var e = x.Length > 0 ? 1 : 0;
-			var f = x.Length > 0 ? 1 : 0;
-			var g = x.Length > 0 ? 1 : 0;
-			var h = x.Length > 0 ? 1 : 0;
-			var i = x.Length > 0 ? 1 : 0;
-			var j = Array.IndexOf(x, 100) >= 0 ? 1 : 0;
-			var k = Array.IndexOf(x, 2) >= 0 ? 1 : 0;
-			var l = x.Length > 0 ? 1 : 0;
 			var o = Array.Exists(x, v => v > 3) ? 1 : 0;
 			
-			return a + b + c + d + e + f + g + h + i + j + k + l + o + 3;
+			return (x.Length > 0 ? 9 : 0) + a + (Array.IndexOf(x, 100) >= 0 ? 1 : 0) + (Array.IndexOf(x, 2) >= 0 ? 1 : 0) + o + 3;
 			"""),
 		Create("return 15;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 3;", new int[] { }),
@@ -83,7 +74,7 @@ public class LinqAnyOptimizationTests : BaseTest<Func<int[], int>>
 /// Tests for Any() optimization on List - verify that List.Where().Any() is optimized to List.Exists()
 /// </summary>
 [InheritsTests]
-public class LinqAnyOptimizationListTests : BaseTest<Func<List<int>, int>>
+public class LinqAnyOptimizationListTests() : BaseTest<Func<List<int>, int>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -112,13 +103,9 @@ public class LinqAnyOptimizationListTests : BaseTest<Func<List<int>, int>>
 	[
 		Create("""
 			var a = x.Exists(v => v > 3) ? 1 : 0;
-			var b = x.Count > 0 ? 1 : 0;
-			var c = x.Count > 0 ? 1 : 0;
 			var d = x.Exists(v => v > 100) ? 1 : 0;
-			var e = Contains_zFeL6A(x) ? 1 : 0;
-			var f = x.Count > 0 ? 1 : 0;
 			
-			return a + b + c + d + e + f;
+			return (x.Count > 0 ? 3 : 0) + a + d + (Contains_zFeL6A(x) ? 1 : 0);
 			""", Unknown),
 		Create("return 5;", new List<int> { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new List<int>()),

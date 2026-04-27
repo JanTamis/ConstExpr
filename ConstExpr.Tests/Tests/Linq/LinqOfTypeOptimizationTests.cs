@@ -1,10 +1,12 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for OfType() optimization - verify duplicate OfType removal
 /// </summary>
 [InheritsTests]
-public class LinqOfTypeOptimizationTests : BaseTest<Func<object[], int>>
+public class LinqOfTypeOptimizationTests() : BaseTest<Func<object[], int>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -19,12 +21,7 @@ public class LinqOfTypeOptimizationTests : BaseTest<Func<object[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = x.Length;
-			var b = x.Length;
-			
-			return a + b;
-			"""),
+		Create("return x.Length << 1;"),
 		Create("return 6;", new[] { 1, 2, 3 }),
 		Create("return 0;", new int[] { }),
 	];

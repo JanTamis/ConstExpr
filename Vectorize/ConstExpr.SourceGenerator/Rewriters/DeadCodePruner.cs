@@ -107,9 +107,7 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 
 		if (!variables.TryGetValue(variableName, out var variable))
 		{
-			// Variable not in tracking dictionary (e.g., was block-local to a branch).
-			// Safe to prune only when the initializer is a side-effect-free constant.
-			return IsConstantExpression(initializer);
+			return true;
 		}
 
 		// IsAltered is intentionally not checked: if the variable is never read, the

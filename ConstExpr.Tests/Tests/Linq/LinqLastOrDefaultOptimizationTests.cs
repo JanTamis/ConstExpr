@@ -1,10 +1,12 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for LastOrDefault() optimization - verify that unnecessary operations before LastOrDefault() are removed
 /// </summary>
 [InheritsTests]
-public class LinqLastOrDefaultOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqLastOrDefaultOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -47,18 +49,12 @@ public class LinqLastOrDefaultOptimizationTests : BaseTest<Func<int[], int>>
 	[
 		Create("""
 			var a = Array.FindLast(x, v => v > 3);
-			var b = x.Length > 0 ? x[^1] : 0;
-			var c = x.Length > 0 ? x[^1] : 0;
-			var d = x.Length > 0 ? x[^1] : 0;
 			var e = Array.FindLast(x, v => v > 2);
 			var f = Array.FindLast(x, v => v < 5);
 			var g = Array.FindLast(x, v => v == 3);
-			var h = Max_uzcZ3A(x);
-			var i = x.Length > 0 ? x[0] : 0;
-			var j = x.Length > 0 ? x[^1] : 0;
 			var k = Array.FindLast(x, v => v > 0) << 1;
 			
-			return a + b + c + d + e + f + g + h + i + j + k;
+			return (x.Length > 0 ? x[^1] * 4 : 0) + a + e + f + g + Max_uzcZ3A(x) + (x.Length > 0 ? x[0] : 0) + k;
 			"""),
 		Create("return 53;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new int[] { }),

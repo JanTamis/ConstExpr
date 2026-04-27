@@ -24,10 +24,9 @@ public class LinqZipOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var c = x.Length;
 			var d = Int32.Min(x.Length, Count_Pdf8bA(x));
 			
-			return c + d;
+			return x.Length + d;
 			"""),
 		Create("return 6;", new[] { 1, 2, 3 }),
 		Create("return 0;", new int[] { }),

@@ -20,7 +20,7 @@ public class RGBToYUVTest() : BaseTest<Func<byte, byte, byte, (double, double, d
 			var y = Double.MultiplyAddEstimate(b, 0.114, Double.MultiplyAddEstimate(r, 0.299, g * 0.587));
 			var u = Double.MultiplyAddEstimate(b, 0.5, -(r * 0.168736 + g * 0.331264)) + 128D;
 			var v = Double.MultiplyAddEstimate(r, 0.5, -(g * 0.418688)) + -(b * 0.081312) + 128D;
-
+			
 			return (y, u, v);
 			"""),
 	];

@@ -1,10 +1,12 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for Average() optimization - verify that AsEnumerable, ToList, ToArray are skipped
 /// </summary>
 [InheritsTests]
-public class LinqAverageOptimizationTests : BaseTest<Func<int[], double>>
+public class LinqAverageOptimizationTests() : BaseTest<Func<int[], double>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -36,18 +38,7 @@ public class LinqAverageOptimizationTests : BaseTest<Func<int[], double>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = Average_YxQu4A(x);
-			var b = Average_YxQu4A(x);
-			var c = Average_YxQu4A(x);
-			var d = Average_YxQu4A(x);
-			var e = Average_YxQu4A(x);
-			var f = Average_5JubKw(x);
-			var g = Average_8ptrxg(x);
-			var h = Average_5JubKw(x);
-			
-			return a + b + c + d + e + f + g + h;
-			"""),
+		Create("return Average_YxQu4A(x) * 5D + Average_5JubKw(x) * 2D + Average_pmtLFg(x);"),
 		Create("return 24D;", new[] { 1, 2, 3 }), 
 		Create("throw new InvalidOperationException(\"Sequence contains no elements\");", new int[] { }), 
 		Create("return 120D;", new[] { 10 }), 

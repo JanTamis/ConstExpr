@@ -1,10 +1,12 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for Concat() optimization - verify that Empty enumerables and unnecessary operations are optimized
 /// </summary>
 [InheritsTests]
-public class LinqConcatOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqConcatOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -49,22 +51,7 @@ public class LinqConcatOptimizationTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = Sum_xcpydQ(x);
-			var b = Sum_xcpydQ(x);
-			var c = Sum_xcpydQ(x) + 30;
-			var d = Sum_xcpydQ(x) + 5;
-			var e = Sum_xcpydQ(x) + 15;
-			var f = Sum_xcpydQ(x) + 25;
-			var g = Sum_xcpydQ(x) + 70;
-			var h = Sum_xcpydQ(x) + 10;
-			var i = Sum_xcpydQ(x) + 300;
-			var j = Sum_xcpydQ(x) + 60;
-			var k = Sum_xcpydQ(x) + 99;
-			var l = Sum_xcpydQ(x) + 88;
-			
-			return a + b + c + d + e + f + g + h + i + j + k + l;
-			"""),
+		Create("return Sum_xcpydQ(x) * 12 + 702;"),
 		Create("return 774;", new[] { 1, 2, 3 }),
 		Create("return 702;", new int[] { }),
 		Create("return 882;", new[] { 5, 10 }),

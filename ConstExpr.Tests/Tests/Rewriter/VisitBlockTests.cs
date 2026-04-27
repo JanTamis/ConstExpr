@@ -25,15 +25,9 @@ public class VisitBlockTests : BaseTest<Func<int, int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var result;
-			var a = x + 10;
-			var b = y << 1;
-			result = a + b;
-
-			var c = x - 5;
-
-			result = result + c;
-
+			var result = x + 10 + (y << 1);
+			result = result + x - 5;
+			
 			return result;
 			"""),
 		Create("return 21;", 5, 3),

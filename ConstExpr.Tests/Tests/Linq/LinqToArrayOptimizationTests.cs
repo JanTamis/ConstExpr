@@ -1,10 +1,12 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for ToArray() optimization - verify redundant materialization removal and chain optimization
 /// </summary>
 [InheritsTests]
-public class LinqToArrayOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqToArrayOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -22,13 +24,7 @@ public class LinqToArrayOptimizationTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = x.Length;
-			var b = x.Length;
-			var c = x.Length;
-			
-			return a + b + c;
-			"""),
+		Create("return (x.Length << 1) + x.Length;"),
 		Create("return 9;", new[] { 1, 2, 3 }),
 		Create("return 0;", new int[] { }),
 	];

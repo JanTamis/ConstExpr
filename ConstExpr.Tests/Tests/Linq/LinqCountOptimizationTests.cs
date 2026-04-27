@@ -59,25 +59,7 @@ public class LinqCountOptimizationTests() : BaseTest<Func<int[], int>>(FastMathF
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = Count_LJMk4Q(x);
-			var b = x.Length;
-			var c = x.Length;
-			var d = x.Length;
-			var e = x.Length;
-			var f = x.Length;
-			var g = Count_JzD3Jw(x);
-			var h = Count_taQp6w(x);
-			var i = Count_w6J_9Q(x) + x.Length + x.Length;
-			var j = x.Length;
-			var k = Count_j3VDQQ(x);
-			var l = Count_nSeGiQ(x);
-			var m = Count_j3VDQQ(x);
-			var n = Count_nSeGiQ(x);
-			var o = Count_cdonHg(x);
-			
-			return a + b + c + d + e + f + g + h + i + j + k + l + m + n + o;
-			"""),
+		Create("return x.Length * 8 + Count_j3VDQQ(x) * 2 + Count_GeQaMg(x) * 2 + Count_LJMk4Q(x) + Count_JzD3Jw(x) + Count_taQp6w(x) + Count_w6J_9Q(x) + Count_cdonHg(x);"),
 		Create("return 67;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new int[] { }),
 	];

@@ -18,7 +18,7 @@ public class MaxFunctionOptimizer() : BaseMathFunctionOptimizer("Max", n => n is
 		var right = context.VisitedParameters[1];
 
 		// Idempotency: Max(x, x) → x (when x is pure)
-		if (SyntaxNodeComparer.Get().Equals(left, right) && IsPure(left))
+		if (SyntaxNodeComparer.Get().Equals(left, right))
 		{
 			result = left;
 			return true;

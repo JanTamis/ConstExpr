@@ -19,12 +19,7 @@ public class VisitIdentifierNameTests : BaseTest<Func<int, int, (int, int, int, 
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var c = x + 1;
-			var e = x + y;
-
-			return (x, x, c, y, e);
-			"""),
+		Create("return (x, x, x + 1, y, x + y);"),
 		Create("return (5, 5, 6, 10, 15);", 5, 10),
 		Create("return (100, 100, 101, 200, 300);", 100, 200),
 		Create("return (-10, -10, -9, 25, 15);", -10, 25),

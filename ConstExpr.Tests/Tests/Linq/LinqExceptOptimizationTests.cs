@@ -1,10 +1,12 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for Except() optimization - verify that redundant operations and special cases are optimized
 /// </summary>
 [InheritsTests]
-public class LinqExceptOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqExceptOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -56,19 +58,9 @@ public class LinqExceptOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var d = Count_wX25Rw(x);
-			var e = Count_IyhE7Q(x);
-			var f = Count_lIg1kw(x);
-			var g = Count_vFVZUg(x);
-			var h = Count_4oc4tg(x);
-			var i = Count_vFVZUg(x);
-			var j = Count_87tGZw(x);
-			var k = Count_wX25Rw(x);
 			var l = Array.Exists(x, x => x != 5) ? 1 : 0;
-			var m = Count_vFVZUg(x);
-			var n = Count_uLsNyg(x);
 			
-			return d + e + f + g + h + i + j + k + l + m + n;
+			return Count_wX25Rw(x) * 2 + Count_vFVZUg(x) * 3 + Count_IyhE7Q(x) + Count_lIg1kw(x) + Count_4oc4tg(x) + Count_87tGZw(x) + l + Count_uLsNyg(x);
 			"""),
 		Create("return 42;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new int[] { }),

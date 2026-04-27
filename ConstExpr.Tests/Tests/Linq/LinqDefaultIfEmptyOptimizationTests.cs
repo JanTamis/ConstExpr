@@ -1,10 +1,12 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for DefaultIfEmpty() optimization - verify that unnecessary operations before DefaultIfEmpty() are removed
 /// </summary>
 [InheritsTests]
-public class LinqDefaultIfEmptyOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqDefaultIfEmptyOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -43,20 +45,7 @@ public class LinqDefaultIfEmptyOptimizationTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = Int32.Max(x.Length, 1);
-			var b = Int32.Max(Count_w6J_9Q(x), 1);
-			var c = Int32.Max(x.Length, 1);
-			var d = Int32.Max(x.Length, 1);
-			var e = Int32.Max(x.Length, 1);
-			var f = Int32.Max(x.Length, 1);
-			var g = Int32.Max(x.Length, 1);
-			var h = Int32.Max(x.Length, 1);
-			var i = Int32.Max(Count_w6J_9Q(x), 1);
-			var j = Int32.Max(x.Length, 1);
-			
-			return a + b + c + d + e + f + g + h + i + j;
-			"""),
+		Create("return Int32.Max(x.Length, 1) * 8 + Int32.Max(Count_w6J_9Q(x), 1) * 2;"),
 		Create("return 50;", new[] { 1, 2, 3, 4, 5 }), // Non-empty: each DefaultIfEmpty returns 5 elements, so 5*10 = 50
 		Create("return 10;", new int[] { }), // Empty: each DefaultIfEmpty returns 1 element (default), so 1*10 = 10
 	];
@@ -87,14 +76,7 @@ public class  LinqDefaultIfEmptyWithValueTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = x.Length > 0 ? x[0] : 42;
-			var b = x.Length > 0 ? x[0] : 99;
-			var c = First_mA5pFw(x);
-			var d = x.Length > 0 ? x[0] : 10;
-			
-			return a + b + c + d;
-			"""),
+		Create("return (x.Length > 0 ? x[0] : 42) + (x.Length > 0 ? x[0] : 99) + First_mA5pFw(x) + (x.Length > 0 ? x[0] : 10);"),
 		Create("return 4;", new[] { 1 }), // Non-empty: returns first element (1) four times = 1+1+1+1 = 4
 		Create("return 228;", new int[] { }), // Empty: returns default values 42+99+77+20 = 238
 	];
@@ -104,7 +86,7 @@ public class  LinqDefaultIfEmptyWithValueTests : BaseTest<Func<int[], int>>
 /// Tests for DefaultIfEmpty() optimization on List
 /// </summary>
 [InheritsTests]
-public class LinqDefaultIfEmptyOptimizationListTests : BaseTest<Func<List<int>, int>>
+public class LinqDefaultIfEmptyOptimizationListTests() : BaseTest<Func<List<int>, int>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -128,15 +110,7 @@ public class LinqDefaultIfEmptyOptimizationListTests : BaseTest<Func<List<int>, 
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = Int32.Max(x.Count, 1);
-			var b = Int32.Max(Count_w6J_9Q(x), 1);
-			var c = Int32.Max(x.Count, 1);
-			var d = Int32.Max(x.Count, 1);
-			var e = x.Count > 0 ? x[0] : 100;
-			
-			return a + b + c + d + e;
-			"""),
+		Create("return Int32.Max(x.Count, 1) * 3 + Int32.Max(Count_w6J_9Q(x), 1) + (x.Count > 0 ? x[0] : 100);"),
 		Create("return 21;", new List<int> { 1, 2, 3, 4, 5 }), // Non-empty: 5+5+5+5+1 = 21
 		Create("return 104;", new List<int>()), // Empty: 1+1+1+1+100 = 104
 	];
@@ -146,7 +120,7 @@ public class LinqDefaultIfEmptyOptimizationListTests : BaseTest<Func<List<int>, 
 /// Tests for DefaultIfEmpty() with complex scenarios
 /// </summary>
 [InheritsTests]
-public class LinqDefaultIfEmptyComplexTests : BaseTest<Func<int[], int>>
+public class LinqDefaultIfEmptyComplexTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -167,16 +141,7 @@ public class LinqDefaultIfEmptyComplexTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = Sum_HI9NYg(x);
-			var b = Sum_swQo7g(x);
-			var c = x.Length > 0 ? x[0] : 10;
-			var d = x.Length > 0 ? x[0] : 10;
-			var e = x.Length > 0 ? x[^1] : 10;
-			var f = x.Length > 0 ? x[^1] : 10;
-			
-			return a + b + c + d + e + f;
-			"""),
+		Create("return (x.Length > 0 ? x[0] * 2 : 20) + (x.Length > 0 ? x[^1] * 2 : 20) + Sum_HI9NYg(x) + Sum_swQo7g(x);"),
 		Create("return 52;", new[] { 1, 2, 3, 4, 5 }), // a=15 (sum 1-5), b=25 (empty→default), c=1, d=1 (first), e=5, f=5 (last) = 52
 		Create("return 115;", new int[] { }), // a=50 (empty→default), b=25 (empty→default), c=d=e=f=10 (empty→innermost default) = 115
 	];

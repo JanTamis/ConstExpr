@@ -1,3 +1,5 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
@@ -9,7 +11,7 @@ namespace ConstExpr.Tests.Linq;
 /// - OrderByDescending(k).Reverse() => OrderBy(k)
 /// </summary>
 [InheritsTests]
-public class LinqReverseOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqReverseOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -33,15 +35,7 @@ public class LinqReverseOptimizationTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = x[0];
-			var b = Max_uzcZ3A(x);
-			var c = Max_uzcZ3A(x);
-			var d = Min_zgmZ3g(x);
-			var e = Min_zgmZ3g(x);
-			
-			return a + b + c + d + e;
-			"""),
+		Create("return Max_uzcZ3A(x) * 2 + Min_zgmZ3g(x) * 2 + x[0];"),
 		Create("return 9;", new[] { 1, 2, 3 }),
 		Create("return 25;", new[] { 5 }),
 	];

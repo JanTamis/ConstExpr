@@ -1,10 +1,12 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for Append() optimization - verify that AsEnumerable, ToList, ToArray are skipped
 /// </summary>
 [InheritsTests]
-public class LinqAppendOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqAppendOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -34,17 +36,7 @@ public class LinqAppendOptimizationTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = Sum_xcpydQ(x) + 20;
-			var b = Sum_xcpydQ(x) + 30;
-			var c = Sum_xcpydQ(x) + 40;
-			var d = Sum_xcpydQ(x) + 50;
-			var e = Sum_xcpydQ(x) + 10;
-			var f = x.Length + 5;
-			var g = x.Length + 4;
-			
-			return a + b + c + d + e + f + g;
-			"""),
+		Create("return Sum_xcpydQ(x) * 5 + x.Length * 2 + 159;"),
 		Create("return 195;", new[] { 1, 2, 3 }), // a=26, b=36, c=46, d=56, e=16 = 195
 		Create("return 159;", new int[] { }), // a=20, b=30, c=40, d=50, e=10 = 159
 		Create("return 211;", new[] { 10 }), // a=30, b=40, c=50, d=60, e=20 = 211

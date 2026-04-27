@@ -1,10 +1,12 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for Last() optimization - verify that unnecessary operations before Last() are removed
 /// </summary>
 [InheritsTests]
-public class LinqLastOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqLastOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -49,22 +51,7 @@ public class LinqLastOptimizationTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = Last_2dXLhA(x);
-			var b = x[^1];
-			var c = x[^1];
-			var d = x[^1];
-			var e = Last_wNj_fg(x);
-			var f = Last_ExAmKQ(x);
-			var g = Last_VGrzDg(x);
-			var h = x[0];
-			var i = Max_uzcZ3A(x);
-			var j = Min_zgmZ3g(x);
-			var k = x[^1];
-			var l = Last_pD59cg(x) << 1;
-			
-			return a + b + c + d + e + f + g + h + i + j + k + l;
-			"""),
+		Create("return x[^1] * 4 + Last_pD59cg(x) * 2 + Last_2dXLhA(x) + Last_wNj_fg(x) + Last_ExAmKQ(x) + Last_VGrzDg(x) + x[0] + Max_uzcZ3A(x) + Min_zgmZ3g(x);"),
 		Create("return 54;", new[] { 1, 2, 3, 4, 5 }),
 	];
 }

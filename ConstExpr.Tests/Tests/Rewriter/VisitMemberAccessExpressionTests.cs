@@ -21,10 +21,8 @@ public class VisitMemberAccessExpressionTests : BaseTest<Func<string, bool, (int
 	[
 		Create("""
 			var target = useEmpty ? "" : s;
-			var len = target.Length;
-			var isEmpty = target == "";
-
-			return (len, 5, "", isEmpty);
+			
+			return (target.Length, 5, "", target == "");
 			"""),
 		Create("return (5, 5, \"\", false);", "hello", false),
 		Create("return (0, 5, \"\", true);", "ignored", true),

@@ -16,10 +16,11 @@ public class BinaryAddOptimizer : BaseBinaryOptimizer
 		yield return new AddSubtractionConstantFoldingStrategy();
 		yield return new AddDoubleNegatedStrategy();
 		yield return new AddDoubleToShiftStrategy();
-		yield return new AddFusedMultiplyAddStrategy();
+		yield return new AddChainMultiplyStrategy();
 		yield return new AddIdentityElementStrategy();
 		yield return new AddNegatedSubtractionStrategy();
 		yield return new AddNegationStrategy();
 		yield return new AddSubtractionCancellationStrategy();
+		yield return new AddFusedMultiplyAddStrategy();
 	}
 }

@@ -1,10 +1,12 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for Distinct() optimization - verify that unnecessary operations before Distinct() are removed
 /// </summary>
 [InheritsTests]
-public class LinqDistinctOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqDistinctOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -43,20 +45,7 @@ public class LinqDistinctOptimizationTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = Count_w6J_9Q(x);
-			var b = Count_w6J_9Q(x);
-			var c = Count_w6J_9Q(x);
-			var d = Count_w6J_9Q(x);
-			var e = Count_w6J_9Q(x);
-			var f = Count_w6J_9Q(x);
-			var g = Count_w6J_9Q(x);
-			var h = x.Length > 0 ? 1 : 0;
-			var i = Count_w6J_9Q(x);
-			var j = Count_w6J_9Q(x);
-			
-			return a + b + c + d + e + f + g + h + i + j;
-			"""),
+		Create("return Count_w6J_9Q(x) * 9 + (x.Length > 0 ? 1 : 0);"),
 		Create("return 46;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new int[] { }),
 		Create("return 28;", new[] { 1, 1, 2, 2, 3 }), // 3 distinct values
