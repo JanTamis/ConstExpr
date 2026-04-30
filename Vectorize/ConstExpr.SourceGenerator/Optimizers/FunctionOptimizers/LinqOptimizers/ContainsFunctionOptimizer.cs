@@ -93,9 +93,9 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 							IdentifierName(lambdaParam),
 							searchValue, boolType);
 
-						var combinedBody = OptimizeComparison(context, SyntaxKind.LogicalAndExpression,
-							ParenthesizedExpression(whereBody),
-							ParenthesizedExpression(equalityCheck), boolType);
+						var combinedBody = context.Visit(OptimizeComparison(context, SyntaxKind.LogicalAndExpression,
+							whereBody,
+							equalityCheck, boolType));
 
 						var anyPredicate = SimpleLambdaExpression(
 							Parameter(Identifier(lambdaParam)),
@@ -104,13 +104,29 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 						// Use appropriate context.Method based on source type
 						if (IsInvokedOnList(context, invocationSource))
 						{
-							result = CreateInvocation(context.Visit(invocationSource) ?? invocationSource, "Exists", context.Visit(anyPredicate) ?? anyPredicate);
+							result = CreateInvocation(context.Visit(invocationSource) ?? invocationSource, "Exists", anyPredicate);
 							return true;
 						}
 
 						if (IsInvokedOnArray(context, invocationSource))
 						{
-							result = CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.Exists), context.Visit(invocationSource) ?? invocationSource, context.Visit(anyPredicate) ?? anyPredicate);
+							// is body of the form "x.Prop == value" where value is a constant or parameter? If so, use Array.IndexOf for better performance instead of Exists
+							if (IsSimpleEqualityLambda(anyPredicate, out var equalityValue))
+							{
+								var indexOfCall = CreateInvocation(
+									ParseTypeName(nameof(Array)),
+									nameof(Array.IndexOf),
+									invocationSource,
+									equalityValue);
+
+								result = OptimizeComparison(context, SyntaxKind.GreaterThanOrEqualExpression,
+									indexOfCall,
+									LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)),
+									context.Model.Compilation.GetSpecialType(SpecialType.System_Int32));
+								return true;
+							}
+							
+							result = CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.Exists), context.Visit(invocationSource) ?? invocationSource, anyPredicate);
 							return true;
 						}
 

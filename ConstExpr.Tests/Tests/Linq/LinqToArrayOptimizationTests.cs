@@ -34,7 +34,7 @@ public class LinqToArrayOptimizationTests() : BaseTest<Func<int[], int>>(FastMat
 /// Tests for arr.Where(p).ToArray() => Array.FindAll(arr, p)
 /// </summary>
 [InheritsTests]
-public class LinqWhereToArrayOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqWhereToArrayOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -49,12 +49,7 @@ public class LinqWhereToArrayOptimizationTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = Array.FindAll(x, v => v > 2).Length;
-			var b = Array.FindAll(x, v => v > 2).Length;
-			
-			return a + b;
-			"""),
+		Create("return Array.FindAll(x, v => v > 2).Length << 1;"),
 		Create("return 6;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new int[] { }),
 	];
@@ -76,11 +71,7 @@ public class LinqSelectWhereToArrayOptimizationTests : BaseTest<Func<int[], int>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = Array.FindAll(x, v => v << 1 > 4).Length;
-			
-			return a;
-			"""),
+		Create("return Array.FindAll(x, v => v << 1 > 4).Length;"),
 		Create("return 3;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new int[] { }),
 	];

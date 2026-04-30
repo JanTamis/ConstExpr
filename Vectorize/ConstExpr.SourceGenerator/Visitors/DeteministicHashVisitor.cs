@@ -223,7 +223,7 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
 
   public override ulong VisitForEachStatement(ForEachStatementSyntax node)
   {
-    return HashCombine(Visit(node.Type), HashString(node.Identifier.ValueText), 
+    return HashCombine(Visit(node.Type), HashString(node.Identifier.ValueText),
       Visit(node.Expression), Visit(node.Statement));
   }
 

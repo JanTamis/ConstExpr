@@ -51,7 +51,7 @@ public class LinqLastOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFl
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return x[^1] * 4 + Last_pD59cg(x) * 2 + Last_2dXLhA(x) + Last_wNj_fg(x) + Last_ExAmKQ(x) + Last_VGrzDg(x) + x[0] + Max_uzcZ3A(x) + Min_zgmZ3g(x);"),
+		Create("return x[^1] * 6 + Last_2dXLhA(x) + Last_wNj_fg(x) + Last_ExAmKQ(x) + Last_VGrzDg(x) + x[0] + Max_uzcZ3A(x) + Min_zgmZ3g(x);"),
 		Create("return 54;", new[] { 1, 2, 3, 4, 5 }),
 	];
 }

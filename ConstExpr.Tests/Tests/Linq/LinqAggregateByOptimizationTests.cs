@@ -48,11 +48,7 @@ public class LinqAggregateByOptimizationTests() : BaseTest<Func<int[], int>>(Fas
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var i = x.CountBy(v => v & 1).Count();
-			
-			return Count_Ch2WLg(x) * 5 + Count_GXoNZg(x) + Count_e2olnw(x) + i + Count_fDCnXg(x);
-			"""),
+		Create("return Count_Ch2WLg(x) * 5 + Count_GXoNZg(x) + Count_e2olnw(x) + x.CountBy(v => v & 1).Count() + Count_fDCnXg(x);"),
 	];
 }
 

@@ -15,7 +15,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Rewriters;
 
-public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, IDictionary<string, VariableItem> variables, ConcurrentDictionary<string, ISymbol> symbolStore) : CSharpSyntaxRewriter
+public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, IDictionary<string, VariableItem> variables, ConcurrentDictionary<ulong, ISymbol> symbolStore) : CSharpSyntaxRewriter
 {
 	protected readonly SemanticModel semanticModel = semanticModel;
 	protected readonly MetadataLoader loader = loader;

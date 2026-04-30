@@ -22,5 +22,6 @@ public class BinaryAddOptimizer : BaseBinaryOptimizer
 		yield return new AddNegationStrategy();
 		yield return new AddSubtractionCancellationStrategy();
 		yield return new AddFusedMultiplyAddStrategy();
+		yield return new AddReverseStrategy();
 	}
 }

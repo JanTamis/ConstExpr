@@ -16,7 +16,7 @@ public class CMYKToRGBTest() : BaseTest<Func<double, double, double, double, (by
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return ((byte)((1D - c) * 255D * (1D - k)), (byte)((1D - m) * 255D * (1D - k)), (byte)((1D - y) * 255D * (1D - k)));"),
+		Create("return ((byte)(255D * (1D - c) * (1D - k)), (byte)(255D * (1D - m) * (1D - k)), (byte)(255D * (1D - y) * (1D - k)));"),
 		Create("return ((byte)((1D - c) * 153D), (byte)((1D - m) * 153D), (byte)((1D - y) * 153D));", Unknown, Unknown, Unknown, 0.4),
 	];
 }

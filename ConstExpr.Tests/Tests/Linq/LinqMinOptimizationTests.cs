@@ -30,11 +30,7 @@ public class LinqMinOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFla
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var b = Int32.Min(Min_lB3pdg(x), Min_zgmZ3g(x));
-			
-			return Min_zgmZ3g(x) * 4 + b;
-			"""),
+		Create("return Min_zgmZ3g(x) * 4 + Int32.Min(Min_lB3pdg(x), Min_zgmZ3g(x));"),
 		Create("return 5;", new[] { 1, 2, 3 }),
 		Create("return 25;", new[] { 5 }),
 	];

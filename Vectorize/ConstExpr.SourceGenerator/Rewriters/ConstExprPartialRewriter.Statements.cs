@@ -80,16 +80,6 @@ public partial class ConstExprPartialRewriter
 			}
 		}
 
-		var writtenVariables = AssignmentWalker.GetAssignedVariables(node, semanticModel);
-
-		foreach (var writtenVariable in writtenVariables)
-		{
-			if (variables.TryGetValue(writtenVariable, out var variable))
-			{
-				variable.CanBeInlined = false;
-			}
-		}
-
 		var result = node
 			.WithCondition(condition as ExpressionSyntax ?? node.Condition)
 			.WithStatement(statement as StatementSyntax ?? node.Statement)
@@ -237,32 +227,7 @@ public partial class ConstExprPartialRewriter
 		
 		var declaration = Visit(node.Declaration);
 		InvalidateAssignedVariables(node);
-
-		var writtenVariables = AssignmentWalker.GetAssignedVariables(node, semanticModel);
-
-		// Variables declared in the for-loop initializer are loop-private: they shadow any outer
-		// variable with the same name and their mutations must not disqualify the outer variable
-		// from being inlined. This matters when generated for-loops (e.g. from LinqUnroller) use
-		// a counter name like "i" that coincides with a user-declared variable.
-		var loopPrivateVarsSet = node.Declaration != null
-			? new HashSet<string>(
-				node.Declaration.Variables.Select(v => v.Identifier.Text),
-				StringComparer.Ordinal)
-			: new HashSet<string>(StringComparer.Ordinal);
-
-		foreach (var writtenVariable in writtenVariables)
-		{
-			if (loopPrivateVarsSet.Contains(writtenVariable))
-			{
-				continue;
-			}
-
-			if (variables.TryGetValue(writtenVariable, out var variable))
-			{
-				variable.CanBeInlined = false;
-			}
-		}
-
+		
 		return node
 			.WithInitializers(VisitList(node.Initializers))
 			.WithCondition(Visit(node.Condition) as ExpressionSyntax ?? node.Condition)
@@ -290,16 +255,6 @@ public partial class ConstExprPartialRewriter
 		}
 
 		InvalidateAssignedVariables(node);
-
-		var writtenVariables = AssignmentWalker.GetAssignedVariables(node, semanticModel);
-		
-		foreach (var writtenVariable in writtenVariables)
-		{
-			if (variables.TryGetValue(writtenVariable, out var variable))
-			{
-				variable.CanBeInlined = false;
-			}
-		}
 		
 		return base.VisitWhileStatement(node);
 	}
@@ -935,6 +890,11 @@ public partial class ConstExprPartialRewriter
 		if (visitedExpression is ParenthesizedExpressionSyntax parenthesized)
 		{
 			visitedExpression = parenthesized.Expression;
+		}
+
+		if (visitedExpression is ThrowExpressionSyntax throwExpression)
+		{
+			return ThrowStatement(throwExpression.Expression);
 		}
 		
 		return node.WithExpression(visitedExpression as ExpressionSyntax);

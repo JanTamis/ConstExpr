@@ -24,7 +24,7 @@ public sealed class FunctionOptimizerContext(
 	IDictionary<string, VariableItem> variables,
 	ISet<string> usings,
 	FastMathFlags fastMathFlags,
-	ConcurrentDictionary<string, ISymbol> symbolStore)
+	ConcurrentDictionary<ulong, ISymbol> symbolStore)
 {
 	public SemanticModel Model { get; } = model;
 	public MetadataLoader Loader { get; } = loader;
@@ -42,7 +42,7 @@ public sealed class FunctionOptimizerContext(
 	public IDictionary<string, VariableItem> Variables { get; } = variables;
 	public ISet<string> Usings { get; } = usings;
 	public FastMathFlags FastMathFlags { get; } = fastMathFlags;
-	public ConcurrentDictionary<string, ISymbol> SymbolStore { get; } = symbolStore;
+	public ConcurrentDictionary<ulong, ISymbol> SymbolStore { get; } = symbolStore;
 
 	public FunctionOptimizerContext WithInvocationAndMethod(InvocationExpressionSyntax invocation, IMethodSymbol method)
 	{

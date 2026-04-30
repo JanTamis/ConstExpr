@@ -65,7 +65,7 @@ public static class CompilerExtensions
 		var node = GetSyntaxNode(symbol);
 
 		if (node is null || !compilation.TryGetSemanticModel(node, out var model))
-		{
+		{ 
 			return symbol.Name;
 		}
 

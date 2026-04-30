@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Extensions;
@@ -17,44 +18,44 @@ public static class SymbolAnnotation
 	private const string MethodSymbolKind = "ConstExpr_MethodSymbol";
 	private const string TypeSymbolKind = "ConstExpr_TypeSymbol";
 
-	// private static readonly ConcurrentDictionary<string, ISymbol> SymbolStore = new();
+	// private static readonly ConcurrentDictionary<ulong, ISymbol> SymbolStore = new();
 
 	/// <summary>
 	/// Annotates a syntax node with an <see cref="IMethodSymbol"/>.
 	/// Returns a new node with the annotation attached.
 	/// </summary>
-	public static T WithMethodSymbolAnnotation<T>(this T node, IMethodSymbol? symbol, ConcurrentDictionary<string, ISymbol> symbolStore) where T : SyntaxNode
+	public static T WithMethodSymbolAnnotation<T>(this T node, IMethodSymbol? symbol, ConcurrentDictionary<ulong, ISymbol> symbolStore) where T : SyntaxNode
 	{
 		if (symbol is null)
 		{
 			return node;
 		}
-		
-		var id = Guid.NewGuid().ToString("N");
+
+		var id = DeteministicHashVisitor.Instance.Visit(node);
 		symbolStore[id] = symbol;
-		return node.WithAdditionalAnnotations(new SyntaxAnnotation(MethodSymbolKind, id));
+		return node.WithAdditionalAnnotations(new SyntaxAnnotation(MethodSymbolKind, id.ToString()));
 	}
 
 	/// <summary>
 	/// Annotates a syntax node with an <see cref="ITypeSymbol"/>.
 	/// Returns a new node with the annotation attached.
 	/// </summary>
-	public static T? WithTypeSymbolAnnotation<T>(this T node, ITypeSymbol? symbol, ConcurrentDictionary<string, ISymbol> symbolStore) where T : SyntaxNode
+	public static T? WithTypeSymbolAnnotation<T>(this T node, ITypeSymbol? symbol, ConcurrentDictionary<ulong, ISymbol> symbolStore) where T : SyntaxNode
 	{
 		if (symbol is null)
 		{
 			return node;
 		}
-		
-		var id = Guid.NewGuid().ToString("N");
+
+		var id = DeteministicHashVisitor.Instance.Visit(node);
 		symbolStore[id] = symbol;
-		return node?.WithAdditionalAnnotations(new SyntaxAnnotation(TypeSymbolKind, id));
+		return node?.WithAdditionalAnnotations(new SyntaxAnnotation(TypeSymbolKind, id.ToString()));
 	}
 
 	/// <summary>
 	/// Tries to retrieve an annotated <see cref="IMethodSymbol"/> from a syntax node.
 	/// </summary>
-	public static bool TryGetMethodSymbolAnnotation(this SyntaxNode? node, ConcurrentDictionary<string, ISymbol> symbolStore, [NotNullWhen(true)] out IMethodSymbol? symbol)
+	public static bool TryGetMethodSymbolAnnotation(this SyntaxNode? node, ConcurrentDictionary<ulong, ISymbol> symbolStore, [NotNullWhen(true)] out IMethodSymbol? symbol)
 	{
 		symbol = null;
 
@@ -66,7 +67,7 @@ public static class SymbolAnnotation
 		var annotation = node.GetAnnotations(MethodSymbolKind).FirstOrDefault();
 
 		if (annotation?.Data is not null
-		    && symbolStore.TryGetValue(annotation.Data, out var s)
+		    && symbolStore.TryGetValue(ulong.Parse(annotation.Data), out var s)
 		    && s is IMethodSymbol method)
 		{
 			symbol = method;
@@ -79,7 +80,7 @@ public static class SymbolAnnotation
 	/// <summary>
 	/// Tries to retrieve an annotated <see cref="ITypeSymbol"/> from a syntax node.
 	/// </summary>
-	public static bool TryGetTypeSymbolAnnotation(this SyntaxNode? node, ConcurrentDictionary<string, ISymbol> symbolStore, [NotNullWhen(true)] out ITypeSymbol? symbol)
+	public static bool TryGetTypeSymbolAnnotation(this SyntaxNode? node, ConcurrentDictionary<ulong, ISymbol> symbolStore, [NotNullWhen(true)] out ITypeSymbol? symbol)
 	{
 		symbol = null;
 
@@ -91,7 +92,7 @@ public static class SymbolAnnotation
 		var annotation = node.GetAnnotations(TypeSymbolKind).FirstOrDefault();
 
 		if (annotation?.Data is not null
-		    && symbolStore.TryGetValue(annotation.Data, out var s)
+		    && symbolStore.TryGetValue(ulong.Parse(annotation.Data), out var s)
 		    && s is ITypeSymbol type)
 		{
 			symbol = type;

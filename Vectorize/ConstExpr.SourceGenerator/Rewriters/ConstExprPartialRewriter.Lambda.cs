@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
@@ -89,6 +91,160 @@ public partial class ConstExprPartialRewriter
 		foreach (var param in addedParameters)
 		{
 			variables.Remove(param);
+		}
+	}
+
+	/// <summary>
+	/// Tries to evaluate a lambda stored in a local variable (marked CanBeInlined) when called
+	/// with fully-constant arguments.  Returns the folded result literal, or null if evaluation
+	/// is not possible.
+	/// </summary>
+	private SyntaxNode? TryEvaluateLambdaVariableWithArguments(
+		LambdaExpressionSyntax lambda,
+		IList<SyntaxNode> arguments,
+		IMethodSymbol delegateMethod)
+	{
+		try
+		{
+			// Extract parameter names from the lambda syntax.
+			var paramNames = lambda switch
+			{
+				SimpleLambdaExpressionSyntax simple =>
+					[simple.Parameter.Identifier.Text],
+				ParenthesizedLambdaExpressionSyntax parenthesized =>
+					parenthesized.ParameterList.Parameters
+						.Select(p => p.Identifier.Text)
+						.ToArray(),
+				_ => []
+			};
+
+			if (paramNames.Length != arguments.Count)
+			{
+				return null;
+			}
+
+			// Build a variable dictionary that inherits outer variables and adds the lambda params.
+			var subParams = new Dictionary<string, VariableItem>(variables, StringComparer.Ordinal);
+
+			for (var i = 0; i < paramNames.Length; i++)
+			{
+				var paramType = i < delegateMethod.Parameters.Length
+					? delegateMethod.Parameters[i].Type
+					: semanticModel.Compilation.ObjectType;
+
+				subParams[paramNames[i]] = new VariableItem(paramType, false, arguments[i], true) { CanBeInlined = true };
+			}
+
+			// Create a child rewriter that evaluates the lambda body with the bound parameters.
+			var subRewriter = new ConstExprPartialRewriter(
+				semanticModel, loader, (_, _) => { }, subParams,
+				additionalMethods, usings, attribute, symbolStore, token, visitingMethods);
+
+			// Evaluate the body.
+			if (lambda.Block is not null)
+			{
+				// Block-bodied lambda: prune dead code and look for a single return.
+				var visitedBlock = subRewriter.Visit(lambda.Block) as BlockSyntax ?? lambda.Block;
+				var pruned = DeadCodePruner.Prune(visitedBlock, subParams, semanticModel) as BlockSyntax;
+
+				if (pruned?.Statements is [ReturnStatementSyntax { Expression: { } returnExpr }])
+				{
+					if (TryGetLiteralValue(returnExpr, out var retVal) && TryCreateLiteral(retVal, out var retLiteral))
+					{
+						return retLiteral;
+					}
+				}
+			}
+			else
+			{
+				// Expression-bodied lambda: visit and try to fold to a literal.
+				if (subRewriter.Visit(lambda.Body) is ExpressionSyntax visitedExpr)
+				{
+					return visitedExpr;
+				}
+			}
+
+			return null;
+		}
+		catch (Exception)
+		{
+			return null;
+		}
+	}
+	
+	private SyntaxNode? TryEvaluateLambdaVariableWithArguments(
+		LambdaExpressionSyntax lambda,
+		List<object> constantArguments,
+		IMethodSymbol delegateMethod)
+	{
+		try
+		{
+			// Extract parameter names from the lambda syntax.
+			var paramNames = lambda switch
+			{
+				SimpleLambdaExpressionSyntax simple =>
+					[simple.Parameter.Identifier.Text],
+				ParenthesizedLambdaExpressionSyntax parenthesized =>
+					parenthesized.ParameterList.Parameters
+						.Select(p => p.Identifier.Text)
+						.ToArray(),
+				_ => []
+			};
+
+			if (paramNames.Length != constantArguments.Count)
+			{
+				return null;
+			}
+
+			// Build a variable dictionary that inherits outer variables and adds the lambda params.
+			var subParams = new Dictionary<string, VariableItem>(variables, StringComparer.Ordinal);
+
+			for (var i = 0; i < paramNames.Length; i++)
+			{
+				var paramType = i < delegateMethod.Parameters.Length
+					? delegateMethod.Parameters[i].Type
+					: semanticModel.Compilation.ObjectType;
+
+				subParams[paramNames[i]] = new VariableItem(paramType, hasValue: true, value: constantArguments[i])
+				{
+					IsInitialized = true,
+				};
+			}
+
+			// Create a child rewriter that evaluates the lambda body with the bound parameters.
+			var subRewriter = new ConstExprPartialRewriter(
+				semanticModel, loader, (_, _) => { }, subParams,
+				additionalMethods, usings, attribute, symbolStore, token, visitingMethods);
+
+			// Evaluate the body.
+			if (lambda.Block is not null)
+			{
+				// Block-bodied lambda: prune dead code and look for a single return.
+				var visitedBlock = subRewriter.Visit(lambda.Block) as BlockSyntax ?? lambda.Block;
+				var pruned = DeadCodePruner.Prune(visitedBlock, subParams, semanticModel) as BlockSyntax;
+
+				if (pruned?.Statements is [ReturnStatementSyntax { Expression: { } returnExpr }])
+				{
+					if (TryGetLiteralValue(returnExpr, out var retVal) && TryCreateLiteral(retVal, out var retLiteral))
+					{
+						return retLiteral;
+					}
+				}
+			}
+			else
+			{
+				// Expression-bodied lambda: visit and try to fold to a literal.
+				if (subRewriter.Visit(lambda.Body) is ExpressionSyntax visitedExpr && TryGetLiteralValue(visitedExpr, out var val) && TryCreateLiteral(val, out var literal))
+				{
+					return literal;
+				}
+			}
+
+			return null;
+		}
+		catch (Exception)
+		{
+			return null;
 		}
 	}
 }

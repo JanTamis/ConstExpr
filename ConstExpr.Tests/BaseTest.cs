@@ -1,6 +1,7 @@
 extern alias sourcegen;
 using System.Collections;
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using ConstExpr.Core.Attributes;
 using Microsoft.CodeAnalysis;
@@ -47,19 +48,18 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 	private static readonly ConcurrentDictionary<Type, ClassState> _stateByType = new();
 	private static readonly ConcurrentDictionary<Type, int> _delegateParameterCount = new();
 	private static readonly Lazy<IReadOnlyList<MetadataReference>> _metadataReferences = new(() =>
-		AppDomain.CurrentDomain.GetAssemblies()
-			.Where(a => !a.IsDynamic && !string.IsNullOrWhiteSpace(a.Location))
-			.Select(a => a.Location)
-			.Distinct(StringComparer.Ordinal)
-			.Select(a => MetadataReference.CreateFromFile(a))
-			.ToArray(),
+			AppDomain.CurrentDomain.GetAssemblies()
+				.Where(a => !a.IsDynamic && !string.IsNullOrWhiteSpace(a.Location))
+				.Select(a => a.Location)
+				.Distinct(StringComparer.Ordinal)
+				.Select(a => MetadataReference.CreateFromFile(a))
+				.ToArray(),
 		isThreadSafe: true);
 
 	private static int GetDelegateParameterCount()
 	{
-		return _delegateParameterCount.GetOrAdd(typeof(TDelegate), static delegateType =>
-			delegateType.GetMethod("Invoke")?.GetParameters().Length
-			?? throw new InvalidOperationException($"Could not resolve Invoke on delegate type '{delegateType.FullName}'."));
+		return _delegateParameterCount.GetOrAdd(typeof(TDelegate), static delegateType => delegateType.GetMethod("Invoke")?.GetParameters().Length
+		                                                                                  ?? throw new InvalidOperationException($"Could not resolve Invoke on delegate type '{delegateType.FullName}'."));
 	}
 
 	private ClassState GetState() => _stateByType[GetType()];
@@ -106,6 +106,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			.ToList();
 
 		var semanticModel = compilation.GetSemanticModel(method.SyntaxTree);
+
 		var state = new ClassState
 		{
 			Compilation = compilation,
@@ -154,8 +155,11 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 				value: null);
 		}
 
+		var symbolStore = new ConcurrentDictionary<ulong, ISymbol>();
 		var exceptionsDuringRewriting = new List<Exception>();
-		var rewriter = new ConstExprPartialRewriter(state.SemanticModel, state.Loader, (_, exception) => exceptionsDuringRewriting.Add(exception), parameters, additionalSyntax, new HashSet<string>(), attribute, new(), CancellationToken.None, visitedMethods);
+		var rewriter = new ConstExprPartialRewriter(state.SemanticModel, state.Loader, (_, exception) => exceptionsDuringRewriting.Add(exception), parameters, additionalSyntax, new HashSet<string>(), attribute, symbolStore, CancellationToken.None, visitedMethods);
+
+		Inline(state.Method.Body!, parameters, state.SemanticModel);
 
 		for (var i = 0; i < testCase.Value.Length; i++)
 		{
@@ -179,7 +183,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			parameter.IsInitialized = true;
 		}
 
-		var newBody = rewriter.VisitBlock(state.Method.Body!) as BlockSyntax;
+		var newBody = rewriter.VisitBlock(state.Method.Body) as BlockSyntax;
 
 		foreach (var parameter in parameters)
 		{
@@ -197,9 +201,10 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 
 		if (testCase.Key is null)
 		{
-			var expectedBody = state.FormattedOriginalBody;
+			var expectedBody = FormattingHelper.Format(state.FormattedOriginalBody) as BlockSyntax;
 
-			if (!SyntaxNodeComparer.Get<BlockSyntax>().Equals(expectedBody, newBody))
+			// if (!SyntaxNodeComparer.Get<BlockSyntax>().Equals(expectedBody, newBody))
+			if (FormattingHelper.Render(newBody) != FormattingHelper.Render(expectedBody))
 			{
 				throw FormatMismatchException(state.ParameterNames, parameters, expectedBody, newBody, additionalSyntax, exceptionsDuringRewriting);
 			}
@@ -208,10 +213,8 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		{
 			var expectedBody = ParseBlock(testCase.Key);
 
-			expectedBody = FormattingHelper.Format(expectedBody) as BlockSyntax;
-
 			// Use Roslyn structural equivalence which ignores trivia differences
-			if (newBody == null || expectedBody == null || !SyntaxNodeComparer.Get<BlockSyntax>().Equals(expectedBody, newBody))
+			if (FormattingHelper.Render(newBody) != FormattingHelper.Render(expectedBody))
 			{
 				// Debug: find which statement differs
 				var debugInfo = new System.Text.StringBuilder();
@@ -266,7 +269,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 	/// <param name="expectedBody">The expected body of the test case. Use null for no changed body</param>
 	/// <param name="parameters">The values for the parameters of the test case. Use <see cref="Unknown"/> for unknown parameter</param>
 	/// <returns>A key-value pair representing the test case.</returns>
-	/// <exception cref="InvalidOperationException">Thrown when the number of <see cref="_parameters"/> does not match the number of parameters of <see cref="TDelegate"/>.</exception>
+	/// <exception cref="InvalidOperationException">Thrown when the number of <see cref="parameters"/> does not match the number of parameters of <see cref="TDelegate"/>.</exception>
 	protected static KeyValuePair<string?, object?[]> Create(string? expectedBody, params object?[] parameters)
 	{
 		var delegateParamCount = GetDelegateParameterCount();
@@ -289,11 +292,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 	/// <returns>A key-value pair representing the test case.</returns>
 	protected static KeyValuePair<string?, object?[]> Create(string? expectedBody)
 	{
-		var parameters = new object?[GetDelegateParameterCount()];
-		
-		System.Array.Fill(parameters, Unknown);
-
-		return KeyValuePair.Create(expectedBody, parameters);
+		return KeyValuePair.Create(expectedBody, Enumerable.Repeat<object?>(Unknown, GetDelegateParameterCount()).ToArray());
 	}
 
 	/// <summary>
@@ -304,7 +303,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 	/// <param name="parameters">The values for the parameters of the test case. Use <see cref="Unknown"/> for unknown parameters.</param>
 	/// <param name="lambdaSource">Auto-captured source of <paramref name="expectedBody"/> — do not pass explicitly.</param>
 	/// <returns>A key-value pair representing the test case.</returns>
-	/// <exception cref="InvalidOperationException">Thrown when the number of <see cref="_parameters"/> does not match the number of parameters of <see cref="TDelegate"/>.</exception>
+	/// <exception cref="InvalidOperationException">Thrown when the number of <see cref="parameters"/> does not match the number of parameters of <see cref="TDelegate"/>.</exception>
 	protected static KeyValuePair<string?, object?[]> Create(TDelegate expectedBody, object?[] parameters, [CallerArgumentExpression(nameof(expectedBody))] string? lambdaSource = null)
 	{
 		var delegateParamCount = GetDelegateParameterCount();
@@ -349,7 +348,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		return tree.GetRoot()
 			.DescendantNodes()
 			.OfType<LocalFunctionStatementSyntax>()
-			.Select(s => s.Body!)
+			.Select(s => FormattingHelper.Format(s.Body!) as BlockSyntax ?? s.Body!)
 			.First();
 	}
 
@@ -378,7 +377,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 
 		var expectedStr = FormattingHelper.Render(expectedBody) ?? "(null)";
 		var generatedStr = FormattingHelper.Render(newBody) ?? "(null)";
-		
+
 		var additionalStr = additionalMethods.Count > 0
 			? string.Join("\n\n", additionalMethods
 				.OrderBy(o => o.Value)
@@ -394,7 +393,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 
 			Generated body:
 			{generatedStr}
-			
+
 			Debug:
 			{debugInfo}
 			""";
@@ -403,25 +402,139 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		{
 			errorText += $"""
 
-				
+
 				Additional Items:
 				{additionalStr}
 				""";
 		}
-		
+
 		if (exceptionsDuringRewriting.Count > 0)
 		{
 			var exceptionsStr = string.Join("\n\n", exceptionsDuringRewriting.Select(e => e.ToString()));
-			
+
 			errorText += $"""
 
-				
+
 				Exceptions during rewriting:
 				{exceptionsStr}
 				""";
 		}
 
 		return new InvalidOperationException(errorText);
+	}
+
+	private static void Inline(BlockSyntax node, IDictionary<string, VariableItem> parameters, SemanticModel model)
+	{
+		var statements = node.Statements;
+
+		if (statements.Count < 2)
+		{
+			return;
+		}
+
+		// Only consider local declarations that are direct children of this block,
+		// since AnalyzeDataFlow requires a contiguous range of statements in the same block.
+		for (var i = 0; i < statements.Count - 1; i++)
+		{
+			if (statements[i] is not LocalDeclarationStatementSyntax localDecl)
+			{
+				continue;
+			}
+
+			// Analyze data flow in the region *after* this declaration so that the
+			// initial assignment is not counted as a write inside the analysed range.
+			var dataFlow = model.AnalyzeDataFlow(statements[i + 1], statements[statements.Count - 1]);
+
+			foreach (var declarator in localDecl.Declaration.Variables.Where(v => v.Initializer?.Value is not null))
+			{
+				if (model.GetDeclaredSymbol(declarator) is not ILocalSymbol symbol)
+				{
+					continue;
+				}
+
+				if (dataFlow is not { Succeeded: true })
+				{
+					continue;
+				}
+
+				// A variable may be inlined when it is:
+				//   - read exactly once in the region after the declaration
+				//   - never written to after the initial declaration
+				//   - never passed by ref or out
+				// WrittenInside covers both reassignments and ref/out arguments (Roslyn treats ref/out as writes).
+				if (dataFlow.WrittenInside.Contains(symbol, SymbolEqualityComparer.Default))
+				{
+					continue;
+				}
+
+				// Count syntax-level reads in the region after the declaration (AnalyzeDataFlow has no count API).
+				var name = declarator.Identifier.Text;
+				var readCount = statements
+					.Skip(i + 1)
+					.SelectMany(s => s.DescendantNodes().OfType<IdentifierNameSyntax>())
+					.Count(id => id.Identifier.Text == name);
+
+				if (readCount != 1)
+				{
+					continue;
+				}
+
+				// Do not inline if any variable referenced in the initializer expression
+				// is written strictly between the declaration and the read site.
+				// Example: var temp = a; a = b; b = temp; — inlining temp→a would use
+				// the updated value of a instead of the original.
+				// Uses symbol equality (not string names) to avoid false positives from
+				// lambda parameters that happen to share a name with other identifiers.
+
+				// Find which statement contains the single read.
+				var readStatementIndex = -1;
+				for (var j = i + 1; j < statements.Count; j++)
+				{
+					if (statements[j].DescendantNodes().OfType<IdentifierNameSyntax>().Any(id => id.Identifier.Text == name))
+					{
+						readStatementIndex = j;
+						break;
+					}
+				}
+
+				if (readStatementIndex == -1)
+				{
+					continue;
+				}
+
+				// If there are statements between the declaration and the read site,
+				// check whether any symbol used in the initializer is written there.
+				if (readStatementIndex > i + 1)
+				{
+					var intermediateFlow = model.AnalyzeDataFlow(statements[i + 1], statements[readStatementIndex - 1]);
+
+					if (intermediateFlow is { Succeeded: true } && intermediateFlow.WrittenInside.Length > 0)
+					{
+						var writtenSymbols = intermediateFlow.WrittenInside.ToImmutableHashSet(SymbolEqualityComparer.Default);
+
+						var initializerRefsWritten = declarator.Initializer!.Value
+							.DescendantNodesAndSelf()
+							.OfType<IdentifierNameSyntax>()
+							.Select(id => model.GetSymbolInfo(id).Symbol)
+							.Where(s => s is ILocalSymbol or IParameterSymbol)
+							.Any(writtenSymbols.Contains);
+
+						if (initializerRefsWritten)
+						{
+							continue;
+						}
+					}
+				}
+
+				parameters.Add(name, new VariableItem(
+					type: null!, // Type is not needed for inlining, as the value will be directly substituted
+					hasValue: true,
+					value: declarator.Initializer!.Value)
+				{
+					CanBeInlined = true,
+				});
+			}
+		}
 	}
 }
 

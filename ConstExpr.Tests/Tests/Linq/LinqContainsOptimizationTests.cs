@@ -93,7 +93,7 @@ public class LinqContainsOptimizationListTests() : BaseTest<Func<List<int>, int>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return (Contains_vtuwAg(x) ? 6 : 0) + (Contains_OkH2OQ(x) ? 1 : 0);", Unknown),
+		Create("return (Contains_vtuwAg(x) ? 5 : 0) + (x.Exists(v => v == 3) ? 1 : 0) + (Contains_OkH2OQ(x) ? 1 : 0);", Unknown),
 		Create("return 6;", new List<int> { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new List<int>()),
 		Create("return 0;", new List<int> { 1, 2, 4, 5, 6 }), // No 3, all tests fail
@@ -125,11 +125,7 @@ public class LinqContainsOptimizationStringTests() : BaseTest<Func<string[], int
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var c = Array.Exists(x, v => String.Equals(v, "HELLO", StringComparison.CurrentCultureIgnoreCase)) ? 1 : 0;
-			
-			return (Array.IndexOf(x, "hello") >= 0 ? 2 : 0) + (Array.IndexOf(x, "world") >= 0 ? 1 : 0) + c;
-			""", Unknown),
+		Create("return (Array.IndexOf(x, \"hello\") >= 0 ? 1 : 0) + (Array.IndexOf(x, \"world\") >= 0 ? 1 : 0) + (Array.Exists(x, v => String.Equals(v, \"HELLO\", StringComparison.CurrentCultureIgnoreCase)) ? 1 : 0) + (Array.Exists(x, v => v.Length > 3 && v == \"hello\") ? 1 : 0);", Unknown),
 		Create("return 4;", new[] { new[] { "hello", "world", "foo" } }),
 		Create("return 0;", new[] { new string[] {} }),
 		Create("return 1;", new[] { new[] { "hi", "world", "test" } }), // Only b matches ("world")
@@ -161,11 +157,7 @@ public class LinqContainsOptimizationComplexTests() : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var b = Array.IndexOf(x, 5) >= 0 || Array.IndexOf(x, 15) >= 0 ? 1 : 0;
-			
-			return (Array.IndexOf(x, 5) >= 0 ? 2 : 0) + b + (Array.IndexOf(x, 4) >= 0 ? 1 : 0);
-			""", Unknown),
+		Create("return (Array.IndexOf(x, 5) >= 0 ? 2 : 0) + (Array.IndexOf(x, 5) >= 0 || Array.IndexOf(x, 15) >= 0 ? 1 : 0) + (Array.Exists(x, v => Int32.IsEvenInteger(v) && v == 4) ? 1 : 0);", Unknown),
 		Create("return 4;", new[] { 1, 2, 3, 4, 5, 6, 7, 8 }),
 		Create("return 0;", new int[] { }),
 		Create("return 3;", new[] { 5, 10, 15 }), // a=1 (5>0 && 5==5), b=1 (5+10==15), c=0 (no 4), d=1 (5<10 && 5==5)

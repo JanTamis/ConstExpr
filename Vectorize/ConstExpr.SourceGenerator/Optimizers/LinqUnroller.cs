@@ -88,7 +88,7 @@ public static class LinqUnroller
 	/// expressions, ordered from the first (innermost) call to the last (outermost).
 	/// Stops as soon as a call with an unrecognised method name is encountered.
 	/// </summary>
-	public static UnrolledLinqMethod[] ParseLinqChain(SemanticModel model, Func<SyntaxNode?, SyntaxNode?> visit, SyntaxNode node, ConcurrentDictionary<string, ISymbol> symbolStore)
+	public static UnrolledLinqMethod[] ParseLinqChain(SemanticModel model, Func<SyntaxNode?, SyntaxNode?> visit, SyntaxNode node, ConcurrentDictionary<ulong, ISymbol> symbolStore)
 	{
 		var methods = new List<UnrolledLinqMethod>();
 		var current = node as ExpressionSyntax;
@@ -166,7 +166,7 @@ public static class LinqUnroller
 			.FirstOrDefault(m => m.Parameters.Length == parameterCount);
 	}
 
-	public static bool TryUnrollLinqChain(SyntaxNode node, Func<SyntaxNode?, SyntaxNode?> visit, SemanticModel model, IDictionary<SyntaxNode, bool> additionalMethods, ConcurrentDictionary<string, ISymbol> symbolStore, [NotNullWhen(true)] out SyntaxNode? result)
+	public static bool TryUnrollLinqChain(SyntaxNode node, Func<SyntaxNode?, SyntaxNode?> visit, SemanticModel model, IDictionary<SyntaxNode, bool> additionalMethods, ConcurrentDictionary<ulong, ISymbol> symbolStore, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		var chain = ParseLinqChain(model, visit, node, symbolStore);
 

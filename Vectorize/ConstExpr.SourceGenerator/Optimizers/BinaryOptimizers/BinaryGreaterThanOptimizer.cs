@@ -12,5 +12,7 @@ public class BinaryGreaterThanOptimizer : BaseBinaryOptimizer
 	public override IEnumerable<IBinaryStrategy> GetStrategies()
 	{
 		yield return new GreaterThanReflexiveStrategy();
+		yield return new GreaterThanCountZeroStrategy();
+		yield return new GreaterThanReverseStrategy();
 	}
 }

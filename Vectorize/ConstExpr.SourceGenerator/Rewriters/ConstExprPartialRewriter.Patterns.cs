@@ -152,16 +152,6 @@ public partial class ConstExprPartialRewriter
 			newSections.Add(section.WithStatements(List(newStatements)));
 		}
 
-		var writtenVariables = AssignmentWalker.GetAssignedVariables(node, semanticModel);
-
-		foreach (var writtenVariable in writtenVariables)
-		{
-			if (variables.TryGetValue(writtenVariable, out var variable))
-			{
-				variable.CanBeInlined = false;
-			}
-		}
-
 		return node
 			.WithExpression(exprSyntax)
 			.WithSections(List(newSections));
@@ -489,6 +479,12 @@ public partial class ConstExprPartialRewriter
 			}
 		}
 
+		// Handle AND pattern with one relational and one constant: `x is > 2 and 3` → `x == 3` (or `false`)
+		if (TryOptimizeRelationalAndConstantPattern(node.WithExpression(expression as ExpressionSyntax ?? node.Expression), expression as ExpressionSyntax ?? node.Expression, out var relConstResult))
+		{
+			return relConstResult;
+		}
+
 		// Try to optimize range check patterns: `v is > low and < high` -> `(uint)(v - (low + 1)) < (high - low - 1)`
 		if (TryOptimizeRangeCheckPattern(node, expression as ExpressionSyntax ?? node.Expression, out var rangeOptimized))
 		{
@@ -570,6 +566,79 @@ public partial class ConstExprPartialRewriter
 		return node
 			.WithGoverningExpression(governing as ExpressionSyntax ?? node.GoverningExpression)
 			.WithArms(SeparatedList(visitedArms));
+	}
+
+	/// <summary>
+	/// Tries to optimize AND patterns with one relational and one constant side,
+	/// e.g. <c>x is &gt; 2 and 3</c> → <c>x == 3</c> when 3 satisfies the relational,
+	/// or <c>false</c> when it does not.
+	/// </summary>
+	private bool TryOptimizeRelationalAndConstantPattern(IsPatternExpressionSyntax node, ExpressionSyntax expression, out ExpressionSyntax? result)
+	{
+		result = null;
+
+		if (node.Pattern is not BinaryPatternSyntax { OperatorToken.RawKind: (int) SyntaxKind.AndKeyword } andPattern)
+		{
+			return false;
+		}
+
+		RelationalPatternSyntax? relPat = null;
+		ConstantPatternSyntax? constPat = null;
+
+		if (andPattern.Left is RelationalPatternSyntax leftRel && andPattern.Right is ConstantPatternSyntax rightConst)
+		{
+			relPat = leftRel;
+			constPat = rightConst;
+		}
+		else if (andPattern.Left is ConstantPatternSyntax leftConst && andPattern.Right is RelationalPatternSyntax rightRel)
+		{
+			constPat = leftConst;
+			relPat = rightRel;
+		}
+
+		if (relPat is null || constPat is null)
+		{
+			return false;
+		}
+
+		var visitedConst = Visit(constPat.Expression);
+
+		if (!TryGetLiteralValue(visitedConst, out var constValue) || constValue is null)
+		{
+			return false;
+		}
+
+		var visitedRelExpr = Visit(relPat.Expression);
+
+		if (!TryGetLiteralValue(visitedRelExpr, out var relValue) || relValue is null)
+		{
+			return false;
+		}
+
+		var relSatisfied = relPat.OperatorToken.Kind() switch
+		{
+			SyntaxKind.GreaterThanToken => ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.GreaterThan, constValue, relValue),
+			SyntaxKind.GreaterThanEqualsToken => ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.GreaterThanOrEqual, constValue, relValue),
+			SyntaxKind.LessThanToken => ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.LessThan, constValue, relValue),
+			SyntaxKind.LessThanEqualsToken => ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.LessThanOrEqual, constValue, relValue),
+			_ => (object?) null,
+		};
+
+		if (relSatisfied is null)
+		{
+			return false;
+		}
+
+		if (relSatisfied is false)
+		{
+			result = CreateLiteral(false);
+			return true;
+		}
+
+		// The relational is always satisfied for this constant; reduce to `x == constant`
+		var constExpr = visitedConst as ExpressionSyntax ?? constPat.Expression;
+		result = VisitBinaryExpression(EqualsExpression(expression, constExpr)) as ExpressionSyntax;
+		return result is not null;
 	}
 
 	/// <summary>

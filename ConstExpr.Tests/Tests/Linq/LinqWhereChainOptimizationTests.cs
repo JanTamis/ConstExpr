@@ -33,14 +33,6 @@ public class LinqWhereChainOptimizationTests() : BaseTest<Func<int[], IEnumerabl
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = x.Where(v => (uint)(v - 3) <= 6U);
-			var b = x.Where(v => (uint)(v - 2) <= 5U && (v & 1) == 0);
-			var c = x.Where(v => (uint)(v - 1) <= 98U && v % 3 == 0 && v < 50);
-			var d = x.Where(p => (uint)(p - 6) <= 8U);
-			var e = x.Where(v => (uint)(v - 4) <= 2U);
-
-			return a.Concat(b).Concat(c).Concat(d).Concat(e).Concat((Enumerable.Empty<int>()));
-			"""),
+		Create("return x.Where(v => (uint)(v - 3) <= 6U).Concat(x.Where(v => (uint)(v - 2) <= 5U && Int32.IsEvenInteger(v))).Concat(x.Where(v => (uint)(v - 1) <= 98U && v % 3 == 0 && v < 50)).Concat(x.Where(p => (uint)(p - 6) <= 8U)).Concat(x.Where(v => (uint)(v - 4) <= 2U)).Concat((Enumerable.Empty<int>()));"),
 	];
 }

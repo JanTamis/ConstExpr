@@ -46,11 +46,7 @@ public class LinqWhereToListOptimizationTests : BaseTest<Func<List<int>, int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = x.FindAll(v => v > 2).Count;
-
-			return a;
-			"""),
+		Create("return x.FindAll(v => v > 2).Count;"),
 		Create("return 3;", new List<int> { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new List<int>()),
 	];
@@ -72,11 +68,7 @@ public class LinqSelectWhereToListOptimizationTests : BaseTest<Func<List<int>, i
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = x.FindAll(v => v << 1 > 4).Count;
-
-			return a;
-			"""),
+		Create("return x.FindAll(v => v << 1 > 4).Count;"),
 		Create("return 3;", new List<int> { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new List<int>()),
 	];

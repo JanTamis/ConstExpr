@@ -116,7 +116,7 @@ public static class ParenthesizedExpressionSyntaxExtensions
 		}
 
 		// ((x, y)) -> (x, y)
-		if (expression.IsKind(SyntaxKind.TupleExpression))
+		if (expression.IsKind(SyntaxKind.TupleExpression) || parent.IsKind(SyntaxKind.TupleExpression))
 		{
 			return true;
 		}
@@ -248,7 +248,10 @@ public static class ParenthesizedExpressionSyntaxExtensions
 			return true;
 		}
 
-		
+		if (expression.IsKind(SyntaxKind.ParenthesizedLambdaExpression) || expression.IsKind(SyntaxKind.SimpleLambdaExpression))
+		{
+			return true;
+		}
 
 		// Cases:
 		//   new {(x)} -> {x}

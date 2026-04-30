@@ -42,12 +42,7 @@ public class LinqFilterFirstOptimizationTests : BaseTest<Func<int[], IEnumerable
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = x.Where(v => v > 4).OrderBy(v => v * 2);
-			var b = x.Where(v => v > 4).OrderByDescending(v => v * 2);
-			
-			return a.Concat(b);
-			"""),
+		Create("return x.Where(v => v > 4).OrderBy(v => v * 2).Concat((x.Where(v => v > 4).OrderByDescending(v => v * 2)));"),
 	];
 }
 

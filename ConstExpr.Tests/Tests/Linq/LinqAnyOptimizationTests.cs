@@ -59,12 +59,7 @@ public class LinqAnyOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFla
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = Array.Exists(x, v => v > 3) || x.Length > 0 ? 1 : 0;
-			var o = Array.Exists(x, v => v > 3) ? 1 : 0;
-			
-			return (x.Length > 0 ? 9 : 0) + a + (Array.IndexOf(x, 100) >= 0 ? 1 : 0) + (Array.IndexOf(x, 2) >= 0 ? 1 : 0) + o + 3;
-			"""),
+		Create("return (x.Length > 0 ? 9 : 0) + (Array.Exists(x, v => v > 3) || x.Length > 0 ? 1 : 0) + (Array.IndexOf(x, 100) >= 0 ? 1 : 0) + (Array.IndexOf(x, 2) >= 0 ? 1 : 0) + (Array.Exists(x, v => v > 3) ? 1 : 0) + 3;"),
 		Create("return 15;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 3;", new int[] { }),
 	];
@@ -101,12 +96,7 @@ public class LinqAnyOptimizationListTests() : BaseTest<Func<List<int>, int>>(Fas
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = x.Exists(v => v > 3) ? 1 : 0;
-			var d = x.Exists(v => v > 100) ? 1 : 0;
-			
-			return (x.Count > 0 ? 3 : 0) + a + d + (Contains_zFeL6A(x) ? 1 : 0);
-			""", Unknown),
+		Create("return (x.Count > 0 ? 3 : 0) + (x.Exists(v => v > 3) ? 1 : 0) + (x.Exists(v => v > 100) ? 1 : 0) + (Contains_zFeL6A(x) ? 1 : 0);", Unknown),
 		Create("return 5;", new List<int> { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new List<int>()),
 	];

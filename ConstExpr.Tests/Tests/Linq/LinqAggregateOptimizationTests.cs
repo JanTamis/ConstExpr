@@ -13,37 +13,37 @@ public class LinqAggregateOptimizationTests() : BaseTest<Func<int[], int>>(FastM
 	{
 		// AsEnumerable().Aggregate(...) => Aggregate(...)
 		var a = x.AsEnumerable().Aggregate((acc, v) => acc + v);
-		
+
 		// ToList().Aggregate(...) => Aggregate(...)
 		var b = x.ToList().Aggregate((acc, v) => acc + v);
-		
+
 		// ToArray().Aggregate(...) => Aggregate(...)
 		var c = x.ToArray().Aggregate((acc, v) => acc + v);
-		
+
 		// Multiple chained: ToList().AsEnumerable().Aggregate(...) => Aggregate(...)
 		var d = x.ToList().AsEnumerable().Aggregate((acc, v) => acc + v);
-		
+
 		// With seed: ToArray().Aggregate(seed, func) => Aggregate(seed, func)
 		var e = x.ToArray().Aggregate(0, (acc, v) => acc + v);
-		
+
 		// With seed and result selector: AsEnumerable().Aggregate(seed, func, selector) => Aggregate(seed, func, selector)
 		var f = x.AsEnumerable().Aggregate(0, (acc, v) => acc + v, acc => acc * 2);
-		
+
 		// Aggregate to Sum: Aggregate((acc, v) => acc + v) => Sum()
 		var g1 = x.Aggregate((acc, v) => acc + v);
-		
+
 		// Aggregate to Sum: Aggregate((acc, v) => v + acc) => Sum() (reverse order)
 		var g2 = x.Aggregate((acc, v) => v + acc);
-		
+
 		// Aggregate to Sum with seed 0: Aggregate(0, (acc, v) => acc + v) => Sum()
 		var h = x.Aggregate(0, (acc, v) => acc + v);
-		
+
 		// OrderBy should NOT be optimized (changes the order of aggregation!)
 		var i = x.OrderBy(v => v).Aggregate((acc, v) => acc + v);
-		
+
 		// Select should NOT be optimized (changes the elements being aggregated!)
 		var j = x.Select(v => v * 2).Aggregate((acc, v) => acc + v);
-		
+
 		// Where should NOT be optimized (filters elements!)
 		var k = x.Where(v => v > 2).Aggregate((acc, v) => acc + v);
 

@@ -17,5 +17,6 @@ public class BinaryExclusiveOrOptimizer : BaseBinaryOptimizer
 		yield return new ExclusiveOrBooleanTrueStrategy();
 		yield return new ExclusiveOrAssociativeCancellationStrategy();
 		yield return new ExclusiveOrCombineMasksStrategy();
+		yield return new ExclusiveOrReverseStrategy();
 	}
 }

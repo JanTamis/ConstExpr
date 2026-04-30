@@ -46,9 +46,13 @@ public class ConcatFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionO
 				}
 				default:
 				{
-					// Non-literal: flush buffer and add parameter as-is
-					FlushBuffer();
-					newParams.Add(p);
+					if (!p.IsKind(SyntaxKind.NullLiteralExpression))
+					{
+						// Non-literal: flush buffer and add parameter as-is
+						FlushBuffer();
+						newParams.Add(p);
+					}
+					
 					break;
 				}
 			}

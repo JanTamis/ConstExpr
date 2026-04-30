@@ -1350,7 +1350,7 @@ public static class CompilationExtensions
 		return false;
 	}
 
-	public static bool TryGetSymbol<TSymbol>(this SemanticModel semanticModel, ExpressionSyntax? node, ConcurrentDictionary<string, ISymbol> symbolStore, [NotNullWhen(true)] out TSymbol? value) where TSymbol : ISymbol
+	public static bool TryGetSymbol<TSymbol>(this SemanticModel semanticModel, ExpressionSyntax? node, ConcurrentDictionary<ulong, ISymbol> symbolStore, [NotNullWhen(true)] out TSymbol? value) where TSymbol : ISymbol
 	{
 		try
 		{
@@ -1400,7 +1400,7 @@ public static class CompilationExtensions
 		return false;
 	}
 
-	public static bool TryGetTypeSymbol(this SemanticModel semanticModel, ExpressionSyntax? node, ConcurrentDictionary<string, ISymbol> symbolStore, [NotNullWhen(true)] out ITypeSymbol? typeSymbol)
+	public static bool TryGetTypeSymbol(this SemanticModel semanticModel, ExpressionSyntax? node, ConcurrentDictionary<ulong, ISymbol> symbolStore, [NotNullWhen(true)] out ITypeSymbol? typeSymbol)
 	{
 		try
 		{

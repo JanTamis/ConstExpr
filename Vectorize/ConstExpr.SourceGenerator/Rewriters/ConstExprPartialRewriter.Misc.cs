@@ -256,7 +256,7 @@ public partial class ConstExprPartialRewriter
 							
 							result.Add(t);
 
-							if (st is ReturnStatementSyntax or BreakStatementSyntax)
+							if (st is ReturnStatementSyntax or BreakStatementSyntax or ThrowStatementSyntax)
 							{
 								shouldStop = true;
 								break;
@@ -274,7 +274,7 @@ public partial class ConstExprPartialRewriter
 
 					result.Add(t);
 
-					if (visited is ReturnStatementSyntax or BreakStatementSyntax)
+					if (visited is ReturnStatementSyntax or BreakStatementSyntax or ThrowStatementSyntax)
 					{
 						shouldStop = true;
 					}

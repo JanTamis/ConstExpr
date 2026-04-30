@@ -68,7 +68,7 @@ public partial class ConstExprPartialRewriter
 			return VisitIsTypeExpression(node);
 		}
 
-		if (UsePatternMatchingRefactoring.TryConvertOrEqualityChainToOrPattern(node, semanticModel, syntax => Visit(syntax) as ExpressionSyntax, out var orPattern)
+		if (UsePatternMatchingRefactoring.TryConvertOrEqualityChainToOrPattern(node, semanticModel, syntax => Visit(syntax) as ExpressionSyntax ?? syntax, out var orPattern)
 		    && !TryGetLiteralValue(orPattern.Expression, out _))
 		{
 			return VisitIsPatternExpression(orPattern);
@@ -76,6 +76,16 @@ public partial class ConstExprPartialRewriter
 
 		var left = Visit(node.Left);
 		var right = Visit(node.Right);
+
+		if (left is ThrowExpressionSyntax)
+		{
+			return left;
+		}
+
+		if (right is ThrowExpressionSyntax)
+		{
+			return right;
+		}
 
 		var hasLeftValue = TryGetLiteralValue(node.Left, out var leftValue) || TryGetLiteralValue(left, out leftValue);
 		var hasRightValue = TryGetLiteralValue(node.Right, out var rightValue) || TryGetLiteralValue(right, out rightValue);
@@ -145,7 +155,7 @@ public partial class ConstExprPartialRewriter
 		    && right is ExpressionSyntax nodeRightExpr)
 		{
 			var expressions = GetBinaryExpressions(node).ToList();
-
+			
 			if (TryOptimizeNode(node.OperatorToken.Kind().ToBinaryOperatorKind(), expressions, operation?.Type, nodeLeftExpr, operation?.LeftOperand.Type, nodeRightExpr, operation?.RightOperand.Type, node.Parent, out var optimizedNode))
 			{
 				if (node.Parent is not BinaryExpressionSyntax

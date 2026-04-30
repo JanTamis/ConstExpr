@@ -60,47 +60,8 @@ public class LinqToLookupOptimizationTests() : BaseTest<Func<int[], int>>(FastMa
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var j = x.ToLookup(v => v).Count;
-			var k = x.ToLookup(v => v).Count;
-			
-			return ToLookup_MVa_MQ(x).Count * 7 + ToLookup_sloNHA(x).Count * 2 + j + k + ToLookup_i0qdOA(x).Count + ToLookup_VYmdsA(x).Count + ToLookup_BusWaA(x).Count;
-			"""),
-		Create("""
-			var a = new Lookup_tdV2Ug().Count;
-			var b = new Lookup_tdV2Ug().Count;
-			var c = new Lookup_tdV2Ug().Count;
-			var d = new Lookup_tdV2Ug().Count;
-			var e = new Lookup_Z4CZww().Count;
-			var f = new Lookup_Z4CZww().Count;
-			var g = new Lookup_tdV2Ug().Count;
-			var h = new Lookup_tdV2Ug().Count;
-			var i = new Lookup_tdV2Ug().Count;
-			var j = new Lookup_tdV2Ug().Count;
-			var k = new Lookup_tdV2Ug().Count;
-			var l = new Lookup_r3gMMA().Count;
-			var m = new Lookup_tdV2Ug().Count;
-			var n = new Lookup_tdV2Ug().Count;
-			
-			return a + b + c + d + e + f + g + h + i + j + k + l + m + n;
-			""", new[] { 1, 2, 3 }),
-		Create("""
-			var a = new Lookup_Pu_yfg().Count;
-			var b = new Lookup_Pu_yfg().Count;
-			var c = new Lookup_Pu_yfg().Count;
-			var d = new Lookup_Pu_yfg().Count;
-			var e = new Lookup_Pu_yfg().Count;
-			var f = new Lookup_Pu_yfg().Count;
-			var g = new Lookup_Pu_yfg().Count;
-			var h = new Lookup_Pu_yfg().Count;
-			var i = new Lookup_Pu_yfg().Count;
-			var j = new Lookup_Pu_yfg().Count;
-			var k = new Lookup_Pu_yfg().Count;
-			var l = new Lookup_Pu_yfg().Count;
-			var m = new Lookup_Pu_yfg().Count;
-			var n = new Lookup_Pu_yfg().Count;
-
-			return a + b + c + d + e + f + g + h + i + j + k + l + m + n;
-			""", new int[] { }),
+		Create("return ToLookup_MVa_MQ(x).Count * 7 + ToLookup_sloNHA(x).Count * 2 + x.ToLookup(v => v).Count * 2 + ToLookup_i0qdOA(x).Count + ToLookup_VYmdsA(x).Count + ToLookup_BusWaA(x).Count;"),
+		Create("return new Lookup_tdV2Ug().Count * 11 + new Lookup_Z4CZww().Count * 2 + new Lookup_r3gMMA().Count;", new[] { 1, 2, 3 }),
+		Create("return new Lookup_Pu_yfg().Count * 14;", new int[] { }),
 	];
 }

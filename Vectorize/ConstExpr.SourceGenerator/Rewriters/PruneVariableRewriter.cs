@@ -16,7 +16,7 @@ public sealed class PruneVariableRewriter(
 	SemanticModel semanticModel, 
 	MetadataLoader loader, 
 	IDictionary<string, VariableItem> variables,
-	ConcurrentDictionary<string, ISymbol> symbolStore,
+	ConcurrentDictionary<ulong, ISymbol> symbolStore,
 	RoslynApiCache? apiCache = null, 
 	CancellationToken cancellationToken = default)
 	: BaseRewriter(semanticModel, loader, variables, symbolStore)

@@ -39,7 +39,7 @@ public partial class ConstExprPartialRewriter(
 	IDictionary<SyntaxNode, bool> additionalMethods,
 	ISet<string> usings,
 	ConstExprAttribute attribute,
-	ConcurrentDictionary<string, ISymbol> symbolStore,
+	ConcurrentDictionary<ulong, ISymbol> symbolStore,
 	CancellationToken token,
 	HashSet<IMethodSymbol>? visitingMethods = null)
 	: BaseRewriter(semanticModel, loader, variables, symbolStore)
@@ -124,6 +124,24 @@ public partial class ConstExprPartialRewriter(
 			return node;
 		}
 
+		if (variable is { CanBeInlined: true, Value: ExpressionSyntax expr })
+		{
+			var result = ParenthesizedExpression(expr);
+			var parent = node.Parent;
+
+			if (parent is ArgumentSyntax argument)
+			{
+				parent = argument.Parent;
+			}
+
+			if (result.CanRemoveParentheses(parent, semanticModel, CancellationToken.None))
+			{
+				return result.Expression;
+			}
+
+			return result;
+		}
+
 		// If variable has a known constant value and hasn't been altered, inline it
 		if (variable.HasValue && !variable.IsAltered)
 		{
@@ -133,10 +151,12 @@ public partial class ConstExprPartialRewriter(
 				return literal;
 			}
 
-			// If the value is another identifier pointing to an altered variable, keep original
+			// If the value is another identifier, keep original when:
+			// - the referenced variable was altered (would produce stale value), or
+			// - the referenced variable has no concrete value (propagating an unknown alias adds no information)
 			if (variable.Value is IdentifierNameSyntax nestedId
 			    && variables.TryGetValue(nestedId.Identifier.Text, out var nestedVar)
-			    && nestedVar.IsAltered)
+			    && (nestedVar.IsAltered || !nestedVar.HasValue))
 			{
 				return node;
 			}
@@ -145,24 +165,30 @@ public partial class ConstExprPartialRewriter(
 			return variable.Value as SyntaxNode ?? node;
 		}
 
-		if (variable is { Value: ExpressionSyntax expr, IsAltered: false, CanBeInlined: true } && CanBeInlined(expr))
+
+		if (variable is { Value: SyntaxNode syntax, HasValue: true })
 		{
-			var result = ParenthesizedExpression(expr);
-			var parent = node.Parent;
-
-			if (parent is ArgumentSyntax)
-			{
-				parent = parent.Parent;
-			}
-
-			if (result.CanRemoveParentheses(parent, semanticModel, CancellationToken.None))
-			{
-				return Visit(result.Expression.WithTypeSymbolAnnotation(variable.Type, symbolStore));
-			}
-
-			return Visit(result).WithTypeSymbolAnnotation(variable.Type, symbolStore);
+			return syntax;
 		}
-		
+
+		// if (variable is { Value: ExpressionSyntax expr, IsAltered: false, CanBeInlined: true } && CanBeInlined(expr))
+		// {
+		// 	var result = ParenthesizedExpression(expr);
+		// 	var parent = node.Parent;
+		//
+		// 	if (parent is ArgumentSyntax)
+		// 	{
+		// 		parent = parent.Parent;
+		// 	}
+		//
+		// 	if (result.CanRemoveParentheses(parent, semanticModel, CancellationToken.None))
+		// 	{
+		// 		return Visit(result.Expression.WithTypeSymbolAnnotation(variable.Type, symbolStore));
+		// 	}
+		//
+		// 	return Visit(result).WithTypeSymbolAnnotation(variable.Type, symbolStore);
+		// }
+
 		return node.WithTypeSymbolAnnotation(variable.Type, symbolStore);
 	}
 

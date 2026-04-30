@@ -15,6 +15,6 @@ public class VariableItem(ITypeSymbol type, bool hasValue, object? value, bool i
 	public bool IsAccessed { get; set; }
 
 	public bool IsAltered { get; set; }
-
-	public bool CanBeInlined { get; set; } = true;
+	
+	public bool CanBeInlined { get; set; }
 }

@@ -15,7 +15,7 @@ public class VisitArgumentTests : BaseTest<Func<string, string, string, string>>
 		Create("return String.Concat(\"a\", b, \"c\");", "a", Unknown, "c"),
 		Create("return String.Concat(a, \"b\", c);", Unknown, "b", Unknown),
 		Create("return string.Concat(a, \"ab\");", Unknown, "a", "b"),
-		Create("return string.Concat(a, null, \"c\");", Unknown, null, "c"),
+		Create("return string.Concat(a, \"c\");", Unknown, null, "c"),
 		Create("return \"\";", "", "", "")
 	];
 }

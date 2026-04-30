@@ -114,8 +114,15 @@ public partial class ConstExprPartialRewriter
 				return unrolledNode;
 			}
 		}
+		
+		var expression = Visit(node.Expression) as ExpressionSyntax ?? node.Expression;
 
-		node = node.WithExpression(Visit(node.Expression) as ExpressionSyntax ?? node.Expression);
+		if (expression is LambdaExpressionSyntax lambdaExpression)
+		{
+			return Visit(TryEvaluateLambdaVariableWithArguments(lambdaExpression, arguments, targetMethod));
+		}
+
+		node = node.WithExpression(expression);
 
 		// Handle char overload conversion
 		if (ConvertToCharOverloadIfNeeded(targetMethod, arguments, out var newArguments, out var charMethod))
@@ -204,6 +211,20 @@ public partial class ConstExprPartialRewriter
 	{
 		try
 		{
+			// Check if the invocation target is a local lambda variable (e.g. var func = (int x) => x + 1; func(6))
+			if (node.Expression is IdentifierNameSyntax { Identifier.Text: var lambdaVarName }
+			    && variables.TryGetValue(lambdaVarName, out var lambdaVar)
+			    && lambdaVar is { CanBeInlined: true, HasValue: true, Value: LambdaExpressionSyntax lambdaSyntax })
+			{
+				var lambdaResult = TryEvaluateLambdaVariableWithArguments(lambdaSyntax, constantArguments, targetMethod);
+
+				if (lambdaResult is not null)
+				{
+					lambdaVar.IsAccessed = false;
+					return lambdaResult.WithTypeSymbolAnnotation(targetMethod.ReturnType, symbolStore);
+				}
+			}
+
 			if (node.Expression is MemberAccessExpressionSyntax { Expression: var instanceName }
 			    && !targetMethod.ContainingType.EqualsType(semanticModel.Compilation.GetTypeByMetadataName("System.Random")))
 			{
@@ -861,12 +882,13 @@ public partial class ConstExprPartialRewriter
 		semanticModel.TryGetTypeSymbol(node, symbolStore, out var typeSymbol);
 
 		var expression = Visit(node.Expression);
-		var hasLiteral = TryGetLiteralValue(node.Expression, out var instanceValue);
 
-		if (!hasLiteral)
+		if (expression is ThrowExpressionSyntax)
 		{
-			hasLiteral = TryGetLiteralValue(expression, out instanceValue);
+			return expression;
 		}
+		
+		var hasLiteral = TryGetLiteralValue(node.Expression, out var instanceValue) || TryGetLiteralValue(expression, out instanceValue);
 
 		if (semanticModel.TryGetSymbol(node, symbolStore, out ISymbol? symbol))
 		{

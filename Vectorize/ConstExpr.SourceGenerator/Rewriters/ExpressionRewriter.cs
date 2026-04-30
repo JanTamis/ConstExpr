@@ -22,7 +22,7 @@ public class ExpressionRewriter(
 	IDictionary<string, VariableItem> variables, 
 	IDictionary<string, ParameterExpression> parameters, 
 	CancellationToken token,
-	ConcurrentDictionary<string, ISymbol> symbolStore,
+	ConcurrentDictionary<ulong, ISymbol> symbolStore,
 	IDictionary<SyntaxNode, bool>? additionalMethods = null,
 	ISet<string>? usings = null,
 	ConstExprAttribute? attribute = null,

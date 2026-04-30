@@ -29,14 +29,14 @@ public class ModuloTest() : BaseTest<Func<int, int, int>>(FastMathFlags.FastMath
 			{
 				return 0;
 			}
-
+			
 			var result = dividend % divisor;
-
-			if (dividend % divisor < 0)
+			
+			if (result < 0)
 			{
 				result += divisor;
 			}
-
+			
 			return result;
 			"""),
 		Create("return 3;", 13, 10),

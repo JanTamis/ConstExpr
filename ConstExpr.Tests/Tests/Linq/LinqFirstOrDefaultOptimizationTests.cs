@@ -50,15 +50,7 @@ public class LinqFirstOrDefaultOptimizationTests() : BaseTest<Func<int[], int>>(
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var a = Array.Find(x, v => v > 3);
-			var e = Array.Find(x, v => v > 2);
-			var f = Array.Find(x, v => v < 5);
-			var g = Array.Find(x, v => v == 3);
-			var l = Array.Find(x, v => v > 0) << 1;
-			
-			return (x.Length > 0 ? x[0] * 5 : 0) + a + e + f + g + Min_zgmZ3g(x) + (x.Length > 0 ? x[^1] : 0) + l;
-			"""),
+		Create("return Array.Find(x, v => v > 0) * 2 + (x.Length > 0 ? x[0] * 5 : 0) + Array.Find(x, v => v > 3) + Array.Find(x, v => v > 2) + Array.Find(x, v => v < 5) + Array.Find(x, v => v == 3) + Min_zgmZ3g(x) + (x.Length > 0 ? x[^1] : 0);"),
 		Create("return 24;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new int[] { }),
 	];

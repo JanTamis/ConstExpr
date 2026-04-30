@@ -153,11 +153,7 @@ public class LinqElementAtOrDefaultNoOptimizationTests() : BaseTest<Func<int[], 
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var d = Array.Find(x, v => v > 2);
-			
-			return (x.Length > 0 ? x[0] * 3 : 0) + Min_zgmZ3g(x) + Max_uzcZ3A(x) + (x.Length > 0 ? x[^1] : 0) + d;
-			"""),
+		Create("return (x.Length > 0 ? x[0] * 3 : 0) + Min_zgmZ3g(x) + Max_uzcZ3A(x) + (x.Length > 0 ? x[^1] : 0) + Array.Find(x, v => v > 2);"),
 		Create("return 17;", new[] { 1, 2, 3, 4, 5 }), // 1 + 5 + 5 + 3 + 2 + 1 = 17
 		Create("return 0;", new int[] { }),
 	];

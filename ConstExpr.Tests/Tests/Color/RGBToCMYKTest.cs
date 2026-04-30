@@ -22,12 +22,12 @@ public class RGBToCMYKTest() : BaseTest<Func<byte, byte, byte, (double, double, 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var k = 1D - Double.MaxNative(Double.MaxNative(r * 0.00392156862745098, g * 0.00392156862745098), b * 0.00392156862745098);
-			var c = (Double.MultiplyAddEstimate(-r, 0.00392156862745098, 1D) - k) / (1D - k);
-			var m = (Double.MultiplyAddEstimate(-g, 0.00392156862745098, 1D) - k) / (1D - k);
-			var y = (Double.MultiplyAddEstimate(-b, 0.00392156862745098, 1D) - k) / (1D - k);
+			var dr = r * 0.00392156862745098;
+			var dg = g * 0.00392156862745098;
+			var db = b * 0.00392156862745098;
+			var k = 1D - Double.MaxNative(Double.MaxNative(dr, dg), db);
 			
-			return (c, m, y, k);
+			return ((1D - dr - k) / (1D - k), (1D - dg - k) / (1D - k), (1D - db - k) / (1D - k), k);
 			"""),
 	];
 }

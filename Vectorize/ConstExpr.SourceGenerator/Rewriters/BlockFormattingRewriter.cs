@@ -178,6 +178,15 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			return visitedNode;
 		}
 
+		// Ensure the if body is always a BlockSyntax
+		visited = visited.WithStatement(EnsureBlock(visited.Statement));
+
+		// Ensure the else body is always a BlockSyntax (but leave else-if chains as-is)
+		if (visited.Else is { Statement: not IfStatementSyntax } elseClause)
+		{
+			visited = visited.WithElse(elseClause.WithStatement(EnsureBlock(elseClause.Statement)));
+		}
+
 		// Check if the if body is empty
 		var ifBodyIsEmpty = IsStatementEmpty(visited.Statement);
 
@@ -217,6 +226,16 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		}
 
 		return visited;
+	}
+
+	private static BlockSyntax EnsureBlock(StatementSyntax statement)
+	{
+		if (statement is BlockSyntax block)
+		{
+			return block;
+		}
+
+		return Block(SingletonList(statement));
 	}
 
 	public override SyntaxNode? VisitLocalFunctionStatement(LocalFunctionStatementSyntax node)
