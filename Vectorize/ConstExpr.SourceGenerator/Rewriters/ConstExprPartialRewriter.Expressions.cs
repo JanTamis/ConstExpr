@@ -199,22 +199,6 @@ public partial class ConstExprPartialRewriter
 					return CreateLiteral(false);
 				}
 			}
-
-			if (node.Kind() is not (SyntaxKind.SubtractExpression or SyntaxKind.DivideExpression or SyntaxKind.LeftShiftExpression or SyntaxKind.RightShiftExpression))
-			{
-				var leftExpression = left as ExpressionSyntax ?? node.Left;
-				var rightExpression = right as ExpressionSyntax ?? node.Right;
-
-				// invert syntax
-				return node.Kind() switch
-				{
-					SyntaxKind.GreaterThanExpression => LessThanExpression(rightExpression, leftExpression),
-					SyntaxKind.GreaterThanOrEqualExpression => LessThanOrEqualExpression(rightExpression, leftExpression),
-					SyntaxKind.LessThanExpression => GreaterThanExpression(rightExpression, leftExpression),
-					SyntaxKind.LessThanOrEqualExpression => GreaterThanOrEqualExpression(rightExpression, leftExpression),
-					_ => node.WithLeft(rightExpression).WithRight(leftExpression)
-				};
-			}
 		}
 
 		if (hasRightValue)

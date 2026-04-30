@@ -76,11 +76,11 @@ public class RGBToHSVTest() : BaseTest<Func<byte, byte, byte, (double, double, d
 				}
 				else if (g == v)
 				{
-					h = 2D + (b - r) / delta;
+					h = (b - r) / delta + 2D;
 				}
 				else if (b == v)
 				{
-					h = 4D + (r - g) / delta;
+					h = (r - g) / delta + 4D;
 				}
 			
 				h *= 60D;

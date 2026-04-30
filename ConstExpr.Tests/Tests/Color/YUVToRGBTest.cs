@@ -16,6 +16,6 @@ public class YUVToRGBTest() : BaseTest<Func<double, double, double, (byte, byte,
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return ((byte)Double.MultiplyAddEstimate(1.4075, v - 128D, y), (byte)Double.MultiplyAddEstimate(-0.7169, v - 128D, Double.MultiplyAddEstimate(-0.3455, u - 128D, y)), (byte)Double.MultiplyAddEstimate(1.779, u - 128D, y));"),
+		Create("return ((byte)Double.MultiplyAddEstimate(v - 128D, 1.4075, y), (byte)Double.MultiplyAddEstimate(-(v - 128D), 0.7169, Double.MultiplyAddEstimate(-(u - 128D), 0.3455, y)), (byte)Double.MultiplyAddEstimate(u - 128D, 1.779, y));"),
 	];
 }

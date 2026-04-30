@@ -1,9 +1,9 @@
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ExclusiveOrStrategies;
+namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.MultiplyStrategies;
 
-public class ExclusiveOrReverseStrategy : BaseBinaryStrategy<LiteralExpressionSyntax, ExpressionSyntax>
+public class MultiplyReverseStrategy : BaseBinaryStrategy<LiteralExpressionSyntax, ExpressionSyntax>
 {
 	public override bool TryOptimize(BinaryOptimizeContext<LiteralExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
@@ -13,7 +13,7 @@ public class ExclusiveOrReverseStrategy : BaseBinaryStrategy<LiteralExpressionSy
 			return false;
 		}
 
-		optimized = ExclusiveOrExpression(context.Right.Syntax, context.Left.Syntax);
+		optimized = MultiplyExpression(context.Right.Syntax, context.Left.Syntax);
 		return true;
 	}
 }

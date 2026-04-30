@@ -7,6 +7,12 @@ public class GreaterThanOrEqualReverseStrategy : BaseBinaryStrategy<LiteralExpre
 {
 	public override bool TryOptimize(BinaryOptimizeContext<LiteralExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
+		if (context.Right.Syntax is LiteralExpressionSyntax)
+		{
+			optimized = null;
+			return false;
+		}
+
 		optimized = LessThanExpression(context.Right.Syntax, context.Left.Syntax);
 		return true;
 	}

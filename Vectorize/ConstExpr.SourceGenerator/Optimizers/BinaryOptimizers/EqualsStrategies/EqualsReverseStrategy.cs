@@ -7,6 +7,12 @@ public class EqualsReverseStrategy : BaseBinaryStrategy<LiteralExpressionSyntax,
 {
 	public override bool TryOptimize(BinaryOptimizeContext<LiteralExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
+		if (context.Right.Syntax is LiteralExpressionSyntax)
+		{
+			optimized = null;
+			return false;
+		}
+		
 		optimized = EqualsExpression(context.Right.Syntax, context.Left.Syntax);
 		return true;
 	}

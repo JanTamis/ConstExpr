@@ -16,6 +16,6 @@ public class YCbCrToRGBTest() : BaseTest<Func<double, double, double, (byte, byt
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return ((byte)(Double.ClampNative(Double.MultiplyAddEstimate(1.4022, cr, y), 0D, 1D) * 255D), (byte)(Double.ClampNative(Double.MultiplyAddEstimate(-0.7145, cr, Double.MultiplyAddEstimate(-0.3456, cb, y)), 0D, 1D) * 255D), (byte)(Double.ClampNative(Double.MultiplyAddEstimate(1.771, cb, y), 0D, 1D) * 255D));"),
+		Create("return ((byte)(Double.ClampNative(Double.MultiplyAddEstimate(cr, 1.4022, y), 0D, 1D) * 255D), (byte)(Double.ClampNative(Double.MultiplyAddEstimate(-cr, 0.7145, Double.MultiplyAddEstimate(-cb, 0.3456, y)), 0D, 1D) * 255D), (byte)(Double.ClampNative(Double.MultiplyAddEstimate(cb, 1.771, y), 0D, 1D) * 255D));"),
 	];
 }

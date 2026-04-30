@@ -176,8 +176,8 @@ public class HSVToRGBTest() : BaseTest<Func<double, double, double, (byte, byte,
 			var i = (int)Double.Truncate(h);
 			var f = h - i;
 			var p = v * 0.5;
-			var q = v * Double.MultiplyAddEstimate(-0.5, f, 1D);
-			var t = v * Double.MultiplyAddEstimate(-0.5, 1D - f, 1D);
+			var q = v * Double.MultiplyAddEstimate(-f, 0.5, 1D);
+			var t = v * Double.MultiplyAddEstimate(-(1D - f), 0.5, 1D);
 			
 			switch (i)
 			{
@@ -248,9 +248,9 @@ public class HSVToRGBTest() : BaseTest<Func<double, double, double, (byte, byte,
 			
 				var i = (int)Double.Truncate(h);
 				var f = h - i;
-				var p = 0.5 * (1D - s);
-				var q = 0.5 * Double.MultiplyAddEstimate(-s, f, 1D);
-				var t = 0.5 * Double.MultiplyAddEstimate(-s, 1D - f, 1D);
+				var p = (1D - s) * 0.5;
+				var q = Double.MultiplyAddEstimate(-s, f, 1D) * 0.5;
+				var t = Double.MultiplyAddEstimate(-s, 1D - f, 1D) * 0.5;
 			
 				switch (i)
 				{

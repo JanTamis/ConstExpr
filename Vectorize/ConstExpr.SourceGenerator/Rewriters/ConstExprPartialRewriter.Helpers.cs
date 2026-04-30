@@ -124,6 +124,12 @@ public partial class ConstExprPartialRewriter
 	/// </summary>
 	private bool TryOptimizeNode(BinaryOperatorKind kind, List<BinaryExpressionSyntax> expressions, ITypeSymbol? type, ExpressionSyntax leftExpr, ITypeSymbol? leftType, ExpressionSyntax rightExpr, ITypeSymbol? rightType, SyntaxNode? parent, [NotNullWhen(true)] out SyntaxNode? syntaxNode)
 	{
+		// if (depth > MaxOptimizeNodeDepth)
+		// {
+		// 	syntaxNode = null;
+		// 	return false;
+		// }
+
 		if (_binaryOptimizers.TryGetValue(kind, out var optimizer))
 		{
 			foreach (var strategy in optimizer.GetStrategies())
