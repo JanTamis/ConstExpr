@@ -17,7 +17,7 @@ public class PatternBitmaskTest() : BaseTest<Func<int, bool>>(FastMathFlags.Fast
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return (uint)(n - 1) <= 19U && (0x84211 >> n - 1 & 1) != 0;"), // Unknown value
+		Create("return (uint)(n - 1) <= 19U && (0x84211u >> n - 1 & 1) != 0;"), // Unknown value
 		Create("return true;", 1),   // Match
 		Create("return true;", 5),   // Match
 		Create("return true;", 10),  // Match
@@ -115,7 +115,7 @@ public class PatternBitmaskByteTest() : BaseTest<Func<byte, bool>>(FastMathFlags
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return n - 1 <= 6 && (0x45 >> n - 1 & 1) != 0;"),
+		Create("return n - 1 <= 6 && (0x45u >> n - 1 & 1) != 0;"),
 		Create("return true;", (byte)1),
 		Create("return true;", (byte)3),
 		Create("return true;", (byte)7),

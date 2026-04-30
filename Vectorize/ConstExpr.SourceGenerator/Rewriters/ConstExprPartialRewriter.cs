@@ -165,7 +165,6 @@ public partial class ConstExprPartialRewriter(
 			return variable.Value as SyntaxNode ?? node;
 		}
 
-
 		if (variable is { Value: SyntaxNode syntax, HasValue: true })
 		{
 			return syntax;

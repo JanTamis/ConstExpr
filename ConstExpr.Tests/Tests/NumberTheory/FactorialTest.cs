@@ -32,21 +32,21 @@ public class FactorialTest() : BaseTest<Func<int, long>>(FastMathFlags.FastMath)
 		Create("""
 			if (n < 0)
 			{
-				return -1;
+				return -1L;
 			}
-
+			
 			if ((uint)n <= 1U)
 			{
-				return 1;
+				return 1L;
 			}
-
+			
 			var result = 1L;
-
+			
 			for (var i = 2; i <= n; i++)
 			{
 				result *= i;
 			}
-
+			
 			return result;
 			"""),
 		Create("return 120L;", 5),

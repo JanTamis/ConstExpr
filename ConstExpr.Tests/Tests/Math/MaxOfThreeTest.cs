@@ -26,17 +26,17 @@ public class MaxOfThreeTest() : BaseTest<Func<int, int, int, int>>(FastMathFlags
 	[
 		Create("""
 			var max = a;
-
-			if (b > a)
+			
+			if (b > max)
 			{
 				max = b;
 			}
-
+			
 			if (c > max)
 			{
 				max = c;
 			}
-
+			
 			return max;
 			"""),
 		Create("return 10;", 5, 10, 3),

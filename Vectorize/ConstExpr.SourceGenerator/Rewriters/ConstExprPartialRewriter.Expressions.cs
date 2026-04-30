@@ -34,10 +34,17 @@ public partial class ConstExprPartialRewriter
 			{
 				// Don't implicitly convert char literals to int - they should remain as char
 				// to preserve their representation in pattern matching contexts
-				if (semanticModel.TryGetOperation<IOperation>(node, out var operation) && operation is { Parent: IConversionOperation conversion }
-				    && (node.Token.Value is not char || conversion.Type?.SpecialType != SpecialType.System_Int32))
+				if (semanticModel.TryGetOperation<IOperation>(node, out var operation)
+				    && node.Token.Value is not char)
 				{
-					TryCreateLiteral(ExecuteConversion(conversion, node.Token.Value), out expression);
+					if (operation?.Parent is IConversionOperation conversionOperation)
+					{
+						TryCreateLiteral(ExecuteConversion(conversionOperation, node.Token.Value), out expression);
+					}
+					else if (operation?.Parent is IUnaryOperation { Parent: IConversionOperation parentConversionOperation })
+					{
+						TryCreateLiteral(ExecuteConversion(parentConversionOperation, node.Token.Value), out expression);
+					}
 				}
 
 				// Upgrade regular string literals with escape sequences to raw string literals
@@ -103,7 +110,7 @@ public partial class ConstExprPartialRewriter
 
 				return CreateLiteral(ObjectExtensions.ExecuteBinaryOperation(node.Kind(), leftValue, rightValue));
 			}
-			
+
 			// Don't implicitly convert char values to int - they should remain as char
 			// to preserve their representation in pattern matching contexts
 			if (hasLeftValue
@@ -113,7 +120,7 @@ public partial class ConstExprPartialRewriter
 				leftValue = ExecuteConversion(leftConversion, leftValue);
 			}
 
-			if (hasRightValue 
+			if (hasRightValue
 			    && operation.RightOperand is IConversionOperation rightConversion
 			    && (rightValue is not char || rightConversion.Type?.SpecialType != SpecialType.System_Int32))
 			{
@@ -155,7 +162,7 @@ public partial class ConstExprPartialRewriter
 		    && right is ExpressionSyntax nodeRightExpr)
 		{
 			var expressions = GetBinaryExpressions(node).ToList();
-			
+
 			if (TryOptimizeNode(node.OperatorToken.Kind().ToBinaryOperatorKind(), expressions, operation?.Type, nodeLeftExpr, operation?.LeftOperand.Type, nodeRightExpr, operation?.RightOperand.Type, node.Parent, out var optimizedNode))
 			{
 				if (node.Parent is not BinaryExpressionSyntax
@@ -707,7 +714,7 @@ public partial class ConstExprPartialRewriter
 
 		return base.VisitCastExpression(node);
 	}
-	
+
 	public override SyntaxNode? VisitConditionalExpression(ConditionalExpressionSyntax node)
 	{
 		var condition = Visit(node.Condition);
