@@ -1,0 +1,18 @@
+using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+
+namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.LessThanStrategies;
+
+/// <summary>
+/// Strategy that normalizes reversed comparisons: literal &lt; x → x > literal.
+/// Puts the variable on the left-hand side in canonical form.
+/// </summary>
+public class LessThanReverseStrategy : BaseBinaryStrategy<LiteralExpressionSyntax, ExpressionSyntax>
+{
+	public override bool TryOptimize(BinaryOptimizeContext<LiteralExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
+	{
+		optimized = GreaterThanOrEqualExpression(context.Right.Syntax, context.Left.Syntax);
+		return true;
+	}
+}
+
