@@ -28,22 +28,15 @@ ConstExpr is a **Roslyn incremental source generator** that evaluates constant e
 4. **Prune** dead code via `DeadCodePruner`, format via `FormattingHelper`
 5. **Intercept** via generated `[InterceptsLocation]` attributes — the generator emits interceptor methods that replace call sites
 
+Additional internal components in `Vectorize/ConstExpr.SourceGenerator/`:
+- `Operators/` — typed wrappers around Roslyn `IOperation` nodes (e.g., `BinaryOperation`, `InvocationOperation`) used during constant folding
+- `Visitors/` — `ConstExprOperationVisitor`, `ConstExprPartialVisitor`, and `ExpressionVisitor` for traversing syntax/operation trees
+- `Builders/` — code-generation helpers (`EnumerableBuilder`, `InterfaceBuilder`, `MemoryExtensionsBuilder`) used by unrollers and optimizers
+- `Models/` — shared value types: `FunctionOptimizerContext`, `VariableItem`, `VariableItemDictionary`
+
 The generator is gated by `<UseConstExpr>true</UseConstExpr>` in the consuming project's `.csproj`.
 
 The source generator also ships **Roslyn analyzers** (`Analyzers/`), **code fixers** (`Fixers/`), and **refactorings** (`Refactorers/`) that provide IDE diagnostics and quick-fix suggestions for `[ConstExpr]`-annotated code.
-
-## Build & Test Commands
-
-```bash
-# Build entire solution
-dotnet build ConstExpr.sln
-
-# Run all tests (TUnit on Microsoft.Testing.Platform)
-dotnet test --project ConstExpr.Tests
-
-# Run benchmarks (BenchmarkDotNet, always Release)
-dotnet run -c Release --project Benchmarks/Benchmarks.csproj
-```
 
 ## Adding a New Optimizer
 
@@ -53,6 +46,31 @@ To add a function optimizer (e.g., for a new Math method):
 2. Inherit the appropriate base: `BaseMathFunctionOptimizer`, `BaseStringFunctionOptimizer`, `BaseLinqFunctionOptimizer`, `BaseRegexFunctionOptimizer`, or `BaseSimdFunctionOptimizer`
 3. Override `TryOptimize(FunctionOptimizerContext, out SyntaxNode?)` — no registration needed; **optimizers are discovered via reflection** in `ConstExprPartialRewriter`
 4. For binary optimizers, implement `IBinaryStrategy` and add it to the relevant optimizer's `GetStrategies()`
+
+## IDE Tool Usage
+
+**Always prefer IDE tools over the terminal** for any task that the IDE tools can perform. Never use terminal commands when an equivalent IDE tool is available.
+
+| Task | Use IDE tool | Do NOT use terminal |
+|---|---|---|
+| Build / compile | `build_project` | `dotnet build` |
+| Run a project or test suite | `execute_run_configuration` | `dotnet run` / `dotnet test` |
+| Discover run configurations | `get_run_configurations` | — |
+| Start or stop a debug session | `rider-debugger_list_run_configurations` / `rider-debugger_start_debug_session` / `rider-debugger_stop_debug_session` | `lldb` / `gdb` / ad-hoc CLI debugging |
+| Resume, pause, or run to a line while debugging | `rider-debugger_resume_execution` / `rider-debugger_pause_execution` / `rider-debugger_run_to_line` / `rider-debugger_wait_for_pause` | manual debugger commands in a terminal |
+| Step through code while debugging | `rider-debugger_step_over` / `rider-debugger_step_into` / `rider-debugger_step_out` | manual debugger commands in a terminal |
+| Manage breakpoints or logpoints | `rider-debugger_set_breakpoint` / `rider-debugger_list_breakpoints` / `rider-debugger_remove_breakpoint` | `break` / `b` / other CLI breakpoint commands |
+| Inspect debug state, threads, or source context | `rider-debugger_get_debug_session_status` / `rider-debugger_get_source_context` / `rider-debugger_get_stack_trace` / `rider-debugger_list_threads` | `bt` / `thread list` / other CLI inspection commands |
+| Inspect or modify variables while debugging | `rider-debugger_get_variables` / `rider-debugger_select_stack_frame` / `rider-debugger_evaluate_expression` / `rider-debugger_set_variable` | `print` / `frame variable` / `expr` |
+| Read file contents | `get_file_text_by_path` / `read_file` | `cat` / `less` |
+| Find files | `find_files_by_name_keyword` / `find_files_by_glob` / `search_file` | `find` / `ls` |
+| Search in files | `search_in_files_by_text` / `search_in_files_by_regex` / `search_text` / `search_regex` | `grep` / `rg` |
+| Rename a symbol | `rename_refactoring` | manual search-and-replace |
+| Browse project structure | `list_directory_tree` | `ls` / `tree` |
+| Check errors / warnings | `get_file_problems` | — |
+| Get symbol information | `get_symbol_info` | — |
+
+Only fall back to the terminal for tasks that cannot be performed with any IDE tool (e.g., package management commands like `dotnet add package`).
 
 ## Writing Tests
 
@@ -70,7 +88,7 @@ Example (`ConstExpr.Tests/Tests/Validation/IsNegativeTest.cs`):
 public class IsNegativeTest() : BaseTest<Func<int, bool>>(FastMathFlags.FastMath)
 {
     public override string TestMethod => GetString(n => n < 0);
-    public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
+    public override IEnumerable<KeyValuePair<string?, obj~~~~ect?[]>> TestCases =>
     [
         Create(null, Unknown),        // Unknown input → body unchanged (null = expect original)
         Create("return true;", -10),  // Constant -10 → rewritten to "return true;"
@@ -79,7 +97,7 @@ public class IsNegativeTest() : BaseTest<Func<int, bool>>(FastMathFlags.FastMath
 }
 ```
 
-Tests live under `ConstExpr.Tests/Tests/{Arithmetic,Array,Linq,Math,NumberTheory,Optimization,Regex,Rewriter,String,Validation}/`.
+Tests live under `ConstExpr.Tests/Tests/{Arithmetic,Array,Color,Linq,Math,NumberTheory,Optimization,Regex,Rewriter,String,Validation}/`.
 
 **Important**: The test project uses `extern alias sourcegen;` to reference the generator assembly. Prefix generator types with `sourcegen::` in test code.
 
@@ -89,4 +107,3 @@ Tests live under `ConstExpr.Tests/Tests/{Arithmetic,Array,Linq,Math,NumberTheory
 - All comments and documentation in English
 - `LangVersion` is `preview` across all projects
 - Benchmarks go in `Benchmarks/` with `[MemoryDiagnoser]` and `BenchmarkSwitcher` in `Program.cs`
-
