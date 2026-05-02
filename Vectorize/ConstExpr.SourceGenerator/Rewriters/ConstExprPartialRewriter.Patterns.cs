@@ -355,9 +355,8 @@ public partial class ConstExprPartialRewriter
 	public override SyntaxNode? VisitIsPatternExpression(IsPatternExpressionSyntax node)
 	{
 		var expression = Visit(node.Expression);
-		var exprToEvaluate = expression;
 
-		if (TryGetConstantValue(semanticModel.Compilation, loader, exprToEvaluate, new VariableItemDictionary(variables), token, out var value))
+		if (TryGetConstantValue(semanticModel.Compilation, loader, expression, new VariableItemDictionary(variables), token, out var value))
 		{
 			var result = EvaluatePattern(node.Pattern, value);
 
@@ -485,6 +484,30 @@ public partial class ConstExprPartialRewriter
 			return relConstResult;
 		}
 
+		// Handle `x is not 'a' and not 'e' and not 'i' ...`
+		//      → `x is not ('a' or 'e' or 'i' ...)` → bitmask via TryOptimizeNegatedOrPattern
+		if (node.Pattern is BinaryPatternSyntax { OperatorToken.RawKind: (int) SyntaxKind.AndKeyword })
+		{
+			var notConstants = new List<ConstantPatternSyntax>();
+
+			if (TryCollectNotConstantAndChain(node.Pattern, notConstants) && notConstants.Count >= 2)
+			{
+				var baseExpr = expression as ExpressionSyntax ?? node.Expression;
+
+				// Build left-associative or-chain: c0 or c1 or c2 ...
+				PatternSyntax orChain = notConstants[0];
+				for (var i = 1; i < notConstants.Count; i++)
+					orChain = BinaryPattern(SyntaxKind.OrPattern, orChain, notConstants[i]);
+
+				var rewritten = node
+					.WithExpression(baseExpr)
+					.WithPattern(UnaryPattern(Token(SyntaxKind.NotKeyword), ParenthesizedPattern(orChain)));
+
+				// Re-enter the visitor; the existing `not (or)` branch handles the rest.
+				return VisitIsPatternExpression(rewritten);
+			}
+		}
+
 		// Try to optimize range check patterns: `v is > low and < high` -> `(uint)(v - (low + 1)) < (high - low - 1)`
 		if (TryOptimizeRangeCheckPattern(node, expression as ExpressionSyntax ?? node.Expression, out var rangeOptimized))
 		{
@@ -492,7 +515,7 @@ public partial class ConstExprPartialRewriter
 		}
 
 		// Try to optimize OR patterns into bitmask checks
-		if (TryOptimizePattern(node.WithExpression(exprToEvaluate as ExpressionSyntax ?? node.Expression), out var optimized))
+		if (TryOptimizePattern(node.WithExpression(expression as ExpressionSyntax ?? node.Expression), out var optimized))
 		{
 			return optimized;
 		}
@@ -938,5 +961,33 @@ public partial class ConstExprPartialRewriter
 		upperInclusive = upperPattern.OperatorToken.IsKind(SyntaxKind.LessThanEqualsToken);
 
 		return true;
+	}
+
+	/// <summary>
+	/// Flattens an <c>and</c>-chain of <c>not &lt;constant&gt;</c> patterns into a flat list.
+	/// Returns false (and leaves <paramref name="constants"/> in an undefined state) as soon as any
+	/// node is not of that shape, so mixed chains (e.g. <c>not 'a' and > 5</c>) are left alone.
+	/// </summary>
+	private static bool TryCollectNotConstantAndChain(PatternSyntax pattern, List<ConstantPatternSyntax> constants)
+	{
+		switch (pattern)
+		{
+			// Leaf: `not <constant>`
+			case UnaryPatternSyntax { OperatorToken.RawKind: (int) SyntaxKind.NotKeyword, Pattern: ConstantPatternSyntax cp }:
+			{
+				constants.Add(cp);
+				return true;
+			}
+			// Inner node: recurse into both sides of `and`
+			case BinaryPatternSyntax { OperatorToken.RawKind: (int) SyntaxKind.AndKeyword } andPat:
+			{
+				return TryCollectNotConstantAndChain(andPat.Left, constants)
+				       && TryCollectNotConstantAndChain(andPat.Right, constants);
+			}
+			default:
+			{
+				return false;
+			}
+		}
 	}
 }

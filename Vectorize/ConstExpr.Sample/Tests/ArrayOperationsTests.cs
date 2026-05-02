@@ -39,15 +39,21 @@ namespace ConstExpr.SourceGenerator.Sample.Tests
 			Console.WriteLine($"[CONST] CountOccurrences(3, [1, 2, 3, 3, 4, 3, 5]): {ArrayOperations.CountOccurrences(3, 1, 2, 3, 3, 4, 3, 5)}");
 			Console.WriteLine($"[CONST] CountOccurrences(7, [1, 2, 3, 4, 5]): {ArrayOperations.CountOccurrences(7, 1, 2, 3, 4, 5)}");
 			// CountOccurrences - mixed
-			Console.WriteLine($"[MIXED] CountOccurrences(varInt2, [1, 5, 2, 5, 3, 5]): {ArrayOperations.CountOccurrences(varInt2, 1, 5, 2, 5, 3, 5)}");
+			Console.WriteLine($"[MIXED] CountOccurrences(varInt2, [1, 5, 2, 5, 3, 5]): {ArrayOperations.CountOccurrences(varInt2, data)}");
 
 			// IndexOf - alleen constanten
 			Console.WriteLine($"[CONST] IndexOf(42, [10, 20, 42, 30, 40]): {ArrayOperations.IndexOf(42, 10, 20, 42, 30, 40)}");
 			Console.WriteLine($"[CONST] IndexOf(99, [10, 20, 30, 40]): {ArrayOperations.IndexOf(99, 10, 20, 30, 40)}");
+			
+			// IndexOf - mixed
+			Console.WriteLine($"[MIXED] IndexOf(varInt2, [1, 5, 10, 15, 20]): {ArrayOperations.IndexOf(varInt2, 1, 5, 10, 15, 20)}");
 
 			// Reverse - alleen constanten
 			Console.WriteLine($"[CONST] Reverse(1, 2, 3, 4, 5): [{string.Join(", ", ArrayOperations.Reverse(1, 2, 3, 4, 5))}]");
 			Console.WriteLine($"[CONST] Reverse(10, 20, 30): [{string.Join(", ", ArrayOperations.Reverse(10, 20, 30))}]");
+			
+			// Reverse - mixed
+			Console.WriteLine($"[MIXED] Reverse(data): [{string.Join(", ", ArrayOperations.Reverse(data))}]");
 
 			// RotateLeft - alleen constanten
 			Console.WriteLine($"[CONST] RotateLeft(2, [1, 2, 3, 4, 5]): [{string.Join(", ", ArrayOperations.RotateLeft(2, 1, 2, 3, 4, 5))}]");
@@ -64,10 +70,16 @@ namespace ConstExpr.SourceGenerator.Sample.Tests
 			// Product - alleen constanten
 			Console.WriteLine($"[CONST] Product(2, 3, 4, 5): {ArrayOperations.Product(2, 3, 4, 5)}");
 			Console.WriteLine($"[CONST] Product(10, 10, 10): {ArrayOperations.Product(10, 10, 10)}");
+			
+			// Product - mixed
+			Console.WriteLine($"[MIXED] Product(data): {ArrayOperations.Product(data)}");
 
 			// SecondLargest - alleen constanten
 			Console.WriteLine($"[CONST] SecondLargest(5, 12, 3, 18, 7, 15): {ArrayOperations.SecondLargest(5, 12, 3, 18, 7, 15)}");
 			Console.WriteLine($"[CONST] SecondLargest(100, 50, 200, 25, 175): {ArrayOperations.SecondLargest(100, 50, 200, 25, 175)}");
+			
+			// SecondLargest - mixed
+			Console.WriteLine($"[MIXED] SecondLargest(data): {ArrayOperations.SecondLargest(data)}");
 
 			// Contains - alleen constanten
 			Console.WriteLine($"[CONST] Contains(42, [10, 20, 42, 30]): {ArrayOperations.Contains(42, 10, 20, 42, 30)}");
@@ -78,6 +90,9 @@ namespace ConstExpr.SourceGenerator.Sample.Tests
 			// Range - alleen constanten
 			Console.WriteLine($"[CONST] Range(3, 7, 2, 9, 1, 5): {ArrayOperations.Range(3, 7, 2, 9, 1, 5)}");
 			Console.WriteLine($"[CONST] Range(100, 50, 75, 125, 25): {ArrayOperations.Range(100, 50, 75, 125, 25)}");
+			
+			// Range - mixed
+			Console.WriteLine($"[MIXED] Range(data): {ArrayOperations.Range(data)}");
 
 			Console.WriteLine();
 		}

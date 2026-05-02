@@ -422,7 +422,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 			if (result2 is BlockSyntax methodBody)
 			{
-				if (methodBody.Statements is [ReturnStatementSyntax { Expression: var returnExpression and (LiteralExpressionSyntax or CollectionExpressionSyntax) }])
+				if (methodBody.Statements is [ReturnStatementSyntax { Expression: var returnExpression }] && CanBeExpressionBody(returnExpression))
 				{
 					resultMethod = resultMethod
 						.WithBody(null)
@@ -453,6 +453,16 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		}
 
 		return null;
+		
+		bool CanBeExpressionBody(SyntaxNode? node)
+		{
+			return node switch
+			{
+				LiteralExpressionSyntax or CollectionExpressionSyntax => true,
+				PrefixUnaryExpressionSyntax prefixUnaryExpression => CanBeExpressionBody(prefixUnaryExpression.Operand),
+				_ => false
+			};
+		}
 	}
 
 	public static Dictionary<string, VariableItem> ProcessArguments(ConstExprOperationVisitor visitor, SemanticModel model, InvocationExpressionSyntax invocation, MetadataLoader loader, RoslynApiCache apiCache, CancellationToken token)

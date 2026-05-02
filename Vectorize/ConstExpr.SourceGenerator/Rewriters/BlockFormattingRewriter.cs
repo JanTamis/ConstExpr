@@ -187,8 +187,6 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			visited = visited.WithElse(elseClause.WithStatement(visited.Else.Statement));
 		}
 		
-		
-
 		// Check if the if body is empty
 		var ifBodyIsEmpty = IsStatementEmpty(visited.Statement);
 
@@ -227,7 +225,47 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			visited = visited.WithElse(null);
 		}
 
+		if (visited.Else is null && visited.Statement is BlockSyntax { Statements.Count: 1 } block
+		    && node.Parent is not ElseClauseSyntax
+		    && !IsConditionalSyntax(block.Statements[0]))
+		{
+			visited = visited.WithStatement(block.Statements[0]);
+		}
+
 		return visited;
+	}
+
+	public override SyntaxNode? VisitForStatement(ForStatementSyntax node)
+	{
+		if (node.Statement is BlockSyntax { Statements.Count: 1 } block
+		    && !IsConditionalSyntax(block.Statements[0]))
+		{
+			node = node.WithStatement(block.Statements[0]);
+		}
+		
+		return base.VisitForStatement(node);
+	}
+
+	public override SyntaxNode? VisitWhileStatement(WhileStatementSyntax node)
+	{
+		if (node.Statement is BlockSyntax { Statements.Count: 1 } block
+		    && !IsConditionalSyntax(block.Statements[0]))
+		{
+			node = node.WithStatement(block.Statements[0]);
+		}
+
+		return base.VisitWhileStatement(node);		
+	}
+	
+	public override SyntaxNode? VisitDoStatement(DoStatementSyntax node)
+	{
+		if (node.Statement is BlockSyntax { Statements.Count: 1 } block
+		    && !IsConditionalSyntax(block.Statements[0]))
+		{
+			node = node.WithStatement(block.Statements[0]);
+		}
+
+		return base.VisitDoStatement(node);		
 	}
 
 	// private static BlockSyntax EnsureBlock(StatementSyntax statement)
@@ -1279,5 +1317,22 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		}
 
 		return result;
+	}
+
+	private static bool IsConditionalSyntax(StatementSyntax statement)
+	{
+		return statement is IfStatementSyntax
+			or SwitchStatementSyntax
+			or ForStatementSyntax
+			or ForEachStatementSyntax
+			or ForEachVariableStatementSyntax
+			or WhileStatementSyntax
+			or DoStatementSyntax
+			or UsingStatementSyntax
+			or LockStatementSyntax
+			or TryStatementSyntax
+			or FixedStatementSyntax
+			or CheckedStatementSyntax
+			or UnsafeStatementSyntax;
 	}
 }
