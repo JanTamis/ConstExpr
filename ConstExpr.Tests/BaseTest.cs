@@ -8,6 +8,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using ConstExpr.Core.Enumerators;
+using sourcegen::ConstExpr.SourceGenerator.BuildIn;
 using sourcegen::ConstExpr.SourceGenerator.Comparers;
 using sourcegen::ConstExpr.SourceGenerator.Helpers;
 using sourcegen::ConstExpr.SourceGenerator.Models;
@@ -166,31 +167,30 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			accessVariables.Add(state.ParameterNames[i], 0);
 		}
 		
-		var walker = new AccessWalker(accessVariables);
-		
-		walker.VisitBlock(state.Method.Body!);
-		
-		foreach (var keyValuePair in accessVariables)
-		{
-			var name = keyValuePair.Key;
-			var accessCount = keyValuePair.Value;
+		// var walker = new AccessWalker(accessVariables);
+		//
+		// walker.VisitBlock(state.Method.Body!);
 
-			if (accessCount is 0 or 1)
+		var analyzer = new InlineVariableAnalyzer(state.SemanticModel);
+		var candidates = analyzer.FindInlineCandidates(state.Method.Body!);
+
+		foreach (var candidate in candidates)
+		{
+			var name = candidate.Symbol.Name;
+
+			if (parameters.TryGetValue(name, out var variable))
 			{
-				if (parameters.TryGetValue(name, out var variable))
+				variable.CanBeInlined = true;
+			}
+			else
+			{
+				parameters.Add(name, new VariableItem(
+					type: candidate.Symbol.Type, // Type is not needed for inlining, as the value will be directly substituted
+					hasValue: false,
+					value: null)
 				{
-					variable.CanBeInlined = true;
-				}
-				else
-				{
-					parameters.Add(name, new VariableItem(
-						type: null!, // Type is not needed for inlining, as the value will be directly substituted
-						hasValue: false,
-						value: null)
-					{
-						CanBeInlined = true,
-					});
-				}
+					CanBeInlined = true,
+				});
 			}
 		}
 		

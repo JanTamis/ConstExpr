@@ -46,7 +46,7 @@ public class LinqLongCountOptimizationTests() : BaseTest<Func<int[], long>>(Fast
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return (long)x.Count * 7L + LongCount_LJMk4Q(x) + LongCount_JzD3Jw(x) + LongCount_taQp6w(x) + LongCount_w6J_9Q(x);"),
-		Create("return 50L;", new[] { 1, 2, 3, 4, 5 }),
+		Create("return 49L;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0L;", new int[] { }),
 	];
 }
