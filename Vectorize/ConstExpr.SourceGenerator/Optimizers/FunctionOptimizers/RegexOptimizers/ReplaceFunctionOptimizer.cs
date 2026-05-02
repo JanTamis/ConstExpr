@@ -29,6 +29,8 @@ public class ReplaceFunctionOptimizer() : BaseRegexFunctionOptimizer("Replace", 
 	{
 		result = null;
 
+		context.Usings.Add("System.Text.RegularExpressions");
+
 		// Pattern (param[1]) must be a compile-time constant.
 		if (!TryGetLiteralValue(context.VisitedParameters[1], context, out _))
 		{
@@ -64,7 +66,6 @@ public class ReplaceFunctionOptimizer() : BaseRegexFunctionOptimizer("Replace", 
 			.WithModifiers(TokenList(Token(SyntaxKind.PrivateKeyword), Token(SyntaxKind.StaticKeyword), Token(SyntaxKind.ReadOnlyKeyword)));
 
 		context.AdditionalSyntax.Add(field, true);
-		context.Usings.Add("System.Text.RegularExpressions");
 
 		// Instance Replace takes (input, replacement) — drop the pattern and options arguments.
 		result = InvocationExpression(

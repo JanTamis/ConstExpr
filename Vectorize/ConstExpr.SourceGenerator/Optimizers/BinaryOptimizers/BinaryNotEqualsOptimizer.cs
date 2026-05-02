@@ -17,5 +17,7 @@ public class BinaryNotEqualsOptimizer : BaseBinaryOptimizer
 		yield return new NotEqualsBitwiseAndOddStrategy();
 		yield return new NotEqualsBitwiseAndEvenStrategy();
 		yield return new NotEqualsReverseStrategy();
+		yield return new NotEqualsToLowerOptimizer();
+		yield return new NotEqualsToUpperOptimizer();
 	}
 }

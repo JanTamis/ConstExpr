@@ -69,7 +69,7 @@ public class RGBToHSLTest() : BaseTest<Func<byte, byte, byte, (int, double, doub
 			var max = Double.MaxNative(Double.MaxNative(normalizedR, normalizedG), normalizedB);
 			var delta = max - min;
 			l = (max + min) * 0.5;
-
+			
 			if (delta == 0D)
 			{
 				h = 0;
@@ -78,31 +78,25 @@ public class RGBToHSLTest() : BaseTest<Func<byte, byte, byte, (int, double, doub
 			else
 			{
 				s = l <= 0.5 ? delta / (max + min) : delta / (2D - max - min);
-
+			
 				var hue = 0D;
-
+			
 				if (normalizedR == max)
 				{
 					hue = (normalizedG - normalizedB) * 0.16666666666666666 / delta;
 				}
 				else
-				{
 					hue = normalizedG == max ? (normalizedB - normalizedR) * 0.16666666666666666 / delta + 0.3333333333333333 : (normalizedR - normalizedG) * 0.16666666666666666 / delta + 0.6666666666666666;
-				}
-
+			
 				if (hue < 0D)
-				{
 					hue += 1D;
-				}
-
+			
 				if (hue > 1D)
-				{
 					hue -= 1D;
-				}
-
+			
 				h = (int)(hue * 360D);
 			}
-
+			
 			return (h, s, l);
 			"""),
 	];

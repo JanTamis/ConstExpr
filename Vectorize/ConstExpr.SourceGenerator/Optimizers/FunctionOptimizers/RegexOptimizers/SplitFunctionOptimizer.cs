@@ -20,6 +20,8 @@ public class SplitFunctionOptimizer() : BaseRegexFunctionOptimizer("Split", n =>
 	{
 		result = null;
 
+		context.Usings.Add("System.Text.RegularExpressions");
+
 		// Pattern (and optional options) must be constant; only input may be a runtime value.
 		if (!TryGetLiteralValue(context.VisitedParameters[1], context, out _))
 		{
@@ -55,7 +57,6 @@ public class SplitFunctionOptimizer() : BaseRegexFunctionOptimizer("Split", n =>
 			.WithModifiers(TokenList(Token(SyntaxKind.PrivateKeyword), Token(SyntaxKind.StaticKeyword), Token(SyntaxKind.ReadOnlyKeyword)));
 
 		context.AdditionalSyntax.Add(field, true);
-		context.Usings.Add("System.Text.RegularExpressions");
 
 		result = InvocationExpression(MemberAccessExpression(IdentifierName(variableName), IdentifierName(context.Method.Name)))
 			.WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(context.VisitedParameters[0]))));

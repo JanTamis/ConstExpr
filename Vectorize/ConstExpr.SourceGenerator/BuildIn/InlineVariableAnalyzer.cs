@@ -7,25 +7,18 @@ using Microsoft.CodeAnalysis.Operations;
 
 namespace ConstExpr.SourceGenerator.BuildIn;
 
-public sealed class InlineVariableAnalyzer
+public sealed class InlineVariableAnalyzer(SemanticModel semanticModel)
 {
-	private readonly SemanticModel _semanticModel;
-
-	public InlineVariableAnalyzer(SemanticModel semanticModel)
-	{
-		_semanticModel = semanticModel;
-	}
-
 	public IReadOnlyList<InlineCandidate> FindInlineCandidates(SyntaxNode root)
 	{
 		var candidates = new List<InlineCandidate>();
 
 		foreach (var declaration in root.DescendantNodes().OfType<LocalDeclarationStatementSyntax>())
+		foreach (var variable in declaration.Declaration.Variables)
 		{
-			foreach (var variable in declaration.Declaration.Variables)
+			if (TryGetInlineCandidate(declaration, variable, out var candidate))
 			{
-				if (TryGetInlineCandidate(declaration, variable, out var candidate))
-					candidates.Add(candidate!);
+				candidates.Add(candidate!);
 			}
 		}
 
@@ -40,53 +33,58 @@ public sealed class InlineVariableAnalyzer
 		candidate = null;
 
 		if (variable.Initializer is null)
+		{
 			return false;
+		}
 
-		if (_semanticModel.GetDeclaredSymbol(variable) is not ILocalSymbol symbol)
+		if (semanticModel.GetDeclaredSymbol(variable) is not ILocalSymbol symbol)
+		{
 			return false;
+		}
 
 		if (symbol.RefKind != RefKind.None)
+		{
 			return false;
+		}
 
 		if (declaration.Parent is not BlockSyntax containingBlock)
+		{
 			return false;
+		}
 
-		// Verzamel alle referenties (exclusief de declaratie zelf)
 		var allRefs = containingBlock
 			.DescendantNodes()
 			.OfType<IdentifierNameSyntax>()
 			.Where(id => id.Identifier.Text == symbol.Name
 			             && id.SpanStart > declaration.SpanStart
 			             && SymbolEqualityComparer.Default.Equals(
-				             _semanticModel.GetSymbolInfo(id).Symbol, symbol))
+				             semanticModel.GetSymbolInfo(id).Symbol, symbol))
 			.ToList();
 
 		var writeRefs = allRefs.Where(IsWriteReference).ToList();
 		var readRefs = allRefs.Where(r => !IsWriteReference(r)).ToList();
 
-		// Na declaratie mag er geen write meer zijn
-		if (writeRefs.Count != 0)
+		if (writeRefs.Count != 0 || readRefs.Count == 0 || readRefs.Count == 0 || readRefs.Count > 1 && !AreAllMutuallyExclusive(readRefs))
+		{
 			return false;
+		}
 
-		if (readRefs.Count == 0)
-			return false;
+		// ── Kern fix: controleer per read-site of een dependency gewijzigd is ──
+		// Dit vangt swap-patronen af, ongeacht de purity van de initializer.
+		var initSymbols = GetReferencedSymbols(variable.Initializer.Value);
 
-		// ── Kern fix: meerdere reads zijn OK als ze wederzijds exclusief zijn ──
-		if (readRefs.Count > 1 && !AreAllMutuallyExclusive(readRefs))
-			return false;
+		if (initSymbols.Count > 0)
+		{
+			foreach (var readSite in readRefs)
+			{
+				if (IsDependencyMutatedOnPathToRead(containingBlock, declaration, readSite, initSymbols))
+				{
+					return false;
+				}
+			}
+		}
 
-		// Side-effect check: is de initializer puur genoeg?
-		var initializerOperation = _semanticModel.GetOperation(variable.Initializer.Value);
-		var purity = ClassifyPurity(initializerOperation);
-
-		// Bij impure initializers: controleer of er iets tussen declaratie en reads zit
-		// dat de waarde kan beïnvloeden
-		// if (purity >= InitializerPurity.ImpureRead)
-		// {
-		// 	if (HasMutatingStatementsBetweenDeclarationAndReads(
-		// 		    containingBlock, declaration, readRefs))
-		// 		return false;
-		// }
+		var purity = ClassifyPurity(semanticModel.GetOperation(variable.Initializer.Value));
 
 		candidate = new InlineCandidate(
 			Symbol: symbol,
@@ -99,34 +97,172 @@ public sealed class InlineVariableAnalyzer
 		return true;
 	}
 
-	// ── Wederzijdse exclusiviteit ────────────────────────────────────────────
+	// ── Dependency mutation check ─────────────────────────────────────────────
 
 	/// <summary>
-	/// Geeft true als elke combinatie van twee reads in wederzijds exclusieve
-	/// branches zit (switch-cases of if/else-takken).
+	/// Geeft true als een van de symbols waarvan de initializer afhankelijk is
+	/// wordt geschreven op het uitvoeringspad van de declaratie naar de read-site.
+	///
+	/// Voorbeeld — swap:
+	///   var temp = a;   ← initSymbols = { a }
+	///   a = b;          ← schrijft naar a  →  true  →  niet inlineable
+	///   b = temp;
 	/// </summary>
+	private bool IsDependencyMutatedOnPathToRead(
+		BlockSyntax block,
+		LocalDeclarationStatementSyntax declaration,
+		IdentifierNameSyntax readSite,
+		ISet<ISymbol> initSymbols)
+	{
+		var statements = block.Statements.ToList();
+		var declIndex = statements.IndexOf(declaration);
+
+		// Het top-level statement in dit blok dat de read-site bevat
+		var readTopLevel = readSite
+			.AncestorsAndSelf()
+			.OfType<StatementSyntax>()
+			.FirstOrDefault(s => s.Parent == block);
+
+		if (readTopLevel is null)
+		{
+			return true; // conservatief
+		}
+
+		var readIndex = statements.IndexOf(readTopLevel);
+
+		// 1. Statements strikt tussen declaratie en het top-level read-statement
+		for (var i = declIndex + 1; i < readIndex; i++)
+		{
+			if (WritesAnySymbol(statements[i], initSymbols))
+			{
+				return true;
+			}
+		}
+
+		// 2. Binnen het top-level read-statement (bv. switch/if), vóór de read-positie
+		//    Voorbeeld: case 1: a = b; x = temp;  →  a wordt vóór temp gelezen
+		return WritesAnySymbolBeforePosition(readTopLevel, readSite.SpanStart, initSymbols);
+	}
+
+	/// <summary>
+	/// Geeft alle symbols terug die in de expressie worden gelezen,
+	/// geselecteerd op types die gemuteerd kunnen worden (locals, parameters, fields, properties).
+	/// </summary>
+	private ISet<ISymbol> GetReferencedSymbols(ExpressionSyntax expr)
+	{
+		var result = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
+
+		foreach (var node in expr.DescendantNodesAndSelf())
+		{
+			switch (node)
+			{
+				// Normale identifier: a, left, right, ...
+				case IdentifierNameSyntax id:
+				{
+					var sym = semanticModel.GetSymbolInfo(id).Symbol;
+
+					if (sym is ILocalSymbol or IParameterSymbol or IFieldSymbol or IPropertySymbol)
+					{
+						result.Add(sym);
+					}
+					break;
+				}
+				// ── Fix: arr[i] → voeg arr toe als dependency ──
+				// Zonder dit wordt arr gemist als mutable dependency.
+				case ElementAccessExpressionSyntax elementAccess:
+				{
+					var baseSym = semanticModel.GetSymbolInfo(elementAccess.Expression).Symbol;
+
+					if (baseSym is ILocalSymbol or IParameterSymbol or IFieldSymbol or IPropertySymbol)
+					{
+						result.Add(baseSym);
+					}
+					break;
+				}
+			}
+		}
+
+		return result;
+	}
+
+	/// <summary>Schrijft <paramref name="node"/> (of een descendant) naar een van de symbols?</summary>
+	private bool WritesAnySymbol(SyntaxNode node, ISet<ISymbol> symbols) =>
+		node.DescendantNodesAndSelf().Any(n => IsWriteToAny(n, symbols));
+
+	/// <summary>
+	/// Schrijft iets binnen <paramref name="container"/> vóór <paramref name="position"/>
+	/// naar een van de symbols?
+	/// </summary>
+	private bool WritesAnySymbolBeforePosition(
+		SyntaxNode container, int position, ISet<ISymbol> symbols) =>
+		container
+			.DescendantNodes()
+			.Where(n => n.SpanStart < position && n.Span.End <= position)
+			.Any(n => IsWriteToAny(n, symbols));
+
+	/// <summary>
+	/// Herkent schrijf-patronen naar een specifiek symbol:
+	///   a = …  |  ++a / a++  |  ref a / out a
+	/// </summary>
+	private bool IsWriteToAny(SyntaxNode node, ISet<ISymbol> symbols)
+	{
+		var target = node switch
+		{
+			AssignmentExpressionSyntax assign => assign.Left,
+			PrefixUnaryExpressionSyntax
+				{
+					RawKind: (int) SyntaxKind.PreIncrementExpression
+					or (int) SyntaxKind.PreDecrementExpression
+				} p
+				=> p.Operand,
+			PostfixUnaryExpressionSyntax p => p.Operand,
+			ArgumentSyntax { RefKindKeyword: var kw } arg
+				when kw.IsKind(SyntaxKind.RefKeyword)
+				     || kw.IsKind(SyntaxKind.OutKeyword) => arg.Expression,
+			_ => null
+		};
+
+		if (target is null)
+		{
+			return false;
+		}
+
+		// ── Fix: indexer-write (arr[i] = ...) muteert arr ──
+		// ElementAccessExpressionSyntax heeft geen eigen symbol; pak de basis.
+		var resolvedTarget = target is ElementAccessExpressionSyntax elementAccess
+			? elementAccess.Expression
+			: target;
+
+		var written = semanticModel.GetSymbolInfo(resolvedTarget).Symbol;
+		return written is not null && symbols.Contains(written);
+	}
+
+	// ── Wederzijdse exclusiviteit ─────────────────────────────────────────────
+
 	private bool AreAllMutuallyExclusive(List<IdentifierNameSyntax> refs)
 	{
-		for (int i = 0; i < refs.Count; i++)
-		for (int j = i + 1; j < refs.Count; j++)
+		for (var i = 0; i < refs.Count; i++)
+		for (var j = i + 1; j < refs.Count; j++)
 		{
 			if (!AreMutuallyExclusive(refs[i], refs[j]))
+			{
 				return false;
+			}
 		}
 		return true;
 	}
 
 	private bool AreMutuallyExclusive(SyntaxNode a, SyntaxNode b)
 	{
-		// Zoek de dichtstbijzijnde gemeenschappelijke voorouder
 		var ancestorsA = new HashSet<SyntaxNode>(a.AncestorsAndSelf());
 
 		foreach (var ancestor in b.AncestorsAndSelf())
 		{
 			if (!ancestorsA.Contains(ancestor))
+			{
 				continue;
+			}
 
-			// Gevonden: de LCA. Kijk of a en b in verschillende exclusieve takken zitten.
 			return ancestor switch
 			{
 				SwitchStatementSyntax sw => AreInDifferentSwitchSections(sw, a, b),
@@ -139,94 +275,34 @@ public sealed class InlineVariableAnalyzer
 		return false;
 	}
 
-	private static bool AreInDifferentSwitchSections(
-		SwitchStatementSyntax sw, SyntaxNode a, SyntaxNode b)
+	private static bool AreInDifferentSwitchSections(SwitchStatementSyntax sw, SyntaxNode a, SyntaxNode b)
 	{
-		SwitchSectionSyntax? SectionOf(SyntaxNode node) =>
-			node.AncestorsAndSelf()
-				.OfType<SwitchSectionSyntax>()
-				.FirstOrDefault(s => s.Parent == sw);
+		SwitchSectionSyntax? SectionOf(SyntaxNode n) =>
+			n.AncestorsAndSelf().OfType<SwitchSectionSyntax>().FirstOrDefault(s => s.Parent == sw);
 
-		var sectionA = SectionOf(a);
-		var sectionB = SectionOf(b);
-
-		return sectionA is not null
-		       && sectionB is not null
-		       && !sectionA.IsEquivalentTo(sectionB);
+		var sA = SectionOf(a);
+		var sB = SectionOf(b);
+		return sA is not null && sB is not null && !sA.IsEquivalentTo(sB);
 	}
 
-	private static bool AreInDifferentIfBranches(
-		IfStatementSyntax ifStmt, SyntaxNode a, SyntaxNode b)
+	private static bool AreInDifferentIfBranches(IfStatementSyntax ifStmt, SyntaxNode a, SyntaxNode b)
 	{
 		bool InThen(SyntaxNode n) => ifStmt.Statement.Contains(n);
 		bool InElse(SyntaxNode n) => ifStmt.Else?.Statement.Contains(n) ?? false;
-
 		return (InThen(a) && InElse(b)) || (InElse(a) && InThen(b));
 	}
 
-	private static bool AreInDifferentSwitchExpressionArms(
-		SwitchExpressionSyntax sw, SyntaxNode a, SyntaxNode b)
+	private static bool AreInDifferentSwitchExpressionArms(SwitchExpressionSyntax sw, SyntaxNode a, SyntaxNode b)
 	{
-		SwitchExpressionArmSyntax? ArmOf(SyntaxNode node) =>
-			node.AncestorsAndSelf()
-				.OfType<SwitchExpressionArmSyntax>()
-				.FirstOrDefault(arm => arm.Parent == sw);
+		SwitchExpressionArmSyntax? ArmOf(SyntaxNode n) =>
+			n.AncestorsAndSelf().OfType<SwitchExpressionArmSyntax>().FirstOrDefault(arm => arm.Parent == sw);
 
-		var armA = ArmOf(a);
-		var armB = ArmOf(b);
-
-		return armA is not null
-		       && armB is not null
-		       && !armA.IsEquivalentTo(armB);
+		var aA = ArmOf(a);
+		var aB = ArmOf(b);
+		return aA is not null && aB is not null && !aA.IsEquivalentTo(aB);
 	}
 
-	// ── Side-effect check ────────────────────────────────────────────────────
-
-	/// <summary>
-	/// Controleert of er tussen de declaratie en de (eerste) read-site
-	/// statements zijn die mutable state kunnen wijzigen.
-	/// </summary>
-	private bool HasMutatingStatementsBetweenDeclarationAndReads(
-		BlockSyntax block,
-		LocalDeclarationStatementSyntax declaration,
-		List<IdentifierNameSyntax> readRefs)
-	{
-		var statements = block.Statements.ToList();
-		var declIndex = statements.IndexOf(declaration);
-
-		// Vroegste read-statement in dit blok
-		var earliestReadStatement = readRefs
-			.Select(r => r.AncestorsAndSelf()
-				.OfType<StatementSyntax>()
-				.FirstOrDefault(s => s.Parent == block))
-			.Where(s => s is not null)
-			.OrderBy(s => s!.SpanStart)
-			.FirstOrDefault();
-
-		if (earliestReadStatement is null)
-			return true; // conservatief
-
-		var readIndex = statements.IndexOf(earliestReadStatement);
-
-		for (int i = declIndex + 1; i < readIndex; i++)
-		{
-			if (StatementMutatesState(statements[i]))
-				return true;
-		}
-
-		return false;
-	}
-
-	private static bool StatementMutatesState(StatementSyntax statement) =>
-		statement.DescendantNodes().Any(node => node is
-			InvocationExpressionSyntax or
-			AwaitExpressionSyntax or
-			AssignmentExpressionSyntax or
-			PostfixUnaryExpressionSyntax or
-			PrefixUnaryExpressionSyntax or
-			YieldStatementSyntax);
-
-	// ── Write-referentie detectie ────────────────────────────────────────────
+	// ── Write-referentie detectie ─────────────────────────────────────────────
 
 	private static bool IsWriteReference(IdentifierNameSyntax id) =>
 		id.Parent switch
@@ -241,7 +317,7 @@ public sealed class InlineVariableAnalyzer
 			_ => false
 		};
 
-	// ── Purity classificatie ─────────────────────────────────────────────────
+	// ── Purity classificatie ──────────────────────────────────────────────────
 
 	private static InitializerPurity ClassifyPurity(IOperation? op) => op switch
 	{
@@ -266,7 +342,7 @@ public sealed class InlineVariableAnalyzer
 		ClassifyPurity(b) <= InitializerPurity.PureRead;
 }
 
-// ── Data types ───────────────────────────────────────────────────────────────
+// ── Data types ────────────────────────────────────────────────────────────────
 
 public enum InitializerPurity
 {
@@ -281,7 +357,7 @@ public sealed record InlineCandidate(
 	ILocalSymbol Symbol,
 	LocalDeclarationStatementSyntax Declaration,
 	VariableDeclaratorSyntax Variable,
-	IReadOnlyList<IdentifierNameSyntax> ReadSites, // was: ReadSite (enkelvoud)
+	IReadOnlyList<IdentifierNameSyntax> ReadSites,
 	InitializerPurity InitializerPurity
 )
 {

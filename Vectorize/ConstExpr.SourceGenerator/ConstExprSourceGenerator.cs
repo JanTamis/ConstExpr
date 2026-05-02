@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using ConstExpr.Core.Attributes;
 using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Analyzers;
+using ConstExpr.SourceGenerator.BuildIn;
 using ConstExpr.SourceGenerator.Comparers;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
@@ -208,10 +209,10 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				{
 					code.WriteLine(FormattingHelper.Render(item), true);
 				}
-				
+
 				code.WriteLine();
 			}
-			
+
 			EmitGeneratedMethodsForValueGroups(code, compilation, methodGroup, loader);
 
 			foreach (var additionalMethod in distinctAdditionalMethods.Where(w => w is MethodDeclarationSyntax))
@@ -264,7 +265,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 		var invocations = methodGroup
 			.Where(w => w?.Location is not null)
-			.OrderBy(m => m!.Method.Identifier.ValueText, StringComparer.Ordinal)
+			.OrderBy(m => m!.Method.Span.Length)
 			.GroupBy(m => m.Method.Identifier.ValueText, StringComparer.Ordinal);
 
 		foreach (var invocationsByValue in invocations)
@@ -330,7 +331,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 	}
 
 	public static InvocationModel? GenerateExpression(SemanticModel semanticModel, MetadataLoader loader, InvocationExpressionSyntax invocation,
-	                                            IMethodSymbol methodSymbol, ConstExprAttribute attribute, RoslynApiCache apiCache, CancellationToken token)
+	                                                  IMethodSymbol methodSymbol, ConstExprAttribute attribute, RoslynApiCache apiCache, CancellationToken token)
 	{
 		var methodDecl = GetMethodSyntaxNode(methodSymbol);
 
@@ -358,6 +359,29 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			// var variables = ProcessArguments(visitor, context.SemanticModel.Compilation, invocation, loader, token);
 			var variablesPartial = ProcessArguments(visitor, semanticModel, invocation, loader, apiCache, token);
 			var additionalMethods = new Dictionary<SyntaxNode, bool>(SyntaxNodeComparer.Get());
+
+			// var analyzer = new InlineVariableAnalyzer(semanticModel);
+			// var candidates = analyzer.FindInlineCandidates(methodDecl.Body!);
+			//
+			// foreach (var candidate in candidates)
+			// {
+			// 	var name = candidate.Symbol.Name;
+			//
+			// 	if (variablesPartial.TryGetValue(name, out var variable))
+			// 	{
+			// 		variable.CanBeInlined = true;
+			// 	}
+			// 	else
+			// 	{
+			// 		variablesPartial.Add(name, new VariableItem(
+			// 			type: candidate.Symbol.Type, // Type is not needed for inlining, as the value will be directly substituted
+			// 			hasValue: false,
+			// 			value: null)
+			// 		{
+			// 			CanBeInlined = true,
+			// 		});
+			// 	}
+			// }
 
 			var partialVisitor = new ConstExprPartialRewriter(model, loader, (node, ex) =>
 			{
@@ -390,16 +414,32 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				usings.Add("System.Runtime.CompilerServices");
 			}
 
+			var resultMethod = methodDecl
+				.WithoutLeadingTrivia()
+				.WithIdentifier(Identifier($"{methodDecl.Identifier.Text}_{result2.GetDeterministicHashString()}")
+					.WithLeadingTrivia(methodDecl.Identifier.LeadingTrivia)
+					.WithTrailingTrivia(methodDecl.Identifier.TrailingTrivia)) as MethodDeclarationSyntax;
+
+			if (result2 is BlockSyntax methodBody)
+			{
+				if (methodBody.Statements is [ReturnStatementSyntax { Expression: var returnExpression and (LiteralExpressionSyntax or CollectionExpressionSyntax) }])
+				{
+					resultMethod = resultMethod
+						.WithBody(null)
+						.WithExpressionBody(ArrowExpressionClause(returnExpression).WithTrailingTrivia())
+						.WithSemicolonToken(Token(SyntaxKind.SemicolonToken));	
+				}
+				else
+				{
+					resultMethod = resultMethod.WithBody(methodBody);
+				}
+			}
+
 			return new InvocationModel
 			{
 				Usings = usings!,
 				OriginalMethod = methodDecl,
-				Method = FormattingHelper.Format(methodDecl
-					.WithoutLeadingTrivia()
-					.WithIdentifier(Identifier($"{methodDecl.Identifier.Text}_{result2.GetDeterministicHashString()}")
-						.WithLeadingTrivia(methodDecl.Identifier.LeadingTrivia)
-						.WithTrailingTrivia(methodDecl.Identifier.TrailingTrivia))
-					.WithBody((BlockSyntax) result2)) as MethodDeclarationSyntax ?? methodDecl,
+				Method = FormattingHelper.Format(resultMethod) as MethodDeclarationSyntax ?? resultMethod,
 				// Defer formatting to emission time to avoid expensive NormalizeWhitespace calls
 				AdditionalMethods = additionalMethods
 					.OrderByDescending(o => o.Value)

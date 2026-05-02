@@ -20,6 +20,8 @@ public class IsMatchFunctionOptimizer() : BaseRegexFunctionOptimizer("IsMatch", 
 	{
 		result = null;
 
+		context.Usings.Add("System.Text.RegularExpressions");
+
 		// We only handle the static overloads:
 		//   Regex.IsMatch(string input, string pattern)
 		//   Regex.IsMatch(string input, string pattern, RegexOptions options)
@@ -57,7 +59,6 @@ public class IsMatchFunctionOptimizer() : BaseRegexFunctionOptimizer("IsMatch", 
 			.WithModifiers(TokenList(Token(SyntaxKind.PrivateKeyword), Token(SyntaxKind.StaticKeyword), Token(SyntaxKind.ReadOnlyKeyword)));
 
 		context.AdditionalSyntax.Add(field, true);
-		context.Usings.Add("System.Text.RegularExpressions");
 
 		result = InvocationExpression(MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName(variableName), IdentifierName(context.Method.Name)))
 			.WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(context.VisitedParameters[0]))));
