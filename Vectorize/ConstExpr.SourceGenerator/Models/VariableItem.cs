@@ -4,7 +4,7 @@ namespace ConstExpr.SourceGenerator.Models;
 
 public class VariableItem(ITypeSymbol type, bool hasValue, object? value, bool isInitialized = false)
 {
-	public ITypeSymbol Type { get; } = type;
+	public ITypeSymbol Type { get; set; } = type;
 
 	public object? Value { get; set; } = value;
 

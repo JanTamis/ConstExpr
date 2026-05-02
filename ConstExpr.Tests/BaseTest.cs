@@ -159,7 +159,43 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		var exceptionsDuringRewriting = new List<Exception>();
 		var rewriter = new ConstExprPartialRewriter(state.SemanticModel, state.Loader, (_, exception) => exceptionsDuringRewriting.Add(exception), parameters, additionalSyntax, new HashSet<string>(), attribute, symbolStore, CancellationToken.None, visitedMethods);
 
-		Inline(state.Method.Body!, parameters, state.SemanticModel);
+		var accessVariables = new Dictionary<string, int>();
+
+		for (var i = 0; i < state.ParameterNames.Count; i++)
+		{
+			accessVariables.Add(state.ParameterNames[i], 0);
+		}
+		
+		var walker = new AccessWalker(accessVariables);
+		
+		walker.VisitBlock(state.Method.Body!);
+		
+		foreach (var keyValuePair in accessVariables)
+		{
+			var name = keyValuePair.Key;
+			var accessCount = keyValuePair.Value;
+
+			if (accessCount is 0 or 1)
+			{
+				if (parameters.TryGetValue(name, out var variable))
+				{
+					variable.CanBeInlined = true;
+				}
+				else
+				{
+					parameters.Add(name, new VariableItem(
+						type: null!, // Type is not needed for inlining, as the value will be directly substituted
+						hasValue: false,
+						value: null)
+					{
+						CanBeInlined = true,
+					});
+				}
+			}
+		}
+		
+		// Inline(state.Method.Body!, parameters, state.SemanticModel);
+
 
 		for (var i = 0; i < testCase.Value.Length; i++)
 		{
@@ -488,6 +524,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 
 				// Find which statement contains the single read.
 				var readStatementIndex = -1;
+				
 				for (var j = i + 1; j < statements.Count; j++)
 				{
 					if (statements[j].DescendantNodes().OfType<IdentifierNameSyntax>().Any(id => id.Identifier.Text == name))
@@ -508,7 +545,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 				{
 					var intermediateFlow = model.AnalyzeDataFlow(statements[i + 1], statements[readStatementIndex - 1]);
 
-					if (intermediateFlow is { Succeeded: true } && intermediateFlow.WrittenInside.Length > 0)
+					if (intermediateFlow is { Succeeded: true, WrittenInside.Length: > 0 })
 					{
 						var writtenSymbols = intermediateFlow.WrittenInside.ToImmutableHashSet(SymbolEqualityComparer.Default);
 

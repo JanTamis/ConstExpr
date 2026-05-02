@@ -30,6 +30,7 @@ public partial class ConstExprPartialRewriter
 		if (variables.TryGetValue(name, out var existing) && existing.CanBeInlined)
 		{
 			existing.Value = value;
+			existing.Type = operation.Type ?? operation.Symbol.Type;
 
 			return null;
 		}
@@ -43,6 +44,8 @@ public partial class ConstExprPartialRewriter
 		{
 			return HandleNewVariableDeclaration(node, operation, name, value);
 		}
+		
+		item.Type ??= operation.Type ?? operation.Symbol.Type;
 
 		return HandleExistingVariableDeclaration(node, item, name, value);
 	}
