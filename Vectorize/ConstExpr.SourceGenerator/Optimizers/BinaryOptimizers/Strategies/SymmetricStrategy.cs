@@ -40,6 +40,8 @@ public abstract class SymmetricStrategy<TStrategy, TLeft, TRight>(SyntaxKind lef
 				TryGetValue = context.TryGetValue,
 				BinaryExpressions = context.BinaryExpressions,
 				Parent = context.Parent,
+					Model = context.Model,
+					SymbolStore = context.SymbolStore
 			};
 
 			if (TryOptimizeSymmetric(newContext, out optimized))
@@ -69,7 +71,9 @@ public abstract class SymmetricStrategy<TStrategy, TLeft, TRight>(SyntaxKind lef
 				Variables = context.Variables,
 				TryGetValue = context.TryGetValue,
 				BinaryExpressions = context.BinaryExpressions,
-				Parent = context.Parent
+				Parent = context.Parent,
+				Model = context.Model,
+				SymbolStore = context.SymbolStore
 			};
 
 			if (TryOptimizeSymmetric(swappedContext, out optimized))

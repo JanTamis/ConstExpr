@@ -17,7 +17,7 @@ public class CeilingDivisionTest() : BaseTest<Func<int, int, int>>(FastMathFlags
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null),
+		Create("return divisor == 0 ? 0 : (numerator + divisor - 1) / divisor;"),
 		Create("return 3;", 10, 4),
 		Create("return 5;", 20, 4),
 		Create("return 0;", 10, 0),

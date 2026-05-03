@@ -193,7 +193,9 @@ public partial class ConstExprPartialRewriter
 				rightType,
 				variables,
 				(TryGetValueDelegate) TryGetLiteralValue,
-				parent
+				parent,
+				semanticModel,
+				symbolStore
 			]);
 
 			if (context is null)

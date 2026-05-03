@@ -1350,6 +1350,11 @@ public static class CompilationExtensions
 		return false;
 	}
 
+	public static bool TryGetMethodSymbol(this SemanticModel semanticModel, ExpressionSyntax? node, ConcurrentDictionary<ulong, ISymbol> symbolStore, [NotNullWhen(true)] out IMethodSymbol? value)
+	{
+		return semanticModel.TryGetSymbol(node, symbolStore, out value);
+	}
+
 	public static bool TryGetSymbol<TSymbol>(this SemanticModel semanticModel, ExpressionSyntax? node, ConcurrentDictionary<ulong, ISymbol> symbolStore, [NotNullWhen(true)] out TSymbol? value) where TSymbol : ISymbol
 	{
 		try
@@ -1642,7 +1647,7 @@ public static class CompilationExtensions
 
 	public static bool IsFloatingNumeric(this ITypeSymbol? t)
 	{
-		return t?.SpecialType is SpecialType.System_Single or SpecialType.System_Double;
+		return t?.SpecialType is SpecialType.System_Single or SpecialType.System_Double or SpecialType.System_Decimal;
 	}
 
 	public static bool IsBoolType(this ITypeSymbol? t)

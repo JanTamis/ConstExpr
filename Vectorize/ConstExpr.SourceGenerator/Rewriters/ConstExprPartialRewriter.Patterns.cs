@@ -496,6 +496,7 @@ public partial class ConstExprPartialRewriter
 
 				// Build left-associative or-chain: c0 or c1 or c2 ...
 				PatternSyntax orChain = notConstants[0];
+				
 				for (var i = 1; i < notConstants.Count; i++)
 					orChain = BinaryPattern(SyntaxKind.OrPattern, orChain, notConstants[i]);
 

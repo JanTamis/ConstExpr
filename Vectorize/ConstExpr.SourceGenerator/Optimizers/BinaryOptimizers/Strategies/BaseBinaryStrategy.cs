@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using ConstExpr.Core.Enumerators;
@@ -33,7 +34,9 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 		ITypeSymbol? rightType,
 		IDictionary<string, VariableItem> variables,
 		TryGetValueDelegate tryGetValue,
-		SyntaxNode? parent)
+		SyntaxNode? parent,
+		SemanticModel model,
+		ConcurrentDictionary<ulong, ISymbol> symbolStore)
 	{
 		if (leftExpr is not TLeft typedLeft || rightExpr is not TRight typedRight)
 		{
@@ -57,6 +60,8 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 			TryGetValue = tryGetValue,
 			BinaryExpressions = expressions,
 			Parent = parent,
+			Model = model,
+			SymbolStore = symbolStore
 		};
 	}
 
@@ -150,16 +155,22 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 				if (CanBeUsedAsPattern(b.Right) && IsPure(b.Left))
 				{
 					var pattern = ConvertToPattern(b.OperatorToken.Kind(), b.Right);
+
 					if (pattern is not null)
+					{
 						return (b.Left, pattern);
+					}
 				}
 
 				// literal op expr  (e.g.  0 < x) — flip the operator so it reads as  x > 0
 				if (CanBeUsedAsPattern(b.Left) && IsPure(b.Right))
 				{
 					var pattern = ConvertToPattern(SwapCondition(b.OperatorToken.Kind()), b.Left);
+
 					if (pattern is not null)
+					{
 						return (b.Right, pattern);
+					}
 				}
 
 				break;

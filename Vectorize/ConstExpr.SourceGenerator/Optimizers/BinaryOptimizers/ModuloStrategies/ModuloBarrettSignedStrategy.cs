@@ -31,17 +31,23 @@ public class ModuloBarrettSignedStrategy : IntegerBinaryStrategy<ExpressionSynta
 		optimized = null;
 
 		if (!base.TryOptimize(context, out optimized))
+		{
 			return false;
+		}
 
 		if (context.Right.Syntax.Token.Value is not int d
 		    || d <= 1
 		    || (d & (d - 1)) == 0 // power of 2 — already handled by ModuloByPowerOfTwoStrategy
 		    || !TryComputeMagic(d, out var magic, out var shift))
+		{
 			return false;
+		}
 
 		// x appears twice in the generated expression — only safe for pure operands
 		if (!IsPure(context.Left.Syntax))
+		{
 			return false;
+		}
 
 		var x = context.Left.Syntax;
 
@@ -81,7 +87,9 @@ public class ModuloBarrettSignedStrategy : IntegerBinaryStrategy<ExpressionSynta
 			var m   = (pow + d - 1) / d; // ceil(2^sh / d)
 
 			if (m > int.MaxValue) // magic must fit in a positive int32
+			{
 				continue;
+			}
 
 			var e = m * d - pow; // 0 <= e < d (from ceiling property)
 			if (e == 0 || e * int.MaxValue < pow)

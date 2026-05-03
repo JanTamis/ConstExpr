@@ -26,7 +26,9 @@ public class EqualsBitwiseAndEvenStrategy()
 		var rightUnwrapped = UnwrapParentheses(context.Right.Syntax);
 
 		if (leftUnwrapped == context.Left.Syntax && rightUnwrapped == context.Right.Syntax)
+		{
 			return base.TryOptimize(context, out optimized);
+		}
 
 		var unwrappedContext = new BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax>
 		{

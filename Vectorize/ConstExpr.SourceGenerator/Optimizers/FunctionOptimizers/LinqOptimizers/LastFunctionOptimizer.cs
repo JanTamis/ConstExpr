@@ -93,7 +93,10 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 							    && chunkSize is LiteralExpressionSyntax { Token.Value: int chunkSizeValue })
 							{
 								var lastChunkSize = sourceSyntaxes.Count % chunkSizeValue;
-								if (lastChunkSize == 0) lastChunkSize = chunkSizeValue;
+								if (lastChunkSize == 0)
+								{
+									lastChunkSize = chunkSizeValue;
+								}
 
 								var elements = sourceSyntaxes
 									.Skip(sourceSyntaxes.Count - lastChunkSize)

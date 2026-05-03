@@ -24,7 +24,7 @@ public class PatternCombineStrategy(BinaryOperatorKind operatorKind) : BaseBinar
 		var left = TryParseAsPattern(context.Left.Syntax);
 		
 		if (left is null)
-		{
+		{ 
 			optimized = null;
 			return false;
 		}

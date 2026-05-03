@@ -524,7 +524,9 @@ public partial class ConstExprPartialRewriter
 
 			// Stop after a throw statement since code after it is unreachable
 			if (statement is ThrowStatementSyntax or ExpressionStatementSyntax { Expression: ThrowExpressionSyntax })
+			{
 				break;
+			}
 		}
 
 		return List(result);
@@ -549,18 +551,28 @@ public partial class ConstExprPartialRewriter
 			// Check for pattern: if (cond) { return <bool>; } followed by return <opposite bool>;
 			if (i + 1 < statements.Count
 			    && statements[i] is IfStatementSyntax { Else: null } ifStatement
-			    && statements[i + 1] is ReturnStatementSyntax followingReturn
-			    && TryGetIfReturnBoolPattern(ifStatement, followingReturn, out var simplifiedReturn))
+			    && statements[i + 1] is ReturnStatementSyntax followingReturn)
 			{
-				result.Add(simplifiedReturn!);
-				i++; // Skip the following return statement
-				continue;
+				if (TryGetIfReturnBoolPattern(ifStatement, followingReturn, out var simplifiedReturn) 
+				    || TryGetIfReturnPattern(ifStatement, followingReturn, out simplifiedReturn))
+				{
+					result.Add(simplifiedReturn!);
+					i++; // Skip the following return statement
+					continue;
+				}
 			}
 
 			result.Add(statements[i]);
 		}
 
-		return List(result);
+		var resultList = List(result);
+
+		if (statements.Count != resultList.Count)
+		{
+			return SimplifyIfReturnPatterns(resultList);
+		}
+
+		return resultList;
 	}
 
 	/// <summary>
@@ -649,6 +661,37 @@ public partial class ConstExprPartialRewriter
 		}
 
 		return simplified is not null;
+	}
+	
+	/// <summary>
+	/// Tries to simplify if-return-bool patterns.
+	/// </summary>
+	private bool TryGetIfReturnPattern(IfStatementSyntax ifStatement, ReturnStatementSyntax followingReturn, out ReturnStatementSyntax? simplified)
+	{
+		simplified = null;
+
+		// Get the return statement from the if body
+		var ifBody = ifStatement.Statement;
+
+		var ifReturn = ifBody switch
+		{
+			ReturnStatementSyntax ret => ret,
+			BlockSyntax { Statements: [ ReturnStatementSyntax ret ] } => ret,
+			_ => null
+		};
+
+		if (ifReturn is null)
+		{
+			return false;
+		}
+
+		simplified = ReturnStatement(
+			ConditionalExpression(
+				ifStatement.Condition,
+				ifReturn.Expression,
+				followingReturn.Expression));
+
+		return true;
 	}
 
 	/// <summary>

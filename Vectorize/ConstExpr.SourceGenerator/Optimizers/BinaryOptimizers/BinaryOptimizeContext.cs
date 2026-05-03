@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using ConstExpr.SourceGenerator.Models;
@@ -28,6 +29,10 @@ public sealed class BinaryOptimizeContext<TLeft, TRight>
 	public IList<BinaryExpressionSyntax> BinaryExpressions { get; init; }
 	
 	public SyntaxNode? Parent { get; init; }
+	
+	public SemanticModel Model { get; init; }
+	
+	public ConcurrentDictionary<ulong, ISymbol> SymbolStore { get; init; }
 
 	internal string GetDebuggerDisplay()
 	{

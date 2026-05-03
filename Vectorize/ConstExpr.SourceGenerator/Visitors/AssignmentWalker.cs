@@ -20,7 +20,9 @@ public class AssignmentWalker(SemanticModel semanticModel) : CSharpSyntaxWalker
 	public override void VisitAssignmentExpression(AssignmentExpressionSyntax node)
 	{
 		if (node.Left is IdentifierNameSyntax id)
+		{
 			AssignedVariables.Add(id.Identifier.Text);
+		}
 
 		base.VisitAssignmentExpression(node);
 	}
@@ -32,7 +34,9 @@ public class AssignmentWalker(SemanticModel semanticModel) : CSharpSyntaxWalker
 		    node.IsKind(SyntaxKind.PostDecrementExpression))
 		{
 			if (node.Operand is IdentifierNameSyntax id)
+			{
 				AssignedVariables.Add(id.Identifier.Text);
+			}
 		}
 
 		base.VisitPostfixUnaryExpression(node);
@@ -45,7 +49,9 @@ public class AssignmentWalker(SemanticModel semanticModel) : CSharpSyntaxWalker
 		    node.IsKind(SyntaxKind.PreDecrementExpression))
 		{
 			if (node.Operand is IdentifierNameSyntax id)
+			{
 				AssignedVariables.Add(id.Identifier.Text);
+			}
 		}
 
 		base.VisitPrefixUnaryExpression(node);
