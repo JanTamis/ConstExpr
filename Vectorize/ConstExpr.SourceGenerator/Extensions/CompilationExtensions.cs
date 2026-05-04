@@ -1405,6 +1405,56 @@ public static class CompilationExtensions
 		return false;
 	}
 
+	public static bool TryGetDeclaredSymbol<TSymbol>(this SemanticModel semanticModel, SyntaxNode? node, ConcurrentDictionary<ulong, ISymbol> symbolStore, [NotNullWhen(true)] out TSymbol? value) where TSymbol : ISymbol
+	{
+		try
+		{
+			if (node is not null)
+			{
+				var symbol = semanticModel.GetDeclaredSymbol(node);
+
+				if (symbol is null)
+				{
+					if (semanticModel.Compilation.TryGetSemanticModel(node, out var semantic))
+					{
+						symbol = semantic.GetDeclaredSymbol(node);
+					}
+					else if (node.TryGetMethodSymbolAnnotation(symbolStore, out var annotatedMethod) && annotatedMethod is TSymbol annotatedSymbol)
+					{
+						// Fallback: check for symbol annotation on synthetic/optimized nodes
+						value = annotatedSymbol;
+						return true;
+					}
+					else
+					{
+						value = default;
+						return false;
+					}
+				}
+
+				if (symbol is TSymbol resultSymbol)
+				{
+					value = resultSymbol;
+					return true;
+				}
+			}
+		}
+		catch (Exception e)
+		{
+
+		}
+
+		// Final fallback: check annotations for synthetic nodes created by optimizers
+		if (node is not null && node.TryGetMethodSymbolAnnotation(symbolStore, out var fallbackMethod) && fallbackMethod is TSymbol fallbackSymbol)
+		{
+			value = fallbackSymbol;
+			return true;
+		}
+
+		value = default;
+		return false;
+	}
+
 	public static bool TryGetTypeSymbol(this SemanticModel semanticModel, ExpressionSyntax? node, ConcurrentDictionary<ulong, ISymbol> symbolStore, [NotNullWhen(true)] out ITypeSymbol? typeSymbol)
 	{
 		try

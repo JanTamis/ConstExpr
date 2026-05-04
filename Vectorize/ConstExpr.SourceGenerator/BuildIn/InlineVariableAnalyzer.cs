@@ -39,7 +39,7 @@ public sealed class InlineVariableAnalyzer(SemanticModel semanticModel, Concurre
 			return false;
 		}
 
-		if (!semanticModel.TryGetSymbol(variable, symbolStore, out ILocalSymbol? symbol))
+		if (!semanticModel.TryGetDeclaredSymbol(variable, symbolStore, out ILocalSymbol? symbol))
 		{
 			return false;
 		}
