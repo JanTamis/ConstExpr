@@ -12,7 +12,7 @@ public class BinaryLessThanOrEqualOptimizer : BaseBinaryOptimizer
 	public override IEnumerable<IBinaryStrategy> GetStrategies()
 	{
 		yield return new LessThanOrEqualReflexiveStrategy();
-		// yield return new LessThanOrEqualCountZeroStrategy();
+		yield return new LessThanOrEqualCountZeroStrategy();
 		yield return new LessThanOrEqualUnsignedZeroStrategy();
 		yield return new LessThanOrEqualReverseStrategy();
 	}
