@@ -47,17 +47,26 @@ To add a function optimizer (e.g., for a new Math method):
 3. Override `TryOptimize(FunctionOptimizerContext, out SyntaxNode?)` — no registration needed; **optimizers are discovered via reflection** in `ConstExprPartialRewriter`
 4. For binary optimizers, implement `IBinaryStrategy` and add it to the relevant optimizer's `GetStrategies()`
 
-## Build & Test Commands
+## Test Commands
 
 # Run all tests (TUnit on Microsoft.Testing.Platform)
-dotnet test --project ConstExpr.Tests --disable-logo
+dotnet test --project ConstExpr.Tests --disable-logo --no-progress
+
+# Run tests from class
+
+dotnet test --project ConstExpr.Tests --disable-logo --no-progress --treenode-filter '/*/*/<Class name>/*'
+
+# Run specific test
+
+dotnet test --project ConstExpr.Tests --disable-logo --no-progress --treenode-filter '/<Assembly>/<Namespace>/<Class name>/<Test name>'~~~~
 
 # Get List of all Tests with their Fully Qualified Names (FQNs)
 dotnet test --project ConstExpr.Tests --list-tests
 
+# Get List of all test with specific name pattern (e.g., all tests in AbsoluteDifferenceTest class)
+dotnet test --project ConstExpr.Tests --list-tests --disable-logo | grep 'AbsoluteDifferenceTest'
 
-# Run specific test
-dotnet test --project ConstExpr.Tests --treenode-filter /<Assembly>/<Namespace>/<Class name>/<Test name>
+
 
 - Wildcard matching: Use * for pattern matching (e.g., LoginTests* matches LoginTests, LoginTestsSuite, etc.)
 - Equality: Use = for exact match (e.g., [Category=Unit])
@@ -72,12 +81,11 @@ dotnet test --project ConstExpr.Tests --treenode-filter /<Assembly>/<Namespace>/
 
 ## IDE Tool Usage
 
-**Always prefer IDE tools over the terminal** for any task that the IDE tools can perform. Never use terminal commands when an equivalent IDE tool is available.
+**Always prefer IDE tools over the terminal (except for unit tests) ** for any task that the IDE tools can perform. Never use terminal commands when an equivalent IDE tool is available.
 
 | Task | Use IDE tool | Do NOT use terminal |
 |---|---|---|
 | Build / compile | `build_project` | `dotnet build` |
-| Discover run configurations | `get_run_configurations` | — |
 | Start or stop a debug session | `rider-debugger_list_run_configurations` / `rider-debugger_start_debug_session` / `rider-debugger_stop_debug_session` | `lldb` / `gdb` / ad-hoc CLI debugging |
 | Resume, pause, or run to a line while debugging | `rider-debugger_resume_execution` / `rider-debugger_pause_execution` / `rider-debugger_run_to_line` / `rider-debugger_wait_for_pause` | manual debugger commands in a terminal |
 | Step through code while debugging | `rider-debugger_step_over` / `rider-debugger_step_into` / `rider-debugger_step_out` | manual debugger commands in a terminal |
