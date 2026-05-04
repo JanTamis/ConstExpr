@@ -54,11 +54,11 @@ dotnet test --project ConstExpr.Tests --disable-logo --no-progress
 
 # Run tests from class
 
-dotnet test --project ConstExpr.Tests --disable-logo --no-progress --treenode-filter '/*/*/<Class name>/*'
+dotnet test --project ConstExpr.Tests --disable-logo --no-ansi --no-progress --treenode-filter '/*/*/<Class name>/*'
 
 # Run specific test
 
-dotnet test --project ConstExpr.Tests --disable-logo --no-progress --treenode-filter '/<Assembly>/<Namespace>/<Class name>/<Test name>'~~~~
+dotnet test --project ConstExpr.Tests --disable-logo --no-ansi --no-progress --treenode-filter '/<Assembly>/<Namespace>/<Class name>/<Test name>'~~~~
 
 # Get List of all Tests with their Fully Qualified Names (FQNs)
 dotnet test --project ConstExpr.Tests --list-tests

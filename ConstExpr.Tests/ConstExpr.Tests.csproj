@@ -11,8 +11,6 @@
 		<UseNewTestRunner>true</UseNewTestRunner>
 		<!-- Explicitly opt into Microsoft Testing Platform -->
 		<UseMicrosoftTestingPlatform>true</UseMicrosoftTestingPlatform>
-		<!-- Keep coverage tooling opt-in so local runs start faster. -->
-		<EnableCoverage>false</EnableCoverage>
 	</PropertyGroup>
 
 	<ItemGroup Condition="'$(EnableCoverage)' == 'true'">
