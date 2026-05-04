@@ -110,7 +110,7 @@ public static class ParenthesizedExpressionSyntaxExtensions
 		}
 
 		// checked((x)) -> checked(x)
-		if (parent.Kind() is SyntaxKind.CheckedExpression or SyntaxKind.UncheckedExpression)
+		if (parent?.Kind() is SyntaxKind.CheckedExpression or SyntaxKind.UncheckedExpression)
 		{
 			return true;
 		}

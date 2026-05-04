@@ -120,7 +120,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				var methodGroups = processedModels.GroupBy(m => m.OriginalMethod, SyntaxNodeComparer.Get<MethodDeclarationSyntax?>());
 
 				if (modelAndCompilation.Left.Right.GetTypeByMetadataName("System.Runtime.CompilerServices.InterceptsLocationAttribute") is null
-				    && methodGroups.Any())
+						&& methodGroups.Any())
 				{
 					spc.AddSource("InterceptsLocationAttribute.g.cs", """
 						using System;
@@ -188,7 +188,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		var code = new IndentedCodeWriter(compilation);
 
 		var distinctUsings = methodGroup
-			.SelectMany(m => m?.Usings ?? [ ])
+			.SelectMany(m => m?.Usings ?? [])
 			.ToSet();
 
 		var distinctAdditionalMethods = methodGroup
@@ -297,8 +297,8 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 	private InvocationModel? GenerateSource(GeneratorSyntaxContext context, CancellationToken token)
 	{
 		if (context.Node is not InvocationExpressionSyntax invocation
-		    || !TryGetSymbol(context.SemanticModel, invocation, token, out var methodSymbol)
-		    || !methodSymbol.IsStatic)
+				|| !TryGetSymbol(context.SemanticModel, invocation, token, out var methodSymbol)
+				|| !methodSymbol.IsStatic)
 		{
 			return null;
 		}
@@ -308,13 +308,13 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			.Concat(methodSymbol.ContainingAssembly.GetAttributes());
 
 		var attribute = attributes.FirstOrDefault(IsAttribute<ConstEvalAttribute>)
-		                ?? attributes.FirstOrDefault(IsAttribute<ConstExprAttribute>);
+										?? attributes.FirstOrDefault(IsAttribute<ConstExprAttribute>);
 
 		// Check for ConstExprAttribute on type or method
 		// Store minimal info here; defer heavy MetadataLoader creation until RegisterSourceOutput
 		if (attribute is not null
-		    && !IsInConstEvalBody(context.SemanticModel.Compilation, invocation)
-		    && !IsInConstExprBody(context.SemanticModel.Compilation, invocation))
+				&& !IsInConstEvalBody(context.SemanticModel.Compilation, invocation)
+				&& !IsInConstExprBody(context.SemanticModel.Compilation, invocation))
 		{
 			// Note: We skip IsContainingMethodInvoked check here since we don't have RoslynApiCache yet
 			// This check will be done later in RegisterSourceOutput with the shared cache
@@ -331,7 +331,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 	}
 
 	public static InvocationModel? GenerateExpression(SemanticModel semanticModel, MetadataLoader loader, InvocationExpressionSyntax invocation,
-	                                                  IMethodSymbol methodSymbol, ConstExprAttribute attribute, RoslynApiCache apiCache, CancellationToken token)
+																										IMethodSymbol methodSymbol, ConstExprAttribute attribute, RoslynApiCache apiCache, CancellationToken token)
 	{
 		var methodDecl = GetMethodSyntaxNode(methodSymbol);
 
@@ -341,6 +341,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		}
 
 		var exceptions = new ConcurrentDictionary<SyntaxNode?, Exception>(SyntaxNodeComparer.Get());
+		var symbolStore = new ConcurrentDictionary<ulong, ISymbol>();
 
 		var visitor = new ConstExprOperationVisitor(semanticModel, loader, (operation, ex) =>
 		{
@@ -348,7 +349,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		}, token);
 
 		if ( //exceptions.IsEmpty
-		    semanticModel.Compilation.TryGetSemanticModel(methodDecl, out var model))
+				semanticModel.Compilation.TryGetSemanticModel(methodDecl, out var model))
 		{
 			var usings = new HashSet<string?>
 			{
@@ -360,33 +361,33 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			var variablesPartial = ProcessArguments(visitor, semanticModel, invocation, loader, apiCache, token);
 			var additionalMethods = new Dictionary<SyntaxNode, bool>(SyntaxNodeComparer.Get());
 
-			// var analyzer = new InlineVariableAnalyzer(semanticModel);
-			// var candidates = analyzer.FindInlineCandidates(methodDecl.Body!);
-			//
-			// foreach (var candidate in candidates)
-			// {
-			// 	var name = candidate.Symbol.Name;
-			//
-			// 	if (variablesPartial.TryGetValue(name, out var variable))
-			// 	{
-			// 		variable.CanBeInlined = true;
-			// 	}
-			// 	else
-			// 	{
-			// 		variablesPartial.Add(name, new VariableItem(
-			// 			type: candidate.Symbol.Type, // Type is not needed for inlining, as the value will be directly substituted
-			// 			hasValue: false,
-			// 			value: null)
-			// 		{
-			// 			CanBeInlined = true,
-			// 		});
-			// 	}
-			// }
+			var analyzer = new InlineVariableAnalyzer(semanticModel, symbolStore);
+			var candidates = analyzer.FindInlineCandidates(methodDecl.Body!);
+
+			foreach (var candidate in candidates)
+			{
+				var name = candidate.Symbol.Name;
+
+				if (variablesPartial.TryGetValue(name, out var variable))
+				{
+					variable.CanBeInlined = true;
+				}
+				else
+				{
+					variablesPartial.Add(name, new VariableItem(
+						type: candidate.Symbol.Type, // Type is not needed for inlining, as the value will be directly substituted
+					 hasValue: false,
+						value: null)
+					{
+						CanBeInlined = true,
+					});
+				}
+			}
 
 			var partialVisitor = new ConstExprPartialRewriter(model, loader, (node, ex) =>
 			{
 				exceptions.TryAdd(node, ex);
-			}, variablesPartial, additionalMethods, usings, attribute, new(), token);
+			}, variablesPartial, additionalMethods, usings, attribute, symbolStore, token);
 
 			var timer = Stopwatch.StartNew();
 
@@ -402,7 +403,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			timer.Stop();
 
 			if (result2 is BlockSyntax blockSyntax
-			    && blockSyntax.GetDeterministicHash() == methodDecl.Body.GetDeterministicHash())
+					&& blockSyntax.GetDeterministicHash() == methodDecl.Body.GetDeterministicHash())
 			{
 				return null;
 			}
@@ -427,7 +428,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 					resultMethod = resultMethod
 						.WithBody(null)
 						.WithExpressionBody(ArrowExpressionClause(returnExpression).WithTrailingTrivia())
-						.WithSemicolonToken(Token(SyntaxKind.SemicolonToken));	
+						.WithSemicolonToken(Token(SyntaxKind.SemicolonToken));
 				}
 				else
 				{
@@ -453,7 +454,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		}
 
 		return null;
-		
+
 		bool CanBeExpressionBody(SyntaxNode? node)
 		{
 			return node switch

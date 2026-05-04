@@ -1,13 +1,15 @@
-using System.Collections.Generic;
-using System.Linq;
+using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace ConstExpr.SourceGenerator.BuildIn;
 
-public sealed class InlineVariableAnalyzer(SemanticModel semanticModel)
+public sealed class InlineVariableAnalyzer(SemanticModel semanticModel, ConcurrentDictionary<ulong, ISymbol> symbolStore)
 {
 	public IReadOnlyList<InlineCandidate> FindInlineCandidates(SyntaxNode root)
 	{
@@ -37,7 +39,7 @@ public sealed class InlineVariableAnalyzer(SemanticModel semanticModel)
 			return false;
 		}
 
-		if (semanticModel.GetDeclaredSymbol(variable) is not ILocalSymbol symbol)
+		if (!semanticModel.TryGetSymbol(variable, symbolStore, out ILocalSymbol? symbol))
 		{
 			return false;
 		}

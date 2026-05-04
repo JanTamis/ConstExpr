@@ -1350,12 +1350,12 @@ public static class CompilationExtensions
 		return false;
 	}
 
-	public static bool TryGetMethodSymbol(this SemanticModel semanticModel, ExpressionSyntax? node, ConcurrentDictionary<ulong, ISymbol> symbolStore, [NotNullWhen(true)] out IMethodSymbol? value)
+	public static bool TryGetMethodSymbol(this SemanticModel semanticModel, SyntaxNode? node, ConcurrentDictionary<ulong, ISymbol> symbolStore, [NotNullWhen(true)] out IMethodSymbol? value)
 	{
 		return semanticModel.TryGetSymbol(node, symbolStore, out value);
 	}
 
-	public static bool TryGetSymbol<TSymbol>(this SemanticModel semanticModel, ExpressionSyntax? node, ConcurrentDictionary<ulong, ISymbol> symbolStore, [NotNullWhen(true)] out TSymbol? value) where TSymbol : ISymbol
+	public static bool TryGetSymbol<TSymbol>(this SemanticModel semanticModel, SyntaxNode? node, ConcurrentDictionary<ulong, ISymbol> symbolStore, [NotNullWhen(true)] out TSymbol? value) where TSymbol : ISymbol
 	{
 		try
 		{

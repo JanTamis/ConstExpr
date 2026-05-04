@@ -167,11 +167,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			accessVariables.Add(state.ParameterNames[i], 0);
 		}
 		
-		// var walker = new AccessWalker(accessVariables);
-		//
-		// walker.VisitBlock(state.Method.Body!);
-
-		var analyzer = new InlineVariableAnalyzer(state.SemanticModel);
+		var analyzer = new InlineVariableAnalyzer(state.SemanticModel, symbolStore);
 		var candidates = analyzer.FindInlineCandidates(state.Method.Body!);
 
 		foreach (var candidate in candidates)
@@ -194,9 +190,6 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			}
 		}
 		
-		// Inline(state.Method.Body!, parameters, state.SemanticModel);
-
-
 		for (var i = 0; i < testCase.Value.Length; i++)
 		{
 			var name = state.ParameterNames[i];
