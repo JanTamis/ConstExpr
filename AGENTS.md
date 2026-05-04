@@ -47,6 +47,29 @@ To add a function optimizer (e.g., for a new Math method):
 3. Override `TryOptimize(FunctionOptimizerContext, out SyntaxNode?)` — no registration needed; **optimizers are discovered via reflection** in `ConstExprPartialRewriter`
 4. For binary optimizers, implement `IBinaryStrategy` and add it to the relevant optimizer's `GetStrategies()`
 
+## Build & Test Commands
+
+# Run all tests (TUnit on Microsoft.Testing.Platform)
+dotnet test --project ConstExpr.Tests --disable-logo
+
+# Get List of all Tests with their Fully Qualified Names (FQNs)
+dotnet test --project ConstExpr.Tests --list-tests
+
+
+# Run specific test
+dotnet test --project ConstExpr.Tests --treenode-filter /<Assembly>/<Namespace>/<Class name>/<Test name>
+
+- Wildcard matching: Use * for pattern matching (e.g., LoginTests* matches LoginTests, LoginTestsSuite, etc.)
+- Equality: Use = for exact match (e.g., [Category=Unit])
+- Negation: Use != for excluding values (e.g., [Category!=Performance])
+- Use & to combine conditions within a single path segment or property group, with each side wrapped in parentheses. Examples:
+  - AND across path patterns: /*/*/(ClassA*)&(*Smoke)/*
+  - AND across properties: /**[(Category=Unit)&(Priority=High)]
+- OR operator: Use | the same way — within a single segment or property group, with parentheses. Examples:
+  - OR across classes: /*/*/(Class1)|(Class2)/*
+  - OR across properties: /**[(Category=Smoke)|(Priority=High)]
+- Match-all: ** matches any path depth (e.g., /** or /MyAssembly/**). It must appear at the end of the path — /**/Path is not allowed.
+
 ## IDE Tool Usage
 
 **Always prefer IDE tools over the terminal** for any task that the IDE tools can perform. Never use terminal commands when an equivalent IDE tool is available.
@@ -54,7 +77,6 @@ To add a function optimizer (e.g., for a new Math method):
 | Task | Use IDE tool | Do NOT use terminal |
 |---|---|---|
 | Build / compile | `build_project` | `dotnet build` |
-| Run a project or test suite | `execute_run_configuration` | `dotnet run` / `dotnet test` |
 | Discover run configurations | `get_run_configurations` | — |
 | Start or stop a debug session | `rider-debugger_list_run_configurations` / `rider-debugger_start_debug_session` / `rider-debugger_stop_debug_session` | `lldb` / `gdb` / ad-hoc CLI debugging |
 | Resume, pause, or run to a line while debugging | `rider-debugger_resume_execution` / `rider-debugger_pause_execution` / `rider-debugger_run_to_line` / `rider-debugger_wait_for_pause` | manual debugger commands in a terminal |
