@@ -345,9 +345,24 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 				""");
 		}
 
-		var body = TestMethodHelper.ExtractLambdaBody(lambdaSource);
+		var body = TestMethodHelper.ExtractLambda(lambdaSource);
 
 		return KeyValuePair.Create<string?, object?[]>(body, parameters);
+	}
+
+	/// <summary>
+	/// Helper method to create test cases where the expected body is expressed as a lambda delegate instead of a raw string.
+	/// The lambda source is captured via <see cref="CallerArgumentExpressionAttribute"/> and its body is extracted automatically.
+	/// </summary>
+	/// <param name="expectedBody">A delegate whose lambda body represents the expected optimized method body.</param>
+	/// <param name="lambdaSource">Auto-captured source of <paramref name="expectedBody"/> — do not pass explicitly.</param>
+	/// <returns>A key-value pair representing the test case.</returns>
+	protected static KeyValuePair<string?, object?[]> Create(TDelegate expectedBody, [CallerArgumentExpression(nameof(expectedBody))] string? lambdaSource = null)
+	{
+		var delegateParamCount = GetDelegateParameterCount();
+		var body = TestMethodHelper.ExtractLambda(lambdaSource);
+
+		return KeyValuePair.Create<string?, object?[]>(body, Enumerable.Repeat<object?>(Unknown, delegateParamCount).ToArray());
 	}
 
 	protected static string GetString(TDelegate method, [CallerArgumentExpression(nameof(method))] string? lambdaSource = null)

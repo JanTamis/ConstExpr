@@ -75,7 +75,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				// Do this filtering BEFORE parallel processing to reduce work
 				var relevantInvocations = modelAndCompilation.Left.Left
 					.Where(model => model is { AttributeData: not null, MethodSymbol: not null, Invocation: not null })
-					.Where(model => IsContainingMethodInvoked(compilation, model.Invocation, roslynApiCache, spc.CancellationToken))
+					.Where(model => callGraphAnalyzer.IsContainingMethodInvoked(model.Invocation, spc.CancellationToken))
 					.ToList(); // Materialize to avoid multiple enumeration
 
 				// Process all invocations in parallel with the shared loader
@@ -324,6 +324,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				Invocation = invocation,
 				MethodSymbol = methodSymbol,
 				AttributeData = attribute.ToAttribute<ConstExprAttribute>(),
+				CacheKey = $"{invocation.SyntaxTree.FilePath}:{invocation.SpanStart}:{invocation.Span.Length}:{methodSymbol.OriginalDefinition}",
 			};
 		}
 

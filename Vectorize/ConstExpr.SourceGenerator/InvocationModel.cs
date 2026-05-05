@@ -21,6 +21,7 @@ public class InvocationModel
 	
 	public IMethodSymbol? MethodSymbol { get; set; }
 	public ConstExprAttribute? AttributeData { get; set; }
+	public string? CacheKey { get; set; }
 
 	public InvocationExpressionSyntax? Invocation { get; set; }
 	

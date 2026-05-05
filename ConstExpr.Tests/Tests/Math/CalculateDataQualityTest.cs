@@ -19,6 +19,6 @@ public class CalculateDataQualityTest() : BaseTest<Func<double[], double>>(FastM
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return values.Length == 0 ? 0D : (double)values.Count(Double.IsFinite) / values.Length;"),
+		Create(values => values.Length == 0 ? 0D : (double)values.Count(Double.IsFinite) / values.Length, [Unknown]),
 	];
 }

@@ -8,6 +8,7 @@ using ConstExpr.Core.Attributes;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
+using ConstExpr.SourceGenerator.Optimizers;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.RegexOptimizers;
@@ -45,54 +46,10 @@ public partial class ConstExprPartialRewriter(
 	: BaseRewriter(semanticModel, loader, variables, symbolStore)
 {
 	#region Fields and Lazy Initializers
-
-	private readonly Lazy<Type[]> _stringOptimizers = new(() =>
-	{
-		return typeof(BaseStringFunctionOptimizer).Assembly
-			.GetTypes()
-			.Where(t => !t.IsAbstract && typeof(BaseStringFunctionOptimizer).IsAssignableFrom(t))
-			.ToArray();
-	}, isThreadSafe: true);
-
-	private readonly Lazy<BaseMathFunctionOptimizer[]> _mathOptimizers = new(() =>
-	{
-		return typeof(BaseMathFunctionOptimizer).Assembly
-			.GetTypes()
-			.Where(t => !t.IsAbstract && typeof(BaseMathFunctionOptimizer).IsAssignableFrom(t))
-			.Select(t => Activator.CreateInstance(t) as BaseMathFunctionOptimizer)
-			.OfType<BaseMathFunctionOptimizer>()
-			.ToArray();
-	}, isThreadSafe: true);
-
-	private readonly Lazy<BaseLinqFunctionOptimizer[]> _linqOptimizers = new(() =>
-	{
-		return typeof(BaseLinqFunctionOptimizer).Assembly
-			.GetTypes()
-			.Where(t => !t.IsAbstract && typeof(BaseLinqFunctionOptimizer).IsAssignableFrom(t))
-			.Select(Activator.CreateInstance)
-			.OfType<BaseLinqFunctionOptimizer>()
-			.ToArray();
-	}, isThreadSafe: true);
-
-	private readonly Lazy<BaseSimdFunctionOptimizer[]> _simdOptimizers = new(() =>
-	{
-		return typeof(BaseSimdFunctionOptimizer).Assembly
-			.GetTypes()
-			.Where(t => !t.IsAbstract && typeof(BaseSimdFunctionOptimizer).IsAssignableFrom(t))
-			.Select(Activator.CreateInstance)
-			.OfType<BaseSimdFunctionOptimizer>()
-			.ToArray();
-	}, isThreadSafe: true);
-
-	private readonly Lazy<BaseRegexFunctionOptimizer[]> _regexOptimizers = new(() =>
-	{
-		return typeof(BaseRegexFunctionOptimizer).Assembly
-			.GetTypes()
-			.Where(t => !t.IsAbstract && typeof(BaseRegexFunctionOptimizer).IsAssignableFrom(t))
-			.Select(Activator.CreateInstance)
-			.OfType<BaseRegexFunctionOptimizer>()
-			.ToArray();
-	}, isThreadSafe: true);
+	private static readonly BaseMathFunctionOptimizer[] _mathOptimizers = OptimizerRegistry.MathOptimizers;
+	private static readonly BaseLinqFunctionOptimizer[] _linqOptimizers = OptimizerRegistry.LinqOptimizers;
+	private static readonly BaseSimdFunctionOptimizer[] _simdOptimizers = OptimizerRegistry.SimdOptimizers;
+	private static readonly BaseRegexFunctionOptimizer[] _regexOptimizers = OptimizerRegistry.RegexOptimizers;
 
 	#endregion
 

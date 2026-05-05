@@ -6,6 +6,7 @@ using System.Linq;
 using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
+using ConstExpr.SourceGenerator.Optimizers;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using ConstExpr.SourceGenerator.Visitors;
@@ -23,12 +24,7 @@ namespace ConstExpr.SourceGenerator.Rewriters;
 /// </summary>
 public partial class ConstExprPartialRewriter
 {
-	private static readonly FrozenDictionary<BinaryOperatorKind, BaseBinaryOptimizer> _binaryOptimizers = typeof(BaseBinaryOptimizer).Assembly
-		.GetTypes()
-		.Where(t => !t.IsAbstract && typeof(BaseBinaryOptimizer).IsAssignableFrom(t))
-		.Select(t => Activator.CreateInstance(t) as BaseBinaryOptimizer)
-		.OfType<BaseBinaryOptimizer>()
-		.ToFrozenDictionary(t => t.Kind);
+	private static readonly FrozenDictionary<BinaryOperatorKind, BaseBinaryOptimizer> _binaryOptimizers = OptimizerRegistry.BinaryOptimizers;
 
 	/// <summary>
 	/// Strips unnecessary outer parentheses from an expression.

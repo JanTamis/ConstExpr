@@ -28,10 +28,10 @@ public class InvocationModelEqualityComparer : IEqualityComparer<InvocationModel
       return false;
     }
 
-    // Compare the invocation syntax text (this is what actually matters for caching)
-    // If the invocation text hasn't changed, we can reuse the cached result
-    return x.Invocation.ToString() == y.Invocation.ToString()
-			&& SymbolEqualityComparer.Default.Equals(x.MethodSymbol, y.MethodSymbol);
+		return string.Equals(x.CacheKey, y.CacheKey, System.StringComparison.Ordinal)
+			&& SymbolEqualityComparer.Default.Equals(x.MethodSymbol, y.MethodSymbol)
+			&& x.AttributeData?.MathOptimizations == y.AttributeData?.MathOptimizations
+			&& x.AttributeData?.LinqOptimisationMode == y.AttributeData?.LinqOptimisationMode;
 	}
 
 	public int GetHashCode(InvocationModel? obj)
@@ -41,14 +41,15 @@ public class InvocationModelEqualityComparer : IEqualityComparer<InvocationModel
       return 0;
     }
 
-    // Use a hash based on the invocation text and method symbol
     unchecked
 		{
 			int hash = 17;
-			hash = hash * 31 + obj.Invocation.ToString().GetHashCode();
+      hash = hash * 31 + (obj.CacheKey?.GetHashCode() ?? 0);
 			hash = hash * 31 + (obj.MethodSymbol != null 
 				? SymbolEqualityComparer.Default.GetHashCode(obj.MethodSymbol) 
 				: 0);
+			hash = hash * 31 + (obj.AttributeData?.MathOptimizations.GetHashCode() ?? 0);
+			hash = hash * 31 + (obj.AttributeData?.LinqOptimisationMode.GetHashCode() ?? 0);
 			return hash;
 		}
 	}
