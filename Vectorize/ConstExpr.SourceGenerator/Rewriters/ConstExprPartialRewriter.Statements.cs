@@ -505,7 +505,8 @@ public partial class ConstExprPartialRewriter
 
 		var untilThrown = TakeUntilThrownStatements(visited);
 		var combined = CombineConsecutiveIfStatements(untilThrown, Visit);
-		var simplified = SimplifyIfReturnPatterns(combined);
+		var mergedIfChain = MergeMixedBoolReturnIfs(combined);
+		var simplified = SimplifyIfReturnPatterns(mergedIfChain);
 
 		return node.WithStatements(simplified);
 	}
@@ -717,6 +718,159 @@ public partial class ConstExprPartialRewriter
 		}
 
 		return false;
+	}
+
+	/// <summary>
+	/// Merges a consecutive run of if-statements (each returning a boolean literal, no else)
+	/// that contains a mix of <c>return true</c> and <c>return false</c> into a single
+	/// <c>if (...) return false;</c> statement.
+	/// <para>
+	/// For each if-statement in the run:
+	/// <list type="bullet">
+	///   <item>If it returns <c>false</c> → its condition is added to the OR chain as-is.</item>
+	///   <item>If it returns <c>true</c>  → its condition is negated and added to the OR chain,
+	///     because reaching a subsequent <c>return false</c> requires the <c>return true</c>
+	///     guard to have been skipped (i.e., its condition was false).</item>
+	/// </list>
+	/// </para>
+	/// Example:
+	/// <code>
+	/// if (n &lt;= 1) return false;
+	/// if (n &lt;= 3) return true;
+	/// if (IsEven(n) || n % 3 == 0) return false;
+	/// </code>
+	/// becomes:
+	/// <code>
+	/// if (n &lt;= 1 || n &gt; 3 || IsEven(n) || n % 3 == 0) return false;
+	/// </code>
+	/// </summary>
+	private SyntaxList<StatementSyntax> MergeMixedBoolReturnIfs(SyntaxList<StatementSyntax> statements)
+	{
+		if (statements.Count < 2)
+		{
+			return statements;
+		}
+
+		var result = new List<StatementSyntax>();
+		var i = 0;
+
+		while (i < statements.Count)
+		{
+			var runStart = i;
+			var run = new List<(ExpressionSyntax Condition, bool ReturnValue)>();
+
+			while (i < statements.Count && TryGetIfBoolReturnBody(statements[i], out var cond, out var retVal))
+			{
+				run.Add((cond!, retVal));
+				i++;
+			}
+
+			// Only merge when there are at least 2 ifs with mixed true/false returns
+			if (run.Count >= 2 && run.Any(r => r.ReturnValue) && run.Any(r => !r.ReturnValue))
+			{
+				// Build combined OR condition:
+				// - "return false" conditions → keep as-is
+				// - "return true" conditions → negate (they act as guards; skipping them means we fall through to the false path)
+				ExpressionSyntax? combined = null;
+
+				foreach (var (cond, retVal) in run)
+				{
+					var part = retVal ? NegateCondition(cond) : cond;
+
+					if (combined is null)
+					{
+						combined = part;
+					}
+					else
+					{
+						combined = LogicalOrExpression(
+							NeedsParenthesesInOrContext(combined) ? ParenthesizedExpression(combined) : combined,
+							NeedsParenthesesInOrContext(part) ? ParenthesizedExpression(part) : part);
+					}
+				}
+
+				result.Add(IfStatement(
+					Visit(combined!) as ExpressionSyntax ?? combined,
+					ReturnStatement(LiteralExpression(SyntaxKind.FalseLiteralExpression))));
+			}
+			else if (run.Count > 0)
+			{
+				// Run is all-same-value — add back unchanged
+				for (var k = runStart; k < runStart + run.Count; k++)
+				{
+					result.Add(statements[k]);
+				}
+			}
+			else
+			{
+				// Current statement is not a bool-return if — add it as-is and advance
+				result.Add(statements[i]);
+				i++;
+			}
+		}
+
+		return List(result);
+	}
+
+	/// <summary>
+	/// Tries to extract the condition and boolean return value from an if-statement whose body
+	/// is a single <c>return true;</c> or <c>return false;</c> (with or without braces) and
+	/// that has no else clause.
+	/// </summary>
+	private static bool TryGetIfBoolReturnBody(
+		StatementSyntax statement,
+		out ExpressionSyntax? condition,
+		out bool returnValue)
+	{
+		condition = null;
+		returnValue = false;
+
+		if (statement is not IfStatementSyntax { Else: null } ifStmt)
+		{
+			return false;
+		}
+
+		var ret = ifStmt.Statement switch
+		{
+			ReturnStatementSyntax r => r,
+			BlockSyntax { Statements: [ReturnStatementSyntax r] } => r,
+			_ => null
+		};
+
+		if (ret?.Expression is not LiteralExpressionSyntax lit)
+		{
+			return false;
+		}
+
+		if (lit.IsKind(SyntaxKind.TrueLiteralExpression))
+		{
+			condition = ifStmt.Condition;
+			returnValue = true;
+			return true;
+		}
+
+		if (lit.IsKind(SyntaxKind.FalseLiteralExpression))
+		{
+			condition = ifStmt.Condition;
+			returnValue = false;
+			return true;
+		}
+
+		return false;
+	}
+
+	/// <summary>
+	/// Negates a condition, preferring a direct inversion (e.g., <c>n &lt;= 3</c> → <c>n &gt; 3</c>)
+	/// over wrapping in <c>!(…)</c>.
+	/// </summary>
+	private static ExpressionSyntax NegateCondition(ExpressionSyntax condition)
+	{
+		if (InvertLogicalRefactoring.TryInvertLogical(condition as BinaryExpressionSyntax, out var inverted))
+		{
+			return inverted;
+		}
+
+		return NegateExpressionRefactoring.Negate(condition);
 	}
 
 	/// <summary>
