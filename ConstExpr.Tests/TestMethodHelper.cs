@@ -59,6 +59,33 @@ public static class TestMethodHelper
 		return "{\n\treturn " + body + ";\n}";
 	}
 
+	public static string ExtractLambda(string? lambdaSource)
+	{
+		if (string.IsNullOrWhiteSpace(lambdaSource))
+		{
+			return "throw new NotImplementedException();";
+		}
+
+		// Find the lambda body (after =>)
+		var arrowIndex = lambdaSource.IndexOf("=>", StringComparison.Ordinal);
+
+		if (arrowIndex < 0)
+		{
+			return "throw new NotImplementedException();";
+		}
+
+		var body = lambdaSource.Substring(arrowIndex + 2).Trim();
+
+		// If body starts with {, return body
+		if (body.StartsWith('{'))
+		{
+			return body.Trim('{', '}').Trim();
+		}
+
+		// Expression lambda - wrap in return statement
+		return "return " + body + ";";
+	}
+
 	public static string GetTypeName(Type type)
 	{
 		if (type == typeof(void)) return "void";
