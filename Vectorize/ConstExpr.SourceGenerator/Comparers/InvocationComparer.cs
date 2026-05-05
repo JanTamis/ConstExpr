@@ -43,7 +43,7 @@ public class InvocationModelEqualityComparer : IEqualityComparer<InvocationModel
 
     unchecked
 		{
-			int hash = 17;
+			var hash = 17;
       hash = hash * 31 + (obj.CacheKey?.GetHashCode() ?? 0);
 			hash = hash * 31 + (obj.MethodSymbol != null 
 				? SymbolEqualityComparer.Default.GetHashCode(obj.MethodSymbol) 
