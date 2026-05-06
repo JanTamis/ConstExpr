@@ -38,7 +38,7 @@ public class ReplaceFunctionOptimizer() : BaseRegexFunctionOptimizer("Replace", 
 		}
 
 		// For 4-argument overloads the options (param[3]) must also be constant.
-		if (context.VisitedParameters.Count == 4 && TryGetLiteralValue(context.VisitedParameters[3], context, out _))
+		if (context.VisitedParameters.Count == 4 && !TryGetLiteralValue(context.VisitedParameters[3], context, out _))
 		{
 			return false;
 		}

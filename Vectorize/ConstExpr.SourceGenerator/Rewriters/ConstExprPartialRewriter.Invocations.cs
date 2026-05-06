@@ -372,7 +372,6 @@ public partial class ConstExprPartialRewriter
 			return null;
 		}
 
-
 		var context = GetFunctionOptimizerContext(model, targetMethod, node, visitedArguments, originalArguments);
 
 		return _mathOptimizers

@@ -38,31 +38,38 @@ public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", n => n is
 
 		if (paramType.IsInteger())
 		{
-			context.Usings.Add("System.Runtime.CompilerServices");
-			context.Usings.Add("System.Numerics");
+			var method = GenerateFastAbsMethodInteger(context);
 
-			var method = ParseMethodFromString("""
-				/// <summary>
-				/// Computes absolute value using branchless bit manipulation.
-				/// Note: Does NOT work correctly for <c>T.MinValue</c> due to two's complement overflow.
-				/// </summary>
-				private static T AbsFast<T>(T x) where T : IBinaryInteger<T>
-				{
-					var bits = Unsafe.SizeOf<T>() * 8 - 1;
-					var mask = x >> bits;
-
-					return (x + mask) ^ mask;
-				}
-				""");
-
-			context.AdditionalSyntax.TryAdd(method, false);
-
-			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);
+			result = CreateInvocation(method, context.VisitedParameters);
 			return true;
 		}
 
 		// Default: keep as Abs call (target numeric helper type)
 		result = CreateInvocation(paramType, Name, context.VisitedParameters);
 		return true;
+	}
+
+	public static string GenerateFastAbsMethodInteger(FunctionOptimizerContext context)
+	{
+		context.Usings.Add("System.Runtime.CompilerServices");
+		context.Usings.Add("System.Numerics");
+
+		var method = ParseMethodFromString("""
+			/// <summary>
+			/// Computes absolute value using branchless bit manipulation.
+			/// Note: Does NOT work correctly for <c>T.MinValue</c> due to two's complement overflow.
+			/// </summary>
+			private static T AbsFast<T>(T x) where T : IBinaryInteger<T>
+			{
+				var bits = Unsafe.SizeOf<T>() * 8 - 1;
+				var mask = x >> bits;
+
+				return (x + mask) ^ mask;
+			}
+			""");
+
+		context.AdditionalSyntax.TryAdd(method, false);
+		
+		return method.Identifier.Text;
 	}
 }

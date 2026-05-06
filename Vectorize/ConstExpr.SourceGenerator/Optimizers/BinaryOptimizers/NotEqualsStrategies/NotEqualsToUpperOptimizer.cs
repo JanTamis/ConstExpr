@@ -17,7 +17,7 @@ public class NotEqualsToUpperOptimizer : CharBinaryStrategy<InvocationExpression
 		{
 			return false;
 		}
-		
+
 		var leftArgument = context.Left.Syntax.ArgumentList.Arguments.FirstOrDefault()?.Expression;
 		var rightArgument = context.Right.Syntax.ArgumentList.Arguments.FirstOrDefault()?.Expression;
 
@@ -39,10 +39,10 @@ public class NotEqualsToUpperOptimizer : CharBinaryStrategy<InvocationExpression
 
 			return true;
 		}
-		
+
 		return false;
 	}
-	
+
 	private bool IsUpperInvocation(InvocationExpressionSyntax invocation)
 	{
 		return invocation.Expression is MemberAccessExpressionSyntax { Name.Identifier.Text: nameof(Char.ToUpper) };

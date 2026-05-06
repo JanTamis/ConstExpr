@@ -83,7 +83,7 @@ public abstract class BaseFunctionOptimizer
 		var wrappedCode = $$"""
 			public class TempClass
 			{
-				{{methodString}}
+			{{methodString}}
 			}
 			""";
 

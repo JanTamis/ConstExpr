@@ -81,6 +81,17 @@ public partial class ConstExprPartialRewriter
 			return VisitIsPatternExpression(orPattern);
 		}
 
+		// Convert `x != a && x != b && x != c` → `x is not a and not b and not c`
+		// so TryCollectNotConstantAndChain can then merge them into a single bitmask check.
+		// Only apply to pure != chains to avoid interfering with range-check patterns like
+		// `c >= 'A' && c <= 'Z'` which have their own dedicated optimizations.
+		if (IsNotEqualsChain(node)
+		    && UsePatternMatchingRefactoring.TryConvertAndChainToAndPattern(node, out var andPattern, semanticModel)
+		    && !TryGetLiteralValue(andPattern.Expression, out _))
+		{
+			return VisitIsPatternExpression(andPattern);
+		}
+
 		var left = Visit(node.Left);
 		var right = Visit(node.Right);
 
@@ -165,8 +176,7 @@ public partial class ConstExprPartialRewriter
 
 			if (TryOptimizeNode(node.OperatorToken.Kind().ToBinaryOperatorKind(), expressions, operation?.Type, nodeLeftExpr, operation?.LeftOperand.Type, nodeRightExpr, operation?.RightOperand.Type, node.Parent, out var optimizedNode))
 			{
-				if (node.Parent is not BinaryExpressionSyntax
-				    && optimizedNode is IsPatternExpressionSyntax pattern)
+				if (optimizedNode is IsPatternExpressionSyntax pattern)
 				{
 					return VisitIsPatternExpression(pattern);
 				}
@@ -361,6 +371,20 @@ public partial class ConstExprPartialRewriter
 
 		return IsTypeMatchByName(typeInfo, valueType);
 	}
+
+	/// <summary>
+	/// Returns true when every leaf in a <c>&amp;&amp;</c> tree is a <c>!=</c> comparison.
+	/// Used to guard the AND-chain → negated pattern conversion so that range checks like
+	/// <c>c &gt;= 'A' &amp;&amp; c &lt;= 'Z'</c> are not intercepted.
+	/// </summary>
+	private static bool IsNotEqualsChain(ExpressionSyntax expr) =>
+		expr switch
+		{
+			BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LogicalAndExpression } and_ =>
+				IsNotEqualsChain(and_.Left) && IsNotEqualsChain(and_.Right),
+			BinaryExpressionSyntax { RawKind: (int) SyntaxKind.NotEqualsExpression } => true,
+			_ => false,
+		};
 
 	/// <summary>
 	/// Checks if the type matches by name, interface, or inheritance.
@@ -956,12 +980,18 @@ public partial class ConstExprPartialRewriter
 		// Groups of expressions per cluster: within a cluster combine with &&, across clusters combine with ||
 		var clusterResults = new List<List<ExpressionSyntax>>();
 
+		// char arithmetic (char - char) yields int in C#, so the range check must use uint
+		// to correctly handle chars below the minimum (which would otherwise be negative ints).
+		var rangeCheckUnsignedType = type.SpecialType == SpecialType.System_Char
+			? semanticModel.Compilation.GetSpecialType(SpecialType.System_UInt32)
+			: unsignedType;
+
 		foreach (var cluster in constants.GetClusterPatterns())
 		{
 			var minValue = cluster.Start;
 			var maxValue = cluster.End;
 
-			if (!TryCreateLiteral(maxValue.Subtract(minValue).ToSpecialType(unsignedType.SpecialType), out var unsigneddiff))
+			if (!TryCreateLiteral(maxValue.Subtract(minValue).ToSpecialType(rangeCheckUnsignedType.SpecialType), out var unsigneddiff))
 			{
 				return false;
 			}
@@ -977,10 +1007,12 @@ public partial class ConstExprPartialRewriter
 			if (!minValue.IsNumericZero()
 			    && TryCreateLiteral(minValue, out var minLit))
 			{
-				expression = isUnsigedType
+				// For char: char - char = int in C#, so cast the subtraction result to uint
+				// to correctly handle chars below the cluster minimum (avoiding negative int comparisons).
+				expression = isUnsigedType && type.SpecialType != SpecialType.System_Char
 					? SubtractExpression(pattern.Expression, minLit)
 					: CastExpression(
-						ParseTypeName(semanticModel.Compilation.GetMinimalString(unsignedType)),
+						ParseTypeName(semanticModel.Compilation.GetMinimalString(rangeCheckUnsignedType)),
 						ParenthesizedExpression(SubtractExpression(pattern.Expression, minLit)));
 			}
 

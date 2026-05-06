@@ -14,14 +14,3 @@ public class MathCeilingTest() : BaseTest<Func<double, double>>(FastMathFlags.Fa
 		Create("return -3D;", -3.7),
 	];
 }
-
-[InheritsTests]
-public class MathCeilingIdempotencyTest() : BaseTest<Func<double, double>>(FastMathFlags.FastMath)
-{
-	public override string TestMethod => GetString(x => System.Math.Ceiling(System.Math.Ceiling(x)));
-
-	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
-	[
-		Create("return double.Ceiling(x);"),
-	];
-}

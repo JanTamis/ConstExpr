@@ -17,32 +17,26 @@ public class NotEqualsToLowerOptimizer : CharBinaryStrategy<InvocationExpression
 		{
 			return false;
 		}
-		
+
 		var leftArgument = context.Left.Syntax.ArgumentList.Arguments.FirstOrDefault()?.Expression;
 		var rightArgument = context.Right.Syntax.ArgumentList.Arguments.FirstOrDefault()?.Expression;
 
-		if (leftArgument != null && rightArgument != null)
+		if (leftArgument != null
+		    && rightArgument != null)
 		{
-			// Create !Char.Equals(leftArgument, rightArgument) expression
+			// Create !leftArgument.Equals(rightArgument) expression
 			optimized = LogicalNotExpression(
 				InvocationExpression(
-					MemberAccessExpression(IdentifierName("Char"), IdentifierName("Equals")),
-					ArgumentList(
-						SeparatedList([
-							Argument(leftArgument),
-							Argument(rightArgument)
-						])
-					)
-				)
-			);
+					MemberAccessExpression(leftArgument, IdentifierName("Equals")),
+					ArgumentList(SingletonSeparatedList(Argument(rightArgument)))));
 
 
 			return true;
 		}
-		
+
 		return false;
 	}
-	
+
 	private bool IsToLowerInvocation(InvocationExpressionSyntax invocation)
 	{
 		return invocation.Expression is MemberAccessExpressionSyntax { Name.Identifier.Text: nameof(Char.ToLower) };

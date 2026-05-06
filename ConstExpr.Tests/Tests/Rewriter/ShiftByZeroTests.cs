@@ -1,0 +1,23 @@
+using ConstExpr.Core.Enumerators;
+
+namespace ConstExpr.Tests.Rewriter;
+
+/// <summary>Tests for binary shift strategies.</summary>
+[InheritsTests]
+public class ShiftByZeroTests() : BaseTest<Func<int, int>>(FastMathFlags.AssociativeMath)
+{
+	public override string TestMethod => GetString(x =>
+	{
+		var a = x << 0;
+		var b = x >> 0;
+		return a + b;
+	});
+
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
+	[
+		// x << 0 = x, x >> 0 = x → x + x → x << 1
+		Create("return x << 1;"),
+		Create("return 10;", 5),
+		Create("return -6;", -3),
+	];
+}

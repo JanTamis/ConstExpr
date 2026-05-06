@@ -496,7 +496,7 @@ public partial class ConstExprPartialRewriter
 
 				// Build left-associative or-chain: c0 or c1 or c2 ...
 				PatternSyntax orChain = notConstants[0];
-				
+
 				for (var i = 1; i < notConstants.Count; i++)
 					orChain = BinaryPattern(SyntaxKind.OrPattern, orChain, notConstants[i]);
 
@@ -513,6 +513,12 @@ public partial class ConstExprPartialRewriter
 		if (TryOptimizeRangeCheckPattern(node, expression as ExpressionSyntax ?? node.Expression, out var rangeOptimized))
 		{
 			return rangeOptimized;
+		}
+
+		// Try to optimize outside-range OR patterns: `v is <= low or > high` -> `(uint)(v - (low + 1)) > (high - low - 1)`
+		if (TryOptimizeOutsideRangeOrPattern(node, expression as ExpressionSyntax ?? node.Expression, out var outsideRangeOptimized))
+		{
+			return outsideRangeOptimized;
 		}
 
 		// Try to optimize OR patterns into bitmask checks
@@ -733,11 +739,11 @@ public partial class ConstExprPartialRewriter
 			{
 				var mid = effectiveLower.Add(effectiveUpper).Divide(2.ToSpecialType(type.SpecialType));
 				var half = effectiveUpper.Subtract(effectiveLower).Divide(2.ToSpecialType(type.SpecialType));
-				
-				var argument = mid.IsNegative() 
-					? AddExpression(expression, CreateLiteral(mid.Negate())) 
-					: mid.IsNumericZero() 
-						? expression 
+
+				var argument = mid.IsNegative()
+					? AddExpression(expression, CreateLiteral(mid.Negate()))
+					: mid.IsNumericZero()
+						? expression
 						: SubtractExpression(expression, CreateLiteral(mid));
 
 				var invocation = InvocationExpression(MemberAccessExpression(
@@ -747,8 +753,8 @@ public partial class ConstExprPartialRewriter
 				result = LessThanOrEqualExpression(invocation, CreateLiteral(half));
 				return true;
 			}
-			
-			
+
+
 			return false;
 		}
 
@@ -758,7 +764,7 @@ public partial class ConstExprPartialRewriter
 		var range = effectiveUpper.Subtract(effectiveLower);
 
 		// Validate that the range is non-negative (empty range means predicate is always false)
-		if (range is IComparable comparableRange 
+		if (range is IComparable comparableRange
 		    && comparableRange.CompareTo(0.ToSpecialType(type.SpecialType)) < 0)
 		{
 			result = CreateLiteral(false);
@@ -786,8 +792,8 @@ public partial class ConstExprPartialRewriter
 				return false;
 			}
 
-			var subtraction = lowerLiteral is PrefixUnaryExpressionSyntax prefix 
-				? AddExpression(expression, prefix.Operand) 
+			var subtraction = lowerLiteral is PrefixUnaryExpressionSyntax prefix
+				? AddExpression(expression, prefix.Operand)
 				: SubtractExpression(expression, lowerLiteral);
 
 			optimizedExpr = isUnsignedType
@@ -804,6 +810,87 @@ public partial class ConstExprPartialRewriter
 
 		// Use LessThanOrEqual because both effective bounds are inclusive after adjustment
 		result = LessThanOrEqualExpression(optimizedExpr, rangeLiteral);
+		return true;
+	}
+
+	/// <summary>
+	/// Tries to optimize outside-range OR patterns like <c>v is &lt;= low or &gt; high</c> to
+	/// <c>(uint)(v - (low + 1)) &gt; (high - low - 1)</c>.
+	/// This optimization uses a single unsigned comparison instead of two signed comparisons.
+	/// </summary>
+	private bool TryOptimizeOutsideRangeOrPattern(IsPatternExpressionSyntax node, ExpressionSyntax expression, out ExpressionSyntax? result)
+	{
+		result = null;
+
+		if (node.Pattern is not BinaryPatternSyntax { OperatorToken.RawKind: (int) SyntaxKind.OrKeyword } binaryPattern)
+		{
+			return false;
+		}
+
+		if (!TryExtractOutsideRangeBounds(binaryPattern, out var upperBound, out var lowerBound, out var upperInclusive, out var lowerInclusive))
+		{
+			return false;
+		}
+
+		if (!semanticModel.TryGetTypeSymbol(expression, symbolStore, out var type)
+		    && !semanticModel.Compilation.TryGetTypeByType(upperBound?.GetType(), out type)
+		    && !semanticModel.Compilation.TryGetTypeByType(lowerBound?.GetType(), out type))
+		{
+			return false;
+		}
+
+		var effectiveLower = upperInclusive ? upperBound.Add(1.ToSpecialType(type.SpecialType)) : upperBound;
+		var effectiveUpper = lowerInclusive ? lowerBound.Subtract(1.ToSpecialType(type.SpecialType)) : lowerBound;
+
+		if (!semanticModel.Compilation.TryGetUnsignedType(type, out var unsignedType))
+		{
+			return false;
+		}
+
+		var isUnsignedType = IsEqualSymbol(type, unsignedType);
+		var range = effectiveUpper.Subtract(effectiveLower);
+
+		if (range is IComparable comparableRange
+		    && comparableRange.CompareTo(0.ToSpecialType(type.SpecialType)) < 0)
+		{
+			result = CreateLiteral(true);
+			return true;
+		}
+
+		ExpressionSyntax optimizedExpr;
+
+		if (effectiveLower.IsNumericZero())
+		{
+			optimizedExpr = isUnsignedType
+				? expression
+				: CastExpression(
+					ParseTypeName(semanticModel.Compilation.GetMinimalString(unsignedType)),
+					expression);
+		}
+		else
+		{
+			if (!TryCreateLiteral(effectiveLower, out var lowerLiteral))
+			{
+				return false;
+			}
+
+			var subtraction = lowerLiteral is PrefixUnaryExpressionSyntax prefix
+				? AddExpression(expression, prefix.Operand)
+				: SubtractExpression(expression, lowerLiteral);
+
+			optimizedExpr = isUnsignedType
+				? subtraction
+				: CastExpression(
+					ParseTypeName(semanticModel.Compilation.GetMinimalString(unsignedType)),
+					ParenthesizedExpression(subtraction));
+		}
+
+		if (!TryCreateLiteral(range.ToSpecialType(unsignedType.SpecialType), out var rangeLiteral))
+		{
+			return false;
+		}
+
+		result = GreaterThanExpression(optimizedExpr, rangeLiteral);
 		return true;
 	}
 
@@ -960,6 +1047,89 @@ public partial class ConstExprPartialRewriter
 		// Determine inclusivity
 		lowerInclusive = lowerPattern.OperatorToken.IsKind(SyntaxKind.GreaterThanEqualsToken);
 		upperInclusive = upperPattern.OperatorToken.IsKind(SyntaxKind.LessThanEqualsToken);
+
+		return true;
+	}
+
+	/// <summary>
+	/// Extracts outside-range bounds from OR patterns.
+	/// Supports patterns like <c>&lt;= upper or &gt; lower</c> and <c>&lt; upper or &gt;= lower</c>.
+	/// </summary>
+	private bool TryExtractOutsideRangeBounds(
+		BinaryPatternSyntax binaryPattern,
+		out object? upperBound,
+		out object? lowerBound,
+		out bool upperInclusive,
+		out bool lowerInclusive)
+	{
+		upperBound = null;
+		lowerBound = null;
+		upperInclusive = false;
+		lowerInclusive = false;
+
+		RelationalPatternSyntax? upperPattern = null;
+		RelationalPatternSyntax? lowerPattern = null;
+
+		if (binaryPattern.Left is RelationalPatternSyntax leftRel)
+		{
+			var kind = leftRel.OperatorToken.Kind();
+
+			switch (kind)
+			{
+				case SyntaxKind.LessThanToken or SyntaxKind.LessThanEqualsToken:
+				{
+					upperPattern = leftRel;
+					break;
+				}
+				case SyntaxKind.GreaterThanToken or SyntaxKind.GreaterThanEqualsToken:
+				{
+					lowerPattern = leftRel;
+					break;
+				}
+			}
+		}
+
+		if (binaryPattern.Right is RelationalPatternSyntax rightRel)
+		{
+			var kind = rightRel.OperatorToken.Kind();
+
+			switch (kind)
+			{
+				case SyntaxKind.LessThanToken or SyntaxKind.LessThanEqualsToken:
+				{
+					upperPattern = rightRel;
+					break;
+				}
+				case SyntaxKind.GreaterThanToken or SyntaxKind.GreaterThanEqualsToken:
+				{
+					lowerPattern = rightRel;
+					break;
+				}
+			}
+		}
+
+		if (upperPattern is null || lowerPattern is null)
+		{
+			return false;
+		}
+
+		var visitedUpper = Visit(upperPattern.Expression);
+		var visitedLower = Visit(lowerPattern.Expression);
+
+		if (!TryGetLiteralValue(visitedUpper, out upperBound)
+		    || !TryGetLiteralValue(visitedLower, out lowerBound))
+		{
+			return false;
+		}
+
+		if (!upperBound.IsNumeric()
+		    || !lowerBound.IsNumeric())
+		{
+			return false;
+		}
+
+		upperInclusive = upperPattern.OperatorToken.IsKind(SyntaxKind.LessThanEqualsToken);
+		lowerInclusive = lowerPattern.OperatorToken.IsKind(SyntaxKind.GreaterThanEqualsToken);
 
 		return true;
 	}

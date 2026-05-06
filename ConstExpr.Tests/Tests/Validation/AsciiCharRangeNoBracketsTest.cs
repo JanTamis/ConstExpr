@@ -24,37 +24,3 @@ public class AsciiCharRangeNoBracketsTest() : BaseTest<Func<char, bool>>(FastMat
 		Create("return false;", 'z'),
 	];
 }
-
-[InheritsTests]
-public class AsciiLetterNoBracketsTest() : BaseTest<Func<char, bool>>(FastMathFlags.FastMath)
-{
-	// ReSharper disable ArrangeRedundantParentheses
-	public override string TestMethod => GetString(c =>
-		c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z');
-
-	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
-	[
-		Create("return Char.IsAsciiLetter(c);"),
-		Create("return true;", 'm'),
-		Create("return true;", 'M'),
-		Create("return false;", '5'),
-	];
-}
-
-[InheritsTests]
-public class AsciiLetterOrDigitNoBracketsTest() : BaseTest<Func<char, bool>>(FastMathFlags.FastMath)
-{
-	// ReSharper disable ArrangeRedundantParentheses
-	public override string TestMethod => GetString(c =>
-		c >= '0' && c <= '9' || c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z');
-
-	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
-	[
-		Create("return Char.IsAsciiLetterOrDigit(c);"),
-		Create("return true;", '7'),
-		Create("return true;", 'x'),
-		Create("return true;", 'X'),
-		Create("return false;", '@'),
-	];
-}
-

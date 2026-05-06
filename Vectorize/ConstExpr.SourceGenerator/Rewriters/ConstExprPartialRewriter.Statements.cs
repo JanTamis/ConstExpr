@@ -119,7 +119,7 @@ public partial class ConstExprPartialRewriter
 				     && assignedIdentifier.Identifier.Text == elseAssignedIdentifier.Identifier.Text:
 			{
 				return ExpressionStatement(
-					 Visit(assignment.WithRight(
+					Visit(assignment.WithRight(
 						ConditionalExpression(
 							condition as ExpressionSyntax ?? node.Condition,
 							assignment.Right,
@@ -129,7 +129,7 @@ public partial class ConstExprPartialRewriter
 				when @else is ElseClauseSyntax { Statement: ReturnStatementSyntax { Expression: { } elseReturn } }:
 			{
 				return ReturnStatement(
-					 Visit(ConditionalExpression(
+					Visit(ConditionalExpression(
 						condition as ExpressionSyntax ?? node.Condition,
 						ifReturn,
 						elseReturn)) as ExpressionSyntax);
@@ -224,10 +224,10 @@ public partial class ConstExprPartialRewriter
 		{
 			variables.Remove(name);
 		}
-		
+
 		var declaration = Visit(node.Declaration);
 		InvalidateAssignedVariables(node);
-		
+
 		return node
 			.WithInitializers(VisitList(node.Initializers))
 			.WithCondition(Visit(node.Condition) as ExpressionSyntax ?? node.Condition)
@@ -255,7 +255,7 @@ public partial class ConstExprPartialRewriter
 		}
 
 		InvalidateAssignedVariables(node);
-		
+
 		return base.VisitWhileStatement(node);
 	}
 
@@ -505,7 +505,7 @@ public partial class ConstExprPartialRewriter
 
 		var untilThrown = TakeUntilThrownStatements(visited);
 		var combined = CombineConsecutiveIfStatements(untilThrown, Visit);
-		var mergedIfChain = MergeMixedBoolReturnIfs(combined);
+		var mergedIfChain = MergeMixedBoolReturnIfs(combined, Visit);
 		var simplified = SimplifyIfReturnPatterns(mergedIfChain);
 
 		return node.WithStatements(simplified);
@@ -554,7 +554,7 @@ public partial class ConstExprPartialRewriter
 			    && statements[i] is IfStatementSyntax { Else: null } ifStatement
 			    && statements[i + 1] is ReturnStatementSyntax followingReturn)
 			{
-				if (TryGetIfReturnBoolPattern(ifStatement, followingReturn, out var simplifiedReturn) 
+				if (TryGetIfReturnBoolPattern(ifStatement, followingReturn, out var simplifiedReturn)
 				    || TryGetIfReturnPattern(ifStatement, followingReturn, out simplifiedReturn))
 				{
 					result.Add(simplifiedReturn!);
@@ -663,7 +663,7 @@ public partial class ConstExprPartialRewriter
 
 		return simplified is not null;
 	}
-	
+
 	/// <summary>
 	/// Tries to simplify if-return-bool patterns.
 	/// </summary>
@@ -744,7 +744,7 @@ public partial class ConstExprPartialRewriter
 	/// if (n &lt;= 1 || n &gt; 3 || IsEven(n) || n % 3 == 0) return false;
 	/// </code>
 	/// </summary>
-	private SyntaxList<StatementSyntax> MergeMixedBoolReturnIfs(SyntaxList<StatementSyntax> statements)
+	private static SyntaxList<StatementSyntax> MergeMixedBoolReturnIfs(SyntaxList<StatementSyntax> statements, Func<SyntaxNode?, SyntaxNode?> visit)
 	{
 		if (statements.Count < 2)
 		{
@@ -789,8 +789,10 @@ public partial class ConstExprPartialRewriter
 					}
 				}
 
+				var visitedCombined = visit(combined) as ExpressionSyntax ?? combined!;
+
 				result.Add(IfStatement(
-					Visit(combined!) as ExpressionSyntax ?? combined,
+					visitedCombined,
 					ReturnStatement(LiteralExpression(SyntaxKind.FalseLiteralExpression))));
 			}
 			else if (run.Count > 0)
@@ -833,7 +835,7 @@ public partial class ConstExprPartialRewriter
 		var ret = ifStmt.Statement switch
 		{
 			ReturnStatementSyntax r => r,
-			BlockSyntax { Statements: [ReturnStatementSyntax r] } => r,
+			BlockSyntax { Statements: [ ReturnStatementSyntax r ] } => r,
 			_ => null
 		};
 
@@ -1093,7 +1095,7 @@ public partial class ConstExprPartialRewriter
 		{
 			return ThrowStatement(throwExpression.Expression);
 		}
-		
+
 		return node.WithExpression(visitedExpression as ExpressionSyntax);
 	}
 

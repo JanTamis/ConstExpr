@@ -44,7 +44,7 @@ public class CopySignFunctionOptimizer() : BaseMathFunctionOptimizer("CopySign",
 		{
 			SpecialType.System_Single => GenerateFastCopySignMethodFloat(),
 			SpecialType.System_Double => GenerateFastCopySignMethodDouble(),
-			_ => null
+			_ => GenerateFastCopySignMethodInteger(context),
 		});
 
 		if (method is not null)
@@ -96,6 +96,24 @@ public class CopySignFunctionOptimizer() : BaseMathFunctionOptimizer("CopySign",
 				var xBits = BitConverter.DoubleToInt64Bits(x);
 				var yBits = BitConverter.DoubleToInt64Bits(y);
 				return BitConverter.Int64BitsToDouble((xBits & long.MaxValue) | (yBits & long.MinValue));
+			}
+			""";
+	}
+
+	private static string GenerateFastCopySignMethodInteger(FunctionOptimizerContext context)
+	{
+		var invocation = AbsFunctionOptimizer.GenerateFastAbsMethodInteger(context);
+		
+		return $$"""
+			/// <summary>
+			/// Branchless CopySign for integers.
+			/// Note: Does NOT work correctly for <c>T.MinValue</c> due to two's complement overflow in AbsFast.
+			/// </summary>
+			private static T CopySignFast<T>(T x, T y) where T : IBinaryInteger<T>
+			{
+				var absValue = {{invocation}}(x);
+			    
+				return T.IsPositive(y) ? absValue : -absValue;
 			}
 			""";
 	}
