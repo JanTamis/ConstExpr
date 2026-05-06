@@ -65,7 +65,7 @@ public class ConditionalExpressionOptimizer
 		{
 			var mathType = ParseTypeName(Type.Name);
 			result = InvocationExpression(
-				MemberAccessExpression(mathType, IdentifierName("Min")))
+				MemberAccessExpression(mathType, IdentifierName("MinNative")))
 				.WithArgumentList(ArgumentList(SeparatedList([Argument(WhenTrue), Argument(WhenFalse)])));
 			return true;
 		}
@@ -79,7 +79,7 @@ public class ConditionalExpressionOptimizer
 		{
 			var mathType = ParseTypeName(Type.Name);
 			result = InvocationExpression(
-				MemberAccessExpression(mathType, IdentifierName("Max")))
+				MemberAccessExpression(mathType, IdentifierName("MaxNative")))
 				.WithArgumentList(ArgumentList(SeparatedList([Argument(WhenTrue), Argument(WhenFalse)])));
 			return true;
 		}
@@ -93,7 +93,7 @@ public class ConditionalExpressionOptimizer
 		{
 			var mathType = ParseTypeName(Type.Name);
 			result = InvocationExpression(
-				MemberAccessExpression(mathType, IdentifierName("Min")))
+				MemberAccessExpression(mathType, IdentifierName("MinNative")))
 				.WithArgumentList(ArgumentList(SeparatedList([Argument(WhenTrue), Argument(WhenFalse)])));
 			return true;
 		}
@@ -107,7 +107,7 @@ public class ConditionalExpressionOptimizer
 		{
 			var mathType = ParseTypeName(Type.Name);
 			result = InvocationExpression(
-				MemberAccessExpression(mathType, IdentifierName("Max")))
+				MemberAccessExpression(mathType, IdentifierName("MaxNative")))
 				.WithArgumentList(ArgumentList(SeparatedList([Argument(WhenTrue), Argument(WhenFalse)])));
 			return true;
 		}
@@ -121,7 +121,7 @@ public class ConditionalExpressionOptimizer
 		{
 			var mathType = ParseTypeName(Type.Name);
 			result = InvocationExpression(
-				MemberAccessExpression(mathType, IdentifierName("Max")))
+				MemberAccessExpression(mathType, IdentifierName("MaxNative")))
 				.WithArgumentList(ArgumentList(SeparatedList([Argument(WhenTrue), Argument(WhenFalse)])));
 			return true;
 		}
@@ -135,7 +135,7 @@ public class ConditionalExpressionOptimizer
 		{
 			var mathType = ParseTypeName(Type.Name);
 			result = InvocationExpression(
-				MemberAccessExpression(mathType, IdentifierName("Min")))
+				MemberAccessExpression(mathType, IdentifierName("MinNative")))
 				.WithArgumentList(ArgumentList(SeparatedList([Argument(WhenTrue), Argument(WhenFalse)])));
 			return true;
 		}

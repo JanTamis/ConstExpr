@@ -10,7 +10,7 @@ public class MathFMinMagnitudeTest() : BaseTest<Func<float, float, float>>(FastM
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return float.MinMagnitude(a, b);"),
+		Create("return Single.MinMagnitude(a, b);"),
 		Create("return 1F;", 1.0f, -3.0f),
 	];
 }

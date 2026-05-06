@@ -39,7 +39,7 @@ public class VisitIfStatementTests : BaseTest<Func<bool, int, int, (int, int, in
 	[
 		Create("""
 			var c = condition ? x : y;
-			var d = x > y ? x : y;
+			var d = Int32.MaxNative(x, y);
 
 			return (1, 4, c, d);
 			"""),

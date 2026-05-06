@@ -256,6 +256,15 @@ public partial class ConstExprPartialRewriter
 
 		InvalidateAssignedVariables(node);
 
+		var body = Visit(node.Statement);
+
+		if (body is BlockSyntax { Statements: [ .., BreakStatementSyntax or ReturnStatementSyntax ] items })
+		{
+			return IfStatement(
+				condition as ExpressionSyntax ?? node.Condition,
+				Block(items.Take(items.Count - 1)));
+		}
+
 		return base.VisitWhileStatement(node);
 	}
 

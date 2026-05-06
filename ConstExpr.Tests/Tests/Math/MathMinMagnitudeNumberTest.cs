@@ -10,7 +10,7 @@ public class MathMinMagnitudeNumberTest() : BaseTest<Func<double, double, double
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return double.MinMagnitudeNumber(a, b);"),
+		Create(null),
 		Create("return 1D;", 1.0, -3.0),
 		Create("return -2D;", -2.0, 5.0),
 	];

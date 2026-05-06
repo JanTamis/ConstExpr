@@ -24,21 +24,7 @@ public class ModuloTest() : BaseTest<Func<int, int, int>>(FastMathFlags.FastMath
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			if (divisor == 0)
-			{
-				return 0;
-			}
-			
-			var result = dividend % divisor;
-			
-			if (result < 0)
-			{
-				result += divisor;
-			}
-			
-			return result;
-			"""),
+		Create(null),
 		Create("return 3;", 13, 10),
 		Create("return 2;", -8, 5),
 		Create("return 0;", 10, 0)

@@ -17,7 +17,7 @@ public class StringLengthTest() : BaseTest<Func<string?, int>>(FastMathFlags.Fas
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return s == null ? -1 : s.Length;"),
+		Create("return s?.Length ?? -1;"),
 		Create("return 0;", ""),
 		Create("return 11;", "hello world"),
 		Create("return -1;", (string?) null)

@@ -29,18 +29,14 @@ public class MinArrayTest() : BaseTest<Func<int[], int>>(FastMathFlags.FastMath)
 	[
 		Create("""
 			if (values.Length == 0)
-			{
 				return 2147483647;
-			}
 
 			var min = 2147483647;
 
 			foreach (var v in values)
 			{
 				if (v < min)
-				{
 					min = v;
-				}
 			}
 
 			return min;

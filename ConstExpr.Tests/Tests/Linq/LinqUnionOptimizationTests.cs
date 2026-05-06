@@ -1,10 +1,12 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 /// Tests for Union() optimization - verify empty collection handling and same source removal
 /// </summary>
 [InheritsTests]
-public class LinqUnionOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqUnionOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -19,7 +21,7 @@ public class LinqUnionOptimizationTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return Count_w6J_9Q(x) + Count_w6J_9Q(x);"),
+		Create("return Count_w6J_9Q(x) << 1;"),
 		Create("return 6;", new[] { 1, 2, 3 }),
 		Create("return 0;", new int[] { }),
 	];

@@ -52,14 +52,12 @@ public class VisitWhileStatementTests : BaseTest<Func<int, bool, (int, int, int,
 			}
 
 			var d = 5;
-
-			while (condition)
+			
+			if (condition)
 			{
 				d--;
-
-				break;
 			}
-
+			
 			return (0, 11, c, d);
 			"""),
 		Create("return (0, 11, 3, 4);", 3, true),
