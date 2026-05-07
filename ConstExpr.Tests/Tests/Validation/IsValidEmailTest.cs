@@ -39,10 +39,8 @@ public class IsValidEmailTest() : BaseTest<Func<string, bool>>(FastMathFlags.Fas
 	[
 		Create("""
 			if (String.IsNullOrEmpty(email) || email.Length < 5)
-			{
 				return false;
-			}
-			
+
 			var atCount = 0;
 			var dotCount = 0;
 			var atIndex = -1;
@@ -59,6 +57,7 @@ public class IsValidEmailTest() : BaseTest<Func<string, bool>>(FastMathFlags.Fas
 
 						break;
 					}
+
 					case '.':
 					{
 						dotCount++;
@@ -68,8 +67,10 @@ public class IsValidEmailTest() : BaseTest<Func<string, bool>>(FastMathFlags.Fas
 					}
 				}
 			}
-			
-			return atCount == 1 && dotCount >= 1 && atIndex > 0 && atIndex < email.Length - 1 && lastDotIndex > atIndex + 1 && lastDotIndex < email.Length - 1;
+
+			var diff = email.Length - 1;
+
+			return atCount == 1 && dotCount >= 1 && atIndex > 0 && atIndex < diff && lastDotIndex > atIndex + 1 && lastDotIndex < diff;
 			"""), // Unknown input → body unchanged
 		Create("return false;", ""), // Empty string → guard fires
 		Create("return false;", "a@b"), // Too short (length < 5) → guard fires

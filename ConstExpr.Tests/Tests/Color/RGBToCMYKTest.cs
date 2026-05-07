@@ -26,8 +26,9 @@ public class RGBToCMYKTest() : BaseTest<Func<byte, byte, byte, (double, double, 
 			var dg = g * 0.00392156862745098;
 			var db = b * 0.00392156862745098;
 			var k = 1D - Double.MaxNative(Double.MaxNative(dr, dg), db);
-			
-			return ((1D - dr - k) / (1D - k), (1D - dg - k) / (1D - k), (1D - db - k) / (1D - k), k);
+			var diff = 1D - k;
+
+			return ((1D - dr - k) / diff, (1D - dg - k) / diff, (1D - db - k) / diff, k);
 			"""),
 	];
 }
