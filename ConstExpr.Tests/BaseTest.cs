@@ -168,7 +168,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		{
 			accessVariables.Add(state.ParameterNames[i], 0);
 		}
-		
+
 		var analyzer = new InlineVariableAnalyzer(state.SemanticModel, symbolStore);
 		var candidates = analyzer.FindInlineCandidates(state.Method.Body!);
 
@@ -191,7 +191,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 				});
 			}
 		}
-		
+
 		for (var i = 0; i < testCase.Value.Length; i++)
 		{
 			var name = state.ParameterNames[i];
@@ -233,6 +233,19 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		{
 			newBody = CommonSubexpressionEliminator.Eliminate(newBody) as BlockSyntax;
 			newBody = DeadCodePruner.Prune(newBody, parameters, state.SemanticModel) as BlockSyntax;
+		}
+
+		if (attribute.MathOptimizations.HasFlag(FastMathFlags.TailRecursionElimination))
+		{
+			// Wrap the block in a pseudo MethodDeclarationSyntax so TailRecursionRewriter
+			// can read the parameter list and the method name.
+			var pseudoMethod = SyntaxFactory.MethodDeclaration(
+					SyntaxFactory.PredefinedType(
+						SyntaxFactory.Token(SyntaxKind.VoidKeyword)),
+					state.Method.Identifier)
+				.WithParameterList(state.Method.ParameterList)
+				.WithBody(newBody);
+			newBody = TailRecursionRewriter.Apply(pseudoMethod);
 		}
 
 		newBody = FormattingHelper.Format(newBody!) as BlockSyntax;
@@ -541,7 +554,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 
 				// Find which statement contains the single read.
 				var readStatementIndex = -1;
-				
+
 				for (var j = i + 1; j < statements.Count; j++)
 				{
 					if (statements[j].DescendantNodes().OfType<IdentifierNameSyntax>().Any(id => id.Identifier.Text == name))

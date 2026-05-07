@@ -79,6 +79,13 @@ public enum FastMathFlags
 	CommonSubexpressionElimination = 1 << 8,
 
 	/// <summary>
+	///   Enable tail-recursion elimination.
+	///   Rewrites tail-recursive methods into iterative <c>while</c>-loops,
+	///   avoiding stack-overflow risks and improving performance.
+	/// </summary>
+	TailRecursionElimination = 1 << 10,
+
+	/// <summary>
 	/// Enable all fast-math optimisations — equivalent to C++ <c>-ffast-math</c>.
 	/// Combines <see cref="AssociativeMath"/>, <see cref="NoNaN"/>, <see cref="NoInfinity"/>,
 	/// <see cref="NoSignedZero"/>, <see cref="ReciprocalMath"/>, <see cref="RoundToNearest"/>,
