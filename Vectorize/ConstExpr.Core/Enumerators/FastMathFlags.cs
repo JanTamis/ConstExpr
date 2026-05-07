@@ -79,6 +79,13 @@ public enum FastMathFlags
 	CommonSubexpressionElimination = 1 << 8,
 
 	/// <summary>
+	///   Enable Loop Invariant Code Motion (LICM).
+	///   Moves expressions that produce the same result on every iteration to before the loop,
+	///   avoiding redundant computation inside the loop body.
+	/// </summary>
+	LoopInvariantCodeMotion = 1 << 9,
+
+	/// <summary>
 	///   Enable tail-recursion elimination.
 	///   Rewrites tail-recursive methods into iterative <c>while</c>-loops,
 	///   avoiding stack-overflow risks and improving performance.

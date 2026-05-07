@@ -235,6 +235,12 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			newBody = DeadCodePruner.Prune(newBody, parameters, state.SemanticModel) as BlockSyntax;
 		}
 
+		if (attribute.MathOptimizations.HasFlag(FastMathFlags.LoopInvariantCodeMotion))
+		{
+			newBody = LoopInvariantCodeMotionRewriter.Apply(newBody!) as BlockSyntax ?? newBody;
+			newBody = DeadCodePruner.Prune(newBody, parameters, state.SemanticModel) as BlockSyntax;
+		}
+
 		if (attribute.MathOptimizations.HasFlag(FastMathFlags.TailRecursionElimination))
 		{
 			// Wrap the block in a pseudo MethodDeclarationSyntax so TailRecursionRewriter
