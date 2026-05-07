@@ -1,11 +1,11 @@
+using System;
 using ConstExpr.Core.Attributes;
 using ConstExpr.Core.Enumerators;
-using System;
 
 namespace ConstExpr.SourceGenerator.Sample.Operations;
 
 [ConstExpr(
-	MathOptimizations = FastMathFlags.FastMath,
+	MathOptimizations = FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination,
 	LinqOptimisationMode = LinqOptimisationMode.Unroll)]
 public static class MathOperations
 {
@@ -30,7 +30,7 @@ public static class MathOperations
 		{
 			result *= i;
 		}
-		
+
 		return result;
 	}
 
@@ -161,7 +161,7 @@ public static class MathOperations
 	public static int SumOfDigits(int n)
 	{
 		var sum = 0;
-		
+
 		n = Math.Abs(n);
 
 		while (n > 0)
@@ -216,7 +216,7 @@ public static class MathOperations
 	{
 		var originalN = n;
 		var reversed = 0;
-		
+
 		n = Math.Abs(n);
 
 		while (n > 0)

@@ -1,12 +1,11 @@
-using System.Collections.Generic;
+using System.Text;
 using ConstExpr.Core.Attributes;
 using ConstExpr.Core.Enumerators;
-using System.Text;
 
 namespace ConstExpr.SourceGenerator.Sample.Operations;
 
 [ConstExpr(
-	MathOptimizations = FastMathFlags.FastMath,
+	MathOptimizations = FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination,
 	LinqOptimisationMode = LinqOptimisationMode.Unroll)]
 public static class StringOperations
 {

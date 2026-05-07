@@ -1,12 +1,12 @@
 using System;
+using System.Linq;
 using ConstExpr.Core.Attributes;
 using ConstExpr.Core.Enumerators;
-using System.Linq;
 
 namespace ConstExpr.SourceGenerator.Sample.Operations;
 
 [ConstExpr(
-	MathOptimizations = FastMathFlags.FastMath,
+	MathOptimizations = FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination,
 	LinqOptimisationMode = LinqOptimisationMode.Unroll)]
 public static class CryptographyOperations
 {
@@ -37,7 +37,7 @@ public static class CryptographyOperations
 
 		var normalizedShift = ((shift % 26) + 26) % 26;
 		var data = text.ToCharArray();
-		
+
 		for (var i = 0; i < data.Length; i++)
 		{
 			var c = data[i];
@@ -51,7 +51,7 @@ public static class CryptographyOperations
 				data[i] = (char) (baseChar + newIndex);
 			}
 		}
-		
+
 		return new string(data);
 	}
 
@@ -85,7 +85,7 @@ public static class CryptographyOperations
 		{
 			return string.Empty;
 		}
-		
+
 		var result = new char[data.Length * 2];
 
 		var index = 0;
@@ -95,7 +95,7 @@ public static class CryptographyOperations
 			data[index].TryFormat(result.AsSpan(index * 2, 2), out var charsWritten, "X2");
 			index += charsWritten;
 		}
-		
+
 		return new string(result);
 	}
 

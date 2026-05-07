@@ -1,13 +1,13 @@
-using ConstExpr.Core.Attributes;
-using ConstExpr.Core.Enumerators;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ConstExpr.Core.Attributes;
+using ConstExpr.Core.Enumerators;
 
 namespace ConstExpr.SourceGenerator.Sample.Operations;
 
 [ConstExpr(
-	MathOptimizations = FastMathFlags.FastMath,
+	MathOptimizations = FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination,
 	LinqOptimisationMode = LinqOptimisationMode.Unroll)]
 public static class DataValidationOperations
 {
@@ -114,7 +114,7 @@ public static class DataValidationOperations
 		}
 
 		var nonNullCount = values.Count(v => !double.IsNaN(v) && !double.IsInfinity(v));
-		
+
 		return (double) nonNullCount / values.Length;
 	}
 
@@ -236,10 +236,10 @@ public static class DataValidationOperations
 			{
 				break;
 			}
-			
+
 			count++;
 		}
-		
+
 		return count;
 	}
 
@@ -256,7 +256,7 @@ public static class DataValidationOperations
 				return i;
 			}
 		}
-		
+
 		return -1;
 	}
 
@@ -274,7 +274,7 @@ public static class DataValidationOperations
 			{
 				break;
 			}
-			
+
 			index++;
 		}
 		return index;
@@ -296,7 +296,7 @@ public static class DataValidationOperations
 				{
 					break;
 				}
-				
+
 				count++;
 			}
 
@@ -305,7 +305,7 @@ public static class DataValidationOperations
 				break;
 			}
 		}
-		
+
 		return count;
 	}
 
@@ -326,7 +326,7 @@ public static class DataValidationOperations
 			{
 				return sum;
 			}
-			
+
 			i++;
 		}
 	}
