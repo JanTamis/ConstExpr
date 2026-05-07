@@ -34,7 +34,16 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 
 		// Phase 2: Sweep - rewrite and prune dead code
 		var pruner = new DeadCodePruner(collector, variables, model);
-		return pruner.Visit(node);
+		var result = pruner.Visit(node);
+
+		// When all statements in a top-level block are pruned, the visitor returns null.
+		// Return an empty block so callers always receive a valid SyntaxNode.
+		if (result is null && node is BlockSyntax emptyBlock)
+		{
+			return emptyBlock.WithStatements(List<StatementSyntax>());
+		}
+
+		return result ?? node;
 	}
 
 	/// <summary>
