@@ -44,7 +44,7 @@ public partial class ConstExprPartialRewriter
 		{
 			return HandleNewVariableDeclaration(node, operation, name, value);
 		}
-		
+
 		item.Type ??= operation.Type ?? operation.Symbol.Type;
 
 		return HandleExistingVariableDeclaration(node, item, name, value);
@@ -576,7 +576,7 @@ public partial class ConstExprPartialRewriter
 		}
 
 		var indexConsts = elementAccess.ArgumentList.Arguments
-			.Select(a => a.Expression)
+			.Select(a => Visit(a.Expression) ?? a.Expression)
 			.WhereSelect<SyntaxNode, object?>(TryGetLiteralValue)
 			.ToArray();
 
