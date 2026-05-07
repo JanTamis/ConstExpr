@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Math;
 
 /// <summary>MathF.Lerp(float, float, float) → FastLerp(a, b, t) in FastMath mode.</summary>
 [InheritsTests]
-public class MathFLerpTest() : BaseTest<Func<float, float, float, float>>(FastMathFlags.FastMath)
+public class MathFLerpTest() : BaseTest<Func<float, float, float, float>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString((a, b, t) => float.Lerp(a, b, t));
 

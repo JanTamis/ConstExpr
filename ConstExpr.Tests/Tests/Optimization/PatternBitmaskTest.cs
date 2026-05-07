@@ -8,7 +8,7 @@ namespace ConstExpr.Tests.Optimization;
 /// into efficient bitmask checks.
 /// </summary>
 [InheritsTests]
-public class PatternBitmaskTest() : BaseTest<Func<int, bool>>(FastMathFlags.FastMath)
+public class PatternBitmaskTest() : BaseTest<Func<int, bool>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(n =>
 	{

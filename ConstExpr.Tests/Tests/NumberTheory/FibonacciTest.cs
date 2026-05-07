@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.NumberTheory;
 
 [InheritsTests]
-public class FibonacciTest() : BaseTest<Func<int, long>>(FastMathFlags.FastMath)
+public class FibonacciTest() : BaseTest<Func<int, long>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(n =>
 	{

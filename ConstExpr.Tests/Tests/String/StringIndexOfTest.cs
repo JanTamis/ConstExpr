@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.String;
 
 [InheritsTests]
-public class StringIndexOfTest() : BaseTest<Func<string, string, int>>(FastMathFlags.FastMath)
+public class StringIndexOfTest() : BaseTest<Func<string, string, int>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString((s, sub) => s.IndexOf(sub));
 

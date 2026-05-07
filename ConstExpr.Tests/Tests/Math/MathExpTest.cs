@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Math;
 
 /// <summary>Math.Exp(double) → FastExp(x) in FastMath mode.</summary>
 [InheritsTests]
-public class MathExpTest() : BaseTest<Func<double, double>>(FastMathFlags.FastMath)
+public class MathExpTest() : BaseTest<Func<double, double>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(x => System.Math.Exp(x));
 

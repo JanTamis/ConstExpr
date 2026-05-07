@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class HypotenuseTest() : BaseTest<Func<int, int, double>>(FastMathFlags.FastMath)
+public class HypotenuseTest() : BaseTest<Func<int, int, double>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString((a, b) => System.Math.Sqrt(a * a + b * b));
 

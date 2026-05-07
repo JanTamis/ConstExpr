@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.String;
 
 [InheritsTests]
-public class StringToCharArrayTest() : BaseTest<Func<string, char[]>>(FastMathFlags.FastMath)
+public class StringToCharArrayTest() : BaseTest<Func<string, char[]>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(s => s.ToCharArray());
 
@@ -15,4 +15,3 @@ public class StringToCharArrayTest() : BaseTest<Func<string, char[]>>(FastMathFl
 		Create("return [];", ""),
 	];
 }
-

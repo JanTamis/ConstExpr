@@ -4,9 +4,9 @@ namespace ConstExpr.Tests.Math;
 
 /// <summary>MathF.Atan(float) → FastAtan(x) in FastMath mode.</summary>
 [InheritsTests]
-public class MathFAtanTest() : BaseTest<Func<float, float>>(FastMathFlags.FastMath)
+public class MathFAtanTest() : BaseTest<Func<float, float>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
-	public override string TestMethod => GetString(x => System.MathF.Atan(x));
+	public override string TestMethod => GetString(x => MathF.Atan(x));
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[

@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.String;
 
 /// <summary>s.TrimStart().TrimStart() → s.TrimStart(): idempotency.</summary>
 [InheritsTests]
-public class StringTrimStartIdempotencyTest() : BaseTest<Func<string, string>>(FastMathFlags.FastMath)
+public class StringTrimStartIdempotencyTest() : BaseTest<Func<string, string>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(s => s.TrimStart().TrimStart());
 

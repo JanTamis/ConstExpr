@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Math;
 
 /// <summary>double.MaxMagnitudeNumber(a, b) — optimizer re-targets and handles idempotency.</summary>
 [InheritsTests]
-public class MathMaxMagnitudeNumberTest() : BaseTest<Func<double, double, double>>(FastMathFlags.FastMath)
+public class MathMaxMagnitudeNumberTest() : BaseTest<Func<double, double, double>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString((a, b) => double.MaxMagnitudeNumber(a, b));
 

@@ -6,28 +6,28 @@ namespace ConstExpr.Tests.Linq;
 /// Tests for Count() optimization - verify that unnecessary operations before Count() are removed
 /// </summary>
 [InheritsTests]
-public class LinqCountOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.FastMath)
+public class LinqCountOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(x =>
 	{
 		// Where(...).Count() => Count(predicate)
 		var a = x.Where(v => v > 3).Count();
-		
+
 		// OrderBy(...).Count() => Count()
 		var b = x.OrderBy(v => v).Count();
-		
+
 		// OrderByDescending(...).Count() => Count()
 		var c = x.OrderByDescending(v => v).Count();
-		
+
 		// Reverse().Count() => Count()
 		var d = x.Reverse().Count();
-		
+
 		// AsEnumerable().Count() => Count()
 		var e = x.AsEnumerable().Count();
-		
+
 		// OrderBy().ThenBy().Count() => Count()
 		var f = x.OrderBy(v => v).ThenBy(v => v * 2).Count();
-		
+
 		// OrderBy().Where().Count() => Count(predicate)
 		var g = x.OrderBy(v => v).Where(v => v > 2).Count();
 
@@ -36,22 +36,22 @@ public class LinqCountOptimizationTests() : BaseTest<Func<int[], int>>(FastMathF
 
 		// Distinct should NOT be optimized (reduces count!)
 		var i = x.Distinct().Concat(x).Concat(x).Count();
-		
+
 		// Select should be optimized away
 		var j = x.Select(v => v * 2).Count();
-		
+
 		// Multiple chained Where statements should be combined
 		var k = x.Where(v => v > 2).Where(v => v < 10).Count();
-		
+
 		// Three chained Where statements
 		var l = x.Where(v => v > 1).Where(v => v < 8).Where(v => v % 2 == 0).Count();
-		
+
 		// Where with operations that don't affect count
 		var m = x.OrderBy(v => v).Where(v => v > 2).Where(v => v < 10).Count();
-		
+
 		// Complex chain with multiple Where statements
 		var n = x.Where(v => v > 1).OrderBy(v => v).Where(v => v < 8).Reverse().Where(v => v % 2 == 0).Count();
-		
+
 		var o = x.GroupBy(v => v % 3).Count();
 
 		return a + b + c + d + e + f + g + h + i + j + k + l + m + n + o;

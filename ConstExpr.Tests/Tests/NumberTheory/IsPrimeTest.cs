@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.NumberTheory;
 
 [InheritsTests]
-public class IsPrimeTest() : BaseTest<Func<int, bool>>(FastMathFlags.FastMath)
+public class IsPrimeTest() : BaseTest<Func<int, bool>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(n =>
 	{

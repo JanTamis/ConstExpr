@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Array;
 
 [InheritsTests]
-public class MinArrayTest() : BaseTest<Func<int[], int>>(FastMathFlags.FastMath)
+public class MinArrayTest() : BaseTest<Func<int[], int>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(values =>
 	{

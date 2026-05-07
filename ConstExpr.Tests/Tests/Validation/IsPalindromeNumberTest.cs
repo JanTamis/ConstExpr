@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Validation;
 
 [InheritsTests]
-public class IsPalindromeNumberTest() : BaseTest<Func<int, bool>>(FastMathFlags.FastMath)
+public class IsPalindromeNumberTest() : BaseTest<Func<int, bool>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(n =>
 	{

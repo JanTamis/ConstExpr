@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Math;
 
 /// <summary>System.Math.MaxMagnitude(double, double) — re-targets to double.MaxMagnitude; idempotency; constant folding.</summary>
 [InheritsTests]
-public class MathMaxMagnitudeTest() : BaseTest<Func<double, double, double>>(FastMathFlags.FastMath)
+public class MathMaxMagnitudeTest() : BaseTest<Func<double, double, double>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString((a, b) => System.Math.MaxMagnitude(a, b));
 

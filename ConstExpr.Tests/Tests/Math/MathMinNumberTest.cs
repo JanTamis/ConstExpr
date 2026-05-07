@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Math;
 
 /// <summary>double.MinNumber(a, b) — optimizer re-targets and handles idempotency.</summary>
 [InheritsTests]
-public class MathMinNumberTest() : BaseTest<Func<double, double, double>>(FastMathFlags.FastMath)
+public class MathMinNumberTest() : BaseTest<Func<double, double, double>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString((a, b) => double.MinNumber(a, b));
 

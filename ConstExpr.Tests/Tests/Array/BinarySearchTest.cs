@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Array;
 
 [InheritsTests]
-public class BinarySearchTest() : BaseTest<Func<int[], int, int>>(FastMathFlags.FastMath)
+public class BinarySearchTest() : BaseTest<Func<int[], int, int>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString((arr, target) =>
 	{

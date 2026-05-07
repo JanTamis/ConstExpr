@@ -8,14 +8,14 @@ namespace ConstExpr.Tests.Validation;
 /// as the parenthesized versions, so all patterns should still be recognized.
 /// </summary>
 [InheritsTests]
-public class AsciiCharRangeNoBracketsTest() : BaseTest<Func<char, bool>>(FastMathFlags.FastMath)
+public class AsciiCharRangeNoBracketsTest() : BaseTest<Func<char, bool>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	// No parentheses — &&-precedence groups identically to the parenthesized form.
 	// ReSharper disable ArrangeRedundantParentheses
 	public override string TestMethod => GetString(c =>
 		c >= '0' && c <= '9' || c >= 'a' && c <= 'f' || c >= 'A' && c <= 'F');
 
-	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases => 
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Char.IsAsciiHexDigit(c);"),
 		Create("return true;", '5'),

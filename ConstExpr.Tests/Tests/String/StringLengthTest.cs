@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.String;
 
 [InheritsTests]
-public class StringLengthTest() : BaseTest<Func<string?, int>>(FastMathFlags.FastMath)
+public class StringLengthTest() : BaseTest<Func<string?, int>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(s =>
 	{

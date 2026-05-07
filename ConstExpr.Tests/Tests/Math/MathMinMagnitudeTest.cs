@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Math;
 
 /// <summary>System.Math.MinMagnitude(double, double) — re-targets to double.MinMagnitude; idempotency; constant folding.</summary>
 [InheritsTests]
-public class MathMinMagnitudeTest() : BaseTest<Func<double, double, double>>(FastMathFlags.FastMath)
+public class MathMinMagnitudeTest() : BaseTest<Func<double, double, double>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString((a, b) => System.Math.MinMagnitude(a, b));
 

@@ -6,7 +6,7 @@ namespace ConstExpr.Tests.Linq;
 /// Tests for Union() optimization - verify empty collection handling and same source removal
 /// </summary>
 [InheritsTests]
-public class LinqUnionOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.FastMath)
+public class LinqUnionOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -26,4 +26,3 @@ public class LinqUnionOptimizationTests() : BaseTest<Func<int[], int>>(FastMathF
 		Create("return 0;", new int[] { }),
 	];
 }
-

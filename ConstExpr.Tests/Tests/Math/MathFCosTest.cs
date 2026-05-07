@@ -4,9 +4,9 @@ namespace ConstExpr.Tests.Math;
 
 /// <summary>MathF.Cos(float) → FastCos(x) in FastMath mode.</summary>
 [InheritsTests]
-public class MathFCosTest() : BaseTest<Func<float, float>>(FastMathFlags.FastMath)
+public class MathFCosTest() : BaseTest<Func<float, float>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
-	public override string TestMethod => GetString(x => System.MathF.Cos(x));
+	public override string TestMethod => GetString(x => MathF.Cos(x));
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[

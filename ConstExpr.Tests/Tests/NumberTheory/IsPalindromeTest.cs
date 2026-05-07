@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.NumberTheory;
 
 [InheritsTests]
-public class IsPalindromeTest() : BaseTest<Func<int, bool>>(FastMathFlags.FastMath)
+public class IsPalindromeTest() : BaseTest<Func<int, bool>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -26,13 +26,13 @@ public class IsPalindromeTest() : BaseTest<Func<int, bool>>(FastMathFlags.FastMa
 			var original = AbsFast(n);
 			var reversed = 0;
 			var temp = original;
-			
+
 			while (temp > 0)
 			{
 				reversed = reversed * 10 + temp % 10;
 				temp /= 10;
 			}
-			
+
 			return original == reversed;
 			"""),
 		Create("return true;", 121),

@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class AbsoluteValueTest() : BaseTest<Func<int, int>>(FastMathFlags.FastMath)
+public class AbsoluteValueTest() : BaseTest<Func<int, int>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(n =>
 	{

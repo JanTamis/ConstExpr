@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.String;
 
 [InheritsTests]
-public class StringLastIndexOfTest() : BaseTest<Func<string, string, int>>(FastMathFlags.FastMath)
+public class StringLastIndexOfTest() : BaseTest<Func<string, string, int>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString((s, sub) => s.LastIndexOf(sub));
 
@@ -16,4 +16,3 @@ public class StringLastIndexOfTest() : BaseTest<Func<string, string, int>>(FastM
 		Create("return 4;", "hello", "o"),
 	];
 }
-

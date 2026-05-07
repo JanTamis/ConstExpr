@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.NumberTheory;
 
 [InheritsTests]
-public class LCMTest() : BaseTest<Func<int, int, int>>(FastMathFlags.FastMath)
+public class LCMTest() : BaseTest<Func<int, int, int>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString((a, b) =>
 	{
@@ -34,18 +34,18 @@ public class LCMTest() : BaseTest<Func<int, int, int>>(FastMathFlags.FastMath)
 			{
 				return 0;
 			}
-			
+
 			var aa = AbsFast(a);
 			var bb = AbsFast(b);
-			
+
 			while (bb != 0)
 			{
 				var temp = bb;
-			
+
 				bb = aa % bb;
 				aa = temp;
 			}
-			
+
 			return AbsFast(a * b) / aa;
 			"""),
 		Create("return 12;", 4, 6),

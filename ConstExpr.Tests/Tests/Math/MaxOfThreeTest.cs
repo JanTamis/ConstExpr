@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class MaxOfThreeTest() : BaseTest<Func<int, int, int, int>>(FastMathFlags.FastMath)
+public class MaxOfThreeTest() : BaseTest<Func<int, int, int, int>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString((a, b, c) =>
 	{
@@ -26,17 +26,17 @@ public class MaxOfThreeTest() : BaseTest<Func<int, int, int, int>>(FastMathFlags
 	[
 		Create("""
 			var max = a;
-			
+
 			if (b > max)
 			{
 				max = b;
 			}
-			
+
 			if (c > max)
 			{
 				max = c;
 			}
-			
+
 			return max;
 			"""),
 		Create("return 10;", 5, 10, 3),

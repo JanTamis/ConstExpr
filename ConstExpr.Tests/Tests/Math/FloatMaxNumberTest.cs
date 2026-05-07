@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Math;
 
 /// <summary>float.MaxNumber(a, b) — optimizer re-targets to float.MaxNumber.</summary>
 [InheritsTests]
-public class FloatMaxNumberTest() : BaseTest<Func<float, float, float>>(FastMathFlags.FastMath)
+public class FloatMaxNumberTest() : BaseTest<Func<float, float, float>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString((a, b) => float.MaxNumber(a, b));
 

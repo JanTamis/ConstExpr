@@ -3,7 +3,7 @@
 namespace ConstExpr.Tests.Arithmetic;
 
 [InheritsTests]
-public class AverageTest() : BaseTest<Func<int[], double>>(FastMathFlags.FastMath)
+public class AverageTest() : BaseTest<Func<int[], double>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(numbers =>
 	{

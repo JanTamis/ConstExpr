@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Color;
 
 [InheritsTests]
-public class RGBToHSVTest() : BaseTest<Func<byte, byte, byte, (double, double, double)>>(FastMathFlags.FastMath)
+public class RGBToHSVTest() : BaseTest<Func<byte, byte, byte, (double, double, double)>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString((r, g, b) =>
 	{
@@ -58,12 +58,12 @@ public class RGBToHSVTest() : BaseTest<Func<byte, byte, byte, (double, double, d
 		Create("""
 			double delta, min;
 			double h = 0D, s, v;
-			
+
 			min = Byte.Min(Byte.Min(r, g), b);
 			v = Byte.Max(Byte.Max(r, g), b);
 			delta = v - min;
 			s = v == 0D ? 0D : delta / v;
-			
+
 			if (s == 0D)
 			{
 				h = 0D;
@@ -82,15 +82,15 @@ public class RGBToHSVTest() : BaseTest<Func<byte, byte, byte, (double, double, d
 				{
 					h = (r - g) / delta + 4D;
 				}
-			
+
 				h *= 60D;
-			
+
 				if (h < 0D)
 				{
 					h = h + 360D;
 				}
 			}
-			
+
 			return (h, s, v * 0.00392156862745098);
 			"""),
 	];

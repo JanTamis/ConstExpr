@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.NumberTheory;
 
 [InheritsTests]
-public class DigitCountTest() : BaseTest<Func<int, int>>(FastMathFlags.FastMath)
+public class DigitCountTest() : BaseTest<Func<int, int>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -31,16 +31,16 @@ public class DigitCountTest() : BaseTest<Func<int, int>>(FastMathFlags.FastMath)
 			{
 				return 1;
 			}
-			
+
 			var count = 0;
 			var num = AbsFast(n);
-			
+
 			while (num > 0)
 			{
 				count++;
 				num /= 10;
 			}
-			
+
 			return count;
 			"""),
 		Create("return 3;", 123),

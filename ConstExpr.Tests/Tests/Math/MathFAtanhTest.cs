@@ -4,9 +4,9 @@ namespace ConstExpr.Tests.Math;
 
 /// <summary>MathF.Atanh(float) -> FastAtanh(x) in FastMath mode.</summary>
 [InheritsTests]
-public class MathFAtanhTest() : BaseTest<Func<float, float>>(FastMathFlags.FastMath)
+public class MathFAtanhTest() : BaseTest<Func<float, float>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
-	public override string TestMethod => GetString(x => System.MathF.Atanh(x));
+	public override string TestMethod => GetString(x => MathF.Atanh(x));
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[

@@ -4,9 +4,9 @@ namespace ConstExpr.Tests.Math;
 
 /// <summary>MathF.Sin(float) → FastSin(x) in FastMath mode.</summary>
 [InheritsTests]
-public class MathFSinTest() : BaseTest<Func<float, float>>(FastMathFlags.FastMath)
+public class MathFSinTest() : BaseTest<Func<float, float>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
-	public override string TestMethod => GetString(x => System.MathF.Sin(x));
+	public override string TestMethod => GetString(x => MathF.Sin(x));
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[

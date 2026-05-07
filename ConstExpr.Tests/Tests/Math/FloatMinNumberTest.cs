@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Math;
 
 /// <summary>float.MinNumber(a, b) — optimizer re-targets to float.MinNumber.</summary>
 [InheritsTests]
-public class FloatMinNumberTest() : BaseTest<Func<float, float, float>>(FastMathFlags.FastMath)
+public class FloatMinNumberTest() : BaseTest<Func<float, float, float>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString((a, b) => float.MinNumber(a, b));
 

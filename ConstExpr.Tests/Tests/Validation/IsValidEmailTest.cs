@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Validation;
 
 [InheritsTests]
-public class IsValidEmailTest() : BaseTest<Func<string, bool>>(FastMathFlags.FastMath)
+public class IsValidEmailTest() : BaseTest<Func<string, bool>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(email =>
 	{
@@ -31,7 +31,7 @@ public class IsValidEmailTest() : BaseTest<Func<string, bool>>(FastMathFlags.Fas
 			}
 		}
 
-		return atCount == 1 && dotCount >= 1 && atIndex > 0 && atIndex < email.Length - 1 
+		return atCount == 1 && dotCount >= 1 && atIndex > 0 && atIndex < email.Length - 1
 		       && lastDotIndex > atIndex + 1 && lastDotIndex < email.Length - 1;
 	});
 
@@ -47,7 +47,7 @@ public class IsValidEmailTest() : BaseTest<Func<string, bool>>(FastMathFlags.Fas
 			var dotCount = 0;
 			var atIndex = -1;
 			var lastDotIndex = -1;
-			
+
 			for (var i = 0; i < email.Length; i++)
 			{
 				switch (email[i])
@@ -56,14 +56,14 @@ public class IsValidEmailTest() : BaseTest<Func<string, bool>>(FastMathFlags.Fas
 					{
 						atCount++;
 						atIndex = i;
-			
+
 						break;
 					}
 					case '.':
 					{
 						dotCount++;
 						lastDotIndex = i;
-			
+
 						break;
 					}
 				}
@@ -71,11 +71,10 @@ public class IsValidEmailTest() : BaseTest<Func<string, bool>>(FastMathFlags.Fas
 			
 			return atCount == 1 && dotCount >= 1 && atIndex > 0 && atIndex < email.Length - 1 && lastDotIndex > atIndex + 1 && lastDotIndex < email.Length - 1;
 			"""), // Unknown input → body unchanged
-		Create("return false;", ""),                  // Empty string → guard fires
-		Create("return false;", "a@b"),               // Too short (length < 5) → guard fires
-		Create("return false;", "invalid"),            // No @ or dot → returns false
-		Create("return false;", "@test.com"),          // @ at start (atIndex == 0) → returns false
-		Create("return false;", "test@com.")           // Dot at end (lastDotIndex == length - 1) → returns false
+		Create("return false;", ""), // Empty string → guard fires
+		Create("return false;", "a@b"), // Too short (length < 5) → guard fires
+		Create("return false;", "invalid"), // No @ or dot → returns false
+		Create("return false;", "@test.com"), // @ at start (atIndex == 0) → returns false
+		Create("return false;", "test@com.") // Dot at end (lastDotIndex == length - 1) → returns false
 	];
 }
-

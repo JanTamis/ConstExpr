@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Math;
 
 /// <summary>Math.Cbrt(double) → FastCbrt(x) in FastMath mode.</summary>
 [InheritsTests]
-public class MathCbrtTest() : BaseTest<Func<double, double>>(FastMathFlags.FastMath)
+public class MathCbrtTest() : BaseTest<Func<double, double>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(x => System.Math.Cbrt(x));
 

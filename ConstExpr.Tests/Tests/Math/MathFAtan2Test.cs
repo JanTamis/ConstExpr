@@ -3,9 +3,9 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class MathFAtan2Test() : BaseTest<Func<float, float, float>>(FastMathFlags.FastMath)
+public class MathFAtan2Test() : BaseTest<Func<float, float, float>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
-	public override string TestMethod => GetString((y, x) => System.MathF.Atan2(y, x));
+	public override string TestMethod => GetString((y, x) => MathF.Atan2(y, x));
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[

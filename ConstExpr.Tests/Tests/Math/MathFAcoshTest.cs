@@ -4,9 +4,9 @@ namespace ConstExpr.Tests.Math;
 
 /// <summary>MathF.Acosh(float) -> FastAcosh(x) in FastMath mode.</summary>
 [InheritsTests]
-public class MathFAcoshTest() : BaseTest<Func<float, float>>(FastMathFlags.FastMath)
+public class MathFAcoshTest() : BaseTest<Func<float, float>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
-	public override string TestMethod => GetString(x => System.MathF.Acosh(x));
+	public override string TestMethod => GetString(x => MathF.Acosh(x));
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[

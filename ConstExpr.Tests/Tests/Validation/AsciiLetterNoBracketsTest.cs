@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Validation;
 
 [InheritsTests]
-public class AsciiLetterNoBracketsTest() : BaseTest<Func<char, bool>>(FastMathFlags.FastMath)
+public class AsciiLetterNoBracketsTest() : BaseTest<Func<char, bool>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	// ReSharper disable ArrangeRedundantParentheses
 	public override string TestMethod => GetString(c =>

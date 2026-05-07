@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Optimization;
 
 [InheritsTests]
-public class CharToLowerNotEqualsOptimizerTest() : BaseTest<Func<char, char, bool>>(FastMathFlags.FastMath)
+public class CharToLowerNotEqualsOptimizerTest() : BaseTest<Func<char, char, bool>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString((left, right) =>
 	{

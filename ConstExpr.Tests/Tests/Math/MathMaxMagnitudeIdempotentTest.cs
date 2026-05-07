@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Math;
 
 /// <summary>double.MaxMagnitude(a, a) — idempotency optimization: returns a.</summary>
 [InheritsTests]
-public class MathMaxMagnitudeIdempotentTest() : BaseTest<Func<double, double>>(FastMathFlags.FastMath)
+public class MathMaxMagnitudeIdempotentTest() : BaseTest<Func<double, double>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(a => System.Math.MaxMagnitude(a, a));
 

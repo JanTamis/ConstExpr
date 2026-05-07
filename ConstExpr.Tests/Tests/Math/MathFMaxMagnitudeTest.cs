@@ -4,9 +4,9 @@ namespace ConstExpr.Tests.Math;
 
 /// <summary>MathF.MaxMagnitude(float, float) — re-targets to float.MaxMagnitude.</summary>
 [InheritsTests]
-public class MathFMaxMagnitudeTest() : BaseTest<Func<float, float, float>>(FastMathFlags.FastMath)
+public class MathFMaxMagnitudeTest() : BaseTest<Func<float, float, float>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
-	public override string TestMethod => GetString((a, b) => System.MathF.MaxMagnitude(a, b));
+	public override string TestMethod => GetString((a, b) => MathF.MaxMagnitude(a, b));
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[

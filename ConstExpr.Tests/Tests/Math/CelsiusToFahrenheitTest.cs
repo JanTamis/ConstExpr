@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class CelsiusToFahrenheitTest() : BaseTest<Func<double, double>>(FastMathFlags.FastMath)
+public class CelsiusToFahrenheitTest() : BaseTest<Func<double, double>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(celsius => celsius * 9 / 5 + 32);
 

@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.String;
 
 [InheritsTests]
-public class ToLowerCaseTest() : BaseTest<Func<string, string>>(FastMathFlags.FastMath)
+public class ToLowerCaseTest() : BaseTest<Func<string, string>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(s => s.ToLower());
 
@@ -15,4 +15,3 @@ public class ToLowerCaseTest() : BaseTest<Func<string, string>>(FastMathFlags.Fa
 		Create("return \"\";", ""),
 	];
 }
-
