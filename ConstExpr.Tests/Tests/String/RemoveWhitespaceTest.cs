@@ -24,7 +24,21 @@ public class RemoveWhitespaceTest() : BaseTest<Func<string, string>>(FastMathFla
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null),
+		Create("""
+			if (String.IsNullOrEmpty(input))
+				return input;
+
+			var result = new char[input.Length];
+			var index = 0;
+
+			foreach (var c in input)
+			{
+				if (!Char.IsWhiteSpace(c))
+					result[index++] = c;
+			}
+
+			return new string(result, 0, index);
+			"""),
 		Create("return \"HelloWorld\";", "Hello World"),
 		Create("return \"TestString\";", "  Test  String  "),
 		Create("return \"\";", "   "),
