@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Color;
 
 [InheritsTests]
-public class CMYKToRGBTest() : BaseTest<Func<double, double, double, double, (byte, byte, byte)>>(FastMathFlags.FastMath)
+public class CMYKToRGBTest() : BaseTest<Func<double, double, double, double, (byte, byte, byte)>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString((c, m, y, k) =>
 	{
@@ -16,7 +16,11 @@ public class CMYKToRGBTest() : BaseTest<Func<double, double, double, double, (by
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return ((byte)((1D - c) * 255D * (1D - k)), (byte)((1D - m) * 255D * (1D - k)), (byte)((1D - y) * 255D * (1D - k)));"),
+		Create("""
+			var diff = 1D - k;
+
+			return ((byte)((1D - c) * 255D * diff), (byte)((1D - m) * 255D * diff), (byte)((1D - y) * 255D * diff));
+			"""),
 		Create("return ((byte)((1D - c) * 153D), (byte)((1D - m) * 153D), (byte)((1D - y) * 153D));", Unknown, Unknown, Unknown, 0.4),
 	];
 }
