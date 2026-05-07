@@ -2,12 +2,14 @@ extern alias sourcegen;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Text;
 using ConstExpr.Core.Attributes;
+using ConstExpr.Core.Enumerators;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using ConstExpr.Core.Enumerators;
 using sourcegen::ConstExpr.SourceGenerator.BuildIn;
 using sourcegen::ConstExpr.SourceGenerator.Comparers;
 using sourcegen::ConstExpr.SourceGenerator.Helpers;
@@ -70,7 +72,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 	{
 		var testType = context.ClassType;
 		var instance = Activator.CreateInstance(testType);
-		var testMethodProperty = testType.GetProperty(nameof(TestMethod), System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.IgnoreCase);
+		var testMethodProperty = testType.GetProperty(nameof(TestMethod), BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
 		var testMethodValue = testMethodProperty?.GetValue(instance) as string ?? throw new InvalidOperationException("TestMethod not found");
 
 		var compilation = CreateCompilation(BuildSourceWithMethod(testMethodValue));
@@ -226,6 +228,13 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		}
 
 		newBody = DeadCodePruner.Prune(newBody, parameters, state.SemanticModel) as BlockSyntax;
+
+		if (attribute.MathOptimizations.HasFlag(FastMathFlags.CommonSubexpressionElimination))
+		{
+			newBody = CommonSubexpressionEliminator.Eliminate(newBody) as BlockSyntax;
+			newBody = DeadCodePruner.Prune(newBody, parameters, state.SemanticModel) as BlockSyntax;
+		}
+
 		newBody = FormattingHelper.Format(newBody!) as BlockSyntax;
 
 		if (testCase.Key is null)
@@ -246,7 +255,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			if (FormattingHelper.Render(newBody) != FormattingHelper.Render(expectedBody))
 			{
 				// Debug: find which statement differs
-				var debugInfo = new System.Text.StringBuilder();
+				var debugInfo = new StringBuilder();
 
 				if (expectedBody != null && newBody != null)
 				{

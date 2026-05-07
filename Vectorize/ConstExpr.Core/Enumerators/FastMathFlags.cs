@@ -73,6 +73,12 @@ public enum FastMathFlags
 	FusedMultiplyAdd = 1 << 7,
 
 	/// <summary>
+	///   Enable Common Subexpression Elimination (CSE) (<c>-fcommon-subexpression-elimination</c>).
+	///   Identifies repeated expressions and replaces them with local variables to avoid redundant computation.
+	/// </summary>
+	CommonSubexpressionElimination = 1 << 8,
+
+	/// <summary>
 	/// Enable all fast-math optimisations — equivalent to C++ <c>-ffast-math</c>.
 	/// Combines <see cref="AssociativeMath"/>, <see cref="NoNaN"/>, <see cref="NoInfinity"/>,
 	/// <see cref="NoSignedZero"/>, <see cref="ReciprocalMath"/>, <see cref="RoundToNearest"/>,

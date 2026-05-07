@@ -9,7 +9,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using ConstExpr.Core.Attributes;
 using ConstExpr.Core.Enumerators;
-using ConstExpr.SourceGenerator.Analyzers;
 using ConstExpr.SourceGenerator.BuildIn;
 using ConstExpr.SourceGenerator.Comparers;
 using ConstExpr.SourceGenerator.Extensions;
@@ -22,7 +21,6 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 using SGF;
-using SourceGen.Utilities.Extensions;
 using SourceGen.Utilities.Helpers;
 
 [assembly: InternalsVisibleTo("ConstExpr.Tests")]
@@ -396,6 +394,12 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 			var result = partialVisitor.VisitBlock(methodDecl.Body); // partialVisitor.VisitBlock(blockOperation.BlockBody!, variablesPartial);
 			var result2 = DeadCodePruner.Prune(result, variablesPartial, semanticModel);
+
+			if (attribute.MathOptimizations.HasFlag(FastMathFlags.CommonSubexpressionElimination))
+			{
+				result2 = CommonSubexpressionEliminator.Eliminate(result2);
+				result2 = DeadCodePruner.Prune(result2, variablesPartial, semanticModel);
+			}
 
 			// Format using Roslyn formatter instead of NormalizeWhitespace
 			// var text = FormattingHelper.Render(methodDecl.WithBody((BlockSyntax)result));
