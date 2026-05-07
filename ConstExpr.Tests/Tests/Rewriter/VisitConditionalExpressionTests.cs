@@ -13,13 +13,13 @@ public class VisitConditionalExpressionTests : BaseTest<Func<bool, int, int, (in
 		var c = 5 > 3 ? 50 : 60;
 		var d = condition ? x : y;
 		var e = x > y ? x : y;
-		
+
 		return (a, b, c, d, e);
 	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return (10, 40, 50, condition ? x : y, Int32.Max(x, y));"),
+		Create("return (10, 40, 50, condition ? x : y, Int32.MaxNative(x, y));"),
 		Create("return (10, 40, 50, 100, 100);", true, 100, 50),
 		Create("return (10, 40, 50, 75, 75);", false, 25, 75),
 		Create("return (10, 40, 50, -10, 20);", true, -10, 20),

@@ -751,20 +751,19 @@ public partial class ConstExprPartialRewriter
 		}
 
 		// Try optimization with the original node
-		if (semanticModel.TryGetTypeSymbol(node, symbolStore, out var type))
-		{
-			var optimizer = new ConditionalExpressionOptimizer
-			{
-				Condition = node.Condition,
-				WhenTrue = node.WhenTrue,
-				WhenFalse = node.WhenFalse,
-				Type = type
-			};
+		semanticModel.TryGetTypeSymbol(node, symbolStore, out var type);
 
-			if (optimizer.TryOptimize(loader, variables, out var optimized))
-			{
-				return Visit(optimized);
-			}
+		var optimizer = new ConditionalExpressionOptimizer
+		{
+			Condition = node.Condition,
+			WhenTrue = node.WhenTrue,
+			WhenFalse = node.WhenFalse,
+			Type = type
+		};
+
+		if (optimizer.TryOptimize(loader, variables, out var optimized))
+		{
+			return Visit(optimized);
 		}
 
 		return node

@@ -5,6 +5,7 @@ using System.Linq;
 using ConstExpr.SourceGenerator.Comparers;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
+using ConstExpr.SourceGenerator.Optimizers.ConditionalOptimizers;
 using ConstExpr.SourceGenerator.Refactorers;
 using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
@@ -104,11 +105,7 @@ public partial class ConstExprPartialRewriter
 				     && assignedIdentifier.Identifier.Text == elseAssignedIdentifier.Identifier.Text:
 			{
 				return ExpressionStatement(
-					Visit(assignment.WithRight(
-						ConditionalExpression(
-							condition as ExpressionSyntax ?? node.Condition,
-							assignment.Right,
-							elseAssignment.Right))) as ExpressionSyntax);
+					VisitIfElseAssignment(condition, node.Condition, assignment, elseAssignment));
 			}
 			case BlockSyntax { Statements: [ ExpressionStatementSyntax { Expression: AssignmentExpressionSyntax assignment } ] }
 				when assignment.IsKind(SyntaxKind.SimpleAssignmentExpression)
@@ -119,11 +116,7 @@ public partial class ConstExprPartialRewriter
 				     && assignedIdentifier.Identifier.Text == elseAssignedIdentifier.Identifier.Text:
 			{
 				return ExpressionStatement(
-					Visit(assignment.WithRight(
-						ConditionalExpression(
-							condition as ExpressionSyntax ?? node.Condition,
-							assignment.Right,
-							elseAssignment.Right))) as ExpressionSyntax);
+					VisitIfElseAssignment(condition, node.Condition, assignment, elseAssignment));
 			}
 			case ReturnStatementSyntax { Expression: { } ifReturn }
 				when @else is ElseClauseSyntax { Statement: ReturnStatementSyntax { Expression: { } elseReturn } }:
@@ -146,6 +139,52 @@ public partial class ConstExprPartialRewriter
 		}
 
 		return result;
+	}
+
+	/// <summary>
+	/// Converts an if-else where both branches perform a simple assignment to the same variable
+	/// into a single assignment. When the condition is a comparison and the operands match the
+	/// assigned values (e.g. <c>if (a &gt; b) x = a; else x = b;</c>), the optimizer rewrites the
+	/// right-hand side to a call like <c>T.MaxNative(a, b)</c> for any numeric type T. Falls back
+	/// to an ordinary conditional expression assignment otherwise.
+	/// </summary>
+	private ExpressionSyntax VisitIfElseAssignment(
+		SyntaxNode condition,
+		ExpressionSyntax originalCondition,
+		AssignmentExpressionSyntax thenAssignment,
+		AssignmentExpressionSyntax elseAssignment)
+	{
+		var condExpr = ConditionalExpression(
+			condition as ExpressionSyntax ?? originalCondition,
+			thenAssignment.Right,
+			elseAssignment.Right);
+
+		// Resolve the element type from the branch operands — the synthetic conditional itself is
+		// not present in the semantic model, but the original source identifiers/expressions are.
+		if (!semanticModel.TryGetTypeSymbol(thenAssignment.Right, symbolStore, out var assignType))
+		{
+			semanticModel.TryGetTypeSymbol(elseAssignment.Right, symbolStore, out assignType);
+		}
+
+		if (assignType is not null)
+		{
+			var optimizer = new ConditionalExpressionOptimizer
+			{
+				Condition = condExpr.Condition,
+				WhenTrue = condExpr.WhenTrue,
+				WhenFalse = condExpr.WhenFalse,
+				Type = assignType
+			};
+
+			if (optimizer.TryOptimize(loader, variables, out var optimizedRhs))
+			{
+				var visitedRhs = Visit(optimizedRhs) as ExpressionSyntax ?? optimizedRhs as ExpressionSyntax ?? condExpr;
+				return thenAssignment.WithRight(visitedRhs);
+			}
+		}
+
+		return Visit(thenAssignment.WithRight(condExpr)) as ExpressionSyntax
+		       ?? thenAssignment.WithRight(condExpr);
 	}
 
 	public override SyntaxNode? VisitForStatement(ForStatementSyntax node)
@@ -257,15 +296,18 @@ public partial class ConstExprPartialRewriter
 		InvalidateAssignedVariables(node);
 
 		var body = Visit(node.Statement);
+		var rewrittenCondition = Visit(node.Condition);
 
 		if (body is BlockSyntax { Statements: [ .., BreakStatementSyntax or ReturnStatementSyntax ] items })
 		{
 			return IfStatement(
-				condition as ExpressionSyntax ?? node.Condition,
+				rewrittenCondition as ExpressionSyntax ?? node.Condition,
 				Block(items.Take(items.Count - 1)));
 		}
 
-		return base.VisitWhileStatement(node);
+		return node
+			.WithCondition(rewrittenCondition as ExpressionSyntax ?? node.Condition)
+			.WithStatement(body as StatementSyntax ?? node.Statement);
 	}
 
 	public override SyntaxNode? VisitDoStatement(DoStatementSyntax node)
@@ -521,8 +563,8 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Takes statements until a throw statement is encountered (inclusive).
-	/// Any code after a throw statement is unreachable and can be removed.
+	/// Takes statements until a throw or return statement is encountered (inclusive).
+	/// Any code after a throw or return statement is unreachable and can be removed.
 	/// </summary>
 	private static SyntaxList<StatementSyntax> TakeUntilThrownStatements(SyntaxList<StatementSyntax> statements)
 	{
@@ -532,11 +574,20 @@ public partial class ConstExprPartialRewriter
 		{
 			result.Add(statement);
 
-			// Stop after a throw statement since code after it is unreachable
-			if (statement is ThrowStatementSyntax or ExpressionStatementSyntax { Expression: ThrowExpressionSyntax })
+			// Stop after a throw or return statement since code after it is unreachable
+			if (statement is ThrowStatementSyntax
+			    or ExpressionStatementSyntax { Expression: ThrowExpressionSyntax }
+			    or ReturnStatementSyntax)
 			{
 				break;
 			}
+		}
+
+		// Strip a trailing void return (return;) — it is redundant at the end of a void block
+		// and produces cleaner output (e.g. empty body {} instead of { return; }).
+		if (result.Count > 0 && result[^1] is ReturnStatementSyntax { Expression: null })
+		{
+			result.RemoveAt(result.Count - 1);
 		}
 
 		return List(result);
@@ -695,11 +746,11 @@ public partial class ConstExprPartialRewriter
 			return false;
 		}
 
-		simplified = ReturnStatement(
+		simplified = ReturnStatement(Visit(
 			ConditionalExpression(
 				ifStatement.Condition,
 				ifReturn.Expression,
-				followingReturn.Expression));
+				followingReturn.Expression)) as ExpressionSyntax ?? ifReturn.Expression);
 
 		return true;
 	}

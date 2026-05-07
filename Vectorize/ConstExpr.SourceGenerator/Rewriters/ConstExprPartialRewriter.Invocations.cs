@@ -558,6 +558,18 @@ public partial class ConstExprPartialRewriter
 				.WithMethodSymbolAnnotation(targetMethod, symbolStore);
 		}
 
+		// Inline local functions that are called exactly once
+		if (targetMethod.MethodKind == MethodKind.LocalFunction
+		    && CountLocalFunctionInvocations(targetMethod) == 1)
+		{
+			var inlined = TryInlineLocalFunction(targetMethod, arguments);
+
+			if (inlined is not null)
+			{
+				return inlined;
+			}
+		}
+
 		var syntax = GetInlinedMethodSyntax(targetMethod);
 
 		if (syntax is not null && !additionalMethods.ContainsKey(syntax))
@@ -572,6 +584,114 @@ public partial class ConstExprPartialRewriter
 		return node
 			.WithArgumentList(node.ArgumentList.WithArguments(ToArgumentList(arguments)))
 			.WithMethodSymbolAnnotation(targetMethod, symbolStore);
+	}
+
+	/// <summary>
+	/// Counts the number of invocations of a local function within its declaring block.
+	/// </summary>
+	private int CountLocalFunctionInvocations(IMethodSymbol targetMethod)
+	{
+		var functionSyntax = targetMethod.DeclaringSyntaxReferences
+			.Select(r => r.GetSyntax(token))
+			.OfType<LocalFunctionStatementSyntax>()
+			.FirstOrDefault();
+
+		if (functionSyntax?.Parent is not BlockSyntax parentBlock)
+		{
+			return -1;
+		}
+
+		return parentBlock
+			.DescendantNodes()
+			.OfType<InvocationExpressionSyntax>()
+			.Count(invocation =>
+				semanticModel.TryGetSymbol(invocation, symbolStore, out IMethodSymbol? m)
+				&& SymbolEqualityComparer.Default.Equals(m, targetMethod));
+	}
+
+	/// <summary>
+	/// Tries to inline a local function at the call site by substituting arguments into the function body.
+	/// </summary>
+	private SyntaxNode? TryInlineLocalFunction(IMethodSymbol targetMethod, IReadOnlyList<ExpressionSyntax> arguments)
+	{
+		try
+		{
+			var functionSyntax = targetMethod.DeclaringSyntaxReferences
+				.Select(r => r.GetSyntax(token))
+				.OfType<LocalFunctionStatementSyntax>()
+				.FirstOrDefault();
+
+			if (functionSyntax is null)
+			{
+				return null;
+			}
+
+			var parameters = functionSyntax.ParameterList.Parameters;
+
+			if (parameters.Count != arguments.Count)
+			{
+				return null;
+			}
+
+			// Build a sub-variable dictionary with arguments bound to parameter names
+			var subParams = new Dictionary<string, VariableItem>(variables, StringComparer.Ordinal);
+
+			for (var i = 0; i < parameters.Count; i++)
+			{
+				var paramName = parameters[i].Identifier.Text;
+				var paramType = semanticModel.GetTypeInfo(parameters[i].Type!).Type
+				                ?? semanticModel.Compilation.ObjectType;
+				var argExpr = arguments[i];
+
+				if (TryGetLiteralValue(argExpr, out var literalValue))
+				{
+					subParams[paramName] = new VariableItem(paramType, hasValue: true, value: literalValue, isInitialized: true)
+					{
+						CanBeInlined = true,
+					};
+				}
+				else
+				{
+					subParams[paramName] = new VariableItem(paramType, hasValue: false, value: argExpr, isInitialized: true)
+					{
+						CanBeInlined = true,
+					};
+				}
+			}
+
+			visitingMethods?.Add(targetMethod);
+
+			var subRewriter = new ConstExprPartialRewriter(
+				semanticModel, loader, (_, _) => { }, subParams,
+				additionalMethods, usings, attribute, symbolStore, token, visitingMethods);
+
+			SyntaxNode? result = null;
+
+			// Expression-bodied: e.g. int Add(int a, int b) => a + b;
+			if (functionSyntax.ExpressionBody is { Expression: { } bodyExpr })
+			{
+				result = subRewriter.Visit(bodyExpr) as ExpressionSyntax;
+			}
+			else if (functionSyntax.Body is not null)
+			{
+				// Block-bodied: visit the block and look for a single return statement
+				var visitedBlock = subRewriter.Visit(functionSyntax.Body) as BlockSyntax;
+				var pruned = DeadCodePruner.Prune(visitedBlock!, subParams, semanticModel) as BlockSyntax;
+
+				if (pruned?.Statements is [ReturnStatementSyntax { Expression: { } returnExpr }])
+				{
+					result = returnExpr;
+				}
+			}
+
+			visitingMethods?.Remove(targetMethod);
+
+			return result;
+		}
+		catch (Exception)
+		{
+			return null;
+		}
 	}
 
 	/// <summary>
