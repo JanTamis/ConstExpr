@@ -40,18 +40,14 @@ public class LoopInvariantCodeMotionTests() : BaseTest<Func<int, int, int>>(Fast
 		// Unknown inputs: LICM hoists the multi-use invariant declaration.
 		// The partial rewriter rewrites angle * 3 to ((angle << 1) + angle).
 		// WrapWithHoisted wraps the loop in an extra block together with the hoisted var.
-		Create(
-			"""
+		Create("""
 			var result = 0;
+			var step = ((angle << 1) + angle);
 
+			for (var i = 0; i < n; i++)
 			{
-				var step = ((angle << 1) + angle);
-
-				for (var i = 0; i < n; i++)
-				{
-					result += step;
-					result += step;
-				}
+				result += step;
+				result += step;
 			}
 
 			return result;
