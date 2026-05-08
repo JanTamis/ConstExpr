@@ -4,6 +4,7 @@ using ConstExpr.SourceGenerator.Comparers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using SourceGen.Utilities.Extensions;
 
 namespace ConstExpr.SourceGenerator.Rewriters;
 
@@ -20,6 +21,7 @@ public sealed class CommonSubexpressionEliminator : CSharpSyntaxRewriter
 	private string GenerateName(ExpressionSyntax expr)
 	{
 		expr = Unparenthesize(expr);
+
 		var baseName = expr switch
 		{
 			BinaryExpressionSyntax binary => binary.Kind() switch
@@ -70,14 +72,17 @@ public sealed class CommonSubexpressionEliminator : CSharpSyntaxRewriter
 		}
 
 		var eliminator = new CommonSubexpressionEliminator();
+
 		return eliminator.Visit(node);
 	}
 
 	public override SyntaxNode? VisitBlock(BlockSyntax node)
 	{
 		// First, visit nested blocks to handle them in isolation (bottom-up)
-		var visitedNode = base.VisitBlock(node) as BlockSyntax;
-		if (visitedNode == null) return null;
+		if (base.VisitBlock(node) is not BlockSyntax visitedNode)
+		{
+			return null;
+		}
 
 		// Reset names for this block context to avoid carrying over from unrelated blocks if the instance was reused
 		// (though we create a new instance per Eliminate call, VisitBlock is recursive)
@@ -111,7 +116,10 @@ public sealed class CommonSubexpressionEliminator : CSharpSyntaxRewriter
 			// Identify which candidates appear in this statement for the first time
 			foreach (var candidate in candidates)
 			{
-				if (replacementMap.ContainsKey(candidate)) continue;
+				if (replacementMap.ContainsKey(candidate))
+				{
+					continue;
+				}
 
 				if (ContainsExpression(currentStatement, candidate))
 				{
@@ -155,7 +163,10 @@ public sealed class CommonSubexpressionEliminator : CSharpSyntaxRewriter
 		}
 
 		// Only consider "expensive" or complex expressions
-		if (expr is BinaryExpressionSyntax) return true;
+		if (expr is BinaryExpressionSyntax)
+		{
+			return true;
+		}
 
 		if (expr is InvocationExpressionSyntax invocation)
 		{
@@ -163,9 +174,20 @@ public sealed class CommonSubexpressionEliminator : CSharpSyntaxRewriter
 			return !invocation.DescendantNodes().Any(n => n is LambdaExpressionSyntax or AnonymousFunctionExpressionSyntax);
 		}
 
-		if (expr is MemberAccessExpressionSyntax ma) return ShouldConsider(ma.Expression, lValues);
-		if (expr is ElementAccessExpressionSyntax) return true;
-		if (expr is CastExpressionSyntax cast) return ShouldConsider(cast.Expression, lValues);
+		if (expr is MemberAccessExpressionSyntax ma)
+		{
+			return ShouldConsider(ma.Expression, lValues);
+		}
+
+		if (expr is ElementAccessExpressionSyntax)
+		{
+			return true;
+		}
+
+		if (expr is CastExpressionSyntax cast)
+		{
+			return ShouldConsider(cast.Expression, lValues);
+		}
 
 		return false;
 	}
@@ -176,6 +198,7 @@ public sealed class CommonSubexpressionEliminator : CSharpSyntaxRewriter
 		{
 			expr = p.Expression;
 		}
+
 		return expr;
 	}
 
@@ -183,8 +206,16 @@ public sealed class CommonSubexpressionEliminator : CSharpSyntaxRewriter
 	{
 		public bool Equals(ExpressionSyntax? x, ExpressionSyntax? y)
 		{
-			if (ReferenceEquals(x, y)) return true;
-			if (x == null || y == null) return false;
+			if (ReferenceEquals(x, y))
+			{
+				return true;
+			}
+
+			if (x == null || y == null)
+			{
+				return false;
+			}
+
 			return SyntaxNodeComparer.Get<ExpressionSyntax>().Equals(Unparenthesize(x), Unparenthesize(y));
 		}
 
@@ -240,6 +271,7 @@ public sealed class CommonSubexpressionEliminator : CSharpSyntaxRewriter
 				counts.TryGetValue(normalized, out var count);
 				counts[normalized] = count + 1;
 			}
+
 			base.Visit(node);
 		}
 	}
@@ -261,6 +293,7 @@ public sealed class CommonSubexpressionEliminator : CSharpSyntaxRewriter
 					return IdentifierName(name).WithTriviaFrom(node);
 				}
 			}
+
 			return base.Visit(node);
 		}
 
@@ -282,10 +315,11 @@ public sealed class CommonSubexpressionEliminator : CSharpSyntaxRewriter
 
 			if (parent is PrefixUnaryExpressionSyntax or PostfixUnaryExpressionSyntax)
 			{
-				var kind = parent.Kind();
-
-				if (kind is SyntaxKind.PreIncrementExpression or SyntaxKind.PostIncrementExpression or
-				    SyntaxKind.PreDecrementExpression or SyntaxKind.PostDecrementExpression)
+				if (parent.IsKind(SyntaxKind.PreIncrementExpression, 
+					SyntaxKind.PostIncrementExpression, 
+					SyntaxKind.PreDecrementExpression, 
+					SyntaxKind.PostDecrementExpression, SyntaxKind.PreDecrementExpression,
+					SyntaxKind.PostDecrementExpression))
 				{
 					return true;
 				}

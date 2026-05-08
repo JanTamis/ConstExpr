@@ -82,9 +82,7 @@ public sealed class TailRecursionRewriter
 		}
 
 		var loopBody = Block(List(newStatements));
-		var whileLoop = WhileStatement(
-			LiteralExpression(SyntaxKind.TrueLiteralExpression),
-			loopBody);
+		var whileLoop = WhileStatement(CreateLiteral(true), loopBody);
 
 		return Block(SingletonList<StatementSyntax>(whileLoop));
 	}
@@ -279,7 +277,7 @@ public sealed class TailRecursionRewriter
 	{
 		// return MethodName(args); → assignments + continue
 		if (stmt is ReturnStatementSyntax { Expression: InvocationExpressionSyntax inv }
-		    && IsCallToMethod(inv, methodName))
+				&& IsCallToMethod(inv, methodName))
 		{
 			var assignments = BuildParameterAssignments(inv.ArgumentList.Arguments, paramNames);
 
@@ -300,7 +298,7 @@ public sealed class TailRecursionRewriter
 
 			if (ternaryRewritten is not null)
 			{
-				return new List<StatementSyntax> { ternaryRewritten };
+				return [ternaryRewritten];
 			}
 		}
 
@@ -308,7 +306,7 @@ public sealed class TailRecursionRewriter
 		if (stmt is IfStatementSyntax ifStmt)
 		{
 			var rewrittenIf = RewriteIfStatement(ifStmt, methodName, paramNames);
-			return rewrittenIf is null ? null : new List<StatementSyntax> { rewrittenIf };
+			return rewrittenIf is null ? null : [rewrittenIf];
 		}
 
 		// Block — recurse
@@ -321,11 +319,11 @@ public sealed class TailRecursionRewriter
 				return null;
 			}
 
-			return new List<StatementSyntax> { Block(List(inner)) };
+			return [Block(List(inner))];
 		}
 
 		// Non-recursive statement — keep as-is.
-		return new List<StatementSyntax> { stmt };
+		return [stmt];
 	}
 
 	private static IfStatementSyntax? RewriteIfStatement(
@@ -440,6 +438,7 @@ public sealed class TailRecursionRewriter
 
 		var result = new List<StatementSyntax>(assignments.Count + 1) { ifBase };
 		result.AddRange(assignments);
+
 		return Block(List(result));
 	}
 
@@ -501,21 +500,18 @@ public sealed class TailRecursionRewriter
 
 				result.Add(LocalDeclarationStatement(
 					VariableDeclaration(IdentifierName("var"))
-						.WithVariables(SeparatedList(new[]
-						{
+						.WithVariables(SeparatedList(
+						[
 							VariableDeclarator(Identifier(tmpName))
 								.WithInitializer(EqualsValueClause(args[i].Expression))
-						}))));
+						]))));
 			}
 
 			// Phase 2: assign temporaries to parameters.
 			for (var i = 0; i < paramNames.Count; i++)
 			{
 				result.Add(ExpressionStatement(
-					AssignmentExpression(
-						SyntaxKind.SimpleAssignmentExpression,
-						IdentifierName(paramNames[i]),
-						IdentifierName(tempNames[i]))));
+					AssignmentExpression(IdentifierName(paramNames[i]), IdentifierName(tempNames[i]))));
 			}
 		}
 		else
@@ -523,10 +519,7 @@ public sealed class TailRecursionRewriter
 			for (var i = 0; i < paramNames.Count; i++)
 			{
 				result.Add(ExpressionStatement(
-					AssignmentExpression(
-						SyntaxKind.SimpleAssignmentExpression,
-						IdentifierName(paramNames[i]),
-						args[i].Expression)));
+					AssignmentExpression(IdentifierName(paramNames[i]),	args[i].Expression)));
 			}
 		}
 

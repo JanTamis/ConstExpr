@@ -35,8 +35,13 @@ public static class SyntaxKindExtensions
 		};
 	}
 	
-	public static bool IsKind(this CSharpSyntaxNode node, params ReadOnlySpan<SyntaxKind> kinds)
+	public static bool IsKind(this SyntaxNode? node, params ReadOnlySpan<SyntaxKind> kinds)
 	{
+		if (node is null)
+		{
+			return false;
+		}
+
 		var nodeKind = node.Kind();
 
 		foreach (var kind in kinds)

@@ -3,6 +3,7 @@ using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using SourceGen.Utilities.Extensions;
 
 namespace ConstExpr.SourceGenerator.Rewriters;
 
@@ -34,7 +35,7 @@ public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 	public override SyntaxNode? VisitForStatement(ForStatementSyntax node)
 	{
 		// Visit children first (bottom-up) so inner loops are processed before outer ones.
-		node = (ForStatementSyntax) base.VisitForStatement(node)!;
+		node = (ForStatementSyntax)base.VisitForStatement(node)!;
 
 		if (node.Statement is not BlockSyntax body)
 		{
@@ -55,7 +56,7 @@ public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 
 	public override SyntaxNode? VisitWhileStatement(WhileStatementSyntax node)
 	{
-		node = (WhileStatementSyntax) base.VisitWhileStatement(node)!;
+		node = (WhileStatementSyntax)base.VisitWhileStatement(node)!;
 
 		if (node.Statement is not BlockSyntax body)
 		{
@@ -76,7 +77,7 @@ public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 
 	public override SyntaxNode? VisitDoStatement(DoStatementSyntax node)
 	{
-		node = (DoStatementSyntax) base.VisitDoStatement(node)!;
+		node = (DoStatementSyntax)base.VisitDoStatement(node)!;
 
 		if (node.Statement is not BlockSyntax body)
 		{
@@ -97,7 +98,7 @@ public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 
 	public override SyntaxNode? VisitForEachStatement(ForEachStatementSyntax node)
 	{
-		node = (ForEachStatementSyntax) base.VisitForEachStatement(node)!;
+		node = (ForEachStatementSyntax)base.VisitForEachStatement(node)!;
 
 		if (node.Statement is not BlockSyntax body)
 		{
@@ -139,19 +140,19 @@ public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 
 				// x++, x--
 				case PostfixUnaryExpressionSyntax
-					{
-						Operand: IdentifierNameSyntax pid
-					} pue when pue.IsKind(SyntaxKind.PostIncrementExpression)
-					           || pue.IsKind(SyntaxKind.PostDecrementExpression):
+				{
+					Operand: IdentifierNameSyntax pid
+				} pue when pue.IsKind(SyntaxKind.PostIncrementExpression)
+										 || pue.IsKind(SyntaxKind.PostDecrementExpression):
 					written.Add(pid.Identifier.Text);
 					break;
 
 				// ++x, --x
 				case PrefixUnaryExpressionSyntax
-					{
-						Operand: IdentifierNameSyntax preid
-					} prue when prue.IsKind(SyntaxKind.PreIncrementExpression)
-					            || prue.IsKind(SyntaxKind.PreDecrementExpression):
+				{
+					Operand: IdentifierNameSyntax preid
+				} prue when prue.IsKind(SyntaxKind.PreIncrementExpression)
+											|| prue.IsKind(SyntaxKind.PreDecrementExpression):
 					written.Add(preid.Identifier.Text);
 					break;
 			}
@@ -177,9 +178,9 @@ public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 				case MemberAccessExpressionSyntax:
 				case BinaryExpressionSyntax:
 				case PrefixUnaryExpressionSyntax pue when !pue.IsKind(SyntaxKind.PreIncrementExpression)
-				                                          && !pue.IsKind(SyntaxKind.PreDecrementExpression):
+																									&& !pue.IsKind(SyntaxKind.PreDecrementExpression):
 				case PostfixUnaryExpressionSyntax poue when !poue.IsKind(SyntaxKind.PostIncrementExpression)
-				                                            && !poue.IsKind(SyntaxKind.PostDecrementExpression):
+																										&& !poue.IsKind(SyntaxKind.PostDecrementExpression):
 				case CastExpressionSyntax:
 				case ParenthesizedExpressionSyntax:
 				case InvocationExpressionSyntax:
@@ -216,10 +217,10 @@ public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 		foreach (var stmt in body.Statements)
 		{
 			if (stmt is LocalDeclarationStatementSyntax
-			    {
-				    Declaration: { Variables: [ { Initializer.Value: { } initExpr } declarator ] } decl
-			    } local
-			    && !local.IsConst)
+				{
+					Declaration: { Variables: [{ Initializer.Value: { } initExpr } declarator] } decl
+				} local
+					&& !local.IsConst)
 			{
 				var varName = declarator.Identifier.Text;
 
@@ -232,7 +233,7 @@ public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 						.Select(id => id.Identifier.Text));
 
 				var referencesWritten = identifiersInInit.Overlaps(writtenInLoop)
-				                        || identifiersInInit.Overlaps(alreadyHoisted);
+																|| identifiersInInit.Overlaps(alreadyHoisted);
 
 				if (!referencesWritten && IsPureExpression(initExpr))
 				{
@@ -254,7 +255,7 @@ public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 					{
 						// Rename the declarator identifier.
 						var renamedDeclarator = declarator.WithIdentifier(Identifier(hoistedName));
-						var renamedDecl = decl.WithVariables(SeparatedList(new[] { renamedDeclarator }));
+						var renamedDecl = decl.WithVariables(SeparatedList([renamedDeclarator]));
 						hoistedDecl = local.WithDeclaration(renamedDecl);
 					}
 					else
@@ -302,6 +303,7 @@ public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 		var statements = new List<StatementSyntax>(hoisted.Count + 1);
 		statements.AddRange(hoisted);
 		statements.Add(loop);
+
 		return Block(List(statements));
 	}
 }
