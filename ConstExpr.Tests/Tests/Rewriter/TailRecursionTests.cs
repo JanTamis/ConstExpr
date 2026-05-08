@@ -17,16 +17,15 @@ public class TailRecursionTests() : BaseTest<Func<int, int, int>>(FastMathFlags.
 	///   Uses a raw string here because a lambda cannot call itself by name.
 	///   The method name must be <c>TestMethod</c> so that BaseTest can find it.
 	/// </summary>
-	public override string TestMethod =>
-		"""
+	public override string TestMethod => """
 		int TestMethod(int n, int acc)
 		{
-		    if (n <= 0)
-		    {
-		        return acc;
-		    }
+			if (n <= 0)
+			{
+				return acc;
+			}
 
-		    return TestMethod(n - 1, acc + n);
+			return TestMethod(n - 1, acc + n);
 		}
 		""";
 
@@ -39,18 +38,15 @@ public class TailRecursionTests() : BaseTest<Func<int, int, int>>(FastMathFlags.
 		Create("""
 			while (true)
 			{
+				if (n <= 0)
 				{
-					if (n <= 0)
-					{
-						return acc;
-					}
-
-					var _tre_tmp_n = n - 1;
-					var _tre_tmp_acc = acc + n;
-					n = _tre_tmp_n;
-					acc = _tre_tmp_acc;
-					continue;
+					return acc;
 				}
+
+				var _tre_tmp_n = n - 1;
+				var _tre_tmp_acc = acc + n;
+				n = _tre_tmp_n;
+				acc = _tre_tmp_acc;
 			}
 			""", Unknown, Unknown)
 	];
