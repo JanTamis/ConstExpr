@@ -10,7 +10,7 @@ public class StringFormatTwoArgsTest() : BaseTest<Func<string, string, string>>(
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null),
+		Create("return $\"{first} {last}\""),
 		Create("return \"John Doe\";", "John", "Doe"),
 	];
 }

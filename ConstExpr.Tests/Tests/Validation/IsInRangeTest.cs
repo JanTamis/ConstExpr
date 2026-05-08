@@ -9,7 +9,7 @@ public class IsInRangeTest() : BaseTest<Func<int, int, int, bool>>(FastMathFlags
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null, Unknown, Unknown, Unknown),
+		Create(null),
 		Create("return (uint)(value - 1) <= 9U;", Unknown, 1, 10),
 		Create("return false;", Unknown, 10, 1),
 		Create("return false;", Unknown, -1, -10),
