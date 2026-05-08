@@ -15,6 +15,7 @@ public class NestedCommonSubexpressionEliminationTest() : BaseTest<Func<int, int
 			var b = x * x * x + 1;
 			result = a * b;
 		}
+
 		return result;
 	});
 
