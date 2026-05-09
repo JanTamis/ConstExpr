@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
@@ -57,11 +59,11 @@ public class Atan2PiFunctionOptimizer() : BaseMathFunctionOptimizer("Atan2Pi", n
 
 		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			SpecialType.System_Single => GenerateFastAtan2PiMethodFloat(),
-			SpecialType.System_Double => GenerateFastAtan2PiMethodDouble(),
+			SpecialType.System_Single => GenerateFastAtan2PiMethodFloat(context.FastMathFlags),
+			SpecialType.System_Double => GenerateFastAtan2PiMethodDouble(context.FastMathFlags),
 			_ => null
 		});
-			
+
 		if (method is not null)
 		{
 			context.AdditionalSyntax.TryAdd(method, false);
@@ -97,75 +99,95 @@ public class Atan2PiFunctionOptimizer() : BaseMathFunctionOptimizer("Atan2Pi", n
 		}
 	}
 
-	private static string GenerateFastAtan2PiMethodFloat()
+	private static string GenerateFastAtan2PiMethodFloat(FastMathFlags flags)
 	{
-		return """
-			private static float FastAtan2Pi(float y, float x)
-			{
-				if (Single.IsNaN(y) || Single.IsNaN(x)) return Single.NaN;
-				var absX = Single.Abs(x);
-				var absY = Single.Abs(y);
-				var maxV = Single.Max(absX, absY);
-				if (maxV == 0f) return 0f;
-				
-				// Octant reduction: a = min(|x|,|y|) / max(|x|,|y|) ∈ [0, 1]
-				var a = Single.Min(absX, absY) / maxV;
-				var u = a * a;
-				
-				// A&S §4.4.43 coefficients pre-divided by π — same kernel as FastAtan2, 1/π absorbed.
-				// Max absolute error ≈ 3.5e-6 (in units of π), ~2000× better than the prior Padé [1/2].
-				// Benchmark (Apple M4 Pro, .NET 10, ARM64): ~2.25 ns vs float.Atan2Pi ~3.14 ns (−28%).
-				var p = Single.FusedMultiplyAdd(u,  0.00663222f, -0.02710107f);
-				p = Single.FusedMultiplyAdd(u, p,  0.05733014f);
-				p = Single.FusedMultiplyAdd(u, p, -0.10510700f);
-				p = Single.FusedMultiplyAdd(u, p,  0.31826720f);
-				p *= a;
-				
-				// Octant and quadrant corrections — π/2 / π = 0.5, π / π = 1
-				p = absY > absX ? 0.5f - p : p;
-				p = x < 0f     ? 1f - p    : p;
-				p = y < 0f     ? -p : p;
-				return p;
-			}
-			""";
+		var builder = new CodeWriter();
+
+		builder.WriteLine("private static float FastAtan2Pi(float y, float x)")
+			.WriteLine("{")
+			.AddIndent("\t");
+
+		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		{
+			builder.WriteLine("if (Single.IsNaN(y) || Single.IsNaN(x)) return Single.NaN;");
+		}
+
+		builder.WriteLine("var absX = Single.Abs(x);")
+			.WriteLine("var absY = Single.Abs(y);")
+			.WriteLine("var maxV = Single.Max(absX, absY);")
+			.WriteLine("if (maxV == 0f) return 0f;")
+			.WriteLine("")
+			.WriteLine("// Octant reduction: a = min(|x|,|y|) / max(|x|,|y|) ∈ [0, 1]")
+			.WriteLine("var a = Single.Min(absX, absY) / maxV;")
+			.WriteLine("var u = a * a;")
+			.WriteLine("")
+			.WriteLine("// A&S §4.4.43 coefficients pre-divided by π — same kernel as FastAtan2, 1/π absorbed.")
+			.WriteLine("// Max absolute error ≈ 3.5e-6 (in units of π), ~2000× better than the prior Padé [1/2].")
+			.WriteLine("// Benchmark (Apple M4 Pro, .NET 10, ARM64): ~2.25 ns vs float.Atan2Pi ~3.14 ns (−28%).")
+			.WriteLine("var p = Single.FusedMultiplyAdd(u,  0.00663222f, -0.02710107f);")
+			.WriteLine("p = Single.FusedMultiplyAdd(u, p,  0.05733014f);")
+			.WriteLine("p = Single.FusedMultiplyAdd(u, p, -0.10510700f);")
+			.WriteLine("p = Single.FusedMultiplyAdd(u, p,  0.31826720f);")
+			.WriteLine("p *= a;")
+			.WriteLine("")
+			.WriteLine("// Octant and quadrant corrections — π/2 / π = 0.5, π / π = 1")
+			.WriteLine("p = absY > absX ? 0.5f - p : p;")
+			.WriteLine("p = x < 0f     ? 1f - p    : p;")
+			.WriteLine("p = y < 0f     ? -p : p;")
+			.WriteLine("return p;");
+
+		builder.RemoveIndent()
+			.WriteLine("}");
+
+		return builder.ToString();
 	}
 
-	private static string GenerateFastAtan2PiMethodDouble()
+	private static string GenerateFastAtan2PiMethodDouble(FastMathFlags flags)
 	{
-		return """
-			private static double FastAtan2Pi(double y, double x)
-			{
-				if (Double.IsNaN(y) || Double.IsNaN(x)) return Double.NaN;
-				var absX = Double.Abs(x);
-				var absY = Double.Abs(y);
-				var maxV = Double.Max(absX, absY);
-				if (maxV == 0.0) return 0.0;
-				
-				// Octant reduction: a = min(|x|,|y|) / max(|x|,|y|) ∈ [0, 1]
-				var a = Double.Min(absX, absY) / maxV;
-				
-				// Half-angle identity: atan(a) = 2·atan(t),  t = a / (1 + sqrt(1 + a²))
-				// Maps a ∈ [0, 1] → t ∈ [0, tan(π/8)] ≈ [0, 0.4142] for faster Taylor convergence.
-				var t = a / (1.0 + Double.Sqrt(1.0 + a * a));
-				var u = t * t;
-				
-				// 8-term Horner Taylor series for atan(t)/t; 2/π absorbed into the leading factor.
-				// Truncation error ≤ t¹⁷/17 ≈ 1.8e-8; total atan2Pi error ≈ 4e-8 (in units of π).
-				var p = Double.FusedMultiplyAdd(u, -1.0 / 15.0,  1.0 / 13.0);
-				p = Double.FusedMultiplyAdd(u, p, -1.0 / 11.0);
-				p = Double.FusedMultiplyAdd(u, p,  1.0 / 9.0);
-				p = Double.FusedMultiplyAdd(u, p, -1.0 / 7.0);
-				p = Double.FusedMultiplyAdd(u, p,  1.0 / 5.0);
-				p = Double.FusedMultiplyAdd(u, p, -1.0 / 3.0);
-				p = Double.FusedMultiplyAdd(u, p,  1.0);
-				p = 2.0 / Double.Pi * t * p; // atan2Pi(a) = 2·atan(t) / π
-				
-				// Octant and quadrant corrections — π/2 / π = 0.5, π / π = 1
-				p = absY > absX ? 0.5 - p : p;
-				p = x < 0.0    ? 1.0 - p  : p;
-				p = y < 0.0    ? -p : p;
-				return p;
-			}
-			""";
+		var builder = new CodeWriter();
+
+		builder.WriteLine("private static double FastAtan2Pi(double x, double y)")
+			.WriteLine("{")
+			.AddIndent("\t");
+
+		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		{
+			builder.WriteLine("if (Double.IsNaN(y) || Double.IsNaN(x)) return Double.NaN;");
+		}
+
+		builder.WriteLine("var absX = Double.Abs(x);")
+			.WriteLine("var absY = Double.Abs(y);")
+			.WriteLine("var maxV = Double.Max(absX, absY);")
+			.WriteLine("if (maxV == 0.0) return 0.0;")
+			.WriteLine("")
+			.WriteLine("// Octant reduction: a = min(|x|,|y|) / max(|x|,|y|) ∈ [0, 1]")
+			.WriteLine("var a = Double.Min(absX, absY) / maxV;")
+			.WriteLine("")
+			.WriteLine("// Half-angle identity: atan(a) = 2·atan(t),  t = a / (1 + sqrt(1 + a²))")
+			.WriteLine("// Maps a ∈ [0, 1] → t ∈ [0, tan(π/8)] ≈ [0, 0.4142] for faster Taylor convergence.")
+			.WriteLine("var t = a / (1.0 + Double.Sqrt(1.0 + a * a));")
+			.WriteLine("var u = t * t;")
+			.WriteLine("")
+			.WriteLine("// 8-term Horner Taylor series for atan(t)/t; 2/π absorbed into the leading factor.")
+			.WriteLine("// Truncation error ≤ t¹⁷/17 ≈ 1.8e-8; total atan2Pi error ≈ 4e-8 (in units of π).")
+			.WriteLine("var p = Double.FusedMultiplyAdd(u, -1.0 / 15.0,  1.0 / 13.0);")
+			.WriteLine("p = Double.FusedMultiplyAdd(u, p, -1.0 / 11.0);")
+			.WriteLine("p = Double.FusedMultiplyAdd(u, p,  1.0 / 9.0);")
+			.WriteLine("p = Double.FusedMultiplyAdd(u, p, -1.0 / 7.0);")
+			.WriteLine("p = Double.FusedMultiplyAdd(u, p,  1.0 / 5.0);")
+			.WriteLine("p = Double.FusedMultiplyAdd(u, p, -1.0 / 3.0);")
+			.WriteLine("p = Double.FusedMultiplyAdd(u, p,  1.0);")
+			.WriteLine("p = 2.0 / Double.Pi * t * p; // atan2Pi(a) = 2·atan(t) / π")
+			.WriteLine("")
+			.WriteLine("// Octant and quadrant corrections — π/2 / π = 0.5, π / π = 1")
+			.WriteLine("p = absY > absX ? 0.5 - p : p;")
+			.WriteLine("p = x < 0.0    ? 1.0 - p  : p;")
+			.WriteLine("p = y < 0.0    ? -p : p;")
+			.WriteLine("return p;");
+
+		builder.RemoveIndent()
+			.WriteLine("}");
+
+		return builder.ToString();
 	}
 }

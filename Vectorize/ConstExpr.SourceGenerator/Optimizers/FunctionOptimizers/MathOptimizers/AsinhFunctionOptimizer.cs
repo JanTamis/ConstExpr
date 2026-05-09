@@ -1,7 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
+using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
+using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
@@ -11,8 +13,8 @@ public class AsinhFunctionOptimizer() : BaseMathFunctionOptimizer("Asinh", n => 
 	{
 		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			SpecialType.System_Single => GenerateFastAsinhMethodFloat(),
-			SpecialType.System_Double => GenerateFastAsinhMethodDouble(),
+			SpecialType.System_Single => GenerateFastAsinhMethodFloat(context.FastMathFlags),
+			SpecialType.System_Double => GenerateFastAsinhMethodDouble(context.FastMathFlags),
 			_ => null,
 		});
 
@@ -28,37 +30,57 @@ public class AsinhFunctionOptimizer() : BaseMathFunctionOptimizer("Asinh", n => 
 		return true;
 	}
 
-	private static string GenerateFastAsinhMethodFloat()
+	private static string GenerateFastAsinhMethodFloat(FastMathFlags flags)
 	{
-		return """
-			private static float FastAsinh(float x)
-			{
-				// Branchless: sign(x) · log(|x| + sqrt(FMA(|x|,|x|,1)))
-				// FMA(|x|,|x|,1) = x²+1 is always ≥ 1, so sqrt is always real.
-				// No conditional branches — avoids misprediction overhead.
-				// Benchmarks (Apple M4 Pro): 2.003 ns vs 2.287 ns for MathF.Asinh (12% faster).
-				if (Single.IsNaN(x)) return Single.NaN;
-				var ax = Single.Abs(x);
-				var r = Single.Log(ax + Single.Sqrt(Single.FusedMultiplyAdd(ax, ax, 1.0f)));
-				return Single.CopySign(r, x);
-			}
-			""";
+		var builder = new CodeWriter();
+
+		builder.WriteLine("private static float FastAsinh(float x)")
+			.WriteLine("{")
+			.AddIndent("\t");
+
+		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		{
+			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
+		}
+
+		builder.WriteLine("// Branchless: sign(x) · log(|x| + sqrt(FMA(|x|,|x|,1)))")
+			.WriteLine("// FMA(|x|,|x|,1) = x²+1 is always ≥ 1, so sqrt is always real.")
+			.WriteLine("// No conditional branches — avoids misprediction overhead.")
+			.WriteLine("// Benchmarks (Apple M4 Pro): 2.003 ns vs 2.287 ns for MathF.Asinh (12% faster).")
+			.WriteLine("var ax = Single.Abs(x);")
+			.WriteLine("var r = Single.Log(ax + Single.Sqrt(Single.FusedMultiplyAdd(ax, ax, 1.0f)));")
+			.WriteLine("return Single.CopySign(r, x);");
+
+		builder.RemoveIndent()
+			.WriteLine("}");
+
+		return builder.ToString();
 	}
 
-	private static string GenerateFastAsinhMethodDouble()
+	private static string GenerateFastAsinhMethodDouble(FastMathFlags flags)
 	{
-		return """
-			private static double FastAsinh(double x)
-			{
-				// Branchless: sign(x) · log(|x| + sqrt(FMA(|x|,|x|,1)))
-				// FMA(|x|,|x|,1) = x²+1 is always ≥ 1, so sqrt is always real.
-				// No conditional branches — avoids misprediction overhead.
-				// Benchmarks (Apple M4 Pro): 2.737 ns vs 4.161 ns for Math.Asinh (34% faster).
-				if (Double.IsNaN(x)) return Double.NaN;
-				var ax = Double.Abs(x);
-				var r = Double.Log(ax + Double.Sqrt(Double.FusedMultiplyAdd(ax, ax, 1.0)));
-				return Double.CopySign(r, x);
-			}
-			""";
+		var builder = new CodeWriter();
+
+		builder.WriteLine("private static double FastAsinh(double x)")
+			.WriteLine("{")
+			.AddIndent("\t");
+
+		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		{
+			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
+		}
+
+		builder.WriteLine("// Branchless: sign(x) · log(|x| + sqrt(FMA(|x|,|x|,1)))")
+			.WriteLine("// FMA(|x|,|x|,1) = x²+1 is always ≥ 1, so sqrt is always real.")
+			.WriteLine("// No conditional branches — avoids misprediction overhead.")
+			.WriteLine("// Benchmarks (Apple M4 Pro): 2.737 ns vs 4.161 ns for Math.Asinh (34% faster).")
+			.WriteLine("var ax = Double.Abs(x);")
+			.WriteLine("var r = Double.Log(ax + Double.Sqrt(Double.FusedMultiplyAdd(ax, ax, 1.0)));")
+			.WriteLine("return Double.CopySign(r, x);");
+
+		builder.RemoveIndent()
+			.WriteLine("}");
+
+		return builder.ToString();
 	}
 }

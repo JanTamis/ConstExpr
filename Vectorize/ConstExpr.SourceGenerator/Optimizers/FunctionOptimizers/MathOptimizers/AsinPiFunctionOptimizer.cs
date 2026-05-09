@@ -1,7 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
+using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
+using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
@@ -11,8 +13,8 @@ public class AsinPiFunctionOptimizer() : BaseMathFunctionOptimizer("AsinPi", n =
 	{
 		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			SpecialType.System_Single => GenerateFastAsinPiMethodFloat(),
-			SpecialType.System_Double => GenerateFastAsinPiMethodDouble(),
+			SpecialType.System_Single => GenerateFastAsinPiMethodFloat(context.FastMathFlags),
+			SpecialType.System_Double => GenerateFastAsinPiMethodDouble(context.FastMathFlags),
 			_ => null,
 		});
 
@@ -28,91 +30,109 @@ public class AsinPiFunctionOptimizer() : BaseMathFunctionOptimizer("AsinPi", n =
 		return true;
 	}
 
-	private static string GenerateFastAsinPiMethodFloat()
+	private static string GenerateFastAsinPiMethodFloat(FastMathFlags flags)
 	{
-		return """
-			private static float FastAsinPi(float x)
-			{
-				// Branched implementation — intentionally faster than branchless alternatives on ARM64.
-				// Branch at |x|<0.5: ~50% of uniform [-1,1] calls take the cheap Taylor path (no sqrt).
-				// Average cost ≈ 50% × Taylor + 50% × A&S, beating the always-sqrt branchless approach.
-				// Benchmarks (Apple M4 Pro): 1.098 ns vs 2.601 ns for float.AsinPi (58% faster).
-				// Small branch accuracy: ≈2.8e-3 at |x|=0.5 (acceptable for FastMath mode).
-				if (Single.IsNaN(x)) return Single.NaN;
-				if (x < -1.0f) x = -1.0f;
-				if (x > 1.0f) x = 1.0f;
-				
-				var xa = Single.Abs(x);
-				
-				if (xa < 0.5f)
-				{
-					// Taylor series: asinPi(x) ≈ x/π + x³/(6π)  — avoids sqrt entirely
-					var x2 = xa * xa;
-					var ret = 0.16666667f;  // 1/6
-					ret = Single.FusedMultiplyAdd(ret, x2, 1.0f);
-					ret = ret * xa * 0.31830988618379067f;  // 1/π
-					return Single.CopySign(ret, x);
-				}
-				else
-				{
-					// A&S §4.4.45 minimax polynomial: asinPi(x) = 0.5 − sqrt(1−|x|)·poly(|x|)/π
-					var onemx = 1.0f - xa;
-					var sqrt_onemx = Single.Sqrt(onemx);
-					
-					var ret = -0.0187293f;
-					ret = Single.FusedMultiplyAdd(ret, xa, 0.0742610f);
-					ret = Single.FusedMultiplyAdd(ret, xa, -0.2121144f);
-					ret = Single.FusedMultiplyAdd(ret, xa, 1.5707288f);
-					ret = ret * sqrt_onemx;
-					
-					ret = Single.FusedMultiplyAdd(-ret, 0.31830988618379067f, 0.5f);
-					return Single.CopySign(ret, x);
-				}
-			}
-			""";
+		var builder = new CodeWriter();
+
+		builder.WriteLine("private static float FastAsinPi(float x)")
+			.WriteLine("{")
+			.AddIndent("\t");
+
+		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		{
+			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
+		}
+
+		builder.WriteLine("if (x < -1.0f) x = -1.0f;")
+			.WriteLine("if (x > 1.0f) x = 1.0f;")
+			.WriteLine("")
+			.WriteLine("var xa = Single.Abs(x);")
+			.WriteLine("")
+			.WriteLine("if (xa < 0.5f)")
+			.WriteLine("{")
+			.AddIndent("\t")
+			.WriteLine("// Taylor series: asinPi(x) ≈ x/π + x³/(6π)  — avoids sqrt entirely")
+			.WriteLine("var x2 = xa * xa;")
+			.WriteLine("var ret = 0.16666667f;  // 1/6")
+			.WriteLine("ret = Single.FusedMultiplyAdd(ret, x2, 1.0f);")
+			.WriteLine("ret = ret * xa * 0.31830988618379067f;  // 1/π")
+			.WriteLine("return Single.CopySign(ret, x);")
+			.RemoveIndent()
+			.WriteLine("}")
+			.WriteLine("else")
+			.WriteLine("{")
+			.AddIndent("\t")
+			.WriteLine("// A&S §4.4.45 minimax polynomial: asinPi(x) = 0.5 − sqrt(1−|x|)·poly(|x|)/π")
+			.WriteLine("var onemx = 1.0f - xa;")
+			.WriteLine("var sqrt_onemx = Single.Sqrt(onemx);")
+			.WriteLine("")
+			.WriteLine("var ret = -0.0187293f;")
+			.WriteLine("ret = Single.FusedMultiplyAdd(ret, xa, 0.0742610f);")
+			.WriteLine("ret = Single.FusedMultiplyAdd(ret, xa, -0.2121144f);")
+			.WriteLine("ret = Single.FusedMultiplyAdd(ret, xa, 1.5707288f);")
+			.WriteLine("ret = ret * sqrt_onemx;")
+			.WriteLine("")
+			.WriteLine("ret = Single.FusedMultiplyAdd(-ret, 0.31830988618379067f, 0.5f);")
+			.WriteLine("return Single.CopySign(ret, x);")
+			.RemoveIndent()
+			.WriteLine("}");
+
+		builder.RemoveIndent()
+			.WriteLine("}");
+
+		return builder.ToString();
 	}
 
-	private static string GenerateFastAsinPiMethodDouble()
+	private static string GenerateFastAsinPiMethodDouble(FastMathFlags flags)
 	{
-		return """
-			private static double FastAsinPi(double x)
-			{
-				// Branched implementation — intentionally faster than branchless alternatives on ARM64.
-				// Branch at |x|<0.5: ~50% of uniform [-1,1] calls take the cheap Taylor path (no sqrt).
-				// Average cost ≈ 50% × Taylor + 50% × A&S, beating the always-sqrt branchless approach.
-				// Benchmarks (Apple M4 Pro): 1.001 ns vs 3.316 ns for double.AsinPi (70% faster).
-				// Small branch accuracy: ≈2.8e-3 at |x|=0.5 (acceptable for FastMath mode).
-				if (Double.IsNaN(x)) return Double.NaN;
-				if (x < -1.0) x = -1.0;
-				if (x > 1.0) x = 1.0;
-				
-				var xa = Double.Abs(x);
-				
-				if (xa < 0.5)
-				{
-					// Taylor series: asinPi(x) ≈ x/π + x³/(6π)  — avoids sqrt entirely
-					var x2 = xa * xa;
-					var ret = 0.16666666666666666;  // 1/6
-					ret = Double.FusedMultiplyAdd(ret, x2, 1.0);
-					ret = ret * xa * 0.31830988618379067;  // 1/π
-					return Double.CopySign(ret, x);
-				}
-				else
-				{
-					// A&S §4.4.45 minimax polynomial: asinPi(x) = 0.5 − sqrt(1−|x|)·poly(|x|)/π
-					var onemx = 1.0 - xa;
-					var sqrt_onemx = Double.Sqrt(onemx);
-					
-					var ret = -0.0187293;
-					ret = Double.FusedMultiplyAdd(ret, xa, 0.0742610);
-					ret = Double.FusedMultiplyAdd(ret, xa, -0.2121144);
-					ret = Double.FusedMultiplyAdd(ret, xa, 1.5707288);
-					ret = ret * sqrt_onemx;
-					
-					ret = Double.FusedMultiplyAdd(-ret, 0.31830988618379067, 0.5);
-					return Double.CopySign(ret, x);
-				}
-			}
-			""";
+		var builder = new CodeWriter();
+
+		builder.WriteLine("private static double FastAsinPi(double x)")
+			.WriteLine("{")
+			.AddIndent("\t");
+
+		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		{
+			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
+		}
+
+		builder.WriteLine("if (x < -1.0) x = -1.0;")
+			.WriteLine("if (x > 1.0) x = 1.0;")
+			.WriteLine("")
+			.WriteLine("var xa = Double.Abs(x);")
+			.WriteLine("")
+			.WriteLine("if (xa < 0.5)")
+			.WriteLine("{")
+			.AddIndent("\t")
+			.WriteLine("// Taylor series: asinPi(x) ≈ x/π + x³/(6π)  — avoids sqrt entirely")
+			.WriteLine("var x2 = xa * xa;")
+			.WriteLine("var ret = 0.16666666666666666;  // 1/6")
+			.WriteLine("ret = Double.FusedMultiplyAdd(ret, x2, 1.0);")
+			.WriteLine("ret = ret * xa * 0.31830988618379067;  // 1/π")
+			.WriteLine("return Double.CopySign(ret, x);")
+			.RemoveIndent()
+			.WriteLine("}")
+			.WriteLine("else")
+			.WriteLine("{")
+			.AddIndent("\t")
+			.WriteLine("// A&S §4.4.45 minimax polynomial: asinPi(x) = 0.5 − sqrt(1−|x|)·poly(|x|)/π")
+			.WriteLine("var onemx = 1.0 - xa;")
+			.WriteLine("var sqrt_onemx = Double.Sqrt(onemx);")
+			.WriteLine("")
+			.WriteLine("var ret = -0.0187293; ")
+			.WriteLine("ret = Double.FusedMultiplyAdd(ret, xa, 0.0742610);")
+			.WriteLine("ret = Double.FusedMultiplyAdd(ret, xa, -0.2121144);")
+			.WriteLine("ret = Double.FusedMultiplyAdd(ret, xa, 1.5707288);")
+			.WriteLine("ret = ret * sqrt_onemx;")
+			.WriteLine("")
+			.WriteLine("ret = Double.FusedMultiplyAdd(-ret, 0.31830988618379067, 0.5);")
+			.WriteLine("return Double.CopySign(ret, x);")
+			.RemoveIndent()
+			.WriteLine("}");
+
+		builder.RemoveIndent()
+			.WriteLine("}");
+
+		return builder.ToString();
 	}
 }

@@ -1,8 +1,10 @@
 using System.Diagnostics.CodeAnalysis;
+using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
@@ -19,8 +21,8 @@ public class BitIncrementFunctionOptimizer() : BaseMathFunctionOptimizer("BitInc
 
 		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			SpecialType.System_Single => GenerateFastBitIncrementMethodFloat(),
-			SpecialType.System_Double => GenerateFastBitIncrementMethodDouble(),
+			SpecialType.System_Single => GenerateFastBitIncrementMethodFloat(context.FastMathFlags),
+			SpecialType.System_Double => GenerateFastBitIncrementMethodDouble(context.FastMathFlags),
 			_ => null
 		});
 
@@ -37,49 +39,89 @@ public class BitIncrementFunctionOptimizer() : BaseMathFunctionOptimizer("BitInc
 		return true;
 	}
 
-	private static string GenerateFastBitIncrementMethodFloat()
+	private static string GenerateFastBitIncrementMethodFloat(FastMathFlags flags)
 	{
-		return """
-			private static float FastBitIncrement(float x)
-			{
-				// Combined NaN/±Inf guard — single unsigned-compare on ARM64.
-				// −Inf → −MaxValue; NaN and +Inf returned unchanged.
-				if (!Single.IsFinite(x))
-					return Single.IsNegativeInfinity(x) ? -Single.MaxValue : x;
+		var builder = new CodeWriter();
 
-				var bits = System.BitConverter.SingleToInt32Bits(x);
+		builder.WriteLine("private static float FastBitIncrement(float x)")
+			.WriteLine("{")
+			.AddIndent("\t");
 
-				// Both +0 (bits=0) and −0 (bits=int.MinValue) → +epsilon (0x00000001).
-				// A single masked compare eliminates both without an extra branch.
-				if ((bits & int.MaxValue) == 0) return Single.Epsilon;
+		builder.WriteLine("// Combined NaN/±Inf guard — single unsigned-compare on ARM64.")
+			.WriteLine("// −Inf → −MaxValue; NaN and +Inf returned unchanged.");
 
-				// Branchless sign: (bits >> 31) | 1 = +1 for positive, −1 for negative.
-				// bits += sign  →  bits + 1 (positive) or bits − 1 (negative).
-				bits += (bits >> 31) | 1;
-				return System.BitConverter.Int32BitsToSingle(bits);
-			}
-			""";
+		if (flags.HasFlag(FastMathFlags.NoNaN))
+		{
+			builder.WriteLine("if (Single.IsInfinity(x))")
+				.AddIndent("\t")
+				.WriteLine("return Single.IsNegativeInfinity(x) ? -Single.MaxValue : x;")
+				.RemoveIndent();
+		}
+		else
+		{
+			builder.WriteLine("if (!Single.IsFinite(x))")
+				.AddIndent("\t")
+				.WriteLine("return Single.IsNegativeInfinity(x) ? -Single.MaxValue : x;")
+				.RemoveIndent();
+		}
+
+		builder.WriteLine("")
+			.WriteLine("var bits = System.BitConverter.SingleToInt32Bits(x);")
+			.WriteLine("")
+			.WriteLine("// Both +0 (bits=0) and −0 (bits=int.MinValue) → +epsilon (0x00000001).")
+			.WriteLine("// A single masked compare eliminates both without an extra branch.")
+			.WriteLine("if ((bits & int.MaxValue) == 0) return Single.Epsilon;")
+			.WriteLine("")
+			.WriteLine("// Branchless sign: (bits >> 31) | 1 = +1 for positive, −1 for negative.")
+			.WriteLine("// bits += sign  →  bits + 1 (positive) or bits − 1 (negative).")
+			.WriteLine("bits += (bits >> 31) | 1;")
+			.WriteLine("return System.BitConverter.Int32BitsToSingle(bits);");
+
+		builder.RemoveIndent()
+			.WriteLine("}");
+
+		return builder.ToString();
 	}
 
-	private static string GenerateFastBitIncrementMethodDouble()
+	private static string GenerateFastBitIncrementMethodDouble(FastMathFlags flags)
 	{
-		return """
-			private static double FastBitIncrement(double x)
-			{
-				// Combined NaN/±Inf guard — single unsigned-compare on ARM64.
-				// −Inf → −MaxValue; NaN and +Inf returned unchanged.
-				if (!Double.IsFinite(x))
-					return Double.IsNegativeInfinity(x) ? -Double.MaxValue : x;
+		var builder = new CodeWriter();
 
-				var bits = System.BitConverter.DoubleToInt64Bits(x);
+		builder.WriteLine("private static double FastBitIncrement(double x)")
+			.WriteLine("{")
+			.AddIndent("\t");
 
-				// Both +0 (bits=0L) and −0 (bits=long.MinValue) → +epsilon.
-				if ((bits & long.MaxValue) == 0L) return Double.Epsilon;
+		builder.WriteLine("// Combined NaN/±Inf guard — single unsigned-compare on ARM64.")
+			.WriteLine("// −Inf → −MaxValue; NaN and +Inf returned unchanged.");
 
-				// Branchless sign: (bits >> 63) | 1L = +1L for positive, −1L for negative.
-				bits += (bits >> 63) | 1L;
-				return System.BitConverter.Int64BitsToDouble(bits);
-			}
-			""";
+		if (flags.HasFlag(FastMathFlags.NoNaN))
+		{
+			builder.WriteLine("if (Double.IsInfinity(x))")
+				.AddIndent("\t")
+				.WriteLine("return Double.IsNegativeInfinity(x) ? -Double.MaxValue : x;")
+				.RemoveIndent();
+		}
+		else
+		{
+			builder.WriteLine("if (!Double.IsFinite(x))")
+				.AddIndent("\t")
+				.WriteLine("return Double.IsNegativeInfinity(x) ? -Double.MaxValue : x;")
+				.RemoveIndent();
+		}
+
+		builder.WriteLine("")
+			.WriteLine("var bits = System.BitConverter.DoubleToInt64Bits(x);")
+			.WriteLine("")
+			.WriteLine("// Both +0 (bits=0L) and −0 (bits=long.MinValue) → +epsilon.")
+			.WriteLine("if ((bits & long.MaxValue) == 0L) return Double.Epsilon;")
+			.WriteLine("")
+			.WriteLine("// Branchless sign: (bits >> 63) | 1L = +1L for positive, −1L for negative.")
+			.WriteLine("bits += (bits >> 63) | 1L;")
+			.WriteLine("return System.BitConverter.Int64BitsToDouble(bits);");
+
+		builder.RemoveIndent()
+			.WriteLine("}");
+
+		return builder.ToString();
 	}
 }

@@ -1,11 +1,13 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
@@ -24,7 +26,7 @@ public class CopySignFunctionOptimizer() : BaseMathFunctionOptimizer("CopySign",
 		}
 
 		// 2) y is a known numeric literal: fold the sign statically
-		if (TryGetNumericLiteral(y, out var signVal) 
+		if (TryGetNumericLiteral(y, out var signVal)
 		    && HasMethod(paramType, "Abs", 1))
 		{
 			if (signVal >= 0.0)
@@ -42,9 +44,9 @@ public class CopySignFunctionOptimizer() : BaseMathFunctionOptimizer("CopySign",
 
 		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			SpecialType.System_Single => GenerateFastCopySignMethodFloat(),
-			SpecialType.System_Double => GenerateFastCopySignMethodDouble(),
-			_ => GenerateFastCopySignMethodInteger(context),
+			SpecialType.System_Single => GenerateFastCopySignMethodFloat(context.FastMathFlags),
+			SpecialType.System_Double => GenerateFastCopySignMethodDouble(context.FastMathFlags),
+			_ => GenerateFastCopySignMethodInteger(context, context.FastMathFlags)
 		});
 
 		if (method is not null)
@@ -60,62 +62,72 @@ public class CopySignFunctionOptimizer() : BaseMathFunctionOptimizer("CopySign",
 		return true;
 	}
 
-	private static string GenerateFastCopySignMethodFloat()
+	private static string GenerateFastCopySignMethodFloat(FastMathFlags flags)
 	{
-		//    Benchmark (ARM64 .NET 10, Apple M4 Pro):
-		//      MathF.CopySign       ≈ 0.643 ns (baseline)
-		//      CopySignFastFloat    ≈ 0.577 ns  → ~10% faster
-		
-		return """
-			/// <summary>
-			/// Bit-manipulation CopySign for float — ~10% faster than MathF.CopySign on ARM64.
-			/// Masks the magnitude bits of x and the sign bit of y via BitConverter round-trip.
-			/// </summary>
-			private static float CopySignFastFloat(float x, float y)
-			{
-				var xBits = BitConverter.SingleToInt32Bits(x);
-				var yBits = BitConverter.SingleToInt32Bits(y);
-				return BitConverter.Int32BitsToSingle((xBits & 0x7FFF_FFFF) | (yBits & unchecked((int)0x8000_0000)));
-			}
-			""";
-	}
-	
-	private static string GenerateFastCopySignMethodDouble()
-	{
-		//    Benchmark (ARM64 .NET 10, Apple M4 Pro):
-		//      Math.CopySign        ≈ 0.637 ns (baseline)
-		//      CopySignFastDouble   ≈ 0.576 ns  → ~10% faster
-		
-		return """
-			/// <summary>
-			/// Bit-manipulation CopySign for double — ~10% faster than Math.CopySign on ARM64.
-			/// Masks the magnitude bits of x and the sign bit of y via BitConverter round-trip.
-			/// </summary>
-			private static double CopySignFastDouble(double x, double y)
-			{
-				var xBits = BitConverter.DoubleToInt64Bits(x);
-				var yBits = BitConverter.DoubleToInt64Bits(y);
-				return BitConverter.Int64BitsToDouble((xBits & long.MaxValue) | (yBits & long.MinValue));
-			}
-			""";
+		var builder = new CodeWriter();
+
+		builder.AddIndent("/// ")
+			.WriteLine("<summary>")
+			.WriteLine("Bit-manipulation CopySign for float — ~10% faster than MathF.CopySign on ARM64.")
+			.WriteLine("Masks the magnitude bits of x and the sign bit of y via BitConverter round-trip.")
+			.WriteLine("</summary>")
+			.RemoveIndent()
+			.WriteLine("private static float CopySignFastFloat(float x, float y)")
+			.WriteLine("{")
+			.AddIndent("\t")
+			.WriteLine("var xBits = BitConverter.SingleToInt32Bits(x);")
+			.WriteLine("var yBits = BitConverter.SingleToInt32Bits(y);")
+			.WriteLine("return BitConverter.Int32BitsToSingle((xBits & 0x7FFF_FFFF) | (yBits & unchecked((int)0x8000_0000)));")
+			.RemoveIndent()
+			.WriteLine("}");
+
+		return builder.ToString();
 	}
 
-	private static string GenerateFastCopySignMethodInteger(FunctionOptimizerContext context)
+	private static string GenerateFastCopySignMethodDouble(FastMathFlags flags)
+	{
+		var builder = new CodeWriter();
+
+		builder.AddIndent("/// ")
+			.WriteLine("<summary>")
+			.WriteLine("Bit-manipulation CopySign for double — ~10% faster than Math.CopySign on ARM64.")
+			.WriteLine("Masks the magnitude bits of x and the sign bit of y via BitConverter round-trip.")
+			.WriteLine("</summary>")
+			.RemoveIndent()
+			.WriteLine("private static double CopySignFastDouble(double x, double y)")
+			.WriteLine("{")
+			.AddIndent("\t")
+			.WriteLine("var xBits = BitConverter.DoubleToInt64Bits(x);")
+			.WriteLine("var yBits = BitConverter.DoubleToInt64Bits(y);")
+			.WriteLine("return BitConverter.Int64BitsToDouble((xBits & long.MaxValue) | (yBits & long.MinValue));")
+			.RemoveIndent()
+			.WriteLine("}");
+
+		return builder.ToString();
+	}
+
+	private static string GenerateFastCopySignMethodInteger(FunctionOptimizerContext context, FastMathFlags flags)
 	{
 		var invocation = AbsFunctionOptimizer.GenerateFastAbsMethodInteger(context);
-		
-		return $$"""
-			/// <summary>
-			/// Branchless CopySign for integers.
-			/// Note: Does NOT work correctly for <c>T.MinValue</c> due to two's complement overflow in AbsFast.
-			/// </summary>
-			private static T CopySignFast<T>(T x, T y) where T : IBinaryInteger<T>
-			{
-				var absValue = {{invocation}}(x);
-			    
-				return T.IsPositive(y) ? absValue : -absValue;
-			}
-			""";
+
+		var builder = new CodeWriter();
+
+		builder.AddIndent("/// ")
+			.WriteLine("<summary>")
+			.WriteLine("Branchless CopySign for integers.")
+			.WriteLine("Note: Does NOT work correctly for <c>T.MinValue</c> due to two's complement overflow in AbsFast.")
+			.WriteLine("</summary>")
+			.RemoveIndent()
+			.WriteLine("private static T CopySignFast<T>(T x, T y) where T : IBinaryInteger<T>")
+			.WriteLine("{")
+			.AddIndent("\t")
+			.WriteLine($"var absValue = {invocation}(x);")
+			.WriteLine("")
+			.WriteLine("return T.IsPositive(y) ? absValue : -absValue;")
+			.RemoveIndent()
+			.WriteLine("}");
+
+		return builder.ToString();
 	}
 
 	private static bool TryGetNumericLiteral(ExpressionSyntax expr, out double value)

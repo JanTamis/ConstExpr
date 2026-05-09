@@ -4,6 +4,7 @@ using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
@@ -54,22 +55,28 @@ public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", n => n is
 		context.Usings.Add("System.Runtime.CompilerServices");
 		context.Usings.Add("System.Numerics");
 
-		var method = ParseMethodFromString("""
-			/// <summary>
-			/// Computes absolute value using branchless bit manipulation.
-			/// Note: Does NOT work correctly for <c>T.MinValue</c> due to two's complement overflow.
-			/// </summary>
-			private static T AbsFast<T>(T x) where T : IBinaryInteger<T>
-			{
-				var bits = Unsafe.SizeOf<T>() * 8 - 1;
-				var mask = x >> bits;
+		var builder = new CodeWriter();
 
-				return (x + mask) ^ mask;
-			}
-			""");
+		builder.AddIndent("/// ")
+			.WriteLine("<summary>")
+			.WriteLine("Computes absolute value using branchless bit manipulation.")
+			.WriteLine("Note: Does NOT work correctly for <c>T.MinValue</c> due to two's complement overflow.")
+			.WriteLine("</summary>")
+			.RemoveIndent()
+			.WriteLine("private static T AbsFast<T>(T x) where T : IBinaryInteger<T>")
+			.WriteLine("{")
+			.AddIndent("\t")
+			.WriteLine("var bits = Unsafe.SizeOf<T>() * 8 - 1;")
+			.WriteLine("var mask = x >> bits;")
+			.WriteLine("")
+			.WriteLine("return (x + mask) ^ mask;")
+			.RemoveIndent()
+			.WriteLine("}");
+
+		var method = ParseMethodFromString(builder.ToString())!;
 
 		context.AdditionalSyntax.TryAdd(method, false);
-		
+
 		return method.Identifier.Text;
 	}
 }

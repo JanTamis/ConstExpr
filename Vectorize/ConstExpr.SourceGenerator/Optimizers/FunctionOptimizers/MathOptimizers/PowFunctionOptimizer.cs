@@ -1,11 +1,13 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
@@ -106,15 +108,15 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is
 		//           inject anyway for x86/x64 portability where powf is heavier.
 		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			SpecialType.System_Single => GenerateFastPowMethodFloat(),
-			SpecialType.System_Double => GenerateFastPowMethodDouble(),
+			SpecialType.System_Single => GenerateFastPowMethodFloat(context.FastMathFlags),
+			SpecialType.System_Double => GenerateFastPowMethodDouble(context.FastMathFlags),
 			_ => null
 		});
 
 		if (method is not null)
 		{
 			context.AdditionalSyntax.TryAdd(method, false);
-			
+
 			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);
 			return true;
 		}
@@ -123,103 +125,123 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is
 		return true;
 	}
 
-	private static string GenerateFastPowMethodDouble()
+	private static string GenerateFastPowMethodDouble(FastMathFlags flags)
 	{
-		return """
-			private static double FastPow(double x, double y)
-			{
-				if (Double.IsNaN(x) || Double.IsNaN(y)) return Double.NaN;
-				if (y == 0.0 || x == 1.0) return 1.0;
-				if (x <= 0.0) return Double.NaN;
+		var builder = new CodeWriter();
 
-				var bits  = BitConverter.DoubleToInt64Bits(x);
-				var iexp  = (int)((bits >> 52) & 0x7FF) - 1023;
-				var imant = bits & 0x000F_FFFF_FFFF_FFFFL;
-				var m     = 1.0 + imant * (1.0 / 4503599627370496.0);  // mantissa ∈ [1, 2)
+		builder.WriteLine("private static double FastPow(double x, double y)")
+			.WriteLine("{")
+			.AddIndent("\t");
 
-				// Artanh series for log₂(m): z = (m−1)/(m+1) ∈ [0, 1/3)
-				const double INV_LN2 = 1.4426950408889634073599246810018921;
-				var z       = (m - 1.0) / (m + 1.0);
-				var t2      = z * z;
-				var sInner  = Double.FusedMultiplyAdd(1.0 / 7.0, t2, 1.0 / 5.0);
-				sInner      = Double.FusedMultiplyAdd(sInner, t2, 1.0 / 3.0);
-				sInner      = Double.FusedMultiplyAdd(sInner, t2, 1.0);
-				var log2m   = 2.0 * (z * sInner) * INV_LN2;
-				var log2x   = iexp + log2m;
+		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		{
+			builder.WriteLine("if (Double.IsNaN(x) || Double.IsNaN(y)) return Double.NaN;");
+		}
 
-				var tv = y * log2x;
-				var k  = (long)Double.Round(tv);  // branchless FRINTN + FCVTZS on ARM64
-				var f  = tv - k;                   // f ∈ [−0.5, 0.5)
+		builder.WriteLine("if (y == 0.0 || x == 1.0) return 1.0;")
+			.WriteLine("if (x <= 0.0) return Double.NaN;")
+			.WriteLine("")
+			.WriteLine("var bits  = BitConverter.DoubleToInt64Bits(x);")
+			.WriteLine("var iexp  = (int)((bits >> 52) & 0x7FF) - 1023;")
+			.WriteLine("var imant = bits & 0x000F_FFFF_FFFF_FFFFL;")
+			.WriteLine("var m     = 1.0 + imant * (1.0 / 4503599627370496.0);  // mantissa ∈ [1, 2)")
+			.WriteLine("")
+			.WriteLine("// Artanh series for log₂(m): z = (m−1)/(m+1) ∈ [0, 1/3)")
+			.WriteLine("const double INV_LN2 = 1.4426950408889634073599246810018921;")
+			.WriteLine("var z       = (m - 1.0) / (m + 1.0);")
+			.WriteLine("var t2      = z * z;")
+			.WriteLine("var sInner  = Double.FusedMultiplyAdd(1.0 / 7.0, t2, 1.0 / 5.0);")
+			.WriteLine("sInner      = Double.FusedMultiplyAdd(sInner, t2, 1.0 / 3.0);")
+			.WriteLine("sInner      = Double.FusedMultiplyAdd(sInner, t2, 1.0);")
+			.WriteLine("var log2m   = 2.0 * (z * sInner) * INV_LN2;")
+			.WriteLine("var log2x   = iexp + log2m;")
+			.WriteLine("")
+			.WriteLine("var tv = y * log2x;")
+			.WriteLine("var k  = (long)Double.Round(tv);  // branchless FRINTN + FCVTZS on ARM64")
+			.WriteLine("var f  = tv - k;                   // f ∈ [−0.5, 0.5)")
+			.WriteLine("")
+			.WriteLine("// Direct degree-7 Horner for 2^f: cₙ = ln(2)ⁿ/n!")
+			.WriteLine("// Saves the intermediate u=LN2·f multiplication vs Taylor e^u approach.")
+			.WriteLine("const double c7 = 1.5253300202639438e-5;  // ln(2)⁷ / 5040")
+			.WriteLine("const double c6 = 1.5403530390456690e-4;  // ln(2)⁶ / 720")
+			.WriteLine("const double c5 = 1.3333558146428443e-3;  // ln(2)⁵ / 120")
+			.WriteLine("const double c4 = 9.6181291076284772e-3;  // ln(2)⁴ / 24")
+			.WriteLine("const double c3 = 5.5504108664821580e-2;  // ln(2)³ / 6")
+			.WriteLine("const double c2 = 2.4022650695910069e-1;  // ln(2)² / 2")
+			.WriteLine("const double c1 = 6.9314718055994531e-1;  // ln(2)")
+			.WriteLine("")
+			.WriteLine("var p     = Double.FusedMultiplyAdd(c7, f, c6);")
+			.WriteLine("p         = Double.FusedMultiplyAdd(p,  f, c5);")
+			.WriteLine("p         = Double.FusedMultiplyAdd(p,  f, c4);")
+			.WriteLine("p         = Double.FusedMultiplyAdd(p,  f, c3);")
+			.WriteLine("p         = Double.FusedMultiplyAdd(p,  f, c2);")
+			.WriteLine("p         = Double.FusedMultiplyAdd(p,  f, c1);")
+			.WriteLine("var exp2f = Double.FusedMultiplyAdd(p,  f, 1.0);")
+			.WriteLine("")
+			.WriteLine("return BitConverter.UInt64BitsToDouble((ulong)((k + 1023L) << 52)) * exp2f;");
 
-				// Direct degree-7 Horner for 2^f: cₙ = ln(2)ⁿ/n!
-				// Saves the intermediate u=LN2·f multiplication vs Taylor e^u approach.
-				const double c7 = 1.5253300202639438e-5;  // ln(2)⁷ / 5040
-				const double c6 = 1.5403530390456690e-4;  // ln(2)⁶ / 720
-				const double c5 = 1.3333558146428443e-3;  // ln(2)⁵ / 120
-				const double c4 = 9.6181291076284772e-3;  // ln(2)⁴ / 24
-				const double c3 = 5.5504108664821580e-2;  // ln(2)³ / 6
-				const double c2 = 2.4022650695910069e-1;  // ln(2)² / 2
-				const double c1 = 6.9314718055994531e-1;  // ln(2)
+		builder.RemoveIndent()
+			.WriteLine("}");
 
-				var p     = Double.FusedMultiplyAdd(c7, f, c6);
-				p         = Double.FusedMultiplyAdd(p,  f, c5);
-				p         = Double.FusedMultiplyAdd(p,  f, c4);
-				p         = Double.FusedMultiplyAdd(p,  f, c3);
-				p         = Double.FusedMultiplyAdd(p,  f, c2);
-				p         = Double.FusedMultiplyAdd(p,  f, c1);
-				var exp2f = Double.FusedMultiplyAdd(p,  f, 1.0);
-
-				return BitConverter.UInt64BitsToDouble((ulong)((k + 1023L) << 52)) * exp2f;
-			}
-			""";
+		return builder.ToString();
 	}
 
-	private static string GenerateFastPowMethodFloat()
+	private static string GenerateFastPowMethodFloat(FastMathFlags flags)
 	{
-		return """
-			private static float FastPow(float x, float y)
-			{
-				if (Single.IsNaN(x) || Single.IsNaN(y)) return Single.NaN;
-				if (y == 0.0f || x == 1.0f) return 1.0f;
-				if (x <= 0.0f) return Single.NaN;
+		var builder = new CodeWriter();
 
-				var ibits = BitConverter.SingleToInt32Bits(x);
-				var iexp  = ((ibits >> 23) & 0xFF) - 127;
-				var imant = ibits & 0x7FFFFF;
-				var m     = 1.0f + imant * (1.0f / 8388608.0f);  // mantissa ∈ [1, 2)
+		builder.WriteLine("private static float FastPow(float x, float y)")
+			.WriteLine("{")
+			.AddIndent("\t");
 
-				// Artanh series for log₂(m): z = (m−1)/(m+1) ∈ [0, 1/3)
-				const float INV_LN2 = 1.4426950408889634f;
-				var z       = (m - 1.0f) / (m + 1.0f);
-				var t2      = z * z;
-				var sInner  = Single.FusedMultiplyAdd(1f / 7f, t2, 1f / 5f);
-				sInner      = Single.FusedMultiplyAdd(sInner, t2, 1f / 3f);
-				sInner      = Single.FusedMultiplyAdd(sInner, t2, 1f);
-				var log2m   = 2.0f * (z * sInner) * INV_LN2;
-				var log2x   = iexp + log2m;
+		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		{
+			builder.WriteLine("if (Single.IsNaN(x) || Single.IsNaN(y)) return Single.NaN;");
+		}
 
-				var tv = y * log2x;
-				var k  = (int)Single.Round(tv);  // branchless FRINTN + FCVTZS on ARM64
-				var f  = tv - k;                  // f ∈ [−0.5, 0.5)
+		builder.WriteLine("if (y == 0.0f || x == 1.0f) return 1.0f;")
+			.WriteLine("if (x <= 0.0f) return Single.NaN;")
+			.WriteLine("")
+			.WriteLine("var ibits = BitConverter.SingleToInt32Bits(x);")
+			.WriteLine("var iexp  = ((ibits >> 23) & 0xFF) - 127;")
+			.WriteLine("var imant = ibits & 0x7FFFFF;")
+			.WriteLine("var m     = 1.0f + imant * (1.0f / 8388608.0f);  // mantissa ∈ [1, 2)")
+			.WriteLine("")
+			.WriteLine("// Artanh series for log₂(m): z = (m−1)/(m+1) ∈ [0, 1/3)")
+			.WriteLine("const float INV_LN2 = 1.4426950408889634f;")
+			.WriteLine("var z       = (m - 1.0f) / (m + 1.0f);")
+			.WriteLine("var t2      = z * z;")
+			.WriteLine("var sInner  = Single.FusedMultiplyAdd(1f / 7f, t2, 1f / 5f);")
+			.WriteLine("sInner      = Single.FusedMultiplyAdd(sInner, t2, 1f / 3f);")
+			.WriteLine("sInner      = Single.FusedMultiplyAdd(sInner, t2, 1f);")
+			.WriteLine("var log2m   = 2.0f * (z * sInner) * INV_LN2;")
+			.WriteLine("var log2x   = iexp + log2m;")
+			.WriteLine("")
+			.WriteLine("var tv = y * log2x;")
+			.WriteLine("var k  = (int)Single.Round(tv);  // branchless FRINTN + FCVTZS on ARM64")
+			.WriteLine("var f  = tv - k;                  // f ∈ [−0.5, 0.5)")
+			.WriteLine("")
+			.WriteLine("// Direct degree-5 Horner for 2^f: cₙ = ln(2)ⁿ/n!")
+			.WriteLine("// Float: degree 5 sufficient (artanh log₂ error ~6.5e-6 > exp2 error ~2.3e-6).")
+			.WriteLine("// Saves the intermediate u=LN2·f multiplication + 2 FMAs vs degree-7 Taylor e^u.")
+			.WriteLine("const float c5 = 1.3333558146428443e-3f;  // ln(2)⁵ / 120")
+			.WriteLine("const float c4 = 9.6181291076284772e-3f;  // ln(2)⁴ / 24")
+			.WriteLine("const float c3 = 5.5504108664821580e-2f;  // ln(2)³ / 6")
+			.WriteLine("const float c2 = 2.4022650695910069e-1f;  // ln(2)² / 2")
+			.WriteLine("const float c1 = 6.9314718055994531e-1f;  // ln(2)")
+			.WriteLine("")
+			.WriteLine("var p     = Single.FusedMultiplyAdd(c5, f, c4);")
+			.WriteLine("p         = Single.FusedMultiplyAdd(p,  f, c3);")
+			.WriteLine("p         = Single.FusedMultiplyAdd(p,  f, c2);")
+			.WriteLine("p         = Single.FusedMultiplyAdd(p,  f, c1);")
+			.WriteLine("var exp2f = Single.FusedMultiplyAdd(p,  f, 1.0f);")
+			.WriteLine("")
+			.WriteLine("return BitConverter.Int32BitsToSingle((k + 127) << 23) * exp2f;");
 
-				// Direct degree-5 Horner for 2^f: cₙ = ln(2)ⁿ/n!
-				// Float: degree 5 sufficient (artanh log₂ error ~6.5e-6 > exp2 error ~2.3e-6).
-				// Saves the intermediate u=LN2·f multiplication + 2 FMAs vs degree-7 Taylor e^u.
-				const float c5 = 1.3333558146428443e-3f;  // ln(2)⁵ / 120
-				const float c4 = 9.6181291076284772e-3f;  // ln(2)⁴ / 24
-				const float c3 = 5.5504108664821580e-2f;  // ln(2)³ / 6
-				const float c2 = 2.4022650695910069e-1f;  // ln(2)² / 2
-				const float c1 = 6.9314718055994531e-1f;  // ln(2)
+		builder.RemoveIndent()
+			.WriteLine("}");
 
-				var p     = Single.FusedMultiplyAdd(c5, f, c4);
-				p         = Single.FusedMultiplyAdd(p,  f, c3);
-				p         = Single.FusedMultiplyAdd(p,  f, c2);
-				p         = Single.FusedMultiplyAdd(p,  f, c1);
-				var exp2f = Single.FusedMultiplyAdd(p,  f, 1.0f);
-
-				return BitConverter.Int32BitsToSingle((k + 127) << 23) * exp2f;
-			}
-			""";
+		return builder.ToString();
 	}
 
 	private static bool TryGetNumericLiteral(ExpressionSyntax expr, out double value)

@@ -1,8 +1,10 @@
 using System.Diagnostics.CodeAnalysis;
+using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
@@ -28,8 +30,8 @@ public class Log2FunctionOptimizer() : BaseMathFunctionOptimizer("Log2", n => n 
 		// Max relative error ≈ 8.7e-5 (fast-math trade-off).
 		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			SpecialType.System_Single => GenerateFastLog2MethodFloat(),
-			SpecialType.System_Double => GenerateFastLog2MethodDouble(),
+			SpecialType.System_Single => GenerateFastLog2MethodFloat(context.FastMathFlags),
+			SpecialType.System_Double => GenerateFastLog2MethodDouble(context.FastMathFlags),
 			_ => null
 		});
 
@@ -46,72 +48,91 @@ public class Log2FunctionOptimizer() : BaseMathFunctionOptimizer("Log2", n => n 
 		return true;
 	}
 
-	private static string GenerateFastLog2MethodFloat()
+	private static string GenerateFastLog2MethodFloat(FastMathFlags flags)
 	{
-		return """
-			private static float FastLog2(float x)
-			{
-				if (Single.IsNaN(x) || x < 0f) return Single.NaN;
-				if (x == 0f) return Single.NegativeInfinity;
-				if (Single.IsPositiveInfinity(x)) return Single.PositiveInfinity;
+		var builder = new CodeWriter();
 
-				// Bit-extract base-2 exponent e and mantissa m ∈ [1, 2).
-				var bits = BitConverter.SingleToInt32Bits(x);
-				var e    = (bits >> 23) - 127;
-				var m    = BitConverter.Int32BitsToSingle((bits & 0x007FFFFF) | 0x3F800000);
+		builder.WriteLine("private static float FastLog2(float x)")
+			.WriteLine("{")
+			.AddIndent("\t");
 
-				// Degree-4 Horner polynomial for log2(m), m ∈ [1, 2).
-				// Coefficients d_i = c_i * log2(e) — the ln(m) minimax coefficients
-				// pre-multiplied by log2(e) = 1.4426950408889634, eliminating the
-				// final division by ln(2). Max relative error ≈ 8.7e-5 (fast-math).
-				const float d4 = -0.081614484f;  // c4 * log2(e)
-				const float d3 =  0.645142871f;  // c3 * log2(e)
-				const float d2 = -2.120699326f;  // c2 * log2(e)
-				const float d1 =  4.070134936f;  // c1 * log2(e)
-				const float d0 = -2.512877389f;  // c0 * log2(e)
+		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		{
+			builder.WriteLine("if (Single.IsNaN(x) || x < 0f) return Single.NaN;");
+		}
 
-				var log2m = Single.FusedMultiplyAdd(d4, m, d3);
-				log2m     = Single.FusedMultiplyAdd(log2m, m, d2);
-				log2m     = Single.FusedMultiplyAdd(log2m, m, d1);
-				log2m     = Single.FusedMultiplyAdd(log2m, m, d0);
+		builder.WriteLine("if (x == 0f) return Single.NegativeInfinity;")
+			.WriteLine("if (Single.IsPositiveInfinity(x)) return Single.PositiveInfinity;")
+			.WriteLine("")
+			.WriteLine("// Bit-extract base-2 exponent e and mantissa m ∈ [1, 2).")
+			.WriteLine("var bits = BitConverter.SingleToInt32Bits(x);")
+			.WriteLine("var e    = (bits >> 23) - 127;")
+			.WriteLine("var m    = BitConverter.Int32BitsToSingle((bits & 0x007FFFFF) | 0x3F800000);")
+			.WriteLine("")
+			.WriteLine("// Degree-4 Horner polynomial for log2(m), m ∈ [1, 2).")
+			.WriteLine("// Coefficients d_i = c_i * log2(e) — the ln(m) minimax coefficients")
+			.WriteLine("// pre-multiplied by log2(e) = 1.4426950408889634, eliminating the")
+			.WriteLine("// final division by ln(2). Max relative error ≈ 8.7e-5 (fast-math).")
+			.WriteLine("const float d4 = -0.081614484f;  // c4 * log2(e)")
+			.WriteLine("const float d3 =  0.645142871f;  // c3 * log2(e)")
+			.WriteLine("const float d2 = -2.120699326f;  // c2 * log2(e)")
+			.WriteLine("const float d1 =  4.070134936f;  // c1 * log2(e)")
+			.WriteLine("const float d0 = -2.512877389f;  // c0 * log2(e)")
+			.WriteLine("")
+			.WriteLine("var log2m = Single.FusedMultiplyAdd(d4, m, d3);")
+			.WriteLine("log2m     = Single.FusedMultiplyAdd(log2m, m, d2);")
+			.WriteLine("log2m     = Single.FusedMultiplyAdd(log2m, m, d1);")
+			.WriteLine("log2m     = Single.FusedMultiplyAdd(log2m, m, d0);")
+			.WriteLine("")
+			.WriteLine("return e + log2m;");
 
-				return e + log2m;
-			}
-			""";
+		builder.RemoveIndent()
+			.WriteLine("}");
+
+		return builder.ToString();
 	}
 
-	private static string GenerateFastLog2MethodDouble()
+	private static string GenerateFastLog2MethodDouble(FastMathFlags flags)
 	{
-		return """
-			private static double FastLog2(double x)
-			{
-				if (Double.IsNaN(x) || x < 0.0) return Double.NaN;
-				if (x == 0.0) return Double.NegativeInfinity;
-				if (Double.IsPositiveInfinity(x)) return Double.PositiveInfinity;
+		var builder = new CodeWriter();
 
-				// Bit-extract base-2 exponent e and mantissa m ∈ [1, 2).
-				var bits = BitConverter.DoubleToInt64Bits(x);
-				var e    = (int)((bits >> 52) - 1023L);
-				var m    = BitConverter.Int64BitsToDouble((bits & 0x000FFFFFFFFFFFFFL) | 0x3FF0000000000000L);
+		builder.WriteLine("private static double FastLog2(double x)")
+			.WriteLine("{")
+			.AddIndent("\t");
 
-				// Degree-4 Horner polynomial for log2(m), m ∈ [1, 2).
-				// Coefficients d_i = c_i * log2(e) — the ln(m) minimax coefficients
-				// pre-multiplied by log2(e) = 1.4426950408889634, eliminating the
-				// final division by ln(2). Max relative error ≈ 8.7e-5 (fast-math).
-				const double d4 = -0.081614484028;  // c4 * log2(e)
-				const double d3 =  0.645142871432;  // c3 * log2(e)
-				const double d2 = -2.120699326246;  // c2 * log2(e)
-				const double d1 =  4.070134936011;  // c1 * log2(e)
-				const double d0 = -2.512877388986;  // c0 * log2(e)
+		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		{
+			builder.WriteLine("if (Double.IsNaN(x) || x < 0.0) return Double.NaN;");
+		}
 
-				var log2m = Double.FusedMultiplyAdd(d4, m, d3);
-				log2m     = Double.FusedMultiplyAdd(log2m, m, d2);
-				log2m     = Double.FusedMultiplyAdd(log2m, m, d1);
-				log2m     = Double.FusedMultiplyAdd(log2m, m, d0);
+		builder.WriteLine("if (x == 0.0) return Double.NegativeInfinity;")
+			.WriteLine("if (Double.IsPositiveInfinity(x)) return Double.PositiveInfinity;")
+			.WriteLine("")
+			.WriteLine("// Bit-extract base-2 exponent e and mantissa m ∈ [1, 2).")
+			.WriteLine("var bits = BitConverter.DoubleToInt64Bits(x);")
+			.WriteLine("var e    = (int)((bits >> 52) - 1023L);")
+			.WriteLine("var m    = BitConverter.Int64BitsToDouble((bits & 0x000FFFFFFFFFFFFFL) | 0x3FF0000000000000L);")
+			.WriteLine("")
+			.WriteLine("// Degree-4 Horner polynomial for log2(m), m ∈ [1, 2).")
+			.WriteLine("// Coefficients d_i = c_i * log2(e) — the ln(m) minimax coefficients")
+			.WriteLine("// pre-multiplied by log2(e) = 1.4426950408889634, eliminating the")
+			.WriteLine("// final division by ln(2). Max relative error ≈ 8.7e-5 (fast-math).")
+			.WriteLine("const double d4 = -0.081614484028;  // c4 * log2(e)")
+			.WriteLine("const double d3 =  0.645142871432;  // c3 * log2(e)")
+			.WriteLine("const double d2 = -2.120699326246;  // c2 * log2(e)")
+			.WriteLine("const double d1 =  4.070134936011;  // c1 * log2(e)")
+			.WriteLine("const double d0 = -2.512877388986;  // c0 * log2(e)")
+			.WriteLine("")
+			.WriteLine("var log2m = Double.FusedMultiplyAdd(d4, m, d3);")
+			.WriteLine("log2m     = Double.FusedMultiplyAdd(log2m, m, d2);")
+			.WriteLine("log2m     = Double.FusedMultiplyAdd(log2m, m, d1);")
+			.WriteLine("log2m     = Double.FusedMultiplyAdd(log2m, m, d0);")
+			.WriteLine("")
+			.WriteLine("return e + log2m;");
 
-				return e + log2m;
-			}
-			""";
+		builder.RemoveIndent()
+			.WriteLine("}");
+
+		return builder.ToString();
 	}
 }
-

@@ -1,7 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
+using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
+using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
@@ -11,8 +13,8 @@ public class CoshFunctionOptimizer() : BaseMathFunctionOptimizer("Cosh", n => n 
 	{
 		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			SpecialType.System_Single => GenerateFastCoshMethodFloat(),
-			SpecialType.System_Double => GenerateFastCoshMethodDouble(),
+			SpecialType.System_Single => GenerateFastCoshMethodFloat(context.FastMathFlags),
+			SpecialType.System_Double => GenerateFastCoshMethodDouble(context.FastMathFlags),
 			_ => null
 		});
 
@@ -28,52 +30,68 @@ public class CoshFunctionOptimizer() : BaseMathFunctionOptimizer("Cosh", n => n 
 		return true;
 	}
 
-	private static string GenerateFastCoshMethodFloat()
+	private static string GenerateFastCoshMethodFloat(FastMathFlags flags)
 	{
-		return """
-			private static float FastCosh(float x)
-			{
-				// cosh(x) = (e^x + e^-x) / 2, with cosh(-x) = cosh(x)
-				if (Single.IsNaN(x)) return Single.NaN;
-				x = Single.Abs(x);
-				
-				// exp overflows to +Inf for x > ~88.72; return +Inf immediately
-				if (x > 88.0f)
-					return float.PositiveInfinity;
-				
-				var ex = Single.Exp(x);
-				
-				// One Newton-Raphson step on ReciprocalEstimate restores ~24-bit precision
-				// (raw estimate is only ~12-bit accurate, which causes ~375× worse error than float epsilon)
-				// r' = r * (2 - ex * r)
-				var r = Single.ReciprocalEstimate(ex);
-				r *= Single.FusedMultiplyAdd(-ex, r, 2.0f);
-				
-				return (ex + r) * 0.5f;
-			}
-			""";
+		var builder = new CodeWriter();
+
+		builder.WriteLine("private static float FastCosh(float x)")
+			.WriteLine("{")
+			.AddIndent("\t");
+
+		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		{
+			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
+		}
+
+		builder.WriteLine("x = Single.Abs(x);")
+			.WriteLine("")
+			.WriteLine("// exp overflows to +Inf for x > ~88.72; return +Inf immediately")
+			.WriteLine("if (x > 88.0f) return float.PositiveInfinity;")
+			.WriteLine("")
+			.WriteLine("var ex = Single.Exp(x);")
+			.WriteLine("")
+			.WriteLine("// One Newton-Raphson step on ReciprocalEstimate restores ~24-bit precision")
+			.WriteLine("// (raw estimate is only ~12-bit accurate, which causes ~375× worse error than float epsilon)")
+			.WriteLine("// r' = r * (2 - ex * r)")
+			.WriteLine("var r = Single.ReciprocalEstimate(ex);")
+			.WriteLine("r *= Single.FusedMultiplyAdd(-ex, r, 2.0f);")
+			.WriteLine("")
+			.WriteLine("return (ex + r) * 0.5f;");
+
+		builder.RemoveIndent()
+			.WriteLine("}");
+
+		return builder.ToString();
 	}
 
-	private static string GenerateFastCoshMethodDouble()
+	private static string GenerateFastCoshMethodDouble(FastMathFlags flags)
 	{
-		return """
-			private static double FastCosh(double x)
-			{
-				// cosh(x) = (e^x + e^-x) / 2, with cosh(-x) = cosh(x)
-				if (Double.IsNaN(x)) return Double.NaN;
-				x = Double.Abs(x);
-				
-				// exp overflows to +Inf for x > ~709.78; return +Inf immediately
-				if (x > 709.0)
-					return double.PositiveInfinity;
-				
-				var ex = Double.Exp(x);
-				
-				// Division gives full double precision for 1/ex.
-				// Double.ReciprocalEstimate is only ~14-bit accurate, causing catastrophic
-				// precision loss — using FDIV here is both correct and comparable in cost.
-				return (ex + 1.0 / ex) * 0.5;
-			}
-			""";
+		var builder = new CodeWriter();
+
+		builder.WriteLine("private static double FastCosh(double x)")
+			.WriteLine("{")
+			.AddIndent("\t");
+
+		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		{
+			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
+		}
+
+		builder.WriteLine("x = Double.Abs(x);")
+			.WriteLine("")
+			.WriteLine("// exp overflows to +Inf for x > ~709.78; return +Inf immediately")
+			.WriteLine("if (x > 709.0) return double.PositiveInfinity;")
+			.WriteLine("")
+			.WriteLine("var ex = Double.Exp(x);")
+			.WriteLine("")
+			.WriteLine("// Division gives full double precision for 1/ex.")
+			.WriteLine("// Double.ReciprocalEstimate is only ~14-bit accurate, causing catastrophic")
+			.WriteLine("// precision loss — using FDIV here is both correct and comparable in cost.")
+			.WriteLine("return (ex + 1.0 / ex) * 0.5;");
+
+		builder.RemoveIndent()
+			.WriteLine("}");
+
+		return builder.ToString();
 	}
 }

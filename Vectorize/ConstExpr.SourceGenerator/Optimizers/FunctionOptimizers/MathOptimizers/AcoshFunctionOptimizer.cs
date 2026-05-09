@@ -1,7 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
+using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
+using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
@@ -11,8 +13,8 @@ public class AcoshFunctionOptimizer() : BaseMathFunctionOptimizer("Acosh", n => 
 	{
 		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			SpecialType.System_Single => GenerateFastAcoshMethodFloat(),
-			SpecialType.System_Double => GenerateFastAcoshMethodDouble(),
+			SpecialType.System_Single => GenerateFastAcoshMethodFloat(context.FastMathFlags),
+			SpecialType.System_Double => GenerateFastAcoshMethodDouble(context.FastMathFlags),
 			_ => null,
 		});
 
@@ -28,65 +30,93 @@ public class AcoshFunctionOptimizer() : BaseMathFunctionOptimizer("Acosh", n => 
 		return true;
 	}
 
-	private static string GenerateFastAcoshMethodFloat()
+	private static string GenerateFastAcoshMethodFloat(FastMathFlags flags)
 	{
-		return """
-			private static float FastAcosh(float x)
-			{
-				if (Single.IsNaN(x)) return Single.NaN;
-				if (x < 1.0f) x = 1.0f;
-				
-				if (x > 1e7f)
-				{
-					return Single.Log(2.0f * x);
-				}
-				
-			// For values close to 1, use polynomial approximation with FMA to avoid log.
-			// Taylor series: acosh(1+t)/sqrt(2t) = 1 − t/12 + 3t²/160 − …
-			// Horner form:   1 + t*(−1/12 + t*(3/160)) = FMA(t, FMA(t, 3/160, −1/12), 1)
-			if (x < 1.5f)
-			{
-				float t = x - 1.0f;
-				float sqrt2t = Single.Sqrt(2.0f * t);
-				float correction = Single.FusedMultiplyAdd(t, Single.FusedMultiplyAdd(t, 0.01875f, -0.0833333f), 1.0f);
-				return sqrt2t * correction;
-			}
-				
-				// Use FMA: sqrt(x^2 - 1)
-				float sqrtTerm = Single.Sqrt(Single.FusedMultiplyAdd(x, x, -1.0f));
-				return Single.Log(x + sqrtTerm);
-			}
-			""";
+		var builder = new CodeWriter();
+
+		builder.WriteLine("private static float FastAcosh(float x)")
+			.WriteLine("{")
+			.AddIndent("\t");
+
+		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		{
+			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
+		}
+
+		builder.WriteLine("if (x < 1.0f) x = 1.0f;")
+			.WriteLine("")
+			.WriteLine("if (x > 1e7f)")
+			.WriteLine("{")
+			.AddIndent("\t")
+			.WriteLine("return Single.Log(2.0f * x);")
+			.RemoveIndent()
+			.WriteLine("}")
+			.WriteLine("")
+			.WriteLine("// For values close to 1, use polynomial approximation with FMA to avoid log.")
+			.WriteLine("// Taylor series: acosh(1+t)/sqrt(2t) = 1 − t/12 + 3t²/160 − …")
+			.WriteLine("// Horner form:   1 + t*(−1/12 + t*(3/160)) = FMA(t, FMA(t, 3/160, −1/12), 1)")
+			.WriteLine("if (x < 1.5f)")
+			.WriteLine("{")
+			.AddIndent("\t")
+			.WriteLine("float t = x - 1.0f;")
+			.WriteLine("float sqrt2t = Single.Sqrt(2.0f * t);")
+			.WriteLine("float correction = Single.FusedMultiplyAdd(t, Single.FusedMultiplyAdd(t, 0.01875f, -0.0833333f), 1.0f);")
+			.WriteLine("return sqrt2t * correction;")
+			.RemoveIndent()
+			.WriteLine("}")
+			.WriteLine("")
+			.WriteLine("// Use FMA: sqrt(x^2 - 1)")
+			.WriteLine("float sqrtTerm = Single.Sqrt(Single.FusedMultiplyAdd(x, x, -1.0f));")
+			.WriteLine("return Single.Log(x + sqrtTerm);");
+
+		builder.RemoveIndent()
+			.WriteLine("}");
+
+		return builder.ToString();
 	}
 
-	private static string GenerateFastAcoshMethodDouble()
+	private static string GenerateFastAcoshMethodDouble(FastMathFlags flags)
 	{
-		return """
-			private static double FastAcosh(double x)
-			{
-				if (Double.IsNaN(x)) return Double.NaN;
-				if (x < 1.0) x = 1.0;
-				
-				if (x > 1e15)
-				{
-					return Double.Log(2.0 * x);
-				}
-				
-			// For values close to 1, use polynomial approximation with FMA to avoid log.
-			// Taylor series: acosh(1+t)/sqrt(2t) = 1 − t/12 + 3t²/160 − 5t³/896 − …
-			// Horner form: FMA(t, FMA(t, FMA(t, −5/896, 3/160), −1/12), 1.0)
-			if (x < 1.5)
-			{
-				double t = x - 1.0;
-				double sqrt2t = Double.Sqrt(2.0 * t);
-				double correction = Double.FusedMultiplyAdd(t, Double.FusedMultiplyAdd(t, Double.FusedMultiplyAdd(t, -0.005580357, 0.01875), -0.083333333333), 1.0);
-				return sqrt2t * correction;
-			}
-				
-				// Use FMA: sqrt(x^2 - 1)
-				double sqrtTerm = Double.Sqrt(Double.FusedMultiplyAdd(x, x, -1.0));
-				return Double.Log(x + sqrtTerm);
-			}
-			""";
+		var builder = new CodeWriter();
+
+		builder.WriteLine("private static double FastAcosh(double x)")
+			.WriteLine("{")
+			.AddIndent("\t");
+
+		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		{
+			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
+		}
+
+		builder.WriteLine("if (x < 1.0) x = 1.0;")
+			.WriteLine("")
+			.WriteLine("if (x > 1e15)")
+			.WriteLine("{")
+			.AddIndent("\t")
+			.WriteLine("return Double.Log(2.0 * x);")
+			.RemoveIndent()
+			.WriteLine("}")
+			.WriteLine("")
+			.WriteLine("// For values close to 1, use polynomial approximation with FMA to avoid log.")
+			.WriteLine("// Taylor series: acosh(1+t)/sqrt(2t) = 1 − t/12 + 3t²/160 − 5t³/896 − …")
+			.WriteLine("// Horner form: FMA(t, FMA(t, FMA(t, −5/896, 3/160), −1/12), 1.0)")
+			.WriteLine("if (x < 1.5)")
+			.WriteLine("{")
+			.AddIndent("\t")
+			.WriteLine("double t = x - 1.0;")
+			.WriteLine("double sqrt2t = Double.Sqrt(2.0 * t);")
+			.WriteLine("double correction = Double.FusedMultiplyAdd(t, Double.FusedMultiplyAdd(t, Double.FusedMultiplyAdd(t, -0.005580357, 0.01875), -0.083333333333), 1.0);")
+			.WriteLine("return sqrt2t * correction;")
+			.RemoveIndent()
+			.WriteLine("}")
+			.WriteLine("")
+			.WriteLine("// Use FMA: sqrt(x^2 - 1)")
+			.WriteLine("double sqrtTerm = Double.Sqrt(Double.FusedMultiplyAdd(x, x, -1.0));")
+			.WriteLine("return Double.Log(x + sqrtTerm);");
+
+		builder.RemoveIndent()
+			.WriteLine("}");
+
+		return builder.ToString();
 	}
 }

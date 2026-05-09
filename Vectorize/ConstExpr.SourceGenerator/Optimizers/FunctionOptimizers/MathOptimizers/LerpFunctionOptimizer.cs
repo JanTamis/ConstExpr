@@ -1,7 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
+using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
+using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
@@ -11,8 +13,8 @@ public class LerpFunctionOptimizer() : BaseMathFunctionOptimizer("Lerp", n => n 
 	{
 		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			SpecialType.System_Single => GenerateFastLerpMethodFloat(),
-			SpecialType.System_Double => GenerateFastLerpMethodDouble(),
+			SpecialType.System_Single => GenerateFastLerpMethodFloat(context.FastMathFlags),
+			SpecialType.System_Double => GenerateFastLerpMethodDouble(context.FastMathFlags),
 			_ => null
 		});
 
@@ -28,31 +30,53 @@ public class LerpFunctionOptimizer() : BaseMathFunctionOptimizer("Lerp", n => n 
 		return true;
 	}
 
-	private static string GenerateFastLerpMethodFloat()
+	private static string GenerateFastLerpMethodFloat(FastMathFlags flags)
 	{
-		return """
-			private static float FastLerp(float a, float b, float t)
-			{
-				// Fast linear interpolation using FMA (Fused Multiply-Add)
-				// Lerp(a, b, t) = a + (b - a) * t
-				// Using FMA: a + t * (b - a)
-				// This provides better performance and accuracy than the naive formula
-				return Single.FusedMultiplyAdd(t, b - a, a);
-			}
-			""";
+		var builder = new CodeWriter();
+
+		builder.WriteLine("private static float FastLerp(float a, float b, float t)")
+			.WriteLine("{")
+			.AddIndent("\t");
+
+		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		{
+			builder.WriteLine("if (Single.IsNaN(a) || Single.IsNaN(b) || Single.IsNaN(t)) return Single.NaN;");
+		}
+
+		builder.WriteLine("// Fast linear interpolation using FMA (Fused Multiply-Add)")
+			.WriteLine("// Lerp(a, b, t) = a + (b - a) * t")
+			.WriteLine("// Using FMA: a + t * (b - a)")
+			.WriteLine("// This provides better performance and accuracy than the naive formula")
+			.WriteLine("return Single.FusedMultiplyAdd(t, b - a, a);");
+
+		builder.RemoveIndent()
+			.WriteLine("}");
+
+		return builder.ToString();
 	}
 
-	private static string GenerateFastLerpMethodDouble()
+	private static string GenerateFastLerpMethodDouble(FastMathFlags flags)
 	{
-		return """
-			private static double FastLerp(double a, double b, double t)
-			{
-				// Fast linear interpolation using FMA (Fused Multiply-Add)
-				// Lerp(a, b, t) = a + (b - a) * t
-				// Using FMA: a + t * (b - a)
-				// This provides better performance and accuracy than the naive formula
-				return Double.FusedMultiplyAdd(t, b - a, a);
-			}
-			""";
+		var builder = new CodeWriter();
+
+		builder.WriteLine("private static double FastLerp(double a, double b, double t)")
+			.WriteLine("{")
+			.AddIndent("\t");
+
+		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		{
+			builder.WriteLine("if (Double.IsNaN(a) || Double.IsNaN(b) || Double.IsNaN(t)) return Double.NaN;");
+		}
+
+		builder.WriteLine("// Fast linear interpolation using FMA (Fused Multiply-Add)")
+			.WriteLine("// Lerp(a, b, t) = a + (b - a) * t")
+			.WriteLine("// Using FMA: a + t * (b - a)")
+			.WriteLine("// This provides better performance and accuracy than the naive formula")
+			.WriteLine("return Double.FusedMultiplyAdd(t, b - a, a);");
+
+		builder.RemoveIndent()
+			.WriteLine("}");
+
+		return builder.ToString();
 	}
 }

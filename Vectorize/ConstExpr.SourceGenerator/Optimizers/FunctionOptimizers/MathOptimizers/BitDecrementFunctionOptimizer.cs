@@ -1,8 +1,10 @@
 using System.Diagnostics.CodeAnalysis;
+using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
@@ -19,11 +21,11 @@ public class BitDecrementFunctionOptimizer() : BaseMathFunctionOptimizer("BitDec
 
 		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			SpecialType.System_Single => GenerateFastBitDecrementMethodFloat(),
-			SpecialType.System_Double => GenerateFastBitDecrementMethodDouble(),
+			SpecialType.System_Single => GenerateFastBitDecrementMethodFloat(context.FastMathFlags),
+			SpecialType.System_Double => GenerateFastBitDecrementMethodDouble(context.FastMathFlags),
 			_ => null
 		});
-			
+
 		if (method is not null)
 		{
 			context.AdditionalSyntax.TryAdd(method, false);
@@ -37,50 +39,90 @@ public class BitDecrementFunctionOptimizer() : BaseMathFunctionOptimizer("BitDec
 		return true;
 	}
 
-	private static string GenerateFastBitDecrementMethodFloat()
+	private static string GenerateFastBitDecrementMethodFloat(FastMathFlags flags)
 	{
-		return """
-			private static float FastBitDecrement(float x)
-			{
-				// Combined NaN/±Inf guard — single unsigned-compare on ARM64.
-				// +Inf → MaxValue; NaN and −Inf returned unchanged.
-				if (!Single.IsFinite(x))
-					return Single.IsPositiveInfinity(x) ? Single.MaxValue : x;
+		var builder = new CodeWriter();
 
-				var bits = System.BitConverter.SingleToInt32Bits(x);
+		builder.WriteLine("private static float FastBitDecrement(float x)")
+			.WriteLine("{")
+			.AddIndent("\t");
 
-				// +0 (bits == 0) → −epsilon (0x80000001).
-				// −0 (bits = int.MinValue, negative int) naturally reaches the branchless path
-				//   and gives bits + 1 = 0x80000001 = −epsilon — no explicit −0 case needed.
-				if (bits == 0) return -Single.Epsilon;
+		builder.WriteLine("// Combined NaN/±Inf guard — single unsigned-compare on ARM64.")
+			.WriteLine("// +Inf → MaxValue; NaN and −Inf returned unchanged.");
 
-				// Branchless sign: (bits >> 31) | 1 = +1 for positive, −1 for negative.
-				// bits −= sign  →  bits − 1 (positive) or bits + 1 (negative).
-				bits -= (bits >> 31) | 1;
-				return System.BitConverter.Int32BitsToSingle(bits);
-			}
-			""";
+		if (flags.HasFlag(FastMathFlags.NoNaN))
+		{
+			builder.WriteLine("if (Single.IsInfinity(x))")
+				.AddIndent("\t")
+				.WriteLine("return Single.IsPositiveInfinity(x) ? Single.MaxValue : x;")
+				.RemoveIndent();
+		}
+		else
+		{
+			builder.WriteLine("if (!Single.IsFinite(x))")
+				.AddIndent("\t")
+				.WriteLine("return Single.IsPositiveInfinity(x) ? Single.MaxValue : x;")
+				.RemoveIndent();
+		}
+
+		builder.WriteLine("")
+			.WriteLine("var bits = System.BitConverter.SingleToInt32Bits(x);")
+			.WriteLine("")
+			.WriteLine("// +0 (bits == 0) → −epsilon (0x80000001).")
+			.WriteLine("// −0 (bits = int.MinValue, negative int) naturally reaches the branchless path")
+			.WriteLine("//   and gives bits + 1 = 0x80000001 = −epsilon — no explicit −0 case needed.")
+			.WriteLine("if (bits == 0) return -Single.Epsilon;")
+			.WriteLine("")
+			.WriteLine("// Branchless sign: (bits >> 31) | 1 = +1 for positive, −1 for negative.")
+			.WriteLine("// bits −= sign  →  bits − 1 (positive) or bits + 1 (negative).")
+			.WriteLine("bits -= (bits >> 31) | 1;")
+			.WriteLine("return System.BitConverter.Int32BitsToSingle(bits);");
+
+		builder.RemoveIndent()
+			.WriteLine("}");
+
+		return builder.ToString();
 	}
 
-	private static string GenerateFastBitDecrementMethodDouble()
+	private static string GenerateFastBitDecrementMethodDouble(FastMathFlags flags)
 	{
-		return """
-			private static double FastBitDecrement(double x)
-			{
-				// Combined NaN/±Inf guard — single unsigned-compare on ARM64.
-				// +Inf → MaxValue; NaN and −Inf returned unchanged.
-				if (!Double.IsFinite(x))
-					return Double.IsPositiveInfinity(x) ? Double.MaxValue : x;
+		var builder = new CodeWriter();
 
-				var bits = System.BitConverter.DoubleToInt64Bits(x);
+		builder.WriteLine("private static double FastBitDecrement(double x)")
+			.WriteLine("{")
+			.AddIndent("\t");
 
-				// +0 (bits == 0) → −epsilon.
-				if (bits == 0L) return -Double.Epsilon;
+		builder.WriteLine("// Combined NaN/±Inf guard — single unsigned-compare on ARM64.")
+			.WriteLine("// +Inf → MaxValue; NaN and −Inf returned unchanged.");
 
-				// Branchless sign: (bits >> 63) | 1L = +1L for positive, −1L for negative.
-				bits -= (bits >> 63) | 1L;
-				return System.BitConverter.Int64BitsToDouble(bits);
-			}
-			""";
+		if (flags.HasFlag(FastMathFlags.NoNaN))
+		{
+			builder.WriteLine("if (Double.IsInfinity(x))")
+				.AddIndent("\t")
+				.WriteLine("return Double.IsPositiveInfinity(x) ? Double.MaxValue : x;")
+				.RemoveIndent();
+		}
+		else
+		{
+			builder.WriteLine("if (!Double.IsFinite(x))")
+				.AddIndent("\t")
+				.WriteLine("return Double.IsPositiveInfinity(x) ? Double.MaxValue : x;")
+				.RemoveIndent();
+		}
+
+		builder.WriteLine("")
+			.WriteLine("var bits = System.BitConverter.DoubleToInt64Bits(x);")
+			.WriteLine("")
+			.WriteLine("// +0 (bits == 0) → −epsilon.")
+			.WriteLine("if (bits == 0L) return -Double.Epsilon;")
+			.WriteLine("")
+			.WriteLine("// Branchless sign: (bits >> 63) | 1L = +1L for positive, −1L for negative.")
+			.WriteLine("bits -= (bits >> 63) | 1L;")
+			.WriteLine("return System.BitConverter.Int64BitsToDouble(bits);");
+
+		builder.RemoveIndent()
+			.WriteLine("}");
+
+		return builder.ToString();
 	}
 }

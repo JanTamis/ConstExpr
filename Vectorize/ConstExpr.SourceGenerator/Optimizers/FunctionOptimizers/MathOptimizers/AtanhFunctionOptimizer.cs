@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
@@ -40,8 +42,8 @@ public class AtanhFunctionOptimizer() : BaseMathFunctionOptimizer("Atanh", n => 
 
 		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			SpecialType.System_Single => GenerateFastAtanhMethodFloat(),
-			SpecialType.System_Double => GenerateFastAtanhMethodDouble(),
+			SpecialType.System_Single => GenerateFastAtanhMethodFloat(context.FastMathFlags),
+			SpecialType.System_Double => GenerateFastAtanhMethodDouble(context.FastMathFlags),
 			_ => null
 		});
 
@@ -80,73 +82,76 @@ public class AtanhFunctionOptimizer() : BaseMathFunctionOptimizer("Atanh", n => 
 		}
 	}
 
-	private static string GenerateFastAtanhMethodFloat()
+	private static string GenerateFastAtanhMethodFloat(FastMathFlags flags)
 	{
-		// Benchmark results (Apple M4 Pro, .NET 10, ARM64 RyuJIT):
-		//   DotNet MathF.Atanh          = 2.305 ns (baseline)
-		//   Current 3-branch Horner     = 1.910 ns (−17%)
-		//   V2 branchless log           = 2.012 ns (−13%)
-		//   V3 branchless log1p-style   = 1.768 ns (−23%) ← winner
-		//
-		// V3 formula: 0.5f * MathF.Log(1 + 2x/(1-x))
-		// Algebraically identical to log((1+x)/(1-x)) but expressed as log(1+y) with y=2x/(1-x),
-		// which avoids branch overhead and pipelines better on ARM64.
-		// NaN, ±1 and out-of-domain values propagate correctly through the arithmetic and log.
-		return """
-			private static float FastAtanh(float x)
-			{
-				// Branchless log1p-style: 0.5 * log(1 + 2x/(1-x))
-				// Algebraically equal to 0.5*log((1+x)/(1-x)) but avoids branch overhead.
-				// NaN propagates naturally; x=±1 yields ±∞ via log(0)=−∞ and log(+∞)=+∞.
-				return 0.5f * Single.Log(1f + 2f * x / (1f - x));
-			}
-			""";
+		var builder = new CodeWriter();
+
+		builder.WriteLine("private static float FastAtanh(float x)")
+			.WriteLine("{")
+			.AddIndent("\t");
+
+		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		{
+			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
+		}
+
+		builder.WriteLine("// Branchless log1p-style: 0.5 * log(1 + 2x/(1-x))")
+			.WriteLine("// Algebraically equal to 0.5*log((1+x)/(1-x)) but avoids branch overhead.")
+			.WriteLine("// NaN propagates naturally; x=±1 yields ±∞ via log(0)=−∞ and log(+∞)=+∞.")
+			.WriteLine("return 0.5f * Single.Log(1f + 2f * x / (1f - x));");
+
+		builder.RemoveIndent()
+			.WriteLine("}");
+
+		return builder.ToString();
 	}
 
-	private static string GenerateFastAtanhMethodDouble()
+	private static string GenerateFastAtanhMethodDouble(FastMathFlags flags)
 	{
-		// Benchmark results (Apple M4 Pro, .NET 10, ARM64 RyuJIT):
-		//   DotNet Math.Atanh               = 4.861 ns (baseline)
-		//   Current 3-branch Horner         = 1.796 ns (−63%) ← winner
-		//   V3 branchless log1p-style       = 2.496 ns (−49%)
-		//   V2 branchless log               = 3.009 ns (−38%)
-		//
-		// The hybrid approach (5-term Horner FMA for |x|<0.5, exact log for |x|>=0.5) wins
-		// because the ARM64 FMA chain executes with near-1-cycle throughput and branches are
-		// predicted well on uniform data. A pure log-only path incurs two transcendental calls
-		// on average (both divisions are transcendental); the Horner path avoids transcendentals
-		// entirely for the small-argument half of the domain.
-		return """
-			private static double FastAtanh(double x)
-			{
-				// Handle special cases
-				if (Double.IsNaN(x)) return Double.NaN;
-				if (Math.Abs(x) >= 1.0) return x > 0 ? Double.PositiveInfinity : Double.NegativeInfinity;
+		var builder = new CodeWriter();
 
-				// Use the definition: atanh(x) = 0.5 * ln((1 + x) / (1 - x))
-				// For small |x|, use Taylor series for better accuracy
-				var absX = Double.Abs(x);
-				
-				if (absX < 0.5)
-				{
-					// Taylor series: atanh(x) = x + x³/3 + x⁵/5 + x⁷/7 + x⁹/9 + x¹¹/11
-					var x2 = x * x;
-					
-					// Horner's context.Method with FMA: x * (1 + x²*(1/3 + x²*(1/5 + x²*(1/7 + x²*(1/9 + x²/11)))))
-					var poly = Double.FusedMultiplyAdd(x2, 1d / 11d, 1d / 9d); // 1/11, 1/9
-					poly = Double.FusedMultiplyAdd(poly, x2, 1d / 7d); // 1/7
-					poly = Double.FusedMultiplyAdd(poly, x2, 1d / 5d); // 1/5
-					poly = Double.FusedMultiplyAdd(poly, x2, 1d / 3d); // 1/3
-					poly = Double.FusedMultiplyAdd(poly, x2, 1d);
+		builder.WriteLine("private static double FastAtanh(double x)")
+			.WriteLine("{")
+			.AddIndent("\t");
 
-					return x * poly;
-				}
-				else
-				{
-					// Use logarithmic formula: 0.5 * ln((1 + x) / (1 - x))
-					return 0.5 * Double.Log((1.0 + x) / (1.0 - x));
-				}
-			}
-			""";
+		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		{
+			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
+		}
+
+		builder.WriteLine("if (Math.Abs(x) >= 1.0) return x > 0 ? Double.PositiveInfinity : Double.NegativeInfinity;")
+			.WriteLine("")
+			.WriteLine("// Use the definition: atanh(x) = 0.5 * ln((1 + x) / (1 - x))")
+			.WriteLine("// For small |x|, use Taylor series for better accuracy")
+			.WriteLine("var absX = Double.Abs(x);")
+			.WriteLine("")
+			.WriteLine("if (absX < 0.5)")
+			.WriteLine("{")
+			.AddIndent("\t")
+			.WriteLine("// Taylor series: atanh(x) = x + x³/3 + x⁵/5 + x⁷/7 + x⁹/9 + x¹¹/11")
+			.WriteLine("var x2 = x * x;")
+			.WriteLine("")
+			.WriteLine("// Horner's context.Method with FMA: x * (1 + x²*(1/3 + x²*(1/5 + x²*(1/7 + x²*(1/9 + x²/11)))))")
+			.WriteLine("var poly = Double.FusedMultiplyAdd(x2, 1d / 11d, 1d / 9d); // 1/11, 1/9")
+			.WriteLine("poly = Double.FusedMultiplyAdd(poly, x2, 1d / 7d); // 1/7")
+			.WriteLine("poly = Double.FusedMultiplyAdd(poly, x2, 1d / 5d); // 1/5")
+			.WriteLine("poly = Double.FusedMultiplyAdd(poly, x2, 1d / 3d); // 1/3")
+			.WriteLine("poly = Double.FusedMultiplyAdd(poly, x2, 1d);")
+			.WriteLine("")
+			.WriteLine("return x * poly;")
+			.RemoveIndent()
+			.WriteLine("}")
+			.WriteLine("else")
+			.WriteLine("{")
+			.AddIndent("\t")
+			.WriteLine("// Use logarithmic formula: 0.5 * ln((1 + x) / (1 - x))")
+			.WriteLine("return 0.5 * Double.Log((1.0 + x) / (1.0 - x));")
+			.RemoveIndent()
+			.WriteLine("}");
+
+		builder.RemoveIndent()
+			.WriteLine("}");
+
+		return builder.ToString();
 	}
 }

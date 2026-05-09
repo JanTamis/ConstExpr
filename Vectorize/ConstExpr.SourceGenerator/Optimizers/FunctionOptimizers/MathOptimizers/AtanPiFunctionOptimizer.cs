@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
@@ -42,8 +44,8 @@ public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", n =
 
 		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			SpecialType.System_Single => GenerateFastAtanPiMethodFloat(),
-			SpecialType.System_Double => GenerateFastAtanPiMethodDouble(),
+			SpecialType.System_Single => GenerateFastAtanPiMethodFloat(context.FastMathFlags),
+			SpecialType.System_Double => GenerateFastAtanPiMethodDouble(context.FastMathFlags),
 			_ => null
 		});
 
@@ -82,55 +84,73 @@ public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", n =
 		}
 	}
 
-	private static string GenerateFastAtanPiMethodFloat()
+	private static string GenerateFastAtanPiMethodFloat(FastMathFlags flags)
 	{
-		return """
-			private static float FastAtanPi(float x)
-			{
-				// NaN propagates; +/-Inf → +/-0.5 via swap path (1/Inf = 0 → p=0 → 0.5)
-				if (Single.IsNaN(x)) return Single.NaN;
-				var absX = Single.Abs(x);
-				var swap = absX > 1.0f;
-				var a = swap ? 1.0f / absX : absX;
+		var builder = new CodeWriter();
 
-				// A&S §4.4.43 minimax polynomial coefficients pre-divided by π.
-				// 4 FMAs + 1 mul. Max absolute error ≈ 3.5e-6 (vs 1.6e-3 for Steinmetz 2-term).
-				var u = a * a;
-				var p = Single.FusedMultiplyAdd(u,  0.00663222f, -0.02710107f);
-				p      = Single.FusedMultiplyAdd(u, p,            0.05733014f);
-				p      = Single.FusedMultiplyAdd(u, p,           -0.10510700f);
-				p      = Single.FusedMultiplyAdd(u, p,            0.31826720f);
-				p     *= a;
+		builder.WriteLine("private static float FastAtanPi(float x)")
+			.WriteLine("{")
+			.AddIndent("\t");
 
-				p = swap ? 0.5f - p : p;
-				return Single.IsNegative(x) ? -p : p;
-			}
-			""";
+		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		{
+			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
+		}
+
+		builder.WriteLine("var absX = Single.Abs(x);")
+			.WriteLine("var swap = absX > 1.0f;")
+			.WriteLine("var a = swap ? 1.0f / absX : absX;")
+			.WriteLine("")
+			.WriteLine("// A&S §4.4.43 minimax polynomial coefficients pre-divided by π.")
+			.WriteLine("// 4 FMAs + 1 mul. Max absolute error ≈ 3.5e-6 (vs 1.6e-3 for Steinmetz 2-term).")
+			.WriteLine("var u = a * a;")
+			.WriteLine("var p = Single.FusedMultiplyAdd(u,  0.00663222f, -0.02710107f);")
+			.WriteLine("p      = Single.FusedMultiplyAdd(u, p,            0.05733014f);")
+			.WriteLine("p      = Single.FusedMultiplyAdd(u, p,           -0.10510700f);")
+			.WriteLine("p      = Single.FusedMultiplyAdd(u, p,            0.31826720f);")
+			.WriteLine("p     *= a;")
+			.WriteLine("")
+			.WriteLine("p = swap ? 0.5f - p : p;")
+			.WriteLine("return Single.IsNegative(x) ? -p : p;");
+
+		builder.RemoveIndent()
+			.WriteLine("}");
+
+		return builder.ToString();
 	}
 
-	private static string GenerateFastAtanPiMethodDouble()
+	private static string GenerateFastAtanPiMethodDouble(FastMathFlags flags)
 	{
-		return """
-			private static double FastAtanPi(double x)
-			{
-				// NaN propagates; +/-Inf → +/-0.5 via swap path (1/Inf = 0 → p=0 → 0.5)
-				if (Double.IsNaN(x)) return Double.NaN;
-				var absX = Double.Abs(x);
-				var swap = absX > 1.0;
-				var a = swap ? 1.0 / absX : absX;
-				var u = a * a;
+		var builder = new CodeWriter();
 
-				// A&S §4.4.43 minimax coefficients pre-divided by π — saves the final 1/π multiply.
-				// Quadrant correction uses 0.5 (= π/2 / π). Max absolute error ≈ 3.5e-6.
-				var p = Double.FusedMultiplyAdd(u,  0.00663222, -0.02710107);
-				p      = Double.FusedMultiplyAdd(u, p,           0.05733014);
-				p      = Double.FusedMultiplyAdd(u, p,          -0.10510700);
-				p      = Double.FusedMultiplyAdd(u, p,           0.31826720);
-				p     *= a;
+		builder.WriteLine("private static double FastAtanPi(double x)")
+			.WriteLine("{")
+			.AddIndent("\t");
 
-				p = swap ? 0.5 - p : p;
-				return Double.IsNegative(x) ? -p : p;
-			}
-			""";
+		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		{
+			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
+		}
+
+		builder.WriteLine("var absX = Double.Abs(x);")
+			.WriteLine("var swap = absX > 1.0;")
+			.WriteLine("var a = swap ? 1.0 / absX : absX;")
+			.WriteLine("var u = a * a;")
+			.WriteLine("")
+			.WriteLine("// A&S §4.4.43 minimax coefficients pre-divided by π — saves the final 1/π multiply.")
+			.WriteLine("// Quadrant correction uses 0.5 (= π/2 / π). Max absolute error ≈ 3.5e-6.")
+			.WriteLine("var p = Double.FusedMultiplyAdd(u,  0.00663222, -0.02710107);")
+			.WriteLine("p      = Double.FusedMultiplyAdd(u, p,           0.05733014);")
+			.WriteLine("p      = Double.FusedMultiplyAdd(u, p,          -0.10510700);")
+			.WriteLine("p      = Double.FusedMultiplyAdd(u, p,           0.31826720);")
+			.WriteLine("p     *= a;")
+			.WriteLine("")
+			.WriteLine("p = swap ? 0.5 - p : p;")
+			.WriteLine("return Double.IsNegative(x) ? -p : p;");
+
+		builder.RemoveIndent()
+			.WriteLine("}");
+
+		return builder.ToString();
 	}
 }
