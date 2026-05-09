@@ -62,9 +62,14 @@ public class Log10FunctionOptimizer() : BaseMathFunctionOptimizer("Log10", n => 
 			builder.WriteLine("if (Single.IsNaN(x) || x < 0f) return Single.NaN;");
 		}
 
-		builder.WriteLine("if (x == 0f) return Single.NegativeInfinity;")
-			.WriteLine("if (Single.IsPositiveInfinity(x)) return Single.PositiveInfinity;")
-			.WriteLine("")
+		builder.WriteLine("if (x == 0f) return Single.NegativeInfinity;");
+
+		if (!flags.HasFlag(FastMathFlags.NoInfinity))
+		{
+			builder.WriteLine("if (Single.IsPositiveInfinity(x)) return Single.PositiveInfinity;");
+		}
+
+		builder.WriteLine("")
 			.WriteLine("// Bit-extract base-2 exponent e and mantissa m ∈ [1, 2).")
 			.WriteLine("var bits = BitConverter.SingleToInt32Bits(x);")
 			.WriteLine("var e    = (bits >> 23) - 127;")
@@ -107,9 +112,14 @@ public class Log10FunctionOptimizer() : BaseMathFunctionOptimizer("Log10", n => 
 			builder.WriteLine("if (Double.IsNaN(x) || x < 0.0) return Double.NaN;");
 		}
 
-		builder.WriteLine("if (x == 0.0) return Double.NegativeInfinity;")
-			.WriteLine("if (Double.IsPositiveInfinity(x)) return Double.PositiveInfinity;")
-			.WriteLine("")
+		builder.WriteLine("if (x == 0.0) return Double.NegativeInfinity;");
+
+		if (!flags.HasFlag(FastMathFlags.NoInfinity))
+		{
+			builder.WriteLine("if (Double.IsPositiveInfinity(x)) return Double.PositiveInfinity;");
+		}
+
+		builder.WriteLine("")
 			.WriteLine("// Bit-extract base-2 exponent e and mantissa m ∈ [1, 2).")
 			.WriteLine("var bits = BitConverter.DoubleToInt64Bits(x);")
 			.WriteLine("var e    = (int)((bits >> 52) - 1023L);")

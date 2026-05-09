@@ -44,9 +44,13 @@ public class Exp10FunctionOptimizer() : BaseMathFunctionOptimizer("Exp10", n => 
 			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
 		}
 
-		builder.WriteLine("if (Single.IsPositiveInfinity(x)) return Single.PositiveInfinity;")
-			.WriteLine("if (Single.IsNegativeInfinity(x)) return 0.0f;")
-			.WriteLine("if (x == 0.0f) return 1.0f; // handles +0 and -0")
+		if (!flags.HasFlag(FastMathFlags.NoInfinity))
+		{
+			builder.WriteLine("if (Single.IsPositiveInfinity(x)) return Single.PositiveInfinity;")
+				.WriteLine("if (Single.IsNegativeInfinity(x)) return 0.0f;");
+		}
+
+		builder.WriteLine("if (x == 0.0f) return 1.0f; // handles +0 and -0")
 			.WriteLine("")
 			.WriteLine("if (x >= 38.53f) return Single.PositiveInfinity;")
 			.WriteLine("if (x <= -38.53f) return 0.0f;")
@@ -96,9 +100,13 @@ public class Exp10FunctionOptimizer() : BaseMathFunctionOptimizer("Exp10", n => 
 			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
 		}
 
-		builder.WriteLine("if (Double.IsPositiveInfinity(x)) return Double.PositiveInfinity;")
-			.WriteLine("if (Double.IsNegativeInfinity(x)) return 0.0;")
-			.WriteLine("if (x == 0.0) return 1.0; // handles +0 and -0")
+		if (!flags.HasFlag(FastMathFlags.NoInfinity))
+		{
+			builder.WriteLine("if (Double.IsPositiveInfinity(x)) return Double.PositiveInfinity;")
+				.WriteLine("if (Double.IsNegativeInfinity(x)) return 0.0;");
+		}
+
+		builder.WriteLine("if (x == 0.0) return 1.0; // handles +0 and -0")
 			.WriteLine("")
 			.WriteLine("if (x >= 309.0) return Double.PositiveInfinity;")
 			.WriteLine("if (x <= -309.0) return 0.0;")

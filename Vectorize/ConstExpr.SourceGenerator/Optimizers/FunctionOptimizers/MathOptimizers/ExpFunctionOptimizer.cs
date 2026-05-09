@@ -55,6 +55,12 @@ public class ExpFunctionOptimizer() : BaseMathFunctionOptimizer("Exp", n => n is
 			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
 		}
 
+		if (!flags.HasFlag(FastMathFlags.NoInfinity))
+		{
+			builder.WriteLine("if (Single.IsPositiveInfinity(x)) return Single.PositiveInfinity;")
+				.WriteLine("if (Single.IsNegativeInfinity(x)) return 0.0f;");
+		}
+
 		builder.WriteLine("if (x >= 88.0f) return Single.PositiveInfinity;")
 			.WriteLine("if (x <= -87.0f) return 0.0f;")
 			.WriteLine("")
@@ -93,6 +99,12 @@ public class ExpFunctionOptimizer() : BaseMathFunctionOptimizer("Exp", n => n is
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
+		}
+
+		if (!flags.HasFlag(FastMathFlags.NoInfinity))
+		{
+			builder.WriteLine("if (Double.IsPositiveInfinity(x)) return Double.PositiveInfinity;")
+				.WriteLine("if (Double.IsNegativeInfinity(x)) return 0.0;");
 		}
 
 		builder.WriteLine("if (x >= 709.0) return Double.PositiveInfinity;")

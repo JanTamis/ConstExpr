@@ -52,17 +52,27 @@ public class BitDecrementFunctionOptimizer() : BaseMathFunctionOptimizer("BitDec
 
 		if (flags.HasFlag(FastMathFlags.NoNaN))
 		{
-			builder.WriteLine("if (Single.IsInfinity(x))")
-				.AddIndent("\t")
-				.WriteLine("return Single.IsPositiveInfinity(x) ? Single.MaxValue : x;")
-				.RemoveIndent();
+			if (!flags.HasFlag(FastMathFlags.NoInfinity))
+			{
+				builder.WriteLine("if (Single.IsInfinity(x))")
+					.AddIndent("\t")
+					.WriteLine("return Single.IsPositiveInfinity(x) ? Single.MaxValue : x;")
+					.RemoveIndent();
+			}
 		}
 		else
 		{
-			builder.WriteLine("if (!Single.IsFinite(x))")
-				.AddIndent("\t")
-				.WriteLine("return Single.IsPositiveInfinity(x) ? Single.MaxValue : x;")
-				.RemoveIndent();
+			if (flags.HasFlag(FastMathFlags.NoInfinity))
+			{
+				builder.WriteLine("if (Single.IsNaN(x)) return x;");
+			}
+			else
+			{
+				builder.WriteLine("if (!Single.IsFinite(x))")
+					.AddIndent("\t")
+					.WriteLine("return Single.IsPositiveInfinity(x) ? Single.MaxValue : x;")
+					.RemoveIndent();
+			}
 		}
 
 		builder.WriteLine("")
@@ -97,17 +107,27 @@ public class BitDecrementFunctionOptimizer() : BaseMathFunctionOptimizer("BitDec
 
 		if (flags.HasFlag(FastMathFlags.NoNaN))
 		{
-			builder.WriteLine("if (Double.IsInfinity(x))")
-				.AddIndent("\t")
-				.WriteLine("return Double.IsPositiveInfinity(x) ? Double.MaxValue : x;")
-				.RemoveIndent();
+			if (!flags.HasFlag(FastMathFlags.NoInfinity))
+			{
+				builder.WriteLine("if (Double.IsInfinity(x))")
+					.AddIndent("\t")
+					.WriteLine("return Double.IsPositiveInfinity(x) ? Double.MaxValue : x;")
+					.RemoveIndent();
+			}
 		}
 		else
 		{
-			builder.WriteLine("if (!Double.IsFinite(x))")
-				.AddIndent("\t")
-				.WriteLine("return Double.IsPositiveInfinity(x) ? Double.MaxValue : x;")
-				.RemoveIndent();
+			if (flags.HasFlag(FastMathFlags.NoInfinity))
+			{
+				builder.WriteLine("if (Double.IsNaN(x)) return x;");
+			}
+			else
+			{
+				builder.WriteLine("if (!Double.IsFinite(x))")
+					.AddIndent("\t")
+					.WriteLine("return Double.IsPositiveInfinity(x) ? Double.MaxValue : x;")
+					.RemoveIndent();
+			}
 		}
 
 		builder.WriteLine("")
