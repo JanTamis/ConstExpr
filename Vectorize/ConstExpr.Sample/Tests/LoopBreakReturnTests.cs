@@ -21,11 +21,12 @@ namespace ConstExpr.SourceGenerator.Sample.Tests
 			Console.WriteLine($"[CONST] FindCharIndex(\"HELLO\", 'L'): {DataValidationOperations.FindCharIndex("HELLO", 'L')}");
 			Console.WriteLine($"[CONST] FindCharIndex(\"HELLO\", 'X'): {DataValidationOperations.FindCharIndex("HELLO", 'X')}");
 			Console.WriteLine($"[MIXED] FindCharIndex(varString, 'T'): {DataValidationOperations.FindCharIndex(varString, 'T')}");
+			Console.WriteLine($"[MIXED] FindCharIndex(varString, 'T'): {DataValidationOperations.FindCharIndex("hello", (char) varInt)}");
 
 			// CountInGrid - Tests nested loops with break
 			Console.WriteLine($"[CONST] CountInGrid(3, 3, 5): {DataValidationOperations.CountInGrid(3, 3, 5)}");
 			Console.WriteLine($"[CONST] CountInGrid(2, 4, 6): {DataValidationOperations.CountInGrid(2, 4, 6)}");
-			
+
 			// CountInGrid - mixed
 			Console.WriteLine($"[MIXED] CountInGrid(varInt, varInt2, varInt * 2): {DataValidationOperations.CountInGrid(varInt, varInt2, varInt)}");
 

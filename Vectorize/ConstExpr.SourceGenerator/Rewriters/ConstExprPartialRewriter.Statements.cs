@@ -7,7 +7,6 @@ using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Optimizers.ConditionalOptimizers;
 using ConstExpr.SourceGenerator.Refactorers;
-using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -396,12 +395,54 @@ public partial class ConstExprPartialRewriter
 
 		if (items is not null && attribute.MaxUnrollIterations > 0 && items.Count < attribute.MaxUnrollIterations)
 		{
-			return TryUnrollForEachLoop(node, items);
+			// Save state before attempting unrolling so we can roll back when conditional
+			// breaks remain in the unrolled output (i.e., break inside an if whose
+			// condition could not be resolved at compile time).
+			var savedState = SaveVariableState();
+			var unrolled = TryUnrollForEachLoop(node, items);
+
+			// If the unrolled result still contains break statements that are not
+			// protected by any inner loop or switch, the breaks are orphaned and
+			// would produce invalid C#.  Fall back to a regular foreach, using the
+			// constant-folded collection expression so that partial evaluation is
+			// still applied where possible.
+			if (ContainsOrphanedBreak(unrolled))
+			{
+				RestoreVariableState(savedState);
+				InvalidateAssignedVariablesForForEach(node, names);
+				return base.VisitForEachStatement(
+					node.WithExpression(collection as ExpressionSyntax ?? node.Expression));
+			}
+
+			return unrolled;
 		}
 
 		InvalidateAssignedVariablesForForEach(node, names);
 
 		return base.VisitForEachStatement(node);
+	}
+
+	/// <summary>
+	///   Returns <see langword="true" /> when <paramref name="node" /> contains a
+	///   <see cref="BreakStatementSyntax" /> that is not enclosed by any inner loop or
+	///   switch statement, making it an orphaned break with no valid jump target.
+	/// </summary>
+	private static bool ContainsOrphanedBreak(SyntaxNode? node)
+	{
+		if (node is null)
+		{
+			return false;
+		}
+
+		return node
+			.DescendantNodes(n =>
+				n is not ForStatementSyntax
+					and not ForEachStatementSyntax
+					and not WhileStatementSyntax
+					and not DoStatementSyntax
+					and not SwitchStatementSyntax)
+			.OfType<BreakStatementSyntax>()
+			.Any();
 	}
 
 	/// <summary>

@@ -419,11 +419,9 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 			timer.Stop();
 
-			if (result2 is BlockSyntax blockSyntax
-			    && blockSyntax.GetDeterministicHash() == methodDecl.Body.GetDeterministicHash())
-			{
-				return null;
-			}
+			// Keep generating an interceptor even when the rewritten body is identical.
+			// This ensures every invocation site can still be intercepted safely, including
+			// mixed/non-constant calls where partial evaluation yields a passthrough body.
 
 			GetUsings(methodSymbol, usings);
 
@@ -490,6 +488,11 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		// Use cached GetOperation result
 		var invocationOperation = apiCache.GetOrAddOperation(invocation, model, token) as IInvocationOperation;
 		var methodSymbol = invocationOperation?.TargetMethod;
+
+		if (invocationOperation is null || methodSymbol is null)
+		{
+			return variables;
+		}
 
 		foreach (var argument in invocationOperation.Arguments)
 		{

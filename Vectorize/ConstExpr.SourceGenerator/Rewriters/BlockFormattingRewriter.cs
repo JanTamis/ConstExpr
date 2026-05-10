@@ -162,7 +162,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 	private static bool IsHexOrBinaryLiteral(SyntaxToken token)
 	{
 		var text = token.Text;
-		return text.StartsWith("0x", StringComparison.OrdinalIgnoreCase) || 
+		return text.StartsWith("0x", StringComparison.OrdinalIgnoreCase) ||
 		       text.StartsWith("0X", StringComparison.OrdinalIgnoreCase) ||
 		       text.StartsWith("0b", StringComparison.OrdinalIgnoreCase) ||
 		       text.StartsWith("0B", StringComparison.OrdinalIgnoreCase);
@@ -186,7 +186,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		{
 			visited = visited.WithElse(elseClause.WithStatement(visited.Else.Statement));
 		}
-		
+
 		// Check if the if body is empty
 		var ifBodyIsEmpty = IsStatementEmpty(visited.Statement);
 
@@ -226,8 +226,8 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		}
 
 		if (visited.Else is null && visited.Statement is BlockSyntax { Statements.Count: 1 } block
-		    && node.Parent is not ElseClauseSyntax
-		    && !IsConditionalSyntax(block.Statements[0]))
+		                         && node.Parent is not ElseClauseSyntax
+		                         && !IsConditionalSyntax(block.Statements[0]))
 		{
 			visited = visited.WithStatement(block.Statements[0]);
 		}
@@ -242,8 +242,30 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		{
 			node = node.WithStatement(block.Statements[0]);
 		}
-		
+
 		return base.VisitForStatement(node);
+	}
+
+	public override SyntaxNode? VisitForEachStatement(ForEachStatementSyntax node)
+	{
+		if (node.Statement is BlockSyntax { Statements.Count: 1 } block
+		    && !IsConditionalSyntax(block.Statements[0]))
+		{
+			node = node.WithStatement(block.Statements[0]);
+		}
+
+		return base.VisitForEachStatement(node);
+	}
+
+	public override SyntaxNode? VisitForEachVariableStatement(ForEachVariableStatementSyntax node)
+	{
+		if (node.Statement is BlockSyntax { Statements.Count: 1 } block
+		    && !IsConditionalSyntax(block.Statements[0]))
+		{
+			node = node.WithStatement(block.Statements[0]);
+		}
+
+		return base.VisitForEachVariableStatement(node);
 	}
 
 	public override SyntaxNode? VisitWhileStatement(WhileStatementSyntax node)
@@ -254,9 +276,9 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			node = node.WithStatement(block.Statements[0]);
 		}
 
-		return base.VisitWhileStatement(node);		
+		return base.VisitWhileStatement(node);
 	}
-	
+
 	public override SyntaxNode? VisitDoStatement(DoStatementSyntax node)
 	{
 		if (node.Statement is BlockSyntax { Statements.Count: 1 } block
@@ -265,7 +287,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			node = node.WithStatement(block.Statements[0]);
 		}
 
-		return base.VisitDoStatement(node);		
+		return base.VisitDoStatement(node);
 	}
 
 	// private static BlockSyntax EnsureBlock(StatementSyntax statement)
@@ -760,7 +782,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		result = result.WithType(result.Type.WithTrailingTrivia());
 
 		// Flatten collection initializer onto a single line: { { k, v }, ... }
-		if (result.Initializer is { RawKind: (int)SyntaxKind.CollectionInitializerExpression } initializer)
+		if (result.Initializer is { RawKind: (int) SyntaxKind.CollectionInitializerExpression } initializer)
 		{
 			var flat = FlattenInitializer(initializer);
 
@@ -1107,8 +1129,8 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 		foreach (var trivia in leading)
 		{
-			if (trivia.IsKind(SyntaxKind.SingleLineCommentTrivia, 
-				    SyntaxKind.MultiLineCommentTrivia, 
+			if (trivia.IsKind(SyntaxKind.SingleLineCommentTrivia,
+				    SyntaxKind.MultiLineCommentTrivia,
 				    SyntaxKind.SingleLineDocumentationCommentTrivia,
 				    SyntaxKind.MultiLineDocumentationCommentTrivia))
 			{
@@ -1243,7 +1265,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		}
 
 		// Already wrapped in a single block — nothing to do.
-		if (visited.Statements is [BlockSyntax])
+		if (visited.Statements is [ BlockSyntax ])
 		{
 			return visited;
 		}
@@ -1307,12 +1329,12 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			// Remove trailing whitespace from the type inside the cast
 			// This ensures casts like (int? ) become (int?)
 			var type = castExpr.Type;
-			
+
 			// Strip all trailing trivia from the type
 			var lastToken = type.GetLastToken();
 			var newLastToken = lastToken.WithTrailingTrivia(TriviaList());
 			type = type.ReplaceToken(lastToken, newLastToken);
-			
+
 			return castExpr.WithType(type);
 		}
 
