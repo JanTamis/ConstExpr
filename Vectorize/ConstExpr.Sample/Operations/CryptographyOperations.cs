@@ -87,7 +87,6 @@ public static class CryptographyOperations
 		}
 
 		var result = new char[data.Length * 2];
-
 		var index = 0;
 
 		while (index < data.Length)

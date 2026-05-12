@@ -2,8 +2,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using ConstExpr.Core.Attributes;
 using ConstExpr.SourceGenerator.Extensions;
@@ -14,7 +12,6 @@ using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.RegexOptimizers;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.SimdOptimizers;
-using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -47,6 +44,7 @@ public partial class ConstExprPartialRewriter(
 	: BaseRewriter(semanticModel, loader, variables, symbolStore)
 {
 	#region Fields and Lazy Initializers
+
 	private static readonly BaseMathFunctionOptimizer[] _mathOptimizers = OptimizerRegistry.MathOptimizers;
 	private static readonly BaseLinqFunctionOptimizer[] _linqOptimizers = OptimizerRegistry.LinqOptimizers;
 	private static readonly BaseSimdFunctionOptimizer[] _simdOptimizers = OptimizerRegistry.SimdOptimizers;

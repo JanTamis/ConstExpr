@@ -265,6 +265,7 @@ public partial class ConstExprPartialRewriter
 
 		var declaration = Visit(node.Declaration);
 		InvalidateAssignedVariables(node);
+		InvalidateMutatingReceiverValues(node);
 
 		return node
 			.WithInitializers(VisitList(node.Initializers))
@@ -293,6 +294,7 @@ public partial class ConstExprPartialRewriter
 		}
 
 		InvalidateAssignedVariables(node);
+		InvalidateMutatingReceiverValues(node);
 
 		var body = Visit(node.Statement);
 		var rewrittenCondition = Visit(node.Condition);
@@ -350,6 +352,7 @@ public partial class ConstExprPartialRewriter
 		}
 
 		InvalidateAssignedVariables(node);
+		InvalidateMutatingReceiverValues(node);
 
 		return base.VisitDoStatement(node);
 	}
@@ -588,6 +591,40 @@ public partial class ConstExprPartialRewriter
 			{
 				variable.HasValue = false;
 			}
+		}
+	}
+
+	private void InvalidateMutatingReceiverValues(StatementSyntax node)
+	{
+		foreach (var invocation in node.DescendantNodes().OfType<InvocationExpressionSyntax>())
+		{
+			if (invocation.Expression is not MemberAccessExpressionSyntax
+			    {
+				    Expression: IdentifierNameSyntax { Identifier.Text: var receiverName },
+				    Name: IdentifierNameSyntax { Identifier.Text: var methodName }
+			    })
+			{
+				continue;
+			}
+
+			if (!variables.TryGetValue(receiverName, out var receiverVariable))
+			{
+				continue;
+			}
+
+			if (!semanticModel.TryGetSymbol(invocation, symbolStore, out IMethodSymbol? targetMethod)
+			    && !IsLikelyMutatingMethod(null, methodName))
+			{
+				continue;
+			}
+
+			if (targetMethod is not null && !IsLikelyMutatingMethod(targetMethod, methodName))
+			{
+				continue;
+			}
+
+			receiverVariable.IsAltered = true;
+			receiverVariable.HasValue = false;
 		}
 	}
 

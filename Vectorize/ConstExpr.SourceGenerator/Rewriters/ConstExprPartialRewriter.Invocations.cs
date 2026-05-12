@@ -11,7 +11,6 @@ using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.RegexOptimizers;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.SimdOptimizers;
-using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -38,7 +37,17 @@ public partial class ConstExprPartialRewriter
 
 		if (!semanticModel.TryGetSymbol(node, symbolStore, out IMethodSymbol? targetMethod))
 		{
+			if (node.Expression is MemberAccessExpressionSyntax fallbackMemberAccess)
+			{
+				MarkReceiverAsAlteredIfNeeded(null, fallbackMemberAccess.Expression, fallbackMemberAccess.Name.Identifier.Text);
+			}
+
 			return VisitInvocationExpressionFallback(node);
+		}
+
+		if (node.Expression is MemberAccessExpressionSyntax receiverMemberAccess)
+		{
+			MarkReceiverAsAlteredIfNeeded(targetMethod, receiverMemberAccess.Expression, receiverMemberAccess.Name.Identifier.Text);
 		}
 
 		var originalArguments = node.ArgumentList.Arguments;
@@ -65,10 +74,10 @@ public partial class ConstExprPartialRewriter
 
 		// Try string optimizers
 		if (targetMethod.ContainingType.SpecialType == SpecialType.System_String
-		    && node.Expression is MemberAccessExpressionSyntax memberAccess)
+		    && node.Expression is MemberAccessExpressionSyntax stringMemberAccess)
 		{
 			var tempNode = node.WithExpression(Visit(node.Expression) as ExpressionSyntax ?? node.Expression);
-			var optimized = TryOptimizeStringMethod(semanticModel, targetMethod, tempNode, memberAccess, argumentExpressions, originalArguments);
+			var optimized = TryOptimizeStringMethod(semanticModel, targetMethod, tempNode, stringMemberAccess, argumentExpressions, originalArguments);
 
 			if (optimized is not null)
 			{
@@ -119,7 +128,7 @@ public partial class ConstExprPartialRewriter
 				return unrolledNode;
 			}
 		}
-		
+
 		var expression = Visit(node.Expression) as ExpressionSyntax ?? node.Expression;
 
 		if (expression is LambdaExpressionSyntax lambdaExpression)
@@ -141,6 +150,55 @@ public partial class ConstExprPartialRewriter
 			? HandleStaticMethodInvocation(node, targetMethod, argumentExpressions)
 			: HandleInstanceMethodInvocation(node, targetMethod, argumentExpressions);
 
+	}
+
+	private void MarkReceiverAsAlteredIfNeeded(IMethodSymbol? targetMethod, ExpressionSyntax receiver, string methodName)
+	{
+		if (targetMethod?.IsStatic is true || receiver is not IdentifierNameSyntax identifier)
+		{
+			return;
+		}
+
+		if (!variables.TryGetValue(identifier.Identifier.Text, out var variable))
+		{
+			return;
+		}
+
+		if (variable.Type is null || !variable.Type.IsReferenceType || variable.Type.SpecialType == SpecialType.System_String)
+		{
+			return;
+		}
+
+		var isLikelyMutating = IsLikelyMutatingMethod(targetMethod, methodName);
+
+		if (!isLikelyMutating)
+		{
+			return;
+		}
+
+		variable.IsAltered = true;
+		variable.HasValue = false;
+		variable.Value = null;
+	}
+
+	private static bool IsLikelyMutatingMethod(IMethodSymbol? targetMethod, string methodName)
+	{
+		if (targetMethod is not null)
+		{
+			if (targetMethod.IsStatic)
+			{
+				return false;
+			}
+
+			if (targetMethod.ReturnsVoid || targetMethod.Parameters.Any(static p => p.RefKind is not RefKind.None))
+			{
+				return true;
+			}
+		}
+
+		return methodName is "Add" or "AddRange" or "Insert" or "InsertRange" or "Remove" or "RemoveAt" or "RemoveAll"
+			or "RemoveRange" or "Clear" or "Sort" or "Enqueue" or "Dequeue" or "Push" or "Pop"
+			or "TryAdd" or "TryTake" or "UnionWith" or "IntersectWith" or "ExceptWith" or "SymmetricExceptWith";
 	}
 
 	/// <summary>
@@ -486,24 +544,25 @@ public partial class ConstExprPartialRewriter
 		});
 
 		var originalParameterExpressions = new ExpressionSyntax[originalArguments.Count];
+
 		for (var i = 0; i < originalArguments.Count; i++)
 		{
 			originalParameterExpressions[i] = originalArguments[i].Expression;
 		}
 
-		return new FunctionOptimizerContext(model, 
-			loader, 
-			targetMethod, 
-			node, 
-			visitedArguments.ToArray(), 
-			originalParameterExpressions, 
+		return new FunctionOptimizerContext(model,
+			loader,
+			targetMethod,
+			node,
+			visitedArguments.ToArray(),
+			originalParameterExpressions,
 			x => Visit(x) as ExpressionSyntax,
-			x => Visit(x) as StatementSyntax, 
-			getLambda, 
-			optimizeBinaryExpression, 
-			additionalMethods, 
-			variables, 
-			usings, 
+			x => Visit(x) as StatementSyntax,
+			getLambda,
+			optimizeBinaryExpression,
+			additionalMethods,
+			variables,
+			usings,
 			attribute.MathOptimizations,
 			symbolStore);
 	}
@@ -522,9 +581,11 @@ public partial class ConstExprPartialRewriter
 		}
 
 		newArguments = new ExpressionSyntax[arguments.Count];
+
 		for (var i = 0; i < arguments.Count; i++)
 		{
 			var argument = arguments[i];
+
 			if (TryGetLiteralValue(argument, out var value) && value is string { Length: 1 } charValue)
 			{
 				newArguments[i] = LiteralExpression(SyntaxKind.CharacterLiteralExpression, Literal(charValue[0]));
@@ -678,7 +739,7 @@ public partial class ConstExprPartialRewriter
 				var visitedBlock = subRewriter.Visit(functionSyntax.Body) as BlockSyntax;
 				var pruned = DeadCodePruner.Prune(visitedBlock!, subParams, semanticModel) as BlockSyntax;
 
-				if (pruned?.Statements is [ReturnStatementSyntax { Expression: { } returnExpr }])
+				if (pruned?.Statements is [ ReturnStatementSyntax { Expression: { } returnExpr } ])
 				{
 					result = returnExpr;
 				}
@@ -753,12 +814,6 @@ public partial class ConstExprPartialRewriter
 
 		usings.Add(targetMethod.ContainingType.ContainingNamespace.ToString());
 
-		// Mark variable as altered since instance method may mutate it
-		if (node.Expression is MemberAccessExpressionSyntax { Expression: IdentifierNameSyntax identifierName }
-		    && variables.TryGetValue(identifierName.Identifier.Text, out var variable))
-		{
-			variable.IsAltered = true;
-		}
 
 		var expression = Visit(node.Expression) as ExpressionSyntax ?? node.Expression;
 
@@ -787,6 +842,7 @@ public partial class ConstExprPartialRewriter
 	private static SeparatedSyntaxList<ArgumentSyntax> ToArgumentList(IReadOnlyList<ExpressionSyntax> arguments)
 	{
 		var mappedArguments = new ArgumentSyntax[arguments.Count];
+
 		for (var i = 0; i < arguments.Count; i++)
 		{
 			mappedArguments[i] = Argument(arguments[i]);
@@ -1027,7 +1083,7 @@ public partial class ConstExprPartialRewriter
 		{
 			return expression;
 		}
-		
+
 		var hasLiteral = TryGetLiteralValue(node.Expression, out var instanceValue) || TryGetLiteralValue(expression, out instanceValue);
 
 		if (semanticModel.TryGetSymbol(node, symbolStore, out ISymbol? symbol))

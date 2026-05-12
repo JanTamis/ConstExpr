@@ -7,7 +7,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
-using SourceGen.Utilities.Extensions;
 
 namespace ConstExpr.SourceGenerator.Rewriters;
 
@@ -61,7 +60,8 @@ public partial class ConstExprPartialRewriter
 
 		UpdateVariableValue(item, operation, value, node.Initializer?.Value);
 
-		if (node.Initializer is null)
+		if (node.Initializer is null
+		    || value is CollectionExpressionSyntax && node.Parent is VariableDeclarationSyntax { Type: IdentifierNameSyntax { Identifier.Text: "var" } })
 		{
 			return node;
 		}
