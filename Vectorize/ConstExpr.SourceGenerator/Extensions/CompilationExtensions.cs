@@ -15,7 +15,6 @@ using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using SourceGen.Utilities.Extensions;
 using TypeInfo = Microsoft.CodeAnalysis.TypeInfo;
 
 namespace ConstExpr.SourceGenerator.Extensions;
@@ -140,22 +139,22 @@ public static class CompilationExtensions
 		var keyword = typeSymbol.SpecialType switch
 		{
 			SpecialType.System_Boolean => SyntaxKind.BoolKeyword,
-			SpecialType.System_Byte    => SyntaxKind.ByteKeyword,
-			SpecialType.System_SByte   => SyntaxKind.SByteKeyword,
-			SpecialType.System_Int16   => SyntaxKind.ShortKeyword,
-			SpecialType.System_UInt16  => SyntaxKind.UShortKeyword,
-			SpecialType.System_Int32   => SyntaxKind.IntKeyword,
-			SpecialType.System_UInt32  => SyntaxKind.UIntKeyword,
-			SpecialType.System_Int64   => SyntaxKind.LongKeyword,
-			SpecialType.System_UInt64  => SyntaxKind.ULongKeyword,
-			SpecialType.System_Single  => SyntaxKind.FloatKeyword,
-			SpecialType.System_Double  => SyntaxKind.DoubleKeyword,
+			SpecialType.System_Byte => SyntaxKind.ByteKeyword,
+			SpecialType.System_SByte => SyntaxKind.SByteKeyword,
+			SpecialType.System_Int16 => SyntaxKind.ShortKeyword,
+			SpecialType.System_UInt16 => SyntaxKind.UShortKeyword,
+			SpecialType.System_Int32 => SyntaxKind.IntKeyword,
+			SpecialType.System_UInt32 => SyntaxKind.UIntKeyword,
+			SpecialType.System_Int64 => SyntaxKind.LongKeyword,
+			SpecialType.System_UInt64 => SyntaxKind.ULongKeyword,
+			SpecialType.System_Single => SyntaxKind.FloatKeyword,
+			SpecialType.System_Double => SyntaxKind.DoubleKeyword,
 			SpecialType.System_Decimal => SyntaxKind.DecimalKeyword,
-			SpecialType.System_Char    => SyntaxKind.CharKeyword,
-			SpecialType.System_String  => SyntaxKind.StringKeyword,
-			SpecialType.System_Object  => SyntaxKind.ObjectKeyword,
-			SpecialType.System_Void    => SyntaxKind.VoidKeyword,
-			_                          => SyntaxKind.None
+			SpecialType.System_Char => SyntaxKind.CharKeyword,
+			SpecialType.System_String => SyntaxKind.StringKeyword,
+			SpecialType.System_Object => SyntaxKind.ObjectKeyword,
+			SpecialType.System_Void => SyntaxKind.VoidKeyword,
+			_ => SyntaxKind.None
 		};
 
 		if (keyword != SyntaxKind.None)
@@ -457,11 +456,11 @@ public static class CompilationExtensions
 			method = null;
 			return false;
 		}
-		
+
 		// Filter candidates
 		var candidates = methods
 			.OfType<MethodBase>()
-			.Where(m => m.Name == methodName 
+			.Where(m => m.Name == methodName
 			            && m.GetParameters().Length == expectedParameterLength
 			            && m.GetGenericArguments().Length == typeArgs.Length);
 
@@ -488,7 +487,7 @@ public static class CompilationExtensions
 				var symbolParam = originalParameterTypes[i];
 				var symbolParamType = loader.GetType(symbolParam);
 
-				if (symbolParamType == null 
+				if (symbolParamType == null
 				    || !reflParam.ParameterType.IsGenericParameter && !reflParam.ParameterType.IsAssignableFrom(symbolParamType))
 				{
 					compatible = false;
@@ -862,7 +861,7 @@ public static class CompilationExtensions
 			result = null;
 			return false;
 		}
-		
+
 		result = compilation.GetTypeByType(type.FullName!);
 		return result != null;
 	}
@@ -1357,6 +1356,13 @@ public static class CompilationExtensions
 
 	public static bool TryGetSymbol<TSymbol>(this SemanticModel semanticModel, SyntaxNode? node, ConcurrentDictionary<ulong, ISymbol> symbolStore, [NotNullWhen(true)] out TSymbol? value) where TSymbol : ISymbol
 	{
+		// Final fallback: check annotations for synthetic nodes created by optimizers
+		if (node is not null && node.TryGetMethodSymbolAnnotation(symbolStore, out var fallbackMethod) && fallbackMethod is TSymbol fallbackSymbol)
+		{
+			value = fallbackSymbol;
+			return true;
+		}
+
 		try
 		{
 			if (node is not null)
@@ -1394,12 +1400,6 @@ public static class CompilationExtensions
 
 		}
 
-		// Final fallback: check annotations for synthetic nodes created by optimizers
-		if (node is not null && node.TryGetMethodSymbolAnnotation(symbolStore, out var fallbackMethod) && fallbackMethod is TSymbol fallbackSymbol)
-		{
-			value = fallbackSymbol;
-			return true;
-		}
 
 		value = default;
 		return false;
@@ -1407,6 +1407,13 @@ public static class CompilationExtensions
 
 	public static bool TryGetDeclaredSymbol<TSymbol>(this SemanticModel semanticModel, SyntaxNode? node, ConcurrentDictionary<ulong, ISymbol> symbolStore, [NotNullWhen(true)] out TSymbol? value) where TSymbol : ISymbol
 	{
+		// Final fallback: check annotations for synthetic nodes created by optimizers
+		if (node is not null && node.TryGetMethodSymbolAnnotation(symbolStore, out var fallbackMethod) && fallbackMethod is TSymbol fallbackSymbol)
+		{
+			value = fallbackSymbol;
+			return true;
+		}
+
 		try
 		{
 			if (node is not null)
@@ -1444,19 +1451,19 @@ public static class CompilationExtensions
 
 		}
 
-		// Final fallback: check annotations for synthetic nodes created by optimizers
-		if (node is not null && node.TryGetMethodSymbolAnnotation(symbolStore, out var fallbackMethod) && fallbackMethod is TSymbol fallbackSymbol)
-		{
-			value = fallbackSymbol;
-			return true;
-		}
-
 		value = default;
 		return false;
 	}
 
 	public static bool TryGetTypeSymbol(this SemanticModel semanticModel, ExpressionSyntax? node, ConcurrentDictionary<ulong, ISymbol> symbolStore, [NotNullWhen(true)] out ITypeSymbol? typeSymbol)
 	{
+		// Final fallback: check annotations for synthetic nodes created by optimizers
+		if (node is not null && node.TryGetTypeSymbolAnnotation(symbolStore, out var fallbackType))
+		{
+			typeSymbol = fallbackType;
+			return true;
+		}
+
 		try
 		{
 			if (node is not null)
@@ -1515,13 +1522,6 @@ public static class CompilationExtensions
 			}
 		}
 
-		// Final fallback: check annotations for synthetic nodes created by optimizers
-		if (node is not null && node.TryGetTypeSymbolAnnotation(symbolStore, out var fallbackType))
-		{
-			typeSymbol = fallbackType;
-			return true;
-		}
-
 		typeSymbol = null;
 		return false;
 	}
@@ -1555,7 +1555,7 @@ public static class CompilationExtensions
 			.Replace('+', '_')
 			.Replace('/', '_');
 	}
-	
+
 	public static string GetDeterministicHashString(this int hash)
 	{
 		return Convert.ToBase64String(BitConverter.GetBytes(hash)).TrimEnd('=')

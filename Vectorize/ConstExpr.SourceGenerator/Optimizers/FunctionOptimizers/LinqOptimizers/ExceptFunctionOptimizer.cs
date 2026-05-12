@@ -122,7 +122,7 @@ public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 				       && TryGetLinqSource(whereInvocation, out var whereSource)
 				       && TryGetLambda(whereArg, out var whereLambda))
 				{
-					lambda = CombinePredicates(lambda, whereLambda);
+					lambda = CombinePredicates(lambda, whereLambda, context);
 
 					isFollowedBySetOperation = IsFollowedBySetBasedOperation(whereInvocation);
 					allowedOperations = isFollowedBySetOperation

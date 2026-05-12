@@ -4,6 +4,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
+using ConstExpr.SourceGenerator.Rewriters;
+using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -71,7 +73,7 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 					// Continue skipping operations before Where as well
 					TryGetOptimizedChainExpression(invocationSource, OperationsThatDontAffectAll, out source);
 
-					allLambda = CombinePredicates(context.Visit(allLambda) as LambdaExpressionSyntax ?? allLambda, context.Visit(wherePredicate) as LambdaExpressionSyntax ?? wherePredicate);
+					allLambda = CombinePredicates(context.Visit(allLambda) as LambdaExpressionSyntax ?? allLambda, context.Visit(wherePredicate) as LambdaExpressionSyntax ?? wherePredicate, context);
 					isNewSource = true;
 					break;
 				}
@@ -200,6 +202,11 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 		if (IsInvokedOnArray(context, source))
 		{
+			var lambda = context.Visit(allLambda) as LambdaExpressionSyntax ?? allLambda;
+			var analyzerResult = VectorizationEligibilityVisitor.Analyze(lambda, context.Model, context.SymbolStore);
+
+			var vectorizedCode = new VectorizerRewriter(context.Model, context.SymbolStore).Visit(lambda.Body);
+
 			result = CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.TrueForAll), source, context.Visit(allLambda) ?? allLambda);
 			return true;
 		}

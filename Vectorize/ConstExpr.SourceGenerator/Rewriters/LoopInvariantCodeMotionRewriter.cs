@@ -3,7 +3,6 @@ using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using SourceGen.Utilities.Extensions;
 
 namespace ConstExpr.SourceGenerator.Rewriters;
 
@@ -30,93 +29,120 @@ public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 		return rewriter.Visit(node)!;
 	}
 
-	// ── for ( ; ; ) { } ──────────────────────────────────────────────
+	// ── Block: inline hoisted declarations at the parent scope ──────
 
-	public override SyntaxNode? VisitForStatement(ForStatementSyntax node)
+	/// <summary>
+	///   Visits a block bottom-up.  For each direct child statement that is a loop,
+	///   invariant declarations are extracted and inserted immediately before the loop
+	///   in the same block, avoiding an extra nesting level.
+	/// </summary>
+	public override SyntaxNode? VisitBlock(BlockSyntax node)
 	{
-		// Visit children first (bottom-up) so inner loops are processed before outer ones.
-		node = (ForStatementSyntax)base.VisitForStatement(node)!;
+		// Process children first so inner loops are hoisted before outer ones.
+		node = (BlockSyntax) base.VisitBlock(node)!;
 
-		if (node.Statement is not BlockSyntax body)
+		var statements = node.Statements;
+		List<StatementSyntax>? result = null;
+
+		for (var i = 0; i < statements.Count; i++)
 		{
-			return node;
+			var stmt = statements[i];
+			var hoisted = TryHoistFromLoop(stmt, out var newLoop);
+
+			if (hoisted is { Count: > 0 })
+			{
+				if (result is null)
+				{
+					result = new List<StatementSyntax>(statements.Count + hoisted.Count);
+
+					for (var j = 0; j < i; j++)
+					{
+						result.Add(statements[j]);
+					}
+				}
+
+				result.AddRange(hoisted);
+				result.Add(newLoop!);
+			}
+			else
+			{
+				result?.Add(stmt);
+			}
 		}
 
-		var (hoisted, newBody) = HoistInvariants(body, CollectWrittenInLoop(body));
-
-		if (hoisted.Count == 0)
-		{
-			return node;
-		}
-
-		return WrapWithHoisted(node.WithStatement(newBody), hoisted);
+		return result is not null ? node.WithStatements(List(result)) : node;
 	}
 
-	// ── while ( ) { } ────────────────────────────────────────────────
-
-	public override SyntaxNode? VisitWhileStatement(WhileStatementSyntax node)
+	/// <summary>
+	///   If <paramref name="stmt" /> is a loop with hoistable invariants, returns the list of
+	///   hoisted declarations and sets <paramref name="newLoop" /> to the loop with the
+	///   invariants removed from its body.  Returns <see langword="null" /> otherwise.
+	/// </summary>
+	private List<LocalDeclarationStatementSyntax>? TryHoistFromLoop(
+		StatementSyntax stmt, out StatementSyntax? newLoop)
 	{
-		node = (WhileStatementSyntax)base.VisitWhileStatement(node)!;
+		newLoop = null;
 
-		if (node.Statement is not BlockSyntax body)
+		switch (stmt)
 		{
-			return node;
+			case ForStatementSyntax { Statement: BlockSyntax forBody } forStmt:
+			{
+				var (hoisted, newBody) = HoistInvariants(forBody, CollectWrittenInLoop(forBody));
+
+				if (hoisted.Count == 0)
+				{
+					return null;
+				}
+
+				newLoop = forStmt.WithStatement(newBody);
+				return hoisted;
+			}
+
+			case WhileStatementSyntax { Statement: BlockSyntax whileBody } whileStmt:
+			{
+				var (hoisted, newBody) = HoistInvariants(whileBody, CollectWrittenInLoop(whileBody));
+
+				if (hoisted.Count == 0)
+				{
+					return null;
+				}
+
+				newLoop = whileStmt.WithStatement(newBody);
+				return hoisted;
+			}
+
+			case DoStatementSyntax { Statement: BlockSyntax doBody } doStmt:
+			{
+				var (hoisted, newBody) = HoistInvariants(doBody, CollectWrittenInLoop(doBody));
+
+				if (hoisted.Count == 0)
+				{
+					return null;
+				}
+
+				newLoop = doStmt.WithStatement(newBody);
+				return hoisted;
+			}
+
+			case ForEachStatementSyntax { Statement: BlockSyntax foreachBody } foreachStmt:
+			{
+				// The loop variable itself is "written" on every iteration.
+				var written = CollectWrittenInLoop(foreachBody);
+				written.Add(foreachStmt.Identifier.Text);
+				var (hoisted, newBody) = HoistInvariants(foreachBody, written);
+
+				if (hoisted.Count == 0)
+				{
+					return null;
+				}
+
+				newLoop = foreachStmt.WithStatement(newBody);
+				return hoisted;
+			}
+
+			default:
+				return null;
 		}
-
-		var (hoisted, newBody) = HoistInvariants(body, CollectWrittenInLoop(body));
-
-		if (hoisted.Count == 0)
-		{
-			return node;
-		}
-
-		return WrapWithHoisted(node.WithStatement(newBody), hoisted);
-	}
-
-	// ── do { } while ( ); ────────────────────────────────────────────
-
-	public override SyntaxNode? VisitDoStatement(DoStatementSyntax node)
-	{
-		node = (DoStatementSyntax)base.VisitDoStatement(node)!;
-
-		if (node.Statement is not BlockSyntax body)
-		{
-			return node;
-		}
-
-		var (hoisted, newBody) = HoistInvariants(body, CollectWrittenInLoop(body));
-
-		if (hoisted.Count == 0)
-		{
-			return node;
-		}
-
-		return WrapWithHoisted(node.WithStatement(newBody), hoisted);
-	}
-
-	// ── foreach ( var x in collection ) { } ─────────────────────────
-
-	public override SyntaxNode? VisitForEachStatement(ForEachStatementSyntax node)
-	{
-		node = (ForEachStatementSyntax)base.VisitForEachStatement(node)!;
-
-		if (node.Statement is not BlockSyntax body)
-		{
-			return node;
-		}
-
-		// The loop variable itself is "written" on every iteration.
-		var written = CollectWrittenInLoop(body);
-		written.Add(node.Identifier.Text);
-
-		var (hoisted, newBody) = HoistInvariants(body, written);
-
-		if (hoisted.Count == 0)
-		{
-			return node;
-		}
-
-		return WrapWithHoisted(node.WithStatement(newBody), hoisted);
 	}
 
 	// ── Core helpers ──────────────────────────────────────────────────
@@ -140,19 +166,19 @@ public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 
 				// x++, x--
 				case PostfixUnaryExpressionSyntax
-				{
-					Operand: IdentifierNameSyntax pid
-				} pue when pue.IsKind(SyntaxKind.PostIncrementExpression)
-										 || pue.IsKind(SyntaxKind.PostDecrementExpression):
+					{
+						Operand: IdentifierNameSyntax pid
+					} pue when pue.IsKind(SyntaxKind.PostIncrementExpression)
+					           || pue.IsKind(SyntaxKind.PostDecrementExpression):
 					written.Add(pid.Identifier.Text);
 					break;
 
 				// ++x, --x
 				case PrefixUnaryExpressionSyntax
-				{
-					Operand: IdentifierNameSyntax preid
-				} prue when prue.IsKind(SyntaxKind.PreIncrementExpression)
-											|| prue.IsKind(SyntaxKind.PreDecrementExpression):
+					{
+						Operand: IdentifierNameSyntax preid
+					} prue when prue.IsKind(SyntaxKind.PreIncrementExpression)
+					            || prue.IsKind(SyntaxKind.PreDecrementExpression):
 					written.Add(preid.Identifier.Text);
 					break;
 			}
@@ -178,9 +204,9 @@ public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 				case MemberAccessExpressionSyntax:
 				case BinaryExpressionSyntax:
 				case PrefixUnaryExpressionSyntax pue when !pue.IsKind(SyntaxKind.PreIncrementExpression)
-																									&& !pue.IsKind(SyntaxKind.PreDecrementExpression):
+				                                          && !pue.IsKind(SyntaxKind.PreDecrementExpression):
 				case PostfixUnaryExpressionSyntax poue when !poue.IsKind(SyntaxKind.PostIncrementExpression)
-																										&& !poue.IsKind(SyntaxKind.PostDecrementExpression):
+				                                            && !poue.IsKind(SyntaxKind.PostDecrementExpression):
 				case CastExpressionSyntax:
 				case ParenthesizedExpressionSyntax:
 				case InvocationExpressionSyntax:
@@ -217,10 +243,10 @@ public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 		foreach (var stmt in body.Statements)
 		{
 			if (stmt is LocalDeclarationStatementSyntax
-				{
-					Declaration: { Variables: [{ Initializer.Value: { } initExpr } declarator] } decl
-				} local
-					&& !local.IsConst)
+			    {
+				    Declaration: { Variables: [ { Initializer.Value: { } initExpr } declarator ] } decl
+			    } local
+			    && !local.IsConst)
 			{
 				var varName = declarator.Identifier.Text;
 
@@ -233,7 +259,7 @@ public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 						.Select(id => id.Identifier.Text));
 
 				var referencesWritten = identifiersInInit.Overlaps(writtenInLoop)
-																|| identifiersInInit.Overlaps(alreadyHoisted);
+				                        || identifiersInInit.Overlaps(alreadyHoisted);
 
 				if (!referencesWritten && IsPureExpression(initExpr))
 				{
@@ -255,7 +281,7 @@ public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 					{
 						// Rename the declarator identifier.
 						var renamedDeclarator = declarator.WithIdentifier(Identifier(hoistedName));
-						var renamedDecl = decl.WithVariables(SeparatedList([renamedDeclarator]));
+						var renamedDecl = decl.WithVariables(SeparatedList([ renamedDeclarator ]));
 						hoistedDecl = local.WithDeclaration(renamedDecl);
 					}
 					else
@@ -291,19 +317,5 @@ public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 
 		var newBody = body.WithStatements(List(remaining));
 		return (hoisted, newBody);
-	}
-
-	/// <summary>
-	///   Wraps <paramref name="loop" /> with the hoisted declarations in a block.
-	///   If the loop's parent is already a block, the caller will take care of insertion;
-	///   here we return a single <see cref="BlockSyntax" /> that contains hoisted + loop.
-	/// </summary>
-	private static BlockSyntax WrapWithHoisted(StatementSyntax loop, List<LocalDeclarationStatementSyntax> hoisted)
-	{
-		var statements = new List<StatementSyntax>(hoisted.Count + 1);
-		statements.AddRange(hoisted);
-		statements.Add(loop);
-
-		return Block(List(statements));
 	}
 }

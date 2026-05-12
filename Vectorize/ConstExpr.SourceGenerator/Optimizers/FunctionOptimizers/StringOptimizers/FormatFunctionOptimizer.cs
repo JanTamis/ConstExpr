@@ -189,7 +189,7 @@ public class FormatFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionO
 				case '{' when pos + 1 < formatString.Length && formatString[pos + 1] == '{':
 				{
 					// Escaped open brace
-					contentBuilder.Append('{');
+					contentBuilder.Append("{{");
 					pos += 2;
 
 					continue;
@@ -289,7 +289,7 @@ public class FormatFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionO
 				}
 				case '}' when pos + 1 < formatString.Length && formatString[pos + 1] == '}':
 				{
-					contentBuilder.Append('}');
+					contentBuilder.Append("}}");
 					pos += 2;
 
 					continue;
@@ -312,7 +312,7 @@ public class FormatFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionO
 		}
 
 		var content = contentBuilder.ToString();
-		var exprTextFull = "\"" + content + "\"";
+		var exprTextFull = "$\"" + content + "\"";
 
 		try
 		{

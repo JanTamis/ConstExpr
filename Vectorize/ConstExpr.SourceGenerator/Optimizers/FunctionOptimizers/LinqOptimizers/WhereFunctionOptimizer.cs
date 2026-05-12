@@ -68,7 +68,7 @@ public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 			for (var i = wherePredicates.Count - 2; i >= 0; i--)
 			{
 				var currentPredicate = context.Visit(wherePredicates[i]) as LambdaExpressionSyntax ?? wherePredicates[i];
-				combinedPredicate = CombinePredicates(currentPredicate, combinedPredicate);
+				combinedPredicate = CombinePredicates(currentPredicate, combinedPredicate, context);
 			}
 
 			combinedPredicate = context.Visit(combinedPredicate) as LambdaExpressionSyntax ?? combinedPredicate;

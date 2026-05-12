@@ -18,23 +18,28 @@ public partial class ConstExprPartialRewriter
 	public override SyntaxNode? VisitSimpleLambdaExpression(SimpleLambdaExpressionSyntax node)
 	{
 		var addedParameters = AddLambdaParameters(node);
-		
-		SyntaxNode? result;
-		
+
 		if (node.Block is not null)
 		{
 			var block = Visit(node.Block);
-			result = node.WithBlock(block as BlockSyntax ?? node.Block);
+			node = node.WithBlock(block as BlockSyntax ?? node.Block);
 		}
 		else
 		{
 			var body = Visit(node.Body);
-			result = node.WithBody(body as CSharpSyntaxNode ?? node.Body);
+			node = node.WithBody(body as CSharpSyntaxNode ?? node.Body);
 		}
 
 		RemoveLambdaParameters(addedParameters);
 
-		return result;
+		if (semanticModel.TryGetMethodSymbol(node, symbolStore, out var method))
+		{
+			return node
+				.WithParameter(node.Parameter.WithTypeSymbolAnnotation(method.Parameters[0].Type, symbolStore))
+				.WithMethodSymbolAnnotation(method, symbolStore);
+		}
+
+		return node;
 	}
 
 	public override SyntaxNode? VisitParenthesizedLambdaExpression(ParenthesizedLambdaExpressionSyntax node)
@@ -56,7 +61,9 @@ public partial class ConstExprPartialRewriter
 
 		RemoveLambdaParameters(addedParameters);
 
-		return result;
+		return semanticModel.TryGetMethodSymbol(node, symbolStore, out var method)
+			? result.WithMethodSymbolAnnotation(method, symbolStore)
+			: result;
 	}
 
 	/// <summary>
@@ -110,12 +117,12 @@ public partial class ConstExprPartialRewriter
 			var paramNames = lambda switch
 			{
 				SimpleLambdaExpressionSyntax simple =>
-					[simple.Parameter.Identifier.Text],
+					[ simple.Parameter.Identifier.Text ],
 				ParenthesizedLambdaExpressionSyntax parenthesized =>
 					parenthesized.ParameterList.Parameters
 						.Select(p => p.Identifier.Text)
 						.ToArray(),
-				_ => []
+				_ => [ ]
 			};
 
 			if (paramNames.Length != arguments.Count)
@@ -147,7 +154,7 @@ public partial class ConstExprPartialRewriter
 				var visitedBlock = subRewriter.Visit(lambda.Block) as BlockSyntax ?? lambda.Block;
 				var pruned = DeadCodePruner.Prune(visitedBlock, subParams, semanticModel) as BlockSyntax;
 
-				if (pruned?.Statements is [ReturnStatementSyntax { Expression: { } returnExpr }])
+				if (pruned?.Statements is [ ReturnStatementSyntax { Expression: { } returnExpr } ])
 				{
 					if (TryGetLiteralValue(returnExpr, out var retVal) && TryCreateLiteral(retVal, out var retLiteral))
 					{
@@ -171,7 +178,7 @@ public partial class ConstExprPartialRewriter
 			return null;
 		}
 	}
-	
+
 	private SyntaxNode? TryEvaluateLambdaVariableWithArguments(
 		LambdaExpressionSyntax lambda,
 		List<object> constantArguments,
@@ -183,12 +190,12 @@ public partial class ConstExprPartialRewriter
 			var paramNames = lambda switch
 			{
 				SimpleLambdaExpressionSyntax simple =>
-					[simple.Parameter.Identifier.Text],
+					[ simple.Parameter.Identifier.Text ],
 				ParenthesizedLambdaExpressionSyntax parenthesized =>
 					parenthesized.ParameterList.Parameters
 						.Select(p => p.Identifier.Text)
 						.ToArray(),
-				_ => []
+				_ => [ ]
 			};
 
 			if (paramNames.Length != constantArguments.Count)
@@ -223,7 +230,7 @@ public partial class ConstExprPartialRewriter
 				var visitedBlock = subRewriter.Visit(lambda.Block) as BlockSyntax ?? lambda.Block;
 				var pruned = DeadCodePruner.Prune(visitedBlock, subParams, semanticModel) as BlockSyntax;
 
-				if (pruned?.Statements is [ReturnStatementSyntax { Expression: { } returnExpr }])
+				if (pruned?.Statements is [ ReturnStatementSyntax { Expression: { } returnExpr } ])
 				{
 					if (TryGetLiteralValue(returnExpr, out var retVal) && TryCreateLiteral(retVal, out var retLiteral))
 					{
@@ -248,4 +255,3 @@ public partial class ConstExprPartialRewriter
 		}
 	}
 }
-

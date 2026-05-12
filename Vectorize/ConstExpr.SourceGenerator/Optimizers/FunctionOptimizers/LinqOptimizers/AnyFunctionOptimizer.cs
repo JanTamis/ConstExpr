@@ -4,6 +4,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
+using ConstExpr.SourceGenerator.Rewriters;
+using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -63,7 +65,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 					if (context.VisitedParameters.Count == 1 && TryGetLambda(context.VisitedParameters[0], out var anyPredicate))
 					{
-						predicate = CombinePredicates(predicate, anyPredicate);
+						predicate = CombinePredicates(predicate, anyPredicate, context);
 					}
 
 					if (IsSimpleEqualityLambda(predicate, out var equalityValue))
@@ -80,6 +82,10 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 					if (IsInvokedOnArray(context, invocationSource))
 					{
+						var analyzerResult = VectorizationEligibilityVisitor.Analyze(predicate, context.Model, context.SymbolStore);
+
+						var vectorizedCode = new VectorizerRewriter(context.Model, context.SymbolStore).Visit(predicate.Body);
+
 						result = CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.Exists), context.Visit(invocationSource) ?? invocationSource, predicate);
 						return true;
 					}

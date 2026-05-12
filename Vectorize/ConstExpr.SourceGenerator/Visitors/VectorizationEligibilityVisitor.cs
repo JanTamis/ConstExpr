@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading;
 using ConstExpr.SourceGenerator.Enums;
+using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -58,20 +60,64 @@ public sealed class VectorizationEligibilityVisitor : CSharpSyntaxWalker
 	private static readonly ImmutableHashSet<string> VectorizableMathMethods =
 		ImmutableHashSet.Create(
 			StringComparer.Ordinal,
+			// System.Math
 			"System.Math.Abs",
 			"System.Math.Min",
 			"System.Math.Max",
+			"System.Math.Clamp",
 			"System.Math.Sqrt",
 			"System.Math.Floor",
 			"System.Math.Ceiling",
 			"System.Math.Round",
+			"System.Math.Truncate",
+			"System.Math.Exp",
+			"System.Math.Log",
+			"System.Math.Log2",
+			"System.Math.Log10",
+			"System.Math.Pow",
+			"System.Math.Sin",
+			"System.Math.Cos",
+			"System.Math.Tan",
+			"System.Math.Sinh",
+			"System.Math.Cosh",
+			"System.Math.Tanh",
+			"System.Math.Asin",
+			"System.Math.Acos",
+			"System.Math.Atan",
+			"System.Math.Atan2",
+			"System.Math.SinCos",
+			"System.Math.CopySign",
+			"System.Math.FusedMultiplyAdd",
+			"System.Math.Lerp",
+			// System.MathF
 			"System.MathF.Abs",
 			"System.MathF.Min",
 			"System.MathF.Max",
+			"System.MathF.Clamp",
 			"System.MathF.Sqrt",
 			"System.MathF.Floor",
 			"System.MathF.Ceiling",
-			"System.MathF.Round"
+			"System.MathF.Round",
+			"System.MathF.Truncate",
+			"System.MathF.Exp",
+			"System.MathF.Log",
+			"System.MathF.Log2",
+			"System.MathF.Log10",
+			"System.MathF.Pow",
+			"System.MathF.Sin",
+			"System.MathF.Cos",
+			"System.MathF.Tan",
+			"System.MathF.Sinh",
+			"System.MathF.Cosh",
+			"System.MathF.Tanh",
+			"System.MathF.Asin",
+			"System.MathF.Acos",
+			"System.MathF.Atan",
+			"System.MathF.Atan2",
+			"System.MathF.SinCos",
+			"System.MathF.CopySign",
+			"System.MathF.FusedMultiplyAdd",
+			"System.MathF.Lerp"
 		);
 
 	// -------------------------------------------------------------------------
@@ -80,6 +126,8 @@ public sealed class VectorizationEligibilityVisitor : CSharpSyntaxWalker
 
 	private readonly SemanticModel _model;
 	private readonly CancellationToken _ct;
+	private readonly ConcurrentDictionary<ulong, ISymbol> _symbolStore;
+
 	private readonly List<string> _reasons = [ ];
 
 	// The set of loop variable names that act as a simple counter (for int i = 0; i < n; i++)
@@ -98,10 +146,10 @@ public sealed class VectorizationEligibilityVisitor : CSharpSyntaxWalker
 	// Public API
 	// -------------------------------------------------------------------------
 
-	private VectorizationEligibilityVisitor(SemanticModel model, CancellationToken ct)
-		: base()
+	private VectorizationEligibilityVisitor(SemanticModel model, ConcurrentDictionary<ulong, ISymbol> symbolStore, CancellationToken ct)
 	{
 		_model = model;
+		_symbolStore = symbolStore;
 		_ct = ct;
 	}
 
@@ -109,9 +157,9 @@ public sealed class VectorizationEligibilityVisitor : CSharpSyntaxWalker
 	///   Analyzes the given <paramref name="node" /> and returns a
 	///   <see cref="VectorizationResult" /> describing whether vectorization is applicable.
 	/// </summary>
-	public static VectorizationResult Analyze(SyntaxNode node, SemanticModel model, CancellationToken ct = default)
+	public static VectorizationResult Analyze(SyntaxNode node, SemanticModel model, ConcurrentDictionary<ulong, ISymbol> symbolStore, CancellationToken ct = default)
 	{
-		var visitor = new VectorizationEligibilityVisitor(model, ct);
+		var visitor = new VectorizationEligibilityVisitor(model, symbolStore, ct);
 		visitor.Visit(node);
 		return visitor.BuildResult();
 	}
@@ -142,7 +190,7 @@ public sealed class VectorizationEligibilityVisitor : CSharpSyntaxWalker
 		_insideVectorizableLoop = true;
 
 		// Analyze the body
-		var bodyAnalyzer = new LoopBodyAnalyzer(_model, _loopCounterNames.ToImmutableHashSet(), VectorizableMathMethods, _ct);
+		var bodyAnalyzer = new LoopBodyAnalyzer(_model, _loopCounterNames.ToImmutableHashSet(), VectorizableMathMethods, _symbolStore, _ct);
 		bodyAnalyzer.Visit(node.Statement);
 
 		if (bodyAnalyzer.IsVectorizable)
@@ -176,17 +224,14 @@ public sealed class VectorizationEligibilityVisitor : CSharpSyntaxWalker
 		// A foreach loop can be vectorized only when the source collection type
 		// is a numeric array or Span<T> with a vectorizable element type.
 		// We walk the body with a conservative analyzer that disallows index arithmetic.
-		var collectionType = _model.GetTypeInfo(node.Expression, _ct).Type;
-		var elementType = GetCollectionElementType(collectionType);
-
-		if (elementType == SpecialType.None)
+		if (!_model.TryGetTypeSymbol(node.Expression, _symbolStore, out var collectionType) || !TryGetCollectionElementType(collectionType, out var elementType))
 		{
 			_reasons.Add($"foreach loop at line {node.GetLocation().GetLineSpan().StartLinePosition.Line + 1}: collection element type is not a supported numeric type.");
 			base.VisitForEachStatement(node);
 			return;
 		}
 
-		var bodyAnalyzer = new LoopBodyAnalyzer(_model, _loopCounterNames.ToImmutableHashSet(), VectorizableMathMethods, _ct, node.Identifier.Text);
+		var bodyAnalyzer = new LoopBodyAnalyzer(_model, _loopCounterNames.ToImmutableHashSet(), VectorizableMathMethods, _symbolStore, _ct, node.Identifier.Text);
 		bodyAnalyzer.Visit(node.Statement);
 
 		if (bodyAnalyzer.IsVectorizable)
@@ -217,15 +262,15 @@ public sealed class VectorizationEligibilityVisitor : CSharpSyntaxWalker
 
 	private VectorizationResult BuildResult()
 	{
-		if (!_foundVectorizableLoop)
-		{
-			if (_reasons.Count == 0)
-			{
-				_reasons.Add("No vectorizable loop pattern was found in the analyzed code.");
-			}
-
-			return new VectorizationResult(false, VectorTypes.None, _reasons);
-		}
+		// if (!_foundVectorizableLoop)
+		// {
+		// 	if (_reasons.Count == 0)
+		// 	{
+		// 		_reasons.Add("No vectorizable loop pattern was found in the analyzed code.");
+		// 	}
+		//
+		// 	return new VectorizationResult(false, VectorTypes.None, _reasons);
+		// }
 
 		var vectorType = SelectVectorType(_elementType);
 		return new VectorizationResult(true, vectorType, _reasons);
@@ -302,34 +347,43 @@ public sealed class VectorizationEligibilityVisitor : CSharpSyntaxWalker
 	///   array or Span-like collection, or <see cref="SpecialType.None" /> when the
 	///   type is not supported.
 	/// </summary>
-	private static SpecialType GetCollectionElementType(ITypeSymbol? collectionType)
+	private static bool TryGetCollectionElementType(ITypeSymbol? collectionType, out SpecialType elementType)
 	{
 		if (collectionType is null)
 		{
-			return SpecialType.None;
+			elementType = SpecialType.None;
+			return false;
 		}
 
 		// T[]
 		if (collectionType is IArrayTypeSymbol arrayType)
 		{
-			return VectorizableElementTypes.Contains(arrayType.ElementType.SpecialType)
-				? arrayType.ElementType.SpecialType
-				: SpecialType.None;
+			if (VectorizableElementTypes.Contains(arrayType.ElementType.SpecialType))
+			{
+				elementType = arrayType.ElementType.SpecialType;
+				return true;
+			}
+
+			elementType = SpecialType.None;
+			return false;
 		}
 
 		// Span<T> / ReadOnlySpan<T> / Memory<T> / ReadOnlyMemory<T>
-		if (collectionType is INamedTypeSymbol namedType && namedType.IsGenericType)
+		if (collectionType is INamedTypeSymbol { IsGenericType: true } namedType)
 		{
 			var metadataName = $"{namedType.ContainingNamespace}.{namedType.MetadataName}";
 
 			if (SpanTypeNames.Contains(metadataName) && namedType.TypeArguments.Length == 1)
 			{
 				var elementSpecial = namedType.TypeArguments[0].SpecialType;
-				return VectorizableElementTypes.Contains(elementSpecial) ? elementSpecial : SpecialType.None;
+				elementType = VectorizableElementTypes.Contains(elementSpecial) ? elementSpecial : SpecialType.None;
+
+				return elementType != SpecialType.None;
 			}
 		}
 
-		return SpecialType.None;
+		elementType = SpecialType.None;
+		return false;
 	}
 
 	/// <summary>
@@ -376,6 +430,7 @@ public sealed class VectorizationEligibilityVisitor : CSharpSyntaxWalker
 		SemanticModel model,
 		ImmutableHashSet<string> counterNames,
 		ImmutableHashSet<string> vectorizableMathMethods,
+		ConcurrentDictionary<ulong, ISymbol> symbolStore,
 		CancellationToken ct,
 		string? foreachElementName = null) : CSharpSyntaxWalker
 	{
@@ -407,10 +462,7 @@ public sealed class VectorizationEligibilityVisitor : CSharpSyntaxWalker
 
 		public override void VisitElementAccessExpression(ElementAccessExpressionSyntax node)
 		{
-			var type = model.GetTypeInfo(node.Expression, _ct).Type;
-			var elementType = GetElementType(type);
-
-			if (elementType == SpecialType.None)
+			if (!model.TryGetTypeSymbol(node.Expression, symbolStore, out var collectionType) || !TryGetElementType(collectionType, out var elementType))
 			{
 				_reasons.Add($"Element access at line {node.GetLocation().GetLineSpan().StartLinePosition.Line + 1} is on a non-numeric or unsupported collection type.");
 				_hadViolation = true;
@@ -483,9 +535,7 @@ public sealed class VectorizationEligibilityVisitor : CSharpSyntaxWalker
 
 		public override void VisitInvocationExpression(InvocationExpressionSyntax node)
 		{
-			var symbol = model.GetSymbolInfo(node, _ct).Symbol as IMethodSymbol;
-
-			if (symbol is null)
+			if (!model.TryGetMethodSymbol(node, symbolStore, out var symbol))
 			{
 				_reasons.Add($"Unresolved method call at line {node.GetLocation().GetLineSpan().StartLinePosition.Line + 1}.");
 				_hadViolation = true;
@@ -542,13 +592,14 @@ public sealed class VectorizationEligibilityVisitor : CSharpSyntaxWalker
 		///   Returns the element <see cref="SpecialType" /> for arrays and Span-like types,
 		///   or <see cref="SpecialType.None" /> for unsupported types.
 		/// </summary>
-		private SpecialType GetElementType(ITypeSymbol? type)
+		private bool TryGetElementType(ITypeSymbol? type, out SpecialType elementType)
 		{
 			if (type is IArrayTypeSymbol arrayType)
 			{
-				return VectorizableElementTypes.Contains(arrayType.ElementType.SpecialType)
+				elementType = VectorizableElementTypes.Contains(arrayType.ElementType.SpecialType)
 					? arrayType.ElementType.SpecialType
 					: SpecialType.None;
+				return elementType != SpecialType.None;
 			}
 
 			if (type is INamedTypeSymbol { IsGenericType: true } namedType)
@@ -558,11 +609,14 @@ public sealed class VectorizationEligibilityVisitor : CSharpSyntaxWalker
 				if (SpanTypeNames.Contains(metadataName) && namedType.TypeArguments.Length == 1)
 				{
 					var elementSpecial = namedType.TypeArguments[0].SpecialType;
-					return VectorizableElementTypes.Contains(elementSpecial) ? elementSpecial : SpecialType.None;
+					elementType = VectorizableElementTypes.Contains(elementSpecial) ? elementSpecial : SpecialType.None;
+
+					return elementType != SpecialType.None;
 				}
 			}
 
-			return SpecialType.None;
+			elementType = SpecialType.None;
+			return false;
 		}
 
 		/// <summary>

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Optimizers.ConditionalOptimizers;
@@ -53,6 +52,11 @@ public partial class ConstExprPartialRewriter
 				    && ConvertStringToRawStringRefactoring.TryConvertToRawString(literalExpr, out var rawExpr))
 				{
 					return rawExpr;
+				}
+
+				if (semanticModel.TryGetTypeSymbol(node, symbolStore, out var typeSymbol))
+				{
+					return expression.WithTypeSymbolAnnotation(typeSymbol, symbolStore);
 				}
 
 				return expression;

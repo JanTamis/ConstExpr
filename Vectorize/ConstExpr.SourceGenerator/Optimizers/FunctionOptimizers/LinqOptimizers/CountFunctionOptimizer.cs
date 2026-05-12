@@ -127,13 +127,13 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 			for (var i = wherePredicates.Count - 2; i >= 0; i--)
 			{
 				var currentPredicate = context.Visit(wherePredicates[i]) as LambdaExpressionSyntax ?? wherePredicates[i];
-				combinedPredicate = CombinePredicates(currentPredicate, combinedPredicate);
+				combinedPredicate = CombinePredicates(currentPredicate, combinedPredicate, context);
 			}
 
 			// If Count() has a predicate parameter, combine it as well
 			if (context.VisitedParameters is [ LambdaExpressionSyntax lambda ])
 			{
-				combinedPredicate = CombinePredicates(context.Visit(lambda) as LambdaExpressionSyntax ?? lambda, combinedPredicate);
+				combinedPredicate = CombinePredicates(context.Visit(lambda) as LambdaExpressionSyntax ?? lambda, combinedPredicate, context);
 			}
 
 			combinedPredicate = context.Visit(combinedPredicate) as LambdaExpressionSyntax ?? combinedPredicate;

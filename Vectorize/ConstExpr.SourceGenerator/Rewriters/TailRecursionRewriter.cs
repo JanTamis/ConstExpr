@@ -81,7 +81,16 @@ public sealed class TailRecursionRewriter
 			return body;
 		}
 
-		var loopBody = Block(List(newStatements));
+		// Flatten any top-level single-statement blocks introduced by ternary rewriting.
+		var flatStatements = FlattenTopLevel(newStatements);
+
+		// A trailing `continue` at the very end of a while(true) body is always redundant.
+		while (flatStatements.Count > 0 && flatStatements[^1] is ContinueStatementSyntax)
+		{
+			flatStatements.RemoveAt(flatStatements.Count - 1);
+		}
+
+		var loopBody = Block(List(flatStatements));
 		var whileLoop = WhileStatement(CreateLiteral(true), loopBody);
 
 		return Block(SingletonList<StatementSyntax>(whileLoop));
@@ -240,6 +249,29 @@ public sealed class TailRecursionRewriter
 	// ── Rewriting helpers ────────────────────────────────────────────
 
 	/// <summary>
+	///   Flattens one level of top-level <see cref="BlockSyntax" /> wrappers introduced by
+	///   ternary rewriting so the resulting statements live directly in the while-loop body.
+	/// </summary>
+	private static List<StatementSyntax> FlattenTopLevel(List<StatementSyntax> statements)
+	{
+		var result = new List<StatementSyntax>(statements.Count);
+
+		foreach (var stmt in statements)
+		{
+			if (stmt is BlockSyntax block)
+			{
+				result.AddRange(block.Statements);
+			}
+			else
+			{
+				result.Add(stmt);
+			}
+		}
+
+		return result;
+	}
+
+	/// <summary>
 	///   Rewrites a list of statements, replacing tail-recursive return statements with
 	///   parameter-reassignment blocks followed by <c>continue</c>.
 	///   Returns <see langword="null" /> when the transformation cannot be applied.
@@ -277,7 +309,7 @@ public sealed class TailRecursionRewriter
 	{
 		// return MethodName(args); → assignments + continue
 		if (stmt is ReturnStatementSyntax { Expression: InvocationExpressionSyntax inv }
-				&& IsCallToMethod(inv, methodName))
+		    && IsCallToMethod(inv, methodName))
 		{
 			var assignments = BuildParameterAssignments(inv.ArgumentList.Arguments, paramNames);
 
@@ -298,7 +330,7 @@ public sealed class TailRecursionRewriter
 
 			if (ternaryRewritten is not null)
 			{
-				return [ternaryRewritten];
+				return [ ternaryRewritten ];
 			}
 		}
 
@@ -306,7 +338,7 @@ public sealed class TailRecursionRewriter
 		if (stmt is IfStatementSyntax ifStmt)
 		{
 			var rewrittenIf = RewriteIfStatement(ifStmt, methodName, paramNames);
-			return rewrittenIf is null ? null : [rewrittenIf];
+			return rewrittenIf is null ? null : [ rewrittenIf ];
 		}
 
 		// Block — recurse
@@ -319,11 +351,11 @@ public sealed class TailRecursionRewriter
 				return null;
 			}
 
-			return [Block(List(inner))];
+			return [ Block(List(inner)) ];
 		}
 
 		// Non-recursive statement — keep as-is.
-		return [stmt];
+		return [ stmt ];
 	}
 
 	private static IfStatementSyntax? RewriteIfStatement(
@@ -519,7 +551,7 @@ public sealed class TailRecursionRewriter
 			for (var i = 0; i < paramNames.Count; i++)
 			{
 				result.Add(ExpressionStatement(
-					AssignmentExpression(IdentifierName(paramNames[i]),	args[i].Expression)));
+					AssignmentExpression(IdentifierName(paramNames[i]), args[i].Expression)));
 			}
 		}
 

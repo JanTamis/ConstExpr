@@ -10,7 +10,7 @@ public class StringFormatTest() : BaseTest<Func<string, string>>(FastMathFlags.F
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return $\"Hello {name}\""),
+		Create("return $\"Hello {name}\";"),
 		Create("return \"Hello World\";", "World"),
 	];
 }

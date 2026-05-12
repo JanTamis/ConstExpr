@@ -111,7 +111,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	/// <summary>
 	/// Attempts to extract the source expression from a LINQ method chain.
 	/// </summary>
-	protected bool TryGetLinqSource(InvocationExpressionSyntax invocation, [NotNullWhen(true), NotNullIfNotNull(nameof(invocation))]  out ExpressionSyntax? source)
+	protected bool TryGetLinqSource(InvocationExpressionSyntax invocation, [NotNullWhen(true), NotNullIfNotNull(nameof(invocation))] out ExpressionSyntax? source)
 	{
 		source = invocation;
 
@@ -681,7 +681,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 								ParseTypeName(elementType.ToString()))))));
 	}
 
-	protected bool TryGetOptimizedChainExpression(ExpressionSyntax source, ISet<string> methodsToSkip, [NotNullWhen(true), NotNullIfNotNull(nameof(source))]  out ExpressionSyntax? optimizedSource)
+	protected bool TryGetOptimizedChainExpression(ExpressionSyntax source, ISet<string> methodsToSkip, [NotNullWhen(true), NotNullIfNotNull(nameof(source))] out ExpressionSyntax? optimizedSource)
 	{
 		optimizedSource = source;
 
@@ -772,7 +772,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 		       && SymbolEqualityComparer.Default.Equals(type.TypeArguments[0], elementType);
 	}
 
-	protected LambdaExpressionSyntax CombinePredicates(LambdaExpressionSyntax outer, LambdaExpressionSyntax inner)
+	protected LambdaExpressionSyntax CombinePredicates(LambdaExpressionSyntax outer, LambdaExpressionSyntax inner, FunctionOptimizerContext context)
 	{
 		// Get parameter names from both lambdas
 		var innerParam = GetLambdaParameter(inner);
@@ -800,9 +800,22 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 			combinedBody = LogicalAndExpression(ParenthesizedExpression(innerBody), ParenthesizedExpression(renamedOuterBody));
 		}
 
+		if (context.Model.TryGetMethodSymbol(inner, context.SymbolStore, out var methodSymbol)
+		    || context.Model.TryGetMethodSymbol(outer, context.SymbolStore, out methodSymbol))
+		{
+			var parameterType = methodSymbol.Parameters.Length > 0 ? methodSymbol.Parameters[0].Type : null;
+			return SimpleLambdaExpression(
+				Parameter(Identifier(innerParam)).WithTypeSymbolAnnotation(parameterType, context.SymbolStore),
+				combinedBody
+			).WithMethodSymbolAnnotation(methodSymbol, context.SymbolStore);
+		}
+
+		// Fallback: try to derive the element type from the LINQ method's type arguments
+		var elementTypeFromMethod = context.Method.TypeArguments.Length > 0 ? context.Method.TypeArguments[0] : null;
+
 		// Create a new lambda with the inner parameter and the combined body
 		return SimpleLambdaExpression(
-			Parameter(Identifier(innerParam)),
+			Parameter(Identifier(innerParam)).WithTypeSymbolAnnotation(elementTypeFromMethod, context.SymbolStore),
 			combinedBody
 		);
 	}
