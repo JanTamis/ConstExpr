@@ -13,7 +13,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
-using SourceGen.Utilities.Extensions;
 
 namespace ConstExpr.SourceGenerator.Helpers;
 
@@ -110,85 +109,86 @@ public static class SyntaxHelpers
 				result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(bb));
 				return true;
 			}
-		case int i and < 0 when i != int.MinValue:
-		{
-			result = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
-				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(-i)));
-			return true;
-		}
-		case int i:
-		{
-			result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(i));
-			return true;
-		}
-		case uint ui:
-		{
-			result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(ui));
-			return true;
-		}
-		case float f and < 0:
-		{
-			result = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
-				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal($"{(-f).ToString(CultureInfo.InvariantCulture)}F", -f)));
-			return true;
-		}
-		case float f:
-		{
-			result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal($"{f.ToString(CultureInfo.InvariantCulture)}F", f));
-			return true;
-		}
-		case double d and < 0:
-		{
-			var absD = -d;
-			if (Math.Abs(absD - Math.Round(absD)) < Double.Epsilon)
+			case int i and < 0 when i != Int32.MinValue:
 			{
 				result = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
-					LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal($"{absD.ToString(CultureInfo.InvariantCulture)}D", absD)));
+					LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(-i)));
 				return true;
 			}
-
-			result = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
-				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(absD)));
-			return true;
-		}
-		case double d:
-		{
-			if (Math.Abs(d - Math.Round(d)) < Double.Epsilon)
+			case int i:
 			{
-				result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal($"{d.ToString(CultureInfo.InvariantCulture)}D", d));
+				result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(i));
 				return true;
 			}
+			case uint ui:
+			{
+				result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(ui));
+				return true;
+			}
+			case float f and < 0:
+			{
+				result = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
+					LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal($"{(-f).ToString(CultureInfo.InvariantCulture)}F", -f)));
+				return true;
+			}
+			case float f:
+			{
+				result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal($"{f.ToString(CultureInfo.InvariantCulture)}F", f));
+				return true;
+			}
+			case double d and < 0:
+			{
+				var absD = -d;
 
-			result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(d));
-			return true;
-		}
-		case long l and < 0 when l != long.MinValue:
-		{
-			result = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
-				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(-l)));
-			return true;
-		}
-		case long l:
-		{
-			result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(l));
-			return true;
-		}
-		case ulong ul:
-		{
-			result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(ul));
-			return true;
-		}
-		case decimal dec and < 0:
-		{
-			result = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
-				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(-dec)));
-			return true;
-		}
-		case decimal dec:
-		{
-			result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(dec));
-			return true;
-		}
+				if (Math.Abs(absD - Math.Round(absD)) < Double.Epsilon)
+				{
+					result = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
+						LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal($"{absD.ToString(CultureInfo.InvariantCulture)}D", absD)));
+					return true;
+				}
+
+				result = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
+					LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(absD)));
+				return true;
+			}
+			case double d:
+			{
+				if (Math.Abs(d - Math.Round(d)) < Double.Epsilon)
+				{
+					result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal($"{d.ToString(CultureInfo.InvariantCulture)}D", d));
+					return true;
+				}
+
+				result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(d));
+				return true;
+			}
+			case long l and < 0 when l != Int64.MinValue:
+			{
+				result = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
+					LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(-l)));
+				return true;
+			}
+			case long l:
+			{
+				result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(l));
+				return true;
+			}
+			case ulong ul:
+			{
+				result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(ul));
+				return true;
+			}
+			case decimal dec and < 0:
+			{
+				result = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
+					LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(-dec)));
+				return true;
+			}
+			case decimal dec:
+			{
+				result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(dec));
+				return true;
+			}
 			case string s1:
 			{
 				result = LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(s1));
@@ -396,7 +396,7 @@ public static class SyntaxHelpers
 		{
 			var keyProperty = valueType.GetProperty("Key");
 			var valueProperty = valueType.GetProperty("Value");
-			
+
 			if (!TryCreateLiteral(keyProperty.GetValue(value), out var keyExpr)
 			    || !TryCreateLiteral(valueProperty.GetValue(value), out var valueExpr))
 			{

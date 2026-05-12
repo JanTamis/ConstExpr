@@ -13,6 +13,7 @@ using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.RegexOptimizers;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.SimdOptimizers;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Rewriters;
@@ -78,6 +79,12 @@ public partial class ConstExprPartialRewriter(
 		if (!variables.TryGetValue(node.Identifier.Text, out var variable))
 		{
 			return node;
+		}
+
+		if (ShouldPreserveIdentifier(node))
+		{
+			variable.IsAltered = true;
+			return node.WithTypeSymbolAnnotation(variable.Type, symbolStore);
 		}
 
 		if (variable is { CanBeInlined: true, Value: ExpressionSyntax expr })
@@ -157,6 +164,35 @@ public partial class ConstExprPartialRewriter(
 			LiteralExpressionSyntax when node.Expression is PostfixUnaryExpressionSyntax or PrefixUnaryExpressionSyntax => node,
 			ExpressionSyntax expr => node.WithExpression(expr),
 			_ => result
+		};
+	}
+
+	private static bool ShouldPreserveIdentifier(IdentifierNameSyntax node)
+	{
+		return node.Parent switch
+		{
+			ElementAccessExpressionSyntax { Expression: var expression } elementAccess when expression == node => IsWritableStorageAccess(elementAccess),
+			MemberAccessExpressionSyntax { Expression: var expression } memberAccess when expression == node => IsWritableStorageAccess(memberAccess),
+			_ => false
+		};
+	}
+
+	private static bool IsWritableStorageAccess(ExpressionSyntax access)
+	{
+		SyntaxNode current = access;
+
+		while (current.Parent is ParenthesizedExpressionSyntax parenthesized)
+		{
+			current = parenthesized;
+		}
+
+		return current.Parent switch
+		{
+			AssignmentExpressionSyntax assignment when assignment.Left == current => true,
+			PrefixUnaryExpressionSyntax prefix when prefix.IsKind(SyntaxKind.PreIncrementExpression) || prefix.IsKind(SyntaxKind.PreDecrementExpression) => true,
+			PostfixUnaryExpressionSyntax postfix when postfix.IsKind(SyntaxKind.PostIncrementExpression) || postfix.IsKind(SyntaxKind.PostDecrementExpression) => true,
+			ArgumentSyntax { RefKindKeyword.RawKind: not 0 } => true,
+			_ => false
 		};
 	}
 
