@@ -149,7 +149,6 @@ public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", n => 
 		return """
 			private static double FastTanPi(double x)
 			{
-				// Range reduce to [-0.5, 0.5] — TanPi period is 1
 				if (Double.IsNaN(x)) return Double.NaN;
 				x -= Double.Round(x);
 				
@@ -161,7 +160,6 @@ public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", n => 
 				var xf   = swap ? 0.5 - x : x;
 				var u2   = xf * xf;
 				
-				// Absorbed-pi [2/3] Pade: tanPi(xf) = xf*(C1 + C3*xf^2 + C5*xf^4) / (1 + D2*xf^2 + D4*xf^4 + D6*xf^6)
 				const double C1 =  3.14159265358979324;   //  pi
 				const double C3 = -3.75833657307876;       // -4*pi^3/33
 				const double C5 =  0.61822157532380;       //  pi^5/495

@@ -148,24 +148,17 @@ public class TanFunctionOptimizer() : BaseMathFunctionOptimizer("Tan", n => n is
 		return """
 			private static double FastTan(double x)
 			{
-				// Fast tan approximation — rational P/Q on (−π/2, π/2) with cotangent
-				// identity for inputs near the asymptote (|x| > 1.4).
-				// No Double.Tan() fallback: the cotangent reciprocal uses the same polynomial.
-				// Benchmarked at ~1.1 ns vs Math.Tan at ~2.86 ns on ARM64 M4 Pro (−62%).
 				if (Double.IsNaN(x)) return Double.NaN;
 				
 				const double InvPi  = 1.0 / Double.Pi;
 				const double HalfPi = Double.Pi * 0.5;
 				
-				// Range reduce to (−π/2, π/2) — tan's period is π
 				var quotient = Double.Round(x * InvPi);
 				var xReduced = Double.FusedMultiplyAdd(-quotient, Double.Pi, x);
 				
 				var absX          = Double.Abs(xReduced);
 				var nearAsymptote = absX > 1.4;
 				
-				// For |x| > 1.4: fold via tan(|x|) = 1/tan(π/2 − |x|).
-				// π/2 − |x| ∈ (0, 0.17] is well inside the polynomial's reliable domain.
 				var arg = nearAsymptote ? HalfPi - absX : xReduced;
 				
 				var x2 = arg * arg;
@@ -185,7 +178,6 @@ public class TanFunctionOptimizer() : BaseMathFunctionOptimizer("Tan", n => n is
 				den      = Double.FusedMultiplyAdd(den, x2, q1);
 				den      = Double.FusedMultiplyAdd(den, x2, 1.0);
 				
-				// Near-asymptote: return den/num (reciprocal) with correct sign.
 				if (nearAsymptote)
 					return Double.CopySign(den / num, xReduced);
 				

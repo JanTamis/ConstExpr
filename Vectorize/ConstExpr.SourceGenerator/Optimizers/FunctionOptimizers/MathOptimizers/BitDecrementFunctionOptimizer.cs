@@ -77,13 +77,8 @@ public class BitDecrementFunctionOptimizer() : BaseMathFunctionOptimizer("BitDec
 		builder.WriteWhitespace()
 			.WriteLine("var bits = System.BitConverter.SingleToInt32Bits(x);")
 			.WriteWhitespace()
-			// .WriteLine("// +0 (bits == 0) → −epsilon (0x80000001).")
-			// .WriteLine("// −0 (bits = int.MinValue, negative int) naturally reaches the branchless path")
-			// .WriteLine("//   and gives bits + 1 = 0x80000001 = −epsilon — no explicit −0 case needed.")
 			.WriteLine("if (bits == 0) return -Single.Epsilon;")
 			.WriteWhitespace()
-			// .WriteLine("// Branchless sign: (bits >> 31) | 1 = +1 for positive, −1 for negative.")
-			// .WriteLine("// bits −= sign  →  bits − 1 (positive) or bits + 1 (negative).")
 			.WriteLine("bits -= (bits >> 31) | 1;")
 			.WriteLine("return System.BitConverter.Int32BitsToSingle(bits);");
 
@@ -130,10 +125,8 @@ public class BitDecrementFunctionOptimizer() : BaseMathFunctionOptimizer("BitDec
 		builder.WriteWhitespace()
 			.WriteLine("var bits = System.BitConverter.DoubleToInt64Bits(x);")
 			.WriteWhitespace()
-			// .WriteLine("// +0 (bits == 0) → −epsilon.")
 			.WriteLine("if (bits == 0L) return -Double.Epsilon;")
 			.WriteWhitespace()
-			// .WriteLine("// Branchless sign: (bits >> 63) | 1L = +1L for positive, −1L for negative.")
 			.WriteLine("bits -= (bits >> 63) | 1L;")
 			.WriteLine("return System.BitConverter.Int64BitsToDouble(bits);");
 

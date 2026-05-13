@@ -42,17 +42,10 @@ public class CosFunctionOptimizer() : BaseMathFunctionOptimizer("Cos", n => n is
 			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
 		}
 
-		builder
-			// .WriteLine("// Fast cosine approximation using minimax polynomial")
-			// .WriteLine("// Branchless range reduction to [-π, π]:")
-			// .WriteLine("// Round(x/τ) compiles to a single FRINTN (ARM64) / ROUNDSS (x64) —")
-			// .WriteLine("// avoids FDIV and conditional branches of the Floor-based approach.")
-			.WriteLine("x -= Single.Round(x * (1f / Single.Tau)) * Single.Tau;")
+		builder.WriteLine("x -= Single.Round(x * (1f / Single.Tau)) * Single.Tau;")
 			.WriteWhitespace()
-			// .WriteLine("// Use symmetry: cos(-x) = cos(x): fold to [0, π]")
 			.WriteLine("x = Single.Abs(x);")
 			.WriteWhitespace()
-			// .WriteLine("// Degree-8 minimax polynomial for cos(x) on [0, π], evaluated in x² (4 FMA)")
 			.WriteLine("var x2 = x * x;")
 			.WriteLine("var ret = 0.0003538394f;")
 			.WriteLine("ret = Single.FusedMultiplyAdd(ret, x2, -0.0041666418f);")
@@ -79,17 +72,10 @@ public class CosFunctionOptimizer() : BaseMathFunctionOptimizer("Cos", n => n is
 			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
 		}
 
-		builder
-			// .WriteLine("// Fast cosine approximation using minimax polynomial")
-			// .WriteLine("// Branchless range reduction to [-π, π]:")
-			// .WriteLine("// Round(x/τ) compiles to a single FRINTA (ARM64) / ROUNDSD (x64) —")
-			// .WriteLine("// avoids FDIV and conditional branches of the Floor-based approach.")
-			.WriteLine("x -= Double.Round(x * (1.0 / Double.Tau)) * Double.Tau;")
+		builder.WriteLine("x -= Double.Round(x * (1.0 / Double.Tau)) * Double.Tau;")
 			.WriteWhitespace()
-			// .WriteLine("// Use symmetry: cos(-x) = cos(x): fold to [0, π]")
 			.WriteLine("x = Double.Abs(x);")
 			.WriteWhitespace()
-			// .WriteLine("// Degree-10 minimax polynomial for cos(x) on [0, π], evaluated in x² (5 FMA)")
 			.WriteLine("var x2 = x * x;")
 			.WriteLine("var ret = -1.1940250944959890e-7;")
 			.WriteLine("ret = Double.FusedMultiplyAdd(ret, x2,  2.0876755527587203e-5);")

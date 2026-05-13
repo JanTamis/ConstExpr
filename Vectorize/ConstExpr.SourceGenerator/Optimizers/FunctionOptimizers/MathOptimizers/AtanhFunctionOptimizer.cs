@@ -94,11 +94,7 @@ public class AtanhFunctionOptimizer() : BaseMathFunctionOptimizer("Atanh", n => 
 			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
 		}
 
-		builder
-			// .WriteLine("// Branchless log1p-style: 0.5 * log(1 + 2x/(1-x))")
-			// .WriteLine("// Algebraically equal to 0.5*log((1+x)/(1-x)) but avoids branch overhead.")
-			// .WriteLine("// NaN propagates naturally; x=±1 yields ±∞ via log(0)=−∞ and log(+∞)=+∞.")
-			.WriteLine("return 0.5f * Single.Log(1f + 2f * x / (1f - x));");
+		builder.WriteLine("return 0.5f * Single.Log(1f + 2f * x / (1f - x));");
 
 		builder.EndBlock();
 
@@ -119,16 +115,12 @@ public class AtanhFunctionOptimizer() : BaseMathFunctionOptimizer("Atanh", n => 
 
 		builder.WriteLine("if (Math.Abs(x) >= 1.0) return x > 0 ? Double.PositiveInfinity : Double.NegativeInfinity;")
 			.WriteWhitespace()
-			// .WriteLine("// Use the definition: atanh(x) = 0.5 * ln((1 + x) / (1 - x))")
-			// .WriteLine("// For small |x|, use Taylor series for better accuracy")
 			.WriteLine("var absX = Double.Abs(x);")
 			.WriteWhitespace()
 			.WriteLine("if (absX < 0.5)")
 			.StartBlock()
-			// .WriteLine("// Taylor series: atanh(x) = x + x³/3 + x⁵/5 + x⁷/7 + x⁹/9 + x¹¹/11")
 			.WriteLine("var x2 = x * x;")
 			.WriteWhitespace()
-			// .WriteLine("// Horner's context.Method with FMA: x * (1 + x²*(1/3 + x²*(1/5 + x²*(1/7 + x²*(1/9 + x²/11)))))")
 			.WriteLine("var poly = Double.FusedMultiplyAdd(x2, 1d / 11d, 1d / 9d);")
 			.WriteLine("poly = Double.FusedMultiplyAdd(poly, x2, 1d / 7d);")
 			.WriteLine("poly = Double.FusedMultiplyAdd(poly, x2, 1d / 5d);")
@@ -139,7 +131,6 @@ public class AtanhFunctionOptimizer() : BaseMathFunctionOptimizer("Atanh", n => 
 			.EndBlock()
 			.WriteLine("else")
 			.StartBlock()
-			// .WriteLine("// Use logarithmic formula: 0.5 * ln((1 + x) / (1 - x))")
 			.WriteLine("return 0.5 * Double.Log((1.0 + x) / (1.0 - x));")
 			.EndBlock();
 

@@ -46,14 +46,11 @@ public class AcosPiFunctionOptimizer() : BaseMathFunctionOptimizer("AcosPi", n =
 			.WriteLine("x = Single.Abs(x);")
 			.WriteLine("if (x > 1.0f) x = 1.0f;")
 			.WriteWhitespace()
-			// .WriteLine("// A&S §4.4.45 minimax polynomial (degree-3) coefficients pre-divided by π.")
-			// .WriteLine("// 3 FMAs + 1 sqrt. Max absolute error ≈ 5.4e-6 (vs 2.2e-4 for degree-2 §4.4.44).")
 			.WriteLine("var p = Single.FusedMultiplyAdd(-0.00596227f, x, 0.02363378f);")
 			.WriteLine("p = Single.FusedMultiplyAdd(p, x, -0.06751894f);")
 			.WriteLine("p = Single.FusedMultiplyAdd(p, x, 0.5f);")
 			.WriteLine("p *= Single.Sqrt(1f - x);")
 			.WriteWhitespace()
-			// .WriteLine("// acosPi(-x) = 1 - acosPi(x)")
 			.WriteLine("return negative ? 1f - p : p;")
 			.EndBlock();
 
@@ -76,14 +73,11 @@ public class AcosPiFunctionOptimizer() : BaseMathFunctionOptimizer("AcosPi", n =
 			.WriteLine("x = Double.Abs(x);")
 			.WriteLine("if (x > 1.0) x = 1.0;")
 			.WriteWhitespace()
-			// .WriteLine("// A&S §4.4.45 minimax polynomial (degree-3) coefficients pre-divided by π.")
-			// .WriteLine("// Max absolute error ≈ 1.3e-6 (in units of π).")
 			.WriteLine("var p = Double.FusedMultiplyAdd(-0.0059622704862860465, x, 0.023633778501171472);")
 			.WriteLine("p = Double.FusedMultiplyAdd(p, x, -0.067518943563376579);")
 			.WriteLine("p = Double.FusedMultiplyAdd(p, x, 0.5);")
 			.WriteLine("p *= Double.Sqrt(1.0 - x);")
 			.WriteWhitespace()
-			// .WriteLine("// acosPi(-x) = 1 - acosPi(x)")
 			.WriteLine("return negative ? 1.0 - p : p;")
 			.EndBlock();
 

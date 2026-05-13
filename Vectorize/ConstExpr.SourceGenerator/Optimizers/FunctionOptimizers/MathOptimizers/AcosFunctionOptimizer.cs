@@ -34,13 +34,7 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 	{
 		var builder = new CodeWriter();
 
-		builder // .AddIndent("/// ")
-			// .WriteLine("<summary>")
-			// .WriteLine("Fast acos approximation for float.")
-			// .WriteLine("Max. absolute error ≈ 1.7e-5 rad.")
-			// .WriteLine("</summary>")
-			// .RemoveIndent()
-			.WriteLine("public static float FastAcos(float x)")
+		builder.WriteLine("public static float FastAcos(float x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
@@ -51,15 +45,11 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 		builder.WriteLine("var negative = x < 0f;")
 			.WriteLine("x = Single.Abs(x);");
 
-		// Minimax polynomial: approximates acos(x) / sqrt(1-x) on [0, 1]
-		// Coefficients: Abramowitz & Stegun table 4.4.45
 		builder.WriteLine("var p = Single.FusedMultiplyAdd(-0.0187293f, x, 0.0742610f);")
 			.WriteLine("p = Single.FusedMultiplyAdd(p, x, -0.2121144f);")
 			.WriteLine("p = Single.FusedMultiplyAdd(p, x, 1.5707288f);")
-			.WriteLine("p *= Single.Sqrt(1f - x);");
-
-		// Exploit symmetry: acos(-x) = π - acos(x)
-		builder.WriteLine("return negative ? Single.Pi - p : p;")
+			.WriteLine("p *= Single.Sqrt(1f - x);")
+			.WriteLine("return negative ? Single.Pi - p : p;")
 			.EndBlock();
 
 		return builder.ToString();
@@ -69,15 +59,7 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 	{
 		var builder = new CodeWriter();
 
-		builder // .AddIndent("/// ")
-			// .WriteLine("<summary>")
-			// .WriteLine("Fast acos approximation for double.")
-			// .WriteLine("Taylor series for asin(t)/t truncated at n=5 (5 FMAs).")
-			// .WriteLine("Benchmark showed ~5% faster than the 8-FMA version with negligible accuracy loss.")
-			// .WriteLine("Max. absolute error ≈ 4.2e-6 rad (dropped terms n=6,7,8 contribute < C₆·0.25⁶ at u_max).")
-			// .WriteLine("</summary>")
-			// .RemoveIndent()
-			.WriteLine("public static double FastAcos(double x)")
+		builder.WriteLine("public static double FastAcos(double x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
@@ -89,14 +71,10 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 			.WriteLine("x = Double.Abs(x);")
 			.WriteLine("var big = x > 0.5;")
 			.WriteWhitespace()
-			// .WriteLine("// Choose t such that u = t² ≤ 0.25 in both branches")
 			.WriteLine("var t = big ? Double.Sqrt((1.0 - x) * 0.5) : x;")
 			.WriteLine("var u = t * t;")
 			.WriteWhitespace()
-			// .WriteLine("// Horner evaluation of asin(t)/t via Taylor series:")
-			// .WriteLine("// asin(t)/t = Σ C_n·u^n,  C_n = (2n-1)!! / ((2n)!! · (2n+1))")
-			// .WriteLine("// Terms n=6,7,8 are omitted — their combined contribution at u_max=0.25 is < 4.2e-6 rad.")
-			.WriteLine("var p = Double.FusedMultiplyAdd(u, 945.0 / 42240.0, 105.0 / 3456.0); // n=5, n=4")
+			.WriteLine("var p = Double.FusedMultiplyAdd(u, 945.0 / 42240.0, 105.0 / 3456.0);")
 			.WriteLine("p = Double.FusedMultiplyAdd(u, p, 15.0 / 336.0);  // n=3")
 			.WriteLine("p = Double.FusedMultiplyAdd(u, p, 3.0 / 40.0);    // n=2")
 			.WriteLine("p = Double.FusedMultiplyAdd(u, p, 1.0 / 6.0);     // n=1")

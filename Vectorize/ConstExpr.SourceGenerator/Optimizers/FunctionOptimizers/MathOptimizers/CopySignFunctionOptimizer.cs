@@ -66,12 +66,6 @@ public class CopySignFunctionOptimizer() : BaseMathFunctionOptimizer("CopySign",
 	{
 		var builder = new CodeWriter();
 
-		// builder.AddIndent("/// ")
-		// 	.WriteLine("<summary>")
-		// 	.WriteLine("Bit-manipulation CopySign for float — ~10% faster than MathF.CopySign on ARM64.")
-		// 	.WriteLine("Masks the magnitude bits of x and the sign bit of y via BitConverter round-trip.")
-		// 	.WriteLine("</summary>")
-		// 	.RemoveIndent()
 		builder.WriteLine("private static float CopySignFastFloat(float x, float y)")
 			.StartBlock()
 			.WriteLine("var xBits = BitConverter.SingleToInt32Bits(x);")
@@ -86,12 +80,6 @@ public class CopySignFunctionOptimizer() : BaseMathFunctionOptimizer("CopySign",
 	{
 		var builder = new CodeWriter();
 
-		// builder.AddIndent("/// ")
-		// 	.WriteLine("<summary>")
-		// 	.WriteLine("Bit-manipulation CopySign for double — ~10% faster than Math.CopySign on ARM64.")
-		// 	.WriteLine("Masks the magnitude bits of x and the sign bit of y via BitConverter round-trip.")
-		// 	.WriteLine("</summary>")
-		// 	.RemoveIndent()
 		builder.WriteLine("private static double CopySignFastDouble(double x, double y)")
 			.StartBlock()
 			.WriteLine("var xBits = BitConverter.DoubleToInt64Bits(x);")

@@ -360,7 +360,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			var variablesPartial = ProcessArguments(visitor, semanticModel, invocation, loader, apiCache, token);
 			var additionalMethods = new Dictionary<SyntaxNode, bool>(SyntaxNodeComparer.Get());
 
-			var analyzer = new InlineVariableAnalyzer(semanticModel, symbolStore);
+			var analyzer = new InlineVariableAnalyzer(model, symbolStore);
 			var candidates = analyzer.FindInlineCandidates(methodDecl.Body!);
 
 			foreach (var candidate in candidates)

@@ -42,14 +42,8 @@ public class LerpFunctionOptimizer() : BaseMathFunctionOptimizer("Lerp", n => n 
 			builder.WriteLine("if (Single.IsNaN(a) || Single.IsNaN(b) || Single.IsNaN(t)) return Single.NaN;");
 		}
 
-		builder
-			// .WriteLine("// Fast linear interpolation using FMA (Fused Multiply-Add)")
-			// .WriteLine("// Lerp(a, b, t) = a + (b - a) * t")
-			// .WriteLine("// Using FMA: a + t * (b - a)")
-			// .WriteLine("// This provides better performance and accuracy than the naive formula")
-			.WriteLine("return Single.FusedMultiplyAdd(t, b - a, a);");
-
-		builder.EndBlock();
+		builder.WriteLine("return Single.FusedMultiplyAdd(t, b - a, a);")
+			.EndBlock();
 
 		return builder.ToString();
 	}
@@ -66,14 +60,8 @@ public class LerpFunctionOptimizer() : BaseMathFunctionOptimizer("Lerp", n => n 
 			builder.WriteLine("if (Double.IsNaN(a) || Double.IsNaN(b) || Double.IsNaN(t)) return Double.NaN;");
 		}
 
-		builder
-			// .WriteLine("// Fast linear interpolation using FMA (Fused Multiply-Add)")
-			// .WriteLine("// Lerp(a, b, t) = a + (b - a) * t")
-			// .WriteLine("// Using FMA: a + t * (b - a)")
-			// .WriteLine("// This provides better performance and accuracy than the naive formula")
-			.WriteLine("return Double.FusedMultiplyAdd(t, b - a, a);");
-
-		builder.EndBlock();
+		builder.WriteLine("return Double.FusedMultiplyAdd(t, b - a, a);")
+			.EndBlock();
 
 		return builder.ToString();
 	}
