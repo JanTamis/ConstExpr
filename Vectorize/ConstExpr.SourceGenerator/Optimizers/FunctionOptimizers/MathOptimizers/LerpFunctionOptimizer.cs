@@ -34,7 +34,13 @@ public class LerpFunctionOptimizer() : BaseMathFunctionOptimizer("Lerp", n => n 
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static float FastLerp(float a, float b, float t)")
+		builder.WriteLine("/// <summary>Fast linear interpolation (Lerp) for single-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses a fused multiply-add formulation for numerical stability and performance. Returns a + t(b - a).</remarks>")
+			.WriteLine("/// <param name=\"a\">Start value.</param>")
+			.WriteLine("/// <param name=\"b\">End value.</param>")
+			.WriteLine("/// <param name=\"t\">Interpolation factor.</param>")
+			.WriteLine("/// <returns>The interpolated float value.</returns>")
+			.WriteLine("private static float FastLerp(float a, float b, float t)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
@@ -52,7 +58,13 @@ public class LerpFunctionOptimizer() : BaseMathFunctionOptimizer("Lerp", n => n 
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static double FastLerp(double a, double b, double t)")
+		builder.WriteLine("/// <summary>Fast linear interpolation (Lerp) for double-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses a fused multiply-add formulation for numerical stability and performance. Returns a + t(b - a).</remarks>")
+			.WriteLine("/// <param name=\"a\">Start value.</param>")
+			.WriteLine("/// <param name=\"b\">End value.</param>")
+			.WriteLine("/// <param name=\"t\">Interpolation factor.</param>")
+			.WriteLine("/// <returns>The interpolated double value.</returns>")
+			.WriteLine("private static double FastLerp(double a, double b, double t)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))

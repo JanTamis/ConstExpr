@@ -35,7 +35,11 @@ public class Exp10FunctionOptimizer() : BaseMathFunctionOptimizer("Exp10", n => 
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static float FastExp10(float x)")
+		builder.WriteLine("/// <summary>Fast approximation of base-10 exponential (Exp10) for single-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses a base-2 reduction via log₂(10) and a polynomial approximation. Clamps at ±overflow bounds.</remarks>")
+			.WriteLine("/// <param name=\"x\">Input exponent value.</param>")
+			.WriteLine("/// <returns>Approximate value of 10^x.</returns>")
+			.WriteLine("private static float FastExp10(float x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
@@ -76,7 +80,11 @@ public class Exp10FunctionOptimizer() : BaseMathFunctionOptimizer("Exp10", n => 
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static double FastExp10(double x)")
+		builder.WriteLine("/// <summary>Fast approximation of base-10 exponential (Exp10) for double-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses a base-2 reduction via log₂(10) and a polynomial approximation. Clamps at ±overflow bounds.</remarks>")
+			.WriteLine("/// <param name=\"x\">Input exponent value.</param>")
+			.WriteLine("/// <returns>Approximate value of 10^x.</returns>")
+			.WriteLine("private static double FastExp10(double x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))

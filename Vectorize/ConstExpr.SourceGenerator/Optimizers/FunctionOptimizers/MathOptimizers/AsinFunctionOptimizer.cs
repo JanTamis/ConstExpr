@@ -9,6 +9,13 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers
 
 public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n is 1)
 {
+	/// <summary>
+	///   Attempts to optimize a Math.Asin function call by generating a fast approximation implementation.
+	/// </summary>
+	/// <param name="context">The optimizer context containing method arguments and FastMath flags.</param>
+	/// <param name="paramType">The type symbol of the parameter (float or double).</param>
+	/// <param name="result">The optimized syntax node if successful; otherwise null.</param>
+	/// <returns>True if optimization was successful; otherwise false.</returns>
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		var method = ParseMethodFromString(paramType.SpecialType switch

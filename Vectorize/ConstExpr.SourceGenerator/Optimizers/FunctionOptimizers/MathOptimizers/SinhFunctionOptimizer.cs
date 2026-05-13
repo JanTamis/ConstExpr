@@ -34,7 +34,11 @@ public class SinhFunctionOptimizer() : BaseMathFunctionOptimizer("Sinh", n => n 
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static float FastSinh(float x)")
+		builder.WriteLine("/// <summary>Fast approximation of hyperbolic sine (Sinh) for single-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses exponential evaluation with reciprocal-estimate refinement and optional NaN handling.</remarks>")
+			.WriteLine("/// <param name=\"x\">Input value.</param>")
+			.WriteLine("/// <returns>Approximate hyperbolic sine value.</returns>")
+			.WriteLine("private static float FastSinh(float x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
@@ -63,7 +67,11 @@ public class SinhFunctionOptimizer() : BaseMathFunctionOptimizer("Sinh", n => n 
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static double FastSinh(double x)")
+		builder.WriteLine("/// <summary>Fast approximation of hyperbolic sine (Sinh) for double-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses exponential evaluation and optional NaN handling.</remarks>")
+			.WriteLine("/// <param name=\"x\">Input value.</param>")
+			.WriteLine("/// <returns>Approximate hyperbolic sine value.</returns>")
+			.WriteLine("private static double FastSinh(double x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))

@@ -22,12 +22,6 @@ public class Log2FunctionOptimizer() : BaseMathFunctionOptimizer("Log2", n => n 
 			return true;
 		}
 
-		// For float / double: replace with a scalar fast polynomial approximation.
-		// Uses a degree-4 Horner polynomial for log2(m), m ∈ [1, 2).
-		// Coefficients d_i = c_i * log2(e) are the ln(m) minimax coefficients
-		// pre-multiplied by log2(e) = 1/ln(2), so no post-division is needed.
-		// log2(x) = e + log2(m)  where x = m * 2^e
-		// Max relative error ≈ 8.7e-5 (fast-math trade-off).
 		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
 			SpecialType.System_Single => GenerateFastLog2MethodFloat(context.FastMathFlags),
@@ -52,7 +46,11 @@ public class Log2FunctionOptimizer() : BaseMathFunctionOptimizer("Log2", n => n 
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static float FastLog2(float x)")
+		builder.WriteLine("/// <summary>Fast approximation of base-2 logarithm (Log2) for single-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses exponent extraction and a polynomial approximation for the mantissa. Returns log₂(x).</remarks>")
+			.WriteLine("/// <param name=\"x\">Input value.</param>")
+			.WriteLine("/// <returns>Approximate base-2 logarithm of x.</returns>")
+			.WriteLine("private static float FastLog2(float x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
@@ -68,7 +66,6 @@ public class Log2FunctionOptimizer() : BaseMathFunctionOptimizer("Log2", n => n 
 		}
 
 		builder.WriteWhitespace()
-			// .WriteLine("// Bit-extract base-2 exponent e and mantissa m ∈ [1, 2).")
 			.WriteLine("var bits = BitConverter.SingleToInt32Bits(x);")
 			.WriteLine("var e    = (bits >> 23) - 127;")
 			.WriteLine("var m    = BitConverter.Int32BitsToSingle((bits & 0x007FFFFF) | 0x3F800000);")
@@ -89,7 +86,11 @@ public class Log2FunctionOptimizer() : BaseMathFunctionOptimizer("Log2", n => n 
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static double FastLog2(double x)")
+		builder.WriteLine("/// <summary>Fast approximation of base-2 logarithm (Log2) for double-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses exponent extraction and a polynomial approximation for the mantissa. Returns log₂(x).</remarks>")
+			.WriteLine("/// <param name=\"x\">Input value.</param>")
+			.WriteLine("/// <returns>Approximate base-2 logarithm of x.</returns>")
+			.WriteLine("private static double FastLog2(double x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
@@ -105,7 +106,6 @@ public class Log2FunctionOptimizer() : BaseMathFunctionOptimizer("Log2", n => n 
 		}
 
 		builder.WriteWhitespace()
-			// .WriteLine("// Bit-extract base-2 exponent e and mantissa m ∈ [1, 2).")
 			.WriteLine("var bits = BitConverter.DoubleToInt64Bits(x);")
 			.WriteLine("var e    = (int)((bits >> 52) - 1023L);")
 			.WriteLine("var m    = BitConverter.Int64BitsToDouble((bits & 0x000FFFFFFFFFFFFFL) | 0x3FF0000000000000L);")

@@ -34,7 +34,11 @@ public class CosFunctionOptimizer() : BaseMathFunctionOptimizer("Cos", n => n is
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static float FastCos(float x)")
+		builder.WriteLine("/// <summary>Fast approximation of cosine (Cos) for single-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses argument reduction and a polynomial approximation with optional NaN handling.</remarks>")
+			.WriteLine("/// <param name=\"x\">Input angle in radians.</param>")
+			.WriteLine("/// <returns>Approximate cosine value.</returns>")
+			.WriteLine("private static float FastCos(float x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
@@ -51,7 +55,7 @@ public class CosFunctionOptimizer() : BaseMathFunctionOptimizer("Cos", n => n is
 			.WriteLine("ret = Single.FusedMultiplyAdd(ret, x2, -0.0041666418f);")
 			.WriteLine("ret = Single.FusedMultiplyAdd(ret, x2,  0.041666666f);")
 			.WriteLine("ret = Single.FusedMultiplyAdd(ret, x2, -0.5f);")
-			.WriteLine("ret = Single.FusedMultiplyAdd(ret, x2,  1.0f);term")
+			.WriteLine("ret = Single.FusedMultiplyAdd(ret, x2,  1.0f);")
 			.WriteWhitespace()
 			.WriteLine("return ret;");
 
@@ -64,7 +68,11 @@ public class CosFunctionOptimizer() : BaseMathFunctionOptimizer("Cos", n => n is
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static double FastCos(double x)")
+		builder.WriteLine("/// <summary>Fast approximation of cosine (Cos) for double-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses argument reduction and a polynomial approximation with optional NaN handling.</remarks>")
+			.WriteLine("/// <param name=\"x\">Input angle in radians.</param>")
+			.WriteLine("/// <returns>Approximate cosine value.</returns>")
+			.WriteLine("private static double FastCos(double x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))

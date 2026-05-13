@@ -30,6 +30,12 @@ public class AcoshFunctionOptimizer() : BaseMathFunctionOptimizer("Acosh", n => 
 		return true;
 	}
 
+	/// <summary>
+	///   Generates a fast approximation implementation of the inverse hyperbolic cosine (Acosh) function for single-precision
+	///   floating-point numbers.
+	/// </summary>
+	/// <param name="flags">FastMath flags that control NaN handling and other optimizations.</param>
+	/// <returns>A string containing the C# code for the fast Acosh implementation.</returns>
 	private static string GenerateFastAcoshMethodFloat(FastMathFlags flags)
 	{
 		var builder = new CodeWriter();
@@ -68,6 +74,12 @@ public class AcoshFunctionOptimizer() : BaseMathFunctionOptimizer("Acosh", n => 
 		return builder.ToString();
 	}
 
+	/// <summary>
+	///   Generates a fast approximation implementation of the inverse hyperbolic cosine (Acosh) function for double-precision
+	///   floating-point numbers.
+	/// </summary>
+	/// <param name="flags">FastMath flags that control NaN handling and other optimizations.</param>
+	/// <returns>A string containing the C# code for the fast Acosh implementation.</returns>
 	private static string GenerateFastAcoshMethodDouble(FastMathFlags flags)
 	{
 		var builder = new CodeWriter();

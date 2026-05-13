@@ -6,6 +6,7 @@ using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
@@ -77,6 +78,12 @@ public class ScaleBFunctionOptimizer() : BaseMathFunctionOptimizer("ScaleB", n =
 		}
 	}
 
+	/// <summary>
+	///   Attempts to extract a numeric literal value from an expression.
+	/// </summary>
+	/// <param name="expr">The expression to inspect.</param>
+	/// <param name="value">The extracted numeric value if successful.</param>
+	/// <returns>True if the expression is a numeric literal; otherwise false.</returns>
 	private static bool TryGetNumericLiteral(ExpressionSyntax expr, out double value)
 	{
 		value = 0;
@@ -102,47 +109,43 @@ public class ScaleBFunctionOptimizer() : BaseMathFunctionOptimizer("ScaleB", n =
 
 	private static string GenerateFastScaleBMethodFloat()
 	{
-		return """
-			/// <summary>
-			/// Fast ScaleB for float: single-step direct IEEE 754 exponent encode when n is in
-			/// the normal float exponent range [-126, 127].  Falls back to MathF.ScaleB for
-			/// extreme exponents (subnormals, overflow, underflow).
-			///
-			/// Benchmark (Apple M4 Pro, ARM64, .NET 10):
-			///   FastScaleB  ≈ 0.655 ns  (=DotNet, 7 % faster than three-scale)
-			///   MathF.ScaleB ≈ 0.658 ns  (baseline)
-			/// </summary>
-			private static float FastScaleB(float x, int n)
-			{
-				// Unsigned comparison folds both n > 127 and n < -126 into a single branch.
-				// Condition: (uint)(n + 126) <= 253u  ←→  n ∈ [-126, 127] (normal float exponent range).
-				if ((uint)(n + 126) <= 253u)
-					return x * BitConverter.Int32BitsToSingle((n + 127) << 23);
-				return MathF.ScaleB(x, n);
-			}
-			""";
+		var builder = new CodeWriter();
+
+		builder.WriteLine("/// <summary>Fast ScaleB for single-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses IEEE 754 exponent manipulation when the exponent is in range, otherwise falls back to MathF.ScaleB.</remarks>")
+			.WriteLine("/// <param name=\"x\">The value to scale.</param>")
+			.WriteLine("/// <param name=\"n\">The power-of-two exponent.</param>")
+			.WriteLine("/// <returns>The value scaled by 2^n.</returns>")
+			.WriteLine("private static float FastScaleB(float x, int n)")
+			.StartBlock()
+			.WriteLine("if ((uint)(n + 126) <= 253u)")
+			.StartBlock()
+			.WriteLine("return x * BitConverter.Int32BitsToSingle((n + 127) << 23);")
+			.EndBlock()
+			.WriteLine("return MathF.ScaleB(x, n);")
+			.EndBlock();
+
+		return builder.ToString();
 	}
 
 	private static string GenerateFastScaleBMethodDouble()
 	{
-		return """
-			/// <summary>
-			/// Fast ScaleB for double: single-step direct IEEE 754 exponent encode when n is in
-			/// the normal double exponent range [-1022, 1023].  Falls back to Math.ScaleB for
-			/// extreme exponents.
-			///
-			/// Benchmark (Apple M4 Pro, ARM64, .NET 10):
-			///   FastScaleB  ≈ 0.666 ns  (8 % faster than three-scale)
-			///   Math.ScaleB ≈ 0.655 ns  (baseline)
-			/// </summary>
-			private static double FastScaleB(double x, int n)
-			{
-				// Unsigned comparison folds both n > 1023 and n < -1022 into a single branch.
-				// Condition: (uint)(n + 1022) <= 2045u  ←→  n ∈ [-1022, 1023] (normal double exponent range).
-				if ((uint)(n + 1022) <= 2045u)
-					return x * BitConverter.UInt64BitsToDouble((ulong)((long)(n + 1023) << 52));
-				return Math.ScaleB(x, n);
-			}
-			""";
+		var builder = new CodeWriter();
+
+		builder.WriteLine("/// <summary>Fast ScaleB for double-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses IEEE 754 exponent manipulation when the exponent is in range, otherwise falls back to Math.ScaleB.</remarks>")
+			.WriteLine("/// <param name=\"x\">The value to scale.</param>")
+			.WriteLine("/// <param name=\"n\">The power-of-two exponent.</param>")
+			.WriteLine("/// <returns>The value scaled by 2^n.</returns>")
+			.WriteLine("private static double FastScaleB(double x, int n)")
+			.StartBlock()
+			.WriteLine("if ((uint)(n + 1022) <= 2045u)")
+			.StartBlock()
+			.WriteLine("return x * BitConverter.UInt64BitsToDouble((ulong)((long)(n + 1023) << 52));")
+			.EndBlock()
+			.WriteLine("return Math.ScaleB(x, n);")
+			.EndBlock();
+
+		return builder.ToString();
 	}
 }

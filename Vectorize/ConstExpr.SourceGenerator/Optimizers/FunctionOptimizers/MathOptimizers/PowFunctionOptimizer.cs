@@ -129,7 +129,12 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static double FastPow(double x, double y)")
+		builder.WriteLine("/// <summary>Fast approximation of exponentiation (Pow) for double-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses exponent extraction, logarithmic reduction, and a polynomial approximation for exp2(y·log2(x)).</remarks>")
+			.WriteLine("/// <param name=\"x\">The base value.</param>")
+			.WriteLine("/// <param name=\"y\">The exponent value.</param>")
+			.WriteLine("/// <returns>Approximate value of x raised to the power y.</returns>")
+			.WriteLine("private static double FastPow(double x, double y)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
@@ -176,7 +181,12 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static float FastPow(float x, float y)")
+		builder.WriteLine("/// <summary>Fast approximation of exponentiation (Pow) for single-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses exponent extraction, logarithmic reduction, and a polynomial approximation for exp2(y·log2(x)).</remarks>")
+			.WriteLine("/// <param name=\"x\">The base value.</param>")
+			.WriteLine("/// <param name=\"y\">The exponent value.</param>")
+			.WriteLine("/// <returns>Approximate value of x raised to the power y.</returns>")
+			.WriteLine("private static float FastPow(float x, float y)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))

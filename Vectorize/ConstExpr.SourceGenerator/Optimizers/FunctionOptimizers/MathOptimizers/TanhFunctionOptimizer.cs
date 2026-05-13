@@ -107,18 +107,15 @@ public class TanhFunctionOptimizer() : BaseMathFunctionOptimizer("Tanh", n => n 
 		}
 	}
 
-	/// <summary>
-	/// Pure FastExp path: tanh(x) = (FastExp(2x)−1)/(FastExp(2x)+1), saturated at ±5.
-	/// FastExp is inlined (direct-poly V2, ln(2)ⁿ/n! Horner, MathF.Round reduction).
-	/// Saturation guarantees |2x| ≤ 10, safely inside FastExp's domain (-87..88).
-	/// No inner branch → no branch mispredictions on random mixed-sign data.
-	/// ~17% faster than MathF.Tanh; old hybrid with Single.Exp was only ~9% faster.
-	/// </summary>
 	private static string GenerateFastTanhMethodFloat(FastMathFlags flags)
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static float FastTanh(float x)")
+		builder.WriteLine("/// <summary>Fast approximation of hyperbolic tangent (Tanh) for single-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses a fast exponential formulation with saturation near the asymptotes.</remarks>")
+			.WriteLine("/// <param name=\"x\">Input value.</param>")
+			.WriteLine("/// <returns>Approximate hyperbolic tangent value.</returns>")
+			.WriteLine("private static float FastTanh(float x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
@@ -146,18 +143,15 @@ public class TanhFunctionOptimizer() : BaseMathFunctionOptimizer("Tanh", n => n 
 		return builder.ToString();
 	}
 
-	/// <summary>
-	/// FastExp hybrid: Padé rational for |x| &lt; 1 (no transcendental call),
-	/// then inlined FastExpDouble (direct-poly V2) for |x| ≥ 1.
-	/// Old implementation used Double.Exp (slow) and was ~2% SLOWER than Math.Tanh on random data.
-	/// Inlined FastExpDouble is ~2.8× faster than Double.Exp, recovering the advantage.
-	/// ~4% faster than Math.Tanh; old implementation was ~2% SLOWER.
-	/// </summary>
 	private static string GenerateFastTanhMethodDouble(FastMathFlags flags)
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static double FastTanh(double x)")
+		builder.WriteLine("/// <summary>Fast approximation of hyperbolic tangent (Tanh) for double-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses a hybrid rational/fast-exp formulation with saturation near the asymptotes.</remarks>")
+			.WriteLine("/// <param name=\"x\">Input value.</param>")
+			.WriteLine("/// <returns>Approximate hyperbolic tangent value.</returns>")
+			.WriteLine("private static double FastTanh(double x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))

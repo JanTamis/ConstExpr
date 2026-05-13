@@ -34,7 +34,11 @@ public class CoshFunctionOptimizer() : BaseMathFunctionOptimizer("Cosh", n => n 
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static float FastCosh(float x)")
+		builder.WriteLine("/// <summary>Fast approximation of hyperbolic cosine (Cosh) for single-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses absolute-value reduction, an exponential approximation, and optional NaN handling.</remarks>")
+			.WriteLine("/// <param name=\"x\">Input value.</param>")
+			.WriteLine("/// <returns>Approximate hyperbolic cosine value.</returns>")
+			.WriteLine("private static float FastCosh(float x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
@@ -44,14 +48,10 @@ public class CoshFunctionOptimizer() : BaseMathFunctionOptimizer("Cosh", n => n 
 
 		builder.WriteLine("x = Single.Abs(x);")
 			.WriteWhitespace()
-			// .WriteLine("// exp overflows to +Inf for x > ~88.72; return +Inf immediately")
 			.WriteLine("if (x > 88.0f) return float.PositiveInfinity;")
 			.WriteWhitespace()
 			.WriteLine("var ex = Single.Exp(x);")
 			.WriteWhitespace()
-			// .WriteLine("// One Newton-Raphson step on ReciprocalEstimate restores ~24-bit precision")
-			// .WriteLine("// (raw estimate is only ~12-bit accurate, which causes ~375× worse error than float epsilon)")
-			// .WriteLine("// r' = r * (2 - ex * r)")
 			.WriteLine("var r = Single.ReciprocalEstimate(ex);")
 			.WriteLine("r *= Single.FusedMultiplyAdd(-ex, r, 2.0f);")
 			.WriteWhitespace()
@@ -66,7 +66,11 @@ public class CoshFunctionOptimizer() : BaseMathFunctionOptimizer("Cosh", n => n 
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static double FastCosh(double x)")
+		builder.WriteLine("/// <summary>Fast approximation of hyperbolic cosine (Cosh) for double-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses absolute-value reduction, an exponential approximation, and optional NaN handling.</remarks>")
+			.WriteLine("/// <param name=\"x\">Input value.</param>")
+			.WriteLine("/// <returns>Approximate hyperbolic cosine value.</returns>")
+			.WriteLine("private static double FastCosh(double x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
@@ -76,14 +80,10 @@ public class CoshFunctionOptimizer() : BaseMathFunctionOptimizer("Cosh", n => n 
 
 		builder.WriteLine("x = Double.Abs(x);")
 			.WriteWhitespace()
-			// .WriteLine("// exp overflows to +Inf for x > ~709.78; return +Inf immediately")
 			.WriteLine("if (x > 709.0) return double.PositiveInfinity;")
 			.WriteWhitespace()
 			.WriteLine("var ex = Double.Exp(x);")
 			.WriteWhitespace()
-			// .WriteLine("// Division gives full double precision for 1/ex.")
-			// .WriteLine("// Double.ReciprocalEstimate is only ~14-bit accurate, causing catastrophic")
-			// .WriteLine("// precision loss — using FDIV here is both correct and comparable in cost.")
 			.WriteLine("return (ex + 1.0 / ex) * 0.5;");
 
 		builder.EndBlock();

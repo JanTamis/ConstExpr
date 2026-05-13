@@ -9,6 +9,13 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers
 
 public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n is 1)
 {
+	/// <summary>
+	///   Attempts to optimize a Math.Acos function call by generating a fast approximation implementation.
+	/// </summary>
+	/// <param name="context">The optimizer context containing method arguments and FastMath flags.</param>
+	/// <param name="paramType">The type symbol of the parameter (float or double).</param>
+	/// <param name="result">The optimized syntax node if successful; otherwise null.</param>
+	/// <returns>True if optimization was successful; otherwise false.</returns>
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		var method = ParseMethodFromString(paramType.SpecialType switch
@@ -30,6 +37,13 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 		return true;
 	}
 
+	/// <summary>
+	///   Generates a fast approximation implementation of the inverse cosine (Acos) function for single-precision
+	///   floating-point numbers.
+	///   Uses a polynomial approximation with FusedMultiplyAdd for improved performance.
+	/// </summary>
+	/// <param name="flags">FastMath flags that control NaN handling and other optimizations.</param>
+	/// <returns>A string containing the C# code for the fast Acos implementation.</returns>
 	private static string GenerateFastAcosMethodFloat(FastMathFlags flags)
 	{
 		var builder = new CodeWriter();
@@ -60,9 +74,8 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 	}
 
 	/// <summary>
-	///   Generates a fast approximation implementation of the inverse cosine (Acos) function for double-precision
-	///   floating-point numbers.
-	///   Uses a higher-precision polynomial approximation with separate handling for values greater than 0.5.
+	/// Generates a fast approximation implementation of the inverse cosine (Acos) function for double-precision floating-point numbers.
+	/// Uses a higher-precision polynomial approximation with separate handling for values greater than 0.5.
 	/// </summary>
 	/// <param name="flags">FastMath flags that control NaN handling and other optimizations.</param>
 	/// <returns>A string containing the C# code for the fast Acos implementation.</returns>

@@ -90,7 +90,11 @@ public class AtanFunctionOptimizer() : BaseMathFunctionOptimizer("Atan", n => n 
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static float FastAtan(float x)")
+		builder.WriteLine("/// <summary>Fast approximation of arctangent (Atan) for single-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses range reduction, a polynomial approximation, and optional NaN handling.</remarks>")
+			.WriteLine("/// <param name=\"x\">Input value.</param>")
+			.WriteLine("/// <returns>Approximate arctangent value in radians.</returns>")
+			.WriteLine("private static float FastAtan(float x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
@@ -121,7 +125,11 @@ public class AtanFunctionOptimizer() : BaseMathFunctionOptimizer("Atan", n => n 
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static double FastAtan(double x)")
+		builder.WriteLine("/// <summary>Fast approximation of arctangent (Atan) for double-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses range reduction, a polynomial approximation, and optional NaN handling.</remarks>")
+			.WriteLine("/// <param name=\"x\">Input value.</param>")
+			.WriteLine("/// <returns>Approximate arctangent value in radians.</returns>")
+			.WriteLine("private static double FastAtan(double x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))

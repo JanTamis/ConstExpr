@@ -43,7 +43,11 @@ public class BitIncrementFunctionOptimizer() : BaseMathFunctionOptimizer("BitInc
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static float FastBitIncrement(float x)")
+		builder.WriteLine("/// <summary>Fast bit-increment implementation for single-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses IEEE 754 bit manipulation with NaN and infinity handling controlled by FastMath flags.</remarks>")
+			.WriteLine("/// <param name=\"x\">Input floating-point value.</param>")
+			.WriteLine("/// <returns>The next representable float greater than x.</returns>")
+			.WriteLine("private static float FastBitIncrement(float x)")
 			.StartBlock();
 
 		if (flags.HasFlag(FastMathFlags.NoNaN))
@@ -88,7 +92,11 @@ public class BitIncrementFunctionOptimizer() : BaseMathFunctionOptimizer("BitInc
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static double FastBitIncrement(double x)")
+		builder.WriteLine("/// <summary>Fast bit-increment implementation for double-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses IEEE 754 bit manipulation with NaN and infinity handling controlled by FastMath flags.</remarks>")
+			.WriteLine("/// <param name=\"x\">Input floating-point value.</param>")
+			.WriteLine("/// <returns>The next representable double greater than x.</returns>")
+			.WriteLine("private static double FastBitIncrement(double x)")
 			.StartBlock();
 
 		if (flags.HasFlag(FastMathFlags.NoNaN))

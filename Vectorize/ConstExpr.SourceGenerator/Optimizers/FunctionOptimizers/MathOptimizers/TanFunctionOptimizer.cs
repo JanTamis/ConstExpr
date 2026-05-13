@@ -6,6 +6,7 @@ using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
@@ -98,91 +99,100 @@ public class TanFunctionOptimizer() : BaseMathFunctionOptimizer("Tan", n => n is
 
 	private static string GenerateFastTanMethodFloat()
 	{
-		return """
-			private static float FastTan(float x)
-			{
-				// Fast tan approximation — rational P/Q on (−π/2, π/2) with cotangent
-				// identity for inputs near the asymptote (|x| > 1.4).
-				// No Single.Tan() fallback: the cotangent reciprocal uses the same polynomial.
-				// Benchmarked at ~0.85 ns vs MathF.Tan at ~2.65 ns on ARM64 M4 Pro (−68%).
-				if (Single.IsNaN(x)) return Single.NaN;
-				
-				const float InvPi  = 1.0f / Single.Pi;
-				const float HalfPi = Single.Pi * 0.5f;
-				
-				// Range reduce to (−π/2, π/2) — tan's period is π
-				var quotient = Single.Round(x * InvPi);
-				var xReduced = Single.FusedMultiplyAdd(-quotient, Single.Pi, x);
-				
-				var absX          = Single.Abs(xReduced);
-				var nearAsymptote = absX > 1.4f;
-				
-				// For |x| > 1.4: fold via tan(|x|) = 1/tan(π/2 − |x|).
-				// π/2 − |x| ∈ (0, 0.17] is well inside the polynomial's reliable domain.
-				var arg = nearAsymptote ? HalfPi - absX : xReduced;
-				
-				var x2 = arg * arg;
-				
-				var p1 = -0.1306282f;
-				var p2 =  0.0052854f;
-				var num = Single.FusedMultiplyAdd(p2, x2, p1);
-				num      = Single.FusedMultiplyAdd(num, x2, 1.0f);
-				num     *= arg;
-				
-				var q1 = -0.4636476f;
-				var q2 =  0.0157903f;
-				var den = Single.FusedMultiplyAdd(q2, x2, q1);
-				den      = Single.FusedMultiplyAdd(den, x2, 1.0f);
-				
-				// Near-asymptote: return den/num (reciprocal) with correct sign.
-				if (nearAsymptote)
-					return Single.CopySign(den / num, xReduced);
-				
-				return num / den;
-			}
-			""";
+		var builder = new CodeWriter();
+
+		builder.WriteLine("/// <summary>Fast approximation of tangent (Tan) for single-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses range reduction and a rational approximation, with a reciprocal form near the asymptote.</remarks>")
+			.WriteLine("/// <param name=\"x\">Input angle in radians.</param>")
+			.WriteLine("/// <returns>Approximate tangent value.</returns>")
+			.WriteLine("private static float FastTan(float x)")
+			.StartBlock()
+			.WriteLine("if (Single.IsNaN(x)) return Single.NaN;")
+			.WriteWhitespace()
+			.WriteLine("const float InvPi  = 1.0f / Single.Pi;")
+			.WriteLine("const float HalfPi = Single.Pi * 0.5f;")
+			.WriteWhitespace()
+			.WriteLine("// Range reduce to (−π/2, π/2) — tan's period is π")
+			.WriteLine("var quotient = Single.Round(x * InvPi);")
+			.WriteLine("var xReduced = Single.FusedMultiplyAdd(-quotient, Single.Pi, x);")
+			.WriteWhitespace()
+			.WriteLine("var absX          = Single.Abs(xReduced);")
+			.WriteLine("var nearAsymptote = absX > 1.4f;")
+			.WriteWhitespace()
+			.WriteLine("var arg = nearAsymptote ? HalfPi - absX : xReduced;")
+			.WriteWhitespace()
+			.WriteLine("var x2 = arg * arg;")
+			.WriteWhitespace()
+			.WriteLine("var p1 = -0.1306282f;")
+			.WriteLine("var p2 =  0.0052854f;")
+			.WriteLine("var num = Single.FusedMultiplyAdd(p2, x2, p1);")
+			.WriteLine("num      = Single.FusedMultiplyAdd(num, x2, 1.0f);")
+			.WriteLine("num     *= arg;")
+			.WriteWhitespace()
+			.WriteLine("var q1 = -0.4636476f;")
+			.WriteLine("var q2 =  0.0157903f;")
+			.WriteLine("var den = Single.FusedMultiplyAdd(q2, x2, q1);")
+			.WriteLine("den      = Single.FusedMultiplyAdd(den, x2, 1.0f);")
+			.WriteWhitespace()
+			.WriteLine("if (nearAsymptote)")
+			.StartBlock()
+			.WriteLine("return Single.CopySign(den / num, xReduced);")
+			.EndBlock()
+			.WriteWhitespace()
+			.WriteLine("return num / den;")
+			.EndBlock();
+
+		return builder.ToString();
 	}
 
 	private static string GenerateFastTanMethodDouble()
 	{
-		return """
-			private static double FastTan(double x)
-			{
-				if (Double.IsNaN(x)) return Double.NaN;
-				
-				const double InvPi  = 1.0 / Double.Pi;
-				const double HalfPi = Double.Pi * 0.5;
-				
-				var quotient = Double.Round(x * InvPi);
-				var xReduced = Double.FusedMultiplyAdd(-quotient, Double.Pi, x);
-				
-				var absX          = Double.Abs(xReduced);
-				var nearAsymptote = absX > 1.4;
-				
-				var arg = nearAsymptote ? HalfPi - absX : xReduced;
-				
-				var x2 = arg * arg;
-				
-				var p1 = -0.13089944486966634;
-				var p2 =  0.005405742881796775;
-				var p3 = -0.00010606776596208569;
-				var num = Double.FusedMultiplyAdd(p3, x2, p2);
-				num      = Double.FusedMultiplyAdd(num, x2, p1);
-				num      = Double.FusedMultiplyAdd(num, x2, 1.0);
-				num     *= arg;
-				
-				var q1 = -0.46468849716162905;
-				var q2 =  0.015893657956882884;
-				var q3 = -0.00031920703894961204;
-				var den = Double.FusedMultiplyAdd(q3, x2, q2);
-				den      = Double.FusedMultiplyAdd(den, x2, q1);
-				den      = Double.FusedMultiplyAdd(den, x2, 1.0);
-				
-				if (nearAsymptote)
-					return Double.CopySign(den / num, xReduced);
-				
-				return num / den;
-			}
-			""";
+		var builder = new CodeWriter();
+
+		builder.WriteLine("/// <summary>Fast approximation of tangent (Tan) for double-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses range reduction and a rational approximation, with a reciprocal form near the asymptote.</remarks>")
+			.WriteLine("/// <param name=\"x\">Input angle in radians.</param>")
+			.WriteLine("/// <returns>Approximate tangent value.</returns>")
+			.WriteLine("private static double FastTan(double x)")
+			.StartBlock()
+			.WriteLine("if (Double.IsNaN(x)) return Double.NaN;")
+			.WriteWhitespace()
+			.WriteLine("const double InvPi  = 1.0 / Double.Pi;")
+			.WriteLine("const double HalfPi = Double.Pi * 0.5;")
+			.WriteWhitespace()
+			.WriteLine("var quotient = Double.Round(x * InvPi);")
+			.WriteLine("var xReduced = Double.FusedMultiplyAdd(-quotient, Double.Pi, x);")
+			.WriteWhitespace()
+			.WriteLine("var absX          = Double.Abs(xReduced);")
+			.WriteLine("var nearAsymptote = absX > 1.4;")
+			.WriteWhitespace()
+			.WriteLine("var arg = nearAsymptote ? HalfPi - absX : xReduced;")
+			.WriteWhitespace()
+			.WriteLine("var x2 = arg * arg;")
+			.WriteWhitespace()
+			.WriteLine("var p1 = -0.13089944486966634;")
+			.WriteLine("var p2 =  0.005405742881796775;")
+			.WriteLine("var p3 = -0.00010606776596208569;")
+			.WriteLine("var num = Double.FusedMultiplyAdd(p3, x2, p2);")
+			.WriteLine("num      = Double.FusedMultiplyAdd(num, x2, p1);")
+			.WriteLine("num      = Double.FusedMultiplyAdd(num, x2, 1.0);")
+			.WriteLine("num     *= arg;")
+			.WriteWhitespace()
+			.WriteLine("var q1 = -0.46468849716162905;")
+			.WriteLine("var q2 =  0.015893657956882884;")
+			.WriteLine("var q3 = -0.00031920703894961204;")
+			.WriteLine("var den = Double.FusedMultiplyAdd(q3, x2, q2);")
+			.WriteLine("den      = Double.FusedMultiplyAdd(den, x2, q1);")
+			.WriteLine("den      = Double.FusedMultiplyAdd(den, x2, 1.0);")
+			.WriteWhitespace()
+			.WriteLine("if (nearAsymptote)")
+			.StartBlock()
+			.WriteLine("return Double.CopySign(den / num, xReduced);")
+			.EndBlock()
+			.WriteWhitespace()
+			.WriteLine("return num / den;")
+			.EndBlock();
+
+		return builder.ToString();
 	}
 }

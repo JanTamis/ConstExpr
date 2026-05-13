@@ -34,7 +34,11 @@ public class CosPiFunctionOptimizer() : BaseMathFunctionOptimizer("CosPi", n => 
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static float FastCosPi(float x)")
+		builder.WriteLine("/// <summary>Fast approximation of cosine divided by π (CosPi) for single-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses argument reduction and a polynomial approximation with optional NaN handling. Returns cos(πx).</remarks>")
+			.WriteLine("/// <param name=\"x\">Input value.</param>")
+			.WriteLine("/// <returns>Approximate cosine value divided by π.</returns>")
+			.WriteLine("private static float FastCosPi(float x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
@@ -63,7 +67,11 @@ public class CosPiFunctionOptimizer() : BaseMathFunctionOptimizer("CosPi", n => 
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static double FastCosPi(double x)")
+		builder.WriteLine("/// <summary>Fast approximation of cosine divided by π (CosPi) for double-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses argument reduction and a polynomial approximation with optional NaN handling. Returns cos(πx).</remarks>")
+			.WriteLine("/// <param name=\"x\">Input value.</param>")
+			.WriteLine("/// <returns>Approximate cosine value divided by π.</returns>")
+			.WriteLine("private static double FastCosPi(double x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))

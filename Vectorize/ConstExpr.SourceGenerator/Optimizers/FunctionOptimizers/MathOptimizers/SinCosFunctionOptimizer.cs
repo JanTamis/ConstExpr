@@ -34,7 +34,11 @@ public class SinCosFunctionOptimizer() : BaseMathFunctionOptimizer("SinCos", n =
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static (float Sin, float Cos) FastSinCos(float x)")
+		builder.WriteLine("/// <summary>Fast simultaneous sine and cosine approximation for single-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses argument reduction and paired polynomial approximations for sine and cosine.</remarks>")
+			.WriteLine("/// <param name=\"x\">Input angle in radians.</param>")
+			.WriteLine("/// <returns>A tuple containing approximate sine and cosine values.</returns>")
+			.WriteLine("private static (float Sin, float Cos) FastSinCos(float x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
@@ -79,7 +83,11 @@ public class SinCosFunctionOptimizer() : BaseMathFunctionOptimizer("SinCos", n =
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static (double Sin, double Cos) FastSinCos(double x)")
+		builder.WriteLine("/// <summary>Fast simultaneous sine and cosine approximation for double-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses argument reduction and paired polynomial approximations for sine and cosine.</remarks>")
+			.WriteLine("/// <param name=\"x\">Input angle in radians.</param>")
+			.WriteLine("/// <returns>A tuple containing approximate sine and cosine values.</returns>")
+			.WriteLine("private static (double Sin, double Cos) FastSinCos(double x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))

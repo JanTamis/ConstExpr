@@ -88,7 +88,11 @@ public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", n =
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static float FastAtanPi(float x)")
+		builder.WriteLine("/// <summary>Fast approximation of arctangent divided by π (AtanPi) for single-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses range reduction, a polynomial approximation, and optional NaN handling. Returns atan(x) / π.</remarks>")
+			.WriteLine("/// <param name=\"x\">Input value.</param>")
+			.WriteLine("/// <returns>Approximate arctangent value divided by π in the range [-0.5, 0.5].</returns>")
+			.WriteLine("private static float FastAtanPi(float x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
@@ -119,7 +123,11 @@ public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", n =
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static double FastAtanPi(double x)")
+		builder.WriteLine("/// <summary>Fast approximation of arctangent divided by π (AtanPi) for double-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses range reduction, a polynomial approximation, and optional NaN handling. Returns atan(x) / π.</remarks>")
+			.WriteLine("/// <param name=\"x\">Input value.</param>")
+			.WriteLine("/// <returns>Approximate arctangent value divided by π in the range [-0.5, 0.5].</returns>")
+			.WriteLine("private static double FastAtanPi(double x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))

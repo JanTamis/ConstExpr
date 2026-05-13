@@ -43,11 +43,12 @@ public class BitDecrementFunctionOptimizer() : BaseMathFunctionOptimizer("BitDec
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static float FastBitDecrement(float x)")
+		builder.WriteLine("/// <summary>Fast bit-decrement implementation for single-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses IEEE 754 bit manipulation with NaN and infinity handling controlled by FastMath flags.</remarks>")
+			.WriteLine("/// <param name=\"x\">Input floating-point value.</param>")
+			.WriteLine("/// <returns>The next representable float smaller than x.</returns>")
+			.WriteLine("private static float FastBitDecrement(float x)")
 			.StartBlock();
-
-		// .WriteLine("// Combined NaN/±Inf guard — single unsigned-compare on ARM64.")
-		// .WriteLine("// +Inf → MaxValue; NaN and −Inf returned unchanged.");
 
 		if (flags.HasFlag(FastMathFlags.NoNaN))
 		{
@@ -91,11 +92,12 @@ public class BitDecrementFunctionOptimizer() : BaseMathFunctionOptimizer("BitDec
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static double FastBitDecrement(double x)")
+		builder.WriteLine("/// <summary>Fast bit-decrement implementation for double-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses IEEE 754 bit manipulation with NaN and infinity handling controlled by FastMath flags.</remarks>")
+			.WriteLine("/// <param name=\"x\">Input floating-point value.</param>")
+			.WriteLine("/// <returns>The next representable double smaller than x.</returns>")
+			.WriteLine("private static double FastBitDecrement(double x)")
 			.StartBlock();
-
-		// .WriteLine("// Combined NaN/±Inf guard — single unsigned-compare on ARM64.")
-		// .WriteLine("// +Inf → MaxValue; NaN and −Inf returned unchanged.");
 
 		if (flags.HasFlag(FastMathFlags.NoNaN))
 		{

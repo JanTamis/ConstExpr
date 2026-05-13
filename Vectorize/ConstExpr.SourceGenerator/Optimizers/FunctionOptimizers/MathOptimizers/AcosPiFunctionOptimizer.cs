@@ -9,6 +9,13 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers
 
 public class AcosPiFunctionOptimizer() : BaseMathFunctionOptimizer("AcosPi", n => n is 1)
 {
+	/// <summary>
+	///   Attempts to optimize a Math.AcosPi function call by generating a fast approximation implementation.
+	/// </summary>
+	/// <param name="context">The optimizer context containing method arguments and FastMath flags.</param>
+	/// <param name="paramType">The type symbol of the parameter (float or double).</param>
+	/// <param name="result">The optimized syntax node if successful; otherwise null.</param>
+	/// <returns>True if optimization was successful; otherwise false.</returns>
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		var method = ParseMethodFromString(paramType.SpecialType switch
@@ -30,6 +37,12 @@ public class AcosPiFunctionOptimizer() : BaseMathFunctionOptimizer("AcosPi", n =
 		return true;
 	}
 
+	/// <summary>
+	///   Generates a fast approximation implementation of the inverse cosine divided by π (AcosPi) function for
+	///   single-precision floating-point numbers.
+	/// </summary>
+	/// <param name="flags">FastMath flags that control NaN handling and other optimizations.</param>
+	/// <returns>A string containing the C# code for the fast AcosPi implementation.</returns>
 	private static string GenerateFastAcosPiMethodFloat(FastMathFlags flags)
 	{
 		var builder = new CodeWriter();
@@ -61,6 +74,12 @@ public class AcosPiFunctionOptimizer() : BaseMathFunctionOptimizer("AcosPi", n =
 		return builder.ToString();
 	}
 
+	/// <summary>
+	///   Generates a fast approximation implementation of the inverse cosine divided by π (AcosPi) function for
+	///   double-precision floating-point numbers.
+	/// </summary>
+	/// <param name="flags">FastMath flags that control NaN handling and other optimizations.</param>
+	/// <returns>A string containing the C# code for the fast AcosPi implementation.</returns>
 	private static string GenerateFastAcosPiMethodDouble(FastMathFlags flags)
 	{
 		var builder = new CodeWriter();

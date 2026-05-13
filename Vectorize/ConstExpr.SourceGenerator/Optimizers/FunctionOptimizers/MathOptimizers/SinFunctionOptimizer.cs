@@ -34,7 +34,11 @@ public class SinFunctionOptimizer() : BaseMathFunctionOptimizer("Sin", n => n is
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static float FastSin(float x)")
+		builder.WriteLine("/// <summary>Fast approximation of sine (Sin) for single-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses argument reduction and a polynomial approximation with optional NaN handling.</remarks>")
+			.WriteLine("/// <param name=\"x\">Input angle in radians.</param>")
+			.WriteLine("/// <returns>Approximate sine value.</returns>")
+			.WriteLine("private static float FastSin(float x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
@@ -68,7 +72,11 @@ public class SinFunctionOptimizer() : BaseMathFunctionOptimizer("Sin", n => n is
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static double FastSin(double x)")
+		builder.WriteLine("/// <summary>Fast approximation of sine (Sin) for double-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses argument reduction and a polynomial approximation with optional NaN handling.</remarks>")
+			.WriteLine("/// <param name=\"x\">Input angle in radians.</param>")
+			.WriteLine("/// <returns>Approximate sine value.</returns>")
+			.WriteLine("private static double FastSin(double x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))

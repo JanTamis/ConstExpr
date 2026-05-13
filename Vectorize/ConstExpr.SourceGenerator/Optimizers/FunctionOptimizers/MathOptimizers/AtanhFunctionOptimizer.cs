@@ -86,7 +86,11 @@ public class AtanhFunctionOptimizer() : BaseMathFunctionOptimizer("Atanh", n => 
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static float FastAtanh(float x)")
+		builder.WriteLine("/// <summary>Fast approximation of inverse hyperbolic tangent (Atanh) for single-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses a direct logarithmic identity with optional NaN handling.</remarks>")
+			.WriteLine("/// <param name=\"x\">Input value in the open interval (-1, 1).</param>")
+			.WriteLine("/// <returns>Approximate inverse hyperbolic tangent value.</returns>")
+			.WriteLine("private static float FastAtanh(float x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
@@ -105,7 +109,11 @@ public class AtanhFunctionOptimizer() : BaseMathFunctionOptimizer("Atanh", n => 
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static double FastAtanh(double x)")
+		builder.WriteLine("/// <summary>Fast approximation of inverse hyperbolic tangent (Atanh) for double-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses a piecewise approximation with a polynomial for |x| &lt; 0.5 and a logarithmic identity otherwise.</remarks>")
+			.WriteLine("/// <param name=\"x\">Input value in the open interval (-1, 1).</param>")
+			.WriteLine("/// <returns>Approximate inverse hyperbolic tangent value.</returns>")
+			.WriteLine("private static double FastAtanh(double x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
