@@ -57,21 +57,17 @@ public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", n => n is
 
 		var builder = new CodeWriter();
 
-		builder.AddIndent("/// ")
-			.WriteLine("<summary>")
+		builder.StartComment()
 			.WriteLine("Computes absolute value using branchless bit manipulation.")
 			.WriteLine("Note: Does NOT work correctly for <c>T.MinValue</c> due to two's complement overflow.")
-			.WriteLine("</summary>")
-			.RemoveIndent()
+			.EndComment()
 			.WriteLine("private static T AbsFast<T>(T x) where T : IBinaryInteger<T>")
-			.WriteLine("{")
-			.AddIndent("\t")
+			.StartBlock()
 			.WriteLine("var bits = Unsafe.SizeOf<T>() * 8 - 1;")
 			.WriteLine("var mask = x >> bits;")
-			.WriteLine("")
+			.WriteWhitespace()
 			.WriteLine("return (x + mask) ^ mask;")
-			.RemoveIndent()
-			.WriteLine("}");
+			.EndBlock();
 
 		var method = ParseMethodFromString(builder.ToString())!;
 

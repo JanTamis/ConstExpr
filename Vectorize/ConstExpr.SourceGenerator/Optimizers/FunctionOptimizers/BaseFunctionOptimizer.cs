@@ -6,6 +6,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading;
 using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Rewriters;
 using Microsoft.CodeAnalysis;
@@ -92,6 +93,7 @@ public abstract class BaseFunctionOptimizer
 		return syntaxTree.GetRoot()
 			.DescendantNodes()
 			.OfType<MethodDeclarationSyntax>()
+			.Select(m => FormattingHelper.Format(m) as MethodDeclarationSyntax ?? m)
 			.First();
 	}
 

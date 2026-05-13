@@ -89,8 +89,7 @@ public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", n =
 		var builder = new CodeWriter();
 
 		builder.WriteLine("private static float FastAtanPi(float x)")
-			.WriteLine("{")
-			.AddIndent("\t");
+			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
 		{
@@ -100,21 +99,20 @@ public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", n =
 		builder.WriteLine("var absX = Single.Abs(x);")
 			.WriteLine("var swap = absX > 1.0f;")
 			.WriteLine("var a = swap ? 1.0f / absX : absX;")
-			.WriteLine("")
-			.WriteLine("// A&S §4.4.43 minimax polynomial coefficients pre-divided by π.")
-			.WriteLine("// 4 FMAs + 1 mul. Max absolute error ≈ 3.5e-6 (vs 1.6e-3 for Steinmetz 2-term).")
+			.WriteWhitespace()
+			// .WriteLine("// A&S §4.4.43 minimax polynomial coefficients pre-divided by π.")
+			// .WriteLine("// 4 FMAs + 1 mul. Max absolute error ≈ 3.5e-6 (vs 1.6e-3 for Steinmetz 2-term).")
 			.WriteLine("var u = a * a;")
 			.WriteLine("var p = Single.FusedMultiplyAdd(u,  0.00663222f, -0.02710107f);")
 			.WriteLine("p      = Single.FusedMultiplyAdd(u, p,            0.05733014f);")
 			.WriteLine("p      = Single.FusedMultiplyAdd(u, p,           -0.10510700f);")
 			.WriteLine("p      = Single.FusedMultiplyAdd(u, p,            0.31826720f);")
 			.WriteLine("p     *= a;")
-			.WriteLine("")
+			.WriteWhitespace()
 			.WriteLine("p = swap ? 0.5f - p : p;")
 			.WriteLine("return Single.IsNegative(x) ? -p : p;");
 
-		builder.RemoveIndent()
-			.WriteLine("}");
+		builder.EndBlock();
 
 		return builder.ToString();
 	}
@@ -124,8 +122,7 @@ public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", n =
 		var builder = new CodeWriter();
 
 		builder.WriteLine("private static double FastAtanPi(double x)")
-			.WriteLine("{")
-			.AddIndent("\t");
+			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
 		{
@@ -136,20 +133,19 @@ public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", n =
 			.WriteLine("var swap = absX > 1.0;")
 			.WriteLine("var a = swap ? 1.0 / absX : absX;")
 			.WriteLine("var u = a * a;")
-			.WriteLine("")
-			.WriteLine("// A&S §4.4.43 minimax coefficients pre-divided by π — saves the final 1/π multiply.")
-			.WriteLine("// Quadrant correction uses 0.5 (= π/2 / π). Max absolute error ≈ 3.5e-6.")
+			.WriteWhitespace()
+			// .WriteLine("// A&S §4.4.43 minimax coefficients pre-divided by π — saves the final 1/π multiply.")
+			// .WriteLine("// Quadrant correction uses 0.5 (= π/2 / π). Max absolute error ≈ 3.5e-6.")
 			.WriteLine("var p = Double.FusedMultiplyAdd(u,  0.00663222, -0.02710107);")
 			.WriteLine("p      = Double.FusedMultiplyAdd(u, p,           0.05733014);")
 			.WriteLine("p      = Double.FusedMultiplyAdd(u, p,          -0.10510700);")
 			.WriteLine("p      = Double.FusedMultiplyAdd(u, p,           0.31826720);")
 			.WriteLine("p     *= a;")
-			.WriteLine("")
+			.WriteWhitespace()
 			.WriteLine("p = swap ? 0.5 - p : p;")
 			.WriteLine("return Double.IsNegative(x) ? -p : p;");
 
-		builder.RemoveIndent()
-			.WriteLine("}");
+		builder.EndBlock();
 
 		return builder.ToString();
 	}

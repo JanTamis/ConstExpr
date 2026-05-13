@@ -124,8 +124,7 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", n => 
 		var builder = new CodeWriter();
 
 		builder.WriteLine("private static float FastRootN(float x, int n)")
-			.WriteLine("{")
-			.AddIndent("\t");
+			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
 		{
@@ -135,13 +134,13 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", n => 
 		builder.WriteLine("if (n == 0) return float.NaN;")
 			.WriteLine("if (n == 1) return x;")
 			.WriteLine("if (x == 0.0f) return 0.0f;")
-			.WriteLine("")
+			.WriteWhitespace()
 			.WriteLine("if (n < 0) return 1.0f / FastRootN(x, -n);")
-			.WriteLine("")
+			.WriteWhitespace()
 			.WriteLine("var ax = x < 0.0f ? -x : x;")
-			.WriteLine("")
-			.WriteLine("// Inline FastLog(ax): bit-extract exponent + degree-4 Horner for ln(m ∈ [1,2)).")
-			.WriteLine("// Max relative error ≈ 8.7e-5 (fast-math trade-off).")
+			.WriteWhitespace()
+			// .WriteLine("// Inline FastLog(ax): bit-extract exponent + degree-4 Horner for ln(m ∈ [1,2)).")
+			// .WriteLine("// Max relative error ≈ 8.7e-5 (fast-math trade-off).")
 			.WriteLine("var lBits = BitConverter.SingleToInt32Bits(ax);")
 			.WriteLine("var lE    = (lBits >> 23) - 127;")
 			.WriteLine("var lM    = BitConverter.Int32BitsToSingle((lBits & 0x007FFFFF) | 0x3F800000);")
@@ -150,22 +149,21 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", n => 
 			.WriteLine("lnm       = Single.FusedMultiplyAdd(lnm,           lM,  2.821202636f);")
 			.WriteLine("lnm       = Single.FusedMultiplyAdd(lnm,           lM, -1.741793927f);")
 			.WriteLine("var lnAx  = lE * 0.6931471805599453f + lnm;")
-			.WriteLine("")
-			.WriteLine("// Divide by n.")
+			.WriteWhitespace()
+			// .WriteLine("// Divide by n.")
 			.WriteLine("var t = lnAx / n;")
-			.WriteLine("")
-			.WriteLine("// Inline FastExp(t): range reduction to r ∈ [-0.5, 0.5] + degree-3 Horner for 2^r.")
-			.WriteLine("var kf  = t * 1.4426950408889634f;    // t * log₂(e)")
-			.WriteLine("var k   = (int)Single.Round(kf);       // branchless FRINTN + FCVTZS on ARM64")
+			.WriteWhitespace()
+			// .WriteLine("// Inline FastExp(t): range reduction to r ∈ [-0.5, 0.5] + degree-3 Horner for 2^r.")
+			.WriteLine("var kf  = t * 1.4426950408889634f;")
+			.WriteLine("var k   = (int)Single.Round(kf);")
 			.WriteLine("var r   = kf - k;")
 			.WriteLine("var p   = Single.FusedMultiplyAdd(0.055504108664821580f, r, 0.240226506959100690f);")
 			.WriteLine("p       = Single.FusedMultiplyAdd(p,                     r, 0.693147180559945309f);")
 			.WriteLine("var ans = Single.FusedMultiplyAdd(p, r, 1.0f) * BitConverter.Int32BitsToSingle((k + 127) << 23);")
-			.WriteLine("")
+			.WriteWhitespace()
 			.WriteLine("return (x < 0.0f && (n & 1) != 0) ? -ans : ans;");
 
-		builder.RemoveIndent()
-			.WriteLine("}");
+		builder.EndBlock();
 
 		return builder.ToString();
 	}
@@ -175,8 +173,7 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", n => 
 		var builder = new CodeWriter();
 
 		builder.WriteLine("private static double FastRootN(double x, int n)")
-			.WriteLine("{")
-			.AddIndent("\t");
+			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
 		{
@@ -186,13 +183,13 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", n => 
 		builder.WriteLine("if (n == 0) return double.NaN;")
 			.WriteLine("if (n == 1) return x;")
 			.WriteLine("if (x == 0.0) return 0.0;")
-			.WriteLine("")
+			.WriteWhitespace()
 			.WriteLine("if (n < 0) return 1.0 / FastRootN(x, -n);")
-			.WriteLine("")
+			.WriteWhitespace()
 			.WriteLine("var ax = x < 0.0 ? -x : x;")
-			.WriteLine("")
-			.WriteLine("// Inline FastLog(ax): bit-extract exponent + degree-4 Horner for ln(m ∈ [1,2)).")
-			.WriteLine("// Max relative error ≈ 8.7e-5 (fast-math trade-off).")
+			.WriteWhitespace()
+			// .WriteLine("// Inline FastLog(ax): bit-extract exponent + degree-4 Horner for ln(m ∈ [1,2)).")
+			// .WriteLine("// Max relative error ≈ 8.7e-5 (fast-math trade-off).")
 			.WriteLine("var lBits = BitConverter.DoubleToInt64Bits(ax);")
 			.WriteLine("var lE    = (int)((lBits >> 52) - 1023L);")
 			.WriteLine("var lM    = BitConverter.Int64BitsToDouble((lBits & 0x000FFFFFFFFFFFFFL) | 0x3FF0000000000000L);")
@@ -201,23 +198,22 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", n => 
 			.WriteLine("lnm       = Double.FusedMultiplyAdd(lnm,           lM,  2.821202636);")
 			.WriteLine("lnm       = Double.FusedMultiplyAdd(lnm,           lM, -1.741793927);")
 			.WriteLine("var lnAx  = lE * 0.6931471805599453094172321214581766 + lnm;")
-			.WriteLine("")
-			.WriteLine("// Divide by n.")
+			.WriteWhitespace()
+			// .WriteLine("// Divide by n.")
 			.WriteLine("var t = lnAx / n;")
-			.WriteLine("")
-			.WriteLine("// Inline FastExp(t): range reduction to r ∈ [-0.5, 0.5] + degree-4 Horner for 2^r.")
-			.WriteLine("var kf  = t * 1.4426950408889634073599246810018921;  // t * log₂(e)")
-			.WriteLine("var k   = (long)Double.Round(kf);                     // branchless on ARM64")
+			.WriteWhitespace()
+			// .WriteLine("// Inline FastExp(t): range reduction to r ∈ [-0.5, 0.5] + degree-4 Horner for 2^r.")
+			.WriteLine("var kf  = t * 1.4426950408889634073599246810018921;")
+			.WriteLine("var k   = (long)Double.Round(kf);")
 			.WriteLine("var r   = kf - k;")
 			.WriteLine("var p   = Double.FusedMultiplyAdd(9.618129107628477232e-3, r, 5.550410866482157995e-2);")
 			.WriteLine("p       = Double.FusedMultiplyAdd(p,                       r, 2.402265069591006909e-1);")
 			.WriteLine("p       = Double.FusedMultiplyAdd(p,                       r, 6.931471805599453094e-1);")
 			.WriteLine("var ans = Double.FusedMultiplyAdd(p, r, 1.0) * BitConverter.UInt64BitsToDouble((ulong)((k + 1023L) << 52));")
-			.WriteLine("")
+			.WriteWhitespace()
 			.WriteLine("return (x < 0.0 && (n & 1) != 0) ? -ans : ans;");
 
-		builder.RemoveIndent()
-			.WriteLine("}");
+		builder.EndBlock();
 
 		return builder.ToString();
 	}

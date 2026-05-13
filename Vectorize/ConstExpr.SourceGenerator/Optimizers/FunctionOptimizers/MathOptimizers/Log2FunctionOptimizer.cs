@@ -53,8 +53,7 @@ public class Log2FunctionOptimizer() : BaseMathFunctionOptimizer("Log2", n => n 
 		var builder = new CodeWriter();
 
 		builder.WriteLine("private static float FastLog2(float x)")
-			.WriteLine("{")
-			.AddIndent("\t");
+			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
 		{
@@ -68,31 +67,30 @@ public class Log2FunctionOptimizer() : BaseMathFunctionOptimizer("Log2", n => n 
 			builder.WriteLine("if (Single.IsPositiveInfinity(x)) return Single.PositiveInfinity;");
 		}
 
-		builder.WriteLine("")
-			.WriteLine("// Bit-extract base-2 exponent e and mantissa m ∈ [1, 2).")
+		builder.WriteWhitespace()
+			// .WriteLine("// Bit-extract base-2 exponent e and mantissa m ∈ [1, 2).")
 			.WriteLine("var bits = BitConverter.SingleToInt32Bits(x);")
 			.WriteLine("var e    = (bits >> 23) - 127;")
 			.WriteLine("var m    = BitConverter.Int32BitsToSingle((bits & 0x007FFFFF) | 0x3F800000);")
-			.WriteLine("")
-			.WriteLine("// Degree-4 Horner polynomial for log2(m), m ∈ [1, 2).")
-			.WriteLine("// Coefficients d_i = c_i * log2(e) — the ln(m) minimax coefficients")
-			.WriteLine("// pre-multiplied by log2(e) = 1.4426950408889634, eliminating the")
-			.WriteLine("// final division by ln(2). Max relative error ≈ 8.7e-5 (fast-math).")
-			.WriteLine("const float d4 = -0.081614484f;  // c4 * log2(e)")
-			.WriteLine("const float d3 =  0.645142871f;  // c3 * log2(e)")
-			.WriteLine("const float d2 = -2.120699326f;  // c2 * log2(e)")
-			.WriteLine("const float d1 =  4.070134936f;  // c1 * log2(e)")
-			.WriteLine("const float d0 = -2.512877389f;  // c0 * log2(e)")
-			.WriteLine("")
-			.WriteLine("var log2m = Single.FusedMultiplyAdd(d4, m, d3);")
-			.WriteLine("log2m     = Single.FusedMultiplyAdd(log2m, m, d2);")
-			.WriteLine("log2m     = Single.FusedMultiplyAdd(log2m, m, d1);")
-			.WriteLine("log2m     = Single.FusedMultiplyAdd(log2m, m, d0);")
-			.WriteLine("")
+			.WriteWhitespace()
+			// .WriteLine("// Degree-4 Horner polynomial for log2(m), m ∈ [1, 2).")
+			// .WriteLine("// Coefficients d_i = c_i * log2(e) — the ln(m) minimax coefficients")
+			// .WriteLine("// pre-multiplied by log2(e) = 1.4426950408889634, eliminating the")
+			// .WriteLine("// final division by ln(2). Max relative error ≈ 8.7e-5 (fast-math).")
+			// .WriteLine("const float d4 = -0.081614484f;")
+			// .WriteLine("const float d3 =  0.645142871f;")
+			// .WriteLine("const float d2 = -2.120699326f;")
+			// .WriteLine("const float d1 =  4.070134936f;")
+			// .WriteLine("const float d0 = -2.512877389f;")
+			// .WriteWhitespace()
+			.WriteLine("var log2m = Single.FusedMultiplyAdd(-0.081614484f, m, 0.645142871f);")
+			.WriteLine("log2m     = Single.FusedMultiplyAdd(log2m, m, -2.120699326f);")
+			.WriteLine("log2m     = Single.FusedMultiplyAdd(log2m, m, 4.070134936f);")
+			.WriteLine("log2m     = Single.FusedMultiplyAdd(log2m, m, -2.512877389f);")
+			.WriteWhitespace()
 			.WriteLine("return e + log2m;");
 
-		builder.RemoveIndent()
-			.WriteLine("}");
+		builder.EndBlock();
 
 		return builder.ToString();
 	}
@@ -102,8 +100,7 @@ public class Log2FunctionOptimizer() : BaseMathFunctionOptimizer("Log2", n => n 
 		var builder = new CodeWriter();
 
 		builder.WriteLine("private static double FastLog2(double x)")
-			.WriteLine("{")
-			.AddIndent("\t");
+			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
 		{
@@ -117,31 +114,30 @@ public class Log2FunctionOptimizer() : BaseMathFunctionOptimizer("Log2", n => n 
 			builder.WriteLine("if (Double.IsPositiveInfinity(x)) return Double.PositiveInfinity;");
 		}
 
-		builder.WriteLine("")
-			.WriteLine("// Bit-extract base-2 exponent e and mantissa m ∈ [1, 2).")
+		builder.WriteWhitespace()
+			// .WriteLine("// Bit-extract base-2 exponent e and mantissa m ∈ [1, 2).")
 			.WriteLine("var bits = BitConverter.DoubleToInt64Bits(x);")
 			.WriteLine("var e    = (int)((bits >> 52) - 1023L);")
 			.WriteLine("var m    = BitConverter.Int64BitsToDouble((bits & 0x000FFFFFFFFFFFFFL) | 0x3FF0000000000000L);")
-			.WriteLine("")
-			.WriteLine("// Degree-4 Horner polynomial for log2(m), m ∈ [1, 2).")
-			.WriteLine("// Coefficients d_i = c_i * log2(e) — the ln(m) minimax coefficients")
-			.WriteLine("// pre-multiplied by log2(e) = 1.4426950408889634, eliminating the")
-			.WriteLine("// final division by ln(2). Max relative error ≈ 8.7e-5 (fast-math).")
-			.WriteLine("const double d4 = -0.081614484028;  // c4 * log2(e)")
-			.WriteLine("const double d3 =  0.645142871432;  // c3 * log2(e)")
-			.WriteLine("const double d2 = -2.120699326246;  // c2 * log2(e)")
-			.WriteLine("const double d1 =  4.070134936011;  // c1 * log2(e)")
-			.WriteLine("const double d0 = -2.512877388986;  // c0 * log2(e)")
-			.WriteLine("")
-			.WriteLine("var log2m = Double.FusedMultiplyAdd(d4, m, d3);")
-			.WriteLine("log2m     = Double.FusedMultiplyAdd(log2m, m, d2);")
-			.WriteLine("log2m     = Double.FusedMultiplyAdd(log2m, m, d1);")
-			.WriteLine("log2m     = Double.FusedMultiplyAdd(log2m, m, d0);")
-			.WriteLine("")
+			.WriteWhitespace()
+			// .WriteLine("// Degree-4 Horner polynomial for log2(m), m ∈ [1, 2).")
+			// .WriteLine("// Coefficients d_i = c_i * log2(e) — the ln(m) minimax coefficients")
+			// .WriteLine("// pre-multiplied by log2(e) = 1.4426950408889634, eliminating the")
+			// .WriteLine("// final division by ln(2). Max relative error ≈ 8.7e-5 (fast-math).")
+			// .WriteLine("const double d4 = -0.081614484028;  // c4 * log2(e)")
+			// .WriteLine("const double d3 =  0.645142871432;  // c3 * log2(e)")
+			// .WriteLine("const double d2 = -2.120699326246;  // c2 * log2(e)")
+			// .WriteLine("const double d1 =  4.070134936011;  // c1 * log2(e)")
+			// .WriteLine("const double d0 = -2.512877388986;  // c0 * log2(e)")
+			// .WriteWhitespace()
+			.WriteLine("var log2m = Double.FusedMultiplyAdd(-0.081614484028, m, 0.645142871432);")
+			.WriteLine("log2m     = Double.FusedMultiplyAdd(log2m, m, -2.120699326246);")
+			.WriteLine("log2m     = Double.FusedMultiplyAdd(log2m, m, 4.070134936011);")
+			.WriteLine("log2m     = Double.FusedMultiplyAdd(log2m, m, -2.512877388986);")
+			.WriteWhitespace()
 			.WriteLine("return e + log2m;");
 
-		builder.RemoveIndent()
-			.WriteLine("}");
+		builder.EndBlock();
 
 		return builder.ToString();
 	}

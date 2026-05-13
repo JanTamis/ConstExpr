@@ -91,8 +91,7 @@ public class AtanFunctionOptimizer() : BaseMathFunctionOptimizer("Atan", n => n 
 		var builder = new CodeWriter();
 
 		builder.WriteLine("private static float FastAtan(float x)")
-			.WriteLine("{")
-			.AddIndent("\t");
+			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
 		{
@@ -102,22 +101,21 @@ public class AtanFunctionOptimizer() : BaseMathFunctionOptimizer("Atan", n => n 
 		builder.WriteLine("var absX = Single.Abs(x);")
 			.WriteLine("var swap = absX > 1.0f;")
 			.WriteLine("var a = swap ? 1.0f / absX : absX; // exact reciprocal — no ReciprocalEstimate loss")
-			.WriteLine("")
-			.WriteLine("// A&S §4.4.43 minimax polynomial: atan(a)/a ≈ c₁ + u*(c₃ + u*(c₅ + u*(c₇ + u*c₉)))")
-			.WriteLine("// 4 FMAs + 1 mul; max absolute error ≈ 1.1e-5 rad (~2000× better than Padé [2/2]).")
+			.WriteWhitespace()
+			// .WriteLine("// A&S §4.4.43 minimax polynomial: atan(a)/a ≈ c₁ + u*(c₃ + u*(c₅ + u*(c₇ + u*c₉)))")
+			// .WriteLine("// 4 FMAs + 1 mul; max absolute error ≈ 1.1e-5 rad (~2000× better than Padé [2/2]).")
 			.WriteLine("var u = a * a;")
 			.WriteLine("var p = Single.FusedMultiplyAdd(u,  0.0208351f, -0.0851330f);")
 			.WriteLine("p      = Single.FusedMultiplyAdd(u, p,           0.1801410f);")
 			.WriteLine("p      = Single.FusedMultiplyAdd(u, p,          -0.3302995f);")
 			.WriteLine("p      = Single.FusedMultiplyAdd(u, p,           0.9998660f);")
 			.WriteLine("p     *= a;")
-			.WriteLine("")
-			.WriteLine("// atan(x) = π/2 − atan(1/|x|) when |x| > 1; restore original sign")
+			.WriteWhitespace()
+			// .WriteLine("// atan(x) = π/2 − atan(1/|x|) when |x| > 1; restore original sign")
 			.WriteLine("p = swap ? Single.Pi / 2 - p : p;")
 			.WriteLine("return Single.IsNegative(x) ? -p : p;");
 
-		builder.RemoveIndent()
-			.WriteLine("}");
+		builder.EndBlock();
 
 		return builder.ToString();
 	}
@@ -127,8 +125,7 @@ public class AtanFunctionOptimizer() : BaseMathFunctionOptimizer("Atan", n => n 
 		var builder = new CodeWriter();
 
 		builder.WriteLine("private static double FastAtan(double x)")
-			.WriteLine("{")
-			.AddIndent("\t");
+			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
 		{
@@ -138,22 +135,21 @@ public class AtanFunctionOptimizer() : BaseMathFunctionOptimizer("Atan", n => n 
 		builder.WriteLine("var absX = Double.Abs(x);")
 			.WriteLine("var swap = absX > 1.0; ")
 			.WriteLine("var a = swap ? 1.0 / absX : absX; // exact reciprocal — no ReciprocalEstimate loss")
-			.WriteLine("")
-			.WriteLine("// A&S §4.4.43 minimax polynomial: atan(a)/a ≈ c₁ + u*(c₃ + u*(c₅ + u*(c₇ + u*c₉)))")
-			.WriteLine("// 4 FMAs + 1 mul; max absolute error ≈ 1.1e-5 rad (~2000× better than Padé [2/2]).")
+			.WriteWhitespace()
+			// .WriteLine("// A&S §4.4.43 minimax polynomial: atan(a)/a ≈ c₁ + u*(c₃ + u*(c₅ + u*(c₇ + u*c₉)))")
+			// .WriteLine("// 4 FMAs + 1 mul; max absolute error ≈ 1.1e-5 rad (~2000× better than Padé [2/2]).")
 			.WriteLine("var u = a * a;")
 			.WriteLine("var p = Double.FusedMultiplyAdd(u,  0.0208351, -0.0851330);")
 			.WriteLine("p      = Double.FusedMultiplyAdd(u, p,          0.1801410);")
 			.WriteLine("p      = Double.FusedMultiplyAdd(u, p,         -0.3302995);")
 			.WriteLine("p      = Double.FusedMultiplyAdd(u, p,          0.9998660);")
 			.WriteLine("p     *= a;")
-			.WriteLine("")
-			.WriteLine("// atan(x) = π/2 − atan(1/|x|) when |x| > 1; restore original sign")
+			.WriteWhitespace()
+			// .WriteLine("// atan(x) = π/2 − atan(1/|x|) when |x| > 1; restore original sign")
 			.WriteLine("p = swap ? Double.Pi / 2 - p : p;")
 			.WriteLine("return Double.IsNegative(x) ? -p : p;");
 
-		builder.RemoveIndent()
-			.WriteLine("}");
+		builder.EndBlock();
 
 		return builder.ToString();
 	}

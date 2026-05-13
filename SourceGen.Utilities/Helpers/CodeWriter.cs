@@ -8,6 +8,13 @@ public sealed class CodeWriter
 	private readonly StringBuilder _builder = new();
 	private readonly Stack<string> _indentation = new();
 
+	public CodeWriter WriteWhitespace()
+	{
+		_builder.AppendLine();
+
+		return this;
+	}
+
 	public CodeWriter WriteLine(string line)
 	{
 		foreach (var indent in _indentation)
@@ -16,6 +23,37 @@ public sealed class CodeWriter
 		}
 
 		_builder.AppendLine(line);
+
+		return this;
+	}
+
+	public CodeWriter StartBlock()
+	{
+		WriteLine("{");
+		AddIndent("\t");
+		return this;
+	}
+
+	public CodeWriter EndBlock()
+	{
+		RemoveIndent();
+		WriteLine("}");
+
+		return this;
+	}
+
+	public CodeWriter StartComment()
+	{
+		AddIndent("/// ");
+		WriteLine("<summary>");
+
+		return this;
+	}
+
+	public CodeWriter EndComment()
+	{
+		WriteLine("</summary>");
+		RemoveIndent();
 
 		return this;
 	}

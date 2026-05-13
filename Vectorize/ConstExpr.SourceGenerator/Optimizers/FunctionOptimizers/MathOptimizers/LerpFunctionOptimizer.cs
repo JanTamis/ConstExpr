@@ -35,22 +35,21 @@ public class LerpFunctionOptimizer() : BaseMathFunctionOptimizer("Lerp", n => n 
 		var builder = new CodeWriter();
 
 		builder.WriteLine("private static float FastLerp(float a, float b, float t)")
-			.WriteLine("{")
-			.AddIndent("\t");
+			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Single.IsNaN(a) || Single.IsNaN(b) || Single.IsNaN(t)) return Single.NaN;");
 		}
 
-		builder.WriteLine("// Fast linear interpolation using FMA (Fused Multiply-Add)")
-			.WriteLine("// Lerp(a, b, t) = a + (b - a) * t")
-			.WriteLine("// Using FMA: a + t * (b - a)")
-			.WriteLine("// This provides better performance and accuracy than the naive formula")
+		builder
+			// .WriteLine("// Fast linear interpolation using FMA (Fused Multiply-Add)")
+			// .WriteLine("// Lerp(a, b, t) = a + (b - a) * t")
+			// .WriteLine("// Using FMA: a + t * (b - a)")
+			// .WriteLine("// This provides better performance and accuracy than the naive formula")
 			.WriteLine("return Single.FusedMultiplyAdd(t, b - a, a);");
 
-		builder.RemoveIndent()
-			.WriteLine("}");
+		builder.EndBlock();
 
 		return builder.ToString();
 	}
@@ -60,22 +59,21 @@ public class LerpFunctionOptimizer() : BaseMathFunctionOptimizer("Lerp", n => n 
 		var builder = new CodeWriter();
 
 		builder.WriteLine("private static double FastLerp(double a, double b, double t)")
-			.WriteLine("{")
-			.AddIndent("\t");
+			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Double.IsNaN(a) || Double.IsNaN(b) || Double.IsNaN(t)) return Double.NaN;");
 		}
 
-		builder.WriteLine("// Fast linear interpolation using FMA (Fused Multiply-Add)")
-			.WriteLine("// Lerp(a, b, t) = a + (b - a) * t")
-			.WriteLine("// Using FMA: a + t * (b - a)")
-			.WriteLine("// This provides better performance and accuracy than the naive formula")
+		builder
+			// .WriteLine("// Fast linear interpolation using FMA (Fused Multiply-Add)")
+			// .WriteLine("// Lerp(a, b, t) = a + (b - a) * t")
+			// .WriteLine("// Using FMA: a + t * (b - a)")
+			// .WriteLine("// This provides better performance and accuracy than the naive formula")
 			.WriteLine("return Double.FusedMultiplyAdd(t, b - a, a);");
 
-		builder.RemoveIndent()
-			.WriteLine("}");
+		builder.EndBlock();
 
 		return builder.ToString();
 	}

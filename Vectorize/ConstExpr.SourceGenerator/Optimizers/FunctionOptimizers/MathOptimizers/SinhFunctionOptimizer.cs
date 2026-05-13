@@ -35,8 +35,7 @@ public class SinhFunctionOptimizer() : BaseMathFunctionOptimizer("Sinh", n => n 
 		var builder = new CodeWriter();
 
 		builder.WriteLine("private static float FastSinh(float x)")
-			.WriteLine("{")
-			.AddIndent("\t");
+			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
 		{
@@ -45,22 +44,21 @@ public class SinhFunctionOptimizer() : BaseMathFunctionOptimizer("Sinh", n => n 
 
 		builder.WriteLine("var sign = x;")
 			.WriteLine("x = Single.Abs(x);")
-			.WriteLine("")
-			.WriteLine("// exp overflows to +Inf for x > ~88.72; return ±Inf with correct sign immediately")
+			.WriteWhitespace()
+			// .WriteLine("// exp overflows to +Inf for x > ~88.72; return ±Inf with correct sign immediately")
 			.WriteLine("if (x > 88.0f) return Single.CopySign(float.PositiveInfinity, sign);")
-			.WriteLine("")
+			.WriteWhitespace()
 			.WriteLine("var ex = Single.Exp(x);")
-			.WriteLine("")
-			.WriteLine("// One Newton-Raphson step on ReciprocalEstimate restores ~24-bit precision")
-			.WriteLine("// (raw estimate is only ~12-bit accurate, causing ~333× worse error than float epsilon at x=1)")
-			.WriteLine("// r' = r * (2 - ex * r)")
+			.WriteWhitespace()
+			// .WriteLine("// One Newton-Raphson step on ReciprocalEstimate restores ~24-bit precision")
+			// .WriteLine("// (raw estimate is only ~12-bit accurate, causing ~333× worse error than float epsilon at x=1)")
+			// .WriteLine("// r' = r * (2 - ex * r)")
 			.WriteLine("var r = Single.ReciprocalEstimate(ex);")
 			.WriteLine("r *= Single.FusedMultiplyAdd(-ex, r, 2.0f);")
-			.WriteLine("")
+			.WriteWhitespace()
 			.WriteLine("return Single.CopySign((ex - r) * 0.5f, sign);");
 
-		builder.RemoveIndent()
-			.WriteLine("}");
+		builder.EndBlock();
 
 		return builder.ToString();
 	}
@@ -70,8 +68,7 @@ public class SinhFunctionOptimizer() : BaseMathFunctionOptimizer("Sinh", n => n 
 		var builder = new CodeWriter();
 
 		builder.WriteLine("private static double FastSinh(double x)")
-			.WriteLine("{")
-			.AddIndent("\t");
+			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
 		{
@@ -80,19 +77,18 @@ public class SinhFunctionOptimizer() : BaseMathFunctionOptimizer("Sinh", n => n 
 
 		builder.WriteLine("var sign = x;")
 			.WriteLine("x = Double.Abs(x);")
-			.WriteLine("")
-			.WriteLine("// exp overflows to +Inf for x > ~709.78; return ±Inf with correct sign immediately")
+			.WriteWhitespace()
+			// .WriteLine("// exp overflows to +Inf for x > ~709.78; return ±Inf with correct sign immediately")
 			.WriteLine("if (x > 709.0) return Double.CopySign(double.PositiveInfinity, sign);")
-			.WriteLine("")
+			.WriteWhitespace()
 			.WriteLine("var ex = Double.Exp(x);")
-			.WriteLine("")
-			.WriteLine("// Division gives full double precision for 1/ex.")
-			.WriteLine("// Double.ReciprocalEstimate is only ~14-bit accurate, causing catastrophic")
-			.WriteLine("// precision loss — using FDIV here is both correct and comparable in cost.")
+			.WriteWhitespace()
+			// .WriteLine("// Division gives full double precision for 1/ex.")
+			// .WriteLine("// Double.ReciprocalEstimate is only ~14-bit accurate, causing catastrophic")
+			// .WriteLine("// precision loss — using FDIV here is both correct and comparable in cost.")
 			.WriteLine("return Double.CopySign((ex - 1.0 / ex) * 0.5, sign);");
 
-		builder.RemoveIndent()
-			.WriteLine("}");
+		builder.EndBlock();
 
 		return builder.ToString();
 	}

@@ -35,8 +35,7 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n 
 		var builder = new CodeWriter();
 
 		builder.WriteLine("private static float FastAsin(float x)")
-			.WriteLine("{")
-			.AddIndent("\t");
+			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
 		{
@@ -47,31 +46,30 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n 
 			.WriteLine("if (x > 1.0f)  x =  1.0f;")
 			.WriteLine("var xa = Single.Abs(x);")
 			.WriteLine("if (xa < 0.5f)")
-			.WriteLine("{")
-			.AddIndent("\t")
-			.WriteLine("// Taylor: asin(x) ≈ x + x³/6  (max error ~5e-4 near x = 0.5)")
+			.StartBlock()
+			// .WriteLine("// Taylor: asin(x) ≈ x + x³/6  (max error ~5e-4 near x = 0.5)")
 			.WriteLine("var x2 = xa * xa;")
-			.WriteLine("var ret = 0.16666667f; // 1/6")
+			.WriteLine("var ret = 0.16666667f;")
 			.WriteLine("ret = Single.FusedMultiplyAdd(ret, x2, 1.0f);")
 			.WriteLine("ret *= xa;")
+			.WriteWhitespace()
 			.WriteLine("return Single.CopySign(ret, x);")
-			.RemoveIndent()
-			.WriteLine("}")
-			.WriteLine("")
-			.WriteLine("// A&S §4.4.45 minimax polynomial: acos(|x|) = sqrt(1-|x|) * poly(|x|)")
-			.WriteLine("// then asin(x) = sign(x) * (π/2 - acos(|x|))")
+			.EndBlock()
+			.WriteWhitespace()
+			// .WriteLine("// A&S §4.4.45 minimax polynomial: acos(|x|) = sqrt(1-|x|) * poly(|x|)")
+			// .WriteLine("// then asin(x) = sign(x) * (π/2 - acos(|x|))")
 			.WriteLine("var onemx = 1.0f - xa;")
 			.WriteLine("var sqrtOnemx = Single.Sqrt(onemx);")
 			.WriteLine("var p = -0.0187293f;")
+			.WriteWhitespace()
 			.WriteLine("p = Single.FusedMultiplyAdd(p, xa,  0.0742610f);")
 			.WriteLine("p = Single.FusedMultiplyAdd(p, xa, -0.2121144f);")
 			.WriteLine("p = Single.FusedMultiplyAdd(p, xa,  1.5707288f);")
 			.WriteLine("p *= sqrtOnemx;")
 			.WriteLine("p = 1.5707963267948966f - p;")
-			.WriteLine("return Single.CopySign(p, x);");
-
-		builder.RemoveIndent()
-			.WriteLine("}");
+			.WriteWhitespace()
+			.WriteLine("return Single.CopySign(p, x);")
+			.RemoveIndent();
 
 		return builder.ToString();
 	}
@@ -81,8 +79,7 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n 
 		var builder = new CodeWriter();
 
 		builder.WriteLine("private static double FastAsin(double x)")
-			.WriteLine("{")
-			.AddIndent("\t");
+			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
 		{
@@ -91,33 +88,34 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n 
 
 		builder.WriteLine("if (x < -1.0) x = -1.0;")
 			.WriteLine("if (x > 1.0)  x =  1.0;")
+			.WriteWhitespace()
 			.WriteLine("var xa = Double.Abs(x);")
+			.WriteWhitespace()
 			.WriteLine("if (xa < 0.5)")
-			.WriteLine("{")
-			.AddIndent("\t")
-			.WriteLine("// Taylor: asin(x) ≈ x + x³/6  (max error ~2.8e-3 near x = 0.5)")
+			.StartBlock()
+			// .WriteLine("// Taylor: asin(x) ≈ x + x³/6  (max error ~2.8e-3 near x = 0.5)")
 			.WriteLine("var x2 = xa * xa;")
-			.WriteLine("var ret = 0.16666666666666666; // 1/6")
+			.WriteLine("var ret = 0.16666666666666666;")
 			.WriteLine("ret = Double.FusedMultiplyAdd(ret, x2, 1.0);")
 			.WriteLine("ret *= xa;")
+			.WriteWhitespace()
 			.WriteLine("return Double.CopySign(ret, x);")
-			.RemoveIndent()
-			.WriteLine("}")
-			.WriteLine("")
-			.WriteLine("// A&S §4.4.45 minimax polynomial: acos(|x|) = sqrt(1-|x|) * poly(|x|)")
-			.WriteLine("// then asin(x) = sign(x) * (π/2 - acos(|x|))")
+			.EndBlock()
+			.WriteWhitespace()
+			// .WriteLine("// A&S §4.4.45 minimax polynomial: acos(|x|) = sqrt(1-|x|) * poly(|x|)")
+			// .WriteLine("// then asin(x) = sign(x) * (π/2 - acos(|x|))")
 			.WriteLine("var onemx = 1.0 - xa;")
 			.WriteLine("var sqrtOnemx = Double.Sqrt(onemx);")
 			.WriteLine("var p = -0.0187293;")
+			.WriteWhitespace()
 			.WriteLine("p = Double.FusedMultiplyAdd(p, xa,  0.0742610);")
 			.WriteLine("p = Double.FusedMultiplyAdd(p, xa, -0.2121144);")
 			.WriteLine("p = Double.FusedMultiplyAdd(p, xa,  1.5707288);")
 			.WriteLine("p *= sqrtOnemx;")
 			.WriteLine("p = 1.5707963267948966 - p;")
-			.WriteLine("return Double.CopySign(p, x);");
-
-		builder.RemoveIndent()
-			.WriteLine("}");
+			.WriteWhitespace()
+			.WriteLine("return Double.CopySign(p, x);")
+			.EndBlock();
 
 		return builder.ToString();
 	}

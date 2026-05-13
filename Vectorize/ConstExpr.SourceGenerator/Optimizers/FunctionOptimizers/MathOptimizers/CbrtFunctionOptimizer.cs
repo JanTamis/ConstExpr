@@ -35,8 +35,7 @@ public class CbrtFunctionOptimizer() : BaseMathFunctionOptimizer("Cbrt", n => n 
 		var builder = new CodeWriter();
 
 		builder.WriteLine("private static float FastCbrt(float x)")
-			.WriteLine("{")
-			.AddIndent("\t");
+			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
 		{
@@ -44,26 +43,25 @@ public class CbrtFunctionOptimizer() : BaseMathFunctionOptimizer("Cbrt", n => n 
 		}
 
 		builder.WriteLine("if (x == 0.0f) return 0.0f;")
-			.WriteLine("")
+			.WriteWhitespace()
 			.WriteLine("var absX = Single.Abs(x);")
-			.WriteLine("")
-			.WriteLine("// Initial approximation using bit manipulation (~7 significant bits)")
+			.WriteWhitespace()
+			// .WriteLine("// Initial approximation using bit manipulation (~7 significant bits)")
 			.WriteLine("var i = BitConverter.SingleToInt32Bits(absX);")
 			.WriteLine("i = 0x2a517d47 + i / 3;")
 			.WriteLine("var y = BitConverter.Int32BitsToSingle(i);")
-			.WriteLine("")
-			.WriteLine("// Single Halley iteration: y = y * (y³ + 2a) / (2y³ + a)")
-			.WriteLine("// Cubic convergence: 7 bits → ~21 bits in one step (vs two Newton steps for ~20 bits).")
-			.WriteLine("// One division instead of two — benchmarked at ~2× faster than the 2×Newton approach.")
+			.WriteWhitespace()
+			// .WriteLine("// Single Halley iteration: y = y * (y³ + 2a) / (2y³ + a)")
+			// .WriteLine("// Cubic convergence: 7 bits → ~21 bits in one step (vs two Newton steps for ~20 bits).")
+			// .WriteLine("// One division instead of two — benchmarked at ~2× faster than the 2×Newton approach.")
 			.WriteLine("var y2 = y * y;")
 			.WriteLine("var y3 = y2 * y;")
 			.WriteLine("var twoA = absX + absX;")
 			.WriteLine("y = y * Single.FusedMultiplyAdd(1.0f, y3, twoA) / Single.FusedMultiplyAdd(2.0f, y3, absX);")
-			.WriteLine("")
+			.WriteWhitespace()
 			.WriteLine("return Single.CopySign(y, x);");
 
-		builder.RemoveIndent()
-			.WriteLine("}");
+		builder.EndBlock();
 
 		return builder.ToString();
 	}
@@ -73,8 +71,7 @@ public class CbrtFunctionOptimizer() : BaseMathFunctionOptimizer("Cbrt", n => n 
 		var builder = new CodeWriter();
 
 		builder.WriteLine("private static double FastCbrt(double x)")
-			.WriteLine("{")
-			.AddIndent("\t");
+			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
 		{
@@ -82,29 +79,28 @@ public class CbrtFunctionOptimizer() : BaseMathFunctionOptimizer("Cbrt", n => n 
 		}
 
 		builder.WriteLine("if (x == 0.0) return 0.0;")
-			.WriteLine("")
+			.WriteWhitespace()
 			.WriteLine("var absX = Double.Abs(x);")
-			.WriteLine("")
-			.WriteLine("// Initial approximation using bit manipulation (~8 significant bits)")
+			.WriteWhitespace()
+			// .WriteLine("// Initial approximation using bit manipulation (~8 significant bits)")
 			.WriteLine("var i = BitConverter.DoubleToInt64Bits(absX);")
 			.WriteLine("i = 0x2a9f8b7cef1d0da0L + i / 3;")
 			.WriteLine("var y = BitConverter.Int64BitsToDouble(i);")
-			.WriteLine("")
-			.WriteLine("// 1× Newton: y = (2y + a/y²) / 3  — reaches ~16 bits")
+			.WriteWhitespace()
+			// .WriteLine("// 1× Newton: y = (2y + a/y²) / 3  — reaches ~16 bits")
 			.WriteLine("y = (y + y + absX / (y * y)) / 3.0;")
-			.WriteLine("")
-			.WriteLine("// 1× Halley: y = y * (y³ + 2a) / (2y³ + a)")
-			.WriteLine("// Cubic convergence from 16 bits → ~48 bits (vs 2×Newton which only reached ~32 bits).")
-			.WriteLine("// Same two-division cost as the previous 2×Newton implementation.")
+			.WriteWhitespace()
+			// .WriteLine("// 1× Halley: y = y * (y³ + 2a) / (2y³ + a)")
+			// .WriteLine("// Cubic convergence from 16 bits → ~48 bits (vs 2×Newton which only reached ~32 bits).")
+			// .WriteLine("// Same two-division cost as the previous 2×Newton implementation.")
 			.WriteLine("var y2 = y * y;")
 			.WriteLine("var y3 = y2 * y;")
 			.WriteLine("var twoA = absX + absX;")
 			.WriteLine("y = y * Double.FusedMultiplyAdd(1.0, y3, twoA) / Double.FusedMultiplyAdd(2.0, y3, absX);")
-			.WriteLine("")
+			.WriteWhitespace()
 			.WriteLine("return Double.CopySign(y, x);");
 
-		builder.RemoveIndent()
-			.WriteLine("}");
+		builder.EndBlock();
 
 		return builder.ToString();
 	}

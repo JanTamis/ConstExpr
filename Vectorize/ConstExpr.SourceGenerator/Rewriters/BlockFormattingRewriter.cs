@@ -34,7 +34,19 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			return null;
 		}
 
-		return base.VisitAssignmentExpression(node);
+		var visited = base.VisitAssignmentExpression(node) as AssignmentExpressionSyntax;
+
+		if (visited is null || !visited.IsKind(SyntaxKind.SimpleAssignmentExpression) || visited.Left is not IdentifierNameSyntax leftId)
+		{
+			return visited;
+		}
+
+		if (TryRewriteToCompoundAssignment(visited, leftId.Identifier.ValueText, out var rewritten))
+		{
+			return rewritten?.WithTriviaFrom(visited) ?? visited;
+		}
+
+		return visited;
 	}
 
 	public override SyntaxNode? VisitIsPatternExpression(IsPatternExpressionSyntax node)
@@ -157,15 +169,6 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		}
 
 		return node;
-	}
-
-	private static bool IsHexOrBinaryLiteral(SyntaxToken token)
-	{
-		var text = token.Text;
-		return text.StartsWith("0x", StringComparison.OrdinalIgnoreCase) ||
-		       text.StartsWith("0X", StringComparison.OrdinalIgnoreCase) ||
-		       text.StartsWith("0b", StringComparison.OrdinalIgnoreCase) ||
-		       text.StartsWith("0B", StringComparison.OrdinalIgnoreCase);
 	}
 
 	public override SyntaxNode? VisitIfStatement(IfStatementSyntax node)
@@ -392,82 +395,6 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		}
 
 		return visited.WithMembers(NormalizeMemberSpacing(visited.Members));
-	}
-
-	private static SyntaxList<MemberDeclarationSyntax> NormalizeMemberSpacing(SyntaxList<MemberDeclarationSyntax> members)
-	{
-		if (members.Count <= 1)
-		{
-			return members;
-		}
-
-		var newMembers = new SyntaxList<MemberDeclarationSyntax>();
-
-		for (var i = 0; i < members.Count; i++)
-		{
-			var member = members[i];
-
-			if (i > 0)
-			{
-				// Normalize: strip all leading EOLs from this member, then add exactly 1
-				var leading = member.GetLeadingTrivia();
-				var nonEolStart = 0;
-
-				while (nonEolStart < leading.Count && leading[nonEolStart].IsKind(SyntaxKind.EndOfLineTrivia))
-				{
-					nonEolStart++;
-				}
-
-				// Build new leading trivia: exactly 1 EOL + rest (whitespace/indentation)
-				var newLeading = TriviaList(EndOfLine("\n"));
-
-				for (var j = nonEolStart; j < leading.Count; j++)
-				{
-					newLeading = newLeading.Add(leading[j]);
-				}
-
-				member = member.WithLeadingTrivia(newLeading);
-
-				// Also normalize trailing trivia of the *previous* member to have exactly 1 EOL
-				var prev = newMembers[i - 1];
-				var trailing = prev.GetTrailingTrivia();
-				var newTrailing = TriviaList();
-				var foundEol = false;
-
-				foreach (var trivia in trailing)
-				{
-					if (trivia.IsKind(SyntaxKind.EndOfLineTrivia))
-					{
-						if (!foundEol)
-						{
-							newTrailing = newTrailing.Add(trivia);
-							foundEol = true;
-						}
-
-						// Skip additional EOLs
-					}
-					else if (trivia.IsKind(SyntaxKind.WhitespaceTrivia) && foundEol)
-					{
-						// Skip trailing whitespace after EOL
-					}
-					else
-					{
-						newTrailing = newTrailing.Add(trivia);
-					}
-				}
-
-				if (!foundEol)
-				{
-					newTrailing = newTrailing.Add(EndOfLine("\n"));
-				}
-
-				newMembers = newMembers.Replace(newMembers[i - 1], prev.WithTrailingTrivia(newTrailing));
-			}
-
-			newMembers = newMembers.Add(member);
-		}
-
-		return newMembers;
 	}
 
 	public override SyntaxNode VisitBlock(BlockSyntax node)
@@ -1339,6 +1266,156 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		}
 
 		return result;
+	}
+
+	private static bool TryRewriteToCompoundAssignment(AssignmentExpressionSyntax visited, string leftName, out AssignmentExpressionSyntax rewritten)
+	{
+		rewritten = visited;
+
+		if (visited.Right is not BinaryExpressionSyntax binary)
+		{
+			return false;
+		}
+
+		if (!TryExtractCompoundBinary(binary, leftName, out var compoundKind, out var rightExpression))
+		{
+			return false;
+		}
+
+		var compoundOperator = GetCompoundAssignmentOperator(compoundKind);
+
+		if (compoundOperator is null)
+		{
+			return false;
+		}
+
+		var rewrittenText = $"{visited.Left.WithoutTrivia()} {compoundOperator} {rightExpression.WithoutTrivia()}";
+		rewritten = ParseExpression(rewrittenText).NormalizeWhitespace() as AssignmentExpressionSyntax ?? visited;
+		return rewritten != visited;
+	}
+
+	private static bool TryExtractCompoundBinary(BinaryExpressionSyntax binary, string leftName, out SyntaxKind compoundKind, out ExpressionSyntax rightExpression)
+	{
+		if (binary.Left is IdentifierNameSyntax identifier && identifier.Identifier.ValueText == leftName)
+		{
+			compoundKind = binary.Kind();
+			rightExpression = binary.Right;
+			return true;
+		}
+
+		if (binary.Left is BinaryExpressionSyntax nested && TryExtractCompoundBinary(nested, leftName, out compoundKind, out var nestedRight))
+		{
+			rightExpression = BinaryExpression(binary.Kind(), nestedRight, binary.Right);
+			return true;
+		}
+
+		compoundKind = default;
+		rightExpression = binary;
+		return false;
+	}
+
+	private static string? GetCompoundAssignmentOperator(SyntaxKind kind)
+	{
+		return kind switch
+		{
+			SyntaxKind.AddExpression => "+=",
+			SyntaxKind.SubtractExpression => "-=",
+			SyntaxKind.MultiplyExpression => "*=",
+			SyntaxKind.DivideExpression => "/=",
+			SyntaxKind.ModuloExpression => "%=",
+			SyntaxKind.BitwiseAndExpression => "&=",
+			SyntaxKind.BitwiseOrExpression => "|=",
+			SyntaxKind.ExclusiveOrExpression => "^=",
+			SyntaxKind.LeftShiftExpression => "<<=",
+			SyntaxKind.RightShiftExpression => ">>=",
+			SyntaxKind.UnsignedRightShiftExpression => ">>>=",
+			_ => null
+		};
+	}
+
+	private static bool IsHexOrBinaryLiteral(SyntaxToken token)
+	{
+		var text = token.Text;
+		return text.StartsWith("0x", StringComparison.OrdinalIgnoreCase) ||
+		       text.StartsWith("0X", StringComparison.OrdinalIgnoreCase) ||
+		       text.StartsWith("0b", StringComparison.OrdinalIgnoreCase) ||
+		       text.StartsWith("0B", StringComparison.OrdinalIgnoreCase);
+	}
+
+	private static SyntaxList<MemberDeclarationSyntax> NormalizeMemberSpacing(SyntaxList<MemberDeclarationSyntax> members)
+	{
+		if (members.Count <= 1)
+		{
+			return members;
+		}
+
+		var newMembers = new SyntaxList<MemberDeclarationSyntax>();
+
+		for (var i = 0; i < members.Count; i++)
+		{
+			var member = members[i];
+
+			if (i > 0)
+			{
+				// Normalize: strip all leading EOLs from this member, then add exactly 1
+				var leading = member.GetLeadingTrivia();
+				var nonEolStart = 0;
+
+				while (nonEolStart < leading.Count && leading[nonEolStart].IsKind(SyntaxKind.EndOfLineTrivia))
+				{
+					nonEolStart++;
+				}
+
+				// Build new leading trivia: exactly 1 EOL + rest (whitespace/indentation)
+				var newLeading = TriviaList(EndOfLine("\n"));
+
+				for (var j = nonEolStart; j < leading.Count; j++)
+				{
+					newLeading = newLeading.Add(leading[j]);
+				}
+
+				member = member.WithLeadingTrivia(newLeading);
+
+				// Also normalize trailing trivia of the *previous* member to have exactly 1 EOL
+				var prev = newMembers[i - 1];
+				var trailing = prev.GetTrailingTrivia();
+				var newTrailing = TriviaList();
+				var foundEol = false;
+
+				foreach (var trivia in trailing)
+				{
+					if (trivia.IsKind(SyntaxKind.EndOfLineTrivia))
+					{
+						if (!foundEol)
+						{
+							newTrailing = newTrailing.Add(trivia);
+							foundEol = true;
+						}
+
+						// Skip additional EOLs
+					}
+					else if (trivia.IsKind(SyntaxKind.WhitespaceTrivia) && foundEol)
+					{
+						// Skip trailing whitespace after EOL
+					}
+					else
+					{
+						newTrailing = newTrailing.Add(trivia);
+					}
+				}
+
+				if (!foundEol)
+				{
+					newTrailing = newTrailing.Add(EndOfLine("\n"));
+				}
+
+				newMembers = newMembers.Replace(newMembers[i - 1], prev.WithTrailingTrivia(newTrailing));
+			}
+
+			newMembers = newMembers.Add(member);
+		}
+
+		return newMembers;
 	}
 
 	private static bool IsConditionalSyntax(StatementSyntax statement)

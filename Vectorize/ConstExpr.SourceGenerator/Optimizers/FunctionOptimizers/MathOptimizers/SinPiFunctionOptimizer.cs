@@ -35,36 +35,35 @@ public class SinPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinPi", n => 
 		var builder = new CodeWriter();
 
 		builder.WriteLine("private static float FastSinPi(float x)")
-			.WriteLine("{")
-			.AddIndent("\t");
+			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
 		}
 
-		builder.WriteLine("// Fast SinPi(x) = Sin(π·x) — branchless scalar implementation.")
-			.WriteLine("// Benchmark (Apple M4 Pro, .NET 10, ARM64): 1.13 ns vs 2.43 ns dotnet (-54%)")
-			.WriteLine("")
-			.WriteLine("// Branchless range reduction to [−1, 1]: FRINTN, no conditional branches")
+		builder
+			// .WriteLine("// Fast SinPi(x) = Sin(π·x) — branchless scalar implementation.")
+			// .WriteLine("// Benchmark (Apple M4 Pro, .NET 10, ARM64): 1.13 ns vs 2.43 ns dotnet (-54%)")
+			.WriteWhitespace()
+			// .WriteLine("// Branchless range reduction to [−1, 1]: FRINTN, no conditional branches")
 			.WriteLine("x -= Single.Round(x * 0.5f) * 2.0f;")
 			.WriteLine("var sign = x;")
 			.WriteLine("x = Single.Abs(x);")
-			.WriteLine("")
-			.WriteLine("// Branchless fold to [0, 0.5]: FMIN replaces the if-branch at x = 0.5")
+			.WriteWhitespace()
+			// .WriteLine("// Branchless fold to [0, 0.5]: FMIN replaces the if-branch at x = 0.5")
 			.WriteLine("var u  = Single.Min(x, 1.0f - x);")
 			.WriteLine("var u2 = u * u;")
-			.WriteLine("")
-			.WriteLine("// sinpi(u) = u·(π + u²·(−π³/6 + u²·(π⁵/120 + u²·(−π⁷/5040))))")
-			.WriteLine("// π absorbed into coefficients — saves the explicit px = u·π multiply")
-			.WriteLine("var r = -0.59926453f;                              // −π⁷/5040")
-			.WriteLine("r = Single.FusedMultiplyAdd(r, u2,  2.55016404f); // +π⁵/120")
-			.WriteLine("r = Single.FusedMultiplyAdd(r, u2, -5.16771278f); // −π³/6")
-			.WriteLine("r = Single.FusedMultiplyAdd(r, u2,  3.14159265f); // +π")
+			.WriteWhitespace()
+			// .WriteLine("// sinpi(u) = u·(π + u²·(−π³/6 + u²·(π⁵/120 + u²·(−π⁷/5040))))")
+			// .WriteLine("// π absorbed into coefficients — saves the explicit px = u·π multiply")
+			.WriteLine("var r = -0.59926453f")
+			.WriteLine("r = Single.FusedMultiplyAdd(r, u2,  2.55016404f);")
+			.WriteLine("r = Single.FusedMultiplyAdd(r, u2, -5.16771278f);")
+			.WriteLine("r = Single.FusedMultiplyAdd(r, u2,  3.14159265f);")
 			.WriteLine("return Single.CopySign(u * r, sign);");
 
-		builder.RemoveIndent()
-			.WriteLine("}");
+		builder.EndBlock();
 
 		return builder.ToString();
 	}
@@ -74,37 +73,36 @@ public class SinPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinPi", n => 
 		var builder = new CodeWriter();
 
 		builder.WriteLine("private static double FastSinPi(double x)")
-			.WriteLine("{")
-			.AddIndent("\t");
+			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
 		}
 
-		builder.WriteLine("// Fast SinPi(x) = Sin(π·x) — branchless scalar implementation.")
-			.WriteLine("// Benchmark (Apple M4 Pro, .NET 10, ARM64): 1.23 ns vs 2.64 ns dotnet (-53%)")
-			.WriteLine("")
-			.WriteLine("// Branchless range reduction to [−1, 1]: FRINTN, no conditional branches")
+		builder
+			// .WriteLine("// Fast SinPi(x) = Sin(π·x) — branchless scalar implementation.")
+			// .WriteLine("// Benchmark (Apple M4 Pro, .NET 10, ARM64): 1.23 ns vs 2.64 ns dotnet (-53%)")
+			.WriteWhitespace()
+			// .WriteLine("// Branchless range reduction to [−1, 1]: FRINTN, no conditional branches")
 			.WriteLine("x -= Double.Round(x * 0.5) * 2.0;")
 			.WriteLine("var sign = x;")
 			.WriteLine("x = Double.Abs(x);")
-			.WriteLine("")
-			.WriteLine("// Branchless fold to [0, 0.5]: FMIN replaces the if-branch at x = 0.5")
+			.WriteWhitespace()
+			// .WriteLine("// Branchless fold to [0, 0.5]: FMIN replaces the if-branch at x = 0.5")
 			.WriteLine("var u  = Double.Min(x, 1.0 - x);")
 			.WriteLine("var u2 = u * u;")
-			.WriteLine("")
-			.WriteLine("// sinpi(u) = u·(π + u²·(−π³/6 + u²·(π⁵/120 + u²·(−π⁷/5040 + u²·(π⁹/362880)))))")
-			.WriteLine("// π absorbed into coefficients — saves the explicit px = u·π multiply")
-			.WriteLine("var r =  0.08214588661112823;                              // +π⁹/362880")
-			.WriteLine("r = Double.FusedMultiplyAdd(r, u2, -0.59926452932079209); // −π⁷/5040")
-			.WriteLine("r = Double.FusedMultiplyAdd(r, u2,  2.55016403987734485); // +π⁵/120")
-			.WriteLine("r = Double.FusedMultiplyAdd(r, u2, -5.16771278004997102); // −π³/6")
-			.WriteLine("r = Double.FusedMultiplyAdd(r, u2,  3.14159265358979324); // +π")
+			.WriteWhitespace()
+			// .WriteLine("// sinpi(u) = u·(π + u²·(−π³/6 + u²·(π⁵/120 + u²·(−π⁷/5040 + u²·(π⁹/362880)))))")
+			// .WriteLine("// π absorbed into coefficients — saves the explicit px = u·π multiply")
+			.WriteLine("var r =  0.08214588661112823;")
+			.WriteLine("r = Double.FusedMultiplyAdd(r, u2, -0.59926452932079209);")
+			.WriteLine("r = Double.FusedMultiplyAdd(r, u2,  2.55016403987734485);")
+			.WriteLine("r = Double.FusedMultiplyAdd(r, u2, -5.16771278004997102);")
+			.WriteLine("r = Double.FusedMultiplyAdd(r, u2,  3.14159265358979324);")
 			.WriteLine("return Double.CopySign(u * r, sign);");
 
-		builder.RemoveIndent()
-			.WriteLine("}");
+		builder.EndBlock();
 
 		return builder.ToString();
 	}

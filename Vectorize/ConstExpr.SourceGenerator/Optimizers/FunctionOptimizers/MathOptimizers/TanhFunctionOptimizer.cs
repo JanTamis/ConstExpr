@@ -119,8 +119,7 @@ public class TanhFunctionOptimizer() : BaseMathFunctionOptimizer("Tanh", n => n 
 		var builder = new CodeWriter();
 
 		builder.WriteLine("private static float FastTanh(float x)")
-			.WriteLine("{")
-			.AddIndent("\t");
+			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
 		{
@@ -129,28 +128,23 @@ public class TanhFunctionOptimizer() : BaseMathFunctionOptimizer("Tanh", n => n 
 
 		builder.WriteLine("if (x >= 5.0f) return 1.0f;")
 			.WriteLine("if (x <= -5.0f) return -1.0f;")
-			.WriteLine("")
-			.WriteLine("// Inline FastExp(2x) — direct-poly V2.")
-			.WriteLine("// |2x| ≤ 10, well inside FastExp safe domain (-87..88).")
-			.WriteLine("const float INV_LN2 = 1.4426950408889634f;   // log₂(e)")
+			.WriteWhitespace()
+			// .WriteLine("// Inline FastExp(2x) — direct-poly V2.")
+			// .WriteLine("// |2x| ≤ 10, well inside FastExp safe domain (-87..88).")
 			.WriteLine("var fx   = 2.0f * x;")
-			.WriteLine("var kf   = fx * INV_LN2;")
-			.WriteLine("var k    = (int)Single.Round(kf);             // branchless FRINTN + FCVTZS on ARM64")
-			.WriteLine("var r    = kf - k;                            // r ∈ [-0.5, 0.5]")
-			.WriteLine("")
-			.WriteLine("// Degree-3 Horner for 2^r: cₙ = ln(2)ⁿ / n!")
-			.WriteLine("const float c3 = 0.055504108664821580f;   // ln(2)³ / 6")
-			.WriteLine("const float c2 = 0.240226506959100690f;   // ln(2)² / 2")
-			.WriteLine("const float c1 = 0.693147180559945309f;   // ln(2)")
-			.WriteLine("var p     = Single.FusedMultiplyAdd(c3, r, c2);")
-			.WriteLine("p         = Single.FusedMultiplyAdd(p,  r, c1);")
+			.WriteLine("var kf   = fx * 1.4426950408889634f;")
+			.WriteLine("var k    = (int)Single.Round(kf);")
+			.WriteLine("var r    = kf - k;")
+			.WriteWhitespace()
+			// .WriteLine("// Degree-3 Horner for 2^r: cₙ = ln(2)ⁿ / n!")
+			.WriteLine("var p     = Single.FusedMultiplyAdd(0.055504108664821580f, r, 0.240226506959100690f);")
+			.WriteLine("p         = Single.FusedMultiplyAdd(p,  r, 0.693147180559945309f);")
 			.WriteLine("var exp2x = Single.FusedMultiplyAdd(p,  r, 1.0f)")
 			.WriteLine("          * BitConverter.Int32BitsToSingle((k + 127) << 23);")
-			.WriteLine("")
+			.WriteWhitespace()
 			.WriteLine("return (exp2x - 1.0f) / (exp2x + 1.0f);");
 
-		builder.RemoveIndent()
-			.WriteLine("}");
+		builder.EndBlock();
 
 		return builder.ToString();
 	}
@@ -167,8 +161,7 @@ public class TanhFunctionOptimizer() : BaseMathFunctionOptimizer("Tanh", n => n 
 		var builder = new CodeWriter();
 
 		builder.WriteLine("private static double FastTanh(double x)")
-			.WriteLine("{")
-			.AddIndent("\t");
+			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
 		{
@@ -177,13 +170,12 @@ public class TanhFunctionOptimizer() : BaseMathFunctionOptimizer("Tanh", n => n 
 
 		builder.WriteLine("if (x >= 19.0) return 1.0;")
 			.WriteLine("if (x <= -19.0) return -1.0;")
-			.WriteLine("")
+			.WriteWhitespace()
 			.WriteLine("var absX = Double.Abs(x);")
-			.WriteLine("")
+			.WriteWhitespace()
 			.WriteLine("if (absX < 1.0)")
-			.WriteLine("{")
-			.AddIndent("\t")
-			.WriteLine("// [5,6] Padé rational — no transcendental call.")
+			.StartBlock()
+			// .WriteLine("// [5,6] Padé rational — no transcendental call.")
 			.WriteLine("var x2 = x * x;")
 			.WriteLine("var a1 = -0.333333333333331;")
 			.WriteLine("var a2 =  0.133333333333197;")
@@ -199,32 +191,25 @@ public class TanhFunctionOptimizer() : BaseMathFunctionOptimizer("Tanh", n => n 
 			.WriteLine("denominator = Double.FusedMultiplyAdd(denominator, x2, b1);")
 			.WriteLine("denominator = Double.FusedMultiplyAdd(denominator, x2, 1.0);")
 			.WriteLine("return numerator / denominator;")
-			.RemoveIndent()
-			.WriteLine("}")
-			.WriteLine("")
-			.WriteLine("// Inline FastExp(2x) — direct-poly V2.")
-			.WriteLine("// |2x| ≤ 38 (since |x| ≤ 19), well inside domain (-708..709).")
-			.WriteLine("const double INV_LN2 = 1.4426950408889634073599246810018921;   // log₂(e)")
+			.EndBlock()
+			.WriteWhitespace()
+			// .WriteLine("// Inline FastExp(2x) — direct-poly V2.")
+			// .WriteLine("// |2x| ≤ 38 (since |x| ≤ 19), well inside domain (-708..709).")
 			.WriteLine("var fx   = 2.0 * x;")
-			.WriteLine("var kf   = fx * INV_LN2;")
-			.WriteLine("var k    = (long)Double.Round(kf);                              // branchless on ARM64")
-			.WriteLine("var r    = kf - k;                                              // r ∈ [-0.5, 0.5]")
-			.WriteLine("")
-			.WriteLine("// Degree-4 Horner for 2^r: cₙ = ln(2)ⁿ / n!")
-			.WriteLine("const double c4 = 9.618129107628477232e-3;   // ln(2)⁴ / 24")
-			.WriteLine("const double c3 = 5.550410866482157995e-2;   // ln(2)³ / 6")
-			.WriteLine("const double c2 = 2.402265069591006909e-1;   // ln(2)² / 2")
-			.WriteLine("const double c1 = 6.931471805599453094e-1;   // ln(2)")
-			.WriteLine("var p     = Double.FusedMultiplyAdd(c4, r, c3);")
-			.WriteLine("p         = Double.FusedMultiplyAdd(p,  r, c2);")
-			.WriteLine("p         = Double.FusedMultiplyAdd(p,  r, c1);")
+			.WriteLine("var kf   = fx * 1.4426950408889634073599246810018921;")
+			.WriteLine("var k    = (long)Double.Round(kf);")
+			.WriteLine("var r    = kf - k;")
+			.WriteWhitespace()
+			// .WriteLine("// Degree-4 Horner for 2^r: cₙ = ln(2)ⁿ / n!")
+			.WriteLine("var p     = Double.FusedMultiplyAdd(9.618129107628477232e-3, r, 5.550410866482157995e-2);")
+			.WriteLine("p         = Double.FusedMultiplyAdd(p,  r, 2.402265069591006909e-1);")
+			.WriteLine("p         = Double.FusedMultiplyAdd(p,  r, 6.931471805599453094e-1);")
 			.WriteLine("var exp2x = Double.FusedMultiplyAdd(p,  r, 1.0)")
 			.WriteLine("          * BitConverter.UInt64BitsToDouble((ulong)((k + 1023L) << 52));")
-			.WriteLine("")
+			.WriteWhitespace()
 			.WriteLine("return (exp2x - 1.0) / (exp2x + 1.0);");
 
-		builder.RemoveIndent()
-			.WriteLine("}");
+		builder.EndBlock();
 
 		return builder.ToString();
 	}

@@ -67,8 +67,7 @@ public class LogFunctionOptimizer() : BaseMathFunctionOptimizer("Log", n => n is
 		var builder = new CodeWriter();
 
 		builder.WriteLine("private static float FastLog(float x)")
-			.WriteLine("{")
-			.AddIndent("\t");
+			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
 		{
@@ -82,31 +81,23 @@ public class LogFunctionOptimizer() : BaseMathFunctionOptimizer("Log", n => n is
 			builder.WriteLine("if (Single.IsPositiveInfinity(x)) return Single.PositiveInfinity;");
 		}
 
-		builder.WriteLine("")
-			.WriteLine("// Bit-extract base-2 exponent e and mantissa m ∈ [1, 2).")
+		builder.WriteWhitespace()
+			// .WriteLine("// Bit-extract base-2 exponent e and mantissa m ∈ [1, 2).")
 			.WriteLine("var bits = BitConverter.SingleToInt32Bits(x);")
 			.WriteLine("var e    = (bits >> 23) - 127;")
 			.WriteLine("var m    = BitConverter.Int32BitsToSingle((bits & 0x007FFFFF) | 0x3F800000);")
-			.WriteLine("")
-			.WriteLine("// Degree-4 Horner polynomial for ln(m), m ∈ [1, 2).")
-			.WriteLine("// ln(x) = e·ln(2) + ln(m)  — no LOG10_E step needed vs Log10.")
-			.WriteLine("// Max relative error ≈ 8.7e-5 (fast-math trade-off).")
-			.WriteLine("const float c4 = -0.056570851f;")
-			.WriteLine("const float c3 =  0.447178975f;")
-			.WriteLine("const float c2 = -1.469956800f;")
-			.WriteLine("const float c1 =  2.821202636f;")
-			.WriteLine("const float c0 = -1.741793927f;")
-			.WriteLine("")
-			.WriteLine("var lnm = Single.FusedMultiplyAdd(c4, m, c3);")
-			.WriteLine("lnm     = Single.FusedMultiplyAdd(lnm, m, c2);")
-			.WriteLine("lnm     = Single.FusedMultiplyAdd(lnm, m, c1);")
-			.WriteLine("lnm     = Single.FusedMultiplyAdd(lnm, m, c0);")
-			.WriteLine("")
-			.WriteLine("const float LN2 = 0.6931471805599453f;  // ln(2)")
-			.WriteLine("return e * LN2 + lnm;");
+			.WriteWhitespace()
+			// .WriteLine("// Degree-4 Horner polynomial for ln(m), m ∈ [1, 2).")
+			// .WriteLine("// ln(x) = e·ln(2) + ln(m)  — no LOG10_E step needed vs Log10.")
+			// .WriteLine("// Max relative error ≈ 8.7e-5 (fast-math trade-off).")
+			.WriteLine("var lnm = Single.FusedMultiplyAdd(-0.056570851f, m, 0.447178975f);")
+			.WriteLine("lnm     = Single.FusedMultiplyAdd(lnm, m, -1.469956800f);")
+			.WriteLine("lnm     = Single.FusedMultiplyAdd(lnm, m, 2.821202636f);")
+			.WriteLine("lnm     = Single.FusedMultiplyAdd(lnm, m, -1.741793927f);")
+			.WriteWhitespace()
+			.WriteLine("return Single.FusedMultiplyAdd(e, 0.6931471805599453f, lnm);");
 
-		builder.RemoveIndent()
-			.WriteLine("}");
+		builder.EndBlock();
 
 		return builder.ToString();
 	}
@@ -116,8 +107,7 @@ public class LogFunctionOptimizer() : BaseMathFunctionOptimizer("Log", n => n is
 		var builder = new CodeWriter();
 
 		builder.WriteLine("private static double FastLog(double x)")
-			.WriteLine("{")
-			.AddIndent("\t");
+			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
 		{
@@ -131,31 +121,23 @@ public class LogFunctionOptimizer() : BaseMathFunctionOptimizer("Log", n => n is
 			builder.WriteLine("if (Double.IsPositiveInfinity(x)) return Double.PositiveInfinity;");
 		}
 
-		builder.WriteLine("")
-			.WriteLine("// Bit-extract base-2 exponent e and mantissa m ∈ [1, 2).")
+		builder.WriteWhitespace()
+			// .WriteLine("// Bit-extract base-2 exponent e and mantissa m ∈ [1, 2).")
 			.WriteLine("var bits = BitConverter.DoubleToInt64Bits(x);")
 			.WriteLine("var e    = (int)((bits >> 52) - 1023L);")
 			.WriteLine("var m    = BitConverter.Int64BitsToDouble((bits & 0x000FFFFFFFFFFFFFL) | 0x3FF0000000000000L);")
-			.WriteLine("")
-			.WriteLine("// Degree-4 Horner polynomial for ln(m), m ∈ [1, 2).")
-			.WriteLine("// ln(x) = e·ln(2) + ln(m)  — no LOG10_E step needed vs Log10.")
-			.WriteLine("// Max relative error ≈ 8.7e-5 (fast-math trade-off).")
-			.WriteLine("const double c4 = -0.056570851;")
-			.WriteLine("const double c3 =  0.447178975;")
-			.WriteLine("const double c2 = -1.469956800;")
-			.WriteLine("const double c1 =  2.821202636;")
-			.WriteLine("const double c0 = -1.741793927;")
-			.WriteLine("")
-			.WriteLine("var lnm = Double.FusedMultiplyAdd(c4, m, c3);")
-			.WriteLine("lnm     = Double.FusedMultiplyAdd(lnm, m, c2);")
-			.WriteLine("lnm     = Double.FusedMultiplyAdd(lnm, m, c1);")
-			.WriteLine("lnm     = Double.FusedMultiplyAdd(lnm, m, c0);")
-			.WriteLine("")
-			.WriteLine("const double LN2 = 0.6931471805599453094172321214581766;  // ln(2)")
-			.WriteLine("return e * LN2 + lnm;");
+			.WriteWhitespace()
+			// .WriteLine("// Degree-4 Horner polynomial for ln(m), m ∈ [1, 2).")
+			// .WriteLine("// ln(x) = e·ln(2) + ln(m)  — no LOG10_E step needed vs Log10.")
+			// .WriteLine("// Max relative error ≈ 8.7e-5 (fast-math trade-off).")
+			.WriteLine("var lnm = Double.FusedMultiplyAdd(-0.056570851, m, 0.447178975);")
+			.WriteLine("lnm     = Double.FusedMultiplyAdd(lnm, m, -1.469956800);")
+			.WriteLine("lnm     = Double.FusedMultiplyAdd(lnm, m, 2.821202636);")
+			.WriteLine("lnm     = Double.FusedMultiplyAdd(lnm, m, -1.741793927);")
+			.WriteWhitespace()
+			.WriteLine("return Double.FusedMultiplyAdd(e, 0.6931471805599453094172321214581766, lnm);");
 
-		builder.RemoveIndent()
-			.WriteLine("}");
+		builder.EndBlock();
 
 		return builder.ToString();
 	}

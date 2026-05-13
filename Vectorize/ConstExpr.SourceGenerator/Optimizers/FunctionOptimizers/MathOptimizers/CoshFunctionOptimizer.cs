@@ -35,8 +35,7 @@ public class CoshFunctionOptimizer() : BaseMathFunctionOptimizer("Cosh", n => n 
 		var builder = new CodeWriter();
 
 		builder.WriteLine("private static float FastCosh(float x)")
-			.WriteLine("{")
-			.AddIndent("\t");
+			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
 		{
@@ -44,22 +43,21 @@ public class CoshFunctionOptimizer() : BaseMathFunctionOptimizer("Cosh", n => n 
 		}
 
 		builder.WriteLine("x = Single.Abs(x);")
-			.WriteLine("")
-			.WriteLine("// exp overflows to +Inf for x > ~88.72; return +Inf immediately")
+			.WriteWhitespace()
+			// .WriteLine("// exp overflows to +Inf for x > ~88.72; return +Inf immediately")
 			.WriteLine("if (x > 88.0f) return float.PositiveInfinity;")
-			.WriteLine("")
+			.WriteWhitespace()
 			.WriteLine("var ex = Single.Exp(x);")
-			.WriteLine("")
-			.WriteLine("// One Newton-Raphson step on ReciprocalEstimate restores ~24-bit precision")
-			.WriteLine("// (raw estimate is only ~12-bit accurate, which causes ~375× worse error than float epsilon)")
-			.WriteLine("// r' = r * (2 - ex * r)")
+			.WriteWhitespace()
+			// .WriteLine("// One Newton-Raphson step on ReciprocalEstimate restores ~24-bit precision")
+			// .WriteLine("// (raw estimate is only ~12-bit accurate, which causes ~375× worse error than float epsilon)")
+			// .WriteLine("// r' = r * (2 - ex * r)")
 			.WriteLine("var r = Single.ReciprocalEstimate(ex);")
 			.WriteLine("r *= Single.FusedMultiplyAdd(-ex, r, 2.0f);")
-			.WriteLine("")
+			.WriteWhitespace()
 			.WriteLine("return (ex + r) * 0.5f;");
 
-		builder.RemoveIndent()
-			.WriteLine("}");
+		builder.EndBlock();
 
 		return builder.ToString();
 	}
@@ -69,8 +67,7 @@ public class CoshFunctionOptimizer() : BaseMathFunctionOptimizer("Cosh", n => n 
 		var builder = new CodeWriter();
 
 		builder.WriteLine("private static double FastCosh(double x)")
-			.WriteLine("{")
-			.AddIndent("\t");
+			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
 		{
@@ -78,19 +75,18 @@ public class CoshFunctionOptimizer() : BaseMathFunctionOptimizer("Cosh", n => n 
 		}
 
 		builder.WriteLine("x = Double.Abs(x);")
-			.WriteLine("")
-			.WriteLine("// exp overflows to +Inf for x > ~709.78; return +Inf immediately")
+			.WriteWhitespace()
+			// .WriteLine("// exp overflows to +Inf for x > ~709.78; return +Inf immediately")
 			.WriteLine("if (x > 709.0) return double.PositiveInfinity;")
-			.WriteLine("")
+			.WriteWhitespace()
 			.WriteLine("var ex = Double.Exp(x);")
-			.WriteLine("")
-			.WriteLine("// Division gives full double precision for 1/ex.")
-			.WriteLine("// Double.ReciprocalEstimate is only ~14-bit accurate, causing catastrophic")
-			.WriteLine("// precision loss — using FDIV here is both correct and comparable in cost.")
+			.WriteWhitespace()
+			// .WriteLine("// Division gives full double precision for 1/ex.")
+			// .WriteLine("// Double.ReciprocalEstimate is only ~14-bit accurate, causing catastrophic")
+			// .WriteLine("// precision loss — using FDIV here is both correct and comparable in cost.")
 			.WriteLine("return (ex + 1.0 / ex) * 0.5;");
 
-		builder.RemoveIndent()
-			.WriteLine("}");
+		builder.EndBlock();
 
 		return builder.ToString();
 	}

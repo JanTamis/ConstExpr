@@ -66,20 +66,18 @@ public class CopySignFunctionOptimizer() : BaseMathFunctionOptimizer("CopySign",
 	{
 		var builder = new CodeWriter();
 
-		builder.AddIndent("/// ")
-			.WriteLine("<summary>")
-			.WriteLine("Bit-manipulation CopySign for float — ~10% faster than MathF.CopySign on ARM64.")
-			.WriteLine("Masks the magnitude bits of x and the sign bit of y via BitConverter round-trip.")
-			.WriteLine("</summary>")
-			.RemoveIndent()
-			.WriteLine("private static float CopySignFastFloat(float x, float y)")
-			.WriteLine("{")
-			.AddIndent("\t")
+		// builder.AddIndent("/// ")
+		// 	.WriteLine("<summary>")
+		// 	.WriteLine("Bit-manipulation CopySign for float — ~10% faster than MathF.CopySign on ARM64.")
+		// 	.WriteLine("Masks the magnitude bits of x and the sign bit of y via BitConverter round-trip.")
+		// 	.WriteLine("</summary>")
+		// 	.RemoveIndent()
+		builder.WriteLine("private static float CopySignFastFloat(float x, float y)")
+			.StartBlock()
 			.WriteLine("var xBits = BitConverter.SingleToInt32Bits(x);")
 			.WriteLine("var yBits = BitConverter.SingleToInt32Bits(y);")
 			.WriteLine("return BitConverter.Int32BitsToSingle((xBits & 0x7FFF_FFFF) | (yBits & unchecked((int)0x8000_0000)));")
-			.RemoveIndent()
-			.WriteLine("}");
+			.EndBlock();
 
 		return builder.ToString();
 	}
@@ -88,20 +86,18 @@ public class CopySignFunctionOptimizer() : BaseMathFunctionOptimizer("CopySign",
 	{
 		var builder = new CodeWriter();
 
-		builder.AddIndent("/// ")
-			.WriteLine("<summary>")
-			.WriteLine("Bit-manipulation CopySign for double — ~10% faster than Math.CopySign on ARM64.")
-			.WriteLine("Masks the magnitude bits of x and the sign bit of y via BitConverter round-trip.")
-			.WriteLine("</summary>")
-			.RemoveIndent()
-			.WriteLine("private static double CopySignFastDouble(double x, double y)")
-			.WriteLine("{")
-			.AddIndent("\t")
+		// builder.AddIndent("/// ")
+		// 	.WriteLine("<summary>")
+		// 	.WriteLine("Bit-manipulation CopySign for double — ~10% faster than Math.CopySign on ARM64.")
+		// 	.WriteLine("Masks the magnitude bits of x and the sign bit of y via BitConverter round-trip.")
+		// 	.WriteLine("</summary>")
+		// 	.RemoveIndent()
+		builder.WriteLine("private static double CopySignFastDouble(double x, double y)")
+			.StartBlock()
 			.WriteLine("var xBits = BitConverter.DoubleToInt64Bits(x);")
 			.WriteLine("var yBits = BitConverter.DoubleToInt64Bits(y);")
 			.WriteLine("return BitConverter.Int64BitsToDouble((xBits & long.MaxValue) | (yBits & long.MinValue));")
-			.RemoveIndent()
-			.WriteLine("}");
+			.EndBlock();
 
 		return builder.ToString();
 	}
@@ -119,13 +115,11 @@ public class CopySignFunctionOptimizer() : BaseMathFunctionOptimizer("CopySign",
 			.WriteLine("</summary>")
 			.RemoveIndent()
 			.WriteLine("private static T CopySignFast<T>(T x, T y) where T : IBinaryInteger<T>")
-			.WriteLine("{")
-			.AddIndent("\t")
+			.StartBlock()
 			.WriteLine($"var absValue = {invocation}(x);")
-			.WriteLine("")
+			.WriteWhitespace()
 			.WriteLine("return T.IsPositive(y) ? absValue : -absValue;")
-			.RemoveIndent()
-			.WriteLine("}");
+			.EndBlock();
 
 		return builder.ToString();
 	}
