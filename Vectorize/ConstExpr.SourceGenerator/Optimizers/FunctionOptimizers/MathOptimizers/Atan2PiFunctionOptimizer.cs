@@ -103,7 +103,12 @@ public class Atan2PiFunctionOptimizer() : BaseMathFunctionOptimizer("Atan2Pi", n
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static float FastAtan2Pi(float y, float x)")
+		builder.WriteLine("/// <summary>Fast approximation of arctangent with two arguments divided by π (Atan2Pi) for single-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses octant reduction, a minimax polynomial approximation, and branch-friendly quadrant corrections. Returns atan2(y, x) / π.</remarks>")
+			.WriteLine("/// <param name=\"y\">The y-coordinate.</param>")
+			.WriteLine("/// <param name=\"x\">The x-coordinate.</param>")
+			.WriteLine("/// <returns>Approximate angle divided by π in the range [-1, 1].</returns>")
+			.WriteLine("private static float FastAtan2Pi(float y, float x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
@@ -146,7 +151,12 @@ public class Atan2PiFunctionOptimizer() : BaseMathFunctionOptimizer("Atan2Pi", n
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static double FastAtan2Pi(double x, double y)")
+		builder.WriteLine("/// <summary>Fast approximation of arctangent with two arguments divided by π (Atan2Pi) for double-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses a rational approximation with octant reduction and quadrant corrections. Returns atan2(y, x) / π.</remarks>")
+			.WriteLine("/// <param name=\"y\">The y-coordinate.</param>")
+			.WriteLine("/// <param name=\"x\">The x-coordinate.</param>")
+			.WriteLine("/// <returns>Approximate angle divided by π in the range [-1, 1].</returns>")
+			.WriteLine("private static double FastAtan2Pi(double x, double y)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))

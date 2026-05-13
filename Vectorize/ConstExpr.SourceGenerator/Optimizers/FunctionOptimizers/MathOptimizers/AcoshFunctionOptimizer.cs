@@ -34,7 +34,11 @@ public class AcoshFunctionOptimizer() : BaseMathFunctionOptimizer("Acosh", n => 
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static float FastAcosh(float x)")
+		builder.WriteLine("/// <summary>Fast approximation of inverse hyperbolic cosine (Acosh) for single-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses piecewise approximation with special handling for large values and values near 1.0. Supports optional NaN checks.</remarks>")
+			.WriteLine("""/// <param name="x">Input value in the range [1.0, ∞).</param>""")
+			.WriteLine("""/// <returns>Approximate inverse hyperbolic cosine value, ln(x + √(x² - 1)).</returns>""")
+			.WriteLine("private static float FastAcosh(float x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
@@ -68,7 +72,11 @@ public class AcoshFunctionOptimizer() : BaseMathFunctionOptimizer("Acosh", n => 
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static double FastAcosh(double x)")
+		builder.WriteLine("/// <summary>Fast approximation of inverse hyperbolic cosine (Acosh) for double-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses piecewise approximation with higher precision coefficients. Special handling for very large values and values near 1.0. Supports optional NaN checks.</remarks>")
+			.WriteLine("""/// <param name="x">Input value in the range [1.0, ∞).</param>""")
+			.WriteLine("""/// <returns>Approximate inverse hyperbolic cosine value, ln(x + √(x² - 1)).</returns>""")
+			.WriteLine("private static double FastAcosh(double x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))

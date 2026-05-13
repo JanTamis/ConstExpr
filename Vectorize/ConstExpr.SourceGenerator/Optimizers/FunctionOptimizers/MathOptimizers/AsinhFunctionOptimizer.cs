@@ -34,7 +34,11 @@ public class AsinhFunctionOptimizer() : BaseMathFunctionOptimizer("Asinh", n => 
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static float FastAsinh(float x)")
+		builder.WriteLine("/// <summary>Fast approximation of inverse hyperbolic sine (Asinh) for single-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses a direct logarithmic identity with FusedMultiplyAdd and optional NaN checks.</remarks>")
+			.WriteLine("/// <param name=\"x\">Any finite floating-point value.</param>")
+			.WriteLine("/// <returns>Approximate inverse hyperbolic sine value.</returns>")
+			.WriteLine("private static float FastAsinh(float x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
@@ -56,7 +60,11 @@ public class AsinhFunctionOptimizer() : BaseMathFunctionOptimizer("Asinh", n => 
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static double FastAsinh(double x)")
+		builder.WriteLine("/// <summary>Fast approximation of inverse hyperbolic sine (Asinh) for double-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses a direct logarithmic identity with FusedMultiplyAdd and optional NaN checks.</remarks>")
+			.WriteLine("/// <param name=\"x\">Any finite floating-point value.</param>")
+			.WriteLine("/// <returns>Approximate inverse hyperbolic sine value.</returns>")
+			.WriteLine("private static double FastAsinh(double x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))

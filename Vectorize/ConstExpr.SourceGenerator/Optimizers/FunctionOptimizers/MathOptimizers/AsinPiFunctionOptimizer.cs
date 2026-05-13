@@ -34,7 +34,11 @@ public class AsinPiFunctionOptimizer() : BaseMathFunctionOptimizer("AsinPi", n =
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static float FastAsinPi(float x)")
+		builder.WriteLine("/// <summary>Fast approximation of inverse sine divided by π (AsinPi) for single-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses a piecewise approximation with FusedMultiplyAdd, returning Asin(x) / π in the range [-0.5, 0.5].</remarks>")
+			.WriteLine("/// <param name=\"x\">Input value in the range [-1, 1].</param>")
+			.WriteLine("/// <returns>Approximate inverse sine value divided by π.</returns>")
+			.WriteLine("private static float FastAsinPi(float x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
@@ -80,7 +84,11 @@ public class AsinPiFunctionOptimizer() : BaseMathFunctionOptimizer("AsinPi", n =
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static double FastAsinPi(double x)")
+		builder.WriteLine("/// <summary>Fast approximation of inverse sine divided by π (AsinPi) for double-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses a piecewise approximation with FusedMultiplyAdd, returning Asin(x) / π in the range [-0.5, 0.5].</remarks>")
+			.WriteLine("/// <param name=\"x\">Input value in the range [-1, 1].</param>")
+			.WriteLine("/// <returns>Approximate inverse sine value divided by π.</returns>")
+			.WriteLine("private static double FastAsinPi(double x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))

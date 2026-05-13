@@ -34,7 +34,11 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("public static float FastAcos(float x)")
+		builder.WriteLine("/// <summary>Fast polynomial approximation of inverse cosine (Acos) for single-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses FusedMultiplyAdd for improved performance. Handles negative values and optional NaN checks.</remarks>")
+			.WriteLine("""/// <param name="x">Input value in the range [-1, 1].</param>""")
+			.WriteLine("/// <returns>Approximate inverse cosine value in radians, in the range [0, π].</returns>")
+			.WriteLine("public static float FastAcos(float x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
@@ -55,11 +59,22 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 		return builder.ToString();
 	}
 
+	/// <summary>
+	///   Generates a fast approximation implementation of the inverse cosine (Acos) function for double-precision
+	///   floating-point numbers.
+	///   Uses a higher-precision polynomial approximation with separate handling for values greater than 0.5.
+	/// </summary>
+	/// <param name="flags">FastMath flags that control NaN handling and other optimizations.</param>
+	/// <returns>A string containing the C# code for the fast Acos implementation.</returns>
 	private static string GenerateFastAcosMethodDouble(FastMathFlags flags)
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("public static double FastAcos(double x)")
+		builder.WriteLine("/// <summary>Fast polynomial approximation of inverse cosine (Acos) for double-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses a higher-precision polynomial with separate handling for values greater than 0.5. Handles negative values and optional NaN checks.</remarks>")
+			.WriteLine("""/// <param name="x">Input value in the range [-1, 1].</param>""")
+			.WriteLine("/// <returns>Approximate inverse cosine value in radians, in the range [0, π].</returns>")
+			.WriteLine("public static double FastAcos(double x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))

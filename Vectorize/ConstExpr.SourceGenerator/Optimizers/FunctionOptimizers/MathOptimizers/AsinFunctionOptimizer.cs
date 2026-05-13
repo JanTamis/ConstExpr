@@ -34,7 +34,11 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n 
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static float FastAsin(float x)")
+		builder.WriteLine("/// <summary>Fast approximation of inverse sine (Asin) for single-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses a piecewise polynomial approximation with FusedMultiplyAdd and special handling near zero and near one.</remarks>")
+			.WriteLine("/// <param name=\"x\">Input value in the range [-1, 1].</param>")
+			.WriteLine("/// <returns>Approximate inverse sine value in radians, in the range [-π/2, π/2].</returns>")
+			.WriteLine("private static float FastAsin(float x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
@@ -75,7 +79,11 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n 
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static double FastAsin(double x)")
+		builder.WriteLine("/// <summary>Fast approximation of inverse sine (Asin) for double-precision floating-point values.</summary>")
+			.WriteLine("/// <remarks>Uses a piecewise polynomial approximation with FusedMultiplyAdd and special handling near zero and near one.</remarks>")
+			.WriteLine("/// <param name=\"x\">Input value in the range [-1, 1].</param>")
+			.WriteLine("/// <returns>Approximate inverse sine value in radians, in the range [-π/2, π/2].</returns>")
+			.WriteLine("private static double FastAsin(double x)")
 			.StartBlock();
 
 		if (!flags.HasFlag(FastMathFlags.NoNaN))
