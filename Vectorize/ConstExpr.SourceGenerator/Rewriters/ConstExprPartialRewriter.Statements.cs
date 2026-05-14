@@ -886,11 +886,23 @@ public partial class ConstExprPartialRewriter
 			return false;
 		}
 
-		simplified = ReturnStatement(Visit(
-			ConditionalExpression(
-				ifStatement.Condition,
-				ifReturn.Expression,
-				followingReturn.Expression)) as ExpressionSyntax ?? ifReturn.Expression);
+		if (!semanticModel.TryGetTypeSymbol(ifReturn.Expression, symbolStore, out var ifReturnType)
+		    && !semanticModel.TryGetTypeSymbol(followingReturn.Expression, symbolStore, out ifReturnType))
+		{
+			simplified = ReturnStatement(Visit(
+				ConditionalExpression(
+					ifStatement.Condition,
+					ifReturn.Expression,
+					followingReturn.Expression)) as ExpressionSyntax ?? ifReturn.Expression);
+		}
+		else
+		{
+			simplified = ReturnStatement(Visit(
+				ConditionalExpression(
+					ifStatement.Condition,
+					ifReturn.Expression,
+					followingReturn.Expression).WithTypeSymbolAnnotation(ifReturnType, symbolStore)) as ExpressionSyntax ?? ifReturn.Expression);
+		}
 
 		return true;
 	}

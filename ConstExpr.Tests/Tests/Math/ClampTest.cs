@@ -22,7 +22,7 @@ public class ClampTest() : BaseTest<Func<int, int, int, int>>(FastMathFlags.Fast
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return value < min ? min : value > max ? max : value;"),
+		Create("return Int32.ClampNative(value, min, max);"),
 		Create("return 5;", 5, 0, 10),
 		Create("return 0;", -5, 0, 10),
 		Create("return 10;", 15, 0, 10)

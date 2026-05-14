@@ -21,16 +21,18 @@ public class ConditionalExpressionOptimizer
 		result = null;
 
 		// condition ? true : false => condition (when condition is bool)
-		if (WhenTrue.TryGetLiteralValue(loader, variables, out var trueValue) && trueValue is true
-		                                                                      && WhenFalse.TryGetLiteralValue(loader, variables, out var falseValue) && falseValue is false)
+		if (WhenTrue.TryGetLiteralValue(loader, variables, out var trueValue)
+		    && trueValue is true
+		    && WhenFalse.TryGetLiteralValue(loader, variables, out var falseValue) && falseValue is false)
 		{
 			result = Condition;
 			return true;
 		}
 
 		// condition ? false : true => !condition
-		if (WhenTrue.TryGetLiteralValue(loader, variables, out var trueValue2) && trueValue2 is false
-		                                                                       && WhenFalse.TryGetLiteralValue(loader, variables, out var falseValue2) && falseValue2 is true)
+		if (WhenTrue.TryGetLiteralValue(loader, variables, out var trueValue2)
+		    && trueValue2 is false
+		    && WhenFalse.TryGetLiteralValue(loader, variables, out var falseValue2) && falseValue2 is true)
 		{
 			result = LogicalNotExpression(ParenthesizedExpression(Condition));
 			return true;
@@ -54,6 +56,20 @@ public class ConditionalExpressionOptimizer
 		if (Condition.TryGetLiteralValue(loader, variables, out var condValue2) && condValue2 is false)
 		{
 			result = WhenFalse;
+			return true;
+		}
+
+		// value < min ? min : value > max ? max : value => T.ClampNative(value, min, max)
+		if (Type?.IsNumericType() == true
+		    && TryGetClampPattern(Condition, WhenTrue, WhenFalse, out var clampValue, out var clampMin, out var clampMax)
+		    && IsPure(clampValue)
+		    && IsPure(clampMin)
+		    && IsPure(clampMax))
+		{
+			var mathType = ParseTypeName(Type.Name);
+			result = InvocationExpression(
+					MemberAccessExpression(mathType, IdentifierName("ClampNative")))
+				.WithArgumentList(ArgumentList(SeparatedList([ Argument(clampValue), Argument(clampMin), Argument(clampMax) ])));
 			return true;
 		}
 
@@ -141,9 +157,21 @@ public class ConditionalExpressionOptimizer
 			return true;
 		}
 
+		// Variants like: n < 0 ? -n : n, n > 0 ? n : -n, 0 > n ? -n : n => T.Abs(n)
+		if (Type?.IsNumericType() == true
+		    && TryGetAbsoluteValuePattern(Condition, WhenTrue, WhenFalse, out var absoluteValueInput))
+		{
+			var mathType = ParseTypeName(Type.Name);
+
+			result = InvocationExpression(
+					MemberAccessExpression(mathType, IdentifierName("Abs")))
+				.WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(absoluteValueInput))));
+			return true;
+		}
+
+		// (x == null ? fallback : x.Member) and equivalent forms => x?.Member ?? fallback
 		if (TryGetNullConditionalCoalescePattern(Condition, WhenTrue, WhenFalse, out var receiver, out var memberName, out var fallback))
 		{
-			// (x == null ? fallback : x.Member) and equivalent forms => x?.Member ?? fallback
 			result = BinaryExpression(SyntaxKind.CoalesceExpression,
 				ConditionalAccessExpression(receiver, MemberBindingExpression(memberName)),
 				fallback);
@@ -165,6 +193,235 @@ public class ConditionalExpressionOptimizer
 			MemberAccessExpressionSyntax m => IsPure(m.Expression),
 			_ => false
 		};
+	}
+
+	private static bool TryGetAbsoluteValuePattern(
+		ExpressionSyntax condition,
+		ExpressionSyntax whenTrue,
+		ExpressionSyntax whenFalse,
+		out ExpressionSyntax absoluteValueInput)
+	{
+		absoluteValueInput = null!;
+
+		var comparer = SyntaxNodeComparer.Get();
+		var trueBranch = UnwrapParentheses(whenTrue);
+		var falseBranch = UnwrapParentheses(whenFalse);
+		var negativeWhenTrue = false;
+
+		if (TryGetNegatedExpression(trueBranch, out var trueNegatedOperand)
+		    && comparer.Equals(falseBranch, trueNegatedOperand))
+		{
+			absoluteValueInput = falseBranch;
+			negativeWhenTrue = true;
+		}
+		else if (TryGetNegatedExpression(falseBranch, out var falseNegatedOperand)
+		         && comparer.Equals(trueBranch, falseNegatedOperand))
+		{
+			absoluteValueInput = trueBranch;
+			negativeWhenTrue = false;
+		}
+		else
+		{
+			return false;
+		}
+
+		if (UnwrapParentheses(condition) is not BinaryExpressionSyntax binary)
+		{
+			return false;
+		}
+
+		var kind = (SyntaxKind) binary.RawKind;
+
+		if (kind is not (SyntaxKind.LessThanExpression
+		    or SyntaxKind.LessThanOrEqualExpression
+		    or SyntaxKind.GreaterThanExpression
+		    or SyntaxKind.GreaterThanOrEqualExpression))
+		{
+			return false;
+		}
+
+		var left = UnwrapParentheses(binary.Left);
+		var right = UnwrapParentheses(binary.Right);
+		var leftIsZero = left.IsNumericZero();
+		var rightIsZero = right.IsNumericZero();
+
+		if (leftIsZero == rightIsZero)
+		{
+			return false;
+		}
+
+		var comparedExpression = leftIsZero ? right : left;
+
+		if (!comparer.Equals(comparedExpression, absoluteValueInput))
+		{
+			return false;
+		}
+
+		var conditionMeansNegative = leftIsZero
+			? kind is SyntaxKind.GreaterThanExpression or SyntaxKind.GreaterThanOrEqualExpression
+			: kind is SyntaxKind.LessThanExpression or SyntaxKind.LessThanOrEqualExpression;
+
+		return negativeWhenTrue == conditionMeansNegative;
+	}
+
+	private static bool TryGetNegatedExpression(ExpressionSyntax expression, out ExpressionSyntax operand)
+	{
+		operand = null!;
+		var unwrapped = UnwrapParentheses(expression);
+
+		if (unwrapped is not PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken } prefix)
+		{
+			return false;
+		}
+
+		operand = UnwrapParentheses(prefix.Operand);
+		return true;
+	}
+
+	private static bool TryGetClampPattern(
+		ExpressionSyntax condition,
+		ExpressionSyntax whenTrue,
+		ExpressionSyntax whenFalse,
+		out ExpressionSyntax value,
+		out ExpressionSyntax min,
+		out ExpressionSyntax max)
+	{
+		value = null!;
+		min = null!;
+		max = null!;
+
+		if (!TryGetBoundConditional(condition, whenTrue, whenFalse, out var outerValue, out var outerBound, out var outerIsLowerBound, out var outerPassThrough))
+		{
+			return false;
+		}
+
+		if (UnwrapParentheses(outerPassThrough) is InvocationExpressionSyntax minMaxInvocation
+		    && TryGetMinMaxWithValue(minMaxInvocation, outerValue, out var otherBound, out var isMinNative)
+		    && (outerIsLowerBound && isMinNative || !outerIsLowerBound && !isMinNative))
+		{
+			value = outerValue;
+			min = outerIsLowerBound ? outerBound : otherBound;
+			max = outerIsLowerBound ? otherBound : outerBound;
+			return true;
+		}
+
+		if (UnwrapParentheses(outerPassThrough) is not ConditionalExpressionSyntax inner)
+		{
+			return false;
+		}
+
+		if (!TryGetBoundConditional(inner.Condition, inner.WhenTrue, inner.WhenFalse, out var innerValue, out var innerBound, out var innerIsLowerBound, out var innerPassThrough))
+		{
+			return false;
+		}
+
+		var comparer = SyntaxNodeComparer.Get();
+
+		if (!comparer.Equals(outerValue, innerValue)
+		    || !comparer.Equals(innerPassThrough, innerValue)
+		    || outerIsLowerBound == innerIsLowerBound)
+		{
+			return false;
+		}
+
+		value = outerValue;
+		min = outerIsLowerBound ? outerBound : innerBound;
+		max = outerIsLowerBound ? innerBound : outerBound;
+		return true;
+	}
+
+	private static bool TryGetBoundConditional(
+		ExpressionSyntax condition,
+		ExpressionSyntax whenTrue,
+		ExpressionSyntax whenFalse,
+		out ExpressionSyntax value,
+		out ExpressionSyntax bound,
+		out bool isLowerBound,
+		out ExpressionSyntax passThrough)
+	{
+		value = null!;
+		bound = null!;
+		passThrough = null!;
+		isLowerBound = false;
+
+		var comparer = SyntaxNodeComparer.Get();
+		var trueBranch = UnwrapParentheses(whenTrue);
+		var falseBranch = UnwrapParentheses(whenFalse);
+
+		if (UnwrapParentheses(condition) is not BinaryExpressionSyntax binary)
+		{
+			return false;
+		}
+
+		var kind = (SyntaxKind) binary.RawKind;
+
+		if (kind is not (SyntaxKind.LessThanExpression
+		    or SyntaxKind.LessThanOrEqualExpression
+		    or SyntaxKind.GreaterThanExpression
+		    or SyntaxKind.GreaterThanOrEqualExpression))
+		{
+			return false;
+		}
+
+		var left = UnwrapParentheses(binary.Left);
+		var right = UnwrapParentheses(binary.Right);
+
+		if (comparer.Equals(trueBranch, right))
+		{
+			value = left;
+			bound = right;
+			isLowerBound = kind is SyntaxKind.LessThanExpression or SyntaxKind.LessThanOrEqualExpression;
+			passThrough = falseBranch;
+			return true;
+		}
+
+		if (comparer.Equals(trueBranch, left))
+		{
+			value = right;
+			bound = left;
+			isLowerBound = kind is SyntaxKind.GreaterThanExpression or SyntaxKind.GreaterThanOrEqualExpression;
+			passThrough = falseBranch;
+			return true;
+		}
+
+		return false;
+	}
+
+	private static bool TryGetMinMaxWithValue(
+		InvocationExpressionSyntax invocation,
+		ExpressionSyntax value,
+		out ExpressionSyntax otherBound,
+		out bool isMinNative)
+	{
+		otherBound = null!;
+		isMinNative = false;
+
+		if (invocation.Expression is not MemberAccessExpressionSyntax member
+		    || member.Name.Identifier.Text is not ("MinNative" or "MaxNative")
+		    || invocation.ArgumentList.Arguments.Count != 2)
+		{
+			return false;
+		}
+
+		var comparer = SyntaxNodeComparer.Get();
+		var first = UnwrapParentheses(invocation.ArgumentList.Arguments[0].Expression);
+		var second = UnwrapParentheses(invocation.ArgumentList.Arguments[1].Expression);
+
+		if (comparer.Equals(first, value))
+		{
+			otherBound = second;
+		}
+		else if (comparer.Equals(second, value))
+		{
+			otherBound = first;
+		}
+		else
+		{
+			return false;
+		}
+
+		isMinNative = member.Name.Identifier.Text == "MinNative";
+		return true;
 	}
 
 	private static bool TryGetNullConditionalCoalescePattern(

@@ -746,22 +746,23 @@ public partial class ConstExprPartialRewriter
 	public override SyntaxNode? VisitConditionalExpression(ConditionalExpressionSyntax node)
 	{
 		var condition = Visit(node.Condition);
-		var whenTrue = Visit(node.WhenTrue);
-		var whenFalse = Visit(node.WhenFalse);
 
 		if (TryGetLiteralValue(condition, out var value) && value is bool b)
 		{
-			return b ? whenTrue : whenFalse;
+			return b ? Visit(node.WhenTrue) : Visit(node.WhenFalse);
 		}
+
+		var whenTrue = Visit(node.WhenTrue);
+		var whenFalse = Visit(node.WhenFalse);
 
 		// Try optimization with the original node
 		semanticModel.TryGetTypeSymbol(node, symbolStore, out var type);
 
 		var optimizer = new ConditionalExpressionOptimizer
 		{
-			Condition = node.Condition,
-			WhenTrue = node.WhenTrue,
-			WhenFalse = node.WhenFalse,
+			Condition = condition as ExpressionSyntax ?? node.Condition,
+			WhenTrue = whenTrue as ExpressionSyntax ?? node.WhenTrue,
+			WhenFalse = whenFalse as ExpressionSyntax ?? node.WhenFalse,
 			Type = type
 		};
 
@@ -781,39 +782,31 @@ public partial class ConstExprPartialRewriter
 		var expression = Visit(node.Expression);
 
 		// x?.Member where x is known non-null → x.Member
-		if (TryGetLiteralValue(expression, out var value) && value is not null)
+		if (TryGetLiteralValue(expression, out _))
 		{
-			// Convert ?. to regular member access
-			if (node.WhenNotNull is MemberBindingExpressionSyntax memberBinding)
+			switch (node.WhenNotNull)
 			{
-				var memberAccess = MemberAccessExpression(
-					SyntaxKind.SimpleMemberAccessExpression,
-					expression as ExpressionSyntax ?? node.Expression,
-					memberBinding.Name);
+				// Convert ?. to regular member access
+				case MemberBindingExpressionSyntax memberBinding:
+				{
+					var memberAccess = MemberAccessExpression(expression as ExpressionSyntax ?? node.Expression, memberBinding.Name);
 
-				return Visit(memberAccess);
-			}
+					return Visit(memberAccess);
+				}
+				case ElementBindingExpressionSyntax elementBinding:
+				{
+					var elementAccess = ElementAccessExpression(expression as ExpressionSyntax ?? node.Expression, elementBinding.ArgumentList);
 
-			if (node.WhenNotNull is ElementBindingExpressionSyntax elementBinding)
-			{
-				var elementAccess = ElementAccessExpression(
-					expression as ExpressionSyntax ?? node.Expression,
-					elementBinding.ArgumentList);
+					return Visit(elementAccess);
+				}
+				// For ?.Method() we need to handle the member binding inside
+				case InvocationExpressionSyntax { Expression: MemberBindingExpressionSyntax methodBinding } invocation:
+				{
+					var memberAccess = MemberAccessExpression(expression as ExpressionSyntax ?? node.Expression, methodBinding.Name);
+					var newInvocation = InvocationExpression(memberAccess, invocation.ArgumentList);
 
-				return Visit(elementAccess);
-			}
-
-			// For ?.Method() we need to handle the member binding inside
-			if (node.WhenNotNull is InvocationExpressionSyntax { Expression: MemberBindingExpressionSyntax methodBinding } invocation)
-			{
-				var memberAccess = MemberAccessExpression(
-					SyntaxKind.SimpleMemberAccessExpression,
-					expression as ExpressionSyntax ?? node.Expression,
-					methodBinding.Name);
-
-				var newInvocation = InvocationExpression(memberAccess, invocation.ArgumentList);
-
-				return Visit(newInvocation);
+					return Visit(newInvocation);
+				}
 			}
 		}
 

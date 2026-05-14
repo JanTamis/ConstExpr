@@ -78,7 +78,6 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 				if (prefix.OperatorToken.IsKind(SyntaxKind.CaretToken))
 				{
 					var indexType = loader.GetType("System.Index");
-
 					var ctor = indexType?.GetConstructor([ typeof(int), typeof(bool) ]);
 
 					if (ctor != null)
@@ -372,7 +371,7 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 			}
 			case SizeOfExpressionSyntax sizeOfExpressionSyntax:
 			{
-				if (semanticModel.TryGetSymbol(sizeOfExpressionSyntax.Type, symbolStore, out ITypeSymbol? typeSymbol2) 
+				if (semanticModel.TryGetSymbol(sizeOfExpressionSyntax.Type, symbolStore, out ITypeSymbol? typeSymbol2)
 				    && loader.GetType(typeSymbol2) is { } managedType)
 				{
 					try
@@ -556,36 +555,36 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 
 				break;
 			}
-		case CollectionExpressionSyntax collectionExpressionSyntax:
-		{
-			semanticModel.TryGetTypeSymbol(collectionExpressionSyntax, symbolStore, out var typeSym);
-
-			var elements = new List<object?>();
-
-			foreach (var element in collectionExpressionSyntax.Elements.OfType<ExpressionElementSyntax>())
+			case CollectionExpressionSyntax collectionExpressionSyntax:
 			{
-				if (TryGetLiteralValue(element.Expression, typeSymbol, out var elemVal, visitedVariables))
+				semanticModel.TryGetTypeSymbol(collectionExpressionSyntax, symbolStore, out var typeSym);
+
+				var elements = new List<object?>();
+
+				foreach (var element in collectionExpressionSyntax.Elements.OfType<ExpressionElementSyntax>())
 				{
-					elements.Add(elemVal);
+					if (TryGetLiteralValue(element.Expression, typeSymbol, out var elemVal, visitedVariables))
+					{
+						elements.Add(elemVal);
+					}
+					else
+					{
+						value = null;
+						return false;
+					}
 				}
-				else
+
+				var type = elements.Count > 0
+					? elements[0]?.GetType()
+					: loader.GetType(typeSym ?? typeSymbol);
+
+				if (type is null)
 				{
 					value = null;
 					return false;
 				}
-			}
 
-			var type = elements.Count > 0
-				? elements[0]?.GetType()
-				: loader.GetType(typeSym ?? typeSymbol);
-
-			if (type is null)
-			{
-				value = null;
-				return false;
-			}
-
-			var array = Array.CreateInstance(type, elements.Count);
+				var array = Array.CreateInstance(type, elements.Count);
 
 				for (var i = 0; i < elements.Count; i++)
 				{

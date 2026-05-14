@@ -17,7 +17,7 @@ public class AbsoluteValueTest() : BaseTest<Func<int, int>>(FastMathFlags.FastMa
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return n < 0 ? -n : n;"),
+		Create("return Int32.Abs(n);"),
 		Create("return 42;", -42),
 		Create("return 10;", 10),
 		Create("return 0;", 0)
