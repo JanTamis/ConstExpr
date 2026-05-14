@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -27,6 +28,13 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		..MaterializingMethods,
 		..OrderingOperations
 	];
+
+	// Thread-local set of invocation texts currently being visited, used to detect re-entrancy
+	// and break the infinite recursion that occurs when source is unchanged (e.g. source.DefaultIfEmpty().Sum()).
+	[ThreadStatic]
+	private static HashSet<string>? _activeVisitKeys;
+
+	private static HashSet<string> ActiveVisitKeys => _activeVisitKeys ??= new HashSet<string>(StringComparer.Ordinal);
 
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -233,7 +241,27 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			}
 			else
 			{
-				items[0] = context.Visit(newInvocation) ?? newInvocation;
+				// Guard against re-entrant visits of the same invocation (e.g. source.DefaultIfEmpty().Sum()
+				// would loop: TryOptimizeAppend calls context.Visit(newInvocation) which re-enters the same
+				// optimizer with the same source unchanged, causing infinite recursion).
+				var visitKey = newInvocation.ToString();
+				var activeKeys = ActiveVisitKeys;
+
+				if (activeKeys.Add(visitKey))
+				{
+					try
+					{
+						items[0] = context.Visit(newInvocation) ?? newInvocation;
+					}
+					finally
+					{
+						activeKeys.Remove(visitKey);
+					}
+				}
+				else
+				{
+					items[0] = newInvocation;
+				}
 			}
 		}
 
