@@ -18,6 +18,40 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is
 		var x = context.VisitedParameters[0];
 		var y = context.VisitedParameters[1];
 
+		// Algebraic simplifications on literal bases: constant^y => specialized function
+		if (TryGetLiteralValue(x, context, out var baseObj) && baseObj is IConvertible baseConv)
+		{
+			try
+			{
+				var baseVal = baseConv.ToDouble(CultureInfo.InvariantCulture);
+
+				// 2^y => Exp2(y)
+				if (IsApproximately(baseVal, 2.0) && HasMethod(paramType, "Exp2", 1))
+				{
+					result = CreateInvocation(paramType, "Exp2", y);
+					return true;
+				}
+
+				// 10^y => Exp10(y)
+				if (IsApproximately(baseVal, 10.0) && HasMethod(paramType, "Exp10", 1))
+				{
+					result = CreateInvocation(paramType, "Exp10", y);
+					return true;
+				}
+
+				// e^y => Exp(y)
+				if (IsApproximately(baseVal, Math.E) && HasMethod(paramType, "Exp", 1))
+				{
+					result = CreateInvocation(paramType, "Exp", y);
+					return true;
+				}
+			}
+			catch
+			{
+				// base couldn't be converted to double, skip
+			}
+		}
+
 		// Algebraic simplifications on literal exponents (safe and type-preserving)
 		if (TryGetNumericLiteral(y, out var exp))
 		{
@@ -41,6 +75,23 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is
 
 				result = ParenthesizedExpression(div);
 				return true;
+			}
+
+			// x^(-1/2) => 1/Sqrt(x) or ReciprocalSqrtEstimate(x)
+			if (IsApproximately(exp, -0.5) && IsPure(x))
+			{
+				if (HasMethod(paramType, "ReciprocalSqrtEstimate", 1))
+				{
+					result = CreateInvocation(paramType, "ReciprocalSqrtEstimate", x);
+					return true;
+				}
+
+				if (HasMethod(paramType, "Sqrt", 1))
+				{
+					var sqrtCall = CreateInvocation(paramType, "Sqrt", x);
+					result = ParenthesizedExpression(DivideExpression(CreateLiteral(1.0.ToSpecialType(paramType.SpecialType)), sqrtCall));
+					return true;
+				}
 			}
 
 			// x^n => x * x * ... * x for small integer n
