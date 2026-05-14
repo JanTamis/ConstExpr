@@ -423,7 +423,7 @@ public partial class ConstExprPartialRewriter
 			.Select(s => s.Type)
 			.FirstOrDefault();
 
-		if (targetMethod.ContainingType.ToString() is not ("System.Math" or "System.MathF")
+		if (targetMethod.ContainingType.ToString() is not ("System.Math" or "System.MathF" or "System.Numerics.BitOperations")
 		    && (!targetMethod.ContainingType.EqualsType(type)
 		        || !type.IsNumericType()))
 		{
