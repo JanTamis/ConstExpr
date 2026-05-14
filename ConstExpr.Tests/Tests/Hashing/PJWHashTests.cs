@@ -31,11 +31,15 @@ public class PJWHashTests() : BaseTest<Func<string, uint>>(FastMathFlags.FastMat
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var hash = 2863311530U;
+			var hash = 0U;
+			var test = 0U;
 
 			for (var i = 0U; i < str.Length; i++)
 			{
-				hash ^= UInt32.IsEvenInteger(i) ? hash << 7 ^ (byte) str[(int) i] * (hash >> 3) : ~((hash << 11) + ((byte) str[(int) i] ^ hash >> 5));
+				hash = hash * 16U + (byte)str[(int)i];
+
+				if ((test = hash & 4026531840U) != 0U)
+					hash = (hash ^ test >> 24) & 268435455U;
 			}
 
 			return hash;
