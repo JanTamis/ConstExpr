@@ -32,34 +32,34 @@ public class LinqRangeOptimizationTests() : BaseTest<Func<int, int, double>>(Fas
 
 		// Range(start, count).Sum() => count * (2 * start + count - 1) / 2
 		var b = Enumerable.Range(start, count).Sum();
-		
+
 		// Range(start, count).Any() => count > 0
 		var c = Enumerable.Range(start, count).Any() ? 1 : 0;
-		
+
 		// Range(start, count).Contains(x) => x >= start && x < start + count
 		var d = Enumerable.Range(start, count).Contains(5) ? 1 : 0;
-		
+
 		// Range(start, count).First() => start
 		var e = Enumerable.Range(start, count).First();
-		
+
 		// Range(start, count).Last() => start + count - 1
 		var f = Enumerable.Range(start, count).Last();
-		
+
 		// Range(start, count).ElementAt(n) => start + n
 		var g = Enumerable.Range(start, count).ElementAt(2);
 
 		// Range(start, count).Average() => Double.MultiplyAddEstimate(count - 1, 0.5, start)
 		var h = Enumerable.Range(start, count).Average();
-		
+
 		// Range(start, count).Min() => start
 		var i = Enumerable.Range(start, count).Min();
-		
+
 		// Range(start, count).Max() => start + count - 1 
 		var j = Enumerable.Range(start, count).Max();
 
 		// Range(start, count).Skip(n).Count() => Int32.Max(0, count - n)
 		var k = Enumerable.Range(start, count).Skip(2).Count();
-		
+
 		// Range(start, count).Take(n).Count() => Int32.Min(n, count)
 		var l = Enumerable.Range(start, count).Take(2).Count();
 
@@ -71,7 +71,7 @@ public class LinqRangeOptimizationTests() : BaseTest<Func<int, int, double>>(Fas
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return count + count * (start * 2 + count - 1) / 2 + (count > 0 ? 1 : 0) + (start < 5 && count + start >= 5 ? 1 : 0) + start + start + count - 1 + (count >= 2 ? start + 2 : throw new ArgumentOutOfRangeException(\"\")) + (count > 0 ? start + (count - 1) / 2D : throw new InvalidOperationException(\"Sequence contains no elements\")) + (count > 0 ? start : throw new InvalidOperationException(\"Sequence contains no elements\")) + (count > 0 ? start + count - 1 : throw new InvalidOperationException(\"Sequence contains no elements\")) + Int32.Max(0, count - 2) + Int32.Min(2, count) + (Enumerable.Range(start, count).All(x => x >= 0) ? 1 : 0);"),
+		Create("return count + count * (start * 2 + count - 1) / 2 + (count > 0 ? 1 : 0) + (start < 5 && count + start > 5 ? 1 : 0) + start + start + count - 1 + (count > 2 ? start + 2 : throw new ArgumentOutOfRangeException(\"\")) + (count > 0 ? start + (count - 1) / 2D : throw new InvalidOperationException(\"Sequence contains no elements\")) + (count > 0 ? start : throw new InvalidOperationException(\"Sequence contains no elements\")) + (count > 0 ? start + count - 1 : throw new InvalidOperationException(\"Sequence contains no elements\")) + Int32.Max(0, count - 2) + Int32.Min(2, count) + (Enumerable.Range(start, count).All(x => x >= 0) ? 1 : 0);"),
 		Create("return 57D;", 2, 5),
 	];
 }

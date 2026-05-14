@@ -26,8 +26,8 @@ public class VisitBlockTests : BaseTest<Func<int, int, int>>
 	[
 		Create("""
 			var result = x + 10 + (y << 1);
-			result = result + x - 5;
-			
+			result += x - 5;
+
 			return result;
 			"""),
 		Create("return 21;", 5, 3),

@@ -24,7 +24,7 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is
 			// x^0 => 1
 			if (IsApproximately(exp, 0.0))
 			{
-				result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(1.0));
+				result = CreateLiteral(1.0);
 				return true;
 			}
 
@@ -33,32 +33,30 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is
 			{
 				if (HasMethod(paramType, "Reciprocal", 1))
 				{
-					result = CreateInvocation(paramType, "Reciprocal", x);
+					result = CreateInvocation(paramType, "Reciprocal", ParenthesizedExpression(x));
 					return true;
 				}
 
-				var div = DivideExpression(
-					CreateLiteral(1.0.ToSpecialType(paramType.SpecialType)), x);
+				var div = DivideExpression(CreateLiteral(1.0.ToSpecialType(paramType.SpecialType)), ParenthesizedExpression(x));
 
 				result = ParenthesizedExpression(div);
 				return true;
 			}
 
 			// x^n => x * x * ... * x for small integer n
-			if (Math.Abs(exp) > 1.0 && Math.Abs(exp) <= 5.0 && IsPure(x) && Math.Abs(exp - Math.Round(exp)) < Double.Epsilon)
+			if (IsPure(x) && Math.Abs(exp) > 1.0 && Math.Abs(exp) <= 5.0 && Math.Abs(exp - Math.Round(exp)) < Double.Epsilon)
 			{
 				var n = (int) Math.Round(exp);
-				var acc = x;
+				ExpressionSyntax acc = ParenthesizedExpression(x);
 
 				for (var i = 1; i < Math.Abs(n); i++)
 				{
-					acc = MultiplyExpression(acc, x);
+					acc = MultiplyExpression(acc, ParenthesizedExpression(x));
 				}
 
 				if (n < 0)
 				{
-					acc = DivideExpression(
-						LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(1.0)), acc);
+					acc = DivideExpression(CreateLiteral(1.0.ToSpecialType(paramType.SpecialType)), acc);
 				}
 
 				result = ParenthesizedExpression(acc);
@@ -75,7 +73,7 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is
 			// x^2 => (x * x) when x is pure (no side-effects)
 			if (IsApproximately(exp, 2.0) && IsPure(x))
 			{
-				var mul = MultiplyExpression(x, x);
+				var mul = MultiplyExpression(ParenthesizedExpression(x), ParenthesizedExpression(x));
 				result = ParenthesizedExpression(mul);
 				return true;
 			}

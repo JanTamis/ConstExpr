@@ -264,11 +264,16 @@ public partial class ConstExprPartialRewriter
 		}
 
 		var declaration = Visit(node.Declaration);
+
+		// Visit initializers first so that initial values are set (e.g. i = 0),
+		// then invalidate loop variables so the condition and body see them as unknown
+		// (the variable changes on every iteration via the incrementors).
+		var visitedInitializers = VisitList(node.Initializers);
 		InvalidateAssignedVariables(node);
 		InvalidateMutatingReceiverValues(node);
 
 		return node
-			.WithInitializers(VisitList(node.Initializers))
+			.WithInitializers(visitedInitializers)
 			.WithCondition(Visit(node.Condition) as ExpressionSyntax ?? node.Condition)
 			.WithDeclaration(declaration as VariableDeclarationSyntax ?? node.Declaration)
 			.WithStatement(Visit(node.Statement) as StatementSyntax ?? node.Statement);
@@ -631,13 +636,70 @@ public partial class ConstExprPartialRewriter
 	public override SyntaxNode VisitBlock(BlockSyntax node)
 	{
 		var visited = VisitList(node.Statements);
+		var mergedForDeclarations = MergeForLoopDeclarations(visited);
 
-		var untilThrown = TakeUntilThrownStatements(visited);
+		var untilThrown = TakeUntilThrownStatements(mergedForDeclarations);
 		var combined = CombineConsecutiveIfStatements(untilThrown, Visit);
 		var mergedIfChain = MergeMixedBoolReturnIfs(combined, Visit);
 		var simplified = SimplifyIfReturnPatterns(mergedIfChain);
 
 		return node.WithStatements(simplified);
+	}
+
+	private SyntaxList<StatementSyntax> MergeForLoopDeclarations(SyntaxList<StatementSyntax> statements)
+	{
+		if (statements.Count < 2)
+		{
+			return statements;
+		}
+
+		var result = new List<StatementSyntax>();
+		var comparer = SyntaxNodeComparer.Get<ExpressionSyntax>();
+
+		for (var i = 0; i < statements.Count; i++)
+		{
+			if (i + 1 < statements.Count
+			    && statements[i] is LocalDeclarationStatementSyntax
+			    {
+				    Modifiers.Count: 0,
+				    Declaration:
+				    {
+					    Variables: [ { Identifier.Text: var variableName, Initializer: { Value: var declaredValue } } declarator ]
+				    } declaration
+			    }
+			    && statements[i + 1] is ForStatementSyntax
+			    {
+				    Declaration: null,
+				    Initializers:
+				    [
+					    AssignmentExpressionSyntax
+					    {
+						    RawKind: (int) SyntaxKind.SimpleAssignmentExpression,
+						    Left: IdentifierNameSyntax { Identifier.Text: var initializerName },
+						    Right: var initializerValue
+					    }
+				    ]
+			    } forStatement
+			    && variableName == initializerName
+			    && comparer.Equals(declaredValue.WithoutTrivia(), initializerValue.WithoutTrivia())
+			    && !statements.Skip(i + 2).Any(statement => statement.HasIdentifier(variableName)))
+			{
+				var mergedDeclaration = declaration.WithVariables(
+					SeparatedList([
+						declarator.WithInitializer(EqualsValueClause(initializerValue))
+					]));
+
+				result.Add(forStatement
+					.WithDeclaration(mergedDeclaration)
+					.WithInitializers(default));
+				i++;
+				continue;
+			}
+
+			result.Add(statements[i]);
+		}
+
+		return List(result);
 	}
 
 	/// <summary>

@@ -1303,15 +1303,31 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			return true;
 		}
 
-		if (binary.Left is BinaryExpressionSyntax nested && TryExtractCompoundBinary(nested, leftName, out compoundKind, out var nestedRight))
+		if (binary.Left is BinaryExpressionSyntax nested
+		    && TryExtractCompoundBinary(nested, leftName, out var nestedKind, out var nestedRight)
+		    && CanFoldNestedCompound(nestedKind, binary.Kind()))
 		{
+			compoundKind = nestedKind;
 			rightExpression = BinaryExpression(binary.Kind(), nestedRight, binary.Right);
 			return true;
 		}
 
+
 		compoundKind = default;
 		rightExpression = binary;
 		return false;
+	}
+
+	private static bool CanFoldNestedCompound(SyntaxKind nestedKind, SyntaxKind outerKind)
+	{
+		if (nestedKind != outerKind)
+		{
+			return false;
+		}
+
+		return nestedKind is SyntaxKind.BitwiseAndExpression
+			or SyntaxKind.BitwiseOrExpression
+			or SyntaxKind.ExclusiveOrExpression;
 	}
 
 	private static string? GetCompoundAssignmentOperator(SyntaxKind kind)

@@ -218,7 +218,14 @@ public class AddChainMultiplyStrategy : NumericBinaryStrategy
 					}
 					case SyntaxKind.LeftShiftExpression when binary.Right is LiteralExpressionSyntax { Token.Value: int shiftN }:
 					{
-						return Enumerable.Repeat(binary.Left, shiftN * 2);
+						// x << n is x added to itself 2^n times. Keep the flattening bounded so
+						// large shifts do not create enormous intermediate operand lists.
+						if (shiftN is < 0 or > 10)
+						{
+							break;
+						}
+
+						return Enumerable.Repeat(binary.Left, 1 << shiftN);
 					}
 				}
 				break;
