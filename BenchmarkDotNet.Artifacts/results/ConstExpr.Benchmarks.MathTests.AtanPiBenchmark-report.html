@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>ConstExpr.Benchmarks.MathTests.AtanPiBenchmark-20260401-142718</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.15.8, macOS Tahoe 26.3.1 (a) (25D771280a) [Darwin 25.3.0]
+Apple M4 Pro, 1 CPU, 12 logical and 12 physical cores
+.NET SDK 10.0.101
+  [Host]   : .NET 10.0.1 (10.0.1, 10.0.125.57005), Arm64 RyuJIT armv8.0-a
+  ShortRun : .NET 10.0.1 (10.0.1, 10.0.125.57005), Arm64 RyuJIT armv8.0-a
+</code></pre>
+<pre><code>Job=ShortRun  IterationCount=3  LaunchCount=1  
+WarmupCount=3  
+</code></pre>
+
+<table>
+<thead><tr><th>Method            </th><th>Categories</th><th>Mean</th><th>Error</th><th>StdDev</th><th>Ratio</th><th>RatioSD</th><th>Allocated</th><th>Alloc Ratio</th>
+</tr>
+</thead><tbody><tr><td>DotNetAtanPi_Double</td><td>Double</td><td>3.634 ns</td><td>0.1067 ns</td><td>0.0059 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>NA</td>
+</tr><tr><td>CurrentFastAtanPi_Double</td><td>Double</td><td>1.387 ns</td><td>0.0323 ns</td><td>0.0018 ns</td><td>0.38</td><td>0.00</td><td>-</td><td>NA</td>
+</tr><tr><td>FastAtanPiV2_Double</td><td>Double</td><td>1.217 ns</td><td>0.0435 ns</td><td>0.0024 ns</td><td>0.33</td><td>0.00</td><td>-</td><td>NA</td>
+</tr><tr><td>FastAtanPiV3_Double</td><td>Double</td><td>2.001 ns</td><td>0.0945 ns</td><td>0.0052 ns</td><td>0.55</td><td>0.00</td><td>-</td><td>NA</td>
+</tr><tr><td>DotNetAtanPi_Float</td><td>Float</td><td>3.568 ns</td><td>1.4182 ns</td><td>0.0777 ns</td><td>1.00</td><td>0.03</td><td>-</td><td>NA</td>
+</tr><tr><td>CurrentFastAtanPi_Float</td><td>Float</td><td>1.543 ns</td><td>0.0440 ns</td><td>0.0024 ns</td><td>0.43</td><td>0.01</td><td>-</td><td>NA</td>
+</tr><tr><td>FastAtanPiV2_Float</td><td>Float</td><td>1.243 ns</td><td>0.3365 ns</td><td>0.0184 ns</td><td>0.35</td><td>0.01</td><td>-</td><td>NA</td>
+</tr><tr><td>FastAtanPiV3_Float</td><td>Float</td><td>1.179 ns</td><td>0.2128 ns</td><td>0.0117 ns</td><td>0.33</td><td>0.01</td><td>-</td><td>NA</td>
+</tr></tbody></table>
+</body>
+</html>

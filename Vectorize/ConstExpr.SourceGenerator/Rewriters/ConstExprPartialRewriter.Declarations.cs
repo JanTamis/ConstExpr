@@ -139,6 +139,13 @@ public partial class ConstExprPartialRewriter
 			item.Value = result;
 			item.IsInitialized = true;
 		}
+		// For const variables, try to evaluate the initializer to a constant value
+		else if (operation.Symbol is ILocalSymbol { IsConst: true } && operation.Initializer?.ConstantValue is { HasValue: true, Value: var constValue })
+		{
+			item.Value = constValue;
+			item.HasValue = true;
+			item.IsInitialized = true;
+		}
 		else
 		{
 			item.HasValue = false;

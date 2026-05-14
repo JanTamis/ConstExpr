@@ -1,0 +1,39 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v10.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v10.0": {
+      "ConstExpr.Sample/1.0.0": {
+        "dependencies": {
+          "ConstExpr.Core": "0.1.19-preview"
+        },
+        "runtime": {
+          "ConstExpr.Sample.dll": {}
+        }
+      },
+      "ConstExpr.Core/0.1.19-preview": {
+        "runtime": {
+          "ConstExpr.Core.dll": {
+            "assemblyVersion": "0.1.19.0",
+            "fileVersion": "0.1.19.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "ConstExpr.Sample/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "ConstExpr.Core/0.1.19-preview": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

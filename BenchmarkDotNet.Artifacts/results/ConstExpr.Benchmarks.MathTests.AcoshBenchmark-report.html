@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>ConstExpr.Benchmarks.MathTests.AcoshBenchmark-20260330-223506</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.15.8, macOS Tahoe 26.3.1 (a) (25D771280a) [Darwin 25.3.0]
+Apple M4 Pro, 1 CPU, 12 logical and 12 physical cores
+.NET SDK 10.0.101
+  [Host]   : .NET 10.0.1 (10.0.1, 10.0.125.57005), Arm64 RyuJIT armv8.0-a
+  ShortRun : .NET 10.0.1 (10.0.1, 10.0.125.57005), Arm64 RyuJIT armv8.0-a
+</code></pre>
+<pre><code>Job=ShortRun  IterationCount=3  LaunchCount=1  
+WarmupCount=3  
+</code></pre>
+
+<table>
+<thead><tr><th>Method           </th><th>Categories</th><th>Mean</th><th>Error</th><th>StdDev</th><th>Ratio</th><th>RatioSD</th><th>Allocated</th><th>Alloc Ratio</th>
+</tr>
+</thead><tbody><tr><td>DotNetAcosh_Double</td><td>Double</td><td>3.407 ns</td><td>1.2254 ns</td><td>0.0672 ns</td><td>1.00</td><td>0.02</td><td>-</td><td>NA</td>
+</tr><tr><td>FastAcosh_Double</td><td>Double</td><td>1.804 ns</td><td>0.0427 ns</td><td>0.0023 ns</td><td>0.53</td><td>0.01</td><td>-</td><td>NA</td>
+</tr><tr><td>FastAcosh_Double_Fixed</td><td>Double</td><td>1.698 ns</td><td>0.0945 ns</td><td>0.0052 ns</td><td>0.50</td><td>0.01</td><td>-</td><td>NA</td>
+</tr><tr><td>FastAcosh_Double_Simple</td><td>Double</td><td>3.002 ns</td><td>0.1115 ns</td><td>0.0061 ns</td><td>0.88</td><td>0.02</td><td>-</td><td>NA</td>
+</tr><tr><td>DotNetAcosh_Float</td><td>Float</td><td>2.353 ns</td><td>0.1682 ns</td><td>0.0092 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>NA</td>
+</tr><tr><td>FastAcosh_Float</td><td>Float</td><td>1.802 ns</td><td>0.0477 ns</td><td>0.0026 ns</td><td>0.77</td><td>0.00</td><td>-</td><td>NA</td>
+</tr><tr><td>FastAcosh_Float_Fixed</td><td>Float</td><td>1.713 ns</td><td>0.5916 ns</td><td>0.0324 ns</td><td>0.73</td><td>0.01</td><td>-</td><td>NA</td>
+</tr><tr><td>FastAcosh_Float_Simple</td><td>Float</td><td>1.999 ns</td><td>0.0206 ns</td><td>0.0011 ns</td><td>0.85</td><td>0.00</td><td>-</td><td>NA</td>
+</tr></tbody></table>
+</body>
+</html>

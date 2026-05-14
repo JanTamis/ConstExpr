@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>ConstExpr.Benchmarks.MathTests.AbsTest-20260330-151214</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.15.8, macOS Tahoe 26.3.1 (a) (25D771280a) [Darwin 25.3.0]
+Apple M4 Pro, 1 CPU, 12 logical and 12 physical cores
+.NET SDK 10.0.101
+  [Host]   : .NET 10.0.1 (10.0.1, 10.0.125.57005), Arm64 RyuJIT armv8.0-a
+  ShortRun : .NET 10.0.1 (10.0.1, 10.0.125.57005), Arm64 RyuJIT armv8.0-a
+</code></pre>
+<pre><code>Job=ShortRun  IterationCount=3  LaunchCount=1  
+WarmupCount=3  
+</code></pre>
+
+<table>
+<thead><tr><th>Method</th><th>Value</th><th>Mean</th><th>Error</th><th>StdDev</th><th>Ratio</th><th>RatioSD</th><th>Allocated</th><th>Alloc Ratio</th>
+</tr>
+</thead><tbody><tr><td>Abs</td><td>-2147483647</td><td>308.3 ns</td><td>76.76 ns</td><td>4.21 ns</td><td>1.00</td><td>0.02</td><td>-</td><td>NA</td>
+</tr><tr><td>LoopFloor</td><td>-2147483647</td><td>255.5 ns</td><td>77.45 ns</td><td>4.25 ns</td><td>0.83</td><td>0.02</td><td>-</td><td>NA</td>
+</tr><tr><td>AbsUnchecked</td><td>-2147483647</td><td>256.9 ns</td><td>4.62 ns</td><td>0.25 ns</td><td>0.83</td><td>0.01</td><td>-</td><td>NA</td>
+</tr><tr><td>AbsFast</td><td>-2147483647</td><td>263.2 ns</td><td>32.41 ns</td><td>1.78 ns</td><td>0.85</td><td>0.01</td><td>-</td><td>NA</td>
+</tr><tr><td>Abs</td><td>-1000</td><td>315.8 ns</td><td>51.13 ns</td><td>2.80 ns</td><td>1.00</td><td>0.01</td><td>-</td><td>NA</td>
+</tr><tr><td>LoopFloor</td><td>-1000</td><td>257.0 ns</td><td>37.23 ns</td><td>2.04 ns</td><td>0.81</td><td>0.01</td><td>-</td><td>NA</td>
+</tr><tr><td>AbsUnchecked</td><td>-1000</td><td>256.9 ns</td><td>17.31 ns</td><td>0.95 ns</td><td>0.81</td><td>0.01</td><td>-</td><td>NA</td>
+</tr><tr><td>AbsFast</td><td>-1000</td><td>259.8 ns</td><td>19.20 ns</td><td>1.05 ns</td><td>0.82</td><td>0.01</td><td>-</td><td>NA</td>
+</tr><tr><td>Abs</td><td>-100</td><td>309.0 ns</td><td>19.04 ns</td><td>1.04 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>NA</td>
+</tr><tr><td>LoopFloor</td><td>-100</td><td>254.0 ns</td><td>3.64 ns</td><td>0.20 ns</td><td>0.82</td><td>0.00</td><td>-</td><td>NA</td>
+</tr><tr><td>AbsUnchecked</td><td>-100</td><td>257.5 ns</td><td>4.57 ns</td><td>0.25 ns</td><td>0.83</td><td>0.00</td><td>-</td><td>NA</td>
+</tr><tr><td>AbsFast</td><td>-100</td><td>256.5 ns</td><td>2.41 ns</td><td>0.13 ns</td><td>0.83</td><td>0.00</td><td>-</td><td>NA</td>
+</tr><tr><td>Abs</td><td>-10</td><td>314.4 ns</td><td>181.11 ns</td><td>9.93 ns</td><td>1.00</td><td>0.04</td><td>-</td><td>NA</td>
+</tr><tr><td>LoopFloor</td><td>-10</td><td>253.8 ns</td><td>2.98 ns</td><td>0.16 ns</td><td>0.81</td><td>0.02</td><td>-</td><td>NA</td>
+</tr><tr><td>AbsUnchecked</td><td>-10</td><td>257.6 ns</td><td>9.10 ns</td><td>0.50 ns</td><td>0.82</td><td>0.02</td><td>-</td><td>NA</td>
+</tr><tr><td>AbsFast</td><td>-10</td><td>257.2 ns</td><td>4.46 ns</td><td>0.24 ns</td><td>0.82</td><td>0.02</td><td>-</td><td>NA</td>
+</tr><tr><td>Abs</td><td>-5</td><td>310.4 ns</td><td>57.52 ns</td><td>3.15 ns</td><td>1.00</td><td>0.01</td><td>-</td><td>NA</td>
+</tr><tr><td>LoopFloor</td><td>-5</td><td>254.1 ns</td><td>10.71 ns</td><td>0.59 ns</td><td>0.82</td><td>0.01</td><td>-</td><td>NA</td>
+</tr><tr><td>AbsUnchecked</td><td>-5</td><td>257.0 ns</td><td>7.36 ns</td><td>0.40 ns</td><td>0.83</td><td>0.01</td><td>-</td><td>NA</td>
+</tr><tr><td>AbsFast</td><td>-5</td><td>256.8 ns</td><td>1.20 ns</td><td>0.07 ns</td><td>0.83</td><td>0.01</td><td>-</td><td>NA</td>
+</tr><tr><td>Abs</td><td>-1</td><td>307.1 ns</td><td>36.03 ns</td><td>1.97 ns</td><td>1.00</td><td>0.01</td><td>-</td><td>NA</td>
+</tr><tr><td>LoopFloor</td><td>-1</td><td>253.1 ns</td><td>11.02 ns</td><td>0.60 ns</td><td>0.82</td><td>0.00</td><td>-</td><td>NA</td>
+</tr><tr><td>AbsUnchecked</td><td>-1</td><td>256.4 ns</td><td>3.15 ns</td><td>0.17 ns</td><td>0.83</td><td>0.00</td><td>-</td><td>NA</td>
+</tr><tr><td>AbsFast</td><td>-1</td><td>256.3 ns</td><td>5.24 ns</td><td>0.29 ns</td><td>0.83</td><td>0.00</td><td>-</td><td>NA</td>
+</tr><tr><td>Abs</td><td>0</td><td>256.3 ns</td><td>20.75 ns</td><td>1.14 ns</td><td>1.00</td><td>0.01</td><td>-</td><td>NA</td>
+</tr><tr><td>LoopFloor</td><td>0</td><td>253.5 ns</td><td>9.84 ns</td><td>0.54 ns</td><td>0.99</td><td>0.00</td><td>-</td><td>NA</td>
+</tr><tr><td>AbsUnchecked</td><td>0</td><td>256.7 ns</td><td>2.77 ns</td><td>0.15 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>NA</td>
+</tr><tr><td>AbsFast</td><td>0</td><td>257.5 ns</td><td>15.26 ns</td><td>0.84 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>NA</td>
+</tr><tr><td>Abs</td><td>1</td><td>256.4 ns</td><td>18.93 ns</td><td>1.04 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>NA</td>
+</tr><tr><td>LoopFloor</td><td>1</td><td>252.3 ns</td><td>18.55 ns</td><td>1.02 ns</td><td>0.98</td><td>0.00</td><td>-</td><td>NA</td>
+</tr><tr><td>AbsUnchecked</td><td>1</td><td>257.9 ns</td><td>40.35 ns</td><td>2.21 ns</td><td>1.01</td><td>0.01</td><td>-</td><td>NA</td>
+</tr><tr><td>AbsFast</td><td>1</td><td>257.0 ns</td><td>17.55 ns</td><td>0.96 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>NA</td>
+</tr><tr><td>Abs</td><td>5</td><td>256.9 ns</td><td>10.56 ns</td><td>0.58 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>NA</td>
+</tr><tr><td>LoopFloor</td><td>5</td><td>253.1 ns</td><td>24.50 ns</td><td>1.34 ns</td><td>0.99</td><td>0.00</td><td>-</td><td>NA</td>
+</tr><tr><td>AbsUnchecked</td><td>5</td><td>256.4 ns</td><td>2.36 ns</td><td>0.13 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>NA</td>
+</tr><tr><td>AbsFast</td><td>5</td><td>256.8 ns</td><td>5.40 ns</td><td>0.30 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>NA</td>
+</tr><tr><td>Abs</td><td>10</td><td>256.6 ns</td><td>19.68 ns</td><td>1.08 ns</td><td>1.00</td><td>0.01</td><td>-</td><td>NA</td>
+</tr><tr><td>LoopFloor</td><td>10</td><td>252.0 ns</td><td>8.54 ns</td><td>0.47 ns</td><td>0.98</td><td>0.00</td><td>-</td><td>NA</td>
+</tr><tr><td>AbsUnchecked</td><td>10</td><td>256.9 ns</td><td>10.01 ns</td><td>0.55 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>NA</td>
+</tr><tr><td>AbsFast</td><td>10</td><td>266.0 ns</td><td>163.59 ns</td><td>8.97 ns</td><td>1.04</td><td>0.03</td><td>-</td><td>NA</td>
+</tr><tr><td>Abs</td><td>100</td><td>256.1 ns</td><td>14.12 ns</td><td>0.77 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>NA</td>
+</tr><tr><td>LoopFloor</td><td>100</td><td>253.3 ns</td><td>10.49 ns</td><td>0.57 ns</td><td>0.99</td><td>0.00</td><td>-</td><td>NA</td>
+</tr><tr><td>AbsUnchecked</td><td>100</td><td>256.0 ns</td><td>4.21 ns</td><td>0.23 ns</td><td>1.00</td><td>0.00</td><td>-</td><td>NA</td>
+</tr><tr><td>AbsFast</td><td>100</td><td>264.6 ns</td><td>164.48 ns</td><td>9.02 ns</td><td>1.03</td><td>0.03</td><td>-</td><td>NA</td>
+</tr><tr><td>Abs</td><td>1000</td><td>257.3 ns</td><td>40.24 ns</td><td>2.21 ns</td><td>1.00</td><td>0.01</td><td>-</td><td>NA</td>
+</tr><tr><td>LoopFloor</td><td>1000</td><td>251.7 ns</td><td>16.05 ns</td><td>0.88 ns</td><td>0.98</td><td>0.01</td><td>-</td><td>NA</td>
+</tr><tr><td>AbsUnchecked</td><td>1000</td><td>256.0 ns</td><td>6.84 ns</td><td>0.37 ns</td><td>0.99</td><td>0.01</td><td>-</td><td>NA</td>
+</tr><tr><td>AbsFast</td><td>1000</td><td>256.1 ns</td><td>5.45 ns</td><td>0.30 ns</td><td>1.00</td><td>0.01</td><td>-</td><td>NA</td>
+</tr><tr><td>Abs</td><td>2147483647</td><td>262.9 ns</td><td>136.77 ns</td><td>7.50 ns</td><td>1.00</td><td>0.03</td><td>-</td><td>NA</td>
+</tr><tr><td>LoopFloor</td><td>2147483647</td><td>252.4 ns</td><td>15.18 ns</td><td>0.83 ns</td><td>0.96</td><td>0.02</td><td>-</td><td>NA</td>
+</tr><tr><td>AbsUnchecked</td><td>2147483647</td><td>255.3 ns</td><td>9.75 ns</td><td>0.53 ns</td><td>0.97</td><td>0.02</td><td>-</td><td>NA</td>
+</tr><tr><td>AbsFast</td><td>2147483647</td><td>257.3 ns</td><td>8.76 ns</td><td>0.48 ns</td><td>0.98</td><td>0.02</td><td>-</td><td>NA</td>
+</tr></tbody></table>
+</body>
+</html>

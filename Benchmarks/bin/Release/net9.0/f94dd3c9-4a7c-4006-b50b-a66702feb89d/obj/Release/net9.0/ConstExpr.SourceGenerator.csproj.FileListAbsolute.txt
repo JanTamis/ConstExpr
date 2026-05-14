@@ -1,0 +1,12 @@
+/Users/jantamiskossen/RiderProjects/Vectorize/Benchmarks/bin/Release/net9.0/f94dd3c9-4a7c-4006-b50b-a66702feb89d/bin/Release/net9.0/ConstExpr.SourceGenerator.deps.json
+/Users/jantamiskossen/RiderProjects/Vectorize/Benchmarks/bin/Release/net9.0/f94dd3c9-4a7c-4006-b50b-a66702feb89d/bin/Release/net9.0/ConstExpr.SourceGenerator.dll
+/Users/jantamiskossen/RiderProjects/Vectorize/Benchmarks/bin/Release/net9.0/f94dd3c9-4a7c-4006-b50b-a66702feb89d/bin/Release/net9.0/ConstExpr.SourceGenerator.pdb
+/Users/jantamiskossen/RiderProjects/Vectorize/Benchmarks/bin/Release/net9.0/f94dd3c9-4a7c-4006-b50b-a66702feb89d/obj/Release/net9.0/ConstExpr.SourceGenerator.csproj.AssemblyReference.cache
+/Users/jantamiskossen/RiderProjects/Vectorize/Benchmarks/bin/Release/net9.0/f94dd3c9-4a7c-4006-b50b-a66702feb89d/obj/Release/net9.0/ConstExpr.SourceGenerator.GeneratedMSBuildEditorConfig.editorconfig
+/Users/jantamiskossen/RiderProjects/Vectorize/Benchmarks/bin/Release/net9.0/f94dd3c9-4a7c-4006-b50b-a66702feb89d/obj/Release/net9.0/ConstExpr.SourceGenerator.AssemblyInfoInputs.cache
+/Users/jantamiskossen/RiderProjects/Vectorize/Benchmarks/bin/Release/net9.0/f94dd3c9-4a7c-4006-b50b-a66702feb89d/obj/Release/net9.0/ConstExpr.SourceGenerator.AssemblyInfo.cs
+/Users/jantamiskossen/RiderProjects/Vectorize/Benchmarks/bin/Release/net9.0/f94dd3c9-4a7c-4006-b50b-a66702feb89d/obj/Release/net9.0/ConstExpr.SourceGenerator.csproj.CoreCompileInputs.cache
+/Users/jantamiskossen/RiderProjects/Vectorize/Benchmarks/bin/Release/net9.0/f94dd3c9-4a7c-4006-b50b-a66702feb89d/obj/Release/net9.0/ConstExpr.SourceGenerator.sourcelink.json
+/Users/jantamiskossen/RiderProjects/Vectorize/Benchmarks/bin/Release/net9.0/f94dd3c9-4a7c-4006-b50b-a66702feb89d/obj/Release/net9.0/ConstExp.A8F4F415.Up2Date
+/Users/jantamiskossen/RiderProjects/Vectorize/Benchmarks/bin/Release/net9.0/f94dd3c9-4a7c-4006-b50b-a66702feb89d/obj/Release/net9.0/ConstExpr.SourceGenerator.dll
+/Users/jantamiskossen/RiderProjects/Vectorize/Benchmarks/bin/Release/net9.0/f94dd3c9-4a7c-4006-b50b-a66702feb89d/obj/Release/net9.0/ConstExpr.SourceGenerator.pdb

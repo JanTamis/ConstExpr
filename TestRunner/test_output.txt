@@ -1,0 +1,81 @@
+Running VisitParenthesizedExpressionTests...
+Extracting SGF.Assembly::ConstExpr.Core.dll assembly from ConstExpr.SourceGenerator's resources.
+Extracting SGF.Assembly::Microsoft.Bcl.HashCode.dll assembly from ConstExpr.SourceGenerator's resources.
+Extracting SGF.Assembly::Microsoft.Bcl.Numerics.dll assembly from ConstExpr.SourceGenerator's resources.
+Extracting SGF.Assembly::Microsoft.CodeAnalysis.dll assembly from ConstExpr.SourceGenerator's resources.
+Extracting SGF.Assembly::Newtonsoft.Json.dll assembly from ConstExpr.SourceGenerator's resources.
+Extracting SGF.Assembly::SourceGen.Utilities.dll assembly from ConstExpr.SourceGenerator's resources.
+Extracting SGF.Assembly::SourceGenerator.Foundations.Contracts.dll assembly from ConstExpr.SourceGenerator's resources.
+Extracting SGF.Assembly::SourceGenerator.Foundations.Windows.dll assembly from ConstExpr.SourceGenerator's resources.
+Extracting SGF.Assembly::envdte.dll assembly from SourceGenerator.Foundations.Windows's resources.
+Extracting SGF.Assembly::Microsoft.CodeAnalysis.dll assembly from SourceGenerator.Foundations.Windows's resources.
+Extracting SGF.Assembly::Microsoft.VisualStudio.Interop.dll assembly from SourceGenerator.Foundations.Windows's resources.
+Extracting SGF.Assembly::SourceGenerator.Foundations.Contracts.dll assembly from SourceGenerator.Foundations.Windows's resources.
+Extracting SGF.Assembly::System.Management.dll assembly from SourceGenerator.Foundations.Windows's resources.
+Extracting SGF.Assembly::System.Reflection.Emit.dll assembly from ConstExpr.SourceGenerator's resources.
+Extracting SGF.Assembly::System.Reflection.Emit.ILGeneration.dll assembly from ConstExpr.SourceGenerator's resources.
+Extracting SGF.Assembly::System.Reflection.MetadataLoadContext.dll assembly from ConstExpr.SourceGenerator's resources.
+Extracting SGF.Assembly::System.Runtime.Loader.dll assembly from ConstExpr.SourceGenerator's resources.
+
+✗ Test Failed:
+Generated method body does not match expected body.
+Parameters: x = Unknown, y = Unknown
+
+Expected body:
+{
+	var d = x + y;
+	var e = x + y;
+	var i = $"{x}";
+	var j = $"{x}";
+
+	// extra contexts covered by CanRemoveParentheses
+	var k = x;
+
+	if (x > y)
+	{
+		var m = 1;
+	}
+	else
+	{
+		var m = 2;
+	}
+
+	var t = ((x, y));
+	var anon = new
+	{
+		a = (x)
+	};
+	var arr = new[]
+	{
+		(x)
+	};
+
+void G(int p)
+	{
+	}
+
+	G((x));
+
+	return (3, 9, 5, d, e, 1, 9, i, j);
+}
+
+Generated body:
+{
+	var d = ((x) + (y));
+	var e = ((x + (y)));
+	var i = $"{x}";
+	var j = ($"{x}");
+	var t = ((x, y));
+	var anon = new
+	{
+		a = x
+	};
+	var arr = new[]
+	{
+		x
+	};
+
+	G(x);
+
+	return (3, 9, 5, d, e, 1, 6, i, j);
+}

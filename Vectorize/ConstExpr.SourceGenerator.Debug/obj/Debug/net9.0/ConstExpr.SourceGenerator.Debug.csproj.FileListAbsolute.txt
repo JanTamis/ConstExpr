@@ -1,0 +1,6 @@
+/Users/jantamiskossen/RiderProjects/Vectorize/Vectorize/ConstExpr.SourceGenerator.Debug/obj/Debug/net9.0/ConstExpr.SourceGenerator.Debug.csproj.AssemblyReference.cache
+/Users/jantamiskossen/RiderProjects/Vectorize/Vectorize/ConstExpr.SourceGenerator.Debug/obj/Debug/net9.0/ConstExpr.SourceGenerator.Debug.GeneratedMSBuildEditorConfig.editorconfig
+/Users/jantamiskossen/RiderProjects/Vectorize/Vectorize/ConstExpr.SourceGenerator.Debug/obj/Debug/net9.0/ConstExpr.SourceGenerator.Debug.AssemblyInfoInputs.cache
+/Users/jantamiskossen/RiderProjects/Vectorize/Vectorize/ConstExpr.SourceGenerator.Debug/obj/Debug/net9.0/ConstExpr.SourceGenerator.Debug.AssemblyInfo.cs
+/Users/jantamiskossen/RiderProjects/Vectorize/Vectorize/ConstExpr.SourceGenerator.Debug/obj/Debug/net9.0/ConstExpr.SourceGenerator.Debug.csproj.CoreCompileInputs.cache
+/Users/jantamiskossen/RiderProjects/Vectorize/Vectorize/ConstExpr.SourceGenerator.Debug/obj/Debug/net9.0/ConstExpr.SourceGenerator.Debug.sourcelink.json

@@ -1,0 +1,11 @@
+/Users/jantamiskossen/RiderProjects/Vectorize/Benchmarks/bin/Release/net9.0/f94dd3c9-4a7c-4006-b50b-a66702feb89d/bin/Release/net9.0/SourceGen.Utilities.deps.json
+/Users/jantamiskossen/RiderProjects/Vectorize/Benchmarks/bin/Release/net9.0/f94dd3c9-4a7c-4006-b50b-a66702feb89d/bin/Release/net9.0/SourceGen.Utilities.dll
+/Users/jantamiskossen/RiderProjects/Vectorize/Benchmarks/bin/Release/net9.0/f94dd3c9-4a7c-4006-b50b-a66702feb89d/bin/Release/net9.0/SourceGen.Utilities.pdb
+/Users/jantamiskossen/RiderProjects/Vectorize/Benchmarks/bin/Release/net9.0/f94dd3c9-4a7c-4006-b50b-a66702feb89d/obj/Release/net9.0/SourceGen.Utilities.csproj.AssemblyReference.cache
+/Users/jantamiskossen/RiderProjects/Vectorize/Benchmarks/bin/Release/net9.0/f94dd3c9-4a7c-4006-b50b-a66702feb89d/obj/Release/net9.0/SourceGen.Utilities.GeneratedMSBuildEditorConfig.editorconfig
+/Users/jantamiskossen/RiderProjects/Vectorize/Benchmarks/bin/Release/net9.0/f94dd3c9-4a7c-4006-b50b-a66702feb89d/obj/Release/net9.0/SourceGen.Utilities.AssemblyInfoInputs.cache
+/Users/jantamiskossen/RiderProjects/Vectorize/Benchmarks/bin/Release/net9.0/f94dd3c9-4a7c-4006-b50b-a66702feb89d/obj/Release/net9.0/SourceGen.Utilities.AssemblyInfo.cs
+/Users/jantamiskossen/RiderProjects/Vectorize/Benchmarks/bin/Release/net9.0/f94dd3c9-4a7c-4006-b50b-a66702feb89d/obj/Release/net9.0/SourceGen.Utilities.csproj.CoreCompileInputs.cache
+/Users/jantamiskossen/RiderProjects/Vectorize/Benchmarks/bin/Release/net9.0/f94dd3c9-4a7c-4006-b50b-a66702feb89d/obj/Release/net9.0/SourceGen.Utilities.sourcelink.json
+/Users/jantamiskossen/RiderProjects/Vectorize/Benchmarks/bin/Release/net9.0/f94dd3c9-4a7c-4006-b50b-a66702feb89d/obj/Release/net9.0/SourceGen.Utilities.dll
+/Users/jantamiskossen/RiderProjects/Vectorize/Benchmarks/bin/Release/net9.0/f94dd3c9-4a7c-4006-b50b-a66702feb89d/obj/Release/net9.0/SourceGen.Utilities.pdb

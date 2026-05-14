@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Threading;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
@@ -366,6 +367,24 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 					};
 
 					return true;
+				}
+				break;
+			}
+			case SizeOfExpressionSyntax sizeOfExpressionSyntax:
+			{
+				if (semanticModel.TryGetSymbol(sizeOfExpressionSyntax.Type, symbolStore, out ITypeSymbol? typeSymbol2) 
+				    && loader.GetType(typeSymbol2) is { } managedType)
+				{
+					try
+					{
+						value = Marshal.SizeOf(managedType);
+						return true;
+					}
+					catch
+					{
+						value = null;
+						return false;
+					}
 				}
 				break;
 			}

@@ -87,8 +87,15 @@ public partial class ConstExprPartialRewriter(
 			return node.WithTypeSymbolAnnotation(variable.Type, symbolStore);
 		}
 
+		// For inlinable variables with expression values, try to get constant value first for const variables
 		if (variable is { CanBeInlined: true, Value: ExpressionSyntax expr })
 		{
+			// Try to evaluate const expressions to get their constant values
+			if (variable.HasValue && TryCreateLiteral(variable.Value, out var literal))
+			{
+				return literal;
+			}
+
 			var result = ParenthesizedExpression(expr);
 			var parent = node.Parent;
 

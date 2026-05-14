@@ -1,0 +1,116 @@
+Running tests from /Users/jantamiskossen/RiderProjects/Vectorize/ConstExpr.Tests/bin/Debug/net10.0/ConstExpr.Tests.dll (net10.0|arm64)
+failed RemoveWhitespaceReproTest("Hello World") (56ms)
+  [Test Failure] InvalidOperationException: Generated method body does not match expected body.
+Parameters: input = "Hello World"
+
+Expected body:
+{
+	return "HelloWorld";
+}
+
+Generated body:
+{
+	return "\0\0\0\0\0\0\0\0\0\0";
+}
+
+Debug:
+Statement 0 differs:
+  Expected (17863271782703825780): return "HelloWorld";
+  Generated (7625523033678449208): return "\0\0\0\0\0\0\0\0\0\0";
+
+  from /Users/jantamiskossen/RiderProjects/Vectorize/ConstExpr.Tests/bin/Debug/net10.0/ConstExpr.Tests.dll (net10.0|arm64)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] InvalidOperationException: Generated method body does not match expected body.
+  Parameters: input = "Hello World"
+  
+  Expected body:
+  {
+  	return "HelloWorld";
+  }
+  
+  Generated body:
+  {
+  	return "\0\0\0\0\0\0\0\0\0\0";
+  }
+  
+  Debug:
+  Statement 0 differs:
+    Expected (17863271782703825780): return "HelloWorld";
+    Generated (7625523033678449208): return "\0\0\0\0\0\0\0\0\0\0";
+  
+    at ConstExpr.Tests.BaseTest`1.RunTest(KeyValuePair`2 testCase) in /Users/jantamiskossen/RiderProjects/Vectorize/ConstExpr.Tests/BaseTest.cs:278
+       --- TUnit internals omitted (run with --detailed-stacktrace for full trace) ---
+  Standard output
+    Extracting SGF.Assembly::ConstExpr.Core.dll assembly from ConstExpr.SourceGenerator's resources.
+    Extracting SGF.Assembly::Microsoft.Bcl.HashCode.dll assembly from ConstExpr.SourceGenerator's resources.
+    Extracting SGF.Assembly::Microsoft.Bcl.Numerics.dll assembly from ConstExpr.SourceGenerator's resources.
+    Extracting SGF.Assembly::Microsoft.CodeAnalysis.dll assembly from ConstExpr.SourceGenerator's resources.
+    Extracting SGF.Assembly::Newtonsoft.Json.dll assembly from ConstExpr.SourceGenerator's resources.
+    Extracting SGF.Assembly::SourceGen.Utilities.dll assembly from ConstExpr.SourceGenerator's resources.
+    Extracting SGF.Assembly::SourceGenerator.Foundations.Contracts.dll assembly from ConstExpr.SourceGenerator's resources.
+    Extracting SGF.Assembly::SourceGenerator.Foundations.Windows.dll assembly from ConstExpr.SourceGenerator's resources.
+    Extracting SGF.Assembly::envdte.dll assembly from SourceGenerator.Foundations.Windows's resources.
+    Extracting SGF.Assembly::Microsoft.CodeAnalysis.dll assembly from SourceGenerator.Foundations.Windows's resources.
+    Extracting SGF.Assembly::Microsoft.VisualStudio.Interop.dll assembly from SourceGenerator.Foundations.Windows's resources.
+    Extracting SGF.Assembly::SourceGenerator.Foundations.Contracts.dll assembly from SourceGenerator.Foundations.Windows's resources.
+    Extracting SGF.Assembly::System.Management.dll assembly from SourceGenerator.Foundations.Windows's resources.
+    Extracting SGF.Assembly::System.Reflection.Emit.dll assembly from ConstExpr.SourceGenerator's resources.
+    Extracting SGF.Assembly::System.Reflection.Emit.ILGeneration.dll assembly from ConstExpr.SourceGenerator's resources.
+    Extracting SGF.Assembly::System.Reflection.MetadataLoadContext.dll assembly from ConstExpr.SourceGenerator's resources.
+    Extracting SGF.Assembly::System.Runtime.Loader.dll assembly from ConstExpr.SourceGenerator's resources.
+    
+  Error output
+failed RemoveWhitespaceReproTest("  Test  String  ") (56ms)
+  [Test Failure] InvalidOperationException: Generated method body does not match expected body.
+Parameters: input = "  Test  String  "
+
+Expected body:
+{
+	return "TestString";
+}
+
+Generated body:
+{
+	return "\0\0\0\0\0\0\0\0\0\0";
+}
+
+Debug:
+Statement 0 differs:
+  Expected (13347536712208612845): return "TestString";
+  Generated (7625523033678449208): return "\0\0\0\0\0\0\0\0\0\0";
+
+  from /Users/jantamiskossen/RiderProjects/Vectorize/ConstExpr.Tests/bin/Debug/net10.0/ConstExpr.Tests.dll (net10.0|arm64)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] InvalidOperationException: Generated method body does not match expected body.
+  Parameters: input = "  Test  String  "
+  
+  Expected body:
+  {
+  	return "TestString";
+  }
+  
+  Generated body:
+  {
+  	return "\0\0\0\0\0\0\0\0\0\0";
+  }
+  
+  Debug:
+  Statement 0 differs:
+    Expected (13347536712208612845): return "TestString";
+    Generated (7625523033678449208): return "\0\0\0\0\0\0\0\0\0\0";
+  
+    at ConstExpr.Tests.BaseTest`1.RunTest(KeyValuePair`2 testCase) in /Users/jantamiskossen/RiderProjects/Vectorize/ConstExpr.Tests/BaseTest.cs:278
+       --- TUnit internals omitted (run with --detailed-stacktrace for full trace) ---
+/Users/jantamiskossen/RiderProjects/Vectorize/ConstExpr.Tests/bin/Debug/net10.0/ConstExpr.Tests.dll (net10.0|arm64) failed with 2 error(s) (744ms)
+Exit code: 2
+  Standard output: HTML test report written to: /Users/jantamiskossen/RiderProjects/Vectorize/ConstExpr.Tests/bin/Debug/net10.0/TestResults/ConstExpr.Tests-macos-net10.0-report.html
+  
+
+  In process file artifacts produced:
+    - /Users/jantamiskossen/RiderProjects/Vectorize/ConstExpr.Tests/bin/Debug/net10.0/TestResults/ConstExpr.Tests-macos-net10.0-report.html
+
+Test run summary: Failed!
+  total: 2
+  failed: 2
+  succeeded: 0
+  skipped: 0
+  duration: 875ms
+Test run completed with non-success exit code: 2 (see: https://aka.ms/testingplatform/exitcodes)

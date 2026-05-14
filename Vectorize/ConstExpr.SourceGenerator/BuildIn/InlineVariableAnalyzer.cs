@@ -66,7 +66,13 @@ public sealed class InlineVariableAnalyzer(SemanticModel semanticModel, Concurre
 		var writeRefs = allRefs.Where(IsWriteReference).ToList();
 		var readRefs = allRefs.Where(r => !IsWriteReference(r)).ToList();
 
-		if (writeRefs.Count != 0 || readRefs.Count == 0 || readRefs.Count == 0 || readRefs.Count > 1 && !AreAllMutuallyExclusive(readRefs))
+		if (writeRefs.Count != 0 || readRefs.Count == 0)
+		{
+			return false;
+		}
+
+		// Const variables can always be inlined regardless of read count
+		if (!symbol.IsConst && readRefs.Count > 1 && !AreAllMutuallyExclusive(readRefs))
 		{
 			return false;
 		}

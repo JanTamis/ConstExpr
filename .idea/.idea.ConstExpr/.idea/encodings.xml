@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="Encoding">
+    <file url="file://$PROJECT_DIR$/Vectorize/ConstExpr.SourceGenerator/Optimizers/FunctionOptimizers/SinFunctionOptimizer.cs" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/Vectorize/ConstExpr.SourceGenerator/Optimizers/FunctionOptimizers/TanPiFunctionOptimizer.cs" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/Vectorize/ConstExpr.SourceGenerator/Optimizers/FunctionOptimizers/TanhFunctionOptimizer.cs" charset="UTF-8" />
+  </component>
+</project>
