@@ -60,7 +60,7 @@ public class ConditionalExpressionOptimizer
 		}
 
 		// value < min ? min : value > max ? max : value => T.ClampNative(value, min, max)
-		if (Type?.IsNumericType() == true
+		if (Type?.IsFloatingNumeric() == true
 		    && TryGetClampPattern(Condition, WhenTrue, WhenFalse, out var clampValue, out var clampMin, out var clampMax)
 		    && IsPure(clampValue)
 		    && IsPure(clampMin)
@@ -74,7 +74,7 @@ public class ConditionalExpressionOptimizer
 		}
 
 		// a < b ? a : b => Math.Min(a, b) (for numeric types)
-		if (Type?.IsNumericType() == true
+		if (Type?.IsFloatingNumeric() == true
 		    && Condition is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LessThanExpression } ltExpr
 		    && ltExpr.Left.GetDeterministicHash() == WhenTrue.GetDeterministicHash()
 		    && ltExpr.Right.GetDeterministicHash() == WhenFalse.GetDeterministicHash()
@@ -88,7 +88,7 @@ public class ConditionalExpressionOptimizer
 		}
 
 		// a > b ? a : b => Math.Max(a, b)
-		if (Type?.IsNumericType() == true
+		if (Type?.IsFloatingNumeric() == true
 		    && Condition is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.GreaterThanExpression } gtExpr
 		    && gtExpr.Left.GetDeterministicHash() == WhenTrue.GetDeterministicHash()
 		    && gtExpr.Right.GetDeterministicHash() == WhenFalse.GetDeterministicHash()
@@ -102,7 +102,7 @@ public class ConditionalExpressionOptimizer
 		}
 
 		// a <= b ? a : b => Math.Min(a, b)
-		if (Type?.IsNumericType() == true
+		if (Type?.IsFloatingNumeric() == true
 		    && Condition is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LessThanOrEqualExpression } leExpr
 		    && leExpr.Left.GetDeterministicHash() == WhenTrue.GetDeterministicHash()
 		    && leExpr.Right.GetDeterministicHash() == WhenFalse.GetDeterministicHash()
@@ -116,7 +116,7 @@ public class ConditionalExpressionOptimizer
 		}
 
 		// a >= b ? a : b => Math.Max(a, b)
-		if (Type?.IsNumericType() == true
+		if (Type?.IsFloatingNumeric() == true
 		    && Condition is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.GreaterThanOrEqualExpression } geExpr
 		    && geExpr.Left.GetDeterministicHash() == WhenTrue.GetDeterministicHash()
 		    && geExpr.Right.GetDeterministicHash() == WhenFalse.GetDeterministicHash()
@@ -130,7 +130,7 @@ public class ConditionalExpressionOptimizer
 		}
 
 		// b < a ? a : b => Math.Max(a, b)
-		if (Type?.IsNumericType() == true
+		if (Type?.IsFloatingNumeric() == true
 		    && Condition is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LessThanExpression } ltExpr2
 		    && ltExpr2.Right.GetDeterministicHash() == WhenTrue.GetDeterministicHash()
 		    && ltExpr2.Left.GetDeterministicHash() == WhenFalse.GetDeterministicHash()
@@ -144,7 +144,7 @@ public class ConditionalExpressionOptimizer
 		}
 
 		// b > a ? a : b => Math.Min(a, b)
-		if (Type?.IsNumericType() == true
+		if (Type?.IsFloatingNumeric() == true
 		    && Condition is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.GreaterThanExpression } gtExpr2
 		    && gtExpr2.Right.GetDeterministicHash() == WhenTrue.GetDeterministicHash()
 		    && gtExpr2.Left.GetDeterministicHash() == WhenFalse.GetDeterministicHash()
