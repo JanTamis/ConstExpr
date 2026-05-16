@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Rewriters;
 using ConstExpr.SourceGenerator.Visitors;
@@ -76,6 +77,19 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 					if (IsInvokedOnList(context, invocationSource))
 					{
+						var analyzerResult = VectorizationEligibilityVisitor.Analyze(predicate, context.Model, context.SymbolStore);
+
+						if (analyzerResult.IsVectorizable)
+						{
+							var vectorizedCode = new VectorizerRewriter(context.Model, context.SymbolStore).Visit(predicate.Body);
+							var vectorizedMethod = CreateVectorizedMethod(vectorizedCode, predicate, context);
+
+							context.AdditionalSyntax.TryAdd(vectorizedMethod, false);
+
+							result = CreateInvocation(vectorizedMethod.Identifier.Text, CreateInvocation(IdentifierName("CollectionsMarshal"), "AsSpan", context.Visit(invocationSource) ?? invocationSource));
+							return true;
+						}
+
 						result = CreateInvocation(context.Visit(invocationSource) ?? invocationSource, "Exists", predicate);
 						return true;
 					}
@@ -84,7 +98,16 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 					{
 						var analyzerResult = VectorizationEligibilityVisitor.Analyze(predicate, context.Model, context.SymbolStore);
 
-						var vectorizedCode = new VectorizerRewriter(context.Model, context.SymbolStore).Visit(predicate.Body);
+						if (analyzerResult.IsVectorizable)
+						{
+							var vectorizedCode = new VectorizerRewriter(context.Model, context.SymbolStore).Visit(predicate.Body);
+							var vectorizedMethod = CreateVectorizedMethod(vectorizedCode, predicate, context);
+
+							context.AdditionalSyntax.TryAdd(vectorizedMethod, false);
+
+							result = CreateInvocation(vectorizedMethod.Identifier.Text, context.Visit(invocationSource) ?? invocationSource);
+							return true;
+						}
 
 						result = CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.Exists), context.Visit(invocationSource) ?? invocationSource, predicate);
 						return true;
@@ -241,12 +264,38 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		{
 			if (IsInvokedOnList(context, source))
 			{
+				var analyzerResult = VectorizationEligibilityVisitor.Analyze(anyLambda, context.Model, context.SymbolStore);
+
+				if (analyzerResult.IsVectorizable)
+				{
+					var vectorizedCode = new VectorizerRewriter(context.Model, context.SymbolStore).Visit(anyLambda.Body);
+					var vectorizedMethod = CreateVectorizedMethod(vectorizedCode, anyLambda, context);
+
+					context.AdditionalSyntax.TryAdd(vectorizedMethod, false);
+
+					result = CreateInvocation(vectorizedMethod.Identifier.Text, CreateInvocation(IdentifierName("CollectionsMarshal"), "AsSpan", context.Visit(source) ?? source));
+					return true;
+				}
+
 				result = CreateInvocation(context.Visit(source) ?? source, "Exists", anyLambda);
 				return true;
 			}
 
 			if (IsInvokedOnArray(context, source))
 			{
+				var analyzerResult = VectorizationEligibilityVisitor.Analyze(anyLambda, context.Model, context.SymbolStore);
+
+				if (analyzerResult.IsVectorizable)
+				{
+					var vectorizedCode = new VectorizerRewriter(context.Model, context.SymbolStore).Visit(anyLambda.Body);
+					var vectorizedMethod = CreateVectorizedMethod(vectorizedCode, anyLambda, context);
+
+					context.AdditionalSyntax.TryAdd(vectorizedMethod, false);
+
+					result = CreateInvocation(vectorizedMethod.Identifier.Text, context.Visit(source) ?? source);
+					return true;
+				}
+
 				result = CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.Exists), context.Visit(source) ?? source, anyLambda);
 				return true;
 			}
@@ -265,5 +314,78 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 		result = null;
 		return false;
+	}
+
+	private MethodDeclarationSyntax CreateVectorizedMethod(SyntaxNode vectorizedCode, LambdaExpressionSyntax lambda, FunctionOptimizerContext context)
+	{
+		var typeName = context.Method.TypeArguments[0].ToDisplayString();
+
+		var result = $$"""
+			static bool Any(ReadOnlySpan<{{typeName}}> data)
+			{
+				if (Vector.IsHardwareAccelerated && data.Length >= Vector<{{typeName}}>.Count)
+				{
+					var vectors = MemoryMarshal.Cast<{{typeName}}, Vector<{{typeName}}>>(data);
+
+					var acc0 = Vector<{{typeName}}>.Zero;
+					var acc1 = Vector<{{typeName}}>.Zero;
+					var acc2 = Vector<{{typeName}}>.Zero;
+					var acc3 = Vector<{{typeName}}>.Zero;
+					var i = 0;
+					
+					for (; i <= vectors.Length - 4; i += 4)
+					{
+						acc0 |= {{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i]")}};
+						acc1 |= {{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i + 1]")}};
+						acc2 |= {{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i + 2]")}};
+						acc3 |= {{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i + 3]")}};
+					}
+					
+					acc0 |= acc1 | acc2 | acc3;
+					
+					if (Vector.AnyWhereAllBitsSet(acc0))
+						return true;
+					
+					for (; i < vectors.Length; i++)
+					{
+						if (Vector.AnyWhereAllBitsSet({{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i]")}}))
+							return true;
+					}
+					
+					var tail = data.Length & Vector<{{typeName}}>.Count - 1;
+					
+					for (var t = data.Length - tail; t < data.Length; t++)
+					{
+						if ({{ReplaceIdentifier(lambda.Body, lambda, "data[t]")}})
+							return true;
+					}
+					
+					return false;
+				}
+				
+				for (var i = 0; i < data.Length; i++)
+				{
+					if ({{ReplaceIdentifier(lambda.Body, lambda, "data[i]")}})
+						return true;
+				}
+			}
+			""";
+
+		var method = ParseMemberDeclaration(result) as MethodDeclarationSyntax ?? throw new InvalidOperationException("Failed to parse vectorized method declaration");
+		return method.WithIdentifier(Identifier($"Any_{method.Body.GetDeterministicHashString()}"));
+
+		string ReplaceIdentifier(SyntaxNode node, LambdaExpressionSyntax lambdaExpression, string replacement)
+		{
+			var identifierName = lambdaExpression switch
+			{
+				SimpleLambdaExpressionSyntax simple => simple.Parameter.Identifier.Text,
+				ParenthesizedLambdaExpressionSyntax { ParameterList.Parameters.Count: 1 } parenthesized => parenthesized.ParameterList.Parameters[0].Identifier.Text,
+				_ => throw new InvalidOperationException("Expected a single-parameter lambda expression.")
+			};
+
+			return FormattingHelper.Render(node
+				.ReplaceNodes(node.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>().Where(id => id.Identifier.Text == identifierName),
+					(_, _) => ParseExpression(replacement)));
+		}
 	}
 }
