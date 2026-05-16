@@ -192,6 +192,13 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 				SeparatedList(arguments.Select(Argument))));
 	}
 
+	protected InvocationExpressionSyntax CreateInvocation(string methodName, params IEnumerable<ExpressionSyntax> arguments)
+	{
+		return InvocationExpression(IdentifierName(methodName),
+			ArgumentList(
+				SeparatedList(arguments.Select(Argument))));
+	}
+
 	/// <summary>
 	/// Creates a new method invocation on the given source expression.
 	/// </summary>

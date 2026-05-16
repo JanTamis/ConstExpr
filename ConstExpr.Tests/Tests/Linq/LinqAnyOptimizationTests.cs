@@ -45,13 +45,13 @@ public class LinqAnyOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFla
 
 		// Direct Any() on array => x.Length > 0
 		var l = x.Any() ? 1 : 0;
-		
+
 		var m = x.Append(5).Any(v => v > 3) ? 1 : 0;
-		
+
 		var n = x.Prepend(5).Any(v => v > 3) ? 1 : 0;
-		
+
 		var o = x.DefaultIfEmpty().Any(v => v > 3) ? 1 : 0;
-		
+
 		var p = x.DefaultIfEmpty(5).Any(v => v > 3) ? 1 : 0;
 
 		return a + b + c + d + e + f + g + h + i + j + k + l + m + n + o + p;
@@ -59,7 +59,7 @@ public class LinqAnyOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFla
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return (x.Length > 0 ? 9 : 0) + (Array.Exists(x, v => v > 3) || x.Length > 0 ? 1 : 0) + (Array.IndexOf(x, 100) >= 0 ? 1 : 0) + (Array.IndexOf(x, 2) >= 0 ? 1 : 0) + (Array.Exists(x, v => v > 3) ? 1 : 0) + 3;"),
+		Create("return (x.Length > 0 ? 9 : 0) + (Any_19Ps2g(x) || x.Length > 0 ? 1 : 0) + (Array.IndexOf(x, 100) >= 0 ? 1 : 0) + (Array.IndexOf(x, 2) >= 0 ? 1 : 0) + (Any_19Ps2g(x) ? 1 : 0) + 3;"),
 		Create("return 15;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 3;", new int[] { }),
 	];

@@ -1,6 +1,4 @@
 using System;
-using System.Numerics;
-using System.Runtime.InteropServices;
 using ConstExpr.SourceGenerator.Sample.Tests;
 
 Console.WriteLine("╔═══════════════════════════════════════════════════════════════════╗");
@@ -46,23 +44,3 @@ MathOperationsTests.RunTests(varInt, varInt2, varInt3, varInt4);
 StringOperationsTests.RunTests(varString);
 ArrayOperationsTests.RunTests(varInt, varInt2, varInt3, new[] { varInt, varInt2, varInt3, varInt4, varInt5 });
 RegexOperationsTests.RunTests(varString, varInt);
-
-// SIMD equivalent of Array.TrueForAll(x, v => (uint)(v - 1) <= 8U)
-// Returns true only when every element is in the range [1, 9].
-bool Any(ReadOnlySpan<int> data)
-{
-	var vectorCount = Vector.Create(Vector<int>.Count);
-	var index = Vector<int>.Indices;
-	var result = Vector<int>.Zero;
-
-	ref var baseRef = ref MemoryMarshal.GetReference(data);
-
-	for (var i = 0; i < data.Length; i += Vector<int>.Count)
-	{
-		result |= Vector.GreaterThan(Vector.LoadUnsafe(ref baseRef, (nuint) i), Vector.Create(3))
-		          & Vector.LessThan(index, vectorCount);
-		index += vectorCount;
-	}
-
-	return Vector.AnyWhereAllBitsSet(result);
-}
