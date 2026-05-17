@@ -10,6 +10,7 @@ namespace ConstExpr.SourceGenerator.Rewriters;
 
 public class VectorizerRewriter(
 	SemanticModel semanticModel,
+	ITypeSymbol vectorType,
 	ConcurrentDictionary<ulong, ISymbol> symbolStore) : CSharpSyntaxRewriter
 {
 	private readonly ITypeSymbol _VectorType = semanticModel.Compilation.GetTypeByMetadataName("System.Numerics.Vector")!;
@@ -18,26 +19,21 @@ public class VectorizerRewriter(
 
 	public override SyntaxNode? VisitLiteralExpression(LiteralExpressionSyntax node)
 	{
-		// Emit named Vector<T> sentinel properties where possible — these are more
-		// idiomatic and may be faster than a general Vector.Create(...) broadcast.
-		if (semanticModel.TryGetTypeSymbol(node, symbolStore, out var literalType))
-		{
-			var typeSyntax = ParseTypeName(literalType.ToDisplayString());
-			var vectorTyped = GenericName(Identifier("Vector"))
-				.WithTypeArgumentList(TypeArgumentList(SingletonSeparatedList(typeSyntax)));
+		var typeSyntax = ParseTypeName(vectorType.ToDisplayString());
+		var vectorTyped = GenericName(Identifier("Vector"))
+			.WithTypeArgumentList(TypeArgumentList(SingletonSeparatedList(typeSyntax)));
 
-			var tokenValue = node.Token.Value;
+		var tokenValue = node.Token.Value;
 
-			if (IsZero(tokenValue))
-				return MemberAccessExpression(vectorTyped, IdentifierName("Zero"));
+		if (IsZero(tokenValue))
+			return MemberAccessExpression(vectorTyped, IdentifierName("Zero"));
 
-			if (IsOne(tokenValue))
-				return MemberAccessExpression(vectorTyped, IdentifierName("One"));
+		if (IsOne(tokenValue))
+			return MemberAccessExpression(vectorTyped, IdentifierName("One"));
 
-			// -1 (all bits set) is the canonical all-ones SIMD mask.
-			if (IsAllBitsSet(tokenValue))
-				return MemberAccessExpression(vectorTyped, IdentifierName("AllBitsSet"));
-		}
+		// -1 (all bits set) is the canonical all-ones SIMD mask.
+		if (IsAllBitsSet(tokenValue))
+			return MemberAccessExpression(vectorTyped, IdentifierName("AllBitsSet"));
 
 		return CreateInvocation("Create", node);
 	}
@@ -223,12 +219,12 @@ public class VectorizerRewriter(
 				or SyntaxKind.UnsignedRightShiftExpression => node.WithLeft(rewrittenLeft),
 
 			// Comparisons — no operator overload exists; use the Vector API directly.
-			SyntaxKind.GreaterThanExpression => CreateInvocation("GreaterThan", rewrittenLeft, rewrittenRight),
-			SyntaxKind.GreaterThanOrEqualExpression => CreateInvocation("GreaterThanOrEqual", rewrittenLeft, rewrittenRight),
-			SyntaxKind.LessThanExpression => CreateInvocation("LessThan", rewrittenLeft, rewrittenRight),
-			SyntaxKind.LessThanOrEqualExpression => CreateInvocation("LessThanOrEqual", rewrittenLeft, rewrittenRight),
-			SyntaxKind.EqualsExpression => CreateInvocation("Equals", rewrittenLeft, rewrittenRight),
-			SyntaxKind.NotEqualsExpression => CreateInvocation("NotEquals", rewrittenLeft, rewrittenRight),
+			SyntaxKind.GreaterThanExpression => CreateInvocation("GreaterThan", [ ParseTypeName(vectorType.ToDisplayString()) ], rewrittenLeft, rewrittenRight),
+			SyntaxKind.GreaterThanOrEqualExpression => CreateInvocation("GreaterThanOrEqual", [ ParseTypeName(vectorType.ToDisplayString()) ], rewrittenLeft, rewrittenRight),
+			SyntaxKind.LessThanExpression => CreateInvocation("LessThan", [ ParseTypeName(vectorType.ToDisplayString()) ], rewrittenLeft, rewrittenRight),
+			SyntaxKind.LessThanOrEqualExpression => CreateInvocation("LessThanOrEqual", [ ParseTypeName(vectorType.ToDisplayString()) ], rewrittenLeft, rewrittenRight),
+			SyntaxKind.EqualsExpression => CreateInvocation("Equals", [ ParseTypeName(vectorType.ToDisplayString()) ], rewrittenLeft, rewrittenRight),
+			SyntaxKind.NotEqualsExpression => CreateInvocation("NotEquals", [ ParseTypeName(vectorType.ToDisplayString()) ], rewrittenLeft, rewrittenRight),
 
 			_ => node.WithLeft(rewrittenLeft).WithRight(rewrittenRight)
 		};
@@ -242,9 +238,18 @@ public class VectorizerRewriter(
 			.WithArgumentList(ArgumentList(SeparatedList(arguments.Select(Argument))));
 	}
 
-	private static InvocationExpressionSyntax CreateInvocation(ExpressionSyntax source, string name, params ExpressionSyntax[] arguments)
+	private static InvocationExpressionSyntax CreateInvocation(string name, TypeSyntax[] typeArguments, params ExpressionSyntax[] arguments)
 	{
-		return InvocationExpression(MemberAccessExpression(source, IdentifierName(name)))
+		var memberAccess = typeArguments.Length > 0
+			? MemberAccessExpression(
+				IdentifierName("Vector"),
+				GenericName(Identifier(name))
+					.WithTypeArgumentList(TypeArgumentList(SeparatedList(typeArguments))))
+			: (ExpressionSyntax) MemberAccessExpression(
+				IdentifierName("Vector"),
+				IdentifierName(name));
+
+		return InvocationExpression(memberAccess)
 			.WithArgumentList(ArgumentList(SeparatedList(arguments.Select(Argument))));
 	}
 
