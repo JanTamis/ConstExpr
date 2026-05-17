@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
+using ConstExpr.SourceGenerator.Refactorers;
 using ConstExpr.SourceGenerator.Rewriters;
 using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
@@ -202,10 +204,21 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 		if (IsInvokedOnArray(context, source))
 		{
-			var lambda = context.Visit(allLambda) as LambdaExpressionSyntax ?? allLambda;
-			var analyzerResult = VectorizationEligibilityVisitor.Analyze(lambda, context.Model, context.SymbolStore);
+			var analyzerResult = VectorizationEligibilityVisitor.Analyze(allLambda, context.Model, context.SymbolStore);
 
-			var vectorizedCode = new VectorizerRewriter(context.Model, context.SymbolStore).Visit(lambda.Body);
+			if (analyzerResult.IsVectorizable)
+			{
+				var vectorizedCode = new VectorizerRewriter(context.Model, context.Method.TypeArguments[0], context.SymbolStore).Visit(allLambda.Body);
+				var vectorizedMethod = CreateVectorizedMethod(vectorizedCode, allLambda, context);
+
+				context.AdditionalSyntax.TryAdd(vectorizedMethod, false);
+
+				context.Usings.Add("System.Numerics");
+				context.Usings.Add("System.Runtime.InteropServices");
+
+				result = CreateInvocation(vectorizedMethod.Identifier.Text, source);
+				return true;
+			}
 
 			result = CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.TrueForAll), source, context.Visit(allLambda) ?? allLambda);
 			return true;
@@ -213,6 +226,22 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 		if (IsInvokedOnList(context, source))
 		{
+			var analyzerResult = VectorizationEligibilityVisitor.Analyze(allLambda, context.Model, context.SymbolStore);
+
+			if (analyzerResult.IsVectorizable)
+			{
+				var vectorizedCode = new VectorizerRewriter(context.Model, context.Method.TypeArguments[0], context.SymbolStore).Visit(allLambda.Body);
+				var vectorizedMethod = CreateVectorizedMethod(vectorizedCode, allLambda, context);
+
+				context.AdditionalSyntax.TryAdd(vectorizedMethod, false);
+
+				context.Usings.Add("System.Numerics");
+				context.Usings.Add("System.Runtime.InteropServices");
+
+				result = CreateInvocation(vectorizedMethod.Identifier.Text, CreateInvocation(IdentifierName("CollectionsMarshal"), "AsSpan", source));
+				return true;
+			}
+
 			result = CreateInvocation(source, "TrueForAll", context.Visit(allLambda) ?? allLambda);
 			return true;
 		}
@@ -246,5 +275,85 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			Parameter(Identifier(innerParam)),
 			combinedBody
 		);
+	}
+
+	private MethodDeclarationSyntax CreateVectorizedMethod(SyntaxNode vectorizedCode, LambdaExpressionSyntax lambda, FunctionOptimizerContext context)
+	{
+		var typeName = context.Method.TypeArguments[0].ToDisplayString();
+
+		if (!InvertLogicalRefactoring.TryInvertLogical(lambda.Body as BinaryExpressionSyntax, out var inverted))
+		{
+			inverted = PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, (ExpressionSyntax) lambda.Body);
+		}
+
+		var result = $$"""
+			private static bool All(ReadOnlySpan<{{typeName}}> data)
+			{
+				if (Vector.IsHardwareAccelerated && data.Length >= Vector<{{typeName}}>.Count)
+				{
+					var vectors = MemoryMarshal.Cast<{{typeName}}, Vector<{{typeName}}>>(data);
+
+					var acc0 = Vector<{{typeName}}>.AllBitsSet;
+					var acc1 = Vector<{{typeName}}>.AllBitsSet;
+					var acc2 = Vector<{{typeName}}>.AllBitsSet;
+					var acc3 = Vector<{{typeName}}>.AllBitsSet;
+					var i = 0;
+					
+					for (; i <= vectors.Length - 4; i += 4)
+					{
+						acc0 &= {{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i]")}};
+						acc1 &= {{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i + 1]")}};
+						acc2 &= {{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i + 2]")}};
+						acc3 &= {{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i + 3]")}};
+					}
+					
+					acc0 &= acc1 & acc2 & acc3;
+					
+					if (Vector.NoneWhereAllBitsSet(acc0))
+						return false;
+					
+					for (; i < vectors.Length; i++)
+					{
+						if (Vector.NoneWhereAllBitsSet({{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i]")}}))
+							return false;
+					}
+					
+					var tail = data.Length & Vector<{{typeName}}>.Count - 1;
+					
+					for (var t = data.Length - tail; t < data.Length; t++)
+					{
+						if ({{ReplaceIdentifier(inverted, lambda, "data[t]")}})
+							return false;
+					}
+					
+					return true;
+				}
+				
+				for (var i = 0; i < data.Length; i++)
+				{
+					if ({{ReplaceIdentifier(inverted, lambda, "data[i]")}})
+						return false;
+				}
+				
+				return true;
+			}
+			""";
+
+		var method = ParseMemberDeclaration(result) as MethodDeclarationSyntax ?? throw new InvalidOperationException("Failed to parse vectorized method declaration");
+		return method.WithIdentifier(Identifier($"Any_{method.Body.GetDeterministicHashString()}"));
+
+		string ReplaceIdentifier(SyntaxNode node, LambdaExpressionSyntax lambdaExpression, string replacement)
+		{
+			var identifierName = lambdaExpression switch
+			{
+				SimpleLambdaExpressionSyntax simple => simple.Parameter.Identifier.Text,
+				ParenthesizedLambdaExpressionSyntax { ParameterList.Parameters.Count: 1 } parenthesized => parenthesized.ParameterList.Parameters[0].Identifier.Text,
+				_ => throw new InvalidOperationException("Expected a single-parameter lambda expression.")
+			};
+
+			return FormattingHelper.Render(node
+				.ReplaceNodes(node.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>().Where(id => id.Identifier.Text == identifierName),
+					(_, _) => ParseExpression(replacement)));
+		}
 	}
 }
