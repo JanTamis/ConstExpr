@@ -66,8 +66,6 @@ dotnet test --project ConstExpr.Tests --list-tests
 # Get List of all test with specific name pattern (e.g., all tests in AbsoluteDifferenceTest class)
 dotnet test --project ConstExpr.Tests --list-tests --disable-logo | grep 'AbsoluteDifferenceTest'
 
-
-
 - Wildcard matching: Use * for pattern matching (e.g., LoginTests* matches LoginTests, LoginTestsSuite, etc.)
 - Equality: Use = for exact match (e.g., [Category=Unit])
 - Negation: Use != for excluding values (e.g., [Category!=Performance])
@@ -118,7 +116,7 @@ Example (`ConstExpr.Tests/Tests/Validation/IsNegativeTest.cs`):
 public class IsNegativeTest() : BaseTest<Func<int, bool>>(FastMathFlags.FastMath)
 {
     public override string TestMethod => GetString(n => n < 0);
-    public override IEnumerable<KeyValuePair<string?, obj~~~~ect?[]>> TestCases =>
+    public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
     [
         Create(null, Unknown),        // Unknown input → body unchanged (null = expect original)
         Create("return true;", -10),  // Constant -10 → rewritten to "return true;"
@@ -136,4 +134,3 @@ Tests live under `ConstExpr.Tests/Tests/{Arithmetic,Array,Color,Linq,Math,Number
 - Use `var` where type is obvious from the right-hand side
 - All comments and documentation in English
 - `LangVersion` is `preview` across all projects
-- Benchmarks go in `Benchmarks/` with `[MemoryDiagnoser]` and `BenchmarkSwitcher` in `Program.cs`
