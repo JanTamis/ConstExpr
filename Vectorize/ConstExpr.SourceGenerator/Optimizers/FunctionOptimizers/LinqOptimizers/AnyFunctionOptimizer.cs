@@ -81,10 +81,13 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 						if (analyzerResult.IsVectorizable)
 						{
-							var vectorizedCode = new VectorizerRewriter(context.Model, context.SymbolStore).Visit(predicate.Body);
+							var vectorizedCode = new VectorizerRewriter(context.Model, context.Method.TypeArguments[0], context.SymbolStore).Visit(predicate.Body);
 							var vectorizedMethod = CreateVectorizedMethod(vectorizedCode, predicate, context);
 
 							context.AdditionalSyntax.TryAdd(vectorizedMethod, false);
+
+							context.Usings.Add("System.Numerics");
+							context.Usings.Add("System.Runtime.InteropServices");
 
 							result = CreateInvocation(vectorizedMethod.Identifier.Text, CreateInvocation(IdentifierName("CollectionsMarshal"), "AsSpan", context.Visit(invocationSource) ?? invocationSource));
 							return true;
@@ -100,10 +103,13 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 						if (analyzerResult.IsVectorizable)
 						{
-							var vectorizedCode = new VectorizerRewriter(context.Model, context.SymbolStore).Visit(predicate.Body);
+							var vectorizedCode = new VectorizerRewriter(context.Model, context.Method.TypeArguments[0], context.SymbolStore).Visit(predicate.Body);
 							var vectorizedMethod = CreateVectorizedMethod(vectorizedCode, predicate, context);
 
 							context.AdditionalSyntax.TryAdd(vectorizedMethod, false);
+
+							context.Usings.Add("System.Numerics");
+							context.Usings.Add("System.Runtime.InteropServices");
 
 							result = CreateInvocation(vectorizedMethod.Identifier.Text, context.Visit(invocationSource) ?? invocationSource);
 							return true;
@@ -268,10 +274,13 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 				if (analyzerResult.IsVectorizable)
 				{
-					var vectorizedCode = new VectorizerRewriter(context.Model, context.SymbolStore).Visit(anyLambda.Body);
+					var vectorizedCode = new VectorizerRewriter(context.Model, context.Method.TypeArguments[0], context.SymbolStore).Visit(anyLambda.Body);
 					var vectorizedMethod = CreateVectorizedMethod(vectorizedCode, anyLambda, context);
 
 					context.AdditionalSyntax.TryAdd(vectorizedMethod, false);
+
+					context.Usings.Add("System.Numerics");
+					context.Usings.Add("System.Runtime.InteropServices");
 
 					result = CreateInvocation(vectorizedMethod.Identifier.Text, CreateInvocation(IdentifierName("CollectionsMarshal"), "AsSpan", context.Visit(source) ?? source));
 					return true;
@@ -287,10 +296,13 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 				if (analyzerResult.IsVectorizable)
 				{
-					var vectorizedCode = new VectorizerRewriter(context.Model, context.SymbolStore).Visit(anyLambda.Body);
+					var vectorizedCode = new VectorizerRewriter(context.Model, context.Method.TypeArguments[0], context.SymbolStore).Visit(anyLambda.Body);
 					var vectorizedMethod = CreateVectorizedMethod(vectorizedCode, anyLambda, context);
 
 					context.AdditionalSyntax.TryAdd(vectorizedMethod, false);
+
+					context.Usings.Add("System.Numerics");
+					context.Usings.Add("System.Runtime.InteropServices");
 
 					result = CreateInvocation(vectorizedMethod.Identifier.Text, context.Visit(source) ?? source);
 					return true;
@@ -321,7 +333,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		var typeName = context.Method.TypeArguments[0].ToDisplayString();
 
 		var result = $$"""
-			static bool Any(ReadOnlySpan<{{typeName}}> data)
+			private static bool Any(ReadOnlySpan<{{typeName}}> data)
 			{
 				if (Vector.IsHardwareAccelerated && data.Length >= Vector<{{typeName}}>.Count)
 				{
