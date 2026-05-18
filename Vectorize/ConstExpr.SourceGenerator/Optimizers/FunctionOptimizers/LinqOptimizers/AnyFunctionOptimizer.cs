@@ -355,14 +355,14 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 					
 					acc0 |= acc1 | acc2 | acc3;
 					
-					if (Vector.AnyWhereAllBitsSet(acc0))
-						return true;
-					
 					for (; i < vectors.Length; i++)
 					{
-						if (Vector.AnyWhereAllBitsSet({{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i]")}}))
+						acc0 |= {{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i]")}};
 							return true;
 					}
+					
+					if (Vector.AnyWhereAllBitsSet(acc0))
+						return true;
 					
 					var tail = data.Length & Vector<{{typeName}}>.Count - 1;
 					
@@ -384,7 +384,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			""";
 
 		var method = ParseMemberDeclaration(result) as MethodDeclarationSyntax ?? throw new InvalidOperationException("Failed to parse vectorized method declaration");
-		return method.WithIdentifier(Identifier($"Any_{method.Body.GetDeterministicHashString()}"));
+		return method.WithIdentifier(Identifier($"{Name}_{method.Body.GetDeterministicHashString()}"));
 
 		string ReplaceIdentifier(SyntaxNode node, LambdaExpressionSyntax lambdaExpression, string replacement)
 		{

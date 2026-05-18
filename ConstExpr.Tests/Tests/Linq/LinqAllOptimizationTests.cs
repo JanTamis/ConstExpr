@@ -43,7 +43,7 @@ public class LinqAllOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFla
 
 		// No elements satisfy condition
 		var k = x.Concat(x).All(v => v > 100) ? 1 : 0;
-		
+
 		// Complex: OrderBy().Where().All() => All(combined)
 		var l = x.OrderBy(v => v).Where(v => v > 2).All(v => v < 8) ? 1 : 0;
 
@@ -60,7 +60,7 @@ public class LinqAllOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFla
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return (Array.TrueForAll(x, v => v > 0) ? 8 : 0) + (Array.TrueForAll(x, v => v > 3) ? 3 : 0) + (Array.TrueForAll(x, v => (uint)(v - 1) <= 8U) ? 1 : 0) + (Array.TrueForAll(x, v => v << 1 > 0) ? 1 : 0) + (Array.TrueForAll(x, v => v > 100) && Array.TrueForAll(x, v => v > 100) ? 1 : 0) + (Array.TrueForAll(x, v => (uint)(v - 3) <= 4U) ? 1 : 0);"),
+		Create("return (Any_V1wvzg(x) ? 8 : 0) + (Any_uNodPQ(x) ? 3 : 0) + (Any_dmHWwg(x) ? 1 : 0) + (Any_mjKpBA(x) ? 1 : 0) + (Any_TyCl3w(x) && Any_TyCl3w(x) ? 1 : 0) + (Any_UyUKEQ(x) ? 1 : 0);"),
 		Create("return 11;", new[] { 1, 2, 3, 4, 5 }), // a=1, b-j=1 each (10), k=0, l=1 (Where(v>2)→{3,4,5} All(v<8)→true), m=0, n=0, p=0 = 11
 		Create("return 15;", new int[] { }), // All() returns true for empty collection, so all return 1 = 12
 		Create("return 9;", new[] { 1, 2, 3, 4, 5, 100 }), // a=0 (100>=10), b-j=1 (9 total), k=0, l=0 (100≥8), m=0, n=0, p=0 = 9

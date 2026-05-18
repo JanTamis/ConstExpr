@@ -59,7 +59,7 @@ public class LinqAnyOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFla
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return (x.Length > 0 ? 9 : 0) + (Any_19Ps2g(x) || x.Length > 0 ? 1 : 0) + (Array.IndexOf(x, 100) >= 0 ? 1 : 0) + (Array.IndexOf(x, 2) >= 0 ? 1 : 0) + (Any_19Ps2g(x) ? 1 : 0) + 3;"),
+		Create("return (x.Length > 0 ? 9 : 0) + (Any_SMGTtQ(x) || x.Length > 0 ? 1 : 0) + (Array.IndexOf(x, 100) >= 0 ? 1 : 0) + (Array.IndexOf(x, 2) >= 0 ? 1 : 0) + (Any_SMGTtQ(x) ? 1 : 0) + 3;"),
 		Create("return 15;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 3;", new int[] { }),
 	];
