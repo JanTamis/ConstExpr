@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using ConstExpr.SourceGenerator.Models;
@@ -16,14 +15,6 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// </summary>
 public class CastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Cast), n => n is 0)
 {
-	// Operations that don't affect Cast behavior (type casts and materializations)
-	private static readonly HashSet<string> OperationsThatDontAffectCast =
-	[
-		nameof(Enumerable.AsEnumerable), // Type cast: doesn't change the collection
-		nameof(Enumerable.ToList), // Materialization: preserves order and all elements
-		nameof(Enumerable.ToArray) // Materialization: preserves order and all elements
-	];
-
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		if (TryExecutePredicates(context, source, out result, out source))

@@ -2,7 +2,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
@@ -28,7 +27,7 @@ public class SequenceEqualFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 		// Optimize collection.SequenceEqual(collection) => true (same reference)
 		if (AreSyntacticallyEquivalent(source, secondSource))
 		{
-			result = LiteralExpression(SyntaxKind.TrueLiteralExpression);
+			result = CreateLiteral(true);
 			return true;
 		}
 

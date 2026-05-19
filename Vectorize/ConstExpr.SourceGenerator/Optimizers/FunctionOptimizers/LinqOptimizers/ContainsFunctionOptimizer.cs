@@ -121,11 +121,11 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 
 								result = OptimizeComparison(context, SyntaxKind.GreaterThanOrEqualExpression,
 									indexOfCall,
-									LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)),
+									CreateLiteral(0),
 									context.Model.Compilation.GetSpecialType(SpecialType.System_Int32));
 								return true;
 							}
-							
+
 							result = CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.Exists), context.Visit(invocationSource) ?? invocationSource, anyPredicate);
 							return true;
 						}
@@ -173,7 +173,7 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 
 								result = OptimizeComparison(context, SyntaxKind.GreaterThanOrEqualExpression,
 									indexOfCall,
-									LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)),
+									CreateLiteral(0),
 									context.Model.Compilation.GetSpecialType(SpecialType.System_Int32));
 								return true;
 							}
@@ -274,7 +274,7 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 
 			result = OptimizeComparison(context, SyntaxKind.GreaterThanOrEqualExpression,
 				indexOfCall,
-				LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)),
+				CreateLiteral(0),
 				context.Model.Compilation.GetSpecialType(SpecialType.System_Int32));
 			return true;
 		}

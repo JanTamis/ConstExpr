@@ -219,8 +219,8 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 						var leftInvocation = UpdateInvocation(context, methodSource);
 						var rightInvocation = CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters);
 
-						var left = TryOptimizeByOptimizer<LongCountFunctionOptimizer>(context, leftInvocation) ?? leftInvocation;
-						var right = TryOptimizeByOptimizer<LongCountFunctionOptimizer>(context, rightInvocation) ?? rightInvocation;
+						var left = TryOptimizeByOptimizer<LongCountFunctionOptimizer>(context, leftInvocation);
+						var right = TryOptimizeByOptimizer<LongCountFunctionOptimizer>(context, rightInvocation);
 
 						var longType = context.Model.Compilation.CreateInt64();
 
@@ -263,13 +263,13 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 	{
 		if (IsCollectionType(context, source))
 		{
-			result = CastExpression(ParseTypeName("long"), CreateMemberAccess(source, "Count"));
+			result = CastExpression(PredefinedType(Token(SyntaxKind.LongKeyword)), CreateMemberAccess(source, "Count"));
 			return true;
 		}
 
 		if (IsInvokedOnArray(context, source))
 		{
-			result = CastExpression(ParseTypeName("long"), CreateMemberAccess(source, "Length"));
+			result = CastExpression(PredefinedType(Token(SyntaxKind.LongKeyword)), CreateMemberAccess(source, "Length"));
 			return true;
 		}
 

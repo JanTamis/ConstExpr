@@ -96,7 +96,7 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 					var collection = methodSource;
 
 					var defaultItem = invocation.ArgumentList.Arguments.Count == 0
-						? context.Method.TypeArguments[0] is INamedTypeSymbol namedType ? namedType.GetDefaultValue() : LiteralExpression(SyntaxKind.DefaultLiteralExpression)
+						? context.Method.TypeArguments[0].GetDefaultValue()
 						: invocation.ArgumentList.Arguments[0].Expression;
 
 					while (IsLinqMethodChain(source, nameof(Enumerable.DefaultIfEmpty), out var innerDefaultInvocation)

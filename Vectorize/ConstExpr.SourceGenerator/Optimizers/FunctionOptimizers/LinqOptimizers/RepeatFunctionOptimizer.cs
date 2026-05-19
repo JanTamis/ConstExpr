@@ -25,18 +25,20 @@ public class RepeatFunctionOptimizer() : BaseLinqFunctionOptimizer("Repeat", n =
 		var elementExpr = context.VisitedParameters[0];
 		var countExpr = context.VisitedParameters[1];
 
-		// Enumerable.Repeat(element, 0) => [] (empty, regardless of element)
-		if (countExpr is LiteralExpressionSyntax { Token.Value: 0 })
+		switch (countExpr)
 		{
-			result = CreateEmptyEnumerableCall(context.Method.TypeArguments[0]);
-			return true;
-		}
-
-		// Enumerable.Repeat(element, 1) => [element]
-		if (countExpr is LiteralExpressionSyntax { Token.Value: 1 })
-		{
-			result = CreateCollection(elementExpr);
-			return true;
+			// Enumerable.Repeat(element, 0) => [] (empty, regardless of element)
+			case LiteralExpressionSyntax { Token.Value: 0 }:
+			{
+				result = CreateEmptyEnumerableCall(context.Method.TypeArguments[0]);
+				return true;
+			}
+			// Enumerable.Repeat(element, 1) => [element]
+			case LiteralExpressionSyntax { Token.Value: 1 }:
+			{
+				result = CreateCollection(elementExpr);
+				return true;
+			}
 		}
 
 		return false;

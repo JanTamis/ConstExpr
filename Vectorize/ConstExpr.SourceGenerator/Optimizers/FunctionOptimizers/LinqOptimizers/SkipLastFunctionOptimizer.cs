@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -38,7 +39,7 @@ public class SkipLastFunctionOptimizer() : BaseLinqFunctionOptimizer("SkipLast",
 				case "SkipLast" when invocation.ArgumentList.Arguments.Count == 1:
 				{
 					var argument = invocation.ArgumentList.Arguments[0].Expression;
-					var intType = context.Model.Compilation.GetSpecialType(SpecialType.System_Int32);
+					var intType = context.Model.Compilation.CreateInt32();
 
 					var newArgument = OptimizeArithmetic(context, SyntaxKind.AddExpression, argument, context.VisitedParameters[0], intType);
 

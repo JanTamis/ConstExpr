@@ -73,7 +73,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 					}
 					case false:
 					{
-						result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0));
+						result = CreateLiteral(0);
 						return true;
 					}
 				}
@@ -154,7 +154,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 					}
 					case false:
 					{
-						result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0));
+						result = CreateLiteral(0);
 						return true;
 					}
 				}
@@ -171,7 +171,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 			if (IsEmptyEnumerable(currentSource))
 			{
-				result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0));
+				result = CreateLiteral(0);
 				return true;
 			}
 
@@ -398,7 +398,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 			if (TryGetSyntaxes(currentSource, out var syntaxes))
 			{
-				result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(syntaxes.Count));
+				result = CreateLiteral(syntaxes.Count);
 				return true;
 			}
 
@@ -450,7 +450,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 			if (IsEmptyEnumerable(currentSource))
 			{
-				result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0));
+				result = CreateLiteral(0);
 				return true;
 			}
 

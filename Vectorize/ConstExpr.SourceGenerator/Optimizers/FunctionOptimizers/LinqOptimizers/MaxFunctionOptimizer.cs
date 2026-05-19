@@ -74,8 +74,8 @@ public class MaxFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 					var leftInvocation = UpdateInvocation(context, invocationSource);
 					var rightInvocation = CreateInvocation(visitedConcatArg, Name, context.VisitedParameters);
 
-					var left = TryOptimizeByOptimizer<MinFunctionOptimizer>(context, leftInvocation) ?? leftInvocation;
-					var right = TryOptimizeByOptimizer<MinFunctionOptimizer>(context, rightInvocation) ?? rightInvocation;
+					var left = TryOptimizeByOptimizer<MinFunctionOptimizer>(context, leftInvocation);
+					var right = TryOptimizeByOptimizer<MinFunctionOptimizer>(context, rightInvocation);
 
 					result = OptimizeAsMathPairwise<MathMaxOptimizer>(context, context.Visit(left) ?? leftInvocation, context.Visit(right) ?? rightInvocation);
 					return true;

@@ -283,7 +283,7 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 		if (!InvertLogicalRefactoring.TryInvertLogical(lambda.Body as BinaryExpressionSyntax, out var inverted))
 		{
-			inverted = PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, (ExpressionSyntax) lambda.Body);
+			inverted = LogicalNotExpression((ExpressionSyntax) lambda.Body);
 		}
 
 		var result = $$"""

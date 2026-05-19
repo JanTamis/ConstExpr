@@ -93,6 +93,7 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 							    && chunkSize is LiteralExpressionSyntax { Token.Value: int chunkSizeValue })
 							{
 								var lastChunkSize = sourceSyntaxes.Count % chunkSizeValue;
+
 								if (lastChunkSize == 0)
 								{
 									lastChunkSize = chunkSizeValue;
@@ -234,15 +235,7 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 			OptimizeComparison(context, SyntaxKind.GreaterThanExpression,
 				CreateMemberAccess(collection, propertyName),
 				CreateLiteral(0), intType),
-			ElementAccessExpression(
-				collection,
-				BracketedArgumentList(
-					SingletonSeparatedList(
-						Argument(PrefixUnaryExpression(
-							SyntaxKind.IndexExpression,
-							LiteralExpression(
-								SyntaxKind.NumericLiteralExpression,
-								Literal(1))))))),
+			CreateElementAccess(collection, PrefixUnaryExpression(SyntaxKind.IndexExpression, CreateLiteral(1))),
 			defaultItem);
 	}
 }
