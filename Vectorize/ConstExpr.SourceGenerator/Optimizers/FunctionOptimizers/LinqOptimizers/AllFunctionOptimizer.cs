@@ -3,11 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
-using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Refactorers;
-using ConstExpr.SourceGenerator.Rewriters;
-using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -202,47 +199,10 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			}
 		}
 
-		if (IsInvokedOnArray(context, source))
+		if (TryVectorize(context, source, allLambda, CreateVectorizedMethod,
+			    () => CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.TrueForAll), source, context.Visit(allLambda) ?? allLambda),
+			    () => CreateInvocation(source, "TrueForAll", context.Visit(allLambda) ?? allLambda), out result))
 		{
-			var analyzerResult = VectorizationEligibilityVisitor.Analyze(allLambda, context.Model, context.SymbolStore);
-
-			if (analyzerResult.IsVectorizable)
-			{
-				var vectorizedCode = new VectorizerRewriter(context.Model, context.Method.TypeArguments[0], context.SymbolStore).Visit(allLambda.Body);
-				var vectorizedMethod = CreateVectorizedMethod(vectorizedCode, allLambda, context);
-
-				context.AdditionalSyntax.TryAdd(vectorizedMethod, false);
-
-				context.Usings.Add("System.Numerics");
-				context.Usings.Add("System.Runtime.InteropServices");
-
-				result = CreateInvocation(vectorizedMethod.Identifier.Text, source);
-				return true;
-			}
-
-			result = CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.TrueForAll), source, context.Visit(allLambda) ?? allLambda);
-			return true;
-		}
-
-		if (IsInvokedOnList(context, source))
-		{
-			var analyzerResult = VectorizationEligibilityVisitor.Analyze(allLambda, context.Model, context.SymbolStore);
-
-			if (analyzerResult.IsVectorizable)
-			{
-				var vectorizedCode = new VectorizerRewriter(context.Model, context.Method.TypeArguments[0], context.SymbolStore).Visit(allLambda.Body);
-				var vectorizedMethod = CreateVectorizedMethod(vectorizedCode, allLambda, context);
-
-				context.AdditionalSyntax.TryAdd(vectorizedMethod, false);
-
-				context.Usings.Add("System.Numerics");
-				context.Usings.Add("System.Runtime.InteropServices");
-
-				result = CreateInvocation(vectorizedMethod.Identifier.Text, CreateInvocation(IdentifierName("CollectionsMarshal"), "AsSpan", source));
-				return true;
-			}
-
-			result = CreateInvocation(source, "TrueForAll", context.Visit(allLambda) ?? allLambda);
 			return true;
 		}
 
@@ -279,7 +239,7 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 	private MethodDeclarationSyntax CreateVectorizedMethod(SyntaxNode vectorizedCode, LambdaExpressionSyntax lambda, FunctionOptimizerContext context)
 	{
-		var typeName = context.Method.TypeArguments[0].ToDisplayString();
+		var typeName = context.Model.Compilation.TryGetIEnumerableType(context.Method.Parameters[0].Type, false, out var elementType) ? elementType.ToDisplayString() : context.Method.TypeArguments[0].ToDisplayString();
 
 		if (!InvertLogicalRefactoring.TryInvertLogical(lambda.Body as BinaryExpressionSyntax, out var inverted))
 		{
@@ -339,20 +299,7 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			""";
 
 		var method = ParseMemberDeclaration(result) as MethodDeclarationSyntax ?? throw new InvalidOperationException("Failed to parse vectorized method declaration");
+
 		return method.WithIdentifier(Identifier($"{Name}_{method.Body.GetDeterministicHashString()}"));
-
-		string ReplaceIdentifier(SyntaxNode node, LambdaExpressionSyntax lambdaExpression, string replacement)
-		{
-			var identifierName = lambdaExpression switch
-			{
-				SimpleLambdaExpressionSyntax simple => simple.Parameter.Identifier.Text,
-				ParenthesizedLambdaExpressionSyntax { ParameterList.Parameters.Count: 1 } parenthesized => parenthesized.ParameterList.Parameters[0].Identifier.Text,
-				_ => throw new InvalidOperationException("Expected a single-parameter lambda expression.")
-			};
-
-			return FormattingHelper.Render(node
-				.ReplaceNodes(node.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>().Where(id => id.Identifier.Text == identifierName),
-					(_, _) => ParseExpression(replacement)));
-		}
 	}
 }

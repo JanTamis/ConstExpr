@@ -41,7 +41,7 @@ public class LinqWhereOptimizationTests() : BaseTest<Func<int[], int>>(FastMathF
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return x.Length + Count__kPdYA(x) + Count_JkeiXw(x) + Count_qwYgug(x) + Count_LJMk4Q(x) + Count_4BnjXQ(x);"),
+		Create("return x.Length + Count_8v2IzQ(x) + Count_k44U2w(x) + Count_iu6ggQ(x) + Count_vwaqjw(x) + Count_edlCaw(x);"),
 		Create("return 19;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new int[] { }),
 		Create("return 38;", new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }),

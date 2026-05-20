@@ -3,10 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
-using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
-using ConstExpr.SourceGenerator.Rewriters;
-using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -75,51 +72,13 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 						return true;
 					}
 
-					if (IsInvokedOnList(context, invocationSource))
+					if (!TryVectorize(context, invocationSource, predicate, CreateVectorizedMethod,
+						    () => CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.Exists), invocationSource, context.Visit(predicate) ?? predicate),
+						    () => CreateInvocation(invocationSource, "Exists", context.Visit(predicate) ?? predicate), out result))
 					{
-						var analyzerResult = VectorizationEligibilityVisitor.Analyze(predicate, context.Model, context.SymbolStore);
-
-						if (analyzerResult.IsVectorizable)
-						{
-							var vectorizedCode = new VectorizerRewriter(context.Model, context.Method.TypeArguments[0], context.SymbolStore).Visit(predicate.Body);
-							var vectorizedMethod = CreateVectorizedMethod(vectorizedCode, predicate, context);
-
-							context.AdditionalSyntax.TryAdd(vectorizedMethod, false);
-
-							context.Usings.Add("System.Numerics");
-							context.Usings.Add("System.Runtime.InteropServices");
-
-							result = CreateInvocation(vectorizedMethod.Identifier.Text, CreateInvocation(IdentifierName("CollectionsMarshal"), "AsSpan", context.Visit(invocationSource) ?? invocationSource));
-							return true;
-						}
-
-						result = CreateInvocation(context.Visit(invocationSource) ?? invocationSource, "Exists", predicate);
-						return true;
+						result = UpdateInvocation(context, invocationSource, predicate);
 					}
 
-					if (IsInvokedOnArray(context, invocationSource))
-					{
-						var analyzerResult = VectorizationEligibilityVisitor.Analyze(predicate, context.Model, context.SymbolStore);
-
-						if (analyzerResult.IsVectorizable)
-						{
-							var vectorizedCode = new VectorizerRewriter(context.Model, context.Method.TypeArguments[0], context.SymbolStore).Visit(predicate.Body);
-							var vectorizedMethod = CreateVectorizedMethod(vectorizedCode, predicate, context);
-
-							context.AdditionalSyntax.TryAdd(vectorizedMethod, false);
-
-							context.Usings.Add("System.Numerics");
-							context.Usings.Add("System.Runtime.InteropServices");
-
-							result = CreateInvocation(vectorizedMethod.Identifier.Text, context.Visit(invocationSource) ?? invocationSource);
-							return true;
-						}
-
-						result = CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.Exists), context.Visit(invocationSource) ?? invocationSource, predicate);
-						return true;
-					}
-
-					result = UpdateInvocation(context, invocationSource, predicate);
 					return true;
 				}
 				case nameof(Enumerable.Concat):
@@ -268,54 +227,16 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		else if (context.VisitedParameters.Count == 1
 		         && TryGetLambda(context.VisitedParameters[0], out anyLambda))
 		{
-			if (IsInvokedOnList(context, source))
+			if (TryVectorize(context, source, anyLambda, CreateVectorizedMethod,
+				    () => CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.Exists), source, context.Visit(anyLambda) ?? anyLambda),
+				    () => CreateInvocation(source, "Exists", context.Visit(anyLambda) ?? anyLambda), out result))
 			{
-				var analyzerResult = VectorizationEligibilityVisitor.Analyze(anyLambda, context.Model, context.SymbolStore);
-
-				if (analyzerResult.IsVectorizable)
-				{
-					var vectorizedCode = new VectorizerRewriter(context.Model, context.Method.TypeArguments[0], context.SymbolStore).Visit(anyLambda.Body);
-					var vectorizedMethod = CreateVectorizedMethod(vectorizedCode, anyLambda, context);
-
-					context.AdditionalSyntax.TryAdd(vectorizedMethod, false);
-
-					context.Usings.Add("System.Numerics");
-					context.Usings.Add("System.Runtime.InteropServices");
-
-					result = CreateInvocation(vectorizedMethod.Identifier.Text, CreateInvocation(IdentifierName("CollectionsMarshal"), "AsSpan", context.Visit(source) ?? source));
-					return true;
-				}
-
-				result = CreateInvocation(context.Visit(source) ?? source, "Exists", anyLambda);
-				return true;
-			}
-
-			if (IsInvokedOnArray(context, source))
-			{
-				var analyzerResult = VectorizationEligibilityVisitor.Analyze(anyLambda, context.Model, context.SymbolStore);
-
-				if (analyzerResult.IsVectorizable)
-				{
-					var vectorizedCode = new VectorizerRewriter(context.Model, context.Method.TypeArguments[0], context.SymbolStore).Visit(anyLambda.Body);
-					var vectorizedMethod = CreateVectorizedMethod(vectorizedCode, anyLambda, context);
-
-					context.AdditionalSyntax.TryAdd(vectorizedMethod, false);
-
-					context.Usings.Add("System.Numerics");
-					context.Usings.Add("System.Runtime.InteropServices");
-
-					result = CreateInvocation(vectorizedMethod.Identifier.Text, context.Visit(source) ?? source);
-					return true;
-				}
-
-				result = CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.Exists), context.Visit(source) ?? source, anyLambda);
 				return true;
 			}
 
 			result = UpdateInvocation(context, source, anyLambda);
 			return true;
 		}
-
 
 		// If we skipped any operations, create optimized Any() call
 		if (isNewSource)
@@ -358,7 +279,6 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 					for (; i < vectors.Length; i++)
 					{
 						acc0 |= {{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i]")}};
-							return true;
 					}
 					
 					if (Vector.AnyWhereAllBitsSet(acc0))
@@ -384,20 +304,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			""";
 
 		var method = ParseMemberDeclaration(result) as MethodDeclarationSyntax ?? throw new InvalidOperationException("Failed to parse vectorized method declaration");
+
 		return method.WithIdentifier(Identifier($"{Name}_{method.Body.GetDeterministicHashString()}"));
-
-		string ReplaceIdentifier(SyntaxNode node, LambdaExpressionSyntax lambdaExpression, string replacement)
-		{
-			var identifierName = lambdaExpression switch
-			{
-				SimpleLambdaExpressionSyntax simple => simple.Parameter.Identifier.Text,
-				ParenthesizedLambdaExpressionSyntax { ParameterList.Parameters.Count: 1 } parenthesized => parenthesized.ParameterList.Parameters[0].Identifier.Text,
-				_ => throw new InvalidOperationException("Expected a single-parameter lambda expression.")
-			};
-
-			return FormattingHelper.Render(node
-				.ReplaceNodes(node.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>().Where(id => id.Identifier.Text == identifierName),
-					(_, _) => ParseExpression(replacement)));
-		}
 	}
 }

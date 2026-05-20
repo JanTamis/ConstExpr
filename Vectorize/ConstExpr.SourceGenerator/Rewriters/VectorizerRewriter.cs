@@ -213,10 +213,10 @@ public class VectorizerRewriter(
 			SyntaxKind.LogicalOrExpression =>
 				BinaryExpression(SyntaxKind.BitwiseOrExpression, rewrittenLeft, rewrittenRight),
 
-			// Shift count is always a scalar — only rewrite the shifted value.
-			SyntaxKind.LeftShiftExpression
-				or SyntaxKind.RightShiftExpression
-				or SyntaxKind.UnsignedRightShiftExpression => node.WithLeft(rewrittenLeft),
+			// // Shift count is always a scalar — only rewrite the shifted value.
+			// SyntaxKind.LeftShiftExpression
+			// 	or SyntaxKind.RightShiftExpression
+			// 	or SyntaxKind.UnsignedRightShiftExpression => node.WithLeft(rewrittenLeft),
 
 			// Comparisons — no operator overload exists; use the Vector API directly.
 			SyntaxKind.GreaterThanExpression => CreateInvocation("GreaterThan", [ ParseTypeName(vectorType.ToDisplayString()) ], rewrittenLeft, rewrittenRight),
@@ -225,6 +225,8 @@ public class VectorizerRewriter(
 			SyntaxKind.LessThanOrEqualExpression => CreateInvocation("LessThanOrEqual", [ ParseTypeName(vectorType.ToDisplayString()) ], rewrittenLeft, rewrittenRight),
 			SyntaxKind.EqualsExpression => CreateInvocation("Equals", [ ParseTypeName(vectorType.ToDisplayString()) ], rewrittenLeft, rewrittenRight),
 			SyntaxKind.NotEqualsExpression => CreateInvocation("NotEquals", [ ParseTypeName(vectorType.ToDisplayString()) ], rewrittenLeft, rewrittenRight),
+			SyntaxKind.LeftShiftExpression => CreateInvocation("LeftShift", rewrittenLeft, node.Right),
+			SyntaxKind.RightShiftExpression => CreateInvocation("RightShift", rewrittenLeft, node.Right),
 
 			_ => node.WithLeft(rewrittenLeft).WithRight(rewrittenRight)
 		};

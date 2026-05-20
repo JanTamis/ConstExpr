@@ -1246,7 +1246,7 @@ public static class CompilationExtensions
 		return best;
 	}
 
-	public static bool TryGetIEnumerableType(this Compilation compilation, ITypeSymbol? typeSymbol, bool recursive, out ITypeSymbol? elementType)
+	public static bool TryGetIEnumerableType(this Compilation compilation, ITypeSymbol? typeSymbol, bool recursive, [NotNullWhen(true)] out ITypeSymbol? elementType)
 	{
 		if (typeSymbol == null)
 		{

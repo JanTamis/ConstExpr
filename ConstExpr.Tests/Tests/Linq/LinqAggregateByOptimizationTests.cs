@@ -9,7 +9,7 @@ namespace ConstExpr.Tests.Linq;
 /// and the order in which the accumulator is applied).
 /// </summary>
 [InheritsTests]
-public class LinqAggregateByOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
+public class LinqAggregateByOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.FastMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -51,6 +51,3 @@ public class LinqAggregateByOptimizationTests() : BaseTest<Func<int[], int>>(Fas
 		Create("return Count_Ch2WLg(x) * 5 + Count_GXoNZg(x) + Count_e2olnw(x) + x.CountBy(v => v & 1).Count() + Count_fDCnXg(x);"),
 	];
 }
-
-
-

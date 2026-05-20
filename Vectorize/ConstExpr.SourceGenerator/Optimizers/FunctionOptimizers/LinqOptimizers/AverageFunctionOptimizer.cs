@@ -7,7 +7,6 @@ using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using SourceGen.Utilities.Extensions;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
@@ -50,8 +49,18 @@ public class AverageFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 		    && TryGetLambda(context.VisitedParameters[0], out var selector)
 		    && IsIdentityLambda(selector))
 		{
-			result = UpdateInvocation(context, source, [ ]);
-			return true;
+			if (IsIdentityLambda(selector))
+			{
+				result = UpdateInvocation(context, source, [ ]);
+				return true;
+			}
+
+			if (TryVectorize(context, source, selector, CreateVectorizedMethod,
+				    () => CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.Exists), source, context.Visit(selector) ?? selector),
+				    () => CreateInvocation(source, "Exists", context.Visit(selector) ?? selector), out result))
+			{
+				return true;
+			}
 		}
 
 		if (IsLinqMethodChain(source, out var methodName, out var invocation)
@@ -62,7 +71,13 @@ public class AverageFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 				case nameof(Enumerable.Select) when GetMethodArguments(invocation).FirstOrDefault() is { Expression: { } selectorArg }
 				                                    && TryGetLambda(selectorArg, out selector):
 				{
-					result = UpdateInvocation(context, invocationSource, selector);
+					if (!TryVectorize(context, invocationSource, selector, CreateVectorizedMethod,
+						    () => CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.Exists), invocationSource, context.Visit(selector) ?? selector),
+						    () => CreateInvocation(invocationSource, "Exists", context.Visit(selector) ?? selector), out result))
+					{
+						result = UpdateInvocation(context, invocationSource, selector);
+					}
+
 					return true;
 				}
 				case nameof(Enumerable.Range) when invocation.ArgumentList.Arguments is [ var startArg, var countArg ]:
@@ -112,5 +127,72 @@ public class AverageFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 
 		result = null;
 		return false;
+	}
+
+	private MethodDeclarationSyntax CreateVectorizedMethod(SyntaxNode vectorizedCode, LambdaExpressionSyntax lambda, FunctionOptimizerContext context)
+	{
+		var typeName = context.Model.Compilation.TryGetIEnumerableType(context.Method.ReceiverType, false, out var elementType) ? elementType : context.Method.TypeArguments[0];
+		var returnTypeName = context.Method.ReturnType.ToDisplayString();
+
+		var returnStatement = "sum / data.Length";
+
+		if (IsEqualSymbol(context.Method.ReturnType, elementType))
+		{
+			returnStatement = $"({returnTypeName})sum / data.Length";
+		}
+
+		var result = $$"""
+			private static {{returnTypeName}} {{Name}}(ReadOnlySpan<{{typeName}}> data)
+			{
+				if (Vector.IsHardwareAccelerated && data.Length >= Vector<{{typeName}}>.Count)
+				{
+					var vectors = MemoryMarshal.Cast<{{typeName}}, Vector<{{typeName}}>>(data);
+
+					var acc0 = Vector<{{typeName}}>.Zero;
+					var acc1 = Vector<{{typeName}}>.Zero;
+					var acc2 = Vector<{{typeName}}>.Zero;
+					var acc3 = Vector<{{typeName}}>.Zero;
+					var i = 0;
+					
+					for (; i <= vectors.Length - 4; i += 4)
+					{
+						acc0 += {{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i]")}};
+						acc1 += {{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i + 1]")}};
+						acc2 += {{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i + 2]")}};
+						acc3 += {{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i + 3]")}};
+					}
+					
+					acc0 += acc1 + acc2 + acc3;
+					
+					for (; i < vectors.Length; i++)
+					{
+						acc0 += {{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i]")}};
+					}
+					
+					var sum = acc0.Sum();
+					var tail = data.Length & Vector<{{typeName}}>.Count - 1;
+					
+					for (var t = data.Length - tail; t < data.Length; t++)
+					{
+						sum += {{ReplaceIdentifier(lambda.Body, lambda, "data[t]")}};
+					}
+					
+					return {{returnStatement}};
+				}
+				
+				var sum = {{elementType.GetDefaultValue()}};
+				
+				for (var i = 0; i < data.Length; i++)
+				{
+					sum += {{ReplaceIdentifier(lambda.Body, lambda, "data[i]")}};
+				}
+				
+				return {{returnStatement}};
+			}
+			""";
+
+		var method = ParseMemberDeclaration(result) as MethodDeclarationSyntax ?? throw new InvalidOperationException("Failed to parse vectorized method declaration");
+
+		return method.WithIdentifier(Identifier($"{Name}_{method.Body.GetDeterministicHashString()}"));
 	}
 }

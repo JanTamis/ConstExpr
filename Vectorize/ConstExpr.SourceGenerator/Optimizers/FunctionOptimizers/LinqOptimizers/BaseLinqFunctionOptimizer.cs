@@ -7,6 +7,8 @@ using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
+using ConstExpr.SourceGenerator.Rewriters;
+using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -892,9 +894,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	protected bool AreSyntacticallyEquivalent(ExpressionSyntax first, ExpressionSyntax second)
 	{
 		// Simple syntactic comparison by normalized text
-		var firstText = first.ToString().Replace(" ", "").Replace("\n", "").Replace("\r", "");
-		var secondText = second.ToString().Replace(" ", "").Replace("\n", "").Replace("\r", "");
-		return firstText == secondText;
+		return first.GetDeterministicHash() == second.GetDeterministicHash();
 	}
 
 	protected static ExpressionSyntax ReplaceIdentifier(ExpressionSyntax expression, string oldIdentifier, ExpressionSyntax replacement)
@@ -1351,6 +1351,134 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	protected ExpressionSyntax OptimizeArithmetic(FunctionOptimizerContext context, SyntaxKind kind, ExpressionSyntax left, ExpressionSyntax right, ITypeSymbol type)
 	{
 		return context.OptimizeBinaryExpression(BinaryExpression(kind, left, right), type, type, type);
+	}
+
+	protected bool TryVectorizeArray(FunctionOptimizerContext context, ExpressionSyntax source, LambdaExpressionSyntax lambda, Func<SyntaxNode, LambdaExpressionSyntax, FunctionOptimizerContext, MethodDeclarationSyntax> createVectorizedCode, [NotNullWhen(true)] out SyntaxNode? invocation)
+	{
+		var analyzerResult = VectorizationEligibilityVisitor.Analyze(lambda, context.Model, context.SymbolStore);
+
+		if (analyzerResult.IsVectorizable)
+		{
+			var elementType = context.Method.TypeArguments.FirstOrDefault();
+
+			if (elementType is null && !context.Model.Compilation.TryGetIEnumerableType(context.Method.ReceiverType, false, out elementType))
+			{
+				invocation = null;
+				return false;
+			}
+
+			if (elementType?.IsVectorSupported() != true)
+			{
+				invocation = null;
+				return false;
+			}
+
+			var vectorizedCode = new VectorizerRewriter(context.Model, elementType, context.SymbolStore).Visit(lambda.Body);
+			var vectorizedMethod = createVectorizedCode(vectorizedCode, lambda, context);
+
+			context.AdditionalSyntax.TryAdd(vectorizedMethod, false);
+
+			context.Usings.Add("System.Numerics");
+			context.Usings.Add("System.Runtime.InteropServices");
+
+			invocation = CreateInvocation(vectorizedMethod.Identifier.Text, source);
+			return true;
+		}
+
+		invocation = null;
+		return false;
+	}
+
+	protected bool TryVectorizeList(FunctionOptimizerContext context, ExpressionSyntax source, LambdaExpressionSyntax lambda, Func<SyntaxNode, LambdaExpressionSyntax, FunctionOptimizerContext, MethodDeclarationSyntax> createVectorizedCode, [NotNullWhen(true)] out SyntaxNode? invocation)
+	{
+		var analyzerResult = VectorizationEligibilityVisitor.Analyze(lambda, context.Model, context.SymbolStore);
+
+		if (analyzerResult.IsVectorizable)
+		{
+			var elementType = context.Method.TypeArguments.FirstOrDefault();
+
+			if (elementType is null && !context.Model.Compilation.TryGetIEnumerableType(context.Method.ReceiverType, false, out elementType))
+			{
+				invocation = null;
+				return false;
+			}
+
+			if (elementType?.IsVectorSupported() != true)
+			{
+				invocation = null;
+				return false;
+			}
+
+			var vectorizedCode = new VectorizerRewriter(context.Model, elementType, context.SymbolStore).Visit(lambda.Body);
+			var vectorizedMethod = createVectorizedCode(vectorizedCode, lambda, context);
+
+			context.AdditionalSyntax.TryAdd(vectorizedMethod, false);
+
+			context.Usings.Add("System.Numerics");
+			context.Usings.Add("System.Runtime.InteropServices");
+
+			invocation = CreateInvocation(vectorizedMethod.Identifier.Text, CreateInvocation(IdentifierName("CollectionsMarshal"), "AsSpan", source));
+			return true;
+		}
+
+		invocation = null;
+		return false;
+	}
+
+	protected bool TryVectorize(FunctionOptimizerContext context, ExpressionSyntax source, LambdaExpressionSyntax lambda, Func<SyntaxNode, LambdaExpressionSyntax, FunctionOptimizerContext, MethodDeclarationSyntax> createVectorizedCode, Func<SyntaxNode> arrayFallback, Func<SyntaxNode> listFallback, [NotNullWhen(true)] out SyntaxNode? result)
+	{
+		if (IsInvokedOnArray(context, source))
+		{
+			if (!TryVectorizeArray(context, source, lambda, createVectorizedCode, out result))
+			{
+				result = arrayFallback();
+			}
+
+			return true;
+		}
+
+		if (IsInvokedOnList(context, source))
+		{
+			if (!TryVectorizeList(context, source, lambda, createVectorizedCode, out result))
+			{
+				result = listFallback();
+			}
+
+			return true;
+		}
+
+		result = null;
+		return false;
+	}
+
+	protected bool TryVectorize(FunctionOptimizerContext context, ExpressionSyntax source, LambdaExpressionSyntax lambda, Func<SyntaxNode, LambdaExpressionSyntax, FunctionOptimizerContext, MethodDeclarationSyntax> createVectorizedCode, [NotNullWhen(true)] out SyntaxNode? result)
+	{
+		if (IsInvokedOnArray(context, source))
+		{
+			return TryVectorizeArray(context, source, lambda, createVectorizedCode, out result);
+		}
+
+		if (IsInvokedOnList(context, source))
+		{
+			return TryVectorizeList(context, source, lambda, createVectorizedCode, out result);
+		}
+
+		result = null;
+		return false;
+	}
+
+	protected string ReplaceIdentifier(SyntaxNode node, LambdaExpressionSyntax lambdaExpression, string replacement)
+	{
+		var identifierName = lambdaExpression switch
+		{
+			SimpleLambdaExpressionSyntax simple => simple.Parameter.Identifier.Text,
+			ParenthesizedLambdaExpressionSyntax { ParameterList.Parameters.Count: 1 } parenthesized => parenthesized.ParameterList.Parameters[0].Identifier.Text,
+			_ => throw new InvalidOperationException("Expected a single-parameter lambda expression.")
+		};
+
+		return FormattingHelper.Render(node
+			.ReplaceNodes(node.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>().Where(id => id.Identifier.Text == identifierName),
+				(_, _) => ParseExpression(replacement)));
 	}
 
 	private class IdentifierReplacer(string identifier, ExpressionSyntax replacement) : CSharpSyntaxRewriter
