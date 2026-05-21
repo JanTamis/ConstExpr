@@ -175,6 +175,11 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 				return true;
 			}
 
+			if (TryVectorize(context, currentSource, combinedPredicate, CreateVectorizedMethod, out result))
+			{
+				return true;
+			}
+
 			result = UpdateInvocation(context, currentSource, combinedPredicate);
 			return true;
 		}
@@ -454,6 +459,12 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 				return true;
 			}
 
+			if (context.VisitedParameters.Count == 1
+			    && TryVectorize(context, currentSource, context.VisitedParameters[0] as LambdaExpressionSyntax, CreateVectorizedMethod, out result))
+			{
+				return true;
+			}
+
 			// If we skipped any operations, create optimized Count() call
 			if (isNewSource
 			    || !AreSyntacticallyEquivalent(currentSource, source))
@@ -483,5 +494,66 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 		result = null;
 		return false;
+	}
+
+	private MethodDeclarationSyntax CreateVectorizedMethod(SyntaxNode vectorizedCode, LambdaExpressionSyntax lambda, FunctionOptimizerContext context)
+	{
+		var typeName = context.Method.TypeArguments[0].ToDisplayString();
+
+		var result = $$"""
+			private static int Count(ReadOnlySpan<{{typeName}}> data)
+			{
+				if (Vector.IsHardwareAccelerated && data.Length >= Vector<{{typeName}}>.Count)
+				{
+					var vectors = MemoryMarshal.Cast<{{typeName}}, Vector<{{typeName}}>>(data);
+
+					var acc0 = Vector<int>.Zero;
+					var acc1 = Vector<int>.Zero;
+					var acc2 = Vector<int>.Zero;
+					var acc3 = Vector<int>.Zero;
+					var i = 0;
+					
+					for (; i <= vectors.Length - 4; i += 4)
+					{
+						acc0 += -({{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i]")}});
+						acc1 += -({{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i + 1]")}});
+						acc2 += -({{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i + 2]")}});
+						acc3 += -({{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i + 3]")}});
+					}
+					
+					acc0 += acc1 + acc2 + acc3;
+					
+					for (; i < vectors.Length; i++)
+					{
+						acc0 += -({{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i]")}});
+					}
+					
+					var sum = Vector.Sum(acc0);
+					var tail = data.Length & Vector<{{typeName}}>.Count - 1;
+					
+					for (var t = data.Length - tail; t < data.Length; t++)
+					{
+						if ({{ReplaceIdentifier(lambda.Body, lambda, "data[t]")}})
+							sum++;
+					}
+					
+					return sum;
+				}
+				
+				var sum = 0;
+				
+				for (var i = 0; i < data.Length; i++)
+				{
+					if ({{ReplaceIdentifier(lambda.Body, lambda, "data[i]")}})
+						sum++;
+				}
+				
+				return sum;
+			}
+			""";
+
+		var method = ParseMemberDeclaration(result) as MethodDeclarationSyntax ?? throw new InvalidOperationException("Failed to parse vectorized method declaration");
+
+		return method.WithIdentifier(Identifier($"{Name}_{method.Body.GetDeterministicHashString()}"));
 	}
 }
