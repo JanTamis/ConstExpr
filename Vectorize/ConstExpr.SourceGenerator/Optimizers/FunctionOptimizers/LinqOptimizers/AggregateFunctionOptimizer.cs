@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using ConstExpr.SourceGenerator.Models;
@@ -21,16 +20,9 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers
 /// </summary>
 public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Aggregate), n => n is 1 or 2 or 3)
 {
-	// Only operations that don't change elements, order, or filtering
-	// These are essentially no-ops that just change the type or materialize
-	private static readonly HashSet<string> OperationsThatDontAffectAggregate =
-	[
-		..MaterializingMethods
-	];
-
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
-		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectAggregate, out var currentSource);
+		var isNewSource = TryGetOptimizedChainExpression(source, MaterializingMethods, out var currentSource);
 
 		if (TryExecutePredicates(context, currentSource, out result, out currentSource))
 		{

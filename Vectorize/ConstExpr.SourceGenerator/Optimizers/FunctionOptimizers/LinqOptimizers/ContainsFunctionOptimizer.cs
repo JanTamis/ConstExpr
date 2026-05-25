@@ -263,6 +263,32 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 			return true;
 		}
 
+		source = context.Visit(source) ?? source;
+
+		if (context.VisitedParameters.Count == 1)
+		{
+			var method = CreateVectorizedMethod(context);
+
+			if (IsInvokedOnArray(context, source))
+			{
+				context.AdditionalSyntax.TryAdd(method, false);
+
+				result = CreateInvocation(method.Identifier.Text, source);
+				return true;
+			}
+
+			if (IsInvokedOnList(context, source))
+			{
+				context.AdditionalSyntax.TryAdd(method, false);
+
+				context.Usings.Add("System.Numerics");
+				context.Usings.Add("System.Runtime.InteropServices");
+
+				result = CreateInvocation(method.Identifier.Text, CreateInvocation(IdentifierName("CollectionsMarshal"), "AsSpan", source));
+				return true;
+			}
+		}
+
 		// For arrays, use Array.IndexOf
 		if (IsInvokedOnArray(context, source))
 		{
@@ -290,5 +316,66 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		// No matching chain found
 		result = null;
 		return false;
+	}
+
+	private MethodDeclarationSyntax CreateVectorizedMethod(FunctionOptimizerContext context)
+	{
+		var typeName = context.Method.TypeArguments[0].ToDisplayString();
+
+		var result = $$"""
+			private static bool Any(ReadOnlySpan<{{typeName}}> data)
+			{
+				if (Vector.IsHardwareAccelerated && data.Length >= Vector<{{typeName}}>.Count)
+				{
+					var vectors = MemoryMarshal.Cast<{{typeName}}, Vector<{{typeName}}>>(data);
+					
+					var needle = new Vector<{{typeName}}>({{context.VisitedParameters[0]}});
+
+					var acc0 = Vector<{{typeName}}>.Zero;
+					var acc1 = Vector<{{typeName}}>.Zero;
+					var acc2 = Vector<{{typeName}}>.Zero;
+					var acc3 = Vector<{{typeName}}>.Zero;
+					var i = 0;
+					
+					for (; i <= vectors.Length - 4; i += 4)
+					{
+						acc0 |= Vector.Equals<{{typeName}}>(vectors[i], needle);
+						acc1 |= Vector.Equals<{{typeName}}>(vectors[i + 1], needle);
+						acc2 |= Vector.Equals<{{typeName}}>(vectors[i + 2], needle);
+						acc3 |= Vector.Equals<{{typeName}}>(vectors[i + 3], needle);
+					}
+					
+					acc0 |= acc1 | acc2 | acc3;
+					
+					for (; i < vectors.Length; i++)
+					{
+						acc0 |= Vector.Equals<{{typeName}}>(vectors[i], needle);
+					}
+					
+					if (Vector.AnyWhereAllBitsSet(acc0))
+						return true;
+					
+					var tail = data.Length & Vector<{{typeName}}>.Count - 1;
+					
+					for (var t = data.Length - tail; t < data.Length; t++)
+					{
+						if (Vector.AnyWhereAllBitsSet(Vector.Equals<{{typeName}}>(vectors[t], needle)))
+							return true;
+					}
+					
+					return false;
+				}
+				
+				for (var i = 0; i < data.Length; i++)
+				{
+					if (data[i] == {{context.VisitedParameters[0]}})
+						return true;
+				}
+			}
+			""";
+
+		var method = ParseMemberDeclaration(result) as MethodDeclarationSyntax ?? throw new InvalidOperationException("Failed to parse vectorized method declaration");
+
+		return method.WithIdentifier(Identifier($"{Name}_{method.Body.GetDeterministicHashString()}"));
 	}
 }

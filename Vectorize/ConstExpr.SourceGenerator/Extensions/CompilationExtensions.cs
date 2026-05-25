@@ -1526,7 +1526,7 @@ public static class CompilationExtensions
 		return false;
 	}
 
-	public static string GetDeterministicHashString(this SyntaxNode node)
+	public static string GetDeterministicHashString(this SyntaxNode? node)
 	{
 		var hash = node.GetDeterministicHash();
 

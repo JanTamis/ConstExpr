@@ -155,7 +155,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 						    && TryGetLambdaBody(anyPredicate, out var anyPredicateBody)
 						    && TryGetSimpleLambdaParameter(anyPredicate, out var anyPredicateParam))
 						{
-							var boolType = context.Model.Compilation.GetSpecialType(SpecialType.System_Boolean);
+							var boolType = context.Model.Compilation.CreateBoolean();
 							var updatedInvocation = UpdateInvocation(context, invocationSource);
 
 							var left = context.Visit(ReplaceIdentifier(anyPredicateBody, anyPredicateParam.Identifier.Text, defaultValue)) ?? defaultValue;
