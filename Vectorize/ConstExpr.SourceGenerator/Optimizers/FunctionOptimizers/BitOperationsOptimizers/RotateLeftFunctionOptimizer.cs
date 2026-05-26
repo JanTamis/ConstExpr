@@ -45,7 +45,7 @@ public class RotateLeftFunctionOptimizer() : BaseBitOperationsFunctionOptimizer(
 
 	internal static ExpressionSyntax BuildRotate(ExpressionSyntax value, ExpressionSyntax offset, int bitWidth, bool left)
 	{
-		var width = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(bitWidth));
+		var width = CreateLiteral(bitWidth);
 		var complement = BinaryExpression(SyntaxKind.SubtractExpression, width, offset);
 
 		var (firstShift, secondShift) = left
