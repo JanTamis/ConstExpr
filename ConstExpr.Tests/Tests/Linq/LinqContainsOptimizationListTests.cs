@@ -36,7 +36,7 @@ public class LinqContainsOptimizationListTests() : BaseTest<Func<List<int>, int>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return (Contains_vtuwAg(x) ? 6 : 0) + (Contains_OkH2OQ(x) ? 1 : 0);", Unknown),
+		Create("return (Contains_L_btow(CollectionsMarshal.AsSpan(x)) ? 5 : 0) + (Contains_vtuwAg(x) ? 1 : 0) + (Contains_ug1Wdg(CollectionsMarshal.AsSpan(x)) ? 1 : 0);", Unknown),
 		Create("return 6;", new List<int> { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new List<int>()),
 		Create("return 0;", new List<int> { 1, 2, 4, 5, 6 }), // No 3, all tests fail

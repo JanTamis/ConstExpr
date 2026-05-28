@@ -32,8 +32,8 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 	// Operations that don't affect element containment (only order/form/duplicates/materialization)
 	private static readonly HashSet<string> OperationsThatDontAffectContainment =
 	[
-		..MaterializingMethods,
-		..OrderingOperations,
+		.. MaterializingMethods,
+		.. OrderingOperations,
 		nameof(Enumerable.Distinct) // Deduplication: may reduce count, but if element exists, Contains is true
 	];
 
@@ -165,16 +165,9 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 						{
 							if (IsSimpleEqualityLambda(resultPredicate, out var value))
 							{
-								var indexOfCall = CreateInvocation(
-									ParseTypeName(nameof(Array)),
-									nameof(Array.IndexOf),
-									context.Visit(invocationSource) ?? invocationSource,
-									value);
-
-								result = OptimizeComparison(context, SyntaxKind.GreaterThanOrEqualExpression,
-									indexOfCall,
-									CreateLiteral(0),
-									context.Model.Compilation.GetSpecialType(SpecialType.System_Int32));
+								result = TryOptimizeByOptimizer<ContainsFunctionOptimizer>(
+									context,
+									CreateInvocation(invocationSource, nameof(Enumerable.Contains), value));
 								return true;
 							}
 
@@ -265,9 +258,11 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 
 		source = context.Visit(source) ?? source;
 
-		if (context.VisitedParameters.Count == 1)
+		if (context.VisitedParameters.Count == 1
+		    && TryGetContainsElementType(context, out var elementType)
+		    && elementType.IsVectorSupported())
 		{
-			var method = CreateVectorizedMethod(context);
+			var method = CreateVectorizedMethod(context, elementType);
 
 			if (IsInvokedOnArray(context, source))
 			{
@@ -318,9 +313,19 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		return false;
 	}
 
-	private MethodDeclarationSyntax CreateVectorizedMethod(FunctionOptimizerContext context)
+	private static bool TryGetContainsElementType(FunctionOptimizerContext context, [NotNullWhen(true)] out ITypeSymbol? elementType)
 	{
-		var typeName = context.Method.TypeArguments[0].ToDisplayString();
+		elementType = context.Method.TypeArguments.FirstOrDefault()
+		              ?? context.Method.Parameters.FirstOrDefault()?.Type
+		              ?? context.Model.GetTypeInfo(context.VisitedParameters[0]).ConvertedType
+		              ?? context.Model.GetTypeInfo(context.VisitedParameters[0]).Type;
+
+		return elementType is not null;
+	}
+
+	private MethodDeclarationSyntax CreateVectorizedMethod(FunctionOptimizerContext context, ITypeSymbol elementType)
+	{
+		var typeName = elementType.ToDisplayString();
 
 		var result = $$"""
 			private static bool Any(ReadOnlySpan<{{typeName}}> data)

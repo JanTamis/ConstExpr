@@ -1110,8 +1110,8 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 				if (parameters.Count == context.Method.Parameters.Length)
 				{
 					if (method.IsStatic
-					    && TryCreateLiteral(method.Invoke(null, [ values, ..parameters ]), out var tempResult)
-					    || TryCreateLiteral(method.Invoke(values, [ ..parameters ]), out tempResult))
+					    && TryCreateLiteral(method.Invoke(null, [ values, .. parameters ]), out var tempResult)
+					    || TryCreateLiteral(method.Invoke(values, [ .. parameters ]), out tempResult))
 					{
 						result = tempResult;
 						return true;
@@ -1164,8 +1164,8 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 				if (newParameters.Count == context.Method.Parameters.Length)
 				{
 					if (context.Method.ReceiverType is not null
-					    && TryCreateLiteral(method.Invoke(null, [ values, ..newParameters ]), out var tempResult)
-					    || TryCreateLiteral(method.Invoke(values, [ ..newParameters ]), out tempResult))
+					    && TryCreateLiteral(method.Invoke(null, [ values, .. newParameters ]), out var tempResult)
+					    || TryCreateLiteral(method.Invoke(values, [ .. newParameters ]), out tempResult))
 					{
 						result = tempResult;
 						return true;
@@ -1353,11 +1353,54 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 		return context.OptimizeBinaryExpression(BinaryExpression(kind, left, right), type, type, type);
 	}
 
+	/// <summary>
+	///   Returns true when the lambda body contains a reference to an outer-scope local variable.
+	///   Detection is purely syntactic (no semantic model required) using conventions:
+	///   an identifier that (a) is not the lambda's own parameter, (b) is not the right-hand
+	///   member name of a member-access expression, and (c) starts with a lowercase letter
+	///   is considered a captured variable (C# convention: types start uppercase).
+	///   A vectorized helper is emitted as a separate private static method and therefore
+	///   cannot access captured variables, so such lambdas must not be vectorized.
+	/// </summary>
+	protected static bool HasCapturedVariables(LambdaExpressionSyntax lambda)
+	{
+		var ownParameterNames = lambda switch
+		{
+			SimpleLambdaExpressionSyntax simple => new HashSet<string> { simple.Parameter.Identifier.Text },
+			ParenthesizedLambdaExpressionSyntax p => new HashSet<string>(p.ParameterList.Parameters.Select(pp => pp.Identifier.Text)),
+			_ => new HashSet<string>()
+		};
+
+		return lambda.Body
+			.DescendantNodesAndSelf()
+			.OfType<IdentifierNameSyntax>()
+			.Any(id =>
+			{
+				var name = id.Identifier.Text;
+
+				// Skip the lambda's own parameters
+				if (ownParameterNames.Contains(name))
+				{
+					return false;
+				}
+
+				// Skip member names (right-hand side of a dot: Math.Pow → skip "Pow")
+				if (id.Parent is MemberAccessExpressionSyntax memberAccess && memberAccess.Name == id)
+				{
+					return false;
+				}
+
+				// Heuristic: type/namespace names start with uppercase (C# convention).
+				// Local variables and method parameters start with lowercase — flag those as captures.
+				return name.Length > 0 && Char.IsLower(name[0]);
+			});
+	}
+
 	protected bool TryVectorizeArray(FunctionOptimizerContext context, ExpressionSyntax source, LambdaExpressionSyntax lambda, Func<SyntaxNode, LambdaExpressionSyntax, FunctionOptimizerContext, MethodDeclarationSyntax> createVectorizedCode, [NotNullWhen(true)] out SyntaxNode? invocation)
 	{
 		var analyzerResult = VectorizationEligibilityVisitor.Analyze(lambda, context.Model, context.SymbolStore);
 
-		if (analyzerResult.IsVectorizable)
+		if (analyzerResult.IsVectorizable && !HasCapturedVariables(lambda))
 		{
 			var elementType = context.Method.TypeArguments.FirstOrDefault();
 
@@ -1393,7 +1436,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	{
 		var analyzerResult = VectorizationEligibilityVisitor.Analyze(lambda, context.Model, context.SymbolStore);
 
-		if (analyzerResult.IsVectorizable)
+		if (analyzerResult.IsVectorizable && !HasCapturedVariables(lambda))
 		{
 			var elementType = context.Method.TypeArguments.FirstOrDefault();
 
@@ -1479,6 +1522,30 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 		return FormattingHelper.Render(node
 			.ReplaceNodes(node.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>().Where(id => id.Identifier.Text == identifierName),
 				(_, _) => ParseExpression(replacement)));
+	}
+
+	protected string ReplaceIdentifier(SyntaxNode node, LambdaExpressionSyntax lambdaExpression, params string[] replacements)
+	{
+		if (replacements.Length == 1)
+		{
+			return ReplaceIdentifier(node, lambdaExpression, replacements[0]);
+		}
+
+		var names = lambdaExpression switch
+		{
+			SimpleLambdaExpressionSyntax simple => new[] { simple.Parameter.Identifier.Text },
+			ParenthesizedLambdaExpressionSyntax { ParameterList.Parameters.Count: > 0 } parenthesized
+				=> parenthesized.ParameterList.Parameters.Select(p => p.Identifier.Text).ToArray(),
+			_ => throw new InvalidOperationException("Expected a lambda expression with parameters.")
+		};
+
+		return FormattingHelper.Render(node
+			.ReplaceNodes(node.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>().Where(id => names.Contains(id.Identifier.Text)),
+				(id, _) =>
+				{
+					var index = Array.IndexOf(names, id.Identifier.Text);
+					return ParseExpression(replacements[index]);
+				}));
 	}
 
 	private class IdentifierReplacer(string identifier, ExpressionSyntax replacement) : CSharpSyntaxRewriter

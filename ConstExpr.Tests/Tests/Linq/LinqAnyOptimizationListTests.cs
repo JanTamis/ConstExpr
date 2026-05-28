@@ -33,7 +33,7 @@ public class LinqAnyOptimizationListTests() : BaseTest<Func<List<int>, int>>(Fas
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return (x.Count > 0 ? 3 : 0) + (Any_3N8YaQ(CollectionsMarshal.AsSpan(x)) ? 1 : 0) + (Any_npRxRA(CollectionsMarshal.AsSpan(x)) ? 1 : 0) + (Contains_zFeL6A(x) ? 1 : 0);", Unknown),
+		Create("return (x.Count > 0 ? 3 : 0) + (Any_pfIHsA(CollectionsMarshal.AsSpan(x)) ? 1 : 0) + (Any_7KBy_w(CollectionsMarshal.AsSpan(x)) ? 1 : 0) + (Contains_Xl5chw(CollectionsMarshal.AsSpan(x)) ? 1 : 0);", Unknown),
 		Create("return 5;", new List<int> { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new List<int>()),
 	];

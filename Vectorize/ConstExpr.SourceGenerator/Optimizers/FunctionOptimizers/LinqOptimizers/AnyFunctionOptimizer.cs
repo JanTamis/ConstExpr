@@ -32,8 +32,8 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 	// Operations that don't affect element existence (only order/form/duplicates/materialization)
 	private static readonly HashSet<string> OperationsThatDontAffectExistence =
 	[
-		..MaterializingMethods,
-		..OrderingOperations,
+		.. MaterializingMethods,
+		.. OrderingOperations,
 		nameof(Enumerable.Select), // Projection: transforms elements but doesn't filter
 		nameof(Enumerable.Distinct), // Deduplication: may reduce count, but if any exist, Any() is true
 		nameof(Enumerable.GroupBy), // Grouping: groups elements but doesn't filter them out, so it doesn't affect whether any elements exist
@@ -300,6 +300,8 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 					if ({{ReplaceIdentifier(lambda.Body, lambda, "data[i]")}})
 						return true;
 				}
+				
+				return false;
 			}
 			""";
 

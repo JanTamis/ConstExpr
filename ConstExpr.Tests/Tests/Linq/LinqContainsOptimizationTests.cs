@@ -52,7 +52,7 @@ public class LinqContainsOptimizationTests() : BaseTest<Func<int[], int>>(FastMa
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return (Array.IndexOf(x, 3) >= 0 ? 11 : 0) + (Array.IndexOf(x, 100) >= 0 ? 1 : 0);"),
+		Create("return (Contains_L_btow(x) ? 11 : 0) + (Contains_ug1Wdg(x) ? 1 : 0);"),
 		Create("return 11;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new int[] { }),
 		Create("return 0;", new[] { 1, 2, 4, 5, 6 }), // No 3, all tests fail

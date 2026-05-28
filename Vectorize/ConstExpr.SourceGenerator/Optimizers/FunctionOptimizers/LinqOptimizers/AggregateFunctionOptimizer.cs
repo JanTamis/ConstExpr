@@ -1,5 +1,7 @@
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -41,6 +43,12 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 			return true;
 		}
 
+		if (context.VisitedParameters is [ LambdaExpressionSyntax lambda ]
+		    && TryVectorize(context, currentSource, lambda, CreateVectorizedMethod, out result))
+		{
+			return true;
+		}
+
 		if (isNewSource || !AreEquivalent(source, currentSource))
 		{
 			result = UpdateInvocation(context, currentSource);
@@ -56,9 +64,9 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 	/// Patterns:
 	/// - Aggregate((acc, v) => acc + v) => Sum()
 	/// - Aggregate(0, (acc, v) => acc + v) => Sum()
-	/// - Aggregate(0, (acc, v) => acc + v, acc => acc * 2) => Sum() << 1
+	/// - Aggregate(0, (acc, v) => acc + v, acc => acc * 2) => Sum() &lt;&lt; 1
 	/// </summary>
-	private bool TryOptimizeAggregateToSum(FunctionOptimizerContext context, ExpressionSyntax source, out SyntaxNode? result)
+	private bool TryOptimizeAggregateToSum(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		result = null;
 
@@ -198,5 +206,59 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 
 		// Replace the outer lambda's parameter with the inner lambda's body
 		return ReplaceIdentifier(body, param, expression);
+	}
+
+	private MethodDeclarationSyntax CreateVectorizedMethod(SyntaxNode vectorizedCode, LambdaExpressionSyntax lambda, FunctionOptimizerContext context)
+	{
+		var typeName = context.Method.TypeArguments[0].ToDisplayString();
+
+		var result = $$"""
+			private static {{typeName}} Aggregate(ReadOnlySpan<{{typeName}}> data)
+			{
+				if (data.Length == 0)
+				{
+					throw new InvalidOperationException("Sequence contains no elements");
+				}
+				
+				if (Vector.IsHardwareAccelerated && data.Length >= Vector<{{typeName}}>.Count)
+				{
+					var tail = data.Length & Vector<{{typeName}}>.Count - 1;
+					var vectors = MemoryMarshal.Cast<{{typeName}}, Vector<{{typeName}}>>(data);
+					var resultVector = vectors[0];
+					
+					for (var i = 1; i < vectors.Length; i++)
+					{
+						resultVector = {{ReplaceIdentifier(vectorizedCode, lambda, "resultVector", "vectors[i]")}};
+					}
+					
+					var vectorizedResult = resultVector[0];
+					
+					for (var i = 1; i < Vector<{{typeName}}>.Count; i++)
+					{
+						vectorizedResult = {{ReplaceIdentifier(vectorizedCode, lambda, "vectorizedResult", "resultVector[i]")}};
+					}
+					
+					for (var i = data.Length - tail; i < data.Length; i++)
+					{
+						vectorizedResult = {{ReplaceIdentifier(lambda.Body, lambda, "vectorizedResult", "data[i]")}};
+					}
+					
+					return vectorizedResult;
+				}
+				
+				var result = data[0];
+				
+				for (var i = 1; i < data.Length; i++)
+				{
+					result = {{ReplaceIdentifier(lambda.Body, lambda, "result", "data[i]")}};
+				}
+				
+				return result;
+			}
+			""";
+
+		var method = ParseMemberDeclaration(result) as MethodDeclarationSyntax ?? throw new InvalidOperationException("Failed to parse vectorized method declaration");
+
+		return method.WithIdentifier(Identifier($"{Name}_{method.Body.GetDeterministicHashString()}"));
 	}
 }
