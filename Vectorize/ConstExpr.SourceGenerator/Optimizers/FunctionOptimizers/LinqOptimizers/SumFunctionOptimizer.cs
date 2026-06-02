@@ -25,8 +25,8 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 	// Operations that don't affect the sum
 	private static readonly HashSet<string> OperationsThatDontAffectSum =
 	[
-		..MaterializingMethods,
-		..OrderingOperations
+		.. MaterializingMethods,
+		.. OrderingOperations
 	];
 
 	// Thread-local set of invocation texts currently being visited, used to detect re-entrancy
@@ -155,7 +155,7 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 		if (context.VisitedParameters.Count == 0
 		    && TryGetValues(newSource, out var values)
-		    && context.Method.ReceiverType is INamedTypeSymbol parameterType)
+		    && context.Method.ReceiverType is INamedTypeSymbol)
 		{
 			var sum = values.Sum(context.Method.ReturnType);
 

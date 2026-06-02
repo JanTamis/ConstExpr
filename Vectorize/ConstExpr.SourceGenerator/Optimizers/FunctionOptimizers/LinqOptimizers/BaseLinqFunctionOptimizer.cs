@@ -1548,6 +1548,39 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 				}));
 	}
 
+	protected bool IsInvocation(LambdaExpressionSyntax lambda, [NotNullWhen(true)] out MemberAccessExpressionSyntax? memberAccessBody)
+	{
+		memberAccessBody = null;
+
+		// Extract the single parameter name and expression body
+		var (paramName, body) = lambda switch
+		{
+			SimpleLambdaExpressionSyntax simple
+				=> (simple.Parameter.Identifier.Text, simple.Body as ExpressionSyntax),
+			ParenthesizedLambdaExpressionSyntax { ParameterList.Parameters.Count: 1 } parenthesized
+				=> (parenthesized.ParameterList.Parameters[0].Identifier.Text,
+					parenthesized.Body as ExpressionSyntax),
+			_ => (null, null)
+		};
+
+		// Lambda must have exactly one parameter and an expression body that is an invocation
+		if (paramName is null || body is not InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax accessExpression } inv)
+		{
+			return false;
+		}
+
+		// The invocation must pass only the lambda parameter as its sole argument
+		// e.g. x => Int32.IsEvenInteger(x)  →  matches; x => Foo(x, y)  →  no match
+		if (inv.ArgumentList.Arguments is not [ { Expression: IdentifierNameSyntax { Identifier.Text: var argName } } ]
+		    || argName != paramName)
+		{
+			return false;
+		}
+
+		memberAccessBody = accessExpression;
+		return true;
+	}
+
 	private class IdentifierReplacer(string identifier, ExpressionSyntax replacement) : CSharpSyntaxRewriter
 	{
 		public override SyntaxNode? VisitIdentifierName(IdentifierNameSyntax node)

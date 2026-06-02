@@ -72,14 +72,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 						return true;
 					}
 
-					if (!TryVectorize(context, invocationSource, predicate, CreateVectorizedMethod,
-						    () => CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.Exists), invocationSource, context.Visit(predicate) ?? predicate),
-						    () => CreateInvocation(invocationSource, "Exists", context.Visit(predicate) ?? predicate), out result))
-					{
-						result = UpdateInvocation(context, invocationSource, predicate);
-					}
-
-					return true;
+					return Vectorize(context, invocationSource, out result, context.Visit(predicate) as LambdaExpressionSyntax ?? predicate);
 				}
 				case nameof(Enumerable.Concat):
 				{
@@ -227,15 +220,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		else if (context.VisitedParameters.Count == 1
 		         && TryGetLambda(context.VisitedParameters[0], out anyLambda))
 		{
-			if (TryVectorize(context, source, anyLambda, CreateVectorizedMethod,
-				    () => CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.Exists), source, context.Visit(anyLambda) ?? anyLambda),
-				    () => CreateInvocation(source, "Exists", context.Visit(anyLambda) ?? anyLambda), out result))
-			{
-				return true;
-			}
-
-			result = UpdateInvocation(context, source, anyLambda);
-			return true;
+			return Vectorize(context, source, out result, context.Visit(anyLambda) as LambdaExpressionSyntax ?? anyLambda);
 		}
 
 		// If we skipped any operations, create optimized Any() call
@@ -247,6 +232,48 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 		result = null;
 		return false;
+	}
+
+	private bool Vectorize(FunctionOptimizerContext context, ExpressionSyntax source, out SyntaxNode? result, LambdaExpressionSyntax anyLambda)
+	{
+		if (IsInvocation(anyLambda, out var memberAccessBody)
+		    && context.Model.Compilation
+			    .GetTypeByMetadataName("System.Numerics.Tensors.TensorPrimitives")
+			    .HasMethod($"{memberAccessBody.Name.Identifier.Text}Any"))
+		{
+			if (IsInvokedOnArray(context, source))
+			{
+				context.Usings.Add("System.Numerics.Tensors");
+
+				result = CreateInvocation(ParseTypeName("TensorPrimitives")!, $"{memberAccessBody.Name.Identifier.Text}Any", source);
+				return true;
+			}
+
+			if (IsInvokedOnList(context, source))
+			{
+				context.Usings.Add("System.Numerics.Tensors");
+
+				var spanSource = CreateInvocation(
+					ParseTypeName("CollectionsMarshal")!,
+					"AsSpan",
+					source);
+
+				result = CreateInvocation(
+					ParseTypeName("TensorPrimitives")!,
+					$"{memberAccessBody.Name.Identifier.Text}Any",
+					spanSource);
+				return true;
+			}
+		}
+
+		if (!TryVectorize(context, source, anyLambda, CreateVectorizedMethod,
+			    () => CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.Exists), source, anyLambda),
+			    () => CreateInvocation(source, "Exists", anyLambda), out result))
+		{
+			result = UpdateInvocation(context, source, anyLambda);
+		}
+
+		return true;
 	}
 
 	private MethodDeclarationSyntax CreateVectorizedMethod(SyntaxNode vectorizedCode, LambdaExpressionSyntax lambda, FunctionOptimizerContext context)

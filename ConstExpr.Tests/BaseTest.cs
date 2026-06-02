@@ -2,6 +2,7 @@ extern alias sourcegen;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Numerics.Tensors;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -50,13 +51,45 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 
 	private static readonly ConcurrentDictionary<Type, ClassState> _stateByType = new();
 	private static readonly ConcurrentDictionary<Type, int> _delegateParameterCount = new();
+	/// <summary>
+	///   Assemblies that are explicitly force-loaded so their metadata is available in test compilations,
+	///   even when they are not transitively loaded by the test host.
+	/// </summary>
+	private static readonly Type[] _forceLoadedTypes =
+	[
+		typeof(TensorPrimitives)
+	];
+
 	private static readonly Lazy<IReadOnlyList<MetadataReference>> _metadataReferences = new(() =>
-			AppDomain.CurrentDomain.GetAssemblies()
+		{
+			// Force-load assemblies needed in test compilations before scanning the AppDomain.
+			foreach (var t in _forceLoadedTypes)
+			{
+				_ = t;
+			}
+
+			var appDomainRefs = AppDomain.CurrentDomain.GetAssemblies()
 				.Where(a => !a.IsDynamic && !string.IsNullOrWhiteSpace(a.Location))
 				.Select(a => a.Location)
-				.Distinct(StringComparer.Ordinal)
-				.Select(a => MetadataReference.CreateFromFile(a))
-				.ToArray(),
+				.ToHashSet(StringComparer.Ordinal);
+
+			var result = appDomainRefs
+				.Select(path => (MetadataReference) MetadataReference.CreateFromFile(path))
+				.ToList();
+
+			// Explicitly add force-loaded assemblies by location in case they were filtered out.
+			foreach (var t in _forceLoadedTypes)
+			{
+				var location = t.Assembly.Location;
+
+				if (!string.IsNullOrWhiteSpace(location) && appDomainRefs.Add(location))
+				{
+					result.Add(MetadataReference.CreateFromFile(location));
+				}
+			}
+
+			return result;
+		},
 		isThreadSafe: true);
 
 	private static int GetDelegateParameterCount()

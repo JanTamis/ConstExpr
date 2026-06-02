@@ -35,8 +35,8 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 	// Operations that don't affect the all-check (only order/form/duplicates/materialization)
 	private static readonly HashSet<string> OperationsThatDontAffectAll =
 	[
-		..MaterializingMethods,
-		..OrderingOperations,
+		.. MaterializingMethods,
+		.. OrderingOperations,
 		nameof(Enumerable.Distinct) // Deduplication: may reduce count, but if all satisfy condition, All() is true
 	];
 
@@ -196,6 +196,36 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 					break;
 				}
+			}
+		}
+
+		if (IsInvocation(allLambda, out var memberAccessBody)
+		    && context.Model.Compilation
+			    .GetTypeByMetadataName("System.Numerics.Tensors.TensorPrimitives")
+			    .HasMethod($"{memberAccessBody.Name.Identifier.Text}All"))
+		{
+			if (IsInvokedOnArray(context, source))
+			{
+				context.Usings.Add("System.Numerics.Tensors");
+
+				result = CreateInvocation(ParseTypeName("TensorPrimitives")!, $"{memberAccessBody.Name.Identifier.Text}All", source);
+				return true;
+			}
+
+			if (IsInvokedOnList(context, source))
+			{
+				context.Usings.Add("System.Numerics.Tensors");
+
+				var spanSource = CreateInvocation(
+					ParseTypeName("CollectionsMarshal")!,
+					"AsSpan",
+					source);
+
+				result = CreateInvocation(
+					ParseTypeName("TensorPrimitives")!,
+					$"{memberAccessBody.Name.Identifier.Text}All",
+					spanSource);
+				return true;
 			}
 		}
 

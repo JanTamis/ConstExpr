@@ -36,10 +36,8 @@ public class OfTypeFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 		{
 			switch (methodName)
 			{
-				case nameof(Enumerable.OfType) when context.Model.GetSymbolInfo(invocation).Symbol is IMethodSymbol { TypeArguments.Length: > 0 } ofTypeMethod
-				                                    && SymbolEqualityComparer.Default.Equals(ofTypeMethod.TypeArguments[0], typeArg):
-				case nameof(Enumerable.Cast) when context.Model.GetSymbolInfo(invocation).Symbol is IMethodSymbol { TypeArguments.Length: > 0 } castMethod
-				                                  && SymbolEqualityComparer.Default.Equals(castMethod.TypeArguments[0], typeArg):
+				case nameof(Enumerable.OfType) or nameof(Enumerable.Cast) when context.Model.GetSymbolInfo(invocation).Symbol is IMethodSymbol { TypeArguments.Length: > 0 } ofTypeMethod
+				                                                               && SymbolEqualityComparer.Default.Equals(ofTypeMethod.TypeArguments[0], typeArg):
 				{
 					result = invocationSource;
 					return true;
