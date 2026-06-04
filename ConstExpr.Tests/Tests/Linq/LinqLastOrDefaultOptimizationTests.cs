@@ -39,7 +39,7 @@ public class LinqLastOrDefaultOptimizationTests() : BaseTest<Func<int[], int>>(F
 
 		// Array conditional: x.LastOrDefault() => x.Length > 0 ? x[^1] : default
 		var j = x.LastOrDefault();
-		
+
 		var k = x.Where(v => v > 0).Select(s => s * 2).LastOrDefault();
 
 		return a + b + c + d + e + f + g + h + i + j + k;
@@ -47,12 +47,8 @@ public class LinqLastOrDefaultOptimizationTests() : BaseTest<Func<int[], int>>(F
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return Array.FindLast(x, v => v > 0) * 2 + (x.Length > 0 ? x[^1] * 4 : 0) + Array.FindLast(x, v => v > 3) + Array.FindLast(x, v => v > 2) + Array.FindLast(x, v => v < 5) + Array.FindLast(x, v => v == 3) + Max_uzcZ3A(x) + (x.Length > 0 ? x[0] : 0);"),
+		Create("return Array.FindLast(x, v => v > 0) * 2 + (x.Length > 0 ? x[^1] * 4 : 0) + Array.FindLast(x, v => v > 3) + Array.FindLast(x, v => v > 2) + Array.FindLast(x, v => v < 5) + Array.FindLast(x, v => v == 3) + TensorPrimitives.Max(x) + (x.Length > 0 ? x[0] : 0);"),
 		Create("return 53;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 0;", new int[] { }),
 	];
 }
-
-
-
-

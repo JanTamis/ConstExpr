@@ -26,7 +26,8 @@ public class MinFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 	private static readonly HashSet<string> OperationsThatDontAffectMin =
 	[
 		..MaterializingMethods,
-		..OrderingOperations
+		..OrderingOperations,
+		nameof(Enumerable.Reverse)
 	];
 
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
@@ -39,11 +40,30 @@ public class MinFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			return true;
 		}
 
+		var hasTensorPrimitivesMin = context.Model.Compilation
+			.GetTypeByMetadataName("System.Numerics.Tensors.TensorPrimitives")
+			.HasMethod("Min");
+
 		// Optimize Min(x => x) => Min() (identity lambda removal)
 		if (context.VisitedParameters.Count == 1
 		    && TryGetLambda(context.VisitedParameters[0], out var lambda)
 		    && IsIdentityLambda(lambda))
 		{
+			if (hasTensorPrimitivesMin && IsInvokedOnArray(context, source))
+			{
+				context.Usings.Add("System.Numerics.Tensors");
+				result = CreateInvocation(ParseTypeName("TensorPrimitives")!, "Min", source);
+				return true;
+			}
+
+			if (hasTensorPrimitivesMin && IsInvokedOnList(context, source))
+			{
+				context.Usings.Add("System.Numerics.Tensors");
+				context.Usings.Add("System.Runtime.InteropServices");
+				result = CreateInvocation(ParseTypeName("TensorPrimitives")!, "Min", CreateInvocation(ParseTypeName("CollectionsMarshal")!, "AsSpan", source));
+				return true;
+			}
+
 			result = UpdateInvocation(context, source, [ ]);
 			return true;
 		}
@@ -101,6 +121,25 @@ public class MinFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 						CreateThrowExpression<InvalidOperationException>("Sequence contains no elements"));
 					return true;
 				}
+			}
+		}
+
+		// TensorPrimitives.Min for plain Min() on arrays/lists (no selector, no constant source)
+		if (context.VisitedParameters.Count == 0 && hasTensorPrimitivesMin)
+		{
+			if (IsInvokedOnArray(context, source))
+			{
+				context.Usings.Add("System.Numerics.Tensors");
+				result = CreateInvocation(ParseTypeName("TensorPrimitives")!, "Min", source);
+				return true;
+			}
+
+			if (IsInvokedOnList(context, source))
+			{
+				context.Usings.Add("System.Numerics.Tensors");
+				context.Usings.Add("System.Runtime.InteropServices");
+				result = CreateInvocation(ParseTypeName("TensorPrimitives")!, "Min", CreateInvocation(ParseTypeName("CollectionsMarshal")!, "AsSpan", source));
+				return true;
 			}
 		}
 

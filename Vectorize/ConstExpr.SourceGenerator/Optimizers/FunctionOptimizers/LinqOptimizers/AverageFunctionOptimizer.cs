@@ -25,7 +25,8 @@ public class AverageFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 	private static readonly HashSet<string> OperationsThatDontAffectAverage =
 	[
 		..MaterializingMethods,
-		..OrderingOperations
+		..OrderingOperations,
+		nameof(Enumerable.Reverse)
 	];
 
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)

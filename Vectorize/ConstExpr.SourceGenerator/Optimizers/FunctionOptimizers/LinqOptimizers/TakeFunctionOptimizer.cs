@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -50,6 +51,14 @@ public class TakeFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 		if (amount is LiteralExpressionSyntax { Token.Value: <= 0 })
 		{
 			result = CreateEmptyEnumerableCall(context.Method.TypeArguments[0]);
+			return true;
+		}
+
+		if (amount is LiteralExpressionSyntax amountLit
+		    && amountLit.Token.Value is IConvertible amountConv
+		    && amountConv.ToInt64(null) >= Int32.MaxValue)
+		{
+			result = source;
 			return true;
 		}
 

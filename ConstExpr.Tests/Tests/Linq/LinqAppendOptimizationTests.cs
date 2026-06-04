@@ -24,7 +24,7 @@ public class LinqAppendOptimizationTests() : BaseTest<Func<int[], int>>(FastMath
 
 		// Regular Append (should not be optimized)
 		var e = x.Append(10).Sum();
-		
+
 		// Append followed by Count should be optimized to Length + number of appends
 		var f = x.Append(20).Append(30).Append(40).Append(50).Append(10).Count();
 
@@ -36,7 +36,7 @@ public class LinqAppendOptimizationTests() : BaseTest<Func<int[], int>>(FastMath
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return Sum_xcpydQ(x) * 5 + x.Length * 2 + 159;"),
+		Create("return TensorPrimitives.Sum(x) * 5 + x.Length * 2 + 159;"),
 		Create("return 195;", new[] { 1, 2, 3 }), // a=26, b=36, c=46, d=56, e=16 = 195
 		Create("return 159;", new int[] { }), // a=20, b=30, c=40, d=50, e=10 = 159
 		Create("return 211;", new[] { 10 }), // a=30, b=40, c=50, d=60, e=20 = 211

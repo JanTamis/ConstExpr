@@ -61,7 +61,7 @@ public class LinqAggregateOptimizationTests() : BaseTest<Func<int[], int>>(FastM
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return Sum_xcpydQ(x) * 12 + Sum_dcMRsA(x) + Sum_GrzDbA(x) + Sum_CY7UDw(x) + Aggregate_sv6FOA(x) + 10;"),
+		Create("return TensorPrimitives.Sum(x) * 12 + Sum_dcMRsA(x) + Sum_GrzDbA(x) + Sum_CY7UDw(x) + Aggregate_sv6FOA(x) + 10;"),
 		Create("return 367;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return 1063;", new[] { 1, 2, 3, 4, 5, 6 }),
 	];

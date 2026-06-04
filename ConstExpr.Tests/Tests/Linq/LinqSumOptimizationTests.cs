@@ -32,7 +32,7 @@ public class LinqSumOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFla
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return Sum_xcpydQ(x) * 9 + Sum_dcMRsA(x);"),
+		Create("return TensorPrimitives.Sum(x) * 9 + Sum_dcMRsA(x);"),
 		Create("return 54;", new[] { 1, 2, 3 }),
 		Create("return 39;", new[] { 5 }),
 	];

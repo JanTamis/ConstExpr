@@ -26,7 +26,8 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 	private static readonly HashSet<string> OperationsThatDontAffectSum =
 	[
 		.. MaterializingMethods,
-		.. OrderingOperations
+		.. OrderingOperations,
+		nameof(Enumerable.Reverse)
 	];
 
 	// Thread-local set of invocation texts currently being visited, used to detect re-entrancy
@@ -170,6 +171,28 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		{
 			result = CreateLiteral(0);
 			return true;
+		}
+
+		// TensorPrimitives.Sum for plain Sum() on arrays/lists (no selector, no constant source)
+		if (context.VisitedParameters.Count == 0
+		    && context.Model.Compilation
+			    .GetTypeByMetadataName("System.Numerics.Tensors.TensorPrimitives")
+			    .HasMethod("Sum"))
+		{
+			if (IsInvokedOnArray(context, source))
+			{
+				context.Usings.Add("System.Numerics.Tensors");
+				result = CreateInvocation(ParseTypeName("TensorPrimitives")!, "Sum", source);
+				return true;
+			}
+
+			if (IsInvokedOnList(context, source))
+			{
+				context.Usings.Add("System.Numerics.Tensors");
+				context.Usings.Add("System.Runtime.InteropServices");
+				result = CreateInvocation(ParseTypeName("TensorPrimitives")!, "Sum", CreateInvocation(ParseTypeName("CollectionsMarshal")!, "AsSpan", source));
+				return true;
+			}
 		}
 
 		// If we skipped any operations, create optimized Sum() call

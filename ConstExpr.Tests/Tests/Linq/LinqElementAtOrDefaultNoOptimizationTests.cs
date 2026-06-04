@@ -33,7 +33,7 @@ public class LinqElementAtOrDefaultNoOptimizationTests() : BaseTest<Func<int[], 
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return (x.Length > 0 ? x[0] * 3 : 0) + Min_zgmZ3g(x) + Max_uzcZ3A(x) + (x.Length > 0 ? x[^1] : 0) + Array.Find(x, v => v > 2);"),
+		Create("return (x.Length > 0 ? x[0] * 3 : 0) + TensorPrimitives.Min(x) + TensorPrimitives.Max(x) + (x.Length > 0 ? x[^1] : 0) + Array.Find(x, v => v > 2);"),
 		Create("return 17;", new[] { 1, 2, 3, 4, 5 }), // 1 + 5 + 5 + 3 + 2 + 1 = 17
 		Create("return 0;", new int[] { }),
 	];

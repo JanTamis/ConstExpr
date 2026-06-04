@@ -35,7 +35,7 @@ public class LinqConcatOptimizationTests() : BaseTest<Func<int[], int>>(FastMath
 		var h = x.Concat(new[] { 1, 2 }).Concat(new[] { 3, 4 }).Sum();
 
 		// Merge multiple Concat with collection expressions (if supported)
-		var i = x.Concat([100]).Concat([200]).Sum();
+		var i = x.Concat([ 100 ]).Concat([ 200 ]).Sum();
 
 		// Merge chain of 3+ Concat operations
 		var j = x.Concat(new[] { 10 }).Concat(new[] { 20 }).Concat(new[] { 30 }).Sum();
@@ -51,7 +51,7 @@ public class LinqConcatOptimizationTests() : BaseTest<Func<int[], int>>(FastMath
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return Sum_xcpydQ(x) * 12 + 702;"),
+		Create("return TensorPrimitives.Sum(x) * 12 + 702;"),
 		Create("return 774;", new[] { 1, 2, 3 }),
 		Create("return 702;", new int[] { }),
 		Create("return 882;", new[] { 5, 10 }),

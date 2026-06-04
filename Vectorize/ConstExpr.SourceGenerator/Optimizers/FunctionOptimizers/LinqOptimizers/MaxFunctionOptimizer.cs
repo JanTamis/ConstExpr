@@ -26,7 +26,8 @@ public class MaxFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 	private static readonly HashSet<string> OperationsThatDontAffectMax =
 	[
 		..MaterializingMethods,
-		..OrderingOperations
+		..OrderingOperations,
+		nameof(Enumerable.Reverse)
 	];
 
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
@@ -39,11 +40,30 @@ public class MaxFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			return true;
 		}
 
+		var hasTensorPrimitivesMax = context.Model.Compilation
+			.GetTypeByMetadataName("System.Numerics.Tensors.TensorPrimitives")
+			.HasMethod("Max");
+
 		// Optimize Max(x => x) => Max() (identity lambda removal)
 		if (context.VisitedParameters.Count == 1
 		    && TryGetLambda(context.VisitedParameters[0], out var lambda)
 		    && IsIdentityLambda(lambda))
 		{
+			if (hasTensorPrimitivesMax && IsInvokedOnArray(context, source))
+			{
+				context.Usings.Add("System.Numerics.Tensors");
+				result = CreateInvocation(ParseTypeName("TensorPrimitives")!, "Max", source);
+				return true;
+			}
+
+			if (hasTensorPrimitivesMax && IsInvokedOnList(context, source))
+			{
+				context.Usings.Add("System.Numerics.Tensors");
+				context.Usings.Add("System.Runtime.InteropServices");
+				result = CreateInvocation(ParseTypeName("TensorPrimitives")!, "Max", CreateInvocation(ParseTypeName("CollectionsMarshal")!, "AsSpan", source));
+				return true;
+			}
+
 			result = UpdateInvocation(context, source, [ ]);
 			return true;
 		}
@@ -74,8 +94,8 @@ public class MaxFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 					var leftInvocation = UpdateInvocation(context, invocationSource);
 					var rightInvocation = CreateInvocation(visitedConcatArg, Name, context.VisitedParameters);
 
-					var left = TryOptimizeByOptimizer<MinFunctionOptimizer>(context, leftInvocation);
-					var right = TryOptimizeByOptimizer<MinFunctionOptimizer>(context, rightInvocation);
+					var left = TryOptimizeByOptimizer<MaxFunctionOptimizer>(context, leftInvocation);
+					var right = TryOptimizeByOptimizer<MaxFunctionOptimizer>(context, rightInvocation);
 
 					result = OptimizeAsMathPairwise<MathMaxOptimizer>(context, context.Visit(left) ?? leftInvocation, context.Visit(right) ?? rightInvocation);
 					return true;
@@ -100,6 +120,25 @@ public class MaxFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 						CreateThrowExpression<InvalidOperationException>("Sequence contains no elements"));
 					return true;
 				}
+			}
+		}
+
+		// TensorPrimitives.Max for plain Max() on arrays/lists (no selector, no constant source)
+		if (context.VisitedParameters.Count == 0 && hasTensorPrimitivesMax)
+		{
+			if (IsInvokedOnArray(context, source))
+			{
+				context.Usings.Add("System.Numerics.Tensors");
+				result = CreateInvocation(ParseTypeName("TensorPrimitives")!, "Max", source);
+				return true;
+			}
+
+			if (IsInvokedOnList(context, source))
+			{
+				context.Usings.Add("System.Numerics.Tensors");
+				context.Usings.Add("System.Runtime.InteropServices");
+				result = CreateInvocation(ParseTypeName("TensorPrimitives")!, "Max", CreateInvocation(ParseTypeName("CollectionsMarshal")!, "AsSpan", source));
+				return true;
 			}
 		}
 

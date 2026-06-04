@@ -33,7 +33,7 @@ public class LinqElementAtNoOptimizationTests() : BaseTest<Func<int[], int>>(Fas
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return x[0] * 3 + Min_zgmZ3g(x) + Max_uzcZ3A(x) + x[^1] + First_O1a9Fw(x);"),
+		Create("return x[0] * 3 + TensorPrimitives.Min(x) + TensorPrimitives.Max(x) + x[^1] + First_O1a9Fw(x);"),
 		Create("return 17;", new[] { 1, 2, 3, 4, 5 }), // 1 + 5 + 5 + 3 + 2 + 1 + 1 = 18
 		Create("throw new ArgumentOutOfRangeException(\"Index was out of range. Must be non-negative and less than the size of the collection. (Parameter 'index')\");", new int[] { }),
 	];
