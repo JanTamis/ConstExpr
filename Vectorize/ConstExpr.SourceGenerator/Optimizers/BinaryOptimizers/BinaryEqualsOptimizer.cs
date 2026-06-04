@@ -15,6 +15,7 @@ public class BinaryEqualsOptimizer : BaseBinaryOptimizer
 		yield return new ToUpperOptimizer();
 		yield return new EqualsIdempotencyStrategy();
 		yield return new EqualsBooleanLiteralStrategy();
+		yield return new EqualsCountZeroStrategy();
 		yield return new EqualsModuloEvenStrategy();
 		yield return new EqualsModuloOddStrategy();
 		yield return new EqualsBitwiseAndEvenStrategy();
