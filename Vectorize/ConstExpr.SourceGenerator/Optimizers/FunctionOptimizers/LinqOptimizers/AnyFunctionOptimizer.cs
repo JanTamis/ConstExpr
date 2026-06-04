@@ -220,7 +220,8 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		else if (context.VisitedParameters.Count == 1
 		         && TryGetLambda(context.VisitedParameters[0], out anyLambda))
 		{
-			return Vectorize(context, source, out result, context.Visit(anyLambda) as LambdaExpressionSyntax ?? anyLambda);
+
+			return Vectorize(context, source, out result, anyLambda);
 		}
 
 		// If we skipped any operations, create optimized Any() call

@@ -67,37 +67,51 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Adds lambda parameters to the variables dictionary.
+	/// Adds lambda parameters to the variables dictionary, shadowing any outer variables with the same name.
+	/// Returns a list of (name, previous value or null) pairs for restoration.
 	/// </summary>
-	private List<string> AddLambdaParameters(ExpressionSyntax node)
+	private List<(string Name, VariableItem? Previous)> AddLambdaParameters(ExpressionSyntax node)
 	{
-		var addedParameters = new List<string>();
+		var addedParameters = new List<(string, VariableItem?)>();
 
-		if (!semanticModel.TryGetSymbol(node, symbolStore, out IMethodSymbol? method))
+		if (semanticModel.TryGetSymbol(node, symbolStore, out IMethodSymbol? method))
 		{
-			return addedParameters;
-		}
-
-		foreach (var methodParameter in method.Parameters)
-		{
-			if (!variables.ContainsKey(methodParameter.Name))
+			// Symbol info available: always add all parameters with their correct types,
+			// shadowing any outer variables with the same name.
+			foreach (var parameter in method.Parameters)
 			{
-				variables.Add(methodParameter.Name, new VariableItem(methodParameter.Type, false, null, true));
-				addedParameters.Add(methodParameter.Name);
+				variables.TryGetValue(parameter.Name, out var previous);
+				variables[parameter.Name] = new VariableItem(parameter.Type, false, null, true);
+				addedParameters.Add((parameter.Name, previous));
 			}
+		}
+		else
+		{
+			// No symbol info (generated/synthetic lambda): revert to old behavior.
+			// Do NOT add variables here — writing ObjectType to the shared symbolStore
+			// would corrupt concrete-type annotations for same-named identifiers
+			// that were previously annotated (e.g. breaking range check optimization
+			// where 'v: int' → 'v: object' would prevent TryGetUnsignedType from working).
 		}
 
 		return addedParameters;
 	}
 
 	/// <summary>
-	/// Removes lambda parameters from the variables dictionary.
+	/// Removes lambda parameters from the variables dictionary, restoring any shadowed outer variables.
 	/// </summary>
-	private void RemoveLambdaParameters(List<string> addedParameters)
+	private void RemoveLambdaParameters(List<(string Name, VariableItem? Previous)> addedParameters)
 	{
-		foreach (var param in addedParameters)
+		foreach (var (name, previous) in addedParameters)
 		{
-			variables.Remove(param);
+			if (previous is not null)
+			{
+				variables[name] = previous;
+			}
+			else
+			{
+				variables.Remove(name);
+			}
 		}
 	}
 

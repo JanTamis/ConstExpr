@@ -54,7 +54,7 @@ public class LinqAnyOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFla
 
 		var p = x.DefaultIfEmpty(5).Any(v => v > 3) ? 1 : 0;
 
-		var q = x.Any(x => Int32.IsEvenInteger(x)) ? 1 : 0;
+		var q = x.Any(z => (z & 1) == 0) ? 1 : 0;
 
 		return a + b + c + d + e + f + g + h + i + j + k + l + m + n + o + p + q;
 	});

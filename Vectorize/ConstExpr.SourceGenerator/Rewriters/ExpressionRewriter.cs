@@ -16,11 +16,11 @@ using Microsoft.CodeAnalysis.Operations;
 namespace ConstExpr.SourceGenerator.Rewriters;
 
 public class ExpressionRewriter(
-	SemanticModel semanticModel, 
-	MetadataLoader loader, 
-	Action<SyntaxNode?, Exception> exceptionHandler, 
-	IDictionary<string, VariableItem> variables, 
-	IDictionary<string, ParameterExpression> parameters, 
+	SemanticModel semanticModel,
+	MetadataLoader loader,
+	Action<SyntaxNode?, Exception> exceptionHandler,
+	IDictionary<string, VariableItem> variables,
+	IDictionary<string, ParameterExpression> parameters,
 	CancellationToken token,
 	ConcurrentDictionary<ulong, ISymbol> symbolStore,
 	IDictionary<SyntaxNode, bool>? additionalMethods = null,
@@ -102,7 +102,7 @@ public class ExpressionRewriter(
 		{
 			return expression;
 		}
-		
+
 		return null;
 	}
 
@@ -147,22 +147,24 @@ public class ExpressionRewriter(
 			if (binOp.LeftOperand is IConversionOperation { Type: { } lType })
 			{
 				var targetLeftType = loader.GetType(lType) ?? typeof(object);
+
 				if (left.Type != targetLeftType)
 				{
 					left = Expression.Convert(left, targetLeftType);
 				}
 			}
-	
+
 			if (binOp.RightOperand is IConversionOperation { Type: { } rType })
 			{
 				var targetRightType = loader.GetType(rType) ?? typeof(object);
+
 				if (right.Type != targetRightType)
 				{
 					right = Expression.Convert(right, targetRightType);
 				}
 			}
 		}
-	
+
 		return node.Kind() switch
 		{
 			SyntaxKind.AddExpression => Expression.Add(left, right),
@@ -170,6 +172,8 @@ public class ExpressionRewriter(
 			SyntaxKind.MultiplyExpression => Expression.Multiply(left, right),
 			SyntaxKind.DivideExpression => Expression.Divide(left, right),
 			SyntaxKind.ModuloExpression => Expression.Modulo(left, right),
+			SyntaxKind.BitwiseAndExpression => Expression.And(left, right),
+			SyntaxKind.BitwiseOrExpression => Expression.Or(left, right),
 			SyntaxKind.LogicalAndExpression => Expression.AndAlso(left, right),
 			SyntaxKind.LogicalOrExpression => Expression.OrElse(left, right),
 			SyntaxKind.ExclusiveOrExpression => Expression.ExclusiveOr(left, right),
@@ -270,19 +274,23 @@ public class ExpressionRewriter(
 				{
 					case IdentifierNameSyntax id:
 					{
-						name = id.Identifier.Text; break;
+						name = id.Identifier.Text;
+						break;
 					}
 					case MemberAccessExpressionSyntax { Name: IdentifierNameSyntax last }:
 					{
-						name = last.Identifier.Text; break;
+						name = last.Identifier.Text;
+						break;
 					}
 					case QualifiedNameSyntax qn:
 					{
-						name = qn.Right.Identifier.Text; break;
+						name = qn.Right.Identifier.Text;
+						break;
 					}
 					case GenericNameSyntax gen:
 					{
-						name = gen.Identifier.Text; break;
+						name = gen.Identifier.Text;
+						break;
 					}
 				}
 			}
@@ -300,15 +308,15 @@ public class ExpressionRewriter(
 				.ToList();
 
 			var constantArguments = arguments
-				.Select((arg, index) => 
+				.Select((arg, index) =>
 				{
 					if (arg is ConstantExpression constExpr)
-          {
-            return constExpr.Value;
-          }
+					{
+						return constExpr.Value;
+					}
 
-          // Try to get constant value from the original syntax
-          var originalArg = node.ArgumentList.Arguments[index].Expression;
+					// Try to get constant value from the original syntax
+					var originalArg = node.ArgumentList.Arguments[index].Expression;
 					return TryGetLiteralValue(originalArg, out var value) ? value : null;
 				})
 				.ToArray();
@@ -320,6 +328,7 @@ public class ExpressionRewriter(
 				    && !targetMethod.ContainingType.EqualsType(semanticModel.Compilation.GetTypeByMetadataName("System.Random")))
 				{
 					object? instance = null;
+
 					if (instanceName != null)
 					{
 						TryGetLiteralValue(instanceName, out instance);
@@ -345,12 +354,14 @@ public class ExpressionRewriter(
 				{
 					// Don't inline this method - just keep the invocation
 					usings.Add(targetMethod.ContainingType.ContainingNamespace.ToString());
-					
+
 					// Convert arguments to expressions
 					var expArgs = arguments.OfType<Expression>().ToArray();
+
 					if (expArgs.Length == arguments.Count)
 					{
 						var staticMethodInfo = loader.GetType(targetMethod.ContainingType)?.GetMethod(targetMethod.Name);
+
 						if (staticMethodInfo != null)
 						{
 							return Expression.Call(staticMethodInfo, expArgs);
@@ -363,12 +374,13 @@ public class ExpressionRewriter(
 
 			// Convert to method call expression if possible
 			var containingType = loader.GetType(targetMethod.ContainingType);
-			var methodDeclaration = containingType?.GetMethod(targetMethod.Name, 
+			var methodDeclaration = containingType?.GetMethod(targetMethod.Name,
 				targetMethod.Parameters.Select(p => loader.GetType(p.Type) ?? typeof(object)).ToArray());
 
 			if (methodDeclaration != null)
 			{
 				var expArgs = arguments.OfType<Expression>().ToArray();
+
 				if (expArgs.Length == arguments.Count)
 				{
 					if (targetMethod.IsStatic)
@@ -379,6 +391,7 @@ public class ExpressionRewriter(
 					if (node.Expression is MemberAccessExpressionSyntax memberAccess)
 					{
 						var instanceExpr = Visit(memberAccess.Expression);
+
 						if (instanceExpr != null)
 						{
 							return Expression.Call(instanceExpr, methodDeclaration, expArgs);
@@ -450,16 +463,16 @@ public class ExpressionRewriter(
 	public override Expression? VisitCastExpression(CastExpressionSyntax node)
 	{
 		var expression = Visit(node.Expression);
-		
-		if (expression == null)
-    {
-      return null;
-    }
 
-    if (semanticModel.TryGetSymbol(node.Type, symbolStore, out ITypeSymbol? targetType))
+		if (expression == null)
+		{
+			return null;
+		}
+
+		if (semanticModel.TryGetSymbol(node.Type, symbolStore, out ITypeSymbol? targetType))
 		{
 			var targetRuntimeType = loader.GetType(targetType) ?? typeof(object);
-			
+
 			// If it's a constant expression, try to evaluate the cast at compile time
 			if (expression is ConstantExpression constExpr)
 			{
@@ -503,7 +516,7 @@ public class ExpressionRewriter(
 	public override Expression? VisitConditionalExpression(ConditionalExpressionSyntax node)
 	{
 		var condition = Visit(node.Condition);
-		
+
 		// If condition is constant, return the appropriate branch
 		if (condition is ConstantExpression { Value: bool b })
 		{
@@ -526,12 +539,12 @@ public class ExpressionRewriter(
 		var operand = Visit(node.Operand);
 
 		if (operand == null)
-    {
-      return null;
-    }
+		{
+			return null;
+		}
 
-    // Handle unary operators
-    return node.OperatorToken.Kind() switch
+		// Handle unary operators
+		return node.OperatorToken.Kind() switch
 		{
 			SyntaxKind.PlusToken => Expression.UnaryPlus(operand),
 			SyntaxKind.MinusToken => Expression.Negate(operand),
@@ -548,11 +561,11 @@ public class ExpressionRewriter(
 		var operand = Visit(node.Operand);
 
 		if (operand == null)
-    {
-      return null;
-    }
+		{
+			return null;
+		}
 
-    return node.OperatorToken.Kind() switch
+		return node.OperatorToken.Kind() switch
 		{
 			SyntaxKind.PlusPlusToken => Expression.PostIncrementAssign(operand),
 			SyntaxKind.MinusMinusToken => Expression.PostDecrementAssign(operand),
@@ -566,11 +579,11 @@ public class ExpressionRewriter(
 		var right = Visit(node.Right);
 
 		if (left == null || right == null)
-    {
-      return null;
-    }
+		{
+			return null;
+		}
 
-    return node.OperatorToken.Kind() switch
+		return node.OperatorToken.Kind() switch
 		{
 			SyntaxKind.EqualsToken => Expression.Assign(left, right),
 			SyntaxKind.PlusEqualsToken => Expression.AddAssign(left, right),
@@ -595,12 +608,12 @@ public class ExpressionRewriter(
 			.ToArray();
 
 		if (expression == null || arguments.Any(arg => arg == null))
-    {
-      return null;
-    }
+		{
+			return null;
+		}
 
-    // Handle array access
-    if (arguments.Length == 1)
+		// Handle array access
+		if (arguments.Length == 1)
 		{
 			return Expression.ArrayIndex(expression, arguments[0]!);
 		}
@@ -614,6 +627,7 @@ public class ExpressionRewriter(
 		if (semanticModel.TryGetSymbol(node.Type, symbolStore, out ITypeSymbol? type))
 		{
 			var runtimeType = loader.GetType(type);
+
 			if (runtimeType != null)
 			{
 				var arguments = node.ArgumentList?.Arguments
@@ -658,6 +672,7 @@ public class ExpressionRewriter(
 				case InterpolationSyntax interp:
 				{
 					var visited = Visit(interp.Expression);
+
 					if (visited == null)
 					{
 						isAllConstant = false;
@@ -674,6 +689,7 @@ public class ExpressionRewriter(
 						isAllConstant = false;
 						// Convert to string
 						var toStringMethod = visited.Type.GetMethod("ToString", Type.EmptyTypes);
+
 						if (toStringMethod != null)
 						{
 							parts.Add(Expression.Call(visited, toStringMethod));
@@ -696,9 +712,10 @@ public class ExpressionRewriter(
 
 		// Otherwise, create a string concatenation expression
 		var concatMethod = typeof(string).GetMethod("Concat", new[] { typeof(object[]) });
+
 		if (concatMethod != null)
 		{
-			var arrayInit = Expression.NewArrayInit(typeof(object), 
+			var arrayInit = Expression.NewArrayInit(typeof(object),
 				parts.Select(p => Expression.Convert(p, typeof(object))));
 			return Expression.Call(concatMethod, arrayInit);
 		}
@@ -786,5 +803,5 @@ public class ExpressionRewriter(
 		}
 
 		return null;
-	}	
+	}
 }
