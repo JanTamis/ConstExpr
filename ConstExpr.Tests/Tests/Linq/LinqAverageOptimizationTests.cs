@@ -43,7 +43,7 @@ public class LinqAverageOptimizationTests() : BaseTest<Func<int[], double>>(Fast
 		Create(_ =>
 		{
 			throw new InvalidOperationException("Sequence contains no elements");
-		}, [ new int[] { } ]),
+		}, [ System.Array.Empty<int>() ]),
 		Create(_ => 120D, [ new[] { 10 } ])
 	];
 }

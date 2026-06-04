@@ -22,7 +22,7 @@ public class VisitForEachStatementTests : BaseTest<Func<int[], int>>
 	[
 		Create(null),
 		Create(_ => 6, [ new[] { 1, 2, 3 } ]),
-		Create(_ => 0, [ new int[] { } ]),
+		Create(_ => 0, [ System.Array.Empty<int>() ]),
 		Create(_ => 15, [ new[] { 4, 5, 6 } ])
 	];
 }

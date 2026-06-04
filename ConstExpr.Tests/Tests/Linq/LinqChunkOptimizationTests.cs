@@ -36,6 +36,6 @@ public class LinqChunkOptimizationTests() : BaseTest<Func<int[], int>>(FastMathF
 		Create(_ =>
 		{
 			throw new InvalidOperationException("Sequence contains no elements");
-		}, [ new int[] { } ]),
+		}, [ System.Array.Empty<int>() ]),
 	];
 }

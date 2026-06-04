@@ -21,6 +21,6 @@ public class LinqTakeWhileOptimizationTests : BaseTest<Func<int[], int>>
 	[
 		Create(x => x.Length),
 		Create(_ => 3, [ new[] { 1, 2, 3 } ]),
-		Create(_ => 0, [ new int[] { } ]),
+		Create(_ => 0, [ System.Array.Empty<int>() ]),
 	];
 }

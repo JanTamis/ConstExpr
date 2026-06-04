@@ -54,7 +54,7 @@ public class LinqContainsOptimizationTests() : BaseTest<Func<int[], int>>(FastMa
 	[
 		Create("return (Contains_L_btow(x) ? 11 : 0) + (Contains_ug1Wdg(x) ? 1 : 0);"),
 		Create(_ => 11, [ new[] { 1, 2, 3, 4, 5 } ]),
-		Create(_ => 0, [ new int[] { } ]),
+		Create(_ => 0, [ System.Array.Empty<int>() ]),
 		Create(_ => 0, [ new[] { 1, 2, 4, 5, 6 } ]), // No 3, all tests fail
 	];
 }

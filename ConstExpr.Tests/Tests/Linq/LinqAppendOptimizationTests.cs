@@ -38,7 +38,7 @@ public class LinqAppendOptimizationTests() : BaseTest<Func<int[], int>>(FastMath
 	[
 		Create("return TensorPrimitives.Sum(x) * 5 + x.Length * 2 + 159;"),
 		Create(_ => 195, [ new[] { 1, 2, 3 } ]), // a=26, b=36, c=46, d=56, e=16 = 195
-		Create(_ => 159, [ new int[] { } ]), // a=20, b=30, c=40, d=50, e=10 = 159
+		Create(_ => 159, [ System.Array.Empty<int>() ]), // a=20, b=30, c=40, d=50, e=10 = 159
 		Create(_ => 211, [ new[] { 10 } ]), // a=30, b=40, c=50, d=60, e=20 = 211
 	];
 }

@@ -63,6 +63,6 @@ public class LinqAnyOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFla
 	[
 		Create("return (x.Length > 0 ? 9 : 0) + (Any_pfIHsA(x) || x.Length > 0 ? 1 : 0) + (Contains_ug1Wdg(x) ? 1 : 0) + (Contains_Xl5chw(x) ? 1 : 0) + (Any_pfIHsA(x) ? 1 : 0) + 3 + (TensorPrimitives.IsEvenIntegerAny(x) ? 1 : 0);"),
 		Create(_ => 16, [ new[] { 1, 2, 3, 4, 5 } ]),
-		Create(_ => 3, [ new int[] { } ]),
+		Create(_ => 3, [ System.Array.Empty<int>() ]),
 	];
 }

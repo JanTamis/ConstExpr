@@ -23,6 +23,6 @@ public class LinqUnionOptimizationTests() : BaseTest<Func<int[], int>>(FastMathF
 	[
 		Create("return Count_w6J_9Q(x) << 1;"),
 		Create(_ => 6, [ new[] { 1, 2, 3 } ]),
-		Create(_ => 0, [ new int[] { } ]),
+		Create(_ => 0, [ System.Array.Empty<int>() ]),
 	];
 }

@@ -26,6 +26,6 @@ public class LinqToHashSetOptimizationTests() : BaseTest<Func<int[], int>>(FastM
 	[
 		Create("return ToHashSet_JgdI5A(x).Count * 3;"),
 		Create(_ => 9, [ new[] { 1, 2, 3 } ]),
-		Create(_ => 0, [ new int[] { } ]),
+		Create(_ => 0, [ System.Array.Empty<int>() ]),
 	];
 }

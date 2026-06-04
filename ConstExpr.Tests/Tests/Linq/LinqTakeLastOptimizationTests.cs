@@ -20,6 +20,6 @@ public class LinqTakeLastOptimizationTests : BaseTest<Func<int[], int>>
 	[
 		Create("return Count_XgBl1Q(x);"),
 		Create(_ => 1, [ new[] { 1, 2, 3 } ]),
-		Create(_ => 0, [ new int[] { } ]),
+		Create(_ => 0, [ System.Array.Empty<int>() ]),
 	];
 }

@@ -59,7 +59,7 @@ public class LinqIntersectOptimizationTests() : BaseTest<Func<int[], int>>(FastM
 	[
 		Create("return Count_AEkyLw(x) * 2 + Count_FQoOgw(x) * 2 + Count_w6J_9Q(x) + Count_VBWycg(x) + Count_utUoqA(x) + Count_w7iHXw(x) + Count_MK3tdQ(x) + (Contains_lhimyw(x) ? 1 : 0) + Count_N_W_CA(x) + Count_0S7iQA(x);"),
 		Create(_ => 18, [ new[] { 1, 2, 3, 4, 5 } ]),
-		Create(_ => 0, [ new int[] { } ]),
+		Create(_ => 0, [ System.Array.Empty<int>() ]),
 		Create(_ => 3, [ new[] { 10, 20, 30 } ]),
 		Create(_ => 14, [ new[] { 1, 1, 2, 2, 3 } ]),
 	];

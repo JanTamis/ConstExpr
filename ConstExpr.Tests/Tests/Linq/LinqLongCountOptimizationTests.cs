@@ -47,6 +47,6 @@ public class LinqLongCountOptimizationTests() : BaseTest<Func<int[], long>>(Fast
 	[
 		Create("return (long)x.Count * 7L + LongCount_LJMk4Q(x) + LongCount_JzD3Jw(x) + LongCount_taQp6w(x) + LongCount_w6J_9Q(x);"),
 		Create(_ => 49L, [ new[] { 1, 2, 3, 4, 5 } ]),
-		Create(_ => 0L, [ new int[] { } ]),
+		Create(_ => 0L, [ System.Array.Empty<int>() ]),
 	];
 }

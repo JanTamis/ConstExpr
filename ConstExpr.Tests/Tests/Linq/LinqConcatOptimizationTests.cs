@@ -53,7 +53,7 @@ public class LinqConcatOptimizationTests() : BaseTest<Func<int[], int>>(FastMath
 	[
 		Create("return TensorPrimitives.Sum(x) * 12 + 702;"),
 		Create(_ => 774, [ new[] { 1, 2, 3 } ]),
-		Create(_ => 702, [ new int[] { } ]),
+		Create(_ => 702, [ System.Array.Empty<int>() ]),
 		Create(_ => 882, [ new[] { 5, 10 } ]),
 	];
 }

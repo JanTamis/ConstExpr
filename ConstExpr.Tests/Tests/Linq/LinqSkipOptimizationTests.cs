@@ -20,6 +20,6 @@ public class LinqSkipOptimizationTests : BaseTest<Func<int[], int>>
 	[
 		Create(x => x.Length + Int32.Max(0, x.Length - 4)),
 		Create(_ => 3, [ new[] { 1, 2, 3 } ]),
-		Create(_ => 0, [ new int[] { } ]),
+		Create(_ => 0, [ System.Array.Empty<int>() ]),
 	];
 }

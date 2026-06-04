@@ -29,7 +29,7 @@ public class LinqContainsOptimizationComplexTests() : BaseTest<Func<int[], int>>
 	[
 		Create("return (Contains_lhimyw(x) ? 2 : 0) + (Contains_lhimyw(x) || Contains_slHxSg(x) ? 1 : 0) + (Contains_V_sWdg(x) ? 1 : 0);", Unknown),
 		Create(_ => 4, [ new[] { 1, 2, 3, 4, 5, 6, 7, 8 } ]),
-		Create(_ => 0, [ new int[] { } ]),
+		Create(_ => 0, [ System.Array.Empty<int>() ]),
 		Create(_ => 3, [ new[] { 5, 10, 15 } ]), // a=1 (5>0 && 5==5), b=1 (5+10==15), c=0 (no 4), d=1 (5<10 && 5==5)
 	];
 }

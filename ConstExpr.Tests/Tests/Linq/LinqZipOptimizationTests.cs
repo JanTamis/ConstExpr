@@ -25,6 +25,6 @@ public class LinqZipOptimizationTests : BaseTest<Func<int[], int>>
 	[
 		Create("return x.Length + Int32.Min(x.Length, Count_Pdf8bA(x));"),
 		Create(_ => 6, [ new[] { 1, 2, 3 } ]),
-		Create(_ => 0, [ new int[] { } ]),
+		Create(_ => 0, [ System.Array.Empty<int>() ]),
 	];
 }

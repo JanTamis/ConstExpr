@@ -42,6 +42,6 @@ public class LinqElementAtSkipOptimizationTests() : BaseTest<Func<int[], int>>(F
 		Create(_ =>
 		{
 			throw new ArgumentOutOfRangeException("Index was out of range. Must be non-negative and less than the size of the collection. (Parameter 'index')");
-		}, [ new int[] { } ]),
+		}, [ System.Array.Empty<int>() ]),
 	];
 }

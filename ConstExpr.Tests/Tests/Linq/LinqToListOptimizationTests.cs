@@ -26,6 +26,6 @@ public class LinqToListOptimizationTests() : BaseTest<Func<int[], int>>(FastMath
 	[
 		Create(x => (x.Length << 1) + x.Length),
 		Create(_ => 9, [ new[] { 1, 2, 3 } ]),
-		Create(_ => 0, [ new int[] { } ]),
+		Create(_ => 0, [ System.Array.Empty<int>() ]),
 	];
 }

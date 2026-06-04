@@ -62,7 +62,7 @@ public class LinqAllOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFla
 	[
 		Create("return (All_V1wvzg(x) ? 8 : 0) + (All_uNodPQ(x) ? 3 : 0) + (All_dmHWwg(x) ? 1 : 0) + (All_HSERGA(x) ? 1 : 0) + (All_TyCl3w(x) && All_TyCl3w(x) ? 1 : 0) + (All_UyUKEQ(x) ? 1 : 0);"),
 		Create(_ => 11, [ new[] { 1, 2, 3, 4, 5 } ]), // a=1, b-j=1 each (10), k=0, l=1 (Where(v>2)→{3,4,5} All(v<8)→true), m=0, n=0, p=0 = 11
-		Create(_ => 15, [ new int[] { } ]), // All() returns true for empty collection, so all return 1 = 12
+		Create(_ => 15, [ System.Array.Empty<int>() ]), // All() returns true for empty collection, so all return 1 = 12
 		Create(_ => 9, [ new[] { 1, 2, 3, 4, 5, 100 } ]), // a=0 (100>=10), b-j=1 (9 total), k=0, l=0 (100≥8), m=0, n=0, p=0 = 9
 	];
 }

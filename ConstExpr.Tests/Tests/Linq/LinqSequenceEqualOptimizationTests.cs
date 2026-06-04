@@ -22,6 +22,6 @@ public class LinqSequenceEqualOptimizationTests : BaseTest<Func<int[], bool>>
 	[
 		Create(x => x.Length <= 0),
 		Create(_ => false, [ new[] { 1, 2, 3 } ]),
-		Create(_ => true, [ new int[] { } ]),
+		Create(_ => true, [ System.Array.Empty<int>() ]),
 	];
 }
