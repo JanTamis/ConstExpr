@@ -58,11 +58,40 @@ public class SelectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 					result = UpdateInvocation(context, innerSource, combinedLambda);
 					return true;
 				}
+				case nameof(Enumerable.GroupBy) when innerInvocation.ArgumentList.Arguments.Count == 1
+				                                     && TryGetLambda(innerInvocation.ArgumentList.Arguments[0].Expression, out var keySelector)
+				                                     && IsKeyAccessLambda(lambda):
+				{
+					// source.GroupBy(key).Select(g => g.Key) → source.Select(key).Distinct()
+					// Avoids grouping allocation entirely; selecting keys = projecting then deduplicating.
+					var selectInvocation = UpdateInvocation(context, innerSource, keySelector);
+					result = CreateSimpleInvocation(selectInvocation, nameof(Enumerable.Distinct));
+					return true;
+				}
 			}
 		}
 
 		result = null;
 		return false;
+	}
+
+	/// <summary>
+	///   Returns true when the lambda accesses the Key property on its single parameter:
+	///   <c>g => g.Key</c> — the pattern produced by GroupBy.
+	/// </summary>
+	private bool IsKeyAccessLambda(LambdaExpressionSyntax lambda)
+	{
+		if (!TryGetSimpleLambdaParameter(lambda, out var param)
+		    || !TryGetLambdaBody(lambda, out var body))
+		{
+			return false;
+		}
+
+		return body is MemberAccessExpressionSyntax
+		{
+			Name.Identifier.Text: "Key",
+			Expression: IdentifierNameSyntax paramRef
+		} && paramRef.Identifier.Text == param.Identifier.Text;
 	}
 
 	private bool IsCastLambda(LambdaExpressionSyntax lambda, [NotNullWhen(true)] out TypeSyntax? castType)

@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.LessThanStrategies;
 
 /// <summary>
-/// Strategy for 0 &lt; Count() → source.Any().
+/// Strategy for 0 &lt; Count() → source.Any() and 0 &lt; Count(predicate) → source.Any(predicate).
 /// Any() short-circuits after the first element; Count() must enumerate everything.
 /// Safe under Strict (semantically equivalent for any IEnumerable).
 /// </summary>
@@ -15,14 +15,11 @@ public class LessThanCountZeroStrategy : BaseBinaryStrategy
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		// 0 < Count() → source.Any()
+		// 0 < Count(predicate) → source.Any(predicate)
 		if (context.Left.Syntax.IsNumericZero()
-		    && TryGetCountSource(context.Right.Syntax, out var source))
+		    && TryGetCountSourceAndPredicate(context.Right.Syntax, out var source, out var predicate))
 		{
-			optimized = InvocationExpression(
-				MemberAccessExpression(
-					SyntaxKind.SimpleMemberAccessExpression,
-					source,
-					IdentifierName("Any")));
+			optimized = BuildAnyCall(source, predicate);
 			return true;
 		}
 
@@ -30,21 +27,30 @@ public class LessThanCountZeroStrategy : BaseBinaryStrategy
 		return false;
 	}
 
-	private static bool TryGetCountSource(ExpressionSyntax expr, out ExpressionSyntax source)
+	private static bool TryGetCountSourceAndPredicate(ExpressionSyntax expr, out ExpressionSyntax source, out ExpressionSyntax? predicate)
 	{
 		source = null!;
+		predicate = null;
 
 		if (expr is not InvocationExpressionSyntax
 		    {
 			    Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Count" } memberAccess,
-			    ArgumentList.Arguments.Count: 0
-		    })
+			    ArgumentList.Arguments: var args
+		    } || args.Count > 1)
 		{
 			return false;
 		}
 
 		source = memberAccess.Expression;
+		predicate = args.Count == 1 ? args[0].Expression : null;
 		return true;
 	}
-}
 
+	private static InvocationExpressionSyntax BuildAnyCall(ExpressionSyntax source, ExpressionSyntax? predicate)
+	{
+		var memberAccess = MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, source, IdentifierName("Any"));
+		return predicate != null
+			? InvocationExpression(memberAccess).WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(predicate))))
+			: InvocationExpression(memberAccess);
+	}
+}
