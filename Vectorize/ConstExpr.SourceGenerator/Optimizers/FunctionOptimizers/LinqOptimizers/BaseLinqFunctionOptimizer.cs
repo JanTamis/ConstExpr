@@ -876,6 +876,11 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	/// </summary>
 	protected bool IsEmptyEnumerable(ExpressionSyntax expression)
 	{
+		if (expression is ParenthesizedExpressionSyntax parenthesizedExpressionSyntax)
+		{
+			return IsEmptyEnumerable(parenthesizedExpressionSyntax.Expression);
+		}
+
 		return expression is InvocationExpressionSyntax
 		{
 			Expression: MemberAccessExpressionSyntax

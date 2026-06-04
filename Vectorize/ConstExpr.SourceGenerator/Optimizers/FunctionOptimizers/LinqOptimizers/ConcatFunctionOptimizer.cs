@@ -72,6 +72,12 @@ public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 			return true;
 		}
 
+		if (concatenatedCollection is ParenthesizedExpressionSyntax parenthesizedExpressionSyntax)
+		{
+			concatenatedCollection = parenthesizedExpressionSyntax.Expression;
+			isNewSource = true;
+		}
+
 		// If we skipped any operations (AsEnumerable/ToList/ToArray), create optimized Concat call
 		if (isNewSource)
 		{
