@@ -14,10 +14,11 @@ public class CommonSubexpressionEliminationTest() : BaseTest<Func<int, int, int>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
+		Create((x, y) =>
+		{
 			var sum = x * y + 1;
 			return sum * sum;
-			"""),
-		Create("return 121;", 2, 5)
+		}),
+		Create((_, _) => 121, [ 2, 5 ])
 	];
 }

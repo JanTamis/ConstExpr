@@ -20,7 +20,8 @@ public class APHashTests() : BaseTest<Func<string, uint>>(FastMathFlags.FastMath
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
+		Create(str =>
+		{
 			var hash = 2863311530U;
 
 			for (var i = 0U; i < str.Length; i++)
@@ -29,6 +30,6 @@ public class APHashTests() : BaseTest<Func<string, uint>>(FastMathFlags.FastMath
 			}
 
 			return hash;
-			""")
+		})
 	];
 }

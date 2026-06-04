@@ -18,8 +18,8 @@ public class LinqTakeOptimizationTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return Int32.Min(1, x.Length);"),
-		Create("return 1;", new[] { 1, 2, 3 }),
-		Create("return 0;", new int[] { }),
+		Create(x => Int32.Min(1, x.Length)),
+		Create(_ => 1, [ new[] { 1, 2, 3 } ]),
+		Create(_ => 0, [ new int[] { } ]),
 	];
 }

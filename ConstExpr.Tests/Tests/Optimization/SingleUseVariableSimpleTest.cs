@@ -20,7 +20,7 @@ public class SingleUseVariableSimpleTest : BaseTest<Func<int, int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return n + 1;", Unknown), // Unknown n → temp is inlined
-		Create("return 6;", 5),             // Constant 5 → folded to 6
+		Create(n => n + 1, [ Unknown ]), // Unknown n → temp is inlined
+		Create(_ => 6, [ 5 ]), // Constant 5 → folded to 6
 	];
 }

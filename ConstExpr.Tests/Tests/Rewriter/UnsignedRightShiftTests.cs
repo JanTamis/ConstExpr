@@ -9,9 +9,9 @@ public class UnsignedRightShiftByZeroTest() : BaseTest<Func<int, int>>(FastMathF
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return x;"),
-		Create("return 5;", 5),
-		Create("return -1;", -1)
+		Create(x => x),
+		Create(_ => 5, [ 5 ]),
+		Create(_ => -1, [ -1 ])
 	];
 }
 
@@ -22,9 +22,9 @@ public class UnsignedRightShiftZeroTest() : BaseTest<Func<int, int>>(FastMathFla
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return 0;"),
-		Create("return 0;", 3),
-		Create("return 0;", 31)
+		Create(_ => 0),
+		Create(_ => 0, [ 3 ]),
+		Create(_ => 0, [ 31 ])
 	];
 }
 
@@ -35,8 +35,8 @@ public class UnsignedRightShiftCombineTest() : BaseTest<Func<int, int>>(FastMath
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return x >>> 5;"),
-		Create("return 1;", 32),
-		Create("return 0;", 0)
+		Create(x => x >>> 5),
+		Create(_ => 1, [ 32 ]),
+		Create(_ => 0, [ 0 ])
 	];
 }

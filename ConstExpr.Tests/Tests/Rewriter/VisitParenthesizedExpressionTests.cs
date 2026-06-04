@@ -45,10 +45,10 @@ public class VisitParenthesizedExpressionTests : BaseTest<Func<int, int, (int, i
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return (3, 9, 5, x + y, x + y, 1, 6, x.ToString());"),
-		Create("return (3, 9, 5, 15, 15, 1, 6, \"10\");", 10, 5),
-		Create("return (3, 9, 5, -5, -5, 1, 6, \"-10\");", -10, 5),
-		Create("return (3, 9, 5, 0, 0, 1, 6, \"0\");", 0, 0),
-		Create("return (3, 9, 5, 42, 42, 1, 6, \"20\");", 20, 22)
+		Create((x, y) => (3, 9, 5, x + y, x + y, 1, 6, x.ToString())),
+		Create((_, _) => (3, 9, 5, 15, 15, 1, 6, "10"), [ 10, 5 ]),
+		Create((_, _) => (3, 9, 5, -5, -5, 1, 6, "-10"), [ -10, 5 ]),
+		Create((_, _) => (3, 9, 5, 0, 0, 1, 6, "0"), [ 0, 0 ]),
+		Create((_, _) => (3, 9, 5, 42, 42, 1, 6, "20"), [ 20, 22 ])
 	];
 }

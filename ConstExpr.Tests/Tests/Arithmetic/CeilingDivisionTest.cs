@@ -17,11 +17,11 @@ public class CeilingDivisionTest() : BaseTest<Func<int, int, int>>(FastMathFlags
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return divisor == 0 ? 0 : (numerator + divisor - 1) / divisor;"),
-		Create("return 3;", 10, 4),
-		Create("return 5;", 20, 4),
-		Create("return 0;", 10, 0),
-		Create("return (numerator + 4) / 5;", Unknown, 5),
-		Create("return 0;", Unknown, 0)
+		Create((numerator, divisor) => divisor == 0 ? 0 : (numerator + divisor - 1) / divisor),
+		Create((_, _) => 3, [ 10, 4 ]),
+		Create((_, _) => 5, [ 20, 4 ]),
+		Create((_, _) => 0, [ 10, 0 ]),
+		Create((numerator, _) => (numerator + 4) / 5, [ Unknown, 5 ]),
+		Create((_, _) => 0, [ Unknown, 0 ])
 	];
 }

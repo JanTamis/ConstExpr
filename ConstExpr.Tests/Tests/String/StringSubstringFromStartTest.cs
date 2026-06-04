@@ -10,7 +10,7 @@ public class StringSubstringFromStartTest() : BaseTest<Func<string, int, string>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return s[start..];"),
-		Create("return \"llo\";", "hello", 2),
+		Create((s, start) => s[start..]),
+		Create((_, _) => "llo", [ "hello", 2 ]),
 	];
 }

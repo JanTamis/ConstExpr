@@ -8,8 +8,8 @@ public class ModuloByPowerOfTwoTest : BaseTest<Func<uint, uint>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return x & 7u;"),
-		Create("return 3u;", 11u),
-		Create("return 0u;", 8u),
+		Create(x => x & 7u),
+		Create(_ => 3u, [ 11u ]),
+		Create(_ => 0u, [ 8u ]),
 	];
 }

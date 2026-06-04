@@ -9,9 +9,9 @@ public class MinOfTwoTest() : BaseTest<Func<int, int, int>>(FastMathFlags.FastMa
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return a < b ? a : b;"),
-		Create("return 5;", 5, 10),
-		Create("return -10;", -10, 20),
-		Create("return 0;", 0, 0)
+		Create((a, b) => a < b ? a : b),
+		Create((_, _) => 5, [ 5, 10 ]),
+		Create((_, _) => -10, [ -10, 20 ]),
+		Create((_, _) => 0, [ 0, 0 ])
 	];
 }

@@ -11,6 +11,6 @@ public class FloatMinMagnitudeNumberTest() : BaseTest<Func<float, float, float>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null),
-		Create("return 1F;", 1.0f, -3.0f),
+		Create((_, _) => 1F, [ 1.0f, -3.0f ]),
 	];
 }

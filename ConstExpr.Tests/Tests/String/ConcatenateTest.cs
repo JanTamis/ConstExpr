@@ -10,8 +10,8 @@ public class ConcatenateTest() : BaseTest<Func<string, string, string>>(FastMath
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null),
-		Create("return \"helloworld\";", "hello", "world"),
-		Create("return \"test\";", "test", ""),
-		Create("return \"\";", "", "")
+		Create((_, _) => "helloworld", [ "hello", "world" ]),
+		Create((_, _) => "test", [ "test", "" ]),
+		Create((_, _) => "", [ "", "" ])
 	];
 }

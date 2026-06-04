@@ -8,8 +8,8 @@ public class MultiplyByOneTest : BaseTest<Func<int, int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return x;"),
-		Create("return 7;", 7),
-		Create("return -2;", -2),
+		Create(x => x),
+		Create(_ => 7, [ 7 ]),
+		Create(_ => -2, [ -2 ]),
 	];
 }

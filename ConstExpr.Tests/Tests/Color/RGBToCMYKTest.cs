@@ -21,7 +21,8 @@ public class RGBToCMYKTest() : BaseTest<Func<byte, byte, byte, (double, double, 
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
+		Create((r, g, b) =>
+		{
 			var dr = r * 0.00392156862745098;
 			var dg = g * 0.00392156862745098;
 			var db = b * 0.00392156862745098;
@@ -29,6 +30,6 @@ public class RGBToCMYKTest() : BaseTest<Func<byte, byte, byte, (double, double, 
 			var diff = 1D - k;
 
 			return ((1D - dr - k) / diff, (1D - dg - k) / diff, (1D - db - k) / diff, k);
-			"""),
+		}),
 	];
 }

@@ -39,9 +39,9 @@ public class RemoveWhitespaceTest() : BaseTest<Func<string, string>>(FastMathFla
 
 			return new string(result, 0, index);
 			"""),
-		Create("return \"HelloWorld\";", "Hello World"),
-		Create("return \"TestString\";", "  Test  String  "),
-		Create("return \"\";", "   "),
-		Create("return \"abc\";", "abc")
+		Create(_ => "HelloWorld", [ "Hello World" ]),
+		Create(_ => "TestString", [ "  Test  String  " ]),
+		Create(_ => "", [ "   " ]),
+		Create(_ => "abc", [ "abc" ])
 	];
 }

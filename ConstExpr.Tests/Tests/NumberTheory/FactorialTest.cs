@@ -29,13 +29,14 @@ public class FactorialTest() : BaseTest<Func<int, long>>(FastMathFlags.FastMath 
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
+		Create(n =>
+		{
 			if (n < 0)
 			{
 				return -1L;
 			}
 
-			if ((uint)n <= 1U)
+			if ((uint) n <= 1U)
 			{
 				return 1L;
 			}
@@ -48,10 +49,10 @@ public class FactorialTest() : BaseTest<Func<int, long>>(FastMathFlags.FastMath 
 			}
 
 			return result;
-			"""),
-		Create("return 120L;", 5),
-		Create("return 1L;", 1),
-		Create("return -1L;", -5),
-		Create("return 3628800L;", 10)
+		}),
+		Create(_ => 120L, [ 5 ]),
+		Create(_ => 1L, [ 1 ]),
+		Create(_ => -1L, [ -5 ]),
+		Create(_ => 3628800L, [ 10 ])
 	];
 }

@@ -30,9 +30,12 @@ public class LinqChunkOptimizationTests() : BaseTest<Func<int[], int>>(FastMathF
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return x.Length + (x.Length + 2) / 3 + (x.Length + 1) / 2 + x[..5].Length + x[^4..].Length;"),
-		Create("return 16;", new[] { 1, 2, 3, 4, 5 }),
-		Create("return 18;", new[] { 1, 2, 3, 4, 5, 6 }),
-		Create("throw new InvalidOperationException(\"Sequence contains no elements\");", new int[] { }),
+		Create(x => x.Length + (x.Length + 2) / 3 + (x.Length + 1) / 2 + x[..5].Length + x[^4..].Length),
+		Create(_ => 16, [ new[] { 1, 2, 3, 4, 5 } ]),
+		Create(_ => 18, [ new[] { 1, 2, 3, 4, 5, 6 } ]),
+		Create(_ =>
+		{
+			throw new InvalidOperationException("Sequence contains no elements");
+		}, [ new int[] { } ]),
 	];
 }

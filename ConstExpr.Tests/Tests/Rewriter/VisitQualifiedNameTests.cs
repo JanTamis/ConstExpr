@@ -10,6 +10,6 @@ public class VisitQualifiedNameTests : BaseTest<Func<string>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return \"\";")
+		Create(() => "")
 	];
 }

@@ -10,6 +10,6 @@ public class MathBitIncrementTest() : BaseTest<Func<double, double>>(FastMathFla
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return FastBitIncrement(x);"),
-		Create("return 2D;", 1.9999999999999998),
+		Create(_ => 2D, [ 1.9999999999999998 ]),
 	];
 }

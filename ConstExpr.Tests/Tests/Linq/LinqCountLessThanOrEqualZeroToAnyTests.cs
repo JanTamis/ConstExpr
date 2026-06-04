@@ -15,9 +15,9 @@ public class LinqCountLessThanOrEqualZeroToAnyTests() : BaseTest<Func<IEnumerabl
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return !x.Any();"),
-		Create("return true;", Enumerable.Empty<int>()),
-		Create("return false;", new[] { 1, 2, 3 })
+		Create(x => !x.Any()),
+		Create(_ => true, [ Enumerable.Empty<int>() ]),
+		Create(_ => false, [ new[] { 1, 2, 3 } ])
 	];
 }
 
@@ -31,10 +31,10 @@ public class LinqCountLessThanOrEqualZeroWithPredicateToAnyTests() : BaseTest<Fu
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return !x.Any(v => v > 5);"),
-		Create("return true;", Enumerable.Empty<int>()),
-		Create("return true;", new[] { 1, 2, 3 }),
-		Create("return false;", new[] { 1, 6, 3 })
+		Create(x => !x.Any(v => v > 5)),
+		Create(_ => true, [ Enumerable.Empty<int>() ]),
+		Create(_ => true, [ new[] { 1, 2, 3 } ]),
+		Create(_ => false, [ new[] { 1, 6, 3 } ])
 	];
 }
 
@@ -49,8 +49,8 @@ public class LinqCountLessThanOrEqualZeroNotOptimizedTests() : BaseTest<Func<IEn
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null),
-		Create("return true;", Enumerable.Empty<int>()),
-		Create("return true;", new[] { 42 }),
-		Create("return false;", new[] { 1, 2 })
+		Create(_ => true, [ Enumerable.Empty<int>() ]),
+		Create(_ => true, [ new[] { 42 } ]),
+		Create(_ => false, [ new[] { 1, 2 } ])
 	];
 }

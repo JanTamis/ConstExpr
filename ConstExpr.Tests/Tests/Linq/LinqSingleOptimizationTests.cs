@@ -20,7 +20,7 @@ public class LinqSingleOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Single_nJEiIg(x) + Single_A6_ZQQ(x);"),
-		Create("return 5;", new[] { 1, 2, 3, 4, 5 }),
-		Create("return 5;", new[] { 2, 3 }),
+		Create(_ => 5, [ new[] { 1, 2, 3, 4, 5 } ]),
+		Create(_ => 5, [ new[] { 2, 3 } ]),
 	];
 }

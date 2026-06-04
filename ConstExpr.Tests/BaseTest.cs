@@ -24,30 +24,10 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 	where TDelegate : Delegate
 {
 	/// <summary>
-	/// A collection of test cases, where each test case consists of an expected method body (as a string) and an array of parameter values. The expected method body can be null to indicate that the body should not change. The parameter values can be set to <see cref="Unknown"/> to indicate that the value is not known at compile time. The source generator will optimize <see cref="TestMethod"/> based on the provided parameter values, and the resulting body will be compared against the expected body for each test case.
-	/// </summary>
-	public abstract IEnumerable<KeyValuePair<string?, object?[]>> TestCases { get; }
-
-	/// <summary>
-	/// The method to be tested, represented as a string. Use the <see cref="GetString"/> helper method to generate this string from a lambda expression. The method should be defined as a local function within the generated source code, and should match the signature of <typeparamref name="TDelegate"/>. The body of the method will be optimized by the source generator, and the resulting body will be compared against the expected bodies defined in <see cref="TestCases"/>.
-	/// </summary>
-	public abstract string TestMethod { get; }
-
-	/// <summary>
-	/// A marker object to represent unknown parameter values in test cases. This indicates that a parameter's value is not known at compile time, and the optimizer should treat it as such.
+	///   A marker object to represent unknown parameter values in test cases. This indicates that a parameter's value is not
+	///   known at compile time, and the optimizer should treat it as such.
 	/// </summary>
 	public static readonly object Unknown = new();
-
-	private sealed class ClassState
-	{
-		public Compilation Compilation { get; init; } = null!;
-		public List<string> ParameterNames { get; init; } = null!;
-		public List<ITypeSymbol> ParameterTypes { get; init; } = null!;
-		public BlockSyntax FormattedOriginalBody { get; init; } = null!;
-		public SemanticModel SemanticModel { get; init; } = null!;
-		public MetadataLoader Loader { get; init; } = null!;
-		public LocalFunctionStatementSyntax Method { get; init; } = null!;
-	}
 
 	private static readonly ConcurrentDictionary<Type, ClassState> _stateByType = new();
 	private static readonly ConcurrentDictionary<Type, int> _delegateParameterCount = new();
@@ -69,7 +49,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			}
 
 			var appDomainRefs = AppDomain.CurrentDomain.GetAssemblies()
-				.Where(a => !a.IsDynamic && !string.IsNullOrWhiteSpace(a.Location))
+				.Where(a => !a.IsDynamic && !System.String.IsNullOrWhiteSpace(a.Location))
 				.Select(a => a.Location)
 				.ToHashSet(StringComparer.Ordinal);
 
@@ -82,7 +62,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			{
 				var location = t.Assembly.Location;
 
-				if (!string.IsNullOrWhiteSpace(location) && appDomainRefs.Add(location))
+				if (!System.String.IsNullOrWhiteSpace(location) && appDomainRefs.Add(location))
 				{
 					result.Add(MetadataReference.CreateFromFile(location));
 				}
@@ -90,7 +70,25 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 
 			return result;
 		},
-		isThreadSafe: true);
+		true);
+
+	/// <summary>
+	///   A collection of test cases, where each test case consists of an expected method body (as a string) and an array of
+	///   parameter values. The expected method body can be null to indicate that the body should not change. The parameter
+	///   values can be set to <see cref="Unknown" /> to indicate that the value is not known at compile time. The source
+	///   generator will optimize <see cref="TestMethod" /> based on the provided parameter values, and the resulting body will
+	///   be compared against the expected body for each test case.
+	/// </summary>
+	public abstract IEnumerable<KeyValuePair<string?, object?[]>> TestCases { get; }
+
+	/// <summary>
+	///   The method to be tested, represented as a string. Use the <see cref="GetString" /> helper method to generate this
+	///   string from a lambda expression. The method should be defined as a local function within the generated source code,
+	///   and should match the signature of <typeparamref name="TDelegate" />. The body of the method will be optimized by the
+	///   source generator, and the resulting body will be compared against the expected bodies defined in
+	///   <see cref="TestCases" />.
+	/// </summary>
+	public abstract string TestMethod { get; }
 
 	private static int GetDelegateParameterCount()
 	{
@@ -98,10 +96,13 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		                                                                                  ?? throw new InvalidOperationException($"Could not resolve Invoke on delegate type '{delegateType.FullName}'."));
 	}
 
-	private ClassState GetState() => _stateByType[GetType()];
+	private ClassState GetState()
+	{
+		return _stateByType[GetType()];
+	}
 
 	[Before(Class)]
-	public static async Task SetupAsync(ClassHookContext context)
+	public async static Task SetupAsync(ClassHookContext context)
 	{
 		var testType = context.ClassType;
 		var instance = Activator.CreateInstance(testType);
@@ -151,7 +152,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			ParameterTypes = parameterTypes,
 			FormattedOriginalBody = FormattingHelper.Format(method.Body!) as BlockSyntax ?? method.Body!,
 			SemanticModel = semanticModel,
-			Loader = MetadataLoader.GetLoader(compilation),
+			Loader = MetadataLoader.GetLoader(compilation)
 		};
 
 		_stateByType[testType] = state;
@@ -163,9 +164,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		_stateByType.TryRemove(context.ClassType, out _);
 	}
 
-	[Test]
-	[TestName]
-	[MethodDataSource(nameof(TestCases))]
+	[Test, TestName, MethodDataSource(nameof(TestCases))]
 	// [ArgumentDisplayFormatter<SyntaxFormatter>]
 	public void RunTest(KeyValuePair<string?, object?[]> testCase)
 	{
@@ -186,9 +185,9 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		for (var i = 0; i < state.ParameterNames.Count; i++)
 		{
 			parameters[state.ParameterNames[i]] = new VariableItem(
-				type: state.ParameterTypes[i],
-				hasValue: false,
-				value: null);
+				state.ParameterTypes[i],
+				false,
+				null);
 		}
 
 		var symbolStore = new ConcurrentDictionary<ulong, ISymbol>();
@@ -216,11 +215,11 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			else
 			{
 				parameters.Add(name, new VariableItem(
-					type: candidate.Symbol.Type, // Type is not needed for inlining, as the value will be directly substituted
-					hasValue: false,
-					value: null)
+					candidate.Symbol.Type, // Type is not needed for inlining, as the value will be directly substituted
+					false,
+					null)
 				{
-					CanBeInlined = true,
+					CanBeInlined = true
 				});
 			}
 		}
@@ -354,12 +353,18 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 	}
 
 	/// <summary>
-	/// Helper method to create test cases with a specific expected body and parameter values.
+	///   Helper method to create test cases with a specific expected body and parameter values.
 	/// </summary>
 	/// <param name="expectedBody">The expected body of the test case. Use null for no changed body</param>
-	/// <param name="parameters">The values for the parameters of the test case. Use <see cref="Unknown"/> for unknown parameter</param>
+	/// <param name="parameters">
+	///   The values for the parameters of the test case. Use <see cref="Unknown" /> for unknown
+	///   parameter
+	/// </param>
 	/// <returns>A key-value pair representing the test case.</returns>
-	/// <exception cref="InvalidOperationException">Thrown when the number of <see cref="parameters"/> does not match the number of parameters of <see cref="TDelegate"/>.</exception>
+	/// <exception cref="InvalidOperationException">
+	///   Thrown when the number of <see cref="parameters" /> does not match the
+	///   number of parameters of <see cref="TDelegate" />.
+	/// </exception>
 	protected static KeyValuePair<string?, object?[]> Create(string? expectedBody, params object?[] parameters)
 	{
 		var delegateParamCount = GetDelegateParameterCount();
@@ -376,7 +381,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 	}
 
 	/// <summary>
-	/// Helper method to create test cases with a specific expected body and parameter values.
+	///   Helper method to create test cases with a specific expected body and parameter values.
 	/// </summary>
 	/// <param name="expectedBody">The expected body of the test case. Use null for no changed body</param>
 	/// <returns>A key-value pair representing the test case.</returns>
@@ -386,14 +391,21 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 	}
 
 	/// <summary>
-	/// Helper method to create test cases where the expected body is expressed as a lambda delegate instead of a raw string.
-	/// The lambda source is captured via <see cref="CallerArgumentExpressionAttribute"/> and its body is extracted automatically.
+	///   Helper method to create test cases where the expected body is expressed as a lambda delegate instead of a raw string.
+	///   The lambda source is captured via <see cref="CallerArgumentExpressionAttribute" /> and its body is extracted
+	///   automatically.
 	/// </summary>
 	/// <param name="expectedBody">A delegate whose lambda body represents the expected optimized method body.</param>
-	/// <param name="parameters">The values for the parameters of the test case. Use <see cref="Unknown"/> for unknown parameters.</param>
-	/// <param name="lambdaSource">Auto-captured source of <paramref name="expectedBody"/> — do not pass explicitly.</param>
+	/// <param name="parameters">
+	///   The values for the parameters of the test case. Use <see cref="Unknown" /> for unknown
+	///   parameters.
+	/// </param>
+	/// <param name="lambdaSource">Auto-captured source of <paramref name="expectedBody" /> — do not pass explicitly.</param>
 	/// <returns>A key-value pair representing the test case.</returns>
-	/// <exception cref="InvalidOperationException">Thrown when the number of <see cref="parameters"/> does not match the number of parameters of <see cref="TDelegate"/>.</exception>
+	/// <exception cref="InvalidOperationException">
+	///   Thrown when the number of <see cref="parameters" /> does not match the
+	///   number of parameters of <see cref="TDelegate" />.
+	/// </exception>
 	protected static KeyValuePair<string?, object?[]> Create(TDelegate expectedBody, object?[] parameters, [CallerArgumentExpression(nameof(expectedBody))] string? lambdaSource = null)
 	{
 		var delegateParamCount = GetDelegateParameterCount();
@@ -412,11 +424,12 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 	}
 
 	/// <summary>
-	/// Helper method to create test cases where the expected body is expressed as a lambda delegate instead of a raw string.
-	/// The lambda source is captured via <see cref="CallerArgumentExpressionAttribute"/> and its body is extracted automatically.
+	///   Helper method to create test cases where the expected body is expressed as a lambda delegate instead of a raw string.
+	///   The lambda source is captured via <see cref="CallerArgumentExpressionAttribute" /> and its body is extracted
+	///   automatically.
 	/// </summary>
 	/// <param name="expectedBody">A delegate whose lambda body represents the expected optimized method body.</param>
-	/// <param name="lambdaSource">Auto-captured source of <paramref name="expectedBody"/> — do not pass explicitly.</param>
+	/// <param name="lambdaSource">Auto-captured source of <paramref name="expectedBody" /> — do not pass explicitly.</param>
 	/// <returns>A key-value pair representing the test case.</returns>
 	protected static KeyValuePair<string?, object?[]> Create(TDelegate expectedBody, [CallerArgumentExpression(nameof(expectedBody))] string? lambdaSource = null)
 	{
@@ -430,7 +443,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 	{
 		var returnType = TestMethodHelper.GetTypeName(method.Method.ReturnType);
 		var parameters = method.Method.GetParameters();
-		var paramList = string.Join(", ", parameters.Select(p => $"{TestMethodHelper.GetTypeName(p.ParameterType)} {p.Name}"));
+		var paramList = System.String.Join(", ", parameters.Select(p => $"{TestMethodHelper.GetTypeName(p.ParameterType)} {p.Name}"));
 
 		// Try to extract body from CallerArgumentExpression
 		var body = TestMethodHelper.ExtractLambdaBody(lambdaSource);
@@ -477,14 +490,14 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		List<Exception> exceptionsDuringRewriting,
 		string debugInfo = "")
 	{
-		var parametersStr = string.Join(", ", parameterNames.Select(p =>
+		var parametersStr = System.String.Join(", ", parameterNames.Select(p =>
 			$"{p} = {(parameters[p].HasValue ? ParseValue(parameters[p].Value) : "Unknown")}"));
 
 		var expectedStr = FormattingHelper.Render(expectedBody) ?? "(null)";
 		var generatedStr = FormattingHelper.Render(newBody) ?? "(null)";
 
 		var additionalStr = additionalMethods.Count > 0
-			? string.Join("\n\n", additionalMethods
+			? System.String.Join("\n\n", additionalMethods
 				.OrderBy(o => o.Value)
 				.Select(s => FormattingHelper.Render(s.Key) ?? "(null)"))
 			: "(none)";
@@ -515,7 +528,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 
 		if (exceptionsDuringRewriting.Count > 0)
 		{
-			var exceptionsStr = string.Join("\n\n", exceptionsDuringRewriting.Select(e => e.ToString()));
+			var exceptionsStr = System.String.Join("\n\n", exceptionsDuringRewriting.Select(e => e.ToString()));
 
 			errorText += $"""
 
@@ -633,13 +646,24 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 				}
 
 				parameters.Add(name, new VariableItem(
-					type: null!, // Type is not needed for inlining, as the value will be directly substituted
-					hasValue: true,
-					value: declarator.Initializer!.Value)
+					null!, // Type is not needed for inlining, as the value will be directly substituted
+					true,
+					declarator.Initializer!.Value)
 				{
-					CanBeInlined = true,
+					CanBeInlined = true
 				});
 			}
 		}
+	}
+
+	private sealed class ClassState
+	{
+		public Compilation Compilation { get; init; } = null!;
+		public List<string> ParameterNames { get; init; } = null!;
+		public List<ITypeSymbol> ParameterTypes { get; init; } = null!;
+		public BlockSyntax FormattedOriginalBody { get; init; } = null!;
+		public SemanticModel SemanticModel { get; init; } = null!;
+		public MetadataLoader Loader { get; init; } = null!;
+		public LocalFunctionStatementSyntax Method { get; init; } = null!;
 	}
 }

@@ -11,7 +11,7 @@ public class MathCbrtTest() : BaseTest<Func<double, double>>(FastMathFlags.FastM
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return FastCbrt(x);"),
-		Create("return 2D;", 8.0),
-		Create("return 3D;", 27.0),
+		Create(_ => 2D, [ 8.0 ]),
+		Create(_ => 3D, [ 27.0 ]),
 	];
 }

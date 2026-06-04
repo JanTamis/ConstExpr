@@ -30,8 +30,8 @@ public class LinqElementAtOrDefaultOptimizationListTests() : BaseTest<Func<List<
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return (x.Count > 0 ? x[0] * 2 : 0) + (x.Count > 1 ? x[1] * 2 : 0) + (x.Count > 10 ? x[10] : 0);"),
-		Create("return 6;", new List<int> { 1, 2, 3, 4, 5 }), // 1 + 2 + 1 + 2 + 0 = 6
-		Create("return 0;", new List<int>()), // All return 0 (default)
+		Create(x => (x.Count > 0 ? x[0] * 2 : 0) + (x.Count > 1 ? x[1] * 2 : 0) + (x.Count > 10 ? x[10] : 0)),
+		Create(_ => 6, [ new List<int> { 1, 2, 3, 4, 5 } ]), // 1 + 2 + 1 + 2 + 0 = 6
+		Create(_ => 0, [ new List<int>() ]), // All return 0 (default)
 	];
 }

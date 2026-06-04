@@ -30,19 +30,20 @@ public class PJWHashTests() : BaseTest<Func<string, uint>>(FastMathFlags.FastMat
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
+		Create(str =>
+		{
 			var hash = 0U;
 			var test = 0U;
 
 			for (var i = 0U; i < str.Length; i++)
 			{
-				hash = hash * 16U + (byte)str[(int)i];
+				hash = hash * 16U + (byte) str[(int) i];
 
 				if ((test = hash & 4026531840U) != 0U)
 					hash = (hash ^ test >> 24) & 268435455U;
 			}
 
 			return hash;
-			""")
+		})
 	];
 }

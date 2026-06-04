@@ -31,7 +31,7 @@ public class LinqDefaultIfEmptyOptimizationListTests() : BaseTest<Func<List<int>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Int32.Max(x.Count, 1) * 3 + Int32.Max(Count_w6J_9Q(x), 1) + (x.Count > 0 ? x[0] : 100);"),
-		Create("return 21;", new List<int> { 1, 2, 3, 4, 5 }), // Non-empty: 5+5+5+5+1 = 21
-		Create("return 104;", new List<int>()), // Empty: 1+1+1+1+100 = 104
+		Create(_ => 21, [ new List<int> { 1, 2, 3, 4, 5 } ]), // Non-empty: 5+5+5+5+1 = 21
+		Create(_ => 104, [ new List<int>() ]), // Empty: 1+1+1+1+100 = 104
 	];
 }

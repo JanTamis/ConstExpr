@@ -15,24 +15,24 @@
 
 	<ItemGroup Condition="'$(EnableCoverage)' == 'true'">
 		<PackageReference Include="coverlet.collector" Version="6.0.4">
-		  <PrivateAssets>all</PrivateAssets>
-		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1"/>
-		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
-		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.14.0" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0"/>
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.14.0"/>
 		<PackageReference Include="Microsoft.Testing.Platform.MSBuild" Version="2.2.3"/>
 		<PackageReference Include="TUnit" Version="1.48.6"/>
-		<PackageReference Include="SourceGenerator.Foundations.Contracts" Version="2.0.14" />
+		<PackageReference Include="SourceGenerator.Foundations.Contracts" Version="2.0.14"/>
 		<PackageReference Include="System.Numerics.Tensors" Version="10.0.8"/>
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\Vectorize\ConstExpr.SourceGenerator\ConstExpr.SourceGenerator.csproj">
-	    <Aliases>sourcegen</Aliases>
-	  </ProjectReference>
+		<ProjectReference Include="..\Vectorize\ConstExpr.SourceGenerator\ConstExpr.SourceGenerator.csproj">
+			<Aliases>sourcegen</Aliases>
+		</ProjectReference>
 	</ItemGroup>
 </Project>

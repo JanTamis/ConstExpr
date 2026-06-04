@@ -20,8 +20,8 @@ public class LinqSequenceEqualOptimizationTests : BaseTest<Func<int[], bool>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return x.Length <= 0;"),
-		Create("return false;", new[] { 1, 2, 3 }),
-		Create("return true;", new int[] { }),
+		Create(x => x.Length <= 0),
+		Create(_ => false, [ new[] { 1, 2, 3 } ]),
+		Create(_ => true, [ new int[] { } ]),
 	];
 }

@@ -12,10 +12,10 @@ public class LinqCastOptimizationTests() : BaseTest<Func<List<object>, int>>(Fas
 	{
 		// AsEnumerable().Cast<int>() => collection.Cast<int>() (skip AsEnumerable)
 		var a = x.AsEnumerable().Cast<int>().Sum();
-		
+
 		// ToList().Cast<int>() => collection.Cast<int>() (skip ToList)
 		var b = x.ToList().Cast<int>().Sum();
-		
+
 		// ToArray().Cast<int>() => collection.Cast<int>() (skip ToArray)
 		var c = x.ToArray().Cast<int>().Sum();
 
@@ -31,8 +31,8 @@ public class LinqCastOptimizationTests() : BaseTest<Func<List<object>, int>>(Fas
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Sum_gqdmOQ(x) * 5;"),
-		Create("return 30;", new List<object> { 1, 2, 3 }), // sum=6, a=6, b=6, c=6, d=6, e=6 = 30
-		Create("return 0;", new List<object>()), // Empty array
-		Create("return 50;", new List<object> { 10 }), // sum=10, a=10, b=10, c=10, d=10, e=10 = 50
+		Create(_ => 30, [ new List<object> { 1, 2, 3 } ]), // sum=6, a=6, b=6, c=6, d=6, e=6 = 30
+		Create(_ => 0, [ new List<object>() ]), // Empty array
+		Create(_ => 50, [ new List<object> { 10 } ]), // sum=10, a=10, b=10, c=10, d=10, e=10 = 50
 	];
 }

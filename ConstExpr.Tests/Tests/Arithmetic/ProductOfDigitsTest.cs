@@ -33,8 +33,8 @@ public class ProductOfDigitsTest() : BaseTest<Func<int, int>>(FastMathFlags.Fast
 
 			return product;
 			"""),
-		Create("return 24;", 234),
-		Create("return 0;", 105),
-		Create("return 5;", 5)
+		Create(_ => 24, [ 234 ]),
+		Create(_ => 0, [ 105 ]),
+		Create(_ => 5, [ 5 ])
 	];
 }

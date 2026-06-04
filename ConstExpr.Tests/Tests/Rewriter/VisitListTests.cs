@@ -16,6 +16,9 @@ public class VisitListTests : BaseTest<Action>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("")
+		Create(() =>
+		{
+
+		})
 	];
 }

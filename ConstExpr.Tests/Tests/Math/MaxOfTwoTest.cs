@@ -9,9 +9,9 @@ public class MaxOfTwoTest() : BaseTest<Func<int, int, int>>(FastMathFlags.FastMa
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return a > b ? a : b;"),
-		Create("return 10;", 5, 10),
-		Create("return 20;", -10, 20),
-		Create("return 0;", 0, 0)
+		Create((a, b) => a > b ? a : b),
+		Create((_, _) => 10, [ 5, 10 ]),
+		Create((_, _) => 20, [ -10, 20 ]),
+		Create((_, _) => 0, [ 0, 0 ])
 	];
 }

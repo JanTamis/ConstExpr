@@ -17,7 +17,7 @@ public class LinqOrderByOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return TensorPrimitives.Min(x);"),
-		Create("return 1;", new[] { 3, 1, 2 }),
-		Create("return 5;", new[] { 5 }),
+		Create(_ => 1, [ new[] { 3, 1, 2 } ]),
+		Create(_ => 5, [ new[] { 5 } ]),
 	];
 }

@@ -8,8 +8,8 @@ public class DivideIdempotencyTest : BaseTest<Func<int, int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return 1;"),
-		Create("return 1;", 5),
-		Create("return 1;", -3),
+		Create(_ => 1),
+		Create(_ => 1, [ 5 ]),
+		Create(_ => 1, [ -3 ]),
 	];
 }

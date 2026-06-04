@@ -36,9 +36,9 @@ public class IsPerfectNumberTest() : BaseTest<Func<int, bool>>(FastMathFlags.Fas
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null),
-		Create("return true;", 6),
-		Create("return true;", 28),
-		Create("return false;", 12),
-		Create("return false;", 1)
+		Create(_ => true, [ 6 ]),
+		Create(_ => true, [ 28 ]),
+		Create(_ => false, [ 12 ]),
+		Create(_ => false, [ 1 ])
 	];
 }

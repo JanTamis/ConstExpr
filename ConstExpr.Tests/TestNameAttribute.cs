@@ -26,7 +26,7 @@ public class TestNameAttribute : DisplayNameFormatterAttribute
 				}
 			}
 
-			return $"{className}({string.Join(", ", values)})";
+			return $"{className}({System.String.Join(", ", values)})";
 		}
 
 		return className;

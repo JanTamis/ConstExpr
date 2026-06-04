@@ -24,8 +24,8 @@ public class LinqToListOptimizationTests() : BaseTest<Func<int[], int>>(FastMath
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return (x.Length << 1) + x.Length;"),
-		Create("return 9;", new[] { 1, 2, 3 }),
-		Create("return 0;", new int[] { }),
+		Create(x => (x.Length << 1) + x.Length),
+		Create(_ => 9, [ new[] { 1, 2, 3 } ]),
+		Create(_ => 0, [ new int[] { } ]),
 	];
 }

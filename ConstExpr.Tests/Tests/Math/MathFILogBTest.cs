@@ -9,7 +9,7 @@ public class MathFILogBTest() : BaseTest<Func<float, int>>(FastMathFlags.FastMat
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return float.ILogB(x);"),
-		Create("return 3;", 8f),
+		Create(x => float.ILogB(x)),
+		Create(_ => 3, [ 8f ]),
 	];
 }

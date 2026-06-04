@@ -55,7 +55,7 @@ public class CountPrimeFactorsTest() : BaseTest<Func<int, int>>(FastMathFlags.Fa
 
 			return count;
 			"""),
-		Create("return 3;", 12),
-		Create("return 0;", 1)
+		Create(_ => 3, [ 12 ]),
+		Create(_ => 0, [ 1 ])
 	];
 }

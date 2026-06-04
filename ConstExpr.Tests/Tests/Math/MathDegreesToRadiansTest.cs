@@ -9,7 +9,7 @@ public class MathDegreesToRadiansTest() : BaseTest<Func<double, double>>(FastMat
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return double.DegreesToRadians(x);"),
-		Create("return 0D;", 0.0),
+		Create(x => double.DegreesToRadians(x)),
+		Create(_ => 0D, [ 0.0 ]),
 	];
 }

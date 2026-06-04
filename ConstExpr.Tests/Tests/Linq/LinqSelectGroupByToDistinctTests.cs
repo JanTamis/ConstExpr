@@ -16,10 +16,10 @@ public class LinqSelectGroupByToDistinctTests() : BaseTest<Func<IEnumerable<int>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return x.DistinctBy(v => v % 3).Count();"),
-		Create("return 3;", new[] { 1, 2, 3, 4, 5, 6 }),
-		Create("return 1;", new[] { 3, 6, 9 }),
-		Create("return 0;", Enumerable.Empty<int>())
+		Create(x => x.DistinctBy(v => v % 3).Count()),
+		Create(_ => 3, [ new[] { 1, 2, 3, 4, 5, 6 } ]),
+		Create(_ => 1, [ new[] { 3, 6, 9 } ]),
+		Create(_ => 0, [ Enumerable.Empty<int>() ])
 	];
 }
 
@@ -35,8 +35,8 @@ public class LinqSelectGroupByFirstCountTests() : BaseTest<Func<IEnumerable<int>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return x.DistinctBy(v => v % 3).Count();"),
-		Create("return 3;", new[] { 1, 2, 3, 4, 5, 6 }),
-		Create("return 1;", new[] { 3, 6, 9 })
+		Create(x => x.DistinctBy(v => v % 3).Count()),
+		Create(_ => 3, [ new[] { 1, 2, 3, 4, 5, 6 } ]),
+		Create(_ => 1, [ new[] { 3, 6, 9 } ])
 	];
 }

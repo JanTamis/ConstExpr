@@ -14,10 +14,11 @@ public class BetterNamesTest() : BaseTest<Func<int, int, int>>(FastMathFlags.Com
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
+		Create((x, y) =>
+		{
 			var sum = x * x + y * y;
 			return sum + sum;
-			"""),
-		Create("return 50;", 3, 4)
+		}),
+		Create((_, _) => 50, [ 3, 4 ])
 	];
 }

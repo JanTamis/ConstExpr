@@ -18,7 +18,7 @@ public class LinqByOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlag
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Count_fDCnXg(x) + Count_A_x9WQ(x) + Count_GdwhZA(x) + Count_0yIQSg(x);", Unknown),
-		Create("return 11;", new[] { 1, 2, 2, 3, 4 }),
-		Create("return 3;", new int[] { }),
+		Create(_ => 11, [ new[] { 1, 2, 2, 3, 4 } ]),
+		Create(_ => 3, [ new int[] { } ]),
 	];
 }

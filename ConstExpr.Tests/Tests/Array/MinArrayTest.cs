@@ -27,7 +27,8 @@ public class MinArrayTest() : BaseTest<Func<int[], int>>(FastMathFlags.FastMath 
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
+		Create(values =>
+		{
 			if (values.Length == 0)
 				return 2147483647;
 
@@ -40,9 +41,9 @@ public class MinArrayTest() : BaseTest<Func<int[], int>>(FastMathFlags.FastMath 
 			}
 
 			return min;
-			"""),
-		Create("return 3;", new[] { 5, 4, 3, 9 }),
-		Create("return 1;", new[] { 7, 2, 1, 8 }),
-		Create("return 2147483647;", System.Array.Empty<int>())
+		}),
+		Create(_ => 3, [ new[] { 5, 4, 3, 9 } ]),
+		Create(_ => 1, [ new[] { 7, 2, 1, 8 } ]),
+		Create(_ => 2147483647, [ System.Array.Empty<int>() ])
 	];
 }

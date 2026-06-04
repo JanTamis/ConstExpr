@@ -37,15 +37,16 @@ public class VisitIfStatementTests : BaseTest<Func<bool, int, int, (int, int, in
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
+		Create((condition, x, y) =>
+		{
 			var c = condition ? x : y;
 			var d = x > y ? x : y;
 
 			return (1, 4, c, d);
-			"""),
-		Create("return (1, 4, 10, 10);", true, 10, 5),
-		Create("return (1, 4, 30, 30);", false, 20, 30),
-		Create("return (1, 4, 100, 200);", true, 100, 200),
-		Create("return (1, 4, 15, 15);", false, 15, 15)
+		}),
+		Create((_, _, _) => (1, 4, 10, 10), [ true, 10, 5 ]),
+		Create((_, _, _) => (1, 4, 30, 30), [ false, 20, 30 ]),
+		Create((_, _, _) => (1, 4, 100, 200), [ true, 100, 200 ]),
+		Create((_, _, _) => (1, 4, 15, 15), [ false, 15, 15 ])
 	];
 }

@@ -14,9 +14,9 @@ public class LinqSelectTripleFusionTests : BaseTest<Func<IEnumerable<int>, int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return 9;", new[] { 1 }), // ((1*2)+1)*3 = 9
-		Create("return 0;", Enumerable.Empty<int>()),
-		Create("return 45;", new[] { 1, 2, 3 }) // 9 + ((2*2)+1)*3=15 + ((3*2)+1)*3=21 = 45
+		Create(_ => 9, [ new[] { 1 } ]), // ((1*2)+1)*3 = 9
+		Create(_ => 0, [ Enumerable.Empty<int>() ]),
+		Create(_ => 45, [ new[] { 1, 2, 3 } ]) // 9 + ((2*2)+1)*3=15 + ((3*2)+1)*3=21 = 45
 	];
 }
 
@@ -31,8 +31,8 @@ public class LinqSelectCastToLongTests : BaseTest<Func<IEnumerable<int>, long>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return 6L;", new[] { 1, 2, 3 }),
-		Create("return 0L;", Enumerable.Empty<int>()),
-		Create("return 42L;", new[] { 42 })
+		Create(_ => 6L, [ new[] { 1, 2, 3 } ]),
+		Create(_ => 0L, [ Enumerable.Empty<int>() ]),
+		Create(_ => 42L, [ new[] { 42 } ])
 	];
 }

@@ -5,7 +5,7 @@ namespace ConstExpr.Tests.Optimization;
 [InheritsTests]
 public class NestedCommonSubexpressionEliminationTest() : BaseTest<Func<int, int, int>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination)
 {
-	public override string TestMethod => GetString((x, y) =>
+	public override string TestMethod => GetString((x, _) =>
 	{
 		var result = 0;
 
@@ -21,8 +21,10 @@ public class NestedCommonSubexpressionEliminationTest() : BaseTest<Func<int, int
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
+		Create((x, _) =>
+		{
 			var result = 0;
+
 			if (x > 0)
 			{
 				var sum = x * x * x + 1;
@@ -30,7 +32,7 @@ public class NestedCommonSubexpressionEliminationTest() : BaseTest<Func<int, int
 			}
 
 			return result;
-			"""),
-		Create("return 4;", 1, 5)
+		}),
+		Create((_, _) => 4, [ 1, 5 ])
 	];
 }

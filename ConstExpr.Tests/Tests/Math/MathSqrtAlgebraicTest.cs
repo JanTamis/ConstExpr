@@ -10,6 +10,6 @@ public class MathSqrtAlgebraicTest() : BaseTest<Func<double, double>>(FastMathFl
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return double.Abs(x);"),
+		Create(x => double.Abs(x)),
 	];
 }

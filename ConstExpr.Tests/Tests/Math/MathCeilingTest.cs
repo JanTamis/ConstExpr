@@ -9,8 +9,8 @@ public class MathCeilingTest() : BaseTest<Func<double, double>>(FastMathFlags.Fa
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return double.Ceiling(x);"),
-		Create("return 4D;", 3.2),
-		Create("return -3D;", -3.7),
+		Create(x => double.Ceiling(x)),
+		Create(_ => 4D, [ 3.2 ]),
+		Create(_ => -3D, [ -3.7 ]),
 	];
 }

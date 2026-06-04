@@ -15,7 +15,7 @@ public class LinqZipOptimizationTests : BaseTest<Func<int[], int>>
 		var b = Enumerable.Empty<int>().Zip(x).Count();
 
 		var c = x.Zip(x).Count();
-		
+
 		var d = x.Zip(x.Where(w => w > 0)).Count();
 
 		return a + b + c + d;
@@ -24,7 +24,7 @@ public class LinqZipOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return x.Length + Int32.Min(x.Length, Count_Pdf8bA(x));"),
-		Create("return 6;", new[] { 1, 2, 3 }),
-		Create("return 0;", new int[] { }),
+		Create(_ => 6, [ new[] { 1, 2, 3 } ]),
+		Create(_ => 0, [ new int[] { } ]),
 	];
 }

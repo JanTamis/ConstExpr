@@ -10,7 +10,7 @@ public class StringEndsWithCharTest() : BaseTest<Func<string, char, bool>>(FastM
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null),
-		Create("return c == 'o';", "hello", Unknown),
-		Create("return false;", "", Unknown),
+		Create((_, c) => c == 'o', [ "hello", Unknown ]),
+		Create((_, _) => false, [ "", Unknown ]),
 	];
 }

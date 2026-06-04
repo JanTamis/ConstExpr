@@ -11,11 +11,11 @@ public class VisitArgumentTests : BaseTest<Func<string, string, string, string>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return String.Concat(a, b, c);"),
-		Create("return \"abc\";", "a", "b", "c"),
+		Create((_, _, _) => "abc", [ "a", "b", "c" ]),
 		Create("return String.Concat(\"a\", b, \"c\");", "a", Unknown, "c"),
 		Create("return String.Concat(a, \"b\", c);", Unknown, "b", Unknown),
-		Create("return string.Concat(a, \"ab\");", Unknown, "a", "b"),
-		Create("return string.Concat(a, \"c\");", Unknown, null, "c"),
-		Create("return \"\";", "", "", "")
+		Create((a, _, _) => string.Concat(a, "ab"), [ Unknown, "a", "b" ]),
+		Create((a, _, _) => string.Concat(a, "c"), [ Unknown, null, "c" ]),
+		Create((_, _, _) => "", [ "", "", "" ])
 	];
 }

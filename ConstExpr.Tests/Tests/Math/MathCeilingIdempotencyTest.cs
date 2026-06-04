@@ -9,6 +9,6 @@ public class MathCeilingIdempotencyTest() : BaseTest<Func<double, double>>(FastM
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return double.Ceiling(x);"),
+		Create(x => double.Ceiling(x)),
 	];
 }

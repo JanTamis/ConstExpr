@@ -16,8 +16,8 @@ public class ShiftByZeroTests() : BaseTest<Func<int, int>>(FastMathFlags.Associa
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		// x << 0 = x, x >> 0 = x → x + x → x << 1
-		Create("return x << 1;"),
-		Create("return 10;", 5),
-		Create("return -6;", -3),
+		Create(x => x << 1),
+		Create(_ => 10, [ 5 ]),
+		Create(_ => -6, [ -3 ]),
 	];
 }

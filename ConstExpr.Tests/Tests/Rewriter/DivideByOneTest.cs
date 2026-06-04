@@ -8,8 +8,8 @@ public class DivideByOneTest : BaseTest<Func<int, int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return x;"),
-		Create("return 9;", 9),
-		Create("return -4;", -4),
+		Create(x => x),
+		Create(_ => 9, [ 9 ]),
+		Create(_ => -4, [ -4 ]),
 	];
 }

@@ -25,7 +25,7 @@ public class LinqSumOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFla
 		// Reverse().Sum() => Sum()
 		var e = x.Reverse().Sum();
 
-		var f = x.Select(v => 4).Sum();
+		var f = x.Select(_ => 4).Sum();
 
 		return a + b + c + d + e + f;
 	});
@@ -33,7 +33,7 @@ public class LinqSumOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFla
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return TensorPrimitives.Sum(x) * 9 + Sum_dcMRsA(x);"),
-		Create("return 54;", new[] { 1, 2, 3 }),
-		Create("return 39;", new[] { 5 }),
+		Create(_ => 54, [ new[] { 1, 2, 3 } ]),
+		Create(_ => 39, [ new[] { 5 } ]),
 	];
 }

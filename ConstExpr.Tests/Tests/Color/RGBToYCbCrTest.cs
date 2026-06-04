@@ -20,12 +20,13 @@ public class RGBToYCbCrTest() : BaseTest<Func<byte, byte, byte, (double, double,
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
+		Create((r, g, b) =>
+		{
 			var fr = r * 0.00392156862745098;
 			var fg = g * 0.00392156862745098;
 			var fb = b * 0.00392156862745098;
 
 			return (Double.MultiplyAddEstimate(fb, 0.1145, Double.MultiplyAddEstimate(fr, 0.2989, fg * 0.5866)), Double.MultiplyAddEstimate(fb, 0.5, Double.MultiplyAddEstimate(-fg, 0.3313, -(fr * 0.1687))), Double.MultiplyAddEstimate(-fb, 0.0816, Double.MultiplyAddEstimate(fr, 0.5, -(fg * 0.4184))));
-			"""),
+		}),
 	];
 }

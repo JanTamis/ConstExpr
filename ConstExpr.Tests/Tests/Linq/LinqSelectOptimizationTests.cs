@@ -12,7 +12,7 @@ public class LinqSelectOptimizationTests : BaseTest<Func<IEnumerable<int>, int>>
 		var a = x.Select(y => y).Sum();
 
 		// Cast lambda followed by Sum: Select(y => (int?)y).Sum() => Sum(y => (int?)y)
-		var b = x.Select(y => (int?)y).Sum() ?? 0;
+		var b = x.Select(y => (int?) y).Sum() ?? 0;
 
 		// Lambda fusion: Select(y => y * 2).Select(z => z + 1) => Select(y => y * 2 + 1)
 		var c = x.Select(y => y * 2).Select(z => z + 1).Sum();
@@ -23,8 +23,8 @@ public class LinqSelectOptimizationTests : BaseTest<Func<IEnumerable<int>, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Sum_xcpydQ(x) + (Sum_2MT2Cw(x) ?? 0) + Sum_I5kOlg(x);"),
-		Create("return 27;", new[] { 1, 2, 3 }), // a=6, b=6, c=(3)+(5)+(7)=15 = 27
-		Create("return 0;", Enumerable.Empty<int>()), // a=0, b=0, c=0 = 0
-		Create("return 21;", new[] { 5 }), // a=5, b=5, c=11 = 21
+		Create(_ => 27, [ new[] { 1, 2, 3 } ]), // a=6, b=6, c=(3)+(5)+(7)=15 = 27
+		Create(_ => 0, [ Enumerable.Empty<int>() ]), // a=0, b=0, c=0 = 0
+		Create(_ => 21, [ new[] { 5 } ]), // a=5, b=5, c=11 = 21
 	];
 }

@@ -20,8 +20,9 @@ public class DEKHashTests() : BaseTest<Func<string, uint>>(FastMathFlags.FastMat
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var hash = (uint)str.Length;
+		Create(str =>
+		{
+			var hash = (uint) str.Length;
 
 			for (var i = 0U; i < str.Length; i++)
 			{
@@ -29,6 +30,6 @@ public class DEKHashTests() : BaseTest<Func<string, uint>>(FastMathFlags.FastMat
 			}
 
 			return hash;
-			""")
+		})
 	];
 }

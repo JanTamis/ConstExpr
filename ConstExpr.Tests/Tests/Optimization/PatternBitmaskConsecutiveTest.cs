@@ -16,11 +16,11 @@ public class PatternBitmaskConsecutiveTest() : BaseTest<Func<int, bool>>(FastMat
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return (uint)(n - 5) <= 3U;"),
-		Create("return true;", 5),
-		Create("return true;", 6),
-		Create("return true;", 7),
-		Create("return true;", 8),
-		Create("return false;", 4),
-		Create("return false;", 9),
+		Create(_ => true, [ 5 ]),
+		Create(_ => true, [ 6 ]),
+		Create(_ => true, [ 7 ]),
+		Create(_ => true, [ 8 ]),
+		Create(_ => false, [ 4 ]),
+		Create(_ => false, [ 9 ]),
 	];
 }

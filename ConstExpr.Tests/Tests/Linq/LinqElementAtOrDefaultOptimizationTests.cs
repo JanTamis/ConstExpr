@@ -40,9 +40,9 @@ public class LinqElementAtOrDefaultOptimizationTests() : BaseTest<Func<int[], in
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return (x.Length > 0 ? x[0] * 2 : 0) + (x.Length > 1 ? x[1] * 2 : 0) + (x.Length > 2 ? x[2] * 2 : 0) + (x.Length > 10 ? x[10] : 0) + (x.Length > 3 ? x[3] : 0);"),
-		Create("return 16;", new[] { 1, 2, 3, 4, 5 }), // 1 + 2 + 3 + 1 + 2 + 3 + 0 + 4 = 16
-		Create("return 0;", new int[] { }), // All return 0 (default)
-		Create("return 0;", new[] { 0, 0, 0, 0, 0 }),
+		Create(x => (x.Length > 0 ? x[0] * 2 : 0) + (x.Length > 1 ? x[1] * 2 : 0) + (x.Length > 2 ? x[2] * 2 : 0) + (x.Length > 10 ? x[10] : 0) + (x.Length > 3 ? x[3] : 0)),
+		Create(_ => 16, [ new[] { 1, 2, 3, 4, 5 } ]), // 1 + 2 + 3 + 1 + 2 + 3 + 0 + 4 = 16
+		Create(_ => 0, [ new int[] { } ]), // All return 0 (default)
+		Create(_ => 0, [ new[] { 0, 0, 0, 0, 0 } ]),
 	];
 }

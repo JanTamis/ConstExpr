@@ -14,13 +14,14 @@ public class AbsoluteDifferenceTest() : BaseTest<Func<int, int, int>>(FastMathFl
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
+		Create((a, b) =>
+		{
 			var diff = a - b;
 
 			return Int32.Abs(diff);
-			"""),
-		Create("return 5;", 10, 5),
-		Create("return 30;", -10, 20),
-		Create("return 0;", 42, 42)
+		}),
+		Create((_, _) => 5, [ 10, 5 ]),
+		Create((_, _) => 30, [ -10, 20 ]),
+		Create((_, _) => 0, [ 42, 42 ])
 	];
 }

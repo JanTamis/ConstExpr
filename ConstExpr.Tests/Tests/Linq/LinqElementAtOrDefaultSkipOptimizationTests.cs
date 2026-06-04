@@ -37,8 +37,8 @@ public class LinqElementAtOrDefaultSkipOptimizationTests() : BaseTest<Func<int[]
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return (x.Length > 1 ? x[1] * 2 : 0) + (x.Length > 3 ? x[3] * 2 : 0) + (x.Length > 2 ? x[2] : 0) + (x.Length > 11 ? x[11] : 0) + (x.Length > 0 ? x[0] : 0);"),
-		Create("return 16;", new[] { 1, 2, 3, 4, 5 }), // 2 + 4 + 4 + 2 + 3 + 0 + 1 = 16
-		Create("return 0;", new int[] { }), // All return 0 (default)
+		Create(x => (x.Length > 1 ? x[1] * 2 : 0) + (x.Length > 3 ? x[3] * 2 : 0) + (x.Length > 2 ? x[2] : 0) + (x.Length > 11 ? x[11] : 0) + (x.Length > 0 ? x[0] : 0)),
+		Create(_ => 16, [ new[] { 1, 2, 3, 4, 5 } ]), // 2 + 4 + 4 + 2 + 3 + 0 + 1 = 16
+		Create(_ => 0, [ new int[] { } ]), // All return 0 (default)
 	];
 }

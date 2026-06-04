@@ -1,7 +1,9 @@
+using System.Text.RegularExpressions;
+
 namespace ConstExpr.Tests.Regex;
 
 [InheritsTests]
-public class RegexReplaceTests() : BaseTest<Func<string, string, string, System.Text.RegularExpressions.RegexOptions, string>>
+public class RegexReplaceTests() : BaseTest<Func<string, string, string, RegexOptions, string>>
 {
 	public override string TestMethod => GetString((input, pattern, replacement, options) =>
 	{
@@ -14,15 +16,15 @@ public class RegexReplaceTests() : BaseTest<Func<string, string, string, System.
 		Create(null),
 
 		// 3-argument overload: pattern can be hoisted into cached Regex field.
-		Create(null, Unknown, @"^\d+$", Unknown, System.Text.RegularExpressions.RegexOptions.None),
+		Create(null, Unknown, @"^\d+$", Unknown, RegexOptions.None),
 
 		// Pattern unknown: no optimization.
-		Create(null, Unknown, Unknown, Unknown, System.Text.RegularExpressions.RegexOptions.IgnoreCase),
+		Create(null, Unknown, Unknown, Unknown, RegexOptions.IgnoreCase),
 
 		// Options unknown: no optimization.
 		Create(null, Unknown, @"^\d+$", Unknown, Unknown),
 
 		// Fully constant: should fold to literal result.
-		Create("return \"hello # #\";", "hello 1 2", @"\d", "#", System.Text.RegularExpressions.RegexOptions.None),
+		Create((_, _, _, _) => "hello # #", [ "hello 1 2", @"\d", "#", RegexOptions.None ]),
 	];
 }

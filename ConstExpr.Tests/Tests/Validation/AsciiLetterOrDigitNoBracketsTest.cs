@@ -11,10 +11,10 @@ public class AsciiLetterOrDigitNoBracketsTest() : BaseTest<Func<char, bool>>(Fas
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return Char.IsAsciiLetterOrDigit(c);"),
-		Create("return true;", '7'),
-		Create("return true;", 'x'),
-		Create("return true;", 'X'),
-		Create("return false;", '@'),
+		Create(c => Char.IsAsciiLetterOrDigit(c)),
+		Create(_ => true, [ '7' ]),
+		Create(_ => true, [ 'x' ]),
+		Create(_ => true, [ 'X' ]),
+		Create(_ => false, [ '@' ]),
 	];
 }

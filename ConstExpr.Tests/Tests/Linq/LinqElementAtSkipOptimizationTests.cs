@@ -35,10 +35,13 @@ public class LinqElementAtSkipOptimizationTests() : BaseTest<Func<int[], int>>(F
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return x[1] * 2 + x[3] * 2 + x[2] + x[0];"),
+		Create(x => x[1] * 2 + x[3] * 2 + x[2] + x[0]),
 		// a = x[1] = 2, b = x[3] = 4, c = x[3] = 4, d = x[1] = 2, e = x[2] = 3, f = x[0] = 1
 		// Total: 2 + 4 + 4 + 2 + 3 + 1 = 16
-		Create("return 16;", new[] { 1, 2, 3, 4, 5 }),
-		Create("throw new ArgumentOutOfRangeException(\"Index was out of range. Must be non-negative and less than the size of the collection. (Parameter 'index')\");", new int[] { }),
+		Create(_ => 16, [ new[] { 1, 2, 3, 4, 5 } ]),
+		Create(_ =>
+		{
+			throw new ArgumentOutOfRangeException("Index was out of range. Must be non-negative and less than the size of the collection. (Parameter 'index')");
+		}, [ new int[] { } ]),
 	];
 }

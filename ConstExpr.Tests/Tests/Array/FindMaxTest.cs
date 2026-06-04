@@ -28,8 +28,8 @@ public class FindMaxTest() : BaseTest<Func<int[], int>>(FastMathFlags.FastMath |
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null),
-		Create("return 50;", new[] { 10, 20, 50, 30 }),
-		Create("return 100;", new[] { 5, 15, 25, 100, 50 }),
-		Create("return -5;", new[] { -10, -20, -5, -30 })
+		Create(_ => 50, [ new[] { 10, 20, 50, 30 } ]),
+		Create(_ => 100, [ new[] { 5, 15, 25, 100, 50 } ]),
+		Create(_ => -5, [ new[] { -10, -20, -5, -30 } ])
 	];
 }

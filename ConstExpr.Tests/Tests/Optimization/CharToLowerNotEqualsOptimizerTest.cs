@@ -13,7 +13,7 @@ public class CharToLowerNotEqualsOptimizerTest() : BaseTest<Func<char, char, boo
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null, Unknown, Unknown),
-		Create("return false;", 'A', 'a'),
-		Create("return true;", 'A', 'b'),
+		Create((_, _) => false, [ 'A', 'a' ]),
+		Create((_, _) => true, [ 'A', 'b' ]),
 	];
 }

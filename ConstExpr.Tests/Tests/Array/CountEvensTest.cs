@@ -22,7 +22,8 @@ public class CountEvensTest() : BaseTest<Func<int[], int>>(FastMathFlags.FastMat
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
+		Create(arr =>
+		{
 			var count = 0;
 
 			foreach (var num in arr)
@@ -34,9 +35,9 @@ public class CountEvensTest() : BaseTest<Func<int[], int>>(FastMathFlags.FastMat
 			}
 
 			return count;
-			"""),
-		Create("return 3;", new[] { 1, 2, 3, 4, 5, 6 }),
-		Create("return 0;", System.Array.Empty<int>()),
-		Create("return 4;", new[] { 2, 4, 6, 8 })
+		}),
+		Create(_ => 3, [ new[] { 1, 2, 3, 4, 5, 6 } ]),
+		Create(_ => 0, [ System.Array.Empty<int>() ]),
+		Create(_ => 4, [ new[] { 2, 4, 6, 8 } ])
 	];
 }

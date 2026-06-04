@@ -23,7 +23,8 @@ public class VisitIdentifierNameReceiverContextTests : BaseTest<Func<double[], i
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
+		Create(data =>
+		{
 			var outliers = new List<int>();
 
 			for (var i = 0; i < data.Length; i++)
@@ -33,6 +34,6 @@ public class VisitIdentifierNameReceiverContextTests : BaseTest<Func<double[], i
 			}
 
 			return outliers.ToArray();
-			""", Unknown)
+		}, [ Unknown ])
 	];
 }

@@ -12,6 +12,6 @@ public class RegexSplitTests() : BaseTest<Func<string, string, int>>
 	[
 		Create(null),
 		Create("return Regex_ab3uPQ.Split(input).Length;", Unknown, @"^\d+$"),
-		Create("return 2;", "1234-5678", @"-"),
+		Create((_, _) => 2, [ "1234-5678", @"-" ]),
 	];
 }

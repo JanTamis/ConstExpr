@@ -9,12 +9,12 @@ public class BitOperationsIsPow2UintTest() : BaseTest<Func<uint, bool>>(FastMath
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return x != 0U && (x & x - 1U) == 0U;"),
-		Create("return true;", 8u),
-		Create("return true;", 1024u),
-		Create("return false;", 0u),
-		Create("return false;", 7u),
-		Create("return false;", 6u)
+		Create(x => x != 0U && (x & x - 1U) == 0U),
+		Create(_ => true, [ 8u ]),
+		Create(_ => true, [ 1024u ]),
+		Create(_ => false, [ 0u ]),
+		Create(_ => false, [ 7u ]),
+		Create(_ => false, [ 6u ])
 	];
 }
 
@@ -25,10 +25,10 @@ public class BitOperationsIsPow2IntTest() : BaseTest<Func<int, bool>>(FastMathFl
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return x > 0 && (x & x - 1) == 0;"),
-		Create("return true;", 16),
-		Create("return false;", 0),
-		Create("return false;", -4),
-		Create("return false;", 6)
+		Create(x => x > 0 && (x & x - 1) == 0),
+		Create(_ => true, [ 16 ]),
+		Create(_ => false, [ 0 ]),
+		Create(_ => false, [ -4 ]),
+		Create(_ => false, [ 6 ])
 	];
 }

@@ -10,7 +10,7 @@ public class LinqSkipLastOptimizationTests : BaseTest<Func<int[], int>>
 	{
 		// SkipLast(0) => source
 		var a = x.SkipLast(0).Count();
-		
+
 		var b = x.SkipLast(1).SkipLast(5).Count();
 
 		return a + b;
@@ -19,8 +19,7 @@ public class LinqSkipLastOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return x.Length + Count_89mObA(x);"),
-		Create("return 3;", new[] { 1, 2, 3 }),
-		Create("return 0;", new int[] { }),
+		Create(_ => 3, [ new[] { 1, 2, 3 } ]),
+		Create(_ => 0, [ new int[] { } ]),
 	];
 }
-

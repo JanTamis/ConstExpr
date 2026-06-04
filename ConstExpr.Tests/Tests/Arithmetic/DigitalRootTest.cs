@@ -45,8 +45,8 @@ public class DigitalRootTest() : BaseTest<Func<int, int>>(FastMathFlags.FastMath
 
 			return num;
 			"""),
-		Create("return 2;", 38),
-		Create("return 6;", 942),
-		Create("return 0;", 0)
+		Create(_ => 2, [ 38 ]),
+		Create(_ => 6, [ 942 ]),
+		Create(_ => 0, [ 0 ])
 	];
 }

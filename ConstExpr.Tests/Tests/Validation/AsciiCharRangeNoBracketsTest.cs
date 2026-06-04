@@ -17,10 +17,10 @@ public class AsciiCharRangeNoBracketsTest() : BaseTest<Func<char, bool>>(FastMat
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return Char.IsAsciiHexDigit(c);"),
-		Create("return true;", '5'),
-		Create("return true;", 'b'),
-		Create("return true;", 'E'),
-		Create("return false;", 'z'),
+		Create(c => Char.IsAsciiHexDigit(c)),
+		Create(_ => true, [ '5' ]),
+		Create(_ => true, [ 'b' ]),
+		Create(_ => true, [ 'E' ]),
+		Create(_ => false, [ 'z' ]),
 	];
 }

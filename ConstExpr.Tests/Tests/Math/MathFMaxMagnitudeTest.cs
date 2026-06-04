@@ -10,7 +10,7 @@ public class MathFMaxMagnitudeTest() : BaseTest<Func<float, float, float>>(FastM
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return Single.MaxMagnitude(a, b);"),
-		Create("return -3F;", 1.0f, -3.0f),
+		Create((a, b) => Single.MaxMagnitude(a, b)),
+		Create((_, _) => -3F, [ 1.0f, -3.0f ]),
 	];
 }

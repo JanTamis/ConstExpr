@@ -11,7 +11,7 @@ public class MathMaxNumberTest() : BaseTest<Func<double, double, double>>(FastMa
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null),
-		Create("return 2D;", 1.0, 2.0),
-		Create("return 3D;", -5.0, 3.0),
+		Create((_, _) => 2D, [ 1.0, 2.0 ]),
+		Create((_, _) => 3D, [ -5.0, 3.0 ]),
 	];
 }

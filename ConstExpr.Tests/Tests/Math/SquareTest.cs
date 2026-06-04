@@ -10,8 +10,8 @@ public class SquareTest() : BaseTest<Func<int, int>>(FastMathFlags.FastMath | Fa
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null),
-		Create("return 25;", 5),
-		Create("return 0;", 0),
-		Create("return 100;", -10)
+		Create(_ => 25, [ 5 ]),
+		Create(_ => 0, [ 0 ]),
+		Create(_ => 100, [ -10 ])
 	];
 }

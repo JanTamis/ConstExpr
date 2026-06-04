@@ -11,7 +11,7 @@ public class MathLog10Test() : BaseTest<Func<double, double>>(FastMathFlags.Fast
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return FastLog10(x);"),
-		Create("return 1D;", 10.0),
-		Create("return 2D;", 100.0),
+		Create(_ => 1D, [ 10.0 ]),
+		Create(_ => 2D, [ 100.0 ]),
 	];
 }

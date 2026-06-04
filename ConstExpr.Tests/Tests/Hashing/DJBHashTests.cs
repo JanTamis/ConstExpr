@@ -20,15 +20,16 @@ public class DJBHashTests() : BaseTest<Func<string, uint>>(FastMathFlags.FastMat
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
+		Create(str =>
+		{
 			var hash = 5381U;
 
 			for (var i = 0U; i < str.Length; i++)
 			{
-				hash = hash * 33U + (byte)str[(int)i];
+				hash = hash * 33U + (byte) str[(int) i];
 			}
 
 			return hash;
-			""")
+		})
 	];
 }

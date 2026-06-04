@@ -43,7 +43,8 @@ public class VisitWhileStatementTests : BaseTest<Func<int, bool, (int, int, int,
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
+		Create((limit, condition) =>
+		{
 			var c = 0;
 
 			while (c < limit)
@@ -52,17 +53,17 @@ public class VisitWhileStatementTests : BaseTest<Func<int, bool, (int, int, int,
 			}
 
 			var d = 5;
-			
+
 			if (condition)
 			{
 				d--;
 			}
-			
+
 			return (0, 11, c, d);
-			"""),
-		Create("return (0, 11, 3, 4);", 3, true),
-		Create("return (0, 11, 0, 4);", 0, true),
-		Create("return (0, 11, 5, 5);", 5, false),
-		Create("return (0, 11, 10, 4);", 10, true)
+		}),
+		Create((_, _) => (0, 11, 3, 4), [ 3, true ]),
+		Create((_, _) => (0, 11, 0, 4), [ 0, true ]),
+		Create((_, _) => (0, 11, 5, 5), [ 5, false ]),
+		Create((_, _) => (0, 11, 10, 4), [ 10, true ])
 	];
 }

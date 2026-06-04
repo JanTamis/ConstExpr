@@ -17,7 +17,7 @@ public class LinqOrderByDescendingOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return TensorPrimitives.Max(x);"),
-		Create("return 3;", new[] { 3, 1, 2 }),
-		Create("return 5;", new[] { 5 }),
+		Create(_ => 3, [ new[] { 3, 1, 2 } ]),
+		Create(_ => 5, [ new[] { 5 } ]),
 	];
 }

@@ -10,9 +10,9 @@ public class PowTwoToExpTest() : BaseTest<Func<double, double>>(FastMathFlags.Fa
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return double.Exp2(n);"),
-		Create("return 8D;", 3.0),
-		Create("return 1D;", 0.0)
+		Create(n => double.Exp2(n)),
+		Create(_ => 8D, [ 3.0 ]),
+		Create(_ => 1D, [ 0.0 ])
 	];
 }
 
@@ -23,9 +23,9 @@ public class PowTenToExpTest() : BaseTest<Func<double, double>>(FastMathFlags.Fa
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return double.Exp10(n);"),
-		Create("return 1000D;", 3.0),
-		Create("return 1D;", 0.0)
+		Create(n => double.Exp10(n)),
+		Create(_ => 1000D, [ 3.0 ]),
+		Create(_ => 1D, [ 0.0 ])
 	];
 }
 
@@ -36,8 +36,8 @@ public class PowNegHalfExpTest() : BaseTest<Func<double, double>>(FastMathFlags.
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return Double.ReciprocalSqrtEstimate(x);"),
-		Create("return 0.5D;", 4.0),
-		Create("return 1D;", 1.0)
+		Create(x => Double.ReciprocalSqrtEstimate(x)),
+		Create(_ => 0.5D, [ 4.0 ]),
+		Create(_ => 1D, [ 1.0 ])
 	];
 }

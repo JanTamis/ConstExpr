@@ -46,8 +46,8 @@ public class LinqDistinctOptimizationTests() : BaseTest<Func<int[], int>>(FastMa
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Count_w6J_9Q(x) * 9 + (x.Length > 0 ? 1 : 0);"),
-		Create("return 46;", new[] { 1, 2, 3, 4, 5 }),
-		Create("return 0;", new int[] { }),
-		Create("return 28;", new[] { 1, 1, 2, 2, 3 }), // 3 distinct values
+		Create(_ => 46, [ new[] { 1, 2, 3, 4, 5 } ]),
+		Create(_ => 0, [ new int[] { } ]),
+		Create(_ => 28, [ new[] { 1, 1, 2, 2, 3 } ]), // 3 distinct values
 	];
 }

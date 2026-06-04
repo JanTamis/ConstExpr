@@ -58,7 +58,8 @@ public class RGBToHSLTest() : BaseTest<Func<byte, byte, byte, (int, double, doub
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
+		Create((r, g, b) =>
+		{
 			var h = 0;
 			var s = 0D;
 			var l = 0D;
@@ -94,10 +95,10 @@ public class RGBToHSLTest() : BaseTest<Func<byte, byte, byte, (int, double, doub
 				if (hue > 1D)
 					hue -= 1D;
 
-				h = (int)(hue * 360D);
+				h = (int) (hue * 360D);
 			}
 
 			return (h, s, l);
-			"""),
+		}),
 	];
 }

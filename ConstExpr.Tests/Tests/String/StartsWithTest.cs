@@ -10,8 +10,8 @@ public class StartsWithTest() : BaseTest<Func<string, string, bool>>(FastMathFla
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null),
-		Create("return true;", "hello", "hel"),
-		Create("return false;", "world", "foo"),
-		Create("return true;", "", "")
+		Create((_, _) => true, [ "hello", "hel" ]),
+		Create((_, _) => false, [ "world", "foo" ]),
+		Create((_, _) => true, [ "", "" ])
 	];
 }

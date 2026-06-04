@@ -10,8 +10,8 @@ public class CubeTest() : BaseTest<Func<int, int>>(FastMathFlags.FastMath | Fast
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null),
-		Create("return 125;", 5),
-		Create("return 0;", 0),
-		Create("return -8;", -2)
+		Create(_ => 125, [ 5 ]),
+		Create(_ => 0, [ 0 ]),
+		Create(_ => -8, [ -2 ])
 	];
 }

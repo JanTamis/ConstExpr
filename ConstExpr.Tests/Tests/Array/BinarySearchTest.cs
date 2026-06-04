@@ -35,7 +35,8 @@ public class BinarySearchTest() : BaseTest<Func<int[], int, int>>(FastMathFlags.
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
+		Create((arr, target) =>
+		{
 			var left = 0;
 			var right = arr.Length - 1;
 
@@ -60,9 +61,9 @@ public class BinarySearchTest() : BaseTest<Func<int[], int, int>>(FastMathFlags.
 			}
 
 			return -1;
-			"""),
-		Create("return 2;", new[] { 1, 3, 5, 7, 9 }, 5),
-		Create("return 4;", new[] { 0, 2, 4, 6, 8, 10 }, 8),
-		Create("return -1;", new[] { 2, 4, 6, 8 }, 5)
+		}),
+		Create((_, _) => 2, [ new[] { 1, 3, 5, 7, 9 }, 5 ]),
+		Create((_, _) => 4, [ new[] { 0, 2, 4, 6, 8, 10 }, 8 ]),
+		Create((_, _) => -1, [ new[] { 2, 4, 6, 8 }, 5 ])
 	];
 }

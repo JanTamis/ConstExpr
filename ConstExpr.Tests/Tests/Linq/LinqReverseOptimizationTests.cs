@@ -36,7 +36,7 @@ public class LinqReverseOptimizationTests() : BaseTest<Func<int[], int>>(FastMat
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return TensorPrimitives.Max(x) * 2 + TensorPrimitives.Min(x) * 2 + x[0];"),
-		Create("return 9;", new[] { 1, 2, 3 }),
-		Create("return 25;", new[] { 5 }),
+		Create(_ => 9, [ new[] { 1, 2, 3 } ]),
+		Create(_ => 25, [ new[] { 5 } ]),
 	];
 }

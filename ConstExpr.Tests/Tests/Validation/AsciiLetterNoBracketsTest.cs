@@ -11,9 +11,9 @@ public class AsciiLetterNoBracketsTest() : BaseTest<Func<char, bool>>(FastMathFl
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return Char.IsAsciiLetter(c);"),
-		Create("return true;", 'm'),
-		Create("return true;", 'M'),
-		Create("return false;", '5'),
+		Create(c => Char.IsAsciiLetter(c)),
+		Create(_ => true, [ 'm' ]),
+		Create(_ => true, [ 'M' ]),
+		Create(_ => false, [ '5' ]),
 	];
 }

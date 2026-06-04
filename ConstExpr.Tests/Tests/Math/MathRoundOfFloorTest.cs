@@ -10,6 +10,6 @@ public class MathRoundOfFloorTest() : BaseTest<Func<double, double>>(FastMathFla
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return double.Floor(x);"),
+		Create(x => double.Floor(x)),
 	];
 }

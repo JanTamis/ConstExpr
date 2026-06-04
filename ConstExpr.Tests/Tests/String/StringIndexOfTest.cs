@@ -10,9 +10,9 @@ public class StringIndexOfTest() : BaseTest<Func<string, string, int>>(FastMathF
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null),
-		Create("return 1;", "hello", "ell"),
-		Create("return -1;", "hello", "xyz"),
-		Create("return 0;", "hello", "h"),
-		Create("return 4;", "hello", "o"),
+		Create((_, _) => 1, [ "hello", "ell" ]),
+		Create((_, _) => -1, [ "hello", "xyz" ]),
+		Create((_, _) => 0, [ "hello", "h" ]),
+		Create((_, _) => 4, [ "hello", "o" ]),
 	];
 }

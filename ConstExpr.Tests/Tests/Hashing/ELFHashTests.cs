@@ -28,13 +28,14 @@ public class ELFHashTests() : BaseTest<Func<string, uint>>(FastMathFlags.FastMat
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
+		Create(str =>
+		{
 			var hash = 0U;
 			var x = 0U;
 
 			for (var i = 0U; i < str.Length; i++)
 			{
-				hash = hash * 16U + (byte)str[(int)i];
+				hash = hash * 16U + (byte) str[(int) i];
 
 				if ((x = hash & 4026531840U) != 0U)
 					hash ^= x >> 24;
@@ -43,6 +44,6 @@ public class ELFHashTests() : BaseTest<Func<string, uint>>(FastMathFlags.FastMat
 			}
 
 			return hash;
-			""")
+		})
 	];
 }

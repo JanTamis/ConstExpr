@@ -9,10 +9,10 @@ public class BitOperationsRotateLeftUintTest() : BaseTest<Func<uint, int, uint>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return value << offset | value >> 32 - offset;"),
-		Create("return 8U;", 1u, 3),
-		Create("return 2147483648U;", 1u, 31),
-		Create("return 1U;", 1u, 0)
+		Create((value, offset) => value << offset | value >> 32 - offset),
+		Create((_, _) => 8U, [ 1u, 3 ]),
+		Create((_, _) => 2147483648U, [ 1u, 31 ]),
+		Create((_, _) => 1U, [ 1u, 0 ])
 	];
 }
 
@@ -23,8 +23,8 @@ public class BitOperationsRotateRightUintTest() : BaseTest<Func<uint, int, uint>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return value >> offset | value << 32 - offset;"),
-		Create("return 1U;", 8u, 3),
-		Create("return 8U;", 1u, 29)
+		Create((value, offset) => value >> offset | value << 32 - offset),
+		Create((_, _) => 1U, [ 8u, 3 ]),
+		Create((_, _) => 8U, [ 1u, 29 ])
 	];
 }

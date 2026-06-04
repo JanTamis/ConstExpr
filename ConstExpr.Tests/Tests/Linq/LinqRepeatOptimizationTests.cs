@@ -71,7 +71,7 @@ public class LinqRepeatOptimizationTests() : BaseTest<Func<int, int, int>>(FastM
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return (count > 0 ? element : throw new InvalidOperationException(\"Sequence contains no elements\")) * 4 + count + element * count + (count > 0 ? 1 : 0) + (count > 0 && element == 5 ? 1 : 0) + (count > 2 ? element : throw new ArgumentOutOfRangeException(\"\")) + (count > 2 ? element : 0) + Int32.Max(0, count - 2) + Int32.Min(2, count) + (count <= 0 || element > 0 ? 1 : 0);"),
-		Create("return 40;", 3, 4),
+		Create((element, count) => (count > 0 ? element : throw new InvalidOperationException("Sequence contains no elements")) * 4 + count + element * count + (count > 0 ? 1 : 0) + (count > 0 && element == 5 ? 1 : 0) + (count > 2 ? element : throw new ArgumentOutOfRangeException("")) + (count > 2 ? element : 0) + Int32.Max(0, count - 2) + Int32.Min(2, count) + (count <= 0 || element > 0 ? 1 : 0)),
+		Create((_, _) => 40, [ 3, 4 ]),
 	];
 }

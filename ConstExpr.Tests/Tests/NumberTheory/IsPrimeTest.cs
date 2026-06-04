@@ -47,9 +47,9 @@ public class IsPrimeTest() : BaseTest<Func<int, bool>>(FastMathFlags.FastMath | 
 
 			return true;
 			"""),
-		Create("return true;", 17),
-		Create("return true;", 29),
-		Create("return false;", 1),
-		Create("return false;", 100)
+		Create(_ => true, [ 17 ]),
+		Create(_ => true, [ 29 ]),
+		Create(_ => false, [ 1 ]),
+		Create(_ => false, [ 100 ])
 	];
 }

@@ -10,6 +10,6 @@ public class MathTruncateOfFloorTest() : BaseTest<Func<double, double>>(FastMath
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return double.Floor(x);"),
+		Create(x => double.Floor(x)),
 	];
 }

@@ -15,14 +15,14 @@ public class IsAsciiHexDigitTest() : BaseTest<Func<char, bool>>(FastMathFlags.Fa
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		// Unknown char → three-range check collapsed into Char.IsAsciiHexDigit
-		Create("return Char.IsAsciiHexDigit(c);"),
+		Create(c => Char.IsAsciiHexDigit(c)),
 		// Known char constants: char comparisons bypass full constant folding
 		// (implicit char→int conversion causes the per-range &&s to fall back to
 		// Char.IsAsciiDigit / Char.IsBetween, which are then combined by this optimizer)
-		Create("return true;", '5'),
-		Create("return true;", 'a'),
-		Create("return true;", 'F'),
-		Create("return false;", 'g'),
-		Create("return false;", 'Z'),
+		Create(_ => true, [ '5' ]),
+		Create(_ => true, [ 'a' ]),
+		Create(_ => true, [ 'F' ]),
+		Create(_ => false, [ 'g' ]),
+		Create(_ => false, [ 'Z' ]),
 	];
 }

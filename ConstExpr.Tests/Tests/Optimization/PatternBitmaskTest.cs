@@ -17,19 +17,20 @@ public class PatternBitmaskTest() : BaseTest<Func<int, bool>>(FastMathFlags.Fast
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
+		Create(n =>
+		{
 			var diff = n - 1;
 
-			return (uint)diff <= 19U && (0x84211u >> diff & 1) != 0;
-			"""), // Unknown value
-		Create("return true;", 1), // Match
-		Create("return true;", 5), // Match
-		Create("return true;", 10), // Match
-		Create("return true;", 15), // Match
-		Create("return true;", 20), // Match
-		Create("return false;", 0), // No match
-		Create("return false;", 3), // No match
-		Create("return false;", 7), // No match
-		Create("return false;", 21), // No match
+			return (uint) diff <= 19U && (0x84211u >> diff & 1) != 0;
+		}), // Unknown value
+		Create(_ => true, [ 1 ]), // Match
+		Create(_ => true, [ 5 ]), // Match
+		Create(_ => true, [ 10 ]), // Match
+		Create(_ => true, [ 15 ]), // Match
+		Create(_ => true, [ 20 ]), // Match
+		Create(_ => false, [ 0 ]), // No match
+		Create(_ => false, [ 3 ]), // No match
+		Create(_ => false, [ 7 ]), // No match
+		Create(_ => false, [ 21 ]), // No match
 	];
 }

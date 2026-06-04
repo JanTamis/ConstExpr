@@ -10,6 +10,6 @@ public class VisitReturnStatementTests : BaseTest<Func<int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return 3;")
+		Create(() => 3)
 	];
 }

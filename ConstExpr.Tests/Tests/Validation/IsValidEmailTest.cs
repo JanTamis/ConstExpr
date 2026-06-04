@@ -72,10 +72,10 @@ public class IsValidEmailTest() : BaseTest<Func<string, bool>>(FastMathFlags.Fas
 
 			return atCount == 1 && dotCount >= 1 && atIndex > 0 && atIndex < diff && lastDotIndex > atIndex + 1 && lastDotIndex < diff;
 			"""), // Unknown input → body unchanged
-		Create("return false;", ""), // Empty string → guard fires
-		Create("return false;", "a@b"), // Too short (length < 5) → guard fires
-		Create("return false;", "invalid"), // No @ or dot → returns false
-		Create("return false;", "@test.com"), // @ at start (atIndex == 0) → returns false
-		Create("return false;", "test@com.") // Dot at end (lastDotIndex == length - 1) → returns false
+		Create(_ => false, [ "" ]), // Empty string → guard fires
+		Create(_ => false, [ "a@b" ]), // Too short (length < 5) → guard fires
+		Create(_ => false, [ "invalid" ]), // No @ or dot → returns false
+		Create(_ => false, [ "@test.com" ]), // @ at start (atIndex == 0) → returns false
+		Create(_ => false, [ "test@com." ]) // Dot at end (lastDotIndex == length - 1) → returns false
 	];
 }

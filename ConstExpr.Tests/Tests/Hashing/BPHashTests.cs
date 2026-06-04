@@ -20,7 +20,8 @@ public class BPHashTests() : BaseTest<Func<string, uint>>(FastMathFlags.FastMath
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
+		Create(str =>
+		{
 			var hash = 0U;
 
 			for (var i = 0U; i < str.Length; i++)
@@ -29,6 +30,6 @@ public class BPHashTests() : BaseTest<Func<string, uint>>(FastMathFlags.FastMath
 			}
 
 			return hash;
-			""")
+		})
 	];
 }

@@ -22,10 +22,10 @@ public class VisitBinaryExpressionTests : BaseTest<Func<int, int, bool, bool, (i
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return (x + y, x - y, x * y, x / y, x % y, x > y, b1 && b2, b1 || b2);"),
-		Create("return (3, -1, 2, 0, 1, false, false, true);", 1, 2, true, false),
-		Create("return (13, 3, 40, 1, 3, true, false, false);", 8, 5, false, false),
-		Create("return (25, 5, 150, 1, 5, true, true, true);", 15, 10, true, true),
-		Create("return (0, -20, -100, -1, 0, false, false, true);", -10, 10, false, true)
+		Create((x, y, b1, b2) => (x + y, x - y, x * y, x / y, x % y, x > y, b1 && b2, b1 || b2)),
+		Create((_, _, _, _) => (3, -1, 2, 0, 1, false, false, true), [ 1, 2, true, false ]),
+		Create((_, _, _, _) => (13, 3, 40, 1, 3, true, false, false), [ 8, 5, false, false ]),
+		Create((_, _, _, _) => (25, 5, 150, 1, 5, true, true, true), [ 15, 10, true, true ]),
+		Create((_, _, _, _) => (0, -20, -100, -1, 0, false, false, true), [ -10, 10, false, true ])
 	];
 }

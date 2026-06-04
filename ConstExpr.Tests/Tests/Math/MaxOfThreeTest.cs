@@ -24,7 +24,8 @@ public class MaxOfThreeTest() : BaseTest<Func<int, int, int, int>>(FastMathFlags
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
+		Create((a, b, c) =>
+		{
 			var max = a;
 
 			if (b > max)
@@ -38,8 +39,8 @@ public class MaxOfThreeTest() : BaseTest<Func<int, int, int, int>>(FastMathFlags
 			}
 
 			return max;
-			"""),
-		Create("return 10;", 5, 10, 3),
-		Create("return 5;", 5, 5, 5)
+		}),
+		Create((_, _, _) => 10, [ 5, 10, 3 ]),
+		Create((_, _, _) => 5, [ 5, 5, 5 ])
 	];
 }

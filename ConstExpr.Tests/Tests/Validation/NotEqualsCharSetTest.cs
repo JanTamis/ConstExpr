@@ -13,14 +13,15 @@ public class NotEqualsCharSetTest() : BaseTest<Func<char, bool>>(FastMathFlags.F
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
+		Create(c =>
+		{
 			var diff = c - ' ';
 
-			return (uint)diff > 13U || (0x2801u >> diff & 1) == 0;
-			"""),
-		Create("return false;", '-'),
-		Create("return false;", ' '),
-		Create("return false;", '+'),
-		Create("return true;", 'x'),
+			return (uint) diff > 13U || (0x2801u >> diff & 1) == 0;
+		}),
+		Create(_ => false, [ '-' ]),
+		Create(_ => false, [ ' ' ]),
+		Create(_ => false, [ '+' ]),
+		Create(_ => true, [ 'x' ]),
 	];
 }

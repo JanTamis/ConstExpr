@@ -36,7 +36,8 @@ public class PowerTest() : BaseTest<Func<int, int, long>>(FastMathFlags.FastMath
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
+		Create((baseNum, exponent) =>
+		{
 			if (exponent < 0)
 			{
 				return 0L;
@@ -48,7 +49,7 @@ public class PowerTest() : BaseTest<Func<int, int, long>>(FastMathFlags.FastMath
 			}
 
 			var result = 1L;
-			var base64 = (long)baseNum;
+			var base64 = (long) baseNum;
 
 			while (exponent > 0)
 			{
@@ -62,10 +63,10 @@ public class PowerTest() : BaseTest<Func<int, int, long>>(FastMathFlags.FastMath
 			}
 
 			return result;
-			"""),
-		Create("return 32L;", 2, 5),
-		Create("return 1L;", 5, 0),
-		Create("return 0L;", 2, -3),
-		Create("return 1024L;", 2, 10)
+		}),
+		Create((_, _) => 32L, [ 2, 5 ]),
+		Create((_, _) => 1L, [ 5, 0 ]),
+		Create((_, _) => 0L, [ 2, -3 ]),
+		Create((_, _) => 1024L, [ 2, 10 ])
 	];
 }

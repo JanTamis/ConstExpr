@@ -19,7 +19,8 @@ public class ArrayMutationConstantIndexTest() : BaseTest<Func<int>>(FastMathFlag
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
+		Create(() =>
+		{
 			var counts = new int[256];
 
 			counts['a']++;
@@ -27,6 +28,6 @@ public class ArrayMutationConstantIndexTest() : BaseTest<Func<int>>(FastMathFlag
 			counts['a']++;
 
 			return counts['a'];
-			""")
+		})
 	];
 }

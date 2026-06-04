@@ -9,7 +9,7 @@ public class MathILogBTest() : BaseTest<Func<double, int>>(FastMathFlags.FastMat
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return double.ILogB(x);"),
-		Create("return 3;", 8.0),
+		Create(x => double.ILogB(x)),
+		Create(_ => 3, [ 8.0 ]),
 	];
 }

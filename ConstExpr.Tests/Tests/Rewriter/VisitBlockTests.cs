@@ -24,15 +24,16 @@ public class VisitBlockTests : BaseTest<Func<int, int, int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
+		Create((x, y) =>
+		{
 			var result = x + 10 + (y << 1);
 			result += x - 5;
 
 			return result;
-			"""),
-		Create("return 21;", 5, 3),
-		Create("return 35;", 10, 5),
-		Create("return 7;", 0, 1),
-		Create("return 5;", -10, 10)
+		}),
+		Create((_, _) => 21, [ 5, 3 ]),
+		Create((_, _) => 35, [ 10, 5 ]),
+		Create((_, _) => 7, [ 0, 1 ]),
+		Create((_, _) => 5, [ -10, 10 ])
 	];
 }

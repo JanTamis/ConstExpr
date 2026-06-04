@@ -25,8 +25,7 @@ public class LinqToHashSetOptimizationTests() : BaseTest<Func<int[], int>>(FastM
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return ToHashSet_JgdI5A(x).Count * 3;"),
-		Create("return 9;", new[] { 1, 2, 3 }),
-		Create("return 0;", new int[] { }),
+		Create(_ => 9, [ new[] { 1, 2, 3 } ]),
+		Create(_ => 0, [ new int[] { } ]),
 	];
 }
-

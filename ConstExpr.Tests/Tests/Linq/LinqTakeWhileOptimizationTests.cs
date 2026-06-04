@@ -9,18 +9,18 @@ public class LinqTakeWhileOptimizationTests : BaseTest<Func<int[], int>>
 	public override string TestMethod => GetString(x =>
 	{
 		// TakeWhile(v => true) => source (take everything)
-		var a = x.TakeWhile(v => true).Count();
+		var a = x.TakeWhile(_ => true).Count();
 
 		// TakeWhile(v => false) => Empty (take nothing)
-		var b = x.TakeWhile(v => false).Count();
+		var b = x.TakeWhile(_ => false).Count();
 
 		return a + b;
 	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return x.Length;"),
-		Create("return 3;", new[] { 1, 2, 3 }),
-		Create("return 0;", new int[] { }),
+		Create(x => x.Length),
+		Create(_ => 3, [ new[] { 1, 2, 3 } ]),
+		Create(_ => 0, [ new int[] { } ]),
 	];
 }

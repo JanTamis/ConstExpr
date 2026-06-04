@@ -45,8 +45,8 @@ public class CharCountTest() : BaseTest<Func<string?, char, int>>(FastMathFlags.
 
 			return count;
 			"""),
-		Create("return 3;", "ababa", 'a'),
-		Create("return 2;", "aaXXa", 'X'),
-		Create("return 0;", "", 'a')
+		Create((_, _) => 3, [ "ababa", 'a' ]),
+		Create((_, _) => 2, [ "aaXXa", 'X' ]),
+		Create((_, _) => 0, [ "", 'a' ])
 	];
 }

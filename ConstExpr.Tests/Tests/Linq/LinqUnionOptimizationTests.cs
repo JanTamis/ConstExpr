@@ -11,7 +11,7 @@ public class LinqUnionOptimizationTests() : BaseTest<Func<int[], int>>(FastMathF
 	public override string TestMethod => GetString(x =>
 	{
 		// Union(Enumerable.Empty) => Distinct()
-		var a = x.Union(Enumerable.Empty<int>()).Count();
+		var a = x.Union([ ]).Count();
 
 		// Union(same) => Distinct()
 		var b = x.Union(x).Count();
@@ -22,7 +22,7 @@ public class LinqUnionOptimizationTests() : BaseTest<Func<int[], int>>(FastMathF
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Count_w6J_9Q(x) << 1;"),
-		Create("return 6;", new[] { 1, 2, 3 }),
-		Create("return 0;", new int[] { }),
+		Create(_ => 6, [ new[] { 1, 2, 3 } ]),
+		Create(_ => 0, [ new int[] { } ]),
 	];
 }

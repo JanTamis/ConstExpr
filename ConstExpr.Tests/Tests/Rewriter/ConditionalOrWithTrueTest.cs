@@ -8,8 +8,8 @@ public class ConditionalOrWithTrueTest : BaseTest<Func<bool, bool>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return true;"),
-		Create("return true;", true),
-		Create("return true;", false),
+		Create(_ => true),
+		Create(_ => true, [ true ]),
+		Create(_ => true, [ false ]),
 	];
 }

@@ -48,8 +48,8 @@ public class LCMTest() : BaseTest<Func<int, int, int>>(FastMathFlags.FastMath | 
 
 			return AbsFast(a * b) / aa;
 			"""),
-		Create("return 12;", 4, 6),
-		Create("return 0;", 0, 5),
-		Create("return 42;", 21, 6)
+		Create((_, _) => 12, [ 4, 6 ]),
+		Create((_, _) => 0, [ 0, 5 ]),
+		Create((_, _) => 42, [ 21, 6 ])
 	];
 }

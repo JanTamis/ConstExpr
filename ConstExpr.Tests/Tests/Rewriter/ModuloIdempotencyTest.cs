@@ -8,8 +8,8 @@ public class ModuloIdempotencyTest : BaseTest<Func<int, int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return x % x;"),
-		Create("return 0;", 7),
-		Create("return 0;", -3),
+		Create(x => x % x),
+		Create(_ => 0, [ 7 ]),
+		Create(_ => 0, [ -3 ]),
 	];
 }

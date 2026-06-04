@@ -15,15 +15,15 @@ public class PatternBitmaskLargeTest() : BaseTest<Func<int, bool>>(FastMathFlags
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return (uint)n <= 60U && (0x1004010040100401UL >> n & 1) != 0;"),
-		Create("return true;", 0),
-		Create("return true;", 10),
-		Create("return true;", 20),
-		Create("return true;", 30),
-		Create("return true;", 40),
-		Create("return true;", 50),
-		Create("return true;", 60),
-		Create("return false;", 5),
-		Create("return false;", 25),
+		Create(n => (uint) n <= 60U && (0x1004010040100401UL >> n & 1) != 0),
+		Create(_ => true, [ 0 ]),
+		Create(_ => true, [ 10 ]),
+		Create(_ => true, [ 20 ]),
+		Create(_ => true, [ 30 ]),
+		Create(_ => true, [ 40 ]),
+		Create(_ => true, [ 50 ]),
+		Create(_ => true, [ 60 ]),
+		Create(_ => false, [ 5 ]),
+		Create(_ => false, [ 25 ]),
 	];
 }

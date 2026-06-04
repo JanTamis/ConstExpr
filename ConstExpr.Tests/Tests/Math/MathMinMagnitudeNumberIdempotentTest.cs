@@ -10,6 +10,6 @@ public class MathMinMagnitudeNumberIdempotentTest() : BaseTest<Func<double, doub
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return a;"),
+		Create(a => a),
 	];
 }

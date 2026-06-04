@@ -9,8 +9,8 @@ public class MathFloorTest() : BaseTest<Func<double, double>>(FastMathFlags.Fast
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return double.Floor(x);"),
-		Create("return 3D;", 3.7),
-		Create("return -4D;", -3.2),
+		Create(x => double.Floor(x)),
+		Create(_ => 3D, [ 3.7 ]),
+		Create(_ => -4D, [ -3.2 ]),
 	];
 }

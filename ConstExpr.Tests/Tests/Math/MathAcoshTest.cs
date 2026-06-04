@@ -11,6 +11,6 @@ public class MathAcoshTest() : BaseTest<Func<double, double>>(FastMathFlags.Fast
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return FastAcosh(x);"),
-		Create("return 0D;", 1.0),
+		Create(_ => 0D, [ 1.0 ]),
 	];
 }

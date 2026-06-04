@@ -22,7 +22,7 @@ public class LinqWhereToArrayOptimizationTests() : BaseTest<Func<int[], int>>(Fa
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Array.FindAll(x, v => v > 2).Length << 1;"),
-		Create("return 6;", new[] { 1, 2, 3, 4, 5 }),
-		Create("return 0;", new int[] { }),
+		Create(_ => 6, [ new[] { 1, 2, 3, 4, 5 } ]),
+		Create(_ => 0, [ new int[] { } ]),
 	];
 }

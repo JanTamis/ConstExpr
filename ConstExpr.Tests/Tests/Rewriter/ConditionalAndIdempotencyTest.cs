@@ -8,8 +8,8 @@ public class ConditionalAndIdempotencyTest : BaseTest<Func<bool, bool>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return b;"),
-		Create("return true;", true),
-		Create("return false;", false),
+		Create(b => b),
+		Create(_ => true, [ true ]),
+		Create(_ => false, [ false ]),
 	];
 }

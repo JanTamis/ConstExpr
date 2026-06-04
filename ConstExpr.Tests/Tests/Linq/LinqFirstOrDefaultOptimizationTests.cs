@@ -51,7 +51,7 @@ public class LinqFirstOrDefaultOptimizationTests() : BaseTest<Func<int[], int>>(
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Array.Find(x, v => v > 0) * 2 + (x.Length > 0 ? x[0] * 5 : 0) + Array.Find(x, v => v > 3) + Array.Find(x, v => v > 2) + Array.Find(x, v => v < 5) + Array.Find(x, v => v == 3) + TensorPrimitives.Min(x) + (x.Length > 0 ? x[^1] : 0);"),
-		Create("return 24;", new[] { 1, 2, 3, 4, 5 }),
-		Create("return 0;", new int[] { }),
+		Create(_ => 24, [ new[] { 1, 2, 3, 4, 5 } ]),
+		Create(_ => 0, [ new int[] { } ]),
 	];
 }

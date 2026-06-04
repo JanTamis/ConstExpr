@@ -18,6 +18,6 @@ public class VisitExpressionStatementTests : BaseTest<Func<int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null),
-		Create("return 6;", 6)
+		Create(_ => 6, [ 6 ])
 	];
 }

@@ -36,8 +36,8 @@ public class GCDTest() : BaseTest<Func<int, int, int>>(FastMathFlags.FastMath | 
 
 			return a;
 			"""),
-		Create("return 6;", 48, 18),
-		Create("return 1;", 17, 19),
-		Create("return 15;", 45, 60)
+		Create((_, _) => 6, [ 48, 18 ]),
+		Create((_, _) => 1, [ 17, 19 ]),
+		Create((_, _) => 15, [ 45, 60 ])
 	];
 }

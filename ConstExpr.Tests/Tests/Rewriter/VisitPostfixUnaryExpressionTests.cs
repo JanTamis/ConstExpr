@@ -17,10 +17,10 @@ public class VisitPostfixUnaryExpressionTests : BaseTest<Func<int, int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return x;"),
-		Create("return 7;", 7),
-		Create("return 1;", 1),
-		Create("return -1;", -1),
-		Create("return 0;", 0)
+		Create(x => x),
+		Create(_ => 7, [ 7 ]),
+		Create(_ => 1, [ 1 ]),
+		Create(_ => -1, [ -1 ]),
+		Create(_ => 0, [ 0 ])
 	];
 }

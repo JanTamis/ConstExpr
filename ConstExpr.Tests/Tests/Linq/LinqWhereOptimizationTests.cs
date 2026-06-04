@@ -11,10 +11,10 @@ public class LinqWhereOptimizationTests() : BaseTest<Func<int[], int>>(FastMathF
 	public override string TestMethod => GetString(x =>
 	{
 		// Where(v => true) - should be removed entirely
-		var a = x.Where(v => true).Count();
+		var a = x.Where(_ => true).Count();
 
 		// Where(v => false) - should be replaced with Empty
-		var b = x.Where(v => false).Count();
+		var b = x.Where(_ => false).Count();
 
 		// Consecutive Where calls with same parameter - should combine with &&
 		var c = x.Where(v => v > 1).Where(v => v < 5).Count();
@@ -26,10 +26,10 @@ public class LinqWhereOptimizationTests() : BaseTest<Func<int[], int>>(FastMathF
 		var e = x.Where(v => v > 0).Where(v => v < 10).Where(v => v % 2 == 0).Count();
 
 		// Where(v => true) in chain - should be removed
-		var f = x.Where(v => true).Where(v => v > 3).Count();
+		var f = x.Where(_ => true).Where(v => v > 3).Count();
 
 		// Where(v => false) in chain - result should be empty
-		var g = x.Where(v => v > 1).Where(v => false).Count();
+		var g = x.Where(v => v > 1).Where(_ => false).Count();
 
 		// Complex predicates
 		var h = x.Where(v => v > 0 && v < 100).Where(v => v % 2 == 0).Count();
@@ -42,8 +42,8 @@ public class LinqWhereOptimizationTests() : BaseTest<Func<int[], int>>(FastMathF
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return x.Length + Count_8v2IzQ(x) + Count_k44U2w(x) + Count_iu6ggQ(x) + Count_vwaqjw(x) + Count_edlCaw(x);"),
-		Create("return 19;", new[] { 1, 2, 3, 4, 5 }),
-		Create("return 0;", new int[] { }),
-		Create("return 38;", new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }),
+		Create(_ => 19, [ new[] { 1, 2, 3, 4, 5 } ]),
+		Create(_ => 0, [ new int[] { } ]),
+		Create(_ => 38, [ new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 } ]),
 	];
 }

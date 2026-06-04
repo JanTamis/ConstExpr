@@ -8,8 +8,8 @@ public class DivideZeroByNonZeroTest : BaseTest<Func<int, int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return 0;"),
-		Create("return 0;", 7),
-		Create("return 0;", -2),
+		Create(_ => 0),
+		Create(_ => 0, [ 7 ]),
+		Create(_ => 0, [ -2 ]),
 	];
 }

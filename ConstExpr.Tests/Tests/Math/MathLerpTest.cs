@@ -11,8 +11,8 @@ public class MathLerpTest() : BaseTest<Func<double, double, double, double>>(Fas
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return FastLerp(a, b, t);"),
-		Create("return 5D;", 0.0, 10.0, 0.5),
-		Create("return 0D;", 0.0, 10.0, 0.0),
-		Create("return 10D;", 0.0, 10.0, 1.0),
+		Create((_, _, _) => 5D, [ 0.0, 10.0, 0.5 ]),
+		Create((_, _, _) => 0D, [ 0.0, 10.0, 0.0 ]),
+		Create((_, _, _) => 10D, [ 0.0, 10.0, 1.0 ]),
 	];
 }

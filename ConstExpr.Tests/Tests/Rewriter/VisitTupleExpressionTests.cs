@@ -14,16 +14,16 @@ public class VisitTupleExpressionTests : BaseTest<Func<int, int, string, ((int, 
 		var t4 = (x + y, s);
 		var t5 = ((x, y), t2);
 		var t6 = (10 + 5, x * 2);
-		
+
 		return (t1, t2, t4, t6);
 	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return ((1, 2), (3, 12), (x + y, s), (15, x << 1));"),
-		Create("return ((1, 2), (3, 12), (15, \"hello\"), (15, 20));", 10, 5, "hello"),
-		Create("return ((1, 2), (3, 12), (15, \"test\"), (15, -10));", -5, 20, "test"),
-		Create("return ((1, 2), (3, 12), (0, \"\"), (15, 0));", 0, 0, ""),
-		Create("return ((1, 2), (3, 12), (150, \"world\"), (15, 200));", 100, 50, "world")
+		Create((x, y, s) => ((1, 2), (3, 12), (x + y, s), (15, x << 1))),
+		Create((_, _, _) => ((1, 2), (3, 12), (15, "hello"), (15, 20)), [ 10, 5, "hello" ]),
+		Create((_, _, _) => ((1, 2), (3, 12), (15, "test"), (15, -10)), [ -5, 20, "test" ]),
+		Create((_, _, _) => ((1, 2), (3, 12), (0, ""), (15, 0)), [ 0, 0, "" ]),
+		Create((_, _, _) => ((1, 2), (3, 12), (150, "world"), (15, 200)), [ 100, 50, "world" ])
 	];
 }

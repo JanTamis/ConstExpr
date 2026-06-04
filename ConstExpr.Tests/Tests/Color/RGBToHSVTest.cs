@@ -55,7 +55,8 @@ public class RGBToHSVTest() : BaseTest<Func<byte, byte, byte, (double, double, d
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
+		Create((r, g, b) =>
+		{
 			double delta, min;
 			double h = 0D, s, v;
 
@@ -92,6 +93,6 @@ public class RGBToHSVTest() : BaseTest<Func<byte, byte, byte, (double, double, d
 			}
 
 			return (h, s, v * 0.00392156862745098);
-			"""),
+		}),
 	];
 }

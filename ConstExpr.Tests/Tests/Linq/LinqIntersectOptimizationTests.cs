@@ -47,7 +47,7 @@ public class LinqIntersectOptimizationTests() : BaseTest<Func<int[], int>>(FastM
 		var l = x.Reverse().Intersect([ 5 ]).Any() ? 1 : 0;
 
 		// Intersect on both sides optimized
-		var m = x.Distinct().Intersect(new[] { 1, 2 }).ToList().Count();
+		var m = x.Distinct().Intersect([ 1, 2 ]).ToList().Count();
 
 		// Regular Intersect (should not be further optimized)
 		var n = x.Intersect([ 99 ]).Count();
@@ -58,9 +58,9 @@ public class LinqIntersectOptimizationTests() : BaseTest<Func<int[], int>>(FastM
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Count_AEkyLw(x) * 2 + Count_FQoOgw(x) * 2 + Count_w6J_9Q(x) + Count_VBWycg(x) + Count_utUoqA(x) + Count_w7iHXw(x) + Count_MK3tdQ(x) + (Contains_lhimyw(x) ? 1 : 0) + Count_N_W_CA(x) + Count_0S7iQA(x);"),
-		Create("return 18;", new[] { 1, 2, 3, 4, 5 }),
-		Create("return 0;", new int[] { }),
-		Create("return 3;", new[] { 10, 20, 30 }),
-		Create("return 14;", new[] { 1, 1, 2, 2, 3 }),
+		Create(_ => 18, [ new[] { 1, 2, 3, 4, 5 } ]),
+		Create(_ => 0, [ new int[] { } ]),
+		Create(_ => 3, [ new[] { 10, 20, 30 } ]),
+		Create(_ => 14, [ new[] { 1, 1, 2, 2, 3 } ]),
 	];
 }

@@ -9,8 +9,8 @@ public class MathSqrtTest() : BaseTest<Func<double, double>>(FastMathFlags.FastM
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return double.Sqrt(x);"),
-		Create("return 3D;", 9.0),
-		Create("return 2D;", 4.0),
+		Create(x => double.Sqrt(x)),
+		Create(_ => 3D, [ 9.0 ]),
+		Create(_ => 2D, [ 4.0 ]),
 	];
 }

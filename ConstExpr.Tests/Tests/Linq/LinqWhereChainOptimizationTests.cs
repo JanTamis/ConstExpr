@@ -23,10 +23,10 @@ public class LinqWhereChainOptimizationTests() : BaseTest<Func<int[], IEnumerabl
 		var d = x.Where(p => p > 5).Where(q => q < 15);
 
 		// Where(true) should be removed in chain
-		var e = x.Where(v => true).Where(v => v > 3).Where(v => v < 7);
+		var e = x.Where(_ => true).Where(v => v > 3).Where(v => v < 7);
 
 		// Where(false) should make entire chain empty
-		var f = x.Where(v => v > 1).Where(v => false).Where(v => v < 10);
+		var f = x.Where(v => v > 1).Where(_ => false).Where(v => v < 10);
 
 		return a.Concat(b).Concat(c).Concat(d).Concat(e).Concat(f);
 	});

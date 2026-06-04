@@ -28,8 +28,8 @@ public class LinqContainsOptimizationStringTests() : BaseTest<Func<string[], int
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return (Array.IndexOf(x, \"hello\") >= 0 ? 2 : 0) + (Array.IndexOf(x, \"world\") >= 0 ? 1 : 0) + (Array.Exists(x, v => String.Equals(v, \"HELLO\", StringComparison.CurrentCultureIgnoreCase)) ? 1 : 0);", Unknown),
-		Create("return 4;", new[] { new[] { "hello", "world", "foo" } }),
-		Create("return 0;", new[] { new string[] {} }),
-		Create("return 1;", new[] { new[] { "hi", "world", "test" } }), // Only b matches ("world")
+		Create(_ => 4, [ new[] { "hello", "world", "foo" } ]),
+		Create(_ => 0, [ new string[] { } ]),
+		Create(_ => 1, [ new[] { "hi", "world", "test" } ]), // Only b matches ("world")
 	];
 }

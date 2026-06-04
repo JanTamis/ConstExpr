@@ -12,7 +12,7 @@ public class LinqSelectManyOptimizationTests : BaseTest<Func<int[][], int>>
 		var a = Enumerable.Empty<int[]>().SelectMany(arr => arr).Count();
 
 		// SelectMany always returning empty => Empty
-		var b = x.SelectMany(v => Enumerable.Empty<int>()).Count();
+		var b = x.SelectMany(_ => Enumerable.Empty<int>()).Count();
 
 		// optimize to: x.Sum(arr => arr.Count()) - SelectMany with Count can be optimized to Sum of counts
 		var c = x.SelectMany(s => s).Count();
@@ -23,7 +23,7 @@ public class LinqSelectManyOptimizationTests : BaseTest<Func<int[][], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Sum_TMdy0g(x);"),
-		Create("return 3;", [ new[] { new[] { 1, 2, 3 } } ]),
-		Create("return 0;", new int[] { }),
+		Create(_ => 3, [ new[] { new[] { 1, 2, 3 } } ]),
+		Create(_ => 0, [ new int[] { } ]),
 	];
 }

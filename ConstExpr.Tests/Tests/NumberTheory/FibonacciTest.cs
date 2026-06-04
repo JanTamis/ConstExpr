@@ -32,7 +32,8 @@ public class FibonacciTest() : BaseTest<Func<int, long>>(FastMathFlags.FastMath 
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
+		Create(n =>
+		{
 			if (n <= 0)
 			{
 				return 0L;
@@ -55,10 +56,10 @@ public class FibonacciTest() : BaseTest<Func<int, long>>(FastMathFlags.FastMath 
 			}
 
 			return curr;
-			"""),
-		Create("return 5L;", 5),
-		Create("return 1L;", 1),
-		Create("return 0L;", 0),
-		Create("return 55L;", 10)
+		}),
+		Create(_ => 5L, [ 5 ]),
+		Create(_ => 1L, [ 1 ]),
+		Create(_ => 0L, [ 0 ]),
+		Create(_ => 55L, [ 10 ])
 	];
 }

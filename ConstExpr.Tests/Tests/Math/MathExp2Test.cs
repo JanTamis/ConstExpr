@@ -11,7 +11,7 @@ public class MathExp2Test() : BaseTest<Func<double, double>>(FastMathFlags.FastM
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return FastExp2(x);"),
-		Create("return 1D;", 0.0),
-		Create("return 8D;", 3.0),
+		Create(_ => 1D, [ 0.0 ]),
+		Create(_ => 8D, [ 3.0 ]),
 	];
 }

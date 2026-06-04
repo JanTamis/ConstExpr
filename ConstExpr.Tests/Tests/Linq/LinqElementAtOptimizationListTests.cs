@@ -28,8 +28,8 @@ public class LinqElementAtOptimizationListTests() : BaseTest<Func<List<int>, int
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return x[0] * 2 + x[1] * 2;"),
-		Create("return 6;", new List<int> { 1, 2, 3, 4, 5 }), // 1 + 2 + 1 + 2 = 6
-		Create("return 0;", new List<int> { 0, 0, 0, 0, 0 }),
+		Create(x => x[0] * 2 + x[1] * 2),
+		Create(_ => 6, [ new List<int> { 1, 2, 3, 4, 5 } ]), // 1 + 2 + 1 + 2 = 6
+		Create(_ => 0, [ new List<int> { 0, 0, 0, 0, 0 } ]),
 	];
 }

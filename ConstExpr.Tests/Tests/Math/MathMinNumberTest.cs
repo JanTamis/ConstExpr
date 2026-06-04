@@ -11,7 +11,7 @@ public class MathMinNumberTest() : BaseTest<Func<double, double, double>>(FastMa
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(null),
-		Create("return 1D;", 1.0, 2.0),
-		Create("return -5D;", -5.0, 3.0),
+		Create((_, _) => 1D, [ 1.0, 2.0 ]),
+		Create((_, _) => -5D, [ -5.0, 3.0 ]),
 	];
 }
