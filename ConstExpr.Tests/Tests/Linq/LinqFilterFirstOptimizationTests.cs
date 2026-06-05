@@ -20,6 +20,6 @@ public class LinqFilterFirstOptimizationTests : BaseTest<Func<int[], IEnumerable
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(x => x.Where(v => v > 4).OrderBy(v => v * 2).Concat((x.Where(v => v > 4).OrderByDescending(v => v * 2)))),
+		Create(x => x.Where(v => v > 4).OrderBy(v => v * 2).Concat(x.Where(v => v > 4).OrderByDescending(v => v * 2))),
 	];
 }

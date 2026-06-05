@@ -791,22 +791,29 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 		var innerBody = GetLambdaBody(inner);
 		var outerBody = GetLambdaBody(outer);
 
-		// If parameters are the same, we can directly combine with &&
-		// Otherwise, replace the outer parameter with the inner parameter
+		// Prefer a non-discard parameter name: if inner uses "_", use outer's name so the discard
+		// doesn't propagate through combined predicates (e.g. Where(_ => true).Where(v => v > 3) => Where(v => v > 3))
+		var preferredParam = innerParam == "_" && outerParam != "_" ? outerParam : innerParam;
+
 		ExpressionSyntax combinedBody;
 
-		if (innerParam == outerParam)
+		if (preferredParam == innerParam)
 		{
-			// Both use the same parameter name: v => v > 1 && v < 5
+			// Use innerParam as combined param; rename outer's body if needed
+			var renamedOuterBody = outerParam != innerParam
+				? ReplaceIdentifier(outerBody, outerParam, IdentifierName(innerParam))
+				: outerBody;
 			combinedBody = LogicalAndExpression(
 				ParenthesizedExpression(innerBody),
-				ParenthesizedExpression(outerBody));
+				ParenthesizedExpression(renamedOuterBody));
 		}
 		else
 		{
-			// Different parameter names: replace outer parameter with inner parameter
-			var renamedOuterBody = ReplaceIdentifier(outerBody, outerParam, IdentifierName(innerParam));
-			combinedBody = LogicalAndExpression(ParenthesizedExpression(innerBody), ParenthesizedExpression(renamedOuterBody));
+			// Use outerParam (innerParam was "_"): rename "_" references in inner's body to outerParam
+			var renamedInnerBody = ReplaceIdentifier(innerBody, innerParam, IdentifierName(outerParam));
+			combinedBody = LogicalAndExpression(
+				ParenthesizedExpression(renamedInnerBody),
+				ParenthesizedExpression(outerBody));
 		}
 
 		if (context.Model.TryGetMethodSymbol(inner, context.SymbolStore, out var methodSymbol)
@@ -814,7 +821,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 		{
 			var parameterType = methodSymbol.Parameters.Length > 0 ? methodSymbol.Parameters[0].Type : null;
 			return SimpleLambdaExpression(
-				Parameter(Identifier(innerParam)).WithTypeSymbolAnnotation(parameterType, context.SymbolStore),
+				Parameter(Identifier(preferredParam)).WithTypeSymbolAnnotation(parameterType, context.SymbolStore),
 				combinedBody
 			).WithMethodSymbolAnnotation(methodSymbol, context.SymbolStore);
 		}
@@ -822,9 +829,9 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 		// Fallback: try to derive the element type from the LINQ method's type arguments
 		var elementTypeFromMethod = context.Method.TypeArguments.Length > 0 ? context.Method.TypeArguments[0] : null;
 
-		// Create a new lambda with the inner parameter and the combined body
+		// Create a new lambda with the preferred parameter and the combined body
 		return SimpleLambdaExpression(
-			Parameter(Identifier(innerParam)).WithTypeSymbolAnnotation(elementTypeFromMethod, context.SymbolStore),
+			Parameter(Identifier(preferredParam)).WithTypeSymbolAnnotation(elementTypeFromMethod, context.SymbolStore),
 			combinedBody
 		);
 	}
