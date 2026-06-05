@@ -392,7 +392,11 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 			// visitor.VisitBlock(blockOperation.BlockBody!, variables);
 
-			var result = partialVisitor.VisitBlock(methodDecl.Body); // partialVisitor.VisitBlock(blockOperation.BlockBody!, variablesPartial);
+			// Pre-pass: rewrite single-variable polynomials into Horner form so the binary
+			// optimizer below can contract the nested multiplies into fused multiply-adds.
+			var hornerBody = PolynomialHornerRewriter.Apply(semanticModel, attribute.MathOptimizations, methodDecl.Body) as BlockSyntax ?? methodDecl.Body;
+
+			var result = partialVisitor.VisitBlock(hornerBody); // partialVisitor.VisitBlock(blockOperation.BlockBody!, variablesPartial);
 			var result2 = DeadCodePruner.Prune(result, variablesPartial, semanticModel);
 
 			if (attribute.MathOptimizations.HasFlag(FastMathFlags.CommonSubexpressionElimination))

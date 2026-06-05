@@ -246,7 +246,8 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			parameter.IsInitialized = true;
 		}
 
-		var newBody = rewriter.VisitBlock(state.Method.Body) as BlockSyntax;
+		var hornerBody = PolynomialHornerRewriter.Apply(state.SemanticModel, mathOptimizations, state.Method.Body) as BlockSyntax ?? state.Method.Body;
+		var newBody = rewriter.VisitBlock(hornerBody) as BlockSyntax;
 
 		foreach (var parameter in parameters)
 		{

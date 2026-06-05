@@ -93,6 +93,15 @@ public enum FastMathFlags
 	TailRecursionElimination = 1 << 10,
 
 	/// <summary>
+	///   Enable Horner's-method rewriting for single-variable polynomials.
+	///   Rewrites <c>a*x*x + b*x + c</c> into <c>(a*x + b)*x + c</c>, reducing the number of
+	///   multiplications and exposing fused-multiply-add opportunities (combine with
+	///   <see cref="FusedMultiplyAdd" /> for nested FMA). Reassociation can change floating-point
+	///   rounding, so this is opt-in and is not part of <see cref="FastMath" />.
+	/// </summary>
+	HornerPolynomial = 1 << 11,
+
+	/// <summary>
 	/// Enable all fast-math optimisations — equivalent to C++ <c>-ffast-math</c>.
 	/// Combines <see cref="AssociativeMath"/>, <see cref="NoNaN"/>, <see cref="NoInfinity"/>,
 	/// <see cref="NoSignedZero"/>, <see cref="ReciprocalMath"/>, <see cref="RoundToNearest"/>,
