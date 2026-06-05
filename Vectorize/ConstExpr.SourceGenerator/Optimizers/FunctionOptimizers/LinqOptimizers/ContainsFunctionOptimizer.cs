@@ -256,6 +256,43 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 			return true;
 		}
 
+		// Larger constant char/byte set: build a cached SearchValues<T> and probe it.
+		// SearchValues precomputes an optimal vectorized lookup for the specific values;
+		// smaller sets stay on the cheaper is-pattern tier above.
+		if (TryGetSyntaxes(source, out var svSyntaxes)
+		    && svSyntaxes.Count > maxIsPatternElements
+		    && svSyntaxes.All(s => s is LiteralExpressionSyntax)
+		    && searchValue is not LiteralExpressionSyntax
+		    && context.Model.Compilation.GetTypeByMetadataName("System.Buffers.SearchValues`1") is not null
+		    && TryGetContainsElementType(context, out var svElementType)
+		    && TryCreateSearchValuesField(svElementType, svSyntaxes, out var svField, out var svFieldName))
+		{
+			context.AdditionalSyntax.Add(svField, true);
+			context.Usings.Add("System.Buffers");
+
+			result = CreateInvocation(IdentifierName(svFieldName), nameof(Enumerable.Contains), searchValue);
+			return true;
+		}
+
+		// Larger constant set of a non-vectorizable type (e.g. string): build a cached FrozenSet<T>.
+		// Vector-supported element types keep their SIMD scan; char/byte are handled by SearchValues above.
+		if (TryGetSyntaxes(source, out var fsSyntaxes)
+		    && fsSyntaxes.Count > maxIsPatternElements
+		    && fsSyntaxes.All(s => s is LiteralExpressionSyntax)
+		    && searchValue is not LiteralExpressionSyntax
+		    && context.Model.Compilation.GetTypeByMetadataName("System.Collections.Frozen.FrozenSet") is not null
+		    && TryGetContainsElementType(context, out var fsElementType)
+		    && !fsElementType.IsVectorSupported()
+		    && fsElementType.SpecialType is not (SpecialType.System_Char or SpecialType.System_Byte)
+		    && TryCreateFrozenSetField(fsElementType, fsSyntaxes, out var fsField, out var fsFieldName))
+		{
+			context.AdditionalSyntax.Add(fsField, true);
+			context.Usings.Add("System.Collections.Frozen");
+
+			result = CreateInvocation(IdentifierName(fsFieldName), nameof(Enumerable.Contains), searchValue);
+			return true;
+		}
+
 		source = context.Visit(source) ?? source;
 
 		if (context.VisitedParameters.Count == 1
@@ -321,6 +358,115 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		              ?? context.Model.GetTypeInfo(context.VisitedParameters[0]).Type;
 
 		return elementType is not null;
+	}
+
+	/// <summary>
+	///   Builds a <c>private static readonly SearchValues&lt;char|byte&gt;</c> field initialised from a
+	///   constant set of literals, or returns false when the element type is not SearchValues-supported.
+	/// </summary>
+	private static bool TryCreateSearchValuesField(
+		ITypeSymbol elementType,
+		IList<ExpressionSyntax> literals,
+		[NotNullWhen(true)] out FieldDeclarationSyntax? field,
+		[NotNullWhen(true)] out string? fieldName)
+	{
+		field = null;
+		fieldName = null;
+
+		TypeSyntax elementTypeSyntax;
+		ExpressionSyntax createArgument;
+		string key;
+
+		switch (elementType.SpecialType)
+		{
+			case SpecialType.System_Char:
+			{
+				var chars = new char[literals.Count];
+
+				for (var i = 0; i < literals.Count; i++)
+				{
+					if (literals[i] is not LiteralExpressionSyntax { Token.Value: char c })
+					{
+						return false;
+					}
+
+					chars[i] = c;
+				}
+
+				var text = new string(chars);
+				elementTypeSyntax = PredefinedType(Token(SyntaxKind.CharKeyword));
+				// SearchValues.Create("abc") binds to the ReadOnlySpan<char> overload.
+				createArgument = LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(text));
+				key = "char:" + text;
+				break;
+			}
+			case SpecialType.System_Byte:
+			{
+				elementTypeSyntax = PredefinedType(Token(SyntaxKind.ByteKeyword));
+				// new byte[] { ... } — the explicit element type disambiguates SearchValues.Create's
+				// ReadOnlySpan<byte> / ReadOnlySpan<char> overloads.
+				createArgument = ArrayCreationExpression(
+						ArrayType(PredefinedType(Token(SyntaxKind.ByteKeyword)))
+							.WithRankSpecifiers(SingletonList(
+								ArrayRankSpecifier(SingletonSeparatedList<ExpressionSyntax>(OmittedArraySizeExpression())))))
+					.WithInitializer(InitializerExpression(SyntaxKind.ArrayInitializerExpression, SeparatedList(literals)));
+				key = "byte:" + String.Join(",", literals.Select(l => l.ToString()));
+				break;
+			}
+			default:
+			{
+				return false;
+			}
+		}
+
+		fieldName = $"SearchValues_{key.GetDeterministicHashString()}";
+
+		var createCall = InvocationExpression(
+				MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName("SearchValues"), IdentifierName("Create")))
+			.WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(createArgument))));
+
+		field = FieldDeclaration(
+				VariableDeclaration(GenericName(Identifier("SearchValues"))
+						.WithTypeArgumentList(TypeArgumentList(SingletonSeparatedList(elementTypeSyntax))))
+					.WithVariables(SingletonSeparatedList(
+						VariableDeclarator(Identifier(fieldName))
+							.WithInitializer(EqualsValueClause(createCall)))))
+			.WithModifiers(TokenList(Token(SyntaxKind.PrivateKeyword), Token(SyntaxKind.StaticKeyword), Token(SyntaxKind.ReadOnlyKeyword)));
+
+		return true;
+	}
+
+	/// <summary>
+	///   Builds a <c>private static readonly FrozenSet&lt;T&gt;</c> field from a constant set of literals,
+	///   giving O(1) membership for larger constant sets (notably strings) that have no vectorized path.
+	/// </summary>
+	private static bool TryCreateFrozenSetField(
+		ITypeSymbol elementType,
+		IList<ExpressionSyntax> literals,
+		[NotNullWhen(true)] out FieldDeclarationSyntax? field,
+		[NotNullWhen(true)] out string? fieldName)
+	{
+		var elementTypeSyntax = ParseTypeName(elementType.ToDisplayString());
+
+		// new[] { ... }.ToFrozenSet()
+		var createCall = InvocationExpression(
+			MemberAccessExpression(
+				SyntaxKind.SimpleMemberAccessExpression,
+				ImplicitArrayCreationExpression(InitializerExpression(SyntaxKind.ArrayInitializerExpression, SeparatedList(literals))),
+				IdentifierName("ToFrozenSet")));
+
+		var key = elementType.ToDisplayString() + ":" + String.Join(",", literals.Select(l => l.ToString()));
+		fieldName = $"FrozenSet_{key.GetDeterministicHashString()}";
+
+		field = FieldDeclaration(
+				VariableDeclaration(GenericName(Identifier("FrozenSet"))
+						.WithTypeArgumentList(TypeArgumentList(SingletonSeparatedList(elementTypeSyntax))))
+					.WithVariables(SingletonSeparatedList(
+						VariableDeclarator(Identifier(fieldName))
+							.WithInitializer(EqualsValueClause(createCall)))))
+			.WithModifiers(TokenList(Token(SyntaxKind.PrivateKeyword), Token(SyntaxKind.StaticKeyword), Token(SyntaxKind.ReadOnlyKeyword)));
+
+		return true;
 	}
 
 	private MethodDeclarationSyntax CreateVectorizedMethod(FunctionOptimizerContext context, ITypeSymbol elementType)
