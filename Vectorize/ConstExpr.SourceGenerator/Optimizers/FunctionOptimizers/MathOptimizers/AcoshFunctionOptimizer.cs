@@ -41,8 +41,8 @@ public class AcoshFunctionOptimizer() : BaseMathFunctionOptimizer("Acosh", n => 
 		var builder = new CodeWriter();
 
 		builder.WriteLine("/// <summary>Fast approximation of inverse hyperbolic cosine (Acosh) for single-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses piecewise approximation with special handling for large values and values near 1.0. Supports optional NaN checks.</remarks>")
-			.WriteLine("""/// <param name="x">Input value in the range [1.0, ∞).</param>""")
+			.WriteLine("/// <remarks>Uses piecewise approximation with special handling for values near 1.0. Supports optional NaN checks.</remarks>")
+			.WriteLine("""/// <param name="x">Input value in the range [1.0, ∞). Values above ~1.84e19 return +Infinity.</param>""")
 			.WriteLine("""/// <returns>Approximate inverse hyperbolic cosine value, ln(x + √(x² - 1)).</returns>""")
 			.WriteLine("private static float FastAcosh(float x)")
 			.StartBlock();
@@ -52,12 +52,7 @@ public class AcoshFunctionOptimizer() : BaseMathFunctionOptimizer("Acosh", n => 
 			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
 		}
 
-		builder.WriteLine("if (x < 1.0f) x = 1.0f;")
-			.WriteWhitespace()
-			.WriteLine("if (x > 1e7f)")
-			.StartBlock()
-			.WriteLine("return Single.Log(2.0f * x);")
-			.EndBlock()
+		builder.WriteLine("x = Single.MaxNative(x, 1.0f);")
 			.WriteWhitespace()
 			.WriteLine("if (x < 1.5f)")
 			.StartBlock()
@@ -85,8 +80,8 @@ public class AcoshFunctionOptimizer() : BaseMathFunctionOptimizer("Acosh", n => 
 		var builder = new CodeWriter();
 
 		builder.WriteLine("/// <summary>Fast approximation of inverse hyperbolic cosine (Acosh) for double-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses piecewise approximation with higher precision coefficients. Special handling for very large values and values near 1.0. Supports optional NaN checks.</remarks>")
-			.WriteLine("""/// <param name="x">Input value in the range [1.0, ∞).</param>""")
+			.WriteLine("/// <remarks>Uses piecewise approximation with higher precision coefficients and special handling for values near 1.0. Supports optional NaN checks.</remarks>")
+			.WriteLine("""/// <param name="x">Input value in the range [1.0, ∞). Values above ~1.34e154 return +Infinity.</param>""")
 			.WriteLine("""/// <returns>Approximate inverse hyperbolic cosine value, ln(x + √(x² - 1)).</returns>""")
 			.WriteLine("private static double FastAcosh(double x)")
 			.StartBlock();
@@ -96,12 +91,7 @@ public class AcoshFunctionOptimizer() : BaseMathFunctionOptimizer("Acosh", n => 
 			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
 		}
 
-		builder.WriteLine("if (x < 1.0) x = 1.0;")
-			.WriteWhitespace()
-			.WriteLine("if (x > 1e15)")
-			.StartBlock()
-			.WriteLine("return Double.Log(2.0 * x);")
-			.EndBlock()
+		builder.WriteLine("x = Double.MaxNative(x, 1.0);")
 			.WriteWhitespace()
 			.WriteLine("if (x < 1.5)")
 			.StartBlock()
