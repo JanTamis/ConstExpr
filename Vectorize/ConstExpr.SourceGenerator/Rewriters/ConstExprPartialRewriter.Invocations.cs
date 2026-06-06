@@ -940,7 +940,19 @@ public partial class ConstExprPartialRewriter
 			}
 		}
 
-		return base.VisitElementAccessExpression(node);
+		// When the instance resolves to a collection expression (e.g. numbers → [1,2,3,4,5,6])
+		// but we cannot fully evaluate the access (non-constant index), fall back to the
+		// original expression. A bare collection expression has no target type in element-access
+		// position → CS9176. Using the original identifier (e.g. `numbers`) is both valid and
+		// avoids an unnecessary heap allocation from `new[]{...}[index]`.
+		var effectiveInstance = instance is CollectionExpressionSyntax
+			? node.Expression
+			: instance as ExpressionSyntax ?? node.Expression;
+
+		return node
+			.WithExpression(effectiveInstance)
+			.WithArgumentList(node.ArgumentList
+				.WithArguments(SeparatedList(arguments.OfType<ExpressionSyntax>().Select(Argument))));
 	}
 
 	/// <summary>

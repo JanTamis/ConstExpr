@@ -49,7 +49,7 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 			{
 				return TryGetLiteralValue(elementSyntax.Expression, typeSymbol, out value, visitedVariables);
 			}
-			case IdentifierNameSyntax identifier when variables.TryGetValue(identifier.Identifier.Text, out var variable) && variable.HasValue:
+			case IdentifierNameSyntax identifier when variables.TryGetValue(identifier.Identifier.Text, out var variable) && variable.HasValue && !variable.IsAltered:
 			{
 				// Prevent infinite recursion from circular variable references
 				if (!visitedVariables.Add(identifier.Identifier.Text))

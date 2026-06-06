@@ -162,6 +162,17 @@ public sealed class CommonSubexpressionEliminator : CSharpSyntaxRewriter
 			return false;
 		}
 
+		// If any identifier referenced by the expression is also mutated in this block,
+		// the expression's value may change between occurrences and cannot be safely CSE'd.
+		// e.g. in `positions = positions % 6; if (...) positions += 6; result[0] = ...[positions % 6]`
+		// `positions % 6` appears twice but `positions` is mutated in between.
+		if (expr.DescendantNodesAndSelf()
+		    .OfType<IdentifierNameSyntax>()
+		    .Any(id => lValues.Any(lv => lv is IdentifierNameSyntax lId && lId.Identifier.Text == id.Identifier.Text)))
+		{
+			return false;
+		}
+
 		// Only consider "expensive" or complex expressions
 		if (expr is BinaryExpressionSyntax)
 		{
@@ -315,11 +326,11 @@ public sealed class CommonSubexpressionEliminator : CSharpSyntaxRewriter
 
 			if (parent is PrefixUnaryExpressionSyntax or PostfixUnaryExpressionSyntax)
 			{
-				if (parent.IsKind(SyntaxKind.PreIncrementExpression, 
-					SyntaxKind.PostIncrementExpression, 
-					SyntaxKind.PreDecrementExpression, 
-					SyntaxKind.PostDecrementExpression, SyntaxKind.PreDecrementExpression,
-					SyntaxKind.PostDecrementExpression))
+				if (parent.IsKind(SyntaxKind.PreIncrementExpression,
+					    SyntaxKind.PostIncrementExpression,
+					    SyntaxKind.PreDecrementExpression,
+					    SyntaxKind.PostDecrementExpression, SyntaxKind.PreDecrementExpression,
+					    SyntaxKind.PostDecrementExpression))
 				{
 					return true;
 				}

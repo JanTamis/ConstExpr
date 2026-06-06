@@ -246,6 +246,11 @@ public partial class ConstExprPartialRewriter
 				break;
 			}
 
+			if (statement is BlockSyntax block)
+			{
+				result.Add(block);
+			}
+
 			VisitList(node.Incrementors);
 		} while (TryGetLiteralValue(Visit(node.Condition), out var value) && value is true);
 
@@ -388,6 +393,11 @@ public partial class ConstExprPartialRewriter
 			if (ShouldStopUnrolling(statement, result))
 			{
 				break;
+			}
+
+			if (statement is BlockSyntax block)
+			{
+				result.Add(block);
 			}
 		} while (TryGetLiteralValue(Visit(node.Condition), out var value) && value is true);
 
