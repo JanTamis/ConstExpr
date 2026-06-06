@@ -23,16 +23,23 @@ public class CaseFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOpt
 		"ToLowerInvariant"
 	];
 
+	public override IReadOnlyList<string> Names => [ "ToUpper", "ToLower", "ToUpperInvariant", "ToLowerInvariant" ];
+
+	protected override bool IsValidMethod(IMethodSymbol method, out INamedTypeSymbol type)
+	{
+		type = method.ContainingType;
+
+		return CaseMethods.Contains(method.Name)
+		       && type.SpecialType == SpecialType.System_String
+		       && !method.IsStatic
+		       && method.Parameters.Length == 0;
+	}
+
 	protected override bool TryOptimizeString(FunctionOptimizerContext context, ITypeSymbol stringType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		result = null;
 
 		var methodName = context.Method.Name;
-
-		if (!CaseMethods.Contains(methodName))
-		{
-			return false;
-		}
 
 		// Check if instance is already a case conversion call of the same type
 		if (Instance is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax innerMemberAccess } innerInvocation

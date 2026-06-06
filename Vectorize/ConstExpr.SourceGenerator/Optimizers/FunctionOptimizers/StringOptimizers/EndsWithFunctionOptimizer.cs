@@ -2,11 +2,16 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 
 /// <summary>
-/// Optimizer for string.EndsWith(char) calls.
+/// Optimizes EndsWith calls on string literals:
+/// - "hello".EndsWith("lo") → true
+/// - "hello".EndsWith("world") → false
+/// - "hello".EndsWith('o') → 'o' == 'o' (or false for empty string)
 /// </summary>
 public class EndsWithFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "EndsWith", false, n => n is 1)
 {
@@ -14,7 +19,6 @@ public class EndsWithFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctio
 	{
 		result = null;
 
-		// Check for instance string
 		if (!TryGetStringInstance(out var instanceString))
 		{
 			return false;
@@ -29,6 +33,23 @@ public class EndsWithFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctio
 			}
 
 			result = EqualsExpression(CreateLiteral(instanceString![^1]), context.VisitedParameters[0]);
+			return true;
+		}
+
+		if (context.Method.Parameters[0].Type.SpecialType == SpecialType.System_String)
+		{
+			if (instanceString is null)
+			{
+				return false;
+			}
+
+			if (context.VisitedParameters[0] is not LiteralExpressionSyntax literal
+			    || !literal.IsKind(SyntaxKind.StringLiteralExpression))
+			{
+				return false;
+			}
+
+			result = CreateLiteral(instanceString.EndsWith(literal.Token.ValueText, StringComparison.Ordinal));
 			return true;
 		}
 

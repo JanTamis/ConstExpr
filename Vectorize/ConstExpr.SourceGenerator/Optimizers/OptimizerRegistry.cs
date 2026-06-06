@@ -9,7 +9,6 @@ using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.RegexOptimizers;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.SimdOptimizers;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 
 namespace ConstExpr.SourceGenerator.Optimizers;
@@ -75,18 +74,22 @@ internal static class OptimizerRegistry
 			}
 
 			var tempOptimizer = ctor.Invoke([ null ]) as BaseStringFunctionOptimizer;
+
 			if (tempOptimizer is null)
 			{
 				continue;
 			}
 
-			if (!factories.TryGetValue(tempOptimizer.Name, out var entries))
+			foreach (var optimizerName in tempOptimizer.Names)
 			{
-				entries = [];
-				factories[tempOptimizer.Name] = entries;
-			}
+				if (!factories.TryGetValue(optimizerName, out var entries))
+				{
+					entries = [ ];
+					factories[optimizerName] = entries;
+				}
 
-			entries.Add(instance => (BaseStringFunctionOptimizer) ctor.Invoke([ instance ])!);
+				entries.Add(instance => (BaseStringFunctionOptimizer) ctor.Invoke([ instance ])!);
+			}
 		}
 
 		return factories.ToFrozenDictionary(
@@ -95,5 +98,3 @@ internal static class OptimizerRegistry
 			StringComparer.Ordinal);
 	}
 }
-
-

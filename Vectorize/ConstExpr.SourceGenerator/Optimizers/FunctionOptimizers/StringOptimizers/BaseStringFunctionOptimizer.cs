@@ -5,13 +5,14 @@ using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using SourceGen.Utilities.Extensions;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 
 public abstract class BaseStringFunctionOptimizer(SyntaxNode? instance, string name, bool isStatic, Func<int, bool> isValidParameterCount) : BaseFunctionOptimizer
 {
 	public string Name { get; } = name;
+
+	public virtual IReadOnlyList<string> Names => [ Name ];
 
 	public SyntaxNode? Instance { get; } = instance;
 
@@ -30,7 +31,7 @@ public abstract class BaseStringFunctionOptimizer(SyntaxNode? instance, string n
 
 	protected abstract bool TryOptimizeString(FunctionOptimizerContext context, ITypeSymbol stringType, [NotNullWhen(true)] out SyntaxNode? result);
 
-	protected bool IsValidMethod(IMethodSymbol method, out INamedTypeSymbol type)
+	protected virtual bool IsValidMethod(IMethodSymbol method, out INamedTypeSymbol type)
 	{
 		type = method.ContainingType;
 

@@ -12,12 +12,12 @@ public class TrimStartFunctionOptimizer(SyntaxNode? instance) : BaseStringFuncti
 	{
 		result = null;
 
-		// Check if instance is already a TrimEnd call with no arguments
+		// Check if instance is already a TrimStart() call with no arguments
 		if (Instance is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax } innerInvocation
 		    && context.Model.TryGetSymbol(innerInvocation, context.SymbolStore, out IMethodSymbol? innerMethodSymbol)
 		    && IsValidMethod(innerMethodSymbol, out _))
 		{
-			// s.TrimEnd().TrimEnd() → s.TrimEnd()
+			// s.TrimStart().TrimStart() → s.TrimStart()
 			result = innerInvocation;
 			return true;
 		}

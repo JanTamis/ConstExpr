@@ -7,7 +7,8 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimize
 
 /// <summary>
 /// Optimizes Replace calls:
-/// - s.Replace("a", "a") → s (replacing with same value is no-op)
+/// - "hello".Replace("l", "r") → "herro" (constant fold when instance is a literal)
+/// - s.Replace("a", "a") → s (no-op when old and new are equal)
 /// - s.Replace('a', 'a') → s
 /// </summary>
 public class ReplaceFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "Replace", false, n => n is 2)
@@ -16,19 +17,33 @@ public class ReplaceFunctionOptimizer(SyntaxNode? instance) : BaseStringFunction
 	{
 		result = null;
 
-		// Check if both context.Parameters are the same literal
-		if (context.VisitedParameters[0] is LiteralExpressionSyntax first
-		    && context.VisitedParameters[1] is LiteralExpressionSyntax second)
+		if (context.VisitedParameters[0] is not LiteralExpressionSyntax first
+		    || context.VisitedParameters[1] is not LiteralExpressionSyntax second)
 		{
-			var firstValue = first.Token.Value;
-			var secondValue = second.Token.Value;
+			return false;
+		}
 
-			if (Equals(firstValue, secondValue))
+		// Constant fold when instance is a known string literal
+		if (TryGetStringInstance(out var str) && str is not null)
+		{
+			if (first.Token.Value is string oldStr && second.Token.Value is string newStr)
 			{
-				// s.Replace("a", "a") → s
-				result = Instance;
+				result = CreateLiteral(str.Replace(oldStr, newStr));
 				return true;
 			}
+
+			if (first.Token.Value is char oldChar && second.Token.Value is char newChar)
+			{
+				result = CreateLiteral(str.Replace(oldChar, newChar));
+				return true;
+			}
+		}
+
+		// No-op when old and new values are the same: s.Replace("a", "a") → s
+		if (Equals(first.Token.Value, second.Token.Value))
+		{
+			result = Instance;
+			return true;
 		}
 
 		return false;

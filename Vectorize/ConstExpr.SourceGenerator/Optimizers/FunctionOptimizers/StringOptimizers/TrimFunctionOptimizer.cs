@@ -6,10 +6,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 
 /// <summary>
-/// Optimizes redundant Trim calls:
+/// Optimizes redundant Trim() calls:
 /// - s.Trim().Trim() → s.Trim()
-/// - s.TrimStart().TrimStart() → s.TrimStart()
-/// - s.TrimEnd().TrimEnd() → s.TrimEnd()
 /// </summary>
 public class TrimFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "Trim", false, n => n is 0)
 {
@@ -17,19 +15,11 @@ public class TrimFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOpt
 	{
 		result = null;
 
-		var methodName = context.Method.Name;
-
-		if (methodName is not ("Trim" or "TrimStart" or "TrimEnd"))
-		{
-			return false;
-		}
-
-		// Check if instance is already a Trim call of the same type
+		// Check if instance is already a Trim() call
 		if (Instance is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax innerMemberAccess } innerInvocation
-		    && innerMemberAccess.Name.Identifier.Text == methodName
+		    && innerMemberAccess.Name.Identifier.Text == "Trim"
 		    && innerInvocation.ArgumentList.Arguments.Count == 0)
 		{
-			// s.Trim().Trim() → s.Trim()
 			result = innerInvocation;
 			return true;
 		}
