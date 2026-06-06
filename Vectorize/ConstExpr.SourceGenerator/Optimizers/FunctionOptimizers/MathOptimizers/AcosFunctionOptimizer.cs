@@ -52,6 +52,7 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 			.WriteLine("/// <remarks>Uses FusedMultiplyAdd for improved performance. Handles negative values and optional NaN checks.</remarks>")
 			.WriteLine("""/// <param name="x">Input value in the range [-1, 1].</param>""")
 			.WriteLine("/// <returns>Approximate inverse cosine value in radians, in the range [0, π].</returns>")
+			.WriteLine("[MethodImpl(MethodImplOptions.AggressiveInlining)]")
 			.WriteLine("public static float FastAcos(float x)")
 			.StartBlock();
 
@@ -87,6 +88,7 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 			.WriteLine("/// <remarks>Uses a higher-precision polynomial with separate handling for values greater than 0.5. Handles negative values and optional NaN checks.</remarks>")
 			.WriteLine("""/// <param name="x">Input value in the range [-1, 1].</param>""")
 			.WriteLine("/// <returns>Approximate inverse cosine value in radians, in the range [0, π].</returns>")
+			.WriteLine("[MethodImpl(MethodImplOptions.AggressiveInlining)]")
 			.WriteLine("public static double FastAcos(double x)")
 			.StartBlock();
 
@@ -103,10 +105,10 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 			.WriteLine("var u = t * t;")
 			.WriteWhitespace()
 			.WriteLine("var p = Double.FusedMultiplyAdd(u, 945.0 / 42240.0, 105.0 / 3456.0);")
-			.WriteLine("p = Double.FusedMultiplyAdd(u, p, 15.0 / 336.0);  // n=3")
-			.WriteLine("p = Double.FusedMultiplyAdd(u, p, 3.0 / 40.0);    // n=2")
-			.WriteLine("p = Double.FusedMultiplyAdd(u, p, 1.0 / 6.0);     // n=1")
-			.WriteLine("p = Double.FusedMultiplyAdd(u, p, 1.0);           // n=0")
+			.WriteLine("p = Double.FusedMultiplyAdd(u, p, 15.0 / 336.0);")
+			.WriteLine("p = Double.FusedMultiplyAdd(u, p, 3.0 / 40.0);")
+			.WriteLine("p = Double.FusedMultiplyAdd(u, p, 1.0 / 6.0);")
+			.WriteLine("p = Double.FusedMultiplyAdd(u, p, 1.0);")
 			.WriteWhitespace()
 			.WriteLine("var asinT = t * p;")
 			.WriteLine("var result = big ? 2.0 * asinT : Math.PI / 2.0 - asinT;")
