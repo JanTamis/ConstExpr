@@ -62,6 +62,7 @@ public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", n => n is
 			.WriteLine("/// <typeparam name=\"T\">The integer type.</typeparam>")
 			.WriteLine("/// <param name=\"x\">The value to convert to its absolute value.</param>")
 			.WriteLine("/// <returns>The absolute value of x.</returns>")
+			.WriteLine("[MethodImpl(MethodImplOptions.AggressiveInlining)]")
 			.WriteLine("private static T AbsFast<T>(T x) where T : IBinaryInteger<T>")
 			.StartBlock()
 			.WriteLine("var bits = Unsafe.SizeOf<T>() * 8 - 1;")
