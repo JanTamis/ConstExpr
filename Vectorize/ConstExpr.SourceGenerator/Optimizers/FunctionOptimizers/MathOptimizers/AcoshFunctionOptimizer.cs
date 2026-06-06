@@ -63,7 +63,15 @@ public class AcoshFunctionOptimizer() : BaseMathFunctionOptimizer("Acosh", n => 
 			.EndBlock()
 			.WriteWhitespace()
 			.WriteLine("var sqrtTerm = Single.Sqrt(Single.FusedMultiplyAdd(x, x, -1.0f));")
-			.WriteLine("return Single.Log(x + sqrtTerm);")
+			.WriteLine("var arg  = x + sqrtTerm;")
+			.WriteLine("var bits = BitConverter.SingleToInt32Bits(arg);")
+			.WriteLine("var e    = (bits >> 23) - 127;")
+			.WriteLine("var m    = BitConverter.Int32BitsToSingle((bits & 0x007FFFFF) | 0x3F800000);")
+			.WriteLine("var lnm  = Single.FusedMultiplyAdd(-0.056570851f, m,  0.447178975f);")
+			.WriteLine("lnm      = Single.FusedMultiplyAdd(lnm, m, -1.469956800f);")
+			.WriteLine("lnm      = Single.FusedMultiplyAdd(lnm, m,  2.821202636f);")
+			.WriteLine("lnm      = Single.FusedMultiplyAdd(lnm, m, -1.741793927f);")
+			.WriteLine("return Single.FusedMultiplyAdd(e, 0.6931471806f, lnm);")
 			.EndBlock();
 
 		return builder.ToString();
@@ -102,7 +110,15 @@ public class AcoshFunctionOptimizer() : BaseMathFunctionOptimizer("Acosh", n => 
 			.EndBlock()
 			.WriteWhitespace()
 			.WriteLine("var sqrtTerm = Double.Sqrt(Double.FusedMultiplyAdd(x, x, -1.0));")
-			.WriteLine("return Double.Log(x + sqrtTerm);")
+			.WriteLine("var arg  = x + sqrtTerm;")
+			.WriteLine("var bits = BitConverter.DoubleToInt64Bits(arg);")
+			.WriteLine("var e    = (int)((bits >> 52) - 1023L);")
+			.WriteLine("var m    = BitConverter.Int64BitsToDouble((bits & 0x000FFFFFFFFFFFFFL) | 0x3FF0000000000000L);")
+			.WriteLine("var lnm  = Double.FusedMultiplyAdd(-0.056570851, m,  0.447178975);")
+			.WriteLine("lnm      = Double.FusedMultiplyAdd(lnm, m, -1.469956800);")
+			.WriteLine("lnm      = Double.FusedMultiplyAdd(lnm, m,  2.821202636);")
+			.WriteLine("lnm      = Double.FusedMultiplyAdd(lnm, m, -1.741793927);")
+			.WriteLine("return Double.FusedMultiplyAdd(e, 0.6931471805599453094172321214581766, lnm);")
 			.EndBlock();
 
 		return builder.ToString();
