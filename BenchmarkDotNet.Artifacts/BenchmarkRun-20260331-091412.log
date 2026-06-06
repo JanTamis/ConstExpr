@@ -1,3 +1,0 @@
-// Validating benchmarks:
-//    * Only Windows and Linux are supported in DisassemblyDiagnoser without Mono. Current OS is macOS 26.3.1
-
