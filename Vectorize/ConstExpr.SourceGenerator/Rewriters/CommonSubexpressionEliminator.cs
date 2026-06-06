@@ -89,14 +89,15 @@ public sealed class CommonSubexpressionEliminator : CSharpSyntaxRewriter
 
 		var counts = new Dictionary<ExpressionSyntax, int>(_comparer);
 		var lValues = new HashSet<ExpressionSyntax>(_comparer);
-		var collector = new ExpressionCollector(counts, lValues);
+		var sideEffectCalls = new HashSet<ExpressionSyntax>(_comparer);
+		var collector = new ExpressionCollector(counts, lValues, sideEffectCalls);
 
 		foreach (var statement in visitedNode.Statements)
 		{
 			collector.Visit(statement);
 		}
 
-		var candidates = counts.Where(kvp => kvp.Value > 1 && ShouldConsider(kvp.Key, lValues))
+		var candidates = counts.Where(kvp => kvp.Value > 1 && ShouldConsider(kvp.Key, lValues, sideEffectCalls))
 			.Select(kvp => kvp.Key)
 			.OrderByDescending(c => c.DescendantNodes().Count()) // Prefer larger expressions first
 			.ToList();
@@ -152,7 +153,7 @@ public sealed class CommonSubexpressionEliminator : CSharpSyntaxRewriter
 			.Any(e => _comparer.Equals(e, expression));
 	}
 
-	private static bool ShouldConsider(ExpressionSyntax expr, HashSet<ExpressionSyntax> lValues)
+	private static bool ShouldConsider(ExpressionSyntax expr, HashSet<ExpressionSyntax> lValues, HashSet<ExpressionSyntax> sideEffectCalls)
 	{
 		expr = Unparenthesize(expr);
 
@@ -181,13 +182,20 @@ public sealed class CommonSubexpressionEliminator : CSharpSyntaxRewriter
 
 		if (expr is InvocationExpressionSyntax invocation)
 		{
+			// Calls that appear as expression statements are called for their side effects —
+			// extracting them to a variable would elide the side effect on subsequent uses.
+			if (sideEffectCalls.Contains(invocation))
+			{
+				return false;
+			}
+
 			// Avoid CSE for expressions containing lambdas, as 'var' might fail to infer the delegate type
 			return !invocation.DescendantNodes().Any(n => n is LambdaExpressionSyntax or AnonymousFunctionExpressionSyntax);
 		}
 
 		if (expr is MemberAccessExpressionSyntax ma)
 		{
-			return ShouldConsider(ma.Expression, lValues);
+			return ShouldConsider(ma.Expression, lValues, sideEffectCalls);
 		}
 
 		if (expr is ElementAccessExpressionSyntax)
@@ -197,7 +205,7 @@ public sealed class CommonSubexpressionEliminator : CSharpSyntaxRewriter
 
 		if (expr is CastExpressionSyntax cast)
 		{
-			return ShouldConsider(cast.Expression, lValues);
+			return ShouldConsider(cast.Expression, lValues, sideEffectCalls);
 		}
 
 		return false;
@@ -236,11 +244,22 @@ public sealed class CommonSubexpressionEliminator : CSharpSyntaxRewriter
 		}
 	}
 
-	private class ExpressionCollector(Dictionary<ExpressionSyntax, int> counts, HashSet<ExpressionSyntax> lValues) : CSharpSyntaxWalker
+	private class ExpressionCollector(Dictionary<ExpressionSyntax, int> counts, HashSet<ExpressionSyntax> lValues, HashSet<ExpressionSyntax> sideEffectCalls) : CSharpSyntaxWalker
 	{
 		public override void VisitBlock(BlockSyntax node)
 		{
 			/* Don't recurse into nested blocks */
+		}
+
+		public override void VisitExpressionStatement(ExpressionStatementSyntax node)
+		{
+			// Invocations used as expression statements are called for side effects — mark them
+			if (node.Expression is InvocationExpressionSyntax invocation)
+			{
+				sideEffectCalls.Add(Unparenthesize(invocation));
+			}
+
+			base.VisitExpressionStatement(node);
 		}
 
 		public override void VisitAnonymousMethodExpression(AnonymousMethodExpressionSyntax node) { }

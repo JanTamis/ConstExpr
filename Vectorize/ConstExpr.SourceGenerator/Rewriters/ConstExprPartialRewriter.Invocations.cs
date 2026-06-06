@@ -114,7 +114,7 @@ public partial class ConstExprPartialRewriter
 			if (TryOptimizeLinqMethod(semanticModel, targetMethod, node, argumentExpressions, originalArguments) is { } optimizedLinq)
 			{
 				if (attribute.LinqOptimisationMode == LinqOptimisationMode.Unroll
-				    && LinqUnroller.TryUnrollLinqChain(optimizedLinq, Visit, semanticModel, additionalMethods, symbolStore, out var unrolled))
+				    && LinqUnroller.TryUnrollLinqChain(optimizedLinq, Visit, semanticModel, additionalMethods, symbolStore, out var unrolled, variables))
 				{
 					return unrolled;
 				}
@@ -123,7 +123,7 @@ public partial class ConstExprPartialRewriter
 			}
 
 			if (attribute.LinqOptimisationMode == LinqOptimisationMode.Unroll
-			    && LinqUnroller.TryUnrollLinqChain(node, Visit, semanticModel, additionalMethods, symbolStore, out var unrolledNode))
+			    && LinqUnroller.TryUnrollLinqChain(node, Visit, semanticModel, additionalMethods, symbolStore, out var unrolledNode, variables))
 			{
 				return unrolledNode;
 			}
@@ -198,7 +198,10 @@ public partial class ConstExprPartialRewriter
 
 		return methodName is "Add" or "AddRange" or "Insert" or "InsertRange" or "Remove" or "RemoveAt" or "RemoveAll"
 			or "RemoveRange" or "Clear" or "Sort" or "Enqueue" or "Dequeue" or "Push" or "Pop"
-			or "TryAdd" or "TryTake" or "UnionWith" or "IntersectWith" or "ExceptWith" or "SymmetricExceptWith";
+			or "TryAdd" or "TryTake" or "UnionWith" or "IntersectWith" or "ExceptWith" or "SymmetricExceptWith"
+			// Builder/writer mutation methods — their side effect is the point, return value is the builder itself
+			or "Append" or "AppendLine" or "AppendFormat" or "AppendJoin" or "AppendLiteral"
+			or "Write" or "WriteLine" or "Flush";
 	}
 
 	/// <summary>

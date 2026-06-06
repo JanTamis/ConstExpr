@@ -16,10 +16,51 @@ namespace ConstExpr.SourceGenerator.Rewriters;
 /// </summary>
 public partial class ConstExprPartialRewriter
 {
+	/// <summary>
+	///   Infers an <see cref="ITypeSymbol" /> from a runtime literal value produced by constant folding.
+	///   Used for synthetic AST nodes that are not present in the original source tree and therefore
+	///   cannot be resolved via <see cref="SemanticModel.GetOperation" />.
+	/// </summary>
+	private ITypeSymbol? InferTypeSymbolFromValue(object? value)
+	{
+		return value switch
+		{
+			double => semanticModel.Compilation.GetSpecialType(SpecialType.System_Double),
+			float => semanticModel.Compilation.GetSpecialType(SpecialType.System_Single),
+			int => semanticModel.Compilation.GetSpecialType(SpecialType.System_Int32),
+			long => semanticModel.Compilation.GetSpecialType(SpecialType.System_Int64),
+			bool => semanticModel.Compilation.GetSpecialType(SpecialType.System_Boolean),
+			char => semanticModel.Compilation.GetSpecialType(SpecialType.System_Char),
+			string => semanticModel.Compilation.GetSpecialType(SpecialType.System_String),
+			_ => null
+		};
+	}
+
 	public override SyntaxNode? VisitVariableDeclarator(VariableDeclaratorSyntax node)
 	{
 		if (!TryGetOperation(semanticModel, node, out IVariableDeclaratorOperation? operation))
 		{
+			// Synthetic node (not in the original source tree — e.g. produced by LinqUnroller).
+			// The semantic model cannot provide type information, so we infer it from the
+			// literal initializer value so that the partial rewriter can still track the variable.
+			if (node.Initializer?.Value is { } initExpr)
+			{
+				var visitedInit = Visit(initExpr) as ExpressionSyntax ?? initExpr;
+
+				if (TryGetLiteralValue(visitedInit, out var literalVal) && literalVal is not null)
+				{
+					var inferredType = InferTypeSymbolFromValue(literalVal);
+
+					if (inferredType is not null)
+					{
+						var varName = node.Identifier.Text;
+						var syntheticItem = new VariableItem(inferredType, true, literalVal);
+						// Use indexer instead of Add to tolerate name collisions with outer scope.
+						variables[varName] = syntheticItem;
+						return node.WithInitializer(node.Initializer.WithValue(visitedInit));
+					}
+				}
+			}
 			return base.VisitVariableDeclarator(node);
 		}
 

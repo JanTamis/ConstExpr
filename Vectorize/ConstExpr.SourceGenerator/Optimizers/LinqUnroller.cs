@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 using ConstExpr.SourceGenerator.Rewriters;
 using Microsoft.CodeAnalysis;
@@ -166,7 +167,7 @@ public static class LinqUnroller
 			.FirstOrDefault(m => m.Parameters.Length == parameterCount);
 	}
 
-	public static bool TryUnrollLinqChain(SyntaxNode node, Func<SyntaxNode?, SyntaxNode?> visit, SemanticModel model, IDictionary<SyntaxNode, bool> additionalMethods, ConcurrentDictionary<ulong, ISymbol> symbolStore, [NotNullWhen(true)] out SyntaxNode? result)
+	public static bool TryUnrollLinqChain(SyntaxNode node, Func<SyntaxNode?, SyntaxNode?> visit, SemanticModel model, IDictionary<SyntaxNode, bool> additionalMethods, ConcurrentDictionary<ulong, ISymbol> symbolStore, [NotNullWhen(true)] out SyntaxNode? result, IDictionary<string, VariableItem>? variables = null)
 	{
 		var chain = ParseLinqChain(model, visit, node, symbolStore);
 
@@ -214,18 +215,274 @@ public static class LinqUnroller
 			: PredefinedType(Token(SyntaxKind.ObjectKeyword));
 
 		var body = Block(statements);
+		var visitedBody = visit(body) as BlockSyntax ?? body;
+
+		// Detect identifiers used in the visited body that are not declared within it
+		// (captured outer variables from lambdas, e.g. `mean` in `x => (x - mean) * (x - mean)`)
+		var capturedVars = FindCapturedVariables(visitedBody, collectionName, chain, model);
+
+		// Optimisation: when the collection argument is a fully constant literal array and there are
+		// no un-resolved captured variables, substitute the collection into the body and let the
+		// partial rewriter evaluate the loop at compile time — no helper method is needed.
+		if (capturedVars.Count == 0
+		    && TryEvaluateWithConstantCollection(visitedBody, collectionName, chain[0].Parameters[0], visit, variables, out var inlined))
+		{
+			result = inlined;
+			return true;
+		}
+
+		// Build parameter list: collection + any captured outer variables
+		var methodParameters = new List<ParameterSyntax>
+		{
+			Parameter(Identifier(collectionName)).WithType(parameterType)
+		};
+
+		foreach (var (varName, varType) in capturedVars)
+		{
+			methodParameters.Add(Parameter(Identifier(varName)).WithType(varType));
+		}
 
 		var localMethod = MethodDeclaration(chain[^1].MethodSymbol.ReturnType.GetTypeSyntax(false), Identifier($"{chain[^1].Method}_{body.GetDeterministicHashString()}"))
-			.WithParameterList(ParameterList(SingletonSeparatedList(Parameter(Identifier(collectionName)).WithType(parameterType))))
+			.WithParameterList(ParameterList(SeparatedList(methodParameters)))
 			.AddModifiers(Token(SyntaxKind.PrivateKeyword))
 			.AddModifiers(Token(SyntaxKind.StaticKeyword))
-			.WithBody(visit(body) as BlockSyntax ?? body);
+			.WithBody(visitedBody);
 
 		additionalMethods.TryAdd(localMethod, true);
 
+		// Build argument list: collection + any captured outer variables
+		var callArguments = new List<ArgumentSyntax>
+		{
+			Argument(chain[0].Parameters[0])
+		};
+
+		foreach (var (varName, _) in capturedVars)
+		{
+			callArguments.Add(Argument(IdentifierName(varName)));
+		}
+
 		result = InvocationExpression(IdentifierName(localMethod.Identifier))
-			.WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(chain[0].Parameters[0]))));
+			.WithArgumentList(ArgumentList(SeparatedList(callArguments)));
 		return true;
+	}
+
+	/// <summary>
+	///   Attempts to evaluate a LINQ helper body at compile time by substituting a constant
+	///   collection argument for the <paramref name="collectionParam" /> placeholder.
+	///   Succeeds only when the partial rewriter can fully reduce the body to a literal return value.
+	///   When <paramref name="variables" /> is provided, the rewriter's variable state is fully
+	///   snapshotted before the inner evaluation and restored afterwards, preventing pollution
+	///   of the outer constant-folding context.
+	/// </summary>
+	private static bool TryEvaluateWithConstantCollection(
+		BlockSyntax visitedBody, string collectionParam, ExpressionSyntax collectionArg,
+		Func<SyntaxNode?, SyntaxNode?> visit, IDictionary<string, VariableItem>? variables,
+		[NotNullWhen(true)] out SyntaxNode? result)
+	{
+		// Substitute every use of the collection parameter with the actual argument expression
+		var substituted = visitedBody.ReplaceNodes(
+			visitedBody.DescendantNodes()
+				.OfType<IdentifierNameSyntax>()
+				.Where(id => id.Identifier.Text == collectionParam
+				             && !(id.Parent is MemberAccessExpressionSyntax memberAccess && memberAccess.Name.Span == id.Span)),
+			(_, _) => collectionArg);
+
+		// Snapshot the outer variable state so the inner evaluation cannot pollute it.
+		var snapshot = variables is not null ? SnapshotVariables(variables) : null;
+
+		// Run the partial rewriter — for a constant CollectionExpression it will unroll the
+		// foreach and fold all arithmetic, collapsing the block to `return <literal>`.
+		var evaluated = visit(substituted) as BlockSyntax;
+
+		// Restore the outer variable state regardless of whether evaluation succeeded.
+		if (snapshot is not null)
+		{
+			RestoreVariables(variables!, snapshot);
+		}
+
+		if (evaluated is null)
+		{
+			result = null;
+			return false;
+		}
+
+		// Accept when the last statement is `return <literal>` — the expression must be fully
+		// reduced to a constant with no remaining identifier references.  Preceding statements
+		// may be dead declarations / increment side-effects from constant-folded loop unrolling.
+		if (evaluated.Statements.Count > 0
+		    && evaluated.Statements[^1] is ReturnStatementSyntax { Expression: { } retExpr }
+		    && !retExpr.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>().Any())
+		{
+			result = retExpr;
+			return true;
+		}
+
+		result = null;
+		return false;
+	}
+
+	private struct VariableSnapshot
+	{
+		public object? Value;
+		public bool HasValue;
+		public bool IsAltered;
+		public bool IsInitialized;
+	}
+
+	/// <summary>Takes a full snapshot of the variable tracking dictionary.</summary>
+	private static Dictionary<string, VariableSnapshot> SnapshotVariables(IDictionary<string, VariableItem> variables)
+	{
+		var snap = new Dictionary<string, VariableSnapshot>(StringComparer.Ordinal);
+
+		foreach (var kvp in variables)
+		{
+			snap[kvp.Key] = new VariableSnapshot
+			{
+				Value = kvp.Value.Value,
+				HasValue = kvp.Value.HasValue,
+				IsAltered = kvp.Value.IsAltered,
+				IsInitialized = kvp.Value.IsInitialized
+			};
+		}
+		return snap;
+	}
+
+	/// <summary>
+	///   Restores the variable tracking dictionary to the state captured by
+	///   <see cref="SnapshotVariables" />, removing any variables that were added
+	///   during the inner evaluation.
+	/// </summary>
+	private static void RestoreVariables(IDictionary<string, VariableItem> variables, Dictionary<string, VariableSnapshot> snapshot)
+	{
+		// Remove variables that were added during the inner evaluation
+		foreach (var key in variables.Keys.Where(k => !snapshot.ContainsKey(k)).ToList())
+		{
+			variables.Remove(key);
+		}
+
+		// Restore the state of variables that existed before the inner evaluation
+		foreach (var kvp in snapshot)
+		{
+			if (variables.TryGetValue(kvp.Key, out var item))
+			{
+				item.Value = kvp.Value.Value;
+				item.HasValue = kvp.Value.HasValue;
+				item.IsAltered = kvp.Value.IsAltered;
+				item.IsInitialized = kvp.Value.IsInitialized;
+			}
+		}
+	}
+
+	/// <summary>
+	///   Finds identifiers used in <paramref name="visitedBody" /> that are not locally declared
+	///   within it (captured outer-scope variables). Returns them paired with their inferred type.
+	/// </summary>
+	private static List<(string Name, TypeSyntax Type)> FindCapturedVariables(
+		BlockSyntax visitedBody, string collectionParam, UnrolledLinqMethod[] chain, SemanticModel model)
+	{
+		// Collect names that are locally defined in the body
+		var localNames = new HashSet<string>(StringComparer.Ordinal) { collectionParam };
+
+		foreach (var varDecl in visitedBody.DescendantNodes().OfType<VariableDeclaratorSyntax>())
+		{
+			localNames.Add(varDecl.Identifier.Text);
+		}
+
+		foreach (var forEach in visitedBody.DescendantNodes().OfType<ForEachStatementSyntax>())
+		{
+			localNames.Add(forEach.Identifier.Text);
+		}
+
+		// Any identifier in the body that is not locally declared is a captured outer variable.
+		// Exclude identifiers in type position (e.g. `var`, `double`, `int` used as type names)
+		// and identifiers used as member/method names (right-hand side of a `.`).
+		var capturedNames = visitedBody.DescendantNodes()
+			.OfType<IdentifierNameSyntax>()
+			.Where(static id => !IsTypeOrMemberNameIdentifier(id))
+			.Select(static id => id.Identifier.Text)
+			.Where(name => !localNames.Contains(name))
+			.Distinct(StringComparer.Ordinal)
+			.ToList();
+
+		if (capturedNames.Count == 0)
+		{
+			return [ ];
+		}
+
+		var result = new List<(string Name, TypeSyntax Type)>();
+
+		foreach (var capturedName in capturedNames)
+		{
+			TypeSyntax? typeSyntax = null;
+			var isTypeName = false;
+
+			// Look through original lambda expressions in the chain — the semantic model can resolve
+			// identifiers there, giving us both the symbol kind (type vs. variable) and the value type.
+			foreach (var step in chain)
+			{
+				foreach (var param in step.Parameters)
+				{
+					var originalId = param.DescendantNodesAndSelf()
+						.OfType<IdentifierNameSyntax>()
+						.FirstOrDefault(id => id.Identifier.Text == capturedName);
+
+					if (originalId is null) continue;
+
+					// If the identifier resolves to a type symbol it is a type name (e.g. Double, Char, Math)
+					// — NOT a captured variable.
+					var symbolInfo = model.GetSymbolInfo(originalId);
+
+					if (symbolInfo.Symbol is ITypeSymbol)
+					{
+						isTypeName = true;
+						break;
+					}
+
+					var typeInfo = model.GetTypeInfo(originalId);
+
+					if (typeInfo.Type is ITypeSymbol typeSymbol)
+					{
+						typeSyntax = typeSymbol.GetTypeSyntax(false);
+						break;
+					}
+				}
+
+				if (isTypeName || typeSyntax != null) break;
+			}
+
+			// Skip type names and identifiers whose value type could not be determined.
+			// (Unknown identifiers are likely injected by the unroller template and should not
+			//  be passed as extra parameters.)
+			if (isTypeName || typeSyntax is null) continue;
+
+			result.Add((capturedName, typeSyntax));
+		}
+
+		return result;
+	}
+
+	/// <summary>
+	///   Returns true for identifiers that should not be treated as captured outer variables:
+	///   type-position identifiers (e.g. `var` in `var x = ...` or `foreach (var item in ...)`)
+	///   and member/method names on the right side of a dot (e.g. `Append` in `result.Append(...)`).
+	/// </summary>
+	private static bool IsTypeOrMemberNameIdentifier(IdentifierNameSyntax id)
+	{
+		return id.Parent switch
+		{
+			// `var x = expr` or `int x = expr` — the type annotation, not a reference
+			VariableDeclarationSyntax decl when decl.Type == id => true,
+			// `foreach (var item in ...)` — the element type annotation
+			ForEachStatementSyntax forEach when forEach.Type == id => true,
+			// Parameter type annotation
+			ParameterSyntax param when param.Type == id => true,
+			// `receiver.Member(...)` — exclude the member/method name, not the receiver
+			MemberAccessExpressionSyntax ma when ma.Name.Span == id.Span => true,
+			// Cast or type-of: `(Double)x`, `typeof(Double)` — exclude the type name
+			CastExpressionSyntax cast when cast.Type == id => true,
+			TypeOfExpressionSyntax typeOf when typeOf.Type == id => true,
+			_ => false
+		};
 	}
 
 	private static void ParsePossibleReturnStatement(UnrolledLinqMethod[] chain, List<StatementSyntax> statements)

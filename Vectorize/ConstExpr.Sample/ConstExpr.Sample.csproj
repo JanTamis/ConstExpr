@@ -11,11 +11,21 @@
 		<UseConstExpr>true</UseConstExpr>
 
 		<InterceptorsNamespaces>$(InterceptorsNamespaces);ConstantExpression.Generated</InterceptorsNamespaces>
+	</PropertyGroup>
 
+	<PropertyGroup>
+		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+		<CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<CompilerVisibleProperty Include="UseConstExpr" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- The files emitted to Generated/ are already compiled in-memory by the source generators.
+		     Exclude them from explicit compilation to prevent "duplicate type" errors. -->
+		<Compile Remove="Generated/**/*.cs"/>
 	</ItemGroup>
 
 	<ItemGroup>
