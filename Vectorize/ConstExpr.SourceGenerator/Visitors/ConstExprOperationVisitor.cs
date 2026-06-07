@@ -98,7 +98,7 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 
 		if (operation.Initializer?.ElementValues is { } values)
 		{
-			SetValues(data, [], 0);
+			SetValues(data, [ ], 0);
 		}
 
 		return data;
@@ -156,9 +156,9 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 		// Handle regular arrays (single and multi-dimensional)
 		if (array.GetType().IsArray && array is Array arr)
 		{
-			if (indexers.All(i => i is int))
+			if (indexers.All(i => i is int or char))
 			{
-				return arr.GetValue(indexers.Cast<int>().ToArray());
+				return arr.GetValue(indexers.Select(i => i is char c ? c : (int) i).ToArray());
 			}
 
 			if (indexers.All(i => i is long))
@@ -170,7 +170,7 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 
 			if (indexers.All(i => i.GetType() == rangeType))
 			{
-				var range = (ValueTuple<int, int>)rangeType.GetMethod("GetOffsetAndLength").Invoke(indexers[0], [arr.Length]);
+				var range = (ValueTuple<int, int>) rangeType.GetMethod("GetOffsetAndLength").Invoke(indexers[0], [ arr.Length ]);
 				var result = Array.CreateInstance(arr.GetType().GetElementType(), range.Item2);
 
 				Array.Copy(arr, range.Item1, result, 0, range.Item2);
@@ -186,11 +186,11 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 			var parameters = pi.GetIndexParameters();
 
 			if (parameters.Length == indexers.Length
-					&& parameters
-						.Select((p, i) => indexers[i] != null
-															&& (p.ParameterType.IsAssignableFrom(indexers[i].GetType())
-																	|| indexers[i] is IConvertible))
-						.All(x => x))
+			    && parameters
+				    .Select((p, i) => indexers[i] != null
+				                      && (p.ParameterType.IsAssignableFrom(indexers[i].GetType())
+				                          || indexers[i] is IConvertible))
+				    .All(x => x))
 			{
 				// Convert indices to the expected parameter types if needed
 				for (var i = 0; i < indexers.Length; i++)
@@ -260,9 +260,9 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 
 			if (array is Array arr)
 			{
-				if (indices.All(a => a is int))
+				if (indices.All(a => a is int or char))
 				{
-					arr.SetValue(value, indices.Cast<int>().ToArray());
+					arr.SetValue(value, indices.Select(a => a is char c ? c : (int) a).ToArray());
 				}
 				else if (indices.All(a => a is long))
 				{
@@ -280,9 +280,9 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 			if (propertyReference.Arguments.Length > 0)
 			{
 				var propertyInfo = type
-														 .GetProperties()
-														 .FirstOrDefault(f => f.GetIndexParameters().Length == propertyReference.Arguments.Length)
-													 ?? throw new InvalidOperationException("Indexer property info could not be retrieved.");
+					                   .GetProperties()
+					                   .FirstOrDefault(f => f.GetIndexParameters().Length == propertyReference.Arguments.Length)
+				                   ?? throw new InvalidOperationException("Indexer property info could not be retrieved.");
 
 				var indices = propertyReference.Arguments.Select(a => Visit(a.Value, argument)).ToArray();
 
@@ -295,9 +295,9 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 				var name = propertyReference.Property.Name;
 
 				var propertyInfo = type
-														 .GetProperties()
-														 .FirstOrDefault(f => f.Name == name && f.GetMethod.IsStatic == propertyReference.Property.IsStatic)
-													 ?? throw new InvalidOperationException("Property info could not be retrieved.");
+					                   .GetProperties()
+					                   .FirstOrDefault(f => f.Name == name && f.GetMethod.IsStatic == propertyReference.Property.IsStatic)
+				                   ?? throw new InvalidOperationException("Property info could not be retrieved.");
 
 				if (propertyReference.Property.IsStatic)
 				{
@@ -321,7 +321,7 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 		var operatorKind = operation.OperatorKind;
 		var method = operation.OperatorMethod;
 
-		if (loader.TryExecuteMethod(method, null, argument, [left, right], out var value))
+		if (loader.TryExecuteMethod(method, null, argument, [ left, right ], out var value))
 		{
 			return value;
 		}
@@ -386,11 +386,11 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 		if (namedType.Constructors.Any(c => c.Parameters.IsEmpty) && namedType.HasMethod("Add"))
 		{
 			var instance = Activator.CreateInstance(targetType);
-			var addMethod = targetType.GetMethod("Add", [loader.GetType(operation.Elements[0].Type)]);
+			var addMethod = targetType.GetMethod("Add", [ loader.GetType(operation.Elements[0].Type) ]);
 
 			foreach (var element in operation.Elements)
 			{
-				addMethod?.Invoke(instance, [Visit(element, argument)]);
+				addMethod?.Invoke(instance, [ Visit(element, argument) ]);
 			}
 
 			return instance;
@@ -435,7 +435,7 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 
 			foreach (var element in elements)
 			{
-				addMethod?.Invoke(instance, [element]);
+				addMethod?.Invoke(instance, [ element ]);
 			}
 
 			return instance;
@@ -464,7 +464,7 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 		var operand = Visit(operation.Operand, argument);
 		var conversion = operation.Type;
 
-		if (loader.TryExecuteMethod(operation.OperatorMethod, null, argument, [operand], out var value))
+		if (loader.TryExecuteMethod(operation.OperatorMethod, null, argument, [ operand ], out var value))
 		{
 			// If there's a conversion method, use it
 			return value;
@@ -566,66 +566,66 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 			foreach (var clause in clauses)
 			{
 				if (isValid)
-        {
-          break;
-        }
+				{
+					break;
+				}
 
-        switch (clause)
+				switch (clause)
 				{
 					case ISingleValueCaseClauseOperation singleValue:
-						{
-							var caseValue = Visit(singleValue.Value, argument);
+					{
+						var caseValue = Visit(singleValue.Value, argument);
 
-							if (Equals(value, caseValue))
-							{
-								isValid = true;
-							}
-							break;
+						if (Equals(value, caseValue))
+						{
+							isValid = true;
 						}
+						break;
+					}
 					case IRangeCaseClauseOperation rangeClause:
-						{
-							var min = Visit(rangeClause.MinimumValue, argument);
-							var max = Visit(rangeClause.MaximumValue, argument);
+					{
+						var min = Visit(rangeClause.MinimumValue, argument);
+						var max = Visit(rangeClause.MaximumValue, argument);
 
-							if (value is IComparable cmp
-									&& min is IComparable minC && max is IComparable maxC
-									&& cmp.CompareTo(minC) >= 0 && cmp.CompareTo(maxC) <= 0)
+						if (value is IComparable cmp
+						    && min is IComparable minC && max is IComparable maxC
+						    && cmp.CompareTo(minC) >= 0 && cmp.CompareTo(maxC) <= 0)
+						{
+							isValid = true;
+						}
+						break;
+					}
+					case IRelationalCaseClauseOperation relationalClause:
+					{
+						var relVal = Visit(relationalClause.Value, argument);
+
+						if (value is IComparable relCmp && relVal != null)
+						{
+							var res = relCmp.CompareTo(relVal);
+							isValid = relationalClause.Relation switch
+							{
+								BinaryOperatorKind.LessThan => res < 0,
+								BinaryOperatorKind.LessThanOrEqual => res <= 0,
+								BinaryOperatorKind.GreaterThan => res > 0,
+								BinaryOperatorKind.GreaterThanOrEqual => res >= 0,
+								BinaryOperatorKind.Equals => res == 0,
+								BinaryOperatorKind.NotEquals => res != 0,
+								_ => false
+							};
+						}
+						break;
+					}
+					case IPatternCaseClauseOperation patternClause:
+					{
+						if (MatchPattern(value, patternClause.Pattern, argument))
+						{
+							if (patternClause.Guard is null || Visit(patternClause.Guard, argument) is true)
 							{
 								isValid = true;
 							}
-							break;
 						}
-					case IRelationalCaseClauseOperation relationalClause:
-						{
-							var relVal = Visit(relationalClause.Value, argument);
-
-							if (value is IComparable relCmp && relVal != null)
-							{
-								var res = relCmp.CompareTo(relVal);
-								isValid = relationalClause.Relation switch
-								{
-									BinaryOperatorKind.LessThan => res < 0,
-									BinaryOperatorKind.LessThanOrEqual => res <= 0,
-									BinaryOperatorKind.GreaterThan => res > 0,
-									BinaryOperatorKind.GreaterThanOrEqual => res >= 0,
-									BinaryOperatorKind.Equals => res == 0,
-									BinaryOperatorKind.NotEquals => res != 0,
-									_ => false
-								};
-							}
-							break;
-						}
-					case IPatternCaseClauseOperation patternClause:
-						{
-							if (MatchPattern(value, patternClause.Pattern, argument))
-							{
-								if (patternClause.Guard is null || Visit(patternClause.Guard, argument) is true)
-								{
-									isValid = true;
-								}
-							}
-							break;
-						}
+						break;
+					}
 				}
 			}
 
@@ -640,9 +640,9 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 		foreach (var caseClause in operation.Cases)
 		{
 			if (caseClause.Clauses
-					.Where(w => w.CaseKind == CaseKind.Default)
-					.Select(s => Visit(s, argument))
-					.Contains(value))
+			    .Where(w => w.CaseKind == CaseKind.Default)
+			    .Select(s => Visit(s, argument))
+			    .Contains(value))
 			{
 				VisitList(caseClause.Body, argument);
 			}
@@ -720,15 +720,16 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 		while (Visit(operation.Condition, argument) is true)
 		{
 			var loopResult = Visit(operation.Body, argument);
-			if (ReferenceEquals(loopResult, BreakSentinel))
-      {
-        break;
-      }
 
-      if (ReferenceEquals(loopResult, ContinueSentinel))
-      {
-      }
-    }
+			if (ReferenceEquals(loopResult, BreakSentinel))
+			{
+				break;
+			}
+
+			if (ReferenceEquals(loopResult, ContinueSentinel))
+			{
+			}
+		}
 
 		return null;
 	}
@@ -738,15 +739,16 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 		for (VisitList(operation.Before, argument); Visit(operation.Condition, argument) is true; VisitList(operation.AtLoopBottom, argument))
 		{
 			var loopResult = Visit(operation.Body, argument);
-			if (ReferenceEquals(loopResult, BreakSentinel))
-      {
-        break;
-      }
 
-      if (ReferenceEquals(loopResult, ContinueSentinel))
-      {
-      }
-    }
+			if (ReferenceEquals(loopResult, BreakSentinel))
+			{
+				break;
+			}
+
+			if (ReferenceEquals(loopResult, ContinueSentinel))
+			{
+			}
+		}
 
 		return null;
 	}
@@ -763,14 +765,14 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 			var loopResult = Visit(operation.Body, argument);
 
 			if (ReferenceEquals(loopResult, BreakSentinel))
-      {
-        break;
-      }
+			{
+				break;
+			}
 
-      if (ReferenceEquals(loopResult, ContinueSentinel))
-      {
-      }
-    }
+			if (ReferenceEquals(loopResult, ContinueSentinel))
+			{
+			}
+		}
 
 		return null;
 	}
@@ -877,14 +879,37 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 	{
 		var name = GetVariableName(operation.Target);
 		var target = Visit(operation.Target, argument);
-		var type = operation.Kind;
 
-		return argument[name] = type switch
+		var newValue = operation.Kind switch
 		{
 			OperationKind.Increment => target.Add(1),
 			OperationKind.Decrement => target.Add(-1),
 			_ => target,
 		};
+
+		// For array element targets (e.g. arr[i]++), mutate the array in place rather than
+		// overwriting the array variable with the scalar increment result.
+		if (operation.Target is IArrayElementReferenceOperation arrayElement)
+		{
+			var array = Visit(arrayElement.ArrayReference, argument);
+
+			if (array is Array arr)
+			{
+				var indices = arrayElement.Indices.Select(s => Visit(s, argument)).ToArray();
+
+				if (indices.All(i => i is int or char))
+					arr.SetValue(newValue, indices.Select(i => i is char c ? c : (int) i).ToArray());
+				else if (indices.All(i => i is long))
+					arr.SetValue(newValue, indices.Cast<long>().ToArray());
+			}
+		}
+		else
+		{
+			argument[name] = newValue;
+		}
+
+		// Postfix (x++) returns the value before the increment; prefix (++x) returns the new value.
+		return operation.IsPostfix ? target : newValue;
 	}
 
 	public override object? VisitParenthesized(IParenthesizedOperation operation, IDictionary<string, object?> argument)
@@ -912,45 +937,45 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 				switch (initializer)
 				{
 					case IInvocationOperation invocation:
-						{
-							var method = result?.GetType().GetMethod(invocation.TargetMethod.Name, invocation.Arguments.Select(a => loader.GetType(a.Value.Type)).ToArray());
+					{
+						var method = result?.GetType().GetMethod(invocation.TargetMethod.Name, invocation.Arguments.Select(a => loader.GetType(a.Value.Type)).ToArray());
 
-							method?.Invoke(result, invocation.Arguments.Select(a => Visit(a.Value, argument)).ToArray());
-							break;
-						}
+						method?.Invoke(result, invocation.Arguments.Select(a => Visit(a.Value, argument)).ToArray());
+						break;
+					}
 					case ISimpleAssignmentOperation assignment:
+					{
+						var name = assignment.Target switch
 						{
-							var name = assignment.Target switch
-							{
-								IPropertyReferenceOperation propRef => propRef.Property.Name,
-								IFieldReferenceOperation fieldRef => fieldRef.Field.Name,
-								_ => null
-							};
+							IPropertyReferenceOperation propRef => propRef.Property.Name,
+							IFieldReferenceOperation fieldRef => fieldRef.Field.Name,
+							_ => null
+						};
 
-							if (name is not null)
+						if (name is not null)
+						{
+							var propertyInfo = result?.GetType()
+								.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+								.FirstOrDefault(f => f.Name == name);
+
+							if (propertyInfo != null && propertyInfo.CanWrite)
 							{
-								var propertyInfo = result?.GetType()
-									.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+								propertyInfo.SetValue(result, Visit(assignment.Value, argument));
+							}
+							else
+							{
+								var fieldInfo = result?.GetType()
+									.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
 									.FirstOrDefault(f => f.Name == name);
 
-								if (propertyInfo != null && propertyInfo.CanWrite)
+								if (fieldInfo != null)
 								{
-									propertyInfo.SetValue(result, Visit(assignment.Value, argument));
-								}
-								else
-								{
-									var fieldInfo = result?.GetType()
-										.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-										.FirstOrDefault(f => f.Name == name);
-
-									if (fieldInfo != null)
-									{
-										fieldInfo.SetValue(result, Visit(assignment.Value, argument));
-									}
+									fieldInfo.SetValue(result, Visit(assignment.Value, argument));
 								}
 							}
-							break;
 						}
+						break;
+					}
 				}
 			}
 		}
@@ -1020,7 +1045,7 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 			propBuilder.SetGetMethod(getter);
 
 			// Setter
-			var setter = typeBuilder.DefineMethod($"set_{kvp.Key}", MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.HideBySig, null, [kvp.Value?.GetType() ?? typeof(object)]);
+			var setter = typeBuilder.DefineMethod($"set_{kvp.Key}", MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.HideBySig, null, [ kvp.Value?.GetType() ?? typeof(object) ]);
 			var ilSet = setter.GetILGenerator();
 			ilSet.Emit(OpCodes.Ldarg_0);
 			ilSet.Emit(OpCodes.Ldarg_1);
@@ -1057,17 +1082,17 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 		return operation.Type?.SpecialType switch
 		{
 			SpecialType.System_Boolean => false,
-			SpecialType.System_Byte => (byte)0,
-			SpecialType.System_Char => (char)0,
+			SpecialType.System_Byte => (byte) 0,
+			SpecialType.System_Char => (char) 0,
 			SpecialType.System_DateTime => default(DateTime),
 			SpecialType.System_Decimal => 0M,
 			SpecialType.System_Double => 0D,
-			SpecialType.System_Int16 => (short)0,
+			SpecialType.System_Int16 => (short) 0,
 			SpecialType.System_Int32 => 0,
 			SpecialType.System_Int64 => 0L,
-			SpecialType.System_SByte => (sbyte)0,
+			SpecialType.System_SByte => (sbyte) 0,
 			SpecialType.System_Single => 0F,
-			SpecialType.System_UInt16 => (ushort)0,
+			SpecialType.System_UInt16 => (ushort) 0,
 			SpecialType.System_UInt32 => 0U,
 			SpecialType.System_UInt64 => 0UL,
 			_ => Activator.CreateInstance(loader.GetType(operation.Type)),
@@ -1459,18 +1484,18 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 
 		if (startIndexObj == null && endIndexObj != null)
 		{
-			var endAt = rangeType.GetMethod("EndAt", BindingFlags.Public | BindingFlags.Static, null, [indexType], null);
-			return endAt?.Invoke(null, [endIndexObj]);
+			var endAt = rangeType.GetMethod("EndAt", BindingFlags.Public | BindingFlags.Static, null, [ indexType ], null);
+			return endAt?.Invoke(null, [ endIndexObj ]);
 		}
 
 		if (startIndexObj != null && endIndexObj == null)
 		{
-			var startAt = rangeType.GetMethod("StartAt", BindingFlags.Public | BindingFlags.Static, null, [indexType], null);
-			return startAt?.Invoke(null, [startIndexObj]);
+			var startAt = rangeType.GetMethod("StartAt", BindingFlags.Public | BindingFlags.Static, null, [ indexType ], null);
+			return startAt?.Invoke(null, [ startIndexObj ]);
 		}
 
-		var ctorRange = rangeType.GetConstructor([indexType, indexType]);
-		return ctorRange?.Invoke([startIndexObj, endIndexObj]);
+		var ctorRange = rangeType.GetConstructor([ indexType, indexType ]);
+		return ctorRange?.Invoke([ startIndexObj, endIndexObj ]);
 
 		object? CreateIndex(IOperation? op)
 		{
@@ -1502,8 +1527,8 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 			if (valueObj is IConvertible conv)
 			{
 				var intValue = Convert.ToInt32(conv, CultureInfo.InvariantCulture);
-				var ctor = indexType.GetConstructor([typeof(int), typeof(bool)]);
-				return ctor?.Invoke([intValue, fromEnd]);
+				var ctor = indexType.GetConstructor([ typeof(int), typeof(bool) ]);
+				return ctor?.Invoke([ intValue, fromEnd ]);
 			}
 
 			return valueObj;
@@ -1538,18 +1563,19 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 	public override object? VisitWith(IWithOperation operation, IDictionary<string, object?> argument)
 	{
 		var receiver = Visit(operation.Operand, argument);
-		if (receiver == null)
-    {
-      return null;
-    }
 
-    var type = receiver.GetType();
-		var copyCtor = type.GetConstructor([type]);
+		if (receiver == null)
+		{
+			return null;
+		}
+
+		var type = receiver.GetType();
+		var copyCtor = type.GetConstructor([ type ]);
 		object clone;
 
 		if (copyCtor != null)
 		{
-			clone = copyCtor.Invoke([receiver]);
+			clone = copyCtor.Invoke([ receiver ]);
 		}
 		else
 		{
@@ -1584,6 +1610,7 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 				if (declarationPattern.MatchedType != null && value != null)
 				{
 					var matchedType = loader.GetType(declarationPattern.MatchedType);
+
 					if (matchedType != null && !matchedType.IsInstanceOfType(value))
 					{
 						return false;
@@ -1639,6 +1666,7 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 				}
 
 				var elements = enumerable.Cast<object?>().ToList();
+
 				if (elements.Count != listPattern.ChildOperations.Count)
 				{
 					return false;
@@ -1681,9 +1709,9 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 			var loopResult = Visit(operation, argument);
 
 			if (ReferenceEquals(loopResult, BreakSentinel))
-      {
-        break;
-      }
-    }
+			{
+				break;
+			}
+		}
 	}
 }

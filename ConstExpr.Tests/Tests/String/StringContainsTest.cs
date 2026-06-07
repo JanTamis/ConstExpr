@@ -9,7 +9,7 @@ public class StringContainsTest() : BaseTest<Func<string, string, bool>>(FastMat
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return Contains_57jrtQ(s);"),
+		Create("return Contains_57jrtQ(s, sub);"),
 		Create((_, _) => true, [ "hello", "ell" ]),
 		Create((_, _) => false, [ "hello", "world" ]),
 		Create((_, _) => true, [ "abc", "" ]),

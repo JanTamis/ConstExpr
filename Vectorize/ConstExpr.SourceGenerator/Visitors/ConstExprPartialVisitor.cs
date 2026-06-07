@@ -87,7 +87,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 	public override SyntaxNode? VisitLocalReference(ILocalReferenceOperation operation, IDictionary<string, VariableItem> argument)
 	{
 		if (argument.TryGetValue(operation.Local.Name, out var value)
-				&& value.HasValue)
+		    && value.HasValue)
 		{
 			if (TryCreateLiteral(value.Value, out var expression))
 			{
@@ -208,7 +208,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 			// We avoid transforms that would duplicate or skip evaluation of non-constant operands.
 
 			if (left is ExpressionSyntax leftExpr
-					&& right is ExpressionSyntax rightExpr)
+			    && right is ExpressionSyntax rightExpr)
 			{
 				var opMethod = operation.OperatorMethod; // null => built-in operator
 
@@ -220,7 +220,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 				{
 					// Numeric identities
 					if (IsNumericType(operation.LeftOperand.Type)
-							&& IsNumericType(operation.RightOperand.Type))
+					    && IsNumericType(operation.RightOperand.Type))
 					{
 						switch (operation.OperatorKind)
 						{
@@ -335,7 +335,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 
 					// Boolean logical identities
 					if (IsBoolType(operation.LeftOperand.Type)
-							&& IsBoolType(operation.RightOperand.Type))
+					    && IsBoolType(operation.RightOperand.Type))
 					{
 						switch (operation.OperatorKind)
 						{
@@ -605,7 +605,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 
 		if (operation.Syntax is VariableDeclaratorSyntax variable)
 		{
-			var result = (EqualsValueClauseSyntax)Visit(operation.Initializer, argument);
+			var result = (EqualsValueClauseSyntax) Visit(operation.Initializer, argument);
 
 			if (!argument.TryGetValue(name, out var item))
 			{
@@ -657,7 +657,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 
 		if (TryGetConstantValue(model.Compilation, loader, operand, new VariableItemDictionary(argument), token, out var value))
 		{
-			if (loader.TryExecuteMethod(operation.OperatorMethod, null, new VariableItemDictionary(argument), [value], out value)
+			if (loader.TryExecuteMethod(operation.OperatorMethod, null, new VariableItemDictionary(argument), [ value ], out value)
 			    && TryCreateLiteral(value, out var literal))
 			{
 				// If there's a conversion method, use it and produce a literal syntax node
@@ -689,7 +689,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 
 		if (operation.Syntax is CastExpressionSyntax castExpressionSyntax)
 		{
-			return castExpressionSyntax.WithExpression((ExpressionSyntax)operand);
+			return castExpressionSyntax.WithExpression((ExpressionSyntax) operand);
 		}
 
 		return operand;
@@ -715,7 +715,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 				try
 				{
 					TryGetConstantValue(model.Compilation, loader, instance, new VariableItemDictionary(argument), token, out var instanceValue);
-						
+
 					if (loader.TryExecuteMethod(targetMethod, instanceValue, new VariableItemDictionary(argument), constantArguments, out var value)
 					    && TryCreateLiteral(value, out var literal))
 					{
@@ -757,7 +757,9 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 							}
 						}
 
-						if (TryCreateLiteral(variables[ConstExprOperationVisitor.RETURNVARIABLENAME], out var result))
+						if (variables.TryGetValue(ConstExprOperationVisitor.RETURNVARIABLENAME, out var retVal)
+						    && retVal is not null
+						    && TryCreateLiteral(retVal, out var result))
 						{
 							return result;
 						}
@@ -767,7 +769,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 
 			return invocation
 				.WithArgumentList(invocation.ArgumentList
-					.WithArguments(SeparatedList(arguments.Select(s => Argument((ExpressionSyntax)s)))));
+					.WithArguments(SeparatedList(arguments.Select(s => Argument((ExpressionSyntax) s)))));
 		}
 
 		return operation.Syntax;
@@ -795,9 +797,9 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 			}
 
 			return conditional
-				.WithCondition((ExpressionSyntax)condition!)
-				.WithWhenTrue((ExpressionSyntax)Visit(operation.WhenTrue, argument)!)
-				.WithWhenFalse((ExpressionSyntax)Visit(operation.WhenFalse, argument)!);
+				.WithCondition((ExpressionSyntax) condition!)
+				.WithWhenTrue((ExpressionSyntax) Visit(operation.WhenTrue, argument)!)
+				.WithWhenFalse((ExpressionSyntax) Visit(operation.WhenFalse, argument)!);
 		}
 
 		if (operation.Syntax is IfStatementSyntax ifStatement)
@@ -814,15 +816,15 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 						return Visit(operation.WhenTrue, argument);
 					}
 					case false:
+					{
+						// Return only the 'else' part (if present); otherwise drop the whole if
+						if (operation.WhenFalse is null)
 						{
-							// Return only the 'else' part (if present); otherwise drop the whole if
-							if (operation.WhenFalse is null)
-							{
-								return null;
-							}
-
-							return Visit(operation.WhenFalse, argument);
+							return null;
 						}
+
+						return Visit(operation.WhenFalse, argument);
+					}
 				}
 			}
 
@@ -862,8 +864,8 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 	{
 		return operation.Syntax switch
 		{
-			ReturnStatementSyntax returnStatement => returnStatement.WithExpression((ExpressionSyntax?)Visit(operation.ReturnedValue, argument)),
-			YieldStatementSyntax yieldStatementSyntax => yieldStatementSyntax.WithExpression((ExpressionSyntax?)Visit(operation.ReturnedValue, argument)),
+			ReturnStatementSyntax returnStatement => returnStatement.WithExpression((ExpressionSyntax?) Visit(operation.ReturnedValue, argument)),
+			YieldStatementSyntax yieldStatementSyntax => yieldStatementSyntax.WithExpression((ExpressionSyntax?) Visit(operation.ReturnedValue, argument)),
 			_ => operation.Syntax
 		};
 	}
@@ -893,7 +895,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 				var indices = propertyReference.Arguments.Select(a => Visit(a.Value, argument)).ToArray();
 
 				return assignmentExpression.WithLeft(ElementAccessExpression(
-					(ExpressionSyntax)instance!,
+					(ExpressionSyntax) instance!,
 					BracketedArgumentList(SeparatedList(indices.OfType<ExpressionSyntax>().Select(Argument)))
 				));
 			}
@@ -1036,47 +1038,47 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 					return true; // matches anything
 				}
 				case IConstantPatternOperation constPat:
-					{
-						var patNode = Visit(constPat.Value, argument);
+				{
+					var patNode = Visit(constPat.Value, argument);
 
-						if (TryGetConstantValue(model.Compilation, loader, patNode, new VariableItemDictionary(argument), token, out var patValue))
-						{
-							return Equals(governingValue, patValue);
-						}
-						return null;
+					if (TryGetConstantValue(model.Compilation, loader, patNode, new VariableItemDictionary(argument), token, out var patValue))
+					{
+						return Equals(governingValue, patValue);
 					}
+					return null;
+				}
 				case IRelationalPatternOperation relPat:
-					{
-						var rightNode = Visit(relPat.Value, argument);
+				{
+					var rightNode = Visit(relPat.Value, argument);
 
-						if (TryGetConstantValue(model.Compilation, loader, rightNode, new VariableItemDictionary(argument), token, out var rightValue))
-						{
-							var result = ObjectExtensions.ExecuteBinaryOperation(relPat.OperatorKind, governingValue, rightValue);
-							return result is true;
-						}
+					if (TryGetConstantValue(model.Compilation, loader, rightNode, new VariableItemDictionary(argument), token, out var rightValue))
+					{
+						var result = ObjectExtensions.ExecuteBinaryOperation(relPat.OperatorKind, governingValue, rightValue);
+						return result is true;
+					}
+					return null;
+				}
+				case IBinaryPatternOperation binPat:
+				{
+					var left = EvaluatePattern(binPat.LeftPattern, governingValue, argument);
+					var right = EvaluatePattern(binPat.RightPattern, governingValue, argument);
+
+					if (left is null || right is null)
+					{
 						return null;
 					}
-				case IBinaryPatternOperation binPat:
+					return binPat.OperatorKind switch
 					{
-						var left = EvaluatePattern(binPat.LeftPattern, governingValue, argument);
-						var right = EvaluatePattern(binPat.RightPattern, governingValue, argument);
-
-						if (left is null || right is null)
-						{
-							return null;
-						}
-						return binPat.OperatorKind switch
-						{
-							BinaryOperatorKind.Or => left.Value || right.Value,
-							BinaryOperatorKind.And => left.Value && right.Value,
-							_ => null
-						};
-					}
+						BinaryOperatorKind.Or => left.Value || right.Value,
+						BinaryOperatorKind.And => left.Value && right.Value,
+						_ => null
+					};
+				}
 				case INegatedPatternOperation notPat:
-					{
-						var inner = EvaluatePattern(notPat.Pattern, governingValue, argument);
-						return inner is null ? null : !inner.Value;
-					}
+				{
+					var inner = EvaluatePattern(notPat.Pattern, governingValue, argument);
+					return inner is null ? null : !inner.Value;
+				}
 				default:
 				{
 					return null; // unsupported pattern kinds -> unknown
@@ -1107,47 +1109,47 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 							return true;
 						}
 						case ISingleValueCaseClauseOperation single:
-							{
-								var node = Visit(single.Value, argument);
+						{
+							var node = Visit(single.Value, argument);
 
-								if (TryGetConstantValue(model.Compilation, loader, node, new VariableItemDictionary(argument), token, out var caseValue))
-								{
-									return Equals(governingValue, caseValue);
-								}
-								return null;
+							if (TryGetConstantValue(model.Compilation, loader, node, new VariableItemDictionary(argument), token, out var caseValue))
+							{
+								return Equals(governingValue, caseValue);
 							}
+							return null;
+						}
 						case IRelationalCaseClauseOperation rel:
-							{
-								var rightNode = Visit(rel.Value, argument);
+						{
+							var rightNode = Visit(rel.Value, argument);
 
-								if (TryGetConstantValue(model.Compilation, loader, rightNode, new VariableItemDictionary(argument), token, out var rightValue))
-								{
-									var result = ObjectExtensions.ExecuteBinaryOperation(rel.Relation, governingValue, rightValue);
-									return result is true;
-								}
-								return null;
+							if (TryGetConstantValue(model.Compilation, loader, rightNode, new VariableItemDictionary(argument), token, out var rightValue))
+							{
+								var result = ObjectExtensions.ExecuteBinaryOperation(rel.Relation, governingValue, rightValue);
+								return result is true;
 							}
+							return null;
+						}
 						case IPatternCaseClauseOperation patClause:
+						{
+							var patMatch = EvaluatePattern(patClause.Pattern, governingValue, argument);
+
+							if (patMatch is not true)
 							{
-								var patMatch = EvaluatePattern(patClause.Pattern, governingValue, argument);
-
-								if (patMatch is not true)
-								{
-									return patMatch; // false or null
-								}
-
-								if (patClause.Guard is not null)
-								{
-									var guardVisited = Visit(patClause.Guard, argument);
-
-									if (!TryGetConstantValue(model.Compilation, loader, guardVisited, new VariableItemDictionary(argument), token, out var guardVal))
-									{
-										return null;
-									}
-									return guardVal is true;
-								}
-								return true;
+								return patMatch; // false or null
 							}
+
+							if (patClause.Guard is not null)
+							{
+								var guardVisited = Visit(patClause.Guard, argument);
+
+								if (!TryGetConstantValue(model.Compilation, loader, guardVisited, new VariableItemDictionary(argument), token, out var guardVal))
+								{
+									return null;
+								}
+								return guardVal is true;
+							}
+							return true;
+						}
 						default:
 						{
 							return null;
@@ -1347,7 +1349,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 				}
 			}
 
-		ReBuild:
+			ReBuild:
 			{
 				// Rebuild switch expression with visited governing expression and visited guards/values
 				var newArms = new List<SwitchExpressionArmSyntax>();
@@ -1385,7 +1387,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 				}
 
 				return switchExpr
-					.WithGoverningExpression((ExpressionSyntax)visitedGoverning!)
+					.WithGoverningExpression((ExpressionSyntax) visitedGoverning!)
 					.WithArms(SeparatedList(newArms));
 			}
 		}
@@ -1410,7 +1412,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 				{
 					var value = Visit(arg.Value, argument);
 
-					arguments.Add(argumentSyntax.WithExpression((ExpressionSyntax)value!));
+					arguments.Add(argumentSyntax.WithExpression((ExpressionSyntax) value!));
 				}
 			}
 
@@ -1507,7 +1509,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 			var collection = Visit(operation.Collection, argument);
 
 			if (TryGetConstantValue(model.Compilation, loader, collection, new VariableItemDictionary(argument), token, out var collectionValue) &&
-					collectionValue is IEnumerable enumerable)
+			    collectionValue is IEnumerable enumerable)
 			{
 				if (operation.LoopControlVariable is IVariableDeclaratorOperation loopControlVariable)
 				{
@@ -1561,7 +1563,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 	private StatementSyntax ToStatementSyntax(IEnumerable<SyntaxNode> nodes)
 	{
 		var items = nodes
-			.SelectMany<SyntaxNode, SyntaxNode>(s => s is BlockSyntax block ? block.Statements : [s])
+			.SelectMany<SyntaxNode, SyntaxNode>(s => s is BlockSyntax block ? block.Statements : [ s ])
 			.OfType<StatementSyntax>()
 			.ToList();
 

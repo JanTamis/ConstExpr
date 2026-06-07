@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -473,15 +475,48 @@ public static class UsePatternMatchingRefactoring
 			return false;
 		}
 
-		// Require at least two alternatives — a bare ConstantPattern means only one branch was found
-		if (pattern is not BinaryPatternSyntax)
+		// Deduplicate identical alternatives (e.g. "null or null" from alias analysis → "null")
+		var alternatives = new List<PatternSyntax>();
+		CollectOrPatternAlternatives(pattern, alternatives);
+		var distinct = alternatives
+			.GroupBy(p => p.ToFullString())
+			.Select(g => g.First())
+			.ToList();
+
+		if (distinct.Count < 2)
 		{
+			// After deduplication only one (or zero) alternatives remain — emit single-pattern form
+			// only when that happened via deduplication (original had multiple branches).
+			if (distinct.Count == 1 && alternatives.Count > 1)
+			{
+				result = IsPatternExpression(testedExpr!.WithoutTrivia(), distinct[0])
+					.WithTriviaFrom(orChain);
+				return true;
+			}
+
 			return false;
 		}
+
+		pattern = distinct.Skip(1).Aggregate(
+			(PatternSyntax) distinct[0],
+			(left, right) => BinaryPattern(SyntaxKind.OrPattern, left, right));
 
 		result = IsPatternExpression(testedExpr!.WithoutTrivia(), pattern)
 			.WithTriviaFrom(orChain);
 		return true;
+	}
+
+	private static void CollectOrPatternAlternatives(PatternSyntax pattern, List<PatternSyntax> result)
+	{
+		if (pattern is BinaryPatternSyntax { RawKind: (int) SyntaxKind.OrPattern } binary)
+		{
+			CollectOrPatternAlternatives(binary.Left, result);
+			CollectOrPatternAlternatives(binary.Right, result);
+		}
+		else
+		{
+			result.Add(pattern);
+		}
 	}
 
 	/// <summary>
@@ -536,7 +571,7 @@ public static class UsePatternMatchingRefactoring
 		}
 
 		ExpressionSyntax tested, constant;
-		
+
 		var leftVisited = visit(eqExpr.Left);
 		var rightVisited = visit(eqExpr.Right);
 

@@ -381,7 +381,9 @@ public partial class ConstExprPartialRewriter
 			}
 		}
 
-		if (TryCreateLiteral(vars[ConstExprOperationVisitor.RETURNVARIABLENAME], out var result))
+		if (vars.TryGetValue(ConstExprOperationVisitor.RETURNVARIABLENAME, out var retVal)
+		    && retVal is not null
+		    && TryCreateLiteral(retVal, out var result))
 		{
 			return result;
 		}

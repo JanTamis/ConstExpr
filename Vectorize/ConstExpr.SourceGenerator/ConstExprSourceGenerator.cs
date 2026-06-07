@@ -390,9 +390,11 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 			var timer = Stopwatch.StartNew();
 
-			// visitor.VisitBlock(blockOperation.BlockBody!, variables);
-
-			var result = partialVisitor.VisitBlock(methodDecl.Body); // partialVisitor.VisitBlock(blockOperation.BlockBody!, variablesPartial);
+			// Try full constant evaluation first: if all arguments are known constants and the
+			// operation visitor can evaluate the entire method body to a literal, use it directly
+			// rather than the partially-specialized body.
+			var result = TryFullyEvaluateMethod(model, loader, methodSymbol, variablesPartial, token, methodDecl)
+			             ?? partialVisitor.VisitBlock(methodDecl.Body); // partialVisitor.VisitBlock(blockOperation.BlockBody!, variablesPartial);
 			var result2 = DeadCodePruner.Prune(result, variablesPartial, semanticModel);
 
 			if (attribute.MathOptimizations.HasFlag(FastMathFlags.CommonSubexpressionElimination))
@@ -479,6 +481,79 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				_ => false
 			};
 		}
+	}
+
+	private static SyntaxNode? TryFullyEvaluateMethod(
+		SemanticModel model,
+		MetadataLoader loader,
+		IMethodSymbol methodSymbol,
+		IDictionary<string, VariableItem> variablesPartial,
+		CancellationToken token,
+		MethodDeclarationSyntax methodDecl)
+	{
+		var constantValues = variablesPartial.Values
+			.Where(v => v.HasValue)
+			.Select(v => v.Value)
+			.ToList<object?>();
+
+		if (constantValues.Count != methodSymbol.Parameters.Length)
+		{
+			return null;
+		}
+
+		if (!TryGetOperation<IOperation>(model, methodSymbol, out var fullMethodOp))
+		{
+			return null;
+		}
+
+		var paramList = fullMethodOp.Syntax switch
+		{
+			MethodDeclarationSyntax m => m.ParameterList,
+			LocalFunctionStatementSyntax lf => lf.ParameterList,
+			_ => null
+		};
+
+		if (paramList is null || paramList.Parameters.Count != constantValues.Count)
+		{
+			return null;
+		}
+
+		var fullVars = new Dictionary<string, object?>();
+
+		for (var pi = 0; pi < paramList.Parameters.Count; pi++)
+		{
+			fullVars[paramList.Parameters[pi].Identifier.Text] = constantValues[pi];
+		}
+
+		var fullVisitor = new ConstExprOperationVisitor(model, loader, (_, _) => { }, token);
+
+		try
+		{
+			switch (fullMethodOp)
+			{
+				case ILocalFunctionOperation { Body: not null } lf:
+					fullVisitor.VisitBlock(lf.Body, fullVars);
+					break;
+				case IMethodBodyOperation { BlockBody: not null } mb:
+					fullVisitor.VisitBlock(mb.BlockBody, fullVars);
+					break;
+				default:
+					return null;
+			}
+
+			if (fullVars.TryGetValue(ConstExprOperationVisitor.RETURNVARIABLENAME, out var returnValue)
+			    && returnValue is not null
+			    && TryCreateLiteral(returnValue, out var literalResult))
+			{
+				return Block(ReturnStatement(literalResult));
+			}
+		}
+		catch
+		{
+			// Fall through to partial evaluation
+		}
+
+		return null;
 	}
 
 	public static Dictionary<string, VariableItem> ProcessArguments(ConstExprOperationVisitor visitor, SemanticModel model, InvocationExpressionSyntax invocation, MetadataLoader loader, RoslynApiCache apiCache, CancellationToken token)

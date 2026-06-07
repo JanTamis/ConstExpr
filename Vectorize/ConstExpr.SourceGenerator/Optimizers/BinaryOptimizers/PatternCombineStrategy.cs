@@ -22,16 +22,16 @@ public class PatternCombineStrategy(BinaryOperatorKind operatorKind) : BaseBinar
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		var left = TryParseAsPattern(context.Left.Syntax);
-		
+
 		if (left is null)
-		{ 
+		{
 			optimized = null;
 			return false;
 		}
 
 		var right = TryParseAsPattern(context.Right.Syntax);
-		
-		if (right is null 
+
+		if (right is null
 		    || !LeftEqualsRight(left.Value.Target, right.Value.Target, context.Variables))
 		{
 			optimized = null;
@@ -51,10 +51,20 @@ public class PatternCombineStrategy(BinaryOperatorKind operatorKind) : BaseBinar
 			return false;
 		}
 
+		// Two identical patterns in an OR-combine would produce `x is null or null`.
+		// This happens when alias analysis deems two different parameters equal (e.g. both
+		// receive the same call-site argument). Merging them loses the second operand from
+		// the generated method body, so bail out and keep the original || expression.
+		if (patternKind == SyntaxKind.OrPattern
+		    && AreEquivalent(left.Value.Pattern, right.Value.Pattern))
+		{
+			optimized = null;
+			return false;
+		}
+
 		var combined = BinaryPattern(patternKind, left.Value.Pattern, right.Value.Pattern);
 		optimized = IsPatternExpression(left.Value.Target, combined);
-		
+
 		return true;
 	}
 }
-
