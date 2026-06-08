@@ -7,7 +7,7 @@ namespace ConstExpr.Tests.Validation;
 /// is collapsed into <c>Char.IsAsciiLetter(c)</c>.
 /// </summary>
 [InheritsTests]
-public class IsAsciiLetterTest() : BaseTest<Func<char, bool>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
+public class IsAsciiLetterTest() : BaseTest<Func<char, bool>>(FastMathFlags.FastMath, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(c =>
 		(c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'));

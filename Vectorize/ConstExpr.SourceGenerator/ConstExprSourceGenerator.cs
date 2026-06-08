@@ -397,19 +397,19 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			             ?? partialVisitor.VisitBlock(methodDecl.Body); // partialVisitor.VisitBlock(blockOperation.BlockBody!, variablesPartial);
 			var result2 = DeadCodePruner.Prune(result, variablesPartial, semanticModel);
 
-			if (attribute.MathOptimizations.HasFlag(FastMathFlags.CommonSubexpressionElimination))
+			if (attribute.Optimizations.HasFlag(OptimizationFlags.CommonSubexpressionElimination))
 			{
 				result2 = CommonSubexpressionEliminator.Eliminate(result2);
 				result2 = DeadCodePruner.Prune(result2, variablesPartial, semanticModel);
 			}
 
-			if (attribute.MathOptimizations.HasFlag(FastMathFlags.LoopInvariantCodeMotion))
+			if (attribute.Optimizations.HasFlag(OptimizationFlags.LoopInvariantCodeMotion))
 			{
 				result2 = LoopInvariantCodeMotionRewriter.Apply(result2);
 				result2 = DeadCodePruner.Prune(result2, variablesPartial, semanticModel);
 			}
 
-			if (attribute.MathOptimizations.HasFlag(FastMathFlags.TailRecursionElimination) && result2 is BlockSyntax treBlock)
+			if (attribute.Optimizations.HasFlag(OptimizationFlags.TailRecursionElimination) && result2 is BlockSyntax treBlock)
 			{
 				var treMethod = methodDecl.WithBody(treBlock);
 				result2 = TailRecursionRewriter.Apply(treMethod);
@@ -427,7 +427,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 			GetUsings(methodSymbol, usings);
 
-			if (attribute.MathOptimizations != FastMathFlags.Strict)
+			if (attribute.MathOptimizations != FastMathFlags.Strict || attribute.Optimizations != OptimizationFlags.None)
 			{
 				usings.Add("System.Runtime.CompilerServices");
 			}

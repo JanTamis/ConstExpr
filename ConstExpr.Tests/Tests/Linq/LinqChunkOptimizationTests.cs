@@ -7,7 +7,7 @@ namespace ConstExpr.Tests.Linq;
 /// Note: Chunk is only available in .NET 6+ so these tests are commented out for compatibility
 /// </summary>
 [InheritsTests]
-public class LinqChunkOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
+public class LinqChunkOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.FastMath, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(x =>
 	{

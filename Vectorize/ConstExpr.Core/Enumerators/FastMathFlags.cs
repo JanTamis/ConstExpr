@@ -73,26 +73,6 @@ public enum FastMathFlags
 	FusedMultiplyAdd = 1 << 7,
 
 	/// <summary>
-	///   Enable Common Subexpression Elimination (CSE) (<c>-fcommon-subexpression-elimination</c>).
-	///   Identifies repeated expressions and replaces them with local variables to avoid redundant computation.
-	/// </summary>
-	CommonSubexpressionElimination = 1 << 8,
-
-	/// <summary>
-	///   Enable Loop Invariant Code Motion (LICM).
-	///   Moves expressions that produce the same result on every iteration to before the loop,
-	///   avoiding redundant computation inside the loop body.
-	/// </summary>
-	LoopInvariantCodeMotion = 1 << 9,
-
-	/// <summary>
-	///   Enable tail-recursion elimination.
-	///   Rewrites tail-recursive methods into iterative <c>while</c>-loops,
-	///   avoiding stack-overflow risks and improving performance.
-	/// </summary>
-	TailRecursionElimination = 1 << 10,
-
-	/// <summary>
 	/// Enable all fast-math optimisations — equivalent to C++ <c>-ffast-math</c>.
 	/// Combines <see cref="AssociativeMath"/>, <see cref="NoNaN"/>, <see cref="NoInfinity"/>,
 	/// <see cref="NoSignedZero"/>, <see cref="ReciprocalMath"/>, <see cref="RoundToNearest"/>,

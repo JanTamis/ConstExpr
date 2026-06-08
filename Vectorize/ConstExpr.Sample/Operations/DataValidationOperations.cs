@@ -7,7 +7,8 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.SourceGenerator.Sample.Operations;
 
 [ConstExpr(
-	MathOptimizations = FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination,
+	MathOptimizations = FastMathFlags.FastMath,
+	Optimizations = OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination,
 	LinqOptimisationMode = LinqOptimisationMode.Unroll)]
 public static class DataValidationOperations
 {

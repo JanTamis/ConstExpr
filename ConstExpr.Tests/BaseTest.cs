@@ -20,7 +20,7 @@ using sourcegen::ConstExpr.SourceGenerator.Visitors;
 
 namespace ConstExpr.Tests;
 
-public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = FastMathFlags.Strict, LinqOptimisationMode linqOptimisationMode = LinqOptimisationMode.Unroll)
+public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = FastMathFlags.Strict, LinqOptimisationMode linqOptimisationMode = LinqOptimisationMode.Unroll, OptimizationFlags optimizations = OptimizationFlags.None)
 	where TDelegate : Delegate
 {
 	/// <summary>
@@ -175,7 +175,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			throw new InvalidOperationException("Parameter count mismatch.");
 		}
 
-		var attribute = new ConstExprAttribute { MathOptimizations = mathOptimizations, LinqOptimisationMode = linqOptimisationMode };
+		var attribute = new ConstExprAttribute { MathOptimizations = mathOptimizations, LinqOptimisationMode = linqOptimisationMode, Optimizations = optimizations };
 
 		var visitedMethods = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
 		var additionalSyntax = new Dictionary<SyntaxNode, bool>(SyntaxNodeComparer.Get());
@@ -261,19 +261,19 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 
 		newBody = DeadCodePruner.Prune(newBody, parameters, state.SemanticModel) as BlockSyntax;
 
-		if (attribute.MathOptimizations.HasFlag(FastMathFlags.CommonSubexpressionElimination))
+		if (attribute.Optimizations.HasFlag(OptimizationFlags.CommonSubexpressionElimination))
 		{
 			newBody = CommonSubexpressionEliminator.Eliminate(newBody) as BlockSyntax;
 			newBody = DeadCodePruner.Prune(newBody, parameters, state.SemanticModel) as BlockSyntax;
 		}
 
-		if (attribute.MathOptimizations.HasFlag(FastMathFlags.LoopInvariantCodeMotion))
+		if (attribute.Optimizations.HasFlag(OptimizationFlags.LoopInvariantCodeMotion))
 		{
 			newBody = LoopInvariantCodeMotionRewriter.Apply(newBody!) as BlockSyntax ?? newBody;
 			newBody = DeadCodePruner.Prune(newBody, parameters, state.SemanticModel) as BlockSyntax;
 		}
 
-		if (attribute.MathOptimizations.HasFlag(FastMathFlags.TailRecursionElimination))
+		if (attribute.Optimizations.HasFlag(OptimizationFlags.TailRecursionElimination))
 		{
 			// Wrap the block in a pseudo MethodDeclarationSyntax so TailRecursionRewriter
 			// can read the parameter list and the method name.

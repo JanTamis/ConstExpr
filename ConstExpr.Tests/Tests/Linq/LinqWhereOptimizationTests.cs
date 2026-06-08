@@ -6,7 +6,7 @@ namespace ConstExpr.Tests.Linq;
 /// Tests for Where() optimization - verify constant folding and combining of Where clauses
 /// </summary>
 [InheritsTests]
-public class LinqWhereOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
+public class LinqWhereOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.FastMath, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(x =>
 	{

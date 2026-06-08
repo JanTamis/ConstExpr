@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Optimization;
 
 [InheritsTests]
-public class BetterNamesTest() : BaseTest<Func<int, int, int>>(FastMathFlags.CommonSubexpressionElimination)
+public class BetterNamesTest() : BaseTest<Func<int, int, int>>(optimizations: OptimizationFlags.CommonSubexpressionElimination)
 {
 	public override string TestMethod => GetString((x, y) =>
 	{

@@ -15,7 +15,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   hoisted; the expected body reflects this shape.
 /// </summary>
 [InheritsTests]
-public class LoopInvariantCodeMotionTests() : BaseTest<Func<int, int, int>>(FastMathFlags.LoopInvariantCodeMotion)
+public class LoopInvariantCodeMotionTests() : BaseTest<Func<int, int, int>>(optimizations: OptimizationFlags.LoopInvariantCodeMotion)
 {
 	/// <summary>
 	///   An invariant expression used twice per iteration: not inlined by the partial

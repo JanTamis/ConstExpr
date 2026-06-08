@@ -6,7 +6,7 @@ namespace ConstExpr.Tests.Optimization;
 /// Test with consecutive values
 /// </summary>
 [InheritsTests]
-public class PatternBitmaskConsecutiveTest() : BaseTest<Func<int, bool>>(FastMathFlags.FastMath | FastMathFlags.CommonSubexpressionElimination | FastMathFlags.TailRecursionElimination)
+public class PatternBitmaskConsecutiveTest() : BaseTest<Func<int, bool>>(FastMathFlags.FastMath, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(n =>
 	{
