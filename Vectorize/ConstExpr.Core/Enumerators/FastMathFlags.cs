@@ -78,6 +78,6 @@ public enum FastMathFlags
 	/// <see cref="NoSignedZero"/>, <see cref="ReciprocalMath"/>, <see cref="RoundToNearest"/>,
 	/// <see cref="NoTrappingMath"/>, and <see cref="FusedMultiplyAdd"/>.
 	/// </summary>
-	FastMath = AssociativeMath | NoNaN | NoInfinity | NoSignedZero
-	           | ReciprocalMath | RoundToNearest | NoTrappingMath | FusedMultiplyAdd,
+	All = AssociativeMath | NoNaN | NoInfinity | NoSignedZero
+	      | ReciprocalMath | RoundToNearest | NoTrappingMath | FusedMultiplyAdd
 }

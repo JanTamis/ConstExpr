@@ -7,7 +7,7 @@ namespace ConstExpr.Tests.Validation;
 /// when one branch stays as an explicit inequality.
 /// </summary>
 [InheritsTests]
-public class NotEqualsCharSetTest() : BaseTest<Func<char, bool>>(FastMathFlags.FastMath, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
+public class NotEqualsCharSetTest() : BaseTest<Func<char, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(c => c != '-' && c != ' ' && c != '+');
 

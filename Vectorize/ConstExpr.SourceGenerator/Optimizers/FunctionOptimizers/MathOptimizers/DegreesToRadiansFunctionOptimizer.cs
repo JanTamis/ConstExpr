@@ -1,4 +1,6 @@
+using System;
 using System.Diagnostics.CodeAnalysis;
+using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 
@@ -8,6 +10,13 @@ public class DegreesToRadiansFunctionOptimizer() : BaseMathFunctionOptimizer("De
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
+		if (context.FastMathFlags.HasFlag(FastMathFlags.AssociativeMath)
+		    && TryCreateLiteral(GetConstant(paramType), out var literalValue))
+		{
+			result = MultiplyExpression(context.VisitedParameters[0], literalValue);
+			return true;
+		}
+
 		// Delegate to the built-in T.DegreesToRadians(x) for all numeric types.
 		//
 		// Benchmarks (Apple M4 Pro, ARM64, .NET 10, N=1024):
@@ -20,5 +29,21 @@ public class DegreesToRadiansFunctionOptimizer() : BaseMathFunctionOptimizer("De
 		// (float)(Math.PI / 180.0) = 0x3C8EFA35 vs MathF.PI / 180f = 0x3C8EFA36 (1 ULP off).
 		result = CreateInvocation(paramType, Name, context.VisitedParameters);
 		return true;
+	}
+
+	private object GetConstant(ITypeSymbol paramType)
+	{
+		return paramType.SpecialType switch
+		{
+			SpecialType.System_Single => MathF.PI / 180f,
+			SpecialType.System_Double => Math.PI / 180d,
+			SpecialType.System_Int32 => Math.PI / 180d,
+			SpecialType.System_Int64 => Math.PI / 180d,
+			SpecialType.System_UInt32 => Math.PI / 180d,
+			SpecialType.System_UInt64 => Math.PI / 180d,
+			SpecialType.System_Int16 => Math.PI / 180d,
+			SpecialType.System_UInt16 => Math.PI / 180d,
+			_ => throw new ArgumentOutOfRangeException()
+		};
 	}
 }

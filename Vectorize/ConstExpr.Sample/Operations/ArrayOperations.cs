@@ -5,9 +5,9 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.SourceGenerator.Sample.Operations;
 
 [ConstExpr(
-	MathOptimizations = FastMathFlags.FastMath,
+	MathOptimizations = FastMathFlags.All,
 	Optimizations = OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination,
-	LinqOptimisationMode = LinqOptimisationMode.Unroll)]
+	LinqOptimization = LinqOptimizationMode.Unroll)]
 public static class ArrayOperations
 {
 	/// <summary>

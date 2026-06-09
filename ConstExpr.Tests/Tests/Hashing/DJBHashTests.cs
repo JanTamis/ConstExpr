@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Hashing;
 
 [InheritsTests]
-public class DJBHashTests() : BaseTest<Func<string, uint>>(FastMathFlags.FastMath)
+public class DJBHashTests() : BaseTest<Func<string, uint>>(FastMathFlags.All)
 {
 	public override string TestMethod => GetString(str =>
 	{

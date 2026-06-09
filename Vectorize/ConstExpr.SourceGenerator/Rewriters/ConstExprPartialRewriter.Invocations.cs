@@ -109,11 +109,11 @@ public partial class ConstExprPartialRewriter
 		// Try LINQ optimizers (for inner calls, or when unrolling was skipped).
 		// The optimized result is annotated with symbol info so it can be unrolled
 		// when it re-enters the rewriter through Visit.
-		if (attribute.LinqOptimisationMode != LinqOptimisationMode.None)
+		if (attribute.LinqOptimization != LinqOptimizationMode.None)
 		{
 			if (TryOptimizeLinqMethod(semanticModel, targetMethod, node, argumentExpressions, originalArguments) is { } optimizedLinq)
 			{
-				if (attribute.LinqOptimisationMode == LinqOptimisationMode.Unroll
+				if (attribute.LinqOptimization == LinqOptimizationMode.Unroll
 				    && LinqUnroller.TryUnrollLinqChain(optimizedLinq, Visit, semanticModel, additionalMethods, symbolStore, out var unrolled, variables))
 				{
 					return unrolled;
@@ -122,7 +122,7 @@ public partial class ConstExprPartialRewriter
 				return optimizedLinq;
 			}
 
-			if (attribute.LinqOptimisationMode == LinqOptimisationMode.Unroll
+			if (attribute.LinqOptimization == LinqOptimizationMode.Unroll
 			    && LinqUnroller.TryUnrollLinqChain(node, Visit, semanticModel, additionalMethods, symbolStore, out var unrolledNode, variables))
 			{
 				return unrolledNode;
@@ -237,7 +237,7 @@ public partial class ConstExprPartialRewriter
 
 		if (name is not null)
 		{
-			result = LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(name));
+			result = CreateLiteral(name);
 			return true;
 		}
 

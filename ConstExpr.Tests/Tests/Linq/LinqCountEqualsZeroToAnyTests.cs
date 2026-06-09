@@ -5,11 +5,11 @@ namespace ConstExpr.Tests.Linq;
 /// <summary>
 ///   Count() == 0 → !(source.Any()) and Count(predicate) == 0 → !(source.Any(predicate)).
 ///   Also covers the reversed form: 0 == Count().
-///   Uses LinqOptimisationMode.None so Count() is not replaced by an unrolled helper before
+///   Uses LinqOptimizationMode.None so Count() is not replaced by an unrolled helper before
 ///   the binary optimizer can match the x.Count() syntax.
 /// </summary>
 [InheritsTests]
-public class LinqCountEqualsZeroToAnyTests() : BaseTest<Func<IEnumerable<int>, bool>>(FastMathFlags.Strict, LinqOptimisationMode.None)
+public class LinqCountEqualsZeroToAnyTests() : BaseTest<Func<IEnumerable<int>, bool>>(FastMathFlags.Strict, LinqOptimizationMode.None)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -25,7 +25,7 @@ public class LinqCountEqualsZeroToAnyTests() : BaseTest<Func<IEnumerable<int>, b
 }
 
 [InheritsTests]
-public class LinqCountEqualsZeroReversedToAnyTests() : BaseTest<Func<IEnumerable<int>, bool>>(FastMathFlags.Strict, LinqOptimisationMode.None)
+public class LinqCountEqualsZeroReversedToAnyTests() : BaseTest<Func<IEnumerable<int>, bool>>(FastMathFlags.Strict, LinqOptimizationMode.None)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -41,7 +41,7 @@ public class LinqCountEqualsZeroReversedToAnyTests() : BaseTest<Func<IEnumerable
 }
 
 [InheritsTests]
-public class LinqCountEqualsZeroWithPredicateToAnyTests() : BaseTest<Func<IEnumerable<int>, bool>>(FastMathFlags.Strict, LinqOptimisationMode.None)
+public class LinqCountEqualsZeroWithPredicateToAnyTests() : BaseTest<Func<IEnumerable<int>, bool>>(FastMathFlags.Strict, LinqOptimizationMode.None)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -58,7 +58,7 @@ public class LinqCountEqualsZeroWithPredicateToAnyTests() : BaseTest<Func<IEnume
 }
 
 [InheritsTests]
-public class LinqCountEqualsZeroNotOptimizedTests() : BaseTest<Func<IEnumerable<int>, bool>>(FastMathFlags.Strict, LinqOptimisationMode.None)
+public class LinqCountEqualsZeroNotOptimizedTests() : BaseTest<Func<IEnumerable<int>, bool>>(FastMathFlags.Strict, LinqOptimizationMode.None)
 {
 	public override string TestMethod => GetString(x =>
 	{

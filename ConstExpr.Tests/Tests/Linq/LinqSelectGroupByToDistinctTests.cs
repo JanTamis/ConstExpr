@@ -7,7 +7,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Avoids grouping allocation entirely.
 /// </summary>
 [InheritsTests]
-public class LinqSelectGroupByToDistinctTests() : BaseTest<Func<IEnumerable<int>, int>>(FastMathFlags.Strict, LinqOptimisationMode.Optimize)
+public class LinqSelectGroupByToDistinctTests() : BaseTest<Func<IEnumerable<int>, int>>(FastMathFlags.Strict, LinqOptimizationMode.Optimize)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -24,7 +24,7 @@ public class LinqSelectGroupByToDistinctTests() : BaseTest<Func<IEnumerable<int>
 }
 
 [InheritsTests]
-public class LinqSelectGroupByFirstCountTests() : BaseTest<Func<IEnumerable<int>, int>>(FastMathFlags.Strict, LinqOptimisationMode.Optimize)
+public class LinqSelectGroupByFirstCountTests() : BaseTest<Func<IEnumerable<int>, int>>(FastMathFlags.Strict, LinqOptimizationMode.Optimize)
 {
 	public override string TestMethod => GetString(x =>
 	{

@@ -12,17 +12,17 @@ namespace ConstExpr.Core.Attributes;
 /// annotated type) should be considered for compile-time evaluation when possible.
 /// Use <see cref="MathOptimizations"/> to control floating-point semantics (strict vs fast).
 /// Use <see cref="Optimizations"/> to enable general code optimization passes (CSE, LICM, TRE).
-/// Use <see cref="LinqOptimisationMode"/> to control whether LINQ calls are folded, unrolled,
+/// Use <see cref="LinqOptimization"/> to control whether LINQ calls are folded, unrolled,
 /// or left unchanged.
 /// Use <see cref="MaxUnrollIterations"/> to cap the number of loop iterations that may be unrolled.
 /// </remarks>
 /// <seealso cref="FastMathFlags"/>
 /// <seealso cref="OptimizationFlags"/>
-/// <seealso cref="LinqOptimisationMode"/>
+/// <seealso cref="LinqOptimizationMode"/>
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Class | AttributeTargets.Struct, Inherited = false)]
 public sealed class ConstExprAttribute(
 	FastMathFlags mathOptimizations = FastMathFlags.Strict,
-	LinqOptimisationMode linqOptimisationMode = LinqOptimisationMode.Optimize,
+	LinqOptimizationMode linqOptimization = LinqOptimizationMode.Optimize,
 	uint maxUnrollIterations = 32,
 	OptimizationFlags optimizations = OptimizationFlags.None) : Attribute
 {
@@ -31,7 +31,7 @@ public sealed class ConstExprAttribute(
 	/// </summary>
 	/// <value>
 	/// Defaults to <see cref="FastMathFlags.Strict"/> (full IEEE 754 compliance).
-	/// Use <see cref="FastMathFlags.FastMath"/> to enable all floating-point relaxations at once,
+	/// Use <see cref="FastMathFlags.All"/> to enable all floating-point relaxations at once,
 	/// or combine individual <see cref="FastMathFlags"/> values for fine-grained control.
 	/// For general code optimization passes (CSE, LICM, TRE) see <see cref="Optimizations"/>.
 	/// </value>
@@ -80,14 +80,14 @@ public sealed class ConstExprAttribute(
 	/// Gets or sets how LINQ method calls are handled during constant expression evaluation.
 	/// </summary>
 	/// <value>
-	/// Defaults to <see cref="Enumerators.LinqOptimisationMode.Optimize"/>.
+	/// Defaults to <see cref="LinqOptimizationMode.Optimize"/>.
 	/// <list type="bullet">
-	///   <item><description><see cref="Enumerators.LinqOptimisationMode.None"/> — LINQ calls are left as-is.</description></item>
-	///   <item><description><see cref="Enumerators.LinqOptimisationMode.Optimize"/> — LINQ calls on constant collections
+	///   <item><description><see cref="LinqOptimizationMode.None"/> — LINQ calls are left as-is.</description></item>
+	///   <item><description><see cref="LinqOptimizationMode.Optimize"/> — LINQ calls on constant collections
 	///     are folded to literals where possible.</description></item>
-	///   <item><description><see cref="Enumerators.LinqOptimisationMode.Unroll"/> — LINQ chains are additionally unrolled
+	///   <item><description><see cref="LinqOptimizationMode.Unroll"/> — LINQ chains are additionally unrolled
 	///     into imperative code via <c>LinqUnroller</c>.</description></item>
 	/// </list>
 	/// </value>
-	public LinqOptimisationMode LinqOptimisationMode { get; set; } = linqOptimisationMode;
+	public LinqOptimizationMode LinqOptimization { get; set; } = linqOptimization;
 }

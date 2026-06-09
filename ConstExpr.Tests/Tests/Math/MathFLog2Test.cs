@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Math;
 
 /// <summary>MathF.Log2(float) -> FastLog2(x) in FastMath mode.</summary>
 [InheritsTests]
-public class MathFLog2Test() : BaseTest<Func<float, float>>(FastMathFlags.FastMath, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
+public class MathFLog2Test() : BaseTest<Func<float, float>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(x => MathF.Log2(x));
 

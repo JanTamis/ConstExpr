@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Color;
 
 [InheritsTests]
-public class HSVToRGBTest() : BaseTest<Func<double, double, double, (byte, byte, byte)>>(FastMathFlags.FastMath)
+public class HSVToRGBTest() : BaseTest<Func<double, double, double, (byte, byte, byte)>>(FastMathFlags.All)
 {
 	public override string TestMethod => GetString((h, s, v) =>
 	{
@@ -100,7 +100,6 @@ public class HSVToRGBTest() : BaseTest<Func<double, double, double, (byte, byte,
 
 						break;
 					}
-
 					case 1:
 					{
 						r = v * Double.MultiplyAddEstimate(-s, f, 1D);
@@ -109,7 +108,6 @@ public class HSVToRGBTest() : BaseTest<Func<double, double, double, (byte, byte,
 
 						break;
 					}
-
 					case 2:
 					{
 						r = v * (1D - s);
@@ -118,7 +116,6 @@ public class HSVToRGBTest() : BaseTest<Func<double, double, double, (byte, byte,
 
 						break;
 					}
-
 					case 3:
 					{
 						r = v * (1D - s);
@@ -127,7 +124,6 @@ public class HSVToRGBTest() : BaseTest<Func<double, double, double, (byte, byte,
 
 						break;
 					}
-
 					case 4:
 					{
 						r = v * Double.MultiplyAddEstimate(-s, 1D - f, 1D);
@@ -136,7 +132,6 @@ public class HSVToRGBTest() : BaseTest<Func<double, double, double, (byte, byte,
 
 						break;
 					}
-
 					default:
 					{
 						r = v;

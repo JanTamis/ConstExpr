@@ -6,7 +6,7 @@ namespace ConstExpr.Tests.Optimization;
 /// Test with larger set of values
 /// </summary>
 [InheritsTests]
-public class PatternBitmaskLargeTest() : BaseTest<Func<int, bool>>(FastMathFlags.FastMath, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
+public class PatternBitmaskLargeTest() : BaseTest<Func<int, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(n =>
 	{

@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.String;
 
 /// <summary>string.Format with a constant format string is rewritten to an interpolated string.</summary>
 [InheritsTests]
-public class StringFormatTest() : BaseTest<Func<string, string>>(FastMathFlags.FastMath, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
+public class StringFormatTest() : BaseTest<Func<string, string>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(name => string.Format("Hello {0}", name));
 

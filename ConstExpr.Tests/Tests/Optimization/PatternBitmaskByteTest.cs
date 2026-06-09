@@ -6,7 +6,7 @@ namespace ConstExpr.Tests.Optimization;
 /// Test with byte values
 /// </summary>
 [InheritsTests]
-public class PatternBitmaskByteTest() : BaseTest<Func<byte, bool>>(FastMathFlags.FastMath, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
+public class PatternBitmaskByteTest() : BaseTest<Func<byte, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(n =>
 	{

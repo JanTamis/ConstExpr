@@ -6,7 +6,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Count() &lt;= 0 → !(source.Any()) and Count(predicate) &lt;= 0 → !(source.Any(predicate)).
 /// </summary>
 [InheritsTests]
-public class LinqCountLessThanOrEqualZeroToAnyTests() : BaseTest<Func<IEnumerable<int>, bool>>(FastMathFlags.Strict, LinqOptimisationMode.None)
+public class LinqCountLessThanOrEqualZeroToAnyTests() : BaseTest<Func<IEnumerable<int>, bool>>(FastMathFlags.Strict, LinqOptimizationMode.None)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -22,7 +22,7 @@ public class LinqCountLessThanOrEqualZeroToAnyTests() : BaseTest<Func<IEnumerabl
 }
 
 [InheritsTests]
-public class LinqCountLessThanOrEqualZeroWithPredicateToAnyTests() : BaseTest<Func<IEnumerable<int>, bool>>(FastMathFlags.Strict, LinqOptimisationMode.None)
+public class LinqCountLessThanOrEqualZeroWithPredicateToAnyTests() : BaseTest<Func<IEnumerable<int>, bool>>(FastMathFlags.Strict, LinqOptimizationMode.None)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -39,7 +39,7 @@ public class LinqCountLessThanOrEqualZeroWithPredicateToAnyTests() : BaseTest<Fu
 }
 
 [InheritsTests]
-public class LinqCountLessThanOrEqualZeroNotOptimizedTests() : BaseTest<Func<IEnumerable<int>, bool>>(FastMathFlags.Strict, LinqOptimisationMode.None)
+public class LinqCountLessThanOrEqualZeroNotOptimizedTests() : BaseTest<Func<IEnumerable<int>, bool>>(FastMathFlags.Strict, LinqOptimizationMode.None)
 {
 	public override string TestMethod => GetString(x =>
 	{

@@ -9,7 +9,7 @@ namespace ConstExpr.Tests.Linq;
 /// and the order in which the accumulator is applied).
 /// </summary>
 [InheritsTests]
-public class LinqAggregateByOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.FastMath)
+public class LinqAggregateByOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.All)
 {
 	public override string TestMethod => GetString(x =>
 	{

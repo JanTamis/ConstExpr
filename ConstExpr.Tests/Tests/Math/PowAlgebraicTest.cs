@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Math;
 
 /// <summary>Tests for Pow algebraic strategies: literal base transformations.</summary>
 [InheritsTests]
-public class PowTwoToExpTest() : BaseTest<Func<double, double>>(FastMathFlags.FastMath)
+public class PowTwoToExpTest() : BaseTest<Func<double, double>>(FastMathFlags.All)
 {
 	public override string TestMethod => GetString(n => System.Math.Pow(2.0, n));
 
@@ -17,7 +17,7 @@ public class PowTwoToExpTest() : BaseTest<Func<double, double>>(FastMathFlags.Fa
 }
 
 [InheritsTests]
-public class PowTenToExpTest() : BaseTest<Func<double, double>>(FastMathFlags.FastMath)
+public class PowTenToExpTest() : BaseTest<Func<double, double>>(FastMathFlags.All)
 {
 	public override string TestMethod => GetString(n => System.Math.Pow(10.0, n));
 
@@ -30,7 +30,7 @@ public class PowTenToExpTest() : BaseTest<Func<double, double>>(FastMathFlags.Fa
 }
 
 [InheritsTests]
-public class PowNegHalfExpTest() : BaseTest<Func<double, double>>(FastMathFlags.FastMath)
+public class PowNegHalfExpTest() : BaseTest<Func<double, double>>(FastMathFlags.All)
 {
 	public override string TestMethod => GetString(x => System.Math.Pow(x, -0.5));
 

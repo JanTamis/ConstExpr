@@ -6,7 +6,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Count() >= 1 → source.Any() and Count(predicate) >= 1 → source.Any(predicate).
 /// </summary>
 [InheritsTests]
-public class LinqCountGreaterOrEqualOneToAnyTests() : BaseTest<Func<IEnumerable<int>, bool>>(FastMathFlags.Strict, LinqOptimisationMode.None)
+public class LinqCountGreaterOrEqualOneToAnyTests() : BaseTest<Func<IEnumerable<int>, bool>>(FastMathFlags.Strict, LinqOptimizationMode.None)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -23,7 +23,7 @@ public class LinqCountGreaterOrEqualOneToAnyTests() : BaseTest<Func<IEnumerable<
 }
 
 [InheritsTests]
-public class LinqCountGreaterOrEqualOneWithPredicateToAnyTests() : BaseTest<Func<IEnumerable<int>, bool>>(FastMathFlags.Strict, LinqOptimisationMode.None)
+public class LinqCountGreaterOrEqualOneWithPredicateToAnyTests() : BaseTest<Func<IEnumerable<int>, bool>>(FastMathFlags.Strict, LinqOptimizationMode.None)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -40,7 +40,7 @@ public class LinqCountGreaterOrEqualOneWithPredicateToAnyTests() : BaseTest<Func
 }
 
 [InheritsTests]
-public class LinqCountGreaterOrEqualOneNotOptimizedTests() : BaseTest<Func<IEnumerable<int>, bool>>(FastMathFlags.Strict, LinqOptimisationMode.None)
+public class LinqCountGreaterOrEqualOneNotOptimizedTests() : BaseTest<Func<IEnumerable<int>, bool>>(FastMathFlags.Strict, LinqOptimizationMode.None)
 {
 	public override string TestMethod => GetString(x =>
 	{

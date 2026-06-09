@@ -6,7 +6,7 @@ namespace ConstExpr.Tests.Linq;
 ///   0 &lt; Count() → source.Any() and 0 &lt; Count(predicate) → source.Any(predicate).
 /// </summary>
 [InheritsTests]
-public class LinqCountZeroLessThanCountToAnyTests() : BaseTest<Func<IEnumerable<int>, bool>>(FastMathFlags.Strict, LinqOptimisationMode.None)
+public class LinqCountZeroLessThanCountToAnyTests() : BaseTest<Func<IEnumerable<int>, bool>>(FastMathFlags.Strict, LinqOptimizationMode.None)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -23,7 +23,7 @@ public class LinqCountZeroLessThanCountToAnyTests() : BaseTest<Func<IEnumerable<
 }
 
 [InheritsTests]
-public class LinqCountZeroLessThanCountWithPredicateToAnyTests() : BaseTest<Func<IEnumerable<int>, bool>>(FastMathFlags.Strict, LinqOptimisationMode.None)
+public class LinqCountZeroLessThanCountWithPredicateToAnyTests() : BaseTest<Func<IEnumerable<int>, bool>>(FastMathFlags.Strict, LinqOptimizationMode.None)
 {
 	public override string TestMethod => GetString(x =>
 	{

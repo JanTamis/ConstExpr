@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Math;
 
 /// <summary>MathF.Asinh(float) -> FastAsinh(x) in FastMath mode.</summary>
 [InheritsTests]
-public class MathFAsinhTest() : BaseTest<Func<float, float>>(FastMathFlags.FastMath, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
+public class MathFAsinhTest() : BaseTest<Func<float, float>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(x => MathF.Asinh(x));
 

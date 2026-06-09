@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class CalculateDataQualityTest() : BaseTest<Func<double[], double>>(FastMathFlags.FastMath, LinqOptimisationMode.Optimize)
+public class CalculateDataQualityTest() : BaseTest<Func<double[], double>>(FastMathFlags.All, LinqOptimizationMode.Optimize)
 {
 	public override string TestMethod => GetString(values =>
 	{
@@ -19,6 +19,6 @@ public class CalculateDataQualityTest() : BaseTest<Func<double[], double>>(FastM
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(values => values.Length == 0 ? 0D : (double)values.Count(Double.IsFinite) / values.Length, [Unknown]),
+		Create(values => values.Length == 0 ? 0D : (double) values.Count(Double.IsFinite) / values.Length)
 	];
 }

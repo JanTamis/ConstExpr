@@ -20,7 +20,7 @@ using sourcegen::ConstExpr.SourceGenerator.Visitors;
 
 namespace ConstExpr.Tests;
 
-public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = FastMathFlags.Strict, LinqOptimisationMode linqOptimisationMode = LinqOptimisationMode.Unroll, OptimizationFlags optimizations = OptimizationFlags.None)
+public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = FastMathFlags.Strict, LinqOptimizationMode linqOptimization = LinqOptimizationMode.Unroll, OptimizationFlags optimizations = OptimizationFlags.None)
 	where TDelegate : Delegate
 {
 	/// <summary>
@@ -175,7 +175,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			throw new InvalidOperationException("Parameter count mismatch.");
 		}
 
-		var attribute = new ConstExprAttribute { MathOptimizations = mathOptimizations, LinqOptimisationMode = linqOptimisationMode, Optimizations = optimizations };
+		var attribute = new ConstExprAttribute { MathOptimizations = mathOptimizations, LinqOptimization = linqOptimization, Optimizations = optimizations };
 
 		var visitedMethods = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
 		var additionalSyntax = new Dictionary<SyntaxNode, bool>(SyntaxNodeComparer.Get());
