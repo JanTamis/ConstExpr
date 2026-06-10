@@ -20,30 +20,23 @@ using sourcegen::ConstExpr.SourceGenerator.Visitors;
 
 namespace ConstExpr.Tests;
 
-public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = FastMathFlags.Strict, LinqOptimizationMode linqOptimization = LinqOptimizationMode.Unroll, OptimizationFlags optimizations = OptimizationFlags.None)
-	where TDelegate : Delegate
+/// <summary>
+///   Non-generic shared infrastructure for all <see cref="BaseTest{TDelegate}" /> instantiations.
+///   Placing static fields here ensures they are initialized exactly once regardless of how many
+///   distinct TDelegate type arguments are used.
+/// </summary>
+internal static class BaseTestShared
 {
-	/// <summary>
-	///   A marker object to represent unknown parameter values in test cases. This indicates that a parameter's value is not
-	///   known at compile time, and the optimizer should treat it as such.
-	/// </summary>
-	public static readonly object Unknown = new();
+	private static readonly Type[] ForceLoadedTypes = [ typeof(TensorPrimitives) ];
 
-	private static readonly ConcurrentDictionary<Type, ClassState> _stateByType = new();
-	private static readonly ConcurrentDictionary<Type, int> _delegateParameterCount = new();
-	/// <summary>
-	///   Assemblies that are explicitly force-loaded so their metadata is available in test compilations,
-	///   even when they are not transitively loaded by the test host.
-	/// </summary>
-	private static readonly Type[] _forceLoadedTypes =
-	[
-		typeof(TensorPrimitives)
-	];
+	internal static readonly ConcurrentDictionary<Type, BaseTestClassState> StateByType = new();
+	internal static readonly ConcurrentDictionary<Type, int> DelegateParameterCount = new();
+	internal static readonly ConcurrentDictionary<string, (BlockSyntax Block, string Rendered)> ParsedBlockCache = new(StringComparer.Ordinal);
 
-	private static readonly Lazy<IReadOnlyList<MetadataReference>> _metadataReferences = new(() =>
+	internal static readonly Lazy<IReadOnlyList<MetadataReference>> MetadataReferences = new(() =>
 		{
 			// Force-load assemblies needed in test compilations before scanning the AppDomain.
-			foreach (var t in _forceLoadedTypes)
+			foreach (var t in ForceLoadedTypes)
 			{
 				_ = t;
 			}
@@ -58,7 +51,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 				.ToList();
 
 			// Explicitly add force-loaded assemblies by location in case they were filtered out.
-			foreach (var t in _forceLoadedTypes)
+			foreach (var t in ForceLoadedTypes)
 			{
 				var location = t.Assembly.Location;
 
@@ -71,6 +64,28 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			return result;
 		},
 		true);
+}
+
+internal sealed class BaseTestClassState
+{
+	public Compilation Compilation { get; init; } = null!;
+	public List<string> ParameterNames { get; init; } = null!;
+	public List<ITypeSymbol> ParameterTypes { get; init; } = null!;
+	public BlockSyntax FormattedOriginalBody { get; init; } = null!;
+	public string FormattedOriginalBodyRendered { get; init; } = null!;
+	public SemanticModel SemanticModel { get; init; } = null!;
+	public MetadataLoader Loader { get; init; } = null!;
+	public LocalFunctionStatementSyntax Method { get; init; } = null!;
+}
+
+public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = FastMathFlags.Strict, LinqOptimizationMode linqOptimization = LinqOptimizationMode.Unroll, OptimizationFlags optimizations = OptimizationFlags.None)
+	where TDelegate : Delegate
+{
+	/// <summary>
+	///   A marker object to represent unknown parameter values in test cases. This indicates that a parameter's value is not
+	///   known at compile time, and the optimizer should treat it as such.
+	/// </summary>
+	public static readonly object Unknown = new();
 
 	/// <summary>
 	///   A collection of test cases, where each test case consists of an expected method body (as a string) and an array of
@@ -92,13 +107,13 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 
 	private static int GetDelegateParameterCount()
 	{
-		return _delegateParameterCount.GetOrAdd(typeof(TDelegate), static delegateType => delegateType.GetMethod("Invoke")?.GetParameters().Length
-		                                                                                  ?? throw new InvalidOperationException($"Could not resolve Invoke on delegate type '{delegateType.FullName}'."));
+		return BaseTestShared.DelegateParameterCount.GetOrAdd(typeof(TDelegate), static delegateType => delegateType.GetMethod("Invoke")?.GetParameters().Length
+		                                                                                                ?? throw new InvalidOperationException($"Could not resolve Invoke on delegate type '{delegateType.FullName}'."));
 	}
 
-	private ClassState GetState()
+	private BaseTestClassState GetState()
 	{
-		return _stateByType[GetType()];
+		return BaseTestShared.StateByType[GetType()];
 	}
 
 	[Before(Class)]
@@ -144,24 +159,28 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 
 		var semanticModel = compilation.GetSemanticModel(method.SyntaxTree);
 
-		var state = new ClassState
+		var formattedOriginalBody = FormattingHelper.Format(method.Body!) as BlockSyntax ?? method.Body!;
+		var formattedOriginalBodyTwice = FormattingHelper.Format(formattedOriginalBody) as BlockSyntax ?? formattedOriginalBody;
+
+		var state = new BaseTestClassState
 		{
 			Compilation = compilation,
 			Method = method,
 			ParameterNames = parameterNames,
 			ParameterTypes = parameterTypes,
-			FormattedOriginalBody = FormattingHelper.Format(method.Body!) as BlockSyntax ?? method.Body!,
+			FormattedOriginalBody = formattedOriginalBody,
+			FormattedOriginalBodyRendered = FormattingHelper.Render(formattedOriginalBodyTwice)!,
 			SemanticModel = semanticModel,
 			Loader = MetadataLoader.GetLoader(compilation)
 		};
 
-		_stateByType[testType] = state;
+		BaseTestShared.StateByType[testType] = state;
 	}
 
 	[After(Class)]
 	public static void TearDown(ClassHookContext context)
 	{
-		_stateByType.TryRemove(context.ClassType, out _);
+		BaseTestShared.StateByType.TryRemove(context.ClassType, out _);
 	}
 
 	[Test, TestName, MethodDataSource(nameof(TestCases))]
@@ -287,23 +306,22 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		}
 
 		newBody = FormattingHelper.Format(newBody!) as BlockSyntax;
+		var newBodyRendered = FormattingHelper.Render(newBody);
 
 		if (testCase.Key is null)
 		{
-			var expectedBody = FormattingHelper.Format(state.FormattedOriginalBody) as BlockSyntax;
-
 			// if (!SyntaxNodeComparer.Get<BlockSyntax>().Equals(expectedBody, newBody))
-			if (FormattingHelper.Render(newBody) != FormattingHelper.Render(expectedBody))
+			if (newBodyRendered != state.FormattedOriginalBodyRendered)
 			{
-				throw FormatMismatchException(state.ParameterNames, parameters, expectedBody, newBody, additionalSyntax, exceptionsDuringRewriting);
+				throw FormatMismatchException(state.ParameterNames, parameters, state.FormattedOriginalBody, newBody, additionalSyntax, exceptionsDuringRewriting);
 			}
 		}
 		else
 		{
-			var expectedBody = ParseBlock(testCase.Key);
+			var (expectedBody, expectedBodyRendered) = GetOrParseBlock(testCase.Key);
 
 			// Use Roslyn structural equivalence which ignores trivia differences
-			if (FormattingHelper.Render(newBody) != FormattingHelper.Render(expectedBody))
+			if (newBodyRendered != expectedBodyRendered)
 			{
 				// Debug: find which statement differs
 				var debugInfo = new StringBuilder();
@@ -336,7 +354,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		return CSharpCompilation.Create(
 			"TestAssembly",
 			[ CSharpSyntaxTree.ParseText(source) ],
-			_metadataReferences.Value,
+			BaseTestShared.MetadataReferences.Value,
 			new CSharpCompilationOptions(OutputKind.ConsoleApplication));
 	}
 
@@ -461,18 +479,28 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 
 	protected static BlockSyntax ParseBlock(string code)
 	{
-		var tree = SyntaxFactory.ParseSyntaxTree($$"""
-			void TestMethod()
-			{
-				{{code}}
-			}
-			""");
+		return GetOrParseBlock(code).Block;
+	}
 
-		return tree.GetRoot()
-			.DescendantNodes()
-			.OfType<LocalFunctionStatementSyntax>()
-			.Select(s => FormattingHelper.Format(s.Body!) as BlockSyntax ?? s.Body!)
-			.First();
+	private static (BlockSyntax Block, string Rendered) GetOrParseBlock(string code)
+	{
+		return BaseTestShared.ParsedBlockCache.GetOrAdd(code, static key =>
+		{
+			var tree = SyntaxFactory.ParseSyntaxTree($$"""
+				void TestMethod()
+				{
+					{{key}}
+				}
+				""");
+
+			var block = tree.GetRoot()
+				.DescendantNodes()
+				.OfType<LocalFunctionStatementSyntax>()
+				.Select(s => FormattingHelper.Format(s.Body!) as BlockSyntax ?? s.Body!)
+				.First();
+
+			return (block, FormattingHelper.Render(block)!);
+		});
 	}
 
 	private string? ParseValue(object? value)
@@ -659,16 +687,5 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 				});
 			}
 		}
-	}
-
-	private sealed class ClassState
-	{
-		public Compilation Compilation { get; init; } = null!;
-		public List<string> ParameterNames { get; init; } = null!;
-		public List<ITypeSymbol> ParameterTypes { get; init; } = null!;
-		public BlockSyntax FormattedOriginalBody { get; init; } = null!;
-		public SemanticModel SemanticModel { get; init; } = null!;
-		public MetadataLoader Loader { get; init; } = null!;
-		public LocalFunctionStatementSyntax Method { get; init; } = null!;
 	}
 }
