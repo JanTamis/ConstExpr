@@ -20,64 +20,6 @@ using sourcegen::ConstExpr.SourceGenerator.Visitors;
 
 namespace ConstExpr.Tests;
 
-/// <summary>
-///   Non-generic shared infrastructure for all <see cref="BaseTest{TDelegate}" /> instantiations.
-///   Placing static fields here ensures they are initialized exactly once regardless of how many
-///   distinct TDelegate type arguments are used.
-/// </summary>
-internal static class BaseTestShared
-{
-	private static readonly Type[] ForceLoadedTypes = [ typeof(TensorPrimitives) ];
-
-	internal static readonly ConcurrentDictionary<Type, BaseTestClassState> StateByType = new();
-	internal static readonly ConcurrentDictionary<Type, int> DelegateParameterCount = new();
-	internal static readonly ConcurrentDictionary<string, (BlockSyntax Block, string Rendered)> ParsedBlockCache = new(StringComparer.Ordinal);
-
-	internal static readonly Lazy<IReadOnlyList<MetadataReference>> MetadataReferences = new(() =>
-		{
-			// Force-load assemblies needed in test compilations before scanning the AppDomain.
-			foreach (var t in ForceLoadedTypes)
-			{
-				_ = t;
-			}
-
-			var appDomainRefs = AppDomain.CurrentDomain.GetAssemblies()
-				.Where(a => !a.IsDynamic && !System.String.IsNullOrWhiteSpace(a.Location))
-				.Select(a => a.Location)
-				.ToHashSet(StringComparer.Ordinal);
-
-			var result = appDomainRefs
-				.Select(path => (MetadataReference) MetadataReference.CreateFromFile(path))
-				.ToList();
-
-			// Explicitly add force-loaded assemblies by location in case they were filtered out.
-			foreach (var t in ForceLoadedTypes)
-			{
-				var location = t.Assembly.Location;
-
-				if (!System.String.IsNullOrWhiteSpace(location) && appDomainRefs.Add(location))
-				{
-					result.Add(MetadataReference.CreateFromFile(location));
-				}
-			}
-
-			return result;
-		},
-		true);
-}
-
-internal sealed class BaseTestClassState
-{
-	public Compilation Compilation { get; init; } = null!;
-	public List<string> ParameterNames { get; init; } = null!;
-	public List<ITypeSymbol> ParameterTypes { get; init; } = null!;
-	public BlockSyntax FormattedOriginalBody { get; init; } = null!;
-	public string FormattedOriginalBodyRendered { get; init; } = null!;
-	public SemanticModel SemanticModel { get; init; } = null!;
-	public MetadataLoader Loader { get; init; } = null!;
-	public LocalFunctionStatementSyntax Method { get; init; } = null!;
-}
-
 public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = FastMathFlags.Strict, LinqOptimizationMode linqOptimization = LinqOptimizationMode.Unroll, OptimizationFlags optimizations = OptimizationFlags.None)
 	where TDelegate : Delegate
 {
@@ -687,5 +629,63 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 				});
 			}
 		}
+	}
+
+	/// <summary>
+	///   Non-generic shared infrastructure for all <see cref="BaseTest{TDelegate}" /> instantiations.
+	///   Placing static fields here ensures they are initialized exactly once regardless of how many
+	///   distinct TDelegate type arguments are used.
+	/// </summary>
+	internal static class BaseTestShared
+	{
+		private static readonly Type[] ForceLoadedTypes = [ typeof(TensorPrimitives) ];
+
+		internal static readonly ConcurrentDictionary<Type, BaseTestClassState> StateByType = new();
+		internal static readonly ConcurrentDictionary<Type, int> DelegateParameterCount = new();
+		internal static readonly ConcurrentDictionary<string, (BlockSyntax Block, string Rendered)> ParsedBlockCache = new(StringComparer.Ordinal);
+
+		internal static readonly Lazy<IReadOnlyList<MetadataReference>> MetadataReferences = new(() =>
+			{
+				// Force-load assemblies needed in test compilations before scanning the AppDomain.
+				foreach (var t in ForceLoadedTypes)
+				{
+					_ = t;
+				}
+
+				var appDomainRefs = AppDomain.CurrentDomain.GetAssemblies()
+					.Where(a => !a.IsDynamic && !System.String.IsNullOrWhiteSpace(a.Location))
+					.Select(a => a.Location)
+					.ToHashSet(StringComparer.Ordinal);
+
+				var result = appDomainRefs
+					.Select(path => (MetadataReference) MetadataReference.CreateFromFile(path))
+					.ToList();
+
+				// Explicitly add force-loaded assemblies by location in case they were filtered out.
+				foreach (var t in ForceLoadedTypes)
+				{
+					var location = t.Assembly.Location;
+
+					if (!System.String.IsNullOrWhiteSpace(location) && appDomainRefs.Add(location))
+					{
+						result.Add(MetadataReference.CreateFromFile(location));
+					}
+				}
+
+				return result;
+			},
+			true);
+	}
+
+	internal sealed class BaseTestClassState
+	{
+		public Compilation Compilation { get; init; } = null!;
+		public List<string> ParameterNames { get; init; } = null!;
+		public List<ITypeSymbol> ParameterTypes { get; init; } = null!;
+		public BlockSyntax FormattedOriginalBody { get; init; } = null!;
+		public string FormattedOriginalBodyRendered { get; init; } = null!;
+		public SemanticModel SemanticModel { get; init; } = null!;
+		public MetadataLoader Loader { get; init; } = null!;
+		public LocalFunctionStatementSyntax Method { get; init; } = null!;
 	}
 }

@@ -13,6 +13,11 @@
 		<UseMicrosoftTestingPlatform>true</UseMicrosoftTestingPlatform>
 	</PropertyGroup>
 
+	<PropertyGroup>
+		<IsAotCompatible>true</IsAotCompatible>
+		<EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+	</PropertyGroup>
+
 	<ItemGroup Condition="'$(EnableCoverage)' == 'true'">
 		<PackageReference Include="coverlet.collector" Version="6.0.4">
 			<PrivateAssets>all</PrivateAssets>
@@ -21,13 +26,13 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1"/>
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.6.0"/>
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0"/>
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.14.0"/>
 		<PackageReference Include="Microsoft.Testing.Platform.MSBuild" Version="2.2.3"/>
-		<PackageReference Include="TUnit" Version="1.48.6"/>
+		<PackageReference Include="TUnit" Version="1.53.0"/>
 		<PackageReference Include="SourceGenerator.Foundations.Contracts" Version="2.0.14"/>
-		<PackageReference Include="System.Numerics.Tensors" Version="10.0.8"/>
+		<PackageReference Include="System.Numerics.Tensors" Version="10.0.9"/>
 	</ItemGroup>
 
 	<ItemGroup>
