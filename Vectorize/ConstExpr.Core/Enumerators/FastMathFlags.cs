@@ -59,25 +59,17 @@ public enum FastMathFlags
 	RoundToNearest = 1 << 5,
 
 	/// <summary>
-	/// Assume that floating-point operations never raise hardware traps (<c>-fno-trapping-math</c>).
-	/// Allows the generator to reorder or eliminate floating-point operations that could otherwise
-	/// trigger a hardware floating-point exception.
-	/// </summary>
-	NoTrappingMath = 1 << 6,
-
-	/// <summary>
 	/// Permit fused-multiply-add (FMA) contraction (<c>-ffp-contract=fast</c>).
 	/// Allows <c>a * b + c</c> to be emitted as a single <c>FMA</c> instruction, which may
 	/// change the rounding behaviour compared to two separate operations.
 	/// </summary>
-	FusedMultiplyAdd = 1 << 7,
+	FusedMultiplyAdd = 1 << 6,
 
 	/// <summary>
 	/// Enable all fast-math optimisations — equivalent to C++ <c>-ffast-math</c>.
 	/// Combines <see cref="AssociativeMath"/>, <see cref="NoNaN"/>, <see cref="NoInfinity"/>,
-	/// <see cref="NoSignedZero"/>, <see cref="ReciprocalMath"/>, <see cref="RoundToNearest"/>,
-	/// <see cref="NoTrappingMath"/>, and <see cref="FusedMultiplyAdd"/>.
+	/// <see cref="NoSignedZero"/>, <see cref="ReciprocalMath"/>, <see cref="RoundToNearest"/>, and <see cref="FusedMultiplyAdd"/>.
 	/// </summary>
 	All = AssociativeMath | NoNaN | NoInfinity | NoSignedZero
-	      | ReciprocalMath | RoundToNearest | NoTrappingMath | FusedMultiplyAdd
+	      | ReciprocalMath | RoundToNearest | FusedMultiplyAdd
 }

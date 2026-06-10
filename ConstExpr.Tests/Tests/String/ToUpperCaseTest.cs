@@ -9,7 +9,7 @@ public class ToUpperCaseTest() : BaseTest<Func<string, string>>(FastMathFlags.Al
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null),
+		CreateDefault(),
 		Create(_ => "HELLO", [ "hello" ]),
 		Create(_ => "WORLD123", [ "WoRlD123" ]),
 		Create(_ => "", [ "" ])

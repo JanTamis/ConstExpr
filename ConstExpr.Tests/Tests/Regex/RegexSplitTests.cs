@@ -10,7 +10,7 @@ public class RegexSplitTests() : BaseTest<Func<string, string, int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null),
+		CreateDefault(),
 		Create("return Regex_ab3uPQ.Split(input).Length;", Unknown, @"^\d+$"),
 		Create((_, _) => 2, [ "1234-5678", @"-" ]),
 	];

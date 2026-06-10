@@ -10,7 +10,7 @@ public class MathMaxMagnitudeNumberTest() : BaseTest<Func<double, double, double
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null),
+		CreateDefault(),
 		Create((_, _) => -3D, [ 1.0, -3.0 ]),
 		Create((_, _) => 5D, [ -2.0, 5.0 ]),
 	];

@@ -49,7 +49,7 @@ public class LinqCountGreaterOrEqualOneNotOptimizedTests() : BaseTest<Func<IEnum
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null),
+		CreateDefault(),
 		Create(_ => false, [ Enumerable.Empty<int>() ]),
 		Create(_ => false, [ new[] { 42 } ]),
 		Create(_ => true, [ new[] { 1, 2 } ])

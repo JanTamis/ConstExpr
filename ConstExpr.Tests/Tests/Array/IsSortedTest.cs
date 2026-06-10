@@ -25,7 +25,7 @@ public class IsSortedTest() : BaseTest<Func<int[], bool>>(FastMathFlags.All, opt
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null),
+		CreateDefault(),
 		Create(_ => true, [ new[] { 1, 2, 3, 4, 5 } ]),
 		Create(_ => false, [ new[] { 5, 3, 1, 2 } ]),
 		Create(_ => true, [ new[] { 10, 20, 30 } ])

@@ -16,7 +16,7 @@ public class SwapTest() : BaseTest<Func<int, int, (int, int)>>(FastMathFlags.All
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null),
+		CreateDefault(),
 		Create((_, _) => (20, 10), [ 10, 20 ]),
 		Create((_, _) => (0, 42), [ 42, 0 ]),
 		Create((_, _) => (-5, 5), [ 5, -5 ])

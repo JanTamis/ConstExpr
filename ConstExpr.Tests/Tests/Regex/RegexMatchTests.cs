@@ -10,7 +10,7 @@ public class RegexMatchTests() : BaseTest<Func<string, string, string>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null),
+		CreateDefault(),
 		Create("return Regex_ab3uPQ.Match(input).Value;", Unknown, @"^\d+$"),
 		Create("return Regex_ab3uPQ.Match(\"1234\").Value;", "1234", @"^\d+$"),
 	];

@@ -9,7 +9,7 @@ public class SquareTest() : BaseTest<Func<int, int>>(FastMathFlags.All, optimiza
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null),
+		CreateDefault(),
 		Create(_ => 25, [ 5 ]),
 		Create(_ => 0, [ 0 ]),
 		Create(_ => 100, [ -10 ])

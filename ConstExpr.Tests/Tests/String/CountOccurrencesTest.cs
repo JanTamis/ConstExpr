@@ -22,7 +22,7 @@ public class CountOccurrencesTest() : BaseTest<Func<int, int[], int>>(FastMathFl
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null),
+		CreateDefault(),
 		Create((_, _) => 4, [ 5, new[] { 5, 5, 10, 5, 20, 5 } ]),
 		Create((_, _) => 0, [ 100, new[] { 1, 2, 3, 4, 5 } ]),
 		Create((_, _) => 2, [ 7, new[] { 7, 14, 21, 7 } ])

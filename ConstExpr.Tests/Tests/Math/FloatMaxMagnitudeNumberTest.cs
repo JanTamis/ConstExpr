@@ -10,7 +10,7 @@ public class FloatMaxMagnitudeNumberTest() : BaseTest<Func<float, float, float>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null),
+		CreateDefault(),
 		Create((_, _) => -3F, [ 1.0f, -3.0f ]),
 	];
 }

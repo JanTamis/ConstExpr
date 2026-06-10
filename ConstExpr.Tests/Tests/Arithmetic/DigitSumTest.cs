@@ -25,7 +25,7 @@ public class DigitSumTest() : BaseTest<Func<int, int>>(FastMathFlags.All, optimi
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null),
+		CreateDefault(),
 		Create(_ => 6, [ 123 ]),
 		Create(_ => 10, [ 1234 ]),
 		Create(_ => 0, [ 0 ])

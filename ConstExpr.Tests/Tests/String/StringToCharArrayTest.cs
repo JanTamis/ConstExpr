@@ -9,7 +9,7 @@ public class StringToCharArrayTest() : BaseTest<Func<string, char[]>>(FastMathFl
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null),
+		CreateDefault(),
 		Create(_ => [ 'h', 'i' ], [ "hi" ]),
 		Create(_ => [ 'a', 'b', 'c' ], [ "abc" ]),
 		Create(_ => [ ], [ "" ]),

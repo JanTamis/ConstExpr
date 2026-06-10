@@ -9,7 +9,7 @@ public class StartsWithTest() : BaseTest<Func<string, string, bool>>(FastMathFla
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null),
+		CreateDefault(),
 		Create((_, _) => true, [ "hello", "hel" ]),
 		Create((_, _) => false, [ "world", "foo" ]),
 		Create((_, _) => true, [ "", "" ])

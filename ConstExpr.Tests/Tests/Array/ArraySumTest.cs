@@ -19,7 +19,7 @@ public class ArraySumTest() : BaseTest<Func<int[], int>>(FastMathFlags.All, opti
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null),
+		CreateDefault(),
 		Create(_ => 15, [ new[] { 1, 2, 3, 4, 5 } ]),
 		Create(_ => 0, [ System.Array.Empty<int>() ]),
 		Create(_ => 42, [ new[] { 42 } ])

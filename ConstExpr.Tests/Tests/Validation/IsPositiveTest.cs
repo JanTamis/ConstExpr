@@ -9,7 +9,7 @@ public class IsPositiveTest() : BaseTest<Func<int, bool>>(FastMathFlags.All, opt
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null),
+		CreateDefault(),
 		Create(_ => true, [ 42 ]),
 		Create(_ => false, [ -10 ]),
 		Create(_ => false, [ 0 ])

@@ -9,7 +9,7 @@ public class SumOfFirstNTest() : BaseTest<Func<int, int>>(FastMathFlags.All, opt
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null),
+		CreateDefault(),
 		Create(_ => 55, [ 10 ]),
 		Create(_ => 0, [ 0 ]),
 		Create(_ => 5050, [ 100 ])

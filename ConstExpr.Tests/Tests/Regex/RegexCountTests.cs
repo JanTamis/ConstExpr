@@ -11,7 +11,7 @@ public class RegexCountTests() : BaseTest<Func<string, string, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		// Both unknown: body is unchanged
-		Create(null),
+		CreateDefault(),
 
 		// Both constant: fold to integer literal
 		Create((_, _) => 2, [ "hello world", @"\w+" ]),

@@ -380,6 +380,11 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		return KeyValuePair.Create(expectedBody, parameters);
 	}
 
+	protected static KeyValuePair<string?, object?[]> CreateDefault()
+	{
+		return KeyValuePair.Create<string?, object?[]>(null, Enumerable.Repeat<object?>(Unknown, GetDelegateParameterCount()).ToArray());
+	}
+
 	/// <summary>
 	///   Helper method to create test cases with a specific expected body and parameter values.
 	/// </summary>

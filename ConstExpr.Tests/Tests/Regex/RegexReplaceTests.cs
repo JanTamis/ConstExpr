@@ -13,7 +13,7 @@ public class RegexReplaceTests() : BaseTest<Func<string, string, string, RegexOp
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		// Unknown values: body remains unchanged.
-		Create(null),
+		CreateDefault(),
 
 		// 3-argument overload: pattern can be hoisted into cached Regex field.
 		Create(null, Unknown, @"^\d+$", Unknown, RegexOptions.None),

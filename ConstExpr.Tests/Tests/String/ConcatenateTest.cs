@@ -9,7 +9,7 @@ public class ConcatenateTest() : BaseTest<Func<string, string, string>>(FastMath
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null),
+		CreateDefault(),
 		Create((_, _) => "helloworld", [ "hello", "world" ]),
 		Create((_, _) => "test", [ "test", "" ]),
 		Create((_, _) => "", [ "", "" ])

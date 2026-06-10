@@ -24,7 +24,7 @@ public class AverageTest() : BaseTest<Func<int[], double>>(FastMathFlags.All, op
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null),
+		CreateDefault(),
 		Create(_ => 30D, [ new[] { 10, 20, 30, 40, 50 } ]),
 		Create(_ => 15D, [ new[] { 5, 15, 25 } ]),
 		Create(_ => 0D, [ System.Array.Empty<int>() ])

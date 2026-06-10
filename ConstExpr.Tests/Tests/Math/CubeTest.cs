@@ -9,7 +9,7 @@ public class CubeTest() : BaseTest<Func<int, int>>(FastMathFlags.All, optimizati
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null),
+		CreateDefault(),
 		Create(_ => 125, [ 5 ]),
 		Create(_ => 0, [ 0 ]),
 		Create(_ => -8, [ -2 ])

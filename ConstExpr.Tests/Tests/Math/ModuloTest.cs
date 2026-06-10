@@ -24,7 +24,7 @@ public class ModuloTest() : BaseTest<Func<int, int, int>>(FastMathFlags.All, opt
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null),
+		CreateDefault(),
 		Create((_, _) => 3, [ 13, 10 ]),
 		Create((_, _) => 2, [ -8, 5 ]),
 		Create((_, _) => 0, [ 10, 0 ])

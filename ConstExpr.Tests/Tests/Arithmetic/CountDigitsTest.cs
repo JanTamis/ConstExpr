@@ -30,7 +30,7 @@ public class CountDigitsTest() : BaseTest<Func<int, int>>(FastMathFlags.All, opt
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null),
+		CreateDefault(),
 		Create(_ => 3, [ 123 ]),
 		Create(_ => 1, [ 0 ]),
 		Create(_ => 4, [ -4567 ])

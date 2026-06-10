@@ -19,7 +19,7 @@ public class ArrayProductTest() : BaseTest<Func<int[], int>>(FastMathFlags.All, 
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null),
+		CreateDefault(),
 		Create(_ => 120, [ new[] { 1, 2, 3, 4, 5 } ]),
 		Create(_ => 1, [ System.Array.Empty<int>() ]),
 		Create(_ => 0, [ new[] { 5, 0, 3 } ])
