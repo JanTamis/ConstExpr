@@ -658,7 +658,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 					.ToHashSet(StringComparer.Ordinal);
 
 				var result = appDomainRefs
-					.Select(path => (MetadataReference) MetadataReference.CreateFromFile(path))
+					.Select(MetadataReference (path) => MetadataReference.CreateFromFile(path))
 					.ToList();
 
 				// Explicitly add force-loaded assemblies by location in case they were filtered out.
