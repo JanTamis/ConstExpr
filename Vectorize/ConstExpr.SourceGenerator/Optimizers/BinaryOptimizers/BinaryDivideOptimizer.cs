@@ -17,6 +17,8 @@ public class BinaryDivideOptimizer : BaseBinaryOptimizer
 		yield return new DivideZeroByNonZeroStrategy();
 		yield return new DivideIdempotencyStrategy();
 		yield return new DivideByPowerOfTwoToShiftStrategy();
+		yield return new DivideGranlundMontgomeryUnsignedStrategy();
+		yield return new DivideGranlundMontgomerySignedStrategy();
 		yield return new DivideToMultiplyReciprocalStrategy();
 		yield return new DivideMultiplySimplificationStrategy();
 		yield return new DivideDoubleNegationStrategy();

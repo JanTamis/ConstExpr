@@ -43,7 +43,7 @@ public enum OptimizationFlags
 	TailRecursionElimination = 1 << 2,
 
 	/// <summary>
-	///   Enable all general optimization passes.
+	///   Enable all general-purpose optimization passes.
 	///   Combines <see cref="CommonSubexpressionElimination" />, <see cref="LoopInvariantCodeMotion" />,
 	///   and <see cref="TailRecursionElimination" />.
 	/// </summary>

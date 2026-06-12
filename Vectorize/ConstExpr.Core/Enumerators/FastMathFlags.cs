@@ -65,11 +65,22 @@ public enum FastMathFlags
 	/// </summary>
 	FusedMultiplyAdd = 1 << 6,
 
+
+	/// <summary>
+	///   Replace integer division/modulo by a constant non-power-of-2 divisor with a
+	///   Granlund-Montgomery multiply-high + shift sequence (e.g. <c>x / 7</c>, <c>x % 100</c>).
+	///   Opt-in: the JIT already lowers constant division this way at runtime, so the source-level
+	///   transform mainly helps when the result feeds further constant-folding or vectorization,
+	///   at the cost of duplicating the dividend and producing longer expressions. For this reason
+	///   it is deliberately <em>not</em> included in <see cref="All" />.
+	/// </summary>
+	MagicNumberDivision = 1 << 7,
+
 	/// <summary>
 	/// Enable all fast-math optimisations — equivalent to C++ <c>-ffast-math</c>.
 	/// Combines <see cref="AssociativeMath"/>, <see cref="NoNaN"/>, <see cref="NoInfinity"/>,
 	/// <see cref="NoSignedZero"/>, <see cref="ReciprocalMath"/>, <see cref="RoundToNearest"/>, and <see cref="FusedMultiplyAdd"/>.
 	/// </summary>
 	All = AssociativeMath | NoNaN | NoInfinity | NoSignedZero
-	      | ReciprocalMath | RoundToNearest | FusedMultiplyAdd
+	      | ReciprocalMath | RoundToNearest | FusedMultiplyAdd | MagicNumberDivision
 }

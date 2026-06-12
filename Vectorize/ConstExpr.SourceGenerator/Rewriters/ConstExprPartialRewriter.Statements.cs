@@ -675,8 +675,9 @@ public partial class ConstExprPartialRewriter
 	{
 		var visited = VisitList(node.Statements);
 		var mergedForDeclarations = MergeForLoopDeclarations(visited);
+		var mergedArrayInitializers = MergeArrayElementInitializers(mergedForDeclarations);
 
-		var untilThrown = TakeUntilThrownStatements(mergedForDeclarations);
+		var untilThrown = TakeUntilThrownStatements(mergedArrayInitializers);
 		var combined = CombineConsecutiveIfStatements(untilThrown, Visit);
 		var mergedIfChain = MergeMixedBoolReturnIfs(combined, Visit);
 		var simplified = SimplifyIfReturnPatterns(mergedIfChain);
@@ -738,6 +739,153 @@ public partial class ConstExprPartialRewriter
 		}
 
 		return List(result);
+	}
+
+	/// <summary>
+	///   Merges an array declaration of constant size followed by a contiguous run of constant-index
+	///   element assignments into a single array initializer.
+	///   <code>
+	/// var result = new int[6];
+	/// result[0] = a;
+	/// result[1] = b;
+	/// ...
+	/// </code>
+	///   becomes
+	///   <code>
+	/// var result = new int[]
+	/// {
+	///     a,
+	///     b,
+	///     ...
+	/// };
+	/// </code>
+	///   The transform is only applied when every index <c>0..N-1</c> is assigned exactly once, in order,
+	///   immediately after the declaration, and no assigned value reads the array being built. The
+	///   contiguity requirement guarantees nothing can observe the zero-filled array before it is fully
+	///   populated, so the rewrite is semantics-preserving.
+	/// </summary>
+	private SyntaxList<StatementSyntax> MergeArrayElementInitializers(SyntaxList<StatementSyntax> statements)
+	{
+		if (statements.Count < 2)
+		{
+			return statements;
+		}
+
+		var result = new List<StatementSyntax>();
+
+		for (var i = 0; i < statements.Count; i++)
+		{
+			if (TryMergeArrayElementInitializer(statements, i, out var merged, out var consumed))
+			{
+				result.Add(merged);
+				i += consumed - 1;
+				continue;
+			}
+
+			result.Add(statements[i]);
+		}
+
+		return List(result);
+	}
+
+	private bool TryMergeArrayElementInitializer(SyntaxList<StatementSyntax> statements, int declIndex, out StatementSyntax merged, out int consumed)
+	{
+		merged = null!;
+		consumed = 0;
+
+		// The declaration must be a single, unmodified `name = new T[size]` without an existing
+		// initializer and with exactly one rank specifier carrying one size expression.
+		if (statements[declIndex] is not LocalDeclarationStatementSyntax
+		    {
+			    Modifiers.Count: 0,
+			    Declaration.Variables:
+			    [
+				    {
+					    Identifier.Text: var name,
+					    Initializer.Value: ArrayCreationExpressionSyntax
+					    {
+						    Type.RankSpecifiers: [ { Sizes: [ var sizeExpr ] } rankSpecifier ],
+						    Initializer: null
+					    } arrayCreation
+				    } declarator
+			    ]
+		    } declarationStatement
+		    || sizeExpr is OmittedArraySizeExpressionSyntax
+		    || !TryGetConstantInt32(sizeExpr, out var size)
+		    || size <= 0
+		    || declIndex + size >= statements.Count)
+		{
+			return false;
+		}
+
+		var elements = new List<ExpressionSyntax>(size);
+
+		for (var k = 0; k < size; k++)
+		{
+			// Each follow-up statement must assign `name[k] = value`, with k matching the position
+			// and value never reading the array that is still being initialized.
+			if (statements[declIndex + 1 + k] is not ExpressionStatementSyntax
+			    {
+				    Expression: AssignmentExpressionSyntax
+				    {
+					    RawKind: (int) SyntaxKind.SimpleAssignmentExpression,
+					    Left: ElementAccessExpressionSyntax
+					    {
+						    Expression: IdentifierNameSyntax { Identifier.Text: var targetName },
+						    ArgumentList.Arguments: [ { Expression: var indexExpr } ]
+					    },
+					    Right: var valueExpr
+				    }
+			    }
+			    || targetName != name
+			    || !TryGetConstantInt32(indexExpr, out var index)
+			    || index != k
+			    || valueExpr.HasIdentifier(name))
+			{
+				return false;
+			}
+
+			elements.Add(valueExpr);
+		}
+
+		var implicitlySizedType = arrayCreation.Type.WithRankSpecifiers(
+			SingletonList(rankSpecifier.WithSizes(
+				SingletonSeparatedList<ExpressionSyntax>(OmittedArraySizeExpression()))));
+
+		// Emit a trailing comma after the last element, matching the conventional collection-initializer layout.
+		var elementList = SeparatedList(elements, Enumerable.Repeat(Token(SyntaxKind.CommaToken), elements.Count));
+
+		var newArrayCreation = arrayCreation
+			.WithType(implicitlySizedType)
+			.WithInitializer(InitializerExpression(SyntaxKind.ArrayInitializerExpression, elementList));
+
+		var newDeclarator = declarator.WithInitializer(EqualsValueClause(newArrayCreation));
+
+		merged = declarationStatement.WithDeclaration(
+			declarationStatement.Declaration.WithVariables(SingletonSeparatedList(newDeclarator)));
+
+		consumed = size + 1;
+		return true;
+	}
+
+	private bool TryGetConstantInt32(ExpressionSyntax? expr, out int value)
+	{
+		value = 0;
+
+		if (!TryGetLiteralValue(expr, out var literal))
+		{
+			return false;
+		}
+
+		try
+		{
+			value = Convert.ToInt32(literal);
+			return true;
+		}
+		catch (Exception exception) when (exception is FormatException or InvalidCastException or OverflowException)
+		{
+			return false;
+		}
 	}
 
 	/// <summary>
