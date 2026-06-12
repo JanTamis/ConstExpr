@@ -36,8 +36,8 @@ public class DigitalRootTest() : BaseTest<Func<int, int>>(FastMathFlags.All, opt
 
 				while (num > 0)
 				{
-					sum += num % 10;
-					num /= 10;
+					sum += num - (((int)((long)num * 1717986919 >> 32) >> 2) + ((int)((long)num * 1717986919 >> 32) >> 2 >>> 31)) * 10;
+					num = ((int)((long)num * 1717986919 >> 32) >> 2) + ((int)((long)num * 1717986919 >> 32) >> 2 >>> 31);
 				}
 
 				num = sum;

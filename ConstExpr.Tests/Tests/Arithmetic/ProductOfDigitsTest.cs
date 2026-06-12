@@ -27,8 +27,8 @@ public class ProductOfDigitsTest() : BaseTest<Func<int, int>>(FastMathFlags.All,
 
 			while (num > 0)
 			{
-				product *= num % 10;
-				num /= 10;
+				product *= num - (((int)((long)num * 1717986919 >> 32) >> 2) + ((int)((long)num * 1717986919 >> 32) >> 2 >>> 31)) * 10;
+				num = ((int)((long)num * 1717986919 >> 32) >> 2) + ((int)((long)num * 1717986919 >> 32) >> 2 >>> 31);
 			}
 
 			return product;

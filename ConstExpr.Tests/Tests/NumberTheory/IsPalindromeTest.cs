@@ -29,8 +29,8 @@ public class IsPalindromeTest() : BaseTest<Func<int, bool>>(FastMathFlags.All, o
 
 			while (temp > 0)
 			{
-				reversed = reversed * 10 + temp % 10;
-				temp /= 10;
+				reversed = reversed * 10 + temp - (((int)((long)temp * 1717986919 >> 32) >> 2) + ((int)((long)temp * 1717986919 >> 32) >> 2 >>> 31)) * 10;
+				temp = ((int)((long)temp * 1717986919 >> 32) >> 2) + ((int)((long)temp * 1717986919 >> 32) >> 2 >>> 31);
 			}
 
 			return original == reversed;

@@ -26,7 +26,21 @@ public class IsPalindromeNumberTest() : BaseTest<Func<int, bool>>(FastMathFlags.
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		CreateDefault(),
+		Create("""
+			if (n < 0)
+				return false;
+
+			var original = n;
+			var reversed = 0;
+
+			while (n > 0)
+			{
+				reversed = reversed * 10 + n - (((int)((long)n * 1717986919 >> 32) >> 2) + ((int)((long)n * 1717986919 >> 32) >> 2 >>> 31)) * 10;
+				n = ((int)((long)n * 1717986919 >> 32) >> 2) + ((int)((long)n * 1717986919 >> 32) >> 2 >>> 31);
+			}
+
+			return original == reversed;
+			"""),
 		Create(_ => true, [ 121 ]),
 		Create(_ => false, [ 123 ])
 	];

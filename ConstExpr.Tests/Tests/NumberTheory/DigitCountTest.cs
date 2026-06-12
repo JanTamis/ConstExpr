@@ -38,7 +38,7 @@ public class DigitCountTest() : BaseTest<Func<int, int>>(FastMathFlags.All, opti
 			while (num > 0)
 			{
 				count++;
-				num /= 10;
+				num = ((int)((long)num * 1717986919 >> 32) >> 2) + ((int)((long)num * 1717986919 >> 32) >> 2 >>> 31);
 			}
 
 			return count;

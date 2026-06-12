@@ -32,8 +32,8 @@ public class ReverseNumberTest() : BaseTest<Func<int, int>>(FastMathFlags.All, o
 
 			while (n > 0)
 			{
-				reversed = reversed * 10 + n % 10;
-				n /= 10;
+				reversed = reversed * 10 + n - (((int)((long)n * 1717986919 >> 32) >> 2) + ((int)((long)n * 1717986919 >> 32) >> 2 >>> 31)) * 10;
+				n = ((int)((long)n * 1717986919 >> 32) >> 2) + ((int)((long)n * 1717986919 >> 32) >> 2 >>> 31);
 			}
 
 			return CopySignFast(reversed, originalN);

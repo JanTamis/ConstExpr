@@ -855,10 +855,7 @@ public partial class ConstExprPartialRewriter
 		// Emit a trailing comma after the last element, matching the conventional collection-initializer layout.
 		var elementList = SeparatedList(elements, Enumerable.Repeat(Token(SyntaxKind.CommaToken), elements.Count));
 
-		var newArrayCreation = arrayCreation
-			.WithType(implicitlySizedType)
-			.WithInitializer(InitializerExpression(SyntaxKind.ArrayInitializerExpression, elementList));
-
+		var newArrayCreation = ImplicitArrayCreationExpression(InitializerExpression(SyntaxKind.ArrayInitializerExpression, elementList));
 		var newDeclarator = declarator.WithInitializer(EqualsValueClause(newArrayCreation));
 
 		merged = declarationStatement.WithDeclaration(

@@ -35,8 +35,11 @@ public class IsPrimeTest() : BaseTest<Func<int, bool>>(FastMathFlags.All, optimi
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			if ((uint)(n - 2) > 1u || Int32.IsEvenInteger(n) || n % 3 == 0)
+		Create(n =>
+		{
+			var cast_val = (int) ((long) n * 1431655766 >> 32);
+
+			if ((uint) (n - 2) > 1U || Int32.IsEvenInteger(n) || n - (cast_val + (cast_val >>> 31)) * 3 == 0)
 				return false;
 
 			for (var i = 5; i * i <= n; i += 6)
@@ -46,7 +49,7 @@ public class IsPrimeTest() : BaseTest<Func<int, bool>>(FastMathFlags.All, optimi
 			}
 
 			return true;
-			"""),
+		}),
 		Create(_ => true, [ 17 ]),
 		Create(_ => true, [ 29 ]),
 		Create(_ => false, [ 1 ]),

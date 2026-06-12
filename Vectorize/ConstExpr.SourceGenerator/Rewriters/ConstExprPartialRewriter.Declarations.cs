@@ -315,7 +315,10 @@ public partial class ConstExprPartialRewriter
 				}
 			}
 
-			return AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, node.Left, syntaxNode as ExpressionSyntax);
+			// The optimized node becomes the whole right-hand side of `=`, so any enclosing
+			// parenthesis is redundant (assignment binds looser than every operator). Strip it
+			// to match the formatting produced for the equivalent `return` statement.
+			return AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, node.Left, StripUnnecessaryParentheses(syntaxNode) as ExpressionSyntax ?? syntaxNode as ExpressionSyntax);
 		}
 
 		// Optimize add assignment
@@ -332,7 +335,8 @@ public partial class ConstExprPartialRewriter
 			}
 		}
 
-		if (node.Right is BinaryExpressionSyntax binary)
+		if (node.Right is BinaryExpressionSyntax binary
+		    && binary.Left.ToString() == node.Left.ToString())
 		{
 			var compoundKind = TryGetCompoundAssignmentKind(binary.Kind());
 
@@ -558,7 +562,9 @@ public partial class ConstExprPartialRewriter
 					}
 				}
 
-				return AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, node.Left, optimizedNode as ExpressionSyntax ?? rightExpr);
+				// The optimized node becomes the whole right-hand side of `=`, so any enclosing
+				// parenthesis is redundant — strip it to match `return`-statement formatting.
+				return AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, node.Left, StripUnnecessaryParentheses(optimizedNode) as ExpressionSyntax ?? optimizedNode as ExpressionSyntax ?? rightExpr);
 			}
 
 			return node

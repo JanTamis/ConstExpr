@@ -33,6 +33,6 @@ public class LinqWhereChainOptimizationTests() : BaseTest<Func<int[], IEnumerabl
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(x => x.Where(v => (uint) (v - 3) <= 6U).Concat(x.Where(v => (uint) (v - 2) <= 5U && Int32.IsEvenInteger(v))).Concat(x.Where(v => (uint) (v - 1) <= 98U && v % 3 == 0 && v < 50)).Concat(x.Where(p => (uint) (p - 6) <= 8U)).Concat(x.Where(v => (uint) (v - 4) <= 2U)))
+		Create(x => x.Where(v => (uint) (v - 3) <= 6U).Concat(x.Where(v => (uint) (v - 2) <= 5U && Int32.IsEvenInteger(v))).Concat(x.Where(v => (uint) (v - 1) <= 98U && v - ((int) ((long) v * 1431655766 >> 32) + ((int) ((long) v * 1431655766 >> 32) >>> 31)) * 3 == 0 && v < 50)).Concat(x.Where(p => (uint) (p - 6) <= 8U)).Concat(x.Where(v => (uint) (v - 4) <= 2U)))
 	];
 }
