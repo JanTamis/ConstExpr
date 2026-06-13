@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Arithmetic;
 
 [InheritsTests]
-public class DigitalRootTest() : BaseTest<Func<int, int>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
+public class DigitalRootTest() : BaseTest<Func<int, int>>(FastMathFlags.All | FastMathFlags.MagicNumberDivision, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -36,8 +36,8 @@ public class DigitalRootTest() : BaseTest<Func<int, int>>(FastMathFlags.All, opt
 
 				while (num > 0)
 				{
-					sum += num - (((int)((long)num * 1717986919 >> 32) >> 2) + ((int)((long)num * 1717986919 >> 32) >> 2 >>> 31)) * 10;
-					num = ((int)((long)num * 1717986919 >> 32) >> 2) + ((int)((long)num * 1717986919 >> 32) >> 2 >>> 31);
+					sum += num - (((int)(num * 1717986919L >> 32) >> 2) - (num >> 31)) * 10;
+					num = ((int)(num * 1717986919L >> 32) >> 2) - (num >> 31);
 				}
 
 				num = sum;

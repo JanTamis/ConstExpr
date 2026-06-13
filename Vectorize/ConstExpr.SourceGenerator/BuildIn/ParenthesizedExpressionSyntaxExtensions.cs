@@ -666,8 +666,8 @@ public static class ParenthesizedExpressionSyntaxExtensions
 
 				if (binaryExpression.IsKind(SyntaxKind.GreaterThanExpression))
 				{
-					return binaryExpression.Left == node 
-					       && binaryExpression.Right.Kind() is SyntaxKind.ParenthesizedExpression or SyntaxKind.CastExpression 
+					return binaryExpression.Left == node
+					       && binaryExpression.Right.Kind() is SyntaxKind.ParenthesizedExpression or SyntaxKind.CastExpression
 					       && IsPreviousExpressionPotentiallyAmbiguous(binaryExpression);
 
 				}
@@ -821,7 +821,7 @@ public static class ParenthesizedExpressionSyntaxExtensions
 		var precedence = pattern.GetOperatorPrecedence();
 		var parentPrecedence = parentPattern.GetOperatorPrecedence();
 
-		if (precedence == OperatorPrecedence.None 
+		if (precedence == OperatorPrecedence.None
 		    || parentPrecedence == OperatorPrecedence.None)
 		{
 			// Be conservative if the expression or its parent has no precedence.
@@ -947,9 +947,10 @@ public static class ParenthesizedExpressionSyntaxExtensions
 
 			case SyntaxKind.LeftShiftExpression:
 			case SyntaxKind.RightShiftExpression:
+			case SyntaxKind.UnsignedRightShiftExpression:
 			{
 				// From C# spec, 7.3.1:
-				// Shift: <<  >>
+				// Shift: <<  >>  >>>
 
 				return OperatorPrecedence.Shift;
 			}
@@ -1115,16 +1116,16 @@ public static class ParenthesizedExpressionSyntaxExtensions
 		// badness).
 		var outerTypeInfo = semanticModel.GetTypeInfo(parentBinary);
 
-		if (innerTypeInfo.IsFloatingPoint() 
+		if (innerTypeInfo.IsFloatingPoint()
 		    || outerTypeInfo.IsFloatingPoint())
 		{
 			return false;
 		}
 
-		if (semanticModel.GetOperation(parentBinary) is IBinaryOperation parentBinaryOp 
+		if (semanticModel.GetOperation(parentBinary) is IBinaryOperation parentBinaryOp
 		    && semanticModel.GetOperation(innerBinary) is IBinaryOperation innerBinaryOp)
 		{
-			if ((parentBinaryOp.IsChecked || innerBinaryOp.IsChecked) 
+			if ((parentBinaryOp.IsChecked || innerBinaryOp.IsChecked)
 			    && (IsArithmetic(parentBinaryOp) || IsArithmetic(innerBinaryOp)))
 			{
 				// For checked operations, we can't change which type of operator we're performing in a row as that
@@ -1159,7 +1160,7 @@ public static class ParenthesizedExpressionSyntaxExtensions
 	public static void GetPartsOfBinaryExpression(SyntaxNode node, out SyntaxNode left, out SyntaxNode right)
 	{
 		var binaryExpression = (BinaryExpressionSyntax) node;
-		
+
 		left = binaryExpression.Left;
 		right = binaryExpression.Right;
 	}

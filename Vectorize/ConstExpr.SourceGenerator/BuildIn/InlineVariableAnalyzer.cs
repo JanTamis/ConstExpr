@@ -1,11 +1,11 @@
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace ConstExpr.SourceGenerator.BuildIn;
 
@@ -285,29 +285,31 @@ public sealed class InlineVariableAnalyzer(SemanticModel semanticModel, Concurre
 
 	private static bool AreInDifferentSwitchSections(SwitchStatementSyntax sw, SyntaxNode a, SyntaxNode b)
 	{
-		SwitchSectionSyntax? SectionOf(SyntaxNode n) =>
-			n.AncestorsAndSelf().OfType<SwitchSectionSyntax>().FirstOrDefault(s => s.Parent == sw);
 
 		var sA = SectionOf(a);
 		var sB = SectionOf(b);
 		return sA is not null && sB is not null && !sA.IsEquivalentTo(sB);
+
+		SwitchSectionSyntax? SectionOf(SyntaxNode n) =>
+			n.AncestorsAndSelf().OfType<SwitchSectionSyntax>().FirstOrDefault(s => s.Parent == sw);
 	}
 
 	private static bool AreInDifferentIfBranches(IfStatementSyntax ifStmt, SyntaxNode a, SyntaxNode b)
 	{
+		return InThen(a) && InElse(b) || InElse(a) && InThen(b);
 		bool InThen(SyntaxNode n) => ifStmt.Statement.Contains(n);
 		bool InElse(SyntaxNode n) => ifStmt.Else?.Statement.Contains(n) ?? false;
-		return (InThen(a) && InElse(b)) || (InElse(a) && InThen(b));
 	}
 
 	private static bool AreInDifferentSwitchExpressionArms(SwitchExpressionSyntax sw, SyntaxNode a, SyntaxNode b)
 	{
-		SwitchExpressionArmSyntax? ArmOf(SyntaxNode n) =>
-			n.AncestorsAndSelf().OfType<SwitchExpressionArmSyntax>().FirstOrDefault(arm => arm.Parent == sw);
 
 		var aA = ArmOf(a);
 		var aB = ArmOf(b);
 		return aA is not null && aB is not null && !aA.IsEquivalentTo(aB);
+
+		SwitchExpressionArmSyntax? ArmOf(SyntaxNode n) =>
+			n.AncestorsAndSelf().OfType<SwitchExpressionArmSyntax>().FirstOrDefault(arm => arm.Parent == sw);
 	}
 
 	// ── Write-referentie detectie ─────────────────────────────────────────────

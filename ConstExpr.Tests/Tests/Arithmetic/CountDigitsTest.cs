@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Arithmetic;
 
 [InheritsTests]
-public class CountDigitsTest() : BaseTest<Func<int, int>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class CountDigitsTest() : BaseTest<Func<int, int>>(FastMathFlags.All | FastMathFlags.MagicNumberDivision, optimizations: OptimizationFlags.All)
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -43,7 +43,7 @@ public class CountDigitsTest() : BaseTest<Func<int, int>>(FastMathFlags.All, opt
 			while (n > 0)
 			{
 				count++;
-				n = ((int) ((long) n * 1717986919 >> 32) >> 2) + ((int) ((long) n * 1717986919 >> 32) >> 2 >>> 31);
+				n = ((int) (n * 1717986919L >> 32) >> 2) - (n >> 31);
 			}
 
 			return count;

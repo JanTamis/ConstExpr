@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Validation;
 
 [InheritsTests]
-public class IsPalindromeNumberTest() : BaseTest<Func<int, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
+public class IsPalindromeNumberTest() : BaseTest<Func<int, bool>>(FastMathFlags.All | FastMathFlags.MagicNumberDivision, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -26,7 +26,8 @@ public class IsPalindromeNumberTest() : BaseTest<Func<int, bool>>(FastMathFlags.
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
+		Create(n =>
+		{
 			if (n < 0)
 				return false;
 
@@ -35,12 +36,12 @@ public class IsPalindromeNumberTest() : BaseTest<Func<int, bool>>(FastMathFlags.
 
 			while (n > 0)
 			{
-				reversed = reversed * 10 + n - (((int)((long)n * 1717986919 >> 32) >> 2) + ((int)((long)n * 1717986919 >> 32) >> 2 >>> 31)) * 10;
-				n = ((int)((long)n * 1717986919 >> 32) >> 2) + ((int)((long)n * 1717986919 >> 32) >> 2 >>> 31);
+				reversed = reversed * 10 + n - (((int) (n * 1717986919L >> 32) >> 2) - (n >> 31)) * 10;
+				n = ((int) (n * 1717986919L >> 32) >> 2) - (n >> 31);
 			}
 
 			return original == reversed;
-			"""),
+		}),
 		Create(_ => true, [ 121 ]),
 		Create(_ => false, [ 123 ])
 	];

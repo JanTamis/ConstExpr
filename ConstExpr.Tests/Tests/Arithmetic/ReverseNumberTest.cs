@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Arithmetic;
 
 [InheritsTests]
-public class ReverseNumberTest() : BaseTest<Func<int, int>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
+public class ReverseNumberTest() : BaseTest<Func<int, int>>(FastMathFlags.All | FastMathFlags.MagicNumberDivision, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -32,8 +32,8 @@ public class ReverseNumberTest() : BaseTest<Func<int, int>>(FastMathFlags.All, o
 
 			while (n > 0)
 			{
-				reversed = reversed * 10 + n - (((int)((long)n * 1717986919 >> 32) >> 2) + ((int)((long)n * 1717986919 >> 32) >> 2 >>> 31)) * 10;
-				n = ((int)((long)n * 1717986919 >> 32) >> 2) + ((int)((long)n * 1717986919 >> 32) >> 2 >>> 31);
+				reversed = reversed * 10 + n - (((int)(n * 1717986919L >> 32) >> 2) - (n >> 31)) * 10;
+				n = ((int)(n * 1717986919L >> 32) >> 2) - (n >> 31);
 			}
 
 			return CopySignFast(reversed, originalN);

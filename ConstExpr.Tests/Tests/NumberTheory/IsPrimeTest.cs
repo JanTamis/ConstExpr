@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.NumberTheory;
 
 [InheritsTests]
-public class IsPrimeTest() : BaseTest<Func<int, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
+public class IsPrimeTest() : BaseTest<Func<int, bool>>(FastMathFlags.All | FastMathFlags.MagicNumberDivision, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -37,9 +37,7 @@ public class IsPrimeTest() : BaseTest<Func<int, bool>>(FastMathFlags.All, optimi
 	[
 		Create(n =>
 		{
-			var cast_val = (int) ((long) n * 1431655766 >> 32);
-
-			if ((uint) (n - 2) > 1U || Int32.IsEvenInteger(n) || n - (cast_val + (cast_val >>> 31)) * 3 == 0)
+			if ((uint) (n - 2) > 1U || Int32.IsEvenInteger(n) || n - ((int) (n * 1431655766L >> 32) - (n >> 31)) * 3 == 0)
 				return false;
 
 			for (var i = 5; i * i <= n; i += 6)

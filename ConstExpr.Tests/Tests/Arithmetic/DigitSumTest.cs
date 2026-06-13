@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Arithmetic;
 
 [InheritsTests]
-public class DigitSumTest() : BaseTest<Func<int, int>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
+public class DigitSumTest() : BaseTest<Func<int, int>>(FastMathFlags.All | FastMathFlags.MagicNumberDivision, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -25,7 +25,8 @@ public class DigitSumTest() : BaseTest<Func<int, int>>(FastMathFlags.All, optimi
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
+		Create(n =>
+		{
 			if (n < 0)
 				n = -n;
 
@@ -33,12 +34,12 @@ public class DigitSumTest() : BaseTest<Func<int, int>>(FastMathFlags.All, optimi
 
 			while (n > 0)
 			{
-				sum += n - (((int)((long)n * 1717986919 >> 32) >> 2) + ((int)((long)n * 1717986919 >> 32) >> 2 >>> 31)) * 10;
-				n = ((int)((long)n * 1717986919 >> 32) >> 2) + ((int)((long)n * 1717986919 >> 32) >> 2 >>> 31);
+				sum += n - (((int) (n * 1717986919L >> 32) >> 2) - (n >> 31)) * 10;
+				n = ((int) (n * 1717986919L >> 32) >> 2) - (n >> 31);
 			}
 
 			return sum;
-			"""),
+		}),
 		Create(_ => 6, [ 123 ]),
 		Create(_ => 10, [ 1234 ]),
 		Create(_ => 0, [ 0 ])

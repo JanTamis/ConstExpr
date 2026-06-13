@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
+using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using ConstExpr.SourceGenerator.Extensions;
 
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
@@ -30,11 +30,11 @@ public class RightJoinLinqUnroller : BaseLinqUnroller
 
 		// var rightJoinLookup = new Dictionary<TKey, List<TOuter>>();
 		statements.Add(CreateLocalDeclaration(LookupName,
-			ObjectCreationExpression(IdentifierName($"Dictionary<{keyTypeName}, List<{outerTypeName}>>"), [])));
+			ObjectCreationExpression(IdentifierName($"Dictionary<{keyTypeName}, List<{outerTypeName}>>"), [ ])));
 
 		// var rightJoinBuffer = new List<TResult>();
 		statements.Add(CreateLocalDeclaration(BufferName,
-			ObjectCreationExpression(IdentifierName($"List<{resultTypeName}>"), [])));
+			ObjectCreationExpression(IdentifierName($"List<{resultTypeName}>"), [ ])));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
@@ -69,7 +69,7 @@ public class RightJoinLinqUnroller : BaseLinqUnroller
 						.WithRefKindKeyword(Token(SyntaxKind.OutKeyword))
 				])))),
 			Block(
-				CreateAssignment("outerList", ObjectCreationExpression(IdentifierName($"List<{outerTypeName}>"), [])),
+				CreateAssignment("outerList", ObjectCreationExpression(IdentifierName($"List<{outerTypeName}>"), [ ])),
 				ExpressionStatement(AssignmentExpression(SyntaxKind.SimpleAssignmentExpression,
 					ElementAccessExpression(IdentifierName(LookupName), IdentifierName("outerKey")),
 					IdentifierName("outerList"))))));
@@ -111,22 +111,6 @@ public class RightJoinLinqUnroller : BaseLinqUnroller
 			return;
 		}
 
-		ExpressionSyntax? MakeResult(ExpressionSyntax outerExpr)
-		{
-			var body = ReplaceLambda(method.Visit(resultLambda) as LambdaExpressionSyntax ?? resultLambda, outerExpr);
-
-			if (body is not null
-			    && resultLambda is ParenthesizedLambdaExpressionSyntax { ParameterList.Parameters.Count: >= 2 } pl)
-			{
-				var secondParam = pl.ParameterList.Parameters[1].Identifier.Text;
-				var ids = body.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>()
-					.Where(n => n.Identifier.Text == secondParam).ToList();
-				body = body.ReplaceNodes(ids, (_, _) => IdentifierName("innerItem"));
-			}
-
-			return body;
-		}
-
 		var matchedResult = MakeResult(IdentifierName("outer"));
 		var defaultResult = MakeResult(outerType.GetDefaultValue());
 
@@ -161,7 +145,22 @@ public class RightJoinLinqUnroller : BaseLinqUnroller
 						IdentifierName("matchedOuters"),
 						Block(matchedBody))),
 					ElseClause(Block(defaultBody))))));
+		return;
+
+		ExpressionSyntax? MakeResult(ExpressionSyntax outerExpr)
+		{
+			var body = ReplaceLambda(method.Visit(resultLambda) as LambdaExpressionSyntax ?? resultLambda, outerExpr);
+
+			if (body is not null
+			    && resultLambda is ParenthesizedLambdaExpressionSyntax { ParameterList.Parameters.Count: >= 2 } pl)
+			{
+				var secondParam = pl.ParameterList.Parameters[1].Identifier.Text;
+				var ids = body.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>()
+					.Where(n => n.Identifier.Text == secondParam).ToList();
+				body = body.ReplaceNodes(ids, (_, _) => IdentifierName("innerItem"));
+			}
+
+			return body;
+		}
 	}
 }
-
-

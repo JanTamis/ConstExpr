@@ -185,6 +185,34 @@ public abstract class BaseFunctionOptimizer
 						return false;
 					}
 
+					var leftIdx = rangeSyntax.LeftOperand is null ? null : MakeIndex(rangeSyntax.LeftOperand);
+					var rightIdx = rangeSyntax.RightOperand is null ? null : MakeIndex(rangeSyntax.RightOperand);
+
+					if (leftIdx is null && rightIdx is null)
+					{
+						var allProp = rangeType.GetProperty("All", BindingFlags.Public | BindingFlags.Static);
+						value = allProp?.GetValue(null);
+						return value is not null;
+					}
+
+					if (leftIdx is not null && rightIdx is null)
+					{
+						var startAt = rangeType.GetMethod("StartAt", BindingFlags.Public | BindingFlags.Static, null, [ indexType ], null);
+						value = startAt?.Invoke(null, [ leftIdx ]);
+						return value is not null;
+					}
+
+					if (leftIdx is null && rightIdx is not null)
+					{
+						var endAt = rangeType.GetMethod("EndAt", BindingFlags.Public | BindingFlags.Static, null, [ indexType ], null);
+						value = endAt?.Invoke(null, [ rightIdx ]);
+						return value is not null;
+					}
+
+					var ctorRange = rangeType.GetConstructor([ indexType, indexType ]);
+					value = ctorRange?.Invoke([ leftIdx, rightIdx ]);
+					return value is not null;
+
 					object? MakeIndex(ExpressionSyntax expr)
 					{
 						if (TryGetLiteralValue(context.Visit(expr), context, typeSymbol, out var innerVal, visitedVariables) && innerVal is not null)
@@ -215,34 +243,6 @@ public abstract class BaseFunctionOptimizer
 						}
 						return null;
 					}
-
-					var leftIdx = rangeSyntax.LeftOperand is null ? null : MakeIndex(rangeSyntax.LeftOperand);
-					var rightIdx = rangeSyntax.RightOperand is null ? null : MakeIndex(rangeSyntax.RightOperand);
-
-					if (leftIdx is null && rightIdx is null)
-					{
-						var allProp = rangeType.GetProperty("All", BindingFlags.Public | BindingFlags.Static);
-						value = allProp?.GetValue(null);
-						return value is not null;
-					}
-
-					if (leftIdx is not null && rightIdx is null)
-					{
-						var startAt = rangeType.GetMethod("StartAt", BindingFlags.Public | BindingFlags.Static, null, [ indexType ], null);
-						value = startAt?.Invoke(null, [ leftIdx ]);
-						return value is not null;
-					}
-
-					if (leftIdx is null && rightIdx is not null)
-					{
-						var endAt = rangeType.GetMethod("EndAt", BindingFlags.Public | BindingFlags.Static, null, [ indexType ], null);
-						value = endAt?.Invoke(null, [ rightIdx ]);
-						return value is not null;
-					}
-
-					var ctorRange = rangeType.GetConstructor([ indexType, indexType ]);
-					value = ctorRange?.Invoke([ leftIdx, rightIdx ]);
-					return value is not null;
 				}
 				catch
 				{

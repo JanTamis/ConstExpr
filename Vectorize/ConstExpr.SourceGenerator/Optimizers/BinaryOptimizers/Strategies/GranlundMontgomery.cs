@@ -88,7 +88,7 @@ internal static class GranlundMontgomery
 	///   if (d > 0 &amp;&amp; magic &lt; 0) q += x;   // magic wrapped negative
 	///   if (d &lt; 0 &amp;&amp; magic > 0) q -= x;
 	///   q >>= shift;                          // arithmetic
-	///   q += (q >>> 31);                       // round toward zero for negatives
+	///   q -= x >> 31;                          // round toward zero for negative dividends
 	/// </code>
 	/// </summary>
 	public static void ComputeSigned(int d, out int magic, out int shift)

@@ -12,9 +12,9 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies
 ///   q  = (int)((long)x * MAGIC >> 32);
 ///   q += x;                      // only when MAGIC wrapped negative
 ///   q >>= shift;                 // arithmetic, only when shift > 0
-///   x / d  =>  q + (q >>> 31)
+///   x / d  =>  q - (x >> 31)
 ///   Examples:
-///   x / 6  =>  ((int)((long)x * 715827883 >> 32) + ((int)((long)x * 715827883 >> 32) >>> 31))
+///   x / 6  =>  (int)((long)x * 715827883 >> 32) - (x >> 31)
 /// </summary>
 public class DivideGranlundMontgomerySignedStrategy : IntegerBinaryStrategy<ExpressionSyntax, LiteralExpressionSyntax>
 {

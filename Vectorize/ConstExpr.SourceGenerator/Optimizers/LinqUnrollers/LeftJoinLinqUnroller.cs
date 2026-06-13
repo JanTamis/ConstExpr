@@ -29,7 +29,7 @@ public class LeftJoinLinqUnroller : BaseLinqUnroller
 
 		// var leftJoinLookup = new Dictionary<TKey, List<TInner>>();
 		statements.Add(CreateLocalDeclaration(LookupName,
-			ObjectCreationExpression(IdentifierName($"Dictionary<{keyTypeName}, List<{innerTypeName}>>"), [])));
+			ObjectCreationExpression(IdentifierName($"Dictionary<{keyTypeName}, List<{innerTypeName}>>"), [ ])));
 
 		// Build the lookup from inner collection
 		if (method.Parameters.Length >= 2
@@ -54,7 +54,7 @@ public class LeftJoinLinqUnroller : BaseLinqUnroller
 										.WithRefKindKeyword(Token(SyntaxKind.OutKeyword))
 								])))),
 							Block(
-								CreateAssignment("innerList", ObjectCreationExpression(IdentifierName($"List<{innerTypeName}>"), [])),
+								CreateAssignment("innerList", ObjectCreationExpression(IdentifierName($"List<{innerTypeName}>"), [ ])),
 								ExpressionStatement(AssignmentExpression(SyntaxKind.SimpleAssignmentExpression,
 									ElementAccessExpression(IdentifierName(LookupName), IdentifierName("innerKey")),
 									IdentifierName("innerList"))))),
@@ -64,7 +64,7 @@ public class LeftJoinLinqUnroller : BaseLinqUnroller
 
 		// var leftJoinBuffer = new List<TResult>();
 		statements.Add(CreateLocalDeclaration(BufferName,
-			ObjectCreationExpression(IdentifierName($"List<{resultTypeName}>"), [])));
+			ObjectCreationExpression(IdentifierName($"List<{resultTypeName}>"), [ ])));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
@@ -90,23 +90,6 @@ public class LeftJoinLinqUnroller : BaseLinqUnroller
 
 		// Capture ref parameter for use in local function
 		var capturedElement = elementName;
-
-		// Build result expression replacing both params
-		ExpressionSyntax? MakeResult(ExpressionSyntax innerExpr)
-		{
-			var body = ReplaceLambda(method.Visit(resultLambda) as LambdaExpressionSyntax ?? resultLambda, capturedElement);
-
-			if (body is not null
-			    && resultLambda is ParenthesizedLambdaExpressionSyntax { ParameterList.Parameters.Count: >= 2 } pl)
-			{
-				var secondParam = pl.ParameterList.Parameters[1].Identifier.Text;
-				var ids = body.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>()
-					.Where(n => n.Identifier.Text == secondParam).ToList();
-				body = body.ReplaceNodes(ids, (_, _) => innerExpr);
-			}
-
-			return body;
-		}
 
 		// if (leftJoinLookup.TryGetValue(outerKey, out var matchedInners))
 		// {
@@ -140,6 +123,24 @@ public class LeftJoinLinqUnroller : BaseLinqUnroller
 
 		// continue;
 		statements.Add(ContinueStatement());
+		return;
+
+		// Build result expression replacing both params
+		ExpressionSyntax? MakeResult(ExpressionSyntax innerExpr)
+		{
+			var body = ReplaceLambda(method.Visit(resultLambda) as LambdaExpressionSyntax ?? resultLambda, capturedElement);
+
+			if (body is not null
+			    && resultLambda is ParenthesizedLambdaExpressionSyntax { ParameterList.Parameters.Count: >= 2 } pl)
+			{
+				var secondParam = pl.ParameterList.Parameters[1].Identifier.Text;
+				var ids = body.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>()
+					.Where(n => n.Identifier.Text == secondParam).ToList();
+				body = body.ReplaceNodes(ids, (_, _) => innerExpr);
+			}
+
+			return body;
+		}
 	}
 
 	public override void UnrollAfterMainLoop(UnrolledLinqMethod method, IList<StatementSyntax> partialLoopBody, List<StatementSyntax> resultStatements)
@@ -151,6 +152,3 @@ public class LeftJoinLinqUnroller : BaseLinqUnroller
 			Block(partialLoopBody)));
 	}
 }
-
-
-

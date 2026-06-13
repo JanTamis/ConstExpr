@@ -62,7 +62,7 @@ public class GranlundMontgomeryArithmeticTest
 			q >>= shift;
 		}
 
-		return q + (int) ((uint) q >> 31);
+		return q - (x >> 31);
 	}
 
 	[Test]

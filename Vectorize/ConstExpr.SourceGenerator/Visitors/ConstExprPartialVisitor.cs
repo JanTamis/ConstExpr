@@ -1100,62 +1100,6 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 			// Try constant-folding the switch statement
 			if (TryGetConstantValue(model.Compilation, loader, visitedGoverning, new VariableItemDictionary(argument), token, out var governingValue))
 			{
-				bool? MatchClause(ICaseClauseOperation clause)
-				{
-					switch (clause)
-					{
-						case IDefaultCaseClauseOperation:
-						{
-							return true;
-						}
-						case ISingleValueCaseClauseOperation single:
-						{
-							var node = Visit(single.Value, argument);
-
-							if (TryGetConstantValue(model.Compilation, loader, node, new VariableItemDictionary(argument), token, out var caseValue))
-							{
-								return Equals(governingValue, caseValue);
-							}
-							return null;
-						}
-						case IRelationalCaseClauseOperation rel:
-						{
-							var rightNode = Visit(rel.Value, argument);
-
-							if (TryGetConstantValue(model.Compilation, loader, rightNode, new VariableItemDictionary(argument), token, out var rightValue))
-							{
-								var result = ObjectExtensions.ExecuteBinaryOperation(rel.Relation, governingValue, rightValue);
-								return result is true;
-							}
-							return null;
-						}
-						case IPatternCaseClauseOperation patClause:
-						{
-							var patMatch = EvaluatePattern(patClause.Pattern, governingValue, argument);
-
-							if (patMatch is not true)
-							{
-								return patMatch; // false or null
-							}
-
-							if (patClause.Guard is not null)
-							{
-								var guardVisited = Visit(patClause.Guard, argument);
-
-								if (!TryGetConstantValue(model.Compilation, loader, guardVisited, new VariableItemDictionary(argument), token, out var guardVal))
-								{
-									return null;
-								}
-								return guardVal is true;
-							}
-							return true;
-						}
-						default:
-						{
-							return null;
-						}
-					}
-				}
 
 				for (var i = 0; i < operation.Cases.Length; i++)
 				{
@@ -1239,6 +1183,63 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 
 				// No matching clause deterministically
 				return null;
+
+				bool? MatchClause(ICaseClauseOperation clause)
+				{
+					switch (clause)
+					{
+						case IDefaultCaseClauseOperation:
+						{
+							return true;
+						}
+						case ISingleValueCaseClauseOperation single:
+						{
+							var node = Visit(single.Value, argument);
+
+							if (TryGetConstantValue(model.Compilation, loader, node, new VariableItemDictionary(argument), token, out var caseValue))
+							{
+								return Equals(governingValue, caseValue);
+							}
+							return null;
+						}
+						case IRelationalCaseClauseOperation rel:
+						{
+							var rightNode = Visit(rel.Value, argument);
+
+							if (TryGetConstantValue(model.Compilation, loader, rightNode, new VariableItemDictionary(argument), token, out var rightValue))
+							{
+								var result = ObjectExtensions.ExecuteBinaryOperation(rel.Relation, governingValue, rightValue);
+								return result is true;
+							}
+							return null;
+						}
+						case IPatternCaseClauseOperation patClause:
+						{
+							var patMatch = EvaluatePattern(patClause.Pattern, governingValue, argument);
+
+							if (patMatch is not true)
+							{
+								return patMatch; // false or null
+							}
+
+							if (patClause.Guard is not null)
+							{
+								var guardVisited = Visit(patClause.Guard, argument);
+
+								if (!TryGetConstantValue(model.Compilation, loader, guardVisited, new VariableItemDictionary(argument), token, out var guardVal))
+								{
+									return null;
+								}
+								return guardVal is true;
+							}
+							return true;
+						}
+						default:
+						{
+							return null;
+						}
+					}
+				}
 			}
 
 			Rebuild:

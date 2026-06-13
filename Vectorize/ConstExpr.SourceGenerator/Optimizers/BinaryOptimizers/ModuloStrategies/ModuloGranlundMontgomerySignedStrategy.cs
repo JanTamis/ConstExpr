@@ -13,10 +13,10 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ModuloStrategies
 ///   q  = (int)((long)x * MAGIC >> 32);
 ///   q += x;                      // only when MAGIC wrapped negative
 ///   q >>= shift;                 // arithmetic, only when shift > 0
-///   q += (q >>> 31);             // +1 for negative dividends (truncation toward zero)
+///   q -= x >> 31;                // +1 for negative dividends (truncation toward zero)
 ///   x % d  =>  x - q * d
 ///   Examples:
-///   x % 6  =>  x - ((int)((long)x * 715827883 >> 32) + ((int)((long)x * 715827883 >> 32) >>> 31)) * 6
+///   x % 6  =>  x - ((int)((long)x * 715827883 >> 32) - (x >> 31)) * 6
 /// </summary>
 public class ModuloGranlundMontgomerySignedStrategy : IntegerBinaryStrategy<ExpressionSyntax, LiteralExpressionSyntax>
 {

@@ -140,7 +140,7 @@ public abstract class BaseLinqUnroller
 					ArgumentList(
 						SeparatedList(parameters.Select(s => Argument(CreateLiteral(s)!))))));
 	}
-	
+
 	protected LocalDeclarationStatementSyntax CreateLocalDeclaration(string variableName, TypeSyntax type, ExpressionSyntax initializer)
 	{
 		return LocalDeclarationStatement(
@@ -160,7 +160,7 @@ public abstract class BaseLinqUnroller
 						VariableDeclarator(variableName)
 							.WithInitializer(EqualsValueClause(initializer)))));
 	}
-	
+
 	/// <summary>
 	/// Generates a <c>Span&lt;T&gt;</c> local backed by <c>stackalloc</c>.
 	/// Example: <c>Span&lt;bool&gt; name = stackalloc bool[size];</c>
@@ -237,6 +237,12 @@ public abstract class BaseLinqUnroller
 	/// </summary>
 	protected static void AddSpanIndexDistinctBody(List<StatementSyntax> statements, ExpressionSyntax element, string spanName, bool castToByte)
 	{
+
+		statements.Add(IfStatement(IndexExpression(), ContinueStatement()));
+		statements.Add(ExpressionStatement(AssignmentExpression(SyntaxKind.SimpleAssignmentExpression,
+			IndexExpression(), CreateLiteral(true)!)));
+		return;
+
 		ExpressionSyntax IndexExpression()
 		{
 			var index = castToByte
@@ -245,10 +251,6 @@ public abstract class BaseLinqUnroller
 			return ElementAccessExpression(IdentifierName(spanName))
 				.WithArgumentList(BracketedArgumentList(SingletonSeparatedList(Argument(index))));
 		}
-
-		statements.Add(IfStatement(IndexExpression(), ContinueStatement()));
-		statements.Add(ExpressionStatement(AssignmentExpression(SyntaxKind.SimpleAssignmentExpression,
-			IndexExpression(), CreateLiteral(true)!)));
 	}
 
 	/// <summary>
@@ -270,7 +272,7 @@ public abstract class BaseLinqUnroller
 		statements.Add(ExpressionStatement(
 			AssignmentExpression(SyntaxKind.OrAssignmentExpression,
 				BucketAccess(), BitMask())));
-		
+
 		return;
 
 		ExpressionSyntax IndexExpr() => castToUShort
@@ -281,7 +283,7 @@ public abstract class BaseLinqUnroller
 			.WithArgumentList(BracketedArgumentList(SingletonSeparatedList(Argument(
 				RightShiftExpression(
 					IndexExpr(),
-					 CreateLiteral(6)!)))));
+					CreateLiteral(6)!)))));
 
 		ExpressionSyntax BitMask() => LeftShiftExpression(
 			CreateLiteral(1UL)!,
@@ -298,14 +300,14 @@ public abstract class BaseLinqUnroller
 				IdentifierName(variableName),
 				value));
 	}
-	
+
 	protected static InvocationExpressionSyntax CreateMethodInvocation(ExpressionSyntax target, string methodName, params ExpressionSyntax[] arguments)
 	{
 		return InvocationExpression(
-			MemberAccessExpression(
-				SyntaxKind.SimpleMemberAccessExpression,
-				target,
-				IdentifierName(methodName)))
+				MemberAccessExpression(
+					SyntaxKind.SimpleMemberAccessExpression,
+					target,
+					IdentifierName(methodName)))
 			.WithArgumentList(
 				ArgumentList(
 					SeparatedList(arguments.Select(Argument))));

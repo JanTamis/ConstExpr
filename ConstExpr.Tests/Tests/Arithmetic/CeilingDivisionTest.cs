@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Arithmetic;
 
 [InheritsTests]
-public class CeilingDivisionTest() : BaseTest<Func<int, int, int>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class CeilingDivisionTest() : BaseTest<Func<int, int, int>>(FastMathFlags.All | FastMathFlags.MagicNumberDivision, optimizations: OptimizationFlags.All)
 {
 	public override string TestMethod => GetString((numerator, divisor) =>
 	{
@@ -23,9 +23,9 @@ public class CeilingDivisionTest() : BaseTest<Func<int, int, int>>(FastMathFlags
 		Create((_, _) => 0, [ 10, 0 ]),
 		Create((numerator, _) =>
 		{
-			var rshift = (int) ((long) (numerator + 4) * 1717986919 >> 32) >> 1;
+			var sum = numerator + 4;
 
-			return rshift + (rshift >>> 31);
+			return ((int) (sum * 1717986919L >> 32) >> 1) - (sum >> 31);
 		}, [ Unknown, 5 ]),
 		Create((_, _) => 0, [ Unknown, 0 ])
 	];

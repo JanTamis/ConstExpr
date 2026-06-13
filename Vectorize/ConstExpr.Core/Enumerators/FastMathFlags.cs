@@ -79,8 +79,8 @@ public enum FastMathFlags
 	/// <summary>
 	/// Enable all fast-math optimisations — equivalent to C++ <c>-ffast-math</c>.
 	/// Combines <see cref="AssociativeMath"/>, <see cref="NoNaN"/>, <see cref="NoInfinity"/>,
-	/// <see cref="NoSignedZero"/>, <see cref="ReciprocalMath"/>, <see cref="RoundToNearest"/>, and <see cref="FusedMultiplyAdd"/>.
+	/// <see cref="NoSignedZero"/>, <see cref="ReciprocalMath"/>, <see cref="RoundToNearest"/>.
 	/// </summary>
 	All = AssociativeMath | NoNaN | NoInfinity | NoSignedZero
-	      | ReciprocalMath | RoundToNearest | FusedMultiplyAdd | MagicNumberDivision
+	      | ReciprocalMath | RoundToNearest | FusedMultiplyAdd
 }
