@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using ConstExpr.SourceGenerator.Comparers;
@@ -175,7 +176,7 @@ public static class ConvertIfToSwitchCodeRefactoring
 		labels = null;
 		var collected = new List<ExpressionSyntax>();
 
-		if (!TryCollectLabels(condition, ref switchTarget, collected) 
+		if (!TryCollectLabels(condition, ref switchTarget, collected)
 		    || collected.Count == 0)
 		{
 			return false;
@@ -191,14 +192,14 @@ public static class ConvertIfToSwitchCodeRefactoring
 		List<ExpressionSyntax> labels)
 	{
 		// x == a || x == b
-		if (condition is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LogicalOrExpression } orExpr)
+		if (condition is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LogicalOrExpression } orExpr)
 		{
 			return TryCollectLabels(orExpr.Left, ref switchTarget, labels)
 			       && TryCollectLabels(orExpr.Right, ref switchTarget, labels);
 		}
 
 		// x == constant  /  constant == x
-		if (condition is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.EqualsExpression } eq)
+		if (condition is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.EqualsExpression } eq)
 		{
 			ExpressionSyntax? target = null;
 			ExpressionSyntax? label = null;
@@ -358,5 +359,507 @@ public static class ConvertIfToSwitchCodeRefactoring
 			BlockSyntax block => block.Statements.Count > 0 && ContainsJumpStatement(block.Statements.Last()),
 			_ => false
 		};
+	}
+
+	// =====================================================================================
+	//  Consecutive (non-else) if-statements → switch
+	//
+	//  Converts a run of independent sibling if-statements that all test the same identifier
+	//  against mutually-exclusive constant / relational patterns into a single switch, e.g.
+	//
+	//      if (n == 0) return 1;          switch (n)
+	//      if (n < 0)  n = -n;     =>      {
+	//                                          case 0:    return 1;
+	//                                          case < 0:  n = -n; break;
+	//                                      }
+	//
+	//  Safety relies on three invariants checked by the caller / builder:
+	//    * the case patterns are mutually exclusive (see AreMutuallyExclusive), so at most one
+	//      body runs — exactly the switch semantics;
+	//    * only the last section may write to the target (a switch reads the target once, while
+	//      sequential ifs re-evaluate it — see AssignsToIdentifier);
+	//    * no two sections declare the same top-level local (switch sections share one scope).
+	// =====================================================================================
+
+	/// <summary>A half-open or closed numeric interval used for mutual-exclusivity reasoning.</summary>
+	internal readonly struct NumericInterval(double low, bool lowInclusive, double high, bool highInclusive)
+	{
+		public double Low { get; } = low;
+		public bool LowInclusive { get; } = lowInclusive;
+		public double High { get; } = high;
+		public bool HighInclusive { get; } = highInclusive;
+
+		public static NumericInterval Point(double value)
+		{
+			return new NumericInterval(value, true, value, true);
+		}
+	}
+
+	/// <summary>One eligible if-statement decomposed into a switch section.</summary>
+	internal readonly struct IfSwitchSection(IdentifierNameSyntax target, SwitchLabelSyntax label, StatementSyntax body, List<NumericInterval> intervals)
+	{
+		public IdentifierNameSyntax Target { get; } = target;
+		public SwitchLabelSyntax Label { get; } = label;
+		public StatementSyntax Body { get; } = body;
+		public List<NumericInterval> Intervals { get; } = intervals;
+	}
+
+	/// <summary>
+	///   Tries to decompose a single else-less if-statement into a switch section: a target
+	///   identifier, a case label, the body, and the numeric value-set its condition matches.
+	///   Only conditions over a single identifier compared to numeric literals are accepted.
+	/// </summary>
+	internal static bool TryGetConsecutiveIfSection(IfStatementSyntax ifNode, out IfSwitchSection section)
+	{
+		section = default;
+
+		if (ifNode.Else is not null)
+		{
+			return false;
+		}
+
+		IdentifierNameSyntax? target = null;
+
+		if (!TryExtractTargetPattern(ifNode.Condition, ref target, out var pattern, out var intervals) || target is null)
+		{
+			return false;
+		}
+
+		// A single constant becomes a plain `case 1:` label; everything else (relational or
+		// or-patterns) becomes a `case <pattern>:` label.
+		var label = pattern is ConstantPatternSyntax constant
+			? (SwitchLabelSyntax) CaseSwitchLabel(constant.Expression)
+			: CasePatternSwitchLabel(pattern, Token(SyntaxKind.ColonToken));
+
+		section = new IfSwitchSection(target, label, ifNode.Statement, intervals);
+		return true;
+	}
+
+	/// <summary>
+	///   Returns <see langword="true" /> when the value-sets matched by the two sections are
+	///   disjoint, so converting the independent ifs into a switch cannot change behaviour.
+	/// </summary>
+	internal static bool AreMutuallyExclusive(IfSwitchSection a, IfSwitchSection b)
+	{
+		foreach (var ia in a.Intervals)
+		{
+			foreach (var ib in b.Intervals)
+			{
+				if (IntervalsOverlap(ia, ib))
+				{
+					return false;
+				}
+			}
+		}
+
+		return true;
+	}
+
+	/// <summary>
+	///   Returns <see langword="true" /> when <paramref name="body" /> writes to a variable named
+	///   <paramref name="name" /> (assignment, compound assignment, ++/--, or ref/out argument).
+	///   A purely syntactic check so it works on already-rewritten (synthetic) bodies.
+	/// </summary>
+	internal static bool AssignsToIdentifier(StatementSyntax body, string name)
+	{
+		foreach (var node in body.DescendantNodesAndSelf())
+		{
+			switch (node)
+			{
+				case AssignmentExpressionSyntax assignment
+					when UnwrapParentheses(assignment.Left) is IdentifierNameSyntax id && id.Identifier.ValueText == name:
+				case PostfixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.PostIncrementExpression or (int) SyntaxKind.PostDecrementExpression } postfix
+					when UnwrapParentheses(postfix.Operand) is IdentifierNameSyntax postId && postId.Identifier.ValueText == name:
+				case PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.PreIncrementExpression or (int) SyntaxKind.PreDecrementExpression } prefix
+					when UnwrapParentheses(prefix.Operand) is IdentifierNameSyntax preId && preId.Identifier.ValueText == name:
+				case ArgumentSyntax { RefKindKeyword.RawKind: not (int) SyntaxKind.None } argument
+					when UnwrapParentheses(argument.Expression) is IdentifierNameSyntax argId && argId.Identifier.ValueText == name:
+				{
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+
+	/// <summary>
+	///   Builds the switch statement for a validated run of sections. Fails when two sections
+	///   declare a top-level local of the same name (switch sections share one declaration scope).
+	/// </summary>
+	internal static bool TryBuildConsecutiveIfsSwitch(
+		ExpressionSyntax target,
+		IReadOnlyList<IfSwitchSection> sections,
+		[NotNullWhen(true)] out SwitchStatementSyntax? result)
+	{
+		result = null;
+		var declaredNames = new HashSet<string>();
+		var switchSections = new List<SwitchSectionSyntax>(sections.Count);
+
+		foreach (var section in sections)
+		{
+			foreach (var name in GetSectionLocalNames(section.Body))
+			{
+				if (!declaredNames.Add(name))
+				{
+					return false;
+				}
+			}
+
+			switchSections.Add(SwitchSection(
+				List([ section.Label ]),
+				List(BuildSwitchSectionStatements(section.Body))));
+		}
+
+		result = SwitchStatement(target, List(switchSections));
+		return true;
+	}
+
+	private static IEnumerable<string> GetSectionLocalNames(StatementSyntax body)
+	{
+		var statements = body is BlockSyntax block
+			? (IEnumerable<StatementSyntax>) block.Statements
+			: [ body ];
+
+		foreach (var statement in statements)
+		{
+			if (statement is LocalDeclarationStatementSyntax local)
+			{
+				foreach (var variable in local.Declaration.Variables)
+				{
+					yield return variable.Identifier.ValueText;
+				}
+			}
+		}
+	}
+
+	private static bool TryExtractTargetPattern(
+		ExpressionSyntax condition,
+		ref IdentifierNameSyntax? target,
+		out PatternSyntax pattern,
+		out List<NumericInterval> intervals)
+	{
+		pattern = null!;
+		intervals = null!;
+
+		switch (UnwrapParentheses(condition))
+		{
+			// x == a || x == b  (recursively folds into one or-pattern)
+			case BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LogicalOrExpression } orExpr:
+			{
+				if (!TryExtractTargetPattern(orExpr.Left, ref target, out var leftPattern, out var leftIntervals)
+				    || !TryExtractTargetPattern(orExpr.Right, ref target, out var rightPattern, out var rightIntervals))
+				{
+					return false;
+				}
+
+				pattern = BinaryPattern(SyntaxKind.OrPattern, leftPattern, rightPattern);
+				leftIntervals.AddRange(rightIntervals);
+				intervals = leftIntervals;
+				return true;
+			}
+
+			// x == constant  /  constant == x
+			case BinaryExpressionSyntax { RawKind: (int) SyntaxKind.EqualsExpression } eq:
+			{
+				if (!TryGetTargetAndLiteral(eq.Left, eq.Right, ref target, out var literal, out var value))
+				{
+					return false;
+				}
+
+				pattern = ConstantPattern(literal);
+				intervals = [ NumericInterval.Point(value) ];
+				return true;
+			}
+
+			// x < constant, x <= constant, x > constant, x >= constant (and flipped forms)
+			case BinaryExpressionSyntax relational when IsRelational(relational.Kind()):
+			{
+				return TryExtractRelational(relational, ref target, out pattern, out intervals);
+			}
+
+			// x is <pattern>
+			case IsPatternExpressionSyntax isExpr when UnwrapParentheses(isExpr.Expression) is IdentifierNameSyntax id:
+			{
+				return SetTarget(ref target, id) && TryExtractPattern(isExpr.Pattern, out pattern, out intervals);
+			}
+
+			default:
+			{
+				return false;
+			}
+		}
+	}
+
+	private static bool TryExtractRelational(
+		BinaryExpressionSyntax binary,
+		ref IdentifierNameSyntax? target,
+		out PatternSyntax pattern,
+		out List<NumericInterval> intervals)
+	{
+		pattern = null!;
+		intervals = null!;
+
+		SyntaxKind expressionKind;
+
+		if (UnwrapParentheses(binary.Left) is IdentifierNameSyntax leftId && TryGetNumericLiteral(binary.Right, out var value, out var literal))
+		{
+			if (!SetTarget(ref target, leftId))
+			{
+				return false;
+			}
+
+			expressionKind = binary.Kind();
+		}
+		else if (UnwrapParentheses(binary.Right) is IdentifierNameSyntax rightId && TryGetNumericLiteral(binary.Left, out value, out literal))
+		{
+			if (!SetTarget(ref target, rightId))
+			{
+				return false;
+			}
+
+			// `constant < x` is equivalent to `x > constant`: flip the operator.
+			expressionKind = FlipRelational(binary.Kind());
+		}
+		else
+		{
+			return false;
+		}
+
+		var operatorToken = RelationalOperatorToken(expressionKind);
+		pattern = RelationalPattern(operatorToken, literal);
+		intervals = [ IntervalForToken(operatorToken.Kind(), value) ];
+		return true;
+	}
+
+	private static bool TryExtractPattern(PatternSyntax patternSyntax, out PatternSyntax pattern, out List<NumericInterval> intervals)
+	{
+		pattern = null!;
+		intervals = null!;
+
+		switch (UnwrapPattern(patternSyntax))
+		{
+			case ConstantPatternSyntax constant when TryGetNumericLiteral(constant.Expression, out var value, out var literal):
+			{
+				pattern = ConstantPattern(literal);
+				intervals = [ NumericInterval.Point(value) ];
+				return true;
+			}
+
+			case RelationalPatternSyntax relational
+				when IsRelationalToken(relational.OperatorToken.Kind()) && TryGetNumericLiteral(relational.Expression, out var value, out var literal):
+			{
+				pattern = RelationalPattern(relational.OperatorToken, literal);
+				intervals = [ IntervalForToken(relational.OperatorToken.Kind(), value) ];
+				return true;
+			}
+
+			case BinaryPatternSyntax { RawKind: (int) SyntaxKind.OrPattern } orPattern:
+			{
+				if (!TryExtractPattern(orPattern.Left, out var leftPattern, out var leftIntervals)
+				    || !TryExtractPattern(orPattern.Right, out var rightPattern, out var rightIntervals))
+				{
+					return false;
+				}
+
+				pattern = BinaryPattern(SyntaxKind.OrPattern, leftPattern, rightPattern);
+				leftIntervals.AddRange(rightIntervals);
+				intervals = leftIntervals;
+				return true;
+			}
+
+			default:
+			{
+				return false;
+			}
+		}
+	}
+
+	private static bool TryGetTargetAndLiteral(
+		ExpressionSyntax side1,
+		ExpressionSyntax side2,
+		ref IdentifierNameSyntax? target,
+		out ExpressionSyntax literal,
+		out double value)
+	{
+		if (UnwrapParentheses(side1) is IdentifierNameSyntax id1 && TryGetNumericLiteral(side2, out value, out literal))
+		{
+			return SetTarget(ref target, id1);
+		}
+
+		if (UnwrapParentheses(side2) is IdentifierNameSyntax id2 && TryGetNumericLiteral(side1, out value, out literal))
+		{
+			return SetTarget(ref target, id2);
+		}
+
+		literal = null!;
+		value = 0;
+		return false;
+	}
+
+	private static bool TryGetNumericLiteral(ExpressionSyntax expression, out double value, out ExpressionSyntax literal)
+	{
+		value = 0;
+		literal = null!;
+		var unwrapped = UnwrapParentheses(expression);
+
+		switch (unwrapped)
+		{
+			case LiteralExpressionSyntax lit when IsNumericValue(lit.Token.Value, out value):
+			{
+				literal = lit;
+				return true;
+			}
+
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken } negation
+				when TryGetNumericLiteral(negation.Operand, out var inner, out _):
+			{
+				value = -inner;
+				literal = unwrapped;
+				return true;
+			}
+
+			default:
+			{
+				return false;
+			}
+		}
+	}
+
+	private static bool IsNumericValue(object? value, out double result)
+	{
+		switch (value)
+		{
+			case byte b:
+				result = b;
+				return true;
+			case sbyte sb:
+				result = sb;
+				return true;
+			case short s:
+				result = s;
+				return true;
+			case ushort us:
+				result = us;
+				return true;
+			case int i:
+				result = i;
+				return true;
+			case uint ui:
+				result = ui;
+				return true;
+			case long l:
+				result = l;
+				return true;
+			case ulong ul:
+				result = ul;
+				return true;
+			case float f:
+				result = f;
+				return true;
+			case double d:
+				result = d;
+				return true;
+			case decimal dec:
+				result = (double) dec;
+				return true;
+			case char c:
+				result = c;
+				return true;
+			default:
+				result = 0;
+				return false;
+		}
+	}
+
+	private static bool SetTarget(ref IdentifierNameSyntax? target, IdentifierNameSyntax candidate)
+	{
+		if (target is null)
+		{
+			target = candidate;
+			return true;
+		}
+
+		return target.Identifier.ValueText == candidate.Identifier.ValueText;
+	}
+
+	private static bool IsRelational(SyntaxKind kind)
+	{
+		return kind is SyntaxKind.LessThanExpression
+			or SyntaxKind.LessThanOrEqualExpression
+			or SyntaxKind.GreaterThanExpression
+			or SyntaxKind.GreaterThanOrEqualExpression;
+	}
+
+	private static bool IsRelationalToken(SyntaxKind tokenKind)
+	{
+		return tokenKind is SyntaxKind.LessThanToken
+			or SyntaxKind.LessThanEqualsToken
+			or SyntaxKind.GreaterThanToken
+			or SyntaxKind.GreaterThanEqualsToken;
+	}
+
+	private static SyntaxKind FlipRelational(SyntaxKind kind)
+	{
+		return kind switch
+		{
+			SyntaxKind.LessThanExpression => SyntaxKind.GreaterThanExpression,
+			SyntaxKind.LessThanOrEqualExpression => SyntaxKind.GreaterThanOrEqualExpression,
+			SyntaxKind.GreaterThanExpression => SyntaxKind.LessThanExpression,
+			SyntaxKind.GreaterThanOrEqualExpression => SyntaxKind.LessThanOrEqualExpression,
+			_ => kind
+		};
+	}
+
+	private static SyntaxToken RelationalOperatorToken(SyntaxKind expressionKind)
+	{
+		return expressionKind switch
+		{
+			SyntaxKind.LessThanExpression => Token(SyntaxKind.LessThanToken),
+			SyntaxKind.LessThanOrEqualExpression => Token(SyntaxKind.LessThanEqualsToken),
+			SyntaxKind.GreaterThanExpression => Token(SyntaxKind.GreaterThanToken),
+			SyntaxKind.GreaterThanOrEqualExpression => Token(SyntaxKind.GreaterThanEqualsToken),
+			_ => Token(SyntaxKind.LessThanToken)
+		};
+	}
+
+	private static NumericInterval IntervalForToken(SyntaxKind operatorTokenKind, double value)
+	{
+		return operatorTokenKind switch
+		{
+			SyntaxKind.LessThanToken => new NumericInterval(Double.NegativeInfinity, false, value, false),
+			SyntaxKind.LessThanEqualsToken => new NumericInterval(Double.NegativeInfinity, false, value, true),
+			SyntaxKind.GreaterThanToken => new NumericInterval(value, false, Double.PositiveInfinity, false),
+			SyntaxKind.GreaterThanEqualsToken => new NumericInterval(value, true, Double.PositiveInfinity, false),
+			_ => NumericInterval.Point(value)
+		};
+	}
+
+	private static bool IntervalsOverlap(NumericInterval a, NumericInterval b)
+	{
+		var aLeftOfB = a.High < b.Low || a.High == b.Low && (!a.HighInclusive || !b.LowInclusive);
+		var aRightOfB = a.Low > b.High || a.Low == b.High && (!a.LowInclusive || !b.HighInclusive);
+
+		return !(aLeftOfB || aRightOfB);
+	}
+
+	private static ExpressionSyntax UnwrapParentheses(ExpressionSyntax expression)
+	{
+		while (expression is ParenthesizedExpressionSyntax parenthesized)
+		{
+			expression = parenthesized.Expression;
+		}
+
+		return expression;
+	}
+
+	private static PatternSyntax UnwrapPattern(PatternSyntax pattern)
+	{
+		while (pattern is ParenthesizedPatternSyntax parenthesized)
+		{
+			pattern = parenthesized.Pattern;
+		}
+
+		return pattern;
 	}
 }

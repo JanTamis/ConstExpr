@@ -37,6 +37,6 @@ public class ArrayElementInitializerMergeTest : BaseTest<Func<int[], int, int[]>
 			};
 
 			return result;
-		}, [ Unknown, Unknown ])
+		})
 	];
 }

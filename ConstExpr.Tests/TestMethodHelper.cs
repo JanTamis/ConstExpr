@@ -144,6 +144,7 @@ public static class TestMethodHelper
 		{
 			var genericName = type.Name.Substring(0, type.Name.IndexOf('`'));
 			var genericArgs = System.String.Join(", ", type.GetGenericArguments().Select(GetTypeName));
+
 			return $"{genericName}<{genericArgs}>";
 		}
 
@@ -153,6 +154,7 @@ public static class TestMethodHelper
 			var elementType = type.GetElementType()!;
 			var rank = type.GetArrayRank();
 			var brackets = rank == 1 ? "[]" : $"[{new string(',', rank - 1)}]";
+
 			return $"{GetTypeName(elementType)}{brackets}";
 		}
 
