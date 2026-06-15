@@ -23,14 +23,13 @@ public class ArrayElementInitializerExplicitTypeMergeTest : BaseTest<Func<int[],
 	[
 		Create((numbers, positions) =>
 		{
-			var result = new[]
+			return new[]
 			{
 				numbers[positions % 3],
 				numbers[(positions + 1) % 3],
 				numbers[(positions + 2) % 3]
 			};
 
-			return result;
 		}, [ Unknown, Unknown ])
 	];
 }

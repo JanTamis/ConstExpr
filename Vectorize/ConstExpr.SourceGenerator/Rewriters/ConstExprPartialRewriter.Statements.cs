@@ -681,8 +681,298 @@ public partial class ConstExprPartialRewriter
 		var combined = CombineConsecutiveIfStatements(untilThrown, Visit);
 		var mergedIfChain = MergeMixedBoolReturnIfs(combined, Visit);
 		var simplified = SimplifyIfReturnPatterns(mergedIfChain);
+		var switched = CombineConsecutiveIfsIntoSwitch(simplified);
+		var inlined = InlineSingleUseLocalVariables(switched);
 
-		return node.WithStatements(simplified);
+		return node.WithStatements(inlined);
+	}
+
+	/// <summary>
+	///   Inlines local variables that are declared once, never reassigned, and used in exactly
+	///   one straight-line read in the same block. For example:
+	///   <code>
+	/// var diff = a - b;
+	/// return Int32.Abs(diff);
+	/// </code>
+	///   becomes:
+	///   <code>
+	/// return Int32.Abs(a - b);
+	/// </code>
+	///   Only single-use variables whose read is not inside a loop or lambda are inlined
+	///   (to avoid changing how often the initializer expression is evaluated).
+	/// </summary>
+	private SyntaxList<StatementSyntax> InlineSingleUseLocalVariables(SyntaxList<StatementSyntax> statements)
+	{
+		if (statements.Count < 2)
+		{
+			return statements;
+		}
+
+		var result = statements.ToList();
+
+		for (var i = 0; i < result.Count - 1; i++)
+		{
+			if (result[i] is not LocalDeclarationStatementSyntax
+			    {
+				    Modifiers.Count: 0,
+				    Declaration.Variables: [ { Identifier.Text: var varName, Initializer.Value: ExpressionSyntax initExpr } ]
+			    })
+			{
+				continue;
+			}
+
+			// Only inline pure arithmetic/logical expressions. Complex initializers (array or
+			// object creation, method calls, element access) are kept as named variables so the
+			// intent remains clear and the optimiser's own structural passes are not undone.
+			if (!IsInlineableExpression(initExpr))
+			{
+				continue;
+			}
+
+			var remaining = result.Skip(i + 1).ToList();
+			var collector = new VariableUsageCollector([ varName ]);
+
+			foreach (var s in remaining)
+			{
+				collector.Visit(s);
+			}
+
+			if (collector.GetReadCount(varName) != 1
+			    || collector.GetWriteCount(varName) > 0
+			    || collector.GetRefCount(varName) > 0)
+			{
+				continue;
+			}
+
+			// Don't inline when the single use is inside a loop or lambda — inlining would
+			// change how often the initializer expression is evaluated.
+			if (IsUsedInsideLoopOrLambda(varName, remaining))
+			{
+				continue;
+			}
+
+			// Don't inline when any identifier referenced by the initializer is subsequently
+			// mutated — inlining would observe the mutated value instead of the original.
+			if (IsAnyInitExprIdentifierMutated(initExpr, remaining))
+			{
+				continue;
+			}
+
+			// Replace the single occurrence of varName with the initializer expression.
+			var inliner = new SingleUseInliner(varName, initExpr);
+			var inlinedRemaining = remaining.Select(s => (StatementSyntax) (inliner.Visit(s) ?? s)).ToList();
+
+			result.RemoveAt(i);
+
+			for (var j = 0; j < inlinedRemaining.Count; j++)
+			{
+				result[i + j] = inlinedRemaining[j];
+			}
+
+			i--;
+		}
+
+		return List(result);
+	}
+
+	/// <summary>
+	///   Returns <see langword="true" /> when <paramref name="expr" /> is a pure value expression
+	///   (binary or unary arithmetic/logical) that is safe to inline at a single use site.
+	///   Complex expressions (array/object creation, method calls, element access) are excluded
+	///   so that structural optimisation passes are not silently undone.
+	/// </summary>
+	private static bool IsInlineableExpression(ExpressionSyntax expr)
+	{
+		return expr is BinaryExpressionSyntax or PrefixUnaryExpressionSyntax or CastExpressionSyntax
+			or ConditionalExpressionSyntax
+			or ImplicitArrayCreationExpressionSyntax or ArrayCreationExpressionSyntax;
+	}
+
+	/// <summary>
+	///   Returns <see langword="true" /> when at least one identifier referenced by
+	///   <paramref name="initExpr" /> is written to in any of the <paramref name="remaining" /> statements.
+	///   Inlining is unsafe in that case because the written-to identifier's value would differ
+	///   from the value it held at the point of declaration.
+	/// </summary>
+	private static bool IsAnyInitExprIdentifierMutated(ExpressionSyntax initExpr, IEnumerable<StatementSyntax> remaining)
+	{
+		var names = new HashSet<string>(
+			initExpr
+				.DescendantNodesAndSelf()
+				.OfType<IdentifierNameSyntax>()
+				.Select(id => id.Identifier.Text));
+
+		if (names.Count == 0)
+		{
+			return false;
+		}
+
+		var collector = new VariableUsageCollector(names);
+
+		foreach (var s in remaining)
+		{
+			collector.Visit(s);
+		}
+
+		return names.Any(name => collector.GetWriteCount(name) > 0);
+	}
+
+	private static bool IsUsedInsideLoopOrLambda(string varName, IEnumerable<StatementSyntax> statements)
+	{
+		foreach (var s in statements)
+		{
+			foreach (var node in s.DescendantNodes())
+			{
+				if (node is not (ForStatementSyntax or ForEachStatementSyntax or WhileStatementSyntax
+				    or DoStatementSyntax or LambdaExpressionSyntax or AnonymousMethodExpressionSyntax))
+				{
+					continue;
+				}
+
+				var nestedCollector = new VariableUsageCollector([ varName ]);
+				nestedCollector.Visit(node);
+
+				if (nestedCollector.GetReadCount(varName) > 0)
+				{
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+
+	/// <summary>
+	///   Replaces the first read of a named identifier with a given expression, adding
+	///   parentheses only when operator precedence requires it.
+	/// </summary>
+	private sealed class SingleUseInliner(string varName, ExpressionSyntax initExpr) : CSharpSyntaxRewriter
+	{
+		private bool _replaced;
+
+		public override SyntaxNode? VisitIdentifierName(IdentifierNameSyntax node)
+		{
+			if (_replaced || node.Identifier.Text != varName || IsWriteContext(node))
+			{
+				return base.VisitIdentifierName(node);
+			}
+
+			_replaced = true;
+
+			return NeedsParentheses(initExpr, node.Parent)
+				? ParenthesizedExpression(initExpr)
+				: initExpr;
+		}
+
+		/// <summary>
+		///   Returns true when wrapping <paramref name="expr" /> in parentheses is required
+		///   to preserve operator precedence in the given <paramref name="parent" /> context.
+		/// </summary>
+		private static bool NeedsParentheses(ExpressionSyntax expr, SyntaxNode? parent)
+		{
+			// Simple expressions never need parens regardless of context.
+			if (expr is IdentifierNameSyntax or LiteralExpressionSyntax or InvocationExpressionSyntax
+			    or MemberAccessExpressionSyntax or ElementAccessExpressionSyntax
+			    or ObjectCreationExpressionSyntax or ParenthesizedExpressionSyntax)
+			{
+				return false;
+			}
+
+			// Safe statement/container contexts: the expression is already delimited.
+			if (parent is ArgumentSyntax or ReturnStatementSyntax or EqualsValueClauseSyntax
+			    or IfStatementSyntax or ArrowExpressionClauseSyntax or SwitchExpressionArmSyntax
+			    or InterpolationSyntax)
+			{
+				return false;
+			}
+
+			return true;
+		}
+
+		private static bool IsWriteContext(IdentifierNameSyntax node)
+		{
+			return node.Parent switch
+			{
+				AssignmentExpressionSyntax { Left: var left } when left == node => true,
+				PostfixUnaryExpressionSyntax { Operand: var op } when op == node => true,
+				PrefixUnaryExpressionSyntax prefix when prefix.Operand == node &&
+				                                        (prefix.IsKind(SyntaxKind.PreIncrementExpression) || prefix.IsKind(SyntaxKind.PreDecrementExpression)) => true,
+				_ => false
+			};
+		}
+	}
+
+	/// <summary>
+	///   Merges a run of independent sibling if-statements (no else) that all test the same
+	///   identifier against mutually-exclusive constant / relational patterns into a single
+	///   switch statement. Example:
+	///   <code>
+	/// if (n == 0) return 1;        switch (n)
+	/// if (n &lt; 0)  n = -n;    =>   {
+	///                                  case 0:   return 1;
+	///                                  case &lt; 0: n = -n; break;
+	///                              }
+	/// </code>
+	///   Guards (all required to preserve semantics):
+	///   <list type="bullet">
+	///     <item>
+	///       at least two cases, and not every body is a guard clause (some body falls through) —
+	///       all-jump runs are left to the ternary / guard folding handled by other passes;
+	///     </item>
+	///     <item>the case patterns are mutually exclusive, so at most one body ever runs;</item>
+	///     <item>
+	///       only the last section may write to the target — a switch reads the target once
+	///       while sequential ifs re-evaluate it against the mutated value.
+	///     </item>
+	///   </list>
+	/// </summary>
+	private static SyntaxList<StatementSyntax> CombineConsecutiveIfsIntoSwitch(SyntaxList<StatementSyntax> statements)
+	{
+		if (statements.Count < 2)
+		{
+			return statements;
+		}
+
+		var result = new List<StatementSyntax>();
+		var i = 0;
+
+		while (i < statements.Count)
+		{
+			if (statements[i] is IfStatementSyntax { Else: null } firstIf
+			    && ConvertIfToSwitchCodeRefactoring.TryGetConsecutiveIfSection(firstIf, out var firstSection))
+			{
+				var targetName = firstSection.Target.Identifier.ValueText;
+				var sections = new List<ConvertIfToSwitchCodeRefactoring.IfSwitchSection> { firstSection };
+				var j = i + 1;
+
+				while (j < statements.Count
+				       && statements[j] is IfStatementSyntax { Else: null } nextIf
+				       && ConvertIfToSwitchCodeRefactoring.TryGetConsecutiveIfSection(nextIf, out var nextSection)
+				       && nextSection.Target.Identifier.ValueText == targetName
+				       && sections.All(s => ConvertIfToSwitchCodeRefactoring.AreMutuallyExclusive(s, nextSection))
+				       // Appending another case turns every already-collected section into a
+				       // non-last one, so none of them may mutate the target.
+				       && sections.All(s => !ConvertIfToSwitchCodeRefactoring.AssignsToIdentifier(s.Body, targetName)))
+				{
+					sections.Add(nextSection);
+					j++;
+				}
+
+				if (sections.Count >= 2
+				    && sections.Any(s => !ContainsJumpStatement(s.Body))
+				    && ConvertIfToSwitchCodeRefactoring.TryBuildConsecutiveIfsSwitch(firstSection.Target, sections, out var switchStatement))
+				{
+					result.Add(switchStatement);
+					i = j;
+					continue;
+				}
+			}
+
+			result.Add(statements[i]);
+			i++;
+		}
+
+		return List(result);
 	}
 
 	private SyntaxList<StatementSyntax> MergeForLoopDeclarations(SyntaxList<StatementSyntax> statements)

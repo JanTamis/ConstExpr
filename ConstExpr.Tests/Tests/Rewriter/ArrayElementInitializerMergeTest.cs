@@ -26,7 +26,7 @@ public class ArrayElementInitializerMergeTest : BaseTest<Func<int[], int, int[]>
 	[
 		Create((numbers, positions) =>
 		{
-			var result = new[]
+			return new[]
 			{
 				numbers[positions % 6],
 				numbers[(positions + 1) % 6],
@@ -35,8 +35,6 @@ public class ArrayElementInitializerMergeTest : BaseTest<Func<int[], int, int[]>
 				numbers[(positions + 4) % 6],
 				numbers[(positions + 5) % 6]
 			};
-
-			return result;
 		})
 	];
 }
