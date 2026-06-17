@@ -9,7 +9,6 @@ using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Optimizers;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
-using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -60,6 +59,17 @@ public partial class ConstExprPartialRewriter
 
 		return node;
 	}
+
+	private static bool IsExpressionPure(SyntaxNode node) => node switch
+	{
+		IdentifierNameSyntax or LiteralExpressionSyntax => true,
+		ParenthesizedExpressionSyntax par => IsExpressionPure(par.Expression),
+		PrefixUnaryExpressionSyntax u => IsExpressionPure(u.Operand),
+		BinaryExpressionSyntax b => IsExpressionPure(b.Left) && IsExpressionPure(b.Right),
+		MemberAccessExpressionSyntax m => IsExpressionPure(m.Expression),
+		CastExpressionSyntax c => IsExpressionPure(c.Expression),
+		_ => false
+	};
 
 	/// <summary>
 	/// Execute a Roslyn conversion operation either via operator method or basic Convert.*

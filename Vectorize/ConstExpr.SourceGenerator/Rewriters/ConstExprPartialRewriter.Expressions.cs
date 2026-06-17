@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Optimizers.ConditionalOptimizers;
@@ -504,6 +505,27 @@ public partial class ConstExprPartialRewriter
 		    && innerBitwiseOp.IsKind(SyntaxKind.TildeToken))
 		{
 			return innerBitwiseUnary.Operand;
+		}
+
+		// -(constant - b) => b - constant  (requires NoSignedZero for floating-point: -(0.0) = -0.0 but 0.0 - 0.0 = +0.0)
+		// Restricted to a literal left operand to avoid disrupting CSE on -(identifier - literal) patterns.
+		if (node.OperatorToken.IsKind(SyntaxKind.MinusToken))
+		{
+			var negSubInner = operand is ParenthesizedExpressionSyntax negSubParen ? negSubParen.Expression : operand;
+
+			if (negSubInner is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.SubtractExpression } negSubExpr
+			    && TryGetLiteralValue(negSubExpr.Left, out _)
+			    && IsExpressionPure(negSubExpr.Right))
+			{
+				var isFloating = semanticModel.TryGetTypeSymbol(node, symbolStore, out var negSubType)
+					? negSubType?.SpecialType is SpecialType.System_Double or SpecialType.System_Single or SpecialType.System_Decimal
+					: true;
+
+				if (!isFloating || attribute.MathOptimizations.HasFlag(FastMathFlags.NoSignedZero))
+				{
+					return SubtractExpression(negSubExpr.Right, negSubExpr.Left);
+				}
+			}
 		}
 
 		// Handle negation of numeric literals
