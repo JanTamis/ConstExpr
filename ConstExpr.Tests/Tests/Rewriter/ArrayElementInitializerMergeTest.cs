@@ -10,20 +10,19 @@ public class ArrayElementInitializerMergeTest : BaseTest<Func<int[], int, int[]>
 {
 	public override string TestMethod => GetString((numbers, positions) =>
 	{
-		var result = new int[6];
+		var result = new int[numbers.Length];
 
-		result[0] = numbers[positions % 6];
-		result[1] = numbers[(positions + 1) % 6];
-		result[2] = numbers[(positions + 2) % 6];
-		result[3] = numbers[(positions + 3) % 6];
-		result[4] = numbers[(positions + 4) % 6];
-		result[5] = numbers[(positions + 5) % 6];
+		for (var i = 0; i < result.Length; i++)
+		{
+			result[i] = numbers[(positions + i) % 6];
+		}
 
 		return result;
 	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
+		CreateDefault(),
 		Create((numbers, positions) =>
 		{
 			return new[]
@@ -35,6 +34,6 @@ public class ArrayElementInitializerMergeTest : BaseTest<Func<int[], int, int[]>
 				numbers[(positions + 4) % 6],
 				numbers[(positions + 5) % 6]
 			};
-		})
+		}, [ new[] { 1, 2, 3, 4, 5, 6 }, Unknown ])
 	];
 }

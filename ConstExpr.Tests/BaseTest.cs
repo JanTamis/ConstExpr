@@ -1,7 +1,6 @@
 extern alias sourcegen;
 using System.Collections;
 using System.Collections.Concurrent;
-using System.Collections.Immutable;
 using System.Numerics.Tensors;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -514,121 +513,6 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		}
 
 		return new InvalidOperationException(errorText);
-	}
-
-	private static void Inline(BlockSyntax node, IDictionary<string, VariableItem> parameters, SemanticModel model)
-	{
-		var statements = node.Statements;
-
-		if (statements.Count < 2)
-		{
-			return;
-		}
-
-		// Only consider local declarations that are direct children of this block,
-		// since AnalyzeDataFlow requires a contiguous range of statements in the same block.
-		for (var i = 0; i < statements.Count - 1; i++)
-		{
-			if (statements[i] is not LocalDeclarationStatementSyntax localDecl)
-			{
-				continue;
-			}
-
-			// Analyze data flow in the region *after* this declaration so that the
-			// initial assignment is not counted as a write inside the analysed range.
-			var dataFlow = model.AnalyzeDataFlow(statements[i + 1], statements[statements.Count - 1]);
-
-			foreach (var declarator in localDecl.Declaration.Variables.Where(v => v.Initializer?.Value is not null))
-			{
-				if (model.GetDeclaredSymbol(declarator) is not ILocalSymbol symbol)
-				{
-					continue;
-				}
-
-				if (dataFlow is not { Succeeded: true })
-				{
-					continue;
-				}
-
-				// A variable may be inlined when it is:
-				//   - read exactly once in the region after the declaration
-				//   - never written to after the initial declaration
-				//   - never passed by ref or out
-				// WrittenInside covers both reassignments and ref/out arguments (Roslyn treats ref/out as writes).
-				if (dataFlow.WrittenInside.Contains(symbol, SymbolEqualityComparer.Default))
-				{
-					continue;
-				}
-
-				// Count syntax-level reads in the region after the declaration (AnalyzeDataFlow has no count API).
-				var name = declarator.Identifier.Text;
-				var readCount = statements
-					.Skip(i + 1)
-					.SelectMany(s => s.DescendantNodes().OfType<IdentifierNameSyntax>())
-					.Count(id => id.Identifier.Text == name);
-
-				if (readCount != 1)
-				{
-					continue;
-				}
-
-				// Do not inline if any variable referenced in the initializer expression
-				// is written strictly between the declaration and the read site.
-				// Example: var temp = a; a = b; b = temp; — inlining temp→a would use
-				// the updated value of a instead of the original.
-				// Uses symbol equality (not string names) to avoid false positives from
-				// lambda parameters that happen to share a name with other identifiers.
-
-				// Find which statement contains the single read.
-				var readStatementIndex = -1;
-
-				for (var j = i + 1; j < statements.Count; j++)
-				{
-					if (statements[j].DescendantNodes().OfType<IdentifierNameSyntax>().Any(id => id.Identifier.Text == name))
-					{
-						readStatementIndex = j;
-						break;
-					}
-				}
-
-				if (readStatementIndex == -1)
-				{
-					continue;
-				}
-
-				// If there are statements between the declaration and the read site,
-				// check whether any symbol used in the initializer is written there.
-				if (readStatementIndex > i + 1)
-				{
-					var intermediateFlow = model.AnalyzeDataFlow(statements[i + 1], statements[readStatementIndex - 1]);
-
-					if (intermediateFlow is { Succeeded: true, WrittenInside.Length: > 0 })
-					{
-						var writtenSymbols = intermediateFlow.WrittenInside.ToImmutableHashSet(SymbolEqualityComparer.Default);
-
-						var initializerRefsWritten = declarator.Initializer!.Value
-							.DescendantNodesAndSelf()
-							.OfType<IdentifierNameSyntax>()
-							.Select(id => model.GetSymbolInfo(id).Symbol)
-							.Where(s => s is ILocalSymbol or IParameterSymbol)
-							.Any(writtenSymbols.Contains);
-
-						if (initializerRefsWritten)
-						{
-							continue;
-						}
-					}
-				}
-
-				parameters.Add(name, new VariableItem(
-					null!, // Type is not needed for inlining, as the value will be directly substituted
-					true,
-					declarator.Initializer!.Value)
-				{
-					CanBeInlined = true
-				});
-			}
-		}
 	}
 
 	/// <summary>

@@ -1126,6 +1126,15 @@ public partial class ConstExprPartialRewriter
 					return CreateLiteral(collectionExpression.Elements.Count);
 				}
 
+				// Array.Length is immutable regardless of element mutations, so bypass IsAltered
+				if (isArrayLength
+				    && node.Expression is IdentifierNameSyntax arrayIdentifier
+				    && variables.TryGetValue(arrayIdentifier.Identifier.Text, out var arrayVar)
+				    && arrayVar.Value is Array storedArray)
+				{
+					return CreateLiteral(storedArray.Length);
+				}
+
 				if (expression is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name: IdentifierNameSyntax { Identifier.Text: { } methodName }, Expression: { } resultExpression } })
 				{
 					if (isListCount)

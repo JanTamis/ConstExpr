@@ -24,10 +24,10 @@ public class IsLeapYearTest() : BaseTest<Func<int, bool>>(FastMathFlags.All | Fa
 	[
 		Create(year =>
 		{
-			var cast_val = (int) (year * 1374389535L >> 32);
-			var rshift_2 = year >> 31;
+			var castVal = (int) (year * 1374389535L >> 32);
+			var rshift2 = year >> 31;
 
-			return (year & 3) == 0 && year - ((cast_val >> 5) - rshift_2) * 100 != 0 && year - ((cast_val >> 7) - rshift_2) * 400 == 0;
+			return (year & 3) == 0 && year - ((castVal >> 5) - rshift2) * 100 != 0 && year - ((castVal >> 7) - rshift2) * 400 == 0;
 		}),
 		Create(_ => true, [ 2000 ]),
 		Create(_ => false, [ 1900 ])

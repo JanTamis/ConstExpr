@@ -19,9 +19,9 @@ public class YUVToRGBTest() : BaseTest<Func<double, double, double, (byte, byte,
 		Create((y, u, v) =>
 		{
 			var diff = v - 128D;
-			var diff_2 = u - 128D;
+			var diff2 = u - 128D;
 
-			return ((byte) Double.MultiplyAddEstimate(diff, 1.4075, y), (byte) Double.MultiplyAddEstimate(-diff, 0.7169, Double.MultiplyAddEstimate(-diff_2, 0.3455, y)), (byte) Double.MultiplyAddEstimate(diff_2, 1.779, y));
+			return ((byte) Double.MultiplyAddEstimate(diff, 1.4075, y), (byte) Double.MultiplyAddEstimate(-diff, 0.7169, Double.MultiplyAddEstimate(-diff2, 0.3455, y)), (byte) Double.MultiplyAddEstimate(diff2, 1.779, y));
 		})
 	];
 }

@@ -676,8 +676,9 @@ public partial class ConstExprPartialRewriter
 		var visited = VisitList(node.Statements);
 		var mergedForDeclarations = MergeForLoopDeclarations(visited);
 		var mergedArrayInitializers = MergeArrayElementInitializers(mergedForDeclarations);
+		var liftedDeclarations = MergeUninitializedDeclarations(mergedArrayInitializers);
 
-		var untilThrown = TakeUntilThrownStatements(mergedArrayInitializers);
+		var untilThrown = TakeUntilThrownStatements(liftedDeclarations);
 		var combined = CombineConsecutiveIfStatements(untilThrown, Visit);
 		var mergedIfChain = MergeMixedBoolReturnIfs(combined, Visit);
 		var simplified = SimplifyIfReturnPatterns(mergedIfChain);
@@ -970,6 +971,103 @@ public partial class ConstExprPartialRewriter
 
 			result.Add(statements[i]);
 			i++;
+		}
+
+		return List(result);
+	}
+
+	/// <summary>
+	///   Merges uninitialized variable declarations with their first direct assignment in the
+	///   same block. For example:
+	///   <code>
+	/// double delta, min;
+	/// min = Compute();
+	/// delta = x - min;
+	///   </code>
+	///   becomes:
+	///   <code>
+	/// var min = Compute();
+	/// var delta = x - min;
+	///   </code>
+	///   Only top-level simple assignments are merged; assignments inside branches or loops are
+	///   left unchanged so that control-flow semantics are preserved.
+	/// </summary>
+	private static SyntaxList<StatementSyntax> MergeUninitializedDeclarations(SyntaxList<StatementSyntax> statements)
+	{
+		if (statements.Count < 2)
+			return statements;
+
+		var result = statements.ToList();
+
+		for (var i = 0; i < result.Count; i++)
+		{
+			if (result[i] is not LocalDeclarationStatementSyntax { Modifiers.Count: 0 } declStmt)
+				continue;
+
+			var uninitializedNames = new HashSet<string>(
+				declStmt.Declaration.Variables
+					.Where(v => v.Initializer == null)
+					.Select(v => v.Identifier.Text));
+
+			if (uninitializedNames.Count == 0)
+				continue;
+
+			// Find the first direct assignment to each uninitialized variable
+			var mergedByIndex = new Dictionary<int, string>();
+
+			foreach (var varName in uninitializedNames)
+			{
+				for (var j = i + 1; j < result.Count; j++)
+				{
+					if (result[j] is ExpressionStatementSyntax
+					    {
+						    Expression: AssignmentExpressionSyntax
+						    {
+							    RawKind: (int) SyntaxKind.SimpleAssignmentExpression,
+							    Left: IdentifierNameSyntax { Identifier.Text: var assignedName }
+						    }
+					    }
+					    && assignedName == varName)
+					{
+						mergedByIndex[j] = varName;
+						break;
+					}
+				}
+			}
+
+			if (mergedByIndex.Count == 0)
+				continue;
+
+			// Lift each matched assignment to a var declaration at its current position
+			foreach (var kvp in mergedByIndex)
+			{
+				var assignment = (AssignmentExpressionSyntax) ((ExpressionStatementSyntax) result[kvp.Key]).Expression;
+				var newDeclarator = VariableDeclarator(Identifier(kvp.Value))
+					.WithInitializer(EqualsValueClause(assignment.Right));
+				result[kvp.Key] = LocalDeclarationStatement(
+					VariableDeclaration(ParseTypeName("var"))
+						.WithVariables(SingletonSeparatedList(newDeclarator)));
+			}
+
+			// Remove merged vars from the original declaration; keep any that had initializers
+			var mergedNames = new HashSet<string>(mergedByIndex.Values);
+			var remainingVars = declStmt.Declaration.Variables
+				.Where(v => !mergedNames.Contains(v.Identifier.Text))
+				.ToList();
+
+			if (remainingVars.Count == 0)
+			{
+				result.RemoveAt(i);
+				i--;
+			}
+			else
+			{
+				var newType = remainingVars.Count == 1 ? ParseTypeName("var") : declStmt.Declaration.Type;
+				result[i] = declStmt.WithDeclaration(
+					declStmt.Declaration
+						.WithType(newType)
+						.WithVariables(SeparatedList(remainingVars)));
+			}
 		}
 
 		return List(result);

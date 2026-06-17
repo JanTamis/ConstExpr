@@ -40,12 +40,12 @@ public sealed class CommonSubexpressionEliminator : CSharpSyntaxRewriter
 			},
 			InvocationExpressionSyntax invocation => invocation.Expression switch
 			{
-				IdentifierNameSyntax id => $"{id.Identifier.Text.ToLowerInvariant()}_val",
-				MemberAccessExpressionSyntax ma => $"{ma.Name.Identifier.Text.ToLowerInvariant()}_val",
-				_ => "call_val"
+				IdentifierNameSyntax id => $"{id.Identifier.Text.ToLowerInvariant()}Val",
+				MemberAccessExpressionSyntax ma => $"{ma.Name.Identifier.Text.ToLowerInvariant()}Val",
+				_ => "callVal"
 			},
 			ElementAccessExpressionSyntax => "item",
-			CastExpressionSyntax => "cast_val",
+			CastExpressionSyntax => "castVal",
 			_ => "val"
 		};
 
@@ -54,7 +54,7 @@ public sealed class CommonSubexpressionEliminator : CSharpSyntaxRewriter
 
 		while (_usedNames.Contains(name))
 		{
-			name = $"{baseName}_{++counter}";
+			name = $"{baseName}{++counter}";
 		}
 
 		_usedNames.Add(name);
