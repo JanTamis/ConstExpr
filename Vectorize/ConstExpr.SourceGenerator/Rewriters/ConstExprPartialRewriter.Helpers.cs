@@ -72,6 +72,69 @@ public partial class ConstExprPartialRewriter
 	};
 
 	/// <summary>
+	/// Returns <see langword="true"/> for the built-in two's-complement integer types.
+	/// Used to guard rewrites that rely on the identity <c>~y == -y - 1</c>, which only holds
+	/// for these types (never for a user type with overloaded <c>operator ~</c>/<c>operator -</c>).
+	/// </summary>
+	private static bool IsBuiltInInteger(SpecialType type) => type switch
+	{
+		SpecialType.System_SByte or SpecialType.System_Byte
+			or SpecialType.System_Int16 or SpecialType.System_UInt16
+			or SpecialType.System_Int32 or SpecialType.System_UInt32
+			or SpecialType.System_Int64 or SpecialType.System_UInt64
+			or SpecialType.System_IntPtr or SpecialType.System_UIntPtr => true,
+		_ => false
+	};
+
+	/// <summary>
+	/// Returns <see langword="true"/> for primary expressions that never require parentheses
+	/// when placed as the operand of a unary <c>-</c> or either side of a binary operator.
+	/// Used to keep negation-distribution rewrites precedence-safe without inserting parens.
+	/// </summary>
+	private static bool IsSimpleOperand(ExpressionSyntax e) => e is
+		IdentifierNameSyntax or LiteralExpressionSyntax or MemberAccessExpressionSyntax
+		or ElementAccessExpressionSyntax or InvocationExpressionSyntax or ParenthesizedExpressionSyntax;
+
+	/// <summary>
+	/// Signed native-width integers where unary <c>-</c> is legal and does not widen the operand,
+	/// so two's-complement rewrites such as <c>~(x - 1) => -x</c> stay in the same arithmetic domain.
+	/// Deliberately excludes <c>byte/short/uint/ulong/nuint</c>: small unsigned/signed types promote
+	/// to <c>int</c> and the wide unsigned types either wrap (<c>uint</c>) or have no unary minus (<c>ulong</c>).
+	/// </summary>
+	private static bool IsSignedNativeInteger(SpecialType type) => type
+		is SpecialType.System_Int32 or SpecialType.System_Int64 or SpecialType.System_IntPtr;
+
+	/// <summary>
+	/// Guards the two's-complement rewrites (<c>~(-x)</c>, <c>-(~x)</c>, <c>~(x ± 1)</c>): the surviving
+	/// operand and the whole expression must be the same signed native integer type. This rejects
+	/// unsigned operands (wrapping / no unary minus) and wider-literal cases (e.g. <c>~(intVar - 1L)</c>)
+	/// that would silently diverge from the original.
+	/// </summary>
+	private bool IsTwosComplementSafe(ExpressionSyntax operand, ExpressionSyntax node)
+	{
+		return semanticModel.TryGetTypeSymbol(operand, symbolStore, out var operandType)
+		       && IsSignedNativeInteger(operandType.SpecialType)
+		       && semanticModel.TryGetTypeSymbol(node, symbolStore, out var nodeType)
+		       && operandType.SpecialType == nodeType.SpecialType;
+	}
+
+	/// <summary>
+	/// Returns <see langword="true"/> when <paramref name="value"/> is an integral constant equal to 1.
+	/// </summary>
+	private static bool IsIntegralOne(object? value) => value switch
+	{
+		sbyte v => v == 1,
+		byte v => v == 1,
+		short v => v == 1,
+		ushort v => v == 1,
+		int v => v == 1,
+		uint v => v == 1,
+		long v => v == 1,
+		ulong v => v == 1,
+		_ => false
+	};
+
+	/// <summary>
 	/// Execute a Roslyn conversion operation either via operator method or basic Convert.*
 	/// Returns a runtime value that can be turned into a literal by CreateLiteral/TryGetLiteral.
 	/// </summary>

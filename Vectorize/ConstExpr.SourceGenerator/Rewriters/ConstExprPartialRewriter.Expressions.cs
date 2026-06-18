@@ -499,12 +499,53 @@ public partial class ConstExprPartialRewriter
 			return innerUnary.Operand;
 		}
 
+		// Two's complement: -(~x) => x + 1  (since ~x == -x - 1, signed native integers only)
+		if (node.OperatorToken.IsKind(SyntaxKind.MinusToken)
+		    && operand is PrefixUnaryExpressionSyntax { OperatorToken: var negComplementOp } negComplement
+		    && negComplementOp.IsKind(SyntaxKind.TildeToken)
+		    && !TryGetLiteralValue(negComplement.Operand, out _)
+		    && IsTwosComplementSafe(negComplement.Operand, node))
+		{
+			return AddExpression(negComplement.Operand, LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(1)));
+		}
+
 		// Simplify bitwise double negation: ~(~x) => x
 		if (node.OperatorToken.IsKind(SyntaxKind.TildeToken)
 		    && operand is PrefixUnaryExpressionSyntax { OperatorToken: var innerBitwiseOp } innerBitwiseUnary
 		    && innerBitwiseOp.IsKind(SyntaxKind.TildeToken))
 		{
 			return innerBitwiseUnary.Operand;
+		}
+
+		// Two's complement: ~(-x) => x - 1  (since ~(-x) == -(-x) - 1, signed native integers only)
+		// Skip constant operands: a negative literal is represented as -(literal), which must fold instead.
+		if (node.OperatorToken.IsKind(SyntaxKind.TildeToken)
+		    && operand is PrefixUnaryExpressionSyntax { OperatorToken: var complementNegOp } complementNeg
+		    && complementNegOp.IsKind(SyntaxKind.MinusToken)
+		    && !TryGetLiteralValue(complementNeg.Operand, out _)
+		    && IsTwosComplementSafe(complementNeg.Operand, node))
+		{
+			return SubtractExpression(complementNeg.Operand, LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(1)));
+		}
+
+		// Two's complement: ~(x - 1) => -x  and  ~(x + 1) => -x - 2  (signed native integers only)
+		if (node.OperatorToken.IsKind(SyntaxKind.TildeToken))
+		{
+			var complementInner = operand is ParenthesizedExpressionSyntax complementParen ? complementParen.Expression : operand;
+
+			if (complementInner is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.AddExpression or (int) SyntaxKind.SubtractExpression } complementBinary
+			    && IsSimpleOperand(complementBinary.Left)
+			    && TryGetLiteralValue(complementBinary.Right, out var complementOne)
+			    && IsIntegralOne(complementOne)
+			    && IsTwosComplementSafe(complementBinary.Left, node))
+			{
+				var negatedLeft = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression, complementBinary.Left);
+
+				// ~(x - 1) => -x ; ~(x + 1) => -x - 2
+				return complementBinary.IsKind(SyntaxKind.SubtractExpression)
+					? negatedLeft
+					: SubtractExpression(negatedLeft, LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(2)));
+			}
 		}
 
 		// -(constant - b) => b - constant  (requires NoSignedZero for floating-point: -(0.0) = -0.0 but 0.0 - 0.0 = +0.0)
@@ -524,6 +565,42 @@ public partial class ConstExprPartialRewriter
 				if (!isFloating || attribute.MathOptimizations.HasFlag(FastMathFlags.NoSignedZero))
 				{
 					return SubtractExpression(negSubExpr.Right, negSubExpr.Left);
+				}
+			}
+		}
+
+		// -(C + b) => (-C) - b  (folds the constant; floating-point requires NoSignedZero like -(a - b))
+		if (node.OperatorToken.IsKind(SyntaxKind.MinusToken))
+		{
+			var negAddInner = operand is ParenthesizedExpressionSyntax negAddParen ? negAddParen.Expression : operand;
+
+			if (negAddInner is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.AddExpression } negAddExpr)
+			{
+				object? constValue = null;
+				ExpressionSyntax? otherExpr = null;
+
+				// Pick the literal operand; the other (surviving) operand must be precedence-safe on the right of '-'.
+				if (TryGetLiteralValue(negAddExpr.Left, out var leftValue) && IsSimpleOperand(negAddExpr.Right))
+				{
+					constValue = leftValue;
+					otherExpr = negAddExpr.Right;
+				}
+				else if (TryGetLiteralValue(negAddExpr.Right, out var rightValue) && IsSimpleOperand(negAddExpr.Left))
+				{
+					constValue = rightValue;
+					otherExpr = negAddExpr.Left;
+				}
+
+				// Integers are always safe; floating-point (or an unresolved type) requires NoSignedZero.
+				var isFloating = !semanticModel.TryGetTypeSymbol(node, symbolStore, out var negAddType)
+				                 || !IsBuiltInInteger(negAddType.SpecialType);
+
+				if (otherExpr is not null
+				    && (!isFloating || attribute.MathOptimizations.HasFlag(FastMathFlags.NoSignedZero))
+				    && NegateValue(constValue) is { } negatedConst
+				    && TryCreateLiteral(negatedConst, out var negatedConstLit))
+				{
+					return SubtractExpression(negatedConstLit, otherExpr);
 				}
 			}
 		}
