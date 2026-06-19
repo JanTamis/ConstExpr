@@ -12,7 +12,7 @@ public class CharToUpperNotEqualsOptimizerTest() : BaseTest<Func<char, char, boo
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null, Unknown, Unknown),
+		Create((left, right) => !left.Equals(right, StringComparison.CurrentCultureIgnoreCase)),
 		Create((_, _) => false, [ 'a', 'A' ]),
 		Create((_, _) => true, [ 'a', 'B' ]),
 	];

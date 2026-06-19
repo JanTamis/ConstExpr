@@ -12,7 +12,7 @@ public class CharToLowerNotEqualsOptimizerTest() : BaseTest<Func<char, char, boo
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null, Unknown, Unknown),
+		Create((left, right) => !left.Equals(right, StringComparison.CurrentCultureIgnoreCase)),
 		Create((_, _) => false, [ 'A', 'a' ]),
 		Create((_, _) => true, [ 'A', 'b' ]),
 	];

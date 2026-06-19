@@ -13,6 +13,8 @@ public class BinaryEqualsOptimizer : BaseBinaryOptimizer
 	{
 		yield return new ToLowerOptimizer();
 		yield return new ToUpperOptimizer();
+		yield return new EqualsToLowerStrategy();
+		yield return new EqualsToUpperStrategy();
 		yield return new EqualsIdempotencyStrategy();
 		yield return new EqualsBooleanLiteralStrategy();
 		yield return new EqualsCountZeroStrategy();

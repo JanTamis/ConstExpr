@@ -14,11 +14,11 @@ public abstract class SymmetricStrategy<TStrategy, TLeft, TRight>(SyntaxKind lef
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!_innerStrategy.TryOptimize(context, out optimized))
-    {
-      return false;
-    }
+		{
+			return false;
+		}
 
-    if (context.Left.Syntax is TLeft left 
+		if (context.Left.Syntax is TLeft left
 		    && context.Right.Syntax is TRight right
 		    && (leftKind == SyntaxKind.None || left.IsKind(leftKind))
 		    && (rightKind == SyntaxKind.None || right.IsKind(rightKind)))
@@ -40,8 +40,8 @@ public abstract class SymmetricStrategy<TStrategy, TLeft, TRight>(SyntaxKind lef
 				TryGetValue = context.TryGetValue,
 				BinaryExpressions = context.BinaryExpressions,
 				Parent = context.Parent,
-					Model = context.Model,
-					SymbolStore = context.SymbolStore
+				Model = context.Model,
+				SymbolStore = context.SymbolStore
 			};
 
 			if (TryOptimizeSymmetric(newContext, out optimized))
@@ -81,10 +81,10 @@ public abstract class SymmetricStrategy<TStrategy, TLeft, TRight>(SyntaxKind lef
 				return true;
 			}
 		}
-		
+
 		return false;
 	}
-	
+
 	public abstract bool TryOptimizeSymmetric(BinaryOptimizeContext<TLeft, TRight> context, out ExpressionSyntax? optimized);
 }
 
@@ -94,7 +94,7 @@ public abstract class SymmetricStrategy<TLeft, TRight>(SyntaxKind leftKind = Syn
 {
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-    if (context.Left.Syntax is TLeft left 
+		if (context.Left.Syntax is TLeft left
 		    && context.Right.Syntax is TRight right
 		    && (leftKind == SyntaxKind.None || left.IsKind(leftKind))
 		    && (rightKind == SyntaxKind.None || right.IsKind(rightKind)))
@@ -116,6 +116,8 @@ public abstract class SymmetricStrategy<TLeft, TRight>(SyntaxKind leftKind = Syn
 				TryGetValue = context.TryGetValue,
 				BinaryExpressions = context.BinaryExpressions,
 				Parent = context.Parent,
+				Model = context.Model,
+				SymbolStore = context.SymbolStore,
 			};
 
 			if (TryOptimizeSymmetric(newContext, out optimized))
@@ -145,7 +147,9 @@ public abstract class SymmetricStrategy<TLeft, TRight>(SyntaxKind leftKind = Syn
 				Variables = context.Variables,
 				TryGetValue = context.TryGetValue,
 				BinaryExpressions = context.BinaryExpressions,
-				Parent = context.Parent
+				Parent = context.Parent,
+				Model = context.Model,
+				SymbolStore = context.SymbolStore,
 			};
 
 			if (TryOptimizeSymmetric(swappedContext, out optimized))
@@ -153,10 +157,10 @@ public abstract class SymmetricStrategy<TLeft, TRight>(SyntaxKind leftKind = Syn
 				return true;
 			}
 		}
-		
+
 		optimized = null;
 		return false;
 	}
-	
+
 	public abstract bool TryOptimizeSymmetric(BinaryOptimizeContext<TLeft, TRight> context, out ExpressionSyntax? optimized);
 }
