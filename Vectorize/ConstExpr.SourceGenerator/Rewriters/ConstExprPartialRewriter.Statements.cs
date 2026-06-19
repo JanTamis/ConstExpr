@@ -93,46 +93,30 @@ public partial class ConstExprPartialRewriter
 			return switchNode;
 		}
 
-		switch (statement)
+		// Collapse an if/else whose branches both assign to the same variable (or both return a
+		// value) into a single conditional expression. Each branch may be a bare statement or a
+		// single-statement block, and either branch may itself already have been rewritten from a
+		// nested if/else-if chain (e.g. an inner chain that collapsed into a bare assignment).
+		// Because VisitIfStatement runs bottom-up, unwrapping the two branch shapes independently
+		// lets a multi-level chain fold into one nested conditional expression instead of only the
+		// innermost layer.
+		if (@else is ElseClauseSyntax elseClause)
 		{
-			case ExpressionStatementSyntax { Expression: AssignmentExpressionSyntax assignment }
-				when assignment.IsKind(SyntaxKind.SimpleAssignmentExpression)
-				     && assignment.Left is IdentifierNameSyntax assignedIdentifier
-				     && @else is ElseClauseSyntax { Statement: ExpressionStatementSyntax { Expression: AssignmentExpressionSyntax elseAssignment } }
-				     && elseAssignment.IsKind(SyntaxKind.SimpleAssignmentExpression)
-				     && elseAssignment.Left is IdentifierNameSyntax elseAssignedIdentifier
-				     && assignedIdentifier.Identifier.Text == elseAssignedIdentifier.Identifier.Text:
+			if (TryGetSingleAssignmentToIdentifier(statement, out var thenAssignment, out var thenTarget)
+			    && TryGetSingleAssignmentToIdentifier(elseClause.Statement, out var elseAssignment, out var elseTarget)
+			    && thenTarget == elseTarget)
 			{
 				return ExpressionStatement(
-					VisitIfElseAssignment(condition, node.Condition, assignment, elseAssignment));
+					VisitIfElseAssignment(condition, node.Condition, thenAssignment, elseAssignment));
 			}
-			case BlockSyntax { Statements: [ ExpressionStatementSyntax { Expression: AssignmentExpressionSyntax assignment } ] }
-				when assignment.IsKind(SyntaxKind.SimpleAssignmentExpression)
-				     && assignment.Left is IdentifierNameSyntax assignedIdentifier
-				     && @else is ElseClauseSyntax { Statement: BlockSyntax { Statements: [ ExpressionStatementSyntax { Expression: AssignmentExpressionSyntax elseAssignment } ] } }
-				     && elseAssignment.IsKind(SyntaxKind.SimpleAssignmentExpression)
-				     && elseAssignment.Left is IdentifierNameSyntax elseAssignedIdentifier
-				     && assignedIdentifier.Identifier.Text == elseAssignedIdentifier.Identifier.Text:
-			{
-				return ExpressionStatement(
-					VisitIfElseAssignment(condition, node.Condition, assignment, elseAssignment));
-			}
-			case ReturnStatementSyntax { Expression: { } ifReturn }
-				when @else is ElseClauseSyntax { Statement: ReturnStatementSyntax { Expression: { } elseReturn } }:
+
+			if (TryGetSingleReturnExpression(statement, out var thenReturn)
+			    && TryGetSingleReturnExpression(elseClause.Statement, out var elseReturn))
 			{
 				return ReturnStatement(
 					Visit(ConditionalExpression(
 						condition as ExpressionSyntax ?? node.Condition,
-						ifReturn,
-						elseReturn)) as ExpressionSyntax);
-			}
-			case BlockSyntax { Statements: [ ReturnStatementSyntax { Expression: { } ifReturn } ] }
-				when @else is ElseClauseSyntax { Statement: BlockSyntax { Statements: [ ReturnStatementSyntax { Expression: { } elseReturn } ] } }:
-			{
-				return ReturnStatement(
-					Visit(ConditionalExpression(
-						condition as ExpressionSyntax ?? node.Condition,
-						ifReturn,
+						thenReturn,
 						elseReturn)) as ExpressionSyntax);
 			}
 		}
@@ -184,6 +168,55 @@ public partial class ConstExprPartialRewriter
 
 		return Visit(thenAssignment.WithRight(condExpr)) as ExpressionSyntax
 		       ?? thenAssignment.WithRight(condExpr);
+	}
+
+	/// <summary>
+	///   Extracts a simple assignment to a named identifier from a branch that is either a bare
+	///   <c>x = …;</c> expression statement or a single-statement block <c>{ x = …; }</c>. Returns
+	///   <see langword="false" /> for any other shape. Handling both shapes lets an if/else fold into
+	///   a conditional expression regardless of whether each branch happens to be braced.
+	/// </summary>
+	private static bool TryGetSingleAssignmentToIdentifier(
+		SyntaxNode? statement,
+		out AssignmentExpressionSyntax assignment,
+		out string identifier)
+	{
+		assignment = null!;
+		identifier = null!;
+
+		var expression = statement switch
+		{
+			ExpressionStatementSyntax exprStmt => exprStmt.Expression,
+			BlockSyntax { Statements: [ ExpressionStatementSyntax exprStmt ] } => exprStmt.Expression,
+			_ => null
+		};
+
+		if (expression is AssignmentExpressionSyntax { Left: IdentifierNameSyntax id } simpleAssignment
+		    && simpleAssignment.IsKind(SyntaxKind.SimpleAssignmentExpression))
+		{
+			assignment = simpleAssignment;
+			identifier = id.Identifier.Text;
+			return true;
+		}
+
+		return false;
+	}
+
+	/// <summary>
+	///   Extracts the returned expression from a branch that is either a bare <c>return …;</c> or a
+	///   single-statement block <c>{ return …; }</c>. Returns <see langword="false" /> for a bare
+	///   <c>return;</c> (no value) or any other shape.
+	/// </summary>
+	private static bool TryGetSingleReturnExpression(SyntaxNode? statement, out ExpressionSyntax expression)
+	{
+		expression = statement switch
+		{
+			ReturnStatementSyntax { Expression: { } ret } => ret,
+			BlockSyntax { Statements: [ ReturnStatementSyntax { Expression: { } ret } ] } => ret,
+			_ => null!
+		};
+
+		return expression is not null;
 	}
 
 	public override SyntaxNode? VisitForStatement(ForStatementSyntax node)
@@ -471,9 +504,9 @@ public partial class ConstExprPartialRewriter
 		return collection switch
 		{
 			CollectionExpressionSyntax collectionExpression => collectionExpression.Elements,
-			LiteralExpressionSyntax { RawKind: (int) SyntaxKind.StringLiteralExpression } stringLiteral =>
+			LiteralExpressionSyntax { RawKind: (int)SyntaxKind.StringLiteralExpression } stringLiteral =>
 				stringLiteral.Token.ValueText
-					.Select(s => CreateLiteral(s) as CSharpSyntaxNode)
+					.Select(CSharpSyntaxNode (s) => CreateLiteral(s))
 					.ToList(),
 			_ => null
 		};
@@ -677,8 +710,9 @@ public partial class ConstExprPartialRewriter
 		var mergedForDeclarations = MergeForLoopDeclarations(visited);
 		var mergedArrayInitializers = MergeArrayElementInitializers(mergedForDeclarations);
 		var liftedDeclarations = MergeUninitializedDeclarations(mergedArrayInitializers);
+		var mergedInitializers = MergeRedundantInitializers(liftedDeclarations);
 
-		var untilThrown = TakeUntilThrownStatements(liftedDeclarations);
+		var untilThrown = TakeUntilThrownStatements(mergedInitializers);
 		var combined = CombineConsecutiveIfStatements(untilThrown, Visit);
 		var mergedIfChain = MergeMixedBoolReturnIfs(combined, Visit);
 		var simplified = SimplifyIfReturnPatterns(mergedIfChain);
@@ -761,7 +795,7 @@ public partial class ConstExprPartialRewriter
 
 			// Replace the single occurrence of varName with the initializer expression.
 			var inliner = new SingleUseInliner(varName, initExpr);
-			var inlinedRemaining = remaining.Select(s => (StatementSyntax) (inliner.Visit(s) ?? s)).ToList();
+			var inlinedRemaining = remaining.Select(s => (StatementSyntax)(inliner.Visit(s) ?? s)).ToList();
 
 			result.RemoveAt(i);
 
@@ -1023,7 +1057,7 @@ public partial class ConstExprPartialRewriter
 					    {
 						    Expression: AssignmentExpressionSyntax
 						    {
-							    RawKind: (int) SyntaxKind.SimpleAssignmentExpression,
+							    RawKind: (int)SyntaxKind.SimpleAssignmentExpression,
 							    Left: IdentifierNameSyntax { Identifier.Text: var assignedName }
 						    }
 					    }
@@ -1041,7 +1075,7 @@ public partial class ConstExprPartialRewriter
 			// Lift each matched assignment to a var declaration at its current position
 			foreach (var kvp in mergedByIndex)
 			{
-				var assignment = (AssignmentExpressionSyntax) ((ExpressionStatementSyntax) result[kvp.Key]).Expression;
+				var assignment = (AssignmentExpressionSyntax)((ExpressionStatementSyntax)result[kvp.Key]).Expression;
 				var newDeclarator = VariableDeclarator(Identifier(kvp.Value))
 					.WithInitializer(EqualsValueClause(assignment.Right));
 				result[kvp.Key] = LocalDeclarationStatement(
@@ -1073,6 +1107,91 @@ public partial class ConstExprPartialRewriter
 		return List(result);
 	}
 
+	/// <summary>
+	///   Merges a single-variable declaration whose initializer is a side-effect-free constant with an
+	///   immediately following unconditional simple assignment to that same variable. For example:
+	///   <code>
+	/// double hue = 0.0;
+	/// hue = normalizedR == max ? a : b;
+	///   </code>
+	///   becomes:
+	///   <code>
+	/// var hue = normalizedR == max ? a : b;
+	///   </code>
+	///   This collapses the dead initial value that remains after an if/else assignment chain has been
+	///   folded into a conditional expression. The transform is only applied when:
+	///   <list type="bullet">
+	///     <item>the declaration is a single, unmodified variable with a side-effect-free initializer
+	///       (a literal / default / unary-signed literal), so dropping the initial store is safe;</item>
+	///     <item>the assignment is the <em>immediately</em> following statement, so nothing can read the
+	///       initial value before it is overwritten;</item>
+	///     <item>the assignment's right-hand side does not read the variable itself — otherwise it would
+	///       observe the (now removed) initial value.</item>
+	///   </list>
+	/// </summary>
+	private static SyntaxList<StatementSyntax> MergeRedundantInitializers(SyntaxList<StatementSyntax> statements)
+	{
+		if (statements.Count < 2)
+		{
+			return statements;
+		}
+
+		var result = new List<StatementSyntax>();
+		var i = 0;
+
+		while (i < statements.Count)
+		{
+			if (i + 1 < statements.Count
+			    && statements[i] is LocalDeclarationStatementSyntax
+			    {
+				    Modifiers.Count: 0,
+				    Declaration.Variables: [ { Identifier.Text: var name, Initializer.Value: var initializer } declarator ]
+			    } declarationStatement
+			    && IsSideEffectFreeInitializer(initializer)
+			    && statements[i + 1] is ExpressionStatementSyntax
+			    {
+				    Expression: AssignmentExpressionSyntax
+				    {
+					    RawKind: (int)SyntaxKind.SimpleAssignmentExpression,
+					    Left: IdentifierNameSyntax { Identifier.Text: var assignedName },
+					    Right: var rhs
+				    }
+			    }
+			    && assignedName == name
+			    && !rhs.HasIdentifier(name))
+			{
+				var mergedDeclarator = declarator.WithInitializer(EqualsValueClause(rhs));
+
+				result.Add(declarationStatement.WithDeclaration(
+					declarationStatement.Declaration
+						.WithType(ParseTypeName("var"))
+						.WithVariables(SingletonSeparatedList(mergedDeclarator))));
+
+				i += 2;
+				continue;
+			}
+
+			result.Add(statements[i]);
+			i++;
+		}
+
+		return List(result);
+	}
+
+	/// <summary>
+	///   Returns <see langword="true" /> when an initializer is a side-effect-free constant whose dead
+	///   store can be dropped safely (a literal, a <c>default</c> expression, or a unary <c>+</c>/<c>-</c>
+	///   applied to a literal).
+	/// </summary>
+	private static bool IsSideEffectFreeInitializer(ExpressionSyntax? initializer) =>
+		initializer switch
+		{
+			LiteralExpressionSyntax => true,
+			DefaultExpressionSyntax => true,
+			PrefixUnaryExpressionSyntax { Operand: LiteralExpressionSyntax } => true,
+			_ => false
+		};
+
 	private SyntaxList<StatementSyntax> MergeForLoopDeclarations(SyntaxList<StatementSyntax> statements)
 	{
 		if (statements.Count < 2)
@@ -1101,7 +1220,7 @@ public partial class ConstExprPartialRewriter
 				    [
 					    AssignmentExpressionSyntax
 					    {
-						    RawKind: (int) SyntaxKind.SimpleAssignmentExpression,
+						    RawKind: (int)SyntaxKind.SimpleAssignmentExpression,
 						    Left: IdentifierNameSyntax { Identifier.Text: var initializerName },
 						    Right: var initializerValue
 					    }
@@ -1216,7 +1335,7 @@ public partial class ConstExprPartialRewriter
 			    {
 				    Expression: AssignmentExpressionSyntax
 				    {
-					    RawKind: (int) SyntaxKind.SimpleAssignmentExpression,
+					    RawKind: (int)SyntaxKind.SimpleAssignmentExpression,
 					    Left: ElementAccessExpressionSyntax
 					    {
 						    Expression: IdentifierNameSyntax { Identifier.Text: var targetName },
@@ -1387,7 +1506,7 @@ public partial class ConstExprPartialRewriter
 
 		if (ifReturnValue)
 		{
-			if (followingReturn.Expression is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.FalseLiteralExpression })
+			if (followingReturn.Expression is LiteralExpressionSyntax { RawKind: (int)SyntaxKind.FalseLiteralExpression })
 			{
 				// return cond;
 				simplified = ReturnStatement(condition);
