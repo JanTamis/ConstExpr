@@ -18,7 +18,7 @@ public class PowerTest() : BaseTest<Func<int, int, long>>(FastMathFlags.All, opt
 		}
 
 		var result = 1L;
-		var base64 = (long) baseNum;
+		var base64 = (long)baseNum;
 
 		while (exponent > 0)
 		{
@@ -38,18 +38,16 @@ public class PowerTest() : BaseTest<Func<int, int, long>>(FastMathFlags.All, opt
 	[
 		Create((baseNum, exponent) =>
 		{
-			if (exponent < 0)
+			switch (exponent)
 			{
-				return 0L;
-			}
-
-			if (exponent == 0)
-			{
-				return 1L;
+				case < 0:
+					return 0L;
+				case 0:
+					return 1L;
 			}
 
 			var result = 1L;
-			var base64 = (long) baseNum;
+			var base64 = (long)baseNum;
 
 			while (exponent > 0)
 			{

@@ -34,14 +34,12 @@ public class FibonacciTest() : BaseTest<Func<int, long>>(FastMathFlags.All, opti
 	[
 		Create(n =>
 		{
-			if (n <= 0)
+			switch (n)
 			{
-				return 0L;
-			}
-
-			if (n == 1)
-			{
-				return 1L;
+				case <= 0:
+					return 0L;
+				case 1:
+					return 1L;
 			}
 
 			var prev = 0L;

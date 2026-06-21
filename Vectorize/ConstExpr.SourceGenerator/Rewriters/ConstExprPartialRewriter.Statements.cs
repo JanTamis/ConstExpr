@@ -951,8 +951,9 @@ public partial class ConstExprPartialRewriter
 	///   Guards (all required to preserve semantics):
 	///   <list type="bullet">
 	///     <item>
-	///       at least two cases, and not every body is a guard clause (some body falls through) —
-	///       all-jump runs are left to the ternary / guard folding handled by other passes;
+	///       at least two cases, and no body relies on an orphaned <c>break</c> — a switch captures
+	///       <c>break</c>, so a <c>break</c> bound to an enclosing loop would change meaning inside a
+	///       case (<c>return</c>/<c>throw</c>/<c>continue</c> are unaffected);
 	///     </item>
 	///     <item>the case patterns are mutually exclusive, so at most one body ever runs;</item>
 	///     <item>
@@ -994,7 +995,12 @@ public partial class ConstExprPartialRewriter
 				}
 
 				if (sections.Count >= 2
-				    && sections.Any(s => !ContainsJumpStatement(s.Body))
+				    // A switch captures `break`, so a body whose control flow relies on an
+				    // orphaned `break` (one bound to an enclosing loop, not a nested loop/switch)
+				    // would change meaning inside a case. `return`/`throw`/`continue` are unaffected,
+				    // so all-jump runs of those are safe to fold into a switch. A bare `break;` body
+				    // is checked explicitly because ContainsOrphanedBreak only scans descendants.
+				    && sections.All(s => s.Body is not BreakStatementSyntax && !ContainsOrphanedBreak(s.Body))
 				    && ConvertIfToSwitchCodeRefactoring.TryBuildConsecutiveIfsSwitch(firstSection.Target, sections, out var switchStatement))
 				{
 					result.Add(switchStatement);
