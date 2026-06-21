@@ -56,14 +56,14 @@ namespace ConstExpr.SourceGenerator.Sample.Tests
 			Console.WriteLine($"[CONST] IsPerfectSquare(16): {MathOperations.IsPerfectSquare(16)}");
 			Console.WriteLine($"[CONST] IsPerfectSquare(15): {MathOperations.IsPerfectSquare(15)}");
 			Console.WriteLine($"[CONST] IsPerfectSquare(144): {MathOperations.IsPerfectSquare(144)}");
-			
+
 			// IsPerfectSquare - mixed
 			Console.WriteLine($"[MIXED] IsPerfectSquare(varInt2): {MathOperations.IsPerfectSquare(varInt2)}");
 
 			// CountDigits - alleen constanten
 			Console.WriteLine($"[CONST] CountDigits(12345): {MathOperations.CountDigits(12345)}");
 			Console.WriteLine($"[CONST] CountDigits(999999): {MathOperations.CountDigits(999999)}");
-			
+
 			// CountDigits - mixed
 			Console.WriteLine($"[MIXED] CountDigits(varInt3): {MathOperations.CountDigits(varInt3)}");
 
@@ -84,7 +84,9 @@ namespace ConstExpr.SourceGenerator.Sample.Tests
 			Console.WriteLine($"[CONST] BinomialCoefficient(20, 5): {MathOperations.BinomialCoefficient(20, 5)}");
 			// BinomialCoefficient - mixed
 			Console.WriteLine($"[MIXED] BinomialCoefficient(varInt, varInt2): {MathOperations.BinomialCoefficient(varInt, varInt2)}");
-			
+			Console.WriteLine($"[MIXED] BinomialCoefficient(varInt, varInt2): {MathOperations.BinomialCoefficient(5, varInt2)}");
+			Console.WriteLine($"[MIXED] BinomialCoefficient(varInt, varInt2): {MathOperations.BinomialCoefficient(varInt, 5)}");
+
 			// ComplexFunction - alleen constanten
 			Console.WriteLine($"[CONST] ComplexFunction(5): {MathOperations.ComplexFunction(5)}");
 			Console.WriteLine($"[CONST] ComplexFunction(10): {MathOperations.ComplexFunction(10)}");
