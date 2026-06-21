@@ -8,27 +8,27 @@ namespace ConstExpr.SourceGenerator.Refactorers;
 using static SyntaxFactory;
 
 /// <summary>
-/// Refactorer that introduces or removes a using/declaration for IDisposable objects.
-/// Inspired by the Roslyn <c>IntroduceUsingStatementCodeRefactoringProvider</c>.
-///
-/// <list type="bullet">
-///   <item>Converts a using-statement to a using-declaration (C# 8+):
-///     <code>
+///   Refactorer that introduces or removes a using/declaration for IDisposable objects.
+///   Inspired by the Roslyn <c>IntroduceUsingStatementCodeRefactoringProvider</c>.
+///   <list type="bullet">
+///     <item>
+///       Converts a using-statement to a using-declaration (C# 8+):
+///       <code>
 ///     using (var x = Expr()) { Body(); }
 ///     </code>
-///     →
-///     <code>
+///       →
+///       <code>
 ///     using var x = Expr();
 ///     Body();
 ///     </code>
-///   </item>
-///   <item>Converts a using-declaration back to a using-statement (reverse).</item>
-/// </list>
+///     </item>
+///     <item>Converts a using-declaration back to a using-statement (reverse).</item>
+///   </list>
 /// </summary>
 public static class ConvertUsingStatementRefactoring
 {
 	/// <summary>
-	/// Converts a using-statement with a declaration to a using-declaration (C# 8+).
+	///   Converts a using-statement with a declaration to a using-declaration (C# 8+).
 	/// </summary>
 	public static bool TryConvertToUsingDeclaration(
 		UsingStatementSyntax usingStatement,
@@ -68,9 +68,9 @@ public static class ConvertUsingStatementRefactoring
 	}
 
 	/// <summary>
-	/// Converts a using-declaration back to a using-statement.
-	/// The caller must collect the statements following the using-declaration that should
-	/// go inside the using-statement body.
+	///   Converts a using-declaration back to a using-statement.
+	///   The caller must collect the statements following the using-declaration that should
+	///   go inside the using-statement body.
 	/// </summary>
 	public static bool TryConvertToUsingStatement(
 		LocalDeclarationStatementSyntax usingDeclaration,
@@ -94,4 +94,3 @@ public static class ConvertUsingStatementRefactoring
 		return true;
 	}
 }
-

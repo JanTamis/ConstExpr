@@ -6,10 +6,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Repeat(element, count).
-/// Optimizes patterns such as:
-/// - Enumerable.Repeat(element, 0) => [] (empty sequence, regardless of element value)
-/// - Enumerable.Repeat(element, 1) => [element] (single-element collection expression)
+///   Optimizer for Enumerable.Repeat(element, count).
+///   Optimizes patterns such as:
+///   - Enumerable.Repeat(element, 0) => [] (empty sequence, regardless of element value)
+///   - Enumerable.Repeat(element, 1) => [element] (single-element collection expression)
 /// </summary>
 public class RepeatFunctionOptimizer() : BaseLinqFunctionOptimizer("Repeat", n => n is 2)
 {

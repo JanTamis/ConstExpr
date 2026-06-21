@@ -19,6 +19,6 @@ public class ConditionalNullAccessVariantsTest : BaseTest<Func<string, (int, int
 	[
 		Create(s => (s?.Length ?? -1, s?.Length ?? -2, s?.Length ?? -3, s?.Length ?? -4, s?.Length ?? -5, s?.Length ?? -6)),
 		Create(_ => (3, 3, 3, 3, 3, 3), [ "abc" ]),
-		Create(_ => (-1, -2, -3, -4, -5, -6), [ (object?) null ])
+		Create(_ => (-1, -2, -3, -4, -5, -6), [ null ])
 	];
 }

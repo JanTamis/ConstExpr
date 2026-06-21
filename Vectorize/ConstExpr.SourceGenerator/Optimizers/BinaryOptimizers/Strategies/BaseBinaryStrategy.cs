@@ -17,9 +17,9 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 	where TRight : ExpressionSyntax
 {
 	/// <summary>
-	/// Gets the FastMathFlags required for this optimization strategy to be applied.
-	/// Strategies that don't require fast-math flags should return <see cref="FastMathFlags.Strict"/>.
-	/// Override this property in derived classes to specify required flags.
+	///   Gets the FastMathFlags required for this optimization strategy to be applied.
+	///   Strategies that don't require fast-math flags should return <see cref="FastMathFlags.Strict" />.
+	///   Override this property in derived classes to specify required flags.
 	/// </summary>
 	public virtual FastMathFlags[] RequiredFlags => [ FastMathFlags.Strict ];
 
@@ -48,12 +48,12 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 			Left = new BinaryOptimizeElement<TLeft>
 			{
 				Type = leftType,
-				Syntax = typedLeft,
+				Syntax = typedLeft
 			},
 			Right = new BinaryOptimizeElement<TRight>
 			{
 				Type = rightType,
-				Syntax = typedRight,
+				Syntax = typedRight
 			},
 			Type = type,
 			Variables = variables,
@@ -130,13 +130,13 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 	}
 
 	/// <summary>
-	/// Tries to interpret an expression as a pattern over some target expression.
-	/// Handles binary comparisons (<c>expr op lit</c> and <c>lit op expr</c>) and
-	/// existing is-pattern expressions, so callers don't need separate branches per type.
+	///   Tries to interpret an expression as a pattern over some target expression.
+	///   Handles binary comparisons (<c>expr op lit</c> and <c>lit op expr</c>) and
+	///   existing is-pattern expressions, so callers don't need separate branches per type.
 	/// </summary>
 	/// <returns>
-	/// A <c>(Target, Pattern)</c> pair when the expression can be turned into a pattern,
-	/// or <c>null</c> otherwise.
+	///   A <c>(Target, Pattern)</c> pair when the expression can be turned into a pattern,
+	///   or <c>null</c> otherwise.
 	/// </returns>
 	protected static (ExpressionSyntax Target, PatternSyntax Pattern)? TryParseAsPattern(
 		ExpressionSyntax expression)
@@ -179,16 +179,14 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 
 		return null;
 
-		bool CanBeUsedAsPattern(ExpressionSyntax expr)
-		{
-			return expr is LiteralExpressionSyntax or PrefixUnaryExpressionSyntax { Operand: LiteralExpressionSyntax };
-		}
+		bool CanBeUsedAsPattern(ExpressionSyntax expr) =>
+			expr is LiteralExpressionSyntax or PrefixUnaryExpressionSyntax { Operand: LiteralExpressionSyntax };
 	}
 
 	/// <summary>
-	/// Checks if an expression is simple enough to duplicate without performance penalty.
-	/// Simple expressions include: identifiers, literals, and member access.
-	/// Complex expressions include: binary operations, invocations, etc.
+	///   Checks if an expression is simple enough to duplicate without performance penalty.
+	///   Simple expressions include: identifiers, literals, and member access.
+	///   Complex expressions include: binary operations, invocations, etc.
 	/// </summary>
 	protected static bool IsSimpleExpression(ExpressionSyntax expr)
 	{

@@ -18,7 +18,7 @@ public class LastOrDefaultLinqUnroller : BaseLinqUnroller
 		if (method.Parameters.Length == 1
 		    && TryGetLambda(method.Parameters[0], out var lambda))
 		{
-			statements.Add(IfStatement(InvertSyntax(ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, elementName)!), 
+			statements.Add(IfStatement(InvertSyntax(ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, elementName)!),
 				ContinueStatement()));
 		}
 
@@ -30,4 +30,3 @@ public class LastOrDefaultLinqUnroller : BaseLinqUnroller
 		statements.Add(ReturnStatement(IdentifierName(ResultName)));
 	}
 }
-

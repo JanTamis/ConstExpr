@@ -3,8 +3,8 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for All() optimization - verify that unnecessary operations before All() are removed
-/// and Where predicates are combined with All predicates
+///   Tests for All() optimization - verify that unnecessary operations before All() are removed
+///   and Where predicates are combined with All predicates
 /// </summary>
 [InheritsTests]
 public class LinqAllOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)

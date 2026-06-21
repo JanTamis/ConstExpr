@@ -3,8 +3,8 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for Aggregate() optimization - verify that unnecessary operations before Aggregate() are removed
-/// and Aggregate patterns are optimized to Sum when appropriate
+///   Tests for Aggregate() optimization - verify that unnecessary operations before Aggregate() are removed
+///   and Aggregate patterns are optimized to Sum when appropriate
 /// </summary>
 [InheritsTests]
 public class LinqAggregateOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
@@ -63,6 +63,6 @@ public class LinqAggregateOptimizationTests() : BaseTest<Func<int[], int>>(FastM
 	[
 		Create("return TensorPrimitives.Sum(x) * 12 + Sum_dcMRsA(x) + Sum_GrzDbA(x) + Sum_CY7UDw(x) + Aggregate_sv6FOA(x) + 10;"),
 		Create(_ => 367, [ new[] { 1, 2, 3, 4, 5 } ]),
-		Create(_ => 1063, [ new[] { 1, 2, 3, 4, 5, 6 } ]),
+		Create(_ => 1063, [ new[] { 1, 2, 3, 4, 5, 6 } ])
 	];
 }

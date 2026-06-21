@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Regex;
 
 [InheritsTests]
-public class RegexIsMatchTests() : BaseTest<Func<string, string, bool>>
+public class RegexIsMatchTests : BaseTest<Func<string, string, bool>>
 {
 	public override string TestMethod => GetString((value, pattern) =>
 	{
@@ -75,6 +75,6 @@ public class RegexIsMatchTests() : BaseTest<Func<string, string, bool>>
 		Create("return Regex_duxjvg.IsMatch(value);", Unknown, @"(?m)^\w"),
 
 		// Unicode karakters
-		Create("return Regex_ys2a4A.IsMatch(value);", Unknown, @"test"),
+		Create("return Regex_ys2a4A.IsMatch(value);", Unknown, @"test")
 	];
 }

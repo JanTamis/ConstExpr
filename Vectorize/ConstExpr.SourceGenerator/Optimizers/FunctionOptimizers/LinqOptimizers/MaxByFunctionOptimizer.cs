@@ -8,9 +8,9 @@ using MathMaxOptimizer = ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.MaxBy context.Method.
-/// Optimizes patterns such as:
-/// - Enumerable.Empty&lt;T&gt;().MaxBy(selector) - cannot optimize (throws exception)
+///   Optimizer for Enumerable.MaxBy context.Method.
+///   Optimizes patterns such as:
+///   - Enumerable.Empty&lt;T&gt;().MaxBy(selector) - cannot optimize (throws exception)
 /// </summary>
 public class MaxByFunctionOptimizer() : BaseLinqFunctionOptimizer("MaxBy", n => n is 1)
 {

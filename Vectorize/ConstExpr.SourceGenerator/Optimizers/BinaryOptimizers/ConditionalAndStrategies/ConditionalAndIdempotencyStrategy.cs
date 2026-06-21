@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalAndStrategies;
 
 /// <summary>
-/// Strategy for idempotency: x && x = x (for pure expressions)
+///   Strategy for idempotency: x && x = x (for pure expressions)
 /// </summary>
 public class ConditionalAndIdempotencyStrategy : BooleanBinaryStrategy
 {
@@ -13,11 +13,11 @@ public class ConditionalAndIdempotencyStrategy : BooleanBinaryStrategy
 		if (!base.TryOptimize(context, out optimized)
 		    || !LeftEqualsRight(context)
 		    || !IsPure(context.Left.Syntax))
-    {
-      return false;
-    }
+		{
+			return false;
+		}
 
-    optimized = context.Left.Syntax;
+		optimized = context.Left.Syntax;
 		return true;
 	}
 }

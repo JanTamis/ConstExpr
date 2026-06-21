@@ -6,8 +6,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies;
 
 /// <summary>
-/// Strategy for right negation extraction: x / (-y) => -(x / y)
-/// Safe under Strict (pure algebraic identity).
+///   Strategy for right negation extraction: x / (-y) => -(x / y)
+///   Safe under Strict (pure algebraic identity).
 /// </summary>
 public class DivideRightNegationStrategy() : NumericBinaryStrategy<ExpressionSyntax, PrefixUnaryExpressionSyntax>(rightKind: SyntaxKind.UnaryMinusExpression)
 {
@@ -25,9 +25,9 @@ public class DivideRightNegationStrategy() : NumericBinaryStrategy<ExpressionSyn
 		optimized = UnaryMinusExpression(
 			ParenthesizedExpression(
 				DivideExpression(
-					context.Left.Syntax, 
+					context.Left.Syntax,
 					context.Right.Syntax.Operand)));
-			
+
 		return true;
 	}
 }

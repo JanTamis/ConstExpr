@@ -26,4 +26,3 @@ public class MaxNumberFunctionOptimizer() : BaseMathFunctionOptimizer("MaxNumber
 		return true;
 	}
 }
-

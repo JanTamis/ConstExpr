@@ -7,7 +7,7 @@ public class IsValidEmailTest() : BaseTest<Func<string, bool>>(FastMathFlags.All
 {
 	public override string TestMethod => GetString(email =>
 	{
-		if (string.IsNullOrEmpty(email) || email.Length < 5)
+		if (System.String.IsNullOrEmpty(email) || email.Length < 5)
 		{
 			return false;
 		}
@@ -72,7 +72,7 @@ public class IsValidEmailTest() : BaseTest<Func<string, bool>>(FastMathFlags.All
 
 			return atCount == 1 && dotCount >= 1 && atIndex > 0 && atIndex < diff && lastDotIndex > atIndex + 1 && lastDotIndex < diff;
 			"""), // Unknown input → body unchanged
-		Create(_ => false, [ "" ]), // Empty string → guard fires
+		Create(_ => false, [ System.String.Empty ]), // Empty string → guard fires
 		Create(_ => false, [ "a@b" ]), // Too short (length < 5) → guard fires
 		Create(_ => false, [ "invalid" ]), // No @ or dot → returns false
 		Create(_ => false, [ "@test.com" ]), // @ at start (atIndex == 0) → returns false

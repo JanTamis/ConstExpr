@@ -7,12 +7,12 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Chunk context.Method.
-/// Optimizes patterns such as:
-/// - collection.Chunk(size).Count() => (collection.Count() + size - 1) / size (ceiling division)
-/// - collection.Chunk(n).First() => collection.Take(n).ToArray()
-/// - collection.Chunk(n).Last() => collection.TakeLast(n).ToArray()
-/// - collection.Chunk(1) => collection.Select(x => new[] { x })
+///   Optimizer for Enumerable.Chunk context.Method.
+///   Optimizes patterns such as:
+///   - collection.Chunk(size).Count() => (collection.Count() + size - 1) / size (ceiling division)
+///   - collection.Chunk(n).First() => collection.Take(n).ToArray()
+///   - collection.Chunk(n).Last() => collection.TakeLast(n).ToArray()
+///   - collection.Chunk(1) => collection.Select(x => new[] { x })
 /// </summary>
 public class ChunkFunctionOptimizer() : BaseLinqFunctionOptimizer("Chunk", n => n is 1)
 {

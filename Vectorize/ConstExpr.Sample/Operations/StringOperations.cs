@@ -1,3 +1,4 @@
+using System;
 using System.Text;
 using ConstExpr.Core.Attributes;
 using ConstExpr.Core.Enumerators;
@@ -11,11 +12,11 @@ namespace ConstExpr.SourceGenerator.Sample.Operations;
 public static class StringOperations
 {
 	/// <summary>
-	/// Reverses a string
+	///   Reverses a string
 	/// </summary>
 	public static string Reverse(string input)
 	{
-		if (string.IsNullOrEmpty(input))
+		if (String.IsNullOrEmpty(input))
 		{
 			return input;
 		}
@@ -37,11 +38,11 @@ public static class StringOperations
 	}
 
 	/// <summary>
-	/// Checks if a string is a palindrome
+	///   Checks if a string is a palindrome
 	/// </summary>
 	public static bool IsPalindrome(string input)
 	{
-		if (string.IsNullOrEmpty(input))
+		if (String.IsNullOrEmpty(input))
 		{
 			return true;
 		}
@@ -51,7 +52,7 @@ public static class StringOperations
 
 		while (left < right)
 		{
-			if (char.ToLower(input[left]) != char.ToLower(input[right]))
+			if (Char.ToLower(input[left]) != Char.ToLower(input[right]))
 			{
 				return false;
 			}
@@ -63,11 +64,11 @@ public static class StringOperations
 	}
 
 	/// <summary>
-	/// Counts vowels in a string
+	///   Counts vowels in a string
 	/// </summary>
 	public static int CountVowels(string input)
 	{
-		if (string.IsNullOrEmpty(input))
+		if (String.IsNullOrEmpty(input))
 		{
 			return 0;
 		}
@@ -76,7 +77,7 @@ public static class StringOperations
 
 		foreach (var c in input)
 		{
-			var lower = char.ToLower(c);
+			var lower = Char.ToLower(c);
 
 			if (lower == 'a' || lower == 'e' || lower == 'i' || lower == 'o' || lower == 'u')
 			{
@@ -88,11 +89,11 @@ public static class StringOperations
 	}
 
 	/// <summary>
-	/// Counts consonants in a string
+	///   Counts consonants in a string
 	/// </summary>
 	public static int CountConsonants(string input)
 	{
-		if (string.IsNullOrEmpty(input))
+		if (String.IsNullOrEmpty(input))
 		{
 			return 0;
 		}
@@ -101,9 +102,9 @@ public static class StringOperations
 
 		foreach (var c in input)
 		{
-			if (char.IsLetter(c))
+			if (Char.IsLetter(c))
 			{
-				var lower = char.ToLower(c);
+				var lower = Char.ToLower(c);
 
 				if (lower != 'a' && lower != 'e' && lower != 'i' && lower != 'o' && lower != 'u')
 				{
@@ -116,11 +117,11 @@ public static class StringOperations
 	}
 
 	/// <summary>
-	/// Converts string to title case
+	///   Converts string to title case
 	/// </summary>
 	public static string ToTitleCase(string input)
 	{
-		if (string.IsNullOrEmpty(input))
+		if (String.IsNullOrEmpty(input))
 		{
 			return input;
 		}
@@ -132,13 +133,13 @@ public static class StringOperations
 		{
 			var c = result[i];
 
-			if (char.IsWhiteSpace(c))
+			if (Char.IsWhiteSpace(c))
 			{
 				capitalizeNext = true;
 			}
 			else if (capitalizeNext)
 			{
-				result[i] = char.ToUpper(c);
+				result[i] = Char.ToUpper(c);
 				capitalizeNext = false;
 			}
 		}
@@ -147,11 +148,11 @@ public static class StringOperations
 	}
 
 	/// <summary>
-	/// Counts occurrences of a character
+	///   Counts occurrences of a character
 	/// </summary>
 	public static int CountChar(string input, char target)
 	{
-		if (string.IsNullOrEmpty(input))
+		if (String.IsNullOrEmpty(input))
 		{
 			return 0;
 		}
@@ -170,11 +171,11 @@ public static class StringOperations
 	}
 
 	/// <summary>
-	/// Removes whitespace from string
+	///   Removes whitespace from string
 	/// </summary>
 	public static string RemoveWhitespace(string input)
 	{
-		if (string.IsNullOrEmpty(input))
+		if (String.IsNullOrEmpty(input))
 		{
 			return input;
 		}
@@ -184,7 +185,7 @@ public static class StringOperations
 
 		foreach (var c in input)
 		{
-			if (!char.IsWhiteSpace(c))
+			if (!Char.IsWhiteSpace(c))
 			{
 				result[index++] = c;
 			}
@@ -194,18 +195,18 @@ public static class StringOperations
 	}
 
 	/// <summary>
-	/// Checks if string contains only digits
+	///   Checks if string contains only digits
 	/// </summary>
 	public static bool IsNumeric(string input)
 	{
-		if (string.IsNullOrEmpty(input))
+		if (String.IsNullOrEmpty(input))
 		{
 			return false;
 		}
 
 		foreach (var c in input)
 		{
-			if (!char.IsDigit(c))
+			if (!Char.IsDigit(c))
 			{
 				return false;
 			}
@@ -215,11 +216,11 @@ public static class StringOperations
 	}
 
 	/// <summary>
-	/// Counts words in a string
+	///   Counts words in a string
 	/// </summary>
 	public static int CountWords(string input)
 	{
-		if (string.IsNullOrEmpty(input))
+		if (String.IsNullOrEmpty(input))
 		{
 			return 0;
 		}
@@ -229,7 +230,7 @@ public static class StringOperations
 
 		foreach (var c in input)
 		{
-			if (char.IsWhiteSpace(c))
+			if (Char.IsWhiteSpace(c))
 			{
 				inWord = false;
 			}
@@ -244,13 +245,13 @@ public static class StringOperations
 	}
 
 	/// <summary>
-	/// Repeats a string n times
+	///   Repeats a string n times
 	/// </summary>
 	public static string Repeat(string input, int count)
 	{
-		if (string.IsNullOrEmpty(input) || count <= 0)
+		if (String.IsNullOrEmpty(input) || count <= 0)
 		{
-			return string.Empty;
+			return String.Empty;
 		}
 
 		var result = new StringBuilder(input.Length * count);
@@ -264,11 +265,11 @@ public static class StringOperations
 	}
 
 	/// <summary>
-	/// Converts string to alternating case
+	///   Converts string to alternating case
 	/// </summary>
 	public static string ToAlternatingCase(string input)
 	{
-		if (string.IsNullOrEmpty(input))
+		if (String.IsNullOrEmpty(input))
 		{
 			return input;
 		}
@@ -279,13 +280,13 @@ public static class StringOperations
 		{
 			var c = result[i];
 
-			if (char.IsUpper(c))
+			if (Char.IsUpper(c))
 			{
-				result[i] = char.ToLower(c);
+				result[i] = Char.ToLower(c);
 			}
-			else if (char.IsLower(c))
+			else if (Char.IsLower(c))
 			{
-				result[i] = char.ToUpper(c);
+				result[i] = Char.ToUpper(c);
 			}
 		}
 
@@ -293,7 +294,7 @@ public static class StringOperations
 	}
 
 	/// <summary>
-	/// Checks if strings are anagrams
+	///   Checks if strings are anagrams
 	/// </summary>
 	public static bool AreAnagrams(string? str1, string? str2)
 	{

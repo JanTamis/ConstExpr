@@ -47,7 +47,7 @@ public class DistinctByLinqUnroller : BaseLinqUnroller
 				var typeName = method.Model.Compilation.GetMinimalString(keyType);
 
 				statements.Add(CreateLocalDeclaration(SetName,
-					ObjectCreationExpression(IdentifierName($"HashSet<{typeName}>"), [])));
+					ObjectCreationExpression(IdentifierName($"HashSet<{typeName}>"), [ ])));
 				break;
 			}
 		}
@@ -61,6 +61,7 @@ public class DistinctByLinqUnroller : BaseLinqUnroller
 		}
 
 		var keyExpr = ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, IdentifierName(elementName.ToString()));
+
 		if (keyExpr is null)
 		{
 			return;
@@ -81,14 +82,14 @@ public class DistinctByLinqUnroller : BaseLinqUnroller
 			case SpecialType.System_Byte:
 			{
 				statements.Add(CreateLocalDeclaration(KeyName, keyExpr));
-				AddSpanIndexDistinctBody(statements, IdentifierName(KeyName), SetName, castToByte: false);
+				AddSpanIndexDistinctBody(statements, IdentifierName(KeyName), SetName, false);
 				break;
 			}
 
 			case SpecialType.System_SByte:
 			{
 				statements.Add(CreateLocalDeclaration(KeyName, keyExpr));
-				AddSpanIndexDistinctBody(statements, IdentifierName(KeyName), SetName, castToByte: true);
+				AddSpanIndexDistinctBody(statements, IdentifierName(KeyName), SetName, true);
 				break;
 			}
 
@@ -96,14 +97,14 @@ public class DistinctByLinqUnroller : BaseLinqUnroller
 			case SpecialType.System_Char:
 			{
 				statements.Add(CreateLocalDeclaration(KeyName, keyExpr));
-				AddBitSetDistinctBody(statements, IdentifierName(KeyName), SetName, castToUShort: false);
+				AddBitSetDistinctBody(statements, IdentifierName(KeyName), SetName, false);
 				break;
 			}
 
 			case SpecialType.System_Int16:
 			{
 				statements.Add(CreateLocalDeclaration(KeyName, keyExpr));
-				AddBitSetDistinctBody(statements, IdentifierName(KeyName), SetName, castToUShort: true);
+				AddBitSetDistinctBody(statements, IdentifierName(KeyName), SetName, true);
 				break;
 			}
 

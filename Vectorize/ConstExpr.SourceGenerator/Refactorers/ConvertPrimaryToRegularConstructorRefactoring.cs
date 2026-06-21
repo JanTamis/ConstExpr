@@ -8,14 +8,13 @@ namespace ConstExpr.SourceGenerator.Refactorers;
 using static SyntaxFactory;
 
 /// <summary>
-/// Refactorer that converts a primary constructor (C# 12) to a regular constructor.
-/// Inspired by the Roslyn <c>ConvertPrimaryToRegularConstructorCodeRefactoringProvider</c>.
-///
-/// <code>
+///   Refactorer that converts a primary constructor (C# 12) to a regular constructor.
+///   Inspired by the Roslyn <c>ConvertPrimaryToRegularConstructorCodeRefactoringProvider</c>.
+///   <code>
 /// class Person(string name, int age) { }
 /// </code>
-/// →
-/// <code>
+///   →
+///   <code>
 /// class Person
 /// {
 ///     public Person(string name, int age)
@@ -23,14 +22,13 @@ using static SyntaxFactory;
 ///     }
 /// }
 /// </code>
-///
-/// This is a simplified pure-syntax transformation that moves the parameter list
-/// into an explicit constructor. It does not rewrite parameter usages in members.
+///   This is a simplified pure-syntax transformation that moves the parameter list
+///   into an explicit constructor. It does not rewrite parameter usages in members.
 /// </summary>
 public static class ConvertPrimaryToRegularConstructorRefactoring
 {
 	/// <summary>
-	/// Converts a class with a primary constructor to one with a regular constructor.
+	///   Converts a class with a primary constructor to one with a regular constructor.
 	/// </summary>
 	public static bool TryConvertPrimaryToRegularConstructor(
 		ClassDeclarationSyntax classDecl,
@@ -60,7 +58,7 @@ public static class ConvertPrimaryToRegularConstructorRefactoring
 	}
 
 	/// <summary>
-	/// Converts a record with a primary constructor to one with a regular constructor.
+	///   Converts a record with a primary constructor to one with a regular constructor.
 	/// </summary>
 	public static bool TryConvertRecordPrimaryToRegularConstructor(
 		RecordDeclarationSyntax recordDecl,
@@ -100,4 +98,3 @@ public static class ConvertPrimaryToRegularConstructorRefactoring
 		return true;
 	}
 }
-

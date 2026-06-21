@@ -4,9 +4,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 /// <summary>
-/// Unrolls <c>.Intersect(second)</c> as an intermediate step.
-/// Builds a <c>HashSet&lt;T&gt;</c> from <c>second</c>, then yields only elements
-/// that can be removed from the set (ensuring distinct results).
+///   Unrolls <c>.Intersect(second)</c> as an intermediate step.
+///   Builds a <c>HashSet&lt;T&gt;</c> from <c>second</c>, then yields only elements
+///   that can be removed from the set (ensuring distinct results).
 /// </summary>
 public class IntersectLinqUnroller : BaseLinqUnroller
 {
@@ -35,5 +35,3 @@ public class IntersectLinqUnroller : BaseLinqUnroller
 			ContinueStatement()));
 	}
 }
-
-

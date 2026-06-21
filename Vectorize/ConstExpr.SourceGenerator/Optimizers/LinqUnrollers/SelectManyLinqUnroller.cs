@@ -5,9 +5,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 /// <summary>
-/// Unrolls <c>.SelectMany(selector)</c> as an intermediate step.
-/// Collects all flattened inner elements into a list during the main loop,
-/// then processes them through subsequent chain steps after the main loop.
+///   Unrolls <c>.SelectMany(selector)</c> as an intermediate step.
+///   Collects all flattened inner elements into a list during the main loop,
+///   then processes them through subsequent chain steps after the main loop.
 /// </summary>
 public class SelectManyLinqUnroller : BaseLinqUnroller
 {
@@ -23,7 +23,7 @@ public class SelectManyLinqUnroller : BaseLinqUnroller
 
 		// var selectManyBuffer = new List<TResult>();
 		statements.Add(CreateLocalDeclaration(BufferName,
-			ObjectCreationExpression(IdentifierName($"List<{typeName}>"), [])));
+			ObjectCreationExpression(IdentifierName($"List<{typeName}>"), [ ])));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
@@ -62,4 +62,3 @@ public class SelectManyLinqUnroller : BaseLinqUnroller
 			Block(partialLoopBody)));
 	}
 }
-

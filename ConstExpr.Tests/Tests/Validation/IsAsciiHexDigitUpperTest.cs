@@ -3,20 +3,20 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Validation;
 
 /// <summary>
-/// Tests that (c >= '0' &amp;&amp; c &lt;= '9') || (c >= 'A' &amp;&amp; c &lt;= 'F')
-/// is collapsed into <c>Char.IsAsciiHexDigitUpper(c)</c>.
+///   Tests that (c >= '0' &amp;&amp; c &lt;= '9') || (c >= 'A' &amp;&amp; c &lt;= 'F')
+///   is collapsed into <c>Char.IsAsciiHexDigitUpper(c)</c>.
 /// </summary>
 [InheritsTests]
 public class IsAsciiHexDigitUpperTest() : BaseTest<Func<char, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(c =>
-		(c >= '0' && c <= '9') || (c >= 'A' && c <= 'F'));
+		c >= '0' && c <= '9' || c >= 'A' && c <= 'F');
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(c => Char.IsAsciiHexDigitUpper(c)),
 		Create(_ => true, [ '7' ]),
 		Create(_ => true, [ 'C' ]),
-		Create(_ => false, [ 'G' ]),
+		Create(_ => false, [ 'G' ])
 	];
 }

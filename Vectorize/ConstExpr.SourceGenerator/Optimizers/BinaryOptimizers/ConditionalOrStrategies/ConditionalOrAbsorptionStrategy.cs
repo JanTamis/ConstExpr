@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalOrStrategies;
 
 /// <summary>
-/// Strategy for absorption law: a || (a && b) => a (pure) or (a && b) || a => a (pure)
+///   Strategy for absorption law: a || (a && b) => a (pure) or (a && b) || a => a (pure)
 /// </summary>
 public class ConditionalOrAbsorptionStrategy() : SymmetricStrategy<BooleanBinaryStrategy, ExpressionSyntax, BinaryExpressionSyntax>(rightKind: SyntaxKind.LogicalAndExpression)
 {

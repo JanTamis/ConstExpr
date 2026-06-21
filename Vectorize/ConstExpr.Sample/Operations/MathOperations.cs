@@ -11,7 +11,7 @@ namespace ConstExpr.SourceGenerator.Sample.Operations;
 public static class MathOperations
 {
 	/// <summary>
-	/// Calculates factorial of a number
+	///   Calculates factorial of a number
 	/// </summary>
 	public static long Factorial(int n)
 	{
@@ -36,7 +36,7 @@ public static class MathOperations
 	}
 
 	/// <summary>
-	/// Calculates the nth Fibonacci number
+	///   Calculates the nth Fibonacci number
 	/// </summary>
 	public static long Fibonacci(int n)
 	{
@@ -64,7 +64,7 @@ public static class MathOperations
 	}
 
 	/// <summary>
-	/// Checks if a number is prime
+	///   Checks if a number is prime
 	/// </summary>
 	public static bool IsPrime(int n)
 	{
@@ -95,7 +95,7 @@ public static class MathOperations
 	}
 
 	/// <summary>
-	/// Calculates the Greatest Common Divisor using Euclidean algorithm
+	///   Calculates the Greatest Common Divisor using Euclidean algorithm
 	/// </summary>
 	public static int GCD(int a, int b)
 	{
@@ -113,7 +113,7 @@ public static class MathOperations
 	}
 
 	/// <summary>
-	/// Calculates the Least Common Multiple
+	///   Calculates the Least Common Multiple
 	/// </summary>
 	public static int LCM(int a, int b)
 	{
@@ -126,7 +126,7 @@ public static class MathOperations
 	}
 
 	/// <summary>
-	/// Calculates power using fast exponentiation
+	///   Calculates power using fast exponentiation
 	/// </summary>
 	public static long Power(int baseNum, int exponent)
 	{
@@ -157,7 +157,7 @@ public static class MathOperations
 	}
 
 	/// <summary>
-	/// Calculates sum of digits
+	///   Calculates sum of digits
 	/// </summary>
 	public static int SumOfDigits(int n)
 	{
@@ -175,7 +175,7 @@ public static class MathOperations
 	}
 
 	/// <summary>
-	/// Checks if a number is a perfect square
+	///   Checks if a number is a perfect square
 	/// </summary>
 	public static bool IsPerfectSquare(int n)
 	{
@@ -189,7 +189,7 @@ public static class MathOperations
 	}
 
 	/// <summary>
-	/// Calculates the number of digits in a number
+	///   Calculates the number of digits in a number
 	/// </summary>
 	public static int CountDigits(int n)
 	{
@@ -211,7 +211,7 @@ public static class MathOperations
 	}
 
 	/// <summary>
-	/// Reverses the digits of a number
+	///   Reverses the digits of a number
 	/// </summary>
 	public static int ReverseNumber(int n)
 	{
@@ -230,7 +230,7 @@ public static class MathOperations
 	}
 
 	/// <summary>
-	/// Calculates the sum of numbers in a range
+	///   Calculates the sum of numbers in a range
 	/// </summary>
 	public static long SumRange(int start, int end)
 	{
@@ -246,7 +246,7 @@ public static class MathOperations
 	}
 
 	/// <summary>
-	/// Calculates binomial coefficient (n choose k)
+	///   Calculates binomial coefficient (n choose k)
 	/// </summary>
 	public static long BinomialCoefficient(int n, int k)
 	{

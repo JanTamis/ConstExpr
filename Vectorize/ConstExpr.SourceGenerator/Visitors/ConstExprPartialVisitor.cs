@@ -529,22 +529,16 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 			}
 		}
 
-		ExpressionSyntax Parens(ExpressionSyntax e)
-		{
-			return e is ParenthesizedExpressionSyntax
+		ExpressionSyntax Parens(ExpressionSyntax e) =>
+			e is ParenthesizedExpressionSyntax
 				? e
 				: ParenthesizedExpression(e);
-		}
 
-		bool IsNonFloatingNumeric(ITypeSymbol? t)
-		{
-			return t is not null && IsNumericType(t) && t.SpecialType != SpecialType.System_Single && t.SpecialType != SpecialType.System_Double;
-		}
+		bool IsNonFloatingNumeric(ITypeSymbol? t) =>
+			t is not null && IsNumericType(t) && t.SpecialType != SpecialType.System_Single && t.SpecialType != SpecialType.System_Double;
 
-		bool IsBoolType(ITypeSymbol? t)
-		{
-			return t?.SpecialType == SpecialType.System_Boolean;
-		}
+		bool IsBoolType(ITypeSymbol? t) =>
+			t?.SpecialType == SpecialType.System_Boolean;
 
 		bool IsNumericType(ITypeSymbol? t)
 		{
@@ -605,7 +599,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 
 		if (operation.Syntax is VariableDeclaratorSyntax variable)
 		{
-			var result = (EqualsValueClauseSyntax) Visit(operation.Initializer, argument);
+			var result = (EqualsValueClauseSyntax)Visit(operation.Initializer, argument);
 
 			if (!argument.TryGetValue(name, out var item))
 			{
@@ -683,13 +677,13 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 				SpecialType.System_UInt32 => CreateLiteral(Convert.ToUInt32(value)),
 				SpecialType.System_UInt64 => CreateLiteral(Convert.ToUInt64(value)),
 				SpecialType.System_Object => CreateLiteral(value),
-				_ => operand,
+				_ => operand
 			};
 		}
 
 		if (operation.Syntax is CastExpressionSyntax castExpressionSyntax)
 		{
-			return castExpressionSyntax.WithExpression((ExpressionSyntax) operand);
+			return castExpressionSyntax.WithExpression((ExpressionSyntax)operand);
 		}
 
 		return operand;
@@ -729,7 +723,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 						var parameters = methodOperation.Syntax switch
 						{
 							LocalFunctionStatementSyntax localFunc => localFunc.ParameterList,
-							MethodDeclarationSyntax methodDecl => methodDecl.ParameterList,
+							MethodDeclarationSyntax methodDecl => methodDecl.ParameterList
 						};
 
 						var variables = new Dictionary<string, object?>();
@@ -769,7 +763,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 
 			return invocation
 				.WithArgumentList(invocation.ArgumentList
-					.WithArguments(SeparatedList(arguments.Select(s => Argument((ExpressionSyntax) s)))));
+					.WithArguments(SeparatedList(arguments.Select(s => Argument((ExpressionSyntax)s)))));
 		}
 
 		return operation.Syntax;
@@ -797,9 +791,9 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 			}
 
 			return conditional
-				.WithCondition((ExpressionSyntax) condition!)
-				.WithWhenTrue((ExpressionSyntax) Visit(operation.WhenTrue, argument)!)
-				.WithWhenFalse((ExpressionSyntax) Visit(operation.WhenFalse, argument)!);
+				.WithCondition((ExpressionSyntax)condition!)
+				.WithWhenTrue((ExpressionSyntax)Visit(operation.WhenTrue, argument)!)
+				.WithWhenFalse((ExpressionSyntax)Visit(operation.WhenFalse, argument)!);
 		}
 
 		if (operation.Syntax is IfStatementSyntax ifStatement)
@@ -864,8 +858,8 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 	{
 		return operation.Syntax switch
 		{
-			ReturnStatementSyntax returnStatement => returnStatement.WithExpression((ExpressionSyntax?) Visit(operation.ReturnedValue, argument)),
-			YieldStatementSyntax yieldStatementSyntax => yieldStatementSyntax.WithExpression((ExpressionSyntax?) Visit(operation.ReturnedValue, argument)),
+			ReturnStatementSyntax returnStatement => returnStatement.WithExpression((ExpressionSyntax?)Visit(operation.ReturnedValue, argument)),
+			YieldStatementSyntax yieldStatementSyntax => yieldStatementSyntax.WithExpression((ExpressionSyntax?)Visit(operation.ReturnedValue, argument)),
 			_ => operation.Syntax
 		};
 	}
@@ -895,7 +889,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 				var indices = propertyReference.Arguments.Select(a => Visit(a.Value, argument)).ToArray();
 
 				return assignmentExpression.WithLeft(ElementAccessExpression(
-					(ExpressionSyntax) instance!,
+					(ExpressionSyntax)instance!,
 					BracketedArgumentList(SeparatedList(indices.OfType<ExpressionSyntax>().Select(Argument)))
 				));
 			}
@@ -1388,7 +1382,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 				}
 
 				return switchExpr
-					.WithGoverningExpression((ExpressionSyntax) visitedGoverning!)
+					.WithGoverningExpression((ExpressionSyntax)visitedGoverning!)
 					.WithArms(SeparatedList(newArms));
 			}
 		}
@@ -1413,7 +1407,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 				{
 					var value = Visit(arg.Value, argument);
 
-					arguments.Add(argumentSyntax.WithExpression((ExpressionSyntax) value!));
+					arguments.Add(argumentSyntax.WithExpression((ExpressionSyntax)value!));
 				}
 			}
 
@@ -1458,7 +1452,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 			{
 				OperationKind.Increment => variable.Value.Add(1),
 				OperationKind.Decrement => variable.Value.Add(-1),
-				_ => variable.Value,
+				_ => variable.Value
 			};
 
 			if (TryCreateLiteral(variable.Value, out var literal))
@@ -1482,7 +1476,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 				UnaryOperatorKind.Minus => 0.Subtract(variable.Value),
 				UnaryOperatorKind.BitwiseNegation => variable.Value.BitwiseNot(),
 				UnaryOperatorKind.Not => variable.Value.LogicalNot(),
-				_ => variable.Value,
+				_ => variable.Value
 			};
 
 			if (TryCreateLiteral(variable.Value, out var literal))
@@ -1586,7 +1580,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 			IArrayElementReferenceOperation arrayElementReferenceOperation => GetVariableName(arrayElementReferenceOperation.ArrayReference),
 			IFieldReferenceOperation fieldReferenceOperation => fieldReferenceOperation.Field.Name,
 			IVariableDeclaratorOperation variableDeclaratorOperation => variableDeclaratorOperation.Symbol.Name,
-			_ => null,
+			_ => null
 		};
 	}
 }

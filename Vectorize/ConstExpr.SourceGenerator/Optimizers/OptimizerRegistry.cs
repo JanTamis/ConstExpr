@@ -15,18 +15,17 @@ namespace ConstExpr.SourceGenerator.Optimizers;
 
 internal static class OptimizerRegistry
 {
-	private static readonly FrozenDictionary<BinaryOperatorKind, BaseBinaryOptimizer> _binaryOptimizers = CreateBinaryOptimizers();
-	private static readonly BaseMathFunctionOptimizer[] _mathOptimizers = CreateInstances<BaseMathFunctionOptimizer>();
-	private static readonly BaseLinqFunctionOptimizer[] _linqOptimizers = CreateInstances<BaseLinqFunctionOptimizer>();
-	private static readonly BaseSimdFunctionOptimizer[] _simdOptimizers = CreateInstances<BaseSimdFunctionOptimizer>();
-	private static readonly BaseRegexFunctionOptimizer[] _regexOptimizers = CreateInstances<BaseRegexFunctionOptimizer>();
 	private static readonly FrozenDictionary<string, Func<SyntaxNode?, BaseStringFunctionOptimizer>[]> _stringFactories = CreateStringFactories();
 
-	public static FrozenDictionary<BinaryOperatorKind, BaseBinaryOptimizer> BinaryOptimizers => _binaryOptimizers;
-	public static BaseMathFunctionOptimizer[] MathOptimizers => _mathOptimizers;
-	public static BaseLinqFunctionOptimizer[] LinqOptimizers => _linqOptimizers;
-	public static BaseSimdFunctionOptimizer[] SimdOptimizers => _simdOptimizers;
-	public static BaseRegexFunctionOptimizer[] RegexOptimizers => _regexOptimizers;
+	public static FrozenDictionary<BinaryOperatorKind, BaseBinaryOptimizer> BinaryOptimizers { get; } = CreateBinaryOptimizers();
+
+	public static BaseMathFunctionOptimizer[] MathOptimizers { get; } = CreateInstances<BaseMathFunctionOptimizer>();
+
+	public static BaseLinqFunctionOptimizer[] LinqOptimizers { get; } = CreateInstances<BaseLinqFunctionOptimizer>();
+
+	public static BaseSimdFunctionOptimizer[] SimdOptimizers { get; } = CreateInstances<BaseSimdFunctionOptimizer>();
+
+	public static BaseRegexFunctionOptimizer[] RegexOptimizers { get; } = CreateInstances<BaseRegexFunctionOptimizer>();
 
 	public static IEnumerable<BaseStringFunctionOptimizer> CreateStringOptimizers(string methodName, SyntaxNode? instance)
 	{
@@ -88,7 +87,7 @@ internal static class OptimizerRegistry
 					factories[optimizerName] = entries;
 				}
 
-				entries.Add(instance => (BaseStringFunctionOptimizer) ctor.Invoke([ instance ])!);
+				entries.Add(instance => (BaseStringFunctionOptimizer)ctor.Invoke([ instance ])!);
 			}
 		}
 

@@ -6,11 +6,11 @@ namespace ConstExpr.Tests.Math;
 [InheritsTests]
 public class FloatMaxMagnitudeNumberTest() : BaseTest<Func<float, float, float>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
 {
-	public override string TestMethod => GetString((a, b) => float.MaxMagnitudeNumber(a, b));
+	public override string TestMethod => GetString((a, b) => Single.MaxMagnitudeNumber(a, b));
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		Create((_, _) => -3F, [ 1.0f, -3.0f ]),
+		Create((_, _) => -3F, [ 1.0f, -3.0f ])
 	];
 }

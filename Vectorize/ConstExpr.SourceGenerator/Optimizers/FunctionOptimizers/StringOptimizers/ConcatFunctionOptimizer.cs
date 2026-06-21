@@ -11,10 +11,11 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 
 /// <summary>
-/// Optimizes usages of <c>string.Concat</c>. This optimizer:
-/// - Combines adjacent string literal arguments into a single literal (for example, <c>Concat("a", "b", x)</c> -> <c>Concat("ab", x)</c>).
-/// - If the call reduces to a single expression, returns that expression directly.
-/// - Rebuilds the context.Invocation targeting the resolved string type/helper when changes are made.
+///   Optimizes usages of <c>string.Concat</c>. This optimizer:
+///   - Combines adjacent string literal arguments into a single literal (for example, <c>Concat("a", "b", x)</c> ->
+///   <c>Concat("ab", x)</c>).
+///   - If the call reduces to a single expression, returns that expression directly.
+///   - Rebuilds the context.Invocation targeting the resolved string type/helper when changes are made.
 /// </summary>
 /// <param name="instance">Optional syntax node instance provided by the optimizer infrastructure; may be null.</param>
 public class ConcatFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "Concat", true, n => n is 0 or 1 or 2 or 3 or 4)
@@ -52,7 +53,7 @@ public class ConcatFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionO
 						FlushBuffer();
 						newParams.Add(p);
 					}
-					
+
 					break;
 				}
 			}

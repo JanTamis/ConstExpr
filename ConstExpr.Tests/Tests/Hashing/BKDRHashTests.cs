@@ -13,7 +13,7 @@ public class BKDRHashTests() : BaseTest<Func<string, uint>>(FastMathFlags.All)
 
 		for (i = 0; i < str.Length; i++)
 		{
-			hash = hash * seed + (byte) str[(int) i];
+			hash = hash * seed + (byte)str[(int)i];
 		}
 
 		return hash;
@@ -27,7 +27,7 @@ public class BKDRHashTests() : BaseTest<Func<string, uint>>(FastMathFlags.All)
 
 			for (var i = 0U; i < str.Length; i++)
 			{
-				hash = hash * 131U + (byte) str[(int) i];
+				hash = hash * 131U + (byte)str[(int)i];
 			}
 
 			return hash;

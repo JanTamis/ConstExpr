@@ -8,17 +8,16 @@ namespace ConstExpr.SourceGenerator.Refactorers;
 using static SyntaxFactory;
 
 /// <summary>
-/// Refactorer that splits a compound if-statement condition into nested if-statements.
-/// Inspired by the Roslyn <c>SplitIntoNestedIfStatementsCodeRefactoringProvider</c>.
-///
-/// <code>
+///   Refactorer that splits a compound if-statement condition into nested if-statements.
+///   Inspired by the Roslyn <c>SplitIntoNestedIfStatementsCodeRefactoringProvider</c>.
+///   <code>
 /// if (a &amp;&amp; b)
 /// {
 ///     Body();
 /// }
 /// </code>
-/// →
-/// <code>
+///   →
+///   <code>
 /// if (a)
 /// {
 ///     if (b)
@@ -27,13 +26,12 @@ using static SyntaxFactory;
 ///     }
 /// }
 /// </code>
-///
-/// Only splits on the top-level <c>&amp;&amp;</c> operator. The if must not have an else clause.
+///   Only splits on the top-level <c>&amp;&amp;</c> operator. The if must not have an else clause.
 /// </summary>
 public static class SplitIfStatementConditionRefactoring
 {
 	/// <summary>
-	/// Splits an if-statement with a <c>&amp;&amp;</c> condition into nested if-statements.
+	///   Splits an if-statement with a <c>&amp;&amp;</c> condition into nested if-statements.
 	/// </summary>
 	public static bool TrySplitIntoNestedIf(
 		IfStatementSyntax ifStatement,
@@ -65,15 +63,14 @@ public static class SplitIfStatementConditionRefactoring
 	}
 
 	/// <summary>
-	/// Splits an if-statement with a <c>||</c> condition into consecutive if-statements
-	/// (each with the same body).
-	/// Inspired by the Roslyn <c>SplitIntoConsecutiveIfStatementsCodeRefactoringProvider</c>.
-	///
-	/// <code>
+	///   Splits an if-statement with a <c>||</c> condition into consecutive if-statements
+	///   (each with the same body).
+	///   Inspired by the Roslyn <c>SplitIntoConsecutiveIfStatementsCodeRefactoringProvider</c>.
+	///   <code>
 	/// if (a || b) { Body(); }
 	/// </code>
-	/// →
-	/// <code>
+	///   →
+	///   <code>
 	/// if (a) { Body(); }
 	/// if (b) { Body(); }
 	/// </code>
@@ -106,4 +103,3 @@ public static class SplitIfStatementConditionRefactoring
 		return true;
 	}
 }
-

@@ -13,6 +13,6 @@ public class StringIndexOfTest() : BaseTest<Func<string, string, int>>(FastMathF
 		Create((_, _) => 1, [ "hello", "ell" ]),
 		Create((_, _) => -1, [ "hello", "xyz" ]),
 		Create((_, _) => 0, [ "hello", "h" ]),
-		Create((_, _) => 4, [ "hello", "o" ]),
+		Create((_, _) => 4, [ "hello", "o" ])
 	];
 }

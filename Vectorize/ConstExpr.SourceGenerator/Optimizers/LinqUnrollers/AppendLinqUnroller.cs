@@ -5,10 +5,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 /// <summary>
-/// Unrolls <c>.Append(element)</c> as an intermediate step.
-/// The appended element is processed through subsequent chain steps
-/// after the main loop completes, preserving correct LINQ semantics
-/// where Append adds an element after the current sequence position.
+///   Unrolls <c>.Append(element)</c> as an intermediate step.
+///   The appended element is processed through subsequent chain steps
+///   after the main loop completes, preserving correct LINQ semantics
+///   where Append adds an element after the current sequence position.
 /// </summary>
 public class AppendLinqUnroller : BaseLinqUnroller
 {
@@ -29,4 +29,3 @@ public class AppendLinqUnroller : BaseLinqUnroller
 			Block(partialLoopBody)));
 	}
 }
-

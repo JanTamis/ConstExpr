@@ -10,6 +10,6 @@ public class MultiplyByZeroTest : BaseTest<Func<int, int>>
 	[
 		Create(_ => 0),
 		Create(_ => 0, [ 99 ]),
-		Create(_ => 0, [ -5 ]),
+		Create(_ => 0, [ -5 ])
 	];
 }

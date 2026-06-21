@@ -7,10 +7,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 /// <summary>
-/// Unrolls <c>.AggregateBy(keySelector, seed, func)</c> as an intermediate step.
-/// Builds a <c>Dictionary&lt;TKey, TAccumulate&gt;</c> during the main loop by
-/// applying the accumulator function per key, then iterates the dictionary
-/// through subsequent chain steps after the main loop.
+///   Unrolls <c>.AggregateBy(keySelector, seed, func)</c> as an intermediate step.
+///   Builds a <c>Dictionary&lt;TKey, TAccumulate&gt;</c> during the main loop by
+///   applying the accumulator function per key, then iterates the dictionary
+///   through subsequent chain steps after the main loop.
 /// </summary>
 public class AggregateByLinqUnroller : BaseLinqUnroller
 {
@@ -26,7 +26,7 @@ public class AggregateByLinqUnroller : BaseLinqUnroller
 
 		// var aggregateByDict = new Dictionary<TKey, TAccumulate>();
 		statements.Add(CreateLocalDeclaration(DictName,
-			ObjectCreationExpression(IdentifierName($"Dictionary<{keyTypeName}, {accTypeName}>"), [])));
+			ObjectCreationExpression(IdentifierName($"Dictionary<{keyTypeName}, {accTypeName}>"), [ ])));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
@@ -99,5 +99,3 @@ public class AggregateByLinqUnroller : BaseLinqUnroller
 			Block(partialLoopBody)));
 	}
 }
-
-

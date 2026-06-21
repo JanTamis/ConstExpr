@@ -19,17 +19,17 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Rewriters;
 
 /// <summary>
-/// Rewriter that performs constant folding and safe partial evaluation over C# syntax trees.
-/// This class is split across multiple partial files for better organization:
-/// - ConstExprPartialRewriter.cs (this file): Core class definition, constructor, and base overrides
-/// - ConstExprPartialRewriter.Expressions.cs: Expression visitors (binary, unary, literal, etc.)
-/// - ConstExprPartialRewriter.Statements.cs: Statement visitors (if, for, while, etc.)
-/// - ConstExprPartialRewriter.Invocations.cs: Method invocations and member access
-/// - ConstExprPartialRewriter.Declarations.cs: Variable declarations and assignments
-/// - ConstExprPartialRewriter.Patterns.cs: Pattern matching (switch, is-pattern)
-/// - ConstExprPartialRewriter.Lambda.cs: Lambda expressions
-/// - ConstExprPartialRewriter.Misc.cs: Object creation and list visiting
-/// - ConstExprPartialRewriter.Helpers.cs: Helper methods for conversions and optimizations
+///   Rewriter that performs constant folding and safe partial evaluation over C# syntax trees.
+///   This class is split across multiple partial files for better organization:
+///   - ConstExprPartialRewriter.cs (this file): Core class definition, constructor, and base overrides
+///   - ConstExprPartialRewriter.Expressions.cs: Expression visitors (binary, unary, literal, etc.)
+///   - ConstExprPartialRewriter.Statements.cs: Statement visitors (if, for, while, etc.)
+///   - ConstExprPartialRewriter.Invocations.cs: Method invocations and member access
+///   - ConstExprPartialRewriter.Declarations.cs: Variable declarations and assignments
+///   - ConstExprPartialRewriter.Patterns.cs: Pattern matching (switch, is-pattern)
+///   - ConstExprPartialRewriter.Lambda.cs: Lambda expressions
+///   - ConstExprPartialRewriter.Misc.cs: Object creation and list visiting
+///   - ConstExprPartialRewriter.Helpers.cs: Helper methods for conversions and optimizations
 /// </summary>
 public partial class ConstExprPartialRewriter(
 	SemanticModel semanticModel,

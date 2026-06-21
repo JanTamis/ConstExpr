@@ -9,6 +9,6 @@ public class MathFloorIdempotencyTest() : BaseTest<Func<double, double>>(FastMat
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(x => double.Floor(x)),
+		Create(x => Double.Floor(x))
 	];
 }

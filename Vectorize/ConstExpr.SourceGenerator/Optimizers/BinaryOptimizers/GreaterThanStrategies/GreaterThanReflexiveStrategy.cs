@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.GreaterThanStrategies;
 
 /// <summary>
-/// Strategy for reflexive comparison: x > x => false (pure)
+///   Strategy for reflexive comparison: x > x => false (pure)
 /// </summary>
 public class GreaterThanReflexiveStrategy : BaseBinaryStrategy
 {

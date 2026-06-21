@@ -18,7 +18,7 @@ public class EqualsComparisonSimplifierStrategy
 			optimized = null;
 			return false;
 		}
-		
+
 		if (context.Left.Syntax.Left is LiteralExpressionSyntax leftLiteral)
 		{
 			var result = method(context.Right.Syntax.Token.Value, leftLiteral.Token.Value);
@@ -42,11 +42,11 @@ public class EqualsComparisonSimplifierStrategy
 				return true;
 			}
 		}
-		
+
 		optimized = null;
 		return false;
 	}
-	
+
 	private static Func<object?, object?, object?>? TryGetOppositeOperator(SyntaxKind kind)
 	{
 		return kind switch

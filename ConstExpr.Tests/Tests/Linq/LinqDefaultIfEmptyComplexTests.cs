@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for DefaultIfEmpty() with complex scenarios
+///   Tests for DefaultIfEmpty() with complex scenarios
 /// </summary>
 [InheritsTests]
 public class LinqDefaultIfEmptyComplexTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
@@ -29,6 +29,6 @@ public class LinqDefaultIfEmptyComplexTests() : BaseTest<Func<int[], int>>(FastM
 	[
 		Create("return (x.Length > 0 ? x[0] * 2 : 20) + (x.Length > 0 ? x[^1] * 2 : 20) + Sum_HI9NYg(x) + Sum_swQo7g(x);"),
 		Create(_ => 52, [ new[] { 1, 2, 3, 4, 5 } ]), // a=15 (sum 1-5), b=25 (empty→default), c=1, d=1 (first), e=5, f=5 (last) = 52
-		Create(_ => 115, [ System.Array.Empty<int>() ]), // a=50 (empty→default), b=25 (empty→default), c=d=e=f=10 (empty→innermost default) = 115
+		Create(_ => 115, [ System.Array.Empty<int>() ]) // a=50 (empty→default), b=25 (empty→default), c=d=e=f=10 (empty→innermost default) = 115
 	];
 }

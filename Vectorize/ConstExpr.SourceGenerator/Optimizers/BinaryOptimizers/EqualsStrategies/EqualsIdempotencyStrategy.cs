@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.EqualsStrategies;
 
 /// <summary>
-/// Strategy for reflexive equality: x == x = true (for pure expressions)
+///   Strategy for reflexive equality: x == x = true (for pure expressions)
 /// </summary>
 public class EqualsIdempotencyStrategy : BooleanBinaryStrategy
 {
@@ -13,11 +13,11 @@ public class EqualsIdempotencyStrategy : BooleanBinaryStrategy
 		if (!base.TryOptimize(context, out optimized)
 		    || !LeftEqualsRight(context)
 		    || !IsPure(context.Left.Syntax))
-    {
-      return false;
-    }
+		{
+			return false;
+		}
 
-    optimized = CreateLiteral(true);
+		optimized = CreateLiteral(true);
 		return true;
 	}
 }

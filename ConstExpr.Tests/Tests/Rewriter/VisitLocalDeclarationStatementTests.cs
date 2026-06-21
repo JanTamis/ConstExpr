@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
-/// Tests for VisitLocalDeclarationStatement - visit and remove if unused
+///   Tests for VisitLocalDeclarationStatement - visit and remove if unused
 /// </summary>
 [InheritsTests]
 public class VisitLocalDeclarationStatementTests : BaseTest<Func<int, int, (int, int, int, int)>>

@@ -7,10 +7,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.SkipWhile context.Method.
-/// Optimizes patterns such as:
-/// - collection.SkipWhile(x => false) => collection (skip nothing)
-/// - collection.SkipWhile(x => true) => Enumerable.Empty&lt;T&gt;() (skip everything)
+///   Optimizer for Enumerable.SkipWhile context.Method.
+///   Optimizes patterns such as:
+///   - collection.SkipWhile(x => false) => collection (skip nothing)
+///   - collection.SkipWhile(x => true) => Enumerable.Empty&lt;T&gt;() (skip everything)
 /// </summary>
 public class SkipWhileFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.SkipWhile), n => n is 1)
 {

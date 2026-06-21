@@ -3,9 +3,9 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for ElementAt() optimization - verify that unnecessary operations before ElementAt() are removed
-/// and that ElementAt is optimized to direct array/list indexing when possible
-/// Note: ElementAt(0) is optimized to First() which is more idiomatic
+///   Tests for ElementAt() optimization - verify that unnecessary operations before ElementAt() are removed
+///   and that ElementAt is optimized to direct array/list indexing when possible
+///   Note: ElementAt(0) is optimized to First() which is more idiomatic
 /// </summary>
 [InheritsTests]
 public class LinqElementAtOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
@@ -40,6 +40,6 @@ public class LinqElementAtOptimizationTests() : BaseTest<Func<int[], int>>(FastM
 	[
 		Create(x => x[0] * 2 + x[1] * 2 + x[2] * 2 + x[3]),
 		Create(_ => 16, [ new[] { 1, 2, 3, 4, 5 } ]), // 1 + 2 + 3 + 1 + 2 + 3 + 4 = 16
-		Create(_ => 0, [ new[] { 0, 0, 0, 0, 0 } ]),
+		Create(_ => 0, [ new[] { 0, 0, 0, 0, 0 } ])
 	];
 }

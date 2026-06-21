@@ -5,14 +5,14 @@ namespace ConstExpr.Tests.String;
 [InheritsTests]
 public class StringIsNullOrWhiteSpaceTest() : BaseTest<Func<string, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
 {
-	public override string TestMethod => GetString(s => string.IsNullOrWhiteSpace(s));
+	public override string TestMethod => GetString(s => System.String.IsNullOrWhiteSpace(s));
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		Create(_ => true, [ "" ]),
+		Create(_ => true, [ System.String.Empty ]),
 		Create(_ => true, [ "   " ]),
 		Create(_ => false, [ "hello" ]),
-		Create(_ => false, [ " x " ]),
+		Create(_ => false, [ " x " ])
 	];
 }

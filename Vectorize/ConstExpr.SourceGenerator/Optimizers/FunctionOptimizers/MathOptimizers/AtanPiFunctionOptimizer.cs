@@ -72,7 +72,7 @@ public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", n =
 				value = c.ToDouble(CultureInfo.InvariantCulture);
 				return true;
 			}
-			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
 			{
 				value = -c2.ToDouble(CultureInfo.InvariantCulture);
 				return true;

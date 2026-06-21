@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalOrStrategies;
 
 /// <summary>
-/// Strategy for literal boolean optimization: true || x = true, false || x = x or  x || false = x, x || true = true
+///   Strategy for literal boolean optimization: true || x = true, false || x = x or  x || false = x, x || true = true
 /// </summary>
 public class ConditionalOrLiteralStrategy : SymmetricStrategy<BooleanBinaryStrategy, LiteralExpressionSyntax, ExpressionSyntax>
 {

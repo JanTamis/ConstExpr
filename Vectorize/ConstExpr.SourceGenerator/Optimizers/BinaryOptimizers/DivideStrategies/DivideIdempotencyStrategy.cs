@@ -6,8 +6,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies;
 
 /// <summary>
-/// Strategy for idempotent division: x / x = 1 (pure expressions)
-/// Safe under Strict (pure algebraic identity).
+///   Strategy for idempotent division: x / x = 1 (pure expressions)
+///   Safe under Strict (pure algebraic identity).
 /// </summary>
 public class DivideIdempotencyStrategy : NumericBinaryStrategy
 {

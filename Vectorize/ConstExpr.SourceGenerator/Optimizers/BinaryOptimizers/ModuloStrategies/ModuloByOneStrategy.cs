@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ModuloStrategies;
 
 /// <summary>
-/// Strategy for modulo by one: x % 1 = 0
+///   Strategy for modulo by one: x % 1 = 0
 /// </summary>
 public class ModuloByOneStrategy : IntegerBinaryStrategy<ExpressionSyntax, LiteralExpressionSyntax>
 {

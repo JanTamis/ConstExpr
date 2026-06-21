@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ExclusiveOrStrategies;
 
 /// <summary>
-/// Strategy for boolean true: x ^ true = !x and true ^ x = !x
+///   Strategy for boolean true: x ^ true = !x and true ^ x = !x
 /// </summary>
 public class ExclusiveOrBooleanTrueStrategy : SymmetricStrategy<BooleanBinaryStrategy, LiteralExpressionSyntax, ExpressionSyntax>
 {

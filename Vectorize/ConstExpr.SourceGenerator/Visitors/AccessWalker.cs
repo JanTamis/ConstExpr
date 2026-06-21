@@ -19,7 +19,7 @@ public sealed class AccessWalker(IDictionary<string, int> variables) : CSharpSyn
 	public override void VisitVariableDeclarator(VariableDeclaratorSyntax node)
 	{
 		variables.Add(node.Identifier.Text, 0);
-		
+
 		Visit(node.Initializer);
 	}
 
@@ -29,7 +29,7 @@ public sealed class AccessWalker(IDictionary<string, int> variables) : CSharpSyn
 		{
 			return;
 		}
-		
+
 		variables[node.Identifier.Text]++;
 	}
 
@@ -68,11 +68,11 @@ public sealed class AccessWalker(IDictionary<string, int> variables) : CSharpSyn
 	public override void VisitIfStatement(IfStatementSyntax node)
 	{
 		Visit(node.Condition);
-		
+
 		var statementVariables = CloneVariables();
 		var statementWalker = new AccessWalker(statementVariables);
 		statementWalker.Visit(node.Statement);
-		
+
 		var elseVariables = CloneVariables();
 		var elseWalker = new AccessWalker(elseVariables);
 		elseWalker.Visit(node.Else);
@@ -107,7 +107,7 @@ public sealed class AccessWalker(IDictionary<string, int> variables) : CSharpSyn
 	{
 		Visit(node.Expression);
 	}
-	
+
 	private IDictionary<string, int> CloneVariables()
 	{
 		return new Dictionary<string, int>(variables);

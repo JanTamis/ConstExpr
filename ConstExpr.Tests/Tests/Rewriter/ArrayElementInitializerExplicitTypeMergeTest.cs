@@ -27,7 +27,7 @@ public class ArrayElementInitializerExplicitTypeMergeTest : BaseTest<Func<int[],
 			{
 				numbers[positions % 3],
 				numbers[(positions + 1) % 3],
-				numbers[(positions + 2) % 3],
+				numbers[(positions + 2) % 3]
 			};
 		}, [ Unknown, Unknown ])
 	];

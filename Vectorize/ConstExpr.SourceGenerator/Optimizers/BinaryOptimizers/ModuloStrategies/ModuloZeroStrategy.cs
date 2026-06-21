@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ModuloStrategies;
 
 /// <summary>
-/// Strategy for zero modulo non-zero: 0 % c = 0 (when c != 0)
+///   Strategy for zero modulo non-zero: 0 % c = 0 (when c != 0)
 /// </summary>
 public class ModuloZeroStrategy : SymmetricStrategy<IntegerBinaryStrategy, ExpressionSyntax, ExpressionSyntax>
 {

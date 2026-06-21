@@ -11,9 +11,9 @@ public class RGBToHSLTest() : BaseTest<Func<byte, byte, byte, (int, double, doub
 		var s = 0.0;
 		var l = 0.0;
 
-		var normalizedR = (r / 255.0);
-		var normalizedG = (g / 255.0);
-		var normalizedB = (b / 255.0);
+		var normalizedR = r / 255.0;
+		var normalizedG = g / 255.0;
+		var normalizedB = b / 255.0;
 
 		var min = System.Math.Min(System.Math.Min(normalizedR, normalizedG), normalizedB);
 		var max = System.Math.Max(System.Math.Max(normalizedR, normalizedG), normalizedB);
@@ -28,21 +28,21 @@ public class RGBToHSLTest() : BaseTest<Func<byte, byte, byte, (int, double, doub
 		}
 		else
 		{
-			s = (l <= 0.5) ? (delta / (max + min)) : (delta / (2 - max - min));
+			s = l <= 0.5 ? delta / (max + min) : delta / (2 - max - min);
 
-			double hue = 0.0;
+			var hue = 0.0;
 
 			if (normalizedR == max)
 			{
-				hue = ((normalizedG - normalizedB) / 6) / delta;
+				hue = (normalizedG - normalizedB) / 6 / delta;
 			}
 			else if (normalizedG == max)
 			{
-				hue = (1.0 / 3) + ((normalizedB - normalizedR) / 6) / delta;
+				hue = 1.0 / 3 + (normalizedB - normalizedR) / 6 / delta;
 			}
 			else
 			{
-				hue = (2.0 / 3) + ((normalizedR - normalizedG) / 6) / delta;
+				hue = 2.0 / 3 + (normalizedR - normalizedG) / 6 / delta;
 			}
 
 			if (hue < 0)
@@ -92,6 +92,6 @@ public class RGBToHSLTest() : BaseTest<Func<byte, byte, byte, (int, double, doub
 			}
 
 			return (h, s, l);
-		}),
+		})
 	];
 }

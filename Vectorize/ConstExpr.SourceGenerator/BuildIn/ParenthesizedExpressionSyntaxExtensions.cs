@@ -14,7 +14,7 @@ public static class ParenthesizedExpressionSyntaxExtensions
 {
 	public static bool CanRemoveParentheses(this ParenthesizedExpressionSyntax node, SemanticModel semanticModel, CancellationToken cancellationToken)
 	{
-		return CanRemoveParentheses(node, node.Parent, semanticModel, cancellationToken);
+		return node.CanRemoveParentheses(node.Parent, semanticModel, cancellationToken);
 	}
 
 	public static bool CanRemoveParentheses(this ParenthesizedExpressionSyntax node, SyntaxNode? parent, SemanticModel semanticModel, CancellationToken cancellationToken)
@@ -187,7 +187,7 @@ public static class ParenthesizedExpressionSyntaxExtensions
 		if (parent is EqualsValueClauseSyntax equalsValue && equalsValue.Value == node
 		    || parent is IfStatementSyntax ifStatement && ifStatement.Condition == node
 		    || parent is ReturnStatementSyntax returnStatement && returnStatement.Expression == node
-		    || parent is YieldStatementSyntax { RawKind: (int) SyntaxKind.YieldReturnStatement } yieldStatement && yieldStatement.Expression == node
+		    || parent is YieldStatementSyntax { RawKind: (int)SyntaxKind.YieldReturnStatement } yieldStatement && yieldStatement.Expression == node
 		    || parent is ThrowStatementSyntax throwStatement && throwStatement.Expression == node
 		    || parent is SwitchStatementSyntax switchStatement && switchStatement.Expression == node
 		    || parent is WhileStatementSyntax whileStatement && whileStatement.Condition == node
@@ -309,7 +309,7 @@ public static class ParenthesizedExpressionSyntaxExtensions
 
 		// x ?? (throw ...) -> x ?? throw ...
 		if (expression.IsKind(SyntaxKind.ThrowExpression)
-		    && parent is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.CoalesceExpression } binary
+		    && parent is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.CoalesceExpression } binary
 		    && binary.Right == node)
 		{
 			return true;
@@ -717,7 +717,7 @@ public static class ParenthesizedExpressionSyntaxExtensions
 			}
 		}
 
-		if (previousExpression is not BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LessThanExpression } lessThanExpression)
+		if (previousExpression is not BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LessThanExpression } lessThanExpression)
 		{
 			return false;
 		}
@@ -753,7 +753,7 @@ public static class ParenthesizedExpressionSyntaxExtensions
 			}
 		}
 
-		if (nextExpression is not BinaryExpressionSyntax { RawKind: (int) SyntaxKind.GreaterThanExpression } greaterThanExpression)
+		if (nextExpression is not BinaryExpressionSyntax { RawKind: (int)SyntaxKind.GreaterThanExpression } greaterThanExpression)
 		{
 			return false;
 		}
@@ -763,7 +763,9 @@ public static class ParenthesizedExpressionSyntaxExtensions
 	}
 
 	private static bool IsSimpleOrDottedName(ExpressionSyntax expression)
-		=> expression.Kind() is SyntaxKind.IdentifierName or SyntaxKind.QualifiedName or SyntaxKind.SimpleMemberAccessExpression;
+	{
+		return expression.Kind() is SyntaxKind.IdentifierName or SyntaxKind.QualifiedName or SyntaxKind.SimpleMemberAccessExpression;
+	}
 
 	public static bool CanRemoveParentheses(this ParenthesizedPatternSyntax node)
 	{
@@ -1136,13 +1138,11 @@ public static class ParenthesizedExpressionSyntaxExtensions
 
 		return true;
 
-		static bool IsArithmetic(IBinaryOperation op)
-		{
-			return op.OperatorKind is BinaryOperatorKind.Add or
+		static bool IsArithmetic(IBinaryOperation op) =>
+			op.OperatorKind is BinaryOperatorKind.Add or
 				BinaryOperatorKind.Subtract or
 				BinaryOperatorKind.Multiply or
 				BinaryOperatorKind.Divide;
-		}
 	}
 
 	internal static bool AsNode(this SyntaxNodeOrToken input, [NotNullWhen(true)] out SyntaxNode? node)
@@ -1159,7 +1159,7 @@ public static class ParenthesizedExpressionSyntaxExtensions
 
 	public static void GetPartsOfBinaryExpression(SyntaxNode node, out SyntaxNode left, out SyntaxNode right)
 	{
-		var binaryExpression = (BinaryExpressionSyntax) node;
+		var binaryExpression = (BinaryExpressionSyntax)node;
 
 		left = binaryExpression.Left;
 		right = binaryExpression.Right;
@@ -1167,7 +1167,7 @@ public static class ParenthesizedExpressionSyntaxExtensions
 }
 
 /// <summary>
-/// Operator precedence classes from section 7.3.1 of the C# language specification.
+///   Operator precedence classes from section 7.3.1 of the C# language specification.
 /// </summary>
 public enum OperatorPrecedence
 {

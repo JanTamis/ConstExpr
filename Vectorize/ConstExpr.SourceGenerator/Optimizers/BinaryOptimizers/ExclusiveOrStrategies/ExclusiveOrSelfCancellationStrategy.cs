@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ExclusiveOrStrategies;
 
 /// <summary>
-/// Strategy for self XOR: x ^ x = 0 (pure)
+///   Strategy for self XOR: x ^ x = 0 (pure)
 /// </summary>
 public class ExclusiveOrSelfCancellationStrategy : NumericBinaryStrategy
 {
@@ -14,11 +14,11 @@ public class ExclusiveOrSelfCancellationStrategy : NumericBinaryStrategy
 		if (!base.TryOptimize(context, out optimized)
 		    || !LeftEqualsRight(context)
 		    || !IsPure(context.Left.Syntax))
-    {
-      return false;
-    }
+		{
+			return false;
+		}
 
-    optimized = CreateLiteral(0.ToSpecialType(context.Type.SpecialType));
+		optimized = CreateLiteral(0.ToSpecialType(context.Type.SpecialType));
 		return true;
 	}
 }

@@ -7,11 +7,10 @@ namespace ConstExpr.SourceGenerator.Refactorers;
 using static SyntaxFactory;
 
 /// <summary>
-/// Refactorer that merges nested if-statements into a single if-statement by
-/// combining conditions with <c>&amp;&amp;</c>.
-/// Inspired by the Roslyn <c>MergeNestedIfStatementsCodeRefactoringProvider</c>.
-///
-/// <code>
+///   Refactorer that merges nested if-statements into a single if-statement by
+///   combining conditions with <c>&amp;&amp;</c>.
+///   Inspired by the Roslyn <c>MergeNestedIfStatementsCodeRefactoringProvider</c>.
+///   <code>
 /// if (a)
 /// {
 ///     if (b)
@@ -20,8 +19,8 @@ using static SyntaxFactory;
 ///     }
 /// }
 /// </code>
-/// →
-/// <code>
+///   →
+///   <code>
 /// if (a &amp;&amp; b)
 /// {
 ///     Body();
@@ -31,9 +30,9 @@ using static SyntaxFactory;
 public static class MergeNestedIfStatementsRefactoring
 {
 	/// <summary>
-	/// Tries to merge a nested if statement into its parent if statement.
-	/// The outer if must contain only the inner if (no other statements),
-	/// and neither may have an else clause.
+	///   Tries to merge a nested if statement into its parent if statement.
+	///   The outer if must contain only the inner if (no other statements),
+	///   and neither may have an else clause.
 	/// </summary>
 	public static bool TryMergeNestedIf(
 		IfStatementSyntax outerIf,
@@ -70,8 +69,8 @@ public static class MergeNestedIfStatementsRefactoring
 	}
 
 	/// <summary>
-	/// Returns <see langword="true"/> when the statement is (or wraps) a single
-	/// <see cref="IfStatementSyntax"/> with no surrounding statements.
+	///   Returns <see langword="true" /> when the statement is (or wraps) a single
+	///   <see cref="IfStatementSyntax" /> with no surrounding statements.
 	/// </summary>
 	private static bool TryGetSingleNestedIf(
 		StatementSyntax statement,
@@ -101,15 +100,15 @@ public static class MergeNestedIfStatementsRefactoring
 	}
 
 	/// <summary>
-	/// Wraps binary or-expressions in parentheses to preserve precedence when combined with <c>&amp;&amp;</c>.
+	///   Wraps binary or-expressions in parentheses to preserve precedence when combined with <c>&amp;&amp;</c>.
 	/// </summary>
 	private static ExpressionSyntax ParenthesizeIfNeeded(ExpressionSyntax expr)
 	{
-		if (expr is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LogicalOrExpression })
+		if (expr is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LogicalOrExpression })
 		{
 			return ParenthesizedExpression(expr);
 		}
-		
+
 		return expr;
 	}
 }

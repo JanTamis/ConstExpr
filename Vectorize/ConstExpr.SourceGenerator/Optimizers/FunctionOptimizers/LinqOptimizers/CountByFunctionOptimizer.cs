@@ -9,16 +9,16 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.CountBy method.
-/// Optimizes patterns such as:
-/// - collection.AsEnumerable().CountBy(keySelector) => collection.CountBy(keySelector)
-/// - collection.ToList().CountBy(keySelector) => collection.CountBy(keySelector)
-/// - collection.ToArray().CountBy(keySelector) => collection.CountBy(keySelector)
-/// - collection.OrderBy(...).CountBy(keySelector) => collection.CountBy(keySelector)
-/// - Enumerable.Empty&lt;T&gt;().CountBy(keySelector) => Enumerable.Empty&lt;KeyValuePair&lt;TKey, int&gt;&gt;()
-/// - collection.CountBy(keySelector, null) => collection.CountBy(keySelector)
-/// - collection.Where(v => true).CountBy(keySelector) => collection.CountBy(keySelector)
-/// - collection.Where(v => false).CountBy(keySelector) => Enumerable.Empty&lt;KeyValuePair&lt;TKey, int&gt;&gt;()
+///   Optimizer for Enumerable.CountBy method.
+///   Optimizes patterns such as:
+///   - collection.AsEnumerable().CountBy(keySelector) => collection.CountBy(keySelector)
+///   - collection.ToList().CountBy(keySelector) => collection.CountBy(keySelector)
+///   - collection.ToArray().CountBy(keySelector) => collection.CountBy(keySelector)
+///   - collection.OrderBy(...).CountBy(keySelector) => collection.CountBy(keySelector)
+///   - Enumerable.Empty&lt;T&gt;().CountBy(keySelector) => Enumerable.Empty&lt;KeyValuePair&lt;TKey, int&gt;&gt;()
+///   - collection.CountBy(keySelector, null) => collection.CountBy(keySelector)
+///   - collection.Where(v => true).CountBy(keySelector) => collection.CountBy(keySelector)
+///   - collection.Where(v => false).CountBy(keySelector) => Enumerable.Empty&lt;KeyValuePair&lt;TKey, int&gt;&gt;()
 /// </summary>
 public class CountByFunctionOptimizer() : BaseLinqFunctionOptimizer("CountBy", n => n is 1 or 2)
 {
@@ -47,7 +47,7 @@ public class CountByFunctionOptimizer() : BaseLinqFunctionOptimizer("CountBy", n
 		}
 
 		// Null comparer removal: CountBy(keySelector, null) => CountBy(keySelector)
-		if (context.VisitedParameters is [ _, LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NullLiteralExpression } ])
+		if (context.VisitedParameters is [ _, LiteralExpressionSyntax { RawKind: (int)SyntaxKind.NullLiteralExpression } ])
 		{
 			result = UpdateInvocation(context, currentSource, context.VisitedParameters.Take(1));
 			return true;

@@ -8,30 +8,28 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Refactorers;
 
 /// <summary>
-/// Refactorer that converts regular C# string literals to raw string literals (C# 11+),
-/// inspired by the Roslyn <c>ConvertStringToRawStringCodeRefactoringProvider</c>.
-///
-/// <list type="bullet">
-///   <item>Single-line raw strings (<c>"""..."""</c>) — when the value contains no newlines.</item>
-///   <item>Multi-line raw strings — when the value contains newline characters.</item>
-/// </list>
-///
-/// Conversion is only applied when the literal source text actually contains escape sequences,
-/// so that unescaped strings (e.g. <c>"hello"</c>) are left unchanged.
+///   Refactorer that converts regular C# string literals to raw string literals (C# 11+),
+///   inspired by the Roslyn <c>ConvertStringToRawStringCodeRefactoringProvider</c>.
+///   <list type="bullet">
+///     <item>Single-line raw strings (<c>"""..."""</c>) — when the value contains no newlines.</item>
+///     <item>Multi-line raw strings — when the value contains newline characters.</item>
+///   </list>
+///   Conversion is only applied when the literal source text actually contains escape sequences,
+///   so that unescaped strings (e.g. <c>"hello"</c>) are left unchanged.
 /// </summary>
 public static class ConvertStringToRawStringRefactoring
 {
 	/// <summary>
-	/// Tries to convert a regular string literal node to a raw string literal.
+	///   Tries to convert a regular string literal node to a raw string literal.
 	/// </summary>
 	/// <param name="node">The literal expression to inspect.</param>
 	/// <param name="result">
-	/// When this method returns <see langword="true"/>, a semantically equivalent
-	/// raw-string literal expression; otherwise <see langword="null"/>.
+	///   When this method returns <see langword="true" />, a semantically equivalent
+	///   raw-string literal expression; otherwise <see langword="null" />.
 	/// </param>
 	/// <returns>
-	/// <see langword="true"/> if the literal was converted; <see langword="false"/> if the
-	/// literal is already a raw string, is a verbatim string, or contains no escape sequences.
+	///   <see langword="true" /> if the literal was converted; <see langword="false" /> if the
+	///   literal is already a raw string, is a verbatim string, or contains no escape sequences.
 	/// </returns>
 	public static bool TryConvertToRawString(
 		LiteralExpressionSyntax node,
@@ -47,7 +45,7 @@ public static class ConvertStringToRawStringRefactoring
 		var token = node.Token;
 
 		// Already a raw string — nothing to do.
-		if (token.IsKind(SyntaxKind.SingleLineRawStringLiteralToken) 
+		if (token.IsKind(SyntaxKind.SingleLineRawStringLiteralToken)
 		    || token.IsKind(SyntaxKind.MultiLineRawStringLiteralToken))
 		{
 			return false;
@@ -55,7 +53,7 @@ public static class ConvertStringToRawStringRefactoring
 
 		// Skip verbatim strings (@"...") — they are already human-friendly.
 		var text = token.Text;
-		
+
 		if (text.Length > 0 && text[0] == '@')
 		{
 			return false;
@@ -81,8 +79,8 @@ public static class ConvertStringToRawStringRefactoring
 	// -----------------------------------------------------------------------
 
 	/// <summary>
-	/// Returns <see langword="true"/> when the source text of a string literal contains at
-	/// least one backslash escape, indicating the raw-string form would be more readable.
+	///   Returns <see langword="true" /> when the source text of a string literal contains at
+	///   least one backslash escape, indicating the raw-string form would be more readable.
 	/// </summary>
 	private static bool ContainsEscapeSequence(string sourceText)
 	{
@@ -100,8 +98,8 @@ public static class ConvertStringToRawStringRefactoring
 	}
 
 	/// <summary>
-	/// Returns <see langword="true"/> when the string value contains a newline character,
-	/// requiring a multi-line raw string literal.
+	///   Returns <see langword="true" /> when the string value contains a newline character,
+	///   requiring a multi-line raw string literal.
 	/// </summary>
 	private static bool ContainsNewline(string value)
 	{
@@ -109,9 +107,9 @@ public static class ConvertStringToRawStringRefactoring
 	}
 
 	/// <summary>
-	/// Determines the minimum number of double-quote characters needed for the raw-string
-	/// delimiter so that the delimiter sequence does not appear inside <paramref name="value"/>.
-	/// The result is always at least 3.
+	///   Determines the minimum number of double-quote characters needed for the raw-string
+	///   delimiter so that the delimiter sequence does not appear inside <paramref name="value" />.
+	///   The result is always at least 3.
 	/// </summary>
 	private static int ComputeDelimiterLength(string value)
 	{
@@ -133,8 +131,8 @@ public static class ConvertStringToRawStringRefactoring
 	}
 
 	/// <summary>
-	/// Builds a single-line raw string literal, e.g. <c>"""content"""</c>.
-	/// Used when the string value does not contain newlines.
+	///   Builds a single-line raw string literal, e.g. <c>"""content"""</c>.
+	///   Used when the string value does not contain newlines.
 	/// </summary>
 	private static ExpressionSyntax CreateSingleLineRawStringLiteral(string value, SyntaxToken original)
 	{
@@ -153,16 +151,16 @@ public static class ConvertStringToRawStringRefactoring
 	}
 
 	/// <summary>
-	/// Builds a multi-line raw string literal.
-	/// The produced form is:
-	/// <code>
+	///   Builds a multi-line raw string literal.
+	///   The produced form is:
+	///   <code>
 	/// """
 	/// &lt;line 1&gt;
 	/// &lt;line 2&gt;
 	/// """
 	/// </code>
-	/// The trailing newline before the closing delimiter is stripped by the C# compiler,
-	/// so the resulting value is semantically identical to the original.
+	///   The trailing newline before the closing delimiter is stripped by the C# compiler,
+	///   so the resulting value is semantically identical to the original.
 	/// </summary>
 	private static ExpressionSyntax CreateMultiLineRawStringLiteral(string value, SyntaxToken original)
 	{
@@ -197,8 +195,3 @@ public static class ConvertStringToRawStringRefactoring
 		return LiteralExpression(SyntaxKind.StringLiteralExpression, rawToken);
 	}
 }
-
-
-
-
-

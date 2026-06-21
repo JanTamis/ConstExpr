@@ -7,9 +7,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AddStrategies;
 
 /// <summary>
-/// Strategy for constant folding in integer addition chains without requiring AssociativeMath.
-/// Integer addition is always associative and commutative, so this is unconditionally safe.
-/// Handles:
+///   Strategy for constant folding in integer addition chains without requiring AssociativeMath.
+///   Integer addition is always associative and commutative, so this is unconditionally safe.
+///   Handles:
 ///   Pattern 1:  (x + C1) + C2       => x + (C1 + C2)
 ///   Pattern 1b: (C1 + x) + C2       => x + (C1 + C2)
 ///   Pattern 2:  ((x + C1) + y) + C2 => (x + y) + (C1 + C2)  — collects non-adjacent constants
@@ -42,8 +42,8 @@ public class AddIntegerConstantFoldingStrategy() : NumericBinaryStrategy<BinaryE
 	}
 
 	/// <summary>
-	/// Walks an addition chain (left-associative) and extracts the first constant leaf,
-	/// returning the remaining expression with the constant removed.
+	///   Walks an addition chain (left-associative) and extracts the first constant leaf,
+	///   returning the remaining expression with the constant removed.
 	/// </summary>
 	private static bool TryExtractConstant(
 		TryGetValueDelegate tryGetValue,
@@ -85,4 +85,3 @@ public class AddIntegerConstantFoldingStrategy() : NumericBinaryStrategy<BinaryE
 		return false;
 	}
 }
-

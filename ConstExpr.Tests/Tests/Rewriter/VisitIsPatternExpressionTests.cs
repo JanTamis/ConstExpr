@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
-/// Tests for VisitIsPatternExpression - constant comparison folding
+///   Tests for VisitIsPatternExpression - constant comparison folding
 /// </summary>
 [InheritsTests]
 public class VisitIsPatternExpressionTests : BaseTest<Func<int, int, object, char, bool[]>>

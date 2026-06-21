@@ -12,6 +12,6 @@ public class StringReplaceWithDifferentArgsTest() : BaseTest<Func<string, string
 	[
 		Create(s => s.Replace('a', 'b')),
 		Create(_ => "hello", [ "hello" ]),
-		Create(_ => "bbnbnb", [ "banana" ]),
+		Create(_ => "bbnbnb", [ "banana" ])
 	];
 }

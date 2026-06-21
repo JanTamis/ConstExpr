@@ -7,11 +7,11 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Single context.Method.
-/// Optimizes patterns such as:
-/// - collection.Where(predicate).Single() => collection.Single(predicate)
-/// - collection.AsEnumerable().Single() => collection.Single()
-/// - collection.ToList().Single() => collection.Single()
+///   Optimizer for Enumerable.Single context.Method.
+///   Optimizes patterns such as:
+///   - collection.Where(predicate).Single() => collection.Single(predicate)
+///   - collection.AsEnumerable().Single() => collection.Single()
+///   - collection.ToList().Single() => collection.Single()
 /// </summary>
 public class SingleFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Single), n => n is 0 or 1)
 {

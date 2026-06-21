@@ -39,7 +39,7 @@ public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 	public override SyntaxNode? VisitBlock(BlockSyntax node)
 	{
 		// Process children first so inner loops are hoisted before outer ones.
-		node = (BlockSyntax) base.VisitBlock(node)!;
+		node = (BlockSyntax)base.VisitBlock(node)!;
 
 		var statements = node.Statements;
 		List<StatementSyntax>? result = null;

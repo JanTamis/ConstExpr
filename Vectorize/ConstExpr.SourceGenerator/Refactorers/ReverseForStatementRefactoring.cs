@@ -9,29 +9,26 @@ namespace ConstExpr.SourceGenerator.Refactorers;
 using static SyntaxFactory;
 
 /// <summary>
-/// Refactorer that reverses the direction of a <c>for</c> loop.
-/// Inspired by the Roslyn <c>CSharpReverseForStatementCodeRefactoringProvider</c>.
-///
-/// <code>
+///   Refactorer that reverses the direction of a <c>for</c> loop.
+///   Inspired by the Roslyn <c>CSharpReverseForStatementCodeRefactoringProvider</c>.
+///   <code>
 /// for (var i = start; i &lt; end; i++)
 /// </code>
-/// →
-/// <code>
+///   →
+///   <code>
 /// for (var i = end - 1; i &gt;= start; i--)
 /// </code>
-///
-/// Supports:
-/// <list type="bullet">
-///   <item><c>i++</c>, <c>++i</c>, <c>i += 1</c>  ↔  <c>i--</c>, <c>--i</c>, <c>i -= 1</c></item>
-///   <item><c>&lt;</c> / <c>&lt;=</c>  ↔  <c>&gt;=</c> / <c>&gt;</c> conditions</item>
-/// </list>
-///
-/// This is a pure syntax-level refactoring; it does not check for unsigned boundary cases.
+///   Supports:
+///   <list type="bullet">
+///     <item><c>i++</c>, <c>++i</c>, <c>i += 1</c>  ↔  <c>i--</c>, <c>--i</c>, <c>i -= 1</c></item>
+///     <item><c>&lt;</c> / <c>&lt;=</c>  ↔  <c>&gt;=</c> / <c>&gt;</c> conditions</item>
+///   </list>
+///   This is a pure syntax-level refactoring; it does not check for unsigned boundary cases.
 /// </summary>
 public static class ReverseForStatementRefactoring
 {
 	/// <summary>
-	/// Tries to reverse the direction of a for-loop.
+	///   Tries to reverse the direction of a for-loop.
 	/// </summary>
 	public static bool TryReverseForStatement(
 		ForStatementSyntax forStatement,
@@ -41,8 +38,8 @@ public static class ReverseForStatementRefactoring
 
 		var declaration = forStatement.Declaration;
 
-		if (declaration is null 
-		    || declaration.Variables.Count != 1 
+		if (declaration is null
+		    || declaration.Variables.Count != 1
 		    || forStatement.Incrementors.Count != 1)
 		{
 			return false;
@@ -117,14 +114,14 @@ public static class ReverseForStatementRefactoring
 		}
 
 		// i < end  /  i <= end
-		if (condition.IsKind(SyntaxKind.LessThanExpression, SyntaxKind.LessThanOrEqualExpression) 
+		if (condition.IsKind(SyntaxKind.LessThanExpression, SyntaxKind.LessThanOrEqualExpression)
 		    && IsVariableReference(variable, condition.Left))
 		{
 			end = condition.Right;
 			equals = condition.IsKind(SyntaxKind.LessThanOrEqualExpression);
 		}
 		// end > i  /  end >= i
-		else if (condition.IsKind(SyntaxKind.GreaterThanExpression, SyntaxKind.GreaterThanOrEqualExpression) 
+		else if (condition.IsKind(SyntaxKind.GreaterThanExpression, SyntaxKind.GreaterThanOrEqualExpression)
 		         && IsVariableReference(variable, condition.Right))
 		{
 			end = condition.Left;
@@ -155,7 +152,7 @@ public static class ReverseForStatementRefactoring
 			start = condition.Right;
 		}
 		// start <= i
-		else if (condition.IsKind(SyntaxKind.LessThanOrEqualExpression) 
+		else if (condition.IsKind(SyntaxKind.LessThanOrEqualExpression)
 		         && IsVariableReference(variable, condition.Right))
 		{
 			start = condition.Left;
@@ -166,7 +163,7 @@ public static class ReverseForStatementRefactoring
 
 	private static bool IsVariableReference(VariableDeclaratorSyntax variable, ExpressionSyntax expr)
 	{
-		return expr is IdentifierNameSyntax id 
+		return expr is IdentifierNameSyntax id
 		       && id.Identifier.ValueText == variable.Identifier.ValueText;
 	}
 
@@ -204,7 +201,7 @@ public static class ReverseForStatementRefactoring
 	}
 
 	/// <summary>
-	/// Inverts the incrementor: <c>++</c> ↔ <c>--</c>, <c>+=</c> ↔ <c>-=</c>.
+	///   Inverts the incrementor: <c>++</c> ↔ <c>--</c>, <c>+=</c> ↔ <c>-=</c>.
 	/// </summary>
 	private static ExpressionSyntax InvertAfter(ExpressionSyntax after)
 	{
@@ -229,6 +226,3 @@ public static class ReverseForStatementRefactoring
 		};
 	}
 }
-
-
-

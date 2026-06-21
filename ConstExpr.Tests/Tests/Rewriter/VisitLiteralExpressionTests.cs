@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
-/// Tests for VisitLiteralExpression - literal passthrough
+///   Tests for VisitLiteralExpression - literal passthrough
 /// </summary>
 [InheritsTests]
 public class VisitLiteralExpressionTests : BaseTest<Func<int, double, (int, double, string, char, bool, int)>>

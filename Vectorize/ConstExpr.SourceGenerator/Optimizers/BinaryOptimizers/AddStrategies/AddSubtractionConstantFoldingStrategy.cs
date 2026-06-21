@@ -7,13 +7,13 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AddStrategies;
 
 /// <summary>
-/// Strategy for constant folding when adding a constant to a subtraction expression:
-/// (C1 - x) + C2 => (C1 + C2) - x  — constant on the left of inner subtract
-/// (x - C1) + C2 => x + (C2 - C1)  — constant on the right of inner subtract
-/// Both patterns also apply symmetrically: C2 + (C1 - x) and C2 + (x - C1)
-/// Example: (1 - start) + 1 => 2 - start
-/// Example: (start - 3) + 5 => start + 2
-/// Requires AssociativeMath for floating-point safety.
+///   Strategy for constant folding when adding a constant to a subtraction expression:
+///   (C1 - x) + C2 => (C1 + C2) - x  — constant on the left of inner subtract
+///   (x - C1) + C2 => x + (C2 - C1)  — constant on the right of inner subtract
+///   Both patterns also apply symmetrically: C2 + (C1 - x) and C2 + (x - C1)
+///   Example: (1 - start) + 1 => 2 - start
+///   Example: (start - 3) + 5 => start + 2
+///   Requires AssociativeMath for floating-point safety.
 /// </summary>
 public class AddSubtractionConstantFoldingStrategy() : SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, LiteralExpressionSyntax>(leftKind: SyntaxKind.SubtractExpression)
 {

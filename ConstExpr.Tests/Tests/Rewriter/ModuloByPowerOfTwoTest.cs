@@ -10,6 +10,6 @@ public class ModuloByPowerOfTwoTest : BaseTest<Func<uint, uint>>
 	[
 		Create(x => x & 7u),
 		Create(_ => 3u, [ 11u ]),
-		Create(_ => 0u, [ 8u ]),
+		Create(_ => 0u, [ 8u ])
 	];
 }

@@ -10,9 +10,9 @@ using Microsoft.CodeAnalysis.CSharp;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.RegexOptimizers;
 
 /// <summary>
-/// Optimizes <c>Regex.Count(input, pattern)</c> and <c>Regex.Count(input, pattern, options)</c>
-/// by caching a compiled <see cref="Regex"/> instance as a private static readonly field and
-/// replacing the static call with the equivalent instance method call.
+///   Optimizes <c>Regex.Count(input, pattern)</c> and <c>Regex.Count(input, pattern, options)</c>
+///   by caching a compiled <see cref="Regex" /> instance as a private static readonly field and
+///   replacing the static call with the equivalent instance method call.
 /// </summary>
 public class CountFunctionOptimizer() : BaseRegexFunctionOptimizer("Count", n => n is 2 or 3)
 {
@@ -43,7 +43,7 @@ public class CountFunctionOptimizer() : BaseRegexFunctionOptimizer("Count", n =>
 				.Skip(1)
 				.Select(s => TryGetLiteralValue(s, context, out var lit) && lit is string str ? str : s.ToFullString())
 		);
-		
+
 		var variableName = $"Regex_{patternKey.GetDeterministicHashString()}";
 
 		var field = FieldDeclaration(VariableDeclaration(IdentifierName(nameof(Regex)))

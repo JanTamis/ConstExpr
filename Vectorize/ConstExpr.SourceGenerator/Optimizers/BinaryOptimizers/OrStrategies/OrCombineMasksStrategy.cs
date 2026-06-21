@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.OrStrategies;
 
 /// <summary>
-/// Strategy for combining constant masks: (x | mask1) | mask2 => x | (mask1 | mask2)
+///   Strategy for combining constant masks: (x | mask1) | mask2 => x | (mask1 | mask2)
 /// </summary>
 public class OrCombineMasksStrategy() : SymmetricStrategy<NumericOrBooleanBinaryStrategy, BinaryExpressionSyntax, LiteralExpressionSyntax>(leftKind: SyntaxKind.BitwiseOrExpression)
 {

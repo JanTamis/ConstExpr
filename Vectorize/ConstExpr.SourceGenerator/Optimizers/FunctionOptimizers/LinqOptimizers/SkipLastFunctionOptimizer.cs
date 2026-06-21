@@ -8,10 +8,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.SkipLast context.Method.
-/// Optimizes patterns such as:
-/// - collection.SkipLast(0) => collection (skip nothing)
-/// - collection.SkipLast(n).SkipLast(m) => collection.SkipLast(n + m)
+///   Optimizer for Enumerable.SkipLast context.Method.
+///   Optimizes patterns such as:
+///   - collection.SkipLast(0) => collection (skip nothing)
+///   - collection.SkipLast(n).SkipLast(m) => collection.SkipLast(n + m)
 /// </summary>
 public class SkipLastFunctionOptimizer() : BaseLinqFunctionOptimizer("SkipLast", n => n is 1)
 {

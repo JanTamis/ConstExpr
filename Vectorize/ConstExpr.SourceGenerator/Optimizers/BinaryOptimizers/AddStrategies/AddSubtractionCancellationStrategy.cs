@@ -6,10 +6,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AddStrategies;
 
 /// <summary>
-/// Strategy for subtraction cancellation optimization:
-/// (x - a) + a => x (algebraic identity, pure)
-/// a + (x - a) => x (algebraic identity, pure)
-/// Safe under Strict (pure algebraic identity).
+///   Strategy for subtraction cancellation optimization:
+///   (x - a) + a => x (algebraic identity, pure)
+///   a + (x - a) => x (algebraic identity, pure)
+///   Safe under Strict (pure algebraic identity).
 /// </summary>
 public class AddSubtractionCancellationStrategy() : SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, ExpressionSyntax>(leftKind: SyntaxKind.SubtractExpression)
 {
@@ -24,7 +24,7 @@ public class AddSubtractionCancellationStrategy() : SymmetricStrategy<NumericBin
 			optimized = null;
 			return false;
 		}
-		
+
 		optimized = context.Left.Syntax.Left;
 		return true;
 	}

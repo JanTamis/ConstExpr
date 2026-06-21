@@ -16,8 +16,7 @@ public class TakeWhileLinqUnroller : BaseLinqUnroller
 		var predicateBody = ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, elementName)!;
 
 		// if (!predicate(item)) break;
-		statements.Add(IfStatement(InvertSyntax(predicateBody), 
+		statements.Add(IfStatement(InvertSyntax(predicateBody),
 			BreakStatement()));
 	}
 }
-

@@ -9,19 +9,22 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.ElementAtOrDefault context.Method.
-/// Optimizes patterns such as:
-/// - collection.AsEnumerable().ElementAtOrDefault(index) => collection.ElementAtOrDefault(index) (type cast doesn't affect indexing)
-/// - collection.ToList().ElementAtOrDefault(index) => collection.ElementAtOrDefault(index) (materialization doesn't affect indexing)
-/// - collection.ToArray().ElementAtOrDefault(index) => collection.ElementAtOrDefault(index) (materialization doesn't affect indexing)
-/// - collection.ElementAtOrDefault(0) => collection.FirstOrDefault() (semantically equivalent, more idiomatic)
-/// - collection.Skip(n).ElementAtOrDefault(m) => collection.ElementAtOrDefault(n + m) (index adjustment for Skip)
-/// - Enumerable.Range(start, count).ElementAtOrDefault(n) => n >= 0 &amp;&amp; n &lt; count ? start + n : default
-/// - Enumerable.Repeat(element, count).ElementAtOrDefault(n) => n >= 0 &amp;&amp; n &lt; count ? element : default
-/// Note: We can't optimize to direct array/list indexing because those throw exceptions for out-of-bounds,
-/// while ElementAtOrDefault returns default value.
-/// Note: OrderBy/OrderByDescending/Reverse DOES affect element positions, so we don't optimize those!
-/// Note: Distinct/Where/Select change the collection, so we don't optimize those either!
+///   Optimizer for Enumerable.ElementAtOrDefault context.Method.
+///   Optimizes patterns such as:
+///   - collection.AsEnumerable().ElementAtOrDefault(index) => collection.ElementAtOrDefault(index) (type cast doesn't
+///   affect indexing)
+///   - collection.ToList().ElementAtOrDefault(index) => collection.ElementAtOrDefault(index) (materialization doesn't
+///   affect indexing)
+///   - collection.ToArray().ElementAtOrDefault(index) => collection.ElementAtOrDefault(index) (materialization doesn't
+///   affect indexing)
+///   - collection.ElementAtOrDefault(0) => collection.FirstOrDefault() (semantically equivalent, more idiomatic)
+///   - collection.Skip(n).ElementAtOrDefault(m) => collection.ElementAtOrDefault(n + m) (index adjustment for Skip)
+///   - Enumerable.Range(start, count).ElementAtOrDefault(n) => n >= 0 &amp;&amp; n &lt; count ? start + n : default
+///   - Enumerable.Repeat(element, count).ElementAtOrDefault(n) => n >= 0 &amp;&amp; n &lt; count ? element : default
+///   Note: We can't optimize to direct array/list indexing because those throw exceptions for out-of-bounds,
+///   while ElementAtOrDefault returns default value.
+///   Note: OrderBy/OrderByDescending/Reverse DOES affect element positions, so we don't optimize those!
+///   Note: Distinct/Where/Select change the collection, so we don't optimize those either!
 /// </summary>
 public class ElementAtOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.ElementAtOrDefault), n => n is 1)
 {

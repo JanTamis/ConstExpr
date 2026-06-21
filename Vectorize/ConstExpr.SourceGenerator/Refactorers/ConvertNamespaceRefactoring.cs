@@ -9,34 +9,33 @@ namespace ConstExpr.SourceGenerator.Refactorers;
 using static SyntaxFactory;
 
 /// <summary>
-/// Refactorer that converts between block-scoped and file-scoped namespace declarations.
-/// Inspired by the Roslyn <c>ConvertNamespaceCodeRefactoringProvider</c>.
-///
-/// <list type="bullet">
-///   <item>Block-scoped → file-scoped:
-///     <code>
+///   Refactorer that converts between block-scoped and file-scoped namespace declarations.
+///   Inspired by the Roslyn <c>ConvertNamespaceCodeRefactoringProvider</c>.
+///   <list type="bullet">
+///     <item>
+///       Block-scoped → file-scoped:
+///       <code>
 ///     namespace Foo
 ///     {
 ///         class Bar { }
 ///     }
 ///     </code>
-///     →
-///     <code>
+///       →
+///       <code>
 ///     namespace Foo;
 ///     class Bar { }
 ///     </code>
-///   </item>
-///   <item>File-scoped → block-scoped (reverse)</item>
-/// </list>
-///
-/// Conversion to file-scoped requires that the compilation unit contains exactly one namespace
-/// and that the namespace is not nested.
+///     </item>
+///     <item>File-scoped → block-scoped (reverse)</item>
+///   </list>
+///   Conversion to file-scoped requires that the compilation unit contains exactly one namespace
+///   and that the namespace is not nested.
 /// </summary>
 public static class ConvertNamespaceRefactoring
 {
 	/// <summary>
-	/// Converts a block-scoped namespace to a file-scoped namespace.
-	/// Only succeeds when the compilation unit contains exactly one namespace at the top level.
+	///   Converts a block-scoped namespace to a file-scoped namespace.
+	///   Only succeeds when the compilation unit contains exactly one namespace at the top level.
 	/// </summary>
 	public static bool TryConvertToFileScopedNamespace(
 		NamespaceDeclarationSyntax namespaceDecl,
@@ -66,7 +65,7 @@ public static class ConvertNamespaceRefactoring
 	}
 
 	/// <summary>
-	/// Converts a file-scoped namespace to a block-scoped namespace.
+	///   Converts a file-scoped namespace to a block-scoped namespace.
 	/// </summary>
 	public static bool TryConvertToBlockScopedNamespace(
 		FileScopedNamespaceDeclarationSyntax fileScopedDecl,
@@ -86,4 +85,3 @@ public static class ConvertNamespaceRefactoring
 		return true;
 	}
 }
-

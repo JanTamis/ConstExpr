@@ -12,13 +12,13 @@ using MathMinOptimizer = ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Min context.Method.
-/// Optimizes patterns such as:
-/// - collection.Min(x => x) => collection.Min() (identity lambda removal)
-/// - collection.Select(x => x.Property).Min() => collection.Min(x => x.Property)
-/// - collection.OrderBy(...).Min() => collection.Min() (ordering doesn't affect min)
-/// - collection.AsEnumerable().Min() => collection.Min()
-/// - collection.ToList().Min() => collection.Min()
+///   Optimizer for Enumerable.Min context.Method.
+///   Optimizes patterns such as:
+///   - collection.Min(x => x) => collection.Min() (identity lambda removal)
+///   - collection.Select(x => x.Property).Min() => collection.Min(x => x.Property)
+///   - collection.OrderBy(...).Min() => collection.Min() (ordering doesn't affect min)
+///   - collection.AsEnumerable().Min() => collection.Min()
+///   - collection.ToList().Min() => collection.Min()
 /// </summary>
 public class MinFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Min), n => n is 0 or 1)
 {

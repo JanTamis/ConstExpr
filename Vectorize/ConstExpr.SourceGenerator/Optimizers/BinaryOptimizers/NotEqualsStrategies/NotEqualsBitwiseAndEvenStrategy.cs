@@ -8,7 +8,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.NotEqualsStrategies;
 
 /// <summary>
-/// Strategy for bitwise AND even detection: (x & 1) != 1 => T.IsEvenInteger(x)
+///   Strategy for bitwise AND even detection: (x & 1) != 1 => T.IsEvenInteger(x)
 /// </summary>
 public class NotEqualsBitwiseAndEvenStrategy() : SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, LiteralExpressionSyntax>(leftKind: SyntaxKind.BitwiseAndExpression)
 {
@@ -24,14 +24,14 @@ public class NotEqualsBitwiseAndEvenStrategy() : SymmetricStrategy<NumericBinary
 			optimized = null;
 			return false;
 		}
-		
+
 		optimized = InvocationExpression(
 				MemberAccessExpression(ParseTypeName(context.Left.Type!.Name), IdentifierName("IsEvenInteger")))
 			.WithArgumentList(
 				ArgumentList(
 					SingletonSeparatedList(
 						Argument(context.Left.Syntax.Left))));
-		
+
 		return true;
 	}
 }

@@ -4,10 +4,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 /// <summary>
-/// Unrolls <c>.UnionBy(second, keySelector)</c> as an intermediate step.
-/// Uses a <c>HashSet&lt;TKey&gt;</c> to deduplicate elements by projected key
-/// across both sequences. The first sequence is deduplicated in the main loop,
-/// then the second sequence is processed after the main loop with the same set.
+///   Unrolls <c>.UnionBy(second, keySelector)</c> as an intermediate step.
+///   Uses a <c>HashSet&lt;TKey&gt;</c> to deduplicate elements by projected key
+///   across both sequences. The first sequence is deduplicated in the main loop,
+///   then the second sequence is processed after the main loop with the same set.
 /// </summary>
 public class UnionByLinqUnroller : BaseLinqUnroller
 {
@@ -25,7 +25,7 @@ public class UnionByLinqUnroller : BaseLinqUnroller
 
 		// var unionBySet = new HashSet<TKey>();
 		statements.Add(CreateLocalDeclaration(SetName,
-			ObjectCreationExpression(IdentifierName($"HashSet<{typeName}>"), [])));
+			ObjectCreationExpression(IdentifierName($"HashSet<{typeName}>"), [ ])));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
@@ -81,4 +81,3 @@ public class UnionByLinqUnroller : BaseLinqUnroller
 			Block(bodyWithDedup)));
 	}
 }
-

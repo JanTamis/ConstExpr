@@ -12,22 +12,18 @@ using SourceGen.Utilities.Helpers;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
 /// <summary>
-/// Optimizer for Math.Tanh / MathF.Tanh.
-///
-/// Implementation strategy (benchmarked on Apple M4 Pro, .NET 10, ARM64 RyuJIT):
-///
+///   Optimizer for Math.Tanh / MathF.Tanh.
+///   Implementation strategy (benchmarked on Apple M4 Pro, .NET 10, ARM64 RyuJIT):
 ///   Float  – Pure FastExp path: tanh(x) = (FastExp(2x)−1)/(FastExp(2x)+1), saturated at ±5.
-///            FastExp inlined from direct-poly V2 (ln(2)ⁿ/n! coefficients, MathF.Round reduction).
-///            Eliminates the inner branch of the old hybrid; |2x| ≤ 10, safely within FastExp domain.
-///            Result: ~1.75 ns vs 2.12 ns .NET (−17%).  Old hybrid was ~1.94 ns (−9%).
-///
+///   FastExp inlined from direct-poly V2 (ln(2)ⁿ/n! coefficients, MathF.Round reduction).
+///   Eliminates the inner branch of the old hybrid; |2x| ≤ 10, safely within FastExp domain.
+///   Result: ~1.75 ns vs 2.12 ns .NET (−17%).  Old hybrid was ~1.94 ns (−9%).
 ///   Double – FastExp hybrid: Padé rational for |x| &lt; 1 (fastest for small inputs with good
-///            branch prediction), inlined FastExpDouble (direct-poly V2) for |x| ≥ 1.
-///            The old hybrid used Double.Exp (built-in) and was actually SLOWER than .NET
-///            on random [-4,4] data.  Replacing it with inlined FastExpDouble gives −4% over .NET.
-///            Result: ~2.50 ns vs 2.60 ns .NET (−4%).  Old hybrid was ~2.65 ns (+2%).
-///
-/// Benchmark results (Apple M4 Pro, .NET 10.0.1, ARM64 RyuJIT, uniform [-4,4] input):
+///   branch prediction), inlined FastExpDouble (direct-poly V2) for |x| ≥ 1.
+///   The old hybrid used Double.Exp (built-in) and was actually SLOWER than .NET
+///   on random [-4,4] data.  Replacing it with inlined FastExpDouble gives −4% over .NET.
+///   Result: ~2.50 ns vs 2.60 ns .NET (−4%).  Old hybrid was ~2.65 ns (+2%).
+///   Benchmark results (Apple M4 Pro, .NET 10.0.1, ARM64 RyuJIT, uniform [-4,4] input):
 ///   Method              Float     Ratio   Double    Ratio
 ///   ------------------  --------  ------  --------  ------
 ///   DotNetTanh          2.123 ns  1.00x   2.595 ns  1.00x
@@ -95,7 +91,7 @@ public class TanhFunctionOptimizer() : BaseMathFunctionOptimizer("Tanh", n => n 
 				value = c.ToDouble(CultureInfo.InvariantCulture);
 				return true;
 			}
-			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
 			{
 				value = -c2.ToDouble(CultureInfo.InvariantCulture);
 				return true;

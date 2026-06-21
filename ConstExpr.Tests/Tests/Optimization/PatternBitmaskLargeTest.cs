@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Optimization;
 
 /// <summary>
-/// Test with larger set of values
+///   Test with larger set of values
 /// </summary>
 [InheritsTests]
 public class PatternBitmaskLargeTest() : BaseTest<Func<int, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
@@ -15,7 +15,7 @@ public class PatternBitmaskLargeTest() : BaseTest<Func<int, bool>>(FastMathFlags
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(n => (uint) n <= 60U && (0x1004010040100401UL >> n & 1) != 0),
+		Create(n => (uint)n <= 60U && (0x1004010040100401UL >> n & 1) != 0),
 		Create(_ => true, [ 0 ]),
 		Create(_ => true, [ 10 ]),
 		Create(_ => true, [ 20 ]),
@@ -24,6 +24,6 @@ public class PatternBitmaskLargeTest() : BaseTest<Func<int, bool>>(FastMathFlags
 		Create(_ => true, [ 50 ]),
 		Create(_ => true, [ 60 ]),
 		Create(_ => false, [ 5 ]),
-		Create(_ => false, [ 25 ]),
+		Create(_ => false, [ 25 ])
 	];
 }

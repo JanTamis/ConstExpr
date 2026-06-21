@@ -62,7 +62,7 @@ public class IsPow2FunctionOptimizer() : BaseBitOperationsFunctionOptimizer("IsP
 	private static LiteralExpressionSyntax MakeUnsignedLiteral(ITypeSymbol type, int value)
 	{
 		return type.SpecialType == SpecialType.System_UInt64
-			? LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal((ulong) value))
-			: LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal((uint) value));
+			? LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal((ulong)value))
+			: LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal((uint)value));
 	}
 }

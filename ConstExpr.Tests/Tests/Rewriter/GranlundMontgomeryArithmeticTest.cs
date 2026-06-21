@@ -35,7 +35,7 @@ public class GranlundMontgomeryArithmeticTest
 	{
 		GranlundMontgomery.ComputeUnsigned(d, out var magic, out var add, out var shift);
 
-		var q0 = (uint) ((ulong) x * magic >> 32);
+		var q0 = (uint)((ulong)x * magic >> 32);
 
 		if (add)
 		{
@@ -50,7 +50,7 @@ public class GranlundMontgomeryArithmeticTest
 	{
 		GranlundMontgomery.ComputeSigned(d, out var magic, out var shift);
 
-		var q = (int) ((long) x * magic >> 32);
+		var q = (int)((long)x * magic >> 32);
 
 		if (magic < 0)
 		{
@@ -72,7 +72,7 @@ public class GranlundMontgomeryArithmeticTest
 
 		foreach (var di in Divisors())
 		{
-			var d = (uint) di;
+			var d = (uint)di;
 
 			foreach (var x in UnsignedDividends(d))
 			{
@@ -133,7 +133,7 @@ public class GranlundMontgomeryArithmeticTest
 		// Strided sweep across the full uint range.
 		for (var x = 0UL; x <= UInt32.MaxValue; x += 0x0020_0001UL)
 		{
-			yield return (uint) x;
+			yield return (uint)x;
 		}
 
 		// Top boundaries.
@@ -163,9 +163,9 @@ public class GranlundMontgomeryArithmeticTest
 		}
 
 		// Strided sweep across the full int range.
-		for (var x = (long) Int32.MinValue; x <= Int32.MaxValue; x += 0x0020_0001L)
+		for (var x = (long)Int32.MinValue; x <= Int32.MaxValue; x += 0x0020_0001L)
 		{
-			yield return (int) x;
+			yield return (int)x;
 		}
 
 		// Boundaries.

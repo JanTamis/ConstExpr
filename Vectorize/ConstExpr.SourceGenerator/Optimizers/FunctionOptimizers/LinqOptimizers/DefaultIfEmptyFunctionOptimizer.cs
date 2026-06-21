@@ -7,20 +7,23 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.DefaultIfEmpty context.Method.
-/// Optimizes patterns such as:
-/// - collection.Distinct().DefaultIfEmpty() => collection.DefaultIfEmpty() (distinctness doesn't affect empty check)
-/// - collection.OrderBy(...).DefaultIfEmpty() => collection.DefaultIfEmpty() (ordering doesn't affect empty check)
-/// - collection.OrderByDescending(...).DefaultIfEmpty() => collection.DefaultIfEmpty() (ordering doesn't affect empty check)
-/// - collection.Order().DefaultIfEmpty() => collection.DefaultIfEmpty() (ordering doesn't affect empty check)
-/// - collection.OrderDescending().DefaultIfEmpty() => collection.DefaultIfEmpty() (ordering doesn't affect empty check)
-/// - collection.ThenBy(...).DefaultIfEmpty() => collection.DefaultIfEmpty() (secondary ordering doesn't affect empty check)
-/// - collection.ThenByDescending(...).DefaultIfEmpty() => collection.DefaultIfEmpty() (secondary ordering doesn't affect empty check)
-/// - collection.Reverse().DefaultIfEmpty() => collection.DefaultIfEmpty() (reversing doesn't affect empty check)
-/// - collection.AsEnumerable().DefaultIfEmpty() => collection.DefaultIfEmpty() (type cast doesn't affect empty check)
-/// - collection.ToList().DefaultIfEmpty() => collection.DefaultIfEmpty() (materialization doesn't affect empty check)
-/// - collection.ToArray().DefaultIfEmpty() => collection.DefaultIfEmpty() (materialization doesn't affect empty check)
-/// Note: Select, Where, Skip, Take DO affect which elements are present and whether collection is empty!
+///   Optimizer for Enumerable.DefaultIfEmpty context.Method.
+///   Optimizes patterns such as:
+///   - collection.Distinct().DefaultIfEmpty() => collection.DefaultIfEmpty() (distinctness doesn't affect empty check)
+///   - collection.OrderBy(...).DefaultIfEmpty() => collection.DefaultIfEmpty() (ordering doesn't affect empty check)
+///   - collection.OrderByDescending(...).DefaultIfEmpty() => collection.DefaultIfEmpty() (ordering doesn't affect empty
+///   check)
+///   - collection.Order().DefaultIfEmpty() => collection.DefaultIfEmpty() (ordering doesn't affect empty check)
+///   - collection.OrderDescending().DefaultIfEmpty() => collection.DefaultIfEmpty() (ordering doesn't affect empty check)
+///   - collection.ThenBy(...).DefaultIfEmpty() => collection.DefaultIfEmpty() (secondary ordering doesn't affect empty
+///   check)
+///   - collection.ThenByDescending(...).DefaultIfEmpty() => collection.DefaultIfEmpty() (secondary ordering doesn't affect
+///   empty check)
+///   - collection.Reverse().DefaultIfEmpty() => collection.DefaultIfEmpty() (reversing doesn't affect empty check)
+///   - collection.AsEnumerable().DefaultIfEmpty() => collection.DefaultIfEmpty() (type cast doesn't affect empty check)
+///   - collection.ToList().DefaultIfEmpty() => collection.DefaultIfEmpty() (materialization doesn't affect empty check)
+///   - collection.ToArray().DefaultIfEmpty() => collection.DefaultIfEmpty() (materialization doesn't affect empty check)
+///   Note: Select, Where, Skip, Take DO affect which elements are present and whether collection is empty!
 /// </summary>
 public class DefaultIfEmptyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.DefaultIfEmpty), n => n is 0 or 1)
 {

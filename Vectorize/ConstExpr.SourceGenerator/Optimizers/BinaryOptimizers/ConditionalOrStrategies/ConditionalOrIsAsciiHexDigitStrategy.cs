@@ -7,24 +7,61 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalOrStrategies;
 
 /// <summary>
-/// Collapses multi-range ASCII character classification <c>||</c> chains into the
-/// corresponding <c>Char.IsXxx</c> API call.
-/// <para>
-/// The inner <c>&amp;&amp;</c> expressions are pre-optimized by
-/// <see cref="ConditionalAndStrategies.ConditionalAndCharOptimizer"/> before this
-/// strategy runs, so each range arrives as one of:
-/// <c>Char.IsAsciiDigit(c)</c>, <c>Char.IsAsciiLetterLower(c)</c>,
-/// <c>Char.IsAsciiLetterUpper(c)</c>, or <c>Char.IsBetween(c, low, high)</c>.
-/// </para>
-/// <list type="table">
-///   <listheader><term>Source pattern</term><term>Result</term></listheader>
-///   <item><term><c>(c>='0'&amp;&amp;c&lt;='9')||(c>='a'&amp;&amp;c&lt;='f')</c></term><term><c>Char.IsAsciiHexDigitLower(c)</c></term></item>
-///   <item><term><c>(c>='0'&amp;&amp;c&lt;='9')||(c>='A'&amp;&amp;c&lt;='F')</c></term><term><c>Char.IsAsciiHexDigitUpper(c)</c></term></item>
-///   <item><term><c>(c>='a'&amp;&amp;c&lt;='z')||(c>='A'&amp;&amp;c&lt;='Z')</c></term><term><c>Char.IsAsciiLetter(c)</c></term></item>
-///   <item><term><c>(c>='0'&amp;&amp;c&lt;='9')||(c>='a'&amp;&amp;c&lt;='f')||(c>='A'&amp;&amp;c&lt;='F')</c></term><term><c>Char.IsAsciiHexDigit(c)</c></term></item>
-///   <item><term><c>(c>='0'&amp;&amp;c&lt;='9')||(c>='a'&amp;&amp;c&lt;='z')||(c>='A'&amp;&amp;c&lt;='Z')</c></term><term><c>Char.IsAsciiLetterOrDigit(c)</c></term></item>
-/// </list>
-/// All orderings of the ranges are accepted.
+///   Collapses multi-range ASCII character classification <c>||</c> chains into the
+///   corresponding <c>Char.IsXxx</c> API call.
+///   <para>
+///     The inner <c>&amp;&amp;</c> expressions are pre-optimized by
+///     <see cref="ConditionalAndStrategies.ConditionalAndCharOptimizer" /> before this
+///     strategy runs, so each range arrives as one of:
+///     <c>Char.IsAsciiDigit(c)</c>, <c>Char.IsAsciiLetterLower(c)</c>,
+///     <c>Char.IsAsciiLetterUpper(c)</c>, or <c>Char.IsBetween(c, low, high)</c>.
+///   </para>
+///   <list type="table">
+///     <listheader>
+///       <term>Source pattern</term><term>Result</term>
+///     </listheader>
+///     <item>
+///       <term>
+///         <c>(c>='0'&amp;&amp;c&lt;='9')||(c>='a'&amp;&amp;c&lt;='f')</c>
+///       </term>
+///       <term>
+///         <c>Char.IsAsciiHexDigitLower(c)</c>
+///       </term>
+///     </item>
+///     <item>
+///       <term>
+///         <c>(c>='0'&amp;&amp;c&lt;='9')||(c>='A'&amp;&amp;c&lt;='F')</c>
+///       </term>
+///       <term>
+///         <c>Char.IsAsciiHexDigitUpper(c)</c>
+///       </term>
+///     </item>
+///     <item>
+///       <term>
+///         <c>(c>='a'&amp;&amp;c&lt;='z')||(c>='A'&amp;&amp;c&lt;='Z')</c>
+///       </term>
+///       <term>
+///         <c>Char.IsAsciiLetter(c)</c>
+///       </term>
+///     </item>
+///     <item>
+///       <term>
+///         <c>(c>='0'&amp;&amp;c&lt;='9')||(c>='a'&amp;&amp;c&lt;='f')||(c>='A'&amp;&amp;c&lt;='F')</c>
+///       </term>
+///       <term>
+///         <c>Char.IsAsciiHexDigit(c)</c>
+///       </term>
+///     </item>
+///     <item>
+///       <term>
+///         <c>(c>='0'&amp;&amp;c&lt;='9')||(c>='a'&amp;&amp;c&lt;='z')||(c>='A'&amp;&amp;c&lt;='Z')</c>
+///       </term>
+///       <term>
+///         <c>Char.IsAsciiLetterOrDigit(c)</c>
+///       </term>
+///     </item>
+///   </list>
+///   All orderings of the ranges are accepted.
 /// </summary>
 public class ConditionalOrAsciiCharRangeStrategy : BaseBinaryStrategy
 {
@@ -42,7 +79,7 @@ public class ConditionalOrAsciiCharRangeStrategy : BaseBinaryStrategy
 		([ ('A', 'Z'), ('a', 'z') ], "IsAsciiLetter"),
 		// 3-range patterns
 		([ ('0', '9'), ('a', 'f'), ('A', 'F') ], "IsAsciiHexDigit"),
-		([ ('0', '9'), ('A', 'Z'), ('a', 'z') ], "IsAsciiLetterOrDigit"),
+		([ ('0', '9'), ('A', 'Z'), ('a', 'z') ], "IsAsciiLetterOrDigit")
 	];
 
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
@@ -114,13 +151,13 @@ public class ConditionalOrAsciiCharRangeStrategy : BaseBinaryStrategy
 	}
 
 	/// <summary>
-	/// Recursively flattens a chain of <c>||</c> expressions into individual leaf nodes.
+	///   Recursively flattens a chain of <c>||</c> expressions into individual leaf nodes.
 	/// </summary>
 	private static void FlattenOrChain(ExpressionSyntax expr, List<ExpressionSyntax> parts)
 	{
 		switch (expr)
 		{
-			case BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LogicalOrExpression } binary:
+			case BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LogicalOrExpression } binary:
 			{
 				FlattenOrChain(binary.Left, parts);
 				FlattenOrChain(binary.Right, parts);
@@ -140,16 +177,23 @@ public class ConditionalOrAsciiCharRangeStrategy : BaseBinaryStrategy
 	}
 
 	/// <summary>
-	/// Extracts the tested char expression and appends all char bounds to
-	/// <paramref name="ranges"/> from a pre-optimized invocation.
-	/// <list type="bullet">
-	///   <item>Single-range: <c>Char.IsAscii</c>, <c>Char.IsAsciiDigit</c>, <c>Char.IsAsciiLetterLower</c>, <c>Char.IsAsciiLetterUpper</c></item>
-	///   <item>Two-range: <c>Char.IsAsciiHexDigitLower</c>, <c>Char.IsAsciiHexDigitUpper</c>, <c>Char.IsAsciiLetter</c>
-	///         — decomposed so the 3-range patterns can still be recognized.</item>
-	///   <item>Three-range: <c>Char.IsAsciiHexDigit</c>, <c>Char.IsAsciiLetterOrDigit</c>
-	///         — decomposed so they can participate in further compositions.</item>
-	///   <item>Arbitrary: <c>Char.IsBetween(c, low, high)</c></item>
-	/// </list>
+	///   Extracts the tested char expression and appends all char bounds to
+	///   <paramref name="ranges" /> from a pre-optimized invocation.
+	///   <list type="bullet">
+	///     <item>
+	///       Single-range: <c>Char.IsAscii</c>, <c>Char.IsAsciiDigit</c>, <c>Char.IsAsciiLetterLower</c>,
+	///       <c>Char.IsAsciiLetterUpper</c>
+	///     </item>
+	///     <item>
+	///       Two-range: <c>Char.IsAsciiHexDigitLower</c>, <c>Char.IsAsciiHexDigitUpper</c>, <c>Char.IsAsciiLetter</c>
+	///       — decomposed so the 3-range patterns can still be recognized.
+	///     </item>
+	///     <item>
+	///       Three-range: <c>Char.IsAsciiHexDigit</c>, <c>Char.IsAsciiLetterOrDigit</c>
+	///       — decomposed so they can participate in further compositions.
+	///     </item>
+	///     <item>Arbitrary: <c>Char.IsBetween(c, low, high)</c></item>
+	///   </list>
 	/// </summary>
 	private static bool TryExtractCharRanges(ExpressionSyntax expr, out ExpressionSyntax? charExpr, List<(char Low, char High)> ranges)
 	{
@@ -232,8 +276,8 @@ public class ConditionalOrAsciiCharRangeStrategy : BaseBinaryStrategy
 	}
 
 	/// <summary>
-	/// Returns the <c>Char.IsXxx</c> method name whose range-set exactly matches
-	/// <paramref name="ranges"/>, or <see langword="null"/> if no known pattern matches.
+	///   Returns the <c>Char.IsXxx</c> method name whose range-set exactly matches
+	///   <paramref name="ranges" />, or <see langword="null" /> if no known pattern matches.
 	/// </summary>
 	private static string? GetMethodName(List<(char Low, char High)> ranges)
 	{

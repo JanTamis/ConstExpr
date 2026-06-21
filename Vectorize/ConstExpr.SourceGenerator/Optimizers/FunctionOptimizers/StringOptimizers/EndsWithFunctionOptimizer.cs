@@ -8,10 +8,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 
 /// <summary>
-/// Optimizes EndsWith calls on string literals:
-/// - "hello".EndsWith("lo") → true
-/// - "hello".EndsWith("world") → false
-/// - "hello".EndsWith('o') → 'o' == 'o' (or false for empty string)
+///   Optimizes EndsWith calls on string literals:
+///   - "hello".EndsWith("lo") → true
+///   - "hello".EndsWith("world") → false
+///   - "hello".EndsWith('o') → 'o' == 'o' (or false for empty string)
 /// </summary>
 public class EndsWithFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "EndsWith", false, n => n is 1)
 {

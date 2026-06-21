@@ -8,13 +8,13 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.ToList context.Method.
-/// Optimizes patterns such as:
-/// - collection.ToList().ToList() => collection.ToList() (redundant ToList)
-/// - collection.ToArray().ToList() => collection.ToList()
-/// - collection.AsEnumerable().ToList() => collection.ToList()
-/// - list.Where(p).ToList() => list.FindAll(p) (direct BCL call, no LINQ pipeline)
-/// - list.Select(f).Where(p).ToList() => list.FindAll(x => p(f(x))) (fused selector+predicate)
+///   Optimizer for Enumerable.ToList context.Method.
+///   Optimizes patterns such as:
+///   - collection.ToList().ToList() => collection.ToList() (redundant ToList)
+///   - collection.ToArray().ToList() => collection.ToList()
+///   - collection.AsEnumerable().ToList() => collection.ToList()
+///   - list.Where(p).ToList() => list.FindAll(p) (direct BCL call, no LINQ pipeline)
+///   - list.Select(f).Where(p).ToList() => list.FindAll(x => p(f(x))) (fused selector+predicate)
 /// </summary>
 public class ToListFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.ToList), n => n is 0)
 {
@@ -80,9 +80,9 @@ public class ToListFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 	}
 
 	/// <summary>
-	/// Checks whether <paramref name="expression"/> resolves to a <c>List&lt;T&gt;</c> type.
-	/// Uses <c>GetTypeByMetadataName</c> for a reliable comparison that avoids
-	/// the potential NullReferenceException in <see cref="IsInvokedOnList"/>.
+	///   Checks whether <paramref name="expression" /> resolves to a <c>List&lt;T&gt;</c> type.
+	///   Uses <c>GetTypeByMetadataName</c> for a reliable comparison that avoids
+	///   the potential NullReferenceException in <see cref="IsInvokedOnList" />.
 	/// </summary>
 	private static bool IsListTypeSource(FunctionOptimizerContext context, ExpressionSyntax expression)
 	{

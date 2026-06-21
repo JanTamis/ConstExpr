@@ -8,15 +8,15 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Helpers;
 
 /// <summary>
-/// Analyzes the call graph to determine which methods are actually invoked in a compilation.
-/// Results are cached for performance. Uses recursive analysis to trace through call chains.
+///   Analyzes the call graph to determine which methods are actually invoked in a compilation.
+///   Results are cached for performance. Uses recursive analysis to trace through call chains.
 /// </summary>
 public sealed class CallGraphAnalyzer(Compilation compilation)
 {
 	private readonly ConcurrentDictionary<IMethodSymbol, bool> _invocationCache = new(SymbolEqualityComparer.Default);
 
 	/// <summary>
-	/// Checks if a method is invoked anywhere in the compilation (recursively through call chain), with caching.
+	///   Checks if a method is invoked anywhere in the compilation (recursively through call chain), with caching.
 	/// </summary>
 	public bool IsMethodInvoked(IMethodSymbol method, CancellationToken token = default)
 	{
@@ -46,13 +46,14 @@ public sealed class CallGraphAnalyzer(Compilation compilation)
 	}
 
 	/// <summary>
-	/// Checks if the method containing the given invocation is actually invoked.
-	/// Supports methods, local functions, and global statements.
+	///   Checks if the method containing the given invocation is actually invoked.
+	///   Supports methods, local functions, and global statements.
 	/// </summary>
 	public bool IsContainingMethodInvoked(InvocationExpressionSyntax invocation, CancellationToken token = default)
 	{
 		// Check for global statement - always considered invoked (it's top-level code)
 		var globalStatement = invocation.Ancestors().OfType<GlobalStatementSyntax>().FirstOrDefault();
+
 		if (globalStatement != null)
 		{
 			return true;
@@ -64,7 +65,7 @@ public sealed class CallGraphAnalyzer(Compilation compilation)
 			.FirstOrDefault();
 
 		// Also check for LocalFunctionStatementSyntax
-		var localFunction = containingMethod == null 
+		var localFunction = containingMethod == null
 			? invocation.Ancestors().OfType<LocalFunctionStatementSyntax>().FirstOrDefault()
 			: null;
 
@@ -74,7 +75,7 @@ public sealed class CallGraphAnalyzer(Compilation compilation)
 			return true;
 		}
 
-		SyntaxNode nodeToCheck = (SyntaxNode?)containingMethod ?? localFunction!;
+		var nodeToCheck = (SyntaxNode?)containingMethod ?? localFunction!;
 		var tree = nodeToCheck.SyntaxTree;
 
 		if (!compilation.SyntaxTrees.Contains(tree))
@@ -84,6 +85,7 @@ public sealed class CallGraphAnalyzer(Compilation compilation)
 
 		var semanticModel = compilation.GetSemanticModel(tree);
 		var methodSymbol = semanticModel.GetDeclaredSymbol(nodeToCheck, token) as IMethodSymbol;
+
 		if (methodSymbol == null)
 		{
 			return true;
@@ -93,7 +95,7 @@ public sealed class CallGraphAnalyzer(Compilation compilation)
 	}
 
 	/// <summary>
-	/// Clears the cache. Call this when compilation changes.
+	///   Clears the cache. Call this when compilation changes.
 	/// </summary>
 	public void ClearCache()
 	{
@@ -101,7 +103,7 @@ public sealed class CallGraphAnalyzer(Compilation compilation)
 	}
 
 	/// <summary>
-	/// Recursively checks if a method is invoked, following the call chain up to entry points.
+	///   Recursively checks if a method is invoked, following the call chain up to entry points.
 	/// </summary>
 	private bool IsMethodInvokedRecursive(IMethodSymbol targetMethod, HashSet<IMethodSymbol> visited, CancellationToken token)
 	{
@@ -138,8 +140,8 @@ public sealed class CallGraphAnalyzer(Compilation compilation)
 	}
 
 	/// <summary>
-	/// Finds all methods in the compilation that invoke the target method.
-	/// Checks regular methods, local functions, and global statements.
+	///   Finds all methods in the compilation that invoke the target method.
+	///   Checks regular methods, local functions, and global statements.
 	/// </summary>
 	private IEnumerable<IMethodSymbol> FindCallingMethods(IMethodSymbol targetMethod, CancellationToken token)
 	{
@@ -159,7 +161,7 @@ public sealed class CallGraphAnalyzer(Compilation compilation)
 
 			var semanticModel = compilation.GetSemanticModel(tree);
 			var root = tree.GetRoot(token);
-			
+
 			// Find all invocations in this tree
 			var invocations = root.DescendantNodes()
 				.OfType<InvocationExpressionSyntax>();
@@ -172,20 +174,22 @@ public sealed class CallGraphAnalyzer(Compilation compilation)
 				}
 
 				var symbol = semanticModel.GetSymbolInfo(invocation, token).Symbol as IMethodSymbol;
-				
+
 				// Check if this invocation calls our target method
-				if (symbol != null && 
+				if (symbol != null &&
 				    (SymbolEqualityComparer.Default.Equals(symbol, targetMethod) ||
-				     (symbol.OriginalDefinition != null && 
-				      SymbolEqualityComparer.Default.Equals(symbol.OriginalDefinition, targetMethod.OriginalDefinition))))
+				     symbol.OriginalDefinition != null &&
+				     SymbolEqualityComparer.Default.Equals(symbol.OriginalDefinition, targetMethod.OriginalDefinition)))
 				{
 					// Check if invocation is in a global statement - if so, it's always invoked
 					var globalStatement = invocation.Ancestors().OfType<GlobalStatementSyntax>().FirstOrDefault();
+
 					if (globalStatement != null)
 					{
 						// Global statements are top-level code, so we treat them as entry points
 						// Return the entry point method to represent the global scope
 						var entryPoint = compilation.GetEntryPoint(token);
+
 						if (entryPoint != null && callers.Add(entryPoint))
 						{
 							yield return entryPoint;
@@ -207,6 +211,7 @@ public sealed class CallGraphAnalyzer(Compilation compilation)
 					if (nodeToCheck != null)
 					{
 						var callingMethod = semanticModel.GetDeclaredSymbol(nodeToCheck, token) as IMethodSymbol;
+
 						if (callingMethod != null && callers.Add(callingMethod))
 						{
 							yield return callingMethod;
@@ -223,6 +228,7 @@ public sealed class CallGraphAnalyzer(Compilation compilation)
 		if (method.DeclaredAccessibility == Accessibility.Public)
 		{
 			var containingType = method.ContainingType;
+
 			while (containingType != null)
 			{
 				if (containingType.DeclaredAccessibility != Accessibility.Public)
@@ -248,16 +254,18 @@ public sealed class CallGraphAnalyzer(Compilation compilation)
 
 		// Test methods
 		var testAttributes = new[] { "Test", "TestMethod", "Fact", "Theory", "TestCase" };
-		if (method.GetAttributes().Any(attr => 
-			testAttributes.Any(ta => attr.AttributeClass?.Name.Contains(ta) == true)))
+
+		if (method.GetAttributes().Any(attr =>
+			    testAttributes.Any(ta => attr.AttributeClass?.Name.Contains(ta) == true)))
 		{
 			return true;
 		}
 
 		// Methods with special attributes that indicate they're entry points
 		var entryPointAttributes = new[] { "EntryPoint", "WebMethod", "Action", "HttpGet", "HttpPost" };
-		if (method.GetAttributes().Any(attr => 
-			entryPointAttributes.Any(ea => attr.AttributeClass?.Name.Contains(ea) == true)))
+
+		if (method.GetAttributes().Any(attr =>
+			    entryPointAttributes.Any(ea => attr.AttributeClass?.Name.Contains(ea) == true)))
 		{
 			return true;
 		}

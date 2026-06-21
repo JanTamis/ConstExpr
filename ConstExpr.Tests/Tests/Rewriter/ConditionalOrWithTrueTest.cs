@@ -10,6 +10,6 @@ public class ConditionalOrWithTrueTest : BaseTest<Func<bool, bool>>
 	[
 		Create(_ => true),
 		Create(_ => true, [ true ]),
-		Create(_ => true, [ false ]),
+		Create(_ => true, [ false ])
 	];
 }

@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
-/// Tests for VisitWhileStatement - loop unrolling with constant condition
+///   Tests for VisitWhileStatement - loop unrolling with constant condition
 /// </summary>
 [InheritsTests]
 public class VisitWhileStatementTests : BaseTest<Func<int, bool, (int, int, int, int)>>

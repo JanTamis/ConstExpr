@@ -13,8 +13,8 @@ public interface IBinaryStrategy<TLeft, TRight> : IBinaryStrategy
 public interface IBinaryStrategy
 {
 	/// <summary>
-	/// Gets the FastMathFlags required for this optimization strategy to be applied.
-	/// Strategies that don't require fast-math flags should return <see cref="FastMathFlags.Strict"/>.
+	///   Gets the FastMathFlags required for this optimization strategy to be applied.
+	///   Strategies that don't require fast-math flags should return <see cref="FastMathFlags.Strict" />.
 	/// </summary>
 	FastMathFlags[] RequiredFlags { get; }
 }

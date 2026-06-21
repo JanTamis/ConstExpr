@@ -6,11 +6,11 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.UnionBy context.Method.
-/// Optimizes patterns such as:
-/// - collection.UnionBy(Enumerable.Empty&lt;T&gt;(), selector) => collection.DistinctBy(selector)
-/// - Enumerable.Empty&lt;T&gt;().UnionBy(collection, selector) => collection.DistinctBy(selector)
-/// - collection.UnionBy(collection, selector) => collection.DistinctBy(selector) (same source)
+///   Optimizer for Enumerable.UnionBy context.Method.
+///   Optimizes patterns such as:
+///   - collection.UnionBy(Enumerable.Empty&lt;T&gt;(), selector) => collection.DistinctBy(selector)
+///   - Enumerable.Empty&lt;T&gt;().UnionBy(collection, selector) => collection.DistinctBy(selector)
+///   - collection.UnionBy(collection, selector) => collection.DistinctBy(selector) (same source)
 /// </summary>
 public class UnionByFunctionOptimizer() : BaseLinqFunctionOptimizer("UnionBy", n => n is 2)
 {

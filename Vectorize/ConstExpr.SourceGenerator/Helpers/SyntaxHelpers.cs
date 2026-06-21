@@ -261,7 +261,7 @@ public static class SyntaxHelpers
 
 				if (elemType == typeof(char))
 				{
-					var chars = (char[]) array;
+					var chars = (char[])array;
 
 					result = CreateLiteral(new string(chars));
 					return true;
@@ -269,7 +269,7 @@ public static class SyntaxHelpers
 
 				if (elemType == typeof(byte))
 				{
-					var bytes = (byte[]) array;
+					var bytes = (byte[])array;
 					var data = Encoding.UTF8.GetString(bytes);
 					var escaped = data
 						.Replace("\\", @"\\")
@@ -388,7 +388,7 @@ public static class SyntaxHelpers
 				elements.Add(ExpressionElement(itemExpr));
 			}
 
-			result = CollectionExpression(SeparatedList<CollectionElementSyntax>(elements));
+			result = CollectionExpression(SeparatedList(elements));
 			return true;
 		}
 
@@ -821,7 +821,7 @@ public static class SyntaxHelpers
 	{
 		if (namespaceSymbol is null || namespaceSymbol.IsGlobalNamespace)
 		{
-			return string.Empty;
+			return String.Empty;
 		}
 
 		var parts = new List<string>();
@@ -1177,9 +1177,9 @@ public static class SyntaxHelpers
 	}
 
 	/// <summary>
-	/// Checks if the method containing the given invocation is actually invoked in the compilation.
-	/// Uses recursive call graph analysis to trace through intermediate callers.
-	/// Supports methods, local functions, and global statements.
+	///   Checks if the method containing the given invocation is actually invoked in the compilation.
+	///   Uses recursive call graph analysis to trace through intermediate callers.
+	///   Supports methods, local functions, and global statements.
 	/// </summary>
 	/// <param name="compilation">The compilation context</param>
 	/// <param name="invocation">The invocation expression to check</param>
@@ -1212,7 +1212,7 @@ public static class SyntaxHelpers
 			return true;
 		}
 
-		SyntaxNode nodeToCheck = (SyntaxNode?) containingMethod ?? localFunction!;
+		var nodeToCheck = (SyntaxNode?)containingMethod ?? localFunction!;
 		var tree = nodeToCheck.SyntaxTree;
 
 		if (!compilation.SyntaxTrees.Contains(tree))
@@ -1421,8 +1421,8 @@ public static class SyntaxHelpers
 			// invert binary expressions with logical operators
 			BinaryExpressionSyntax binary => binary.Kind() switch
 			{
-				SyntaxKind.LogicalAndExpression => LogicalOrExpression(InvertSyntax(binary.Left), InvertSyntax(binary.Right)),
-				SyntaxKind.LogicalOrExpression => LogicalAndExpression(InvertSyntax(binary.Left), InvertSyntax(binary.Right)),
+				SyntaxKind.LogicalAndExpression => LogicalOrExpression(binary.Left.InvertSyntax(), binary.Right.InvertSyntax()),
+				SyntaxKind.LogicalOrExpression => LogicalAndExpression(binary.Left.InvertSyntax(), binary.Right.InvertSyntax()),
 				SyntaxKind.EqualsExpression => NotEqualsExpression(binary.Left, binary.Right),
 				SyntaxKind.NotEqualsExpression => EqualsExpression(binary.Left, binary.Right),
 				SyntaxKind.GreaterThanExpression => LessThanOrEqualExpression(binary.Left, binary.Right),
@@ -1443,7 +1443,7 @@ public static class SyntaxHelpers
 	}
 
 	/// <summary>
-	/// Recursively checks if a method is invoked, following the call chain up to entry points.
+	///   Recursively checks if a method is invoked, following the call chain up to entry points.
 	/// </summary>
 	private static bool IsMethodInvokedRecursive(Compilation compilation, IMethodSymbol targetMethod, HashSet<IMethodSymbol> visited, RoslynApiCache? cache, CancellationToken token)
 	{
@@ -1480,9 +1480,9 @@ public static class SyntaxHelpers
 	}
 
 	/// <summary>
-	/// Finds all methods in the compilation that invoke the target method.
-	/// Checks regular methods, local functions, and global statements.
-	/// Uses RoslynApiCache to avoid expensive repeated GetSymbolInfo calls.
+	///   Finds all methods in the compilation that invoke the target method.
+	///   Checks regular methods, local functions, and global statements.
+	///   Uses RoslynApiCache to avoid expensive repeated GetSymbolInfo calls.
 	/// </summary>
 	private static IEnumerable<IMethodSymbol> FindCallingMethods(Compilation compilation, IMethodSymbol targetMethod, RoslynApiCache? cache, CancellationToken token)
 	{
@@ -1515,14 +1515,14 @@ public static class SyntaxHelpers
 				}
 
 				// Check if this invocation calls our target method - USE CACHE HERE
-				SymbolInfo symbolInfo = cache != null
+				var symbolInfo = cache != null
 					? cache.GetOrAddSymbolInfo(invocation, semanticModel, token)
 					: semanticModel.GetSymbolInfo(invocation, token);
 
 				if (symbolInfo.Symbol is IMethodSymbol symbol &&
 				    (SymbolEqualityComparer.Default.Equals(symbol, targetMethod) ||
-				     (symbol.OriginalDefinition != null &&
-				      SymbolEqualityComparer.Default.Equals(symbol.OriginalDefinition, targetMethod.OriginalDefinition))))
+				     symbol.OriginalDefinition != null &&
+				     SymbolEqualityComparer.Default.Equals(symbol.OriginalDefinition, targetMethod.OriginalDefinition)))
 				{
 					// Check if invocation is in a global statement - if so, it's always invoked
 					var globalStatement = invocation.Ancestors().OfType<GlobalStatementSyntax>().FirstOrDefault();
@@ -1549,7 +1549,7 @@ public static class SyntaxHelpers
 						? invocation.Ancestors().OfType<LocalFunctionStatementSyntax>().FirstOrDefault()
 						: null;
 
-					var nodeToCheck = (SyntaxNode?) containingMethod ?? localFunction;
+					var nodeToCheck = (SyntaxNode?)containingMethod ?? localFunction;
 
 					if (nodeToCheck != null)
 					{
@@ -1564,7 +1564,7 @@ public static class SyntaxHelpers
 	}
 
 	/// <summary>
-	/// Checks if a method is a public API method (likely to be called from outside)
+	///   Checks if a method is a public API method (likely to be called from outside)
 	/// </summary>
 	private static bool IsPublicApiMethod(IMethodSymbol method)
 	{

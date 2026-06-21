@@ -8,27 +8,25 @@ namespace ConstExpr.SourceGenerator.Refactorers;
 using static SyntaxFactory;
 
 /// <summary>
-/// Refactorer that inverts an if-statement by negating its condition and swapping
-/// the true/false branches.
-/// Inspired by the Roslyn <c>InvertIfCodeRefactoringProvider</c>.
-///
-/// <code>
+///   Refactorer that inverts an if-statement by negating its condition and swapping
+///   the true/false branches.
+///   Inspired by the Roslyn <c>InvertIfCodeRefactoringProvider</c>.
+///   <code>
 /// if (condition) { A(); } else { B(); }
 /// </code>
-/// →
-/// <code>
+///   →
+///   <code>
 /// if (!condition) { B(); } else { A(); }
 /// </code>
-///
-/// When there is no else clause but the if-body ends with a jump statement (return, break,
-/// continue, throw), the code after the if is moved into the body and the original body
-/// becomes the continuation.
+///   When there is no else clause but the if-body ends with a jump statement (return, break,
+///   continue, throw), the code after the if is moved into the body and the original body
+///   becomes the continuation.
 /// </summary>
 public static class InvertIfRefactoring
 {
 	/// <summary>
-	/// Inverts an if-statement that has an else clause by negating the condition
-	/// and swapping the true/false branches.
+	///   Inverts an if-statement that has an else clause by negating the condition
+	///   and swapping the true/false branches.
 	/// </summary>
 	public static bool TryInvertIf(
 		IfStatementSyntax ifStatement,
@@ -63,10 +61,9 @@ public static class InvertIfRefactoring
 	}
 
 	/// <summary>
-	/// Inverts an else-less if-statement that ends with a jump, pulling the subsequent
-	/// code into the if-body and moving the original body after it.
-	///
-	/// Requires the if-statement to be directly inside a block.
+	///   Inverts an else-less if-statement that ends with a jump, pulling the subsequent
+	///   code into the if-body and moving the original body after it.
+	///   Requires the if-statement to be directly inside a block.
 	/// </summary>
 	public static bool TryInvertIfWithoutElse(
 		IfStatementSyntax ifStatement,
@@ -163,4 +160,3 @@ public static class InvertIfRefactoring
 			: new SyntaxList<StatementSyntax>(statement);
 	}
 }
-

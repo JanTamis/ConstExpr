@@ -6,13 +6,13 @@ namespace ConstExpr.Tests.Math;
 [InheritsTests]
 public class MathLerpTest() : BaseTest<Func<double, double, double, double>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
 {
-	public override string TestMethod => GetString((a, b, t) => double.Lerp(a, b, t));
+	public override string TestMethod => GetString((a, b, t) => Double.Lerp(a, b, t));
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return FastLerp(a, b, t);"),
 		Create((_, _, _) => 5D, [ 0.0, 10.0, 0.5 ]),
 		Create((_, _, _) => 0D, [ 0.0, 10.0, 0.0 ]),
-		Create((_, _, _) => 10D, [ 0.0, 10.0, 1.0 ]),
+		Create((_, _, _) => 10D, [ 0.0, 10.0, 1.0 ])
 	];
 }

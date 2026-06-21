@@ -9,10 +9,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Take context.Method.
-/// Optimizes patterns such as:
-/// - collection.Take(0) =&gt; Enumerable.Empty&lt;T&gt;() (replace with empty collection)
-/// - collection.Skip(n).Take(m) =&gt; potential range optimization
+///   Optimizer for Enumerable.Take context.Method.
+///   Optimizes patterns such as:
+///   - collection.Take(0) =&gt; Enumerable.Empty&lt;T&gt;() (replace with empty collection)
+///   - collection.Skip(n).Take(m) =&gt; potential range optimization
 /// </summary>
 public class TakeFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Take), n => n is 1)
 {

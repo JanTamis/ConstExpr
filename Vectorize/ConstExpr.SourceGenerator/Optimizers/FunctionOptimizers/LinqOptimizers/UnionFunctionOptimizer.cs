@@ -10,11 +10,11 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Union context.Method.
-/// Optimizes patterns such as:
-/// - collection.Union(Enumerable.Empty&lt;T&gt;()) => collection.Distinct() (union with empty)
-/// - Enumerable.Empty&lt;T&gt;().Union(collection) => collection.Distinct()
-/// - collection.Union(collection) => collection.Distinct() (same source)
+///   Optimizer for Enumerable.Union context.Method.
+///   Optimizes patterns such as:
+///   - collection.Union(Enumerable.Empty&lt;T&gt;()) => collection.Distinct() (union with empty)
+///   - Enumerable.Empty&lt;T&gt;().Union(collection) => collection.Distinct()
+///   - collection.Union(collection) => collection.Distinct() (same source)
 /// </summary>
 public class UnionFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Union), n => n is 1)
 {

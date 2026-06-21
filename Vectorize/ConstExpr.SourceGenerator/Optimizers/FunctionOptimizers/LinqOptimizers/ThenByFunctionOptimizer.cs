@@ -7,9 +7,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.ThenBy context.Method.
-/// Optimizes patterns such as:
-/// - OrderBy(x => x).ThenBy(y => y) => Order().ThenBy(y => y) (identity key for Order)
+///   Optimizer for Enumerable.ThenBy context.Method.
+///   Optimizes patterns such as:
+///   - OrderBy(x => x).ThenBy(y => y) => Order().ThenBy(y => y) (identity key for Order)
 /// </summary>
 public class ThenByFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.ThenBy), n => n is 1)
 {

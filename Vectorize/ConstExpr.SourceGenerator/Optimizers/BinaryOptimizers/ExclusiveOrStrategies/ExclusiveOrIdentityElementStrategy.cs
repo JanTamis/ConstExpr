@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ExclusiveOrStrategies;
 
 /// <summary>
-/// Strategy for identity element: x ^ 0 = x and 0 ^ x = x
+///   Strategy for identity element: x ^ 0 = x and 0 ^ x = x
 /// </summary>
 public class ExclusiveOrIdentityElementStrategy : SymmetricStrategy<NumericBinaryStrategy, LiteralExpressionSyntax, ExpressionSyntax>
 {

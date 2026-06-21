@@ -9,24 +9,22 @@ namespace ConstExpr.SourceGenerator.Refactorers;
 using static SyntaxFactory;
 
 /// <summary>
-/// Refactorer that converts top-level statements to an explicit <c>Program.Main</c>
-/// method, and vice versa.
-/// Inspired by the Roslyn <c>ConvertProgramTransform_ProgramMain</c> and
-/// <c>ConvertProgramTransform_TopLevelStatements</c>.
-///
-/// This is a simplified pure-syntax transformation.
+///   Refactorer that converts top-level statements to an explicit <c>Program.Main</c>
+///   method, and vice versa.
+///   Inspired by the Roslyn <c>ConvertProgramTransform_ProgramMain</c> and
+///   <c>ConvertProgramTransform_TopLevelStatements</c>.
+///   This is a simplified pure-syntax transformation.
 /// </summary>
 public static class ConvertProgramRefactoring
 {
 	/// <summary>
-	/// Wraps top-level statements in a <c>Program</c> class with a <c>Main</c> method.
-	///
-	/// <code>
+	///   Wraps top-level statements in a <c>Program</c> class with a <c>Main</c> method.
+	///   <code>
 	/// using System;
 	/// Console.WriteLine("Hi");
 	/// </code>
-	/// →
-	/// <code>
+	///   →
+	///   <code>
 	/// using System;
 	/// class Program
 	/// {
@@ -90,9 +88,8 @@ public static class ConvertProgramRefactoring
 	}
 
 	/// <summary>
-	/// Extracts statements from a <c>Program.Main</c> method to top-level statements.
-	///
-	/// Looks for a class named <c>Program</c> with a single static <c>Main</c> method.
+	///   Extracts statements from a <c>Program.Main</c> method to top-level statements.
+	///   Looks for a class named <c>Program</c> with a single static <c>Main</c> method.
 	/// </summary>
 	public static bool TryConvertProgramMainToTopLevelStatements(
 		CompilationUnitSyntax compilationUnit,
@@ -153,4 +150,3 @@ public static class ConvertProgramRefactoring
 		return true;
 	}
 }
-

@@ -8,22 +8,25 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.ToDictionary method.
-/// Optimizes patterns such as:
-/// - collection.AsEnumerable().ToDictionary(keySelector) => collection.ToDictionary(keySelector)
-/// - collection.ToList().ToDictionary(keySelector) => collection.ToDictionary(keySelector)
-/// - collection.ToArray().ToDictionary(keySelector) => collection.ToDictionary(keySelector)
-/// - collection.OrderBy(...).ToDictionary(keySelector) => collection.ToDictionary(keySelector)
-/// - collection.OrderByDescending(...).ToDictionary(keySelector) => collection.ToDictionary(keySelector)
-/// - collection.Reverse().ToDictionary(keySelector) => collection.ToDictionary(keySelector)
-/// - collection.Distinct().ToDictionary(keySelector) => collection.ToDictionary(keySelector)
-/// - collection.Select(x => x).ToDictionary(keySelector) => collection.ToDictionary(keySelector)
-/// - collection.ToDictionary(keySelector, x => x) => collection.ToDictionary(keySelector) (identity element-selector)
-/// - Enumerable.Empty&lt;T&gt;().ToDictionary(keySelector) => new Dictionary&lt;TKey, TValue&gt;()
-/// - Enumerable.Empty&lt;T&gt;().ToDictionary(keySelector, elementSelector) => new Dictionary&lt;TKey, TValue&gt;()
-/// - collection.Select(selector).ToDictionary(keySelector) => collection.ToDictionary(x => keySelector(selector(x)), selector) (fold Select into ToDictionary)
-/// - collection.Where(p1).Where(p2).ToDictionary(keySelector) => collection.Where(p1 &amp;&amp; p2).ToDictionary(keySelector) (merge chained Where predicates)
-/// - collection.DistinctBy(selector).ToDictionary(keySelector) => collection.ToDictionary(keySelector) (when keySelector matches selector, DistinctBy is redundant since dictionary keys are unique)
+///   Optimizer for Enumerable.ToDictionary method.
+///   Optimizes patterns such as:
+///   - collection.AsEnumerable().ToDictionary(keySelector) => collection.ToDictionary(keySelector)
+///   - collection.ToList().ToDictionary(keySelector) => collection.ToDictionary(keySelector)
+///   - collection.ToArray().ToDictionary(keySelector) => collection.ToDictionary(keySelector)
+///   - collection.OrderBy(...).ToDictionary(keySelector) => collection.ToDictionary(keySelector)
+///   - collection.OrderByDescending(...).ToDictionary(keySelector) => collection.ToDictionary(keySelector)
+///   - collection.Reverse().ToDictionary(keySelector) => collection.ToDictionary(keySelector)
+///   - collection.Distinct().ToDictionary(keySelector) => collection.ToDictionary(keySelector)
+///   - collection.Select(x => x).ToDictionary(keySelector) => collection.ToDictionary(keySelector)
+///   - collection.ToDictionary(keySelector, x => x) => collection.ToDictionary(keySelector) (identity element-selector)
+///   - Enumerable.Empty&lt;T&gt;().ToDictionary(keySelector) => new Dictionary&lt;TKey, TValue&gt;()
+///   - Enumerable.Empty&lt;T&gt;().ToDictionary(keySelector, elementSelector) => new Dictionary&lt;TKey, TValue&gt;()
+///   - collection.Select(selector).ToDictionary(keySelector) => collection.ToDictionary(x => keySelector(selector(x)),
+///   selector) (fold Select into ToDictionary)
+///   - collection.Where(p1).Where(p2).ToDictionary(keySelector) => collection.Where(p1 &amp;&amp;
+///   p2).ToDictionary(keySelector) (merge chained Where predicates)
+///   - collection.DistinctBy(selector).ToDictionary(keySelector) => collection.ToDictionary(keySelector) (when keySelector
+///   matches selector, DistinctBy is redundant since dictionary keys are unique)
 /// </summary>
 public class ToDictionaryFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.ToDictionary), n => n is 1 or 2 or 3)
 {

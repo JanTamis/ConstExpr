@@ -67,7 +67,7 @@ public class MinByLinqUnroller : BaseLinqUnroller
 		}
 
 		// For the enumerator path the element is e.Current, not the foreach loop variable.
-		var element = (!IsInvokedOnArray(method.CollectionType) && !IsInvokedOnCollection(method.CollectionType))
+		var element = !IsInvokedOnArray(method.CollectionType) && !IsInvokedOnCollection(method.CollectionType)
 			? MemberAccessExpression(IdentifierName("e"), IdentifierName("Current"))
 			: elementName;
 
@@ -89,7 +89,7 @@ public class MinByLinqUnroller : BaseLinqUnroller
 
 	public override void CreateLoop(UnrolledLinqMethod method, ITypeSymbol collectionType, IList<StatementSyntax> statements, string collectionName, IList<StatementSyntax> resultStatements)
 	{
-		if (IsInvokedOnArray(collectionType) 
+		if (IsInvokedOnArray(collectionType)
 		    || IsInvokedOnCollection(collectionType))
 		{
 			var countProperty = IsInvokedOnArray(collectionType) ? "Length" : "Count";
@@ -106,7 +106,7 @@ public class MinByLinqUnroller : BaseLinqUnroller
 
 	public override ExpressionSyntax GetCollectionElement(UnrolledLinqMethod method, string collectionName)
 	{
-		if (IsInvokedOnArray(method.CollectionType) 
+		if (IsInvokedOnArray(method.CollectionType)
 		    || IsInvokedOnCollection(method.CollectionType))
 		{
 			return ElementAccessExpression(IdentifierName(collectionName), IdentifierName("i")!);

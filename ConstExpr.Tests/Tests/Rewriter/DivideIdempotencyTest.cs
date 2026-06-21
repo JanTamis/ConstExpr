@@ -10,6 +10,6 @@ public class DivideIdempotencyTest : BaseTest<Func<int, int>>
 	[
 		Create(_ => 1),
 		Create(_ => 1, [ 5 ]),
-		Create(_ => 1, [ -3 ]),
+		Create(_ => 1, [ -3 ])
 	];
 }

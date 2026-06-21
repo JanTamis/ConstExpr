@@ -22,8 +22,8 @@ using ExpressionVisitor = ConstExpr.SourceGenerator.Visitors.ExpressionVisitor;
 namespace ConstExpr.SourceGenerator.Rewriters;
 
 /// <summary>
-/// Invocation and member access visitor methods for the ConstExprPartialRewriter.
-/// Handles method invocations, element access, and member access expressions.
+///   Invocation and member access visitor methods for the ConstExprPartialRewriter.
+///   Handles method invocations, element access, and member access expressions.
 /// </summary>
 public partial class ConstExprPartialRewriter
 {
@@ -205,7 +205,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Tries to handle nameof(...) expressions.
+	///   Tries to handle nameof(...) expressions.
 	/// </summary>
 	private bool TryHandleNameof(InvocationExpressionSyntax node, out SyntaxNode? result)
 	{
@@ -246,7 +246,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Extracts constant arguments from visited arguments.
+	///   Extracts constant arguments from visited arguments.
 	/// </summary>
 	private List<object> ExtractConstantArguments(IReadOnlyList<ExpressionSyntax> arguments, SeparatedSyntaxList<ArgumentSyntax> originalArguments)
 	{
@@ -271,7 +271,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Tries to execute a method with constant arguments.
+	///   Tries to execute a method with constant arguments.
 	/// </summary>
 	private SyntaxNode? TryExecuteWithConstantArguments(InvocationExpressionSyntax node, IMethodSymbol targetMethod, List<object> constantArguments)
 	{
@@ -308,7 +308,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Tries to execute an instance method.
+	///   Tries to execute an instance method.
 	/// </summary>
 	private SyntaxNode? TryExecuteInstanceMethod(IMethodSymbol targetMethod, ExpressionSyntax instanceName, List<object> constantArguments)
 	{
@@ -341,7 +341,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Tries to execute a method via the operation visitor.
+	///   Tries to execute a method via the operation visitor.
 	/// </summary>
 	private SyntaxNode? TryExecuteViaOperationVisitor(IMethodSymbol targetMethod, List<object> constantArguments)
 	{
@@ -392,7 +392,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Tries to optimize a string method.
+	///   Tries to optimize a string method.
 	/// </summary>
 	private SyntaxNode? TryOptimizeStringMethod(SemanticModel model, IMethodSymbol targetMethod, InvocationExpressionSyntax node, MemberAccessExpressionSyntax memberAccess, IReadOnlyList<ExpressionSyntax> visitedArguments, SeparatedSyntaxList<ArgumentSyntax> originalArguments)
 	{
@@ -420,7 +420,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Tries to optimize a math method.
+	///   Tries to optimize a math method.
 	/// </summary>
 	private SyntaxNode? TryOptimizeMathMethod(SemanticModel model, IMethodSymbol targetMethod, InvocationExpressionSyntax node, IReadOnlyList<ExpressionSyntax> visitedArguments, SeparatedSyntaxList<ArgumentSyntax> originalArguments)
 	{
@@ -444,7 +444,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Tries to optimize a linq method.
+	///   Tries to optimize a linq method.
 	/// </summary>
 	private SyntaxNode? TryOptimizeLinqMethod(SemanticModel model, IMethodSymbol targetMethod, InvocationExpressionSyntax node, IReadOnlyList<ExpressionSyntax> visitedArguments, SeparatedSyntaxList<ArgumentSyntax> originalArguments)
 	{
@@ -471,7 +471,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Tries to optimize a Regex method (e.g. Regex.IsMatch) by converting the constant pattern to inline C# code.
+	///   Tries to optimize a Regex method (e.g. Regex.IsMatch) by converting the constant pattern to inline C# code.
 	/// </summary>
 	private SyntaxNode? TryOptimizeRegexMethod(SemanticModel model, IMethodSymbol targetMethod, InvocationExpressionSyntax node, IReadOnlyList<ExpressionSyntax> visitedArguments, SeparatedSyntaxList<ArgumentSyntax> originalArguments)
 	{
@@ -573,7 +573,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Converts arguments to char if there's a char overload available.
+	///   Converts arguments to char if there's a char overload available.
 	/// </summary>
 	private bool ConvertToCharOverloadIfNeeded(IMethodSymbol targetMethod, IReadOnlyList<ExpressionSyntax> arguments, [NotNullWhen(true)] out ExpressionSyntax[]? newArguments, [NotNullWhen(true)] out IMethodSymbol? charMethod)
 	{
@@ -604,7 +604,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Handles static method invocation.
+	///   Handles static method invocation.
 	/// </summary>
 	private SyntaxNode? HandleStaticMethodInvocation(InvocationExpressionSyntax node, IMethodSymbol targetMethod, IReadOnlyList<ExpressionSyntax> arguments)
 	{
@@ -653,7 +653,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Counts the number of invocations of a local function within its declaring block.
+	///   Counts the number of invocations of a local function within its declaring block.
 	/// </summary>
 	private int CountLocalFunctionInvocations(IMethodSymbol targetMethod)
 	{
@@ -676,7 +676,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Tries to inline a local function at the call site by substituting arguments into the function body.
+	///   Tries to inline a local function at the call site by substituting arguments into the function body.
 	/// </summary>
 	private SyntaxNode? TryInlineLocalFunction(IMethodSymbol targetMethod, IReadOnlyList<ExpressionSyntax> arguments)
 	{
@@ -711,16 +711,16 @@ public partial class ConstExprPartialRewriter
 
 				if (TryGetLiteralValue(argExpr, out var literalValue))
 				{
-					subParams[paramName] = new VariableItem(paramType, hasValue: true, value: literalValue, isInitialized: true)
+					subParams[paramName] = new VariableItem(paramType, true, literalValue, true)
 					{
-						CanBeInlined = true,
+						CanBeInlined = true
 					};
 				}
 				else
 				{
-					subParams[paramName] = new VariableItem(paramType, hasValue: false, value: argExpr, isInitialized: true)
+					subParams[paramName] = new VariableItem(paramType, false, argExpr, true)
 					{
-						CanBeInlined = true,
+						CanBeInlined = true
 					};
 				}
 			}
@@ -761,7 +761,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Gets the inlined syntax for a method.
+	///   Gets the inlined syntax for a method.
 	/// </summary>
 	private SyntaxNode? GetInlinedMethodSyntax(IMethodSymbol targetMethod)
 	{
@@ -807,7 +807,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Handles instance method invocation.
+	///   Handles instance method invocation.
 	/// </summary>
 	private SyntaxNode? HandleInstanceMethodInvocation(InvocationExpressionSyntax node, IMethodSymbol targetMethod, IReadOnlyList<ExpressionSyntax> arguments)
 	{
@@ -857,7 +857,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Tries to invoke a delegate.
+	///   Tries to invoke a delegate.
 	/// </summary>
 	private SyntaxNode? TryInvokeDelegate(InvocationExpressionSyntax node, ExpressionSyntax expression, IReadOnlyList<ExpressionSyntax> arguments)
 	{
@@ -898,7 +898,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Fallback for invocation expressions when symbol is not found.
+	///   Fallback for invocation expressions when symbol is not found.
 	/// </summary>
 	private SyntaxNode? VisitInvocationExpressionFallback(InvocationExpressionSyntax node)
 	{
@@ -961,7 +961,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Tries to evaluate element access at compile time.
+	///   Tries to evaluate element access at compile time.
 	/// </summary>
 	private SyntaxNode? TryEvaluateElementAccess(ElementAccessExpressionSyntax node, object? instanceValue, object?[] constantArguments)
 	{
@@ -985,7 +985,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Tries to evaluate array access at compile time.
+	///   Tries to evaluate array access at compile time.
 	/// </summary>
 	private SyntaxNode? TryEvaluateArrayAccess(Array? arr, object?[] constantArguments, int indicesLength, Type? type)
 	{
@@ -1039,7 +1039,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Tries to evaluate a Range access at compile time.
+	///   Tries to evaluate a Range access at compile time.
 	/// </summary>
 	private SyntaxNode? TryEvaluateRangeAccess(Array arr, object arg, Type? type)
 	{
@@ -1070,7 +1070,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Tries to evaluate an Index access at compile time.
+	///   Tries to evaluate an Index access at compile time.
 	/// </summary>
 	private SyntaxNode? TryEvaluateIndexAccess(Array arr, object arg)
 	{
@@ -1229,7 +1229,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Tries to evaluate member access at compile time.
+	///   Tries to evaluate member access at compile time.
 	/// </summary>
 	private SyntaxNode? TryEvaluateMemberAccess(ISymbol symbol, object? instanceValue)
 	{

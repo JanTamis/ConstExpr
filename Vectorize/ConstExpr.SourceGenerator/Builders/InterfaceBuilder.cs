@@ -456,7 +456,7 @@
 //						                                                                                                                && x.Parameters.AsSpan().EqualsTypes(elementType, elementType))))
 //						{
 //							Usings.Add("System.Collections.Generic");
-							
+
 //							builder.WriteLine($"return BinarySearch({method.Parameters[0]}, Comparer<{elementType}>.Default) >= 0;");
 //						}
 //						else
@@ -534,7 +534,7 @@
 //						if (method.ContainingType.HasMethod("Contains", m => AppendContains(m, items, null)))
 //						{
 //							Usings.Add("System.Linq");
-							
+
 //							builder.WriteLine($"return {method.Parameters[0]}.Any(Contains);");
 //							return;
 //						}
@@ -542,7 +542,7 @@
 //						if (method.ContainingType.HasMethod("IndexOf", m => AppendIndexOf(m, items, null)))
 //						{
 //							Usings.Add("System.Linq");
-							
+
 //							builder.WriteLine($"return {method.Parameters[0]}.Any(item => IndexOf(item) >= 0);");
 //							return;
 //						}
@@ -594,3 +594,4 @@
 //		}
 //	}
 //}
+

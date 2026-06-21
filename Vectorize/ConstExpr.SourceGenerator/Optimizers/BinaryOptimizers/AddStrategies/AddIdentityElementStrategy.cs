@@ -6,8 +6,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AddStrategies;
 
 /// <summary>
-/// Strategy for identity element optimization: x + 0 = x and 0 + x = x
-/// This optimization is safe under Strict (no fast-math required).
+///   Strategy for identity element optimization: x + 0 = x and 0 + x = x
+///   This optimization is safe under Strict (no fast-math required).
 /// </summary>
 public class AddIdentityElementStrategy : SymmetricStrategy<NumericBinaryStrategy, LiteralExpressionSyntax, ExpressionSyntax>
 {
@@ -20,7 +20,7 @@ public class AddIdentityElementStrategy : SymmetricStrategy<NumericBinaryStrateg
 			optimized = context.Right.Syntax;
 			return true;
 		}
-		
+
 		optimized = null;
 		return false;
 	}

@@ -4,9 +4,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 /// <summary>
-/// Unrolls <c>.ToDictionary(keySelector)</c> or <c>.ToDictionary(keySelector, elementSelector)</c>
-/// as a terminal step. Builds a <c>Dictionary&lt;TKey, TValue&gt;</c> during the loop
-/// and returns it after the loop completes.
+///   Unrolls <c>.ToDictionary(keySelector)</c> or <c>.ToDictionary(keySelector, elementSelector)</c>
+///   as a terminal step. Builds a <c>Dictionary&lt;TKey, TValue&gt;</c> during the loop
+///   and returns it after the loop completes.
 /// </summary>
 public class ToDictionaryLinqUnroller : BaseLinqUnroller
 {
@@ -27,7 +27,7 @@ public class ToDictionaryLinqUnroller : BaseLinqUnroller
 
 		// var result = new Dictionary<TKey, TValue>();
 		statements.Add(CreateLocalDeclaration(ResultName,
-			ObjectCreationExpression(IdentifierName($"Dictionary<{keyTypeName}, {valueTypeName}>"), [])));
+			ObjectCreationExpression(IdentifierName($"Dictionary<{keyTypeName}, {valueTypeName}>"), [ ])));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
@@ -46,10 +46,12 @@ public class ToDictionaryLinqUnroller : BaseLinqUnroller
 		}
 
 		// Determine value: if element selector, apply it; otherwise use element itself
-		ExpressionSyntax valueExpr = elementName;
+		var valueExpr = elementName;
+
 		if (method.Parameters.Length >= 2 && TryGetLambda(method.Parameters[1], out var valueLambda))
 		{
 			var selectedValue = ReplaceLambda(method.Visit(valueLambda) as LambdaExpressionSyntax ?? valueLambda, elementName);
+
 			if (selectedValue is not null)
 			{
 				valueExpr = selectedValue;
@@ -65,5 +67,3 @@ public class ToDictionaryLinqUnroller : BaseLinqUnroller
 		statements.Add(ReturnStatement(IdentifierName(ResultName)));
 	}
 }
-
-

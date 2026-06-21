@@ -8,9 +8,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 
 /// <summary>
-/// Optimizes IndexOf calls:
-/// - "hello".IndexOf("ell") → 1
-/// - "hello".IndexOf("world") → -1
+///   Optimizes IndexOf calls:
+///   - "hello".IndexOf("ell") → 1
+///   - "hello".IndexOf("world") → -1
 /// </summary>
 public class IndexOfFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "IndexOf", false, n => n is 1)
 {

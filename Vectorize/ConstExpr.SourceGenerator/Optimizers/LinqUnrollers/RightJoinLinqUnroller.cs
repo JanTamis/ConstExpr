@@ -8,9 +8,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 /// <summary>
-/// Unrolls <c>.RightJoin(inner, outerKeySelector, innerKeySelector, resultSelector)</c> (.NET 10+)
-/// as an intermediate step. Like Join but includes unmatched inner elements with a default outer value.
-/// Builds a lookup from the outer (source) collection, then iterates the inner collection.
+///   Unrolls <c>.RightJoin(inner, outerKeySelector, innerKeySelector, resultSelector)</c> (.NET 10+)
+///   as an intermediate step. Like Join but includes unmatched inner elements with a default outer value.
+///   Builds a lookup from the outer (source) collection, then iterates the inner collection.
 /// </summary>
 public class RightJoinLinqUnroller : BaseLinqUnroller
 {

@@ -6,8 +6,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.MultiplyStrategies;
 
 /// <summary>
-/// Strategy for multiplication by two to addition: 2 * x => x + x (pure, non-integer)
-/// Requires AssociativeMath for floating-point safety (rearranges operations).
+///   Strategy for multiplication by two to addition: 2 * x => x + x (pure, non-integer)
+///   Requires AssociativeMath for floating-point safety (rearranges operations).
 /// </summary>
 public class MultiplyByTwoToAdditionStrategy : SymmetricStrategy<NumericBinaryStrategy, LiteralExpressionSyntax, ExpressionSyntax>
 {

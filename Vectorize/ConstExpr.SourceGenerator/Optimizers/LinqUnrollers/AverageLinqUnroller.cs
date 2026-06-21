@@ -9,7 +9,7 @@ public class AverageLinqUnroller : BaseLinqUnroller
 {
 	private const string ResultName = "result";
 	private const string CountName = "count";
-	
+
 	public override void UnrollAboveLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
 		statements.Add(CreateLocalDeclaration(ResultName, method.MethodSymbol.ReturnType.GetDefaultValue()));
@@ -32,7 +32,7 @@ public class AverageLinqUnroller : BaseLinqUnroller
 				IdentifierName(ResultName),
 				elementName)));
 		}
-		
+
 		statements.Add(ExpressionStatement(PostIncrementExpression(IdentifierName(CountName))));
 	}
 

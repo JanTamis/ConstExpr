@@ -6,8 +6,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies;
 
 /// <summary>
-/// Strategy for left negation extraction: (-x) / y => -(x / y)
-/// Safe under Strict (pure algebraic identity).
+///   Strategy for left negation extraction: (-x) / y => -(x / y)
+///   Safe under Strict (pure algebraic identity).
 /// </summary>
 public class DivideLeftNegationStrategy() : NumericBinaryStrategy<PrefixUnaryExpressionSyntax, ExpressionSyntax>(leftKind: SyntaxKind.UnaryMinusExpression)
 {

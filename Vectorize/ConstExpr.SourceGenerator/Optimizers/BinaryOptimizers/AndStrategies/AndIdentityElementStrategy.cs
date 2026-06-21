@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AndStrategies;
 
 /// <summary>
-/// Identity element: x & 0 = 0 (for numeric types), x & true = x, x & false = false (for boolean type)
+///   Identity element: x & 0 = 0 (for numeric types), x & true = x, x & false = false (for boolean type)
 /// </summary>
 public class AndIdentityElementStrategy : SymmetricStrategy<NumericOrBooleanBinaryStrategy, ExpressionSyntax, LiteralExpressionSyntax>
 {
@@ -16,7 +16,7 @@ public class AndIdentityElementStrategy : SymmetricStrategy<NumericOrBooleanBina
 			optimized = context.Right.Syntax;
 			return true;
 		}
-		
+
 		switch (context.Right.Syntax.Token.Value)
 		{
 			case false:

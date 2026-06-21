@@ -6,8 +6,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.SubtractStrategies;
 
 /// <summary>
-/// Strategy for algebraic identity: (a + x) - a => x (pure)
-/// Safe under Strict (pure algebraic identity).
+///   Strategy for algebraic identity: (a + x) - a => x (pure)
+///   Safe under Strict (pure algebraic identity).
 /// </summary>
 public class SubtractAdditionCancellationLeftStrategy() : NumericBinaryStrategy<BinaryExpressionSyntax, ExpressionSyntax>(leftKind: SyntaxKind.AddExpression)
 {
@@ -19,11 +19,11 @@ public class SubtractAdditionCancellationLeftStrategy() : NumericBinaryStrategy<
 		    || !LeftEqualsRight(context.Left.Syntax.Left, context.Right.Syntax, context.Variables)
 		    || !IsPure(context.Left.Syntax)
 		    || !IsPure(context.Right.Syntax))
-    {
-      return false;
-    }
+		{
+			return false;
+		}
 
-    optimized = context.Left.Syntax.Right;
+		optimized = context.Left.Syntax.Right;
 		return true;
 	}
 }

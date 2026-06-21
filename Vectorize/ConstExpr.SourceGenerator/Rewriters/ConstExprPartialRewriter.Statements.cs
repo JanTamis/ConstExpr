@@ -15,8 +15,8 @@ using Microsoft.CodeAnalysis.Operations;
 namespace ConstExpr.SourceGenerator.Rewriters;
 
 /// <summary>
-/// Statement visitor methods for the ConstExprPartialRewriter.
-/// Handles if, for, foreach, while, switch, return, block, and local declaration statements.
+///   Statement visitor methods for the ConstExprPartialRewriter.
+///   Handles if, for, foreach, while, switch, return, block, and local declaration statements.
 /// </summary>
 public partial class ConstExprPartialRewriter
 {
@@ -125,11 +125,11 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Converts an if-else where both branches perform a simple assignment to the same variable
-	/// into a single assignment. When the condition is a comparison and the operands match the
-	/// assigned values (e.g. <c>if (a &gt; b) x = a; else x = b;</c>), the optimizer rewrites the
-	/// right-hand side to a call like <c>T.MaxNative(a, b)</c> for any numeric type T. Falls back
-	/// to an ordinary conditional expression assignment otherwise.
+	///   Converts an if-else where both branches perform a simple assignment to the same variable
+	///   into a single assignment. When the condition is a comparison and the operands match the
+	///   assigned values (e.g. <c>if (a &gt; b) x = a; else x = b;</c>), the optimizer rewrites the
+	///   right-hand side to a call like <c>T.MaxNative(a, b)</c> for any numeric type T. Falls back
+	///   to an ordinary conditional expression assignment otherwise.
 	/// </summary>
 	private ExpressionSyntax VisitIfElseAssignment(
 		SyntaxNode condition,
@@ -246,7 +246,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Tries to unroll a for loop when the condition is always true.
+	///   Tries to unroll a for loop when the condition is always true.
 	/// </summary>
 	private SyntaxNode? TryUnrollForLoop(ForStatementSyntax node)
 	{
@@ -291,7 +291,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Visits a for statement without attempting to unroll it.
+	///   Visits a for statement without attempting to unroll it.
 	/// </summary>
 	private SyntaxNode VisitForStatementWithoutUnroll(ForStatementSyntax node, ImmutableHashSet<string> names)
 	{
@@ -401,7 +401,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Tries to unroll a while loop when the condition is always true.
+	///   Tries to unroll a while loop when the condition is always true.
 	/// </summary>
 	private SyntaxNode? TryUnrollWhileLoop(WhileStatementSyntax node)
 	{
@@ -497,7 +497,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Gets the items from a foreach collection expression.
+	///   Gets the items from a foreach collection expression.
 	/// </summary>
 	private IReadOnlyList<CSharpSyntaxNode>? GetForEachItems(SyntaxNode? collection)
 	{
@@ -528,7 +528,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Tries to unroll a foreach loop.
+	///   Tries to unroll a foreach loop.
 	/// </summary>
 	private SyntaxNode? TryUnrollForEachLoop(ForEachStatementSyntax node, IReadOnlyList<CSharpSyntaxNode> items)
 	{
@@ -608,7 +608,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Invalidates assigned variables for a foreach loop.
+	///   Invalidates assigned variables for a foreach loop.
 	/// </summary>
 	private void InvalidateAssignedVariablesForForEach(ForEachStatementSyntax node, ImmutableHashSet<string> names)
 	{
@@ -624,7 +624,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Checks if loop unrolling should stop based on the current statement.
+	///   Checks if loop unrolling should stop based on the current statement.
 	/// </summary>
 	private static bool ShouldStopUnrolling(SyntaxNode? statement, ICollection<SyntaxNode?> result)
 	{
@@ -657,7 +657,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Invalidates all assigned variables in the given node.
+	///   Invalidates all assigned variables in the given node.
 	/// </summary>
 	private void InvalidateAssignedVariables(StatementSyntax node)
 	{
@@ -878,66 +878,6 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	///   Replaces the first read of a named identifier with a given expression, adding
-	///   parentheses only when operator precedence requires it.
-	/// </summary>
-	private sealed class SingleUseInliner(string varName, ExpressionSyntax initExpr) : CSharpSyntaxRewriter
-	{
-		private bool _replaced;
-
-		public override SyntaxNode? VisitIdentifierName(IdentifierNameSyntax node)
-		{
-			if (_replaced || node.Identifier.Text != varName || IsWriteContext(node))
-			{
-				return base.VisitIdentifierName(node);
-			}
-
-			_replaced = true;
-
-			return NeedsParentheses(initExpr, node.Parent)
-				? ParenthesizedExpression(initExpr)
-				: initExpr;
-		}
-
-		/// <summary>
-		///   Returns true when wrapping <paramref name="expr" /> in parentheses is required
-		///   to preserve operator precedence in the given <paramref name="parent" /> context.
-		/// </summary>
-		private static bool NeedsParentheses(ExpressionSyntax expr, SyntaxNode? parent)
-		{
-			// Simple expressions never need parens regardless of context.
-			if (expr is IdentifierNameSyntax or LiteralExpressionSyntax or InvocationExpressionSyntax
-			    or MemberAccessExpressionSyntax or ElementAccessExpressionSyntax
-			    or ObjectCreationExpressionSyntax or ParenthesizedExpressionSyntax)
-			{
-				return false;
-			}
-
-			// Safe statement/container contexts: the expression is already delimited.
-			if (parent is ArgumentSyntax or ReturnStatementSyntax or EqualsValueClauseSyntax
-			    or IfStatementSyntax or ArrowExpressionClauseSyntax or SwitchExpressionArmSyntax
-			    or InterpolationSyntax)
-			{
-				return false;
-			}
-
-			return true;
-		}
-
-		private static bool IsWriteContext(IdentifierNameSyntax node)
-		{
-			return node.Parent switch
-			{
-				AssignmentExpressionSyntax { Left: var left } when left == node => true,
-				PostfixUnaryExpressionSyntax { Operand: var op } when op == node => true,
-				PrefixUnaryExpressionSyntax prefix when prefix.Operand == node &&
-				                                        (prefix.IsKind(SyntaxKind.PreIncrementExpression) || prefix.IsKind(SyntaxKind.PreDecrementExpression)) => true,
-				_ => false
-			};
-		}
-	}
-
-	/// <summary>
 	///   Merges a run of independent sibling if-statements (no else) that all test the same
 	///   identifier against mutually-exclusive constant / relational patterns into a single
 	///   switch statement. Example:
@@ -1127,12 +1067,18 @@ public partial class ConstExprPartialRewriter
 	///   This collapses the dead initial value that remains after an if/else assignment chain has been
 	///   folded into a conditional expression. The transform is only applied when:
 	///   <list type="bullet">
-	///     <item>the declaration is a single, unmodified variable with a side-effect-free initializer
-	///       (a literal / default / unary-signed literal), so dropping the initial store is safe;</item>
-	///     <item>the assignment is the <em>immediately</em> following statement, so nothing can read the
-	///       initial value before it is overwritten;</item>
-	///     <item>the assignment's right-hand side does not read the variable itself — otherwise it would
-	///       observe the (now removed) initial value.</item>
+	///     <item>
+	///       the declaration is a single, unmodified variable with a side-effect-free initializer
+	///       (a literal / default / unary-signed literal), so dropping the initial store is safe;
+	///     </item>
+	///     <item>
+	///       the assignment is the <em>immediately</em> following statement, so nothing can read the
+	///       initial value before it is overwritten;
+	///     </item>
+	///     <item>
+	///       the assignment's right-hand side does not read the variable itself — otherwise it would
+	///       observe the (now removed) initial value.
+	///     </item>
 	///   </list>
 	/// </summary>
 	private static SyntaxList<StatementSyntax> MergeRedundantInitializers(SyntaxList<StatementSyntax> statements)
@@ -1189,14 +1135,16 @@ public partial class ConstExprPartialRewriter
 	///   store can be dropped safely (a literal, a <c>default</c> expression, or a unary <c>+</c>/<c>-</c>
 	///   applied to a literal).
 	/// </summary>
-	private static bool IsSideEffectFreeInitializer(ExpressionSyntax? initializer) =>
-		initializer switch
+	private static bool IsSideEffectFreeInitializer(ExpressionSyntax? initializer)
+	{
+		return initializer switch
 		{
 			LiteralExpressionSyntax => true,
 			DefaultExpressionSyntax => true,
 			PrefixUnaryExpressionSyntax { Operand: LiteralExpressionSyntax } => true,
 			_ => false
 		};
+	}
 
 	private SyntaxList<StatementSyntax> MergeForLoopDeclarations(SyntaxList<StatementSyntax> statements)
 	{
@@ -1399,8 +1347,8 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Takes statements until a throw or return statement is encountered (inclusive).
-	/// Any code after a throw or return statement is unreachable and can be removed.
+	///   Takes statements until a throw or return statement is encountered (inclusive).
+	///   Any code after a throw or return statement is unreachable and can be removed.
 	/// </summary>
 	private static SyntaxList<StatementSyntax> TakeUntilThrownStatements(SyntaxList<StatementSyntax> statements)
 	{
@@ -1430,9 +1378,9 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Simplifies patterns like:
-	/// - if (cond) { return true; } return false; => return cond;
-	/// - if (cond) { return false; } return true; => return !cond;
+	///   Simplifies patterns like:
+	///   - if (cond) { return true; } return false; => return cond;
+	///   - if (cond) { return false; } return true; => return !cond;
 	/// </summary>
 	private SyntaxList<StatementSyntax> SimplifyIfReturnPatterns(SyntaxList<StatementSyntax> statements)
 	{
@@ -1473,7 +1421,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Tries to simplify if-return-bool patterns.
+	///   Tries to simplify if-return-bool patterns.
 	/// </summary>
 	private bool TryGetIfReturnBoolPattern(IfStatementSyntax ifStatement, ReturnStatementSyntax followingReturn, out ReturnStatementSyntax? simplified)
 	{
@@ -1561,7 +1509,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Tries to simplify if-return-bool patterns.
+	///   Tries to simplify if-return-bool patterns.
 	/// </summary>
 	private bool TryGetIfReturnPattern(IfStatementSyntax ifStatement, ReturnStatementSyntax followingReturn, out ReturnStatementSyntax? simplified)
 	{
@@ -1604,7 +1552,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Tries to extract a boolean literal value from an expression.
+	///   Tries to extract a boolean literal value from an expression.
 	/// </summary>
 	private static bool TryGetBoolLiteral(ExpressionSyntax? expression, out bool value)
 	{
@@ -1629,26 +1577,28 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Merges a consecutive run of if-statements (each returning a boolean literal, no else)
-	/// that contains a mix of <c>return true</c> and <c>return false</c> into a single
-	/// <c>if (...) return false;</c> statement.
-	/// <para>
-	/// For each if-statement in the run:
-	/// <list type="bullet">
-	///   <item>If it returns <c>false</c> → its condition is added to the OR chain as-is.</item>
-	///   <item>If it returns <c>true</c>  → its condition is negated and added to the OR chain,
-	///     because reaching a subsequent <c>return false</c> requires the <c>return true</c>
-	///     guard to have been skipped (i.e., its condition was false).</item>
-	/// </list>
-	/// </para>
-	/// Example:
-	/// <code>
+	///   Merges a consecutive run of if-statements (each returning a boolean literal, no else)
+	///   that contains a mix of <c>return true</c> and <c>return false</c> into a single
+	///   <c>if (...) return false;</c> statement.
+	///   <para>
+	///     For each if-statement in the run:
+	///     <list type="bullet">
+	///       <item>If it returns <c>false</c> → its condition is added to the OR chain as-is.</item>
+	///       <item>
+	///         If it returns <c>true</c>  → its condition is negated and added to the OR chain,
+	///         because reaching a subsequent <c>return false</c> requires the <c>return true</c>
+	///         guard to have been skipped (i.e., its condition was false).
+	///       </item>
+	///     </list>
+	///   </para>
+	///   Example:
+	///   <code>
 	/// if (n &lt;= 1) return false;
 	/// if (n &lt;= 3) return true;
 	/// if (IsEven(n) || n % 3 == 0) return false;
 	/// </code>
-	/// becomes:
-	/// <code>
+	///   becomes:
+	///   <code>
 	/// if (n &lt;= 1 || n &gt; 3 || IsEven(n) || n % 3 == 0) return false;
 	/// </code>
 	/// </summary>
@@ -1723,9 +1673,9 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Tries to extract the condition and boolean return value from an if-statement whose body
-	/// is a single <c>return true;</c> or <c>return false;</c> (with or without braces) and
-	/// that has no else clause.
+	///   Tries to extract the condition and boolean return value from an if-statement whose body
+	///   is a single <c>return true;</c> or <c>return false;</c> (with or without braces) and
+	///   that has no else clause.
 	/// </summary>
 	private static bool TryGetIfBoolReturnBody(
 		StatementSyntax statement,
@@ -1770,8 +1720,8 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Negates a condition, preferring a direct inversion (e.g., <c>n &lt;= 3</c> → <c>n &gt; 3</c>)
-	/// over wrapping in <c>!(…)</c>.
+	///   Negates a condition, preferring a direct inversion (e.g., <c>n &lt;= 3</c> → <c>n &gt; 3</c>)
+	///   over wrapping in <c>!(…)</c>.
 	/// </summary>
 	private static ExpressionSyntax NegateCondition(ExpressionSyntax condition)
 	{
@@ -1784,16 +1734,16 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Combines consecutive if statements that have identical bodies into a single if statement.
-	/// Two strategies are applied in order:
-	/// 1. Equality pattern: conditions of the form <c>x == literal</c> against the same variable
-	///    are combined into <c>if (x is 1 or 5) { … }</c>.
-	/// 2. General ||: when the body ends with a jump statement (return / break / continue / throw),
-	///    any consecutive if statements with an identical body are combined using <c>||</c>.
-	/// Example (strategy 1): if (1 == x) { return true; } if (5 == x) { return true; }
-	///                     => if (x is 1 or 5) { return true; }
-	/// Example (strategy 2): if (x &gt; 5) { return; } if (y &lt; 3) { return; }
-	///                     => if (x &gt; 5 || y &lt; 3) { return; }
+	///   Combines consecutive if statements that have identical bodies into a single if statement.
+	///   Two strategies are applied in order:
+	///   1. Equality pattern: conditions of the form <c>x == literal</c> against the same variable
+	///   are combined into <c>if (x is 1 or 5) { … }</c>.
+	///   2. General ||: when the body ends with a jump statement (return / break / continue / throw),
+	///   any consecutive if statements with an identical body are combined using <c>||</c>.
+	///   Example (strategy 1): if (1 == x) { return true; } if (5 == x) { return true; }
+	///   => if (x is 1 or 5) { return true; }
+	///   Example (strategy 2): if (x &gt; 5) { return; } if (y &lt; 3) { return; }
+	///   => if (x &gt; 5 || y &lt; 3) { return; }
 	/// </summary>
 	internal static SyntaxList<StatementSyntax> CombineConsecutiveIfStatements(SyntaxList<StatementSyntax> statements, Func<SyntaxNode?, SyntaxNode?> visit)
 	{
@@ -1906,12 +1856,13 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Returns <see langword="true"/> when a statement unconditionally ends with a jump
-	/// (return, break, continue, or throw), making it safe to combine consecutive if
-	/// statements with identical bodies using <c>||</c>.
+	///   Returns <see langword="true" /> when a statement unconditionally ends with a jump
+	///   (return, break, continue, or throw), making it safe to combine consecutive if
+	///   statements with identical bodies using <c>||</c>.
 	/// </summary>
-	private static bool ContainsJumpStatement(StatementSyntax statement) =>
-		statement switch
+	private static bool ContainsJumpStatement(StatementSyntax statement)
+	{
+		return statement switch
 		{
 			ReturnStatementSyntax => true,
 			BreakStatementSyntax => true,
@@ -1920,17 +1871,20 @@ public partial class ConstExprPartialRewriter
 			BlockSyntax block => block.Statements.Count > 0 && ContainsJumpStatement(block.Statements.Last()),
 			_ => false
 		};
+	}
 
 	/// <summary>
-	/// Returns <see langword="true"/> when an expression needs parentheses when used as an
-	/// operand of <c>||</c> (i.e., its precedence is lower than logical-or).
+	///   Returns <see langword="true" /> when an expression needs parentheses when used as an
+	///   operand of <c>||</c> (i.e., its precedence is lower than logical-or).
 	/// </summary>
-	private static bool NeedsParenthesesInOrContext(ExpressionSyntax expression) =>
-		expression is ConditionalExpressionSyntax or AssignmentExpressionSyntax;
+	private static bool NeedsParenthesesInOrContext(ExpressionSyntax expression)
+	{
+		return expression is ConditionalExpressionSyntax or AssignmentExpressionSyntax;
+	}
 
 	/// <summary>
-	/// Creates an 'is' pattern expression with 'or' for multiple values.
-	/// Example: target is 1 or 5 or 10
+	///   Creates an 'is' pattern expression with 'or' for multiple values.
+	///   Example: target is 1 or 5 or 10
 	/// </summary>
 	private static ExpressionSyntax CreateIsOrPattern(string targetIdentifier, List<LiteralExpressionSyntax> literals)
 	{
@@ -1952,8 +1906,8 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Tries to extract the comparison target identifier and literal value from an equality expression.
-	/// Handles both 'value == target' and 'target == value' formats.
+	///   Tries to extract the comparison target identifier and literal value from an equality expression.
+	///   Handles both 'value == target' and 'target == value' formats.
 	/// </summary>
 	private static bool TryGetEqualityComparisonInfo(ExpressionSyntax condition, out string? targetIdentifier, out LiteralExpressionSyntax? literal)
 	{
@@ -2020,5 +1974,65 @@ public partial class ConstExprPartialRewriter
 			ThrowStatementSyntax throwStatement => throwStatement,
 			_ => node
 		};
+	}
+
+	/// <summary>
+	///   Replaces the first read of a named identifier with a given expression, adding
+	///   parentheses only when operator precedence requires it.
+	/// </summary>
+	private sealed class SingleUseInliner(string varName, ExpressionSyntax initExpr) : CSharpSyntaxRewriter
+	{
+		private bool _replaced;
+
+		public override SyntaxNode? VisitIdentifierName(IdentifierNameSyntax node)
+		{
+			if (_replaced || node.Identifier.Text != varName || IsWriteContext(node))
+			{
+				return base.VisitIdentifierName(node);
+			}
+
+			_replaced = true;
+
+			return NeedsParentheses(initExpr, node.Parent)
+				? ParenthesizedExpression(initExpr)
+				: initExpr;
+		}
+
+		/// <summary>
+		///   Returns true when wrapping <paramref name="expr" /> in parentheses is required
+		///   to preserve operator precedence in the given <paramref name="parent" /> context.
+		/// </summary>
+		private static bool NeedsParentheses(ExpressionSyntax expr, SyntaxNode? parent)
+		{
+			// Simple expressions never need parens regardless of context.
+			if (expr is IdentifierNameSyntax or LiteralExpressionSyntax or InvocationExpressionSyntax
+			    or MemberAccessExpressionSyntax or ElementAccessExpressionSyntax
+			    or ObjectCreationExpressionSyntax or ParenthesizedExpressionSyntax)
+			{
+				return false;
+			}
+
+			// Safe statement/container contexts: the expression is already delimited.
+			if (parent is ArgumentSyntax or ReturnStatementSyntax or EqualsValueClauseSyntax
+			    or IfStatementSyntax or ArrowExpressionClauseSyntax or SwitchExpressionArmSyntax
+			    or InterpolationSyntax)
+			{
+				return false;
+			}
+
+			return true;
+		}
+
+		private static bool IsWriteContext(IdentifierNameSyntax node)
+		{
+			return node.Parent switch
+			{
+				AssignmentExpressionSyntax { Left: var left } when left == node => true,
+				PostfixUnaryExpressionSyntax { Operand: var op } when op == node => true,
+				PrefixUnaryExpressionSyntax prefix when prefix.Operand == node &&
+				                                        (prefix.IsKind(SyntaxKind.PreIncrementExpression) || prefix.IsKind(SyntaxKind.PreDecrementExpression)) => true,
+				_ => false
+			};
+		}
 	}
 }

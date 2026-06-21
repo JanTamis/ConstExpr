@@ -10,6 +10,6 @@ public class ModuloIdempotencyTest : BaseTest<Func<int, int>>
 	[
 		Create(x => x % x),
 		Create(_ => 0, [ 7 ]),
-		Create(_ => 0, [ -3 ]),
+		Create(_ => 0, [ -3 ])
 	];
 }

@@ -5,9 +5,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 /// <summary>
-/// Unrolls <c>.DefaultIfEmpty()</c> or <c>.DefaultIfEmpty(defaultValue)</c> as an intermediate step.
-/// Tracks whether any elements were processed in the main loop. If not, processes the default
-/// value through subsequent chain steps after the main loop completes.
+///   Unrolls <c>.DefaultIfEmpty()</c> or <c>.DefaultIfEmpty(defaultValue)</c> as an intermediate step.
+///   Tracks whether any elements were processed in the main loop. If not, processes the default
+///   value through subsequent chain steps after the main loop completes.
 /// </summary>
 public class DefaultIfEmptyLinqUnroller : BaseLinqUnroller
 {
@@ -33,7 +33,7 @@ public class DefaultIfEmptyLinqUnroller : BaseLinqUnroller
 			: method.MethodSymbol.TypeArguments[0].GetDefaultValue();
 
 		var body = Block(partialLoopBody);
-		
+
 		body = body.ReplaceIdentifier("item", defaultValue) as BlockSyntax ?? body;
 
 		// if (!hasElements)
@@ -45,4 +45,3 @@ public class DefaultIfEmptyLinqUnroller : BaseLinqUnroller
 			body));
 	}
 }
-

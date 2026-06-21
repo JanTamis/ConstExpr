@@ -4,9 +4,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 /// <summary>
-/// Unrolls <c>.IntersectBy(second, keySelector)</c> as an intermediate step.
-/// Builds a <c>HashSet&lt;TKey&gt;</c> from <c>second</c>, then yields only source elements
-/// whose projected key can be removed from the set (ensuring distinct-by-key results).
+///   Unrolls <c>.IntersectBy(second, keySelector)</c> as an intermediate step.
+///   Builds a <c>HashSet&lt;TKey&gt;</c> from <c>second</c>, then yields only source elements
+///   whose projected key can be removed from the set (ensuring distinct-by-key results).
 /// </summary>
 public class IntersectByLinqUnroller : BaseLinqUnroller
 {

@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for Concat() optimization - verify that Empty enumerables and unnecessary operations are optimized
+///   Tests for Concat() optimization - verify that Empty enumerables and unnecessary operations are optimized
 /// </summary>
 [InheritsTests]
 public class LinqConcatOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
@@ -54,6 +54,6 @@ public class LinqConcatOptimizationTests() : BaseTest<Func<int[], int>>(FastMath
 		Create("return TensorPrimitives.Sum(x) * 12 + 702;"),
 		Create(_ => 774, [ new[] { 1, 2, 3 } ]),
 		Create(_ => 702, [ System.Array.Empty<int>() ]),
-		Create(_ => 882, [ new[] { 5, 10 } ]),
+		Create(_ => 882, [ new[] { 5, 10 } ])
 	];
 }

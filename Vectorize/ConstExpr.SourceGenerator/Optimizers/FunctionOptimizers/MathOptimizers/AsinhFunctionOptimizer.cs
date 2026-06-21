@@ -15,7 +15,7 @@ public class AsinhFunctionOptimizer() : BaseMathFunctionOptimizer("Asinh", n => 
 		{
 			SpecialType.System_Single => GenerateFastAsinhMethodFloat(context.FastMathFlags),
 			SpecialType.System_Double => GenerateFastAsinhMethodDouble(context.FastMathFlags),
-			_ => null,
+			_ => null
 		});
 
 		if (method is not null)

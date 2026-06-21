@@ -3,10 +3,10 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for AggregateBy() optimization — verify that redundant materialization before
-/// AggregateBy() is removed, that the empty-source shortcut is applied, and that ordering
-/// and filtering are intentionally preserved (they affect which elements end up in each group
-/// and the order in which the accumulator is applied).
+///   Tests for AggregateBy() optimization — verify that redundant materialization before
+///   AggregateBy() is removed, that the empty-source shortcut is applied, and that ordering
+///   and filtering are intentionally preserved (they affect which elements end up in each group
+///   and the order in which the accumulator is applied).
 /// </summary>
 [InheritsTests]
 public class LinqAggregateByOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.All)
@@ -48,6 +48,6 @@ public class LinqAggregateByOptimizationTests() : BaseTest<Func<int[], int>>(Fas
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return Count_Ch2WLg(x) * 5 + Count_GXoNZg(x) + Count_e2olnw(x) + x.CountBy(v => v & 1).Count() + Count_fDCnXg(x);"),
+		Create("return Count_Ch2WLg(x) * 5 + Count_GXoNZg(x) + Count_e2olnw(x) + x.CountBy(v => v & 1).Count() + Count_fDCnXg(x);")
 	];
 }

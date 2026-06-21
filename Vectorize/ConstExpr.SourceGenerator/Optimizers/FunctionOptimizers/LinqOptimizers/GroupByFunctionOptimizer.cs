@@ -12,9 +12,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.GroupBy context.Method.
-/// Optimizes patterns such as:
-/// - Enumerable.Empty&lt;T&gt;().GroupBy(selector) => Enumerable.Empty&lt;IGrouping&lt;TKey, T&gt;&gt;()
+///   Optimizer for Enumerable.GroupBy context.Method.
+///   Optimizes patterns such as:
+///   - Enumerable.Empty&lt;T&gt;().GroupBy(selector) => Enumerable.Empty&lt;IGrouping&lt;TKey, T&gt;&gt;()
 /// </summary>
 public class GroupByFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.GroupBy), n => n is 1 or 2 or 3)
 {
@@ -42,7 +42,7 @@ public class GroupByFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 	}
 
 	/// <summary>
-	/// Tries to compute the lookup at compile time and generate a custom ILookup struct.
+	///   Tries to compute the lookup at compile time and generate a custom ILookup struct.
 	/// </summary>
 	private bool TryGenerateGroupingStruct(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -166,8 +166,8 @@ public class GroupByFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 	}
 
 	/// <summary>
-	/// Extracts groups from an ILookup object using reflection.
-	/// Returns a list of (key, elements[]) tuples.
+	///   Extracts groups from an ILookup object using reflection.
+	///   Returns a list of (key, elements[]) tuples.
 	/// </summary>
 	private static List<(object? Key, List<object?> Elements)>? ExtractGroups(object lookupResult)
 	{

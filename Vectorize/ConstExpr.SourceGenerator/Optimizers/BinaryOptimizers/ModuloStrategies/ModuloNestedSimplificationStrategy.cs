@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ModuloStrategies;
 
 /// <summary>
-/// Strategy for nested modulo simplification: (x % m) % n where m % n == 0 => x % n
+///   Strategy for nested modulo simplification: (x % m) % n where m % n == 0 => x % n
 /// </summary>
 public class ModuloNestedSimplificationStrategy() : IntegerBinaryStrategy<BinaryExpressionSyntax, LiteralExpressionSyntax>(leftKind: SyntaxKind.ModuloExpression)
 {
@@ -15,11 +15,11 @@ public class ModuloNestedSimplificationStrategy() : IntegerBinaryStrategy<Binary
 		if (!base.TryOptimize(context, out optimized)
 		    || !context.TryGetValue(context.Left.Syntax.Right, out var innerRightValue)
 		    || !innerRightValue.Modulo(context.Right.Syntax.Token.Value).IsNumericZero())
-    {
-      return false;
-    }
+		{
+			return false;
+		}
 
-    optimized = ModuloExpression(context.Left.Syntax.Left, context.Right.Syntax);
+		optimized = ModuloExpression(context.Left.Syntax.Left, context.Right.Syntax);
 		return true;
 	}
 }

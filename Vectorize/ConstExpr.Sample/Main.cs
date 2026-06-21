@@ -11,7 +11,7 @@ Console.WriteLine("╚═══════════════════�
 var varInt = 10;
 var varDouble = 5.5;
 var varFloat = 3.14f;
-var varByte = (byte) 128;
+var varByte = (byte)128;
 var varString = "TestString";
 var varYear = 2024;
 var varMonth = 6;

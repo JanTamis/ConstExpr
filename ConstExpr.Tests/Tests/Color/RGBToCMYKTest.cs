@@ -7,9 +7,9 @@ public class RGBToCMYKTest() : BaseTest<Func<byte, byte, byte, (double, double, 
 {
 	public override string TestMethod => GetString((r, g, b) =>
 	{
-		var dr = (double) r / 255;
-		var dg = (double) g / 255;
-		var db = (double) b / 255;
+		var dr = (double)r / 255;
+		var dg = (double)g / 255;
+		var db = (double)b / 255;
 		var k = 1 - System.Math.Max(System.Math.Max(dr, dg), db);
 
 		var c = (1 - dr - k) / (1 - k);
@@ -30,6 +30,6 @@ public class RGBToCMYKTest() : BaseTest<Func<byte, byte, byte, (double, double, 
 			var diff = 1D - k;
 
 			return ((1D - dr - k) / diff, (1D - dg - k) / diff, (1D - db - k) / diff, k);
-		}),
+		})
 	];
 }

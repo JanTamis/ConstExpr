@@ -8,6 +8,8 @@ namespace ConstExpr.SourceGenerator.Extensions;
 
 public static class EnumerableExtensions
 {
+	public delegate bool Selector<in T, TResult>(T value, out TResult result);
+
 	public static IEnumerable<(int Index, T Value)> Index<T>(this IEnumerable<T> source)
 	{
 		var index = 0;
@@ -67,7 +69,7 @@ public static class EnumerableExtensions
 			SpecialType.System_Single => source.Cast<float>().Sum(),
 			SpecialType.System_Double => source.Cast<double>().Sum(),
 			SpecialType.System_Decimal => source.Cast<decimal>().Sum(),
-			_ => null,
+			_ => null
 		};
 	}
 
@@ -86,7 +88,7 @@ public static class EnumerableExtensions
 			SpecialType.System_Single => source.Cast<float>().Average(),
 			SpecialType.System_Double => source.Cast<double>().Average(),
 			SpecialType.System_Decimal => source.Cast<decimal>().Average(),
-			_ => null,
+			_ => null
 		};
 	}
 
@@ -110,7 +112,7 @@ public static class EnumerableExtensions
 			SpecialType.System_Single => AverageFloat(source),
 			SpecialType.System_Double => AverageDouble(source),
 			SpecialType.System_Decimal => AverageDecimal(source),
-			_ => null,
+			_ => null
 		};
 	}
 
@@ -420,7 +422,7 @@ public static class EnumerableExtensions
 
 		return counts;
 	}
-	
+
 	public static IEnumerable<IEnumerable<T>> Chunk<T>(this IEnumerable<T> source, int count)
 	{
 		if (count <= 0)
@@ -429,7 +431,7 @@ public static class EnumerableExtensions
 		}
 
 		using var enumerator = source.GetEnumerator();
-		
+
 		while (enumerator.MoveNext())
 		{
 			var chunk = new List<T>(count) { enumerator.Current };
@@ -443,8 +445,6 @@ public static class EnumerableExtensions
 		}
 	}
 
-	public delegate bool Selector<in T, TResult>(T value, out TResult result);
-	
 	public static IEnumerable<TResult> WhereSelect<T, TResult>(this IEnumerable<T> source, Selector<T, TResult> selector)
 	{
 		foreach (var item in source)

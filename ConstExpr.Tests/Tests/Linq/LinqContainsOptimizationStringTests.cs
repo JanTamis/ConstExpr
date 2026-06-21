@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for Contains() with string values - verify optimization works with different types
+///   Tests for Contains() with string values - verify optimization works with different types
 /// </summary>
 [InheritsTests]
 public class LinqContainsOptimizationStringTests() : BaseTest<Func<string[], int>>(FastMathFlags.AssociativeMath)
@@ -30,6 +30,6 @@ public class LinqContainsOptimizationStringTests() : BaseTest<Func<string[], int
 		Create("return (Array.IndexOf(x, \"hello\") >= 0 ? 2 : 0) + (Array.IndexOf(x, \"world\") >= 0 ? 1 : 0) + (Array.Exists(x, v => String.Equals(v, \"HELLO\", StringComparison.CurrentCultureIgnoreCase)) ? 1 : 0);", Unknown),
 		Create(_ => 4, [ new[] { "hello", "world", "foo" } ]),
 		Create(_ => 0, [ System.Array.Empty<string>() ]),
-		Create(_ => 1, [ new[] { "hi", "world", "test" } ]), // Only b matches ("world")
+		Create(_ => 1, [ new[] { "hi", "world", "test" } ]) // Only b matches ("world")
 	];
 }

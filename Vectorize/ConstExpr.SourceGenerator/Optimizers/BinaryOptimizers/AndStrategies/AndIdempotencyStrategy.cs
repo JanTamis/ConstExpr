@@ -4,14 +4,14 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AndStrategies;
 
 /// <summary>
-/// Idempotency: x & x = x (for pure expressions)
+///   Idempotency: x & x = x (for pure expressions)
 /// </summary>
 public class AndIdempotencyStrategy : NumericOrBooleanBinaryStrategy
 {
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (base.TryOptimize(context, out optimized)
-		    && LeftEqualsRight(context) 
+		    && LeftEqualsRight(context)
 		    && IsPure(context.Left.Syntax))
 		{
 			optimized = context.Left.Syntax;

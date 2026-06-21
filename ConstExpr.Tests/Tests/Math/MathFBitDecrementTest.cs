@@ -10,6 +10,6 @@ public class MathFBitDecrementTest() : BaseTest<Func<float, float>>(FastMathFlag
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return FastBitDecrement(x);"),
-		Create(_ => 1.9999999F, [ 2f ]),
+		Create(_ => 1.9999999F, [ 2f ])
 	];
 }

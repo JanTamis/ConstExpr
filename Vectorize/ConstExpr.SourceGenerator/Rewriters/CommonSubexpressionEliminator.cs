@@ -14,9 +14,9 @@ namespace ConstExpr.SourceGenerator.Rewriters;
 /// </summary>
 public sealed class CommonSubexpressionEliminator : CSharpSyntaxRewriter
 {
-	private int _cseCounter;
-	private readonly HashSet<string> _usedNames = new();
 	private static readonly IEqualityComparer<ExpressionSyntax> _comparer = new NormalizedExpressionComparer();
+	private readonly HashSet<string> _usedNames = new();
+	private int _cseCounter;
 
 	private string GenerateName(ExpressionSyntax expr)
 	{
@@ -140,7 +140,7 @@ public sealed class CommonSubexpressionEliminator : CSharpSyntaxRewriter
 
 			// Rewrite the statement using the current replacement map
 			var rewriter = new ExpressionReplacementRewriter(replacementMap);
-			newStatements.Add((StatementSyntax) rewriter.Visit(currentStatement));
+			newStatements.Add((StatementSyntax)rewriter.Visit(currentStatement));
 		}
 
 		return visitedNode.WithStatements(List(newStatements));

@@ -43,7 +43,8 @@ public class MaxLinqUnroller : BaseLinqUnroller
 
 			// var value = e.Current; (or lambda(e.Current) when selector is present)
 			ExpressionSyntax firstCurrent = MemberAccessExpression(IdentifierName("e"), IdentifierName("Current"));
-			if (method.Parameters.Length == 1 
+
+			if (method.Parameters.Length == 1
 			    && TryGetLambda(method.Parameters[0], out var initLambda))
 			{
 				firstCurrent = ReplaceLambda(method.Visit(initLambda) as LambdaExpressionSyntax ?? initLambda, firstCurrent)!;
@@ -60,12 +61,12 @@ public class MaxLinqUnroller : BaseLinqUnroller
 			? MemberAccessExpression(IdentifierName("e"), IdentifierName("Current"))
 			: elementName;
 
-		var candidate = method.Parameters.Length == 1 && TryGetLambda(method.Parameters[0], out var lambda) 
-			? ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, element)! 
+		var candidate = method.Parameters.Length == 1 && TryGetLambda(method.Parameters[0], out var lambda)
+			? ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, element)!
 			: element;
 
 		// if (candidate > value) { value = candidate; }
-		statements.Add(IfStatement(GreaterThanExpression(candidate, IdentifierName(ResultName)), 
+		statements.Add(IfStatement(GreaterThanExpression(candidate, IdentifierName(ResultName)),
 			CreateAssignment(ResultName, candidate)));
 	}
 
@@ -92,7 +93,7 @@ public class MaxLinqUnroller : BaseLinqUnroller
 
 	public override ExpressionSyntax GetCollectionElement(UnrolledLinqMethod method, string collectionName)
 	{
-		if (IsInvokedOnArray(method.CollectionType) 
+		if (IsInvokedOnArray(method.CollectionType)
 		    || IsInvokedOnCollection(method.CollectionType))
 		{
 			return ElementAccessExpression(IdentifierName(collectionName), IdentifierName("i")!);

@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for Except() optimization - verify that redundant operations and special cases are optimized
+///   Tests for Except() optimization - verify that redundant operations and special cases are optimized
 /// </summary>
 [InheritsTests]
 public class LinqExceptOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
@@ -61,6 +61,6 @@ public class LinqExceptOptimizationTests() : BaseTest<Func<int[], int>>(FastMath
 		Create(_ => 42, [ new[] { 1, 2, 3, 4, 5 } ]),
 		Create(_ => 0, [ System.Array.Empty<int>() ]),
 		Create(_ => 34, [ new[] { 10, 20, 30 } ]),
-		Create(_ => 21, [ new[] { 1, 1, 2, 2, 3 } ]),
+		Create(_ => 21, [ new[] { 1, 1, 2, 2, 3 } ])
 	];
 }

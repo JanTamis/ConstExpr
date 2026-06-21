@@ -6,10 +6,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.IntersectBy context.Method.
-/// Optimizes patterns such as:
-/// - collection.IntersectBy(Enumerable.Empty&lt;TKey&gt;(), selector) => Enumerable.Empty&lt;T&gt;()
-/// - Enumerable.Empty&lt;T&gt;().IntersectBy(collection, selector) => Enumerable.Empty&lt;T&gt;()
+///   Optimizer for Enumerable.IntersectBy context.Method.
+///   Optimizes patterns such as:
+///   - collection.IntersectBy(Enumerable.Empty&lt;TKey&gt;(), selector) => Enumerable.Empty&lt;T&gt;()
+///   - Enumerable.Empty&lt;T&gt;().IntersectBy(collection, selector) => Enumerable.Empty&lt;T&gt;()
 /// </summary>
 public class IntersectByFunctionOptimizer() : BaseLinqFunctionOptimizer("IntersectBy", n => n is 2)
 {

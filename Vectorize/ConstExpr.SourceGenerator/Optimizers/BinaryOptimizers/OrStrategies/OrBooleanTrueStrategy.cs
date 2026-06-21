@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.OrStrategies;
 
 /// <summary>
-/// Strategy for boolean true absorption: x | true = true and true | x = true
+///   Strategy for boolean true absorption: x | true = true and true | x = true
 /// </summary>
 public class OrBooleanTrueStrategy : SymmetricStrategy<BooleanBinaryStrategy, LiteralExpressionSyntax, ExpressionSyntax>
 {

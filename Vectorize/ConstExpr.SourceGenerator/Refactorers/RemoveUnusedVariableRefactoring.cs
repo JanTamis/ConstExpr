@@ -9,48 +9,45 @@ namespace ConstExpr.SourceGenerator.Refactorers;
 using static SyntaxFactory;
 
 /// <summary>
-/// Refactorer that removes unused local variable declarations.
-/// Inspired by the Roslyn <c>CSharpRemoveUnusedVariableCodeFixProvider</c>,
-/// which handles compiler diagnostics CS0168 (declared but never used) and
-/// CS0219 (assigned but value never used).
-///
-/// <code>
+///   Refactorer that removes unused local variable declarations.
+///   Inspired by the Roslyn <c>CSharpRemoveUnusedVariableCodeFixProvider</c>,
+///   which handles compiler diagnostics CS0168 (declared but never used) and
+///   CS0219 (assigned but value never used).
+///   <code>
 /// int unused = 42;
 /// DoWork();
 /// </code>
-/// →
-/// <code>
+///   →
+///   <code>
 /// DoWork();
 /// </code>
-///
-/// When the variable has an initialiser with a side-effecting expression the
-/// declaration is replaced with an expression statement so the side-effect is
-/// preserved:
-/// <code>
+///   When the variable has an initialiser with a side-effecting expression the
+///   declaration is replaced with an expression statement so the side-effect is
+///   preserved:
+///   <code>
 /// int x = Compute();
 /// </code>
-/// →
-/// <code>
+///   →
+///   <code>
 /// Compute();
 /// </code>
-///
-/// This is a pure syntax-level transformation.
+///   This is a pure syntax-level transformation.
 /// </summary>
 public static class RemoveUnusedVariableRefactoring
 {
 	/// <summary>
-	/// Tries to remove or replace a single <see cref="VariableDeclaratorSyntax"/> that
-	/// is considered unused.
+	///   Tries to remove or replace a single <see cref="VariableDeclaratorSyntax" /> that
+	///   is considered unused.
 	/// </summary>
 	/// <param name="declarator">The unused variable declarator.</param>
 	/// <param name="semanticModel">The semantic model used for analysis.</param>
 	/// <param name="result">
-	/// On success, the updated <see cref="StatementSyntax"/> (or <c>null</c> when the
-	/// entire parent statement should be deleted — check the return value).
+	///   On success, the updated <see cref="StatementSyntax" /> (or <c>null</c> when the
+	///   entire parent statement should be deleted — check the return value).
 	/// </param>
 	/// <returns>
-	/// <c>true</c> when a transformation was produced; <c>false</c> when the declarator
-	/// cannot be safely removed (e.g. it is not inside a local declaration).
+	///   <c>true</c> when a transformation was produced; <c>false</c> when the declarator
+	///   cannot be safely removed (e.g. it is not inside a local declaration).
 	/// </returns>
 	public static bool TryRemoveUnusedVariable(
 		VariableDeclaratorSyntax declarator,
@@ -77,7 +74,7 @@ public static class RemoveUnusedVariableRefactoring
 		}
 
 		// Single declarator — decide whether to drop the statement or keep a side-effect.
-		if (declarator.Initializer is { Value: var initValue } 
+		if (declarator.Initializer is { Value: var initValue }
 		    && CouldHaveSideEffects(initValue, semanticModel))
 		{
 			// Replace with a bare expression statement to preserve the side-effect.
@@ -96,12 +93,12 @@ public static class RemoveUnusedVariableRefactoring
 	}
 
 	/// <summary>
-	/// Tries to remove or replace a single unused <see cref="VariableDeclaratorSyntax"/>.
-	/// When the whole parent statement can be dropped, <paramref name="statementToRemove"/>
-	/// is set and <paramref name="replacement"/> is <c>null</c>.
-	/// When the statement should be replaced (either a trimmed declaration or a
-	/// bare expression statement), <paramref name="replacement"/> is set and
-	/// <paramref name="statementToRemove"/> is <c>null</c>.
+	///   Tries to remove or replace a single unused <see cref="VariableDeclaratorSyntax" />.
+	///   When the whole parent statement can be dropped, <paramref name="statementToRemove" />
+	///   is set and <paramref name="replacement" /> is <c>null</c>.
+	///   When the statement should be replaced (either a trimmed declaration or a
+	///   bare expression statement), <paramref name="replacement" /> is set and
+	///   <paramref name="statementToRemove" /> is <c>null</c>.
 	/// </summary>
 	public static bool TryRemoveUnusedVariable(
 		VariableDeclaratorSyntax declarator,
@@ -129,7 +126,7 @@ public static class RemoveUnusedVariableRefactoring
 		}
 
 		// Single declarator.
-		if (declarator.Initializer is { Value: var initValue } 
+		if (declarator.Initializer is { Value: var initValue }
 		    && CouldHaveSideEffects(initValue, semanticModel))
 		{
 			// Preserve the side-effecting initialiser as a standalone expression.
@@ -145,9 +142,9 @@ public static class RemoveUnusedVariableRefactoring
 	}
 
 	/// <summary>
-	/// Applies all unused-variable removals to a <see cref="BlockSyntax"/>.
-	/// Each <paramref name="unusedDeclarators"/> entry is a declarator whose
-	/// variable is never read after assignment.
+	///   Applies all unused-variable removals to a <see cref="BlockSyntax" />.
+	///   Each <paramref name="unusedDeclarators" /> entry is a declarator whose
+	///   variable is never read after assignment.
 	/// </summary>
 	public static BlockSyntax RemoveUnusedVariables(
 		SemanticModel semanticModel,
@@ -165,11 +162,11 @@ public static class RemoveUnusedVariableRefactoring
 	// -------------------------------------------------------------------------
 
 	/// <summary>
-	/// Returns <c>true</c> when <paramref name="expression"/> might have an
-	/// observable side-effect (i.e. it is not a pure constant/literal).
-	/// When a <see cref="SemanticModel"/> is available, checks if property accesses
-	/// resolve to known side-effect-free getters.
-	/// This is a conservative over-approximation.
+	///   Returns <c>true</c> when <paramref name="expression" /> might have an
+	///   observable side-effect (i.e. it is not a pure constant/literal).
+	///   When a <see cref="SemanticModel" /> is available, checks if property accesses
+	///   resolve to known side-effect-free getters.
+	///   This is a conservative over-approximation.
 	/// </summary>
 	private static bool CouldHaveSideEffects(ExpressionSyntax expression, SemanticModel semanticModel)
 	{
@@ -191,7 +188,7 @@ public static class RemoveUnusedVariableRefactoring
 			DefaultExpressionSyntax => false,
 			TypeOfExpressionSyntax => false,
 			SizeOfExpressionSyntax => false,
-			NameSyntax => false,          // Reading a variable / type name — no side-effect.
+			NameSyntax => false, // Reading a variable / type name — no side-effect.
 			MemberAccessExpressionSyntax { Expression: NameSyntax } => false,
 			_ => true
 		};
@@ -220,7 +217,7 @@ public static class RemoveUnusedVariableRefactoring
 				if (declaration.Variables.Count == 1)
 				{
 					// Single declarator — remove or replace with side-effect expression.
-					if (variable.Initializer is { Value: var initValue } 
+					if (variable.Initializer is { Value: var initValue }
 					    && CouldHaveSideEffects(initValue, model))
 					{
 						return ExpressionStatement(initValue)
@@ -244,5 +241,3 @@ public static class RemoveUnusedVariableRefactoring
 		}
 	}
 }
-
-

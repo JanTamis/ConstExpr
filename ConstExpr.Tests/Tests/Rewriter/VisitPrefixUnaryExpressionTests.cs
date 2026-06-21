@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
-/// Tests for VisitPrefixUnaryExpression - negation, !, ++, -- folding
+///   Tests for VisitPrefixUnaryExpression - negation, !, ++, -- folding
 /// </summary>
 [InheritsTests]
 public class VisitPrefixUnaryExpressionTests : BaseTest<Func<int, bool, (int, int, bool, int, int, int, bool)>>

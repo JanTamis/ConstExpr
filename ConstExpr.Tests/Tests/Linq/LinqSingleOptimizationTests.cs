@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for Single() optimization - verify Where fusion and chain optimization
+///   Tests for Single() optimization - verify Where fusion and chain optimization
 /// </summary>
 [InheritsTests]
 public class LinqSingleOptimizationTests : BaseTest<Func<int[], int>>
@@ -21,6 +21,6 @@ public class LinqSingleOptimizationTests : BaseTest<Func<int[], int>>
 	[
 		Create("return Single_nJEiIg(x) + Single_A6_ZQQ(x);"),
 		Create(_ => 5, [ new[] { 1, 2, 3, 4, 5 } ]),
-		Create(_ => 5, [ new[] { 2, 3 } ]),
+		Create(_ => 5, [ new[] { 2, 3 } ])
 	];
 }

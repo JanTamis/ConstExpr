@@ -7,14 +7,14 @@ namespace ConstExpr.SourceGenerator.Visitors;
 
 public class AssignmentWalker(SemanticModel semanticModel) : CSharpSyntaxWalker
 {
+	public HashSet<string> AssignedVariables { get; } = [ ];
+
 	public static IEnumerable<string> GetAssignedVariables(SyntaxNode node, SemanticModel semanticModel)
 	{
 		var visitor = new AssignmentWalker(semanticModel);
 		visitor.Visit(node);
 		return visitor.AssignedVariables;
 	}
-	
-	public HashSet<string> AssignedVariables { get; } = [ ];
 
 	// x = ..., x += ..., x -= ..., etc.
 	public override void VisitAssignmentExpression(AssignmentExpressionSyntax node)

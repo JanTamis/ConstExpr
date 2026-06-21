@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -7,14 +8,13 @@ namespace ConstExpr.SourceGenerator.Refactorers;
 using static SyntaxFactory;
 
 /// <summary>
-/// Refactorer that encapsulates a field by generating a property that wraps it.
-/// Inspired by the Roslyn <c>EncapsulateFieldCodeRefactoringProvider</c>.
-///
-/// <code>
+///   Refactorer that encapsulates a field by generating a property that wraps it.
+///   Inspired by the Roslyn <c>EncapsulateFieldCodeRefactoringProvider</c>.
+///   <code>
 /// public int count;
 /// </code>
-/// →
-/// <code>
+///   →
+///   <code>
 /// private int count;
 /// public int Count
 /// {
@@ -22,15 +22,14 @@ using static SyntaxFactory;
 ///     set { count = value; }
 /// }
 /// </code>
-///
-/// This is a simplified syntax-only transformation that generates a property
-/// for a single field declarator.
+///   This is a simplified syntax-only transformation that generates a property
+///   for a single field declarator.
 /// </summary>
 public static class EncapsulateFieldRefactoring
 {
 	/// <summary>
-	/// Generates a property to encapsulate a field.
-	/// Returns the modified field (made private) and the new property.
+	///   Generates a property to encapsulate a field.
+	///   Returns the modified field (made private) and the new property.
 	/// </summary>
 	public static bool TryEncapsulateField(
 		FieldDeclarationSyntax field,
@@ -49,7 +48,7 @@ public static class EncapsulateFieldRefactoring
 		var fieldName = variable.Identifier.ValueText;
 		var type = field.Declaration.Type;
 
-		if (string.IsNullOrEmpty(fieldName))
+		if (String.IsNullOrEmpty(fieldName))
 		{
 			return false;
 		}
@@ -86,8 +85,8 @@ public static class EncapsulateFieldRefactoring
 	}
 
 	/// <summary>
-	/// Generates a PascalCase property name from a field name.
-	/// Strips leading underscores and capitalises the first letter.
+	///   Generates a PascalCase property name from a field name.
+	///   Strips leading underscores and capitalises the first letter.
 	/// </summary>
 	private static string GeneratePropertyName(string fieldName)
 	{
@@ -106,7 +105,6 @@ public static class EncapsulateFieldRefactoring
 
 		var baseName = fieldName.Substring(start);
 
-		return char.ToUpperInvariant(baseName[0]) + baseName.Substring(1);
+		return Char.ToUpperInvariant(baseName[0]) + baseName.Substring(1);
 	}
 }
-

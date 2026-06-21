@@ -1,6 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -9,20 +8,22 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.AggregateBy method.
-/// Optimizes patterns such as:
-/// - collection.AsEnumerable().AggregateBy(keySelector, seed, func) => collection.AggregateBy(keySelector, seed, func)
-/// - collection.ToList().AggregateBy(keySelector, seed, func) => collection.AggregateBy(keySelector, seed, func)
-/// - collection.ToArray().AggregateBy(keySelector, seed, func) => collection.AggregateBy(keySelector, seed, func)
-/// - Enumerable.Empty&lt;T&gt;().AggregateBy(keySelector, seed, func) => Enumerable.Empty&lt;KeyValuePair&lt;TKey, TAccumulate&gt;&gt;()
-/// - collection.AggregateBy(keySelector, seed, func, null) => collection.AggregateBy(keySelector, seed, func)
-/// - collection.AggregateBy(keySelector, 0, (acc, _) => acc + 1) => collection.CountBy(keySelector)
-/// - collection.Select(v => v).AggregateBy(keySelector, seed, func) => collection.AggregateBy(keySelector, seed, func)
-/// - collection.Select(selector).AggregateBy(keySelector, seed, func) => collection.AggregateBy(v => keySelector(selector(v)), seed, (acc, v) => func(acc, selector(v)))
-/// - collection.Where(v => true).AggregateBy(...) => collection.AggregateBy(...)
-/// - collection.Where(v => false).AggregateBy(...) => Enumerable.Empty&lt;KeyValuePair&lt;TKey, TAccumulate&gt;&gt;()
-/// Note: Ordering operations are NOT stripped because the accumulator function is applied to elements
-/// in the order they appear within each key group, so ordering can affect non-commutative accumulators.
+///   Optimizer for Enumerable.AggregateBy method.
+///   Optimizes patterns such as:
+///   - collection.AsEnumerable().AggregateBy(keySelector, seed, func) => collection.AggregateBy(keySelector, seed, func)
+///   - collection.ToList().AggregateBy(keySelector, seed, func) => collection.AggregateBy(keySelector, seed, func)
+///   - collection.ToArray().AggregateBy(keySelector, seed, func) => collection.AggregateBy(keySelector, seed, func)
+///   - Enumerable.Empty&lt;T&gt;().AggregateBy(keySelector, seed, func) => Enumerable.Empty&lt;KeyValuePair&lt;TKey,
+///   TAccumulate&gt;&gt;()
+///   - collection.AggregateBy(keySelector, seed, func, null) => collection.AggregateBy(keySelector, seed, func)
+///   - collection.AggregateBy(keySelector, 0, (acc, _) => acc + 1) => collection.CountBy(keySelector)
+///   - collection.Select(v => v).AggregateBy(keySelector, seed, func) => collection.AggregateBy(keySelector, seed, func)
+///   - collection.Select(selector).AggregateBy(keySelector, seed, func) => collection.AggregateBy(v =>
+///   keySelector(selector(v)), seed, (acc, v) => func(acc, selector(v)))
+///   - collection.Where(v => true).AggregateBy(...) => collection.AggregateBy(...)
+///   - collection.Where(v => false).AggregateBy(...) => Enumerable.Empty&lt;KeyValuePair&lt;TKey, TAccumulate&gt;&gt;()
+///   Note: Ordering operations are NOT stripped because the accumulator function is applied to elements
+///   in the order they appear within each key group, so ordering can affect non-commutative accumulators.
 /// </summary>
 public class AggregateByFunctionOptimizer() : BaseLinqFunctionOptimizer("AggregateBy", n => n is 3 or 4 or 5)
 {
@@ -50,7 +51,7 @@ public class AggregateByFunctionOptimizer() : BaseLinqFunctionOptimizer("Aggrega
 		}
 
 		// Null comparer removal: AggregateBy(k, s, f, null) => AggregateBy(k, s, f)
-		if (context.VisitedParameters is [ _, _, _, LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NullLiteralExpression } ])
+		if (context.VisitedParameters is [ _, _, _, LiteralExpressionSyntax { RawKind: (int)SyntaxKind.NullLiteralExpression } ])
 		{
 			result = UpdateInvocation(context, source, context.VisitedParameters.Take(3));
 			return true;
@@ -155,9 +156,9 @@ public class AggregateByFunctionOptimizer() : BaseLinqFunctionOptimizer("Aggrega
 	}
 
 	/// <summary>
-	/// Detects AggregateBy(keySelector, 0, (acc, _) => acc + 1[, comparer]) and converts to
-	/// CountBy(keySelector[, comparer]), because both produce identical
-	/// IEnumerable&lt;KeyValuePair&lt;TKey, int&gt;&gt; results counting occurrences per key.
+	///   Detects AggregateBy(keySelector, 0, (acc, _) => acc + 1[, comparer]) and converts to
+	///   CountBy(keySelector[, comparer]), because both produce identical
+	///   IEnumerable&lt;KeyValuePair&lt;TKey, int&gt;&gt; results counting occurrences per key.
 	/// </summary>
 	private bool TryOptimizeToCountBy(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -207,11 +208,11 @@ public class AggregateByFunctionOptimizer() : BaseLinqFunctionOptimizer("Aggrega
 	}
 
 	/// <summary>
-	/// Returns true when <paramref name="body"/> is <c>accParam + 1</c> or <c>1 + accParam</c>.
+	///   Returns true when <paramref name="body" /> is <c>accParam + 1</c> or <c>1 + accParam</c>.
 	/// </summary>
 	private static bool IsIncrementBody(ExpressionSyntax body, string accParam)
 	{
-		if (body is not BinaryExpressionSyntax { RawKind: (int) SyntaxKind.AddExpression } add)
+		if (body is not BinaryExpressionSyntax { RawKind: (int)SyntaxKind.AddExpression } add)
 		{
 			return false;
 		}

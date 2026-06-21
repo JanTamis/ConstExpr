@@ -10,21 +10,42 @@ using Microsoft.CodeAnalysis;
 namespace ConstExpr.SourceGenerator.Helpers;
 
 /// <summary>
-/// Represents a metadata loader for retrieving types from loaded assemblies in a metadata load context.
+///   Represents a metadata loader for retrieving types from loaded assemblies in a metadata load context.
 /// </summary>
 public class MetadataLoader
 {
 	private static readonly ConditionalWeakTable<Compilation, MetadataLoader> _loaderCache = new();
+	private readonly ConcurrentDictionary<string, Assembly?> _assemblyCache = new();
 
 	// Lazy-loaded assemblies - only load when needed
 	private readonly HashSet<string> _assemblyPaths;
 	private readonly Lazy<HashSet<Assembly>> _preloadedAssemblies;
-	private readonly ConcurrentDictionary<string, Assembly?> _assemblyCache = new();
 	private readonly ConcurrentDictionary<string, Type?> _typeCache = new();
 
 	/// <summary>
-	/// Gets all assemblies loaded in the current metadata context.
-	/// Note: This triggers loading of all assemblies (use sparingly).
+	///   Initializes a new instance of the <see cref="MetadataLoader" /> class with lazy loading.
+	/// </summary>
+	/// <param name="assemblyPaths">The paths to assemblies (loaded on-demand).</param>
+	private MetadataLoader(HashSet<string> assemblyPaths)
+	{
+		_assemblyPaths = assemblyPaths;
+
+		// Lazy-load AppDomain assemblies only when first accessed
+		_preloadedAssemblies = new Lazy<HashSet<Assembly>>(() =>
+		{
+			var assemblies = new HashSet<Assembly>();
+
+			foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+			{
+				assemblies.Add(assembly);
+			}
+			return assemblies;
+		});
+	}
+
+	/// <summary>
+	///   Gets all assemblies loaded in the current metadata context.
+	///   Note: This triggers loading of all assemblies (use sparingly).
 	/// </summary>
 	public IEnumerable<Assembly> Assemblies => GetAllAssemblies();
 
@@ -48,28 +69,7 @@ public class MetadataLoader
 	}
 
 	/// <summary>
-	/// Initializes a new instance of the <see cref="MetadataLoader"/> class with lazy loading.
-	/// </summary>
-	/// <param name="assemblyPaths">The paths to assemblies (loaded on-demand).</param>
-	private MetadataLoader(HashSet<string> assemblyPaths)
-	{
-		_assemblyPaths = assemblyPaths;
-
-		// Lazy-load AppDomain assemblies only when first accessed
-		_preloadedAssemblies = new Lazy<HashSet<Assembly>>(() =>
-		{
-			var assemblies = new HashSet<Assembly>();
-
-			foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
-			{
-				assemblies.Add(assembly);
-			}
-			return assemblies;
-		});
-	}
-
-	/// <summary>
-	/// Gets all assemblies (triggers loading if not already loaded).
+	///   Gets all assemblies (triggers loading if not already loaded).
 	/// </summary>
 	private IEnumerable<Assembly> GetAllAssemblies()
 	{
@@ -96,7 +96,7 @@ public class MetadataLoader
 	}
 
 	/// <summary>
-	/// Loads an assembly by name (cached for performance).
+	///   Loads an assembly by name (cached for performance).
 	/// </summary>
 	private Assembly? LoadAssemblyByName(AssemblyName assemblyName)
 	{
@@ -132,11 +132,11 @@ public class MetadataLoader
 	}
 
 	/// <summary>
-	/// Retrieves a <see cref="Type"/> from the loaded assemblies that corresponds to the provided type symbol.
+	///   Retrieves a <see cref="Type" /> from the loaded assemblies that corresponds to the provided type symbol.
 	/// </summary>
 	/// <param name="typeSymbol">The type symbol to find the corresponding Type for.</param>
 	/// <returns>
-	/// The <see cref="Type"/> that corresponds to the provided type symbol, or null if no matching type is found.
+	///   The <see cref="Type" /> that corresponds to the provided type symbol, or null if no matching type is found.
 	/// </returns>
 	public Type? GetType(ITypeSymbol? typeSymbol)
 	{
@@ -182,7 +182,7 @@ public class MetadataLoader
 
 		return GetType(fullTypeName);
 	}
-	
+
 	public bool TryGetType(ITypeSymbol? typeSymbol, [NotNullWhen(true)] out Type? type)
 	{
 		type = GetType(typeSymbol);
@@ -190,14 +190,14 @@ public class MetadataLoader
 	}
 
 	/// <summary>
-	/// Retrieves a <see cref="Type"/> from the loaded assemblies that corresponds to the provided type name.
-	/// Uses lazy loading: searches preloaded assemblies first, then loads others on-demand.
-	/// Supports both CLR-style names (e.g. System.Collections.Generic.Dictionary`2) and
-	/// C#-style generic names (e.g. Dictionary&lt;int, int&gt;).
+	///   Retrieves a <see cref="Type" /> from the loaded assemblies that corresponds to the provided type name.
+	///   Uses lazy loading: searches preloaded assemblies first, then loads others on-demand.
+	///   Supports both CLR-style names (e.g. System.Collections.Generic.Dictionary`2) and
+	///   C#-style generic names (e.g. Dictionary&lt;int, int&gt;).
 	/// </summary>
 	/// <param name="typeName">The fully qualified name of the type to find.</param>
 	/// <returns>
-	/// The <see cref="Type"/> that corresponds to the provided type name, or null if no matching type is found.
+	///   The <see cref="Type" /> that corresponds to the provided type name, or null if no matching type is found.
 	/// </returns>
 	public Type? GetType(string typeName)
 	{
@@ -214,8 +214,8 @@ public class MetadataLoader
 	}
 
 	/// <summary>
-	/// Resolves a C#-style generic type name like "Dictionary&lt;int, int&gt;" or
-	/// "System.Collections.Generic.Dictionary&lt;int, int&gt;" to a runtime Type.
+	///   Resolves a C#-style generic type name like "Dictionary&lt;int, int&gt;" or
+	///   "System.Collections.Generic.Dictionary&lt;int, int&gt;" to a runtime Type.
 	/// </summary>
 	private Type? TryResolveCSharpGenericType(string csharpTypeName)
 	{
@@ -281,8 +281,8 @@ public class MetadataLoader
 	}
 
 	/// <summary>
-	/// Splits generic arguments respecting nested angle brackets.
-	/// E.g. "int, Dictionary&lt;string, int&gt;" => ["int", "Dictionary&lt;string, int&gt;"]
+	///   Splits generic arguments respecting nested angle brackets.
+	///   E.g. "int, Dictionary&lt;string, int&gt;" => ["int", "Dictionary&lt;string, int&gt;"]
 	/// </summary>
 	private static List<string> SplitGenericArguments(string typeArgsString)
 	{
@@ -318,7 +318,7 @@ public class MetadataLoader
 	}
 
 	/// <summary>
-	/// Resolves C# keyword type aliases to their fully qualified CLR type names.
+	///   Resolves C# keyword type aliases to their fully qualified CLR type names.
 	/// </summary>
 	private static string ResolveCSharpTypeAlias(string typeName)
 	{
@@ -350,7 +350,7 @@ public class MetadataLoader
 	}
 
 	/// <summary>
-	/// Searches for a type across assemblies using a smart lazy-loading strategy.
+	///   Searches for a type across assemblies using a smart lazy-loading strategy.
 	/// </summary>
 	private Type? SearchForType(string typeName)
 	{
@@ -399,7 +399,7 @@ public class MetadataLoader
 	}
 
 	/// <summary>
-	/// Determines if we should check preloaded assemblies for common types.
+	///   Determines if we should check preloaded assemblies for common types.
 	/// </summary>
 	private static bool ShouldCheckPreloadedAssemblies(string typeName)
 	{
@@ -410,14 +410,14 @@ public class MetadataLoader
 	}
 
 	/// <summary>
-	/// Quick heuristic check if an assembly could contain a type.
+	///   Quick heuristic check if an assembly could contain a type.
 	/// </summary>
 	private static bool CouldContainType(Assembly assembly, string typeName)
 	{
 		// Simple heuristic: check if assembly name prefix matches type namespace
 		var assemblyName = assembly.GetName().Name;
 
-		if (string.IsNullOrEmpty(assemblyName))
+		if (String.IsNullOrEmpty(assemblyName))
 		{
 			return true;
 		}
@@ -440,13 +440,13 @@ public class MetadataLoader
 	}
 
 	/// <summary>
-	/// Safely tries to get a type from an assembly.
+	///   Safely tries to get a type from an assembly.
 	/// </summary>
 	private static Type? TryGetTypeFromAssembly(Assembly assembly, string typeName)
 	{
 		try
 		{
-			return assembly.GetType(typeName, throwOnError: false);
+			return assembly.GetType(typeName, false);
 		}
 		catch
 		{

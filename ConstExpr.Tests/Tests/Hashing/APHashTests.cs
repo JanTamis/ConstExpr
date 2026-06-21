@@ -12,7 +12,7 @@ public class APHashTests() : BaseTest<Func<string, uint>>(FastMathFlags.All)
 
 		for (i = 0; i < str.Length; i++)
 		{
-			hash ^= (i & 1) == 0 ? hash << 7 ^ (byte) str[(int) i] * (hash >> 3) : ~((hash << 11) + ((byte) str[(int) i] ^ hash >> 5));
+			hash ^= (i & 1) == 0 ? hash << 7 ^ (byte)str[(int)i] * (hash >> 3) : ~((hash << 11) + ((byte)str[(int)i] ^ hash >> 5));
 		}
 
 		return hash;
@@ -26,7 +26,7 @@ public class APHashTests() : BaseTest<Func<string, uint>>(FastMathFlags.All)
 
 			for (var i = 0U; i < str.Length; i++)
 			{
-				hash ^= UInt32.IsEvenInteger(i) ? hash << 7 ^ (byte) str[(int) i] * (hash >> 3) : ~((hash << 11) + ((byte) str[(int) i] ^ hash >> 5));
+				hash ^= UInt32.IsEvenInteger(i) ? hash << 7 ^ (byte)str[(int)i] * (hash >> 3) : ~((hash << 11) + ((byte)str[(int)i] ^ hash >> 5));
 			}
 
 			return hash;

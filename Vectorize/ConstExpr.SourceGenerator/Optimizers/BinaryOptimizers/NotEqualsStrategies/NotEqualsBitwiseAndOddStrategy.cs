@@ -8,7 +8,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.NotEqualsStrategies;
 
 /// <summary>
-/// Strategy for bitwise AND odd detection: (x & 1) != 0 => T.IsOddInteger(x)
+///   Strategy for bitwise AND odd detection: (x & 1) != 0 => T.IsOddInteger(x)
 /// </summary>
 public class NotEqualsBitwiseAndOddStrategy() : SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, LiteralExpressionSyntax>(leftKind: SyntaxKind.BitwiseAndExpression)
 {
@@ -36,4 +36,3 @@ public class NotEqualsBitwiseAndOddStrategy() : SymmetricStrategy<NumericBinaryS
 		return true;
 	}
 }
-

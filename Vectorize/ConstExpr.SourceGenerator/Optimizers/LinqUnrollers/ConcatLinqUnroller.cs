@@ -4,9 +4,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 /// <summary>
-/// Unrolls <c>.Concat(second)</c> as an intermediate step.
-/// After the main loop processes the first sequence, a second loop
-/// iterates the concatenated sequence through subsequent chain steps.
+///   Unrolls <c>.Concat(second)</c> as an intermediate step.
+///   After the main loop processes the first sequence, a second loop
+///   iterates the concatenated sequence through subsequent chain steps.
 /// </summary>
 public class ConcatLinqUnroller : BaseLinqUnroller
 {
@@ -25,4 +25,3 @@ public class ConcatLinqUnroller : BaseLinqUnroller
 			Block(partialLoopBody)));
 	}
 }
-

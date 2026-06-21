@@ -21,6 +21,6 @@ public class UnsigedIntegerBinaryStrategy(SyntaxKind leftKind = SyntaxKind.None,
 {
 	public UnsigedIntegerBinaryStrategy() : this(SyntaxKind.None)
 	{
-		
+
 	}
 }

@@ -10,6 +10,6 @@ public class MathFCbrtTest() : BaseTest<Func<float, float>>(FastMathFlags.All, o
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return FastCbrt(x);"),
+		Create("return FastCbrt(x);")
 	];
 }

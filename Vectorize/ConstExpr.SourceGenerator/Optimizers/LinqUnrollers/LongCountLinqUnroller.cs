@@ -31,5 +31,3 @@ public class LongCountLinqUnroller : BaseLinqUnroller
 		statements.Add(ReturnStatement(IdentifierName(ResultName)));
 	}
 }
-
-

@@ -16,4 +16,3 @@ public class Ieee754RemainderFunctionOptimizer() : BaseMathFunctionOptimizer("Ie
 		return true;
 	}
 }
-

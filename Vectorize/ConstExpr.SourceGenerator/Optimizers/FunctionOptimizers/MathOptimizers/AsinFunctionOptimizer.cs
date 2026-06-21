@@ -22,7 +22,7 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n 
 		{
 			SpecialType.System_Single => GenerateFastAsinMethodFloat(context.FastMathFlags),
 			SpecialType.System_Double => GenerateFastAsinMethodDouble(context.FastMathFlags),
-			_ => null,
+			_ => null
 		});
 
 		if (method is not null)

@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for Any() optimization on List - verify that List.Where().Any() is optimized to List.Exists()
+///   Tests for Any() optimization on List - verify that List.Where().Any() is optimized to List.Exists()
 /// </summary>
 [InheritsTests]
 public class LinqAnyOptimizationListTests() : BaseTest<Func<List<int>, int>>(FastMathFlags.AssociativeMath)
@@ -35,6 +35,6 @@ public class LinqAnyOptimizationListTests() : BaseTest<Func<List<int>, int>>(Fas
 	[
 		Create("return (x.Count > 0 ? 3 : 0) + (Any_pfIHsA(CollectionsMarshal.AsSpan(x)) ? 1 : 0) + (Any_7KBy_w(CollectionsMarshal.AsSpan(x)) ? 1 : 0) + (Contains_Xl5chw(CollectionsMarshal.AsSpan(x)) ? 1 : 0);", Unknown),
 		Create(_ => 5, [ new List<int> { 1, 2, 3, 4, 5 } ]),
-		Create(_ => 0, [ new List<int>() ]),
+		Create(_ => 0, [ new List<int>() ])
 	];
 }

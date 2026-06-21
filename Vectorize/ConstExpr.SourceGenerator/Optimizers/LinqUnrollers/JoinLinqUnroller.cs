@@ -7,9 +7,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 /// <summary>
-/// Unrolls <c>.Join(inner, outerKeySelector, innerKeySelector, resultSelector)</c> as an intermediate step.
-/// Builds a lookup from the inner collection, then for each outer element yields all matching
-/// inner elements through the result selector. Results are buffered and processed after the main loop.
+///   Unrolls <c>.Join(inner, outerKeySelector, innerKeySelector, resultSelector)</c> as an intermediate step.
+///   Builds a lookup from the inner collection, then for each outer element yields all matching
+///   inner elements through the result selector. Results are buffered and processed after the main loop.
 /// </summary>
 public class JoinLinqUnroller : BaseLinqUnroller
 {
@@ -29,7 +29,7 @@ public class JoinLinqUnroller : BaseLinqUnroller
 
 		// var joinLookup = new Dictionary<TKey, List<TInner>>();
 		statements.Add(CreateLocalDeclaration(LookupName,
-			ObjectCreationExpression(IdentifierName($"Dictionary<{keyTypeName}, List<{innerTypeName}>>"), [])));
+			ObjectCreationExpression(IdentifierName($"Dictionary<{keyTypeName}, List<{innerTypeName}>>"), [ ])));
 
 		// Build the lookup from inner collection
 		if (method.Parameters.Length >= 2
@@ -60,7 +60,7 @@ public class JoinLinqUnroller : BaseLinqUnroller
 										.WithRefKindKeyword(Token(SyntaxKind.OutKeyword))
 								])))),
 							Block(
-								CreateAssignment("innerList", ObjectCreationExpression(IdentifierName($"List<{innerTypeName}>"), [])),
+								CreateAssignment("innerList", ObjectCreationExpression(IdentifierName($"List<{innerTypeName}>"), [ ])),
 								ExpressionStatement(AssignmentExpression(SyntaxKind.SimpleAssignmentExpression,
 									ElementAccessExpression(IdentifierName(LookupName), IdentifierName("innerKey")),
 									IdentifierName("innerList"))))),
@@ -70,7 +70,7 @@ public class JoinLinqUnroller : BaseLinqUnroller
 
 		// var joinBuffer = new List<TResult>();
 		statements.Add(CreateLocalDeclaration(BufferName,
-			ObjectCreationExpression(IdentifierName($"List<{resultTypeName}>"), [])));
+			ObjectCreationExpression(IdentifierName($"List<{resultTypeName}>"), [ ])));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
@@ -148,4 +148,3 @@ public class JoinLinqUnroller : BaseLinqUnroller
 			Block(partialLoopBody)));
 	}
 }
-

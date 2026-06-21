@@ -7,11 +7,11 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Append context.Method.
-/// Optimizes patterns such as:
-/// - collection.AsEnumerable().Append(x) =&gt; collection.Append(x) (skip type cast)
-/// - collection.ToList().Append(x) =&gt; collection.Append(x) (skip materialization)
-/// - collection.ToArray().Append(x) =&gt; collection.Append(x) (skip materialization)
+///   Optimizer for Enumerable.Append context.Method.
+///   Optimizes patterns such as:
+///   - collection.AsEnumerable().Append(x) =&gt; collection.Append(x) (skip type cast)
+///   - collection.ToList().Append(x) =&gt; collection.Append(x) (skip materialization)
+///   - collection.ToArray().Append(x) =&gt; collection.Append(x) (skip materialization)
 /// </summary>
 public class AppendFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Append), n => n is 1)
 {

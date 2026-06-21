@@ -10,6 +10,6 @@ public class DivideByOneTest : BaseTest<Func<int, int>>
 	[
 		Create(x => x),
 		Create(_ => 9, [ 9 ]),
-		Create(_ => -4, [ -4 ]),
+		Create(_ => -4, [ -4 ])
 	];
 }

@@ -51,7 +51,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 	public override SyntaxNode? VisitIsPatternExpression(IsPatternExpressionSyntax node)
 	{
-		var visited = (IsPatternExpressionSyntax?) base.VisitIsPatternExpression(node);
+		var visited = (IsPatternExpressionSyntax?)base.VisitIsPatternExpression(node);
 
 		if (visited is null)
 		{
@@ -72,7 +72,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 	public override SyntaxNode? VisitSimpleLambdaExpression(SimpleLambdaExpressionSyntax node)
 	{
-		var visited = (SimpleLambdaExpressionSyntax?) base.VisitSimpleLambdaExpression(node);
+		var visited = (SimpleLambdaExpressionSyntax?)base.VisitSimpleLambdaExpression(node);
 
 		if (visited is null)
 		{
@@ -103,7 +103,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 	public override SyntaxNode? VisitParenthesizedLambdaExpression(ParenthesizedLambdaExpressionSyntax node)
 	{
-		var visited = (ParenthesizedLambdaExpressionSyntax?) base.VisitParenthesizedLambdaExpression(node);
+		var visited = (ParenthesizedLambdaExpressionSyntax?)base.VisitParenthesizedLambdaExpression(node);
 
 		if (visited is null)
 		{
@@ -164,7 +164,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 				MathF.E => ParseExpression("Single.E"),
 				Double.Epsilon => ParseExpression("Double.Epsilon"),
 				Single.Epsilon => ParseExpression("Single.Epsilon"),
-				_ => IsHexOrBinaryLiteral(node.Token) ? node : expression,
+				_ => IsHexOrBinaryLiteral(node.Token) ? node : expression
 			}).WithLeadingTrivia(node.GetLeadingTrivia()).WithTrailingTrivia(node.GetTrailingTrivia());
 		}
 
@@ -204,7 +204,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		switch (ifBodyIsEmpty)
 		{
 			// If the entire if statement is empty (if body empty and no else, or if body empty and else empty)
-			case true when (visited.Else is null || elseClauseEmpty):
+			case true when visited.Else is null || elseClauseEmpty:
 			{
 				// Remove the entire if statement
 				return null;
@@ -375,7 +375,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 	public override SyntaxNode? VisitStructDeclaration(StructDeclarationSyntax node)
 	{
-		var visited = (StructDeclarationSyntax?) base.VisitStructDeclaration(node);
+		var visited = (StructDeclarationSyntax?)base.VisitStructDeclaration(node);
 
 		if (visited is null || visited.Members.Count <= 1)
 		{
@@ -387,7 +387,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 	public override SyntaxNode? VisitRecordDeclaration(RecordDeclarationSyntax node)
 	{
-		var visited = (RecordDeclarationSyntax?) base.VisitRecordDeclaration(node);
+		var visited = (RecordDeclarationSyntax?)base.VisitRecordDeclaration(node);
 
 		if (visited is null || visited.Members.Count <= 1)
 		{
@@ -709,7 +709,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		result = result.WithType(result.Type.WithTrailingTrivia());
 
 		// Flatten collection initializer onto a single line: { { k, v }, ... }
-		if (result.Initializer is { RawKind: (int) SyntaxKind.CollectionInitializerExpression } initializer)
+		if (result.Initializer is { RawKind: (int)SyntaxKind.CollectionInitializerExpression } initializer)
 		{
 			var flat = FlattenInitializer(initializer);
 
@@ -789,7 +789,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 				SyntaxKind.CharKeyword => "Char",
 				SyntaxKind.StringKeyword => "String",
 				SyntaxKind.ObjectKeyword => "Object",
-				_ => null,
+				_ => null
 			};
 
 			if (fullTypeName is not null)
@@ -802,15 +802,22 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 	}
 
 	/// <summary>
-	/// Surrounds a contiguous group of statements in the list with appropriate blank lines, based on grouping logic and
-	/// statement context.
+	///   Surrounds a contiguous group of statements in the list with appropriate blank lines, based on grouping logic and
+	///   statement context.
 	/// </summary>
-	/// <remarks>This method ensures that blank lines are inserted or removed around groups of related statements,
-	/// such as local declarations or expression statements, to improve code readability. Special handling is applied to
-	/// avoid unnecessary blank lines between declarations and immediate assignments to declared variables.</remarks>
-	/// <param name="visited">The list of statements to process and modify by adding or trimming blank lines around contiguous groups.</param>
-	/// <param name="i">The index in the list at which to start searching for a contiguous group. Updated to the last index of the
-	/// processed group.</param>
+	/// <remarks>
+	///   This method ensures that blank lines are inserted or removed around groups of related statements,
+	///   such as local declarations or expression statements, to improve code readability. Special handling is applied to
+	///   avoid unnecessary blank lines between declarations and immediate assignments to declared variables.
+	/// </remarks>
+	/// <param name="visited">
+	///   The list of statements to process and modify by adding or trimming blank lines around contiguous
+	///   groups.
+	/// </param>
+	/// <param name="i">
+	///   The index in the list at which to start searching for a contiguous group. Updated to the last index of the
+	///   processed group.
+	/// </param>
 	/// <param name="isInGroup">A predicate that determines whether a given statement belongs to the group to be surrounded.</param>
 	private static void SurroundContiguousGroup(List<StatementSyntax> visited, ref int i, Func<StatementSyntax, bool> isInGroup)
 	{
@@ -928,20 +935,23 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		i = end;
 	}
 
-	private static bool IsTarget(StatementSyntax s) => s is IfStatementSyntax
-		or ForStatementSyntax
-		or ForEachStatementSyntax
-		or ForEachVariableStatementSyntax
-		or WhileStatementSyntax
-		or DoStatementSyntax
-		or SwitchStatementSyntax
-		or UsingStatementSyntax
-		or LockStatementSyntax
-		or TryStatementSyntax
-		or FixedStatementSyntax
-		or LocalFunctionStatementSyntax
-		or CheckedStatementSyntax
-		or UnsafeStatementSyntax;
+	private static bool IsTarget(StatementSyntax s)
+	{
+		return s is IfStatementSyntax
+			or ForStatementSyntax
+			or ForEachStatementSyntax
+			or ForEachVariableStatementSyntax
+			or WhileStatementSyntax
+			or DoStatementSyntax
+			or SwitchStatementSyntax
+			or UsingStatementSyntax
+			or LockStatementSyntax
+			or TryStatementSyntax
+			or FixedStatementSyntax
+			or LocalFunctionStatementSyntax
+			or CheckedStatementSyntax
+			or UnsafeStatementSyntax;
+	}
 
 	private static bool NeedsBlankLineBefore(StatementSyntax previous)
 	{
@@ -1184,7 +1194,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 	public override SyntaxNode? VisitSwitchSection(SwitchSectionSyntax node)
 	{
-		var visited = (SwitchSectionSyntax?) base.VisitSwitchSection(node);
+		var visited = (SwitchSectionSyntax?)base.VisitSwitchSection(node);
 
 		if (visited is null)
 		{

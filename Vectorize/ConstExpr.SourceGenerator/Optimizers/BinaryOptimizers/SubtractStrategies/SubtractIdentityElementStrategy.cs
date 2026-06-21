@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.SubtractStrategies;
 
 /// <summary>
-/// Strategy for identity element optimization: x - 0 = x
+///   Strategy for identity element optimization: x - 0 = x
 /// </summary>
 public class SubtractIdentityElementStrategy : NumericBinaryStrategy<ExpressionSyntax, LiteralExpressionSyntax>
 {
@@ -13,11 +13,11 @@ public class SubtractIdentityElementStrategy : NumericBinaryStrategy<ExpressionS
 	{
 		if (!base.TryOptimize(context, out optimized)
 		    || !context.Right.Syntax.IsNumericZero())
-    {
-      return false;
-    }
+		{
+			return false;
+		}
 
-    optimized = context.Left.Syntax;
+		optimized = context.Left.Syntax;
 		return true;
 	}
 }

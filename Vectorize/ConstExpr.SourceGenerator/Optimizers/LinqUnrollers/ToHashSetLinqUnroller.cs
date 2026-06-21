@@ -4,8 +4,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 /// <summary>
-/// Unrolls <c>.ToHashSet()</c> as a terminal step.
-/// Builds a <c>HashSet&lt;T&gt;</c> during the loop and returns it after the loop completes.
+///   Unrolls <c>.ToHashSet()</c> as a terminal step.
+///   Builds a <c>HashSet&lt;T&gt;</c> during the loop and returns it after the loop completes.
 /// </summary>
 public class ToHashSetLinqUnroller : BaseLinqUnroller
 {
@@ -18,7 +18,7 @@ public class ToHashSetLinqUnroller : BaseLinqUnroller
 
 		// var result = new HashSet<T>();
 		statements.Add(CreateLocalDeclaration(ResultName,
-			ObjectCreationExpression(IdentifierName($"HashSet<{typeName}>"), [])));
+			ObjectCreationExpression(IdentifierName($"HashSet<{typeName}>"), [ ])));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
@@ -32,4 +32,3 @@ public class ToHashSetLinqUnroller : BaseLinqUnroller
 		statements.Add(ReturnStatement(IdentifierName(ResultName)));
 	}
 }
-

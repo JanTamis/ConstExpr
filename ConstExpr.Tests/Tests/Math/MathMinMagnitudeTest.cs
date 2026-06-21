@@ -12,6 +12,6 @@ public class MathMinMagnitudeTest() : BaseTest<Func<double, double, double>>(Fas
 	[
 		Create((a, b) => Double.MinMagnitude(a, b)),
 		Create((_, _) => 1D, [ 1.0, -3.0 ]),
-		Create((_, _) => -2D, [ -2.0, 5.0 ]),
+		Create((_, _) => -2D, [ -2.0, 5.0 ])
 	];
 }

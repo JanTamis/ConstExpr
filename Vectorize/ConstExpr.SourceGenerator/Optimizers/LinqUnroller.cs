@@ -80,14 +80,14 @@ public static class LinqUnroller
 		{ PossibleLinqMethod.LeftJoin, new LeftJoinLinqUnroller() },
 		{ PossibleLinqMethod.RightJoin, new RightJoinLinqUnroller() },
 		{ PossibleLinqMethod.ThenBy, new ThenByLinqUnroller() },
-		{ PossibleLinqMethod.ThenByDescending, new ThenByDescendingLinqUnroller() },
+		{ PossibleLinqMethod.ThenByDescending, new ThenByDescendingLinqUnroller() }
 	};
 
 	/// <summary>
-	/// Walks a LINQ method-chain rooted at <paramref name="node"/> and returns every
-	/// recognised <see cref="PossibleLinqMethod"/> step together with its argument
-	/// expressions, ordered from the first (innermost) call to the last (outermost).
-	/// Stops as soon as a call with an unrecognised method name is encountered.
+	///   Walks a LINQ method-chain rooted at <paramref name="node" /> and returns every
+	///   recognised <see cref="PossibleLinqMethod" /> step together with its argument
+	///   expressions, ordered from the first (innermost) call to the last (outermost).
+	///   Stops as soon as a call with an unrecognised method name is encountered.
 	/// </summary>
 	public static UnrolledLinqMethod[] ParseLinqChain(SemanticModel model, Func<SyntaxNode?, SyntaxNode?> visit, SyntaxNode node, ConcurrentDictionary<ulong, ISymbol> symbolStore)
 	{
@@ -155,8 +155,8 @@ public static class LinqUnroller
 	}
 
 	/// <summary>
-	/// Attempts to resolve a LINQ extension method symbol from the compilation
-	/// when the semantic model cannot resolve it (e.g., for synthetic/optimized nodes).
+	///   Attempts to resolve a LINQ extension method symbol from the compilation
+	///   when the semantic model cannot resolve it (e.g., for synthetic/optimized nodes).
 	/// </summary>
 	private static IMethodSymbol? TryResolveLinqMethodFromCompilation(Compilation compilation, string methodName, int parameterCount)
 	{
@@ -319,14 +319,6 @@ public static class LinqUnroller
 
 		result = null;
 		return false;
-	}
-
-	private struct VariableSnapshot
-	{
-		public object? Value;
-		public bool HasValue;
-		public bool IsAltered;
-		public bool IsInitialized;
 	}
 
 	/// <summary>Takes a full snapshot of the variable tracking dictionary.</summary>
@@ -494,9 +486,9 @@ public static class LinqUnroller
 	}
 
 	/// <summary>
-	/// Calls <see cref="BaseLinqUnroller.UnrollBeforeMainLoop"/> for each chain step,
-	/// passing a partial loop body that starts from the step after the current one.
-	/// Used by Prepend to add elements before the main loop.
+	///   Calls <see cref="BaseLinqUnroller.UnrollBeforeMainLoop" /> for each chain step,
+	///   passing a partial loop body that starts from the step after the current one.
+	///   Used by Prepend to add elements before the main loop.
 	/// </summary>
 	private static void ParseBeforeMainLoop(UnrolledLinqMethod[] chain, List<StatementSyntax> resultStatements, Func<SyntaxNode?, SyntaxNode?> visit)
 	{
@@ -511,9 +503,9 @@ public static class LinqUnroller
 	}
 
 	/// <summary>
-	/// Calls <see cref="BaseLinqUnroller.UnrollAfterMainLoop"/> for each chain step,
-	/// passing a partial loop body that starts from the step after the current one.
-	/// Used by Append, Concat, Union, and DefaultIfEmpty to add elements after the main loop.
+	///   Calls <see cref="BaseLinqUnroller.UnrollAfterMainLoop" /> for each chain step,
+	///   passing a partial loop body that starts from the step after the current one.
+	///   Used by Append, Concat, Union, and DefaultIfEmpty to add elements after the main loop.
 	/// </summary>
 	private static void ParseAfterMainLoop(UnrolledLinqMethod[] chain, List<StatementSyntax> resultStatements, Func<SyntaxNode?, SyntaxNode?> visit)
 	{
@@ -528,9 +520,9 @@ public static class LinqUnroller
 	}
 
 	/// <summary>
-	/// Builds a partial loop body by replaying <see cref="BaseLinqUnroller.UnrollLoopBody"/>
-	/// for chain steps starting from <paramref name="fromIndex"/>. The element name starts
-	/// as <c>item</c> (matching the foreach loop variable in extra iterations).
+	///   Builds a partial loop body by replaying <see cref="BaseLinqUnroller.UnrollLoopBody" />
+	///   for chain steps starting from <paramref name="fromIndex" />. The element name starts
+	///   as <c>item</c> (matching the foreach loop variable in extra iterations).
 	/// </summary>
 	internal static List<StatementSyntax> BuildPartialLoopBody(UnrolledLinqMethod[] chain, int fromIndex, Func<SyntaxNode?, SyntaxNode?> visit)
 	{
@@ -637,6 +629,14 @@ public static class LinqUnroller
 			or PossibleLinqMethod.ToHashSet
 			or PossibleLinqMethod.ToLookup;
 	}
+
+	private struct VariableSnapshot
+	{
+		public object? Value;
+		public bool HasValue;
+		public bool IsAltered;
+		public bool IsInitialized;
+	}
 }
 
 public enum PossibleLinqMethod
@@ -711,7 +711,7 @@ public enum PossibleLinqMethod
 	Union,
 	UnionBy,
 	Where,
-	Zip,
+	Zip
 }
 
 public struct UnrolledLinqMethod(SemanticModel model, PossibleLinqMethod method, IMethodSymbol methodSymbol, Func<SyntaxNode?, SyntaxNode?> visit, ExpressionSyntax[] parameters, TypeSyntax[] typeArguments)
@@ -719,9 +719,9 @@ public struct UnrolledLinqMethod(SemanticModel model, PossibleLinqMethod method,
 	public override string ToString()
 	{
 		var typeArgs = TypeArguments.Length > 0
-			? $"<{string.Join(", ", TypeArguments.Select(t => t.ToString()))}>"
-			: string.Empty;
-		return $"{Method}{typeArgs}({string.Join(", ", Parameters.Select(p => p.ToString()))})";
+			? $"<{String.Join(", ", TypeArguments.Select(t => t.ToString()))}>"
+			: String.Empty;
+		return $"{Method}{typeArgs}({String.Join(", ", Parameters.Select(p => p.ToString()))})";
 	}
 
 	public SemanticModel Model { get; } = model;

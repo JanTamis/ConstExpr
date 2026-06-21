@@ -36,8 +36,8 @@ public class IsPalindromeNumberTest() : BaseTest<Func<int, bool>>(FastMathFlags.
 
 			while (n > 0)
 			{
-				reversed = reversed * 10 + n - (((int) (n * 1717986919L >> 32) >> 2) - (n >> 31)) * 10;
-				n = ((int) (n * 1717986919L >> 32) >> 2) - (n >> 31);
+				reversed = reversed * 10 + n - (((int)(n * 1717986919L >> 32) >> 2) - (n >> 31)) * 10;
+				n = ((int)(n * 1717986919L >> 32) >> 2) - (n >> 31);
 			}
 
 			return original == reversed;

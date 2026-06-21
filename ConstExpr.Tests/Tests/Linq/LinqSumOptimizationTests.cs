@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for Sum() optimization - verify identity lambda removal, Select fusion, and chain optimization
+///   Tests for Sum() optimization - verify identity lambda removal, Select fusion, and chain optimization
 /// </summary>
 [InheritsTests]
 public class LinqSumOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
@@ -34,6 +34,6 @@ public class LinqSumOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFla
 	[
 		Create("return TensorPrimitives.Sum(x) * 9 + Sum_dcMRsA(x);"),
 		Create(_ => 54, [ new[] { 1, 2, 3 } ]),
-		Create(_ => 39, [ new[] { 5 } ]),
+		Create(_ => 39, [ new[] { 5 } ])
 	];
 }

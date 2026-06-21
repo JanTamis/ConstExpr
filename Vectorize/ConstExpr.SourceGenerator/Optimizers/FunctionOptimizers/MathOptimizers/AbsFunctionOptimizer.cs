@@ -30,7 +30,7 @@ public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", n => n is
 				return true;
 			}
 			// 3) Unary minus: Abs(-x) -> Abs(x)
-			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken } prefix:
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken } prefix:
 			{
 				result = CreateInvocation(paramType, Name, prefix.Operand);
 				return true;

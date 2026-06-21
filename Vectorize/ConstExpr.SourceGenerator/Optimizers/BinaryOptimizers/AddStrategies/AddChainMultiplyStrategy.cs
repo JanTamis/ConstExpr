@@ -11,12 +11,12 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AddStrategies;
 
 /// <summary>
-/// Strategy for add-chain deduplication: x + y + x + x => x * 3 + y
-/// Flattens the entire addition chain, groups structurally equivalent operands,
-/// and replaces repeated terms with a multiplication.
-/// Requires AssociativeMath for floating-point safety (reordering operands).
-/// For integers, reordering is always safe but we conservatively require it here
-/// to avoid conflicting with AddDoubleToShiftStrategy (x + x => x &lt;&lt; 1).
+///   Strategy for add-chain deduplication: x + y + x + x => x * 3 + y
+///   Flattens the entire addition chain, groups structurally equivalent operands,
+///   and replaces repeated terms with a multiplication.
+///   Requires AssociativeMath for floating-point safety (reordering operands).
+///   For integers, reordering is always safe but we conservatively require it here
+///   to avoid conflicting with AddDoubleToShiftStrategy (x + x => x &lt;&lt; 1).
 /// </summary>
 public class AddChainMultiplyStrategy : NumericBinaryStrategy
 {
@@ -78,7 +78,7 @@ public class AddChainMultiplyStrategy : NumericBinaryStrategy
 				{
 					if (whenTrueIsLiteral)
 					{
-						var whenTrue = (LiteralExpressionSyntax) conditionalExpression.WhenTrue;
+						var whenTrue = (LiteralExpressionSyntax)conditionalExpression.WhenTrue;
 						result = result.WithWhenTrue(CreateLiteral(whenTrue.Token.Value.Multiply(count.ToSpecialType(context.Type.SpecialType))));
 					}
 					else
@@ -89,7 +89,7 @@ public class AddChainMultiplyStrategy : NumericBinaryStrategy
 
 					if (whenFalseIsLiteral)
 					{
-						var whenFalse = (LiteralExpressionSyntax) conditionalExpression.WhenFalse;
+						var whenFalse = (LiteralExpressionSyntax)conditionalExpression.WhenFalse;
 						result = result.WithWhenFalse(CreateLiteral(whenFalse.Token.Value.Multiply(count.ToSpecialType(context.Type.SpecialType))));
 					}
 					else
@@ -129,10 +129,10 @@ public class AddChainMultiplyStrategy : NumericBinaryStrategy
 	}
 
 	/// <summary>
-	/// Wraps <paramref name="expr"/> in parentheses when its operator precedence is lower than
-	/// addition, so that it can safely appear as an operand of an <c>AddExpression</c>.
-	/// For example, <c>x ? 1 : 0</c> becomes <c>(x ? 1 : 0)</c>, preventing the incorrect
-	/// output <c>a * n + x ? 1 : 0</c> from being parsed as <c>(a * n + x) ? 1 : 0</c>.
+	///   Wraps <paramref name="expr" /> in parentheses when its operator precedence is lower than
+	///   addition, so that it can safely appear as an operand of an <c>AddExpression</c>.
+	///   For example, <c>x ? 1 : 0</c> becomes <c>(x ? 1 : 0)</c>, preventing the incorrect
+	///   output <c>a * n + x ? 1 : 0</c> from being parsed as <c>(a * n + x) ? 1 : 0</c>.
 	/// </summary>
 	private static ExpressionSyntax WrapForAdd(ExpressionSyntax expr)
 	{
@@ -165,10 +165,10 @@ public class AddChainMultiplyStrategy : NumericBinaryStrategy
 	}
 
 	/// <summary>
-	/// Wraps <paramref name="expr"/> in parentheses when its operator precedence is lower than
-	/// multiplication, so that <c>MultiplyExpression(expr, n)</c> produces correct syntax.
-	/// For example, <c>x ? 1 : 0</c> becomes <c>(x ? 1 : 0)</c>, preventing the incorrect
-	/// output <c>x ? 1 : 0 * n</c>.
+	///   Wraps <paramref name="expr" /> in parentheses when its operator precedence is lower than
+	///   multiplication, so that <c>MultiplyExpression(expr, n)</c> produces correct syntax.
+	///   For example, <c>x ? 1 : 0</c> becomes <c>(x ? 1 : 0)</c>, preventing the incorrect
+	///   output <c>x ? 1 : 0 * n</c>.
 	/// </summary>
 	private static ExpressionSyntax WrapForMultiply(ExpressionSyntax expr)
 	{

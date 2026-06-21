@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Optimization;
 
 /// <summary>
-/// Test with small set (powers of 2)
+///   Test with small set (powers of 2)
 /// </summary>
 [InheritsTests]
 public class PatternBitmaskSmallTest() : BaseTest<Func<int, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
@@ -21,6 +21,6 @@ public class PatternBitmaskSmallTest() : BaseTest<Func<int, bool>>(FastMathFlags
 		Create(_ => true, [ 8 ]),
 		Create(_ => false, [ 1 ]),
 		Create(_ => false, [ 3 ]),
-		Create(_ => false, [ 5 ]),
+		Create(_ => false, [ 5 ])
 	];
 }

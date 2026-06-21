@@ -6,8 +6,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies;
 
 /// <summary>
-/// Strategy for zero divided by non-zero: 0 / x = 0 (integers only)
-/// Safe under Strict (integer arithmetic identity).
+///   Strategy for zero divided by non-zero: 0 / x = 0 (integers only)
+///   Safe under Strict (integer arithmetic identity).
 /// </summary>
 public class DivideZeroByNonZeroStrategy : SymmetricStrategy<IntegerBinaryStrategy, LiteralExpressionSyntax, ExpressionSyntax>
 {

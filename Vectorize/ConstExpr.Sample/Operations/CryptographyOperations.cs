@@ -12,11 +12,11 @@ namespace ConstExpr.SourceGenerator.Sample.Operations;
 public static class CryptographyOperations
 {
 	/// <summary>
-	/// Calculates a simple checksum using XOR operations for input validation
+	///   Calculates a simple checksum using XOR operations for input validation
 	/// </summary>
 	public static byte CalculateChecksum(params byte[] data)
 	{
-		var checksum = (byte) 0;
+		var checksum = (byte)0;
 
 		foreach (var b in data)
 		{
@@ -27,29 +27,29 @@ public static class CryptographyOperations
 	}
 
 	/// <summary>
-	/// Simple Caesar cipher encryption with variable shift
+	///   Simple Caesar cipher encryption with variable shift
 	/// </summary>
 	public static string CaesarEncrypt(string text, int shift)
 	{
-		if (string.IsNullOrEmpty(text))
+		if (String.IsNullOrEmpty(text))
 		{
 			return text;
 		}
 
-		var normalizedShift = ((shift % 26) + 26) % 26;
+		var normalizedShift = (shift % 26 + 26) % 26;
 		var data = text.ToCharArray();
 
 		for (var i = 0; i < data.Length; i++)
 		{
 			var c = data[i];
 
-			if (char.IsLetter(c))
+			if (Char.IsLetter(c))
 			{
-				var baseChar = char.IsUpper(c) ? 'A' : 'a';
+				var baseChar = Char.IsUpper(c) ? 'A' : 'a';
 				var charIndex = c - baseChar;
 				var newIndex = (charIndex + normalizedShift) % 26;
 
-				data[i] = (char) (baseChar + newIndex);
+				data[i] = (char)(baseChar + newIndex);
 			}
 		}
 
@@ -57,7 +57,7 @@ public static class CryptographyOperations
 	}
 
 	/// <summary>
-	/// Simple Caesar cipher decryption
+	///   Simple Caesar cipher decryption
 	/// </summary>
 	public static string CaesarDecrypt(string text, int shift)
 	{
@@ -65,26 +65,26 @@ public static class CryptographyOperations
 	}
 
 	/// <summary>
-	/// Validates if a string contains valid hex characters
+	///   Validates if a string contains valid hex characters
 	/// </summary>
 	public static bool IsValidHex(string input)
 	{
-		if (string.IsNullOrEmpty(input))
+		if (String.IsNullOrEmpty(input))
 		{
 			return false;
 		}
 
-		return input.All(c => (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'));
+		return input.All(c => c >= '0' && c <= '9' || c >= 'a' && c <= 'f' || c >= 'A' && c <= 'F');
 	}
 
 	/// <summary>
-	/// Converts a byte array to hexadecimal string representation
+	///   Converts a byte array to hexadecimal string representation
 	/// </summary>
 	public static string BytesToHex(params byte[] data)
 	{
 		if (data.Length == 0)
 		{
-			return string.Empty;
+			return String.Empty;
 		}
 
 		var result = new char[data.Length * 2];
@@ -100,11 +100,11 @@ public static class CryptographyOperations
 	}
 
 	/// <summary>
-	/// Calculates a simple hash using polynomial rolling hash
+	///   Calculates a simple hash using polynomial rolling hash
 	/// </summary>
 	public static ulong PolynomialHash(string input, int prime = 31)
 	{
-		if (string.IsNullOrEmpty(input))
+		if (String.IsNullOrEmpty(input))
 		{
 			return 0;
 		}
@@ -116,7 +116,7 @@ public static class CryptographyOperations
 		for (var i = input.Length - 1; i >= 0; i--)
 		{
 			hash = (hash + input[i] * primePower) % mod;
-			primePower = (primePower * (ulong) prime) % mod;
+			primePower = primePower * (ulong)prime % mod;
 		}
 
 		return hash;

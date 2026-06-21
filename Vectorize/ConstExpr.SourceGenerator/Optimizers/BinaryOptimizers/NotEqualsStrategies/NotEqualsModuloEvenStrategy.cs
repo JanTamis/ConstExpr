@@ -8,7 +8,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.NotEqualsStrategies;
 
 /// <summary>
-/// Strategy for modulo even detection: (x % 2) != 1 => T.IsEvenInteger(x)
+///   Strategy for modulo even detection: (x % 2) != 1 => T.IsEvenInteger(x)
 /// </summary>
 public class NotEqualsModuloEvenStrategy() : SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, LiteralExpressionSyntax>(leftKind: SyntaxKind.BitwiseAndExpression)
 {
@@ -36,4 +36,3 @@ public class NotEqualsModuloEvenStrategy() : SymmetricStrategy<NumericBinaryStra
 		return true;
 	}
 }
-

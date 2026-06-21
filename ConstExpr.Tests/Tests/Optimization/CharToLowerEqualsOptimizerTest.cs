@@ -7,13 +7,13 @@ public class CharToLowerEqualsOptimizerTest() : BaseTest<Func<char, char, bool>>
 {
 	public override string TestMethod => GetString((left, right) =>
 	{
-		return char.ToLower(left) == char.ToLower(right);
+		return Char.ToLower(left) == Char.ToLower(right);
 	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((left, right) => left.Equals(right, StringComparison.CurrentCultureIgnoreCase)),
 		Create((_, _) => true, [ 'A', 'a' ]),
-		Create((_, _) => false, [ 'A', 'b' ]),
+		Create((_, _) => false, [ 'A', 'b' ])
 	];
 }

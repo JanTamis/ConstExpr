@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.RightShiftStrategies;
 
 /// <summary>
-/// Strategy for shifting zero: 0 >> x => 0 (pure)
+///   Strategy for shifting zero: 0 >> x => 0 (pure)
 /// </summary>
 public class RightShiftZeroStrategy : IntegerBinaryStrategy<LiteralExpressionSyntax, ExpressionSyntax>
 {
@@ -14,11 +14,11 @@ public class RightShiftZeroStrategy : IntegerBinaryStrategy<LiteralExpressionSyn
 		if (!base.TryOptimize(context, out optimized)
 		    || !context.Left.Syntax.IsNumericZero()
 		    || !IsPure(context.Right.Syntax))
-    {
-      return false;
-    }
+		{
+			return false;
+		}
 
-    optimized = CreateLiteral(0.ToSpecialType(context.Type.SpecialType));
+		optimized = CreateLiteral(0.ToSpecialType(context.Type.SpecialType));
 		return true;
 	}
 }

@@ -10,7 +10,7 @@ public class AllLinqUnroller : BaseLinqUnroller
 		if (method.Parameters.Length == 1
 		    && TryGetLambda(method.Parameters[0], out var lambda))
 		{
-			statements.Add(IfStatement(InvertSyntax(ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, elementName)!), 
+			statements.Add(IfStatement(InvertSyntax(ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, elementName)!),
 				ReturnStatement(CreateLiteral(false))));
 		}
 	}

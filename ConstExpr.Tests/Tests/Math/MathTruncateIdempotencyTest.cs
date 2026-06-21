@@ -10,6 +10,6 @@ public class MathTruncateIdempotencyTest() : BaseTest<Func<double, double>>(Fast
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(x => double.Truncate(x)),
+		Create(x => Double.Truncate(x))
 	];
 }

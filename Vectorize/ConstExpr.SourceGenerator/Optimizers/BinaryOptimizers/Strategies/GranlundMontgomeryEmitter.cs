@@ -34,7 +34,7 @@ internal static class GranlundMontgomeryEmitter
 		// q0 = (uint)((ulong)x * MAGIC >> 32)
 		ExpressionSyntax BuildQ0() => CreateCastSyntax<uint>(ParenthesizedExpression(
 			RightShiftExpression(
-				MultiplyExpression(x, CreateLiteral((ulong) magic)),
+				MultiplyExpression(x, CreateLiteral((ulong)magic)),
 				CreateLiteral(32))));
 	}
 
@@ -46,7 +46,7 @@ internal static class GranlundMontgomeryEmitter
 		// q = (int)((long)x * MAGIC >> 32)
 		ExpressionSyntax q = CreateCastSyntax<int>(ParenthesizedExpression(
 			RightShiftExpression(
-				MultiplyExpression(x, CreateLiteral((long) magic)),
+				MultiplyExpression(x, CreateLiteral((long)magic)),
 				CreateLiteral(32))));
 
 		// magic wrapped negative for a positive divisor — add back the dividend

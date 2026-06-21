@@ -7,9 +7,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 
 /// <summary>
-/// Optimizes Contains calls:
-/// - "hello".Contains("ell") → true
-/// - "hello".Contains("world") → false
+///   Optimizes Contains calls:
+///   - "hello".Contains("ell") → true
+///   - "hello".Contains("world") → false
 /// </summary>
 public class ContainsFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "Contains", false, n => n is 1)
 {

@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
-/// Tests for VisitExpressionStatement - visit expression in statement
+///   Tests for VisitExpressionStatement - visit expression in statement
 /// </summary>
 [InheritsTests]
 public class VisitExpressionStatementTests : BaseTest<Func<int, int>>

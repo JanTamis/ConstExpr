@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
-/// Tests for VisitForStatement - loop unrolling and condition evaluation
+///   Tests for VisitForStatement - loop unrolling and condition evaluation
 /// </summary>
 [InheritsTests]
 public class VisitForStatementTests : BaseTest<Func<int, int>>
@@ -25,6 +25,6 @@ public class VisitForStatementTests : BaseTest<Func<int, int>>
 		Create(_ => 0, [ 1 ]),
 		Create(_ => 1, [ 2 ]),
 		Create(_ => 6, [ 4 ]),
-		Create(_ => 10, [ 5 ]),
+		Create(_ => 10, [ 5 ])
 	];
 }

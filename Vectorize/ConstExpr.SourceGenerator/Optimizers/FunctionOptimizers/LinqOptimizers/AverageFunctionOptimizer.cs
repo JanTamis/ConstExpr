@@ -11,13 +11,13 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Average context.Method.
-/// Optimizes patterns such as:
-/// - collection.AsEnumerable().Average() =&gt; collection.Average() (skip type cast)
-/// - collection.ToList().Average() =&gt; collection.Average() (skip materialization)
-/// - collection.ToArray().Average() =&gt; collection.Average() (skip materialization)
-/// - collection.OrderBy(...).Average() =&gt; collection.Average() (ordering doesn't affect average)
-/// - collection.Reverse().Average() =&gt; collection.Average() (reversing doesn't affect average)
+///   Optimizer for Enumerable.Average context.Method.
+///   Optimizes patterns such as:
+///   - collection.AsEnumerable().Average() =&gt; collection.Average() (skip type cast)
+///   - collection.ToList().Average() =&gt; collection.Average() (skip materialization)
+///   - collection.ToArray().Average() =&gt; collection.Average() (skip materialization)
+///   - collection.OrderBy(...).Average() =&gt; collection.Average() (ordering doesn't affect average)
+///   - collection.Reverse().Average() =&gt; collection.Average() (reversing doesn't affect average)
 /// </summary>
 public class AverageFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Average), n => n is 0 or 1)
 {

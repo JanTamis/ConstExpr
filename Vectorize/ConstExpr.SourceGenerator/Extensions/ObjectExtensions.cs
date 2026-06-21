@@ -11,6 +11,26 @@ namespace ConstExpr.SourceGenerator.Extensions;
 
 public static class ObjectExtensions
 {
+	/// <summary>
+	///   Represents the type of cluster pattern detected.
+	/// </summary>
+	public enum ClusterType
+	{
+		None,
+		/// <summary>Consecutive values (step = 1), e.g., {1, 2, 3, 4}.</summary>
+		Consecutive,
+		/// <summary>Arithmetic sequence with constant step, e.g., {2, 4, 6, 8}.</summary>
+		Step,
+		/// <summary>Power of two values, e.g., {1, 2, 4, 8, 16}.</summary>
+		PowerOfTwo,
+		/// <summary>All even numbers.</summary>
+		Even,
+		/// <summary>All odd numbers.</summary>
+		Odd,
+		/// <summary>Values can be checked with a bitmask.</summary>
+		Bitmask
+	}
+
 	public static object? ToSpecialType<T>(this T value, SpecialType specialType)
 	{
 		return specialType switch
@@ -28,7 +48,7 @@ public static class ObjectExtensions
 			SpecialType.System_Decimal => Convert.ToDecimal(value),
 			SpecialType.System_Char => Convert.ToChar(value),
 			SpecialType.System_String => Convert.ToString(value),
-			_ => null,
+			_ => null
 		};
 	}
 
@@ -49,12 +69,12 @@ public static class ObjectExtensions
 
 	public static T Add<T>(this T left, T right)
 	{
-		return (T) ExecuteArithmeticOperation(left, right, Expression.Add)!;
+		return (T)ExecuteArithmeticOperation(left, right, Expression.Add)!;
 	}
 
 	public static T? Subtract<T>(this T left, T right)
 	{
-		return (T?) ExecuteArithmeticOperation(left, right, Expression.Subtract);
+		return (T?)ExecuteArithmeticOperation(left, right, Expression.Subtract);
 	}
 
 	public static object? Multiply(this object? left, object? right)
@@ -90,9 +110,9 @@ public static class ObjectExtensions
 			// String concatenation special case
 			if (lType == typeof(string) || rType == typeof(string))
 			{
-				if (operation == (Func<Expression, Expression, BinaryExpression>) Expression.Add)
+				if (operation == (Func<Expression, Expression, BinaryExpression>)Expression.Add)
 				{
-					return left?.ToString() + right?.ToString();
+					return left + right;
 				}
 
 				return null;
@@ -128,7 +148,7 @@ public static class ObjectExtensions
 	}
 
 	/// <summary>
-	/// Checks if the value is a numeric type.
+	///   Checks if the value is a numeric type.
 	/// </summary>
 	public static bool IsNumeric(this object? value)
 	{
@@ -267,7 +287,7 @@ public static class ObjectExtensions
 			var converted = Expression.Convert(constant, typeof(int));
 			var boxed = Expression.Convert(converted, typeof(object));
 			var lambda = Expression.Lambda<Func<object>>(boxed);
-			return (int) lambda.Compile().Invoke();
+			return (int)lambda.Compile().Invoke();
 		}
 		catch
 		{
@@ -276,7 +296,7 @@ public static class ObjectExtensions
 	}
 
 	/// <summary>
-	/// Converts a numeric object to a long value.
+	///   Converts a numeric object to a long value.
 	/// </summary>
 	public static long? ToLong(this object? value)
 	{
@@ -298,7 +318,7 @@ public static class ObjectExtensions
 			var converted = Expression.Convert(constant, typeof(long));
 			var boxed = Expression.Convert(converted, typeof(object));
 			var lambda = Expression.Lambda<Func<object>>(boxed);
-			return (long) lambda.Compile().Invoke();
+			return (long)lambda.Compile().Invoke();
 		}
 		catch
 		{
@@ -483,7 +503,7 @@ public static class ObjectExtensions
 		var tr = Type.GetTypeCode(rt);
 
 		// Disallow long|ulong combination (no implicit common type in C#)
-		if ((tl == TypeCode.UInt64 && tr == TypeCode.Int64) || (tl == TypeCode.Int64 && tr == TypeCode.UInt64))
+		if (tl == TypeCode.UInt64 && tr == TypeCode.Int64 || tl == TypeCode.Int64 && tr == TypeCode.UInt64)
 		{
 			return null;
 		}
@@ -591,8 +611,8 @@ public static class ObjectExtensions
 			// String comparison
 			if (lType == typeof(string) || rType == typeof(string))
 			{
-				var leftStr = left?.ToString() ?? string.Empty;
-				var rightStr = right?.ToString() ?? string.Empty;
+				var leftStr = left?.ToString() ?? String.Empty;
+				var rightStr = right?.ToString() ?? String.Empty;
 				return operation == Expression.Equal
 					? leftStr == rightStr
 					: leftStr != rightStr;
@@ -630,14 +650,14 @@ public static class ObjectExtensions
 		return value switch
 		{
 			bool b => !b,
-			_ => false,
+			_ => false
 		};
 	}
 
 	/// <summary>
-	/// Returns the arithmetic negation of a numeric value (-value).
-	/// Follows C# unary minus promotion rules:
-	/// byte/sbyte/short/ushort → int, uint → long, ulong → not supported.
+	///   Returns the arithmetic negation of a numeric value (-value).
+	///   Follows C# unary minus promotion rules:
+	///   byte/sbyte/short/ushort → int, uint → long, ulong → not supported.
 	/// </summary>
 	public static object? Negate(this object? value)
 	{
@@ -659,7 +679,7 @@ public static class ObjectExtensions
 				float => typeof(float),
 				double => typeof(double),
 				decimal => typeof(decimal),
-				_ => null,
+				_ => null
 			};
 
 			if (promotedType is null)
@@ -702,7 +722,7 @@ public static class ObjectExtensions
 			BinaryOperatorKind.LessThanOrEqual => Comparer<object?>.Default.Compare(left, right) <= 0,
 			BinaryOperatorKind.GreaterThan => Comparer<object?>.Default.Compare(left, right) > 0,
 			BinaryOperatorKind.GreaterThanOrEqual => Comparer<object?>.Default.Compare(left, right) >= 0,
-			_ => null,
+			_ => null
 		};
 	}
 
@@ -730,7 +750,7 @@ public static class ObjectExtensions
 			SyntaxKind.GreaterThanExpression => Comparer<object?>.Default.Compare(left, right) > 0,
 			SyntaxKind.GreaterThanOrEqualExpression => Comparer<object?>.Default.Compare(left, right) >= 0,
 			SyntaxKind.CoalesceExpression => left ?? right,
-			_ => null,
+			_ => null
 		};
 	}
 
@@ -742,139 +762,163 @@ public static class ObjectExtensions
 			: value;
 	}
 
-	public static bool IsNumericZero(this object? value) => value switch
+	public static bool IsNumericZero(this object? value)
 	{
-		byte b => b == 0,
-		sbyte sb => sb == 0,
-		short s => s == 0,
-		ushort us => us == 0,
-		int i => i == 0,
-		uint ui => ui == 0,
-		long l => l == 0,
-		ulong ul => ul == 0,
-		float f => f is 0f or -0f,
-		double d => d is 0d or -0d,
-		decimal m => m is 0m or -0m,
-		LiteralExpressionSyntax literal => literal.Token.Value.IsNumericZero(),
-		_ => false
-	};
+		return value switch
+		{
+			byte b => b == 0,
+			sbyte sb => sb == 0,
+			short s => s == 0,
+			ushort us => us == 0,
+			int i => i == 0,
+			uint ui => ui == 0,
+			long l => l == 0,
+			ulong ul => ul == 0,
+			float f => f is 0f or -0f,
+			double d => d is 0d or -0d,
+			decimal m => m is 0m or -0m,
+			LiteralExpressionSyntax literal => literal.Token.Value.IsNumericZero(),
+			_ => false
+		};
+	}
 
-	public static bool IsNumericOne(this object? value) => value switch
+	public static bool IsNumericOne(this object? value)
 	{
-		byte b => b == 1,
-		sbyte sb => sb == 1,
-		short s => s == 1,
-		ushort us => us == 1,
-		int i => i == 1,
-		uint ui => ui == 1,
-		long l => l == 1,
-		ulong ul => ul == 1,
-		float f => Math.Abs(f - 1f) < Single.Epsilon,
-		double d => Math.Abs(d - 1d) < Double.Epsilon,
-		decimal m => m == 1m,
-		LiteralExpressionSyntax literal => literal.Token.Value.IsNumericOne(),
-		_ => false
-	};
+		return value switch
+		{
+			byte b => b == 1,
+			sbyte sb => sb == 1,
+			short s => s == 1,
+			ushort us => us == 1,
+			int i => i == 1,
+			uint ui => ui == 1,
+			long l => l == 1,
+			ulong ul => ul == 1,
+			float f => Math.Abs(f - 1f) < Single.Epsilon,
+			double d => Math.Abs(d - 1d) < Double.Epsilon,
+			decimal m => m == 1m,
+			LiteralExpressionSyntax literal => literal.Token.Value.IsNumericOne(),
+			_ => false
+		};
+	}
 
-	public static bool IsNumericTwo(this object? value) => value switch
+	public static bool IsNumericTwo(this object? value)
 	{
-		byte b => b == 2,
-		sbyte sb => sb == 2,
-		short s => s == 2,
-		ushort us => us == 2,
-		int i => i == 2,
-		uint ui => ui == 2,
-		long l => l == 2,
-		ulong ul => ul == 2,
-		float f => Math.Abs(f - 2f) < Single.Epsilon,
-		double d => Math.Abs(d - 2d) < Double.Epsilon,
-		decimal m => m == 2m,
-		LiteralExpressionSyntax literal => literal.Token.Value.IsNumericTwo(),
-		_ => false
-	};
+		return value switch
+		{
+			byte b => b == 2,
+			sbyte sb => sb == 2,
+			short s => s == 2,
+			ushort us => us == 2,
+			int i => i == 2,
+			uint ui => ui == 2,
+			long l => l == 2,
+			ulong ul => ul == 2,
+			float f => Math.Abs(f - 2f) < Single.Epsilon,
+			double d => Math.Abs(d - 2d) < Double.Epsilon,
+			decimal m => m == 2m,
+			LiteralExpressionSyntax literal => literal.Token.Value.IsNumericTwo(),
+			_ => false
+		};
+	}
 
 	public static bool IsNumericTwo(this LiteralExpressionSyntax literal)
 	{
 		return literal.Token.Value.IsNumericTwo();
 	}
 
-	public static bool IsNumericNegativeOne(this object? value) => value switch
+	public static bool IsNumericNegativeOne(this object? value)
 	{
-		sbyte sb => sb == -1,
-		short s => s == -1,
-		int i => i == -1,
-		long l => l == -1,
-		float f => Math.Abs(f - -1f) < Single.Epsilon,
-		double d => Math.Abs(d - -1d) < Double.Epsilon,
-		decimal m => m == -1m,
-		PrefixUnaryExpressionSyntax prefix when prefix.IsKind(SyntaxKind.UnaryMinusExpression) &&
-		                                        prefix.Operand is LiteralExpressionSyntax lit =>
-			lit.Token.Value.IsNumericOne(),
-		_ => false
-	};
+		return value switch
+		{
+			sbyte sb => sb == -1,
+			short s => s == -1,
+			int i => i == -1,
+			long l => l == -1,
+			float f => Math.Abs(f - -1f) < Single.Epsilon,
+			double d => Math.Abs(d - -1d) < Double.Epsilon,
+			decimal m => m == -1m,
+			PrefixUnaryExpressionSyntax prefix when prefix.IsKind(SyntaxKind.UnaryMinusExpression) &&
+			                                        prefix.Operand is LiteralExpressionSyntax lit =>
+				lit.Token.Value.IsNumericOne(),
+			_ => false
+		};
+	}
 
-	public static bool IsNumericValue(this object? value, int target) => value switch
+	public static bool IsNumericValue(this object? value, int target)
 	{
-		byte b => b == target,
-		sbyte sb => sb == target,
-		short s => s == target,
-		ushort us => us == target,
-		int i => i == target,
-		uint ui => ui == target,
-		long l => l == target,
-		ulong ul => ul == (ulong) target,
-		float f => Math.Abs(f - target) < Single.Epsilon,
-		double d => Math.Abs(d - target) < Double.Epsilon,
-		decimal m => m == target,
-		_ => false
-	};
+		return value switch
+		{
+			byte b => b == target,
+			sbyte sb => sb == target,
+			short s => s == target,
+			ushort us => us == target,
+			int i => i == target,
+			uint ui => ui == target,
+			long l => l == target,
+			ulong ul => ul == (ulong)target,
+			float f => Math.Abs(f - target) < Single.Epsilon,
+			double d => Math.Abs(d - target) < Double.Epsilon,
+			decimal m => m == target,
+			_ => false
+		};
+	}
 
 	public static bool IsNumericValue(this LiteralExpressionSyntax literal, int target)
 	{
 		return literal.Token.Value.IsNumericValue(target);
 	}
 
-	public static bool IsPositive(this object? value) => value switch
+	public static bool IsPositive(this object? value)
 	{
-		byte => true,
-		sbyte sb => sb >= 0,
-		short s => s >= 0,
-		ushort => true,
-		int i => i >= 0,
-		uint => true,
-		long l => l >= 0,
-		ulong => true,
-		float f => !float.IsNaN(f) && f > 0f,
-		double d => !double.IsNaN(d) && d > 0d,
-		decimal m => m > 0m,
-		char => true,
-		_ => false,
-	};
+		return value switch
+		{
+			byte => true,
+			sbyte sb => sb >= 0,
+			short s => s >= 0,
+			ushort => true,
+			int i => i >= 0,
+			uint => true,
+			long l => l >= 0,
+			ulong => true,
+			float f => !Single.IsNaN(f) && f > 0f,
+			double d => !Double.IsNaN(d) && d > 0d,
+			decimal m => m > 0m,
+			char => true,
+			_ => false
+		};
+	}
 
-	public static bool IsNegative(this object? value) => value switch
+	public static bool IsNegative(this object? value)
 	{
-		sbyte sb => sb < 0,
-		short s => s < 0,
-		int i => i < 0,
-		long l => l < 0,
-		float f => !float.IsNaN(f) && f < 0,
-		double d => !double.IsNaN(d) && d < 0,
-		decimal m => m < 0,
-		char => false,
-		_ => false,
-	};
+		return value switch
+		{
+			sbyte sb => sb < 0,
+			short s => s < 0,
+			int i => i < 0,
+			long l => l < 0,
+			float f => !Single.IsNaN(f) && f < 0,
+			double d => !Double.IsNaN(d) && d < 0,
+			decimal m => m < 0,
+			char => false,
+			_ => false
+		};
+	}
 
-	public static int GetBitSize(this object? value) => value switch
+	public static int GetBitSize(this object? value)
 	{
-		byte or sbyte => 8,
-		short or ushort or char => 16,
-		int or uint => 32,
-		long or ulong => 64,
-		float => 32,
-		double => 64,
-		decimal => 128,
-		_ => 0,
-	};
+		return value switch
+		{
+			byte or sbyte => 8,
+			short or ushort or char => 16,
+			int or uint => 32,
+			long or ulong => 64,
+			float => 32,
+			double => 64,
+			decimal => 128,
+			_ => 0
+		};
+	}
 
 	public static bool IsNumericPowerOfTwo(this object? value, out int power)
 	{
@@ -882,20 +926,20 @@ public static class ObjectExtensions
 
 		return value switch
 		{
-			byte b when b != 0 && (b & (b - 1)) == 0 => (power = Log2(b)) >= 0,
-			sbyte sb and > 0 when (sb & (sb - 1)) == 0 => (power = Log2((byte) sb)) >= 0,
-			short s and > 0 when (s & (s - 1)) == 0 => (power = Log2((ushort) s)) >= 0,
-			ushort us when us != 0 && (us & (us - 1)) == 0 => (power = Log2(us)) >= 0,
-			int i and > 0 when (i & (i - 1)) == 0 => (power = Log2((uint) i)) >= 0,
-			uint ui when ui != 0 && (ui & (ui - 1)) == 0 => (power = Log2(ui)) >= 0,
-			long l and > 0 when (l & (l - 1)) == 0 => (power = Log2((ulong) l)) >= 0,
-			ulong ul when ul != 0 && (ul & (ul - 1)) == 0 => (power = Log2(ul)) >= 0,
+			byte b when b != 0 && (b & b - 1) == 0 => (power = Log2(b)) >= 0,
+			sbyte sb and > 0 when (sb & sb - 1) == 0 => (power = Log2((byte)sb)) >= 0,
+			short s and > 0 when (s & s - 1) == 0 => (power = Log2((ushort)s)) >= 0,
+			ushort us when us != 0 && (us & us - 1) == 0 => (power = Log2(us)) >= 0,
+			int i and > 0 when (i & i - 1) == 0 => (power = Log2((uint)i)) >= 0,
+			uint ui when ui != 0 && (ui & ui - 1) == 0 => (power = Log2(ui)) >= 0,
+			long l and > 0 when (l & l - 1) == 0 => (power = Log2((ulong)l)) >= 0,
+			ulong ul when ul != 0 && (ul & ul - 1) == 0 => (power = Log2(ul)) >= 0,
 
 			// Floating-point: alleen positieve, gehele waarden binnen ulong-bereik
-			float f when !float.IsNaN(f) && !float.IsInfinity(f) && f > 0f && f == MathF.Truncate(f) && f <= ulong.MaxValue &&
-			             (((ulong) f & ((ulong) f - 1)) == 0) => (power = Log2((ulong) f)) >= 0,
-			double d when !double.IsNaN(d) && !double.IsInfinity(d) && d > 0d && d == Math.Truncate(d) && d <= ulong.MaxValue &&
-			              (((ulong) d & ((ulong) d - 1)) == 0) => (power = Log2((ulong) d)) >= 0,
+			float f when !Single.IsNaN(f) && !Single.IsInfinity(f) && f > 0f && f == MathF.Truncate(f) && f <= UInt64.MaxValue &&
+			             ((ulong)f & (ulong)f - 1) == 0 => (power = Log2((ulong)f)) >= 0,
+			double d when !Double.IsNaN(d) && !Double.IsInfinity(d) && d > 0d && d == Math.Truncate(d) && d <= UInt64.MaxValue &&
+			              ((ulong)d & (ulong)d - 1) == 0 => (power = Log2((ulong)d)) >= 0,
 
 			// Decimal: positieve, gehele waarden (geen fracties)
 			decimal m when IsDecimalIntegerPowerOfTwo(m, out var p) => (power = p) >= 0,
@@ -966,49 +1010,6 @@ public static class ObjectExtensions
 
 		value = default;
 		return false;
-	}
-
-	/// <summary>
-	/// Represents the type of cluster pattern detected.
-	/// </summary>
-	public enum ClusterType
-	{
-		None,
-		/// <summary>Consecutive values (step = 1), e.g., {1, 2, 3, 4}.</summary>
-		Consecutive,
-		/// <summary>Arithmetic sequence with constant step, e.g., {2, 4, 6, 8}.</summary>
-		Step,
-		/// <summary>Power of two values, e.g., {1, 2, 4, 8, 16}.</summary>
-		PowerOfTwo,
-		/// <summary>All even numbers.</summary>
-		Even,
-		/// <summary>All odd numbers.</summary>
-		Odd,
-		/// <summary>Values can be checked with a bitmask.</summary>
-		Bitmask,
-	}
-
-	/// <summary>
-	/// Represents a detected cluster of values with pattern information.
-	/// </summary>
-	public class Cluster
-	{
-		public ClusterType Type { get; init; }
-		public object Start { get; init; }
-		public object End { get; init; }
-		public object Diff { get; init; }
-		public object? Step { get; init; }
-		public IReadOnlyList<object> Values { get; init; }
-		public int StartIndex { get; init; }
-		public int EndIndex { get; init; }
-
-		public ExpressionSyntax StartExpression { get; set; }
-		public ExpressionSyntax EndExpression { get; set; }
-		public ExpressionSyntax StepExpression { get; set; }
-		public ExpressionSyntax DiffExpression { get; set; }
-		public ExpressionSyntax Expression { get; set; }
-
-		public int Count => Values.Count;
 	}
 
 	public static IEnumerable<Cluster> GetClusterPatterns(this IList<object?> items)
@@ -1128,7 +1129,7 @@ public static class ObjectExtensions
 			Step = bestStep,
 			Values = resultValues,
 			StartIndex = startIndex,
-			EndIndex = bestEndIndex,
+			EndIndex = bestEndIndex
 		};
 	}
 
@@ -1143,8 +1144,8 @@ public static class ObjectExtensions
 	}
 
 	/// <summary>
-	/// Tries to get an arithmetic sequence (constant step) starting at the given index.
-	/// Returns true if a valid sequence with at least 2 elements is found.
+	///   Tries to get an arithmetic sequence (constant step) starting at the given index.
+	///   Returns true if a valid sequence with at least 2 elements is found.
 	/// </summary>
 	public static bool TryGetStepSet(this IList<object> values, int index, out int endIndex, out object? step)
 	{
@@ -1190,8 +1191,8 @@ public static class ObjectExtensions
 	}
 
 	/// <summary>
-	/// Tries to get a power-of-two sequence starting at the given index.
-	/// Returns true if at least one power-of-two value is found.
+	///   Tries to get a power-of-two sequence starting at the given index.
+	///   Returns true if at least one power-of-two value is found.
 	/// </summary>
 	public static bool TryGetPowerOfTwoSet(this IList<object> values, int index, out int endIndex)
 	{
@@ -1214,8 +1215,8 @@ public static class ObjectExtensions
 	}
 
 	/// <summary>
-	/// Tries to get a consecutive sequence (step = 1) starting at the given index.
-	/// Returns true if at least 2 consecutive values are found.
+	///   Tries to get a consecutive sequence (step = 1) starting at the given index.
+	///   Returns true if at least 2 consecutive values are found.
 	/// </summary>
 	public static bool TryGetConsecutiveSet(this IList<object> values, int index, out int endIndex)
 	{
@@ -1248,9 +1249,9 @@ public static class ObjectExtensions
 	}
 
 	/// <summary>
-	/// Tries to get an even numbers sequence starting at the given index.
-	/// Returns true if at least one even number is found.
-	/// The sequence must be consecutive with no gaps (e.g., 2, 4, 6, 8 - not 2, 4, 8).
+	///   Tries to get an even numbers sequence starting at the given index.
+	///   Returns true if at least one even number is found.
+	///   The sequence must be consecutive with no gaps (e.g., 2, 4, 6, 8 - not 2, 4, 8).
 	/// </summary>
 	public static bool TryGetEvenNumberSet(this IList<object> values, int index, out int endIndex)
 	{
@@ -1300,9 +1301,9 @@ public static class ObjectExtensions
 	}
 
 	/// <summary>
-	/// Tries to get an odd numbers sequence starting at the given index.
-	/// Returns true if at least one odd number is found.
-	/// The sequence must be consecutive with no gaps (e.g., 1, 3, 5, 7 - not 1, 3, 7).
+	///   Tries to get an odd numbers sequence starting at the given index.
+	///   Returns true if at least one odd number is found.
+	///   The sequence must be consecutive with no gaps (e.g., 1, 3, 5, 7 - not 1, 3, 7).
 	/// </summary>
 	public static bool TryGetOddNumberSet(this IList<object> values, int index, out int endIndex)
 	{
@@ -1352,8 +1353,8 @@ public static class ObjectExtensions
 	}
 
 	/// <summary>
-	/// Tries to get a sequence where all values are positive starting at the given index.
-	/// Returns true if at least one positive value is found.
+	///   Tries to get a sequence where all values are positive starting at the given index.
+	///   Returns true if at least one positive value is found.
 	/// </summary>
 	public static bool TryGetPositiveSet(this IList<object> values, int index, out int endIndex)
 	{
@@ -1376,8 +1377,8 @@ public static class ObjectExtensions
 	}
 
 	/// <summary>
-	/// Tries to get a sequence where all values are negative starting at the given index.
-	/// Returns true if at least one negative value is found.
+	///   Tries to get a sequence where all values are negative starting at the given index.
+	///   Returns true if at least one negative value is found.
 	/// </summary>
 	public static bool TryGetNegativeSet(this IList<object> values, int index, out int endIndex)
 	{
@@ -1400,8 +1401,8 @@ public static class ObjectExtensions
 	}
 
 	/// <summary>
-	/// Tries to get a range bounded sequence starting at the given index.
-	/// Returns true if at least one value within the range is found.
+	///   Tries to get a range bounded sequence starting at the given index.
+	///   Returns true if at least one value within the range is found.
 	/// </summary>
 	public static bool TryGetRangeSet(this IList<object> values, int index, object min, object max, out int endIndex)
 	{
@@ -1443,8 +1444,8 @@ public static class ObjectExtensions
 	}
 
 	/// <summary>
-	/// Tries to get a constant value sequence starting at the given index.
-	/// Returns true if at least 2 identical values are found.
+	///   Tries to get a constant value sequence starting at the given index.
+	///   Returns true if at least 2 identical values are found.
 	/// </summary>
 	public static bool TryGetConstantSet(this IList<object> values, int index, out int endIndex, out object constant)
 	{
@@ -1469,8 +1470,8 @@ public static class ObjectExtensions
 	}
 
 	/// <summary>
-	/// Tries to get a geometric sequence (each value is previous * ratio) starting at the given index.
-	/// Returns true if at least 2 elements form a geometric sequence.
+	///   Tries to get a geometric sequence (each value is previous * ratio) starting at the given index.
+	///   Returns true if at least 2 elements form a geometric sequence.
 	/// </summary>
 	public static bool TryGetGeometricSet(this IList<object> values, int index, out int endIndex, out object? ratio)
 	{
@@ -1508,9 +1509,9 @@ public static class ObjectExtensions
 	}
 
 	/// <summary>
-	/// Tries to get a bit flag pattern sequence starting at the given index.
-	/// Each value should be non-zero.
-	/// Returns true if at least one non-zero value is found.
+	///   Tries to get a bit flag pattern sequence starting at the given index.
+	///   Each value should be non-zero.
+	///   Returns true if at least one non-zero value is found.
 	/// </summary>
 	public static bool TryGetBitFlagSet(this IList<object> values, int index, out int endIndex)
 	{
@@ -1533,8 +1534,8 @@ public static class ObjectExtensions
 	}
 
 	/// <summary>
-	/// Checks if all values in a range can be represented efficiently as a bitmask.
-	/// Returns true if (max - min) fits within a reasonable bit count (e.g., 64 bits).
+	///   Checks if all values in a range can be represented efficiently as a bitmask.
+	///   Returns true if (max - min) fits within a reasonable bit count (e.g., 64 bits).
 	/// </summary>
 	public static bool TryGetBitmaskCandidate(this IList<object> values, out object min, out object max, out int bitCount)
 	{
@@ -1595,8 +1596,8 @@ public static class ObjectExtensions
 	}
 
 	/// <summary>
-	/// Checks if the values form a dense range (most values in range are present).
-	/// Returns true if density is above the threshold.
+	///   Checks if the values form a dense range (most values in range are present).
+	///   Returns true if density is above the threshold.
 	/// </summary>
 	public static bool TryGetDenseRange(this IList<object> values, out double density, double densityThreshold = 0.5)
 	{
@@ -1643,7 +1644,7 @@ public static class ObjectExtensions
 		{
 			var rangeInt = Convert.ToInt32(range);
 			var rangeSize = rangeInt + 1;
-			density = (double) values.Count / rangeSize;
+			density = (double)values.Count / rangeSize;
 
 			return density >= densityThreshold;
 		}
@@ -1654,8 +1655,8 @@ public static class ObjectExtensions
 	}
 
 	/// <summary>
-	/// Gets the density of the sparse set - useful for determining if jump table or linear search is better.
-	/// Returns true if density could be calculated.
+	///   Gets the density of the sparse set - useful for determining if jump table or linear search is better.
+	///   Returns true if density could be calculated.
 	/// </summary>
 	public static bool TryGetSetDensity(this IList<object> values, out double density)
 	{
@@ -1704,7 +1705,7 @@ public static class ObjectExtensions
 			var rangeInt = Convert.ToInt32(range);
 			var rangeSize = rangeInt + 1;
 
-			density = (double) values.Count / rangeSize;
+			density = (double)values.Count / rangeSize;
 
 			return true;
 		}
@@ -1715,8 +1716,8 @@ public static class ObjectExtensions
 	}
 
 	/// <summary>
-	/// Finds common differences/gaps in the sequence. Useful for detecting patterns like {0, 3, 6, 9} (step=3).
-	/// Returns true if all consecutive differences are equal.
+	///   Finds common differences/gaps in the sequence. Useful for detecting patterns like {0, 3, 6, 9} (step=3).
+	///   Returns true if all consecutive differences are equal.
 	/// </summary>
 	public static bool TryGetCommonDifference(this IList<object> values, out object? difference)
 	{
@@ -1746,5 +1747,28 @@ public static class ObjectExtensions
 		}
 
 		return true;
+	}
+
+	/// <summary>
+	///   Represents a detected cluster of values with pattern information.
+	/// </summary>
+	public class Cluster
+	{
+		public ClusterType Type { get; init; }
+		public object Start { get; init; }
+		public object End { get; init; }
+		public object Diff { get; init; }
+		public object? Step { get; init; }
+		public IReadOnlyList<object> Values { get; init; }
+		public int StartIndex { get; init; }
+		public int EndIndex { get; init; }
+
+		public ExpressionSyntax StartExpression { get; set; }
+		public ExpressionSyntax EndExpression { get; set; }
+		public ExpressionSyntax StepExpression { get; set; }
+		public ExpressionSyntax DiffExpression { get; set; }
+		public ExpressionSyntax Expression { get; set; }
+
+		public int Count => Values.Count;
 	}
 }

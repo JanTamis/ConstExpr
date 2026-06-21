@@ -8,10 +8,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Zip context.Method.
-/// Optimizes patterns such as:
-/// - collection.Zip(Enumerable.Empty&lt;T&gt;()) => Enumerable.Empty&lt;ValueTuple&lt;...&gt;&gt;()
-/// - Enumerable.Empty&lt;T&gt;().Zip(collection) => Enumerable.Empty&lt;ValueTuple&lt;...&gt;&gt;()
+///   Optimizer for Enumerable.Zip context.Method.
+///   Optimizes patterns such as:
+///   - collection.Zip(Enumerable.Empty&lt;T&gt;()) => Enumerable.Empty&lt;ValueTuple&lt;...&gt;&gt;()
+///   - Enumerable.Empty&lt;T&gt;().Zip(collection) => Enumerable.Empty&lt;ValueTuple&lt;...&gt;&gt;()
 /// </summary>
 public class ZipFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Zip), n => n is 1 or 2)
 {

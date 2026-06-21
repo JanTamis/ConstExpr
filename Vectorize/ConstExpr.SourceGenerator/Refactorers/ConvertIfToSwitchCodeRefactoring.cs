@@ -11,17 +11,15 @@ namespace ConstExpr.SourceGenerator.Refactorers;
 public static class ConvertIfToSwitchCodeRefactoring
 {
 	/// <summary>
-	/// Tries to convert an if-else-if chain into a switch statement or switch expression.
-	/// The chain is eligible when every condition tests the same identifier against a
-	/// constant-like value using == (or an is-pattern with constant / or-pattern).
-	///
-	/// Priority:
+	///   Tries to convert an if-else-if chain into a switch statement or switch expression.
+	///   The chain is eligible when every condition tests the same identifier against a
+	///   constant-like value using == (or an is-pattern with constant / or-pattern).
+	///   Priority:
 	///   1. switch expression  — when every branch is a single <c>return expr;</c>
-	///      and an else clause (default) is present.
+	///   and an else clause (default) is present.
 	///   2. switch statement   — for all other eligible chains.
-	///
-	/// Minimum requirement: at least 2 if-branches (to avoid generating a noisier one-case
-	/// switch for a trivial if/else).
+	///   Minimum requirement: at least 2 if-branches (to avoid generating a noisier one-case
+	///   switch for a trivial if/else).
 	/// </summary>
 	public static bool TryConvertIfElseChainToSwitch(
 		IfStatementSyntax node,
@@ -91,9 +89,9 @@ public static class ConvertIfToSwitchCodeRefactoring
 	}
 
 	/// <summary>
-	/// Tries to build a <c>return x switch { ... };</c> statement.
-	/// Succeeds only when every section (and the default body) contains a single
-	/// <c>return expr;</c> statement.
+	///   Tries to build a <c>return x switch { ... };</c> statement.
+	///   Succeeds only when every section (and the default body) contains a single
+	///   <c>return expr;</c> statement.
 	/// </summary>
 	private static bool TryBuildSwitchExpression(
 		ExpressionSyntax switchTarget,
@@ -140,9 +138,9 @@ public static class ConvertIfToSwitchCodeRefactoring
 	}
 
 	/// <summary>
-	/// Returns <see langword="true"/> when <paramref name="body"/> is (or wraps) a single
-	/// <c>return expr;</c> statement, and sets <paramref name="expression"/> to the returned
-	/// expression.
+	///   Returns <see langword="true" /> when <paramref name="body" /> is (or wraps) a single
+	///   <c>return expr;</c> statement, and sets <paramref name="expression" /> to the returned
+	///   expression.
 	/// </summary>
 	private static bool TryGetSingleReturnExpression(
 		StatementSyntax body,
@@ -161,8 +159,8 @@ public static class ConvertIfToSwitchCodeRefactoring
 	}
 
 	/// <summary>
-	/// Extracts one or more switch case labels from an if-condition.
-	/// Handles:
+	///   Extracts one or more switch case labels from an if-condition.
+	///   Handles:
 	///   <c>x == constant</c> / <c>constant == x</c>
 	///   <c>x == a || x == b</c>
 	///   <c>x is constant</c>
@@ -192,14 +190,14 @@ public static class ConvertIfToSwitchCodeRefactoring
 		List<ExpressionSyntax> labels)
 	{
 		// x == a || x == b
-		if (condition is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LogicalOrExpression } orExpr)
+		if (condition is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LogicalOrExpression } orExpr)
 		{
 			return TryCollectLabels(orExpr.Left, ref switchTarget, labels)
 			       && TryCollectLabels(orExpr.Right, ref switchTarget, labels);
 		}
 
 		// x == constant  /  constant == x
-		if (condition is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.EqualsExpression } eq)
+		if (condition is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.EqualsExpression } eq)
 		{
 			ExpressionSyntax? target = null;
 			ExpressionSyntax? label = null;
@@ -279,20 +277,20 @@ public static class ConvertIfToSwitchCodeRefactoring
 	}
 
 	/// <summary>
-	/// Returns <see langword="true"/> when the expression is constant-like and therefore safe
-	/// to use as a switch case label (literal, negative literal, enum member access).
+	///   Returns <see langword="true" /> when the expression is constant-like and therefore safe
+	///   to use as a switch case label (literal, negative literal, enum member access).
 	/// </summary>
 	private static bool IsConstantLike(ExpressionSyntax expr)
 	{
 		return expr is LiteralExpressionSyntax
 			or MemberAccessExpressionSyntax // e.g. Color.Red
-			or PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken };
+			or PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken };
 		// -1
 	}
 
 	/// <summary>
-	/// Builds the statement list for a single switch section, automatically appending a
-	/// <c>break;</c> when the body does not already end with a jump statement.
+	///   Builds the statement list for a single switch section, automatically appending a
+	///   <c>break;</c> when the body does not already end with a jump statement.
 	/// </summary>
 	private static List<StatementSyntax> BuildSwitchSectionStatements(StatementSyntax body)
 	{
@@ -316,11 +314,11 @@ public static class ConvertIfToSwitchCodeRefactoring
 	}
 
 	/// <summary>
-	/// Builds a single switch label for a set of case values.
-	/// <list type="bullet">
-	///   <item>Single value   → <c>case 1:</c></item>
-	///   <item>Multiple values → <c>case 1 or 2 or 3:</c></item>
-	/// </list>
+	///   Builds a single switch label for a set of case values.
+	///   <list type="bullet">
+	///     <item>Single value   → <c>case 1:</c></item>
+	///     <item>Multiple values → <c>case 1 or 2 or 3:</c></item>
+	///   </list>
 	/// </summary>
 	private static SwitchLabelSyntax BuildCaseSwitchLabel(List<ExpressionSyntax> labels)
 	{
@@ -344,9 +342,9 @@ public static class ConvertIfToSwitchCodeRefactoring
 	}
 
 	/// <summary>
-	/// Returns <see langword="true"/> when a statement unconditionally ends with a jump
-	/// (return, break, continue, or throw), making it safe to combine consecutive if
-	/// statements with identical bodies using <c>||</c>.
+	///   Returns <see langword="true" /> when a statement unconditionally ends with a jump
+	///   (return, break, continue, or throw), making it safe to combine consecutive if
+	///   statements with identical bodies using <c>||</c>.
 	/// </summary>
 	private static bool ContainsJumpStatement(StatementSyntax statement)
 	{
@@ -359,49 +357,6 @@ public static class ConvertIfToSwitchCodeRefactoring
 			BlockSyntax block => block.Statements.Count > 0 && ContainsJumpStatement(block.Statements.Last()),
 			_ => false
 		};
-	}
-
-	// =====================================================================================
-	//  Consecutive (non-else) if-statements → switch
-	//
-	//  Converts a run of independent sibling if-statements that all test the same identifier
-	//  against mutually-exclusive constant / relational patterns into a single switch, e.g.
-	//
-	//      if (n == 0) return 1;          switch (n)
-	//      if (n < 0)  n = -n;     =>      {
-	//                                          case 0:    return 1;
-	//                                          case < 0:  n = -n; break;
-	//                                      }
-	//
-	//  Safety relies on three invariants checked by the caller / builder:
-	//    * the case patterns are mutually exclusive (see AreMutuallyExclusive), so at most one
-	//      body runs — exactly the switch semantics;
-	//    * only the last section may write to the target (a switch reads the target once, while
-	//      sequential ifs re-evaluate it — see AssignsToIdentifier);
-	//    * no two sections declare the same top-level local (switch sections share one scope).
-	// =====================================================================================
-
-	/// <summary>A half-open or closed numeric interval used for mutual-exclusivity reasoning.</summary>
-	internal readonly struct NumericInterval(double low, bool lowInclusive, double high, bool highInclusive)
-	{
-		public double Low { get; } = low;
-		public bool LowInclusive { get; } = lowInclusive;
-		public double High { get; } = high;
-		public bool HighInclusive { get; } = highInclusive;
-
-		public static NumericInterval Point(double value)
-		{
-			return new NumericInterval(value, true, value, true);
-		}
-	}
-
-	/// <summary>One eligible if-statement decomposed into a switch section.</summary>
-	internal readonly struct IfSwitchSection(IdentifierNameSyntax target, SwitchLabelSyntax label, StatementSyntax body, List<NumericInterval> intervals)
-	{
-		public IdentifierNameSyntax Target { get; } = target;
-		public SwitchLabelSyntax Label { get; } = label;
-		public StatementSyntax Body { get; } = body;
-		public List<NumericInterval> Intervals { get; } = intervals;
 	}
 
 	/// <summary>
@@ -428,7 +383,7 @@ public static class ConvertIfToSwitchCodeRefactoring
 		// A single constant becomes a plain `case 1:` label; everything else (relational or
 		// or-patterns) becomes a `case <pattern>:` label.
 		var label = pattern is ConstantPatternSyntax constant
-			? (SwitchLabelSyntax) CaseSwitchLabel(constant.Expression)
+			? (SwitchLabelSyntax)CaseSwitchLabel(constant.Expression)
 			: CasePatternSwitchLabel(pattern, Token(SyntaxKind.ColonToken));
 
 		section = new IfSwitchSection(target, label, ifNode.Statement, intervals);
@@ -468,11 +423,11 @@ public static class ConvertIfToSwitchCodeRefactoring
 			{
 				case AssignmentExpressionSyntax assignment
 					when UnwrapParentheses(assignment.Left) is IdentifierNameSyntax id && id.Identifier.ValueText == name:
-				case PostfixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.PostIncrementExpression or (int) SyntaxKind.PostDecrementExpression } postfix
+				case PostfixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.PostIncrementExpression or (int)SyntaxKind.PostDecrementExpression } postfix
 					when UnwrapParentheses(postfix.Operand) is IdentifierNameSyntax postId && postId.Identifier.ValueText == name:
-				case PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.PreIncrementExpression or (int) SyntaxKind.PreDecrementExpression } prefix
+				case PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.PreIncrementExpression or (int)SyntaxKind.PreDecrementExpression } prefix
 					when UnwrapParentheses(prefix.Operand) is IdentifierNameSyntax preId && preId.Identifier.ValueText == name:
-				case ArgumentSyntax { RefKindKeyword.RawKind: not (int) SyntaxKind.None } argument
+				case ArgumentSyntax { RefKindKeyword.RawKind: not (int)SyntaxKind.None } argument
 					when UnwrapParentheses(argument.Expression) is IdentifierNameSyntax argId && argId.Identifier.ValueText == name:
 				{
 					return true;
@@ -518,7 +473,7 @@ public static class ConvertIfToSwitchCodeRefactoring
 	private static IEnumerable<string> GetSectionLocalNames(StatementSyntax body)
 	{
 		var statements = body is BlockSyntax block
-			? (IEnumerable<StatementSyntax>) block.Statements
+			? (IEnumerable<StatementSyntax>)block.Statements
 			: [ body ];
 
 		foreach (var statement in statements)
@@ -545,7 +500,7 @@ public static class ConvertIfToSwitchCodeRefactoring
 		switch (UnwrapParentheses(condition))
 		{
 			// x == a || x == b  (recursively folds into one or-pattern)
-			case BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LogicalOrExpression } orExpr:
+			case BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LogicalOrExpression } orExpr:
 			{
 				if (!TryExtractTargetPattern(orExpr.Left, ref target, out var leftPattern, out var leftIntervals)
 				    || !TryExtractTargetPattern(orExpr.Right, ref target, out var rightPattern, out var rightIntervals))
@@ -560,7 +515,7 @@ public static class ConvertIfToSwitchCodeRefactoring
 			}
 
 			// x == constant  /  constant == x
-			case BinaryExpressionSyntax { RawKind: (int) SyntaxKind.EqualsExpression } eq:
+			case BinaryExpressionSyntax { RawKind: (int)SyntaxKind.EqualsExpression } eq:
 			{
 				if (!TryGetTargetAndLiteral(eq.Left, eq.Right, ref target, out var literal, out var value))
 				{
@@ -654,7 +609,7 @@ public static class ConvertIfToSwitchCodeRefactoring
 				return true;
 			}
 
-			case BinaryPatternSyntax { RawKind: (int) SyntaxKind.OrPattern } orPattern:
+			case BinaryPatternSyntax { RawKind: (int)SyntaxKind.OrPattern } orPattern:
 			{
 				if (!TryExtractPattern(orPattern.Left, out var leftPattern, out var leftIntervals)
 				    || !TryExtractPattern(orPattern.Right, out var rightPattern, out var rightIntervals))
@@ -711,7 +666,7 @@ public static class ConvertIfToSwitchCodeRefactoring
 				return true;
 			}
 
-			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken } negation
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken } negation
 				when TryGetNumericLiteral(negation.Operand, out var inner, out _):
 			{
 				value = -inner;
@@ -761,7 +716,7 @@ public static class ConvertIfToSwitchCodeRefactoring
 				result = d;
 				return true;
 			case decimal dec:
-				result = (double) dec;
+				result = (double)dec;
 				return true;
 			case char c:
 				result = c;
@@ -861,5 +816,48 @@ public static class ConvertIfToSwitchCodeRefactoring
 		}
 
 		return pattern;
+	}
+
+	// =====================================================================================
+	//  Consecutive (non-else) if-statements → switch
+	//
+	//  Converts a run of independent sibling if-statements that all test the same identifier
+	//  against mutually-exclusive constant / relational patterns into a single switch, e.g.
+	//
+	//      if (n == 0) return 1;          switch (n)
+	//      if (n < 0)  n = -n;     =>      {
+	//                                          case 0:    return 1;
+	//                                          case < 0:  n = -n; break;
+	//                                      }
+	//
+	//  Safety relies on three invariants checked by the caller / builder:
+	//    * the case patterns are mutually exclusive (see AreMutuallyExclusive), so at most one
+	//      body runs — exactly the switch semantics;
+	//    * only the last section may write to the target (a switch reads the target once, while
+	//      sequential ifs re-evaluate it — see AssignsToIdentifier);
+	//    * no two sections declare the same top-level local (switch sections share one scope).
+	// =====================================================================================
+
+	/// <summary>A half-open or closed numeric interval used for mutual-exclusivity reasoning.</summary>
+	internal readonly struct NumericInterval(double low, bool lowInclusive, double high, bool highInclusive)
+	{
+		public double Low { get; } = low;
+		public bool LowInclusive { get; } = lowInclusive;
+		public double High { get; } = high;
+		public bool HighInclusive { get; } = highInclusive;
+
+		public static NumericInterval Point(double value)
+		{
+			return new NumericInterval(value, true, value, true);
+		}
+	}
+
+	/// <summary>One eligible if-statement decomposed into a switch section.</summary>
+	internal readonly struct IfSwitchSection(IdentifierNameSyntax target, SwitchLabelSyntax label, StatementSyntax body, List<NumericInterval> intervals)
+	{
+		public IdentifierNameSyntax Target { get; } = target;
+		public SwitchLabelSyntax Label { get; } = label;
+		public StatementSyntax Body { get; } = body;
+		public List<NumericInterval> Intervals { get; } = intervals;
 	}
 }

@@ -22,7 +22,7 @@ public class AsinPiFunctionOptimizer() : BaseMathFunctionOptimizer("AsinPi", n =
 		{
 			SpecialType.System_Single => GenerateFastAsinPiMethodFloat(context.FastMathFlags),
 			SpecialType.System_Double => GenerateFastAsinPiMethodDouble(context.FastMathFlags),
-			_ => null,
+			_ => null
 		});
 
 		if (method is not null)

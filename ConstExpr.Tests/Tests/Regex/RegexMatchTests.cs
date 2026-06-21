@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Regex;
 
 [InheritsTests]
-public class RegexMatchTests() : BaseTest<Func<string, string, string>>
+public class RegexMatchTests : BaseTest<Func<string, string, string>>
 {
 	public override string TestMethod => GetString((input, pattern) =>
 	{
@@ -12,6 +12,6 @@ public class RegexMatchTests() : BaseTest<Func<string, string, string>>
 	[
 		CreateDefault(),
 		Create("return Regex_ab3uPQ.Match(input).Value;", Unknown, @"^\d+$"),
-		Create("return Regex_ab3uPQ.Match(\"1234\").Value;", "1234", @"^\d+$"),
+		Create("return Regex_ab3uPQ.Match(\"1234\").Value;", "1234", @"^\d+$")
 	];
 }

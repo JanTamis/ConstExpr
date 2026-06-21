@@ -11,14 +11,14 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Last method.
-/// Optimizes patterns such as:
-/// - collection.Where(predicate).Last() => collection.Last(predicate)
-/// - collection.AsEnumerable().Last() => collection.Last() (type cast doesn't affect last)
-/// - collection.ToList().Last() => collection.Last() (materialization doesn't affect last)
-/// - collection.ToArray().Last() => collection.Last() (materialization doesn't affect last)
-/// Note: OrderBy/OrderByDescending/Reverse DOES affect which element is last, so we don't optimize those!
-/// Note: Distinct might remove the last element if it's a duplicate, so we don't optimize that either!
+///   Optimizer for Enumerable.Last method.
+///   Optimizes patterns such as:
+///   - collection.Where(predicate).Last() => collection.Last(predicate)
+///   - collection.AsEnumerable().Last() => collection.Last() (type cast doesn't affect last)
+///   - collection.ToList().Last() => collection.Last() (materialization doesn't affect last)
+///   - collection.ToArray().Last() => collection.Last() (materialization doesn't affect last)
+///   Note: OrderBy/OrderByDescending/Reverse DOES affect which element is last, so we don't optimize those!
+///   Note: Distinct might remove the last element if it's a duplicate, so we don't optimize that either!
 /// </summary>
 public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Last), n => n is 0 or 1)
 {
@@ -125,7 +125,7 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 				}
 				case nameof(Enumerable.DefaultIfEmpty):
 				{
-					TryGetOptimizedChainExpression(methodSource, (HashSet<string>) [ nameof(Enumerable.DefaultIfEmpty) ], out methodSource);
+					TryGetOptimizedChainExpression(methodSource, (HashSet<string>)[ nameof(Enumerable.DefaultIfEmpty) ], out methodSource);
 
 					var defaultItem = invocation.ArgumentList.Arguments.Count == 0
 						? context.Method.ReturnType is INamedTypeSymbol namedType ? namedType.GetDefaultValue() : LiteralExpression(SyntaxKind.DefaultLiteralExpression)

@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for ToDictionary() optimization - verify redundant materialization removal and empty source optimization.
+///   Tests for ToDictionary() optimization - verify redundant materialization removal and empty source optimization.
 /// </summary>
 [InheritsTests]
 public class LinqToDictionaryOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
@@ -65,6 +65,6 @@ public class LinqToDictionaryOptimizationTests() : BaseTest<Func<int[], int>>(Fa
 	[
 		Create("return ToDictionary_1EegoQ(x).Count * 8 + ToDictionary_sCunBg(x).Count * 2 + ToDictionary_3VBgJQ(x).Count + ToDictionary___qgkw(x).Count + ToDictionary_at7ziQ(x).Count + ToDictionary_XXbqPA(x).Count + ToDictionary_nBFL_A(x).Count + ToDictionary_vxO49g(x).Count;"),
 		Create(_ => 48, [ new[] { 1, 2, 3 } ]),
-		Create(_ => 0, [ System.Array.Empty<int>() ]),
+		Create(_ => 0, [ System.Array.Empty<int>() ])
 	];
 }

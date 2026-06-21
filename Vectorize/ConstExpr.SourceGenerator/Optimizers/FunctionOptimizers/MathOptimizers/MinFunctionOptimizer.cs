@@ -16,7 +16,7 @@ public class MinFunctionOptimizer() : BaseMathFunctionOptimizer("Min", n => n is
 	{
 		var left = context.VisitedParameters[0];
 		var right = context.VisitedParameters[1];
-		
+
 		// Idempotency: Min(x, x) → x (when x is pure)
 		if (SyntaxNodeComparer.Get().Equals(left, right) && IsPure(left))
 		{
@@ -314,7 +314,7 @@ public class MinFunctionOptimizer() : BaseMathFunctionOptimizer("Min", n => n is
 				constExpr = expr;
 				return value is not null && IsNumericLiteral(value);
 			}
-			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax opLit }:
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax opLit }:
 			{
 				var v = opLit.Token.Value;
 
@@ -418,7 +418,7 @@ public class MinFunctionOptimizer() : BaseMathFunctionOptimizer("Min", n => n is
 
 	private static T ConvertTo<T>(object v)
 	{
-		try { return (T) Convert.ChangeType(v, typeof(T), CultureInfo.InvariantCulture); }
+		try { return (T)Convert.ChangeType(v, typeof(T), CultureInfo.InvariantCulture); }
 		catch { return default!; }
 	}
 }

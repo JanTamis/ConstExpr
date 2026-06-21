@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for arr.Where(p).ToArray() => Array.FindAll(arr, p)
+///   Tests for arr.Where(p).ToArray() => Array.FindAll(arr, p)
 /// </summary>
 [InheritsTests]
 public class LinqWhereToArrayOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
@@ -23,6 +23,6 @@ public class LinqWhereToArrayOptimizationTests() : BaseTest<Func<int[], int>>(Fa
 	[
 		Create("return Array.FindAll(x, v => v > 2).Length << 1;"),
 		Create(_ => 6, [ new[] { 1, 2, 3, 4, 5 } ]),
-		Create(_ => 0, [ System.Array.Empty<int>() ]),
+		Create(_ => 0, [ System.Array.Empty<int>() ])
 	];
 }

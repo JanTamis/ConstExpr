@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for OfType() optimization - verify duplicate OfType removal
+///   Tests for OfType() optimization - verify duplicate OfType removal
 /// </summary>
 [InheritsTests]
 public class LinqOfTypeOptimizationTests() : BaseTest<Func<object[], int>>(FastMathFlags.AssociativeMath)
@@ -23,6 +23,6 @@ public class LinqOfTypeOptimizationTests() : BaseTest<Func<object[], int>>(FastM
 	[
 		Create(x => x.Length << 1),
 		Create(_ => 6, [ new[] { 1, 2, 3 } ]),
-		Create(_ => 0, [ System.Array.Empty<int>() ]),
+		Create(_ => 0, [ System.Array.Empty<int>() ])
 	];
 }

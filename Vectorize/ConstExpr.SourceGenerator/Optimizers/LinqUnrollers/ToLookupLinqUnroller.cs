@@ -5,11 +5,11 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 /// <summary>
-/// Unrolls <c>.ToLookup(keySelector)</c> or <c>.ToLookup(keySelector, elementSelector)</c>
-/// as a terminal step. Builds a dictionary of lists during the loop and returns
-/// it as a <c>ToLookup</c> result via <c>GroupBy</c>-style collection.
-/// Since <c>ILookup</c> cannot be directly constructed, we build a <c>Dictionary&lt;TKey, List&lt;TElement&gt;&gt;</c>
-/// and call <c>.ToLookup()</c> on it at the end.
+///   Unrolls <c>.ToLookup(keySelector)</c> or <c>.ToLookup(keySelector, elementSelector)</c>
+///   as a terminal step. Builds a dictionary of lists during the loop and returns
+///   it as a <c>ToLookup</c> result via <c>GroupBy</c>-style collection.
+///   Since <c>ILookup</c> cannot be directly constructed, we build a <c>Dictionary&lt;TKey, List&lt;TElement&gt;&gt;</c>
+///   and call <c>.ToLookup()</c> on it at the end.
 /// </summary>
 public class ToLookupLinqUnroller : BaseLinqUnroller
 {
@@ -30,7 +30,7 @@ public class ToLookupLinqUnroller : BaseLinqUnroller
 
 		// var lookupDict = new Dictionary<TKey, List<TElement>>();
 		statements.Add(CreateLocalDeclaration(DictName,
-			ObjectCreationExpression(IdentifierName($"Dictionary<{keyTypeName}, List<{elementTypeName}>>"), [])));
+			ObjectCreationExpression(IdentifierName($"Dictionary<{keyTypeName}, List<{elementTypeName}>>"), [ ])));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
@@ -49,10 +49,12 @@ public class ToLookupLinqUnroller : BaseLinqUnroller
 		}
 
 		// Determine element to add
-		ExpressionSyntax valueExpr = elementName;
+		var valueExpr = elementName;
+
 		if (method.Parameters.Length >= 2 && TryGetLambda(method.Parameters[1], out var elementLambda))
 		{
 			var selectedElement = ReplaceLambda(method.Visit(elementLambda) as LambdaExpressionSyntax ?? elementLambda, elementName);
+
 			if (selectedElement is not null)
 			{
 				valueExpr = selectedElement;
@@ -77,7 +79,7 @@ public class ToLookupLinqUnroller : BaseLinqUnroller
 						.WithRefKindKeyword(Token(SyntaxKind.OutKeyword))
 				])))),
 			Block(
-				CreateAssignment("lookupList", ObjectCreationExpression(IdentifierName($"List<{elementTypeName}>"), [])),
+				CreateAssignment("lookupList", ObjectCreationExpression(IdentifierName($"List<{elementTypeName}>"), [ ])),
 				ExpressionStatement(AssignmentExpression(SyntaxKind.SimpleAssignmentExpression,
 					ElementAccessExpression(IdentifierName(DictName), IdentifierName("lookupKey")),
 					IdentifierName("lookupList"))))));
@@ -97,4 +99,3 @@ public class ToLookupLinqUnroller : BaseLinqUnroller
 		statements.Add(ReturnStatement(IdentifierName(DictName)));
 	}
 }
-

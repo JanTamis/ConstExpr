@@ -8,9 +8,9 @@ using MathMinOptimizer = ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.MinBy context.Method.
-/// Optimizes patterns such as:
-/// - Enumerable.Empty&lt;T&gt;().MinBy(selector) - cannot optimize (throws exception)
+///   Optimizer for Enumerable.MinBy context.Method.
+///   Optimizes patterns such as:
+///   - Enumerable.Empty&lt;T&gt;().MinBy(selector) - cannot optimize (throws exception)
 /// </summary>
 public class MinByFunctionOptimizer() : BaseLinqFunctionOptimizer("MinBy", n => n is 1)
 {

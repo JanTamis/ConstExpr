@@ -8,14 +8,13 @@ namespace ConstExpr.SourceGenerator.Refactorers;
 using static SyntaxFactory;
 
 /// <summary>
-/// Refactorer that converts between block-body and expression-body forms for
-/// lambdas and local functions.
-/// Inspired by the Roslyn <c>UseExpressionBodyForLambdaCodeRefactoringProvider</c>.
-///
-/// <list type="bullet">
-///   <item>Block body → expression body:  <c>x => { return expr; }</c>  →  <c>x => expr</c></item>
-///   <item>Expression body → block body:  <c>x => expr</c>  →  <c>x => { return expr; }</c></item>
-/// </list>
+///   Refactorer that converts between block-body and expression-body forms for
+///   lambdas and local functions.
+///   Inspired by the Roslyn <c>UseExpressionBodyForLambdaCodeRefactoringProvider</c>.
+///   <list type="bullet">
+///     <item>Block body → expression body:  <c>x => { return expr; }</c>  →  <c>x => expr</c></item>
+///     <item>Expression body → block body:  <c>x => expr</c>  →  <c>x => { return expr; }</c></item>
+///   </list>
 /// </summary>
 public static class UseExpressionBodyRefactoring
 {
@@ -24,8 +23,8 @@ public static class UseExpressionBodyRefactoring
 	// -----------------------------------------------------------------------
 
 	/// <summary>
-	/// Converts a lambda with a block body containing a single return/expression statement
-	/// into an expression-bodied lambda.
+	///   Converts a lambda with a block body containing a single return/expression statement
+	///   into an expression-bodied lambda.
 	/// </summary>
 	public static bool TryConvertToExpressionBody(
 		LambdaExpressionSyntax lambda,
@@ -69,10 +68,10 @@ public static class UseExpressionBodyRefactoring
 	// -----------------------------------------------------------------------
 
 	/// <summary>
-	/// Converts an expression-bodied lambda into a lambda with a block body
-	/// containing a return statement (or expression statement for void-returning lambdas).
-	/// When a <paramref name="semanticModel"/> is provided, detects void-returning lambdas
-	/// and generates an expression statement instead of a return statement.
+	///   Converts an expression-bodied lambda into a lambda with a block body
+	///   containing a return statement (or expression statement for void-returning lambdas).
+	///   When a <paramref name="semanticModel" /> is provided, detects void-returning lambdas
+	///   and generates an expression statement instead of a return statement.
 	/// </summary>
 	public static bool TryConvertToBlockBody(
 		LambdaExpressionSyntax lambda,
@@ -120,7 +119,7 @@ public static class UseExpressionBodyRefactoring
 	// -----------------------------------------------------------------------
 
 	/// <summary>
-	/// Converts a method with a single-statement block body into an expression-bodied method.
+	///   Converts a method with a single-statement block body into an expression-bodied method.
 	/// </summary>
 	public static bool TryConvertMethodToExpressionBody(
 		MethodDeclarationSyntax method,
@@ -156,7 +155,7 @@ public static class UseExpressionBodyRefactoring
 	}
 
 	/// <summary>
-	/// Converts an expression-bodied method into a block-bodied method.
+	///   Converts an expression-bodied method into a block-bodied method.
 	/// </summary>
 	public static bool TryConvertMethodToBlockBody(
 		MethodDeclarationSyntax method,

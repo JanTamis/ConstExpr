@@ -10,15 +10,15 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Aggregate context.Method.
-/// Optimizes patterns such as:
-/// - collection.AsEnumerable().Aggregate(...) => collection.Aggregate(...)
-/// - collection.ToList().Aggregate(...) => collection.Aggregate(...)
-/// - collection.ToArray().Aggregate(...) => collection.Aggregate(...)
-/// - collection.Aggregate((acc, v) => acc + v) => collection.Sum()
-/// - collection.Aggregate(0, (acc, v) => acc + v) => collection.Sum()
-/// Note: We do NOT optimize Select, Distinct, Where, etc. before Aggregate
-/// because they change the elements/order being aggregated over.
+///   Optimizer for Enumerable.Aggregate context.Method.
+///   Optimizes patterns such as:
+///   - collection.AsEnumerable().Aggregate(...) => collection.Aggregate(...)
+///   - collection.ToList().Aggregate(...) => collection.Aggregate(...)
+///   - collection.ToArray().Aggregate(...) => collection.Aggregate(...)
+///   - collection.Aggregate((acc, v) => acc + v) => collection.Sum()
+///   - collection.Aggregate(0, (acc, v) => acc + v) => collection.Sum()
+///   Note: We do NOT optimize Select, Distinct, Where, etc. before Aggregate
+///   because they change the elements/order being aggregated over.
 /// </summary>
 public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Aggregate), n => n is 1 or 2 or 3)
 {
@@ -60,11 +60,11 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 	}
 
 	/// <summary>
-	/// Tries to optimize Aggregate to Sum when the pattern matches simple addition.
-	/// Patterns:
-	/// - Aggregate((acc, v) => acc + v) => Sum()
-	/// - Aggregate(0, (acc, v) => acc + v) => Sum()
-	/// - Aggregate(0, (acc, v) => acc + v, acc => acc * 2) => Sum() &lt;&lt; 1
+	///   Tries to optimize Aggregate to Sum when the pattern matches simple addition.
+	///   Patterns:
+	///   - Aggregate((acc, v) => acc + v) => Sum()
+	///   - Aggregate(0, (acc, v) => acc + v) => Sum()
+	///   - Aggregate(0, (acc, v) => acc + v, acc => acc * 2) => Sum() &lt;&lt; 1
 	/// </summary>
 	private bool TryOptimizeAggregateToSum(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -95,13 +95,13 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		}
 
 		// Optimize to Sum()
-		result = TryOptimizeByOptimizer<SumFunctionOptimizer>(context, CreateSimpleInvocation(source, nameof(Enumerable.Sum)), x => IsEnumerableType(x.Parameters[0].Type as INamedTypeSymbol, context.Method.TypeArguments[^1]), [ ]);
+		result = TryOptimizeByOptimizer<SumFunctionOptimizer>(context, CreateSimpleInvocation(source, nameof(Enumerable.Sum)), x => IsEnumerableType(x.Parameters[0].Type as INamedTypeSymbol, context.Method.TypeArguments[^1]));
 
 		// For 2-arg overload with non-zero seed: Sum() + seed
 		if (context.VisitedParameters.Count == 2 && !IsZeroLiteral(context.VisitedParameters[0]))
 		{
 			var type = context.Method.TypeArguments[^1];
-			result = OptimizeArithmetic(context, SyntaxKind.AddExpression, (ExpressionSyntax) result, context.VisitedParameters[0], type);
+			result = OptimizeArithmetic(context, SyntaxKind.AddExpression, (ExpressionSyntax)result, context.VisitedParameters[0], type);
 		}
 
 		// For 3-arg overload: apply the result selector to the sum result
@@ -111,14 +111,14 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 			if (!IsZeroLiteral(context.VisitedParameters[0]))
 			{
 				var type = context.Method.TypeArguments[^1];
-				result = OptimizeArithmetic(context, SyntaxKind.AddExpression, (ExpressionSyntax) result, context.VisitedParameters[0], type);
+				result = OptimizeArithmetic(context, SyntaxKind.AddExpression, (ExpressionSyntax)result, context.VisitedParameters[0], type);
 			}
 
 			// Apply the result selector lambda: e.g. acc => acc * 2 applied to Sum() gives Sum() * 2 => Sum() << 1
 			if (TryGetLambda(context.VisitedParameters[2], out var resultSelectorLambda))
 			{
-				result = ReplaceExpression(resultSelectorLambda, (ExpressionSyntax) result);
-				result = context.Visit((ExpressionSyntax) result) ?? result;
+				result = ReplaceExpression(resultSelectorLambda, (ExpressionSyntax)result);
+				result = context.Visit((ExpressionSyntax)result) ?? result;
 			}
 		}
 
@@ -126,7 +126,7 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 	}
 
 	/// <summary>
-	/// Checks if the expression is a zero literal (0, 0L, 0f, 0.0, etc.)
+	///   Checks if the expression is a zero literal (0, 0L, 0f, 0.0, etc.)
 	/// </summary>
 	private bool IsZeroLiteral(ExpressionSyntax expression)
 	{
@@ -142,7 +142,7 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 	}
 
 	/// <summary>
-	/// Checks if a lambda is a simple addition: (acc, v) => acc + v
+	///   Checks if a lambda is a simple addition: (acc, v) => acc + v
 	/// </summary>
 	private bool IsAdditionLambda(LambdaExpressionSyntax lambda)
 	{
@@ -178,7 +178,7 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		}
 
 		// Check if body is: acc + v (binary addition)
-		if (body is not BinaryExpressionSyntax { RawKind: (int) SyntaxKind.AddExpression } binaryExpr)
+		if (body is not BinaryExpressionSyntax { RawKind: (int)SyntaxKind.AddExpression } binaryExpr)
 		{
 			return false;
 		}

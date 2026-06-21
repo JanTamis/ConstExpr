@@ -8,8 +8,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 /// <summary>
-/// Unrolls <c>.LeftJoin(inner, outerKeySelector, innerKeySelector, resultSelector)</c> (.NET 10+)
-/// as an intermediate step. Like Join but includes unmatched outer elements with a default inner value.
+///   Unrolls <c>.LeftJoin(inner, outerKeySelector, innerKeySelector, resultSelector)</c> (.NET 10+)
+///   as an intermediate step. Like Join but includes unmatched outer elements with a default inner value.
 /// </summary>
 public class LeftJoinLinqUnroller : BaseLinqUnroller
 {

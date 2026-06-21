@@ -26,7 +26,7 @@ public class LinqSelectCastToLongTests : BaseTest<Func<IEnumerable<int>, long>>
 	public override string TestMethod => GetString(x =>
 	{
 		// Select(y => (long)y) → Cast<long>()
-		return x.Select(y => (long) y).Sum();
+		return x.Select(y => (long)y).Sum();
 	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>

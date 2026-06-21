@@ -5,9 +5,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalOrStrategies;
 
 /// <summary>
-/// Strategy for optimizing null or empty string checks: (str == null || str.Length == 0) => String.IsNullOrEmpty(str)
+///   Strategy for optimizing null or empty string checks: (str == null || str.Length == 0) => String.IsNullOrEmpty(str)
 /// </summary>
-public class ConditionalOrIsNullOrEmptyStrategy() 
+public class ConditionalOrIsNullOrEmptyStrategy()
 	: SymmetricStrategy<BooleanBinaryStrategy, BinaryExpressionSyntax, BinaryExpressionSyntax>(SyntaxKind.EqualsExpression, SyntaxKind.EqualsExpression)
 {
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<BinaryExpressionSyntax, BinaryExpressionSyntax> context, out ExpressionSyntax? optimized)
@@ -20,7 +20,7 @@ public class ConditionalOrIsNullOrEmptyStrategy()
 		}
 
 		optimized = InvocationExpression(
-			MemberAccessExpression(IdentifierName("String"), IdentifierName("IsNullOrEmpty")))
+				MemberAccessExpression(IdentifierName("String"), IdentifierName("IsNullOrEmpty")))
 			.WithArgumentList(
 				ArgumentList(
 					SingletonSeparatedList(
@@ -30,21 +30,21 @@ public class ConditionalOrIsNullOrEmptyStrategy()
 
 	private static bool IsNullCheck(BinaryExpressionSyntax expr)
 	{
-		return expr.Left is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NullLiteralExpression }
-		       || expr.Right is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NullLiteralExpression };
+		return expr.Left is LiteralExpressionSyntax { RawKind: (int)SyntaxKind.NullLiteralExpression }
+		       || expr.Right is LiteralExpressionSyntax { RawKind: (int)SyntaxKind.NullLiteralExpression };
 	}
 
 	private static bool IsEmptyStringCheck(BinaryExpressionSyntax expr)
 	{
 		return (expr.Left is MemberAccessExpressionSyntax { Name.Identifier.Text: "Length" }
 		        || expr.Right is MemberAccessExpressionSyntax { Name.Identifier.Text: "Length" })
-		       && (expr.Left is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NumericLiteralExpression, Token.Value: 0 }
-		           || expr.Right is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NumericLiteralExpression, Token.Value: 0 });
+		       && (expr.Left is LiteralExpressionSyntax { RawKind: (int)SyntaxKind.NumericLiteralExpression, Token.Value: 0 }
+		           || expr.Right is LiteralExpressionSyntax { RawKind: (int)SyntaxKind.NumericLiteralExpression, Token.Value: 0 });
 	}
-	
+
 	private static ExpressionSyntax GetExpressionSyntax(BinaryExpressionSyntax expr)
 	{
-		return expr.Left is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NullLiteralExpression }
+		return expr.Left is LiteralExpressionSyntax { RawKind: (int)SyntaxKind.NullLiteralExpression }
 			? expr.Right
 			: expr.Left;
 	}

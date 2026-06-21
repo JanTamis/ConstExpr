@@ -7,10 +7,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.TakeWhile context.Method.
-/// Optimizes patterns such as:
-/// - collection.TakeWhile(x => true) => collection (take everything)
-/// - collection.TakeWhile(x => false) => Enumerable.Empty&lt;T&gt;() (take nothing)
+///   Optimizer for Enumerable.TakeWhile context.Method.
+///   Optimizes patterns such as:
+///   - collection.TakeWhile(x => true) => collection (take everything)
+///   - collection.TakeWhile(x => false) => Enumerable.Empty&lt;T&gt;() (take nothing)
 /// </summary>
 public class TakeWhileFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.TakeWhile), n => n is 1)
 {

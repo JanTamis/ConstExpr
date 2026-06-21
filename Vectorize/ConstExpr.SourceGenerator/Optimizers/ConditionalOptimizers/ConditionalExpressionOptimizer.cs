@@ -75,7 +75,7 @@ public class ConditionalExpressionOptimizer
 
 		// a < b ? a : b => Math.Min(a, b) (for numeric types)
 		if (Type?.IsFloatingNumeric() == true
-		    && Condition is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LessThanExpression } ltExpr
+		    && Condition is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LessThanExpression } ltExpr
 		    && ltExpr.Left.GetDeterministicHash() == WhenTrue.GetDeterministicHash()
 		    && ltExpr.Right.GetDeterministicHash() == WhenFalse.GetDeterministicHash()
 		    && IsPure(WhenTrue) && IsPure(WhenFalse))
@@ -89,7 +89,7 @@ public class ConditionalExpressionOptimizer
 
 		// a > b ? a : b => Math.Max(a, b)
 		if (Type?.IsFloatingNumeric() == true
-		    && Condition is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.GreaterThanExpression } gtExpr
+		    && Condition is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.GreaterThanExpression } gtExpr
 		    && gtExpr.Left.GetDeterministicHash() == WhenTrue.GetDeterministicHash()
 		    && gtExpr.Right.GetDeterministicHash() == WhenFalse.GetDeterministicHash()
 		    && IsPure(WhenTrue) && IsPure(WhenFalse))
@@ -103,7 +103,7 @@ public class ConditionalExpressionOptimizer
 
 		// a <= b ? a : b => Math.Min(a, b)
 		if (Type?.IsFloatingNumeric() == true
-		    && Condition is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LessThanOrEqualExpression } leExpr
+		    && Condition is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LessThanOrEqualExpression } leExpr
 		    && leExpr.Left.GetDeterministicHash() == WhenTrue.GetDeterministicHash()
 		    && leExpr.Right.GetDeterministicHash() == WhenFalse.GetDeterministicHash()
 		    && IsPure(WhenTrue) && IsPure(WhenFalse))
@@ -117,7 +117,7 @@ public class ConditionalExpressionOptimizer
 
 		// a >= b ? a : b => Math.Max(a, b)
 		if (Type?.IsFloatingNumeric() == true
-		    && Condition is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.GreaterThanOrEqualExpression } geExpr
+		    && Condition is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.GreaterThanOrEqualExpression } geExpr
 		    && geExpr.Left.GetDeterministicHash() == WhenTrue.GetDeterministicHash()
 		    && geExpr.Right.GetDeterministicHash() == WhenFalse.GetDeterministicHash()
 		    && IsPure(WhenTrue) && IsPure(WhenFalse))
@@ -131,7 +131,7 @@ public class ConditionalExpressionOptimizer
 
 		// b < a ? a : b => Math.Max(a, b)
 		if (Type?.IsFloatingNumeric() == true
-		    && Condition is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LessThanExpression } ltExpr2
+		    && Condition is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LessThanExpression } ltExpr2
 		    && ltExpr2.Right.GetDeterministicHash() == WhenTrue.GetDeterministicHash()
 		    && ltExpr2.Left.GetDeterministicHash() == WhenFalse.GetDeterministicHash()
 		    && IsPure(WhenTrue) && IsPure(WhenFalse))
@@ -145,7 +145,7 @@ public class ConditionalExpressionOptimizer
 
 		// b > a ? a : b => Math.Min(a, b)
 		if (Type?.IsFloatingNumeric() == true
-		    && Condition is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.GreaterThanExpression } gtExpr2
+		    && Condition is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.GreaterThanExpression } gtExpr2
 		    && gtExpr2.Right.GetDeterministicHash() == WhenTrue.GetDeterministicHash()
 		    && gtExpr2.Left.GetDeterministicHash() == WhenFalse.GetDeterministicHash()
 		    && IsPure(WhenTrue) && IsPure(WhenFalse))
@@ -188,7 +188,7 @@ public class ConditionalExpressionOptimizer
 			IdentifierNameSyntax => true,
 			LiteralExpressionSyntax => true,
 			ParenthesizedExpressionSyntax par => IsPure(par.Expression),
-			PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken } u => IsPure(u.Operand),
+			PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken } u => IsPure(u.Operand),
 			BinaryExpressionSyntax b => IsPure(b.Left) && IsPure(b.Right),
 			MemberAccessExpressionSyntax m => IsPure(m.Expression),
 			_ => false
@@ -230,7 +230,7 @@ public class ConditionalExpressionOptimizer
 			return false;
 		}
 
-		var kind = (SyntaxKind) binary.RawKind;
+		var kind = (SyntaxKind)binary.RawKind;
 
 		if (kind is not (SyntaxKind.LessThanExpression
 		    or SyntaxKind.LessThanOrEqualExpression
@@ -269,7 +269,7 @@ public class ConditionalExpressionOptimizer
 		operand = null!;
 		var unwrapped = UnwrapParentheses(expression);
 
-		if (unwrapped is not PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken } prefix)
+		if (unwrapped is not PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken } prefix)
 		{
 			return false;
 		}
@@ -353,7 +353,7 @@ public class ConditionalExpressionOptimizer
 			return false;
 		}
 
-		var kind = (SyntaxKind) binary.RawKind;
+		var kind = (SyntaxKind)binary.RawKind;
 
 		if (kind is not (SyntaxKind.LessThanExpression
 		    or SyntaxKind.LessThanOrEqualExpression
@@ -465,7 +465,7 @@ public class ConditionalExpressionOptimizer
 
 		if (unwrappedCondition is BinaryExpressionSyntax binary)
 		{
-			var kind = (SyntaxKind) binary.RawKind;
+			var kind = (SyntaxKind)binary.RawKind;
 
 			if (kind is SyntaxKind.EqualsExpression or SyntaxKind.NotEqualsExpression)
 			{
@@ -498,7 +498,7 @@ public class ConditionalExpressionOptimizer
 
 			if (unwrappedPattern is UnaryPatternSyntax
 			    {
-				    RawKind: (int) SyntaxKind.NotPattern,
+				    RawKind: (int)SyntaxKind.NotPattern,
 				    Pattern: var notPattern
 			    })
 			{
@@ -518,7 +518,7 @@ public class ConditionalExpressionOptimizer
 
 	private static bool IsNullLiteral(ExpressionSyntax expression)
 	{
-		return UnwrapParentheses(expression) is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NullLiteralExpression };
+		return UnwrapParentheses(expression) is LiteralExpressionSyntax { RawKind: (int)SyntaxKind.NullLiteralExpression };
 	}
 
 	private static ExpressionSyntax UnwrapParentheses(ExpressionSyntax expression)

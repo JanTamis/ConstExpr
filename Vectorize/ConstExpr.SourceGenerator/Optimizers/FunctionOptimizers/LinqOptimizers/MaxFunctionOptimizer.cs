@@ -12,13 +12,13 @@ using MathMaxOptimizer = ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Max context.Method.
-/// Optimizes patterns such as:
-/// - collection.Max(x => x) => collection.Max() (identity lambda removal)
-/// - collection.Select(x => x.Property).Max() => collection.Max(x => x.Property)
-/// - collection.OrderBy(...).Max() => collection.Max() (ordering doesn't affect max)
-/// - collection.AsEnumerable().Max() => collection.Max()
-/// - collection.ToList().Max() => collection.Max()
+///   Optimizer for Enumerable.Max context.Method.
+///   Optimizes patterns such as:
+///   - collection.Max(x => x) => collection.Max() (identity lambda removal)
+///   - collection.Select(x => x.Property).Max() => collection.Max(x => x.Property)
+///   - collection.OrderBy(...).Max() => collection.Max() (ordering doesn't affect max)
+///   - collection.AsEnumerable().Max() => collection.Max()
+///   - collection.ToList().Max() => collection.Max()
 /// </summary>
 public class MaxFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Max), n => n is 0 or 1)
 {

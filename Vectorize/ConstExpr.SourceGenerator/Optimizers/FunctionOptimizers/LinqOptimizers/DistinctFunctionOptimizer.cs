@@ -8,16 +8,16 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Distinct context.Method.
-/// Optimizes patterns such as:
-/// - collection.Distinct().Distinct() => collection.Distinct() (redundant Distinct calls)
-/// - collection.Select(x => x).Distinct() => collection.Distinct() (identity Select before Distinct)
-/// - collection.AsEnumerable().Distinct() => collection.Distinct() (type cast doesn't affect distinctness)
-/// - collection.ToList().Distinct() => collection.Distinct() (materialization doesn't affect distinctness)
-/// - collection.ToArray().Distinct() => collection.Distinct() (materialization doesn't affect distinctness)
-/// - collection.OrderBy(...).Distinct().Count() => collection.Distinct().Count() (when followed by set-based operations)
-/// Note: OrderBy/Reverse DOES affect the ORDER of distinct results, so we only optimize when followed by
-///       operations that don't care about order (Count, Any, Contains, etc.)
+///   Optimizer for Enumerable.Distinct context.Method.
+///   Optimizes patterns such as:
+///   - collection.Distinct().Distinct() => collection.Distinct() (redundant Distinct calls)
+///   - collection.Select(x => x).Distinct() => collection.Distinct() (identity Select before Distinct)
+///   - collection.AsEnumerable().Distinct() => collection.Distinct() (type cast doesn't affect distinctness)
+///   - collection.ToList().Distinct() => collection.Distinct() (materialization doesn't affect distinctness)
+///   - collection.ToArray().Distinct() => collection.Distinct() (materialization doesn't affect distinctness)
+///   - collection.OrderBy(...).Distinct().Count() => collection.Distinct().Count() (when followed by set-based operations)
+///   Note: OrderBy/Reverse DOES affect the ORDER of distinct results, so we only optimize when followed by
+///   operations that don't care about order (Count, Any, Contains, etc.)
 /// </summary>
 public class DistinctFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Distinct), n => n is 0)
 {

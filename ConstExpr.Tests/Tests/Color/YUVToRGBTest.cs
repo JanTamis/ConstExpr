@@ -7,9 +7,9 @@ public class YUVToRGBTest() : BaseTest<Func<double, double, double, (byte, byte,
 {
 	public override string TestMethod => GetString((y, u, v) =>
 	{
-		var r = (byte) (y + 1.4075 * (v - 128));
-		var g = (byte) (y - 0.3455 * (u - 128) - (0.7169 * (v - 128)));
-		var b = (byte) (y + 1.7790 * (u - 128));
+		var r = (byte)(y + 1.4075 * (v - 128));
+		var g = (byte)(y - 0.3455 * (u - 128) - 0.7169 * (v - 128));
+		var b = (byte)(y + 1.7790 * (u - 128));
 
 		return (r, g, b);
 	});
@@ -21,7 +21,7 @@ public class YUVToRGBTest() : BaseTest<Func<double, double, double, (byte, byte,
 			var diff = v - 128D;
 			var diff2 = u - 128D;
 
-			return ((byte) Double.MultiplyAddEstimate(diff, 1.4075, y), (byte) Double.MultiplyAddEstimate(-diff, 0.7169, Double.MultiplyAddEstimate(-diff2, 0.3455, y)), (byte) Double.MultiplyAddEstimate(diff2, 1.779, y));
+			return ((byte)Double.MultiplyAddEstimate(diff, 1.4075, y), (byte)Double.MultiplyAddEstimate(-diff, 0.7169, Double.MultiplyAddEstimate(-diff2, 0.3455, y)), (byte)Double.MultiplyAddEstimate(diff2, 1.779, y));
 		})
 	];
 }

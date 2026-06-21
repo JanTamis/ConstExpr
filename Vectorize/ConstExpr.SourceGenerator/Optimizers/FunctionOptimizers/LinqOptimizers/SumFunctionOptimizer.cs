@@ -11,14 +11,14 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Sum context.Method.
-/// Optimizes patterns such as:
-/// - collection.Sum(x => x) => collection.Sum() (identity lambda removal)
-/// - collection.Select(x => x.Property).Sum() => collection.Sum(x => x.Property)
-/// - collection.OrderBy(...).Sum() => collection.Sum() (ordering doesn't affect sum)
-/// - collection.AsEnumerable().Sum() => collection.Sum()
-/// - collection.ToList().Sum() => collection.Sum()
-/// - collection.Reverse().Sum() => collection.Sum()
+///   Optimizer for Enumerable.Sum context.Method.
+///   Optimizes patterns such as:
+///   - collection.Sum(x => x) => collection.Sum() (identity lambda removal)
+///   - collection.Select(x => x.Property).Sum() => collection.Sum(x => x.Property)
+///   - collection.OrderBy(...).Sum() => collection.Sum() (ordering doesn't affect sum)
+///   - collection.AsEnumerable().Sum() => collection.Sum()
+///   - collection.ToList().Sum() => collection.Sum()
+///   - collection.Reverse().Sum() => collection.Sum()
 /// </summary>
 public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Sum), n => n is 0 or 1)
 {
@@ -123,7 +123,7 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 					// Shift operators (<<, >>) have lower precedence than + and -, so wrap in parens
 					// to avoid `start << 1 + count` being parsed as `start << (1 + count)`.
-					if (twoTimesStart is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LeftShiftExpression or (int) SyntaxKind.RightShiftExpression })
+					if (twoTimesStart is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LeftShiftExpression or (int)SyntaxKind.RightShiftExpression })
 					{
 						twoTimesStart = ParenthesizedExpression(twoTimesStart);
 					}

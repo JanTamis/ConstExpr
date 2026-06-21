@@ -8,8 +8,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies;
 
 /// <summary>
-/// Strategy for floating point division to multiplication: x / a => x * (1/a)
-/// Requires ReciprocalMath flag as reciprocal approximation may differ from IEEE 754.
+///   Strategy for floating point division to multiplication: x / a => x * (1/a)
+///   Requires ReciprocalMath flag as reciprocal approximation may differ from IEEE 754.
 /// </summary>
 public class DivideToMultiplyReciprocalStrategy : FloatNumberBinaryStrategy<ExpressionSyntax, LiteralExpressionSyntax>
 {
@@ -22,7 +22,7 @@ public class DivideToMultiplyReciprocalStrategy : FloatNumberBinaryStrategy<Expr
 		{
 			return false;
 		}
-		
+
 		var reciprocal = 1.ToSpecialType(context.Type.SpecialType)
 			.Divide(context.Right.Syntax.Token.Value.ToSpecialType(context.Type.SpecialType));
 
@@ -30,9 +30,9 @@ public class DivideToMultiplyReciprocalStrategy : FloatNumberBinaryStrategy<Expr
 		{
 			switch (context.Type.SpecialType)
 			{
-				case SpecialType.System_Double when cast.Type is PredefinedTypeSyntax { Keyword.RawKind: (int) SyntaxKind.DoubleKeyword }:
-				case SpecialType.System_Single when cast.Type is PredefinedTypeSyntax { Keyword.RawKind: (int) SyntaxKind.FloatKeyword }:
-				case SpecialType.System_Decimal when cast.Type is PredefinedTypeSyntax { Keyword.RawKind: (int) SyntaxKind.DecimalKeyword }:
+				case SpecialType.System_Double when cast.Type is PredefinedTypeSyntax { Keyword.RawKind: (int)SyntaxKind.DoubleKeyword }:
+				case SpecialType.System_Single when cast.Type is PredefinedTypeSyntax { Keyword.RawKind: (int)SyntaxKind.FloatKeyword }:
+				case SpecialType.System_Decimal when cast.Type is PredefinedTypeSyntax { Keyword.RawKind: (int)SyntaxKind.DecimalKeyword }:
 				{
 					optimized = MultiplyExpression(cast.Expression, CreateLiteral(reciprocal));
 					return true;

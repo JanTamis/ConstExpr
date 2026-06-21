@@ -378,7 +378,7 @@
 //				AppendMethod(builder, method, () =>
 //				{
 //					Usings.Add("System.Collections.Generic");
-					
+
 //					if (method.Parameters.Length == 1)
 //					{
 //						builder.WriteLine($"var seen = new HashSet<{funcReturnType}>({items.Distinct().Count()});");
@@ -393,7 +393,7 @@
 //						for (var i = 0; i < {{DataName:literal}}.Length; i++)
 //						{
 //							var item = {{DataName:literal}}[i];
-							
+
 //							if (seen.Add({{method.Parameters[0]}}(item)))
 //							{
 //								yield return item;
@@ -622,7 +622,7 @@
 //									return item;
 //								}
 //							}
-							
+
 //							throw new InvalidOperationException("Sequence contains no matching element");
 //							""");
 //					}
@@ -687,7 +687,7 @@
 //									return item;
 //								}
 //							}
-							
+
 //							return {{elementType.GetDefaultValue()}};
 //							""");
 //					}
@@ -849,7 +849,7 @@
 //									return {{DataName:literal}}[i];
 //								}
 //							}
-							
+
 //							return {{elementType.GetDefaultValue()}};
 //							""");
 //					}
@@ -975,7 +975,7 @@
 //					if (!isPerformance && compilation.HasMethod(typeof(Enumerable), nameof(Enumerable.SequenceEqual)))
 //					{
 //						Usings.Add("System.Linq");
-						
+
 //						builder.WriteLine($"return {method.Parameters[0]}.SequenceEqual([{items}]);");
 //					}
 //					else
@@ -983,12 +983,12 @@
 //						if (compilation.HasMethod(typeof(Enumerable), "TryGetNonEnumeratedCount"))
 //						{
 //							Usings.Add("System.Linq");
-							
+
 //							using (builder.WriteBlock($"if ({method.Parameters[0]}.TryGetNonEnumeratedCount(out var count) && count != {items.Length})"))
 //							{
 //								builder.WriteLine("return false;");
 //							}
-							
+
 //							builder.WriteLine();
 //						}
 
@@ -1204,7 +1204,7 @@
 //				AppendMethod(builder, method, () =>
 //				{
 //					Usings.Add("System.Collections.Immutable");
-					
+
 //					builder.WriteLine($"return ImmutableList.Create({items});");
 //				});
 
@@ -1364,7 +1364,7 @@
 //				AppendMethod(builder, method, () =>
 //				{
 //					Usings.Add("System.Collections.Generic");
-					
+
 //					// Use fully qualified names to avoid namespace conflicts in generated code
 //					builder.WriteLine($"var counts = new Dictionary<{keyType}, {numberType}>({items.Length});");
 //					builder.WriteLine();
@@ -1378,7 +1378,7 @@
 //						if (compilation.GetTypeByName("System.Runtime.InteropServices.CollectionsMarshal")?.HasMethod("GetValueRefOrAddDefault") == true)
 //						{
 //							Usings.Add("System.Runtime.InteropServices");
-							
+
 //							builder.WriteLine("ref var count = ref CollectionsMarshal.GetValueRefOrAddDefault(counts, key, out _);");
 //							builder.WriteLine("count++;");
 //						}
@@ -1430,7 +1430,7 @@
 //						foreach (var item in items.CountBy())
 //						{
 //							Usings.Add("System.Collections.Generic");
-								
+
 //							if (item.Value == 1)
 //							{
 //								builder.WriteLine($"yield return {keyValuePairType.Name:literal}.Create({item.Key}, {numberType}.One);");
@@ -1540,12 +1540,12 @@
 //					if (items.Length == 0)
 //					{
 //						Usings.Add("System.Linq");
-						
+
 //						builder.WriteLine($"return Enumerable.Empty<{elementType}>();");
 
 //						return;
 //					}
-					
+
 //					Usings.Add("System.Collections.Generic");
 
 //					builder.WriteLine($$"""
@@ -1584,12 +1584,12 @@
 //					if (items.Length == 0)
 //					{
 //						Usings.Add("System.Linq");
-						
+
 //						builder.WriteLine($"return Enumerable.Empty<{elementType}>();");
 
 //						return;
 //					}
-					
+
 //					Usings.Add("System.Collections.Generic");
 
 //					if (method.Parameters.Length == 2)
@@ -1602,7 +1602,7 @@
 //					}
 
 //					builder.WriteLine($$"""
-						
+
 //						foreach (var item in {{method.Parameters[0]}})
 //						{
 //							if (set.Add({{method.Parameters[1]}}(item)))
@@ -1620,3 +1620,4 @@
 //		}
 //	}
 //}
+

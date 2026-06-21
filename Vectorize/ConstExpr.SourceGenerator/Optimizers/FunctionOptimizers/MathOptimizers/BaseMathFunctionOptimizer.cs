@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using ConstExpr.SourceGenerator.Models;
@@ -9,6 +8,8 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers
 
 public abstract class BaseMathFunctionOptimizer(string name, Func<int, bool> isValidParameterCount) : BaseFunctionOptimizer
 {
+	public string Name { get; } = name;
+	public Func<int, bool> IsValidParameterCount { get; } = isValidParameterCount;
 	protected abstract bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result);
 
 	public override bool TryOptimize(FunctionOptimizerContext context, [NotNullWhen(true)] out SyntaxNode? result)
@@ -21,9 +22,6 @@ public abstract class BaseMathFunctionOptimizer(string name, Func<int, bool> isV
 
 		return TryOptimizeMath(context, paramType, out result);
 	}
-
-	public string Name { get; } = name;
-	public Func<int, bool> IsValidParameterCount { get; } = isValidParameterCount;
 
 	protected bool HasMethod(ITypeSymbol type, string name, int parameterCount)
 	{

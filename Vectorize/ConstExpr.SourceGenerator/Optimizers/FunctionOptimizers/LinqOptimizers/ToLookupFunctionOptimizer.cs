@@ -14,22 +14,25 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.ToLookup method.
-/// Optimizes patterns such as:
-/// - collection.AsEnumerable().ToLookup(keySelector) => collection.ToLookup(keySelector)
-/// - collection.ToList().ToLookup(keySelector) => collection.ToLookup(keySelector)
-/// - collection.ToArray().ToLookup(keySelector) => collection.ToLookup(keySelector)
-/// - collection.OrderBy(...).ToLookup(keySelector) => collection.ToLookup(keySelector) (ordering doesn't affect lookup)
-/// - collection.OrderByDescending(...).ToLookup(keySelector) => collection.ToLookup(keySelector)
-/// - collection.Reverse().ToLookup(keySelector) => collection.ToLookup(keySelector)
-/// - collection.Select(x => x).ToLookup(keySelector) => collection.ToLookup(keySelector) (identity Select is a no-op)
-/// - collection.ToLookup(keySelector, x => x) => collection.ToLookup(keySelector) (identity element-selector)
-/// - Enumerable.Empty&lt;T&gt;().ToLookup(keySelector) => Enumerable.Empty&lt;T&gt;().ToLookup(keySelector) (no further optimization possible for empty)
-/// - collection.Select(selector).ToLookup(keySelector) => collection.ToLookup(x => keySelector(selector(x)), selector) (fold Select into ToLookup)
-/// - collection.Where(p1).Where(p2).ToLookup(keySelector) => collection.Where(p1 &amp;&amp; p2).ToLookup(keySelector) (merge chained Where predicates)
-/// - When source values are compile-time known, generates a custom ILookup&lt;TKey, TElement&gt; struct implementation.
-/// Note: Unlike ToDictionary, Distinct is NOT redundant before ToLookup because ToLookup groups
-/// duplicate keys rather than throwing, so removing Distinct could change group sizes.
+///   Optimizer for Enumerable.ToLookup method.
+///   Optimizes patterns such as:
+///   - collection.AsEnumerable().ToLookup(keySelector) => collection.ToLookup(keySelector)
+///   - collection.ToList().ToLookup(keySelector) => collection.ToLookup(keySelector)
+///   - collection.ToArray().ToLookup(keySelector) => collection.ToLookup(keySelector)
+///   - collection.OrderBy(...).ToLookup(keySelector) => collection.ToLookup(keySelector) (ordering doesn't affect lookup)
+///   - collection.OrderByDescending(...).ToLookup(keySelector) => collection.ToLookup(keySelector)
+///   - collection.Reverse().ToLookup(keySelector) => collection.ToLookup(keySelector)
+///   - collection.Select(x => x).ToLookup(keySelector) => collection.ToLookup(keySelector) (identity Select is a no-op)
+///   - collection.ToLookup(keySelector, x => x) => collection.ToLookup(keySelector) (identity element-selector)
+///   - Enumerable.Empty&lt;T&gt;().ToLookup(keySelector) => Enumerable.Empty&lt;T&gt;().ToLookup(keySelector) (no further
+///   optimization possible for empty)
+///   - collection.Select(selector).ToLookup(keySelector) => collection.ToLookup(x => keySelector(selector(x)), selector)
+///   (fold Select into ToLookup)
+///   - collection.Where(p1).Where(p2).ToLookup(keySelector) => collection.Where(p1 &amp;&amp; p2).ToLookup(keySelector)
+///   (merge chained Where predicates)
+///   - When source values are compile-time known, generates a custom ILookup&lt;TKey, TElement&gt; struct implementation.
+///   Note: Unlike ToDictionary, Distinct is NOT redundant before ToLookup because ToLookup groups
+///   duplicate keys rather than throwing, so removing Distinct could change group sizes.
 /// </summary>
 public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.ToLookup), n => n is 1 or 2 or 3)
 {
@@ -115,7 +118,7 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 	}
 
 	/// <summary>
-	/// Tries to compute the lookup at compile time and generate a custom ILookup struct.
+	///   Tries to compute the lookup at compile time and generate a custom ILookup struct.
 	/// </summary>
 	private bool TryGenerateLookupStruct(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -228,8 +231,8 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 	}
 
 	/// <summary>
-	/// Extracts groups from an ILookup object using reflection.
-	/// Returns a list of (key, elements[]) tuples.
+	///   Extracts groups from an ILookup object using reflection.
+	///   Returns a list of (key, elements[]) tuples.
 	/// </summary>
 	private static List<(object? Key, List<object?> Elements)>? ExtractGroups(object lookupResult)
 	{
@@ -268,9 +271,9 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 	}
 
 	/// <summary>
-	/// Builds a <c>key is x or y or z</c> pattern expression for the Contains method,
-	/// then runs it through <see cref="FunctionOptimizerContext.Visit"/> so the optimizer
-	/// can further simplify it (e.g. contiguous integer ranges become a bit-trick).
+	///   Builds a <c>key is x or y or z</c> pattern expression for the Contains method,
+	///   then runs it through <see cref="FunctionOptimizerContext.Visit" /> so the optimizer
+	///   can further simplify it (e.g. contiguous integer ranges become a bit-trick).
 	/// </summary>
 	private static string BuildContainsPatternExpression(List<(object? Key, List<object?> Elements)> groups, FunctionOptimizerContext context)
 	{
@@ -303,7 +306,7 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 	}
 
 	/// <summary>
-	/// Builds the source code string for a custom ILookup struct implementation.
+	///   Builds the source code string for a custom ILookup struct implementation.
 	/// </summary>
 	private static string BuildLookupStructSource(string structName, string keyTypeName, string elementTypeName, List<(object? Key, List<object?> Elements)> groups, string containsExpression)
 	{
@@ -372,7 +375,7 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 	}
 
 	/// <summary>
-	/// Formats a value as a C# literal string.
+	///   Formats a value as a C# literal string.
 	/// </summary>
 	private static string FormatLiteral(object? value)
 	{

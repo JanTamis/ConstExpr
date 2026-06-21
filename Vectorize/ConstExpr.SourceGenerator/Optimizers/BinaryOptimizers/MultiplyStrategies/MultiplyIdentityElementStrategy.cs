@@ -6,8 +6,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.MultiplyStrategies;
 
 /// <summary>
-/// Strategy for identity element: x * 1 = x and 1 * x = x
-/// Safe under Strict (pure algebraic identity).
+///   Strategy for identity element: x * 1 = x and 1 * x = x
+///   Safe under Strict (pure algebraic identity).
 /// </summary>
 public class MultiplyIdentityElementStrategy : SymmetricStrategy<NumericBinaryStrategy, ExpressionSyntax, LiteralExpressionSyntax>
 {

@@ -9,13 +9,7 @@ using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace ConstExpr.SourceGenerator.Analyzers;
 
-[DiagnosticAnalyzer(LanguageNames.CSharp)]
-[DiagnosticSeverity(DiagnosticSeverity.Error)]
-[DiagnosticId("CEA001")]
-[DiagnosticTitle("Parameter is not constant")]
-[DiagnosticMessageFormat("Parameter '{0}' must be a constant expression in ConstEval method calls")]
-[DiagnosticDescription("Parameters marked with the ConstEval attribute must be constant")]
-[DiagnosticCategory("Usage")]
+[DiagnosticAnalyzer(LanguageNames.CSharp), DiagnosticSeverity(DiagnosticSeverity.Error), DiagnosticId("CEA001"), DiagnosticTitle("Parameter is not constant"), DiagnosticMessageFormat("Parameter '{0}' must be a constant expression in ConstEval method calls"), DiagnosticDescription("Parameters marked with the ConstEval attribute must be constant"), DiagnosticCategory("Usage")]
 public class ConstantParametersAnalyzer : BaseAnalyzer<InvocationExpressionSyntax, IMethodSymbol>
 {
 	protected override bool ValidateSyntax(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax node, CancellationToken token)

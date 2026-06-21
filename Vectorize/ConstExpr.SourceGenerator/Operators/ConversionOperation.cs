@@ -31,7 +31,7 @@ public partial class OperatorHelper
 			SpecialType.System_UInt64 => Convert.ToUInt64(operand),
 			SpecialType.System_Object => operand,
 			SpecialType.System_Collections_IEnumerable => (IEnumerable)operand,
-			_ => operand,
+			_ => operand
 		};
 	}
 }

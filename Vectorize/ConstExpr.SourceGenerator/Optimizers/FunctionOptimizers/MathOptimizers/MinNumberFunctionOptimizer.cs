@@ -26,4 +26,3 @@ public class MinNumberFunctionOptimizer() : BaseMathFunctionOptimizer("MinNumber
 		return true;
 	}
 }
-

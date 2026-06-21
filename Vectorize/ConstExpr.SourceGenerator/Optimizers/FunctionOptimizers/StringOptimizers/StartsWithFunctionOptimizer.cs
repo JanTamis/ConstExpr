@@ -7,9 +7,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 
 /// <summary>
-/// Optimizes StartsWith calls:
-/// - "hello".StartsWith("hel") → true
-/// - "hello".StartsWith("world") → false
+///   Optimizes StartsWith calls:
+///   - "hello".StartsWith("hel") → true
+///   - "hello".StartsWith("world") → false
 /// </summary>
 public class StartsWithFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "StartsWith", false, n => n is 1)
 {

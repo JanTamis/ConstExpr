@@ -22,7 +22,7 @@ public class AcosPiFunctionOptimizer() : BaseMathFunctionOptimizer("AcosPi", n =
 		{
 			SpecialType.System_Single => GenerateFastAcosPiMethodFloat(context.FastMathFlags),
 			SpecialType.System_Double => GenerateFastAcosPiMethodDouble(context.FastMathFlags),
-			_ => null,
+			_ => null
 		});
 
 		if (method is not null)

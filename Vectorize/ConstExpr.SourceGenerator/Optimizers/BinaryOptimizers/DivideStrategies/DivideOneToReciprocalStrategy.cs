@@ -3,14 +3,13 @@ using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies;
 
 /// <summary>
-/// Strategy for reciprocal optimization: 1 / x => ReciprocalEstimate(x)
-/// Requires ReciprocalMath flag as reciprocal approximation may differ from IEEE 754.
+///   Strategy for reciprocal optimization: 1 / x => ReciprocalEstimate(x)
+///   Requires ReciprocalMath flag as reciprocal approximation may differ from IEEE 754.
 /// </summary>
 public class DivideOneToReciprocalStrategy : BaseBinaryStrategy<LiteralExpressionSyntax, ExpressionSyntax>
 {

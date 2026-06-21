@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for SelectMany() optimization - verify empty collection handling
+///   Tests for SelectMany() optimization - verify empty collection handling
 /// </summary>
 [InheritsTests]
 public class LinqSelectManyOptimizationTests : BaseTest<Func<int[][], int>>
@@ -24,6 +24,6 @@ public class LinqSelectManyOptimizationTests : BaseTest<Func<int[][], int>>
 	[
 		Create("return Sum_TMdy0g(x);"),
 		Create(_ => 3, [ new[] { new[] { 1, 2, 3 } } ]),
-		Create(_ => 0, [ System.Array.Empty<int>() ]),
+		Create(_ => 0, [ System.Array.Empty<int>() ])
 	];
 }

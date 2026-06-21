@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
-/// Tests for VisitList - visits list elements
+///   Tests for VisitList - visits list elements
 /// </summary>
 [InheritsTests]
 public class VisitListTests : BaseTest<Action>

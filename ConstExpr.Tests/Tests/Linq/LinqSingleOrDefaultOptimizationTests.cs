@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for SingleOrDefault() optimization - verify Where fusion and chain optimization
+///   Tests for SingleOrDefault() optimization - verify Where fusion and chain optimization
 /// </summary>
 [InheritsTests]
 public class LinqSingleOrDefaultOptimizationTests : BaseTest<Func<int[], int>>
@@ -21,6 +21,6 @@ public class LinqSingleOrDefaultOptimizationTests : BaseTest<Func<int[], int>>
 	[
 		Create("return SingleOrDefault_BowQCQ(x) + SingleOrDefault_PHBkLg(x);"),
 		Create(_ => 3, [ new[] { 1, 2, 3, 4, 5 } ]),
-		Create(_ => 0, [ new[] { 1, 2, 4, 5 } ]),
+		Create(_ => 0, [ new[] { 1, 2, 4, 5 } ])
 	];
 }

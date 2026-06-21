@@ -149,7 +149,7 @@
 //			if (isPerformance && type != VectorTypes.None && elementType.IsVectorSupported())
 //			{
 //				Usings.Add("System.Runtime.Intrinsics");
-				
+
 //				var vectors = new List<string>();
 
 //				var vectorType = compilation.GetVector(elementType, loader, items, type, out var vector, out var vectorSize);
@@ -174,7 +174,7 @@
 //					{
 //						vectorAction(type, vectors, vectorSize);
 //					}
-					
+
 //					builder.WriteLine();
 //				}
 //			}
@@ -552,3 +552,4 @@
 //		builder.WriteLine($"return {node.ReturnValue};");
 //	}
 //}
+

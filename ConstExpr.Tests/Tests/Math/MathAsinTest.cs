@@ -10,6 +10,6 @@ public class MathAsinTest() : BaseTest<Func<double, double>>(FastMathFlags.All, 
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return FastAsin(x);"),
+		Create("return FastAsin(x);")
 	];
 }

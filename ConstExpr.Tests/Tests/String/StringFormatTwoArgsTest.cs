@@ -6,11 +6,11 @@ namespace ConstExpr.Tests.String;
 [InheritsTests]
 public class StringFormatTwoArgsTest() : BaseTest<Func<string, string, string>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
 {
-	public override string TestMethod => GetString((first, last) => string.Format("{0} {1}", first, last));
+	public override string TestMethod => GetString((first, last) => System.String.Format("{0} {1}", first, last));
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((first, last) => $"{first} {last}"),
-		Create((_, _) => "John Doe", [ "John", "Doe" ]),
+		Create((_, _) => "John Doe", [ "John", "Doe" ])
 	];
 }

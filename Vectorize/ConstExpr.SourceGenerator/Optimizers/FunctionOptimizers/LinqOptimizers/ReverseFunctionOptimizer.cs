@@ -7,9 +7,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Reverse context.Method.
-/// Optimizes patterns such as:
-/// - collection.Reverse().Reverse() => collection (double reverse cancels out)
+///   Optimizer for Enumerable.Reverse context.Method.
+///   Optimizes patterns such as:
+///   - collection.Reverse().Reverse() => collection (double reverse cancels out)
 /// </summary>
 public class ReverseFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Reverse), n => n is 0)
 {

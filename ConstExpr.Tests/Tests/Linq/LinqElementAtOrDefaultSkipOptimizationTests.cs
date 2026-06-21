@@ -3,8 +3,8 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for ElementAtOrDefault() optimization with Skip - verify that Skip is properly optimized
-/// When Skip results in ElementAtOrDefault(0), it should further optimize to FirstOrDefault()
+///   Tests for ElementAtOrDefault() optimization with Skip - verify that Skip is properly optimized
+///   When Skip results in ElementAtOrDefault(0), it should further optimize to FirstOrDefault()
 /// </summary>
 [InheritsTests]
 public class LinqElementAtOrDefaultSkipOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
@@ -39,6 +39,6 @@ public class LinqElementAtOrDefaultSkipOptimizationTests() : BaseTest<Func<int[]
 	[
 		Create(x => (x.Length > 1 ? x[1] * 2 : 0) + (x.Length > 3 ? x[3] * 2 : 0) + (x.Length > 2 ? x[2] : 0) + (x.Length > 11 ? x[11] : 0) + (x.Length > 0 ? x[0] : 0)),
 		Create(_ => 16, [ new[] { 1, 2, 3, 4, 5 } ]), // 2 + 4 + 4 + 2 + 3 + 0 + 1 = 16
-		Create(_ => 0, [ System.Array.Empty<int>() ]), // All return 0 (default)
+		Create(_ => 0, [ System.Array.Empty<int>() ]) // All return 0 (default)
 	];
 }

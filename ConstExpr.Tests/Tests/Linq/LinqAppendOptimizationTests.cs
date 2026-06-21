@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for Append() optimization - verify that AsEnumerable, ToList, ToArray are skipped
+///   Tests for Append() optimization - verify that AsEnumerable, ToList, ToArray are skipped
 /// </summary>
 [InheritsTests]
 public class LinqAppendOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)

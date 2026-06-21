@@ -10,7 +10,7 @@ public class DivideGranlundMontgomeryUnsignedTest() : BaseTest<Func<uint, uint>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(x => (uint) (x * 613566757UL >> 32) + (x - (uint) (x * 613566757UL >> 32) >> 1) >> 2),
+		Create(x => (uint)(x * 613566757UL >> 32) + (x - (uint)(x * 613566757UL >> 32) >> 1) >> 2),
 		Create(_ => 1u, [ 10u ]),
 		Create(_ => 1u, [ 7u ]),
 		Create(_ => 0u, [ 0u ]),

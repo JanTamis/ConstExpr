@@ -10,6 +10,6 @@ public class MathAcosTest() : BaseTest<Func<double, double>>(FastMathFlags.All, 
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return FastAcos(x);"),
+		Create("return FastAcos(x);")
 	];
 }

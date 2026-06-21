@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -8,21 +9,24 @@ namespace ConstExpr.SourceGenerator.Refactorers;
 using static SyntaxFactory;
 
 /// <summary>
-/// Refactorer that converts between tuples and explicit struct/class declarations,
-/// and between named and unnamed tuple elements.
-/// Inspired by the Roslyn <c>ConvertTupleToStruct</c> and <c>NameTupleElement</c> features.
-///
-/// <list type="bullet">
-///   <item>Add names to unnamed tuple elements:
-///     <c>(int, string)</c> → <c>(int Id, string Name)</c></item>
-///   <item>Remove names from named tuple elements:
-///     <c>(int Id, string Name)</c> → <c>(int, string)</c></item>
-/// </list>
+///   Refactorer that converts between tuples and explicit struct/class declarations,
+///   and between named and unnamed tuple elements.
+///   Inspired by the Roslyn <c>ConvertTupleToStruct</c> and <c>NameTupleElement</c> features.
+///   <list type="bullet">
+///     <item>
+///       Add names to unnamed tuple elements:
+///       <c>(int, string)</c> → <c>(int Id, string Name)</c>
+///     </item>
+///     <item>
+///       Remove names from named tuple elements:
+///       <c>(int Id, string Name)</c> → <c>(int, string)</c>
+///     </item>
+///   </list>
 /// </summary>
 public static class ConvertTupleRefactoring
 {
 	/// <summary>
-	/// Removes element names from a named tuple type, producing an unnamed tuple type.
+	///   Removes element names from a named tuple type, producing an unnamed tuple type.
 	/// </summary>
 	public static bool TryRemoveTupleElementNames(
 		TupleTypeSyntax tupleType,
@@ -34,7 +38,7 @@ public static class ConvertTupleRefactoring
 
 		foreach (var element in tupleType.Elements)
 		{
-			if (element.Identifier.ValueText != "")
+			if (element.Identifier.ValueText != String.Empty)
 			{
 				hasNames = true;
 				break;
@@ -59,8 +63,8 @@ public static class ConvertTupleRefactoring
 	}
 
 	/// <summary>
-	/// Removes element names from a tuple expression.
-	/// <c>(Id: 1, Name: "Bob")</c> → <c>(1, "Bob")</c>
+	///   Removes element names from a tuple expression.
+	///   <c>(Id: 1, Name: "Bob")</c> → <c>(1, "Bob")</c>
 	/// </summary>
 	public static bool TryRemoveTupleExpressionNames(
 		TupleExpressionSyntax tupleExpr,
@@ -96,13 +100,12 @@ public static class ConvertTupleRefactoring
 	}
 
 	/// <summary>
-	/// Deconstructs a tuple assignment into separate variable declarations.
-	///
-	/// <code>
+	///   Deconstructs a tuple assignment into separate variable declarations.
+	///   <code>
 	/// var (x, y) = expr;
 	/// </code>
-	/// →
-	/// <code>
+	///   →
+	///   <code>
 	/// var tuple = expr;
 	/// var x = tuple.Item1;
 	/// var y = tuple.Item2;
@@ -114,7 +117,7 @@ public static class ConvertTupleRefactoring
 	{
 		result = null;
 
-		if (statement.Expression is not AssignmentExpressionSyntax { Left: TupleExpressionSyntax tuple } assignment 
+		if (statement.Expression is not AssignmentExpressionSyntax { Left: TupleExpressionSyntax tuple } assignment
 		    || !assignment.IsKind(SyntaxKind.SimpleAssignmentExpression))
 		{
 			return false;
@@ -164,4 +167,3 @@ public static class ConvertTupleRefactoring
 		return true;
 	}
 }
-

@@ -7,10 +7,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.SequenceEqual context.Method.
-/// Optimizes patterns such as:
-/// - collection.SequenceEqual(collection) => true (same reference)
-/// - Enumerable.Empty&lt;T&gt;().SequenceEqual(Enumerable.Empty&lt;T&gt;()) => true
+///   Optimizer for Enumerable.SequenceEqual context.Method.
+///   Optimizes patterns such as:
+///   - collection.SequenceEqual(collection) => true (same reference)
+///   - Enumerable.Empty&lt;T&gt;().SequenceEqual(Enumerable.Empty&lt;T&gt;()) => true
 /// </summary>
 public class SequenceEqualFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.SequenceEqual), n => n is 1)
 {

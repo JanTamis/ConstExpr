@@ -8,7 +8,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 
 /// <summary>
-/// Optimizes string.IsNullOrWhiteSpace(literal) to true/false.
+///   Optimizes string.IsNullOrWhiteSpace(literal) to true/false.
 /// </summary>
 public class IsNullOrWhiteSpaceFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "IsNullOrWhiteSpace", true, n => n is 1)
 {

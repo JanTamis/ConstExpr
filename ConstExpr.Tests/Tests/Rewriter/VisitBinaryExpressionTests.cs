@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
-/// Tests for VisitBinaryExpression - arithmetic/comparison/logical folding
+///   Tests for VisitBinaryExpression - arithmetic/comparison/logical folding
 /// </summary>
 [InheritsTests]
 public class VisitBinaryExpressionTests : BaseTest<Func<int, int, bool, bool, (int, int, int, int, int, bool, bool, bool)>>

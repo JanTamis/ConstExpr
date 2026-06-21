@@ -15,7 +15,7 @@ public class AcoshFunctionOptimizer() : BaseMathFunctionOptimizer("Acosh", n => 
 		{
 			SpecialType.System_Single => GenerateFastAcoshMethodFloat(context.FastMathFlags),
 			SpecialType.System_Double => GenerateFastAcoshMethodDouble(context.FastMathFlags),
-			_ => null,
+			_ => null
 		});
 
 		if (method is not null)

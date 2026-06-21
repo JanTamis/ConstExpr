@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for Skip() optimization - verify Skip(0) removal
+///   Tests for Skip() optimization - verify Skip(0) removal
 /// </summary>
 [InheritsTests]
 public class LinqSkipOptimizationTests : BaseTest<Func<int[], int>>
@@ -20,6 +20,6 @@ public class LinqSkipOptimizationTests : BaseTest<Func<int[], int>>
 	[
 		Create(x => x.Length + Int32.Max(0, x.Length - 4)),
 		Create(_ => 3, [ new[] { 1, 2, 3 } ]),
-		Create(_ => 0, [ System.Array.Empty<int>() ]),
+		Create(_ => 0, [ System.Array.Empty<int>() ])
 	];
 }

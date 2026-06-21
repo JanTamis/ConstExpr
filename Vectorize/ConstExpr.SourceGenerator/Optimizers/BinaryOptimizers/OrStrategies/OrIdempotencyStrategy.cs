@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.OrStrategies;
 
 /// <summary>
-/// Strategy for idempotency: x | x = x (pure)
+///   Strategy for idempotency: x | x = x (pure)
 /// </summary>
 public class OrIdempotencyStrategy : BaseBinaryStrategy
 {
@@ -16,7 +16,7 @@ public class OrIdempotencyStrategy : BaseBinaryStrategy
 			optimized = null;
 			return false;
 		}
-		
+
 		optimized = context.Left.Syntax;
 		return true;
 	}

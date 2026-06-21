@@ -6,9 +6,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 /// <summary>
-/// Unrolls <c>.Zip(second)</c> or <c>.Zip(second, resultSelector)</c> as an intermediate step.
-/// Uses a counter to index into the second collection in parallel with the main loop.
-/// Breaks when either collection is exhausted.
+///   Unrolls <c>.Zip(second)</c> or <c>.Zip(second, resultSelector)</c> as an intermediate step.
+///   Uses a counter to index into the second collection in parallel with the main loop.
+///   Breaks when either collection is exhausted.
 /// </summary>
 public class ZipLinqUnroller : BaseLinqUnroller
 {
@@ -80,5 +80,3 @@ public class ZipLinqUnroller : BaseLinqUnroller
 		}
 	}
 }
-
-

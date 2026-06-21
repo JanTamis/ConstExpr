@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
-/// Tests for VisitIfStatement - constant condition branch elimination
+///   Tests for VisitIfStatement - constant condition branch elimination
 /// </summary>
 [InheritsTests]
 public class VisitIfStatementTests : BaseTest<Func<bool, int, int, (int, int, int, int)>>
@@ -17,8 +17,7 @@ public class VisitIfStatementTests : BaseTest<Func<bool, int, int, (int, int, in
 		int b;
 		if (false)
 			b = 3;
-		else
-			b = 4;
+		b = 4;
 
 		int c;
 		if (condition)

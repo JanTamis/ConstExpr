@@ -10,19 +10,21 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Intersect context.Method.
-/// Optimizes patterns such as:
-/// - collection.Intersect(collection) => collection.Distinct() (intersection with itself is just distinct values)
-/// - collection.Intersect(Enumerable.Empty&lt;T&gt;()) => Enumerable.Empty&lt;T&gt;() (intersection with empty is empty)
-/// - Enumerable.Empty&lt;T&gt;().Intersect(collection) => Enumerable.Empty&lt;T&gt;() (empty intersection anything is empty)
-/// - collection.AsEnumerable().Intersect(other) => collection.Intersect(other) (type cast doesn't affect intersection)
-/// - collection.ToList().Intersect(other) => collection.Intersect(other) (materialization doesn't affect intersection)
-/// - collection.ToArray().Intersect(other) => collection.Intersect(other) (materialization doesn't affect intersection)
-/// - collection.Distinct().Intersect(other) => collection.Intersect(other) (Intersect already applies Distinct)
-/// - collection.Intersect(other).Intersect(third) => collection.Intersect(other.Intersect(third)) (chained Intersect operations)
-/// Note: Intersect already applies Distinct to the result, so Distinct operations are redundant
-/// Note: OrderBy/Reverse don't affect set membership, but may affect result order - we can skip them when
-///       followed by set-based operations
+///   Optimizer for Enumerable.Intersect context.Method.
+///   Optimizes patterns such as:
+///   - collection.Intersect(collection) => collection.Distinct() (intersection with itself is just distinct values)
+///   - collection.Intersect(Enumerable.Empty&lt;T&gt;()) => Enumerable.Empty&lt;T&gt;() (intersection with empty is empty)
+///   - Enumerable.Empty&lt;T&gt;().Intersect(collection) => Enumerable.Empty&lt;T&gt;() (empty intersection anything is
+///   empty)
+///   - collection.AsEnumerable().Intersect(other) => collection.Intersect(other) (type cast doesn't affect intersection)
+///   - collection.ToList().Intersect(other) => collection.Intersect(other) (materialization doesn't affect intersection)
+///   - collection.ToArray().Intersect(other) => collection.Intersect(other) (materialization doesn't affect intersection)
+///   - collection.Distinct().Intersect(other) => collection.Intersect(other) (Intersect already applies Distinct)
+///   - collection.Intersect(other).Intersect(third) => collection.Intersect(other.Intersect(third)) (chained Intersect
+///   operations)
+///   Note: Intersect already applies Distinct to the result, so Distinct operations are redundant
+///   Note: OrderBy/Reverse don't affect set membership, but may affect result order - we can skip them when
+///   followed by set-based operations
 /// </summary>
 public class IntersectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Intersect), n => n is 1)
 {
@@ -201,7 +203,7 @@ public class IntersectFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 	}
 
 	/// <summary>
-	/// Checks if the Intersect call is followed by a set-based operation that doesn't care about order.
+	///   Checks if the Intersect call is followed by a set-based operation that doesn't care about order.
 	/// </summary>
 	private bool IsFollowedBySetBasedOperation(InvocationExpressionSyntax invocation)
 	{

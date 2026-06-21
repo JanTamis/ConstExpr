@@ -7,8 +7,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AddStrategies;
 
 /// <summary>
-/// Strategy for negation cancellation: x + (-x) => 0 and (-x) + x => 0
-/// Safe under Strict (pure algebraic identity).
+///   Strategy for negation cancellation: x + (-x) => 0 and (-x) + x => 0
+///   Safe under Strict (pure algebraic identity).
 /// </summary>
 public class AddNegationStrategy() : SymmetricStrategy<NumericBinaryStrategy, ExpressionSyntax, PrefixUnaryExpressionSyntax>(rightKind: SyntaxKind.UnaryMinusExpression)
 {
@@ -23,7 +23,7 @@ public class AddNegationStrategy() : SymmetricStrategy<NumericBinaryStrategy, Ex
 			optimized = null;
 			return false;
 		}
-		
+
 		optimized = CreateLiteral(0.ToSpecialType(context.Type.SpecialType));
 		return true;
 	}

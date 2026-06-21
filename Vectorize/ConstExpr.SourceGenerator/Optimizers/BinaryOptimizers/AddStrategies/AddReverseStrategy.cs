@@ -1,5 +1,4 @@
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AddStrategies;
@@ -13,7 +12,7 @@ public class AddReverseStrategy : BaseBinaryStrategy<LiteralExpressionSyntax, Ex
 			optimized = null;
 			return false;
 		}
-		
+
 		optimized = AddExpression(context.Right.Syntax, context.Left.Syntax);
 		return true;
 	}

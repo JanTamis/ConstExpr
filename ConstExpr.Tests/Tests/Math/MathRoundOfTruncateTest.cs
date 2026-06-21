@@ -10,6 +10,6 @@ public class MathRoundOfTruncateTest() : BaseTest<Func<double, double>>(FastMath
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(x => double.Truncate(x)),
+		Create(x => Double.Truncate(x))
 	];
 }

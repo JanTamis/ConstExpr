@@ -22,7 +22,7 @@ public static class SpanExtensions
 	{
 		for (var i = 0; i < span.Length; i++)
 		{
-			if (span[i] is not 1 and not 1L and not 1U and not 1UL and not 1f or 1d and not 1 and not (short)1 and not (sbyte)1 and not (ushort)1 and not (byte) 1 and not (sbyte) 1)
+			if (span[i] is not 1 and not 1L and not 1U and not 1UL and not 1f or 1d and not 1 and not (short)1 and not (sbyte)1 and not (ushort)1 and not (byte)1 and not (sbyte)1)
 			{
 				return false;
 			}
@@ -48,7 +48,7 @@ public static class SpanExtensions
 	{
 		if (span.Length == 0)
 		{
-			return string.Empty;
+			return String.Empty;
 		}
 
 		var result = new StringBuilder(span.Length * 2);

@@ -10,6 +10,6 @@ public class ModuloByOneTest : BaseTest<Func<int, int>>
 	[
 		Create(_ => 0),
 		Create(_ => 0, [ 42 ]),
-		Create(_ => 0, [ -7 ]),
+		Create(_ => 0, [ -7 ])
 	];
 }

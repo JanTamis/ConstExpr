@@ -22,7 +22,7 @@ public class OfTypeLinqUnroller : BaseLinqUnroller
 			IsPatternExpression(elementName,
 				UnaryPattern(Token(SyntaxKind.NotKeyword), DeclarationPattern(targetType, SingleVariableDesignation(Identifier(newName))))),
 			ContinueStatement()));
-		
+
 		elementName = IdentifierName(newName);
 	}
 }

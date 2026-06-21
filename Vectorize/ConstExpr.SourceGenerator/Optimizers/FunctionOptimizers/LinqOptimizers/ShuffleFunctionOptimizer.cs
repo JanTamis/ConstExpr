@@ -7,16 +7,16 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Shuffle context.Method (.NET 9+).
-/// Optimizes patterns such as:
-/// - collection.Shuffle().Shuffle() => collection.Shuffle() (multiple shuffles are redundant)
-/// - collection.OrderBy(...).Shuffle() => collection.Shuffle() (ordering before shuffle is pointless)
-/// - collection.OrderByDescending(...).Shuffle() => collection.Shuffle() (ordering before shuffle is pointless)
-/// - collection.Order().Shuffle() => collection.Shuffle() (ordering before shuffle is pointless)
-/// - collection.OrderDescending().Shuffle() => collection.Shuffle() (ordering before shuffle is pointless)
-/// - collection.ThenBy(...).Shuffle() => collection.Shuffle() (secondary ordering before shuffle is pointless)
-/// - collection.ThenByDescending(...).Shuffle() => collection.Shuffle() (secondary ordering before shuffle is pointless)
-/// - collection.Reverse().Shuffle() => collection.Shuffle() (reversing before shuffle is pointless)
+///   Optimizer for Enumerable.Shuffle context.Method (.NET 9+).
+///   Optimizes patterns such as:
+///   - collection.Shuffle().Shuffle() => collection.Shuffle() (multiple shuffles are redundant)
+///   - collection.OrderBy(...).Shuffle() => collection.Shuffle() (ordering before shuffle is pointless)
+///   - collection.OrderByDescending(...).Shuffle() => collection.Shuffle() (ordering before shuffle is pointless)
+///   - collection.Order().Shuffle() => collection.Shuffle() (ordering before shuffle is pointless)
+///   - collection.OrderDescending().Shuffle() => collection.Shuffle() (ordering before shuffle is pointless)
+///   - collection.ThenBy(...).Shuffle() => collection.Shuffle() (secondary ordering before shuffle is pointless)
+///   - collection.ThenByDescending(...).Shuffle() => collection.Shuffle() (secondary ordering before shuffle is pointless)
+///   - collection.Reverse().Shuffle() => collection.Shuffle() (reversing before shuffle is pointless)
 /// </summary>
 public class ShuffleFunctionOptimizer() : BaseLinqFunctionOptimizer("Shuffle", n => n is 0)
 {

@@ -12,6 +12,6 @@ public class MathCbrtTest() : BaseTest<Func<double, double>>(FastMathFlags.All, 
 	[
 		Create("return FastCbrt(x);"),
 		Create(_ => 2D, [ 8.0 ]),
-		Create(_ => 3D, [ 27.0 ]),
+		Create(_ => 3D, [ 27.0 ])
 	];
 }

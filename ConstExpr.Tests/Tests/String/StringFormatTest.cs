@@ -6,11 +6,11 @@ namespace ConstExpr.Tests.String;
 [InheritsTests]
 public class StringFormatTest() : BaseTest<Func<string, string>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
 {
-	public override string TestMethod => GetString(name => string.Format("Hello {0}", name));
+	public override string TestMethod => GetString(name => System.String.Format("Hello {0}", name));
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(name => $"Hello {name}"),
-		Create(_ => "Hello World", [ "World" ]),
+		Create(_ => "Hello World", [ "World" ])
 	];
 }

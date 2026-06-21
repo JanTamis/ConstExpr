@@ -9,20 +9,19 @@ namespace ConstExpr.SourceGenerator.Refactorers;
 using static SyntaxFactory;
 
 /// <summary>
-/// Refactorer that wraps or unwraps long argument lists, parameter lists,
-/// and chained method calls.
-/// Inspired by the Roslyn <c>CSharpWrappingCodeRefactoringProvider</c>.
-///
-/// <list type="bullet">
-///   <item>Wrap arguments: puts each argument on its own line.</item>
-///   <item>Unwrap arguments: collapses multi-line arguments to a single line.</item>
-///   <item>Wrap chained calls: puts each <c>.Method()</c> call on its own line.</item>
-/// </list>
+///   Refactorer that wraps or unwraps long argument lists, parameter lists,
+///   and chained method calls.
+///   Inspired by the Roslyn <c>CSharpWrappingCodeRefactoringProvider</c>.
+///   <list type="bullet">
+///     <item>Wrap arguments: puts each argument on its own line.</item>
+///     <item>Unwrap arguments: collapses multi-line arguments to a single line.</item>
+///     <item>Wrap chained calls: puts each <c>.Method()</c> call on its own line.</item>
+///   </list>
 /// </summary>
 public static class WrapArgumentsRefactoring
 {
 	/// <summary>
-	/// Wraps an argument list so that each argument is on its own line.
+	///   Wraps an argument list so that each argument is on its own line.
 	/// </summary>
 	public static bool TryWrapArguments(
 		ArgumentListSyntax argumentList,
@@ -59,7 +58,7 @@ public static class WrapArgumentsRefactoring
 	}
 
 	/// <summary>
-	/// Unwraps an argument list so that all arguments are on a single line.
+	///   Unwraps an argument list so that all arguments are on a single line.
 	/// </summary>
 	public static bool TryUnwrapArguments(
 		ArgumentListSyntax argumentList,
@@ -96,7 +95,7 @@ public static class WrapArgumentsRefactoring
 	}
 
 	/// <summary>
-	/// Wraps a parameter list so that each parameter is on its own line.
+	///   Wraps a parameter list so that each parameter is on its own line.
 	/// </summary>
 	public static bool TryWrapParameters(
 		ParameterListSyntax parameterList,
@@ -133,7 +132,7 @@ public static class WrapArgumentsRefactoring
 	}
 
 	/// <summary>
-	/// Wraps a chained method call so that each <c>.Method()</c> is on its own line.
+	///   Wraps a chained method call so that each <c>.Method()</c> is on its own line.
 	/// </summary>
 	public static bool TryWrapChainedCalls(
 		InvocationExpressionSyntax invocation,
@@ -166,9 +165,9 @@ public static class WrapArgumentsRefactoring
 		{
 			var memberAccess = (MemberAccessExpressionSyntax)call.Expression;
 			var newMemberAccess = MemberAccessExpression(
-				SyntaxKind.SimpleMemberAccessExpression,
-				root,
-				memberAccess.Name)
+					SyntaxKind.SimpleMemberAccessExpression,
+					root,
+					memberAccess.Name)
 				.WithOperatorToken(
 					memberAccess.OperatorToken.WithLeadingTrivia(
 						LineFeed, Tab));
@@ -180,4 +179,3 @@ public static class WrapArgumentsRefactoring
 		return result is not null;
 	}
 }
-

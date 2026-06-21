@@ -9,10 +9,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AddStrategies;
 
 /// <summary>
-/// Strategy for Fused Multiply-Add (FMA) optimization:
-/// (a * b) + c => FMA(a, b, c)
-/// c + (a * b) => FMA(a, b, c)
-/// Requires FusedMultiplyAdd flag as FMA has different rounding behavior.
+///   Strategy for Fused Multiply-Add (FMA) optimization:
+///   (a * b) + c => FMA(a, b, c)
+///   c + (a * b) => FMA(a, b, c)
+///   Requires FusedMultiplyAdd flag as FMA has different rounding behavior.
 /// </summary>
 public class AddFusedMultiplyAddStrategy() : SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, ExpressionSyntax>(leftKind: SyntaxKind.MultiplyExpression)
 {
@@ -28,10 +28,10 @@ public class AddFusedMultiplyAddStrategy() : SymmetricStrategy<NumericBinaryStra
 		{
 			optimized = InvocationExpression(
 				MemberAccessExpression(
-					host, 
+					host,
 					IdentifierName("MultiplyAddEstimate")),
 				arguments);
-			
+
 			return true;
 		}
 

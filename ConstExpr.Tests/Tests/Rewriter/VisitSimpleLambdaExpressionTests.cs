@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
-/// Tests for VisitSimpleLambdaExpression - lambda constant folding
+///   Tests for VisitSimpleLambdaExpression - lambda constant folding
 /// </summary>
 [InheritsTests]
 public class VisitSimpleLambdaExpressionTests : BaseTest<Func<int, int>>

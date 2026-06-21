@@ -41,7 +41,7 @@ public class RemoveWhitespaceTest() : BaseTest<Func<string, string>>(FastMathFla
 			"""),
 		Create(_ => "HelloWorld", [ "Hello World" ]),
 		Create(_ => "TestString", [ "  Test  String  " ]),
-		Create(_ => "", [ "   " ]),
+		Create(_ => System.String.Empty, [ "   " ]),
 		Create(_ => "abc", [ "abc" ])
 	];
 }

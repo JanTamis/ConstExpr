@@ -8,10 +8,10 @@ using Microsoft.CodeAnalysis;
 namespace ConstExpr.SourceGenerator.Extensions;
 
 /// <summary>
-/// Provides methods to annotate syntax nodes with symbol information that persists
-/// beyond the original semantic model. This is used for synthetic/optimized nodes
-/// created by LINQ optimizers, which are not part of the original syntax tree and
-/// therefore cannot be resolved by the <see cref="SemanticModel"/>.
+///   Provides methods to annotate syntax nodes with symbol information that persists
+///   beyond the original semantic model. This is used for synthetic/optimized nodes
+///   created by LINQ optimizers, which are not part of the original syntax tree and
+///   therefore cannot be resolved by the <see cref="SemanticModel" />.
 /// </summary>
 public static class SymbolAnnotation
 {
@@ -21,8 +21,8 @@ public static class SymbolAnnotation
 	// private static readonly ConcurrentDictionary<ulong, ISymbol> SymbolStore = new();
 
 	/// <summary>
-	/// Annotates a syntax node with an <see cref="IMethodSymbol"/>.
-	/// Returns a new node with the annotation attached.
+	///   Annotates a syntax node with an <see cref="IMethodSymbol" />.
+	///   Returns a new node with the annotation attached.
 	/// </summary>
 	public static T WithMethodSymbolAnnotation<T>(this T node, IMethodSymbol? symbol, ConcurrentDictionary<ulong, ISymbol> symbolStore) where T : SyntaxNode
 	{
@@ -37,8 +37,8 @@ public static class SymbolAnnotation
 	}
 
 	/// <summary>
-	/// Annotates a syntax node with an <see cref="ITypeSymbol"/>.
-	/// Returns a new node with the annotation attached.
+	///   Annotates a syntax node with an <see cref="ITypeSymbol" />.
+	///   Returns a new node with the annotation attached.
 	/// </summary>
 	public static T? WithTypeSymbolAnnotation<T>(this T node, ITypeSymbol? symbol, ConcurrentDictionary<ulong, ISymbol> symbolStore) where T : SyntaxNode
 	{
@@ -53,7 +53,7 @@ public static class SymbolAnnotation
 	}
 
 	/// <summary>
-	/// Tries to retrieve an annotated <see cref="IMethodSymbol"/> from a syntax node.
+	///   Tries to retrieve an annotated <see cref="IMethodSymbol" /> from a syntax node.
 	/// </summary>
 	public static bool TryGetMethodSymbolAnnotation(this SyntaxNode? node, ConcurrentDictionary<ulong, ISymbol> symbolStore, [NotNullWhen(true)] out IMethodSymbol? symbol)
 	{
@@ -67,7 +67,7 @@ public static class SymbolAnnotation
 		var annotation = node.GetAnnotations(MethodSymbolKind).FirstOrDefault();
 
 		if (annotation?.Data is not null
-		    && symbolStore.TryGetValue(ulong.Parse(annotation.Data), out var s)
+		    && symbolStore.TryGetValue(UInt64.Parse(annotation.Data), out var s)
 		    && s is IMethodSymbol method)
 		{
 			symbol = method;
@@ -78,7 +78,7 @@ public static class SymbolAnnotation
 	}
 
 	/// <summary>
-	/// Tries to retrieve an annotated <see cref="ITypeSymbol"/> from a syntax node.
+	///   Tries to retrieve an annotated <see cref="ITypeSymbol" /> from a syntax node.
 	/// </summary>
 	public static bool TryGetTypeSymbolAnnotation(this SyntaxNode? node, ConcurrentDictionary<ulong, ISymbol> symbolStore, [NotNullWhen(true)] out ITypeSymbol? symbol)
 	{
@@ -92,7 +92,7 @@ public static class SymbolAnnotation
 		var annotation = node.GetAnnotations(TypeSymbolKind).FirstOrDefault();
 
 		if (annotation?.Data is not null
-		    && symbolStore.TryGetValue(ulong.Parse(annotation.Data), out var s)
+		    && symbolStore.TryGetValue(UInt64.Parse(annotation.Data), out var s)
 		    && s is ITypeSymbol type)
 		{
 			symbol = type;
@@ -102,4 +102,3 @@ public static class SymbolAnnotation
 		return false;
 	}
 }
-

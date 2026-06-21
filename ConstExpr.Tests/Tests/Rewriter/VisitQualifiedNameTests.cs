@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
-/// Tests for VisitQualifiedName - qualified name evaluation
+///   Tests for VisitQualifiedName - qualified name evaluation
 /// </summary>
 [InheritsTests]
 public class VisitQualifiedNameTests : BaseTest<Func<string>>
@@ -10,6 +10,6 @@ public class VisitQualifiedNameTests : BaseTest<Func<string>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(() => "")
+		Create(() => System.String.Empty)
 	];
 }

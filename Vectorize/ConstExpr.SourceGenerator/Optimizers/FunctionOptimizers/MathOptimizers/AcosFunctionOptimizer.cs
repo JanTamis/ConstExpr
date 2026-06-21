@@ -22,7 +22,7 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 		{
 			SpecialType.System_Single => GenerateFastAcosMethodFloat(context.FastMathFlags),
 			SpecialType.System_Double => GenerateFastAcosMethodDouble(context.FastMathFlags),
-			_ => null,
+			_ => null
 		});
 
 		if (method is not null)
@@ -75,8 +75,9 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 	}
 
 	/// <summary>
-	/// Generates a fast approximation implementation of the inverse cosine (Acos) function for double-precision floating-point numbers.
-	/// Uses a higher-precision polynomial approximation with separate handling for values greater than 0.5.
+	///   Generates a fast approximation implementation of the inverse cosine (Acos) function for double-precision
+	///   floating-point numbers.
+	///   Uses a higher-precision polynomial approximation with separate handling for values greater than 0.5.
 	/// </summary>
 	/// <param name="flags">FastMath flags that control NaN handling and other optimizations.</param>
 	/// <returns>A string containing the C# code for the fast Acos implementation.</returns>

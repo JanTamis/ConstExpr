@@ -4,9 +4,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 /// <summary>
-/// Unrolls <c>.Reverse()</c> as an intermediate step.
-/// Collects all elements into a list during the main loop, then iterates
-/// the list in reverse order through subsequent chain steps after the main loop.
+///   Unrolls <c>.Reverse()</c> as an intermediate step.
+///   Collects all elements into a list during the main loop, then iterates
+///   the list in reverse order through subsequent chain steps after the main loop.
 /// </summary>
 public class ReverseLinqUnroller : BaseLinqUnroller
 {
@@ -20,7 +20,7 @@ public class ReverseLinqUnroller : BaseLinqUnroller
 
 		// var reverseBuffer = new List<T>();
 		statements.Add(CreateLocalDeclaration(BufferName,
-			ObjectCreationExpression(IdentifierName($"List<{typeName}>"), [])));
+			ObjectCreationExpression(IdentifierName($"List<{typeName}>"), [ ])));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
@@ -58,4 +58,3 @@ public class ReverseLinqUnroller : BaseLinqUnroller
 				PostDecrementExpression(IdentifierName(IndexName)))));
 	}
 }
-

@@ -4,10 +4,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 /// <summary>
-/// Unrolls <c>.Union(second)</c> as an intermediate step.
-/// Combines two sequences and eliminates duplicates using a <c>HashSet&lt;T&gt;</c>.
-/// The first sequence is deduplicated in the main loop, then the second
-/// sequence is processed after the main loop with the same dedup set.
+///   Unrolls <c>.Union(second)</c> as an intermediate step.
+///   Combines two sequences and eliminates duplicates using a <c>HashSet&lt;T&gt;</c>.
+///   The first sequence is deduplicated in the main loop, then the second
+///   sequence is processed after the main loop with the same dedup set.
 /// </summary>
 public class UnionLinqUnroller : BaseLinqUnroller
 {
@@ -25,7 +25,7 @@ public class UnionLinqUnroller : BaseLinqUnroller
 
 		// var unionSet = new HashSet<T>();
 		statements.Add(CreateLocalDeclaration(SetName,
-			ObjectCreationExpression(IdentifierName($"HashSet<{typeName}>"), [])));
+			ObjectCreationExpression(IdentifierName($"HashSet<{typeName}>"), [ ])));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
@@ -61,4 +61,3 @@ public class UnionLinqUnroller : BaseLinqUnroller
 			Block(bodyWithDedup)));
 	}
 }
-

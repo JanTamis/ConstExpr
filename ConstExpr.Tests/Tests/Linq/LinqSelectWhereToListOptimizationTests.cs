@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for list.Select(f).Where(p).ToList() => list.FindAll(x => p(f(x)))
+///   Tests for list.Select(f).Where(p).ToList() => list.FindAll(x => p(f(x)))
 /// </summary>
 [InheritsTests]
 public class LinqSelectWhereToListOptimizationTests : BaseTest<Func<List<int>, int>>
@@ -18,6 +18,6 @@ public class LinqSelectWhereToListOptimizationTests : BaseTest<Func<List<int>, i
 	[
 		Create(x => x.FindAll(v => v << 1 > 4).Count),
 		Create(_ => 3, [ new List<int> { 1, 2, 3, 4, 5 } ]),
-		Create(_ => 0, [ new List<int>() ]),
+		Create(_ => 0, [ new List<int>() ])
 	];
 }

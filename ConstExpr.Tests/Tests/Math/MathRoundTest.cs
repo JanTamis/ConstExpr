@@ -9,8 +9,8 @@ public class MathRoundTest() : BaseTest<Func<double, double>>(FastMathFlags.All,
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(x => double.Round(x)),
+		Create(x => Double.Round(x)),
 		Create(_ => 4D, [ 3.7 ]),
-		Create(_ => 3D, [ 3.2 ]),
+		Create(_ => 3D, [ 3.2 ])
 	];
 }

@@ -24,7 +24,7 @@ public class LastLinqUnroller : BaseLinqUnroller
 		if (method.Parameters.Length == 1
 		    && TryGetLambda(method.Parameters[0], out var lambda))
 		{
-			statements.Add(IfStatement(InvertSyntax(ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, elementName)!), 
+			statements.Add(IfStatement(InvertSyntax(ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, elementName)!),
 				ContinueStatement()));
 		}
 
@@ -35,11 +35,9 @@ public class LastLinqUnroller : BaseLinqUnroller
 	public override void UnrollUnderLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
 		// if (!found) throw new InvalidOperationException(...);
-		statements.Add(IfStatement(LogicalNotExpression(IdentifierName(FoundName)), 
+		statements.Add(IfStatement(LogicalNotExpression(IdentifierName(FoundName)),
 			CreateThrowExpression<InvalidOperationException>("Sequence contains no matching element")));
 
 		statements.Add(ReturnStatement(IdentifierName(ResultName)));
 	}
 }
-
-

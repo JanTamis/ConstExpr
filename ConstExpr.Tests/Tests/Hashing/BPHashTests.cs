@@ -12,7 +12,7 @@ public class BPHashTests() : BaseTest<Func<string, uint>>(FastMathFlags.All)
 
 		for (i = 0; i < str.Length; i++)
 		{
-			hash = hash << 7 ^ (byte) str[(int) i];
+			hash = hash << 7 ^ (byte)str[(int)i];
 		}
 
 		return hash;
@@ -26,7 +26,7 @@ public class BPHashTests() : BaseTest<Func<string, uint>>(FastMathFlags.All)
 
 			for (var i = 0U; i < str.Length; i++)
 			{
-				hash = hash << 7 ^ (byte) str[(int) i];
+				hash = hash << 7 ^ (byte)str[(int)i];
 			}
 
 			return hash;

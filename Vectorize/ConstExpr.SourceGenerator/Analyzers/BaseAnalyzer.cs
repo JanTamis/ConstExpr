@@ -10,12 +10,10 @@ using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace ConstExpr.SourceGenerator.Analyzers;
 
-public abstract class BaseAnalyzer<TNode, TSymbol> : DiagnosticAnalyzer 
+public abstract class BaseAnalyzer<TNode, TSymbol> : DiagnosticAnalyzer
 	where TNode : SyntaxNode
 	where TSymbol : ISymbol
 {
-	public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; }
-
 	protected BaseAnalyzer()
 	{
 		SupportedDiagnostics =
@@ -26,11 +24,13 @@ public abstract class BaseAnalyzer<TNode, TSymbol> : DiagnosticAnalyzer
 				GetAttribute<DiagnosticMessageFormatAttribute>().Message,
 				GetAttribute<DiagnosticCategoryAttribute>().Category,
 				GetAttribute<DiagnosticSeverityAttribute>().Severity,
-				isEnabledByDefault: true,
-				GetAttribute<DiagnosticDescriptionAttribute>().Description),
+				true,
+				GetAttribute<DiagnosticDescriptionAttribute>().Description)
 		];
 	}
-	
+
+	public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; }
+
 	public override void Initialize(AnalysisContext context)
 	{
 		context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
@@ -60,13 +60,19 @@ public abstract class BaseAnalyzer<TNode, TSymbol> : DiagnosticAnalyzer
 			}
 		}, GetSyntaxKind());
 	}
-	
+
 	protected abstract void AnalyzeSyntax(SyntaxNodeAnalysisContext context, TNode node, TSymbol symbol, CancellationToken token);
 
-	protected virtual bool ValidateSyntax(SyntaxNodeAnalysisContext context, TNode node, CancellationToken token) => true;
+	protected virtual bool ValidateSyntax(SyntaxNodeAnalysisContext context, TNode node, CancellationToken token)
+	{
+		return true;
+	}
 
-	protected virtual bool ValidateSymbol(SyntaxNodeAnalysisContext context, TSymbol symbol, CancellationToken token) => true;
-	
+	protected virtual bool ValidateSymbol(SyntaxNodeAnalysisContext context, TSymbol symbol, CancellationToken token)
+	{
+		return true;
+	}
+
 	public void ReportDiagnostic(SyntaxNodeAnalysisContext context, CSharpSyntaxNode node, params object?[]? messageArgs)
 	{
 		ReportDiagnostic(context, node.GetLocation(), messageArgs);
@@ -81,12 +87,12 @@ public abstract class BaseAnalyzer<TNode, TSymbol> : DiagnosticAnalyzer
 	{
 		context.ReportDiagnostic(Diagnostic.Create(SupportedDiagnostics[0], location, messageArgs));
 	}
-	
+
 	private T GetAttribute<T>() where T : Attribute
 	{
 		return GetType().GetCustomAttributes<T>().First();
 	}
-	
+
 	private SyntaxKind GetSyntaxKind()
 	{
 		var name = typeof(TNode).Name;

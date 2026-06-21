@@ -8,9 +8,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 
 /// <summary>
-/// Optimizes LastIndexOf calls:
-/// - "hello".LastIndexOf("l") → 3
-/// - "hello".LastIndexOf("world") → -1
+///   Optimizes LastIndexOf calls:
+///   - "hello".LastIndexOf("l") → 3
+///   - "hello".LastIndexOf("world") → -1
 /// </summary>
 public class LastIndexOfFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "LastIndexOf", false, n => n is 1)
 {

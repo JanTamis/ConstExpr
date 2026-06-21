@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ExclusiveOrStrategies;
 
 /// <summary>
-/// Strategy for combining constant masks: (x ^ mask1) ^ mask2 => x ^ (mask1 ^ mask2)
+///   Strategy for combining constant masks: (x ^ mask1) ^ mask2 => x ^ (mask1 ^ mask2)
 /// </summary>
 public class ExclusiveOrCombineMasksStrategy() : NumericOrBooleanBinaryStrategy<BinaryExpressionSyntax, LiteralExpressionSyntax>(leftKind: SyntaxKind.ExclusiveOrExpression)
 {
@@ -15,11 +15,11 @@ public class ExclusiveOrCombineMasksStrategy() : NumericOrBooleanBinaryStrategy<
 		if (!base.TryOptimize(context, out optimized)
 		    || !context.TryGetValue(context.Left.Syntax.Right, out var leftXorRightValue)
 		    || !TryCreateLiteral(leftXorRightValue.ExclusiveOr(context.Right.Syntax.Token.Value), out var combinedLiteral))
-    {
-      return false;
-    }
+		{
+			return false;
+		}
 
-    optimized = ExclusiveOrExpression(context.Left.Syntax.Left, combinedLiteral);
+		optimized = ExclusiveOrExpression(context.Left.Syntax.Left, combinedLiteral);
 		return true;
 	}
 }

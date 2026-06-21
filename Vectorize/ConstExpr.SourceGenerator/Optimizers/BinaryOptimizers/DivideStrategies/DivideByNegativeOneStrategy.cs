@@ -6,8 +6,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies;
 
 /// <summary>
-/// Strategy for division by negative one: x / -1 = -x
-/// Safe under Strict (pure algebraic identity).
+///   Strategy for division by negative one: x / -1 = -x
+///   Safe under Strict (pure algebraic identity).
 /// </summary>
 public class DivideByNegativeOneStrategy : NumericBinaryStrategy<ExpressionSyntax, PrefixUnaryExpressionSyntax>
 {
@@ -17,11 +17,11 @@ public class DivideByNegativeOneStrategy : NumericBinaryStrategy<ExpressionSynta
 	{
 		if (!base.TryOptimize(context, out optimized)
 		    || !context.Right.IsNumericNegativeOne())
-    {
-      return false;
-    }
+		{
+			return false;
+		}
 
-    optimized = UnaryMinusExpression(context.Left.Syntax);
+		optimized = UnaryMinusExpression(context.Left.Syntax);
 		return true;
 	}
 }

@@ -36,7 +36,7 @@ public class FactorialTest() : BaseTest<Func<int, long>>(FastMathFlags.All, opti
 				return -1L;
 			}
 
-			if ((uint) n <= 1U)
+			if ((uint)n <= 1U)
 			{
 				return 1L;
 			}

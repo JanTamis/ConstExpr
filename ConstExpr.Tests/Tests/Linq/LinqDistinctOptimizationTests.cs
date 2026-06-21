@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for Distinct() optimization - verify that unnecessary operations before Distinct() are removed
+///   Tests for Distinct() optimization - verify that unnecessary operations before Distinct() are removed
 /// </summary>
 [InheritsTests]
 public class LinqDistinctOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
@@ -48,6 +48,6 @@ public class LinqDistinctOptimizationTests() : BaseTest<Func<int[], int>>(FastMa
 		Create("return Count_w6J_9Q(x) * 9 + (x.Length > 0 ? 1 : 0);"),
 		Create(_ => 46, [ new[] { 1, 2, 3, 4, 5 } ]),
 		Create(_ => 0, [ System.Array.Empty<int>() ]),
-		Create(_ => 28, [ new[] { 1, 1, 2, 2, 3 } ]), // 3 distinct values
+		Create(_ => 28, [ new[] { 1, 1, 2, 2, 3 } ]) // 3 distinct values
 	];
 }

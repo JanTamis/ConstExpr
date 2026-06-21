@@ -10,26 +10,24 @@ namespace ConstExpr.SourceGenerator.Refactorers;
 using static SyntaxFactory;
 
 /// <summary>
-/// Refactorer that converts string concatenation into an interpolated string.
-/// Inspired by the Roslyn <c>ConvertConcatenationToInterpolatedStringCodeRefactoringProvider</c>.
-///
-/// <code>
+///   Refactorer that converts string concatenation into an interpolated string.
+///   Inspired by the Roslyn <c>ConvertConcatenationToInterpolatedStringCodeRefactoringProvider</c>.
+///   <code>
 /// "Hello, " + name + "!"
 /// </code>
-/// →
-/// <code>
+///   →
+///   <code>
 /// $"Hello, {name}!"
 /// </code>
-///
-/// Handles chains of <c>+</c> operators where at least one operand is a string literal.
+///   Handles chains of <c>+</c> operators where at least one operand is a string literal.
 /// </summary>
 public static class ConvertToInterpolatedStringRefactoring
 {
 	/// <summary>
-	/// Tries to convert a string concatenation expression into an interpolated string.
-	/// The expression must be a chain of <c>+</c> operators containing at least one string literal.
-	/// When a <paramref name="semanticModel"/> is provided, verifies that the <c>+</c> operator
-	/// is truly a string concatenation (result type is <c>string</c>).
+	///   Tries to convert a string concatenation expression into an interpolated string.
+	///   The expression must be a chain of <c>+</c> operators containing at least one string literal.
+	///   When a <paramref name="semanticModel" /> is provided, verifies that the <c>+</c> operator
+	///   is truly a string concatenation (result type is <c>string</c>).
 	/// </summary>
 	public static bool TryConvertConcatenationToInterpolatedString(
 		BinaryExpressionSyntax concatenation,
@@ -115,7 +113,7 @@ public static class ConvertToInterpolatedStringRefactoring
 	}
 
 	/// <summary>
-	/// Flattens a chain of <c>+</c> binary expressions into a list of operands.
+	///   Flattens a chain of <c>+</c> binary expressions into a list of operands.
 	/// </summary>
 	private static void CollectConcatenationParts(ExpressionSyntax expression, List<ExpressionSyntax> parts)
 	{
@@ -131,7 +129,7 @@ public static class ConvertToInterpolatedStringRefactoring
 	}
 
 	/// <summary>
-	/// Escapes characters that are special in interpolated string text: <c>{</c>, <c>}</c>.
+	///   Escapes characters that are special in interpolated string text: <c>{</c>, <c>}</c>.
 	/// </summary>
 	private static string EscapeForInterpolation(string text)
 	{

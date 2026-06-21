@@ -16,8 +16,8 @@ using SourceGen.Utilities.Extensions;
 namespace ConstExpr.SourceGenerator.Rewriters;
 
 /// <summary>
-/// Expression visitor methods for the ConstExprPartialRewriter.
-/// Handles literal, binary, unary, cast, parenthesized, conditional, and tuple expressions.
+///   Expression visitor methods for the ConstExprPartialRewriter.
+///   Handles literal, binary, unary, cast, parenthesized, conditional, and tuple expressions.
 /// </summary>
 public partial class ConstExprPartialRewriter
 {
@@ -244,7 +244,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Handles the "is" type expression (e.g., obj is int).
+	///   Handles the "is" type expression (e.g., obj is int).
 	/// </summary>
 	private SyntaxNode VisitIsTypeExpression(BinaryExpressionSyntax node)
 	{
@@ -282,7 +282,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Gets the type symbol from the right side of an "is" expression.
+	///   Gets the type symbol from the right side of an "is" expression.
 	/// </summary>
 	private ITypeSymbol? GetTypeFromRightSide(ExpressionSyntax right)
 	{
@@ -322,7 +322,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Checks if a type matches the given value for binary "is" expressions.
+	///   Checks if a type matches the given value for binary "is" expressions.
 	/// </summary>
 	private bool? IsTypeMatchForBinaryIs(ITypeSymbol typeInfo, object? val)
 	{
@@ -378,21 +378,23 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Returns true when every leaf in a <c>&amp;&amp;</c> tree is a <c>!=</c> comparison.
-	/// Used to guard the AND-chain → negated pattern conversion so that range checks like
-	/// <c>c &gt;= 'A' &amp;&amp; c &lt;= 'Z'</c> are not intercepted.
+	///   Returns true when every leaf in a <c>&amp;&amp;</c> tree is a <c>!=</c> comparison.
+	///   Used to guard the AND-chain → negated pattern conversion so that range checks like
+	///   <c>c &gt;= 'A' &amp;&amp; c &lt;= 'Z'</c> are not intercepted.
 	/// </summary>
-	private static bool IsNotEqualsChain(ExpressionSyntax expr) =>
-		expr switch
+	private static bool IsNotEqualsChain(ExpressionSyntax expr)
+	{
+		return expr switch
 		{
-			BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LogicalAndExpression } and_ =>
+			BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LogicalAndExpression } and_ =>
 				IsNotEqualsChain(and_.Left) && IsNotEqualsChain(and_.Right),
-			BinaryExpressionSyntax { RawKind: (int) SyntaxKind.NotEqualsExpression } => true,
-			_ => false,
+			BinaryExpressionSyntax { RawKind: (int)SyntaxKind.NotEqualsExpression } => true,
+			_ => false
 		};
+	}
 
 	/// <summary>
-	/// Checks if the type matches by name, interface, or inheritance.
+	///   Checks if the type matches by name, interface, or inheritance.
 	/// </summary>
 	private static bool? IsTypeMatchByName(ITypeSymbol typeInfo, Type valueType)
 	{
@@ -401,8 +403,8 @@ public partial class ConstExprPartialRewriter
 		var typeName = valueType.Name;
 
 		// Check for exact match or name match
-		if (string.Equals(typeDisplayString, typeFullName, StringComparison.Ordinal) ||
-		    string.Equals(typeInfo.Name, typeName, StringComparison.Ordinal))
+		if (String.Equals(typeDisplayString, typeFullName, StringComparison.Ordinal) ||
+		    String.Equals(typeInfo.Name, typeName, StringComparison.Ordinal))
 		{
 			return true;
 		}
@@ -431,7 +433,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Tries to optimize a binary expression using algebraic/logical simplifications.
+	///   Tries to optimize a binary expression using algebraic/logical simplifications.
 	/// </summary>
 	private bool TryOptimizeBinaryExpression(IBinaryOperation operation, List<BinaryExpressionSyntax> expressions, ExpressionSyntax leftExpr, ExpressionSyntax rightExpr, SyntaxNode? parent, out SyntaxNode? result)
 	{
@@ -533,7 +535,7 @@ public partial class ConstExprPartialRewriter
 		{
 			var complementInner = operand is ParenthesizedExpressionSyntax complementParen ? complementParen.Expression : operand;
 
-			if (complementInner is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.AddExpression or (int) SyntaxKind.SubtractExpression } complementBinary
+			if (complementInner is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.AddExpression or (int)SyntaxKind.SubtractExpression } complementBinary
 			    && IsSimpleOperand(complementBinary.Left)
 			    && TryGetLiteralValue(complementBinary.Right, out var complementOne)
 			    && IsIntegralOne(complementOne)
@@ -554,7 +556,7 @@ public partial class ConstExprPartialRewriter
 		{
 			var negSubInner = operand is ParenthesizedExpressionSyntax negSubParen ? negSubParen.Expression : operand;
 
-			if (negSubInner is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.SubtractExpression } negSubExpr
+			if (negSubInner is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.SubtractExpression } negSubExpr
 			    && TryGetLiteralValue(negSubExpr.Left, out _)
 			    && IsExpressionPure(negSubExpr.Right))
 			{
@@ -574,7 +576,7 @@ public partial class ConstExprPartialRewriter
 		{
 			var negAddInner = operand is ParenthesizedExpressionSyntax negAddParen ? negAddParen.Expression : operand;
 
-			if (negAddInner is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.AddExpression } negAddExpr)
+			if (negAddInner is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.AddExpression } negAddExpr)
 			{
 				object? constValue = null;
 				ExpressionSyntax? otherExpr = null;
@@ -646,7 +648,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Computes the bitwise complement of a value.
+	///   Computes the bitwise complement of a value.
 	/// </summary>
 	private static object? BitwiseComplement(object? value)
 	{
@@ -672,7 +674,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Handles prefix increment (++i) and decrement (--i) expressions.
+	///   Handles prefix increment (++i) and decrement (--i) expressions.
 	/// </summary>
 	private SyntaxNode? VisitPrefixIncrementDecrement(PrefixUnaryExpressionSyntax node, SyntaxNode? operand)
 	{
@@ -696,7 +698,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Computes the result of an increment or decrement operation.
+	///   Computes the result of an increment or decrement operation.
 	/// </summary>
 	private object? ComputeIncrementDecrement(ExpressionSyntax node, object? current, VariableItem variable)
 	{
@@ -738,7 +740,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Negates a numeric value.
+	///   Negates a numeric value.
 	/// </summary>
 	private static object? NegateValue(object? value)
 	{
@@ -910,7 +912,7 @@ public partial class ConstExprPartialRewriter
 		}
 
 		// x?.Member where x is known null → null
-		if (expression is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NullLiteralExpression })
+		if (expression is LiteralExpressionSyntax { RawKind: (int)SyntaxKind.NullLiteralExpression })
 		{
 			return LiteralExpression(SyntaxKind.NullLiteralExpression);
 		}
@@ -996,7 +998,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Processes a single interpolation in an interpolated string.
+	///   Processes a single interpolation in an interpolated string.
 	/// </summary>
 	private InterpolatedStringContentSyntax ProcessInterpolation(InterpolationSyntax interp)
 	{
@@ -1004,7 +1006,7 @@ public partial class ConstExprPartialRewriter
 
 		if (TryGetLiteralValue(visited, out var value))
 		{
-			var str = value?.ToString() ?? string.Empty;
+			var str = value?.ToString() ?? String.Empty;
 			var format = interp.FormatClause?.FormatStringToken.ValueText;
 
 			if (value is IFormattable formattable && format?.Length > 0)
@@ -1164,11 +1166,11 @@ public partial class ConstExprPartialRewriter
 				}
 				case ObjectExtensions.ClusterType.Bitmask:
 				{
-					var bitType = (int) cluster.Step! switch
+					var bitType = (int)cluster.Step! switch
 					{
 						<= 32 => semanticModel.Compilation.GetSpecialType(SpecialType.System_UInt32),
 						<= 64 => semanticModel.Compilation.GetSpecialType(SpecialType.System_UInt64),
-						_ => unsignedType,
+						_ => unsignedType
 					};
 
 					// Calculate the bitmask using relative positions from minValue
@@ -1209,14 +1211,12 @@ public partial class ConstExprPartialRewriter
 
 		return true;
 
-		object? GetOneLiteral(ITypeSymbol typeSymbol)
-		{
-			return typeSymbol.SpecialType == SpecialType.System_Char ? 1 : 1.ToSpecialType(typeSymbol.SpecialType);
-		}
+		object? GetOneLiteral(ITypeSymbol typeSymbol) =>
+			typeSymbol.SpecialType == SpecialType.System_Char ? 1 : 1.ToSpecialType(typeSymbol.SpecialType);
 	}
 
 	/// <summary>
-	/// Extracts all constant values from an OR pattern.
+	///   Extracts all constant values from an OR pattern.
 	/// </summary>
 	private bool TryExtractOrPatternConstants(BinaryPatternSyntax pattern, List<object?> constants)
 	{
@@ -1242,7 +1242,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Extracts constant values from a pattern (handles OR chains and individual constants).
+	///   Extracts constant values from a pattern (handles OR chains and individual constants).
 	/// </summary>
 	private bool TryExtractPatternConstants(PatternSyntax pattern, List<object?> constants)
 	{
@@ -1312,7 +1312,7 @@ public partial class ConstExprPartialRewriter
 			ushort us => Literal($"0x{us:X}", us),
 			byte b => Literal($"0x{b:X}", b),
 			sbyte sb => Literal($"0x{sb:X}", sb),
-			char c => Literal($"0x{(ushort) c:X}", (ushort) c),
+			char c => Literal($"0x{(ushort)c:X}", (ushort)c),
 			_ => Literal(0)
 		});
 
@@ -1335,7 +1335,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Gets the ITypeSymbol from a constant value's runtime type.
+	///   Gets the ITypeSymbol from a constant value's runtime type.
 	/// </summary>
 	private INamedTypeSymbol? GetTypeSymbolFromConstant(object? value)
 	{

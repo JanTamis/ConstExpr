@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
-/// Tests for VisitObjectCreationExpression - constant constructor evaluation
+///   Tests for VisitObjectCreationExpression - constant constructor evaluation
 /// </summary>
 [InheritsTests]
 public class VisitObjectCreationExpressionTests : BaseTest<Func<int, char[], (string, string)>>
@@ -20,8 +20,8 @@ public class VisitObjectCreationExpressionTests : BaseTest<Func<int, char[], (st
 		Create((amount, chars) => (new string('a', amount), new string(chars))),
 		// When values are known and constant, they get inlined into the return statement
 		Create((_, _) => ("aaaaa", "hello"), [ 5, new[] { 'h', 'e', 'l', 'l', 'o' } ]),
-		Create((_, _) => ("", ""), [ 0, System.Array.Empty<char>() ]),
+		Create((_, _) => (System.String.Empty, System.String.Empty), [ 0, System.Array.Empty<char>() ]),
 		Create((_, _) => ("aaa", "cat"), [ 3, new[] { 'c', 'a', 't' } ]),
-		Create((_, _) => ("", "xyz"), [ 0, new[] { 'x', 'y', 'z' } ])
+		Create((_, _) => (System.String.Empty, "xyz"), [ 0, new[] { 'x', 'y', 'z' } ])
 	];
 }

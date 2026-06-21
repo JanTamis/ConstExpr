@@ -9,14 +9,12 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
 /// <summary>
-/// Optimizer for Math.Round / MathF.Round.
-///
-/// Benchmark findings (Apple M4 Pro, .NET 10.0.1, ARM64 — RoundBenchmark):
+///   Optimizer for Math.Round / MathF.Round.
+///   Benchmark findings (Apple M4 Pro, .NET 10.0.1, ARM64 — RoundBenchmark):
 ///   Math.Round / MathF.Round  → ~0.530 ns  (single FRINTN instruction) ← optimal
 ///   double.Round / float.Round → ~0.547 ns  (+3%  — same instruction via IFloatingPoint&lt;T&gt;)
 ///   Math.Floor(x + 0.5)        → ~0.589 ns  (+11% — 2 FP ops; avoid)
 ///   long/int-cast tricks       → ~0.672 ns  (+27% — FP/int domain crossing; never use)
-///
 ///   Unary-minus rewrite Round(-x) → -Round(x): ratio 0.99 — within measurement noise,
 ///   no meaningful benefit. The rewrite has been removed to keep generated code simple.
 /// </summary>
@@ -44,15 +42,15 @@ public class RoundFunctionOptimizer() : BaseMathFunctionOptimizer("Round", n => 
 		    {
 			    Type: PredefinedTypeSyntax
 			    {
-				    Keyword.RawKind: (int) SyntaxKind.IntKeyword
-				    or (int) SyntaxKind.UIntKeyword
-				    or (int) SyntaxKind.LongKeyword
-				    or (int) SyntaxKind.ULongKeyword
-				    or (int) SyntaxKind.ShortKeyword
-				    or (int) SyntaxKind.UShortKeyword
-				    or (int) SyntaxKind.ByteKeyword
-				    or (int) SyntaxKind.SByteKeyword
-				    or (int) SyntaxKind.CharKeyword
+				    Keyword.RawKind: (int)SyntaxKind.IntKeyword
+				    or (int)SyntaxKind.UIntKeyword
+				    or (int)SyntaxKind.LongKeyword
+				    or (int)SyntaxKind.ULongKeyword
+				    or (int)SyntaxKind.ShortKeyword
+				    or (int)SyntaxKind.UShortKeyword
+				    or (int)SyntaxKind.ByteKeyword
+				    or (int)SyntaxKind.SByteKeyword
+				    or (int)SyntaxKind.CharKeyword
 			    }
 		    }
 		    && context.VisitedParameters.Count == 2)

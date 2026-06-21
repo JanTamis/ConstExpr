@@ -4,8 +4,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.GreaterThanStrategies;
 
 /// <summary>
-/// Strategy that normalizes reversed comparisons: literal > x → x &lt; literal.
-/// Puts the variable on the left-hand side in canonical form.
+///   Strategy that normalizes reversed comparisons: literal > x → x &lt; literal.
+///   Puts the variable on the left-hand side in canonical form.
 /// </summary>
 public class GreaterThanReverseStrategy : BaseBinaryStrategy<LiteralExpressionSyntax, ExpressionSyntax>
 {
@@ -21,4 +21,3 @@ public class GreaterThanReverseStrategy : BaseBinaryStrategy<LiteralExpressionSy
 		return true;
 	}
 }
-

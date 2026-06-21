@@ -9,21 +9,20 @@ namespace ConstExpr.SourceGenerator.Refactorers;
 using static SyntaxFactory;
 
 /// <summary>
-/// Refactorer that converts anonymous type creation expressions to value tuples.
-/// Inspired by the Roslyn <c>CSharpConvertAnonymousTypeToTupleCodeRefactoringProvider</c>.
-///
-/// <code>
+///   Refactorer that converts anonymous type creation expressions to value tuples.
+///   Inspired by the Roslyn <c>CSharpConvertAnonymousTypeToTupleCodeRefactoringProvider</c>.
+///   <code>
 /// new { Name = "Bob", Age = 42 }
 /// </code>
-/// →
-/// <code>
+///   →
+///   <code>
 /// (Name: "Bob", Age: 42)
 /// </code>
 /// </summary>
 public static class ConvertAnonymousTypeToTupleRefactoring
 {
 	/// <summary>
-	/// Converts an anonymous object creation expression to a tuple expression.
+	///   Converts an anonymous object creation expression to a tuple expression.
 	/// </summary>
 	public static bool TryConvertAnonymousTypeToTuple(
 		AnonymousObjectCreationExpressionSyntax anonymousObject,
@@ -62,4 +61,3 @@ public static class ConvertAnonymousTypeToTupleRefactoring
 		return true;
 	}
 }
-

@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for Cast() optimization - verify that AsEnumerable, ToList, ToArray are skipped
+///   Tests for Cast() optimization - verify that AsEnumerable, ToList, ToArray are skipped
 /// </summary>
 [InheritsTests]
 public class LinqCastOptimizationTests() : BaseTest<Func<List<object>, int>>(FastMathFlags.AssociativeMath)
@@ -33,6 +33,6 @@ public class LinqCastOptimizationTests() : BaseTest<Func<List<object>, int>>(Fas
 		Create("return Sum_gqdmOQ(x) * 5;"),
 		Create(_ => 30, [ new List<object> { 1, 2, 3 } ]), // sum=6, a=6, b=6, c=6, d=6, e=6 = 30
 		Create(_ => 0, [ new List<object>() ]), // Empty array
-		Create(_ => 50, [ new List<object> { 10 } ]), // sum=10, a=10, b=10, c=10, d=10, e=10 = 50
+		Create(_ => 50, [ new List<object> { 10 } ]) // sum=10, a=10, b=10, c=10, d=10, e=10 = 50
 	];
 }

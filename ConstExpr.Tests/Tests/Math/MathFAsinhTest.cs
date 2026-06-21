@@ -10,6 +10,6 @@ public class MathFAsinhTest() : BaseTest<Func<float, float>>(FastMathFlags.All, 
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return FastAsinh(x);"),
+		Create("return FastAsinh(x);")
 	];
 }

@@ -21,6 +21,6 @@ public class NumericBinaryStrategy(SyntaxKind leftKind = SyntaxKind.None, Syntax
 {
 	public NumericBinaryStrategy() : this(SyntaxKind.None)
 	{
-		
+
 	}
 }

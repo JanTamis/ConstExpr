@@ -23,4 +23,3 @@ public class BinaryConditionalAndOptimizer : BaseBinaryOptimizer
 		yield return new PatternCombineStrategy(Kind);
 	}
 }
-

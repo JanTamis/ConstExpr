@@ -8,32 +8,32 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.SubtractStrategies;
 
 /// <summary>
-/// Strategy for Fused Multiply-Add pattern: c - (a * b) => FMA(-a, b, c) (when FMA is available)
+///   Strategy for Fused Multiply-Add pattern: c - (a * b) => FMA(-a, b, c) (when FMA is available)
 /// </summary>
 public class SubtractFMARightMultiplyStrategy() : NumericBinaryStrategy<ExpressionSyntax, BinaryExpressionSyntax>(rightKind: SyntaxKind.MultiplyExpression)
 {
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, BinaryExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!base.TryOptimize(context, out optimized))
-    {
-      return false;
-    }
+		{
+			return false;
+		}
 
-    var host = ParseName(context.Type.Name);
+		var host = ParseName(context.Type.Name);
 
 		var arguments = ArgumentList(SeparatedList([ Argument(UnaryMinusExpression(context.Right.Syntax.Left)), Argument(context.Right.Syntax.Right), Argument(context.Left.Syntax) ]));
 
 		if (ContainsMultiplyAddEstimate(context.Type))
 		{
 			optimized = InvocationExpression(MemberAccessExpression(host, IdentifierName("MultiplyAddEstimate")), arguments);
-			
+
 			return true;
 		}
 
 		if (ContainsFusedMultiplyAdd(context.Type))
 		{
 			optimized = InvocationExpression(MemberAccessExpression(host, IdentifierName("FusedMultiplyAdd")), arguments);
-			
+
 			return true;
 		}
 

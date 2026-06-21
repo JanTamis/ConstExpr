@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Regex;
 
 [InheritsTests]
-public class RegexSplitTests() : BaseTest<Func<string, string, int>>
+public class RegexSplitTests : BaseTest<Func<string, string, int>>
 {
 	public override string TestMethod => GetString((input, pattern) =>
 	{
@@ -12,6 +12,6 @@ public class RegexSplitTests() : BaseTest<Func<string, string, int>>
 	[
 		CreateDefault(),
 		Create("return Regex_ab3uPQ.Split(input).Length;", Unknown, @"^\d+$"),
-		Create((_, _) => 2, [ "1234-5678", @"-" ]),
+		Create((_, _) => 2, [ "1234-5678", @"-" ])
 	];
 }

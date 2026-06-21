@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Regex;
 
 [InheritsTests]
-public class RegexCountTests() : BaseTest<Func<string, string, int>>
+public class RegexCountTests : BaseTest<Func<string, string, int>>
 {
 	public override string TestMethod => GetString((input, pattern) =>
 	{
@@ -16,6 +16,6 @@ public class RegexCountTests() : BaseTest<Func<string, string, int>>
 		// Both constant: fold to integer literal
 		Create((_, _) => 2, [ "hello world", @"\w+" ]),
 		Create((_, _) => 0, [ "123abc", @"^\d+$" ]),
-		Create((_, _) => 3, [ "a1b2c3", @"\d" ]),
+		Create((_, _) => 3, [ "a1b2c3", @"\d" ])
 	];
 }

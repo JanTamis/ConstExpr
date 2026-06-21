@@ -13,7 +13,7 @@ namespace ConstExpr.SourceGenerator.Sample.Operations;
 public static class DataValidationOperations
 {
 	/// <summary>
-	/// Validates if a number is within a specified range
+	///   Validates if a number is within a specified range
 	/// </summary>
 	public static bool IsInRange(double value, double min, double max)
 	{
@@ -21,7 +21,7 @@ public static class DataValidationOperations
 	}
 
 	/// <summary>
-	/// Validates if all numbers in a collection are positive
+	///   Validates if all numbers in a collection are positive
 	/// </summary>
 	public static bool AllPositive(params double[] numbers)
 	{
@@ -29,24 +29,24 @@ public static class DataValidationOperations
 	}
 
 	/// <summary>
-	/// Validates if a string matches a simple pattern (only alphanumeric)
+	///   Validates if a string matches a simple pattern (only alphanumeric)
 	/// </summary>
 	public static bool IsAlphanumeric(string input)
 	{
-		if (string.IsNullOrEmpty(input))
+		if (String.IsNullOrEmpty(input))
 		{
 			return false;
 		}
 
-		return input.All(c => char.IsLetterOrDigit(c));
+		return input.All(c => Char.IsLetterOrDigit(c));
 	}
 
 	/// <summary>
-	/// Validates email format with basic rules
+	///   Validates email format with basic rules
 	/// </summary>
 	public static bool IsValidEmail(string email)
 	{
-		if (string.IsNullOrEmpty(email) || email.Length < 5)
+		if (String.IsNullOrEmpty(email) || email.Length < 5)
 		{
 			return false;
 		}
@@ -78,11 +78,11 @@ public static class DataValidationOperations
 	}
 
 	/// <summary>
-	/// Validates if a string is a valid phone number (digits and hyphens only)
+	///   Validates if a string is a valid phone number (digits and hyphens only)
 	/// </summary>
 	public static bool IsValidPhoneNumber(string phone)
 	{
-		if (string.IsNullOrEmpty(phone) || phone.Length < 10)
+		if (String.IsNullOrEmpty(phone) || phone.Length < 10)
 		{
 			return false;
 		}
@@ -91,7 +91,7 @@ public static class DataValidationOperations
 
 		foreach (var c in phone)
 		{
-			if (char.IsDigit(c))
+			if (Char.IsDigit(c))
 			{
 				digitCount++;
 			}
@@ -105,7 +105,7 @@ public static class DataValidationOperations
 	}
 
 	/// <summary>
-	/// Calculates data quality score based on non-null entries
+	///   Calculates data quality score based on non-null entries
 	/// </summary>
 	public static double CalculateDataQuality(params double[] values)
 	{
@@ -114,13 +114,13 @@ public static class DataValidationOperations
 			return 0.0;
 		}
 
-		var nonNullCount = values.Count(v => !double.IsNaN(v) && !double.IsInfinity(v));
+		var nonNullCount = values.Count(v => !Double.IsNaN(v) && !Double.IsInfinity(v));
 
-		return (double) nonNullCount / values.Length;
+		return (double)nonNullCount / values.Length;
 	}
 
 	/// <summary>
-	/// Detects outliers using standard deviation
+	///   Detects outliers using standard deviation
 	/// </summary>
 	public static int[] DetectOutliers(double[] data, double standardDeviations = 2.0)
 	{
@@ -148,11 +148,11 @@ public static class DataValidationOperations
 	}
 
 	/// <summary>
-	/// Validates if a collection has balanced parentheses
+	///   Validates if a collection has balanced parentheses
 	/// </summary>
 	public static bool HasBalancedParentheses(string input)
 	{
-		if (string.IsNullOrEmpty(input))
+		if (String.IsNullOrEmpty(input))
 		{
 			return true;
 		}
@@ -180,11 +180,11 @@ public static class DataValidationOperations
 	}
 
 	/// <summary>
-	/// Validates credit card number using Luhn algorithm (simplified)
+	///   Validates credit card number using Luhn algorithm (simplified)
 	/// </summary>
 	public static bool IsValidCreditCard(string cardNumber)
 	{
-		if (string.IsNullOrEmpty(cardNumber) || cardNumber.Length < 13 || cardNumber.Length > 19)
+		if (String.IsNullOrEmpty(cardNumber) || cardNumber.Length < 13 || cardNumber.Length > 19)
 		{
 			return false;
 		}
@@ -199,7 +199,7 @@ public static class DataValidationOperations
 
 		for (var i = cardNumber.Length - 1; i >= 0; i--)
 		{
-			if (!char.IsDigit(cardNumber[i]))
+			if (!Char.IsDigit(cardNumber[i]))
 			{
 				return false;
 			}
@@ -224,8 +224,8 @@ public static class DataValidationOperations
 	}
 
 	/// <summary>
-	/// Tests break statement in a while loop with constant condition
-	/// Counts items until it finds the target value
+	///   Tests break statement in a while loop with constant condition
+	///   Counts items until it finds the target value
 	/// </summary>
 	public static int CountUntilTarget(int target)
 	{
@@ -245,8 +245,8 @@ public static class DataValidationOperations
 	}
 
 	/// <summary>
-	/// Tests return statement in a for loop with constant condition
-	/// Returns the first even number it finds
+	///   Tests return statement in a for loop with constant condition
+	///   Returns the first even number it finds
 	/// </summary>
 	public static int FindFirstEven()
 	{
@@ -262,8 +262,8 @@ public static class DataValidationOperations
 	}
 
 	/// <summary>
-	/// Tests break statement in a foreach loop
-	/// Finds the index of a specific character
+	///   Tests break statement in a foreach loop
+	///   Finds the index of a specific character
 	/// </summary>
 	public static int FindCharIndex(string text, char target)
 	{
@@ -282,8 +282,8 @@ public static class DataValidationOperations
 	}
 
 	/// <summary>
-	/// Tests nested loops with break statements
-	/// Counts items in a 2D grid
+	///   Tests nested loops with break statements
+	///   Counts items in a 2D grid
 	/// </summary>
 	public static int CountInGrid(int rows, int cols, int breakAt)
 	{
@@ -311,8 +311,8 @@ public static class DataValidationOperations
 	}
 
 	/// <summary>
-	/// Tests while loop with early return and break detection
-	/// Sums numbers until reaching the limit
+	///   Tests while loop with early return and break detection
+	///   Sums numbers until reaching the limit
 	/// </summary>
 	public static int SumUntilLimit(int limit)
 	{

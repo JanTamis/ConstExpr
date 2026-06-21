@@ -10,8 +10,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Rewriters;
 
 /// <summary>
-/// Miscellaneous visitor methods for the ConstExprPartialRewriter.
-/// Handles object creation, list visiting, and other utility methods.
+///   Miscellaneous visitor methods for the ConstExprPartialRewriter.
+///   Handles object creation, list visiting, and other utility methods.
 /// </summary>
 public partial class ConstExprPartialRewriter
 {
@@ -46,11 +46,11 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Converts anonymous type creation expressions to value tuple expressions in generated code.
-	/// This is safe when the anonymous type is used as an intermediate value.
-	/// Skipped when the return type of the enclosing method is <c>dynamic</c>, because value tuple
-	/// element names are compiler metadata only — <c>((dynamic)result).Name</c> would fail at runtime
-	/// on a <c>ValueTuple</c> since it has no actual <c>Name</c> property.
+	///   Converts anonymous type creation expressions to value tuple expressions in generated code.
+	///   This is safe when the anonymous type is used as an intermediate value.
+	///   Skipped when the return type of the enclosing method is <c>dynamic</c>, because value tuple
+	///   element names are compiler metadata only — <c>((dynamic)result).Name</c> would fail at runtime
+	///   on a <c>ValueTuple</c> since it has no actual <c>Name</c> property.
 	/// </summary>
 	public override SyntaxNode VisitAnonymousObjectCreationExpression(AnonymousObjectCreationExpressionSyntax node)
 	{
@@ -77,7 +77,7 @@ public partial class ConstExprPartialRewriter
 		bool IsInsideDynamicReturnMethod()
 		{
 			// Walk up the syntax tree to find the enclosing method-like declaration
-			SyntaxNode? current = node.Parent;
+			var current = node.Parent;
 
 			while (current is not null)
 			{
@@ -101,14 +101,14 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Tries to fold string object creation to a literal.
+	///   Tries to fold string object creation to a literal.
 	/// </summary>
 	private SyntaxNode? TryFoldStringCreation(ObjectCreationExpressionSyntax node)
 	{
 		var args = node.ArgumentList?.Arguments
 			.Select(a => Visit(a.Expression))
 			.OfType<ExpressionSyntax>()
-			.ToList() ?? [];
+			.ToList() ?? [ ];
 
 		if (args.Count != 1)
 		{
@@ -129,7 +129,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Tries to fold a char collection to a string literal.
+	///   Tries to fold a char collection to a string literal.
 	/// </summary>
 	private SyntaxNode? TryFoldCharCollectionToString(CollectionExpressionSyntax collection)
 	{
@@ -137,7 +137,7 @@ public partial class ConstExprPartialRewriter
 
 		if (elements.Count == 0)
 		{
-			return LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(string.Empty));
+			return LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(String.Empty));
 		}
 
 		var chars = new List<char>(elements.Count);
@@ -173,7 +173,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Tries to create an object and convert it to a literal.
+	///   Tries to create an object and convert it to a literal.
 	/// </summary>
 	private SyntaxNode? TryCreateObjectLiteral(ObjectCreationExpressionSyntax node, ITypeSymbol type)
 	{
@@ -189,7 +189,7 @@ public partial class ConstExprPartialRewriter
 			var arguments = node.ArgumentList?.Arguments
 				.Select(arg => Visit(arg.Expression))
 				.OfType<ExpressionSyntax>()
-				.ToList() ?? [];
+				.ToList() ?? [ ];
 
 			var argumentValues = arguments
 				.WhereSelect<ExpressionSyntax, object?>(TryGetLiteralValue)
@@ -231,11 +231,11 @@ public partial class ConstExprPartialRewriter
 		foreach (var node in list)
 		{
 			if (shouldStop)
-      {
-        break;
-      }
+			{
+				break;
+			}
 
-      var visited = Visit(node);
+			var visited = Visit(node);
 
 			switch (visited)
 			{
@@ -253,7 +253,7 @@ public partial class ConstExprPartialRewriter
 							{
 								return List(result);
 							}
-							
+
 							result.Add(t);
 
 							if (st is ReturnStatementSyntax or BreakStatementSyntax or ThrowStatementSyntax)
@@ -317,7 +317,7 @@ public partial class ConstExprPartialRewriter
 							{
 								return SeparatedList(result);
 							}
-							
+
 							result.Add(t);
 
 							if (st is ReturnStatementSyntax or BreakStatementSyntax)
@@ -351,4 +351,3 @@ public partial class ConstExprPartialRewriter
 		return SeparatedList(result);
 	}
 }
-

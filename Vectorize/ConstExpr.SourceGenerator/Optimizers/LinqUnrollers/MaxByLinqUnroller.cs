@@ -66,7 +66,7 @@ public class MaxByLinqUnroller : BaseLinqUnroller
 		}
 
 		// For the enumerator path the element is e.Current, not the foreach loop variable.
-		var element = (!IsInvokedOnArray(method.CollectionType) && !IsInvokedOnCollection(method.CollectionType))
+		var element = !IsInvokedOnArray(method.CollectionType) && !IsInvokedOnCollection(method.CollectionType)
 			? MemberAccessExpression(IdentifierName("e"), IdentifierName("Current"))
 			: elementName;
 

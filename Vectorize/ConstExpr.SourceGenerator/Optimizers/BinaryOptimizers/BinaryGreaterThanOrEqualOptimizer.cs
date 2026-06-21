@@ -17,4 +17,3 @@ public class BinaryGreaterThanOrEqualOptimizer : BaseBinaryOptimizer
 		yield return new GreaterThanOrEqualReverseStrategy();
 	}
 }
-

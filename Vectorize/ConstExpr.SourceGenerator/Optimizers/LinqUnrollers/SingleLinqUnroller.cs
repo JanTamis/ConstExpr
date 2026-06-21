@@ -24,12 +24,12 @@ public class SingleLinqUnroller : BaseLinqUnroller
 		if (method.Parameters.Length == 1
 		    && TryGetLambda(method.Parameters[0], out var lambda))
 		{
-			statements.Add(IfStatement(InvertSyntax(ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, elementName)!), 
+			statements.Add(IfStatement(InvertSyntax(ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, elementName)!),
 				ContinueStatement()));
 		}
 
 		// if (found) throw new InvalidOperationException("Sequence contains more than one matching element");
-		statements.Add(IfStatement(IdentifierName(FoundName), 
+		statements.Add(IfStatement(IdentifierName(FoundName),
 			CreateThrowExpression<InvalidOperationException>("Sequence contains more than one matching element")));
 
 		statements.Add(CreateAssignment(ResultName, elementName));
@@ -39,11 +39,9 @@ public class SingleLinqUnroller : BaseLinqUnroller
 	public override void UnrollUnderLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
 		// if (!found) throw new InvalidOperationException("Sequence contains no matching element");
-		statements.Add(IfStatement(LogicalNotExpression(IdentifierName(FoundName)), 
+		statements.Add(IfStatement(LogicalNotExpression(IdentifierName(FoundName)),
 			CreateThrowExpression<InvalidOperationException>("Sequence contains no matching element")));
 
 		statements.Add(ReturnStatement(IdentifierName(ResultName)));
 	}
 }
-
-

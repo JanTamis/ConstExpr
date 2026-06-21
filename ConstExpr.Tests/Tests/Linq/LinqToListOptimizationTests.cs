@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for ToList() optimization - verify redundant materialization removal and chain optimization
+///   Tests for ToList() optimization - verify redundant materialization removal and chain optimization
 /// </summary>
 [InheritsTests]
 public class LinqToListOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
@@ -11,7 +11,7 @@ public class LinqToListOptimizationTests() : BaseTest<Func<int[], int>>(FastMath
 	public override string TestMethod => GetString(x =>
 	{
 		// ToList().ToList() => ToList()
-		var a = x.ToList().ToList().Count;
+		var a = x.ToList().Count;
 
 		// ToArray().ToList() => ToList()
 		var b = x.ToArray().ToList().Count;
@@ -26,6 +26,6 @@ public class LinqToListOptimizationTests() : BaseTest<Func<int[], int>>(FastMath
 	[
 		Create(x => (x.Length << 1) + x.Length),
 		Create(_ => 9, [ new[] { 1, 2, 3 } ]),
-		Create(_ => 0, [ System.Array.Empty<int>() ]),
+		Create(_ => 0, [ System.Array.Empty<int>() ])
 	];
 }

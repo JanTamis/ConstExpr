@@ -6,10 +6,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.EqualsStrategies;
 
 /// <summary>
-/// Strategy for Count() == 0 → !source.Any() (and 0 == Count()),
-/// and Count(predicate) == 0 → !source.Any(predicate).
-/// Any() short-circuits after the first element; Count() must enumerate everything.
-/// Safe under Strict (semantically equivalent for any IEnumerable).
+///   Strategy for Count() == 0 → !source.Any() (and 0 == Count()),
+///   and Count(predicate) == 0 → !source.Any(predicate).
+///   Any() short-circuits after the first element; Count() must enumerate everything.
+///   Safe under Strict (semantically equivalent for any IEnumerable).
 /// </summary>
 public class EqualsCountZeroStrategy : BaseBinaryStrategy
 {

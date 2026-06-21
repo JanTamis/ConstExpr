@@ -6,8 +6,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies;
 
 /// <summary>
-/// Strategy for algebraic simplification: (x * a) / a => x
-/// Safe under Strict (pure algebraic identity).
+///   Strategy for algebraic simplification: (x * a) / a => x
+///   Safe under Strict (pure algebraic identity).
 /// </summary>
 public class DivideMultiplySimplificationStrategy() : NumericBinaryStrategy<BinaryExpressionSyntax, ExpressionSyntax>(leftKind: SyntaxKind.MultiplyExpression)
 {
@@ -30,7 +30,7 @@ public class DivideMultiplySimplificationStrategy() : NumericBinaryStrategy<Bina
 			optimized = context.Left.Syntax.Right;
 			return true;
 		}
-		
+
 		optimized = null;
 		return false;
 	}

@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
-/// Tests for VisitForEachStatement - foreach loop unrolling
+///   Tests for VisitForEachStatement - foreach loop unrolling
 /// </summary>
 [InheritsTests]
 public class VisitForEachStatementTests : BaseTest<Func<int[], int>>

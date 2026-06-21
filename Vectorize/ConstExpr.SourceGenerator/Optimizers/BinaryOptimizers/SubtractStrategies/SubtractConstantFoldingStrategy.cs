@@ -6,9 +6,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.SubtractStrategies;
 
 /// <summary>
-/// Strategy for constant folding in chained subtractions: (x - C1) - C2 => x - (C1 + C2)
-/// Also handles: (C1 - x) - C2 => (C1 - C2) - x and C1 - (x - C2) => (C1 + C2) - x
-/// Note: subtraction is not commutative, so patterns must preserve order carefully
+///   Strategy for constant folding in chained subtractions: (x - C1) - C2 => x - (C1 + C2)
+///   Also handles: (C1 - x) - C2 => (C1 - C2) - x and C1 - (x - C2) => (C1 + C2) - x
+///   Note: subtraction is not commutative, so patterns must preserve order carefully
 /// </summary>
 public class SubtractConstantFoldingStrategy() : SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, LiteralExpressionSyntax>(leftKind: SyntaxKind.SubtractExpression)
 {

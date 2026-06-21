@@ -9,13 +9,7 @@ using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace ConstExpr.SourceGenerator.Analyzers;
 
-[DiagnosticAnalyzer(LanguageNames.CSharp)]
-[DiagnosticSeverity(DiagnosticSeverity.Warning)]
-[DiagnosticId("CEA002")]
-[DiagnosticTitle("Method is not static")]
-[DiagnosticMessageFormat("Constant method '{0}' should be static")]
-[DiagnosticDescription("Constant method should be static")]
-[DiagnosticCategory("Usage")]
+[DiagnosticAnalyzer(LanguageNames.CSharp), DiagnosticSeverity(DiagnosticSeverity.Warning), DiagnosticId("CEA002"), DiagnosticTitle("Method is not static"), DiagnosticMessageFormat("Constant method '{0}' should be static"), DiagnosticDescription("Constant method should be static"), DiagnosticCategory("Usage")]
 public class MethodShouldBeStaticAnalyzer : BaseAnalyzer<MethodDeclarationSyntax, IMethodSymbol>
 {
 	protected override bool ValidateSyntax(SyntaxNodeAnalysisContext context, MethodDeclarationSyntax node, CancellationToken token)

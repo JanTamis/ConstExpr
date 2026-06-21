@@ -5,9 +5,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 /// <summary>
-/// Unrolls <c>.GroupBy(keySelector)</c> or <c>.GroupBy(keySelector, elementSelector)</c>
-/// as an intermediate step. Collects all elements into a dictionary of lists keyed by
-/// the key selector, then iterates the groups through subsequent chain steps.
+///   Unrolls <c>.GroupBy(keySelector)</c> or <c>.GroupBy(keySelector, elementSelector)</c>
+///   as an intermediate step. Collects all elements into a dictionary of lists keyed by
+///   the key selector, then iterates the groups through subsequent chain steps.
 /// </summary>
 public class GroupByLinqUnroller : BaseLinqUnroller
 {
@@ -28,7 +28,7 @@ public class GroupByLinqUnroller : BaseLinqUnroller
 
 		// var groupByDict = new Dictionary<TKey, List<TSource>>();
 		statements.Add(CreateLocalDeclaration(DictName,
-			ObjectCreationExpression(IdentifierName($"Dictionary<{keyTypeName}, List<{sourceTypeName}>>"), [])));
+			ObjectCreationExpression(IdentifierName($"Dictionary<{keyTypeName}, List<{sourceTypeName}>>"), [ ])));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
@@ -59,16 +59,18 @@ public class GroupByLinqUnroller : BaseLinqUnroller
 						.WithRefKindKeyword(Token(SyntaxKind.OutKeyword))
 				])))),
 			Block(
-				CreateAssignment("groupList", ObjectCreationExpression(IdentifierName($"List<{method.Model.Compilation.GetMinimalString(method.MethodSymbol.TypeArguments[0])}>"), [])),
+				CreateAssignment("groupList", ObjectCreationExpression(IdentifierName($"List<{method.Model.Compilation.GetMinimalString(method.MethodSymbol.TypeArguments[0])}>"), [ ])),
 				ExpressionStatement(AssignmentExpression(SyntaxKind.SimpleAssignmentExpression,
 					ElementAccessExpression(IdentifierName(DictName), IdentifierName("groupKey")),
 					IdentifierName("groupList"))))));
 
 		// Get element to add (use element selector if present)
-		ExpressionSyntax elementToAdd = elementName;
+		var elementToAdd = elementName;
+
 		if (method.Parameters.Length >= 2 && TryGetLambda(method.Parameters[1], out var elementLambda))
 		{
 			var selectedElement = ReplaceLambda(method.Visit(elementLambda) as LambdaExpressionSyntax ?? elementLambda, elementName);
+
 			if (selectedElement is not null)
 			{
 				elementToAdd = selectedElement;
@@ -92,5 +94,3 @@ public class GroupByLinqUnroller : BaseLinqUnroller
 			Block(partialLoopBody)));
 	}
 }
-
-

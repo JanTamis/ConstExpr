@@ -13,11 +13,11 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Rewriters;
 
 public sealed class PruneVariableRewriter(
-	SemanticModel semanticModel, 
-	MetadataLoader loader, 
+	SemanticModel semanticModel,
+	MetadataLoader loader,
 	IDictionary<string, VariableItem> variables,
 	ConcurrentDictionary<ulong, ISymbol> symbolStore,
-	RoslynApiCache? apiCache = null, 
+	RoslynApiCache? apiCache = null,
 	CancellationToken cancellationToken = default)
 	: BaseRewriter(semanticModel, loader, variables, symbolStore)
 {
@@ -234,7 +234,7 @@ public sealed class PruneVariableRewriter(
 				when assignment.IsKind(SyntaxKind.SimpleAssignmentExpression):
 			{
 				if (tuple.Arguments.All(arg =>
-				        arg.Expression is IdentifierNameSyntax tupleId && CanBePruned(tupleId.Identifier.Text)))
+					    arg.Expression is IdentifierNameSyntax tupleId && CanBePruned(tupleId.Identifier.Text)))
 				{
 					return true;
 				}
@@ -251,7 +251,7 @@ public sealed class PruneVariableRewriter(
 			or ThrowStatementSyntax
 			or BreakStatementSyntax
 			or ContinueStatementSyntax
-			or YieldStatementSyntax { RawKind: (int) SyntaxKind.YieldBreakStatement };
+			or YieldStatementSyntax { RawKind: (int)SyntaxKind.YieldBreakStatement };
 	}
 
 	#endregion

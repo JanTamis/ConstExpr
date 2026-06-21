@@ -3,9 +3,9 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for ElementAt() optimization with Skip - verify that Skip is properly optimized
-/// When Skip results in ElementAt(0), it should NOT further optimize to First() for arrays because
-/// we already have direct indexing. Direct ElementAt(0) without Skip DOES become First().
+///   Tests for ElementAt() optimization with Skip - verify that Skip is properly optimized
+///   When Skip results in ElementAt(0), it should NOT further optimize to First() for arrays because
+///   we already have direct indexing. Direct ElementAt(0) without Skip DOES become First().
 /// </summary>
 [InheritsTests]
 public class LinqElementAtSkipOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
@@ -42,6 +42,6 @@ public class LinqElementAtSkipOptimizationTests() : BaseTest<Func<int[], int>>(F
 		Create(_ =>
 		{
 			throw new ArgumentOutOfRangeException("Index was out of range. Must be non-negative and less than the size of the collection. (Parameter 'index')");
-		}, [ System.Array.Empty<int>() ]),
+		}, [ System.Array.Empty<int>() ])
 	];
 }

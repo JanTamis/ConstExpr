@@ -8,10 +8,12 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 
 /// <summary>
-/// Optimizes usages of <c>string.Substring</c>. This optimizer:
-/// - Converts certain Substring calls to range-based element access when possible (for example, <c>s.Substring(start, length)</c> -> <c>s[start..(start+length)]</c> or <c>s[..to]</c> when start is 0).
-/// - Returns an empty string literal for zero-length requests when that can be determined at compile time.
-/// - Rewrites the context.Invocation to use range/element access expressions when appropriate while preserving semantics.
+///   Optimizes usages of <c>string.Substring</c>. This optimizer:
+///   - Converts certain Substring calls to range-based element access when possible (for example,
+///   <c>s.Substring(start, length)</c> -> <c>s[start..(start+length)]</c> or <c>s[..to]</c> when start is 0).
+///   - Returns an empty string literal for zero-length requests when that can be determined at compile time.
+///   - Rewrites the context.Invocation to use range/element access expressions when appropriate while preserving
+///   semantics.
 /// </summary>
 /// <param name="instance">Optional syntax node instance provided by the optimizer infrastructure; may be null.</param>
 public class SubstringFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "Substring", false, n => n is 1 or 2)

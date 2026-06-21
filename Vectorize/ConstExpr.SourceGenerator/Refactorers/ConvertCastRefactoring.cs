@@ -8,20 +8,19 @@ namespace ConstExpr.SourceGenerator.Refactorers;
 using static SyntaxFactory;
 
 /// <summary>
-/// Refactorer that converts between direct casts and try-casts (as-casts).
-/// Inspired by the Roslyn <c>ConvertDirectCastToTryCastCodeRefactoringProvider</c>
-/// and <c>ConvertTryCastToDirectCastCodeRefactoringProvider</c>.
-///
-/// <list type="bullet">
-///   <item>Direct → try:  <c>(Type)expr</c>  →  <c>expr as Type</c></item>
-///   <item>Try → direct:  <c>expr as Type</c>  →  <c>(Type)expr</c></item>
-/// </list>
+///   Refactorer that converts between direct casts and try-casts (as-casts).
+///   Inspired by the Roslyn <c>ConvertDirectCastToTryCastCodeRefactoringProvider</c>
+///   and <c>ConvertTryCastToDirectCastCodeRefactoringProvider</c>.
+///   <list type="bullet">
+///     <item>Direct → try:  <c>(Type)expr</c>  →  <c>expr as Type</c></item>
+///     <item>Try → direct:  <c>expr as Type</c>  →  <c>(Type)expr</c></item>
+///   </list>
 /// </summary>
 public static class ConvertCastRefactoring
 {
 	/// <summary>
-	/// Converts a direct cast expression <c>(T)expr</c> to a try-cast <c>expr as T</c>.
-	/// Only applies to reference-type-like casts (not numeric casts).
+	///   Converts a direct cast expression <c>(T)expr</c> to a try-cast <c>expr as T</c>.
+	///   Only applies to reference-type-like casts (not numeric casts).
 	/// </summary>
 	public static bool TryConvertDirectCastToTryCast(
 		CastExpressionSyntax castExpression,
@@ -49,7 +48,7 @@ public static class ConvertCastRefactoring
 	}
 
 	/// <summary>
-	/// Converts a try-cast expression <c>expr as T</c> to a direct cast <c>(T)expr</c>.
+	///   Converts a try-cast expression <c>expr as T</c> to a direct cast <c>(T)expr</c>.
 	/// </summary>
 	public static bool TryConvertTryCastToDirectCast(
 		BinaryExpressionSyntax asExpression,
@@ -74,9 +73,9 @@ public static class ConvertCastRefactoring
 	}
 
 	/// <summary>
-	/// Converts a cast expression <c>(T)expr</c> to an is-pattern with declaration:
-	/// produces the expression <c>expr is T name</c>.
-	/// The caller must supply the desired variable name.
+	///   Converts a cast expression <c>(T)expr</c> to an is-pattern with declaration:
+	///   produces the expression <c>expr is T name</c>.
+	///   The caller must supply the desired variable name.
 	/// </summary>
 	public static bool TryConvertCastToIsPattern(
 		CastExpressionSyntax castExpression,
@@ -105,9 +104,9 @@ public static class ConvertCastRefactoring
 	}
 
 	/// <summary>
-	/// Returns <see langword="true"/> for value types where <c>as</c> cannot be used.
-	/// When a <see cref="SemanticModel"/> is available, resolves the type symbol to
-	/// handle user-defined structs and enums in addition to predefined types.
+	///   Returns <see langword="true" /> for value types where <c>as</c> cannot be used.
+	///   When a <see cref="SemanticModel" /> is available, resolves the type symbol to
+	///   handle user-defined structs and enums in addition to predefined types.
 	/// </summary>
 	private static bool IsKnownValueType(TypeSyntax type, SemanticModel semanticModel)
 	{

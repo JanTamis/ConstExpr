@@ -5,10 +5,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 /// <summary>
-/// Unrolls <c>.Chunk(size)</c> as an intermediate step.
-/// Collects elements into a temporary list, flushing as a sub-array of <c>size</c> elements
-/// through downstream chain steps each time the chunk is full.
-/// Remaining elements are flushed after the main loop.
+///   Unrolls <c>.Chunk(size)</c> as an intermediate step.
+///   Collects elements into a temporary list, flushing as a sub-array of <c>size</c> elements
+///   through downstream chain steps each time the chunk is full.
+///   Remaining elements are flushed after the main loop.
 /// </summary>
 public class ChunkLinqUnroller : BaseLinqUnroller
 {
@@ -21,7 +21,7 @@ public class ChunkLinqUnroller : BaseLinqUnroller
 
 		// var chunkBuffer = new List<T>();
 		statements.Add(CreateLocalDeclaration(BufferName,
-			ObjectCreationExpression(IdentifierName($"List<{typeName}>"), [])));
+			ObjectCreationExpression(IdentifierName($"List<{typeName}>"), [ ])));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
@@ -91,5 +91,3 @@ public class ChunkLinqUnroller : BaseLinqUnroller
 					IdentifierName(chunkStartName), chunkSize))));
 	}
 }
-
-

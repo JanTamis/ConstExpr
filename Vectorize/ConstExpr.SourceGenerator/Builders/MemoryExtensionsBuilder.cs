@@ -101,7 +101,7 @@
 //					{
 //						Usings.Add("System.Numerics");
 //						Usings.Add("System.Runtime.InteropServices");
-						
+
 //						var cast = elementType.EqualsType(compilation.CreateInt32())
 //							? String.Empty
 //							: $"({elementType})";
@@ -117,7 +117,7 @@
 //							if (Vector.IsHardwareAccelerated)
 //							{
 //								var position = 0;
-								
+
 //								var indexes = Vector<{{elementType}}>.Indices;
 //								var lengthVector = Vector.Create(Math.Min({{cast:literal}}{{method.Parameters[0]}}.Length, {{(elementType.NeedsCast() ? $"({compilation.GetMinimalString(elementType)})" : String.Empty):literal}}{{items.Length.ToSpecialType(elementType.SpecialType)}}));
 //								var countVector = Vector.Create({{cast:literal}}Vector<{{elementType}}>.Count);
@@ -146,7 +146,7 @@
 //									indexes += countVector;
 //								}
 //							}
-								
+
 //							return {{DataName:literal}}.CommonPrefixLength({{method.Parameters[0]}});
 //							""");
 //					}
@@ -318,7 +318,7 @@
 //						}
 //					});
 //				}
-				
+
 //				return true;
 //			}
 //			case { Name: "ContainsAnyExcept", ReturnType.SpecialType: SpecialType.System_Boolean, Parameters.Length: 0 }
@@ -372,11 +372,11 @@
 //								{
 //									builder.WriteLine($"return {method.Parameters[0]} <= {method.Parameters[1]} && {method.Parameters[0]} <= {items[^1]} && {method.Parameters[1]} >= ({unsignedType}){items[0]};");
 //								}
-								
+
 //								return;
 //							}
 //						}
-						
+
 //						builder.WriteLine($"return {method.Parameters[0]} <= {method.Parameters[1]} && {method.Parameters[0]} <= {items[^1]} && {method.Parameters[1]} >= {items[0]};");
 //					});
 
@@ -659,7 +659,7 @@
 //				AppendMethod(builder, method, data.AsSpan(), isPerformance =>
 //				{
 //					Usings.Add("System.Text");
-					
+
 //// 					builder.WriteLine($$"""
 //// 						var index = 0;
 //// 						
@@ -669,9 +669,9 @@
 //// 							index += charsConsumed;
 //// 						}
 //// 						""");
-					
+
 //					var span = data.AsSpan();
-					
+
 //					while (TryDecodeFromUtf16(span, out var result, out var charsConsumed))
 //					{
 //						builder.WriteLine($"yield return new Rune({result}); \t// {span.Slice(0, charsConsumed).ToString():literal}");
@@ -1261,17 +1261,17 @@
 //					{
 //						builder.WriteLine($$"""
 //							var count = Math.Min({{items.Length}}, {{method.Parameters[0]}}.Length);
-							
+
 //							for (var i = 0; i < count; i++)
 //							{
 //								var result = {{DataName:literal}}[i].CompareTo({{method.Parameters[0]}}[i]);
-								
+
 //								if (result != 0)
 //								{
 //									return result;
 //								}
 //							}
-							
+
 //							return {{DataName:literal}}.Length.CompareTo({{method.Parameters[0]}}.Length);
 //							""");
 //					}
@@ -1280,7 +1280,7 @@
 //						builder.WriteLine($"return {DataName:literal}.SequenceCompareTo({method.Parameters[0]});");
 //					}
 //				});
-	
+
 //				return true;
 //			}
 //			default:

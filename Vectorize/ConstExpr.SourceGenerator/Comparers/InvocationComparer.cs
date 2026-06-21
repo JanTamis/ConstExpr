@@ -5,8 +5,8 @@ using Microsoft.CodeAnalysis;
 namespace ConstExpr.SourceGenerator.Comparers;
 
 /// <summary>
-/// Comparer for InvocationModel to enable incremental generation caching.
-/// Only processes invocations that have actually changed.
+///   Comparer for InvocationModel to enable incremental generation caching.
+///   Only processes invocations that have actually changed.
 /// </summary>
 public class InvocationModelEqualityComparer : IEqualityComparer<InvocationModel?>
 {

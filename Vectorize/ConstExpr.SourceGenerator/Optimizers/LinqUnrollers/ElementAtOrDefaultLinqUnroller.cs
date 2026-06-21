@@ -35,4 +35,3 @@ public class ElementAtOrDefaultLinqUnroller : BaseLinqUnroller
 		statements.Add(ReturnStatement(method.MethodSymbol.ReturnType.GetDefaultValue()));
 	}
 }
-

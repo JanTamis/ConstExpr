@@ -8,7 +8,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 public class SumLinqUnroller : BaseLinqUnroller
 {
 	private const string ResultName = "result";
-	
+
 	public override void UnrollAboveLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
 		statements.Add(CreateLocalDeclaration(ResultName, method.MethodSymbol.ReturnType.GetDefaultValue()));

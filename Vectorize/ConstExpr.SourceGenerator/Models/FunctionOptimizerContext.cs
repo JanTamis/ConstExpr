@@ -35,7 +35,7 @@ public sealed class FunctionOptimizerContext(
 	public Func<SyntaxNode, ExpressionSyntax?> Visit { get; } = visit;
 
 	public Func<SyntaxNode, StatementSyntax?> VisitStatement { get; } = visitStatement;
-	
+
 	public Func<LambdaExpressionSyntax, LambdaExpression?> GetLambda { get; } = getLambda;
 	public Func<BinaryExpressionSyntax, ITypeSymbol, ITypeSymbol, ITypeSymbol, ExpressionSyntax> OptimizeBinaryExpression { get; set; } = optimizeBinaryExpression;
 	public IDictionary<SyntaxNode, bool> AdditionalSyntax { get; } = additionalSyntax;

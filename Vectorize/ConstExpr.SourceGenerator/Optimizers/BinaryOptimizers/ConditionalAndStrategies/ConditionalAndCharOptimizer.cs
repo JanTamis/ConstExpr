@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalAndStrategies;
 
-public class ConditionalAndCharOptimizer() 
+public class ConditionalAndCharOptimizer()
 	: SymmetricStrategy<BooleanBinaryStrategy, BinaryExpressionSyntax, BinaryExpressionSyntax>(SyntaxKind.GreaterThanOrEqualExpression, SyntaxKind.LessThanOrEqualExpression)
 {
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<BinaryExpressionSyntax, BinaryExpressionSyntax> context, out ExpressionSyntax? optimized)
@@ -45,13 +45,13 @@ public class ConditionalAndCharOptimizer()
 
 				return TryCreateLiteral(charMethod.Invoke(null, [ charValue ]), out optimized);
 			}
-			
-			optimized =  InvocationExpression(
+
+			optimized = InvocationExpression(
 				MemberAccessExpression(ParseTypeName("Char"), IdentifierName(memberName)),
 				ArgumentList(
 					SingletonSeparatedList(
 						Argument(context.Left.Syntax.Left))));
-			
+
 			return true;
 		}
 
@@ -71,14 +71,14 @@ public class ConditionalAndCharOptimizer()
 
 				return TryCreateLiteral(charMethod.Invoke(null, [ charValue, leftValue, rightValue ]), out optimized);
 			}
-			
+
 			optimized = InvocationExpression(
 				MemberAccessExpression(ParseTypeName("Char"), IdentifierName("IsBetween")),
 				ArgumentList([ Argument(context.Left.Syntax.Left), Argument(context.Left.Syntax.Right), Argument(context.Right.Syntax.Right) ]));
-			
+
 			return true;
 		}
-		
+
 		optimized = null;
 		return false;
 	}

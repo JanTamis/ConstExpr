@@ -25,7 +25,7 @@ public class CeilingDivisionTest() : BaseTest<Func<int, int, int>>(FastMathFlags
 		{
 			var sum = numerator + 4;
 
-			return ((int) (sum * 1717986919L >> 32) >> 1) - (sum >> 31);
+			return ((int)(sum * 1717986919L >> 32) >> 1) - (sum >> 31);
 		}, [ Unknown, 5 ]),
 		Create((_, _) => 0, [ Unknown, 0 ])
 	];

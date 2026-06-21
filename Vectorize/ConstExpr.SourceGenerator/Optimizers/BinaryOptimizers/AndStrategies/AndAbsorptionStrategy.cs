@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AndStrategies;
 
 /// <summary>
-/// Absorption with Or: x & (x | y) = x and (x | y) & x = x (pure)
+///   Absorption with Or: x & (x | y) = x and (x | y) & x = x (pure)
 /// </summary>
 public class AndAbsorptionStrategy() : SymmetricStrategy<NumericOrBooleanBinaryStrategy, ExpressionSyntax, BinaryExpressionSyntax>(rightKind: SyntaxKind.BitwiseOrExpression)
 {
@@ -19,7 +19,7 @@ public class AndAbsorptionStrategy() : SymmetricStrategy<NumericOrBooleanBinaryS
 			optimized = null;
 			return false;
 		}
-		
+
 		optimized = context.Left.Syntax;
 		return true;
 	}

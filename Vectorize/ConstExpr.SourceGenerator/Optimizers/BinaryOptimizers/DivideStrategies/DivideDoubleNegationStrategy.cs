@@ -6,10 +6,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies;
 
 /// <summary>
-/// Strategy for double negation cancellation: (-x) / (-y) => x / y
-/// Safe under Strict (pure algebraic identity).
+///   Strategy for double negation cancellation: (-x) / (-y) => x / y
+///   Safe under Strict (pure algebraic identity).
 /// </summary>
-public class DivideDoubleNegationStrategy() 
+public class DivideDoubleNegationStrategy()
 	: NumericBinaryStrategy<PrefixUnaryExpressionSyntax, PrefixUnaryExpressionSyntax>(SyntaxKind.UnaryMinusExpression, SyntaxKind.UnaryMinusExpression)
 {
 	public override FastMathFlags[] RequiredFlags => [ FastMathFlags.Strict ];

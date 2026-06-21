@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.SubtractStrategies;
 
 /// <summary>
-/// Strategy for zero minus optimization: 0 - x = -x
+///   Strategy for zero minus optimization: 0 - x = -x
 /// </summary>
 public class SubtractZeroMinusStrategy : NumericBinaryStrategy<LiteralExpressionSyntax, ExpressionSyntax>
 {
@@ -13,11 +13,11 @@ public class SubtractZeroMinusStrategy : NumericBinaryStrategy<LiteralExpression
 	{
 		if (base.TryOptimize(context, out optimized)
 		    || !context.Left.Syntax.IsNumericZero())
-    {
-      return false;
-    }
+		{
+			return false;
+		}
 
-    optimized = UnaryMinusExpression(context.Right.Syntax);
+		optimized = UnaryMinusExpression(context.Right.Syntax);
 		return true;
 	}
 }

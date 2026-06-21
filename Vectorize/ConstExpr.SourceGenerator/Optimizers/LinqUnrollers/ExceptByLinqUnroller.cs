@@ -4,9 +4,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 /// <summary>
-/// Unrolls <c>.ExceptBy(second, keySelector)</c> as an intermediate step.
-/// Builds a <c>HashSet&lt;TKey&gt;</c> from <c>second</c>, then filters source elements
-/// whose projected key is already in the set (via <c>Add</c>).
+///   Unrolls <c>.ExceptBy(second, keySelector)</c> as an intermediate step.
+///   Builds a <c>HashSet&lt;TKey&gt;</c> from <c>second</c>, then filters source elements
+///   whose projected key is already in the set (via <c>Add</c>).
 /// </summary>
 public class ExceptByLinqUnroller : BaseLinqUnroller
 {
@@ -46,5 +46,3 @@ public class ExceptByLinqUnroller : BaseLinqUnroller
 			ContinueStatement()));
 	}
 }
-
-

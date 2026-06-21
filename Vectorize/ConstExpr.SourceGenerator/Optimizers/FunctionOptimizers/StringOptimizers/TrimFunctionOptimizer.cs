@@ -6,8 +6,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 
 /// <summary>
-/// Optimizes redundant Trim() calls:
-/// - s.Trim().Trim() → s.Trim()
+///   Optimizes redundant Trim() calls:
+///   - s.Trim().Trim() → s.Trim()
 /// </summary>
 public class TrimFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "Trim", false, n => n is 0)
 {

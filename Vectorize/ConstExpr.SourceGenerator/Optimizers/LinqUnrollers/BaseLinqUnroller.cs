@@ -17,16 +17,16 @@ public abstract class BaseLinqUnroller
 	public virtual void UnrollUnderLoop(UnrolledLinqMethod method, List<StatementSyntax> statements) { }
 
 	/// <summary>
-	/// Called before the main loop is added to the result statements.
-	/// Receives the partial loop body (chain steps after this one) so that extra elements
-	/// can be processed through subsequent steps. Used by Prepend.
+	///   Called before the main loop is added to the result statements.
+	///   Receives the partial loop body (chain steps after this one) so that extra elements
+	///   can be processed through subsequent steps. Used by Prepend.
 	/// </summary>
 	public virtual void UnrollBeforeMainLoop(UnrolledLinqMethod method, IList<StatementSyntax> partialLoopBody, List<StatementSyntax> resultStatements) { }
 
 	/// <summary>
-	/// Called after the main loop is added to the result statements.
-	/// Receives the partial loop body (chain steps after this one) so that extra elements
-	/// can be processed through subsequent steps. Used by Append, Concat, Union, DefaultIfEmpty.
+	///   Called after the main loop is added to the result statements.
+	///   Receives the partial loop body (chain steps after this one) so that extra elements
+	///   can be processed through subsequent steps. Used by Append, Concat, Union, DefaultIfEmpty.
 	/// </summary>
 	public virtual void UnrollAfterMainLoop(UnrolledLinqMethod method, IList<StatementSyntax> partialLoopBody, List<StatementSyntax> resultStatements) { }
 
@@ -106,7 +106,7 @@ public abstract class BaseLinqUnroller
 	}
 
 	/// <summary>
-	/// Checks if the invocation is made on an array type.
+	///   Checks if the invocation is made on an array type.
 	/// </summary>
 	protected static bool IsInvokedOnArray(ITypeSymbol type)
 	{
@@ -114,7 +114,7 @@ public abstract class BaseLinqUnroller
 	}
 
 	/// <summary>
-	/// Checks if the invocation is made on a List&lt;T&gt; type.
+	///   Checks if the invocation is made on a List&lt;T&gt; type.
 	/// </summary>
 	protected static bool IsInvokedOnCollection(ITypeSymbol type)
 	{
@@ -162,8 +162,8 @@ public abstract class BaseLinqUnroller
 	}
 
 	/// <summary>
-	/// Generates a <c>Span&lt;T&gt;</c> local backed by <c>stackalloc</c>.
-	/// Example: <c>Span&lt;bool&gt; name = stackalloc bool[size];</c>
+	///   Generates a <c>Span&lt;T&gt;</c> local backed by <c>stackalloc</c>.
+	///   Example: <c>Span&lt;bool&gt; name = stackalloc bool[size];</c>
 	/// </summary>
 	protected static LocalDeclarationStatementSyntax CreateStackAllocSpan(string name, TypeSyntax elementType, int size)
 	{
@@ -182,8 +182,8 @@ public abstract class BaseLinqUnroller
 	}
 
 	/// <summary>
-	/// Generates a <c>Span&lt;T&gt;</c> local backed by <c>stackalloc</c>.
-	/// Example: <c>Span&lt;bool&gt; name = stackalloc bool[size];</c>
+	///   Generates a <c>Span&lt;T&gt;</c> local backed by <c>stackalloc</c>.
+	///   Example: <c>Span&lt;bool&gt; name = stackalloc bool[size];</c>
 	/// </summary>
 	protected static LocalDeclarationStatementSyntax CreateStackAllocSpan<T>(string name, int size)
 	{
@@ -191,9 +191,9 @@ public abstract class BaseLinqUnroller
 	}
 
 	/// <summary>
-	/// Returns a size expression for the source collection: <c>collection.Length</c> for arrays,
-	/// <c>collection.Count</c> for <c>IList&lt;T&gt;</c>-implementing collections, or <c>null</c>
-	/// for plain <c>IEnumerable&lt;T&gt;</c> where the size is unknown at compile time.
+	///   Returns a size expression for the source collection: <c>collection.Length</c> for arrays,
+	///   <c>collection.Count</c> for <c>IList&lt;T&gt;</c>-implementing collections, or <c>null</c>
+	///   for plain <c>IEnumerable&lt;T&gt;</c> where the size is unknown at compile time.
 	/// </summary>
 	protected static ExpressionSyntax? GetCollectionSizeExpression(ITypeSymbol collectionType, string collectionParamName = "collection")
 	{
@@ -211,8 +211,8 @@ public abstract class BaseLinqUnroller
 	}
 
 	/// <summary>
-	/// Emits a two-flag distinct check for <c>bool</c> elements.
-	/// <code>
+	///   Emits a two-flag distinct check for <c>bool</c> elements.
+	///   <code>
 	/// if (element) { if (seenTrue) continue; seenTrue = true; }
 	/// else         { if (seenFalse) continue; seenFalse = true; }
 	/// </code>
@@ -229,8 +229,8 @@ public abstract class BaseLinqUnroller
 	}
 
 	/// <summary>
-	/// Emits a direct-index distinct check against a <c>Span&lt;bool&gt;</c> for 8-bit types.
-	/// <code>
+	///   Emits a direct-index distinct check against a <c>Span&lt;bool&gt;</c> for 8-bit types.
+	///   <code>
 	/// if (span[index]) continue;
 	/// span[index] = true;
 	/// </code>
@@ -254,8 +254,8 @@ public abstract class BaseLinqUnroller
 	}
 
 	/// <summary>
-	/// Emits a bitset distinct check against a <c>Span&lt;ulong&gt;</c> for 16-bit types.
-	/// <code>
+	///   Emits a bitset distinct check against a <c>Span&lt;ulong&gt;</c> for 16-bit types.
+	///   <code>
 	/// if ((span[index &gt;&gt; 6] &amp; (1UL &lt;&lt; (index &amp; 63))) != 0UL) continue;
 	/// span[index &gt;&gt; 6] |= 1UL &lt;&lt; (index &amp; 63);
 	/// </code>

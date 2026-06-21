@@ -8,10 +8,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.OfType context.Method.
-/// Optimizes patterns such as:
-/// - collection.OfType&lt;T&gt;().OfType&lt;T&gt;() => collection.OfType&lt;T&gt;() (duplicate removal)
-/// - collection.Cast&lt;T&gt;().OfType&lt;T&gt;() => collection.Cast&lt;T&gt;() (redundant OfType after Cast)
+///   Optimizer for Enumerable.OfType context.Method.
+///   Optimizes patterns such as:
+///   - collection.OfType&lt;T&gt;().OfType&lt;T&gt;() => collection.OfType&lt;T&gt;() (duplicate removal)
+///   - collection.Cast&lt;T&gt;().OfType&lt;T&gt;() => collection.Cast&lt;T&gt;() (redundant OfType after Cast)
 /// </summary>
 public class OfTypeFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.OfType), n => n is 0)
 {

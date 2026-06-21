@@ -12,23 +12,24 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.All context.Method.
-/// Optimizes patterns such as:
-/// - collection.Where(predicate1).All(predicate2) => collection.All(x => predicate1(x) && predicate2(x))
-/// - collection.Select(...).All() => collection.All() (projection doesn't affect all-check)
-/// - collection.Distinct().All() => collection.All() (distinctness doesn't affect all-check)
-/// - collection.OrderBy(...).All() => collection.All() (ordering doesn't affect all-check)
-/// - collection.OrderByDescending(...).All() => collection.All() (ordering doesn't affect all-check)
-/// - collection.Order().All() => collection.All() (ordering doesn't affect all-check)
-/// - collection.OrderDescending().All() => collection.All() (ordering doesn't affect all-check)
-/// - collection.ThenBy(...).All() => collection.All() (secondary ordering doesn't affect all-check)
-/// - collection.ThenByDescending(...).All() => collection.All() (secondary ordering doesn't affect all-check)
-/// - collection.Reverse().All() => collection.All() (reversing doesn't affect all-check)
-/// - collection.AsEnumerable().All() => collection.All() (type cast doesn't affect all-check)
-/// - collection.ToList().All() => collection.All() (materialization doesn't affect all-check)
-/// - collection.ToArray().All() => collection.All() (materialization doesn't affect all-check)
-/// - Enumerable.Repeat(element, count).All(predicate) => count &lt;= 0 || predicate(element)
-/// - Enumerable.Range(start, count).All(predicate) => count == 0 ? true : predicate(start) &amp;&amp; predicate(start + count - 1) (boundary check for monotone predicates, otherwise falls through)
+///   Optimizer for Enumerable.All context.Method.
+///   Optimizes patterns such as:
+///   - collection.Where(predicate1).All(predicate2) => collection.All(x => predicate1(x) && predicate2(x))
+///   - collection.Select(...).All() => collection.All() (projection doesn't affect all-check)
+///   - collection.Distinct().All() => collection.All() (distinctness doesn't affect all-check)
+///   - collection.OrderBy(...).All() => collection.All() (ordering doesn't affect all-check)
+///   - collection.OrderByDescending(...).All() => collection.All() (ordering doesn't affect all-check)
+///   - collection.Order().All() => collection.All() (ordering doesn't affect all-check)
+///   - collection.OrderDescending().All() => collection.All() (ordering doesn't affect all-check)
+///   - collection.ThenBy(...).All() => collection.All() (secondary ordering doesn't affect all-check)
+///   - collection.ThenByDescending(...).All() => collection.All() (secondary ordering doesn't affect all-check)
+///   - collection.Reverse().All() => collection.All() (reversing doesn't affect all-check)
+///   - collection.AsEnumerable().All() => collection.All() (type cast doesn't affect all-check)
+///   - collection.ToList().All() => collection.All() (materialization doesn't affect all-check)
+///   - collection.ToArray().All() => collection.All() (materialization doesn't affect all-check)
+///   - Enumerable.Repeat(element, count).All(predicate) => count &lt;= 0 || predicate(element)
+///   - Enumerable.Range(start, count).All(predicate) => count == 0 ? true : predicate(start) &amp;&amp; predicate(start +
+///   count - 1) (boundary check for monotone predicates, otherwise falls through)
 /// </summary>
 public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.All), n => n is 1)
 {
@@ -273,7 +274,7 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 		if (!InvertLogicalRefactoring.TryInvertLogical(lambda.Body as BinaryExpressionSyntax, out var inverted))
 		{
-			inverted = LogicalNotExpression((ExpressionSyntax) lambda.Body);
+			inverted = LogicalNotExpression((ExpressionSyntax)lambda.Body);
 		}
 
 		var result = $$"""

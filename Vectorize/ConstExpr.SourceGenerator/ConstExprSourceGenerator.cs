@@ -41,8 +41,8 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		// This prevents reprocessing invocations that haven't changed
 		var invocations = context.SyntaxProvider
 			.CreateSyntaxProvider(
-				predicate: (node, token) => !token.IsCancellationRequested && node is InvocationExpressionSyntax,
-				transform: GenerateSource)
+				(node, token) => !token.IsCancellationRequested && node is InvocationExpressionSyntax,
+				GenerateSource)
 			.Where(result => result != null)
 			.WithComparer(InvocationModelEqualityComparer.Instance);
 
@@ -201,7 +201,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		// Emit top-level generated methods grouped by value.
 		using (code.WriteBlock($"file static class {methodGroup.First().ParentType.Identifier:literal}"))
 		{
-			foreach (var additionalMethod in distinctAdditionalMethods.OfType<FieldDeclarationSyntax>().GroupBy(g => g.Declaration.Type, comparer: SyntaxNodeComparer.Get<TypeSyntax>()))
+			foreach (var additionalMethod in distinctAdditionalMethods.OfType<FieldDeclarationSyntax>().GroupBy(g => g.Declaration.Type, SyntaxNodeComparer.Get<TypeSyntax>()))
 			{
 				foreach (var item in additionalMethod)
 				{
@@ -229,7 +229,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 		foreach (var u in distinctUsings)
 		{
-			if (!string.IsNullOrWhiteSpace(u))
+			if (!String.IsNullOrWhiteSpace(u))
 			{
 				usingsList.Add(u!);
 			}
@@ -322,7 +322,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				Invocation = invocation,
 				MethodSymbol = methodSymbol,
 				AttributeData = attribute.ToAttribute<ConstExprAttribute>(),
-				CacheKey = $"{invocation.SyntaxTree.FilePath}:{invocation.SpanStart}:{invocation.Span.Length}:{methodSymbol.OriginalDefinition}",
+				CacheKey = $"{invocation.SyntaxTree.FilePath}:{invocation.SpanStart}:{invocation.Span.Length}:{methodSymbol.OriginalDefinition}"
 			};
 		}
 
@@ -353,7 +353,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			var usings = new HashSet<string?>
 			{
 				"System.Runtime.CompilerServices",
-				"System",
+				"System"
 			};
 
 			// var variables = ProcessArguments(visitor, context.SemanticModel.Compilation, invocation, loader, token);
@@ -374,11 +374,11 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				else
 				{
 					variablesPartial.Add(name, new VariableItem(
-						type: candidate.Symbol.Type, // Type is not needed for inlining, as the value will be directly substituted
+						candidate.Symbol.Type, // Type is not needed for inlining, as the value will be directly substituted
 						false,
-						value: null)
+						null)
 					{
-						CanBeInlined = true,
+						CanBeInlined = true
 					});
 				}
 			}
@@ -436,7 +436,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				.WithoutLeadingTrivia()
 				.WithIdentifier(Identifier($"{methodDecl.Identifier.Text}_{result2.GetDeterministicHashString()}")
 					.WithLeadingTrivia(methodDecl.Identifier.LeadingTrivia)
-					.WithTrailingTrivia(methodDecl.Identifier.TrailingTrivia)) as MethodDeclarationSyntax;
+					.WithTrailingTrivia(methodDecl.Identifier.TrailingTrivia));
 
 			if (result2 is BlockSyntax methodBody)
 			{
@@ -466,7 +466,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				Invocation = invocation,
 				Location = semanticModel.GetInterceptableLocation(invocation, token),
 				Exceptions = exceptions!,
-				AttributeData = attribute,
+				AttributeData = attribute
 			};
 		}
 
@@ -494,7 +494,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		var constantValues = variablesPartial.Values
 			.Where(v => v.HasValue)
 			.Select(v => v.Value)
-			.ToList<object?>();
+			.ToList();
 
 		if (constantValues.Count != methodSymbol.Parameters.Length)
 		{

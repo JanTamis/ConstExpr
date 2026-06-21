@@ -11,6 +11,6 @@ public class StringSubstringFromZeroTest() : BaseTest<Func<string, int, string>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((s, length) => s[..length]),
-		Create((_, _) => "hel", [ "hello", 3 ]),
+		Create((_, _) => "hel", [ "hello", 3 ])
 	];
 }

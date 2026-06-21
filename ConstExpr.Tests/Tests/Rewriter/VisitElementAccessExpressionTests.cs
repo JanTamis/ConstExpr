@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
-/// Tests for VisitElementAccessExpression - array/indexer constant evaluation
+///   Tests for VisitElementAccessExpression - array/indexer constant evaluation
 /// </summary>
 [InheritsTests]
 public class VisitElementAccessExpressionTests : BaseTest<Func<int[], int, int, (int, int, int, int)>>

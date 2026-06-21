@@ -6,12 +6,12 @@ namespace ConstExpr.Tests.Math;
 [InheritsTests]
 public class MathExp2Test() : BaseTest<Func<double, double>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
 {
-	public override string TestMethod => GetString(x => double.Exp2(x));
+	public override string TestMethod => GetString(x => Double.Exp2(x));
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return FastExp2(x);"),
 		Create(_ => 1D, [ 0.0 ]),
-		Create(_ => 8D, [ 3.0 ]),
+		Create(_ => 8D, [ 3.0 ])
 	];
 }

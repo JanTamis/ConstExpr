@@ -18,13 +18,13 @@ public class InvocationModel
 	public MethodDeclarationSyntax? OriginalMethod { get; set; }
 	public MethodDeclarationSyntax? Method { get; set; }
 	public TypeDeclarationSyntax? ParentType { get; set; }
-	
+
 	public IMethodSymbol? MethodSymbol { get; set; }
 	public ConstExprAttribute? AttributeData { get; set; }
 	public string? CacheKey { get; set; }
 
 	public InvocationExpressionSyntax? Invocation { get; set; }
-	
+
 	public IEnumerable<SyntaxNode>? AdditionalMethods { get; set; }
 
 	public HashSet<string>? Usings { get; set; }

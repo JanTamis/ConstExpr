@@ -3,12 +3,12 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for Reverse() optimization:
-/// - Reverse().Reverse() => original collection
-/// - Order().Reverse() => OrderDescending()
-/// - OrderBy(k).Reverse() => OrderByDescending(k)
-/// - OrderDescending().Reverse() => Order()
-/// - OrderByDescending(k).Reverse() => OrderBy(k)
+///   Tests for Reverse() optimization:
+///   - Reverse().Reverse() => original collection
+///   - Order().Reverse() => OrderDescending()
+///   - OrderBy(k).Reverse() => OrderByDescending(k)
+///   - OrderDescending().Reverse() => Order()
+///   - OrderByDescending(k).Reverse() => OrderBy(k)
 /// </summary>
 [InheritsTests]
 public class LinqReverseOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
@@ -37,6 +37,6 @@ public class LinqReverseOptimizationTests() : BaseTest<Func<int[], int>>(FastMat
 	[
 		Create("return TensorPrimitives.Max(x) * 2 + TensorPrimitives.Min(x) * 2 + x[0];"),
 		Create(_ => 9, [ new[] { 1, 2, 3 } ]),
-		Create(_ => 25, [ new[] { 5 } ]),
+		Create(_ => 25, [ new[] { 5 } ])
 	];
 }

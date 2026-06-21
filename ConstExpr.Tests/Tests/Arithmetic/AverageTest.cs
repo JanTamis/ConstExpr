@@ -19,7 +19,7 @@ public class AverageTest() : BaseTest<Func<int[], double>>(FastMathFlags.All, op
 			sum += num;
 		}
 
-		return (double) sum / numbers.Length;
+		return (double)sum / numbers.Length;
 	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>

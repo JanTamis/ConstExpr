@@ -9,12 +9,12 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Where context.Method.
-/// Optimizes patterns such as:
-/// - collection.Where(v => true) => collection (identity removal)
-/// - collection.Where(v => false) => Enumerable.Empty&lt;T&gt;() (empty result)
-/// - collection.Where(p1).Where(p2) => collection.Where(p1 && p2) (two chained Where statements)
-/// - collection.Where(p1).Where(p2).Where(p3) => collection.Where(p1 && p2 && p3) (multiple chained Where statements)
+///   Optimizer for Enumerable.Where context.Method.
+///   Optimizes patterns such as:
+///   - collection.Where(v => true) => collection (identity removal)
+///   - collection.Where(v => false) => Enumerable.Empty&lt;T&gt;() (empty result)
+///   - collection.Where(p1).Where(p2) => collection.Where(p1 && p2) (two chained Where statements)
+///   - collection.Where(p1).Where(p2).Where(p3) => collection.Where(p1 && p2 && p3) (multiple chained Where statements)
 /// </summary>
 public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Where), n => n is 1)
 {

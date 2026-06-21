@@ -10,6 +10,6 @@ public class StringReplaceNoOpTest() : BaseTest<Func<string, string>>(FastMathFl
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(s => s),
+		Create(s => s)
 	];
 }

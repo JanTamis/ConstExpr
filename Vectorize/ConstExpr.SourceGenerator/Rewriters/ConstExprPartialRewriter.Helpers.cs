@@ -18,16 +18,16 @@ using SourceGen.Utilities.Extensions;
 namespace ConstExpr.SourceGenerator.Rewriters;
 
 /// <summary>
-/// Helper partial containing small focused helpers used by ConstExprPartialRewriter.
-/// Keeping these in a separate file improves readability of the main visitor logic.
+///   Helper partial containing small focused helpers used by ConstExprPartialRewriter.
+///   Keeping these in a separate file improves readability of the main visitor logic.
 /// </summary>
 public partial class ConstExprPartialRewriter
 {
 	private static readonly FrozenDictionary<BinaryOperatorKind, BaseBinaryOptimizer> _binaryOptimizers = OptimizerRegistry.BinaryOptimizers;
 
 	/// <summary>
-	/// Strips unnecessary outer parentheses from an expression.
-	/// Recursively unwraps parentheses when the inner expression doesn't require them.
+	///   Strips unnecessary outer parentheses from an expression.
+	///   Recursively unwraps parentheses when the inner expression doesn't require them.
 	/// </summary>
 	private static SyntaxNode? StripUnnecessaryParentheses(SyntaxNode? node)
 	{
@@ -60,55 +60,67 @@ public partial class ConstExprPartialRewriter
 		return node;
 	}
 
-	private static bool IsExpressionPure(SyntaxNode node) => node switch
+	private static bool IsExpressionPure(SyntaxNode node)
 	{
-		IdentifierNameSyntax or LiteralExpressionSyntax => true,
-		ParenthesizedExpressionSyntax par => IsExpressionPure(par.Expression),
-		PrefixUnaryExpressionSyntax u => IsExpressionPure(u.Operand),
-		BinaryExpressionSyntax b => IsExpressionPure(b.Left) && IsExpressionPure(b.Right),
-		MemberAccessExpressionSyntax m => IsExpressionPure(m.Expression),
-		CastExpressionSyntax c => IsExpressionPure(c.Expression),
-		_ => false
-	};
+		return node switch
+		{
+			IdentifierNameSyntax or LiteralExpressionSyntax => true,
+			ParenthesizedExpressionSyntax par => IsExpressionPure(par.Expression),
+			PrefixUnaryExpressionSyntax u => IsExpressionPure(u.Operand),
+			BinaryExpressionSyntax b => IsExpressionPure(b.Left) && IsExpressionPure(b.Right),
+			MemberAccessExpressionSyntax m => IsExpressionPure(m.Expression),
+			CastExpressionSyntax c => IsExpressionPure(c.Expression),
+			_ => false
+		};
+	}
 
 	/// <summary>
-	/// Returns <see langword="true"/> for the built-in two's-complement integer types.
-	/// Used to guard rewrites that rely on the identity <c>~y == -y - 1</c>, which only holds
-	/// for these types (never for a user type with overloaded <c>operator ~</c>/<c>operator -</c>).
+	///   Returns <see langword="true" /> for the built-in two's-complement integer types.
+	///   Used to guard rewrites that rely on the identity <c>~y == -y - 1</c>, which only holds
+	///   for these types (never for a user type with overloaded <c>operator ~</c>/<c>operator -</c>).
 	/// </summary>
-	private static bool IsBuiltInInteger(SpecialType type) => type switch
+	private static bool IsBuiltInInteger(SpecialType type)
 	{
-		SpecialType.System_SByte or SpecialType.System_Byte
-			or SpecialType.System_Int16 or SpecialType.System_UInt16
-			or SpecialType.System_Int32 or SpecialType.System_UInt32
-			or SpecialType.System_Int64 or SpecialType.System_UInt64
-			or SpecialType.System_IntPtr or SpecialType.System_UIntPtr => true,
-		_ => false
-	};
+		return type switch
+		{
+			SpecialType.System_SByte or SpecialType.System_Byte
+				or SpecialType.System_Int16 or SpecialType.System_UInt16
+				or SpecialType.System_Int32 or SpecialType.System_UInt32
+				or SpecialType.System_Int64 or SpecialType.System_UInt64
+				or SpecialType.System_IntPtr or SpecialType.System_UIntPtr => true,
+			_ => false
+		};
+	}
 
 	/// <summary>
-	/// Returns <see langword="true"/> for primary expressions that never require parentheses
-	/// when placed as the operand of a unary <c>-</c> or either side of a binary operator.
-	/// Used to keep negation-distribution rewrites precedence-safe without inserting parens.
+	///   Returns <see langword="true" /> for primary expressions that never require parentheses
+	///   when placed as the operand of a unary <c>-</c> or either side of a binary operator.
+	///   Used to keep negation-distribution rewrites precedence-safe without inserting parens.
 	/// </summary>
-	private static bool IsSimpleOperand(ExpressionSyntax e) => e is
-		IdentifierNameSyntax or LiteralExpressionSyntax or MemberAccessExpressionSyntax
-		or ElementAccessExpressionSyntax or InvocationExpressionSyntax or ParenthesizedExpressionSyntax;
+	private static bool IsSimpleOperand(ExpressionSyntax e)
+	{
+		return e is
+			IdentifierNameSyntax or LiteralExpressionSyntax or MemberAccessExpressionSyntax
+			or ElementAccessExpressionSyntax or InvocationExpressionSyntax or ParenthesizedExpressionSyntax;
+	}
 
 	/// <summary>
-	/// Signed native-width integers where unary <c>-</c> is legal and does not widen the operand,
-	/// so two's-complement rewrites such as <c>~(x - 1) => -x</c> stay in the same arithmetic domain.
-	/// Deliberately excludes <c>byte/short/uint/ulong/nuint</c>: small unsigned/signed types promote
-	/// to <c>int</c> and the wide unsigned types either wrap (<c>uint</c>) or have no unary minus (<c>ulong</c>).
+	///   Signed native-width integers where unary <c>-</c> is legal and does not widen the operand,
+	///   so two's-complement rewrites such as <c>~(x - 1) => -x</c> stay in the same arithmetic domain.
+	///   Deliberately excludes <c>byte/short/uint/ulong/nuint</c>: small unsigned/signed types promote
+	///   to <c>int</c> and the wide unsigned types either wrap (<c>uint</c>) or have no unary minus (<c>ulong</c>).
 	/// </summary>
-	private static bool IsSignedNativeInteger(SpecialType type) => type
-		is SpecialType.System_Int32 or SpecialType.System_Int64 or SpecialType.System_IntPtr;
+	private static bool IsSignedNativeInteger(SpecialType type)
+	{
+		return type
+			is SpecialType.System_Int32 or SpecialType.System_Int64 or SpecialType.System_IntPtr;
+	}
 
 	/// <summary>
-	/// Guards the two's-complement rewrites (<c>~(-x)</c>, <c>-(~x)</c>, <c>~(x ± 1)</c>): the surviving
-	/// operand and the whole expression must be the same signed native integer type. This rejects
-	/// unsigned operands (wrapping / no unary minus) and wider-literal cases (e.g. <c>~(intVar - 1L)</c>)
-	/// that would silently diverge from the original.
+	///   Guards the two's-complement rewrites (<c>~(-x)</c>, <c>-(~x)</c>, <c>~(x ± 1)</c>): the surviving
+	///   operand and the whole expression must be the same signed native integer type. This rejects
+	///   unsigned operands (wrapping / no unary minus) and wider-literal cases (e.g. <c>~(intVar - 1L)</c>)
+	///   that would silently diverge from the original.
 	/// </summary>
 	private bool IsTwosComplementSafe(ExpressionSyntax operand, ExpressionSyntax node)
 	{
@@ -119,24 +131,27 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Returns <see langword="true"/> when <paramref name="value"/> is an integral constant equal to 1.
+	///   Returns <see langword="true" /> when <paramref name="value" /> is an integral constant equal to 1.
 	/// </summary>
-	private static bool IsIntegralOne(object? value) => value switch
+	private static bool IsIntegralOne(object? value)
 	{
-		sbyte v => v == 1,
-		byte v => v == 1,
-		short v => v == 1,
-		ushort v => v == 1,
-		int v => v == 1,
-		uint v => v == 1,
-		long v => v == 1,
-		ulong v => v == 1,
-		_ => false
-	};
+		return value switch
+		{
+			sbyte v => v == 1,
+			byte v => v == 1,
+			short v => v == 1,
+			ushort v => v == 1,
+			int v => v == 1,
+			uint v => v == 1,
+			long v => v == 1,
+			ulong v => v == 1,
+			_ => false
+		};
+	}
 
 	/// <summary>
-	/// Execute a Roslyn conversion operation either via operator method or basic Convert.*
-	/// Returns a runtime value that can be turned into a literal by CreateLiteral/TryGetLiteral.
+	///   Execute a Roslyn conversion operation either via operator method or basic Convert.*
+	///   Returns a runtime value that can be turned into a literal by CreateLiteral/TryGetLiteral.
 	/// </summary>
 	private object? ExecuteConversion(IConversionOperation conversion, object? value)
 	{
@@ -164,12 +179,12 @@ public partial class ConstExprPartialRewriter
 			SpecialType.System_UInt16 => Convert.ToUInt16(value),
 			SpecialType.System_UInt32 => Convert.ToUInt32(value),
 			SpecialType.System_UInt64 => Convert.ToUInt64(value),
-			_ => value,
+			_ => value
 		};
 	}
 
 	/// <summary>
-	/// Normalizes a sequence of visited nodes into a single statement or a block.
+	///   Normalizes a sequence of visited nodes into a single statement or a block.
 	/// </summary>
 	private StatementSyntax ToStatementSyntax(IEnumerable<SyntaxNode?> nodes)
 	{
@@ -187,9 +202,9 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Try to apply registered binary optimization strategies for the given operator and operands.
-	/// Only strategies whose <see cref="IBinaryStrategy.RequiredFlags"/> are satisfied by the
-	/// current <see cref="attribute"/> <c>MathOptimizations</c> flags are considered.
+	///   Try to apply registered binary optimization strategies for the given operator and operands.
+	///   Only strategies whose <see cref="IBinaryStrategy.RequiredFlags" /> are satisfied by the
+	///   current <see cref="attribute" /> <c>MathOptimizations</c> flags are considered.
 	/// </summary>
 	private bool TryOptimizeNode(BinaryOperatorKind kind, List<BinaryExpressionSyntax> expressions, ITypeSymbol? type, ExpressionSyntax leftExpr, ITypeSymbol? leftType, ExpressionSyntax rightExpr, ITypeSymbol? rightType, SyntaxNode? parent, [NotNullWhen(true)] out SyntaxNode? syntaxNode)
 	{
@@ -233,7 +248,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Tries to optimize using a specific strategy by invoking GetContext and TryOptimize via reflection.
+	///   Tries to optimize using a specific strategy by invoking GetContext and TryOptimize via reflection.
 	/// </summary>
 	private bool TryOptimizeWithStrategy(IBinaryStrategy strategy, List<BinaryExpressionSyntax> expressions, ITypeSymbol? type, ExpressionSyntax leftExpr, ITypeSymbol? leftType, ExpressionSyntax rightExpr, ITypeSymbol? rightType, SyntaxNode? parent, out ExpressionSyntax? result)
 	{
@@ -261,7 +276,7 @@ public partial class ConstExprPartialRewriter
 				rightExpr,
 				rightType,
 				variables,
-				(TryGetValueDelegate) TryGetLiteralValue,
+				(TryGetValueDelegate)TryGetLiteralValue,
 				parent,
 				semanticModel,
 				symbolStore
@@ -299,7 +314,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Checks if a method call with string arguments can be replaced with a char overload.
+	///   Checks if a method call with string arguments can be replaced with a char overload.
 	/// </summary>
 	private bool TryGetCharOverload(
 		IMethodSymbol currentMethod,
@@ -403,7 +418,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Gets the set of local/parameter names assigned within a given block node using Roslyn data flow.
+	///   Gets the set of local/parameter names assigned within a given block node using Roslyn data flow.
 	/// </summary>
 	private IEnumerable<string> AssignedVariables(StatementSyntax? block)
 	{
@@ -433,8 +448,8 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Tries to get the compound assignment kind for a given binary expression kind.
-	/// For example, LeftShiftExpression maps to LeftShiftAssignmentExpression.
+	///   Tries to get the compound assignment kind for a given binary expression kind.
+	///   For example, LeftShiftExpression maps to LeftShiftAssignmentExpression.
 	/// </summary>
 	private static SyntaxKind TryGetCompoundAssignmentKind(SyntaxKind binaryKind)
 	{
@@ -455,8 +470,8 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Returns <see langword="true"/> when <paramref name="method"/> is a LINQ extension method
-	/// declared on <see cref="System.Linq.Enumerable"/> or <see cref="System.Linq.Queryable"/>.
+	///   Returns <see langword="true" /> when <paramref name="method" /> is a LINQ extension method
+	///   declared on <see cref="System.Linq.Enumerable" /> or <see cref="System.Linq.Queryable" />.
 	/// </summary>
 	private static bool IsLinqMethod(IMethodSymbol method)
 	{
@@ -541,7 +556,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Snapshots the current value of every tracked variable so it can be restored later.
+	///   Snapshots the current value of every tracked variable so it can be restored later.
 	/// </summary>
 	private Dictionary<string, (bool HasValue, object? Value, bool IsAltered, bool IsInitialized)> SaveVariableState()
 	{
@@ -551,8 +566,8 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Restores a previously saved variable snapshot, removing any variables that were
-	/// introduced after the snapshot was taken.
+	///   Restores a previously saved variable snapshot, removing any variables that were
+	///   introduced after the snapshot was taken.
 	/// </summary>
 	private void RestoreVariableState(Dictionary<string, (bool HasValue, object? Value, bool IsAltered, bool IsInitialized)> snapshot)
 	{

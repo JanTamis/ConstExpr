@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
-/// Tests for VisitAssignmentExpression - constant assignment folding
+///   Tests for VisitAssignmentExpression - constant assignment folding
 /// </summary>
 [InheritsTests]
 public class VisitAssignmentExpressionTests : BaseTest<Func<int, int, int, (int, int, int)>>

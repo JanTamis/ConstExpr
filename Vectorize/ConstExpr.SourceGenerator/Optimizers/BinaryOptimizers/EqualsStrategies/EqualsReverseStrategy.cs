@@ -12,7 +12,7 @@ public class EqualsReverseStrategy : BaseBinaryStrategy<LiteralExpressionSyntax,
 			optimized = null;
 			return false;
 		}
-		
+
 		optimized = EqualsExpression(context.Right.Syntax, context.Left.Syntax);
 		return true;
 	}

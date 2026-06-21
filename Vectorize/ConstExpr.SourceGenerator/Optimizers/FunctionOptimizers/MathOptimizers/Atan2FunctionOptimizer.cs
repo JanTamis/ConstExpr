@@ -72,7 +72,7 @@ public class Atan2FunctionOptimizer() : BaseMathFunctionOptimizer("Atan2", n => 
 		{
 			SpecialType.System_Single => GenerateFastAtan2MethodFloat(context.FastMathFlags),
 			SpecialType.System_Double => GenerateFastAtan2MethodDouble(context.FastMathFlags),
-			_ => null,
+			_ => null
 		});
 
 		if (method is not null)
@@ -98,7 +98,7 @@ public class Atan2FunctionOptimizer() : BaseMathFunctionOptimizer("Atan2", n => 
 				value = c.ToDouble(CultureInfo.InvariantCulture);
 				return true;
 			}
-			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
 			{
 				value = -c2.ToDouble(CultureInfo.InvariantCulture);
 				return true;

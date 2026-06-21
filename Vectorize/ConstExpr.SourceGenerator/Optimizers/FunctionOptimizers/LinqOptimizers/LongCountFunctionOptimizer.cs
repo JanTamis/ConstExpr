@@ -10,21 +10,22 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.LongCount context.Method.
-/// Optimizes patterns such as:
-/// - collection.Where(predicate).LongCount() => collection.LongCount(predicate)
-/// - collection.Where(p1).Where(p2).LongCount() => collection.LongCount(p1 && p2) (multiple chained Where statements)
-/// - collection.Where(p1).Where(p2).Where(p3).LongCount() => collection.LongCount(p1 && p2 && p3)
-/// - collection.Select(...).LongCount() => collection.LongCount() (projection doesn't affect count for non-null elements)
-/// - collection.OrderBy(...).LongCount() => collection.LongCount() (ordering doesn't affect count)
-/// - collection.OrderByDescending(...).LongCount() => collection.LongCount() (ordering doesn't affect count)
-/// - collection.Order().LongCount() => collection.LongCount() (ordering doesn't affect count)
-/// - collection.OrderDescending().LongCount() => collection.LongCount() (ordering doesn't affect count)
-/// - collection.ThenBy(...).LongCount() => collection.LongCount() (secondary ordering doesn't affect count)
-/// - collection.ThenByDescending(...).LongCount() => collection.LongCount() (secondary ordering doesn't affect count)
-/// - collection.Reverse().LongCount() => collection.LongCount() (reversing doesn't affect count)
-/// - collection.AsEnumerable().LongCount() => collection.LongCount() (type cast doesn't affect count)
-/// - collection.OrderBy(...).Where(p1).Where(p2).LongCount() => collection.LongCount(p1 && p2) (combining operations)
+///   Optimizer for Enumerable.LongCount context.Method.
+///   Optimizes patterns such as:
+///   - collection.Where(predicate).LongCount() => collection.LongCount(predicate)
+///   - collection.Where(p1).Where(p2).LongCount() => collection.LongCount(p1 && p2) (multiple chained Where statements)
+///   - collection.Where(p1).Where(p2).Where(p3).LongCount() => collection.LongCount(p1 && p2 && p3)
+///   - collection.Select(...).LongCount() => collection.LongCount() (projection doesn't affect count for non-null
+///   elements)
+///   - collection.OrderBy(...).LongCount() => collection.LongCount() (ordering doesn't affect count)
+///   - collection.OrderByDescending(...).LongCount() => collection.LongCount() (ordering doesn't affect count)
+///   - collection.Order().LongCount() => collection.LongCount() (ordering doesn't affect count)
+///   - collection.OrderDescending().LongCount() => collection.LongCount() (ordering doesn't affect count)
+///   - collection.ThenBy(...).LongCount() => collection.LongCount() (secondary ordering doesn't affect count)
+///   - collection.ThenByDescending(...).LongCount() => collection.LongCount() (secondary ordering doesn't affect count)
+///   - collection.Reverse().LongCount() => collection.LongCount() (reversing doesn't affect count)
+///   - collection.AsEnumerable().LongCount() => collection.LongCount() (type cast doesn't affect count)
+///   - collection.OrderBy(...).Where(p1).Where(p2).LongCount() => collection.LongCount(p1 && p2) (combining operations)
 /// </summary>
 public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.LongCount), n => n is 0 or 1)
 {
@@ -100,7 +101,7 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 				{
 					var count = values.Count(value => lambdas.All(lambda => lambda?.DynamicInvoke(value) is true));
 
-					result = CreateLiteral((long) count);
+					result = CreateLiteral((long)count);
 					return true;
 				}
 			}
@@ -232,7 +233,7 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 
 			if (TryGetSyntaxes(currentSource, out var syntaxes))
 			{
-				result = CreateLiteral((long) syntaxes.Count);
+				result = CreateLiteral((long)syntaxes.Count);
 				return true;
 			}
 

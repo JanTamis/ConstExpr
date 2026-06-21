@@ -4,9 +4,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 /// <summary>
-/// Unrolls <c>.Index()</c> (.NET 9+) as an intermediate step.
-/// Adds a counter that tracks the current element index.
-/// The element becomes a <c>(int Index, T Item)</c> value tuple.
+///   Unrolls <c>.Index()</c> (.NET 9+) as an intermediate step.
+///   Adds a counter that tracks the current element index.
+///   The element becomes a <c>(int Index, T Item)</c> value tuple.
 /// </summary>
 public class IndexLinqUnroller : BaseLinqUnroller
 {
@@ -33,4 +33,3 @@ public class IndexLinqUnroller : BaseLinqUnroller
 		elementName = IdentifierName("indexedItem");
 	}
 }
-

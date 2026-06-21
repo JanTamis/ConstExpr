@@ -30,29 +30,29 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<None Include="ConstExpr.SourceGenerator.props" Visible="false" Pack="true" PackagePath="build" />
+		<None Include="ConstExpr.SourceGenerator.props" Visible="false" Pack="true" PackagePath="build"/>
 
-		<None Include="ConstExpr.SourceGenerator.targets" Visible="false" Pack="true" PackagePath="build" />
+		<None Include="ConstExpr.SourceGenerator.targets" Visible="false" Pack="true" PackagePath="build"/>
 	</ItemGroup>
 
 	<ItemGroup>
-		<Compile Remove="bin\**" />
-		<EmbeddedResource Remove="bin\**" />
-		<None Remove="bin\**" />
-		<Compile Remove="Optimizers\StatementOptimizers\BaseStatementOptimizer.cs" />
+		<Compile Remove="bin\**"/>
+		<EmbeddedResource Remove="bin\**"/>
+		<None Remove="bin\**"/>
+		<Compile Remove="Optimizers\StatementOptimizers\BaseStatementOptimizer.cs"/>
 	</ItemGroup>
 
 	<ItemGroup>
-		<None Remove="D:\source\repos\JanTamis\Vectorize\Vectorize\ConstExpr.SourceGenerator\bin\Debug\netstandard2.0\ConstExpr.SourceGenerator.dll" />
+		<None Remove="D:\source\repos\JanTamis\Vectorize\Vectorize\ConstExpr.SourceGenerator\bin\Debug\netstandard2.0\ConstExpr.SourceGenerator.dll"/>
 	</ItemGroup>
 
 	<!-- Analyzer dll include AFTER removal so it isn't excluded -->
 	<ItemGroup>
-		<None Include="$(TargetPath)" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+		<None Include="$(TargetPath)" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false"/>
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.Bcl.HashCode" Version="6.0.0" />
+		<PackageReference Include="Microsoft.Bcl.HashCode" Version="6.0.0"/>
 		<PackageReference Include="Microsoft.Bcl.Numerics" Version="9.0.8">
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
@@ -63,7 +63,7 @@
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0">
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
-		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.3"/>
 		<PackageReference Include="PolySharp" Version="1.16.0">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -80,7 +80,7 @@
 		<PackageReference Include="System.Memory" Version="4.6.3">
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
-		<PackageReference Include="System.Reflection.Emit" Version="4.7.0" />
+		<PackageReference Include="System.Reflection.Emit" Version="4.7.0"/>
 		<PackageReference Include="System.Reflection.MetadataLoadContext" Version="9.0.8">
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
@@ -94,7 +94,7 @@
 			<PrivateAssets>all</PrivateAssets>
 		</ProjectReference>
 		<!-- New Core reference (public so NuGet picks it up as dependency) -->
-		<ProjectReference Include="..\ConstExpr.Core\ConstExpr.Core.csproj" />
+		<ProjectReference Include="..\ConstExpr.Core\ConstExpr.Core.csproj"/>
 
 	</ItemGroup>
 </Project>

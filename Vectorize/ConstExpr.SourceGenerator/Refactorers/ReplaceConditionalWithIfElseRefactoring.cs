@@ -8,22 +8,21 @@ namespace ConstExpr.SourceGenerator.Refactorers;
 using static SyntaxFactory;
 
 /// <summary>
-/// Refactorer that replaces a ternary conditional expression used in certain statement
-/// contexts with an equivalent if/else statement.
-/// Inspired by the Roslyn <c>ReplaceConditionalWithStatementsCodeRefactoringProvider</c>.
-///
-/// Supported patterns:
-/// <list type="bullet">
-///   <item><c>return cond ? a : b;</c>  →  <c>if (cond) return a; else return b;</c></item>
-///   <item><c>x = cond ? a : b;</c>  →  <c>if (cond) x = a; else x = b;</c></item>
-///   <item><c>yield return cond ? a : b;</c>  →  <c>if (cond) yield return a; else yield return b;</c></item>
-///   <item><c>throw cond ? a : b;</c>  →  <c>if (cond) throw a; else throw b;</c></item>
-/// </list>
+///   Refactorer that replaces a ternary conditional expression used in certain statement
+///   contexts with an equivalent if/else statement.
+///   Inspired by the Roslyn <c>ReplaceConditionalWithStatementsCodeRefactoringProvider</c>.
+///   Supported patterns:
+///   <list type="bullet">
+///     <item><c>return cond ? a : b;</c>  →  <c>if (cond) return a; else return b;</c></item>
+///     <item><c>x = cond ? a : b;</c>  →  <c>if (cond) x = a; else x = b;</c></item>
+///     <item><c>yield return cond ? a : b;</c>  →  <c>if (cond) yield return a; else yield return b;</c></item>
+///     <item><c>throw cond ? a : b;</c>  →  <c>if (cond) throw a; else throw b;</c></item>
+///   </list>
 /// </summary>
 public static class ReplaceConditionalWithIfElseRefactoring
 {
 	/// <summary>
-	/// Tries to replace a statement containing a conditional expression with an if/else.
+	///   Tries to replace a statement containing a conditional expression with an if/else.
 	/// </summary>
 	public static bool TryReplaceConditionalWithIfElse(
 		StatementSyntax statement,
@@ -49,7 +48,6 @@ public static class ReplaceConditionalWithIfElseRefactoring
 				result = BuildIfElse(
 					cond,
 					ExpressionStatement(assignment.WithRight(cond.WhenTrue)),
-					
 					ExpressionStatement(assignment.WithRight(cond.WhenFalse)));
 				return true;
 			}
@@ -95,4 +93,3 @@ public static class ReplaceConditionalWithIfElseRefactoring
 			ElseClause(Block(whenFalse)));
 	}
 }
-

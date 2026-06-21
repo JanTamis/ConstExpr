@@ -1,6 +1,7 @@
 namespace ConstExpr.Tests.Rewriter;
 
-/// <summary>Tests for left-shift of zero: 0 << n = 0.</summary>
+/// <summary>
+///   Tests for left-shift of zero: 0 << n = 0.</summary>
 [InheritsTests]
 public class ShiftZeroTests : BaseTest<Func<int, int>>
 {
@@ -13,6 +14,6 @@ public class ShiftZeroTests : BaseTest<Func<int, int>>
 	[
 		Create(_ => 0),
 		Create(_ => 0, [ 5 ]),
-		Create(_ => 0, [ 0 ]),
+		Create(_ => 0, [ 0 ])
 	];
 }

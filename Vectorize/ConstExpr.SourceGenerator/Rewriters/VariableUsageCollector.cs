@@ -6,27 +6,27 @@ using SourceGen.Utilities.Extensions;
 namespace ConstExpr.SourceGenerator.Rewriters;
 
 /// <summary>
-/// Lightweight syntax walker that collects all variable read and write locations in a single pass.
-/// This is used for the Mark-and-Sweep pruning pattern.
+///   Lightweight syntax walker that collects all variable read and write locations in a single pass.
+///   This is used for the Mark-and-Sweep pruning pattern.
 /// </summary>
 public sealed class VariableUsageCollector(IEnumerable<string> trackedVariables) : CSharpSyntaxWalker
 {
 	private readonly HashSet<string> _trackedVariables = new(trackedVariables);
 
 	/// <summary>
-	/// Variables that are read (used as values) with their read counts.
+	///   Variables that are read (used as values) with their read counts.
 	/// </summary>
-	public Dictionary<string, int> ReadVariables { get; } = [];
+	public Dictionary<string, int> ReadVariables { get; } = [ ];
 
 	/// <summary>
-	/// Variables that are written to (assigned, incremented, etc.) with their write counts.
+	///   Variables that are written to (assigned, incremented, etc.) with their write counts.
 	/// </summary>
-	public Dictionary<string, int> WrittenVariables { get; } = [];
+	public Dictionary<string, int> WrittenVariables { get; } = [ ];
 
 	/// <summary>
-	/// Variables that are passed by ref or out with their counts.
+	///   Variables that are passed by ref or out with their counts.
 	/// </summary>
-	public Dictionary<string, int> RefVariables { get; } = [];
+	public Dictionary<string, int> RefVariables { get; } = [ ];
 
 	public override void VisitIdentifierName(IdentifierNameSyntax node)
 	{
@@ -70,7 +70,7 @@ public sealed class VariableUsageCollector(IEnumerable<string> trackedVariables)
 	}
 
 	/// <summary>
-	/// Determines if the identifier is being written to based on its syntactic context.
+	///   Determines if the identifier is being written to based on its syntactic context.
 	/// </summary>
 	private static bool IsWriteContext(IdentifierNameSyntax node)
 	{
@@ -82,7 +82,7 @@ public sealed class VariableUsageCollector(IEnumerable<string> trackedVariables)
 			AssignmentExpressionSyntax { Left: var left } when left == node => true,
 
 			// Compound assignment: x += value, x -= value, etc.
-			AssignmentExpressionSyntax { Left: var left } assignment 
+			AssignmentExpressionSyntax { Left: var left } assignment
 				when left == node && !assignment.IsKind(SyntaxKind.SimpleAssignmentExpression) => true,
 
 			// Postfix: x++, x--
@@ -90,7 +90,7 @@ public sealed class VariableUsageCollector(IEnumerable<string> trackedVariables)
 
 			// Prefix: ++x, --x
 			PrefixUnaryExpressionSyntax prefix when prefix.Operand == node &&
-				(prefix.IsKind(SyntaxKind.PreIncrementExpression) || prefix.IsKind(SyntaxKind.PreDecrementExpression)) => true,
+			                                        (prefix.IsKind(SyntaxKind.PreIncrementExpression) || prefix.IsKind(SyntaxKind.PreDecrementExpression)) => true,
 
 			// Tuple deconstruction: (x, y) = tuple
 			ArgumentSyntax { Parent: TupleExpressionSyntax { Parent: AssignmentExpressionSyntax { Left: var left } } }
@@ -110,7 +110,7 @@ public sealed class VariableUsageCollector(IEnumerable<string> trackedVariables)
 	}
 
 	/// <summary>
-	/// Checks if a variable is only written to and never read (dead store).
+	///   Checks if a variable is only written to and never read (dead store).
 	/// </summary>
 	public bool IsDeadStore(string variableName)
 	{
@@ -118,7 +118,7 @@ public sealed class VariableUsageCollector(IEnumerable<string> trackedVariables)
 	}
 
 	/// <summary>
-	/// Checks if a variable is never used at all after declaration.
+	///   Checks if a variable is never used at all after declaration.
 	/// </summary>
 	public bool IsUnused(string variableName)
 	{
@@ -126,7 +126,7 @@ public sealed class VariableUsageCollector(IEnumerable<string> trackedVariables)
 	}
 
 	/// <summary>
-	/// Checks if a variable can be safely pruned (never read).
+	///   Checks if a variable can be safely pruned (never read).
 	/// </summary>
 	public bool CanBePruned(string variableName)
 	{
@@ -135,7 +135,7 @@ public sealed class VariableUsageCollector(IEnumerable<string> trackedVariables)
 	}
 
 	/// <summary>
-	/// Gets the number of times a variable was read.
+	///   Gets the number of times a variable was read.
 	/// </summary>
 	public int GetReadCount(string variableName)
 	{
@@ -143,7 +143,7 @@ public sealed class VariableUsageCollector(IEnumerable<string> trackedVariables)
 	}
 
 	/// <summary>
-	/// Gets the number of times a variable was written to.
+	///   Gets the number of times a variable was written to.
 	/// </summary>
 	public int GetWriteCount(string variableName)
 	{
@@ -151,11 +151,10 @@ public sealed class VariableUsageCollector(IEnumerable<string> trackedVariables)
 	}
 
 	/// <summary>
-	/// Gets the number of times a variable was passed by ref or out.
+	///   Gets the number of times a variable was passed by ref or out.
 	/// </summary>
 	public int GetRefCount(string variableName)
 	{
 		return RefVariables.TryGetValue(variableName, out var count) ? count : 0;
 	}
 }
-

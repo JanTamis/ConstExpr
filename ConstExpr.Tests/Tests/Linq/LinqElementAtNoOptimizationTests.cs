@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests that operations which affect element positions are NOT optimized
+///   Tests that operations which affect element positions are NOT optimized
 /// </summary>
 [InheritsTests]
 public class LinqElementAtNoOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
@@ -38,6 +38,6 @@ public class LinqElementAtNoOptimizationTests() : BaseTest<Func<int[], int>>(Fas
 		Create(_ =>
 		{
 			throw new ArgumentOutOfRangeException("Index was out of range. Must be non-negative and less than the size of the collection. (Parameter 'index')");
-		}, [ System.Array.Empty<int>() ]),
+		}, [ System.Array.Empty<int>() ])
 	];
 }

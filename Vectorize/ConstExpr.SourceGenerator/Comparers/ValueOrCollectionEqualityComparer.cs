@@ -120,6 +120,7 @@ public class ValueOrCollectionEqualityComparer<T> : IEqualityComparer<T>
 			unchecked
 			{
 				var hash = 19;
+
 				foreach (var item in array)
 				{
 					hash *= 31 + ValueOrCollectionEqualityComparer<object>.Instance.GetHashCode(item);
@@ -131,6 +132,7 @@ public class ValueOrCollectionEqualityComparer<T> : IEqualityComparer<T>
 		// Fallback: element type + length based hash
 		TryGetSpanLikeMembers(span, out var lenProp, out _, out var elemType);
 		var length = lenProp != null ? (int)lenProp.GetValue(span) : 0;
+
 		unchecked
 		{
 			var h = 17;
@@ -143,10 +145,11 @@ public class ValueOrCollectionEqualityComparer<T> : IEqualityComparer<T>
 	private static bool TryGetSpanLikeMembers(object obj, out PropertyInfo length, out PropertyInfo indexer, out Type elementType)
 	{
 		var type = obj.GetType();
+
 		if (type.IsGenericType && type.Namespace == "System" && (type.Name == "Span`1" || type.Name == "ReadOnlySpan`1"))
 		{
 			length = type.GetProperty("Length");
-			indexer = type.GetProperty("Item", [typeof(int)]);
+			indexer = type.GetProperty("Item", [ typeof(int) ]);
 			elementType = type.GetGenericArguments()[0];
 			return length != null && elementType != null; // do not require indexer due to ByRef issues
 		}
@@ -162,9 +165,11 @@ public class ValueOrCollectionEqualityComparer<T> : IEqualityComparer<T>
 		var type = spanLike.GetType();
 		// try instance ToArray()
 		var toArray = type.GetMethod("ToArray", BindingFlags.Public | BindingFlags.Instance, null, Type.EmptyTypes, null);
+
 		if (toArray != null)
 		{
 			var result = toArray.Invoke(spanLike, null) as Array;
+
 			if (result != null)
 			{
 				array = result;

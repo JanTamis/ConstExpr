@@ -41,14 +41,14 @@ public static class CompilerExtensions
 		if (compilation.IsSpecialType(symbol.OriginalDefinition, SpecialType.System_Collections_Generic_IEnumerable_T)
 		    && symbol is INamedTypeSymbol namedTypeSymbol)
 		{
-			return $"IEnumerable<{String.Join(", ", namedTypeSymbol.TypeArguments.Select(s => GetMinimalString(compilation, s)))}>";
+			return $"IEnumerable<{String.Join(", ", namedTypeSymbol.TypeArguments.Select(s => compilation.GetMinimalString(s)))}>";
 		}
 
 		switch (symbol)
 		{
 			case IArrayTypeSymbol arrayTypeSymbol:
 			{
-				var elementType = GetMinimalString(compilation, arrayTypeSymbol.ElementType);
+				var elementType = compilation.GetMinimalString(arrayTypeSymbol.ElementType);
 
 				return $"{elementType}[{new string(',', arrayTypeSymbol.Rank - 1)}]";
 			}
@@ -58,14 +58,14 @@ public static class CompilerExtensions
 			}
 			case INamedTypeSymbol { Arity: > 0 } namedSymbol:
 			{
-				return $"{namedSymbol.Name}<{String.Join(", ", namedSymbol.TypeArguments.Select(s => GetMinimalString(compilation, s)))}>";
+				return $"{namedSymbol.Name}<{String.Join(", ", namedSymbol.TypeArguments.Select(s => compilation.GetMinimalString(s)))}>";
 			}
 		}
 
 		var node = GetSyntaxNode(symbol);
 
 		if (node is null || !compilation.TryGetSemanticModel(node, out var model))
-		{ 
+		{
 			return symbol.Name;
 		}
 
@@ -105,7 +105,7 @@ public static class CompilerExtensions
 
 	public static bool TryGetSemanticModel(this Compilation compilation, ISymbol? symbol, out SemanticModel semanticModel)
 	{
-		var tree =  symbol?.DeclaringSyntaxReferences
+		var tree = symbol?.DeclaringSyntaxReferences
 			.Select(s => s.SyntaxTree)
 			.FirstOrDefault();
 
@@ -121,31 +121,31 @@ public static class CompilerExtensions
 
 	public static bool TryGetValue(this Compilation compilation, ISymbol symbol, out Optional<object?> value)
 	{
-		if (TryGetSemanticModel(compilation, symbol, out var model))
+		if (compilation.TryGetSemanticModel(symbol, out var model))
 		{
 			value = symbol.DeclaringSyntaxReferences
 				.Select(s => model.GetConstantValue(s.GetSyntax()))
-				.FirstOrDefault(f=> f.HasValue);
-			
+				.FirstOrDefault(f => f.HasValue);
+
 			return value.HasValue;
 		}
-		
+
 		value = default;
 		return false;
 	}
-	
+
 	public static bool TryGetOperation(this Compilation compilation, ISymbol symbol, out IOperation? operation)
 	{
-		if (TryGetSemanticModel(compilation, symbol, out var model))
+		if (compilation.TryGetSemanticModel(symbol, out var model))
 		{
 			operation = symbol.DeclaringSyntaxReferences
 				.Select(s => s.GetSyntax())
 				.SelectMany(n => new[] { model.GetOperation(n) }.Concat(n.DescendantNodes().Select(s => model.GetOperation(s))))
 				.FirstOrDefault(op => op is not null);
-			
+
 			return operation is not null;
 		}
-		
+
 		operation = null;
 		return false;
 	}
@@ -180,7 +180,7 @@ public static class CompilerExtensions
 			or SpecialType.System_Decimal
 			or SpecialType.System_Char;
 	}
-	
+
 	public static bool IsSimpleLambda(this LambdaExpressionSyntax lambda)
 	{
 		// check if parameters are only used one or none of them are used in the body, and if the body is a simple expression (not containing nested lambdas or local functions)
@@ -190,14 +190,14 @@ public static class CompilerExtensions
 			ParenthesizedLambdaExpressionSyntax p => p.ParameterList.Parameters.Select(par => par.Identifier.Text).ToArray(),
 			_ => Array.Empty<string>()
 		};
-		
+
 		var parameterUsage = parameterNames.ToDictionary(name => name, _ => 0);
 		var isSimple = true;
 
 		AnalyzeNode(lambda.Body);
-		
+
 		return isSimple && parameterUsage.Values.All(count => count <= 1);
-		
+
 		void AnalyzeNode(SyntaxNode node)
 		{
 			switch (node)

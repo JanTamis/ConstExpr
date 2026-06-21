@@ -6,9 +6,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.LessThanOrEqualStrategies;
 
 /// <summary>
-/// Strategy for Count() &lt;= 0 → !source.Any() and Count(predicate) &lt;= 0 → !source.Any(predicate).
-/// Any() short-circuits after the first element; Count() must enumerate everything.
-/// Safe under Strict (semantically equivalent for any IEnumerable where Count() &gt;= 0).
+///   Strategy for Count() &lt;= 0 → !source.Any() and Count(predicate) &lt;= 0 → !source.Any(predicate).
+///   Any() short-circuits after the first element; Count() must enumerate everything.
+///   Safe under Strict (semantically equivalent for any IEnumerable where Count() &gt;= 0).
 /// </summary>
 public class LessThanOrEqualCountZeroStrategy : BaseBinaryStrategy
 {

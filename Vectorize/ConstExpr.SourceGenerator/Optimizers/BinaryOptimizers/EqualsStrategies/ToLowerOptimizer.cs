@@ -6,7 +6,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.EqualsStrategies;
 
 /// <summary>
-/// strategy for string.ToLower() detection: x.ToLower() == "constant" => x.Equals("constant", StringComparison.OrdinalIgnoreCase)
+///   strategy for string.ToLower() detection: x.ToLower() == "constant" => x.Equals("constant",
+///   StringComparison.OrdinalIgnoreCase)
 /// </summary>
 public class ToLowerOptimizer() : SymmetricStrategy<InvocationExpressionSyntax, LiteralExpressionSyntax>(SyntaxKind.InvocationExpression, SyntaxKind.StringLiteralExpression)
 {
@@ -17,7 +18,7 @@ public class ToLowerOptimizer() : SymmetricStrategy<InvocationExpressionSyntax, 
 			optimized = null;
 			return false;
 		}
-		
+
 		optimized = InvocationExpression(
 				MemberAccessExpression(ParseTypeName("String"), IdentifierName("Equals")))
 			.WithArgumentList(

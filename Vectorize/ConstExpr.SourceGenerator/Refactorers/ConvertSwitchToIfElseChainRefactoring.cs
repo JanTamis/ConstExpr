@@ -9,11 +9,10 @@ namespace ConstExpr.SourceGenerator.Refactorers;
 using static SyntaxFactory;
 
 /// <summary>
-/// Refactorer that converts a switch statement or switch expression back into
-/// an if-else-if chain.
-/// This is the inverse of <see cref="ConvertIfToSwitchCodeRefactoring"/>.
-///
-/// Inspired by Roslyn's general switch ↔ if conversion patterns.
+///   Refactorer that converts a switch statement or switch expression back into
+///   an if-else-if chain.
+///   This is the inverse of <see cref="ConvertIfToSwitchCodeRefactoring" />.
+///   Inspired by Roslyn's general switch ↔ if conversion patterns.
 /// </summary>
 public static class ConvertSwitchToIfElseChainRefactoring
 {
@@ -22,8 +21,8 @@ public static class ConvertSwitchToIfElseChainRefactoring
 	// -----------------------------------------------------------------------
 
 	/// <summary>
-	/// Converts a switch statement into an if-else-if chain.
-	/// Requires at least two sections; the <c>default</c> section (if any) becomes the final <c>else</c>.
+	///   Converts a switch statement into an if-else-if chain.
+	///   Requires at least two sections; the <c>default</c> section (if any) becomes the final <c>else</c>.
 	/// </summary>
 	public static bool TryConvertSwitchStatementToIfElse(
 		SwitchStatementSyntax switchStatement,
@@ -130,7 +129,7 @@ public static class ConvertSwitchToIfElseChainRefactoring
 	// -----------------------------------------------------------------------
 
 	/// <summary>
-	/// Converts a switch expression into a chain of ternary conditional expressions.
+	///   Converts a switch expression into a chain of ternary conditional expressions.
 	/// </summary>
 	public static bool TryConvertSwitchExpressionToConditionals(
 		SwitchExpressionSyntax switchExpression,
@@ -205,7 +204,7 @@ public static class ConvertSwitchToIfElseChainRefactoring
 
 			case BinaryPatternSyntax { RawKind: (int)SyntaxKind.OrPattern } orPattern:
 			{
-				return TryExtractConditionsFromPattern(governing, orPattern.Left, conditions) 
+				return TryExtractConditionsFromPattern(governing, orPattern.Left, conditions)
 				       && TryExtractConditionsFromPattern(governing, orPattern.Right, conditions);
 			}
 
@@ -222,7 +221,7 @@ public static class ConvertSwitchToIfElseChainRefactoring
 	}
 
 	/// <summary>
-	/// Builds a block from a switch section's statements, removing any trailing <c>break;</c>.
+	///   Builds a block from a switch section's statements, removing any trailing <c>break;</c>.
 	/// </summary>
 	private static StatementSyntax BuildBodyFromSwitchSection(SwitchSectionSyntax section)
 	{
@@ -235,4 +234,3 @@ public static class ConvertSwitchToIfElseChainRefactoring
 			: Block(statements);
 	}
 }
-

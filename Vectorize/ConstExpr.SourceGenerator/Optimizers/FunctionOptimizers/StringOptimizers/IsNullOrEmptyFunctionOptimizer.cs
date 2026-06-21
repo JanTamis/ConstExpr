@@ -8,7 +8,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 
 /// <summary>
-/// Optimizes string.IsNullOrEmpty(literal) to true/false.
+///   Optimizes string.IsNullOrEmpty(literal) to true/false.
 /// </summary>
 public class IsNullOrEmptyFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "IsNullOrEmpty", true, n => n is 1)
 {

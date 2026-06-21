@@ -37,7 +37,7 @@ public partial class OperatorHelper(Dictionary<string, object?> variables, Metad
 			IInvocationOperation invocationOperation => GetInvocationValue(compilation, invocationOperation, variables),
 			IExpressionStatementOperation expressionStatementOperation => GetConstantValue(compilation, expressionStatementOperation.Operation),
 			IVariableDeclaratorOperation variableDeclaratorOperation => GetVariableDeclaratorValue(compilation, variableDeclaratorOperation),
-			_ => null,
+			_ => null
 		};
 	}
 
@@ -64,7 +64,7 @@ public partial class OperatorHelper(Dictionary<string, object?> variables, Metad
 			BinaryOperatorKind.LessThanOrEqual => Comparer<object?>.Default.Compare(left, right) <= 0,
 			BinaryOperatorKind.GreaterThan => Comparer<object?>.Default.Compare(left, right) > 0,
 			BinaryOperatorKind.GreaterThanOrEqual => Comparer<object?>.Default.Compare(left, right) >= 0,
-			_ => null,
+			_ => null
 		};
 	}
 
@@ -75,7 +75,7 @@ public partial class OperatorHelper(Dictionary<string, object?> variables, Metad
 			ILocalReferenceOperation localReferenceOperation => localReferenceOperation.Local.Name,
 			IParameterReferenceOperation parameterReferenceOperation => parameterReferenceOperation.Parameter.Name,
 			IVariableDeclaratorOperation variableDeclaratorOperation => variableDeclaratorOperation.Symbol.Name,
-			_ => String.Empty,
+			_ => String.Empty
 		};
 	}
 

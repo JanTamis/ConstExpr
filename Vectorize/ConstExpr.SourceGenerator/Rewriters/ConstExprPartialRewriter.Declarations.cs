@@ -11,8 +11,8 @@ using Microsoft.CodeAnalysis.Operations;
 namespace ConstExpr.SourceGenerator.Rewriters;
 
 /// <summary>
-/// Declaration and assignment visitor methods for the ConstExprPartialRewriter.
-/// Handles variable declarations, assignments, and related operations.
+///   Declaration and assignment visitor methods for the ConstExprPartialRewriter.
+///   Handles variable declarations, assignments, and related operations.
 /// </summary>
 public partial class ConstExprPartialRewriter
 {
@@ -91,7 +91,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Handles declaration of a new variable.
+	///   Handles declaration of a new variable.
 	/// </summary>
 	private SyntaxNode HandleNewVariableDeclaration(VariableDeclaratorSyntax node, IVariableDeclaratorOperation operation, string name, SyntaxNode? value)
 	{
@@ -118,7 +118,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Handles declaration of an existing variable (duplicate).
+	///   Handles declaration of an existing variable (duplicate).
 	/// </summary>
 	private SyntaxNode? HandleExistingVariableDeclaration(VariableDeclaratorSyntax node, VariableItem item, string name, SyntaxNode? value)
 	{
@@ -140,7 +140,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Updates the variable value from an initializer.
+	///   Updates the variable value from an initializer.
 	/// </summary>
 	private void UpdateVariableFromInitializer(VariableItem item, SyntaxNode? value, ExpressionSyntax initializerValue)
 	{
@@ -161,7 +161,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Updates variable value based on operation and initializer.
+	///   Updates variable value based on operation and initializer.
 	/// </summary>
 	private void UpdateVariableValue(VariableItem item, IVariableDeclaratorOperation operation, SyntaxNode? value, ExpressionSyntax? initializerValue)
 	{
@@ -226,7 +226,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Builds the result for a variable declaration.
+	///   Builds the result for a variable declaration.
 	/// </summary>
 	private SyntaxNode? BuildVariableDeclarationResult(VariableDeclarationSyntax node, List<VariableDeclaratorSyntax> visitedVariables, List<StatementSyntax> statements)
 	{
@@ -352,7 +352,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Handles tuple deconstruction assignments.
+	///   Handles tuple deconstruction assignments.
 	/// </summary>
 	private SyntaxNode? HandleTupleAssignment(AssignmentExpressionSyntax node, TupleExpressionSyntax leftTuple, ExpressionSyntax rightExpr, bool hasRightValue, object? rightValue)
 	{
@@ -374,7 +374,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Handles ValueTuple assignment.
+	///   Handles ValueTuple assignment.
 	/// </summary>
 	private SyntaxNode HandleValueTupleAssignment(AssignmentExpressionSyntax node, TupleExpressionSyntax leftTuple, ExpressionSyntax rightExpr, object? rightValue, Type rightType)
 	{
@@ -400,7 +400,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Handles tuple-to-tuple assignment.
+	///   Handles tuple-to-tuple assignment.
 	/// </summary>
 	private SyntaxNode HandleTupleToTupleAssignment(AssignmentExpressionSyntax node, TupleExpressionSyntax leftTuple, TupleExpressionSyntax rightTuple, ExpressionSyntax rightExpr)
 	{
@@ -437,7 +437,7 @@ public partial class ConstExprPartialRewriter
 
 
 	/// <summary>
-	/// Optimizes tuple assignment.
+	///   Optimizes tuple assignment.
 	/// </summary>
 	private SyntaxNode OptimizeTupleAssignment(AssignmentExpressionSyntax node, SeparatedSyntaxList<ArgumentSyntax> leftArgs, SeparatedSyntaxList<ArgumentSyntax> rightArgs, ExpressionSyntax rightExpr)
 	{
@@ -500,7 +500,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Handles identifier assignment.
+	///   Handles identifier assignment.
 	/// </summary>
 	private SyntaxNode? HandleIdentifierAssignment(AssignmentExpressionSyntax node, VariableItem variable, ExpressionSyntax rightExpr, SyntaxKind kind)
 	{
@@ -594,7 +594,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Initializes a variable from an expression.
+	///   Initializes a variable from an expression.
 	/// </summary>
 	private void InitializeVariable(VariableItem variable, ExpressionSyntax rightExpr)
 	{
@@ -615,7 +615,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Handles element access assignment.
+	///   Handles element access assignment.
 	/// </summary>
 	private SyntaxNode? HandleElementAccessAssignment(AssignmentExpressionSyntax node, ElementAccessExpressionSyntax elementAccess, ExpressionSyntax rightExpr, bool hasRightValue, object? rightValue)
 	{
@@ -656,7 +656,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Handles array element assignment.
+	///   Handles array element assignment.
 	/// </summary>
 	private SyntaxNode? HandleArrayElementAssignment(Array? arr, object?[] indexConsts, int indicesLength, object? rightValue, ExpressionSyntax rightExpr)
 	{

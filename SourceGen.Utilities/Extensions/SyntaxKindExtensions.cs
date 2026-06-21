@@ -34,7 +34,7 @@ public static class SyntaxKindExtensions
 			_ => throw new ArgumentException($"Unknown binary operator: {kind}", nameof(kind))
 		};
 	}
-	
+
 	public static bool IsKind(this SyntaxNode? node, params ReadOnlySpan<SyntaxKind> kinds)
 	{
 		if (node is null)
@@ -85,4 +85,3 @@ public static class SyntaxKindExtensions
 		return false;
 	}
 }
-

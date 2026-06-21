@@ -10,6 +10,6 @@ public class MathTruncateNegationTest() : BaseTest<Func<double, double>>(FastMat
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(x => -Double.Truncate(x)),
+		Create(x => -Double.Truncate(x))
 	];
 }

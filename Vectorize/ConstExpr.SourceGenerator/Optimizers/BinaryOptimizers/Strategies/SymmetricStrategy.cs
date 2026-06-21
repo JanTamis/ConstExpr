@@ -28,12 +28,12 @@ public abstract class SymmetricStrategy<TStrategy, TLeft, TRight>(SyntaxKind lef
 				Left = new BinaryOptimizeElement<TLeft>
 				{
 					Syntax = left,
-					Type = context.Left.Type,
+					Type = context.Left.Type
 				},
 				Right = new BinaryOptimizeElement<TRight>
 				{
 					Syntax = right,
-					Type = context.Right.Type,
+					Type = context.Right.Type
 				},
 				Type = context.Type,
 				Variables = context.Variables,
@@ -60,12 +60,12 @@ public abstract class SymmetricStrategy<TStrategy, TLeft, TRight>(SyntaxKind lef
 				Left = new BinaryOptimizeElement<TLeft>
 				{
 					Syntax = swappedLeft,
-					Type = context.Right.Type,
+					Type = context.Right.Type
 				},
 				Right = new BinaryOptimizeElement<TRight>
 				{
 					Syntax = swappedRight,
-					Type = context.Left.Type,
+					Type = context.Left.Type
 				},
 				Type = context.Type,
 				Variables = context.Variables,
@@ -104,12 +104,12 @@ public abstract class SymmetricStrategy<TLeft, TRight>(SyntaxKind leftKind = Syn
 				Left = new BinaryOptimizeElement<TLeft>
 				{
 					Syntax = left,
-					Type = context.Left.Type,
+					Type = context.Left.Type
 				},
 				Right = new BinaryOptimizeElement<TRight>
 				{
 					Syntax = right,
-					Type = context.Right.Type,
+					Type = context.Right.Type
 				},
 				Type = context.Type,
 				Variables = context.Variables,
@@ -117,7 +117,7 @@ public abstract class SymmetricStrategy<TLeft, TRight>(SyntaxKind leftKind = Syn
 				BinaryExpressions = context.BinaryExpressions,
 				Parent = context.Parent,
 				Model = context.Model,
-				SymbolStore = context.SymbolStore,
+				SymbolStore = context.SymbolStore
 			};
 
 			if (TryOptimizeSymmetric(newContext, out optimized))
@@ -136,12 +136,12 @@ public abstract class SymmetricStrategy<TLeft, TRight>(SyntaxKind leftKind = Syn
 				Left = new BinaryOptimizeElement<TLeft>
 				{
 					Syntax = swappedLeft,
-					Type = context.Right.Type,
+					Type = context.Right.Type
 				},
 				Right = new BinaryOptimizeElement<TRight>
 				{
 					Syntax = swappedRight,
-					Type = context.Left.Type,
+					Type = context.Left.Type
 				},
 				Type = context.Type,
 				Variables = context.Variables,
@@ -149,7 +149,7 @@ public abstract class SymmetricStrategy<TLeft, TRight>(SyntaxKind leftKind = Syn
 				BinaryExpressions = context.BinaryExpressions,
 				Parent = context.Parent,
 				Model = context.Model,
-				SymbolStore = context.SymbolStore,
+				SymbolStore = context.SymbolStore
 			};
 
 			if (TryOptimizeSymmetric(swappedContext, out optimized))

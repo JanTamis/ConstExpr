@@ -24,4 +24,3 @@ public class MinMagnitudeFunctionOptimizer() : BaseMathFunctionOptimizer("MinMag
 		return true;
 	}
 }
-

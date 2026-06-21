@@ -1,12 +1,11 @@
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalAndStrategies;
 
 /// <summary>
-/// Strategy for contradiction: a && !a => false and !a && a => false (pure)
+///   Strategy for contradiction: a && !a => false and !a && a => false (pure)
 /// </summary>
 public class ConditionalAndContradictionStrategy() : SymmetricStrategy<BooleanBinaryStrategy, ExpressionSyntax, PrefixUnaryExpressionSyntax>(rightKind: SyntaxKind.LogicalNotExpression)
 {
@@ -18,7 +17,7 @@ public class ConditionalAndContradictionStrategy() : SymmetricStrategy<BooleanBi
 			optimized = null;
 			return false;
 		}
-		
+
 		optimized = CreateLiteral(false);
 		return true;
 	}

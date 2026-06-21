@@ -3,8 +3,8 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Validation;
 
 /// <summary>
-/// Verifies that negated char-set bitmask rewrites preserve logical precedence
-/// when one branch stays as an explicit inequality.
+///   Verifies that negated char-set bitmask rewrites preserve logical precedence
+///   when one branch stays as an explicit inequality.
 /// </summary>
 [InheritsTests]
 public class NotEqualsCharSetTest() : BaseTest<Func<char, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
@@ -17,11 +17,11 @@ public class NotEqualsCharSetTest() : BaseTest<Func<char, bool>>(FastMathFlags.A
 		{
 			var diff = c - ' ';
 
-			return (uint) diff > 13U || (0x2801u >> diff & 1) == 0;
+			return (uint)diff > 13U || (0x2801u >> diff & 1) == 0;
 		}),
 		Create(_ => false, [ '-' ]),
 		Create(_ => false, [ ' ' ]),
 		Create(_ => false, [ '+' ]),
-		Create(_ => true, [ 'x' ]),
+		Create(_ => true, [ 'x' ])
 	];
 }

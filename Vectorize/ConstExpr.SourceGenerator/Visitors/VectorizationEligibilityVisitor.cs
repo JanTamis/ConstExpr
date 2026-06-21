@@ -119,28 +119,28 @@ public sealed class VectorizationEligibilityVisitor : CSharpSyntaxWalker
 			"System.MathF.FusedMultiplyAdd",
 			"System.MathF.Lerp"
 		);
+	private readonly CancellationToken _ct;
+
+	// The set of loop variable names that act as a simple counter (for int i = 0; i < n; i++)
+	private readonly HashSet<string> _loopCounterNames = [ ];
 
 	// -------------------------------------------------------------------------
 	// State
 	// -------------------------------------------------------------------------
 
 	private readonly SemanticModel _model;
-	private readonly CancellationToken _ct;
-	private readonly ConcurrentDictionary<ulong, ISymbol> _symbolStore;
 
 	private readonly List<string> _reasons = [ ];
+	private readonly ConcurrentDictionary<ulong, ISymbol> _symbolStore;
 
-	// The set of loop variable names that act as a simple counter (for int i = 0; i < n; i++)
-	private readonly HashSet<string> _loopCounterNames = [ ];
-
-	// Tracks whether we are currently inside a supported loop
-	private bool _insideVectorizableLoop;
+	// The element type found in the innermost loop, used to select a vector width
+	private SpecialType _elementType = SpecialType.None;
 
 	// Tracks whether any vectorizable loop was found
 	private bool _foundVectorizableLoop;
 
-	// The element type found in the innermost loop, used to select a vector width
-	private SpecialType _elementType = SpecialType.None;
+	// Tracks whether we are currently inside a supported loop
+	private bool _insideVectorizableLoop;
 
 	// -------------------------------------------------------------------------
 	// Public API
@@ -436,13 +436,13 @@ public sealed class VectorizationEligibilityVisitor : CSharpSyntaxWalker
 	{
 		private readonly CancellationToken _ct = ct;
 
+		private readonly List<string> _reasons = [ ];
+		private bool _hadViolation;
+
 		// For foreach loops the element variable has a well-known name
 
 		// The element type we detect from the first array/span access
 		private bool _hasArrayOrSpanAccess;
-		private bool _hadViolation;
-
-		private readonly List<string> _reasons = [ ];
 
 		public bool IsVectorizable => _hasArrayOrSpanAccess && !_hadViolation;
 		public IReadOnlyList<string> Reasons => _reasons;

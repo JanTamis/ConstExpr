@@ -7,9 +7,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Range(start, count).
-/// Optimizes patterns such as:
-/// - Enumerable.Range(start, 0) => [] (empty range, regardless of start value)
+///   Optimizer for Enumerable.Range(start, count).
+///   Optimizes patterns such as:
+///   - Enumerable.Range(start, 0) => [] (empty range, regardless of start value)
 /// </summary>
 public class RangeFunctionOptimizer() : BaseLinqFunctionOptimizer("Range", n => n is 2)
 {

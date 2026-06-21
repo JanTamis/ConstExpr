@@ -6,10 +6,10 @@ namespace ConstExpr.Tests.Math;
 [InheritsTests]
 public class MathFLerpTest() : BaseTest<Func<float, float, float, float>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
 {
-	public override string TestMethod => GetString((a, b, t) => float.Lerp(a, b, t));
+	public override string TestMethod => GetString((a, b, t) => Single.Lerp(a, b, t));
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return FastLerp(a, b, t);"),
+		Create("return FastLerp(a, b, t);")
 	];
 }

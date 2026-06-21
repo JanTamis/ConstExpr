@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
-/// Tests for VisitReturnStatement - constant return value folding
+///   Tests for VisitReturnStatement - constant return value folding
 /// </summary>
 [InheritsTests]
 public class VisitReturnStatementTests : BaseTest<Func<int>>

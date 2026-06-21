@@ -10,6 +10,6 @@ public class ConditionalAndWithFalseTest : BaseTest<Func<bool, bool>>
 	[
 		Create(_ => false),
 		Create(_ => false, [ true ]),
-		Create(_ => false, [ false ]),
+		Create(_ => false, [ false ])
 	];
 }

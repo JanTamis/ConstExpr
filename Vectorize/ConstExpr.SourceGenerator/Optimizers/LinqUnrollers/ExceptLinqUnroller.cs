@@ -4,9 +4,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 /// <summary>
-/// Unrolls <c>.Except(second)</c> as an intermediate step.
-/// Uses a <c>HashSet&lt;T&gt;</c> seeded from <c>second</c>, then filters via <c>Add</c>
-/// (which also handles distinct from source, matching LINQ semantics).
+///   Unrolls <c>.Except(second)</c> as an intermediate step.
+///   Uses a <c>HashSet&lt;T&gt;</c> seeded from <c>second</c>, then filters via <c>Add</c>
+///   (which also handles distinct from source, matching LINQ semantics).
 /// </summary>
 public class ExceptLinqUnroller : BaseLinqUnroller
 {

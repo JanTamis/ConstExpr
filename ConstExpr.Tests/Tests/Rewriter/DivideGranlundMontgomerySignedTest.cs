@@ -10,7 +10,7 @@ public class DivideGranlundMontgomerySignedTest() : BaseTest<Func<int, int>>(Fas
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(x => (int) (x * 715827883L >> 32) - (x >> 31)),
+		Create(x => (int)(x * 715827883L >> 32) - (x >> 31)),
 		Create(_ => 1, [ 10 ]),
 		Create(_ => 1, [ 6 ]),
 		Create(_ => 0, [ 0 ]),

@@ -10,9 +10,9 @@ using Microsoft.CodeAnalysis.CSharp;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.RegexOptimizers;
 
 /// <summary>
-/// Optimizes <c>Regex.IsMatch(input, pattern)</c> and <c>Regex.IsMatch(input, pattern, options)</c>
-/// by parsing the constant pattern at compile time and emitting an equivalent inline C# method
-/// that operates on <c>ReadOnlySpan&lt;char&gt;</c>.
+///   Optimizes <c>Regex.IsMatch(input, pattern)</c> and <c>Regex.IsMatch(input, pattern, options)</c>
+///   by parsing the constant pattern at compile time and emitting an equivalent inline C# method
+///   that operates on <c>ReadOnlySpan&lt;char&gt;</c>.
 /// </summary>
 public class IsMatchFunctionOptimizer() : BaseRegexFunctionOptimizer("IsMatch", n => n is 2 or 3)
 {

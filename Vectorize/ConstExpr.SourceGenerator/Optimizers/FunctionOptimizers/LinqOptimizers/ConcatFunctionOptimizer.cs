@@ -9,16 +9,16 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Concat context.Method.
-/// Optimizes patterns such as:
-/// - collection.Concat(Enumerable.Empty&lt;T&gt;()) => collection (concatenating empty is a no-op)
-/// - Enumerable.Empty&lt;T&gt;().Concat(collection) => collection (concatenating to empty)
-/// - collection.AsEnumerable().Concat(other) => collection.Concat(other) (skip type cast)
-/// - collection.ToList().Concat(other) => collection.Concat(other) (skip materialization)
-/// - collection.ToArray().Concat(other) => collection.Concat(other) (skip materialization)
-/// - collection.Concat([1, 2]).Concat([3, 4]) => collection.Concat([1, 2, 3, 4]) (merge collection literals)
-/// - collection.Concat([singleElement]) => collection.Append(singleElement) (use Append for single element)
-/// - Supports merging chains of 3+ Concat operations with collection literals
+///   Optimizer for Enumerable.Concat context.Method.
+///   Optimizes patterns such as:
+///   - collection.Concat(Enumerable.Empty&lt;T&gt;()) => collection (concatenating empty is a no-op)
+///   - Enumerable.Empty&lt;T&gt;().Concat(collection) => collection (concatenating to empty)
+///   - collection.AsEnumerable().Concat(other) => collection.Concat(other) (skip type cast)
+///   - collection.ToList().Concat(other) => collection.Concat(other) (skip materialization)
+///   - collection.ToArray().Concat(other) => collection.Concat(other) (skip materialization)
+///   - collection.Concat([1, 2]).Concat([3, 4]) => collection.Concat([1, 2, 3, 4]) (merge collection literals)
+///   - collection.Concat([singleElement]) => collection.Append(singleElement) (use Append for single element)
+///   - Supports merging chains of 3+ Concat operations with collection literals
 /// </summary>
 public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Concat), n => n is 1)
 {
@@ -90,8 +90,8 @@ public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 	}
 
 	/// <summary>
-	/// Tries to convert Concat with a single-element collection to Append.
-	/// E.g., collection.Concat([42]) => collection.Append(42)
+	///   Tries to convert Concat with a single-element collection to Append.
+	///   E.g., collection.Concat([42]) => collection.Append(42)
 	/// </summary>
 	private bool TryConvertSingleElementConcatToAppend(FunctionOptimizerContext context, ExpressionSyntax source, ExpressionSyntax concatenatedCollection, out SyntaxNode? result)
 	{
@@ -124,8 +124,8 @@ public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 	}
 
 	/// <summary>
-	/// Tries to convert Concat with a single-element collection to Prepend.
-	/// E.g., [42].Concat(collection) => collection.Prepend(42)
+	///   Tries to convert Concat with a single-element collection to Prepend.
+	///   E.g., [42].Concat(collection) => collection.Prepend(42)
 	/// </summary>
 	private bool TryConvertSingleElementConcatToPrepend(FunctionOptimizerContext context, ExpressionSyntax source, ExpressionSyntax concatenatedCollection, out SyntaxNode? result)
 	{
@@ -158,9 +158,9 @@ public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 	}
 
 	/// <summary>
-	/// Tries to merge a chain of Concat operations with collection literals.
-	/// Walks the entire chain recursively to handle 3+ Concat operations.
-	/// E.g., collection.Concat([1]).Concat([2]).Concat([3]) => collection.Concat([1, 2, 3])
+	///   Tries to merge a chain of Concat operations with collection literals.
+	///   Walks the entire chain recursively to handle 3+ Concat operations.
+	///   E.g., collection.Concat([1]).Concat([2]).Concat([3]) => collection.Concat([1, 2, 3])
 	/// </summary>
 	private bool TryMergeConcatChain(ExpressionSyntax source, ExpressionSyntax currentCollection, Func<SyntaxNode, ExpressionSyntax?> visit, out SyntaxNode? result)
 	{
@@ -220,8 +220,8 @@ public class ConcatFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 	}
 
 	/// <summary>
-	/// Tries to extract collection elements from various collection literal forms.
-	/// Supports: new[] { ... }, new T[] { ... }, and collection expressions [...]
+	///   Tries to extract collection elements from various collection literal forms.
+	///   Supports: new[] { ... }, new T[] { ... }, and collection expressions [...]
 	/// </summary>
 	private bool TryGetCollectionElements(ExpressionSyntax expression, out List<CollectionElementSyntax> elements)
 	{

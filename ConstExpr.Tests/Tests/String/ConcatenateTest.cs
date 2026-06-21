@@ -11,7 +11,7 @@ public class ConcatenateTest() : BaseTest<Func<string, string, string>>(FastMath
 	[
 		CreateDefault(),
 		Create((_, _) => "helloworld", [ "hello", "world" ]),
-		Create((_, _) => "test", [ "test", "" ]),
-		Create((_, _) => "", [ "", "" ])
+		Create((_, _) => "test", [ "test", System.String.Empty ]),
+		Create((_, _) => System.String.Empty, [ System.String.Empty, System.String.Empty ])
 	];
 }

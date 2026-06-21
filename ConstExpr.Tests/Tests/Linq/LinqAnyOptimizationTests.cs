@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for Any() optimization - verify that unnecessary operations before Any() are removed
+///   Tests for Any() optimization - verify that unnecessary operations before Any() are removed
 /// </summary>
 [InheritsTests]
 public class LinqAnyOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)

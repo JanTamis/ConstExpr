@@ -7,11 +7,11 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Cast context.Method.
-/// Optimizes patterns such as:
-/// - collection.AsEnumerable().Cast&lt;T&gt;() =&gt; collection.Cast&lt;T&gt;() (skip type cast)
-/// - collection.ToList().Cast&lt;T&gt;() =&gt; collection.Cast&lt;T&gt;() (skip materialization)
-/// - collection.ToArray().Cast&lt;T&gt;() =&gt; collection.Cast&lt;T&gt;() (skip materialization)
+///   Optimizer for Enumerable.Cast context.Method.
+///   Optimizes patterns such as:
+///   - collection.AsEnumerable().Cast&lt;T&gt;() =&gt; collection.Cast&lt;T&gt;() (skip type cast)
+///   - collection.ToList().Cast&lt;T&gt;() =&gt; collection.Cast&lt;T&gt;() (skip materialization)
+///   - collection.ToArray().Cast&lt;T&gt;() =&gt; collection.Cast&lt;T&gt;() (skip materialization)
 /// </summary>
 public class CastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Cast), n => n is 0)
 {

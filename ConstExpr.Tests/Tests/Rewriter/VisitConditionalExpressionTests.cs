@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
-/// Tests for VisitConditionalExpression - fold by constant condition, optimizer pass
+///   Tests for VisitConditionalExpression - fold by constant condition, optimizer pass
 /// </summary>
 [InheritsTests]
 public class VisitConditionalExpressionTests : BaseTest<Func<bool, int, int, (int, int, int, int, int)>>

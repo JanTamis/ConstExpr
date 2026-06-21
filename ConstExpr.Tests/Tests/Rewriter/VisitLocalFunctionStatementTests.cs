@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
-/// Tests for VisitLocalFunctionStatement - process, inline const local functions
+///   Tests for VisitLocalFunctionStatement - process, inline const local functions
 /// </summary>
 [InheritsTests]
 public class VisitLocalFunctionStatementTests : BaseTest<Func<int, int>>

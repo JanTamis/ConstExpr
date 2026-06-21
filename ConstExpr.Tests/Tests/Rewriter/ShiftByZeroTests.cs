@@ -18,6 +18,6 @@ public class ShiftByZeroTests() : BaseTest<Func<int, int>>(FastMathFlags.Associa
 		// x << 0 = x, x >> 0 = x → x + x → x << 1
 		Create(x => x << 1),
 		Create(_ => 10, [ 5 ]),
-		Create(_ => -6, [ -3 ]),
+		Create(_ => -6, [ -3 ])
 	];
 }

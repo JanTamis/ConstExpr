@@ -8,24 +8,22 @@ namespace ConstExpr.SourceGenerator.Refactorers;
 using static SyntaxFactory;
 
 /// <summary>
-/// Refactorer that converts LINQ query syntax to method (fluent) syntax.
-/// Inspired by the Roslyn <c>CSharpConvertLinqQueryToForEachProvider</c>.
-///
-/// <code>
+///   Refactorer that converts LINQ query syntax to method (fluent) syntax.
+///   Inspired by the Roslyn <c>CSharpConvertLinqQueryToForEachProvider</c>.
+///   <code>
 /// from x in source where x > 0 select x * 2
 /// </code>
-/// →
-/// <code>
+///   →
+///   <code>
 /// source.Where(x => x > 0).Select(x => x * 2)
 /// </code>
-///
-/// Supports: <c>from</c>, <c>where</c>, <c>select</c>, <c>orderby</c>, <c>let</c> (basic).
-/// Complex queries with joins or multiple froms are not handled.
+///   Supports: <c>from</c>, <c>where</c>, <c>select</c>, <c>orderby</c>, <c>let</c> (basic).
+///   Complex queries with joins or multiple froms are not handled.
 /// </summary>
 public static class ConvertLinqQueryToMethodSyntaxRefactoring
 {
 	/// <summary>
-	/// Converts a LINQ query expression to method (fluent) syntax.
+	///   Converts a LINQ query expression to method (fluent) syntax.
 	/// </summary>
 	public static bool TryConvertQueryToMethodSyntax(
 		QueryExpressionSyntax query,
@@ -70,7 +68,9 @@ public static class ConvertLinqQueryToMethodSyntaxRefactoring
 						var isDescending = ordering.AscendingOrDescendingKeyword.IsKind(SyntaxKind.DescendingKeyword);
 						var methodName = isFirst
 							? isDescending ? "OrderByDescending" : "OrderBy"
-							: isDescending ? "ThenByDescending" : "ThenBy";
+							: isDescending
+								? "ThenByDescending"
+								: "ThenBy";
 
 						current = InvocationExpression(
 							MemberAccessExpression(
@@ -188,4 +188,3 @@ public static class ConvertLinqQueryToMethodSyntaxRefactoring
 		return result is not null;
 	}
 }
-

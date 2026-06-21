@@ -9,9 +9,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.TakeLast context.Method.
-/// Optimizes patterns such as:
-/// - collection.TakeLast(0) => Enumerable.Empty&lt;T&gt;() (take nothing)
+///   Optimizer for Enumerable.TakeLast context.Method.
+///   Optimizes patterns such as:
+///   - collection.TakeLast(0) => Enumerable.Empty&lt;T&gt;() (take nothing)
 /// </summary>
 public class TakeLastFunctionOptimizer() : BaseLinqFunctionOptimizer("TakeLast", n => n is 1)
 {

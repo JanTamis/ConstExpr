@@ -12,6 +12,6 @@ public class StartsWithTest() : BaseTest<Func<string, string, bool>>(FastMathFla
 		CreateDefault(),
 		Create((_, _) => true, [ "hello", "hel" ]),
 		Create((_, _) => false, [ "world", "foo" ]),
-		Create((_, _) => true, [ "", "" ])
+		Create((_, _) => true, [ System.String.Empty, System.String.Empty ])
 	];
 }

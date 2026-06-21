@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
-/// Tests for VisitIdentifierName - resolve variable to constant value
+///   Tests for VisitIdentifierName - resolve variable to constant value
 /// </summary>
 [InheritsTests]
 public class VisitIdentifierNameTests : BaseTest<Func<int, int, (int, int, int, int, int)>>

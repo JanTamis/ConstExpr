@@ -11,6 +11,16 @@ namespace ConstExpr.SourceGenerator.Models;
 public sealed class VectorizationResult
 {
 	/// <summary>
+	///   Initializes a new instance of <see cref="VectorizationResult" />.
+	/// </summary>
+	public VectorizationResult(bool isVectorizable, VectorTypes suggestedVectorType, IReadOnlyList<string> reasons)
+	{
+		IsVectorizable = isVectorizable;
+		SuggestedVectorType = suggestedVectorType;
+		Reasons = reasons;
+	}
+
+	/// <summary>
 	///   Gets a value indicating whether the analyzed code is eligible for
 	///   auto-vectorization.
 	/// </summary>
@@ -31,16 +41,6 @@ public sealed class VectorizationResult
 	///   prevented vectorization.
 	/// </summary>
 	public IReadOnlyList<string> Reasons { get; }
-
-	/// <summary>
-	///   Initializes a new instance of <see cref="VectorizationResult" />.
-	/// </summary>
-	public VectorizationResult(bool isVectorizable, VectorTypes suggestedVectorType, IReadOnlyList<string> reasons)
-	{
-		IsVectorizable = isVectorizable;
-		SuggestedVectorType = suggestedVectorType;
-		Reasons = reasons;
-	}
 
 	/// <inheritdoc />
 	public override string ToString()

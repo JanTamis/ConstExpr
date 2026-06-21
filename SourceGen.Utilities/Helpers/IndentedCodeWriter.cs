@@ -1,8 +1,3 @@
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Text;
-using SourceGen.Utilities.Extensions;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -13,48 +8,61 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Text;
+using SourceGen.Utilities.Extensions;
 
 namespace SourceGen.Utilities.Helpers;
 
 /// <summary>
-/// A helper type to build sequences of values with pooled buffers.
+///   A helper type to build sequences of values with pooled buffers.
 /// </summary>
 public sealed class IndentedCodeWriter : IDisposable
 {
 	/// <summary>
-	/// The default indentation (tab).
+	///   A delegate representing a callback to write data into an <see cref="IndentedCodeWriter" /> instance.
+	/// </summary>
+	/// <typeparam name="T">The type of data to use.</typeparam>
+	/// <param name="value">The input data to use to write into <paramref name="writer" />.</param>
+	/// <param name="writer">The <see cref="IndentedCodeWriter" /> instance to write into.</param>
+	public delegate void Callback<in T>(T value, IndentedCodeWriter writer);
+
+	/// <summary>
+	///   The default indentation (tab).
 	/// </summary>
 	private const string DefaultIndentation = "\t";
 
 	/// <summary>
-	/// The default new line (<c>'\n'</c>).
+	///   The default new line (<c>'\n'</c>).
 	/// </summary>
 	private const char DefaultNewLine = '\n';
-
-	/// <summary>
-	/// The <see cref="ImmutableArrayBuilder{T}"/> instance that text will be written to.
-	/// </summary>
-	private ImmutableArrayBuilder<char> _builder;
-
-	/// <summary>
-	/// The current indentation level.
-	/// </summary>
-	private int _currentIndentationLevel;
-
-	/// <summary>
-	/// The current indentation, as text.
-	/// </summary>
-	private string _currentIndentation = String.Empty;
-
-	/// <summary>
-	/// The cached array of available indentations, as text.
-	/// </summary>
-	private string[] _availableIndentations;
 
 	private readonly Compilation _compilation;
 
 	/// <summary>
-	/// Creates a new <see cref="IndentedCodeWriter"/> object.
+	///   The cached array of available indentations, as text.
+	/// </summary>
+	private string[] _availableIndentations;
+
+	/// <summary>
+	///   The <see cref="ImmutableArrayBuilder{T}" /> instance that text will be written to.
+	/// </summary>
+	private ImmutableArrayBuilder<char> _builder;
+
+	/// <summary>
+	///   The current indentation, as text.
+	/// </summary>
+	private string _currentIndentation = String.Empty;
+
+	/// <summary>
+	///   The current indentation level.
+	/// </summary>
+	private int _currentIndentationLevel;
+
+	/// <summary>
+	///   Creates a new <see cref="IndentedCodeWriter" /> object.
 	/// </summary>
 	public IndentedCodeWriter(Compilation compilation)
 	{
@@ -71,14 +79,20 @@ public sealed class IndentedCodeWriter : IDisposable
 		}
 	}
 
+	/// <inheritdoc />
+	public void Dispose()
+	{
+		_builder.Dispose();
+	}
+
 	/// <summary>
-	/// Advances the current writer and gets a <see cref="Span{T}"/> to the requested memory area.
+	///   Advances the current writer and gets a <see cref="Span{T}" /> to the requested memory area.
 	/// </summary>
 	/// <param name="requestedSize">The requested size to advance by.</param>
-	/// <returns>A <see cref="Span{T}"/> to the requested memory area.</returns>
+	/// <returns>A <see cref="Span{T}" /> to the requested memory area.</returns>
 	/// <remarks>
-	/// No other data should be written to the writer while the returned <see cref="Span{T}"/>
-	/// is in use, as it could invalidate the memory area wrapped by it, if resizing occurs.
+	///   No other data should be written to the writer while the returned <see cref="Span{T}" />
+	///   is in use, as it could invalidate the memory area wrapped by it, if resizing occurs.
 	/// </remarks>
 	public Span<char> Advance(int requestedSize)
 	{
@@ -92,7 +106,7 @@ public sealed class IndentedCodeWriter : IDisposable
 	}
 
 	/// <summary>
-	/// Increases the current indentation level.
+	///   Increases the current indentation level.
 	/// </summary>
 	public void IncreaseIndent()
 	{
@@ -110,7 +124,7 @@ public sealed class IndentedCodeWriter : IDisposable
 	}
 
 	/// <summary>
-	/// Decreases the current indentation level.
+	///   Decreases the current indentation level.
 	/// </summary>
 	public void DecreaseIndent()
 	{
@@ -119,12 +133,12 @@ public sealed class IndentedCodeWriter : IDisposable
 	}
 
 	/// <summary>
-	/// Writes a block to the underlying buffer.
+	///   Writes a block to the underlying buffer.
 	/// </summary>
 	/// <param name="handler">The interpolated string handler with content to write.</param>
 	/// <param name="start">The opening string to use for the block.</param>
 	/// <param name="end">The closing string to use for the block.</param>
-	/// <returns>A <see cref="Block"/> value to close the open block with.</returns>
+	/// <returns>A <see cref="Block" /> value to close the open block with.</returns>
 	public Block WriteBlock([InterpolatedStringHandlerArgument("")] ref WriteInterpolatedStringHandler handler, string start = "{", string end = "}")
 	{
 		WriteLine();
@@ -135,11 +149,11 @@ public sealed class IndentedCodeWriter : IDisposable
 	}
 
 	/// <summary>
-	/// Writes a block to the underlying buffer.
+	///   Writes a block to the underlying buffer.
 	/// </summary>
 	/// <param name="start">The opening string to use for the block.</param>
 	/// <param name="end">The closing string to use for the block.</param>
-	/// <returns>A <see cref="Block"/> value to close the open block with.</returns>
+	/// <returns>A <see cref="Block" /> value to close the open block with.</returns>
 	public Block WriteBlock(string start = "{", string end = "}")
 	{
 		WriteLine(start);
@@ -149,12 +163,12 @@ public sealed class IndentedCodeWriter : IDisposable
 	}
 
 	/// <summary>
-	/// Writes a block to the underlying buffer, using the specified method declaration syntax.
+	///   Writes a block to the underlying buffer, using the specified method declaration syntax.
 	/// </summary>
 	/// <param name="method"></param>
 	/// <param name="start">The opening string to use for the block.</param>
 	/// <param name="end">The closing string to use for the block.</param>
-	/// <returns>A <see cref="Block"/> value to close the open block with.</returns>
+	/// <returns>A <see cref="Block" /> value to close the open block with.</returns>
 	public Block WriteBlock(MethodDeclarationSyntax method, string start = "{", string end = "}")
 	{
 		WriteLine(method
@@ -170,7 +184,7 @@ public sealed class IndentedCodeWriter : IDisposable
 	}
 
 	/// <summary>
-	/// Writes content to the underlying buffer.
+	///   Writes content to the underlying buffer.
 	/// </summary>
 	/// <param name="content">The content to write.</param>
 	/// <param name="isMultiline">Whether the input content is multiline.</param>
@@ -180,7 +194,7 @@ public sealed class IndentedCodeWriter : IDisposable
 	}
 
 	/// <summary>
-	/// Writes content to the underlying buffer.
+	///   Writes content to the underlying buffer.
 	/// </summary>
 	/// <param name="content">The content to write.</param>
 	/// <param name="count"></param>
@@ -193,7 +207,7 @@ public sealed class IndentedCodeWriter : IDisposable
 	}
 
 	/// <summary>
-	/// Writes content to the underlying buffer.
+	///   Writes content to the underlying buffer.
 	/// </summary>
 	/// <param name="content">The content to write.</param>
 	/// <param name="isMultiline">Whether the input content is multiline.</param>
@@ -232,7 +246,7 @@ public sealed class IndentedCodeWriter : IDisposable
 	}
 
 	/// <summary>
-	/// Writes content to the underlying buffer.
+	///   Writes content to the underlying buffer.
 	/// </summary>
 	/// <param name="handler">The interpolated string handler with content to write.</param>
 	public void Write([InterpolatedStringHandlerArgument("")] ref WriteInterpolatedStringHandler handler)
@@ -241,7 +255,7 @@ public sealed class IndentedCodeWriter : IDisposable
 	}
 
 	/// <summary>
-	/// Writes content to the underlying buffer depending on an input condition.
+	///   Writes content to the underlying buffer depending on an input condition.
 	/// </summary>
 	/// <param name="condition">The condition to use to decide whether or not to write content.</param>
 	/// <param name="content">The content to write.</param>
@@ -255,7 +269,7 @@ public sealed class IndentedCodeWriter : IDisposable
 	}
 
 	/// <summary>
-	/// Writes content to the underlying buffer depending on an input condition.
+	///   Writes content to the underlying buffer depending on an input condition.
 	/// </summary>
 	/// <param name="condition">The condition to use to decide whether or not to write content.</param>
 	/// <param name="content">The content to write.</param>
@@ -269,7 +283,7 @@ public sealed class IndentedCodeWriter : IDisposable
 	}
 
 	/// <summary>
-	/// Writes content to the underlying buffer depending on an input condition.
+	///   Writes content to the underlying buffer depending on an input condition.
 	/// </summary>
 	/// <param name="condition">The condition to use to decide whether or not to write content.</param>
 	/// <param name="handler">The interpolated string handler with content to write.</param>
@@ -279,7 +293,7 @@ public sealed class IndentedCodeWriter : IDisposable
 	}
 
 	/// <summary>
-	/// Writes a line to the underlying buffer.
+	///   Writes a line to the underlying buffer.
 	/// </summary>
 	/// <param name="skipIfPresent">Indicates whether to skip adding the line if there already is one.</param>
 	public void WriteLine(bool skipIfPresent = false)
@@ -293,7 +307,7 @@ public sealed class IndentedCodeWriter : IDisposable
 	}
 
 	/// <summary>
-	/// Writes content to the underlying buffer and appends a trailing new line.
+	///   Writes content to the underlying buffer and appends a trailing new line.
 	/// </summary>
 	/// <param name="content">The content to write.</param>
 	/// <param name="isMultiline">Whether the input content is multiline.</param>
@@ -303,7 +317,7 @@ public sealed class IndentedCodeWriter : IDisposable
 	}
 
 	/// <summary>
-	/// Writes content to the underlying buffer and appends a trailing new line.
+	///   Writes content to the underlying buffer and appends a trailing new line.
 	/// </summary>
 	/// <param name="content">The content to write.</param>
 	/// <param name="isMultiline">Whether the input content is multiline.</param>
@@ -314,7 +328,7 @@ public sealed class IndentedCodeWriter : IDisposable
 	}
 
 	/// <summary>
-	/// Writes content to the underlying buffer and appends a trailing new line.
+	///   Writes content to the underlying buffer and appends a trailing new line.
 	/// </summary>
 	/// <param name="handler">The interpolated string handler with content to write.</param>
 	public void WriteLine([InterpolatedStringHandlerArgument("")] ref WriteInterpolatedStringHandler handler)
@@ -323,7 +337,7 @@ public sealed class IndentedCodeWriter : IDisposable
 	}
 
 	/// <summary>
-	/// Writes a line to the underlying buffer depending on an input condition.
+	///   Writes a line to the underlying buffer depending on an input condition.
 	/// </summary>
 	/// <param name="condition">The condition to use to decide whether or not to write content.</param>
 	/// <param name="skipIfPresent">Indicates whether to skip adding the line if there already is one.</param>
@@ -336,7 +350,7 @@ public sealed class IndentedCodeWriter : IDisposable
 	}
 
 	/// <summary>
-	/// Writes content to the underlying buffer and appends a trailing new line depending on an input condition.
+	///   Writes content to the underlying buffer and appends a trailing new line depending on an input condition.
 	/// </summary>
 	/// <param name="condition">The condition to use to decide whether or not to write content.</param>
 	/// <param name="content">The content to write.</param>
@@ -350,7 +364,7 @@ public sealed class IndentedCodeWriter : IDisposable
 	}
 
 	/// <summary>
-	/// Writes content to the underlying buffer and appends a trailing new line depending on an input condition.
+	///   Writes content to the underlying buffer and appends a trailing new line depending on an input condition.
 	/// </summary>
 	/// <param name="condition">The condition to use to decide whether or not to write content.</param>
 	/// <param name="content">The content to write.</param>
@@ -365,7 +379,7 @@ public sealed class IndentedCodeWriter : IDisposable
 	}
 
 	/// <summary>
-	/// Writes content to the underlying buffer and appends a trailing new line depending on an input condition.
+	///   Writes content to the underlying buffer and appends a trailing new line depending on an input condition.
 	/// </summary>
 	/// <param name="condition">The condition to use to decide whether or not to write content.</param>
 	/// <param name="handler">The interpolated string handler with content to write.</param>
@@ -377,29 +391,23 @@ public sealed class IndentedCodeWriter : IDisposable
 		}
 	}
 
-	/// <inheritdoc/>
+	/// <inheritdoc />
 	public override string ToString()
 	{
 		return _builder.WrittenSpan.Trim().ToString();
 	}
 
 	/// <summary>
-	/// Creates a <see cref="SourceText"/> instance from the current content of the writer.
+	///   Creates a <see cref="SourceText" /> instance from the current content of the writer.
 	/// </summary>
-	/// <returns>A <see cref="SourceText"/> instance containing the written content.</returns>
+	/// <returns>A <see cref="SourceText" /> instance containing the written content.</returns>
 	public SourceText ToSourceText()
 	{
 		return SourceText.From(ToString(), Encoding.UTF8);
 	}
 
-	/// <inheritdoc/>
-	public void Dispose()
-	{
-		_builder.Dispose();
-	}
-
 	/// <summary>
-	/// Writes raw text to the underlying buffer, adding leading indentation if needed.
+	///   Writes raw text to the underlying buffer, adding leading indentation if needed.
 	/// </summary>
 	/// <param name="content">The raw text to write.</param>
 	private void WriteRawText(ReadOnlySpan<char> content)
@@ -417,26 +425,159 @@ public sealed class IndentedCodeWriter : IDisposable
 		}
 	}
 
-	/// <summary>
-	/// A delegate representing a callback to write data into an <see cref="IndentedCodeWriter"/> instance.
-	/// </summary>
-	/// <typeparam name="T">The type of data to use.</typeparam>
-	/// <param name="value">The input data to use to write into <paramref name="writer"/>.</param>
-	/// <param name="writer">The <see cref="IndentedCodeWriter"/> instance to write into.</param>
-	public delegate void Callback<in T>(T value, IndentedCodeWriter writer);
+	public static ExpressionSyntax CreateLiteral<T>(T? value)
+	{
+		switch (value)
+		{
+			case byte bb:
+			{
+				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(bb));
+			}
+			case sbyte sb:
+			{
+				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(sb));
+			}
+			case int i and < 0 when i != Int32.MinValue:
+			{
+				return SyntaxFactory.PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
+					SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(-i)));
+			}
+			case int i:
+			{
+				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(i));
+			}
+			case uint ui:
+			{
+				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(ui));
+			}
+			case float f and < 0:
+			{
+				return SyntaxFactory.PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
+					SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(-f)));
+			}
+			case float f:
+			{
+				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(f));
+			}
+			case double d and < 0:
+			{
+				return SyntaxFactory.PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
+					SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(-d)));
+			}
+			case double d:
+			{
+				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(d));
+			}
+			case long l and < 0 when l != Int64.MinValue:
+			{
+				return SyntaxFactory.PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
+					SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(-l)));
+			}
+			case long l:
+			{
+				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(l));
+			}
+			case ulong ul:
+			{
+				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(ul));
+			}
+			case decimal dec and < 0:
+			{
+				return SyntaxFactory.PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
+					SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(-dec)));
+			}
+			case decimal dec:
+			{
+				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(dec));
+			}
+			case string s1:
+			{
+				return SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(s1));
+			}
+			case char c:
+			{
+				return SyntaxFactory.LiteralExpression(SyntaxKind.CharacterLiteralExpression, SyntaxFactory.Literal(c));
+			}
+			case bool b:
+			{
+				return SyntaxFactory.LiteralExpression(b
+					? SyntaxKind.TrueLiteralExpression
+					: SyntaxKind.FalseLiteralExpression);
+			}
+			case Enum e:
+			{
+				return SyntaxFactory.MemberAccessExpression(
+					SyntaxKind.SimpleMemberAccessExpression,
+					SyntaxFactory.IdentifierName(e.GetType().Name),
+					SyntaxFactory.IdentifierName(e.ToString()));
+			}
+			case DateTime dt:
+			{
+				return SyntaxFactory.ObjectCreationExpression(
+						SyntaxFactory.IdentifierName(nameof(DateTime)))
+					.WithArgumentList(
+						SyntaxFactory.ArgumentList(
+							SyntaxFactory.SingletonSeparatedList(
+								SyntaxFactory.Argument(CreateLiteral(dt.Ticks)))));
+			}
+			case null:
+			{
+				return SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression);
+			}
+			case ExpressionSyntax expression:
+			{
+				return expression.NormalizeWhitespace(DefaultIndentation);
+			}
+		}
+
+		if (value.GetType().Name.Contains("Tuple"))
+		{
+			var type = value.GetType();
+			var tupleItems = new List<ArgumentSyntax>();
+
+			// Prefer fields (ValueTuple), otherwise use properties (Tuple)
+			var members = type
+				.GetFields()
+				.Where(f => f.Name.StartsWith("Item"))
+				.Cast<MemberInfo>()
+				.Concat(type
+					.GetProperties()
+					.Where(p => p.Name.StartsWith("Item")));
+
+			foreach (var member in members)
+			{
+				var itemValue = member is FieldInfo fi
+					? fi.GetValue(value)
+					: ((PropertyInfo)member).GetValue(value);
+
+				tupleItems.Add(SyntaxFactory.Argument(CreateLiteral(itemValue)));
+			}
+
+			return SyntaxFactory.TupleExpression(SyntaxFactory.SeparatedList(tupleItems));
+		}
+
+		if (value is IEnumerable enumerable)
+		{
+			return SyntaxFactory.CollectionExpression(SyntaxFactory.SeparatedList<CollectionElementSyntax>(enumerable
+				.Cast<object?>()
+				.Select(s => SyntaxFactory.ExpressionElement(CreateLiteral(s)))));
+		}
+
+		throw new Exception($"Cannot create literal for type: {typeof(T).FullName}");
+	}
 
 	/// <summary>
-	/// Represents an indented block that needs to be closed.
+	///   Represents an indented block that needs to be closed.
 	/// </summary>
-	/// <param name="writer">The input <see cref="IndentedCodeWriter"/> instance to wrap.</param>
+	/// <param name="writer">The input <see cref="IndentedCodeWriter" /> instance to wrap.</param>
 	public struct Block(IndentedCodeWriter writer, string ending) : IDisposable
 	{
 		/// <summary>
-		/// The <see cref="IndentedCodeWriter"/> instance to write to.
+		///   The <see cref="IndentedCodeWriter" /> instance to write to.
 		/// </summary>
 		private IndentedCodeWriter? _writer = writer;
 
-		/// <inheritdoc/>
+		/// <inheritdoc />
 		public void Dispose()
 		{
 			var writer = _writer;
@@ -452,20 +593,26 @@ public sealed class IndentedCodeWriter : IDisposable
 	}
 
 	/// <summary>
-	/// Provides a handler used by the language compiler to append interpolated strings into <see cref="IndentedCodeWriter"/> instances.
+	///   Provides a handler used by the language compiler to append interpolated strings into
+	///   <see cref="IndentedCodeWriter" /> instances.
 	/// </summary>
-	[EditorBrowsable(EditorBrowsableState.Never)]
-	[InterpolatedStringHandler]
+	[EditorBrowsable(EditorBrowsableState.Never), InterpolatedStringHandler]
 	public readonly ref struct WriteInterpolatedStringHandler
 	{
-		/// <summary>The associated <see cref="IndentedCodeWriter"/> to which to append.</summary>
+		/// <summary>The associated <see cref="IndentedCodeWriter" /> to which to append.</summary>
 		private readonly IndentedCodeWriter _writer;
 
-		/// <summary>Creates a handler used to append an interpolated string into a <see cref="StringBuilder"/>.</summary>
-		/// <param name="literalLength">The number of constant characters outside of interpolation expressions in the interpolated string.</param>
+		/// <summary>Creates a handler used to append an interpolated string into a <see cref="StringBuilder" />.</summary>
+		/// <param name="literalLength">
+		///   The number of constant characters outside of interpolation expressions in the interpolated
+		///   string.
+		/// </param>
 		/// <param name="formattedCount">The number of interpolation expressions in the interpolated string.</param>
-		/// <param name="writer">The associated <see cref="IndentedCodeWriter"/> to which to append.</param>
-		/// <remarks>This is intended to be called only by compiler-generated code. Arguments are not validated as they'd otherwise be for members intended to be used directly.</remarks>
+		/// <param name="writer">The associated <see cref="IndentedCodeWriter" /> to which to append.</param>
+		/// <remarks>
+		///   This is intended to be called only by compiler-generated code. Arguments are not validated as they'd otherwise
+		///   be for members intended to be used directly.
+		/// </remarks>
 		public WriteInterpolatedStringHandler(int literalLength, int formattedCount, IndentedCodeWriter writer)
 		{
 			_writer = writer;
@@ -508,16 +655,16 @@ public sealed class IndentedCodeWriter : IDisposable
 		/// <param name="value">The span to write.</param>
 		public void AppendFormatted(ReadOnlySpan<char> value)
 		{
-			_writer.Write("\"", false);
+			_writer.Write("\"");
 			_writer.Write(value, true);
-			_writer.Write("\"", false);
+			_writer.Write("\"");
 		}
 
 		/// <summary>Writes the specified character span to the handler.</summary>
 		/// <param name="value">The span to write.</param>
 		public void AppendFormatted<T>(ReadOnlySpan<T> value)
 		{
-			_writer.Write("[", false);
+			_writer.Write("[");
 
 			for (var i = 0; i < value.Length; i++)
 			{
@@ -529,7 +676,7 @@ public sealed class IndentedCodeWriter : IDisposable
 				}
 			}
 
-			_writer.Write("]", false);
+			_writer.Write("]");
 		}
 
 		public void AppendFormatted(IEnumerable items)
@@ -655,7 +802,7 @@ public sealed class IndentedCodeWriter : IDisposable
 		}
 
 		/// <summary>
-		/// Writes the specified parameter names to the handler.
+		///   Writes the specified parameter names to the handler.
 		/// </summary>
 		/// <param name="parameters">The parameter symbols to write.</param>
 		public void AppendFormatted(ImmutableArray<IParameterSymbol> parameters)
@@ -686,22 +833,28 @@ public sealed class IndentedCodeWriter : IDisposable
 	}
 
 	/// <summary>
-	/// Provides a handler used by the language compiler to conditionally append interpolated strings into <see cref="IndentedCodeWriter"/> instances.
+	///   Provides a handler used by the language compiler to conditionally append interpolated strings into
+	///   <see cref="IndentedCodeWriter" /> instances.
 	/// </summary>
-	[EditorBrowsable(EditorBrowsableState.Never)]
-	[InterpolatedStringHandler]
+	[EditorBrowsable(EditorBrowsableState.Never), InterpolatedStringHandler]
 	public readonly ref struct WriteIfInterpolatedStringHandler
 	{
-		/// <summary>The associated <see cref="WriteInterpolatedStringHandler"/> to use.</summary>
+		/// <summary>The associated <see cref="WriteInterpolatedStringHandler" /> to use.</summary>
 		private readonly WriteInterpolatedStringHandler _handler;
 
-		/// <summary>Creates a handler used to append an interpolated string into a <see cref="StringBuilder"/>.</summary>
-		/// <param name="literalLength">The number of constant characters outside of interpolation expressions in the interpolated string.</param>
+		/// <summary>Creates a handler used to append an interpolated string into a <see cref="StringBuilder" />.</summary>
+		/// <param name="literalLength">
+		///   The number of constant characters outside of interpolation expressions in the interpolated
+		///   string.
+		/// </param>
 		/// <param name="formattedCount">The number of interpolation expressions in the interpolated string.</param>
-		/// <param name="writer">The associated <see cref="IndentedCodeWriter"/> to which to append.</param>
+		/// <param name="writer">The associated <see cref="IndentedCodeWriter" /> to which to append.</param>
 		/// <param name="condition">The condition to use to decide whether or not to write content.</param>
 		/// <param name="shouldAppend">A value indicating whether formatting should proceed.</param>
-		/// <remarks>This is intended to be called only by compiler-generated code. Arguments are not validated as they'd otherwise be for members intended to be used directly.</remarks>
+		/// <remarks>
+		///   This is intended to be called only by compiler-generated code. Arguments are not validated as they'd otherwise
+		///   be for members intended to be used directly.
+		/// </remarks>
 		public WriteIfInterpolatedStringHandler(int literalLength, int formattedCount, IndentedCodeWriter writer, bool condition, out bool shouldAppend)
 		{
 			if (condition)
@@ -718,181 +871,40 @@ public sealed class IndentedCodeWriter : IDisposable
 			}
 		}
 
-		/// <inheritdoc cref="WriteInterpolatedStringHandler.AppendLiteral(string)"/>
+		/// <inheritdoc cref="WriteInterpolatedStringHandler.AppendLiteral(string)" />
 		public void AppendLiteral(string value)
 		{
 			_handler.AppendLiteral(value);
 		}
 
-		/// <inheritdoc cref="WriteInterpolatedStringHandler.AppendFormatted(string?)"/>
+		/// <inheritdoc cref="WriteInterpolatedStringHandler.AppendFormatted(string?)" />
 		public void AppendFormatted(string? value)
 		{
 			_handler.AppendFormatted(value);
 		}
 
-		/// <inheritdoc cref="WriteInterpolatedStringHandler.AppendFormatted(ReadOnlySpan{char})"/>
+		/// <inheritdoc cref="WriteInterpolatedStringHandler.AppendFormatted(ReadOnlySpan{char})" />
 		public void AppendFormatted(ReadOnlySpan<char> value)
 		{
 			_handler.AppendFormatted(value);
 		}
 
-		/// <inheritdoc cref="WriteInterpolatedStringHandler.AppendFormatted{T}(T)"/>
+		/// <inheritdoc cref="WriteInterpolatedStringHandler.AppendFormatted{T}(T)" />
 		public void AppendFormatted<T>(T value)
 		{
 			_handler.AppendFormatted(value);
 		}
 
-		/// <inheritdoc cref="WriteInterpolatedStringHandler.AppendFormatted(IParameterSymbol)"/>
+		/// <inheritdoc cref="WriteInterpolatedStringHandler.AppendFormatted(IParameterSymbol)" />
 		public void AppendFormatted(IParameterSymbol parameter)
 		{
 			_handler.AppendFormatted(parameter);
 		}
 
-		/// <inheritdoc cref="WriteInterpolatedStringHandler.AppendFormatted(ImmutableArray{IParameterSymbol})"/>
+		/// <inheritdoc cref="WriteInterpolatedStringHandler.AppendFormatted(ImmutableArray{IParameterSymbol})" />
 		public void AppendFormatted(ImmutableArray<IParameterSymbol> parameters)
 		{
 			_handler.AppendFormatted(parameters);
 		}
-	}
-
-	public static ExpressionSyntax CreateLiteral<T>(T? value)
-	{
-		switch (value)
-		{
-			case byte bb:
-			{
-				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(bb));
-			}
-			case sbyte sb:
-			{
-				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(sb));
-			}
-			case int i and < 0 when i != int.MinValue:
-			{
-				return SyntaxFactory.PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
-					SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(-i)));
-			}
-			case int i:
-			{
-				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(i));
-			}
-			case uint ui:
-			{
-				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(ui));
-			}
-			case float f and < 0:
-			{
-				return SyntaxFactory.PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
-					SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(-f)));
-			}
-			case float f:
-			{
-				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(f));
-			}
-			case double d and < 0:
-			{
-				return SyntaxFactory.PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
-					SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(-d)));
-			}
-			case double d:
-			{
-				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(d));
-			}
-			case long l and < 0 when l != long.MinValue:
-			{
-				return SyntaxFactory.PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
-					SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(-l)));
-			}
-			case long l:
-			{
-				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(l));
-			}
-			case ulong ul:
-			{
-				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(ul));
-			}
-			case decimal dec and < 0:
-			{
-				return SyntaxFactory.PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
-					SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(-dec)));
-			}
-			case decimal dec:
-			{
-				return SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(dec));
-			}
-			case string s1:
-			{
-				return SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(s1));
-			}
-			case char c:
-			{
-				return SyntaxFactory.LiteralExpression(SyntaxKind.CharacterLiteralExpression, SyntaxFactory.Literal(c));
-			}
-			case bool b:
-			{
-				return SyntaxFactory.LiteralExpression(b
-					? SyntaxKind.TrueLiteralExpression
-					: SyntaxKind.FalseLiteralExpression);
-			}
-			case Enum e:
-			{
-				return SyntaxFactory.MemberAccessExpression(
-					SyntaxKind.SimpleMemberAccessExpression,
-					SyntaxFactory.IdentifierName(e.GetType().Name),
-					SyntaxFactory.IdentifierName(e.ToString()));
-			}
-			case DateTime dt:
-			{
-				return SyntaxFactory.ObjectCreationExpression(
-						SyntaxFactory.IdentifierName(nameof(DateTime)))
-					.WithArgumentList(
-						SyntaxFactory.ArgumentList(
-							SyntaxFactory.SingletonSeparatedList(
-								SyntaxFactory.Argument(CreateLiteral(dt.Ticks)))));
-			}
-			case null:
-			{
-				return SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression);
-			}
-			case ExpressionSyntax expression:
-			{
-				return expression.NormalizeWhitespace(DefaultIndentation);
-			}
-		}
-
-		if (value.GetType().Name.Contains("Tuple"))
-		{
-			var type = value.GetType();
-			var tupleItems = new List<ArgumentSyntax>();
-
-			// Prefer fields (ValueTuple), otherwise use properties (Tuple)
-			var members = type
-				.GetFields()
-				.Where(f => f.Name.StartsWith("Item"))
-				.Cast<MemberInfo>()
-				.Concat(type
-					.GetProperties()
-					.Where(p => p.Name.StartsWith("Item")));
-
-			foreach (var member in members)
-			{
-				var itemValue = member is FieldInfo fi
-					? fi.GetValue(value)
-					: ((PropertyInfo)member).GetValue(value);
-
-				tupleItems.Add(SyntaxFactory.Argument(CreateLiteral(itemValue)));
-			}
-
-			return SyntaxFactory.TupleExpression(SyntaxFactory.SeparatedList(tupleItems));
-		}
-
-		if (value is IEnumerable enumerable)
-		{
-			return SyntaxFactory.CollectionExpression(SyntaxFactory.SeparatedList<CollectionElementSyntax>(enumerable
-				.Cast<object?>()
-				.Select(s => SyntaxFactory.ExpressionElement(CreateLiteral(s)))));
-		}
-
-		throw new Exception($"Cannot create literal for type: {typeof(T).FullName}");
 	}
 }

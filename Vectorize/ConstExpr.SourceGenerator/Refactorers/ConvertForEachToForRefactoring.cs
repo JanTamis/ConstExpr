@@ -9,41 +9,39 @@ namespace ConstExpr.SourceGenerator.Refactorers;
 using static SyntaxFactory;
 
 /// <summary>
-/// Refactorer that converts between <c>foreach</c> loops and equivalent <c>for</c> loops
-/// over indexable collections (arrays, lists with indexer and Count/Length).
-/// Inspired by the Roslyn <c>ConvertForEachToForCodeRefactoringProvider</c>.
-///
-/// Since this is a pure syntax-level refactoring without a semantic model, it makes
-/// best-effort assumptions:
-/// <list type="bullet">
-///   <item>Arrays use <c>.Length</c></item>
-///   <item>Other collections use <c>.Count</c></item>
-/// </list>
-///
-/// <code>
+///   Refactorer that converts between <c>foreach</c> loops and equivalent <c>for</c> loops
+///   over indexable collections (arrays, lists with indexer and Count/Length).
+///   Inspired by the Roslyn <c>ConvertForEachToForCodeRefactoringProvider</c>.
+///   Since this is a pure syntax-level refactoring without a semantic model, it makes
+///   best-effort assumptions:
+///   <list type="bullet">
+///     <item>Arrays use <c>.Length</c></item>
+///     <item>Other collections use <c>.Count</c></item>
+///   </list>
+///   <code>
 /// foreach (var item in collection) { Body(item); }
 /// </code>
-/// →
-/// <code>
+///   →
+///   <code>
 /// for (var i = 0; i &lt; collection.Length; i++) { var item = collection[i]; Body(item); }
 /// </code>
 /// </summary>
 public static class ConvertForEachToForRefactoring
 {
 	/// <summary>
-	/// Converts a foreach statement to a for loop with an index variable.
+	///   Converts a foreach statement to a for loop with an index variable.
 	/// </summary>
 	/// <param name="forEach">The foreach statement to convert.</param>
 	/// <param name="useLength">
-	/// When <see langword="true"/>, uses <c>.Length</c>; otherwise uses <c>.Count</c>.
-	/// Default is <see langword="true"/> (suitable for arrays).
-	/// When a <paramref name="semanticModel"/> is provided, this parameter is auto-detected.
+	///   When <see langword="true" />, uses <c>.Length</c>; otherwise uses <c>.Count</c>.
+	///   Default is <see langword="true" /> (suitable for arrays).
+	///   When a <paramref name="semanticModel" /> is provided, this parameter is auto-detected.
 	/// </param>
 	/// <param name="indexName">Name of the index variable. Defaults to <c>"i"</c>.</param>
 	/// <param name="result">The resulting for statement.</param>
 	/// <param name="semanticModel">
-	/// Optional semantic model. When provided, the collection type is resolved to
-	/// auto-detect whether to use <c>.Length</c> (arrays) or <c>.Count</c> (lists/collections).
+	///   Optional semantic model. When provided, the collection type is resolved to
+	///   auto-detect whether to use <c>.Length</c> (arrays) or <c>.Count</c> (lists/collections).
 	/// </param>
 	public static bool TryConvertForEachToFor(
 		ForEachStatementSyntax forEach,
@@ -138,9 +136,9 @@ public static class ConvertForEachToForRefactoring
 	}
 
 	/// <summary>
-	/// Converts a simple for-loop (with index over Length/Count) back to a foreach loop.
-	/// The for-loop must have the pattern:
-	/// <c>for (var i = 0; i &lt; collection.Length; i++) { var item = collection[i]; ... }</c>
+	///   Converts a simple for-loop (with index over Length/Count) back to a foreach loop.
+	///   The for-loop must have the pattern:
+	///   <c>for (var i = 0; i &lt; collection.Length; i++) { var item = collection[i]; ... }</c>
 	/// </summary>
 	public static bool TryConvertForToForEach(
 		ForStatementSyntax forStatement,
@@ -149,8 +147,8 @@ public static class ConvertForEachToForRefactoring
 		result = null;
 
 		// Must have a declaration with a single variable initialized to 0
-		if (forStatement.Declaration is not { Variables: [ var indexVar ] } 
-		    || indexVar.Initializer?.Value is not LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NumericLiteralExpression } initLiteral 
+		if (forStatement.Declaration is not { Variables: [ var indexVar ] }
+		    || indexVar.Initializer?.Value is not LiteralExpressionSyntax { RawKind: (int)SyntaxKind.NumericLiteralExpression } initLiteral
 		    || initLiteral.Token.Value is not 0)
 		{
 			return false;
@@ -159,10 +157,10 @@ public static class ConvertForEachToForRefactoring
 		// Condition: i < collection.Length (or .Count)
 		if (forStatement.Condition is not BinaryExpressionSyntax
 		    {
-			    RawKind: (int) SyntaxKind.LessThanExpression,
+			    RawKind: (int)SyntaxKind.LessThanExpression,
 			    Left: IdentifierNameSyntax condLeft,
 			    Right: MemberAccessExpressionSyntax { Name.Identifier.ValueText: "Length" or "Count" } memberAccess
-		    } 
+		    }
 		    || condLeft.Identifier.ValueText != indexVar.Identifier.ValueText)
 		{
 			return false;
@@ -178,8 +176,8 @@ public static class ConvertForEachToForRefactoring
 		}
 
 		// Body must start with: var item = collection[i];
-		if (forStatement.Statement is not BlockSyntax block 
-		    || block.Statements.Count < 1 
+		if (forStatement.Statement is not BlockSyntax block
+		    || block.Statements.Count < 1
 		    || block.Statements[0] is not LocalDeclarationStatementSyntax
 		    {
 			    Declaration.Variables: [ var itemVar ]
@@ -191,7 +189,7 @@ public static class ConvertForEachToForRefactoring
 		if (itemVar.Initializer?.Value is not ElementAccessExpressionSyntax
 		    {
 			    ArgumentList.Arguments: [ { Expression: IdentifierNameSyntax argId } ]
-		    } 
+		    }
 		    || argId.Identifier.ValueText != indexVar.Identifier.ValueText)
 		{
 			return false;
@@ -217,13 +215,13 @@ public static class ConvertForEachToForRefactoring
 	{
 		return expr switch
 		{
-			PostfixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.PostIncrementExpression, Operand: IdentifierNameSyntax id }
+			PostfixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.PostIncrementExpression, Operand: IdentifierNameSyntax id }
 				=> id.Identifier.ValueText == variableName,
-			PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.PreIncrementExpression, Operand: IdentifierNameSyntax id }
+			PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.PreIncrementExpression, Operand: IdentifierNameSyntax id }
 				=> id.Identifier.ValueText == variableName,
 			AssignmentExpressionSyntax
 			{
-				RawKind: (int) SyntaxKind.AddAssignmentExpression,
+				RawKind: (int)SyntaxKind.AddAssignmentExpression,
 				Left: IdentifierNameSyntax id,
 				Right: LiteralExpressionSyntax lit
 			} => id.Identifier.ValueText == variableName && lit.Token.Value is 1,

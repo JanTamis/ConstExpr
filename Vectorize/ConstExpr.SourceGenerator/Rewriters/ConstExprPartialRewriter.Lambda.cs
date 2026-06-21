@@ -10,8 +10,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Rewriters;
 
 /// <summary>
-/// Lambda expression visitor methods for the ConstExprPartialRewriter.
-/// Handles simple and parenthesized lambda expressions.
+///   Lambda expression visitor methods for the ConstExprPartialRewriter.
+///   Handles simple and parenthesized lambda expressions.
 /// </summary>
 public partial class ConstExprPartialRewriter
 {
@@ -67,8 +67,8 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Adds lambda parameters to the variables dictionary, shadowing any outer variables with the same name.
-	/// Returns a list of (name, previous value or null) pairs for restoration.
+	///   Adds lambda parameters to the variables dictionary, shadowing any outer variables with the same name.
+	///   Returns a list of (name, previous value or null) pairs for restoration.
 	/// </summary>
 	private List<(string Name, VariableItem? Previous)> AddLambdaParameters(ExpressionSyntax node)
 	{
@@ -85,20 +85,17 @@ public partial class ConstExprPartialRewriter
 				addedParameters.Add((parameter.Name, previous));
 			}
 		}
-		else
-		{
-			// No symbol info (generated/synthetic lambda): revert to old behavior.
-			// Do NOT add variables here — writing ObjectType to the shared symbolStore
-			// would corrupt concrete-type annotations for same-named identifiers
-			// that were previously annotated (e.g. breaking range check optimization
-			// where 'v: int' → 'v: object' would prevent TryGetUnsignedType from working).
-		}
 
+		// No symbol info (generated/synthetic lambda): revert to old behavior.
+		// Do NOT add variables here — writing ObjectType to the shared symbolStore
+		// would corrupt concrete-type annotations for same-named identifiers
+		// that were previously annotated (e.g. breaking range check optimization
+		// where 'v: int' → 'v: object' would prevent TryGetUnsignedType from working).
 		return addedParameters;
 	}
 
 	/// <summary>
-	/// Removes lambda parameters from the variables dictionary, restoring any shadowed outer variables.
+	///   Removes lambda parameters from the variables dictionary, restoring any shadowed outer variables.
 	/// </summary>
 	private void RemoveLambdaParameters(List<(string Name, VariableItem? Previous)> addedParameters)
 	{
@@ -116,9 +113,9 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Tries to evaluate a lambda stored in a local variable (marked CanBeInlined) when called
-	/// with fully-constant arguments.  Returns the folded result literal, or null if evaluation
-	/// is not possible.
+	///   Tries to evaluate a lambda stored in a local variable (marked CanBeInlined) when called
+	///   with fully-constant arguments.  Returns the folded result literal, or null if evaluation
+	///   is not possible.
 	/// </summary>
 	private SyntaxNode? TryEvaluateLambdaVariableWithArguments(
 		LambdaExpressionSyntax lambda,
@@ -226,9 +223,9 @@ public partial class ConstExprPartialRewriter
 					? delegateMethod.Parameters[i].Type
 					: semanticModel.Compilation.ObjectType;
 
-				subParams[paramNames[i]] = new VariableItem(paramType, hasValue: true, value: constantArguments[i])
+				subParams[paramNames[i]] = new VariableItem(paramType, true, constantArguments[i])
 				{
-					IsInitialized = true,
+					IsInitialized = true
 				};
 			}
 

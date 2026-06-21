@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for TakeLast() optimization - verify TakeLast(0) returns Empty
+///   Tests for TakeLast() optimization - verify TakeLast(0) returns Empty
 /// </summary>
 [InheritsTests]
 public class LinqTakeLastOptimizationTests : BaseTest<Func<int[], int>>
@@ -20,6 +20,6 @@ public class LinqTakeLastOptimizationTests : BaseTest<Func<int[], int>>
 	[
 		Create("return Count_XgBl1Q(x);"),
 		Create(_ => 1, [ new[] { 1, 2, 3 } ]),
-		Create(_ => 0, [ System.Array.Empty<int>() ]),
+		Create(_ => 0, [ System.Array.Empty<int>() ])
 	];
 }

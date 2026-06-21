@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
-/// Tests for VisitSwitchStatement - constant folding of switch expression
+///   Tests for VisitSwitchStatement - constant folding of switch expression
 /// </summary>
 [InheritsTests]
 public class VisitSwitchStatementTests : BaseTest<Func<int, int>>

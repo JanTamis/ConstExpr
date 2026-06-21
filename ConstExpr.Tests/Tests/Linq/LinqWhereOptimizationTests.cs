@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for Where() optimization - verify constant folding and combining of Where clauses
+///   Tests for Where() optimization - verify constant folding and combining of Where clauses
 /// </summary>
 [InheritsTests]
 public class LinqWhereOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
@@ -44,6 +44,6 @@ public class LinqWhereOptimizationTests() : BaseTest<Func<int[], int>>(FastMathF
 		Create("return x.Length + Count_8v2IzQ(x) + Count_k44U2w(x) + Count_iu6ggQ(x) + Count_vwaqjw(x) + Count_edlCaw(x);"),
 		Create(_ => 19, [ new[] { 1, 2, 3, 4, 5 } ]),
 		Create(_ => 0, [ System.Array.Empty<int>() ]),
-		Create(_ => 38, [ new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 } ]),
+		Create(_ => 38, [ new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 } ])
 	];
 }

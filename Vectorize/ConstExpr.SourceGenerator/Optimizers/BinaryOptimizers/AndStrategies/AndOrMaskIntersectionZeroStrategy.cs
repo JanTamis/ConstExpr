@@ -6,8 +6,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AndStrategies;
 
 /// <summary>
-/// (x | mask1) & mask2 when mask1 & mask2 == 0 => x & mask2 (when x is pure)
-/// symmetric
+///   (x | mask1) & mask2 when mask1 & mask2 == 0 => x & mask2 (when x is pure)
+///   symmetric
 /// </summary>
 public class AndOrMaskIntersectionZeroStrategy() : SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, LiteralExpressionSyntax>(leftKind: SyntaxKind.BitwiseOrExpression)
 {
@@ -20,7 +20,7 @@ public class AndOrMaskIntersectionZeroStrategy() : SymmetricStrategy<NumericBina
 			optimized = null;
 			return false;
 		}
-		
+
 		optimized = BitwiseAndExpression(context.Left.Syntax.Left, context.Right.Syntax);
 		return true;
 	}

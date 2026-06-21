@@ -12,7 +12,7 @@ public class StringContainsTest() : BaseTest<Func<string, string, bool>>(FastMat
 		Create("return Contains_57jrtQ(s, sub);"),
 		Create((_, _) => true, [ "hello", "ell" ]),
 		Create((_, _) => false, [ "hello", "world" ]),
-		Create((_, _) => true, [ "abc", "" ]),
-		Create((_, _) => false, [ "", "x" ]),
+		Create((_, _) => true, [ "abc", System.String.Empty ]),
+		Create((_, _) => false, [ System.String.Empty, "x" ])
 	];
 }

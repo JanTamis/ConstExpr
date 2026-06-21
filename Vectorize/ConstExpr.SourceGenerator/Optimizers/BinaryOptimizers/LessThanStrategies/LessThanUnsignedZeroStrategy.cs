@@ -6,9 +6,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.LessThanStrategies;
 
 /// <summary>
-/// Strategy for tautological unsigned comparisons: (uint)x &lt; 0 → false.
-/// Unsigned integer types can never be negative; the comparison is always false.
-/// Safe under Strict.
+///   Strategy for tautological unsigned comparisons: (uint)x &lt; 0 → false.
+///   Unsigned integer types can never be negative; the comparison is always false.
+///   Safe under Strict.
 /// </summary>
 public class LessThanUnsignedZeroStrategy : BaseBinaryStrategy
 {
@@ -17,7 +17,7 @@ public class LessThanUnsignedZeroStrategy : BaseBinaryStrategy
 		SpecialType.System_Byte,
 		SpecialType.System_UInt16,
 		SpecialType.System_UInt32,
-		SpecialType.System_UInt64,
+		SpecialType.System_UInt64
 	];
 
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)

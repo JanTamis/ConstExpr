@@ -3,14 +3,14 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Validation;
 
 /// <summary>
-/// Tests that the three-range hex-digit check is collapsed into
-/// <c>Char.IsAsciiLetterOrDigit(c)</c> by the binary optimizer.
+///   Tests that the three-range hex-digit check is collapsed into
+///   <c>Char.IsAsciiLetterOrDigit(c)</c> by the binary optimizer.
 /// </summary>
 [InheritsTests]
 public class IsAsciiHexDigitTest() : BaseTest<Func<char, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(c =>
-		(c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'));
+		c >= '0' && c <= '9' || c >= 'a' && c <= 'f' || c >= 'A' && c <= 'F');
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
@@ -23,6 +23,6 @@ public class IsAsciiHexDigitTest() : BaseTest<Func<char, bool>>(FastMathFlags.Al
 		Create(_ => true, [ 'a' ]),
 		Create(_ => true, [ 'F' ]),
 		Create(_ => false, [ 'g' ]),
-		Create(_ => false, [ 'Z' ]),
+		Create(_ => false, [ 'Z' ])
 	];
 }

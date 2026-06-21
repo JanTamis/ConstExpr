@@ -18,8 +18,8 @@ namespace ConstExpr.SourceGenerator.Rewriters;
 
 public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, IDictionary<string, VariableItem> variables, ConcurrentDictionary<ulong, ISymbol> symbolStore) : CSharpSyntaxRewriter
 {
-	protected readonly SemanticModel semanticModel = semanticModel;
 	protected readonly MetadataLoader loader = loader;
+	protected readonly SemanticModel semanticModel = semanticModel;
 	protected readonly IDictionary<string, VariableItem> variables = variables;
 
 	protected bool TryGetLiteralValue(SyntaxNode? node, [NotNullWhen(true)] out object? value)
@@ -642,9 +642,9 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 	}
 
 	/// <summary>
-	/// Applies an object/collection/dictionary initializer to an already-constructed instance.
-	/// Returns true when the initializer was absent (nothing to apply) or successfully applied.
-	/// Returns false when the initializer was present but could not be fully applied.
+	///   Applies an object/collection/dictionary initializer to an already-constructed instance.
+	///   Returns true when the initializer was absent (nothing to apply) or successfully applied.
+	///   Returns false when the initializer was present but could not be fully applied.
 	/// </summary>
 	private bool TryApplyInitializer([NotNullWhen(true)] InitializerExpressionSyntax? initializer, [NotNullWhen(true)] object? instance, ITypeSymbol? typeSymbol, HashSet<string> visitedVariables)
 	{
@@ -745,7 +745,7 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 				    && nestedInit.IsKind(SyntaxKind.ComplexElementInitializerExpression))
 				{
 					var addArgs = nestedInit.Expressions
-						.Select(e => TryGetLiteralValue(e, typeSymbol, out var v, visitedVariables) ? (true, v) : (false, (object?) null))
+						.Select(e => TryGetLiteralValue(e, typeSymbol, out var v, visitedVariables) ? (true, v) : (false, (object?)null))
 						.ToList();
 
 					if (addArgs.Any(a => !a.Item1))
@@ -803,8 +803,8 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 	}
 
 	/// <summary>
-	/// Checks if a variable has a known constant value that can be inlined.
-	/// Used for constant folding decisions during evaluation.
+	///   Checks if a variable has a known constant value that can be inlined.
+	///   Used for constant folding decisions during evaluation.
 	/// </summary>
 	protected bool CanBePruned(string variableName)
 	{

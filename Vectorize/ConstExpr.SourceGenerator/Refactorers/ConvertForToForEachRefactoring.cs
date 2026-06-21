@@ -8,32 +8,30 @@ namespace ConstExpr.SourceGenerator.Refactorers;
 using static SyntaxFactory;
 
 /// <summary>
-/// Refactorer that converts a <c>for</c> loop (with an index over <c>Length</c>/<c>Count</c>)
-/// back to a <c>foreach</c> loop.
-/// Inspired by the Roslyn <c>CSharpConvertForToForEachCodeRefactoringProvider</c>.
-///
-/// <code>
+///   Refactorer that converts a <c>for</c> loop (with an index over <c>Length</c>/<c>Count</c>)
+///   back to a <c>foreach</c> loop.
+///   Inspired by the Roslyn <c>CSharpConvertForToForEachCodeRefactoringProvider</c>.
+///   <code>
 /// for (var i = 0; i &lt; collection.Length; i++)
 /// {
 ///     var item = collection[i];
 ///     Body(item);
 /// }
 /// </code>
-/// →
-/// <code>
+///   →
+///   <code>
 /// foreach (var item in collection)
 /// {
 ///     Body(item);
 /// }
 /// </code>
-///
-/// The for-loop must have the pattern:
-/// <c>for (var i = 0; i &lt; collection.Length/Count; i++) { var item = collection[i]; ... }</c>
+///   The for-loop must have the pattern:
+///   <c>for (var i = 0; i &lt; collection.Length/Count; i++) { var item = collection[i]; ... }</c>
 /// </summary>
 public static class ConvertForToForEachRefactoring
 {
 	/// <summary>
-	/// Converts a simple for-loop (with index over Length/Count) to a foreach loop.
+	///   Converts a simple for-loop (with index over Length/Count) to a foreach loop.
 	/// </summary>
 	public static bool TryConvertForToForEach(
 		ForStatementSyntax forStatement,
@@ -124,11 +122,11 @@ public static class ConvertForToForEachRefactoring
 	{
 		return expr switch
 		{
-			PostfixUnaryExpressionSyntax post when 
+			PostfixUnaryExpressionSyntax post when
 				post.IsKind(SyntaxKind.PostIncrementExpression) && post.Operand is IdentifierNameSyntax postId && postId.Identifier.ValueText == variableName => true,
-			PrefixUnaryExpressionSyntax pre when 
+			PrefixUnaryExpressionSyntax pre when
 				pre.IsKind(SyntaxKind.PreIncrementExpression) && pre.Operand is IdentifierNameSyntax preId && preId.Identifier.ValueText == variableName => true,
-			AssignmentExpressionSyntax assign when 
+			AssignmentExpressionSyntax assign when
 				assign.IsKind(SyntaxKind.AddAssignmentExpression) && assign.Left is IdentifierNameSyntax assignId && assignId.Identifier.ValueText == variableName && assign.Right is LiteralExpressionSyntax { Token.Value: 1 } => true,
 			_ => false
 		};

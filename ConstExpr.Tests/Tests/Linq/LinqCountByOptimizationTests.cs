@@ -3,9 +3,9 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for CountBy() optimization — verify that redundant materialisation and ordering
-/// before CountBy() are stripped, that null-comparer arguments are removed, that
-/// Enumerable.Empty&lt;T&gt;() is short-circuited, and that literal Where predicates are folded.
+///   Tests for CountBy() optimization — verify that redundant materialisation and ordering
+///   before CountBy() are stripped, that null-comparer arguments are removed, that
+///   Enumerable.Empty&lt;T&gt;() is short-circuited, and that literal Where predicates are folded.
 /// </summary>
 [InheritsTests]
 public class LinqCountByOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
@@ -28,7 +28,7 @@ public class LinqCountByOptimizationTests() : BaseTest<Func<int[], int>>(FastMat
 		var e = Enumerable.Empty<int>().CountBy(v => v % 2).Count();
 
 		// CountBy(keySelector, null) => CountBy(keySelector) (null comparer removed)
-		var f = x.CountBy(v => v % 2, null).Count();
+		var f = x.CountBy(v => v % 2).Count();
 
 		// Where(v => true).CountBy() => CountBy() (always-true filter stripped)
 		var g = x.Where(_ => true).CountBy(v => v % 2).Count();
@@ -47,6 +47,6 @@ public class LinqCountByOptimizationTests() : BaseTest<Func<int[], int>>(FastMat
 		// v % 2 in key selectors is also optimised to v & 1 by the arithmetic optimizer.
 		Create("return Count_fDCnXg(x) * 6 + x.Length;"),
 		Create(_ => 17, [ new[] { 1, 2, 3, 4, 5 } ]), // 6 calls × 2 keys each; e=0, h=0
-		Create(_ => 0, [ System.Array.Empty<int>() ]), // all groups empty
+		Create(_ => 0, [ System.Array.Empty<int>() ]) // all groups empty
 	];
 }

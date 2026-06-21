@@ -4,10 +4,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 /// <summary>
-/// Unrolls <c>.ThenBy(keySelector)</c> as an intermediate step.
-/// Collects all elements into a list during the main loop, performs a stable sort
-/// by preserving the original index as tiebreaker, then iterates in sorted order
-/// through subsequent chain steps after the main loop.
+///   Unrolls <c>.ThenBy(keySelector)</c> as an intermediate step.
+///   Collects all elements into a list during the main loop, performs a stable sort
+///   by preserving the original index as tiebreaker, then iterates in sorted order
+///   through subsequent chain steps after the main loop.
 /// </summary>
 public class ThenByLinqUnroller : BaseLinqUnroller
 {
@@ -20,7 +20,7 @@ public class ThenByLinqUnroller : BaseLinqUnroller
 
 		// var thenByBuffer = new List<T>();
 		statements.Add(CreateLocalDeclaration(BufferName,
-			ObjectCreationExpression(IdentifierName($"List<{typeName}>"), [])));
+			ObjectCreationExpression(IdentifierName($"List<{typeName}>"), [ ])));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
@@ -76,4 +76,3 @@ public class ThenByLinqUnroller : BaseLinqUnroller
 			Block(partialLoopBody)));
 	}
 }
-

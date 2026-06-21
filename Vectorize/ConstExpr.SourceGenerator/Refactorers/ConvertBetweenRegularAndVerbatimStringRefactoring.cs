@@ -9,22 +9,32 @@ namespace ConstExpr.SourceGenerator.Refactorers;
 using static SyntaxFactory;
 
 /// <summary>
-/// Refactorer that converts between regular and verbatim string literals.
-/// Inspired by the Roslyn <c>ConvertBetweenRegularAndVerbatimStringCodeRefactoringProvider</c>.
-///
-/// <list type="bullet">
-///   <item>Regular → verbatim:  <c>"line1\nline2"</c>  →  <c>@"line1
-/// line2"</c></item>
-///   <item>Verbatim → regular:  <c>@"line1
-/// line2"</c>  →  <c>"line1\nline2"</c></item>
-/// </list>
+///   Refactorer that converts between regular and verbatim string literals.
+///   Inspired by the Roslyn <c>ConvertBetweenRegularAndVerbatimStringCodeRefactoringProvider</c>.
+///   <list type="bullet">
+///     <item>
+///       Regular → verbatim:  <c>"line1\nline2"</c>  →
+///       <c>
+///         @"line1
+///         line2"
+///       </c>
+///     </item>
+///     <item>
+///       Verbatim → regular:
+///       <c>
+///         @"line1
+///         line2"
+///       </c>
+///       →  <c>"line1\nline2"</c>
+///     </item>
+///   </list>
 /// </summary>
 public static class ConvertBetweenRegularAndVerbatimStringRefactoring
 {
 	/// <summary>
-	/// Converts a regular string literal to a verbatim string literal.
-	/// Only converts when the regular string contains escape sequences that
-	/// would be simplified in verbatim form.
+	///   Converts a regular string literal to a verbatim string literal.
+	///   Only converts when the regular string contains escape sequences that
+	///   would be simplified in verbatim form.
 	/// </summary>
 	public static bool TryConvertToVerbatimString(
 		LiteralExpressionSyntax literal,
@@ -90,7 +100,7 @@ public static class ConvertBetweenRegularAndVerbatimStringRefactoring
 	}
 
 	/// <summary>
-	/// Converts a verbatim string literal to a regular string literal.
+	///   Converts a verbatim string literal to a regular string literal.
 	/// </summary>
 	public static bool TryConvertToRegularString(
 		LiteralExpressionSyntax literal,
@@ -195,8 +205,8 @@ public static class ConvertBetweenRegularAndVerbatimStringRefactoring
 	}
 
 	/// <summary>
-	/// Returns <see langword="true"/> when the regular string text contains escape sequences
-	/// (other than <c>\0</c>) that would become simpler in verbatim form.
+	///   Returns <see langword="true" /> when the regular string text contains escape sequences
+	///   (other than <c>\0</c>) that would become simpler in verbatim form.
 	/// </summary>
 	private static bool ContainsConvertibleEscape(string text)
 	{

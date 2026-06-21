@@ -10,6 +10,6 @@ public class MathFCosTest() : BaseTest<Func<float, float>>(FastMathFlags.All, op
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return FastCos(x);"),
+		Create("return FastCos(x);")
 	];
 }

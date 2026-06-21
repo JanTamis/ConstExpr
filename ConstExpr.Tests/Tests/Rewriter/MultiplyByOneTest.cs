@@ -10,6 +10,6 @@ public class MultiplyByOneTest : BaseTest<Func<int, int>>
 	[
 		Create(x => x),
 		Create(_ => 7, [ 7 ]),
-		Create(_ => -2, [ -2 ]),
+		Create(_ => -2, [ -2 ])
 	];
 }

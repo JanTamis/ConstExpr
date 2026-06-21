@@ -10,6 +10,6 @@ public class StringTrimEndIdempotencyTest() : BaseTest<Func<string, string>>(Fas
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(s => s.TrimEnd()),
+		Create(s => s.TrimEnd())
 	];
 }

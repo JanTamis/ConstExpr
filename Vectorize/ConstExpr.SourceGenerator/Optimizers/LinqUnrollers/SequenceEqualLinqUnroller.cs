@@ -5,9 +5,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 /// <summary>
-/// Unrolls <c>.SequenceEqual(other)</c> as a terminal step.
-/// Iterates source and <c>other</c> in lock-step via an enumerator, comparing each pair.
-/// Returns <c>false</c> immediately on any mismatch or length difference.
+///   Unrolls <c>.SequenceEqual(other)</c> as a terminal step.
+///   Iterates source and <c>other</c> in lock-step via an enumerator, comparing each pair.
+///   Returns <c>false</c> immediately on any mismatch or length difference.
 /// </summary>
 public class SequenceEqualLinqUnroller : BaseLinqUnroller
 {
@@ -36,7 +36,7 @@ public class SequenceEqualLinqUnroller : BaseLinqUnroller
 			ReturnStatement(CreateLiteral(false))));
 
 		// if (item != seqEnum.Current) return false;
-		statements.Add(IfStatement( NotEqualsExpression(elementName, current),
+		statements.Add(IfStatement(NotEqualsExpression(elementName, current),
 			ReturnStatement(CreateLiteral(false))));
 	}
 

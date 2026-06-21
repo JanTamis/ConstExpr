@@ -9,20 +9,19 @@ namespace ConstExpr.SourceGenerator.Refactorers;
 using static SyntaxFactory;
 
 /// <summary>
-/// Refactorer that converts a null-conditional chain to an explicit null check,
-/// and vice versa.
-/// Inspired by Roslyn's pattern-matching and null-check related refactorings.
-///
-/// <list type="bullet">
-///   <item><c>obj?.Method()</c>  →  <c>if (obj != null) { obj.Method(); }</c></item>
-///   <item><c>obj?.Property ?? defaultValue</c>  →  <c>obj != null ? obj.Property : defaultValue</c></item>
-/// </list>
+///   Refactorer that converts a null-conditional chain to an explicit null check,
+///   and vice versa.
+///   Inspired by Roslyn's pattern-matching and null-check related refactorings.
+///   <list type="bullet">
+///     <item><c>obj?.Method()</c>  →  <c>if (obj != null) { obj.Method(); }</c></item>
+///     <item><c>obj?.Property ?? defaultValue</c>  →  <c>obj != null ? obj.Property : defaultValue</c></item>
+///   </list>
 /// </summary>
 public static class ConvertNullCheckRefactoring
 {
 	/// <summary>
-	/// Converts a null-coalescing expression <c>expr ?? defaultExpr</c> into a ternary
-	/// null-check: <c>expr != null ? expr : defaultExpr</c>.
+	///   Converts a null-coalescing expression <c>expr ?? defaultExpr</c> into a ternary
+	///   null-check: <c>expr != null ? expr : defaultExpr</c>.
 	/// </summary>
 	public static bool TryConvertNullCoalescingToConditional(
 		BinaryExpressionSyntax coalescing,
@@ -46,8 +45,8 @@ public static class ConvertNullCheckRefactoring
 	}
 
 	/// <summary>
-	/// Converts a ternary null-check <c>x != null ? x : defaultExpr</c> (or <c>x is not null ? x : defaultExpr</c>)
-	/// into a null-coalescing expression <c>x ?? defaultExpr</c>.
+	///   Converts a ternary null-check <c>x != null ? x : defaultExpr</c> (or <c>x is not null ? x : defaultExpr</c>)
+	///   into a null-coalescing expression <c>x ?? defaultExpr</c>.
 	/// </summary>
 	public static bool TryConvertConditionalToNullCoalescing(
 		ConditionalExpressionSyntax conditional,
@@ -105,8 +104,8 @@ public static class ConvertNullCheckRefactoring
 	}
 
 	/// <summary>
-	/// Converts a null-coalescing assignment <c>x ??= value</c> into an explicit if-null assignment:
-	/// <c>if (x is null) x = value;</c>
+	///   Converts a null-coalescing assignment <c>x ??= value</c> into an explicit if-null assignment:
+	///   <c>if (x is null) x = value;</c>
 	/// </summary>
 	public static bool TryConvertNullCoalescingAssignmentToIfNull(
 		ExpressionStatementSyntax expressionStatement,
@@ -147,4 +146,3 @@ public static class ConvertNullCheckRefactoring
 		return a.GetDeterministicHash() == b.GetDeterministicHash();
 	}
 }
-

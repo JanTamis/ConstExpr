@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
-using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -13,8 +12,8 @@ using SourceGen.Utilities.Extensions;
 namespace ConstExpr.SourceGenerator.Rewriters;
 
 /// <summary>
-/// Pattern matching visitor methods for the ConstExprPartialRewriter.
-/// Handles switch statements, is-pattern expressions, and pattern evaluation.
+///   Pattern matching visitor methods for the ConstExprPartialRewriter.
+///   Handles switch statements, is-pattern expressions, and pattern evaluation.
 /// </summary>
 public partial class ConstExprPartialRewriter
 {
@@ -38,7 +37,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Evaluates a switch statement at compile time when the governing expression is constant.
+	///   Evaluates a switch statement at compile time when the governing expression is constant.
 	/// </summary>
 	private SyntaxNode? EvaluateSwitchAtCompileTime(SwitchStatementSyntax node, object? governingValue)
 	{
@@ -67,7 +66,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Visits a matched switch section.
+	///   Visits a matched switch section.
 	/// </summary>
 	private SyntaxNode? VisitMatchedSwitchSection(SwitchSectionSyntax section)
 	{
@@ -117,7 +116,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Visits switch statement sections.
+	///   Visits switch statement sections.
 	/// </summary>
 	private SyntaxNode VisitSwitchStatementSections(SwitchStatementSyntax node, ExpressionSyntax exprSyntax)
 	{
@@ -158,7 +157,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Checks if a switch label matches the governing value.
+	///   Checks if a switch label matches the governing value.
 	/// </summary>
 	private bool? LabelMatches(SwitchLabelSyntax label, object? governingValue)
 	{
@@ -178,14 +177,14 @@ public partial class ConstExprPartialRewriter
 						{
 							true => patMatch,
 							false => false,
-							null => null,
+							null => null
 						},
 			_ => null
 		};
 	}
 
 	/// <summary>
-	/// Evaluates a pattern against a value.
+	///   Evaluates a pattern against a value.
 	/// </summary>
 	private bool? EvaluatePattern(PatternSyntax pattern, object? value)
 	{
@@ -212,7 +211,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Evaluates a constant pattern.
+	///   Evaluates a constant pattern.
 	/// </summary>
 	private bool? EvaluateConstantPattern(ConstantPatternSyntax constPat, object? value)
 	{
@@ -224,7 +223,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Evaluates a relational pattern.
+	///   Evaluates a relational pattern.
 	/// </summary>
 	private bool? EvaluateRelationalPattern(RelationalPatternSyntax relPat, object? value)
 	{
@@ -243,14 +242,14 @@ public partial class ConstExprPartialRewriter
 			SyntaxKind.LessThanEqualsToken => ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.LessThanOrEqual, value, rightVal),
 			SyntaxKind.GreaterThanToken => ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.GreaterThan, value, rightVal),
 			SyntaxKind.GreaterThanEqualsToken => ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.GreaterThanOrEqual, value, rightVal),
-			_ => null,
+			_ => null
 		};
 
 		return result is true;
 	}
 
 	/// <summary>
-	/// Evaluates a binary pattern.
+	///   Evaluates a binary pattern.
 	/// </summary>
 	private bool? EvaluateBinaryPattern(BinaryPatternSyntax binPat, object? value)
 	{
@@ -266,12 +265,12 @@ public partial class ConstExprPartialRewriter
 		{
 			SyntaxKind.OrKeyword => l.Value || r.Value,
 			SyntaxKind.AndKeyword => l.Value && r.Value,
-			_ => null,
+			_ => null
 		};
 	}
 
 	/// <summary>
-	/// Evaluates a declaration pattern.
+	///   Evaluates a declaration pattern.
 	/// </summary>
 	private bool? EvaluateDeclarationPattern(DeclarationPatternSyntax declPat, object? value)
 	{
@@ -279,7 +278,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Evaluates a type pattern.
+	///   Evaluates a type pattern.
 	/// </summary>
 	private bool? EvaluateTypePattern(TypePatternSyntax typePat, object? value)
 	{
@@ -287,7 +286,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Evaluates if a value matches a type pattern.
+	///   Evaluates if a value matches a type pattern.
 	/// </summary>
 	private bool? EvaluateTypeMatchPattern(TypeSyntax typeSyntax, object? value)
 	{
@@ -314,8 +313,8 @@ public partial class ConstExprPartialRewriter
 		var typeName = valueType.Name;
 
 		// Check for exact match or name match
-		if (string.Equals(typeDisplayString, typeFullName, StringComparison.Ordinal) ||
-		    string.Equals(typeInfo.Name, typeName, StringComparison.Ordinal))
+		if (String.Equals(typeDisplayString, typeFullName, StringComparison.Ordinal) ||
+		    String.Equals(typeInfo.Name, typeName, StringComparison.Ordinal))
 		{
 			return true;
 		}
@@ -342,7 +341,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Evaluates a when clause.
+	///   Evaluates a when clause.
 	/// </summary>
 	private bool? EvaluateWhen(WhenClauseSyntax when)
 	{
@@ -380,7 +379,7 @@ public partial class ConstExprPartialRewriter
 		{
 			var innerPattern = unaryNot.Pattern is ParenthesizedPatternSyntax paren ? paren.Pattern : unaryNot.Pattern;
 
-			if (innerPattern is BinaryPatternSyntax { OperatorToken.RawKind: (int) SyntaxKind.OrKeyword } orPattern)
+			if (innerPattern is BinaryPatternSyntax { OperatorToken.RawKind: (int)SyntaxKind.OrKeyword } orPattern)
 			{
 				var baseExpr = expression as ExpressionSyntax ?? node.Expression;
 				var syntheticIsNode = node
@@ -399,7 +398,7 @@ public partial class ConstExprPartialRewriter
 		{
 			var innerPattern = unaryNotAnd.Pattern is ParenthesizedPatternSyntax parenAnd ? parenAnd.Pattern : unaryNotAnd.Pattern;
 
-			if (innerPattern is BinaryPatternSyntax { OperatorToken.RawKind: (int) SyntaxKind.AndKeyword } andPattern)
+			if (innerPattern is BinaryPatternSyntax { OperatorToken.RawKind: (int)SyntaxKind.AndKeyword } andPattern)
 			{
 				var baseExpr = expression as ExpressionSyntax ?? node.Expression;
 				var syntheticIsNode = node
@@ -414,7 +413,7 @@ public partial class ConstExprPartialRewriter
 						SyntaxKind.LessThanOrEqualExpression => SyntaxKind.GreaterThanExpression,
 						SyntaxKind.GreaterThanExpression => SyntaxKind.LessThanOrEqualExpression,
 						SyntaxKind.GreaterThanOrEqualExpression => SyntaxKind.LessThanExpression,
-						_ => (SyntaxKind?) null,
+						_ => (SyntaxKind?)null
 					};
 
 					if (negatedKind.HasValue)
@@ -437,7 +436,7 @@ public partial class ConstExprPartialRewriter
 				SyntaxKind.LessThanEqualsToken => SyntaxKind.GreaterThanExpression, // !(x <= y) -> x > y
 				SyntaxKind.GreaterThanToken => SyntaxKind.LessThanOrEqualExpression, // !(x > y) -> x <= y
 				SyntaxKind.GreaterThanEqualsToken => SyntaxKind.LessThanExpression, // !(x >= y) -> x < y
-				_ => (SyntaxKind?) null,
+				_ => (SyntaxKind?)null
 			};
 
 			if (negatedKind.HasValue)
@@ -469,7 +468,7 @@ public partial class ConstExprPartialRewriter
 				SyntaxKind.LessThanEqualsToken => SyntaxKind.LessThanOrEqualExpression,
 				SyntaxKind.GreaterThanToken => SyntaxKind.GreaterThanExpression,
 				SyntaxKind.GreaterThanEqualsToken => SyntaxKind.GreaterThanOrEqualExpression,
-				_ => (SyntaxKind?) null,
+				_ => (SyntaxKind?)null
 			};
 
 			if (binaryKind.HasValue)
@@ -486,7 +485,7 @@ public partial class ConstExprPartialRewriter
 
 		// Handle `x is not 'a' and not 'e' and not 'i' ...`
 		//      → `x is not ('a' or 'e' or 'i' ...)` → bitmask via TryOptimizeNegatedOrPattern
-		if (node.Pattern is BinaryPatternSyntax { OperatorToken.RawKind: (int) SyntaxKind.AndKeyword })
+		if (node.Pattern is BinaryPatternSyntax { OperatorToken.RawKind: (int)SyntaxKind.AndKeyword })
 		{
 			var notConstants = new List<ConstantPatternSyntax>();
 
@@ -498,7 +497,9 @@ public partial class ConstExprPartialRewriter
 				PatternSyntax orChain = notConstants[0];
 
 				for (var i = 1; i < notConstants.Count; i++)
+				{
 					orChain = BinaryPattern(SyntaxKind.OrPattern, orChain, notConstants[i]);
+				}
 
 				var rewritten = node
 					.WithExpression(baseExpr)
@@ -574,8 +575,8 @@ public partial class ConstExprPartialRewriter
 		if (node.Arms.Count == 2 &&
 		    semanticModel.GetTypeInfo(node.GoverningExpression).Type?.SpecialType == SpecialType.System_Boolean)
 		{
-			var trueArm = node.Arms.FirstOrDefault(a => a.Pattern is ConstantPatternSyntax { Expression: LiteralExpressionSyntax { RawKind: (int) SyntaxKind.TrueLiteralExpression } });
-			var falseArm = node.Arms.FirstOrDefault(a => a.Pattern is ConstantPatternSyntax { Expression: LiteralExpressionSyntax { RawKind: (int) SyntaxKind.FalseLiteralExpression } });
+			var trueArm = node.Arms.FirstOrDefault(a => a.Pattern is ConstantPatternSyntax { Expression: LiteralExpressionSyntax { RawKind: (int)SyntaxKind.TrueLiteralExpression } });
+			var falseArm = node.Arms.FirstOrDefault(a => a.Pattern is ConstantPatternSyntax { Expression: LiteralExpressionSyntax { RawKind: (int)SyntaxKind.FalseLiteralExpression } });
 
 			if (trueArm is { WhenClause: null }
 			    && falseArm is { WhenClause: null })
@@ -599,15 +600,15 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Tries to optimize AND patterns with one relational and one constant side,
-	/// e.g. <c>x is &gt; 2 and 3</c> → <c>x == 3</c> when 3 satisfies the relational,
-	/// or <c>false</c> when it does not.
+	///   Tries to optimize AND patterns with one relational and one constant side,
+	///   e.g. <c>x is &gt; 2 and 3</c> → <c>x == 3</c> when 3 satisfies the relational,
+	///   or <c>false</c> when it does not.
 	/// </summary>
 	private bool TryOptimizeRelationalAndConstantPattern(IsPatternExpressionSyntax node, ExpressionSyntax expression, out ExpressionSyntax? result)
 	{
 		result = null;
 
-		if (node.Pattern is not BinaryPatternSyntax { OperatorToken.RawKind: (int) SyntaxKind.AndKeyword } andPattern)
+		if (node.Pattern is not BinaryPatternSyntax { OperatorToken.RawKind: (int)SyntaxKind.AndKeyword } andPattern)
 		{
 			return false;
 		}
@@ -651,7 +652,7 @@ public partial class ConstExprPartialRewriter
 			SyntaxKind.GreaterThanEqualsToken => ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.GreaterThanOrEqual, constValue, relValue),
 			SyntaxKind.LessThanToken => ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.LessThan, constValue, relValue),
 			SyntaxKind.LessThanEqualsToken => ObjectExtensions.ExecuteBinaryOperation(BinaryOperatorKind.LessThanOrEqual, constValue, relValue),
-			_ => (object?) null,
+			_ => null
 		};
 
 		if (relSatisfied is null)
@@ -672,15 +673,16 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Tries to optimize range check patterns like <c>v is &gt; low and &lt; high</c> to <c>(uint)(v - (low + 1)) &lt; (high - low - 1)</c>.
-	/// This optimization uses a single unsigned comparison instead of two signed comparisons.
+	///   Tries to optimize range check patterns like <c>v is &gt; low and &lt; high</c> to
+	///   <c>(uint)(v - (low + 1)) &lt; (high - low - 1)</c>.
+	///   This optimization uses a single unsigned comparison instead of two signed comparisons.
 	/// </summary>
 	private bool TryOptimizeRangeCheckPattern(IsPatternExpressionSyntax node, ExpressionSyntax expression, out ExpressionSyntax? result)
 	{
 		result = null;
 
 		// Only optimize AND binary patterns (range checks)
-		if (node.Pattern is not BinaryPatternSyntax { OperatorToken.RawKind: (int) SyntaxKind.AndKeyword } binaryPattern)
+		if (node.Pattern is not BinaryPatternSyntax { OperatorToken.RawKind: (int)SyntaxKind.AndKeyword } binaryPattern)
 		{
 			return false;
 		}
@@ -814,15 +816,15 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Tries to optimize outside-range OR patterns like <c>v is &lt;= low or &gt; high</c> to
-	/// <c>(uint)(v - (low + 1)) &gt; (high - low - 1)</c>.
-	/// This optimization uses a single unsigned comparison instead of two signed comparisons.
+	///   Tries to optimize outside-range OR patterns like <c>v is &lt;= low or &gt; high</c> to
+	///   <c>(uint)(v - (low + 1)) &gt; (high - low - 1)</c>.
+	///   This optimization uses a single unsigned comparison instead of two signed comparisons.
 	/// </summary>
 	private bool TryOptimizeOutsideRangeOrPattern(IsPatternExpressionSyntax node, ExpressionSyntax expression, out ExpressionSyntax? result)
 	{
 		result = null;
 
-		if (node.Pattern is not BinaryPatternSyntax { OperatorToken.RawKind: (int) SyntaxKind.OrKeyword } binaryPattern)
+		if (node.Pattern is not BinaryPatternSyntax { OperatorToken.RawKind: (int)SyntaxKind.OrKeyword } binaryPattern)
 		{
 			return false;
 		}
@@ -895,10 +897,10 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Tries to optimize negated OR patterns like <c>x is not (1 or 2 or 3)</c> to
-	/// <c>(uint)(x - 1) &gt; 2u</c>.
-	/// Delegates to <see cref="TryOptimizePattern"/> to build the positive range expression and then
-	/// flips the comparison operator(s) to produce the negated form.
+	///   Tries to optimize negated OR patterns like <c>x is not (1 or 2 or 3)</c> to
+	///   <c>(uint)(x - 1) &gt; 2u</c>.
+	///   Delegates to <see cref="TryOptimizePattern" /> to build the positive range expression and then
+	///   flips the comparison operator(s) to produce the negated form.
 	/// </summary>
 	private bool TryOptimizeNegatedOrPattern(IsPatternExpressionSyntax node, out ExpressionSyntax? result)
 	{
@@ -933,7 +935,7 @@ public partial class ConstExprPartialRewriter
 					// For && / || we apply De Morgan: !(a && b) -> !a || !b, !(a || b) -> !a && !b
 					SyntaxKind.LogicalAndExpression => SyntaxKind.LogicalOrExpression,
 					SyntaxKind.LogicalOrExpression => SyntaxKind.LogicalAndExpression,
-					_ => (SyntaxKind?) null,
+					_ => (SyntaxKind?)null
 				};
 
 				if (flippedKind is null)
@@ -964,8 +966,8 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Extracts the lower and upper bounds from a range pattern.
-	/// Supports patterns like `> low and < high`, `>= low and <= high`, etc.
+	///   Extracts the lower and upper bounds from a range pattern.
+	///   Supports patterns like `> low and < high`, `>= low and <= high`, etc.
 	/// </summary>
 	private bool TryExtractRangeBounds(
 		BinaryPatternSyntax binaryPattern,
@@ -1052,8 +1054,8 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Extracts outside-range bounds from OR patterns.
-	/// Supports patterns like <c>&lt;= upper or &gt; lower</c> and <c>&lt; upper or &gt;= lower</c>.
+	///   Extracts outside-range bounds from OR patterns.
+	///   Supports patterns like <c>&lt;= upper or &gt; lower</c> and <c>&lt; upper or &gt;= lower</c>.
 	/// </summary>
 	private bool TryExtractOutsideRangeBounds(
 		BinaryPatternSyntax binaryPattern,
@@ -1135,22 +1137,22 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	/// Flattens an <c>and</c>-chain of <c>not &lt;constant&gt;</c> patterns into a flat list.
-	/// Returns false (and leaves <paramref name="constants"/> in an undefined state) as soon as any
-	/// node is not of that shape, so mixed chains (e.g. <c>not 'a' and > 5</c>) are left alone.
+	///   Flattens an <c>and</c>-chain of <c>not &lt;constant&gt;</c> patterns into a flat list.
+	///   Returns false (and leaves <paramref name="constants" /> in an undefined state) as soon as any
+	///   node is not of that shape, so mixed chains (e.g. <c>not 'a' and > 5</c>) are left alone.
 	/// </summary>
 	private static bool TryCollectNotConstantAndChain(PatternSyntax pattern, List<ConstantPatternSyntax> constants)
 	{
 		switch (pattern)
 		{
 			// Leaf: `not <constant>`
-			case UnaryPatternSyntax { OperatorToken.RawKind: (int) SyntaxKind.NotKeyword, Pattern: ConstantPatternSyntax cp }:
+			case UnaryPatternSyntax { OperatorToken.RawKind: (int)SyntaxKind.NotKeyword, Pattern: ConstantPatternSyntax cp }:
 			{
 				constants.Add(cp);
 				return true;
 			}
 			// Inner node: recurse into both sides of `and`
-			case BinaryPatternSyntax { OperatorToken.RawKind: (int) SyntaxKind.AndKeyword } andPat:
+			case BinaryPatternSyntax { OperatorToken.RawKind: (int)SyntaxKind.AndKeyword } andPat:
 			{
 				return TryCollectNotConstantAndChain(andPat.Left, constants)
 				       && TryCollectNotConstantAndChain(andPat.Right, constants);

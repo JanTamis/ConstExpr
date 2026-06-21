@@ -21,6 +21,6 @@ public class NumericOrBooleanBinaryStrategy(SyntaxKind leftKind = SyntaxKind.Non
 {
 	public NumericOrBooleanBinaryStrategy() : this(SyntaxKind.None)
 	{
-		
+
 	}
 }

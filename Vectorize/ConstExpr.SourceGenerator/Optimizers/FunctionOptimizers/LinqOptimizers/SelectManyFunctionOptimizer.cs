@@ -7,11 +7,11 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.SelectMany context.Method.
-/// Optimizes patterns such as:
-/// - collection.SelectMany(x => Enumerable.Empty&lt;T&gt;()) => Enumerable.Empty&lt;T&gt;()
-/// - collection.SelectMany(x => new[] { x }) => collection (identity flattening)
-/// - Enumerable.Empty&lt;T&gt;().SelectMany(selector) => Enumerable.Empty&lt;TResult&gt;()
+///   Optimizer for Enumerable.SelectMany context.Method.
+///   Optimizes patterns such as:
+///   - collection.SelectMany(x => Enumerable.Empty&lt;T&gt;()) => Enumerable.Empty&lt;T&gt;()
+///   - collection.SelectMany(x => new[] { x }) => collection (identity flattening)
+///   - Enumerable.Empty&lt;T&gt;().SelectMany(selector) => Enumerable.Empty&lt;TResult&gt;()
 /// </summary>
 public class SelectManyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.SelectMany), n => n is 1 or 2)
 {

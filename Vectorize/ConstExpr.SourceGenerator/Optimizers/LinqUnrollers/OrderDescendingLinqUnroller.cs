@@ -4,9 +4,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 /// <summary>
-/// Unrolls <c>.OrderDescending()</c> as an intermediate step.
-/// Collects all elements into a list during the main loop, sorts it,
-/// then iterates in reverse (descending) order through subsequent chain steps.
+///   Unrolls <c>.OrderDescending()</c> as an intermediate step.
+///   Collects all elements into a list during the main loop, sorts it,
+///   then iterates in reverse (descending) order through subsequent chain steps.
 /// </summary>
 public class OrderDescendingLinqUnroller : BaseLinqUnroller
 {
@@ -20,7 +20,7 @@ public class OrderDescendingLinqUnroller : BaseLinqUnroller
 
 		// var orderDescBuffer = new List<T>();
 		statements.Add(CreateLocalDeclaration(BufferName,
-			ObjectCreationExpression(IdentifierName($"List<{typeName}>"), [])));
+			ObjectCreationExpression(IdentifierName($"List<{typeName}>"), [ ])));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
@@ -62,4 +62,3 @@ public class OrderDescendingLinqUnroller : BaseLinqUnroller
 				PostDecrementExpression(IdentifierName(IndexName)))));
 	}
 }
-

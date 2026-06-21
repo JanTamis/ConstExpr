@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
-/// Tests for VisitBlock - visits statements in block, handles nested scopes and variable folding
+///   Tests for VisitBlock - visits statements in block, handles nested scopes and variable folding
 /// </summary>
 [InheritsTests]
 public class VisitBlockTests : BaseTest<Func<int, int, int>>

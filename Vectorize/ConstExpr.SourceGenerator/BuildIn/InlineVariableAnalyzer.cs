@@ -95,11 +95,11 @@ public sealed class InlineVariableAnalyzer(SemanticModel semanticModel, Concurre
 		var purity = ClassifyPurity(semanticModel.GetOperation(variable.Initializer.Value));
 
 		candidate = new InlineCandidate(
-			Symbol: symbol,
-			Declaration: declaration,
-			Variable: variable,
-			ReadSites: readRefs,
-			InitializerPurity: purity
+			symbol,
+			declaration,
+			variable,
+			readRefs,
+			purity
 		);
 
 		return true;
@@ -108,10 +108,9 @@ public sealed class InlineVariableAnalyzer(SemanticModel semanticModel, Concurre
 	// ── Dependency mutation check ─────────────────────────────────────────────
 
 	/// <summary>
-	/// Geeft true als een van de symbols waarvan de initializer afhankelijk is
-	/// wordt geschreven op het uitvoeringspad van de declaratie naar de read-site.
-	///
-	/// Voorbeeld — swap:
+	///   Geeft true als een van de symbols waarvan de initializer afhankelijk is
+	///   wordt geschreven op het uitvoeringspad van de declaratie naar de read-site.
+	///   Voorbeeld — swap:
 	///   var temp = a;   ← initSymbols = { a }
 	///   a = b;          ← schrijft naar a  →  true  →  niet inlineable
 	///   b = temp;
@@ -153,8 +152,8 @@ public sealed class InlineVariableAnalyzer(SemanticModel semanticModel, Concurre
 	}
 
 	/// <summary>
-	/// Geeft alle symbols terug die in de expressie worden gelezen,
-	/// geselecteerd op types die gemuteerd kunnen worden (locals, parameters, fields, properties).
+	///   Geeft alle symbols terug die in de expressie worden gelezen,
+	///   geselecteerd op types die gemuteerd kunnen worden (locals, parameters, fields, properties).
 	/// </summary>
 	private ISet<ISymbol> GetReferencedSymbols(ExpressionSyntax expr)
 	{
@@ -193,23 +192,27 @@ public sealed class InlineVariableAnalyzer(SemanticModel semanticModel, Concurre
 		return result;
 	}
 
-	/// <summary>Schrijft <paramref name="node"/> (of een descendant) naar een van de symbols?</summary>
-	private bool WritesAnySymbol(SyntaxNode node, ISet<ISymbol> symbols) =>
-		node.DescendantNodesAndSelf().Any(n => IsWriteToAny(n, symbols));
+	/// <summary>Schrijft <paramref name="node" /> (of een descendant) naar een van de symbols?</summary>
+	private bool WritesAnySymbol(SyntaxNode node, ISet<ISymbol> symbols)
+	{
+		return node.DescendantNodesAndSelf().Any(n => IsWriteToAny(n, symbols));
+	}
 
 	/// <summary>
-	/// Schrijft iets binnen <paramref name="container"/> vóór <paramref name="position"/>
-	/// naar een van de symbols?
+	///   Schrijft iets binnen <paramref name="container" /> vóór <paramref name="position" />
+	///   naar een van de symbols?
 	/// </summary>
 	private bool WritesAnySymbolBeforePosition(
-		SyntaxNode container, int position, ISet<ISymbol> symbols) =>
-		container
+		SyntaxNode container, int position, ISet<ISymbol> symbols)
+	{
+		return container
 			.DescendantNodes()
 			.Where(n => n.SpanStart < position && n.Span.End <= position)
 			.Any(n => IsWriteToAny(n, symbols));
+	}
 
 	/// <summary>
-	/// Herkent schrijf-patronen naar een specifiek symbol:
+	///   Herkent schrijf-patronen naar een specifiek symbol:
 	///   a = …  |  ++a / a++  |  ref a / out a
 	/// </summary>
 	private bool IsWriteToAny(SyntaxNode node, ISet<ISymbol> symbols)
@@ -219,8 +222,8 @@ public sealed class InlineVariableAnalyzer(SemanticModel semanticModel, Concurre
 			AssignmentExpressionSyntax assign => assign.Left,
 			PrefixUnaryExpressionSyntax
 				{
-					RawKind: (int) SyntaxKind.PreIncrementExpression
-					or (int) SyntaxKind.PreDecrementExpression
+					RawKind: (int)SyntaxKind.PreIncrementExpression
+					or (int)SyntaxKind.PreDecrementExpression
 				} p
 				=> p.Operand,
 			PostfixUnaryExpressionSyntax p => p.Operand,
@@ -314,8 +317,9 @@ public sealed class InlineVariableAnalyzer(SemanticModel semanticModel, Concurre
 
 	// ── Write-referentie detectie ─────────────────────────────────────────────
 
-	private static bool IsWriteReference(IdentifierNameSyntax id) =>
-		id.Parent switch
+	private static bool IsWriteReference(IdentifierNameSyntax id)
+	{
+		return id.Parent switch
 		{
 			AssignmentExpressionSyntax a => a.Left == id,
 			PrefixUnaryExpressionSyntax p => p.IsKind(SyntaxKind.PreIncrementExpression)
@@ -326,30 +330,36 @@ public sealed class InlineVariableAnalyzer(SemanticModel semanticModel, Concurre
 			                      || arg.RefKindKeyword.IsKind(SyntaxKind.OutKeyword),
 			_ => false
 		};
+	}
 
 	// ── Purity classificatie ──────────────────────────────────────────────────
 
-	private static InitializerPurity ClassifyPurity(IOperation? op) => op switch
+	private static InitializerPurity ClassifyPurity(IOperation? op)
 	{
-		null => InitializerPurity.Unknown,
-		ILiteralOperation => InitializerPurity.Constant,
-		IDefaultValueOperation => InitializerPurity.Constant,
-		ILocalReferenceOperation => InitializerPurity.PureRead,
-		IParameterReferenceOperation => InitializerPurity.PureRead,
-		IFieldReferenceOperation { Field.IsReadOnly: true } => InitializerPurity.PureRead,
-		IPropertyReferenceOperation => InitializerPurity.ImpureRead,
-		IBinaryOperation bin when BothPure(bin.LeftOperand,
-			bin.RightOperand) => InitializerPurity.PureRead,
-		IUnaryOperation u when
-			ClassifyPurity(u.Operand) <= InitializerPurity.PureRead => InitializerPurity.PureRead,
-		IInvocationOperation => InitializerPurity.HasSideEffects,
-		IObjectCreationOperation => InitializerPurity.HasSideEffects,
-		_ => InitializerPurity.Unknown,
-	};
+		return op switch
+		{
+			null => InitializerPurity.Unknown,
+			ILiteralOperation => InitializerPurity.Constant,
+			IDefaultValueOperation => InitializerPurity.Constant,
+			ILocalReferenceOperation => InitializerPurity.PureRead,
+			IParameterReferenceOperation => InitializerPurity.PureRead,
+			IFieldReferenceOperation { Field.IsReadOnly: true } => InitializerPurity.PureRead,
+			IPropertyReferenceOperation => InitializerPurity.ImpureRead,
+			IBinaryOperation bin when BothPure(bin.LeftOperand,
+				bin.RightOperand) => InitializerPurity.PureRead,
+			IUnaryOperation u when
+				ClassifyPurity(u.Operand) <= InitializerPurity.PureRead => InitializerPurity.PureRead,
+			IInvocationOperation => InitializerPurity.HasSideEffects,
+			IObjectCreationOperation => InitializerPurity.HasSideEffects,
+			_ => InitializerPurity.Unknown
+		};
+	}
 
-	private static bool BothPure(IOperation a, IOperation b) =>
-		ClassifyPurity(a) <= InitializerPurity.PureRead &&
-		ClassifyPurity(b) <= InitializerPurity.PureRead;
+	private static bool BothPure(IOperation a, IOperation b)
+	{
+		return ClassifyPurity(a) <= InitializerPurity.PureRead &&
+		       ClassifyPurity(b) <= InitializerPurity.PureRead;
+	}
 }
 
 // ── Data types ────────────────────────────────────────────────────────────────
@@ -371,8 +381,10 @@ public sealed record InlineCandidate(
 	InitializerPurity InitializerPurity
 )
 {
-	public override string ToString() =>
-		$"{Symbol.Name} ({InitializerPurity}) " +
-		$"@ line {Declaration.GetLocation().GetLineSpan().StartLinePosition.Line + 1} " +
-		$"[{ReadSites.Count} read(s)]";
+	public override string ToString()
+	{
+		return $"{Symbol.Name} ({InitializerPurity}) " +
+		       $"@ line {Declaration.GetLocation().GetLineSpan().StartLinePosition.Line + 1} " +
+		       $"[{ReadSites.Count} read(s)]";
+	}
 }

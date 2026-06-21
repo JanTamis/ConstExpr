@@ -8,12 +8,12 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.ToHashSet context.Method.
-/// Optimizes patterns such as:
-/// - collection.ToHashSet().ToHashSet() => collection.ToHashSet() (redundant ToHashSet)
-/// - collection.Distinct().ToHashSet() => collection.ToHashSet() (Distinct is implicit in HashSet)
-/// - collection.AsEnumerable().ToHashSet() => collection.ToHashSet()
-/// - collection.ToList().ToHashSet() => collection.ToHashSet()
+///   Optimizer for Enumerable.ToHashSet context.Method.
+///   Optimizes patterns such as:
+///   - collection.ToHashSet().ToHashSet() => collection.ToHashSet() (redundant ToHashSet)
+///   - collection.Distinct().ToHashSet() => collection.ToHashSet() (Distinct is implicit in HashSet)
+///   - collection.AsEnumerable().ToHashSet() => collection.ToHashSet()
+///   - collection.ToList().ToHashSet() => collection.ToHashSet()
 /// </summary>
 public class ToHashSetFunctionOptimizer() : BaseLinqFunctionOptimizer("ToHashSet", n => n is 0)
 {

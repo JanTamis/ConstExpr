@@ -10,6 +10,6 @@ public class MathFExpTest() : BaseTest<Func<float, float>>(FastMathFlags.All, op
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return FastExp(x);"),
+		Create("return FastExp(x);")
 	];
 }

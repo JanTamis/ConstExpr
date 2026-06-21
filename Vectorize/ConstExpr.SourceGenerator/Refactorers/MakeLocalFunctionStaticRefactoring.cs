@@ -8,18 +8,17 @@ namespace ConstExpr.SourceGenerator.Refactorers;
 using static SyntaxFactory;
 
 /// <summary>
-/// Refactorer that adds or removes the <c>static</c> modifier on local functions.
-/// Inspired by the Roslyn <c>MakeLocalFunctionStaticCodeRefactoringProvider</c>.
-///
-/// This is a pure syntax transformation — it only toggles the modifier without
-/// analyzing captured variables. Semantic validation is left to the compiler.
+///   Refactorer that adds or removes the <c>static</c> modifier on local functions.
+///   Inspired by the Roslyn <c>MakeLocalFunctionStaticCodeRefactoringProvider</c>.
+///   This is a pure syntax transformation — it only toggles the modifier without
+///   analyzing captured variables. Semantic validation is left to the compiler.
 /// </summary>
 public static class MakeLocalFunctionStaticRefactoring
 {
 	/// <summary>
-	/// Adds the <c>static</c> modifier to a local function that does not already have it.
-	/// When a <paramref name="semanticModel"/> is provided, verifies that the local function
-	/// does not capture any variables from the enclosing scope.
+	///   Adds the <c>static</c> modifier to a local function that does not already have it.
+	///   When a <paramref name="semanticModel" /> is provided, verifies that the local function
+	///   does not capture any variables from the enclosing scope.
 	/// </summary>
 	public static bool TryMakeStatic(
 		LocalFunctionStatementSyntax localFunction,
@@ -34,7 +33,7 @@ public static class MakeLocalFunctionStaticRefactoring
 		}
 
 		// Verify no variables are captured
-		var bodyNode = (SyntaxNode?) localFunction.Body ?? localFunction.ExpressionBody;
+		var bodyNode = (SyntaxNode?)localFunction.Body ?? localFunction.ExpressionBody;
 
 		if (bodyNode is not null)
 		{
@@ -51,7 +50,7 @@ public static class MakeLocalFunctionStaticRefactoring
 	}
 
 	/// <summary>
-	/// Removes the <c>static</c> modifier from a local function.
+	///   Removes the <c>static</c> modifier from a local function.
 	/// </summary>
 	public static bool TryMakeNonStatic(
 		LocalFunctionStatementSyntax localFunction,

@@ -11,14 +11,14 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.First context.Method.
-/// Optimizes patterns such as:
-/// - collection.Where(predicate).First() => collection.First(predicate)
-/// - collection.AsEnumerable().First() => collection.First() (type cast doesn't affect first)
-/// - collection.ToList().First() => collection.First() (materialization doesn't affect first)
-/// - collection.ToArray().First() => collection.First() (materialization doesn't affect first)
-/// Note: OrderBy/OrderByDescending/Reverse DOES affect which element is first, so we don't optimize those!
-/// Note: Distinct might remove the first element if it's a duplicate, so we don't optimize that either!
+///   Optimizer for Enumerable.First context.Method.
+///   Optimizes patterns such as:
+///   - collection.Where(predicate).First() => collection.First(predicate)
+///   - collection.AsEnumerable().First() => collection.First() (type cast doesn't affect first)
+///   - collection.ToList().First() => collection.First() (materialization doesn't affect first)
+///   - collection.ToArray().First() => collection.First() (materialization doesn't affect first)
+///   Note: OrderBy/OrderByDescending/Reverse DOES affect which element is first, so we don't optimize those!
+///   Note: Distinct might remove the first element if it's a duplicate, so we don't optimize that either!
 /// </summary>
 public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.First), n => n is 0 or 1)
 {

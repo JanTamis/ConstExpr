@@ -4,9 +4,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 /// <summary>
-/// Unrolls <c>.OrderBy(keySelector)</c> as an intermediate step.
-/// Collects all elements into a list during the main loop, sorts by the key selector,
-/// then iterates in sorted order through subsequent chain steps after the main loop.
+///   Unrolls <c>.OrderBy(keySelector)</c> as an intermediate step.
+///   Collects all elements into a list during the main loop, sorts by the key selector,
+///   then iterates in sorted order through subsequent chain steps after the main loop.
 /// </summary>
 public class OrderByLinqUnroller : BaseLinqUnroller
 {
@@ -19,7 +19,7 @@ public class OrderByLinqUnroller : BaseLinqUnroller
 
 		// var orderByBuffer = new List<T>();
 		statements.Add(CreateLocalDeclaration(BufferName,
-			ObjectCreationExpression(IdentifierName($"List<{typeName}>"), [])));
+			ObjectCreationExpression(IdentifierName($"List<{typeName}>"), [ ])));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
@@ -68,5 +68,3 @@ public class OrderByLinqUnroller : BaseLinqUnroller
 			Block(partialLoopBody)));
 	}
 }
-
-

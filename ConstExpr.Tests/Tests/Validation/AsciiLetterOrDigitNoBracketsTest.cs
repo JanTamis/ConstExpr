@@ -15,6 +15,6 @@ public class AsciiLetterOrDigitNoBracketsTest() : BaseTest<Func<char, bool>>(Fas
 		Create(_ => true, [ '7' ]),
 		Create(_ => true, [ 'x' ]),
 		Create(_ => true, [ 'X' ]),
-		Create(_ => false, [ '@' ]),
+		Create(_ => false, [ '@' ])
 	];
 }

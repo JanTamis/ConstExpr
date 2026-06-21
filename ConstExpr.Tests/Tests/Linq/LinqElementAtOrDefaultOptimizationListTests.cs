@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for ElementAtOrDefault() optimization on List
+///   Tests for ElementAtOrDefault() optimization on List
 /// </summary>
 [InheritsTests]
 public class LinqElementAtOrDefaultOptimizationListTests() : BaseTest<Func<List<int>, int>>(FastMathFlags.AssociativeMath)
@@ -32,6 +32,6 @@ public class LinqElementAtOrDefaultOptimizationListTests() : BaseTest<Func<List<
 	[
 		Create(x => (x.Count > 0 ? x[0] * 2 : 0) + (x.Count > 1 ? x[1] * 2 : 0) + (x.Count > 10 ? x[10] : 0)),
 		Create(_ => 6, [ new List<int> { 1, 2, 3, 4, 5 } ]), // 1 + 2 + 1 + 2 + 0 = 6
-		Create(_ => 0, [ new List<int>() ]), // All return 0 (default)
+		Create(_ => 0, [ new List<int>() ]) // All return 0 (default)
 	];
 }

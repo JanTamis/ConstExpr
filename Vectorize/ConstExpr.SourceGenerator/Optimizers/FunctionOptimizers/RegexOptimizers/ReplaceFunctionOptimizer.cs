@@ -12,16 +12,24 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.RegexOptimizers;
 
 /// <summary>
-/// Optimizes static <c>Regex.Replace</c> overloads by caching a compiled <see cref="Regex"/>
-/// instance as a private static readonly field when the <c>pattern</c> (and optional
-/// <c>options</c>) argument is a compile-time constant.
-/// <list type="bullet">
-///   <item><c>Regex.Replace(input, pattern, replacement)</c></item>
-///   <item><c>Regex.Replace(input, pattern, replacement, options)</c></item>
-///   <item><c>Regex.Replace(input, pattern, evaluator)</c></item>
-///   <item><c>Regex.Replace(input, pattern, evaluator, options)</c></item>
-/// </list>
-/// The <c>input</c> and <c>replacement</c>/<c>evaluator</c> arguments may be runtime values.
+///   Optimizes static <c>Regex.Replace</c> overloads by caching a compiled <see cref="Regex" />
+///   instance as a private static readonly field when the <c>pattern</c> (and optional
+///   <c>options</c>) argument is a compile-time constant.
+///   <list type="bullet">
+///     <item>
+///       <c>Regex.Replace(input, pattern, replacement)</c>
+///     </item>
+///     <item>
+///       <c>Regex.Replace(input, pattern, replacement, options)</c>
+///     </item>
+///     <item>
+///       <c>Regex.Replace(input, pattern, evaluator)</c>
+///     </item>
+///     <item>
+///       <c>Regex.Replace(input, pattern, evaluator, options)</c>
+///     </item>
+///   </list>
+///   The <c>input</c> and <c>replacement</c>/<c>evaluator</c> arguments may be runtime values.
 /// </summary>
 public class ReplaceFunctionOptimizer() : BaseRegexFunctionOptimizer("Replace", n => n is 3 or 4)
 {

@@ -26,9 +26,8 @@ public class SkipWhileLinqUnroller : BaseLinqUnroller
 		// if (skipping) { if (predicate(item)) continue; skipping = false; }
 		statements.Add(IfStatement(IdentifierName(SkippingName),
 			Block(
-				IfStatement(predicateBody, 
+				IfStatement(predicateBody,
 					ContinueStatement()),
 				CreateAssignment(SkippingName, CreateLiteral(false)!))));
 	}
 }
-

@@ -6,16 +6,16 @@ using Microsoft.CodeAnalysis.Operations;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers;
 
 /// <summary>
-/// Combines two comparable expressions over the same target into a single is-pattern combinator.
-/// Handles all three left/right type combinations in one pass, inspired by Roslyn's
-/// <c>CSharpUsePatternCombinatorsAnalyzer</c>:
-/// <list type="bullet">
-///   <item><c>x &gt; 0 &amp;&amp; x &lt; 10</c>  →  <c>x is &gt; 0 and &lt; 10</c></item>
-///   <item><c>x is &gt; 0 &amp;&amp; x &lt; 10</c>  →  <c>x is &gt; 0 and &lt; 10</c></item>
-///   <item><c>x is &gt; 0 &amp;&amp; x is &lt; 10</c>  →  <c>x is &gt; 0 and &lt; 10</c></item>
-///   <item><c>x &gt; 0 || x &lt; -10</c>  →  <c>x is &gt; 0 or &lt; -10</c></item>
-/// </list>
-/// Also handles reversed comparisons (<c>0 &lt; x</c>) that the previous strategies missed.
+///   Combines two comparable expressions over the same target into a single is-pattern combinator.
+///   Handles all three left/right type combinations in one pass, inspired by Roslyn's
+///   <c>CSharpUsePatternCombinatorsAnalyzer</c>:
+///   <list type="bullet">
+///     <item><c>x &gt; 0 &amp;&amp; x &lt; 10</c>  →  <c>x is &gt; 0 and &lt; 10</c></item>
+///     <item><c>x is &gt; 0 &amp;&amp; x &lt; 10</c>  →  <c>x is &gt; 0 and &lt; 10</c></item>
+///     <item><c>x is &gt; 0 &amp;&amp; x is &lt; 10</c>  →  <c>x is &gt; 0 and &lt; 10</c></item>
+///     <item><c>x &gt; 0 || x &lt; -10</c>  →  <c>x is &gt; 0 or &lt; -10</c></item>
+///   </list>
+///   Also handles reversed comparisons (<c>0 &lt; x</c>) that the previous strategies missed.
 /// </summary>
 public class PatternCombineStrategy(BinaryOperatorKind operatorKind) : BaseBinaryStrategy
 {

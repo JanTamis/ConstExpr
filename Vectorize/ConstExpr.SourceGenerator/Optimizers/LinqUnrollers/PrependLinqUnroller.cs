@@ -5,10 +5,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 /// <summary>
-/// Unrolls <c>.Prepend(element)</c> as an intermediate step.
-/// The prepended element is processed through subsequent chain steps
-/// before the main loop starts, preserving correct LINQ semantics
-/// where Prepend adds an element before the current sequence position.
+///   Unrolls <c>.Prepend(element)</c> as an intermediate step.
+///   The prepended element is processed through subsequent chain steps
+///   before the main loop starts, preserving correct LINQ semantics
+///   where Prepend adds an element before the current sequence position.
 /// </summary>
 public class PrependLinqUnroller : BaseLinqUnroller
 {
@@ -29,4 +29,3 @@ public class PrependLinqUnroller : BaseLinqUnroller
 			Block(partialLoopBody)));
 	}
 }
-

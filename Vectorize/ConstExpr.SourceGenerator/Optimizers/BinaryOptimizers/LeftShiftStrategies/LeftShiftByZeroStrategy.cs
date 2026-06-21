@@ -6,8 +6,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.LeftShiftStrategies;
 
 /// <summary>
-/// Strategy for shift by zero: x << 0 => x (pure)
-/// Safe under Strict (integer shift arithmetic).
+///   Strategy for shift by zero: x << 0 => x (pure)
+///   Safe under Strict (integer shift arithmetic).
 /// </summary>
 public class LeftShiftByZeroStrategy : IntegerBinaryStrategy<ExpressionSyntax, LiteralExpressionSyntax>
 {
@@ -17,11 +17,11 @@ public class LeftShiftByZeroStrategy : IntegerBinaryStrategy<ExpressionSyntax, L
 	{
 		if (!base.TryOptimize(context, out optimized)
 		    || !context.Right.Syntax.IsNumericZero())
-    {
-      return false;
-    }
+		{
+			return false;
+		}
 
-    optimized = context.Left.Syntax;
+		optimized = context.Left.Syntax;
 		return true;
 	}
 }

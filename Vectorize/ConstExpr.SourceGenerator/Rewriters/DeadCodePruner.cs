@@ -11,13 +11,13 @@ using SourceGen.Utilities.Extensions;
 namespace ConstExpr.SourceGenerator.Rewriters;
 
 /// <summary>
-/// Simplified dead code pruner using the Mark-and-Sweep pattern.
-/// First collects all variable usages, then prunes in a single rewrite pass.
+///   Simplified dead code pruner using the Mark-and-Sweep pattern.
+///   First collects all variable usages, then prunes in a single rewrite pass.
 /// </summary>
 public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDictionary<string, VariableItem> variables, SemanticModel model) : CSharpSyntaxRewriter
 {
 	/// <summary>
-	/// Prunes dead code from a syntax node using the Mark-and-Sweep pattern.
+	///   Prunes dead code from a syntax node using the Mark-and-Sweep pattern.
 	/// </summary>
 	public static SyntaxNode Prune(SyntaxNode node, IDictionary<string, VariableItem> variables, SemanticModel model)
 	{
@@ -47,8 +47,8 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 	}
 
 	/// <summary>
-	/// Determines if a variable can be pruned based on collected usage data and variable state.
-	/// Used for assignments and other non-declaration contexts; untracked variables are kept.
+	///   Determines if a variable can be pruned based on collected usage data and variable state.
+	///   Used for assignments and other non-declaration contexts; untracked variables are kept.
 	/// </summary>
 	private bool CanBePruned(string variableName)
 	{
@@ -69,12 +69,12 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 	}
 
 	/// <summary>
-	/// Determines if an assignment expression to a variable can be pruned.
-	/// In addition to the standard <see cref="CanBePruned(string)"/> check, this also
-	/// handles the case where <see cref="VariableItem.HasValue"/> was cleared by
-	/// <c>InvalidateAssignedVariables</c> (after an if/else branch) even though the
-	/// actual RHS is a side-effect-free constant literal. A dead write with no side
-	/// effects is always safe to remove.
+	///   Determines if an assignment expression to a variable can be pruned.
+	///   In addition to the standard <see cref="CanBePruned(string)" /> check, this also
+	///   handles the case where <see cref="VariableItem.HasValue" /> was cleared by
+	///   <c>InvalidateAssignedVariables</c> (after an if/else branch) even though the
+	///   actual RHS is a side-effect-free constant literal. A dead write with no side
+	///   effects is always safe to remove.
 	/// </summary>
 	private bool CanBePrunedAssignment(string variableName, ExpressionSyntax rhs)
 	{
@@ -101,11 +101,11 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 	}
 
 	/// <summary>
-	/// Determines if a variable declaration can be pruned. Unlike <see cref="CanBePruned(string)"/>,
-	/// this overload also handles variables that are not in the tracking dictionary by checking
-	/// whether the initializer is a pure constant expression (no side effects).
-	/// This covers block-local variables introduced inside if/else branches whose scope does not
-	/// extend beyond the branch.
+	///   Determines if a variable declaration can be pruned. Unlike <see cref="CanBePruned(string)" />,
+	///   this overload also handles variables that are not in the tracking dictionary by checking
+	///   whether the initializer is a pure constant expression (no side effects).
+	///   This covers block-local variables introduced inside if/else branches whose scope does not
+	///   extend beyond the branch.
 	/// </summary>
 	private bool CanBePrunedDeclaration(string variableName, ExpressionSyntax? initializer)
 	{
@@ -125,11 +125,12 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 	}
 
 	/// <summary>
-	/// Returns <see langword="true"/> when the expression is guaranteed to be a side-effect-free
-	/// constant (literal, default, or a unary minus applied to a literal).
+	///   Returns <see langword="true" /> when the expression is guaranteed to be a side-effect-free
+	///   constant (literal, default, or a unary minus applied to a literal).
 	/// </summary>
-	private static bool IsConstantExpression(ExpressionSyntax? expr) =>
-		expr switch
+	private static bool IsConstantExpression(ExpressionSyntax? expr)
+	{
+		return expr switch
 		{
 			null => true,
 			LiteralExpressionSyntax => true,
@@ -137,9 +138,10 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 			PrefixUnaryExpressionSyntax { Operand: LiteralExpressionSyntax } => true,
 			_ => false
 		};
+	}
 
-  public override SyntaxNode? Visit(SyntaxNode? node)
-  {
+	public override SyntaxNode? Visit(SyntaxNode? node)
+	{
 		try
 		{
 			return base.Visit(node);
@@ -149,7 +151,7 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 			return null;
 			// return node;
 		}
-  }
+	}
 
 	#region Statement Pruning
 
@@ -293,7 +295,7 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 		{
 			return null;
 		}
-		
+
 		var right = Visit(node.Right);
 
 		if (right is null)
@@ -316,7 +318,7 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 
 		return base.VisitInvocationExpression(node);
 	}
-	
+
 	#endregion
 
 	#region Helpers
@@ -360,7 +362,7 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 			or ThrowStatementSyntax
 			or BreakStatementSyntax
 			or ContinueStatementSyntax
-			or YieldStatementSyntax { RawKind: (int) SyntaxKind.YieldBreakStatement };
+			or YieldStatementSyntax { RawKind: (int)SyntaxKind.YieldBreakStatement };
 	}
 
 	#endregion

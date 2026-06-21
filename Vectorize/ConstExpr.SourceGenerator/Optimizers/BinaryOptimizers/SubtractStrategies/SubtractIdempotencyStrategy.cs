@@ -6,8 +6,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.SubtractStrategies;
 
 /// <summary>
-/// Strategy for idempotent subtraction: x - x = 0 (pure)
-/// Safe under Strict (pure algebraic identity).
+///   Strategy for idempotent subtraction: x - x = 0 (pure)
+///   Safe under Strict (pure algebraic identity).
 /// </summary>
 public class SubtractIdempotencyStrategy : NumericBinaryStrategy
 {

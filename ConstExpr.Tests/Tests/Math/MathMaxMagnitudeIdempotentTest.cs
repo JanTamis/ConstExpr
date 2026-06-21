@@ -10,6 +10,6 @@ public class MathMaxMagnitudeIdempotentTest() : BaseTest<Func<double, double>>(F
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(a => a),
+		Create(a => a)
 	];
 }

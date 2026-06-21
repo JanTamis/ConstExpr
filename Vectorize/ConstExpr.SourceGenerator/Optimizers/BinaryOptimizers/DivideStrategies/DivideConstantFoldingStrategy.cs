@@ -7,10 +7,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies;
 
 /// <summary>
-/// Strategy for constant folding in chained divisions: (x / C1) / C2 => x / (C1 * C2)
-/// Also handles: (C1 / x) / C2 => (C1 / C2) / x and C1 / (x / C2) => (C1 * C2) / x
-/// Note: division is not commutative, so patterns must preserve order carefully
-/// Requires AssociativeMath for floating-point safety.
+///   Strategy for constant folding in chained divisions: (x / C1) / C2 => x / (C1 * C2)
+///   Also handles: (C1 / x) / C2 => (C1 / C2) / x and C1 / (x / C2) => (C1 * C2) / x
+///   Note: division is not commutative, so patterns must preserve order carefully
+///   Requires AssociativeMath for floating-point safety.
 /// </summary>
 public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 {
@@ -19,13 +19,13 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!base.TryOptimize(context, out optimized))
-    {
-      return false;
-    }
+		{
+			return false;
+		}
 
-    // Pattern 1: (x / C1) / C2 => x / (C1 * C2)
-    if (context.TryGetValue(context.Right.Syntax, out var c2)
-		    && context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.DivideExpression } leftDiv
+		// Pattern 1: (x / C1) / C2 => x / (C1 * C2)
+		if (context.TryGetValue(context.Right.Syntax, out var c2)
+		    && context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.DivideExpression } leftDiv
 		    && context.TryGetValue(leftDiv.Right, out var leftConstant))
 		{
 			var result = leftConstant.Multiply(c2);
@@ -39,7 +39,7 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 
 		// Pattern 2: (C1 / x) / C2 => (C1 / C2) / x
 		if (context.TryGetValue(context.Right.Syntax, out c2)
-		    && context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.DivideExpression } leftDiv2
+		    && context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.DivideExpression } leftDiv2
 		    && context.TryGetValue(leftDiv2.Left, out var leftConstant2))
 		{
 			var result = leftConstant2.Divide(c2);
@@ -53,7 +53,7 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 
 		// Pattern 3: C1 / (x / C2) => (C1 * C2) / x
 		if (context.TryGetValue(context.Left.Syntax, out var c1)
-		    && context.Right.Syntax is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.DivideExpression } rightDiv
+		    && context.Right.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.DivideExpression } rightDiv
 		    && context.TryGetValue(rightDiv.Right, out var rightConstant))
 		{
 			var result = c1.Multiply(rightConstant);
@@ -67,7 +67,7 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 
 		// Pattern 4: C1 / (C2 / x) => (C1 / C2) * x
 		if (context.TryGetValue(context.Left.Syntax, out c1)
-		    && context.Right.Syntax is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.DivideExpression } rightDiv2
+		    && context.Right.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.DivideExpression } rightDiv2
 		    && context.TryGetValue(rightDiv2.Left, out var rightConstant2))
 		{
 			var result = c1.Divide(rightConstant2);
@@ -81,7 +81,7 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 
 		// Pattern 5: (x * C1) / C2 => x * (C1 / C2)
 		if (context.TryGetValue(context.Right.Syntax, out c2)
-		    && context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.MultiplyExpression } leftMul
+		    && context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.MultiplyExpression } leftMul
 		    && context.TryGetValue(leftMul.Right, out var mulConstant))
 		{
 			var result = mulConstant.Divide(c2);
@@ -95,7 +95,7 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 
 		// Pattern 6: (C1 * x) / C2 => x * (C1 / C2)
 		if (context.TryGetValue(context.Right.Syntax, out c2)
-		    && context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.MultiplyExpression } leftMul2
+		    && context.Left.Syntax is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.MultiplyExpression } leftMul2
 		    && context.TryGetValue(leftMul2.Left, out var mulConstant2))
 		{
 			var result = mulConstant2.Divide(c2);
@@ -106,7 +106,7 @@ public class DivideConstantFoldingStrategy : NumericBinaryStrategy
 				return true;
 			}
 		}
-		
+
 		return false;
 	}
 }

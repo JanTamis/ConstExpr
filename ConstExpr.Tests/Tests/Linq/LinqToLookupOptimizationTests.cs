@@ -3,10 +3,10 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for ToLookup() optimization - verify redundant materialization removal, ordering removal,
-/// identity element-selector removal, Select folding, and Where merging.
-/// Note: Unlike ToDictionary, Distinct is NOT stripped because ToLookup groups duplicates
-/// and removing Distinct would change the group sizes.
+///   Tests for ToLookup() optimization - verify redundant materialization removal, ordering removal,
+///   identity element-selector removal, Select folding, and Where merging.
+///   Note: Unlike ToDictionary, Distinct is NOT stripped because ToLookup groups duplicates
+///   and removing Distinct would change the group sizes.
 /// </summary>
 [InheritsTests]
 public class LinqToLookupOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)

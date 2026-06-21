@@ -12,6 +12,6 @@ public class MathLog2Test() : BaseTest<Func<double, double>>(FastMathFlags.All, 
 	[
 		Create("return FastLog2(x);"),
 		Create(_ => 0D, [ 1.0 ]),
-		Create(_ => 3D, [ 8.0 ]),
+		Create(_ => 3D, [ 8.0 ])
 	];
 }

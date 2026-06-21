@@ -95,9 +95,9 @@ internal static class GranlundMontgomery
 	{
 		unchecked
 		{
-			var ad = (uint) Math.Abs((long) d);
+			var ad = (uint)Math.Abs((long)d);
 			const uint two31 = 0x80000000u;
-			var t = two31 + ((uint) d >> 31);
+			var t = two31 + ((uint)d >> 31);
 			var anc = t - 1 - t % ad;
 			var p = 31;
 			var q1 = two31 / anc;
@@ -131,7 +131,7 @@ internal static class GranlundMontgomery
 				delta = ad - r2;
 			} while (q1 < delta || q1 == delta && r1 == 0);
 
-			magic = (int) (q2 + 1);
+			magic = (int)(q2 + 1);
 
 			if (d < 0)
 			{

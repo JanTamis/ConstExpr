@@ -5,17 +5,16 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Refactorers;
 
 /// <summary>
-/// Refactorer that inverts a conditional (ternary) expression by swapping the when-true
-/// and when-false arms and negating the condition.
-/// Inspired by the Roslyn <c>InvertConditionalCodeRefactoringProvider</c>.
-///
-/// <c>a ? b : c</c>  →  <c>!a ? c : b</c>
-/// (with simplification of double-negation and relational operators)
+///   Refactorer that inverts a conditional (ternary) expression by swapping the when-true
+///   and when-false arms and negating the condition.
+///   Inspired by the Roslyn <c>InvertConditionalCodeRefactoringProvider</c>.
+///   <c>a ? b : c</c>  →  <c>!a ? c : b</c>
+///   (with simplification of double-negation and relational operators)
 /// </summary>
 public static class InvertConditionalRefactoring
 {
 	/// <summary>
-	/// Tries to invert a conditional expression by negating its condition and swapping the arms.
+	///   Tries to invert a conditional expression by negating its condition and swapping the arms.
 	/// </summary>
 	public static bool TryInvertConditional(
 		ConditionalExpressionSyntax node,
@@ -43,11 +42,10 @@ public static class InvertConditionalRefactoring
 	}
 
 	/// <summary>
-	/// Negates an expression, simplifying where possible.
+	///   Negates an expression, simplifying where possible.
 	/// </summary>
 	private static ExpressionSyntax NegateExpression(ExpressionSyntax expression)
 	{
 		return NegateExpressionRefactoring.Negate(expression);
 	}
 }
-

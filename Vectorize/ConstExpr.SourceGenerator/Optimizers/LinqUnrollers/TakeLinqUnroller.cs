@@ -29,4 +29,3 @@ public class TakeLinqUnroller : BaseLinqUnroller
 		statements.Add(ExpressionStatement(PostIncrementExpression(IdentifierName(TakeCountName))));
 	}
 }
-

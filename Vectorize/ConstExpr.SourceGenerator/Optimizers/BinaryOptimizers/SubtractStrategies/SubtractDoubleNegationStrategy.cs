@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.SubtractStrategies;
 
 /// <summary>
-/// Strategy for double negation: x - -y => x + y (pure)
+///   Strategy for double negation: x - -y => x + y (pure)
 /// </summary>
 public class SubtractDoubleNegationStrategy() : NumericBinaryStrategy<ExpressionSyntax, PrefixUnaryExpressionSyntax>(rightKind: SyntaxKind.UnaryMinusExpression)
 {
@@ -14,11 +14,11 @@ public class SubtractDoubleNegationStrategy() : NumericBinaryStrategy<Expression
 		if (!base.TryOptimize(context, out optimized)
 		    || !IsPure(context.Left.Syntax)
 		    || !IsPure(context.Right.Syntax))
-    {
-      return false;
-    }
+		{
+			return false;
+		}
 
-    optimized = AddExpression(context.Left.Syntax, context.Right.Syntax.Operand);
+		optimized = AddExpression(context.Left.Syntax, context.Right.Syntax.Operand);
 		return true;
 	}
 }

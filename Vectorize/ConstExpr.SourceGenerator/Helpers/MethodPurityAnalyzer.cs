@@ -299,14 +299,6 @@ public sealed class MethodPurityAnalyzer
 		"System.GC.WaitForPendingFinalizers"
 	);
 
-	// -------------------------------------------------------------------------
-	// State
-	// -------------------------------------------------------------------------
-
-	private readonly Compilation _compilation;
-	private readonly INamedTypeSymbol? _pureAttributeType;
-	private readonly INamedTypeSymbol? _pureFunctionAttributeType;
-
 	// Cycle guard for recursive body analysis
 	private readonly HashSet<IMethodSymbol> _analysisStack =
 		new(SymbolEqualityComparer.Default);
@@ -314,6 +306,14 @@ public sealed class MethodPurityAnalyzer
 	// Cache results to avoid re-analysis of the same method
 	private readonly Dictionary<IMethodSymbol, bool> _cache =
 		new(SymbolEqualityComparer.Default);
+
+	// -------------------------------------------------------------------------
+	// State
+	// -------------------------------------------------------------------------
+
+	private readonly Compilation _compilation;
+	private readonly INamedTypeSymbol? _pureAttributeType;
+	private readonly INamedTypeSymbol? _pureFunctionAttributeType;
 
 	public MethodPurityAnalyzer(Compilation compilation)
 	{
@@ -329,9 +329,9 @@ public sealed class MethodPurityAnalyzer
 	// =========================================================================
 
 	/// <summary>
-	/// Returns <see langword="true"/> if <paramref name="method"/> is considered
-	/// observationally pure.  Pass a <paramref name="semanticModel"/> to enable
-	/// deep body analysis for user-defined methods.
+	///   Returns <see langword="true" /> if <paramref name="method" /> is considered
+	///   observationally pure.  Pass a <paramref name="semanticModel" /> to enable
+	///   deep body analysis for user-defined methods.
 	/// </summary>
 	public bool IsPureMethod(
 		IMethodSymbol method,
@@ -609,8 +609,8 @@ public sealed class MethodPurityAnalyzer
 	// ── Helpers used by the no-body heuristic steps ───────────────────────────
 
 	/// <summary>
-	/// Returns true if the method explicitly implements a method declared on a
-	/// known-pure interface (e.g. IEquatable&lt;T&gt;.Equals, INumber&lt;T&gt;.op_Addition).
+	///   Returns true if the method explicitly implements a method declared on a
+	///   known-pure interface (e.g. IEquatable&lt;T&gt;.Equals, INumber&lt;T&gt;.op_Addition).
 	/// </summary>
 	private static bool ImplementsPureInterfaceMethod(IMethodSymbol method)
 	{
@@ -659,9 +659,9 @@ public sealed class MethodPurityAnalyzer
 	}
 
 	/// <summary>
-	/// Returns true when all parameters and the return type are unmanaged value
-	/// types.  An unmanaged static method cannot reach any heap object, so it
-	/// has nowhere to store state and nowhere to observe shared mutable state.
+	///   Returns true when all parameters and the return type are unmanaged value
+	///   types.  An unmanaged static method cannot reach any heap object, so it
+	///   has nowhere to store state and nowhere to observe shared mutable state.
 	/// </summary>
 	private static bool HasFullyUnmanagedSignature(IMethodSymbol method)
 	{
@@ -717,8 +717,8 @@ public sealed class MethodPurityAnalyzer
 	}
 
 	/// <summary>
-	/// Returns true when every parameter is passed by value, `in`, or `ref readonly`
-	/// — i.e. the method cannot mutate any caller-owned state through its parameters.
+	///   Returns true when every parameter is passed by value, `in`, or `ref readonly`
+	///   — i.e. the method cannot mutate any caller-owned state through its parameters.
 	/// </summary>
 	private static bool AllParametersReadOnly(IMethodSymbol method)
 	{
@@ -733,9 +733,9 @@ public sealed class MethodPurityAnalyzer
 	}
 
 	/// <summary>
-	/// Returns true when the return type is a well-known immutable type
-	/// (string, primitive, value type, …) — used as an additional signal for
-	/// static sealed helpers.
+	///   Returns true when the return type is a well-known immutable type
+	///   (string, primitive, value type, …) — used as an additional signal for
+	///   static sealed helpers.
 	/// </summary>
 	private static bool IsImmutableReturnType(IMethodSymbol method)
 	{
@@ -767,8 +767,8 @@ public sealed class MethodPurityAnalyzer
 	}
 
 	/// <summary>
-	/// Returns the fully qualified type name with generic arity suffix preserved
-	/// (e.g. <c>System.IEquatable`1</c>) for interface matching.
+	///   Returns the fully qualified type name with generic arity suffix preserved
+	///   (e.g. <c>System.IEquatable`1</c>) for interface matching.
 	/// </summary>
 	private static string GetGenericTypeName(INamedTypeSymbol type)
 	{
@@ -820,6 +820,31 @@ public sealed class MethodPurityAnalyzer
 		{
 			_analysisStack.Remove(method);
 		}
+	}
+
+	// =========================================================================
+	// Utility
+	// =========================================================================
+
+	/// <summary>
+	///   Produces a stable string key for whitelist/blacklist lookup:
+	///   <c>Namespace.TypeName.MethodName</c> (no generic arity suffix).
+	/// </summary>
+	private static string GetMethodKey(IMethodSymbol method)
+	{
+		var typeName = method.ContainingType.ToDisplayString(
+			SymbolDisplayFormat.FullyQualifiedFormat
+				.WithGlobalNamespaceStyle(SymbolDisplayGlobalNamespaceStyle.Omitted));
+
+		// Strip generic arity for lookup, e.g. List`1 → List
+		var backtick = typeName.IndexOf('`');
+
+		if (backtick >= 0)
+		{
+			typeName = typeName[..backtick];
+		}
+
+		return $"{typeName}.{method.Name}";
 	}
 
 	// =========================================================================
@@ -992,30 +1017,5 @@ public sealed class MethodPurityAnalyzer
 				_ => false
 			};
 		}
-	}
-
-	// =========================================================================
-	// Utility
-	// =========================================================================
-
-	/// <summary>
-	/// Produces a stable string key for whitelist/blacklist lookup:
-	/// <c>Namespace.TypeName.MethodName</c> (no generic arity suffix).
-	/// </summary>
-	private static string GetMethodKey(IMethodSymbol method)
-	{
-		var typeName = method.ContainingType.ToDisplayString(
-			SymbolDisplayFormat.FullyQualifiedFormat
-				.WithGlobalNamespaceStyle(SymbolDisplayGlobalNamespaceStyle.Omitted));
-
-		// Strip generic arity for lookup, e.g. List`1 → List
-		var backtick = typeName.IndexOf('`');
-
-		if (backtick >= 0)
-		{
-			typeName = typeName[..backtick];
-		}
-
-		return $"{typeName}.{method.Name}";
 	}
 }

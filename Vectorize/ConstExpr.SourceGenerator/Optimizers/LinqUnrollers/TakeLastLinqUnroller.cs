@@ -4,9 +4,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 /// <summary>
-/// Unrolls <c>.TakeLast(count)</c> as an intermediate step.
-/// Uses a <c>Queue&lt;T&gt;</c> as a ring buffer during the main loop; elements
-/// are buffered and then processed through downstream chain steps after the main loop.
+///   Unrolls <c>.TakeLast(count)</c> as an intermediate step.
+///   Uses a <c>Queue&lt;T&gt;</c> as a ring buffer during the main loop; elements
+///   are buffered and then processed through downstream chain steps after the main loop.
 /// </summary>
 public class TakeLastLinqUnroller : BaseLinqUnroller
 {
@@ -19,7 +19,7 @@ public class TakeLastLinqUnroller : BaseLinqUnroller
 
 		// var takeLastBuffer = new Queue<T>();
 		statements.Add(CreateLocalDeclaration(BufferName,
-			ObjectCreationExpression(IdentifierName($"Queue<{typeName}>"), [])));
+			ObjectCreationExpression(IdentifierName($"Queue<{typeName}>"), [ ])));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
@@ -53,4 +53,3 @@ public class TakeLastLinqUnroller : BaseLinqUnroller
 			Block(partialLoopBody)));
 	}
 }
-

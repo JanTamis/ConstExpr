@@ -11,21 +11,24 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Contains context.Method.
-/// Optimizes patterns such as:
-/// - collection.Where(x => x == value).Any() => collection.Contains(value)
-/// - collection.Select(...).Contains(value) => collection.Contains(...) (when projection is simple)
-/// - collection.Distinct().Contains(value) => collection.Contains(value) (distinctness doesn't affect containment)
-/// - collection.OrderBy(...).Contains(value) => collection.Contains(value) (ordering doesn't affect containment)
-/// - collection.OrderByDescending(...).Contains(value) => collection.Contains(value) (ordering doesn't affect containment)
-/// - collection.Order().Contains(value) => collection.Contains(value) (ordering doesn't affect containment)
-/// - collection.OrderDescending().Contains(value) => collection.Contains(value) (ordering doesn't affect containment)
-/// - collection.ThenBy(...).Contains(value) => collection.Contains(value) (secondary ordering doesn't affect containment)
-/// - collection.ThenByDescending(...).Contains(value) => collection.Contains(value) (secondary ordering doesn't affect containment)
-/// - collection.Reverse().Contains(value) => collection.Contains(value) (reversing doesn't affect containment)
-/// - collection.AsEnumerable().Contains(value) => collection.Contains(value) (type cast doesn't affect containment)
-/// - collection.ToList().Contains(value) => collection.Contains(value) (materialization doesn't affect containment)
-/// - collection.ToArray().Contains(value) => collection.Contains(value) (materialization doesn't affect containment)
+///   Optimizer for Enumerable.Contains context.Method.
+///   Optimizes patterns such as:
+///   - collection.Where(x => x == value).Any() => collection.Contains(value)
+///   - collection.Select(...).Contains(value) => collection.Contains(...) (when projection is simple)
+///   - collection.Distinct().Contains(value) => collection.Contains(value) (distinctness doesn't affect containment)
+///   - collection.OrderBy(...).Contains(value) => collection.Contains(value) (ordering doesn't affect containment)
+///   - collection.OrderByDescending(...).Contains(value) => collection.Contains(value) (ordering doesn't affect
+///   containment)
+///   - collection.Order().Contains(value) => collection.Contains(value) (ordering doesn't affect containment)
+///   - collection.OrderDescending().Contains(value) => collection.Contains(value) (ordering doesn't affect containment)
+///   - collection.ThenBy(...).Contains(value) => collection.Contains(value) (secondary ordering doesn't affect
+///   containment)
+///   - collection.ThenByDescending(...).Contains(value) => collection.Contains(value) (secondary ordering doesn't affect
+///   containment)
+///   - collection.Reverse().Contains(value) => collection.Contains(value) (reversing doesn't affect containment)
+///   - collection.AsEnumerable().Contains(value) => collection.Contains(value) (type cast doesn't affect containment)
+///   - collection.ToList().Contains(value) => collection.Contains(value) (materialization doesn't affect containment)
+///   - collection.ToArray().Contains(value) => collection.Contains(value) (materialization doesn't affect containment)
 /// </summary>
 public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Contains), n => n is 1 or 2)
 {

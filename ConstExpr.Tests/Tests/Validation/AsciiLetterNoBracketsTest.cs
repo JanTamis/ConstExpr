@@ -14,6 +14,6 @@ public class AsciiLetterNoBracketsTest() : BaseTest<Func<char, bool>>(FastMathFl
 		Create(c => Char.IsAsciiLetter(c)),
 		Create(_ => true, [ 'm' ]),
 		Create(_ => true, [ 'M' ]),
-		Create(_ => false, [ '5' ]),
+		Create(_ => false, [ '5' ])
 	];
 }

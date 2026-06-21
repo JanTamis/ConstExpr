@@ -18,6 +18,6 @@ public class StringBinaryStrategy(SyntaxKind leftKind = SyntaxKind.None, SyntaxK
 {
 	public StringBinaryStrategy() : this(SyntaxKind.None)
 	{
-		
+
 	}
 }

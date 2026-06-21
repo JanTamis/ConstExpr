@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
-/// Tests for VisitParenthesizedExpression - unwrap parens to inner expression
+///   Tests for VisitParenthesizedExpression - unwrap parens to inner expression
 /// </summary>
 [InheritsTests]
 public class VisitParenthesizedExpressionTests : BaseTest<Func<int, int, (int, int, int, int, int, int, int, string)>>

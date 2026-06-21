@@ -11,23 +11,23 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Count context.Method.
-/// Optimizes patterns such as:
-/// - collection.Where(predicate).Count() => collection.Count(predicate)
-/// - collection.Where(p1).Where(p2).Count() => collection.Count(p1 && p2) (multiple chained Where statements)
-/// - collection.Where(p1).Where(p2).Where(p3).Count() => collection.Count(p1 && p2 && p3)
-/// - collection.Select(...).Count() => collection.Count() (projection doesn't affect count for non-null elements)
-/// - collection.OrderBy(...).Count() => collection.Count() (ordering doesn't affect count)
-/// - collection.OrderByDescending(...).Count() => collection.Count() (ordering doesn't affect count)
-/// - collection.Order().Count() => collection.Count() (ordering doesn't affect count)
-/// - collection.OrderDescending().Count() => collection.Count() (ordering doesn't affect count)
-/// - collection.ThenBy(...).Count() => collection.Count() (secondary ordering doesn't affect count)
-/// - collection.ThenByDescending(...).Count() => collection.Count() (secondary ordering doesn't affect count)
-/// - collection.Reverse().Count() => collection.Count() (reversing doesn't affect count)
-/// - collection.AsEnumerable().Count() => collection.Count() (type cast doesn't affect count)
-/// - collection.OrderBy(...).Where(p1).Where(p2).Count() => collection.Count(p1 && p2) (combining operations)
-/// - collection.Take(n).Count() => Int32.Min(n, collection.Count()) (take limits count)
-/// - collection.Skip(n).Count() => Int32.Max(0, collection.Count() - n) (skip reduces count)
+///   Optimizer for Enumerable.Count context.Method.
+///   Optimizes patterns such as:
+///   - collection.Where(predicate).Count() => collection.Count(predicate)
+///   - collection.Where(p1).Where(p2).Count() => collection.Count(p1 && p2) (multiple chained Where statements)
+///   - collection.Where(p1).Where(p2).Where(p3).Count() => collection.Count(p1 && p2 && p3)
+///   - collection.Select(...).Count() => collection.Count() (projection doesn't affect count for non-null elements)
+///   - collection.OrderBy(...).Count() => collection.Count() (ordering doesn't affect count)
+///   - collection.OrderByDescending(...).Count() => collection.Count() (ordering doesn't affect count)
+///   - collection.Order().Count() => collection.Count() (ordering doesn't affect count)
+///   - collection.OrderDescending().Count() => collection.Count() (ordering doesn't affect count)
+///   - collection.ThenBy(...).Count() => collection.Count() (secondary ordering doesn't affect count)
+///   - collection.ThenByDescending(...).Count() => collection.Count() (secondary ordering doesn't affect count)
+///   - collection.Reverse().Count() => collection.Count() (reversing doesn't affect count)
+///   - collection.AsEnumerable().Count() => collection.Count() (type cast doesn't affect count)
+///   - collection.OrderBy(...).Where(p1).Where(p2).Count() => collection.Count(p1 && p2) (combining operations)
+///   - collection.Take(n).Count() => Int32.Min(n, collection.Count()) (take limits count)
+///   - collection.Skip(n).Count() => Int32.Max(0, collection.Count() - n) (skip reduces count)
 /// </summary>
 public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Count), n => n is 0 or 1)
 {

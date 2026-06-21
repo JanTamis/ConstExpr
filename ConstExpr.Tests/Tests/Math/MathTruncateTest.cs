@@ -9,8 +9,8 @@ public class MathTruncateTest() : BaseTest<Func<double, double>>(FastMathFlags.A
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(x => double.Truncate(x)),
+		Create(x => Double.Truncate(x)),
 		Create(_ => 3D, [ 3.7 ]),
-		Create(_ => -3D, [ -3.2 ]),
+		Create(_ => -3D, [ -3.2 ])
 	];
 }

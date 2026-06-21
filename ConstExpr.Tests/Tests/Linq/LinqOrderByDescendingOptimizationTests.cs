@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for OrderByDescending() optimization - verify identity lambda conversion
+///   Tests for OrderByDescending() optimization - verify identity lambda conversion
 /// </summary>
 [InheritsTests]
 public class LinqOrderByDescendingOptimizationTests : BaseTest<Func<int[], int>>
@@ -18,6 +18,6 @@ public class LinqOrderByDescendingOptimizationTests : BaseTest<Func<int[], int>>
 	[
 		Create("return TensorPrimitives.Max(x);"),
 		Create(_ => 3, [ new[] { 3, 1, 2 } ]),
-		Create(_ => 5, [ new[] { 5 } ]),
+		Create(_ => 5, [ new[] { 5 } ])
 	];
 }

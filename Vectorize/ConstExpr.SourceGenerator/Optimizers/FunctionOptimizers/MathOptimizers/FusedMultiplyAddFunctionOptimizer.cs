@@ -17,4 +17,3 @@ public class FusedMultiplyAddFunctionOptimizer() : BaseMathFunctionOptimizer("Fu
 		return true;
 	}
 }
-

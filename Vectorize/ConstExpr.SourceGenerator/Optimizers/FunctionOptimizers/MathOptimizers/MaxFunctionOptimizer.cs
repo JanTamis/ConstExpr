@@ -312,7 +312,7 @@ public class MaxFunctionOptimizer() : BaseMathFunctionOptimizer("Max", n => n is
 				constExpr = expr;
 				return value is not null && IsNumericLiteral(value);
 			}
-			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax opLit }:
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax opLit }:
 			{
 				var v = opLit.Token.Value;
 
@@ -413,7 +413,7 @@ public class MaxFunctionOptimizer() : BaseMathFunctionOptimizer("Max", n => n is
 
 	private static T ConvertTo<T>(object v)
 	{
-		try { return (T) Convert.ChangeType(v, typeof(T), CultureInfo.InvariantCulture); }
+		try { return (T)Convert.ChangeType(v, typeof(T), CultureInfo.InvariantCulture); }
 		catch { return default!; }
 	}
 }

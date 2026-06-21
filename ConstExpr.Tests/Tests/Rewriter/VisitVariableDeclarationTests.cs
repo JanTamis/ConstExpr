@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
-/// Tests for VisitVariableDeclaration - visit declarators
+///   Tests for VisitVariableDeclaration - visit declarators
 /// </summary>
 [InheritsTests]
 public class VisitVariableDeclarationTests : BaseTest<Func<int, int, (int, int, int, int, int)>>

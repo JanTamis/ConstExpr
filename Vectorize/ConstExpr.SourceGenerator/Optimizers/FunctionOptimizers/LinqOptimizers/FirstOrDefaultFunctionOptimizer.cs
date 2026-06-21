@@ -11,14 +11,14 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.FirstOrDefault context.Method.
-/// Optimizes patterns such as:
-/// - collection.Where(predicate).FirstOrDefault() => collection.FirstOrDefault(predicate)
-/// - collection.AsEnumerable().FirstOrDefault() => collection.FirstOrDefault() (type cast doesn't affect first)
-/// - collection.ToList().FirstOrDefault() => collection.FirstOrDefault() (materialization doesn't affect first)
-/// - collection.ToArray().FirstOrDefault() => collection.FirstOrDefault() (materialization doesn't affect first)
-/// Note: OrderBy/OrderByDescending/Reverse DOES affect which element is first, so we don't optimize those!
-/// Note: Distinct might remove the first element if it's a duplicate, so we don't optimize that either!
+///   Optimizer for Enumerable.FirstOrDefault context.Method.
+///   Optimizes patterns such as:
+///   - collection.Where(predicate).FirstOrDefault() => collection.FirstOrDefault(predicate)
+///   - collection.AsEnumerable().FirstOrDefault() => collection.FirstOrDefault() (type cast doesn't affect first)
+///   - collection.ToList().FirstOrDefault() => collection.FirstOrDefault() (materialization doesn't affect first)
+///   - collection.ToArray().FirstOrDefault() => collection.FirstOrDefault() (materialization doesn't affect first)
+///   Note: OrderBy/OrderByDescending/Reverse DOES affect which element is first, so we don't optimize those!
+///   Note: Distinct might remove the first element if it's a duplicate, so we don't optimize that either!
 /// </summary>
 public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.FirstOrDefault), n => n is 0 or 1)
 {
@@ -90,7 +90,7 @@ public class FirstOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameo
 				}
 				case nameof(Enumerable.DefaultIfEmpty):
 				{
-					TryGetOptimizedChainExpression(methodSource, (HashSet<string>) [ nameof(Enumerable.DefaultIfEmpty) ], out methodSource);
+					TryGetOptimizedChainExpression(methodSource, (HashSet<string>)[ nameof(Enumerable.DefaultIfEmpty) ], out methodSource);
 
 					// optimize collection.DefaultIfEmpty() => collection.Length > 0 ? collection[0] : default
 					var collection = methodSource;

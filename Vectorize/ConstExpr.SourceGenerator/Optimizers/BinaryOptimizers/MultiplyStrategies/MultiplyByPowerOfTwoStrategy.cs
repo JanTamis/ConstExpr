@@ -1,14 +1,13 @@
 using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.MultiplyStrategies;
 
 /// <summary>
-/// Strategy for power of two optimization: x * (power of two) => x &lt;&lt; n (integer)
-/// Safe under Strict (integer shift arithmetic).
+///   Strategy for power of two optimization: x * (power of two) => x &lt;&lt; n (integer)
+///   Safe under Strict (integer shift arithmetic).
 /// </summary>
 public class MultiplyByPowerOfTwoStrategy : SymmetricStrategy<IntegerBinaryStrategy, ExpressionSyntax, LiteralExpressionSyntax>
 {

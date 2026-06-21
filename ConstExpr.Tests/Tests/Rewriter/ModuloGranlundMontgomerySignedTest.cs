@@ -10,7 +10,7 @@ public class ModuloGranlundMontgomerySignedTest() : BaseTest<Func<int, int>>(Fas
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(x => x - ((int) (x * 715827883L >> 32) - (x >> 31)) * 6),
+		Create(x => x - ((int)(x * 715827883L >> 32) - (x >> 31)) * 6),
 		Create(_ => 4, [ 10 ]),
 		Create(_ => 0, [ 6 ]),
 		Create(_ => 0, [ 0 ]),

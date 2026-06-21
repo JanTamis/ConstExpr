@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Optimization;
 
 /// <summary>
-/// Test with consecutive values
+///   Test with consecutive values
 /// </summary>
 [InheritsTests]
 public class PatternBitmaskConsecutiveTest() : BaseTest<Func<int, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
@@ -21,6 +21,6 @@ public class PatternBitmaskConsecutiveTest() : BaseTest<Func<int, bool>>(FastMat
 		Create(_ => true, [ 7 ]),
 		Create(_ => true, [ 8 ]),
 		Create(_ => false, [ 4 ]),
-		Create(_ => false, [ 9 ]),
+		Create(_ => false, [ 9 ])
 	];
 }

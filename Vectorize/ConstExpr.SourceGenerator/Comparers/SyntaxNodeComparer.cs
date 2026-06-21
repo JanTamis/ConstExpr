@@ -6,8 +6,8 @@ namespace ConstExpr.SourceGenerator.Comparers;
 
 file class SyntaxNodeComparer<TNode> : IEqualityComparer<TNode?> where TNode : SyntaxNode
 {
-	public static SyntaxNodeComparer<TNode> Instance { get; } = new SyntaxNodeComparer<TNode>();
-	
+	public static SyntaxNodeComparer<TNode> Instance { get; } = new();
+
 	public bool Equals(TNode? x, TNode? y)
 	{
 		return DeteministicHashVisitor.Instance.Visit(x) == DeteministicHashVisitor.Instance.Visit(y);
@@ -21,6 +21,13 @@ file class SyntaxNodeComparer<TNode> : IEqualityComparer<TNode?> where TNode : S
 
 public static class SyntaxNodeComparer
 {
-	public static IEqualityComparer<TNode> Get<TNode>() where TNode : SyntaxNode => SyntaxNodeComparer<TNode>.Instance;
-	public static IEqualityComparer<SyntaxNode> Get() => SyntaxNodeComparer<SyntaxNode>.Instance;
+	public static IEqualityComparer<TNode> Get<TNode>() where TNode : SyntaxNode
+	{
+		return SyntaxNodeComparer<TNode>.Instance;
+	}
+
+	public static IEqualityComparer<SyntaxNode> Get()
+	{
+		return SyntaxNodeComparer<SyntaxNode>.Instance;
+	}
 }

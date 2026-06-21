@@ -12,6 +12,6 @@ public class ToLowerCaseTest() : BaseTest<Func<string, string>>(FastMathFlags.Al
 		CreateDefault(),
 		Create(_ => "hello", [ "HELLO" ]),
 		Create(_ => "world123", [ "WoRlD123" ]),
-		Create(_ => "", [ "" ]),
+		Create(_ => System.String.Empty, [ System.String.Empty ])
 	];
 }

@@ -11,7 +11,7 @@ namespace ConstExpr.SourceGenerator.Sample.Operations;
 public static class ArrayOperations
 {
 	/// <summary>
-	/// Finds the maximum value in an array
+	///   Finds the maximum value in an array
 	/// </summary>
 	public static int FindMax(params int[] numbers)
 	{
@@ -34,7 +34,7 @@ public static class ArrayOperations
 	}
 
 	/// <summary>
-	/// Finds the minimum value in an array
+	///   Finds the minimum value in an array
 	/// </summary>
 	public static int FindMin(params int[] numbers)
 	{
@@ -57,7 +57,7 @@ public static class ArrayOperations
 	}
 
 	/// <summary>
-	/// Calculates the average of numbers
+	///   Calculates the average of numbers
 	/// </summary>
 	public static double Average(params int[] numbers)
 	{
@@ -73,11 +73,11 @@ public static class ArrayOperations
 			sum += num;
 		}
 
-		return (double) sum / numbers.Length;
+		return (double)sum / numbers.Length;
 	}
 
 	/// <summary>
-	/// Checks if array is sorted in ascending order
+	///   Checks if array is sorted in ascending order
 	/// </summary>
 	public static bool IsSorted(params int[] numbers)
 	{
@@ -98,7 +98,7 @@ public static class ArrayOperations
 	}
 
 	/// <summary>
-	/// Counts occurrences of a value
+	///   Counts occurrences of a value
 	/// </summary>
 	public static int CountOccurrences(int target, params int[] numbers)
 	{
@@ -116,7 +116,7 @@ public static class ArrayOperations
 	}
 
 	/// <summary>
-	/// Finds the index of the first occurrence of a value
+	///   Finds the index of the first occurrence of a value
 	/// </summary>
 	public static int IndexOf(int target, params int[] numbers)
 	{
@@ -132,7 +132,7 @@ public static class ArrayOperations
 	}
 
 	/// <summary>
-	/// Reverses an array
+	///   Reverses an array
 	/// </summary>
 	public static int[] Reverse(params int[] numbers)
 	{
@@ -147,7 +147,7 @@ public static class ArrayOperations
 	}
 
 	/// <summary>
-	/// Rotates array left by n positions
+	///   Rotates array left by n positions
 	/// </summary>
 	public static int[] RotateLeft(int positions, params int[] numbers)
 	{
@@ -174,7 +174,7 @@ public static class ArrayOperations
 	}
 
 	/// <summary>
-	/// Calculates the sum of all elements
+	///   Calculates the sum of all elements
 	/// </summary>
 	public static int Sum(params int[] numbers)
 	{
@@ -189,7 +189,7 @@ public static class ArrayOperations
 	}
 
 	/// <summary>
-	/// Calculates the product of all elements
+	///   Calculates the product of all elements
 	/// </summary>
 	public static long Product(params int[] numbers)
 	{
@@ -209,7 +209,7 @@ public static class ArrayOperations
 	}
 
 	/// <summary>
-	/// Finds the second largest value
+	///   Finds the second largest value
 	/// </summary>
 	public static int SecondLargest(params int[] numbers)
 	{
@@ -218,8 +218,8 @@ public static class ArrayOperations
 			return numbers.Length == 1 ? numbers[0] : 0;
 		}
 
-		var max = int.MinValue;
-		var secondMax = int.MinValue;
+		var max = Int32.MinValue;
+		var secondMax = Int32.MinValue;
 
 		foreach (var num in numbers)
 		{
@@ -238,7 +238,7 @@ public static class ArrayOperations
 	}
 
 	/// <summary>
-	/// Checks if array contains a specific value
+	///   Checks if array contains a specific value
 	/// </summary>
 	public static bool Contains(int target, params int[] numbers)
 	{
@@ -254,7 +254,7 @@ public static class ArrayOperations
 	}
 
 	/// <summary>
-	/// Finds the range (max - min)
+	///   Finds the range (max - min)
 	/// </summary>
 	public static int Range(params int[] numbers)
 	{

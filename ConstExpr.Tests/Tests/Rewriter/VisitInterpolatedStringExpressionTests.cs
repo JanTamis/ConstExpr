@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
-/// Tests for VisitInterpolatedStringExpression - fold to string literal when all parts constant
+///   Tests for VisitInterpolatedStringExpression - fold to string literal when all parts constant
 /// </summary>
 [InheritsTests]
 public class VisitInterpolatedStringExpressionTests : BaseTest<Func<int, (string, string)>>

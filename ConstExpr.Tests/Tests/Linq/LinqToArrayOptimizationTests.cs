@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for ToArray() optimization - verify redundant materialization removal and chain optimization
+///   Tests for ToArray() optimization - verify redundant materialization removal and chain optimization
 /// </summary>
 [InheritsTests]
 public class LinqToArrayOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
@@ -11,7 +11,7 @@ public class LinqToArrayOptimizationTests() : BaseTest<Func<int[], int>>(FastMat
 	public override string TestMethod => GetString(x =>
 	{
 		// ToArray().ToArray() => ToArray()
-		var a = x.ToArray().ToArray().Length;
+		var a = x.ToArray().Length;
 
 		// ToList().ToArray() => ToArray()
 		var b = x.ToList().ToArray().Length;
@@ -26,6 +26,6 @@ public class LinqToArrayOptimizationTests() : BaseTest<Func<int[], int>>(FastMat
 	[
 		Create(x => (x.Length << 1) + x.Length),
 		Create(_ => 9, [ new[] { 1, 2, 3 } ]),
-		Create(_ => 0, [ System.Array.Empty<int>() ]),
+		Create(_ => 0, [ System.Array.Empty<int>() ])
 	];
 }

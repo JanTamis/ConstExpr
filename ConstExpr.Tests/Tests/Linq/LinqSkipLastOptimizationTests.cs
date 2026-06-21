@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for SkipLast() optimization - verify SkipLast(0) removal
+///   Tests for SkipLast() optimization - verify SkipLast(0) removal
 /// </summary>
 [InheritsTests]
 public class LinqSkipLastOptimizationTests : BaseTest<Func<int[], int>>
@@ -20,6 +20,6 @@ public class LinqSkipLastOptimizationTests : BaseTest<Func<int[], int>>
 	[
 		Create("return x.Length + Count_89mObA(x);"),
 		Create(_ => 3, [ new[] { 1, 2, 3 } ]),
-		Create(_ => 0, [ System.Array.Empty<int>() ]),
+		Create(_ => 0, [ System.Array.Empty<int>() ])
 	];
 }

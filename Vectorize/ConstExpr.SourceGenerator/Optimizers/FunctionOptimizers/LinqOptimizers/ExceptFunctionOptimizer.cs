@@ -11,19 +11,20 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Except context.Method.
-/// Optimizes patterns such as:
-/// - collection.Except(Enumerable.Empty&lt;T&gt;()) => collection.Distinct() (removing nothing, but Except applies Distinct)
-/// - Enumerable.Empty&lt;T&gt;().Except(collection) => Enumerable.Empty&lt;T&gt;() (empty except anything is empty)
-/// - collection.Except(collection) => Enumerable.Empty&lt;T&gt;() (set minus itself is empty)
-/// - collection.AsEnumerable().Except(other) => collection.Except(other) (type cast doesn't affect set difference)
-/// - collection.ToList().Except(other) => collection.Except(other) (materialization doesn't affect set difference)
-/// - collection.ToArray().Except(other) => collection.Except(other) (materialization doesn't affect set difference)
-/// - collection.Distinct().Except(other) => collection.Except(other) (Except already applies Distinct)
-/// - collection.Except(other).Except(third) => collection.Except(other.Concat(third)) (chained Except operations)
-/// Note: Except already applies Distinct to the result, so Distinct operations are redundant
-/// Note: OrderBy/Reverse don't affect set membership, but may affect result order - we can skip them when
-///       followed by set-based operations
+///   Optimizer for Enumerable.Except context.Method.
+///   Optimizes patterns such as:
+///   - collection.Except(Enumerable.Empty&lt;T&gt;()) => collection.Distinct() (removing nothing, but Except applies
+///   Distinct)
+///   - Enumerable.Empty&lt;T&gt;().Except(collection) => Enumerable.Empty&lt;T&gt;() (empty except anything is empty)
+///   - collection.Except(collection) => Enumerable.Empty&lt;T&gt;() (set minus itself is empty)
+///   - collection.AsEnumerable().Except(other) => collection.Except(other) (type cast doesn't affect set difference)
+///   - collection.ToList().Except(other) => collection.Except(other) (materialization doesn't affect set difference)
+///   - collection.ToArray().Except(other) => collection.Except(other) (materialization doesn't affect set difference)
+///   - collection.Distinct().Except(other) => collection.Except(other) (Except already applies Distinct)
+///   - collection.Except(other).Except(third) => collection.Except(other.Concat(third)) (chained Except operations)
+///   Note: Except already applies Distinct to the result, so Distinct operations are redundant
+///   Note: OrderBy/Reverse don't affect set membership, but may affect result order - we can skip them when
+///   followed by set-based operations
 /// </summary>
 public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Except), n => n is 1)
 {
@@ -242,7 +243,7 @@ public class ExceptFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 	}
 
 	/// <summary>
-	/// Checks if the Except call is followed by a set-based operation that doesn't care about order.
+	///   Checks if the Except call is followed by a set-based operation that doesn't care about order.
 	/// </summary>
 	private bool IsFollowedBySetBasedOperation(InvocationExpressionSyntax invocation)
 	{

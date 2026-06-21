@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AndStrategies;
 
 /// <summary>
-/// Combine masks: (x & mask1) & mask2 => x & (mask1 & mask2)
+///   Combine masks: (x & mask1) & mask2 => x & (mask1 & mask2)
 /// </summary>
 public class AndCombineMasksStrategy() : SymmetricStrategy<NumericOrBooleanBinaryStrategy, BinaryExpressionSyntax, LiteralExpressionSyntax>(leftKind: SyntaxKind.BitwiseAndExpression)
 {
@@ -18,7 +18,7 @@ public class AndCombineMasksStrategy() : SymmetricStrategy<NumericOrBooleanBinar
 			optimized = null;
 			return false;
 		}
-		
+
 		optimized = BitwiseAndExpression(context.Left.Syntax.Left, combinedLiteral);
 		return true;
 	}

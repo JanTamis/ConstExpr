@@ -18,8 +18,8 @@ public class StringLengthTest() : BaseTest<Func<string?, int>>(FastMathFlags.All
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(s => s?.Length ?? -1),
-		Create(_ => 0, [ "" ]),
+		Create(_ => 0, [ System.String.Empty ]),
 		Create(_ => 11, [ "hello world" ]),
-		Create(_ => -1, [ (string?) null ])
+		Create(_ => -1, [ null ])
 	];
 }

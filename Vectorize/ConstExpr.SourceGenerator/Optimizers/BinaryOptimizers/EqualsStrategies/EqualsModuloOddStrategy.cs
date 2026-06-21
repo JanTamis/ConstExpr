@@ -8,7 +8,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.EqualsStrategies;
 
 /// <summary>
-/// Strategy for modulo odd detection: (x % 2) == 1 => T.IsOddInteger(x)
+///   Strategy for modulo odd detection: (x % 2) == 1 => T.IsOddInteger(x)
 /// </summary>
 public class EqualsModuloOddStrategy() : SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, LiteralExpressionSyntax>(leftKind: SyntaxKind.ModuloExpression)
 {

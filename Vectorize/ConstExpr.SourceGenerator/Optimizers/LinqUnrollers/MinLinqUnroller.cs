@@ -61,8 +61,8 @@ public class MinLinqUnroller : BaseLinqUnroller
 			? MemberAccessExpression(IdentifierName("e"), IdentifierName("Current"))
 			: elementName;
 
-		var candidate = method.Parameters.Length == 1 && TryGetLambda(method.Parameters[0], out var lambda) 
-			? ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, element)! 
+		var candidate = method.Parameters.Length == 1 && TryGetLambda(method.Parameters[0], out var lambda)
+			? ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, element)!
 			: element;
 
 		// if (candidate < value) { value = candidate; }

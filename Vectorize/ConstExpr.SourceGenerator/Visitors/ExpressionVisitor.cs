@@ -72,7 +72,7 @@ public class ExpressionVisitor(SemanticModel model, MetadataLoader loader, IEnum
 			BinaryOperatorKind.LessThanOrEqual => ExpressionType.LessThanOrEqual,
 			BinaryOperatorKind.GreaterThan => ExpressionType.GreaterThan,
 			BinaryOperatorKind.GreaterThanOrEqual => ExpressionType.GreaterThanOrEqual,
-			_ => throw new NotImplementedException(),
+			_ => throw new NotImplementedException()
 		};
 
 		var left = Visit(operation.LeftOperand, argument);
@@ -140,7 +140,7 @@ public class ExpressionVisitor(SemanticModel model, MetadataLoader loader, IEnum
 			UnaryOperatorKind.Minus => Expression.Negate(operand),
 			UnaryOperatorKind.BitwiseNegation => Expression.OnesComplement(operand),
 			UnaryOperatorKind.Not => Expression.Not(operand),
-			_ => operand,
+			_ => operand
 		};
 	}
 
@@ -153,7 +153,7 @@ public class ExpressionVisitor(SemanticModel model, MetadataLoader loader, IEnum
 		{
 			OperationKind.Increment => Expression.AddAssign(target, one),
 			OperationKind.Decrement => Expression.SubtractAssign(target, one),
-			_ => target,
+			_ => target
 		};
 	}
 
@@ -189,7 +189,7 @@ public class ExpressionVisitor(SemanticModel model, MetadataLoader loader, IEnum
 	public override Expression VisitLocalReference(ILocalReferenceOperation operation, IDictionary<string, object?> argument)
 	{
 		// For local variables, we need to find or create a parameter expression
-		string localName = operation.Local.Name;
+		var localName = operation.Local.Name;
 
 		// Check if we already have this parameter
 		var existingParam = parameters.FirstOrDefault(p => p.Name == localName);
@@ -222,11 +222,11 @@ public class ExpressionVisitor(SemanticModel model, MetadataLoader loader, IEnum
 			.FirstOrDefault(c => c.GetParameters().Length == arguments.Length);
 
 		if (constructor == null)
-    {
-      throw new InvalidOperationException($"Constructor with {arguments.Length} parameters not found for type {type.FullName}");
-    }
+		{
+			throw new InvalidOperationException($"Constructor with {arguments.Length} parameters not found for type {type.FullName}");
+		}
 
-    return Expression.New(constructor, arguments);
+		return Expression.New(constructor, arguments);
 	}
 
 	public override Expression VisitInstanceReference(IInstanceReferenceOperation operation, IDictionary<string, object?> argument)
@@ -235,12 +235,12 @@ public class ExpressionVisitor(SemanticModel model, MetadataLoader loader, IEnum
 		var thisParameter = parameters.FirstOrDefault(p => p.Name == "this");
 
 		if (thisParameter != null)
-    {
-      return thisParameter;
-    }
+		{
+			return thisParameter;
+		}
 
-    // If no 'this' parameter exists, throw an exception or handle appropriately
-    throw new InvalidOperationException("No 'this' parameter available in the current context.");
+		// If no 'this' parameter exists, throw an exception or handle appropriately
+		throw new InvalidOperationException("No 'this' parameter available in the current context.");
 	}
 
 	public override Expression VisitNameOf(INameOfOperation operation, IDictionary<string, object?> argument)

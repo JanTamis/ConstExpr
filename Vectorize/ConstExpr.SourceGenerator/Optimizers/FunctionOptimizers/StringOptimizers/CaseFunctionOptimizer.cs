@@ -7,11 +7,11 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 
 /// <summary>
-/// Optimizes redundant ToUpper/ToLower calls:
-/// - s.ToUpper().ToUpper() → s.ToUpper()
-/// - s.ToLower().ToLower() → s.ToLower()
-/// - s.ToUpperInvariant().ToUpperInvariant() → s.ToUpperInvariant()
-/// - s.ToLowerInvariant().ToLowerInvariant() → s.ToLowerInvariant()
+///   Optimizes redundant ToUpper/ToLower calls:
+///   - s.ToUpper().ToUpper() → s.ToUpper()
+///   - s.ToLower().ToLower() → s.ToLower()
+///   - s.ToUpperInvariant().ToUpperInvariant() → s.ToUpperInvariant()
+///   - s.ToLowerInvariant().ToLowerInvariant() → s.ToLowerInvariant()
 /// </summary>
 public class CaseFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "ToUpper", false, n => n is 0)
 {

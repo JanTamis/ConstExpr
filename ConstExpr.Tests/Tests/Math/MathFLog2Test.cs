@@ -10,6 +10,6 @@ public class MathFLog2Test() : BaseTest<Func<float, float>>(FastMathFlags.All, o
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return FastLog2(x);"),
+		Create("return FastLog2(x);")
 	];
 }

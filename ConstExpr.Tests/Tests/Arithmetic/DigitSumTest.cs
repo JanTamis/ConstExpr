@@ -34,8 +34,8 @@ public class DigitSumTest() : BaseTest<Func<int, int>>(FastMathFlags.All | FastM
 
 			while (n > 0)
 			{
-				sum += n - (((int) (n * 1717986919L >> 32) >> 2) - (n >> 31)) * 10;
-				n = ((int) (n * 1717986919L >> 32) >> 2) - (n >> 31);
+				sum += n - (((int)(n * 1717986919L >> 32) >> 2) - (n >> 31)) * 10;
+				n = ((int)(n * 1717986919L >> 32) >> 2) - (n >> 31);
 			}
 
 			return sum;

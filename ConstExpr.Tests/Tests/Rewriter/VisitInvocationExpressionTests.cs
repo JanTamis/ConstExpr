@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
-/// Tests for VisitInvocationExpression - constant method call evaluation
+///   Tests for VisitInvocationExpression - constant method call evaluation
 /// </summary>
 [InheritsTests]
 public class VisitInvocationExpressionTests : BaseTest<Func<(string, string, int)>>

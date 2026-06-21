@@ -1,12 +1,11 @@
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalOrStrategies;
 
 /// <summary>
-/// Strategy for tautology: a || !a => true, !a || a => true (pure)
+///   Strategy for tautology: a || !a => true, !a || a => true (pure)
 /// </summary>
 public class ConditionalOrTautologyStrategy() : SymmetricStrategy<BooleanBinaryStrategy, ExpressionSyntax, PrefixUnaryExpressionSyntax>(rightKind: SyntaxKind.LogicalNotExpression)
 {
@@ -18,7 +17,7 @@ public class ConditionalOrTautologyStrategy() : SymmetricStrategy<BooleanBinaryS
 			optimized = null;
 			return false;
 		}
-		
+
 		optimized = CreateLiteral(true);
 		return true;
 	}

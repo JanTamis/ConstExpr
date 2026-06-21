@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for SequenceEqual() optimization - verify same sequence returns true
+///   Tests for SequenceEqual() optimization - verify same sequence returns true
 /// </summary>
 [InheritsTests]
 public class LinqSequenceEqualOptimizationTests : BaseTest<Func<int[], bool>>
@@ -22,6 +22,6 @@ public class LinqSequenceEqualOptimizationTests : BaseTest<Func<int[], bool>>
 	[
 		Create(x => x.Length <= 0),
 		Create(_ => false, [ new[] { 1, 2, 3 } ]),
-		Create(_ => true, [ System.Array.Empty<int>() ]),
+		Create(_ => true, [ System.Array.Empty<int>() ])
 	];
 }

@@ -5,7 +5,7 @@ namespace ConstExpr.SourceGenerator;
 #pragma warning disable RSEXPERIMENTAL002
 
 /// <summary>
-/// Simple thread-static StringBuilder pool to reduce allocations when composing large strings.
+///   Simple thread-static StringBuilder pool to reduce allocations when composing large strings.
 /// </summary>
 internal static class StringBuilderCache
 {

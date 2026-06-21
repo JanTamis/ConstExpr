@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for Min() optimization - verify identity lambda removal, Select fusion, and chain optimization
+///   Tests for Min() optimization - verify identity lambda removal, Select fusion, and chain optimization
 /// </summary>
 [InheritsTests]
 public class LinqMinOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
@@ -32,6 +32,6 @@ public class LinqMinOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFla
 	[
 		Create("return TensorPrimitives.Min(x) * 4 + Int32.Min(Min_lB3pdg(x), TensorPrimitives.Min(x));"),
 		Create(_ => 5, [ new[] { 1, 2, 3 } ]),
-		Create(_ => 25, [ new[] { 5 } ]),
+		Create(_ => 25, [ new[] { 5 } ])
 	];
 }

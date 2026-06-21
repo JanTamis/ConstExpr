@@ -10,17 +10,17 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.ElementAt context.Method.
-/// Optimizes patterns such as:
-/// - collection.AsEnumerable().ElementAt(index) => collection.ElementAt(index) (type cast doesn't affect indexing)
-/// - collection.ToList().ElementAt(index) => collection.ElementAt(index) (materialization doesn't affect indexing)
-/// - collection.ToArray().ElementAt(index) => collection.ElementAt(index) (materialization doesn't affect indexing)
-/// - array.ElementAt(index) => array[index] (direct array access is faster)
-/// - list.ElementAt(index) => list[index] (direct list indexing is faster)
-/// - collection.ElementAt(0) => collection.First() (semantically equivalent, more idiomatic)
-/// - collection.Skip(n).ElementAt(m) => collection.ElementAt(n + m) => collection[n + m] (index adjustment for Skip)
-/// Note: OrderBy/OrderByDescending/Reverse DOES affect element positions, so we don't optimize those!
-/// Note: Distinct/Where/Select change the collection, so we don't optimize those either!
+///   Optimizer for Enumerable.ElementAt context.Method.
+///   Optimizes patterns such as:
+///   - collection.AsEnumerable().ElementAt(index) => collection.ElementAt(index) (type cast doesn't affect indexing)
+///   - collection.ToList().ElementAt(index) => collection.ElementAt(index) (materialization doesn't affect indexing)
+///   - collection.ToArray().ElementAt(index) => collection.ElementAt(index) (materialization doesn't affect indexing)
+///   - array.ElementAt(index) => array[index] (direct array access is faster)
+///   - list.ElementAt(index) => list[index] (direct list indexing is faster)
+///   - collection.ElementAt(0) => collection.First() (semantically equivalent, more idiomatic)
+///   - collection.Skip(n).ElementAt(m) => collection.ElementAt(n + m) => collection[n + m] (index adjustment for Skip)
+///   Note: OrderBy/OrderByDescending/Reverse DOES affect element positions, so we don't optimize those!
+///   Note: Distinct/Where/Select change the collection, so we don't optimize those either!
 /// </summary>
 public class ElementAtFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.ElementAt), n => n is 1)
 {

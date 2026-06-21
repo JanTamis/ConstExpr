@@ -6,10 +6,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.ExceptBy context.Method.
-/// Optimizes patterns such as:
-/// - collection.ExceptBy(Enumerable.Empty&lt;T&gt;(), selector) => collection.DistinctBy(selector)
-/// - Enumerable.Empty&lt;T&gt;().ExceptBy(collection, selector) => Enumerable.Empty&lt;T&gt;()
+///   Optimizer for Enumerable.ExceptBy context.Method.
+///   Optimizes patterns such as:
+///   - collection.ExceptBy(Enumerable.Empty&lt;T&gt;(), selector) => collection.DistinctBy(selector)
+///   - Enumerable.Empty&lt;T&gt;().ExceptBy(collection, selector) => Enumerable.Empty&lt;T&gt;()
 /// </summary>
 public class ExceptByFunctionOptimizer() : BaseLinqFunctionOptimizer("ExceptBy", n => n is 2)
 {

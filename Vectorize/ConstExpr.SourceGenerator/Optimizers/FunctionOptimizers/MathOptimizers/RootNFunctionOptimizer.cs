@@ -107,7 +107,7 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", n => 
 				value = i;
 				return true;
 			}
-			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: int i2 } }:
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: int i2 } }:
 			{
 				value = -i2;
 				return true;

@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.LessThanOrEqualStrategies;
 
 /// <summary>
-/// Strategy for reflexive comparison: x <= x => true (pure)
+///   Strategy for reflexive comparison: x <= x => true (pure)
 /// </summary>
 public class LessThanOrEqualReflexiveStrategy : BaseBinaryStrategy
 {
@@ -16,7 +16,7 @@ public class LessThanOrEqualReflexiveStrategy : BaseBinaryStrategy
 			optimized = null;
 			return false;
 		}
-		
+
 		optimized = CreateLiteral(true);
 		return true;
 	}

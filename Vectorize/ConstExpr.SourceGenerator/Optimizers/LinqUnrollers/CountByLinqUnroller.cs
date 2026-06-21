@@ -5,9 +5,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
 /// <summary>
-/// Unrolls <c>.CountBy(keySelector)</c> as an intermediate step.
-/// Builds a <c>Dictionary&lt;TKey, int&gt;</c> during the main loop counting
-/// occurrences per key, then iterates the dictionary through subsequent chain steps.
+///   Unrolls <c>.CountBy(keySelector)</c> as an intermediate step.
+///   Builds a <c>Dictionary&lt;TKey, int&gt;</c> during the main loop counting
+///   occurrences per key, then iterates the dictionary through subsequent chain steps.
 /// </summary>
 public class CountByLinqUnroller : BaseLinqUnroller
 {
@@ -20,7 +20,7 @@ public class CountByLinqUnroller : BaseLinqUnroller
 
 		// var countByDict = new Dictionary<TKey, int>();
 		statements.Add(CreateLocalDeclaration(DictName,
-			ObjectCreationExpression(IdentifierName($"Dictionary<{keyTypeName}, int>"), [])));
+			ObjectCreationExpression(IdentifierName($"Dictionary<{keyTypeName}, int>"), [ ])));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
@@ -71,4 +71,3 @@ public class CountByLinqUnroller : BaseLinqUnroller
 			Block(partialLoopBody)));
 	}
 }
-

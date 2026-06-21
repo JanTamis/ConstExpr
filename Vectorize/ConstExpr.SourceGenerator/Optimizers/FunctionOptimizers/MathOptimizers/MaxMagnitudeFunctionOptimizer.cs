@@ -24,4 +24,3 @@ public class MaxMagnitudeFunctionOptimizer() : BaseMathFunctionOptimizer("MaxMag
 		return true;
 	}
 }
-

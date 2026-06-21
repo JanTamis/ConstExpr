@@ -11,21 +11,21 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Any context.Method.
-/// Optimizes patterns such as:
-/// - collection.Where(predicate).Any() => collection.Any(predicate)
-/// - collection.Select(...).Any() => collection.Any() (projection doesn't affect existence)
-/// - collection.Distinct().Any() => collection.Any() (distinctness doesn't affect existence)
-/// - collection.OrderBy(...).Any() => collection.Any() (ordering doesn't affect existence)
-/// - collection.OrderByDescending(...).Any() => collection.Any() (ordering doesn't affect existence)
-/// - collection.Order().Any() => collection.Any() (ordering doesn't affect existence)
-/// - collection.OrderDescending().Any() => collection.Any() (ordering doesn't affect existence)
-/// - collection.ThenBy(...).Any() => collection.Any() (secondary ordering doesn't affect existence)
-/// - collection.ThenByDescending(...).Any() => collection.Any() (secondary ordering doesn't affect existence)
-/// - collection.Reverse().Any() => collection.Any() (reversing doesn't affect existence)
-/// - collection.AsEnumerable().Any() => collection.Any() (type cast doesn't affect existence)
-/// - collection.ToList().Any() => collection.Any() (materialization doesn't affect existence)
-/// - collection.ToArray().Any() => collection.Any() (materialization doesn't affect existence)
+///   Optimizer for Enumerable.Any context.Method.
+///   Optimizes patterns such as:
+///   - collection.Where(predicate).Any() => collection.Any(predicate)
+///   - collection.Select(...).Any() => collection.Any() (projection doesn't affect existence)
+///   - collection.Distinct().Any() => collection.Any() (distinctness doesn't affect existence)
+///   - collection.OrderBy(...).Any() => collection.Any() (ordering doesn't affect existence)
+///   - collection.OrderByDescending(...).Any() => collection.Any() (ordering doesn't affect existence)
+///   - collection.Order().Any() => collection.Any() (ordering doesn't affect existence)
+///   - collection.OrderDescending().Any() => collection.Any() (ordering doesn't affect existence)
+///   - collection.ThenBy(...).Any() => collection.Any() (secondary ordering doesn't affect existence)
+///   - collection.ThenByDescending(...).Any() => collection.Any() (secondary ordering doesn't affect existence)
+///   - collection.Reverse().Any() => collection.Any() (reversing doesn't affect existence)
+///   - collection.AsEnumerable().Any() => collection.Any() (type cast doesn't affect existence)
+///   - collection.ToList().Any() => collection.Any() (materialization doesn't affect existence)
+///   - collection.ToArray().Any() => collection.Any() (materialization doesn't affect existence)
 /// </summary>
 public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.Any), n => n is 0 or 1)
 {

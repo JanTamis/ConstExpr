@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 
-public class SelectLinqUnroller : BaseLinqUnroller 
+public class SelectLinqUnroller : BaseLinqUnroller
 {
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
 	{

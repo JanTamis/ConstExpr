@@ -130,8 +130,8 @@ public static class CompilationExtensions
 	}
 
 	/// <summary>
-	/// Converts an <see cref="ITypeSymbol"/> to the corresponding <see cref="TypeSyntax"/>.
-	/// Handles predefined types, arrays, nullable value types, and generic named types.
+	///   Converts an <see cref="ITypeSymbol" /> to the corresponding <see cref="TypeSyntax" />.
+	///   Handles predefined types, arrays, nullable value types, and generic named types.
 	/// </summary>
 	public static TypeSyntax AsTypeSyntax(this ITypeSymbol typeSymbol)
 	{
@@ -293,7 +293,7 @@ public static class CompilationExtensions
 				SpecialType.System_UInt64 => sizeof(ulong),
 				SpecialType.System_IntPtr => IntPtr.Size,
 				SpecialType.System_UIntPtr => UIntPtr.Size,
-				_ => 0,
+				_ => 0
 			};
 		}
 
@@ -318,7 +318,7 @@ public static class CompilationExtensions
 
 				// Use System.Runtime.InteropServices.Marshal.SizeOf
 				var method = typeof(Marshal).GetMethod("SizeOf", [ typeof(Type) ]);
-				return (int) method?.Invoke(null, [ runtimeType ]);
+				return (int)method?.Invoke(null, [ runtimeType ]);
 			}
 			catch
 			{
@@ -446,7 +446,7 @@ public static class CompilationExtensions
 				.Select(p => methodSymbol.MethodKind == MethodKind.PropertyGet ? p.GetMethod : p.SetMethod),
 			_ => type.GetMethods(methodSymbol.IsStatic || isExtension
 				? BindingFlags.Public | BindingFlags.Static
-				: BindingFlags.Public | BindingFlags.Instance).Cast<MethodBase?>(),
+				: BindingFlags.Public | BindingFlags.Instance).Cast<MethodBase?>()
 		};
 
 		var typeArgs = methodSymbol.TypeArguments.Select(loader.GetType).ToArray();
@@ -556,7 +556,7 @@ public static class CompilationExtensions
 				.Select(p => methodSymbol.MethodKind == MethodKind.PropertyGet ? p.GetMethod : p.SetMethod),
 			_ => type.GetMethods(methodSymbol.IsStatic || isExtension
 				? BindingFlags.Public | BindingFlags.Static
-				: BindingFlags.Public | BindingFlags.Instance).Cast<MethodBase?>(),
+				: BindingFlags.Public | BindingFlags.Instance).Cast<MethodBase?>()
 		};
 
 		// Filter candidates
@@ -885,7 +885,7 @@ public static class CompilationExtensions
 			VectorTypes.Vector64 => 8,
 			VectorTypes.Vector128 => 16,
 			VectorTypes.Vector256 => 32,
-			VectorTypes.Vector512 => 64,
+			VectorTypes.Vector512 => 64
 		};
 
 		var staticType = compilation.GetTypeByMetadataName($"System.Runtime.Intrinsics.{vectorType}");
@@ -969,10 +969,10 @@ public static class CompilationExtensions
 
 		if (elementType.NeedsCast())
 		{
-			return $"{vectorType}.Create({items.JoinWithPadding<T, object?>(", ", elementCount, (T) 0.ToSpecialType(elementType.SpecialType), s => s is string ? s : $"({compilation.GetMinimalString(elementType)}){CreateLiteral(s)}")})";
+			return $"{vectorType}.Create({items.JoinWithPadding<T, object?>(", ", elementCount, (T)0.ToSpecialType(elementType.SpecialType), s => s is string ? s : $"({compilation.GetMinimalString(elementType)}){CreateLiteral(s)}")})";
 		}
 
-		return $"{vectorType}.Create({items.JoinWithPadding<T, object?>(", ", elementCount, (T) 0.ToSpecialType(elementType.SpecialType), s => s is string ? s : CreateLiteral(s))})";
+		return $"{vectorType}.Create({items.JoinWithPadding<T, object?>(", ", elementCount, (T)0.ToSpecialType(elementType.SpecialType), s => s is string ? s : CreateLiteral(s))})";
 	}
 
 	public static VectorTypes GetVector<T>(this Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, ReadOnlySpan<T> items, bool isRepeating, out string vector, out int vectorSize)
@@ -1210,7 +1210,7 @@ public static class CompilationExtensions
 			SpecialType.System_Double => LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0d)),
 			SpecialType.System_Decimal => LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0m)),
 			SpecialType.System_Char => LiteralExpression(SyntaxKind.CharacterLiteralExpression, Literal(0)),
-			_ => DefaultExpression(ParseTypeName(type.ToDisplayString())),
+			_ => DefaultExpression(ParseTypeName(type.ToDisplayString()))
 		};
 	}
 
@@ -1531,7 +1531,7 @@ public static class CompilationExtensions
 		var hash = node.GetDeterministicHash();
 
 		// Fold to 32-bit to keep identifier suffix short (similar length as previous implementation).
-		var folded = (uint) (hash ^ (hash >> 32));
+		var folded = (uint)(hash ^ hash >> 32);
 
 		return Convert.ToBase64String(BitConverter.GetBytes(folded)).TrimEnd('=')
 			.Replace('+', '_')
@@ -1549,7 +1549,7 @@ public static class CompilationExtensions
 		}
 
 		// Fold to 32-bit to keep identifier suffix short (similar length as previous implementation).
-		var folded = (uint) (hash ^ (hash >> 32));
+		var folded = (uint)(hash ^ hash >> 32);
 
 		return Convert.ToBase64String(BitConverter.GetBytes(folded)).TrimEnd('=')
 			.Replace('+', '_')
@@ -1628,7 +1628,7 @@ public static class CompilationExtensions
 		try
 		{
 			attribute = constructorArgs.Length > 0
-				? (TAttribute?) Activator.CreateInstance(type, constructorArgs)
+				? (TAttribute?)Activator.CreateInstance(type, constructorArgs)
 				: null;
 		}
 		catch (MissingMethodException)
@@ -1657,7 +1657,7 @@ public static class CompilationExtensions
 						: parameters[i].DefaultValue;
 				}
 
-				attribute = (TAttribute?) constructor.Invoke(fullArgs);
+				attribute = (TAttribute?)constructor.Invoke(fullArgs);
 			}
 		}
 
@@ -1938,62 +1938,62 @@ public static class CompilationExtensions
 			}
 			case SpecialType.System_Byte:
 			{
-				minValue = byte.MinValue;
+				minValue = Byte.MinValue;
 				return true;
 			}
 			case SpecialType.System_SByte:
 			{
-				minValue = sbyte.MinValue;
+				minValue = SByte.MinValue;
 				return true;
 			}
 			case SpecialType.System_Int16:
 			{
-				minValue = short.MinValue;
+				minValue = Int16.MinValue;
 				return true;
 			}
 			case SpecialType.System_UInt16:
 			{
-				minValue = ushort.MinValue;
+				minValue = UInt16.MinValue;
 				return true;
 			}
 			case SpecialType.System_Int32:
 			{
-				minValue = int.MinValue;
+				minValue = Int32.MinValue;
 				return true;
 			}
 			case SpecialType.System_UInt32:
 			{
-				minValue = uint.MinValue;
+				minValue = UInt32.MinValue;
 				return true;
 			}
 			case SpecialType.System_Int64:
 			{
-				minValue = long.MinValue;
+				minValue = Int64.MinValue;
 				return true;
 			}
 			case SpecialType.System_UInt64:
 			{
-				minValue = ulong.MinValue;
+				minValue = UInt64.MinValue;
 				return true;
 			}
 			case SpecialType.System_Single:
 			{
-				minValue = float.MinValue;
+				minValue = Single.MinValue;
 				return true;
 			}
 			case SpecialType.System_Double:
 			{
-				minValue = double.MinValue;
+				minValue = Double.MinValue;
 				return true;
 			}
 			case SpecialType.System_Decimal:
 			{
-				minValue = decimal.MinValue;
+				minValue = Decimal.MinValue;
 				return true;
 			}
 			case SpecialType.System_Char:
 			{
-				minValue = char.MinValue;
+				minValue = Char.MinValue;
 				return true;
 			}
 			default:
@@ -2022,62 +2022,62 @@ public static class CompilationExtensions
 			}
 			case SpecialType.System_Byte:
 			{
-				maxValue = byte.MaxValue;
+				maxValue = Byte.MaxValue;
 				return true;
 			}
 			case SpecialType.System_SByte:
 			{
-				maxValue = sbyte.MaxValue;
+				maxValue = SByte.MaxValue;
 				return true;
 			}
 			case SpecialType.System_Int16:
 			{
-				maxValue = short.MaxValue;
+				maxValue = Int16.MaxValue;
 				return true;
 			}
 			case SpecialType.System_UInt16:
 			{
-				maxValue = ushort.MaxValue;
+				maxValue = UInt16.MaxValue;
 				return true;
 			}
 			case SpecialType.System_Int32:
 			{
-				maxValue = int.MaxValue;
+				maxValue = Int32.MaxValue;
 				return true;
 			}
 			case SpecialType.System_UInt32:
 			{
-				maxValue = uint.MaxValue;
+				maxValue = UInt32.MaxValue;
 				return true;
 			}
 			case SpecialType.System_Int64:
 			{
-				maxValue = long.MaxValue;
+				maxValue = Int64.MaxValue;
 				return true;
 			}
 			case SpecialType.System_UInt64:
 			{
-				maxValue = ulong.MaxValue;
+				maxValue = UInt64.MaxValue;
 				return true;
 			}
 			case SpecialType.System_Single:
 			{
-				maxValue = float.MaxValue;
+				maxValue = Single.MaxValue;
 				return true;
 			}
 			case SpecialType.System_Double:
 			{
-				maxValue = double.MaxValue;
+				maxValue = Double.MaxValue;
 				return true;
 			}
 			case SpecialType.System_Decimal:
 			{
-				maxValue = decimal.MaxValue;
+				maxValue = Decimal.MaxValue;
 				return true;
 			}
 			case SpecialType.System_Char:
 			{
-				maxValue = char.MaxValue;
+				maxValue = Char.MaxValue;
 				return true;
 			}
 			default:
@@ -2135,7 +2135,7 @@ public static class CompilationExtensions
 	{
 		if (node.IsKind(kind))
 		{
-			result = (TNode) node;
+			result = (TNode)node;
 			return true;
 		}
 

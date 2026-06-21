@@ -23,34 +23,19 @@ public class FmaSimdFunctionOptimizer() : BaseSimdFunctionOptimizer("Fma")
 					// a*b - c  →  FusedMultiplyAdd(a, b, -c)
 					case "MultiplySubtract":
 					{
-						result = CreateSimdInvocation(context, vectorType, "FusedMultiplyAdd",
-						[
-							context.VisitedParameters[0],
-							context.VisitedParameters[1],
-							UnaryMinusExpression(context.VisitedParameters[2])
-						]);
+						result = CreateSimdInvocation(context, vectorType, "FusedMultiplyAdd", context.VisitedParameters[0], context.VisitedParameters[1], UnaryMinusExpression(context.VisitedParameters[2]));
 						return true;
 					}
 					// -(a*b) + c  →  FusedMultiplyAdd(-a, b, c)
 					case "MultiplyAddNegated":
 					{
-						result = CreateSimdInvocation(context, vectorType, "FusedMultiplyAdd",
-						[
-							UnaryMinusExpression(context.VisitedParameters[0]),
-							context.VisitedParameters[1],
-							context.VisitedParameters[2]
-						]);
+						result = CreateSimdInvocation(context, vectorType, "FusedMultiplyAdd", UnaryMinusExpression(context.VisitedParameters[0]), context.VisitedParameters[1], context.VisitedParameters[2]);
 						return true;
 					}
 					// -(a*b) - c  →  FusedMultiplyAdd(-a, b, -c)
 					case "MultiplySubtractNegated":
 					{
-						result = CreateSimdInvocation(context, vectorType, "FusedMultiplyAdd",
-						[
-							UnaryMinusExpression(context.VisitedParameters[0]),
-							context.VisitedParameters[1],
-							UnaryMinusExpression(context.VisitedParameters[2])
-						]);
+						result = CreateSimdInvocation(context, vectorType, "FusedMultiplyAdd", UnaryMinusExpression(context.VisitedParameters[0]), context.VisitedParameters[1], UnaryMinusExpression(context.VisitedParameters[2]));
 						return true;
 					}
 				}

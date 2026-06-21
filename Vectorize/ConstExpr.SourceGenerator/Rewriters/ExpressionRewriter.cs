@@ -29,8 +29,8 @@ public class ExpressionRewriter(
 	HashSet<IMethodSymbol>? visitingMethods = null) : CSharpSyntaxVisitor<Expression?>
 {
 	private readonly IDictionary<SyntaxNode, bool> additionalMethods = additionalMethods ?? new Dictionary<SyntaxNode, bool>();
-	private readonly ISet<string> usings = usings ?? new HashSet<string>();
 	private readonly ConstExprAttribute attribute = attribute ?? new ConstExprAttribute();
+	private readonly ISet<string> usings = usings ?? new HashSet<string>();
 	private readonly HashSet<IMethodSymbol> visitingMethods = visitingMethods ?? new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
 
 	public override Expression? Visit(SyntaxNode? node)
@@ -47,7 +47,7 @@ public class ExpressionRewriter(
 	}
 
 	/// <summary>
-	/// Try to get literal value from a syntax node, supporting variables and constants
+	///   Try to get literal value from a syntax node, supporting variables and constants
 	/// </summary>
 	private bool TryGetLiteralValue(SyntaxNode? node, out object? value)
 	{
@@ -94,7 +94,7 @@ public class ExpressionRewriter(
 	}
 
 	/// <summary>
-	/// Create a literal expression from a value
+	///   Create a literal expression from a value
 	/// </summary>
 	private ExpressionSyntax? CreateLiteral(object? value)
 	{
@@ -185,7 +185,7 @@ public class ExpressionRewriter(
 			SyntaxKind.LessThanOrEqualExpression => Expression.LessThanOrEqual(left, right),
 			SyntaxKind.GreaterThanExpression => Expression.GreaterThan(left, right),
 			SyntaxKind.GreaterThanOrEqualExpression => Expression.GreaterThanOrEqual(left, right),
-			_ => null,
+			_ => null
 		};
 	}
 
@@ -676,11 +676,11 @@ public class ExpressionRewriter(
 					if (visited == null)
 					{
 						isAllConstant = false;
-						parts.Add(Expression.Constant(""));
+						parts.Add(Expression.Constant(String.Empty));
 					}
 					else if (visited is ConstantExpression constExpr)
 					{
-						var str = constExpr.Value?.ToString() ?? string.Empty;
+						var str = constExpr.Value?.ToString() ?? String.Empty;
 						constantParts.Add(str);
 						parts.Add(Expression.Constant(str));
 					}
@@ -707,7 +707,7 @@ public class ExpressionRewriter(
 		// If all parts are constant, return a single constant string
 		if (isAllConstant)
 		{
-			return Expression.Constant(string.Concat(constantParts));
+			return Expression.Constant(String.Concat(constantParts));
 		}
 
 		// Otherwise, create a string concatenation expression
@@ -771,7 +771,7 @@ public class ExpressionRewriter(
 				variables.Add(name, item);
 			}
 
-			if (TryGetLiteralValue(node.Initializer?.Value, out var result) || (value is ConstantExpression constExpr && (result = constExpr.Value) != null))
+			if (TryGetLiteralValue(node.Initializer?.Value, out var result) || value is ConstantExpression constExpr && (result = constExpr.Value) != null)
 			{
 				item.Value = result;
 				item.IsInitialized = true;

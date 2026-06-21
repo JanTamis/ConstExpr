@@ -8,13 +8,13 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.ToArray context.Method.
-/// Optimizes patterns such as:
-/// - collection.ToArray().ToArray() => collection.ToArray() (redundant ToArray)
-/// - collection.ToList().ToArray() => collection.ToArray()
-/// - collection.AsEnumerable().ToArray() => collection.ToArray()
-/// - arr.Where(p).ToArray() => Array.FindAll(arr, p) (direct BCL call, no LINQ pipeline)
-/// - arr.Select(f).Where(p).ToArray() => Array.FindAll(arr, x => p(f(x))) (fused selector+predicate)
+///   Optimizer for Enumerable.ToArray context.Method.
+///   Optimizes patterns such as:
+///   - collection.ToArray().ToArray() => collection.ToArray() (redundant ToArray)
+///   - collection.ToList().ToArray() => collection.ToArray()
+///   - collection.AsEnumerable().ToArray() => collection.ToArray()
+///   - arr.Where(p).ToArray() => Array.FindAll(arr, p) (direct BCL call, no LINQ pipeline)
+///   - arr.Select(f).Where(p).ToArray() => Array.FindAll(arr, x => p(f(x))) (fused selector+predicate)
 /// </summary>
 public class ToArrayFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.ToArray), n => n is 0)
 {

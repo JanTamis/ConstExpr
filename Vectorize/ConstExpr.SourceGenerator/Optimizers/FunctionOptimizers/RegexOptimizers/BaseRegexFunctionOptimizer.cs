@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -12,8 +11,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.RegexOptimizers;
 
 /// <summary>
-/// Base class for optimizers that target <c>System.Text.RegularExpressions.Regex</c> methods.
-/// Subclasses are discovered via reflection (same pattern as Math/Linq/Simd optimizers).
+///   Base class for optimizers that target <c>System.Text.RegularExpressions.Regex</c> methods.
+///   Subclasses are discovered via reflection (same pattern as Math/Linq/Simd optimizers).
 /// </summary>
 public abstract class BaseRegexFunctionOptimizer(string name, Func<int, bool> isValidParameterCount) : BaseFunctionOptimizer
 {

@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ExclusiveOrStrategies;
 
 /// <summary>
-/// Strategy for associative cancellation: (x ^ y) ^ x = y (pure)
+///   Strategy for associative cancellation: (x ^ y) ^ x = y (pure)
 /// </summary>
 public class ExclusiveOrAssociativeCancellationStrategy()
 	: SymmetricStrategy<NumericOrBooleanBinaryStrategy, BinaryExpressionSyntax, ExpressionSyntax>(leftKind: SyntaxKind.ExclusiveOrExpression)

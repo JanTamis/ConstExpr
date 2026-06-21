@@ -46,7 +46,7 @@ public class CountDigitsTest() : BaseTest<Func<int, int>>(FastMathFlags.All | Fa
 			while (n > 0)
 			{
 				count++;
-				n = ((int) (n * 1717986919L >> 32) >> 2) - (n >> 31);
+				n = ((int)(n * 1717986919L >> 32) >> 2) - (n >> 31);
 			}
 
 			return count;

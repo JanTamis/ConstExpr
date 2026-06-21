@@ -26,7 +26,7 @@ public class TruncateFunctionOptimizer() : BaseMathFunctionOptimizer("Truncate",
 		}
 
 		// 3) Unary minus: Truncate(-x) -> -Truncate(x)
-		if (context.VisitedParameters[0] is PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken } prefix)
+		if (context.VisitedParameters[0] is PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken } prefix)
 		{
 			var truncateCall = CreateInvocation(paramType, "Truncate", prefix.Operand);
 

@@ -10,6 +10,6 @@ public class MathFTanTest() : BaseTest<Func<float, float>>(FastMathFlags.All, op
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return FastTan(x);"),
+		Create("return FastTan(x);")
 	];
 }

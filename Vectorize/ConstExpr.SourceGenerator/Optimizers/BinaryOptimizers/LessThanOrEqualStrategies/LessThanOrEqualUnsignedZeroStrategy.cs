@@ -6,9 +6,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.LessThanOrEqualStrategies;
 
 /// <summary>
-/// Strategy that simplifies (uint)x &lt;= 0 → (uint)x == 0.
-/// Unsigned integer types can never be negative, so &lt;= 0 is equivalent to == 0.
-/// Safe under Strict.
+///   Strategy that simplifies (uint)x &lt;= 0 → (uint)x == 0.
+///   Unsigned integer types can never be negative, so &lt;= 0 is equivalent to == 0.
+///   Safe under Strict.
 /// </summary>
 public class LessThanOrEqualUnsignedZeroStrategy : BaseBinaryStrategy
 {
@@ -17,7 +17,7 @@ public class LessThanOrEqualUnsignedZeroStrategy : BaseBinaryStrategy
 		SpecialType.System_Byte,
 		SpecialType.System_UInt16,
 		SpecialType.System_UInt32,
-		SpecialType.System_UInt64,
+		SpecialType.System_UInt64
 	];
 
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
@@ -52,4 +52,3 @@ public class LessThanOrEqualUnsignedZeroStrategy : BaseBinaryStrategy
 		return false;
 	}
 }
-

@@ -45,7 +45,7 @@ public class DistinctLinqUnroller : BaseLinqUnroller
 				var typeName = method.Model.Compilation.GetMinimalString(elementType);
 
 				statements.Add(CreateLocalDeclaration(SetName,
-					ObjectCreationExpression(IdentifierName($"HashSet<{typeName}>"), [])));
+					ObjectCreationExpression(IdentifierName($"HashSet<{typeName}>"), [ ])));
 				break;
 			}
 		}
@@ -65,26 +65,26 @@ public class DistinctLinqUnroller : BaseLinqUnroller
 
 			case SpecialType.System_Byte:
 			{
-				AddSpanIndexDistinctBody(statements, element, SetName, castToByte: false);
+				AddSpanIndexDistinctBody(statements, element, SetName, false);
 				break;
 			}
 
 			case SpecialType.System_SByte:
 			{
-				AddSpanIndexDistinctBody(statements, element, SetName, castToByte: true);
+				AddSpanIndexDistinctBody(statements, element, SetName, true);
 				break;
 			}
 
 			case SpecialType.System_UInt16:
 			case SpecialType.System_Char:
 			{
-				AddBitSetDistinctBody(statements, element, SetName, castToUShort: false);
+				AddBitSetDistinctBody(statements, element, SetName, false);
 				break;
 			}
 
 			case SpecialType.System_Int16:
 			{
-				AddBitSetDistinctBody(statements, element, SetName, castToUShort: true);
+				AddBitSetDistinctBody(statements, element, SetName, true);
 				break;
 			}
 

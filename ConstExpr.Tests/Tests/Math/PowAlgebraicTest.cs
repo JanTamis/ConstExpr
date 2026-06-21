@@ -10,7 +10,7 @@ public class PowTwoToExpTest() : BaseTest<Func<double, double>>(FastMathFlags.Al
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(n => double.Exp2(n)),
+		Create(n => Double.Exp2(n)),
 		Create(_ => 8D, [ 3.0 ]),
 		Create(_ => 1D, [ 0.0 ])
 	];
@@ -23,7 +23,7 @@ public class PowTenToExpTest() : BaseTest<Func<double, double>>(FastMathFlags.Al
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(n => double.Exp10(n)),
+		Create(n => Double.Exp10(n)),
 		Create(_ => 1000D, [ 3.0 ]),
 		Create(_ => 1D, [ 0.0 ])
 	];

@@ -9,14 +9,13 @@ namespace ConstExpr.SourceGenerator.Refactorers;
 using static SyntaxFactory;
 
 /// <summary>
-/// Refactorer that converts an auto-property to a full property with a backing field.
-/// Inspired by the Roslyn <c>CSharpConvertAutoPropertyToFullPropertyCodeRefactoringProvider</c>.
-///
-/// <code>
+///   Refactorer that converts an auto-property to a full property with a backing field.
+///   Inspired by the Roslyn <c>CSharpConvertAutoPropertyToFullPropertyCodeRefactoringProvider</c>.
+///   <code>
 /// public string Name { get; set; }
 /// </code>
-/// →
-/// <code>
+///   →
+///   <code>
 /// private string _name;
 /// public string Name
 /// {
@@ -24,15 +23,14 @@ using static SyntaxFactory;
 ///     set { _name = value; }
 /// }
 /// </code>
-///
-/// This is a pure syntax-level transformation; it generates a conventional <c>_camelCase</c>
-/// backing field name from the property name.
+///   This is a pure syntax-level transformation; it generates a conventional <c>_camelCase</c>
+///   backing field name from the property name.
 /// </summary>
 public static class ConvertAutoPropertyToFullPropertyRefactoring
 {
 	/// <summary>
-	/// Converts an auto-implemented property to a full property with explicit get/set accessors
-	/// and a backing field declaration.
+	///   Converts an auto-implemented property to a full property with explicit get/set accessors
+	///   and a backing field declaration.
 	/// </summary>
 	/// <param name="property">The auto-property to convert.</param>
 	/// <param name="fullProperty">The rewritten property with explicit accessors.</param>
@@ -56,8 +54,8 @@ public static class ConvertAutoPropertyToFullPropertyRefactoring
 		             ?? FindAccessor(property, SyntaxKind.InitAccessorDeclaration);
 
 		// Must have at least a getter with no body (auto-implemented)
-		if (getter is null 
-		    || getter.Body is not null 
+		if (getter is null
+		    || getter.Body is not null
 		    || getter.ExpressionBody is not null)
 		{
 			return false;
@@ -88,8 +86,8 @@ public static class ConvertAutoPropertyToFullPropertyRefactoring
 		// Build set/init accessor (if present)
 		AccessorDeclarationSyntax? newSetter = null;
 
-		if (setter is not null 
-		    && setter.Body is null 
+		if (setter is not null
+		    && setter.Body is null
 		    && setter.ExpressionBody is null)
 		{
 			var setBody = Block(
@@ -122,8 +120,8 @@ public static class ConvertAutoPropertyToFullPropertyRefactoring
 	}
 
 	/// <summary>
-	/// Converts a full property (with get/set that read/write a backing field) back to
-	/// an auto-property.
+	///   Converts a full property (with get/set that read/write a backing field) back to
+	///   an auto-property.
 	/// </summary>
 	public static bool TryConvertFullPropertyToAutoProperty(
 		PropertyDeclarationSyntax property,
@@ -154,7 +152,7 @@ public static class ConvertAutoPropertyToFullPropertyRefactoring
 		var setter = FindAccessor(property, SyntaxKind.SetAccessorDeclaration)
 		             ?? FindAccessor(property, SyntaxKind.InitAccessorDeclaration);
 
-		if (setter?.Body is { Statements: [ ExpressionStatementSyntax { Expression: AssignmentExpressionSyntax { Left: IdentifierNameSyntax assignTarget } } ] } 
+		if (setter?.Body is { Statements: [ ExpressionStatementSyntax { Expression: AssignmentExpressionSyntax { Left: IdentifierNameSyntax assignTarget } } ] }
 		    && assignTarget.Identifier.ValueText == fieldRef.Identifier.ValueText)
 		{
 			var autoSetter = setter
@@ -188,11 +186,11 @@ public static class ConvertAutoPropertyToFullPropertyRefactoring
 	}
 
 	/// <summary>
-	/// Generates a backing field name from a property name using the <c>_camelCase</c> convention.
+	///   Generates a backing field name from a property name using the <c>_camelCase</c> convention.
 	/// </summary>
 	private static string GenerateBackingFieldName(string propertyName)
 	{
-		if (string.IsNullOrEmpty(propertyName))
+		if (String.IsNullOrEmpty(propertyName))
 		{
 			return "_field";
 		}

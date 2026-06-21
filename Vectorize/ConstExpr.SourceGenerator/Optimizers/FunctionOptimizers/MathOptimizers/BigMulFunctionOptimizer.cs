@@ -48,5 +48,7 @@ public class BigMulFunctionOptimizer() : BaseMathFunctionOptimizer("BigMul", n =
 	}
 
 	private static bool IsSimpleSyntax(ExpressionSyntax expr)
-		=> expr is IdentifierNameSyntax or LiteralExpressionSyntax or MemberAccessExpressionSyntax or InvocationExpressionSyntax;
+	{
+		return expr is IdentifierNameSyntax or LiteralExpressionSyntax or MemberAccessExpressionSyntax or InvocationExpressionSyntax;
+	}
 }

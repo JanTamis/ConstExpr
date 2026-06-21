@@ -20,6 +20,6 @@ public class FloatNumberBinaryStrategy(SyntaxKind leftKind = SyntaxKind.None, Sy
 {
 	public FloatNumberBinaryStrategy() : this(SyntaxKind.None)
 	{
-		
+
 	}
 }

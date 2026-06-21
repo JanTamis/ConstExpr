@@ -9,26 +9,24 @@ namespace ConstExpr.SourceGenerator.Refactorers;
 using static SyntaxFactory;
 
 /// <summary>
-/// Refactorer that merges consecutive if-statements with identical bodies
-/// into a single if-statement with a combined <c>||</c> condition.
-/// Inspired by the Roslyn <c>MergeConsecutiveIfStatementsCodeRefactoringProvider</c>.
-///
-/// <code>
+///   Refactorer that merges consecutive if-statements with identical bodies
+///   into a single if-statement with a combined <c>||</c> condition.
+///   Inspired by the Roslyn <c>MergeConsecutiveIfStatementsCodeRefactoringProvider</c>.
+///   <code>
 /// if (a) { Body(); }
 /// if (b) { Body(); }
 /// </code>
-/// →
-/// <code>
+///   →
+///   <code>
 /// if (a || b) { Body(); }
 /// </code>
-///
-/// Matching is based on syntax text equality of the statement bodies.
-/// Both if-statements must lack else clauses.
+///   Matching is based on syntax text equality of the statement bodies.
+///   Both if-statements must lack else clauses.
 /// </summary>
 public static class MergeConsecutiveIfStatementsRefactoring
 {
 	/// <summary>
-	/// Tries to merge two consecutive if-statements that have identical bodies.
+	///   Tries to merge two consecutive if-statements that have identical bodies.
 	/// </summary>
 	public static bool TryMergeConsecutiveIfs(
 		IfStatementSyntax first,
@@ -56,8 +54,8 @@ public static class MergeConsecutiveIfStatementsRefactoring
 	}
 
 	/// <summary>
-	/// Scans a block (or switch section) for consecutive if-statement pairs with identical
-	/// bodies and merges them. Returns <see langword="true"/> if at least one merge occurred.
+	///   Scans a block (or switch section) for consecutive if-statement pairs with identical
+	///   bodies and merges them. Returns <see langword="true" /> if at least one merge occurred.
 	/// </summary>
 	public static bool TryMergeAllConsecutiveIfs(
 		BlockSyntax block,
@@ -72,9 +70,9 @@ public static class MergeConsecutiveIfStatementsRefactoring
 
 		while (i < statements.Count)
 		{
-			if (i + 1 < statements.Count 
-			    && statements[i] is IfStatementSyntax first 
-			    && statements[i + 1] is IfStatementSyntax second 
+			if (i + 1 < statements.Count
+			    && statements[i] is IfStatementSyntax first
+			    && statements[i + 1] is IfStatementSyntax second
 			    && TryMergeConsecutiveIfs(first, second, out var mergedIf))
 			{
 				merged.Add(mergedIf);
@@ -98,11 +96,10 @@ public static class MergeConsecutiveIfStatementsRefactoring
 	}
 
 	/// <summary>
-	/// Compares two statements for syntactic equivalence (ignoring trivia).
+	///   Compares two statements for syntactic equivalence (ignoring trivia).
 	/// </summary>
 	private static bool AreStatementsEquivalent(StatementSyntax a, StatementSyntax b)
 	{
 		return a.GetDeterministicHash() == b.GetDeterministicHash();
 	}
 }
-

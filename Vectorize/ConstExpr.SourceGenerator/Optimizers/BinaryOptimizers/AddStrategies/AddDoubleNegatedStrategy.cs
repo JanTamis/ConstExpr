@@ -6,8 +6,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AddStrategies;
 
 /// <summary>
-/// Strategy for double negated addition: -x + (-y) => -(x + y) (pure)
-/// Requires AssociativeMath for floating-point safety.
+///   Strategy for double negated addition: -x + (-y) => -(x + y) (pure)
+///   Requires AssociativeMath for floating-point safety.
 /// </summary>
 public class AddDoubleNegatedStrategy() : NumericBinaryStrategy<PrefixUnaryExpressionSyntax, PrefixUnaryExpressionSyntax>(SyntaxKind.UnaryMinusExpression, SyntaxKind.UnaryMinusExpression)
 {
@@ -18,14 +18,14 @@ public class AddDoubleNegatedStrategy() : NumericBinaryStrategy<PrefixUnaryExpre
 		if (!base.TryOptimize(context, out optimized)
 		    || !IsPure(context.Left.Syntax.Operand)
 		    || !IsPure(context.Right.Syntax.Operand))
-    {
-      return false;
-    }
+		{
+			return false;
+		}
 
-    optimized = UnaryMinusExpression(
+		optimized = UnaryMinusExpression(
 			ParenthesizedExpression(AddExpression(
-					context.Left.Syntax.Operand,
-					context.Right.Syntax.Operand)));
+				context.Left.Syntax.Operand,
+				context.Right.Syntax.Operand)));
 
 		return true;
 

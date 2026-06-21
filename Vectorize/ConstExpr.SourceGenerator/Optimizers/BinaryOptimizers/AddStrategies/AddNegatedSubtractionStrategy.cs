@@ -6,10 +6,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.AddStrategies;
 
 /// <summary>
-/// Strategy for negated subtraction optimization:
-/// x + (-y) => x - y (pure)
-/// -x + y => y - x (pure)
-/// Safe under Strict (pure algebraic identity).
+///   Strategy for negated subtraction optimization:
+///   x + (-y) => x - y (pure)
+///   -x + y => y - x (pure)
+///   Safe under Strict (pure algebraic identity).
 /// </summary>
 public class AddNegatedSubtractionStrategy() : SymmetricStrategy<NumericBinaryStrategy, ExpressionSyntax, PrefixUnaryExpressionSyntax>(rightKind: SyntaxKind.UnaryMinusExpression)
 {

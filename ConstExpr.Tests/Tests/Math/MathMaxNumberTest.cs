@@ -6,12 +6,12 @@ namespace ConstExpr.Tests.Math;
 [InheritsTests]
 public class MathMaxNumberTest() : BaseTest<Func<double, double, double>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
 {
-	public override string TestMethod => GetString((a, b) => double.MaxNumber(a, b));
+	public override string TestMethod => GetString((a, b) => Double.MaxNumber(a, b));
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
 		Create((_, _) => 2D, [ 1.0, 2.0 ]),
-		Create((_, _) => 3D, [ -5.0, 3.0 ]),
+		Create((_, _) => 3D, [ -5.0, 3.0 ])
 	];
 }

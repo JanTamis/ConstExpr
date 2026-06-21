@@ -7,8 +7,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 
 /// <summary>
-/// Optimizes ToCharArray calls on string literals:
-/// - "hello".ToCharArray() → ['h', 'e', 'l', 'l', 'o']
+///   Optimizes ToCharArray calls on string literals:
+///   - "hello".ToCharArray() → ['h', 'e', 'l', 'l', 'o']
 /// </summary>
 public class ToCharArrayFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "ToCharArray", false, n => n is 0)
 {

@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for TakeWhile() optimization - verify constant predicate handling
+///   Tests for TakeWhile() optimization - verify constant predicate handling
 /// </summary>
 [InheritsTests]
 public class LinqTakeWhileOptimizationTests : BaseTest<Func<int[], int>>
@@ -21,6 +21,6 @@ public class LinqTakeWhileOptimizationTests : BaseTest<Func<int[], int>>
 	[
 		Create(x => x.Length),
 		Create(_ => 3, [ new[] { 1, 2, 3 } ]),
-		Create(_ => 0, [ System.Array.Empty<int>() ]),
+		Create(_ => 0, [ System.Array.Empty<int>() ])
 	];
 }

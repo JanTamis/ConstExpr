@@ -12,6 +12,6 @@ public class StringToCharArrayTest() : BaseTest<Func<string, char[]>>(FastMathFl
 		CreateDefault(),
 		Create(_ => [ 'h', 'i' ], [ "hi" ]),
 		Create(_ => [ 'a', 'b', 'c' ], [ "abc" ]),
-		Create(_ => [ ], [ "" ]),
+		Create(_ => [ ], [ System.String.Empty ])
 	];
 }

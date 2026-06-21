@@ -12,36 +12,34 @@ namespace ConstExpr.SourceGenerator.Refactorers;
 using static SyntaxFactory;
 
 /// <summary>
-/// Refactorer that converts <c>is</c> type-check + cast patterns to the modern
-/// <c>is T name</c> pattern matching syntax.
-/// Inspired by the Roslyn <c>CSharpIsAndCastCheckWithoutNameDiagnosticAnalyzer</c>.
-///
-/// Pattern 1 — if-statement with cast:
-/// <code>
+///   Refactorer that converts <c>is</c> type-check + cast patterns to the modern
+///   <c>is T name</c> pattern matching syntax.
+///   Inspired by the Roslyn <c>CSharpIsAndCastCheckWithoutNameDiagnosticAnalyzer</c>.
+///   Pattern 1 — if-statement with cast:
+///   <code>
 /// if (obj is MyType)
 /// {
 ///     var x = (MyType)obj;
 ///     x.DoSomething();
 /// }
 /// </code>
-/// →
-/// <code>
+///   →
+///   <code>
 /// if (obj is MyType x)
 /// {
 ///     x.DoSomething();
 /// }
 /// </code>
-///
-/// Pattern 2 — as-cast with null check:
-/// <code>
+///   Pattern 2 — as-cast with null check:
+///   <code>
 /// var x = obj as MyType;
 /// if (x != null)
 /// {
 ///     x.DoSomething();
 /// }
 /// </code>
-/// →
-/// <code>
+///   →
+///   <code>
 /// if (obj is MyType x)
 /// {
 ///     x.DoSomething();
@@ -51,11 +49,10 @@ using static SyntaxFactory;
 public static class UsePatternMatchingRefactoring
 {
 	/// <summary>
-	/// Converts an if-statement with a type-check condition and an inner cast assignment
-	/// to use pattern matching instead.
-	///
-	/// Before: <c>if (obj is MyType) { var x = (MyType)obj; ... }</c>
-	/// After:  <c>if (obj is MyType x) { ... }</c>
+	///   Converts an if-statement with a type-check condition and an inner cast assignment
+	///   to use pattern matching instead.
+	///   Before: <c>if (obj is MyType) { var x = (MyType)obj; ... }</c>
+	///   After:  <c>if (obj is MyType x) { ... }</c>
 	/// </summary>
 	public static bool TryConvertIsAndCastToPattern(
 		IfStatementSyntax ifStatement,
@@ -118,20 +115,18 @@ public static class UsePatternMatchingRefactoring
 	}
 
 	/// <summary>
-	/// Converts an as-cast followed by a null check into pattern matching.
-	///
-	/// Before:
-	/// <code>
+	///   Converts an as-cast followed by a null check into pattern matching.
+	///   Before:
+	///   <code>
 	/// var x = obj as MyType;
 	/// if (x != null) { ... }
 	/// </code>
-	/// After:
-	/// <code>
+	///   After:
+	///   <code>
 	/// if (obj is MyType x) { ... }
 	/// </code>
-	///
-	/// Returns the replacement if-statement. The caller must remove the preceding
-	/// local declaration from the containing block.
+	///   Returns the replacement if-statement. The caller must remove the preceding
+	///   local declaration from the containing block.
 	/// </summary>
 	public static bool TryConvertAsAndNullCheckToPattern(
 		LocalDeclarationStatementSyntax localDecl,
@@ -148,7 +143,7 @@ public static class UsePatternMatchingRefactoring
 
 		var variable = localDecl.Declaration.Variables[0];
 
-		if (variable.Initializer?.Value is not BinaryExpressionSyntax { RawKind: (int) SyntaxKind.AsExpression } asExpr)
+		if (variable.Initializer?.Value is not BinaryExpressionSyntax { RawKind: (int)SyntaxKind.AsExpression } asExpr)
 		{
 			return false;
 		}
@@ -178,14 +173,13 @@ public static class UsePatternMatchingRefactoring
 	}
 
 	/// <summary>
-	/// Converts a negated is-expression or is-pattern to a <c>not</c> pattern (C# 9+).
-	/// Inspired by the Roslyn <c>CSharpUseNotPatternDiagnosticAnalyzer</c>.
-	///
-	/// <list type="bullet">
-	///   <item><c>!(x is T y)</c>   → <c>x is not T y</c></item>
-	///   <item><c>!(x is null)</c>  → <c>x is not null</c></item>
-	///   <item><c>!(x is T)</c>     → <c>x is not T</c></item>
-	/// </list>
+	///   Converts a negated is-expression or is-pattern to a <c>not</c> pattern (C# 9+).
+	///   Inspired by the Roslyn <c>CSharpUseNotPatternDiagnosticAnalyzer</c>.
+	///   <list type="bullet">
+	///     <item><c>!(x is T y)</c>   → <c>x is not T y</c></item>
+	///     <item><c>!(x is null)</c>  → <c>x is not null</c></item>
+	///     <item><c>!(x is T)</c>     → <c>x is not T</c></item>
+	///   </list>
 	/// </summary>
 	public static bool TryConvertNegatedIsToNotPattern(
 		PrefixUnaryExpressionSyntax logicalNot,
@@ -228,7 +222,7 @@ public static class UsePatternMatchingRefactoring
 			// a SemanticModel is available.
 			case BinaryExpressionSyntax
 			{
-				RawKind: (int) SyntaxKind.IsExpression,
+				RawKind: (int)SyntaxKind.IsExpression,
 				Left: var isLeft,
 				Right: TypeSyntax isType
 			}:
@@ -250,19 +244,17 @@ public static class UsePatternMatchingRefactoring
 	}
 
 	/// <summary>
-	/// Converts an as-cast with a binary member-access comparison to a recursive property pattern (C# 8+).
-	/// Inspired by the Roslyn <c>CSharpAsAndMemberAccessDiagnosticAnalyzer</c>.
-	///
-	/// <list type="bullet">
-	///   <item><c>(expr as T)?.Prop == constant</c>  → <c>expr is T { Prop: constant }</c></item>
-	///   <item><c>(expr as T)?.Prop != null</c>      → <c>expr is T { Prop: not null }</c></item>
-	/// </list>
-	///
-	/// For chained access (<c>?.A.B</c>), extended property patterns (C# 10) are produced.
-	/// <para>
-	/// Note: <c>== null</c> is intentionally rejected — <c>(x as T)?.Prop == null</c> and
-	/// <c>x is T {{ Prop: null }}</c> have different semantics when the type check fails.
-	/// </para>
+	///   Converts an as-cast with a binary member-access comparison to a recursive property pattern (C# 8+).
+	///   Inspired by the Roslyn <c>CSharpAsAndMemberAccessDiagnosticAnalyzer</c>.
+	///   <list type="bullet">
+	///     <item><c>(expr as T)?.Prop == constant</c>  → <c>expr is T { Prop: constant }</c></item>
+	///     <item><c>(expr as T)?.Prop != null</c>      → <c>expr is T { Prop: not null }</c></item>
+	///   </list>
+	///   For chained access (<c>?.A.B</c>), extended property patterns (C# 10) are produced.
+	///   <para>
+	///     Note: <c>== null</c> is intentionally rejected — <c>(x as T)?.Prop == null</c> and
+	///     <c>x is T {{ Prop: null }}</c> have different semantics when the type check fails.
+	///   </para>
 	/// </summary>
 	public static bool TryConvertAsAndMemberAccessToPropertyPattern(
 		BinaryExpressionSyntax comparison,
@@ -291,7 +283,7 @@ public static class UsePatternMatchingRefactoring
 		if (comparison.IsKind(SyntaxKind.EqualsExpression))
 		{
 			// (expr as T)?.Prop == null → NOT safe; semantics differ when the type check fails
-			if (comparison.Right is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NullLiteralExpression })
+			if (comparison.Right is LiteralExpressionSyntax { RawKind: (int)SyntaxKind.NullLiteralExpression })
 			{
 				return false;
 			}
@@ -301,7 +293,7 @@ public static class UsePatternMatchingRefactoring
 		else
 		{
 			// != null  →  not null  (semantically safe)
-			if (comparison.Right is not LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NullLiteralExpression })
+			if (comparison.Right is not LiteralExpressionSyntax { RawKind: (int)SyntaxKind.NullLiteralExpression })
 			{
 				return false;
 			}
@@ -317,15 +309,13 @@ public static class UsePatternMatchingRefactoring
 	}
 
 	/// <summary>
-	/// Converts an as-cast with an is-pattern member-access check to a recursive property pattern (C# 8+).
-	/// Inspired by the Roslyn <c>CSharpAsAndMemberAccessDiagnosticAnalyzer</c>.
-	///
-	/// <c>(expr as T)?.Prop is pattern</c>  →  <c>expr is T { Prop: pattern }</c>
-	///
-	/// <para>
-	/// The conversion is rejected when the inner pattern is a negated declaration, var or recursive
-	/// pattern with a designation, because <c>not X y</c> is not legal in a nested property context.
-	/// </para>
+	///   Converts an as-cast with an is-pattern member-access check to a recursive property pattern (C# 8+).
+	///   Inspired by the Roslyn <c>CSharpAsAndMemberAccessDiagnosticAnalyzer</c>.
+	///   <c>(expr as T)?.Prop is pattern</c>  →  <c>expr is T { Prop: pattern }</c>
+	///   <para>
+	///     The conversion is rejected when the inner pattern is a negated declaration, var or recursive
+	///     pattern with a designation, because <c>not X y</c> is not legal in a nested property context.
+	///   </para>
 	/// </summary>
 	public static bool TryConvertAsAndMemberAccessIsPatternToPropertyPattern(
 		IsPatternExpressionSyntax isPattern,
@@ -359,8 +349,8 @@ public static class UsePatternMatchingRefactoring
 	}
 
 	/// <summary>
-	/// Decomposes <c>(expr as T)?.A.B…</c> into its source expression, target type, and
-	/// the member access path as a plain expression suitable for use in a property pattern name.
+	///   Decomposes <c>(expr as T)?.A.B…</c> into its source expression, target type, and
+	///   the member access path as a plain expression suitable for use in a property pattern name.
 	/// </summary>
 	private static bool TryDecomposeAsAndMemberAccess(
 		ConditionalAccessExpressionSyntax conditionalAccess,
@@ -377,7 +367,7 @@ public static class UsePatternMatchingRefactoring
 		    {
 			    Expression: BinaryExpressionSyntax
 			    {
-				    RawKind: (int) SyntaxKind.AsExpression,
+				    RawKind: (int)SyntaxKind.AsExpression,
 				    Left: var left,
 				    Right: TypeSyntax asType
 			    }
@@ -400,29 +390,32 @@ public static class UsePatternMatchingRefactoring
 	}
 
 	/// <summary>
-	/// Converts the <c>WhenNotNull</c> part of a conditional access expression
-	/// (e.g., <c>.Prop</c> or <c>.A.B</c>) into a plain expression usable as a
-	/// property pattern name — either an <see cref="IdentifierNameSyntax"/> (single level)
-	/// or a <see cref="MemberAccessExpressionSyntax"/> (chained, C# 10 extended property pattern).
+	///   Converts the <c>WhenNotNull</c> part of a conditional access expression
+	///   (e.g., <c>.Prop</c> or <c>.A.B</c>) into a plain expression usable as a
+	///   property pattern name — either an <see cref="IdentifierNameSyntax" /> (single level)
+	///   or a <see cref="MemberAccessExpressionSyntax" /> (chained, C# 10 extended property pattern).
 	/// </summary>
-	private static ExpressionSyntax? BuildMemberPath(ExpressionSyntax whenNotNull) => whenNotNull switch
+	private static ExpressionSyntax? BuildMemberPath(ExpressionSyntax whenNotNull)
 	{
-		// ?.Prop → just the identifier name
-		MemberBindingExpressionSyntax memberBinding => memberBinding.Name,
+		return whenNotNull switch
+		{
+			// ?.Prop → just the identifier name
+			MemberBindingExpressionSyntax memberBinding => memberBinding.Name,
 
-		// ?.A.B → rebuild MemberBindingExpression(.A) as IdentifierName(A), yielding A.B
-		MemberAccessExpressionSyntax { Expression: var innerExpr, Name: var name } =>
-			BuildMemberPath(innerExpr) is { } left
-				? MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, left, name)
-				: null,
+			// ?.A.B → rebuild MemberBindingExpression(.A) as IdentifierName(A), yielding A.B
+			MemberAccessExpressionSyntax { Expression: var innerExpr, Name: var name } =>
+				BuildMemberPath(innerExpr) is { } left
+					? MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, left, name)
+					: null,
 
-		_ => null
-	};
+			_ => null
+		};
+	}
 
 	/// <summary>
-	/// Builds <c>sourceExpr is T { memberPath: valuePattern }</c>.
-	/// Uses <see cref="NameColonSyntax"/> for a single identifier and
-	/// <see cref="ExpressionColonSyntax"/> for extended property paths (C# 10).
+	///   Builds <c>sourceExpr is T { memberPath: valuePattern }</c>.
+	///   Uses <see cref="NameColonSyntax" /> for a single identifier and
+	///   <see cref="ExpressionColonSyntax" /> for extended property paths (C# 10).
 	/// </summary>
 	private static IsPatternExpressionSyntax BuildPropertyPatternExpression(
 		ExpressionSyntax sourceExpr,
@@ -431,7 +424,7 @@ public static class UsePatternMatchingRefactoring
 		PatternSyntax valuePattern)
 	{
 		var nameOrExpressionColon = memberPath is IdentifierNameSyntax idName
-			? (BaseExpressionColonSyntax) NameColon(idName)
+			? (BaseExpressionColonSyntax)NameColon(idName)
 			: ExpressionColon(memberPath, Token(SyntaxKind.ColonToken));
 
 		var subpattern = Subpattern(nameOrExpressionColon, valuePattern);
@@ -445,15 +438,13 @@ public static class UsePatternMatchingRefactoring
 	}
 
 	/// <summary>
-	/// Converts a chain of equality comparisons connected by <c>||</c> to a disjunctive
-	/// <c>or</c> pattern (C# 9+).
-	///
-	/// <c>x == 0 || x == 20 || x == 40 || x == 60 || x == 80</c>
-	/// → <c>x is 0 or 20 or 40 or 60 or 80</c>
-	///
-	/// Without a <paramref name="semanticModel"/>, only literal constants are accepted on the
-	/// right-hand side. When a <paramref name="semanticModel"/> is supplied, named constants
-	/// and enum members are also accepted.
+	///   Converts a chain of equality comparisons connected by <c>||</c> to a disjunctive
+	///   <c>or</c> pattern (C# 9+).
+	///   <c>x == 0 || x == 20 || x == 40 || x == 60 || x == 80</c>
+	///   → <c>x is 0 or 20 or 40 or 60 or 80</c>
+	///   Without a <paramref name="semanticModel" />, only literal constants are accepted on the
+	///   right-hand side. When a <paramref name="semanticModel" /> is supplied, named constants
+	///   and enum members are also accepted.
 	/// </summary>
 	public static bool TryConvertOrEqualityChainToOrPattern(
 		BinaryExpressionSyntax orChain,
@@ -498,7 +489,7 @@ public static class UsePatternMatchingRefactoring
 		}
 
 		pattern = distinct.Skip(1).Aggregate(
-			(PatternSyntax) distinct[0],
+			distinct[0],
 			(left, right) => BinaryPattern(SyntaxKind.OrPattern, left, right));
 
 		result = IsPatternExpression(testedExpr!.WithoutTrivia(), pattern)
@@ -508,7 +499,7 @@ public static class UsePatternMatchingRefactoring
 
 	private static void CollectOrPatternAlternatives(PatternSyntax pattern, List<PatternSyntax> result)
 	{
-		if (pattern is BinaryPatternSyntax { RawKind: (int) SyntaxKind.OrPattern } binary)
+		if (pattern is BinaryPatternSyntax { RawKind: (int)SyntaxKind.OrPattern } binary)
 		{
 			CollectOrPatternAlternatives(binary.Left, result);
 			CollectOrPatternAlternatives(binary.Right, result);
@@ -520,8 +511,8 @@ public static class UsePatternMatchingRefactoring
 	}
 
 	/// <summary>
-	/// Recursively walks a <c>||</c> chain and builds the corresponding <c>or</c> pattern,
-	/// verifying that all equality comparisons test the same expression.
+	///   Recursively walks a <c>||</c> chain and builds the corresponding <c>or</c> pattern,
+	///   verifying that all equality comparisons test the same expression.
 	/// </summary>
 	private static bool TryBuildOrPattern(
 		ExpressionSyntax expr,
@@ -533,7 +524,7 @@ public static class UsePatternMatchingRefactoring
 		pattern = null;
 
 		// Recurse into || nodes — left-associative, so (a || b) || c → (pat_a or pat_b) or pat_c
-		if (expr is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LogicalOrExpression } orExpr)
+		if (expr is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LogicalOrExpression } orExpr)
 		{
 			if (!TryBuildOrPattern(orExpr.Left, ref testedExpr, out var leftPat, visit, semanticModel))
 			{
@@ -554,7 +545,7 @@ public static class UsePatternMatchingRefactoring
 	}
 
 	/// <summary>
-	/// Handles the leaf case of a <c>||</c> chain: <c>expr == constant</c> or <c>constant == expr</c>.
+	///   Handles the leaf case of a <c>||</c> chain: <c>expr == constant</c> or <c>constant == expr</c>.
 	/// </summary>
 	private static bool TryBuildOrPatternLeaf(
 		ExpressionSyntax expr,
@@ -565,7 +556,7 @@ public static class UsePatternMatchingRefactoring
 	{
 		pattern = null;
 
-		if (expr is not BinaryExpressionSyntax { RawKind: (int) SyntaxKind.EqualsExpression } eqExpr)
+		if (expr is not BinaryExpressionSyntax { RawKind: (int)SyntaxKind.EqualsExpression } eqExpr)
 		{
 			return false;
 		}
@@ -604,13 +595,13 @@ public static class UsePatternMatchingRefactoring
 	}
 
 	/// <summary>
-	/// Returns <see langword="true"/> when <paramref name="expr"/> can safely be used as a
-	/// constant pattern value.
-	/// <list type="bullet">
-	///   <item>Always: plain literals (<c>0</c>, <c>"hi"</c>, <c>true</c>, <c>null</c>, …)</item>
-	///   <item>Always: signed literals (<c>-1</c>, <c>+1</c>)</item>
-	///   <item>With <paramref name="semanticModel"/>: any compile-time constant (enum members, <c>const</c> fields, …)</item>
-	/// </list>
+	///   Returns <see langword="true" /> when <paramref name="expr" /> can safely be used as a
+	///   constant pattern value.
+	///   <list type="bullet">
+	///     <item>Always: plain literals (<c>0</c>, <c>"hi"</c>, <c>true</c>, <c>null</c>, …)</item>
+	///     <item>Always: signed literals (<c>-1</c>, <c>+1</c>)</item>
+	///     <item>With <paramref name="semanticModel" />: any compile-time constant (enum members, <c>const</c> fields, …)</item>
+	///   </list>
 	/// </summary>
 	private static bool IsConstantLike(ExpressionSyntax expr, SemanticModel? semanticModel)
 	{
@@ -621,7 +612,7 @@ public static class UsePatternMatchingRefactoring
 
 		if (expr is PrefixUnaryExpressionSyntax
 		    {
-			    RawKind: (int) SyntaxKind.UnaryMinusExpression or (int) SyntaxKind.UnaryPlusExpression,
+			    RawKind: (int)SyntaxKind.UnaryMinusExpression or (int)SyntaxKind.UnaryPlusExpression,
 			    Operand: LiteralExpressionSyntax
 		    })
 		{
@@ -636,15 +627,14 @@ public static class UsePatternMatchingRefactoring
 	// ─────────────────────────────────────────────────────────────
 
 	/// <summary>
-	/// Converts a null equality or inequality comparison to an is-null / is-not-null pattern (C# 7+).
-	/// Inspired by the Roslyn <c>UseIsNullCheck</c> analyzer suite.
-	///
-	/// <list type="bullet">
-	///   <item><c>x == null</c>         → <c>x is null</c></item>
-	///   <item><c>x != null</c>         → <c>x is not null</c></item>
-	///   <item><c>(object)x == null</c> → <c>x is null</c></item>
-	///   <item><c>(object)x != null</c> → <c>x is not null</c></item>
-	/// </list>
+	///   Converts a null equality or inequality comparison to an is-null / is-not-null pattern (C# 7+).
+	///   Inspired by the Roslyn <c>UseIsNullCheck</c> analyzer suite.
+	///   <list type="bullet">
+	///     <item><c>x == null</c>         → <c>x is null</c></item>
+	///     <item><c>x != null</c>         → <c>x is not null</c></item>
+	///     <item><c>(object)x == null</c> → <c>x is null</c></item>
+	///     <item><c>(object)x != null</c> → <c>x is not null</c></item>
+	///   </list>
 	/// </summary>
 	public static bool TryConvertNullComparisonToNullPattern(
 		BinaryExpressionSyntax comparison,
@@ -660,11 +650,11 @@ public static class UsePatternMatchingRefactoring
 
 		ExpressionSyntax subject;
 
-		if (comparison.Right is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NullLiteralExpression })
+		if (comparison.Right is LiteralExpressionSyntax { RawKind: (int)SyntaxKind.NullLiteralExpression })
 		{
 			subject = comparison.Left;
 		}
-		else if (comparison.Left is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NullLiteralExpression })
+		else if (comparison.Left is LiteralExpressionSyntax { RawKind: (int)SyntaxKind.NullLiteralExpression })
 		{
 			subject = comparison.Right;
 		}
@@ -676,7 +666,7 @@ public static class UsePatternMatchingRefactoring
 		// Unwrap a cast to object: (object)x == null → x is null
 		if (subject is CastExpressionSyntax
 		    {
-			    Type: PredefinedTypeSyntax { Keyword.RawKind: (int) SyntaxKind.ObjectKeyword },
+			    Type: PredefinedTypeSyntax { Keyword.RawKind: (int)SyntaxKind.ObjectKeyword },
 			    Expression: var inner
 		    })
 		{
@@ -695,16 +685,14 @@ public static class UsePatternMatchingRefactoring
 	}
 
 	/// <summary>
-	/// Converts a redundant <c>is object</c> type check to an <c>is not null</c> pattern (C# 9+).
-	/// Inspired by the Roslyn <c>CSharpUseNullCheckOverTypeCheckDiagnosticAnalyzer</c>.
-	///
-	/// <c>x is object</c>  →  <c>x is not null</c>
-	///
-	/// <para>
-	/// Without a <paramref name="semanticModel"/> the conversion is performed purely syntactically.
-	/// Supply a model to enforce that <c>x</c> is a reference type (or reference-constrained generic),
-	/// matching the stricter semantics of the Roslyn analyzer.
-	/// </para>
+	///   Converts a redundant <c>is object</c> type check to an <c>is not null</c> pattern (C# 9+).
+	///   Inspired by the Roslyn <c>CSharpUseNullCheckOverTypeCheckDiagnosticAnalyzer</c>.
+	///   <c>x is object</c>  →  <c>x is not null</c>
+	///   <para>
+	///     Without a <paramref name="semanticModel" /> the conversion is performed purely syntactically.
+	///     Supply a model to enforce that <c>x</c> is a reference type (or reference-constrained generic),
+	///     matching the stricter semantics of the Roslyn analyzer.
+	///   </para>
 	/// </summary>
 	public static bool TryConvertIsObjectToIsNotNullPattern(
 		BinaryExpressionSyntax isExpression,
@@ -718,7 +706,7 @@ public static class UsePatternMatchingRefactoring
 			return false;
 		}
 
-		if (isExpression.Right is not PredefinedTypeSyntax { Keyword.RawKind: (int) SyntaxKind.ObjectKeyword })
+		if (isExpression.Right is not PredefinedTypeSyntax { Keyword.RawKind: (int)SyntaxKind.ObjectKeyword })
 		{
 			return false;
 		}
@@ -753,22 +741,19 @@ public static class UsePatternMatchingRefactoring
 	// ─────────────────────────────────────────────────────────────
 
 	/// <summary>
-	/// Converts a chain of comparisons connected by <c>&amp;&amp;</c> to a conjunctive
-	/// <c>and</c> pattern (C# 9+).
-	/// Inspired by the Roslyn <c>CSharpUsePatternCombinatorsDiagnosticAnalyzer</c>.
-	///
-	/// <list type="bullet">
-	///   <item><c>x >= 0 &amp;&amp; x &lt;= 100</c>           → <c>x is >= 0 and &lt;= 100</c></item>
-	///   <item><c>x != 0 &amp;&amp; x != 20</c>               → <c>x is not 0 and not 20</c></item>
-	///   <item><c>x > 0 &amp;&amp; x is &lt; 100</c>          → <c>x is > 0 and &lt; 100</c></item>
-	///   <item><c>x != null &amp;&amp; x.Length > 0</c>        → ✗ (different expressions — rejected)</item>
-	/// </list>
-	///
-	/// Supports leaves that are: <c>==</c>, <c>!=</c>, <c>&gt;</c>, <c>&gt;=</c>, <c>&lt;</c>,
-	/// <c>&lt;=</c>, <c>is T</c> (plain type check), and <c>is pattern</c> expressions.
-	///
-	/// Without a <paramref name="semanticModel"/>, only literal constants are accepted as
-	/// pattern values. Pass one to also accept enum members and <c>const</c> fields.
+	///   Converts a chain of comparisons connected by <c>&amp;&amp;</c> to a conjunctive
+	///   <c>and</c> pattern (C# 9+).
+	///   Inspired by the Roslyn <c>CSharpUsePatternCombinatorsDiagnosticAnalyzer</c>.
+	///   <list type="bullet">
+	///     <item><c>x >= 0 &amp;&amp; x &lt;= 100</c>           → <c>x is >= 0 and &lt;= 100</c></item>
+	///     <item><c>x != 0 &amp;&amp; x != 20</c>               → <c>x is not 0 and not 20</c></item>
+	///     <item><c>x > 0 &amp;&amp; x is &lt; 100</c>          → <c>x is > 0 and &lt; 100</c></item>
+	///     <item><c>x != null &amp;&amp; x.Length > 0</c>        → ✗ (different expressions — rejected)</item>
+	///   </list>
+	///   Supports leaves that are: <c>==</c>, <c>!=</c>, <c>&gt;</c>, <c>&gt;=</c>, <c>&lt;</c>,
+	///   <c>&lt;=</c>, <c>is T</c> (plain type check), and <c>is pattern</c> expressions.
+	///   Without a <paramref name="semanticModel" />, only literal constants are accepted as
+	///   pattern values. Pass one to also accept enum members and <c>const</c> fields.
 	/// </summary>
 	public static bool TryConvertAndChainToAndPattern(
 		BinaryExpressionSyntax andChain,
@@ -801,7 +786,7 @@ public static class UsePatternMatchingRefactoring
 	}
 
 	/// <summary>
-	/// Recursively walks a <c>&amp;&amp;</c> chain and builds the corresponding <c>and</c> pattern.
+	///   Recursively walks a <c>&amp;&amp;</c> chain and builds the corresponding <c>and</c> pattern.
 	/// </summary>
 	private static bool TryBuildAndPattern(
 		ExpressionSyntax expr,
@@ -811,7 +796,7 @@ public static class UsePatternMatchingRefactoring
 	{
 		pattern = null;
 
-		if (expr is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LogicalAndExpression } andExpr)
+		if (expr is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LogicalAndExpression } andExpr)
 		{
 			if (!TryBuildAndPattern(andExpr.Left, ref testedExpr, out var leftPat, semanticModel))
 			{
@@ -831,7 +816,7 @@ public static class UsePatternMatchingRefactoring
 	}
 
 	/// <summary>
-	/// Handles a single leaf of a <c>&amp;&amp;</c> chain, producing the corresponding pattern.
+	///   Handles a single leaf of a <c>&amp;&amp;</c> chain, producing the corresponding pattern.
 	/// </summary>
 	private static bool TryBuildAndPatternLeaf(
 		ExpressionSyntax expr,
@@ -855,7 +840,7 @@ public static class UsePatternMatchingRefactoring
 		PatternSyntax? leafPat;
 		ExpressionSyntax tested;
 
-		switch ((SyntaxKind) binaryLeaf.RawKind)
+		switch ((SyntaxKind)binaryLeaf.RawKind)
 		{
 			// expr == constant  →  constant
 			case SyntaxKind.EqualsExpression
@@ -901,8 +886,8 @@ public static class UsePatternMatchingRefactoring
 	}
 
 	/// <summary>
-	/// Records a leaf's tested expression (verifying it matches previous leaves) and returns
-	/// the produced pattern.
+	///   Records a leaf's tested expression (verifying it matches previous leaves) and returns
+	///   the produced pattern.
 	/// </summary>
 	private static bool TryRecordLeaf(
 		ExpressionSyntax tested,
@@ -926,8 +911,8 @@ public static class UsePatternMatchingRefactoring
 	}
 
 	/// <summary>
-	/// Normalises a binary equality or inequality expression to <c>(tested, constant)</c>,
-	/// regardless of which side the constant is on.
+	///   Normalises a binary equality or inequality expression to <c>(tested, constant)</c>,
+	///   regardless of which side the constant is on.
 	/// </summary>
 	private static bool TryNormalizeBinaryLeaf(
 		BinaryExpressionSyntax binary,
@@ -954,8 +939,8 @@ public static class UsePatternMatchingRefactoring
 	}
 
 	/// <summary>
-	/// Builds a <see cref="RelationalPatternSyntax"/> from a relational binary expression,
-	/// flipping the operator when the constant is on the left-hand side.
+	///   Builds a <see cref="RelationalPatternSyntax" /> from a relational binary expression,
+	///   flipping the operator when the constant is on the left-hand side.
 	/// </summary>
 	private static bool TryBuildRelationalPattern(
 		BinaryExpressionSyntax binary,
@@ -966,7 +951,7 @@ public static class UsePatternMatchingRefactoring
 		tested = null!;
 		pattern = null;
 
-		SyntaxKind opKind = (SyntaxKind) binary.RawKind;
+		var opKind = (SyntaxKind)binary.RawKind;
 		ExpressionSyntax constantExpr;
 		SyntaxKind tokenKind;
 
@@ -996,41 +981,47 @@ public static class UsePatternMatchingRefactoring
 		return true;
 	}
 
-	private static SyntaxKind ToRelationalToken(SyntaxKind opKind) => opKind switch
+	private static SyntaxKind ToRelationalToken(SyntaxKind opKind)
 	{
-		SyntaxKind.GreaterThanExpression => SyntaxKind.GreaterThanToken,
-		SyntaxKind.GreaterThanOrEqualExpression => SyntaxKind.GreaterThanEqualsToken,
-		SyntaxKind.LessThanExpression => SyntaxKind.LessThanToken,
-		SyntaxKind.LessThanOrEqualExpression => SyntaxKind.LessThanEqualsToken,
-		_ => SyntaxKind.None
-	};
+		return opKind switch
+		{
+			SyntaxKind.GreaterThanExpression => SyntaxKind.GreaterThanToken,
+			SyntaxKind.GreaterThanOrEqualExpression => SyntaxKind.GreaterThanEqualsToken,
+			SyntaxKind.LessThanExpression => SyntaxKind.LessThanToken,
+			SyntaxKind.LessThanOrEqualExpression => SyntaxKind.LessThanEqualsToken,
+			_ => SyntaxKind.None
+		};
+	}
 
-	private static SyntaxKind FlipRelationalToken(SyntaxKind opKind) => opKind switch
+	private static SyntaxKind FlipRelationalToken(SyntaxKind opKind)
 	{
-		SyntaxKind.GreaterThanExpression => SyntaxKind.LessThanToken, // 5 > x  → x is < 5
-		SyntaxKind.GreaterThanOrEqualExpression => SyntaxKind.LessThanEqualsToken, // 5 >= x → x is <= 5
-		SyntaxKind.LessThanExpression => SyntaxKind.GreaterThanToken, // 5 < x  → x is > 5
-		SyntaxKind.LessThanOrEqualExpression => SyntaxKind.GreaterThanEqualsToken, // 5 <= x → x is >= 5
-		_ => SyntaxKind.None
-	};
+		return opKind switch
+		{
+			SyntaxKind.GreaterThanExpression => SyntaxKind.LessThanToken, // 5 > x  → x is < 5
+			SyntaxKind.GreaterThanOrEqualExpression => SyntaxKind.LessThanEqualsToken, // 5 >= x → x is <= 5
+			SyntaxKind.LessThanExpression => SyntaxKind.GreaterThanToken, // 5 < x  → x is > 5
+			SyntaxKind.LessThanOrEqualExpression => SyntaxKind.GreaterThanEqualsToken, // 5 <= x → x is >= 5
+			_ => SyntaxKind.None
+		};
+	}
 
 	/// <summary>
-	/// Returns <see langword="true"/> when the expression is a null check on a specific variable:
-	/// <c>x != null</c> or <c>x is not null</c>.
+	///   Returns <see langword="true" /> when the expression is a null check on a specific variable:
+	///   <c>x != null</c> or <c>x is not null</c>.
 	/// </summary>
 	private static bool IsNullCheckOnVariable(ExpressionSyntax condition, string variableName)
 	{
 		switch (condition)
 		{
 			// x != null
-			case BinaryExpressionSyntax { RawKind: (int) SyntaxKind.NotEqualsExpression, Left: IdentifierNameSyntax leftId } binary
+			case BinaryExpressionSyntax { RawKind: (int)SyntaxKind.NotEqualsExpression, Left: IdentifierNameSyntax leftId } binary
 				when leftId.Identifier.ValueText == variableName
 				     && binary.Right is LiteralExpressionSyntax rightLit
 				     && rightLit.IsKind(SyntaxKind.NullLiteralExpression):
 			{
 				return true;
 			}
-			case BinaryExpressionSyntax { RawKind: (int) SyntaxKind.NotEqualsExpression, Right: IdentifierNameSyntax rightId } binary
+			case BinaryExpressionSyntax { RawKind: (int)SyntaxKind.NotEqualsExpression, Right: IdentifierNameSyntax rightId } binary
 				when rightId.Identifier.ValueText == variableName
 				     && binary.Left is LiteralExpressionSyntax leftLit
 				     && leftLit.IsKind(SyntaxKind.NullLiteralExpression):

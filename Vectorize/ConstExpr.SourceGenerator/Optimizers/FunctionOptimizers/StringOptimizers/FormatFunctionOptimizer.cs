@@ -11,10 +11,11 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 
 /// <summary>
-/// Optimizes usages of <c>string.Format</c>. This optimizer:
-/// - Converts suitable <c>string.Format</c> calls with a constant format string into an interpolated string expression when it can safely be done (for example, <c>string.Format("Hello {0}", name)</c> -> <c>$"Hello {name}"</c>).
-/// - Ensures purity for repeated argument usages to avoid duplicating side-effects.
-/// - If conversion to an interpolated string is not possible or safe, the optimizer will not claim a change.
+///   Optimizes usages of <c>string.Format</c>. This optimizer:
+///   - Converts suitable <c>string.Format</c> calls with a constant format string into an interpolated string expression
+///   when it can safely be done (for example, <c>string.Format("Hello {0}", name)</c> -> <c>$"Hello {name}"</c>).
+///   - Ensures purity for repeated argument usages to avoid duplicating side-effects.
+///   - If conversion to an interpolated string is not possible or safe, the optimizer will not claim a change.
 /// </summary>
 /// <param name="instance">Optional syntax node instance provided by the optimizer infrastructure; may be null.</param>
 public class FormatFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "Format", true, n => n is 2 or 3 or 4 or 5)

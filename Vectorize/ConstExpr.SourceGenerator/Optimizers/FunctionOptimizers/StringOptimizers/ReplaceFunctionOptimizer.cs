@@ -6,10 +6,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 
 /// <summary>
-/// Optimizes Replace calls:
-/// - "hello".Replace("l", "r") → "herro" (constant fold when instance is a literal)
-/// - s.Replace("a", "a") → s (no-op when old and new are equal)
-/// - s.Replace('a', 'a') → s
+///   Optimizes Replace calls:
+///   - "hello".Replace("l", "r") → "herro" (constant fold when instance is a literal)
+///   - s.Replace("a", "a") → s (no-op when old and new are equal)
+///   - s.Replace('a', 'a') → s
 /// </summary>
 public class ReplaceFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "Replace", false, n => n is 2)
 {

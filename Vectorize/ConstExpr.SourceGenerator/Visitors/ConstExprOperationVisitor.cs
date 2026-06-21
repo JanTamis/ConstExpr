@@ -24,10 +24,10 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 {
 	public const string RETURNVARIABLENAME = "$return$";
 
-	private bool isYield;
-
 	private static readonly object BreakSentinel = new();
 	private static readonly object ContinueSentinel = new();
+
+	private bool isYield;
 
 	public bool ShouldThrow { get; set; } = true;
 
@@ -158,7 +158,7 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 		{
 			if (indexers.All(i => i is int or char))
 			{
-				return arr.GetValue(indexers.Select(i => i is char c ? c : (int) i).ToArray());
+				return arr.GetValue(indexers.Select(i => i is char c ? c : (int)i).ToArray());
 			}
 
 			if (indexers.All(i => i is long))
@@ -170,7 +170,7 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 
 			if (indexers.All(i => i.GetType() == rangeType))
 			{
-				var range = (ValueTuple<int, int>) rangeType.GetMethod("GetOffsetAndLength").Invoke(indexers[0], [ arr.Length ]);
+				var range = (ValueTuple<int, int>)rangeType.GetMethod("GetOffsetAndLength").Invoke(indexers[0], [ arr.Length ]);
 				var result = Array.CreateInstance(arr.GetType().GetElementType(), range.Item2);
 
 				Array.Copy(arr, range.Item1, result, 0, range.Item2);
@@ -262,7 +262,7 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 			{
 				if (indices.All(a => a is int or char))
 				{
-					arr.SetValue(value, indices.Select(a => a is char c ? c : (int) a).ToArray());
+					arr.SetValue(value, indices.Select(a => a is char c ? c : (int)a).ToArray());
 				}
 				else if (indices.All(a => a is long))
 				{
@@ -448,7 +448,7 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 		{
 			true => Visit(operation.WhenTrue, argument),
 			false => Visit(operation.WhenFalse, argument),
-			_ => throw new InvalidOperationException("Invalid conditional operation."),
+			_ => throw new InvalidOperationException("Invalid conditional operation.")
 		};
 	}
 
@@ -494,7 +494,7 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 			SpecialType.System_UInt64 => Convert.ToUInt64(operand),
 			SpecialType.System_Object => operand,
 			SpecialType.System_Collections_IEnumerable => operand as IEnumerable,
-			_ => operand,
+			_ => operand
 		};
 	}
 
@@ -514,7 +514,7 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 				var parameters = methodOperation.Syntax switch
 				{
 					LocalFunctionStatementSyntax localFunc => localFunc.ParameterList,
-					MethodDeclarationSyntax methodDecl => methodDecl.ParameterList,
+					MethodDeclarationSyntax methodDecl => methodDecl.ParameterList
 				};
 
 				var variables = new Dictionary<string, object?>();
@@ -871,7 +871,7 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 			UnaryOperatorKind.Minus => 0.Subtract(operand),
 			UnaryOperatorKind.BitwiseNegation => operand.BitwiseNot(),
 			UnaryOperatorKind.Not => operand.LogicalNot(),
-			_ => operand,
+			_ => operand
 		};
 	}
 
@@ -884,7 +884,7 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 		{
 			OperationKind.Increment => target.Add(1),
 			OperationKind.Decrement => target.Add(-1),
-			_ => target,
+			_ => target
 		};
 
 		// For array element targets (e.g. arr[i]++), mutate the array in place rather than
@@ -898,7 +898,7 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 				var indices = arrayElement.Indices.Select(s => Visit(s, argument)).ToArray();
 
 				if (indices.All(i => i is int or char))
-					arr.SetValue(newValue, indices.Select(i => i is char c ? c : (int) i).ToArray());
+					arr.SetValue(newValue, indices.Select(i => i is char c ? c : (int)i).ToArray());
 				else if (indices.All(i => i is long))
 					arr.SetValue(newValue, indices.Cast<long>().ToArray());
 			}
@@ -1082,20 +1082,20 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 		return operation.Type?.SpecialType switch
 		{
 			SpecialType.System_Boolean => false,
-			SpecialType.System_Byte => (byte) 0,
-			SpecialType.System_Char => (char) 0,
+			SpecialType.System_Byte => (byte)0,
+			SpecialType.System_Char => (char)0,
 			SpecialType.System_DateTime => default(DateTime),
 			SpecialType.System_Decimal => 0M,
 			SpecialType.System_Double => 0D,
-			SpecialType.System_Int16 => (short) 0,
+			SpecialType.System_Int16 => (short)0,
 			SpecialType.System_Int32 => 0,
 			SpecialType.System_Int64 => 0L,
-			SpecialType.System_SByte => (sbyte) 0,
+			SpecialType.System_SByte => (sbyte)0,
 			SpecialType.System_Single => 0F,
-			SpecialType.System_UInt16 => (ushort) 0,
+			SpecialType.System_UInt16 => (ushort)0,
 			SpecialType.System_UInt32 => 0U,
 			SpecialType.System_UInt64 => 0UL,
-			_ => Activator.CreateInstance(loader.GetType(operation.Type)),
+			_ => Activator.CreateInstance(loader.GetType(operation.Type))
 		};
 	}
 
@@ -1558,7 +1558,11 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 		return null;
 	}
 
-	public override object? VisitLocalFunction(ILocalFunctionOperation operation, IDictionary<string, object?> argument) => null; // skip
+	public override object? VisitLocalFunction(ILocalFunctionOperation operation, IDictionary<string, object?> argument)
+	{
+		return null;
+		// skip
+	}
 
 	public override object? VisitWith(IWithOperation operation, IDictionary<string, object?> argument)
 	{
@@ -1698,7 +1702,7 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 			IArrayElementReferenceOperation arrayElementReferenceOperation => GetVariableName(arrayElementReferenceOperation.ArrayReference),
 			IFieldReferenceOperation fieldReferenceOperation => fieldReferenceOperation.Field.Name,
 			IVariableDeclaratorOperation variableDeclaratorOperation => variableDeclaratorOperation.Symbol.Name,
-			_ => null,
+			_ => null
 		};
 	}
 

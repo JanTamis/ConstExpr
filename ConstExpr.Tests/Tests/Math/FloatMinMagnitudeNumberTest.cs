@@ -6,11 +6,11 @@ namespace ConstExpr.Tests.Math;
 [InheritsTests]
 public class FloatMinMagnitudeNumberTest() : BaseTest<Func<float, float, float>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
 {
-	public override string TestMethod => GetString((a, b) => float.MinMagnitudeNumber(a, b));
+	public override string TestMethod => GetString((a, b) => Single.MinMagnitudeNumber(a, b));
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		Create((_, _) => 1F, [ 1.0f, -3.0f ]),
+		Create((_, _) => 1F, [ 1.0f, -3.0f ])
 	];
 }

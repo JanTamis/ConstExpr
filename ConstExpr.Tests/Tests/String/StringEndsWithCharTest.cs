@@ -11,6 +11,6 @@ public class StringEndsWithCharTest() : BaseTest<Func<string, char, bool>>(FastM
 	[
 		CreateDefault(),
 		Create((_, c) => c == 'o', [ "hello", Unknown ]),
-		Create((_, _) => false, [ "", Unknown ]),
+		Create((_, _) => false, [ System.String.Empty, Unknown ])
 	];
 }

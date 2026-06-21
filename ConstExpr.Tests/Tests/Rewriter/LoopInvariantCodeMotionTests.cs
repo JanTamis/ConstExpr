@@ -43,7 +43,7 @@ public class LoopInvariantCodeMotionTests() : BaseTest<Func<int, int, int>>(opti
 		Create((n, angle) =>
 		{
 			var result = 0;
-			var step = ((angle << 1) + angle);
+			var step = (angle << 1) + angle;
 
 			for (var i = 0; i < n; i++)
 			{

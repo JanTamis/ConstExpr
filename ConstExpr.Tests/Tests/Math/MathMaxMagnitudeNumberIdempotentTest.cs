@@ -6,10 +6,10 @@ namespace ConstExpr.Tests.Math;
 [InheritsTests]
 public class MathMaxMagnitudeNumberIdempotentTest() : BaseTest<Func<double, double>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
 {
-	public override string TestMethod => GetString(a => double.MaxMagnitudeNumber(a, a));
+	public override string TestMethod => GetString(a => Double.MaxMagnitudeNumber(a, a));
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(a => a),
+		Create(a => a)
 	];
 }

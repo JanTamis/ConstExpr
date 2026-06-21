@@ -10,6 +10,6 @@ public class XorIdentityTest : BaseTest<Func<int, int>>
 	[
 		Create(x => x),
 		Create(_ => 5, [ 5 ]),
-		Create(_ => -3, [ -3 ]),
+		Create(_ => -3, [ -3 ])
 	];
 }

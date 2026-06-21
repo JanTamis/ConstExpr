@@ -3,24 +3,57 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for <see cref="Enumerable.Repeat"/> optimization.
-/// Verifies that chained LINQ operations on a repeated sequence are rewritten to closed-form expressions:
-/// <list type="bullet">
-/// <item><description><c>Repeat(element, count).Count()</c> => <c>count</c></description></item>
-/// <item><description><c>Repeat(element, count).Sum()</c> => <c>element * count</c></description></item>
-/// <item><description><c>Repeat(element, count).Any()</c> => <c>count &gt; 0</c></description></item>
-/// <item><description><c>Repeat(element, count).Contains(x)</c> => <c>count &gt; 0 &amp;&amp; element == x</c></description></item>
-/// <item><description><c>Repeat(element, count).First()</c> => <c>count &gt; 0 ? element : throw</c></description></item>
-/// <item><description><c>Repeat(element, count).Last()</c> => <c>count &gt; 0 ? element : throw</c></description></item>
-/// <item><description><c>Repeat(element, count).ElementAt(n)</c> => <c>n &lt; count ? element : throw</c></description></item>
-/// <item><description><c>Repeat(element, count).ElementAtOrDefault(n)</c> => <c>n &gt;= 0 &amp;&amp; n &lt; count ? element : default</c></description></item>
-/// <item><description><c>Repeat(element, count).Min()</c> => <c>count &gt; 0 ? element : throw</c></description></item>
-/// <item><description><c>Repeat(element, count).Max()</c> => <c>count &gt; 0 ? element : throw</c></description></item>
-/// <item><description><c>Repeat(element, count).Skip(n).Count()</c> => <c>Int32.Max(0, count - n)</c></description></item>
-/// <item><description><c>Repeat(element, count).Take(n).Count()</c> => <c>Int32.Min(n, count)</c></description></item>
-/// <item><description><c>Repeat(element, count).All(predicate)</c> => <c>count &lt;= 0 || predicate(element)</c></description></item>
-/// </list>
-/// When all arguments are constant, all expressions fold to a single numeric literal.
+///   Tests for <see cref="Enumerable.Repeat" /> optimization.
+///   Verifies that chained LINQ operations on a repeated sequence are rewritten to closed-form expressions:
+///   <list type="bullet">
+///     <item>
+///       <description><c>Repeat(element, count).Count()</c> => <c>count</c></description>
+///     </item>
+///     <item>
+///       <description><c>Repeat(element, count).Sum()</c> => <c>element * count</c></description>
+///     </item>
+///     <item>
+///       <description><c>Repeat(element, count).Any()</c> => <c>count &gt; 0</c></description>
+///     </item>
+///     <item>
+///       <description>
+///         <c>Repeat(element, count).Contains(x)</c> => <c>count &gt; 0 &amp;&amp; element == x</c>
+///       </description>
+///     </item>
+///     <item>
+///       <description><c>Repeat(element, count).First()</c> => <c>count &gt; 0 ? element : throw</c></description>
+///     </item>
+///     <item>
+///       <description><c>Repeat(element, count).Last()</c> => <c>count &gt; 0 ? element : throw</c></description>
+///     </item>
+///     <item>
+///       <description><c>Repeat(element, count).ElementAt(n)</c> => <c>n &lt; count ? element : throw</c></description>
+///     </item>
+///     <item>
+///       <description>
+///         <c>Repeat(element, count).ElementAtOrDefault(n)</c> =>
+///         <c>n &gt;= 0 &amp;&amp; n &lt; count ? element : default</c>
+///       </description>
+///     </item>
+///     <item>
+///       <description><c>Repeat(element, count).Min()</c> => <c>count &gt; 0 ? element : throw</c></description>
+///     </item>
+///     <item>
+///       <description><c>Repeat(element, count).Max()</c> => <c>count &gt; 0 ? element : throw</c></description>
+///     </item>
+///     <item>
+///       <description><c>Repeat(element, count).Skip(n).Count()</c> => <c>Int32.Max(0, count - n)</c></description>
+///     </item>
+///     <item>
+///       <description><c>Repeat(element, count).Take(n).Count()</c> => <c>Int32.Min(n, count)</c></description>
+///     </item>
+///     <item>
+///       <description>
+///         <c>Repeat(element, count).All(predicate)</c> => <c>count &lt;= 0 || predicate(element)</c>
+///       </description>
+///     </item>
+///   </list>
+///   When all arguments are constant, all expressions fold to a single numeric literal.
 /// </summary>
 [InheritsTests]
 public class LinqRepeatOptimizationTests() : BaseTest<Func<int, int, int>>(FastMathFlags.AssociativeMath)
@@ -71,7 +104,7 @@ public class LinqRepeatOptimizationTests() : BaseTest<Func<int, int, int>>(FastM
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create((element, count) => (count > 0 ? element : throw new InvalidOperationException("Sequence contains no elements")) * 4 + count + element * count + (count > 0 ? 1 : 0) + (count > 0 && element == 5 ? 1 : 0) + (count > 2 ? element : throw new ArgumentOutOfRangeException("")) + (count > 2 ? element : 0) + Int32.Max(0, count - 2) + Int32.Min(2, count) + (count <= 0 || element > 0 ? 1 : 0)),
-		Create((_, _) => 40, [ 3, 4 ]),
+		Create((element, count) => (count > 0 ? element : throw new InvalidOperationException("Sequence contains no elements")) * 4 + count + element * count + (count > 0 ? 1 : 0) + (count > 0 && element == 5 ? 1 : 0) + (count > 2 ? element : throw new ArgumentOutOfRangeException(System.String.Empty)) + (count > 2 ? element : 0) + Int32.Max(0, count - 2) + Int32.Min(2, count) + (count <= 0 || element > 0 ? 1 : 0)),
+		Create((_, _) => 40, [ 3, 4 ])
 	];
 }

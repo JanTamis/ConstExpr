@@ -6,12 +6,12 @@ using Microsoft.CodeAnalysis;
 namespace ConstExpr.SourceGenerator;
 
 /// <summary>
-/// Thread-safe cache for Roslyn API results to avoid expensive repeated calls
+///   Thread-safe cache for Roslyn API results to avoid expensive repeated calls
 /// </summary>
 public sealed class RoslynApiCache
 {
-	private readonly ConcurrentDictionary<SyntaxNode, SymbolInfo> _symbolInfoCache = new(SyntaxNodeComparer.Get());
 	private readonly ConcurrentDictionary<SyntaxNode, IOperation?> _operationCache = new(SyntaxNodeComparer.Get());
+	private readonly ConcurrentDictionary<SyntaxNode, SymbolInfo> _symbolInfoCache = new(SyntaxNodeComparer.Get());
 
 	public SymbolInfo GetOrAddSymbolInfo(SyntaxNode node, SemanticModel semanticModel, CancellationToken token)
 	{

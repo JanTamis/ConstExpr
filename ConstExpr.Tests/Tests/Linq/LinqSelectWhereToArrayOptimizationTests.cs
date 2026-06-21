@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for arr.Select(f).Where(p).ToArray() => Array.FindAll(arr, x => p(f(x)))
+///   Tests for arr.Select(f).Where(p).ToArray() => Array.FindAll(arr, x => p(f(x)))
 /// </summary>
 [InheritsTests]
 public class LinqSelectWhereToArrayOptimizationTests : BaseTest<Func<int[], int>>
@@ -18,6 +18,6 @@ public class LinqSelectWhereToArrayOptimizationTests : BaseTest<Func<int[], int>
 	[
 		Create("return Array.FindAll(x, v => v << 1 > 4).Length;"),
 		Create(_ => 3, [ new[] { 1, 2, 3, 4, 5 } ]),
-		Create(_ => 0, [ System.Array.Empty<int>() ]),
+		Create(_ => 0, [ System.Array.Empty<int>() ])
 	];
 }

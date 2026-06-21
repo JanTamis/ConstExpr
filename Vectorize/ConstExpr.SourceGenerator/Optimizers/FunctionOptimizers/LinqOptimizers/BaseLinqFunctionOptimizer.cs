@@ -16,15 +16,11 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Base class for LINQ function optimizers that handle Enumerable method optimizations.
-/// Provides common helper methods for analyzing and transforming LINQ expressions.
+///   Base class for LINQ function optimizers that handle Enumerable method optimizations.
+///   Provides common helper methods for analyzing and transforming LINQ expressions.
 /// </summary>
 public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isValidParameterCount) : BaseFunctionOptimizer
 {
-	public string Name { get; } = name;
-
-	public Func<int, bool> IsValidParameterCount { get; } = isValidParameterCount;
-
 	protected static readonly HashSet<string> MaterializingMethods =
 	[
 		nameof(Enumerable.ToArray),
@@ -54,6 +50,9 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 		nameof(Enumerable.First),
 		nameof(Enumerable.FirstOrDefault)
 	];
+	public string Name { get; } = name;
+
+	public Func<int, bool> IsValidParameterCount { get; } = isValidParameterCount;
 
 	protected abstract bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result);
 
@@ -70,7 +69,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	}
 
 	/// <summary>
-	/// Validates if the given method is a valid LINQ Enumerable method matching this optimizer's criteria.
+	///   Validates if the given method is a valid LINQ Enumerable method matching this optimizer's criteria.
 	/// </summary>
 	protected bool IsValidLinqMethod(FunctionOptimizerContext context)
 	{
@@ -80,7 +79,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	}
 
 	/// <summary>
-	/// Attempts to extract a lambda expression from the given parameter.
+	///   Attempts to extract a lambda expression from the given parameter.
 	/// </summary>
 	protected bool TryGetLambda([NotNullWhen(true)] ExpressionSyntax? parameter, [NotNullWhen(true)] out LambdaExpressionSyntax? lambda)
 	{
@@ -96,7 +95,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	}
 
 	/// <summary>
-	/// Checks if the given lambda is an identity lambda (e.g., x => x).
+	///   Checks if the given lambda is an identity lambda (e.g., x => x).
 	/// </summary>
 	protected bool IsIdentityLambda(LambdaExpressionSyntax lambda)
 	{
@@ -111,7 +110,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	}
 
 	/// <summary>
-	/// Attempts to extract the source expression from a LINQ method chain.
+	///   Attempts to extract the source expression from a LINQ method chain.
 	/// </summary>
 	protected bool TryGetLinqSource(InvocationExpressionSyntax invocation, [NotNullWhen(true), NotNullIfNotNull(nameof(invocation))] out ExpressionSyntax? source)
 	{
@@ -127,7 +126,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	}
 
 	/// <summary>
-	/// Checks if a method call is chained after another LINQ method (e.g., Where().Select()).
+	///   Checks if a method call is chained after another LINQ method (e.g., Where().Select()).
 	/// </summary>
 	protected bool IsLinqMethodChain(ExpressionSyntax? expression, string methodName, [NotNullWhen(true)] out InvocationExpressionSyntax? invocation)
 	{
@@ -159,7 +158,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	}
 
 	/// <summary>
-	/// Checks if a method call is chained after another LINQ method (e.g., Where().Select()).
+	///   Checks if a method call is chained after another LINQ method (e.g., Where().Select()).
 	/// </summary>
 	protected bool IsLinqMethodChain(ExpressionSyntax expression, ISet<string> methodNames, [NotNullWhen(true)] out InvocationExpressionSyntax? invocation)
 	{
@@ -176,7 +175,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	}
 
 	/// <summary>
-	/// Extracts all arguments from a method invocation.
+	///   Extracts all arguments from a method invocation.
 	/// </summary>
 	protected SeparatedSyntaxList<ArgumentSyntax> GetMethodArguments(InvocationExpressionSyntax invocation)
 	{
@@ -184,7 +183,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	}
 
 	/// <summary>
-	/// Creates a new method invocation on the given source expression.
+	///   Creates a new method invocation on the given source expression.
 	/// </summary>
 	protected InvocationExpressionSyntax CreateInvocation(ExpressionSyntax source, string methodName, params IEnumerable<ExpressionSyntax> arguments)
 	{
@@ -202,7 +201,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	}
 
 	/// <summary>
-	/// Creates a new method invocation on the given source expression.
+	///   Creates a new method invocation on the given source expression.
 	/// </summary>
 	protected InvocationExpressionSyntax CreateInvocation(ExpressionSyntax source, SimpleNameSyntax method, params IEnumerable<ExpressionSyntax> arguments)
 	{
@@ -213,7 +212,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	}
 
 	/// <summary>
-	/// Creates a new method invocation on the given source expression.
+	///   Creates a new method invocation on the given source expression.
 	/// </summary>
 	protected InvocationExpressionSyntax CreateInvocation(ExpressionSyntax source, Delegate method, params IEnumerable<ExpressionSyntax> arguments)
 	{
@@ -224,7 +223,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	}
 
 	/// <summary>
-	/// Creates a new method invocation on the given source expression.
+	///   Creates a new method invocation on the given source expression.
 	/// </summary>
 	protected InvocationExpressionSyntax CreateInvocation(Delegate method, params IEnumerable<ExpressionSyntax> arguments)
 	{
@@ -235,7 +234,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	}
 
 	/// <summary>
-	/// Creates a method call with no arguments on the given source expression.
+	///   Creates a method call with no arguments on the given source expression.
 	/// </summary>
 	protected InvocationExpressionSyntax CreateSimpleInvocation(ExpressionSyntax source, string methodName)
 	{
@@ -245,8 +244,8 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	}
 
 	/// <summary>
-	/// Creates a new method invocation on the given source expression, annotated with the
-	/// resolved LINQ method symbol from the compilation so that the LinqUnroller can process it.
+	///   Creates a new method invocation on the given source expression, annotated with the
+	///   resolved LINQ method symbol from the compilation so that the LinqUnroller can process it.
 	/// </summary>
 	protected InvocationExpressionSyntax CreateAnnotatedInvocation(FunctionOptimizerContext context, ExpressionSyntax source, string methodName, params IEnumerable<ExpressionSyntax> arguments)
 	{
@@ -256,8 +255,8 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	}
 
 	/// <summary>
-	/// Creates a method call with no arguments on the given source expression, annotated with the
-	/// resolved LINQ method symbol from the compilation so that the LinqUnroller can process it.
+	///   Creates a method call with no arguments on the given source expression, annotated with the
+	///   resolved LINQ method symbol from the compilation so that the LinqUnroller can process it.
 	/// </summary>
 	protected InvocationExpressionSyntax CreateAnnotatedSimpleInvocation(FunctionOptimizerContext context, ExpressionSyntax source, string methodName)
 	{
@@ -272,7 +271,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	}
 
 	/// <summary>
-	/// Resolves the LINQ extension method symbol from the compilation and annotates the invocation node.
+	///   Resolves the LINQ extension method symbol from the compilation and annotates the invocation node.
 	/// </summary>
 	private static InvocationExpressionSyntax AnnotateLinqInvocation(FunctionOptimizerContext context, InvocationExpressionSyntax invocation, string methodName, int lambdaArgCount, ITypeSymbol[]? typeArguments = null)
 	{
@@ -334,7 +333,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	}
 
 	/// <summary>
-	/// Creates a throw expression for a specific exception type with a message.
+	///   Creates a throw expression for a specific exception type with a message.
 	/// </summary>
 	/// <param name="message">The message to pass to the exception constructor</param>
 	/// <returns>A ThrowExpressionSyntax that throws the specified exception with the message</returns>
@@ -380,7 +379,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	}
 
 	/// <summary>
-	/// Attempts to match a LINQ method chain pattern and extract specific information.
+	///   Attempts to match a LINQ method chain pattern and extract specific information.
 	/// </summary>
 	protected bool TryMatchLinqPattern(InvocationExpressionSyntax invocation, string expectedMethodName,
 	                                   [NotNullWhen(true)] out MemberAccessExpressionSyntax? memberAccess,
@@ -405,7 +404,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	}
 
 	/// <summary>
-	/// Gets the parameter name from a simple lambda expression.
+	///   Gets the parameter name from a simple lambda expression.
 	/// </summary>
 	protected bool TryGetLambdaParameterName(SimpleLambdaExpressionSyntax lambda, out string? parameterName)
 	{
@@ -414,7 +413,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	}
 
 	/// <summary>
-	/// Gets parameter names from a parenthesized lambda expression.
+	///   Gets parameter names from a parenthesized lambda expression.
 	/// </summary>
 	protected bool TryGetLambdaParameterNames(ParenthesizedLambdaExpressionSyntax lambda, out IList<string> parameterNames)
 	{
@@ -425,7 +424,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	}
 
 	/// <summary>
-	/// Checks if a lambda body is a constant expression (e.g., x => 42).
+	///   Checks if a lambda body is a constant expression (e.g., x => 42).
 	/// </summary>
 	protected bool IsConstantLambda(LambdaExpressionSyntax lambda, out ExpressionSyntax? constantValue)
 	{
@@ -448,7 +447,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	}
 
 	/// <summary>
-	/// Extracts the lambda body as an expression syntax.
+	///   Extracts the lambda body as an expression syntax.
 	/// </summary>
 	protected bool TryGetLambdaBody(LambdaExpressionSyntax lambda, [NotNullWhen(true)] out ExpressionSyntax? body)
 	{
@@ -476,7 +475,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	}
 
 	/// <summary>
-	/// Checks if the expression is a direct method invocation on a collection.
+	///   Checks if the expression is a direct method invocation on a collection.
 	/// </summary>
 	protected bool IsDirectLinqCall(ExpressionSyntax expression, string methodName, out InvocationExpressionSyntax? invocation)
 	{
@@ -502,7 +501,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	}
 
 	/// <summary>
-	/// Gets all chained LINQ method calls from an expression.
+	///   Gets all chained LINQ method calls from an expression.
 	/// </summary>
 	protected IList<(string MethodName, InvocationExpressionSyntax Invocation)> GetLinqChain(ExpressionSyntax expression)
 	{
@@ -519,7 +518,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	}
 
 	/// <summary>
-	/// Checks if two lambda expressions have compatible signatures for composition.
+	///   Checks if two lambda expressions have compatible signatures for composition.
 	/// </summary>
 	protected bool AreCompatibleForComposition(LambdaExpressionSyntax first, LambdaExpressionSyntax second)
 	{
@@ -541,7 +540,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	}
 
 	/// <summary>
-	/// Checks if a lambda expression always returns a boolean literal value.
+	///   Checks if a lambda expression always returns a boolean literal value.
 	/// </summary>
 	protected bool IsLiteralBooleanLambda(LambdaExpressionSyntax lambda, out bool? value)
 	{
@@ -563,8 +562,8 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	}
 
 	/// <summary>
-	/// Checks if a lambda expression is a type-check pattern (e.g., x => x is SomeType).
-	/// If true, extracts the type being checked against, enabling replacement with OfType&lt;T&gt;().
+	///   Checks if a lambda expression is a type-check pattern (e.g., x => x is SomeType).
+	///   If true, extracts the type being checked against, enabling replacement with OfType&lt;T&gt;().
 	/// </summary>
 	protected bool IsTypeCheckLambda(LambdaExpressionSyntax lambda, [NotNullWhen(true)] out TypeSyntax? typeCheckType)
 	{
@@ -575,7 +574,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 			SimpleLambdaExpressionSyntax { Parameter.Identifier.Text: var p, Body: ExpressionSyntax b } => (p, b),
 			ParenthesizedLambdaExpressionSyntax { ParameterList.Parameters.Count: 1, Body: ExpressionSyntax b } pl
 				=> (pl.ParameterList.Parameters[0].Identifier.Text, b),
-			_ => (null, (ExpressionSyntax?) null)
+			_ => (null, null)
 		};
 
 		if (paramName is null || body is null)
@@ -585,7 +584,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 
 		if (body is not BinaryExpressionSyntax
 		    {
-			    RawKind: (int) SyntaxKind.IsExpression,
+			    RawKind: (int)SyntaxKind.IsExpression,
 			    Left: IdentifierNameSyntax { Identifier.Text: var identName },
 			    Right: TypeSyntax type
 		    } || identName != paramName)
@@ -598,10 +597,10 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	}
 
 	/// <summary>
-	/// Checks whether replacing <c>Where(x => x is T)</c> with <c>OfType&lt;T&gt;()</c> is semantically safe.
-	/// The optimization is only valid when the conversion from the element type to <paramref name="typeCheckType"/>
-	/// is a reference, identity, or boxing conversion — never a numeric or user-defined implicit conversion
-	/// (e.g. <c>int</c> to <c>double</c> would not be a valid replacement).
+	///   Checks whether replacing <c>Where(x => x is T)</c> with <c>OfType&lt;T&gt;()</c> is semantically safe.
+	///   The optimization is only valid when the conversion from the element type to <paramref name="typeCheckType" />
+	///   is a reference, identity, or boxing conversion — never a numeric or user-defined implicit conversion
+	///   (e.g. <c>int</c> to <c>double</c> would not be a valid replacement).
 	/// </summary>
 	protected bool IsTypeCompatibleForOfType(FunctionOptimizerContext context, TypeSyntax typeCheckType, ITypeSymbol elementType)
 	{
@@ -623,8 +622,8 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	}
 
 	/// <summary>
-	/// Checks if a lambda expression is a simple equality check (e.g., x => x == 2 or x => 2 == x).
-	/// If true, extracts the value being compared against.
+	///   Checks if a lambda expression is a simple equality check (e.g., x => x == 2 or x => 2 == x).
+	///   If true, extracts the value being compared against.
 	/// </summary>
 	protected bool IsSimpleEqualityLambda(LambdaExpressionSyntax lambda, [NotNullWhen(true)] out ExpressionSyntax? equalityValue)
 	{
@@ -652,7 +651,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 		};
 
 		// Check if body is a binary expression with equality operator
-		if (body is not BinaryExpressionSyntax { RawKind: (int) SyntaxKind.EqualsExpression } binaryExpression)
+		if (body is not BinaryExpressionSyntax { RawKind: (int)SyntaxKind.EqualsExpression } binaryExpression)
 		{
 			return false;
 		}
@@ -708,7 +707,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	}
 
 	/// <summary>
-	/// Checks if the invocation is made on a List&lt;T&gt; type.
+	///   Checks if the invocation is made on a List&lt;T&gt; type.
 	/// </summary>
 	protected bool IsInvokedOnList(FunctionOptimizerContext context, ExpressionSyntax? expression)
 	{
@@ -735,7 +734,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	}
 
 	/// <summary>
-	/// Checks if the invocation is made on an array type.
+	///   Checks if the invocation is made on an array type.
 	/// </summary>
 	protected bool IsInvokedOnArray(FunctionOptimizerContext context, [NotNullWhen(true)] ExpressionSyntax? expression)
 	{
@@ -837,8 +836,8 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	}
 
 	/// <summary>
-	/// Combines two lambdas by composing them: outer(inner(x)) => x => outer(inner(x)).
-	/// The outer lambda's parameter is replaced by the inner lambda's body.
+	///   Combines two lambdas by composing them: outer(inner(x)) => x => outer(inner(x)).
+	///   The outer lambda's parameter is replaced by the inner lambda's body.
 	/// </summary>
 	protected LambdaExpressionSyntax CombineLambdas(LambdaExpressionSyntax outer, LambdaExpressionSyntax inner)
 	{
@@ -879,7 +878,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	}
 
 	/// <summary>
-	/// Checks if the given expression is Enumerable.Empty&lt;T&gt;() or [].
+	///   Checks if the given expression is Enumerable.Empty&lt;T&gt;() or [].
 	/// </summary>
 	protected bool IsEmptyEnumerable(ExpressionSyntax expression)
 	{
@@ -900,8 +899,8 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	}
 
 	/// <summary>
-	/// Checks if two expressions are syntactically equivalent (simple text comparison).
-	/// This is a conservative check - it won't catch all semantic equivalences, but it's safe.
+	///   Checks if two expressions are syntactically equivalent (simple text comparison).
+	///   This is a conservative check - it won't catch all semantic equivalences, but it's safe.
 	/// </summary>
 	protected bool AreSyntacticallyEquivalent(ExpressionSyntax first, ExpressionSyntax second)
 	{
@@ -922,7 +921,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 			? ParenthesizedExpression(replacement)
 			: replacement;
 
-		return (ExpressionSyntax) new IdentifierReplacer(oldIdentifier, wrappedReplacement).Visit(expression);
+		return (ExpressionSyntax)new IdentifierReplacer(oldIdentifier, wrappedReplacement).Visit(expression);
 	}
 
 	protected bool TryGetValues(SyntaxNode node, [NotNullWhen(true)] out IList<object?>? values)
@@ -1253,9 +1252,9 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	}
 
 	/// <summary>
-	/// Optimizes a pairwise Min/Max scalar comparison by delegating to the corresponding Math optimizer.
-	/// Used when a LINQ Min/Max over a Concat source is reduced to a two-argument scalar call so that
-	/// Math-level optimizations (idempotency, clamp pattern, constant folding) are automatically applied.
+	///   Optimizes a pairwise Min/Max scalar comparison by delegating to the corresponding Math optimizer.
+	///   Used when a LINQ Min/Max over a Concat source is reduced to a two-argument scalar call so that
+	///   Math-level optimizations (idempotency, clamp pattern, constant folding) are automatically applied.
 	/// </summary>
 	protected ExpressionSyntax OptimizeAsMathPairwise<TOptimizer>(
 		FunctionOptimizerContext context,
@@ -1328,7 +1327,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	}
 
 	/// <summary>
-	/// Parses a struct declaration from a source code string.
+	///   Parses a struct declaration from a source code string.
 	/// </summary>
 	protected static TType ParseTypeFromString<TType>(string structString) where TType : TypeDeclarationSyntax
 	{

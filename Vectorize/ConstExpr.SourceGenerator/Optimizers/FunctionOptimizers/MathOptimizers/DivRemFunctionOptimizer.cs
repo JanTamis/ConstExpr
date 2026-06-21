@@ -31,4 +31,3 @@ public class DivRemFunctionOptimizer() : BaseMathFunctionOptimizer("DivRem", n =
 		return true;
 	}
 }
-

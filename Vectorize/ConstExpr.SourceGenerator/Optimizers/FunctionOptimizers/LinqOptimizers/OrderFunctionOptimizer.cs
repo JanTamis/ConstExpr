@@ -8,9 +8,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.Order context.Method.
-/// Optimizes patterns such as:
-/// - collection.Order().Order() => collection.Order() (redundant order)
+///   Optimizer for Enumerable.Order context.Method.
+///   Optimizes patterns such as:
+///   - collection.Order().Order() => collection.Order() (redundant order)
 /// </summary>
 public class OrderFunctionOptimizer() : BaseLinqFunctionOptimizer("Order", n => n is 0)
 {

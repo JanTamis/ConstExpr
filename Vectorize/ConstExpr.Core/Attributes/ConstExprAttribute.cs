@@ -4,21 +4,21 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Core.Attributes;
 
 /// <summary>
-/// Marks a method, constructor, or type as eligible for constant expression evaluation
-/// performed by the ConstExpr tooling or analyzers.
+///   Marks a method, constructor, or type as eligible for constant expression evaluation
+///   performed by the ConstExpr tooling or analyzers.
 /// </summary>
 /// <remarks>
-/// Applying this attribute signals that the annotated member (or all members inside an
-/// annotated type) should be considered for compile-time evaluation when possible.
-/// Use <see cref="MathOptimizations"/> to control floating-point semantics (strict vs fast).
-/// Use <see cref="Optimizations"/> to enable general code optimization passes (CSE, LICM, TRE).
-/// Use <see cref="LinqOptimization"/> to control whether LINQ calls are folded, unrolled,
-/// or left unchanged.
-/// Use <see cref="MaxUnrollIterations"/> to cap the number of loop iterations that may be unrolled.
+///   Applying this attribute signals that the annotated member (or all members inside an
+///   annotated type) should be considered for compile-time evaluation when possible.
+///   Use <see cref="MathOptimizations" /> to control floating-point semantics (strict vs fast).
+///   Use <see cref="Optimizations" /> to enable general code optimization passes (CSE, LICM, TRE).
+///   Use <see cref="LinqOptimization" /> to control whether LINQ calls are folded, unrolled,
+///   or left unchanged.
+///   Use <see cref="MaxUnrollIterations" /> to cap the number of loop iterations that may be unrolled.
 /// </remarks>
-/// <seealso cref="FastMathFlags"/>
-/// <seealso cref="OptimizationFlags"/>
-/// <seealso cref="LinqOptimizationMode"/>
+/// <seealso cref="FastMathFlags" />
+/// <seealso cref="OptimizationFlags" />
+/// <seealso cref="LinqOptimizationMode" />
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Class | AttributeTargets.Struct, Inherited = false)]
 public sealed class ConstExprAttribute(
 	FastMathFlags mathOptimizations = FastMathFlags.Strict,
@@ -27,13 +27,13 @@ public sealed class ConstExprAttribute(
 	OptimizationFlags optimizations = OptimizationFlags.None) : Attribute
 {
 	/// <summary>
-	/// Gets or sets the fast-math flags used during constant expression processing.
+	///   Gets or sets the fast-math flags used during constant expression processing.
 	/// </summary>
 	/// <value>
-	/// Defaults to <see cref="FastMathFlags.Strict"/> (full IEEE 754 compliance).
-	/// Use <see cref="FastMathFlags.All"/> to enable all floating-point relaxations at once,
-	/// or combine individual <see cref="FastMathFlags"/> values for fine-grained control.
-	/// For general code optimization passes (CSE, LICM, TRE) see <see cref="Optimizations"/>.
+	///   Defaults to <see cref="FastMathFlags.Strict" /> (full IEEE 754 compliance).
+	///   Use <see cref="FastMathFlags.All" /> to enable all floating-point relaxations at once,
+	///   or combine individual <see cref="FastMathFlags" /> values for fine-grained control.
+	///   For general code optimization passes (CSE, LICM, TRE) see <see cref="Optimizations" />.
 	/// </value>
 	public FastMathFlags MathOptimizations { get; set; } = mathOptimizations;
 
@@ -69,25 +69,35 @@ public sealed class ConstExprAttribute(
 	public OptimizationFlags Optimizations { get; set; } = optimizations;
 
 	/// <summary>
-	/// Gets or sets the maximum number of loop iterations to unroll during constant expression evaluation.
+	///   Gets or sets the maximum number of loop iterations to unroll during constant expression evaluation.
 	/// </summary>
 	/// <value>
-	/// Defaults to 32. Set to 0 to disable loop unrolling entirely.
+	///   Defaults to 32. Set to 0 to disable loop unrolling entirely.
 	/// </value>
 	public uint MaxUnrollIterations { get; set; } = maxUnrollIterations;
 
 	/// <summary>
-	/// Gets or sets how LINQ method calls are handled during constant expression evaluation.
+	///   Gets or sets how LINQ method calls are handled during constant expression evaluation.
 	/// </summary>
 	/// <value>
-	/// Defaults to <see cref="LinqOptimizationMode.Optimize"/>.
-	/// <list type="bullet">
-	///   <item><description><see cref="LinqOptimizationMode.None"/> — LINQ calls are left as-is.</description></item>
-	///   <item><description><see cref="LinqOptimizationMode.Optimize"/> — LINQ calls on constant collections
-	///     are folded to literals where possible.</description></item>
-	///   <item><description><see cref="LinqOptimizationMode.Unroll"/> — LINQ chains are additionally unrolled
-	///     into imperative code via <c>LinqUnroller</c>.</description></item>
-	/// </list>
+	///   Defaults to <see cref="LinqOptimizationMode.Optimize" />.
+	///   <list type="bullet">
+	///     <item>
+	///       <description><see cref="LinqOptimizationMode.None" /> — LINQ calls are left as-is.</description>
+	///     </item>
+	///     <item>
+	///       <description>
+	///         <see cref="LinqOptimizationMode.Optimize" /> — LINQ calls on constant collections
+	///         are folded to literals where possible.
+	///       </description>
+	///     </item>
+	///     <item>
+	///       <description>
+	///         <see cref="LinqOptimizationMode.Unroll" /> — LINQ chains are additionally unrolled
+	///         into imperative code via <c>LinqUnroller</c>.
+	///       </description>
+	///     </item>
+	///   </list>
 	/// </value>
 	public LinqOptimizationMode LinqOptimization { get; set; } = linqOptimization;
 }

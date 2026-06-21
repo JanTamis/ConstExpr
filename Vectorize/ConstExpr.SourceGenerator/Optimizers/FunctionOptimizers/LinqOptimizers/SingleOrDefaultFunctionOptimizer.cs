@@ -9,11 +9,11 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.SingleOrDefault context.Method.
-/// Optimizes patterns such as:
-/// - collection.Where(predicate).SingleOrDefault() => collection.SingleOrDefault(predicate)
-/// - collection.AsEnumerable().SingleOrDefault() => collection.SingleOrDefault()
-/// - collection.ToList().SingleOrDefault() => collection.SingleOrDefault()
+///   Optimizer for Enumerable.SingleOrDefault context.Method.
+///   Optimizes patterns such as:
+///   - collection.Where(predicate).SingleOrDefault() => collection.SingleOrDefault(predicate)
+///   - collection.AsEnumerable().SingleOrDefault() => collection.SingleOrDefault()
+///   - collection.ToList().SingleOrDefault() => collection.SingleOrDefault()
 /// </summary>
 public class SingleOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerable.SingleOrDefault), n => n is 0 or 1)
 {

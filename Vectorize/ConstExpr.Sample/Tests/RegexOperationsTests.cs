@@ -8,7 +8,7 @@ internal partial class RegexOperationsTests
 {
 	[GeneratedRegex(@"^[a-zA-Z_]\w*$")]
 	private static partial Regex NumberRegex();
-		
+
 	public static void RunTests(string varString, int varInt)
 	{
 		Console.WriteLine("??? REGEX OPERATIONS ???\n");
@@ -23,7 +23,7 @@ internal partial class RegexOperationsTests
 		// CountSubstringMatches - alleen constanten
 		Console.WriteLine($"[CONST] CountSubstringMatches(\"abcabcabc\", \"abc\"): {RegexOperations.CountSubstringMatches("abcabcabc", "abc")}");
 		Console.WriteLine($"[CONST] CountSubstringMatches(\"Mississippi\", \"ss\"): {RegexOperations.CountSubstringMatches("Mississippi", "ss")}");
-		
+
 		// CountSubstringMatches - mixed
 		Console.WriteLine($"[MIXED] CountSubstringMatches(varString, \"Test\"): {RegexOperations.CountSubstringMatches(varString, "Test")}");
 
@@ -52,7 +52,7 @@ internal partial class RegexOperationsTests
 		Console.WriteLine($"[CONST] CountDigitGroups(\"abc123def456\"): {RegexOperations.CountDigitGroups("abc123def456")}");
 		Console.WriteLine($"[CONST] CountDigitGroups(\"hello\"): {RegexOperations.CountDigitGroups("hello")}");
 		Console.WriteLine($"[CONST] CountDigitGroups(\"1 plus 2 equals 3\"): {RegexOperations.CountDigitGroups("1 plus 2 equals 3")}");
-		
+
 		// CountDigitGroups - mixed
 		Console.WriteLine($"[MIXED] CountDigitGroups(varString): {RegexOperations.CountDigitGroups(varString)}");
 

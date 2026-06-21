@@ -10,6 +10,6 @@ public class DivideZeroByNonZeroTest : BaseTest<Func<int, int>>
 	[
 		Create(_ => 0),
 		Create(_ => 0, [ 7 ]),
-		Create(_ => 0, [ -2 ]),
+		Create(_ => 0, [ -2 ])
 	];
 }

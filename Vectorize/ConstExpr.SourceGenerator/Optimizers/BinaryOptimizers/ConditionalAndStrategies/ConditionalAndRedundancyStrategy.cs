@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalAndStrategies;
 
 /// <summary>
-/// Strategy for redundancy elimination: (a && b) && a => a && b (already covered, pure)
+///   Strategy for redundancy elimination: (a && b) && a => a && b (already covered, pure)
 /// </summary>
 public class ConditionalAndRedundancyStrategy() : SymmetricStrategy<BooleanBinaryStrategy, ExpressionSyntax, BinaryExpressionSyntax>(rightKind: SyntaxKind.LogicalAndExpression)
 {

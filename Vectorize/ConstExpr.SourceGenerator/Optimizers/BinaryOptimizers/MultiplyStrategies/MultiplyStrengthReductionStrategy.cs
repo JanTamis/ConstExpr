@@ -1,15 +1,14 @@
 using System;
 using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.MultiplyStrategies;
 
 /// <summary>
-/// Strategy for strength reduction: x * C => use (x &lt;&lt; n) +/- x when applicable
-/// e.g. 3 => (x &lt;&lt; 1) + x, 5 => (x &lt;&lt; 2) + x, 7 => (x &lt;&lt; 3) - x, 9 => (x &lt;&lt; 3) + x
-/// Safe under Strict (integer arithmetic).
+///   Strategy for strength reduction: x * C => use (x &lt;&lt; n) +/- x when applicable
+///   e.g. 3 => (x &lt;&lt; 1) + x, 5 => (x &lt;&lt; 2) + x, 7 => (x &lt;&lt; 3) - x, 9 => (x &lt;&lt; 3) + x
+///   Safe under Strict (integer arithmetic).
 /// </summary>
 public class MultiplyStrengthReductionStrategy : SymmetricStrategy<IntegerBinaryStrategy, ExpressionSyntax, LiteralExpressionSyntax>
 {
@@ -66,11 +65,11 @@ public class MultiplyStrengthReductionStrategy : SymmetricStrategy<IntegerBinary
 	private static uint RoundDownToPowerOf2(uint value)
 	{
 		if (value == 0)
-    {
-      return 0;
-    }
+		{
+			return 0;
+		}
 
-    value |= value >> 1;
+		value |= value >> 1;
 		value |= value >> 2;
 		value |= value >> 4;
 		value |= value >> 8;
@@ -81,12 +80,13 @@ public class MultiplyStrengthReductionStrategy : SymmetricStrategy<IntegerBinary
 	private static bool TryGetUInt(object? value, out uint result)
 	{
 		result = 0;
-		if (value == null)
-    {
-      return false;
-    }
 
-    try
+		if (value == null)
+		{
+			return false;
+		}
+
+		try
 		{
 			result = Convert.ToUInt32(value);
 			return true;
@@ -100,6 +100,7 @@ public class MultiplyStrengthReductionStrategy : SymmetricStrategy<IntegerBinary
 	private static int Log2(uint v)
 	{
 		var n = 0;
+
 		while (v > 1)
 		{
 			v >>= 1;

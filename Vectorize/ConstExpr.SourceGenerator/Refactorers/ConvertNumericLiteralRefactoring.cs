@@ -10,15 +10,14 @@ namespace ConstExpr.SourceGenerator.Refactorers;
 using static SyntaxFactory;
 
 /// <summary>
-/// Refactorer that converts numeric literals between decimal, hexadecimal, and binary forms.
-/// Inspired by the Roslyn <c>ConvertNumericLiteralCodeRefactoringProvider</c>.
-///
-/// <list type="bullet">
-///   <item>Decimal → hex:    <c>255</c>  →  <c>0xFF</c></item>
-///   <item>Decimal → binary: <c>255</c>  →  <c>0b11111111</c></item>
-///   <item>Hex → decimal:    <c>0xFF</c>  →  <c>255</c></item>
-///   <item>Binary → decimal: <c>0b11111111</c>  →  <c>255</c></item>
-/// </list>
+///   Refactorer that converts numeric literals between decimal, hexadecimal, and binary forms.
+///   Inspired by the Roslyn <c>ConvertNumericLiteralCodeRefactoringProvider</c>.
+///   <list type="bullet">
+///     <item>Decimal → hex:    <c>255</c>  →  <c>0xFF</c></item>
+///     <item>Decimal → binary: <c>255</c>  →  <c>0b11111111</c></item>
+///     <item>Hex → decimal:    <c>0xFF</c>  →  <c>255</c></item>
+///     <item>Binary → decimal: <c>0b11111111</c>  →  <c>255</c></item>
+///   </list>
 /// </summary>
 public static class ConvertNumericLiteralRefactoring
 {
@@ -28,7 +27,7 @@ public static class ConvertNumericLiteralRefactoring
 	private const string BinaryPrefixUpper = "0B";
 
 	/// <summary>
-	/// Converts a numeric literal to its hexadecimal representation.
+	///   Converts a numeric literal to its hexadecimal representation.
 	/// </summary>
 	public static bool TryConvertToHex(
 		LiteralExpressionSyntax literal,
@@ -62,7 +61,7 @@ public static class ConvertNumericLiteralRefactoring
 	}
 
 	/// <summary>
-	/// Converts a numeric literal to its binary representation.
+	///   Converts a numeric literal to its binary representation.
 	/// </summary>
 	public static bool TryConvertToBinary(
 		LiteralExpressionSyntax literal,
@@ -96,7 +95,7 @@ public static class ConvertNumericLiteralRefactoring
 	}
 
 	/// <summary>
-	/// Converts a numeric literal to its decimal representation.
+	///   Converts a numeric literal to its decimal representation.
 	/// </summary>
 	public static bool TryConvertToDecimal(
 		LiteralExpressionSyntax literal,
@@ -112,7 +111,7 @@ public static class ConvertNumericLiteralRefactoring
 		var text = literal.Token.Text;
 
 		// Already decimal (no prefix)
-		if (!text.StartsWith(HexPrefix, StringComparison.OrdinalIgnoreCase) 
+		if (!text.StartsWith(HexPrefix, StringComparison.OrdinalIgnoreCase)
 		    && !text.StartsWith(BinaryPrefix, StringComparison.OrdinalIgnoreCase))
 		{
 			return false;
@@ -156,7 +155,7 @@ public static class ConvertNumericLiteralRefactoring
 				return true;
 			}
 			// Only convert if it fits in long
-			case ulong ul and <= long.MaxValue:
+			case ulong ul and <= Int64.MaxValue:
 			{
 				value = (long)ul;
 				return true;
@@ -193,25 +192,25 @@ public static class ConvertNumericLiteralRefactoring
 	}
 
 	/// <summary>
-	/// Extracts the type suffix (L, UL, U, etc.) from the literal text.
+	///   Extracts the type suffix (L, UL, U, etc.) from the literal text.
 	/// </summary>
 	private static string GetSuffix(string text)
 	{
 		// Remove underscores for analysis
-		var clean = text.Replace("_", "");
+		var clean = text.Replace("_", String.Empty);
 		var i = clean.Length - 1;
 
-		while (i >= 0 && char.IsLetter(clean[i]) && !IsHexDigit(clean[i]))
+		while (i >= 0 && Char.IsLetter(clean[i]) && !IsHexDigit(clean[i]))
 		{
 			i--;
 		}
 
-		return i < clean.Length - 1 ? clean[(i + 1)..] : "";
+		return i < clean.Length - 1 ? clean[(i + 1)..] : String.Empty;
 	}
 
 	private static bool IsHexDigit(char c)
 	{
-		return c is (>= 'a' and <= 'f') or (>= 'A' and <= 'F');
+		return c is >= 'a' and <= 'f' or >= 'A' and <= 'F';
 	}
 
 	private static LiteralExpressionSyntax CreateLiteral(
@@ -250,4 +249,3 @@ public static class ConvertNumericLiteralRefactoring
 		return LiteralExpression(SyntaxKind.NumericLiteralExpression, token);
 	}
 }
-

@@ -3,8 +3,9 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
-/// Tests for ElementAtOrDefault() optimization - verify that unnecessary operations before ElementAtOrDefault() are removed
-/// Note: ElementAtOrDefault cannot be optimized to direct indexing because it returns default instead of throwing
+///   Tests for ElementAtOrDefault() optimization - verify that unnecessary operations before ElementAtOrDefault() are
+///   removed
+///   Note: ElementAtOrDefault cannot be optimized to direct indexing because it returns default instead of throwing
 /// </summary>
 [InheritsTests]
 public class LinqElementAtOrDefaultOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
@@ -43,6 +44,6 @@ public class LinqElementAtOrDefaultOptimizationTests() : BaseTest<Func<int[], in
 		Create(x => (x.Length > 0 ? x[0] * 2 : 0) + (x.Length > 1 ? x[1] * 2 : 0) + (x.Length > 2 ? x[2] * 2 : 0) + (x.Length > 10 ? x[10] : 0) + (x.Length > 3 ? x[3] : 0)),
 		Create(_ => 16, [ new[] { 1, 2, 3, 4, 5 } ]), // 1 + 2 + 3 + 1 + 2 + 3 + 0 + 4 = 16
 		Create(_ => 0, [ System.Array.Empty<int>() ]), // All return 0 (default)
-		Create(_ => 0, [ new[] { 0, 0, 0, 0, 0 } ]),
+		Create(_ => 0, [ new[] { 0, 0, 0, 0, 0 } ])
 	];
 }

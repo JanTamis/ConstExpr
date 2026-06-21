@@ -47,6 +47,6 @@ public class CharCountTest() : BaseTest<Func<string?, char, int>>(FastMathFlags.
 			"""),
 		Create((_, _) => 3, [ "ababa", 'a' ]),
 		Create((_, _) => 2, [ "aaXXa", 'X' ]),
-		Create((_, _) => 0, [ "", 'a' ])
+		Create((_, _) => 0, [ System.String.Empty, 'a' ])
 	];
 }

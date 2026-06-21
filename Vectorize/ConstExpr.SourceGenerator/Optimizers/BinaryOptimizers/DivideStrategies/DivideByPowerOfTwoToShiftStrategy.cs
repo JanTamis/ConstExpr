@@ -2,14 +2,14 @@ using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies;
 
 /// <summary>
-/// Strategy for division by power of two: x / (2^n) => x >> n (for unsigned) or (x + ((x >> (bitSize - 1)) & (2^n - 1))) >> n (for signed)
-/// Safe under Strict (integer arithmetic identity).
+///   Strategy for division by power of two: x / (2^n) => x >> n (for unsigned) or (x + ((x >> (bitSize - 1)) & (2^n - 1)))
+///   >> n (for signed)
+///   Safe under Strict (integer arithmetic identity).
 /// </summary>
 public class DivideByPowerOfTwoToShiftStrategy : IntegerBinaryStrategy<ExpressionSyntax, LiteralExpressionSyntax>
 {
@@ -19,12 +19,12 @@ public class DivideByPowerOfTwoToShiftStrategy : IntegerBinaryStrategy<Expressio
 	{
 		if (!base.TryOptimize(context, out optimized)
 		    || !context.Right.Syntax.IsNumericPowerOfTwo(out var power))
-    {
-      return false;
-    }
+		{
+			return false;
+		}
 
-    var isPositive = IsPositive(context, context.Left.Syntax);
-		
+		var isPositive = IsPositive(context, context.Left.Syntax);
+
 		if (context.Type.IsUnsignedInteger() || isPositive)
 		{
 			optimized = RightShiftExpression(context.Left.Syntax, CreateLiteral(power));
@@ -70,7 +70,7 @@ public class DivideByPowerOfTwoToShiftStrategy : IntegerBinaryStrategy<Expressio
 			// (x + ((x >> (bitSize - 1)) & (2^n - 1))) >> n
 			optimized = RightShiftExpression(ParenthesizedExpression(adjusted), CreateLiteral(power));
 		}
-		
+
 		return true;
 	}
 

@@ -7,10 +7,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
 /// <summary>
-/// Optimizer for Enumerable.DistinctBy context.Method.
-/// Optimizes patterns such as:
-/// - collection.DistinctBy(x => x) => collection.Distinct() (identity key selector)
-/// - Enumerable.Empty&lt;T&gt;().DistinctBy(selector) => Enumerable.Empty&lt;T&gt;()
+///   Optimizer for Enumerable.DistinctBy context.Method.
+///   Optimizes patterns such as:
+///   - collection.DistinctBy(x => x) => collection.Distinct() (identity key selector)
+///   - Enumerable.Empty&lt;T&gt;().DistinctBy(selector) => Enumerable.Empty&lt;T&gt;()
 /// </summary>
 public class DistinctByFunctionOptimizer() : BaseLinqFunctionOptimizer("DistinctBy", n => n is 1)
 {
