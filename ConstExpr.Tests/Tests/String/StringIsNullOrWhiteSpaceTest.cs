@@ -9,7 +9,7 @@ public class StringIsNullOrWhiteSpaceTest() : BaseTest<Func<string, bool>>(FastM
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		CreateDefault(),
+		Create(s => string.IsNullOrWhiteSpace(s)),
 		Create(_ => true, [ System.String.Empty ]),
 		Create(_ => true, [ "   " ]),
 		Create(_ => false, [ "hello" ]),

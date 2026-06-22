@@ -12,6 +12,6 @@ public class ToUpperCaseTest() : BaseTest<Func<string, string>>(FastMathFlags.Al
 		CreateDefault(),
 		Create(_ => "HELLO", [ "hello" ]),
 		Create(_ => "WORLD123", [ "WoRlD123" ]),
-		Create(_ => System.String.Empty, [ System.String.Empty ])
+		Create(_ => "", [ System.String.Empty ])
 	];
 }

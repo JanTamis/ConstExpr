@@ -21,13 +21,13 @@ public class VisitMemberAccessExpressionTests : BaseTest<Func<string, bool, (int
 	[
 		Create((s, useEmpty) =>
 		{
-			var target = useEmpty ? System.String.Empty : s;
+			var target = useEmpty ? "" : s;
 
-			return (target.Length, 5, System.String.Empty, target == System.String.Empty);
+			return (target.Length, 5, "", target == "");
 		}),
-		Create((_, _) => (5, 5, System.String.Empty, false), [ "hello", false ]),
-		Create((_, _) => (0, 5, System.String.Empty, true), [ "ignored", true ]),
-		Create((_, _) => (3, 5, System.String.Empty, false), [ "cat", false ]),
-		Create((_, _) => (0, 5, System.String.Empty, true), [ System.String.Empty, true ])
+		Create((_, _) => (5, 5, "", false), [ "hello", false ]),
+		Create((_, _) => (0, 5, "", true), [ "ignored", true ]),
+		Create((_, _) => (3, 5, "", false), [ "cat", false ]),
+		Create((_, _) => (0, 5, "", true), [ System.String.Empty, true ])
 	];
 }

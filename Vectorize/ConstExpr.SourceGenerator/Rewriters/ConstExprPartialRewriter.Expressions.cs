@@ -163,7 +163,17 @@ public partial class ConstExprPartialRewriter
 
 				if (TryOptimizeBinaryExpression(operation, expressions, leftExpr, rightExpr, node.Parent, out var optimized))
 				{
-					return Visit(optimized);
+					var visited = Visit(optimized);
+
+					// Strip outer parens around BinaryExpression results when not used as a sub-expression.
+					// When used as a sub-expression (parent is ExpressionSyntax), keep them to preserve precedence.
+					if (visited is ParenthesizedExpressionSyntax outer
+					    && outer.Expression is BinaryExpressionSyntax
+					    && node.Parent is not ExpressionSyntax)
+					{
+						return outer.Expression;
+					}
+					return visited;
 				}
 
 				return node

@@ -28,7 +28,7 @@ public class ReverseStringTest() : BaseTest<Func<string, string>>(FastMathFlags.
 	[
 		CreateDefault(),
 		Create(_ => "olleh", [ "hello" ]),
-		Create(_ => System.String.Empty, [ System.String.Empty ]),
+		Create(_ => "", [ System.String.Empty ]),
 		Create(_ => "a", [ "a" ])
 	];
 }
