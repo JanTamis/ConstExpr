@@ -396,6 +396,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			var result = TryFullyEvaluateMethod(model, loader, methodSymbol, variablesPartial, token, methodDecl)
 			             ?? partialVisitor.VisitBlock(methodDecl.Body); // partialVisitor.VisitBlock(blockOperation.BlockBody!, variablesPartial);
 			var result2 = DeadCodePruner.Prune(result, variablesPartial, semanticModel);
+			result2 = ExceptionGuardSimplifier.Simplify(result2);
 
 			if (attribute.Optimizations.HasFlag(OptimizationFlags.CommonSubexpressionElimination))
 			{

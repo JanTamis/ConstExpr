@@ -220,6 +220,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		}
 
 		newBody = DeadCodePruner.Prune(newBody, parameters, state.SemanticModel) as BlockSyntax;
+		newBody = ExceptionGuardSimplifier.Simplify(newBody!) as BlockSyntax;
 
 		if (attribute.Optimizations.HasFlag(OptimizationFlags.CommonSubexpressionElimination))
 		{
