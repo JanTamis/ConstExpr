@@ -112,7 +112,7 @@ public static class ObjectExtensions
 			{
 				if (operation == (Func<Expression, Expression, BinaryExpression>)Expression.Add)
 				{
-					return left + right;
+					return String.Concat(left, right);
 				}
 
 				return null;
