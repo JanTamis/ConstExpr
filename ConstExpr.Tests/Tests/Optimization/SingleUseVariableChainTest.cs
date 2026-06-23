@@ -1,10 +1,12 @@
+using ConstExpr.Core.Enumerators;
+
 namespace ConstExpr.Tests.Optimization;
 
 /// <summary>
 ///   Tests chained single-use variable inlining.
 /// </summary>
 [InheritsTests]
-public class SingleUseVariableChainTest : BaseTest<Func<int, int>>
+public class SingleUseVariableChainTest() : BaseTest<Func<int, int>>(FastMathFlags.All)
 {
 	/// <summary>
 	///   var a = n + 1; var b = a * 2; return b;

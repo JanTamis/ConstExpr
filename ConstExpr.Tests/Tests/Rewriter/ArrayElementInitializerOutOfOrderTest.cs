@@ -10,13 +10,12 @@ public class ArrayElementInitializerOutOfOrderTest : BaseTest<Func<int[], int[]>
 {
 	public override string TestMethod => GetString(numbers =>
 	{
-		var result = new int[3];
-
-		result[0] = numbers[0];
-		result[2] = numbers[2];
-		result[1] = numbers[1];
-
-		return result;
+		return new[]
+		{
+			numbers[0],
+			numbers[1],
+			numbers[2]
+		};
 	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>

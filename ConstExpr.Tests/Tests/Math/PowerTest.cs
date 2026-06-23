@@ -52,9 +52,7 @@ public class PowerTest() : BaseTest<Func<int, int, long>>(FastMathFlags.All, opt
 			while (exponent > 0)
 			{
 				if (Int32.IsOddInteger(exponent))
-				{
 					result *= base64;
-				}
 
 				base64 *= base64;
 				exponent >>= 1;

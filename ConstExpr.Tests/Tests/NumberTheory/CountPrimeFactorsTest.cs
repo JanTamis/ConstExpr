@@ -49,9 +49,7 @@ public class CountPrimeFactorsTest() : BaseTest<Func<int, int>>(FastMathFlags.Al
 			}
 
 			if (num > 1)
-			{
 				count++;
-			}
 
 			return count;
 			"""),

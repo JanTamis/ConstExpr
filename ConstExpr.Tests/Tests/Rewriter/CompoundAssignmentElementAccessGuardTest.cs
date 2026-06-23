@@ -35,7 +35,7 @@ public class CompoundAssignmentElementAccessMatchTest : BaseTest<Func<int[], int
 {
 	public override string TestMethod => GetString((result, numbers) =>
 	{
-		result[1] = result[1] + numbers[1];
+		result[1] += numbers[1];
 
 		return result;
 	});

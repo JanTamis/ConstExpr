@@ -58,8 +58,10 @@ public sealed class ExceptionGuardSimplifier : CSharpSyntaxRewriter
 		switch (expression)
 		{
 			case ParenthesizedExpressionSyntax paren:
+			{
 				CollectGateFacts(paren.Expression, facts);
 				break;
+			}
 			case BinaryExpressionSyntax
 			{
 				RawKind: (int)SyntaxKind.AddExpression
@@ -68,15 +70,21 @@ public sealed class ExceptionGuardSimplifier : CSharpSyntaxRewriter
 				or (int)SyntaxKind.DivideExpression
 				or (int)SyntaxKind.ModuloExpression
 			} binary:
+			{
 				CollectGateFacts(binary.Left, facts);
 				CollectGateFacts(binary.Right, facts);
 				break;
+			}
 			case ConditionalExpressionSyntax { WhenFalse: ThrowExpressionSyntax } gate:
+			{
 				facts.Add(Unwrap(gate.Condition));
 				break;
+			}
 			case ConditionalExpressionSyntax { WhenTrue: ThrowExpressionSyntax } gate:
+			{
 				facts.Add(Negate(Unwrap(gate.Condition)));
 				break;
+			}
 		}
 	}
 
@@ -167,7 +175,9 @@ public sealed class ExceptionGuardSimplifier : CSharpSyntaxRewriter
 			switch (condition)
 			{
 				case ParenthesizedExpressionSyntax paren:
+				{
 					return FoldCondition(paren.Expression);
+				}
 
 				case BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LogicalAndExpression } and:
 				{
@@ -188,6 +198,7 @@ public sealed class ExceptionGuardSimplifier : CSharpSyntaxRewriter
 					{
 						return left;
 					}
+
 					return and.WithLeft(left).WithRight(right);
 				}
 
@@ -227,6 +238,7 @@ public sealed class ExceptionGuardSimplifier : CSharpSyntaxRewriter
 					{
 						return CreateLiteral(true);
 					}
+
 					return not.WithOperand(operand);
 				}
 			}
@@ -276,7 +288,7 @@ public sealed class ExceptionGuardSimplifier : CSharpSyntaxRewriter
 
 		private static bool IsBool(ExpressionSyntax expression, bool value)
 		{
-			return expression.RawKind == (int)(value ? SyntaxKind.TrueLiteralExpression : SyntaxKind.FalseLiteralExpression);
+			return expression.IsKind(value ? SyntaxKind.TrueLiteralExpression : SyntaxKind.FalseLiteralExpression);
 		}
 	}
 }

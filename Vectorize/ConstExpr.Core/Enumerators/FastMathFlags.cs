@@ -82,5 +82,5 @@ public enum FastMathFlags
 	///   <see cref="NoSignedZero" />, <see cref="ReciprocalMath" />, <see cref="RoundToNearest" />.
 	/// </summary>
 	All = AssociativeMath | NoNaN | NoInfinity | NoSignedZero
-	      | ReciprocalMath | RoundToNearest | FusedMultiplyAdd | MagicNumberDivision
+	      | ReciprocalMath | RoundToNearest | FusedMultiplyAdd
 }

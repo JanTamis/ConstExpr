@@ -17,6 +17,7 @@ public class BetterNamesTest() : BaseTest<Func<int, int, int>>(optimizations: Op
 		Create((x, y) =>
 		{
 			var sum = x * x + y * y;
+
 			return sum + sum;
 		}),
 		Create((_, _) => 50, [ 3, 4 ])

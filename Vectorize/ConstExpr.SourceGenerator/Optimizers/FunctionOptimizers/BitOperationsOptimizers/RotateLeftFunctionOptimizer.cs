@@ -38,9 +38,12 @@ public class RotateLeftFunctionOptimizer() : BaseBitOperationsFunctionOptimizer(
 			return false;
 		}
 
+		result = null;
+		return false;
+
 		// (value << offset) | (value >> (bitWidth - offset))
-		result = BuildRotate(value, offset, bitWidth, true);
-		return true;
+		// result = BuildRotate(value, offset, bitWidth, true);
+		// return true;
 	}
 
 	internal static ExpressionSyntax BuildRotate(ExpressionSyntax value, ExpressionSyntax offset, int bitWidth, bool left)

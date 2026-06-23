@@ -1313,8 +1313,7 @@ public partial class ConstExprPartialRewriter
 			SingletonList(rankSpecifier.WithSizes(
 				SingletonSeparatedList<ExpressionSyntax>(OmittedArraySizeExpression()))));
 
-		// Emit a trailing comma after the last element, matching the conventional collection-initializer layout.
-		var elementList = SeparatedList(elements, Enumerable.Repeat(Token(SyntaxKind.CommaToken), elements.Count));
+		var elementList = SeparatedList(elements);
 
 		var newArrayCreation = ImplicitArrayCreationExpression(InitializerExpression(SyntaxKind.ArrayInitializerExpression, elementList));
 		var newDeclarator = declarator.WithInitializer(EqualsValueClause(newArrayCreation));

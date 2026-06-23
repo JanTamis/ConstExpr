@@ -3,14 +3,14 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Arithmetic;
 
 [InheritsTests]
-public class ReverseNumberTest() : BaseTest<Func<int, int>>(FastMathFlags.All | FastMathFlags.MagicNumberDivision, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
+public class ReverseNumberTest() : BaseTest<Func<int, int>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
 {
 	public override string TestMethod => GetString(n =>
 	{
 		var originalN = n;
-		n = System.Math.Abs(n);
-
 		var reversed = 0;
+
+		n = System.Math.Abs(n);
 
 		while (n > 0)
 		{
@@ -25,15 +25,14 @@ public class ReverseNumberTest() : BaseTest<Func<int, int>>(FastMathFlags.All | 
 	[
 		Create("""
 			var originalN = n;
+			var reversed = 0;
 
 			n = AbsFast(n);
 
-			var reversed = 0;
-
 			while (n > 0)
 			{
-				reversed = reversed * 10 + n - (((int)(n * 1717986919L >> 32) >> 2) - (n >> 31)) * 10;
-				n = ((int)(n * 1717986919L >> 32) >> 2) - (n >> 31);
+				reversed = reversed * 10 + n % 10;
+				n /= 10;
 			}
 
 			return CopySignFast(reversed, originalN);

@@ -28,6 +28,7 @@ public class NestedCommonSubexpressionEliminationTest() : BaseTest<Func<int, int
 			if (x > 0)
 			{
 				var sum = x * x * x + 1;
+
 				result = sum * sum;
 			}
 

@@ -36,8 +36,11 @@ public class RotateRightFunctionOptimizer() : BaseBitOperationsFunctionOptimizer
 			return false;
 		}
 
+		result = null;
+		return false;
+
 		// (value >> offset) | (value << (bitWidth - offset))
-		result = RotateLeftFunctionOptimizer.BuildRotate(value, offset, bitWidth, false);
-		return true;
+		// result = RotateLeftFunctionOptimizer.BuildRotate(value, offset, bitWidth, false);
+		// return true;
 	}
 }
