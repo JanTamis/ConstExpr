@@ -31,7 +31,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.RegexOptimizer
 ///   </list>
 ///   The <c>input</c> and <c>replacement</c>/<c>evaluator</c> arguments may be runtime values.
 /// </summary>
-public class ReplaceFunctionOptimizer() : BaseRegexFunctionOptimizer("Replace", n => n is 3 or 4)
+public class ReplaceFunctionOptimizer() : BaseRegexFunctionOptimizer("Replace", n => n is 3 or 4 or 5)
 {
 	protected override bool TryOptimizeRegex(FunctionOptimizerContext context, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -41,20 +41,21 @@ public class ReplaceFunctionOptimizer() : BaseRegexFunctionOptimizer("Replace", 
 
 		// Pattern (param[1]) must be a compile-time constant.
 		if (!TryGetLiteralValue(context.VisitedParameters[1], context, out _))
-		{
 			return false;
-		}
 
-		// For 4-argument overloads the options (param[3]) must also be constant.
-		if (context.VisitedParameters.Count == 4 && !TryGetLiteralValue(context.VisitedParameters[3], context, out _))
-		{
+		// For 4+ argument overloads the options (param[3]) must also be constant.
+		if (context.VisitedParameters.Count >= 4 && !TryGetLiteralValue(context.VisitedParameters[3], context, out _))
 			return false;
-		}
 
-		// Collect the constructor arguments for the cached Regex: pattern + optional options.
-		var ctorArgs = context.VisitedParameters.Count == 4
-			? new List<ExpressionSyntax> { context.VisitedParameters[1], context.VisitedParameters[3] }
-			: new List<ExpressionSyntax> { context.VisitedParameters[1] };
+		// Timeout (param[4] for 5-arg overloads) passes through — goes straight into the Regex constructor.
+
+		// Collect the constructor arguments for the cached Regex: pattern + optional options + optional timeout.
+		var ctorArgs = context.VisitedParameters.Count switch
+		{
+			3 => new List<ExpressionSyntax> { context.VisitedParameters[1] },
+			4 => new List<ExpressionSyntax> { context.VisitedParameters[1], context.VisitedParameters[3] },
+			_ => new List<ExpressionSyntax> { context.VisitedParameters[1], context.VisitedParameters[3], context.VisitedParameters[4] }
+		};
 
 		// Build a deterministic field name from the constant constructor arguments.
 		var patternKey = String.Concat(

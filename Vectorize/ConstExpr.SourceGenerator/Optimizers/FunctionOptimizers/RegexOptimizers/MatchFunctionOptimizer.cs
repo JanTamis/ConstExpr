@@ -14,7 +14,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.RegexOptimizer
 ///   by caching a compiled <see cref="Regex" /> instance as a private static readonly field and
 ///   replacing the static call with the equivalent instance method call.
 /// </summary>
-public class MatchFunctionOptimizer() : BaseRegexFunctionOptimizer("Match", n => n is 2 or 3)
+public class MatchFunctionOptimizer() : BaseRegexFunctionOptimizer("Match", n => n is 2 or 3 or 4)
 {
 	protected override bool TryOptimizeRegex(FunctionOptimizerContext context, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -22,20 +22,15 @@ public class MatchFunctionOptimizer() : BaseRegexFunctionOptimizer("Match", n =>
 
 		context.Usings.Add("System.Text.RegularExpressions");
 
-		// Pattern (and optional options) must be constant; only input may be a runtime value.
+		// Pattern must be a compile-time constant.
 		if (!TryGetLiteralValue(context.VisitedParameters[1], context, out _))
-		{
 			return false;
-		}
 
-		var literalParameterCount = context.VisitedParameters
-			.Skip(1)
-			.Count(x => TryGetLiteralValue(x, context, out _));
-
-		if (literalParameterCount != context.VisitedParameters.Count - 1)
-		{
+		// Options (param[2] for ≥3-arg overloads) must also be constant.
+		if (context.VisitedParameters.Count >= 3 && !TryGetLiteralValue(context.VisitedParameters[2], context, out _))
 			return false;
-		}
+
+		// Timeout (param[3] for 4-arg overloads) passes through — goes straight into the Regex constructor.
 
 		// Build a deterministic field name from the constant constructor arguments.
 		var patternKey = String.Concat(

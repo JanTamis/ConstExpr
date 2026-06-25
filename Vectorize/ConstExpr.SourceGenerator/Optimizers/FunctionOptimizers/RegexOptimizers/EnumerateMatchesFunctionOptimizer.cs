@@ -10,11 +10,14 @@ using Microsoft.CodeAnalysis.CSharp;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.RegexOptimizers;
 
 /// <summary>
-///   Optimizes <c>Regex.Split(input, pattern)</c> and <c>Regex.Split(input, pattern, options)</c>
+///   Optimizes <c>Regex.EnumerateMatches(input, pattern)</c>,
+///   <c>Regex.EnumerateMatches(input, pattern, options)</c>, and
+///   <c>Regex.EnumerateMatches(input, pattern, options, timeout)</c>
 ///   by caching a compiled <see cref="Regex" /> instance as a private static readonly field and
 ///   replacing the static call with the equivalent instance method call.
+///   Returns a <c>ValueMatchEnumerator</c> (zero-alloc struct enumerator).
 /// </summary>
-public class SplitFunctionOptimizer() : BaseRegexFunctionOptimizer("Split", n => n is 2 or 3 or 4)
+public class EnumerateMatchesFunctionOptimizer() : BaseRegexFunctionOptimizer("EnumerateMatches", n => n is 2 or 3 or 4)
 {
 	protected override bool TryOptimizeRegex(FunctionOptimizerContext context, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -32,7 +35,6 @@ public class SplitFunctionOptimizer() : BaseRegexFunctionOptimizer("Split", n =>
 
 		// Timeout (param[3] for 4-arg overloads) passes through — goes straight into the Regex constructor.
 
-		// Build a deterministic field name from the constant constructor arguments.
 		var patternKey = String.Concat(
 			context.VisitedParameters
 				.Skip(1)
