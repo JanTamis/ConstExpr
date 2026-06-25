@@ -1,6 +1,4 @@
 using System;
-using System.Numerics;
-using System.Runtime.InteropServices;
 using ConstExpr.SourceGenerator.Sample.Tests;
 
 Console.WriteLine("╔═══════════════════════════════════════════════════════════════════╗");
@@ -11,7 +9,7 @@ Console.WriteLine("╚═══════════════════�
 var varInt = 10;
 var varDouble = 5.5;
 var varFloat = 3.14f;
-var varByte = (byte)128;
+var varByte = (byte) 128;
 var varString = "TestString";
 var varYear = 2024;
 var varMonth = 6;
@@ -46,53 +44,3 @@ MathOperationsTests.RunTests(varInt, varInt2, varInt3, varInt4);
 StringOperationsTests.RunTests(varString);
 ArrayOperationsTests.RunTests(varInt, varInt2, varInt3, new[] { varInt, varInt2, varInt3, varInt4, varInt5 });
 RegexOperationsTests.RunTests(varString, varInt);
-
-static bool Any_yCLWdA(ReadOnlySpan<double> data)
-{
-	if (Vector.IsHardwareAccelerated && data.Length >= Vector<double>.Count)
-	{
-		var vectors = MemoryMarshal.Cast<double, Vector<double>>(data);
-		var acc0 = Vector<double>.AllBitsSet;
-		var acc1 = Vector<double>.AllBitsSet;
-		var acc2 = Vector<double>.AllBitsSet;
-		var acc3 = Vector<double>.AllBitsSet;
-		var i = 0;
-
-		for (; i <= vectors.Length - 4; i += 4)
-		{
-			acc0 &= Vector.GreaterThan<double>(vectors[i], Vector<double>.Zero);
-			acc1 &= Vector.GreaterThan<double>(vectors[i + 1], Vector<double>.Zero);
-			acc2 &= Vector.GreaterThan<double>(vectors[i + 2], Vector<double>.Zero);
-			acc3 &= Vector.GreaterThan<double>(vectors[i + 3], Vector<double>.Zero);
-		}
-
-		acc0 &= acc1 & acc2 & acc3;
-
-		if (Vector.NoneWhereAllBitsSet(acc0))
-			return false;
-
-		for (; i < vectors.Length; i++)
-		{
-			if (Vector.NoneWhereAllBitsSet(Vector.GreaterThan(vectors[i], Vector<double>.Zero)))
-				return false;
-		}
-
-		var tail = data.Length & Vector<double>.Count - 1;
-
-		for (var t = data.Length - tail; t < data.Length; t++)
-		{
-			if (data[t] <= 0)
-				return false;
-		}
-
-		return true;
-	}
-
-	for (var i = 0; i < data.Length; i++)
-	{
-		if (data[i] <= 0)
-			return false;
-	}
-
-	return true;
-}
