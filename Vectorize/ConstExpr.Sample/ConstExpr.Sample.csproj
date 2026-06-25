@@ -9,6 +9,7 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
 		<UseConstExpr>true</UseConstExpr>
+		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
 
 		<InterceptorsNamespaces>$(InterceptorsNamespaces);ConstantExpression.Generated</InterceptorsNamespaces>
 	</PropertyGroup>
