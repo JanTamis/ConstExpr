@@ -39,7 +39,7 @@ public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 	public override SyntaxNode? VisitBlock(BlockSyntax node)
 	{
 		// Process children first so inner loops are hoisted before outer ones.
-		node = (BlockSyntax)base.VisitBlock(node)!;
+		node = (BlockSyntax) base.VisitBlock(node)!;
 
 		var statements = node.Statements;
 		List<StatementSyntax>? result = null;
@@ -87,7 +87,18 @@ public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 		{
 			case ForStatementSyntax { Statement: BlockSyntax forBody } forStmt:
 			{
-				var (hoisted, newBody) = HoistInvariants(forBody, CollectWrittenInLoop(forBody));
+				var locals = CollectLoopLocals(forBody);
+
+				// The for-loop's own iteration variables are loop-local too.
+				if (forStmt.Declaration is { } forDecl)
+				{
+					foreach (var v in forDecl.Variables)
+					{
+						locals.Add(v.Identifier.Text);
+					}
+				}
+
+				var (hoisted, newBody) = HoistInvariants(forBody, CollectWrittenInLoop(forBody), locals);
 
 				if (hoisted.Count == 0)
 				{
@@ -100,7 +111,7 @@ public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 
 			case WhileStatementSyntax { Statement: BlockSyntax whileBody } whileStmt:
 			{
-				var (hoisted, newBody) = HoistInvariants(whileBody, CollectWrittenInLoop(whileBody));
+				var (hoisted, newBody) = HoistInvariants(whileBody, CollectWrittenInLoop(whileBody), CollectLoopLocals(whileBody));
 
 				if (hoisted.Count == 0)
 				{
@@ -113,7 +124,7 @@ public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 
 			case DoStatementSyntax { Statement: BlockSyntax doBody } doStmt:
 			{
-				var (hoisted, newBody) = HoistInvariants(doBody, CollectWrittenInLoop(doBody));
+				var (hoisted, newBody) = HoistInvariants(doBody, CollectWrittenInLoop(doBody), CollectLoopLocals(doBody));
 
 				if (hoisted.Count == 0)
 				{
@@ -129,7 +140,7 @@ public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 				// The loop variable itself is "written" on every iteration.
 				var written = CollectWrittenInLoop(foreachBody);
 				written.Add(foreachStmt.Identifier.Text);
-				var (hoisted, newBody) = HoistInvariants(foreachBody, written);
+				var (hoisted, newBody) = HoistInvariants(foreachBody, written, CollectLoopLocals(foreachBody));
 
 				if (hoisted.Count == 0)
 				{
@@ -188,6 +199,33 @@ public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 	}
 
 	/// <summary>
+	///   Collects the names of all variables declared anywhere inside the loop body
+	///   (local declarations, pattern/out designations). These are loop-local: their value
+	///   is recomputed each iteration and is invisible outside the loop, so a declaration whose
+	///   initializer references any of them must never be hoisted.
+	/// </summary>
+	private static HashSet<string> CollectLoopLocals(BlockSyntax body)
+	{
+		var locals = new HashSet<string>();
+
+		foreach (var node in body.DescendantNodes())
+		{
+			switch (node)
+			{
+				case VariableDeclaratorSyntax declarator:
+					locals.Add(declarator.Identifier.Text);
+					break;
+
+				case SingleVariableDesignationSyntax designation:
+					locals.Add(designation.Identifier.Text);
+					break;
+			}
+		}
+
+		return locals;
+	}
+
+	/// <summary>
 	///   Determines whether an expression is "pure" (no side effects): it only contains
 	///   identifiers, literals, member-access chains, invocations, binary/unary expressions,
 	///   casts, and element-access expressions — nothing that mutates state.
@@ -231,7 +269,7 @@ public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 	///   Returns the list of hoisted statements and the rewritten block (without the hoisted ones).
 	/// </summary>
 	private (List<LocalDeclarationStatementSyntax> Hoisted, BlockSyntax NewBody)
-		HoistInvariants(BlockSyntax body, HashSet<string> writtenInLoop)
+		HoistInvariants(BlockSyntax body, HashSet<string> writtenInLoop, HashSet<string> loopLocals)
 	{
 		var hoisted = new List<LocalDeclarationStatementSyntax>();
 		var remaining = new List<StatementSyntax>();
@@ -259,7 +297,8 @@ public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 						.Select(id => id.Identifier.Text));
 
 				var referencesWritten = identifiersInInit.Overlaps(writtenInLoop)
-				                        || identifiersInInit.Overlaps(alreadyHoisted);
+				                        || identifiersInInit.Overlaps(alreadyHoisted)
+				                        || identifiersInInit.Overlaps(loopLocals);
 
 				if (!referencesWritten && IsPureExpression(initExpr))
 				{
