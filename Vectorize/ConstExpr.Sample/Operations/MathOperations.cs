@@ -141,7 +141,7 @@ public static class MathOperations
 		}
 
 		var result = 1L;
-		var base64 = (long)baseNum;
+		var base64 = (long) baseNum;
 
 		while (exponent > 0)
 		{
@@ -184,7 +184,8 @@ public static class MathOperations
 			return false;
 		}
 
-		var sqrt = (int)Math.Sqrt(n);
+		var sqrt = (int) Math.Sqrt(n);
+
 		return sqrt * sqrt == n;
 	}
 
@@ -242,7 +243,7 @@ public static class MathOperations
 		}
 
 		var n = end - start + 1;
-		return (long)n * (start + end) / 2;
+		return (long) n * (start + end) / 2;
 	}
 
 	/// <summary>

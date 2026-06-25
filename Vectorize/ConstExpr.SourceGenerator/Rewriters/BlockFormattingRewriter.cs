@@ -51,7 +51,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 	public override SyntaxNode? VisitIsPatternExpression(IsPatternExpressionSyntax node)
 	{
-		var visited = (IsPatternExpressionSyntax?)base.VisitIsPatternExpression(node);
+		var visited = (IsPatternExpressionSyntax?) base.VisitIsPatternExpression(node);
 
 		if (visited is null)
 		{
@@ -72,7 +72,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 	public override SyntaxNode? VisitSimpleLambdaExpression(SimpleLambdaExpressionSyntax node)
 	{
-		var visited = (SimpleLambdaExpressionSyntax?)base.VisitSimpleLambdaExpression(node);
+		var visited = (SimpleLambdaExpressionSyntax?) base.VisitSimpleLambdaExpression(node);
 
 		if (visited is null)
 		{
@@ -103,7 +103,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 	public override SyntaxNode? VisitParenthesizedLambdaExpression(ParenthesizedLambdaExpressionSyntax node)
 	{
-		var visited = (ParenthesizedLambdaExpressionSyntax?)base.VisitParenthesizedLambdaExpression(node);
+		var visited = (ParenthesizedLambdaExpressionSyntax?) base.VisitParenthesizedLambdaExpression(node);
 
 		if (visited is null)
 		{
@@ -375,7 +375,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 	public override SyntaxNode? VisitStructDeclaration(StructDeclarationSyntax node)
 	{
-		var visited = (StructDeclarationSyntax?)base.VisitStructDeclaration(node);
+		var visited = (StructDeclarationSyntax?) base.VisitStructDeclaration(node);
 
 		if (visited is null || visited.Members.Count <= 1)
 		{
@@ -387,7 +387,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 	public override SyntaxNode? VisitRecordDeclaration(RecordDeclarationSyntax node)
 	{
-		var visited = (RecordDeclarationSyntax?)base.VisitRecordDeclaration(node);
+		var visited = (RecordDeclarationSyntax?) base.VisitRecordDeclaration(node);
 
 		if (visited is null || visited.Members.Count <= 1)
 		{
@@ -709,7 +709,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		result = result.WithType(result.Type.WithTrailingTrivia());
 
 		// Flatten collection initializer onto a single line: { { k, v }, ... }
-		if (result.Initializer is { RawKind: (int)SyntaxKind.CollectionInitializerExpression } initializer)
+		if (result.Initializer is { RawKind: (int) SyntaxKind.CollectionInitializerExpression } initializer)
 		{
 			var flat = FlattenInitializer(initializer);
 
@@ -1194,7 +1194,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 	public override SyntaxNode? VisitSwitchSection(SwitchSectionSyntax node)
 	{
-		var visited = (SwitchSectionSyntax?)base.VisitSwitchSection(node);
+		var visited = (SwitchSectionSyntax?) base.VisitSwitchSection(node);
 
 		if (visited is null)
 		{
@@ -1217,13 +1217,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 		if (visited.Labels.Count > 0)
 		{
-			foreach (var trivia in visited.Labels[0].GetLeadingTrivia())
-			{
-				if (trivia.IsKind(SyntaxKind.WhitespaceTrivia))
-				{
-					labelIndent = labelIndent.Add(trivia);
-				}
-			}
+			labelIndent = labelIndent.AddRange(visited.Labels[0].GetLeadingTrivia().Where(w => w.IsKind(SyntaxKind.WhitespaceTrivia)));
 		}
 
 		// Build open brace: same indentation as case label (the case label's colon
@@ -1237,7 +1231,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 		var openBrace = Token(SyntaxKind.OpenBraceToken)
 			.WithLeadingTrivia(openBraceLeading)
-			.WithTrailingTrivia(EndOfLine("\n"));
+			.WithTrailingTrivia(LineFeed);
 
 		// Build close brace: newline + same indentation as case label
 		var closeBraceLeading = TriviaList();
@@ -1249,7 +1243,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 		var closeBrace = Token(SyntaxKind.CloseBraceToken)
 			.WithLeadingTrivia(closeBraceLeading)
-			.WithTrailingTrivia(EndOfLine("\n"));
+			.WithTrailingTrivia(LineFeed);
 
 		var block = VisitBlock(Block(openBrace, List(visited.Statements), closeBrace));
 
@@ -1362,10 +1356,11 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 	private static bool IsHexOrBinaryLiteral(SyntaxToken token)
 	{
 		var text = token.Text;
-		return text.StartsWith("0x", StringComparison.OrdinalIgnoreCase) ||
-		       text.StartsWith("0X", StringComparison.OrdinalIgnoreCase) ||
-		       text.StartsWith("0b", StringComparison.OrdinalIgnoreCase) ||
-		       text.StartsWith("0B", StringComparison.OrdinalIgnoreCase);
+
+		return text.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
+		       || text.StartsWith("0X", StringComparison.OrdinalIgnoreCase)
+		       || text.StartsWith("0b", StringComparison.OrdinalIgnoreCase)
+		       || text.StartsWith("0B", StringComparison.OrdinalIgnoreCase);
 	}
 
 	private static SyntaxList<MemberDeclarationSyntax> NormalizeMemberSpacing(SyntaxList<MemberDeclarationSyntax> members)
@@ -1393,7 +1388,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 				}
 
 				// Build new leading trivia: exactly 1 EOL + rest (whitespace/indentation)
-				var newLeading = TriviaList(EndOfLine("\n"));
+				var newLeading = TriviaList(LineFeed);
 
 				for (var j = nonEolStart; j < leading.Count; j++)
 				{
@@ -1432,7 +1427,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 				if (!foundEol)
 				{
-					newTrailing = newTrailing.Add(EndOfLine("\n"));
+					newTrailing = newTrailing.Add(LineFeed);
 				}
 
 				newMembers = newMembers.Replace(newMembers[i - 1], prev.WithTrailingTrivia(newTrailing));

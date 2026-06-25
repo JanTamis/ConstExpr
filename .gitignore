@@ -2,6 +2,11 @@
 # This .gitignore file was automatically created by Microsoft(R) Visual Studio.
 ################################################################################
 
+# OS / editor cruft
+.DS_Store
+*.DotSettings.user
+*.user
+
 /.vs
 /Vectorize/Vectorize.SourceGenerator/bin/Debug/netstandard2.0
 /Vectorize/Vectorize.SourceGenerator/obj
