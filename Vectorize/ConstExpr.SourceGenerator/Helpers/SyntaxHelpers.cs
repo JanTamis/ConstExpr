@@ -109,6 +109,39 @@ public static class SyntaxHelpers
 				result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(bb));
 				return true;
 			}
+			case sbyte sb:
+			{
+				var lit = sb < 0
+					? (ExpressionSyntax) PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
+						LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(-sb)))
+					: LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(sb));
+
+				result = useExplicitByte
+					? CastExpression(PredefinedType(Token(SyntaxKind.SByteKeyword)), lit)
+					: lit;
+				return true;
+			}
+			case short sh:
+			{
+				var lit = sh < 0
+					? (ExpressionSyntax) PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
+						LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(-sh)))
+					: LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(sh));
+
+				result = useExplicitByte
+					? CastExpression(PredefinedType(Token(SyntaxKind.ShortKeyword)), lit)
+					: lit;
+				return true;
+			}
+			case ushort us:
+			{
+				var lit = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(us));
+
+				result = useExplicitByte
+					? CastExpression(PredefinedType(Token(SyntaxKind.UShortKeyword)), lit)
+					: lit;
+				return true;
+			}
 			case int i and < 0 when i != Int32.MinValue:
 			{
 				result = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
@@ -261,7 +294,7 @@ public static class SyntaxHelpers
 
 				if (elemType == typeof(char))
 				{
-					var chars = (char[])array;
+					var chars = (char[]) array;
 
 					result = CreateLiteral(new string(chars));
 					return true;
@@ -269,7 +302,7 @@ public static class SyntaxHelpers
 
 				if (elemType == typeof(byte))
 				{
-					var bytes = (byte[])array;
+					var bytes = (byte[]) array;
 					var data = Encoding.UTF8.GetString(bytes);
 					var escaped = data
 						.Replace("\\", @"\\")
@@ -1212,7 +1245,7 @@ public static class SyntaxHelpers
 			return true;
 		}
 
-		var nodeToCheck = (SyntaxNode?)containingMethod ?? localFunction!;
+		var nodeToCheck = (SyntaxNode?) containingMethod ?? localFunction!;
 		var tree = nodeToCheck.SyntaxTree;
 
 		if (!compilation.SyntaxTrees.Contains(tree))
@@ -1549,7 +1582,7 @@ public static class SyntaxHelpers
 						? invocation.Ancestors().OfType<LocalFunctionStatementSyntax>().FirstOrDefault()
 						: null;
 
-					var nodeToCheck = (SyntaxNode?)containingMethod ?? localFunction;
+					var nodeToCheck = (SyntaxNode?) containingMethod ?? localFunction;
 
 					if (nodeToCheck != null)
 					{

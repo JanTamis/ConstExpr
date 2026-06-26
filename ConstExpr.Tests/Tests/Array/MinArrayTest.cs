@@ -30,9 +30,9 @@ public class MinArrayTest() : BaseTest<Func<int[], int>>(FastMathFlags.All, opti
 		Create(values =>
 		{
 			if (values.Length == 0)
-				return 2147483647;
+				return Int32.MaxValue;
 
-			var min = 2147483647;
+			var min = Int32.MaxValue;
 
 			foreach (var v in values)
 			{
@@ -44,6 +44,6 @@ public class MinArrayTest() : BaseTest<Func<int[], int>>(FastMathFlags.All, opti
 		}),
 		Create(_ => 3, [ new[] { 5, 4, 3, 9 } ]),
 		Create(_ => 1, [ new[] { 7, 2, 1, 8 } ]),
-		Create(_ => 2147483647, [ System.Array.Empty<int>() ])
+		Create(_ => Int32.MaxValue, [ System.Array.Empty<int>() ])
 	];
 }

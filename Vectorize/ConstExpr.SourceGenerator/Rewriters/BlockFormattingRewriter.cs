@@ -164,11 +164,51 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 				MathF.E => ParseExpression("Single.E"),
 				Double.Epsilon => ParseExpression("Double.Epsilon"),
 				Single.Epsilon => ParseExpression("Single.Epsilon"),
+				Byte.MaxValue => ParseExpression("Byte.MaxValue"),
+				Int16.MaxValue => ParseExpression("Int16.MaxValue"),
+				Int32.MaxValue => ParseExpression("Int32.MaxValue"),
+				Int64.MaxValue => ParseExpression("Int64.MaxValue"),
+				// int/long MinValue are emitted as a single negative literal token (TryCreateLiteral),
+				// so they never reach VisitPrefixUnaryExpression — handle them here.
+				Int32.MinValue => ParseExpression("Int32.MinValue"),
+				Int64.MinValue => ParseExpression("Int64.MinValue"),
+				UInt16.MaxValue => ParseExpression("UInt16.MaxValue"),
+				UInt32.MaxValue => ParseExpression("UInt32.MaxValue"),
+				UInt64.MaxValue => ParseExpression("UInt64.MaxValue"),
+				Decimal.MaxValue => ParseExpression("Decimal.MaxValue"),
+				Double.MaxValue => ParseExpression("Double.MaxValue"),
+				Single.MaxValue => ParseExpression("Single.MaxValue"),
 				_ => IsHexOrBinaryLiteral(node.Token) ? node : expression
 			}).WithLeadingTrivia(node.GetLeadingTrivia()).WithTrailingTrivia(node.GetTrailingTrivia());
 		}
 
 		return node;
+	}
+
+	public override SyntaxNode? VisitPrefixUnaryExpression(PrefixUnaryExpressionSyntax node)
+	{
+		if (node.IsKind(SyntaxKind.UnaryMinusExpression)
+		    && node.Operand is LiteralExpressionSyntax operand)
+		{
+			var replacement = operand.Token.Value switch
+			{
+				// Only floating-point/decimal are symmetric (-MaxValue == MinValue).
+				// Integers are NOT: -Int32.MaxValue is -2147483647, not Int32.MinValue.
+				// int/long MinValue arrive as single literal tokens and are handled in
+				// VisitLiteralExpression, so no integer arms belong here.
+				Decimal.MaxValue => ParseExpression("Decimal.MinValue"),
+				Double.MaxValue => ParseExpression("Double.MinValue"),
+				Single.MaxValue => ParseExpression("Single.MinValue"),
+				_ => null
+			};
+
+			if (replacement is not null)
+			{
+				return replacement.WithLeadingTrivia(node.GetLeadingTrivia()).WithTrailingTrivia(node.GetTrailingTrivia());
+			}
+		}
+
+		return base.VisitPrefixUnaryExpression(node);
 	}
 
 	public override SyntaxNode? VisitIfStatement(IfStatementSyntax node)
