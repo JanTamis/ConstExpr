@@ -97,7 +97,7 @@ public abstract class BaseAnalyzer<TNode, TSymbol> : DiagnosticAnalyzer
 	{
 		var name = typeof(TNode).Name;
 
-		if (!Enum.TryParse(name.Substring(0, name.Length - 6), out SyntaxKind kind))
+		if (!Enum.TryParse(name[..^6], out SyntaxKind kind))
 		{
 			throw new InvalidOperationException($"Unable to parse SyntaxKind from {name}");
 		}
