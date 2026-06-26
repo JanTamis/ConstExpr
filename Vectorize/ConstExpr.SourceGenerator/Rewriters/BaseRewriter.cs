@@ -49,7 +49,7 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 			{
 				return TryGetLiteralValue(elementSyntax.Expression, typeSymbol, out value, visitedVariables);
 			}
-			case IdentifierNameSyntax identifier when variables.TryGetValue(identifier.Identifier.Text, out var variable) && variable.HasValue && !variable.IsAltered:
+			case IdentifierNameSyntax identifier when variables.TryGetValue(identifier.Identifier.Text, out var variable) && variable.HasValue && !variable.IsAltered && !variable.HasUnknownElements:
 			{
 				// Prevent infinite recursion from circular variable references
 				if (!visitedVariables.Add(identifier.Identifier.Text))
@@ -745,7 +745,7 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 				    && nestedInit.IsKind(SyntaxKind.ComplexElementInitializerExpression))
 				{
 					var addArgs = nestedInit.Expressions
-						.Select(e => TryGetLiteralValue(e, typeSymbol, out var v, visitedVariables) ? (true, v) : (false, (object?)null))
+						.Select(e => TryGetLiteralValue(e, typeSymbol, out var v, visitedVariables) ? (true, v) : (false, (object?) null))
 						.ToList();
 
 					if (addArgs.Any(a => !a.Item1))
@@ -808,7 +808,7 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 	/// </summary>
 	protected bool CanBePruned(string variableName)
 	{
-		if (!variables.TryGetValue(variableName, out var variable) || !variable.HasValue || variable.IsAltered)
+		if (!variables.TryGetValue(variableName, out var variable) || !variable.HasValue || variable.IsAltered || variable.HasUnknownElements)
 		{
 			return false;
 		}

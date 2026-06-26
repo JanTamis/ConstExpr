@@ -112,8 +112,9 @@ public partial class ConstExprPartialRewriter(
 			return result;
 		}
 
-		// If variable has a known constant value and hasn't been altered, inline it
-		if (variable.HasValue && !variable.IsAltered)
+		// If variable has a known constant value and hasn't been altered, inline it.
+		// HasUnknownElements blocks inlining a partially runtime-written array as a whole literal.
+		if (variable.HasValue && !variable.IsAltered && !variable.HasUnknownElements)
 		{
 			// Try to convert to a literal
 			if (TryCreateLiteral(variable.Value, out var literal))
