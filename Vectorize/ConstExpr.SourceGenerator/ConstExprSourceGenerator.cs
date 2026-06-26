@@ -397,7 +397,6 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			             ?? partialVisitor.VisitBlock(methodDecl.Body); // partialVisitor.VisitBlock(blockOperation.BlockBody!, variablesPartial);
 			var result2 = DeadCodePruner.Prune(result, variablesPartial, semanticModel);
 			result2 = ExceptionGuardSimplifier.Simplify(result2);
-			result2 = ConditionalAssignmentCollapser.Collapse(result2, attribute.MathOptimizations.HasFlag(FastMathFlags.AssociativeMath));
 
 			if (attribute.Optimizations.HasFlag(OptimizationFlags.CommonSubexpressionElimination))
 			{

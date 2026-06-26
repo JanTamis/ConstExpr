@@ -301,9 +301,21 @@ public class HSVToRGBTest() : BaseTest<Func<double, double, double, (byte, byte,
 		}, [ Unknown, Unknown, 0.5 ]),
 		Create((_, s, _) =>
 		{
-			var r = s == 0D ? 127.5 : (1D - s) * 127.5;
+			double r = 0D, g = 0D, b = 0D;
 
-			return ((byte) r, 127, 127);
+			if (s == 0D)
+			{
+				r = 0.5;
+			}
+			else
+			{
+				r = (1D - s) * 0.5;
+			}
+
+			g = 0.5;
+			b = 0.5;
+
+			return ((byte) (r * 255D), (byte) (g * 255D), (byte) (b * 255D));
 		}, [ 180, Unknown, 0.5 ])
 	];
 }

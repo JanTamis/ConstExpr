@@ -221,7 +221,6 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 
 		newBody = DeadCodePruner.Prune(newBody, parameters, state.SemanticModel) as BlockSyntax;
 		newBody = ExceptionGuardSimplifier.Simplify(newBody!) as BlockSyntax;
-		newBody = ConditionalAssignmentCollapser.Collapse(newBody!, attribute.MathOptimizations.HasFlag(FastMathFlags.AssociativeMath)) as BlockSyntax;
 
 		if (attribute.Optimizations.HasFlag(OptimizationFlags.CommonSubexpressionElimination))
 		{
