@@ -279,6 +279,17 @@ public static class LinqUnroller
 		Func<SyntaxNode?, SyntaxNode?> visit, IDictionary<string, VariableItem>? variables,
 		[NotNullWhen(true)] out SyntaxNode? result)
 	{
+		// Precondition: this inline path is only valid for a *constant* collection. For an opaque
+		// runtime source (e.g. a method parameter) the loop unrolls to zero iterations and reduction
+		// terminals collapse to their empty-sequence literal (All=>true, Any=>false, Count=>0, Sum=>0).
+		// That literal passes the no-identifiers gate below and silently replaces the real computation.
+		// Bail unless the source is a known-constant collection so the helper-method path emits a real loop.
+		if (!IsConstantCollectionArg(collectionArg, variables))
+		{
+			result = null;
+			return false;
+		}
+
 		// Substitute every use of the collection parameter with the actual argument expression
 		var substituted = visitedBody.ReplaceNodes(
 			visitedBody.DescendantNodes()
@@ -319,6 +330,28 @@ public static class LinqUnroller
 
 		result = null;
 		return false;
+	}
+
+	/// <summary>
+	///   True when <paramref name="arg" /> is a compile-time-known collection (a literal, a collection
+	///   expression / array creation, or an identifier tracked with a constant value). An opaque runtime
+	///   source — a method parameter or any untracked identifier — returns false, which keeps the inline
+	///   constant-fold from treating it as an empty sequence. An empty *constant* collection is fine: its
+	///   empty-sequence result is genuinely correct.
+	/// </summary>
+	private static bool IsConstantCollectionArg(ExpressionSyntax arg, IDictionary<string, VariableItem>? variables)
+	{
+		return arg switch
+		{
+			LiteralExpressionSyntax => true,
+			CollectionExpressionSyntax => true,
+			ArrayCreationExpressionSyntax => true,
+			ImplicitArrayCreationExpressionSyntax => true,
+			ParenthesizedExpressionSyntax paren => IsConstantCollectionArg(paren.Expression, variables),
+			IdentifierNameSyntax id => variables is not null
+			                           && variables.TryGetValue(id.Identifier.Text, out var v) && v.HasValue,
+			_ => false
+		};
 	}
 
 	/// <summary>Takes a full snapshot of the variable tracking dictionary.</summary>
