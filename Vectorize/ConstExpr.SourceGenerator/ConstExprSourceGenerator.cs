@@ -14,6 +14,7 @@ using ConstExpr.SourceGenerator.Comparers;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
+using ConstExpr.SourceGenerator.Refactorers;
 using ConstExpr.SourceGenerator.Rewriters;
 using ConstExpr.SourceGenerator.Visitors;
 using Microsoft.CodeAnalysis;
@@ -441,6 +442,14 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 			if (result2 is BlockSyntax methodBody)
 			{
+				// Collapse a `return cond ? a : cond2 ? b : default;` chain into a switch expression.
+				if (methodBody.Statements is [ ReturnStatementSyntax { Expression: ConditionalExpressionSyntax chain } returnStatement ]
+				    && ConvertIfToSwitchCodeRefactoring.TryConvertConditionalChainToSwitch(chain, out var switchExpression))
+				{
+					methodBody = methodBody.WithStatements(
+						SingletonList<StatementSyntax>(returnStatement.WithExpression(switchExpression)));
+				}
+
 				if (methodBody.Statements is [ ReturnStatementSyntax { Expression: var returnExpression } ] && CanBeExpressionBody(returnExpression))
 				{
 					resultMethod = resultMethod

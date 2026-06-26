@@ -89,6 +89,51 @@ public static class ConvertIfToSwitchCodeRefactoring
 	}
 
 	/// <summary>
+	///   Tries to convert a nested conditional (ternary) chain into a switch expression.
+	///   Eligible when every condition tests the same target against constant-like values using
+	///   == / || (or an is-pattern), e.g.
+	///   <c>target == 1 ? 0 : target == 5 ? 1 : -1</c> becomes
+	///   <c>target switch { 1 => 0, 5 => 1, _ => -1 }</c>.
+	///   Requires at least 2 matched arms (so a single comparison stays a plain ternary).
+	/// </summary>
+	public static bool TryConvertConditionalChainToSwitch(
+		ConditionalExpressionSyntax node,
+		[NotNullWhen(true)] out ExpressionSyntax? result)
+	{
+		result = null;
+		ExpressionSyntax? switchTarget = null;
+		var arms = new List<SwitchExpressionArmSyntax>();
+
+		var current = (ExpressionSyntax) node;
+
+		while (UnwrapParentheses(current) is ConditionalExpressionSyntax conditional
+		       && TryExtractSwitchLabels(conditional.Condition, ref switchTarget, out var labels))
+		{
+			PatternSyntax pattern = ConstantPattern(labels[0]);
+
+			for (var i = 1; i < labels.Count; i++)
+			{
+				pattern = BinaryPattern(SyntaxKind.OrPattern, pattern, ConstantPattern(labels[i]));
+			}
+
+			arms.Add(SwitchExpressionArm(pattern, conditional.WhenTrue));
+			current = conditional.WhenFalse;
+		}
+
+		// Need at least 2 matched arms to be worth converting. The first expression that is not a
+		// matching conditional becomes the default arm.
+		if (arms.Count < 2 || switchTarget is null)
+		{
+			return false;
+		}
+
+		arms.Add(SwitchExpressionArm(DiscardPattern(), current));
+
+		result = SwitchExpression(switchTarget, SeparatedList(arms));
+		return true;
+	}
+
+	/// <summary>
 	///   Tries to build a <c>return x switch { ... };</c> statement.
 	///   Succeeds only when every section (and the default body) contains a single
 	///   <c>return expr;</c> statement.
@@ -190,14 +235,14 @@ public static class ConvertIfToSwitchCodeRefactoring
 		List<ExpressionSyntax> labels)
 	{
 		// x == a || x == b
-		if (condition is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LogicalOrExpression } orExpr)
+		if (condition is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LogicalOrExpression } orExpr)
 		{
 			return TryCollectLabels(orExpr.Left, ref switchTarget, labels)
 			       && TryCollectLabels(orExpr.Right, ref switchTarget, labels);
 		}
 
 		// x == constant  /  constant == x
-		if (condition is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.EqualsExpression } eq)
+		if (condition is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.EqualsExpression } eq)
 		{
 			ExpressionSyntax? target = null;
 			ExpressionSyntax? label = null;
@@ -284,7 +329,7 @@ public static class ConvertIfToSwitchCodeRefactoring
 	{
 		return expr is LiteralExpressionSyntax
 			or MemberAccessExpressionSyntax // e.g. Color.Red
-			or PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken };
+			or PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken };
 		// -1
 	}
 
@@ -383,7 +428,7 @@ public static class ConvertIfToSwitchCodeRefactoring
 		// A single constant becomes a plain `case 1:` label; everything else (relational or
 		// or-patterns) becomes a `case <pattern>:` label.
 		var label = pattern is ConstantPatternSyntax constant
-			? (SwitchLabelSyntax)CaseSwitchLabel(constant.Expression)
+			? (SwitchLabelSyntax) CaseSwitchLabel(constant.Expression)
 			: CasePatternSwitchLabel(pattern, Token(SyntaxKind.ColonToken));
 
 		section = new IfSwitchSection(target, label, ifNode.Statement, intervals);
@@ -423,11 +468,11 @@ public static class ConvertIfToSwitchCodeRefactoring
 			{
 				case AssignmentExpressionSyntax assignment
 					when UnwrapParentheses(assignment.Left) is IdentifierNameSyntax id && id.Identifier.ValueText == name:
-				case PostfixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.PostIncrementExpression or (int)SyntaxKind.PostDecrementExpression } postfix
+				case PostfixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.PostIncrementExpression or (int) SyntaxKind.PostDecrementExpression } postfix
 					when UnwrapParentheses(postfix.Operand) is IdentifierNameSyntax postId && postId.Identifier.ValueText == name:
-				case PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.PreIncrementExpression or (int)SyntaxKind.PreDecrementExpression } prefix
+				case PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.PreIncrementExpression or (int) SyntaxKind.PreDecrementExpression } prefix
 					when UnwrapParentheses(prefix.Operand) is IdentifierNameSyntax preId && preId.Identifier.ValueText == name:
-				case ArgumentSyntax { RefKindKeyword.RawKind: not (int)SyntaxKind.None } argument
+				case ArgumentSyntax { RefKindKeyword.RawKind: not (int) SyntaxKind.None } argument
 					when UnwrapParentheses(argument.Expression) is IdentifierNameSyntax argId && argId.Identifier.ValueText == name:
 				{
 					return true;
@@ -473,7 +518,7 @@ public static class ConvertIfToSwitchCodeRefactoring
 	private static IEnumerable<string> GetSectionLocalNames(StatementSyntax body)
 	{
 		var statements = body is BlockSyntax block
-			? (IEnumerable<StatementSyntax>)block.Statements
+			? (IEnumerable<StatementSyntax>) block.Statements
 			: [ body ];
 
 		foreach (var statement in statements)
@@ -500,7 +545,7 @@ public static class ConvertIfToSwitchCodeRefactoring
 		switch (UnwrapParentheses(condition))
 		{
 			// x == a || x == b  (recursively folds into one or-pattern)
-			case BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LogicalOrExpression } orExpr:
+			case BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LogicalOrExpression } orExpr:
 			{
 				if (!TryExtractTargetPattern(orExpr.Left, ref target, out var leftPattern, out var leftIntervals)
 				    || !TryExtractTargetPattern(orExpr.Right, ref target, out var rightPattern, out var rightIntervals))
@@ -515,7 +560,7 @@ public static class ConvertIfToSwitchCodeRefactoring
 			}
 
 			// x == constant  /  constant == x
-			case BinaryExpressionSyntax { RawKind: (int)SyntaxKind.EqualsExpression } eq:
+			case BinaryExpressionSyntax { RawKind: (int) SyntaxKind.EqualsExpression } eq:
 			{
 				if (!TryGetTargetAndLiteral(eq.Left, eq.Right, ref target, out var literal, out var value))
 				{
@@ -609,7 +654,7 @@ public static class ConvertIfToSwitchCodeRefactoring
 				return true;
 			}
 
-			case BinaryPatternSyntax { RawKind: (int)SyntaxKind.OrPattern } orPattern:
+			case BinaryPatternSyntax { RawKind: (int) SyntaxKind.OrPattern } orPattern:
 			{
 				if (!TryExtractPattern(orPattern.Left, out var leftPattern, out var leftIntervals)
 				    || !TryExtractPattern(orPattern.Right, out var rightPattern, out var rightIntervals))
@@ -666,7 +711,7 @@ public static class ConvertIfToSwitchCodeRefactoring
 				return true;
 			}
 
-			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken } negation
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken } negation
 				when TryGetNumericLiteral(negation.Operand, out var inner, out _):
 			{
 				value = -inner;
@@ -716,7 +761,7 @@ public static class ConvertIfToSwitchCodeRefactoring
 				result = d;
 				return true;
 			case decimal dec:
-				result = (double)dec;
+				result = (double) dec;
 				return true;
 			case char c:
 				result = c;
