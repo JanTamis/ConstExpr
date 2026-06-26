@@ -619,7 +619,19 @@ public partial class ConstExprPartialRewriter
 	/// </summary>
 	private SyntaxNode? HandleElementAccessAssignment(AssignmentExpressionSyntax node, ElementAccessExpressionSyntax elementAccess, ExpressionSyntax rightExpr, bool hasRightValue, object? rightValue)
 	{
-		if (!hasRightValue || !TryGetLiteralValue(elementAccess.Expression, out var instanceVal))
+		// Resolve the receiver. For a tracked array variable we read the boxed array directly rather than
+		// through TryGetLiteralValue, so per-element folding keeps working even after some elements became
+		// runtime (unknown) values (TryGetLiteralValue bails on HasUnknownElements).
+		VariableItem? receiver = null;
+		object? instanceVal;
+
+		if (elementAccess.Expression is IdentifierNameSyntax { Identifier.Text: var receiverName }
+		    && variables.TryGetValue(receiverName, out receiver)
+		    && receiver is { HasValue: true, IsAltered: false, Value: Array })
+		{
+			instanceVal = receiver.Value;
+		}
+		else if (!hasRightValue || !TryGetLiteralValue(elementAccess.Expression, out instanceVal))
 		{
 			return null;
 		}
@@ -638,12 +650,39 @@ public partial class ConstExprPartialRewriter
 		{
 			case IArrayElementReferenceOperation arrayOp:
 			{
-				return HandleArrayElementAssignment(instanceVal as Array, indexConsts, arrayOp.Indices.Length, rightValue, rightExpr);
+				// Non-constant value written to a single known index: instead of giving up on the whole
+				// array (IsAltered), mark just this element unknown so the other elements stay foldable.
+				if (!hasRightValue)
+				{
+					if (receiver is not null && arrayOp.Indices.Length == 1 && indexConsts is [ int unknownIndex ])
+					{
+						(receiver.UnknownIndices ??= new HashSet<int>()).Add(unknownIndex);
+
+						var foldedLeft = elementAccess.WithArgumentList(
+							elementAccess.ArgumentList.WithArguments(
+								SeparatedList(elementAccess.ArgumentList.Arguments
+									.Select(a => a.WithExpression(Visit(a.Expression) as ExpressionSyntax ?? a.Expression)))));
+
+						return node.WithLeft(foldedLeft).WithRight(rightExpr);
+					}
+
+					return null;
+				}
+
+				var result = HandleArrayElementAssignment(instanceVal as Array, indexConsts, arrayOp.Indices.Length, rightValue, rightExpr);
+
+				// A constant overwrite makes the element known again.
+				if (result is not null && receiver?.UnknownIndices is { } known && indexConsts is [ int knownIndex ])
+				{
+					known.Remove(knownIndex);
+				}
+
+				return result;
 			}
 
 			case IPropertyReferenceOperation propOp:
 			{
-				if (propOp.Property.IsIndexer && instanceVal is not null && indexConsts.Length == propOp.Arguments.Length
+				if (hasRightValue && propOp.Property.IsIndexer && instanceVal is not null && indexConsts.Length == propOp.Arguments.Length
 				    && loader.TryExecuteMethod(propOp.Property.SetMethod, instanceVal, new VariableItemDictionary(variables), indexConsts.Append(rightValue), out _))
 				{
 					return null;

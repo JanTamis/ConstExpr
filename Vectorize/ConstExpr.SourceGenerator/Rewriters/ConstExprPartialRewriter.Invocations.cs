@@ -919,6 +919,29 @@ public partial class ConstExprPartialRewriter
 			.WhereSelect<SyntaxNode, object?>(TryGetLiteralValue)
 			.ToArray();
 
+		// Per-element folding: when the array has some runtime-written (unknown) elements the whole-array
+		// value is no longer foldable (TryGetLiteralValue bails on HasUnknownElements), but elements that
+		// were never overwritten with a runtime value still are.
+		if (node.Expression is IdentifierNameSyntax { Identifier.Text: var arrName }
+		    && variables.TryGetValue(arrName, out var arrVar)
+		    && arrVar is { HasValue: true, IsAltered: false } && arrVar.HasUnknownElements
+		    && arrVar.Value is Array elemArr
+		    && constantArguments is [ int onlyIndex ])
+		{
+			if (!arrVar.UnknownIndices!.Contains(onlyIndex)
+			    && onlyIndex >= 0 && onlyIndex < elemArr.Length
+			    && TryCreateLiteral(elemArr.GetValue(onlyIndex), out var elemLiteral))
+			{
+				return elemLiteral;
+			}
+
+			// Runtime (unknown) element or out of range → keep it as a runtime read.
+			return node
+				.WithExpression(instance as ExpressionSyntax ?? node.Expression)
+				.WithArgumentList(node.ArgumentList
+					.WithArguments(SeparatedList(arguments.OfType<ExpressionSyntax>().Select(Argument))));
+		}
+
 		if (TryGetLiteralValue(node.Expression, out var instanceValue)
 		    || TryGetLiteralValue(instance, out instanceValue))
 		{
