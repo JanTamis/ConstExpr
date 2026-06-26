@@ -15,7 +15,7 @@ public class IndexLinqUnroller : BaseLinqUnroller
 	public override void UnrollAboveLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
 		// var indexCounter = 0;
-		statements.Add(CreateLocalDeclaration(CounterName, CreateLiteral(0)!));
+		statements.Add(CreateLocalDeclaration(CounterName, CreateLiteral(0)));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)

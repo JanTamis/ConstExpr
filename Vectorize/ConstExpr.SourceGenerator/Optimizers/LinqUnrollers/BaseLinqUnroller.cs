@@ -138,7 +138,7 @@ public abstract class BaseLinqUnroller
 					IdentifierName(typeof(TException).Name))
 				.WithArgumentList(
 					ArgumentList(
-						SeparatedList(parameters.Select(s => Argument(CreateLiteral(s)!))))));
+						SeparatedList(parameters.Select(s => Argument(CreateLiteral(s)))))));
 	}
 
 	protected LocalDeclarationStatementSyntax CreateLocalDeclaration(string variableName, TypeSyntax type, ExpressionSyntax initializer)
@@ -240,7 +240,7 @@ public abstract class BaseLinqUnroller
 
 		statements.Add(IfStatement(IndexExpression(), ContinueStatement()));
 		statements.Add(ExpressionStatement(AssignmentExpression(SyntaxKind.SimpleAssignmentExpression,
-			IndexExpression(), CreateLiteral(true)!)));
+			IndexExpression(), CreateLiteral(true))));
 		return;
 
 		ExpressionSyntax IndexExpression()
@@ -266,7 +266,7 @@ public abstract class BaseLinqUnroller
 			NotEqualsExpression(
 				ParenthesizedExpression(BitwiseAndExpression(
 					BucketAccess(), BitMask())),
-				CreateLiteral(0UL)!),
+				CreateLiteral(0UL)),
 			ContinueStatement()));
 
 		statements.Add(ExpressionStatement(
@@ -283,13 +283,13 @@ public abstract class BaseLinqUnroller
 			.WithArgumentList(BracketedArgumentList(SingletonSeparatedList(Argument(
 				RightShiftExpression(
 					IndexExpr(),
-					CreateLiteral(6)!)))));
+					CreateLiteral(6))))));
 
 		ExpressionSyntax BitMask() => LeftShiftExpression(
-			CreateLiteral(1UL)!,
+			CreateLiteral(1UL),
 			ParenthesizedExpression(BitwiseAndExpression(
 				IndexExpr(),
-				CreateLiteral(63)!)));
+				CreateLiteral(63))));
 	}
 
 	protected static ExpressionStatementSyntax CreateAssignment(string variableName, ExpressionSyntax value)

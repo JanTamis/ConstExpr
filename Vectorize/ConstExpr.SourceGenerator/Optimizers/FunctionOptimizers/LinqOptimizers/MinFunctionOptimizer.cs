@@ -25,8 +25,8 @@ public class MinFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 	// Operations that don't affect the minimum value
 	private static readonly HashSet<string> OperationsThatDontAffectMin =
 	[
-		..MaterializingMethods,
-		..OrderingOperations,
+		.. MaterializingMethods,
+		.. OrderingOperations,
 		nameof(Enumerable.Reverse)
 	];
 
@@ -52,7 +52,7 @@ public class MinFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			if (hasTensorPrimitivesMin && IsInvokedOnArray(context, source))
 			{
 				context.Usings.Add("System.Numerics.Tensors");
-				result = CreateInvocation(ParseTypeName("TensorPrimitives")!, "Min", source);
+				result = CreateInvocation(ParseTypeName("TensorPrimitives"), "Min", source);
 				return true;
 			}
 
@@ -60,7 +60,7 @@ public class MinFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			{
 				context.Usings.Add("System.Numerics.Tensors");
 				context.Usings.Add("System.Runtime.InteropServices");
-				result = CreateInvocation(ParseTypeName("TensorPrimitives")!, "Min", CreateInvocation(ParseTypeName("CollectionsMarshal")!, "AsSpan", source));
+				result = CreateInvocation(ParseTypeName("TensorPrimitives"), "Min", CreateInvocation(ParseTypeName("CollectionsMarshal"), "AsSpan", source));
 				return true;
 			}
 
@@ -130,7 +130,7 @@ public class MinFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			if (IsInvokedOnArray(context, source))
 			{
 				context.Usings.Add("System.Numerics.Tensors");
-				result = CreateInvocation(ParseTypeName("TensorPrimitives")!, "Min", source);
+				result = CreateInvocation(ParseTypeName("TensorPrimitives"), "Min", source);
 				return true;
 			}
 
@@ -138,7 +138,7 @@ public class MinFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			{
 				context.Usings.Add("System.Numerics.Tensors");
 				context.Usings.Add("System.Runtime.InteropServices");
-				result = CreateInvocation(ParseTypeName("TensorPrimitives")!, "Min", CreateInvocation(ParseTypeName("CollectionsMarshal")!, "AsSpan", source));
+				result = CreateInvocation(ParseTypeName("TensorPrimitives"), "Min", CreateInvocation(ParseTypeName("CollectionsMarshal"), "AsSpan", source));
 				return true;
 			}
 		}

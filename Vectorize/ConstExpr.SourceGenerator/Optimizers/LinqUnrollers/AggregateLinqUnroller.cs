@@ -18,7 +18,7 @@ public class AggregateLinqUnroller : BaseLinqUnroller
 			    || IsInvokedOnCollection(method.CollectionType))
 			{
 				// var result = collection[0];
-				var elementAccess = ElementAccessExpression(IdentifierName("collection"), CreateLiteral(0)!);
+				var elementAccess = ElementAccessExpression(IdentifierName("collection"), CreateLiteral(0));
 
 				statements.Add(CreateLocalDeclaration(ResultName, elementAccess));
 			}
@@ -109,7 +109,7 @@ public class AggregateLinqUnroller : BaseLinqUnroller
 			{
 				var countProperty = IsInvokedOnArray(collectionType) ? "Length" : "Count";
 
-				resultStatements.Add(CreateForLoop(collectionName, "i", countProperty, Block(statements), CreateLiteral(1)!));
+				resultStatements.Add(CreateForLoop(collectionName, "i", countProperty, Block(statements), CreateLiteral(1)));
 			}
 			else
 			{

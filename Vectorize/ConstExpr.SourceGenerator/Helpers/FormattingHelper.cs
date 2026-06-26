@@ -12,7 +12,7 @@ internal static class FormattingHelper
 		// Strip the leading trivia before normalizing, then restore it afterwards.
 		var leadingTrivia = node.GetLeadingTrivia();
 		var rewriter = new BlockFormattingRewriter();
-		var result = rewriter.Visit(node.WithoutLeadingTrivia().NormalizeWhitespace("\t"))!;
+		var result = rewriter.Visit(node.WithoutLeadingTrivia().NormalizeWhitespace("\t"));
 
 		if (leadingTrivia.Count > 0)
 		{

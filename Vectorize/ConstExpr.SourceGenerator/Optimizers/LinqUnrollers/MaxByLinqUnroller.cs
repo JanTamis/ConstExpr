@@ -25,10 +25,10 @@ public class MaxByLinqUnroller : BaseLinqUnroller
 			// if (collection.Length == 0) throw new InvalidOperationException("Sequence contains no elements");
 			statements.Add(IfStatement(EqualsExpression(
 					MemberAccessExpression(IdentifierName("collection"), IdentifierName(countProperty)),
-					CreateLiteral(0)!),
+					CreateLiteral(0)),
 				CreateThrowExpression<InvalidOperationException>("Sequence contains no elements")));
 
-			var firstElement = ElementAccessExpression(IdentifierName("collection"), CreateLiteral(0)!);
+			var firstElement = ElementAccessExpression(IdentifierName("collection"), CreateLiteral(0));
 
 			// var result = collection[0];
 			statements.Add(CreateLocalDeclaration(ResultName, firstElement));
@@ -91,7 +91,7 @@ public class MaxByLinqUnroller : BaseLinqUnroller
 		if (IsInvokedOnArray(collectionType) || IsInvokedOnCollection(collectionType))
 		{
 			var countProperty = IsInvokedOnArray(collectionType) ? "Length" : "Count";
-			resultStatements.Add(CreateForLoop(collectionName, "i", countProperty, Block(statements), CreateLiteral(1)!));
+			resultStatements.Add(CreateForLoop(collectionName, "i", countProperty, Block(statements), CreateLiteral(1)));
 		}
 		else
 		{

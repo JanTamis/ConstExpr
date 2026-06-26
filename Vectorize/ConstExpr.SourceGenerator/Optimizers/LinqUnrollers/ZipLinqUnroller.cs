@@ -17,7 +17,7 @@ public class ZipLinqUnroller : BaseLinqUnroller
 	public override void UnrollAboveLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
 		// var zipIndex = 0;
-		statements.Add(CreateLocalDeclaration(IndexName, CreateLiteral(0)!));
+		statements.Add(CreateLocalDeclaration(IndexName, CreateLiteral(0)));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
@@ -31,7 +31,7 @@ public class ZipLinqUnroller : BaseLinqUnroller
 
 		// if (zipIndex >= second.Length / second.Count) break;
 		// Use a general Count() call approach or Length/Count property
-		var sizeExpr = GetCollectionSizeExpression(method.CollectionType, second.ToString()!)
+		var sizeExpr = GetCollectionSizeExpression(method.CollectionType, second.ToString())
 		               ?? MemberAccessExpression(second, IdentifierName("Count"));
 
 		statements.Add(IfStatement(

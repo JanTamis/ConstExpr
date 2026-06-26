@@ -245,7 +245,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			{
 				context.Usings.Add("System.Numerics.Tensors");
 
-				result = CreateInvocation(ParseTypeName("TensorPrimitives")!, $"{memberAccessBody.Name.Identifier.Text}Any", source);
+				result = CreateInvocation(ParseTypeName("TensorPrimitives"), $"{memberAccessBody.Name.Identifier.Text}Any", source);
 				return true;
 			}
 
@@ -254,12 +254,12 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 				context.Usings.Add("System.Numerics.Tensors");
 
 				var spanSource = CreateInvocation(
-					ParseTypeName("CollectionsMarshal")!,
+					ParseTypeName("CollectionsMarshal"),
 					"AsSpan",
 					source);
 
 				result = CreateInvocation(
-					ParseTypeName("TensorPrimitives")!,
+					ParseTypeName("TensorPrimitives"),
 					$"{memberAccessBody.Name.Identifier.Text}Any",
 					spanSource);
 				return true;

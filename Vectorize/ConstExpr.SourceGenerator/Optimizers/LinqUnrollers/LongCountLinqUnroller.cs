@@ -10,7 +10,7 @@ public class LongCountLinqUnroller : BaseLinqUnroller
 	public override void UnrollAboveLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
 		// var result = 0L;
-		statements.Add(CreateLocalDeclaration(ResultName, CreateLiteral(0L)!));
+		statements.Add(CreateLocalDeclaration(ResultName, CreateLiteral(0L)));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)

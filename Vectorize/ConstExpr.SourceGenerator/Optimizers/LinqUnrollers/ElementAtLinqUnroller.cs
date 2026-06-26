@@ -22,7 +22,7 @@ public class ElementAtLinqUnroller : BaseLinqUnroller
 		}
 
 		// if (indexCount == 0) return item;
-		statements.Add(IfStatement(EqualsExpression(IdentifierName(IndexCountName), CreateLiteral(0)!),
+		statements.Add(IfStatement(EqualsExpression(IdentifierName(IndexCountName), CreateLiteral(0)),
 			ReturnStatement(elementName)));
 
 		// indexCount--;

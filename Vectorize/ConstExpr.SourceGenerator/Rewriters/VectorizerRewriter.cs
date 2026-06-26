@@ -83,7 +83,7 @@ public class VectorizerRewriter(
 		// Resolve the source type BEFORE visiting so we still reference the original syntax tree.
 		semanticModel.TryGetTypeSymbol(node.Expression, symbolStore, out var sourceType);
 
-		var expression = (ExpressionSyntax)Visit(node.Expression)!;
+		var expression = (ExpressionSyntax) Visit(node.Expression);
 		var sourceIsFloat = IsFloatingPoint(sourceType);
 
 		// Choose the correct Vector128 method based on both source and target type:
@@ -117,7 +117,7 @@ public class VectorizerRewriter(
 
 	public override SyntaxNode? VisitPrefixUnaryExpression(PrefixUnaryExpressionSyntax node)
 	{
-		var operand = (ExpressionSyntax)Visit(node.Operand)!;
+		var operand = (ExpressionSyntax) Visit(node.Operand);
 
 		return node.Kind() switch
 		{
@@ -137,7 +137,7 @@ public class VectorizerRewriter(
 
 	public override SyntaxNode? VisitParenthesizedExpression(ParenthesizedExpressionSyntax node)
 	{
-		var inner = (ExpressionSyntax)Visit(node.Expression)!;
+		var inner = (ExpressionSyntax) Visit(node.Expression);
 		return node.WithExpression(inner);
 	}
 
@@ -146,9 +146,9 @@ public class VectorizerRewriter(
 	public override SyntaxNode? VisitConditionalExpression(ConditionalExpressionSyntax node)
 	{
 		// condition ? whenTrue : whenFalse → Vector.ConditionalSelect(condition, whenTrue, whenFalse)
-		var condition = (ExpressionSyntax)Visit(node.Condition)!;
-		var whenTrue = (ExpressionSyntax)Visit(node.WhenTrue)!;
-		var whenFalse = (ExpressionSyntax)Visit(node.WhenFalse)!;
+		var condition = (ExpressionSyntax) Visit(node.Condition);
+		var whenTrue = (ExpressionSyntax) Visit(node.WhenTrue);
+		var whenFalse = (ExpressionSyntax) Visit(node.WhenFalse);
 
 		return CreateInvocation("ConditionalSelect", condition, whenTrue, whenFalse);
 	}
@@ -168,7 +168,7 @@ public class VectorizerRewriter(
 			if (_VectorType.HasMethod(methodName))
 			{
 				var rewrittenArgs = node.ArgumentList.Arguments
-					.Select(a => (ExpressionSyntax)Visit(a.Expression)!)
+					.Select(a => (ExpressionSyntax) Visit(a.Expression))
 					.ToArray();
 
 				return CreateInvocation(methodName, rewrittenArgs);
@@ -184,15 +184,15 @@ public class VectorizerRewriter(
 	{
 		// Optimise   a & ~b   →   Vector.AndNot(a, b)   before recursing.
 		if (node.IsKind(SyntaxKind.BitwiseAndExpression)
-		    && node.Right is PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.BitwiseNotExpression } notExpr)
+		    && node.Right is PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.BitwiseNotExpression } notExpr)
 		{
-			var left = (ExpressionSyntax)Visit(node.Left)!;
-			var right = (ExpressionSyntax)Visit(notExpr.Operand)!;
+			var left = (ExpressionSyntax) Visit(node.Left);
+			var right = (ExpressionSyntax) Visit(notExpr.Operand);
 			return CreateInvocation("AndNot", left, right);
 		}
 
-		var rewrittenLeft = (ExpressionSyntax)Visit(node.Left)!;
-		var rewrittenRight = (ExpressionSyntax)Visit(node.Right)!;
+		var rewrittenLeft = (ExpressionSyntax) Visit(node.Left);
+		var rewrittenRight = (ExpressionSyntax) Visit(node.Right);
 
 		return node.Kind() switch
 		{
@@ -247,7 +247,7 @@ public class VectorizerRewriter(
 				IdentifierName("Vector"),
 				GenericName(Identifier(name))
 					.WithTypeArgumentList(TypeArgumentList(SeparatedList(typeArguments))))
-			: (ExpressionSyntax)MemberAccessExpression(
+			: (ExpressionSyntax) MemberAccessExpression(
 				IdentifierName("Vector"),
 				IdentifierName(name));
 

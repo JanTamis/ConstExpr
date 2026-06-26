@@ -26,7 +26,7 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 	// We CAN'T include ordering operations because they change which element comes first!
 	private static readonly HashSet<string> OperationsThatDontAffectFirst =
 	[
-		..MaterializingMethods,
+		.. MaterializingMethods,
 		nameof(Enumerable.Distinct) // Distinct might remove duplicates but doesn't change the order of remaining elements
 	];
 
@@ -211,7 +211,7 @@ public class FirstFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		    && (IsInvokedOnArray(context, source)
 		        || IsInvokedOnList(context, source)))
 		{
-			result = CreateElementAccess(source, CreateLiteral(0)!);
+			result = CreateElementAccess(source, CreateLiteral(0));
 			return true;
 		}
 

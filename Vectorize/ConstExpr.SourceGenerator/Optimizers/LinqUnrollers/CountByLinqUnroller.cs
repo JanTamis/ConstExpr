@@ -50,12 +50,12 @@ public class CountByLinqUnroller : BaseLinqUnroller
 					Argument(DeclarationExpression(IdentifierName("var"), SingleVariableDesignation(Identifier("countVal"))))
 						.WithRefKindKeyword(Token(SyntaxKind.OutKeyword))
 				])))),
-			CreateAssignment("countVal", CreateLiteral(0)!)));
+			CreateAssignment("countVal", CreateLiteral(0))));
 
 		// countByDict[countKey] = countVal + 1;
 		statements.Add(ExpressionStatement(AssignmentExpression(SyntaxKind.SimpleAssignmentExpression,
 			ElementAccessExpression(IdentifierName(DictName), IdentifierName("countKey")),
-			AddExpression(IdentifierName("countVal"), CreateLiteral(1)!))));
+			AddExpression(IdentifierName("countVal"), CreateLiteral(1)))));
 
 		// continue;
 		statements.Add(ContinueStatement());

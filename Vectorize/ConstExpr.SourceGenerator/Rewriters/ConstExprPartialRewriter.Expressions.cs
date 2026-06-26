@@ -396,9 +396,9 @@ public partial class ConstExprPartialRewriter
 	{
 		return expr switch
 		{
-			BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LogicalAndExpression } and_ =>
+			BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LogicalAndExpression } and_ =>
 				IsNotEqualsChain(and_.Left) && IsNotEqualsChain(and_.Right),
-			BinaryExpressionSyntax { RawKind: (int)SyntaxKind.NotEqualsExpression } => true,
+			BinaryExpressionSyntax { RawKind: (int) SyntaxKind.NotEqualsExpression } => true,
 			_ => false
 		};
 	}
@@ -545,7 +545,7 @@ public partial class ConstExprPartialRewriter
 		{
 			var complementInner = operand is ParenthesizedExpressionSyntax complementParen ? complementParen.Expression : operand;
 
-			if (complementInner is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.AddExpression or (int)SyntaxKind.SubtractExpression } complementBinary
+			if (complementInner is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.AddExpression or (int) SyntaxKind.SubtractExpression } complementBinary
 			    && IsSimpleOperand(complementBinary.Left)
 			    && TryGetLiteralValue(complementBinary.Right, out var complementOne)
 			    && IsIntegralOne(complementOne)
@@ -566,7 +566,7 @@ public partial class ConstExprPartialRewriter
 		{
 			var negSubInner = operand is ParenthesizedExpressionSyntax negSubParen ? negSubParen.Expression : operand;
 
-			if (negSubInner is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.SubtractExpression } negSubExpr
+			if (negSubInner is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.SubtractExpression } negSubExpr
 			    && TryGetLiteralValue(negSubExpr.Left, out _)
 			    && IsExpressionPure(negSubExpr.Right))
 			{
@@ -586,7 +586,7 @@ public partial class ConstExprPartialRewriter
 		{
 			var negAddInner = operand is ParenthesizedExpressionSyntax negAddParen ? negAddParen.Expression : operand;
 
-			if (negAddInner is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.AddExpression } negAddExpr)
+			if (negAddInner is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.AddExpression } negAddExpr)
 			{
 				object? constValue = null;
 				ExpressionSyntax? otherExpr = null;
@@ -922,7 +922,7 @@ public partial class ConstExprPartialRewriter
 		}
 
 		// x?.Member where x is known null → null
-		if (expression is LiteralExpressionSyntax { RawKind: (int)SyntaxKind.NullLiteralExpression })
+		if (expression is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NullLiteralExpression })
 		{
 			return LiteralExpression(SyntaxKind.NullLiteralExpression);
 		}
@@ -954,7 +954,7 @@ public partial class ConstExprPartialRewriter
 			if (literalArguments.All(lit => lit is not null))
 			{
 				return TupleExpression(
-					SeparatedList(literalArguments.Select(lit => Argument(lit!))));
+					SeparatedList(literalArguments.Select(lit => Argument(lit))));
 			}
 		}
 
@@ -1176,7 +1176,7 @@ public partial class ConstExprPartialRewriter
 				}
 				case ObjectExtensions.ClusterType.Bitmask:
 				{
-					var bitType = (int)cluster.Step! switch
+					var bitType = (int) cluster.Step! switch
 					{
 						<= 32 => semanticModel.Compilation.GetSpecialType(SpecialType.System_UInt32),
 						<= 64 => semanticModel.Compilation.GetSpecialType(SpecialType.System_UInt64),
@@ -1322,7 +1322,7 @@ public partial class ConstExprPartialRewriter
 			ushort us => Literal($"0x{us:X}", us),
 			byte b => Literal($"0x{b:X}", b),
 			sbyte sb => Literal($"0x{sb:X}", sb),
-			char c => Literal($"0x{(ushort)c:X}", (ushort)c),
+			char c => Literal($"0x{(ushort) c:X}", (ushort) c),
 			_ => Literal(0)
 		});
 

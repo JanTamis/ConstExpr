@@ -123,7 +123,7 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 					// Shift operators (<<, >>) have lower precedence than + and -, so wrap in parens
 					// to avoid `start << 1 + count` being parsed as `start << (1 + count)`.
-					if (twoTimesStart is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LeftShiftExpression or (int)SyntaxKind.RightShiftExpression })
+					if (twoTimesStart is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LeftShiftExpression or (int) SyntaxKind.RightShiftExpression })
 					{
 						twoTimesStart = ParenthesizedExpression(twoTimesStart);
 					}
@@ -182,7 +182,7 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			if (IsInvokedOnArray(context, source))
 			{
 				context.Usings.Add("System.Numerics.Tensors");
-				result = CreateInvocation(ParseTypeName("TensorPrimitives")!, "Sum", source);
+				result = CreateInvocation(ParseTypeName("TensorPrimitives"), "Sum", source);
 				return true;
 			}
 
@@ -190,7 +190,7 @@ public class SumFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			{
 				context.Usings.Add("System.Numerics.Tensors");
 				context.Usings.Add("System.Runtime.InteropServices");
-				result = CreateInvocation(ParseTypeName("TensorPrimitives")!, "Sum", CreateInvocation(ParseTypeName("CollectionsMarshal")!, "AsSpan", source));
+				result = CreateInvocation(ParseTypeName("TensorPrimitives"), "Sum", CreateInvocation(ParseTypeName("CollectionsMarshal"), "AsSpan", source));
 				return true;
 			}
 		}

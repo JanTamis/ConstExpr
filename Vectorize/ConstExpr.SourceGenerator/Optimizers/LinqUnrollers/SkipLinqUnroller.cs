@@ -10,7 +10,7 @@ public class SkipLinqUnroller : BaseLinqUnroller
 	public override void UnrollAboveLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
 		// var skipCount = 0;
-		statements.Add(CreateLocalDeclaration(SkipCountName, CreateLiteral(0)!));
+		statements.Add(CreateLocalDeclaration(SkipCountName, CreateLiteral(0)));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)

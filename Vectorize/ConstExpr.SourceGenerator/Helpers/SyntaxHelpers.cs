@@ -263,7 +263,7 @@ public static class SyntaxHelpers
 				result = ObjectCreationExpression(
 						IdentifierName("DateTime"))
 					.WithArgumentList(ArgumentList(SeparatedList([
-						Argument(CreateLiteral(dt.Ticks)!),
+						Argument(CreateLiteral(dt.Ticks)),
 						Argument(
 							MemberAccessExpression(
 								IdentifierName("DateTimeKind"),
@@ -276,7 +276,7 @@ public static class SyntaxHelpers
 				result = ObjectCreationExpression(
 						IdentifierName("TimeSpan"))
 					.WithArgumentList(ArgumentList(SeparatedList([
-						Argument(CreateLiteral(ts.Ticks)!)
+						Argument(CreateLiteral(ts.Ticks))
 					])));
 				return true;
 			}

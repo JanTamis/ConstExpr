@@ -16,13 +16,13 @@ public class DefaultIfEmptyLinqUnroller : BaseLinqUnroller
 	public override void UnrollAboveLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
 		// var hasElements = false;
-		statements.Add(CreateLocalDeclaration(HasElementsName, CreateLiteral(false)!));
+		statements.Add(CreateLocalDeclaration(HasElementsName, CreateLiteral(false)));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
 	{
 		// hasElements = true;
-		statements.Add(CreateAssignment(HasElementsName, CreateLiteral(true)!));
+		statements.Add(CreateAssignment(HasElementsName, CreateLiteral(true)));
 	}
 
 	public override void UnrollAfterMainLoop(UnrolledLinqMethod method, IList<StatementSyntax> partialLoopBody, List<StatementSyntax> resultStatements)

@@ -25,7 +25,7 @@ public class ToCharArrayFunctionOptimizer(SyntaxNode? instance) : BaseStringFunc
 		var elements = str
 			.Select(c => CreateLiteral(c))
 			.Where(e => e is not null)
-			.Select(e => ExpressionElement(e!))
+			.Select(e => ExpressionElement(e))
 			.Cast<CollectionElementSyntax>()
 			.ToArray();
 

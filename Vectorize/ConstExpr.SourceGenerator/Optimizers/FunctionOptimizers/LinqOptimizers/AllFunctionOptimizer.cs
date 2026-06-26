@@ -209,7 +209,7 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			{
 				context.Usings.Add("System.Numerics.Tensors");
 
-				result = CreateInvocation(ParseTypeName("TensorPrimitives")!, $"{memberAccessBody.Name.Identifier.Text}All", source);
+				result = CreateInvocation(ParseTypeName("TensorPrimitives"), $"{memberAccessBody.Name.Identifier.Text}All", source);
 				return true;
 			}
 
@@ -218,12 +218,12 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 				context.Usings.Add("System.Numerics.Tensors");
 
 				var spanSource = CreateInvocation(
-					ParseTypeName("CollectionsMarshal")!,
+					ParseTypeName("CollectionsMarshal"),
 					"AsSpan",
 					source);
 
 				result = CreateInvocation(
-					ParseTypeName("TensorPrimitives")!,
+					ParseTypeName("TensorPrimitives"),
 					$"{memberAccessBody.Name.Identifier.Text}All",
 					spanSource);
 				return true;
@@ -274,7 +274,7 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 
 		if (!InvertLogicalRefactoring.TryInvertLogical(lambda.Body as BinaryExpressionSyntax, out var inverted))
 		{
-			inverted = LogicalNotExpression((ExpressionSyntax)lambda.Body);
+			inverted = LogicalNotExpression((ExpressionSyntax) lambda.Body);
 		}
 
 		var result = $$"""

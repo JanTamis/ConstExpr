@@ -16,7 +16,7 @@ public class SingleLinqUnroller : BaseLinqUnroller
 		statements.Add(CreateLocalDeclaration(ResultName, method.MethodSymbol.ReturnType.GetDefaultValue()));
 
 		// var found = false;
-		statements.Add(CreateLocalDeclaration(FoundName, CreateLiteral(false)!));
+		statements.Add(CreateLocalDeclaration(FoundName, CreateLiteral(false)));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
@@ -33,7 +33,7 @@ public class SingleLinqUnroller : BaseLinqUnroller
 			CreateThrowExpression<InvalidOperationException>("Sequence contains more than one matching element")));
 
 		statements.Add(CreateAssignment(ResultName, elementName));
-		statements.Add(CreateAssignment(FoundName, CreateLiteral(true)!));
+		statements.Add(CreateAssignment(FoundName, CreateLiteral(true)));
 	}
 
 	public override void UnrollUnderLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)

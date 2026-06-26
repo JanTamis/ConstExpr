@@ -26,7 +26,7 @@ public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 	public static SyntaxNode Apply(SyntaxNode node)
 	{
 		var rewriter = new LoopInvariantCodeMotionRewriter();
-		return rewriter.Visit(node)!;
+		return rewriter.Visit(node);
 	}
 
 	// ── Block: inline hoisted declarations at the parent scope ──────

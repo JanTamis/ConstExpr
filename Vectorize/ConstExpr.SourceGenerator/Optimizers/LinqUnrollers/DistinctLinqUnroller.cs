@@ -18,8 +18,8 @@ public class DistinctLinqUnroller : BaseLinqUnroller
 		{
 			case SpecialType.System_Boolean:
 			{
-				statements.Add(CreateLocalDeclaration(SeenTrue, CreateLiteral(false)!));
-				statements.Add(CreateLocalDeclaration(SeenFalse, CreateLiteral(false)!));
+				statements.Add(CreateLocalDeclaration(SeenTrue, CreateLiteral(false)));
+				statements.Add(CreateLocalDeclaration(SeenFalse, CreateLiteral(false)));
 				break;
 			}
 

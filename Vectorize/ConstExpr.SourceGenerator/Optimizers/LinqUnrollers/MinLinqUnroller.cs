@@ -19,11 +19,11 @@ public class MinLinqUnroller : BaseLinqUnroller
 			statements.Add(IfStatement(
 				EqualsExpression(
 					MemberAccessExpression(IdentifierName("collection"), IdentifierName(countProperty)),
-					CreateLiteral(0)!),
+					CreateLiteral(0)),
 				CreateThrowExpression<InvalidOperationException>("Sequence contains no elements")));
 
 			// var value = collection[0]; (or lambda(collection[0]) when selector is present)
-			ExpressionSyntax firstElement = ElementAccessExpression(IdentifierName("collection"), CreateLiteral(0)!);
+			ExpressionSyntax firstElement = ElementAccessExpression(IdentifierName("collection"), CreateLiteral(0));
 
 			if (method.Parameters.Length == 1 && TryGetLambda(method.Parameters[0], out var initLambda))
 			{
@@ -80,7 +80,7 @@ public class MinLinqUnroller : BaseLinqUnroller
 		if (IsInvokedOnArray(collectionType) || IsInvokedOnCollection(collectionType))
 		{
 			var countProperty = IsInvokedOnArray(collectionType) ? "Length" : "Count";
-			resultStatements.Add(CreateForLoop(collectionName, "i", countProperty, Block(statements), CreateLiteral(1)!));
+			resultStatements.Add(CreateForLoop(collectionName, "i", countProperty, Block(statements), CreateLiteral(1)));
 		}
 		else
 		{
