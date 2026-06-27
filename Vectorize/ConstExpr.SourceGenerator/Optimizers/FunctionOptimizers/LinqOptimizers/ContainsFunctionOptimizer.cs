@@ -180,7 +180,7 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 
 						if (IsSimpleEqualityLambda(resultPredicate, out var resultValue))
 						{
-							result = UpdateInvocation(context, invocationSource, resultValue);
+							result = TryOptimizeByOptimizer<ContainsFunctionOptimizer>(context, CreateInvocation(invocationSource, nameof(Enumerable.Contains), resultValue));
 							return true;
 						}
 
