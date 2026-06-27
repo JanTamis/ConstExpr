@@ -84,6 +84,28 @@ public static class LinqUnroller
 	};
 
 	/// <summary>
+	///   Intermediate steps that emit exactly one output element per input element. When a chain
+	///   contains only these between source and terminal, the iteration count equals the source size.
+	///   Conservative: a missing entry only costs an optimization; a wrong entry produces wrong results.
+	/// </summary>
+	private static readonly HashSet<PossibleLinqMethod> CountPreservingMethods =
+	[
+		PossibleLinqMethod.Select,
+		PossibleLinqMethod.Cast,
+		PossibleLinqMethod.Index,
+		PossibleLinqMethod.Reverse,
+		PossibleLinqMethod.Order,
+		PossibleLinqMethod.OrderBy,
+		PossibleLinqMethod.OrderByDescending,
+		PossibleLinqMethod.OrderDescending,
+		PossibleLinqMethod.ThenBy,
+		PossibleLinqMethod.ThenByDescending,
+		PossibleLinqMethod.ToList,
+		PossibleLinqMethod.ToArray,
+		PossibleLinqMethod.AsEnumerable,
+	];
+
+	/// <summary>
 	///   Walks a LINQ method-chain rooted at <paramref name="node" /> and returns every
 	///   recognised <see cref="PossibleLinqMethod" /> step together with its argument
 	///   expressions, ordered from the first (innermost) call to the last (outermost).
@@ -184,6 +206,13 @@ public static class LinqUnroller
 		{
 			chain[i].CollectionType = type;
 		}
+
+		// Mark the terminal step when every intermediate step is 1:1, so the iteration count
+		// equals the source size and terminals like Average can divide by collection.Length/Count
+		// instead of counting in the loop. Excluded for constant sources: there the count-variable
+		// path constant-folds away entirely (the rewriter unrolls count++), which beats a .Length call.
+		chain[^1].IsCountPreserved = !IsConstantCollectionArg(chain[0].Parameters[0], variables)
+		                             && chain.Skip(1).Take(chain.Length - 2).All(s => CountPreservingMethods.Contains(s.Method));
 
 		if (!Unrollers.TryGetValue(chain[^1].Method, out var lastUnroller))
 		{
@@ -761,6 +790,14 @@ public struct UnrolledLinqMethod(SemanticModel model, PossibleLinqMethod method,
 	public PossibleLinqMethod Method { get; set; } = method;
 	public IMethodSymbol MethodSymbol { get; set; } = methodSymbol;
 	public ITypeSymbol CollectionType { get; set; }
+
+	/// <summary>
+	///   True when every intermediate chain step between the source and this terminal step is
+	///   1:1 (preserves element count), so the source collection's size equals the iteration count.
+	///   Set on the terminal step by <see cref="LinqUnroller.TryUnrollLinqChain" />.
+	/// </summary>
+	public bool IsCountPreserved { get; set; }
+
 	public Func<SyntaxNode?, SyntaxNode?> Visit { get; set; } = visit;
 	public ExpressionSyntax[] Parameters { get; set; } = parameters;
 	public TypeSyntax[] TypeArguments { get; set; } = typeArguments;

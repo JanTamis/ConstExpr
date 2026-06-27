@@ -10,10 +10,25 @@ public class AverageLinqUnroller : BaseLinqUnroller
 	private const string ResultName = "result";
 	private const string CountName = "count";
 
+	/// <summary>
+	///   The source size expression (collection.Length/Count) when the chain preserves element count
+	///   and the source size is known, else null — meaning count must be tallied in the loop.
+	/// </summary>
+	private static ExpressionSyntax? GetKnownCount(UnrolledLinqMethod method)
+	{
+		return method.IsCountPreserved
+			? GetCollectionSizeExpression(method.CollectionType)
+			: null;
+	}
+
 	public override void UnrollAboveLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
 		statements.Add(CreateLocalDeclaration(ResultName, method.MethodSymbol.ReturnType.GetDefaultValue()));
-		statements.Add(CreateLocalDeclaration(CountName, CreateLiteral(0)));
+
+		if (GetKnownCount(method) is null)
+		{
+			statements.Add(CreateLocalDeclaration(CountName, CreateLiteral(0)));
+		}
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
@@ -33,11 +48,15 @@ public class AverageLinqUnroller : BaseLinqUnroller
 				elementName)));
 		}
 
-		statements.Add(ExpressionStatement(PostIncrementExpression(IdentifierName(CountName))));
+		if (GetKnownCount(method) is null)
+		{
+			statements.Add(ExpressionStatement(PostIncrementExpression(IdentifierName(CountName))));
+		}
 	}
 
 	public override void UnrollUnderLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
-		statements.Add(ReturnStatement(DivideExpression(IdentifierName(ResultName), IdentifierName(CountName))));
+		var count = GetKnownCount(method) ?? IdentifierName(CountName);
+		statements.Add(ReturnStatement(DivideExpression(IdentifierName(ResultName), count)));
 	}
 }
