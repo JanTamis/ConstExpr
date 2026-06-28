@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using ConstExpr.Core.Attributes;
 using ConstExpr.Core.Enumerators;
 
@@ -10,6 +11,19 @@ namespace ConstExpr.SourceGenerator.Sample.Operations;
 	LinqOptimization = LinqOptimizationMode.Unroll)]
 public static class ArrayOperations
 {
+	// Chained Where before Contains(literal): both predicates are folded away.
+	// The "true" variant reduces to a (vectorized) Contains(5); the "false" variant
+	// folds to the constant false. Regression coverage for the vectorized array-Contains path.
+	public static bool ChainedWhereContainsTrue(params int[] numbers)
+	{
+		return numbers.Where(x => x > 2).Where(x => x < 100).Contains(5);
+	}
+
+	public static bool ChainedWhereContainsFalse(params int[] numbers)
+	{
+		return numbers.Where(x => x > 2).Where(x => x < 100).Contains(1);
+	}
+
 	/// <summary>
 	///   Finds the maximum value in an array
 	/// </summary>
@@ -73,7 +87,7 @@ public static class ArrayOperations
 			sum += num;
 		}
 
-		return (double)sum / numbers.Length;
+		return (double) sum / numbers.Length;
 	}
 
 	/// <summary>

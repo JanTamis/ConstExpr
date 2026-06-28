@@ -29,6 +29,15 @@ public static class DataValidationOperations
 	}
 
 	/// <summary>
+	///   Validates that every element stays positive after a right shift —
+	///   exercises SIMD shift emission (&gt;&gt;) in the vectorizer.
+	/// </summary>
+	public static bool AllShiftedPositive(params int[] numbers)
+	{
+		return numbers.All(n => n >> 1 > 0);
+	}
+
+	/// <summary>
 	///   Validates if a string matches a simple pattern (only alphanumeric)
 	/// </summary>
 	public static bool IsAlphanumeric(string input)
@@ -116,7 +125,7 @@ public static class DataValidationOperations
 
 		var nonNullCount = values.Count(v => !Double.IsNaN(v) && !Double.IsInfinity(v));
 
-		return (double)nonNullCount / values.Length;
+		return (double) nonNullCount / values.Length;
 	}
 
 	/// <summary>

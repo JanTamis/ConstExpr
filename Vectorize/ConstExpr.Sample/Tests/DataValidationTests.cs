@@ -23,6 +23,9 @@ internal class DataValidationTests
 		// AllPositive - mixed
 		Console.WriteLine($"[MIXED] AllPositive(varDouble, 2, 3): {DataValidationOperations.AllPositive(varDouble, 2, 3)}");
 
+		// AllShiftedPositive - mixed (exercises SIMD shift emission)
+		Console.WriteLine($"[MIXED] AllShiftedPositive(varInt, 4, 6): {DataValidationOperations.AllShiftedPositive(varInt, 4, 6)}");
+
 		// IsAlphanumeric - alleen constanten
 		Console.WriteLine($"[CONST] IsAlphanumeric(\"Hello123\"): {DataValidationOperations.IsAlphanumeric("Hello123")}");
 		Console.WriteLine($"[CONST] IsAlphanumeric(\"Hello@123\"): {DataValidationOperations.IsAlphanumeric("Hello@123")}");

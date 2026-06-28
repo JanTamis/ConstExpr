@@ -64,7 +64,9 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 					// Continue skipping operations before Where as well
 					TryGetOptimizedChainExpression(invocationSource, OperationsThatDontAffectContainment, out invocationSource);
 
-					// TODO: do this recursively for multiple chained Where statements
+					// Chained Where folds automatically: the true-case below sets `source` to the
+					// Where's source and breaks, and the outer while-loop re-evaluates it, peeling
+					// one Where per iteration.
 					if (searchValue is LiteralExpressionSyntax { Token.Value: { } literalValue }
 					    && context.GetLambda(wherePredicate) is { } lambda)
 					{
@@ -271,6 +273,9 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 			{
 				context.AdditionalSyntax.TryAdd(method, false);
 
+				context.Usings.Add("System.Numerics");
+				context.Usings.Add("System.Runtime.InteropServices");
+
 				result = CreateInvocation(method.Identifier.Text, source);
 				return true;
 			}
@@ -379,6 +384,8 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 					if (data[i] == {{context.VisitedParameters[0]}})
 						return true;
 				}
+
+				return false;
 			}
 			""";
 
