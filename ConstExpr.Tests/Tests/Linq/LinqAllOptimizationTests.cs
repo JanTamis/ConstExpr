@@ -60,7 +60,7 @@ public class LinqAllOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFla
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return (All_V1wvzg(x) ? 8 : 0) + (All_uNodPQ(x) ? 3 : 0) + (All_dmHWwg(x) ? 1 : 0) + (All_HSERGA(x) ? 1 : 0) + (All_TyCl3w(x) && All_TyCl3w(x) ? 1 : 0) + (All_UyUKEQ(x) ? 1 : 0);"),
+		Create("return (All_V1wvzg(x) ? 8 : 0) + (All_uNodPQ(x) ? 3 : 0) + (All_dmHWwg(x) ? 1 : 0) + (All_mjKpBA(x) ? 1 : 0) + (All_TyCl3w(x) && All_TyCl3w(x) ? 1 : 0) + (All_UyUKEQ(x) ? 1 : 0);"),
 		Create("return (All_uNodPQ(x) ? 3 : 0) + 11;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return (All_uNodPQ(x) ? 3 : 0) + 12;", System.Array.Empty<int>()),
 		Create("return (All_uNodPQ(x) ? 3 : 0) + 9;", new[] { 1, 2, 3, 4, 5, 100 })

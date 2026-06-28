@@ -38,12 +38,9 @@ public class LinqAverageOptimizationTests() : BaseTest<Func<int[], double>>(Fast
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return Average_FTVkTg(x) * 5D + Average_pTwHiw(x) + Average_0_Olsw(x) + Average_zm9RrA(x);"),
+		Create("return Average_FTVkTg(x) * 5D + Average_pTwHiw(x) + Average_0_Olsw(x) + Average_DXh3ig(x);"),
 		Create(_ => 24D, [ new[] { 1, 2, 3 } ]),
-		Create(_ =>
-		{
-			throw new InvalidOperationException("Sequence contains no elements");
-		}, [ System.Array.Empty<int>() ]),
+		Create(_ => throw new InvalidOperationException("Sequence contains no elements"), [ System.Array.Empty<int>() ]),
 		Create(_ => 120D, [ new[] { 10 } ])
 	];
 }
