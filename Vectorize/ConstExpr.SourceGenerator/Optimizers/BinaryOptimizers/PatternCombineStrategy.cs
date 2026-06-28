@@ -1,4 +1,5 @@
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
@@ -24,10 +25,7 @@ public class PatternCombineStrategy(BinaryOperatorKind operatorKind) : BaseBinar
 		var left = TryParseAsPattern(context.Left.Syntax);
 
 		if (left is null)
-		{
-			optimized = null;
-			return false;
-		}
+			return TryDeepCombine(context, out optimized);
 
 		var right = TryParseAsPattern(context.Right.Syntax);
 
@@ -65,6 +63,41 @@ public class PatternCombineStrategy(BinaryOperatorKind operatorKind) : BaseBinar
 		var combined = BinaryPattern(patternKind, left.Value.Pattern, right.Value.Pattern);
 		optimized = IsPatternExpression(left.Value.Target, combined);
 
+		return true;
+	}
+
+	// ponytail: handles one level of nesting; deeper chains re-enter via Visit
+	private bool TryDeepCombine(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
+	{
+		optimized = null;
+
+		var right = TryParseAsPattern(context.Right.Syntax);
+		if (right is null)
+			return false;
+
+		var expectedKind = operatorKind == BinaryOperatorKind.ConditionalAnd
+			? SyntaxKind.LogicalAndExpression
+			: SyntaxKind.LogicalOrExpression;
+
+		if (context.Left.Syntax is not BinaryExpressionSyntax leftBinary)
+			return false;
+
+		if (!leftBinary.IsKind(expectedKind))
+			return false;
+
+		var leftRight = TryParseAsPattern(leftBinary.Right);
+		if (leftRight is null
+		    || !LeftEqualsRight(leftRight.Value.Target, right.Value.Target, context.Variables))
+			return false;
+
+		var patternKind = operatorKind == BinaryOperatorKind.ConditionalAnd
+			? SyntaxKind.AndPattern
+			: SyntaxKind.OrPattern;
+
+		var combined = BinaryPattern(patternKind, leftRight.Value.Pattern, right.Value.Pattern);
+
+		optimized = BinaryExpression(expectedKind, leftBinary.Left,
+			IsPatternExpression(leftRight.Value.Target, combined));
 		return true;
 	}
 }
