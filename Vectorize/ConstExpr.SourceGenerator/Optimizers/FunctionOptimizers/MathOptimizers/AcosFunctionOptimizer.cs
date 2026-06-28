@@ -20,8 +20,8 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 	{
 		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			SpecialType.System_Single => GenerateFastAcosMethodFloat(context.FastMathFlags),
-			SpecialType.System_Double => GenerateFastAcosMethodDouble(context.FastMathFlags),
+			SpecialType.System_Single => GenerateFastAcosMethodFloat(context),
+			SpecialType.System_Double => GenerateFastAcosMethodDouble(context),
 			_ => null
 		});
 
@@ -42,9 +42,9 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 	///   floating-point numbers.
 	///   Uses a polynomial approximation with FusedMultiplyAdd for improved performance.
 	/// </summary>
-	/// <param name="flags">FastMath flags that control NaN handling and other optimizations.</param>
+	/// <param name="context">The optimizer context containing method arguments and FastMath flags.</param>
 	/// <returns>A string containing the C# code for the fast Acos implementation.</returns>
-	private static string GenerateFastAcosMethodFloat(FastMathFlags flags)
+	private static string GenerateFastAcosMethodFloat(FunctionOptimizerContext context)
 	{
 		var builder = new CodeWriter();
 
@@ -56,7 +56,7 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 			.WriteLine("public static float FastAcos(float x)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
 		}
@@ -79,9 +79,9 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 	///   floating-point numbers.
 	///   Uses a higher-precision polynomial approximation with separate handling for values greater than 0.5.
 	/// </summary>
-	/// <param name="flags">FastMath flags that control NaN handling and other optimizations.</param>
+	/// <param name="context">The optimizer context containing method arguments and FastMath flags.</param>
 	/// <returns>A string containing the C# code for the fast Acos implementation.</returns>
-	private static string GenerateFastAcosMethodDouble(FastMathFlags flags)
+	private static string GenerateFastAcosMethodDouble(FunctionOptimizerContext context)
 	{
 		var builder = new CodeWriter();
 
@@ -93,7 +93,7 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 			.WriteLine("public static double FastAcos(double x)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
 		}
