@@ -60,6 +60,19 @@ public abstract class BaseFunctionOptimizer
 						parameters.Select(Argument))));
 	}
 
+	protected InvocationExpressionSyntax CreateInvocation(string name, IEnumerable<TypeSyntax> typeParameters, params IEnumerable<ExpressionSyntax> parameters)
+	{
+		return InvocationExpression(
+				GenericName(name)
+					.WithTypeArgumentList(
+						TypeArgumentList(
+							SeparatedList(typeParameters))))
+			.WithArgumentList(
+				ArgumentList(
+					SeparatedList(
+						parameters.Select(Argument))));
+	}
+
 	protected static bool IsPure(SyntaxNode node)
 	{
 		return node switch
