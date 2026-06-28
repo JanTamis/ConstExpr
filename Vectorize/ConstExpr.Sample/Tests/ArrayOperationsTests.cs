@@ -94,10 +94,6 @@ internal class ArrayOperationsTests
 		// Range - mixed
 		Console.WriteLine($"[MIXED] Range(data): {ArrayOperations.Range(data)}");
 
-		// Chained Where + Contains (exercises vectorized array-Contains folding)
-		Console.WriteLine($"[MIXED] ChainedWhereContainsTrue(data): {ArrayOperations.ChainedWhereContainsTrue(data)}");
-		Console.WriteLine($"[MIXED] ChainedWhereContainsFalse(data): {ArrayOperations.ChainedWhereContainsFalse(data)}");
-
 		Console.WriteLine();
 	}
 }
