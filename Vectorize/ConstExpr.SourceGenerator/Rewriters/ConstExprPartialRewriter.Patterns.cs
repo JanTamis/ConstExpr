@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
+using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -379,7 +381,7 @@ public partial class ConstExprPartialRewriter
 		{
 			var innerPattern = unaryNot.Pattern is ParenthesizedPatternSyntax paren ? paren.Pattern : unaryNot.Pattern;
 
-			if (innerPattern is BinaryPatternSyntax { OperatorToken.RawKind: (int)SyntaxKind.OrKeyword } orPattern)
+			if (innerPattern is BinaryPatternSyntax { OperatorToken.RawKind: (int) SyntaxKind.OrKeyword } orPattern)
 			{
 				var baseExpr = expression as ExpressionSyntax ?? node.Expression;
 				var syntheticIsNode = node
@@ -398,7 +400,7 @@ public partial class ConstExprPartialRewriter
 		{
 			var innerPattern = unaryNotAnd.Pattern is ParenthesizedPatternSyntax parenAnd ? parenAnd.Pattern : unaryNotAnd.Pattern;
 
-			if (innerPattern is BinaryPatternSyntax { OperatorToken.RawKind: (int)SyntaxKind.AndKeyword } andPattern)
+			if (innerPattern is BinaryPatternSyntax { OperatorToken.RawKind: (int) SyntaxKind.AndKeyword } andPattern)
 			{
 				var baseExpr = expression as ExpressionSyntax ?? node.Expression;
 				var syntheticIsNode = node
@@ -413,7 +415,7 @@ public partial class ConstExprPartialRewriter
 						SyntaxKind.LessThanOrEqualExpression => SyntaxKind.GreaterThanExpression,
 						SyntaxKind.GreaterThanExpression => SyntaxKind.LessThanOrEqualExpression,
 						SyntaxKind.GreaterThanOrEqualExpression => SyntaxKind.LessThanExpression,
-						_ => (SyntaxKind?)null
+						_ => (SyntaxKind?) null
 					};
 
 					if (negatedKind.HasValue)
@@ -436,7 +438,7 @@ public partial class ConstExprPartialRewriter
 				SyntaxKind.LessThanEqualsToken => SyntaxKind.GreaterThanExpression, // !(x <= y) -> x > y
 				SyntaxKind.GreaterThanToken => SyntaxKind.LessThanOrEqualExpression, // !(x > y) -> x <= y
 				SyntaxKind.GreaterThanEqualsToken => SyntaxKind.LessThanExpression, // !(x >= y) -> x < y
-				_ => (SyntaxKind?)null
+				_ => (SyntaxKind?) null
 			};
 
 			if (negatedKind.HasValue)
@@ -468,7 +470,7 @@ public partial class ConstExprPartialRewriter
 				SyntaxKind.LessThanEqualsToken => SyntaxKind.LessThanOrEqualExpression,
 				SyntaxKind.GreaterThanToken => SyntaxKind.GreaterThanExpression,
 				SyntaxKind.GreaterThanEqualsToken => SyntaxKind.GreaterThanOrEqualExpression,
-				_ => (SyntaxKind?)null
+				_ => (SyntaxKind?) null
 			};
 
 			if (binaryKind.HasValue)
@@ -485,7 +487,7 @@ public partial class ConstExprPartialRewriter
 
 		// Handle `x is not 'a' and not 'e' and not 'i' ...`
 		//      → `x is not ('a' or 'e' or 'i' ...)` → bitmask via TryOptimizeNegatedOrPattern
-		if (node.Pattern is BinaryPatternSyntax { OperatorToken.RawKind: (int)SyntaxKind.AndKeyword })
+		if (node.Pattern is BinaryPatternSyntax { OperatorToken.RawKind: (int) SyntaxKind.AndKeyword })
 		{
 			var notConstants = new List<ConstantPatternSyntax>();
 
@@ -575,8 +577,8 @@ public partial class ConstExprPartialRewriter
 		if (node.Arms.Count == 2 &&
 		    semanticModel.GetTypeInfo(node.GoverningExpression).Type?.SpecialType == SpecialType.System_Boolean)
 		{
-			var trueArm = node.Arms.FirstOrDefault(a => a.Pattern is ConstantPatternSyntax { Expression: LiteralExpressionSyntax { RawKind: (int)SyntaxKind.TrueLiteralExpression } });
-			var falseArm = node.Arms.FirstOrDefault(a => a.Pattern is ConstantPatternSyntax { Expression: LiteralExpressionSyntax { RawKind: (int)SyntaxKind.FalseLiteralExpression } });
+			var trueArm = node.Arms.FirstOrDefault(a => a.Pattern is ConstantPatternSyntax { Expression: LiteralExpressionSyntax { RawKind: (int) SyntaxKind.TrueLiteralExpression } });
+			var falseArm = node.Arms.FirstOrDefault(a => a.Pattern is ConstantPatternSyntax { Expression: LiteralExpressionSyntax { RawKind: (int) SyntaxKind.FalseLiteralExpression } });
 
 			if (trueArm is { WhenClause: null }
 			    && falseArm is { WhenClause: null })
@@ -608,7 +610,7 @@ public partial class ConstExprPartialRewriter
 	{
 		result = null;
 
-		if (node.Pattern is not BinaryPatternSyntax { OperatorToken.RawKind: (int)SyntaxKind.AndKeyword } andPattern)
+		if (node.Pattern is not BinaryPatternSyntax { OperatorToken.RawKind: (int) SyntaxKind.AndKeyword } andPattern)
 		{
 			return false;
 		}
@@ -682,7 +684,7 @@ public partial class ConstExprPartialRewriter
 		result = null;
 
 		// Only optimize AND binary patterns (range checks)
-		if (node.Pattern is not BinaryPatternSyntax { OperatorToken.RawKind: (int)SyntaxKind.AndKeyword } binaryPattern)
+		if (node.Pattern is not BinaryPatternSyntax { OperatorToken.RawKind: (int) SyntaxKind.AndKeyword } binaryPattern)
 		{
 			return false;
 		}
@@ -748,9 +750,26 @@ public partial class ConstExprPartialRewriter
 						? expression
 						: SubtractExpression(expression, CreateLiteral(mid));
 
-				var invocation = InvocationExpression(MemberAccessExpression(
-						type.AsTypeSyntax(), IdentifierName("Abs")),
-					ArgumentList(SingletonSeparatedList(Argument(argument))));
+				InvocationExpressionSyntax invocation;
+
+				if (attribute.MathOptimizations != FastMathFlags.Strict)
+				{
+					var methodName = AbsFunctionOptimizer.GenerateFastAbsMethodFloating(usings, additionalMethods);
+					var bitType = type.SpecialType == SpecialType.System_Single
+						? (TypeSyntax) PredefinedType(Token(SyntaxKind.UIntKeyword))
+						: PredefinedType(Token(SyntaxKind.ULongKeyword));
+					invocation = InvocationExpression(
+							GenericName(Identifier(methodName))
+								.WithTypeArgumentList(TypeArgumentList(SeparatedList(
+									new[] { type.AsTypeSyntax(), bitType }))))
+						.WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(argument))));
+				}
+				else
+				{
+					invocation = InvocationExpression(MemberAccessExpression(
+							type.AsTypeSyntax(), IdentifierName("Abs")),
+						ArgumentList(SingletonSeparatedList(Argument(argument))));
+				}
 
 				result = LessThanOrEqualExpression(invocation, CreateLiteral(half));
 				return true;
@@ -824,7 +843,7 @@ public partial class ConstExprPartialRewriter
 	{
 		result = null;
 
-		if (node.Pattern is not BinaryPatternSyntax { OperatorToken.RawKind: (int)SyntaxKind.OrKeyword } binaryPattern)
+		if (node.Pattern is not BinaryPatternSyntax { OperatorToken.RawKind: (int) SyntaxKind.OrKeyword } binaryPattern)
 		{
 			return false;
 		}
@@ -935,7 +954,7 @@ public partial class ConstExprPartialRewriter
 					// For && / || we apply De Morgan: !(a && b) -> !a || !b, !(a || b) -> !a && !b
 					SyntaxKind.LogicalAndExpression => SyntaxKind.LogicalOrExpression,
 					SyntaxKind.LogicalOrExpression => SyntaxKind.LogicalAndExpression,
-					_ => (SyntaxKind?)null
+					_ => (SyntaxKind?) null
 				};
 
 				if (flippedKind is null)
@@ -1146,13 +1165,13 @@ public partial class ConstExprPartialRewriter
 		switch (pattern)
 		{
 			// Leaf: `not <constant>`
-			case UnaryPatternSyntax { OperatorToken.RawKind: (int)SyntaxKind.NotKeyword, Pattern: ConstantPatternSyntax cp }:
+			case UnaryPatternSyntax { OperatorToken.RawKind: (int) SyntaxKind.NotKeyword, Pattern: ConstantPatternSyntax cp }:
 			{
 				constants.Add(cp);
 				return true;
 			}
 			// Inner node: recurse into both sides of `and`
-			case BinaryPatternSyntax { OperatorToken.RawKind: (int)SyntaxKind.AndKeyword } andPat:
+			case BinaryPatternSyntax { OperatorToken.RawKind: (int) SyntaxKind.AndKeyword } andPat:
 			{
 				return TryCollectNotConstantAndChain(andPat.Left, constants)
 				       && TryCollectNotConstantAndChain(andPat.Right, constants);

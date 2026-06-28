@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
@@ -93,8 +94,13 @@ public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", n => n is
 
 	public static string GenerateFastAbsMethodFloating(FunctionOptimizerContext context)
 	{
-		context.Usings.Add("System.Runtime.CompilerServices");
-		context.Usings.Add("System.Numerics");
+		return GenerateFastAbsMethodFloating(context.Usings, context.AdditionalSyntax);
+	}
+
+	public static string GenerateFastAbsMethodFloating(ISet<string> usings, IDictionary<SyntaxNode, bool> additionalSyntax)
+	{
+		usings.Add("System.Runtime.CompilerServices");
+		usings.Add("System.Numerics");
 
 		var builder = new CodeWriter();
 
@@ -114,7 +120,7 @@ public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", n => n is
 
 		var method = ParseMethodFromString(builder.ToString())!;
 
-		context.AdditionalSyntax.TryAdd(method, false);
+		additionalSyntax.TryAdd(method, false);
 
 		return method.Identifier.Text;
 	}
