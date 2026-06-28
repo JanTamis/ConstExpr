@@ -350,12 +350,31 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 	public override SyntaxNode? VisitMethodDeclaration(MethodDeclarationSyntax node)
 	{
-		var visited = base.VisitMethodDeclaration(node);
+		var visited = base.VisitMethodDeclaration(node) as MethodDeclarationSyntax;
+
+		if (visited is null)
+		{
+			return null;
+		}
+
+		if (visited.ConstraintClauses.Count > 0)
+		{
+			var newClauses = visited.ConstraintClauses
+				.Select(c => c.WithLeadingTrivia(ElasticCarriageReturnLineFeed, Whitespace("\t")));
+			visited = visited.WithConstraintClauses(List(newClauses));
+
+			// Strip trailing EOL from ) so there's no blank line before the first where
+			var closeParen = visited.ParameterList.CloseParenToken;
+			var cleanedTrivia = closeParen.TrailingTrivia
+				.Where(t => !t.IsKind(SyntaxKind.EndOfLineTrivia) && !t.IsKind(SyntaxKind.WhitespaceTrivia));
+			visited = visited.WithParameterList(
+				visited.ParameterList.WithCloseParenToken(closeParen.WithTrailingTrivia(TriviaList(cleanedTrivia))));
+		}
 
 		// Only strip leading trivia for top-level methods; preserve indentation for methods inside type declarations
 		if (node.Parent is not TypeDeclarationSyntax)
 		{
-			visited = visited?.WithoutLeadingTrivia();
+			visited = visited.WithoutLeadingTrivia();
 		}
 
 		return visited;
