@@ -45,7 +45,7 @@ public class LinqCountByOptimizationTests() : BaseTest<Func<int[], int>>(FastMat
 	[
 		// e (Empty source) and h (Where false) fold to 0 and are pruned from the return sum.
 		// v % 2 in key selectors is also optimised to v & 1 by the arithmetic optimizer.
-		Create("return Count_fDCnXg(x) * 6 + x.Length;"),
+		Create("return Count_BgXwWg(x) * 6 + x.Length;"),
 		Create(_ => 17, [ new[] { 1, 2, 3, 4, 5 } ]), // 6 calls × 2 keys each; e=0, h=0
 		Create(_ => 0, [ System.Array.Empty<int>() ]) // all groups empty
 	];

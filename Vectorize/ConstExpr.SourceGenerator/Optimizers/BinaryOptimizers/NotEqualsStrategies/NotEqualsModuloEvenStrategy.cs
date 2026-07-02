@@ -9,8 +9,11 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.NotEqualsStrateg
 
 /// <summary>
 ///   Strategy for modulo even detection: (x % 2) != 1 => T.IsEvenInteger(x)
+///   x % 2 != 1 is not sign-invariant (-3 % 2 == -1 in C#, so -3 % 2 != 1 is true even though -3 is odd),
+///   so this only holds for unsigned types or signed values proven non-negative via sibling comparisons
+///   (see IsPositive, mirroring ModuloByPowerOfTwoStrategy).
 /// </summary>
-public class NotEqualsModuloEvenStrategy() : SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, LiteralExpressionSyntax>(leftKind: SyntaxKind.BitwiseAndExpression)
+public class NotEqualsModuloEvenStrategy() : SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, LiteralExpressionSyntax>(leftKind: SyntaxKind.ModuloExpression)
 {
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<BinaryExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
@@ -20,7 +23,12 @@ public class NotEqualsModuloEvenStrategy() : SymmetricStrategy<NumericBinaryStra
 		    || context.Left.Type?.HasMember<IMethodSymbol>(
 			    "IsEvenInteger",
 			    m => m.Parameters.Length == 1
-			         && m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, context.Left.Type))) != true)
+			         && m.Parameters.All(p => SymbolEqualityComparer.Default.Equals(p.Type, context.Left.Type))) != true
+		    || !(context.Left.Type!.IsUnsignedInteger() || IsPositive(new BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax>
+		    {
+			    BinaryExpressions = context.BinaryExpressions,
+			    Variables = context.Variables
+		    }, context.Left.Syntax.Left)))
 		{
 			optimized = null;
 			return false;

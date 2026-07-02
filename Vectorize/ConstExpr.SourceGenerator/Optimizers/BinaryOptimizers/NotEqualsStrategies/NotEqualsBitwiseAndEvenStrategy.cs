@@ -14,7 +14,7 @@ public class NotEqualsBitwiseAndEvenStrategy() : SymmetricStrategy<NumericBinary
 {
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<BinaryExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (!context.Right.IsNumericOne()
+		if (!context.Right.Syntax.IsNumericOne()
 		    || !context.Left.Syntax.Right.IsNumericOne()
 		    || context.Left.Type?.HasMember<IMethodSymbol>(
 			    "IsEvenInteger",

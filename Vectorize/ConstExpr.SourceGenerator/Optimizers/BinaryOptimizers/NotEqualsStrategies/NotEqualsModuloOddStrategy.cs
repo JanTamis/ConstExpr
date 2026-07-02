@@ -2,6 +2,7 @@ using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.NotEqualsStrategies;
@@ -9,7 +10,7 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.NotEqualsStrateg
 /// <summary>
 ///   Strategy for modulo odd detection: (x % 2) != 0 => T.IsOddInteger(x)
 /// </summary>
-public class NotEqualsModuloOddStrategy : SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, LiteralExpressionSyntax>
+public class NotEqualsModuloOddStrategy() : SymmetricStrategy<NumericBinaryStrategy, BinaryExpressionSyntax, LiteralExpressionSyntax>(leftKind: SyntaxKind.ModuloExpression)
 {
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<BinaryExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
