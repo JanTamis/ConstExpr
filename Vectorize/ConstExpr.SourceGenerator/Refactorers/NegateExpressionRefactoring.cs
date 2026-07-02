@@ -38,12 +38,12 @@ public static class NegateExpressionRefactoring
 	/// <summary>
 	///   Returns the logical negation of <paramref name="expression" />, simplified where possible.
 	/// </summary>
-	public static ExpressionSyntax Negate(ExpressionSyntax expression)
+	public static ExpressionSyntax Negate(ExpressionSyntax expression, bool allowRelational = true)
 	{
 		return expression switch
 		{
 			// !!x  →  x
-			PrefixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.LogicalNotExpression } notExpr
+			PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.LogicalNotExpression } notExpr
 				=> notExpr.Operand.WithTriviaFrom(expression),
 
 			// true → false, false → true
@@ -54,13 +54,11 @@ public static class NegateExpressionRefactoring
 
 			// Parenthesized: negate inside
 			ParenthesizedExpressionSyntax paren
-				=> ParenthesizedExpression(Negate(paren.Expression)).WithTriviaFrom(expression),
+				=> ParenthesizedExpression(Negate(paren.Expression, allowRelational)).WithTriviaFrom(expression),
 
 			// Relational & equality operators
-			BinaryExpressionSyntax binary when InvertLogicalRefactoring.TryInvertLogical(binary, out var inverted)
+			BinaryExpressionSyntax binary when InvertLogicalRefactoring.TryInvertLogical(binary, out var inverted, allowRelational)
 				=> inverted.WithTriviaFrom(expression),
-
-			LiteralExpressionSyntax or IdentifierNameSyntax or ElementAccessExpressionSyntax => expression,
 
 			// Fallback: !expr
 			_ => LogicalNotExpression(ParenthesizeIfNeeded(expression)).WithTriviaFrom(expression)

@@ -25,7 +25,8 @@ public static class InvertLogicalRefactoring
 	/// </summary>
 	public static bool TryInvertLogical(
 		BinaryExpressionSyntax? node,
-		[NotNullWhen(true)] out ExpressionSyntax? result)
+		[NotNullWhen(true)] out ExpressionSyntax? result,
+		bool allowRelational = true)
 	{
 		result = null;
 
@@ -34,22 +35,22 @@ public static class InvertLogicalRefactoring
 			return false;
 		}
 
-		var negatedLeft = NegateExpressionRefactoring.Negate(node.Left);
-		var negatedRight = NegateExpressionRefactoring.Negate(node.Right);
-
 		result = node.Kind() switch
 		{
-			SyntaxKind.LogicalAndExpression => ParenthesizedExpression(LogicalOrExpression(negatedLeft, negatedRight)),
-			SyntaxKind.LogicalOrExpression => LogicalAndExpression(negatedLeft, negatedRight),
-			SyntaxKind.EqualsExpression => NotEqualsExpression(negatedLeft, negatedRight),
-			SyntaxKind.NotEqualsExpression => EqualsExpression(negatedLeft, negatedRight),
-			SyntaxKind.GreaterThanExpression => LessThanOrEqualExpression(node.Left, node.Right),
-			SyntaxKind.GreaterThanOrEqualExpression => LessThanExpression(node.Left, node.Right),
-			SyntaxKind.LessThanExpression => GreaterThanOrEqualExpression(node.Left, node.Right),
-			SyntaxKind.LessThanOrEqualExpression => GreaterThanExpression(node.Left, node.Right),
-			_ => node
+			SyntaxKind.LogicalAndExpression => ParenthesizedExpression(LogicalOrExpression(NegateExpressionRefactoring.Negate(node.Left, allowRelational), NegateExpressionRefactoring.Negate(node.Right, allowRelational))),
+			SyntaxKind.LogicalOrExpression => LogicalAndExpression(NegateExpressionRefactoring.Negate(node.Left, allowRelational), NegateExpressionRefactoring.Negate(node.Right, allowRelational)),
+			// equality inversion keeps its operands and is NaN-safe: !(NaN == x) and NaN != x are both true
+			SyntaxKind.EqualsExpression => NotEqualsExpression(node.Left, node.Right),
+			SyntaxKind.NotEqualsExpression => EqualsExpression(node.Left, node.Right),
+			// relational inversion flips the outcome for NaN operands - callers gate via allowRelational
+			SyntaxKind.GreaterThanExpression when allowRelational => LessThanOrEqualExpression(node.Left, node.Right),
+			SyntaxKind.GreaterThanOrEqualExpression when allowRelational => LessThanExpression(node.Left, node.Right),
+			SyntaxKind.LessThanExpression when allowRelational => GreaterThanOrEqualExpression(node.Left, node.Right),
+			SyntaxKind.LessThanOrEqualExpression when allowRelational => GreaterThanExpression(node.Left, node.Right),
+			// unhandled operators must keep their negation - never silently drop the '!'
+			_ => null
 		};
 
-		return true;
+		return result is not null;
 	}
 }

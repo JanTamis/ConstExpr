@@ -9,7 +9,7 @@ public class MinOfTwoTest() : BaseTest<Func<int, int, int>>(FastMathFlags.All, o
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create((a, b) => a < b ? a : b),
+		Create((a, b) => Int32.Min(a, b)),
 		Create((_, _) => 5, [ 5, 10 ]),
 		Create((_, _) => -10, [ -10, 20 ]),
 		Create((_, _) => 0, [ 0, 0 ])

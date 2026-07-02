@@ -69,12 +69,12 @@ public static class ObjectExtensions
 
 	public static T Add<T>(this T left, T right)
 	{
-		return (T)ExecuteArithmeticOperation(left, right, Expression.Add)!;
+		return (T) ExecuteArithmeticOperation(left, right, Expression.Add)!;
 	}
 
 	public static T? Subtract<T>(this T left, T right)
 	{
-		return (T?)ExecuteArithmeticOperation(left, right, Expression.Subtract);
+		return (T?) ExecuteArithmeticOperation(left, right, Expression.Subtract);
 	}
 
 	public static object? Multiply(this object? left, object? right)
@@ -110,7 +110,7 @@ public static class ObjectExtensions
 			// String concatenation special case
 			if (lType == typeof(string) || rType == typeof(string))
 			{
-				if (operation == (Func<Expression, Expression, BinaryExpression>)Expression.Add)
+				if (operation == (Func<Expression, Expression, BinaryExpression>) Expression.Add)
 				{
 					return String.Concat(left, right);
 				}
@@ -287,7 +287,7 @@ public static class ObjectExtensions
 			var converted = Expression.Convert(constant, typeof(int));
 			var boxed = Expression.Convert(converted, typeof(object));
 			var lambda = Expression.Lambda<Func<object>>(boxed);
-			return (int)lambda.Compile().Invoke();
+			return (int) lambda.Compile().Invoke();
 		}
 		catch
 		{
@@ -318,7 +318,7 @@ public static class ObjectExtensions
 			var converted = Expression.Convert(constant, typeof(long));
 			var boxed = Expression.Convert(converted, typeof(object));
 			var lambda = Expression.Lambda<Func<object>>(boxed);
-			return (long)lambda.Compile().Invoke();
+			return (long) lambda.Compile().Invoke();
 		}
 		catch
 		{
@@ -602,8 +602,7 @@ public static class ObjectExtensions
 					var lc = Expression.Convert(Expression.Constant(left), common);
 					var rc = Expression.Convert(Expression.Constant(right), common);
 					var expr = operation(lc, rc);
-					var boxed = Expression.Convert(expr, typeof(object));
-					var lambda = Expression.Lambda<Func<bool>>(boxed);
+					var lambda = Expression.Lambda<Func<bool>>(expr);
 					return lambda.Compile().Invoke();
 				}
 			}
@@ -716,12 +715,14 @@ public static class ObjectExtensions
 			BinaryOperatorKind.ExclusiveOr => left.ExclusiveOr(right),
 			BinaryOperatorKind.ConditionalAnd => left.ConditionalAnd(right),
 			BinaryOperatorKind.ConditionalOr => left.ConditionalOr(right),
-			BinaryOperatorKind.Equals => EqualityComparer<object?>.Default.Equals(left, right),
-			BinaryOperatorKind.NotEquals => !EqualityComparer<object?>.Default.Equals(left, right),
-			BinaryOperatorKind.LessThan => Comparer<object?>.Default.Compare(left, right) < 0,
-			BinaryOperatorKind.LessThanOrEqual => Comparer<object?>.Default.Compare(left, right) <= 0,
-			BinaryOperatorKind.GreaterThan => Comparer<object?>.Default.Compare(left, right) > 0,
-			BinaryOperatorKind.GreaterThanOrEqual => Comparer<object?>.Default.Compare(left, right) >= 0,
+			// use compiled operators, not Comparer/EqualityComparer: CompareTo sorts NaN below
+			// everything and Equals(NaN, NaN) is true, both diverging from IEEE 754 semantics
+			BinaryOperatorKind.Equals => ExecuteComparisonOperation(left, right, Expression.Equal),
+			BinaryOperatorKind.NotEquals => ExecuteComparisonOperation(left, right, Expression.NotEqual),
+			BinaryOperatorKind.LessThan => ExecuteComparisonOperation(left, right, Expression.LessThan),
+			BinaryOperatorKind.LessThanOrEqual => ExecuteComparisonOperation(left, right, Expression.LessThanOrEqual),
+			BinaryOperatorKind.GreaterThan => ExecuteComparisonOperation(left, right, Expression.GreaterThan),
+			BinaryOperatorKind.GreaterThanOrEqual => ExecuteComparisonOperation(left, right, Expression.GreaterThanOrEqual),
 			_ => null
 		};
 	}
@@ -743,12 +744,13 @@ public static class ObjectExtensions
 			SyntaxKind.ExclusiveOrExpression or SyntaxKind.CaretEqualsToken => left.ExclusiveOr(right),
 			SyntaxKind.LogicalAndExpression => left.ConditionalAnd(right),
 			SyntaxKind.LogicalOrExpression => left.ConditionalOr(right),
-			SyntaxKind.EqualsExpression => EqualityComparer<object?>.Default.Equals(left, right),
-			SyntaxKind.NotEqualsExpression => !EqualityComparer<object?>.Default.Equals(left, right),
-			SyntaxKind.LessThanExpression => Comparer<object?>.Default.Compare(left, right) < 0,
-			SyntaxKind.LessThanOrEqualExpression => Comparer<object?>.Default.Compare(left, right) <= 0,
-			SyntaxKind.GreaterThanExpression => Comparer<object?>.Default.Compare(left, right) > 0,
-			SyntaxKind.GreaterThanOrEqualExpression => Comparer<object?>.Default.Compare(left, right) >= 0,
+			// use compiled operators, not Comparer/EqualityComparer (IEEE 754 NaN semantics, see above)
+			SyntaxKind.EqualsExpression => ExecuteComparisonOperation(left, right, Expression.Equal),
+			SyntaxKind.NotEqualsExpression => ExecuteComparisonOperation(left, right, Expression.NotEqual),
+			SyntaxKind.LessThanExpression => ExecuteComparisonOperation(left, right, Expression.LessThan),
+			SyntaxKind.LessThanOrEqualExpression => ExecuteComparisonOperation(left, right, Expression.LessThanOrEqual),
+			SyntaxKind.GreaterThanExpression => ExecuteComparisonOperation(left, right, Expression.GreaterThan),
+			SyntaxKind.GreaterThanOrEqualExpression => ExecuteComparisonOperation(left, right, Expression.GreaterThanOrEqual),
 			SyntaxKind.CoalesceExpression => left ?? right,
 			_ => null
 		};
@@ -856,7 +858,7 @@ public static class ObjectExtensions
 			int i => i == target,
 			uint ui => ui == target,
 			long l => l == target,
-			ulong ul => ul == (ulong)target,
+			ulong ul => ul == (ulong) target,
 			float f => Math.Abs(f - target) < Single.Epsilon,
 			double d => Math.Abs(d - target) < Double.Epsilon,
 			decimal m => m == target,
@@ -927,19 +929,19 @@ public static class ObjectExtensions
 		return value switch
 		{
 			byte b when b != 0 && (b & b - 1) == 0 => (power = Log2(b)) >= 0,
-			sbyte sb and > 0 when (sb & sb - 1) == 0 => (power = Log2((byte)sb)) >= 0,
-			short s and > 0 when (s & s - 1) == 0 => (power = Log2((ushort)s)) >= 0,
+			sbyte sb and > 0 when (sb & sb - 1) == 0 => (power = Log2((byte) sb)) >= 0,
+			short s and > 0 when (s & s - 1) == 0 => (power = Log2((ushort) s)) >= 0,
 			ushort us when us != 0 && (us & us - 1) == 0 => (power = Log2(us)) >= 0,
-			int i and > 0 when (i & i - 1) == 0 => (power = Log2((uint)i)) >= 0,
+			int i and > 0 when (i & i - 1) == 0 => (power = Log2((uint) i)) >= 0,
 			uint ui when ui != 0 && (ui & ui - 1) == 0 => (power = Log2(ui)) >= 0,
-			long l and > 0 when (l & l - 1) == 0 => (power = Log2((ulong)l)) >= 0,
+			long l and > 0 when (l & l - 1) == 0 => (power = Log2((ulong) l)) >= 0,
 			ulong ul when ul != 0 && (ul & ul - 1) == 0 => (power = Log2(ul)) >= 0,
 
 			// Floating-point: alleen positieve, gehele waarden binnen ulong-bereik
 			float f when !Single.IsNaN(f) && !Single.IsInfinity(f) && f > 0f && f == MathF.Truncate(f) && f <= UInt64.MaxValue &&
-			             ((ulong)f & (ulong)f - 1) == 0 => (power = Log2((ulong)f)) >= 0,
+			             ((ulong) f & (ulong) f - 1) == 0 => (power = Log2((ulong) f)) >= 0,
 			double d when !Double.IsNaN(d) && !Double.IsInfinity(d) && d > 0d && d == Math.Truncate(d) && d <= UInt64.MaxValue &&
-			              ((ulong)d & (ulong)d - 1) == 0 => (power = Log2((ulong)d)) >= 0,
+			              ((ulong) d & (ulong) d - 1) == 0 => (power = Log2((ulong) d)) >= 0,
 
 			// Decimal: positieve, gehele waarden (geen fracties)
 			decimal m when IsDecimalIntegerPowerOfTwo(m, out var p) => (power = p) >= 0,
@@ -1644,7 +1646,7 @@ public static class ObjectExtensions
 		{
 			var rangeInt = Convert.ToInt32(range);
 			var rangeSize = rangeInt + 1;
-			density = (double)values.Count / rangeSize;
+			density = (double) values.Count / rangeSize;
 
 			return density >= densityThreshold;
 		}
@@ -1705,7 +1707,7 @@ public static class ObjectExtensions
 			var rangeInt = Convert.ToInt32(range);
 			var rangeSize = rangeInt + 1;
 
-			density = (double)values.Count / rangeSize;
+			density = (double) values.Count / rangeSize;
 
 			return true;
 		}

@@ -23,6 +23,8 @@ public class BinaryEqualsOptimizer : BaseBinaryOptimizer
 		yield return new EqualsModuloPowerOfTwoZeroStrategy();
 		yield return new EqualsBitwiseAndEvenStrategy();
 		yield return new EqualsBitwiseAndOddStrategy();
+		yield return new EqualsRightShiftZeroStrategy();
+		yield return new EqualsPopCountStrategy();
 		yield return new EqualsComparisonSimplifierStrategy();
 		yield return new EqualsReverseStrategy();
 	}

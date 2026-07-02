@@ -641,7 +641,7 @@ public partial class ConstExprPartialRewriter
 
 		// handle !(condition) where condition is a binary expression
 		if (node.OperatorToken.IsKind(SyntaxKind.ExclamationToken) && operand is ParenthesizedExpressionSyntax parenthesizedSyntax
-		                                                           && InvertLogicalRefactoring.TryInvertLogical(parenthesizedSyntax.Expression as BinaryExpressionSyntax, out var optimized))
+		                                                           && InvertLogicalRefactoring.TryInvertLogical(parenthesizedSyntax.Expression as BinaryExpressionSyntax, out var optimized, AllowRelationalInversion(parenthesizedSyntax.Expression)))
 		{
 			return optimized;
 		}
@@ -655,6 +655,25 @@ public partial class ConstExprPartialRewriter
 		}
 
 		return node.WithOperand(operand as ExpressionSyntax ?? node.Operand);
+	}
+
+	/// <summary>
+	///   Whether a negated relational comparison may be inverted (<c>!(a &lt; b)</c> => <c>a &gt;= b</c>).
+	///   The inversion flips the outcome for NaN operands, so it is only allowed when both operand
+	///   types are provably non-floating or NoNaN promises NaN never occurs at runtime.
+	/// </summary>
+	private bool AllowRelationalInversion(ExpressionSyntax expression)
+	{
+		if (attribute.MathOptimizations.HasFlag(FastMathFlags.NoNaN))
+		{
+			return true;
+		}
+
+		return expression is BinaryExpressionSyntax binary
+		       && semanticModel.TryGetTypeSymbol(binary.Left, symbolStore, out var leftType)
+		       && semanticModel.TryGetTypeSymbol(binary.Right, symbolStore, out var rightType)
+		       && !leftType.IsFloatingNumeric()
+		       && !rightType.IsFloatingNumeric();
 	}
 
 	/// <summary>

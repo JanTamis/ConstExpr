@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using ConstExpr.SourceGenerator.Comparers;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
@@ -59,101 +60,31 @@ public class ConditionalExpressionOptimizer
 			return true;
 		}
 
-		// value < min ? min : value > max ? max : value => T.ClampNative(value, min, max)
-		if (Type?.IsFloatingNumeric() == true
+		// value < min ? min : value > max ? max : value => T.ClampNative/Clamp(value, min, max)
+		// NB: int.Clamp throws for min > max where the original chain returned min; like the
+		// float ClampNative rewrite, we assume the bounds are ordered
+		if ((Type?.IsFloatingNumeric() == true || Type?.IsInteger() == true)
 		    && TryGetClampPattern(Condition, WhenTrue, WhenFalse, out var clampValue, out var clampMin, out var clampMax)
 		    && IsPure(clampValue)
 		    && IsPure(clampMin)
 		    && IsPure(clampMax))
 		{
-			var mathType = ParseTypeName(Type.Name);
-			result = InvocationExpression(
-					MemberAccessExpression(mathType, IdentifierName("ClampNative")))
-				.WithArgumentList(ArgumentList(SeparatedList([ Argument(clampValue), Argument(clampMin), Argument(clampMax) ])));
+			result = MathInvocation(Type.IsFloatingNumeric() ? "ClampNative" : "Clamp", clampValue, clampMin, clampMax);
 			return true;
 		}
 
-		// a < b ? a : b => Math.Min(a, b) (for numeric types)
-		if (Type?.IsFloatingNumeric() == true
-		    && Condition is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LessThanExpression } ltExpr
-		    && ltExpr.Left.GetDeterministicHash() == WhenTrue.GetDeterministicHash()
-		    && ltExpr.Right.GetDeterministicHash() == WhenFalse.GetDeterministicHash()
+		// a < b ? a : b => T.MinNative/Min(a, b), a > b ? a : b => T.MaxNative/Max(a, b), including mirrored arms
+		if ((Type?.IsFloatingNumeric() == true || Type?.IsInteger() == true)
+		    && TryGetMinMaxPattern(out var isMin)
 		    && IsPure(WhenTrue) && IsPure(WhenFalse))
 		{
-			var mathType = ParseTypeName(Type.Name);
-			result = InvocationExpression(
-					MemberAccessExpression(mathType, IdentifierName("MinNative")))
-				.WithArgumentList(ArgumentList(SeparatedList([ Argument(WhenTrue), Argument(WhenFalse) ])));
-			return true;
-		}
-
-		// a > b ? a : b => Math.Max(a, b)
-		if (Type?.IsFloatingNumeric() == true
-		    && Condition is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.GreaterThanExpression } gtExpr
-		    && gtExpr.Left.GetDeterministicHash() == WhenTrue.GetDeterministicHash()
-		    && gtExpr.Right.GetDeterministicHash() == WhenFalse.GetDeterministicHash()
-		    && IsPure(WhenTrue) && IsPure(WhenFalse))
-		{
-			var mathType = ParseTypeName(Type.Name);
-			result = InvocationExpression(
-					MemberAccessExpression(mathType, IdentifierName("MaxNative")))
-				.WithArgumentList(ArgumentList(SeparatedList([ Argument(WhenTrue), Argument(WhenFalse) ])));
-			return true;
-		}
-
-		// a <= b ? a : b => Math.Min(a, b)
-		if (Type?.IsFloatingNumeric() == true
-		    && Condition is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LessThanOrEqualExpression } leExpr
-		    && leExpr.Left.GetDeterministicHash() == WhenTrue.GetDeterministicHash()
-		    && leExpr.Right.GetDeterministicHash() == WhenFalse.GetDeterministicHash()
-		    && IsPure(WhenTrue) && IsPure(WhenFalse))
-		{
-			var mathType = ParseTypeName(Type.Name);
-			result = InvocationExpression(
-					MemberAccessExpression(mathType, IdentifierName("MinNative")))
-				.WithArgumentList(ArgumentList(SeparatedList([ Argument(WhenTrue), Argument(WhenFalse) ])));
-			return true;
-		}
-
-		// a >= b ? a : b => Math.Max(a, b)
-		if (Type?.IsFloatingNumeric() == true
-		    && Condition is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.GreaterThanOrEqualExpression } geExpr
-		    && geExpr.Left.GetDeterministicHash() == WhenTrue.GetDeterministicHash()
-		    && geExpr.Right.GetDeterministicHash() == WhenFalse.GetDeterministicHash()
-		    && IsPure(WhenTrue) && IsPure(WhenFalse))
-		{
-			var mathType = ParseTypeName(Type.Name);
-			result = InvocationExpression(
-					MemberAccessExpression(mathType, IdentifierName("MaxNative")))
-				.WithArgumentList(ArgumentList(SeparatedList([ Argument(WhenTrue), Argument(WhenFalse) ])));
-			return true;
-		}
-
-		// b < a ? a : b => Math.Max(a, b)
-		if (Type?.IsFloatingNumeric() == true
-		    && Condition is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LessThanExpression } ltExpr2
-		    && ltExpr2.Right.GetDeterministicHash() == WhenTrue.GetDeterministicHash()
-		    && ltExpr2.Left.GetDeterministicHash() == WhenFalse.GetDeterministicHash()
-		    && IsPure(WhenTrue) && IsPure(WhenFalse))
-		{
-			var mathType = ParseTypeName(Type.Name);
-			result = InvocationExpression(
-					MemberAccessExpression(mathType, IdentifierName("MaxNative")))
-				.WithArgumentList(ArgumentList(SeparatedList([ Argument(WhenTrue), Argument(WhenFalse) ])));
-			return true;
-		}
-
-		// b > a ? a : b => Math.Min(a, b)
-		if (Type?.IsFloatingNumeric() == true
-		    && Condition is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.GreaterThanExpression } gtExpr2
-		    && gtExpr2.Right.GetDeterministicHash() == WhenTrue.GetDeterministicHash()
-		    && gtExpr2.Left.GetDeterministicHash() == WhenFalse.GetDeterministicHash()
-		    && IsPure(WhenTrue) && IsPure(WhenFalse))
-		{
-			var mathType = ParseTypeName(Type.Name);
-			result = InvocationExpression(
-					MemberAccessExpression(mathType, IdentifierName("MinNative")))
-				.WithArgumentList(ArgumentList(SeparatedList([ Argument(WhenTrue), Argument(WhenFalse) ])));
+			result = MathInvocation((Type.IsFloatingNumeric(), isMin) switch
+			{
+				(true, true) => "MinNative",
+				(true, false) => "MaxNative",
+				(false, true) => "Min",
+				(false, false) => "Max"
+			}, WhenTrue, WhenFalse);
 			return true;
 		}
 
@@ -188,11 +119,60 @@ public class ConditionalExpressionOptimizer
 			IdentifierNameSyntax => true,
 			LiteralExpressionSyntax => true,
 			ParenthesizedExpressionSyntax par => IsPure(par.Expression),
-			PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken } u => IsPure(u.Operand),
+			PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken } u => IsPure(u.Operand),
 			BinaryExpressionSyntax b => IsPure(b.Left) && IsPure(b.Right),
 			MemberAccessExpressionSyntax m => IsPure(m.Expression),
 			_ => false
 		};
+	}
+
+	private InvocationExpressionSyntax MathInvocation(string name, params ExpressionSyntax[] arguments)
+	{
+		return InvocationExpression(MemberAccessExpression(ParseTypeName(Type!.Name), IdentifierName(name)))
+			.WithArgumentList(ArgumentList(SeparatedList(arguments.Select(Argument))));
+	}
+
+	private bool TryGetMinMaxPattern(out bool isMin)
+	{
+		isMin = false;
+
+		if (UnwrapParentheses(Condition) is not BinaryExpressionSyntax binary)
+		{
+			return false;
+		}
+
+		var kind = (SyntaxKind) binary.RawKind;
+
+		if (kind is not (SyntaxKind.LessThanExpression
+		    or SyntaxKind.LessThanOrEqualExpression
+		    or SyntaxKind.GreaterThanExpression
+		    or SyntaxKind.GreaterThanOrEqualExpression))
+		{
+			return false;
+		}
+
+		var comparer = SyntaxNodeComparer.Get();
+		var left = UnwrapParentheses(binary.Left);
+		var right = UnwrapParentheses(binary.Right);
+		var trueBranch = UnwrapParentheses(WhenTrue);
+		var falseBranch = UnwrapParentheses(WhenFalse);
+		var lessLike = kind is SyntaxKind.LessThanExpression or SyntaxKind.LessThanOrEqualExpression;
+
+		// a < b ? a : b => Min, a > b ? a : b => Max
+		if (comparer.Equals(left, trueBranch) && comparer.Equals(right, falseBranch))
+		{
+			isMin = lessLike;
+			return true;
+		}
+
+		// b < a ? a : b => Max, b > a ? a : b => Min
+		if (comparer.Equals(right, trueBranch) && comparer.Equals(left, falseBranch))
+		{
+			isMin = !lessLike;
+			return true;
+		}
+
+		return false;
 	}
 
 	private static bool TryGetAbsoluteValuePattern(
@@ -230,7 +210,7 @@ public class ConditionalExpressionOptimizer
 			return false;
 		}
 
-		var kind = (SyntaxKind)binary.RawKind;
+		var kind = (SyntaxKind) binary.RawKind;
 
 		if (kind is not (SyntaxKind.LessThanExpression
 		    or SyntaxKind.LessThanOrEqualExpression
@@ -269,7 +249,7 @@ public class ConditionalExpressionOptimizer
 		operand = null!;
 		var unwrapped = UnwrapParentheses(expression);
 
-		if (unwrapped is not PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken } prefix)
+		if (unwrapped is not PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken } prefix)
 		{
 			return false;
 		}
@@ -353,7 +333,7 @@ public class ConditionalExpressionOptimizer
 			return false;
 		}
 
-		var kind = (SyntaxKind)binary.RawKind;
+		var kind = (SyntaxKind) binary.RawKind;
 
 		if (kind is not (SyntaxKind.LessThanExpression
 		    or SyntaxKind.LessThanOrEqualExpression
@@ -397,7 +377,7 @@ public class ConditionalExpressionOptimizer
 		isMinNative = false;
 
 		if (invocation.Expression is not MemberAccessExpressionSyntax member
-		    || member.Name.Identifier.Text is not ("MinNative" or "MaxNative")
+		    || member.Name.Identifier.Text is not ("MinNative" or "MaxNative" or "Min" or "Max")
 		    || invocation.ArgumentList.Arguments.Count != 2)
 		{
 			return false;
@@ -420,7 +400,7 @@ public class ConditionalExpressionOptimizer
 			return false;
 		}
 
-		isMinNative = member.Name.Identifier.Text == "MinNative";
+		isMinNative = member.Name.Identifier.Text is "MinNative" or "Min";
 		return true;
 	}
 
@@ -465,7 +445,7 @@ public class ConditionalExpressionOptimizer
 
 		if (unwrappedCondition is BinaryExpressionSyntax binary)
 		{
-			var kind = (SyntaxKind)binary.RawKind;
+			var kind = (SyntaxKind) binary.RawKind;
 
 			if (kind is SyntaxKind.EqualsExpression or SyntaxKind.NotEqualsExpression)
 			{
@@ -498,7 +478,7 @@ public class ConditionalExpressionOptimizer
 
 			if (unwrappedPattern is UnaryPatternSyntax
 			    {
-				    RawKind: (int)SyntaxKind.NotPattern,
+				    RawKind: (int) SyntaxKind.NotPattern,
 				    Pattern: var notPattern
 			    })
 			{
@@ -518,7 +498,7 @@ public class ConditionalExpressionOptimizer
 
 	private static bool IsNullLiteral(ExpressionSyntax expression)
 	{
-		return UnwrapParentheses(expression) is LiteralExpressionSyntax { RawKind: (int)SyntaxKind.NullLiteralExpression };
+		return UnwrapParentheses(expression) is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NullLiteralExpression };
 	}
 
 	private static ExpressionSyntax UnwrapParentheses(ExpressionSyntax expression)
