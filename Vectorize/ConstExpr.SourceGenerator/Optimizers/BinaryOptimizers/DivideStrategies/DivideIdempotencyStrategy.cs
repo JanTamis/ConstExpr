@@ -6,8 +6,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies;
 
 /// <summary>
-///   Strategy for idempotent division: x / x = 1 (pure expressions)
-///   Safe under Strict (pure algebraic identity).
+///   Strategy for idempotent division: x / x = 1 (pure expressions, x proven non-zero).
+///   Requires a non-zero proof: for integers x == 0 makes x / x throw DivideByZeroException at
+///   runtime (no FastMathFlags may suppress that — it isn't a floating-point approximation), and
+///   for floating types 0.0 / 0.0 is NaN, not 1.
 /// </summary>
 public class DivideIdempotencyStrategy : NumericBinaryStrategy
 {
@@ -18,6 +20,7 @@ public class DivideIdempotencyStrategy : NumericBinaryStrategy
 		return base.TryOptimize(context, out optimized)
 		       && LeftEqualsRight(context)
 		       && IsPure(context.Left.Syntax)
+		       && IsNonZero(context, context.Left.Syntax)
 		       && TryCreateLiteral(1.ToSpecialType(context.Left.Type!.SpecialType), out optimized);
 	}
 }

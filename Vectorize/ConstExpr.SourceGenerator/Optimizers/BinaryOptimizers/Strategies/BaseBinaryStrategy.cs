@@ -235,6 +235,139 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 		});
 	}
 
+	/// <summary>
+	///   Infers, from sibling comparisons in the same condition (
+	///   <see cref="BinaryOptimizeContext{TLeft,TRight}.BinaryExpressions" />),
+	///   whether <paramref name="node" /> is provably non-zero — e.g. via a sibling <c>x != 0</c>, <c>x &gt; 0</c> or
+	///   <c>x &lt; 0</c>.
+	/// </summary>
+	protected bool IsNonZero(BinaryOptimizeContext<TLeft, TRight> context, ExpressionSyntax node)
+	{
+		if (IsPositive(context, node))
+		{
+			return true;
+		}
+
+		return context.BinaryExpressions.Any(a =>
+		{
+			if (!a.OperatorToken.IsKind(SyntaxKind.ExclamationEqualsToken, SyntaxKind.LessThanToken, SyntaxKind.GreaterThanToken))
+			{
+				return false;
+			}
+
+			return LeftEqualsRight(a.Left, node, context.Variables) && context.TryGetValue(a.Right, out var rightValue) && rightValue.IsNumericZero()
+			       || LeftEqualsRight(a.Right, node, context.Variables) && context.TryGetValue(a.Left, out var leftValue) && leftValue.IsNumericZero();
+		});
+	}
+
+	/// <summary>A relational comparison normalized to "variable OP constant" form.</summary>
+	protected readonly record struct SimpleBound(ExpressionSyntax Variable, object Value, SyntaxKind Direction);
+
+	/// <summary>
+	///   Parses a <c>&lt;</c>/<c>&lt;=</c>/<c>&gt;</c>/<c>&gt;=</c> comparison into <see cref="SimpleBound" /> form,
+	///   normalizing <c>constant OP variable</c> (e.g. <c>0 &lt; x</c>) by flipping the operator so the variable is
+	///   always on the left (e.g. <c>x &gt; 0</c>).
+	/// </summary>
+	protected static bool TryGetSimpleBound(ExpressionSyntax expr, TryGetValueDelegate tryGetValue, out SimpleBound bound)
+	{
+		bound = default;
+
+		if (expr is ParenthesizedExpressionSyntax paren)
+		{
+			expr = paren.Expression;
+		}
+
+		if (expr is not BinaryExpressionSyntax comparison
+		    || !comparison.OperatorToken.IsKind(SyntaxKind.LessThanToken, SyntaxKind.LessThanEqualsToken, SyntaxKind.GreaterThanToken, SyntaxKind.GreaterThanEqualsToken))
+		{
+			return false;
+		}
+
+		if (IsPure(comparison.Left) && tryGetValue(comparison.Right, out var rightValue))
+		{
+			bound = new SimpleBound(comparison.Left, rightValue, comparison.OperatorToken.Kind());
+			return true;
+		}
+
+		if (IsPure(comparison.Right) && tryGetValue(comparison.Left, out var leftValue))
+		{
+			bound = new SimpleBound(comparison.Right, leftValue, FlipBoundDirection(comparison.OperatorToken.Kind()));
+			return true;
+		}
+
+		return false;
+	}
+
+	protected static bool IsUpperBound(SyntaxKind direction)
+	{
+		return direction is SyntaxKind.GreaterThanToken or SyntaxKind.GreaterThanEqualsToken;
+	}
+
+	/// <summary>-1 if <paramref name="a" /> &lt; <paramref name="b" />, 0 if equal, 1 if greater; null if not comparable.</summary>
+	protected static int? CompareBoundValues(object a, object b)
+	{
+		var diff = a.Subtract(b);
+
+		if (diff is null)
+		{
+			return null;
+		}
+
+		return diff.IsNumericZero() ? 0 : diff.IsPositive() ? 1 : -1;
+	}
+
+	private static SyntaxKind FlipBoundDirection(SyntaxKind kind)
+	{
+		return kind switch
+		{
+			SyntaxKind.LessThanToken => SyntaxKind.GreaterThanToken,
+			SyntaxKind.LessThanEqualsToken => SyntaxKind.GreaterThanEqualsToken,
+			SyntaxKind.GreaterThanToken => SyntaxKind.LessThanToken,
+			SyntaxKind.GreaterThanEqualsToken => SyntaxKind.LessThanEqualsToken,
+			_ => kind
+		};
+	}
+
+	/// <summary>
+	///   Collects every operand of the contiguous <paramref name="connective" />-chain
+	///   (<c>LogicalAndExpression</c>/<c>LogicalOrExpression</c>) that the current node belongs to —
+	///   climbing same-connective ancestors via <see cref="BinaryOptimizeContext{TLeft,TRight}.Parent" />
+	///   and flattening down through same-connective nested operands (including the current node's own
+	///   Left/Right). Unlike <see cref="BinaryOptimizeContext{TLeft,TRight}.BinaryExpressions" />, this
+	///   never crosses into a differently-connected branch (e.g. an <c>||</c> sibling of an <c>&amp;&amp;</c>
+	///   chain, or an unrelated enclosing condition), so every result is guaranteed to be truly
+	///   co-occurring with the current node — safe to use for truth-value folds.
+	/// </summary>
+	protected static IEnumerable<ExpressionSyntax> GetChainSiblings(BinaryOptimizeContext<TLeft, TRight> context, SyntaxKind connective)
+	{
+		if (context.Parent is BinaryExpressionSyntax top && top.IsKind(connective))
+		{
+			while (top.Parent is BinaryExpressionSyntax outer && outer.IsKind(connective))
+			{
+				top = outer;
+			}
+
+			return FlattenChain(top, connective);
+		}
+
+		return FlattenChain(context.Left.Syntax, connective).Concat(FlattenChain(context.Right.Syntax, connective));
+	}
+
+	private static IEnumerable<ExpressionSyntax> FlattenChain(ExpressionSyntax expr, SyntaxKind connective)
+	{
+		if (expr is ParenthesizedExpressionSyntax paren)
+		{
+			expr = paren.Expression;
+		}
+
+		if (expr is BinaryExpressionSyntax binary && binary.IsKind(connective))
+		{
+			return FlattenChain(binary.Left, connective).Concat(FlattenChain(binary.Right, connective));
+		}
+
+		return [ expr ];
+	}
+
 	protected ExpressionSyntax RemoveParentheses(ExpressionSyntax expr)
 	{
 		while (expr is ParenthesizedExpressionSyntax paren)

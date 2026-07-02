@@ -13,6 +13,7 @@ public class BinaryConditionalOrOptimizer : BaseBinaryOptimizer
 	{
 		yield return new ConditionalOrLiteralStrategy();
 		yield return new ConditionalOrIdempotencyStrategy();
+		yield return new ConditionalOrBoundWideningStrategy();
 		yield return new ConditionalOrAbsorptionStrategy();
 		yield return new ConditionalOrAbsorptionOrStrategy();
 		yield return new ConditionalOrTautologyStrategy();
