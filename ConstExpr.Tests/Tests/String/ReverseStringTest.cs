@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.String;
 
 [InheritsTests]
-public class ReverseStringTest() : BaseTest<Func<string, string>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
+public class ReverseStringTest() : BaseTest<Func<string, string>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
 {
 	public override string TestMethod => GetString(s =>
 	{
@@ -26,7 +26,22 @@ public class ReverseStringTest() : BaseTest<Func<string, string>>(FastMathFlags.
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		CreateDefault(),
+		Create(s =>
+		{
+			var chars = s.ToCharArray();
+			var left = 0;
+			var right = chars.Length - 1;
+
+			while (left < right)
+			{
+				(chars[left], chars[right]) = (chars[right], chars[left]);
+
+				left++;
+				right--;
+			}
+
+			return new string(chars);
+		}),
 		Create(_ => "olleh", [ "hello" ]),
 		Create(_ => "", [ System.String.Empty ]),
 		Create(_ => "a", [ "a" ])

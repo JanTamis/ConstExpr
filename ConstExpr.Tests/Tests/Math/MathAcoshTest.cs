@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Math;
 
 /// <summary>Math.Acosh(double) -> FastAcosh(x) in FastMath mode, constant-folds when input is known.</summary>
 [InheritsTests]
-public class MathAcoshTest() : BaseTest<Func<double, double>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
+public class MathAcoshTest() : BaseTest<Func<double, double>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
 {
 	public override string TestMethod => GetString(x => System.Math.Acosh(x));
 

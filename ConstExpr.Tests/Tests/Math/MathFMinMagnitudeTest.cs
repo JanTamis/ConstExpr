@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Math;
 
 /// <summary>MathF.MinMagnitude(float, float) — re-targets to float.MinMagnitude.</summary>
 [InheritsTests]
-public class MathFMinMagnitudeTest() : BaseTest<Func<float, float, float>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
+public class MathFMinMagnitudeTest() : BaseTest<Func<float, float, float>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
 {
 	public override string TestMethod => GetString((a, b) => MathF.MinMagnitude(a, b));
 

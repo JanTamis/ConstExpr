@@ -20,6 +20,11 @@ public class ArrayElementInitializerOutOfOrderTest : BaseTest<Func<int[], int[]>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null, Unknown)
+		Create(numbers =>
+		[
+			numbers[0],
+			numbers[1],
+			numbers[2]
+		])
 	];
 }

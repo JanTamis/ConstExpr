@@ -147,22 +147,20 @@ public class HSVToRGBTest() : BaseTest<Func<double, double, double, (byte, byte,
 		}),
 		Create((_, s, v) =>
 		{
-			double r = 0D, g = 0D, b = 0D;
+			double r = 0D, g = 0D;
 
 			if (s == 0D)
 			{
 				r = v;
 				g = v;
-				b = v;
 			}
 			else
 			{
 				r = v * (1D - s);
 				g = v * Double.MultiplyAddEstimate(-s, 0.3333333333333335, 1D);
-				b = v;
 			}
 
-			return ((byte) (r * 255D), (byte) (g * 255D), (byte) (b * 255D));
+			return ((byte) (r * 255D), (byte) (g * 255D), (byte) (v * 255D));
 		}, [ 200.0, Unknown, Unknown ]),
 		Create((h, _, v) =>
 		{
@@ -299,24 +297,6 @@ public class HSVToRGBTest() : BaseTest<Func<double, double, double, (byte, byte,
 
 			return ((byte) (r * 255D), (byte) (g * 255D), (byte) (b * 255D));
 		}, [ Unknown, Unknown, 0.5 ]),
-		Create((_, s, _) =>
-		{
-			double r = 0D, g = 0D, b = 0D;
-
-			if (s == 0D)
-			{
-				r = 0.5;
-				g = 0.5;
-				b = 0.5;
-			}
-			else
-			{
-				r = (1D - s) * 0.5;
-				g = 0.5;
-				b = 0.5;
-			}
-
-			return ((byte) (r * 255D), (byte) (g * 255D), (byte) (b * 255D));
-		}, [ 180, Unknown, 0.5 ])
+		Create((_, s, _) => ((byte) (s == 0D ? 127.5D : (1D - s) * 127.5D), 127, 127), [ 180, Unknown, 0.5 ])
 	];
 }

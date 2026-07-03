@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class SwapTest() : BaseTest<Func<int, int, (int, int)>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
+public class SwapTest() : BaseTest<Func<int, int, (int, int)>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
 {
 	public override string TestMethod => GetString((a, b) =>
 	{
@@ -16,7 +16,7 @@ public class SwapTest() : BaseTest<Func<int, int, (int, int)>>(FastMathFlags.All
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		CreateDefault(),
+		Create((a, b) => (b, a)),
 		Create((_, _) => (20, 10), [ 10, 20 ]),
 		Create((_, _) => (0, 42), [ 42, 0 ]),
 		Create((_, _) => (-5, 5), [ 5, -5 ])

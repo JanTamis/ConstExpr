@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.NumberTheory;
 
 [InheritsTests]
-public class FactorialTest() : BaseTest<Func<int, long>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
+public class FactorialTest() : BaseTest<Func<int, long>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -34,7 +34,7 @@ public class FactorialTest() : BaseTest<Func<int, long>>(FastMathFlags.All, opti
 			if (n < 0)
 				return -1L;
 
-			if ((uint)n <= 1U)
+			if ((uint) n <= 1U)
 				return 1L;
 
 			var result = 1L;

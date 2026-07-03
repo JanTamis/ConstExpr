@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.NumberTheory;
 
 [InheritsTests]
-public class GCDTest() : BaseTest<Func<int, int, int>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
+public class GCDTest() : BaseTest<Func<int, int, int>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
 {
 	public override string TestMethod => GetString((a, b) =>
 	{
@@ -23,8 +23,8 @@ public class GCDTest() : BaseTest<Func<int, int, int>>(FastMathFlags.All, optimi
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			a = AbsFast(a);
-			b = AbsFast(b);
+			a = FastAbs(a);
+			b = FastAbs(b);
 
 			while (b != 0)
 			{

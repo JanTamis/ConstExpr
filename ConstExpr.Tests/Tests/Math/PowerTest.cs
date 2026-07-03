@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class PowerTest() : BaseTest<Func<int, int, long>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
+public class PowerTest() : BaseTest<Func<int, int, long>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
 {
 	public override string TestMethod => GetString((baseNum, exponent) =>
 	{
@@ -18,7 +18,7 @@ public class PowerTest() : BaseTest<Func<int, int, long>>(FastMathFlags.All, opt
 		}
 
 		var result = 1L;
-		var base64 = (long)baseNum;
+		var base64 = (long) baseNum;
 
 		while (exponent > 0)
 		{
@@ -47,7 +47,7 @@ public class PowerTest() : BaseTest<Func<int, int, long>>(FastMathFlags.All, opt
 			}
 
 			var result = 1L;
-			var base64 = (long)baseNum;
+			var base64 = (long) baseNum;
 
 			while (exponent > 0)
 			{

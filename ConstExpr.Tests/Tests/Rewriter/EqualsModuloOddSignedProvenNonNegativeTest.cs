@@ -19,6 +19,6 @@ public class EqualsModuloOddSignedProvenNonNegativeTest : BaseTest<Func<int, boo
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(x => x >= 0 ? Int32.IsOddInteger(x) : false)
+		Create(x => x >= 0 && Int32.IsOddInteger(x))
 	];
 }

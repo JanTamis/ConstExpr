@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Arithmetic;
 
 [InheritsTests]
-public class DigitalRootTest() : BaseTest<Func<int, int>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
+public class DigitalRootTest() : BaseTest<Func<int, int>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -28,12 +28,11 @@ public class DigitalRootTest() : BaseTest<Func<int, int>>(FastMathFlags.All, opt
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var num = AbsFast(n);
+			var num = FastAbs(n);
+			var sum = 0;
 
 			while (num >= 10)
 			{
-				var sum = 0;
-
 				while (num > 0)
 				{
 					sum += num % 10;

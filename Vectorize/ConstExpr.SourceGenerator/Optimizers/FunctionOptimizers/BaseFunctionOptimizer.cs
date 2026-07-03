@@ -39,11 +39,7 @@ public abstract class BaseFunctionOptimizer
 			_ => ParseTypeName(type.Name)
 		};
 
-		return InvocationExpression(
-				MemberAccessExpression(
-					SyntaxKind.SimpleMemberAccessExpression,
-					typeResult,
-					IdentifierName(name)))
+		return InvocationExpression(MemberAccessExpression(typeResult, IdentifierName(name)))
 			.WithArgumentList(
 				ArgumentList(
 					SeparatedList(

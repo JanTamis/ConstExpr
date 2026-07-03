@@ -8,7 +8,7 @@ namespace ConstExpr.Tests.Validation;
 ///   as the parenthesized versions, so all patterns should still be recognized.
 /// </summary>
 [InheritsTests]
-public class AsciiCharRangeNoBracketsTest() : BaseTest<Func<char, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
+public class AsciiCharRangeNoBracketsTest() : BaseTest<Func<char, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
 {
 	// No parentheses — &&-precedence groups identically to the parenthesized form.
 	// ReSharper disable ArrangeRedundantParentheses

@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Math;
 
 /// <summary>MathF.Exp2(float) → FastExp2(x) in FastMath mode.</summary>
 [InheritsTests]
-public class MathFExp2Test() : BaseTest<Func<float, float>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
+public class MathFExp2Test() : BaseTest<Func<float, float>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
 {
 	public override string TestMethod => GetString(x => Single.Exp2(x));
 

@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.String;
 
 [InheritsTests]
-public class RemoveWhitespaceTest() : BaseTest<Func<string, string>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
+public class RemoveWhitespaceTest() : BaseTest<Func<string, string>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
 {
 	public override string TestMethod => GetString(input =>
 	{
@@ -24,8 +24,9 @@ public class RemoveWhitespaceTest() : BaseTest<Func<string, string>>(FastMathFla
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			if (String.IsNullOrEmpty(input))
+		Create(input =>
+		{
+			if (System.String.IsNullOrEmpty(input))
 				return input;
 
 			var result = new char[input.Length];
@@ -38,7 +39,7 @@ public class RemoveWhitespaceTest() : BaseTest<Func<string, string>>(FastMathFla
 			}
 
 			return new string(result, 0, index);
-			"""),
+		}),
 		Create(_ => "HelloWorld", [ "Hello World" ]),
 		Create(_ => "TestString", [ "  Test  String  " ]),
 		Create(_ => "", [ "   " ]),

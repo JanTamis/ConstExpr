@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -282,11 +283,10 @@ public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 		{
 			if (stmt is LocalDeclarationStatementSyntax
 			    {
-				    Declaration: { Variables: [ { Initializer.Value: { } initExpr } declarator ] } decl
-			    } local
-			    && !local.IsConst)
+				    Declaration: { Variables: [ { Initializer.Value: { } initExpr } declarator ] } decl, IsConst: false
+			    } local)
 			{
-				var varName = declarator.Identifier.Text;
+				var varName = Titlelize(declarator.Identifier.Text);
 
 				// Only hoist if the expression type is not `var` inferred from a loop-body call,
 				// i.e. if it is truly pure and does not reference any loop-written variable.
@@ -311,7 +311,7 @@ public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 					// not already used in written set.
 					if (writtenInLoop.Contains(varName))
 					{
-						hoistedName = $"_licm_{varName}_{_hoistedCounter++}";
+						hoistedName = $"licm{varName}{_hoistedCounter++}";
 					}
 
 					LocalDeclarationStatementSyntax hoistedDecl;
@@ -356,5 +356,15 @@ public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 
 		var newBody = body.WithStatements(List(remaining));
 		return (hoisted, newBody);
+	}
+
+	private string Titlelize(string value)
+	{
+		if (String.IsNullOrEmpty(value))
+		{
+			return value;
+		}
+
+		return Char.ToUpper(value[0]) + value[1..];
 	}
 }

@@ -22,13 +22,10 @@ public class ArrayElementInitializerExplicitTypeMergeTest : BaseTest<Func<int[],
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((numbers, positions) =>
-		{
-			return new[]
-			{
-				numbers[positions % 3],
-				numbers[(positions + 1) % 3],
-				numbers[(positions + 2) % 3]
-			};
-		}, [ Unknown, Unknown ])
+		[
+			numbers[positions % 3],
+			numbers[(positions + 1) % 3],
+			numbers[(positions + 2) % 3]
+		], [ Unknown, Unknown ])
 	];
 }

@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.NumberTheory;
 
 [InheritsTests]
-public class CountPrimeFactorsTest() : BaseTest<Func<int, int>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
+public class CountPrimeFactorsTest() : BaseTest<Func<int, int>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -34,7 +34,7 @@ public class CountPrimeFactorsTest() : BaseTest<Func<int, int>>(FastMathFlags.Al
 	[
 		Create("""
 			var count = 0;
-			var num = AbsFast(n);
+			var num = FastAbs(n);
 			var i = 2;
 
 			while (i * i <= num)

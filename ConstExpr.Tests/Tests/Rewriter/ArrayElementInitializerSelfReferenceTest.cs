@@ -20,6 +20,6 @@ public class ArrayElementInitializerSelfReferenceTest : BaseTest<Func<int[], int
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(null, Unknown)
+		CreateDefault()
 	];
 }

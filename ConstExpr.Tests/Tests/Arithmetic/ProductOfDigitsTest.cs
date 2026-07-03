@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Arithmetic;
 
 [InheritsTests]
-public class ProductOfDigitsTest() : BaseTest<Func<int, int>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
+public class ProductOfDigitsTest() : BaseTest<Func<int, int>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -23,7 +23,7 @@ public class ProductOfDigitsTest() : BaseTest<Func<int, int>>(FastMathFlags.All,
 	[
 		Create("""
 			var product = 1;
-			var num = AbsFast(n);
+			var num = FastAbs(n);
 
 			while (num > 0)
 			{

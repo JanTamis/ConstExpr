@@ -6,7 +6,7 @@ namespace ConstExpr.Tests.Optimization;
 ///   Test with small set (powers of 2)
 /// </summary>
 [InheritsTests]
-public class PatternBitmaskSmallTest() : BaseTest<Func<int, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
+public class PatternBitmaskSmallTest() : BaseTest<Func<int, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -15,7 +15,7 @@ public class PatternBitmaskSmallTest() : BaseTest<Func<int, bool>>(FastMathFlags
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(n => (uint)(n - 2) <= 6U && (n & n - 1) == 0),
+		Create(n => (uint) (n - 2) <= 6U && (n & n - 1) == 0),
 		Create(_ => true, [ 2 ]),
 		Create(_ => true, [ 4 ]),
 		Create(_ => true, [ 8 ]),

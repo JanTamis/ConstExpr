@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Array;
 
 [InheritsTests]
-public class BinarySearchTest() : BaseTest<Func<int[], int, int>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
+public class BinarySearchTest() : BaseTest<Func<int[], int, int>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
 {
 	public override string TestMethod => GetString((arr, target) =>
 	{
@@ -35,33 +35,7 @@ public class BinarySearchTest() : BaseTest<Func<int[], int, int>>(FastMathFlags.
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create((arr, target) =>
-		{
-			var left = 0;
-			var right = arr.Length - 1;
-
-			while (left <= right)
-			{
-				var mid = left + (right - left >> 1);
-				var current = arr[mid];
-
-				if (current == target)
-				{
-					return mid;
-				}
-
-				if (current < target)
-				{
-					left = mid + 1;
-				}
-				else
-				{
-					right = mid - 1;
-				}
-			}
-
-			return -1;
-		}),
+		CreateDefault(),
 		Create((_, _) => 2, [ new[] { 1, 3, 5, 7, 9 }, 5 ]),
 		Create((_, _) => 4, [ new[] { 0, 2, 4, 6, 8, 10 }, 8 ]),
 		Create((_, _) => -1, [ new[] { 2, 4, 6, 8 }, 5 ])

@@ -21,6 +21,6 @@ public class NotEqualsModuloEvenSignedProvenNonNegativeTest : BaseTest<Func<int,
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(x => x >= 0 ? Int32.IsEvenInteger(x) : false)
+		Create(x => x >= 0 && Int32.IsEvenInteger(x))
 	];
 }

@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Array;
 
 [InheritsTests]
-public class ArrayMutationConstantIndexTest() : BaseTest<Func<int>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
+public class ArrayMutationConstantIndexTest() : BaseTest<Func<int>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
 {
 	public override string TestMethod => GetString(() =>
 	{
@@ -19,15 +19,6 @@ public class ArrayMutationConstantIndexTest() : BaseTest<Func<int>>(FastMathFlag
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(() =>
-		{
-			var counts = new int[256];
-
-			counts['a']++;
-			counts['b']++;
-			counts['a']++;
-
-			return counts['a'];
-		})
+		Create(() => 2)
 	];
 }

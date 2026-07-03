@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Math;
 
 /// <summary>double.MinMagnitude(a, a) — idempotency optimization: returns a.</summary>
 [InheritsTests]
-public class MathMinMagnitudeIdempotentTest() : BaseTest<Func<double, double>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
+public class MathMinMagnitudeIdempotentTest() : BaseTest<Func<double, double>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
 {
 	public override string TestMethod => GetString(a => System.Math.MinMagnitude(a, a));
 

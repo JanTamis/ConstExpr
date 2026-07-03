@@ -22,7 +22,7 @@ public class CompoundAssignmentElementAccessGuardTest : BaseTest<Func<int[], int
 	[
 		// Unknown inputs: the binary's left operand (result[0]) differs from the target
 		// (result[1]), so the statement must stay a plain assignment, not a compound one.
-		Create(null, Unknown, Unknown)
+		CreateDefault()
 	];
 }
 

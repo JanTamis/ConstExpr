@@ -24,16 +24,13 @@ public class ArrayElementInitializerMergeTest : BaseTest<Func<int[], int, int[]>
 	[
 		CreateDefault(),
 		Create((numbers, positions) =>
-		{
-			return new[]
-			{
-				numbers[positions % 6],
-				numbers[(positions + 1) % 6],
-				numbers[(positions + 2) % 6],
-				numbers[(positions + 3) % 6],
-				numbers[(positions + 4) % 6],
-				numbers[(positions + 5) % 6]
-			};
-		}, [ new[] { 1, 2, 3, 4, 5, 6 }, Unknown ])
+		[
+			numbers[positions % 6],
+			numbers[(positions + 1) % 6],
+			numbers[(positions + 2) % 6],
+			numbers[(positions + 3) % 6],
+			numbers[(positions + 4) % 6],
+			numbers[(positions + 5) % 6]
+		], [ new[] { 1, 2, 3, 4, 5, 6 }, Unknown ])
 	];
 }

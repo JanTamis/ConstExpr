@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Validation;
 
 [InheritsTests]
-public class IsValidEmailTest() : BaseTest<Func<string, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.TailRecursionElimination)
+public class IsValidEmailTest() : BaseTest<Func<string, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
 {
 	public override string TestMethod => GetString(email =>
 	{
@@ -37,8 +37,9 @@ public class IsValidEmailTest() : BaseTest<Func<string, bool>>(FastMathFlags.All
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			if (String.IsNullOrEmpty(email) || email.Length < 5)
+		Create(email =>
+		{
+			if (System.String.IsNullOrEmpty(email) || email.Length < 5)
 				return false;
 
 			var atCount = 0;
@@ -57,7 +58,6 @@ public class IsValidEmailTest() : BaseTest<Func<string, bool>>(FastMathFlags.All
 
 						break;
 					}
-
 					case '.':
 					{
 						dotCount++;
@@ -71,7 +71,7 @@ public class IsValidEmailTest() : BaseTest<Func<string, bool>>(FastMathFlags.All
 			var diff = email.Length - 1;
 
 			return atCount == 1 && dotCount >= 1 && atIndex > 0 && atIndex < diff && lastDotIndex > atIndex + 1 && lastDotIndex < diff;
-			"""), // Unknown input → body unchanged
+		}), // Unknown input → body unchanged
 		Create(_ => false, [ System.String.Empty ]), // Empty string → guard fires
 		Create(_ => false, [ "a@b" ]), // Too short (length < 5) → guard fires
 		Create(_ => false, [ "invalid" ]), // No @ or dot → returns false
