@@ -20,7 +20,9 @@ public class ConditionalOrIsNullOrEmptyStrategy()
 		}
 
 		optimized = InvocationExpression(
-				MemberAccessExpression(IdentifierName("String"), IdentifierName("IsNullOrEmpty")))
+				MemberAccessExpression(
+					MemberAccessExpression(IdentifierName("System"), IdentifierName("String")),
+					IdentifierName("IsNullOrEmpty")))
 			.WithArgumentList(
 				ArgumentList(
 					SingletonSeparatedList(
@@ -30,21 +32,21 @@ public class ConditionalOrIsNullOrEmptyStrategy()
 
 	private static bool IsNullCheck(BinaryExpressionSyntax expr)
 	{
-		return expr.Left is LiteralExpressionSyntax { RawKind: (int)SyntaxKind.NullLiteralExpression }
-		       || expr.Right is LiteralExpressionSyntax { RawKind: (int)SyntaxKind.NullLiteralExpression };
+		return expr.Left is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NullLiteralExpression }
+		       || expr.Right is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NullLiteralExpression };
 	}
 
 	private static bool IsEmptyStringCheck(BinaryExpressionSyntax expr)
 	{
 		return (expr.Left is MemberAccessExpressionSyntax { Name.Identifier.Text: "Length" }
 		        || expr.Right is MemberAccessExpressionSyntax { Name.Identifier.Text: "Length" })
-		       && (expr.Left is LiteralExpressionSyntax { RawKind: (int)SyntaxKind.NumericLiteralExpression, Token.Value: 0 }
-		           || expr.Right is LiteralExpressionSyntax { RawKind: (int)SyntaxKind.NumericLiteralExpression, Token.Value: 0 });
+		       && (expr.Left is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NumericLiteralExpression, Token.Value: 0 }
+		           || expr.Right is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NumericLiteralExpression, Token.Value: 0 });
 	}
 
 	private static ExpressionSyntax GetExpressionSyntax(BinaryExpressionSyntax expr)
 	{
-		return expr.Left is LiteralExpressionSyntax { RawKind: (int)SyntaxKind.NullLiteralExpression }
+		return expr.Left is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NullLiteralExpression }
 			? expr.Right
 			: expr.Left;
 	}

@@ -9,7 +9,7 @@ public class StringIsNullOrEmptyTest() : BaseTest<Func<string, bool>>(FastMathFl
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(s => string.IsNullOrEmpty(s)),
+		Create(s => System.String.IsNullOrEmpty(s)),
 		Create(_ => true, [ System.String.Empty ]),
 		Create(_ => false, [ "hello" ]),
 		Create(_ => false, [ "x" ])

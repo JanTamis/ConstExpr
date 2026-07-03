@@ -224,7 +224,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 
 		if (attribute.Optimizations.HasFlag(OptimizationFlags.CommonSubexpressionElimination))
 		{
-			newBody = CommonSubexpressionEliminator.Eliminate(newBody) as BlockSyntax;
+			newBody = CommonSubexpressionEliminator.Eliminate(newBody, attribute.MathOptimizations) as BlockSyntax;
 			newBody = DeadCodePruner.Prune(newBody, parameters, state.SemanticModel) as BlockSyntax;
 		}
 

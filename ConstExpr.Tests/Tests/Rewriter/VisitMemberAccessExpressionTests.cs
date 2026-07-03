@@ -19,7 +19,7 @@ public class VisitMemberAccessExpressionTests : BaseTest<Func<string, bool, (int
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create((s, useEmpty) => (useEmpty ? 0 : s.Length, 5, "", useEmpty)),
+		Create((s, useEmpty) => (useEmpty ? 0 : s.Length, 5, "", useEmpty || s == "")),
 		Create((_, _) => (5, 5, "", false), [ "hello", false ]),
 		Create((_, _) => (0, 5, "", true), [ "ignored", true ]),
 		Create((_, _) => (3, 5, "", false), [ "cat", false ]),

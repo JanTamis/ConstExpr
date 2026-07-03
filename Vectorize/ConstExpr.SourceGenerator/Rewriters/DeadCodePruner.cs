@@ -198,6 +198,9 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 				when CanBePruned(postfixId.Identifier.Text):
 			case PrefixUnaryExpressionSyntax { Operand: IdentifierNameSyntax prefixId }
 				when CanBePruned(prefixId.Identifier.Text):
+			// Prune bare literal expression statements (e.g. a fully-resolved array-element
+			// assignment/increment left behind as a placeholder) — no side effect to preserve.
+			case LiteralExpressionSyntax:
 			{
 				return null;
 			}
@@ -362,7 +365,7 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 			or ThrowStatementSyntax
 			or BreakStatementSyntax
 			or ContinueStatementSyntax
-			or YieldStatementSyntax { RawKind: (int)SyntaxKind.YieldBreakStatement };
+			or YieldStatementSyntax { RawKind: (int) SyntaxKind.YieldBreakStatement };
 	}
 
 	#endregion

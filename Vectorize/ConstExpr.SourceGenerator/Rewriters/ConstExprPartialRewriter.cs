@@ -168,8 +168,11 @@ public partial class ConstExprPartialRewriter(
 
 		return result switch
 		{
-			// For increment/decrement that evaluate to literals, keep original for side-effects
-			LiteralExpressionSyntax when node.Expression is PostfixUnaryExpressionSyntax or PrefixUnaryExpressionSyntax => node,
+			// For increment/decrement of a plain (possibly symbolic/unknown) variable that evaluate
+			// to literals, keep the original syntax so the real runtime increment still happens.
+			// Element-access increments (e.g. counts[c]++) that fold this far are on a fully
+			// tracked array, so the literal placeholder is safe — DeadCodePruner removes it.
+			LiteralExpressionSyntax when node.Expression is PostfixUnaryExpressionSyntax { Operand: IdentifierNameSyntax } or PrefixUnaryExpressionSyntax { Operand: IdentifierNameSyntax } => node,
 			ExpressionSyntax expr => node.WithExpression(expr),
 			_ => result
 		};

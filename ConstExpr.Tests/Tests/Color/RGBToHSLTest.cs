@@ -71,12 +71,7 @@ public class RGBToHSLTest() : BaseTest<Func<byte, byte, byte, (int, double, doub
 			var delta = max - min;
 			l = (max + min) * 0.5;
 
-			if (delta == 0D)
-			{
-				h = 0;
-				s = 0D;
-			}
-			else
+			if (delta != 0D)
 			{
 				s = l <= 0.5 ? delta / (max + min) : delta / (2D - max - min);
 

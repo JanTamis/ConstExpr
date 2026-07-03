@@ -815,6 +815,30 @@ public static class SyntaxHelpers
 					value = null;
 					return false;
 				}
+				case PrefixUnaryExpressionSyntax prefixUnary:
+				{
+					if (!TryGetConstantValue(compilation, loader, prefixUnary.Operand, variables, token, out var operand))
+					{
+						value = null;
+						return false;
+					}
+
+					switch (prefixUnary.OperatorToken.Kind())
+					{
+						case SyntaxKind.MinusToken:
+							value = operand.Negate();
+							return value is not null;
+						case SyntaxKind.PlusToken:
+							value = operand;
+							return true;
+						case SyntaxKind.ExclamationToken when operand is bool b:
+							value = !b;
+							return true;
+						default:
+							value = null;
+							return false;
+					}
+				}
 				// for unit tests
 				case ReturnStatementSyntax returnStatement:
 				{

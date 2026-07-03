@@ -46,6 +46,20 @@ public class ConditionalExpressionOptimizer
 			return true;
 		}
 
+		// condition ? x : false => condition && x (both branches short-circuit identically)
+		if (WhenFalse.TryGetLiteralValue(loader, variables, out var whenFalseValue) && whenFalseValue is false)
+		{
+			result = BinaryExpression(SyntaxKind.LogicalAndExpression, Condition, WhenTrue);
+			return true;
+		}
+
+		// condition ? true : x => condition || x (both branches short-circuit identically)
+		if (WhenTrue.TryGetLiteralValue(loader, variables, out var whenTrueValue) && whenTrueValue is true)
+		{
+			result = BinaryExpression(SyntaxKind.LogicalOrExpression, Condition, WhenFalse);
+			return true;
+		}
+
 		// true ? a : b => a
 		if (Condition.TryGetLiteralValue(loader, variables, out var condValue) && condValue is true)
 		{

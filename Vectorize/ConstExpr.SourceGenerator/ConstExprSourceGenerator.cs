@@ -401,7 +401,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 			if (attribute.Optimizations.HasFlag(OptimizationFlags.CommonSubexpressionElimination))
 			{
-				result2 = CommonSubexpressionEliminator.Eliminate(result2);
+				result2 = CommonSubexpressionEliminator.Eliminate(result2, attribute.MathOptimizations);
 				result2 = DeadCodePruner.Prune(result2, variablesPartial, semanticModel);
 			}
 

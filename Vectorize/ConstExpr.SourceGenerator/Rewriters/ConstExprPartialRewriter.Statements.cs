@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using ConstExpr.SourceGenerator.Comparers;
 using ConstExpr.SourceGenerator.Extensions;
@@ -78,6 +79,16 @@ public partial class ConstExprPartialRewriter
 					break;
 				}
 			}
+		}
+		// The then-branch fully pruned away (e.g. a provably redundant assignment matching the
+		// variable's declared initial value), leaving only real work in the else. Invert the
+		// condition and promote the else branch instead of emitting an empty then-block.
+		else if (IsEmptyStatement(statement) && @else is ElseClauseSyntax nonEmptyElse)
+		{
+			return node
+				.WithCondition(NegateExpressionRefactoring.Negate(condition as ExpressionSyntax ?? node.Condition))
+				.WithStatement(nonEmptyElse.Statement)
+				.WithElse(null);
 		}
 
 		var result = node
@@ -168,6 +179,21 @@ public partial class ConstExprPartialRewriter
 
 		return Visit(thenAssignment.WithRight(condExpr)) as ExpressionSyntax
 		       ?? thenAssignment.WithRight(condExpr);
+	}
+
+	/// <summary>
+	///   True for a branch that carries no remaining work: <see langword="null" /> (the whole
+	///   branch was pruned), an empty block, or a bare semicolon.
+	/// </summary>
+	private static bool IsEmptyStatement(SyntaxNode? statement)
+	{
+		return statement switch
+		{
+			null => true,
+			BlockSyntax { Statements.Count: 0 } => true,
+			EmptyStatementSyntax => true,
+			_ => false
+		};
 	}
 
 	/// <summary>
@@ -504,7 +530,7 @@ public partial class ConstExprPartialRewriter
 		return collection switch
 		{
 			CollectionExpressionSyntax collectionExpression => collectionExpression.Elements,
-			LiteralExpressionSyntax { RawKind: (int)SyntaxKind.StringLiteralExpression } stringLiteral =>
+			LiteralExpressionSyntax { RawKind: (int) SyntaxKind.StringLiteralExpression } stringLiteral =>
 				stringLiteral.Token.ValueText
 					.Select(CSharpSyntaxNode (s) => CreateLiteral(s))
 					.ToList(),
@@ -711,15 +737,18 @@ public partial class ConstExprPartialRewriter
 		var mergedArrayInitializers = MergeArrayElementInitializers(mergedForDeclarations);
 		var liftedDeclarations = MergeUninitializedDeclarations(mergedArrayInitializers);
 		var mergedInitializers = MergeRedundantInitializers(liftedDeclarations);
+		var mergedSwaps = MergeSwapPattern(mergedInitializers);
+		var mergedIncDec = RemoveCancelingIncrementDecrement(mergedSwaps);
 
-		var untilThrown = TakeUntilThrownStatements(mergedInitializers);
+		var untilThrown = TakeUntilThrownStatements(mergedIncDec);
 		var combined = CombineConsecutiveIfStatements(untilThrown, Visit);
 		var mergedIfChain = MergeMixedBoolReturnIfs(combined, Visit);
 		var simplified = SimplifyIfReturnPatterns(mergedIfChain);
 		var switched = CombineConsecutiveIfsIntoSwitch(simplified);
 		var inlined = InlineSingleUseLocalVariables(switched);
+		var switchExpressions = ConvertAssigningSwitchToExpression(inlined);
 
-		return node.WithStatements(inlined);
+		return node.WithStatements(switchExpressions);
 	}
 
 	/// <summary>
@@ -795,7 +824,7 @@ public partial class ConstExprPartialRewriter
 
 			// Replace the single occurrence of varName with the initializer expression.
 			var inliner = new SingleUseInliner(varName, initExpr);
-			var inlinedRemaining = remaining.Select(s => (StatementSyntax)(inliner.Visit(s) ?? s)).ToList();
+			var inlinedRemaining = remaining.Select(s => (StatementSyntax) (inliner.Visit(s) ?? s)).ToList();
 
 			result.RemoveAt(i);
 
@@ -820,7 +849,7 @@ public partial class ConstExprPartialRewriter
 	{
 		return expr is BinaryExpressionSyntax or PrefixUnaryExpressionSyntax or CastExpressionSyntax
 			or ConditionalExpressionSyntax
-			or ImplicitArrayCreationExpressionSyntax or ArrayCreationExpressionSyntax;
+			or ImplicitArrayCreationExpressionSyntax or ArrayCreationExpressionSyntax or CollectionExpressionSyntax;
 	}
 
 	/// <summary>
@@ -1003,7 +1032,7 @@ public partial class ConstExprPartialRewriter
 					    {
 						    Expression: AssignmentExpressionSyntax
 						    {
-							    RawKind: (int)SyntaxKind.SimpleAssignmentExpression,
+							    RawKind: (int) SyntaxKind.SimpleAssignmentExpression,
 							    Left: IdentifierNameSyntax { Identifier.Text: var assignedName }
 						    }
 					    }
@@ -1021,7 +1050,7 @@ public partial class ConstExprPartialRewriter
 			// Lift each matched assignment to a var declaration at its current position
 			foreach (var kvp in mergedByIndex)
 			{
-				var assignment = (AssignmentExpressionSyntax)((ExpressionStatementSyntax)result[kvp.Key]).Expression;
+				var assignment = (AssignmentExpressionSyntax) ((ExpressionStatementSyntax) result[kvp.Key]).Expression;
 				var newDeclarator = VariableDeclarator(Identifier(kvp.Value))
 					.WithInitializer(EqualsValueClause(assignment.Right));
 				result[kvp.Key] = LocalDeclarationStatement(
@@ -1104,7 +1133,7 @@ public partial class ConstExprPartialRewriter
 			    {
 				    Expression: AssignmentExpressionSyntax
 				    {
-					    RawKind: (int)SyntaxKind.SimpleAssignmentExpression,
+					    RawKind: (int) SyntaxKind.SimpleAssignmentExpression,
 					    Left: IdentifierNameSyntax { Identifier.Text: var assignedName },
 					    Right: var rhs
 				    }
@@ -1174,7 +1203,7 @@ public partial class ConstExprPartialRewriter
 				    [
 					    AssignmentExpressionSyntax
 					    {
-						    RawKind: (int)SyntaxKind.SimpleAssignmentExpression,
+						    RawKind: (int) SyntaxKind.SimpleAssignmentExpression,
 						    Left: IdentifierNameSyntax { Identifier.Text: var initializerName },
 						    Right: var initializerValue
 					    }
@@ -1289,7 +1318,7 @@ public partial class ConstExprPartialRewriter
 			    {
 				    Expression: AssignmentExpressionSyntax
 				    {
-					    RawKind: (int)SyntaxKind.SimpleAssignmentExpression,
+					    RawKind: (int) SyntaxKind.SimpleAssignmentExpression,
 					    Left: ElementAccessExpressionSyntax
 					    {
 						    Expression: IdentifierNameSyntax { Identifier.Text: var targetName },
@@ -1309,13 +1338,7 @@ public partial class ConstExprPartialRewriter
 			elements.Add(valueExpr);
 		}
 
-		var implicitlySizedType = arrayCreation.Type.WithRankSpecifiers(
-			SingletonList(rankSpecifier.WithSizes(
-				SingletonSeparatedList<ExpressionSyntax>(OmittedArraySizeExpression()))));
-
-		var elementList = SeparatedList(elements);
-
-		var newArrayCreation = ImplicitArrayCreationExpression(InitializerExpression(SyntaxKind.ArrayInitializerExpression, elementList));
+		var newArrayCreation = CollectionExpression(SeparatedList<CollectionElementSyntax>(elements.Select(ExpressionElement)));
 		var newDeclarator = declarator.WithInitializer(EqualsValueClause(newArrayCreation));
 
 		merged = declarationStatement.WithDeclaration(
@@ -1323,6 +1346,302 @@ public partial class ConstExprPartialRewriter
 
 		consumed = size + 1;
 		return true;
+	}
+
+	/// <summary>
+	///   Recognizes the classic three-statement swap-via-temp idiom
+	///   <code>
+	/// var temp = a;
+	/// a = b;
+	/// b = temp;
+	/// </code>
+	///   and rewrites it into a tuple-deconstruction assignment <c>(a, b) = (b, a);</c>. Applies to
+	///   plain identifiers as well as simple element-access targets (e.g. array/collection element
+	///   swaps), since both are pure to re-read.
+	/// </summary>
+	private SyntaxList<StatementSyntax> MergeSwapPattern(SyntaxList<StatementSyntax> statements)
+	{
+		if (statements.Count < 3)
+		{
+			return statements;
+		}
+
+		var result = statements.ToList();
+
+		for (var i = 0; i <= result.Count - 3; i++)
+		{
+			if (result[i] is not LocalDeclarationStatementSyntax
+			    {
+				    Modifiers.Count: 0,
+				    Declaration.Variables: [ { Identifier.Text: var tempName, Initializer.Value: var a } ]
+			    }
+			    || !IsSwapTarget(a))
+			{
+				continue;
+			}
+
+			if (result[i + 1] is not ExpressionStatementSyntax
+			    {
+				    Expression: AssignmentExpressionSyntax
+				    {
+					    RawKind: (int) SyntaxKind.SimpleAssignmentExpression,
+					    Left: var aAgain,
+					    Right: var b
+				    }
+			    }
+			    || !SyntaxNodeComparer.Get().Equals(a, aAgain)
+			    || !IsSwapTarget(b))
+			{
+				continue;
+			}
+
+			if (result[i + 2] is not ExpressionStatementSyntax
+			    {
+				    Expression: AssignmentExpressionSyntax
+				    {
+					    RawKind: (int) SyntaxKind.SimpleAssignmentExpression,
+					    Left: var bAgain,
+					    Right: IdentifierNameSyntax { Identifier.Text: var readTemp }
+				    }
+			    }
+			    || !SyntaxNodeComparer.Get().Equals(b, bAgain)
+			    || readTemp != tempName)
+			{
+				continue;
+			}
+
+			// temp must not be referenced anywhere else in the block.
+			var remaining = result.Skip(i + 3).ToList();
+			var collector = new VariableUsageCollector([ tempName ]);
+
+			foreach (var s in remaining)
+			{
+				collector.Visit(s);
+			}
+
+			if (collector.GetReadCount(tempName) > 0 || collector.GetWriteCount(tempName) > 0)
+			{
+				continue;
+			}
+
+			result[i] = ExpressionStatement(
+				AssignmentExpression(
+					SyntaxKind.SimpleAssignmentExpression,
+					TupleExpression(SeparatedList(new[] { Argument(a), Argument(b) })),
+					TupleExpression(SeparatedList(new[] { Argument(b), Argument(a) }))));
+
+			result.RemoveAt(i + 2);
+			result.RemoveAt(i + 1);
+		}
+
+		return List(result);
+	}
+
+	private static bool IsSwapTarget(ExpressionSyntax expr)
+	{
+		return expr switch
+		{
+			IdentifierNameSyntax => true,
+			ElementAccessExpressionSyntax { Expression: IdentifierNameSyntax, ArgumentList.Arguments: [ { Expression: IdentifierNameSyntax or LiteralExpressionSyntax } ] } => true,
+			_ => false
+		};
+	}
+
+	/// <summary>
+	///   Removes an adjacent <c>x++; x--;</c> (or <c>x--; x++;</c>) pair on a plain local/parameter,
+	///   whose net effect on <c>x</c> is zero. Restricted to integral types: for floating-point values
+	///   near the precision ceiling, incrementing then decrementing can round to a different value.
+	/// </summary>
+	private SyntaxList<StatementSyntax> RemoveCancelingIncrementDecrement(SyntaxList<StatementSyntax> statements)
+	{
+		if (statements.Count < 2)
+		{
+			return statements;
+		}
+
+		var result = statements.ToList();
+
+		for (var i = 0; i <= result.Count - 2; i++)
+		{
+			if (!TryGetIncrementDecrementTarget(result[i], out var firstName, out var firstIsIncrement)
+			    || !TryGetIncrementDecrementTarget(result[i + 1], out var secondName, out var secondIsIncrement)
+			    || firstName != secondName
+			    || firstIsIncrement == secondIsIncrement)
+			{
+				continue;
+			}
+
+			result.RemoveAt(i + 1);
+			result.RemoveAt(i);
+			i--;
+		}
+
+		return List(result);
+	}
+
+	/// <summary>
+	///   Converts <c>var x = ...; switch (target) { case C: x = V; break; ... default: x = D; break; } return x;</c>
+	///   into <c>return target switch { C => V, ..., _ => D };</c>. Requires a default section (so every
+	///   input is covered) and every section to assign the same variable and nothing else.
+	/// </summary>
+	private static SyntaxList<StatementSyntax> ConvertAssigningSwitchToExpression(SyntaxList<StatementSyntax> statements)
+	{
+		if (statements.Count < 3)
+		{
+			return statements;
+		}
+
+		var result = statements.ToList();
+
+		for (var i = 0; i <= result.Count - 3; i++)
+		{
+			if (result[i] is not LocalDeclarationStatementSyntax
+			    {
+				    Modifiers.Count: 0,
+				    Declaration.Variables: [ { Identifier.Text: var varName } ]
+			    })
+			{
+				continue;
+			}
+
+			if (result[i + 1] is not SwitchStatementSyntax { Expression: var switchTarget } switchStatement
+			    || result[i + 2] is not ReturnStatementSyntax { Expression: IdentifierNameSyntax { Identifier.Text: var returnedName } }
+			    || returnedName != varName
+			    || switchTarget.HasIdentifier(varName)
+			    || !TryBuildSwitchExpressionArms(switchStatement.Sections, varName, out var arms))
+			{
+				continue;
+			}
+
+			result[i] = ReturnStatement(SwitchExpression(switchTarget, SeparatedList(arms)));
+			result.RemoveAt(i + 2);
+			result.RemoveAt(i + 1);
+		}
+
+		return List(result);
+	}
+
+	private static bool TryBuildSwitchExpressionArms(SyntaxList<SwitchSectionSyntax> sections, string varName, out List<SwitchExpressionArmSyntax> arms)
+	{
+		arms = [ ];
+		SwitchExpressionArmSyntax? defaultArm = null;
+
+		foreach (var section in sections)
+		{
+			if (!TryGetSoleAssignedValue(section.Statements, varName, out var value)
+			    || (value is IdentifierNameSyntax { Identifier.Text: var valueName } ? valueName == varName : value.HasIdentifier(varName)))
+			{
+				return false;
+			}
+
+			var hasDefault = section.Labels.Any(l => l is DefaultSwitchLabelSyntax);
+			var caseLabels = section.Labels.OfType<CaseSwitchLabelSyntax>().Select(l => l.Value).ToList();
+
+			if (hasDefault)
+			{
+				if (defaultArm is not null || caseLabels.Count > 0)
+				{
+					return false;
+				}
+
+				defaultArm = SwitchExpressionArm(DiscardPattern(), value);
+				continue;
+			}
+
+			if (caseLabels.Count == 0)
+			{
+				return false;
+			}
+
+			PatternSyntax pattern = ConstantPattern(caseLabels[0]);
+
+			for (var i = 1; i < caseLabels.Count; i++)
+			{
+				pattern = BinaryPattern(SyntaxKind.OrPattern, pattern, ConstantPattern(caseLabels[i]));
+			}
+
+			arms.Add(SwitchExpressionArm(pattern, value));
+		}
+
+		if (defaultArm is null)
+		{
+			return false;
+		}
+
+		arms.Add(defaultArm);
+		return true;
+	}
+
+	private static bool TryGetSoleAssignedValue(SyntaxList<StatementSyntax> statements, string varName, [NotNullWhen(true)] out ExpressionSyntax? value)
+	{
+		value = null;
+
+		var flat = statements is [ BlockSyntax block ] ? block.Statements : statements;
+
+		if (flat is not
+		    [
+			    ExpressionStatementSyntax
+			    {
+				    Expression: AssignmentExpressionSyntax
+				    {
+					    RawKind: (int) SyntaxKind.SimpleAssignmentExpression,
+					    Left: IdentifierNameSyntax { Identifier.Text: var assignedName },
+					    Right: var assignedValue
+				    }
+			    },
+			    BreakStatementSyntax
+		    ]
+		    || assignedName != varName)
+		{
+			return false;
+		}
+
+		value = assignedValue;
+		return true;
+	}
+
+	private bool TryGetIncrementDecrementTarget(StatementSyntax statement, out string name, out bool isIncrement)
+	{
+		name = "";
+		isIncrement = false;
+
+		if (statement is not ExpressionStatementSyntax { Expression: var expr })
+		{
+			return false;
+		}
+
+		IdentifierNameSyntax operand;
+
+		switch (expr)
+		{
+			case PostfixUnaryExpressionSyntax { Operand: IdentifierNameSyntax id } postfix when postfix.IsKind(SyntaxKind.PostIncrementExpression) || postfix.IsKind(SyntaxKind.PostDecrementExpression):
+				operand = id;
+				isIncrement = postfix.IsKind(SyntaxKind.PostIncrementExpression);
+				break;
+			case PrefixUnaryExpressionSyntax { Operand: IdentifierNameSyntax id } prefix when prefix.IsKind(SyntaxKind.PreIncrementExpression) || prefix.IsKind(SyntaxKind.PreDecrementExpression):
+				operand = id;
+				isIncrement = prefix.IsKind(SyntaxKind.PreIncrementExpression);
+				break;
+			default:
+				return false;
+		}
+
+		if (!semanticModel.TryGetTypeSymbol(operand, symbolStore, out var type) || !IsIntegralType(type))
+		{
+			return false;
+		}
+
+		name = operand.Identifier.Text;
+		return true;
+	}
+
+	private static bool IsIntegralType(ITypeSymbol type)
+	{
+		return type.SpecialType is SpecialType.System_SByte or SpecialType.System_Byte
+			or SpecialType.System_Int16 or SpecialType.System_UInt16
+			or SpecialType.System_Int32 or SpecialType.System_UInt32
+			or SpecialType.System_Int64 or SpecialType.System_UInt64
+			or SpecialType.System_Char;
 	}
 
 	private bool TryGetConstantInt32(ExpressionSyntax? expr, out int value)
@@ -1459,7 +1778,7 @@ public partial class ConstExprPartialRewriter
 
 		if (ifReturnValue)
 		{
-			if (followingReturn.Expression is LiteralExpressionSyntax { RawKind: (int)SyntaxKind.FalseLiteralExpression })
+			if (followingReturn.Expression is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.FalseLiteralExpression })
 			{
 				// return cond;
 				simplified = ReturnStatement(condition);

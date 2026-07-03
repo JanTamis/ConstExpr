@@ -795,8 +795,10 @@ public partial class ConstExprPartialRewriter
 
 	public override SyntaxNode? VisitPostfixUnaryExpression(PostfixUnaryExpressionSyntax node)
 	{
+		var isIncrementOrDecrement = node.OperatorToken.IsKind(SyntaxKind.PlusPlusToken) || node.OperatorToken.IsKind(SyntaxKind.MinusMinusToken);
+
 		// Support i++ and i--
-		if ((node.OperatorToken.IsKind(SyntaxKind.PlusPlusToken) || node.OperatorToken.IsKind(SyntaxKind.MinusMinusToken))
+		if (isIncrementOrDecrement
 		    && node.Operand is IdentifierNameSyntax id
 		    && variables.TryGetValue(id.Identifier.Text, out var variable))
 		{
@@ -814,7 +816,89 @@ public partial class ConstExprPartialRewriter
 			variable.IsAltered = true;
 		}
 
+		// Support arr[i]++ and arr[i]-- on a tracked constant array element (e.g. counts[c]++).
+		if (isIncrementOrDecrement
+		    && node.Operand is ElementAccessExpressionSyntax elementAccess
+		    && TryFoldElementAccessIncrementDecrement(node, elementAccess, true, out var folded))
+		{
+			return folded;
+		}
+
 		return base.VisitPostfixUnaryExpression(node);
+	}
+
+	/// <summary>
+	///   Handles <c>arr[i]++</c>/<c>arr[i]--</c> on a tracked constant array element, mirroring the
+	///   identifier increment/decrement folding above. Array indexers also accept a <see langword="char" />
+	///   index via its implicit conversion to <see langword="int" /> (e.g. <c>counts['a']++</c>).
+	/// </summary>
+	private bool TryFoldElementAccessIncrementDecrement(ExpressionSyntax node, ElementAccessExpressionSyntax elementAccess, bool returnPreviousValue, out SyntaxNode? result)
+	{
+		result = null;
+
+		if (elementAccess.Expression is not IdentifierNameSyntax { Identifier.Text: var receiverName }
+		    || !variables.TryGetValue(receiverName, out var receiver)
+		    || receiver is not { HasValue: true, IsAltered: false, Value: Array arr })
+		{
+			return false;
+		}
+
+		var indexConsts = elementAccess.ArgumentList.Arguments
+			.Select(a => Visit(a.Expression) ?? a.Expression)
+			.WhereSelect<SyntaxNode, object?>(TryGetLiteralValue)
+			.ToArray();
+
+		if (indexConsts is not [ var indexConst ]
+		    || indexConst switch
+		    {
+			    int i => (int?) i,
+			    char c => c,
+			    long l => (int) l,
+			    _ => null
+		    } is not { } index)
+		{
+			return false;
+		}
+
+		object? current;
+
+		try
+		{
+			current = arr.GetValue(index);
+		}
+		catch
+		{
+			return false;
+		}
+
+		var isIncrement = node switch
+		{
+			PostfixUnaryExpressionSyntax postfix => postfix.OperatorToken.IsKind(SyntaxKind.PlusPlusToken),
+			PrefixUnaryExpressionSyntax prefix => prefix.OperatorToken.IsKind(SyntaxKind.PlusPlusToken),
+			_ => true
+		};
+
+		object? updated;
+
+		try
+		{
+			updated = current is char ch
+				? Convert.ToChar(isIncrement ? ch + 1 : ch - 1)
+				: ObjectExtensions.ExecuteBinaryOperation(isIncrement ? SyntaxKind.AddExpression : SyntaxKind.SubtractExpression, current, Convert.ChangeType(1, current!.GetType())) ?? current;
+		}
+		catch
+		{
+			return false;
+		}
+
+		if (!TryCreateLiteral(returnPreviousValue ? current : updated, out var lit))
+		{
+			return false;
+		}
+
+		arr.SetValue(updated, index);
+		result = lit;
+		return true;
 	}
 
 	public override SyntaxNode? VisitParenthesizedExpression(ParenthesizedExpressionSyntax node)
@@ -871,6 +955,17 @@ public partial class ConstExprPartialRewriter
 		}
 
 		return base.VisitCastExpression(node);
+	}
+
+	/// <summary>
+	///   Renders implicit array creation (<c>new[] { ... }</c>) using C# 12 collection expression
+	///   syntax (<c>[ ... ]</c>) once its elements have been visited/folded.
+	/// </summary>
+	public override SyntaxNode? VisitImplicitArrayCreationExpression(ImplicitArrayCreationExpressionSyntax node)
+	{
+		var visited = base.VisitImplicitArrayCreationExpression(node) as ImplicitArrayCreationExpressionSyntax ?? node;
+
+		return CollectionExpression(SeparatedList<CollectionElementSyntax>(visited.Initializer.Expressions.Select(ExpressionElement)));
 	}
 
 	public override SyntaxNode? VisitConditionalExpression(ConditionalExpressionSyntax node)

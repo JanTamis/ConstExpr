@@ -412,8 +412,9 @@ public partial class ConstExprPartialRewriter
 
 		if (targetMethod.IsStatic)
 		{
-			return node.WithExpression(memberAccess.WithExpression(ParseTypeName(targetMethod.ContainingType.Name)))
-				.WithArgumentList(node.ArgumentList.WithArguments(ToArgumentList(visitedArguments)));
+			// Keep the receiver exactly as written (e.g. `System.String` vs `String`) — only the
+			// folded arguments change.
+			return node.WithArgumentList(node.ArgumentList.WithArguments(ToArgumentList(visitedArguments)));
 		}
 
 		return null;
@@ -1049,6 +1050,16 @@ public partial class ConstExprPartialRewriter
 			else if (constantArguments.All(a => a is long))
 			{
 				var value = arr.GetValue(constantArguments.OfType<long>().ToArray());
+
+				if (TryCreateLiteral(value, out var literal))
+				{
+					return literal;
+				}
+			}
+			// Array indexers also accept a char via its implicit conversion to int (e.g. counts['a']).
+			else if (constantArguments is [ char ch ])
+			{
+				var value = arr.GetValue(ch);
 
 				if (TryCreateLiteral(value, out var literal))
 				{

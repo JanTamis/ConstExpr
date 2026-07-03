@@ -504,6 +504,16 @@ public partial class ConstExprPartialRewriter
 	/// </summary>
 	private SyntaxNode? HandleIdentifierAssignment(AssignmentExpressionSyntax node, VariableItem variable, ExpressionSyntax rightExpr, SyntaxKind kind)
 	{
+		// Captured before the "not yet initialized" fixup below always forces IsInitialized to
+		// true: only an EXPLICIT initializer (or a prior real assignment) makes the variable's
+		// current value a genuine program value we can compare against. A variable declared
+		// without an initializer (e.g. `double s;`) is tracked with its type's default as a
+		// bookkeeping placeholder, never an observed value, so it must not count as "already
+		// has this value" for the redundant-assignment check below.
+		var wasInitializedBeforeThisAssignment = variable.IsInitialized;
+		var hadValueBeforeThisAssignment = variable.HasValue;
+		var priorValue = variable.Value;
+
 		if (!variable.IsInitialized)
 		{
 			InitializeVariable(variable, rightExpr);
@@ -524,6 +534,22 @@ public partial class ConstExprPartialRewriter
 		// For simple assignment, just set the value directly
 		if (kind == SyntaxKind.EqualsToken)
 		{
+			// `x = V;` where x already provably holds V (from an explicit initializer or an
+			// earlier real assignment) is a no-op — prune it instead of re-emitting it.
+			// Two exemptions, both because the "prior value" isn't trustworthy there:
+			// - `for (i = 0; ...)` initializer clause: MergeForLoopDeclarations needs that
+			//   assignment intact to recombine it with a preceding `var i = 0;` into `for (var i = 0; ...)`;
+			//   pruning it here would strip the information that merge depends on.
+			// - inside a switch section: sections are mutually exclusive branches, but variable
+			//   state isn't saved/restored between them the way if/else does, so a value set by an
+			//   earlier case can leak in and look like a false match for an unrelated later case.
+			if (wasInitializedBeforeThisAssignment && hadValueBeforeThisAssignment && Equals(priorValue, tempValue)
+			    && node.Parent is not ForStatementSyntax
+			    && node.FirstAncestorOrSelf<SwitchSectionSyntax>() is null)
+			{
+				return null;
+			}
+
 			variable.Value = tempValue;
 			variable.HasValue = true;
 
@@ -734,6 +760,12 @@ public partial class ConstExprPartialRewriter
 						case long l0:
 						{
 							arr.SetValue(rightValue, l0);
+							return rightExpr;
+						}
+						// Array indexers accept char via its implicit conversion to int (e.g. counts['a']).
+						case char ch0:
+						{
+							arr.SetValue(rightValue, ch0);
 							return rightExpr;
 						}
 					}

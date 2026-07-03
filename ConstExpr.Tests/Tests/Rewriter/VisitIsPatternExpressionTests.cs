@@ -28,6 +28,6 @@ public class VisitIsPatternExpressionTests : BaseTest<Func<int, int, object, cha
 		Create((_, _, _, _) => [ true, false, true, false, true, false, true, false, false, true ], [ 0, -5, 42, 'b' ]),
 		Create((_, _, _, _) => [ true, false, false, true, true, false, false, false, true, true ], [ 10, 20, 100, 'c' ]),
 		Create((_, _, _, _) => [ true, false, false, true, false, false, false, true, false, true ], [ 5, 15, "hello", 'd' ]),
-		Create((_, _, _, _) => [ true, false, false, false, true, true, false, false, false, false ], [ -10, -20, 0, 'e' ])
+		Create((_, _, _, _) => [ true, false, false, false, true, true, false, false, false, true ], [ -10, -20, 0, 'e' ])
 	];
 }

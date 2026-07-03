@@ -10,7 +10,7 @@ public class VisitArgumentTests : BaseTest<Func<string, string, string, string>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return String.Concat(a, b, c);"),
+		Create("return System.String.Concat(a, b, c);"),
 		Create((_, _, _) => "abc", [ "a", "b", "c" ]),
 		Create((_, b, _) => System.String.Concat("a", b, "c"), [ "a", Unknown, "c" ]),
 		Create((a, _, c) => System.String.Concat(a, "b", c), [ Unknown, "b", Unknown ]),

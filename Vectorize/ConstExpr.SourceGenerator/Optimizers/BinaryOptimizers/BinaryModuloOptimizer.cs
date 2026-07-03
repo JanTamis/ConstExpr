@@ -15,6 +15,7 @@ public class BinaryModuloOptimizer : BaseBinaryOptimizer
 		yield return new ModuloZeroStrategy();
 		yield return new ModuloByNegativeOneStrategy();
 		yield return new ModuloNormalizeNegativeDivisorStrategy();
+		yield return new ModuloBySelfStrategy();
 		yield return new ModuloIdempotencyStrategy();
 		yield return new ModuloNestedSimplificationStrategy();
 		yield return new ModuloAlreadyMaskedStrategy();
