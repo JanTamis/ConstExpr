@@ -736,7 +736,8 @@ public partial class ConstExprPartialRewriter
 		var mergedForDeclarations = MergeForLoopDeclarations(visited);
 		var mergedArrayInitializers = MergeArrayElementInitializers(mergedForDeclarations);
 		var liftedDeclarations = MergeUninitializedDeclarations(mergedArrayInitializers);
-		var mergedInitializers = MergeRedundantInitializers(liftedDeclarations);
+		var hoistedBranches = HoistCommonBranchAssignments(liftedDeclarations);
+		var mergedInitializers = MergeRedundantInitializers(hoistedBranches);
 		var mergedSwaps = MergeSwapPattern(mergedInitializers);
 		var mergedIncDec = RemoveCancelingIncrementDecrement(mergedSwaps);
 
@@ -745,7 +746,8 @@ public partial class ConstExprPartialRewriter
 		var mergedIfChain = MergeMixedBoolReturnIfs(combined, Visit);
 		var simplified = SimplifyIfReturnPatterns(mergedIfChain);
 		var switched = CombineConsecutiveIfsIntoSwitch(simplified);
-		var inlined = InlineSingleUseLocalVariables(switched);
+		var returnInlined = InlineTrailingAssignmentsIntoReturn(switched);
+		var inlined = InlineSingleUseLocalVariables(returnInlined);
 		var switchExpressions = ConvertAssigningSwitchToExpression(inlined);
 
 		return node.WithStatements(switchExpressions);
@@ -785,10 +787,22 @@ public partial class ConstExprPartialRewriter
 				continue;
 			}
 
-			// Only inline pure arithmetic/logical expressions. Complex initializers (array or
-			// object creation, method calls, element access) are kept as named variables so the
-			// intent remains clear and the optimiser's own structural passes are not undone.
-			if (!IsInlineableExpression(initExpr))
+			// A cast whose target type the operand already converts to implicitly (e.g. `(double) y`
+			// where y is int) is redundant once inlined anywhere that already expects that type —
+			// the same implicit numeric conversion applies automatically. Unwrap it so the operand
+			// inlines directly instead of carrying the now-pointless explicit cast along.
+			if (initExpr is CastExpressionSyntax { Type: var castType, Expression: var castOperand } && IsRedundantWideningCast(castType, castOperand))
+			{
+				initExpr = castOperand;
+			}
+
+			// Only inline pure arithmetic/logical expressions (plus method calls, which are only
+			// ever inlined below when read exactly once so nothing is duplicated). Complex
+			// initializers (array or object creation, element access) are kept as named variables
+			// so the intent remains clear and the optimiser's own structural passes are not undone.
+			var triviallyDuplicable = IsTriviallyDuplicableExpression(initExpr);
+
+			if (!IsInlineableExpression(initExpr) && !triviallyDuplicable)
 			{
 				continue;
 			}
@@ -801,9 +815,25 @@ public partial class ConstExprPartialRewriter
 				collector.Visit(s);
 			}
 
-			if (collector.GetReadCount(varName) != 1
+			var readCount = collector.GetReadCount(varName);
+
+			// Bare identifiers/literals are free to duplicate (no cost, no side effects), so they
+			// may be copy-propagated into every read. Everything else must be read exactly once,
+			// so inlining never duplicates the expression's evaluation.
+			var canInline = triviallyDuplicable ? readCount > 0 : readCount == 1;
+
+			if (!canInline
 			    || collector.GetWriteCount(varName) > 0
 			    || collector.GetRefCount(varName) > 0)
+			{
+				continue;
+			}
+
+			// Method calls keep their name everywhere except when they feed directly into the
+			// trailing return — a named helper variable elsewhere (e.g. `min` reused by a later
+			// calculation) documents intent and should not be inlined away just because it happens
+			// to be read once.
+			if (initExpr is InvocationExpressionSyntax && !IsSoleUseInTrailingReturn(varName, remaining))
 			{
 				continue;
 			}
@@ -822,9 +852,28 @@ public partial class ConstExprPartialRewriter
 				continue;
 			}
 
-			// Replace the single occurrence of varName with the initializer expression.
-			var inliner = new SingleUseInliner(varName, initExpr);
+			// Replace every occurrence of varName with the initializer expression (trivially
+			// duplicable expressions may have more than one read; everything else has exactly one).
+			var inliner = new MultiVariableInliner(varName, initExpr);
 			var inlinedRemaining = remaining.Select(s => (StatementSyntax) (inliner.Visit(s) ?? s)).ToList();
+
+			// An inlined ternary or literal (e.g. `useEmpty ? "" : s` copy-propagated into
+			// `target.Length`, a single-use `cond ? a : b` inlined into `r * 255D`, or a hoisted
+			// `0.5D` inlined into `g * 255D`) only simplifies further (constant-folding, or
+			// distributing the surrounding member access/operator over each ternary branch) by
+			// going back through the semantic visitor — MultiVariableInliner is a plain syntactic
+			// substitution. Scoped to return statements, which never mutate tracked variable
+			// state, so re-visiting is safe.
+			if (initExpr is ConditionalExpressionSyntax or LiteralExpressionSyntax)
+			{
+				for (var j = 0; j < inlinedRemaining.Count; j++)
+				{
+					if (inlinedRemaining[j] is ReturnStatementSyntax)
+					{
+						inlinedRemaining[j] = (StatementSyntax) (Visit(inlinedRemaining[j]) ?? inlinedRemaining[j]);
+					}
+				}
+			}
 
 			result.RemoveAt(i);
 
@@ -840,6 +889,178 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
+	///   Folds one or more trailing assignment statements (compound assignment or tuple
+	///   deconstruction, to plain identifiers) directly into an immediately-following return
+	///   statement, when every assigned variable is read there and nowhere else. For example:
+	///   <code>
+	/// a += 3;
+	/// return a;
+	///   </code>
+	///   becomes:
+	///   <code>
+	/// return a + 3;
+	///   </code>
+	///   C# evaluates an assignment's right-hand side before the write, so substituting it directly
+	///   into the return preserves the value the return would otherwise have observed. Only the
+	///   maximal contiguous run of qualifying assignments immediately before the return is folded,
+	///   and only when none of them reads a variable assigned by another statement in the run
+	///   (that would make the result depend on execution order in a way a single substitution can't
+	///   express).
+	/// </summary>
+	private static SyntaxList<StatementSyntax> InlineTrailingAssignmentsIntoReturn(SyntaxList<StatementSyntax> statements)
+	{
+		if (statements.Count < 2 || statements[^1] is not ReturnStatementSyntax { Expression: ExpressionSyntax returnExpr } returnStatement)
+		{
+			return statements;
+		}
+
+		var substitutions = new Dictionary<string, ExpressionSyntax>();
+		// Tracks which statement each substitution came from, so cross-references within a single
+		// atomic statement (e.g. the two sides of a tuple swap) can be told apart from references
+		// across separate statements (which would make the fold order-dependent).
+		var owningStatement = new Dictionary<string, int>();
+		var runStart = statements.Count - 1;
+
+		for (var i = statements.Count - 2; i >= 0; i--)
+		{
+			if (!TryGetAssignmentSubstitutions(statements[i], out var stmtSubstitutions)
+			    || stmtSubstitutions.Keys.Any(substitutions.ContainsKey))
+			{
+				break;
+			}
+
+			foreach (var kvp in stmtSubstitutions)
+			{
+				substitutions[kvp.Key] = kvp.Value;
+				owningStatement[kvp.Key] = i;
+			}
+
+			runStart = i;
+		}
+
+		if (substitutions.Count == 0)
+		{
+			return statements;
+		}
+
+		// Only fold assignments to variables that come from outside this block (parameters, or
+		// locals declared further out) — a variable declared by a `var` statement in this same
+		// block already has a name chosen for readability, and folding it away here would cascade
+		// into InlineSingleUseLocalVariables inlining its declaration too, erasing that name.
+		var locallyDeclaredNames = statements
+			.OfType<LocalDeclarationStatementSyntax>()
+			.SelectMany(d => d.Declaration.Variables)
+			.Select(v => v.Identifier.Text);
+
+		if (substitutions.Keys.Intersect(locallyDeclaredNames).Any())
+		{
+			return statements;
+		}
+
+		// Bail if any right-hand side reads a variable assigned by a *different* statement in the
+		// run — folding would then depend on execution order in a way a single substitution can't
+		// express. A reference to a variable assigned by the same statement (e.g. either side of a
+		// tuple swap) is fine: it's one atomic action, evaluated before any of it is written.
+		if (substitutions.Any(kvp => kvp.Value.DescendantNodesAndSelf()
+			    .OfType<IdentifierNameSyntax>()
+			    .Any(id => substitutions.ContainsKey(id.Identifier.Text) && owningStatement[id.Identifier.Text] != owningStatement[kvp.Key])))
+		{
+			return statements;
+		}
+
+		// Every assigned variable must be read in the return statement, or dropping its assignment
+		// could silently discard a computation with side effects.
+		var returnCollector = new VariableUsageCollector(substitutions.Keys);
+		returnCollector.Visit(returnStatement);
+
+		if (substitutions.Keys.Any(name => returnCollector.GetReadCount(name) == 0
+		                                   || returnCollector.GetWriteCount(name) > 0))
+		{
+			return statements;
+		}
+
+		var inliner = new MultiVariableInliner(substitutions);
+		var newReturn = returnStatement.WithExpression((ExpressionSyntax) (inliner.Visit(returnExpr) ?? returnExpr));
+
+		return List(statements.Take(runStart).Append(newReturn).ToList());
+	}
+
+	/// <summary>
+	///   If <paramref name="statement" /> is a simple/compound-assignment or tuple-deconstruction
+	///   expression statement whose left-hand side(s) are plain identifiers, returns the
+	///   substitution each identifier maps to (compound operators desugared to their binary form,
+	///   e.g. <c>a += 3</c> maps <c>a</c> to <c>a + 3</c>).
+	/// </summary>
+	private static bool TryGetAssignmentSubstitutions(StatementSyntax statement, out Dictionary<string, ExpressionSyntax> substitutions)
+	{
+		substitutions = new Dictionary<string, ExpressionSyntax>();
+
+		if (statement is not ExpressionStatementSyntax { Expression: AssignmentExpressionSyntax assignment })
+		{
+			return false;
+		}
+
+		// Tuple deconstruction: (x1, ..., xn) = (e1, ..., en)
+		if (assignment is { Left: TupleExpressionSyntax leftTuple, Right: TupleExpressionSyntax rightTuple }
+		    && leftTuple.Arguments.Count == rightTuple.Arguments.Count)
+		{
+			for (var i = 0; i < leftTuple.Arguments.Count; i++)
+			{
+				if (leftTuple.Arguments[i].Expression is not IdentifierNameSyntax id)
+				{
+					return false;
+				}
+
+				substitutions[id.Identifier.Text] = rightTuple.Arguments[i].Expression;
+			}
+
+			return substitutions.Count > 0;
+		}
+
+		if (assignment.Left is not IdentifierNameSyntax target)
+		{
+			return false;
+		}
+
+		if (assignment.IsKind(SyntaxKind.SimpleAssignmentExpression))
+		{
+			substitutions[target.Identifier.Text] = assignment.Right;
+			return true;
+		}
+
+		var binaryKind = CompoundAssignmentToBinaryKind(assignment.Kind());
+
+		if (binaryKind is null)
+		{
+			return false;
+		}
+
+		substitutions[target.Identifier.Text] = BinaryExpression(binaryKind.Value, IdentifierName(target.Identifier), assignment.Right);
+		return true;
+	}
+
+	private static SyntaxKind? CompoundAssignmentToBinaryKind(SyntaxKind assignmentKind)
+	{
+		return assignmentKind switch
+		{
+			SyntaxKind.AddAssignmentExpression => SyntaxKind.AddExpression,
+			SyntaxKind.SubtractAssignmentExpression => SyntaxKind.SubtractExpression,
+			SyntaxKind.MultiplyAssignmentExpression => SyntaxKind.MultiplyExpression,
+			SyntaxKind.DivideAssignmentExpression => SyntaxKind.DivideExpression,
+			SyntaxKind.ModuloAssignmentExpression => SyntaxKind.ModuloExpression,
+			SyntaxKind.AndAssignmentExpression => SyntaxKind.BitwiseAndExpression,
+			SyntaxKind.OrAssignmentExpression => SyntaxKind.BitwiseOrExpression,
+			SyntaxKind.ExclusiveOrAssignmentExpression => SyntaxKind.ExclusiveOrExpression,
+			SyntaxKind.LeftShiftAssignmentExpression => SyntaxKind.LeftShiftExpression,
+			SyntaxKind.RightShiftAssignmentExpression => SyntaxKind.RightShiftExpression,
+			SyntaxKind.UnsignedRightShiftAssignmentExpression => SyntaxKind.UnsignedRightShiftExpression,
+			// `??=` has no direct binary-expression equivalent (its right side is only ever
+			// evaluated when the target is null), so it's intentionally left unsupported.
+			_ => null
+		};
+	}
+
+	/// <summary>
 	///   Returns <see langword="true" /> when <paramref name="expr" /> is a pure value expression
 	///   (binary or unary arithmetic/logical) that is safe to inline at a single use site.
 	///   Complex expressions (array/object creation, method calls, element access) are excluded
@@ -848,8 +1069,44 @@ public partial class ConstExprPartialRewriter
 	private static bool IsInlineableExpression(ExpressionSyntax expr)
 	{
 		return expr is BinaryExpressionSyntax or PrefixUnaryExpressionSyntax or CastExpressionSyntax
-			or ConditionalExpressionSyntax
+			or ConditionalExpressionSyntax or InvocationExpressionSyntax
 			or ImplicitArrayCreationExpressionSyntax or ArrayCreationExpressionSyntax or CollectionExpressionSyntax;
+	}
+
+	/// <summary>
+	///   Returns <see langword="true" /> for expressions that are free to duplicate at every read
+	///   site: they have no side effects and cost nothing extra to re-evaluate. These are eligible
+	///   for copy propagation into more than one use, unlike <see cref="IsInlineableExpression" />
+	///   expressions which are only ever inlined at a single use site.
+	/// </summary>
+	/// <summary>
+	///   Returns <see langword="true" /> when casting <paramref name="operand" /> to
+	///   <paramref name="castType" /> is a pure widening numeric conversion the compiler would
+	///   already apply implicitly (e.g. int -&gt; double) — meaning the explicit cast changes
+	///   nothing and stays safe to drop wherever the result is later used. Restricted to numeric
+	///   conversions specifically (not general implicit conversions, e.g. boxing or user-defined
+	///   operators) since those can have effects — like which overload is picked, or how a boxed
+	///   value reports its runtime type — an explicit numeric widening cast never has.
+	/// </summary>
+	private bool IsRedundantWideningCast(TypeSyntax castType, ExpressionSyntax operand)
+	{
+		return semanticModel.TryGetTypeSymbol(castType, symbolStore, out var targetType)
+		       && semanticModel.TryGetTypeSymbol(operand, symbolStore, out var sourceType)
+		       && semanticModel.Compilation.ClassifyConversion(sourceType, targetType) is { IsImplicit: true, IsNumeric: true };
+	}
+
+	private static bool IsTriviallyDuplicableExpression(ExpressionSyntax expr)
+	{
+		return expr switch
+		{
+			IdentifierNameSyntax or LiteralExpressionSyntax => true,
+			// A ternary whose branches are each trivially duplicable is itself cheap to duplicate —
+			// this lets e.g. `var target = cond ? "" : s;` copy-propagate into every read, so later
+			// passes can distribute the surrounding member access/operator over each branch.
+			ConditionalExpressionSyntax conditional => IsTriviallyDuplicableExpression(conditional.WhenTrue)
+			                                           && IsTriviallyDuplicableExpression(conditional.WhenFalse),
+			_ => false
+		};
 	}
 
 	/// <summary>
@@ -879,6 +1136,29 @@ public partial class ConstExprPartialRewriter
 		}
 
 		return names.Any(name => collector.GetWriteCount(name) > 0);
+	}
+
+	/// <summary>
+	///   Returns <see langword="true" /> when the (single, already-verified) read of
+	///   <paramref name="varName" /> among <paramref name="statements" /> occurs inside a
+	///   <see cref="ReturnStatementSyntax" />.
+	/// </summary>
+	private static bool IsSoleUseInTrailingReturn(string varName, IEnumerable<StatementSyntax> statements)
+	{
+		foreach (var s in statements)
+		{
+			var localCollector = new VariableUsageCollector([ varName ]);
+			localCollector.Visit(s);
+
+			if (localCollector.GetReadCount(varName) == 0)
+			{
+				continue;
+			}
+
+			return s is ReturnStatementSyntax;
+		}
+
+		return false;
 	}
 
 	private static bool IsUsedInsideLoopOrLambda(string varName, IEnumerable<StatementSyntax> statements)
@@ -1346,6 +1626,195 @@ public partial class ConstExprPartialRewriter
 
 		consumed = size + 1;
 		return true;
+	}
+
+	/// <summary>
+	///   When both branches of an if/else end with a syntactically-identical assignment to the same
+	///   plain-identifier variable — and neither branch reads or writes that variable anywhere else
+	///   — hoists the assignment out of the if/else. Repeats against the (new) trailing statement
+	///   after each hoist, so multiple branch-invariant variables in a row (e.g. <c>g</c> right
+	///   after <c>b</c>) all get pulled out, not just the last one. If the variable was declared
+	///   alongside others in a single multi-declarator statement earlier in the block, its
+	///   declarator is split into its own single-declarator statement carrying the hoisted value —
+	///   letting <see cref="InlineSingleUseLocalVariables" /> fold it away entirely if it turns out
+	///   to be used only once. Otherwise a plain assignment statement is inserted before the if.
+	/// </summary>
+	private SyntaxList<StatementSyntax> HoistCommonBranchAssignments(SyntaxList<StatementSyntax> statements)
+	{
+		var result = statements.ToList();
+
+		for (var i = 0; i < result.Count; i++)
+		{
+			if (result[i] is not IfStatementSyntax { Statement: BlockSyntax, Else.Statement: BlockSyntax })
+			{
+				continue;
+			}
+
+			// Prune dead code across everything from here to the end of the block (not just the
+			// if/else's own branches) before checking for a common trailing assignment: a
+			// branch-local scratch variable left over from something already resolved elsewhere
+			// (e.g. `i`/`f` from a switch that collapsed to one case) needs the wider scope to be
+			// told apart from a variable the branch computes for later, like its own `r`/`g`/`b`,
+			// read only after the if/else — DeadCodePruner can't make that call from the branch
+			// alone.
+			var prunedTail = ((BlockSyntax) DeadCodePruner.Prune(Block(List(result.Skip(i))), variables, semanticModel)).Statements;
+
+			for (var k = 0; k < prunedTail.Count; k++)
+			{
+				result[i + k] = prunedTail[k];
+			}
+
+			if (result[i] is not IfStatementSyntax { Statement: BlockSyntax { Statements.Count: > 0 } trueBlock, Else.Statement: BlockSyntax { Statements.Count: > 0 } falseBlock } ifStatement)
+			{
+				continue;
+			}
+
+			var trueStatements = trueBlock.Statements.ToList();
+			var falseStatements = falseBlock.Statements.ToList();
+			var hoisted = new List<(string Name, ExpressionSyntax Value)>();
+
+			while (trueStatements.Count > 0 && falseStatements.Count > 0
+			                                && TryGetSimpleAssignment(trueStatements[^1], out var trueName, out var trueValue)
+			                                && TryGetSimpleAssignment(falseStatements[^1], out var falseName, out var falseValue)
+			                                && trueName == falseName
+			                                && SyntaxNodeComparer.Get().Equals(trueValue, falseValue)
+			                                && !IsReadOrWrittenIn(trueName, trueStatements.Take(trueStatements.Count - 1))
+			                                && !IsReadOrWrittenIn(trueName, falseStatements.Take(falseStatements.Count - 1)))
+			{
+				hoisted.Add((trueName, trueValue));
+				trueStatements.RemoveAt(trueStatements.Count - 1);
+				falseStatements.RemoveAt(falseStatements.Count - 1);
+			}
+
+			if (hoisted.Count == 0)
+			{
+				continue;
+			}
+
+			var reducedIf = ifStatement
+				.WithStatement(trueBlock.WithStatements(List(trueStatements)))
+				.WithElse(ifStatement.Else!.WithStatement(falseBlock.WithStatements(List(falseStatements))));
+
+			// Pulling the branch-invariant assignments out may have reduced each branch to a
+			// single statement — give VisitIfStatement's own single-assignment collapse (if/else ->
+			// one conditional-expression assignment) another chance now, since it only ran once,
+			// before any statements were hoisted out. Reuses the helper directly (rather than a
+			// full re-Visit of the if-statement) since the condition and branch expressions are
+			// already fully visited/folded — only the newly-reduced branch shape is new.
+			TryGetSingleAssignmentToIdentifier(reducedIf.Statement, out var thenAssignment, out var thenTarget);
+			TryGetSingleAssignmentToIdentifier(reducedIf.Else!.Statement, out var elseAssignment, out var elseTarget);
+			var canCollapse = thenAssignment is not null && elseAssignment is not null && thenTarget == elseTarget;
+
+			result[i] = canCollapse
+				? ExpressionStatement(VisitIfElseAssignment(reducedIf.Condition, reducedIf.Condition, thenAssignment, elseAssignment))
+				: reducedIf;
+
+			var declIndex = -1;
+
+			for (var k = 0; k < i; k++)
+			{
+				if (result[k] is LocalDeclarationStatementSyntax { Modifiers.Count: 0 } candidate
+				    && candidate.Declaration.Variables.Any(v => hoisted.Any(h => h.Name == v.Identifier.Text)))
+				{
+					declIndex = k;
+					break;
+				}
+			}
+
+			var handledNames = new HashSet<string>();
+
+			// Declaration-derived statements land right after the if/collapsed-result (position i),
+			// not right after the original declaration. If a hoisted variable's original
+			// declaration turns out to sit directly beside its own now-redundant collapsed
+			// assignment (e.g. `r` here, once `g`/`b` are no longer between them), that adjacency
+			// needs to survive so MergeRedundantInitializers can still fold them together.
+			if (declIndex >= 0 && result[declIndex] is LocalDeclarationStatementSyntax originalDecl)
+			{
+				var remainingDeclarators = new List<VariableDeclaratorSyntax>();
+				var declInserts = new List<StatementSyntax>();
+
+				foreach (var declarator in originalDecl.Declaration.Variables)
+				{
+					var match = hoisted.FirstOrDefault(h => h.Name == declarator.Identifier.Text);
+
+					if (match.Name is not null)
+					{
+						declInserts.Add(LocalDeclarationStatement(originalDecl.Declaration.WithVariables(
+							SingletonSeparatedList(declarator.WithInitializer(EqualsValueClause(match.Value))))));
+						handledNames.Add(match.Name);
+					}
+					else
+					{
+						remainingDeclarators.Add(declarator);
+					}
+				}
+
+				if (remainingDeclarators.Count == 0)
+				{
+					result.RemoveAt(declIndex);
+					i--;
+				}
+				else
+				{
+					result[declIndex] = originalDecl.WithDeclaration(originalDecl.Declaration.WithVariables(SeparatedList(remainingDeclarators)));
+				}
+
+				result.InsertRange(i + 1, declInserts);
+				i += declInserts.Count;
+			}
+
+			var plainAssignInserts = new List<StatementSyntax>();
+
+			foreach (var (name, value) in hoisted)
+			{
+				if (handledNames.Contains(name))
+				{
+					continue;
+				}
+
+				plainAssignInserts.Add(ExpressionStatement(AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, IdentifierName(name), value)));
+			}
+
+			result.InsertRange(i, plainAssignInserts);
+			i += plainAssignInserts.Count;
+		}
+
+		return List(result);
+	}
+
+	private static bool TryGetSimpleAssignment(StatementSyntax statement, out string name, out ExpressionSyntax value)
+	{
+		name = null!;
+		value = null!;
+
+		if (statement is not ExpressionStatementSyntax
+		    {
+			    Expression: AssignmentExpressionSyntax
+			    {
+				    RawKind: (int) SyntaxKind.SimpleAssignmentExpression,
+				    Left: IdentifierNameSyntax { Identifier.Text: var identifierName },
+				    Right: var rhs
+			    }
+		    })
+		{
+			return false;
+		}
+
+		name = identifierName;
+		value = rhs;
+		return true;
+	}
+
+	private static bool IsReadOrWrittenIn(string name, IEnumerable<StatementSyntax> statements)
+	{
+		var collector = new VariableUsageCollector([ name ]);
+
+		foreach (var s in statements)
+		{
+			collector.Visit(s);
+		}
+
+		return collector.GetReadCount(name) > 0 || collector.GetWriteCount(name) > 0;
 	}
 
 	/// <summary>
@@ -2295,21 +2764,25 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	///   Replaces the first read of a named identifier with a given expression, adding
-	///   parentheses only when operator precedence requires it.
+	///   Replaces every read of the named identifiers in <paramref name="substitutions" /> with
+	///   their associated expression, adding parentheses only when operator precedence requires it.
+	///   Safe to use for any read count: callers are responsible for verifying up front that
+	///   duplicating each expression at every one of its read sites is safe (free of side effects,
+	///   or read exactly once).
 	/// </summary>
-	private sealed class SingleUseInliner(string varName, ExpressionSyntax initExpr) : CSharpSyntaxRewriter
+	private sealed class MultiVariableInliner(IReadOnlyDictionary<string, ExpressionSyntax> substitutions) : CSharpSyntaxRewriter
 	{
-		private bool _replaced;
+		public MultiVariableInliner(string varName, ExpressionSyntax initExpr)
+			: this(new Dictionary<string, ExpressionSyntax> { [varName] = initExpr })
+		{
+		}
 
 		public override SyntaxNode? VisitIdentifierName(IdentifierNameSyntax node)
 		{
-			if (_replaced || node.Identifier.Text != varName || IsWriteContext(node))
+			if (!substitutions.TryGetValue(node.Identifier.Text, out var initExpr) || IsWriteContext(node))
 			{
 				return base.VisitIdentifierName(node);
 			}
-
-			_replaced = true;
 
 			return NeedsParentheses(initExpr, node.Parent)
 				? ParenthesizedExpression(initExpr)

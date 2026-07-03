@@ -110,6 +110,38 @@ public partial class ConstExprPartialRewriter
 			return right;
 		}
 
+		// Distribute equality/inequality/arithmetic over an otherwise-unresolvable ternary operand,
+		// e.g. `(cond ? a : b) == x` -> `cond ? (a == x) : (b == x)`, or `(cond ? a : b) * x` ->
+		// `cond ? a * x : b * x`. If a ternary reaches here at all its condition must be unknown (a
+		// resolvable one would already have collapsed in VisitConditionalExpression), so this never
+		// duplicates evaluation of `cond`. Each branch is re-visited so further folding (e.g.
+		// "" == "" -> true, then cond ? true : y -> cond || y via ConditionalExpressionOptimizer;
+		// or 0.5 * 255D -> 127.5) still applies.
+		if (node.IsKind(SyntaxKind.EqualsExpression) || node.IsKind(SyntaxKind.NotEqualsExpression) || node.IsKind(SyntaxKind.MultiplyExpression))
+		{
+			// A `throw` branch can only appear directly as a ternary arm (or after `??`) — it can't
+			// be used as an operand of another operator, so a ternary with one must be left alone.
+			if (left is ExpressionSyntax leftForUnwrap && UnwrapParens(leftForUnwrap) is ConditionalExpressionSyntax leftConditional
+			                                           && leftConditional.WhenTrue is not ThrowExpressionSyntax && leftConditional.WhenFalse is not ThrowExpressionSyntax
+			                                           && right is ExpressionSyntax rightOperand)
+			{
+				return Visit(ConditionalExpression(
+					leftConditional.Condition,
+					BuildDistributedOperand(node.Kind(), leftConditional.WhenTrue, rightOperand, true),
+					BuildDistributedOperand(node.Kind(), leftConditional.WhenFalse, rightOperand, true)));
+			}
+
+			if (right is ExpressionSyntax rightForUnwrap && UnwrapParens(rightForUnwrap) is ConditionalExpressionSyntax rightConditional
+			                                             && rightConditional.WhenTrue is not ThrowExpressionSyntax && rightConditional.WhenFalse is not ThrowExpressionSyntax
+			                                             && left is ExpressionSyntax leftOperand)
+			{
+				return Visit(ConditionalExpression(
+					rightConditional.Condition,
+					BuildDistributedOperand(node.Kind(), rightConditional.WhenTrue, leftOperand, false),
+					BuildDistributedOperand(node.Kind(), rightConditional.WhenFalse, leftOperand, false)));
+			}
+		}
+
 		var hasLeftValue = TryGetLiteralValue(node.Left, out var leftValue) || TryGetLiteralValue(left, out leftValue);
 		var hasRightValue = TryGetLiteralValue(node.Right, out var rightValue) || TryGetLiteralValue(right, out rightValue);
 
@@ -440,6 +472,71 @@ public partial class ConstExprPartialRewriter
 		}
 
 		return false;
+	}
+
+	/// <summary>
+	///   Wraps <paramref name="expr" /> in parentheses when it's being moved into a position (a
+	///   binary operand, a member-access receiver) where its own precedence could otherwise
+	///   change the meaning of the surrounding expression. Already-atomic expressions are
+	///   returned as-is.
+	/// </summary>
+	private static ExpressionSyntax ParenthesizeIfNeeded(ExpressionSyntax expr)
+	{
+		return expr is IdentifierNameSyntax or LiteralExpressionSyntax or InvocationExpressionSyntax
+			or MemberAccessExpressionSyntax or ElementAccessExpressionSyntax or ObjectCreationExpressionSyntax
+			or ParenthesizedExpressionSyntax or ThisExpressionSyntax or BaseExpressionSyntax
+			? expr
+			: ParenthesizedExpression(expr);
+	}
+
+	/// <summary>
+	///   Strips any wrapping <see cref="ParenthesizedExpressionSyntax" /> layers, e.g. so a
+	///   ternary that had to be parenthesized to preserve precedence (like a member-access
+	///   receiver) can still be recognized as a <see cref="ConditionalExpressionSyntax" />.
+	/// </summary>
+	private static ExpressionSyntax UnwrapParens(ExpressionSyntax expr)
+	{
+		while (expr is ParenthesizedExpressionSyntax parenthesized)
+		{
+			expr = parenthesized.Expression;
+		}
+
+		return expr;
+	}
+
+	/// <summary>
+	///   Builds one distributed branch of an operator pushed through a ternary (see the call sites
+	///   in <see cref="VisitBinaryExpression" />). For a multiply where <paramref name="branch" />
+	///   is itself <c>x * literal</c>, re-associates into <c>x * (literal * operand)</c> instead of
+	///   <c>(x * literal) * operand</c> — the same fold <c>MultiplyConstantFoldingStrategy</c>
+	///   already performs, but that strategy can't reach this node: it hasn't been attached to the
+	///   tree yet, so <c>TryGetOperation</c> has no semantic-model symbol for it. Gated on
+	///   <see cref="FastMathFlags.AssociativeMath" />, same as that strategy, since reordering
+	///   floating-point multiplication can shift rounding.
+	/// </summary>
+	private ExpressionSyntax BuildDistributedOperand(SyntaxKind operatorKind, ExpressionSyntax branch, ExpressionSyntax operand, bool operandOnRight)
+	{
+		if (operatorKind == SyntaxKind.MultiplyExpression
+		    && attribute.MathOptimizations.HasFlag(FastMathFlags.AssociativeMath)
+		    && UnwrapParens(branch) is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.MultiplyExpression } innerMul
+		    && TryGetLiteralValue(operand, out var operandValue))
+		{
+			if (TryGetLiteralValue(innerMul.Right, out var innerRightValue)
+			    && TryCreateLiteral(ObjectExtensions.ExecuteBinaryOperation(SyntaxKind.MultiplyExpression, innerRightValue, operandValue), out var combinedRight))
+			{
+				return BinaryExpression(SyntaxKind.MultiplyExpression, ParenthesizeIfNeeded(innerMul.Left), combinedRight);
+			}
+
+			if (TryGetLiteralValue(innerMul.Left, out var innerLeftValue)
+			    && TryCreateLiteral(ObjectExtensions.ExecuteBinaryOperation(SyntaxKind.MultiplyExpression, innerLeftValue, operandValue), out var combinedLeft))
+			{
+				return BinaryExpression(SyntaxKind.MultiplyExpression, ParenthesizeIfNeeded(innerMul.Right), combinedLeft);
+			}
+		}
+
+		return operandOnRight
+			? BinaryExpression(operatorKind, ParenthesizeIfNeeded(branch), operand)
+			: BinaryExpression(operatorKind, operand, ParenthesizeIfNeeded(branch));
 	}
 
 	/// <summary>

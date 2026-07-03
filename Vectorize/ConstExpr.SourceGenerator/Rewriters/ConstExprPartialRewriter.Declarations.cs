@@ -69,7 +69,16 @@ public partial class ConstExprPartialRewriter
 
 		if (variables.TryGetValue(name, out var existing) && existing.CanBeInlined)
 		{
-			existing.Value = value;
+			// Track the cast's operand instead of the cast itself when the cast is a redundant
+			// widening conversion (e.g. `(double) y` where y is int) — so that if this variable
+			// later gets inlined at a read site, it inlines the operand directly rather than
+			// carrying the pointless explicit cast along. The declaration as written (below, and
+			// in HandleNewVariableDeclaration/UpdateVariableValue) is untouched: only the value
+			// tracked for inlining changes, so a variable that ends up NOT inlined keeps its
+			// original (correctly-typed) initializer.
+			existing.Value = value is CastExpressionSyntax { Type: var castType, Expression: var castOperand } && IsRedundantWideningCast(castType, castOperand)
+				? castOperand
+				: value;
 			existing.Type = operation.Type ?? operation.Symbol.Type;
 
 			return null;
@@ -190,7 +199,15 @@ public partial class ConstExprPartialRewriter
 		else
 		{
 			item.HasValue = false;
-			item.Value = value;
+			// Track the cast's operand instead of the cast itself when the cast is a redundant
+			// widening conversion (e.g. `(double) y` where y is int) — so that if this variable
+			// later gets inlined at a read site, it inlines the operand directly rather than
+			// carrying the pointless explicit cast along. The declaration as written is untouched:
+			// only the value tracked for inlining changes, so a variable that ends up NOT inlined
+			// keeps its original (correctly-typed) initializer.
+			item.Value = value is CastExpressionSyntax { Type: var castType, Expression: var castOperand } && IsRedundantWideningCast(castType, castOperand)
+				? castOperand
+				: value;
 			item.IsInitialized = true;
 		}
 	}

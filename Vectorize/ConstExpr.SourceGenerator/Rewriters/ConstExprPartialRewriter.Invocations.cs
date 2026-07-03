@@ -1135,6 +1135,31 @@ public partial class ConstExprPartialRewriter
 			return expression;
 		}
 
+		// Distribute the member access into both branches of an otherwise-unresolvable ternary
+		// receiver, e.g. `(cond ? a : b).Length` -> `cond ? a.Length : b.Length`. If a ternary
+		// reaches here at all its condition must be unknown (a resolvable one would already have
+		// collapsed in VisitConditionalExpression), so this never duplicates evaluation of `cond`.
+		// A literal branch (like `""`) is folded via plain reflection on its runtime value rather
+		// than through the semantic model: this member-access node was just synthesized (its
+		// receiver didn't exist in the source), so it has no symbol of its own for the model to
+		// resolve, but we already have the concrete value to read the property off of directly.
+		if (expression is ExpressionSyntax expressionForUnwrap && UnwrapParens(expressionForUnwrap) is ConditionalExpressionSyntax conditional)
+		{
+			ExpressionSyntax BuildBranch(ExpressionSyntax branch)
+			{
+				if (TryGetLiteralValue(branch, out var branchValue)
+				    && branchValue?.GetType().GetProperty(node.Name.Identifier.Text) is { } propertyInfo
+				    && TryCreateLiteral(propertyInfo.GetValue(branchValue), out var branchLiteral))
+				{
+					return branchLiteral;
+				}
+
+				return MemberAccessExpression(node.Kind(), ParenthesizeIfNeeded(branch), node.Name);
+			}
+
+			return Visit(ConditionalExpression(conditional.Condition, BuildBranch(conditional.WhenTrue), BuildBranch(conditional.WhenFalse)));
+		}
+
 		var hasLiteral = TryGetLiteralValue(node.Expression, out var instanceValue) || TryGetLiteralValue(expression, out instanceValue);
 
 		if (semanticModel.TryGetSymbol(node, symbolStore, out ISymbol? symbol))
