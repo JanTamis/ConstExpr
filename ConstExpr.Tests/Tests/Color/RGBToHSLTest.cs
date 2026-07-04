@@ -62,14 +62,13 @@ public class RGBToHSLTest() : BaseTest<Func<byte, byte, byte, (int, double, doub
 		{
 			var h = 0;
 			var s = 0D;
-			var l = 0D;
 			var normalizedR = r * 0.00392156862745098;
 			var normalizedG = g * 0.00392156862745098;
 			var normalizedB = b * 0.00392156862745098;
 			var min = Double.MinNative(Double.MinNative(normalizedR, normalizedG), normalizedB);
 			var max = Double.MaxNative(Double.MaxNative(normalizedR, normalizedG), normalizedB);
 			var delta = max - min;
-			l = (max + min) * 0.5;
+			var l = (max + min) * 0.5;
 
 			if (delta != 0D)
 			{

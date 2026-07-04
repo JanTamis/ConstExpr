@@ -4,6 +4,7 @@ using ConstExpr.SourceGenerator.Comparers;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
+using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -16,6 +17,11 @@ public class ConditionalExpressionOptimizer
 	public ExpressionSyntax WhenTrue { get; init; }
 	public ExpressionSyntax WhenFalse { get; init; }
 	public ITypeSymbol? Type { get; init; }
+
+	/// <summary>Usings/helper-method sinks, supplied when the caller can host generated helpers (e.g. FastAbs).</summary>
+	public ISet<string>? Usings { get; init; }
+
+	public IDictionary<SyntaxNode, bool>? AdditionalMethods { get; init; }
 
 	public bool TryOptimize(MetadataLoader loader, IDictionary<string, VariableItem> variables, out SyntaxNode? result)
 	{
@@ -106,6 +112,18 @@ public class ConditionalExpressionOptimizer
 		if (Type?.IsNumericType() == true
 		    && TryGetAbsoluteValuePattern(Condition, WhenTrue, WhenFalse, out var absoluteValueInput))
 		{
+			// For signed integers emit the branchless FastAbs helper instead of Int32.Abs: it matches the
+			// original `n < 0 ? -n : n` at T.MinValue (both wrap to MinValue), whereas Int32.Abs throws there.
+			// Mirrors AbsFunctionOptimizer, which already rewrites integer Abs calls to FastAbs.
+			if (Type.IsInteger() && !Type.IsUnsignedInteger() && Usings is not null && AdditionalMethods is not null)
+			{
+				var methodName = AbsFunctionOptimizer.GenerateFastAbsMethodInteger(Usings, AdditionalMethods);
+
+				result = InvocationExpression(IdentifierName(methodName))
+					.WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(absoluteValueInput))));
+				return true;
+			}
+
 			var mathType = ParseTypeName(Type.Name);
 
 			result = InvocationExpression(

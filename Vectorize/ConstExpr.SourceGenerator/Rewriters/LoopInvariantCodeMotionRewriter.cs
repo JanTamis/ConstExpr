@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -19,8 +18,6 @@ namespace ConstExpr.SourceGenerator.Rewriters;
 /// </summary>
 public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 {
-	private int _hoistedCounter;
-
 	/// <summary>
 	///   Applies LICM to the supplied syntax node.
 	/// </summary>
@@ -283,68 +280,30 @@ public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 		{
 			if (stmt is LocalDeclarationStatementSyntax
 			    {
-				    Declaration: { Variables: [ { Initializer.Value: { } initExpr } declarator ] } decl, IsConst: false
+				    Declaration.Variables: [ { Initializer.Value: { } initExpr } declarator ], IsConst: false
 			    } local)
 			{
-				var varName = Titlelize(declarator.Identifier.Text);
+				var varName = declarator.Identifier.Text;
 
-				// Only hoist if the expression type is not `var` inferred from a loop-body call,
-				// i.e. if it is truly pure and does not reference any loop-written variable.
 				var identifiersInInit = new HashSet<string>(
 					initExpr
 						.DescendantNodesAndSelf()
 						.OfType<IdentifierNameSyntax>()
 						.Select(id => id.Identifier.Text));
 
+				// A declaration is loop-invariant only when its initializer references nothing
+				// written inside the loop AND the declared variable itself is never reassigned in
+				// the loop. The second guard is essential: `var sum = 0;` sitting before a later
+				// `sum += …` must re-run its initializer every iteration, so hoisting it out drops
+				// the per-iteration reset and changes behaviour.
 				var referencesWritten = identifiersInInit.Overlaps(writtenInLoop)
 				                        || identifiersInInit.Overlaps(alreadyHoisted)
 				                        || identifiersInInit.Overlaps(loopLocals);
 
-				if (!referencesWritten && IsPureExpression(initExpr))
+				if (!referencesWritten && !writtenInLoop.Contains(varName) && IsPureExpression(initExpr))
 				{
-					// Rename to avoid collisions when the variable was declared inside the loop
-					// (its scope would otherwise change after hoisting).
-					var hoistedName = varName;
-
-					// Keep original name when it does not shadow anything; the hoisted var
-					// lives in the enclosing scope and that is safe as long as the name is
-					// not already used in written set.
-					if (writtenInLoop.Contains(varName))
-					{
-						hoistedName = $"licm{varName}{_hoistedCounter++}";
-					}
-
-					LocalDeclarationStatementSyntax hoistedDecl;
-
-					if (hoistedName != varName)
-					{
-						// Rename the declarator identifier.
-						var renamedDeclarator = declarator.WithIdentifier(Identifier(hoistedName));
-						var renamedDecl = decl.WithVariables(SeparatedList([ renamedDeclarator ]));
-						hoistedDecl = local.WithDeclaration(renamedDecl);
-					}
-					else
-					{
-						hoistedDecl = local;
-					}
-
-					hoisted.Add(hoistedDecl.WithTrailingTrivia(ElasticSpace));
+					hoisted.Add(local.WithTrailingTrivia(ElasticSpace));
 					alreadyHoisted.Add(varName);
-
-					// If we renamed, add a replacement statement inside the loop that uses the new name.
-					if (hoistedName != varName)
-					{
-						// var <varName> = <hoistedName>;  — keeps usages inside the loop working
-						var innerDecl = LocalDeclarationStatement(
-							VariableDeclaration(IdentifierName("var"))
-								.WithVariables(SeparatedList(new[]
-								{
-									VariableDeclarator(Identifier(varName))
-										.WithInitializer(
-											EqualsValueClause(IdentifierName(hoistedName)))
-								})));
-						remaining.Add(innerDecl);
-					}
 
 					// Skip adding the original to remaining (it was hoisted).
 					continue;
@@ -356,15 +315,5 @@ public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 
 		var newBody = body.WithStatements(List(remaining));
 		return (hoisted, newBody);
-	}
-
-	private string Titlelize(string value)
-	{
-		if (String.IsNullOrEmpty(value))
-		{
-			return value;
-		}
-
-		return Char.ToUpper(value[0]) + value[1..];
 	}
 }

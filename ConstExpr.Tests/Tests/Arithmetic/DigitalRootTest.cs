@@ -29,10 +29,11 @@ public class DigitalRootTest() : BaseTest<Func<int, int>>(FastMathFlags.All, opt
 	[
 		Create("""
 			var num = FastAbs(n);
-			var sum = 0;
 
 			while (num >= 10)
 			{
+				var sum = 0;
+
 				while (num > 0)
 				{
 					sum += num % 10;
