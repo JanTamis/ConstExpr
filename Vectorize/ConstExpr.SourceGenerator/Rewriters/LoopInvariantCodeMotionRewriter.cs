@@ -266,8 +266,7 @@ public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 	///   Scans the direct statements of a block and hoists those that are invariant.
 	///   Returns the list of hoisted statements and the rewritten block (without the hoisted ones).
 	/// </summary>
-	private (List<LocalDeclarationStatementSyntax> Hoisted, BlockSyntax NewBody)
-		HoistInvariants(BlockSyntax body, HashSet<string> writtenInLoop, HashSet<string> loopLocals)
+	private static (List<LocalDeclarationStatementSyntax> Hoisted, BlockSyntax NewBody) HoistInvariants(BlockSyntax body, HashSet<string> writtenInLoop, HashSet<string> loopLocals)
 	{
 		var hoisted = new List<LocalDeclarationStatementSyntax>();
 		var remaining = new List<StatementSyntax>();
