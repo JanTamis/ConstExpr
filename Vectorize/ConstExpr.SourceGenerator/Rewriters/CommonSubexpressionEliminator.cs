@@ -47,6 +47,7 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 			},
 			ElementAccessExpressionSyntax => "item",
 			CastExpressionSyntax => "castVal",
+			ConditionalExpressionSyntax => "condVal",
 			_ => "val"
 		};
 
@@ -465,6 +466,13 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 		if (expr is BinaryExpressionSyntax)
 		{
 			return true;
+		}
+
+		// A repeated ternary (e.g. `Char.IsUpper(c) ? 'A' : 'a'`) is worth hoisting into a single
+		// local. Exclude lambda-bearing conditionals for the same `var`-inference reason as invocations.
+		if (expr is ConditionalExpressionSyntax)
+		{
+			return !expr.DescendantNodes().Any(n => n is LambdaExpressionSyntax or AnonymousFunctionExpressionSyntax);
 		}
 
 		if (expr is InvocationExpressionSyntax invocation)

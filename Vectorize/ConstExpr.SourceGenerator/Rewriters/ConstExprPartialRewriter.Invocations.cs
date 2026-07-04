@@ -762,6 +762,26 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
+	///   Applies the common-subexpression-elimination pass (and its paired dead-code prune) to a
+	///   specialized helper body, mirroring the post-inlining pipeline the main method receives in
+	///   <see cref="ConstExprSourceGenerator" /> (~L402). Without this, helper methods emitted via
+	///   <see cref="GetInlinedMethodSyntax" /> keep the duplicate subexpressions that inlining
+	///   introduces — e.g. a ternary the source computed once via a local, now inlined twice.
+	/// </summary>
+	private BlockSyntax? OptimizeInlinedBody(BlockSyntax? body, IDictionary<string, VariableItem> parameters)
+	{
+		if (body is null || !attribute.Optimizations.HasFlag(OptimizationFlags.CommonSubexpressionElimination))
+		{
+			return body;
+		}
+
+		body = CommonSubexpressionEliminator.Eliminate(body, attribute.MathOptimizations) as BlockSyntax ?? body;
+		body = DeadCodePruner.Prune(body, parameters, semanticModel) as BlockSyntax ?? body;
+
+		return body;
+	}
+
+	/// <summary>
 	///   Gets the inlined syntax for a method.
 	/// </summary>
 	private SyntaxNode? GetInlinedMethodSyntax(IMethodSymbol targetMethod)
@@ -784,7 +804,7 @@ public partial class ConstExprPartialRewriter
 						var body = visitor.Visit(method.Body) as BlockSyntax;
 						visitingMethods?.Remove(targetMethod);
 
-						return method.WithBody(body).WithModifiers(mods);
+						return method.WithBody(OptimizeInlinedBody(body, parameters)).WithModifiers(mods);
 					}
 					case LocalFunctionStatementSyntax localFunc:
 					{
@@ -796,7 +816,7 @@ public partial class ConstExprPartialRewriter
 						var body = visitor.Visit(localFunc.Body) as BlockSyntax;
 						visitingMethods?.Remove(targetMethod);
 
-						return localFunc.WithBody(body).WithModifiers(mods);
+						return localFunc.WithBody(OptimizeInlinedBody(body, parameters)).WithModifiers(mods);
 					}
 					default:
 					{
