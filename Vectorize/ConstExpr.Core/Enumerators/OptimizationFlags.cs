@@ -43,9 +43,17 @@ public enum OptimizationFlags
 	TailRecursionElimination = 1 << 2,
 
 	/// <summary>
+	///   Enable loop unswitching.
+	///   When a loop body is a single <c>if</c> whose condition does not change across iterations,
+	///   the condition is hoisted out and the loop is duplicated per branch, so the test runs once
+	///   instead of on every iteration.
+	/// </summary>
+	LoopUnswitching = 1 << 3,
+
+	/// <summary>
 	///   Enable all general-purpose optimization passes.
 	///   Combines <see cref="CommonSubexpressionElimination" />, <see cref="LoopInvariantCodeMotion" />,
-	///   and <see cref="TailRecursionElimination" />.
+	///   <see cref="TailRecursionElimination" />, and <see cref="LoopUnswitching" />.
 	/// </summary>
-	All = CommonSubexpressionElimination | LoopInvariantCodeMotion | TailRecursionElimination
+	All = CommonSubexpressionElimination | LoopInvariantCodeMotion | TailRecursionElimination | LoopUnswitching
 }
