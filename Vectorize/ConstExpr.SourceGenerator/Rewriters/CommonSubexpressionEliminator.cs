@@ -78,8 +78,26 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 		}
 
 		var eliminator = new CommonSubexpressionEliminator(mathOptimizations.HasFlag(FastMathFlags.AssociativeMath));
+		eliminator.SeedUsedNames(node);
 
 		return eliminator.Visit(node);
+	}
+
+	/// <summary>
+	///   Seeds <see cref="_usedNames" /> with every identifier already present in the tree, so a
+	///   generated CSE variable can never collide with (and redeclare / shadow) an existing local,
+	///   parameter, or member — which would otherwise produce non-compiling output. Tree-wide is
+	///   deliberately over-conservative; per-scope seeding isn't worth the complexity.
+	/// </summary>
+	private void SeedUsedNames(SyntaxNode node)
+	{
+		foreach (var token in node.DescendantTokens())
+		{
+			if (token.IsKind(SyntaxKind.IdentifierToken))
+			{
+				_usedNames.Add(token.ValueText);
+			}
+		}
 	}
 
 	public override SyntaxNode? VisitBlock(BlockSyntax node)
@@ -101,14 +119,15 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 		var counts = new Dictionary<ExpressionSyntax, int>(_comparer);
 		var lValues = new HashSet<ExpressionSyntax>(_comparer);
 		var sideEffectCalls = new HashSet<ExpressionSyntax>(_comparer);
-		var collector = new ExpressionCollector(counts, lValues, sideEffectCalls);
+		var mutatedNames = new HashSet<string>();
+		var collector = new ExpressionCollector(counts, lValues, sideEffectCalls, mutatedNames);
 
 		foreach (var statement in visitedNode.Statements)
 		{
 			collector.Visit(statement);
 		}
 
-		var candidates = counts.Where(kvp => kvp.Value > 1 && ShouldConsider(kvp.Key, lValues, sideEffectCalls))
+		var candidates = counts.Where(kvp => kvp.Value > 1 && ShouldConsider(kvp.Key, lValues, sideEffectCalls, mutatedNames))
 			.Select(kvp => kvp.Key)
 			.OrderByDescending(c => c.DescendantNodes().Count()) // Prefer larger expressions first
 			.ToList();
@@ -123,8 +142,6 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 
 		foreach (var statement in visitedNode.Statements)
 		{
-			var currentStatement = statement;
-
 			// Identify which candidates appear in this statement for the first time
 			foreach (var candidate in candidates)
 			{
@@ -133,7 +150,7 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 					continue;
 				}
 
-				if (ContainsExpression(currentStatement, candidate))
+				if (ContainsExpression(statement, candidate))
 				{
 					var name = GenerateName(candidate);
 					replacementMap[candidate] = name;
@@ -151,7 +168,7 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 
 			// Rewrite the statement using the current replacement map
 			var rewriter = new ExpressionReplacementRewriter(replacementMap);
-			newStatements.Add((StatementSyntax) rewriter.Visit(currentStatement));
+			newStatements.Add((StatementSyntax) rewriter.Visit(statement));
 		}
 
 		return visitedNode.WithStatements(List(newStatements));
@@ -441,7 +458,7 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 			.Any(e => _comparer.Equals(e, expression));
 	}
 
-	private static bool ShouldConsider(ExpressionSyntax expr, HashSet<ExpressionSyntax> lValues, HashSet<ExpressionSyntax> sideEffectCalls)
+	private static bool ShouldConsider(ExpressionSyntax expr, HashSet<ExpressionSyntax> lValues, HashSet<ExpressionSyntax> sideEffectCalls, HashSet<string> mutatedNames)
 	{
 		expr = Unparenthesize(expr);
 
@@ -451,59 +468,35 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 			return false;
 		}
 
-		// If any identifier referenced by the expression is also mutated in this block,
-		// the expression's value may change between occurrences and cannot be safely CSE'd.
-		// e.g. in `positions = positions % 6; if (...) positions += 6; result[0] = ...[positions % 6]`
-		// `positions % 6` appears twice but `positions` is mutated in between.
+		// If any identifier referenced by the expression names a variable/array/object that is
+		// mutated anywhere in this block, the expression's value may change between occurrences and
+		// cannot be safely CSE'd. `mutatedNames` tracks the *base identifier* of every mutation
+		// channel — plain assignment, inc/dec, indexer write (`arr[i] = …`) and `ref`/`out` args —
+		// so e.g. `var x = arr[k]; arr[0] = v; var y = arr[k];` no longer merges the two reads.
 		if (expr.DescendantNodesAndSelf()
 		    .OfType<IdentifierNameSyntax>()
-		    .Any(id => lValues.Any(lv => lv is IdentifierNameSyntax lId && lId.Identifier.Text == id.Identifier.Text)))
+		    .Any(id => mutatedNames.Contains(id.Identifier.Text)))
 		{
 			return false;
 		}
 
-		// Only consider "expensive" or complex expressions
-		if (expr is BinaryExpressionSyntax)
+		return expr switch
 		{
-			return true;
-		}
-
-		// A repeated ternary (e.g. `Char.IsUpper(c) ? 'A' : 'a'`) is worth hoisting into a single
-		// local. Exclude lambda-bearing conditionals for the same `var`-inference reason as invocations.
-		if (expr is ConditionalExpressionSyntax)
-		{
-			return !expr.DescendantNodes().Any(n => n is LambdaExpressionSyntax or AnonymousFunctionExpressionSyntax);
-		}
-
-		if (expr is InvocationExpressionSyntax invocation)
-		{
+			// Only consider "expensive" or complex expressions
+			BinaryExpressionSyntax => true,
+			// A repeated ternary (e.g. `Char.IsUpper(c) ? 'A' : 'a'`) is worth hoisting into a single
+			// local. Exclude lambda-bearing conditionals for the same `var`-inference reason as invocations.
+			ConditionalExpressionSyntax => !expr.DescendantNodes().Any(n => n is LambdaExpressionSyntax or AnonymousFunctionExpressionSyntax),
 			// Calls that appear as expression statements are called for their side effects —
 			// extracting them to a variable would elide the side effect on subsequent uses.
-			if (sideEffectCalls.Contains(invocation))
-			{
-				return false;
-			}
-
+			InvocationExpressionSyntax invocation when sideEffectCalls.Contains(invocation) => false,
 			// Avoid CSE for expressions containing lambdas, as 'var' might fail to infer the delegate type
-			return !invocation.DescendantNodes().Any(n => n is LambdaExpressionSyntax or AnonymousFunctionExpressionSyntax);
-		}
-
-		if (expr is MemberAccessExpressionSyntax ma)
-		{
-			return ShouldConsider(ma.Expression, lValues, sideEffectCalls);
-		}
-
-		if (expr is ElementAccessExpressionSyntax)
-		{
-			return true;
-		}
-
-		if (expr is CastExpressionSyntax cast)
-		{
-			return ShouldConsider(cast.Expression, lValues, sideEffectCalls);
-		}
-
-		return false;
+			InvocationExpressionSyntax invocation => !invocation.DescendantNodes().Any(n => n is LambdaExpressionSyntax or AnonymousFunctionExpressionSyntax),
+			MemberAccessExpressionSyntax ma => ShouldConsider(ma.Expression, lValues, sideEffectCalls, mutatedNames),
+			ElementAccessExpressionSyntax => true,
+			CastExpressionSyntax cast => ShouldConsider(cast.Expression, lValues, sideEffectCalls, mutatedNames),
+			_ => false
+		};
 	}
 
 	private static ExpressionSyntax Unparenthesize(ExpressionSyntax expr)
@@ -516,6 +509,36 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 		return expr;
 	}
 
+	/// <summary>
+	///   Peels an assignment/mutation target down to its root identifier so mutations through
+	///   indexers (<c>arr[i]</c>), members (<c>obj.field</c>) or parentheses all attribute to the
+	///   base variable name. Returns <c>null</c> when there is no simple root identifier (e.g.
+	///   <c>this.field</c>), which the caller treats as "nothing to track".
+	/// </summary>
+	private static string? GetBaseIdentifier(ExpressionSyntax expr)
+	{
+		while (true)
+		{
+			switch (expr)
+			{
+				case ParenthesizedExpressionSyntax p: expr = p.Expression; break;
+				case ElementAccessExpressionSyntax e: expr = e.Expression; break;
+				case MemberAccessExpressionSyntax m: expr = m.Expression; break;
+				case IdentifierNameSyntax id: return id.Identifier.Text;
+				default: return null;
+			}
+		}
+	}
+
+	/// <summary>
+	///   Structural comparer used for all CSE matching. On top of stripping parentheses it
+	///   canonicalizes commutative <c>+</c>/<c>*</c> operand order (see <see cref="Canonicalize" />)
+	///   for the comparison key <em>only</em> — the stored/emitted expression keeps its original
+	///   form — so <c>a + b</c> and <c>b + a</c> (and <c>x * y</c> / <c>y * x</c>) are recognized as
+	///   the same subexpression. <see cref="Equals" /> does a real structural comparison of the
+	///   canonical forms rather than trusting the (collision-prone) hash, so a hash collision can
+	///   never cause two different expressions to be merged into one CSE local.
+	/// </summary>
 	private class NormalizedExpressionComparer : IEqualityComparer<ExpressionSyntax>
 	{
 		public bool Equals(ExpressionSyntax? x, ExpressionSyntax? y)
@@ -530,17 +553,71 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 				return false;
 			}
 
-			return SyntaxNodeComparer.Get<ExpressionSyntax>().Equals(Unparenthesize(x), Unparenthesize(y));
+			// Compare the normalized text of the canonical forms rather than the (collision-prone)
+			// structural hash: a hash collision must never merge two different expressions into one
+			// CSE local. NormalizeWhitespace erases the trivia the operand-swap leaves behind.
+			return CanonicalText(x) == CanonicalText(y);
 		}
 
 		public int GetHashCode(ExpressionSyntax obj)
 		{
-			return SyntaxNodeComparer.Get<ExpressionSyntax>().GetHashCode(Unparenthesize(obj));
+			// Hash is only a bucket hint; Equals is authoritative, so the fast structural hash of the
+			// canonical form is fine here (equal CanonicalText ⇒ identical structure ⇒ equal hash).
+			return SyntaxNodeComparer.Get<ExpressionSyntax>().GetHashCode(Canonicalize(Unparenthesize(obj)));
+		}
+
+		private static string CanonicalText(ExpressionSyntax expr)
+		{
+			return Canonicalize(Unparenthesize(expr)).NormalizeWhitespace().ToFullString();
 		}
 	}
 
-	private class ExpressionCollector(Dictionary<ExpressionSyntax, int> counts, HashSet<ExpressionSyntax> lValues, HashSet<ExpressionSyntax> sideEffectCalls) : CSharpSyntaxWalker
+	/// <summary>
+	///   Returns a copy of <paramref name="expr" /> in which every <c>+</c>/<c>*</c> node has its two
+	///   direct operands ordered deterministically (by structural hash). Only per-node commutation —
+	///   never regrouping — so <c>(a+b)+c</c> and <c>a+(b+c)</c> stay distinct (associativity is only
+	///   applied under fast-math via <see cref="CanonicalizeForCse" />). Safe unconditionally because
+	///   IEEE-754 addition/multiplication are commutative (bit-identical <c>a+b</c> == <c>b+a</c>).
+	/// </summary>
+	// ponytail: builds a fresh clone per hash/equals call; memoize by node if this ever shows up hot.
+	private static ExpressionSyntax Canonicalize(ExpressionSyntax expr)
 	{
+		return (ExpressionSyntax) new CommutativeCanonicalizer().Visit(expr);
+	}
+
+	private sealed class CommutativeCanonicalizer : CSharpSyntaxRewriter
+	{
+		public override SyntaxNode? VisitBinaryExpression(BinaryExpressionSyntax node)
+		{
+			// base.Visit canonicalizes children first (bottom-up), so operand hashes below are stable.
+			var visited = (BinaryExpressionSyntax) base.VisitBinaryExpression(node)!;
+
+			if (!visited.IsKind(SyntaxKind.AddExpression) && !visited.IsKind(SyntaxKind.MultiplyExpression))
+			{
+				return visited;
+			}
+
+			var comparer = SyntaxNodeComparer.Get<ExpressionSyntax>();
+
+			if (comparer.GetHashCode(Unparenthesize(visited.Left)) > comparer.GetHashCode(Unparenthesize(visited.Right)))
+			{
+				return visited.WithLeft(visited.Right).WithRight(visited.Left);
+			}
+
+			return visited;
+		}
+	}
+
+	private class ExpressionCollector(Dictionary<ExpressionSyntax, int> counts, HashSet<ExpressionSyntax> lValues, HashSet<ExpressionSyntax> sideEffectCalls, HashSet<string> mutatedNames) : CSharpSyntaxWalker
+	{
+		private void MarkMutated(ExpressionSyntax target)
+		{
+			if (GetBaseIdentifier(target) is { } name)
+			{
+				mutatedNames.Add(name);
+			}
+		}
+
 		public override void VisitBlock(BlockSyntax node)
 		{
 			/* Don't recurse into nested blocks */
@@ -565,6 +642,7 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 		public override void VisitAssignmentExpression(AssignmentExpressionSyntax node)
 		{
 			lValues.Add(Unparenthesize(node.Left));
+			MarkMutated(Unparenthesize(node.Left));
 			base.VisitAssignmentExpression(node);
 		}
 
@@ -574,6 +652,7 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 			    SyntaxKind.PreDecrementExpression or SyntaxKind.PostDecrementExpression)
 			{
 				lValues.Add(Unparenthesize(node.Operand));
+				MarkMutated(Unparenthesize(node.Operand));
 			}
 			base.VisitPrefixUnaryExpression(node);
 		}
@@ -584,8 +663,20 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 			    SyntaxKind.PreDecrementExpression or SyntaxKind.PostDecrementExpression)
 			{
 				lValues.Add(Unparenthesize(node.Operand));
+				MarkMutated(Unparenthesize(node.Operand));
 			}
 			base.VisitPostfixUnaryExpression(node);
+		}
+
+		public override void VisitArgument(ArgumentSyntax node)
+		{
+			// `ref`/`out` arguments mutate the passed variable, so any expression over that base
+			// identifier can change value across the call and must not be CSE'd.
+			if (node.RefKindKeyword.IsKind(SyntaxKind.RefKeyword) || node.RefKindKeyword.IsKind(SyntaxKind.OutKeyword))
+			{
+				MarkMutated(Unparenthesize(node.Expression));
+			}
+			base.VisitArgument(node);
 		}
 
 		public override void Visit(SyntaxNode? node)
