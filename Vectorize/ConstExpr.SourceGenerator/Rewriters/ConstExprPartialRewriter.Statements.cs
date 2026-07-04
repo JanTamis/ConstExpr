@@ -167,7 +167,9 @@ public partial class ConstExprPartialRewriter
 				Condition = condExpr.Condition,
 				WhenTrue = condExpr.WhenTrue,
 				WhenFalse = condExpr.WhenFalse,
-				Type = assignType
+				Type = assignType,
+				Usings = usings,
+				AdditionalMethods = additionalMethods
 			};
 
 			if (optimizer.TryOptimize(loader, variables, out var optimizedRhs))
@@ -1402,34 +1404,56 @@ public partial class ConstExprPartialRewriter
 
 		while (i < statements.Count)
 		{
-			if (i + 1 < statements.Count
-			    && statements[i] is LocalDeclarationStatementSyntax
+			if (statements[i] is LocalDeclarationStatementSyntax
 			    {
 				    Modifiers.Count: 0,
 				    Declaration.Variables: [ { Identifier.Text: var name, Initializer.Value: var initializer } declarator ]
 			    } declarationStatement
-			    && IsSideEffectFreeInitializer(initializer)
-			    && statements[i + 1] is ExpressionStatementSyntax
-			    {
-				    Expression: AssignmentExpressionSyntax
-				    {
-					    RawKind: (int) SyntaxKind.SimpleAssignmentExpression,
-					    Left: IdentifierNameSyntax { Identifier.Text: var assignedName },
-					    Right: var rhs
-				    }
-			    }
-			    && assignedName == name
-			    && !rhs.HasIdentifier(name))
+			    && IsSideEffectFreeInitializer(initializer))
 			{
-				var mergedDeclarator = declarator.WithInitializer(EqualsValueClause(rhs));
+				// Scan forward for the first statement that touches `name`. The dead constant init can be
+				// folded into that first reference only when it is a top-level simple assignment `name = rhs`
+				// in this same statement list — nothing reads `name` before it (so the init is never observed)
+				// and it is unconditional (a read/assignment nested in an if/loop could see the init instead).
+				var j = i + 1;
 
-				result.Add(declarationStatement.WithDeclaration(
-					declarationStatement.Declaration
-						.WithType(ParseTypeName("var"))
-						.WithVariables(SingletonSeparatedList(mergedDeclarator))));
+				while (j < statements.Count && !statements[j].HasIdentifier(name))
+				{
+					j++;
+				}
 
-				i += 2;
-				continue;
+				if (j < statements.Count
+				    && statements[j] is ExpressionStatementSyntax
+				    {
+					    Expression: AssignmentExpressionSyntax
+					    {
+						    RawKind: (int) SyntaxKind.SimpleAssignmentExpression,
+						    Left: IdentifierNameSyntax { Identifier.Text: var assignedName },
+						    Right: var rhs
+					    }
+				    }
+				    && assignedName == name
+				    && !rhs.HasIdentifier(name))
+				{
+					// Keep the statements between the dead declaration and its first assignment untouched,
+					// then emit the merged `var name = rhs;` in place of that assignment.
+					for (var k = i + 1; k < j; k++)
+					{
+						result.Add(statements[k]);
+					}
+
+					var mergedDeclarator = declarator.WithInitializer(EqualsValueClause(rhs));
+
+					// Preserve the incoming declared type instead of forcing `var`: `T x = rhs` is always
+					// valid when `x = rhs` type-checked, whereas `var` would re-infer from rhs and narrow the
+					// type if the original was wider.
+					result.Add(declarationStatement.WithDeclaration(
+						declarationStatement.Declaration
+							.WithVariables(SingletonSeparatedList(mergedDeclarator))));
+
+					i = j + 1;
+					continue;
+				}
 			}
 
 			result.Add(statements[i]);

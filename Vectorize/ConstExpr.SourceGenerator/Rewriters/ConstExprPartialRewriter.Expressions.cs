@@ -1085,7 +1085,9 @@ public partial class ConstExprPartialRewriter
 			Condition = condition as ExpressionSyntax ?? node.Condition,
 			WhenTrue = whenTrue as ExpressionSyntax ?? node.WhenTrue,
 			WhenFalse = whenFalse as ExpressionSyntax ?? node.WhenFalse,
-			Type = type
+			Type = type,
+			Usings = usings,
+			AdditionalMethods = additionalMethods
 		};
 
 		if (optimizer.TryOptimize(loader, variables, out var optimized))

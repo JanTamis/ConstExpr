@@ -66,8 +66,13 @@ public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", n => n is
 
 	public static string GenerateFastAbsMethodInteger(FunctionOptimizerContext context)
 	{
-		context.Usings.Add("System.Runtime.CompilerServices");
-		context.Usings.Add("System.Numerics");
+		return GenerateFastAbsMethodInteger(context.Usings, context.AdditionalSyntax);
+	}
+
+	public static string GenerateFastAbsMethodInteger(ISet<string> usings, IDictionary<SyntaxNode, bool> additionalSyntax)
+	{
+		usings.Add("System.Runtime.CompilerServices");
+		usings.Add("System.Numerics");
 
 		var builder = new CodeWriter();
 
@@ -87,7 +92,7 @@ public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", n => n is
 
 		var method = ParseMethodFromString(builder.ToString())!;
 
-		context.AdditionalSyntax.TryAdd(method, false);
+		additionalSyntax.TryAdd(method, false);
 
 		return method.Identifier.Text;
 	}
