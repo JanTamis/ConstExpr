@@ -8,3 +8,6 @@ Generated/
 .DS_Store
 *.user
 *.DotSettings.user
+
+# graphify
+graphify-out/
