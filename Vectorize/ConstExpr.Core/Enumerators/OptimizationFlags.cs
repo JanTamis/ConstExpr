@@ -51,9 +51,16 @@ public enum OptimizationFlags
 	LoopUnswitching = 1 << 3,
 
 	/// <summary>
+	///   Enable loop fusion.
+	///   Two directly adjacent loops with identical iteration spaces and independent bodies are
+	///   merged into one loop, so the loop overhead (counter, bound check) is paid once.
+	/// </summary>
+	LoopFusion = 1 << 4,
+
+	/// <summary>
 	///   Enable all general-purpose optimization passes.
 	///   Combines <see cref="CommonSubexpressionElimination" />, <see cref="LoopInvariantCodeMotion" />,
-	///   <see cref="TailRecursionElimination" />, and <see cref="LoopUnswitching" />.
+	///   <see cref="TailRecursionElimination" />, <see cref="LoopUnswitching" />, and <see cref="LoopFusion" />.
 	/// </summary>
-	All = CommonSubexpressionElimination | LoopInvariantCodeMotion | TailRecursionElimination | LoopUnswitching
+	All = CommonSubexpressionElimination | LoopInvariantCodeMotion | TailRecursionElimination | LoopUnswitching | LoopFusion
 }

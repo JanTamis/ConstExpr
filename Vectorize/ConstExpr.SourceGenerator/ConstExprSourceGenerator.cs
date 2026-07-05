@@ -417,6 +417,12 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				result2 = DeadCodePruner.Prune(result2, variablesPartial, semanticModel);
 			}
 
+			if (attribute.Optimizations.HasFlag(OptimizationFlags.LoopFusion))
+			{
+				result2 = LoopFusionRewriter.Apply(result2);
+				result2 = DeadCodePruner.Prune(result2, variablesPartial, semanticModel);
+			}
+
 			if (attribute.Optimizations.HasFlag(OptimizationFlags.TailRecursionElimination) && result2 is BlockSyntax treBlock)
 			{
 				var treMethod = methodDecl.WithBody(treBlock);
