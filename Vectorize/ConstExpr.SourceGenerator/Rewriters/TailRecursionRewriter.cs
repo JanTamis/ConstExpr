@@ -374,16 +374,9 @@ public sealed class TailRecursionRewriter
 
 		if (ifStmt.Else is { } originalElse)
 		{
-			StatementSyntax? elseBody;
-
-			if (originalElse.Statement is IfStatementSyntax nestedIf)
-			{
-				elseBody = RewriteIfStatement(nestedIf, methodName, paramNames);
-			}
-			else
-			{
-				elseBody = RewriteStatementToBlock(originalElse.Statement, methodName, paramNames);
-			}
+			StatementSyntax? elseBody = originalElse.Statement is IfStatementSyntax nestedIf
+				? RewriteIfStatement(nestedIf, methodName, paramNames)
+				: RewriteStatementToBlock(originalElse.Statement, methodName, paramNames);
 
 			if (elseBody is null)
 			{

@@ -193,7 +193,9 @@ public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 				                        || identifiersInInit.Overlaps(alreadyHoisted)
 				                        || identifiersInInit.Overlaps(loopLocals);
 
-				if (!referencesWritten && !writtenInLoop.Contains(varName) && LoopInvariance.IsPureExpression(initExpr))
+				if (!referencesWritten
+				    && !writtenInLoop.Contains(varName)
+				    && LoopInvariance.IsPureExpression(initExpr))
 				{
 					hoisted.Add(local.WithTrailingTrivia(ElasticSpace));
 					alreadyHoisted.Add(varName);

@@ -57,7 +57,7 @@ internal class DataValidationTests
 
 		// HasBalancedParentheses - alleen constanten
 		Console.WriteLine($"[CONST] HasBalancedParentheses(\"((()))\"): {DataValidationOperations.HasBalancedParentheses("((()))")}");
-		Console.WriteLine($"[CONST] HasBalancedParentheses(\"(()\"): {DataValidationOperations.HasBalancedParentheses("(())")}");
+		Console.WriteLine($"[CONST] HasBalancedParentheses(\"(()\"): {DataValidationOperations.HasBalancedParentheses("(()")}");
 		Console.WriteLine($"[CONST] HasBalancedParentheses(\"()()()\"): {DataValidationOperations.HasBalancedParentheses("()()()")}");
 
 		// HasBalancedParentheses - mixed

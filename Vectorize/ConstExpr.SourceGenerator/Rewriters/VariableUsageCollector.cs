@@ -52,18 +52,17 @@ public sealed class VariableUsageCollector(IEnumerable<string> trackedVariables)
 	public override void VisitArgument(ArgumentSyntax node)
 	{
 		// Check for ref/out arguments
-		if (node.RefOrOutKeyword.IsKind(SyntaxKind.RefKeyword, SyntaxKind.OutKeyword))
+		if (node.RefOrOutKeyword.IsKind(SyntaxKind.RefKeyword, SyntaxKind.OutKeyword)
+		    && node.Expression is IdentifierNameSyntax id
+		    && _trackedVariables.Contains(id.Identifier.Text))
 		{
-			if (node.Expression is IdentifierNameSyntax id && _trackedVariables.Contains(id.Identifier.Text))
-			{
-				var name = id.Identifier.Text;
+			var name = id.Identifier.Text;
 
-				RefVariables.TryGetValue(name, out var refCount);
-				RefVariables[name] = refCount + 1;
+			RefVariables.TryGetValue(name, out var refCount);
+			RefVariables[name] = refCount + 1;
 
-				WrittenVariables.TryGetValue(name, out var writeCount);
-				WrittenVariables[name] = writeCount + 1;
-			}
+			WrittenVariables.TryGetValue(name, out var writeCount);
+			WrittenVariables[name] = writeCount + 1;
 		}
 
 		base.VisitArgument(node);

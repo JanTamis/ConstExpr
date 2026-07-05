@@ -188,6 +188,7 @@ public class VectorizerRewriter(
 		{
 			var left = (ExpressionSyntax) Visit(node.Left);
 			var right = (ExpressionSyntax) Visit(notExpr.Operand);
+
 			return CreateInvocation("AndNot", left, right);
 		}
 
@@ -243,14 +244,12 @@ public class VectorizerRewriter(
 
 	private static InvocationExpressionSyntax CreateInvocation(string name, TypeSyntax[] typeArguments, params ExpressionSyntax[] arguments)
 	{
-		var memberAccess = typeArguments.Length > 0
+		ExpressionSyntax memberAccess = typeArguments.Length > 0
 			? MemberAccessExpression(
 				IdentifierName("Vector"),
 				GenericName(Identifier(name))
 					.WithTypeArgumentList(TypeArgumentList(SeparatedList(typeArguments))))
-			: (ExpressionSyntax) MemberAccessExpression(
-				IdentifierName("Vector"),
-				IdentifierName(name));
+			: MemberAccessExpression(IdentifierName("Vector"), IdentifierName(name));
 
 		return InvocationExpression(memberAccess)
 			.WithArgumentList(ArgumentList(SeparatedList(arguments.Select(Argument))));
