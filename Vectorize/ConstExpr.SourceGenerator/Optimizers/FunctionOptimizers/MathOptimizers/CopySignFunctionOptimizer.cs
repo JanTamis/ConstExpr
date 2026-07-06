@@ -71,7 +71,7 @@ public class CopySignFunctionOptimizer() : BaseMathFunctionOptimizer("CopySign",
 			.WriteLine("/// <param name=\"x\">The magnitude value.</param>")
 			.WriteLine("/// <param name=\"y\">The sign source value.</param>")
 			.WriteLine("/// <returns>A float with the magnitude of x and the sign of y.</returns>")
-			.WriteLine("private static float CopySignFastFloat(float x, float y)")
+			.WriteLine("private static float FastCopySignFloat(float x, float y)")
 			.StartBlock()
 			.WriteLine("var xBits = BitConverter.SingleToInt32Bits(x);")
 			.WriteLine("var yBits = BitConverter.SingleToInt32Bits(y);")
@@ -90,7 +90,7 @@ public class CopySignFunctionOptimizer() : BaseMathFunctionOptimizer("CopySign",
 			.WriteLine("/// <param name=\"x\">The magnitude value.</param>")
 			.WriteLine("/// <param name=\"y\">The sign source value.</param>")
 			.WriteLine("/// <returns>A double with the magnitude of x and the sign of y.</returns>")
-			.WriteLine("private static double CopySignFastDouble(double x, double y)")
+			.WriteLine("private static double FastCopySignDouble(double x, double y)")
 			.StartBlock()
 			.WriteLine("var xBits = BitConverter.DoubleToInt64Bits(x);")
 			.WriteLine("var yBits = BitConverter.DoubleToInt64Bits(y);")
@@ -111,7 +111,7 @@ public class CopySignFunctionOptimizer() : BaseMathFunctionOptimizer("CopySign",
 			.WriteLine("/// <param name=\"x\">The magnitude value.</param>")
 			.WriteLine("/// <param name=\"y\">The sign source value.</param>")
 			.WriteLine("/// <returns>An integer with the magnitude of x and the sign of y.</returns>")
-			.WriteLine("private static T CopySignFast<T>(T x, T y) where T : IBinaryInteger<T>")
+			.WriteLine("private static T FastCopySign<T>(T x, T y) where T : IBinaryInteger<T>")
 			.StartBlock()
 			.WriteLine($"var absValue = {invocation}(x);")
 			.WriteWhitespace()
@@ -132,7 +132,7 @@ public class CopySignFunctionOptimizer() : BaseMathFunctionOptimizer("CopySign",
 				value = c.ToDouble(CultureInfo.InvariantCulture);
 				return true;
 			}
-			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
 			{
 				value = -c2.ToDouble(CultureInfo.InvariantCulture);
 				return true;

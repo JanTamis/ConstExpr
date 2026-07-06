@@ -35,7 +35,7 @@ public class ReverseNumberTest() : BaseTest<Func<int, int>>(FastMathFlags.All, o
 				n /= 10;
 			}
 
-			return CopySignFast(reversed, originalN);
+			return FastCopySign(reversed, originalN);
 			"""),
 		Create(_ => 321, [ 123 ]),
 		Create(_ => -654, [ -456 ]),
