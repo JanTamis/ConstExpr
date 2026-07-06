@@ -1266,7 +1266,9 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			return visited;
 		}
 
-		if (visited.Statements.Count == 0)
+		// A single statement reads fine directly under the case label; only multi-statement
+		// bodies need braces to visually group them.
+		if (visited.Statements.Count <= 1)
 		{
 			return visited;
 		}
