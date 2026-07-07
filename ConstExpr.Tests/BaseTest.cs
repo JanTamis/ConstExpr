@@ -246,6 +246,12 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			newBody = DeadCodePruner.Prune(newBody, parameters, state.SemanticModel) as BlockSyntax;
 		}
 
+		if (attribute.Optimizations.HasFlag(OptimizationFlags.IndexFromEndConversion))
+		{
+			newBody = IndexFromEndRewriter.Apply(newBody!) as BlockSyntax ?? newBody;
+			newBody = DeadCodePruner.Prune(newBody, parameters, state.SemanticModel) as BlockSyntax;
+		}
+
 		if (attribute.Optimizations.HasFlag(OptimizationFlags.TailRecursionElimination))
 		{
 			// Wrap the block in a pseudo MethodDeclarationSyntax so TailRecursionRewriter

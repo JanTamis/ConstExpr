@@ -58,9 +58,17 @@ public enum OptimizationFlags
 	LoopFusion = 1 << 4,
 
 	/// <summary>
+	///   Enable index-from-end conversion.
+	///   Rewrites indexing off the end of a collection, such as <c>arr[arr.Length - 1 - i]</c>,
+	///   into index-from-end syntax: <c>arr[^(1 + i)]</c>.
+	/// </summary>
+	IndexFromEndConversion = 1 << 5,
+
+	/// <summary>
 	///   Enable all general-purpose optimization passes.
 	///   Combines <see cref="CommonSubexpressionElimination" />, <see cref="LoopInvariantCodeMotion" />,
-	///   <see cref="TailRecursionElimination" />, <see cref="LoopUnswitching" />, and <see cref="LoopFusion" />.
+	///   <see cref="TailRecursionElimination" />, <see cref="LoopUnswitching" />, <see cref="LoopFusion" />,
+	///   and <see cref="IndexFromEndConversion" />.
 	/// </summary>
-	All = CommonSubexpressionElimination | LoopInvariantCodeMotion | TailRecursionElimination | LoopUnswitching | LoopFusion
+	All = CommonSubexpressionElimination | LoopInvariantCodeMotion | TailRecursionElimination | LoopUnswitching | LoopFusion | IndexFromEndConversion
 }
