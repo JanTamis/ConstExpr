@@ -466,6 +466,7 @@ public partial class ConstExprPartialRewriter
 	}
 
 	private int _unrollBreakLabelCounter;
+	private int _unrollContinueLabelCounter;
 
 	public override SyntaxNode? VisitForEachStatement(ForEachStatementSyntax node)
 	{
@@ -522,6 +523,33 @@ public partial class ConstExprPartialRewriter
 							? gotoBlock.AddStatements(labelStatement)
 							: Block((StatementSyntax) gotoUnrolled, labelStatement);
 					}
+				}
+
+				RestoreVariableState(savedState);
+				InvalidateAssignedVariablesForForEach(node, names);
+				return base.VisitForEachStatement(
+					node.WithExpression(collection as ExpressionSyntax ?? node.Expression));
+			}
+
+			// No break, but a continue guarded by a runtime condition survived unrolling (a
+			// continue guarded by a condition that folds to a compile-time constant is already
+			// resolved away by this point, same as break). It has no jump target once the loop
+			// is unrolled away — re-unroll with the loop-carried variables demoted to runtime
+			// (same treatment as the break case) and give each iteration its own trailing
+			// label, rewriting that iteration's continue into a jump to it — a continue only
+			// skips the rest of ITS OWN iteration, unlike break which exits the whole loop.
+			if (ContainsOrphanedContinue(unrolled))
+			{
+				RestoreVariableState(savedState);
+				InvalidateAssignedVariablesForForEach(node, names);
+
+				var continueUnrolled = TryUnrollForEachLoop(node, items, unrollContinueGoto: true);
+
+				if (continueUnrolled is not null
+				    && !ContainsOrphanedContinue(continueUnrolled)
+				    && !ContainsOrphanedBreak(continueUnrolled))
+				{
+					return continueUnrolled;
 				}
 
 				RestoreVariableState(savedState);
@@ -695,7 +723,7 @@ public partial class ConstExprPartialRewriter
 	/// <summary>
 	///   Tries to unroll a foreach loop.
 	/// </summary>
-	private SyntaxNode? TryUnrollForEachLoop(ForEachStatementSyntax node, IReadOnlyList<CSharpSyntaxNode> items, string? breakLabel = null)
+	private SyntaxNode? TryUnrollForEachLoop(ForEachStatementSyntax node, IReadOnlyList<CSharpSyntaxNode> items, string? breakLabel = null, bool unrollContinueGoto = false)
 	{
 		var name = node.Identifier.Text;
 
@@ -732,6 +760,27 @@ public partial class ConstExprPartialRewriter
 			variable.Value = val;
 			var statement = Visit(node.Statement);
 
+			// This iteration's continue guard resolved to a compile-time constant (e.g. the
+			// loop var equals a known skip value), so nothing else in this iteration's body
+			// survived past it — mirrors how ShouldStopUnrolling elides a fully-resolved
+			// break. Contribute nothing for this iteration and move on to the next one (unlike
+			// break, a resolved continue must NOT stop unrolling the remaining items).
+			if (statement is ContinueStatementSyntax or BlockSyntax { Statements: [ ContinueStatementSyntax ] })
+			{
+				continue;
+			}
+
+			string? continueLabel = null;
+
+			// This iteration's continue has no loop left to jump to. Give it a label of its
+			// own to jump to instead, landing right after this iteration's statements — i.e.
+			// skipping only the rest of THIS iteration, not any others.
+			if (unrollContinueGoto && statement is not null && ContainsOrphanedContinue(statement))
+			{
+				continueLabel = $"__unroll_continue_{_unrollContinueLabelCounter++}";
+				statement = new ContinueToGotoRewriter(continueLabel).Visit(statement);
+			}
+
 			if (statement is not BlockSyntax)
 			{
 				statements.Add(statement);
@@ -745,6 +794,11 @@ public partial class ConstExprPartialRewriter
 			if (statement is BlockSyntax block)
 			{
 				statements.Add(block);
+			}
+
+			if (continueLabel is not null)
+			{
+				statements.Add(LabeledStatement(Identifier(continueLabel), EmptyStatement()));
 			}
 		}
 
@@ -817,6 +871,46 @@ public partial class ConstExprPartialRewriter
 		}
 
 		public override SyntaxNode? VisitSwitchStatement(SwitchStatementSyntax node)
+		{
+			return node;
+		}
+	}
+
+	/// <summary>
+	///   Rewrites <c>continue;</c> statements that belong to the current (unrolled) loop into
+	///   <c>goto &lt;label&gt;;</c>. Continues that target an inner loop are preserved. Unlike
+	///   <see cref="BreakToGotoRewriter" />, a <c>switch</c> does not own <c>continue</c> — it
+	///   still targets the enclosing loop — so descending into one is not stopped here.
+	/// </summary>
+	private sealed class ContinueToGotoRewriter(string label) : CSharpSyntaxRewriter
+	{
+		public override SyntaxNode? VisitContinueStatement(ContinueStatementSyntax node)
+		{
+			return GotoStatement(SyntaxKind.GotoStatement, IdentifierName(label)).WithTriviaFrom(node);
+		}
+
+		// Do not descend into constructs that own their own continue target.
+		public override SyntaxNode? VisitForStatement(ForStatementSyntax node)
+		{
+			return node;
+		}
+
+		public override SyntaxNode? VisitForEachStatement(ForEachStatementSyntax node)
+		{
+			return node;
+		}
+
+		public override SyntaxNode? VisitForEachVariableStatement(ForEachVariableStatementSyntax node)
+		{
+			return node;
+		}
+
+		public override SyntaxNode? VisitWhileStatement(WhileStatementSyntax node)
+		{
+			return node;
+		}
+
+		public override SyntaxNode? VisitDoStatement(DoStatementSyntax node)
 		{
 			return node;
 		}

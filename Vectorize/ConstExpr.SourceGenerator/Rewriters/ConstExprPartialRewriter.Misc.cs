@@ -249,14 +249,16 @@ public partial class ConstExprPartialRewriter
 					{
 						if (st is TNode t)
 						{
-							if (st is ContinueStatementSyntax)
-							{
-								return List(result);
-							}
-
 							result.Add(t);
 
-							if (st is ReturnStatementSyntax or BreakStatementSyntax or ThrowStatementSyntax)
+							// Unreachable-after-jump pruning: anything physically following an
+							// unconditional jump in this same list never executes, so it's safe
+							// to drop. Continue is included here (not just return/break/throw) —
+							// it must still be EMITTED (unlike the old behavior, which silently
+							// dropped it), since it may be nested inside a runtime-conditional
+							// branch rather than sitting unconditionally at the tail of an
+							// unrolled iteration.
+							if (st is ReturnStatementSyntax or BreakStatementSyntax or ThrowStatementSyntax or ContinueStatementSyntax)
 							{
 								shouldStop = true;
 								break;
@@ -267,14 +269,9 @@ public partial class ConstExprPartialRewriter
 				}
 				case TNode t:
 				{
-					if (t is ContinueStatementSyntax)
-					{
-						return List(result);
-					}
-
 					result.Add(t);
 
-					if (visited is ReturnStatementSyntax or BreakStatementSyntax or ThrowStatementSyntax)
+					if (visited is ReturnStatementSyntax or BreakStatementSyntax or ThrowStatementSyntax or ContinueStatementSyntax)
 					{
 						shouldStop = true;
 					}
