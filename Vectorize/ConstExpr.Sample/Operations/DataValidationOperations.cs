@@ -291,6 +291,27 @@ public static class DataValidationOperations
 	}
 
 	/// <summary>
+	///   Tests continue statement in a foreach loop over a constant string
+	///   Counts characters that don't match the skip target
+	/// </summary>
+	public static int CountSkippingChar(char skip)
+	{
+		var index = 0;
+
+		foreach (var c in "abc")
+		{
+			if (c == skip)
+			{
+				continue;
+			}
+
+			index++;
+		}
+
+		return index;
+	}
+
+	/// <summary>
 	///   Tests nested loops with break statements
 	///   Counts items in a 2D grid
 	/// </summary>

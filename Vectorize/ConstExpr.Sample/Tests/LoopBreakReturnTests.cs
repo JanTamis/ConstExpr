@@ -21,7 +21,10 @@ internal class LoopBreakReturnTests
 		Console.WriteLine($"[CONST] FindCharIndex(\"HELLO\", 'L'): {DataValidationOperations.FindCharIndex("HELLO", 'L')}");
 		Console.WriteLine($"[CONST] FindCharIndex(\"HELLO\", 'X'): {DataValidationOperations.FindCharIndex("HELLO", 'X')}");
 		Console.WriteLine($"[MIXED] FindCharIndex(varString, 'T'): {DataValidationOperations.FindCharIndex(varString, 'T')}");
-		Console.WriteLine($"[MIXED] FindCharIndex(varString, 'T'): {DataValidationOperations.FindCharIndex("hello", (char)varInt)}");
+		Console.WriteLine($"[MIXED] FindCharIndex(varString, 'T'): {DataValidationOperations.FindCharIndex("hello", (char) varInt)}");
+
+		// CountSkippingChar - Tests continue in foreach loop over a constant string
+		Console.WriteLine($"[MIXED] CountSkippingChar((char)varInt): {DataValidationOperations.CountSkippingChar((char) varInt)}");
 
 		// CountInGrid - Tests nested loops with break
 		Console.WriteLine($"[CONST] CountInGrid(3, 3, 5): {DataValidationOperations.CountInGrid(3, 3, 5)}");
