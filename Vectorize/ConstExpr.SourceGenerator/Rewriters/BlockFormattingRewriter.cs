@@ -549,6 +549,49 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			}
 		}
 
+		// Fold a run of consecutive "x++;" for the same local into one "x += n;"
+		// (e.g. the two index++ left behind when a redundant unrolled break guard is dropped).
+		for (var i = 0; i < visited.Count; i++)
+		{
+			if (!TryGetPostIncrementTarget(visited[i], out var name))
+			{
+				continue;
+			}
+
+			var run = 1;
+
+			while (i + run < visited.Count
+			       && TryGetPostIncrementTarget(visited[i + run], out var next)
+			       && next == name)
+			{
+				run++;
+			}
+
+			if (run < 2)
+			{
+				continue;
+			}
+
+			visited[i] = ParseStatement($"{name} += {run};")
+				.WithLeadingTrivia(visited[i].GetLeadingTrivia())
+				.WithTrailingTrivia(visited[i + run - 1].GetTrailingTrivia());
+			visited.RemoveRange(i + 1, run - 1);
+		}
+
+		// Attach the following statement to a label that only carries an empty statement:
+		// "L: ; return x;" -> "L: return x;". Skipped when the label is the block's last
+		// statement, since a label must always be followed by a statement.
+		for (var i = 0; i < visited.Count - 1; i++)
+		{
+			if (visited[i] is LabeledStatementSyntax { Statement: EmptyStatementSyntax } labeled)
+			{
+				visited[i] = labeled
+					.WithColonToken(labeled.ColonToken.WithTrailingTrivia(Space))
+					.WithStatement(visited[i + 1].WithoutLeadingTrivia());
+				visited.RemoveAt(i + 1);
+			}
+		}
+
 		// Groepeer lokale declaraties en omring met lege regels
 		for (var i = 0; i < visited.Count; i++)
 		{
@@ -1498,6 +1541,30 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		}
 
 		return newMembers;
+	}
+
+	/// <summary>
+	///   Matches a bare <c>x++;</c> statement on a simple local and returns the variable name.
+	///   Restricted to plain identifiers so folding never changes the side effects of an indexer
+	///   or property access.
+	/// </summary>
+	private static bool TryGetPostIncrementTarget(StatementSyntax statement, out string name)
+	{
+		if (statement is ExpressionStatementSyntax
+		    {
+			    Expression: PostfixUnaryExpressionSyntax
+			    {
+				    RawKind: (int) SyntaxKind.PostIncrementExpression,
+				    Operand: IdentifierNameSyntax identifier
+			    }
+		    })
+		{
+			name = identifier.Identifier.ValueText;
+			return true;
+		}
+
+		name = "";
+		return false;
 	}
 
 	private static bool IsConditionalSyntax(StatementSyntax statement)

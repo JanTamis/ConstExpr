@@ -465,6 +465,8 @@ public partial class ConstExprPartialRewriter
 		return result.Count > 0 ? ToStatementSyntax(result) : null;
 	}
 
+	private int _unrollBreakLabelCounter;
+
 	public override SyntaxNode? VisitForEachStatement(ForEachStatementSyntax node)
 	{
 		var names = variables.Keys.ToImmutableHashSet();
@@ -487,6 +489,41 @@ public partial class ConstExprPartialRewriter
 			// still applied where possible.
 			if (ContainsOrphanedBreak(unrolled))
 			{
+				// A break guarded by a runtime condition survived unrolling, so we cannot stop
+				// iterating early. We can still unroll: re-run with the loop-carried variables
+				// demoted to runtime (so index++ etc. are emitted, matching the plain-foreach
+				// codegen) and rewrite each orphaned break into a goto that jumps past the
+				// unrolled body to a trailing label — a flat, always-valid stand-in for the
+				// loop's break target.
+				RestoreVariableState(savedState);
+				InvalidateAssignedVariablesForForEach(node, names);
+
+				// A continue has no jump target we synthesize here, so keep falling back to a
+				// real foreach when one is present rather than emit invalid C#.
+				if (!ContainsOrphanedContinue(node.Statement))
+				{
+					var label = $"__unroll_break_{_unrollBreakLabelCounter++}";
+					var gotoUnrolled = TryUnrollForEachLoop(node, items, label);
+
+					if (gotoUnrolled is not null && !ContainsOrphanedBreak(gotoUnrolled))
+					{
+						// Unrolling a collection with duplicate values (e.g. the two 'l's in
+						// "hello") emits the same break guard twice. Once the first guard's jump
+						// didn't fire, an identical loop-invariant guard can never fire either, so
+						// drop the redundant copies while keeping the interleaved index++ etc.
+						if (gotoUnrolled is BlockSyntax bodyBlock)
+						{
+							gotoUnrolled = RemoveRedundantGotoGuards(bodyBlock, node, label);
+						}
+
+						var labelStatement = LabeledStatement(Identifier(label), EmptyStatement());
+
+						return gotoUnrolled is BlockSyntax gotoBlock
+							? gotoBlock.AddStatements(labelStatement)
+							: Block((StatementSyntax) gotoUnrolled, labelStatement);
+					}
+				}
+
 				RestoreVariableState(savedState);
 				InvalidateAssignedVariablesForForEach(node, names);
 				return base.VisitForEachStatement(
@@ -525,6 +562,106 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
+	///   Returns <see langword="true" /> when <paramref name="node" /> contains a
+	///   <see cref="ContinueStatementSyntax" /> that is not enclosed by any inner loop, making
+	///   it an orphaned continue once the surrounding loop is unrolled away.
+	/// </summary>
+	private static bool ContainsOrphanedContinue(SyntaxNode? node)
+	{
+		if (node is null)
+		{
+			return false;
+		}
+
+		return node
+			.DescendantNodes(n =>
+				n is not ForStatementSyntax
+					and not ForEachStatementSyntax
+					and not WhileStatementSyntax
+					and not DoStatementSyntax)
+			.OfType<ContinueStatementSyntax>()
+			.Any();
+	}
+
+	/// <summary>
+	///   Removes break guards that are provably never taken after unrolling. When two unrolled
+	///   iterations share a loop-invariant, side-effect-free break condition (e.g. duplicate
+	///   values in the collection), the second <c>if (C) goto label;</c> can never fire once the
+	///   first didn't, so it is dropped. Interleaved statements (index++ etc.) are kept.
+	/// </summary>
+	private BlockSyntax RemoveRedundantGotoGuards(BlockSyntax block, ForEachStatementSyntax node, string label)
+	{
+		var assigned = new HashSet<string>(AssignedVariables(node));
+		var keptGuards = new List<ExpressionSyntax>();
+		var statements = new List<StatementSyntax>();
+
+		foreach (var statement in block.Statements)
+		{
+			if (TryGetGotoGuardCondition(statement, label, out var condition)
+			    && IsPureLoopInvariant(condition, assigned))
+			{
+				if (keptGuards.Any(guard => guard.IsEquivalentTo(condition)))
+				{
+					continue;
+				}
+
+				keptGuards.Add(condition);
+			}
+
+			statements.Add(statement);
+		}
+
+		return block.WithStatements(List(statements));
+	}
+
+	/// <summary>
+	///   Matches <c>if (C) goto label;</c> (no else; the then-branch is the bare goto or a block
+	///   wrapping only it) and returns its condition <c>C</c>.
+	/// </summary>
+	private static bool TryGetGotoGuardCondition(StatementSyntax statement, string label, out ExpressionSyntax condition)
+	{
+		condition = null!;
+
+		if (statement is not IfStatementSyntax { Else: null } ifStatement)
+		{
+			return false;
+		}
+
+		var then = ifStatement.Statement is BlockSyntax { Statements.Count: 1 } thenBlock
+			? thenBlock.Statements[0]
+			: ifStatement.Statement;
+
+		if (then is GotoStatementSyntax { Expression: IdentifierNameSyntax target } && target.Identifier.Text == label)
+		{
+			condition = ifStatement.Condition;
+			return true;
+		}
+
+		return false;
+	}
+
+	/// <summary>
+	///   Returns <see langword="true" /> when <paramref name="condition" /> makes no method calls
+	///   (side-effect free) and reads no variable assigned inside the loop body (loop-invariant),
+	///   so its value is identical on every unrolled iteration.
+	/// </summary>
+	private static bool IsPureLoopInvariant(ExpressionSyntax condition, ISet<string> assignedVariables)
+	{
+		foreach (var descendant in condition.DescendantNodesAndSelf())
+		{
+			switch (descendant)
+			{
+				case InvocationExpressionSyntax:
+					return false;
+				case IdentifierNameSyntax identifier when assignedVariables.Contains(identifier.Identifier.Text):
+					return false;
+			}
+		}
+
+		return true;
+	}
+
+	/// <summary>
 	///   Gets the items from a foreach collection expression.
 	/// </summary>
 	private IReadOnlyList<CSharpSyntaxNode>? GetForEachItems(SyntaxNode? collection)
@@ -558,7 +695,7 @@ public partial class ConstExprPartialRewriter
 	/// <summary>
 	///   Tries to unroll a foreach loop.
 	/// </summary>
-	private SyntaxNode? TryUnrollForEachLoop(ForEachStatementSyntax node, IReadOnlyList<CSharpSyntaxNode> items)
+	private SyntaxNode? TryUnrollForEachLoop(ForEachStatementSyntax node, IReadOnlyList<CSharpSyntaxNode> items, string? breakLabel = null)
 	{
 		var name = node.Identifier.Text;
 
@@ -632,7 +769,57 @@ public partial class ConstExprPartialRewriter
 			result = combined.Count == 1 ? combined[0] : Block(combined);
 		}
 
+		// In goto mode, turn the loop's own breaks into jumps to the caller-supplied label.
+		// Breaks belonging to inner loops/switches are left alone by the rewriter.
+		if (breakLabel is not null)
+		{
+			result = (StatementSyntax) new BreakToGotoRewriter(breakLabel).Visit(result);
+		}
+
 		return result;
+	}
+
+	/// <summary>
+	///   Rewrites <c>break;</c> statements that belong to the current (unrolled) loop into
+	///   <c>goto &lt;label&gt;;</c>. Breaks that target an inner loop or switch are preserved.
+	/// </summary>
+	private sealed class BreakToGotoRewriter(string label) : CSharpSyntaxRewriter
+	{
+		public override SyntaxNode? VisitBreakStatement(BreakStatementSyntax node)
+		{
+			return GotoStatement(SyntaxKind.GotoStatement, IdentifierName(label)).WithTriviaFrom(node);
+		}
+
+		// Do not descend into constructs that own their own break target.
+		public override SyntaxNode? VisitForStatement(ForStatementSyntax node)
+		{
+			return node;
+		}
+
+		public override SyntaxNode? VisitForEachStatement(ForEachStatementSyntax node)
+		{
+			return node;
+		}
+
+		public override SyntaxNode? VisitForEachVariableStatement(ForEachVariableStatementSyntax node)
+		{
+			return node;
+		}
+
+		public override SyntaxNode? VisitWhileStatement(WhileStatementSyntax node)
+		{
+			return node;
+		}
+
+		public override SyntaxNode? VisitDoStatement(DoStatementSyntax node)
+		{
+			return node;
+		}
+
+		public override SyntaxNode? VisitSwitchStatement(SwitchStatementSyntax node)
+		{
+			return node;
+		}
 	}
 
 	/// <summary>
