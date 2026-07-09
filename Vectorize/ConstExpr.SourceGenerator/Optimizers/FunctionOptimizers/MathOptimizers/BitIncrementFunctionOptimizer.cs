@@ -81,7 +81,7 @@ public class BitIncrementFunctionOptimizer() : BaseMathFunctionOptimizer("BitInc
 		builder.WriteWhitespace()
 			.WriteLine("var bits = BitConverter.SingleToInt32Bits(x);")
 			.WriteWhitespace()
-			.WriteLine("if ((bits & int.MaxValue) == 0) return Single.Epsilon;")
+			.WriteLine("if ((bits & Int32.MaxValue) == 0) return Single.Epsilon;")
 			.WriteWhitespace()
 			.WriteLine("bits += (bits >> 31) | 1;")
 			.WriteLine("return BitConverter.Int32BitsToSingle(bits);");
@@ -130,7 +130,7 @@ public class BitIncrementFunctionOptimizer() : BaseMathFunctionOptimizer("BitInc
 		builder.WriteWhitespace()
 			.WriteLine("var bits = BitConverter.DoubleToInt64Bits(x);")
 			.WriteWhitespace()
-			.WriteLine("if ((bits & long.MaxValue) == 0L) return Double.Epsilon;")
+			.WriteLine("if ((bits & Int64.MaxValue) == 0L) return Double.Epsilon;")
 			.WriteWhitespace()
 			.WriteLine("bits += (bits >> 63) | 1L;")
 			.WriteLine("return BitConverter.Int64BitsToDouble(bits);");

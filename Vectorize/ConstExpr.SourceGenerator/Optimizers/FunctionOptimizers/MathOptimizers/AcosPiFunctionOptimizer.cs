@@ -52,6 +52,9 @@ public class AcosPiFunctionOptimizer() : BaseMathFunctionOptimizer("AcosPi", n =
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
+		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+		var sqrtInvocation = GetMethodInvocation<SqrtFunctionOptimizer>(context, paramType);
+
 		builder.WriteLine("/// <summary>Fast polynomial approximation of inverse cosine divided by π (AcosPi) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Returns Acos(x) / π. Uses polynomial approximation with FusedMultiplyAdd. Handles negative values and optional NaN checks.</remarks>")
 			.WriteLine("""/// <param name="x">Input value in the range [-1, 1].</param>""")
@@ -65,13 +68,13 @@ public class AcosPiFunctionOptimizer() : BaseMathFunctionOptimizer("AcosPi", n =
 		}
 
 		builder.WriteLine("var negative = x < 0f;")
-			.WriteLine("x = Single.Abs(x);")
+			.WriteLine($"x = {absInvocation}<float, uint>(x);")
 			.WriteLine("if (x > 1.0f) x = 1.0f;")
 			.WriteWhitespace()
 			.WriteLine($"var p = {multiplyAdd(-0.00596227f, "x", 0.02363378f)};")
 			.WriteLine($"p = {multiplyAdd("p", "x", -0.06751894f)};")
 			.WriteLine($"p = {multiplyAdd("p", "x", 0.5f)};")
-			.WriteLine("p *= Single.Sqrt(1f - x);")
+			.WriteLine($"p *= {sqrtInvocation}(1f - x);")
 			.WriteWhitespace()
 			.WriteLine("return negative ? 1f - p : p;")
 			.EndBlock();
@@ -90,6 +93,9 @@ public class AcosPiFunctionOptimizer() : BaseMathFunctionOptimizer("AcosPi", n =
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
+		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+		var sqrtInvocation = GetMethodInvocation<SqrtFunctionOptimizer>(context, paramType);
+
 		builder.WriteLine("/// <summary>Fast polynomial approximation of inverse cosine divided by π (AcosPi) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Returns Acos(x) / π with higher precision coefficients. Handles negative values and optional NaN checks.</remarks>")
 			.WriteLine("""/// <param name="x">Input value in the range [-1, 1].</param>""")
@@ -103,13 +109,13 @@ public class AcosPiFunctionOptimizer() : BaseMathFunctionOptimizer("AcosPi", n =
 		}
 
 		builder.WriteLine("var negative = x < 0.0;")
-			.WriteLine("x = Double.Abs(x);")
+			.WriteLine($"x = {absInvocation}<double, ulong>(x);")
 			.WriteLine("if (x > 1.0) x = 1.0;")
 			.WriteWhitespace()
 			.WriteLine($"var p = {multiplyAdd(-0.0059622704862860465, "x", 0.023633778501171472)};")
 			.WriteLine($"p = {multiplyAdd("p", "x", -0.067518943563376579)};")
 			.WriteLine($"p = {multiplyAdd("p", "x", 0.5)};")
-			.WriteLine("p *= Double.Sqrt(1.0 - x);")
+			.WriteLine($"p *= {sqrtInvocation}(1.0 - x);")
 			.WriteWhitespace()
 			.WriteLine("return negative ? 1.0 - p : p;")
 			.EndBlock();

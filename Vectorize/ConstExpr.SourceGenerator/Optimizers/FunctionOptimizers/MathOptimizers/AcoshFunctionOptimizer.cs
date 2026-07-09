@@ -45,6 +45,9 @@ public class AcoshFunctionOptimizer() : BaseMathFunctionOptimizer("Acosh", n => 
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
+		var maxInvocation = GetMethodInvocation<MaxFunctionOptimizer>(context, paramType);
+		var sqrtInvocation = GetMethodInvocation<SqrtFunctionOptimizer>(context, paramType);
+
 		builder.WriteLine("/// <summary>Fast approximation of inverse hyperbolic cosine (Acosh) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses piecewise approximation with special handling for values near 1.0. Supports optional NaN checks.</remarks>")
 			.WriteLine("""/// <param name="x">Input value in the range [1.0, ∞). Values above ~1.84e19 return +Infinity.</param>""")
@@ -57,17 +60,17 @@ public class AcoshFunctionOptimizer() : BaseMathFunctionOptimizer("Acosh", n => 
 			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
 		}
 
-		builder.WriteLine("x = Single.MaxNative(x, 1.0f);")
+		builder.WriteLine($"x = {maxInvocation}(x, 1.0f);")
 			.WriteWhitespace()
 			.WriteLine("if (x < 1.5f)")
 			.StartBlock()
 			.WriteLine("var t = x - 1.0f;")
-			.WriteLine("var sqrt2t = Single.Sqrt(2.0f * t);")
+			.WriteLine($"var sqrt2t = {sqrtInvocation}(2.0f * t);")
 			.WriteLine($"var correction = {multiplyAdd("t", multiplyAdd("t", 0.01875f, -0.0833333f), 1f)};")
 			.WriteLine("return sqrt2t * correction;")
 			.EndBlock()
 			.WriteWhitespace()
-			.WriteLine($"var sqrtTerm = Single.Sqrt({multiplyAdd("x", "x", -1f)});")
+			.WriteLine($"var sqrtTerm = {sqrtInvocation}({multiplyAdd("x", "x", -1f)});")
 			.WriteLine("var arg  = x + sqrtTerm;")
 			.WriteLine("var bits = BitConverter.SingleToInt32Bits(arg);")
 			.WriteLine("var e    = (bits >> 23) - 127;")
@@ -93,6 +96,9 @@ public class AcoshFunctionOptimizer() : BaseMathFunctionOptimizer("Acosh", n => 
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
+		var sqrtInvocation = GetMethodInvocation<SqrtFunctionOptimizer>(context, paramType);
+		var maxInvocation = GetMethodInvocation<MaxFunctionOptimizer>(context, paramType);
+
 		builder.WriteLine("/// <summary>Fast approximation of inverse hyperbolic cosine (Acosh) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses piecewise approximation with higher precision coefficients and special handling for values near 1.0. Supports optional NaN checks.</remarks>")
 			.WriteLine("""/// <param name="x">Input value in the range [1.0, ∞). Values above ~1.34e154 return +Infinity.</param>""")
@@ -105,17 +111,17 @@ public class AcoshFunctionOptimizer() : BaseMathFunctionOptimizer("Acosh", n => 
 			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
 		}
 
-		builder.WriteLine("x = Double.MaxNative(x, 1.0);")
+		builder.WriteLine($"x = {maxInvocation}(x, 1.0);")
 			.WriteWhitespace()
 			.WriteLine("if (x < 1.5)")
 			.StartBlock()
 			.WriteLine("var t = x - 1.0;")
-			.WriteLine("var sqrt2t = Double.Sqrt(2.0 * t);")
+			.WriteLine($"var sqrt2t = {sqrtInvocation}(2.0 * t);")
 			.WriteLine($"var correction = {multiplyAdd("t", multiplyAdd("t", multiplyAdd("t", -0.005580357, 0.01875), -0.083333333333), 1.0)};")
 			.WriteLine("return sqrt2t * correction;")
 			.EndBlock()
 			.WriteWhitespace()
-			.WriteLine($"var sqrtTerm = Double.Sqrt({multiplyAdd("x", "x", -1.0)});")
+			.WriteLine($"var sqrtTerm = {sqrtInvocation}({multiplyAdd("x", "x", -1.0)});")
 			.WriteLine("var arg  = x + sqrtTerm;")
 			.WriteLine("var bits = BitConverter.DoubleToInt64Bits(arg);")
 			.WriteLine("var e    = (int)((bits >> 52) - 1023L);")

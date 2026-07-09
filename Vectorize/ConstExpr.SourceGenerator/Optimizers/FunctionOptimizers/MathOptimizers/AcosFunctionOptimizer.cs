@@ -53,6 +53,9 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
+		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+		var sqrtInvocation = GetMethodInvocation<SqrtFunctionOptimizer>(context, paramType);
+
 		builder.WriteLine("/// <summary>Fast polynomial approximation of inverse cosine (Acos) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses FusedMultiplyAdd for improved performance. Handles negative values and optional NaN checks.</remarks>")
 			.WriteLine("""/// <param name="x">Input value in the range [-1, 1].</param>""")
@@ -67,12 +70,11 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 		}
 
 		builder.WriteLine("var negative = x < 0f;")
-			.WriteLine($"x = {GetMethodInvocation<AbsFunctionOptimizer>(context, paramType)}<float, uint>(x);");
-
-		builder.WriteLine($"var p = {multiplyAdd(-0.0187293f, "x", 0.0742610f)};")
+			.WriteLine($"x = {absInvocation}<float, uint>(x);")
+			.WriteLine($"var p = {multiplyAdd(-0.0187293f, "x", 0.0742610f)};")
 			.WriteLine($"p = {multiplyAdd("p", "x", -0.2121144f)};")
 			.WriteLine($"p = {multiplyAdd("p", "x", 1.5707288f)};")
-			.WriteLine($"p *= {GetMethodInvocation<SqrtFunctionOptimizer>(context, paramType)}(1f - x);")
+			.WriteLine($"p *= {sqrtInvocation}(1f - x);")
 			.WriteLine("return negative ? Single.Pi - p : p;")
 			.EndBlock();
 
@@ -92,6 +94,9 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
+		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+		var sqrtInvocation = GetMethodInvocation<SqrtFunctionOptimizer>(context, paramType);
+
 		builder.WriteLine("/// <summary>Fast polynomial approximation of inverse cosine (Acos) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses a higher-precision polynomial with separate handling for values greater than 0.5. Handles negative values and optional NaN checks.</remarks>")
 			.WriteLine("""/// <param name="x">Input value in the range [-1, 1].</param>""")
@@ -106,10 +111,10 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 		}
 
 		builder.WriteLine("var negative = x < 0.0;")
-			.WriteLine($"x = {GetMethodInvocation<AbsFunctionOptimizer>(context, paramType)}<double, ulong>(x);")
+			.WriteLine($"x = {absInvocation}<double, ulong>(x);")
 			.WriteLine("var big = x > 0.5;")
 			.WriteWhitespace()
-			.WriteLine($"var t = big ? {GetMethodInvocation<SqrtFunctionOptimizer>(context, paramType)}((1.0 - x) * 0.5) : x;")
+			.WriteLine($"var t = big ? {sqrtInvocation}((1.0 - x) * 0.5) : x;")
 			.WriteLine("var u = t * t;")
 			.WriteWhitespace()
 			.WriteLine($"var p = {multiplyAdd("u", 945.0 / 42240.0, 105.0 / 3456.0)};")

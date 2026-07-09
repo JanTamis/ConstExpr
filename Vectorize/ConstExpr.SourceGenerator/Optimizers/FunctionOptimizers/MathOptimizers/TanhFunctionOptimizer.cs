@@ -112,6 +112,8 @@ public class TanhFunctionOptimizer() : BaseMathFunctionOptimizer("Tanh", n => n 
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
+		var roundInvocation = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
+
 		builder.WriteLine("/// <summary>Fast approximation of hyperbolic tangent (Tanh) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses a fast exponential formulation with saturation near the asymptotes.</remarks>")
 			.WriteLine("/// <param name=\"x\">Input value.</param>")
@@ -129,7 +131,7 @@ public class TanhFunctionOptimizer() : BaseMathFunctionOptimizer("Tanh", n => n 
 			.WriteWhitespace()
 			.WriteLine("var fx   = 2.0f * x;")
 			.WriteLine("var kf   = fx * 1.4426950408889634f;")
-			.WriteLine("var k    = (int)Single.Round(kf);")
+			.WriteLine($"var k    = (int){roundInvocation}(kf);")
 			.WriteLine("var r    = kf - k;")
 			.WriteWhitespace()
 			.WriteLine($"var p     = {multiplyAdd(0.055504108664821580f, "r", 0.240226506959100690f)};")
@@ -149,6 +151,9 @@ public class TanhFunctionOptimizer() : BaseMathFunctionOptimizer("Tanh", n => n 
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
+		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+		var roundInvocation = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
+
 		builder.WriteLine("/// <summary>Fast approximation of hyperbolic tangent (Tanh) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses a hybrid rational/fast-exp formulation with saturation near the asymptotes.</remarks>")
 			.WriteLine("/// <param name=\"x\">Input value.</param>")
@@ -164,7 +169,7 @@ public class TanhFunctionOptimizer() : BaseMathFunctionOptimizer("Tanh", n => n 
 		builder.WriteLine("if (x >= 19.0) return 1.0;")
 			.WriteLine("if (x <= -19.0) return -1.0;")
 			.WriteWhitespace()
-			.WriteLine("var absX = Double.Abs(x);")
+			.WriteLine($"var absX = {absInvocation}<double, ulong>(x);")
 			.WriteWhitespace()
 			.WriteLine("if (absX < 1.0)")
 			.StartBlock()
@@ -187,7 +192,7 @@ public class TanhFunctionOptimizer() : BaseMathFunctionOptimizer("Tanh", n => n 
 			.WriteWhitespace()
 			.WriteLine("var fx   = 2.0 * x;")
 			.WriteLine("var kf   = fx * 1.4426950408889634073599246810018921;")
-			.WriteLine("var k    = (long)Double.Round(kf);")
+			.WriteLine($"var k    = (long){roundInvocation}(kf);")
 			.WriteLine("var r    = kf - k;")
 			.WriteWhitespace()
 			.WriteLine($"var p     = {multiplyAdd(9.618129107628477232e-3, "r", 5.550410866482157995e-2)};")

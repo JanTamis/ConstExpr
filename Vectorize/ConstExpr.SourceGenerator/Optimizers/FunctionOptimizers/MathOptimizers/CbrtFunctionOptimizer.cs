@@ -39,6 +39,9 @@ public class CbrtFunctionOptimizer() : BaseMathFunctionOptimizer("Cbrt", n => n 
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
+		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
+
 		builder.WriteLine("/// <summary>Fast cube-root implementation for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses exponent bias approximation with Newton-style refinement and optional NaN handling.</remarks>")
 			.WriteLine("/// <param name=\"x\">Input floating-point value.</param>")
@@ -53,7 +56,7 @@ public class CbrtFunctionOptimizer() : BaseMathFunctionOptimizer("Cbrt", n => n 
 
 		builder.WriteLine("if (x == 0.0f) return 0.0f;")
 			.WriteWhitespace()
-			.WriteLine("var absX = Single.Abs(x);")
+			.WriteLine($"var absX = {absInvocation}<float, uint>(x);")
 			.WriteWhitespace()
 			.WriteLine("var i = BitConverter.SingleToInt32Bits(absX);")
 			.WriteLine("i = 0x2a517d47 + i / 3;")
@@ -64,7 +67,7 @@ public class CbrtFunctionOptimizer() : BaseMathFunctionOptimizer("Cbrt", n => n 
 			.WriteLine("var twoA = absX + absX;")
 			.WriteLine($"y = y * {multiplyAdd(1.0f, "y3", "twoA")} / {multiplyAdd(2.0f, "y3", "absX")};")
 			.WriteWhitespace()
-			.WriteLine("return Single.CopySign(y, x);");
+			.WriteLine($"return {copySignInvocation}(y, x);");
 
 		builder.EndBlock();
 
@@ -75,6 +78,9 @@ public class CbrtFunctionOptimizer() : BaseMathFunctionOptimizer("Cbrt", n => n 
 	{
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
+
+		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast cube-root implementation for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses exponent bias approximation with Newton-style refinement and optional NaN handling.</remarks>")
@@ -90,7 +96,7 @@ public class CbrtFunctionOptimizer() : BaseMathFunctionOptimizer("Cbrt", n => n 
 
 		builder.WriteLine("if (x == 0.0) return 0.0;")
 			.WriteWhitespace()
-			.WriteLine("var absX = Double.Abs(x);")
+			.WriteLine($"var absX = {absInvocation}<double, ulong>(x);")
 			.WriteWhitespace()
 			.WriteLine("var i = BitConverter.DoubleToInt64Bits(absX);")
 			.WriteLine("i = 0x2a9f8b7cef1d0da0L + i / 3;")
@@ -103,7 +109,7 @@ public class CbrtFunctionOptimizer() : BaseMathFunctionOptimizer("Cbrt", n => n 
 			.WriteLine("var twoA = absX + absX;")
 			.WriteLine($"y = y * {multiplyAdd(1.0, "y3", "twoA")} / {multiplyAdd(2.0, "y3", "absX")};")
 			.WriteWhitespace()
-			.WriteLine("return Double.CopySign(y, x);");
+			.WriteLine($"return {copySignInvocation}(y, x);");
 
 		builder.EndBlock();
 

@@ -39,7 +39,8 @@ public class CosFunctionOptimizer() : BaseMathFunctionOptimizer("Cos", n => n is
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
-		var absMethod = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+		var roundInvocation = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of cosine (Cos) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses argument reduction and a polynomial approximation with optional NaN handling.</remarks>")
@@ -53,9 +54,9 @@ public class CosFunctionOptimizer() : BaseMathFunctionOptimizer("Cos", n => n is
 			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
 		}
 
-		builder.WriteLine("x -= Single.Round(x * (1f / Single.Tau)) * Single.Tau;")
+		builder.WriteLine($"x -= {roundInvocation}(x * (1f / Single.Tau)) * Single.Tau;")
 			.WriteWhitespace()
-			.WriteLine($"x = {absMethod}<float, uint>(x);")
+			.WriteLine($"x = {absInvocation}<float, uint>(x);")
 			.WriteWhitespace()
 			.WriteLine("var x2 = x * x;")
 			.WriteLine("var ret = 0.0003538394f;")
@@ -76,7 +77,8 @@ public class CosFunctionOptimizer() : BaseMathFunctionOptimizer("Cos", n => n is
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
-		var absMethod = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+		var roundInvocation = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of cosine (Cos) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses argument reduction and a polynomial approximation with optional NaN handling.</remarks>")
@@ -90,9 +92,9 @@ public class CosFunctionOptimizer() : BaseMathFunctionOptimizer("Cos", n => n is
 			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
 		}
 
-		builder.WriteLine("x -= Double.Round(x * (1.0 / Double.Tau)) * Double.Tau;")
+		builder.WriteLine($"x -= {roundInvocation}(x * (1.0 / Double.Tau)) * Double.Tau;")
 			.WriteWhitespace()
-			.WriteLine($"x = {absMethod}<double, ulong>(x);")
+			.WriteLine($"x = {absInvocation}<double, ulong>(x);")
 			.WriteWhitespace()
 			.WriteLine("var x2 = x * x;")
 			.WriteLine("var ret = -1.1940250944959890e-7;")

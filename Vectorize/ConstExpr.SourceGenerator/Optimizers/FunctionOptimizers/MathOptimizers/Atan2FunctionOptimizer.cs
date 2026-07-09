@@ -119,6 +119,10 @@ public class Atan2FunctionOptimizer() : BaseMathFunctionOptimizer("Atan2", n => 
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
+		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+		var maxInvocation = GetMethodInvocation<MaxFunctionOptimizer>(context, paramType);
+		var minInvocation = GetMethodInvocation<MinFunctionOptimizer>(context, paramType);
+
 		builder.WriteLine("/// <summary>Fast approximation of arctangent with two arguments (Atan2) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses octant reduction, a minimax polynomial approximation, and branch-friendly quadrant corrections.</remarks>")
 			.WriteLine("/// <param name=\"y\">The y-coordinate.</param>")
@@ -133,13 +137,13 @@ public class Atan2FunctionOptimizer() : BaseMathFunctionOptimizer("Atan2", n => 
 				.WriteWhitespace();
 		}
 
-		builder.WriteLine("var absX = Single.Abs(x);")
-			.WriteLine("var absY = Single.Abs(y);")
-			.WriteLine("var maxV = Single.Max(absX, absY);")
+		builder.WriteLine($"var absX = {absInvocation}<float, uint>(x);")
+			.WriteLine($"var absY = {absInvocation}<float, uint>(y);")
+			.WriteLine($"var maxV = {maxInvocation}(absX, absY);")
 			.WriteWhitespace()
 			.WriteLine("if (maxV == 0f) return 0f;")
 			.WriteWhitespace()
-			.WriteLine("var a = Single.Min(absX, absY) / maxV;")
+			.WriteLine($"var a = {minInvocation}(absX, absY) / maxV;")
 			.WriteLine("var u = a * a;")
 			.WriteWhitespace()
 			.WriteLine($"var p = {multiplyAdd("u", 0.0208351f, -0.0851330f)};")
@@ -163,6 +167,11 @@ public class Atan2FunctionOptimizer() : BaseMathFunctionOptimizer("Atan2", n => 
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
+		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+		var maxInvocation = GetMethodInvocation<MaxFunctionOptimizer>(context, paramType);
+		var minInvocation = GetMethodInvocation<MinFunctionOptimizer>(context, paramType);
+		var sqrtInvocation = GetMethodInvocation<SqrtFunctionOptimizer>(context, paramType);
+
 		builder.WriteLine("/// <summary>Fast approximation of arctangent with two arguments (Atan2) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses a rational approximation with octant reduction and quadrant corrections.</remarks>")
 			.WriteLine("/// <param name=\"y\">The y-coordinate.</param>")
@@ -177,15 +186,15 @@ public class Atan2FunctionOptimizer() : BaseMathFunctionOptimizer("Atan2", n => 
 				.WriteWhitespace();
 		}
 
-		builder.WriteLine("var absX = Double.Abs(x);")
-			.WriteLine("var absY = Double.Abs(y);")
-			.WriteLine("var maxV = Double.Max(absX, absY);")
+		builder.WriteLine($"var absX = {absInvocation}<double, ulong>(x);")
+			.WriteLine($"var absY = {absInvocation}<double, ulong>(y);")
+			.WriteLine($"var maxV = {maxInvocation}(absX, absY);")
 			.WriteWhitespace()
 			.WriteLine("if (maxV == 0.0) return 0.0;")
 			.WriteWhitespace()
-			.WriteLine("var a = Double.Min(absX, absY) / maxV;")
+			.WriteLine($"var a = {minInvocation}(absX, absY) / maxV;")
 			.WriteWhitespace()
-			.WriteLine("var t = a / (1.0 + Double.Sqrt(1.0 + a * a));")
+			.WriteLine($"var t = a / (1.0 + {sqrtInvocation}(1.0 + a * a));")
 			.WriteLine("var u = t * t;")
 			.WriteWhitespace()
 			.WriteLine($"var p = {multiplyAdd("u", -1.0 / 15.0, 1.0 / 13.0)};")

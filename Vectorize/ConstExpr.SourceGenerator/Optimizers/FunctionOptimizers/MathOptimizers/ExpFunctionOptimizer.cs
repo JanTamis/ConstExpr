@@ -50,6 +50,8 @@ public class ExpFunctionOptimizer() : BaseMathFunctionOptimizer("Exp", n => n is
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
+		var roundMethod = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
+
 		builder.WriteLine("/// <summary>Fast approximation of the natural exponential (Exp) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses a base-2 reduction via log₂(e) and a polynomial approximation. Clamps at ±overflow bounds.</remarks>")
 			.WriteLine("/// <param name=\"x\">Input exponent value.</param>")
@@ -72,7 +74,7 @@ public class ExpFunctionOptimizer() : BaseMathFunctionOptimizer("Exp", n => n is
 			.WriteLine("if (x <= -87.0f) return 0.0f;")
 			.WriteWhitespace()
 			.WriteLine("var kf = x * 1.4426950408889634f;")
-			.WriteLine("var k  = (int)Single.Round(kf);")
+			.WriteLine($"var k  = (int){roundMethod}(kf);")
 			.WriteLine("var r  = kf - k;")
 			.WriteWhitespace()
 			.WriteLine($"var p    = {multiplyAdd(0.055504108664821580f, "r", 0.240226506959100690f)};")
@@ -90,6 +92,8 @@ public class ExpFunctionOptimizer() : BaseMathFunctionOptimizer("Exp", n => n is
 	{
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
+
+		var roundMethod = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of the natural exponential (Exp) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses a base-2 reduction via log₂(e) and a polynomial approximation. Clamps at ±overflow bounds.</remarks>")
@@ -113,7 +117,7 @@ public class ExpFunctionOptimizer() : BaseMathFunctionOptimizer("Exp", n => n is
 			.WriteLine("if (x <= -708.0) return 0.0;")
 			.WriteWhitespace()
 			.WriteLine("var kf = x * 1.4426950408889634073599246810018921;")
-			.WriteLine("var k  = (long)Double.Round(kf);")
+			.WriteLine($"var k  = (long){roundMethod}(kf);")
 			.WriteLine("var r  = kf - k;")
 			.WriteWhitespace()
 			.WriteLine($"var p    = {multiplyAdd(9.618129107628477232e-3, "r", 5.550410866482157995e-2)};")

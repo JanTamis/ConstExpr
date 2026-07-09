@@ -183,6 +183,8 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
+		var roundMethod = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
+
 		builder.WriteLine("/// <summary>Fast approximation of exponentiation (Pow) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses exponent extraction, logarithmic reduction, and a polynomial approximation for exp2(y·log2(x)).</remarks>")
 			.WriteLine("/// <param name=\"x\">The base value.</param>")
@@ -213,7 +215,7 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is
 			.WriteLine("var log2x   = iexp + log2m;")
 			.WriteWhitespace()
 			.WriteLine("var tv = y * log2x;")
-			.WriteLine("var k  = (long)Double.Round(tv);")
+			.WriteLine($"var k  = (long){roundMethod}(tv);")
 			.WriteLine("var f  = tv - k;")
 			.WriteWhitespace()
 			.WriteLine($"var p     = {multiplyAdd(1.5253300202639438e-5, "f", 1.5403530390456690e-4)};")
@@ -235,6 +237,8 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is
 	{
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
+
+		var roundMethod = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of exponentiation (Pow) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses exponent extraction, logarithmic reduction, and a polynomial approximation for exp2(y·log2(x)).</remarks>")
@@ -266,7 +270,7 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is
 			.WriteLine("var log2x   = iexp + log2m;")
 			.WriteWhitespace()
 			.WriteLine("var tv = y * log2x;")
-			.WriteLine("var k  = (int)Single.Round(tv);")
+			.WriteLine($"var k  = (int){roundMethod}(tv);")
 			.WriteLine("var f  = tv - k;")
 			.WriteWhitespace()
 			.WriteLine($"var p     = {multiplyAdd(1.3333558146428443e-3f, "f", 9.6181291076284772e-3f)};")

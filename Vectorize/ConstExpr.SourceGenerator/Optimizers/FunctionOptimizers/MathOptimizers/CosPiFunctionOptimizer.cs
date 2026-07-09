@@ -39,6 +39,9 @@ public class CosPiFunctionOptimizer() : BaseMathFunctionOptimizer("CosPi", n => 
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
+		var roundInvocation = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
+		var absMethodInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+
 		builder.WriteLine("/// <summary>Fast approximation of cosine divided by π (CosPi) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses argument reduction and a polynomial approximation with optional NaN handling. Returns cos(πx).</remarks>")
 			.WriteLine("/// <param name=\"x\">Input value.</param>")
@@ -52,8 +55,8 @@ public class CosPiFunctionOptimizer() : BaseMathFunctionOptimizer("CosPi", n => 
 		}
 
 		builder.WriteWhitespace()
-			.WriteLine("x -= Single.Round(x * 0.5f) * 2.0f;")
-			.WriteLine("x  = Single.Abs(x);")
+			.WriteLine($"x -= {roundInvocation}(x * 0.5f) * 2.0f;")
+			.WriteLine($"x  = {absMethodInvocation}<float, uint>(x);")
 			.WriteWhitespace()
 			.WriteLine("var v  = (x - 0.5f) * Single.Pi;")
 			.WriteLine("var v2 = v * v;")
@@ -73,6 +76,9 @@ public class CosPiFunctionOptimizer() : BaseMathFunctionOptimizer("CosPi", n => 
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
+		var roundInvocation = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
+		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+
 		builder.WriteLine("/// <summary>Fast approximation of cosine divided by π (CosPi) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses argument reduction and a polynomial approximation with optional NaN handling. Returns cos(πx).</remarks>")
 			.WriteLine("/// <param name=\"x\">Input value.</param>")
@@ -86,8 +92,8 @@ public class CosPiFunctionOptimizer() : BaseMathFunctionOptimizer("CosPi", n => 
 		}
 
 		builder.WriteWhitespace()
-			.WriteLine("x -= Double.Round(x * 0.5) * 2.0;")
-			.WriteLine("x  = Double.Abs(x);")
+			.WriteLine($"x -= {roundInvocation}(x * 0.5) * 2.0;")
+			.WriteLine($"x  = {absInvocation}<double, ulong>(x);")
 			.WriteWhitespace()
 			.WriteLine("var v  = (x - 0.5) * Double.Pi;")
 			.WriteLine("var v2 = v * v;")

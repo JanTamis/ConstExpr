@@ -39,6 +39,10 @@ public class SinCosPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinCosPi",
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
+		var roundInvocation = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
+		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
+
 		builder.WriteLine("/// <summary>Fast simultaneous sine and cosine approximation for values interpreted as multiples of π (single-precision).</summary>")
 			.WriteLine("/// <remarks>Uses range reduction modulo 2 and paired polynomial approximations for sin(πx) and cos(πx).</remarks>")
 			.WriteLine("/// <param name=\"x\">Input value measured in multiples of π.</param>")
@@ -52,10 +56,10 @@ public class SinCosPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinCosPi",
 		}
 
 		builder.WriteWhitespace()
-			.WriteLine("x -= Single.Round(x * 0.5f) * 2.0f;")
+			.WriteLine($"x -= {roundInvocation}(x * 0.5f) * 2.0f;")
 			.WriteWhitespace()
 			.WriteLine("var originalSign = x;")
-			.WriteLine("var absX = Single.Abs(x);")
+			.WriteLine($"var absX = {absInvocation}<float, uint>(x);")
 			.WriteWhitespace()
 			.WriteLine("var inUpperHalf = absX > 0.5f;")
 			.WriteLine("var u = inUpperHalf ? (1.0f - absX) : absX;")
@@ -68,7 +72,7 @@ public class SinCosPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinCosPi",
 			.WriteLine($"sinVal = {multiplyAdd("sinVal", "u2", 3.1415927f)};")
 			.WriteLine("sinVal = sinVal * u;")
 			.WriteWhitespace()
-			.WriteLine("sinVal = Single.CopySign(sinVal, originalSign);")
+			.WriteLine($"sinVal = {copySignInvocation}(sinVal, originalSign);")
 			.WriteWhitespace()
 			.WriteLine("var cosVal = -1.3352627f;")
 			.WriteLine($"cosVal = {multiplyAdd("cosVal", "u2", 4.0587121f)};")
@@ -89,6 +93,10 @@ public class SinCosPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinCosPi",
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
+		var roundInvocation = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
+		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
+
 		builder.WriteLine("/// <summary>Fast simultaneous sine and cosine approximation for values interpreted as multiples of π (double-precision).</summary>")
 			.WriteLine("/// <remarks>Uses range reduction modulo 2 and paired polynomial approximations for sin(πx) and cos(πx).</remarks>")
 			.WriteLine("/// <param name=\"x\">Input value measured in multiples of π.</param>")
@@ -102,10 +110,10 @@ public class SinCosPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinCosPi",
 		}
 
 		builder.WriteWhitespace()
-			.WriteLine("x -= Double.Round(x * 0.5) * 2.0;")
+			.WriteLine($"x -= {roundInvocation}(x * 0.5) * 2.0;")
 			.WriteWhitespace()
 			.WriteLine("var originalSign = x;")
-			.WriteLine("var absX = Double.Abs(x);")
+			.WriteLine($"var absX = {absInvocation}<double, ulong>(x);")
 			.WriteWhitespace()
 			.WriteLine("var inUpperHalf = absX > 0.5;")
 			.WriteLine("var u = inUpperHalf ? (1.0 - absX) : absX;")
@@ -119,7 +127,7 @@ public class SinCosPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinCosPi",
 			.WriteLine($"sinVal = {multiplyAdd("sinVal", "u2", 3.1415926535897932)};")
 			.WriteLine("sinVal = sinVal * u;")
 			.WriteWhitespace()
-			.WriteLine("sinVal = Double.CopySign(sinVal, originalSign);")
+			.WriteLine($"sinVal = {copySignInvocation}(sinVal, originalSign);")
 			.WriteWhitespace()
 			.WriteLine("var cosVal = 0.23533075157732439;")
 			.WriteLine($"cosVal = {multiplyAdd("cosVal", "u2", -1.3352627312227247)};")

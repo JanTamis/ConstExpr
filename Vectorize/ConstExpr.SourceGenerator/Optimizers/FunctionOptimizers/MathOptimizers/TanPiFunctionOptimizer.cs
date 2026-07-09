@@ -108,6 +108,10 @@ public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", n => 
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
+		var roundInvocation = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
+		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
+
 		builder.WriteLine("/// <summary>Fast approximation of tangent divided by π (TanPi) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses range reduction and a Padé approximation; values near the asymptote are handled via reciprocal form.</remarks>")
 			.WriteLine("/// <param name=\"x\">Input value measured in multiples of π.</param>")
@@ -121,10 +125,10 @@ public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", n => 
 		}
 
 		builder
-			.WriteLine("x -= Single.Round(x);")
+			.WriteLine($"x -= {roundInvocation}(x);")
 			.WriteWhitespace()
 			.WriteLine("var signX = x;")
-			.WriteLine("x = Single.Abs(x); // [0, 0.5]")
+			.WriteLine($"x = {absInvocation}<float, uint>(x); // [0, 0.5]")
 			.WriteWhitespace()
 			.WriteLine("var swap = x > 0.25f;")
 			.WriteLine("var xf   = swap ? 0.5f - x : x;")
@@ -139,7 +143,7 @@ public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", n => 
 			.WriteLine("var t = num / den;")
 			.WriteLine("if (swap) t = 1.0f / t;")
 			.WriteWhitespace()
-			.WriteLine("return Single.CopySign(t, signX);")
+			.WriteLine($"return {copySignInvocation}(t, signX);")
 			.EndBlock();
 
 		return builder.ToString();
@@ -149,6 +153,10 @@ public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", n => 
 	{
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
+
+		var roundInvocation = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
+		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of tangent divided by π (TanPi) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses range reduction and a Padé approximation; values near the asymptote are handled via reciprocal form.</remarks>")
@@ -163,10 +171,10 @@ public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", n => 
 		}
 
 		builder
-			.WriteLine("x -= Double.Round(x);")
+			.WriteLine($"x -= {roundInvocation}(x);")
 			.WriteWhitespace()
 			.WriteLine("var signX = x;")
-			.WriteLine("x = Double.Abs(x); // [0, 0.5]")
+			.WriteLine($"x = {absInvocation}<double, ulong>(x); // [0, 0.5]")
 			.WriteWhitespace()
 			.WriteLine("var swap = x > 0.25;")
 			.WriteLine("var xf   = swap ? 0.5 - x : x;")
@@ -182,7 +190,7 @@ public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", n => 
 			.WriteLine("var t = num / den;")
 			.WriteLine("if (swap) t = 1.0 / t;")
 			.WriteWhitespace()
-			.WriteLine("return Double.CopySign(t, signX);")
+			.WriteLine($"return {copySignInvocation}(t, signX);")
 			.EndBlock();
 
 		return builder.ToString();

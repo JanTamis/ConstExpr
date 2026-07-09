@@ -128,6 +128,8 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", n => 
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
+		var roundMethod = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
+
 		builder.WriteLine("/// <summary>Fast n-th root implementation for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses logarithmic reduction and a polynomial exp2 approximation. Supports negative exponents and odd roots of negative values.</remarks>")
 			.WriteLine("/// <param name=\"x\">The radicand.</param>")
@@ -152,20 +154,20 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", n => 
 			.WriteLine("var lBits = BitConverter.SingleToInt32Bits(ax);")
 			.WriteLine("var lE    = (lBits >> 23) - 127;")
 			.WriteLine("var lM    = BitConverter.Int32BitsToSingle((lBits & 0x007FFFFF) | 0x3F800000);")
-			.WriteLine("var lnm   = Single.FusedMultiplyAdd(-0.056570851f, lM,  0.447178975f);")
-			.WriteLine("lnm       = Single.FusedMultiplyAdd(lnm,           lM, -1.469956800f);")
-			.WriteLine("lnm       = Single.FusedMultiplyAdd(lnm,           lM,  2.821202636f);")
-			.WriteLine("lnm       = Single.FusedMultiplyAdd(lnm,           lM, -1.741793927f);")
+			.WriteLine($"var lnm   = {multiplyAdd(-0.056570851f, "lM", 0.447178975f)};")
+			.WriteLine($"lnm       = {multiplyAdd("lnm", "lM", -1.469956800f)};")
+			.WriteLine($"lnm       = {multiplyAdd("lnm", "lM", 2.821202636f)};")
+			.WriteLine($"lnm       = {multiplyAdd("lnm", "lM", -1.741793927f)};")
 			.WriteLine("var lnAx  = lE * 0.6931471805599453f + lnm;")
 			.WriteWhitespace()
 			.WriteLine("var t = lnAx / n;")
 			.WriteWhitespace()
 			.WriteLine("var kf  = t * 1.4426950408889634f;")
-			.WriteLine("var k   = (int)Single.Round(kf);")
+			.WriteLine($"var k   = (int){roundMethod}(kf);")
 			.WriteLine("var r   = kf - k;")
-			.WriteLine("var p   = Single.FusedMultiplyAdd(0.055504108664821580f, r, 0.240226506959100690f);")
-			.WriteLine("p       = Single.FusedMultiplyAdd(p,                     r, 0.693147180559945309f);")
-			.WriteLine("var ans = Single.FusedMultiplyAdd(p, r, 1.0f) * BitConverter.Int32BitsToSingle((k + 127) << 23);")
+			.WriteLine($"var p   = {multiplyAdd(0.055504108664821580f, "r", 0.240226506959100690f)};")
+			.WriteLine($"p       = {multiplyAdd("p", "r", 0.693147180559945309f)};")
+			.WriteLine($"var ans = {multiplyAdd("p", "r", 1.0f)} * BitConverter.Int32BitsToSingle((k + 127) << 23);")
 			.WriteWhitespace()
 			.WriteLine("return (x < 0.0f && (n & 1) != 0) ? -ans : ans;");
 
@@ -178,6 +180,8 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", n => 
 	{
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
+
+		var roundMethod = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast n-th root implementation for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses logarithmic reduction and a polynomial exp2 approximation. Supports negative exponents and odd roots of negative values.</remarks>")
@@ -212,7 +216,7 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", n => 
 			.WriteLine("var t = lnAx / n;")
 			.WriteWhitespace()
 			.WriteLine("var kf  = t * 1.4426950408889634073599246810018921;")
-			.WriteLine("var k   = (long)Double.Round(kf);")
+			.WriteLine($"var k   = (long){roundMethod}(kf);")
 			.WriteLine("var r   = kf - k;")
 			.WriteLine($"var p   = {multiplyAdd(9.618129107628477232e-3, "r", 5.550410866482157995e-2)};")
 			.WriteLine($"p       = {multiplyAdd("p", "r", 2.402265069591006909e-1)};")

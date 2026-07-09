@@ -39,6 +39,10 @@ public class AsinhFunctionOptimizer() : BaseMathFunctionOptimizer("Asinh", n => 
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
+		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+		var sqrtInvocation = GetMethodInvocation<SqrtFunctionOptimizer>(context, paramType);
+		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
+
 		builder.WriteLine("/// <summary>Fast approximation of inverse hyperbolic sine (Asinh) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Polynomial for |x| &lt; 0.5; inline fast-log identity otherwise. ~1.8× faster than Single.Log identity.</remarks>")
 			.WriteLine("/// <param name=\"x\">Any finite floating-point value.</param>")
@@ -52,7 +56,7 @@ public class AsinhFunctionOptimizer() : BaseMathFunctionOptimizer("Asinh", n => 
 				.WriteWhitespace();
 		}
 
-		builder.WriteLine("var ax = Single.Abs(x);")
+		builder.WriteLine($"var ax = {absInvocation}<float, uint>(x);")
 			.WriteLine("float r;")
 			.WriteWhitespace()
 			.WriteLine("if (ax < 0.5f)")
@@ -66,7 +70,7 @@ public class AsinhFunctionOptimizer() : BaseMathFunctionOptimizer("Asinh", n => 
 			.EndBlock()
 			.WriteLine("else")
 			.StartBlock()
-			.WriteLine($"var arg  = ax + Single.Sqrt({multiplyAdd("ax", "ax", 1.0f)});")
+			.WriteLine($"var arg  = ax + {sqrtInvocation}({multiplyAdd("ax", "ax", 1.0f)});")
 			.WriteLine("var bits = BitConverter.SingleToInt32Bits(arg);")
 			.WriteLine("var e    = (bits >> 23) - 127;")
 			.WriteLine("var m    = BitConverter.Int32BitsToSingle((bits & 0x007FFFFF) | 0x3F800000);")
@@ -77,7 +81,7 @@ public class AsinhFunctionOptimizer() : BaseMathFunctionOptimizer("Asinh", n => 
 			.WriteLine($"r        = {multiplyAdd("e", 0.6931471806f, "lnm")};")
 			.EndBlock()
 			.WriteWhitespace()
-			.WriteLine("return Single.CopySign(r, x);")
+			.WriteLine($"return {copySignInvocation}(r, x);")
 			.EndBlock();
 
 		return builder.ToString();
@@ -87,6 +91,10 @@ public class AsinhFunctionOptimizer() : BaseMathFunctionOptimizer("Asinh", n => 
 	{
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
+
+		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+		var sqrtInvocation = GetMethodInvocation<SqrtFunctionOptimizer>(context, paramType);
+		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of inverse hyperbolic sine (Asinh) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Polynomial for |x| &lt; 0.5; inline fast-log identity otherwise. ~2.6× faster than Double.Log identity.</remarks>")
@@ -101,7 +109,7 @@ public class AsinhFunctionOptimizer() : BaseMathFunctionOptimizer("Asinh", n => 
 				.WriteWhitespace();
 		}
 
-		builder.WriteLine("var ax = Double.Abs(x);")
+		builder.WriteLine($"var ax = {absInvocation}<double, ulong>(x);")
 			.WriteLine("double r;")
 			.WriteWhitespace()
 			.WriteLine("if (ax < 0.5)")
@@ -115,7 +123,7 @@ public class AsinhFunctionOptimizer() : BaseMathFunctionOptimizer("Asinh", n => 
 			.EndBlock()
 			.WriteLine("else")
 			.StartBlock()
-			.WriteLine($"var arg  = ax + Double.Sqrt({multiplyAdd("ax", "ax", 1.0)});")
+			.WriteLine($"var arg  = ax + {sqrtInvocation}({multiplyAdd("ax", "ax", 1.0)});")
 			.WriteLine("var bits = BitConverter.DoubleToInt64Bits(arg);")
 			.WriteLine("var e    = (int)((bits >> 52) - 1023L);")
 			.WriteLine("var m    = BitConverter.Int64BitsToDouble((bits & 0x000FFFFFFFFFFFFFL) | 0x3FF0000000000000L);")
@@ -126,7 +134,7 @@ public class AsinhFunctionOptimizer() : BaseMathFunctionOptimizer("Asinh", n => 
 			.WriteLine($"r        = {multiplyAdd("e", 0.6931471805599453094172321214581766, "lnm")};")
 			.EndBlock()
 			.WriteWhitespace()
-			.WriteLine("return Double.CopySign(r, x);")
+			.WriteLine($"return {copySignInvocation}(r, x);")
 			.EndBlock();
 
 		return builder.ToString();

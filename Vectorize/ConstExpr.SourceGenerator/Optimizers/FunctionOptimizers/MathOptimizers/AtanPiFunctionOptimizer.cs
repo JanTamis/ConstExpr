@@ -93,6 +93,8 @@ public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", n =
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
+		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+
 		builder.WriteLine("/// <summary>Fast approximation of arctangent divided by π (AtanPi) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses range reduction, a polynomial approximation, and optional NaN handling. Returns atan(x) / π.</remarks>")
 			.WriteLine("/// <param name=\"x\">Input value.</param>")
@@ -105,7 +107,7 @@ public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", n =
 			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
 		}
 
-		builder.WriteLine("var absX = Single.Abs(x);")
+		builder.WriteLine($"var absX = {absInvocation}<float, uint>(x);")
 			.WriteLine("var swap = absX > 1.0f;")
 			.WriteLine("var a = swap ? 1.0f / absX : absX;")
 			.WriteWhitespace()
@@ -129,6 +131,8 @@ public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", n =
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
+		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+
 		builder.WriteLine("/// <summary>Fast approximation of arctangent divided by π (AtanPi) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses range reduction, a polynomial approximation, and optional NaN handling. Returns atan(x) / π.</remarks>")
 			.WriteLine("/// <param name=\"x\">Input value.</param>")
@@ -141,7 +145,7 @@ public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", n =
 			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
 		}
 
-		builder.WriteLine("var absX = Double.Abs(x);")
+		builder.WriteLine($"var absX = {absInvocation}<double, ulong>(x);")
 			.WriteLine("var swap = absX > 1.0;")
 			.WriteLine("var a = swap ? 1.0 / absX : absX;")
 			.WriteLine("var u = a * a;")

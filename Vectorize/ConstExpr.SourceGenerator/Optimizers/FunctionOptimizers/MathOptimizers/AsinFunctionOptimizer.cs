@@ -46,6 +46,10 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n 
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
+		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+		var sqrtInvocation = GetMethodInvocation<SqrtFunctionOptimizer>(context, paramType);
+		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
+
 		builder.WriteLine("/// <summary>Fast approximation of inverse sine (Asin) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses a piecewise polynomial approximation with FusedMultiplyAdd and special handling near zero and near one.</remarks>")
 			.WriteLine("/// <param name=\"x\">Input value in the range [-1, 1].</param>")
@@ -60,7 +64,7 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n 
 
 		builder.WriteLine("if (x < -1.0f) x = -1.0f;")
 			.WriteLine("if (x > 1.0f)  x =  1.0f;")
-			.WriteLine("var xa = Single.Abs(x);")
+			.WriteLine($"var xa = {absInvocation}<float, uint>(x);")
 			.WriteLine("if (xa < 0.5f)")
 			.StartBlock()
 			.WriteLine("var x2 = xa * xa;")
@@ -68,11 +72,11 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n 
 			.WriteLine($"ret = {multiplyAdd("ret", "x2", 1.0f)};")
 			.WriteLine("ret *= xa;")
 			.WriteWhitespace()
-			.WriteLine("return Single.CopySign(ret, x);")
+			.WriteLine($"return {copySignInvocation}(ret, x);")
 			.EndBlock()
 			.WriteWhitespace()
 			.WriteLine("var onemx = 1.0f - xa;")
-			.WriteLine("var sqrtOnemx = Single.Sqrt(onemx);")
+			.WriteLine($"var sqrtOnemx = {sqrtInvocation}(onemx);")
 			.WriteLine("var p = -0.0187293f;")
 			.WriteWhitespace()
 			.WriteLine($"p = {multiplyAdd("p", "xa", 0.0742610f)};")
@@ -81,7 +85,7 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n 
 			.WriteLine("p *= sqrtOnemx;")
 			.WriteLine("p = 1.5707963267948966f - p;")
 			.WriteWhitespace()
-			.WriteLine("return Single.CopySign(p, x);")
+			.WriteLine($"return {copySignInvocation}(p, x);")
 			.RemoveIndent();
 
 		return builder.ToString();
@@ -91,6 +95,10 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n 
 	{
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
+
+		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+		var sqrtInvocation = GetMethodInvocation<SqrtFunctionOptimizer>(context, paramType);
+		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of inverse sine (Asin) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses a piecewise polynomial approximation with FusedMultiplyAdd and special handling near zero and near one.</remarks>")
@@ -107,7 +115,7 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n 
 		builder.WriteLine("if (x < -1.0) x = -1.0;")
 			.WriteLine("if (x > 1.0)  x =  1.0;")
 			.WriteWhitespace()
-			.WriteLine("var xa = Double.Abs(x);")
+			.WriteLine($"var xa = {absInvocation}<double, ulong>(x);")
 			.WriteWhitespace()
 			.WriteLine("if (xa < 0.5)")
 			.StartBlock()
@@ -116,11 +124,11 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n 
 			.WriteLine($"ret = {multiplyAdd("ret", "x2", 1.0)};")
 			.WriteLine("ret *= xa;")
 			.WriteWhitespace()
-			.WriteLine("return Double.CopySign(ret, x);")
+			.WriteLine($"return {copySignInvocation}(ret, x);")
 			.EndBlock()
 			.WriteWhitespace()
 			.WriteLine("var onemx = 1.0 - xa;")
-			.WriteLine("var sqrtOnemx = Double.Sqrt(onemx);")
+			.WriteLine($"var sqrtOnemx = {sqrtInvocation}(onemx);")
 			.WriteLine("var p = -0.0187293;")
 			.WriteWhitespace()
 			.WriteLine($"p = {multiplyAdd("p", "xa", 0.0742610)};")
@@ -129,7 +137,7 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n 
 			.WriteLine("p *= sqrtOnemx;")
 			.WriteLine("p = 1.5707963267948966 - p;")
 			.WriteWhitespace()
-			.WriteLine("return Double.CopySign(p, x);")
+			.WriteLine($"return {copySignInvocation}(p, x);")
 			.EndBlock();
 
 		return builder.ToString();

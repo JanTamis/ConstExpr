@@ -106,6 +106,10 @@ public class TanFunctionOptimizer() : BaseMathFunctionOptimizer("Tan", n => n is
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
+		var roundInvocation = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
+		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
+
 		builder.WriteLine("/// <summary>Fast approximation of tangent (Tan) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses range reduction and a rational approximation, with a reciprocal form near the asymptote.</remarks>")
 			.WriteLine("/// <param name=\"x\">Input angle in radians.</param>")
@@ -118,10 +122,10 @@ public class TanFunctionOptimizer() : BaseMathFunctionOptimizer("Tan", n => n is
 			.WriteLine("const float HalfPi = Single.Pi * 0.5f;")
 			.WriteWhitespace()
 			.WriteLine("// Range reduce to (−π/2, π/2) — tan's period is π")
-			.WriteLine("var quotient = Single.Round(x * InvPi);")
+			.WriteLine($"var quotient = {roundInvocation}(x * InvPi);")
 			.WriteLine($"var xReduced = {multiplyAdd("-quotient", "Single.Pi", "x")};")
 			.WriteWhitespace()
-			.WriteLine("var absX          = Single.Abs(xReduced);")
+			.WriteLine($"var absX          = {absInvocation}<float, uint>(xReduced);")
 			.WriteLine("var nearAsymptote = absX > 1.4f;")
 			.WriteWhitespace()
 			.WriteLine("var arg = nearAsymptote ? HalfPi - absX : xReduced;")
@@ -141,7 +145,7 @@ public class TanFunctionOptimizer() : BaseMathFunctionOptimizer("Tan", n => n is
 			.WriteWhitespace()
 			.WriteLine("if (nearAsymptote)")
 			.StartBlock()
-			.WriteLine("return Single.CopySign(den / num, xReduced);")
+			.WriteLine($"return {copySignInvocation}(den / num, xReduced);")
 			.EndBlock()
 			.WriteWhitespace()
 			.WriteLine("return num / den;")
@@ -155,6 +159,10 @@ public class TanFunctionOptimizer() : BaseMathFunctionOptimizer("Tan", n => n is
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
+		var roundInvocation = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
+		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
+
 		builder.WriteLine("/// <summary>Fast approximation of tangent (Tan) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses range reduction and a rational approximation, with a reciprocal form near the asymptote.</remarks>")
 			.WriteLine("/// <param name=\"x\">Input angle in radians.</param>")
@@ -166,10 +174,10 @@ public class TanFunctionOptimizer() : BaseMathFunctionOptimizer("Tan", n => n is
 			.WriteLine("const double InvPi  = 1.0 / Double.Pi;")
 			.WriteLine("const double HalfPi = Double.Pi * 0.5;")
 			.WriteWhitespace()
-			.WriteLine("var quotient = Double.Round(x * InvPi);")
+			.WriteLine($"var quotient = {roundInvocation}(x * InvPi);")
 			.WriteLine($"var xReduced = {multiplyAdd("-quotient", "Double.Pi", "x")};")
 			.WriteWhitespace()
-			.WriteLine("var absX          = Double.Abs(xReduced);")
+			.WriteLine($"var absX          = {absInvocation}<double, ulong>(xReduced);")
 			.WriteLine("var nearAsymptote = absX > 1.4;")
 			.WriteWhitespace()
 			.WriteLine("var arg = nearAsymptote ? HalfPi - absX : xReduced;")
@@ -193,7 +201,7 @@ public class TanFunctionOptimizer() : BaseMathFunctionOptimizer("Tan", n => n is
 			.WriteWhitespace()
 			.WriteLine("if (nearAsymptote)")
 			.StartBlock()
-			.WriteLine("return Double.CopySign(den / num, xReduced);")
+			.WriteLine($"return {copySignInvocation}(den / num, xReduced);")
 			.EndBlock()
 			.WriteWhitespace()
 			.WriteLine("return num / den;")

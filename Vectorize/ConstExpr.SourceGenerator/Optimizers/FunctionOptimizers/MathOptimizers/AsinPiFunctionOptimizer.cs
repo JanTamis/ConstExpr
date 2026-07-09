@@ -46,6 +46,10 @@ public class AsinPiFunctionOptimizer() : BaseMathFunctionOptimizer("AsinPi", n =
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
+		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
+		var sqrtInvocation = GetMethodInvocation<SqrtFunctionOptimizer>(context, paramType);
+
 		builder.WriteLine("/// <summary>Fast approximation of inverse sine divided by π (AsinPi) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses a piecewise approximation with FusedMultiplyAdd, returning Asin(x) / π in the range [-0.5, 0.5].</remarks>")
 			.WriteLine("/// <param name=\"x\">Input value in the range [-1, 1].</param>")
@@ -62,7 +66,7 @@ public class AsinPiFunctionOptimizer() : BaseMathFunctionOptimizer("AsinPi", n =
 		builder.WriteLine("if (x < -1.0f) x = -1.0f;")
 			.WriteLine("if (x > 1.0f) x = 1.0f;")
 			.WriteWhitespace()
-			.WriteLine("var xa = Single.Abs(x);")
+			.WriteLine($"var xa = {absInvocation}<float, uint>(x);")
 			.WriteWhitespace()
 			.WriteLine("if (xa < 0.5f)")
 			.StartBlock()
@@ -71,12 +75,12 @@ public class AsinPiFunctionOptimizer() : BaseMathFunctionOptimizer("AsinPi", n =
 			.WriteLine($"ret = {multiplyAdd("ret", "x2", 1.0f)};")
 			.WriteLine("ret = ret * xa * 0.31830988618379067f;")
 			.WriteWhitespace()
-			.WriteLine("return Single.CopySign(ret, x);")
+			.WriteLine($"return {copySignInvocation}(ret, x);")
 			.EndBlock()
 			.WriteLine("else")
 			.StartBlock()
 			.WriteLine("var onemx = 1.0f - xa;")
-			.WriteLine("var sqrt_onemx = Single.Sqrt(onemx);")
+			.WriteLine($"var sqrt_onemx = {sqrtInvocation}(onemx);")
 			.WriteWhitespace()
 			.WriteLine("var ret = -0.0187293f;")
 			.WriteLine($"ret = {multiplyAdd("ret", "xa", 0.0742610f)};")
@@ -85,7 +89,7 @@ public class AsinPiFunctionOptimizer() : BaseMathFunctionOptimizer("AsinPi", n =
 			.WriteLine("ret = ret * sqrt_onemx;")
 			.WriteLine($"ret = {multiplyAdd("-ret", 0.31830988618379067f, 0.5f)};")
 			.WriteWhitespace()
-			.WriteLine("return Single.CopySign(ret, x);")
+			.WriteLine($"return {copySignInvocation}(ret, x);")
 			.EndBlock()
 			.EndBlock();
 
@@ -96,6 +100,10 @@ public class AsinPiFunctionOptimizer() : BaseMathFunctionOptimizer("AsinPi", n =
 	{
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
+
+		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
+		var sqrtInvocation = GetMethodInvocation<SqrtFunctionOptimizer>(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of inverse sine divided by π (AsinPi) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses a piecewise approximation with FusedMultiplyAdd, returning Asin(x) / π in the range [-0.5, 0.5].</remarks>")
@@ -112,7 +120,7 @@ public class AsinPiFunctionOptimizer() : BaseMathFunctionOptimizer("AsinPi", n =
 		builder.WriteLine("if (x < -1.0) x = -1.0;")
 			.WriteLine("if (x > 1.0) x = 1.0;")
 			.WriteWhitespace()
-			.WriteLine("var xa = Double.Abs(x);")
+			.WriteLine($"var xa = {absInvocation}<double, ulong>(x);")
 			.WriteWhitespace()
 			.WriteLine("if (xa < 0.5)")
 			.StartBlock()
@@ -120,12 +128,12 @@ public class AsinPiFunctionOptimizer() : BaseMathFunctionOptimizer("AsinPi", n =
 			.WriteLine("var ret = 0.16666666666666666;  // 1/6")
 			.WriteLine($"ret = {multiplyAdd("ret", "x2", 1.0)};")
 			.WriteLine("ret = ret * xa * 0.31830988618379067;  // 1/π")
-			.WriteLine("return Double.CopySign(ret, x);")
+			.WriteLine($"return {copySignInvocation}(ret, x);")
 			.EndBlock()
 			.WriteLine("else")
 			.StartBlock()
 			.WriteLine("var onemx = 1.0 - xa;")
-			.WriteLine("var sqrt_onemx = Double.Sqrt(onemx);")
+			.WriteLine($"var sqrt_onemx = {sqrtInvocation}(onemx);")
 			.WriteWhitespace()
 			.WriteLine("var ret = -0.0187293; ")
 			.WriteLine($"ret = {multiplyAdd("ret", "xa", 0.0742610)};")
@@ -134,7 +142,7 @@ public class AsinPiFunctionOptimizer() : BaseMathFunctionOptimizer("AsinPi", n =
 			.WriteLine("ret = ret * sqrt_onemx;")
 			.WriteLine($"ret = {multiplyAdd("-ret", 0.31830988618379067, 0.5)};")
 			.WriteWhitespace()
-			.WriteLine("return Double.CopySign(ret, x);")
+			.WriteLine($"return {copySignInvocation}(ret, x);")
 			.EndBlock()
 			.EndBlock();
 

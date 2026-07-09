@@ -39,6 +39,11 @@ public class SinPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinPi", n => 
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
+		var roundInvocation = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
+		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+		var minInvocation = GetMethodInvocation<MinFunctionOptimizer>(context, paramType);
+		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
+
 		builder.WriteLine("/// <summary>Fast approximation of sine divided by π (SinPi) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses range reduction modulo 2 and a polynomial approximation for sin(πx). Returns sin(πx).</remarks>")
 			.WriteLine("/// <param name=\"x\">Input value measured in multiples of π.</param>")
@@ -52,18 +57,18 @@ public class SinPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinPi", n => 
 		}
 
 		builder.WriteWhitespace()
-			.WriteLine("x -= Single.Round(x * 0.5f) * 2.0f;")
+			.WriteLine($"x -= {roundInvocation}(x * 0.5f) * 2.0f;")
 			.WriteLine("var sign = x;")
-			.WriteLine("x = Single.Abs(x);")
+			.WriteLine($"x = {absInvocation}<float, uint>(x);")
 			.WriteWhitespace()
-			.WriteLine("var u  = Single.Min(x, 1.0f - x);")
+			.WriteLine($"var u  = {minInvocation}(x, 1.0f - x);")
 			.WriteLine("var u2 = u * u;")
 			.WriteWhitespace()
 			.WriteLine("var r = -0.59926453f")
 			.WriteLine($"r = {multiplyAdd("r", "u2", 2.55016404f)};")
 			.WriteLine($"r = {multiplyAdd("r", "u2", -5.16771278f)};")
 			.WriteLine($"r = {multiplyAdd("r", "u2", 3.14159265f)};")
-			.WriteLine("return Single.CopySign(u * r, sign);");
+			.WriteLine($"return {copySignInvocation}(u * r, sign);");
 
 		builder.EndBlock();
 
@@ -74,6 +79,11 @@ public class SinPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinPi", n => 
 	{
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
+
+		var roundInvocation = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
+		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+		var minInvocation = GetMethodInvocation<MinFunctionOptimizer>(context, paramType);
+		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of sine divided by π (SinPi) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses range reduction modulo 2 and a polynomial approximation for sin(πx). Returns sin(πx).</remarks>")
@@ -88,11 +98,11 @@ public class SinPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinPi", n => 
 		}
 
 		builder.WriteWhitespace()
-			.WriteLine("x -= Double.Round(x * 0.5) * 2.0;")
+			.WriteLine($"x -= {roundInvocation}(x * 0.5) * 2.0;")
 			.WriteLine("var sign = x;")
-			.WriteLine("x = Double.Abs(x);")
+			.WriteLine($"x = {absInvocation}<double, ulong>(x);")
 			.WriteWhitespace()
-			.WriteLine("var u  = Double.Min(x, 1.0 - x);")
+			.WriteLine($"var u  = {minInvocation}(x, 1.0 - x);")
 			.WriteLine("var u2 = u * u;")
 			.WriteWhitespace()
 			.WriteLine("var r =  0.08214588661112823;")
@@ -100,7 +110,7 @@ public class SinPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinPi", n => 
 			.WriteLine($"r = {multiplyAdd("r", "u2", 2.55016403987734485)};")
 			.WriteLine($"r = {multiplyAdd("r", "u2", -5.16771278004997102)};")
 			.WriteLine($"r = {multiplyAdd("r", "u2", 3.14159265358979324)};")
-			.WriteLine("return Double.CopySign(u * r, sign);");
+			.WriteLine($"return {copySignInvocation}(u * r, sign);");
 
 		builder.EndBlock();
 
