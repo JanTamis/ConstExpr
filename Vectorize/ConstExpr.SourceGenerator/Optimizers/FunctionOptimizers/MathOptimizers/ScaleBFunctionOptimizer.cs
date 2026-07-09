@@ -36,33 +36,26 @@ public class ScaleBFunctionOptimizer() : BaseMathFunctionOptimizer("ScaleB", n =
 		// Benchmark (Apple M4 Pro, ARM64, .NET 10):
 		//   Math.ScaleB  ≈ 0.55 ns  — hardware intrinsic
 		//   FastScaleB   ≈ 0.68 ns  — bit-manipulation, useful on platforms without the intrinsic
-		if (TryGenerateCustomImplementation(context, paramType, out var method))
-		{
-			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);
-			return true;
-		}
-
-		// Default: forward to the numeric helper type
-		result = CreateInvocation(paramType, Name, context.VisitedParameters);
+		result = CreateInvocation(GenerateCustomImplementation(context, paramType), context.VisitedParameters);
 		return true;
 	}
 
-	public bool TryGenerateCustomImplementation(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out MethodDeclarationSyntax? result)
+	public override string GenerateCustomImplementation(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
-		result = ParseMethodFromString(paramType.SpecialType switch
+		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
 			SpecialType.System_Single => GenerateFastScaleBMethodFloat(),
 			SpecialType.System_Double => GenerateFastScaleBMethodDouble(),
 			_ => null
 		});
 
-		if (result is not null)
+		if (method is not null)
 		{
-			context.AdditionalSyntax.TryAdd(result, false);
-			return true;
+			context.AdditionalSyntax.TryAdd(method, false);
+			return method.Identifier.Text;
 		}
 
-		return false;
+		return $"{paramType.Name}.{Name}";
 	}
 
 	private static bool TryGetIntegerLiteral(ExpressionSyntax expr, out int value)

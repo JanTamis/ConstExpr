@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Interfaces;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -9,7 +10,7 @@ using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", n => n is 1)
+public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", n => n is 1), IBaseMathCustomImplementation
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -38,17 +39,10 @@ public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", n => n is
 			}
 		}
 
-		if (paramType.IsInteger())
-		{
-			var method = GenerateFastAbsMethodInteger(context);
-
-			result = CreateInvocation(method, context.VisitedParameters);
-			return true;
-		}
+		var method = GenerateCustomImplementation(context, paramType);
 
 		if (paramType.IsFloatingNumeric())
 		{
-			var method = GenerateFastAbsMethodFloating(context);
 			var bitType = paramType.SpecialType switch
 			{
 				SpecialType.System_Single => CreateTypeSyntax(typeof(uint)),
@@ -59,9 +53,19 @@ public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", n => n is
 			return true;
 		}
 
-		// Default: keep as Abs call (target numeric helper type)
-		result = CreateInvocation(paramType, Name, context.VisitedParameters);
+		result = CreateInvocation(method, context.VisitedParameters);
 		return true;
+	}
+
+	public override string GenerateCustomImplementation(FunctionOptimizerContext context, ITypeSymbol paramType)
+	{
+		return paramType.SpecialType switch
+		{
+			SpecialType.System_Single => GenerateFastAbsMethodFloating(context),
+			SpecialType.System_Double => GenerateFastAbsMethodFloating(context),
+			_ when paramType.IsInteger() => GenerateFastAbsMethodInteger(context),
+			_ => $"{paramType.Name}.{Name}"
+		};
 	}
 
 	public static string GenerateFastAbsMethodInteger(FunctionOptimizerContext context)
@@ -70,6 +74,15 @@ public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", n => n is
 	}
 
 	public static string GenerateFastAbsMethodInteger(ISet<string> usings, IDictionary<SyntaxNode, bool> additionalSyntax)
+	{
+		var method = ParseMethodFromString(BuildFastAbsMethodIntegerSource(usings))!;
+
+		additionalSyntax.TryAdd(method, false);
+
+		return method.Identifier.Text;
+	}
+
+	private static string BuildFastAbsMethodIntegerSource(ISet<string> usings)
 	{
 		usings.Add("System.Runtime.CompilerServices");
 		usings.Add("System.Numerics");
@@ -90,11 +103,7 @@ public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", n => n is
 			.WriteLine("return (x + mask) ^ mask;")
 			.EndBlock();
 
-		var method = ParseMethodFromString(builder.ToString())!;
-
-		additionalSyntax.TryAdd(method, false);
-
-		return method.Identifier.Text;
+		return builder.ToString();
 	}
 
 	public static string GenerateFastAbsMethodFloating(FunctionOptimizerContext context)
@@ -103,6 +112,15 @@ public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", n => n is
 	}
 
 	public static string GenerateFastAbsMethodFloating(ISet<string> usings, IDictionary<SyntaxNode, bool> additionalSyntax)
+	{
+		var method = ParseMethodFromString(BuildFastAbsMethodFloatingSource(usings))!;
+
+		additionalSyntax.TryAdd(method, false);
+
+		return method.Identifier.Text;
+	}
+
+	private static string BuildFastAbsMethodFloatingSource(ISet<string> usings)
 	{
 		usings.Add("System.Runtime.CompilerServices");
 		usings.Add("System.Numerics");
@@ -123,10 +141,6 @@ public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", n => n is
 			.WriteLine("return Unsafe.BitCast<TBits, T>(bits & TBits.MaxValue);")
 			.EndBlock();
 
-		var method = ParseMethodFromString(builder.ToString())!;
-
-		additionalSyntax.TryAdd(method, false);
-
-		return method.Identifier.Text;
+		return builder.ToString();
 	}
 }

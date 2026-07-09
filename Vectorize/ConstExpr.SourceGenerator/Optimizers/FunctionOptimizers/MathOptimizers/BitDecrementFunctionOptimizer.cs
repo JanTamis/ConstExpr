@@ -20,33 +20,26 @@ public class BitDecrementFunctionOptimizer() : BaseMathFunctionOptimizer("BitDec
 			return true;
 		}
 
-		if (TryGenerateCustomImplementation(context, paramType, out var method))
-		{
-			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);
-			return true;
-		}
-
-		// Default: keep as BitDecrement call (target numeric helper type)
-		result = CreateInvocation(paramType, Name, context.VisitedParameters);
+		result = CreateInvocation(GenerateCustomImplementation(context, paramType), context.VisitedParameters);
 		return true;
 	}
 
-	public bool TryGenerateCustomImplementation(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out MethodDeclarationSyntax? result)
+	public override string GenerateCustomImplementation(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
-		result = ParseMethodFromString(paramType.SpecialType switch
+		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
 			SpecialType.System_Single => GenerateFastBitDecrementMethodFloat(context.FastMathFlags),
 			SpecialType.System_Double => GenerateFastBitDecrementMethodDouble(context.FastMathFlags),
 			_ => null
 		});
 
-		if (result is not null)
+		if (method is not null)
 		{
-			context.AdditionalSyntax.TryAdd(result, false);
-			return true;
+			context.AdditionalSyntax.TryAdd(method, false);
+			return method.Identifier.Text;
 		}
 
-		return false;
+		return $"{paramType.Name}.{Name}";
 	}
 
 	private static string GenerateFastBitDecrementMethodFloat(FastMathFlags flags)

@@ -1,15 +1,13 @@
 using System.Diagnostics.CodeAnalysis;
 using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
-using ConstExpr.SourceGenerator.Interfaces;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n is 1), IBaseMathCustomImplementation
+public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n is 1)
 {
 	/// <summary>
 	///   Attempts to optimize a Math.Acos function call by generating a fast approximation implementation.
@@ -20,32 +18,26 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 	/// <returns>True if optimization was successful; otherwise false.</returns>
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
-		if (TryGenerateCustomImplementation(context, paramType, out var method))
-		{
-			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);
-			return true;
-		}
-
-		result = CreateInvocation(paramType, Name, context.VisitedParameters);
+		result = CreateInvocation(GenerateCustomImplementation(context, paramType), context.VisitedParameters);
 		return true;
 	}
 
-	public bool TryGenerateCustomImplementation(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out MethodDeclarationSyntax? result)
+	public override string GenerateCustomImplementation(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
-		result = ParseMethodFromString(paramType.SpecialType switch
+		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
 			SpecialType.System_Single => GenerateFastAcosMethodFloat(context, paramType),
 			SpecialType.System_Double => GenerateFastAcosMethodDouble(context, paramType),
 			_ => null
 		});
 
-		if (result is not null)
+		if (method is not null)
 		{
-			context.AdditionalSyntax.TryAdd(result, false);
-			return true;
+			context.AdditionalSyntax.TryAdd(method, false);
+			return method.Identifier.Text;
 		}
 
-		return false;
+		return $"{paramType.Name}.{Name}";
 	}
 
 	/// <summary>
@@ -75,12 +67,12 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 		}
 
 		builder.WriteLine("var negative = x < 0f;")
-			.WriteLine("x = Single.Abs(x);");
+			.WriteLine($"x = {GetMethodInvocation<AbsFunctionOptimizer>(context, paramType)}<float, uint>(x);");
 
 		builder.WriteLine($"var p = {multiplyAdd(-0.0187293f, "x", 0.0742610f)};")
 			.WriteLine($"p = {multiplyAdd("p", "x", -0.2121144f)};")
 			.WriteLine($"p = {multiplyAdd("p", "x", 1.5707288f)};")
-			.WriteLine("p *= Single.Sqrt(1f - x);")
+			.WriteLine($"p *= {GetMethodInvocation<SqrtFunctionOptimizer>(context, paramType)}(1f - x);")
 			.WriteLine("return negative ? Single.Pi - p : p;")
 			.EndBlock();
 
@@ -114,10 +106,10 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 		}
 
 		builder.WriteLine("var negative = x < 0.0;")
-			.WriteLine("x = Double.Abs(x);")
+			.WriteLine($"x = {GetMethodInvocation<AbsFunctionOptimizer>(context, paramType)}<double, ulong>(x);")
 			.WriteLine("var big = x > 0.5;")
 			.WriteWhitespace()
-			.WriteLine("var t = big ? Double.Sqrt((1.0 - x) * 0.5) : x;")
+			.WriteLine($"var t = big ? {GetMethodInvocation<SqrtFunctionOptimizer>(context, paramType)}((1.0 - x) * 0.5) : x;")
 			.WriteLine("var u = t * t;")
 			.WriteWhitespace()
 			.WriteLine($"var p = {multiplyAdd("u", 945.0 / 42240.0, 105.0 / 3456.0)};")

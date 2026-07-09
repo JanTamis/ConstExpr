@@ -4,7 +4,6 @@ using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Interfaces;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
@@ -13,33 +12,26 @@ public class Exp2FunctionOptimizer() : BaseMathFunctionOptimizer("Exp2", n => n 
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
-		if (TryGenerateCustomImplementation(context, paramType, out var method))
-		{
-			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);
-			return true;
-		}
-
-		// Default: keep as Exp2 call (target numeric helper type)
-		result = CreateInvocation(paramType, Name, context.VisitedParameters);
+		result = CreateInvocation(GenerateCustomImplementation(context, paramType), context.VisitedParameters);
 		return true;
 	}
 
-	public bool TryGenerateCustomImplementation(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out MethodDeclarationSyntax? result)
+	public override string GenerateCustomImplementation(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
-		result = ParseMethodFromString(paramType.SpecialType switch
+		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
 			SpecialType.System_Single => GenerateFastExp2MethodFloat(context, paramType),
 			SpecialType.System_Double => GenerateFastExp2MethodDouble(context, paramType),
 			_ => null
 		});
 
-		if (result is not null)
+		if (method is not null)
 		{
-			context.AdditionalSyntax.TryAdd(result, false);
-			return true;
+			context.AdditionalSyntax.TryAdd(method, false);
+			return method.Identifier.Text;
 		}
 
-		return false;
+		return $"{paramType.Name}.{Name}";
 	}
 
 	private static string GenerateFastExp2MethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)

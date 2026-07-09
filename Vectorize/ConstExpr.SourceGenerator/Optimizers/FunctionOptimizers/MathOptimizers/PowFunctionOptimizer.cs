@@ -156,32 +156,26 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is
 		//   Double: FastPow 2.965 ns vs Math.Pow 4.943 ns → 1.67× faster   ← inject FastPow
 		//   Float:  FastPow 2.707 ns vs MathF.Pow 2.508 ns → 7.5 % slower on ARM64;
 		//           inject anyway for x86/x64 portability where powf is heavier.
-		if (TryGenerateCustomImplementation(context, paramType, out var method))
-		{
-			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);
-			return true;
-		}
-
-		result = CreateInvocation(paramType, Name, context.VisitedParameters);
+		result = CreateInvocation(GenerateCustomImplementation(context, paramType), context.VisitedParameters);
 		return true;
 	}
 
-	public bool TryGenerateCustomImplementation(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out MethodDeclarationSyntax? result)
+	public override string GenerateCustomImplementation(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
-		result = ParseMethodFromString(paramType.SpecialType switch
+		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
 			SpecialType.System_Single => GenerateFastPowMethodFloat(context, paramType),
 			SpecialType.System_Double => GenerateFastPowMethodDouble(context, paramType),
 			_ => null
 		});
 
-		if (result is not null)
+		if (method is not null)
 		{
-			context.AdditionalSyntax.TryAdd(result, false);
-			return true;
+			context.AdditionalSyntax.TryAdd(method, false);
+			return method.Identifier.Text;
 		}
 
-		return false;
+		return $"{paramType.Name}.{Name}";
 	}
 
 	private static string GenerateFastPowMethodDouble(FunctionOptimizerContext context, ITypeSymbol paramType)

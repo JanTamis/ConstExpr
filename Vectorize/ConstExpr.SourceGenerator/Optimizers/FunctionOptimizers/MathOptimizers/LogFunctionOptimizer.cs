@@ -23,41 +23,37 @@ public class LogFunctionOptimizer() : BaseMathFunctionOptimizer("Log", n => n is
 			return true;
 		}
 
-		if (TryGenerateCustomImplementation(context, paramType, out var method))
-		{
-			if (context.VisitedParameters.Count == 1)
-			{
-				// Log(x) => FastLog(x)
-				result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);
-				return true;
-			}
+		var method = GenerateCustomImplementation(context, paramType);
 
-			result = DivideExpression(
-				CreateInvocation(method.Identifier.Text, context.VisitedParameters[0]),
-				CreateInvocation(method.Identifier.Text, context.VisitedParameters[1]));
+		if (context.VisitedParameters.Count == 1)
+		{
+			// Log(x) => FastLog(x)
+			result = CreateInvocation(method, context.VisitedParameters);
 			return true;
 		}
 
-		result = null;
-		return false;
+		result = DivideExpression(
+			CreateInvocation(method, context.VisitedParameters[0]),
+			CreateInvocation(method, context.VisitedParameters[1]));
+		return true;
 	}
 
-	public bool TryGenerateCustomImplementation(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out MethodDeclarationSyntax? result)
+	public override string GenerateCustomImplementation(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
-		result = ParseMethodFromString(paramType.SpecialType switch
+		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
 			SpecialType.System_Single => GenerateFastLogMethodFloat(context, paramType),
 			SpecialType.System_Double => GenerateFastLogMethodDouble(context, paramType),
 			_ => null
 		});
 
-		if (result is not null)
+		if (method is not null)
 		{
-			context.AdditionalSyntax.TryAdd(result, false);
-			return true;
+			context.AdditionalSyntax.TryAdd(method, false);
+			return method.Identifier.Text;
 		}
 
-		return false;
+		return $"{paramType.Name}.{Name}";
 	}
 
 	private static string GenerateFastLogMethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)

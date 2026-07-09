@@ -45,32 +45,26 @@ public class AtanFunctionOptimizer() : BaseMathFunctionOptimizer("Atan", n => n 
 			}
 		}
 
-		if (TryGenerateCustomImplementation(context, paramType, out var method))
-		{
-			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);
-			return true;
-		}
-
-		result = CreateInvocation(paramType, Name, context.VisitedParameters);
+		result = CreateInvocation(GenerateCustomImplementation(context, paramType), context.VisitedParameters);
 		return true;
 	}
 
-	public bool TryGenerateCustomImplementation(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out MethodDeclarationSyntax? result)
+	public override string GenerateCustomImplementation(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
-		result = ParseMethodFromString(paramType.SpecialType switch
+		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
 			SpecialType.System_Single => GenerateFastAtanMethodFloat(context, paramType),
 			SpecialType.System_Double => GenerateFastAtanMethodDouble(context, paramType),
 			_ => null
 		});
 
-		if (result is not null)
+		if (method is not null)
 		{
-			context.AdditionalSyntax.TryAdd(result, false);
-			return true;
+			context.AdditionalSyntax.TryAdd(method, false);
+			return method.Identifier.Text;
 		}
 
-		return false;
+		return $"{paramType.Name}.{Name}";
 	}
 
 	private static bool TryGetNumericLiteral(ExpressionSyntax expr, out double value)
@@ -101,6 +95,8 @@ public class AtanFunctionOptimizer() : BaseMathFunctionOptimizer("Atan", n => n 
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
+		var absMethod = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+
 		builder.WriteLine("/// <summary>Fast approximation of arctangent (Atan) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses range reduction, a polynomial approximation, and optional NaN handling.</remarks>")
 			.WriteLine("/// <param name=\"x\">Input value.</param>")
@@ -113,7 +109,7 @@ public class AtanFunctionOptimizer() : BaseMathFunctionOptimizer("Atan", n => n 
 			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
 		}
 
-		builder.WriteLine("var absX = Single.Abs(x);")
+		builder.WriteLine($"var absX = {absMethod}<float, uint>(x);")
 			.WriteLine("var swap = absX > 1.0f;")
 			.WriteLine("var a = swap ? 1.0f / absX : absX; // exact reciprocal — no ReciprocalEstimate loss")
 			.WriteWhitespace()
@@ -137,6 +133,8 @@ public class AtanFunctionOptimizer() : BaseMathFunctionOptimizer("Atan", n => n 
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
+		var absMethod = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+
 		builder.WriteLine("/// <summary>Fast approximation of arctangent (Atan) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses range reduction, a polynomial approximation, and optional NaN handling.</remarks>")
 			.WriteLine("/// <param name=\"x\">Input value.</param>")
@@ -149,7 +147,7 @@ public class AtanFunctionOptimizer() : BaseMathFunctionOptimizer("Atan", n => n 
 			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
 		}
 
-		builder.WriteLine("var absX = Double.Abs(x);")
+		builder.WriteLine($"var absX = {absMethod}<double, ulong>(x);")
 			.WriteLine("var swap = absX > 1.0; ")
 			.WriteLine("var a = swap ? 1.0 / absX : absX; // exact reciprocal — no ReciprocalEstimate loss")
 			.WriteWhitespace()

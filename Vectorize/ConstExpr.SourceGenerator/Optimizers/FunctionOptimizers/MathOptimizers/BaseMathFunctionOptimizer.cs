@@ -8,7 +8,7 @@ using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public abstract class BaseMathFunctionOptimizer(string name, Func<int, bool> isValidParameterCount) : BaseFunctionOptimizer
+public abstract class BaseMathFunctionOptimizer(string name, Func<int, bool> isValidParameterCount) : BaseFunctionOptimizer, IBaseMathCustomImplementation
 {
 	public string Name { get; } = name;
 	public Func<int, bool> IsValidParameterCount { get; } = isValidParameterCount;
@@ -59,18 +59,11 @@ public abstract class BaseMathFunctionOptimizer(string name, Func<int, bool> isV
 		static string Format(object value) => value as string ?? CreateLiteral(value).ToString();
 	}
 
-	protected bool TryGetCustomMethodInvocation<MathOptimizer>(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out string? methodName) where MathOptimizer : IBaseMathCustomImplementation, new()
+	protected static string GetMethodInvocation<MathOptimizer>(FunctionOptimizerContext context, ITypeSymbol paramType) where MathOptimizer : IBaseMathCustomImplementation, new()
 	{
 		var optimizer = new MathOptimizer();
 
-		if (optimizer.TryGenerateCustomImplementation(context, paramType, out var method))
-		{
-			methodName = method.Identifier.Text;
-			return true;
-		}
-
-		methodName = null;
-		return false;
+		return optimizer.GenerateCustomImplementation(context, paramType);
 	}
 
 	private bool IsValidMathMethod(IMethodSymbol method, [NotNullWhen(true)] out ITypeSymbol? type)
@@ -81,5 +74,10 @@ public abstract class BaseMathFunctionOptimizer(string name, Func<int, bool> isV
 
 		return method.Name == Name
 		       && IsValidParameterCount(method.Parameters.Length);
+	}
+
+	public virtual string GenerateCustomImplementation(FunctionOptimizerContext context, ITypeSymbol paramType)
+	{
+		return $"{paramType.Name}.{Name}";
 	}
 }
