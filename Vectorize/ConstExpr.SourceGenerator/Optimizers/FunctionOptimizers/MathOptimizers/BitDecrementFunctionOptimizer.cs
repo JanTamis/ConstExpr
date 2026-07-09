@@ -39,7 +39,7 @@ public class BitDecrementFunctionOptimizer() : BaseMathFunctionOptimizer("BitDec
 			return method.Identifier.Text;
 		}
 
-		return $"{paramType.Name}.{Name}";
+		return base.GenerateCustomImplementation(context, paramType);
 	}
 
 	private static string GenerateFastBitDecrementMethodFloat(FastMathFlags flags)

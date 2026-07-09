@@ -31,7 +31,7 @@ public class SinPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinPi", n => 
 			return method.Identifier.Text;
 		}
 
-		return $"{paramType.Name}.{Name}";
+		return base.GenerateCustomImplementation(context, paramType);
 	}
 
 	private static string GenerateFastSinPiMethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)
@@ -64,8 +64,7 @@ public class SinPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinPi", n => 
 			.WriteLine($"var u  = {minInvocation}(x, 1.0f - x);")
 			.WriteLine("var u2 = u * u;")
 			.WriteWhitespace()
-			.WriteLine("var r = -0.59926453f")
-			.WriteLine($"r = {multiplyAdd("r", "u2", 2.55016404f)};")
+			.WriteLine($"var r = {multiplyAdd(-0.59926453f, "u2", 2.55016404f)};")
 			.WriteLine($"r = {multiplyAdd("r", "u2", -5.16771278f)};")
 			.WriteLine($"r = {multiplyAdd("r", "u2", 3.14159265f)};")
 			.WriteLine($"return {copySignInvocation}(u * r, sign);");
@@ -105,8 +104,7 @@ public class SinPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinPi", n => 
 			.WriteLine($"var u  = {minInvocation}(x, 1.0 - x);")
 			.WriteLine("var u2 = u * u;")
 			.WriteWhitespace()
-			.WriteLine("var r =  0.08214588661112823;")
-			.WriteLine($"r = {multiplyAdd("r", "u2", -0.59926452932079209)};")
+			.WriteLine($"var r = {multiplyAdd(0.08214588661112823, "u2", -0.59926452932079209)};")
 			.WriteLine($"r = {multiplyAdd("r", "u2", 2.55016403987734485)};")
 			.WriteLine($"r = {multiplyAdd("r", "u2", -5.16771278004997102)};")
 			.WriteLine($"r = {multiplyAdd("r", "u2", 3.14159265358979324)};")

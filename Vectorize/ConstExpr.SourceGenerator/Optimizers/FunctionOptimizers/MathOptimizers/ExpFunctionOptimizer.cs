@@ -42,7 +42,7 @@ public class ExpFunctionOptimizer() : BaseMathFunctionOptimizer("Exp", n => n is
 			return method.Identifier.Text;
 		}
 
-		return $"{paramType.Name}.{Name}";
+		return base.GenerateCustomImplementation(context, paramType);
 	}
 
 	private static string GenerateFastExpMethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)

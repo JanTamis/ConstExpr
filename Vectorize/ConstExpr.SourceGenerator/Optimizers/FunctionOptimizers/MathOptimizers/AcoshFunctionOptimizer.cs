@@ -31,7 +31,7 @@ public class AcoshFunctionOptimizer() : BaseMathFunctionOptimizer("Acosh", n => 
 			return method.Identifier.Text;
 		}
 
-		return $"{paramType.Name}.{Name}";
+		return base.GenerateCustomImplementation(context, paramType);
 	}
 
 	/// <summary>

@@ -42,7 +42,7 @@ public class Log2FunctionOptimizer() : BaseMathFunctionOptimizer("Log2", n => n 
 			return method.Identifier.Text;
 		}
 
-		return $"{paramType.Name}.{Name}";
+		return base.GenerateCustomImplementation(context, paramType);
 	}
 
 	private static string GenerateFastLog2MethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)

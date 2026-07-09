@@ -38,7 +38,7 @@ public class AcosPiFunctionOptimizer() : BaseMathFunctionOptimizer("AcosPi", n =
 			return method.Identifier.Text;
 		}
 
-		return $"{paramType.Name}.{Name}";
+		return base.GenerateCustomImplementation(context, paramType);
 	}
 
 	/// <summary>

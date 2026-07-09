@@ -31,7 +31,7 @@ public class SinFunctionOptimizer() : BaseMathFunctionOptimizer("Sin", n => n is
 			return method.Identifier.Text;
 		}
 
-		return $"{paramType.Name}.{Name}";
+		return base.GenerateCustomImplementation(context, paramType);
 	}
 
 	private static string GenerateFastSinMethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)
@@ -65,8 +65,7 @@ public class SinFunctionOptimizer() : BaseMathFunctionOptimizer("Sin", n => n is
 			.WriteLine($"x = {minInvocation}(x, Single.Pi - x);")
 			.WriteWhitespace()
 			.WriteLine("var x2 = x * x;")
-			.WriteLine("var ret = -1.9841269841e-4f;")
-			.WriteLine($"ret = {multiplyAdd("ret", "x2", 8.3333333333e-3f)};")
+			.WriteLine($"var ret = {multiplyAdd(-1.9841269841e-4f, "x2", 8.3333333333e-3f)};")
 			.WriteLine($"ret = {multiplyAdd("ret", "x2", -1.6666666667e-1f)};")
 			.WriteLine($"ret = {multiplyAdd("ret", "x2", 1.0f)};")
 			.WriteLine("ret *= x;")
@@ -112,8 +111,7 @@ public class SinFunctionOptimizer() : BaseMathFunctionOptimizer("Sin", n => n is
 			.EndBlock()
 			.WriteWhitespace()
 			.WriteLine("var x2 = x * x;")
-			.WriteLine("var ret = 2.6019406621361745e-9;")
-			.WriteLine($"ret = {multiplyAdd("ret", "x2", -1.9839531932589676e-7)};")
+			.WriteLine($"var ret = {multiplyAdd(2.6019406621361745e-9, "x2", -1.9839531932589676e-7)};")
 			.WriteLine($"ret = {multiplyAdd("ret", "x2", 8.3333333333216515e-6)};")
 			.WriteLine($"ret = {multiplyAdd("ret", "x2", -0.00019841269836761127)};")
 			.WriteLine($"ret = {multiplyAdd("ret", "x2", 0.0083333333333332177)};")

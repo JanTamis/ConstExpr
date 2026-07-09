@@ -31,7 +31,7 @@ public class SinCosFunctionOptimizer() : BaseMathFunctionOptimizer("SinCos", n =
 			return method.Identifier.Text;
 		}
 
-		return $"{paramType.Name}.{Name}";
+		return base.GenerateCustomImplementation(context, paramType);
 	}
 
 	private static string GenerateFastSinCosMethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)
@@ -66,14 +66,13 @@ public class SinCosFunctionOptimizer() : BaseMathFunctionOptimizer("SinCos", n =
 			.WriteWhitespace()
 			.WriteLine("var x2 = sinArg * sinArg;")
 			.WriteWhitespace()
-			.WriteLine("var sinVal = -0.00019840874f;")
-			.WriteLine($"sinVal = {multiplyAdd("sinVal", "x2", 0.0083333310f)};")
+			.WriteLine($"var sinVal = {multiplyAdd(-0.00019840874f, "x2", 0.0083333310f)};")
 			.WriteLine($"sinVal = {multiplyAdd("sinVal", "x2", -0.16666667f)};")
 			.WriteLine($"sinVal = {multiplyAdd("sinVal", "x2", 1.0f)};")
 			.WriteLine("sinVal *= sinArg;")
 			.WriteLine($"sinVal  = {copySignMethod}(sinVal, xSign);")
 			.WriteWhitespace()
-			.WriteLine("var cosVal = 0.0013888397f;")
+			.WriteLine($"var cosVal = {multiplyAdd(0.0013888397f, "x2", -0.041666418f)};")
 			.WriteLine($"cosVal = {multiplyAdd("cosVal", "x2", -0.041666418f)};")
 			.WriteLine($"cosVal = {multiplyAdd("cosVal", "x2", 0.5f)};")
 			.WriteLine($"cosVal = {multiplyAdd("cosVal", "x2", -1.0f)};")
@@ -119,15 +118,14 @@ public class SinCosFunctionOptimizer() : BaseMathFunctionOptimizer("SinCos", n =
 			.WriteWhitespace()
 			.WriteLine("var x2 = sinArg * sinArg;")
 			.WriteWhitespace()
-			.WriteLine("var sinVal = 2.7557313707070068e-6;")
-			.WriteLine($"sinVal = {multiplyAdd("sinVal", "x2", -0.00019841269841201856)};")
+			.WriteLine($"var sinVal = {multiplyAdd(2.7557313707070068e-6, "x2", -0.00019841269841201856)};")
 			.WriteLine($"sinVal = {multiplyAdd("sinVal", "x2", 0.0083333333333331650)};")
 			.WriteLine($"sinVal = {multiplyAdd("sinVal", "x2", -0.16666666666666666)};")
 			.WriteLine($"sinVal = {multiplyAdd("sinVal", "x2", 1.0)};")
 			.WriteLine("sinVal *= sinArg;")
 			.WriteLine($"sinVal  = {copySignMethod}(sinVal, xSign);")
 			.WriteWhitespace()
-			.WriteLine("var cosVal = -2.6051615464872668e-5;")
+			.WriteLine($"var cosVal = {multiplyAdd(-2.6051615464872668e-5, "x2", 0.0013888888888887398)};")
 			.WriteLine($"cosVal = {multiplyAdd("cosVal", "x2", 0.0013888888888887398)};")
 			.WriteLine($"cosVal = {multiplyAdd("cosVal", "x2", -0.041666666666666664)};")
 			.WriteLine($"cosVal = {multiplyAdd("cosVal", "x2", 0.5)};")

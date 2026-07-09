@@ -81,7 +81,7 @@ public class TanhFunctionOptimizer() : BaseMathFunctionOptimizer("Tanh", n => n 
 			return method.Identifier.Text;
 		}
 
-		return $"{paramType.Name}.{Name}";
+		return base.GenerateCustomImplementation(context, paramType);
 	}
 
 	private static bool TryGetNumericLiteral(ExpressionSyntax expr, out double value)
@@ -174,18 +174,13 @@ public class TanhFunctionOptimizer() : BaseMathFunctionOptimizer("Tanh", n => n 
 			.WriteLine("if (absX < 1.0)")
 			.StartBlock()
 			.WriteLine("var x2 = x * x;")
-			.WriteLine("var a1 = -0.333333333333331;")
-			.WriteLine("var a2 =  0.133333333333197;")
-			.WriteLine("var a3 = -0.0539682539682505;")
-			.WriteLine($"var numerator = {multiplyAdd("a3", "x2", "a2")};")
-			.WriteLine($"numerator = {multiplyAdd("numerator", "x2", "a1")};")
+			.WriteLine($"var numerator = {multiplyAdd(-0.0539682539682505, "x2", 0.133333333333197)};")
+			.WriteLine($"numerator = {multiplyAdd("numerator", "x2", -0.333333333333331)};")
 			.WriteLine($"numerator = {multiplyAdd("numerator", "x2", 1.0)};")
 			.WriteLine("numerator *= x;")
-			.WriteLine("var b1 =  1.0;")
-			.WriteLine("var b2 = -0.133333333333197;")
-			.WriteLine("var b3 =  0.0107936507936338;")
-			.WriteLine($"var denominator = {multiplyAdd("b3", "x2", "b2")};")
-			.WriteLine($"denominator = {multiplyAdd("denominator", "x2", "b1")};")
+			.WriteWhitespace()
+			.WriteLine($"var denominator = {multiplyAdd(0.0107936507936338, "x2", -0.133333333333197)};")
+			.WriteLine($"denominator = {multiplyAdd("denominator", "x2", 1.0)};")
 			.WriteLine($"denominator = {multiplyAdd("denominator", "x2", 1.0)};")
 			.WriteLine("return numerator / denominator;")
 			.EndBlock()

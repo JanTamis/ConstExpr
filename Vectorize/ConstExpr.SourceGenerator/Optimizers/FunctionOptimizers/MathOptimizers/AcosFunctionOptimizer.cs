@@ -37,7 +37,7 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 			return method.Identifier.Text;
 		}
 
-		return $"{paramType.Name}.{Name}";
+		return base.GenerateCustomImplementation(context, paramType);
 	}
 
 	/// <summary>

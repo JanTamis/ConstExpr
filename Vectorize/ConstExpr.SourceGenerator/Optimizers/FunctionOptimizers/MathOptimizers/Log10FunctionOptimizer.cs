@@ -49,7 +49,7 @@ public class Log10FunctionOptimizer() : BaseMathFunctionOptimizer("Log10", n => 
 			return method.Identifier.Text;
 		}
 
-		return $"{paramType.Name}.{Name}";
+		return base.GenerateCustomImplementation(context, paramType);
 	}
 
 	private static string GenerateFastLog10MethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)

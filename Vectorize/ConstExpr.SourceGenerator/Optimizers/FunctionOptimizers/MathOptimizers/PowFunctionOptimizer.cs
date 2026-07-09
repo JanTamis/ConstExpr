@@ -175,7 +175,7 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is
 			return method.Identifier.Text;
 		}
 
-		return $"{paramType.Name}.{Name}";
+		return base.GenerateCustomImplementation(context, paramType);
 	}
 
 	private static string GenerateFastPowMethodDouble(FunctionOptimizerContext context, ITypeSymbol paramType)

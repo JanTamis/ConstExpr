@@ -88,7 +88,7 @@ public class Atan2FunctionOptimizer() : BaseMathFunctionOptimizer("Atan2", n => 
 			return method.Identifier.Text;
 		}
 
-		return $"{paramType.Name}.{Name}";
+		return base.GenerateCustomImplementation(context, paramType);
 	}
 
 	private static bool TryGetNumericLiteral(ExpressionSyntax expr, out double value)

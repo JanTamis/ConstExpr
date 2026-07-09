@@ -31,7 +31,7 @@ public class SinCosPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinCosPi",
 			return method.Identifier.Text;
 		}
 
-		return $"{paramType.Name}.{Name}";
+		return base.GenerateCustomImplementation(context, paramType);
 	}
 
 	private static string GenerateFastSinCosPiMethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)
@@ -66,15 +66,14 @@ public class SinCosPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinCosPi",
 			.WriteWhitespace()
 			.WriteLine("var u2 = u * u;")
 			.WriteWhitespace()
-			.WriteLine("var sinVal = -0.5992645f;")
-			.WriteLine($"sinVal = {multiplyAdd("sinVal", "u2", 2.5501640f)};")
+			.WriteLine($"var sinVal = {multiplyAdd(-0.5992645f, "u2", 2.5501640f)};")
 			.WriteLine($"sinVal = {multiplyAdd("sinVal", "u2", -5.1677128f)};")
 			.WriteLine($"sinVal = {multiplyAdd("sinVal", "u2", 3.1415927f)};")
 			.WriteLine("sinVal = sinVal * u;")
 			.WriteWhitespace()
 			.WriteLine($"sinVal = {copySignInvocation}(sinVal, originalSign);")
 			.WriteWhitespace()
-			.WriteLine("var cosVal = -1.3352627f;")
+			.WriteLine($"var cosVal = {multiplyAdd(-1.3352627f, "u2", 4.0587121f)};")
 			.WriteLine($"cosVal = {multiplyAdd("cosVal", "u2", 4.0587121f)};")
 			.WriteLine($"cosVal = {multiplyAdd("cosVal", "u2", -4.9348022f)};")
 			.WriteLine($"cosVal = {multiplyAdd("cosVal", "u2", 1.0f)};")
@@ -120,8 +119,7 @@ public class SinCosPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinCosPi",
 			.WriteWhitespace()
 			.WriteLine("var u2 = u * u;")
 			.WriteWhitespace()
-			.WriteLine("var sinVal = 0.08214588661112823;")
-			.WriteLine($"sinVal = {multiplyAdd("sinVal", "u2", -0.5992645293218801)};")
+			.WriteLine($"var sinVal = {multiplyAdd(0.08214588661112823, "u2", -0.5992645293218801)};")
 			.WriteLine($"sinVal = {multiplyAdd("sinVal", "u2", 2.5501640398773455)};")
 			.WriteLine($"sinVal = {multiplyAdd("sinVal", "u2", -5.1677127800499706)};")
 			.WriteLine($"sinVal = {multiplyAdd("sinVal", "u2", 3.1415926535897932)};")
@@ -129,7 +127,7 @@ public class SinCosPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinCosPi",
 			.WriteWhitespace()
 			.WriteLine($"sinVal = {copySignInvocation}(sinVal, originalSign);")
 			.WriteWhitespace()
-			.WriteLine("var cosVal = 0.23533075157732439;")
+			.WriteLine($"var cosVal = {multiplyAdd(0.23533075157732439, "u2", -1.3352627312227247)};")
 			.WriteLine($"cosVal = {multiplyAdd("cosVal", "u2", -1.3352627312227247)};")
 			.WriteLine($"cosVal = {multiplyAdd("cosVal", "u2", 4.0587121264167682)};")
 			.WriteLine($"cosVal = {multiplyAdd("cosVal", "u2", -4.9348022005446793)};")

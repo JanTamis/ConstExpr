@@ -31,7 +31,7 @@ public class CosPiFunctionOptimizer() : BaseMathFunctionOptimizer("CosPi", n => 
 			return method.Identifier.Text;
 		}
 
-		return $"{paramType.Name}.{Name}";
+		return base.GenerateCustomImplementation(context, paramType);
 	}
 
 	private static string GenerateFastCosPiMethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)
@@ -60,8 +60,7 @@ public class CosPiFunctionOptimizer() : BaseMathFunctionOptimizer("CosPi", n => 
 			.WriteWhitespace()
 			.WriteLine("var v  = (x - 0.5f) * Single.Pi;")
 			.WriteLine("var v2 = v * v;")
-			.WriteLine("var r  = -0.00019841271f;")
-			.WriteLine($"r = {multiplyAdd("r", "v2", 0.008333333f)};")
+			.WriteLine($"var r = {multiplyAdd(-0.00019841271f, "v2", 0.008333333f)};")
 			.WriteLine($"r = {multiplyAdd("r", "v2", -0.16666667f)};")
 			.WriteLine($"r = {multiplyAdd("r", "v2", 1.0f)};")
 			.WriteLine("return -(v * r);");
@@ -97,8 +96,7 @@ public class CosPiFunctionOptimizer() : BaseMathFunctionOptimizer("CosPi", n => 
 			.WriteWhitespace()
 			.WriteLine("var v  = (x - 0.5) * Double.Pi;")
 			.WriteLine("var v2 = v * v;")
-			.WriteLine("var r  = -2.5052108385441720e-8;")
-			.WriteLine($"r = {multiplyAdd("r", "v2", 2.7557319223985888e-6)};")
+			.WriteLine($"var r = {multiplyAdd(-2.5052108385441720e-8, "v2", 2.7557319223985888e-6)};")
 			.WriteLine($"r = {multiplyAdd("r", "v2", -0.00019841269841269841)};")
 			.WriteLine($"r = {multiplyAdd("r", "v2", 0.008333333333333333)};")
 			.WriteLine($"r = {multiplyAdd("r", "v2", -0.16666666666666666)};")

@@ -60,7 +60,7 @@ public class AtanhFunctionOptimizer() : BaseMathFunctionOptimizer("Atanh", n => 
 			return method.Identifier.Text;
 		}
 
-		return $"{paramType.Name}.{Name}";
+		return base.GenerateCustomImplementation(context, paramType);
 	}
 
 	private static bool TryGetNumericLiteral(ExpressionSyntax expr, out double value)

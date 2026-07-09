@@ -55,7 +55,7 @@ public class ScaleBFunctionOptimizer() : BaseMathFunctionOptimizer("ScaleB", n =
 			return method.Identifier.Text;
 		}
 
-		return $"{paramType.Name}.{Name}";
+		return base.GenerateCustomImplementation(context, paramType);
 	}
 
 	private static bool TryGetIntegerLiteral(ExpressionSyntax expr, out int value)

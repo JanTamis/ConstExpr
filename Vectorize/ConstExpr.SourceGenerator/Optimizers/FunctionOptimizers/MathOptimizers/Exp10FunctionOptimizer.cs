@@ -31,7 +31,7 @@ public class Exp10FunctionOptimizer() : BaseMathFunctionOptimizer("Exp10", n => 
 			return method.Identifier.Text;
 		}
 
-		return $"{paramType.Name}.{Name}";
+		return base.GenerateCustomImplementation(context, paramType);
 	}
 
 	private static string GenerateFastExp10MethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)

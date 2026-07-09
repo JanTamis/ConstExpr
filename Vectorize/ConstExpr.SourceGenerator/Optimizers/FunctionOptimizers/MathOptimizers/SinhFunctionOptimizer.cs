@@ -31,7 +31,7 @@ public class SinhFunctionOptimizer() : BaseMathFunctionOptimizer("Sinh", n => n 
 			return method.Identifier.Text;
 		}
 
-		return $"{paramType.Name}.{Name}";
+		return base.GenerateCustomImplementation(context, paramType);
 	}
 
 	private static string GenerateFastSinhMethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)

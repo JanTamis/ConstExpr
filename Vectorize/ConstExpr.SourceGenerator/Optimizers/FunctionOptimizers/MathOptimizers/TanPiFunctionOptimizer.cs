@@ -77,7 +77,7 @@ public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", n => 
 			return method.Identifier.Text;
 		}
 
-		return $"{paramType.Name}.{Name}";
+		return base.GenerateCustomImplementation(context, paramType);
 	}
 
 	private static bool TryGetNumericLiteral(ExpressionSyntax expr, out double value)
@@ -110,6 +110,7 @@ public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", n => 
 
 		var roundInvocation = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
 		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+		var reciprocalEstimateInvocation = GetMethodInvocation<ReciprocalEstimateFunctionOptimizer>(context, paramType);
 		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of tangent divided by π (TanPi) for single-precision floating-point values.</summary>")
@@ -141,7 +142,7 @@ public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", n => 
 			.WriteLine($"den     = {multiplyAdd("den", "u2", 1.0f)};")
 			.WriteWhitespace()
 			.WriteLine("var t = num / den;")
-			.WriteLine("if (swap) t = 1.0f / t;")
+			.WriteLine($"if (swap) t = {reciprocalEstimateInvocation}(t);")
 			.WriteWhitespace()
 			.WriteLine($"return {copySignInvocation}(t, signX);")
 			.EndBlock();
@@ -156,6 +157,7 @@ public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", n => 
 
 		var roundInvocation = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
 		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+		var reciprocalEstimateInvocation = GetMethodInvocation<ReciprocalEstimateFunctionOptimizer>(context, paramType);
 		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of tangent divided by π (TanPi) for double-precision floating-point values.</summary>")
@@ -188,7 +190,7 @@ public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", n => 
 			.WriteLine($"den     = {multiplyAdd("den", "u2", 1.0)};")
 			.WriteWhitespace()
 			.WriteLine("var t = num / den;")
-			.WriteLine("if (swap) t = 1.0 / t;")
+			.WriteLine($"if (swap) t = {reciprocalEstimateInvocation}(t);")
 			.WriteWhitespace()
 			.WriteLine($"return {copySignInvocation}(t, signX);")
 			.EndBlock();

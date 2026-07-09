@@ -38,7 +38,7 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n 
 			return method.Identifier.Text;
 		}
 
-		return $"{paramType.Name}.{Name}";
+		return base.GenerateCustomImplementation(context, paramType);
 	}
 
 	private static string GenerateFastAsinMethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)
@@ -68,7 +68,7 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n 
 			.WriteLine("if (xa < 0.5f)")
 			.StartBlock()
 			.WriteLine("var x2 = xa * xa;")
-			.WriteLine("var ret = 0.16666667f;")
+			.WriteLine($"var ret = {multiplyAdd(0.16666667f, "x2", 1.0f)};")
 			.WriteLine($"ret = {multiplyAdd("ret", "x2", 1.0f)};")
 			.WriteLine("ret *= xa;")
 			.WriteWhitespace()
@@ -77,9 +77,7 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n 
 			.WriteWhitespace()
 			.WriteLine("var onemx = 1.0f - xa;")
 			.WriteLine($"var sqrtOnemx = {sqrtInvocation}(onemx);")
-			.WriteLine("var p = -0.0187293f;")
-			.WriteWhitespace()
-			.WriteLine($"p = {multiplyAdd("p", "xa", 0.0742610f)};")
+			.WriteLine($"var p = {multiplyAdd(-0.0187293f, "xa", 0.0742610f)};")
 			.WriteLine($"p = {multiplyAdd("p", "xa", -0.2121144f)};")
 			.WriteLine($"p = {multiplyAdd("p", "xa", 1.5707288f)};")
 			.WriteLine("p *= sqrtOnemx;")
@@ -120,8 +118,7 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n 
 			.WriteLine("if (xa < 0.5)")
 			.StartBlock()
 			.WriteLine("var x2 = xa * xa;")
-			.WriteLine("var ret = 0.16666666666666666;")
-			.WriteLine($"ret = {multiplyAdd("ret", "x2", 1.0)};")
+			.WriteLine($"var ret = {multiplyAdd(0.16666666666666666, "x2", 1.0)};")
 			.WriteLine("ret *= xa;")
 			.WriteWhitespace()
 			.WriteLine($"return {copySignInvocation}(ret, x);")

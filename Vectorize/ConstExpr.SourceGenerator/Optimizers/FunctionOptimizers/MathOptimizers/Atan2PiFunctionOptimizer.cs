@@ -77,7 +77,7 @@ public class Atan2PiFunctionOptimizer() : BaseMathFunctionOptimizer("Atan2Pi", n
 			return method.Identifier.Text;
 		}
 
-		return $"{paramType.Name}.{Name}";
+		return base.GenerateCustomImplementation(context, paramType);
 	}
 
 	private static bool TryGetNumericLiteral(ExpressionSyntax expr, out double value)

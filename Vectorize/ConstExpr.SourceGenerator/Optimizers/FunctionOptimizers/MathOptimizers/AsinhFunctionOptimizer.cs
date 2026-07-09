@@ -31,7 +31,7 @@ public class AsinhFunctionOptimizer() : BaseMathFunctionOptimizer("Asinh", n => 
 			return method.Identifier.Text;
 		}
 
-		return $"{paramType.Name}.{Name}";
+		return base.GenerateCustomImplementation(context, paramType);
 	}
 
 	private static string GenerateFastAsinhMethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)

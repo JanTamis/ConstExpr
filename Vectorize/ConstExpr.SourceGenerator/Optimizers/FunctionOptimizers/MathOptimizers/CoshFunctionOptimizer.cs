@@ -31,7 +31,7 @@ public class CoshFunctionOptimizer() : BaseMathFunctionOptimizer("Cosh", n => n 
 			return method.Identifier.Text;
 		}
 
-		return $"{paramType.Name}.{Name}";
+		return base.GenerateCustomImplementation(context, paramType);
 	}
 
 	private static string GenerateFastCoshMethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)

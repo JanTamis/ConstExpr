@@ -38,7 +38,7 @@ public class AsinPiFunctionOptimizer() : BaseMathFunctionOptimizer("AsinPi", n =
 			return method.Identifier.Text;
 		}
 
-		return $"{paramType.Name}.{Name}";
+		return base.GenerateCustomImplementation(context, paramType);
 	}
 
 	private static string GenerateFastAsinPiMethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)
@@ -82,8 +82,7 @@ public class AsinPiFunctionOptimizer() : BaseMathFunctionOptimizer("AsinPi", n =
 			.WriteLine("var onemx = 1.0f - xa;")
 			.WriteLine($"var sqrt_onemx = {sqrtInvocation}(onemx);")
 			.WriteWhitespace()
-			.WriteLine("var ret = -0.0187293f;")
-			.WriteLine($"ret = {multiplyAdd("ret", "xa", 0.0742610f)};")
+			.WriteLine($"var ret = {multiplyAdd(-0.0187293f, "xa", 0.0742610f)};")
 			.WriteLine($"ret = {multiplyAdd("ret", "xa", -0.2121144f)};")
 			.WriteLine($"ret = {multiplyAdd("ret", "xa", 1.5707288f)};")
 			.WriteLine("ret = ret * sqrt_onemx;")
@@ -135,8 +134,7 @@ public class AsinPiFunctionOptimizer() : BaseMathFunctionOptimizer("AsinPi", n =
 			.WriteLine("var onemx = 1.0 - xa;")
 			.WriteLine($"var sqrt_onemx = {sqrtInvocation}(onemx);")
 			.WriteWhitespace()
-			.WriteLine("var ret = -0.0187293; ")
-			.WriteLine($"ret = {multiplyAdd("ret", "xa", 0.0742610)};")
+			.WriteLine($"var ret = {multiplyAdd(-0.0187293, "xa", 0.0742610)};")
 			.WriteLine($"ret = {multiplyAdd("ret", "xa", -0.2121144)};")
 			.WriteLine($"ret = {multiplyAdd("ret", "xa", 1.5707288)};")
 			.WriteLine("ret = ret * sqrt_onemx;")

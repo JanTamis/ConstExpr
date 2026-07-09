@@ -75,7 +75,7 @@ public class TanFunctionOptimizer() : BaseMathFunctionOptimizer("Tan", n => n is
 			return method.Identifier.Text;
 		}
 
-		return $"{paramType.Name}.{Name}";
+		return base.GenerateCustomImplementation(context, paramType);
 	}
 
 	private static bool TryGetNumericLiteral(ExpressionSyntax expr, out double value)
@@ -132,15 +132,11 @@ public class TanFunctionOptimizer() : BaseMathFunctionOptimizer("Tan", n => n is
 			.WriteWhitespace()
 			.WriteLine("var x2 = arg * arg;")
 			.WriteWhitespace()
-			.WriteLine("var p1 = -0.1306282f;")
-			.WriteLine("var p2 =  0.0052854f;")
-			.WriteLine($"var num = {multiplyAdd("p2", "x2", "p1")};")
+			.WriteLine($"var num = {multiplyAdd(0.0052854f, "x2", -0.1306282f)};")
 			.WriteLine($"num      = {multiplyAdd("num", "x2", 1.0f)};")
 			.WriteLine("num     *= arg;")
 			.WriteWhitespace()
-			.WriteLine("var q1 = -0.4636476f;")
-			.WriteLine("var q2 =  0.0157903f;")
-			.WriteLine($"var den = {multiplyAdd("q2", "x2", "q1")};")
+			.WriteLine($"var den = {multiplyAdd(0.0157903f, "x2", -0.4636476f)};")
 			.WriteLine($"den      = {multiplyAdd("den", "x2", 1.0f)};")
 			.WriteWhitespace()
 			.WriteLine("if (nearAsymptote)")
@@ -184,19 +180,13 @@ public class TanFunctionOptimizer() : BaseMathFunctionOptimizer("Tan", n => n is
 			.WriteWhitespace()
 			.WriteLine("var x2 = arg * arg;")
 			.WriteWhitespace()
-			.WriteLine("var p1 = -0.13089944486966634;")
-			.WriteLine("var p2 =  0.005405742881796775;")
-			.WriteLine("var p3 = -0.00010606776596208569;")
-			.WriteLine($"var num = {multiplyAdd("p3", "x2", "p2")};")
-			.WriteLine($"num      = {multiplyAdd("num", "x2", "p1")};")
+			.WriteLine($"var num = {multiplyAdd(-0.00010606776596208569, "x2", 0.005405742881796775)};")
+			.WriteLine($"num      = {multiplyAdd("num", "x2", -0.13089944486966634)};")
 			.WriteLine($"num      = {multiplyAdd("num", "x2", 1.0)};")
 			.WriteLine("num     *= arg;")
 			.WriteWhitespace()
-			.WriteLine("var q1 = -0.46468849716162905;")
-			.WriteLine("var q2 =  0.015893657956882884;")
-			.WriteLine("var q3 = -0.00031920703894961204;")
-			.WriteLine($"var den = {multiplyAdd("q3", "x2", "q2")};")
-			.WriteLine($"den      = {multiplyAdd("den", "x2", "q1")};")
+			.WriteLine($"var den = {multiplyAdd(-0.00031920703894961204, "x2", 0.015893657956882884)};")
+			.WriteLine($"den      = {multiplyAdd("den", "x2", -0.46468849716162905)};")
 			.WriteLine($"den      = {multiplyAdd("den", "x2", 1.0)};")
 			.WriteWhitespace()
 			.WriteLine("if (nearAsymptote)")

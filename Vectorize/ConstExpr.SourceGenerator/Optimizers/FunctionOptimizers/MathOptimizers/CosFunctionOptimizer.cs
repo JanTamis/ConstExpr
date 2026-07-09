@@ -31,7 +31,7 @@ public class CosFunctionOptimizer() : BaseMathFunctionOptimizer("Cos", n => n is
 			return method.Identifier.Text;
 		}
 
-		return $"{paramType.Name}.{Name}";
+		return base.GenerateCustomImplementation(context, paramType);
 	}
 
 	private static string GenerateFastCosMethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)
@@ -59,7 +59,7 @@ public class CosFunctionOptimizer() : BaseMathFunctionOptimizer("Cos", n => n is
 			.WriteLine($"x = {absInvocation}<float, uint>(x);")
 			.WriteWhitespace()
 			.WriteLine("var x2 = x * x;")
-			.WriteLine("var ret = 0.0003538394f;")
+			.WriteLine($"var ret = {multiplyAdd(0.0003538394f, "x2", -0.0041666418f)};")
 			.WriteLine($"ret = {multiplyAdd("ret", "x2", -0.0041666418f)};")
 			.WriteLine($"ret = {multiplyAdd("ret", "x2", 0.041666666f)};")
 			.WriteLine($"ret = {multiplyAdd("ret", "x2", -0.5f)};")
@@ -97,8 +97,7 @@ public class CosFunctionOptimizer() : BaseMathFunctionOptimizer("Cos", n => n is
 			.WriteLine($"x = {absInvocation}<double, ulong>(x);")
 			.WriteWhitespace()
 			.WriteLine("var x2 = x * x;")
-			.WriteLine("var ret = -1.1940250944959890e-7;")
-			.WriteLine($"ret = {multiplyAdd("ret", "x2", 2.0876755527587203e-5)};")
+			.WriteLine($"var ret = {multiplyAdd(-1.1940250944959890e-7, "x2", 2.0876755527587203e-5)};")
 			.WriteLine($"ret = {multiplyAdd("ret", "x2", -0.0013888888888739916)};")
 			.WriteLine($"ret = {multiplyAdd("ret", "x2", 0.041666666666666602)};")
 			.WriteLine($"ret = {multiplyAdd("ret", "x2", -0.5)};")
