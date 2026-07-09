@@ -20,8 +20,8 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 	{
 		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			SpecialType.System_Single => GenerateFastAcosMethodFloat(context),
-			SpecialType.System_Double => GenerateFastAcosMethodDouble(context),
+			SpecialType.System_Single => GenerateFastAcosMethodFloat(context, paramType),
+			SpecialType.System_Double => GenerateFastAcosMethodDouble(context, paramType),
 			_ => null
 		});
 
@@ -43,10 +43,12 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 	///   Uses a polynomial approximation with FusedMultiplyAdd for improved performance.
 	/// </summary>
 	/// <param name="context">The optimizer context containing method arguments and FastMath flags.</param>
+	/// <param name="paramType"></param>
 	/// <returns>A string containing the C# code for the fast Acos implementation.</returns>
-	private static string GenerateFastAcosMethodFloat(FunctionOptimizerContext context)
+	private static string GenerateFastAcosMethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast polynomial approximation of inverse cosine (Acos) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses FusedMultiplyAdd for improved performance. Handles negative values and optional NaN checks.</remarks>")
@@ -64,9 +66,9 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 		builder.WriteLine("var negative = x < 0f;")
 			.WriteLine("x = Single.Abs(x);");
 
-		builder.WriteLine("var p = Single.FusedMultiplyAdd(-0.0187293f, x, 0.0742610f);")
-			.WriteLine("p = Single.FusedMultiplyAdd(p, x, -0.2121144f);")
-			.WriteLine("p = Single.FusedMultiplyAdd(p, x, 1.5707288f);")
+		builder.WriteLine($"var p = {multiplyAdd(-0.0187293f, "x", 0.0742610f)};")
+			.WriteLine($"p = {multiplyAdd("p", "x", -0.2121144f)};")
+			.WriteLine($"p = {multiplyAdd("p", "x", 1.5707288f)};")
 			.WriteLine("p *= Single.Sqrt(1f - x);")
 			.WriteLine("return negative ? Single.Pi - p : p;")
 			.EndBlock();
@@ -80,10 +82,12 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 	///   Uses a higher-precision polynomial approximation with separate handling for values greater than 0.5.
 	/// </summary>
 	/// <param name="context">The optimizer context containing method arguments and FastMath flags.</param>
+	/// <param name="paramType"></param>
 	/// <returns>A string containing the C# code for the fast Acos implementation.</returns>
-	private static string GenerateFastAcosMethodDouble(FunctionOptimizerContext context)
+	private static string GenerateFastAcosMethodDouble(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast polynomial approximation of inverse cosine (Acos) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses a higher-precision polynomial with separate handling for values greater than 0.5. Handles negative values and optional NaN checks.</remarks>")
@@ -105,11 +109,11 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 			.WriteLine("var t = big ? Double.Sqrt((1.0 - x) * 0.5) : x;")
 			.WriteLine("var u = t * t;")
 			.WriteWhitespace()
-			.WriteLine("var p = Double.FusedMultiplyAdd(u, 945.0 / 42240.0, 105.0 / 3456.0);")
-			.WriteLine("p = Double.FusedMultiplyAdd(u, p, 15.0 / 336.0);")
-			.WriteLine("p = Double.FusedMultiplyAdd(u, p, 3.0 / 40.0);")
-			.WriteLine("p = Double.FusedMultiplyAdd(u, p, 1.0 / 6.0);")
-			.WriteLine("p = Double.FusedMultiplyAdd(u, p, 1.0);")
+			.WriteLine($"var p = {multiplyAdd("u", 945.0 / 42240.0, 105.0 / 3456.0)};")
+			.WriteLine($"p = {multiplyAdd("u", "p", 15.0 / 336.0)};")
+			.WriteLine($"p = {multiplyAdd("u", "p", 3.0 / 40.0)};")
+			.WriteLine($"p = {multiplyAdd("u", "p", 1.0 / 6.0)};")
+			.WriteLine($"p = {multiplyAdd("u", "p", 1.0)};")
 			.WriteWhitespace()
 			.WriteLine("var asinT = t * p;")
 			.WriteLine("var result = big ? 2.0 * asinT : Math.PI / 2.0 - asinT;")

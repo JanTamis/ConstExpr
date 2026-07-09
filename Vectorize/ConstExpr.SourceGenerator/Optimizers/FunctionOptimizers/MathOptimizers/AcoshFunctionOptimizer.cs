@@ -13,8 +13,8 @@ public class AcoshFunctionOptimizer() : BaseMathFunctionOptimizer("Acosh", n => 
 	{
 		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			SpecialType.System_Single => GenerateFastAcoshMethodFloat(context.FastMathFlags),
-			SpecialType.System_Double => GenerateFastAcoshMethodDouble(context.FastMathFlags),
+			SpecialType.System_Single => GenerateFastAcoshMethodFloat(context, paramType),
+			SpecialType.System_Double => GenerateFastAcoshMethodDouble(context, paramType),
 			_ => null
 		});
 
@@ -36,9 +36,10 @@ public class AcoshFunctionOptimizer() : BaseMathFunctionOptimizer("Acosh", n => 
 	/// </summary>
 	/// <param name="flags">FastMath flags that control NaN handling and other optimizations.</param>
 	/// <returns>A string containing the C# code for the fast Acosh implementation.</returns>
-	private static string GenerateFastAcoshMethodFloat(FastMathFlags flags)
+	private static string GenerateFastAcoshMethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of inverse hyperbolic cosine (Acosh) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses piecewise approximation with special handling for values near 1.0. Supports optional NaN checks.</remarks>")
@@ -47,7 +48,7 @@ public class AcoshFunctionOptimizer() : BaseMathFunctionOptimizer("Acosh", n => 
 			.WriteLine("private static float FastAcosh(float x)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
 		}
@@ -58,20 +59,20 @@ public class AcoshFunctionOptimizer() : BaseMathFunctionOptimizer("Acosh", n => 
 			.StartBlock()
 			.WriteLine("var t = x - 1.0f;")
 			.WriteLine("var sqrt2t = Single.Sqrt(2.0f * t);")
-			.WriteLine("var correction = Single.FusedMultiplyAdd(t, Single.FusedMultiplyAdd(t, 0.01875f, -0.0833333f), 1.0f);")
+			.WriteLine($"var correction = {multiplyAdd("t", multiplyAdd("t", 0.01875f, -0.0833333f), 1f)};")
 			.WriteLine("return sqrt2t * correction;")
 			.EndBlock()
 			.WriteWhitespace()
-			.WriteLine("var sqrtTerm = Single.Sqrt(Single.FusedMultiplyAdd(x, x, -1.0f));")
+			.WriteLine($"var sqrtTerm = Single.Sqrt({multiplyAdd("x", "x", -1f)});")
 			.WriteLine("var arg  = x + sqrtTerm;")
 			.WriteLine("var bits = BitConverter.SingleToInt32Bits(arg);")
 			.WriteLine("var e    = (bits >> 23) - 127;")
 			.WriteLine("var m    = BitConverter.Int32BitsToSingle((bits & 0x007FFFFF) | 0x3F800000);")
-			.WriteLine("var lnm  = Single.FusedMultiplyAdd(-0.056570851f, m,  0.447178975f);")
-			.WriteLine("lnm      = Single.FusedMultiplyAdd(lnm, m, -1.469956800f);")
-			.WriteLine("lnm      = Single.FusedMultiplyAdd(lnm, m,  2.821202636f);")
-			.WriteLine("lnm      = Single.FusedMultiplyAdd(lnm, m, -1.741793927f);")
-			.WriteLine("return Single.FusedMultiplyAdd(e, 0.6931471806f, lnm);")
+			.WriteLine($"var lnm = {multiplyAdd(-0.056570851f, "m", 0.447178975f)};")
+			.WriteLine($"lnm     = {multiplyAdd("lnm", "m", -1.469956800f)};")
+			.WriteLine($"lnm     = {multiplyAdd("lnm", "m", 2.821202636f)};")
+			.WriteLine($"lnm     = {multiplyAdd("lnm", "m", -1.741793927f)};")
+			.WriteLine($"return {multiplyAdd("e", 0.6931471806f, "lnm")};")
 			.EndBlock();
 
 		return builder.ToString();
@@ -83,9 +84,10 @@ public class AcoshFunctionOptimizer() : BaseMathFunctionOptimizer("Acosh", n => 
 	/// </summary>
 	/// <param name="flags">FastMath flags that control NaN handling and other optimizations.</param>
 	/// <returns>A string containing the C# code for the fast Acosh implementation.</returns>
-	private static string GenerateFastAcoshMethodDouble(FastMathFlags flags)
+	private static string GenerateFastAcoshMethodDouble(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of inverse hyperbolic cosine (Acosh) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses piecewise approximation with higher precision coefficients and special handling for values near 1.0. Supports optional NaN checks.</remarks>")
@@ -94,7 +96,7 @@ public class AcoshFunctionOptimizer() : BaseMathFunctionOptimizer("Acosh", n => 
 			.WriteLine("private static double FastAcosh(double x)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
 		}
@@ -105,20 +107,20 @@ public class AcoshFunctionOptimizer() : BaseMathFunctionOptimizer("Acosh", n => 
 			.StartBlock()
 			.WriteLine("var t = x - 1.0;")
 			.WriteLine("var sqrt2t = Double.Sqrt(2.0 * t);")
-			.WriteLine("var correction = Double.FusedMultiplyAdd(t, Double.FusedMultiplyAdd(t, Double.FusedMultiplyAdd(t, -0.005580357, 0.01875), -0.083333333333), 1.0);")
+			.WriteLine($"var correction = {multiplyAdd("t", multiplyAdd("t", multiplyAdd("t", -0.005580357, 0.01875), -0.083333333333), 1.0)};")
 			.WriteLine("return sqrt2t * correction;")
 			.EndBlock()
 			.WriteWhitespace()
-			.WriteLine("var sqrtTerm = Double.Sqrt(Double.FusedMultiplyAdd(x, x, -1.0));")
+			.WriteLine($"var sqrtTerm = Double.Sqrt({multiplyAdd("x", "x", -1.0)});")
 			.WriteLine("var arg  = x + sqrtTerm;")
 			.WriteLine("var bits = BitConverter.DoubleToInt64Bits(arg);")
 			.WriteLine("var e    = (int)((bits >> 52) - 1023L);")
 			.WriteLine("var m    = BitConverter.Int64BitsToDouble((bits & 0x000FFFFFFFFFFFFFL) | 0x3FF0000000000000L);")
-			.WriteLine("var lnm  = Double.FusedMultiplyAdd(-0.056570851, m,  0.447178975);")
-			.WriteLine("lnm      = Double.FusedMultiplyAdd(lnm, m, -1.469956800);")
-			.WriteLine("lnm      = Double.FusedMultiplyAdd(lnm, m,  2.821202636);")
-			.WriteLine("lnm      = Double.FusedMultiplyAdd(lnm, m, -1.741793927);")
-			.WriteLine("return Double.FusedMultiplyAdd(e, 0.6931471805599453094172321214581766, lnm);")
+			.WriteLine($"var lnm  = {multiplyAdd(-0.056570851, "m", 0.447178975)};")
+			.WriteLine($"lnm      = {multiplyAdd("lnm", "m", -1.469956800)};")
+			.WriteLine($"lnm      = {multiplyAdd("lnm", "m", 2.821202636)};")
+			.WriteLine($"lnm      = {multiplyAdd("lnm", "m", -1.741793927)};")
+			.WriteLine($"return {multiplyAdd("e", 0.6931471805599453094172321214581766, "lnm")};")
 			.EndBlock();
 
 		return builder.ToString();

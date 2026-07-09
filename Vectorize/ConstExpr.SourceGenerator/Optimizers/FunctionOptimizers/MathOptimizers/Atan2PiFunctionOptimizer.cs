@@ -59,8 +59,8 @@ public class Atan2PiFunctionOptimizer() : BaseMathFunctionOptimizer("Atan2Pi", n
 
 		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			SpecialType.System_Single => GenerateFastAtan2PiMethodFloat(context.FastMathFlags),
-			SpecialType.System_Double => GenerateFastAtan2PiMethodDouble(context.FastMathFlags),
+			SpecialType.System_Single => GenerateFastAtan2PiMethodFloat(context, paramType),
+			SpecialType.System_Double => GenerateFastAtan2PiMethodDouble(context, paramType),
 			_ => null
 		});
 
@@ -87,7 +87,7 @@ public class Atan2PiFunctionOptimizer() : BaseMathFunctionOptimizer("Atan2Pi", n
 				value = c.ToDouble(CultureInfo.InvariantCulture);
 				return true;
 			}
-			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
 			{
 				value = -c2.ToDouble(CultureInfo.InvariantCulture);
 				return true;
@@ -99,9 +99,10 @@ public class Atan2PiFunctionOptimizer() : BaseMathFunctionOptimizer("Atan2Pi", n
 		}
 	}
 
-	private static string GenerateFastAtan2PiMethodFloat(FastMathFlags flags)
+	private static string GenerateFastAtan2PiMethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of arctangent with two arguments divided by π (Atan2Pi) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses octant reduction, a minimax polynomial approximation, and branch-friendly quadrant corrections. Returns atan2(y, x) / π.</remarks>")
@@ -111,7 +112,7 @@ public class Atan2PiFunctionOptimizer() : BaseMathFunctionOptimizer("Atan2Pi", n
 			.WriteLine("private static float FastAtan2Pi(float y, float x)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Single.IsNaN(y) || Single.IsNaN(x)) return Single.NaN;");
 		}
@@ -122,20 +123,15 @@ public class Atan2PiFunctionOptimizer() : BaseMathFunctionOptimizer("Atan2Pi", n
 			.WriteWhitespace()
 			.WriteLine("if (maxV == 0f) return 0f;")
 			.WriteWhitespace()
-			// .WriteLine("// Octant reduction: a = min(|x|,|y|) / max(|x|,|y|) ∈ [0, 1]")
 			.WriteLine("var a = Single.Min(absX, absY) / maxV;")
 			.WriteLine("var u = a * a;")
 			.WriteWhitespace()
-			// .WriteLine("// A&S §4.4.43 coefficients pre-divided by π — same kernel as FastAtan2, 1/π absorbed.")
-			// .WriteLine("// Max absolute error ≈ 3.5e-6 (in units of π), ~2000× better than the prior Padé [1/2].")
-			// .WriteLine("// Benchmark (Apple M4 Pro, .NET 10, ARM64): ~2.25 ns vs float.Atan2Pi ~3.14 ns (−28%).")
-			.WriteLine("var p = Single.FusedMultiplyAdd(u,  0.00663222f, -0.02710107f);")
-			.WriteLine("p = Single.FusedMultiplyAdd(u, p,  0.05733014f);")
-			.WriteLine("p = Single.FusedMultiplyAdd(u, p, -0.10510700f);")
-			.WriteLine("p = Single.FusedMultiplyAdd(u, p,  0.31826720f);")
+			.WriteLine($"var p = {multiplyAdd("u", 0.00663222f, -0.02710107f)};")
+			.WriteLine($"p = {multiplyAdd("u", "p", 0.05733014f)};")
+			.WriteLine($"p = {multiplyAdd("u", "p", -0.10510700f)};")
+			.WriteLine($"p = {multiplyAdd("u", "p", 0.31826720f)};")
 			.WriteLine("p *= a;")
 			.WriteWhitespace()
-			// .WriteLine("// Octant and quadrant corrections — π/2 / π = 0.5, π / π = 1")
 			.WriteLine("p = absY > absX ? 0.5f - p : p;")
 			.WriteLine("p = x < 0f ? 1f - p : p;")
 			.WriteLine("p = y < 0f ? -p : p;")
@@ -147,9 +143,10 @@ public class Atan2PiFunctionOptimizer() : BaseMathFunctionOptimizer("Atan2Pi", n
 		return builder.ToString();
 	}
 
-	private static string GenerateFastAtan2PiMethodDouble(FastMathFlags flags)
+	private static string GenerateFastAtan2PiMethodDouble(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of arctangent with two arguments divided by π (Atan2Pi) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses a rational approximation with octant reduction and quadrant corrections. Returns atan2(y, x) / π.</remarks>")
@@ -159,7 +156,7 @@ public class Atan2PiFunctionOptimizer() : BaseMathFunctionOptimizer("Atan2Pi", n
 			.WriteLine("private static double FastAtan2Pi(double x, double y)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Double.IsNaN(y) || Double.IsNaN(x)) return Double.NaN;");
 		}
@@ -174,13 +171,13 @@ public class Atan2PiFunctionOptimizer() : BaseMathFunctionOptimizer("Atan2Pi", n
 			.WriteLine("var t = a / (1.0 + Double.Sqrt(1.0 + a * a));")
 			.WriteLine("var u = t * t;")
 			.WriteWhitespace()
-			.WriteLine("var p = Double.FusedMultiplyAdd(u, -1.0 / 15.0,  1.0 / 13.0);")
-			.WriteLine("p = Double.FusedMultiplyAdd(u, p, -1.0 / 11.0);")
-			.WriteLine("p = Double.FusedMultiplyAdd(u, p,  1.0 / 9.0);")
-			.WriteLine("p = Double.FusedMultiplyAdd(u, p, -1.0 / 7.0);")
-			.WriteLine("p = Double.FusedMultiplyAdd(u, p,  1.0 / 5.0);")
-			.WriteLine("p = Double.FusedMultiplyAdd(u, p, -1.0 / 3.0);")
-			.WriteLine("p = Double.FusedMultiplyAdd(u, p,  1.0);")
+			.WriteLine($"var p = {multiplyAdd("u", -1.0 / 15.0, 1.0 / 13.0)};")
+			.WriteLine($"p = {multiplyAdd("u", "p", -1.0 / 11.0)};")
+			.WriteLine($"p = {multiplyAdd("u", "p", 1.0 / 9.0)};")
+			.WriteLine($"p = {multiplyAdd("u", "p", -1.0 / 7.0)};")
+			.WriteLine($"p = {multiplyAdd("u", "p", 1.0 / 5.0)};")
+			.WriteLine($"p = {multiplyAdd("u", "p", -1.0 / 3.0)};")
+			.WriteLine($"p = {multiplyAdd("u", "p", 1.0)};")
 			.WriteLine("p = 2.0 / Double.Pi * t * p; // atan2Pi(a) = 2·atan(t) / π")
 			.WriteWhitespace()
 			.WriteLine("p = absY > absX ? 0.5 - p : p;")

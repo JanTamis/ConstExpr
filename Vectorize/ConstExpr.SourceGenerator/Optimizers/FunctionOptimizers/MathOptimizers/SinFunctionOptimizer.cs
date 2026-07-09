@@ -13,8 +13,8 @@ public class SinFunctionOptimizer() : BaseMathFunctionOptimizer("Sin", n => n is
 	{
 		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			SpecialType.System_Single => GenerateFastSinMethodFloat(context.FastMathFlags),
-			SpecialType.System_Double => GenerateFastSinMethodDouble(context.FastMathFlags),
+			SpecialType.System_Single => GenerateFastSinMethodFloat(context, paramType),
+			SpecialType.System_Double => GenerateFastSinMethodDouble(context, paramType),
 			_ => null
 		});
 
@@ -30,9 +30,10 @@ public class SinFunctionOptimizer() : BaseMathFunctionOptimizer("Sin", n => n is
 		return true;
 	}
 
-	private static string GenerateFastSinMethodFloat(FastMathFlags flags)
+	private static string GenerateFastSinMethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of sine (Sin) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses argument reduction and a polynomial approximation with optional NaN handling.</remarks>")
@@ -41,7 +42,7 @@ public class SinFunctionOptimizer() : BaseMathFunctionOptimizer("Sin", n => n is
 			.WriteLine("private static float FastSin(float x)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
 		}
@@ -56,9 +57,9 @@ public class SinFunctionOptimizer() : BaseMathFunctionOptimizer("Sin", n => n is
 			.WriteWhitespace()
 			.WriteLine("var x2 = x * x;")
 			.WriteLine("var ret = -1.9841269841e-4f;")
-			.WriteLine("ret = Single.FusedMultiplyAdd(ret, x2,  8.3333333333e-3f);")
-			.WriteLine("ret = Single.FusedMultiplyAdd(ret, x2, -1.6666666667e-1f);")
-			.WriteLine("ret = Single.FusedMultiplyAdd(ret, x2,  1.0f);")
+			.WriteLine($"ret = {multiplyAdd("ret", "x2", 8.3333333333e-3f)};")
+			.WriteLine($"ret = {multiplyAdd("ret", "x2", -1.6666666667e-1f)};")
+			.WriteLine($"ret = {multiplyAdd("ret", "x2", 1.0f)};")
 			.WriteLine("ret *= x;")
 			.WriteWhitespace()
 			.WriteLine("return Single.CopySign(ret, originalX);");
@@ -68,9 +69,10 @@ public class SinFunctionOptimizer() : BaseMathFunctionOptimizer("Sin", n => n is
 		return builder.ToString();
 	}
 
-	private static string GenerateFastSinMethodDouble(FastMathFlags flags)
+	private static string GenerateFastSinMethodDouble(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of sine (Sin) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses argument reduction and a polynomial approximation with optional NaN handling.</remarks>")
@@ -79,7 +81,7 @@ public class SinFunctionOptimizer() : BaseMathFunctionOptimizer("Sin", n => n is
 			.WriteLine("private static double FastSin(double x)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
 		}
@@ -98,12 +100,12 @@ public class SinFunctionOptimizer() : BaseMathFunctionOptimizer("Sin", n => n is
 			.WriteWhitespace()
 			.WriteLine("var x2 = x * x;")
 			.WriteLine("var ret = 2.6019406621361745e-9;")
-			.WriteLine("ret = Double.FusedMultiplyAdd(ret, x2, -1.9839531932589676e-7);")
-			.WriteLine("ret = Double.FusedMultiplyAdd(ret, x2,  8.3333333333216515e-6);")
-			.WriteLine("ret = Double.FusedMultiplyAdd(ret, x2, -0.00019841269836761127);")
-			.WriteLine("ret = Double.FusedMultiplyAdd(ret, x2,  0.0083333333333332177);")
-			.WriteLine("ret = Double.FusedMultiplyAdd(ret, x2, -0.16666666666666666);")
-			.WriteLine("ret = Double.FusedMultiplyAdd(ret, x2,  1.0);")
+			.WriteLine($"ret = {multiplyAdd("ret", "x2", -1.9839531932589676e-7)};")
+			.WriteLine($"ret = {multiplyAdd("ret", "x2", 8.3333333333216515e-6)};")
+			.WriteLine($"ret = {multiplyAdd("ret", "x2", -0.00019841269836761127)};")
+			.WriteLine($"ret = {multiplyAdd("ret", "x2", 0.0083333333333332177)};")
+			.WriteLine($"ret = {multiplyAdd("ret", "x2", -0.16666666666666666)};")
+			.WriteLine($"ret = {multiplyAdd("ret", "x2", 1.0)};")
 			.WriteLine("ret *= x;")
 			.WriteWhitespace()
 			// .WriteLine("// Apply original sign using CopySign")

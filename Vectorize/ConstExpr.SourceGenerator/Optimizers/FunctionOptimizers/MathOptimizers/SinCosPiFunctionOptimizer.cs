@@ -13,8 +13,8 @@ public class SinCosPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinCosPi",
 	{
 		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			SpecialType.System_Single => GenerateFastSinCosPiMethodFloat(context.FastMathFlags),
-			SpecialType.System_Double => GenerateFastSinCosPiMethodDouble(context.FastMathFlags),
+			SpecialType.System_Single => GenerateFastSinCosPiMethodFloat(context, paramType),
+			SpecialType.System_Double => GenerateFastSinCosPiMethodDouble(context, paramType),
 			_ => null
 		});
 
@@ -30,9 +30,10 @@ public class SinCosPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinCosPi",
 		return true;
 	}
 
-	private static string GenerateFastSinCosPiMethodFloat(FastMathFlags flags)
+	private static string GenerateFastSinCosPiMethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast simultaneous sine and cosine approximation for values interpreted as multiples of π (single-precision).</summary>")
 			.WriteLine("/// <remarks>Uses range reduction modulo 2 and paired polynomial approximations for sin(πx) and cos(πx).</remarks>")
@@ -41,7 +42,7 @@ public class SinCosPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinCosPi",
 			.WriteLine("private static (float Sin, float Cos) FastSinCosPi(float x)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Single.IsNaN(x)) return (Single.NaN, Single.NaN);");
 		}
@@ -58,17 +59,17 @@ public class SinCosPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinCosPi",
 			.WriteLine("var u2 = u * u;")
 			.WriteWhitespace()
 			.WriteLine("var sinVal = -0.5992645f;")
-			.WriteLine("sinVal = Single.FusedMultiplyAdd(sinVal, u2,  2.5501640f);")
-			.WriteLine("sinVal = Single.FusedMultiplyAdd(sinVal, u2, -5.1677128f);")
-			.WriteLine("sinVal = Single.FusedMultiplyAdd(sinVal, u2,  3.1415927f);")
+			.WriteLine($"sinVal = {multiplyAdd("sinVal", "u2", 2.5501640f)};")
+			.WriteLine($"sinVal = {multiplyAdd("sinVal", "u2", -5.1677128f)};")
+			.WriteLine($"sinVal = {multiplyAdd("sinVal", "u2", 3.1415927f)};")
 			.WriteLine("sinVal = sinVal * u;")
 			.WriteWhitespace()
 			.WriteLine("sinVal = Single.CopySign(sinVal, originalSign);")
 			.WriteWhitespace()
 			.WriteLine("var cosVal = -1.3352627f;")
-			.WriteLine("cosVal = Single.FusedMultiplyAdd(cosVal, u2,  4.0587121f);")
-			.WriteLine("cosVal = Single.FusedMultiplyAdd(cosVal, u2, -4.9348022f);")
-			.WriteLine("cosVal = Single.FusedMultiplyAdd(cosVal, u2,  1.0f);")
+			.WriteLine($"cosVal = {multiplyAdd("cosVal", "u2", 4.0587121f)};")
+			.WriteLine($"cosVal = {multiplyAdd("cosVal", "u2", -4.9348022f)};")
+			.WriteLine($"cosVal = {multiplyAdd("cosVal", "u2", 1.0f)};")
 			.WriteWhitespace()
 			.WriteLine("cosVal = inUpperHalf ? -cosVal : cosVal;")
 			.WriteWhitespace()
@@ -79,9 +80,10 @@ public class SinCosPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinCosPi",
 		return builder.ToString();
 	}
 
-	private static string GenerateFastSinCosPiMethodDouble(FastMathFlags flags)
+	private static string GenerateFastSinCosPiMethodDouble(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast simultaneous sine and cosine approximation for values interpreted as multiples of π (double-precision).</summary>")
 			.WriteLine("/// <remarks>Uses range reduction modulo 2 and paired polynomial approximations for sin(πx) and cos(πx).</remarks>")
@@ -90,7 +92,7 @@ public class SinCosPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinCosPi",
 			.WriteLine("private static (double Sin, double Cos) FastSinCosPi(double x)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Double.IsNaN(x)) return (Double.NaN, Double.NaN);");
 		}
@@ -107,19 +109,19 @@ public class SinCosPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinCosPi",
 			.WriteLine("var u2 = u * u;")
 			.WriteWhitespace()
 			.WriteLine("var sinVal = 0.08214588661112823;")
-			.WriteLine("sinVal = Double.FusedMultiplyAdd(sinVal, u2, -0.5992645293218801);")
-			.WriteLine("sinVal = Double.FusedMultiplyAdd(sinVal, u2,  2.5501640398773455);")
-			.WriteLine("sinVal = Double.FusedMultiplyAdd(sinVal, u2, -5.1677127800499706);")
-			.WriteLine("sinVal = Double.FusedMultiplyAdd(sinVal, u2,  3.1415926535897932);")
+			.WriteLine($"sinVal = {multiplyAdd("sinVal", "u2", -0.5992645293218801)};")
+			.WriteLine($"sinVal = {multiplyAdd("sinVal", "u2", 2.5501640398773455)};")
+			.WriteLine($"sinVal = {multiplyAdd("sinVal", "u2", -5.1677127800499706)};")
+			.WriteLine($"sinVal = {multiplyAdd("sinVal", "u2", 3.1415926535897932)};")
 			.WriteLine("sinVal = sinVal * u;")
 			.WriteWhitespace()
 			.WriteLine("sinVal = Double.CopySign(sinVal, originalSign);")
 			.WriteWhitespace()
 			.WriteLine("var cosVal = 0.23533075157732439;")
-			.WriteLine("cosVal = Double.FusedMultiplyAdd(cosVal, u2, -1.3352627312227247);")
-			.WriteLine("cosVal = Double.FusedMultiplyAdd(cosVal, u2,  4.0587121264167682);")
-			.WriteLine("cosVal = Double.FusedMultiplyAdd(cosVal, u2, -4.9348022005446793);")
-			.WriteLine("cosVal = Double.FusedMultiplyAdd(cosVal, u2,  1.0);")
+			.WriteLine($"cosVal = {multiplyAdd("cosVal", "u2", -1.3352627312227247)};")
+			.WriteLine($"cosVal = {multiplyAdd("cosVal", "u2", 4.0587121264167682)};")
+			.WriteLine($"cosVal = {multiplyAdd("cosVal", "u2", -4.9348022005446793)};")
+			.WriteLine($"cosVal = {multiplyAdd("cosVal", "u2", 1.0)};")
 			.WriteWhitespace()
 			.WriteLine("cosVal = inUpperHalf ? -cosVal : cosVal;")
 			.WriteWhitespace()

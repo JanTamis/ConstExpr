@@ -20,8 +20,8 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n 
 	{
 		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			SpecialType.System_Single => GenerateFastAsinMethodFloat(context.FastMathFlags),
-			SpecialType.System_Double => GenerateFastAsinMethodDouble(context.FastMathFlags),
+			SpecialType.System_Single => GenerateFastAsinMethodFloat(context, paramType),
+			SpecialType.System_Double => GenerateFastAsinMethodDouble(context, paramType),
 			_ => null
 		});
 
@@ -37,9 +37,10 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n 
 		return true;
 	}
 
-	private static string GenerateFastAsinMethodFloat(FastMathFlags flags)
+	private static string GenerateFastAsinMethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of inverse sine (Asin) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses a piecewise polynomial approximation with FusedMultiplyAdd and special handling near zero and near one.</remarks>")
@@ -48,7 +49,7 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n 
 			.WriteLine("private static float FastAsin(float x)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
 		}
@@ -60,7 +61,7 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n 
 			.StartBlock()
 			.WriteLine("var x2 = xa * xa;")
 			.WriteLine("var ret = 0.16666667f;")
-			.WriteLine("ret = Single.FusedMultiplyAdd(ret, x2, 1.0f);")
+			.WriteLine($"ret = {multiplyAdd("ret", "x2", 1.0f)};")
 			.WriteLine("ret *= xa;")
 			.WriteWhitespace()
 			.WriteLine("return Single.CopySign(ret, x);")
@@ -70,9 +71,9 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n 
 			.WriteLine("var sqrtOnemx = Single.Sqrt(onemx);")
 			.WriteLine("var p = -0.0187293f;")
 			.WriteWhitespace()
-			.WriteLine("p = Single.FusedMultiplyAdd(p, xa,  0.0742610f);")
-			.WriteLine("p = Single.FusedMultiplyAdd(p, xa, -0.2121144f);")
-			.WriteLine("p = Single.FusedMultiplyAdd(p, xa,  1.5707288f);")
+			.WriteLine($"p = {multiplyAdd("p", "xa", 0.0742610f)};")
+			.WriteLine($"p = {multiplyAdd("p", "xa", -0.2121144f)};")
+			.WriteLine($"p = {multiplyAdd("p", "xa", 1.5707288f)};")
 			.WriteLine("p *= sqrtOnemx;")
 			.WriteLine("p = 1.5707963267948966f - p;")
 			.WriteWhitespace()
@@ -82,9 +83,10 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n 
 		return builder.ToString();
 	}
 
-	private static string GenerateFastAsinMethodDouble(FastMathFlags flags)
+	private static string GenerateFastAsinMethodDouble(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of inverse sine (Asin) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses a piecewise polynomial approximation with FusedMultiplyAdd and special handling near zero and near one.</remarks>")
@@ -93,7 +95,7 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n 
 			.WriteLine("private static double FastAsin(double x)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
 		}
@@ -107,7 +109,7 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n 
 			.StartBlock()
 			.WriteLine("var x2 = xa * xa;")
 			.WriteLine("var ret = 0.16666666666666666;")
-			.WriteLine("ret = Double.FusedMultiplyAdd(ret, x2, 1.0);")
+			.WriteLine($"ret = {multiplyAdd("ret", "x2", 1.0)};")
 			.WriteLine("ret *= xa;")
 			.WriteWhitespace()
 			.WriteLine("return Double.CopySign(ret, x);")
@@ -117,9 +119,9 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n 
 			.WriteLine("var sqrtOnemx = Double.Sqrt(onemx);")
 			.WriteLine("var p = -0.0187293;")
 			.WriteWhitespace()
-			.WriteLine("p = Double.FusedMultiplyAdd(p, xa,  0.0742610);")
-			.WriteLine("p = Double.FusedMultiplyAdd(p, xa, -0.2121144);")
-			.WriteLine("p = Double.FusedMultiplyAdd(p, xa,  1.5707288);")
+			.WriteLine($"p = {multiplyAdd("p", "xa", 0.0742610)};")
+			.WriteLine($"p = {multiplyAdd("p", "xa", -0.2121144)};")
+			.WriteLine($"p = {multiplyAdd("p", "xa", 1.5707288)};")
 			.WriteLine("p *= sqrtOnemx;")
 			.WriteLine("p = 1.5707963267948966 - p;")
 			.WriteWhitespace()

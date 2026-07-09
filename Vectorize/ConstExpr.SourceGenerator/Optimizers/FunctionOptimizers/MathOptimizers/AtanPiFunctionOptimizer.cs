@@ -44,8 +44,8 @@ public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", n =
 
 		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			SpecialType.System_Single => GenerateFastAtanPiMethodFloat(context.FastMathFlags),
-			SpecialType.System_Double => GenerateFastAtanPiMethodDouble(context.FastMathFlags),
+			SpecialType.System_Single => GenerateFastAtanPiMethodFloat(context, paramType),
+			SpecialType.System_Double => GenerateFastAtanPiMethodDouble(context, paramType),
 			_ => null
 		});
 
@@ -72,7 +72,7 @@ public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", n =
 				value = c.ToDouble(CultureInfo.InvariantCulture);
 				return true;
 			}
-			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
 			{
 				value = -c2.ToDouble(CultureInfo.InvariantCulture);
 				return true;
@@ -84,9 +84,10 @@ public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", n =
 		}
 	}
 
-	private static string GenerateFastAtanPiMethodFloat(FastMathFlags flags)
+	private static string GenerateFastAtanPiMethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of arctangent divided by π (AtanPi) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses range reduction, a polynomial approximation, and optional NaN handling. Returns atan(x) / π.</remarks>")
@@ -95,7 +96,7 @@ public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", n =
 			.WriteLine("private static float FastAtanPi(float x)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
 		}
@@ -105,10 +106,10 @@ public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", n =
 			.WriteLine("var a = swap ? 1.0f / absX : absX;")
 			.WriteWhitespace()
 			.WriteLine("var u = a * a;")
-			.WriteLine("var p = Single.FusedMultiplyAdd(u,  0.00663222f, -0.02710107f);")
-			.WriteLine("p      = Single.FusedMultiplyAdd(u, p,            0.05733014f);")
-			.WriteLine("p      = Single.FusedMultiplyAdd(u, p,           -0.10510700f);")
-			.WriteLine("p      = Single.FusedMultiplyAdd(u, p,            0.31826720f);")
+			.WriteLine($"var p = {multiplyAdd("u", 0.00663222f, -0.02710107f)};")
+			.WriteLine($"p      = {multiplyAdd("u", "p", 0.05733014f)};")
+			.WriteLine($"p      = {multiplyAdd("u", "p", -0.10510700f)};")
+			.WriteLine($"p      = {multiplyAdd("u", "p", 0.31826720f)};")
 			.WriteLine("p     *= a;")
 			.WriteWhitespace()
 			.WriteLine("p = swap ? 0.5f - p : p;")
@@ -119,9 +120,10 @@ public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", n =
 		return builder.ToString();
 	}
 
-	private static string GenerateFastAtanPiMethodDouble(FastMathFlags flags)
+	private static string GenerateFastAtanPiMethodDouble(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of arctangent divided by π (AtanPi) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses range reduction, a polynomial approximation, and optional NaN handling. Returns atan(x) / π.</remarks>")
@@ -130,7 +132,7 @@ public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", n =
 			.WriteLine("private static double FastAtanPi(double x)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
 		}
@@ -140,10 +142,10 @@ public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", n =
 			.WriteLine("var a = swap ? 1.0 / absX : absX;")
 			.WriteLine("var u = a * a;")
 			.WriteWhitespace()
-			.WriteLine("var p = Double.FusedMultiplyAdd(u,  0.00663222, -0.02710107);")
-			.WriteLine("p      = Double.FusedMultiplyAdd(u, p,           0.05733014);")
-			.WriteLine("p      = Double.FusedMultiplyAdd(u, p,          -0.10510700);")
-			.WriteLine("p      = Double.FusedMultiplyAdd(u, p,           0.31826720);")
+			.WriteLine($"var p = {multiplyAdd("u", 0.00663222, -0.02710107)};")
+			.WriteLine($"p      = {multiplyAdd("u", "p", 0.05733014)};")
+			.WriteLine($"p      = {multiplyAdd("u", "p", -0.10510700)};")
+			.WriteLine($"p      = {multiplyAdd("u", "p", 0.31826720)};")
 			.WriteLine("p     *= a;")
 			.WriteWhitespace()
 			.WriteLine("p = swap ? 0.5 - p : p;")

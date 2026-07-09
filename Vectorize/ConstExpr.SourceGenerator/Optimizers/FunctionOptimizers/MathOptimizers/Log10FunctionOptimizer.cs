@@ -31,8 +31,8 @@ public class Log10FunctionOptimizer() : BaseMathFunctionOptimizer("Log10", n => 
 		// Max relative error ≈ 8.7e-5 (fast-math trade-off).
 		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			SpecialType.System_Single => GenerateFastLog10MethodFloat(context.FastMathFlags),
-			SpecialType.System_Double => GenerateFastLog10MethodDouble(context.FastMathFlags),
+			SpecialType.System_Single => GenerateFastLog10MethodFloat(context, paramType),
+			SpecialType.System_Double => GenerateFastLog10MethodDouble(context, paramType),
 			_ => null
 		});
 
@@ -49,9 +49,10 @@ public class Log10FunctionOptimizer() : BaseMathFunctionOptimizer("Log10", n => 
 		return true;
 	}
 
-	private static string GenerateFastLog10MethodFloat(FastMathFlags flags)
+	private static string GenerateFastLog10MethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of base-10 logarithm (Log10) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses exponent extraction and a polynomial approximation for the mantissa. Returns log10(x).</remarks>")
@@ -60,14 +61,14 @@ public class Log10FunctionOptimizer() : BaseMathFunctionOptimizer("Log10", n => 
 			.WriteLine("private static float FastLog10(float x)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Single.IsNaN(x) || x < 0f) return Single.NaN;");
 		}
 
 		builder.WriteLine("if (x == 0f) return Single.NegativeInfinity;");
 
-		if (!flags.HasFlag(FastMathFlags.NoInfinity))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoInfinity))
 		{
 			builder.WriteLine("if (Single.IsPositiveInfinity(x)) return Single.PositiveInfinity;");
 		}
@@ -77,21 +78,22 @@ public class Log10FunctionOptimizer() : BaseMathFunctionOptimizer("Log10", n => 
 			.WriteLine("var e    = (bits >> 23) - 127;")
 			.WriteLine("var m    = BitConverter.Int32BitsToSingle((bits & 0x007FFFFF) | 0x3F800000);")
 			.WriteWhitespace()
-			.WriteLine("var log10m = Single.FusedMultiplyAdd(-0.024568408f, m, 0.194207361f);")
-			.WriteLine("log10m     = Single.FusedMultiplyAdd(log10m, m, -0.638394127f);")
-			.WriteLine("log10m     = Single.FusedMultiplyAdd(log10m, m, 1.225232737f);")
-			.WriteLine("log10m     = Single.FusedMultiplyAdd(log10m, m, -0.756451491f);")
+			.WriteLine($"var log10m = {multiplyAdd(-0.024568408f, "m", 0.194207361f)};")
+			.WriteLine($"log10m     = {multiplyAdd("log10m", "m", -0.638394127f)};")
+			.WriteLine($"log10m     = {multiplyAdd("log10m", "m", 1.225232737f)};")
+			.WriteLine($"log10m     = {multiplyAdd("log10m", "m", -0.756451491f)};")
 			.WriteWhitespace()
-			.WriteLine("return Single.FusedMultiplyAdd(e, 0.30102999566398120f, log10m);");
+			.WriteLine($"return {multiplyAdd("e", 0.30102999566398120f, "log10m")};");
 
 		builder.EndBlock();
 
 		return builder.ToString();
 	}
 
-	private static string GenerateFastLog10MethodDouble(FastMathFlags flags)
+	private static string GenerateFastLog10MethodDouble(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of base-10 logarithm (Log10) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses exponent extraction and a polynomial approximation for the mantissa. Returns log10(x).</remarks>")
@@ -100,14 +102,14 @@ public class Log10FunctionOptimizer() : BaseMathFunctionOptimizer("Log10", n => 
 			.WriteLine("private static double FastLog10(double x)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Double.IsNaN(x) || x < 0.0) return Double.NaN;");
 		}
 
 		builder.WriteLine("if (x == 0.0) return Double.NegativeInfinity;");
 
-		if (!flags.HasFlag(FastMathFlags.NoInfinity))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoInfinity))
 		{
 			builder.WriteLine("if (Double.IsPositiveInfinity(x)) return Double.PositiveInfinity;");
 		}
@@ -117,12 +119,12 @@ public class Log10FunctionOptimizer() : BaseMathFunctionOptimizer("Log10", n => 
 			.WriteLine("var e    = (int)((bits >> 52) - 1023L);")
 			.WriteLine("var m    = BitConverter.Int64BitsToDouble((bits & 0x000FFFFFFFFFFFFFL) | 0x3FF0000000000000L);")
 			.WriteWhitespace()
-			.WriteLine("var log10m = Double.FusedMultiplyAdd(-0.024568408426, m, 0.194207361266);")
-			.WriteLine("log10m     = Double.FusedMultiplyAdd(log10m, m, -0.638394126876);")
-			.WriteLine("log10m     = Double.FusedMultiplyAdd(log10m, m, 1.225232737146);")
-			.WriteLine("log10m     = Double.FusedMultiplyAdd(log10m, m, -0.756451491109);")
+			.WriteLine($"var log10m = {multiplyAdd(-0.024568408426, "m", 0.194207361266)};")
+			.WriteLine($"log10m     = {multiplyAdd("log10m", "m", -0.638394126876)};")
+			.WriteLine($"log10m     = {multiplyAdd("log10m", "m", 1.225232737146)};")
+			.WriteLine($"log10m     = {multiplyAdd("log10m", "m", -0.756451491109)};")
 			.WriteWhitespace()
-			.WriteLine("return Double.FusedMultiplyAdd(e, 0.30102999566398119521373889472449303, log10m);");
+			.WriteLine($"return {multiplyAdd("e", 0.30102999566398119521373889472449303, "log10m")};");
 
 		builder.EndBlock();
 

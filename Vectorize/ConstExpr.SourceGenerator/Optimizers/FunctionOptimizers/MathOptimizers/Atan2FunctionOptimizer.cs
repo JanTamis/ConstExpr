@@ -70,8 +70,8 @@ public class Atan2FunctionOptimizer() : BaseMathFunctionOptimizer("Atan2", n => 
 
 		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			SpecialType.System_Single => GenerateFastAtan2MethodFloat(context.FastMathFlags),
-			SpecialType.System_Double => GenerateFastAtan2MethodDouble(context.FastMathFlags),
+			SpecialType.System_Single => GenerateFastAtan2MethodFloat(context, paramType),
+			SpecialType.System_Double => GenerateFastAtan2MethodDouble(context, paramType),
 			_ => null
 		});
 
@@ -98,7 +98,7 @@ public class Atan2FunctionOptimizer() : BaseMathFunctionOptimizer("Atan2", n => 
 				value = c.ToDouble(CultureInfo.InvariantCulture);
 				return true;
 			}
-			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
 			{
 				value = -c2.ToDouble(CultureInfo.InvariantCulture);
 				return true;
@@ -110,9 +110,10 @@ public class Atan2FunctionOptimizer() : BaseMathFunctionOptimizer("Atan2", n => 
 		}
 	}
 
-	private static string GenerateFastAtan2MethodFloat(FastMathFlags flags)
+	private static string GenerateFastAtan2MethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of arctangent with two arguments (Atan2) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses octant reduction, a minimax polynomial approximation, and branch-friendly quadrant corrections.</remarks>")
@@ -122,7 +123,7 @@ public class Atan2FunctionOptimizer() : BaseMathFunctionOptimizer("Atan2", n => 
 			.WriteLine("private static float FastAtan2(float y, float x)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Single.IsNaN(y) || Single.IsNaN(x)) return Single.NaN;")
 				.WriteWhitespace();
@@ -134,19 +135,15 @@ public class Atan2FunctionOptimizer() : BaseMathFunctionOptimizer("Atan2", n => 
 			.WriteWhitespace()
 			.WriteLine("if (maxV == 0f) return 0f;")
 			.WriteWhitespace()
-			// .WriteLine("// Octant reduction: a = min(|x|,|y|) / max(|x|,|y|) ∈ [0, 1]")
 			.WriteLine("var a = Single.Min(absX, absY) / maxV;")
 			.WriteLine("var u = a * a;")
 			.WriteWhitespace()
-			// .WriteLine("// Abramowitz & Stegun §4.4.43 minimax polynomial for atan(a)/a on [0, 1].")
-			// .WriteLine("// 5 coefficients, max absolute error ≈ 1.1e-5 rad.")
-			.WriteLine("var p = Single.FusedMultiplyAdd(u,  0.0208351f, -0.0851330f);")
-			.WriteLine("p = Single.FusedMultiplyAdd(u, p,  0.1801410f);")
-			.WriteLine("p = Single.FusedMultiplyAdd(u, p, -0.3302995f);")
-			.WriteLine("p = Single.FusedMultiplyAdd(u, p,  0.9998660f);")
+			.WriteLine($"var p = {multiplyAdd("u", 0.0208351f, -0.0851330f)};")
+			.WriteLine($"p = {multiplyAdd("u", "p", 0.1801410f)};")
+			.WriteLine($"p = {multiplyAdd("u", "p", -0.3302995f)};")
+			.WriteLine($"p = {multiplyAdd("u", "p", 0.9998660f)};")
 			.WriteLine("p *= a;")
 			.WriteWhitespace()
-			// .WriteLine("// Octant and quadrant corrections — conditional-move friendly")
 			.WriteLine("p = absY > absX ? Single.Pi / 2 - p : p;")
 			.WriteLine("p = x < 0f     ? Single.Pi      - p : p;")
 			.WriteLine("p = y < 0f     ? -p : p;")
@@ -157,9 +154,10 @@ public class Atan2FunctionOptimizer() : BaseMathFunctionOptimizer("Atan2", n => 
 		return builder.ToString();
 	}
 
-	private static string GenerateFastAtan2MethodDouble(FastMathFlags flags)
+	private static string GenerateFastAtan2MethodDouble(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of arctangent with two arguments (Atan2) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses a rational approximation with octant reduction and quadrant corrections.</remarks>")
@@ -169,7 +167,7 @@ public class Atan2FunctionOptimizer() : BaseMathFunctionOptimizer("Atan2", n => 
 			.WriteLine("private static double FastAtan2(double y, double x)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Double.IsNaN(y) || Double.IsNaN(x)) return Double.NaN;")
 				.WriteWhitespace();
@@ -186,13 +184,13 @@ public class Atan2FunctionOptimizer() : BaseMathFunctionOptimizer("Atan2", n => 
 			.WriteLine("var t = a / (1.0 + Double.Sqrt(1.0 + a * a));")
 			.WriteLine("var u = t * t;")
 			.WriteWhitespace()
-			.WriteLine("var p = Double.FusedMultiplyAdd(u, -1.0 / 15.0,  1.0 / 13.0);")
-			.WriteLine("p = Double.FusedMultiplyAdd(u, p, -1.0 / 11.0);")
-			.WriteLine("p = Double.FusedMultiplyAdd(u, p,  1.0 / 9.0);")
-			.WriteLine("p = Double.FusedMultiplyAdd(u, p, -1.0 / 7.0);")
-			.WriteLine("p = Double.FusedMultiplyAdd(u, p,  1.0 / 5.0);")
-			.WriteLine("p = Double.FusedMultiplyAdd(u, p, -1.0 / 3.0);")
-			.WriteLine("p = Double.FusedMultiplyAdd(u, p,  1.0);")
+			.WriteLine($"var p = {multiplyAdd("u", -1.0 / 15.0, 1.0 / 13.0)};")
+			.WriteLine($"p = {multiplyAdd("u", "p", -1.0 / 11.0)};")
+			.WriteLine($"p = {multiplyAdd("u", "p", 1.0 / 9.0)};")
+			.WriteLine($"p = {multiplyAdd("u", "p", -1.0 / 7.0)};")
+			.WriteLine($"p = {multiplyAdd("u", "p", 1.0 / 5.0)};")
+			.WriteLine($"p = {multiplyAdd("u", "p", -1.0 / 3.0)};")
+			.WriteLine($"p = {multiplyAdd("u", "p", 1.0)};")
 			.WriteLine("p = 2.0 * t * p; // atan(a) = 2·atan(t)")
 			.WriteWhitespace()
 			.WriteLine("p = absY > absX ? Double.Pi / 2 - p : p;")

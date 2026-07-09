@@ -57,8 +57,8 @@ public class TanFunctionOptimizer() : BaseMathFunctionOptimizer("Tan", n => n is
 
 		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			SpecialType.System_Single => GenerateFastTanMethodFloat(),
-			SpecialType.System_Double => GenerateFastTanMethodDouble(),
+			SpecialType.System_Single => GenerateFastTanMethodFloat(context, paramType),
+			SpecialType.System_Double => GenerateFastTanMethodDouble(context, paramType),
 			_ => null
 		});
 
@@ -85,7 +85,7 @@ public class TanFunctionOptimizer() : BaseMathFunctionOptimizer("Tan", n => n is
 				value = c.ToDouble(CultureInfo.InvariantCulture);
 				return true;
 			}
-			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
 			{
 				value = -c2.ToDouble(CultureInfo.InvariantCulture);
 				return true;
@@ -97,9 +97,10 @@ public class TanFunctionOptimizer() : BaseMathFunctionOptimizer("Tan", n => n is
 		}
 	}
 
-	private static string GenerateFastTanMethodFloat()
+	private static string GenerateFastTanMethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of tangent (Tan) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses range reduction and a rational approximation, with a reciprocal form near the asymptote.</remarks>")
@@ -114,7 +115,7 @@ public class TanFunctionOptimizer() : BaseMathFunctionOptimizer("Tan", n => n is
 			.WriteWhitespace()
 			.WriteLine("// Range reduce to (−π/2, π/2) — tan's period is π")
 			.WriteLine("var quotient = Single.Round(x * InvPi);")
-			.WriteLine("var xReduced = Single.FusedMultiplyAdd(-quotient, Single.Pi, x);")
+			.WriteLine($"var xReduced = {multiplyAdd("-quotient", "Single.Pi", "x")};")
 			.WriteWhitespace()
 			.WriteLine("var absX          = Single.Abs(xReduced);")
 			.WriteLine("var nearAsymptote = absX > 1.4f;")
@@ -125,14 +126,14 @@ public class TanFunctionOptimizer() : BaseMathFunctionOptimizer("Tan", n => n is
 			.WriteWhitespace()
 			.WriteLine("var p1 = -0.1306282f;")
 			.WriteLine("var p2 =  0.0052854f;")
-			.WriteLine("var num = Single.FusedMultiplyAdd(p2, x2, p1);")
-			.WriteLine("num      = Single.FusedMultiplyAdd(num, x2, 1.0f);")
+			.WriteLine($"var num = {multiplyAdd("p2", "x2", "p1")};")
+			.WriteLine($"num      = {multiplyAdd("num", "x2", 1.0f)};")
 			.WriteLine("num     *= arg;")
 			.WriteWhitespace()
 			.WriteLine("var q1 = -0.4636476f;")
 			.WriteLine("var q2 =  0.0157903f;")
-			.WriteLine("var den = Single.FusedMultiplyAdd(q2, x2, q1);")
-			.WriteLine("den      = Single.FusedMultiplyAdd(den, x2, 1.0f);")
+			.WriteLine($"var den = {multiplyAdd("q2", "x2", "q1")};")
+			.WriteLine($"den      = {multiplyAdd("den", "x2", 1.0f)};")
 			.WriteWhitespace()
 			.WriteLine("if (nearAsymptote)")
 			.StartBlock()
@@ -145,9 +146,10 @@ public class TanFunctionOptimizer() : BaseMathFunctionOptimizer("Tan", n => n is
 		return builder.ToString();
 	}
 
-	private static string GenerateFastTanMethodDouble()
+	private static string GenerateFastTanMethodDouble(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of tangent (Tan) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses range reduction and a rational approximation, with a reciprocal form near the asymptote.</remarks>")
@@ -161,7 +163,7 @@ public class TanFunctionOptimizer() : BaseMathFunctionOptimizer("Tan", n => n is
 			.WriteLine("const double HalfPi = Double.Pi * 0.5;")
 			.WriteWhitespace()
 			.WriteLine("var quotient = Double.Round(x * InvPi);")
-			.WriteLine("var xReduced = Double.FusedMultiplyAdd(-quotient, Double.Pi, x);")
+			.WriteLine($"var xReduced = {multiplyAdd("-quotient", "Double.Pi", "x")};")
 			.WriteWhitespace()
 			.WriteLine("var absX          = Double.Abs(xReduced);")
 			.WriteLine("var nearAsymptote = absX > 1.4;")
@@ -173,17 +175,17 @@ public class TanFunctionOptimizer() : BaseMathFunctionOptimizer("Tan", n => n is
 			.WriteLine("var p1 = -0.13089944486966634;")
 			.WriteLine("var p2 =  0.005405742881796775;")
 			.WriteLine("var p3 = -0.00010606776596208569;")
-			.WriteLine("var num = Double.FusedMultiplyAdd(p3, x2, p2);")
-			.WriteLine("num      = Double.FusedMultiplyAdd(num, x2, p1);")
-			.WriteLine("num      = Double.FusedMultiplyAdd(num, x2, 1.0);")
+			.WriteLine($"var num = {multiplyAdd("p3", "x2", "p2")};")
+			.WriteLine($"num      = {multiplyAdd("num", "x2", "p1")};")
+			.WriteLine($"num      = {multiplyAdd("num", "x2", 1.0)};")
 			.WriteLine("num     *= arg;")
 			.WriteWhitespace()
 			.WriteLine("var q1 = -0.46468849716162905;")
 			.WriteLine("var q2 =  0.015893657956882884;")
 			.WriteLine("var q3 = -0.00031920703894961204;")
-			.WriteLine("var den = Double.FusedMultiplyAdd(q3, x2, q2);")
-			.WriteLine("den      = Double.FusedMultiplyAdd(den, x2, q1);")
-			.WriteLine("den      = Double.FusedMultiplyAdd(den, x2, 1.0);")
+			.WriteLine($"var den = {multiplyAdd("q3", "x2", "q2")};")
+			.WriteLine($"den      = {multiplyAdd("den", "x2", "q1")};")
+			.WriteLine($"den      = {multiplyAdd("den", "x2", 1.0)};")
 			.WriteWhitespace()
 			.WriteLine("if (nearAsymptote)")
 			.StartBlock()

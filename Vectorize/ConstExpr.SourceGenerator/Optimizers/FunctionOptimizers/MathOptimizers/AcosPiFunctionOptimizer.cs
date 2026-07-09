@@ -20,8 +20,8 @@ public class AcosPiFunctionOptimizer() : BaseMathFunctionOptimizer("AcosPi", n =
 	{
 		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			SpecialType.System_Single => GenerateFastAcosPiMethodFloat(context.FastMathFlags),
-			SpecialType.System_Double => GenerateFastAcosPiMethodDouble(context.FastMathFlags),
+			SpecialType.System_Single => GenerateFastAcosPiMethodFloat(context, paramType),
+			SpecialType.System_Double => GenerateFastAcosPiMethodDouble(context, paramType),
 			_ => null
 		});
 
@@ -43,9 +43,10 @@ public class AcosPiFunctionOptimizer() : BaseMathFunctionOptimizer("AcosPi", n =
 	/// </summary>
 	/// <param name="flags">FastMath flags that control NaN handling and other optimizations.</param>
 	/// <returns>A string containing the C# code for the fast AcosPi implementation.</returns>
-	private static string GenerateFastAcosPiMethodFloat(FastMathFlags flags)
+	private static string GenerateFastAcosPiMethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast polynomial approximation of inverse cosine divided by π (AcosPi) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Returns Acos(x) / π. Uses polynomial approximation with FusedMultiplyAdd. Handles negative values and optional NaN checks.</remarks>")
@@ -54,7 +55,7 @@ public class AcosPiFunctionOptimizer() : BaseMathFunctionOptimizer("AcosPi", n =
 			.WriteLine("private static float FastAcosPi(float x)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
 		}
@@ -63,9 +64,9 @@ public class AcosPiFunctionOptimizer() : BaseMathFunctionOptimizer("AcosPi", n =
 			.WriteLine("x = Single.Abs(x);")
 			.WriteLine("if (x > 1.0f) x = 1.0f;")
 			.WriteWhitespace()
-			.WriteLine("var p = Single.FusedMultiplyAdd(-0.00596227f, x, 0.02363378f);")
-			.WriteLine("p = Single.FusedMultiplyAdd(p, x, -0.06751894f);")
-			.WriteLine("p = Single.FusedMultiplyAdd(p, x, 0.5f);")
+			.WriteLine($"var p = {multiplyAdd(-0.00596227f, "x", 0.02363378f)};")
+			.WriteLine($"p = {multiplyAdd("p", "x", -0.06751894f)};")
+			.WriteLine($"p = {multiplyAdd("p", "x", 0.5f)};")
 			.WriteLine("p *= Single.Sqrt(1f - x);")
 			.WriteWhitespace()
 			.WriteLine("return negative ? 1f - p : p;")
@@ -80,9 +81,10 @@ public class AcosPiFunctionOptimizer() : BaseMathFunctionOptimizer("AcosPi", n =
 	/// </summary>
 	/// <param name="flags">FastMath flags that control NaN handling and other optimizations.</param>
 	/// <returns>A string containing the C# code for the fast AcosPi implementation.</returns>
-	private static string GenerateFastAcosPiMethodDouble(FastMathFlags flags)
+	private static string GenerateFastAcosPiMethodDouble(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast polynomial approximation of inverse cosine divided by π (AcosPi) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Returns Acos(x) / π with higher precision coefficients. Handles negative values and optional NaN checks.</remarks>")
@@ -91,7 +93,7 @@ public class AcosPiFunctionOptimizer() : BaseMathFunctionOptimizer("AcosPi", n =
 			.WriteLine("private static double FastAcosPi(double x)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
 		}
@@ -100,9 +102,9 @@ public class AcosPiFunctionOptimizer() : BaseMathFunctionOptimizer("AcosPi", n =
 			.WriteLine("x = Double.Abs(x);")
 			.WriteLine("if (x > 1.0) x = 1.0;")
 			.WriteWhitespace()
-			.WriteLine("var p = Double.FusedMultiplyAdd(-0.0059622704862860465, x, 0.023633778501171472);")
-			.WriteLine("p = Double.FusedMultiplyAdd(p, x, -0.067518943563376579);")
-			.WriteLine("p = Double.FusedMultiplyAdd(p, x, 0.5);")
+			.WriteLine($"var p = {multiplyAdd(-0.0059622704862860465, "x", 0.023633778501171472)};")
+			.WriteLine($"p = {multiplyAdd("p", "x", -0.067518943563376579)};")
+			.WriteLine($"p = {multiplyAdd("p", "x", 0.5)};")
 			.WriteLine("p *= Double.Sqrt(1.0 - x);")
 			.WriteWhitespace()
 			.WriteLine("return negative ? 1.0 - p : p;")

@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 
@@ -23,7 +24,7 @@ public abstract class BaseMathFunctionOptimizer(string name, Func<int, bool> isV
 		return TryOptimizeMath(context, paramType, out result);
 	}
 
-	protected bool HasMethod(ITypeSymbol type, string name, int parameterCount)
+	protected static bool HasMethod(ITypeSymbol type, string name, int parameterCount)
 	{
 		return type.GetMembers(name)
 			.OfType<IMethodSymbol>()
@@ -35,6 +36,26 @@ public abstract class BaseMathFunctionOptimizer(string name, Func<int, bool> isV
 	protected bool IsApproximately(double a, double b)
 	{
 		return Math.Abs(a - b) <= Double.Epsilon;
+	}
+
+	protected static Func<object, object, object, string> MultiplyAddEstimate(FunctionOptimizerContext context, ITypeSymbol type)
+	{
+		if (context.FastMathFlags.HasFlag(FastMathFlags.FusedMultiplyAdd))
+		{
+			var typeName = type.ToDisplayString();
+
+			return HasMethod(type, "MultiplyAddEstimate", 3)
+				? (a, b, c) => $"{typeName}.MultiplyAddEstimate({Format(a)}, {Format(b)}, {Format(c)})"
+				: (a, b, c) => $"{typeName}.FusedMultiplyAdd({Format(a)}, {Format(b)}, {Format(c)})";
+		}
+
+		// Parenthesized so a multiplyAdd(...) result nested as an operand of another multiplyAdd(...) call
+		// still multiplies/adds with the intended grouping.
+		return (a, b, c) => $"({Format(a)} * {Format(b)} + {Format(c)})";
+
+		// Operands are either an identifier/sub-expression (string, emitted as-is) or a literal value
+		// (formatted via CreateLiteral); CreateLiteral would otherwise quote a string as a C# string literal.
+		static string Format(object value) => value as string ?? CreateLiteral(value).ToString();
 	}
 
 	private bool IsValidMathMethod(IMethodSymbol method, [NotNullWhen(true)] out ITypeSymbol? type)

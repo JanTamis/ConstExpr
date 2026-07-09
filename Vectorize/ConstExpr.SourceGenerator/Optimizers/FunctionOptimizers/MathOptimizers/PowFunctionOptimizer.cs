@@ -97,7 +97,7 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is
 			// x^n => x * x * ... * x for small integer n
 			if (IsPure(x) && Math.Abs(exp) > 1.0 && Math.Abs(exp) <= 5.0 && Math.Abs(exp - Math.Round(exp)) < Double.Epsilon)
 			{
-				var n = (int)Math.Round(exp);
+				var n = (int) Math.Round(exp);
 				ExpressionSyntax acc = ParenthesizedExpression(x);
 
 				for (var i = 1; i < Math.Abs(n); i++)
@@ -146,7 +146,7 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is
 			// x^(1 / n) => RootN(x, n) for small integer n
 			if (IsApproximately(1 / exp, Math.Floor(1 / exp)))
 			{
-				result = CreateInvocation(paramType, "RootN", x, CreateLiteral((int)Math.Round(1 / exp)));
+				result = CreateInvocation(paramType, "RootN", x, CreateLiteral((int) Math.Round(1 / exp)));
 				return true;
 			}
 		}
@@ -157,8 +157,8 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is
 		//           inject anyway for x86/x64 portability where powf is heavier.
 		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			SpecialType.System_Single => GenerateFastPowMethodFloat(context.FastMathFlags),
-			SpecialType.System_Double => GenerateFastPowMethodDouble(context.FastMathFlags),
+			SpecialType.System_Single => GenerateFastPowMethodFloat(context, paramType),
+			SpecialType.System_Double => GenerateFastPowMethodDouble(context, paramType),
 			_ => null
 		});
 
@@ -174,9 +174,10 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is
 		return true;
 	}
 
-	private static string GenerateFastPowMethodDouble(FastMathFlags flags)
+	private static string GenerateFastPowMethodDouble(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of exponentiation (Pow) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses exponent extraction, logarithmic reduction, and a polynomial approximation for exp2(y·log2(x)).</remarks>")
@@ -186,7 +187,7 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is
 			.WriteLine("private static double FastPow(double x, double y)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Double.IsNaN(x) || Double.IsNaN(y)) return Double.NaN;");
 		}
@@ -201,9 +202,9 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is
 			.WriteWhitespace()
 			.WriteLine("var z       = (m - 1.0) / (m + 1.0);")
 			.WriteLine("var t2      = z * z;")
-			.WriteLine("var sInner  = Double.FusedMultiplyAdd(1.0 / 7.0, t2, 1.0 / 5.0);")
-			.WriteLine("sInner      = Double.FusedMultiplyAdd(sInner, t2, 1.0 / 3.0);")
-			.WriteLine("sInner      = Double.FusedMultiplyAdd(sInner, t2, 1.0);")
+			.WriteLine($"var sInner  = {multiplyAdd(1.0 / 7.0, "t2", 1.0 / 5.0)};")
+			.WriteLine($"sInner      = {multiplyAdd("sInner", "t2", 1.0 / 3.0)};")
+			.WriteLine($"sInner      = {multiplyAdd("sInner", "t2", 1.0)};")
 			.WriteLine("var log2m   = 2.0 * (z * sInner) * 1.4426950408889634073599246810018921;")
 			.WriteLine("var log2x   = iexp + log2m;")
 			.WriteWhitespace()
@@ -211,13 +212,13 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is
 			.WriteLine("var k  = (long)Double.Round(tv);")
 			.WriteLine("var f  = tv - k;")
 			.WriteWhitespace()
-			.WriteLine("var p     = Double.FusedMultiplyAdd(1.5253300202639438e-5, f, 1.5403530390456690e-4);")
-			.WriteLine("p         = Double.FusedMultiplyAdd(p,  f, 1.3333558146428443e-3);")
-			.WriteLine("p         = Double.FusedMultiplyAdd(p,  f, 9.6181291076284772e-3);")
-			.WriteLine("p         = Double.FusedMultiplyAdd(p,  f, 5.5504108664821580e-2);")
-			.WriteLine("p         = Double.FusedMultiplyAdd(p,  f, 2.4022650695910069e-1);")
-			.WriteLine("p         = Double.FusedMultiplyAdd(p,  f, 6.9314718055994531e-1);")
-			.WriteLine("var exp2f = Double.FusedMultiplyAdd(p,  f, 1.0);")
+			.WriteLine($"var p     = {multiplyAdd(1.5253300202639438e-5, "f", 1.5403530390456690e-4)};")
+			.WriteLine($"p         = {multiplyAdd("p", "f", 1.3333558146428443e-3)};")
+			.WriteLine($"p         = {multiplyAdd("p", "f", 9.6181291076284772e-3)};")
+			.WriteLine($"p         = {multiplyAdd("p", "f", 5.5504108664821580e-2)};")
+			.WriteLine($"p         = {multiplyAdd("p", "f", 2.4022650695910069e-1)};")
+			.WriteLine($"p         = {multiplyAdd("p", "f", 6.9314718055994531e-1)};")
+			.WriteLine($"var exp2f = {multiplyAdd("p", "f", 1.0)};")
 			.WriteWhitespace()
 			.WriteLine("return BitConverter.UInt64BitsToDouble((ulong)((k + 1023L) << 52)) * exp2f;");
 
@@ -226,9 +227,10 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is
 		return builder.ToString();
 	}
 
-	private static string GenerateFastPowMethodFloat(FastMathFlags flags)
+	private static string GenerateFastPowMethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of exponentiation (Pow) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses exponent extraction, logarithmic reduction, and a polynomial approximation for exp2(y·log2(x)).</remarks>")
@@ -238,7 +240,7 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is
 			.WriteLine("private static float FastPow(float x, float y)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Single.IsNaN(x) || Single.IsNaN(y)) return Single.NaN;");
 		}
@@ -253,9 +255,9 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is
 			.WriteWhitespace()
 			.WriteLine("var z       = (m - 1.0f) / (m + 1.0f);")
 			.WriteLine("var t2      = z * z;")
-			.WriteLine("var sInner  = Single.FusedMultiplyAdd(1f / 7f, t2, 1f / 5f);")
-			.WriteLine("sInner      = Single.FusedMultiplyAdd(sInner, t2, 1f / 3f);")
-			.WriteLine("sInner      = Single.FusedMultiplyAdd(sInner, t2, 1f);")
+			.WriteLine($"var sInner  = {multiplyAdd(1f / 7f, "t2", 1f / 5f)};")
+			.WriteLine($"sInner      = {multiplyAdd("sInner", "t2", 1f / 3f)};")
+			.WriteLine($"sInner      = {multiplyAdd("sInner", "t2", 1f)};")
 			.WriteLine("var log2m   = 2.0f * (z * sInner) * 1.4426950408889634f;")
 			.WriteLine("var log2x   = iexp + log2m;")
 			.WriteWhitespace()
@@ -263,11 +265,11 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is
 			.WriteLine("var k  = (int)Single.Round(tv);")
 			.WriteLine("var f  = tv - k;")
 			.WriteWhitespace()
-			.WriteLine("var p     = Single.FusedMultiplyAdd(1.3333558146428443e-3f, f, 9.6181291076284772e-3f);")
-			.WriteLine("p         = Single.FusedMultiplyAdd(p,  f, 5.5504108664821580e-2f);")
-			.WriteLine("p         = Single.FusedMultiplyAdd(p,  f, 2.4022650695910069e-1f);")
-			.WriteLine("p         = Single.FusedMultiplyAdd(p,  f, 6.9314718055994531e-1f);")
-			.WriteLine("var exp2f = Single.FusedMultiplyAdd(p,  f, 1.0f);")
+			.WriteLine($"var p     = {multiplyAdd(1.3333558146428443e-3f, "f", 9.6181291076284772e-3f)};")
+			.WriteLine($"p         = {multiplyAdd("p", "f", 5.5504108664821580e-2f)};")
+			.WriteLine($"p         = {multiplyAdd("p", "f", 2.4022650695910069e-1f)};")
+			.WriteLine($"p         = {multiplyAdd("p", "f", 6.9314718055994531e-1f)};")
+			.WriteLine($"var exp2f = {multiplyAdd("p", "f", 1.0f)};")
 			.WriteWhitespace()
 			.WriteLine("return BitConverter.Int32BitsToSingle((k + 127) << 23) * exp2f;");
 
@@ -287,7 +289,7 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is
 				value = c.ToDouble(CultureInfo.InvariantCulture);
 				return true;
 			}
-			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
 			{
 				value = -c2.ToDouble(CultureInfo.InvariantCulture);
 				return true;

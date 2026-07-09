@@ -24,8 +24,8 @@ public class ExpFunctionOptimizer() : BaseMathFunctionOptimizer("Exp", n => n is
 
 		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			SpecialType.System_Single => GenerateFastExpMethodFloat(context.FastMathFlags),
-			SpecialType.System_Double => GenerateFastExpMethodDouble(context.FastMathFlags),
+			SpecialType.System_Single => GenerateFastExpMethodFloat(context, paramType),
+			SpecialType.System_Double => GenerateFastExpMethodDouble(context, paramType),
 			_ => null
 		});
 
@@ -42,9 +42,10 @@ public class ExpFunctionOptimizer() : BaseMathFunctionOptimizer("Exp", n => n is
 		return true;
 	}
 
-	private static string GenerateFastExpMethodFloat(FastMathFlags flags)
+	private static string GenerateFastExpMethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of the natural exponential (Exp) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses a base-2 reduction via log₂(e) and a polynomial approximation. Clamps at ±overflow bounds.</remarks>")
@@ -53,12 +54,12 @@ public class ExpFunctionOptimizer() : BaseMathFunctionOptimizer("Exp", n => n is
 			.WriteLine("private static float FastExp(float x)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
 		}
 
-		if (!flags.HasFlag(FastMathFlags.NoInfinity))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoInfinity))
 		{
 			builder.WriteLine("if (Single.IsPositiveInfinity(x)) return Single.PositiveInfinity;")
 				.WriteLine("if (Single.IsNegativeInfinity(x)) return 0.0f;");
@@ -71,9 +72,9 @@ public class ExpFunctionOptimizer() : BaseMathFunctionOptimizer("Exp", n => n is
 			.WriteLine("var k  = (int)Single.Round(kf);")
 			.WriteLine("var r  = kf - k;")
 			.WriteWhitespace()
-			.WriteLine("var p    = Single.FusedMultiplyAdd(0.055504108664821580f, r, 0.240226506959100690f);")
-			.WriteLine("p        = Single.FusedMultiplyAdd(p,  r, 0.693147180559945309f);")
-			.WriteLine("var expR = Single.FusedMultiplyAdd(p,  r, 1.0f);")
+			.WriteLine($"var p    = {multiplyAdd(0.055504108664821580f, "r", 0.240226506959100690f)};")
+			.WriteLine($"p        = {multiplyAdd("p", "r", 0.693147180559945309f)};")
+			.WriteLine($"var expR = {multiplyAdd("p", "r", 1.0f)};")
 			.WriteWhitespace()
 			.WriteLine("return BitConverter.Int32BitsToSingle((k + 127) << 23) * expR;");
 
@@ -82,9 +83,10 @@ public class ExpFunctionOptimizer() : BaseMathFunctionOptimizer("Exp", n => n is
 		return builder.ToString();
 	}
 
-	private static string GenerateFastExpMethodDouble(FastMathFlags flags)
+	private static string GenerateFastExpMethodDouble(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of the natural exponential (Exp) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses a base-2 reduction via log₂(e) and a polynomial approximation. Clamps at ±overflow bounds.</remarks>")
@@ -93,12 +95,12 @@ public class ExpFunctionOptimizer() : BaseMathFunctionOptimizer("Exp", n => n is
 			.WriteLine("private static double FastExp(double x)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
 		}
 
-		if (!flags.HasFlag(FastMathFlags.NoInfinity))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoInfinity))
 		{
 			builder.WriteLine("if (Double.IsPositiveInfinity(x)) return Double.PositiveInfinity;")
 				.WriteLine("if (Double.IsNegativeInfinity(x)) return 0.0;");
@@ -111,10 +113,10 @@ public class ExpFunctionOptimizer() : BaseMathFunctionOptimizer("Exp", n => n is
 			.WriteLine("var k  = (long)Double.Round(kf);")
 			.WriteLine("var r  = kf - k;")
 			.WriteWhitespace()
-			.WriteLine("var p    = Double.FusedMultiplyAdd(9.618129107628477232e-3, r, 5.550410866482157995e-2);")
-			.WriteLine("p        = Double.FusedMultiplyAdd(p,  r, 2.402265069591006909e-1);")
-			.WriteLine("p        = Double.FusedMultiplyAdd(p,  r, 6.931471805599453094e-1);")
-			.WriteLine("var expR = Double.FusedMultiplyAdd(p,  r, 1.0);")
+			.WriteLine($"var p    = {multiplyAdd(9.618129107628477232e-3, "r", 5.550410866482157995e-2)};")
+			.WriteLine($"p        = {multiplyAdd("p", "r", 2.402265069591006909e-1)};")
+			.WriteLine($"p        = {multiplyAdd("p", "r", 6.931471805599453094e-1)};")
+			.WriteLine($"var expR = {multiplyAdd("p", "r", 1.0)};")
 			.WriteWhitespace()
 			.WriteLine("var bits = (ulong)((k + 1023L) << 52);")
 			.WriteLine("return BitConverter.UInt64BitsToDouble(bits) * expR;");

@@ -79,8 +79,8 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", n => 
 
 		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			SpecialType.System_Single => GenerateFastRootNMethodFloat(context.FastMathFlags),
-			SpecialType.System_Double => GenerateFastRootNMethodDouble(context.FastMathFlags),
+			SpecialType.System_Single => GenerateFastRootNMethodFloat(context, paramType),
+			SpecialType.System_Double => GenerateFastRootNMethodDouble(context, paramType),
 			_ => null
 		});
 
@@ -107,7 +107,7 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", n => 
 				value = i;
 				return true;
 			}
-			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: int i2 } }:
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: int i2 } }:
 			{
 				value = -i2;
 				return true;
@@ -119,9 +119,10 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", n => 
 		}
 	}
 
-	private static string GenerateFastRootNMethodFloat(FastMathFlags flags)
+	private static string GenerateFastRootNMethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast n-th root implementation for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses logarithmic reduction and a polynomial exp2 approximation. Supports negative exponents and odd roots of negative values.</remarks>")
@@ -131,7 +132,7 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", n => 
 			.WriteLine("private static float FastRootN(float x, int n)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
 		}
@@ -169,9 +170,10 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", n => 
 		return builder.ToString();
 	}
 
-	private static string GenerateFastRootNMethodDouble(FastMathFlags flags)
+	private static string GenerateFastRootNMethodDouble(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast n-th root implementation for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses logarithmic reduction and a polynomial exp2 approximation. Supports negative exponents and odd roots of negative values.</remarks>")
@@ -181,7 +183,7 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", n => 
 			.WriteLine("private static double FastRootN(double x, int n)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
 		}
@@ -197,10 +199,10 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", n => 
 			.WriteLine("var lBits = BitConverter.DoubleToInt64Bits(ax);")
 			.WriteLine("var lE    = (int)((lBits >> 52) - 1023L);")
 			.WriteLine("var lM    = BitConverter.Int64BitsToDouble((lBits & 0x000FFFFFFFFFFFFFL) | 0x3FF0000000000000L);")
-			.WriteLine("var lnm   = Double.FusedMultiplyAdd(-0.056570851,  lM,  0.447178975);")
-			.WriteLine("lnm       = Double.FusedMultiplyAdd(lnm,           lM, -1.469956800);")
-			.WriteLine("lnm       = Double.FusedMultiplyAdd(lnm,           lM,  2.821202636);")
-			.WriteLine("lnm       = Double.FusedMultiplyAdd(lnm,           lM, -1.741793927);")
+			.WriteLine($"var lnm   = {multiplyAdd(-0.056570851, "lM", 0.447178975)};")
+			.WriteLine($"lnm       = {multiplyAdd("lnm", "lM", -1.469956800)};")
+			.WriteLine($"lnm       = {multiplyAdd("lnm", "lM", 2.821202636)};")
+			.WriteLine($"lnm       = {multiplyAdd("lnm", "lM", -1.741793927)};")
 			.WriteLine("var lnAx  = lE * 0.6931471805599453094172321214581766 + lnm;")
 			.WriteWhitespace()
 			.WriteLine("var t = lnAx / n;")
@@ -208,10 +210,10 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", n => 
 			.WriteLine("var kf  = t * 1.4426950408889634073599246810018921;")
 			.WriteLine("var k   = (long)Double.Round(kf);")
 			.WriteLine("var r   = kf - k;")
-			.WriteLine("var p   = Double.FusedMultiplyAdd(9.618129107628477232e-3, r, 5.550410866482157995e-2);")
-			.WriteLine("p       = Double.FusedMultiplyAdd(p,                       r, 2.402265069591006909e-1);")
-			.WriteLine("p       = Double.FusedMultiplyAdd(p,                       r, 6.931471805599453094e-1);")
-			.WriteLine("var ans = Double.FusedMultiplyAdd(p, r, 1.0) * BitConverter.UInt64BitsToDouble((ulong)((k + 1023L) << 52));")
+			.WriteLine($"var p   = {multiplyAdd(9.618129107628477232e-3, "r", 5.550410866482157995e-2)};")
+			.WriteLine($"p       = {multiplyAdd("p", "r", 2.402265069591006909e-1)};")
+			.WriteLine($"p       = {multiplyAdd("p", "r", 6.931471805599453094e-1)};")
+			.WriteLine($"var ans = {multiplyAdd("p", "r", 1.0)} * BitConverter.UInt64BitsToDouble((ulong)((k + 1023L) << 52));")
 			.WriteWhitespace()
 			.WriteLine("return (x < 0.0 && (n & 1) != 0) ? -ans : ans;");
 

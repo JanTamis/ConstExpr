@@ -13,8 +13,8 @@ public class SinPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinPi", n => 
 	{
 		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			SpecialType.System_Single => GenerateFastSinPiMethodFloat(context.FastMathFlags),
-			SpecialType.System_Double => GenerateFastSinPiMethodDouble(context.FastMathFlags),
+			SpecialType.System_Single => GenerateFastSinPiMethodFloat(context, paramType),
+			SpecialType.System_Double => GenerateFastSinPiMethodDouble(context, paramType),
 			_ => null
 		});
 
@@ -30,9 +30,10 @@ public class SinPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinPi", n => 
 		return true;
 	}
 
-	private static string GenerateFastSinPiMethodFloat(FastMathFlags flags)
+	private static string GenerateFastSinPiMethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of sine divided by π (SinPi) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses range reduction modulo 2 and a polynomial approximation for sin(πx). Returns sin(πx).</remarks>")
@@ -41,7 +42,7 @@ public class SinPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinPi", n => 
 			.WriteLine("private static float FastSinPi(float x)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
 		}
@@ -55,9 +56,9 @@ public class SinPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinPi", n => 
 			.WriteLine("var u2 = u * u;")
 			.WriteWhitespace()
 			.WriteLine("var r = -0.59926453f")
-			.WriteLine("r = Single.FusedMultiplyAdd(r, u2,  2.55016404f);")
-			.WriteLine("r = Single.FusedMultiplyAdd(r, u2, -5.16771278f);")
-			.WriteLine("r = Single.FusedMultiplyAdd(r, u2,  3.14159265f);")
+			.WriteLine($"r = {multiplyAdd("r", "u2", 2.55016404f)};")
+			.WriteLine($"r = {multiplyAdd("r", "u2", -5.16771278f)};")
+			.WriteLine($"r = {multiplyAdd("r", "u2", 3.14159265f)};")
 			.WriteLine("return Single.CopySign(u * r, sign);");
 
 		builder.EndBlock();
@@ -65,9 +66,10 @@ public class SinPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinPi", n => 
 		return builder.ToString();
 	}
 
-	private static string GenerateFastSinPiMethodDouble(FastMathFlags flags)
+	private static string GenerateFastSinPiMethodDouble(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of sine divided by π (SinPi) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses range reduction modulo 2 and a polynomial approximation for sin(πx). Returns sin(πx).</remarks>")
@@ -76,7 +78,7 @@ public class SinPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinPi", n => 
 			.WriteLine("private static double FastSinPi(double x)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
 		}
@@ -90,10 +92,10 @@ public class SinPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinPi", n => 
 			.WriteLine("var u2 = u * u;")
 			.WriteWhitespace()
 			.WriteLine("var r =  0.08214588661112823;")
-			.WriteLine("r = Double.FusedMultiplyAdd(r, u2, -0.59926452932079209);")
-			.WriteLine("r = Double.FusedMultiplyAdd(r, u2,  2.55016403987734485);")
-			.WriteLine("r = Double.FusedMultiplyAdd(r, u2, -5.16771278004997102);")
-			.WriteLine("r = Double.FusedMultiplyAdd(r, u2,  3.14159265358979324);")
+			.WriteLine($"r = {multiplyAdd("r", "u2", -0.59926452932079209)};")
+			.WriteLine($"r = {multiplyAdd("r", "u2", 2.55016403987734485)};")
+			.WriteLine($"r = {multiplyAdd("r", "u2", -5.16771278004997102)};")
+			.WriteLine($"r = {multiplyAdd("r", "u2", 3.14159265358979324)};")
 			.WriteLine("return Double.CopySign(u * r, sign);");
 
 		builder.EndBlock();

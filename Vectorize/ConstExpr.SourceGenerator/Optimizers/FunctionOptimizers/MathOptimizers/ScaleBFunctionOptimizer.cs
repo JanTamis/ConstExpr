@@ -66,7 +66,7 @@ public class ScaleBFunctionOptimizer() : BaseMathFunctionOptimizer("ScaleB", n =
 				value = i;
 				return true;
 			}
-			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: int i2 } }:
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: int i2 } }:
 			{
 				value = -i2;
 				return true;
@@ -95,7 +95,7 @@ public class ScaleBFunctionOptimizer() : BaseMathFunctionOptimizer("ScaleB", n =
 				value = c.ToDouble(CultureInfo.InvariantCulture);
 				return true;
 			}
-			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
 			{
 				value = -c2.ToDouble(CultureInfo.InvariantCulture);
 				return true;
@@ -122,7 +122,7 @@ public class ScaleBFunctionOptimizer() : BaseMathFunctionOptimizer("ScaleB", n =
 			.StartBlock()
 			.WriteLine("return x * BitConverter.Int32BitsToSingle((n + 127) << 23);")
 			.EndBlock()
-			.WriteLine("return MathF.ScaleB(x, n);")
+			.WriteLine("return Single.ScaleB(x, n);")
 			.EndBlock();
 
 		return builder.ToString();
@@ -143,7 +143,7 @@ public class ScaleBFunctionOptimizer() : BaseMathFunctionOptimizer("ScaleB", n =
 			.StartBlock()
 			.WriteLine("return x * BitConverter.UInt64BitsToDouble((ulong)((long)(n + 1023) << 52));")
 			.EndBlock()
-			.WriteLine("return Math.ScaleB(x, n);")
+			.WriteLine("return Double.ScaleB(x, n);")
 			.EndBlock();
 
 		return builder.ToString();

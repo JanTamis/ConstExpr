@@ -24,8 +24,8 @@ public class Log2FunctionOptimizer() : BaseMathFunctionOptimizer("Log2", n => n 
 
 		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			SpecialType.System_Single => GenerateFastLog2MethodFloat(context.FastMathFlags),
-			SpecialType.System_Double => GenerateFastLog2MethodDouble(context.FastMathFlags),
+			SpecialType.System_Single => GenerateFastLog2MethodFloat(context, paramType),
+			SpecialType.System_Double => GenerateFastLog2MethodDouble(context, paramType),
 			_ => null
 		});
 
@@ -42,9 +42,10 @@ public class Log2FunctionOptimizer() : BaseMathFunctionOptimizer("Log2", n => n 
 		return true;
 	}
 
-	private static string GenerateFastLog2MethodFloat(FastMathFlags flags)
+	private static string GenerateFastLog2MethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of base-2 logarithm (Log2) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses exponent extraction and a polynomial approximation for the mantissa. Returns log₂(x).</remarks>")
@@ -53,14 +54,14 @@ public class Log2FunctionOptimizer() : BaseMathFunctionOptimizer("Log2", n => n 
 			.WriteLine("private static float FastLog2(float x)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Single.IsNaN(x) || x < 0f) return Single.NaN;");
 		}
 
 		builder.WriteLine("if (x == 0f) return Single.NegativeInfinity;");
 
-		if (!flags.HasFlag(FastMathFlags.NoInfinity))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoInfinity))
 		{
 			builder.WriteLine("if (Single.IsPositiveInfinity(x)) return Single.PositiveInfinity;");
 		}
@@ -70,10 +71,10 @@ public class Log2FunctionOptimizer() : BaseMathFunctionOptimizer("Log2", n => n 
 			.WriteLine("var e    = (bits >> 23) - 127;")
 			.WriteLine("var m    = BitConverter.Int32BitsToSingle((bits & 0x007FFFFF) | 0x3F800000);")
 			.WriteWhitespace()
-			.WriteLine("var log2m = Single.FusedMultiplyAdd(-0.081614484f, m, 0.645142871f);")
-			.WriteLine("log2m     = Single.FusedMultiplyAdd(log2m, m, -2.120699326f);")
-			.WriteLine("log2m     = Single.FusedMultiplyAdd(log2m, m, 4.070134936f);")
-			.WriteLine("log2m     = Single.FusedMultiplyAdd(log2m, m, -2.512877389f);")
+			.WriteLine($"var log2m = {multiplyAdd(-0.081614484f, "m", 0.645142871f)};")
+			.WriteLine($"log2m     = {multiplyAdd("log2m", "m", -2.120699326f)};")
+			.WriteLine($"log2m     = {multiplyAdd("log2m", "m", 4.070134936f)};")
+			.WriteLine($"log2m     = {multiplyAdd("log2m", "m", -2.512877389f)};")
 			.WriteWhitespace()
 			.WriteLine("return e + log2m;");
 
@@ -82,9 +83,10 @@ public class Log2FunctionOptimizer() : BaseMathFunctionOptimizer("Log2", n => n 
 		return builder.ToString();
 	}
 
-	private static string GenerateFastLog2MethodDouble(FastMathFlags flags)
+	private static string GenerateFastLog2MethodDouble(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of base-2 logarithm (Log2) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses exponent extraction and a polynomial approximation for the mantissa. Returns log₂(x).</remarks>")
@@ -93,14 +95,14 @@ public class Log2FunctionOptimizer() : BaseMathFunctionOptimizer("Log2", n => n 
 			.WriteLine("private static double FastLog2(double x)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Double.IsNaN(x) || x < 0.0) return Double.NaN;");
 		}
 
 		builder.WriteLine("if (x == 0.0) return Double.NegativeInfinity;");
 
-		if (!flags.HasFlag(FastMathFlags.NoInfinity))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoInfinity))
 		{
 			builder.WriteLine("if (Double.IsPositiveInfinity(x)) return Double.PositiveInfinity;");
 		}
@@ -110,10 +112,10 @@ public class Log2FunctionOptimizer() : BaseMathFunctionOptimizer("Log2", n => n 
 			.WriteLine("var e    = (int)((bits >> 52) - 1023L);")
 			.WriteLine("var m    = BitConverter.Int64BitsToDouble((bits & 0x000FFFFFFFFFFFFFL) | 0x3FF0000000000000L);")
 			.WriteWhitespace()
-			.WriteLine("var log2m = Double.FusedMultiplyAdd(-0.081614484028, m, 0.645142871432);")
-			.WriteLine("log2m     = Double.FusedMultiplyAdd(log2m, m, -2.120699326246);")
-			.WriteLine("log2m     = Double.FusedMultiplyAdd(log2m, m, 4.070134936011);")
-			.WriteLine("log2m     = Double.FusedMultiplyAdd(log2m, m, -2.512877388986);")
+			.WriteLine($"var log2m = {multiplyAdd(-0.081614484028, "m", 0.645142871432)};")
+			.WriteLine($"log2m     = {multiplyAdd("log2m", "m", -2.120699326246)};")
+			.WriteLine($"log2m     = {multiplyAdd("log2m", "m", 4.070134936011)};")
+			.WriteLine($"log2m     = {multiplyAdd("log2m", "m", -2.512877388986)};")
 			.WriteWhitespace()
 			.WriteLine("return e + log2m;");
 

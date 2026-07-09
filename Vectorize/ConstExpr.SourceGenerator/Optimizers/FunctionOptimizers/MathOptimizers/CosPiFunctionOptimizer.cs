@@ -13,8 +13,8 @@ public class CosPiFunctionOptimizer() : BaseMathFunctionOptimizer("CosPi", n => 
 	{
 		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			SpecialType.System_Single => GenerateFastCosPiMethodFloat(context.FastMathFlags),
-			SpecialType.System_Double => GenerateFastCosPiMethodDouble(context.FastMathFlags),
+			SpecialType.System_Single => GenerateFastCosPiMethodFloat(context, paramType),
+			SpecialType.System_Double => GenerateFastCosPiMethodDouble(context, paramType),
 			_ => null
 		});
 
@@ -30,9 +30,10 @@ public class CosPiFunctionOptimizer() : BaseMathFunctionOptimizer("CosPi", n => 
 		return true;
 	}
 
-	private static string GenerateFastCosPiMethodFloat(FastMathFlags flags)
+	private static string GenerateFastCosPiMethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of cosine divided by π (CosPi) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses argument reduction and a polynomial approximation with optional NaN handling. Returns cos(πx).</remarks>")
@@ -41,7 +42,7 @@ public class CosPiFunctionOptimizer() : BaseMathFunctionOptimizer("CosPi", n => 
 			.WriteLine("private static float FastCosPi(float x)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
 		}
@@ -53,9 +54,9 @@ public class CosPiFunctionOptimizer() : BaseMathFunctionOptimizer("CosPi", n => 
 			.WriteLine("var v  = (x - 0.5f) * Single.Pi;")
 			.WriteLine("var v2 = v * v;")
 			.WriteLine("var r  = -0.00019841271f;")
-			.WriteLine("r = Single.FusedMultiplyAdd(r, v2,  0.008333333f);")
-			.WriteLine("r = Single.FusedMultiplyAdd(r, v2, -0.16666667f);")
-			.WriteLine("r = Single.FusedMultiplyAdd(r, v2,  1.0f);")
+			.WriteLine($"r = {multiplyAdd("r", "v2", 0.008333333f)};")
+			.WriteLine($"r = {multiplyAdd("r", "v2", -0.16666667f)};")
+			.WriteLine($"r = {multiplyAdd("r", "v2", 1.0f)};")
 			.WriteLine("return -(v * r);");
 
 		builder.EndBlock();
@@ -63,9 +64,10 @@ public class CosPiFunctionOptimizer() : BaseMathFunctionOptimizer("CosPi", n => 
 		return builder.ToString();
 	}
 
-	private static string GenerateFastCosPiMethodDouble(FastMathFlags flags)
+	private static string GenerateFastCosPiMethodDouble(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of cosine divided by π (CosPi) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses argument reduction and a polynomial approximation with optional NaN handling. Returns cos(πx).</remarks>")
@@ -74,7 +76,7 @@ public class CosPiFunctionOptimizer() : BaseMathFunctionOptimizer("CosPi", n => 
 			.WriteLine("private static double FastCosPi(double x)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
 		}
@@ -86,11 +88,11 @@ public class CosPiFunctionOptimizer() : BaseMathFunctionOptimizer("CosPi", n => 
 			.WriteLine("var v  = (x - 0.5) * Double.Pi;")
 			.WriteLine("var v2 = v * v;")
 			.WriteLine("var r  = -2.5052108385441720e-8;")
-			.WriteLine("r = Double.FusedMultiplyAdd(r, v2,  2.7557319223985888e-6);")
-			.WriteLine("r = Double.FusedMultiplyAdd(r, v2, -0.00019841269841269841);")
-			.WriteLine("r = Double.FusedMultiplyAdd(r, v2,  0.008333333333333333);")
-			.WriteLine("r = Double.FusedMultiplyAdd(r, v2, -0.16666666666666666);")
-			.WriteLine("r = Double.FusedMultiplyAdd(r, v2,  1.0);")
+			.WriteLine($"r = {multiplyAdd("r", "v2", 2.7557319223985888e-6)};")
+			.WriteLine($"r = {multiplyAdd("r", "v2", -0.00019841269841269841)};")
+			.WriteLine($"r = {multiplyAdd("r", "v2", 0.008333333333333333)};")
+			.WriteLine($"r = {multiplyAdd("r", "v2", -0.16666666666666666)};")
+			.WriteLine($"r = {multiplyAdd("r", "v2", 1.0)};")
 			.WriteLine("return -(v * r);");
 
 		builder.EndBlock();

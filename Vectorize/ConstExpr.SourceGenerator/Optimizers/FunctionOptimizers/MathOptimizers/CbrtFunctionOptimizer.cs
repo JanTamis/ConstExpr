@@ -13,8 +13,8 @@ public class CbrtFunctionOptimizer() : BaseMathFunctionOptimizer("Cbrt", n => n 
 	{
 		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			SpecialType.System_Single => GenerateFastCbrtMethodFloat(context.FastMathFlags),
-			SpecialType.System_Double => GenerateFastCbrtMethodDouble(context.FastMathFlags),
+			SpecialType.System_Single => GenerateFastCbrtMethodFloat(context, paramType),
+			SpecialType.System_Double => GenerateFastCbrtMethodDouble(context, paramType),
 			_ => null
 		});
 
@@ -30,9 +30,10 @@ public class CbrtFunctionOptimizer() : BaseMathFunctionOptimizer("Cbrt", n => n 
 		return true;
 	}
 
-	private static string GenerateFastCbrtMethodFloat(FastMathFlags flags)
+	private static string GenerateFastCbrtMethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast cube-root implementation for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses exponent bias approximation with Newton-style refinement and optional NaN handling.</remarks>")
@@ -41,7 +42,7 @@ public class CbrtFunctionOptimizer() : BaseMathFunctionOptimizer("Cbrt", n => n 
 			.WriteLine("private static float FastCbrt(float x)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
 		}
@@ -57,7 +58,7 @@ public class CbrtFunctionOptimizer() : BaseMathFunctionOptimizer("Cbrt", n => n 
 			.WriteLine("var y2 = y * y;")
 			.WriteLine("var y3 = y2 * y;")
 			.WriteLine("var twoA = absX + absX;")
-			.WriteLine("y = y * Single.FusedMultiplyAdd(1.0f, y3, twoA) / Single.FusedMultiplyAdd(2.0f, y3, absX);")
+			.WriteLine($"y = y * {multiplyAdd(1.0f, "y3", "twoA")} / {multiplyAdd(2.0f, "y3", "absX")};")
 			.WriteWhitespace()
 			.WriteLine("return Single.CopySign(y, x);");
 
@@ -66,9 +67,10 @@ public class CbrtFunctionOptimizer() : BaseMathFunctionOptimizer("Cbrt", n => n 
 		return builder.ToString();
 	}
 
-	private static string GenerateFastCbrtMethodDouble(FastMathFlags flags)
+	private static string GenerateFastCbrtMethodDouble(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast cube-root implementation for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses exponent bias approximation with Newton-style refinement and optional NaN handling.</remarks>")
@@ -77,7 +79,7 @@ public class CbrtFunctionOptimizer() : BaseMathFunctionOptimizer("Cbrt", n => n 
 			.WriteLine("private static double FastCbrt(double x)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
 		}
@@ -95,7 +97,7 @@ public class CbrtFunctionOptimizer() : BaseMathFunctionOptimizer("Cbrt", n => n 
 			.WriteLine("var y2 = y * y;")
 			.WriteLine("var y3 = y2 * y;")
 			.WriteLine("var twoA = absX + absX;")
-			.WriteLine("y = y * Double.FusedMultiplyAdd(1.0, y3, twoA) / Double.FusedMultiplyAdd(2.0, y3, absX);")
+			.WriteLine($"y = y * {multiplyAdd(1.0, "y3", "twoA")} / {multiplyAdd(2.0, "y3", "absX")};")
 			.WriteWhitespace()
 			.WriteLine("return Double.CopySign(y, x);");
 

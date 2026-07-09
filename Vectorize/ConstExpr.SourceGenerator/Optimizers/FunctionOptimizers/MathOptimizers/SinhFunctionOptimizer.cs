@@ -13,8 +13,8 @@ public class SinhFunctionOptimizer() : BaseMathFunctionOptimizer("Sinh", n => n 
 	{
 		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			SpecialType.System_Single => GenerateFastSinhMethodFloat(context.FastMathFlags),
-			SpecialType.System_Double => GenerateFastSinhMethodDouble(context.FastMathFlags),
+			SpecialType.System_Single => GenerateFastSinhMethodFloat(context, paramType),
+			SpecialType.System_Double => GenerateFastSinhMethodDouble(context, paramType),
 			_ => null
 		});
 
@@ -30,9 +30,10 @@ public class SinhFunctionOptimizer() : BaseMathFunctionOptimizer("Sinh", n => n 
 		return true;
 	}
 
-	private static string GenerateFastSinhMethodFloat(FastMathFlags flags)
+	private static string GenerateFastSinhMethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of hyperbolic sine (Sinh) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Inline fast-exp base-2 reduction with reciprocal-estimate refinement. ~1.1× faster than Single.Exp path.</remarks>")
@@ -41,7 +42,7 @@ public class SinhFunctionOptimizer() : BaseMathFunctionOptimizer("Sinh", n => n 
 			.WriteLine("private static float FastSinh(float x)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
 		}
@@ -54,12 +55,12 @@ public class SinhFunctionOptimizer() : BaseMathFunctionOptimizer("Sinh", n => n 
 			.WriteLine("var kf = x * 1.4426950408889634f;")
 			.WriteLine("var k  = (int)Single.Round(kf);")
 			.WriteLine("var rf = kf - k;")
-			.WriteLine("var p  = Single.FusedMultiplyAdd(0.055504108664821580f, rf, 0.240226506959100690f);")
-			.WriteLine("p      = Single.FusedMultiplyAdd(p, rf, 0.693147180559945309f);")
-			.WriteLine("var ex = Single.FusedMultiplyAdd(p, rf, 1.0f) * BitConverter.Int32BitsToSingle((k + 127) << 23);")
+			.WriteLine($"var p  = {multiplyAdd(0.055504108664821580f, "rf", 0.240226506959100690f)};")
+			.WriteLine($"p      = {multiplyAdd("p", "rf", 0.693147180559945309f)};")
+			.WriteLine($"var ex = {multiplyAdd("p", "rf", 1.0f)} * BitConverter.Int32BitsToSingle((k + 127) << 23);")
 			.WriteWhitespace()
 			.WriteLine("var r = Single.ReciprocalEstimate(ex);")
-			.WriteLine("r *= Single.FusedMultiplyAdd(-ex, r, 2.0f);")
+			.WriteLine($"r *= {multiplyAdd("-ex", "r", 2.0f)};")
 			.WriteWhitespace()
 			.WriteLine("return Single.CopySign((ex - r) * 0.5f, sign);");
 
@@ -68,9 +69,10 @@ public class SinhFunctionOptimizer() : BaseMathFunctionOptimizer("Sinh", n => n 
 		return builder.ToString();
 	}
 
-	private static string GenerateFastSinhMethodDouble(FastMathFlags flags)
+	private static string GenerateFastSinhMethodDouble(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of hyperbolic sine (Sinh) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Inline fast-exp base-2 reduction. ~1.5× faster than Double.Exp path.</remarks>")
@@ -79,7 +81,7 @@ public class SinhFunctionOptimizer() : BaseMathFunctionOptimizer("Sinh", n => n 
 			.WriteLine("private static double FastSinh(double x)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
 		}
@@ -92,10 +94,10 @@ public class SinhFunctionOptimizer() : BaseMathFunctionOptimizer("Sinh", n => n 
 			.WriteLine("var kf = x * 1.4426950408889634073599246810018921;")
 			.WriteLine("var k  = (long)Double.Round(kf);")
 			.WriteLine("var rd = kf - k;")
-			.WriteLine("var p  = Double.FusedMultiplyAdd(9.618129107628477232e-3, rd, 5.550410866482157995e-2);")
-			.WriteLine("p      = Double.FusedMultiplyAdd(p, rd, 2.402265069591006909e-1);")
-			.WriteLine("p      = Double.FusedMultiplyAdd(p, rd, 6.931471805599453094e-1);")
-			.WriteLine("var ex = Double.FusedMultiplyAdd(p, rd, 1.0) * BitConverter.UInt64BitsToDouble((ulong)((k + 1023L) << 52));")
+			.WriteLine($"var p  = {multiplyAdd(9.618129107628477232e-3, "rd", 5.550410866482157995e-2)};")
+			.WriteLine($"p      = {multiplyAdd("p", "rd", 2.402265069591006909e-1)};")
+			.WriteLine($"p      = {multiplyAdd("p", "rd", 6.931471805599453094e-1)};")
+			.WriteLine($"var ex = {multiplyAdd("p", "rd", 1.0)} * BitConverter.UInt64BitsToDouble((ulong)((k + 1023L) << 52));")
 			.WriteWhitespace()
 			.WriteLine("return Double.CopySign((ex - 1.0 / ex) * 0.5, sign);");
 

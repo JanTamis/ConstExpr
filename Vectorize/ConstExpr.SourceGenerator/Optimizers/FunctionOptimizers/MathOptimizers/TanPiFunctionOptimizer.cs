@@ -60,8 +60,8 @@ public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", n => 
 		if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
 		{
 			var method = ParseMethodFromString(paramType.SpecialType == SpecialType.System_Single
-				? GenerateFastTanPiMethodFloat(context.FastMathFlags)
-				: GenerateFastTanPiMethodDouble(context.FastMathFlags));
+				? GenerateFastTanPiMethodFloat(context, paramType)
+				: GenerateFastTanPiMethodDouble(context, paramType));
 
 			context.AdditionalSyntax.TryAdd(method, false);
 
@@ -84,7 +84,7 @@ public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", n => 
 				value = c.ToDouble(CultureInfo.InvariantCulture);
 				return true;
 			}
-			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { Token.Value: IConvertible c2 } }:
 			{
 				value = -c2.ToDouble(CultureInfo.InvariantCulture);
 				return true;
@@ -96,9 +96,10 @@ public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", n => 
 		}
 	}
 
-	private static string GenerateFastTanPiMethodFloat(FastMathFlags flags)
+	private static string GenerateFastTanPiMethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of tangent divided by π (TanPi) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses range reduction and a Padé approximation; values near the asymptote are handled via reciprocal form.</remarks>")
@@ -107,7 +108,7 @@ public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", n => 
 			.WriteLine("private static float FastTanPi(float x)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
 		}
@@ -122,11 +123,11 @@ public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", n => 
 			.WriteLine("var xf   = swap ? 0.5f - x : x;")
 			.WriteLine("var u2   = xf * xf;")
 			.WriteWhitespace()
-			.WriteLine("var num = Single.FusedMultiplyAdd(0.32383247f, u2, -3.44514185f);")
-			.WriteLine("num     = Single.FusedMultiplyAdd(num, u2, Single.Pi);")
+			.WriteLine($"var num = {multiplyAdd(0.32383247f, "u2", -3.44514185f)};")
+			.WriteLine($"num     = {multiplyAdd("num", "u2", "Single.Pi")};")
 			.WriteLine("num    *= xf;")
-			.WriteLine("var den = Single.FusedMultiplyAdd(1.54617606f, u2, -4.38649084f);")
-			.WriteLine("den     = Single.FusedMultiplyAdd(den, u2, 1.0f);")
+			.WriteLine($"var den = {multiplyAdd(1.54617606f, "u2", -4.38649084f)};")
+			.WriteLine($"den     = {multiplyAdd("den", "u2", 1.0f)};")
 			.WriteWhitespace()
 			.WriteLine("var t = num / den;")
 			.WriteLine("if (swap) t = 1.0f / t;")
@@ -137,9 +138,10 @@ public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", n => 
 		return builder.ToString();
 	}
 
-	private static string GenerateFastTanPiMethodDouble(FastMathFlags flags)
+	private static string GenerateFastTanPiMethodDouble(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
+		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of tangent divided by π (TanPi) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses range reduction and a Padé approximation; values near the asymptote are handled via reciprocal form.</remarks>")
@@ -148,7 +150,7 @@ public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", n => 
 			.WriteLine("private static double FastTanPi(double x)")
 			.StartBlock();
 
-		if (!flags.HasFlag(FastMathFlags.NoNaN))
+		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
 			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
 		}
@@ -163,12 +165,12 @@ public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", n => 
 			.WriteLine("var xf   = swap ? 0.5 - x : x;")
 			.WriteLine("var u2   = xf * xf;")
 			.WriteWhitespace()
-			.WriteLine("var num = Double.FusedMultiplyAdd(0.61822157532380, u2, -3.75833657307876);")
-			.WriteLine("num     = Double.FusedMultiplyAdd(num, u2, Double.Pi);")
+			.WriteLine($"var num = {multiplyAdd(0.61822157532380, "u2", -3.75833657307876)};")
+			.WriteLine($"num     = {multiplyAdd("num", "u2", "Double.Pi")};")
 			.WriteLine("num    *= xf;")
-			.WriteLine("var den = Double.FusedMultiplyAdd(-0.09248641780, u2, 1.96786042492934);")
-			.WriteLine("den     = Double.FusedMultiplyAdd(den, u2, -4.48618381867698);")
-			.WriteLine("den     = Double.FusedMultiplyAdd(den, u2, 1.0);")
+			.WriteLine($"var den = {multiplyAdd(-0.09248641780, "u2", 1.96786042492934)};")
+			.WriteLine($"den     = {multiplyAdd("den", "u2", -4.48618381867698)};")
+			.WriteLine($"den     = {multiplyAdd("den", "u2", 1.0)};")
 			.WriteWhitespace()
 			.WriteLine("var t = num / den;")
 			.WriteLine("if (swap) t = 1.0 / t;")
