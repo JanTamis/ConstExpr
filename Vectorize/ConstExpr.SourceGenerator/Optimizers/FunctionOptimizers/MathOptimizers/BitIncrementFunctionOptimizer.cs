@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Interfaces;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -8,7 +9,7 @@ using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class BitIncrementFunctionOptimizer() : BaseMathFunctionOptimizer("BitIncrement", n => n is 1)
+public class BitIncrementFunctionOptimizer() : BaseMathFunctionOptimizer("BitIncrement", n => n is 1), IBaseMathCustomImplementation
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -19,17 +20,8 @@ public class BitIncrementFunctionOptimizer() : BaseMathFunctionOptimizer("BitInc
 			return true;
 		}
 
-		var method = ParseMethodFromString(paramType.SpecialType switch
+		if (TryGenerateCustomImplementation(context, paramType, out var method))
 		{
-			SpecialType.System_Single => GenerateFastBitIncrementMethodFloat(context.FastMathFlags),
-			SpecialType.System_Double => GenerateFastBitIncrementMethodDouble(context.FastMathFlags),
-			_ => null
-		});
-
-		if (method is not null)
-		{
-			context.AdditionalSyntax.TryAdd(method, false);
-
 			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);
 			return true;
 		}
@@ -37,6 +29,24 @@ public class BitIncrementFunctionOptimizer() : BaseMathFunctionOptimizer("BitInc
 		// Default: keep as BitIncrement call (target numeric helper type)
 		result = CreateInvocation(paramType, Name, context.VisitedParameters);
 		return true;
+	}
+
+	public bool TryGenerateCustomImplementation(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out MethodDeclarationSyntax? result)
+	{
+		result = ParseMethodFromString(paramType.SpecialType switch
+		{
+			SpecialType.System_Single => GenerateFastBitIncrementMethodFloat(context.FastMathFlags),
+			SpecialType.System_Double => GenerateFastBitIncrementMethodDouble(context.FastMathFlags),
+			_ => null
+		});
+
+		if (result is not null)
+		{
+			context.AdditionalSyntax.TryAdd(result, false);
+			return true;
+		}
+
+		return false;
 	}
 
 	private static string GenerateFastBitIncrementMethodFloat(FastMathFlags flags)

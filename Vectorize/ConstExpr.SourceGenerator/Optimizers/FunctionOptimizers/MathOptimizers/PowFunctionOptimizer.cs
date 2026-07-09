@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Interfaces;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -11,7 +12,7 @@ using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is 2)
+public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is 2), IBaseMathCustomImplementation
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -155,23 +156,32 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is
 		//   Double: FastPow 2.965 ns vs Math.Pow 4.943 ns → 1.67× faster   ← inject FastPow
 		//   Float:  FastPow 2.707 ns vs MathF.Pow 2.508 ns → 7.5 % slower on ARM64;
 		//           inject anyway for x86/x64 portability where powf is heavier.
-		var method = ParseMethodFromString(paramType.SpecialType switch
+		if (TryGenerateCustomImplementation(context, paramType, out var method))
 		{
-			SpecialType.System_Single => GenerateFastPowMethodFloat(context, paramType),
-			SpecialType.System_Double => GenerateFastPowMethodDouble(context, paramType),
-			_ => null
-		});
-
-		if (method is not null)
-		{
-			context.AdditionalSyntax.TryAdd(method, false);
-
 			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);
 			return true;
 		}
 
 		result = CreateInvocation(paramType, Name, context.VisitedParameters);
 		return true;
+	}
+
+	public bool TryGenerateCustomImplementation(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out MethodDeclarationSyntax? result)
+	{
+		result = ParseMethodFromString(paramType.SpecialType switch
+		{
+			SpecialType.System_Single => GenerateFastPowMethodFloat(context, paramType),
+			SpecialType.System_Double => GenerateFastPowMethodDouble(context, paramType),
+			_ => null
+		});
+
+		if (result is not null)
+		{
+			context.AdditionalSyntax.TryAdd(result, false);
+			return true;
+		}
+
+		return false;
 	}
 
 	private static string GenerateFastPowMethodDouble(FunctionOptimizerContext context, ITypeSymbol paramType)

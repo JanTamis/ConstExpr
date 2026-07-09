@@ -1,13 +1,15 @@
 using System.Diagnostics.CodeAnalysis;
 using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Interfaces;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n is 1)
+public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n is 1), IBaseMathCustomImplementation
 {
 	/// <summary>
 	///   Attempts to optimize a Math.Acos function call by generating a fast approximation implementation.
@@ -18,23 +20,32 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 	/// <returns>True if optimization was successful; otherwise false.</returns>
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
-		var method = ParseMethodFromString(paramType.SpecialType switch
+		if (TryGenerateCustomImplementation(context, paramType, out var method))
 		{
-			SpecialType.System_Single => GenerateFastAcosMethodFloat(context, paramType),
-			SpecialType.System_Double => GenerateFastAcosMethodDouble(context, paramType),
-			_ => null
-		});
-
-		if (method is not null)
-		{
-			context.AdditionalSyntax.TryAdd(method, false);
-
 			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);
 			return true;
 		}
 
 		result = CreateInvocation(paramType, Name, context.VisitedParameters);
 		return true;
+	}
+
+	public bool TryGenerateCustomImplementation(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out MethodDeclarationSyntax? result)
+	{
+		result = ParseMethodFromString(paramType.SpecialType switch
+		{
+			SpecialType.System_Single => GenerateFastAcosMethodFloat(context, paramType),
+			SpecialType.System_Double => GenerateFastAcosMethodDouble(context, paramType),
+			_ => null
+		});
+
+		if (result is not null)
+		{
+			context.AdditionalSyntax.TryAdd(result, false);
+			return true;
+		}
+
+		return false;
 	}
 
 	/// <summary>

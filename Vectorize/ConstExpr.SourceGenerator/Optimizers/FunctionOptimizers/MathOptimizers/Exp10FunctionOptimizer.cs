@@ -1,27 +1,20 @@
 using System.Diagnostics.CodeAnalysis;
 using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Interfaces;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class Exp10FunctionOptimizer() : BaseMathFunctionOptimizer("Exp10", n => n is 1)
+public class Exp10FunctionOptimizer() : BaseMathFunctionOptimizer("Exp10", n => n is 1), IBaseMathCustomImplementation
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
-		var method = ParseMethodFromString(paramType.SpecialType switch
+		if (TryGenerateCustomImplementation(context, paramType, out var method))
 		{
-			SpecialType.System_Single => GenerateFastExp10MethodFloat(context, paramType),
-			SpecialType.System_Double => GenerateFastExp10MethodDouble(context, paramType),
-			_ => null
-		});
-
-		if (method is not null)
-		{
-			context.AdditionalSyntax.TryAdd(method, false);
-
 			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);
 			return true;
 		}
@@ -29,6 +22,24 @@ public class Exp10FunctionOptimizer() : BaseMathFunctionOptimizer("Exp10", n => 
 		// Default: keep as Exp10 call (target numeric helper type)
 		result = CreateInvocation(paramType, Name, context.VisitedParameters);
 		return true;
+	}
+
+	public bool TryGenerateCustomImplementation(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out MethodDeclarationSyntax? result)
+	{
+		result = ParseMethodFromString(paramType.SpecialType switch
+		{
+			SpecialType.System_Single => GenerateFastExp10MethodFloat(context, paramType),
+			SpecialType.System_Double => GenerateFastExp10MethodDouble(context, paramType),
+			_ => null
+		});
+
+		if (result is not null)
+		{
+			context.AdditionalSyntax.TryAdd(result, false);
+			return true;
+		}
+
+		return false;
 	}
 
 	private static string GenerateFastExp10MethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)

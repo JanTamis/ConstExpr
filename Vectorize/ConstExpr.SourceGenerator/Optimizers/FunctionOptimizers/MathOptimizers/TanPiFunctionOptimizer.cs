@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Interfaces;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -11,7 +12,7 @@ using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", n => n is 1)
+public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", n => n is 1), IBaseMathCustomImplementation
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -57,20 +58,32 @@ public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", n => 
 			}
 		}
 
-		if (paramType.SpecialType is SpecialType.System_Single or SpecialType.System_Double)
+		if (TryGenerateCustomImplementation(context, paramType, out var method))
 		{
-			var method = ParseMethodFromString(paramType.SpecialType == SpecialType.System_Single
-				? GenerateFastTanPiMethodFloat(context, paramType)
-				: GenerateFastTanPiMethodDouble(context, paramType));
-
-			context.AdditionalSyntax.TryAdd(method, false);
-
 			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);
 			return true;
 		}
 
 		result = CreateInvocation(paramType, Name, context.VisitedParameters);
 		return true;
+	}
+
+	public bool TryGenerateCustomImplementation(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out MethodDeclarationSyntax? result)
+	{
+		result = ParseMethodFromString(paramType.SpecialType switch
+		{
+			SpecialType.System_Single => GenerateFastTanPiMethodFloat(context, paramType),
+			SpecialType.System_Double => GenerateFastTanPiMethodDouble(context, paramType),
+			_ => null
+		});
+
+		if (result is not null)
+		{
+			context.AdditionalSyntax.TryAdd(result, false);
+			return true;
+		}
+
+		return false;
 	}
 
 	private static bool TryGetNumericLiteral(ExpressionSyntax expr, out double value)

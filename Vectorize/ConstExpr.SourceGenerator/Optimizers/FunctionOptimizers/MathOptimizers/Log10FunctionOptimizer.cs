@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Interfaces;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -8,7 +9,7 @@ using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class Log10FunctionOptimizer() : BaseMathFunctionOptimizer("Log10", n => n is 1)
+public class Log10FunctionOptimizer() : BaseMathFunctionOptimizer("Log10", n => n is 1), IBaseMathCustomImplementation
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -29,17 +30,8 @@ public class Log10FunctionOptimizer() : BaseMathFunctionOptimizer("Log10", n => 
 		//   float  ≈ 2.0×  (1.782 ns → 0.897 ns, Apple M4 Pro / ARM64 RyuJIT)
 		//   double ≈ 2.3×  (2.020 ns → 0.892 ns)
 		// Max relative error ≈ 8.7e-5 (fast-math trade-off).
-		var method = ParseMethodFromString(paramType.SpecialType switch
+		if (TryGenerateCustomImplementation(context, paramType, out var method))
 		{
-			SpecialType.System_Single => GenerateFastLog10MethodFloat(context, paramType),
-			SpecialType.System_Double => GenerateFastLog10MethodDouble(context, paramType),
-			_ => null
-		});
-
-		if (method is not null)
-		{
-			context.AdditionalSyntax.TryAdd(method, false);
-
 			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);
 			return true;
 		}
@@ -47,6 +39,24 @@ public class Log10FunctionOptimizer() : BaseMathFunctionOptimizer("Log10", n => 
 		// Default: delegate to the numeric-helper type's Log10.
 		result = CreateInvocation(paramType, Name, context.VisitedParameters);
 		return true;
+	}
+
+	public bool TryGenerateCustomImplementation(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out MethodDeclarationSyntax? result)
+	{
+		result = ParseMethodFromString(paramType.SpecialType switch
+		{
+			SpecialType.System_Single => GenerateFastLog10MethodFloat(context, paramType),
+			SpecialType.System_Double => GenerateFastLog10MethodDouble(context, paramType),
+			_ => null
+		});
+
+		if (result is not null)
+		{
+			context.AdditionalSyntax.TryAdd(result, false);
+			return true;
+		}
+
+		return false;
 	}
 
 	private static string GenerateFastLog10MethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)

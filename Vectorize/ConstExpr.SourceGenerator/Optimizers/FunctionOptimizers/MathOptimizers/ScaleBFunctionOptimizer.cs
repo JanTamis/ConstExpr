@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Interfaces;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -10,7 +11,7 @@ using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class ScaleBFunctionOptimizer() : BaseMathFunctionOptimizer("ScaleB", n => n is 2)
+public class ScaleBFunctionOptimizer() : BaseMathFunctionOptimizer("ScaleB", n => n is 2), IBaseMathCustomImplementation
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -35,17 +36,8 @@ public class ScaleBFunctionOptimizer() : BaseMathFunctionOptimizer("ScaleB", n =
 		// Benchmark (Apple M4 Pro, ARM64, .NET 10):
 		//   Math.ScaleB  ≈ 0.55 ns  — hardware intrinsic
 		//   FastScaleB   ≈ 0.68 ns  — bit-manipulation, useful on platforms without the intrinsic
-		var method = ParseMethodFromString(paramType.SpecialType switch
+		if (TryGenerateCustomImplementation(context, paramType, out var method))
 		{
-			SpecialType.System_Single => GenerateFastScaleBMethodFloat(),
-			SpecialType.System_Double => GenerateFastScaleBMethodDouble(),
-			_ => null
-		});
-
-		if (method is not null)
-		{
-			context.AdditionalSyntax.TryAdd(method, false);
-
 			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);
 			return true;
 		}
@@ -53,6 +45,24 @@ public class ScaleBFunctionOptimizer() : BaseMathFunctionOptimizer("ScaleB", n =
 		// Default: forward to the numeric helper type
 		result = CreateInvocation(paramType, Name, context.VisitedParameters);
 		return true;
+	}
+
+	public bool TryGenerateCustomImplementation(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out MethodDeclarationSyntax? result)
+	{
+		result = ParseMethodFromString(paramType.SpecialType switch
+		{
+			SpecialType.System_Single => GenerateFastScaleBMethodFloat(),
+			SpecialType.System_Double => GenerateFastScaleBMethodDouble(),
+			_ => null
+		});
+
+		if (result is not null)
+		{
+			context.AdditionalSyntax.TryAdd(result, false);
+			return true;
+		}
+
+		return false;
 	}
 
 	private static bool TryGetIntegerLiteral(ExpressionSyntax expr, out int value)

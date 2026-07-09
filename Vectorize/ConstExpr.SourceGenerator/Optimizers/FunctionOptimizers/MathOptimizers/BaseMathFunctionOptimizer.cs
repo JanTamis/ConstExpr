@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using ConstExpr.Core.Enumerators;
+using ConstExpr.SourceGenerator.Interfaces;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 
@@ -56,6 +57,20 @@ public abstract class BaseMathFunctionOptimizer(string name, Func<int, bool> isV
 		// Operands are either an identifier/sub-expression (string, emitted as-is) or a literal value
 		// (formatted via CreateLiteral); CreateLiteral would otherwise quote a string as a C# string literal.
 		static string Format(object value) => value as string ?? CreateLiteral(value).ToString();
+	}
+
+	protected bool TryGetCustomMethodInvocation<MathOptimizer>(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out string? methodName) where MathOptimizer : IBaseMathCustomImplementation, new()
+	{
+		var optimizer = new MathOptimizer();
+
+		if (optimizer.TryGenerateCustomImplementation(context, paramType, out var method))
+		{
+			methodName = method.Identifier.Text;
+			return true;
+		}
+
+		methodName = null;
+		return false;
 	}
 
 	private bool IsValidMathMethod(IMethodSymbol method, [NotNullWhen(true)] out ITypeSymbol? type)

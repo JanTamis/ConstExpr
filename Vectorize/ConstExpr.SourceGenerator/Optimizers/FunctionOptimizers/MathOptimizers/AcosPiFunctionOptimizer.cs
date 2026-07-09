@@ -1,13 +1,15 @@
 using System.Diagnostics.CodeAnalysis;
 using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Interfaces;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class AcosPiFunctionOptimizer() : BaseMathFunctionOptimizer("AcosPi", n => n is 1)
+public class AcosPiFunctionOptimizer() : BaseMathFunctionOptimizer("AcosPi", n => n is 1), IBaseMathCustomImplementation
 {
 	/// <summary>
 	///   Attempts to optimize a Math.AcosPi function call by generating a fast approximation implementation.
@@ -18,23 +20,32 @@ public class AcosPiFunctionOptimizer() : BaseMathFunctionOptimizer("AcosPi", n =
 	/// <returns>True if optimization was successful; otherwise false.</returns>
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
-		var method = ParseMethodFromString(paramType.SpecialType switch
+		if (TryGenerateCustomImplementation(context, paramType, out var method))
+		{
+			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);
+			return true;
+		}
+
+		result = CreateInvocation(paramType, Name, context.VisitedParameters);
+		return true;
+	}
+
+	public bool TryGenerateCustomImplementation(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out MethodDeclarationSyntax? result)
+	{
+		result = ParseMethodFromString(paramType.SpecialType switch
 		{
 			SpecialType.System_Single => GenerateFastAcosPiMethodFloat(context, paramType),
 			SpecialType.System_Double => GenerateFastAcosPiMethodDouble(context, paramType),
 			_ => null
 		});
 
-		if (method is not null)
+		if (result is not null)
 		{
-			context.AdditionalSyntax.TryAdd(method, false);
-
-			result = CreateInvocation("FastAcosPi", context.VisitedParameters);
+			context.AdditionalSyntax.TryAdd(result, false);
 			return true;
 		}
 
-		result = CreateInvocation(paramType, Name, context.VisitedParameters);
-		return true;
+		return false;
 	}
 
 	/// <summary>

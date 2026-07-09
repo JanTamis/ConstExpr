@@ -1,33 +1,44 @@
 using System.Diagnostics.CodeAnalysis;
 using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Interfaces;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class CosPiFunctionOptimizer() : BaseMathFunctionOptimizer("CosPi", n => n is 1)
+public class CosPiFunctionOptimizer() : BaseMathFunctionOptimizer("CosPi", n => n is 1), IBaseMathCustomImplementation
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
-		var method = ParseMethodFromString(paramType.SpecialType switch
+		if (TryGenerateCustomImplementation(context, paramType, out var method))
+		{
+			result = CreateInvocation(method.Identifier.Text, context.VisitedParameters);
+			return true;
+		}
+
+		result = CreateInvocation(paramType, Name, context.VisitedParameters);
+		return true;
+	}
+
+	public bool TryGenerateCustomImplementation(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out MethodDeclarationSyntax? result)
+	{
+		result = ParseMethodFromString(paramType.SpecialType switch
 		{
 			SpecialType.System_Single => GenerateFastCosPiMethodFloat(context, paramType),
 			SpecialType.System_Double => GenerateFastCosPiMethodDouble(context, paramType),
 			_ => null
 		});
 
-		if (method is not null)
+		if (result is not null)
 		{
-			context.AdditionalSyntax.TryAdd(method, false);
-
-			result = CreateInvocation("FastCosPi", context.VisitedParameters);
+			context.AdditionalSyntax.TryAdd(result, false);
 			return true;
 		}
 
-		result = CreateInvocation(paramType, Name, context.VisitedParameters);
-		return true;
+		return false;
 	}
 
 	private static string GenerateFastCosPiMethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)
