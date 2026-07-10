@@ -42,11 +42,7 @@ public class SinCosFunctionOptimizer() : BaseMathFunctionOptimizer("SinCos", n =
 		var copySignMethod = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
 		var absMethod = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast simultaneous sine and cosine approximation for single-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses argument reduction and paired polynomial approximations for sine and cosine.</remarks>")
-			.WriteLine("/// <param name=\"x\">Input angle in radians.</param>")
-			.WriteLine("/// <returns>A tuple containing approximate sine and cosine values.</returns>")
-			.WriteLine("private static (float Sin, float Cos) FastSinCos(float x)")
+		builder.WriteLine("private static (float Sin, float Cos) FastSinCos(float x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
@@ -72,10 +68,10 @@ public class SinCosFunctionOptimizer() : BaseMathFunctionOptimizer("SinCos", n =
 			.WriteLine("sinVal *= sinArg;")
 			.WriteLine($"sinVal  = {copySignMethod}(sinVal, xSign);")
 			.WriteWhitespace()
-			.WriteLine($"var cosVal = {multiplyAdd(0.0013888397f, "x2", -0.041666418f)};")
-			.WriteLine($"cosVal = {multiplyAdd("cosVal", "x2", -0.041666418f)};")
-			.WriteLine($"cosVal = {multiplyAdd("cosVal", "x2", 0.5f)};")
-			.WriteLine($"cosVal = {multiplyAdd("cosVal", "x2", -1.0f)};")
+			.WriteLine($"var cosVal = {multiplyAdd(2.3271352e-5f, "x2", -0.0013859188f)};")
+			.WriteLine($"cosVal = {multiplyAdd("cosVal", "x2", 0.041664397f)};")
+			.WriteLine($"cosVal = {multiplyAdd("cosVal", "x2", -0.49999946f)};")
+			.WriteLine($"cosVal = {multiplyAdd("cosVal", "x2", 0.0f)};")
 			.WriteLine("cosVal += 1.0f;")
 			.WriteLine("cosVal *= cosSign;")
 			.WriteWhitespace()
@@ -94,11 +90,7 @@ public class SinCosFunctionOptimizer() : BaseMathFunctionOptimizer("SinCos", n =
 		var copySignMethod = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
 		var absMethod = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast simultaneous sine and cosine approximation for double-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses argument reduction and paired polynomial approximations for sine and cosine.</remarks>")
-			.WriteLine("/// <param name=\"x\">Input angle in radians.</param>")
-			.WriteLine("/// <returns>A tuple containing approximate sine and cosine values.</returns>")
-			.WriteLine("private static (double Sin, double Cos) FastSinCos(double x)")
+		builder.WriteLine("private static (double Sin, double Cos) FastSinCos(double x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
@@ -125,11 +117,11 @@ public class SinCosFunctionOptimizer() : BaseMathFunctionOptimizer("SinCos", n =
 			.WriteLine("sinVal *= sinArg;")
 			.WriteLine($"sinVal  = {copySignMethod}(sinVal, xSign);")
 			.WriteWhitespace()
-			.WriteLine($"var cosVal = {multiplyAdd(-2.6051615464872668e-5, "x2", 0.0013888888888887398)};")
-			.WriteLine($"cosVal = {multiplyAdd("cosVal", "x2", 0.0013888888888887398)};")
-			.WriteLine($"cosVal = {multiplyAdd("cosVal", "x2", -0.041666666666666664)};")
-			.WriteLine($"cosVal = {multiplyAdd("cosVal", "x2", 0.5)};")
-			.WriteLine($"cosVal = {multiplyAdd("cosVal", "x2", -1.0)};")
+			.WriteLine($"var cosVal = {multiplyAdd(-2.6136488565963664e-7, "x2", 2.4765157749511988e-5)};")
+			.WriteLine($"cosVal = {multiplyAdd("cosVal", "x2", -0.0013888464831451673)};")
+			.WriteLine($"cosVal = {multiplyAdd("cosVal", "x2", 0.04166664517662223)};")
+			.WriteLine($"cosVal = {multiplyAdd("cosVal", "x2", -0.4999999964706427)};")
+			.WriteLine($"cosVal = {multiplyAdd("cosVal", "x2", 0.0)};")
 			.WriteLine("cosVal += 1.0;")
 			.WriteLine("cosVal *= cosSign;")
 			.WriteWhitespace()

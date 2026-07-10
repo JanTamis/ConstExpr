@@ -123,12 +123,7 @@ public class Atan2FunctionOptimizer() : BaseMathFunctionOptimizer("Atan2", n => 
 		var maxInvocation = GetMethodInvocation<MaxFunctionOptimizer>(context, paramType);
 		var minInvocation = GetMethodInvocation<MinFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of arctangent with two arguments (Atan2) for single-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses octant reduction, a minimax polynomial approximation, and branch-friendly quadrant corrections.</remarks>")
-			.WriteLine("/// <param name=\"y\">The y-coordinate.</param>")
-			.WriteLine("/// <param name=\"x\">The x-coordinate.</param>")
-			.WriteLine("/// <returns>Approximate angle in radians in the range [-π, π].</returns>")
-			.WriteLine("private static float FastAtan2(float y, float x)")
+		builder.WriteLine("private static float FastAtan2(float y, float x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
@@ -172,12 +167,7 @@ public class Atan2FunctionOptimizer() : BaseMathFunctionOptimizer("Atan2", n => 
 		var minInvocation = GetMethodInvocation<MinFunctionOptimizer>(context, paramType);
 		var sqrtInvocation = GetMethodInvocation<SqrtFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of arctangent with two arguments (Atan2) for double-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses a rational approximation with octant reduction and quadrant corrections.</remarks>")
-			.WriteLine("/// <param name=\"y\">The y-coordinate.</param>")
-			.WriteLine("/// <param name=\"x\">The x-coordinate.</param>")
-			.WriteLine("/// <returns>Approximate angle in radians in the range [-π, π].</returns>")
-			.WriteLine("private static double FastAtan2(double y, double x)")
+		builder.WriteLine("private static double FastAtan2(double y, double x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
@@ -204,7 +194,7 @@ public class Atan2FunctionOptimizer() : BaseMathFunctionOptimizer("Atan2", n => 
 			.WriteLine($"p = {multiplyAdd("u", "p", 1.0 / 5.0)};")
 			.WriteLine($"p = {multiplyAdd("u", "p", -1.0 / 3.0)};")
 			.WriteLine($"p = {multiplyAdd("u", "p", 1.0)};")
-			.WriteLine("p = (t + t) * p; // atan(a) = 2·atan(t)")
+			.WriteLine("p = (t + t) * p;")
 			.WriteWhitespace()
 			.WriteLine("p = absY > absX ? Double.Pi / 2 - p : p;")
 			.WriteLine("p = x < 0.0    ? Double.Pi      - p : p;")

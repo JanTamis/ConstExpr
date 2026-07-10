@@ -50,11 +50,7 @@ public class Log2FunctionOptimizer() : BaseMathFunctionOptimizer("Log2", n => n 
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of base-2 logarithm (Log2) for single-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses exponent extraction and a polynomial approximation for the mantissa. Returns log₂(x).</remarks>")
-			.WriteLine("/// <param name=\"x\">Input value.</param>")
-			.WriteLine("/// <returns>Approximate base-2 logarithm of x.</returns>")
-			.WriteLine("private static float FastLog2(float x)")
+		builder.WriteLine("private static float FastLog2(float x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
@@ -91,11 +87,7 @@ public class Log2FunctionOptimizer() : BaseMathFunctionOptimizer("Log2", n => n 
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of base-2 logarithm (Log2) for double-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses exponent extraction and a polynomial approximation for the mantissa. Returns log₂(x).</remarks>")
-			.WriteLine("/// <param name=\"x\">Input value.</param>")
-			.WriteLine("/// <returns>Approximate base-2 logarithm of x.</returns>")
-			.WriteLine("private static double FastLog2(double x)")
+		builder.WriteLine("private static double FastLog2(double x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))

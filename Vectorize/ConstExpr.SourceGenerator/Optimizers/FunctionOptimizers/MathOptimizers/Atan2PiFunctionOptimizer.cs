@@ -112,12 +112,7 @@ public class Atan2PiFunctionOptimizer() : BaseMathFunctionOptimizer("Atan2Pi", n
 		var maxInvocation = GetMethodInvocation<MaxFunctionOptimizer>(context, paramType);
 		var minInvocation = GetMethodInvocation<MinFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of arctangent with two arguments divided by π (Atan2Pi) for single-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses octant reduction, a minimax polynomial approximation, and branch-friendly quadrant corrections. Returns atan2(y, x) / π.</remarks>")
-			.WriteLine("/// <param name=\"y\">The y-coordinate.</param>")
-			.WriteLine("/// <param name=\"x\">The x-coordinate.</param>")
-			.WriteLine("/// <returns>Approximate angle divided by π in the range [-1, 1].</returns>")
-			.WriteLine("private static float FastAtan2Pi(float y, float x)")
+		builder.WriteLine("private static float FastAtan2Pi(float y, float x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
@@ -161,12 +156,7 @@ public class Atan2PiFunctionOptimizer() : BaseMathFunctionOptimizer("Atan2Pi", n
 		var minInvocation = GetMethodInvocation<MinFunctionOptimizer>(context, paramType);
 		var sqrtInvocation = GetMethodInvocation<SqrtFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of arctangent with two arguments divided by π (Atan2Pi) for double-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses a rational approximation with octant reduction and quadrant corrections. Returns atan2(y, x) / π.</remarks>")
-			.WriteLine("/// <param name=\"y\">The y-coordinate.</param>")
-			.WriteLine("/// <param name=\"x\">The x-coordinate.</param>")
-			.WriteLine("/// <returns>Approximate angle divided by π in the range [-1, 1].</returns>")
-			.WriteLine("private static double FastAtan2Pi(double x, double y)")
+		builder.WriteLine("private static double FastAtan2Pi(double y, double x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
@@ -191,7 +181,7 @@ public class Atan2PiFunctionOptimizer() : BaseMathFunctionOptimizer("Atan2Pi", n
 			.WriteLine($"p = {multiplyAdd("u", "p", 1.0 / 5.0)};")
 			.WriteLine($"p = {multiplyAdd("u", "p", -1.0 / 3.0)};")
 			.WriteLine($"p = {multiplyAdd("u", "p", 1.0)};")
-			.WriteLine("p = 2.0 / Double.Pi * t * p; // atan2Pi(a) = 2·atan(t) / π")
+			.WriteLine("p = 2.0 / Double.Pi * t * p;")
 			.WriteWhitespace()
 			.WriteLine("p = absY > absX ? 0.5 - p : p;")
 			.WriteLine("p = x < 0.0    ? 1.0 - p  : p;")

@@ -48,11 +48,7 @@ public class AcoshFunctionOptimizer() : BaseMathFunctionOptimizer("Acosh", n => 
 		var maxInvocation = GetMethodInvocation<MaxFunctionOptimizer>(context, paramType);
 		var sqrtInvocation = GetMethodInvocation<SqrtFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of inverse hyperbolic cosine (Acosh) for single-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses piecewise approximation with special handling for values near 1.0. Supports optional NaN checks.</remarks>")
-			.WriteLine("""/// <param name="x">Input value in the range [1.0, ∞). Values above ~1.84e19 return +Infinity.</param>""")
-			.WriteLine("""/// <returns>Approximate inverse hyperbolic cosine value, ln(x + √(x² - 1)).</returns>""")
-			.WriteLine("private static float FastAcosh(float x)")
+		builder.WriteLine("private static float FastAcosh(float x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
@@ -99,11 +95,7 @@ public class AcoshFunctionOptimizer() : BaseMathFunctionOptimizer("Acosh", n => 
 		var sqrtInvocation = GetMethodInvocation<SqrtFunctionOptimizer>(context, paramType);
 		var maxInvocation = GetMethodInvocation<MaxFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of inverse hyperbolic cosine (Acosh) for double-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses piecewise approximation with higher precision coefficients and special handling for values near 1.0. Supports optional NaN checks.</remarks>")
-			.WriteLine("""/// <param name="x">Input value in the range [1.0, ∞). Values above ~1.34e154 return +Infinity.</param>""")
-			.WriteLine("""/// <returns>Approximate inverse hyperbolic cosine value, ln(x + √(x² - 1)).</returns>""")
-			.WriteLine("private static double FastAcosh(double x)")
+		builder.WriteLine("private static double FastAcosh(double x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))

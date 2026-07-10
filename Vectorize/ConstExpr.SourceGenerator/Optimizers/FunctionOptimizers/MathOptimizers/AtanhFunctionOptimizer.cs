@@ -93,11 +93,7 @@ public class AtanhFunctionOptimizer() : BaseMathFunctionOptimizer("Atanh", n => 
 
 		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of inverse hyperbolic tangent (Atanh) for single-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses a polynomial for |x| &lt; 0.5 and an inline fast-log identity otherwise. ~2.2× faster than Single.Log identity.</remarks>")
-			.WriteLine("/// <param name=\"x\">Input value in the open interval (-1, 1).</param>")
-			.WriteLine("/// <returns>Approximate inverse hyperbolic tangent value.</returns>")
-			.WriteLine("private static float FastAtanh(float x)")
+		builder.WriteLine("private static float FastAtanh(float x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
@@ -138,11 +134,7 @@ public class AtanhFunctionOptimizer() : BaseMathFunctionOptimizer("Atanh", n => 
 
 		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of inverse hyperbolic tangent (Atanh) for double-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Polynomial for |x| &lt; 0.5; inline fast-log identity otherwise. ~1.75× faster than Double.Log identity.</remarks>")
-			.WriteLine("/// <param name=\"x\">Input value in the open interval (-1, 1).</param>")
-			.WriteLine("/// <returns>Approximate inverse hyperbolic tangent value.</returns>")
-			.WriteLine("private static double FastAtanh(double x)")
+		builder.WriteLine("private static double FastAtanh(double x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))

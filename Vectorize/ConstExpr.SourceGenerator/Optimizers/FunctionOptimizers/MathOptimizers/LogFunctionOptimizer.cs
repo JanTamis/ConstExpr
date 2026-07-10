@@ -61,11 +61,7 @@ public class LogFunctionOptimizer() : BaseMathFunctionOptimizer("Log", n => n is
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of the natural logarithm (Log) for single-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses exponent extraction and a polynomial approximation for the mantissa. Returns ln(x).</remarks>")
-			.WriteLine("/// <param name=\"x\">Input value.</param>")
-			.WriteLine("/// <returns>Approximate natural logarithm of x.</returns>")
-			.WriteLine("private static float FastLog(float x)")
+		builder.WriteLine("private static float FastLog(float x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
@@ -102,11 +98,7 @@ public class LogFunctionOptimizer() : BaseMathFunctionOptimizer("Log", n => n is
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of the natural logarithm (Log) for double-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses exponent extraction and a polynomial approximation for the mantissa. Returns ln(x).</remarks>")
-			.WriteLine("/// <param name=\"x\">Input value.</param>")
-			.WriteLine("/// <returns>Approximate natural logarithm of x.</returns>")
-			.WriteLine("private static double FastLog(double x)")
+		builder.WriteLine("private static double FastLog(double x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))

@@ -43,11 +43,7 @@ public class AsinhFunctionOptimizer() : BaseMathFunctionOptimizer("Asinh", n => 
 		var sqrtInvocation = GetMethodInvocation<SqrtFunctionOptimizer>(context, paramType);
 		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of inverse hyperbolic sine (Asinh) for single-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Polynomial for |x| &lt; 0.5; inline fast-log identity otherwise. ~1.8× faster than Single.Log identity.</remarks>")
-			.WriteLine("/// <param name=\"x\">Any finite floating-point value.</param>")
-			.WriteLine("/// <returns>Approximate inverse hyperbolic sine value.</returns>")
-			.WriteLine("private static float FastAsinh(float x)")
+		builder.WriteLine("private static float FastAsinh(float x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
@@ -95,11 +91,7 @@ public class AsinhFunctionOptimizer() : BaseMathFunctionOptimizer("Asinh", n => 
 		var sqrtInvocation = GetMethodInvocation<SqrtFunctionOptimizer>(context, paramType);
 		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of inverse hyperbolic sine (Asinh) for double-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Polynomial for |x| &lt; 0.5; inline fast-log identity otherwise. ~2.6× faster than Double.Log identity.</remarks>")
-			.WriteLine("/// <param name=\"x\">Any finite floating-point value.</param>")
-			.WriteLine("/// <returns>Approximate inverse hyperbolic sine value.</returns>")
-			.WriteLine("private static double FastAsinh(double x)")
+		builder.WriteLine("private static double FastAsinh(double x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))

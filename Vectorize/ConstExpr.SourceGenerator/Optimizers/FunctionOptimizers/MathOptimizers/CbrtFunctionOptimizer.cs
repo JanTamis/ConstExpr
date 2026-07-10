@@ -42,11 +42,7 @@ public class CbrtFunctionOptimizer() : BaseMathFunctionOptimizer("Cbrt", n => n 
 		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
 		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast cube-root implementation for single-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses exponent bias approximation with Newton-style refinement and optional NaN handling.</remarks>")
-			.WriteLine("/// <param name=\"x\">Input floating-point value.</param>")
-			.WriteLine("/// <returns>The real cube root of x.</returns>")
-			.WriteLine("private static float FastCbrt(float x)")
+		builder.WriteLine("private static float FastCbrt(float x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
@@ -82,11 +78,7 @@ public class CbrtFunctionOptimizer() : BaseMathFunctionOptimizer("Cbrt", n => n 
 		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
 		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast cube-root implementation for double-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses exponent bias approximation with Newton-style refinement and optional NaN handling.</remarks>")
-			.WriteLine("/// <param name=\"x\">Input floating-point value.</param>")
-			.WriteLine("/// <returns>The real cube root of x.</returns>")
-			.WriteLine("private static double FastCbrt(double x)")
+		builder.WriteLine("private static double FastCbrt(double x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))

@@ -131,12 +131,7 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", n => 
 		var roundMethod = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
 		var reciprocalEstimateMethod = GetMethodInvocation<ReciprocalEstimateFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast n-th root implementation for single-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses logarithmic reduction and a polynomial exp2 approximation. Supports negative exponents and odd roots of negative values.</remarks>")
-			.WriteLine("/// <param name=\"x\">The radicand.</param>")
-			.WriteLine("/// <param name=\"n\">The root degree.</param>")
-			.WriteLine("/// <returns>The approximate real n-th root of x.</returns>")
-			.WriteLine("private static float FastRootN(float x, int n)")
+		builder.WriteLine("private static float FastRootN(float x, int n)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
@@ -185,12 +180,7 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", n => 
 		var roundMethod = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
 		var reciprocalEstimateMethod = GetMethodInvocation<ReciprocalEstimateFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast n-th root implementation for double-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses logarithmic reduction and a polynomial exp2 approximation. Supports negative exponents and odd roots of negative values.</remarks>")
-			.WriteLine("/// <param name=\"x\">The radicand.</param>")
-			.WriteLine("/// <param name=\"n\">The root degree.</param>")
-			.WriteLine("/// <returns>The approximate real n-th root of x.</returns>")
-			.WriteLine("private static double FastRootN(double x, int n)")
+		builder.WriteLine("private static double FastRootN(double x, int n)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))

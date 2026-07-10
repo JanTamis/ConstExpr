@@ -30,9 +30,9 @@ public class CopySignFunctionOptimizer() : BaseMathFunctionOptimizer("CopySign",
 		if (TryGetNumericLiteral(y, out var signVal)
 		    && HasMethod(paramType, "Abs", 1))
 		{
-			if (signVal >= 0.0)
+			if (BitConverter.DoubleToInt64Bits(signVal) >= 0)
 			{
-				// CopySign(x, 0) → +|x|  and  CopySign(x, pos) → |x|
+				// CopySign(x, +0) → +|x|  and  CopySign(x, pos) → |x|
 				result = CreateInvocation(paramType, "Abs", x);
 				return true;
 			}
@@ -69,12 +69,7 @@ public class CopySignFunctionOptimizer() : BaseMathFunctionOptimizer("CopySign",
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("/// <summary>Fast CopySign implementation for single-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses IEEE 754 bit manipulation and preserves the sign bit of the second operand.</remarks>")
-			.WriteLine("/// <param name=\"x\">The magnitude value.</param>")
-			.WriteLine("/// <param name=\"y\">The sign source value.</param>")
-			.WriteLine("/// <returns>A float with the magnitude of x and the sign of y.</returns>")
-			.WriteLine("private static float FastCopySign(float x, float y)")
+		builder.WriteLine("private static float FastCopySign(float x, float y)")
 			.StartBlock()
 			.WriteLine("var xBits = BitConverter.SingleToInt32Bits(x);")
 			.WriteLine("var yBits = BitConverter.SingleToInt32Bits(y);")
@@ -88,12 +83,7 @@ public class CopySignFunctionOptimizer() : BaseMathFunctionOptimizer("CopySign",
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("/// <summary>Fast CopySign implementation for double-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses IEEE 754 bit manipulation and preserves the sign bit of the second operand.</remarks>")
-			.WriteLine("/// <param name=\"x\">The magnitude value.</param>")
-			.WriteLine("/// <param name=\"y\">The sign source value.</param>")
-			.WriteLine("/// <returns>A double with the magnitude of x and the sign of y.</returns>")
-			.WriteLine("private static double FastCopySign(double x, double y)")
+		builder.WriteLine("private static double FastCopySign(double x, double y)")
 			.StartBlock()
 			.WriteLine("var xBits = BitConverter.DoubleToInt64Bits(x);")
 			.WriteLine("var yBits = BitConverter.DoubleToInt64Bits(y);")
@@ -109,12 +99,7 @@ public class CopySignFunctionOptimizer() : BaseMathFunctionOptimizer("CopySign",
 
 		var builder = new CodeWriter();
 
-		builder.WriteLine("/// <summary>Fast CopySign implementation for integers.</summary>")
-			.WriteLine("/// <remarks>Returns x with the sign of y using branchless integer operations.</remarks>")
-			.WriteLine("/// <param name=\"x\">The magnitude value.</param>")
-			.WriteLine("/// <param name=\"y\">The sign source value.</param>")
-			.WriteLine("/// <returns>An integer with the magnitude of x and the sign of y.</returns>")
-			.WriteLine("private static T FastCopySign<T>(T x, T y) where T : IBinaryInteger<T>")
+		builder.WriteLine("private static T FastCopySign<T>(T x, T y) where T : IBinaryInteger<T>")
 			.StartBlock()
 			.WriteLine($"var absValue = {invocation}(x);")
 			.WriteWhitespace()

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using ConstExpr.Core.Enumerators;
@@ -41,8 +42,8 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 			},
 			InvocationExpressionSyntax invocation => invocation.Expression switch
 			{
-				IdentifierNameSyntax id => $"{id.Identifier.Text.ToLowerInvariant()}Val",
-				MemberAccessExpressionSyntax ma => $"{ma.Name.Identifier.Text.ToLowerInvariant()}Val",
+				IdentifierNameSyntax id => $"{SanitizeIdentifierPart(id.Identifier.Text)}Val",
+				MemberAccessExpressionSyntax ma => $"{SanitizeIdentifierPart(ma.Name.Identifier.Text)}Val",
 				_ => "callVal"
 			},
 			ElementAccessExpressionSyntax => "item",
@@ -53,6 +54,18 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 
 		var name = baseName;
 		var counter = 1;
+
+		string SanitizeIdentifierPart(string text)
+		{
+			var end = 0;
+
+			while (end < text.Length && (Char.IsLetterOrDigit(text[end]) || text[end] == '_'))
+			{
+				end++;
+			}
+
+			return text.Substring(0, end).ToLowerInvariant();
+		}
 
 		while (_usedNames.Contains(name))
 		{

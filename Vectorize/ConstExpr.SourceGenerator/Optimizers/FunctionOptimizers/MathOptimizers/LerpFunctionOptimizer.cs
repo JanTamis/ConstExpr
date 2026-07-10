@@ -33,13 +33,7 @@ public class LerpFunctionOptimizer() : BaseMathFunctionOptimizer("Lerp", n => n 
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("/// <summary>Fast linear interpolation (Lerp) for floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses a fused multiply-add formulation for numerical stability and performance. Returns a + t(b - a).</remarks>")
-			.WriteLine("/// <param name=\"a\">Start value.</param>")
-			.WriteLine("/// <param name=\"b\">End value.</param>")
-			.WriteLine("/// <param name=\"t\">Interpolation factor.</param>")
-			.WriteLine("/// <returns>The interpolated value.</returns>")
-			.WriteLine("private static T FastLerp<T>(T a, T b, T t) where T : IFloatingPointIeee754<T>")
+		builder.WriteLine("private static T FastLerp<T>(T a, T b, T t) where T : IFloatingPointIeee754<T>")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))

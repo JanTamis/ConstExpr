@@ -52,11 +52,7 @@ public class ExpFunctionOptimizer() : BaseMathFunctionOptimizer("Exp", n => n is
 
 		var roundMethod = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of the natural exponential (Exp) for single-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses a base-2 reduction via log₂(e) and a polynomial approximation. Clamps at ±overflow bounds.</remarks>")
-			.WriteLine("/// <param name=\"x\">Input exponent value.</param>")
-			.WriteLine("/// <returns>Approximate value of eˣ.</returns>")
-			.WriteLine("private static float FastExp(float x)")
+		builder.WriteLine("private static float FastExp(float x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
@@ -95,11 +91,7 @@ public class ExpFunctionOptimizer() : BaseMathFunctionOptimizer("Exp", n => n is
 
 		var roundMethod = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of the natural exponential (Exp) for double-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses a base-2 reduction via log₂(e) and a polynomial approximation. Clamps at ±overflow bounds.</remarks>")
-			.WriteLine("/// <param name=\"x\">Input exponent value.</param>")
-			.WriteLine("/// <returns>Approximate value of eˣ.</returns>")
-			.WriteLine("private static double FastExp(double x)")
+		builder.WriteLine("private static double FastExp(double x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))

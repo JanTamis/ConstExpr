@@ -97,11 +97,7 @@ public class AtanFunctionOptimizer() : BaseMathFunctionOptimizer("Atan", n => n 
 
 		var absMethod = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of arctangent (Atan) for single-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses range reduction, a polynomial approximation, and optional NaN handling.</remarks>")
-			.WriteLine("/// <param name=\"x\">Input value.</param>")
-			.WriteLine("/// <returns>Approximate arctangent value in radians.</returns>")
-			.WriteLine("private static float FastAtan(float x)")
+		builder.WriteLine("private static float FastAtan(float x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
@@ -109,9 +105,9 @@ public class AtanFunctionOptimizer() : BaseMathFunctionOptimizer("Atan", n => n 
 			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
 		}
 
-		builder.WriteLine($"var absX = {absMethod}<float, uint>(x);")
+		builder.WriteLine($"var absX = {absMethod}(x);")
 			.WriteLine("var swap = absX > 1.0f;")
-			.WriteLine("var a = swap ? 1.0f / absX : absX; // exact reciprocal — no ReciprocalEstimate loss")
+			.WriteLine("var a = swap ? 1.0f / absX : absX;")
 			.WriteWhitespace()
 			.WriteLine("var u = a * a;")
 			.WriteLine($"var p = {multiplyAdd("u", 0.0208351f, -0.0851330f)};")
@@ -135,11 +131,7 @@ public class AtanFunctionOptimizer() : BaseMathFunctionOptimizer("Atan", n => n 
 
 		var absMethod = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of arctangent (Atan) for double-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses range reduction, a polynomial approximation, and optional NaN handling.</remarks>")
-			.WriteLine("/// <param name=\"x\">Input value.</param>")
-			.WriteLine("/// <returns>Approximate arctangent value in radians.</returns>")
-			.WriteLine("private static double FastAtan(double x)")
+		builder.WriteLine("private static double FastAtan(double x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
@@ -147,15 +139,15 @@ public class AtanFunctionOptimizer() : BaseMathFunctionOptimizer("Atan", n => n 
 			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
 		}
 
-		builder.WriteLine($"var absX = {absMethod}<double, ulong>(x);")
+		builder.WriteLine($"var absX = {absMethod}(x);")
 			.WriteLine("var swap = absX > 1.0; ")
-			.WriteLine("var a = swap ? 1.0 / absX : absX; // exact reciprocal — no ReciprocalEstimate loss")
+			.WriteLine("var a = swap ? 1.0 / absX : absX;")
 			.WriteWhitespace()
 			.WriteLine("var u = a * a;")
-			.WriteLine($"var p = {multiplyAdd("u", 0.0208351f, -0.0851330f)};")
-			.WriteLine($"p      = {multiplyAdd("u", "p", 0.1801410f)};")
-			.WriteLine($"p      = {multiplyAdd("u", "p", -0.3302995f)};")
-			.WriteLine($"p      = {multiplyAdd("u", "p", 0.9998660f)};")
+			.WriteLine($"var p = {multiplyAdd("u", 0.0208351, -0.0851330)};")
+			.WriteLine($"p      = {multiplyAdd("u", "p", 0.1801410)};")
+			.WriteLine($"p      = {multiplyAdd("u", "p", -0.3302995)};")
+			.WriteLine($"p      = {multiplyAdd("u", "p", 0.9998660)};")
 			.WriteLine("p     *= a;")
 			.WriteWhitespace()
 			.WriteLine("p = swap ? Double.Pi * 0.5 - p : p;")

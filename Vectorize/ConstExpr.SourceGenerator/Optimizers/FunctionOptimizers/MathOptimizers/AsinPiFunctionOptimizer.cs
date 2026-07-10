@@ -51,11 +51,7 @@ public class AsinPiFunctionOptimizer() : BaseMathFunctionOptimizer("AsinPi", n =
 		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
 		var sqrtInvocation = GetMethodInvocation<SqrtFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of inverse sine divided by π (AsinPi) for single-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses a piecewise approximation with FusedMultiplyAdd, returning Asin(x) / π in the range [-0.5, 0.5].</remarks>")
-			.WriteLine("/// <param name=\"x\">Input value in the range [-1, 1].</param>")
-			.WriteLine("/// <returns>Approximate inverse sine value divided by π.</returns>")
-			.WriteLine("private static float FastAsinPi(float x)")
+		builder.WriteLine("private static float FastAsinPi(float x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
@@ -101,11 +97,7 @@ public class AsinPiFunctionOptimizer() : BaseMathFunctionOptimizer("AsinPi", n =
 		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
 		var sqrtInvocation = GetMethodInvocation<SqrtFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of inverse sine divided by π (AsinPi) for double-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses a piecewise approximation with FusedMultiplyAdd, returning Asin(x) / π in the range [-0.5, 0.5].</remarks>")
-			.WriteLine("/// <param name=\"x\">Input value in the range [-1, 1].</param>")
-			.WriteLine("/// <returns>Approximate inverse sine value divided by π.</returns>")
-			.WriteLine("private static double FastAsinPi(double x)")
+		builder.WriteLine("private static double FastAsinPi(double x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
@@ -120,7 +112,7 @@ public class AsinPiFunctionOptimizer() : BaseMathFunctionOptimizer("AsinPi", n =
 			.WriteLine("if (xa < 0.5)")
 			.StartBlock()
 			.WriteLine($"var ret = {multiplyAdd(0.16666666666666666, "xa * xa", 1.0)};")
-			.WriteLine("ret *= xa * 0.31830988618379067;  // 1/π")
+			.WriteLine("ret *= xa * 0.31830988618379067;")
 			.WriteLine($"return {copySignInvocation}(ret, x);")
 			.EndBlock()
 			.WriteLine("else")

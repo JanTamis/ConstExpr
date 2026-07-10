@@ -41,18 +41,6 @@ public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", n => n is
 
 		var method = GenerateCustomImplementation(context, paramType);
 
-		if (paramType.IsFloatingNumeric())
-		{
-			var bitType = paramType.SpecialType switch
-			{
-				SpecialType.System_Single => CreateTypeSyntax(typeof(uint)),
-				SpecialType.System_Double => CreateTypeSyntax(typeof(ulong))
-			};
-
-			result = CreateInvocation(method, [ paramType.AsTypeSyntax(), bitType ], context.VisitedParameters);
-			return true;
-		}
-
 		result = CreateInvocation(method, context.VisitedParameters);
 		return true;
 	}
@@ -101,12 +89,7 @@ public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", n => n is
 
 		var builder = new CodeWriter();
 
-		builder.WriteLine("/// <summary>Fast absolute-value implementation for integer values.</summary>")
-			.WriteLine("/// <remarks>Uses branchless bit manipulation and requires a signed integer type parameter. Note: Does NOT work correctly for T.MinValue due to two's complement overflow</remarks>")
-			.WriteLine("/// <typeparam name=\"T\">The integer type.</typeparam>")
-			.WriteLine("/// <param name=\"x\">The value to convert to its absolute value.</param>")
-			.WriteLine("/// <returns>The absolute value of x.</returns>")
-			.WriteLine("[MethodImpl(MethodImplOptions.AggressiveInlining)]")
+		builder.WriteLine("[MethodImpl(MethodImplOptions.AggressiveInlining)]")
 			.WriteLine("private static T FastAbs<T>(T x) where T : IBinaryInteger<T>")
 			.StartBlock()
 			.WriteLine("var bits = Unsafe.SizeOf<T>() * 8 - 1;")
@@ -139,13 +122,7 @@ public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", n => n is
 
 		var builder = new CodeWriter();
 
-		builder.WriteLine("/// <summary>Fast absolute-value implementation for IEEE 754 floating-point values.</summary>")
-			.WriteLine("/// <remarks>Clears the sign bit via a bitcast to the underlying integer representation. Correct for all values including NaN and infinity.</remarks>")
-			.WriteLine("/// <typeparam name=\"T\">The floating-point type.</typeparam>")
-			.WriteLine("/// <typeparam name=\"TBits\">The integer type with the same bit width as T.</typeparam>")
-			.WriteLine("/// <param name=\"x\">The value to convert to its absolute value.</param>")
-			.WriteLine("/// <returns>The absolute value of x.</returns>")
-			.WriteLine("[MethodImpl(MethodImplOptions.AggressiveInlining)]")
+		builder.WriteLine("[MethodImpl(MethodImplOptions.AggressiveInlining)]")
 			.WriteLine("private static T FastAbs<T, TBits>(T x) where TBits : IBitwiseOperators<TBits, TBits, TBits>, IMinMaxValue<TBits>")
 			.StartBlock()
 			.WriteLine("var bits = Unsafe.BitCast<T, TBits>(x);")

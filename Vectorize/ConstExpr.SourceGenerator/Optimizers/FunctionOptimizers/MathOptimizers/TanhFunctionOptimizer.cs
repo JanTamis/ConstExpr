@@ -114,11 +114,7 @@ public class TanhFunctionOptimizer() : BaseMathFunctionOptimizer("Tanh", n => n 
 
 		var roundInvocation = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of hyperbolic tangent (Tanh) for single-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses a fast exponential formulation with saturation near the asymptotes.</remarks>")
-			.WriteLine("/// <param name=\"x\">Input value.</param>")
-			.WriteLine("/// <returns>Approximate hyperbolic tangent value.</returns>")
-			.WriteLine("private static float FastTanh(float x)")
+		builder.WriteLine("private static float FastTanh(float x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
@@ -154,11 +150,7 @@ public class TanhFunctionOptimizer() : BaseMathFunctionOptimizer("Tanh", n => n 
 		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
 		var roundInvocation = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of hyperbolic tangent (Tanh) for double-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses a hybrid rational/fast-exp formulation with saturation near the asymptotes.</remarks>")
-			.WriteLine("/// <param name=\"x\">Input value.</param>")
-			.WriteLine("/// <returns>Approximate hyperbolic tangent value.</returns>")
-			.WriteLine("private static double FastTanh(double x)")
+		builder.WriteLine("private static double FastTanh(double x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
@@ -174,13 +166,13 @@ public class TanhFunctionOptimizer() : BaseMathFunctionOptimizer("Tanh", n => n 
 			.WriteLine("if (absX < 1.0)")
 			.StartBlock()
 			.WriteLine("var x2 = x * x;")
-			.WriteLine($"var numerator = {multiplyAdd(-0.0539682539682505, "x2", 0.133333333333197)};")
-			.WriteLine($"numerator = {multiplyAdd("numerator", "x2", -0.333333333333331)};")
+			.WriteLine($"var numerator = {multiplyAdd(7.4000074000074e-6, "x2", 0.002797202797202797)};")
+			.WriteLine($"numerator = {multiplyAdd("numerator", "x2", 0.1282051282051282)};")
 			.WriteLine($"numerator = {multiplyAdd("numerator", "x2", 1.0)};")
 			.WriteLine("numerator *= x;")
 			.WriteWhitespace()
-			.WriteLine($"var denominator = {multiplyAdd(0.0107936507936338, "x2", -0.133333333333197)};")
-			.WriteLine($"denominator = {multiplyAdd("denominator", "x2", 1.0)};")
+			.WriteLine($"var denominator = {multiplyAdd(0.0002072002072002072, "x2", 0.023310023310023312)};")
+			.WriteLine($"denominator = {multiplyAdd("denominator", "x2", 0.46153846153846156)};")
 			.WriteLine($"denominator = {multiplyAdd("denominator", "x2", 1.0)};")
 			.WriteLine("return numerator / denominator;")
 			.EndBlock()
@@ -193,7 +185,7 @@ public class TanhFunctionOptimizer() : BaseMathFunctionOptimizer("Tanh", n => n 
 			.WriteLine($"var p     = {multiplyAdd(9.618129107628477232e-3, "r", 5.550410866482157995e-2)};")
 			.WriteLine($"p         = {multiplyAdd("p", "r", 2.402265069591006909e-1)};")
 			.WriteLine($"p         = {multiplyAdd("p", "r", 6.931471805599453094e-1)};")
-			.WriteLine($"var exp2x = {multiplyAdd("p", "r", 1.0)};")
+			.WriteLine($"var exp2x = {multiplyAdd("p", "r", 1.0)}")
 			.WriteLine("          * BitConverter.UInt64BitsToDouble((ulong)((k + 1023L) << 52));")
 			.WriteWhitespace()
 			.WriteLine("return (exp2x - 1.0) / (exp2x + 1.0);");

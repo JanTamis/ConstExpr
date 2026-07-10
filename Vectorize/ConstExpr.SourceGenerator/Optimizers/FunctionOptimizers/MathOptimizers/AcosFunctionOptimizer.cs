@@ -56,11 +56,7 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
 		var sqrtInvocation = GetMethodInvocation<SqrtFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast polynomial approximation of inverse cosine (Acos) for single-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses FusedMultiplyAdd for improved performance. Handles negative values and optional NaN checks.</remarks>")
-			.WriteLine("""/// <param name="x">Input value in the range [-1, 1].</param>""")
-			.WriteLine("/// <returns>Approximate inverse cosine value in radians, in the range [0, π].</returns>")
-			.WriteLine("[MethodImpl(MethodImplOptions.AggressiveInlining)]")
+		builder.WriteLine("[MethodImpl(MethodImplOptions.AggressiveInlining)]")
 			.WriteLine("public static float FastAcos(float x)")
 			.StartBlock();
 
@@ -97,11 +93,7 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
 		var sqrtInvocation = GetMethodInvocation<SqrtFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast polynomial approximation of inverse cosine (Acos) for double-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses a higher-precision polynomial with separate handling for values greater than 0.5. Handles negative values and optional NaN checks.</remarks>")
-			.WriteLine("""/// <param name="x">Input value in the range [-1, 1].</param>""")
-			.WriteLine("/// <returns>Approximate inverse cosine value in radians, in the range [0, π].</returns>")
-			.WriteLine("[MethodImpl(MethodImplOptions.AggressiveInlining)]")
+		builder.WriteLine("[MethodImpl(MethodImplOptions.AggressiveInlining)]")
 			.WriteLine("public static double FastAcos(double x)")
 			.StartBlock();
 
@@ -124,9 +116,9 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 			.WriteLine($"p = {multiplyAdd("u", "p", 1.0)};")
 			.WriteWhitespace()
 			.WriteLine("var asinT = t * p;")
-			.WriteLine($"var result = big ? asinT + asinT : {multiplyAdd("Double.PI", 0.5, "-asinT")};")
+			.WriteLine($"var result = big ? asinT + asinT : {multiplyAdd("Double.Pi", 0.5, "-asinT")};")
 			.WriteWhitespace()
-			.WriteLine("return negative ? Double.PI - result : result;")
+			.WriteLine("return negative ? Double.Pi - result : result;")
 			.EndBlock();
 
 		return builder.ToString();

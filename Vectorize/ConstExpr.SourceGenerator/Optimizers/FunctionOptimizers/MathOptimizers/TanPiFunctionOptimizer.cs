@@ -113,11 +113,7 @@ public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", n => 
 		var reciprocalEstimateInvocation = GetMethodInvocation<ReciprocalEstimateFunctionOptimizer>(context, paramType);
 		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of tangent divided by π (TanPi) for single-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses range reduction and a Padé approximation; values near the asymptote are handled via reciprocal form.</remarks>")
-			.WriteLine("/// <param name=\"x\">Input value measured in multiples of π.</param>")
-			.WriteLine("/// <returns>Approximate tangent value divided by π.</returns>")
-			.WriteLine("private static float FastTanPi(float x)")
+		builder.WriteLine("private static float FastTanPi(float x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
@@ -129,7 +125,7 @@ public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", n => 
 			.WriteLine($"x -= {roundInvocation}(x);")
 			.WriteWhitespace()
 			.WriteLine("var signX = x;")
-			.WriteLine($"x = {absInvocation}(x); // [0, 0.5]")
+			.WriteLine($"x = {absInvocation}(x);")
 			.WriteWhitespace()
 			.WriteLine("var swap = x > 0.25f;")
 			.WriteLine("var xf   = swap ? 0.5f - x : x;")
@@ -160,11 +156,7 @@ public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", n => 
 		var reciprocalEstimateInvocation = GetMethodInvocation<ReciprocalEstimateFunctionOptimizer>(context, paramType);
 		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of tangent divided by π (TanPi) for double-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses range reduction and a Padé approximation; values near the asymptote are handled via reciprocal form.</remarks>")
-			.WriteLine("/// <param name=\"x\">Input value measured in multiples of π.</param>")
-			.WriteLine("/// <returns>Approximate tangent value divided by π.</returns>")
-			.WriteLine("private static double FastTanPi(double x)")
+		builder.WriteLine("private static double FastTanPi(double x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
@@ -176,7 +168,7 @@ public class TanPiFunctionOptimizer() : BaseMathFunctionOptimizer("TanPi", n => 
 			.WriteLine($"x -= {roundInvocation}(x);")
 			.WriteWhitespace()
 			.WriteLine("var signX = x;")
-			.WriteLine($"x = {absInvocation}(x); // [0, 0.5]")
+			.WriteLine($"x = {absInvocation}(x);")
 			.WriteWhitespace()
 			.WriteLine("var swap = x > 0.25;")
 			.WriteLine("var xf   = swap ? 0.5 - x : x;")

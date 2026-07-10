@@ -57,11 +57,7 @@ public class Log10FunctionOptimizer() : BaseMathFunctionOptimizer("Log10", n => 
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of base-10 logarithm (Log10) for single-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses exponent extraction and a polynomial approximation for the mantissa. Returns log10(x).</remarks>")
-			.WriteLine("/// <param name=\"x\">Input value.</param>")
-			.WriteLine("/// <returns>Approximate base-10 logarithm of x.</returns>")
-			.WriteLine("private static float FastLog10(float x)")
+		builder.WriteLine("private static float FastLog10(float x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
@@ -98,11 +94,7 @@ public class Log10FunctionOptimizer() : BaseMathFunctionOptimizer("Log10", n => 
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of base-10 logarithm (Log10) for double-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses exponent extraction and a polynomial approximation for the mantissa. Returns log10(x).</remarks>")
-			.WriteLine("/// <param name=\"x\">Input value.</param>")
-			.WriteLine("/// <returns>Approximate base-10 logarithm of x.</returns>")
-			.WriteLine("private static double FastLog10(double x)")
+		builder.WriteLine("private static double FastLog10(double x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))

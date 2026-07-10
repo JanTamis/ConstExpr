@@ -41,11 +41,7 @@ public class Exp2FunctionOptimizer() : BaseMathFunctionOptimizer("Exp2", n => n 
 
 		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of base-2 exponential (Exp2) for single-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses integer exponent extraction and a polynomial approximation. Clamps at ±overflow bounds.</remarks>")
-			.WriteLine("/// <param name=\"x\">Input exponent value.</param>")
-			.WriteLine("/// <returns>Approximate value of 2^x.</returns>")
-			.WriteLine("private static float FastExp2(float x)")
+		builder.WriteLine("private static float FastExp2(float x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
@@ -85,11 +81,7 @@ public class Exp2FunctionOptimizer() : BaseMathFunctionOptimizer("Exp2", n => n 
 
 		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of base-2 exponential (Exp2) for double-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses integer exponent extraction and a polynomial approximation. Clamps at ±overflow bounds.</remarks>")
-			.WriteLine("/// <param name=\"x\">Input exponent value.</param>")
-			.WriteLine("/// <returns>Approximate value of 2^x.</returns>")
-			.WriteLine("private static double FastExp2(double x)")
+		builder.WriteLine("private static double FastExp2(double x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))

@@ -42,11 +42,7 @@ public class CosPiFunctionOptimizer() : BaseMathFunctionOptimizer("CosPi", n => 
 		var roundInvocation = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
 		var absMethodInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of cosine divided by π (CosPi) for single-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses argument reduction and a polynomial approximation with optional NaN handling. Returns cos(πx).</remarks>")
-			.WriteLine("/// <param name=\"x\">Input value.</param>")
-			.WriteLine("/// <returns>Approximate cosine value divided by π.</returns>")
-			.WriteLine("private static float FastCosPi(float x)")
+		builder.WriteLine("private static float FastCosPi(float x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
@@ -56,7 +52,7 @@ public class CosPiFunctionOptimizer() : BaseMathFunctionOptimizer("CosPi", n => 
 
 		builder.WriteWhitespace()
 			.WriteLine($"x -= {roundInvocation}(x * 0.5f) * 2.0f;")
-			.WriteLine($"x  = {absMethodInvocation}<float, uint>(x);")
+			.WriteLine($"x  = {absMethodInvocation}(x);")
 			.WriteWhitespace()
 			.WriteLine("var v  = (x - 0.5f) * Single.Pi;")
 			.WriteLine("var v2 = v * v;")
@@ -78,11 +74,7 @@ public class CosPiFunctionOptimizer() : BaseMathFunctionOptimizer("CosPi", n => 
 		var roundInvocation = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
 		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of cosine divided by π (CosPi) for double-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses argument reduction and a polynomial approximation with optional NaN handling. Returns cos(πx).</remarks>")
-			.WriteLine("/// <param name=\"x\">Input value.</param>")
-			.WriteLine("/// <returns>Approximate cosine value divided by π.</returns>")
-			.WriteLine("private static double FastCosPi(double x)")
+		builder.WriteLine("private static double FastCosPi(double x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))

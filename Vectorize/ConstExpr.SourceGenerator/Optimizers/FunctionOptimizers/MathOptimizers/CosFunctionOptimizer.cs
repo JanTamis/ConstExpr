@@ -42,11 +42,7 @@ public class CosFunctionOptimizer() : BaseMathFunctionOptimizer("Cos", n => n is
 		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
 		var roundInvocation = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of cosine (Cos) for single-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses argument reduction and a polynomial approximation with optional NaN handling.</remarks>")
-			.WriteLine("/// <param name=\"x\">Input angle in radians.</param>")
-			.WriteLine("/// <returns>Approximate cosine value.</returns>")
-			.WriteLine("private static float FastCos(float x)")
+		builder.WriteLine("private static float FastCos(float x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
@@ -59,8 +55,8 @@ public class CosFunctionOptimizer() : BaseMathFunctionOptimizer("Cos", n => n is
 			.WriteLine($"x = {absInvocation}(x);")
 			.WriteWhitespace()
 			.WriteLine("var x2 = x * x;")
-			.WriteLine($"var ret = {multiplyAdd(0.0003538394f, "x2", -0.0041666418f)};")
-			.WriteLine($"ret = {multiplyAdd("ret", "x2", -0.0041666418f)};")
+			.WriteLine($"var ret = {multiplyAdd(-2.3344791e-7f, "x2", 2.4512721e-5f)};")
+			.WriteLine($"ret = {multiplyAdd("ret", "x2", -0.0013882476f)};")
 			.WriteLine($"ret = {multiplyAdd("ret", "x2", 0.041666666f)};")
 			.WriteLine($"ret = {multiplyAdd("ret", "x2", -0.5f)};")
 			.WriteLine($"ret = {multiplyAdd("ret", "x2", 1.0f)};")
@@ -80,11 +76,7 @@ public class CosFunctionOptimizer() : BaseMathFunctionOptimizer("Cos", n => n is
 		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
 		var roundInvocation = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of cosine (Cos) for double-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses argument reduction and a polynomial approximation with optional NaN handling.</remarks>")
-			.WriteLine("/// <param name=\"x\">Input angle in radians.</param>")
-			.WriteLine("/// <returns>Approximate cosine value.</returns>")
-			.WriteLine("private static double FastCos(double x)")
+		builder.WriteLine("private static double FastCos(double x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))

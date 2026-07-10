@@ -55,11 +55,7 @@ public class AcosPiFunctionOptimizer() : BaseMathFunctionOptimizer("AcosPi", n =
 		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
 		var sqrtInvocation = GetMethodInvocation<SqrtFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast polynomial approximation of inverse cosine divided by π (AcosPi) for single-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Returns Acos(x) / π. Uses polynomial approximation with FusedMultiplyAdd. Handles negative values and optional NaN checks.</remarks>")
-			.WriteLine("""/// <param name="x">Input value in the range [-1, 1].</param>""")
-			.WriteLine("/// <returns>Approximate inverse cosine value divided by π, in the range [0, 1].</returns>")
-			.WriteLine("private static float FastAcosPi(float x)")
+		builder.WriteLine("private static float FastAcosPi(float x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
@@ -96,11 +92,7 @@ public class AcosPiFunctionOptimizer() : BaseMathFunctionOptimizer("AcosPi", n =
 		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
 		var sqrtInvocation = GetMethodInvocation<SqrtFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast polynomial approximation of inverse cosine divided by π (AcosPi) for double-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Returns Acos(x) / π with higher precision coefficients. Handles negative values and optional NaN checks.</remarks>")
-			.WriteLine("""/// <param name="x">Input value in the range [-1, 1].</param>""")
-			.WriteLine("/// <returns>Approximate inverse cosine value divided by π, in the range [0, 1].</returns>")
-			.WriteLine("private static double FastAcosPi(double x)")
+		builder.WriteLine("private static double FastAcosPi(double x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))

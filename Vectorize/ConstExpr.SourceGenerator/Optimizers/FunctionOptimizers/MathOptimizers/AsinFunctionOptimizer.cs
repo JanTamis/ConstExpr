@@ -51,11 +51,7 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n 
 		var sqrtInvocation = GetMethodInvocation<SqrtFunctionOptimizer>(context, paramType);
 		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of inverse sine (Asin) for single-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses a piecewise polynomial approximation with FusedMultiplyAdd and special handling near zero and near one.</remarks>")
-			.WriteLine("/// <param name=\"x\">Input value in the range [-1, 1].</param>")
-			.WriteLine("/// <returns>Approximate inverse sine value in radians, in the range [-π/2, π/2].</returns>")
-			.WriteLine("private static float FastAsin(float x)")
+		builder.WriteLine("private static float FastAsin(float x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
@@ -69,7 +65,6 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n 
 			.StartBlock()
 			.WriteLine("var x2 = xa * xa;")
 			.WriteLine($"var ret = {multiplyAdd(0.16666667f, "x2", 1.0f)};")
-			.WriteLine($"ret = {multiplyAdd("ret", "x2", 1.0f)};")
 			.WriteLine("ret *= xa;")
 			.WriteWhitespace()
 			.WriteLine($"return {copySignInvocation}(ret, x);")
@@ -96,11 +91,7 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n 
 		var sqrtInvocation = GetMethodInvocation<SqrtFunctionOptimizer>(context, paramType);
 		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of inverse sine (Asin) for double-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses a piecewise polynomial approximation with FusedMultiplyAdd and special handling near zero and near one.</remarks>")
-			.WriteLine("/// <param name=\"x\">Input value in the range [-1, 1].</param>")
-			.WriteLine("/// <returns>Approximate inverse sine value in radians, in the range [-π/2, π/2].</returns>")
-			.WriteLine("private static double FastAsin(double x)")
+		builder.WriteLine("private static double FastAsin(double x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
@@ -120,10 +111,10 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n 
 			.WriteLine($"return {copySignInvocation}(ret, x);")
 			.EndBlock()
 			.WriteWhitespace()
-			.WriteLine($"p = {multiplyAdd(-0.0187293, "xa", 0.0742610)};")
+			.WriteLine($"var p = {multiplyAdd(-0.0187293, "xa", 0.0742610)};")
 			.WriteLine($"p = {multiplyAdd("p", "xa", -0.2121144)};")
 			.WriteLine($"p = {multiplyAdd("p", "xa", 1.5707288)};")
-			.WriteLine($"p = {multiplyAdd("-p", $"{sqrtInvocation}(1.0f - xa)", 1.5707963267948966f)};")
+			.WriteLine($"p = {multiplyAdd("-p", $"{sqrtInvocation}(1.0 - xa)", 1.5707963267948966)};")
 			.WriteWhitespace()
 			.WriteLine($"return {copySignInvocation}(p, x);")
 			.EndBlock();

@@ -43,11 +43,7 @@ public class SinCosPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinCosPi",
 		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
 		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast simultaneous sine and cosine approximation for values interpreted as multiples of π (single-precision).</summary>")
-			.WriteLine("/// <remarks>Uses range reduction modulo 2 and paired polynomial approximations for sin(πx) and cos(πx).</remarks>")
-			.WriteLine("/// <param name=\"x\">Input value measured in multiples of π.</param>")
-			.WriteLine("/// <returns>A tuple containing approximate sine and cosine values.</returns>")
-			.WriteLine("private static (float Sin, float Cos) FastSinCosPi(float x)")
+		builder.WriteLine("private static (float Sin, float Cos) FastSinCosPi(float x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
@@ -96,11 +92,7 @@ public class SinCosPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinCosPi",
 		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
 		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast simultaneous sine and cosine approximation for values interpreted as multiples of π (double-precision).</summary>")
-			.WriteLine("/// <remarks>Uses range reduction modulo 2 and paired polynomial approximations for sin(πx) and cos(πx).</remarks>")
-			.WriteLine("/// <param name=\"x\">Input value measured in multiples of π.</param>")
-			.WriteLine("/// <returns>A tuple containing approximate sine and cosine values.</returns>")
-			.WriteLine("private static (double Sin, double Cos) FastSinCosPi(double x)")
+		builder.WriteLine("private static (double Sin, double Cos) FastSinCosPi(double x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))

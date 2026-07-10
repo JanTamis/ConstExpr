@@ -43,11 +43,7 @@ public class CoshFunctionOptimizer() : BaseMathFunctionOptimizer("Cosh", n => n 
 		var roundInvocation = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
 		var reciprocalEstimateInvocation = GetMethodInvocation<ReciprocalEstimateFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of hyperbolic cosine (Cosh) for single-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses absolute-value reduction, inline fast-exp base-2 reduction, and optional NaN handling. ~1.1× faster than Single.Exp.</remarks>")
-			.WriteLine("/// <param name=\"x\">Input value.</param>")
-			.WriteLine("/// <returns>Approximate hyperbolic cosine value.</returns>")
-			.WriteLine("private static float FastCosh(float x)")
+		builder.WriteLine("private static float FastCosh(float x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
@@ -85,11 +81,7 @@ public class CoshFunctionOptimizer() : BaseMathFunctionOptimizer("Cosh", n => n 
 		var roundInvocation = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
 		var reciprocalEstimateInvocation = GetMethodInvocation<ReciprocalEstimateFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of hyperbolic cosine (Cosh) for double-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses absolute-value reduction, inline fast-exp base-2 reduction, and optional NaN handling. ~1.6× faster than Double.Exp.</remarks>")
-			.WriteLine("/// <param name=\"x\">Input value.</param>")
-			.WriteLine("/// <returns>Approximate hyperbolic cosine value.</returns>")
-			.WriteLine("private static double FastCosh(double x)")
+		builder.WriteLine("private static double FastCosh(double x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))

@@ -25,10 +25,10 @@ public class ScaleBFunctionOptimizer() : BaseMathFunctionOptimizer("ScaleB", n =
 			return true;
 		}
 
-		// ScaleB(0, n) → 0  (zero scaled by any power of 2 stays zero)
+		// ScaleB(0, n) → 0  (zero scaled by any power of 2 stays zero, sign of x preserved)
 		if (TryGetNumericLiteral(x, out var xValue) && xValue == 0.0)
 		{
-			result = CreateLiteral(0.0.ToSpecialType(paramType.SpecialType));
+			result = CreateLiteral(xValue.ToSpecialType(paramType.SpecialType));
 			return true;
 		}
 
@@ -114,12 +114,7 @@ public class ScaleBFunctionOptimizer() : BaseMathFunctionOptimizer("ScaleB", n =
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("/// <summary>Fast ScaleB for single-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses IEEE 754 exponent manipulation when the exponent is in range, otherwise falls back to MathF.ScaleB.</remarks>")
-			.WriteLine("/// <param name=\"x\">The value to scale.</param>")
-			.WriteLine("/// <param name=\"n\">The power-of-two exponent.</param>")
-			.WriteLine("/// <returns>The value scaled by 2^n.</returns>")
-			.WriteLine("private static float FastScaleB(float x, int n)")
+		builder.WriteLine("private static float FastScaleB(float x, int n)")
 			.StartBlock()
 			.WriteLine("if ((uint)(n + 126) <= 253u)")
 			.StartBlock()
@@ -135,12 +130,7 @@ public class ScaleBFunctionOptimizer() : BaseMathFunctionOptimizer("ScaleB", n =
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("/// <summary>Fast ScaleB for double-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses IEEE 754 exponent manipulation when the exponent is in range, otherwise falls back to Math.ScaleB.</remarks>")
-			.WriteLine("/// <param name=\"x\">The value to scale.</param>")
-			.WriteLine("/// <param name=\"n\">The power-of-two exponent.</param>")
-			.WriteLine("/// <returns>The value scaled by 2^n.</returns>")
-			.WriteLine("private static double FastScaleB(double x, int n)")
+		builder.WriteLine("private static double FastScaleB(double x, int n)")
 			.StartBlock()
 			.WriteLine("if ((uint)(n + 1022) <= 2045u)")
 			.StartBlock()

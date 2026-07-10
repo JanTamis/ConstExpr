@@ -110,11 +110,7 @@ public class TanFunctionOptimizer() : BaseMathFunctionOptimizer("Tan", n => n is
 		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
 		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of tangent (Tan) for single-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses range reduction and a rational approximation, with a reciprocal form near the asymptote.</remarks>")
-			.WriteLine("/// <param name=\"x\">Input angle in radians.</param>")
-			.WriteLine("/// <returns>Approximate tangent value.</returns>")
-			.WriteLine("private static float FastTan(float x)")
+		builder.WriteLine("private static float FastTan(float x)")
 			.StartBlock()
 			.WriteLine("if (Single.IsNaN(x)) return Single.NaN;")
 			.WriteWhitespace()
@@ -155,11 +151,7 @@ public class TanFunctionOptimizer() : BaseMathFunctionOptimizer("Tan", n => n is
 		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
 		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of tangent (Tan) for double-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses range reduction and a rational approximation, with a reciprocal form near the asymptote.</remarks>")
-			.WriteLine("/// <param name=\"x\">Input angle in radians.</param>")
-			.WriteLine("/// <returns>Approximate tangent value.</returns>")
-			.WriteLine("private static double FastTan(double x)")
+		builder.WriteLine("private static double FastTan(double x)")
 			.StartBlock()
 			.WriteLine("if (Double.IsNaN(x)) return Double.NaN;")
 			.WriteWhitespace()

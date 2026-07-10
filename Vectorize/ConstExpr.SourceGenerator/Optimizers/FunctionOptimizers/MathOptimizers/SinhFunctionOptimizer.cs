@@ -44,11 +44,7 @@ public class SinhFunctionOptimizer() : BaseMathFunctionOptimizer("Sinh", n => n 
 		var roundInvocation = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
 		var reciprocalEstimateInvocation = GetMethodInvocation<ReciprocalEstimateFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of hyperbolic sine (Sinh) for single-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Inline fast-exp base-2 reduction with reciprocal-estimate refinement. ~1.1× faster than Single.Exp path.</remarks>")
-			.WriteLine("/// <param name=\"x\">Input value.</param>")
-			.WriteLine("/// <returns>Approximate hyperbolic sine value.</returns>")
-			.WriteLine("private static float FastSinh(float x)")
+		builder.WriteLine("private static float FastSinh(float x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
@@ -88,11 +84,7 @@ public class SinhFunctionOptimizer() : BaseMathFunctionOptimizer("Sinh", n => n 
 		var roundInvocation = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
 		var reciprocalEstimateInvocation = GetMethodInvocation<ReciprocalEstimateFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of hyperbolic sine (Sinh) for double-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Inline fast-exp base-2 reduction. ~1.5× faster than Double.Exp path.</remarks>")
-			.WriteLine("/// <param name=\"x\">Input value.</param>")
-			.WriteLine("/// <returns>Approximate hyperbolic sine value.</returns>")
-			.WriteLine("private static double FastSinh(double x)")
+		builder.WriteLine("private static double FastSinh(double x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))

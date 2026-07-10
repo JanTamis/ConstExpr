@@ -44,11 +44,7 @@ public class SinPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinPi", n => 
 		var minInvocation = GetMethodInvocation<MinFunctionOptimizer>(context, paramType);
 		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of sine divided by π (SinPi) for single-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses range reduction modulo 2 and a polynomial approximation for sin(πx). Returns sin(πx).</remarks>")
-			.WriteLine("/// <param name=\"x\">Input value measured in multiples of π.</param>")
-			.WriteLine("/// <returns>Approximate sine value.</returns>")
-			.WriteLine("private static float FastSinPi(float x)")
+		builder.WriteLine("private static float FastSinPi(float x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
@@ -84,11 +80,7 @@ public class SinPiFunctionOptimizer() : BaseMathFunctionOptimizer("SinPi", n => 
 		var minInvocation = GetMethodInvocation<MinFunctionOptimizer>(context, paramType);
 		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast approximation of sine divided by π (SinPi) for double-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses range reduction modulo 2 and a polynomial approximation for sin(πx). Returns sin(πx).</remarks>")
-			.WriteLine("/// <param name=\"x\">Input value measured in multiples of π.</param>")
-			.WriteLine("/// <returns>Approximate sine value.</returns>")
-			.WriteLine("private static double FastSinPi(double x)")
+		builder.WriteLine("private static double FastSinPi(double x)")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
