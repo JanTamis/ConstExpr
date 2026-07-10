@@ -204,7 +204,7 @@ public class Atan2FunctionOptimizer() : BaseMathFunctionOptimizer("Atan2", n => 
 			.WriteLine($"p = {multiplyAdd("u", "p", 1.0 / 5.0)};")
 			.WriteLine($"p = {multiplyAdd("u", "p", -1.0 / 3.0)};")
 			.WriteLine($"p = {multiplyAdd("u", "p", 1.0)};")
-			.WriteLine("p = 2.0 * t * p; // atan(a) = 2·atan(t)")
+			.WriteLine("p = (t + t) * p; // atan(a) = 2·atan(t)")
 			.WriteWhitespace()
 			.WriteLine("p = absY > absX ? Double.Pi / 2 - p : p;")
 			.WriteLine("p = x < 0.0    ? Double.Pi      - p : p;")

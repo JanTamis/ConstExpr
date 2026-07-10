@@ -259,28 +259,35 @@ public class MinFunctionOptimizer() : BaseMathFunctionOptimizer("Min", n => n is
 			var mm0 = args2[0].Expression;
 			var mm1 = args2[1].Expression;
 
-			var hasMinC0b = TryGetConstantValue(paramType, mm0, out var minValA2, out var minExprA2);
-			var hasMinC1b = TryGetConstantValue(paramType, mm1, out var minValB2, out var minExprB2);
+			var hasMinC0B = TryGetConstantValue(paramType, mm0, out var minValA2, out var minExprA2);
+			var hasMinC1B = TryGetConstantValue(paramType, mm1, out var minValB2, out var minExprB2);
 
 			ExpressionSyntax? valueExpr2 = null;
 			ExpressionSyntax? minExpr2 = null;
 			object? minVal2 = null;
 
-			if (hasMinC0b && !hasMinC1b)
+			switch (hasMinC0B)
 			{
-				valueExpr2 = mm1;
-				minExpr2 = minExprA2;
-				minVal2 = minValA2;
-			}
-			else if (!hasMinC0b && hasMinC1b)
-			{
-				valueExpr2 = mm0;
-				minExpr2 = minExprB2;
-				minVal2 = minValB2;
-			}
-			else
-			{
-				return false;
+				case true when !hasMinC1B:
+				{
+					valueExpr2 = mm1;
+					minExpr2 = minExprA2;
+					minVal2 = minValA2;
+
+					break;
+				}
+				case false when hasMinC1B:
+				{
+					valueExpr2 = mm0;
+					minExpr2 = minExprB2;
+					minVal2 = minValB2;
+
+					break;
+				}
+				default:
+				{
+					return false;
+				}
 			}
 
 			if (Compare(paramType, minVal2!, maxConstVal2!) <= 0)
@@ -314,7 +321,7 @@ public class MinFunctionOptimizer() : BaseMathFunctionOptimizer("Min", n => n is
 				constExpr = expr;
 				return value is not null && IsNumericLiteral(value);
 			}
-			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax opLit }:
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax opLit }:
 			{
 				var v = opLit.Token.Value;
 
@@ -418,7 +425,7 @@ public class MinFunctionOptimizer() : BaseMathFunctionOptimizer("Min", n => n is
 
 	private static T ConvertTo<T>(object v)
 	{
-		try { return (T)Convert.ChangeType(v, typeof(T), CultureInfo.InvariantCulture); }
+		try { return (T) Convert.ChangeType(v, typeof(T), CultureInfo.InvariantCulture); }
 		catch { return default!; }
 	}
 }

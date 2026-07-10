@@ -39,6 +39,8 @@ public class Exp2FunctionOptimizer() : BaseMathFunctionOptimizer("Exp2", n => n 
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
+		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
+
 		builder.WriteLine("/// <summary>Fast approximation of base-2 exponential (Exp2) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses integer exponent extraction and a polynomial approximation. Clamps at ±overflow bounds.</remarks>")
 			.WriteLine("/// <param name=\"x\">Input exponent value.</param>")
@@ -59,7 +61,7 @@ public class Exp2FunctionOptimizer() : BaseMathFunctionOptimizer("Exp2", n => n 
 		builder.WriteLine("if (x >= 128.0f) return float.PositiveInfinity;")
 			.WriteLine("if (x < -150.0f) return 0.0f;")
 			.WriteWhitespace()
-			.WriteLine("var k = (int)(x + (x >= 0.0f ? 0.5f : -0.5f));")
+			.WriteLine($"var k = (int)({copySignInvocation}(0.5f, x));")
 			.WriteLine("var r = x - k;")
 			.WriteWhitespace()
 			.WriteLine($"var p    = {multiplyAdd(0.009618129f, "r", 0.055504109f)};")
@@ -81,6 +83,8 @@ public class Exp2FunctionOptimizer() : BaseMathFunctionOptimizer("Exp2", n => n 
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
+		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
+
 		builder.WriteLine("/// <summary>Fast approximation of base-2 exponential (Exp2) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses integer exponent extraction and a polynomial approximation. Clamps at ±overflow bounds.</remarks>")
 			.WriteLine("/// <param name=\"x\">Input exponent value.</param>")
@@ -101,7 +105,7 @@ public class Exp2FunctionOptimizer() : BaseMathFunctionOptimizer("Exp2", n => n 
 		builder.WriteLine("if (x >= 1024.0) return Double.PositiveInfinity;")
 			.WriteLine("if (x < -1100.0) return 0.0;")
 			.WriteWhitespace()
-			.WriteLine("var k = (long)(x + (x >= 0.0 ? 0.5 : -0.5));")
+			.WriteLine($"var k = (long)({copySignInvocation}(0.5, x));")
 			.WriteLine("var r = x - k;")
 			.WriteWhitespace()
 			.WriteLine($"var p    = {multiplyAdd(9.618129107628477e-3, "r", 5.550410866482158e-2)};")

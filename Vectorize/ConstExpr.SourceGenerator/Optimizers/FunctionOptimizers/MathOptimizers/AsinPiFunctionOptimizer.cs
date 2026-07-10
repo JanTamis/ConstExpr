@@ -46,6 +46,7 @@ public class AsinPiFunctionOptimizer() : BaseMathFunctionOptimizer("AsinPi", n =
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
+		var clampInvocation = GetMethodInvocation<ClampFunctionOptimizer>(context, paramType);
 		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
 		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
 		var sqrtInvocation = GetMethodInvocation<SqrtFunctionOptimizer>(context, paramType);
@@ -63,29 +64,24 @@ public class AsinPiFunctionOptimizer() : BaseMathFunctionOptimizer("AsinPi", n =
 				.WriteWhitespace();
 		}
 
-		builder.WriteLine("if (x < -1.0f) x = -1.0f;")
-			.WriteLine("if (x > 1.0f) x = 1.0f;")
+		builder.WriteLine($"x = {clampInvocation}(x, -1.0f, 1.0f);")
 			.WriteWhitespace()
 			.WriteLine($"var xa = {absInvocation}<float, uint>(x);")
 			.WriteWhitespace()
 			.WriteLine("if (xa < 0.5f)")
 			.StartBlock()
-			.WriteLine("var x2 = xa * xa;")
 			.WriteLine("var ret = 0.16666667f;")
-			.WriteLine($"ret = {multiplyAdd("ret", "x2", 1.0f)};")
-			.WriteLine("ret = ret * xa * 0.31830988618379067f;")
+			.WriteLine($"ret = {multiplyAdd("ret", "xa * xa", 1.0f)};")
+			.WriteLine("ret *= xa * 0.31830988618379067f;")
 			.WriteWhitespace()
 			.WriteLine($"return {copySignInvocation}(ret, x);")
 			.EndBlock()
 			.WriteLine("else")
 			.StartBlock()
-			.WriteLine("var onemx = 1.0f - xa;")
-			.WriteLine($"var sqrt_onemx = {sqrtInvocation}(onemx);")
-			.WriteWhitespace()
 			.WriteLine($"var ret = {multiplyAdd(-0.0187293f, "xa", 0.0742610f)};")
 			.WriteLine($"ret = {multiplyAdd("ret", "xa", -0.2121144f)};")
 			.WriteLine($"ret = {multiplyAdd("ret", "xa", 1.5707288f)};")
-			.WriteLine("ret = ret * sqrt_onemx;")
+			.WriteLine($"ret *= {sqrtInvocation}(1.0f - xa);")
 			.WriteLine($"ret = {multiplyAdd("-ret", 0.31830988618379067f, 0.5f)};")
 			.WriteWhitespace()
 			.WriteLine($"return {copySignInvocation}(ret, x);")
@@ -100,6 +96,7 @@ public class AsinPiFunctionOptimizer() : BaseMathFunctionOptimizer("AsinPi", n =
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
+		var clampInvocation = GetMethodInvocation<ClampFunctionOptimizer>(context, paramType);
 		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
 		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
 		var sqrtInvocation = GetMethodInvocation<SqrtFunctionOptimizer>(context, paramType);
@@ -116,28 +113,22 @@ public class AsinPiFunctionOptimizer() : BaseMathFunctionOptimizer("AsinPi", n =
 			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
 		}
 
-		builder.WriteLine("if (x < -1.0) x = -1.0;")
-			.WriteLine("if (x > 1.0) x = 1.0;")
+		builder.WriteLine($"x = {clampInvocation}(x, -1.0, 1.0);")
 			.WriteWhitespace()
 			.WriteLine($"var xa = {absInvocation}<double, ulong>(x);")
 			.WriteWhitespace()
 			.WriteLine("if (xa < 0.5)")
 			.StartBlock()
-			.WriteLine("var x2 = xa * xa;")
-			.WriteLine("var ret = 0.16666666666666666;  // 1/6")
-			.WriteLine($"ret = {multiplyAdd("ret", "x2", 1.0)};")
-			.WriteLine("ret = ret * xa * 0.31830988618379067;  // 1/π")
+			.WriteLine($"var ret = {multiplyAdd(0.16666666666666666, "xa * xa", 1.0)};")
+			.WriteLine("ret *= xa * 0.31830988618379067;  // 1/π")
 			.WriteLine($"return {copySignInvocation}(ret, x);")
 			.EndBlock()
 			.WriteLine("else")
 			.StartBlock()
-			.WriteLine("var onemx = 1.0 - xa;")
-			.WriteLine($"var sqrt_onemx = {sqrtInvocation}(onemx);")
-			.WriteWhitespace()
 			.WriteLine($"var ret = {multiplyAdd(-0.0187293, "xa", 0.0742610)};")
 			.WriteLine($"ret = {multiplyAdd("ret", "xa", -0.2121144)};")
 			.WriteLine($"ret = {multiplyAdd("ret", "xa", 1.5707288)};")
-			.WriteLine("ret = ret * sqrt_onemx;")
+			.WriteLine($"ret *= {sqrtInvocation}(1.0 - xa);")
 			.WriteLine($"ret = {multiplyAdd("-ret", 0.31830988618379067, 0.5)};")
 			.WriteWhitespace()
 			.WriteLine($"return {copySignInvocation}(ret, x);")

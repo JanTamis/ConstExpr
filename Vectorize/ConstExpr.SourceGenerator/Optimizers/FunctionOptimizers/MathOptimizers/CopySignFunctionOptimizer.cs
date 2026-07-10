@@ -51,8 +51,8 @@ public class CopySignFunctionOptimizer() : BaseMathFunctionOptimizer("CopySign",
 	{
 		var method = ParseMethodFromString(paramType.SpecialType switch
 		{
-			SpecialType.System_Single => GenerateFastCopySignMethodFloat(context.FastMathFlags),
-			SpecialType.System_Double => GenerateFastCopySignMethodDouble(context.FastMathFlags),
+			SpecialType.System_Single => GenerateFastCopySignMethodFloat(),
+			SpecialType.System_Double => GenerateFastCopySignMethodDouble(),
 			_ => GenerateFastCopySignMethodInteger(context, context.FastMathFlags)
 		});
 
@@ -65,7 +65,7 @@ public class CopySignFunctionOptimizer() : BaseMathFunctionOptimizer("CopySign",
 		return base.GenerateCustomImplementation(context, paramType);
 	}
 
-	private static string GenerateFastCopySignMethodFloat(FastMathFlags flags)
+	private static string GenerateFastCopySignMethodFloat()
 	{
 		var builder = new CodeWriter();
 
@@ -74,7 +74,7 @@ public class CopySignFunctionOptimizer() : BaseMathFunctionOptimizer("CopySign",
 			.WriteLine("/// <param name=\"x\">The magnitude value.</param>")
 			.WriteLine("/// <param name=\"y\">The sign source value.</param>")
 			.WriteLine("/// <returns>A float with the magnitude of x and the sign of y.</returns>")
-			.WriteLine("private static float FastCopySignFloat(float x, float y)")
+			.WriteLine("private static float FastCopySign(float x, float y)")
 			.StartBlock()
 			.WriteLine("var xBits = BitConverter.SingleToInt32Bits(x);")
 			.WriteLine("var yBits = BitConverter.SingleToInt32Bits(y);")
@@ -84,7 +84,7 @@ public class CopySignFunctionOptimizer() : BaseMathFunctionOptimizer("CopySign",
 		return builder.ToString();
 	}
 
-	private static string GenerateFastCopySignMethodDouble(FastMathFlags flags)
+	private static string GenerateFastCopySignMethodDouble()
 	{
 		var builder = new CodeWriter();
 
@@ -93,7 +93,7 @@ public class CopySignFunctionOptimizer() : BaseMathFunctionOptimizer("CopySign",
 			.WriteLine("/// <param name=\"x\">The magnitude value.</param>")
 			.WriteLine("/// <param name=\"y\">The sign source value.</param>")
 			.WriteLine("/// <returns>A double with the magnitude of x and the sign of y.</returns>")
-			.WriteLine("private static double FastCopySignDouble(double x, double y)")
+			.WriteLine("private static double FastCopySign(double x, double y)")
 			.StartBlock()
 			.WriteLine("var xBits = BitConverter.DoubleToInt64Bits(x);")
 			.WriteLine("var yBits = BitConverter.DoubleToInt64Bits(y);")

@@ -129,6 +129,7 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", n => 
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		var roundMethod = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
+		var reciprocalEstimateMethod = GetMethodInvocation<ReciprocalEstimateFunctionOptimizer>(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast n-th root implementation for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses logarithmic reduction and a polynomial exp2 approximation. Supports negative exponents and odd roots of negative values.</remarks>")
@@ -143,11 +144,11 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", n => 
 			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
 		}
 
-		builder.WriteLine("if (n == 0) return float.NaN;")
+		builder.WriteLine("if (n == 0) return Single.NaN;")
 			.WriteLine("if (n == 1) return x;")
 			.WriteLine("if (x == 0.0f) return 0.0f;")
 			.WriteWhitespace()
-			.WriteLine("if (n < 0) return 1.0f / FastRootN(x, -n);")
+			.WriteLine($"if (n < 0) return {reciprocalEstimateMethod}(FastRootN(x, -n));")
 			.WriteWhitespace()
 			.WriteLine("var ax = x < 0.0f ? -x : x;")
 			.WriteWhitespace()
@@ -158,7 +159,7 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", n => 
 			.WriteLine($"lnm       = {multiplyAdd("lnm", "lM", -1.469956800f)};")
 			.WriteLine($"lnm       = {multiplyAdd("lnm", "lM", 2.821202636f)};")
 			.WriteLine($"lnm       = {multiplyAdd("lnm", "lM", -1.741793927f)};")
-			.WriteLine("var lnAx  = lE * 0.6931471805599453f + lnm;")
+			.WriteLine($"var lnAx  = {multiplyAdd("lE", "0.6931471805599453f", "lnm")};")
 			.WriteWhitespace()
 			.WriteLine("var t = lnAx / n;")
 			.WriteWhitespace()
@@ -182,6 +183,7 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", n => 
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		var roundMethod = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
+		var reciprocalEstimateMethod = GetMethodInvocation<ReciprocalEstimateFunctionOptimizer>(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast n-th root implementation for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses logarithmic reduction and a polynomial exp2 approximation. Supports negative exponents and odd roots of negative values.</remarks>")
@@ -196,11 +198,11 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", n => 
 			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
 		}
 
-		builder.WriteLine("if (n == 0) return double.NaN;")
+		builder.WriteLine("if (n == 0) return Double.NaN;")
 			.WriteLine("if (n == 1) return x;")
 			.WriteLine("if (x == 0.0) return 0.0;")
 			.WriteWhitespace()
-			.WriteLine("if (n < 0) return 1.0 / FastRootN(x, -n);")
+			.WriteLine($"if (n < 0) return {reciprocalEstimateMethod}(FastRootN(x, -n));")
 			.WriteWhitespace()
 			.WriteLine("var ax = x < 0.0 ? -x : x;")
 			.WriteWhitespace()
@@ -211,7 +213,7 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", n => 
 			.WriteLine($"lnm       = {multiplyAdd("lnm", "lM", -1.469956800)};")
 			.WriteLine($"lnm       = {multiplyAdd("lnm", "lM", 2.821202636)};")
 			.WriteLine($"lnm       = {multiplyAdd("lnm", "lM", -1.741793927)};")
-			.WriteLine("var lnAx  = lE * 0.6931471805599453094172321214581766 + lnm;")
+			.WriteLine($"var lnAx  = {multiplyAdd("lE", "0.6931471805599453094172321214581766", "lnm")};")
 			.WriteWhitespace()
 			.WriteLine("var t = lnAx / n;")
 			.WriteWhitespace()

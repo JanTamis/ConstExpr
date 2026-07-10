@@ -120,7 +120,7 @@ public class AtanFunctionOptimizer() : BaseMathFunctionOptimizer("Atan", n => n 
 			.WriteLine($"p      = {multiplyAdd("u", "p", 0.9998660f)};")
 			.WriteLine("p     *= a;")
 			.WriteWhitespace()
-			.WriteLine("p = swap ? Single.Pi / 2 - p : p;")
+			.WriteLine("p = swap ? Single.Pi * 0.5f - p : p;")
 			.WriteLine("return Single.IsNegative(x) ? -p : p;");
 
 		builder.EndBlock();
@@ -158,7 +158,7 @@ public class AtanFunctionOptimizer() : BaseMathFunctionOptimizer("Atan", n => n 
 			.WriteLine($"p      = {multiplyAdd("u", "p", 0.9998660f)};")
 			.WriteLine("p     *= a;")
 			.WriteWhitespace()
-			.WriteLine("p = swap ? Double.Pi / 2 - p : p;")
+			.WriteLine("p = swap ? Double.Pi * 0.5 - p : p;")
 			.WriteLine("return Double.IsNegative(x) ? -p : p;");
 
 		builder.EndBlock();

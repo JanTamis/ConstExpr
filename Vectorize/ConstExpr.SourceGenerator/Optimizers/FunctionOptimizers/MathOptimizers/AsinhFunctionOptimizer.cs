@@ -57,13 +57,12 @@ public class AsinhFunctionOptimizer() : BaseMathFunctionOptimizer("Asinh", n => 
 		}
 
 		builder.WriteLine($"var ax = {absInvocation}<float, uint>(x);")
-			.WriteLine("float r;")
+			.WriteLine("var r = 0f;")
 			.WriteWhitespace()
 			.WriteLine("if (ax < 0.5f)")
 			.StartBlock()
-			.WriteLine("// asinh(x) ≈ x*(1 - x²/6 + 3x⁴/40 - 15x⁶/336)")
 			.WriteLine("var x2 = ax * ax;")
-			.WriteLine($"var p = {multiplyAdd("x2", "-0.044642857f", 0.075f)};")
+			.WriteLine($"var p = {multiplyAdd("x2", -0.044642857f, 0.075f)};")
 			.WriteLine($"p = {multiplyAdd("p", "x2", -0.166666667f)};")
 			.WriteLine($"p = {multiplyAdd("p", "x2", 1.0f)};")
 			.WriteLine("r = ax * p;")
@@ -110,11 +109,10 @@ public class AsinhFunctionOptimizer() : BaseMathFunctionOptimizer("Asinh", n => 
 		}
 
 		builder.WriteLine($"var ax = {absInvocation}<double, ulong>(x);")
-			.WriteLine("double r;")
+			.WriteLine("var r = 0.0;")
 			.WriteWhitespace()
 			.WriteLine("if (ax < 0.5)")
 			.StartBlock()
-			.WriteLine("// asinh(x) ≈ x*(1 - x²/6 + 3x⁴/40 - 15x⁶/336)")
 			.WriteLine("var x2 = ax * ax;")
 			.WriteLine($"var p = {multiplyAdd("x2", -0.044642857142857144, 0.075)};")
 			.WriteLine($"p = {multiplyAdd("p", "x2", -0.16666666666666666)};")

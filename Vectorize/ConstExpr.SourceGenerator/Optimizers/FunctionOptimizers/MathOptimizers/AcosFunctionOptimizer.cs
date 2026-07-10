@@ -124,9 +124,9 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 			.WriteLine($"p = {multiplyAdd("u", "p", 1.0)};")
 			.WriteWhitespace()
 			.WriteLine("var asinT = t * p;")
-			.WriteLine("var result = big ? 2.0 * asinT : Math.PI / 2.0 - asinT;")
+			.WriteLine($"var result = big ? asinT + asinT : {multiplyAdd("Double.PI", 0.5, "-asinT")};")
 			.WriteWhitespace()
-			.WriteLine("return negative ? Math.PI - result : result;")
+			.WriteLine("return negative ? Double.PI - result : result;")
 			.EndBlock();
 
 		return builder.ToString();

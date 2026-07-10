@@ -312,7 +312,7 @@ public class MaxFunctionOptimizer() : BaseMathFunctionOptimizer("Max", n => n is
 				constExpr = expr;
 				return value is not null && IsNumericLiteral(value);
 			}
-			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax opLit }:
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax opLit }:
 			{
 				var v = opLit.Token.Value;
 
@@ -357,63 +357,26 @@ public class MaxFunctionOptimizer() : BaseMathFunctionOptimizer("Max", n => n is
 
 	private static int Compare(ITypeSymbol paramType, object a, object b)
 	{
-		switch (paramType.SpecialType)
+		return paramType.SpecialType switch
 		{
-			case SpecialType.System_Single:
-			{
-				return Comparer<float>.Default.Compare(ConvertTo<float>(a), ConvertTo<float>(b));
-			}
-			case SpecialType.System_Double:
-			{
-				return Comparer<double>.Default.Compare(ConvertTo<double>(a), ConvertTo<double>(b));
-			}
-			case SpecialType.System_Decimal:
-			{
-				return Comparer<decimal>.Default.Compare(ConvertTo<decimal>(a), ConvertTo<decimal>(b));
-			}
-			case SpecialType.System_SByte:
-			{
-				return Comparer<sbyte>.Default.Compare(ConvertTo<sbyte>(a), ConvertTo<sbyte>(b));
-			}
-			case SpecialType.System_Int16:
-			{
-				return Comparer<short>.Default.Compare(ConvertTo<short>(a), ConvertTo<short>(b));
-			}
-			case SpecialType.System_Int32:
-			{
-				return Comparer<int>.Default.Compare(ConvertTo<int>(a), ConvertTo<int>(b));
-			}
-			case SpecialType.System_Int64:
-			{
-				return Comparer<long>.Default.Compare(ConvertTo<long>(a), ConvertTo<long>(b));
-			}
-			case SpecialType.System_Byte:
-			{
-				return Comparer<byte>.Default.Compare(ConvertTo<byte>(a), ConvertTo<byte>(b));
-			}
-			case SpecialType.System_UInt16:
-			{
-				return Comparer<ushort>.Default.Compare(ConvertTo<ushort>(a), ConvertTo<ushort>(b));
-			}
-			case SpecialType.System_UInt32:
-			{
-				return Comparer<uint>.Default.Compare(ConvertTo<uint>(a), ConvertTo<uint>(b));
-			}
-			case SpecialType.System_UInt64:
-			{
-				return Comparer<ulong>.Default.Compare(ConvertTo<ulong>(a), ConvertTo<ulong>(b));
-			}
-			default:
-			{
-				// Fallback: compare as double
-				return Comparer<double>.Default.Compare(ConvertTo<double>(a), ConvertTo<double>(b));
-			}
-		}
+			SpecialType.System_Single => Comparer<float>.Default.Compare(ConvertTo<float>(a), ConvertTo<float>(b)),
+			SpecialType.System_Double => Comparer<double>.Default.Compare(ConvertTo<double>(a), ConvertTo<double>(b)),
+			SpecialType.System_Decimal => Comparer<decimal>.Default.Compare(ConvertTo<decimal>(a), ConvertTo<decimal>(b)),
+			SpecialType.System_SByte => Comparer<sbyte>.Default.Compare(ConvertTo<sbyte>(a), ConvertTo<sbyte>(b)),
+			SpecialType.System_Int16 => Comparer<short>.Default.Compare(ConvertTo<short>(a), ConvertTo<short>(b)),
+			SpecialType.System_Int32 => Comparer<int>.Default.Compare(ConvertTo<int>(a), ConvertTo<int>(b)),
+			SpecialType.System_Int64 => Comparer<long>.Default.Compare(ConvertTo<long>(a), ConvertTo<long>(b)),
+			SpecialType.System_Byte => Comparer<byte>.Default.Compare(ConvertTo<byte>(a), ConvertTo<byte>(b)),
+			SpecialType.System_UInt16 => Comparer<ushort>.Default.Compare(ConvertTo<ushort>(a), ConvertTo<ushort>(b)),
+			SpecialType.System_UInt32 => Comparer<uint>.Default.Compare(ConvertTo<uint>(a), ConvertTo<uint>(b)),
+			SpecialType.System_UInt64 => Comparer<ulong>.Default.Compare(ConvertTo<ulong>(a), ConvertTo<ulong>(b)),
+			_ => Comparer<double>.Default.Compare(ConvertTo<double>(a), ConvertTo<double>(b))
+		};
 	}
 
 	private static T ConvertTo<T>(object v)
 	{
-		try { return (T)Convert.ChangeType(v, typeof(T), CultureInfo.InvariantCulture); }
+		try { return (T) Convert.ChangeType(v, typeof(T), CultureInfo.InvariantCulture); }
 		catch { return default!; }
 	}
 }

@@ -94,6 +94,7 @@ public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", n =
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+		var reciprocalEstimateInvocation = GetMethodInvocation<ReciprocalEstimateFunctionOptimizer>(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of arctangent divided by π (AtanPi) for single-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses range reduction, a polynomial approximation, and optional NaN handling. Returns atan(x) / π.</remarks>")
@@ -109,7 +110,7 @@ public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", n =
 
 		builder.WriteLine($"var absX = {absInvocation}<float, uint>(x);")
 			.WriteLine("var swap = absX > 1.0f;")
-			.WriteLine("var a = swap ? 1.0f / absX : absX;")
+			.WriteLine($"var a = swap ? {reciprocalEstimateInvocation}(absX) : absX;")
 			.WriteWhitespace()
 			.WriteLine("var u = a * a;")
 			.WriteLine($"var p = {multiplyAdd("u", 0.00663222f, -0.02710107f)};")
@@ -132,6 +133,7 @@ public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", n =
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
+		var reciprocalEstimateInvocation = GetMethodInvocation<ReciprocalEstimateFunctionOptimizer>(context, paramType);
 
 		builder.WriteLine("/// <summary>Fast approximation of arctangent divided by π (AtanPi) for double-precision floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses range reduction, a polynomial approximation, and optional NaN handling. Returns atan(x) / π.</remarks>")
@@ -147,7 +149,7 @@ public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", n =
 
 		builder.WriteLine($"var absX = {absInvocation}<double, ulong>(x);")
 			.WriteLine("var swap = absX > 1.0;")
-			.WriteLine("var a = swap ? 1.0 / absX : absX;")
+			.WriteLine($"var a = swap ? {reciprocalEstimateInvocation}(absX) : absX;")
 			.WriteLine("var u = a * a;")
 			.WriteWhitespace()
 			.WriteLine($"var p = {multiplyAdd("u", 0.00663222, -0.02710107)};")

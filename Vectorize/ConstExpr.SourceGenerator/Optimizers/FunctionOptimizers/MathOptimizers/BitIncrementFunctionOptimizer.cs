@@ -59,7 +59,7 @@ public class BitIncrementFunctionOptimizer() : BaseMathFunctionOptimizer("BitInc
 			{
 				builder.WriteLine("if (Single.IsInfinity(x))")
 					.StartBlock()
-					.WriteLine("return Single.IsNegativeInfinity(x) ? -Single.MaxValue : x;")
+					.WriteLine("return Single.IsNegativeInfinity(x) ? Single.MinValue : x;")
 					.EndBlock();
 			}
 		}
@@ -73,7 +73,7 @@ public class BitIncrementFunctionOptimizer() : BaseMathFunctionOptimizer("BitInc
 			{
 				builder.WriteLine("if (!Single.IsFinite(x))")
 					.StartBlock()
-					.WriteLine("return Single.IsNegativeInfinity(x) ? -Single.MaxValue : x;")
+					.WriteLine("return Single.IsNegativeInfinity(x) ? Single.MinValue : x;")
 					.EndBlock();
 			}
 		}
@@ -122,7 +122,7 @@ public class BitIncrementFunctionOptimizer() : BaseMathFunctionOptimizer("BitInc
 			{
 				builder.WriteLine("if (!Double.IsFinite(x))")
 					.StartBlock()
-					.WriteLine("return Double.IsNegativeInfinity(x) ? -Double.MaxValue : x;")
+					.WriteLine("return Double.IsNegativeInfinity(x) ? Double.MinValue : x;")
 					.EndBlock();
 			}
 		}

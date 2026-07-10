@@ -18,67 +18,38 @@ public class LerpFunctionOptimizer() : BaseMathFunctionOptimizer("Lerp", n => n 
 
 	public override string GenerateCustomImplementation(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
-		var method = ParseMethodFromString(paramType.SpecialType switch
+		if (paramType.IsFloatingNumeric())
 		{
-			SpecialType.System_Single => GenerateFastLerpMethodFloat(context, paramType),
-			SpecialType.System_Double => GenerateFastLerpMethodDouble(context, paramType),
-			_ => null
-		});
-
-		if (method is not null)
-		{
+			var method = ParseMethodFromString(GenerateFastLerpMethod(context, paramType));
 			context.AdditionalSyntax.TryAdd(method, false);
+
 			return method.Identifier.Text;
 		}
 
 		return base.GenerateCustomImplementation(context, paramType);
 	}
 
-	private static string GenerateFastLerpMethodFloat(FunctionOptimizerContext context, ITypeSymbol paramType)
+	private static string GenerateFastLerpMethod(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
 		var builder = new CodeWriter();
-		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
-		builder.WriteLine("/// <summary>Fast linear interpolation (Lerp) for single-precision floating-point values.</summary>")
+		builder.WriteLine("/// <summary>Fast linear interpolation (Lerp) for floating-point values.</summary>")
 			.WriteLine("/// <remarks>Uses a fused multiply-add formulation for numerical stability and performance. Returns a + t(b - a).</remarks>")
 			.WriteLine("/// <param name=\"a\">Start value.</param>")
 			.WriteLine("/// <param name=\"b\">End value.</param>")
 			.WriteLine("/// <param name=\"t\">Interpolation factor.</param>")
-			.WriteLine("/// <returns>The interpolated float value.</returns>")
-			.WriteLine("private static float FastLerp(float a, float b, float t)")
+			.WriteLine("/// <returns>The interpolated value.</returns>")
+			.WriteLine("private static T FastLerp<T>(T a, T b, T t) where T : IFloatingPointIeee754<T>")
 			.StartBlock();
 
 		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
 		{
-			builder.WriteLine("if (Single.IsNaN(a) || Single.IsNaN(b) || Single.IsNaN(t)) return Single.NaN;");
+			builder
+				.WriteLine("if (T.IsNaN(a) || T.IsNaN(b) || T.IsNaN(t)) return T.NaN;")
+				.WriteWhitespace();
 		}
 
-		builder.WriteLine($"return {multiplyAdd("t", "b - a", "a")};")
-			.EndBlock();
-
-		return builder.ToString();
-	}
-
-	private static string GenerateFastLerpMethodDouble(FunctionOptimizerContext context, ITypeSymbol paramType)
-	{
-		var builder = new CodeWriter();
-		var multiplyAdd = MultiplyAddEstimate(context, paramType);
-
-		builder.WriteLine("/// <summary>Fast linear interpolation (Lerp) for double-precision floating-point values.</summary>")
-			.WriteLine("/// <remarks>Uses a fused multiply-add formulation for numerical stability and performance. Returns a + t(b - a).</remarks>")
-			.WriteLine("/// <param name=\"a\">Start value.</param>")
-			.WriteLine("/// <param name=\"b\">End value.</param>")
-			.WriteLine("/// <param name=\"t\">Interpolation factor.</param>")
-			.WriteLine("/// <returns>The interpolated double value.</returns>")
-			.WriteLine("private static double FastLerp(double a, double b, double t)")
-			.StartBlock();
-
-		if (!context.FastMathFlags.HasFlag(FastMathFlags.NoNaN))
-		{
-			builder.WriteLine("if (Double.IsNaN(a) || Double.IsNaN(b) || Double.IsNaN(t)) return Double.NaN;");
-		}
-
-		builder.WriteLine($"return {multiplyAdd("t", "b - a", "a")};")
+		builder.WriteLine("return T.MultiplyAddEstimate(t, b - a, a);")
 			.EndBlock();
 
 		return builder.ToString();
