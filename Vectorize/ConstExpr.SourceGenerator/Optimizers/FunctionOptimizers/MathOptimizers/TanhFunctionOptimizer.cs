@@ -169,7 +169,7 @@ public class TanhFunctionOptimizer() : BaseMathFunctionOptimizer("Tanh", n => n 
 		builder.WriteLine("if (x >= 19.0) return 1.0;")
 			.WriteLine("if (x <= -19.0) return -1.0;")
 			.WriteWhitespace()
-			.WriteLine($"var absX = {absInvocation}<double, ulong>(x);")
+			.WriteLine($"var absX = {absInvocation}(x);")
 			.WriteWhitespace()
 			.WriteLine("if (absX < 1.0)")
 			.StartBlock()

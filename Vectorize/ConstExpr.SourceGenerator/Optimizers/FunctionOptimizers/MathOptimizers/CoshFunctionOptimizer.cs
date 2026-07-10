@@ -55,7 +55,7 @@ public class CoshFunctionOptimizer() : BaseMathFunctionOptimizer("Cosh", n => n 
 			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
 		}
 
-		builder.WriteLine($"x = {absInvocation}<float, uint>(x);")
+		builder.WriteLine($"x = {absInvocation}(x);")
 			.WriteWhitespace()
 			.WriteLine("if (x > 88.0f) return Single.PositiveInfinity;")
 			.WriteWhitespace()
@@ -97,7 +97,7 @@ public class CoshFunctionOptimizer() : BaseMathFunctionOptimizer("Cosh", n => n 
 			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
 		}
 
-		builder.WriteLine($"x = {absInvocation}<double, ulong>(x);")
+		builder.WriteLine($"x = {absInvocation}(x);")
 			.WriteWhitespace()
 			.WriteLine("if (x > 709.0) return Double.PositiveInfinity;")
 			.WriteWhitespace()

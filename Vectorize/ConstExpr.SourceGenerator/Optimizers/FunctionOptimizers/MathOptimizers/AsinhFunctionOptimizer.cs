@@ -56,7 +56,7 @@ public class AsinhFunctionOptimizer() : BaseMathFunctionOptimizer("Asinh", n => 
 				.WriteWhitespace();
 		}
 
-		builder.WriteLine($"var ax = {absInvocation}<float, uint>(x);")
+		builder.WriteLine($"var ax = {absInvocation}(x);")
 			.WriteLine("var r = 0f;")
 			.WriteWhitespace()
 			.WriteLine("if (ax < 0.5f)")
@@ -108,7 +108,7 @@ public class AsinhFunctionOptimizer() : BaseMathFunctionOptimizer("Asinh", n => 
 				.WriteWhitespace();
 		}
 
-		builder.WriteLine($"var ax = {absInvocation}<double, ulong>(x);")
+		builder.WriteLine($"var ax = {absInvocation}(x);")
 			.WriteLine("var r = 0.0;")
 			.WriteWhitespace()
 			.WriteLine("if (ax < 0.5)")

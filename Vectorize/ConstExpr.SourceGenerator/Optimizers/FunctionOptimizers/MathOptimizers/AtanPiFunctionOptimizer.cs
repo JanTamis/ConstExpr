@@ -108,7 +108,7 @@ public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", n =
 			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
 		}
 
-		builder.WriteLine($"var absX = {absInvocation}<float, uint>(x);")
+		builder.WriteLine($"var absX = {absInvocation}(x);")
 			.WriteLine("var swap = absX > 1.0f;")
 			.WriteLine($"var a = swap ? {reciprocalEstimateInvocation}(absX) : absX;")
 			.WriteWhitespace()
@@ -147,7 +147,7 @@ public class AtanPiFunctionOptimizer() : BaseMathFunctionOptimizer("AtanPi", n =
 			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
 		}
 
-		builder.WriteLine($"var absX = {absInvocation}<double, ulong>(x);")
+		builder.WriteLine($"var absX = {absInvocation}(x);")
 			.WriteLine("var swap = absX > 1.0;")
 			.WriteLine($"var a = swap ? {reciprocalEstimateInvocation}(absX) : absX;")
 			.WriteLine("var u = a * a;")

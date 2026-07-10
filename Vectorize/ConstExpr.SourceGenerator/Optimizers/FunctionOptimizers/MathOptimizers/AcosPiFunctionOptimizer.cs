@@ -68,7 +68,7 @@ public class AcosPiFunctionOptimizer() : BaseMathFunctionOptimizer("AcosPi", n =
 		}
 
 		builder.WriteLine("var negative = x < 0f;")
-			.WriteLine($"x = {absInvocation}<float, uint>(x);")
+			.WriteLine($"x = {absInvocation}(x);")
 			.WriteLine("if (x > 1.0f) x = 1.0f;")
 			.WriteWhitespace()
 			.WriteLine($"var p = {multiplyAdd(-0.00596227f, "x", 0.02363378f)};")
@@ -109,7 +109,7 @@ public class AcosPiFunctionOptimizer() : BaseMathFunctionOptimizer("AcosPi", n =
 		}
 
 		builder.WriteLine("var negative = x < 0.0;")
-			.WriteLine($"x = {absInvocation}<double, ulong>(x);")
+			.WriteLine($"x = {absInvocation}(x);")
 			.WriteLine("if (x > 1.0) x = 1.0;")
 			.WriteWhitespace()
 			.WriteLine($"var p = {multiplyAdd(-0.0059622704862860465, "x", 0.023633778501171472)};")

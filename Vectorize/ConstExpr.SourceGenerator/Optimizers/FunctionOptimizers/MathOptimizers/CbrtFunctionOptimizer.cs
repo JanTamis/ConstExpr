@@ -56,7 +56,7 @@ public class CbrtFunctionOptimizer() : BaseMathFunctionOptimizer("Cbrt", n => n 
 
 		builder.WriteLine("if (x == 0.0f) return 0.0f;")
 			.WriteWhitespace()
-			.WriteLine($"var absX = {absInvocation}<float, uint>(x);")
+			.WriteLine($"var absX = {absInvocation}(x);")
 			.WriteWhitespace()
 			.WriteLine("var i = BitConverter.SingleToInt32Bits(absX);")
 			.WriteLine("i = 0x2a517d47 + i / 3;")
@@ -96,7 +96,7 @@ public class CbrtFunctionOptimizer() : BaseMathFunctionOptimizer("Cbrt", n => n 
 
 		builder.WriteLine("if (x == 0.0) return 0.0;")
 			.WriteWhitespace()
-			.WriteLine($"var absX = {absInvocation}<double, ulong>(x);")
+			.WriteLine($"var absX = {absInvocation}(x);")
 			.WriteWhitespace()
 			.WriteLine("var i = BitConverter.DoubleToInt64Bits(absX);")
 			.WriteLine("i = 0x2a9f8b7cef1d0da0L + i / 3;")

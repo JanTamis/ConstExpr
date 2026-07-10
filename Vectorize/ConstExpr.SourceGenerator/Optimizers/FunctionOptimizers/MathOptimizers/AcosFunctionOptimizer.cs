@@ -70,7 +70,7 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 		}
 
 		builder.WriteLine("var negative = x < 0f;")
-			.WriteLine($"x = {absInvocation}<float, uint>(x);")
+			.WriteLine($"x = {absInvocation}(x);")
 			.WriteLine($"var p = {multiplyAdd(-0.0187293f, "x", 0.0742610f)};")
 			.WriteLine($"p = {multiplyAdd("p", "x", -0.2121144f)};")
 			.WriteLine($"p = {multiplyAdd("p", "x", 1.5707288f)};")
@@ -111,7 +111,7 @@ public class AcosFunctionOptimizer() : BaseMathFunctionOptimizer("Acos", n => n 
 		}
 
 		builder.WriteLine("var negative = x < 0.0;")
-			.WriteLine($"x = {absInvocation}<double, ulong>(x);")
+			.WriteLine($"x = {absInvocation}(x);")
 			.WriteLine("var big = x > 0.5;")
 			.WriteWhitespace()
 			.WriteLine($"var t = big ? {sqrtInvocation}((1.0 - x) * 0.5) : x;")

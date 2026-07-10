@@ -137,8 +137,8 @@ public class Atan2FunctionOptimizer() : BaseMathFunctionOptimizer("Atan2", n => 
 				.WriteWhitespace();
 		}
 
-		builder.WriteLine($"var absX = {absInvocation}<float, uint>(x);")
-			.WriteLine($"var absY = {absInvocation}<float, uint>(y);")
+		builder.WriteLine($"var absX = {absInvocation}(x);")
+			.WriteLine($"var absY = {absInvocation}(y);")
 			.WriteLine($"var maxV = {maxInvocation}(absX, absY);")
 			.WriteWhitespace()
 			.WriteLine("if (maxV == 0f) return 0f;")
@@ -186,8 +186,8 @@ public class Atan2FunctionOptimizer() : BaseMathFunctionOptimizer("Atan2", n => 
 				.WriteWhitespace();
 		}
 
-		builder.WriteLine($"var absX = {absInvocation}<double, ulong>(x);")
-			.WriteLine($"var absY = {absInvocation}<double, ulong>(y);")
+		builder.WriteLine($"var absX = {absInvocation}(x);")
+			.WriteLine($"var absY = {absInvocation}(y);")
 			.WriteLine($"var maxV = {maxInvocation}(absX, absY);")
 			.WriteWhitespace()
 			.WriteLine("if (maxV == 0.0) return 0.0;")

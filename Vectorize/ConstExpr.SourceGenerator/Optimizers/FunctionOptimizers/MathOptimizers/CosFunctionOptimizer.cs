@@ -56,7 +56,7 @@ public class CosFunctionOptimizer() : BaseMathFunctionOptimizer("Cos", n => n is
 
 		builder.WriteLine($"x -= {roundInvocation}(x * (1f / Single.Tau)) * Single.Tau;")
 			.WriteWhitespace()
-			.WriteLine($"x = {absInvocation}<float, uint>(x);")
+			.WriteLine($"x = {absInvocation}(x);")
 			.WriteWhitespace()
 			.WriteLine("var x2 = x * x;")
 			.WriteLine($"var ret = {multiplyAdd(0.0003538394f, "x2", -0.0041666418f)};")
@@ -94,7 +94,7 @@ public class CosFunctionOptimizer() : BaseMathFunctionOptimizer("Cos", n => n is
 
 		builder.WriteLine($"x -= {roundInvocation}(x * (1.0 / Double.Tau)) * Double.Tau;")
 			.WriteWhitespace()
-			.WriteLine($"x = {absInvocation}<double, ulong>(x);")
+			.WriteLine($"x = {absInvocation}(x);")
 			.WriteWhitespace()
 			.WriteLine("var x2 = x * x;")
 			.WriteLine($"var ret = {multiplyAdd(-1.1940250944959890e-7, "x2", 2.0876755527587203e-5)};")

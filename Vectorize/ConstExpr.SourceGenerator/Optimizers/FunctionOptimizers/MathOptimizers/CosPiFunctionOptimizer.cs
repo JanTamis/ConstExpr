@@ -92,7 +92,7 @@ public class CosPiFunctionOptimizer() : BaseMathFunctionOptimizer("CosPi", n => 
 
 		builder.WriteWhitespace()
 			.WriteLine($"x -= {roundInvocation}(x * 0.5) * 2.0;")
-			.WriteLine($"x  = {absInvocation}<double, ulong>(x);")
+			.WriteLine($"x  = {absInvocation}(x);")
 			.WriteWhitespace()
 			.WriteLine("var v  = (x - 0.5) * Double.Pi;")
 			.WriteLine("var v2 = v * v;")

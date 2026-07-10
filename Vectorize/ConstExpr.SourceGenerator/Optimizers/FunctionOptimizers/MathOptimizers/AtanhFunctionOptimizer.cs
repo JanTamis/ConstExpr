@@ -105,7 +105,7 @@ public class AtanhFunctionOptimizer() : BaseMathFunctionOptimizer("Atanh", n => 
 			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
 		}
 
-		builder.WriteLine($"var absX = {absInvocation}<float, uint>(x);")
+		builder.WriteLine($"var absX = {absInvocation}(x);")
 			.WriteWhitespace()
 			.WriteLine("if (absX < 0.5f)")
 			.StartBlock()
@@ -150,9 +150,9 @@ public class AtanhFunctionOptimizer() : BaseMathFunctionOptimizer("Atanh", n => 
 			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
 		}
 
-		builder.WriteLine($"if ({absInvocation}<double, ulong>(x) >= 1.0) return x > 0 ? Double.PositiveInfinity : Double.NegativeInfinity;")
+		builder.WriteLine($"if ({absInvocation}(x) >= 1.0) return x > 0 ? Double.PositiveInfinity : Double.NegativeInfinity;")
 			.WriteWhitespace()
-			.WriteLine($"var absX = {absInvocation}<double, ulong>(x);")
+			.WriteLine($"var absX = {absInvocation}(x);")
 			.WriteWhitespace()
 			.WriteLine("if (absX < 0.5)")
 			.StartBlock()

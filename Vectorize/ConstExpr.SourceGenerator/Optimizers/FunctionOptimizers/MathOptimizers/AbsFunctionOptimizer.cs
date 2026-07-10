@@ -59,12 +59,25 @@ public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", n => n is
 
 	public override string GenerateCustomImplementation(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
-		return paramType.SpecialType switch
+		switch (paramType.SpecialType)
 		{
-			SpecialType.System_Single or SpecialType.System_Double => GenerateFastAbsMethodFloating(context),
-			_ when paramType.IsInteger() => GenerateFastAbsMethodInteger(context),
-			_ => base.GenerateCustomImplementation(context, paramType)
-		};
+			case SpecialType.System_Single:
+			{
+				return $"{GenerateFastAbsMethodFloating(context)}<float, uint>";
+			}
+			case SpecialType.System_Double:
+			{
+				return $"{GenerateFastAbsMethodFloating(context)}<double, ulong>";
+			}
+			case var _ when paramType.IsInteger():
+			{
+				return GenerateFastAbsMethodInteger(context);
+			}
+			default:
+			{
+				return base.GenerateCustomImplementation(context, paramType);
+			}
+		}
 	}
 
 	public static string GenerateFastAbsMethodInteger(FunctionOptimizerContext context)

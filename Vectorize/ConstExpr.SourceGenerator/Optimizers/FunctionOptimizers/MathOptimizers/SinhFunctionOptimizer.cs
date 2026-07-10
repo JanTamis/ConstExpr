@@ -57,7 +57,7 @@ public class SinhFunctionOptimizer() : BaseMathFunctionOptimizer("Sinh", n => n 
 		}
 
 		builder.WriteLine("var sign = x;")
-			.WriteLine($"x = {absInvocation}<float, uint>(x);")
+			.WriteLine($"x = {absInvocation}(x);")
 			.WriteWhitespace()
 			.WriteLine($"if (x > 88.0f) return {copySignInvocation}(float.PositiveInfinity, sign);")
 			.WriteWhitespace()
@@ -101,7 +101,7 @@ public class SinhFunctionOptimizer() : BaseMathFunctionOptimizer("Sinh", n => n 
 		}
 
 		builder.WriteLine("var sign = x;")
-			.WriteLine($"x = {absInvocation}<double, ulong>(x);")
+			.WriteLine($"x = {absInvocation}(x);")
 			.WriteWhitespace()
 			.WriteLine($"if (x > 709.0) return {copySignInvocation}(double.PositiveInfinity, sign);")
 			.WriteWhitespace()

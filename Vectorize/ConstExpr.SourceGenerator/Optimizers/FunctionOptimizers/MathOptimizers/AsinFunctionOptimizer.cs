@@ -64,7 +64,7 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n 
 		}
 
 		builder.WriteLine($"x = {clampInvocation}(x, -1.0f, 1.0f);")
-			.WriteLine($"var xa = {absInvocation}<float, uint>(x);")
+			.WriteLine($"var xa = {absInvocation}(x);")
 			.WriteLine("if (xa < 0.5f)")
 			.StartBlock()
 			.WriteLine("var x2 = xa * xa;")
@@ -110,7 +110,7 @@ public class AsinFunctionOptimizer() : BaseMathFunctionOptimizer("Asin", n => n 
 
 		builder.WriteLine($"x = {clampInvocation}(x, -1.0, 1.0);")
 			.WriteWhitespace()
-			.WriteLine($"var xa = {absInvocation}<double, ulong>(x);")
+			.WriteLine($"var xa = {absInvocation}(x);")
 			.WriteWhitespace()
 			.WriteLine("if (xa < 0.5)")
 			.StartBlock()
