@@ -64,6 +64,13 @@ public class MaxFunctionOptimizer() : BaseMathFunctionOptimizer("Max", n => n is
 		return true;
 	}
 
+	public override string GenerateCustomImplementation(FunctionOptimizerContext context, ITypeSymbol paramType)
+	{
+		return HasMethod(paramType, "MaxNative", 3)
+			? $"{paramType.Name}.MaxNative"
+			: base.GenerateCustomImplementation(context, paramType);
+	}
+
 	private bool TryFlattenNestedMax(ITypeSymbol paramType, string? outerContainingName, ExpressionSyntax first, ExpressionSyntax second, out InvocationExpressionSyntax? result)
 	{
 		result = null;

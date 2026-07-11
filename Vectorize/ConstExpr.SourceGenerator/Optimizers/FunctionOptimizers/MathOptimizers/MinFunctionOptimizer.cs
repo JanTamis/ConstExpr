@@ -308,6 +308,13 @@ public class MinFunctionOptimizer() : BaseMathFunctionOptimizer("Min", n => n is
 		return false;
 	}
 
+	public override string GenerateCustomImplementation(FunctionOptimizerContext context, ITypeSymbol paramType)
+	{
+		return HasMethod(paramType, "MinNative", 3)
+			? $"{paramType.Name}.MinNative"
+			: base.GenerateCustomImplementation(context, paramType);
+	}
+
 	private static bool TryGetConstantValue(ITypeSymbol paramType, ExpressionSyntax expr, out object? value, out ExpressionSyntax? constExpr)
 	{
 		value = null;

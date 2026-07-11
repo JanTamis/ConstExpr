@@ -84,6 +84,13 @@ public class ClampFunctionOptimizer() : BaseMathFunctionOptimizer("Clamp", n => 
 		return true;
 	}
 
+	public override string GenerateCustomImplementation(FunctionOptimizerContext context, ITypeSymbol paramType)
+	{
+		return HasMethod(paramType, "ClampNative", 3)
+			? $"{paramType.Name}.ClampNative"
+			: base.GenerateCustomImplementation(context, paramType);
+	}
+
 	private bool TrySimplifyClampWithMin(ITypeSymbol paramType, InvocationExpressionSyntax minInv, ExpressionSyntax outerMin, ExpressionSyntax outerMax, out InvocationExpressionSyntax? result)
 	{
 		result = null;
@@ -204,7 +211,7 @@ public class ClampFunctionOptimizer() : BaseMathFunctionOptimizer("Clamp", n => 
 				constExpr = expr;
 				return value is not null && IsNumericLiteral(value);
 			}
-			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax opLit }:
+			case PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax opLit }:
 			{
 				var v = opLit.Token.Value;
 
@@ -305,7 +312,7 @@ public class ClampFunctionOptimizer() : BaseMathFunctionOptimizer("Clamp", n => 
 
 	private static T ConvertTo<T>(object v)
 	{
-		try { return (T)Convert.ChangeType(v, typeof(T), CultureInfo.InvariantCulture); }
+		try { return (T) Convert.ChangeType(v, typeof(T), CultureInfo.InvariantCulture); }
 		catch { return default!; }
 	}
 }

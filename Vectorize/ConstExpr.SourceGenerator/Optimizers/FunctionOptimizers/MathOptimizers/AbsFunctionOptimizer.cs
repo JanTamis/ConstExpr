@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using ConstExpr.SourceGenerator.Extensions;
-using ConstExpr.SourceGenerator.Interfaces;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -10,7 +9,7 @@ using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", n => n is 1), IBaseMathCustomImplementation
+public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", n => n is 1)
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -47,25 +46,13 @@ public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", n => n is
 
 	public override string GenerateCustomImplementation(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
-		switch (paramType.SpecialType)
+		return paramType.SpecialType switch
 		{
-			case SpecialType.System_Single:
-			{
-				return $"{GenerateFastAbsMethodFloating(context)}<float, uint>";
-			}
-			case SpecialType.System_Double:
-			{
-				return $"{GenerateFastAbsMethodFloating(context)}<double, ulong>";
-			}
-			case var _ when paramType.IsInteger():
-			{
-				return GenerateFastAbsMethodInteger(context);
-			}
-			default:
-			{
-				return base.GenerateCustomImplementation(context, paramType);
-			}
-		}
+			SpecialType.System_Single => $"{GenerateFastAbsMethodFloating(context)}<float, uint>",
+			SpecialType.System_Double => $"{GenerateFastAbsMethodFloating(context)}<double, ulong>",
+			_ when paramType.IsInteger() => GenerateFastAbsMethodInteger(context),
+			_ => base.GenerateCustomImplementation(context, paramType)
+		};
 	}
 
 	public static string GenerateFastAbsMethodInteger(FunctionOptimizerContext context)
@@ -123,11 +110,11 @@ public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", n => n is
 		var builder = new CodeWriter();
 
 		builder.WriteLine("[MethodImpl(MethodImplOptions.AggressiveInlining)]")
-			.WriteLine("private static T FastAbs<T, TBits>(T x) where TBits : IBitwiseOperators<TBits, TBits, TBits>, IMinMaxValue<TBits>")
+			.WriteLine("private static T FastAbs<T, TBits>(T x) where TBits : IBinaryNumber<TBits>")
 			.StartBlock()
 			.WriteLine("var bits = Unsafe.BitCast<T, TBits>(x);")
 			.WriteWhitespace()
-			.WriteLine("return Unsafe.BitCast<TBits, T>(bits & TBits.MaxValue);")
+			.WriteLine("return Unsafe.BitCast<TBits, T>(bits & TBits.AllBitsSet);")
 			.EndBlock();
 
 		return builder.ToString();
