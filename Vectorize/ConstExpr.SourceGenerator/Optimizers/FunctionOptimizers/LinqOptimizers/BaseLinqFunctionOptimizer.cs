@@ -584,7 +584,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 
 		if (body is not BinaryExpressionSyntax
 		    {
-			    RawKind: (int)SyntaxKind.IsExpression,
+			    RawKind: (int) SyntaxKind.IsExpression,
 			    Left: IdentifierNameSyntax { Identifier.Text: var identName },
 			    Right: TypeSyntax type
 		    } || identName != paramName)
@@ -651,7 +651,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 		};
 
 		// Check if body is a binary expression with equality operator
-		if (body is not BinaryExpressionSyntax { RawKind: (int)SyntaxKind.EqualsExpression } binaryExpression)
+		if (body is not BinaryExpressionSyntax { RawKind: (int) SyntaxKind.EqualsExpression } binaryExpression)
 		{
 			return false;
 		}
@@ -921,7 +921,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 			? ParenthesizedExpression(replacement)
 			: replacement;
 
-		return (ExpressionSyntax)new IdentifierReplacer(oldIdentifier, wrappedReplacement).Visit(expression);
+		return (ExpressionSyntax) new IdentifierReplacer(oldIdentifier, wrappedReplacement).Visit(expression);
 	}
 
 	protected bool TryGetValues(SyntaxNode node, [NotNullWhen(true)] out IList<object?>? values)
@@ -1519,6 +1519,75 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 
 		result = null;
 		return false;
+	}
+
+	// Shared codegen for Any/All: same 4x-unrolled Vector<T> reduction loop, differing only in the
+	// accumulator seed/combine operator and the early-exit policy (mirrors TensorPrimitives' split of
+	// IBooleanUnaryOperator (vector/scalar predicate) from IAnyAllAggregator (Any vs All reduce policy)).
+	protected MethodDeclarationSyntax CreateAnyAllVectorizedMethod(string methodName, string typeName, SyntaxNode vectorizedCode, LambdaExpressionSyntax lambda, SyntaxNode scalarCondition, bool isAny)
+	{
+		var seed = isAny ? "Zero" : "AllBitsSet";
+		var assignOp = isAny ? "|=" : "&=";
+		var combineOp = isAny ? "|" : "&";
+		var earlyExitCheck = isAny ? "Vector.AnyWhereAllBitsSet(acc0)" : "Vector.NoneWhereAllBitsSet(acc0)";
+		var earlyExitReturn = isAny ? "true" : "false";
+		var finalReturn = isAny ? "false" : "true";
+
+		var result = $$"""
+			private static bool {{methodName}}(ReadOnlySpan<{{typeName}}> data)
+			{
+				if (Vector.IsHardwareAccelerated && data.Length >= Vector<{{typeName}}>.Count)
+				{
+					var vectors = MemoryMarshal.Cast<{{typeName}}, Vector<{{typeName}}>>(data);
+
+					var acc0 = Vector<{{typeName}}>.{{seed}};
+					var acc1 = Vector<{{typeName}}>.{{seed}};
+					var acc2 = Vector<{{typeName}}>.{{seed}};
+					var acc3 = Vector<{{typeName}}>.{{seed}};
+					var i = 0;
+
+					for (; i <= vectors.Length - 4; i += 4)
+					{
+						acc0 {{assignOp}} {{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i]")}};
+						acc1 {{assignOp}} {{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i + 1]")}};
+						acc2 {{assignOp}} {{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i + 2]")}};
+						acc3 {{assignOp}} {{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i + 3]")}};
+					}
+
+					acc0 {{assignOp}} acc1 {{combineOp}} acc2 {{combineOp}} acc3;
+
+					for (; i < vectors.Length; i++)
+					{
+						acc0 {{assignOp}} {{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i]")}};
+					}
+
+					if ({{earlyExitCheck}})
+						return {{earlyExitReturn}};
+
+					var tail = data.Length & Vector<{{typeName}}>.Count - 1;
+
+					for (var t = data.Length - tail; t < data.Length; t++)
+					{
+						if ({{ReplaceIdentifier(scalarCondition, lambda, "data[t]")}})
+							return {{earlyExitReturn}};
+					}
+
+					return {{finalReturn}};
+				}
+
+				for (var i = 0; i < data.Length; i++)
+				{
+					if ({{ReplaceIdentifier(scalarCondition, lambda, "data[i]")}})
+						return {{earlyExitReturn}};
+				}
+
+				return {{finalReturn}};
+			}
+			""";
+
+		var method = ParseMemberDeclaration(result) as MethodDeclarationSyntax ?? throw new InvalidOperationException("Failed to parse vectorized method declaration");
+
+		return method.WithIdentifier(Identifier($"{methodName}_{method.Body.GetDeterministicHashString()}"));
 	}
 
 	protected string ReplaceIdentifier(SyntaxNode node, LambdaExpressionSyntax lambdaExpression, string replacement)

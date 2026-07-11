@@ -280,60 +280,6 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 	{
 		var typeName = context.Method.TypeArguments[0].ToDisplayString();
 
-		var result = $$"""
-			private static bool Any(ReadOnlySpan<{{typeName}}> data)
-			{
-				if (Vector.IsHardwareAccelerated && data.Length >= Vector<{{typeName}}>.Count)
-				{
-					var vectors = MemoryMarshal.Cast<{{typeName}}, Vector<{{typeName}}>>(data);
-
-					var acc0 = Vector<{{typeName}}>.Zero;
-					var acc1 = Vector<{{typeName}}>.Zero;
-					var acc2 = Vector<{{typeName}}>.Zero;
-					var acc3 = Vector<{{typeName}}>.Zero;
-					var i = 0;
-					
-					for (; i <= vectors.Length - 4; i += 4)
-					{
-						acc0 |= {{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i]")}};
-						acc1 |= {{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i + 1]")}};
-						acc2 |= {{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i + 2]")}};
-						acc3 |= {{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i + 3]")}};
-					}
-					
-					acc0 |= acc1 | acc2 | acc3;
-					
-					for (; i < vectors.Length; i++)
-					{
-						acc0 |= {{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i]")}};
-					}
-					
-					if (Vector.AnyWhereAllBitsSet(acc0))
-						return true;
-					
-					var tail = data.Length & Vector<{{typeName}}>.Count - 1;
-					
-					for (var t = data.Length - tail; t < data.Length; t++)
-					{
-						if ({{ReplaceIdentifier(lambda.Body, lambda, "data[t]")}})
-							return true;
-					}
-					
-					return false;
-				}
-				
-				for (var i = 0; i < data.Length; i++)
-				{
-					if ({{ReplaceIdentifier(lambda.Body, lambda, "data[i]")}})
-						return true;
-				}
-				
-				return false;
-			}
-			""";
-
-		var method = ParseMemberDeclaration(result) as MethodDeclarationSyntax ?? throw new InvalidOperationException("Failed to parse vectorized method declaration");
-
-		return method.WithIdentifier(Identifier($"{Name}_{method.Body.GetDeterministicHashString()}"));
+		return CreateAnyAllVectorizedMethod(Name, typeName, vectorizedCode, lambda, lambda.Body, true);
 	}
 }

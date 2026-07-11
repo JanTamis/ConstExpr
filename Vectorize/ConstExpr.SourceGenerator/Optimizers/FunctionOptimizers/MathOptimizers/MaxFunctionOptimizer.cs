@@ -119,29 +119,38 @@ public class MaxFunctionOptimizer() : BaseMathFunctionOptimizer("Max", n => n is
 		ExpressionSyntax? innerConstExpr = null;
 		object? innerConstValue = null;
 
-		if (hasC0 && !hasC1)
+		switch (hasC0)
 		{
-			nonConst = a1;
-			innerConstExpr = c2aExpr;
-			innerConstValue = c2a;
-		}
-		else if (!hasC0 && hasC1)
-		{
-			nonConst = a0;
-			innerConstExpr = c2bExpr;
-			innerConstValue = c2b;
-		}
-		else if (hasC0 && hasC1)
-		{
-			// Inner is Max of two constants: keep the larger literal as the inner result
-			var pickA = Compare(paramType, c2a!, c2b!) >= 0;
-			innerConstExpr = pickA ? c2aExpr : c2bExpr;
-			innerConstValue = pickA ? c2a : c2b;
-			nonConst = null;
-		}
-		else
-		{
-			return false; // cannot safely flatten if inner has two non-constants
+			case true when !hasC1:
+			{
+				nonConst = a1;
+				innerConstExpr = c2aExpr;
+				innerConstValue = c2a;
+
+				break;
+			}
+			case false when hasC1:
+			{
+				nonConst = a0;
+				innerConstExpr = c2bExpr;
+				innerConstValue = c2b;
+
+				break;
+			}
+			case true when hasC1:
+			{
+				// Inner is Max of two constants: keep the larger literal as the inner result
+				var pickA = Compare(paramType, c2a!, c2b!) >= 0;
+				innerConstExpr = pickA ? c2aExpr : c2bExpr;
+				innerConstValue = pickA ? c2a : c2b;
+				nonConst = null;
+
+				break;
+			}
+			default:
+			{
+				return false; // cannot safely flatten if inner has two non-constants
+			}
 		}
 
 		// If both outer and inner become constants -> return the larger constant directly

@@ -280,46 +280,25 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		var result = $$"""
 			private static bool All(ReadOnlySpan<{{typeName}}> data)
 			{
+				var i = 0;
+				
 				if (Vector.IsHardwareAccelerated && data.Length >= Vector<{{typeName}}>.Count)
 				{
 					var vectors = MemoryMarshal.Cast<{{typeName}}, Vector<{{typeName}}>>(data);
-
-					var acc0 = Vector<{{typeName}}>.AllBitsSet;
-					var acc1 = Vector<{{typeName}}>.AllBitsSet;
-					var acc2 = Vector<{{typeName}}>.AllBitsSet;
-					var acc3 = Vector<{{typeName}}>.AllBitsSet;
-					var i = 0;
-					
-					for (; i <= vectors.Length - 4; i += 4)
-					{
-						acc0 &= {{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i]")}};
-						acc1 &= {{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i + 1]")}};
-						acc2 &= {{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i + 2]")}};
-						acc3 &= {{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i + 3]")}};
-					}
-					
-					acc0 &= acc1 & acc2 & acc3;
+					var acc = Vector<{{typeName}}>.AllBitsSet;
 					
 					for (; i < vectors.Length; i++)
 					{
-						acc0 &= {{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i]")}};
+						acc &= {{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i]")}};
 					}
 					
-					if (Vector.NoneWhereAllBitsSet(acc0))
+					if (Vector.NoneWhereAllBitsSet(acc))
 						return false;
 					
-					var tail = data.Length & Vector<{{typeName}}>.Count - 1;
-					
-					for (var t = data.Length - tail; t < data.Length; t++)
-					{
-						if ({{ReplaceIdentifier(inverted, lambda, "data[t]")}})
-							return false;
-					}
-					
-					return true;
+					i = data.Length & ~(Vector<{{typeName}}>.Count - 1);
 				}
 				
-				for (var i = 0; i < data.Length; i++)
+				for (; i < data.Length; i++)
 				{
 					if ({{ReplaceIdentifier(inverted, lambda, "data[i]")}})
 						return false;
