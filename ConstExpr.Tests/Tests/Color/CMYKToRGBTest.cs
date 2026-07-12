@@ -18,10 +18,10 @@ public class CMYKToRGBTest() : BaseTest<Func<double, double, double, double, (by
 	[
 		Create((c, m, y, k) =>
 		{
-			var prod = (1D - k) * 255D;
+			var diff = 1D - k;
 
-			return ((byte) ((1D - c) * prod), (byte) ((1D - m) * prod), (byte) ((1D - y) * prod));
+			return ((byte) (Double.MultiplyAddEstimate(-c, 255D, 255D) * diff), (byte) (Double.MultiplyAddEstimate(-m, 255D, 255D) * diff), (byte) (Double.MultiplyAddEstimate(-y, 255D, 255D) * diff));
 		}),
-		Create((c, m, y, _) => ((byte) ((1D - c) * 153D), (byte) ((1D - m) * 153D), (byte) ((1D - y) * 153D)), [ Unknown, Unknown, Unknown, 0.4 ])
+		Create((c, m, y, _) => ((byte) (Double.MultiplyAddEstimate(-c, 255D, 255D) * 0.6), (byte) (Double.MultiplyAddEstimate(-m, 255D, 255D) * 0.6), (byte) (Double.MultiplyAddEstimate(-y, 255D, 255D) * 0.6)), [ Unknown, Unknown, Unknown, 0.4 ])
 	];
 }

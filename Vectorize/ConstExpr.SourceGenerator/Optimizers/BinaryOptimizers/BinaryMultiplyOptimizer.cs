@@ -21,6 +21,7 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 		yield return new MultiplyStrengthReductionStrategy();
 		yield return new MultiplyDoubleNegationStrategy();
 		yield return new MultiplyNegationStrategy();
+		yield return new MultiplySubtractFMAStrategy();
 		yield return new MultiplyReverseStrategy();
 	}
 }
