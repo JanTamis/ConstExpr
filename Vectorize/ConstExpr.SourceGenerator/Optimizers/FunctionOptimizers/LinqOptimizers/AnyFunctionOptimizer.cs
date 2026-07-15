@@ -279,7 +279,49 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 	private MethodDeclarationSyntax CreateVectorizedMethod(SyntaxNode vectorizedCode, LambdaExpressionSyntax lambda, FunctionOptimizerContext context)
 	{
 		var typeName = context.Method.TypeArguments[0].ToDisplayString();
+		var ifStatement = $"Vector.AnyWhereAllBitsSet({ReplaceIdentifier(vectorizedCode, lambda, "vector")})";
 
-		return CreateAnyAllVectorizedMethod(Name, typeName, vectorizedCode, lambda, lambda.Body, true);
+		if (vectorizedCode is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax memberAccess } invocation)
+		{
+			memberAccess = memberAccess.WithName(IdentifierName($"{memberAccess.Name.Identifier.Text}Any"));
+			vectorizedCode = invocation.WithExpression(memberAccess);
+
+			ifStatement = ReplaceIdentifier(vectorizedCode, lambda, "vector");
+		}
+
+		var result = $$"""
+			private static bool Any(ReadOnlySpan<{{typeName}}> data)
+			{
+				var i = 0;
+				var length = data.Length;
+
+				if (Vector.IsHardwareAccelerated && data.Length >= Vector<{{typeName}}>.Count)
+				{
+					ref var reference = ref MemoryMarshal.GetReference(data);
+
+					do
+					{
+						var vector = Vector.LoadUnsafe(ref reference, (nuint)i);
+					
+						if ({{ifStatement}})
+							return true;
+							
+						i += Vector<{{typeName}}>.Count;
+					} while (i < length);
+				}
+
+				for (; i < data.Length; i++)
+				{
+					if ({{ReplaceIdentifier(lambda.Body, lambda, "data[i]")}})
+						return true;
+				}
+
+				return false;
+			}
+			""";
+
+		var method = ParseMemberDeclaration(result) as MethodDeclarationSyntax ?? throw new InvalidOperationException("Failed to parse vectorized method declaration");
+
+		return method.WithIdentifier(Identifier($"{Name}_{method.Body.GetDeterministicHashString()}"));
 	}
 }

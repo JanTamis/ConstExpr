@@ -102,8 +102,10 @@ public class CopySignFunctionOptimizer() : BaseMathFunctionOptimizer("CopySign",
 		builder.WriteLine("private static T FastCopySign<T>(T x, T y) where T : IBinaryInteger<T>")
 			.StartBlock()
 			.WriteLine($"var absValue = {invocation}(x);")
+			.WriteLine("var bits = Unsafe.SizeOf<T>() * 8 - 1;")
+			.WriteLine("var signMask = y >> bits;")
 			.WriteWhitespace()
-			.WriteLine("return T.IsPositive(y) ? absValue : -absValue;")
+			.WriteLine("return (absValue ^ signMask) - signMask;")
 			.EndBlock();
 
 		return builder.ToString();

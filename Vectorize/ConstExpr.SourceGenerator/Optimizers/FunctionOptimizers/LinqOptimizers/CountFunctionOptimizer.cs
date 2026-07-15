@@ -503,52 +503,36 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 		var result = $$"""
 			private static int Count(ReadOnlySpan<{{typeName}}> data)
 			{
+				var i = 0;
+				var count = 0;
+				
 				if (Vector.IsHardwareAccelerated && data.Length >= Vector<{{typeName}}>.Count)
 				{
-					var vectors = MemoryMarshal.Cast<{{typeName}}, Vector<{{typeName}}>>(data);
-
-					var acc0 = Vector<int>.Zero;
-					var acc1 = Vector<int>.Zero;
-					var acc2 = Vector<int>.Zero;
-					var acc3 = Vector<int>.Zero;
-					var i = 0;
+					ref var reference = ref MemoryMarshal.GetReference(data);
+					var acc = Vector<int>.Zero;
 					
-					for (; i <= vectors.Length - 4; i += 4)
+					do
 					{
-						acc0 += -({{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i]")}});
-						acc1 += -({{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i + 1]")}});
-						acc2 += -({{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i + 2]")}});
-						acc3 += -({{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i + 3]")}});
-					}
+						var vector = Vector.LoadUnsafe(ref reference, (nuint)i);
+						
+						acc += -({{ReplaceIdentifier(vectorizedCode, lambda, "vector")}});
+						
+						i += Vector<{{typeName}}>.Count;
+					} while (i < length);
 					
-					acc0 += acc1 + acc2 + acc3;
-					
-					for (; i < vectors.Length; i++)
-					{
-						acc0 += -({{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i]")}});
-					}
-					
-					var sum = Vector.Sum(acc0);
-					var tail = data.Length & Vector<{{typeName}}>.Count - 1;
-					
-					for (var t = data.Length - tail; t < data.Length; t++)
-					{
-						if ({{ReplaceIdentifier(lambda.Body, lambda, "data[t]")}})
-							sum++;
-					}
-					
-					return sum;
+					count = Vector.Sum(acc);
 				}
 				
-				var sum = 0;
+				var count = 0;
 				
-				for (var i = 0; i < data.Length; i++)
+				for (; i < data.Length; i++)
 				{
-					if ({{ReplaceIdentifier(lambda.Body, lambda, "data[i]")}})
-						sum++;
+					var item = data[i];
+					
+					count += Unsafe.BitCast<bool, byte>({{ReplaceIdentifier(lambda.Body, lambda, "item")}});
 				}
 				
-				return sum;
+				return count;
 			}
 			""";
 

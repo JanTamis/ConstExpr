@@ -277,30 +277,42 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			inverted = LogicalNotExpression((ExpressionSyntax) lambda.Body);
 		}
 
+		var ifStatement = $"Vector.NoneWhereAllBitsSet({ReplaceIdentifier(vectorizedCode, lambda, "vector")})";
+
+		if (vectorizedCode is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax memberAccess } invocation)
+		{
+			memberAccess = memberAccess.WithName(IdentifierName($"{memberAccess.Name.Identifier.Text}All"));
+			vectorizedCode = invocation.WithExpression(memberAccess);
+
+			ifStatement = $"!{ReplaceIdentifier(vectorizedCode, lambda, "vector")}";
+		}
+
 		var result = $$"""
 			private static bool All(ReadOnlySpan<{{typeName}}> data)
 			{
 				var i = 0;
+				var length = data.Length;
 				
 				if (Vector.IsHardwareAccelerated && data.Length >= Vector<{{typeName}}>.Count)
 				{
-					var vectors = MemoryMarshal.Cast<{{typeName}}, Vector<{{typeName}}>>(data);
-					var acc = Vector<{{typeName}}>.AllBitsSet;
-					
-					for (; i < vectors.Length; i++)
+					ref var reference = ref MemoryMarshal.GetReference(data);
+
+					do
 					{
-						acc &= {{ReplaceIdentifier(vectorizedCode, lambda, "vectors[i]")}};
-					}
-					
-					if (Vector.NoneWhereAllBitsSet(acc))
-						return false;
-					
-					i = data.Length & ~(Vector<{{typeName}}>.Count - 1);
+						var vector = Vector.LoadUnsafe(ref reference, (nuint)i);
+						
+						if ({{ifStatement}})
+							return false;
+							
+						i += Vector<{{typeName}}>.Count;
+					} while (i < length);
 				}
 				
-				for (; i < data.Length; i++)
+				for (; i < length; i++)
 				{
-					if ({{ReplaceIdentifier(inverted, lambda, "data[i]")}})
+					var item = data[i];
+				
+					if ({{ReplaceIdentifier(inverted, lambda, "item")}})
 						return false;
 				}
 				
