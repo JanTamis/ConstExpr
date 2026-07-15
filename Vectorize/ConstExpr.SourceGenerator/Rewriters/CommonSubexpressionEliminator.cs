@@ -166,13 +166,19 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 				if (ContainsExpression(statement, candidate))
 				{
 					var name = GenerateName(candidate);
+
+					// Substitute already-hoisted candidates (e.g. "mod") that occur as a nested
+					// subexpression here BEFORE registering this candidate, otherwise it would
+					// immediately match itself (var castVal = castVal;).
+					var initializer = (ExpressionSyntax) new ExpressionReplacementRewriter(replacementMap).Visit(Unparenthesize(candidate))!;
+
 					replacementMap[candidate] = name;
 
 					var declaration = LocalDeclarationStatement(
 						VariableDeclaration(IdentifierName("var"))
 							.WithVariables(SingletonSeparatedList(
 								VariableDeclarator(Identifier(name))
-									.WithInitializer(EqualsValueClause(Unparenthesize(candidate)))
+									.WithInitializer(EqualsValueClause(initializer))
 							))
 					);
 					newStatements.Add(declaration);

@@ -38,6 +38,14 @@ public static class DataValidationOperations
 	}
 
 	/// <summary>
+	///   Validates if any number in a collection is negative — exercises SIMD Any early-exit.
+	/// </summary>
+	public static bool AnyNegative(params double[] numbers)
+	{
+		return numbers.Any(n => n < 0);
+	}
+
+	/// <summary>
 	///   Validates if a string matches a simple pattern (only alphanumeric)
 	/// </summary>
 	public static bool IsAlphanumeric(string input)

@@ -110,11 +110,11 @@ public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", n => n is
 		var builder = new CodeWriter();
 
 		builder.WriteLine("[MethodImpl(MethodImplOptions.AggressiveInlining)]")
-			.WriteLine("private static T FastAbs<T, TBits>(T x) where TBits : IBinaryNumber<TBits>")
+			.WriteLine("private static T FastAbs<T, TBits>(T x) where TBits : IBinaryNumber<TBits>, IMinMaxValue<TBits>")
 			.StartBlock()
 			.WriteLine("var bits = Unsafe.BitCast<T, TBits>(x);")
 			.WriteWhitespace()
-			.WriteLine("return Unsafe.BitCast<TBits, T>(bits & TBits.AllBitsSet);")
+			.WriteLine("return Unsafe.BitCast<TBits, T>(bits & TBits.MaxValue);")
 			.EndBlock();
 
 		return builder.ToString();

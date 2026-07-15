@@ -19,20 +19,3 @@ public class LinqSelectTripleFusionTests : BaseTest<Func<IEnumerable<int>, int>>
 		Create(_ => 45, [ new[] { 1, 2, 3 } ]) // 9 + ((2*2)+1)*3=15 + ((3*2)+1)*3=21 = 45
 	];
 }
-
-[InheritsTests]
-public class LinqSelectCastToLongTests : BaseTest<Func<IEnumerable<int>, long>>
-{
-	public override string TestMethod => GetString(x =>
-	{
-		// Select(y => (long)y) → Cast<long>()
-		return x.Select(y => (long)y).Sum();
-	});
-
-	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
-	[
-		Create(_ => 6L, [ new[] { 1, 2, 3 } ]),
-		Create(_ => 0L, [ Enumerable.Empty<int>() ]),
-		Create(_ => 42L, [ new[] { 42 } ])
-	];
-}

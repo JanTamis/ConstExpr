@@ -2,15 +2,12 @@ using ConstExpr.Core.Enumerators;
 
 namespace ConstExpr.Tests.Linq;
 
-/// <summary>
-///   Count() &lt;= 0 → !(source.Any()) and Count(predicate) &lt;= 0 → !(source.Any(predicate)).
-/// </summary>
 [InheritsTests]
-public class LinqCountLessThanOrEqualZeroToAnyTests() : BaseTest<Func<IEnumerable<int>, bool>>(FastMathFlags.Strict, LinqOptimizationMode.None)
+public class LinqCountEqualsZeroReversedToAnyTests() : BaseTest<Func<IEnumerable<int>, bool>>(FastMathFlags.Strict, LinqOptimizationMode.None)
 {
 	public override string TestMethod => GetString(x =>
 	{
-		return x.Count() <= 0;
+		return 0 == x.Count();
 	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
