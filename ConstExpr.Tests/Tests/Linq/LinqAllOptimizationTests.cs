@@ -60,9 +60,9 @@ public class LinqAllOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFla
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return (All_wlb1hg(x) ? 8 : 0) + (All_IEfWfQ(x) ? 3 : 0) + (All_p8gX3w(x) ? 1 : 0) + (All_d56pgg(x) ? 1 : 0) + (All_izSI2Q(x) && All_izSI2Q(x) ? 1 : 0) + (All_sLd6Vg(x) ? 1 : 0);"),
-		Create("return (All_IEfWfQ(x) ? 3 : 0) + 11;", new[] { 1, 2, 3, 4, 5 }),
-		Create("return (All_IEfWfQ(x) ? 3 : 0) + 12;", System.Array.Empty<int>()),
-		Create("return (All_IEfWfQ(x) ? 3 : 0) + 9;", new[] { 1, 2, 3, 4, 5, 100 })
+		Create("return (All_h_vZmg(x) ? 8 : 0) + (All_36HS_A(x) ? 3 : 0) + (All_xlqOKg(x) ? 1 : 0) + (All_tzFdVw(x) ? 1 : 0) + (All_I0veHg(x) && All_I0veHg(x) ? 1 : 0) + (All_6l0HbQ(x) ? 1 : 0);"),
+		Create("return (All_36HS_A(x) ? 3 : 0) + 11;", new[] { 1, 2, 3, 4, 5 }),
+		Create("return (All_36HS_A(x) ? 3 : 0) + 12;", System.Array.Empty<int>()),
+		Create("return (All_36HS_A(x) ? 3 : 0) + 9;", new[] { 1, 2, 3, 4, 5, 100 })
 	];
 }

@@ -61,8 +61,8 @@ public class LinqAnyOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFla
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return (x.Length > 0 ? 9 : 0) + (Any_RcEeoQ(x) || x.Length > 0 ? 1 : 0) + (Contains_H_mKqw(x) ? 1 : 0) + (Contains_rph_Xw(x) ? 1 : 0) + (Any_RcEeoQ(x) ? 1 : 0) + 3 + (TensorPrimitives.IsEvenIntegerAny(x) ? 1 : 0);"),
-		Create("return (Any_RcEeoQ(x) ? 1 : 0) + 14 + (TensorPrimitives.IsEvenIntegerAny(x) ? 1 : 0);", new[] { 1, 2, 3, 4, 5 }),
-		Create("return (Any_RcEeoQ(x) ? 1 : 0) + 3 + (TensorPrimitives.IsEvenIntegerAny(x) ? 1 : 0);", System.Array.Empty<int>())
+		Create("return (x.Length > 0 ? 9 : 0) + (Any_ds6Fog(x) || x.Length > 0 ? 1 : 0) + (Contains_H_mKqw(x) ? 1 : 0) + (Contains_rph_Xw(x) ? 1 : 0) + (Any_ds6Fog(x) ? 1 : 0) + 3 + (TensorPrimitives.IsEvenIntegerAny(x) ? 1 : 0);"),
+		Create("return (Any_ds6Fog(x) ? 1 : 0) + 14 + (TensorPrimitives.IsEvenIntegerAny(x) ? 1 : 0);", new[] { 1, 2, 3, 4, 5 }),
+		Create("return (Any_ds6Fog(x) ? 1 : 0) + 3 + (TensorPrimitives.IsEvenIntegerAny(x) ? 1 : 0);", System.Array.Empty<int>())
 	];
 }

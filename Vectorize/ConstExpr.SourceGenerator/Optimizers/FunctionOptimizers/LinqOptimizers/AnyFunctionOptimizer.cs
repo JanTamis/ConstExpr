@@ -295,7 +295,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 				var i = 0;
 				var length = data.Length;
 
-				if (Vector.IsHardwareAccelerated && data.Length >= Vector<{{typeName}}>.Count)
+				if (Vector.IsHardwareAccelerated && length >= Vector<{{typeName}}>.Count)
 				{
 					ref var reference = ref MemoryMarshal.GetReference(data);
 
@@ -310,7 +310,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 					} while (i < length);
 				}
 
-				for (; i < data.Length; i++)
+				for (; i < length; i++)
 				{
 					if ({{ReplaceIdentifier(lambda.Body, lambda, "data[i]")}})
 						return true;

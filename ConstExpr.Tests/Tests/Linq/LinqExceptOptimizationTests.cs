@@ -57,7 +57,7 @@ public class LinqExceptOptimizationTests() : BaseTest<Func<int[], int>>(FastMath
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return Count_wX25Rw(x) * 2 + Count_vFVZUg(x) * 3 + Count_IyhE7Q(x) + Count_lIg1kw(x) + Count_4oc4tg(x) + Count_87tGZw(x) + (Any_KkXVeg(x) ? 1 : 0) + Count_uLsNyg(x);"),
+		Create("return Count_wX25Rw(x) * 2 + Count_vFVZUg(x) * 3 + Count_IyhE7Q(x) + Count_lIg1kw(x) + Count_4oc4tg(x) + Count_87tGZw(x) + (Any_1kxIRQ(x) ? 1 : 0) + Count_uLsNyg(x);"),
 		Create(_ => 42, [ new[] { 1, 2, 3, 4, 5 } ]),
 		Create(_ => 0, [ System.Array.Empty<int>() ]),
 		Create(_ => 34, [ new[] { 10, 20, 30 } ]),

@@ -293,7 +293,7 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 				var i = 0;
 				var length = data.Length;
 				
-				if (Vector.IsHardwareAccelerated && data.Length >= Vector<{{typeName}}>.Count)
+				if (Vector.IsHardwareAccelerated && length >= Vector<{{typeName}}>.Count)
 				{
 					ref var reference = ref MemoryMarshal.GetReference(data);
 
