@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
 using ConstExpr.Core.Enumerators;
+using ConstExpr.SourceGenerator.BuildIn;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Optimizers;
@@ -637,6 +638,23 @@ public partial class ConstExprPartialRewriter
 			}
 		}
 
+		// When at least one argument is a compile-time constant, specialize a private helper
+		// with that value folded in (e.g. a loop over a now-known string can unroll) instead of
+		// the fully generic, argument-blind body every call site of this method would share.
+		if (targetMethod.MethodKind != MethodKind.LocalFunction
+		    && arguments.Any(a => TryGetLiteralValue(a, out _))
+		    && GetSpecializedMethodSyntax(targetMethod, arguments) is { } specialized)
+		{
+			if (!additionalMethods.ContainsKey(specialized))
+			{
+				additionalMethods.Add(specialized, true);
+			}
+
+			return WithInvocationTargetName(node, specialized.Identifier.Text)
+				.WithArgumentList(node.ArgumentList.WithArguments(ToArgumentList(arguments)))
+				.WithMethodSymbolAnnotation(targetMethod, symbolStore);
+		}
+
 		var syntax = GetInlinedMethodSyntax(targetMethod);
 
 		if (syntax is not null && !additionalMethods.ContainsKey(syntax))
@@ -782,6 +800,92 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
+	///   Tries to build a specialized private helper for a static method call where at least one
+	///   argument is a compile-time constant. Unlike <see cref="GetInlinedMethodSyntax" /> (one
+	///   generic, argument-blind body shared by every call site), this binds the known
+	///   argument(s) to their literal values before re-visiting the body, so folds/unrolls that
+	///   depend on them (e.g. a loop over a now-known-length array) actually happen. The result is
+	///   named after a hash of its own body, so distinct specializations — and repeated identical
+	///   ones — get distinct/shared names automatically via the existing <see cref="additionalMethods" />
+	///   structural-equality cache.
+	/// </summary>
+	private MethodDeclarationSyntax? GetSpecializedMethodSyntax(IMethodSymbol targetMethod, IReadOnlyList<ExpressionSyntax> arguments)
+	{
+		try
+		{
+			var methodSyntax = targetMethod.DeclaringSyntaxReferences
+				.Select(r => r.GetSyntax(token))
+				.OfType<MethodDeclarationSyntax>()
+				.FirstOrDefault();
+
+			if (methodSyntax?.Body is null || methodSyntax.ParameterList.Parameters.Count != arguments.Count)
+			{
+				return null;
+			}
+
+			var parameters = new Dictionary<string, VariableItem>();
+
+			for (var i = 0; i < arguments.Count; i++)
+			{
+				var paramSyntax = methodSyntax.ParameterList.Parameters[i];
+				var paramName = paramSyntax.Identifier.Text;
+				var paramType = semanticModel.GetTypeInfo(paramSyntax.Type!).Type ?? semanticModel.Compilation.ObjectType;
+
+				parameters[paramName] = TryGetLiteralValue(arguments[i], out var literalValue)
+					? new VariableItem(paramType, true, literalValue, true) { CanBeInlined = true }
+					: new VariableItem(paramType, false, arguments[i], true);
+			}
+
+			// Mirrors GenerateExpression's top-level pass: mark single-use locals (e.g. a loop-body
+			// temp) as inlinable so the rewriter substitutes them at their one read site instead of
+			// leaving a declaration behind — without this, unrolling the loop below can duplicate a
+			// same-named local across iterations with only the first copy keeping its `var`.
+			var inlineAnalyzer = new InlineVariableAnalyzer(semanticModel, symbolStore);
+
+			foreach (var candidate in inlineAnalyzer.FindInlineCandidates(methodSyntax.Body))
+			{
+				var name = candidate.Symbol.Name;
+
+				if (parameters.TryGetValue(name, out var existing))
+				{
+					existing.CanBeInlined = true;
+				}
+				else
+				{
+					parameters[name] = new VariableItem(candidate.Symbol.Type, false, null) { CanBeInlined = true };
+				}
+			}
+
+			visitingMethods?.Add(targetMethod);
+
+			var subRewriter = new ConstExprPartialRewriter(
+				semanticModel, loader, (_, _) => { }, parameters,
+				additionalMethods, usings, attribute, symbolStore, token, visitingMethods);
+
+			var body = OptimizeInlinedBody(subRewriter.Visit(methodSyntax.Body) as BlockSyntax, parameters);
+
+			visitingMethods?.Remove(targetMethod);
+
+			if (body is null)
+			{
+				return null;
+			}
+
+			var mods = TokenList(Token(SyntaxKind.PrivateKeyword), Token(SyntaxKind.StaticKeyword));
+
+			return methodSyntax
+				.WithIdentifier(Identifier($"{targetMethod.Name}_{body.GetDeterministicHashString()}"))
+				.WithBody(body)
+				.WithModifiers(mods);
+		}
+		catch (Exception)
+		{
+			visitingMethods?.Remove(targetMethod);
+			return null;
+		}
+	}
+
+	/// <summary>
 	///   Gets the inlined syntax for a method.
 	/// </summary>
 	private SyntaxNode? GetInlinedMethodSyntax(IMethodSymbol targetMethod)
@@ -863,6 +967,20 @@ public partial class ConstExprPartialRewriter
 			.WithArgumentList(node.ArgumentList
 				.WithArguments(ToArgumentList(arguments)))
 			.WithMethodSymbolAnnotation(targetMethod, symbolStore);
+	}
+
+	/// <summary>
+	///   Repoints an invocation's callee to a specialized helper name, keeping the receiver
+	///   qualification (if any) intact.
+	/// </summary>
+	private static InvocationExpressionSyntax WithInvocationTargetName(InvocationExpressionSyntax node, string name)
+	{
+		return node.Expression switch
+		{
+			IdentifierNameSyntax identifier => node.WithExpression(IdentifierName(name).WithTriviaFrom(identifier)),
+			MemberAccessExpressionSyntax memberAccess => node.WithExpression(memberAccess.WithName(IdentifierName(name).WithTriviaFrom(memberAccess.Name))),
+			_ => node
+		};
 	}
 
 	private static SeparatedSyntaxList<ArgumentSyntax> ToArgumentList(IReadOnlyList<ExpressionSyntax> arguments)
