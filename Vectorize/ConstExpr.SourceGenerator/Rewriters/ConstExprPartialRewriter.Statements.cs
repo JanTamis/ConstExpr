@@ -1448,7 +1448,11 @@ public partial class ConstExprPartialRewriter
 	{
 		foreach (var s in statements)
 		{
-			foreach (var node in s.DescendantNodes())
+			// DescendantNodesAndSelf (not DescendantNodes): when a remaining statement *is* the loop
+			// itself — the common `var x = …;` immediately before a `for`/`foreach`/`while` that reads
+			// x — DescendantNodes would skip the loop node and miss the read, inlining the invariant
+			// into the loop body (recomputed every iteration). Including self catches that case.
+			foreach (var node in s.DescendantNodesAndSelf())
 			{
 				if (node is not (ForStatementSyntax or ForEachStatementSyntax or WhileStatementSyntax
 				    or DoStatementSyntax or LambdaExpressionSyntax or AnonymousMethodExpressionSyntax))
