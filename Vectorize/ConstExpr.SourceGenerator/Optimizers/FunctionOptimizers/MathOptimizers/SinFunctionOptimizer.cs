@@ -109,9 +109,8 @@ public class SinFunctionOptimizer() : BaseMathFunctionOptimizer("Sin", n => n is
 			.WriteLine($"ret = {multiplyAdd("ret", "x2", 0.0083333333333332177)};")
 			.WriteLine($"ret = {multiplyAdd("ret", "x2", -0.16666666666666666)};")
 			.WriteLine($"ret = {multiplyAdd("ret", "x2", 1.0)};")
-			.WriteLine("ret *= x;")
 			.WriteWhitespace()
-			.WriteLine($"return {copySignInvocation}(ret, originalX);");
+			.WriteLine($"return {copySignInvocation}(ret * x, originalX);");
 
 		builder.EndBlock();
 

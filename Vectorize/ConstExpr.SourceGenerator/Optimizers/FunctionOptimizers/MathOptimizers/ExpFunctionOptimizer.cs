@@ -105,10 +105,7 @@ public class ExpFunctionOptimizer() : BaseMathFunctionOptimizer("Exp", n => n is
 				.WriteLine("if (Double.IsNegativeInfinity(x)) return 0.0;");
 		}
 
-		builder.WriteLine("if (x >= 709.0) return Double.PositiveInfinity;")
-			.WriteLine("if (x <= -708.0) return 0.0;")
-			.WriteWhitespace()
-			.WriteLine("var kf = x * 1.4426950408889634073599246810018921;")
+		builder.WriteLine("var kf = x * 1.4426950408889634073599246810018921;")
 			.WriteLine($"var k  = (long){roundMethod}(kf);")
 			.WriteLine("var r  = kf - k;")
 			.WriteWhitespace()
@@ -117,7 +114,8 @@ public class ExpFunctionOptimizer() : BaseMathFunctionOptimizer("Exp", n => n is
 			.WriteLine($"p        = {multiplyAdd("p", "r", 6.931471805599453094e-1)};")
 			.WriteLine($"var expR = {multiplyAdd("p", "r", 1.0)};")
 			.WriteWhitespace()
-			.WriteLine("var bits = (ulong)((k + 1023L) << 52);")
+			.WriteLine("var kClamped = Math.Clamp(k, -1022L, 1023L); ")
+			.WriteLine("var bits = (ulong)((kClamped + 1023L) << 52);")
 			.WriteLine("return BitConverter.UInt64BitsToDouble(bits) * expR;");
 
 		builder.EndBlock();

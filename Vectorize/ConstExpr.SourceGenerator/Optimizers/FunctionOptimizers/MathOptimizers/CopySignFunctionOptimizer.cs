@@ -1,7 +1,6 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Interfaces;
 using ConstExpr.SourceGenerator.Models;
@@ -49,51 +48,48 @@ public class CopySignFunctionOptimizer() : BaseMathFunctionOptimizer("CopySign",
 
 	public override string GenerateCustomImplementation(FunctionOptimizerContext context, ITypeSymbol paramType)
 	{
-		var method = ParseMethodFromString(paramType.SpecialType switch
+		if (paramType.IsInteger())
 		{
-			SpecialType.System_Single => GenerateFastCopySignMethodFloat(),
-			SpecialType.System_Double => GenerateFastCopySignMethodDouble(),
-			_ => GenerateFastCopySignMethodInteger(context, context.FastMathFlags)
-		});
-
-		if (method is not null)
-		{
+			var method = ParseMethodFromString(GenerateFastCopySignMethodInteger(context));
 			context.AdditionalSyntax.TryAdd(method, false);
+
 			return method.Identifier.Text;
 		}
+		else
+		{
+			var method = ParseMethodFromString(GenerateFastCopySignMethodFloating());
 
-		return base.GenerateCustomImplementation(context, paramType);
+			context.AdditionalSyntax.TryAdd(method, false);
+			context.Usings.Add("System.Runtime.Intrinsics");
+
+			return paramType.SpecialType switch
+			{
+				SpecialType.System_Single => $"{method.Identifier.Text}<float, int>",
+				SpecialType.System_Double => $"{method.Identifier.Text}<double, long>",
+				_ => method.Identifier.Text
+			};
+		}
 	}
 
-	private static string GenerateFastCopySignMethodFloat()
+	private static string GenerateFastCopySignMethodFloating()
 	{
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static float FastCopySign(float x, float y)")
+		builder.WriteLine("private static T FastCopySign<T, TBits>(T x, T y) where T : IFloatingPointIeee754<T> where TBits : IBinaryInteger<TBits>, IMinMaxValue<TBits>")
 			.StartBlock()
-			.WriteLine("var xBits = BitConverter.SingleToInt32Bits(x);")
-			.WriteLine("var yBits = BitConverter.SingleToInt32Bits(y);")
-			.WriteLine("return BitConverter.Int32BitsToSingle((xBits & 0x7FFF_FFFF) | (yBits & unchecked((int)0x8000_0000)));")
+			.WriteLine("if (Vector.IsHardwareAccelerated)")
+			.StartBlock()
+			.WriteLine("return Vector128.ConditionalSelect(Vector128.CreateScalarUnsafe(T.NegativeZero), Vector128.CreateScalarUnsafe(y), Vector128.CreateScalarUnsafe(x)).ToScalar();")
+			.EndBlock()
+			.WriteLine("var xBits = Unsafe.BitCast<T, TBits>(x);")
+			.WriteLine("var yBits = Unsafe.BitCast<T, TBits>(y);")
+			.WriteLine("return Unsafe.BitCast<TBits, T>((xBits & TBits.MaxValue) | (yBits & TBits.MinValue));")
 			.EndBlock();
 
 		return builder.ToString();
 	}
 
-	private static string GenerateFastCopySignMethodDouble()
-	{
-		var builder = new CodeWriter();
-
-		builder.WriteLine("private static double FastCopySign(double x, double y)")
-			.StartBlock()
-			.WriteLine("var xBits = BitConverter.DoubleToInt64Bits(x);")
-			.WriteLine("var yBits = BitConverter.DoubleToInt64Bits(y);")
-			.WriteLine("return BitConverter.Int64BitsToDouble((xBits & long.MaxValue) | (yBits & long.MinValue));")
-			.EndBlock();
-
-		return builder.ToString();
-	}
-
-	private static string GenerateFastCopySignMethodInteger(FunctionOptimizerContext context, FastMathFlags flags)
+	private static string GenerateFastCopySignMethodInteger(FunctionOptimizerContext context)
 	{
 		var invocation = AbsFunctionOptimizer.GenerateFastAbsMethodInteger(context);
 

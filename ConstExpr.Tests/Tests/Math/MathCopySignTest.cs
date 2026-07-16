@@ -9,7 +9,7 @@ public class MathCopySignTest() : BaseTest<Func<double, double, double>>(FastMat
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return FastCopySign(x, y);"),
+		Create("return FastCopySign<double, long>(x, y);"),
 		Create((x, _) => Double.Abs(x), [ Unknown, 2.0 ]),
 		Create((x, _) => -Double.Abs(x), [ Unknown, -2.0 ])
 	];
