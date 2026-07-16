@@ -593,11 +593,13 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		}
 
 		// Groepeer lokale declaraties en omring met lege regels
+		// (een declaratie die meteen erna wordt herschreven, zoals "var p = ...; p = ...;", start een
+		// nieuwe groep zodat een FMA/accumulator-keten niet aan voorgaande setup-declaraties vastplakt)
 		for (var i = 0; i < visited.Count; i++)
 		{
 			if (visited[i] is LocalDeclarationStatementSyntax)
 			{
-				SurroundContiguousGroup(visited, ref i, static s => s is LocalDeclarationStatementSyntax);
+				SurroundContiguousGroup(visited, ref i, static s => s is LocalDeclarationStatementSyntax, j => IsAccumulatorHeadDeclaration(visited, j));
 			}
 		}
 
@@ -921,14 +923,14 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 	///   processed group.
 	/// </param>
 	/// <param name="isInGroup">A predicate that determines whether a given statement belongs to the group to be surrounded.</param>
-	private static void SurroundContiguousGroup(List<StatementSyntax> visited, ref int i, Func<StatementSyntax, bool> isInGroup)
+	private static void SurroundContiguousGroup(List<StatementSyntax> visited, ref int i, Func<StatementSyntax, bool> isInGroup, Func<int, bool>? stopBefore = null)
 	{
 		var start = i;
 		var end = i;
 
 		for (var j = i + 1; j < visited.Count; j++)
 		{
-			if (isInGroup(visited[j]))
+			if (isInGroup(visited[j]) && (stopBefore is null || !stopBefore(j)))
 			{
 				end = j;
 				continue;
@@ -1565,6 +1567,22 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 
 		name = "";
 		return false;
+	}
+
+	// Een declaratie waarvan de enige variabele meteen in de volgende statement wordt herschreven
+	// (bv. "var p = ...; p = ...;") is de kop van een accumulator-keten, geen losse setup-declaratie.
+	private static bool IsAccumulatorHeadDeclaration(List<StatementSyntax> statements, int index)
+	{
+		if (statements[index] is not LocalDeclarationStatementSyntax { Declaration.Variables: [ { Initializer: not null } variable ] })
+		{
+			return false;
+		}
+
+		return index + 1 < statements.Count
+		       && statements[index + 1] is ExpressionStatementSyntax { Expression: AssignmentExpressionSyntax assignment }
+		       && assignment.IsKind(SyntaxKind.SimpleAssignmentExpression)
+		       && assignment.Left is IdentifierNameSyntax identifier
+		       && identifier.Identifier.ValueText == variable.Identifier.ValueText;
 	}
 
 	private static bool IsConditionalSyntax(StatementSyntax statement)
