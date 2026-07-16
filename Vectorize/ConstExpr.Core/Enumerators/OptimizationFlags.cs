@@ -65,10 +65,27 @@ public enum OptimizationFlags
 	IndexFromEndConversion = 1 << 5,
 
 	/// <summary>
+	///   Enable copy propagation.
+	///   Replaces reads of a local that is a plain copy of another variable (<c>var y = x;</c>)
+	///   with the source variable, so later passes (CSE, LICM) see one canonical name. The dead
+	///   copy declaration is then removed by dead-code pruning.
+	/// </summary>
+	CopyPropagation = 1 << 6,
+
+	/// <summary>
+	///   Enable induction-variable strength reduction.
+	///   Rewrites multiplication of a loop counter by an integer constant (<c>i * c</c>) into an
+	///   accumulator advanced together with the counter, replacing a multiply per iteration with
+	///   an add.
+	/// </summary>
+	InductionVariableStrengthReduction = 1 << 7,
+
+	/// <summary>
 	///   Enable all general-purpose optimization passes.
 	///   Combines <see cref="CommonSubexpressionElimination" />, <see cref="LoopInvariantCodeMotion" />,
 	///   <see cref="TailRecursionElimination" />, <see cref="LoopUnswitching" />, <see cref="LoopFusion" />,
-	///   and <see cref="IndexFromEndConversion" />.
+	///   <see cref="IndexFromEndConversion" />, <see cref="CopyPropagation" />,
+	///   and <see cref="InductionVariableStrengthReduction" />.
 	/// </summary>
-	All = CommonSubexpressionElimination | LoopInvariantCodeMotion | TailRecursionElimination | LoopUnswitching | LoopFusion | IndexFromEndConversion
+	All = CommonSubexpressionElimination | LoopInvariantCodeMotion | TailRecursionElimination | LoopUnswitching | LoopFusion | IndexFromEndConversion | CopyPropagation | InductionVariableStrengthReduction
 }

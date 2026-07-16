@@ -399,6 +399,12 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			var result2 = DeadCodePruner.Prune(result, variablesPartial, semanticModel);
 			result2 = ExceptionGuardSimplifier.Simplify(result2);
 
+			if (attribute.Optimizations.HasFlag(OptimizationFlags.CopyPropagation))
+			{
+				result2 = CopyPropagationRewriter.Apply(result2);
+				result2 = DeadCodePruner.Prune(result2, variablesPartial, semanticModel);
+			}
+
 			if (attribute.Optimizations.HasFlag(OptimizationFlags.CommonSubexpressionElimination))
 			{
 				result2 = CommonSubexpressionEliminator.Eliminate(result2, attribute.MathOptimizations);
@@ -426,6 +432,12 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			if (attribute.Optimizations.HasFlag(OptimizationFlags.IndexFromEndConversion))
 			{
 				result2 = IndexFromEndRewriter.Apply(result2);
+				result2 = DeadCodePruner.Prune(result2, variablesPartial, semanticModel);
+			}
+
+			if (attribute.Optimizations.HasFlag(OptimizationFlags.InductionVariableStrengthReduction))
+			{
+				result2 = StrengthReductionRewriter.Apply(result2);
 				result2 = DeadCodePruner.Prune(result2, variablesPartial, semanticModel);
 			}
 

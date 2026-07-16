@@ -222,6 +222,12 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		newBody = DeadCodePruner.Prune(newBody, parameters, state.SemanticModel) as BlockSyntax;
 		newBody = ExceptionGuardSimplifier.Simplify(newBody!) as BlockSyntax;
 
+		if (attribute.Optimizations.HasFlag(OptimizationFlags.CopyPropagation))
+		{
+			newBody = CopyPropagationRewriter.Apply(newBody!) as BlockSyntax ?? newBody;
+			newBody = DeadCodePruner.Prune(newBody, parameters, state.SemanticModel) as BlockSyntax;
+		}
+
 		if (attribute.Optimizations.HasFlag(OptimizationFlags.CommonSubexpressionElimination))
 		{
 			newBody = CommonSubexpressionEliminator.Eliminate(newBody, attribute.MathOptimizations) as BlockSyntax;
@@ -249,6 +255,12 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		if (attribute.Optimizations.HasFlag(OptimizationFlags.IndexFromEndConversion))
 		{
 			newBody = IndexFromEndRewriter.Apply(newBody!) as BlockSyntax ?? newBody;
+			newBody = DeadCodePruner.Prune(newBody, parameters, state.SemanticModel) as BlockSyntax;
+		}
+
+		if (attribute.Optimizations.HasFlag(OptimizationFlags.InductionVariableStrengthReduction))
+		{
+			newBody = StrengthReductionRewriter.Apply(newBody!) as BlockSyntax ?? newBody;
 			newBody = DeadCodePruner.Prune(newBody, parameters, state.SemanticModel) as BlockSyntax;
 		}
 
