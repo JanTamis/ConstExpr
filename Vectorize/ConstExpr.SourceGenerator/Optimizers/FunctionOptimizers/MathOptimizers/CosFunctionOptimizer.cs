@@ -59,9 +59,8 @@ public class CosFunctionOptimizer() : BaseMathFunctionOptimizer("Cos", n => n is
 			.WriteLine($"ret = {multiplyAdd("ret", "x2", -0.0013882476f)};")
 			.WriteLine($"ret = {multiplyAdd("ret", "x2", 0.041666666f)};")
 			.WriteLine($"ret = {multiplyAdd("ret", "x2", -0.5f)};")
-			.WriteLine($"ret = {multiplyAdd("ret", "x2", 1.0f)};")
 			.WriteWhitespace()
-			.WriteLine("return ret;");
+			.WriteLine($"return {multiplyAdd("ret", "x2", 1.0f)};");
 
 		builder.EndBlock();
 
@@ -93,9 +92,8 @@ public class CosFunctionOptimizer() : BaseMathFunctionOptimizer("Cos", n => n is
 			.WriteLine($"ret = {multiplyAdd("ret", "x2", -0.0013888888888739916)};")
 			.WriteLine($"ret = {multiplyAdd("ret", "x2", 0.041666666666666602)};")
 			.WriteLine($"ret = {multiplyAdd("ret", "x2", -0.5)};")
-			.WriteLine($"ret = {multiplyAdd("ret", "x2", 1.0)};")
 			.WriteWhitespace()
-			.WriteLine("return ret;");
+			.WriteLine($"return {multiplyAdd("ret", "x2", 1.0)};");
 
 		builder.EndBlock();
 
