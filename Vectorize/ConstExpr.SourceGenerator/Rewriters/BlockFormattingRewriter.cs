@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -178,7 +179,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 				Decimal.MaxValue => ParseExpression("Decimal.MaxValue"),
 				Double.MaxValue => ParseExpression("Double.MaxValue"),
 				Single.MaxValue => ParseExpression("Single.MaxValue"),
-				_ => IsHexOrBinaryLiteral(node.Token) ? node : expression
+				_ => IsHexOrBinaryLiteral(node.Token) ? node : UseScientificNotationIfAwkward(expression, node.Token.Value)
 			}).WithLeadingTrivia(node.GetLeadingTrivia()).WithTrailingTrivia(node.GetTrailingTrivia());
 		}
 
@@ -1457,6 +1458,64 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			SyntaxKind.UnsignedRightShiftExpression => ">>>=",
 			_ => null
 		};
+	}
+
+	// Rewrites a double/float literal to scientific notation when the plain decimal form
+	// would bury the value under leading/trailing zeros (e.g. -0.00019841269836761127,
+	// 0.009618129107628477). Values in a "normal" range (roughly 0.01 .. 10 million) are
+	// left as-is since fixed notation is easier to read there.
+	private static ExpressionSyntax UseScientificNotationIfAwkward(ExpressionSyntax expression, object? tokenValue)
+	{
+		return tokenValue switch
+		{
+			double d when IsAwkwardMagnitude(d) => LiteralExpression(SyntaxKind.NumericLiteralExpression,
+				Literal(ToScientificText(d.ToString(CultureInfo.InvariantCulture)), d)),
+			float f when IsAwkwardMagnitude(f) => LiteralExpression(SyntaxKind.NumericLiteralExpression,
+				Literal(ToScientificText(f.ToString(CultureInfo.InvariantCulture)) + "F", f)),
+			_ => expression
+		};
+	}
+
+	// ponytail: fixed cutoffs (0.01 / 1e7), tune here if a project wants a different "looks awkward" range.
+	private static bool IsAwkwardMagnitude(double value)
+	{
+		var abs = Math.Abs(value);
+		return abs is not 0 and (< 0.01 or >= 1e7);
+	}
+
+	// Reformats a culture-invariant plain-decimal double/float string (e.g. "0.00019841269836761127"
+	// or "123456789012") into C# scientific notation (e.g. "1.9841269836761127E-4"), keeping every
+	// significant digit so the value round-trips exactly. No-ops if already scientific (contains 'E').
+	private static string ToScientificText(string plain)
+	{
+		if (plain.IndexOf('E') >= 0)
+		{
+			return plain;
+		}
+
+		var dotIndex = plain.IndexOf('.');
+		var intPart = dotIndex < 0 ? plain : plain[..dotIndex];
+		var fracPart = dotIndex < 0 ? "" : plain[(dotIndex + 1)..];
+		var digits = intPart + fracPart;
+
+		var firstSignificant = 0;
+
+		while (firstSignificant < digits.Length - 1 && digits[firstSignificant] == '0')
+		{
+			firstSignificant++;
+		}
+
+		var exponent = intPart.Length - firstSignificant - 1;
+		var mantissaDigits = digits[firstSignificant..].TrimEnd('0');
+
+		if (mantissaDigits.Length == 0)
+		{
+			mantissaDigits = "0";
+		}
+
+		var mantissa = mantissaDigits.Length == 1 ? mantissaDigits : $"{mantissaDigits[0]}.{mantissaDigits[1..]}";
+
+		return $"{mantissa}E{(exponent < 0 ? '-' : '+')}{Math.Abs(exponent)}";
 	}
 
 	private static bool IsHexOrBinaryLiteral(SyntaxToken token)
