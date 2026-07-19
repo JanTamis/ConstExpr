@@ -133,6 +133,12 @@ public sealed class VectorizationEligibilityVisitor : CSharpSyntaxWalker
 	private readonly List<string> _reasons = [ ];
 	private readonly ConcurrentDictionary<ulong, ISymbol> _symbolStore;
 
+	// When true, a vectorizable loop must actually be found for the result to be
+	// vectorizable. When false (the default, used by the LINQ path that analyzes a
+	// loop-free lambda expression body), an element-wise expression is assumed to be
+	// vectorizable regardless of whether a loop is present.
+	private readonly bool _requireLoop;
+
 	// The element type found in the innermost loop, used to select a vector width
 	private SpecialType _elementType = SpecialType.None;
 
@@ -146,20 +152,31 @@ public sealed class VectorizationEligibilityVisitor : CSharpSyntaxWalker
 	// Public API
 	// -------------------------------------------------------------------------
 
-	private VectorizationEligibilityVisitor(SemanticModel model, ConcurrentDictionary<ulong, ISymbol> symbolStore, CancellationToken ct)
+	private VectorizationEligibilityVisitor(SemanticModel model, ConcurrentDictionary<ulong, ISymbol> symbolStore, CancellationToken ct, bool requireLoop)
 	{
 		_model = model;
 		_symbolStore = symbolStore;
 		_ct = ct;
+		_requireLoop = requireLoop;
 	}
 
 	/// <summary>
 	///   Analyzes the given <paramref name="node" /> and returns a
 	///   <see cref="VectorizationResult" /> describing whether vectorization is applicable.
 	/// </summary>
-	public static VectorizationResult Analyze(SyntaxNode node, SemanticModel model, ConcurrentDictionary<ulong, ISymbol> symbolStore, CancellationToken ct = default)
+	/// <param name="node">The syntax node (loop, block, or expression) to analyze.</param>
+	/// <param name="model">The semantic model for symbol/type resolution.</param>
+	/// <param name="symbolStore">The shared symbol-annotation cache.</param>
+	/// <param name="ct">A cancellation token.</param>
+	/// <param name="requireLoop">
+	///   When <see langword="true" />, the node is only considered vectorizable when it contains a
+	///   loop that passed the eligibility checks (used by the auto-vectorization loop pass). When
+	///   <see langword="false" /> (default), a loop-free element-wise expression is assumed to be
+	///   vectorizable (used by the LINQ path that analyzes a lambda body).
+	/// </param>
+	public static VectorizationResult Analyze(SyntaxNode node, SemanticModel model, ConcurrentDictionary<ulong, ISymbol> symbolStore, CancellationToken ct = default, bool requireLoop = false)
 	{
-		var visitor = new VectorizationEligibilityVisitor(model, symbolStore, ct);
+		var visitor = new VectorizationEligibilityVisitor(model, symbolStore, ct, requireLoop);
 		visitor.Visit(node);
 		return visitor.BuildResult();
 	}
@@ -262,18 +279,21 @@ public sealed class VectorizationEligibilityVisitor : CSharpSyntaxWalker
 
 	private VectorizationResult BuildResult()
 	{
-		// if (!_foundVectorizableLoop)
-		// {
-		// 	if (_reasons.Count == 0)
-		// 	{
-		// 		_reasons.Add("No vectorizable loop pattern was found in the analyzed code.");
-		// 	}
-		//
-		// 	return new VectorizationResult(false, VectorTypes.None, _reasons);
-		// }
+		// In loop mode (used by the auto-vectorization pass) a vectorizable loop must actually
+		// have been found. In expression mode (default, used by the LINQ path on a loop-free
+		// lambda body) we intentionally stay permissive and report the expression as vectorizable.
+		if (_requireLoop && !_foundVectorizableLoop)
+		{
+			if (_reasons.Count == 0)
+			{
+				_reasons.Add("No vectorizable loop pattern was found in the analyzed code.");
+			}
+
+			return new VectorizationResult(false, VectorTypes.None, SpecialType.None, _reasons);
+		}
 
 		var vectorType = SelectVectorType(_elementType);
-		return new VectorizationResult(true, vectorType, _reasons);
+		return new VectorizationResult(true, vectorType, _elementType, _reasons);
 	}
 
 	// -------------------------------------------------------------------------

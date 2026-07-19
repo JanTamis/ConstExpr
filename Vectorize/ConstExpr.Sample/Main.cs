@@ -43,4 +43,8 @@ LoopBreakReturnTests.RunTests(varInt2, varString, varInt);
 MathOperationsTests.RunTests(varInt, varInt2, varInt3, varInt4);
 StringOperationsTests.RunTests(varString);
 ArrayOperationsTests.RunTests(varInt, varInt2, varInt3, new[] { varInt, varInt2, varInt3, varInt4, varInt5 });
+VectorizedOperationsTests.RunTests(
+	new[] { varInt, varInt2, varInt3, varInt4, varInt5, varInt6, varInt7, varInt8 },
+	new[] { varInt2, varInt3, varInt4, varInt5, varInt6, varInt7, varInt8, varInt },
+	new[] { varDouble, varDouble2, varDouble3, varDouble4, varDouble5, varDouble6, varDouble7, varDouble8 });
 // RegexOperationsTests.RunTests(varString, varInt);

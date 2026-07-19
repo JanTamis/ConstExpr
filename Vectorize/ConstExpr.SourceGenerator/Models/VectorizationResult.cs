@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using ConstExpr.SourceGenerator.Enums;
+using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Models;
 
@@ -13,10 +14,11 @@ public sealed class VectorizationResult
 	/// <summary>
 	///   Initializes a new instance of <see cref="VectorizationResult" />.
 	/// </summary>
-	public VectorizationResult(bool isVectorizable, VectorTypes suggestedVectorType, IReadOnlyList<string> reasons)
+	public VectorizationResult(bool isVectorizable, VectorTypes suggestedVectorType, SpecialType elementType, IReadOnlyList<string> reasons)
 	{
 		IsVectorizable = isVectorizable;
 		SuggestedVectorType = suggestedVectorType;
+		ElementType = elementType;
 		Reasons = reasons;
 	}
 
@@ -32,6 +34,13 @@ public sealed class VectorizationResult
 	///   <see langword="false" />.
 	/// </summary>
 	public VectorTypes SuggestedVectorType { get; }
+
+	/// <summary>
+	///   Gets the <see cref="SpecialType" /> of the vectorizable element (e.g.
+	///   <see cref="SpecialType.System_Int32" />), or <see cref="SpecialType.None" /> when
+	///   <see cref="IsVectorizable" /> is <see langword="false" />.
+	/// </summary>
+	public SpecialType ElementType { get; }
 
 	/// <summary>
 	///   Gets the list of reasons explaining why the code is (not) vectorizable.

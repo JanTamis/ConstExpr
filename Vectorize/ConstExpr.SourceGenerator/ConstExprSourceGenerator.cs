@@ -441,6 +441,14 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				result2 = DeadCodePruner.Prune(result2, variablesPartial, semanticModel);
 			}
 
+			if (attribute.Optimizations.HasFlag(OptimizationFlags.AutoVectorization))
+			{
+				// Runs after the loop-normalizing passes so loops are in the canonical
+				// `for (int i = 0; i < n; i++)` shape the vectorizer expects.
+				result2 = AutoVectorizeRewriter.Apply(result2, model, symbolStore, usings, additionalMethods, attribute.MathOptimizations, token);
+				result2 = DeadCodePruner.Prune(result2, variablesPartial, semanticModel);
+			}
+
 			if (attribute.Optimizations.HasFlag(OptimizationFlags.TailRecursionElimination) && result2 is BlockSyntax treBlock)
 			{
 				var treMethod = methodDecl.WithBody(treBlock);
