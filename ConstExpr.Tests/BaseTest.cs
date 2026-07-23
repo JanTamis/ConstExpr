@@ -277,6 +277,13 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			newBody = TailRecursionRewriter.Apply(pseudoMethod);
 		}
 
+		// Runs last so the loop guard sees any loop tail-recursion elimination just introduced.
+		if (attribute.Optimizations.HasFlag(OptimizationFlags.StackAllocConversion))
+		{
+			newBody = StackAllocRewriter.Apply(newBody!) as BlockSyntax ?? newBody;
+			newBody = DeadCodePruner.Prune(newBody, parameters, state.SemanticModel) as BlockSyntax;
+		}
+
 		newBody = FormattingHelper.Format(newBody!) as BlockSyntax;
 		var newBodyRendered = FormattingHelper.Render(newBody);
 

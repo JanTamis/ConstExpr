@@ -788,6 +788,25 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		return visited;
 	}
 
+	public override SyntaxNode? VisitStackAllocArrayCreationExpression(StackAllocArrayCreationExpressionSyntax node)
+	{
+		var visited = base.VisitStackAllocArrayCreationExpression(node) as StackAllocArrayCreationExpressionSyntax ?? node;
+
+		if (visited.Initializer?.Expressions.Count > 0)
+		{
+			// Strip trailing trivia from the last `]` of the type so there's no newline before `{`
+			var lastTypeToken = visited.Type.GetLastToken();
+			var cleanedType = visited.Type.ReplaceToken(
+				lastTypeToken,
+				lastTypeToken.WithTrailingTrivia(TriviaList()));
+			visited = visited
+				.WithType(cleanedType)
+				.WithInitializer(FlattenArrayInitializer(visited.Initializer));
+		}
+
+		return visited;
+	}
+
 	private static InitializerExpressionSyntax FlattenArrayInitializer(InitializerExpressionSyntax initializer)
 	{
 		var flatElements = initializer.Expressions.Select(expr => expr.WithoutTrivia()).ToArray();

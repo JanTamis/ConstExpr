@@ -780,21 +780,32 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	///   Applies the common-subexpression-elimination pass (and its paired dead-code prune) to a
-	///   specialized helper body, mirroring the post-inlining pipeline the main method receives in
-	///   <see cref="ConstExprSourceGenerator" /> (~L402). Without this, helper methods emitted via
-	///   <see cref="GetInlinedMethodSyntax" /> keep the duplicate subexpressions that inlining
-	///   introduces — e.g. a ternary the source computed once via a local, now inlined twice.
+	///   Applies the common-subexpression-elimination and stackalloc-conversion passes (each with its
+	///   paired dead-code prune) to a specialized helper body, mirroring the post-inlining pipeline
+	///   the main method receives in <see cref="ConstExprSourceGenerator" /> (~L402). Without this,
+	///   helper methods emitted via <see cref="GetInlinedMethodSyntax" /> keep the duplicate
+	///   subexpressions that inlining introduces — e.g. a ternary the source computed once via a
+	///   local, now inlined twice — and miss stackalloc conversion that the same body would get when
+	///   generated directly.
 	/// </summary>
 	private BlockSyntax? OptimizeInlinedBody(BlockSyntax? body, IDictionary<string, VariableItem> parameters)
 	{
-		if (body is null || !attribute.Optimizations.HasFlag(OptimizationFlags.CommonSubexpressionElimination))
+		if (body is null)
 		{
 			return body;
 		}
 
-		body = CommonSubexpressionEliminator.Eliminate(body, attribute.MathOptimizations) as BlockSyntax ?? body;
-		body = DeadCodePruner.Prune(body, parameters, semanticModel) as BlockSyntax ?? body;
+		if (attribute.Optimizations.HasFlag(OptimizationFlags.CommonSubexpressionElimination))
+		{
+			body = CommonSubexpressionEliminator.Eliminate(body, attribute.MathOptimizations) as BlockSyntax ?? body;
+			body = DeadCodePruner.Prune(body, parameters, semanticModel) as BlockSyntax ?? body;
+		}
+
+		if (attribute.Optimizations.HasFlag(OptimizationFlags.StackAllocConversion))
+		{
+			body = StackAllocRewriter.Apply(body) as BlockSyntax ?? body;
+			body = DeadCodePruner.Prune(body, parameters, semanticModel) as BlockSyntax ?? body;
+		}
 
 		return body;
 	}

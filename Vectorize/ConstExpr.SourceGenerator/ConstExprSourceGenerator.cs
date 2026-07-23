@@ -447,6 +447,13 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				result2 = TailRecursionRewriter.Apply(treMethod);
 			}
 
+			// Runs last so the loop guard sees any loop tail-recursion elimination just introduced.
+			if (attribute.Optimizations.HasFlag(OptimizationFlags.StackAllocConversion))
+			{
+				result2 = StackAllocRewriter.Apply(result2);
+				result2 = DeadCodePruner.Prune(result2, variablesPartial, semanticModel);
+			}
+
 			// Format using Roslyn formatter instead of NormalizeWhitespace
 			// var text = FormattingHelper.Render(methodDecl.WithBody((BlockSyntax)result));
 			// var text2 = FormattingHelper.Render(methodDecl.WithBody((BlockSyntax)result2));

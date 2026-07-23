@@ -81,11 +81,22 @@ public enum OptimizationFlags
 	InductionVariableStrengthReduction = 1 << 7,
 
 	/// <summary>
+	///   Enable stackalloc conversion.
+	///   Rewrites a local heap array into a <c>Span&lt;T&gt;</c> backed by <c>stackalloc</c>
+	///   (<c>var b = new int[256];</c> => <c>Span&lt;int&gt; b = stackalloc int[256];</c>) when the
+	///   element type is a predefined unmanaged primitive, the size is a small compile-time constant,
+	///   the declaration is not inside a loop, and every use is stack-safe (indexing, <c>.Length</c>,
+	///   <c>foreach</c>, or <c>new string(b)</c>). Eliminates the heap allocation for throwaway
+	///   local buffers.
+	/// </summary>
+	StackAllocConversion = 1 << 8,
+
+	/// <summary>
 	///   Enable all general-purpose optimization passes.
 	///   Combines <see cref="CommonSubexpressionElimination" />, <see cref="LoopInvariantCodeMotion" />,
 	///   <see cref="TailRecursionElimination" />, <see cref="LoopUnswitching" />, <see cref="LoopFusion" />,
 	///   <see cref="IndexFromEndConversion" />, <see cref="CopyPropagation" />,
-	///   and <see cref="InductionVariableStrengthReduction" />.
+	///   <see cref="InductionVariableStrengthReduction" />, and <see cref="StackAllocConversion" />.
 	/// </summary>
-	All = CommonSubexpressionElimination | LoopInvariantCodeMotion | TailRecursionElimination | LoopUnswitching | LoopFusion | IndexFromEndConversion | CopyPropagation | InductionVariableStrengthReduction
+	All = CommonSubexpressionElimination | LoopInvariantCodeMotion | TailRecursionElimination | LoopUnswitching | LoopFusion | IndexFromEndConversion | CopyPropagation | InductionVariableStrengthReduction | StackAllocConversion
 }
