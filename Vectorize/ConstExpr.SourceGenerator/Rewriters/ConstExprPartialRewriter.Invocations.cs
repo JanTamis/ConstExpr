@@ -643,7 +643,7 @@ public partial class ConstExprPartialRewriter
 		// the fully generic, argument-blind body every call site of this method would share.
 		if (targetMethod.MethodKind != MethodKind.LocalFunction
 		    && arguments.Any(a => TryGetLiteralValue(a, out _))
-		    && GetSpecializedMethodSyntax(targetMethod, arguments) is { } specialized)
+		    && GetSpecializedMethodSyntax(targetMethod, arguments, out var specializedArguments) is { } specialized)
 		{
 			if (!additionalMethods.ContainsKey(specialized))
 			{
@@ -651,7 +651,7 @@ public partial class ConstExprPartialRewriter
 			}
 
 			return WithInvocationTargetName(node, specialized.Identifier.Text)
-				.WithArgumentList(node.ArgumentList.WithArguments(ToArgumentList(arguments)))
+				.WithArgumentList(node.ArgumentList.WithArguments(ToArgumentList(specializedArguments)))
 				.WithMethodSymbolAnnotation(targetMethod, symbolStore);
 		}
 
@@ -809,8 +809,10 @@ public partial class ConstExprPartialRewriter
 	///   ones — get distinct/shared names automatically via the existing <see cref="additionalMethods" />
 	///   structural-equality cache.
 	/// </summary>
-	private MethodDeclarationSyntax? GetSpecializedMethodSyntax(IMethodSymbol targetMethod, IReadOnlyList<ExpressionSyntax> arguments)
+	private MethodDeclarationSyntax? GetSpecializedMethodSyntax(IMethodSymbol targetMethod, IReadOnlyList<ExpressionSyntax> arguments, out IReadOnlyList<ExpressionSyntax> keptArguments)
 	{
+		keptArguments = arguments;
+
 		try
 		{
 			var methodSyntax = targetMethod.DeclaringSyntaxReferences
@@ -824,6 +826,7 @@ public partial class ConstExprPartialRewriter
 			}
 
 			var parameters = new Dictionary<string, VariableItem>();
+			var isLiteralArgument = new bool[arguments.Count];
 
 			for (var i = 0; i < arguments.Count; i++)
 			{
@@ -831,7 +834,9 @@ public partial class ConstExprPartialRewriter
 				var paramName = paramSyntax.Identifier.Text;
 				var paramType = semanticModel.GetTypeInfo(paramSyntax.Type!).Type ?? semanticModel.Compilation.ObjectType;
 
-				parameters[paramName] = TryGetLiteralValue(arguments[i], out var literalValue)
+				isLiteralArgument[i] = TryGetLiteralValue(arguments[i], out var literalValue);
+
+				parameters[paramName] = isLiteralArgument[i]
 					? new VariableItem(paramType, true, literalValue, true) { CanBeInlined = true }
 					: new VariableItem(paramType, false, arguments[i], true);
 			}
@@ -872,11 +877,32 @@ public partial class ConstExprPartialRewriter
 			}
 
 			var mods = TokenList(Token(SyntaxKind.PrivateKeyword), Token(SyntaxKind.StaticKeyword));
-
-			return methodSyntax
+			var originalParameters = methodSyntax.ParameterList.Parameters;
+			var result = methodSyntax
 				.WithIdentifier(Identifier($"{targetMethod.Name}_{body.GetDeterministicHashString()}"))
 				.WithBody(body)
 				.WithModifiers(mods);
+
+			// A literal argument that got folded away everywhere in the body no longer needs a
+			// parameter slot for it — drop it (and the matching argument at the call site) instead of
+			// keeping an unused parameter around just because the original method declared one.
+			// Non-literal arguments are never dropped even if they read as unused here: the argument
+			// expression may carry a side effect that still has to run at the call site.
+			var referencedNames = new HashSet<string>(
+				body.DescendantNodes().OfType<IdentifierNameSyntax>().Select(id => id.Identifier.Text),
+				StringComparer.Ordinal);
+
+			var keptIndices = Enumerable.Range(0, originalParameters.Count)
+				.Where(i => !isLiteralArgument[i] || referencedNames.Contains(originalParameters[i].Identifier.Text))
+				.ToArray();
+
+			if (keptIndices.Length != originalParameters.Count)
+			{
+				result = result.WithParameterList(ParameterList(SeparatedList(keptIndices.Select(i => originalParameters[i]))));
+				keptArguments = keptIndices.Select(i => arguments[i]).ToArray();
+			}
+
+			return result;
 		}
 		catch (Exception)
 		{

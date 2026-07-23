@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
@@ -110,10 +111,24 @@ public partial class ConstExprPartialRewriter
 
 		UpdateVariableValue(item, operation, value, node.Initializer?.Value);
 
-		if (node.Initializer is null
-		    || value is CollectionExpressionSyntax && node.Parent is VariableDeclarationSyntax { Type: IdentifierNameSyntax { Identifier.Text: "var" } })
+		if (node.Initializer is null)
 		{
 			return node;
+		}
+
+		if (value is CollectionExpressionSyntax collectionExpression
+		    && node.Parent is VariableDeclarationSyntax { Type: IdentifierNameSyntax { Identifier.Text: "var" } })
+		{
+			// `var x = [...]` doesn't compile - a collection expression has no type of its own for
+			// `var` to infer. Re-express the fold as `new[] { ... }` instead, which keeps `var` legal.
+			// If the collection can't be converted 1:1 (empty, or containing a spread element), keep
+			// the original, unfolded initializer rather than emit something that might not compile.
+			if (!TryConvertToImplicitArrayCreation(collectionExpression, out var arrayCreation))
+			{
+				return node;
+			}
+
+			value = arrayCreation;
 		}
 
 		// Handle byte/sbyte literals that need casting
@@ -124,6 +139,28 @@ public partial class ConstExprPartialRewriter
 		}
 
 		return node.WithInitializer(node.Initializer.WithValue(value as ExpressionSyntax ?? node.Initializer.Value));
+	}
+
+	/// <summary>
+	///   Converts a collection expression (`[a, b, c]`) into an equivalent implicitly-typed array
+	///   creation expression (`new[] { a, b, c }`). Unlike a collection expression, an implicit array
+	///   creation has a type of its own, so it stays legal where the collection expression wouldn't be
+	///   (e.g. a `var` declaration).
+	/// </summary>
+	private static bool TryConvertToImplicitArrayCreation(CollectionExpressionSyntax collection, [NotNullWhen(true)] out ExpressionSyntax? result)
+	{
+		if (collection.Elements.Count == 0 || collection.Elements.Any(e => e is not ExpressionElementSyntax))
+		{
+			result = null;
+			return false;
+		}
+
+		var expressions = collection.Elements
+			.Cast<ExpressionElementSyntax>()
+			.Select(e => e.Expression);
+
+		result = ImplicitArrayCreationExpression(InitializerExpression(SyntaxKind.ArrayInitializerExpression, SeparatedList(expressions)));
+		return true;
 	}
 
 	/// <summary>
