@@ -92,6 +92,13 @@ public sealed class InlineVariableAnalyzer(SemanticModel semanticModel, Concurre
 			}
 		}
 
+		// A read inside a loop that does not also contain the declaration would turn a
+		// value computed once before the loop into one recomputed every iteration.
+		if (readRefs.Any(readSite => IsReadInsideUncontainingLoop(declaration, readSite)))
+		{
+			return false;
+		}
+
 		var purity = ClassifyPurity(semanticModel.GetOperation(variable.Initializer.Value));
 
 		candidate = new InlineCandidate(
@@ -222,8 +229,8 @@ public sealed class InlineVariableAnalyzer(SemanticModel semanticModel, Concurre
 			AssignmentExpressionSyntax assign => assign.Left,
 			PrefixUnaryExpressionSyntax
 				{
-					RawKind: (int)SyntaxKind.PreIncrementExpression
-					or (int)SyntaxKind.PreDecrementExpression
+					RawKind: (int) SyntaxKind.PreIncrementExpression
+					or (int) SyntaxKind.PreDecrementExpression
 				} p
 				=> p.Operand,
 			PostfixUnaryExpressionSyntax p => p.Operand,
@@ -246,6 +253,21 @@ public sealed class InlineVariableAnalyzer(SemanticModel semanticModel, Concurre
 
 		var written = semanticModel.GetSymbolInfo(resolvedTarget).Symbol;
 		return written is not null && symbols.Contains(written);
+	}
+
+	// ── Loop-boundary check ───────────────────────────────────────────────────
+
+	/// <summary>
+	///   True if <paramref name="readSite" /> sits inside a loop that does not also contain
+	///   <paramref name="declaration" /> — inlining there would turn a value computed once
+	///   before the loop into one recomputed on every iteration.
+	/// </summary>
+	private static bool IsReadInsideUncontainingLoop(LocalDeclarationStatementSyntax declaration, IdentifierNameSyntax readSite)
+	{
+		return readSite
+			.Ancestors()
+			.Any(a => a is ForStatementSyntax or WhileStatementSyntax or DoStatementSyntax or CommonForEachStatementSyntax
+			          && !a.Span.Contains(declaration.Span));
 	}
 
 	// ── Wederzijdse exclusiviteit ─────────────────────────────────────────────
