@@ -758,12 +758,12 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 	{
 		var visited = base.VisitImplicitArrayCreationExpression(node) as ImplicitArrayCreationExpressionSyntax ?? node;
 
-		if (visited.Initializer.Expressions.Count == 1)
+		if (visited.Initializer.Expressions.Count > 0)
 		{
 			// Strip trailing trivia from `]` so there's no newline before `{`
 			visited = visited
 				.WithCloseBracketToken(visited.CloseBracketToken.WithTrailingTrivia(TriviaList()))
-				.WithInitializer(FlattenSingleElementArrayInitializer(visited.Initializer));
+				.WithInitializer(FlattenArrayInitializer(visited.Initializer));
 		}
 
 		return visited;
@@ -773,7 +773,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 	{
 		var visited = base.VisitArrayCreationExpression(node) as ArrayCreationExpressionSyntax ?? node;
 
-		if (visited.Initializer?.Expressions.Count == 1)
+		if (visited.Initializer?.Expressions.Count > 0)
 		{
 			// Strip trailing trivia from the last `]` of the type so there's no newline before `{`
 			var lastTypeToken = visited.Type.GetLastToken();
@@ -782,15 +782,16 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 				lastTypeToken.WithTrailingTrivia(TriviaList()));
 			visited = visited
 				.WithType(cleanedType)
-				.WithInitializer(FlattenSingleElementArrayInitializer(visited.Initializer));
+				.WithInitializer(FlattenArrayInitializer(visited.Initializer));
 		}
 
 		return visited;
 	}
 
-	private static InitializerExpressionSyntax FlattenSingleElementArrayInitializer(InitializerExpressionSyntax initializer)
+	private static InitializerExpressionSyntax FlattenArrayInitializer(InitializerExpressionSyntax initializer)
 	{
-		var expr = initializer.Expressions[0].WithoutTrivia();
+		var flatElements = initializer.Expressions.Select(expr => expr.WithoutTrivia()).ToArray();
+		var commas = Enumerable.Repeat(Token(SyntaxKind.CommaToken).WithTrailingTrivia(Space), Math.Max(0, flatElements.Length - 1)).ToArray();
 
 		return initializer
 			.WithOpenBraceToken(
@@ -801,7 +802,7 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 				Token(SyntaxKind.CloseBraceToken)
 					.WithLeadingTrivia(Space)
 					.WithTrailingTrivia(TriviaList()))
-			.WithExpressions(SingletonSeparatedList(expr));
+			.WithExpressions(SeparatedList(flatElements, commas));
 	}
 
 	// Normalize object creation spacing so `new Type (` -> `new Type(`
