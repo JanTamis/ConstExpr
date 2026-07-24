@@ -133,14 +133,24 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 		var lValues = new HashSet<ExpressionSyntax>(_comparer);
 		var sideEffectCalls = new HashSet<ExpressionSyntax>(_comparer);
 		var mutatedNames = new HashSet<string>();
-		var collector = new ExpressionCollector(counts, lValues, sideEffectCalls, mutatedNames);
+		var unconditionalOccurrences = new HashSet<ExpressionSyntax>(_comparer);
+		var collector = new ExpressionCollector(counts, lValues, sideEffectCalls, mutatedNames, unconditionalOccurrences);
 
 		foreach (var statement in visitedNode.Statements)
 		{
 			collector.Visit(statement);
 		}
 
-		var candidates = counts.Where(kvp => kvp.Value > 1 && ShouldConsider(kvp.Key, lValues, sideEffectCalls, mutatedNames))
+		// A candidate whose every occurrence sits inside a single ternary branch (e.g. `sum * sum`
+		// duplicated only within `cond ? sum * sum : 0`) is only ever evaluated when that branch
+		// runs. Hoisting it to a `var` declaration before the statement would evaluate it
+		// unconditionally instead, which changes behavior for any expression that can throw and
+		// changes performance for any expensive one. Requiring at least one occurrence outside every
+		// ternary branch (i.e. already evaluated unconditionally, in the condition or at the
+		// statement's top level) keeps hoisting to cases where moving the evaluation earlier is safe.
+		var candidates = counts.Where(kvp => kvp.Value > 1
+		                                     && unconditionalOccurrences.Contains(kvp.Key)
+		                                     && ShouldConsider(kvp.Key, lValues, sideEffectCalls, mutatedNames))
 			.Select(kvp => kvp.Key)
 			.OrderByDescending(c => c.DescendantNodes().Count()) // Prefer larger expressions first
 			.ToList();
@@ -256,7 +266,7 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 				var unique = RemoveMultisetOnce(factors, common);
 				var rebuilt = unique.Count == 0
 					? sharedProduct
-					: BuildChain([ ..unique, sharedProduct ], SyntaxKind.MultiplyExpression);
+					: BuildChain([ .. unique, sharedProduct ], SyntaxKind.MultiplyExpression);
 
 				replacements[node] = rebuilt;
 			}
@@ -322,7 +332,7 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 				}
 
 				var remaining = flat.Terms.Where((_, i) => i != index).ToList();
-				var rebuilt = BuildChain([ flat.Base, refTerm, ..remaining ], SyntaxKind.SubtractExpression);
+				var rebuilt = BuildChain([ flat.Base, refTerm, .. remaining ], SyntaxKind.SubtractExpression);
 
 				replacements[node] = rebuilt;
 			}
@@ -627,14 +637,29 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 		}
 	}
 
-	private class ExpressionCollector(Dictionary<ExpressionSyntax, int> counts, HashSet<ExpressionSyntax> lValues, HashSet<ExpressionSyntax> sideEffectCalls, HashSet<string> mutatedNames) : CSharpSyntaxWalker
+	private class ExpressionCollector(Dictionary<ExpressionSyntax, int> counts, HashSet<ExpressionSyntax> lValues, HashSet<ExpressionSyntax> sideEffectCalls, HashSet<string> mutatedNames, HashSet<ExpressionSyntax> unconditionalOccurrences) : CSharpSyntaxWalker
 	{
+		private int _conditionalBranchDepth;
+
 		private void MarkMutated(ExpressionSyntax target)
 		{
 			if (GetBaseIdentifier(target) is { } name)
 			{
 				mutatedNames.Add(name);
 			}
+		}
+
+		// A ternary's condition is always evaluated, but only one of its two branches runs, so
+		// occurrences inside WhenTrue/WhenFalse must not count as "unconditional" the way a plain
+		// top-level occurrence does.
+		public override void VisitConditionalExpression(ConditionalExpressionSyntax node)
+		{
+			Visit(node.Condition);
+
+			_conditionalBranchDepth++;
+			Visit(node.WhenTrue);
+			Visit(node.WhenFalse);
+			_conditionalBranchDepth--;
 		}
 
 		public override void VisitBlock(BlockSyntax node)
@@ -705,6 +730,11 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 				var normalized = Unparenthesize(expr);
 				counts.TryGetValue(normalized, out var count);
 				counts[normalized] = count + 1;
+
+				if (_conditionalBranchDepth == 0)
+				{
+					unconditionalOccurrences.Add(normalized);
+				}
 			}
 
 			base.Visit(node);
