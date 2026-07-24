@@ -399,67 +399,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			var result2 = DeadCodePruner.Prune(result, variablesPartial, semanticModel);
 			result2 = ExceptionGuardSimplifier.Simplify(result2);
 
-			if (attribute.Optimizations.HasFlag(OptimizationFlags.CopyPropagation))
-			{
-				result2 = CopyPropagationRewriter.Apply(result2);
-				result2 = DeadCodePruner.Prune(result2, variablesPartial, semanticModel);
-			}
-
-			if (attribute.Optimizations.HasFlag(OptimizationFlags.CommonSubexpressionElimination))
-			{
-				result2 = CommonSubexpressionEliminator.Eliminate(result2, attribute.MathOptimizations);
-				result2 = DeadCodePruner.Prune(result2, variablesPartial, semanticModel);
-			}
-
-			if (attribute.Optimizations.HasFlag(OptimizationFlags.LoopInvariantCodeMotion))
-			{
-				result2 = LoopInvariantCodeMotionRewriter.Apply(result2);
-				result2 = DeadCodePruner.Prune(result2, variablesPartial, semanticModel);
-			}
-
-			if (attribute.Optimizations.HasFlag(OptimizationFlags.LoopUnswitching))
-			{
-				result2 = LoopUnswitchingRewriter.Apply(result2);
-				result2 = DeadCodePruner.Prune(result2, variablesPartial, semanticModel);
-			}
-
-			if (attribute.Optimizations.HasFlag(OptimizationFlags.LoopFusion))
-			{
-				result2 = LoopFusionRewriter.Apply(result2);
-				result2 = DeadCodePruner.Prune(result2, variablesPartial, semanticModel);
-			}
-
-			if (attribute.Optimizations.HasFlag(OptimizationFlags.IndexFromEndConversion))
-			{
-				result2 = IndexFromEndRewriter.Apply(result2);
-				result2 = DeadCodePruner.Prune(result2, variablesPartial, semanticModel);
-			}
-
-			if (attribute.Optimizations.HasFlag(OptimizationFlags.InductionVariableStrengthReduction))
-			{
-				result2 = StrengthReductionRewriter.Apply(result2);
-				result2 = DeadCodePruner.Prune(result2, variablesPartial, semanticModel);
-			}
-
-			if (attribute.Optimizations.HasFlag(OptimizationFlags.TailRecursionElimination) && result2 is BlockSyntax treBlock)
-			{
-				var treMethod = methodDecl.WithBody(treBlock);
-				result2 = TailRecursionRewriter.Apply(treMethod);
-			}
-
-			// Runs last so the loop guard sees any loop tail-recursion elimination just introduced.
-			if (attribute.Optimizations.HasFlag(OptimizationFlags.StackAllocConversion))
-			{
-				result2 = StackAllocRewriter.Apply(result2);
-				result2 = DeadCodePruner.Prune(result2, variablesPartial, semanticModel);
-			}
-
-			// Last of all: the ref locals it introduces are invisible to the passes above, and the
-			// stackalloc conversion has already claimed the locals it wants.
-			if (attribute.Optimizations.HasFlag(OptimizationFlags.BoundsCheckElimination))
-			{
-				result2 = BoundsCheckRewriter.Apply(result2, methodDecl.ParameterList);
-			}
+			result2 = OptimizationPipeline.Apply(result2, methodDecl.ParameterList, methodDecl.Identifier, attribute, variablesPartial, semanticModel);
 
 			// Format using Roslyn formatter instead of NormalizeWhitespace
 			// var text = FormattingHelper.Render(methodDecl.WithBody((BlockSyntax)result));

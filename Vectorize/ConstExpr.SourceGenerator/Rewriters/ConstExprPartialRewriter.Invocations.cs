@@ -780,34 +780,17 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	///   Applies the common-subexpression-elimination and stackalloc-conversion passes (each with its
-	///   paired dead-code prune) to a specialized helper body, mirroring the post-inlining pipeline
-	///   the main method receives in <see cref="ConstExprSourceGenerator" /> (~L402). Without this,
-	///   helper methods emitted via <see cref="GetInlinedMethodSyntax" /> keep the duplicate
-	///   subexpressions that inlining introduces — e.g. a ternary the source computed once via a
-	///   local, now inlined twice — and miss stackalloc conversion that the same body would get when
-	///   generated directly.
+	///   Runs the same <see cref="OptimizationPipeline" /> over a helper body that the calling method
+	///   itself gets, so a method emitted next to its caller (<c>FindMax</c> alongside <c>Range</c>)
+	///   is optimized rather than copied verbatim from source. Without it the helper also keeps the
+	///   duplicate subexpressions inlining introduces — e.g. a ternary the source computed once via a
+	///   local, now inlined twice.
 	/// </summary>
-	private BlockSyntax? OptimizeInlinedBody(BlockSyntax? body, IDictionary<string, VariableItem> parameters)
+	private BlockSyntax? OptimizeInlinedBody(BlockSyntax? body, IDictionary<string, VariableItem> parameters, ParameterListSyntax parameterList, SyntaxToken methodName)
 	{
-		if (body is null)
-		{
-			return body;
-		}
-
-		if (attribute.Optimizations.HasFlag(OptimizationFlags.CommonSubexpressionElimination))
-		{
-			body = CommonSubexpressionEliminator.Eliminate(body, attribute.MathOptimizations) as BlockSyntax ?? body;
-			body = DeadCodePruner.Prune(body, parameters, semanticModel) as BlockSyntax ?? body;
-		}
-
-		if (attribute.Optimizations.HasFlag(OptimizationFlags.StackAllocConversion))
-		{
-			body = StackAllocRewriter.Apply(body) as BlockSyntax ?? body;
-			body = DeadCodePruner.Prune(body, parameters, semanticModel) as BlockSyntax ?? body;
-		}
-
-		return body;
+		return body is null
+			? body
+			: OptimizationPipeline.Apply(body, parameterList, methodName, attribute, parameters, semanticModel) as BlockSyntax ?? body;
 	}
 
 	/// <summary>
@@ -878,7 +861,7 @@ public partial class ConstExprPartialRewriter
 				semanticModel, loader, (_, _) => { }, parameters,
 				additionalMethods, usings, attribute, symbolStore, token, visitingMethods);
 
-			var body = OptimizeInlinedBody(subRewriter.Visit(methodSyntax.Body) as BlockSyntax, parameters);
+			var body = OptimizeInlinedBody(subRewriter.Visit(methodSyntax.Body) as BlockSyntax, parameters, methodSyntax.ParameterList, methodSyntax.Identifier);
 
 			visitingMethods?.Remove(targetMethod);
 
@@ -945,7 +928,7 @@ public partial class ConstExprPartialRewriter
 						var body = visitor.Visit(method.Body) as BlockSyntax;
 						visitingMethods?.Remove(targetMethod);
 
-						return method.WithBody(OptimizeInlinedBody(body, parameters)).WithModifiers(mods);
+						return method.WithBody(OptimizeInlinedBody(body, parameters, method.ParameterList, method.Identifier)).WithModifiers(mods);
 					}
 					case LocalFunctionStatementSyntax localFunc:
 					{
@@ -957,7 +940,7 @@ public partial class ConstExprPartialRewriter
 						var body = visitor.Visit(localFunc.Body) as BlockSyntax;
 						visitingMethods?.Remove(targetMethod);
 
-						return localFunc.WithBody(OptimizeInlinedBody(body, parameters)).WithModifiers(mods);
+						return localFunc.WithBody(OptimizeInlinedBody(body, parameters, localFunc.ParameterList, localFunc.Identifier)).WithModifiers(mods);
 					}
 					default:
 					{

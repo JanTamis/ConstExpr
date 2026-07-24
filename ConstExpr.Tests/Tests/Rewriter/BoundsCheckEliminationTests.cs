@@ -43,3 +43,71 @@ public class BoundsCheckEliminationTests() : BaseTest<Func<int[], int>>(optimiza
 		Create(_ => 15, [ new[] { 1, 2, 3, 4, 5 } ])
 	];
 }
+
+/// <summary>
+///   A string is viewed as a <c>ReadOnlySpan&lt;char&gt;</c> via <c>AsSpan</c>. Reads only — a string
+///   has no indexer setter — and <c>.Length</c> stays untouched.
+/// </summary>
+[InheritsTests]
+public class BoundsCheckEliminationStringTests() : BaseTest<Func<string, int>>(optimizations: OptimizationFlags.BoundsCheckElimination)
+{
+	public override string TestMethod => GetString(text =>
+	{
+		var sum = text[0];
+
+		for (var i = 1; i < text.Length; i++)
+		{
+			sum += text[i];
+		}
+
+		return sum;
+	});
+
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
+	[
+		Create(text =>
+		{
+			ref var textRef = ref MemoryMarshal.GetReference(text.AsSpan());
+			var sum = textRef;
+
+			for (var i = 1; i < text.Length; i++)
+			{
+				sum += Unsafe.Add(ref textRef, (nuint) i);
+			}
+
+			return sum;
+		}, [ Unknown ])
+	];
+}
+
+/// <summary>
+///   The reference is hoisted above a null guard, so the entry point must not dereference.
+///   <c>AsSpan</c> maps null to an empty span and only computes an address;
+///   <c>string.GetPinnableReference()</c> would throw here instead of letting the guard return, which
+///   is why the pass does not use it.
+/// </summary>
+[InheritsTests]
+public class BoundsCheckEliminationStringNullGuardTests() : BaseTest<Func<string?, int>>(optimizations: OptimizationFlags.BoundsCheckElimination)
+{
+	public override string TestMethod => GetString(text =>
+	{
+		if (text is null)
+		{
+			return 0;
+		}
+
+		return text[0];
+	});
+
+	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
+	[
+		// The guard itself is collapsed to a ternary by an always-on pass; what matters here is that
+		// the hoisted reference sits above it and does not fault on a null string.
+		Create(text =>
+		{
+			ref var textRef = ref MemoryMarshal.GetReference(text.AsSpan());
+
+			return text == null ? 0 : textRef;
+		}, [ Unknown ])
+	];
+}

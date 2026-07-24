@@ -8,7 +8,7 @@ namespace ConstExpr.SourceGenerator.Sample.Operations;
 
 [ConstExpr(
 	MathOptimizations = FastMathFlags.All,
-	Optimizations = OptimizationFlags.All,
+	Optimizations = OptimizationFlags.All | OptimizationFlags.BoundsCheckElimination,
 	LinqOptimization = LinqOptimizationMode.Unroll)]
 public static class DataValidationOperations
 {

@@ -222,74 +222,8 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		newBody = DeadCodePruner.Prune(newBody, parameters, state.SemanticModel) as BlockSyntax;
 		newBody = ExceptionGuardSimplifier.Simplify(newBody!) as BlockSyntax;
 
-		if (attribute.Optimizations.HasFlag(OptimizationFlags.CopyPropagation))
-		{
-			newBody = CopyPropagationRewriter.Apply(newBody!) as BlockSyntax ?? newBody;
-			newBody = DeadCodePruner.Prune(newBody, parameters, state.SemanticModel) as BlockSyntax;
-		}
-
-		if (attribute.Optimizations.HasFlag(OptimizationFlags.CommonSubexpressionElimination))
-		{
-			newBody = CommonSubexpressionEliminator.Eliminate(newBody, attribute.MathOptimizations) as BlockSyntax;
-			newBody = DeadCodePruner.Prune(newBody, parameters, state.SemanticModel) as BlockSyntax;
-		}
-
-		if (attribute.Optimizations.HasFlag(OptimizationFlags.LoopInvariantCodeMotion))
-		{
-			newBody = LoopInvariantCodeMotionRewriter.Apply(newBody!) as BlockSyntax ?? newBody;
-			newBody = DeadCodePruner.Prune(newBody, parameters, state.SemanticModel) as BlockSyntax;
-		}
-
-		if (attribute.Optimizations.HasFlag(OptimizationFlags.LoopUnswitching))
-		{
-			newBody = LoopUnswitchingRewriter.Apply(newBody!) as BlockSyntax ?? newBody;
-			newBody = DeadCodePruner.Prune(newBody, parameters, state.SemanticModel) as BlockSyntax;
-		}
-
-		if (attribute.Optimizations.HasFlag(OptimizationFlags.LoopFusion))
-		{
-			newBody = LoopFusionRewriter.Apply(newBody!) as BlockSyntax ?? newBody;
-			newBody = DeadCodePruner.Prune(newBody, parameters, state.SemanticModel) as BlockSyntax;
-		}
-
-		if (attribute.Optimizations.HasFlag(OptimizationFlags.IndexFromEndConversion))
-		{
-			newBody = IndexFromEndRewriter.Apply(newBody!) as BlockSyntax ?? newBody;
-			newBody = DeadCodePruner.Prune(newBody, parameters, state.SemanticModel) as BlockSyntax;
-		}
-
-		if (attribute.Optimizations.HasFlag(OptimizationFlags.InductionVariableStrengthReduction))
-		{
-			newBody = StrengthReductionRewriter.Apply(newBody!) as BlockSyntax ?? newBody;
-			newBody = DeadCodePruner.Prune(newBody, parameters, state.SemanticModel) as BlockSyntax;
-		}
-
-		if (attribute.Optimizations.HasFlag(OptimizationFlags.TailRecursionElimination))
-		{
-			// Wrap the block in a pseudo MethodDeclarationSyntax so TailRecursionRewriter
-			// can read the parameter list and the method name.
-			var pseudoMethod = SyntaxFactory.MethodDeclaration(
-					SyntaxFactory.PredefinedType(
-						SyntaxFactory.Token(SyntaxKind.VoidKeyword)),
-					state.Method.Identifier)
-				.WithParameterList(state.Method.ParameterList)
-				.WithBody(newBody);
-			newBody = TailRecursionRewriter.Apply(pseudoMethod);
-		}
-
-		// Runs last so the loop guard sees any loop tail-recursion elimination just introduced.
-		if (attribute.Optimizations.HasFlag(OptimizationFlags.StackAllocConversion))
-		{
-			newBody = StackAllocRewriter.Apply(newBody!) as BlockSyntax ?? newBody;
-			newBody = DeadCodePruner.Prune(newBody, parameters, state.SemanticModel) as BlockSyntax;
-		}
-
-		// Last of all: the ref locals it introduces are invisible to the passes above, and the
-		// stackalloc conversion has already claimed the locals it wants.
-		if (attribute.Optimizations.HasFlag(OptimizationFlags.BoundsCheckElimination))
-		{
-			newBody = BoundsCheckRewriter.Apply(newBody!, state.Method.ParameterList) as BlockSyntax ?? newBody;
-		}
+		// Same shared pipeline the generator runs, so the harness cannot drift from it.
+		newBody = OptimizationPipeline.Apply(newBody!, state.Method.ParameterList, state.Method.Identifier, attribute, parameters, state.SemanticModel) as BlockSyntax ?? newBody;
 
 		newBody = FormattingHelper.Format(newBody!) as BlockSyntax;
 		var newBodyRendered = FormattingHelper.Render(newBody);

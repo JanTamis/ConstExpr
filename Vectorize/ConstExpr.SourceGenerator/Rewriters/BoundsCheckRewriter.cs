@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -37,7 +38,8 @@ public sealed class BoundsCheckRewriter
 		Array,
 		Span,
 		ReadOnlySpan,
-		List
+		List,
+		String
 	}
 
 	/// <summary>
@@ -51,7 +53,7 @@ public sealed class BoundsCheckRewriter
 	///   enclosing method's parameter list — the semantic model no longer covers the rewritten tree,
 	///   so declared array types are read from there.
 	/// </summary>
-	public static SyntaxNode Apply(SyntaxNode node, ParameterListSyntax parameters)
+	public static SyntaxNode Apply(SyntaxNode node, ParameterListSyntax parameters, IDictionary<string, VariableItem> variables)
 	{
 		if (node is not BlockSyntax body)
 		{
@@ -80,7 +82,7 @@ public sealed class BoundsCheckRewriter
 			taken.Add(parameter.Identifier.Text);
 		}
 
-		foreach (var candidate in CollectCandidates(body, parameters))
+		foreach (var candidate in CollectCandidates(body, parameters, variables))
 		{
 			body = Rewrite(body, candidate, taken);
 		}
@@ -88,7 +90,7 @@ public sealed class BoundsCheckRewriter
 		return body;
 	}
 
-	private static IEnumerable<Candidate> CollectCandidates(BlockSyntax body, ParameterListSyntax parameters)
+	private static IEnumerable<Candidate> CollectCandidates(BlockSyntax body, ParameterListSyntax parameters, IDictionary<string, VariableItem> variables)
 	{
 		foreach (var parameter in parameters.Parameters)
 		{
@@ -105,7 +107,7 @@ public sealed class BoundsCheckRewriter
 				continue;
 			}
 
-			if (ClassifyLocal(declaration, declarator) is var (kind, allowWrites) && IsEligible(body, declarator.Identifier.Text, kind, 1))
+			if (ClassifyLocal(declaration, declarator, variables) is var (kind, allowWrites) && IsEligible(body, declarator.Identifier.Text, kind, 1))
 			{
 				yield return new Candidate(declarator.Identifier.Text, kind, allowWrites, true);
 			}
@@ -126,9 +128,19 @@ public sealed class BoundsCheckRewriter
 			case ArrayTypeSyntax { RankSpecifiers: [ { Sizes.Count: 1 } ] } array:
 				return (CollectionKind.Array, IsPrimitiveElement(array.ElementType));
 
+			// A string has no indexer setter, so no write can exist to rewrite in the first place.
+			case PredefinedTypeSyntax { Keyword.RawKind: (int) SyntaxKind.StringKeyword }:
+			case IdentifierNameSyntax { Identifier.Text: "String" }:
+				return (CollectionKind.String, false);
+
 			// System.Span<int> and the like.
 			case QualifiedNameSyntax qualified:
 				return Classify(qualified.Right);
+
+			// A nullable annotation on a reference type (`string?`, `int[]?`) says nothing about how it
+			// is indexed. A nullable *value* type unwraps to something this method rejects anyway.
+			case NullableTypeSyntax nullable:
+				return Classify(nullable.ElementType);
 
 			// ponytail: matches the type name only, not the namespace it came from — the pass runs on a
 			// tree the semantic model no longer covers. A user type of the same name emits a call it
@@ -151,9 +163,11 @@ public sealed class BoundsCheckRewriter
 
 	/// <summary>
 	///   Classifies a local from its declared type, falling back to its initializer when it was
-	///   declared with <c>var</c>.
+	///   declared with <c>var</c>, and finally to the type the interpreter already resolved for it
+	///   (<see cref="Classify(ITypeSymbol)" />) for an initializer shape neither syntax case covers —
+	///   <c>var chars = input.ToCharArray()</c>, <c>var copy = source.ToArray()</c>.
 	/// </summary>
-	private static (CollectionKind Kind, bool AllowWrites)? ClassifyLocal(LocalDeclarationStatementSyntax declaration, VariableDeclaratorSyntax declarator)
+	private static (CollectionKind Kind, bool AllowWrites)? ClassifyLocal(LocalDeclarationStatementSyntax declaration, VariableDeclaratorSyntax declarator, IDictionary<string, VariableItem> variables)
 	{
 		if (Classify(declaration.Declaration.Type) is { } declared)
 		{
@@ -162,17 +176,64 @@ public sealed class BoundsCheckRewriter
 
 		// Deliberately no stackalloc case: `var b = stackalloc int[8]` is an `int*`, not a Span<int>,
 		// and a pointer has no bounds check to remove in the first place.
-		return declarator.Initializer?.Value switch
+		if (declarator.Initializer?.Value switch
+		    {
+			    ArrayCreationExpressionSyntax creation => Classify(creation.Type),
+			    ObjectCreationExpressionSyntax objectCreation => Classify(objectCreation.Type),
+			    _ => null
+		    } is { } fromInitializerSyntax)
 		{
-			ArrayCreationExpressionSyntax creation => Classify(creation.Type),
-			ObjectCreationExpressionSyntax objectCreation => Classify(objectCreation.Type),
-			_ => null
-		};
+			return fromInitializerSyntax;
+		}
+
+		return variables.TryGetValue(declarator.Identifier.Text, out var item) ? Classify(item.Type) : null;
+	}
+
+	/// <summary>
+	///   Semantic counterpart to <see cref="Classify(TypeSyntax)" />. Sourced from
+	///   <see cref="VariableItem.Type" />, which the interpreter records for every local — including
+	///   one whose value can't be folded — while the semantic model still covered the original tree;
+	///   by the time this pass runs the model no longer matches the rewritten nodes (see the class
+	///   remarks), so this is looked up by name instead of re-querying it.
+	/// </summary>
+	private static (CollectionKind Kind, bool AllowWrites)? Classify(ITypeSymbol? type)
+	{
+		switch (type)
+		{
+			case IArrayTypeSymbol { Rank: 1 } array:
+				return (CollectionKind.Array, IsPrimitiveElement(array.ElementType));
+
+			case { SpecialType: SpecialType.System_String }:
+				return (CollectionKind.String, false);
+
+			case INamedTypeSymbol { IsGenericType: true, TypeArguments.Length: 1 } named:
+				return (named.ContainingNamespace?.ToDisplayString(), named.Name) switch
+				{
+					("System", "Span") => (CollectionKind.Span, true),
+					("System", "ReadOnlySpan") => (CollectionKind.ReadOnlySpan, false),
+					("System.Collections.Generic", "List") => (CollectionKind.List, true),
+					_ => null
+				};
+
+			default:
+				return null;
+		}
 	}
 
 	private static bool IsPrimitiveElement(TypeSyntax elementType)
 	{
 		return elementType is PredefinedTypeSyntax predefined && StackAllocRewriter.PrimitiveSize(predefined.Keyword.Text) is not null;
+	}
+
+	// Mirrors the keyword list in StackAllocRewriter.PrimitiveSize — no nint/nuint/IntPtr, those
+	// aren't recognized there either.
+	private static bool IsPrimitiveElement(ITypeSymbol elementType)
+	{
+		return elementType.SpecialType is SpecialType.System_Boolean or SpecialType.System_Byte or SpecialType.System_SByte
+			or SpecialType.System_Char or SpecialType.System_Int16 or SpecialType.System_UInt16
+			or SpecialType.System_Int32 or SpecialType.System_UInt32 or SpecialType.System_Single
+			or SpecialType.System_Int64 or SpecialType.System_UInt64 or SpecialType.System_Double
+			or SpecialType.System_Decimal;
 	}
 
 	/// <summary>
@@ -358,26 +419,39 @@ public sealed class BoundsCheckRewriter
 	/// <summary>
 	///   The entry point into each storage kind. An array exposes its first element directly; a span
 	///   goes through <c>GetReference</c>; a list first has to be viewed as a span over its backing
-	///   array — which is exactly why <see cref="HasStableBackingArray" /> guards it.
+	///   array — which is exactly why <see cref="HasStableBackingArray" /> guards it — and a string
+	///   likewise via <c>AsSpan</c>.
+	///   <para>
+	///     A string deliberately does <em>not</em> use <c>string.GetPinnableReference()</c>, the
+	///     obvious-looking API here. That one is an instance call that throws
+	///     <see cref="System.NullReferenceException" /> the moment it runs on a null string, so
+	///     hoisting it above a <c>if (text is null)</c> guard would turn a normal early return into a
+	///     crash. <c>AsSpan()</c> maps null to an empty span and only computes an address, matching how
+	///     the array and list entry points behave. Both compile to the same load.
+	///   </para>
 	/// </summary>
 	private static ExpressionSyntax ReferenceTo(Candidate candidate)
 	{
 		var target = IdentifierName(candidate.Name);
 
-		if (candidate.Kind == CollectionKind.Array)
+		return candidate.Kind switch
 		{
-			return Call("MemoryMarshal", "GetArrayDataReference", target);
-		}
+			CollectionKind.Array => Call("MemoryMarshal", "GetArrayDataReference", target),
+			// CollectionKind.String => InvocationExpression(MemberAccessExpression(target, IdentifierName("GetPinnableReference"))),
+			_ => Call("MemoryMarshal", "GetReference", candidate.Kind switch
+			{
+				CollectionKind.List => Call("CollectionsMarshal", "AsSpan", target),
+				CollectionKind.String => InvocationExpression(MemberAccessExpression(target, IdentifierName("AsSpan"))),
+				_ => target
+			})
+		};
 
-		return Call("MemoryMarshal", "GetReference", candidate.Kind == CollectionKind.List
-			? Call("CollectionsMarshal", "AsSpan", target)
-			: target);
 	}
 
 	private static InvocationExpressionSyntax Call(string receiver, string method, ExpressionSyntax argument)
 	{
 		return InvocationExpression(
-				MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName(receiver), IdentifierName(method)))
+				MemberAccessExpression(IdentifierName(receiver), IdentifierName(method)))
 			.WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(argument))));
 	}
 
