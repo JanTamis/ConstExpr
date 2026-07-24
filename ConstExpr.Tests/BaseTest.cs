@@ -284,6 +284,13 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			newBody = DeadCodePruner.Prune(newBody, parameters, state.SemanticModel) as BlockSyntax;
 		}
 
+		// Last of all: the ref locals it introduces are invisible to the passes above, and the
+		// stackalloc conversion has already claimed the locals it wants.
+		if (attribute.Optimizations.HasFlag(OptimizationFlags.BoundsCheckElimination))
+		{
+			newBody = BoundsCheckRewriter.Apply(newBody!, state.Method.ParameterList) as BlockSyntax ?? newBody;
+		}
+
 		newBody = FormattingHelper.Format(newBody!) as BlockSyntax;
 		var newBodyRendered = FormattingHelper.Render(newBody);
 

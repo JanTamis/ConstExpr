@@ -131,7 +131,7 @@ public sealed class StackAllocRewriter : CSharpSyntaxRewriter
 				InitializerExpression(SyntaxKind.ArrayInitializerExpression, initializerElements))
 			: StackAllocArrayCreationExpression(
 				ArrayType(elementType).WithRankSpecifiers(SingletonList(
-					ArrayRankSpecifier(SingletonSeparatedList<ExpressionSyntax>(CreateLiteral(count))))));
+					ArrayRankSpecifier(SingletonSeparatedList(CreateLiteral(count))))));
 
 		var spanType = GenericName("Span").WithTypeArgumentList(TypeArgumentList(SingletonSeparatedList(elementType)));
 
@@ -199,7 +199,7 @@ public sealed class StackAllocRewriter : CSharpSyntaxRewriter
 	///   Byte size of a predefined unmanaged primitive, or <c>null</c> for a type this pass does not
 	///   convert (managed types such as <c>string</c>/<c>object</c> fall through to <c>null</c>).
 	/// </summary>
-	private static int? PrimitiveSize(string keyword)
+	internal static int? PrimitiveSize(string keyword)
 	{
 		return keyword switch
 		{

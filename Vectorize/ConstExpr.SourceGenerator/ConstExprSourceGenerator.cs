@@ -454,6 +454,13 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				result2 = DeadCodePruner.Prune(result2, variablesPartial, semanticModel);
 			}
 
+			// Last of all: the ref locals it introduces are invisible to the passes above, and the
+			// stackalloc conversion has already claimed the locals it wants.
+			if (attribute.Optimizations.HasFlag(OptimizationFlags.BoundsCheckElimination))
+			{
+				result2 = BoundsCheckRewriter.Apply(result2, methodDecl.ParameterList);
+			}
+
 			// Format using Roslyn formatter instead of NormalizeWhitespace
 			// var text = FormattingHelper.Render(methodDecl.WithBody((BlockSyntax)result));
 			// var text2 = FormattingHelper.Render(methodDecl.WithBody((BlockSyntax)result2));
@@ -469,6 +476,12 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			if (attribute.MathOptimizations != FastMathFlags.Strict || attribute.Optimizations != OptimizationFlags.None)
 			{
 				usings.Add("System.Runtime.CompilerServices");
+			}
+
+			// MemoryMarshal.GetArrayDataReference, emitted by the bounds-check pass.
+			if (attribute.Optimizations.HasFlag(OptimizationFlags.BoundsCheckElimination))
+			{
+				usings.Add("System.Runtime.InteropServices");
 			}
 
 			var resultMethod = methodDecl

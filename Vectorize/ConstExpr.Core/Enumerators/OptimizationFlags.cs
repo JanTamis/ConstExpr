@@ -92,11 +92,32 @@ public enum OptimizationFlags
 	StackAllocConversion = 1 << 8,
 
 	/// <summary>
+	///   Enable bounds-check elimination.
+	///   Rewrites array indexing (<c>arr[i]</c>) into direct reference arithmetic
+	///   (<c>Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(arr), (nuint) i)</c>), so the runtime
+	///   no longer range-checks the index.
+	///   <para>
+	///     This pass does <em>not</em> prove that indices stay in range — that guarantee is the
+	///     caller's, exactly as with <c>-fno-bounds-check</c> in a C compiler. An out-of-range index
+	///     silently reads or writes adjacent heap memory instead of throwing
+	///     <see cref="System.IndexOutOfRangeException" />. Enable it only on code whose indexing is
+	///     known to be correct.
+	///   </para>
+	///   <para>
+	///     The generated code calls <c>MemoryMarshal.GetArrayDataReference</c> and so requires
+	///     .NET 5 or later.
+	///   </para>
+	/// </summary>
+	BoundsCheckElimination = 1 << 9,
+
+	/// <summary>
 	///   Enable all general-purpose optimization passes.
 	///   Combines <see cref="CommonSubexpressionElimination" />, <see cref="LoopInvariantCodeMotion" />,
 	///   <see cref="TailRecursionElimination" />, <see cref="LoopUnswitching" />, <see cref="LoopFusion" />,
 	///   <see cref="IndexFromEndConversion" />, <see cref="CopyPropagation" />,
 	///   <see cref="InductionVariableStrengthReduction" />, and <see cref="StackAllocConversion" />.
+	///   <see cref="BoundsCheckElimination" /> is deliberately excluded: it trades memory safety for
+	///   speed and must be opted into explicitly.
 	/// </summary>
 	All = CommonSubexpressionElimination | LoopInvariantCodeMotion | TailRecursionElimination | LoopUnswitching | LoopFusion | IndexFromEndConversion | CopyPropagation | InductionVariableStrengthReduction | StackAllocConversion
 }

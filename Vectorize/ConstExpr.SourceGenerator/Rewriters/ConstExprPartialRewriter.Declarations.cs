@@ -280,6 +280,24 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
+	///   The type to give a single-declarator local after rewriting. Normally <c>var</c>, since the
+	///   initializer already determines the type — except when inference would land on a
+	///   <em>different</em> type than was declared.
+	///   <para>
+	///     <c>stackalloc</c> is the case that bites: <c>Span&lt;int&gt; b = stackalloc int[4];</c> is a
+	///     span, but <c>var b = stackalloc int[4];</c> is an <c>int*</c>. Erasing the type there
+	///     silently turns a safe span into a pointer, which needs <c>AllowUnsafeBlocks</c> to compile
+	///     at all and drops the length along with the bounds check.
+	///   </para>
+	/// </summary>
+	private static TypeSyntax SimplifiedTypeOf(VariableDeclarationSyntax node, VariableDeclaratorSyntax declarator)
+	{
+		return declarator.Initializer?.Value is StackAllocArrayCreationExpressionSyntax or ImplicitStackAllocArrayCreationExpressionSyntax
+			? node.Type
+			: ParseTypeName("var");
+	}
+
+	/// <summary>
 	///   Builds the result for a variable declaration.
 	/// </summary>
 	private SyntaxNode? BuildVariableDeclarationResult(VariableDeclarationSyntax node, List<VariableDeclaratorSyntax> visitedVariables, List<StatementSyntax> statements)
@@ -289,7 +307,7 @@ public partial class ConstExprPartialRewriter
 			if (visitedVariables.Count > 0)
 			{
 				var declaration = node
-					.WithType(visitedVariables.Count == 1 ? ParseTypeName("var") : node.Type)
+					.WithType(visitedVariables.Count == 1 ? SimplifiedTypeOf(node, visitedVariables[0]) : node.Type)
 					.WithVariables(SeparatedList(visitedVariables));
 
 				return Block(
@@ -306,7 +324,7 @@ public partial class ConstExprPartialRewriter
 		if (visitedVariables.Count > 0)
 		{
 			return node
-				.WithType(visitedVariables.Count == 1 ? ParseTypeName("var") : node.Type)
+				.WithType(visitedVariables.Count == 1 ? SimplifiedTypeOf(node, visitedVariables[0]) : node.Type)
 				.WithVariables(SeparatedList(visitedVariables));
 		}
 
