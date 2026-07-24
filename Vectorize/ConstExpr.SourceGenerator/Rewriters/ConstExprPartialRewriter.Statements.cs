@@ -62,22 +62,14 @@ public partial class ConstExprPartialRewriter
 
 		if (@else is null)
 		{
-			switch (statement)
+			var mergeCandidate = node
+				.WithCondition(condition as ExpressionSyntax ?? node.Condition)
+				.WithStatement(statement as StatementSyntax ?? node.Statement);
+
+			if (MergeNestedIfStatementsRefactoring.TryMergeNestedIf(mergeCandidate, out var merged))
 			{
-				case IfStatementSyntax { Else: null } nestedIf:
-				{
-					condition = Visit(ParenthesizedExpression(LogicalOrExpression(condition as ExpressionSyntax ?? node.Condition, nestedIf.Condition)));
-					statement = nestedIf.Statement;
-
-					break;
-				}
-				case BlockSyntax { Statements: [ IfStatementSyntax { Else: null } nestedBlockIf ] }:
-				{
-					condition = Visit(ParenthesizedExpression(LogicalOrExpression(condition as ExpressionSyntax ?? node.Condition, nestedBlockIf.Condition)));
-					statement = nestedBlockIf.Statement;
-
-					break;
-				}
+				condition = Visit(merged.Condition);
+				statement = merged.Statement;
 			}
 		}
 		// The then-branch fully pruned away (e.g. a provably redundant assignment matching the
@@ -1021,7 +1013,8 @@ public partial class ConstExprPartialRewriter
 		var liftedDeclarations = MergeUninitializedDeclarations(mergedArrayInitializers);
 		var hoistedBranches = HoistCommonBranchAssignments(liftedDeclarations);
 		var mergedInitializers = MergeRedundantInitializers(hoistedBranches);
-		var mergedSwaps = MergeSwapPattern(mergedInitializers);
+		var mergedIfAssignments = MergeIfAssignmentIntoDeclaration(mergedInitializers);
+		var mergedSwaps = MergeSwapPattern(mergedIfAssignments);
 		var mergedIncDec = RemoveCancelingIncrementDecrement(mergedSwaps);
 
 		var untilThrown = TakeUntilThrownStatements(mergedIncDec);
@@ -1739,6 +1732,69 @@ public partial class ConstExprPartialRewriter
 					i = j + 1;
 					continue;
 				}
+			}
+
+			result.Add(statements[i]);
+			i++;
+		}
+
+		return List(result);
+	}
+
+	/// <summary>
+	///   Merges a single-variable declaration whose initializer is a side-effect-free constant with an
+	///   immediately following if-statement (no else) that assigns that same variable exactly once. The
+	///   missing else implicitly keeps the declared value, so the pair collapses into one declaration
+	///   whose initializer is a conditional expression:
+	///   <code>
+	/// int c = 0;
+	/// if (cond) { c = 1; }
+	///   </code>
+	///   becomes:
+	///   <code>
+	/// var c = cond ? 1 : 0;
+	///   </code>
+	///   Skipped when the condition or the assigned value itself reads the variable — the merged
+	///   declaration would then reference the variable before it exists. Also restricted to a
+	///   trivially duplicable assigned value (identifier/literal, or a ternary of those): embedding a
+	///   larger expression into a ternary branch would remove it from its enclosing block, which can
+	///   deny a later pass (e.g. common subexpression elimination) the chance to hoist a duplicate of
+	///   it that only exists within that same block.
+	/// </summary>
+	private static SyntaxList<StatementSyntax> MergeIfAssignmentIntoDeclaration(SyntaxList<StatementSyntax> statements)
+	{
+		if (statements.Count < 2)
+		{
+			return statements;
+		}
+
+		var result = new List<StatementSyntax>();
+		var i = 0;
+
+		while (i < statements.Count)
+		{
+			if (i + 1 < statements.Count
+			    && statements[i] is LocalDeclarationStatementSyntax
+			    {
+				    Modifiers.Count: 0,
+				    Declaration.Variables: [ { Identifier.Text: var name, Initializer.Value: var initializer } declarator ]
+			    } declarationStatement
+			    && IsSideEffectFreeInitializer(initializer)
+			    && statements[i + 1] is IfStatementSyntax { Else: null } ifStatement
+			    && TryGetSingleAssignmentToIdentifier(ifStatement.Statement, out var assignment, out var assignedName)
+			    && assignedName == name
+			    && IsTriviallyDuplicableExpression(assignment.Right)
+			    && !assignment.Right.HasIdentifier(name)
+			    && !ifStatement.Condition.HasIdentifier(name))
+			{
+				var mergedDeclarator = declarator.WithInitializer(
+					EqualsValueClause(ConditionalExpression(ifStatement.Condition, assignment.Right, initializer)));
+
+				result.Add(declarationStatement.WithDeclaration(
+					declarationStatement.Declaration.WithVariables(SingletonSeparatedList(mergedDeclarator))));
+
+				i += 2;
+				continue;
 			}
 
 			result.Add(statements[i]);
