@@ -2,7 +2,6 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using ConstExpr.SourceGenerator.Extensions;
-using ConstExpr.SourceGenerator.Interfaces;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -11,7 +10,7 @@ using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class CopySignFunctionOptimizer() : BaseMathFunctionOptimizer("CopySign", n => n is 2), IBaseMathCustomImplementation
+public class CopySignFunctionOptimizer() : BaseMathFunctionOptimizer("CopySign", n => n is 2)
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -50,7 +49,7 @@ public class CopySignFunctionOptimizer() : BaseMathFunctionOptimizer("CopySign",
 	{
 		if (paramType.IsInteger())
 		{
-			var method = ParseMethodFromString(GenerateFastCopySignMethodInteger(context));
+			var method = ParseMethodFromString(GenerateFastCopySignMethodInteger())!;
 			context.AdditionalSyntax.TryAdd(method, false);
 
 			return method.Identifier.Text;
@@ -89,19 +88,17 @@ public class CopySignFunctionOptimizer() : BaseMathFunctionOptimizer("CopySign",
 		return builder.ToString();
 	}
 
-	private static string GenerateFastCopySignMethodInteger(FunctionOptimizerContext context)
+	private static string GenerateFastCopySignMethodInteger()
 	{
-		var invocation = AbsFunctionOptimizer.GenerateFastAbsMethodInteger(context);
-
 		var builder = new CodeWriter();
 
-		builder.WriteLine("private static T FastCopySign<T>(T x, T y) where T : IBinaryInteger<T>")
+		builder.WriteLine("[MethodImpl(MethodImplOptions.AggressiveInlining)]")
+			.WriteLine("private static T FastCopySign<T>(T x, T y) where T : IBinaryInteger<T>")
 			.StartBlock()
-			.WriteLine($"var absValue = {invocation}(x);")
 			.WriteLine("var bits = Unsafe.SizeOf<T>() * 8 - 1;")
-			.WriteLine("var signMask = y >> bits;")
+			.WriteLine("var mask = (x >> bits) ^ (y >> bits);")
 			.WriteWhitespace()
-			.WriteLine("return (absValue ^ signMask) - signMask;")
+			.WriteLine("return (x ^ mask) - mask;")
 			.EndBlock();
 
 		return builder.ToString();

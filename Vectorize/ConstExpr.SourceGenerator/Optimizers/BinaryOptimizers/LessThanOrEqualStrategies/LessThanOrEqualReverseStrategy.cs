@@ -17,7 +17,7 @@ public class LessThanOrEqualReverseStrategy : BaseBinaryStrategy<LiteralExpressi
 			return false;
 		}
 
-		optimized = GreaterThanExpression(context.Right.Syntax, context.Left.Syntax);
+		optimized = GreaterThanOrEqualExpression(context.Right.Syntax, context.Left.Syntax);
 		return true;
 	}
 }

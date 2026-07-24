@@ -143,7 +143,7 @@ public static class UsePatternMatchingRefactoring
 
 		var variable = localDecl.Declaration.Variables[0];
 
-		if (variable.Initializer?.Value is not BinaryExpressionSyntax { RawKind: (int)SyntaxKind.AsExpression } asExpr)
+		if (variable.Initializer?.Value is not BinaryExpressionSyntax { RawKind: (int) SyntaxKind.AsExpression } asExpr)
 		{
 			return false;
 		}
@@ -222,7 +222,7 @@ public static class UsePatternMatchingRefactoring
 			// a SemanticModel is available.
 			case BinaryExpressionSyntax
 			{
-				RawKind: (int)SyntaxKind.IsExpression,
+				RawKind: (int) SyntaxKind.IsExpression,
 				Left: var isLeft,
 				Right: TypeSyntax isType
 			}:
@@ -283,7 +283,7 @@ public static class UsePatternMatchingRefactoring
 		if (comparison.IsKind(SyntaxKind.EqualsExpression))
 		{
 			// (expr as T)?.Prop == null → NOT safe; semantics differ when the type check fails
-			if (comparison.Right is LiteralExpressionSyntax { RawKind: (int)SyntaxKind.NullLiteralExpression })
+			if (comparison.Right is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NullLiteralExpression })
 			{
 				return false;
 			}
@@ -293,7 +293,7 @@ public static class UsePatternMatchingRefactoring
 		else
 		{
 			// != null  →  not null  (semantically safe)
-			if (comparison.Right is not LiteralExpressionSyntax { RawKind: (int)SyntaxKind.NullLiteralExpression })
+			if (comparison.Right is not LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NullLiteralExpression })
 			{
 				return false;
 			}
@@ -367,7 +367,7 @@ public static class UsePatternMatchingRefactoring
 		    {
 			    Expression: BinaryExpressionSyntax
 			    {
-				    RawKind: (int)SyntaxKind.AsExpression,
+				    RawKind: (int) SyntaxKind.AsExpression,
 				    Left: var left,
 				    Right: TypeSyntax asType
 			    }
@@ -424,7 +424,7 @@ public static class UsePatternMatchingRefactoring
 		PatternSyntax valuePattern)
 	{
 		var nameOrExpressionColon = memberPath is IdentifierNameSyntax idName
-			? (BaseExpressionColonSyntax)NameColon(idName)
+			? (BaseExpressionColonSyntax) NameColon(idName)
 			: ExpressionColon(memberPath, Token(SyntaxKind.ColonToken));
 
 		var subpattern = Subpattern(nameOrExpressionColon, valuePattern);
@@ -499,7 +499,7 @@ public static class UsePatternMatchingRefactoring
 
 	private static void CollectOrPatternAlternatives(PatternSyntax pattern, List<PatternSyntax> result)
 	{
-		if (pattern is BinaryPatternSyntax { RawKind: (int)SyntaxKind.OrPattern } binary)
+		if (pattern is BinaryPatternSyntax { RawKind: (int) SyntaxKind.OrPattern } binary)
 		{
 			CollectOrPatternAlternatives(binary.Left, result);
 			CollectOrPatternAlternatives(binary.Right, result);
@@ -524,7 +524,7 @@ public static class UsePatternMatchingRefactoring
 		pattern = null;
 
 		// Recurse into || nodes — left-associative, so (a || b) || c → (pat_a or pat_b) or pat_c
-		if (expr is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LogicalOrExpression } orExpr)
+		if (expr is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LogicalOrExpression } orExpr)
 		{
 			if (!TryBuildOrPattern(orExpr.Left, ref testedExpr, out var leftPat, visit, semanticModel))
 			{
@@ -556,7 +556,7 @@ public static class UsePatternMatchingRefactoring
 	{
 		pattern = null;
 
-		if (expr is not BinaryExpressionSyntax { RawKind: (int)SyntaxKind.EqualsExpression } eqExpr)
+		if (expr is not BinaryExpressionSyntax { RawKind: (int) SyntaxKind.EqualsExpression } eqExpr)
 		{
 			return false;
 		}
@@ -612,14 +612,30 @@ public static class UsePatternMatchingRefactoring
 
 		if (expr is PrefixUnaryExpressionSyntax
 		    {
-			    RawKind: (int)SyntaxKind.UnaryMinusExpression or (int)SyntaxKind.UnaryPlusExpression,
+			    RawKind: (int) SyntaxKind.UnaryMinusExpression or (int) SyntaxKind.UnaryPlusExpression,
 			    Operand: LiteralExpressionSyntax
 		    })
 		{
 			return true;
 		}
 
-		return semanticModel?.GetConstantValue(expr).HasValue == true;
+		if (semanticModel is null)
+		{
+			return false;
+		}
+
+		try
+		{
+			return semanticModel.GetConstantValue(expr).HasValue;
+		}
+		catch (ArgumentException)
+		{
+			// expr may be a rewriter-produced node (e.g. from a speculative Visit() call on a leaf
+			// operand) that is no longer part of the tree semanticModel was built from; GetConstantValue
+			// throws instead of just reporting "not constant" for such detached nodes. Treat that the
+			// same as a genuine non-constant expression rather than letting it abort the whole rewrite.
+			return false;
+		}
 	}
 
 	// ─────────────────────────────────────────────────────────────
@@ -650,11 +666,11 @@ public static class UsePatternMatchingRefactoring
 
 		ExpressionSyntax subject;
 
-		if (comparison.Right is LiteralExpressionSyntax { RawKind: (int)SyntaxKind.NullLiteralExpression })
+		if (comparison.Right is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NullLiteralExpression })
 		{
 			subject = comparison.Left;
 		}
-		else if (comparison.Left is LiteralExpressionSyntax { RawKind: (int)SyntaxKind.NullLiteralExpression })
+		else if (comparison.Left is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NullLiteralExpression })
 		{
 			subject = comparison.Right;
 		}
@@ -666,7 +682,7 @@ public static class UsePatternMatchingRefactoring
 		// Unwrap a cast to object: (object)x == null → x is null
 		if (subject is CastExpressionSyntax
 		    {
-			    Type: PredefinedTypeSyntax { Keyword.RawKind: (int)SyntaxKind.ObjectKeyword },
+			    Type: PredefinedTypeSyntax { Keyword.RawKind: (int) SyntaxKind.ObjectKeyword },
 			    Expression: var inner
 		    })
 		{
@@ -706,7 +722,7 @@ public static class UsePatternMatchingRefactoring
 			return false;
 		}
 
-		if (isExpression.Right is not PredefinedTypeSyntax { Keyword.RawKind: (int)SyntaxKind.ObjectKeyword })
+		if (isExpression.Right is not PredefinedTypeSyntax { Keyword.RawKind: (int) SyntaxKind.ObjectKeyword })
 		{
 			return false;
 		}
@@ -796,7 +812,7 @@ public static class UsePatternMatchingRefactoring
 	{
 		pattern = null;
 
-		if (expr is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LogicalAndExpression } andExpr)
+		if (expr is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LogicalAndExpression } andExpr)
 		{
 			if (!TryBuildAndPattern(andExpr.Left, ref testedExpr, out var leftPat, semanticModel))
 			{
@@ -840,7 +856,7 @@ public static class UsePatternMatchingRefactoring
 		PatternSyntax? leafPat;
 		ExpressionSyntax tested;
 
-		switch ((SyntaxKind)binaryLeaf.RawKind)
+		switch ((SyntaxKind) binaryLeaf.RawKind)
 		{
 			// expr == constant  →  constant
 			case SyntaxKind.EqualsExpression
@@ -951,7 +967,7 @@ public static class UsePatternMatchingRefactoring
 		tested = null!;
 		pattern = null;
 
-		var opKind = (SyntaxKind)binary.RawKind;
+		var opKind = (SyntaxKind) binary.RawKind;
 		ExpressionSyntax constantExpr;
 		SyntaxKind tokenKind;
 
@@ -1014,14 +1030,14 @@ public static class UsePatternMatchingRefactoring
 		switch (condition)
 		{
 			// x != null
-			case BinaryExpressionSyntax { RawKind: (int)SyntaxKind.NotEqualsExpression, Left: IdentifierNameSyntax leftId } binary
+			case BinaryExpressionSyntax { RawKind: (int) SyntaxKind.NotEqualsExpression, Left: IdentifierNameSyntax leftId } binary
 				when leftId.Identifier.ValueText == variableName
 				     && binary.Right is LiteralExpressionSyntax rightLit
 				     && rightLit.IsKind(SyntaxKind.NullLiteralExpression):
 			{
 				return true;
 			}
-			case BinaryExpressionSyntax { RawKind: (int)SyntaxKind.NotEqualsExpression, Right: IdentifierNameSyntax rightId } binary
+			case BinaryExpressionSyntax { RawKind: (int) SyntaxKind.NotEqualsExpression, Right: IdentifierNameSyntax rightId } binary
 				when rightId.Identifier.ValueText == variableName
 				     && binary.Left is LiteralExpressionSyntax leftLit
 				     && leftLit.IsKind(SyntaxKind.NullLiteralExpression):
