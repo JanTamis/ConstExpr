@@ -7,7 +7,7 @@ namespace ConstExpr.Tests.Arithmetic;
 // preserves the incoming declaration verbatim, so the double-carrying literals (2D/4D) survive and the
 // result stays real division.
 [InheritsTests]
-public class DeadInitializerMergeTest() : BaseTest<Func<int, double>>(optimizations: OptimizationFlags.All)
+public class DeadInitializerMergeTest() : BaseTest<Func<int, double>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
 {
 	public override string TestMethod => GetString(a =>
 	{
@@ -22,9 +22,9 @@ public class DeadInitializerMergeTest() : BaseTest<Func<int, double>>(optimizati
 	[
 		Create(a =>
 		{
-			var x = a + a;
+			var x = a << 1;
 
-			return x / 2D + x / 4D;
+			return Double.MultiplyAddEstimate(x, 0.5, x * 0.25);
 		})
 	];
 }
