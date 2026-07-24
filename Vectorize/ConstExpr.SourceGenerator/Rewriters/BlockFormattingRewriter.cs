@@ -11,6 +11,17 @@ namespace ConstExpr.SourceGenerator.Rewriters;
 
 public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 {
+	// Strips explanatory "// ..." comments (e.g. carried over from the original source, like
+	// "// Optimize by using smaller k") from generated code. XML doc comments are untouched.
+	public override SyntaxToken VisitToken(SyntaxToken token)
+	{
+		var visited = base.VisitToken(token);
+
+		return visited.HasLeadingTrivia
+			? visited.WithLeadingTrivia(StripLeadingComments(visited.LeadingTrivia))
+			: visited;
+	}
+
 	public override SyntaxNode? VisitExpressionStatement(ExpressionStatementSyntax node)
 	{
 		if (node.Expression is LiteralExpressionSyntax)
@@ -1219,6 +1230,37 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 			}
 		}
 		return false;
+	}
+
+	private static SyntaxTriviaList StripLeadingComments(SyntaxTriviaList trivia)
+	{
+		var result = new List<SyntaxTrivia>(trivia.Count);
+
+		for (var i = 0; i < trivia.Count; i++)
+		{
+			var current = trivia[i];
+
+			if (!current.IsKind(SyntaxKind.SingleLineCommentTrivia, SyntaxKind.MultiLineCommentTrivia))
+			{
+				result.Add(current);
+				continue;
+			}
+
+			// Drop the indentation that only existed to line up this comment.
+			if (result.Count > 0 && result[^1].IsKind(SyntaxKind.WhitespaceTrivia)
+			                     && (result.Count == 1 || result[^2].IsKind(SyntaxKind.EndOfLineTrivia)))
+			{
+				result.RemoveAt(result.Count - 1);
+			}
+
+			// Drop the comment's own line terminator so no blank line is left behind.
+			if (i + 1 < trivia.Count && trivia[i + 1].IsKind(SyntaxKind.EndOfLineTrivia))
+			{
+				i++;
+			}
+		}
+
+		return TriviaList(result);
 	}
 
 	private static bool IsStatementEmpty(StatementSyntax statement)
