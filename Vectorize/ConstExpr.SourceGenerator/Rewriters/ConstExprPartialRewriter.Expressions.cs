@@ -32,6 +32,14 @@ public partial class ConstExprPartialRewriter
 
 			if (TryCreateLiteral(node.Token.Value, out var expression))
 			{
+				// When the literal is implicitly converted (e.g. the `3` in `3 * x` where x is
+				// double), the replacement literal built below carries the CONVERTED value/text
+				// (e.g. `3D`) - its type annotation must match that converted type, not the
+				// original node's pre-conversion natural type (`node` alone would still resolve
+				// to Int32 here), or downstream type-gated strategies see a literal that looks
+				// like a double but is annotated as an int and misapply integer-only rewrites to it.
+				ITypeSymbol? convertedType = null;
+
 				// Don't implicitly convert char literals to int - they should remain as char
 				// to preserve their representation in pattern matching contexts
 				if (semanticModel.TryGetOperation<IOperation>(node, out var operation)
@@ -40,10 +48,12 @@ public partial class ConstExprPartialRewriter
 					if (operation?.Parent is IConversionOperation conversionOperation)
 					{
 						TryCreateLiteral(ExecuteConversion(conversionOperation, node.Token.Value), out expression);
+						convertedType = conversionOperation.Type;
 					}
 					else if (operation?.Parent is IUnaryOperation { Parent: IConversionOperation parentConversionOperation })
 					{
 						TryCreateLiteral(ExecuteConversion(parentConversionOperation, node.Token.Value), out expression);
+						convertedType = parentConversionOperation.Type;
 					}
 				}
 
@@ -53,6 +63,11 @@ public partial class ConstExprPartialRewriter
 				    && ConvertStringToRawStringRefactoring.TryConvertToRawString(literalExpr, out var rawExpr))
 				{
 					return rawExpr;
+				}
+
+				if (convertedType is not null)
+				{
+					return expression.WithTypeSymbolAnnotation(convertedType, symbolStore);
 				}
 
 				if (semanticModel.TryGetTypeSymbol(node, symbolStore, out var typeSymbol))
